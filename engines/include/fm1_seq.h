@@ -256,6 +256,25 @@ typedef struct fm1_seq_stats {
 } fm1_seq_stats_t;
 
 void fm1_seq_get_info(const fm1_seq_t *s, fm1_seq_info_t *out);
+
+/* The clock as advance runs it, for a host that places things on its grid
+ * (the effects' beats, engine API v3; fm1_seq_host.h). While playing, the
+ * next block's frame f (0-based) is where the running sum
+ * accum + (f + 1) x inc reaches the next multiple of threshold: master tick
+ * T is serviced at the first frame where master_tick + (accum + (f + 1) x
+ * inc) / threshold > T, the frame advance gives its events. inc is 0 when
+ * ticks are not on this grid (following an external clock, or Movy's
+ * compat mode, which puts every event at the block's start). */
+typedef struct fm1_seq_clock {
+  uint64_t master_tick;     /* ticks serviced since Start */
+  uint64_t accum;           /* below threshold between blocks */
+  uint64_t threshold;       /* sample rate x 6000 */
+  uint64_t inc;             /* per frame: bpm_x100 x 96, or 0 (above) */
+  uint32_t bpm_x100;
+  uint8_t playing;
+  uint8_t reserved[3];
+} fm1_seq_clock_t;
+void fm1_seq_get_clock(const fm1_seq_t *s, fm1_seq_clock_t *out);
 int fm1_seq_get_track(const fm1_seq_t *s, uint8_t track, fm1_seq_track_info_t *out);
 const char *fm1_seq_lane_label(const fm1_seq_t *s, uint8_t track, uint8_t lane);
 int fm1_seq_get_clip(const fm1_seq_t *s, uint8_t track, uint8_t slot, fm1_seq_clip_info_t *out);

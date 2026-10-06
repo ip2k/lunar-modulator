@@ -20,7 +20,7 @@ def test_registry_lists_engines(renderer):
     assert {"macro", "shapes", "test-sine", "test-gain"} <= set(engines)
     for e in engines.values():
         assert e["credits"]
-        assert e["kind"] in ("sound", "audio_fx")
+        assert e["kind"] in ("sound", "audio_fx", "midi_fx")
         if e["kind"] == "sound":
             assert e["max_voices"] >= 1
         else:

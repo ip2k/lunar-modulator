@@ -12,7 +12,7 @@
  * whenever the clip may have changed.
  *
  * Stage S3 put PLAY/STOP and a read-only Track view here; S4 adds step
- * entry (docs/15 §5 S4). In SEQ mode, with the lab switch on:
+ * entry (docs/15 §5 S4). In SEQ mode:
  *
  *   white keys     the 16 steps of the bar on the keys. A tap toggles the
  *                  step on release (`tog`, with the last chord played, each
@@ -419,7 +419,7 @@ void fm1_seq_ui_enter(fm1_seq_ui_t *u);
  * Nothing is sent. */
 void fm1_seq_ui_open(fm1_seq_ui_t *u, int view);
 
-/* SEQ mode left (HOME, FX, GLO, the lab switch off): the held steps are let
+/* SEQ mode left (HOME, FX, GLO, a modulation page): the held steps are let
  * go without toggling, and the Track view comes back next time. Keys still
  * down stay the UI's until released, so their releases do nothing. */
 void fm1_seq_ui_leave(fm1_seq_ui_t *u);
@@ -448,13 +448,15 @@ int fm1_seq_ui_button(fm1_seq_ui_t *u, const fm1_seq_t *s, int button, int down,
 
 /* A key edge (0..26): a press in SEQ mode (`mode`), a press in any mode
  * while Capture's overlay is up, or the release of a key the UI took
- * (fm1_seq_ui_has_key). `base_note` is the note key 0 plays now (53 + 12 x
- * octave + transpose), for SHIFT's and step record's pitches. Returns 1 if
+ * (fm1_seq_ui_has_key). `pitch` is the note the key plays now, for SHIFT's
+ * and step record's pitches: 53 + 12 x octave + transpose + key, or with a
+ * pad kit as the sound the pad's note (fm1_app.c, key_note), or -1 when the
+ * key plays nothing (a pad kit's black key), which enters no pitch. Returns 1 if
  * the UI took it, FM1_SEQ_UI_KEY_SOUND if step record took it and the app
  * plays its note (on the sound only, not as live input); 0 leaves the key to
  * the app, which plays it. */
 int fm1_seq_ui_key(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, int down, int velocity,
-                   uint64_t frame, int mode, int base_note, const fm1_seq_ui_emit_t *out);
+                   uint64_t frame, int mode, int pitch, const fm1_seq_ui_emit_t *out);
 int fm1_seq_ui_has_key(const fm1_seq_ui_t *u, int key);
 
 /* An encoder turned (fm1_app_encoder_t): 1 when the UI took it (in SEQ

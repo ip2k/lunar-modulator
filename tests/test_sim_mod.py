@@ -1,11 +1,11 @@
-"""Modulation on the virtual FM-1's panel (docs/16 stage MG3), behind the
-lab switch: the app hosts the runtime (fm1_mod) on the sequencer's bridge,
-the default rack and its cables, the buttons and pages (RACK, MATRIX,
-CHAIN), the routing gesture, and golden gesture traces that replay through
-fm1-render --mod byte for byte.
+"""Modulation on the virtual FM-1's panel (docs/16 stage MG3; behind a lab
+switch until 2026-10-05): the app hosts the runtime (fm1_mod) on the
+sequencer's bridge, the default rack and its cables, the buttons and pages
+(RACK, MATRIX, CHAIN), the routing gesture, and golden gesture traces that
+replay through fm1-render --mod byte for byte.
 
 A gesture trace is a .panel file (one --key, --button or --turn per line,
-as tests/test_seq_ui.py's) and its golden .mod: what `fm1-sim-render --lab
+as tests/test_seq_ui.py's) and its golden .mod: what `fm1-sim-render
 --log-cmds` writes for the modulation, the runtime's state at the start and
 every edit at the block it led. Every trace here starts from
 tests/fixtures/mod-ui/input.verbs with Macro and Plate. The parity
@@ -18,7 +18,7 @@ import subprocess
 import pytest
 
 from tests.engine_helpers import ROOT
-from tests.test_sim_multi import SEQ_LAB
+from tests.test_sim_multi import FIXED, instance_bytes
 from tests.test_sim_web import left_channel, run, tools  # noqa: F401  (the native build)
 
 TRACES = ROOT / "tests" / "fixtures" / "mod-ui"
@@ -29,7 +29,7 @@ BUTTONS = ["OCT-", "OCT+", "FX", "SEL", "ENV", "LFO", "EDIT", "GLO", "HOME", "SA
            "PLAY/STOP", "REC"]
 MODES = {"HOME": 0, "FX": 1, "GLOBAL": 2, "SEQ": 3, "RACK": 4, "MATRIX": 5, "CHAIN": 6}
 Q14 = 16384
-ON, GATE_DST = 0x01, 0x08
+ON, GATE_DST, VOICE = 0x01, 0x08, 0x80
 
 
 def lit(summary):
@@ -42,38 +42,39 @@ def q14(pct):
     return int(x + 0.5) if x >= 0 else -int(0.5 - x)
 
 
-def lab(tools, *panel, seconds="0.4", engine="macro", extra=()):
-    return run(tools["sim"], ["--lab", "--engine", engine, "--seconds", seconds, *extra, *panel])
+def sim(tools, *panel, seconds="0.4", engine="macro", extra=()):
+    return run(tools["sim"], ["--engine", engine, "--seconds", seconds, *extra, *panel])
 
 
 def slots(summary):
     return {s["slot"]: s for s in summary["mod"]["slots"]}
 
 
-# ---- the switch --------------------------------------------------------------------------
+# ---- from the start -------------------------------------------------------------------------
 
-def test_with_the_lab_switch_off_env_lfo_and_edit_are_stubs(tools):
-    """The public page: ENV, LFO and EDIT say they are not in the simulator
-    yet, nothing runs (no runtime, the RAM figure as before) and nothing
-    lights."""
-    for name in ("ENV", "LFO", "EDIT"):
-        s = run(tools["sim"], ["--engine", "macro", "--seconds", "0.2", "--button", f"0.1:{name}"])
-        assert s["lab"] == 0 and s["mode"] == 0 and "mod" not in s
-        assert s["popup"] == [name, "not in the", "simulator yet"]
-        assert s["leds"] == "0" * 41
-    plain = run(tools["sim"], ["--engine", "macro", "--seconds", "0.1"])
-    on = lab(tools, seconds="0.1")
+def test_the_runtime_runs_from_the_start_and_counts_in_the_ram_figure(tools):
+    """Since the lab switch went (2026-10-05) every chain runs the runtime:
+    ENV, LFO and EDIT open their pages, SAVE alone is still a stub (ARP
+    has its pages since 2026-10-06), and the RAM figure counts the runtime
+    (fm1_mod_size())."""
     z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,
                                   text=True).stdout)
-    assert on["ram"] == plain["ram"] + SEQ_LAB + z["mod_bytes"]
+    plain = sim(tools, seconds="0.1")
+    assert "mod" in plain and plain["ram"] == instance_bytes(tools, "macro") + FIXED
+    assert FIXED - z["mod_bytes"] == 31880 + 3264 + 240 + 1024 + 20
+    for name, mode in (("ENV", 4), ("LFO", 4), ("EDIT", 5)):
+        s = sim(tools, "--button", f"0.1:{name}", seconds="0.2")
+        assert s["mode"] == mode and s["popup"] == [], name
+    s = sim(tools, "--button", "0.1:SAVE", seconds="0.2")
+    assert s["mode"] == 0 and s["popup"] == ["SAVE", "not in the", "simulator yet"]
 
 
-def test_the_lab_starts_the_default_rack_and_its_cables(tools):
+def test_the_app_starts_with_the_default_rack_and_its_cables(tools):
     """Owner, 2026-10-02: LFO1, LFO2, ENV3, ENV4, CHN5 (Chance) and three empty
     positions; RTRG (every note on every sound: keys, MIDI in, the
     sequencer; each note-on restarts it, owner 2026-10-05) cabled into both
     envelopes' GATE at 100 %, re-patchable."""
-    m = lab(tools)["mod"]
+    m = sim(tools)["mod"]
     assert m["rack"] == ["lfo", "lfo", "env", "env", "chance", "", "", ""]
     assert [(s["slot"], s["src"], s["unit"], s["dst"], s["amount"], s["flags"]) for s in m["slots"]] == [
         (1, 23, 8 + 2, 0, Q14, ON | GATE_DST), (2, 23, 8 + 3, 0, Q14, ON | GATE_DST)]
@@ -84,7 +85,7 @@ def test_the_lab_starts_the_default_rack_and_its_cables(tools):
 def test_sizes(tools):
     z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,
                                   text=True).stdout)
-    assert z["mod_bytes"] == 23200 <= z["mod_arena"] == 24576
+    assert z["mod_bytes"] == 26192 <= z["mod_arena"] == 26624
     assert z["mod_ui_bytes"] <= 256
 
 
@@ -98,33 +99,33 @@ def test_lfo_and_env_open_the_rack_at_their_kind(tools):
     panel = []
     for k, (button, pos) in enumerate(steps):
         panel += ["--button", f"{0.05 + 0.05 * k}:{button}"]
-        s = lab(tools, *panel)
+        s = sim(tools, *panel)
         assert (s["mode"], s["mod"]["pos"]) == (MODES["RACK"], pos), panel
         assert lit(s) == {button}
-    walk = lab(tools, "--button", "0.05:LFO", "--turn", "0.1:SELECT:5")
+    walk = sim(tools, "--button", "0.05:LFO", "--turn", "0.1:SELECT:5")
     assert (walk["mod"]["pos"], walk["mod"]["page"]) == (3, 2)   # LFO1 1-2, LFO2 1-2, ENV3 1-2
     assert walk["mod"]["sel_env"] == 3 and lit(walk) == {"ENV"}
 
 
 def test_edit_opens_the_matrix_and_sel_the_chain(tools):
-    s = lab(tools, "--button", "0.1:EDIT")
+    s = sim(tools, "--button", "0.1:EDIT")
     assert s["mode"] == MODES["MATRIX"] and lit(s) == {"EDIT"}
-    s = lab(tools, "--button", "0.1:EDIT", "--button", "0.2:SEL")
+    s = sim(tools, "--button", "0.1:EDIT", "--button", "0.2:SEL")
     assert s["mode"] == MODES["CHAIN"] and lit(s) == {"EDIT", "SEL"}
-    s = lab(tools, "--button", "0.1:EDIT", "--button", "0.2:SEL", "--button", "0.3:SEL")
+    s = sim(tools, "--button", "0.1:EDIT", "--button", "0.2:SEL", "--button", "0.3:SEL")
     assert s["mode"] == MODES["MATRIX"]
-    s = lab(tools, "--button", "0.1:EDIT", "--button", "0.2:EDIT")
+    s = sim(tools, "--button", "0.1:EDIT", "--button", "0.2:EDIT")
     assert s["mode"] == MODES["HOME"] and lit(s) == set()
     for leave, mode in (("HOME", 0), ("FX", 1), ("GLO", 2)):
         for page in ("EDIT", "LFO"):
-            s = lab(tools, "--button", f"0.1:{page}", "--button", f"0.2:{leave}")
+            s = sim(tools, "--button", f"0.1:{page}", "--button", f"0.2:{leave}")
             assert s["mode"] == mode, (page, leave)
 
 
 def test_sel_grabs_a_module_and_select_moves_it(tools):
     """SEL in RACK grabs the module (SEL lit, the line under the rack
     starred); SELECT moves it, and every cable follows it."""
-    s = lab(tools, "--button", "0.05:ENV", "--button", "0.1:SEL", "--turn", "0.15:SELECT:2")
+    s = sim(tools, "--button", "0.05:ENV", "--button", "0.1:SEL", "--turn", "0.15:SELECT:2")
     m = s["mod"]
     assert m["grab"] == 1 and "SEL" in lit(s)
     assert m["rack"] == ["lfo", "lfo", "env", "chance", "env", "", "", ""] and m["pos"] == 5
@@ -134,9 +135,9 @@ def test_sel_grabs_a_module_and_select_moves_it(tools):
 def test_a_tap_or_a_hold_of_env_and_lfo(tools):
     """Held while a knob turns, LFO makes a cable and leaves the page as it
     was; released without a turn, it is a tap."""
-    held = lab(tools, "--button", "0.1:LFO:0.2", "--turn", "0.15:KNOB3:20")
+    held = sim(tools, "--button", "0.1:LFO:0.2", "--turn", "0.15:KNOB3:20")
     assert held["mode"] == MODES["HOME"] and 3 in slots(held)
-    tap = lab(tools, "--button", "0.1:LFO:0.2")
+    tap = sim(tools, "--button", "0.1:LFO:0.2")
     assert tap["mode"] == MODES["RACK"] and set(slots(tap)) == {1, 2}
 
 
@@ -146,7 +147,7 @@ def test_the_gesture_on_home_makes_and_adjusts_one_cable(tools):
     """Hold LFO and turn KNOB2 (Harmonics) on HOME: slot 3, LFO1 into the
     sound's Harmonics, its amount the turn's percent; turning on adjusts
     the same cable; the knob's base stays where it was."""
-    s = lab(tools, "--button", "0.1:LFO:0.3", "--turn", "0.15:KNOB2:30", "--turn", "0.2:KNOB2:-12",
+    s = sim(tools, "--button", "0.1:LFO:0.3", "--turn", "0.15:KNOB2:30", "--turn", "0.2:KNOB2:-12",
             "--turn", "0.25:KNOB4:-25")
     sl = slots(s)
     assert (sl[3]["src"], sl[3]["unit"], sl[3]["dst"], sl[3]["amount"]) == (64, 0, 2, q14(18))
@@ -159,10 +160,10 @@ def test_the_gesture_reaches_effects_and_modules(tools):
     """FX mode: ENV3 into Plate's Mix (unit FX1). RACK: ENV3 into LFO2's
     Rate (a chain); the gesture's source is the module of its button's kind
     last shown (here ENV3, then LFO2's own page does not change it)."""
-    fx = lab(tools, "--button", "0.05:FX", "--button", "0.1:ENV:0.2", "--turn", "0.15:KNOB1:40",
+    fx = sim(tools, "--button", "0.05:FX", "--button", "0.1:ENV:0.2", "--turn", "0.15:KNOB1:40",
              extra=["--fx", "plate"])
     assert (slots(fx)[3]["src"], slots(fx)[3]["unit"], slots(fx)[3]["dst"]) == (64 + 8 * 2, 1, 1)
-    rack = lab(tools, "--button", "0.05:ENV", "--turn", "0.1:SELECT:-2", "--button", "0.15:ENV:0.2",
+    rack = sim(tools, "--button", "0.05:ENV", "--turn", "0.1:SELECT:-2", "--button", "0.15:ENV:0.2",
                "--turn", "0.2:KNOB1:25")
     assert (slots(rack)[3]["src"], slots(rack)[3]["unit"], slots(rack)[3]["dst"]) == (64 + 8 * 2, 8 + 1, 1)
     assert rack["mod"]["pos"] == 2 and rack["mode"] == MODES["RACK"]
@@ -170,7 +171,7 @@ def test_the_gesture_reaches_effects_and_modules(tools):
 
 def test_the_gesture_refuses_what_takes_no_cable(tools):
     """Macro's Model is NOLOCK: no cable, and the popup says so."""
-    s = lab(tools, "--button", "0.1:LFO:0.2", "--turn", "0.15:KNOB1:20")
+    s = sim(tools, "--button", "0.1:LFO:0.2", "--turn", "0.15:KNOB1:20")
     assert set(slots(s)) == {1, 2} and s["popup"] == ["Model", "takes no cable"]
 
 
@@ -178,7 +179,7 @@ def test_a_routed_parameter_moves_round_its_base(tools):
     """Rule M1 on the panel: a knob turn on a routed parameter moves its base
     and the sound keeps swinging round it (the value sent is base plus the
     cable's offset), as fm1-render's --param-at does."""
-    s = lab(tools, "--button", "0.1:LFO:0.1", "--turn", "0.12:KNOB3:50", "--turn", "0.3:KNOB3:20",
+    s = sim(tools, "--button", "0.1:LFO:0.1", "--turn", "0.12:KNOB3:50", "--turn", "0.3:KNOB3:20",
             seconds="0.6")
     base = s["values0"][2]
     assert base == pytest.approx(0.7)
@@ -195,7 +196,7 @@ def test_the_gesture_reaches_the_current_sound(tools):
     """With Sound 2 current (SHIFT + PRESETS), hold LFO and turn KNOB2 on
     HOME: the cable goes to Sound 2's Timbre (Shapes, uid 2), unit 17, and
     the popup names it S2."""
-    s = lab(tools, *TO_SOUND2, "--button", "0.2:LFO:0.2", "--turn", "0.25:KNOB2:30", extra=SOUND2)
+    s = sim(tools, *TO_SOUND2, "--button", "0.2:LFO:0.2", "--turn", "0.25:KNOB2:30", extra=SOUND2)
     assert s["current"] == 1
     x = slots(s)[3]
     assert (x["src"], x["unit"], x["dst"], x["amount"]) == (64, 17, 2, q14(30))
@@ -207,7 +208,7 @@ def test_the_gesture_reaches_an_insert_and_the_master(tools):
     unit 24 (20 + 4 x 1 + 0); M1 (Plate) takes one too, unit FX1. SELECT
     walks back from the end over M2 and Plate's second page (Freeze) to
     its first."""
-    s = lab(tools, *TO_SOUND2, "--button", "0.2:FX", "--turn", "0.25:SELECT:-64",
+    s = sim(tools, *TO_SOUND2, "--button", "0.2:FX", "--turn", "0.25:SELECT:-64",
             "--button", "0.3:ENV:0.2", "--turn", "0.35:KNOB1:40", "--turn", "0.6:SELECT:64",
             "--turn", "0.65:SELECT:-2", "--button", "0.7:ENV:0.2", "--turn", "0.75:KNOB1:-20",
             extra=SOUND2 + ["--fx", "plate"], seconds="1.0")
@@ -222,7 +223,7 @@ def test_a_new_cables_target_starts_at_the_current_sound(tools):
     current sound's first parameter (Sound 2's Timbre here, Macro's
     Harmonics with Sound 1), and it commits a second later."""
     for to2, unit, dst in ((True, 17, 2), (False, 0, 2)):
-        s = lab(tools, *(TO_SOUND2 if to2 else []), "--button", "0.2:EDIT", "--turn", "0.25:SELECT:2",
+        s = sim(tools, *(TO_SOUND2 if to2 else []), "--button", "0.2:EDIT", "--turn", "0.25:SELECT:2",
                 "--turn", "0.3:KNOB2:1", extra=SOUND2, seconds="1.6")
         x = slots(s)[3]
         assert (x["unit"], x["dst"], x["src"]) == (unit, dst, 64), to2
@@ -234,7 +235,7 @@ def test_cables_on_several_sounds_replay_through_fm1_render(tools, tmp_path):
     .mod log and sidecar (--slots, --sound, --insert) replay through
     fm1-render to the same bytes, every cable counted there."""
     log, a, b = tmp_path / "c.verbs", tmp_path / "panel.wav", tmp_path / "replay.wav"
-    s = run(tools["sim"], ["--lab", *CHAIN, *SOUND2, "--cmd", str(INPUT), *TO_SOUND2,
+    s = run(tools["sim"], [*CHAIN, *SOUND2, "--cmd", str(INPUT), *TO_SOUND2,
                            "--button", "0.2:LFO:0.2", "--turn", "0.25:KNOB3:45",
                            "--button", "0.5:FX", "--turn", "0.55:SELECT:-64", "--button", "0.6:ENV:0.2",
                            "--turn", "0.65:KNOB2:-60", "--key", "0.8:12:100:0.6",
@@ -254,10 +255,10 @@ def test_matrix_edits_every_field(tools):
     """Slot 3 from scratch: KNOB1 a source, KNOB2's picker a destination
     (it commits a second after its last turn), KNOB3 an amount, KNOB4 an
     offset; page B: VIA, curve, polarity, off and on."""
-    s = lab(tools, "--button", "0.05:EDIT", "--turn", "0.1:SELECT:2", "--turn", "0.15:KNOB1:3",
+    s = sim(tools, "--button", "0.05:EDIT", "--turn", "0.1:SELECT:2", "--turn", "0.15:KNOB1:3",
             "--turn", "0.2:KNOB2:2", seconds="1.1")
     assert 3 in slots(s) and slots(s)[3]["dst"] == 0 and s["mod"]["picker"] == 2   # still choosing
-    s = lab(tools, "--button", "0.05:EDIT", "--turn", "0.1:SELECT:2", "--turn", "0.15:KNOB1:3",
+    s = sim(tools, "--button", "0.05:EDIT", "--turn", "0.1:SELECT:2", "--turn", "0.15:KNOB1:3",
             "--turn", "0.2:KNOB2:2", "--turn", "1.4:KNOB3:45", "--turn", "1.45:KNOB4:-10",
             "--turn", "1.5:ALGORITHM:1", "--turn", "1.55:KNOB2:2", "--turn", "1.6:KNOB3:1",
             "--turn", "1.65:KNOB1:1", "--turn", "1.7:KNOB4:-1", seconds="1.8")
@@ -269,24 +270,24 @@ def test_matrix_edits_every_field(tools):
 
 
 def test_matrix_clears_a_slot_with_knob1(tools):
-    s = lab(tools, "--button", "0.05:EDIT", "--turn", "0.1:KNOB1:-64")
+    s = sim(tools, "--button", "0.05:EDIT", "--turn", "0.1:KNOB1:-64")
     assert set(slots(s)) == {2}
 
 
 def test_chain_select_steps_between_cables(tools):
-    s = lab(tools, "--button", "0.05:EDIT", "--button", "0.1:SEL", "--turn", "0.15:SELECT:1")
+    s = sim(tools, "--button", "0.05:EDIT", "--button", "0.1:SEL", "--turn", "0.15:SELECT:1")
     assert s["mode"] == MODES["CHAIN"] and s["mod"]["slot"] == 2
-    s = lab(tools, "--button", "0.05:EDIT", "--button", "0.1:SEL", "--turn", "0.15:SELECT:5")
+    s = sim(tools, "--button", "0.05:EDIT", "--button", "0.1:SEL", "--turn", "0.15:SELECT:5")
     assert s["mod"]["slot"] == 2                                       # no cable past slot 2
 
 
 def test_a_kind_change_switches_cables_off_and_back(tools):
     """docs/16 §2.4: changing a module's kind switches off the cables that
     touch it, never deletes them, and changing it back switches them on."""
-    gone = lab(tools, "--button", "0.05:ENV", "--button", "0.1:ENV", "--turn", "0.15:ALGORITHM:1",
+    gone = sim(tools, "--button", "0.05:ENV", "--button", "0.1:ENV", "--turn", "0.15:ALGORITHM:1",
                seconds="1.3")
     assert gone["mod"]["rack"][3] == "chance" and slots(gone)[2]["flags"] == GATE_DST
-    back = lab(tools, "--button", "0.05:ENV", "--button", "0.1:ENV", "--turn", "0.15:ALGORITHM:1",
+    back = sim(tools, "--button", "0.05:ENV", "--button", "0.1:ENV", "--turn", "0.15:ALGORITHM:1",
                "--turn", "1.3:ALGORITHM:-1", "--button", "1.4:HOME", seconds="1.5")
     assert back["mod"]["rack"][3] == "env" and slots(back)[2]["flags"] == ON | GATE_DST
 
@@ -299,10 +300,10 @@ def test_a_kind_change_back_keeps_both_kinds_cables(tools):
     Chance's cable made the Envelope's forgotten."""
     to_chance = ["--button", "0.05:ENV", "--turn", "0.10:ALGORITHM:1", "--button", "1.3:LFO:0.2",
                  "--turn", "1.35:KNOB2:30"]
-    back = lab(tools, *to_chance, "--turn", "1.6:ALGORITHM:-1", "--button", "1.65:HOME", seconds="2")
+    back = sim(tools, *to_chance, "--turn", "1.6:ALGORITHM:-1", "--button", "1.65:HOME", seconds="2")
     assert back["mod"]["rack"][2] == "env"
     assert slots(back)[1]["flags"] == ON | GATE_DST and slots(back)[3]["flags"] & ON == 0
-    again = lab(tools, *to_chance, "--turn", "1.6:ALGORITHM:-1", "--button", "1.65:HOME",
+    again = sim(tools, *to_chance, "--turn", "1.6:ALGORITHM:-1", "--button", "1.65:HOME",
                 "--button", "1.7:ENV", "--turn", "1.75:ALGORITHM:1", "--button", "1.8:HOME", seconds="2")
     assert again["mod"]["rack"][2] == "chance"
     assert slots(again)[1]["flags"] == GATE_DST and slots(again)[3]["flags"] == ON
@@ -313,7 +314,7 @@ def test_a_hold_with_any_turn_is_no_tap(tools):
     """Review fix: ENV held while a knob turns in SEQ mode (where the knobs
     turn the sound and no cable is made) is not a tap: letting go leaves
     SEQ mode as it was."""
-    s = lab(tools, "--button", "0.05:SEQ", "--button", "0.1:ENV:0.2", "--turn", "0.15:KNOB3:5")
+    s = sim(tools, "--button", "0.05:SEQ", "--button", "0.1:ENV:0.2", "--turn", "0.15:KNOB3:5")
     assert s["mode"] == MODES["SEQ"] and set(slots(s)) == {1, 2}
     assert s["values0"][2] == pytest.approx(0.55)
 
@@ -322,7 +323,7 @@ def test_a_new_matrix_cable_starts_from_the_selected_lfo(tools):
     """Review fix: an amount turned on an empty slot before KNOB1 or KNOB2
     makes a cable from the selected LFO (LFO2, the last one shown), as the
     destination picker's own commit does, not from VEL."""
-    s = lab(tools, "--button", "0.05:LFO", "--button", "0.1:LFO", "--button", "0.15:EDIT",
+    s = sim(tools, "--button", "0.05:LFO", "--button", "0.1:LFO", "--button", "0.15:EDIT",
             "--turn", "0.2:SELECT:4", "--turn", "0.25:KNOB3:20", "--turn", "0.3:KNOB2:3", seconds="1.5")
     x = slots(s)[5]
     assert (x["src"], x["unit"], x["dst"], x["amount"], x["flags"]) == (64 + 8, 0, 4, q14(20), ON)
@@ -335,7 +336,7 @@ def test_chain_does_not_run_on_through_a_refused_cable(tools, tmp_path):
     script = tmp_path / "m.mod"
     script.write_text("rack default\nslot 1 lfo1 > lfo2.rate amt=20\nslot 2 lfo2 > snd:Model amt=50\n"
                       "slot 3 lfo2 > snd:Timbre amt=30\n")
-    s = lab(tools, "--mod", str(script), "--button", "0.05:EDIT", "--button", "0.1:SEL")
+    s = sim(tools, "--mod", str(script), "--button", "0.05:EDIT", "--button", "0.1:SEL")
     assert s["mode"] == MODES["CHAIN"] and s["mod"]["refused"] == 1 << 1
     assert s["mod"]["chain"] == ["LFO1 Out", " +20 >LFO2 Rate", "LFO2 Out", " +30 >S1 Timbre"]
     assert s["mod"]["chain_hl"] == 1
@@ -350,7 +351,7 @@ def rms(samples):
 @pytest.mark.parametrize("cable", ["rtrg", "key"])
 @pytest.mark.parametrize("source", ["sequencer", "note", "key"])
 def test_envelopes_follow_every_note(tools, tmp_path, source, cable):
-    """The lab's default cable RTRG > ENV3 GATE, or KEY in its place,
+    """The default cable RTRG > ENV3 GATE, or KEY in its place,
     opens ENV3 for a note from the sequencer, from MIDI in (--note) and
     from the keys. With ENV3 into HOST AMP, Test Sine gets louder while the
     note holds."""
@@ -377,7 +378,7 @@ def test_envelopes_follow_every_note(tools, tmp_path, source, cable):
 def test_a_note_over_a_held_one_restarts_the_envelope(tools, tmp_path, source):
     """The owner's rule of 2026-10-05 through the app (play_on feeding the
     runtime): a second note played while the first still holds restarts
-    ENV3's attack with RTRG, the lab's default cable, where KEY, the legato
+    ENV3's attack with RTRG, the default cable, where KEY, the legato
     gate, lets it decay on. Until the second note both sound the same."""
     rate = 44118
     if source == "note":
@@ -415,18 +416,108 @@ def test_the_default_cable_is_repatchable(tools, tmp_path):
     assert levels["key"] > 1.5 * levels["seq2"]
 
 
-def test_the_filters_cutoff_shows_in_hz(tools, tmp_path):
-    """MG2's Filter on its RACK page: Cutoff shows the frequency it sets,
-    0.05 Hz x 2^(13 x Cutoff) at the tick rate (fm1_mod_filter_hz, the
-    kind's own formula), while the knob and its base stay 0..1 on the log
-    scale; the other parameters show their numbers."""
+def test_the_resonators_cutoff_shows_in_hz(tools, tmp_path):
+    """MG2's Filter, the Resonator since 2026-10-05, on its RACK page: Cutoff
+    shows the frequency it sets, 0.05 Hz x 2^(13 x Cutoff) at the tick rate
+    (fm1_mod_resonator_hz, the kind's own formula), while the knob and its
+    base stay 0..1 on the log scale; the other parameters show their
+    numbers. A script may still call it filter."""
     for cutoff, want in ((0, "0.05 Hz"), (0.3, "0.75 Hz"), (0.5, "4.53 Hz"), (0.7, "27.4 Hz"),
                          (1, "410 Hz")):
         p = tmp_path / "f.mod"
-        p.write_text(f"mod 1 filter cutoff={cutoff} res=0.25\n")
-        s = run(tools["sim"], ["--lab", "--engine", "macro", "--seconds", "0.1", "--mod", str(p)])
+        p.write_text(f"mod 1 {'filter' if cutoff == 1 else 'resonator'} cutoff={cutoff} res=0.25\n")
+        s = run(tools["sim"], ["--engine", "macro", "--seconds", "0.1", "--mod", str(p)])
+        assert s["mod"]["rack"][0] == "resonator"
         assert s["mod"]["values"][:2] == [want, "0.25"], cutoff
         assert s["mod"]["bases"][0][0] == pytest.approx(cutoff)
+
+
+def test_the_kind_picker_names_the_resonator(tools):
+    """The owner's rename (2026-10-05): the rack's control-rate filter is the
+    Resonator (RES), so the audio effect alone is the Filter. ALGORITHM on
+    an empty position walks Empty, then every kind: the Resonator last."""
+    s = sim(tools, "--button", "0.05:LFO", "--turn", "0.1:SELECT:64", "--turn", "0.15:ALGORITHM:-1",
+            seconds="0.3")
+    w = s["popup_list"]                                  # the list popup (test_sim_lists.py)
+    assert s["popup"][w["mark"]] == "Resonator" and w["first"] + w["mark"] == w["total"] - 1
+    assert s["mod"]["pos"] == 8
+    s = sim(tools, "--button", "0.05:LFO", "--turn", "0.1:SELECT:64", "--turn", "0.15:ALGORITHM:-1",
+            seconds="1.5")
+    assert s["mod"]["rack"][7] == "resonator" and s["mod"]["slots"][0]["row"].startswith("RTRG")
+
+
+# ---- per voice and the MG3 follow-ups (docs/16 MG9; owner, 2026-10-05) -------------------------
+
+def test_knob4_makes_a_cable_per_voice_and_a_chord_replays(tools, tmp_path):
+    """MATRIX page B's KNOB4 is the cable's state: off, on, on per voice. A
+    cable from ENV3 into Timbre made with the gesture, made per voice there:
+    its row says `v`, its line ends in `voice`, each key of a chord gets its
+    own envelope, and fm1-render replays the session byte for byte."""
+    log, a, b = tmp_path / "c.verbs", tmp_path / "panel.wav", tmp_path / "replay.wav"
+    s = run(tools["sim"], [*CHAIN, "--cmd", str(INPUT), "--button", "0.05:ENV:0.2", "--turn", "0.1:KNOB3:50",
+                           "--button", "0.3:EDIT", "--turn", "0.35:ALGORITHM:1", "--turn", "0.4:KNOB4:1",
+                           "--key", "0.5:0:100:0.6", "--key", "0.6:4:90:0.5", "--key", "0.7:7:80:0.4",
+                           "--log-cmds", str(log), "--out", str(a), "--seconds", "1.6"])
+    cable = slots(s)[3]
+    assert cable["flags"] & VOICE and cable["flags"] & ON and cable["src"] == 64 + 8 * 2
+    assert cable["row"] == "ENV3  vS1Tmbre  +50" and s["mod"]["mpage"] == 1
+    assert "slot 3 mod3.1 > snd:Timbre amt=50 ofs=0 pol=auto curve=lin voice" in (tmp_path / "c.mod").read_text()
+    sidecar = (tmp_path / "c.args").read_text().splitlines()
+    r = run(tools["render"], ["--cmd", str(log), "--frames", "64", *sidecar, "--out", str(b)])
+    assert s["replayable"] == 1 and s["mod"]["unloggable"] == 0
+    assert a.read_bytes() == b.read_bytes(), "two-step parity: the replay differs"
+    assert r["mod_refused"] == 0 and r["mod_voice_starts"] >= 3 and r["mod_voice_writes"] > 100
+    off = run(tools["sim"], [*CHAIN, "--button", "0.05:ENV:0.2", "--turn", "0.1:KNOB3:50",
+                             "--button", "0.3:EDIT", "--turn", "0.35:ALGORITHM:1", "--turn", "0.4:KNOB4:1",
+                             "--turn", "0.45:KNOB4:-2", "--seconds", "0.6"])
+    assert slots(off)[3]["flags"] & (ON | VOICE) == 0
+
+
+def test_a_per_voice_cable_into_an_effect_is_refused(tools):
+    """Poly never reaches mono: per voice into the master Plate's Mix the
+    cable is on but refused (`!`)."""
+    s = sim(tools, "--button", "0.05:FX", "--button", "0.1:ENV:0.2", "--turn", "0.15:KNOB1:40",
+            "--button", "0.4:EDIT", "--turn", "0.45:ALGORITHM:1", "--turn", "0.5:KNOB4:1", seconds="0.7",
+            extra=["--fx", "plate"])
+    cable = slots(s)[3]
+    assert cable["flags"] & VOICE and cable["unit"] == 1 and cable["row"][6] == "!"
+    assert s["mod"]["refused"] == 1 << 2
+
+
+def test_one_sounds_note_sources_follow_in_knob1s_list(tools):
+    """Owner, 2026-10-05: note sources selectable per sound. After SQV8 come
+    S1NOTE ... S4RTRG (ids 44-63): one sound unit's NOTE, VEL, KEY, TRIG and
+    RTRG."""
+    for turn, src, name in ((28, 44, "S1NOTE"), (33, 49, "S2VEL"), (40, 56, "S1TRIG"), (47, 63, "S4RTRG")):
+        s = sim(tools, "--button", "0.05:EDIT", "--turn", "0.1:SELECT:2", "--turn", f"0.15:KNOB1:{turn}")
+        assert slots(s)[3]["src"] == src and slots(s)[3]["row"].startswith(name), name
+
+
+def test_the_current_sound_is_a_line_of_the_log(tools, tmp_path):
+    """HOST PITCH_CUR bends the current sound, so a change of the current
+    sound (SHIFT + PRESETS) is a `current K` line in the .mod log."""
+    log = tmp_path / "c.verbs"
+    s = run(tools["sim"], [*CHAIN, *SOUND2, "--cmd", str(INPUT), *TO_SOUND2, "--seconds", "0.3",
+                           "--log-cmds", str(log)])
+    assert s["replayable"] == 1
+    assert (tmp_path / "c.mod").read_text().splitlines()[-1] == "@3136 current 2"   # at the block it led
+
+
+def test_an_engine_change_re_aims_cables_by_name(tools):
+    """Owner, 2026-10-05: when a sound's engine changes, a cable re-aims at
+    the new engine's parameter of the same name, or goes off (kept, shown
+    off under its name) until an engine that has it comes back. LFO1 into
+    Macro's Timbre; PRESETS to Shapes and Macro Heavy, which have Timbre;
+    to Six-Op, which has none; and back."""
+    gesture = ["--button", "0.05:LFO:0.2", "--turn", "0.1:KNOB3:40"]
+    want = [(2, ON, ">"), (3, ON, ">"), (3, 0, "-"), (3, ON, ">")]
+    turns = []
+    for step, (uid, flags, mark) in enumerate(want):
+        turns += ["--turn", f"{0.3 + 0.1 * step}:PRESETS:{1 if step < 3 else -1}"]
+        s = sim(tools, *gesture, *turns, seconds=str(0.4 + 0.1 * step))
+        cable = slots(s)[3]
+        assert (cable["dst"], cable["flags"] & ON) == (uid, flags), step
+        assert cable["row"] == f"LFO1  {mark}S1Tmbre  +40", step
 
 
 # ---- golden gesture traces and their replay -----------------------------------------------------
@@ -443,7 +534,7 @@ def test_a_trace_logs_its_golden_mod_and_replays_byte_for_byte(tools, tmp_path, 
     fm1-render replays both with the sidecar's arguments, --mod included,
     to the same bytes."""
     log, a, b = tmp_path / "c.verbs", tmp_path / "panel.wav", tmp_path / "replay.wav"
-    s = run(tools["sim"], ["--lab", *CHAIN, "--cmd", str(INPUT), "--panel", str(panel),
+    s = run(tools["sim"], [*CHAIN, "--cmd", str(INPUT), "--panel", str(panel),
                            "--log-cmds", str(log), "--out", str(a)])
     assert (tmp_path / "c.mod").read_text() == panel.with_suffix(".mod").read_text(), "not the golden log"
     sidecar = (tmp_path / "c.args").read_text().splitlines()
@@ -457,7 +548,7 @@ def test_a_trace_logs_its_golden_mod_and_replays_byte_for_byte(tools, tmp_path, 
 def test_a_routed_trace_writes_to_the_sound(tools, tmp_path):
     """hold-lfo-home's cables move the sound: the replay counts writes."""
     log = tmp_path / "c.verbs"
-    run(tools["sim"], ["--lab", *CHAIN, "--cmd", str(INPUT), "--panel", str(TRACES / "hold-lfo-home.panel"),
+    run(tools["sim"], [*CHAIN, "--cmd", str(INPUT), "--panel", str(TRACES / "hold-lfo-home.panel"),
                        "--log-cmds", str(log)])
     r = run(tools["render"], ["--cmd", str(log), "--frames", "64",
                               *(tmp_path / "c.args").read_text().splitlines()])
@@ -476,10 +567,10 @@ def test_script_lines_round_trip(tools):
     assert out["lines"] > 10000
 
 
-def test_a_mod_script_without_the_lab_runs_but_shows_nothing(tools):
-    """--mod (a parity scenario's modulation) runs without the lab switch;
-    the pages stay out of reach and ENV is still the stub."""
+def test_a_mod_script_replaces_the_default_runtime_and_the_pages_show_it(tools):
+    """--mod (a parity scenario's modulation) builds a new runtime in place
+    of the default one, and the pages show it: ENV opens RACK at ENV3."""
     s = run(tools["sim"], ["--engine", "macro", "--fx", "plate", "--fx", "echo", "--seconds", "0.2", "--mod",
                            str(ROOT / "sim" / "web" / "test" / "mod" / "routes.mod"), "--button", "0.1:ENV"])
-    assert s["lab"] == 0 and s["mod"]["rack"][:5] == ["lfo", "lfo", "env", "env", "chance"]
-    assert s["popup"] == ["ENV", "not in the", "simulator yet"]
+    assert s["mod"]["rack"][:5] == ["lfo", "lfo", "env", "env", "chance"]
+    assert s["mode"] == 4 and s["popup"] == []

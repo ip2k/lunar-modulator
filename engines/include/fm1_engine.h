@@ -36,6 +36,19 @@
  * (docs/16 §6.3). Lifetime and rules: set_param_note below and
  * engines/README.md, "Per-note offsets".
  *
+ * API v3 (2026-10-05) adds, without changing what a v2 engine does:
+ * flags widened to 16 bits, with LOG (the parameter law below) and the dB
+ * unit; and an optional extension for effects, fm1_fx_ext_t, through which
+ * a host hands an effect a key (side-chain) input, the tempo and beat
+ * position, and transport events (render_ext below). engines/README.md,
+ * "Engine API v3", has the rules. Since 2026-10-06 it also has MIDI
+ * effects (FM1_KIND_MIDI_FX, fm1_midi_fx_t below), likewise additive.
+ *
+ * Pad kits (API v3, optional, additive). An engine that plays one drum
+ * sound per note on a run of keys says so in pad_first_note and pad_count,
+ * so a host can lay those notes on its own keys whatever their pitch
+ * (engines/README.md, "Pad kits").
+ *
  * Plain C99 so C and C++ engines (and a Schwung shim) can all implement it.
  * MIT licence, like the rest of this repository.
  */
@@ -45,11 +58,14 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "fm1_math.h"
+#include "fm1_midi_ev.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define FM1_ENGINE_API_VERSION 2u
+#define FM1_ENGINE_API_VERSION 3u
 #define FM1_ENGINE_MAGIC 0x464D3145u /* "FM1E" */
 
 typedef enum {
@@ -57,7 +73,9 @@ typedef enum {
   FM1_KIND_AUDIO_FX = 2,  /* audio in, audio out: render processes out_lr in
                              place (it holds the input on entry); note_on,
                              note_off and pitch_bend may be NULL */
-  FM1_KIND_MIDI_FX = 3    /* reserved */
+  FM1_KIND_MIDI_FX = 3    /* API v3: notes in, notes out, through process()
+                             (fm1_midi_fx_t, below); note_on, note_off,
+                             pitch_bend and render are NULL */
 } fm1_kind_t;
 
 typedef enum {
@@ -65,8 +83,9 @@ typedef enum {
   FM1_PARAM_ENUM = 1      /* integer 0..n-1, names in enum_names */
 } fm1_param_type_t;
 
-/* Parameter flags (API v2). They describe the parameter; the host acts on
- * them (a lock on a NOLOCK parameter is refused, fm1_seq_host.h). */
+/* Parameter flags (API v2; 16 bits since v3, the v2 bits unchanged). They
+ * describe the parameter; the host acts on them (a lock on a NOLOCK
+ * parameter is refused, fm1_seq_host.h). */
 #define FM1_PARAM_LATCH  0x01u /* read at note-on: a change reaches the notes that
                                   start after it, never a sounding one */
 #define FM1_PARAM_SMOOTH 0x02u /* continuous and read while notes sound: the
@@ -85,8 +104,16 @@ typedef enum {
 #define FM1_PARAM_POLY   0x20u /* takes a per-note offset (set_param_note): the
                                   engine keeps one per sounding voice. FLOAT
                                   only, always with MOD */
+#define FM1_PARAM_LOG    0x40u /* API v3: pitch- or time-like, FLOAT with min > 0
+                                  (Hz or ms): stored, shown and saved in its
+                                  unit, but it moves on a log scale, in octaves
+                                  and ratios (the LOG law below) */
+/* 0x80 is kept for KEYSRC (the side-chain stage: a key source the host
+ * owns). Bits 0x0100-0x8000 are free. */
 /* What a continuous parameter, read every block, takes. */
 #define FM1_PARAM_CONTINUOUS (FM1_PARAM_SMOOTH | FM1_PARAM_MOD)
+/* ...and a continuous pitch- or time-like one (a cutoff, a release). */
+#define FM1_PARAM_CONTINUOUS_LOG (FM1_PARAM_CONTINUOUS | FM1_PARAM_LOG)
 
 /* The unit a parameter's value is in, for display and for routes between
  * pitches (docs/16 §2.3). SEMI on a parameter is semitones; on a modulation
@@ -97,7 +124,8 @@ typedef enum {
   FM1_UNIT_MS = 2,
   FM1_UNIT_HZ = 3,
   FM1_UNIT_PCT = 4,       /* the value is the percentage itself, e.g. 0..100 */
-  FM1_UNIT_DEG = 5
+  FM1_UNIT_DEG = 5,
+  FM1_UNIT_DB = 6         /* API v3: decibels (a level, a gain, a threshold) */
 } fm1_unit_t;
 
 /* The largest uid; 0 is "no parameter". Uids fit 12 bits, so a lock target
@@ -113,7 +141,7 @@ typedef struct fm1_param {
   /* API v2 */
   uint16_t uid;                /* 1..FM1_PARAM_UID_MAX, unique in the engine and
                                   never reused for another meaning */
-  uint8_t flags;               /* FM1_PARAM_* above */
+  uint16_t flags;              /* FM1_PARAM_* above (8 bits in API v2) */
   uint8_t unit;                /* fm1_unit_t */
   const char *abbr;            /* <= 6 characters, for matrix rows; never NULL */
 } fm1_param_t;
@@ -134,6 +162,76 @@ static inline int fm1_param_lockable(const fm1_param_t *p) {
 /* Whether a modulation route may reach p: MOD and not NOLOCK. */
 static inline int fm1_param_modulatable(const fm1_param_t *p) {
   return (p->flags & (FM1_PARAM_MOD | FM1_PARAM_NOLOCK)) == FM1_PARAM_MOD;
+}
+
+/* ---- The LOG law (API v3) -------------------------------------------------
+ * A parameter's position u, 0..1, is where it sits on its knob. For a LOG
+ * parameter u = log2(v / min) / log2(max / min); for any other FLOAT it is
+ * (v - min) / (max - min). The value stays the stored, shown and saved
+ * unit (Hz, ms); the position is what moves:
+ *   - a knob detent moves u by 1/100 (1.2 semitones on a 20 Hz..18 kHz
+ *     cutoff), and a bar shows u;
+ *   - a sequencer lock's 7-bit value v7 is u = v7 / 127 (fm1_seq_host.h);
+ *   - a modulation route adds amount x signal x log2(max / min) octaves,
+ *     the same share of the knob a linear parameter moves, and the value
+ *     is base x 2^(sum), clamped. The octave rule: a SEMI source (NOTE, a
+ *     quantizer's pitch) into a LOG destination moves it by amount x signal
+ *     x 60 semitones, as into a SEMI one, so NOTE at +100 % into a cutoff
+ *     tracks the keys one octave per octave (docs/16 §2.3).
+ * libm-free (fm1_math.h), so every build computes the same bits. Engines
+ * need none of it: they receive values in their own unit. */
+
+/* Whether p moves on the LOG law: the flag on a FLOAT with 0 < min < max
+ * (tests/test_engine_params.py holds every LOG parameter to that). */
+static inline int fm1_param_is_log(const fm1_param_t *p) {
+  return (p->flags & FM1_PARAM_LOG) && p->type == FM1_PARAM_FLOAT && p->min > 0.0f &&
+         p->max > p->min;
+}
+
+/* Octaves from min to max, log2(max / min), for a LOG parameter. */
+static inline float fm1_param_octaves(const fm1_param_t *p) {
+  return fm1_log2f(p->max / p->min);
+}
+
+/* p's position for value v, 0..1: log for LOG, else linear (an ENUM's
+ * entries spread evenly). v is clamped first (NaN is the default). */
+static inline float fm1_param_pos(const fm1_param_t *p, float v) {
+  float u;
+  v = fm1_param_clamp(p, v);
+  if (!(p->max > p->min)) return 0.0f;
+  if (fm1_param_is_log(p)) {
+    u = fm1_log2f(v / p->min);
+    u = u / fm1_param_octaves(p);
+  } else {
+    u = (v - p->min) / (p->max - p->min);
+  }
+  return u < 0.0f ? 0.0f : (u > 1.0f ? 1.0f : u);
+}
+
+/* The value at position u (clamped to 0..1, NaN is 0): exactly min at 0
+ * and max at 1. For a LOG parameter min x 2^(u x octaves), else min + u x
+ * (max - min); an ENUM is not rounded here. */
+static inline float fm1_param_at(const fm1_param_t *p, float u) {
+  float v;
+  if (!(u > 0.0f)) return p->min;
+  if (u >= 1.0f) return p->max;
+  if (fm1_param_is_log(p)) {
+    v = u * fm1_param_octaves(p);
+    v = fm1_exp2f(v);
+    v = p->min * v;
+  } else {
+    v = u * (p->max - p->min);
+    v = p->min + v;
+  }
+  return v < p->min ? p->min : (v > p->max ? p->max : v);
+}
+
+/* A LOG parameter's value `base` moved by `octaves` (a route's sum):
+ * base x 2^octaves, clamped as set_param clamps. */
+static inline float fm1_param_log_shift(const fm1_param_t *p, float base, float octaves) {
+  float v = fm1_exp2f(octaves);
+  v = base * v;
+  return fm1_param_clamp(p, v);
 }
 
 /* Per-note offsets (API v2, set_param_note below). */
@@ -172,6 +270,61 @@ typedef struct fm1_host {
   float sample_rate;           /* 44118 on the FM-1 */
   uint32_t max_frames;         /* largest render call, 64 on the FM-1 */
 } fm1_host_t;
+
+/* ---- The effect extension (API v3, optional) ------------------------------
+ * What a host tells an effect about the piece of a block it renders,
+ * besides the audio. An effect that wants it sets fx_wants and provides
+ * render_ext (fm1_engine_t, below); the host then calls render_ext, never
+ * render, with an fm1_fx_ext_t filled for that piece. A v2 effect, and any
+ * engine with render_ext NULL, is called through render exactly as before.
+ *
+ * Wants. TEMPO: the host splits the effect's render at the first frame of
+ * every beat and marks it FM1_FX_EV_BEAT. TRANSPORT: it splits at every
+ * Start and Stop of the sequencer and marks them. KEY: the effect reads
+ * key_lr; a host offers a key source for it (the side-chain stage; until
+ * then every host passes NULL). Every field is filled whatever the effect
+ * asked for; events only carry what it asked for, and always at the first
+ * frame of a piece, so they land on the same frames at any block size. An
+ * effect that acts at a beat uses FM1_FX_EV_BEAT, never a phase it runs
+ * forward itself, which would round differently with the pieces.
+ *
+ * The key. key_lr is stereo interleaved, valid for exactly `frames`
+ * frames of this call, read-only, never aliases io_lr, and is never kept
+ * past the call (so the instance's size is the same at 32 and 64 bits).
+ * NULL means the effect's own input is its key: the output is then what it
+ * would be with a copy of the input passed as the key, bit for bit. A host
+ * guards a key as it guards an input (no NaN or infinity reaches it).
+ *
+ * Position. beat and phase are the sequencer's position at the piece's
+ * first frame, exact (from its integer clock), 96 ticks to the beat: a
+ * beat starts at the frame where the sequencer services tick 96 k, the
+ * frame its step-0 notes and its metronome sound on. Between Start and the
+ * first tick, and while stopped, both are 0. bpm is the sequencer's tempo,
+ * running or not (it is the set tempo while stopped), or a host's own
+ * tempo without a sequencer. */
+#define FM1_FX_WANT_KEY 0x01u          /* reads key_lr */
+#define FM1_FX_WANT_TEMPO 0x02u        /* splits and FM1_FX_EV_BEAT at each beat */
+#define FM1_FX_WANT_TRANSPORT 0x04u    /* splits and events at Start and Stop */
+
+/* Events at a piece's first frame (fm1_fx_ext_t.events). At one frame
+ * they happen in this order: STOP, START, BEAT. */
+#define FM1_FX_EV_STOP 0x01u           /* the transport stopped (TRANSPORT) */
+#define FM1_FX_EV_START 0x02u          /* it started from the top: drop tails,
+                                          restart phases (TRANSPORT) */
+#define FM1_FX_EV_BEAT 0x04u           /* beat `beat` starts here (TEMPO) */
+#define FM1_FX_EV_RESET 0x08u          /* drop every tail: a preset load, a
+                                          panic (any effect with render_ext;
+                                          the hosts here send none yet) */
+
+typedef struct fm1_fx_ext {
+  const float *key_lr;         /* the key, or NULL for the effect's own input */
+  float bpm;                   /* tempo, beats a minute (20..300) */
+  float phase;                 /* how far into beat `beat`, 0 <= phase < 1 */
+  uint32_t beat;               /* beats since the last Start */
+  uint8_t running;             /* 1 while the transport runs */
+  uint8_t events;              /* FM1_FX_EV_* at this piece's first frame */
+  uint8_t reserved[2];         /* 0 */
+} fm1_fx_ext_t;
 
 typedef struct fm1_engine {
   uint32_t magic;              /* FM1_ENGINE_MAGIC */
@@ -216,7 +369,97 @@ typedef struct fm1_engine {
    * it (the engines here retrigger a key in its own voice, so one does).
    * Any other index is ignored. Same thread as set_param. */
   void (*set_param_note)(void *self, uint8_t key, uint16_t index, float offset);
+
+  /* API v3, optional: effects only (FM1_KIND_AUDIO_FX); 0 and NULL for
+   * none. With render_ext set, a host calls it in place of render, with
+   * the extension above filled for the piece; fx_wants (FM1_FX_WANT_*)
+   * says what the effect reads and where the host must split. render stays
+   * defined: called directly, it behaves as render_ext with a NULL key, no
+   * events and the transport stopped at the last tempo seen. Same thread as
+   * render. */
+  uint32_t fx_wants;
+  void (*render_ext)(void *self, float *io_lr, uint32_t frames, const fm1_fx_ext_t *ext);
+
+  /* API v3, optional: a pad kit (sound engines). pad_count > 0 says that
+   * notes pad_first_note .. pad_first_note + pad_count - 1 each play a pad,
+   * a drum sound of its own (General MIDI's drum keys: 36 the kick, 38 the
+   * snare, 42 the closed hi-hat...), and that other notes play nothing.
+   * A host with a keyboard may then lay the pads on its keys whatever
+   * their pitch (the virtual FM-1 puts the first 16 on its white keys);
+   * MIDI keeps the notes. 0 and 0: not a kit, every note is a pitch. */
+  uint8_t pad_first_note;
+  uint8_t pad_count;
 } fm1_engine_t;
+
+/* ---- MIDI effects (API v3, FM1_KIND_MIDI_FX) ------------------------------
+ * Notes in, notes out: the arpeggiator first (engines/midi_fx/), chord,
+ * scale and repeat effects later. Additive: fm1_engine_t is unchanged. A
+ * MIDI effect's descriptor is an fm1_midi_fx_t, whose first member is an
+ * fm1_engine_t of kind FM1_KIND_MIDI_FX, so a host lists its parameters,
+ * creates, destroys and sets it like any engine, and reaches process()
+ * through fm1_midi_fx_of. note_on, note_off, pitch_bend, render and the v2
+ * and v3 extras are NULL and 0; max_voices is 0. MIDI effects have their
+ * own registry (fm1_midi_fxs below), so the sound and effect lists stay as
+ * they are.
+ *
+ * The contract (DEVELOPERS.md, "MIDI effects"; fm1_mfx_host.h is a host's
+ * side of it):
+ *   - one process() per effect per block, on the block's input events,
+ *     ascending by frame, with a context that holds the block's clock
+ *     ticks (their frames, ascending), the transport and the project key;
+ *   - outputs ascending by frame, at least FM1_MIDI_FX_OUT_MIN slots of
+ *     room; at one frame, note-offs before note-ons;
+ *   - every note-on sent gets exactly one note-off. A note-off is never
+ *     dropped: one that does not fit is sent at the start of the next
+ *     call. A note-on that does not fit is never sent;
+ *   - FLUSH ends every note the effect sounds (the host sends it at Stop
+ *     and when it bypasses or removes the effect); PANIC also forgets every
+ *     key it holds; RESET restarts its pattern on the next tick (Play);
+ *   - time is ticks, never samples: every output carries the frame of the
+ *     input or tick that caused it, so the output is the same whatever the
+ *     host's block size;
+ *   - no allocation, no libm, the same output on every build.
+ * set_param works between blocks, as for any engine. Same thread as render. */
+/* The events, fm1_midi_ev_t and FM1_MIDI_EV_*, are in fm1_midi_ev.h. */
+
+#define FM1_MIDI_FX_PPQN 96u          /* the context's ticks per quarter note */
+#define FM1_MIDI_FX_OUT_MIN 64u       /* output room a host gives every call */
+
+/* The project key (owner, 2026-10-05: one for the project), for the scale
+ * effects to come; the arpeggiator reads none of it. */
+enum { FM1_KEY_MAJOR = 0, FM1_KEY_MINOR = 1, FM1_KEY_CHROMATIC = 2 };
+
+typedef struct fm1_midi_fx_ctx {
+  const uint16_t *ticks;       /* frames of the block's clock ticks, ascending,
+                                  FM1_MIDI_FX_PPQN to the quarter note */
+  uint32_t n_ticks;
+  uint32_t frames;             /* the block's length */
+  uint32_t bpm_x100;           /* the tempo the ticks follow */
+  uint8_t running;             /* 1 while the sequencer's transport runs */
+  uint8_t key_root;            /* the project key: 0 C .. 11 B */
+  uint8_t key_scale;           /* FM1_KEY_* */
+  uint8_t reserved;            /* 0 */
+} fm1_midi_fx_ctx_t;
+
+typedef struct fm1_midi_fx {
+  fm1_engine_t engine;         /* kind FM1_KIND_MIDI_FX */
+  /* The block: in[0..n_in) and ctx in, out[0..cap) out; returns how many
+   * events it wrote (at most cap). */
+  uint32_t (*process)(void *self, const fm1_midi_ev_t *in, uint32_t n_in,
+                      const fm1_midi_fx_ctx_t *ctx, fm1_midi_ev_t *out, uint32_t cap);
+} fm1_midi_fx_t;
+
+/* e as a MIDI effect, or NULL when it is not one. */
+static inline const fm1_midi_fx_t *fm1_midi_fx_of(const fm1_engine_t *e) {
+  return e && e->kind == FM1_KIND_MIDI_FX ? (const fm1_midi_fx_t *)(const void *)e : NULL;
+}
+
+/* Whether e is a pad kit, and the note its pad `pad` (from 0) plays, or -1
+ * when it has no such pad. */
+static inline int fm1_engine_pad_note(const fm1_engine_t *e, int pad) {
+  if (!e || pad < 0 || pad >= e->pad_count) return -1;
+  return e->pad_first_note + pad <= 127 ? e->pad_first_note + pad : -1;
+}
 
 /* The index of e's parameter with this uid, or -1 (uid 0 included). */
 static inline int fm1_param_index(const fm1_engine_t *e, uint16_t uid) {
@@ -232,6 +475,11 @@ static inline int fm1_param_index(const fm1_engine_t *e, uint16_t uid) {
 extern const fm1_engine_t *const fm1_engines[];
 extern const size_t fm1_engine_count;
 const fm1_engine_t *fm1_engine_find(const char *id);
+
+/* The MIDI effects' registry (engines/midi_fx/registry.c). */
+extern const fm1_midi_fx_t *const fm1_midi_fxs[];
+extern const size_t fm1_midi_fx_count;
+const fm1_midi_fx_t *fm1_midi_fx_find(const char *id);
 
 #ifdef __cplusplus
 }

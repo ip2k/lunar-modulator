@@ -23,7 +23,8 @@ python3 engines/third_party/mutable/vendor.py reference/mi-eurorack reference/mi
 
 Mutable Instruments asks that derivative works not use "Mutable Instruments"
 or the module names. The engines built on this code are called **Macro**
-(from Plaits) and **Shapes** (from Braids) in the firmware and its UI, and the
+(from Plaits), **Shapes** (from Braids) and **Drums** (Plaits' drum classes,
+beside voices of this repository's own) in the firmware and its UI, and the
 effects **Plate** (Rings' reverb), **Ensemble** (Plaits' ensemble),
 **Diffuse** (Plaits' diffuser) and **Room** (Clouds' reverb and diffuser);
 the origin is stated in each engine's `credits` string and in these notes,

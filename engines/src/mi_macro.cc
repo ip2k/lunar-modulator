@@ -108,7 +108,7 @@ enum Param {
 // lockable, but not a modulation target (a note held under Off ends when
 // switched to Ping). Every FLOAT is POLY: each voice computes all of them
 // for itself once it has an offset (Controls below).
-const uint8_t kPoly = FM1_PARAM_CONTINUOUS | FM1_PARAM_POLY;
+const uint16_t kPoly = FM1_PARAM_CONTINUOUS | FM1_PARAM_POLY;
 const fm1_param_t kParams[P_COUNT] = {
   { "Model",     FM1_PARAM_ENUM,  0, MODEL_COUNT - 1, 0, kModelNames, 0,
     1, FM1_PARAM_NOLOCK, FM1_UNIT_NONE, "Model" },
@@ -500,4 +500,6 @@ extern "C" const fm1_engine_t fm1_engine_macro = {
   fm1::macro::NoteOn, fm1::macro::NoteOff, fm1::macro::Bend,
   fm1::macro::Set, fm1::macro::Render,
   fm1::macro::SetNote,
+  0, NULL,                  // API v3: no effect extension
+  0, 0,                     // not a pad kit
 };

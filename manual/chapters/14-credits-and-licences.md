@@ -19,7 +19,34 @@ terms it is used under.
   Their origin is not stated there. In public builds, the twenty-three
   patches whose stored names are trademarks or a person's name are shown
   under descriptive names of this project's own.
+- **msfa**, the FM synthesizer core of Google's Music Synthesizer for
+  Android, by **Raph Levien** for **Google**, Apache License 2.0: FM6's
+  envelopes, LFO, operators, algorithms and tables. Its code is included
+  unmodified, its tables computed ahead of time as its own code computes
+  them; the voice built from it, its amplitude modulation, the feedback
+  loops of algorithms 4 and 6 and its controls are this project's own.
+  FM6 reads voices in the format of Yamaha's DX7 and is not affiliated
+  with or endorsed by Yamaha.
+- **FM6's name** is borrowed, with thanks, from the FM engine of
+  **Felucca** by **hugelton** (Hügelton Instruments), open firmware for the
+  FM-1; Felucca's Apache-2.0 port of the same core checks FM6 in the tests
+  (below).
+- **FM6's built-in voices** are this project's own, written for it and
+  under the MIT licence.
 - **Sophie** by **Matt Estela**, MIT licence, included unmodified.
+- **Drums**: its kicks, toms, snares and hi-hats are Plaits' drum models by
+  **Emilie Gillet** (Mutable Instruments, MIT licence), included unmodified,
+  which model the circuits of Roland's TR-808 and, in their synthetic kick
+  and snare, borrow from the TR-909's. Its rim shot, clap, cowbell and
+  cymbals are this project's own code, with three small pieces of Plaits'
+  hi-hat in the cowbell and cymbals (its swing VCA curve, its oscillators'
+  ratios and its clocked noise): the cowbell and cymbals follow the circuit
+  models of **Kurt James Werner, Jonathan Abel and Julius O. Smith** ("More
+  cowbell", AES 137th Convention, 2014; "The TR-808 cymbal", ICMC/SMC
+  2014, CC BY 3.0), and the clap and rim shot published descriptions of the
+  TR-808's circuits, among them **Baratatronix**'s. No code or text is
+  taken from the papers or the descriptions. The two kits are inspired by those drum machines; Roland's
+  names appear here only as credit.
 - **PSX Verb** by **Charles Vestal**, MIT licence, included unmodified.
 - **Schwung**, Charles Vestal's host for modules on the Ableton Move, MIT
   licence. Lunar Modulator includes Schwung's plugin interface unmodified,
@@ -45,19 +72,24 @@ terms it is used under.
 - **Filter** is this project's own code: zero-delay-feedback filters after
   **Vadim Zavalishin**'s *The Art of VA Filter Design*, **Andrew Simper**'s
   (Cytomic) state-variable filter, **Antti Huovilainen**'s ladder model
-  (DAFx-04), the diode-ladder circuit, and **Udo Zölzer**'s universal comb
-  (*DAFX*); its Sallen-Key type is after the Korg-35 filter of the later
-  MS-20, and its SK Mixed type after the Steiner-Parker Synthacon's filter
-  (their makers' names appear here only as credit); its non-linear solver
-  follows a method **Teemu Voipio** published, and its vowels are the
-  measurements of **Peterson and Barney** (1952). No code is taken from any
-  of them.
+  (DAFx-04) and the diode-ladder circuit; its Sallen-Key type is after the
+  Korg-35 filter of the later MS-20, and its SK Mixed type after the
+  Steiner-Parker Synthacon's filter (their makers' names appear here only
+  as credit); its non-linear solver follows a method **Teemu Voipio**
+  published, and its vowels are the measurements of **Peterson and
+  Barney** (1952). No code is taken from any of them.
+- **Comb** is this project's own code: **Udo Zölzer**'s universal comb
+  (*DAFX*), with Filter's saturating loop. It was one of Filter's types
+  until October 2026. No code is taken from anyone.
 - **Comp** is this project's own code, after the compressor design of
   **Giannoulis, Massberg and Reiss** (*Journal of the Audio Engineering
   Society*, 2012). No code is taken from anyone.
 - **Limiter** is this project's own code, after **Geraint Luff**'s
   look-ahead limiter design (Signalsmith Audio, 2022). No code is taken from
-  the article or from Signalsmith's library.
+  the article or from Signalsmith's library. Its Round mode ports the loop of
+  **Airwindows** ClipOnly2, by **Chris Johnson**, MIT licence ("Copyright
+  (c) 2016 airwindows, Airwindows uses the MIT license"; the licence is in
+  the source tree with the effect).
 - **DJ Filter** is this project's own code: the state-variable filter of
   **Andrew Simper** (Cytomic) and **Vadim Zavalishin**, in the form of
   stmlib's by **Emilie Gillet** (MIT licence). No code is taken from anyone.
@@ -87,6 +119,14 @@ terms it is used under.
   manuals of **Drawmer**'s DS201 and DS301 noise gates (the maker's name
   appears here only as credit); its key filters are **Vadim Zavalishin**'s
   state-variable filter. No circuit or code is taken from anyone.
+- **Squash** ports three **Airwindows** plug-ins by **Chris Johnson**, MIT
+  licence ("Copyright (c) 2016 airwindows, Airwindows uses the MIT
+  license"): its Snap type is Pop3, Mu is Pressure4 and Split is
+  ButterComp2, rewritten in single precision for the FM-1, with their noise
+  taken out and the few changes the effect's notes list.
+- **Transient** is this project's own code, on the classic two-follower
+  principle of transient designers, as noted from **legsmechanical**'s Bus
+  Driver (MIT licence). No code or measurement is taken from it.
 
 Each engine's and effect's credits are also built into the firmware, and are
 printed under its table in chapters [5](05-sound-engines.md) and
@@ -98,6 +138,44 @@ printed under its table in chapters [5](05-sound-engines.md) and
   implementation, written in C, of the behaviour of Movy's sequencer core,
   and its design follows Movy's. Movy's own core, run unmodified on a
   computer, is used to check Lunar Modulator's, event for event.
+
+## The arpeggiator
+
+- The arpeggiator is this project's own code, after published designs: its
+  loop, rhythms, Euclidean patterns and latch follow the arpeggiator of
+  **Mutable Instruments**' Yarns by **Emilie Gillet** (MIT licence); its
+  note orders and its TRG rate follow MCL's by **Justin Mammarella**
+  (BSD-3-Clause); its seeded, repeatable chances follow Super Arp by
+  **Handcrafted Media** (MIT licence). No code is taken from any of them.
+- The stock FM-1's arpeggio modes, whose names the presets keep, are as
+  **AL-255**'s disassembly reads them.
+
+## Modulation
+
+- The rack's modules are this project's own code, after published designs,
+  chiefly those of **Mutable Instruments**' Peaks and Braids by **Emilie
+  Gillet** (MIT licence). Three are ports of that code: Bounce from Peaks'
+  bouncing ball, Burst from Peaks' pulse shaper and randomizer, and
+  Quantize from Braids' quantizer and its scales.
+- The LFO's shapes follow **Schwung**'s LFO by **Charles Vestal** and
+  Peaks; the envelope follows Peaks' multistage envelope; Chance follows
+  **DaisySP**'s sample and hold (**Electro-Smith**, Paul Batchelor) and
+  **Music Thing Modular**'s Workshop System Computer card 106 (**Matt
+  Allison**); Register follows **Tom Whitwell**'s Turing Machine (Music
+  Thing Modular), **Chris Johnson**'s card 20 and **Phazerville**'s
+  Turing code (**Patrick Dowling**). Divide, Burst, Compare, Logic, Calc,
+  Slew and Mix follow Phazerville's applets (**Jason Justian** and
+  others), and the Resonator **Andrew Simper**'s (Cytomic) state-variable filter.
+  No code is taken from any of them but the three ports above.
+- Some modules follow only the published behaviour of other instruments,
+  whose makers' names appear here only as credit: Function after Make
+  Noise's Maths, Joranalogue's Contour 1, Serge's DUSG and Befaco's
+  Rampage; Coin after Mutable Instruments' Branches and Marbles; the LFO's
+  modes after Elektron's instruments; Slew, Compare and Logic after Expert
+  Sleepers' disting and Mannequins' Just Friends. No code of theirs is
+  used.
+
+`fm1-render --list-mod` prints each module's credits in full.
 
 ## Research this project builds on
 
@@ -115,6 +193,11 @@ printed under its table in chapters [5](05-sound-engines.md) and
   its MIDI.
 - **Baud Girl**, whose third-party FM-1 firmware showed how firmware reaches
   users through the FM-1's own update method.
+- **hugelton** (Felucca), **isod89** (SLOOP), **Keitark** (fm1-nes) and
+  **kurogedelic** (FM-1-transporter): open firmware and tools that run on
+  FM-1s. Their reports of how the board reads its keys and knobs, where its
+  audio goes and how its recovery mode is reached inform this project's
+  plans.
 - **Google's music-synthesizer-for-android** and the **Dexed** family, whose
   FM engine M-VAVE's firmware is built on.
 
@@ -143,7 +226,11 @@ Lunar Modulator's own code, and this manual, are under the MIT licence. Code
 from other projects keeps its own licence, which the repository records
 beside it with a note of where it came from. Everything listed in this
 chapter that ships with the simulator or the desktop tools is under the MIT
-licence, or, for the fonts, the SIL Open Font License 1.1.
+licence, or, for msfa, the Apache License 2.0, or, for the fonts, the SIL
+Open Font License 1.1. The repository's tests also use **Felucca**'s
+`fm6_core.c` by **Leo Kuroshita** (Hügelton Instruments), an Apache-2.0 port
+of the same FM core, to check FM6 against; it is in no build of the
+firmware or the simulator.
 
 ## Trademarks
 
@@ -151,5 +238,5 @@ M-VAVE, Cuvave and FM-1 are the marks of their owners. Lunar Modulator uses
 "FM-1" only to say which instrument it is written for, and is not made,
 endorsed or supported by M-VAVE or Cuvave. The names of Mutable Instruments'
 modules identify where code came from. Names such as Ableton Move and DX7
-describe origins and compatibility only. All other trademarks belong to their
-owners.
+describe origins and compatibility only, and Roland, TR-808 and TR-909 the
+machines that inspired Drums. All other trademarks belong to their owners.

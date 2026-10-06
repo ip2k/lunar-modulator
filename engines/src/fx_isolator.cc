@@ -53,6 +53,16 @@
  * and 2.73 kHz [verified 2026-10-05: the response with the crossfade held
  * at 0.5]; it is over in 5 ms.
  *
+ * Idle (fm1_fx_idle.h). After 2 s at unity with the crossfade and every
+ * glide landed, Isolator idles: the filters are cleared and a block is only
+ * the input guard, the same bits as before. Leaving unity wakes it at the
+ * next render: the crossovers land where they were set, and the gains stay
+ * at unity and the output the input while the filters warm up from rest,
+ * for the frames the slower crossover's Butterworth sections take to settle
+ * (IsoWake); then the gains glide and the crossfade runs as above. Away from
+ * unity the code below does what it did before, in the same order: the same
+ * bits.
+ *
  * Gains and crossovers glide (one pole, 5 ms) sample by sample, so a kill
  * does not click, any block size gives the same output, and values set
  * before the first render apply from its first sample. The crossovers glide
@@ -71,8 +81,9 @@
  * taps and the gains: about 103 operations and 28 comparisons, so about
  * 13,000 and 3,600 per 64-frame stereo block, and no divide while nothing
  * moves (one per moving crossover per frame while one glides). The filters
- * run at unity too, so that leaving it starts from warm states. Measured on
- * the desktop in engines/README.md.
+ * run at unity too, so that leaving it starts from warm states, until the
+ * effect idles: then only the input guard, two comparisons per sample.
+ * Measured on the desktop in engines/README.md.
  *
  * Contracts (fm1_engine.h): no heap, every field set in create, NaN-safe
  * parameters (fm1_param_clamp), finite output. Input guard as the Mutable
@@ -87,6 +98,7 @@
  */
 
 #include "fm1_engine.h"
+#include "fm1_fx_idle.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -118,14 +130,15 @@ static const char *const kKillNames[KILL_COUNT] = {
 /* Uids (API v2) are fixed: never renumber one; a new parameter takes the next
  * free uid. The FLOATs are read every sample: SMOOTH and MOD. Kill changes
  * cleanly (the gains glide), so it can be locked and modulated (MOD; a route
- * is rounded); it is not NOLOCK. */
+ * is rounded); it is not NOLOCK. The crossovers move on the LOG law
+ * (fm1_engine.h, API v3). */
 static const fm1_param_t kIsoParams[P_COUNT] = {
   { "Low",        FM1_PARAM_FLOAT, 0, 1, 0.75f, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Low" },
   { "Mid",        FM1_PARAM_FLOAT, 0, 1, 0.75f, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Mid" },
   { "High",       FM1_PARAM_FLOAT, 0, 1, 0.75f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "High" },
   { "Kill",       FM1_PARAM_ENUM,  0, KILL_COUNT - 1, 0, kKillNames, 0, 4, FM1_PARAM_MOD, FM1_UNIT_NONE, "Kill" },
-  { "Low Xover",  FM1_PARAM_FLOAT, 80, 400, 250, NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_HZ, "LoXov" },
-  { "High Xover", FM1_PARAM_FLOAT, 1500, 5000, 2500, NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_HZ, "HiXov" },
+  { "Low Xover",  FM1_PARAM_FLOAT, 80, 400, 250, NULL, 1, 5, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_HZ, "LoXov" },
+  { "High Xover", FM1_PARAM_FLOAT, 1500, 5000, 2500, NULL, 1, 6, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_HZ, "HiXov" },
 };
 
 /* The gliding control values: the three band gains and the two crossovers'
@@ -177,6 +190,11 @@ typedef struct IsoInstance {
   float wet_target;
   IsoCoef c1, c2;           /* the crossovers' coefficients, for value[] */
   int primed;               /* 0 until the first render */
+  /* The idle path (fm1_fx_idle.h). */
+  uint32_t rest;            /* frames at unity with everything landed */
+  uint32_t rest_frames;     /* FM1_IDLE_REST_SECONDS in frames */
+  uint32_t warm;            /* frames of warm-up left: the gains held at unity */
+  int idle;                 /* the filters are stopped; the output is the input */
   IsoChannel ch[2];
 } IsoInstance;
 
@@ -341,6 +359,36 @@ ISO_INLINE float IsoBands(IsoChannel *h, const IsoCoef *c1, const IsoCoef *c2, f
 }
 
 /* ---------------------------------------------------------------------- */
+/* The idle path (fm1_fx_idle.h)                                           */
+/* ---------------------------------------------------------------------- */
+
+#if FM1_FX_IDLE
+/* What an idle Isolator outputs: the guarded input, as unity gives. */
+static void IsoPass(float *lr, uint32_t frames) {
+  for (uint32_t i = 0; i < 2u * frames; ++i) lr[i] = IsoGuard(lr[i]);
+}
+
+/* Leave idle: the crossovers land where they were set while the filters
+ * stood, the filters start from rest (they were cleared), and the gains stay
+ * at unity, with the output the input, for the warm-up: the slower of the
+ * two crossovers' Butterworth sections decaying by FM1_IDLE_SETTLE_NEPERS.
+ * Then they glide and the crossfade runs as when unity is left without a
+ * rest. */
+static void IsoWake(IsoInstance *self) {
+  self->idle = 0;
+  self->rest = 0;
+  self->value[S_G1] = self->target[S_G1];
+  self->value[S_G2] = self->target[S_G2];
+  IsoUpdateCoef(&self->c1, self->value[S_G1]);
+  IsoUpdateCoef(&self->c2, self->value[S_G2]);
+  float d = fm1_idle_svf_decay(self->value[S_G1], kK);
+  const float d2 = fm1_idle_svf_decay(self->value[S_G2], kK);
+  if (d2 < d) d = d2;
+  self->warm = fm1_idle_settle_frames(FM1_IDLE_SETTLE_NEPERS, d, 0x7FFFFFFFu);
+}
+#endif
+
+/* ---------------------------------------------------------------------- */
 /* The engine API                                                          */
 /* ---------------------------------------------------------------------- */
 
@@ -369,6 +417,10 @@ static void *IsoCreate(void *mem, const fm1_host_t *host) {
   IsoSetTargets(self);
   IsoSnap(self);
   self->primed = 0;
+  self->rest = 0;
+  self->rest_frames = fm1_idle_frames_of(FM1_IDLE_REST_SECONDS, fs);
+  self->warm = 0;
+  self->idle = 0;
   return self;
 }
 
@@ -388,6 +440,17 @@ static void IsoRender(void *s, float *lr, uint32_t frames) {
     IsoSnap(self);
     self->primed = 1;
   }
+#if FM1_FX_IDLE
+  if (self->idle) {
+    if (self->wet_target == 0.0f) {     /* still unity */
+      IsoPass(lr, frames);
+      return;
+    }
+    IsoWake(self);
+  }
+  uint32_t warm = self->warm, rest = self->rest;
+  const uint32_t rest_frames = self->rest_frames;
+#endif
   /* The per-channel state lives in locals for the block: lr may alias any
    * float, so working through self would reload it after every store. */
   IsoChannel ch[2];
@@ -399,24 +462,40 @@ static void IsoRender(void *s, float *lr, uint32_t frames) {
   float wet = self->wet;
   const float glide = self->glide, ramp = self->ramp, wet_target = self->wet_target;
   for (uint32_t f = 0; f < frames; ++f) {
-    for (int k = S_LOW; k <= S_HIGH; ++k) {
-      if (value[k] != self->target[k]) value[k] = IsoGlideGain(value[k], self->target[k], glide);
+    int moving = 0;           /* a gain or a crossover glided this frame */
+    int hold = 0;             /* warming up: the gains and the input held */
+#if FM1_FX_IDLE
+    if (warm != 0u) {
+      --warm;
+      hold = 1;
+    }
+#endif
+    if (!hold) {
+      for (int k = S_LOW; k <= S_HIGH; ++k) {
+        if (value[k] != self->target[k]) {
+          value[k] = IsoGlideGain(value[k], self->target[k], glide);
+          moving = 1;
+        }
+      }
     }
     if (value[S_G1] != self->target[S_G1]) {
       value[S_G1] = IsoGlideG(value[S_G1], self->target[S_G1], glide);
       IsoUpdateCoef(&c1, value[S_G1]);
+      moving = 1;
     }
     if (value[S_G2] != self->target[S_G2]) {
       value[S_G2] = IsoGlideG(value[S_G2], self->target[S_G2], glide);
       IsoUpdateCoef(&c2, value[S_G2]);
+      moving = 1;
     }
-    if (wet != wet_target) {   /* a linear crossfade, landing exactly */
-      if (wet < wet_target) {
+    const float to = hold ? 0.0f : wet_target;
+    if (wet != to) {   /* a linear crossfade, landing exactly */
+      if (wet < to) {
         wet += ramp;
-        if (wet > wet_target) wet = wet_target;
+        if (wet > to) wet = to;
       } else {
         wet -= ramp;
-        if (wet < wet_target) wet = wet_target;
+        if (wet < to) wet = to;
       }
     }
     for (int c = 0; c < 2; ++c) {
@@ -429,7 +508,27 @@ static void IsoRender(void *s, float *lr, uint32_t frames) {
       else out = x + wet * (y - x);
       lr[2 * f + c] = out;
     }
+#if FM1_FX_IDLE
+    /* At rest: unity asked for and reached, every glide landed. */
+    if (!moving && wet == 0.0f && wet_target == 0.0f) {
+      if (++rest >= rest_frames) {
+        /* Idle from the next frame; a wake starts the filters from rest. */
+        memset(ch, 0, sizeof(ch));
+        self->idle = 1;
+        IsoPass(lr + 2u * (f + 1u), frames - f - 1u);
+        break;
+      }
+    } else {
+      rest = 0;
+    }
+#else
+    (void)moving;
+#endif
   }
+#if FM1_FX_IDLE
+  self->warm = warm;
+  self->rest = rest;
+#endif
   for (int k = 0; k < S_COUNT; ++k) self->value[k] = value[k];
   self->wet = wet;
   self->c1 = c1;
@@ -454,6 +553,8 @@ const fm1_engine_t fm1_engine_isolator = {
   NULL, NULL, NULL,
   IsoSet, IsoRender,
   NULL,                     // no notes, so no per-note offsets
+  0, NULL,                  // API v3: no effect extension
+  0, 0,                     // not a pad kit
 };
 
 #ifdef __cplusplus

@@ -4,10 +4,12 @@
 //   fm1-render --engine macro --param Model=6 --param Timbre=0
 //              --note 0:69:100:1.5 --seconds 2 --out a4.wav   (one command)
 //
-// --list prints every engine and its parameters as JSON, with the names of
+// --list prints every engine and MIDI effect and its parameters as JSON, with the names of
 // an enum parameter's values and each parameter's API v2 fields: uid, flags
-// (by name), unit and abbr, and whether the engine takes per-note offsets
-// (per_note: it has set_param_note).
+// (by name), unit and abbr, whether the engine takes per-note offsets
+// (per_note: it has set_param_note), what an effect asks of API v3's
+// extension (fx_wants: key, tempo, transport; render_ext: it has one), and
+// its pads when it is a pad kit (pads: first note and count, or null).
 //
 // Renders in max_frames blocks at the FM-1's rate (44,118 Hz, 64 frames),
 // passes the mix through the host's bus limiter (fm1_mix_limiter.h), writes
@@ -49,7 +51,7 @@
 // seq_locks_refused (locks on NOLOCK parameters) and seq_clicks (clicks
 // sounded).
 //
-// Several sound units, as the virtual FM-1 runs them with its lab switch
+// Several sound units, as the virtual FM-1 runs them
 // (docs/15 §3.16): --sound K:ID loads sound unit K (1..3; --engine is unit
 // 0), --sound-param K:NAME=VALUE sets one of its parameters, --insert K:ID
 // adds an insert effect to unit K's chain (in order) and --insert-param
@@ -87,9 +89,46 @@
 // --param-at and --sound-param-at move the units' bases, --bend HOST
 // PITCH's, which bends sound unit 0.
 //
+// DX7 voice data (engines/include/fm1_dx7.h): --sysex FILE loads a .syx
+// file's voices into the FM6 engine's user slots (--engine dx7, sound unit
+// 0), before the first block: a 32-voice bank fills User 1..32, single
+// voices go to User 1, 2... in the order given, counted across files. Each
+// file's result is printed on stderr, one line: the file, the voices, the
+// first slot, bad checksums and skipped messages, and the names stored.
+//
+// MIDI effects (engine API v3, FM1_KIND_MIDI_FX; include/fm1_mfx_host.h):
+// --mfx K:ID puts MIDI effect ID (the arpeggiator, `arp`) in front of sound
+// unit K (0 is --engine; 1..3 imply --slots), in the next of its chain's
+// four slots, on (K:ID:off: bypassed, as the virtual FM-1 keeps each sound's
+// arpeggiator until ARP switches it on); --mfx-param K:NAME=VALUE sets a parameter of unit K's last
+// --mfx; --mfx-param-at K[.J]:T:NAME=VALUE and --mfx-on-at K[.J]:T:0|1 change
+// one or bypass it (0) or switch it on (1) at time T, J its place in the
+// chain from 1 (default 1), with the other controls, before the block's
+// notes. Every note for the unit goes through the chain while one of its
+// effects is on: --note and --sound-note (taken at the block they start in,
+// at its first frame) and the sequencer's (at their frames); a note-off
+// follows its note-on, so a bypass leaves no note hanging, and a bypass
+// flushes the effect at once. The ticks are the sequencer's clock (--cmd,
+// --seq), which runs on at its tempo while stopped, or --tempo without one;
+// Start resets the effects and Stop flushes them. --log-mfx FILE.jsonl writes
+// what the chains send their sounds, by frame and then unit (so the same at
+// any block size). The summary adds mfx_* counters and
+// notes_hung, the engines' note-ons still without a note-off at the end.
+//
+// Effects with engine API v3's extension (fm1_engine.h, render_ext): every
+// effect renders through fm1_fx_render (include/fm1_fx_host.h), which calls
+// a v2 effect's render as before and gives an extended one the tempo, its
+// beats and the transport's Start and Stop from the sequencer (--cmd,
+// --seq), each at the first frame of a piece, or --tempo BPM (default 120)
+// without a sequencer; the key input is NULL (the effect's own input) until
+// the side-chain stage.
+//
 // MIT licence.
 
+#include "fm1_dx7.h"
 #include "fm1_engine.h"
+#include "fm1_fx_host.h"
+#include "fm1_mfx_host.h"
 #include "fm1_mix_limiter.h"
 #include "fm1_mod.h"
 #include "fm1_mod_host.h"
@@ -140,6 +179,20 @@ struct NoteControl {                 // --note-param-at and --note-pitch-at
 
 const int kSounds = 4;               // sound units, as the virtual FM-1's FM1_APP_SOUNDS
 
+// The engines' notes, per sound unit and key: note-ons not yet ended
+// (notes_hung in the summary).
+uint32_t g_sounding[kSounds][128];
+
+struct MfxControl {                  // --mfx-param-at, --mfx-on-at
+  double time;
+  int sound, slot;                   // the unit and its chain's slot (from 0)
+  bool on_off;                       // --mfx-on-at: `value` is 0 or 1
+  std::string name;
+  uint16_t index;
+  float value;
+  bool done;
+};
+
 struct FxControl {                   // --fx-param-at: an effect's set_param
   double time;
   size_t unit;                       // index into the chain (K - 1)
@@ -166,13 +219,17 @@ void Usage() {
       "                   [--insert-param K:NAME=VALUE]...] [--level K:PCT] [--slots]\n"
       "                  [--sound-note K:T:KEY:VEL:DUR] [--sound-param-at K:T:NAME=VALUE]\n"
       "                  [--level-at K:T:PCT] [--mod FILE] [--log-mod FILE.jsonl]\n"
+      "                  [--sysex FILE.syx]... [--tempo BPM]\n"
+      "                  [--mfx K:ID[:off] [--mfx-param K:NAME=VALUE]...]\n"
+      "                  [--mfx-param-at K[.J]:T:NAME=VALUE]... [--mfx-on-at K[.J]:T:0|1]...\n"
+      "                  [--log-mfx FILE.jsonl]\n"
       "       fm1-render --list-mod\n"
       "The source is the sound engine, or --input when there is none; each --fx\n"
       "processes it in order, then the bus limiter. --cmd and --seq drive the\n"
       "engine from the sequencer. --sound and the flags after it add sound units\n"
       "1..3, each with its inserts and level, mixed before the --fx chain.\n"
       "--mod modulates the sound units, their first two inserts, the first two\n"
-      "effects and the host.\n");
+      "effects and the host. --mfx puts MIDI effects in front of a sound unit.\n");
 }
 
 // The sequencer side of a render (--cmd, --seq).
@@ -250,13 +307,28 @@ void SinkRender(void *ctx, float *lr, uint32_t n) {
   const Unit *u = static_cast<const Unit *>(ctx);
   u->e->render(u->self, lr, n);
 }
+// Which sound unit a Unit is (for the note ledger); set before the run.
+const Unit *g_units[kSounds];
+
+int UnitIndex(const Unit *u) {
+  for (int k = 0; k < kSounds; ++k) if (g_units[k] == u) return k;
+  return 0;
+}
+
+void LedgerOn(int k, uint8_t note) { if (note < 128) ++g_sounding[k][note]; }
+void LedgerOff(int k, uint8_t note) {
+  if (note < 128 && g_sounding[k][note]) --g_sounding[k][note];
+}
+
 void SinkNoteOn(void *ctx, uint8_t note, uint8_t vel) {
   const Unit *u = static_cast<const Unit *>(ctx);
   u->e->note_on(u->self, note, vel);
+  LedgerOn(UnitIndex(u), note);
 }
 void SinkNoteOff(void *ctx, uint8_t note) {
   const Unit *u = static_cast<const Unit *>(ctx);
   u->e->note_off(u->self, note);
+  LedgerOff(UnitIndex(u), note);
 }
 void SinkSetParam(void *ctx, uint16_t index, float value) {
   const Unit *u = static_cast<const Unit *>(ctx);
@@ -265,6 +337,28 @@ void SinkSetParam(void *ctx, uint16_t index, float value) {
 void SinkBend(void *ctx, float semitones) {
   const Unit *u = static_cast<const Unit *>(ctx);
   if (u->e->pitch_bend) u->e->pitch_bend(u->self, semitones);
+}
+void SinkSetParamNote(void *ctx, uint8_t key, uint16_t index, float offset) {
+  const Unit *u = static_cast<const Unit *>(ctx);
+  if (u->e->set_param_note) u->e->set_param_note(u->self, key, index, offset);
+}
+
+// A MIDI effect's flush (a bypass): its note-offs, as live note-offs on the
+// unit's engine (and the modulation's note sources, as fm1-render feeds a
+// --note's).
+struct MfxOff {
+  Unit *const *units;
+  fm1_mod_t *mod;
+};
+
+void MfxNoteOff(void *ctx, unsigned chain, uint8_t key) {
+  const MfxOff *o = static_cast<const MfxOff *>(ctx);
+  if (chain >= unsigned(kSounds)) return;
+  Unit *u = o->units[chain];
+  if (!u->e) return;
+  u->e->note_off(u->self, key);
+  LedgerOff(static_cast<int>(chain), key);
+  if (o->mod) fm1_mod_live_sound_note(o->mod, chain, key, 0);
 }
 
 // --mod: the runtime, its glue to the bridge, the script's timed lines, the
@@ -285,8 +379,29 @@ struct Modulation {
   bool amp_used = false;
   FILE *log = NULL;
   uint64_t pos = 0;                  // the block's first frame, for the log
+  // Per-voice offsets since the last logged tick (MG9): frame and write.
+  std::vector<std::pair<uint64_t, fm1_mod_write_t> > voiced;
+  uint64_t live_voice_writes = 0;    // the live notes' first offsets
   Modulation() { memset(&glue, 0, sizeof(glue)); fm1_mod_ramp_init(&amp, 1.0f); }
 };
+
+// A live note's first per-voice offsets, right after the engine's note_on
+// (fm1_mod_host.h), at the coming block's first frame.
+void ModVoiceStart(Modulation &md, const Unit &u, unsigned sound, uint8_t key, uint64_t frame) {
+  fm1_mod_write_t w[FM1_MOD_VDESTS + 1u];
+  const uint32_t n = fm1_mod_voice_start(md.m, sound, key, w, FM1_MOD_VDESTS + 1u);
+  for (uint32_t i = 0; i < n; ++i) {
+    if (u.e->set_param_note) u.e->set_param_note(u.self, w[i].key, w[i].index, w[i].value);
+    if (md.log) md.voiced.push_back(std::make_pair(frame, w[i]));
+  }
+  md.live_voice_writes += n;
+}
+
+void ModVoiced(void *ctx, uint32_t frame, const fm1_mod_write_t *w, uint32_t n) {
+  Modulation *md = static_cast<Modulation *>(ctx);
+  if (!md->log) return;
+  for (uint32_t i = 0; i < n; ++i) md->voiced.push_back(std::make_pair(md->pos + frame, w[i]));
+}
 
 void ModWrite(void *ctx, uint32_t frame, const fm1_mod_write_t *w) {
   Modulation *md = static_cast<Modulation *>(ctx);
@@ -347,12 +462,43 @@ void ModTicked(void *ctx, uint32_t frame, const fm1_mod_write_t *w, uint32_t n) 
   for (uint32_t i = 0; i < n; ++i) {
     fprintf(f, "%s[\"%s\",%u,%.9g]", i ? "," : "", ModUnitName(w[i].unit), w[i].index, w[i].value);
   }
+  // Voices (MG9): each one sounding, its per-voice modules' outputs, and the
+  // per-note offsets sent since the last tick ([frame, unit, key, index,
+  // offset]; index 65535 is the note's pitch).
+  fprintf(f, "],\"vo\":[");
+  first = true;
+  for (unsigned v = 0; v < FM1_MOD_VOICES; ++v) {
+    fm1_mod_voice_info_t vi;
+    if (!fm1_mod_voice(m, v, &vi)) continue;
+    fprintf(f, "%s[%u,%u,%u,%u,[", first ? "" : ",", v, vi.sound, vi.key, vi.state);
+    first = false;
+    bool fp = true;
+    fm1_mod_plan_info_t plan;
+    fm1_mod_get_plan(m, &plan);
+    for (unsigned p = 0; p < FM1_MOD_POSITIONS; ++p) {
+      const int k = fm1_mod_kind_at(m, p);
+      if (k < 0 || !((plan.poly >> p) & 1u)) continue;
+      fprintf(f, "%s[%u", fp ? "" : ",", p + 1);
+      fp = false;
+      for (unsigned i = 0; i < fm1_mod_kinds[k]->n_out; ++i) fprintf(f, ",%.9g", fm1_mod_voice_out(m, v, p, i));
+      fprintf(f, "]");
+    }
+    fprintf(f, "]]");
+  }
+  fprintf(f, "],\"vw\":[");
+  for (size_t i = 0; i < md->voiced.size(); ++i) {
+    const fm1_mod_write_t &x = md->voiced[i].second;
+    fprintf(f, "%s[%llu,\"%s\",%u,%u,%.9g]", i ? "," : "",
+            static_cast<unsigned long long>(md->voiced[i].first), ModUnitName(x.unit), x.key, x.index,
+            x.value);
+  }
+  md->voiced.clear();
   fprintf(f, "]}\n");
 }
 
 // --list-mod: the kinds (with every parameter's uid and flags, as --list
 // prints engines'), the system sources and the host unit.
-void PrintFlags(uint8_t f);
+void PrintFlags(uint16_t f);
 const char *UnitName(uint8_t u);
 void PrintJsonString(const char *s);
 
@@ -435,19 +581,58 @@ void ListMod() {
   printf("]}\n");
 }
 
-// Renders an effect over a block, split at its own writes from the ticks.
-void RenderFx(const Unit &u, unsigned unit, const Modulation *md, float *block, uint32_t n) {
+// Renders an effect over a block, split at its own writes from the ticks;
+// each piece goes through fm1_fx_render, which calls a v2 effect's render
+// once and an API v3 effect's render_ext split at the beats and transport
+// events it asked for (fm1_fx_host.h).
+void RenderFx(const Unit &u, unsigned unit, const Modulation *md, float *block, uint32_t n,
+              const fm1_fx_block_t *fxb) {
   uint32_t cur = 0;
   if (md) {
     for (size_t k = 0; k < md->writes.size(); ++k) {
       const uint32_t f = md->writes[k].first;
       const fm1_mod_write_t &w = md->writes[k].second;
       if (w.unit != unit) continue;
-      if (f > cur) { u.e->render(u.self, block + 2u * cur, f - cur); cur = f; }
+      if (f > cur) { fm1_fx_render(u.e, u.self, block, cur, f, fxb); cur = f; }
       if (w.index < u.e->n_params) u.e->set_param(u.self, w.index, w.value);
     }
   }
-  if (cur < n) u.e->render(u.self, block + 2u * cur, n - cur);
+  if (cur < n) fm1_fx_render(u.e, u.self, block, cur, n, fxb);
+}
+
+// --sysex: each file's DX7 voices into the dx7 engine's user slots, in
+// order, single voices one slot after another across files.
+bool LoadSysex(const Unit &u, const char *id, const std::vector<std::string> &paths) {
+  if (!id || strcmp(id, "dx7") != 0) {
+    fprintf(stderr, "--sysex needs --engine dx7\n");
+    return false;
+  }
+  unsigned slot = 0;
+  for (size_t k = 0; k < paths.size(); ++k) {
+    FILE *f = fopen(paths[k].c_str(), "rb");
+    if (!f) { fprintf(stderr, "--sysex: cannot open %s\n", paths[k].c_str()); return false; }
+    std::vector<uint8_t> data;
+    uint8_t buf[4096];
+    size_t got;
+    while ((got = fread(buf, 1, sizeof(buf), f)) > 0) data.insert(data.end(), buf, buf + got);
+    fclose(f);
+    fm1_dx7_sysex_result_t r;
+    const int n = fm1_dx7_load_sysex(u.self, data.empty() ? NULL : &data[0], data.size(), slot, &r);
+    if (n <= 0) {
+      fprintf(stderr, "--sysex: no DX7 voice dump in %s\n", paths[k].c_str());
+      return false;
+    }
+    fprintf(stderr, "sysex %s: %d voices from User %u, %u bad checksums, %u skipped:",
+            paths[k].c_str(), n, r.first_slot + 1u, r.bad_checksums, r.skipped);
+    for (int i = 0; i < n && i < (int)FM1_DX7_USER_SLOTS; ++i) {
+      char name[FM1_DX7_NAME_BYTES + 1];
+      fm1_dx7_user_name(u.self, (r.first_slot + i) % FM1_DX7_USER_SLOTS, name);
+      fprintf(stderr, " \"%s\"", name);
+    }
+    fputc('\n', stderr);
+    slot = (r.first_slot + static_cast<unsigned>(n)) % FM1_DX7_USER_SLOTS;
+  }
+  return true;
 }
 
 bool ParseParam(const char *arg, std::vector<std::pair<std::string, float> > *out) {
@@ -474,16 +659,18 @@ const char *UnitName(uint8_t u) {
     case FM1_UNIT_HZ: return "hz";
     case FM1_UNIT_PCT: return "pct";
     case FM1_UNIT_DEG: return "deg";
+    case FM1_UNIT_DB: return "db";
     default: return "?";
   }
 }
 
-void PrintFlags(uint8_t f) {
-  static const struct { uint8_t bit; const char *name; } kFlags[] = {
+void PrintFlags(uint16_t f) {
+  static const struct { uint16_t bit; const char *name; } kFlags[] = {
     { FM1_PARAM_LATCH, "latch" }, { FM1_PARAM_SMOOTH, "smooth" }, { FM1_PARAM_NOLOCK, "nolock" },
     { FM1_PARAM_MOD, "mod" }, { FM1_PARAM_INPUT, "input" }, { FM1_PARAM_POLY, "poly" },
+    { FM1_PARAM_LOG, "log" },
   };
-  uint8_t known = 0;
+  uint16_t known = 0;
   bool first = true;
   putchar('[');
   for (size_t k = 0; k < sizeof(kFlags) / sizeof(kFlags[0]); ++k) {
@@ -492,21 +679,42 @@ void PrintFlags(uint8_t f) {
     printf(first ? "\"%s\"" : ",\"%s\"", kFlags[k].name);
     first = false;
   }
-  if (f & ~known) printf(first ? "\"0x%02x\"" : ",\"0x%02x\"", f & ~known);   // a test catches it
+  if (f & ~known) printf(first ? "\"0x%04x\"" : ",\"0x%04x\"", unsigned(f & ~known));   // a test catches it
   putchar(']');
 }
 
 void List() {
   printf("[");
-  for (size_t i = 0; i < fm1_engine_count; ++i) {
-    const fm1_engine_t *e = fm1_engines[i];
+  // The engines, then the MIDI effects (their own registry, kind midi_fx).
+  for (size_t i = 0; i < fm1_engine_count + fm1_midi_fx_count; ++i) {
+    const fm1_engine_t *e = i < fm1_engine_count ? fm1_engines[i]
+                                                 : &fm1_midi_fxs[i - fm1_engine_count]->engine;
     printf(i ? ",{" : "{");
     printf("\"id\":"); PrintJsonString(e->id);
     printf(",\"name\":"); PrintJsonString(e->name);
     printf(",\"credits\":"); PrintJsonString(e->credits);
-    printf(",\"kind\":\"%s\",\"max_voices\":%u,\"per_note\":%s,\"params\":[",
+    printf(",\"kind\":\"%s\",\"max_voices\":%u,\"per_note\":%s,\"render_ext\":%s,\"fx_wants\":[",
            e->kind == FM1_KIND_SOUND ? "sound" : e->kind == FM1_KIND_AUDIO_FX ? "audio_fx" : "midi_fx",
-           e->max_voices, e->set_param_note ? "true" : "false");
+           e->max_voices, e->set_param_note ? "true" : "false", e->render_ext ? "true" : "false");
+    {
+      static const struct { uint32_t bit; const char *name; } kWants[] = {
+        { FM1_FX_WANT_KEY, "key" }, { FM1_FX_WANT_TEMPO, "tempo" },
+        { FM1_FX_WANT_TRANSPORT, "transport" },
+      };
+      bool firstw = true;
+      for (size_t k = 0; k < sizeof(kWants) / sizeof(kWants[0]); ++k) {
+        if (!(e->fx_wants & kWants[k].bit)) continue;
+        printf(firstw ? "\"%s\"" : ",\"%s\"", kWants[k].name);
+        firstw = false;
+      }
+      if (e->fx_wants & ~uint32_t(FM1_FX_WANT_KEY | FM1_FX_WANT_TEMPO | FM1_FX_WANT_TRANSPORT)) {
+        printf(firstw ? "\"0x%x\"" : ",\"0x%x\"", unsigned(e->fx_wants));   // a test catches it
+      }
+    }
+    printf("],");
+    if (e->pad_count) printf("\"pads\":{\"first\":%u,\"count\":%u},", e->pad_first_note, e->pad_count);
+    else printf("\"pads\":null,");
+    printf("\"params\":[");
     for (uint16_t p = 0; p < e->n_params; ++p) {
       const fm1_param_t &q = e->params[p];
       printf(p ? ",{" : "{");
@@ -560,6 +768,7 @@ int main(int argc, char **argv) {
   std::string input = "silence";
   double seconds = 2.0;
   float rate = 44118.0f;
+  float tempo = 120.0f;             // --tempo: the effects' tempo without a sequencer
   uint32_t max_frames = 64;
   int fill = 0;
   std::vector<Fault> faults;
@@ -576,6 +785,7 @@ int main(int argc, char **argv) {
   long events_cap = -1;            // --events: the block's event buffer
   std::vector<Route> routes;
   const char *mod_path = NULL, *mod_log_path = NULL;
+  std::vector<std::string> sysex_paths;   // --sysex: DX7 voices for --engine dx7
   // Sound units 1..3 (--sound) and every unit's inserts and level; unit 0 is
   // `sound`. `slots` is set by any of their flags or --slots.
   Unit more[kSounds];
@@ -583,6 +793,12 @@ int main(int argc, char **argv) {
   std::vector<Unit> inserts[kSounds];
   float level[kSounds] = { 100.0f, 100.0f, 100.0f, 100.0f };
   bool slots = false;
+  // MIDI effects (--mfx): each sound unit's chain, in order.
+  std::vector<std::string> mfx_ids[kSounds];
+  std::vector<Unit> mfx_units[kSounds];
+  std::vector<int> mfx_start_on[kSounds];   // --mfx K:ID:off starts it bypassed
+  std::vector<MfxControl> mfx_controls;
+  const char *mfx_log_path = NULL;
 
   for (int i = 1; i < argc; ++i) {
     std::string a = argv[i];
@@ -603,7 +819,16 @@ int main(int argc, char **argv) {
     else if (a == "--seq") seq_path = next;
     else if (a == "--log-events") log_path = next;
     else if (a == "--mod") mod_path = next;
+    else if (a == "--sysex") sysex_paths.push_back(next);
     else if (a == "--log-mod") mod_log_path = next;
+    else if (a == "--log-mfx") mfx_log_path = next;
+    else if (a == "--tempo") {
+      tempo = static_cast<float>(atof(next));
+      if (!(tempo >= 20.0f && tempo <= 300.0f)) {
+        fprintf(stderr, "--tempo wants 20..300 BPM\n");
+        return 2;
+      }
+    }
     else if (a == "--tracks") tracks = atoi(next);
     else if (a == "--events") {      // a decimal count: base 0 would read 010 as 8
       char *end = NULL;
@@ -716,6 +941,69 @@ int main(int argc, char **argv) {
                                       static_cast<int>(k), false });
         }
       }
+    } else if (a == "--mfx" || a == "--mfx-param") {
+      char *rest = NULL;
+      const long k = strtol(next, &rest, 10);
+      if (rest == next || *rest != ':' || k < 0 || k >= kSounds) {
+        fprintf(stderr, "%s wants K:... with K a sound unit (0..%d)\n", a.c_str(), kSounds - 1);
+        return 2;
+      }
+      ++rest;
+      if (k > 0) slots = true;
+      if (a == "--mfx") {
+        if (mfx_ids[k].size() >= FM1_MFX_SLOTS) {
+          fprintf(stderr, "--mfx: sound unit %ld has %u MIDI effects already\n", k, FM1_MFX_SLOTS);
+          return 2;
+        }
+        std::string id = rest;
+        const size_t colon = id.find(':');
+        const bool off = colon != std::string::npos && id.substr(colon + 1) == "off";
+        if (colon != std::string::npos && !off) {
+          fprintf(stderr, "--mfx wants K:ID or K:ID:off\n");
+          return 2;
+        }
+        mfx_ids[k].push_back(id.substr(0, colon));
+        mfx_units[k].push_back(Unit());
+        mfx_start_on[k].push_back(off ? 0 : 1);
+      } else if (mfx_units[k].empty() || !ParseParam(rest, &mfx_units[k].back().params)) {
+        Usage();
+        return 2;
+      }
+    } else if (a == "--mfx-param-at" || a == "--mfx-on-at") {
+      // K[.J]:T:NAME=VALUE or K[.J]:T:0|1, J the effect's place in the chain from 1
+      char *rest = NULL;
+      const long k = strtol(next, &rest, 10);
+      long j = 1;
+      if (rest != next && *rest == '.') {
+        char *r2 = NULL;
+        j = strtol(rest + 1, &r2, 10);
+        if (r2 == rest + 1) j = 0;
+        rest = r2;
+      }
+      const char *c2 = rest != next && *rest == ':' ? strchr(rest + 1, ':') : NULL;
+      std::vector<std::pair<std::string, float> > one;
+      const bool on_off = a == "--mfx-on-at";
+      if (!c2 || k < 0 || k >= kSounds || j < 1 || j > long(FM1_MFX_SLOTS) ||
+          (on_off ? !*(c2 + 1) : !ParseParam(c2 + 1, &one))) {
+        fprintf(stderr, "%s wants K[.J]:T:%s, K a sound unit, J from 1\n", a.c_str(),
+                on_off ? "0|1" : "NAME=VALUE");
+        return 2;
+      }
+      if (k > 0) slots = true;
+      MfxControl c;
+      c.time = atof(rest + 1);
+      c.sound = static_cast<int>(k);
+      c.slot = static_cast<int>(j - 1);
+      c.on_off = on_off;
+      c.index = 0;
+      c.done = false;
+      if (on_off) {
+        c.value = atof(c2 + 1) != 0.0 ? 1.0f : 0.0f;
+      } else {
+        c.name = one[0].first;
+        c.value = one[0].second;
+      }
+      mfx_controls.push_back(c);
     } else if (a == "--fx-param-at") {
       // T:K:NAME=VALUE, K the effect's place in the chain (1 = the first --fx)
       const char *c1 = strchr(next, ':');
@@ -778,6 +1066,22 @@ int main(int argc, char **argv) {
     fprintf(stderr, "--log-mod needs --mod\n");
     return 2;
   }
+  // The MIDI effects' usage errors, before anything is allocated (an exit
+  // after that leaks under LeakSanitizer, which turns the exit code to 1).
+  bool any_mfx = false;
+  for (int k = 0; k < kSounds; ++k) any_mfx = any_mfx || !mfx_units[k].empty();
+  if (mfx_log_path && !any_mfx) {
+    fprintf(stderr, "--log-mfx needs --mfx\n");
+    return 2;
+  }
+  for (size_t k = 0; k < mfx_controls.size(); ++k) {
+    const MfxControl &c = mfx_controls[k];
+    if (size_t(c.slot) >= mfx_units[c.sound].size()) {
+      fprintf(stderr, "--mfx-%s names MIDI effect %d of sound unit %d, which has %zu\n",
+              c.on_off ? "on-at" : "param-at", c.slot + 1, c.sound, mfx_units[c.sound].size());
+      return 2;
+    }
+  }
   if (input != "silence" && input != "impulse" && input != "noise" && input != "sine") {
     Usage(); return 2;
   }
@@ -789,6 +1093,7 @@ int main(int argc, char **argv) {
   }
   fm1_host_t host = { FM1_ENGINE_API_VERSION, rate, max_frames };
   if (engine_id && !Instantiate(sound, engine_id, FM1_KIND_SOUND, host, fill)) return 1;
+  if (!sysex_paths.empty() && !LoadSysex(sound, engine_id, sysex_paths)) return 1;
   // Every sound unit, unit 0 being `sound` (created in this order: unit 0,
   // the --fx chain, units 1..3, then each unit's inserts, as the virtual
   // FM-1's harness creates them).
@@ -864,6 +1169,50 @@ int main(int argc, char **argv) {
       return 1;
     }
   }
+  // MIDI effects: each in its unit's chain, in the order given, its
+  // parameters set by name; then the controls' names and places.
+  bool use_mfx = false;
+  for (int k = 0; k < kSounds; ++k) {
+    for (size_t j = 0; j < mfx_ids[k].size(); ++j) {
+      const fm1_midi_fx_t *fx = fm1_midi_fx_find(mfx_ids[k][j].c_str());
+      Unit &u = mfx_units[k][j];
+      if (!fx || fx->engine.magic != FM1_ENGINE_MAGIC || fx->engine.api_version != FM1_ENGINE_API_VERSION) {
+        fprintf(stderr, "unknown MIDI effect: %s\n", mfx_ids[k][j].c_str());
+        return 1;
+      }
+      u.e = &fx->engine;
+      u.bytes = u.e->instance_size(&host);
+      if (posix_memalign(&u.mem, 16, u.bytes ? u.bytes : 16) != 0) return 1;
+      memset(u.mem, fill, u.bytes);
+      u.self = u.e->create(u.mem, &host);
+      if (!u.self) { fprintf(stderr, "%s refused this host\n", u.e->id); return 1; }
+      for (size_t q = 0; q < u.params.size(); ++q) {
+        bool found = false;
+        for (uint16_t i = 0; i < u.e->n_params; ++i) {
+          if (strcasecmp(u.e->params[i].name, u.params[q].first.c_str()) == 0) {
+            u.e->set_param(u.self, i, u.params[q].second);
+            found = true;
+          }
+        }
+        if (!found) {
+          fprintf(stderr, "unknown parameter for %s: %s\n", u.e->id, u.params[q].first.c_str());
+          return 1;
+        }
+      }
+      use_mfx = true;
+    }
+  }
+  for (size_t k = 0; k < mfx_controls.size(); ++k) {
+    MfxControl &c = mfx_controls[k];
+    if (c.on_off) continue;
+    const fm1_engine_t *e = mfx_units[c.sound][c.slot].e;
+    bool found = false;
+    for (uint16_t q = 0; q < e->n_params && !found; ++q) {
+      if (strcasecmp(e->params[q].name, c.name.c_str()) == 0) { c.index = q; found = true; }
+    }
+    if (!found) { fprintf(stderr, "unknown parameter for %s: %s\n", e->id, c.name.c_str()); return 1; }
+  }
+
   // A --sound-note on a unit with no --sound plays nothing, as a key on an
   // empty sound plays nothing in the virtual FM-1 (whose replays carry it).
   if (slots && input != "silence") {
@@ -926,7 +1275,7 @@ int main(int argc, char **argv) {
     if (log_path && !(sq.log = fopen(log_path, "w"))) { fprintf(stderr, "cannot write %s\n", log_path); return 1; }
   }
   const fm1_seq_sink_t sink = { &sound, sound.e, SinkRender, SinkNoteOn, SinkNoteOff, SinkSetParam,
-                                SinkBend };
+                                SinkBend, SinkSetParamNote };
 
   // With slots: one sink and one block per sound unit, summed into the block.
   fm1_seq_sink_t unit_sink[kSounds];
@@ -935,7 +1284,7 @@ int main(int argc, char **argv) {
   for (int k = 0; k < kSounds; ++k) {
     const Unit *u = units[k];
     unit_sink[k] = fm1_seq_sink_t{ const_cast<Unit *>(u), u->e, SinkRender, SinkNoteOn, SinkNoteOff,
-                                   SinkSetParam, SinkBend };
+                                   SinkSetParam, SinkBend, SinkSetParamNote };
     unit_block[k].assign(static_cast<size_t>(max_frames) * 2u, 0.0f);
     unit_slot[k].sink = u->e ? &unit_sink[k] : NULL;
     unit_slot[k].block = unit_block[k].data();
@@ -1039,6 +1388,7 @@ int main(int argc, char **argv) {
     md.glue.ctx = &md;
     md.glue.write = ModWrite;
     md.glue.ticked = ModTicked;
+    md.glue.voiced = ModVoiced;
     if (mod_log_path && !(md.log = fopen(mod_log_path, "w"))) {
       fprintf(stderr, "cannot write %s\n", mod_log_path);
       return ModFail(1);
@@ -1061,6 +1411,34 @@ int main(int argc, char **argv) {
   };
   if (md.m && !ModApplyLines(0)) return ModFail(2);
 
+  // The MIDI effects' stage on the bridge: the sequencer's, or the bare one
+  // (its own clock at --tempo).
+  static fm1_mfx_t mfx;
+  FILE *mfx_log = NULL;
+  for (int k = 0; k < kSounds; ++k) g_units[k] = units[k];
+  MfxOff mfx_off_ctx = { units, md.m };
+  const fm1_mfx_sink_t mfx_off = { &mfx_off_ctx, MfxNoteOff };
+  if (use_mfx) {
+    fm1_mfx_init(&mfx, static_cast<uint32_t>(lrintf(rate)));
+    fm1_mfx_set_tempo(&mfx, static_cast<uint32_t>(lrintf(tempo * 100.0f)));
+    for (int k = 0; k < kSounds; ++k) {
+      for (size_t j = 0; j < mfx_units[k].size(); ++j) {
+        fm1_mfx_set(&mfx, unsigned(k), unsigned(j), fm1_midi_fx_of(mfx_units[k][j].e), mfx_units[k][j].self,
+                    mfx_start_on[k][j], &mfx_off);
+      }
+    }
+    if (!md.m) {
+      fm1_seq_host_init(&bare, NULL, NULL, 0);
+      fm1_seq_host_bind(&bare, sound.e);
+    }
+    bare.mfx = &mfx;
+    if (use_seq) sq.host.mfx = &mfx;
+    if (mfx_log_path && !(mfx_log = fopen(mfx_log_path, "w"))) {
+      fprintf(stderr, "cannot write %s\n", mfx_log_path);
+      return 1;
+    }
+  }
+
   const uint32_t total = seq_end ? static_cast<uint32_t>(seq_end)
                                  : static_cast<uint32_t>(seconds * rate);
   std::vector<float> out(static_cast<size_t>(total) * 2);
@@ -1080,6 +1458,17 @@ int main(int argc, char **argv) {
     const double now = pos / static_cast<double>(rate);
     const uint32_t n = total - pos < max_frames ? total - pos : max_frames;
     float *block = &out[static_cast<size_t>(pos) * 2];
+    for (size_t k = 0; k < mfx_controls.size(); ++k) {   // the MIDI effects', in the order given
+      MfxControl &c = mfx_controls[k];
+      if (c.done || c.time > now) continue;
+      if (c.on_off) {
+        fm1_mfx_set_on(&mfx, unsigned(c.sound), unsigned(c.slot), c.value != 0.0f, &mfx_off);
+      } else {
+        Unit &u = mfx_units[c.sound][c.slot];
+        u.e->set_param(u.self, c.index, c.value);
+      }
+      c.done = true;
+    }
     for (size_t k = 0; k < fx_controls.size(); ++k) {  // the effects' turns, in the order given
       FxControl &c = fx_controls[k];
       if (c.done || c.time > now) continue;
@@ -1095,9 +1484,10 @@ int main(int argc, char **argv) {
         Unit &u = *units[c.sound];
         if (c.level) {
           level[c.sound] = c.value;
-        } else if (c.bend) {
-          const float v = md.m && c.sound == 0
-              ? fm1_mod_set_base(md.m, FM1_MOD_HOST, FM1_MOD_HOST_PITCH, c.value) : c.value;
+        } else if (c.bend) {        // sound unit k's bend is the base of its pitch (MG9)
+          const float v = md.m
+              ? fm1_mod_set_base(md.m, FM1_MOD_HOST, fm1_mod_host_pitch(static_cast<unsigned>(c.sound)), c.value)
+              : c.value;
           u.e->pitch_bend(u.self, v);
         } else {                     // the sound unit's base (rule M1)
           const float v = md.m
@@ -1110,16 +1500,28 @@ int main(int argc, char **argv) {
       for (size_t k = 0; k < events.size(); ++k) {     // offs before ons, each to its unit
         Unit &u = *units[events[k].sound];
         if (!done[k] && !events[k].on && events[k].time <= now) {
-          if (u.e) u.e->note_off(u.self, events[k].key);
-          if (u.e && md.m) fm1_mod_live_note(md.m, events[k].key, 0);
+          if (!(use_mfx && fm1_mfx_live_note(&mfx, unsigned(events[k].sound), events[k].key, 0))) {
+            if (u.e) { u.e->note_off(u.self, events[k].key); LedgerOff(events[k].sound, events[k].key); }
+            if (u.e && md.m) fm1_mod_live_sound_note(md.m, static_cast<unsigned>(events[k].sound), events[k].key, 0);
+          }
           done[k] = true;
         }
       }
       for (size_t k = 0; k < events.size(); ++k) {
         Unit &u = *units[events[k].sound];
         if (!done[k] && events[k].on && events[k].time <= now) {
-          if (u.e) u.e->note_on(u.self, events[k].key, events[k].velocity);
-          if (u.e && md.m) fm1_mod_live_note(md.m, events[k].key, events[k].velocity);
+          if (!(use_mfx &&
+                fm1_mfx_live_note(&mfx, unsigned(events[k].sound), events[k].key, events[k].velocity))) {
+            if (u.e) {
+              u.e->note_on(u.self, events[k].key, events[k].velocity);
+              LedgerOn(events[k].sound, events[k].key);
+            }
+            if (u.e && md.m) {
+              fm1_mod_live_sound_note(md.m, static_cast<unsigned>(events[k].sound), events[k].key,
+                                      events[k].velocity);
+              ModVoiceStart(md, u, static_cast<unsigned>(events[k].sound), events[k].key, pos);
+            }
+          }
           done[k] = true;
         }
       }
@@ -1144,15 +1546,24 @@ int main(int argc, char **argv) {
       }
       for (size_t k = 0; k < events.size(); ++k) {     // offs before ons at the same time
         if (!done[k] && !events[k].on && events[k].time <= now) {
-          sound.e->note_off(sound.self, events[k].key);
-          if (md.m) fm1_mod_live_note(md.m, events[k].key, 0);
+          if (!(use_mfx && fm1_mfx_live_note(&mfx, 0, events[k].key, 0))) {
+            sound.e->note_off(sound.self, events[k].key);
+            LedgerOff(0, events[k].key);
+            if (md.m) fm1_mod_live_note(md.m, events[k].key, 0);
+          }
           done[k] = true;
         }
       }
       for (size_t k = 0; k < events.size(); ++k) {
         if (!done[k] && events[k].on && events[k].time <= now) {
-          sound.e->note_on(sound.self, events[k].key, events[k].velocity);
-          if (md.m) fm1_mod_live_note(md.m, events[k].key, events[k].velocity);
+          if (!(use_mfx && fm1_mfx_live_note(&mfx, 0, events[k].key, events[k].velocity))) {
+            sound.e->note_on(sound.self, events[k].key, events[k].velocity);
+            LedgerOn(0, events[k].key);
+            if (md.m) {
+              fm1_mod_live_note(md.m, events[k].key, events[k].velocity);
+              ModVoiceStart(md, sound, 0, events[k].key, pos);
+            }
+          }
           done[k] = true;
         }
       }
@@ -1204,6 +1615,14 @@ int main(int argc, char **argv) {
       md.writes.clear();
       md.pos = pos;
     }
+    // What the effects hear about this block (engine API v3, fm1_fx_host.h):
+    // the sequencer's clock and its Start and Stop, or --tempo without one.
+    fm1_fx_block_t fxb;
+    fxb.clock = use_seq ? &sq.host.clock : NULL;
+    fxb.ev = use_seq ? sq.ev.data() : NULL;
+    fxb.n_ev = n_seq;
+    fxb.frames = n;
+    fxb.bpm = tempo;
     auto t0 = std::chrono::steady_clock::now();
     if (slots) {
       // Each unit into its own block, split at its own tracks' events; then
@@ -1212,6 +1631,8 @@ int main(int argc, char **argv) {
         fm1_seq_host_dispatch_slots_ticks(&sq.host, n, unit_slot, kSounds, md.m ? &md.glue.hook : NULL);
       } else if (md.m) {
         fm1_seq_host_dispatch_slots_ticks(&bare, n, unit_slot, kSounds, &md.glue.hook);
+      } else if (use_mfx) {
+        fm1_seq_host_dispatch_slots_ticks(&bare, n, unit_slot, kSounds, NULL);
       } else {
         for (int k = 0; k < kSounds; ++k) {
           if (units[k]->e) units[k]->e->render(units[k]->self, unit_block[k].data(), n);
@@ -1225,7 +1646,7 @@ int main(int argc, char **argv) {
           const unsigned code = j < FM1_MOD_INSERTS ? fm1_mod_insert_unit(static_cast<unsigned>(k),
                                                                           static_cast<unsigned>(j))
                                                     : FM1_MOD_NONE;
-          RenderFx(inserts[k][j], code, md.m ? &md : NULL, b, n);
+          RenderFx(inserts[k][j], code, md.m ? &md : NULL, b, n, &fxb);
         }
         if (level[k] != 100.0f) {
           const float g = level[k] / 100.0f;
@@ -1244,8 +1665,34 @@ int main(int argc, char **argv) {
                                   md.m ? &md.glue.hook : NULL);
     } else if (md.m) {
       fm1_seq_host_dispatch_ticks(&bare, n, block, sound.e ? &sink : NULL, &md.glue.hook);
+    } else if (use_mfx) {
+      fm1_seq_host_dispatch_ticks(&bare, n, block, sound.e ? &sink : NULL, NULL);
     } else if (sound.e) {
       sound.e->render(sound.self, block, n);
+    }
+    if (mfx_log) {        // what the chains sent, by frame, then chain: the same at any block size
+      std::vector<std::pair<std::pair<uint32_t, unsigned>, fm1_midi_ev_t> > sent;
+      for (unsigned c = 0; c < FM1_MFX_CHAINS; ++c) {
+        uint32_t m = 0;
+        const fm1_midi_ev_t *o = fm1_mfx_output(&mfx, c, &m);
+        for (uint32_t i = 0; i < m; ++i) sent.push_back(std::make_pair(std::make_pair(uint32_t(o[i].frame), c), o[i]));
+      }
+      std::stable_sort(sent.begin(), sent.end(),
+                       [](const std::pair<std::pair<uint32_t, unsigned>, fm1_midi_ev_t> &x,
+                          const std::pair<std::pair<uint32_t, unsigned>, fm1_midi_ev_t> &y) {
+                         return x.first < y.first;
+                       });
+      for (size_t i = 0; i < sent.size(); ++i) {
+        const fm1_midi_ev_t &e = sent[i].second;
+        const unsigned c = sent[i].first.second;
+        if (e.kind == FM1_MIDI_EV_NOTE_ON && e.b) {
+          fprintf(mfx_log, "{\"t\":%llu,\"u\":%u,\"k\":\"on\",\"key\":%u,\"vel\":%u}\n",
+                  static_cast<unsigned long long>(pos) + e.frame, c, e.a, e.b);
+        } else {
+          fprintf(mfx_log, "{\"t\":%llu,\"u\":%u,\"k\":\"off\",\"key\":%u}\n",
+                  static_cast<unsigned long long>(pos) + e.frame, c, e.a);
+        }
+      }
     }
     for (size_t k = 0; k < faults.size(); ++k) {
       for (uint32_t f = 0; f < n; ++f) {
@@ -1255,7 +1702,7 @@ int main(int argc, char **argv) {
       }
     }
     for (size_t k = 0; k < fx.size(); ++k) {
-      RenderFx(fx[k], static_cast<unsigned>(k + 1), md.m && k < 2 ? &md : NULL, block, n);
+      RenderFx(fx[k], static_cast<unsigned>(k + 1), md.m && k < 2 ? &md : NULL, block, n, &fxb);
     }
     if (md.m) {                       // HOST AMP, before the limiter
       uint32_t cur = 0;
@@ -1329,6 +1776,32 @@ int main(int argc, char **argv) {
          out.empty() ? 0.0 : sqrt(sum2 / out.size()), clipped, nonfinite,
          blocks ? render_ns / blocks : 0.0,
          render_ns > 0 ? audio_s / (render_ns * 1e-9) : 0.0);
+  {
+    uint32_t hung = 0;
+    for (int k = 0; k < kSounds; ++k) for (int key = 0; key < 128; ++key) hung += g_sounding[k][key];
+    printf(",\"notes_hung\":%u", hung);
+  }
+  if (use_mfx) {
+    printf(",\"mfx\":[");
+    for (int k = 0; k < kSounds; ++k) {
+      printf(k ? ",[" : "[");
+      for (size_t j = 0; j < mfx_units[k].size(); ++j) {
+        if (j) putchar(',');
+        PrintJsonString(mfx_units[k][j].e->id);
+      }
+      putchar(']');
+    }
+    printf("],\"mfx_bytes\":%zu,\"mfx_blocks\":%llu,\"mfx_ticks\":%llu,\"mfx_notes_in\":%llu,"
+           "\"mfx_notes_out\":%llu,\"mfx_direct\":%llu,\"mfx_deferred_offs\":%llu,\"mfx_dropped\":%llu",
+           sizeof(fm1_mfx_t), static_cast<unsigned long long>(mfx.stats.blocks),
+           static_cast<unsigned long long>(mfx.stats.ticks),
+           static_cast<unsigned long long>(mfx.stats.notes_in),
+           static_cast<unsigned long long>(mfx.stats.notes_out),
+           static_cast<unsigned long long>(mfx.stats.direct),
+           static_cast<unsigned long long>(mfx.stats.deferred_offs),
+           static_cast<unsigned long long>(mfx.stats.dropped));
+    if (mfx_log) fclose(mfx_log);
+  }
   if (use_seq) {
     fm1_seq_stats_t st;
     fm1_seq_get_stats(sq.seq, &st);
@@ -1356,14 +1829,21 @@ int main(int argc, char **argv) {
     auto bits = [](uint32_t x) { unsigned c = 0; for (; x; x &= x - 1) ++c; return c; };
     printf(",\"mod_bytes\":%zu,\"mod_ticks\":%llu,\"mod_writes\":%llu,\"mod_sound_writes\":%llu,"
            "\"mod_other_writes\":%llu,\"mod_active\":%u,\"mod_refused\":%u,\"mod_delayed\":%u,"
-           "\"mod_splits\":%llu,\"mod_edges_dropped\":%u,\"mod_nonfinite\":%u",
+           "\"mod_splits\":%llu,\"mod_edges_dropped\":%u,\"mod_nonfinite\":%u,"
+           "\"mod_refused_bits\":%u,\"mod_voice_slots\":%u,\"mod_poly\":%u,\"mod_voice_cap\":%u,"
+           "\"mod_voice_bytes\":%u,\"mod_voice_starts\":%u,\"mod_voice_steals\":%u,"
+           "\"mod_voice_ends\":%u,\"mod_voice_writes\":%llu",
            fm1_mod_size(), static_cast<unsigned long long>(st.ticks),
            static_cast<unsigned long long>(st.writes),
            static_cast<unsigned long long>(md.glue.sound_writes),
            static_cast<unsigned long long>(md.glue.other_writes), bits(plan.active),
            bits(plan.refused), bits(plan.delayed),
            static_cast<unsigned long long>(use_seq ? sq.host.splits : bare.splits),
-           st.edges_dropped, st.nonfinite);
+           st.edges_dropped, st.nonfinite, static_cast<unsigned>(plan.refused),
+           static_cast<unsigned>(plan.voice), static_cast<unsigned>(plan.poly),
+           static_cast<unsigned>(plan.voice_cap), static_cast<unsigned>(plan.voice_bytes),
+           static_cast<unsigned>(st.voice_starts), static_cast<unsigned>(st.voice_steals),
+           static_cast<unsigned>(st.voice_ends), static_cast<unsigned long long>(st.voice_writes));
     if (md.log) fclose(md.log);
     fm1_mod_destroy(md.m);
     free(md.mem);
@@ -1374,6 +1854,7 @@ int main(int argc, char **argv) {
   for (int k = 1; k < kSounds; ++k) Release(more[k]);
   for (int k = 0; k < kSounds; ++k) {
     for (size_t j = 0; j < inserts[k].size(); ++j) Release(inserts[k][j]);
+    for (size_t j = 0; j < mfx_units[k].size(); ++j) Release(mfx_units[k][j]);
   }
   return 0;
 }

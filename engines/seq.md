@@ -315,7 +315,8 @@ set, track 0 plays the engine. A lock on such
 a track sets the engine parameter its lane's label names: the part of
 `synth:Timbre` after the last `:`, matched by name without case and resolved
 to the parameter's uid (engine API v2) when the lane is labelled. FLOAT
-parameters scale 0..127 onto min..max; ENUM parameters use Movy's planned bins
+parameters scale 0..127 onto min..max, a LOG one (engine API v3) onto its
+log scale, min·(max/min)^(v/127); ENUM parameters use Movy's planned bins
 ⌊v·n/128⌋. A label that names no parameter is ignored, and a lock on a
 NOLOCK parameter (Macro's Model) is refused and counted. MIDI-routed tracks
 are only logged. Output is byte-identical at host blocks of 1, 7 and 64 frames for

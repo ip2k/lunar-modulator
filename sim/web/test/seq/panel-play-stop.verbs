@@ -1,6 +1,6 @@
 #! rate=44118 block=64 tracks=8 end=97059
 # The panel scenario (docs/15 S3): a one-bar figure on track 1, stopped;
-# panel-play-stop.panel then plays it from the panel with the lab switch on.
+# panel-play-stop.panel then plays it from the panel.
 # The render legs replay what the native harness logged (--log-cmds, with
 # its .args sidecar), the module presses the same buttons (fm1w_button).
 @0 tog 0 0 45 110;tog 0 3 57 80;tog 0 4 52 90;tog 0 6 55 80;tog 0 8 45 110

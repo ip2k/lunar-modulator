@@ -1,7 +1,7 @@
-"""The sequencer on the virtual FM-1's panel (docs/15 stages S3 to S8),
-behind the lab switch: golden gesture traces with two-step parity (§6.3),
-the typed commands' text round trip, the demo pattern, the switch itself,
-step entry (taps, holds, the Step pages, SHIFT, bar paging and the LEDs),
+"""The sequencer on the virtual FM-1's panel (docs/15 stages S3 to S8;
+behind a lab switch until 2026-10-05): golden gesture traces with two-step
+parity (§6.3), the typed commands' text round trip, the demo pattern, step
+entry (taps, holds, the Step pages, SHIFT, bar paging and the LEDs),
 record and Capture (REC, step record, SHIFT + REC, live input from the
 keys and MIDI IN, and REC's LED), tracks (focus, mute, the Set, Clip
 and Track pages, the metronome's click and the browser's routes), and
@@ -9,7 +9,7 @@ parameter locks (the lock pages, the 7-bit knob grid and the lanes' bases,
 live takes, CLEAR, and the traces transcribed from Movy's own tests).
 
 A gesture trace is a .panel file (one --key, --button, --turn or --note per
-line) and its golden .verbs, what `fm1-sim-render --lab --log-cmds` writes
+line) and its golden .verbs, what `fm1-sim-render --log-cmds` writes
 for it: the script lines as applied and every command the panel sent, at
 the block it led. Two-step parity: fm1-render replaying that file, with the
 sidecar of arguments the harness writes next to it (.args: the engine, the
@@ -62,11 +62,11 @@ def trace_input(stem):
     return TRACES / TRACE_INPUT.get(stem, default)
 
 
-def two_step(tools, tmp_path, name, panel, cmd, *args, lab=True):
+def two_step(tools, tmp_path, name, panel, cmd, *args):
     """The panel run and its replay: (panel summary, replay summary, the
     logged script, the panel run's WAV, the replay's WAV)."""
     log, a, b = tmp_path / f"{name}.verbs", tmp_path / f"{name}-panel.wav", tmp_path / f"{name}-replay.wav"
-    s = run(tools["sim"], [*(["--lab"] if lab else []), *args, "--cmd", str(cmd), "--panel", str(panel),
+    s = run(tools["sim"], [*args, "--cmd", str(cmd), "--panel", str(panel),
                            "--log-cmds", str(log), "--out", str(a)])
     sidecar = (tmp_path / f"{name}.args").read_text().splitlines()
     r = run(tools["render"], ["--cmd", str(log), "--frames", "64", *sidecar, "--out", str(b)])
@@ -128,7 +128,7 @@ def test_a_trace_logs_its_golden_verbs_and_replays_byte_for_byte(tools, tmp_path
     ("play-twice", 0, {"PLAY/STOP"}),
 ])
 def test_a_trace_ends_in_its_mode_with_its_button_leds(tools, tmp_path, panel, mode, leds):
-    s = run(tools["sim"], ["--lab", "--engine", "test-sine", "--cmd", str(TRACES / "input.verbs"),
+    s = run(tools["sim"], ["--engine", "test-sine", "--cmd", str(TRACES / "input.verbs"),
                            "--panel", str(TRACES / f"{panel}.panel")])
     lit = {n for n, c in zip(BUTTONS, s["leds"][27:]) if c == "1"}
     assert (s["mode"], lit) == (mode, leds)
@@ -158,7 +158,7 @@ def test_the_parity_scenarios_panels_replay_byte_for_byte(tools, tmp_path):
         for k, fx, ps in sc.get("inserts", []):
             args += ["--insert", f"{k}:{fx}"] + [a for p in ps for a in ("--insert-param", f"{k}:{p}")]
         s, r, log, a, b = two_step(tools, tmp_path, sc["name"], seq / sc["panel"], seq / sc["cmd"],
-                                   *args, lab=sc.get("lab", False))
+                                   *args)
         assert s["replayable"] == 1 and a == b and s["peak"] > 0.01
         sidecar = (tmp_path / f"{sc['name']}.args").read_text()
         played = [t for _, t in s["seq_ui_cmds"]]
@@ -219,43 +219,17 @@ def test_every_verb_round_trips_through_its_text(tools):
     assert out["records"] >= 67 * 30
 
 
-def test_with_the_lab_switch_off_nothing_changes(tools, tmp_path):
-    """Off (the public page): SEQ and PLAY/STOP say they are not in the
-    simulator yet, send nothing and light nothing, and a script that plays
-    the sequencer leaves the PLAY LED to the button."""
-    script = tmp_path / "p.verbs"
-    script.write_text("#! rate=44118 block=64 tracks=8 end=44118\n@0 tog 0 0 60 100;play\n")
-    s = run(tools["sim"], ["--engine", "test-sine", "--cmd", str(script), "--button", "0.1:SEQ",
-                           "--button", "0.5:PLAY/STOP"])
-    assert s["lab"] == 0 and s["mode"] == 0
-    assert s["popup"] == ["PLAY/STOP", "not in the", "simulator yet"]
-    assert s["seq_ui_cmds"] == [] and s["seq_notes_to_engine"] > 0
-    assert s["leds"] == "0" * 41
-    seq = run(tools["sim"], ["--engine", "test-sine", "--seconds", "0.2", "--button", "0.1:SEQ"])
-    assert seq["mode"] == 0 and seq["popup"] == ["SEQ", "not in the", "simulator yet"]
-    # REC too (S5), with SEL held as SHIFT would be; and keys and MIDI IN are
-    # no live input: nothing reaches the sequencer, nothing is captured.
-    rec = run(tools["sim"], ["--engine", "test-sine", "--cmd", str(script), "--key", "0.1:7:100:0.2",
-                             "--note", "0.15:64:100:0.2", "--button", "0.5:SEL:0.2",
-                             "--button", "0.55:REC"])
-    assert rec["popup"] == ["REC", "not in the", "simulator yet"]
-    assert rec["seq_ui_cmds"] == [] and "rec" not in rec and rec["leds"][27 + 13] == "0"
-
-
 def test_the_demo_pattern_plays_on_the_browsers_start_only(tools):
     """The demo pattern (owner decision O4) comes with the browser's start
-    chain and the lab switch: PLAY/STOP then plays it. Without the switch,
-    or without the start chain (every test and parity run), the sequencer
+    chain, on every start since the lab switch went: PLAY/STOP then plays
+    it. Without the start chain (every test and parity run) the sequencer
     starts empty."""
-    demo = run(tools["sim"], ["--lab", "--start", "--seconds", "2", "--button", "0.1:PLAY/STOP"])
+    demo = run(tools["sim"], ["--start", "--seconds", "2", "--button", "0.1:PLAY/STOP"])
     assert demo["engine"] == "macro" and demo["fx"] == ["plate", ""]
     assert demo["peak"] > 0.05 and demo["seq_view"]["clip_playing"] == 1
-    assert demo["leds"][27 + 12] == "1"
-    empty = run(tools["sim"], ["--lab", "--engine", "macro", "--seconds", "2",
-                               "--button", "0.1:PLAY/STOP"])
+    assert demo["leds"][27 + 12] == "1" and demo["popup"] == []
+    empty = run(tools["sim"], ["--engine", "macro", "--seconds", "2", "--button", "0.1:PLAY/STOP"])
     assert empty["peak"] == 0 and empty["seq_view"]["clip_playing"] == 0
-    off = run(tools["sim"], ["--start", "--seconds", "1", "--button", "0.1:PLAY/STOP"])
-    assert off["peak"] == 0 and off["popup"][0] == "PLAY/STOP"
 
 
 def test_a_change_of_sound_from_the_panel_is_not_replayable(tools, tmp_path):
@@ -263,7 +237,7 @@ def test_a_change_of_sound_from_the_panel_is_not_replayable(tools, tmp_path):
     exclusion): the harness says so instead of logging a wrong replay."""
     panel = tmp_path / "p.panel"
     panel.write_text("--button 0.1:PLAY/STOP\n--turn 0.3:PRESETS:1\n")
-    s = run(tools["sim"], ["--lab", "--engine", "test-sine", "--cmd", str(TRACES / "input.verbs"),
+    s = run(tools["sim"], ["--engine", "test-sine", "--cmd", str(TRACES / "input.verbs"),
                            "--panel", str(panel), "--log-cmds", str(tmp_path / "c.verbs")])
     assert s["replayable"] == 0
 
@@ -277,15 +251,15 @@ def test_the_ui_state_fits_its_bound(tools):
 # ---- Step entry (docs/15 S4) -----------------------------------------------------------------
 
 def step_run(tools, tmp_path, panel_lines, *extra, script=None, seconds=None):
-    """A panel run from steps.verbs (or `script`), the lab switch on, Test
-    Sine; `seconds` ends it early (a key still held at the end stays held)."""
+    """A panel run from steps.verbs (or `script`), Test Sine; `seconds`
+    ends it early (a key still held at the end stays held)."""
     panel = tmp_path / "p.panel"
     panel.write_text("\n".join(panel_lines) + "\n")
     cmd = TRACES / "steps.verbs"
     if script is not None:
         cmd = tmp_path / "in.verbs"
         cmd.write_text(script)
-    args = ["--lab", "--engine", "test-sine", "--cmd", str(cmd), "--panel", str(panel), *extra]
+    args = ["--engine", "test-sine", "--cmd", str(cmd), "--panel", str(panel), *extra]
     if seconds is not None:
         args += ["--seconds", str(seconds)]
     return run(tools["sim"], args)
@@ -416,26 +390,22 @@ def test_notes_in_one_block_replay_only_in_the_apps_order(tools, tmp_path, first
     panel.write_text("\n".join(lines if first == "note" else lines[::-1]) + "\n")
     cmd = tmp_path / "in.verbs"
     cmd.write_text("#! rate=44118 block=64 tracks=8 end=44118\n@0 bpm 12000\n")
-    s, _, _, a, b = two_step(tools, tmp_path, "order", panel, cmd, "--engine", "test-sine", lab=False)
+    s, _, _, a, b = two_step(tools, tmp_path, "order", panel, cmd, "--engine", "test-sine")
     assert s["replayable"] == replayable
     if replayable:
         assert a == b
 
 
-@pytest.mark.parametrize("mode,lab,popup,sel_led", [
-    ("HOME", True, [], "1"),                              # SHIFT: no popup, its LED on
-    ("HOME", False, ["SEL", "works in FX mode"], "0"),    # the public page: as before
-    ("FX", True, [], "1"),                                # FX mode: the slot grab, as before
-])
-def test_sel_is_shift_outside_fx_mode(tools, tmp_path, mode, lab, popup, sel_led):
+@pytest.mark.parametrize("mode", ["HOME", "FX"])
+def test_sel_is_shift_outside_fx_mode(tools, tmp_path, mode):
+    """SEL held outside FX mode is SHIFT, its LED on and no popup; in FX
+    mode it is the slot grab, as before."""
     script = tmp_path / "in.verbs"
     script.write_text("#! rate=44118 block=64 tracks=8 end=22059\n@0 bpm 12000\n")
     panel = [] if mode == "HOME" else ["--button", "0.05:FX"]
-    s = run(tools["sim"], [*(["--lab"] if lab else []), "--engine", "test-sine", "--cmd", str(script),
-                           *panel, "--button", "0.10:SEL:5"])
-    assert s["popup"] == popup and s["leds"][27 + 3] == sel_led
-    if lab:
-        assert s["seq_view"]["shift"] == (mode != "FX")
+    s = run(tools["sim"], ["--engine", "test-sine", "--cmd", str(script), *panel, "--button", "0.10:SEL:5"])
+    assert s["popup"] == [] and s["leds"][27 + 3] == "1"
+    assert s["seq_view"]["shift"] == (mode != "FX")
 
 
 def test_the_ui_state_holds_its_s4_fields_in_its_bound(tools):
@@ -451,11 +421,11 @@ REC_LED = 27 + 13
 
 
 def rec_run(tools, tmp_path, panel_lines, seconds, script="rec.verbs"):
-    """A panel run from tests/fixtures/seq-ui/`script`, the lab switch on,
-    Test Sine, ended at `seconds` (whatever is held then stays held)."""
+    """A panel run from tests/fixtures/seq-ui/`script`, Test Sine, ended at
+    `seconds` (whatever is held then stays held)."""
     panel = tmp_path / "p.panel"
     panel.write_text("\n".join(panel_lines) + "\n")
-    return run(tools["sim"], ["--lab", "--engine", "test-sine", "--cmd", str(TRACES / script),
+    return run(tools["sim"], ["--engine", "test-sine", "--cmd", str(TRACES / script),
                               "--panel", str(panel), "--seconds", str(seconds)])
 
 
@@ -576,6 +546,39 @@ def test_step_record_takes_a_midi_pitch_already_down_once(tools, tmp_path):
     assert s["rec"]["srec"] == 1 and s["rec"]["head"] == 1
 
 
+@pytest.mark.parametrize("engine,pitches", [
+    ("test-sine", (53, 55, 57)),        # F3, G3, A3 at octave 0
+    ("drums", (36, 37, 38)),            # a pad kit: the kick, the rim, the snare
+    ("sw-sophie", (36, 37, 38)),
+])
+def test_step_record_enters_the_note_the_key_plays(tools, tmp_path, engine, pitches):
+    """Step record enters the note a white key sounds: its pitch, or with a
+    pad kit as the sound (fm1_engine.h, pad_count) the pad it plays, not
+    53 + key, which the kit would leave silent on playback. OCT+ moves the
+    pitches, not the pads."""
+    panel = tmp_path / "p.panel"
+    lines = ["--button 0.03:OCT+", "--button 0.05:SEQ", "--button 0.10:REC:0.8"]
+    lines += [f"--key {0.2 + 0.1 * i:.2f}:{WHITE[i]}:100:0.05" for i in range(3)]
+    panel.write_text("\n".join(lines) + "\n")
+    s = run(tools["sim"], ["--engine", engine, "--cmd", str(TRACES / "steps.verbs"),
+                           "--panel", str(panel), "--seconds", "1.2"])
+    up = 12 if engine == "test-sine" else 0
+    want = sum(([f"del 0 {i} {i} -1", f"addp 0 {i} {i} {p + up} 100"]
+                for i, p in enumerate(pitches)), [])
+    assert [t for _, t in s["seq_ui_cmds"]] == want
+
+
+@pytest.mark.parametrize("engine,pitches", [("test-sine", (69, 77)), ("drums", (38, 43))])
+def test_shift_adds_the_note_the_key_plays_to_held_steps(tools, tmp_path, engine, pitches):
+    """O22's SHIFT pitches (tests/fixtures/seq-ui/step-add-pitch.panel) with
+    a pad kit as the sound: white keys 3 and 8 add the snare (38) and the
+    floor tom (43), the pads they play, where a pitched sound gets A4 and F5."""
+    s = run(tools["sim"], ["--engine", engine, "--cmd", str(TRACES / "input.verbs"),
+                           "--panel", str(TRACES / "step-add-pitch.panel")])
+    assert [t for _, t in s["seq_ui_cmds"]] == [f"addp 0 4 4 {pitches[0]} 90",
+                                                 f"addp 0 4 4 {pitches[1]} 100", "play"]
+
+
 def test_step_record_wraps_at_the_end_of_a_loop_on_a_later_bar(tools, tmp_path):
     """A loop on bar 2 (steps 17-32 of a 3-bar clip): the head starts on its
     first step and wraps at its end, the bar on the keys following it, and
@@ -621,7 +624,7 @@ def tracks_run(tools, tmp_path, panel_lines, *extra, seconds=None):
     """A panel run from tracks.verbs: four tracks at 240 BPM, Test Sine."""
     panel = tmp_path / "p.panel"
     panel.write_text("\n".join(panel_lines) + "\n")
-    args = ["--lab", "--engine", "test-sine", "--cmd", str(TRACES / "tracks.verbs"), "--panel",
+    args = ["--engine", "test-sine", "--cmd", str(TRACES / "tracks.verbs"), "--panel",
             str(panel), *extra]
     if seconds is not None:
         args += ["--seconds", str(seconds)]
@@ -637,7 +640,7 @@ def test_the_traces_do_what_their_names_say(tools, tmp_path):
     `watch`, the mute map's tracks, the pages' values, and nothing at all
     from browsing."""
     def played(stem):
-        return cmds_of(run(tools["sim"], ["--lab", "--engine", "test-sine", "--cmd",
+        return cmds_of(run(tools["sim"], ["--engine", "test-sine", "--cmd",
                                           str(TRACES / "tracks.verbs"), "--panel",
                                           str(TRACES / f"{stem}.panel")]))
     assert played("track-focus") == ["watch 1", "watch 2", "watch 1", "play"]
@@ -655,7 +658,7 @@ def test_a_focus_from_home_goes_back_there_and_capture_follows(tools, tmp_path):
     """SEQ held with a white key focuses its track from HOME and goes back
     there on SEQ's release; the keys' live input and Capture then follow the
     track (the core's `watch`)."""
-    s = run(tools["sim"], ["--lab", "--engine", "test-sine", "--cmd", str(TRACES / "tracks.verbs"),
+    s = run(tools["sim"], ["--engine", "test-sine", "--cmd", str(TRACES / "tracks.verbs"),
                            "--panel", str(TRACES / "track-focus-from-home.panel")])
     assert s["mode"] == 0 and s["seq_view"]["track"] == 2
     assert cmds_of(s) == ["play", "watch 2", "non 2 65 100", "nof 2 65", "cap 2"]
@@ -781,15 +784,16 @@ def test_a_route_on_the_track_page_makes_its_sound_current(tools, tmp_path):
 
 
 def test_the_browsers_start_routes_every_track_to_sound_1(tools):
-    """O10 as changed (2026-10-02): on the browser's start chain, with the
-    lab switch, every track plays Sound 1 until the user routes it; track 1
-    by the default-route rule, the others by fm1_app_seq_start_routes. The
-    Track page reads it."""
+    """O10 as changed (2026-10-02): on the browser's start chain every
+    track plays Sound 1 until the user routes it; track 1 by the
+    default-route rule, the others by fm1_app_seq_start_routes. The Track
+    page reads it. Without the start chain (tests, parity) track 8 stays on
+    its own MIDI channel."""
     panel = ["--button", "0.05:SEQ", "--button", "0.08:SEQ:0.1", "--key", "0.09:12:100:0.01"]
-    s = run(tools["sim"], ["--lab", "--start", "--seconds", "0.4", *panel])
+    s = run(tools["sim"], ["--start", "--seconds", "0.4", *panel])
     assert s["seq_view"]["track"] == 7 and s["tracks"]["route"] == [1, 0]
-    off = run(tools["sim"], ["--start", "--seconds", "0.2"])
-    assert "tracks" not in off
+    plain = run(tools["sim"], ["--engine", "macro", "--seconds", "0.4", *panel])
+    assert plain["seq_view"]["track"] == 7 and plain["tracks"]["route"] == [0, 8]
 
 
 def test_the_click_sounds_only_while_the_metronome_is_on(tools, tmp_path):
@@ -859,16 +863,15 @@ MOVY_TRACES = {
 }
 
 
-def lock_run(tools, tmp_path, panel_lines, *extra, script=None, seconds=None, engine="macro", lab=True):
-    """A panel run from steps.verbs (or `script`), Macro, the lab switch on."""
+def lock_run(tools, tmp_path, panel_lines, *extra, script=None, seconds=None, engine="macro"):
+    """A panel run from steps.verbs (or `script`), Macro."""
     panel = tmp_path / "p.panel"
     panel.write_text("\n".join(panel_lines) + "\n")
     cmd = TRACES / "steps.verbs"
     if script is not None:
         cmd = tmp_path / "in.verbs"
         cmd.write_text(script)
-    args = [*(["--lab"] if lab else []), "--engine", engine, "--cmd", str(cmd), "--panel", str(panel),
-            *extra]
+    args = ["--engine", engine, "--cmd", str(cmd), "--panel", str(panel), *extra]
     if seconds is not None:
         args += ["--seconds", str(seconds)]
     return run(tools["sim"], args)
@@ -897,7 +900,7 @@ def test_movys_automation_traces_are_reproduced(tools, tmp_path, stem):
     tests assert for the same gesture. With Movy at 9190e79 under
     reference/movy (git-ignored), each assertion is also found, word for
     word, in its source, so the transcription cannot drift from it."""
-    s = run(tools["sim"], ["--lab", "--engine", "macro", "--cmd", str(TRACES / "steps.verbs"),
+    s = run(tools["sim"], ["--engine", "macro", "--cmd", str(TRACES / "steps.verbs"),
                            "--panel", str(TRACES / f"{stem}.panel")])
     for quoted, holds in MOVY_TRACES[stem]:
         assert holds(cmds(s)), (stem, quoted, cmds(s))
@@ -926,7 +929,7 @@ def test_the_knob_and_the_base_agree_to_the_bit_after_a_stop(tools, tmp_path):
     held (the 7-bit grid, the base following at once) and after the stop's
     D6 revert, what the engine last heard through the lock path is the
     knob's value, bit for bit (%.9g text, which round-trips a float)."""
-    s = run(tools["sim"], ["--lab", "--engine", "macro", "--cmd", str(TRACES / "steps.verbs"),
+    s = run(tools["sim"], ["--engine", "macro", "--cmd", str(TRACES / "steps.verbs"),
                            "--panel", str(TRACES / "lock-knob-sync.panel")])
     assert cmds(s) == ["alabel 0 0 synth:Timbre", "abase 0 0 64", "aset 0 0 4 84 1", "play",
                        "abaseq 0 0 61", "stop"]
@@ -970,7 +973,7 @@ def test_a_lock_goes_to_the_sound_its_track_plays(tools, tmp_path):
 
 
 def test_a_laned_knob_turns_on_the_7_bit_grid_and_every_base_follows(tools, tmp_path):
-    """No step held, the lab switch on: Timbre has a lane on tracks 1 and 2
+    """No step held: Timbre has a lane on tracks 1 and 2
     (both on Sound 1) and on track 3 (on Sound 2). KNOB3 in HOME moves one
     7-bit step a detent, and the two lanes on Sound 1 take the value as
     their base; track 3's does not move. A knob with no lane keeps its
@@ -983,9 +986,6 @@ def test_a_laned_knob_turns_on_the_7_bit_grid_and_every_base_follows(tools, tmp_
     assert cmds(s) == ["abaseq 0 0 66", "abaseq 1 3 66"]
     assert s["values0"][2] == pytest.approx(66 / 127, abs=1e-6)
     assert s["values0"][1] == pytest.approx(0.51, abs=1e-6), "Harmonics has no lane"
-    off = lock_run(tools, tmp_path, ["--turn 0.10:KNOB3:2"], script=script, seconds=0.3, lab=False)
-    assert off["seq_ui_cmds"] == [] and off["values0"][2] == pytest.approx(0.52, abs=1e-6), \
-        "the public page's knob is as it was"
 
 
 def test_algorithm_on_a_laned_list_moves_its_base(tools, tmp_path):

@@ -46,6 +46,20 @@
  * from a settled filter). All gains and Level at 0 dB pass the guarded input
  * through unchanged, whatever the frequencies and Qs.
  *
+ * Idle (fm1_fx_idle.h). After 2 s with every gain and Level at 0 dB, every
+ * band flat and Level landed (counted at control steps), EQ idles: the
+ * integrators are cleared and a block is only the input guard, the same bits
+ * as before. A gain or Level away from 0 dB wakes it at the next render: the
+ * frequencies and Qs land where they were set, and each band's gain is held
+ * at 0 dB (the band flat, the output still the input) for its own warm-up,
+ * the frames its section at 0 dB takes to settle from rest (EqSettle); then
+ * it glides as above. Level needs no filter and glides at once. Settings
+ * where a band needs more than FM1_IDLE_MAX_WARM_SECONDS (a band low and
+ * narrow) never idle: EQ runs there as it always has; tuned there while
+ * idle, it wakes and holds the bands for at most that long. Away from
+ * pass-through the code below does what it did before, in the same order:
+ * the same bits.
+ *
  * Control rate. Each band's frequency (as log2 Hz), gain (dB) and Q (as
  * log2 Q) glide towards their targets one step per 8 samples, counted from
  * create, not from the block, so any block size gives the same output; each
@@ -72,8 +86,8 @@
  * and up to 4 comparisons each) and their mixes (1 to 3 multiply-adds):
  * about 60 operations, 7,700 per 64-frame stereo block, whether a band is
  * flat or not; plus, while a band glides, about 130 operations and 2
- * divides per band per 8 samples. Measured on the desktop in
- * engines/README.md.
+ * divides per band per 8 samples. Idle, only the input guard: two
+ * comparisons per sample. Measured on the desktop in engines/README.md.
  *
  * Written in the C subset of C++11 so it would build as C99 unchanged apart
  * from the extern "C" linkage below. MIT licence, like the rest of this
@@ -81,6 +95,7 @@
  */
 
 #include "fm1_engine.h"
+#include "fm1_fx_idle.h"
 #include "fx_eq_math.h"
 
 #include <stdint.h>
@@ -111,18 +126,19 @@ enum { V_PITCH, V_DB, V_LOGQ, V_COUNT };
  * free uid. Every parameter is read each block and glides: SMOOTH and MOD.
  * One page per band, in the order hardware equalisers label them
  * (frequency, gain, Q); Level fills the last page. Gains and Level are in
- * dB, for which fm1_unit_t has no code yet. */
+ * dB (FM1_UNIT_DB, API v3); the frequencies move on the LOG law
+ * (fm1_engine.h). */
 static const fm1_param_t kEqParams[P_COUNT] = {
-  { "Low Freq",  FM1_PARAM_FLOAT, 20, 1000, 100, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_HZ, "LoFrq" },
-  { "Low Gain",  FM1_PARAM_FLOAT, -15, 15, 0, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "LoGain" },
+  { "Low Freq",  FM1_PARAM_FLOAT, 20, 1000, 100, NULL, 0, 1, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_HZ, "LoFrq" },
+  { "Low Gain",  FM1_PARAM_FLOAT, -15, 15, 0, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "LoGain" },
   { "Low Q",     FM1_PARAM_FLOAT, 0.3f, 2, 0.7071f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "LoQ" },
-  { "Mid Freq",  FM1_PARAM_FLOAT, 20, 18000, 1000, NULL, 1, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_HZ, "MdFrq" },
-  { "Mid Gain",  FM1_PARAM_FLOAT, -15, 15, 0, NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "MdGain" },
+  { "Mid Freq",  FM1_PARAM_FLOAT, 20, 18000, 1000, NULL, 1, 4, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_HZ, "MdFrq" },
+  { "Mid Gain",  FM1_PARAM_FLOAT, -15, 15, 0, NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "MdGain" },
   { "Mid Q",     FM1_PARAM_FLOAT, 0.3f, 10, 1, NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "MdQ" },
-  { "High Freq", FM1_PARAM_FLOAT, 1000, 18000, 8000, NULL, 2, 7, FM1_PARAM_CONTINUOUS, FM1_UNIT_HZ, "HiFrq" },
-  { "High Gain", FM1_PARAM_FLOAT, -15, 15, 0, NULL, 2, 8, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "HiGain" },
+  { "High Freq", FM1_PARAM_FLOAT, 1000, 18000, 8000, NULL, 2, 7, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_HZ, "HiFrq" },
+  { "High Gain", FM1_PARAM_FLOAT, -15, 15, 0, NULL, 2, 8, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "HiGain" },
   { "High Q",    FM1_PARAM_FLOAT, 0.3f, 2, 0.7071f, NULL, 2, 9, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "HiQ" },
-  { "Level",     FM1_PARAM_FLOAT, -15, 15, 0, NULL, 2, 10, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Level" },
+  { "Level",     FM1_PARAM_FLOAT, -15, 15, 0, NULL, 2, 10, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "Level" },
 };
 
 static const uint32_t kCtrlMask = 7u;       /* a control step every 8 samples */
@@ -147,6 +163,9 @@ typedef struct EqBand {
   float m[3], dm[3], m_end[3];
   int ramp;                 /* dm is not all zero */
   int flat;                 /* m and m_end all zero: the band passes its input */
+  uint32_t settle;          /* idle path: frames the band takes to warm up at
+                             * its target frequency and Q, at 0 dB */
+  uint32_t warm;            /* frames of warm-up left: the gain held at 0 dB */
 } EqBand;
 
 typedef struct EqChannel {
@@ -162,6 +181,13 @@ typedef struct EqInstance {
   float level, level_target;  /* linear gain */
   uint32_t count;           /* samples since create (mod 2^32) */
   int primed;               /* 0 until the first render */
+  /* The idle path (fm1_fx_idle.h). */
+  uint32_t rest;            /* frames at pass-through, counted at control steps */
+  uint32_t rest_frames;     /* FM1_IDLE_REST_SECONDS in frames */
+  uint32_t max_warm;        /* FM1_IDLE_MAX_WARM_SECONDS in frames */
+  int idle;                 /* the filters are stopped; the output is the input */
+  int warming;              /* some band's warm is not 0 */
+  int settle_stale;         /* a frequency or Q target moved: settle is old */
   EqBand band[B_COUNT];
   EqChannel ch[2];
 } EqInstance;
@@ -212,10 +238,14 @@ static void EqSetTarget(EqInstance *self, int index) {
       float pitch = EqLog2(v);
       if (pitch > self->max_pitch) pitch = self->max_pitch;
       b->target[V_PITCH] = pitch;
+      self->settle_stale = 1;
       break;
     }
     case 1: b->target[V_DB] = v; break;
-    default: b->target[V_LOGQ] = EqLog2(v); break;
+    default:
+      b->target[V_LOGQ] = EqLog2(v);
+      self->settle_stale = 1;
+      break;
   }
 }
 
@@ -283,8 +313,12 @@ static void EqControl(EqInstance *self) {
     for (int j = 0; j < 3; ++j) b->m[j] = b->m_end[j];
     int moving = 0;
     for (int v = 0; v < V_COUNT; ++v) {
-      if (b->value[v] != b->target[v]) {
-        b->value[v] = EqGlide(b->value[v], b->target[v], k);
+      float t = b->target[v];
+#if FM1_FX_IDLE
+      if (v == V_DB && b->warm != 0u) t = b->value[V_DB];   /* warming: held at 0 dB */
+#endif
+      if (b->value[v] != t) {
+        b->value[v] = EqGlide(b->value[v], t, k);
         moving = 1;
       }
     }
@@ -305,6 +339,97 @@ static void EqControl(EqInstance *self) {
     b->flat = !b->ramp && b->m[0] == 0.0f && b->m[1] == 0.0f && b->m[2] == 0.0f;
   }
 }
+
+/* ---------------------------------------------------------------------- */
+/* The idle path (fm1_fx_idle.h)                                           */
+/* ---------------------------------------------------------------------- */
+
+#if FM1_FX_IDLE
+/* Pass-through: every gain and Level ask for 0 dB. */
+static int EqNeutral(const EqInstance *self) {
+  if (self->level_target != 1.0f) return 0;
+  for (int i = 0; i < B_COUNT; ++i) {
+    if (self->band[i].target[V_DB] != 0.0f) return 0;
+  }
+  return 1;
+}
+
+/* At rest, at a control step: at pass-through, every band flat with its gain
+ * landed on 0 dB, and Level (the block's running value) landed on 1. */
+static int EqAtRest(const EqInstance *self, float level) {
+  if (level != 1.0f || !EqNeutral(self)) return 0;
+  for (int i = 0; i < B_COUNT; ++i) {
+    const EqBand *b = &self->band[i];
+    if (!b->flat || b->value[V_DB] != 0.0f) return 0;
+  }
+  return 1;
+}
+
+/* Each band's warm-up at its target frequency and Q, at 0 dB, where EqCoefs
+ * gives every band g = tan(pi f / fs) and k = 1/Q. */
+static void EqSettle(EqInstance *self) {
+  for (int i = 0; i < B_COUNT; ++i) {
+    EqBand *b = &self->band[i];
+    const float g = EqTan(self->pi_over_fs * EqExp2(b->target[V_PITCH]));
+    const float k = EqExp2(-b->target[V_LOGQ]);
+    b->settle = fm1_idle_settle_frames(FM1_IDLE_SETTLE_NEPERS, fm1_idle_svf_decay(g, k),
+                                       self->max_warm);
+  }
+  self->settle_stale = 0;
+}
+
+/* Every band warms up within FM1_IDLE_MAX_WARM_SECONDS: these settings may
+ * idle. A band low and narrow enough to need longer keeps EQ running. */
+static int EqFits(EqInstance *self) {
+  if (self->settle_stale) EqSettle(self);
+  for (int i = 0; i < B_COUNT; ++i) {
+    if (self->band[i].settle > self->max_warm) return 0;
+  }
+  return 1;
+}
+
+/* What an idle EQ outputs: the guarded input, as every band flat and Level
+ * at 0 dB give. */
+static void EqPass(float *lr, uint32_t frames) {
+  for (uint32_t i = 0; i < 2u * frames; ++i) lr[i] = EqGuard(lr[i]);
+}
+
+/* Leave idle: the frequencies and Qs land where they were set while the
+ * filters stood (nothing played them), the integrators start from rest (they
+ * were cleared), and each band's gain is held at 0 dB for its warm-up. Level
+ * needs no filter and glides at once. */
+static void EqWake(EqInstance *self) {
+  if (self->settle_stale) EqSettle(self);
+  self->idle = 0;
+  self->rest = 0;
+  self->warming = 0;
+  for (int i = 0; i < B_COUNT; ++i) {
+    EqBand *b = &self->band[i];
+    b->value[V_PITCH] = b->target[V_PITCH];
+    b->value[V_LOGQ] = b->target[V_LOGQ];
+    EqCoefs(self, i);                       /* at 0 dB: m_end is all 0 */
+    for (int j = 0; j < 3; ++j) {
+      b->m[j] = b->m_end[j];
+      b->dm[j] = 0.0f;
+    }
+    b->ramp = 0;
+    b->flat = 1;
+    b->warm = b->settle > self->max_warm ? self->max_warm : b->settle;
+    if (b->warm != 0u) self->warming = 1;
+  }
+}
+
+/* Count down the warm-ups by a run of frames. */
+static void EqWarmBy(EqInstance *self, uint32_t run) {
+  int warming = 0;
+  for (int i = 0; i < B_COUNT; ++i) {
+    EqBand *b = &self->band[i];
+    b->warm = b->warm > run ? b->warm - run : 0u;
+    if (b->warm != 0u) warming = 1;
+  }
+  self->warming = warming;
+}
+#endif
 
 /* ---------------------------------------------------------------------- */
 /* The engine API                                                          */
@@ -331,6 +456,12 @@ static void *EqCreate(void *mem, const fm1_host_t *host) {
   EqSnap(self);
   self->count = 0;
   self->primed = 0;
+  self->rest = 0;
+  self->rest_frames = fm1_idle_frames_of(FM1_IDLE_REST_SECONDS, fs);
+  self->max_warm = fm1_idle_frames_of(FM1_IDLE_MAX_WARM_SECONDS, fs);
+  self->idle = 0;
+  self->warming = 0;
+  self->settle_stale = 1;
   return self;
 }
 
@@ -350,6 +481,16 @@ static void EqRender(void *s, float *lr, uint32_t frames) {
     EqSnap(self);
     self->primed = 1;
   }
+#if FM1_FX_IDLE
+  if (self->idle) {
+    if (EqNeutral(self) && EqFits(self)) {
+      EqPass(lr, frames);
+      self->count += frames;
+      return;
+    }
+    EqWake(self);
+  }
+#endif
   /* The per-channel states live in locals for the block: lr may alias any
    * float, so working through self would reload them after every store. */
   EqChannel ch[2] = { self->ch[0], self->ch[1] };
@@ -357,12 +498,32 @@ static void EqRender(void *s, float *lr, uint32_t frames) {
   const float level_target = self->level_target, glide1 = self->glide_sample;
   uint32_t f = 0;
   while (f < frames) {
-    if ((self->count & kCtrlMask) == 0u) EqControl(self);
+    if ((self->count & kCtrlMask) == 0u) {
+      EqControl(self);
+#if FM1_FX_IDLE
+      if (EqAtRest(self, level)) {
+        if (self->rest < self->rest_frames) self->rest += kCtrlMask + 1u;
+        if (self->rest >= self->rest_frames && EqFits(self)) {
+          /* Idle from here; a wake starts the integrators from rest. */
+          memset(ch, 0, sizeof(ch));
+          self->idle = 1;
+          EqPass(lr + 2u * f, frames - f);
+          self->count += frames - f;
+          break;
+        }
+      } else {
+        self->rest = 0;
+      }
+#endif
+    }
     /* Up to the next control step, the coefficients are fixed but for the
      * mixing ramps. */
     uint32_t run = kCtrlMask + 1u - (self->count & kCtrlMask);
     if (run > frames - f) run = frames - f;
     self->count += run;
+#if FM1_FX_IDLE
+    if (self->warming) EqWarmBy(self, run);
+#endif
     EqBand *lo = &self->band[B_LOW], *mi = &self->band[B_MID], *hi = &self->band[B_HIGH];
     const float la1 = lo->a1, la2 = lo->a2, la3 = lo->a3;
     const float ma1 = mi->a1, ma2 = mi->a2, ma3 = mi->a3;
@@ -432,6 +593,8 @@ const fm1_engine_t fm1_engine_eq = {
   NULL, NULL, NULL,
   EqSet, EqRender,
   NULL,                     // no notes, so no per-note offsets
+  0, NULL,                  // API v3: no effect extension
+  0, 0,                     // not a pad kit
 };
 
 #ifdef __cplusplus

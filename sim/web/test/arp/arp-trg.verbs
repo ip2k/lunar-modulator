@@ -1,0 +1,8 @@
+#! rate=44118 block=64 tracks=8 end=158824
+# The arpeggiator at RATE TRG: one step at each frame where track 1 starts
+# notes for the sound (a trig), on uneven steps with a held chord and short
+# notes; a key held from the panel joins the chord but steps nothing. Stop
+# flushes it.
+@0 bpm 12500;tog 0 0 48 100 55 100;slen 0 0 0 -1 300;tog 0 3 60 90;tog 0 4 62 90;tog 0 7 64 90;tog 0 10 60 90;tog 0 11 67 80;tog 0 14 59 100
+@4416 play
+@150016 stop

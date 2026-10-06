@@ -8,12 +8,16 @@ bend, and notes that arrive from a MIDI keyboard.
 
 {{status sim desktop planned}}
 
-Each key plays one note for as long as you hold it. A *voice* is one sounding
-note, and each engine has a fixed number of them:
+Each key plays one note on the current sound for as long as you hold it
+([chapter 5](05-sound-engines.md#four-sounds-at-once)); a note you hold keeps
+playing on its sound even if you choose another. Outside SEQ mode the notes
+also go to the sequencer's focused track, for recording and Capture
+([chapter 7](07-sequencer.md#recording)). A *voice* is one sounding note,
+and each engine has a fixed number of them, for each sound it plays:
 
 | Engine | Voices |
 | --- | --- |
-| Macro, Shapes, Sophie, Test Sine | 12 |
+| Macro, FM6, Shapes, Sophie, Drums, Test Sine | 12 |
 | Six-Op FM | 8 |
 | Macro Heavy | 4 |
 
@@ -24,15 +28,18 @@ notes can use more voices than the keys you are holding.
 
 When you play a note and no voice is free, the engine takes one over:
 
-- **Macro, Macro Heavy, Six-Op FM and Shapes** take a voice whose key has
+- **Macro, Macro Heavy, Six-Op FM, FM6 and Shapes** take a voice whose key has
   already been let go, choosing the one whose note started first. If every
   key is still held, they take the note that started first.
 - **Sophie** takes the hit that started longest ago.
+- **Drums** takes the quietest hit, so an old cymbal that still rings loud
+  keeps going. It first takes a hit that a hi-hat is cutting short.
 - **Test Sine** ignores the new note until a voice is free.
 
-On Macro, Macro Heavy, Six-Op FM and Shapes, playing a key again while its
+On Macro, Macro Heavy, Six-Op FM, FM6 and Shapes, playing a key again while its
 note is still fading restarts that note in the same voice. On Sophie each hit
-gets a voice of its own.
+gets a voice of its own. On Drums a pad struck again while it rings is struck
+again in its own voice, as a drum is.
 
 !!! note "Many notes at once"
     Twelve voices playing loudly together can add up to more than the output
@@ -57,8 +64,9 @@ What velocity changes depends on the engine:
 | Engine | What a harder note does |
 | --- | --- |
 | Macro, Macro Heavy | Louder and brighter: velocity opens the low-pass gate further. The range is gentle, so soft notes stay clearly audible. On the models that sound by themselves (String, Modal and the drums) it sets how hard the sound is struck, and on spoken words how loud they are |
-| Six-Op FM | Whatever the patch was programmed to do with velocity: depending on the patch, louder, brighter, both, or neither |
+| Six-Op FM, FM6 | Whatever the patch was programmed to do with velocity: depending on the patch, louder, brighter, both, or neither |
 | Shapes, Sophie, Test Sine | Louder |
+| Drums | Louder and harder: how much, Accent sets |
 
 Whether the FM-1's own keys can sense how hard they are played has not been
 measured yet.
@@ -115,8 +123,10 @@ When you let go of a key, each engine ends the note in its own way:
 | Macro Heavy, most models | As Macro | As Macro |
 | Macro Heavy, String, Modal, the drums and spoken words | The sound rings or speaks by itself, and may end before you let go | Any sound still ringing fades out, over a time set by Decay and Colour |
 | Six-Op FM | The patch's own envelopes, scaled by Envelope | The patch's release, scaled by Envelope |
+| FM6 | The voice's own envelopes, run faster or slower by Env Time | The voice's release, likewise. A voice whose release holds above silence (its last envelope level above 0) sounds until a new note takes its voice, as on the keyboards |
 | Shapes | The note rises over the Attack time and then holds. The struck shapes, such as Pluck, Bell and Drum, also die away by themselves | It fades over the Release time |
 | Sophie | Each hit rings for its pad's Decay | Letting go changes nothing |
+| Drums | Each hit rings for its pad's decay; a closed or pedal hi-hat cuts the open one short | Letting go changes nothing |
 | Test Sine | The note holds | It fades in 5 ms |
 
 [Chapter 5](05-sound-engines.md) describes each of these controls.
@@ -129,7 +139,8 @@ If a note keeps sounding, release everything at once:
 - from a MIDI keyboard, send control change 123, *all notes off*.
 
 Every note then ends as if you had let go of its key, with its normal
-release. Choosing another sound engine also ends every note.
+release, the sequencer's notes on every sound included. Choosing another
+sound engine ends every note of that sound.
 
 ## Pitch bend
 
@@ -138,8 +149,8 @@ release. Choosing another sound engine also ends every note.
 Pitch bend moves the pitch of every sounding note, and of notes played while
 it is held, up or down.
 
-- **In the simulator**, the pitch-bend wheel of a MIDI keyboard bends by up
-  to two semitones either way.
+- **In the simulator**, the pitch-bend wheel of a MIDI keyboard bends the
+  current sound by up to two semitones either way.
 - **In the desktop tools**, `--bend T:SEMITONES` sets the bend from time *T*,
   by up to 48 semitones either way ([chapter 2](02-getting-started.md#the-desktop-tools)).
 - **Sophie** ignores pitch bend; every other engine follows it.
@@ -151,12 +162,89 @@ MIDI.
 
 {{status sim planned}}
 
-Notes, velocity and pitch bend from a MIDI keyboard play the engine as the
-panel's keys do, and you can play both at once. The simulator listens on every
+Notes, velocity and pitch bend from a MIDI keyboard play the current sound
+as the panel's keys do, and you can play both at once. Notes from MIDI also
+go to the sequencer, in every mode: in SEQ mode a note adds its pitch to
+the steps you hold ([chapter 7](07-sequencer.md#to-add-a-pitch-to-a-step)). The simulator listens on every
 MIDI channel; control change 7 sets the volume like [[MASTER]], and control
-change 123 releases every note. [Chapter 8](08-midi.md) lists everything the
+change 123 releases every note. [Chapter 9](09-midi.md) lists everything the
 simulator receives.
 
 On the FM-1, Lunar Modulator is planned to receive MIDI over USB and at the
 3.5 mm [[MIDI IN]] jack. The FM-1 also has Bluetooth, which M-VAVE's firmware
 uses for MIDI; whether Lunar Modulator will use it is not decided yet.
+
+## Arpeggiator
+
+{{status sim desktop planned}}
+
+The arpeggiator plays the notes you hold one after another, in time with
+the sequencer's tempo. Each of the four sounds has its own; [[ARP]] works on
+the current sound.
+
+- **Tap [[ARP]]** to switch it on. Its pages open, and its light comes on.
+  Tap it again on its pages to switch it off; the pages close, and the notes
+  it was playing stop at once.
+- **Hold [[ARP]]** for half a second to latch: the notes keep playing after
+  you let go of the keys, and the next chord you play replaces them. Notes
+  added while you still hold keys join the chord. Hold [[ARP]] again to stop
+  latching. Holding it also switches the arpeggiator on, latched. While it latches,
+  its light blinks once a second.
+- **[[SEL]] and [[ARP]]** opens its pages without switching it.
+
+Notes from the keys, from MIDI and from the sequencer's tracks that play this
+sound all go through the arpeggiator while it is on. A note you were holding
+before you switched it on goes on sounding until you let go.
+
+### The ARP pages
+
+Turn [[SELECT]] for the page. [[KNOB1]] to [[KNOB4]] set the four values on
+it, and [[ALGORITHM]] steps through the stock FM-1's arpeggio modes: Up,
+Down, Up/Down, Down/Up, Random and Played.
+
+| Page | [[KNOB1]] | [[KNOB2]] | [[KNOB3]] | [[KNOB4]] |
+| --- | --- | --- | --- | --- |
+| 1 PLAY | Mode: the order of the notes | Rate: how long a step is, 1/32 triplet to a whole note, or TRG | Gate: how long each note sounds, 1 to 200 % of the step | Octaves: 1 to 4 |
+| 2 RHYTHM | Pattern: every step, or one of 22 rhythms | Fill: the beats of a Euclidean rhythm | Rotate: where it starts | Length: the Euclidean rhythm's steps; 0 uses Pattern |
+| 3 CHANCE | Chance: how likely a step is to play | Ratchet: notes inside a step, 1 to 4 | Vel Spread: random velocity, up and down | Loop: after this many steps the chances repeat; 0 never |
+| 4 FEEL | Oct Mode: how the octaves combine with the mode | Velocity: as played, or fixed | Swing: 50 to 80 % | Join: keys added to a playing chord join now, or at the next pass |
+| 5 MORE | Order: notes sorted by pitch, as played, or reversed | Repeat: steps per note | Chord %: how likely a step is to play the whole chord | Oct Jump: how likely a note is an octave up |
+| 6 KEYS | Latch | Sync: the first key restarts the pattern, or the pattern runs on | Ratchet %: how likely a step is to ratchet | Gate Sprd: random gate length |
+| 7 SEED | Seed: which random choices the chances make | | | |
+
+The modes are Up, Down, Up-Down, Down-Up, Up&Down and Down&Up (which play the
+top and bottom notes twice), Converge and Diverge, Conv-Div, Thumb and Pinky
+(the lowest or highest note between the others), four modes that add octaves
+to some notes only, Crawl, Random, Shuffle (each note once per pass, in a new
+order), Walk (a random step to a neighbour) and Chord. The same Seed makes
+the same choices every time, so a random arpeggio repeats exactly.
+
+TRG, at the left end of Rate, plays one step each time the sequencer starts
+notes on this sound (a trig), however far apart the trigs are. The keys alone
+do not step it. Its first note lasts until the next trig; after that, Gate is
+a share of the time between the last two.
+
+### With the sequencer
+
+The arpeggiator follows the sequencer's tempo whether the sequencer plays or
+not. [[PLAY/STOP]] restarts its pattern on the first beat; when the
+sequencer stops, the notes it was playing end, and it goes on with the keys
+you hold. With Sync at Key, the first key you play starts the pattern on the
+next tick of the clock, so it keeps the tempo but not always the beat; with
+Sync at Free the pattern stays on the beat from [[PLAY/STOP]] while the
+arpeggiator stays on, and a key waits for the next step.
+
+The sequencer records the notes you play, not the arpeggio. A part recorded
+with the arpeggiator on plays back through it again, so you can change the
+arpeggio afterwards, or switch it off and hear the notes as you played them.
+
+The arpeggiator takes memory only while it is on. When the sounds and
+effects leave too little, [[ARP]] says *does not fit* and by how much.
+
+### In the desktop tools
+
+`--mfx K:arp` puts the arpeggiator in front of sound *K* (0 is `--engine`),
+and `--mfx-param K:NAME=VALUE` sets a value; a list's value is its position,
+from 0. `--mfx-on-at K:T:0` switches it off at time *T*, and `:1` on;
+`--mfx-param-at K:T:NAME=VALUE` changes a value then. `--log-mfx FILE`
+writes every note it plays ([chapter 2](02-getting-started.md#the-desktop-tools)).

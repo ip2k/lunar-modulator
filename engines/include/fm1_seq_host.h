@@ -42,6 +42,15 @@
  * dispatch. A host that reroutes past the bridge (fm1_seq_set_route) closes
  * no gate, so it does so only while nothing sounds (set-up, an import).
  *
+ * MIDI effects (engine API v3, fm1_mfx_host.h). With h->mfx set, every
+ * dispatch runs the chains first: the notes they take leave the block
+ * (a hook still sees them, as notes that reach no engine), and their output
+ * joins it, merged by frame (at one frame: the buffer's events but
+ * note-ons, the chains' note-offs, the buffer's note-ons, the chains'
+ * note-ons; chains in order), each to the slot of its chain (a single sink
+ * takes chain 0's). With no chain active the calls are exactly those
+ * without.
+ *
  * Event room. Commands, live input and advance share one buffer per block,
  * and advance needs fm1_seq_min_events(lim) of it to keep every note-off,
  * Start and Stop (fm1_seq.h). So a host applies a command only while
@@ -66,6 +75,8 @@
 extern "C" {
 #endif
 
+struct fm1_mfx;                 /* fm1_mfx_host.h */
+
 /* Where a block's engine-routed events go: one sound engine instance. The
  * calls mirror fm1_engine_t's, with the host's context in place of `self`. */
 typedef struct fm1_seq_sink {
@@ -77,6 +88,9 @@ typedef struct fm1_seq_sink {
   void (*set_param)(void *ctx, uint16_t index, float value);
   void (*pitch_bend)(void *ctx, float semitones);   /* may be NULL; only a
                                    control-rate hook's writes use it */
+  void (*set_param_note)(void *ctx, uint8_t key, uint16_t index, float offset);
+                                /* may be NULL; a hook's per-voice writes
+                                   (docs/16 MG9), as fm1_engine_t's */
 } fm1_seq_sink_t;
 
 /* A control-rate hook (the modulation runtime's tick, docs/16 MG1;
@@ -86,23 +100,33 @@ typedef struct fm1_seq_sink {
  *           sink) and the sequencer's tempo and transport (0 without one);
  *           returns the frame of the block's first tick (>= frames: none);
  *   event   every event of the buffer, in order, whatever its kind, track or
- *           route; to_engine says whether the sink receives it;
+ *           route; to_engine says whether a sink receives it: 0, or 1 plus
+ *           the slot it plays (dispatch_ticks's one sink is slot 0);
  *   lock    a lock (or a D6 revert) is about to set the sink engine's
  *           parameter `index` to `value`: the hook moves its base there and
  *           returns what to send (rule M1);
  *   tick    the tick at `frame`: its writes for the sink in *w (valid until
  *           the next call), how many as the result, and the next tick's
- *           frame in *next.
+ *           frame in *next;
+ *   note_on (may be NULL) right after a note-on reached a slot's sink, at
+ *           the same frame: writes for that slot (the new note's per-voice
+ *           offsets, docs/16 MG9), sent at once.
  * At one frame the order is docs/16's M6: note-offs and locks, the tick and
- * its writes, then note-ons. A tick with writes splits the render there; one
- * without splits nothing, so with nothing routed every render is what plain
- * dispatch gives. */
+ * its writes, then note-ons, each with its note_on writes. A tick with writes
+ * splits the render there; one without splits nothing, so with nothing
+ * routed every render is what plain dispatch gives. A per-voice write (note
+ * set) goes to the sink's set_param_note, and is dropped by a sink without
+ * one. */
 typedef struct fm1_seq_hook_write {
-  uint16_t index;               /* the sink engine's parameter (not for a bend) */
+  uint16_t index;               /* the sink engine's parameter (not for a bend);
+                                   for a per-voice write, FM1_PARAM_NOTE_PITCH too */
   uint8_t bend;                 /* 1: pitch_bend(value) instead */
   uint8_t slot;                 /* the slot it is for (dispatch_slots_ticks);
                                    dispatch_ticks's one sink takes slot 0's */
   float value;
+  uint8_t note;                 /* 1: set_param_note(key, index, value) instead */
+  uint8_t key;
+  uint8_t reserved[2];
 } fm1_seq_hook_write_t;
 
 typedef struct fm1_seq_hook {
@@ -115,6 +139,8 @@ typedef struct fm1_seq_hook {
   /* dispatch_slots_ticks only: lock, for the engine of slot `slot`. NULL:
    * slot 0's locks go to lock and the other slots' are sent as they are. */
   float (*lock_slot)(void *ctx, unsigned slot, uint16_t index, float value);
+  uint32_t (*note_on)(void *ctx, uint32_t frame, unsigned slot, uint8_t key,
+                      const fm1_seq_hook_write_t **w);
 } fm1_seq_hook_t;
 
 /* The most slots dispatch_slots_ticks serves (the rest are ignored). */
@@ -140,6 +166,14 @@ typedef struct fm1_seq_host {
                                    last dispatch: its engine slot, 0x80 | its
                                    MIDI channel, FM1_SEQ_HOST_NO_DEST before
                                    the first (Rerouting, below) */
+  fm1_seq_clock_t clock;        /* the core's clock as the last advance began:
+                                   where that block's beats fall, for the
+                                   effects (engine API v3, fm1_fx_host.h); all
+                                   0 before the first advance or without a
+                                   sequencer */
+  struct fm1_mfx *mfx;          /* the MIDI effects in front of the sounds
+                                   (fm1_mfx_host.h), or NULL: init sets it
+                                   NULL, a host that has them sets it after */
 } fm1_seq_host_t;
 
 #define FM1_SEQ_HOST_NO_DEST 0xFFu
@@ -184,13 +218,18 @@ void fm1_seq_host_note_in(fm1_seq_host_t *h, uint8_t track, uint8_t pitch, uint8
 /* Free entries in the buffer. */
 uint32_t fm1_seq_host_room(const fm1_seq_host_t *h);
 
+/* Where event k of the buffer goes (Rerouting, below): its track's engine
+ * slot, 0x80 | its MIDI channel, or FM1_SEQ_HOST_NO_DEST. */
+uint8_t fm1_seq_host_dest(const fm1_seq_host_t *h, uint32_t k);
+
 /* The most events one command can cause: every gate's note-off, a base
  * revert per lane of every track (D6), and a Start or Stop. 129 at 8 tracks
  * and 64 gates. */
 uint32_t fm1_seq_cmd_max_events(const fm1_seq_limits_t *lim);
 
-/* Runs the block (fm1_seq_advance) into the room left after the inputs.
- * Returns n, every event the block holds, for a log. */
+/* Runs the block (fm1_seq_advance) into the room left after the inputs,
+ * keeping the clock as it began in h->clock. Returns n, every event the
+ * block holds, for a log. */
 uint32_t fm1_seq_host_advance(fm1_seq_host_t *h, uint32_t frames);
 
 /* Plays the block's events into `sink` and empties the buffer. Only
@@ -297,12 +336,15 @@ size_t fm1_seq_lane_label_for(const fm1_param_t *p, char *buf, size_t size);
 uint16_t fm1_seq_lane_uid(const fm1_engine_t *e, const char *label);
 
 /* A 7-bit lock value on p's range: linear for FLOAT (v / FM1_SEQ_VAL_MAX of
- * the way from min to max), Movy's planned bins floor(v * n / 128) for an
+ * the way from min to max), on the LOG law for a LOG parameter (position
+ * v / FM1_SEQ_VAL_MAX, fm1_engine.h: min x (max / min)^(v / 127), exactly
+ * min and max at the ends), Movy's planned bins floor(v * n / 128) for an
  * ENUM of n values. */
 float fm1_seq_lock_value(const fm1_param_t *p, unsigned v);
 
 /* The inverse of fm1_seq_lock_value (docs/15 S8): the 7-bit value of x on
- * p's range. FLOAT: (x - min) / (max - min) of 127, rounded half up, so
+ * p's range. FLOAT: (x - min) / (max - min) of 127 (LOG: its position,
+ * fm1_param_pos), rounded half up, so
  * fm1_seq_value7(p, fm1_seq_lock_value(p, v)) == v for every v in 0..127.
  * ENUM: the lowest v whose bin is x's entry (rounded to the nearest), so
  * fm1_seq_lock_value(p, fm1_seq_value7(p, e)) == e for every entry e of a
@@ -312,8 +354,8 @@ unsigned fm1_seq_value7(const fm1_param_t *p, float x);
 
 /* A knob detent on a lane's parameter (owner decision O14): `delta` steps on
  * p's 7-bit grid from v, clamped, as the value a lock or a base takes. One
- * step is v/127 of the range for FLOAT, and one entry, the bins' grid, for
- * ENUM. */
+ * step is 1/127 of the range for FLOAT (of its octaves for LOG), and one
+ * entry, the bins' grid, for ENUM. */
 unsigned fm1_seq_value7_step(const fm1_param_t *p, unsigned v, int delta);
 
 /* Routing default. The core starts every track on USB-MIDI channel

@@ -9,6 +9,259 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The arpeggiator, in the simulator.** [ARP] now works: tap it to switch
+  the current sound's arpeggiator on (its pages open) or off; hold it to
+  latch, so the notes play on after you let go and the next chord replaces
+  them; SHIFT and [ARP] shows the pages without switching. Its light is on
+  while it plays and blinks while it latches.
+  - **Seven pages** on the four knobs: PLAY (mode, rate, gate, octaves),
+    RHYTHM (22 rhythm patterns or a Euclidean rhythm), CHANCE (chance,
+    ratchets, velocity spread, loop), FEEL (octave mode, fixed velocity,
+    swing, join), MORE, KEYS (latch, sync) and SEED. 22 note orders, from
+    up and down to converge, thumb, pinky, crawl, shuffle and walk.
+  - **The stock FM-1's modes as presets** on ALGORITHM: Up, Down, Up/Down,
+    Down/Up, Random and Played.
+  - **With the sequencer:** the keys, MIDI and the sequencer's notes for the
+    sound all go through it, on the sequencer's tempo whether it plays or
+    not; PLAY restarts the pattern and STOP ends its notes. At rate TRG it
+    takes one step each time the sequencer plays notes on the sound. The
+    sequencer records what you played, not the arpeggio, so a recorded part
+    plays back through the arpeggiator again, or plainly once it is off.
+  - Each of the four sounds has its own; it takes memory only while on.
+  - On the desktop: `fm1-render --mfx K:arp` and its `--mfx-param`,
+    `--mfx-param-at`, `--mfx-on-at` and `--log-mfx` flags. The browser, the
+    native app and fm1-render play the same notes, byte for byte, at any
+    block size (five new parity scenarios, one of them a recorded panel
+    session).
+- **MIDI effects in the engine API (v3, additive):** a new kind of module
+  that takes notes and gives notes, run in a chain of up to four in front of
+  each sound, with the sequencer's ticks, the transport and one project key.
+  The arpeggiator is the first; chord, scale and echo effects can follow.
+- **Modulation per voice.** A modulation cable can now run once for every
+  note: each note of a chord gets its own envelope, LFO or random source,
+  which moves that note alone. In the matrix, turn KNOB4 on page B past
+  *On* to *On per voice* (the row shows `v`).
+  - Inside such a cable VEL, NOTE and RAND are that note's own velocity,
+    pitch and random value, and KEY, TRIG and RTRG its own gate and
+    trigger; so are the note's own sound's sources (S1VEL on Sound 1, say).
+    An Envelope, LFO or Chance module it reads runs one copy per note,
+    starting with that note; an envelope's gate with no cable is the note's
+    own. Notes already held when a cable goes per voice join it at their
+    next note-on.
+  - It reaches the parameters a sound keeps for each note (Timbre, Color,
+    Brightness, Volume and others) and each note's own pitch, on Macro,
+    Macro Heavy, Shapes, Six-Op FM, FM6 and Drums. Into an effect, the
+    level, a parameter every note shares or a sound without per-note
+    control it is refused (`!`), so a per-note signal never moves
+    everything.
+  - Up to twelve notes at once across the sounds, the engines' own
+    polyphony; the rack's line shows how many (`v3`). Per-voice modules
+    live in the rack's 8 KB memory; the modulation runtime grows by 3 KB,
+    to 26 KB, in the RAM meter.
+  - Cables at 0 % change nothing, bit for bit; the output is the same at
+    any audio block size, and the browser plays it as the desktop does (a
+    new parity scenario, 76 of 76 pass; the browser module grew from
+    851 KB to 887 KB).
+- **A pitch destination per sound.** The host's group in the destination
+  picker lists *Pitch* (Sound 1), *Pitch2* to *Pitch4* (Sounds 2–4), each
+  on top of that sound's pitch bend, and *PitchC*, which bends whichever
+  sound is current and follows it when you change sounds.
+- **Note sources of one sound.** After SQV8 the source list offers
+  S1NOTE–S4NOTE, S1VEL–S4VEL, S1KEY–S4KEY, S1TRIG–S4TRIG and
+  S1RTRG–S4RTRG: the same as NOTE, VEL, KEY, TRIG and RTRG, but for one
+  sound's notes alone, so an envelope can follow only the bass, say.
+- **Load DX7 patches in the simulator.** A new button under the panel,
+  *Load DX7 patches…*, takes `.syx` files, and so does dropping files
+  anywhere on the page. A bank fills FM6's User 1 to 32, single voices go
+  to the next user slots, the screen and the status line say what loaded,
+  and the current sound plays the first voice (it becomes FM6 if it was
+  not). ALGORITHM then steps through the voices by their own names, and
+  every sound you set to FM6 later has them too. The file is read in your
+  browser and nothing is uploaded. A file that is not a DX7 patch file
+  (empty, not SysEx, another instrument's SysEx, cut short, the wrong
+  length) loads nothing and the status line says which; a wrong checksum
+  loads with a warning, as DX7 editors do. Files of up to 64 KB; the voices
+  last until power off. Documented in chapter 5 of the manual and in
+  chapter 12's troubleshooting.
+- **Squash, a new effect: three small compressors with characters of their
+  own**, rewritten for the FM-1 from Airwindows plug-ins by Chris Johnson
+  (MIT). Choose a Type, turn Squash up, win the level back with Output.
+  - **Snap** (after Pop3) grabs peaks and lets go, with a gate that can cut
+    each note's tail (Gate, Gate Depth, Hold, Gate Rel).
+  - **Mu** (after Pressure4) is a smooth valve-style leveller that recovers
+    more slowly after loud passages; Shape bends its response.
+  - **Split** (after ButterComp2) works on the top and the bottom of the
+    wave separately and has no timing knobs: glue for a mix. At Squash 0 it
+    passes the sound untouched, whatever it was doing before (the original
+    freezes there, holding whatever it had turned down).
+  - Changing Type while the sound plays starts the new one where the old
+    one was and fades between them, so modulation can change it on every
+    step. Silence stays silent; under half a kilobyte of memory.
+  - Checked against the original plug-ins' code, run in a container: Mu and
+    Split within −100 dB, Snap within −60 dB (and −29 dB in one setting
+    where the original's stereo link holds the gain for a length of time
+    that depends on its last bits).
+- **Transient, a new effect: a transient shaper.** Attack lifts or softens
+  the start of each note or hit (up to ±12 dB), Sustain lifts or cuts what
+  follows; Window and Tail set how long each lasts. It reacts to how the
+  sound changes, not to its level: a steady note moves by under half a
+  decibel at any setting, and at its centre the sound passes exactly
+  untouched. Our own design, on the classic two-follower principle.
+- **The Limiter has a third Mode, Round:** a gentle final clip after
+  Airwindows ClipOnly2. Peaks up to 3 dB over the ceiling are rounded off
+  between their neighbours and the ceiling, only what goes further is
+  turned down, and everything under the ceiling passes untouched. It adds
+  no delay beyond the Lookahead.
+- **A UI audit of the FM-1's screen**, in `notes/2026-10-06-ui-audit.md`.
+  It covers every screen family, how each uses the 240 × 240 px, and the
+  contrast of every colour after the screen's RGB565 rounding.
+  - **Proposals, in priority order.** They give each Rosé Pine Moon
+    colour one meaning (gold for locks, foam for modulation, love for
+    refusals), name the master slots as FX mode does, and put to use the
+    space that short pages and one-line messages leave empty. The list fix
+    the owner asked for (six entries and your place in the list) landed
+    on its own, under Changed; the audit records it and what is left.
+  - **Before/after mockups** for each proposal, in `assets/ui-audit/`.
+    Every mockup passes the screen layout check.
+  - **Decisions for the owner.**
+  - No change to the simulator yet: the owner picks first.
+- **FM6, a new sound engine: six-operator FM that plays DX7 voices.** It
+  runs msfa, the FM core Google published for Android and the core the
+  FM-1's own firmware runs, and plays all 32 algorithms with six operators,
+  their envelopes and keyboard scaling, feedback, the LFO (vibrato and
+  tremolo) and the pitch envelope. Twelve notes at once.
+  - **32 voices of its own:** electric pianos, clav, harpsichord, koto,
+    marimba, vibes, bells, organs, brass, flute, clarinet, strings, pads,
+    basses, leads and a small drum kit, written for this project.
+  - **Your own DX7 voices:** single voices and 32-voice banks load from
+    SysEx files into 32 user slots (in the simulator, below, and on the
+    desktop: `fm1-render --engine dx7 --sysex bank.syx`). Bad checksums, out-of-range
+    values and other SysEx in the file are handled, not trusted.
+  - **Four macros** shape any voice while it plays: Brightness (how hard
+    the modulators drive, ±24 dB), Env Time (every envelope up to 8 times
+    faster or slower), Feedback and Volume. All four glide, and each note
+    can take its own setting from a sequencer lock or a modulation route.
+  - **Beyond msfa itself:** tremolo (msfa ignores the voice's AM settings)
+    and the feedback loops of algorithms 4 and 6, which msfa, and with it
+    probably the stock FM-1, plays without feedback; the voice's transpose
+    is applied too.
+  - The same output, bit for bit, from the Mac, 32- and 64-bit Linux and the
+    browser (three new parity scenarios, 72 of 72 pass; the browser module
+    grew from 786 KB to 813 KB); compiles for the FM-1's processor with
+    JieLi's toolchain. About 15 KB of memory a sound, its tables kept in
+    flash (below); twelve voices cost about a third of Macro's twelve on
+    the desktop.
+  - Checked against an independent port of the same core, Felucca's
+    `fm6_core.c` (Apache-2.0; a test tool here, in no build): every
+    algorithm within 0.3 dB. Documented in engines/msfa.md and chapter 5 of
+    the manual.
+- **Drums, a new sound engine:** a sixteen-pad drum kit after the classic
+  analogue drum machines, on MIDI notes 36 to 51 like Sophie.
+  - Two kits: Deep, with a deep kick that booms for over a second, round
+    toms and analogue-style hi-hats; and Punch, with a short kick that
+    sweeps down, a crisp snare and ring-modulated hi-hats. Both have two
+    snares, a clap, a rim shot, six toms, a crash and a ride, and any pad
+    can play a cowbell instead.
+  - Each pad has its own Tune, Decay, Level, Tone, Snap, Sweep, Drive and
+    sound (Model); Pad chooses which pad the knobs edit, as on Sophie. The
+    knobs start in the middle, which is the pad as the kit sets it up. Kit,
+    Accent (how much velocity matters) and Volume are the whole kit's.
+  - A closed or pedal hi-hat cuts the open one short. Up to twelve hits
+    ring at once, and a pad struck again while it rings is struck again,
+    as a drum is; a thirteenth takes over the quietest hit, so a cymbal
+    still ringing loud keeps going.
+  - The kicks, toms, snares and hi-hats are Plaits' drum models by Emilie
+    Gillet; the rim shot, clap, cowbell and cymbals are new, after
+    published studies of the analogue circuits.
+  - It plays the same, sample for sample, in the browser as on the
+    desktop, and fits in about 7 KB.
+- **The virtual FM-1's keys play any drum kit's pads:** with Sophie or
+  Drums as the current sound, the sixteen white keys play the sixteen pads
+  at any octave. Step recording, and adding a pitch to a held step with
+  SHIFT, enter the pad a white key plays (they entered a pitch the kit
+  ignores, so the steps played nothing). For developers: an engine says it
+  is a kit with two new fields in the engine API, `pad_first_note` and
+  `pad_count`.
+- **JieLi SDK upgraded to the V1.2.13 libraries, with safeguards** (owner's
+  decision, 2026-10-05; notes/2026-10-05-softkey-efuse.md §4). The pin is now
+  Gitee `release/AC79NN_SDK_V1.2.0` at `e30b1ee` (= tag V1.2.13), by commit.
+  The SDK's key check is left intact, not stubbed, because it is inert on the
+  FM-1 (nothing registers a licence blob, and the app never touches eFuse).
+  The safeguards instead:
+  - a post-link audit, `tools/jieli/audit_link.py` (modelled on fm1-nes's
+    `audit_boot.py`): it fails the build if any live key-check or eFuse code
+    survives — no `mkey_check`/`sdk_mkey_lock`/`sdk_mkey_lock_v2_cfun`/
+    `key_check_demo`/`sdk_chip_key_verify_v2`, no `0x0200012E` stub, no writes
+    to `0x01C80108-0x01C80110`, IRQ 123 reserved, no SDK key-blob bytes, no
+    eFuse-SFR access, no `request_irq(123)` in our sources — while leaving
+    the dormant `sdk_meky_check` in place. On a linked image it attributes
+    each hit to its function, so the SDK's own `mkey_dummy_func` mailbox
+    store passes and anything of ours fails, and it checks that the
+    `late_initcall` group is exactly `[sdk_meky_check]`. It reads ELF itself
+    (standard library only) and is covered by `tests/test_audit_link.py`;
+  - a packaging gate, `tools/jieli/package_guard.py`: never ship any V1.2.x
+    `uboot.boot`, `uboot_no_ota.boot`, `wl82loader.bin` or `ota.bin` — only
+    V1.1.9's SPL is the FM-1's. It asserts the stock SPL hash `730e54f0…`
+    and byte-identical `isd_config.ini`/`ota.bin`/`cfg`, and refuses any
+    other SPL or loader in the tree (`tests/test_package_guard.py`);
+  - the `boot_info` bridge from fm1-nes (Apache-2.0, in
+    `firmware/third_party/fm1-nes/` with its licence and `UPSTREAM.md`),
+    which copies the stock SPL's 6 hand-off words and zeroes words 6-22 so
+    V1.2.1+'s wider `boot_info_init` reads defined zero, not stale RAM.
+    Tested on the desktop (`tests/test_boot_compat.py`) and compiled for
+    pi32v2, where it calls nothing but the SDK's own initializer; it has not
+    run on a chip.
+
+  `tools/jieli/compile-check.sh` and `tools/jieli/ac79-sdk-sparse.txt` now
+  fetch and use V1.2.13 from Gitee (retrying its flaky SSL); the compile-only
+  check was re-run against it on the build host (twice, the second time with
+  the bridge and our sources in the audit). The V1.2.13 libc++ ships its
+  own `math.h`, so the V1.1.9 run's one fix is no longer needed. No user-facing
+  change. No vendor binary is in the repo.
+- notes/2026-10-05-softkey-efuse.md: a desk-only investigation of the stock
+  "soft key" SysEx and of the JieLi SDK's key and eFuse checks. The soft key
+  only writes a marker to RAM and resets the chip into its ROM loader (no
+  flash write), and its code path in FM-1_092 is identical to stock V15. The
+  SDK's key check is present in every release and every stock image but does
+  nothing on the FM-1, and nothing on the device writes eFuses; it recommends
+  upgrading to SDK V1.2.13's libraries with safeguards. A separate draft,
+  notes/2026-10-05-softkey-readonly-test-plan.md, is a read-only dump plan
+  for the owner to review; nothing has been sent to any device.
+- **Comb, an effect of its own.** The comb filter that was Filter's seventh
+  Type is now its own effect, with the same knobs (Cutoff, Resonance, Drive,
+  Mode, Morph, Mix, Level) and the same sound, sample for sample. Filter
+  keeps six types and no longer carries the comb's 18 KB delay lines: it
+  takes 656 bytes, so filters cost almost nothing on the RAM meter. Filter's
+  Formant moved from Type 6 to 5. A Filter set to Comb maps onto Comb
+  setting for setting (they share their parameter ids).
+- **Frequencies and times turn in ratios.** Filter's and Comb's Cutoff,
+  Echo's Time, Comp's and the Limiter's Release, Tilt's Pivot, Master Sat's
+  Clean Lo and Clean Hi, the Isolator's crossovers, EQ's three frequencies,
+  Gate's Hold, Decay, Key HP and Key LP and Sophie's Ring Time now move by the same musical step wherever they
+  are: a click of the knob is about a semitone on a cutoff, their bars show
+  the knob's position, their values show more decimals at the low end, and
+  a sequencer lock steps through them evenly in ratio. Modulation moves them
+  in octaves: a ±50 % LFO on Cutoff swings it about five octaves either way
+  instead of pinning it at the ends, and NOTE at +100 % into Cutoff makes
+  the filter follow the keyboard exactly, one octave per octave.
+- **Engine API v3, for developers** (engines/README.md, "Engine API v3";
+  `FM1_ENGINE_API_VERSION` is 3, so an engine built out of tree is
+  rebuilt). Parameter flags widen to 16 bits with the new `FM1_PARAM_LOG`;
+  `FM1_UNIT_DB` marks levels and gains in dB (Comp, Drive and the Limiter,
+  and EQ, Tilt, Master Sat and Gate). Effects get an optional extension,
+  `fm1_fx_ext_t` through `render_ext`: a key (side-chain) input, the tempo
+  and beat position, and the sequencer's Start, Stop and beats at their
+  exact frames, the same at any block size; both hosts pass it through
+  `fm1_fx_render` (`fm1_fx_host.h`), and the key stays empty until the
+  side-chain stage. Test Ext, a new test effect, marks what it hears with
+  clicks. `fm1-render --tempo BPM` sets the effects' tempo without a
+  sequencer; `--list` shows each engine's `fx_wants`. Every other engine and
+  effect renders byte for byte as before. New tests: fm1-fx-ext-test and
+  tests/test_engine_api_v3.py (the extension with a real sequencer at block
+  sizes 1, 7, 13 and 64, the LOG law, NOTE keytracking, the app's knobs and
+  bars), tests/test_engines_comb.py (the split, pinned against main), and
+  two parity scenarios for the browser module.
+
 - **Room, Hall, Gate and Plate's Freeze on the virtual FM-1:** the effect
   slots now offer twenty effects (ALGORITHM steps through Plate, Ensemble,
   Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comp, Limiter,
@@ -944,6 +1197,164 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **EQ, Isolator and Master Sat rest when they change nothing.** Left at
+  their pass-through settings for two seconds (every EQ gain and Level at
+  0; Isolator's bands at their defaults with nothing killed; Master Sat's
+  Mix at the left), they stop working and pass the sound through exactly as
+  before, at about 2 % of the processing they used there: on the desktop
+  0.03 µs a block instead of about 2 µs.
+  - The first move after a rest comes in a moment late while the effect
+    warms up, and fades in without a click: a few milliseconds for EQ's Mid
+    and High bands, about 30 ms for its Low band at 100 Hz (at most a tenth
+    of a second; settings that would need longer never rest), about 10 ms
+    for Isolator (35 ms with Low Xover at 80 Hz), and about a fifth of a
+    second for Master Sat's Mix. EQ's Level answers at once.
+  - Within two seconds of the last change nothing waits, so a kill and back
+    within a bar is never delayed. At any other setting the three sound
+    exactly as before, sample for sample.
+  - After a rest, a lock that leaves the pass-through setting and comes back
+    within the warm-up is not heard at all: for example a Master Sat Mix
+    lock on a single 16th step at 120 BPM.
+  - The virtual FM-1 rests them too: its rebuilt module plays two new
+    scenarios that rest and wake them exactly as the desktop does (78 of 78
+    pass).
+- **An envelope with no gate cable restarts at every note**, a note played
+  over a held one included (it followed the legato key gate before). A
+  cable from KEY still makes it legato.
+- **When a sound's engine changes, its cables follow by name.** A cable
+  into Timbre stays on Timbre from Macro to Shapes; one whose parameter the
+  new engine lacks switches off, keeps its old name in the matrix (*Off:
+  target gone*) and comes back on when an engine that has it returns. The
+  same holds for effects.
+- **The rack's Filter module is now the Resonator (RES)**, so that Filter
+  names the audio effect alone. Older scripts that say `filter` still load.
+- **FM6 needs 28.7 KB less memory on the FM-1.** msfa's sine, exponential
+  and frequency tables, which it used to compute into RAM at start-up, are
+  now built ahead of time as constant data, which the FM-1 keeps in flash;
+  a fourth table that nothing used is gone. Every sound comes out the same,
+  sample for sample. The simulator's memory meter is right about it now: it
+  never counted those tables. At a sample rate other than the FM-1's
+  44,118 Hz an FM6 sound carries its own 4 KB frequency table, which the
+  meter counts.
+- **FM6 keeps its name, and says where it comes from:** the engine is
+  Google's msfa and the name is that of the FM engine in hugelton's
+  Felucca, whose port of the same core checks FM6 in the tests; both
+  borrowed, with thanks (the credits, the manual and the simulator page).
+- **Drums: the cowbell stays an option.** It plays on any pad through the
+  pad's sound (Model), with no pad of its own; the voicings get a listening
+  pass from the owner.
+- **New README screenshots,** with FM6 among the engines' screens; the
+  others are retaken from the same build with their names unchanged.
+- **Comp's Auto Gain only touches what would clip** (owner's request): it
+  holds a sample at full scale only where its makeup would push it past,
+  such as the start of a loud hit; everything else, steady notes included,
+  now sounds exactly as with the same makeup set by hand, also with Makeup
+  turned down. Before, it also rounded the peaks of steady tones a little. It still never pushes a
+  sound past full scale.
+- **Lists on the screen show six entries instead of one to three.** Turning
+  PRESETS, ALGORITHM (the engine's model, shape, patch or pad, or the effect
+  in FX mode), PRESETS with SEL held, the rack's kind picker or the
+  matrix's destination picker now fills the middle of the screen with the
+  list: its name in gold, where the chosen entry sits in it (such as
+  *34/96*), and six entries with the chosen one highlighted on the third
+  row, so you see two before it and three after it. At either end of a list
+  the rows stop and the highlight moves to the first or last one. A small
+  triangle above or below the entries says the list goes on that way, and
+  *Empty* and *Empty slot* are dim. PRESETS with SEL held lists all four
+  sounds and what each holds, and Capture's tempo choice uses the same
+  look. Choices still take effect as before: at once for PRESETS and
+  ALGORITHM, a second after the last turn for the two pickers. Until now
+  PRESETS and the two pickers showed three entries, and ALGORITHM only the
+  entry it chose.
+- README: the owner's new opening — project goals (including the Orbital Dock
+  community module marketplace and firmware builder), current status, and
+  why it cannot be flashed yet.
+- **The rest of the README brought up to date** with what landed on
+  2026-10-05 and 2026-10-06, below the owner's opening (left as it is):
+  - What it does: seven sound engines (FM6 and Drums are new) plus Test
+    Sine, four sounds with two inserts each, the Mix page, two master
+    effects and the memory meter, all twenty effects by kind, knobs that
+    turn in ratios, the sequencer and modulation as they are on the public
+    page, with the Drums, sequencer and matrix pictures.
+  - The controls table: every button but SAVE and ARP works, SEL is SHIFT
+    and chooses the sound, the sequencer's keys (Space, the step keys,
+    Shift), and the drum kits' pads on the white keys.
+  - The roadmap in four parts: done, in progress (FM6's file picker and
+    smaller memory, Squash and the other new dynamics, glide, per-voice
+    modulation, idle paths, the Shapes fix), next (from the 2026-10-05
+    build plan: the master chain and shared sends, side-chain, tempo
+    delays, per-voice filters, sets in the browser and Web MIDI, the
+    arpeggiator and MIDI effects) and the Orbital Dock.
+  - Installing: it compiles for the FM-1's processor but has not run on a
+    JieLi chip; the dev kit and the backup-and-restore gate still come
+    first.
+  - Documentation lists the manual's chapters; Credits add msfa (Google),
+    Felucca, SLOOP, fm1-nes, FM-1-transporter, benny-sparra, Airwindows,
+    Plaits' drum models and the modulation sources, keeping every earlier
+    credit; the licence names the Apache-2.0 code; the repository map adds
+    docs/15 and 16, `firmware/`, `tools/jieli/` and the new notes.
+  - Alt text matches the pictures; the FX picture's names the chain's
+    slots, S1 In1 In2 Mix M1 M2.
+  - The pictures stay as PR #61 took them: a fresh run on main after FM6
+    (`build-on-aeon.sh --readme-screenshots`, 72 of 72 parity scenarios)
+    differs from them only in what moves with the sound, the oscilloscope
+    strip, the level meter, LFO1's tick on Timbre and the playhead.
+- **New pictures of the virtual FM-1, and a manual brought up to date with
+  it.**
+  - The README's picture and the phone picture show the page as it is now:
+    a chord over the demo pattern, with an LFO cabled to Timbre and the
+    memory meter on the screen. They no longer show the old memory figure
+    in KB, and REC no longer blinks in them for notes waiting for Capture.
+    The rest of the screen pictures are retaken from the same build, and
+    there are new ones of Drums, the sequencer's Track view and the
+    modulation matrix.
+  - The manual shows those three screens. It names Drums and the four
+    Plaits-based engines wherever the rate rule applies, and lists Comb and
+    Test Ext and the new `--tempo` option among the desktop tools' options.
+    It explains that frequency and time knobs turn in ratios and that
+    modulation moves them in octaves, and that the sequencer's locks reach
+    only the sounds so far. Its memory table matches the build: Filter is
+    under 1 KB, Comb 17 KB, the Limiter 11 KB. It credits the modulation
+    modules and Comb, and the open FM-1 firmware projects whose reports it
+    now uses.
+- **The sequencer, four sounds at once and modulation are on the virtual
+  FM-1's public page.** The lab switch is gone: the page no longer needs
+  `?lab` in its address (an old `?lab` link opens the same page), and
+  everything that was behind it works for everyone: the entries under
+  *Added* above that say "behind the lab switch" now describe the public
+  page.
+  - SEQ, PLAY/STOP and REC work: SEQ mode with the 16 steps on the white
+    keys, the step and lock pages, recording, step recording and Capture,
+    eight tracks with mute and routing, and the Set, Clip and Track pages.
+    The page starts with a one-bar demo pattern on track 1; press
+    PLAY/STOP, or Space on the computer keyboard, to hear it.
+  - SEL is SHIFT everywhere but in FX mode; SEL with PRESETS chooses which
+    of the four sounds you play, and the Sound menu under the panel follows.
+  - FX mode shows the current sound's two inserts, a Mix page with the four
+    sounds' levels, and the two master effects. A memory meter in the
+    screen's bottom bar replaces the memory figure, and anything that
+    would not fit the FM-1 is refused, on every chain.
+  - LFO, ENV and EDIT open the modulation pages: the rack, the gesture
+    that makes a cable, the matrix and the chain.
+  - SAVE and ARP are the only buttons that still say they are not in the
+    simulator yet; SEL outside FX mode no longer says it works only there.
+  - The user manual describes all of it: chapter 7 (the sequencer) for the
+    simulator, a new chapter 8 (modulation), and four sounds, inserts and
+    the memory meter in chapters 5 and 6. Chapters 8 to 13 are now 9 to 14.
+    The manual's and the README's screen pictures were retaken.
+  - For developers: `fm1_app_set_lab`, `fm1w_set_lab` and the harness's
+    `--lab` are gone. `fm1_app_init` starts the modulation runtime with the
+    default rack; the harness's sidecar always starts with `--slots`; the
+    layout sweep is one set of 2,338 screens; the parity scenarios have no
+    `lab` key, and `fx-turns-diffuse-psxverb` plays Macro, since the RAM
+    meter refuses Shapes beside Diffuse and PSX Verb. The browser module is
+    765,189 bytes (769,693 with the switch), and 66 of 66 parity scenarios
+    pass.
+- **Licences: the GPL switch** (owner, 2026-10-05; CLAUDE.md, docs/12 §6).
+  GPL modules will sit behind one build switch, on by default everywhere
+  while we test; while it is on, no firmware image that links JieLi's
+  libraries may be shared, and the public simulator's module is offered
+  under GPL terms. No GPL code is in the tree yet.
 - **Knob turns and sequencer locks no longer click** (docs/15 stage S7b).
   When a continuous parameter changes while a sound plays, the engine now
   glides to the new value over 2.5 ms instead of jumping, so a lock under a
@@ -1174,6 +1585,42 @@ history.
   V15 (docs/07).
 
 ### Fixed
+- **Shapes stays inside what Braids' code handles.** At a few edges Braids
+  read past the end of a table or did arithmetic C++ leaves undefined, so
+  the same settings could sound different from one build to the next (the
+  desktop, the browser, the FM-1). Shapes now holds those settings at the
+  nearest one Braids handles; everything inside sounds byte for byte as
+  before.
+  - Wave Line: the last 1.6 % of Timbre plays the line's last wave, where
+    it had played a stray one.
+  - Comb: on keys 0–47 Timbre stops where the comb reaches its lowest
+    pitch. The sound is the same; only the comb's short glide up from the
+    bottom starts nearer.
+  - A note bent or offset above MIDI 127.99 plays as at 127.99, on every
+    shape. Flute, the four filter shapes and the two Sync shapes faulted up
+    there; the others had already stopped rising in pitch.
+  - Checked under the address and undefined-behaviour sanitizers over every
+    shape, key, Timbre and Color end and bend, and with knobs, bends,
+    per-note offsets and the shape changing while notes sound; and against
+    Braids itself at the held values.
+- docs/02 §5 and `tools/check_msfa_table.py` had rows 4 and 6 of msfa's
+  algorithm table the wrong way round: `0x41`, which the FM-1 carries, is
+  Google's original (there since its first commit, 2012), and `0xC1`, which
+  Felucca's port of Dexed's msfa carries, a later change. The FM-1's table is Google's, row for row; the tool
+  now reports 32 of 32 rows for an FM-1 image.
+- On the virtual FM-1, Sophie's pads followed Sound 1 rather than the
+  current sound: with Sophie as Sound 2 the white keys played notes she
+  ignores, and with Sophie as Sound 1 they played her pad notes on another
+  current sound. The white keys now play her pads whenever she is the
+  current sound.
+- The layout check drew FX mode's routed-parameter screens on an empty
+  insert instead of the effect under test; it now draws them on M1.
+- The simulator page's help credits every source of the modulation
+  modules, as the manual does: Braids and Music Thing Modular's Turing
+  Machine (Tom Whitwell) were missing.
+- For developers: `fm1-sim-render` frees what a run holds when it stops
+  part way, on a refused `--unit-route`, `--seq-reset` or `--seq-import`,
+  so CI's leak check sees only the refusal.
 - Sophie made no sound from the virtual FM-1's keys: it only plays MIDI
   notes 36–51 (its 16 pads), below the keys' range at the default octave.
   With Sophie as the sound, the 16 white keys now play pads 1–16 at any

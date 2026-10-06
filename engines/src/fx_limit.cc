@@ -1,6 +1,10 @@
 // fx_limit.cc -- "Limiter": a look-ahead brickwall limiter (FM1_KIND_AUDIO_FX),
 // written for this repository, MIT licence. Notes in engines/README.md
-// ("Limiter").
+// ("Limiter"). Mode ROUND's stage (RoundStep) is ported from Airwindows
+// ClipOnly2: Copyright (c) 2018 Chris Johnson (Airwindows' LICENSE); its file
+// says "Copyright (c) 2016 airwindows, Airwindows uses the MIT license"
+// (the licence: engines/third_party/airwindows/LICENSE; the commit and what
+// was taken: its UPSTREAM.md).
 //
 // Per frame, both channels:
 //
@@ -56,6 +60,30 @@
 // made for +12 dB. A Mode change in either direction therefore never needs
 // the final clamp.
 //
+// Mode ROUND (2026-10-05): a gentle final rounding clip after Airwindows
+// ClipOnly2 (Chris Johnson, MIT; its loop is ported below, in single
+// precision, scaled to the ceiling). The envelope lets peaks reach 3 dB
+// over the ceiling; the stage leaves every frame within +/-c as it came
+// (bit for bit) and replaces each over by c hardness + (the frame before)
+// softness, hardness 0.7390851 (the root of x = cos x) and softness its
+// complement, so an over lands between the frame before it and the ceiling;
+// the last frame of an over is then put right once the next frame is known,
+// towards it when it is lower, else further towards c. ClipOnly2 gives each
+// frame out one sample late for that; here the stage reads the frame after
+// from the line (its input times the frame's gain), so ROUND adds no delay
+// and the Lookahead is the latency in every Mode. Where the gain moves from
+// one frame to the next, that look ahead uses this frame's gain; with the
+// gain still, the output is ClipOnly2's to float rounding [verified:
+// fm1-limit-test "round", within 7e-8 of its recurrence in double]. At
+// Lookahead 0 there is no next frame: each over is rounded on the way in
+// and passed on at once. Above 4c, ClipOnly2's input clamp (4 at full
+// scale) holds what the replaced value can see. The line keeps ROUND's share
+// beside SOFT CLIP's, and its aim, as SOFT CLIP's, changes only once the
+// glide has reached it. At its other Modes the stage computes what it did
+// before ROUND, bit for bit; ClipOnly2's own spacing at rates above 88.2 kHz
+// (looking 2-16 samples ahead) is not taken: ROUND looks one frame ahead at
+// any rate.
+//
 // Lookahead changes: the line's read crossfades from the old delay to the
 // new over 5 ms, and each tap keeps a gain path of its own while they fade,
 // so neither ever steps. The old tap goes on with its boxes, untouched; the
@@ -84,13 +112,13 @@
 // stays after every effect chain; with Ceiling at or under -0.18 dB (0.98)
 // and nothing louder after this effect, it has nothing to do.
 //
-// Memory: the line holds Drive, Ceiling and Mode with each frame, so a turned
-// knob takes effect at the same moment for the detector and for the delayed
-// audio: the ceiling holds while Ceiling glides. Instance memory grows with
-// the host rate (5 ms of frames, at most 510): 11,008 bytes at 44,118 Hz,
-// 26,912 at the cap (102 kHz and above); the instance holds no pointers, so
-// a 32-bit build's is the same. Above 102 kHz the longest lookahead is 510
-// frames, shorter than 5 ms.
+// Memory: the line holds Drive, Ceiling and Mode (SOFT CLIP's and ROUND's
+// shares) with each frame, so a turned knob takes effect at the same moment
+// for the detector and for the delayed audio: the ceiling holds while
+// Ceiling glides. Instance memory grows with the host rate (5 ms of frames,
+// at most 510): 11,952 bytes at 44,118 Hz, 29,008 at the cap (102 kHz and
+// above); the instance holds no pointers, so a 32-bit build's is the same.
+// Above 102 kHz the longest lookahead is 510 frames, shorter than 5 ms.
 //
 // Contracts (fm1_engine.h): no heap, every byte set in create, NaN-safe
 // parameters (fm1_param_clamp) and input (NaN reads as 0, beyond +/-16 is
@@ -121,19 +149,20 @@ namespace limit {
 
 enum { P_CEILING, P_DRIVE, P_RELEASE, P_LOOKAHEAD, P_MODE, P_LINK, P_MIX, P_COUNT };
 
-const char *const kModeNames[] = { "Brickwall", "Soft Clip" };
+const char *const kModeNames[] = { "Brickwall", "Soft Clip", "Round" };
 
 // Uids (API v2) are fixed: never renumber one; a new parameter takes the next
 // free uid. Every parameter can be locked and modulated: the floats glide,
 // Lookahead crossfades its delay with a gain path per tap, and Mode (rounded
 // when modulated) glides its stage frame by frame; none of them steps.
-// Ceiling and Drive are in dB, which has no unit code yet.
+// Ceiling and Drive are in dB (FM1_UNIT_DB, API v3). Release moves on the
+// LOG law (fm1_engine.h); Lookahead, whose range starts at 0, stays linear.
 const fm1_param_t kParams[P_COUNT] = {
-  { "Ceiling",   FM1_PARAM_FLOAT, -24, 0,    -1.0f,  NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Ceil" },
-  { "Drive",     FM1_PARAM_FLOAT, -12, 24,   0.0f,   NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Drive" },
-  { "Release",   FM1_PARAM_FLOAT, 1,   1000, 100.0f, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_MS, "Rel" },
+  { "Ceiling",   FM1_PARAM_FLOAT, -24, 0,    -1.0f,  NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "Ceil" },
+  { "Drive",     FM1_PARAM_FLOAT, -12, 24,   0.0f,   NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "Drive" },
+  { "Release",   FM1_PARAM_FLOAT, 1,   1000, 100.0f, NULL, 0, 3, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_MS, "Rel" },
   { "Lookahead", FM1_PARAM_FLOAT, 0,   5,    2.0f,   NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_MS, "Look" },
-  { "Mode",      FM1_PARAM_ENUM,  0,   1,    0.0f,   kModeNames, 1, 5, FM1_PARAM_MOD, FM1_UNIT_NONE, "Mode" },
+  { "Mode",      FM1_PARAM_ENUM,  0,   2,    0.0f,   kModeNames, 1, 5, FM1_PARAM_MOD, FM1_UNIT_NONE, "Mode" },
   { "Link",      FM1_PARAM_FLOAT, 0,   1,    1.0f,   NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Link" },
   { "Mix",       FM1_PARAM_FLOAT, 0,   1,    1.0f,   NULL, 1, 7, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Mix" },
 };
@@ -148,6 +177,10 @@ const float kZeroAttackS = 0.001f;        // the attack at Lookahead 0
 const float kSafetyKnee = 0.891250938f;   // -1 dB: Lookahead 0's soft clip
 const float kSoftKnee = 0.5f;             // -6.02 dB: Mode SOFT CLIP's knee
 const float kSoftHeadroom = 4.0f;         // +12.04 dB into SOFT CLIP's curve
+const float kRoundHeadroom = 1.41253754f; // +3 dB of overs for ROUND to round
+const float kRoundHard = 0.7390851332f;   // ClipOnly2's hardness: x = cos(x)
+const float kRoundSoft = 0.2609148668f;   // its softness, 1 - hardness
+const float kRoundClamp = 4.0f;           // ClipOnly2 clamps its input at +/-4
 const float kInputLimit = 16.0f;          // the input guard, as mi_fx.cc
 const float kReductionFloor = 2.38418579e-7f;   // 2^-22: under the gain path's step
 const uint32_t kUnityQ = 1u << 22;        // gain 1 in the integer gain path
@@ -228,6 +261,15 @@ struct Box {
   uint32_t sum2, pos2;       // box 2
 };
 
+// ROUND's stage for one tap and channel (ClipOnly2's state): the value
+// pending for the frame the stage gives out next, whether that frame was
+// over (above +c or below -c), and whether the state has been fed since
+// ROUND last left the tap (0: start it from the frame at hand).
+struct RoundState {
+  float last;
+  uint8_t pos, neg, warm, pad;
+};
+
 struct Channel {
   float red;                 // the envelope's gain reduction, 1 - gain
   float red0;                // Lookahead 0's envelope (1 ms attack, -1 dB)
@@ -245,7 +287,8 @@ struct BoxSet {
 // The arrays after the struct, by byte offset (no pointers, so the instance
 // is the same on 32- and 64-bit builds):
 //   x    float[2n]       the guarded input, left and right, per frame
-//   ctl  float[3n]       Drive and Ceiling (linear) and Mode (0..1) per frame
+//   ctl  float[4n]       Drive and Ceiling (linear), and Mode as SOFT CLIP's
+//                        and ROUND's shares (0..1 each), per frame
 //   dqv  uint32[2][cap]  the hold's deque values (cap = n + 1)
 //   b1   uint32[2 sets][2][b1cap], b2 uint32[2 sets][2][b2cap]   the box filters
 //   dqt  uint16[2][cap]  the deque entries' frame stamps
@@ -259,7 +302,7 @@ struct Instance {
   float param[P_COUNT];
   float k_glide, k_attack0, k_release, fade_step;
   uint32_t fade_len;
-  Glide drive, ceiling, link, mix, soft;
+  Glide drive, ceiling, link, mix, soft, round;
 
   uint32_t d, d_target, d_old;   // lookahead in frames: in use, asked for, fading out
   uint32_t fade_pos;             // 0, or frames into the crossfade from d_old
@@ -270,6 +313,7 @@ struct Instance {
   uint32_t now;                  // frame counter
   int primed;                    // 0 until the first render
   Channel ch[2];
+  RoundState rnd[2][2];          // ROUND's stage, per set of boxes (tap) and channel
 };
 
 inline uint32_t Round16(uint32_t b) { return (b + 15u) & ~15u; }
@@ -300,7 +344,7 @@ Layout MakeLayout(float rate) {
   }
   uint32_t off = Round16(static_cast<uint32_t>(sizeof(Instance)));
   l.off_x = off;   off += 8u * l.n;
-  l.off_ctl = off; off += 12u * l.n;
+  l.off_ctl = off; off += 16u * l.n;
   l.off_dqv = off; off += 8u * l.dq_cap;
   l.off_b1 = off;  off += 16u * l.b1cap;
   l.off_b2 = off;  off += 16u * l.b2cap;
@@ -403,7 +447,12 @@ void Apply(Instance *s, int index) {
       s->d_target = d;
       break;
     }
-    case P_MODE: s->soft.target = v >= 0.5f ? 1.0f : 0.0f; break;
+    case P_MODE: {
+      const int mode = static_cast<int>(v + 0.5f);   // v is clamped to 0..2
+      s->soft.target = mode == 1 ? 1.0f : 0.0f;
+      s->round.target = mode == 2 ? 1.0f : 0.0f;
+      break;
+    }
     case P_LINK: s->link.target = v; break;
     case P_MIX: s->mix.target = v; break;
     default: break;
@@ -489,10 +538,12 @@ inline float BoxStep(Instance *s, const Arrays &a, uint32_t set, uint32_t c, uin
   return out > 1.0f ? 1.0f : out;
 }
 
-// The envelope's aim: the ceiling, Lookahead 0's 1 dB under it, or four
-// times it once Mode has reached SOFT CLIP (above).
-inline float Aim(float c, float soft, int zero) {
+// The envelope's aim: the ceiling, Lookahead 0's 1 dB under it, four times
+// it once Mode has reached SOFT CLIP, or 3 dB over it once Mode has reached
+// ROUND (above).
+inline float Aim(float c, float soft, float round, int zero) {
   if (soft == 1.0f) return kSoftHeadroom * c;
+  if (round == 1.0f) return kRoundHeadroom * c;
   return zero ? kSafetyKnee * c : c;
 }
 
@@ -505,7 +556,8 @@ void LineNeeds(const Instance *s, const Arrays &a, uint32_t span, uint32_t q[2])
   uint32_t slot = s->write;
   for (uint32_t j = 0; j < span; ++j) {
     slot = slot == 0 ? s->n - 1u : slot - 1u;
-    const float dd = a.ctl[3 * slot], e = Aim(a.ctl[3 * slot + 1], a.ctl[3 * slot + 2], 0);
+    const float dd = a.ctl[4 * slot];
+    const float e = Aim(a.ctl[4 * slot + 1], a.ctl[4 * slot + 2], a.ctl[4 * slot + 3], 0);
     const float al = Abs(dd * a.x[2 * slot]), ar = Abs(dd * a.x[2 * slot + 1]);
     const float ll = link * ar, lrr = link * al;
     const float p[2] = { al > ll ? al : ll, ar > lrr ? ar : lrr };
@@ -565,6 +617,7 @@ void StartChange(Instance *s, const Arrays &a) {
   s->cur ^= 1u;
   SetBoxes(s, s->cur, d);
   FillBoxes(s, a, s->cur);
+  s->rnd[s->cur][0].warm = s->rnd[s->cur][1].warm = 0;   // ROUND's stage starts afresh
 }
 
 // The crossfade is over: the old tap's boxes are free, and the hold shrinks
@@ -582,16 +635,77 @@ extern "C" float fm1_limit_probe_stage;
 float fm1_limit_probe_stage = 0.0f;
 #endif
 
+// ROUND's stage, ClipOnly2's step at the ceiling c: q is the value of the
+// frame after the one it gives out. The frame q follows is put right if it
+// was over: towards q when q is under it, else further towards the ceiling;
+// q, if over, is replaced by c hardness + (the frame before) softness. So an
+// over never passes c, and a frame under +/-c that does not follow an over
+// passes as it came.
+inline float RoundStep(RoundState &st, float q, float c) {
+  const float ch = c * kRoundHard, cs = c * kRoundSoft, lim = kRoundClamp * c;
+  if (q > lim) q = lim;
+  if (q < -lim) q = -lim;
+  if (st.pos) st.last = q < st.last ? ch + q * kRoundSoft : cs + st.last * kRoundHard;
+  st.pos = 0;
+  if (q > c) {
+    st.pos = 1;
+    q = ch + st.last * kRoundSoft;
+  }
+  if (st.neg) st.last = q > st.last ? -ch + q * kRoundSoft : -cs + st.last * kRoundHard;
+  st.neg = 0;
+  if (q < -c) {
+    st.neg = 1;
+    q = -ch + st.last * kRoundSoft;
+  }
+  const float out = st.last;
+  st.last = q;
+  return out;
+}
+
+// ROUND for one tap and channel: v is the frame given out now; with a
+// lookahead, peek is the next frame (its input times this frame's gain) and
+// the step runs one frame ahead, so ROUND adds no delay; at Lookahead 0
+// there is no next frame, and v itself is the step's input and its result
+// the output: overs are still rounded on the way in, not on the way out.
+inline float RoundOut(RoundState &st, float v, float peek, int has_peek, float c) {
+  if (!st.warm) {
+    st.last = Clamp(v, c);
+    st.pos = st.neg = 0;
+    st.warm = 1;
+  }
+  if (has_peek) return RoundStep(st, peek, c);
+  RoundStep(st, v, c);
+  return st.last;
+}
+
 // The output stage: BRICKWALL clamps (with Lookahead 0, soft-clips from
-// -1 dB), SOFT CLIP soft-clips from -6 dB; between the two while Mode glides.
-inline float Stage(float v, float c, float soft, int zero) {
+// -1 dB), SOFT CLIP soft-clips from -6 dB, ROUND rounds the overs off
+// (ClipOnly2); a blend of them while Mode glides. With ROUND out of it the
+// arithmetic is the stage's from before ROUND, bit for bit.
+inline float Stage(RoundState &st, float v, float peek, int has_peek, float c, float soft,
+                   float round, int zero) {
   float y = zero ? Knee(v, c, kSafetyKnee) : v;
 #ifdef FM1_LIMIT_PROBE
-  if (!zero && soft == 0.0f && Abs(v) / c > fm1_limit_probe_worst) fm1_limit_probe_worst = Abs(v) / c;
+  if (!zero && soft == 0.0f && round == 0.0f && Abs(v) / c > fm1_limit_probe_worst) {
+    fm1_limit_probe_worst = Abs(v) / c;
+  }
 #endif
-  if (soft != 0.0f) {
-    const float ys = Knee(v, c, kSoftKnee);
-    y = soft == 1.0f ? ys : (1.0f - soft) * y + soft * ys;
+  if (round == 0.0f) {
+    st.warm = 0;
+    if (soft != 0.0f) {
+      const float ys = Knee(v, c, kSoftKnee);
+      y = soft == 1.0f ? ys : (1.0f - soft) * y + soft * ys;
+    }
+  } else {
+    const float yr = RoundOut(st, v, peek, has_peek, c);
+    if (round == 1.0f) {
+      y = yr;
+    } else {
+      float wb = 1.0f - soft - round;
+      if (wb < 0.0f) wb = 0.0f;
+      y = wb * y + round * yr;
+      if (soft != 0.0f) y = y + soft * Knee(v, c, kSoftKnee);
+    }
   }
 #ifdef FM1_LIMIT_PROBE
   if (!zero && Abs(y) / c > fm1_limit_probe_stage) fm1_limit_probe_stage = Abs(y) / c;
@@ -600,9 +714,18 @@ inline float Stage(float v, float c, float soft, int zero) {
 }
 
 // One tap's path to the output: the driven frame from slot r times its gain,
-// through the stage for its Mode and Ceiling (zero: Lookahead 0's).
-inline float TapOut(const Arrays &a, uint32_t r, uint32_t c, float gain, int zero) {
-  return Stage(a.ctl[3 * r] * a.x[2 * r + c] * gain, a.ctl[3 * r + 1], a.ctl[3 * r + 2], zero);
+// through the stage for its Mode and Ceiling (zero: Lookahead 0's); ROUND's
+// state is the tap's set's, and its next frame is slot r + 1 (with a
+// lookahead).
+inline float TapOut(Instance *s, const Arrays &a, uint32_t set, uint32_t r, uint32_t c,
+                    float gain, int zero) {
+  const float *k = a.ctl + 4 * r;
+  float peek = 0.0f;
+  if (!zero && k[3] != 0.0f) {
+    const uint32_t r1 = r + 1u == s->n ? 0u : r + 1u;
+    peek = a.ctl[4 * r1] * a.x[2 * r1 + c] * gain;
+  }
+  return Stage(s->rnd[set][c], k[0] * a.x[2 * r + c] * gain, peek, !zero, k[1], k[2], k[3], zero);
 }
 
 void Render(Instance *s, float *lr, uint32_t frames) {
@@ -614,6 +737,7 @@ void Render(Instance *s, float *lr, uint32_t frames) {
     s->link.value = s->link.target;
     s->mix.value = s->mix.target;
     s->soft.value = s->soft.target;
+    s->round.value = s->round.target;
     if (s->d_target != s->d) SetLookahead(s, a, s->d_target);
     s->primed = 1;
   }
@@ -626,17 +750,20 @@ void Render(Instance *s, float *lr, uint32_t frames) {
     s->link.Step(kg);
     s->mix.Step(kg);
     s->soft.Step(kg);
+    s->round.Step(kg);
     const float drive = s->drive.value, c = s->ceiling.value;
     const float link = s->link.value, mix = s->mix.value, soft = s->soft.value;
+    const float round = s->round.value;
 
     // Into the line.
     const float xl = Guard(lr[2 * f]), xr = Guard(lr[2 * f + 1]);
     const uint32_t w = s->write;
     a.x[2 * w] = xl;
     a.x[2 * w + 1] = xr;
-    a.ctl[3 * w] = drive;
-    a.ctl[3 * w + 1] = c;
-    a.ctl[3 * w + 2] = soft;
+    a.ctl[4 * w] = drive;
+    a.ctl[4 * w + 1] = c;
+    a.ctl[4 * w + 2] = soft;
+    a.ctl[4 * w + 3] = round;
 
     // The detector, and the envelopes: the lookahead one into the hold, and
     // Lookahead 0's, each only while a tap that needs it is heard.
@@ -647,12 +774,12 @@ void Render(Instance *s, float *lr, uint32_t frames) {
     uint32_t hl = kUnityQ, hr = kUnityQ;
     float zl = 1.0f, zr = 1.0f;
     if (!zero || (s->fade_pos != 0 && !zero_old)) {
-      const float e = Aim(c, soft, 0);
+      const float e = Aim(c, soft, round, 0);
       hl = HoldStep(s, a, 0, pl > e ? e / pl : 1.0f);
       hr = HoldStep(s, a, 1, pr > e ? e / pr : 1.0f);
     }
     if (zero || zero_old) {
-      const float e0 = Aim(c, soft, 1);
+      const float e0 = Aim(c, soft, round, 1);
       zl = ZeroGain(s, 0, pl > e0 ? e0 / pl : 1.0f);
       zr = ZeroGain(s, 1, pr > e0 ? e0 / pr : 1.0f);
     }
@@ -664,15 +791,15 @@ void Render(Instance *s, float *lr, uint32_t frames) {
     const float gr = zero ? zr : BoxStep(s, a, cur, 1, hr);
     uint32_t r = w >= s->d ? w - s->d : w + n - s->d;
     float dl = a.x[2 * r], dr = a.x[2 * r + 1];
-    float yl = TapOut(a, r, 0, gl, zero), yr = TapOut(a, r, 1, gr, zero);
+    float yl = TapOut(s, a, cur, r, 0, gl, zero), yr = TapOut(s, a, cur, r, 1, gr, zero);
     int ended = 0;
     if (s->fade_pos) {
       const float ol = zero_old ? zl : BoxStep(s, a, cur ^ 1u, 0, hl);
       const float orr = zero_old ? zr : BoxStep(s, a, cur ^ 1u, 1, hr);
       const uint32_t ro = w >= s->d_old ? w - s->d_old : w + n - s->d_old;
       const float t = static_cast<float>(s->fade_pos) * s->fade_step, u = 1.0f - t;
-      yl = u * TapOut(a, ro, 0, ol, zero_old) + t * yl;
-      yr = u * TapOut(a, ro, 1, orr, zero_old) + t * yr;
+      yl = u * TapOut(s, a, cur ^ 1u, ro, 0, ol, zero_old) + t * yl;
+      yr = u * TapOut(s, a, cur ^ 1u, ro, 1, orr, zero_old) + t * yr;
       dl = u * a.x[2 * ro] + t * dl;
       dr = u * a.x[2 * ro + 1] + t * dr;
       if (++s->fade_pos >= s->fade_len) {
@@ -727,6 +854,7 @@ void *Create(void *mem, const fm1_host_t *host) {
   s->link.value = s->link.target;
   s->mix.value = s->mix.target;
   s->soft.value = s->soft.target;
+  s->round.value = s->round.target;
   SetLookahead(s, ArraysOf(s), s->d_target);
   return s;
 }
@@ -751,10 +879,13 @@ extern "C" const fm1_engine_t fm1_engine_limit = {
   FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_AUDIO_FX,
   "limit", "Limiter",
   "This repository (MIT): a look-ahead limiter after Geraint Luff's "
-  "\"Designing a straightforward limiter\" (Signalsmith Audio, 2022), no code taken",
+  "\"Designing a straightforward limiter\" (Signalsmith Audio, 2022), no code taken; "
+  "Mode Round ports Airwindows ClipOnly2 (Chris Johnson, MIT)",
   fm1::limit::kParams, fm1::limit::P_COUNT, 0,
   fm1::limit::InstanceSize, fm1::limit::Create, fm1::limit::Destroy,
   NULL, NULL, NULL,
   fm1::limit::Set, fm1::limit::RenderEntry,
   NULL,                     // no notes, so no per-note offsets
+  0, NULL,                  // API v3: no effect extension
+  0, 0,                     // not a pad kit
 };

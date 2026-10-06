@@ -124,18 +124,20 @@ static const char *const kLinkNames[L_COUNT] = { "Max", "Sum", "Left" };
  * audibly at the moment they change. The switches crossfade (Mode, Listen,
  * Link) over 5 ms, so they can be locked and modulated (MOD; a route is
  * rounded), however fast. Lookahead crossfades its delay, as the Limiter's
- * does. Threshold, Range and Return are in dB, for which fm1_unit_t has no
- * code yet. */
+ * does. Threshold, Range and Return are in dB (FM1_UNIT_DB, API v3). Hold,
+ * Decay and the key filters' corners move on the LOG law (fm1_engine.h): a
+ * ratio a detent, octaves under modulation; Attack, Lockout and Lookahead,
+ * whose ranges start at 0, stay linear. */
 static const fm1_param_t kGateParams[P_COUNT] = {
-  { "Threshold", FM1_PARAM_FLOAT, -80, 0, -40, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Thresh" },
+  { "Threshold", FM1_PARAM_FLOAT, -80, 0, -40, NULL, 0, 1, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "Thresh" },
   { "Attack",    FM1_PARAM_FLOAT, 0, 1000, 0.5f, NULL, 0, 2, FM1_PARAM_CONTINUOUS, FM1_UNIT_MS, "Atk" },
-  { "Hold",      FM1_PARAM_FLOAT, 2, 2000, 50, NULL, 0, 3, FM1_PARAM_CONTINUOUS, FM1_UNIT_MS, "Hold" },
-  { "Decay",     FM1_PARAM_FLOAT, 2, 4000, 150, NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_MS, "Decay" },
-  { "Range",     FM1_PARAM_FLOAT, -90, 0, -80, NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Range" },
-  { "Return",    FM1_PARAM_FLOAT, 0, 12, 4, NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Return" },
+  { "Hold",      FM1_PARAM_FLOAT, 2, 2000, 50, NULL, 0, 3, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_MS, "Hold" },
+  { "Decay",     FM1_PARAM_FLOAT, 2, 4000, 150, NULL, 0, 4, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_MS, "Decay" },
+  { "Range",     FM1_PARAM_FLOAT, -90, 0, -80, NULL, 1, 5, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "Range" },
+  { "Return",    FM1_PARAM_FLOAT, 0, 12, 4, NULL, 1, 6, FM1_PARAM_CONTINUOUS, FM1_UNIT_DB, "Return" },
   { "Mode",      FM1_PARAM_ENUM, 0, M_COUNT - 1, M_GATE, kModeNames, 1, 7, FM1_PARAM_MOD, FM1_UNIT_NONE, "Mode" },
-  { "Key HP",    FM1_PARAM_FLOAT, 20, 10000, 20, NULL, 2, 8, FM1_PARAM_CONTINUOUS, FM1_UNIT_HZ, "KeyHP" },
-  { "Key LP",    FM1_PARAM_FLOAT, 200, 20000, 20000, NULL, 2, 9, FM1_PARAM_CONTINUOUS, FM1_UNIT_HZ, "KeyLP" },
+  { "Key HP",    FM1_PARAM_FLOAT, 20, 10000, 20, NULL, 2, 8, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_HZ, "KeyHP" },
+  { "Key LP",    FM1_PARAM_FLOAT, 200, 20000, 20000, NULL, 2, 9, FM1_PARAM_CONTINUOUS_LOG, FM1_UNIT_HZ, "KeyLP" },
   { "Listen",    FM1_PARAM_ENUM, 0, 1, 0, kListenNames, 2, 10, FM1_PARAM_MOD, FM1_UNIT_NONE, "Listen" },
   { "Lockout",   FM1_PARAM_FLOAT, 0, 5000, 0, NULL, 3, 11, FM1_PARAM_CONTINUOUS, FM1_UNIT_MS, "Lock" },
   { "Lookahead", FM1_PARAM_FLOAT, 0, 5, 0, NULL, 3, 12, FM1_PARAM_CONTINUOUS, FM1_UNIT_MS, "Look" },
@@ -767,6 +769,8 @@ const fm1_engine_t fm1_engine_gate = {
   NULL, NULL, NULL,
   GateSet, GateRender,
   NULL,                     // no notes, so no per-note offsets
+  0, NULL,                  // API v3: no effect extension
+  0, 0,                     // not a pad kit
 };
 
 #ifdef __cplusplus

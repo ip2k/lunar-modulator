@@ -1094,11 +1094,11 @@ static void black_down(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, uint64_t fr
 }
 
 static void white_down(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, int n, int velocity,
-                       uint64_t frame, int base_note, const fm1_seq_ui_emit_t *out) {
+                       uint64_t frame, int pitch, const fm1_seq_ui_emit_t *out) {
   const uint16_t step = (uint16_t)(u->bar * 16u + (unsigned)n);
   if (u->shift && u->held_n) {
-    /* A pitch for every held step, in the octave the keys play now. */
-    const int pitch = base_note + key;
+    /* A pitch for every held step: the note the key plays now (in the
+     * octave the keys play, or a pad kit's pad). */
     if (pitch >= 0 && pitch <= 127) {
       const int64_t v[2] = { pitch, u->full_vel ? 127 : clampi(velocity, 1, 127) };
       for (int k = 0; k < u->held_n; ++k) {
@@ -1169,7 +1169,7 @@ static void white_up(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, uint64_t fram
 }
 
 int fm1_seq_ui_key(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, int down, int velocity,
-                   uint64_t frame, int mode, int base_note, const fm1_seq_ui_emit_t *out) {
+                   uint64_t frame, int mode, int pitch, const fm1_seq_ui_emit_t *out) {
   if (key < 0 || key >= FM1_APP_KEYS) return 0;
   if (!down) {
     const int role = u->key_role[key];
@@ -1221,7 +1221,6 @@ int fm1_seq_ui_key(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, int down, int v
       return 1;
     }
     if (u->srec) {
-      const int pitch = base_note + key;
       u->key_role[key] = n < 0 ? ROLE_BLACK : ROLE_SHORTCUT;
       if (n < 0) {
         if (key == FM1_SEQ_UI_KEY_BAR_BACK || key == FM1_SEQ_UI_KEY_BAR_ON) {
@@ -1247,7 +1246,7 @@ int fm1_seq_ui_key(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, int down, int v
       u->key_role[key] = ROLE_BLACK;
       black_down(u, s, key, frame, out);
     } else {
-      white_down(u, s, key, n, velocity, frame, base_note, out);
+      white_down(u, s, key, n, velocity, frame, pitch, out);
     }
   }
   return 1;

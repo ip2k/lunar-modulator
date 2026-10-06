@@ -1,6 +1,7 @@
 """The virtual FM-1 (sim/web): its app layer renders what fm1-render renders,
 sequencer scripts included, every screen passes the layout check, the panel
-follows the M-VAVE manual, and the page is self-contained.
+follows the M-VAVE manual, the page is self-contained, and FM6's user bank
+loads DX7 patches from .syx files, refusing what is not one.
 
 The WebAssembly side is built and compared on aeon by sim/web/build-on-aeon.sh
 (test/parity.mjs); its results are recorded in sim/web/www/fm1.wasm.json,
@@ -56,6 +57,8 @@ def scenario_args(s):
     args += ["--engine", s["engine"]]
     if "cmd" in s:
         args += ["--cmd", str(SIM / "test" / s["cmd"])]
+    if "sysex" in s:
+        args += ["--sysex", str(SIM / "test" / s["sysex"])]
     for p in s.get("params", []):
         args += ["--param", p]
     for n in s.get("notes", []):
@@ -86,6 +89,15 @@ def scenario_args(s):
         args += ["--sound-note", n]
     if "mod" in s:
         args += ["--mod", str(SIM / "test" / s["mod"])]
+    # The arpeggiator (engine API v3's MIDI effects), as fm1-render takes it.
+    for k, mfx_id, mfx_params in s.get("mfx", []):
+        args += ["--mfx", f"{k}:{mfx_id}"]
+        for p in mfx_params:
+            args += ["--mfx-param", f"{k}:{p}"]
+    for p in s.get("mfx_param_at", []):
+        args += ["--mfx-param-at", p]
+    for p in s.get("mfx_on_at", []):
+        args += ["--mfx-on-at", p]
     return args
 
 
@@ -105,31 +117,41 @@ def test_app_renders_what_fm1_render_renders(tools, tmp_path, s):
     """Same engines, same events at the same block boundaries, same bus
     limiter: with MASTER at full gain the app's WAV is fm1-render's, byte for
     byte. The browser runs this layer; parity.mjs checks the WebAssembly build
-    of it against fm1-render on aeon. A scenario played on the panel
-    (`panel`, the lab switch on) is replayed by fm1-render from what the
-    harness logged (--log-cmds and its .args sidecar), as parity.mjs does."""
+    of it against fm1-render on aeon. The app always runs multi-sound and
+    the default modulation rack; a scenario with one sound, no insert and no
+    cable renders as fm1-render's one engine does, to the bit. A scenario
+    played on the panel (`panel`) is replayed by fm1-render from what the
+    harness logged (--log-cmds and its .args sidecar, which starts with
+    --slots), as parity.mjs does; fm1-render's multi-sound flags imply
+    --slots."""
     ref, app = tmp_path / "ref.wav", tmp_path / "app.wav"
     logs = []
     if "cmd" in s:          # a sequencer script: the event logs must match too
         logs = [tmp_path / "ref.jsonl", tmp_path / "app.jsonl"]
     sim_args = scenario_args(s)
     ref_args = scenario_args(s)
-    if s.get("lab"):        # the lab switch: tracks play the sound unit their route names
-        sim_args += ["--lab"]
-        ref_args += ["--slots"]
     if "panel" in s:
         sim_args += ["--panel", str(SIM / "test" / s["panel"]), "--log-cmds", str(tmp_path / "c.verbs")]
-    summary = run(tools["sim"], sim_args + ["--out", str(app)]
+    arp_logs = [tmp_path / "ref-arp.jsonl", tmp_path / "app-arp.jsonl"]
+    summary = run(tools["sim"], sim_args + ["--out", str(app), "--log-mfx", str(arp_logs[1])]
                   + (["--log-events", str(logs[1])] if logs else []))
     if "panel" in s:
         assert summary["replayable"] == 1 and summary["seq_ui_cmds"]
         ref_args = (["--seconds", str(s["seconds"]), "--rate", str(s.get("rate", 44118)),
                      "--cmd", str(tmp_path / "c.verbs")]
                     + (tmp_path / "c.args").read_text().splitlines())
+    arps = "--mfx" in ref_args            # the arp played: what it sent must match too
     ref_summary = run(tools["render"], ref_args + ["--out", str(ref)]
-                      + (["--log-events", str(logs[0])] if logs else []))
+                      + (["--log-events", str(logs[0])] if logs else [])
+                      + (["--log-mfx", str(arp_logs[0])] if arps else []))
     assert summary["engine"] == s["engine"]
     assert app.read_bytes() == ref.read_bytes()
+    if arps:
+        assert arp_logs[1].read_bytes() == arp_logs[0].read_bytes()
+        assert ref_summary["notes_hung"] == 0 and ref_summary["mfx_dropped"] == 0
+        assert ref_summary["mfx_notes_out"] > 0, "the arp played nothing"
+    else:
+        assert arp_logs[1].read_bytes() == b"", "an arp played in a scenario without one"
     assert summary["peak"] > 0.01, "the scenario makes no sound"
     if logs:
         assert logs[1].read_bytes() == logs[0].read_bytes()
@@ -182,7 +204,7 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
     assert total == 36428 <= z["seq_budget"] == 36864
     # Multi-sound (docs/15 §3.16): four 512 KiB sound arenas and ten 256 KiB
     # effect arenas (two master slots, two inserts per sound), 4.5 MiB of the
-    # module's fixed 8 MiB; fm1_app_t is 4,881,424 B natively (clang, 64-bit).
+    # module's fixed 8 MiB; fm1_app_t is 4,915,120 B natively (clang, 64-bit).
     assert (z["sounds"], z["inserts"], z["master_slots"], z["units"]) == (4, 2, 2, 14)
     assert z["arena_bytes"] == 4 * 512 * 1024 + 10 * 256 * 1024
     assert z["app_bytes"] <= 4_960_000
@@ -195,7 +217,8 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
         assert s["seq_bytes"] == size
         r, _, _ = sim_run(tools, tmp_path, script, "--tracks", str(tracks), name=f"t{tracks}",
                           tool="render")
-        assert s["ram"] == r["instance_bytes"] + size + 3264, "the RAM figure counts the sequencer"
+        fixed = z["seq_pending_bytes"] + z["seq_ui_bytes"] + z["seq_click_bytes"] + z["mod_bytes"]
+        assert s["ram"] == r["instance_bytes"] + size + 3264 + fixed, "the RAM figure counts the sequencer"
 
 
 def full_load(stop_at, tracks=8):
@@ -345,6 +368,7 @@ def test_scenarios_cover_every_engine_effect_and_page(tools):
                          capture_output=True, text=True)
     catalog = json.loads(res.stdout)
     used = {s["engine"] for s in SCENARIOS} | {fx for s in SCENARIOS for fx, _ in s.get("fx", [])}
+    used |= {m for s in SCENARIOS for _, m, _ in s.get("mfx", [])}       # the MIDI effects
     missing = sorted(e["id"] for e in catalog if e["id"] not in used)
     assert not missing, f"no parity scenario uses {missing}"
     set_names = {}
@@ -405,17 +429,22 @@ def test_fx_param_at_turns_an_effect_at_its_time(tools, tmp_path):
 
 
 def test_every_screen_passes_the_layout_check(tools, tmp_path):
-    """Every page of every engine and effect, at defaults, minima, maxima and
-    each list entry, the global page and every popup (the refusals, SEL
-    outside FX mode and an emptied slot included): no text off screen or cut
-    short, and no two labels, or a label and a bar, closer than 4 px
-    (FM1_APP_LAYOUT_GAP). With the lab switch on, SEQ mode's Track view:
+    """Every page of every engine (HOME) and effect (on both master slots),
+    at defaults, minima, maxima and each list entry, the global page and
+    every popup (the refusals, the SAVE stub and an emptied slot
+    included), every ARP page at its extremes and list entries with its
+    popups (the arp on and off, a preset, Latch), and every list popup at
+    every entry (ALGORITHM through each
+    sound's list, Six-Op FM's 96 patches the longest, PRESETS through the
+    engines, ALGORITHM in FX mode through the effects, the kind picker and
+    the destination picker), each one's window checked: no text off screen or cut short, and no two labels, or a
+    label and a bar, closer than 4 px (FM1_APP_LAYOUT_GAP). SEQ mode's Track view:
     empty, the demo pattern, the playhead on its first and last step, 20 and
     300 BPM playing and stopped, a four-bar clip, a loop inside it, a track
     with no clip, popups over it, and the hint line with every sound's every
     knob at its extremes and list entries, and every model; the harness
-    also checks there that PLAY/STOP and SEQ light their LEDs, that HOME, FX
-    and GLO leave SEQ mode, and that the switch off brings the stubs back.
+    also checks there that PLAY/STOP and SEQ light their LEDs, and that HOME,
+    FX and GLO leave SEQ mode.
     Step entry (docs/15 S4): the grid's marks, SHIFT's legend and the full
     velocity popup, every bar of a 16-bar clip and an empty one, the Step
     pages with every field at its minimum and maximum, every length,
@@ -439,11 +468,12 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     held, another sound's lock pages, a lock on every grid step, a live
     take's hint and a spaced label on Track page 2.
     Multi-sound (docs/15 §3.16): FX mode's five slots, every effect as an
-    insert at its extremes and on M2, the grab, the Mix page with one to
-    four sounds and their levels, every sound as Sound 2 in HOME, the Mix
-    page and SEQ mode, an empty current sound, the SHIFT + PRESETS and
-    PRESETS popups, the RAM meter low, high and past the budget, its
-    refusals from PRESETS and ALGORITHM, and the switch turned off again.
+    insert at its extremes, the grab, the Mix page with one to four sounds
+    and their levels, every sound as Sound 2 in HOME, the Mix page and SEQ
+    mode, an empty current sound, the SHIFT + PRESETS and PRESETS popups,
+    the RAM meter low, high and past the budget (a full chain beside a
+    one-track sequencer, then eight tracks), and its refusals from PRESETS
+    and ALGORITHM.
     Then modulation's pages (docs/16 MG3): RACK at every position and page,
     each kind at its extremes and list entries, routed and not, the kind
     picker and a grab; every sound's and effect's pages with a cable on each
@@ -453,17 +483,24 @@ def test_every_screen_passes_the_layout_check(tools, tmp_path):
     picker; CHAIN through each slot; MATRIX over racks of all sixteen kinds
     and over cables into every sound unit, insert and master slot, the
     target picker from Sound 2, with every short name checked unique; and
-    the LEDs, the buttons that leave the pages and the stubs with the
-    switch off."""
+    the LEDs and the buttons that leave the pages. Per voice (MG9): RACK's
+    `vN` with a chord held, MATRIX's per-voice and refused rows and every
+    state's hint, one sound's note sources and the per-sound pitches, and
+    a cable an engine change switched off under its old name."""
     res = subprocess.run([str(tools["sim"]), "--screens", str(tmp_path)],
                          capture_output=True, text=True)
     assert res.returncode == 0, res.stderr
     summary = json.loads(res.stdout)
     assert summary["faults"] == 0
-    assert summary["screens"] >= 2325            # 335 before S3, 815 before S4, 914 before fx pack 2,
+    assert summary["screens"] >= 3165            # 335 before S3, 815 before S4, 914 before fx pack 2,
     #                                              1016 before S5, 1055 before multi-sound and S6, 1266 before S8,
     #                                              1321 before the master-bus pack (1458), 2189 with modulation
-    #                                              (docs/16 MG3) before Room, Hall, Gate and Plate's Freeze
+    #                                              (docs/16 MG3) before Room, Hall, Gate and Plate's Freeze, 2325
+    #                                              with them and 2366 with Comb and Test Ext (engine API v3), in
+    #                                              the lab switch's two sets of screens; 2695 before every
+    #                                              list popup's every entry, 3040 before FM6's user bank,
+    #                                              Squash and Transient (all 2026-10-06), 3144 with them;
+    #                                              3165 with per-voice modulation (MG9) too
     assert (tmp_path / "home-macro-p1.ppm").stat().st_size == 15 + 240 * 240 * 3
 
 
@@ -472,15 +509,54 @@ def test_font_header_is_current():
 
 
 
+@pytest.mark.parametrize("engine", ["sw-sophie", "drums"])
 @pytest.mark.parametrize("key,peak", [(0, True), (1, False), (2, True), (26, True)])
-def test_sophie_white_keys_play_its_pads_at_any_octave(tools, key, peak):
-    """Sophie only answers MIDI notes 36-51, below the keys' range (53-79 at
-    octave 0). With Sophie as the sound the 16 white keys play pads 1-16 and the
+def test_pad_kits_play_their_pads_on_the_white_keys_at_any_octave(tools, engine, key, peak):
+    """A pad kit (an engine with pad_count, fm1_engine.h: Sophie and Drums)
+    only answers MIDI notes 36-51, below the keys' range (53-79 at octave
+    0). With a kit as the sound the 16 white keys play pads 1-16 and the
     black keys play nothing, at any octave; other engines are unchanged."""
     for panel in ([], ["--button", "0.05:OCT+:0.02"], ["--button", "0.05:OCT-:0.02"]):
-        summary = run(tools["sim"], ["--engine", "sw-sophie", "--seconds", "0.7",
+        summary = run(tools["sim"], ["--engine", engine, "--seconds", "0.7",
                                      "--key", f"0.1:{key}:110:0.3", *panel])
         assert (summary["peak"] > 0.05) is peak
+
+
+# The FM-1's 27 keys run F3..G5: white keys F G A B C D E, from key 0.
+WHITE_KEYS = [0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26]
+BLACK_KEYS = [k for k in range(27) if k not in WHITE_KEYS]
+
+
+@pytest.mark.parametrize("white", range(16))
+def test_a_white_key_plays_the_pad_a_drum_note_plays(tools, tmp_path, white):
+    """White key w (F3, G3, A3, B3, C4... from key 0) plays pad w + 1, byte
+    for byte what its MIDI note at MIDI IN plays: all sixteen, B3 (key 6)
+    and the last octave's F and G included."""
+    key = WHITE_KEYS[white]
+    a, b = tmp_path / "key.wav", tmp_path / "midi.wav"
+    run(tools["sim"], ["--engine", "drums", "--seconds", "0.5", "--out", str(a),
+                       "--key", f"0.1:{key}:100:0.2"])
+    run(tools["sim"], ["--engine", "drums", "--seconds", "0.5", "--out", str(b),
+                       "--note", f"0.1:{36 + white}:100:0.2"])
+    assert a.read_bytes() == b.read_bytes()
+
+
+@pytest.mark.parametrize("engine,note,lit", [
+    ("drums", 38, 4),       # the snare at MIDI IN lights A3, the key that plays it
+    ("drums", 60, None),    # a note the kit ignores lights nothing (it lit C4)
+    ("macro", 60, 7),       # a pitched sound: C4, as before
+])
+def test_a_key_lights_while_the_note_it_plays_sounds(tools, engine, note, lit):
+    s = run(tools["sim"], ["--engine", engine, "--seconds", "0.3", "--note", f"0.1:{note}:100:0.5"])
+    assert [k for k in range(27) if s["leds"][k] == "1"] == ([] if lit is None else [lit])
+
+
+def test_a_pad_kits_black_keys_are_silent(tools):
+    """All eleven black keys play nothing on a pad kit."""
+    keys = [arg for i, k in enumerate(BLACK_KEYS)
+            for arg in ("--key", f"{0.05 + 0.04 * i:.2f}:{k}:110:0.03")]
+    summary = run(tools["sim"], ["--engine", "drums", "--seconds", "0.7", *keys])
+    assert summary["peak"] == 0
 
 @pytest.mark.parametrize("panel,note", [
     ([], 53),                                             # key 0 is F3 (manual p.10)
@@ -501,9 +577,10 @@ def test_panel_keys_follow_the_manual(tools, tmp_path, panel, note):
 
 
 def test_buttons_and_encoders(tools, tmp_path):
-    """PRESETS steps the sound, FX mode and ALGORITHM pick the effect in the
-    selected slot, SELECT walks slot 1's pages (Plate has two: its knobs and
-    Freeze) and then moves to slot 2, KNOB1 turns a parameter there."""
+    """PRESETS steps the sound, FX mode (opening on the master slot M1) and
+    ALGORITHM pick the effect in the selected slot, SELECT walks M1's pages
+    (Plate has two: its knobs and Freeze) and then moves to M2, KNOB1 turns
+    a parameter there."""
     s = run(tools["sim"], ["--engine", "macro", "--seconds", "0.2",
                            "--turn", "0:PRESETS:1",
                            "--button", "0:FX", "--turn", "0.01:ALGORITHM:1",
@@ -519,31 +596,30 @@ def test_buttons_and_encoders(tools, tmp_path):
     assert g["mode"] == 2 and g["values0"][0] == 3        # GLO page; ALGORITHM = Model
 
 
-# ---- The sequencer on the panel, lab switch on (docs/15 S3) ----------------------------------
+# ---- The sequencer on the panel (docs/15 S3) ----------------------------------------------
 
 PATTERN = "#! rate=44118 block=64 tracks=8 end={end}\n@0 tog 0 0 60 100;tog 0 4 64 100;tog 0 8 67 100\n"
 WHITE = [0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26]   # white key n -> key index
 
 
-def lab_run(tools, tmp_path, seconds, *panel, lab=True):
+def pattern_run(tools, tmp_path, seconds, *panel):
     script = tmp_path / "pattern.verbs"
     script.write_text(PATTERN.format(end=int(seconds * 44118)))
-    return run(tools["sim"], [*(["--lab"] if lab else []), "--engine", "test-sine", "--cmd", str(script),
-                              *panel])
+    return run(tools["sim"], ["--engine", "test-sine", "--cmd", str(script), *panel])
 
 
 def test_play_lights_its_led_while_playing(tools, tmp_path):
-    playing = lab_run(tools, tmp_path, 0.6, "--button", "0.1:PLAY/STOP")
+    playing = pattern_run(tools, tmp_path, 0.6, "--button", "0.1:PLAY/STOP")
     assert playing["leds"][27 + 12] == "1" and playing["seq_view"]["playing"] == 1
-    stopped = lab_run(tools, tmp_path, 0.6, "--button", "0.1:PLAY/STOP", "--button", "0.4:PLAY/STOP")
+    stopped = pattern_run(tools, tmp_path, 0.6, "--button", "0.1:PLAY/STOP", "--button", "0.4:PLAY/STOP")
     assert stopped["leds"][27 + 12] == "0" and stopped["seq_view"]["playing"] == 0
     assert [t for _, t in stopped["seq_ui_cmds"]] == ["play", "stop"]
 
 
 def test_seq_opens_seq_mode(tools, tmp_path):
-    s = lab_run(tools, tmp_path, 0.3, "--button", "0.1:SEQ")
+    s = pattern_run(tools, tmp_path, 0.3, "--button", "0.1:SEQ")
     assert s["mode"] == 3 and s["leds"][27 + 11] == "1" and s["popup"] == []
-    home = lab_run(tools, tmp_path, 0.3, "--button", "0.1:SEQ", "--button", "0.2:HOME")
+    home = pattern_run(tools, tmp_path, 0.3, "--button", "0.1:SEQ", "--button", "0.2:HOME")
     assert home["mode"] == 0 and home["leds"][27 + 11] == "0"
 
 
@@ -551,7 +627,7 @@ def test_seq_opens_seq_mode(tools, tmp_path):
 def test_key_leds_follow_the_playhead_in_seq_mode(tools, tmp_path, seconds):
     """In SEQ mode the white keys show the bar: a step with a note lit, the
     playhead's step inverted; the playhead moves on with the transport."""
-    s = lab_run(tools, tmp_path, seconds, "--button", "0.05:SEQ", "--button", "0.1:PLAY/STOP")
+    s = pattern_run(tools, tmp_path, seconds, "--button", "0.05:SEQ", "--button", "0.1:PLAY/STOP")
     v = s["seq_view"]
     assert v["clip_playing"] == 1
     head = v["step"] % 16
@@ -566,22 +642,22 @@ def test_key_leds_follow_the_playhead_in_seq_mode(tools, tmp_path, seconds):
 
 def test_home_key_leds_are_unchanged(tools, tmp_path):
     """Outside SEQ mode the sequencer's notes light no key (owner decision
-    O6): HOME's key LEDs while the pattern plays are those of a run without
-    the lab switch, the keys held and nothing else."""
-    lab = lab_run(tools, tmp_path, 0.7, "--button", "0.1:PLAY/STOP", "--key", "0.2:5:100:0.4")
-    off = lab_run(tools, tmp_path, 0.7, "--key", "0.2:5:100:0.4", lab=False)
-    assert lab["mode"] == off["mode"] == 0
-    assert lab["leds"][:27] == off["leds"][:27] == "0" * 27
-    held = lab_run(tools, tmp_path, 0.5, "--button", "0.1:PLAY/STOP", "--key", "0.2:5:100:0.4")
+    O6): HOME's key LEDs while the pattern plays are those of a run where
+    nothing plays, the keys held and nothing else."""
+    playing = pattern_run(tools, tmp_path, 0.7, "--button", "0.1:PLAY/STOP", "--key", "0.2:5:100:0.4")
+    still = pattern_run(tools, tmp_path, 0.7, "--key", "0.2:5:100:0.4")
+    assert playing["mode"] == still["mode"] == 0
+    assert playing["leds"][:27] == still["leds"][:27] == "0" * 27
+    held = pattern_run(tools, tmp_path, 0.5, "--button", "0.1:PLAY/STOP", "--key", "0.2:5:100:0.4")
     assert held["leds"][:27] == "0" * 5 + "1" + "0" * 21
-    assert lab["seq_notes_to_engine"] > 0
+    assert playing["seq_notes_to_engine"] > 0 and still["seq_notes_to_engine"] == 0
 
 
 def test_a_new_sound_clears_the_track_views_knob_hint(tools):
     """The Track view's hint line names the knob last turned for two
     seconds. PRESETS loads another sound, whose knob of that number nobody
     turned, so the hint gives way to the model line at once."""
-    base = ["--lab", "--engine", "macro", "--seconds", "0.6", "--button", "0.05:SEQ",
+    base = ["--engine", "macro", "--seconds", "0.6", "--button", "0.05:SEQ",
             "--turn", "0.1:KNOB2:5"]
     assert run(tools["sim"], base)["seq_view"]["knob"] == 1
     s = run(tools["sim"], base + ["--turn", "0.3:PRESETS:1"])
@@ -590,21 +666,188 @@ def test_a_new_sound_clears_the_track_views_knob_hint(tools):
 
 def test_emptying_a_slot_returns_to_its_one_page(tools):
     """The Effect 2 dropdown's "(none)" on PSX Verb's second page: the empty
-    slot shows page 1 of 1, not "2/1" (the select path used to keep the page)."""
+    slot shows page 1 of 1, not "2/1" (the select path used to keep the page).
+    FX mode opens on M1 (slot 3 of In1, In2, Mix, M1, M2)."""
     s = run(tools["sim"], ["--engine", "macro", "--fx", "plate", "--fx", "sw-psxverb",
                            "--seconds", "0.1", "--button", "0:FX", "--turn", "0.01:SELECT:2",
                            "--select", "0.03:2:-"])
     assert s["fx"] == ["plate", ""]
-    assert (s["fx_slot"], s["fx_page"]) == (1, 0)
+    assert (s["fx_slot"], s["fx_page"]) == (4, 0)
+
+
+# ------------------------------------------------- FM6's user bank (DX7) --
+#
+# The page's "Load DX7 patches" (app.js, worklet.js, fm1w_dx7_load) runs
+# fm1_app_dx7_load and fm1_app_dx7_play, which the harness runs natively
+# with --sysex and --sysex-play: the same C code, checked here on the Mac;
+# test/sysex.mjs checks the module's export itself on aeon, recorded in
+# fm1.wasm.json. The files are this repository's own (tools/dx7_bank.py
+# --test-bank), or edits of them.
+
+DX7 = SIM / "test" / "dx7"
+VCED = 163
+
+
+def test_dx7_test_files_are_what_the_tool_makes():
+    """The original test bank: 32 voices of our own, LUNAR 01 to 32, as one
+    bank dump and as 32 single-voice dumps; never Yamaha's."""
+    subprocess.run([sys.executable, str(ROOT / "tools" / "dx7_bank.py"), "--test-bank", "--check"], check=True)
+
+
+def dx7_run(tools, tmp_path, files, *extra, engine="dx7"):
+    args = ["--seconds", "0.2", "--out", str(tmp_path / "x.wav")]
+    if engine:
+        args += ["--engine", engine]
+    for k, data in enumerate(files):
+        flag = "--sysex"
+        if isinstance(data, tuple):
+            flag, data = data
+        path = tmp_path / f"f{k}.syx"
+        path.write_bytes(data)
+        args += [flag, str(path)]
+    return run(tools["sim"], args + list(extra))
+
+
+def lunar(k):
+    return f"LUNAR {k + 1:02d}"
+
+
+def bank():
+    return (DX7 / "lunar-test-bank.syx").read_bytes()
+
+
+def single(k):
+    return (DX7 / "lunar-test-voices.syx").read_bytes()[k * VCED:(k + 1) * VCED]
+
+
+def test_a_bank_fills_the_user_slots_with_their_names(tools, tmp_path):
+    s = dx7_run(tools, tmp_path, [bank()])
+    f = s["dx7"]["files"][0]
+    assert (f["result"], f["voices"], f["first_slot"], f["messages"], f["bad_checksums"], f["raw"]) == \
+        (32, 32, 0, 1, 0, 0)
+    assert s["dx7"]["names"] == [lunar(k) for k in range(32)]
+    assert s["popup"] == ["Loaded 32 voices", "User 1-32", "LUNAR 01"]
+
+
+def test_turning_algorithm_names_the_loaded_voice(tools, tmp_path):
+    """The Patch list shows the loaded voices' names: ALGORITHM from User 9
+    to User 10 puts up the Patch list with LUNAR 10 chosen, among its
+    neighbours' names."""
+    s = dx7_run(tools, tmp_path, [bank()], "--param", "Patch=40", "--turn", "0.05:ALGORITHM:1")
+    lst = s["popup_list"]
+    assert (lst["title"], lst["total"]) == ("Patch", 64)
+    assert s["popup"][lst["mark"]] == "LUNAR 10"
+    assert s["popup"] == [lunar(k) for k in range(lst["first"] - 32, lst["first"] - 32 + len(s["popup"]))]
+    assert s["values0"][0] == 41
+
+
+@pytest.mark.parametrize("case", ["empty", "text", "foreign", "cut-short", "short-dump", "count",
+                                  "too-big"])
+def test_what_is_not_a_dx7_dump_loads_nothing_and_says_why(tools, tmp_path, case):
+    """Each refusal is counted where the page can name it, and the bank,
+    loaded before, stays as it was."""
+    files = {
+        "empty": b"",
+        "text": b"LUNAR MODULATOR, not a patch\n" * 4,
+        "foreign": bytes([0xF0, 0x7E, 0x7F, 0x06, 0x01, 0xF7]),
+        "cut-short": bank()[:3000],
+        "short-dump": single(0)[:100] + single(0)[101:],
+        "count": single(0)[:5] + bytes([0x1A]) + single(0)[6:],
+        "too-big": single(0) * 403,
+    }
+    s = dx7_run(tools, tmp_path, [bank(), files[case]])
+    f = s["dx7"]["files"][1]
+    want = {"empty": (0, 0, 0, 0, 0), "text": (0, 0, 0, 0, 116), "foreign": (0, 1, 0, 0, 0),
+            "cut-short": (0, 0, 1, 0, 0), "short-dump": (0, 0, 0, 1, 0), "count": (0, 0, 0, 1, 0),
+            "too-big": (-1, 0, 0, 0, 0)}[case]
+    assert (f["result"], f["foreign"], f["truncated"], f["wrong_size"], f["outside"]) == want
+    assert f["voices"] == 0
+    assert s["dx7"]["names"] == [lunar(k) for k in range(32)]
+    assert s["popup"] == ["No DX7 voices", "file too large" if case == "too-big" else "in that file"]
+
+
+def test_a_wrong_checksum_loads_and_is_counted(tools, tmp_path):
+    """As the keyboards' editors do (engines/msfa.md): stored all the same;
+    the page says the file may be damaged."""
+    v = bytearray(single(6))
+    v[161] ^= 1
+    s = dx7_run(tools, tmp_path, [bytes(v)])
+    f = s["dx7"]["files"][0]
+    assert (f["result"], f["bad_checksums"]) == (1, 1) and s["dx7"]["names"][0] == lunar(6)
+
+
+def test_single_voices_follow_each_other_and_a_bank_starts_again(tools, tmp_path):
+    s = dx7_run(tools, tmp_path, [single(4), single(9), bank(), single(2), bank()[6:6 + 4096]])
+    firsts = [f["first_slot"] for f in s["dx7"]["files"]]
+    assert firsts == [0, 1, 0, 0, 0]
+    assert s["dx7"]["files"][4]["raw"] == 1
+    s = dx7_run(tools, tmp_path, [single(4), single(9), bank(), single(2)])
+    assert s["dx7"]["names"][:3] == [lunar(2), lunar(1), lunar(2)]
+    assert s["dx7"]["next"] == 1
+
+
+def test_several_dumps_and_other_messages_in_one_file(tools, tmp_path):
+    data = single(3) + bytes([0xF0, 0x7E, 0x00, 0x06, 0x01, 0xF7]) + single(8) + b"xy" + single(5)[:50]
+    f = dx7_run(tools, tmp_path, [data])["dx7"]["files"][0]
+    assert (f["result"], f["messages"], f["foreign"], f["truncated"], f["outside"]) == (2, 2, 1, 1, 2)
+
+
+def test_the_app_plays_the_bank_as_fm1_render_does(tools, tmp_path):
+    """User 2, 7 and 32 of the test bank, through the app's bank and
+    through fm1-render --sysex: the same samples (also a parity scenario,
+    dx7-user-bank, against the browser's module)."""
+    args = ["--engine", "dx7", "--sysex", str(DX7 / "lunar-test-bank.syx"), "--param", "Patch=33",
+            "--param-at", "0.3:Patch=38", "--param-at", "0.6:Patch=63", "--note", "0:60:100:0.25",
+            "--note", "0.3:64:100:0.25", "--note", "0.6:67:110:0.3", "--seconds", "1.0"]
+    a, b = tmp_path / "app.wav", tmp_path / "render.wav"
+    s = run(tools["sim"], args + ["--out", str(a)])
+    subprocess.run([str(tools["render"]), *args, "--out", str(b)], check=True, capture_output=True)
+    assert a.read_bytes() == b.read_bytes() and s["peak"] > 0.01
+
+
+def test_load_and_play_makes_the_current_sound_fm6(tools, tmp_path):
+    """What the page does after a load (fm1_app_dx7_play): Macro gives way
+    to FM6 on the first voice loaded, and it sounds."""
+    s = dx7_run(tools, tmp_path, [single(0), ("--sysex-play", single(11) + single(12))],
+                "--note", "0.02:60:110:0.15", engine="macro")
+    assert s["engine"] == "dx7" and s["values0"][0] == 33 and s["peak"] > 0.01
+    assert s["dx7"]["files"][1]["played"] == 0 and s["dx7"]["names"][1] == lunar(11)
+
+
+def test_an_fm6_made_after_a_load_plays_the_bank(tools, tmp_path):
+    """The bank stands for voices kept in flash: a sound that becomes FM6
+    later gets them when it is created."""
+    path = DX7 / "lunar-test-bank.syx"
+    later = run(tools["sim"], ["--engine", "macro", "--sysex", str(path), "--select", "0:0:dx7",
+                               "--turn", "0.01:ALGORITHM:52", "--note", "0.05:60:100:0.2",
+                               "--seconds", "0.4", "--out", str(tmp_path / "a.wav")])
+    first = run(tools["sim"], ["--engine", "dx7", "--sysex", str(path), "--turn", "0.01:ALGORITHM:52",
+                               "--note", "0.05:60:100:0.2", "--seconds", "0.4", "--out", str(tmp_path / "b.wav")])
+    assert later["engine"] == "dx7" and later["values0"][0] == 52 and later["peak"] > 0.01
+    assert later["popup_list"]["title"] == "Patch"
+    assert later["popup"][later["popup_list"]["mark"]] == "LUNAR 21"
+    assert (tmp_path / "a.wav").read_bytes() == (tmp_path / "b.wav").read_bytes()
+    assert first["peak"] == later["peak"]
+
+
+def test_the_modules_sysex_export_passed_its_checks():
+    """build.sh runs test/sysex.mjs on the module it records: every case of
+    the export (loads, refusals and their reasons, play, the voices'
+    samples) passed."""
+    record = json.loads((SIM / "www" / "fm1.wasm.json").read_text(encoding="utf-8"))
+    sysex = record["dx7_sysex"]
+    assert sysex["failed"] == 0 and sysex["passed"] >= 18
+    assert all(c["pass"] for c in sysex["cases"])
 
 
 def test_a_sound_that_refuses_the_rate_is_stepped_over(tools):
     """Above 47,872 Hz the Plaits-based sounds (Macro, Macro Heavy, Six-Op)
     refuse the host. PRESETS steps over them and says why; a refused load
-    puts the previous sound back with its values instead of leaving silence."""
+    puts the previous sound back with its values instead of leaving silence.
+    FM6, next in the list, runs at the host's rate."""
     up = run(tools["sim"], ["--engine", "shapes", "--rate", "48000", "--seconds", "0.1",
                             "--turn", "0:PRESETS:1"])
-    assert up["engine"] == "sw-sophie"
+    assert up["engine"] == "dx7"
     assert up["popup"] == ["Macro Heavy", "refuses 48000 Hz"]
     down = run(tools["sim"], ["--engine", "shapes", "--rate", "48000", "--seconds", "0.1",
                               "--turn", "0:PRESETS:-1"])
@@ -687,7 +930,7 @@ def test_the_staleness_gate_covers_what_the_module_links():
         sys.path.pop(0)
     hashed = {p.relative_to(ROOT).as_posix() for p in sim_files(ROOT)}
     for s in SCENARIOS:
-        for key in ("cmd", "panel", "mod"):
+        for key in ("cmd", "panel", "mod", "sysex"):
             if key in s:
                 assert f"sim/web/test/{s[key]}" in hashed, s["name"]
     want = [p.relative_to(ROOT).as_posix() for p in (ENGINES / "seq").glob("*.[ch]")]
@@ -695,6 +938,9 @@ def test_the_staleness_gate_covers_what_the_module_links():
     want += [p.relative_to(ROOT).as_posix() for p in (ENGINES / "mod").rglob("*.[ch]")]
     want += ["engines/include/fm1_mod.h", "engines/include/fm1_mod_host.h",
              "engines/host/mod_script.c", "engines/host/mod_script.h"]
+    # The MIDI effects and their host stage (engine API v3): the arp.
+    want += [p.relative_to(ROOT).as_posix() for p in (ENGINES / "midi_fx").glob("*.[ch]")]
+    want += ["engines/include/fm1_mfx_host.h", "engines/include/fm1_midi_ev.h", "engines/seq/mfx_host.c"]
     assert want and not [w for w in want if w not in hashed]
     assert "engines/mod/README.md" not in hashed, "documentation never makes the module stale"
 

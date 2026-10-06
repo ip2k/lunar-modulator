@@ -38,7 +38,7 @@ GOLDEN = ROOT / "tests" / "fixtures" / "mod-golden.json"
 MUTABLE = ENGINES / "third_party" / "mutable"
 TICK = 32
 MG2 = ["function", "bounce", "register", "coin", "divide", "burst", "slew", "quantize",
-       "compare", "logic", "calc", "mix", "filter"]
+       "compare", "logic", "calc", "mix", "resonator"]
 
 
 def tool(name):
@@ -144,10 +144,10 @@ SCENES = {
              "slot 5 lfo4 > clc1.fade amt=40\n"),
     "mix": ("mod 1 mix gain1=1.5 gain2=-0.5 offset=0.1\nmod 2 lfo rate=0.6\nmod 3 lfo rate=0.69 shape=triangle\n"
             "slot 1 lfo2 > mix1.in1 amt=60\nslot 2 lfo3 > mix1.in2\nslot 3 vel > mix1.in3 amt=40\n"),
-    "filter": ("mod 1 filter cutoff=0.45 res=0.95\nmod 2 filter cutoff=0.7 res=0.2 blend=0.75\n"
-               "mod 3 filter cutoff=0.3 res=1 strike=0.6\nmod 4 lfo rate=0.66 shape=square\n"
-               "slot 1 trig > flt1.ping\nslot 2 lfo4 > flt2.in\nslot 3 lfo4.wrap > flt3.ping\n"
-               "slot 4 lfo4 > flt1.cutoff amt=10\n"),
+    "resonator": ("mod 1 resonator cutoff=0.45 res=0.95\nmod 2 resonator cutoff=0.7 res=0.2 blend=0.75\n"
+                  "mod 3 resonator cutoff=0.3 res=1 strike=0.6\nmod 4 lfo rate=0.66 shape=square\n"
+                  "slot 1 trig > res1.ping\nslot 2 lfo4 > res2.in\nslot 3 lfo4.wrap > res3.ping\n"
+                  "slot 4 lfo4 > res1.cutoff amt=10\n"),
 }
 
 
@@ -384,11 +384,14 @@ def test_a_relaxation_oscillator_settles_into_an_exact_period(renderer, tmp_path
     assert 0.2 < min(out) < 0.3 and 0.7 < max(out) < 0.8
 
 
-def test_a_pinged_resonant_filter_wobbles_the_sound(renderer, tmp_path):
-    """The owner's case: each note strikes a resonant Filter, whose ringing
+@pytest.mark.parametrize("name", ["resonator", "filter"])
+def test_a_pinged_resonator_wobbles_the_sound(renderer, tmp_path, name):
+    """The owner's case: each note strikes a Resonator (MG2's Filter, renamed
+    on 2026-10-05; scripts may still say filter and flt), whose ringing
     moves Timbre at the cutoff's frequency and dies away."""
-    mod = ("mod 1 filter cutoff=0.5 res=0.8 strike=0.8\nslot 1 trig > flt1.ping\n"
-           "slot 2 flt1.bp > snd:Timbre amt=40\n")
+    ref = "res1" if name == "resonator" else "flt1"
+    mod = (f"mod 1 {name} cutoff=0.5 res=0.8 strike=0.8\nslot 1 trig > {ref}.ping\n"
+           f"slot 2 {ref}.bp > snd:Timbre amt=40\n")
     s, raw, ticks = run(renderer, tmp_path, ["--engine", "macro", "--note", "0.1:60:100:1.5",
                                              "--seconds", "1.6"], mod=mod)
     bp = [t["m"][0]["o"][2] for t in ticks]
