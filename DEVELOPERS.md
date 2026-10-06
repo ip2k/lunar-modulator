@@ -348,11 +348,12 @@ it in the arpeggiator's slot ([`engines/midi_fx/README.md`](engines/midi_fx/READ
   Lunar can split its work that way is to be tried on the dev kit.
 - **The screen:** the firmware's own RGB565 frame buffer, copied to a
   canvas, its text in three faces (the project's 5×9 at ×2, Spleen 8×16
-  and 6×12). All 3,645 screens of the layout sweep, the sequencer's,
-  modulation's and the arpeggiator's, the global page's Key page, FM6's
-  user bank, every list popup at every entry and the knobs' lists
-  included, pass a layout check, with no text cut short and nothing closer
-  than 4 px [verified: `fm1-sim-render --screens`, 2026-10-06].
+  and 6×12). All 4,534 screens of the layout sweep (3,645 with the GPL
+  switch off), the sequencer's, modulation's and the arpeggiator's, the
+  global page's Key page, FM6's user bank, the GPL modules' pages, every
+  list popup at every entry and the knobs' lists included, pass a layout
+  check, with no text cut short and nothing closer than 4 px [verified:
+  `fm1-sim-render --screens`, 2026-10-06].
 - **What the panel does:** every engine and effect, four sounds with their
   inserts and the master bus, the sequencer (SEQ, PLAY/STOP, REC),
   modulation (LFO, ENV, EDIT) and the arpeggiator (ARP); only SAVE is still
