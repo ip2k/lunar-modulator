@@ -29,10 +29,10 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `acid-bass` | Acid Bass | sound | 1 | fm1-x0x's 303 (Charles Vestal, **GPL-3.0-only**): Open303 (Robin Schmidt, MIT) with the Devilfish ranges and a RAT drive | [below](#acid-bass); a bass after the TB-303, built only with the GPL switch on |
 | `comet` | Comet Kit | sound | 11 | fm1-x0x's 909 (Charles Vestal, **GPL-3.0-only**): 9W9 (athousanddetails) after ER-99 (Matthew Cieplak), with ER-99's cymbal recordings | [below](#comet-kit); a 16-pad kit after the TR-909, built only with the GPL switch on |
 | `crater` | Crater Kit | sound | 13 | fm1-x0x's 808 (Charles Vestal, **GPL-3.0-only**), ported from 8W8 (athousanddetails, GPL-3.0): circuit models after the TR-808's service notes and Werner, Abel and Smith; sc808's rim shot (MIT) | [below](#crater-kit); a 16-pad kit after the TR-808 on notes 36–51, built only with the GPL switch on |
-| `test-sine` | Test Sine | sound | 12 | this repository | tests the host and the analysis |
 | `drawbar` | Drawbar | sound | 8 | Felucca's WHEEL (Leo Kuroshita, Hügelton Instruments, **GPL-3.0-only**), unmodified | [below](#the-felucca-engines); a tonewheel-style organ, built only with the GPL switch on |
 | `trio` | Trio | sound | 8 | Felucca's TRIO (**GPL-3.0-only**), unmodified | [below](#the-felucca-engines); three chip-style oscillators with ring and sync into a gritty filter, GPL switch on |
 | `phase-bend` | Phase Bend | sound | 8 | Felucca's PHASE, CrispyZebra's phase-distortion oscillator (**GPL-3.0-only**), unmodified | [below](#the-felucca-engines); phase distortion with resonant waves, GPL switch on |
+| `test-sine` | Test Sine | sound | 12 | this repository | tests the host and the analysis |
 | `plate` | Plate | effect | – | Rings' reverb, with Elements' Freeze | [mi-fx.md](mi-fx.md) |
 | `ensemble` | Ensemble | effect | – | Plaits' ensemble | [mi-fx.md](mi-fx.md) |
 | `diffuse` | Diffuse | effect | – | Plaits' diffuser | [mi-fx.md](mi-fx.md) |
@@ -726,7 +726,13 @@ of which Comet Kit is 265.6 KB and 249.9 KB [verified: the check's report,
 2026-10-06, at the merge with PRs #76-#78, 139 of 139 objects in all four
 profiles, link audit PASS]. That is more than the app area of about 852 KB
 in FM-1+VA's layout (docs/11) before JieLi's libraries are linked; without
-the kit it is 639 KB at `-Oz`. The cymbals are the one large cost, so this stream proposes:
+the kit it is 639 KB at `-Oz`. With every GPL module merged (Acid Bass,
+Acid Gen, both kits and the three Felucca engines) and PR #79, the objects
+total 1,131,246 B at `-O2` and 934,793 B at `-Oz`, of which the GPL modules
+and their wrappers are 307,475 B at `-Oz` (Comet Kit 249,915 of them), so
+about 627 KB without them [verified: the check's report, 2026-10-06, 143 of
+143 objects in all four profiles, link audit PASS]. The cymbals are the
+one large cost, so this stream proposes:
 
 | Option | Flash for the cymbals | SNR against the int16 [verified 2026-10-06: µ-law and ADPCM by `tests/test_engine_comet_kit.py`, the linear rows by a scratch script] | |
 | --- | --- | --- | --- |
@@ -3317,19 +3323,22 @@ is API v4's), so a Preset parameter would leave the host showing stale
 values. The manual (chapter 5) gives them as settings, and the oracle test
 plays each one.
 
-**Measured** [verified 2026-10-06]:
+**Measured** [verified 2026-10-06; the instances again after the merge
+with PR #79, whose glide modes took the shim's table from 14 parameters to
+16: 96 B more each, `tools/jieli/compile-check.sh`]:
 
 | | Drawbar | Trio | Phase Bend |
 | --- | --- | --- | --- |
-| Instance, pi32v2 = i386 = x86-64 | 4,976 B | 4,144 B | 4,144 B |
+| Instance, pi32v2 = i386 = x86-64 | 5,072 B | 4,240 B | 4,240 B |
 | of which Felucca's part (`track_t`), and WHEEL's state | 1,752 + 832 B | 1,752 B | 1,752 B |
 | Eight notes, a 64-frame block, Apple M1 Max | 1.6–5.9 µs (0.11–0.41 %) | 2.9–5.8 µs (0.20–0.40 %) | 2.4–4.8 µs (0.17–0.33 %) |
 | One note; idle | 0.46 µs; 0.23 µs | 0.76 µs; 0.14 µs | 0.42 µs; 0.14 µs |
 
-- **Flash** (the JieLi compile check, switch on, 136 of 136 objects in all
-  four profiles, link audit PASS): the bridge, the three engines with
-  Felucca's tables, 15,269 B at −O2 (13,539 at −Oz), and the shim with the
-  three parameter tables 9,469 B (7,337): 24.7 KB (20.9).
+- **Flash** (the JieLi compile check, switch on, 143 of 143 objects in all
+  four profiles after the merge with the x0x kits and PR #79, link audit
+  PASS): the bridge, the three engines with Felucca's tables, 15,269 B at
+  −O2 (13,539 at −Oz), and the shim with the three parameter tables
+  9,911 B (7,773): 25.2 KB (21.3).
 - **Static RAM**: 3,344 B, WHEEL's arrays sized for Felucca's four parts
   (part 0's lent to each call) and the bridge's pointer.
 - **CPU on the FM-1**: not measured here; Felucca plays these engines with
