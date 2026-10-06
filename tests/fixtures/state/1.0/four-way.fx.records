@@ -1,0 +1,49 @@
+{"rec":"head","kind":"fx","major":1,"minor":0}
+{"rec":"info","key":"by","text":"desktop"}
+{"rec":"info","key":"version","text":"0.1.0"}
+{"rec":"info","key":"commit","text":"1757499"}
+{"rec":"info","key":"name","text":"FOUR WAY"}
+{"rec":"info","key":"title","text":"Four-way chain"}
+{"rec":"info","key":"about","text":"An echo, a gap, a comb and a limiter."}
+{"rec":"info","key":"author","text":"Lunar Modulator"}
+{"rec":"info","key":"licence","text":"MIT"}
+{"rec":"unit","role":"master","sound":0,"slot":0,"engine":"echo"}
+{"rec":"param","role":"master","sound":0,"slot":0,"uid":1,"focus":null,"f32":"43efe999"}
+{"rec":"param","role":"master","sound":0,"slot":0,"uid":2,"focus":null,"f32":"3f28501e"}
+{"rec":"param","role":"master","sound":0,"slot":0,"uid":3,"focus":null,"f32":"3f2a99e0"}
+{"rec":"param","role":"master","sound":0,"slot":0,"uid":4,"focus":null,"f32":"3e1205d4"}
+{"rec":"param","role":"master","sound":0,"slot":0,"uid":5,"focus":null,"f32":"3c31f000"}
+{"rec":"param","role":"master","sound":0,"slot":0,"uid":6,"focus":null,"f32":"3ebfdfd2"}
+{"rec":"param","role":"master","sound":0,"slot":0,"uid":7,"focus":null,"f32":"3e8c500a"}
+{"rec":"unit","role":"master","sound":0,"slot":1,"engine":""}
+{"rec":"unit","role":"master","sound":0,"slot":2,"engine":"comb"}
+{"rec":"param","role":"master","sound":0,"slot":2,"uid":2,"focus":null,"f32":"4663f83b"}
+{"rec":"param","role":"master","sound":0,"slot":2,"uid":3,"focus":null,"f32":"3f30caae"}
+{"rec":"param","role":"master","sound":0,"slot":2,"uid":4,"focus":null,"f32":"3f19f917"}
+{"rec":"param","role":"master","sound":0,"slot":2,"uid":5,"focus":null,"f32":"3fd65851"}
+{"rec":"param","role":"master","sound":0,"slot":2,"uid":6,"focus":null,"f32":"3f294c57"}
+{"rec":"param","role":"master","sound":0,"slot":2,"uid":7,"focus":null,"f32":"3e14ca41"}
+{"rec":"param","role":"master","sound":0,"slot":2,"uid":8,"focus":null,"f32":"3f614edd"}
+{"rec":"unit","role":"master","sound":0,"slot":3,"engine":"limit"}
+{"rec":"param","role":"master","sound":0,"slot":3,"uid":1,"focus":null,"f32":"c1a0d83d"}
+{"rec":"param","role":"master","sound":0,"slot":3,"uid":2,"focus":null,"f32":"41a4eb93"}
+{"rec":"param","role":"master","sound":0,"slot":3,"uid":3,"focus":null,"f32":"426f0fe0"}
+{"rec":"param","role":"master","sound":0,"slot":3,"uid":4,"focus":null,"f32":"408302df"}
+{"rec":"param","role":"master","sound":0,"slot":3,"uid":5,"focus":null,"index":0}
+{"rec":"param","role":"master","sound":0,"slot":3,"uid":6,"focus":null,"f32":"3f03760a"}
+{"rec":"param","role":"master","sound":0,"slot":3,"uid":7,"focus":null,"f32":"3f51ba5c"}
+{"rec":"mod"}
+{"rec":"module","pos":2,"kind":"lfo"}
+{"rec":"param","role":"module","sound":0,"slot":2,"uid":1,"focus":null,"f32":"3f2e729b"}
+{"rec":"param","role":"module","sound":0,"slot":2,"uid":2,"focus":null,"index":1}
+{"rec":"param","role":"module","sound":0,"slot":2,"uid":3,"focus":null,"f32":"bf76797f"}
+{"rec":"param","role":"module","sound":0,"slot":2,"uid":4,"focus":null,"index":0}
+{"rec":"param","role":"module","sound":0,"slot":2,"uid":5,"focus":null,"f32":"3f51d4d3"}
+{"rec":"param","role":"module","sound":0,"slot":2,"uid":6,"focus":null,"index":10}
+{"rec":"param","role":"module","sound":0,"slot":2,"uid":7,"focus":null,"f32":"3f0248f8"}
+{"rec":"data","pos":2,"version":1,"hex":"00ff10a5"}
+{"rec":"cable","slot":0,"src":80,"via":0,"unit":42,"flags":115,"dst":3,"amount":2048,"offset":0,"lock":400,"name":""}
+{"rec":"cable","slot":1,"src":19,"via":255,"unit":43,"flags":38,"dst":2,"amount":-16384,"offset":5461,"lock":0,"name":""}
+{"rec":"cable","slot":31,"src":2,"via":255,"unit":12,"flags":1,"dst":0,"amount":1,"offset":0,"lock":0,"name":"Rate"}
+{"rec":"view","mode":8,"pos":3}
+{"rec":"end"}
