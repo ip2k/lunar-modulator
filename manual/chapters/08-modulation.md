@@ -5,7 +5,9 @@ modules, such as LFOs, envelopes and random sources, makes control signals,
 and up to 32 cables carry them to the parameters of any sound, any effect,
 the instrument's pitch and level, or another module. Every note can restart
 an envelope; an LFO can sweep a filter in time with the sequencer; a random
-source can vary each note a little.
+source can vary each note a little. A cable can also run **per voice**:
+each note of a chord then has an envelope or an LFO of its own, which moves
+that note alone.
 
 The rack works like a small modular synthesizer. Most of its modules are
 Lunar Modulator's own code after published designs, chiefly Mutable
@@ -18,9 +20,9 @@ three are ports of Peaks' and Braids' code, under the MIT licence
 !!! note "In the simulator"
     The rack, the cables and their pages run in the browser simulator and in
     the desktop tools, and are planned for the FM-1 with the same controls.
-    The modules are shared by every voice of a sound for now: an envelope
-    restarts for each new note rather than running once per voice. Modulation
-    per voice is planned.
+    Modulation per voice reaches the sounds that keep a value for each note:
+    Macro, Macro Heavy, Shapes, Six-Op FM, FM6 and Drums
+    ([Per voice](#per-voice)).
 
 ## How modulation works
 
@@ -41,7 +43,8 @@ The simulator starts with this rack:
 
 and two cables: the note gate *RTRG* into the GATE of both envelopes, so
 every note, on any sound, restarts them. Re-patch or delete those cables as
-you like ([The matrix](#the-matrix)).
+you like ([The matrix](#the-matrix)); an envelope with no cable into its
+GATE restarts at every note too.
 
 ### Cables
 
@@ -57,18 +60,26 @@ A cable runs from a **source** to a **destination**:
   | CLOCK, BEAT, BAR | A pulse at each sequencer step, beat and bar |
   | RUN, START | High while the sequencer plays; a pulse when it starts |
   | SEQ1 to SEQ8, SQV1 to SQV8 | High while sequencer track 1 to 8 sounds a note; its last velocity |
+  | S1NOTE to S4RTRG | NOTE, VEL, KEY, TRIG and RTRG for the notes of one sound only: *S2KEY* is high while Sound 2 holds a note, *S1VEL* is Sound 1's last velocity |
+
+  The plain note sources follow the notes of every sound, from the keys,
+  MIDI and the sequencer; the ones that start with a sound's number follow
+  that sound's notes alone.
 
 - **Destinations** are the parameters of the four sounds that take
   modulation, their insert effects, the two master effects, the host's
-  PITCH and AMP (the level before the limiter), and the parameters and
-  gate inputs of the modules.
+  pitches and AMP (the level before the limiter), and the parameters and
+  gate inputs of the modules. The host has a pitch for each sound, *Pitch*
+  for Sound 1 and *Pitch2* to *Pitch4*, each added to that sound's pitch
+  bend, and *PitchC*, which bends whichever sound is current: choose
+  another sound and the cable follows it.
 
 A cable has an **amount** from −100 % to +100 % of the destination's range,
 and an **offset** added to the source first. Page B of the matrix adds a
 **VIA** source that scales the amount (a second LFO varying the depth of the
 first, say), a **curve** (*lin*, *square*, *cube*, *root*, *cbrt*, *exp*,
-*log* or *s*), a **polarity** (*auto*, *uni*, *bi* or *inv*) and an on and
-off switch.
+*log* or *s*), a **polarity** (*auto*, *uni*, *bi* or *inv*) and its
+state: off, on, or on per voice.
 
 ### What you hear
 
@@ -96,8 +107,9 @@ Turning the knob moves the base; the cables keep moving around it.
 Some inputs are **gates**: an envelope's GATE, an LFO's RESET, a Chance
 module's TRIG. A gate is high or low, and its edges, its rises and falls,
 start things. A gate input with no cable listens to the notes: an
-envelope's GATE follows KEY, an LFO's RESET follows TRIG. A cable into it
-replaces that.
+envelope's GATE follows RTRG, so every note restarts it, and an LFO's RESET
+follows TRIG. A cable into it replaces that: from KEY, an envelope plays
+legato, rising once for overlapping notes.
 
 - A continuous source into a gate rises at half way and falls below a
   quarter.
@@ -152,7 +164,8 @@ The screen shows:
 - **The rack:** eight cells, each filled to its module's first output, the
   one shown outlined, an empty position hollow.
 - **The module's line,** such as *ENV3 >2 <1 ~1*: the module, its cables
-  out and in, and those that run a step late.
+  out and in, and those that run a step late; *v3* at the end says the
+  module runs per voice, three voices now ([Per voice](#per-voice)).
 - **Four rows** for the module's parameters on [[KNOB1]] to [[KNOB4]], as on
   the sound's page.
 - **The bottom bar,** such as *1/2 Mod3*: the page and the position.
@@ -161,7 +174,7 @@ The screen shows:
 | --- | --- |
 | [[SELECT]] | Walks every page of every position |
 | [[KNOB1]] to [[KNOB4]] | Change the module's parameters |
-| [[ALGORITHM]] | Opens the kind picker, such as *Mod3 kind*: *Empty*, then the sixteen kinds, six at a time ([chapter 3](03-panel-tour.md#lists)). The choice takes effect a second after your last turn, or at once when you use another control |
+| [[ALGORITHM]] | Opens the kind picker, such as *Mod3 kind*: *Empty*, then the sixteen kinds, the Resonator last, six at a time ([chapter 3](03-panel-tour.md#lists)). The choice takes effect a second after your last turn, or at once when you use another control |
 | [[SEL]] | Picks up the module (the light and an asterisk show it), so that [[SELECT]] moves it along the rack; press again to put it down |
 
 Changing a module's kind switches off the cables that touch it, and
@@ -180,6 +193,7 @@ Each row reads like this:
 ```text
 LFO1  >S1Tmbre  +40     the source, > (or ~ a step late), the destination, the amount
 SEQ8  -M2PngPg -100     - a cable switched off, ! one refused
+ENV3  vS1Tmbre  +60     v a cable per voice
 ENV3  >S2I1Mix  +50     Sound 2's first insert
 LFO2.2>ENV3Gte +100     a module's input: its name and three letters
 ```
@@ -192,7 +206,7 @@ for two seconds, and otherwise the row's destination in full.
 | Page | [[KNOB1]] | [[KNOB2]] | [[KNOB3]] | [[KNOB4]] |
 | --- | --- | --- | --- | --- |
 | A | Source; *--* empties the cable | Destination | Amount | Offset |
-| B | VIA | Curve | Polarity | On or off |
+| B | VIA | Curve | Polarity | Off, on, or on per voice |
 
 [[ALGORITHM]] turns between the two pages. Amount and offset move 1 % a
 click.
@@ -208,6 +222,64 @@ click.
   [[ALGORITHM]] jumps from group to group. On an empty cable the list opens
   at the current sound. The choice takes effect a second after your last
   turn, or at once when you use another control.
+- **When a sound's engine changes,** each cable into it moves to the new
+  engine's parameter of the same name: a cable into Timbre stays on
+  Timbre from Macro to Shapes. When the new engine has no parameter of
+  that name, the cable switches off and keeps its old destination, shown
+  with *-*, until you choose an engine that has it again; then it comes
+  back on. The same holds for the effects.
+
+## Per voice
+
+{{status sim desktop planned}}
+
+A sound plays several notes at once, each on a voice of its own. A cable
+switched **on per voice** ([[KNOB4]] on page B of the matrix, turned past
+*On*) runs once for every voice:
+
+- its note sources are that note's own: VEL its velocity, NOTE its pitch,
+  RAND a random value of its own, KEY and RTRG its gate (high from its
+  note-on to its note-off), TRIG a pulse at its note-on, and the same for
+  the note's own sound's sources (*S1VEL* on Sound 1's notes, say; another
+  sound's, such as *S2VEL* there, is that sound's last note);
+- an Envelope, an LFO or a Chance module it reads runs once for every
+  voice, starting at that note: each note of a chord has its own envelope,
+  in its own attack, decay or release. Its gate, with no cable, is the
+  note's own;
+- it moves that note alone: a parameter the sound keeps for each note
+  (its Timbre or Color, say), or the note's own pitch through *Pitch* to
+  *Pitch4* and *PitchC*.
+
+The row shows *v*. A cable per voice into something that is not kept for
+each note, such as an effect, the host's AMP, a parameter that every note
+shares (Macro's LPG) or a module that cannot run per voice, is refused and
+shows *!*: what each voice does cannot be sent to one place. A plain cable
+into a module that runs per voice moves every voice's copy alike.
+
+| Sound | Parameters each note keeps |
+| --- | --- |
+| Macro, Macro Heavy | Every continuous parameter (Speech keeps Harmonics shared) |
+| Shapes | Timbre, Color, Attack, Release, Volume |
+| Six-Op FM | Brightness, Envelope, Volume |
+| FM6 | Brightness, Env Time, Feedback, Volume |
+| Drums | Tune, Decay, Level, Tone, Snap, Sweep, Drive, Accent, Volume |
+
+The rack follows up to twelve voices at once, the sounds' own polyphony,
+shared by every sound that has a cable per voice; a thirteenth note takes
+the voice that was released longest ago, or else the oldest, and the note
+it came from keeps its last values. A voice runs on after its note-off,
+through its envelope's release, and stops when its modules stop moving.
+Notes already held when you make a cable per voice join it at their next
+note-on. With many modules per voice the rack's memory holds fewer voices;
+a note that loses its voice that way goes back to the values without the
+cable.
+
+!!! tip "An envelope for each note"
+    Hold [[ENV]] and turn [[KNOB3]] on Macro's first page: a cable from ENV3
+    into Timbre. Press [[EDIT]] (the matrix opens on it), turn
+    [[ALGORITHM]] to page B and [[KNOB4]] one click right: *On per voice*.
+    Play a chord, one key after another: each note opens and closes on its
+    own.
 
 ## Chains
 
@@ -237,7 +309,7 @@ module's in the rack) a parameter that cables reach shows:
 {{status sim desktop planned}}
 
 Sixteen kinds of module are available. The default rack uses the first
-three.
+three, which can also run per voice ([Per voice](#per-voice)).
 
 | Kind | Name | What it does | Outputs |
 | --- | --- | --- | --- |
@@ -256,7 +328,7 @@ three.
 | Logic | LOG | AND, OR, XOR and their opposites, flip-flops and a toggle on two gates | OUT, NOT |
 | Calc | CLC | Arithmetic on two signals | OUT, INV |
 | Mix | MIX | Mixes up to four signals | SUM, AVG, INV |
-| Filter | FLT | A resonant filter for control signals, which a trigger can strike into a wobble | OUT, LP, BP, HP |
+| Resonator | RES | A resonant filter for control signals, which a trigger can strike into a wobble | OUT, LP, BP, HP |
 
 ### LFO
 
@@ -283,9 +355,9 @@ Its RESET gate follows TRIG, each note, until a cable reaches it.
 | Mode | Gate: an ADSR on the gate. Trigger: each rise starts an attack and decay | A list |
 | Level | Scales the output | 0 to 1 |
 
-Its GATE follows KEY until a cable reaches it; in the default rack, RTRG
-holds it, so each new note restarts the envelope even when the last one is
-still held.
+Its GATE follows RTRG until a cable reaches it, so each new note restarts
+the envelope even when the last one is still held; in the default rack, a
+cable from RTRG holds it. Run per voice, its GATE is its note's.
 
 ### Chance
 
@@ -311,6 +383,7 @@ rack default
 slot 1 rtrg > env3:gate amt=100
 slot 2 lfo1 > snd:Timbre amt=40
 slot 3 env3 > host:amp amt=50
+slot 4 env4 > snd:Morph amt=60 voice
 @44118 slot 2 lfo1 > snd:Timbre amt=80
 ```
 
@@ -321,6 +394,9 @@ engines/build/fm1-render --engine macro --note 0:57:100:2 --seconds 3 \
 
 `rack default` places the simulator's five modules, without its cables;
 each `slot` line makes a cable, or replaces the one in that slot, so the
-last line turns LFO1's depth up after one second (frame 44,118).
+last line turns LFO1's depth up after one second (frame 44,118). `voice`
+makes a cable per voice, and `current 2` makes Sound 2 the current sound
+for *PitchC* (`host:pitchc`; the other pitches are `host:pitch` and
+`host:pitch2` to `host:pitch4`).
 `engines/build/fm1-render --list-mod` lists every kind with its parameters
 and ports.

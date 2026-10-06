@@ -233,6 +233,33 @@ static int sink_group(unsigned unit) {
   return -1;
 }
 
+/* The engine whose parameter slot i still names after an engine change
+ * switched it off (u->aim), or NULL: only while the slot is that cable,
+ * off, into a unit, naming a parameter of that engine (a script line or
+ * the runtime itself may have rewritten the slot since). */
+static const fm1_engine_t *aimed(const fm1_mod_ui_t *u, unsigned i, const fm1_mod_slot_t *s) {
+  const fm1_engine_t *e;
+  if (!u || i >= FM1_MOD_SLOTS || !u->aim[i] || (size_t)u->aim[i] > fm1_engine_count) return NULL;
+  e = fm1_engines[u->aim[i] - 1];
+  if ((s->flags & (FM1_MOD_SLOT_ON | FM1_MOD_SLOT_GATE_DST)) || !s->dst ||
+      fm1_mod_sink_index(s->dst_unit) < 0 || fm1_param_index(e, s->dst) < 0) {
+    return NULL;
+  }
+  return e;
+}
+
+/* The env to name slot i's destination with: the aimed engine in its
+ * unit's place. */
+static const fm1_mod_ui_env_t *aimed_env(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u,
+                                         unsigned i, const fm1_mod_slot_t *s,
+                                         fm1_mod_ui_env_t *scratch) {
+  const fm1_engine_t *e = aimed(u, i, s);
+  if (!e) return env;
+  *scratch = *env;
+  scratch->unit[fm1_mod_sink_index(s->dst_unit)] = e;
+  return scratch;
+}
+
 int fm1_mod_ui_slot_dest(const fm1_mod_ui_env_t *env, const fm1_mod_slot_t *s, fm1_mod_dest_t *d) {
   unsigned n, i;
   const fm1_param_t *ps;
@@ -407,9 +434,11 @@ void fm1_mod_ui_row(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, unsigned
   else if (s.flags & FM1_MOD_SLOT_VOICE) mark = 'v';
   fm1_mod_ui_source(env->m, s.src, 0, src, sizeof src);
   if (page == 0) {
+    fm1_mod_ui_env_t scratch;
+    const fm1_mod_ui_env_t *ne = aimed_env(env, u, i, &s, &scratch);
     if (!mark) mark = ((u->plan.delayed >> i) & 1u) ? '~' : '>';
     if (!fm1_mod_ui_has_dst(&s)) snprintf(dst, sizeof dst, "--");
-    else if (fm1_mod_ui_slot_dest(env, &s, &d)) fm1_mod_ui_dest_name(env, &d, 0, dst, sizeof dst);
+    else if (fm1_mod_ui_slot_dest(ne, &s, &d)) fm1_mod_ui_dest_name(ne, &d, 0, dst, sizeof dst);
     else snprintf(dst, sizeof dst, "?");
     snprintf(amt, sizeof amt, "%+d", fm1_mod_ui_pct(s.amount));
     snprintf(out, FM1_MOD_UI_ROW_CHARS + 1, "%-6.6s%c%-7.7s %4.4s", src, mark, dst, amt);
@@ -435,11 +464,12 @@ void fm1_mod_ui_hint(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, uint64_
                      char *buf, size_t cap) {
   fm1_mod_slot_t s;
   fm1_mod_dest_t d;
+  fm1_mod_ui_env_t scratch;
   char name[32];
   const unsigned i = u->slot;
   const int empty = fm1_mod_ui_empty(u, env->m, i);
   const int has = fm1_mod_get_slot(env->m, i, &s) && fm1_mod_ui_has_dst(&s);
-  const int known = has && fm1_mod_ui_slot_dest(env, &s, &d);
+  const int known = has && fm1_mod_ui_slot_dest(env = aimed_env(env, u, i, &s, &scratch), &s, &d);
   if (u->field >= 0 && now < u->field_until) {
     switch (u->field) {
       case FM1_MOD_F_SRC:
@@ -465,14 +495,18 @@ void fm1_mod_ui_hint(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, uint64_
                  kPol[(s.flags & FM1_MOD_SLOT_POL_MASK) >> FM1_MOD_SLOT_POL_SHIFT]);
         return;
       case FM1_MOD_F_ON:
-        snprintf(buf, cap, "%s", !has ? "Off: no target" : (s.flags & FM1_MOD_SLOT_ON) ? "On" : "Off");
+        if (!has) snprintf(buf, cap, "Off: no target");
+        else if (aimed(u, i, &s)) snprintf(buf, cap, "Off: target gone");
+        else if (!(s.flags & FM1_MOD_SLOT_ON)) snprintf(buf, cap, "Off");
+        else if (!(s.flags & FM1_MOD_SLOT_VOICE)) snprintf(buf, cap, "On");
+        else snprintf(buf, cap, (u->plan.refused >> i) & 1u ? "Voice: refused" : "On per voice");
         return;
       default: break;
     }
   }
   if (empty) snprintf(buf, cap, "Empty: KNOB1, KNOB2");
   else if (!has) snprintf(buf, cap, "No target: KNOB2");
-  else if (!known) snprintf(buf, cap, "Its target is gone");
+  else if (!known || aimed(u, i, &s)) snprintf(buf, cap, "Its target is gone");
   else dest_fit(env, &d, 16, name, sizeof name), snprintf(buf, cap, "To %s", name);
 }
 
@@ -480,11 +514,11 @@ int fm1_mod_ui_value(const fm1_mod_ui_env_t *env, unsigned pos, unsigned index, 
                      size_t cap) {
   const fm1_mod_kind_t *kd = kind_at(env->m, pos);
   float hz;
-  if (!kd || !(env->rate > 0.0f) || index >= kd->n_params || strcmp(kd->id, "filter") != 0 ||
+  if (!kd || !(env->rate > 0.0f) || index >= kd->n_params || strcmp(kd->id, "resonator") != 0 ||
       strcmp(kd->params[index].name, "Cutoff") != 0) {
     return 0;
   }
-  hz = fm1_mod_filter_hz(v, env->rate);
+  hz = fm1_mod_resonator_hz(v, env->rate);
   if (hz < 9.995f) snprintf(buf, cap, "%.2f Hz", (double)hz);
   else if (hz < 99.95f) snprintf(buf, cap, "%.1f Hz", (double)hz);
   else snprintf(buf, cap, "%.0f Hz", (double)hz);
@@ -606,18 +640,18 @@ int fm1_mod_ui_slot_line(const fm1_mod_ui_env_t *env, unsigned i, char *buf, siz
   fm1_mod_slot_t s;
   char src[24], dst[48], via[24] = "";
   if (!fm1_mod_get_slot(env->m, i, &s) || !fm1_mod_ui_has_dst(&s)) return 0;
-  /* What the format cannot say yet: per-voice scope (MG9), a lock uid (MG6). */
-  if ((s.flags & FM1_MOD_SLOT_VOICE) || s.uid) return 0;
+  /* What the format cannot say yet: a lock uid (MG6). */
+  if (s.uid) return 0;
   if (!src_token(s.src, src, sizeof src) || !dst_token(env, &s, dst, sizeof dst)) return 0;
   if (s.via != FM1_MOD_NONE && !src_token(s.via, via, sizeof via)) return 0;
   /* amt and ofs exactly: Q1.14 x 100 / 16384 is exact in a double, and
    * mod_script.c's fm1_mod_q14(v / 100) gives the same Q1.14 back. */
-  snprintf(buf, cap, "slot %u %s > %s amt=%.12g ofs=%.12g%s%s pol=%s curve=%s%s", i + 1u, src, dst,
+  snprintf(buf, cap, "slot %u %s > %s amt=%.12g ofs=%.12g%s%s pol=%s curve=%s%s%s", i + 1u, src, dst,
            (double)s.amount * 100.0 / 16384.0, (double)s.offset * 100.0 / 16384.0,
            via[0] ? " via=" : "", via,
            kPol[(s.flags & FM1_MOD_SLOT_POL_MASK) >> FM1_MOD_SLOT_POL_SHIFT],
            kCurve[(s.flags & FM1_MOD_SLOT_CURVE_MASK) >> FM1_MOD_SLOT_CURVE_SHIFT],
-           (s.flags & FM1_MOD_SLOT_ON) ? "" : " off");
+           (s.flags & FM1_MOD_SLOT_VOICE) ? " voice" : "", (s.flags & FM1_MOD_SLOT_ON) ? "" : " off");
   return 1;
 }
 
@@ -647,12 +681,16 @@ static uint32_t float_bits(float x) {
   return u;
 }
 
-int fm1_mod_ui_dump(const fm1_mod_ui_env_t *env, uint32_t seed) {
+int fm1_mod_ui_dump(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, uint32_t seed) {
   char line[FM1_MOD_UI_LINE];
   unsigned pos, i;
   int ok = 1;
   snprintf(line, sizeof line, "seed %u", (unsigned)seed);
   emit(env, line);
+  if (fm1_mod_current(env->m)) {
+    snprintf(line, sizeof line, "current %u", fm1_mod_current(env->m) + 1u);
+    emit(env, line);
+  }
   for (pos = 0; pos < FM1_MOD_POSITIONS; ++pos) {
     const fm1_mod_kind_t *kd = kind_at(env->m, pos);
     kind_line(env, pos, line, sizeof line);
@@ -666,6 +704,7 @@ int fm1_mod_ui_dump(const fm1_mod_ui_env_t *env, uint32_t seed) {
   for (i = 0; i < FM1_MOD_SLOTS; ++i) {
     fm1_mod_slot_t s;
     fm1_mod_get_slot(env->m, i, &s);
+    if (aimed(u, i, &s)) continue;     /* off, its target gone: runs as nothing */
     if (fm1_mod_ui_slot_line(env, i, line, sizeof line)) emit(env, line);
     else if (fm1_mod_ui_has_dst(&s)) ok = 0;
   }
@@ -705,7 +744,14 @@ int fm1_mod_ui_set_slot(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned i
   unsigned pos;
   if (!fm1_mod_get_slot(env->m, i, &old) || !fm1_mod_set_slot(env->m, i, s)) return 0;
   for (pos = 0; pos < FM1_MOD_POSITIONS; ++pos) u->off_slots[pos] &= ~(1u << i);
-  if (fm1_mod_ui_slot_line(env, i, line, sizeof line)) {
+  if (u->aim[i] && (!aimed(u, i, s) || s->dst_unit != old.dst_unit || s->dst != old.dst)) {
+    u->aim[i] = 0;                     /* aimed anew: no longer the gone target's */
+    u->aim_on &= ~(1u << i);
+  }
+  if (u->aim[i]) {
+    /* Off, naming a parameter the unit's engine lacks: the replay has it
+     * off already ("slot N off"), and an off cable runs as nothing. */
+  } else if (fm1_mod_ui_slot_line(env, i, line, sizeof line)) {
     emit(env, line);
   } else if (fm1_mod_ui_has_dst(s) && (s->flags & FM1_MOD_SLOT_ON)) {
     u->unloggable = 1;                 /* a cable no line can say */
@@ -850,6 +896,78 @@ void fm1_mod_ui_default(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u) {
   u->sel_env = k >= 0 ? (uint8_t)k : NONE;
   u->pos = u->sel_lfo != NONE ? u->sel_lfo : 0;
   u->page = 0;
+}
+
+/* ---- engine changes ------------------------------------------------------------------ */
+
+/* The parameter of e called `name` (ASCII case ignored) that a cable can
+ * reach, within the first FM1_MOD_UNIT_PARAMS, or -1. */
+static int param_named(const fm1_engine_t *e, const char *name) {
+  unsigned k;
+  for (k = 0; e && k < e->n_params && k < FM1_MOD_UNIT_PARAMS; ++k) {
+    if (same(e->params[k].name, name)) return takes(&e->params[k]) ? (int)k : -1;
+  }
+  return -1;
+}
+
+static int registry_index(const fm1_engine_t *e) {
+  size_t k;
+  for (k = 0; e && k < fm1_engine_count; ++k) {
+    if (fm1_engines[k] == e) return (int)k;
+  }
+  return -1;
+}
+
+int fm1_mod_ui_engine_changed(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned code,
+                              const fm1_engine_t *from, const fm1_engine_t *to) {
+  char line[FM1_MOD_UI_LINE];
+  const unsigned unit = fm1_mod_unit_canonical(code);
+  unsigned i;
+  int n = 0;
+  if (unit == FM1_MOD_NONE || unit == FM1_MOD_HOST || from == to) return 0;
+  for (i = 0; i < FM1_MOD_SLOTS; ++i) {
+    fm1_mod_slot_t s;
+    const fm1_engine_t *was;
+    int pi, k, on;
+    fm1_mod_get_slot(env->m, i, &s);
+    if (!fm1_mod_ui_has_dst(&s) || (s.flags & FM1_MOD_SLOT_GATE_DST) ||
+        fm1_mod_unit_canonical(s.dst_unit) != unit) {
+      continue;
+    }
+    /* The engine whose parameter the cable names: the one it was switched
+     * off for, else the one going. */
+    if (u->aim[i] && !aimed(u, i, &s)) {   /* stale: the slot was rewritten since */
+      u->aim[i] = 0;
+      u->aim_on &= ~(1u << i);
+    }
+    was = u->aim[i] ? fm1_engines[u->aim[i] - 1] : from;
+    pi = fm1_param_index(was, s.dst);
+    if (pi < 0) continue;              /* named nothing there: left as it is */
+    on = u->aim[i] ? (int)((u->aim_on >> i) & 1u) : (s.flags & FM1_MOD_SLOT_ON) != 0;
+    k = param_named(to, was->params[pi].name);
+    if (k >= 0) {                      /* the same name: re-aimed, as on as it was */
+      s.dst = to->params[k].uid;
+      s.flags = (uint8_t)(on ? s.flags | FM1_MOD_SLOT_ON : s.flags & ~FM1_MOD_SLOT_ON);
+      u->aim[i] = 0;
+      u->aim_on &= ~(1u << i);
+      fm1_mod_ui_set_slot(env, u, i, &s);
+      ++n;
+    } else if (!u->aim[i]) {           /* none: off, remembered by its engine */
+      const int ri = registry_index(was);
+      if (ri < 0) continue;
+      if (s.flags & FM1_MOD_SLOT_ON) {
+        s.flags = (uint8_t)(s.flags & ~FM1_MOD_SLOT_ON);
+        u->aim[i] = (uint8_t)(ri + 1);   /* before the edit, so it emits no line of its own */
+        fm1_mod_ui_set_slot(env, u, i, &s);
+        snprintf(line, sizeof line, "slot %u off", i + 1u);
+        emit(env, line);
+      }
+      u->aim[i] = (uint8_t)(ri + 1);
+      u->aim_on = on ? u->aim_on | (1u << i) : u->aim_on & ~(1u << i);
+      ++n;
+    }
+  }
+  return n;
 }
 
 /* ---- the pages --------------------------------------------------------------------- */
@@ -1130,11 +1248,13 @@ void fm1_mod_ui_matrix_knob(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, int kn
     const int to = clampi(cur + delta, 0, top);
     if (to == cur) return;
     s.flags = (uint8_t)((s.flags & ~mask) | ((unsigned)to << shift));
-  } else {                                         /* on, off */
-    const int on = delta > 0;
-    if (on && !fm1_mod_ui_has_dst(&s)) return;     /* the hint line says why */
-    if (on == ((s.flags & FM1_MOD_SLOT_ON) != 0)) return;
-    s.flags = (uint8_t)(on ? s.flags | FM1_MOD_SLOT_ON : s.flags & ~FM1_MOD_SLOT_ON);
+  } else {                                         /* off, on, on per voice (MG9) */
+    const int cur = !(s.flags & FM1_MOD_SLOT_ON) ? 0 : (s.flags & FM1_MOD_SLOT_VOICE) ? 2 : 1;
+    const int to = clampi(cur + delta, 0, 2);
+    if (to == cur) return;
+    if (to > 0 && (!fm1_mod_ui_has_dst(&s) || aimed(u, i, &s))) return;   /* the hint line says why */
+    s.flags = (uint8_t)(to ? s.flags | FM1_MOD_SLOT_ON : s.flags & ~FM1_MOD_SLOT_ON);
+    s.flags = (uint8_t)(to == 2 ? s.flags | FM1_MOD_SLOT_VOICE : s.flags & ~FM1_MOD_SLOT_VOICE);
   }
   if (!fm1_mod_ui_has_dst(&s)) u->srcset |= bit;   /* shown from now on */
   fm1_mod_ui_set_slot(env, u, i, &s);
@@ -1330,18 +1450,20 @@ static int depth(chain_t *c, int dir, int pos) {
 
 static void cable_text(chain_t *c, unsigned j, char *out) {
   const fm1_mod_slot_t *s = &c->s[j];
+  fm1_mod_ui_env_t scratch;
+  const fm1_mod_ui_env_t *env = aimed_env(c->env, c->u, j, s, &scratch);   /* a gone target's name */
   fm1_mod_dest_t d;
   char amt[16], dst[32] = "?";
   snprintf(amt, sizeof amt, "%+d", fm1_mod_ui_pct(s->amount));
-  if (fm1_mod_ui_slot_dest(c->env, s, &d)) {
+  if (fm1_mod_ui_slot_dest(env, s, &d)) {
     if (d.unit >= FM1_MOD_MODULE && d.unit < FM1_MOD_MODULE + FM1_MOD_POSITIONS) {
-      const fm1_mod_kind_t *kd = kind_at(c->env->m, d.unit - FM1_MOD_MODULE);
-      const fm1_param_t *p = fm1_mod_ui_dest_param(c->env, &d);
+      const fm1_mod_kind_t *kd = kind_at(env->m, d.unit - FM1_MOD_MODULE);
+      const fm1_param_t *p = fm1_mod_ui_dest_param(env, &d);
       char l[8];
-      fm1_mod_ui_label(c->env->m, d.unit - FM1_MOD_MODULE, l, sizeof l);
+      fm1_mod_ui_label(env->m, d.unit - FM1_MOD_MODULE, l, sizeof l);
       snprintf(dst, sizeof dst, "%s %.6s", l, d.gate ? kd->gate_in[d.index].name : p->abbr);
     } else {                           /* "S1 Timbre", "S2 In1 Mix", "M1 Mix", "Host Pitch" */
-      const fm1_param_t *p = fm1_mod_ui_dest_param(c->env, &d);
+      const fm1_param_t *p = fm1_mod_ui_dest_param(env, &d);
       snprintf(dst, sizeof dst, "%s %.6s", kSinks[sink_group(d.unit)].name, p->abbr);
     }
   }

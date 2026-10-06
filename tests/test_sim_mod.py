@@ -85,7 +85,7 @@ def test_the_app_starts_with_the_default_rack_and_its_cables(tools):
 def test_sizes(tools):
     z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,
                                   text=True).stdout)
-    assert z["mod_bytes"] == 23200 <= z["mod_arena"] == 24576
+    assert z["mod_bytes"] == 26192 <= z["mod_arena"] == 26624
     assert z["mod_ui_bytes"] <= 256
 
 
@@ -416,18 +416,108 @@ def test_the_default_cable_is_repatchable(tools, tmp_path):
     assert levels["key"] > 1.5 * levels["seq2"]
 
 
-def test_the_filters_cutoff_shows_in_hz(tools, tmp_path):
-    """MG2's Filter on its RACK page: Cutoff shows the frequency it sets,
-    0.05 Hz x 2^(13 x Cutoff) at the tick rate (fm1_mod_filter_hz, the
-    kind's own formula), while the knob and its base stay 0..1 on the log
-    scale; the other parameters show their numbers."""
+def test_the_resonators_cutoff_shows_in_hz(tools, tmp_path):
+    """MG2's Filter, the Resonator since 2026-10-05, on its RACK page: Cutoff
+    shows the frequency it sets, 0.05 Hz x 2^(13 x Cutoff) at the tick rate
+    (fm1_mod_resonator_hz, the kind's own formula), while the knob and its
+    base stay 0..1 on the log scale; the other parameters show their
+    numbers. A script may still call it filter."""
     for cutoff, want in ((0, "0.05 Hz"), (0.3, "0.75 Hz"), (0.5, "4.53 Hz"), (0.7, "27.4 Hz"),
                          (1, "410 Hz")):
         p = tmp_path / "f.mod"
-        p.write_text(f"mod 1 filter cutoff={cutoff} res=0.25\n")
+        p.write_text(f"mod 1 {'filter' if cutoff == 1 else 'resonator'} cutoff={cutoff} res=0.25\n")
         s = run(tools["sim"], ["--engine", "macro", "--seconds", "0.1", "--mod", str(p)])
+        assert s["mod"]["rack"][0] == "resonator"
         assert s["mod"]["values"][:2] == [want, "0.25"], cutoff
         assert s["mod"]["bases"][0][0] == pytest.approx(cutoff)
+
+
+def test_the_kind_picker_names_the_resonator(tools):
+    """The owner's rename (2026-10-05): the rack's control-rate filter is the
+    Resonator (RES), so the audio effect alone is the Filter. ALGORITHM on
+    an empty position walks Empty, then every kind: the Resonator last."""
+    s = sim(tools, "--button", "0.05:LFO", "--turn", "0.1:SELECT:64", "--turn", "0.15:ALGORITHM:-1",
+            seconds="0.3")
+    w = s["popup_list"]                                  # the list popup (test_sim_lists.py)
+    assert s["popup"][w["mark"]] == "Resonator" and w["first"] + w["mark"] == w["total"] - 1
+    assert s["mod"]["pos"] == 8
+    s = sim(tools, "--button", "0.05:LFO", "--turn", "0.1:SELECT:64", "--turn", "0.15:ALGORITHM:-1",
+            seconds="1.5")
+    assert s["mod"]["rack"][7] == "resonator" and s["mod"]["slots"][0]["row"].startswith("RTRG")
+
+
+# ---- per voice and the MG3 follow-ups (docs/16 MG9; owner, 2026-10-05) -------------------------
+
+def test_knob4_makes_a_cable_per_voice_and_a_chord_replays(tools, tmp_path):
+    """MATRIX page B's KNOB4 is the cable's state: off, on, on per voice. A
+    cable from ENV3 into Timbre made with the gesture, made per voice there:
+    its row says `v`, its line ends in `voice`, each key of a chord gets its
+    own envelope, and fm1-render replays the session byte for byte."""
+    log, a, b = tmp_path / "c.verbs", tmp_path / "panel.wav", tmp_path / "replay.wav"
+    s = run(tools["sim"], [*CHAIN, "--cmd", str(INPUT), "--button", "0.05:ENV:0.2", "--turn", "0.1:KNOB3:50",
+                           "--button", "0.3:EDIT", "--turn", "0.35:ALGORITHM:1", "--turn", "0.4:KNOB4:1",
+                           "--key", "0.5:0:100:0.6", "--key", "0.6:4:90:0.5", "--key", "0.7:7:80:0.4",
+                           "--log-cmds", str(log), "--out", str(a), "--seconds", "1.6"])
+    cable = slots(s)[3]
+    assert cable["flags"] & VOICE and cable["flags"] & ON and cable["src"] == 64 + 8 * 2
+    assert cable["row"] == "ENV3  vS1Tmbre  +50" and s["mod"]["mpage"] == 1
+    assert "slot 3 mod3.1 > snd:Timbre amt=50 ofs=0 pol=auto curve=lin voice" in (tmp_path / "c.mod").read_text()
+    sidecar = (tmp_path / "c.args").read_text().splitlines()
+    r = run(tools["render"], ["--cmd", str(log), "--frames", "64", *sidecar, "--out", str(b)])
+    assert s["replayable"] == 1 and s["mod"]["unloggable"] == 0
+    assert a.read_bytes() == b.read_bytes(), "two-step parity: the replay differs"
+    assert r["mod_refused"] == 0 and r["mod_voice_starts"] >= 3 and r["mod_voice_writes"] > 100
+    off = run(tools["sim"], [*CHAIN, "--button", "0.05:ENV:0.2", "--turn", "0.1:KNOB3:50",
+                             "--button", "0.3:EDIT", "--turn", "0.35:ALGORITHM:1", "--turn", "0.4:KNOB4:1",
+                             "--turn", "0.45:KNOB4:-2", "--seconds", "0.6"])
+    assert slots(off)[3]["flags"] & (ON | VOICE) == 0
+
+
+def test_a_per_voice_cable_into_an_effect_is_refused(tools):
+    """Poly never reaches mono: per voice into the master Plate's Mix the
+    cable is on but refused (`!`)."""
+    s = sim(tools, "--button", "0.05:FX", "--button", "0.1:ENV:0.2", "--turn", "0.15:KNOB1:40",
+            "--button", "0.4:EDIT", "--turn", "0.45:ALGORITHM:1", "--turn", "0.5:KNOB4:1", seconds="0.7",
+            extra=["--fx", "plate"])
+    cable = slots(s)[3]
+    assert cable["flags"] & VOICE and cable["unit"] == 1 and cable["row"][6] == "!"
+    assert s["mod"]["refused"] == 1 << 2
+
+
+def test_one_sounds_note_sources_follow_in_knob1s_list(tools):
+    """Owner, 2026-10-05: note sources selectable per sound. After SQV8 come
+    S1NOTE ... S4RTRG (ids 44-63): one sound unit's NOTE, VEL, KEY, TRIG and
+    RTRG."""
+    for turn, src, name in ((28, 44, "S1NOTE"), (33, 49, "S2VEL"), (40, 56, "S1TRIG"), (47, 63, "S4RTRG")):
+        s = sim(tools, "--button", "0.05:EDIT", "--turn", "0.1:SELECT:2", "--turn", f"0.15:KNOB1:{turn}")
+        assert slots(s)[3]["src"] == src and slots(s)[3]["row"].startswith(name), name
+
+
+def test_the_current_sound_is_a_line_of_the_log(tools, tmp_path):
+    """HOST PITCH_CUR bends the current sound, so a change of the current
+    sound (SHIFT + PRESETS) is a `current K` line in the .mod log."""
+    log = tmp_path / "c.verbs"
+    s = run(tools["sim"], [*CHAIN, *SOUND2, "--cmd", str(INPUT), *TO_SOUND2, "--seconds", "0.3",
+                           "--log-cmds", str(log)])
+    assert s["replayable"] == 1
+    assert (tmp_path / "c.mod").read_text().splitlines()[-1] == "@3136 current 2"   # at the block it led
+
+
+def test_an_engine_change_re_aims_cables_by_name(tools):
+    """Owner, 2026-10-05: when a sound's engine changes, a cable re-aims at
+    the new engine's parameter of the same name, or goes off (kept, shown
+    off under its name) until an engine that has it comes back. LFO1 into
+    Macro's Timbre; PRESETS to Shapes and Macro Heavy, which have Timbre;
+    to Six-Op, which has none; and back."""
+    gesture = ["--button", "0.05:LFO:0.2", "--turn", "0.1:KNOB3:40"]
+    want = [(2, ON, ">"), (3, ON, ">"), (3, 0, "-"), (3, ON, ">")]
+    turns = []
+    for step, (uid, flags, mark) in enumerate(want):
+        turns += ["--turn", f"{0.3 + 0.1 * step}:PRESETS:{1 if step < 3 else -1}"]
+        s = sim(tools, *gesture, *turns, seconds=str(0.4 + 0.1 * step))
+        cable = slots(s)[3]
+        assert (cable["dst"], cable["flags"] & ON) == (uid, flags), step
+        assert cable["row"] == f"LFO1  {mark}S1Tmbre  +40", step
 
 
 # ---- golden gesture traces and their replay -----------------------------------------------------
