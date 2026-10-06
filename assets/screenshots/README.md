@@ -4,8 +4,11 @@ Pictures of Lunar Modulator in the virtual FM-1 (`sim/web/`), for the
 README, the user manual (`{{screen NAME ...}}` figures) and DEVELOPERS.md
 (the parity figure). Taken on 2026-10-06 in headless Chromium 153
 (Playwright 1.63) from `sim/web/www/` as committed with them (`fm1.wasm`
-786,256 B, `3dc2ef29…`), all in one run of
-`sim/web/test/readme-screenshots.mjs`.
+837,308 B, `a2d0b562…`), all in one run of
+`sim/web/test/readme-screenshots.mjs`; `screen-fm6.png` is new in that run,
+and the others were retaken with their names kept (their oscilloscope
+strips and RAM figures differ from the run before; `parity.png` and
+`screen-matrix.png` came out byte-identical).
 
 | File | What it shows |
 | --- | --- |
@@ -14,6 +17,7 @@ README, the user manual (`{{screen NAME ...}}` figures) and DEVELOPERS.md
 | `screen-shapes.png` | Shapes on Pluck |
 | `screen-macro-heavy.png` | Macro Heavy on Str Machine (its string machine model) |
 | `screen-sixop.png` | Six-Op FM on its default patch, E.PIANO 1 |
+| `screen-fm6.png` | FM6 on its first voice, TINE EP, while a C major chord sounds |
 | `screen-sophie.png` | Sophie's kick pad, 50 ms after MIDI note 36 |
 | `screen-drums.png` | Drums' kick pad (the Deep kit), 50 ms after MIDI note 36 |
 | `screen-fx.png` | FX mode: the chain S1 In1 In2 Mix M1 M2, Plate in M1, PSX Verb in M2 chosen, and its first page |

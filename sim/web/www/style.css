@@ -293,6 +293,7 @@ button[aria-pressed="true"] { background: var(--accent); color: var(--accent-tex
   border-radius: 12px;
   font: 400 1.1rem/1.4 var(--display);
   text-align: center;
+  text-wrap: balance;
 }
 
 .mirror { margin-top: 16px; }
