@@ -233,17 +233,30 @@ static int sink_group(unsigned unit) {
   return -1;
 }
 
-/* The env to name slot i's destination with: the engine a cable an engine
- * change switched off still names (u->aim), in its unit's place. */
+/* The engine whose parameter slot i still names after an engine change
+ * switched it off (u->aim), or NULL: only while the slot is that cable,
+ * off, into a unit, naming a parameter of that engine (a script line or
+ * the runtime itself may have rewritten the slot since). */
+static const fm1_engine_t *aimed(const fm1_mod_ui_t *u, unsigned i, const fm1_mod_slot_t *s) {
+  const fm1_engine_t *e;
+  if (!u || i >= FM1_MOD_SLOTS || !u->aim[i] || (size_t)u->aim[i] > fm1_engine_count) return NULL;
+  e = fm1_engines[u->aim[i] - 1];
+  if ((s->flags & (FM1_MOD_SLOT_ON | FM1_MOD_SLOT_GATE_DST)) || !s->dst ||
+      fm1_mod_sink_index(s->dst_unit) < 0 || fm1_param_index(e, s->dst) < 0) {
+    return NULL;
+  }
+  return e;
+}
+
+/* The env to name slot i's destination with: the aimed engine in its
+ * unit's place. */
 static const fm1_mod_ui_env_t *aimed_env(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u,
                                          unsigned i, const fm1_mod_slot_t *s,
                                          fm1_mod_ui_env_t *scratch) {
-  int si;
-  if (!u || i >= FM1_MOD_SLOTS || !u->aim[i] || (size_t)u->aim[i] > fm1_engine_count) return env;
-  si = fm1_mod_sink_index(s->dst_unit);
-  if (si < 0) return env;
+  const fm1_engine_t *e = aimed(u, i, s);
+  if (!e) return env;
   *scratch = *env;
-  scratch->unit[si] = fm1_engines[u->aim[i] - 1];
+  scratch->unit[fm1_mod_sink_index(s->dst_unit)] = e;
   return scratch;
 }
 
@@ -483,7 +496,7 @@ void fm1_mod_ui_hint(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, uint64_
         return;
       case FM1_MOD_F_ON:
         if (!has) snprintf(buf, cap, "Off: no target");
-        else if (u->aim[i]) snprintf(buf, cap, "Off: target gone");
+        else if (aimed(u, i, &s)) snprintf(buf, cap, "Off: target gone");
         else if (!(s.flags & FM1_MOD_SLOT_ON)) snprintf(buf, cap, "Off");
         else if (!(s.flags & FM1_MOD_SLOT_VOICE)) snprintf(buf, cap, "On");
         else snprintf(buf, cap, (u->plan.refused >> i) & 1u ? "Voice: refused" : "On per voice");
@@ -493,7 +506,7 @@ void fm1_mod_ui_hint(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, uint64_
   }
   if (empty) snprintf(buf, cap, "Empty: KNOB1, KNOB2");
   else if (!has) snprintf(buf, cap, "No target: KNOB2");
-  else if (!known || u->aim[i]) snprintf(buf, cap, "Its target is gone");
+  else if (!known || aimed(u, i, &s)) snprintf(buf, cap, "Its target is gone");
   else dest_fit(env, &d, 16, name, sizeof name), snprintf(buf, cap, "To %s", name);
 }
 
@@ -691,7 +704,7 @@ int fm1_mod_ui_dump(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, uint32_t
   for (i = 0; i < FM1_MOD_SLOTS; ++i) {
     fm1_mod_slot_t s;
     fm1_mod_get_slot(env->m, i, &s);
-    if (u && u->aim[i]) continue;      /* off, its target gone: runs as nothing */
+    if (aimed(u, i, &s)) continue;     /* off, its target gone: runs as nothing */
     if (fm1_mod_ui_slot_line(env, i, line, sizeof line)) emit(env, line);
     else if (fm1_mod_ui_has_dst(&s)) ok = 0;
   }
@@ -731,8 +744,7 @@ int fm1_mod_ui_set_slot(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsigned i
   unsigned pos;
   if (!fm1_mod_get_slot(env->m, i, &old) || !fm1_mod_set_slot(env->m, i, s)) return 0;
   for (pos = 0; pos < FM1_MOD_POSITIONS; ++pos) u->off_slots[pos] &= ~(1u << i);
-  if (u->aim[i] && ((s->flags & FM1_MOD_SLOT_ON) || s->dst_unit != old.dst_unit || s->dst != old.dst ||
-                    !fm1_mod_ui_has_dst(s))) {
+  if (u->aim[i] && (!aimed(u, i, s) || s->dst_unit != old.dst_unit || s->dst != old.dst)) {
     u->aim[i] = 0;                     /* aimed anew: no longer the gone target's */
     u->aim_on &= ~(1u << i);
   }
@@ -924,7 +936,11 @@ int fm1_mod_ui_engine_changed(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, unsi
     }
     /* The engine whose parameter the cable names: the one it was switched
      * off for, else the one going. */
-    was = u->aim[i] && (size_t)u->aim[i] <= fm1_engine_count ? fm1_engines[u->aim[i] - 1] : from;
+    if (u->aim[i] && !aimed(u, i, &s)) {   /* stale: the slot was rewritten since */
+      u->aim[i] = 0;
+      u->aim_on &= ~(1u << i);
+    }
+    was = u->aim[i] ? fm1_engines[u->aim[i] - 1] : from;
     pi = fm1_param_index(was, s.dst);
     if (pi < 0) continue;              /* named nothing there: left as it is */
     on = u->aim[i] ? (int)((u->aim_on >> i) & 1u) : (s.flags & FM1_MOD_SLOT_ON) != 0;
@@ -1224,10 +1240,9 @@ void fm1_mod_ui_matrix_knob(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, int kn
     const int cur = !(s.flags & FM1_MOD_SLOT_ON) ? 0 : (s.flags & FM1_MOD_SLOT_VOICE) ? 2 : 1;
     const int to = clampi(cur + delta, 0, 2);
     if (to == cur) return;
-    if (to > 0 && (!fm1_mod_ui_has_dst(&s) || u->aim[i])) return;   /* the hint line says why */
+    if (to > 0 && (!fm1_mod_ui_has_dst(&s) || aimed(u, i, &s))) return;   /* the hint line says why */
     s.flags = (uint8_t)(to ? s.flags | FM1_MOD_SLOT_ON : s.flags & ~FM1_MOD_SLOT_ON);
-    s.flags = (uint8_t)(to == 2 ? s.flags | FM1_MOD_SLOT_VOICE
-                        : to == 1 ? s.flags & ~FM1_MOD_SLOT_VOICE : s.flags);
+    s.flags = (uint8_t)(to == 2 ? s.flags | FM1_MOD_SLOT_VOICE : s.flags & ~FM1_MOD_SLOT_VOICE);
   }
   if (!fm1_mod_ui_has_dst(&s)) u->srcset |= bit;   /* shown from now on */
   fm1_mod_ui_set_slot(env, u, i, &s);

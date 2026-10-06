@@ -546,6 +546,15 @@ int fm1_app_mod_line(fm1_app_t *a, const char *line, char *err, size_t cap) {
   }
   mod_units(a, units);
   if (!fm1_mod_script_apply(a->mod, line, units, err, cap)) return 0;
+  {
+    /* A slot a script line rewrote is no longer one an engine change
+     * switched off (fm1_mod_ui.h, "Engine changes"). */
+    unsigned n;
+    if (sscanf(line, " slot %u", &n) == 1 && n >= 1 && n <= FM1_MOD_SLOTS) {
+      a->mui.aim[n - 1] = 0;
+      a->mui.aim_on &= ~(1u << (n - 1));
+    }
+  }
   if (!fm1_mod_script_seed(line, &seed)) {     /* a seed only counts at creation */
     while (*line == ' ' || *line == '\t') ++line;
     if (*line && *line != '#') mod_emit(a, line);

@@ -63,6 +63,25 @@ static const fm1_engine_t kEngine = {
 };
 enum { I_MODEL, I_TIMBRE, I_TUNE, I_PATCH, I_LPG };
 
+/* An engine with per-note offsets (MG9): Timbre takes one, Drive is
+ * engine-wide. The runtime only reads the table and the entry's presence. */
+static void poly_note(void *self, uint8_t key, uint16_t index, float offset) {
+  (void)self;
+  (void)key;
+  (void)index;
+  (void)offset;
+}
+static const fm1_param_t kPolyParams[] = {
+  { "Timbre", FM1_PARAM_FLOAT, 0.0f, 1.0f, 0.5f, NULL, 0, 3, FM1_PARAM_CONTINUOUS | FM1_PARAM_POLY,
+    FM1_UNIT_NONE, "Timbre" },
+  { "Drive", FM1_PARAM_FLOAT, 0.0f, 1.0f, 0.5f, NULL, 0, 4, FM1_PARAM_CONTINUOUS, FM1_UNIT_NONE, "Drive" },
+};
+static const fm1_engine_t kPolyEngine = {
+  FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_SOUND, "fake-poly", "Fake Poly", "", kPolyParams,
+  (uint16_t)(sizeof(kPolyParams) / sizeof(kPolyParams[0])), 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  NULL, poly_note, 0, NULL, 0, 0
+};
+
 #define G FM1_MOD_TICK
 #define MEM_BYTES (1u << 16)
 
@@ -147,6 +166,7 @@ static fm1_mod_slot_t random_slot(const fm1_mod_t *m) {
       s.dst = (uint16_t)(1u + rnd() % 8u);
     }
   }
+  if (rnd() % 3u == 0) s.flags = (uint8_t)(s.flags | FM1_MOD_SLOT_VOICE);   /* MG9 */
   return s;
 }
 
@@ -199,7 +219,7 @@ static int plan_valid(const fm1_mod_t *m, const fm1_mod_plan_info_t *p) {
 }
 
 static void planner_fuzz(unsigned *n_plans, unsigned *n_loops) {
-  unsigned trial;
+  unsigned trial, n_voice = 0;
   for (trial = 0; trial < 3000; ++trial) {
     fm1_mod_t *m = make(0, 0, trial);
     fm1_mod_t *q = make(1, 0, trial);
@@ -207,6 +227,10 @@ static void planner_fuzz(unsigned *n_plans, unsigned *n_loops) {
     fm1_mod_slot_t table[FM1_MOD_SLOTS], s;
     unsigned perm[FM1_MOD_SLOTS], i, n = 1u + rnd() % FM1_MOD_SLOTS, pos;
     uint32_t want_delayed = 0, got_delayed = 0;
+    if (trial & 1u) {                   /* per-note offsets: VOICE cables into the sound live */
+      fm1_mod_bind(m, FM1_MOD_SOUND, &kPolyEngine);
+      fm1_mod_bind(q, FM1_MOD_SOUND, &kPolyEngine);
+    }
     random_rack(m);
     for (pos = 0; pos < FM1_MOD_POSITIONS; ++pos) fm1_mod_set_kind(q, pos, fm1_mod_kind_at(m, pos));
     for (i = 0; i < FM1_MOD_SLOTS; ++i) {
@@ -233,10 +257,13 @@ static void planner_fuzz(unsigned *n_plans, unsigned *n_loops) {
     fm1_mod_get_plan(q, &b);
     CHECK(same_plan(&a, &b));
     CHECK(plan_valid(q, &b));
+    CHECK(a.poly == b.poly && a.voice_cap == b.voice_cap && a.n_vdest == b.n_vdest);
     for (i = 0; i < FM1_MOD_SLOTS; ++i) {
       if ((a.delayed >> i) & 1u) want_delayed |= 1u << perm[i];
       if ((a.active >> i) & 1u) CHECK((b.active >> perm[i]) & 1u);
+      CHECK(((a.voice >> i) & 1u) == ((b.voice >> perm[i]) & 1u));
     }
+    if (a.voice) ++n_voice;
     for (i = 0; i < FM1_MOD_SLOTS; ++i) {
       fm1_mod_get_slot(q, i, &s);
       if ((b.delayed >> i) & 1u) got_delayed |= 1u << i;
@@ -247,6 +274,7 @@ static void planner_fuzz(unsigned *n_plans, unsigned *n_loops) {
     fm1_mod_destroy(m);
     fm1_mod_destroy(q);
   }
+  CHECK(n_voice > 300);                 /* plans with live VOICE cables were among them */
 }
 
 /* ---- chains and loops -------------------------------------------------------- */
@@ -380,6 +408,143 @@ static void any_fill(unsigned *ticks) {
   CHECK(n[0] > 100 && n[0] == n[1] && n[1] == n[2]);
   CHECK(!memcmp(w[0], w[1], n[0] * sizeof(w[0][0])) && !memcmp(w[1], w[2], n[0] * sizeof(w[0][0])));
   *ticks += n[0];
+}
+
+/* ---- voices (MG9) ---------------------------------------------------------------- */
+
+/* One block with its ticks, every tick's writes and per-voice offsets into w. */
+static uint32_t block_v(fm1_mod_t *m, uint32_t frames, fm1_mod_write_t *w, uint32_t cap) {
+  uint32_t tf = fm1_mod_begin(m, frames, 0), n = 0;
+  while (tf < frames) {
+    const fm1_mod_write_t *x;
+    const uint32_t k = fm1_mod_tick(m, tf, &x);
+    uint32_t i;
+    for (i = 0; i < k && n < cap; ++i) w[n++] = x[i];
+    n += fm1_mod_voice_writes(m, w + n, cap - n);
+    tf += G;
+  }
+  return n;
+}
+
+static fm1_mod_slot_t voice_cable(unsigned src, unsigned unit, unsigned dst, float amount) {
+  fm1_mod_slot_t s = cable(src, unit, dst, amount);
+  s.flags = (uint8_t)(s.flags | FM1_MOD_SLOT_VOICE);
+  return s;
+}
+
+/* ENV3 per voice into Timbre, RAND per voice into the note's pitch, VEL per
+ * voice into ENV3's attack, and one refused into an engine-wide parameter;
+ * notes on two keys at a time, one re-struck while held, from any fill of
+ * memory: the same writes, per key, every time. */
+static void voice_scenario(fm1_mod_t *m, fm1_mod_write_t *w, uint32_t cap, uint32_t *n) {
+  fm1_mod_slot_t s;
+  uint32_t b;
+  fm1_mod_bind(m, FM1_MOD_SOUND, &kPolyEngine);
+  fm1_mod_default_rack(m);
+  fm1_mod_set_param(m, 2, 0, 0.3f);
+  fm1_mod_set_param(m, 2, 3, 0.05f);                        /* a short release: voices end */
+  s = voice_cable(out_of(2, 0), FM1_MOD_SOUND, 3, 0.6f);
+  fm1_mod_set_slot(m, 0, &s);
+  s = voice_cable(FM1_MOD_SRC_RAND, FM1_MOD_HOST, FM1_MOD_HOST_PITCH_UID, 0.1f);
+  fm1_mod_set_slot(m, 1, &s);
+  s = voice_cable(FM1_MOD_SRC_VEL, FM1_MOD_MODULE + 2u, 1, -0.3f);
+  fm1_mod_set_slot(m, 2, &s);
+  s = voice_cable(out_of(2, 0), FM1_MOD_SOUND, 4, 0.5f);       /* Drive: mono, refused */
+  fm1_mod_set_slot(m, 3, &s);
+  *n = 0;
+  for (b = 0; b < 400; ++b) {
+    const uint32_t frames = 64;
+    if (b % 40 == 3) fm1_mod_live_note(m, (uint8_t)(48 + b % 12), (uint8_t)(40 + b % 80));
+    if (b % 40 == 9) fm1_mod_live_note(m, (uint8_t)(60 + b % 12), 100);
+    if (b % 40 == 15) fm1_mod_live_note(m, (uint8_t)(48 + (b - 12) % 12), 90);   /* re-struck */
+    if (b % 40 == 30) {
+      fm1_mod_live_note(m, (uint8_t)(48 + (b - 27) % 12), 0);
+      fm1_mod_live_note(m, (uint8_t)(60 + (b - 21) % 12), 0);
+    }
+    *n += block_v(m, frames, w + *n, cap - *n);
+  }
+}
+
+static void voices(unsigned *checked) {
+  static fm1_mod_write_t w[3][16384];
+  uint32_t n[3];
+  const int fills[3] = { 0x00, 0x5A, 0xFF };
+  fm1_mod_plan_info_t p;
+  fm1_mod_stats_t st;
+  unsigned keyed = 0, i;
+  int f;
+  for (f = 0; f < 3; ++f) {
+    fm1_mod_t *m = make(f, fills[f], 21);
+    voice_scenario(m, w[f], 16384, &n[f]);
+    fm1_mod_get_plan(m, &p);
+    fm1_mod_get_stats(m, &st);
+    CHECK(p.refused == 8u && p.voice == 7u && p.poly == 4u && p.voice_cap == FM1_MOD_VOICES);
+    CHECK(st.voice_starts > 10 && st.voice_ends > 5 && st.nonfinite == 0);
+    fm1_mod_destroy(m);
+  }
+  CHECK(n[0] > 1000 && n[0] == n[1] && n[1] == n[2]);
+  CHECK(!memcmp(w[0], w[1], n[0] * sizeof(w[0][0])) && !memcmp(w[1], w[2], n[0] * sizeof(w[0][0])));
+  for (i = 0; i < n[0]; ++i) {
+    const fm1_mod_write_t *x = &w[0][i];
+    if (x->key == FM1_MOD_NONE) continue;
+    ++keyed;
+    CHECK(x->unit == FM1_MOD_SOUND && (x->index == I_TIMBRE - 1u || x->index == FM1_PARAM_NOTE_PITCH));
+    CHECK(mod_finite(x->value) && x->value > -9.7f && x->value < 9.7f);   /* 0.1 x 96 semitones */
+  }
+  CHECK(keyed == n[0]);                                      /* no global write at all */
+  *checked += keyed;
+
+  /* Eight Chances, each read per voice: the arena holds a few voices, and
+   * notes past them steal the oldest. */
+  {
+    fm1_mod_t *m = make(0, 0, 5);
+    fm1_mod_write_t x[64];
+    unsigned pos, k;
+    fm1_mod_bind(m, FM1_MOD_SOUND, &kPolyEngine);
+    for (pos = 0; pos < FM1_MOD_POSITIONS; ++pos) {
+      fm1_mod_slot_t s = voice_cable(out_of(pos, 0), FM1_MOD_SOUND, 3, 0.05f);
+      fm1_mod_set_kind(m, pos, K_CHN);
+      fm1_mod_set_slot(m, pos, &s);
+    }
+    fm1_mod_get_plan(m, &p);
+    CHECK(p.poly == 0xFFu && p.voice_cap >= 1u && p.voice_cap < FM1_MOD_VOICES && p.voice_bytes > 0);
+    CHECK((uint32_t)p.voice_cap * p.voice_bytes <= FM1_MOD_ARENA);
+    for (k = 0; k < (unsigned)p.voice_cap + 2u; ++k) {
+      fm1_mod_live_note(m, (uint8_t)(40 + k), 100);
+      block_v(m, 64, x, 64);
+    }
+    fm1_mod_get_stats(m, &st);
+    CHECK(st.voice_starts == (uint32_t)p.voice_cap + 2u && st.voice_steals == 2u);
+    CHECK(fm1_mod_voice_count(m) == p.voice_cap);
+    fm1_mod_destroy(m);
+  }
+
+  /* An amount edit rebuilds the plan but keeps every voice's instance: its
+   * envelope runs on; a kind changed elsewhere makes them again. */
+  {
+    fm1_mod_t *m = make(0, 0, 9);
+    fm1_mod_write_t x[256];
+    fm1_mod_slot_t s;
+    float before, after;
+    unsigned b;
+    fm1_mod_bind(m, FM1_MOD_SOUND, &kPolyEngine);
+    fm1_mod_default_rack(m);
+    fm1_mod_set_param(m, 2, 0, 0.6f);                         /* a slow attack */
+    s = voice_cable(out_of(2, 0), FM1_MOD_SOUND, 3, 0.5f);
+    fm1_mod_set_slot(m, 0, &s);
+    fm1_mod_live_note(m, 60, 100);
+    for (b = 0; b < 20; ++b) block_v(m, 64, x, 256);
+    before = fm1_mod_voice_out(m, 0, 2, 0);
+    s.amount = fm1_mod_q14(0.7f);
+    fm1_mod_set_slot(m, 0, &s);
+    block_v(m, 64, x, 256);
+    after = fm1_mod_voice_out(m, 0, 2, 0);
+    CHECK(before > 0.05f && after > before);                 /* still climbing, not restarted */
+    fm1_mod_set_kind(m, 6, K_LFO);
+    block_v(m, 64, x, 256);
+    CHECK(fm1_mod_voice_out(m, 0, 2, 0) < before);           /* made again */
+    fm1_mod_destroy(m);
+  }
 }
 
 static void nan_survived(unsigned *checked) {
@@ -702,7 +867,7 @@ static void gate_continuity(unsigned *checks) {
 
 int main(void) {
   unsigned plans = 0, loops = 0, chain_ticks = 0, fb_ticks = 0, fill_writes = 0, nan_checked = 0;
-  unsigned gate_ticks = 0, continuity = 0;
+  unsigned gate_ticks = 0, continuity = 0, voice_writes = 0;
   K_LFO = fm1_mod_kind_find("lfo");
   K_ENV = fm1_mod_kind_find("ENV");
   K_CHN = fm1_mod_kind_find("chance");
@@ -718,11 +883,12 @@ int main(void) {
   gates(&gate_ticks);
   edge_frames();
   gate_continuity(&continuity);
+  voices(&voice_writes);
   printf("{\"size\":%zu,\"plans\":%u,\"plans_with_loops\":%u,\"chain_ticks\":%u,"
          "\"feedback_ticks\":%u,\"fill_writes\":%u,\"nan_writes\":%u,\"gate_ticks\":%u,"
-         "\"continuity\":%u,"
+         "\"continuity\":%u,\"voice_writes\":%u,"
          "\"failed\":%d}\n",
          fm1_mod_size(), plans, loops, chain_ticks, fb_ticks, fill_writes, nan_checked,
-         gate_ticks, continuity, failed);
+         gate_ticks, continuity, voice_writes, failed);
   return failed;
 }

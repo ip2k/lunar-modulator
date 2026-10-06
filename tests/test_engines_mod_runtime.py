@@ -102,7 +102,7 @@ def test_the_core_checks_itself(renderer):
     assert out["failed"] == 0 and out["size"] == MOD_BYTES
     assert out["plans"] == 3000 and out["plans_with_loops"] > 500
     assert out["chain_ticks"] > 300 and out["feedback_ticks"] == 12 and out["nan_writes"] > 50
-    assert out["continuity"] == 6
+    assert out["continuity"] == 6 and out["voice_writes"] > 500
 
 
 def test_size_is_pinned_and_listed(renderer):

@@ -318,12 +318,12 @@ struct Modulation {
 
 // A live note's first per-voice offsets, right after the engine's note_on
 // (fm1_mod_host.h), at the coming block's first frame.
-void ModVoiceStart(Modulation &md, const Unit &u, unsigned sound, uint8_t key) {
+void ModVoiceStart(Modulation &md, const Unit &u, unsigned sound, uint8_t key, uint64_t frame) {
   fm1_mod_write_t w[FM1_MOD_VDESTS + 1u];
   const uint32_t n = fm1_mod_voice_start(md.m, sound, key, w, FM1_MOD_VDESTS + 1u);
   for (uint32_t i = 0; i < n; ++i) {
     if (u.e->set_param_note) u.e->set_param_note(u.self, w[i].key, w[i].index, w[i].value);
-    if (md.log) md.voiced.push_back(std::make_pair(md.pos, w[i]));
+    if (md.log) md.voiced.push_back(std::make_pair(frame, w[i]));
   }
   md.live_voice_writes += n;
 }
@@ -1272,7 +1272,7 @@ int main(int argc, char **argv) {
           if (u.e && md.m) {
             fm1_mod_live_sound_note(md.m, static_cast<unsigned>(events[k].sound), events[k].key,
                                     events[k].velocity);
-            ModVoiceStart(md, u, static_cast<unsigned>(events[k].sound), events[k].key);
+            ModVoiceStart(md, u, static_cast<unsigned>(events[k].sound), events[k].key, pos);
           }
           done[k] = true;
         }
@@ -1308,7 +1308,7 @@ int main(int argc, char **argv) {
           sound.e->note_on(sound.self, events[k].key, events[k].velocity);
           if (md.m) {
             fm1_mod_live_note(md.m, events[k].key, events[k].velocity);
-            ModVoiceStart(md, sound, 0, events[k].key);
+            ModVoiceStart(md, sound, 0, events[k].key, pos);
           }
           done[k] = true;
         }
