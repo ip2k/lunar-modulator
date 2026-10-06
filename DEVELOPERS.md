@@ -283,10 +283,10 @@ chapter 4, "Arpeggiator").
   the synth voices render on cpu1 ([The two cores](#the-two-cores)). Whether
   Lunar can split its work that way is to be tried on the dev kit.
 - **The screen:** the firmware's own RGB565 frame buffer, copied to a
-  canvas. All 2,818 screens of the layout sweep, the sequencer's,
-  modulation's and the arpeggiator's included, pass a layout check, with no
-  text cut short and nothing closer than 4 px [verified: `fm1-sim-render
-  --screens`, 2026-10-06].
+  canvas. All 3,163 screens of the layout sweep, the sequencer's,
+  modulation's and the arpeggiator's and every list popup at every entry
+  included, pass a layout check, with no text cut short and nothing closer
+  than 4 px [verified: `fm1-sim-render --screens`, 2026-10-06].
 - **What the panel does:** every engine and effect, four sounds with their
   inserts and the master bus, the sequencer (SEQ, PLAY/STOP, REC),
   modulation (LFO, ENV, EDIT) and the arpeggiator (ARP); only SAVE is still

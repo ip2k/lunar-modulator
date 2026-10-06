@@ -1108,6 +1108,21 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **Lists on the screen show six entries instead of one to three.** Turning
+  PRESETS, ALGORITHM (the engine's model, shape, patch or pad, or the effect
+  in FX mode), PRESETS with SEL held, the rack's kind picker or the
+  matrix's destination picker now fills the middle of the screen with the
+  list: its name in gold, where the chosen entry sits in it (such as
+  *34/96*), and six entries with the chosen one highlighted on the third
+  row, so you see two before it and three after it. At either end of a list
+  the rows stop and the highlight moves to the first or last one. A small
+  triangle above or below the entries says the list goes on that way, and
+  *Empty* and *Empty slot* are dim. PRESETS with SEL held lists all four
+  sounds and what each holds, and Capture's tempo choice uses the same
+  look. Choices still take effect as before: at once for PRESETS and
+  ALGORITHM, a second after the last turn for the two pickers. Until now
+  PRESETS and the two pickers showed three entries, and ALGORITHM only the
+  entry it chose.
 - README: the owner's new opening — project goals (including the Orbital Dock
   community module marketplace and firmware builder), current status, and
   why it cannot be flashed yet.

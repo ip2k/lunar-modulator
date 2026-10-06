@@ -112,7 +112,10 @@ def test_the_pages_knobs_and_presets(tools):
     for k in range(1, 6):
         p = sim(tools, "--engine", "macro", "--button", "0.05:ARP", "--turn", f"0.1:ALGORITHM:{k}",
                 seconds=0.3)
-        presets.append((p["popup"][1], param(p, "Mode"), param(p, "Order"), p["arp"]["preset"]))
+        listed = p["popup_list"]
+        assert listed["title"] == "Arp preset" and listed["total"] == 6
+        presets.append((p["popup"][listed["mark"]], param(p, "Mode"), param(p, "Order"),
+                        p["arp"]["preset"]))
     assert presets == [("Down", 1, 0, 1), ("Up/Down", 2, 0, 2), ("Down/Up", 3, 0, 3),
                        ("Random", 19, 0, 4), ("Played", 0, 1, 5)]
     held = sim(tools, "--engine", "macro", "--button", "0.05:ARP", "--button", "0.1:OCT+:0.3",

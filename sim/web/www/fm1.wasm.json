@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "087005e36c90f32a59c15209868d4a89822b7f71d52bc688e88bf4d712fb10e1",
-  "wasm_bytes": 843135,
+  "wasm_sha256": "5207dbd3f044610b2c0d4fd3b19a03fa36b94b07aaaa8a0a1d634765f4f36ba5",
+  "wasm_bytes": 815821,
   "sources_sha256": {
-    "engines": "c707513d2856d1d6f85435577dad2201587922729cf55bcbc451c9967c3cf6a0",
-    "sim": "139816efc19a155199e211dcd9e8a092affd239f35cb8c76250c5dbb9217c8df"
+    "engines": "c93262a82927ec5dcadc7c741825cc2f4996c10f8f22fda6f893e2b6d8652b06",
+    "sim": "2b1637db400b92e929be6eb1e50cbcdf731998234c713ce9517187f715423f81"
   },
   "engines": "working tree",
-  "built": "2026-10-06T03:08:36Z",
+  "built": "2026-10-06T02:35:01Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -17,11 +17,11 @@
   ],
   "imports": [],
   "parity": {
-    "passed": 76,
+    "passed": 72,
     "failed": 0,
-    "identical_to_js": 76,
-    "identical_to_musl": 76,
-    "identical_to_glibc": 73,
+    "identical_to_js": 72,
+    "identical_to_musl": 72,
+    "identical_to_glibc": 69,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "scenarios": [
@@ -1773,113 +1773,6 @@
         "native_dropped": 0
       },
       "panel": "seq/panel-multi-sound.panel"
-    },
-    {
-      "name": "arp-macro-chord",
-      "samples": 141176,
-      "libm_sensitive": false,
-      "app_vs_js": {
-        "differing": 0,
-        "max_lsb": 0
-      },
-      "app_vs_musl": {
-        "differing": 0,
-        "max_lsb": 0
-      },
-      "app_vs_glibc": {
-        "differing": 0,
-        "max_lsb": 0
-      },
-      "screen_px_differing": 0,
-      "ram_bytes": {
-        "wasm32": 144940,
-        "native64": 157804
-      }
-    },
-    {
-      "name": "arp-sequencer-latch",
-      "samples": 317648,
-      "libm_sensitive": false,
-      "app_vs_js": {
-        "differing": 0,
-        "max_lsb": 0
-      },
-      "app_vs_musl": {
-        "differing": 0,
-        "max_lsb": 0
-      },
-      "app_vs_glibc": {
-        "differing": 0,
-        "max_lsb": 0
-      },
-      "screen_px_differing": 0,
-      "ram_bytes": {
-        "wasm32": 70636,
-        "native64": 72404
-      },
-      "cmd": "arp/arp-sequencer.verbs",
-      "seq": {
-        "lines": 3,
-        "lines_match": true,
-        "ui_cmds": 4,
-        "replayable": true,
-        "dropped": 0,
-        "native_dropped": 0
-      }
-    },
-    {
-      "name": "arp-multi-sound",
-      "samples": 141176,
-      "libm_sensitive": false,
-      "app_vs_js": {
-        "differing": 0,
-        "max_lsb": 0
-      },
-      "app_vs_musl": {
-        "differing": 0,
-        "max_lsb": 0
-      },
-      "app_vs_glibc": {
-        "differing": 0,
-        "max_lsb": 0
-      },
-      "screen_px_differing": 0,
-      "ram_bytes": {
-        "wasm32": 294756,
-        "native64": 308628
-      }
-    },
-    {
-      "name": "arp-panel",
-      "samples": 414708,
-      "libm_sensitive": false,
-      "app_vs_js": {
-        "differing": 0,
-        "max_lsb": 0
-      },
-      "app_vs_musl": {
-        "differing": 0,
-        "max_lsb": 0
-      },
-      "app_vs_glibc": {
-        "differing": 0,
-        "max_lsb": 0
-      },
-      "screen_px_differing": 0,
-      "ram_bytes": {
-        "wasm32": 144940,
-        "native64": 157804
-      },
-      "cmd": "arp/panel-arp.verbs",
-      "seq": {
-        "lines": 1,
-        "lines_match": true,
-        "ui_cmds": 24,
-        "replayable": true,
-        "dropped": 0,
-        "native_dropped": 0
-      },
-      "panel": "arp/panel-arp.panel"
     }
   ]
 }

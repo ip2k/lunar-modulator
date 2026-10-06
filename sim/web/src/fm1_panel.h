@@ -39,6 +39,20 @@ typedef enum {
   FM1_ENC_COUNT
 } fm1_app_encoder_t;
 
+/* A list popup (PRESETS, ALGORITHM, the modulation pickers, Capture's
+ * tempos) shows FM1_LIST_ROWS entries of its list at a time, as many as
+ * the screen's middle holds under the list's title. */
+#define FM1_LIST_ROWS 6
+
+/* The first entry such a window shows with entry `sel` of `total` chosen:
+ * the choice on the third row where it can be, so two entries before it
+ * and three after it show, and the window never runs past either end. */
+static inline int fm1_list_first(int total, int sel, int rows) {
+  int first = sel - (rows - 1) / 2;
+  if (first > total - rows) first = total - rows;
+  return first < 0 ? 0 : first;
+}
+
 /* FM1_MODE_SEQ (from SEQ), the modulation pages (docs/16 §5, stage MG3:
  * RACK from LFO or ENV, MATRIX from EDIT, CHAIN from SEL in MATRIX) and the
  * ARP pages (from ARP). */
