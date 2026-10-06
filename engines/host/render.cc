@@ -1011,6 +1011,22 @@ int main(int argc, char **argv) {
     fprintf(stderr, "--log-mod needs --mod\n");
     return 2;
   }
+  // The MIDI effects' usage errors, before anything is allocated (an exit
+  // after that leaks under LeakSanitizer, which turns the exit code to 1).
+  bool any_mfx = false;
+  for (int k = 0; k < kSounds; ++k) any_mfx = any_mfx || !mfx_units[k].empty();
+  if (mfx_log_path && !any_mfx) {
+    fprintf(stderr, "--log-mfx needs --mfx\n");
+    return 2;
+  }
+  for (size_t k = 0; k < mfx_controls.size(); ++k) {
+    const MfxControl &c = mfx_controls[k];
+    if (size_t(c.slot) >= mfx_units[c.sound].size()) {
+      fprintf(stderr, "--mfx-%s names MIDI effect %d of sound unit %d, which has %zu\n",
+              c.on_off ? "on-at" : "param-at", c.slot + 1, c.sound, mfx_units[c.sound].size());
+      return 2;
+    }
+  }
   if (input != "silence" && input != "impulse" && input != "noise" && input != "sine") {
     Usage(); return 2;
   }
@@ -1133,11 +1149,6 @@ int main(int argc, char **argv) {
   }
   for (size_t k = 0; k < mfx_controls.size(); ++k) {
     MfxControl &c = mfx_controls[k];
-    if (size_t(c.slot) >= mfx_units[c.sound].size()) {
-      fprintf(stderr, "--mfx-%s names MIDI effect %d of sound unit %d, which has %zu\n",
-              c.on_off ? "on-at" : "param-at", c.slot + 1, c.sound, mfx_units[c.sound].size());
-      return 2;
-    }
     if (c.on_off) continue;
     const fm1_engine_t *e = mfx_units[c.sound][c.slot].e;
     bool found = false;
@@ -1145,10 +1156,6 @@ int main(int argc, char **argv) {
       if (strcasecmp(e->params[q].name, c.name.c_str()) == 0) { c.index = q; found = true; }
     }
     if (!found) { fprintf(stderr, "unknown parameter for %s: %s\n", e->id, c.name.c_str()); return 1; }
-  }
-  if (mfx_log_path && !use_mfx) {
-    fprintf(stderr, "--log-mfx needs --mfx\n");
-    return 2;
   }
 
   // A --sound-note on a unit with no --sound plays nothing, as a key on an
