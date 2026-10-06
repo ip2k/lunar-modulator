@@ -9,6 +9,31 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The song list, edited on whole entries, in the sequencer core.** The
+  song can now be built and changed entry by entry: insert, delete, move,
+  change an entry's scene or repeat count, clear the list, play from any
+  entry, and give scenes names (Intro, Verse, Chorus…). At the end of the
+  song it can loop (as before), park with every track stopped, or stop the
+  transport, so a 4-minute song plays hands-free and ends by itself. A song
+  holds up to 64 scene presses; a longer one from Movy is cut to 64.
+  - Panel and simulator controls come with the Session view and the Song
+    page (a later stage): nothing on the virtual FM-1 changes yet.
+  - Changed from Movy, each kept as Movy has it in compat mode:
+    - a clip or scene launched by hand no longer deletes the song: it stops
+      following it and keeps the list, and Stop then Play follows it again;
+    - recording from stopped no longer spends the song's first bar on the
+      count-in, and makes no empty clip in a slot the song moves away from;
+    - a stopped Capture with a song plays the take you just captured;
+    - a clip launched by hand after Stop plays, rather than a scene the
+      song had queued;
+    - a loaded song plays the same each time (its random trig rolls start
+      afresh on every load).
+  - For contributors: the verbs `sgins`, `sgdel`, `sgset`, `sgmov`,
+    `sgclr`, `sgend`, `sgjump`, `scene`, `sgnew` and `sgname`, the `movy1`
+    lines `dq`, `se` and `sn` (written outside compat mode only, so a set
+    without FM-1 features stays byte-identical to Movy's), `fm1-seq
+    --import`, and `engines/seq.md`, "The song". The sequencer instance
+    grows by 64 B, to 31,944 B at 8 tracks.
 - **The saved-state file format, designed.** JSON Schemas (draft 2020-12)
   for every kind of file the simulator and the guide will use (project,
   sound, effects chain, mod rack, clip, settings) and for the export of
