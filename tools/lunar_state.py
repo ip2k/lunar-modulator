@@ -161,6 +161,7 @@ class Engine:
         self.pads = d["pads"]["count"] if d.get("pads") else 0
         kit = any("focus" in p.get("flags", []) for p in d["params"])
         self.params = _params(d["params"], kit)
+        self.retired = dict(d.get("retired", {}))      # removed parameters' last names -> uid
 
 
 class Kind:
@@ -719,7 +720,11 @@ class JsonReader:
                 if k in unknown:
                     self.bad("duplicate key")
                 unknown.add(k)
-                if (len(k) >= 2 and k[0] == "#" and k[1] != "0" and len(k) <= 5 and
+                retired = (next((u for n, u in e.retired.items() if ascii_lower(n) == ascii_lower(k)), None)
+                           if table and e is not None and not module else None)
+                if retired:      # a removed parameter's last name: by its retired uid, as #UID
+                    p, uid = None, retired
+                elif (len(k) >= 2 and k[0] == "#" and k[1] != "0" and len(k) <= 5 and
                         k[1:].isdigit() and k[1:].isascii() and 1 <= int(k[1:]) <= 4095):
                     p, uid = None, int(k[1:])
                 else:

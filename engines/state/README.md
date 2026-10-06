@@ -102,7 +102,10 @@ WebAssembly and device builds read every number to the same bits.
   ASCII case, by abbreviation, then by an old name (`fm1_known.h`'s
   aliases; a list entry likewise by its old names), or as `#UID`, which is
   kept even when this build's engine lacks that uid, so a newer build's
-  parameter passes through. A cable's destination on a unit the file does
+  parameter passes through. A removed parameter's last name (a `retired`
+  row of `engines/aliases.json`, entry `FM1_ALIAS_RETIRED`; the arp's
+  Swing, 2026-10-06) reads as its retired uid the same way, so an old file
+  gives the records it always gave and the engine drops the value. A cable's destination on a unit the file does
   not hold (a mod rack's) is kept by name for the applier.
 - **Hostile input** meets the caps of the note's §16 while it streams;
   out-of-range values are clamped and counted, unknown members skipped and

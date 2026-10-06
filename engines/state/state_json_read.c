@@ -623,6 +623,17 @@ static int params_key(fm1_state_json_reader_t *r, fm1_state_frame_t *f, const fm
     return 1;
   }
   if (!unknown_key(r, r->key, r->keylen, ev->depth)) return 0;
+  if (table) {
+    /* A removed parameter's last name: its retired uid, kept as #UID is,
+     * so an old file reads to the records it always did. */
+    const uint16_t uid = fm1_state_param_retired(r->nm, f->ctx == C_MPARAMS ? FM1_ALIAS_MOD : FM1_ALIAS_ENGINE,
+                                                 owner, r->key, r->keylen);
+    if (uid) {
+      r->key_uid = uid;
+      r->member = M_PNAME;
+      return 1;
+    }
+  }
   if (r->keylen >= 2 && r->key[0] == '#') {
     /* "#UID" this build cannot name (an engine or kind it lacks, or a
      * parameter a newer build added): kept by uid, so the file passes

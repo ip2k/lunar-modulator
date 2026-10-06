@@ -59,7 +59,9 @@ static const char *const kSync[2] = { "Free", "Key" };
  * The core's SWING is not one of them: the arp swings by the set's swing,
  * which the host gives every call (fm1_midi_fx_ctx_t.swing; owner,
  * 2026-10-06). Its uid 7 is retired (tests/fixtures/param-uids.json), and
- * a file that still names the arp's "Swing" loads without it. */
+ * its last name is a `retired` row of engines/aliases.json, so a file that
+ * still names the arp's "Swing" reads as before, by uid, and loads with the
+ * value dropped. */
 #define ARP_N_PARAMS (FM1_ARP_P_COUNT - 1u)
 #define L FM1_PARAM_LATCH
 #define LM (FM1_PARAM_LATCH | FM1_PARAM_MOD)

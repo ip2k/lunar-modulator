@@ -336,8 +336,10 @@ effects").
   sequencer's `swing` every block and hands it to the arp in the context
   (`fm1_midi_fx_ctx_t.swing`), which sets the core's `swing`; without a
   sequencer it is fm1-render's `--swing` (50 without it). The arp has no
-  Swing parameter of its own: its uid 7 is retired, and a file that names it
-  loads with that value skipped.
+  Swing parameter of its own: its uid 7 is retired, and its last name stays
+  in `engines/aliases.json`'s `retired`, so a file that names it reads to the
+  same records as before (the value passes by uid, as `#7`) and the arp
+  drops it.
 - **Transport.** Start reaches the arp as `RESET` and Stop as `STOP`, at
   their frames (with `FLUSH` after it in the sequencer's compat mode,
   whose clock gives no tick while stopped; after an external clock's Stop

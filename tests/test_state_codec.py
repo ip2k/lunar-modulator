@@ -471,15 +471,23 @@ def test_repairs_and_skips_are_counted(tool, names, name, text, counts):
 def test_a_file_with_the_arps_own_swing_still_loads(tool, names):
     """The arp follows the set's swing (owner, 2026-10-06): its own Swing
     (uid 7) is retired, and a file written before then, which names it,
-    loads with that one value skipped and reported."""
+    loads as it always did: the last name resolves to the retired uid
+    (engines/aliases.json, `retired`) and the value passes on by uid, as
+    "#7" would, for an applier to drop; nothing is skipped. The golden
+    files (test_golden_files_load_for_ever) hold the same."""
     text = (EXAMPLES / "first-orbit.lunar").read_text().replace(
-        '"Gate": 50,\n', '"Gate": 50,\n            "Swing": 62,\n', 1)
-    assert '"Swing": 62' in text
+        '"Gate": 50,\n', '"Gate": 50,\n            "swing": 62,\n', 1)
+    assert '"swing": 62' in text
     r = run(tool, "check", "-", data=text.encode())
     report = json.loads(r.stdout)["report"]
-    assert report["code"] == "OK" and report["skipped"] == 1, report
-    assert "Swing" in report["first_skip"], report
-    assert ls.read_json(text.encode(), names)[1].skipped == 1
+    assert report["code"] == "OK" and report["skipped"] == 0, report
+    rc, recs, _ = c_records(tool, text.encode())
+    mine = [json.loads(x) for x in recs.splitlines() if '"role":"mfx"' in x and '"uid":7,' in x]
+    assert rc == 0 and len(mine) == 1 and mine[0]["f32"] == "42780000", mine      # 62.0
+    recs_py, rep_py = ls.read_json(text.encode(), names)[:2]
+    assert rep_py.skipped == 0 and ls.records_text(recs_py) == recs
+    out = run(tool, "canon", "-", data=text.encode(), check=True).stdout.decode()
+    assert '"#7": 62' in out            # a rewrite keeps it by uid, as any uid the build lacks
 
 
 def test_unknown_engines_refuse_unless_left_out(tool):

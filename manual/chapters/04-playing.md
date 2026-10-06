@@ -325,8 +325,8 @@ not.
 - **Swing.** The arpeggiator has no swing of its own: it swings with the
   set, by the Swing on the sequencer's Set page
   ([chapter 7](07-sequencer.md#swing)), playing or stopped. A file saved
-  before it followed the set loads without the arpeggiator's old Swing
-  value, and says that one value was skipped.
+  before it followed the set loads as before; its old arpeggiator Swing
+  value is kept in the file's data but no longer does anything.
 - **[[PLAY/STOP]]** restarts the pattern on the first beat.
 - **When the sequencer stops**, it takes back what it gave the arpeggiator:
   its notes leave the chord, latched or not, and a note they were playing
