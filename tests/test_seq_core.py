@@ -869,13 +869,15 @@ def test_memory_figures_for_four_and_eight_tracks(seq_tools):
     """The owner's budget: about half of docs/13's 72 KiB at the reduced
     track count, Capture included (the owner's decision of 2026-10-01: 256
     packed events, on by default). These are the figures engines/seq.md and
-    docs/13 §10 report; a change to the layout must update all three."""
+    docs/13 §10 report; a change to the layout must update all three. The
+    song's end mode, follow flag, jump target, a scene launch's landing bar
+    and eight scene names added 64 bytes (stage E1, 2026-10-06)."""
     z = sizes(seq_tools)
-    assert z["tracks"]["4"] == 18056
-    assert z["tracks"]["8"] == 31880
+    assert z["tracks"]["4"] == 18120
+    assert z["tracks"]["8"] == 31944
     assert z["tracks"]["8"] <= HALF_BUDGET
-    assert z["no_capture"]["4"] == 14984
-    assert z["no_capture"]["8"] == 28808
+    assert z["no_capture"]["4"] == 15048
+    assert z["no_capture"]["8"] == 28872
     for t in range(1, 17):
         assert z["tracks"][str(t)] - z["no_capture"][str(t)] == 256 * 12, \
             "Capture: 256 events of 12 bytes"

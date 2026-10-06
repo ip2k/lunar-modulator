@@ -6,8 +6,11 @@
  * not parse counting as absent; then clamped or cast exactly as Movy does,
  * `as u16`/`as i32` truncations included.
  *
- * FM-1 additions: `route <track> <0 midi|1 engine> <channel|slot>`. Movy
- * ignores verbs it does not know, so scripts with it still run there.
+ * FM-1 additions: `route <track> <0 midi|1 engine> <channel|slot>`, and the
+ * song's verbs on whole entries (`sgins`, `sgdel`, `sgset`, `sgmov`,
+ * `sgclr`, `sgend`, `sgjump`, `scene`, `sgnew`, `sgname`; fm1_seq.h,
+ * engines/seq.md "The song"). Movy ignores verbs it does not know, so
+ * scripts with them still run there.
  * Not implemented here (stage M4): the undo ring (`usnap`, `uswap`,
  * `ucommit`, `udrop`, `uclr` are accepted and do nothing) and Move's inject
  * capability (`minject` is stored only).
@@ -43,7 +46,10 @@ static const verb_name_t kVerbs[] = {
   { "aclr", FM1_SEQ_V_ACLR }, { "aclrs", FM1_SEQ_V_ACLRS }, { "aclrstep", FM1_SEQ_V_ACLRSTEP },
   { "asetr", FM1_SEQ_V_ASETR }, { "usnap", FM1_SEQ_V_USNAP }, { "uswap", FM1_SEQ_V_USWAP },
   { "ucommit", FM1_SEQ_V_UCOMMIT }, { "udrop", FM1_SEQ_V_UDROP }, { "uclr", FM1_SEQ_V_UCLR },
-  { "route", FM1_SEQ_V_ROUTE },
+  { "route", FM1_SEQ_V_ROUTE }, { "sgins", FM1_SEQ_V_SGINS }, { "sgdel", FM1_SEQ_V_SGDEL },
+  { "sgset", FM1_SEQ_V_SGSET }, { "sgmov", FM1_SEQ_V_SGMOV }, { "sgclr", FM1_SEQ_V_SGCLR },
+  { "sgend", FM1_SEQ_V_SGEND }, { "sgjump", FM1_SEQ_V_SGJUMP }, { "scene", FM1_SEQ_V_SCENE },
+  { "sgnew", FM1_SEQ_V_SGNEW }, { "sgname", FM1_SEQ_V_SGNAME },
 };
 
 /* Rust's char::is_whitespace, over ASCII. */
@@ -164,6 +170,9 @@ static int clears_capture(uint16_t v) {
   case FM1_SEQ_V_CLIPSEL: case FM1_SEQ_V_LAUNCH: case FM1_SEQ_V_STOPTRK: case FM1_SEQ_V_SONG:
   case FM1_SEQ_V_SONGADD: case FM1_SEQ_V_ASET: case FM1_SEQ_V_ASETR: case FM1_SEQ_V_ACLR:
   case FM1_SEQ_V_ACLRS: case FM1_SEQ_V_ACLRSTEP:
+  /* FM-1: the song's launches, as Movy's `song` and `launch` (an edit of
+   * the list alone leaves a take where it is) */
+  case FM1_SEQ_V_SCENE: case FM1_SEQ_V_SGNEW: case FM1_SEQ_V_SGJUMP:
     return 1;
   default:
     return 0;
@@ -582,6 +591,60 @@ static void apply_op(fm1_seq_t *s, const fm1_seq_cmd_t *c, sq_out_t *o) {
          * fm1_seq_host.h), so no note is left hanging there. */
         sq_flush_track_gates(s, (unsigned)t, o);
       }
+    }
+    break;
+  }
+  /* The song on whole entries (FM-1). Arguments out of range do nothing; an
+   * edit past limits.song presses is refused whole and counted. */
+  case FM1_SEQ_V_SGINS: {
+    const int he = next(&a, &x), hs = next(&a, &y);
+    int64_t r = 1;
+    if (he && hs) {
+      if (a.at < c->argc && !next(&a, &r)) break;     /* a count that does not parse */
+      if (x >= 0 && x <= 255 && y >= 0 && y < (int64_t)FM1_SEQ_SCENES && r >= 1) {
+        sq_song_edit(s, SQ_SG_INS, (unsigned)x, (unsigned)y, r > 255 ? 256u : (unsigned)r, 0);
+      }
+    }
+    break;
+  }
+  case FM1_SEQ_V_SGDEL:
+    if (next(&a, &x) && x >= 0 && x <= 255) sq_song_edit(s, SQ_SG_DEL, (unsigned)x, 0, 0, 0);
+    break;
+  case FM1_SEQ_V_SGSET: {
+    const int he = next(&a, &x), hs = next(&a, &y), hr = next(&a, &z);
+    if (he && hs && hr && x >= 0 && x <= 255 && y >= 0 && y < (int64_t)FM1_SEQ_SCENES && z >= 1) {
+      sq_song_edit(s, SQ_SG_SET, (unsigned)x, (unsigned)y, z > 255 ? 256u : (unsigned)z, 0);
+    }
+    break;
+  }
+  case FM1_SEQ_V_SGMOV: {
+    const int he = next(&a, &x), hd = next(&a, &y);
+    if (he && hd && x >= 0 && x <= 255) {
+      sq_song_edit(s, SQ_SG_MOV, (unsigned)x, 0, 0, (int32_t)clamp64(y, -256, 256));
+    }
+    break;
+  }
+  case FM1_SEQ_V_SGCLR:
+    sq_clear_song(s);
+    break;
+  case FM1_SEQ_V_SGEND:
+    if (next(&a, &v) && v >= 0 && v <= FM1_SEQ_SONG_STOP) sq_song_set_end(s, (unsigned)v);
+    break;
+  case FM1_SEQ_V_SGJUMP:
+    if (next(&a, &x) && x >= 0 && x <= 255) sq_song_jump(s, (unsigned)x);
+    break;
+  case FM1_SEQ_V_SCENE:
+    if (next(&a, &x) && x >= 0 && x < (int64_t)FM1_SEQ_SCENES) sq_scene_launch(s, (unsigned)x);
+    break;
+  case FM1_SEQ_V_SGNEW:
+    if (next(&a, &x) && x >= 0 && x < (int64_t)FM1_SEQ_SCENES) sq_song_new(s, (unsigned)x);
+    break;
+  case FM1_SEQ_V_SGNAME: {
+    const int hs = next(&a, &x), hk = next(&a, &v);
+    if (hs && hk && x >= 0 && x < (int64_t)FM1_SEQ_SCENES && v >= 0 &&
+        v <= (int64_t)FM1_SEQ_SCENE_PICKS) {
+      const char *name = fm1_seq_scene_name_pick((unsigned)v);
+      sq_scene_set_name(s, (unsigned)x, name, strlen(name));
     }
     break;
   }

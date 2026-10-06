@@ -59,7 +59,7 @@ def test_track_zero_plays_the_engine_by_default(seq_tools, tmp_path):
     s, left, ev, _ = render(tmp_path, TWO_TRACKS)
     assert s["seq_notes_to_engine"] == len(ons(ev, 0)) > 0
     assert len(ons(ev, 1)) > 0, "track 1 goes to USB-MIDI: logged, not played"
-    assert s["seq_bytes"] == 18056 and s["seq_refused"] == 0 and s["seq_locks_refused"] == 0
+    assert s["seq_bytes"] == 18120 and s["seq_refused"] == 0 and s["seq_locks_refused"] == 0
     assert rms(left) > 100
 
 

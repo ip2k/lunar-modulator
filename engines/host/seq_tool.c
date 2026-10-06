@@ -80,6 +80,18 @@ static void dump_state(FILE *f, const fm1_seq_t *s, const char *kind, const char
           in.metronome, in.link, in.following, in.watch_track, in.rec_track, in.default_quant,
           in.song_pos);
   for (i = 0; i < in.song_len; ++i) fprintf(f, i ? ",%u" : "%u", in.song[i]);
+  fprintf(f, "],\"song_entries\":%u,\"song_entry\":%u,\"song_armed\":%u,\"song_pass\":%u,"
+          "\"song_pass_bar\":%u,\"song_end\":%u,\"song_jump\":",
+          in.song_entries, in.song_entry, in.song_armed, in.song_pass, in.song_pass_bar,
+          in.song_end);
+  json_slot(f, in.song_jump);
+  fprintf(f, ",\"song_follow\":%u,\"song_parked\":%u,\"song_bars\":%lu,\"scene_names\":[",
+          in.song_follow, in.song_parked, (unsigned long)fm1_seq_song_bars(s));
+  for (i = 0; i < FM1_SEQ_SCENES; ++i) {
+    const char *name = fm1_seq_scene_name(s, (uint8_t)i);
+    if (i) fputc(',', f);
+    json_str(f, name, strlen(name));
+  }
   fprintf(f, "],\"capture\":{\"gen\":%lu,\"pending\":%u,\"mode\":%u,\"sel\":%u,\"cands\":[",
           (unsigned long)in.capture_gen, in.capture_pending, in.capture_mode, in.capture_sel);
   for (i = 0; i < in.capture_n && i < 3; ++i) fprintf(f, i ? ",%u" : "%u", in.capture_cands[i]);
