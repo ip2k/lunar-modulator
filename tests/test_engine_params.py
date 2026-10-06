@@ -92,6 +92,10 @@ ENUM_FLAGS = {
 # once while nothing sounds: LATCH, and a route rounds them.
 ENUM_FLAGS[("acid-bass", "Wave")] = ["latch", "mod"]
 ENUM_FLAGS[("acid-bass", "Drive Type")] = ["latch", "mod"]
+# Acid Gen (a GPL MIDI effect, midi_fx/acid_gen.c): as the arpeggiator's,
+# every list is read at its next step (LATCH); no route reaches a MIDI effect.
+for _name in ("Octaves", "Root", "Scale", "Octave", "Keys", "Rate", "Direction", "Latch"):
+    ENUM_FLAGS[("acid-gen", _name)] = ["latch"]
 # Voice Mode (glide, engines/src/glide.h) is read at note-on and note-off
 # and never cuts a sounding voice: LATCH, and a route rounds it.
 for _engine in ("macro", "macro-heavy", "shapes", "sixop", "dx7"):

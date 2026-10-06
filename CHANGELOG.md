@@ -9,6 +9,16 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Acid Gen, acid basslines from a seed** (GPL; with the GPL switch on).
+  It is TB-3PO, the line generator of fm1-x0x, after the Phazerville
+  Hemisphere Suite's TB_3PO. In the simulator, turn ALGORITHM on the ARP
+  pages past the stock modes to put it in the arpeggiator's place.
+  - Hold a key and a 303-style line plays from that note, with accents and
+    slides that Acid Bass plays as a 303 would; let go and it stops, unless
+    latched. Or set Keys to Run and it plays with the sequencer.
+  - Density, Accent, Slide, Octaves, the key (or the project's), rate,
+    length and direction; the same Seed always plays the same line, and
+    Mutations changes it a little at a time.
 - **Acid Bass, a bass after the TB-303** (GPL; in builds with the GPL
   switch on, as the simulator is while we test). It is the 303 of
   fm1-x0x, Charles Vestal's firmware for the FM-1, a port of Robin

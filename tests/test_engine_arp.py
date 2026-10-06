@@ -601,7 +601,9 @@ def test_the_core_never_allocates(arp_tool):
     if not nm:
         pytest.skip("no nm")
     objs = sorted((ENGINES / "build" / "midi_fx").glob("*.o"))
-    objs = [o for o in objs if o.name != "arp_tool.o"]
+    # (acid_gen.o, a GPL MIDI effect built only with the GPL switch on, has
+    # tests of its own: tests/test_engine_acid_gen.py)
+    objs = [o for o in objs if o.name not in ("arp_tool.o", "acid_gen.o")]
     # the core, and its engine API wrapper and registry (the MIDI effect
     # the hosts run, tests/test_engine_midi_fx.py)
     assert [o.name for o in objs] == ["arp_engine.o", "arp_rhythm.o", "fm1_arp.o", "registry.o"]

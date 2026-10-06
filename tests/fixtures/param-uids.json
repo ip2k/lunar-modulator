@@ -107,6 +107,23 @@
       {"name": "Slide", "type": "float", "uid": 11, "flags": ["smooth", "mod", "log"]},
       {"name": "Acc Decay", "type": "float", "uid": 12, "flags": ["latch", "mod", "log"]}
     ],
+    "acid-gen": [
+      {"name": "Density", "type": "float", "uid": 1, "flags": ["latch", "mod"]},
+      {"name": "Accent", "type": "float", "uid": 2, "flags": ["latch", "mod"]},
+      {"name": "Slide", "type": "float", "uid": 3, "flags": ["latch", "mod"]},
+      {"name": "Octaves", "type": "enum", "uid": 4, "flags": ["latch"]},
+      {"name": "Root", "type": "enum", "uid": 5, "flags": ["latch"]},
+      {"name": "Scale", "type": "enum", "uid": 6, "flags": ["latch"]},
+      {"name": "Octave", "type": "enum", "uid": 7, "flags": ["latch"]},
+      {"name": "Keys", "type": "enum", "uid": 8, "flags": ["latch"]},
+      {"name": "Rate", "type": "enum", "uid": 9, "flags": ["latch"]},
+      {"name": "Length", "type": "float", "uid": 10, "flags": ["latch", "mod"]},
+      {"name": "Direction", "type": "enum", "uid": 11, "flags": ["latch"]},
+      {"name": "Latch", "type": "enum", "uid": 12, "flags": ["latch"]},
+      {"name": "Seed", "type": "float", "uid": 13, "flags": ["latch", "mod"]},
+      {"name": "Mutations", "type": "float", "uid": 14, "flags": ["latch", "mod"]},
+      {"name": "Mut Every", "type": "float", "uid": 15, "flags": ["latch", "mod"]}
+    ],
     "test-sine": [
       {"name": "Volume", "type": "float", "uid": 1, "flags": ["smooth", "mod"]}
     ],
@@ -350,7 +367,7 @@
   "retired_about": "Uids a table must never give out again: a removed parameter's; and Comb's 1, the Filter's Type, as Comb keeps the Filter's uids for the parameters both have, so a Filter that was set to Comb maps onto Comb uid for uid (engines/README.md, \"Comb\").",
   "retired": {"comb": [1]},
   "gpl_about": "The GPL modules (engines/Makefile, FM1_GPL_MODS; CLAUDE.md, \"The GPL switch\"): pinned above like every other, and in the build only while the switch is on, so tests/test_engine_params.py leaves them out of the comparison when it is off.",
-  "gpl": ["acid-bass"],
+  "gpl": ["acid-bass", "acid-gen"],
   "per_note_about": "The engines with set_param_note (engine API v2, per-note offsets: engines/README.md, \"Per-note offsets\"). Their POLY parameters are flagged \"poly\" above; no other engine may have one.",
   "per_note": ["macro", "macro-heavy", "shapes", "sixop", "dx7", "drums", "acid-bass"]
 }

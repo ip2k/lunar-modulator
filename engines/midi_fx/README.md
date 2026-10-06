@@ -42,7 +42,8 @@ python -m pytest tests/test_engine_arp.py
 | `arp_rhythm.c` | Yarns' 22 rhythm masks (regenerated, with Yarns' MIT notice) and the Euclidean generator |
 | `arp_tool.c` | `fm1-arp`, the desktop test tool: a timed script in, JSON lines out |
 | `arp_engine.c` | The core as the MIDI effect `arp` (engine API v3, `FM1_KIND_MIDI_FX`): its parameters on the ARP pages, `process()` on the host's ticks |
-| `registry.c` | The MIDI effects' registry (`fm1_midi_fxs`, `fm1_midi_fx_find`) |
+| `registry.c` | The MIDI effects' registry (`fm1_midi_fxs`, `fm1_midi_fx_find`); the GPL ones under `#if FM1_GPL_MODS` |
+| `acid_gen.c` | Acid Gen, fm1-x0x's TB-3PO as a MIDI effect: built only with the GPL switch on ([below](#acid-gen-gpl)) |
 | `CREDITS.md` | Design sources and their notices |
 | `../mk/midi_fx.mk` | The build fragment |
 
@@ -306,6 +307,63 @@ effects").
   Up/Down, Down/Up, Random and Played [reported: AL-255's FM-1-RE,
   `docs/io/05-midi.md` §6.3; stock's Random shuffles the held notes once a
   pattern, so it is Shuffle here; the seventh, off, is ARP].
+
+## Acid Gen (GPL)
+
+`acid_gen.c` is a second MIDI effect, **Acid Gen** (`acid-gen`): TB-3PO,
+the generator of 303 lines in fm1-x0x by Charles Vestal, which ports
+schwung-tb3po and, through it, the `TB_3PO` applet of the Phazerville
+Hemisphere Suite (djphazer and contributors). The generator is vendored in
+`../third_party/fm1-x0x/seq/` (GPL-3.0-only, `UPSTREAM.md`), so Acid Gen is
+**built only while the GPL switch is on** (`FM1_GPL_MODS`; its sources in
+`../mk/fm1-x0x.mk`, its registry line under `#if FM1_GPL_MODS`). It is made
+for Acid Bass and plays in front of any sound.
+
+- **The line** is a function of the parameters alone: TB-3PO writes up to
+  32 steps from Seed (rests by 1 − Density, notes of the scale within
+  Octaves octaves, the root often on the beat, accents and slides by their
+  chances, no slide into a rest), then re-rolls about a quarter of them
+  Mutations times, continuing the line's own random stream. A project saves
+  it as numbers. Any change of the line's settings rebuilds it from the same
+  seed at the next step. Mut Every re-rolls once more every that many
+  passes while it plays (X0X's auto-mutate), until Start or a rebuild.
+- **Playing it**, as fm1-x0x's sequencer plays a 303 part (`fire_bass`): a
+  step every 24, 16, 12 or 32 ticks (1/16, 1/16T, 1/32, 1/8T), forward,
+  reverse, ping-pong or random; a note holds half its step; a step that
+  slides holds into the next, whose note-on comes first, and the held note
+  ends one tick later, so a bass that slides on legato (Acid Bass) slides;
+  a slide into the same note is a tie. Accents are velocity 118, plain notes
+  72 (TB-3PO's numbers; Acid Bass accents from 100).
+- **The keys.** Keys = Transpose: the line plays while a key is held, from
+  step 1 when the first key goes down, with its root note moved to the
+  newest key; letting go stops it unless Latch is on. Keys = Run: it plays
+  while the transport runs, from step 1 at Start, transposed by a held key
+  (the sequencer's notes for the sound count as keys). The keys never sound
+  themselves. Root and Scale may follow the project key (`ctx.key_root`,
+  `key_scale`): Major, else Minor.
+- **The contract** as the arp's: ticks, never samples; every note-on gets one
+  note-off (a note-off that does not fit goes out first in the next call);
+  FLUSH, PANIC and RESET as `fm1_engine.h` says. No allocation, stdio or
+  libm. About 300 bytes an instance.
+
+| Page | KNOB1 | KNOB2 | KNOB3 | KNOB4 |
+| --- | --- | --- | --- | --- |
+| LINE | Density, 0–100 %, 70 | Accent, 0–100 %, 40 | Slide, 0–100 %, 25 | Octaves, 1–3, 2 |
+| KEY | Root: Project, C … B; A | Scale: Project, Minor, Phrygian, Harm Minor, Min Pent, Dorian, Major; Minor | Octave (the root's), 0–4, 1 (A1) | Keys: Transpose, Run |
+| PLAY | Rate: 1/16, 1/16T, 1/32, 1/8T | Length, 1–32 steps, 16 | Direction: Forward, Reverse, Ping-Pong, Random | Latch: Off, On |
+| SEED | Seed, 0–65,535, 48,879 (TB-3PO's 0xBEEF) | Mutations, 0–255, 0 | Mut Every, 0–16 passes (0 off) | |
+
+Every list is LATCH; the numbers LATCH and MOD (no route reaches a MIDI
+effect yet). In the virtual FM-1, ALGORITHM on the ARP pages puts it in the
+sound's MIDI-FX slot, after the stock presets.
+
+**Checks** (`tests/test_engine_acid_gen.py`) [verified 2026-10-06]: the
+notes it plays are TB-3PO's line (`test/tb3po_line.c`, built against the
+vendored file) as fm1-x0x plays it, tick for tick, for three settings, every
+rate, reverse and ping-pong, and Mut Every; the vendored generator writes
+fm1-x0x's own lines (with `reference/fm1-x0x`); a key transposes; Latch;
+Run with the transport; the project key; the same output at host blocks of
+1, 7, 64 and 448; every note-on has its note-off; a bypass ends the note.
 
 ## Not done yet
 

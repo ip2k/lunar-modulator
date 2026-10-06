@@ -23,7 +23,7 @@ ifeq ($(FM1_GPL_MODS),1)
 
 X0X_DIR := third_party/fm1-x0x
 X0X_CFLAGS := -std=c99 -ffp-contract=off $(OPT) $(EXTRA) -w -I$(X0X_DIR) -MMD -MP
-X0X_OBJ := $(BUILD)/gpl/fm1-x0x/dsp/bass303.o
+X0X_OBJ := $(BUILD)/gpl/fm1-x0x/dsp/bass303.o $(BUILD)/gpl/fm1-x0x/seq/tb3po.o
 
 $(BUILD)/gpl/fm1-x0x/%.o: $(X0X_DIR)/%.c
 	@mkdir -p $(dir $@)
@@ -33,7 +33,11 @@ $(BUILD)/gpl/fm1-x0x/%.o: $(X0X_DIR)/%.c
 OUR_SRC += src/acid_bass.cc
 $(BUILD)/our/src/acid_bass.o: COMMON += -I$(X0X_DIR)
 
-GPL_OBJ += $(X0X_OBJ)
+# Acid Gen: our MIDI effect, C99 with the MIDI effects' flags (mk/midi_fx.mk).
+ACIDGEN_OBJ := $(BUILD)/midi_fx/acid_gen.o
+$(ACIDGEN_OBJ): ARP_CFLAGS += -I$(X0X_DIR)
+
+GPL_OBJ += $(X0X_OBJ) $(ACIDGEN_OBJ)
 
 # fm1-acid-oracle (test/acid_oracle.cc): Acid Bass beside a copy of its
 # vendored unit driven directly on the same 16-sample grid, and the unit's
@@ -48,6 +52,6 @@ $(BUILD)/fm1-acid-oracle: $(ACID_ORACLE_OBJ) $(BUILD)/fm1-render
 	$(CXX) $(OPT) $(EXTRA) -o $@ $(ACID_ORACLE_OBJ) \
 	  $(filter-out $(BUILD)/our/host/render.o,$(RENDER_OBJ)) -lm
 
--include $(X0X_OBJ:.o=.d) $(ACID_ORACLE_OBJ:.o=.d)
+-include $(X0X_OBJ:.o=.d) $(ACIDGEN_OBJ:.o=.d) $(ACID_ORACLE_OBJ:.o=.d)
 
 endif

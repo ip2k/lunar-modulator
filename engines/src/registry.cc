@@ -114,6 +114,8 @@ const fm1_licence_t fm1_licences[] = {
   // fm1-x0x (Charles Vestal, GPL-3.0-only): Acid Bass on its 303, which
   // carries Open303 (MIT); our wrapper is MIT.
   { "acid-bass", "GPL-3.0-only AND MIT", "engines/third_party/fm1-x0x" },
+  // ...and Acid Gen (a MIDI effect) on its TB-3PO; our wrapper is MIT.
+  { "acid-gen", "GPL-3.0-only AND MIT", "engines/third_party/fm1-x0x" },
 #endif
 };
 const size_t fm1_licence_count = sizeof(fm1_licences) / sizeof(fm1_licences[0]);

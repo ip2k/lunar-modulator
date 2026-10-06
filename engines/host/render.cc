@@ -116,7 +116,9 @@
 // --seq), which runs on at its tempo while stopped, or --tempo without one;
 // Start resets the effects and Stop flushes them. --log-mfx FILE.jsonl writes
 // what the chains send their sounds, by frame and then unit (so the same at
-// any block size). The summary adds mfx_* counters and
+// any block size). --key ROOT:SCALE sets the project key the effects see
+// (fm1_midi_fx_ctx_t: ROOT 0 C .. 11 B, SCALE 0 major, 1 minor, 2
+// chromatic; C major without it). The summary adds mfx_* counters and
 // notes_hung, the engines' note-ons still without a note-off at the end.
 //
 // Effects with engine API v3's extension (fm1_engine.h, render_ext): every
@@ -226,7 +228,7 @@ void Usage() {
       "                  [--sysex FILE.syx]... [--tempo BPM]\n"
       "                  [--mfx K:ID[:off] [--mfx-param K:NAME=VALUE]...]\n"
       "                  [--mfx-param-at K[.J]:T:NAME=VALUE]... [--mfx-on-at K[.J]:T:0|1]...\n"
-      "                  [--log-mfx FILE.jsonl]\n"
+      "                  [--log-mfx FILE.jsonl] [--key ROOT:SCALE]\n"
       "       fm1-render --list-mod\n"
       "The source is the sound engine, or --input when there is none; each --fx\n"
       "processes it in order, then the bus limiter. --cmd and --seq drive the\n"
@@ -781,6 +783,7 @@ int main(int argc, char **argv) {
   double seconds = 2.0;
   float rate = 44118.0f;
   float tempo = 120.0f;             // --tempo: the effects' tempo without a sequencer
+  int key_root = 0, key_scale = FM1_KEY_MAJOR;   // --key: the project key the effects see
   uint32_t max_frames = 64;
   int fill = 0;
   std::vector<Fault> faults;
@@ -841,7 +844,13 @@ int main(int argc, char **argv) {
     else if (a == "--sysex") sysex_paths.push_back(next);
     else if (a == "--log-mod") mod_log_path = next;
     else if (a == "--log-mfx") mfx_log_path = next;
-    else if (a == "--tempo") {
+    else if (a == "--key") {
+      if (sscanf(next, "%d:%d", &key_root, &key_scale) != 2 || key_root < 0 || key_root > 11 ||
+          key_scale < 0 || key_scale > FM1_KEY_CHROMATIC) {
+        fprintf(stderr, "--key wants ROOT:SCALE, ROOT 0..11, SCALE 0 major, 1 minor, 2 chromatic\n");
+        return 2;
+      }
+    } else if (a == "--tempo") {
       tempo = static_cast<float>(atof(next));
       if (!(tempo >= 20.0f && tempo <= 300.0f)) {
         fprintf(stderr, "--tempo wants 20..300 BPM\n");
@@ -1440,6 +1449,7 @@ int main(int argc, char **argv) {
   if (use_mfx) {
     fm1_mfx_init(&mfx, static_cast<uint32_t>(lrintf(rate)));
     fm1_mfx_set_tempo(&mfx, static_cast<uint32_t>(lrintf(tempo * 100.0f)));
+    fm1_mfx_set_key(&mfx, static_cast<unsigned>(key_root), static_cast<unsigned>(key_scale));
     for (int k = 0; k < kSounds; ++k) {
       for (size_t j = 0; j < mfx_units[k].size(); ++j) {
         fm1_mfx_set(&mfx, unsigned(k), unsigned(j), fm1_midi_fx_of(mfx_units[k][j].e), mfx_units[k][j].self,

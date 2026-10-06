@@ -56,6 +56,12 @@ terms it is used under.
   Two small changes of this project's let it run at the instrument's rate
   and take smooth settings; the rest of its code is included unmodified.
   It is after Roland's TB-303, whose name appears here only as credit.
+- **Acid Gen** is TB-3PO, the line generator of **fm1-x0x** by **Charles
+  Vestal**, GNU GPL version 3 (built in only with the GPL switch on), which
+  ports his **schwung-tb3po** and, through it, the **TB_3PO** applet of the
+  **Phazerville Hemisphere Suite** by **djphazer** and its contributors
+  (GNU GPL version 3). Its code is included unmodified; playing it as an
+  effect in front of a sound is this project's own.
 - **PSX Verb** by **Charles Vestal**, MIT licence, included unmodified.
 - **Schwung**, Charles Vestal's host for modules on the Ableton Move, MIT
   licence. Lunar Modulator includes Schwung's plugin interface unmodified,
@@ -243,7 +249,8 @@ firmware or the simulator.
 
 **GPL code, and the GPL switch.** Some engines and effects port code that
 other projects publish under the GNU General Public License: today Acid
-Bass ([chapter 5](05-sound-engines.md#acid-bass)). Each sits in a folder of
+Bass ([chapter 5](05-sound-engines.md#acid-bass)) and Acid Gen
+([chapter 4](04-playing.md#acid-gen)). Each sits in a folder of
 its own in the repository, with its licence and a note of where it came
 from, and is built in only while the firmware's GPL switch is on.
 While we test, the switch is on in every build, the simulator included.

@@ -469,7 +469,9 @@ This is a synthesis of other people's work. The details are in
 - **fm1-x0x** by **Charles Vestal** (GPL-3.0): Acid Bass is its 303, a port
   of **Open303** by **Robin Schmidt** (MIT) with the Devilfish ranges after
   **jc303** by **midilab** and a RAT drive after **dm-Rat** by **Dave
-  Mollen** (both GPL-3.0), by way of schwung-303.
+  Mollen** (both GPL-3.0), by way of schwung-303; Acid Gen is its TB-3PO,
+  after schwung-tb3po and the Phazerville Hemisphere Suite's TB_3PO by
+  **djphazer** and contributors (GPL-3.0).
 - Sequencer design and logic after Movy by **megadake** (MIT),
   [github.com/DimaDake/schwung-movy](https://github.com/DimaDake/schwung-movy).
 - The arpeggiator, our own code, follows Yarns' arpeggiator by **Emilie
