@@ -1096,6 +1096,9 @@ history.
   ALGORITHM, a second after the last turn for the two pickers. Until now
   PRESETS and the two pickers showed three entries, and ALGORITHM only the
   entry it chose.
+- README: the owner's new opening — project goals (including the Orbital Dock
+  community module marketplace and firmware builder), current status, and
+  why it cannot be flashed yet.
 - **New pictures of the virtual FM-1, and a manual brought up to date with
   it.**
   - The README's picture and the phone picture show the page as it is now:
