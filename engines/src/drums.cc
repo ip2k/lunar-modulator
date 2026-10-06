@@ -30,12 +30,22 @@
 // closed hat takes the open hat's rather than cutting another pad. A voice
 // ends once it has stayed under -80 dBFS for 10 ms.
 //
+// Choke groups (owner's decision, 2026-10-06). Each pad has a Choke: Kit
+// (the default: the group its kit gives it, the hi-hats' in both kits),
+// None, or Group 1-4. A hit cuts every voice of another pad in its group;
+// a pad's group is read when it is struck (LATCH), and the kit's group stays
+// the pad's whatever model it plays. Group 1 is the hats' own, so a pad set
+// to it chokes with them.
+//
 // The parameters. Pad chooses which pad the per-pad parameters edit, as on
 // Sophie; each of the 16 pads keeps its own Tune, Decay, Level, Tone, Snap,
-// Sweep, Drive and Model. Kit, Accent and Volume are the whole kit's. Twelve
-// in all: the most a sound engine may have while four of the largest fit
-// the modulation runtime's shared records beside ten of the largest effects
-// (FM1_MOD_SINK_PARAMS, tests/test_engines_mod_runtime.py). Every per-pad
+// Sweep, Drive, Model and Choke. Kit, Accent, Volume and Kit Decay are the
+// whole kit's: Kit Decay scales every pad's decay about its own (below).
+// Fourteen in all. Drums had twelve while the modulation runtime's shared
+// records held four of a twelve-parameter sound beside ten of the largest
+// effects; they grew for glide (FM1_MOD_SINK_PARAMS,
+// tests/test_engines_mod_runtime.py), and the owner gave Drums the two
+// back on 2026-10-06. Every per-pad
 // knob is relative to the pad's voicing (the kit's table below): Tune 0 and
 // the 0..1 knobs at 0.5 are the pad as voiced, so one default fits all
 // sixteen and a fresh kit shows true values on every pad. Model starts at
@@ -44,12 +54,25 @@
 // voicings: Deep, the long, round analogue kit, and Punch, the shorter,
 // harder one with the synthetic kick and snare and the ring-modulated hats.
 //
+// Kit Decay, 0..1: at 0.5 (the default) every pad decays as its own Decay
+// says, bit for bit; below, every pad's decay control is scaled down with
+// it, to the models' shortest at 0; above, every pad's moves toward the
+// models' longest at 1 (About, below, on the pad's own decay).
+//
 // Flags. Every FLOAT is SMOOTH, MOD and POLY. The per-pad ones ramp in the
 // pad's own values (a ramp keeps going on its pad when Pad moves on), and
-// only while that pad sounds; the kit's ramp while any voice sounds. Model
-// and Kit are read when a pad is struck (LATCH, and MOD: a route is
+// only while that pad sounds; the kit's ramp while any voice sounds. Model,
+// Choke and Kit are read when a pad is struck (LATCH, and MOD: a route is
 // rounded): a sounding hit keeps what it started with. Pad is the edit
 // focus, lockable without MOD, as Sophie's (owner, docs/15 S8).
+//
+// Saving (engine API v4, the state core, not landed when these two came):
+// Choke is per pad, as Model is: kept in pads_[p].choke, so a state save
+// walks Pad 1-16 and reads each pad's Choke (and Model, and Tune .. Drive);
+// Kit Decay is the kit's, kept in value_[P_KIT_DECAY] as Accent and Volume
+// are. v4's get_param must report pads_[focus_].choke for P_CHOKE and mark
+// it per pad (focus: Pad), and report P_KIT_DECAY's set value, not its
+// ramp.
 //
 // Per-note offsets (set_param_note; note_offsets.h): a hit's offsets ride on
 // its pad's values, ramped, and on the kit's; the pitch offset moves the
@@ -230,15 +253,24 @@ const char *const kKitNames[kNumKits] = { "Deep", "Punch" };
 enum Param {
   P_PAD, P_TUNE, P_DECAY, P_LEVEL,         // page 1: the pad
   P_TONE, P_SNAP, P_SWEEP, P_DRIVE,        // page 2: its sound
-  P_MODEL, P_KIT, P_ACCENT, P_VOLUME,      // page 3: its model, and the kit's
+  P_MODEL, P_KIT, P_ACCENT, P_VOLUME,      // page 3: its model (and Choke); page 4: the kit's
+  P_CHOKE, P_KIT_DECAY,                    // 2026-10-06: page 3, and page 4
   P_COUNT
+};
+
+// The Choke list: the kit's group for the pad, none, or one of four.
+const int kChokeKit = 0;
+const int kChokeNone = 1;
+const int kChokeGroups = 4;
+const char *const kChokeNames[2 + kChokeGroups] = {
+  "Kit", "None", "Group 1", "Group 2", "Group 3", "Group 4",
 };
 
 // The per-pad FLOATs, P_TUNE .. P_DRIVE, kept per pad with their ramps.
 const int kPadFloats = P_DRIVE - P_TUNE + 1;
 
 // Uids (API v2) are fixed: never renumber one, and give a new parameter the
-// next free uid.
+// next free uid. Pages: the pad on 1 to 3, the kit on 4.
 const uint16_t kFloat = FM1_PARAM_CONTINUOUS | FM1_PARAM_POLY;
 const uint16_t kLatch = FM1_PARAM_LATCH | FM1_PARAM_MOD;
 const fm1_param_t kParams[P_COUNT] = {
@@ -251,14 +283,17 @@ const fm1_param_t kParams[P_COUNT] = {
   { "Sweep",     FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 1, 7, kFloat, FM1_UNIT_NONE, "Sweep" },
   { "Drive",     FM1_PARAM_FLOAT, 0, 1, 0.0f, NULL, 1, 8, kFloat, FM1_UNIT_NONE, "Drive" },
   { "Model",     FM1_PARAM_ENUM,  0, MODEL_COUNT, 0, kModelNames, 2, 9, kLatch, FM1_UNIT_NONE, "Model" },
-  { "Kit",       FM1_PARAM_ENUM,  0, kNumKits - 1, 0, kKitNames, 2, 10, kLatch, FM1_UNIT_NONE, "Kit" },
-  { "Accent",    FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 2, 11, kFloat, FM1_UNIT_NONE, "Accent" },
-  { "Volume",    FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 2, 12, kFloat, FM1_UNIT_NONE, "Vol" },
+  { "Kit",       FM1_PARAM_ENUM,  0, kNumKits - 1, 0, kKitNames, 3, 10, kLatch, FM1_UNIT_NONE, "Kit" },
+  { "Accent",    FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 3, 11, kFloat, FM1_UNIT_NONE, "Accent" },
+  { "Volume",    FM1_PARAM_FLOAT, 0, 1, 0.7f, NULL, 3, 12, kFloat, FM1_UNIT_NONE, "Vol" },
+  { "Choke",     FM1_PARAM_ENUM,  0, 1 + kChokeGroups, kChokeKit, kChokeNames, 2, 13, kLatch,
+    FM1_UNIT_NONE, "Choke" },
+  { "Kit Decay", FM1_PARAM_FLOAT, 0, 1, 0.5f, NULL, 3, 14, kFloat, FM1_UNIT_NONE, "KDecay" },
 };
 
-// A voice's per-note offsets: Tune .. Volume (Model and Kit are not POLY,
-// so their indices are refused), and its pitch.
-typedef NoteOffsets<P_TUNE, P_VOLUME - P_TUNE + 1> Offsets;
+// A voice's per-note offsets: Tune .. Kit Decay (Model, Kit and Choke are
+// not POLY, so their indices are refused), and its pitch.
+typedef NoteOffsets<P_TUNE, P_KIT_DECAY - P_TUNE + 1> Offsets;
 
 // ---- the instance ---------------------------------------------------------------------
 
@@ -294,6 +329,7 @@ struct Pad {
   float value[kPadFloats];        // Tune .. Drive as the voices read them (ramped)
   fm1_smooth_t ramp[kPadFloats];
   uint8_t model;                  // the Model parameter: 0 the kit's, else model + 1
+  uint8_t choke;                  // the Choke parameter: kChokeKit, kChokeNone or a group + 1
   uint32_t rng;                   // its noise generator's state
 };
 
@@ -320,7 +356,7 @@ struct Voice {
 // offsets.
 struct Controls {
   float tune, decay, level, tone, snap, sweep, drive;   // the pad's knobs
-  float accent, volume;                                 // the kit's
+  float accent, volume, kit_decay;                      // the kit's
 };
 
 // x mapped so that 0.5 gives `at`, 0 gives lo and 1 gives hi, linearly on
@@ -356,6 +392,7 @@ class Instance {
       for (int k = 0; k < kPadFloats; ++k) pad.value[k] = kParams[P_TUNE + k].def;
       fm1_smooth_init(pad.ramp, pad.value, kPadFloats);
       pad.model = 0;
+      pad.choke = kChokeKit;
       pad.rng = 0x21u + 0x9E3779B9u * static_cast<uint32_t>(p);
     }
     ramping_ = 0;
@@ -386,7 +423,7 @@ class Instance {
     const Voicing *kit = &kKits[kit_][p];
     const int model = pad.model ? pad.model - 1 : kit->model;
     const Voicing *voicing = model == kit->model ? kit : &kModelVoicing[model];
-    const int choke = kit->choke;
+    const int choke = ChokeGroup(pad, *kit);
 
     // The group's other pads fade out. Marked first, so that with every
     // voice busy the hit takes the voice it cuts (Allocate prefers a choked
@@ -435,6 +472,8 @@ class Instance {
       if (pad.ramp[k].left) ramping_ |= 1u << focus_;
     } else if (index == P_MODEL) {
       pads_[focus_].model = static_cast<uint8_t>(value + 0.5f);
+    } else if (index == P_CHOKE) {
+      pads_[focus_].choke = static_cast<uint8_t>(value + 0.5f);
     } else if (index == P_KIT) {
       kit_ = static_cast<int>(value + 0.5f);
     } else {
@@ -478,6 +517,13 @@ class Instance {
       if (voice_[i].active && (p < 0 || voice_[i].pad == p)) return true;
     }
     return false;
+  }
+
+  // The choke group a hit on `pad` joins (0: none): its Choke, or with Choke
+  // on Kit the group its kit's voicing gives the pad.
+  static int ChokeGroup(const Pad &pad, const Voicing &kit) {
+    if (pad.choke == kChokeKit) return kit.choke;
+    return pad.choke == kChokeNone ? 0 : pad.choke - 1;
   }
 
   // A voice's level for stealing: a hit not rendered yet counts as loud.
@@ -534,6 +580,7 @@ class Instance {
     }
     c.accent = v.note.Value(kParams, P_ACCENT, value_[P_ACCENT]);
     c.volume = v.note.Value(kParams, P_VOLUME, value_[P_VOLUME]);
+    c.kit_decay = v.note.Value(kParams, P_KIT_DECAY, value_[P_KIT_DECAY]);
     return c;
   }
 
@@ -547,7 +594,10 @@ class Instance {
     // The class's accent: 0.8 (Plaits' with no LEVEL patched) at Accent 0,
     // the velocity itself at 1.
     const float accent = 0.8f + c.accent * (v.velocity - 0.8f);
-    const float decay = About(w.decay, c.decay, 0.0f, 1.0f);
+    // The pad's decay about its voicing's, then Kit Decay about that: at
+    // 0.5 About returns its `at` exactly, so the default changes no bit.
+    const float pad_decay = About(w.decay, c.decay, 0.0f, 1.0f);
+    const float decay = About(pad_decay, c.kit_decay, 0.0f, 1.0f);
     const float tone = About(w.tone, c.tone, 0.0f, 1.0f);
     const float snap = About(w.snap, c.snap, 0.0f, 1.0f);
     const bool native_sweep = NativeSweep(v.model);

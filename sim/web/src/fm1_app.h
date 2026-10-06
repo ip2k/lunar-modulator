@@ -253,7 +253,7 @@ enum {
  * block's writes to the effects and AMP (every effect parameter and AMP
  * twice: two ticks a 64-frame block). The runtime counts in the RAM figure
  * while it runs. */
-#define FM1_APP_MOD_BYTES 26624u
+#define FM1_APP_MOD_BYTES 26880u
 #define FM1_APP_MOD_WRITES \
   ((FM1_APP_MAX_FRAMES / FM1_MOD_TICK) * (FM1_APP_EFFECTS * FM1_MOD_UNIT_PARAMS + FM1_MOD_HOST_PARAMS))
 #define FM1_APP_MOD_SEED 1u           /* fm1_app_init's runtime; a log records it */
@@ -325,6 +325,7 @@ typedef struct fm1_app_unit {
   unsigned char *mem;            /* this unit's arena */
   size_t cap;
   float value[FM1_APP_MAX_PARAMS];
+  int driven;                    /* FM1_PARAM_DRIVEN as last sent (0: as created) */
 } fm1_app_unit_t;
 
 /* A tick's write to an effect or to AMP, at its frame in the block. */

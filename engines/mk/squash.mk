@@ -17,11 +17,19 @@
 OUR_SRC += src/fx_squash.cc src/fx_shaper.cc
 
 SQUASH_TEST_OBJ := $(BUILD)/our/test/squash_test.o
+# Squash without Mu's partial makeup (2026-10-06), the code as it was, under
+# the name fm1_engine_squash_ref: the oracle's cases and the makeup's checks
+# compare with it.
+SQUASH_REF_OBJ := $(BUILD)/squash-ref/fx_squash.o
 
 all: $(BUILD)/fm1-squash-test
 
+$(BUILD)/squash-ref/fx_squash.o: src/fx_squash.cc
+	@mkdir -p $(dir $@)
+	$(CXX) $(COMMON) $(OUR_WARN) -DFM1_SQUASH_MU_MAKEUP=0 -Dfm1_engine_squash=fm1_engine_squash_ref -c $< -o $@
+
 $(BUILD)/fm1-squash-test: $(SQUASH_TEST_OBJ) $(BUILD)/our/src/fx_squash.o $(BUILD)/our/src/fx_shaper.o \
-                         $(BUILD)/our/src/fx_limit.o
+                         $(BUILD)/our/src/fx_limit.o $(SQUASH_REF_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
 
--include $(SQUASH_TEST_OBJ:.o=.d)
+-include $(SQUASH_TEST_OBJ:.o=.d) $(SQUASH_REF_OBJ:.o=.d)

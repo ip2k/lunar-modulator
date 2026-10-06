@@ -29,6 +29,14 @@
 //             not heard; every knob re-sent every block at pass-through and
 //             EQ's Mid Freq swept across the settings that never idle (the
 //             input throughout); and rests and wakes at 8, 96 and 384 kHz;
+//   driven    (2026-10-06) FM1_PARAM_DRIVEN, the host's word that a lock
+//             lane or a cable reaches the effect: driven from the start,
+//             the short locks after a long rest are heard, bit for bit as
+//             the reference plays them, and pass-through is still the
+//             guarded input; driven from inside a rest, the effect wakes at
+//             once and a lock 0.5 s later is heard; undriven again, it
+//             idles after its rest and loses a short lock as before; the
+//             same bits at blocks of 64, 7 and 1;
 //   bound     fm1_idle_svf_decay against the exact decay of the slowest
 //             mode of a TPT state-variable section, over g and k;
 //   --hash    for cross-build checks: each effect through rests, wakes and
@@ -78,7 +86,9 @@ struct Ev {
 };
 typedef std::vector<Ev> Events;
 
+// A parameter's index, or "*driven" for the host's FM1_PARAM_DRIVEN.
 int Index(const fm1_engine_t &e, const char *name) {
+  if (strcmp(name, "*driven") == 0) return FM1_PARAM_DRIVEN;
   for (uint16_t i = 0; i < e.n_params; ++i) {
     if (strcmp(e.params[i].name, name) == 0) return i;
   }
@@ -534,6 +544,36 @@ void Hostile() {
            c ? "," : "", l.fx, l.label, SameBits(out_late, guarded) ? "true" : "false",
            SameBits(ref_late, guarded) ? "false" : "true",
            SameBits(Run(*fx.idle, in, early, 64), Run(*fx.ref, in, early, 64)) ? "true" : "false");
+  }
+  printf("}");
+
+  // Driven (FM1_PARAM_DRIVEN, owner's decision 2026-10-06): an effect a lock
+  // lane or a cable reaches never idles, so the same locks are heard, as the
+  // reference (which never idles) plays them, bit for bit.
+  printf(",\"driven\":{");
+  for (size_t c = 0; c < sizeof(locks) / sizeof(locks[0]); ++c) {
+    const Lock &l = locks[c];
+    const Fx &fx = FxOf(l.fx);
+    const Buf in = Music(n, 0.8f, 11);
+    const float def = fx.idle->params[Index(*fx.idle, l.name)].def;
+    const Events plain = { { wake, l.name, l.value }, { wake + l.len, l.name, def } };
+    Events from_start(plain), from_rest(plain), undriven(plain), only = { { 0, "*driven", 1.0f } };
+    from_start.push_back({ 0, "*driven", 1.0f });
+    from_rest.push_back({ wake - kSecond / 2, "*driven", 1.0f });       // idle since 2 s
+    undriven.push_back({ 0, "*driven", 1.0f });
+    undriven.push_back({ kSecond / 2, "*driven", 0.0f });               // idle again from 2.5 s
+    Buf guarded(in);
+    for (float &x : guarded) x = Guard(x);
+    const Buf ref = Run(*fx.ref, in, plain, 64);
+    const Buf start = Run(*fx.idle, in, from_start, 64);
+    const int blocks = !SameBits(start, Run(*fx.idle, in, from_start, 7)) +
+                       !SameBits(start, Run(*fx.idle, in, from_start, 1, 0xA5));
+    printf("%s\"%s/%s\":{\"heard_as_ref\":%s,\"pass_input\":%s,\"woken_heard\":%s,"
+           "\"undriven_lost\":%s,\"block_mismatch\":%d}", c ? "," : "", l.fx, l.label,
+           SameBits(start, ref) ? "true" : "false",
+           SameBits(Run(*fx.idle, in, only, 64), guarded) ? "true" : "false",
+           SameBits(Run(*fx.idle, in, from_rest, 64), guarded) ? "false" : "true",
+           SameBits(Run(*fx.idle, in, undriven, 64), guarded) ? "true" : "false", blocks);
   }
   printf("}");
 

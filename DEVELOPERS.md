@@ -131,9 +131,11 @@ in a desktop renderer, in a browser and, later, on the FM-1.
 
 ### The engine platform
 
-- **The API:** six swappable sound engines and twenty-two effects (Comb
-  split out of Filter, Squash and Transient added on 2026-10-05), plus test
-  engines, behind one C API, version 3
+- **The API:** seven swappable sound engines (Macro, Shapes, Macro Heavy,
+  Six-Op FM, FM6, Sophie and Drums: the registry's sound engines less Test
+  Sine) and twenty-two effects (Comb split out of Filter, Squash and
+  Transient added on 2026-10-05), plus test engines, behind one C API,
+  version 3
   ([`engines/include/fm1_engine.h`](engines/include/fm1_engine.h);
   [engines/README.md, "Engine API v3"](engines/README.md#engine-api-v3)):
   16-bit parameter flags with the LOG law for pitch- and time-like knobs, a
@@ -156,7 +158,8 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     - **Drums:** Plaits' drum classes for its kicks, toms, snares and
       hi-hats, in a 16-pad kit with a rim shot, clap, cowbell and cymbal of
       our own, after Werner, Abel and Smith's TR-808 cowbell and cymbal
-      models ([`engines/README.md`](engines/README.md#drums)).
+      models, with per-pad choke groups and a kit-wide decay
+      ([`engines/README.md`](engines/README.md#drums)).
     - **Plate:** Rings' reverb, with a Freeze after Elements'.
     - **Room:** Clouds' reverb and diffuser.
     - **Ensemble and Diffuse:** Plaits' ensemble and diffuser.
@@ -186,10 +189,20 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     Transient (a transient shaper) are our own code
     ([`engines/README.md`](engines/README.md#crush)). Squash (three
     compressors: Snap, Mu and Split) ports Airwindows Pop3, Pressure4 and
-    ButterComp2 (Chris Johnson, MIT) to single precision without libm, and
-    the Limiter's Round mode ports ClipOnly2, both checked against the
-    upstream loops run in a container
+    ButterComp2 (Chris Johnson, MIT) to single precision without libm, Mu
+    with a partial makeup of our own that adds no clipping, and the
+    Limiter's Round mode ports ClipOnly2 (its 3 dB of headroom over the
+    ceiling, left to the rounding stage, is by design), both checked
+    against the upstream loops run in a container
     ([`engines/README.md`](engines/README.md#squash)).
+- **Glide and voice modes** on the five pitched engines: Poly, Mono and
+  Legato; Glide Mode Off, Legato (fingered) or Always (full-time, as the
+  stock FM-1 has); Time Mode Time (constant time) or Rate (time per
+  octave) ([`engines/README.md`](engines/README.md#glide-and-voice-modes)).
+- **Idle paths:** EQ, Isolator and Master Sat idle at their pass-through
+  settings after 2 s, unless a lock lane or a modulation cable reaches
+  them: the host's `FM1_PARAM_DRIVEN` word
+  ([`engines/README.md`](engines/README.md#idle-at-pass-through)).
 - **Macro and Macro Heavy, page 3:** Plaits' envelope amounts (Env Pitch,
   Env Timbre, Env Morph) and its low-pass gate modes (Gate, Ping, Off),
   checked sample for sample against upstream `Voice`
@@ -566,7 +579,7 @@ which lands with the plan PR; its stages S0–S7 are named below.
 **Screen and controls refinement** · *In progress*
 - **Depends on:** the simulator (ongoing). On the device: the TFT strip
   driver, key matrix and encoders (I12), and one sized arena for the app
-  layer, whose `fm1_app_t` is 4,939,616 B today (4.5 MiB of it the fixed
+  layer, whose `fm1_app_t` is 4,939,984 B today (4.5 MiB of it the fixed
   arenas of multi-sound's four sound units and ten effect slots), the
   sequencer's arena included, against 578 KB of SRAM
   [verified: sim/web/README.md] (I2).
