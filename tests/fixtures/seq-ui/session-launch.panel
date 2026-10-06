@@ -1,0 +1,12 @@
+# Session (S9): SEQ, then SEQ tapped inside SEQ mode opens Session. White
+# key 1 launches track 1's slot 1 (`launch 0 0`, which starts the
+# transport); key 3 queues its slot 3 for the bar; key 10 focuses track 2
+# (`watch 1`), whose key 2 is an empty slot: the track stops on the bar.
+# PLAY/STOP stops.
+--button 0.05:SEQ
+--button 0.10:SEQ
+--key 0.20:0:100:0.05
+--key 0.60:4:100:0.05
+--key 1.30:16:100:0.05
+--key 1.40:2:100:0.05
+--button 2.50:PLAY/STOP

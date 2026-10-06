@@ -49,6 +49,7 @@ ROLE_MUTE, ROLE_PREV, ROLE_NEXT = (1 << BLACK.index(MUTE_KEY), 1 << BLACK.index(
 
 
 S6_PREFIXES = ("track-", "mute-", "set-", "metro-", "clip-", "pages-")
+S9_PREFIXES = ("session-", "song-")             # Session and the Song page, from song.verbs
 
 
 def trace_engine(stem):
@@ -58,7 +59,8 @@ def trace_engine(stem):
 def trace_input(stem):
     default = ("steps.verbs" if stem.startswith(("step-", "lock-")) else
                "rec.verbs" if stem.startswith(("rec-", "capture-")) else
-               "tracks.verbs" if stem.startswith(S6_PREFIXES) else "input.verbs")
+               "tracks.verbs" if stem.startswith(S6_PREFIXES) else
+               "song.verbs" if stem.startswith(S9_PREFIXES) else "input.verbs")
     return TRACES / TRACE_INPUT.get(stem, default)
 
 
@@ -115,7 +117,9 @@ def test_a_trace_logs_its_golden_verbs_and_replays_byte_for_byte(tools, tmp_path
     if panel.stem != "seq-enter-exit":
         # Something starts the transport: PLAY/STOP, REC from stopped, or a
         # stopped Capture.
-        assert {"play", "rec 0", "cap 0"} & set(played) and s["peak"] > 0.01
+        # Session (S9): a launch or a scene starts it too.
+        assert ({"play", "rec 0", "cap 0"} & set(played) or
+                {t.split()[0] for t in played} & {"launch", "scene", "song"}) and s["peak"] > 0.01
     if panel.stem.startswith("play-"):
         assert played[0] == "play"
 

@@ -1956,14 +1956,13 @@ int fm1_seq_ui_encoder(fm1_seq_ui_t *u, const fm1_seq_t *s, int encoder, int del
   if (u->confirm && delta) return 1;         /* the confirm swallows turns (SG9) */
   if (mode != FM1_MODE_SEQ || delta == 0) return 0;
   if (u->view == FM1_SEQ_VIEW_SONG && !u->held_n) {   /* the Song page (S9+) */
-    const int d = delta > 0 ? 1 : -1;
-    switch (encoder) {
+    switch (encoder) {                       /* a detent a step; a fast turn, more */
       case FM1_ENC_SELECT: song_cursor(u, delta); return 1;
-      case FM1_ENC_KNOB1: song_scene(u, s, d, out); return 1;
-      case FM1_ENC_KNOB2: song_repeats(u, s, d, 1, out); return 1;
-      case FM1_ENC_KNOB3: song_name(u, s, d, out); return 1;
+      case FM1_ENC_KNOB1: song_scene(u, s, delta, out); return 1;
+      case FM1_ENC_KNOB2: song_repeats(u, s, delta, 1, out); return 1;
+      case FM1_ENC_KNOB3: song_name(u, s, delta, out); return 1;
       case FM1_ENC_KNOB4: {
-        const int end = clampi(u->song_end + d, FM1_SEQ_SONG_LOOP, FM1_SEQ_SONG_STOP);
+        const int end = clampi(u->song_end + delta, FM1_SEQ_SONG_LOOP, FM1_SEQ_SONG_STOP);
         if (end != u->song_end) {
           const int64_t arg[1] = { end };
           emit(out, FM1_SEQ_V_SGEND, 1, arg);
