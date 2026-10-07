@@ -730,7 +730,7 @@ const links = {
   bogus: await tryLink('view=edit&sel=s1:NoSuchParameter', true),
 };
 await linkPage.close();
-links.offsite = linkReq.filter((u) => !u.startsWith(url) && !u.startsWith('data:') && !u.startsWith('blob:'));
+links.offsite = linkReq.filter((u) => !u.startsWith('data:') && !u.startsWith('blob:') && new URL(u).origin !== new URL(url).origin);
 links.log = linkLog;
 report.ed4.links = links;
 check('view=edit&sel=s1:Harmonics opens the editor at that parameter', links.param.layout === 'editor' && links.param.row === 's1:2' &&
