@@ -665,7 +665,7 @@
 .ed-map-more { color: var(--muted); font-size: 0.8rem; min-height: 24px; text-align: left; }
 .ed-map-more:hover { color: var(--text); }
 .ed-map-morelist { display: none; flex-direction: column; gap: 2px; }
-.ed-map.is-patching .ed-map-morelist { display: flex; }
+.ed-map-morelist.is-open, .ed-map.is-patching .ed-map-morelist { display: flex; }
 .ed-map-none { margin: 2px 0 0; }
 
 /* Jacks sit on the edges of their blocks; the hit area is 24 px. */
@@ -678,7 +678,7 @@
 .ed-jack.is-wired { border-color: var(--live); background: var(--live); }
 .ed-jack.is-stub { border-style: dashed; cursor: default; }
 .ed-jack-in { margin-left: -5px; }
-.ed-jack-out { margin-right: -5px; }
+.ed-jack-out { margin-right: -5px; touch-action: none; }
 .ed-jack.is-hand { border-color: var(--held); background: var(--held); }
 .ed-map.is-patching .ed-jack-in { border-color: var(--select); }
 .ed-jack.is-aim.is-ok { background: var(--select); }

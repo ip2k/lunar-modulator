@@ -256,6 +256,42 @@ check('a refused cable adds no fault', ref.faults.length === 0, ref.faults);
 await page.screenshot({ path: join(out, 'ed5b-map-refused.png') });
 await page.evaluate(async () => { const ed = window.fm1.editor; const i = Number(document.querySelector('.ed-map-pill.is-refused').dataset.cable); ed.chains.cableSet(i, 'voice', false, {}); await new Promise((r) => setTimeout(r, 600)); ed.undo(); await new Promise((r) => setTimeout(r, 900)); });
 
+// ---- C's verdict over an input, for a cable the planner leaves out; and "n more" opens ------------------------------
+const nl = await page.evaluate(async () => {
+  const ed = window.fm1.editor;
+  let nk = null, np = null;
+  for (const [k, b] of ed.state.mirror.blocks) {
+    const e = /^s[1-4]$/.test(k) ? ed.meta.engine(b.engine) : null;
+    const p = e && e.params.find((x) => (x.flags || []).includes('nolock'));
+    if (p) { nk = k; np = p; break; }
+  }
+  if (!np) return { skipped: true };
+  const v = await ed.chains.map.verdictFor(0, `${ed.mm.unitCode(nk)}:${np.uid}:0`);
+  return { v, words: ed.meta.refusalWords(34), param: np.name };
+});
+report.nolock = nl;
+check('the verdict over an input that rebuilds the voices is C\'s planner code (34), in the metadata\'s words, with the parameter named', nl.skipped || (nl.v && nl.v.ok === false && nl.v.code === 34 && nl.v.text.startsWith(nl.words) && nl.v.text.includes(nl.param)), nl);
+const more = await page.evaluate(async () => {
+  const w = (ms) => new Promise((r) => setTimeout(r, ms));
+  const ed = window.fm1.editor;
+  ed.state.mapMode = 'all';
+  document.querySelector('.ed-out-mod').click();
+  await w(700);
+  const btn = [...document.querySelectorAll('.ed-map-dsts .ed-map-more')].find((b) => /more/.test(b.textContent) && b.getAttribute('aria-expanded') === 'false');
+  const list = btn.parentNode.querySelector('.ed-map-morelist');
+  const hidden0 = list.getClientRects().length === 0;
+  btn.click();
+  await w(500);
+  const shown = list.getClientRects().length > 0 && btn.getAttribute('aria-expanded') === 'true' && /▾/.test(btn.textContent);
+  const faults = ed.chains.map.faults();
+  const cables = ed.chains.map.stats().cables;
+  btn.click();
+  await w(400);
+  return { hidden0, shown, faults, cables, closed: list.getClientRects().length === 0 };
+});
+report.more = more;
+check('"n more" opens a block\'s other parameters and closes them again, with the cables still joined and no faults', more.hidden0 && more.shown && more.closed && more.faults.length === 0 && more.cables >= 3, more);
+
 // ---- live values ---------------------------------------------------------------------------------------------------
 await page.evaluate(() => window.fm1.node.port.postMessage({ type: 'note-on', note: 64, velocity: 100 }));
 await wait(700);

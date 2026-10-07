@@ -181,6 +181,21 @@ export function makeMap(ctx, h) {
   }
 
   // ---- the rack -------------------------------------------------------------------------
+  // "n more": the parameters of a block that have no cable yet, folded until asked for.
+  function moreToggle(key, n, list) {
+    const word = (on) => `${on ? '▾' : '▸'} ${n} more`;
+    const isOpen = open('mapOpen').has(key);
+    return el('button', 'ed-map-more ed-map-btn', { type: 'button', 'aria-expanded': String(isOpen), 'data-fk': `mp:o${key}`, text: word(isOpen),
+      onclick: (e) => {
+        const o = open('mapOpen');
+        const now = !o.has(key);
+        if (now) o.add(key); else o.delete(key);
+        list.classList.toggle('is-open', now);
+        e.currentTarget.setAttribute('aria-expanded', String(now));
+        e.currentTarget.textContent = word(now);
+        layout();
+      } });
+  }
   function moduleBlock(pos) {
     const key = modKey(pos);
     const blk = ctx.blockOf(key);
@@ -209,10 +224,8 @@ export function makeMap(ctx, h) {
     const moreP = e.params.filter((p) => hasFlag(p, 'mod') && !shownP.includes(p));
     for (const p of shownP) rowIn(p.uid, false, p.name, hasFlag(p, 'poly'));
     if (moreP.length) {
-      const isOpen = open('mapOpen').has(key);
-      ins.append(el('button', 'ed-map-more ed-map-btn', { type: 'button', 'aria-expanded': String(isOpen), 'data-fk': `mp:o${key}`, text: `${isOpen ? '▾' : '▸'} ${moreP.length} more`,
-        onclick: () => { const o = open('mapOpen'); if (o.has(key)) o.delete(key); else o.add(key); layout(); relabel(); } }));
-      const more = el('div', 'ed-map-morelist', { 'data-more': key });
+      const more = el('div', `ed-map-morelist${open('mapOpen').has(key) ? ' is-open' : ''}`, { 'data-more': key });
+      ins.append(moreToggle(key, moreP.length, more));
       for (const p of moreP) more.append(el('div', 'ed-map-row ed-map-in', {}, [inJack(unit, p.uid, false, destName({ src: 1, via: NONE, unit, dst: p.uid, flags: SLOT_ON, amount: 1, offset: 0 }), hasFlag(p, 'poly')), el('span', 'ed-map-t', { text: p.name })]));
       ins.append(more);
     }
@@ -257,10 +270,8 @@ export function makeMap(ctx, h) {
     for (const p of shown) row(p);
     if (!shown.length) box.append(el('span', 'ed-map-t ed-map-note ed-map-none', { text: 'no cables' }));
     if (more.length) {
-      const isOpen = open('mapOpen').has(key);
-      box.append(el('button', 'ed-map-more ed-map-btn', { type: 'button', 'aria-expanded': String(isOpen), 'data-fk': `mp:o${key}`, text: `${isOpen ? '▾' : '▸'} ${more.length} more`,
-        onclick: () => { const o = open('mapOpen'); if (o.has(key)) o.delete(key); else o.add(key); layout(); relabel(); } }));
-      const list = el('div', 'ed-map-morelist', { 'data-more': key });
+      const list = el('div', `ed-map-morelist${open('mapOpen').has(key) ? ' is-open' : ''}`, { 'data-more': key });
+      box.append(moreToggle(key, more.length, list));
       for (const p of more) list.append(el('div', 'ed-map-row ed-map-in', {}, [
         inJack(unit, p.uid, false, destName({ src: 1, via: NONE, unit, dst: p.uid, flags: SLOT_ON, amount: 1, offset: 0 }), hasFlag(p, 'poly')),
         el('span', 'ed-map-t', { text: p.name }), hasFlag(p, 'poly') ? el('span', 'ed-poly', { role: 'img', 'aria-label': 'per voice', text: 'v' }) : null]));
@@ -342,7 +353,10 @@ export function makeMap(ctx, h) {
     for (const col of Object.values(cols)) rove(col);
     wire(map);
     if (obs) obs.disconnect();
-    obs = new ResizeObserver(() => layout());
+    // Re-drawn a frame later: laying out changes the map's own padding, and a change made inside the
+    // observer's callback is the loop WebKit reports as an error.
+    let queued = false;
+    obs = new ResizeObserver(() => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; layout(); }); } });
     obs.observe(map);
     requestAnimationFrame(() => layout());
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => layout());
@@ -350,7 +364,6 @@ export function makeMap(ctx, h) {
   }
   // The hint line over the map says what is in hand.
   function say(text) { const p = map && map.parentNode && map.parentNode.querySelector('.ed-map-hand'); if (p) p.textContent = text; }
-  function relabel() { if (map) map.classList.toggle('is-patching', !!patch); }
 
   // ---- keyboard: one tab stop per column, arrows inside ---------------------------------------
   function items(col) { return [...col.querySelectorAll('button')].filter((b) => visible(b) && !b.disabled); }
@@ -430,10 +443,16 @@ export function makeMap(ctx, h) {
     const r = await preview([rec], false, true);
     if (!r) return { ok: true, text: 'Drop to patch' };
     const code = r.codes[0];
-    if (code) return { ok: false, text: verdictWords(code) };
+    if (code) return { ok: false, code, text: verdictWords(code) };
     const mod = r.mod ? decodeMod(r.mod) : null;
     const v = mod ? mod.verdicts[free] : 0;
-    return v ? { ok: false, text: `${verdictWords(v)} (kept, and runs once this is put right)` } : { ok: true, text: 'Runs' };
+    if (!v) return { ok: true, text: 'Runs' };
+    // The planner's own code, in the metadata's words, with the names it leaves to fill in.
+    const [u, d, g] = dst.split(':').map(Number);
+    const blk = ctx.blockOf(mm.unitKey(u));
+    const p = blk && !g ? meta.param(blk.engine, d) : null;
+    const to = h.destName({ src, via: NONE, unit: u, dst: d, flags: SLOT_ON | (g ? GATE_DST : 0), amount: 0, offset: 0 });
+    return { ok: false, code: v, text: `${verdictWords(v, { from: srcName(src), to, param: p ? p.name : to })} (the cable is kept, and runs once this is put right)` };
   }
   function wire(root) {
     root.addEventListener('click', (e) => {
@@ -468,9 +487,16 @@ export function makeMap(ctx, h) {
         const to = t && t.closest ? t.closest('button.ed-jack-in') : null;
         if (to !== patch.over) aim(to);
       };
+      const cancel = () => {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+        window.removeEventListener('pointercancel', cancel);
+        if (dragging && patch) end(false);
+      };
       const up = (ev) => {
         window.removeEventListener('pointermove', move);
         window.removeEventListener('pointerup', up);
+        window.removeEventListener('pointercancel', cancel);
         if (dragging) {
           const t = document.elementFromPoint(ev.clientX, ev.clientY);
           const to = t && t.closest ? t.closest('button.ed-jack-in') : null;
@@ -483,6 +509,7 @@ export function makeMap(ctx, h) {
       };
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', up);
+      window.addEventListener('pointercancel', cancel);
     });
     root.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && patch) { e.stopPropagation(); e.preventDefault(); end(false); return; }
@@ -682,5 +709,5 @@ export function makeMap(ctx, h) {
   }
   const stats = () => ({ cables: geo.length, pills: pills ? pills.children.length : 0, lit: geo.filter((x) => !svg.querySelector(`[data-cable="${x.i}"].is-dim`)).length, patching: !!patch });
 
-  return { view, layout, faults, stats, cancel: () => { if (patch) end(false); } };
+  return { view, layout, faults, stats, verdictFor, cancel: () => { if (patch) end(false); } };
 }
