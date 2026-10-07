@@ -274,7 +274,7 @@ export function makeProject(ctx) {
     if (!live) return;
     Object.assign(st.ab, { A: live, B: null, playing: 'B', diff: null });
     if (!quiet) say(`A kept: ${abWords()}. Edit on; X switches between A and B.`);
-    if (!quiet || st.view === 'compare') render();
+    if (!quiet || st.view === 'ab') render();
   }
   // A load (a file, a drop, the library) sets A to what it loaded; A/B's
   // own loads, and their echoes for a moment after, do not.
@@ -318,7 +318,7 @@ export function makeProject(ctx) {
     } finally {
       ab.busy = false;
       ab.quietUntil = performance.now() + 1500;
-      if (st.view === 'compare') render();
+      if (st.view === 'ab') render();
     }
   }
   async function diffAB() {
@@ -375,7 +375,7 @@ export function makeProject(ctx) {
     const s = st.pendingSel;
     if (!s || !st.mirror || files.pending && files.pending.length) return;
     st.pendingSel = null;
-    const key = s.key === 'mix' ? MIX_KEY : s.key;
+    const key = /^mix$/.test(s.key) ? MIX_KEY : s.key;   // the link's word for the Mix block
     if (/^c[0-9]+$/.test(key)) { select(key, { view: 'mod' }); return; }
     const b = parseBlockKey(key);
     if (key !== MIX_KEY && (!b || !blockOf(key))) {
@@ -430,7 +430,7 @@ export function makeProject(ctx) {
     for (let k = 0; k < SOUNDS; ++k) if (blockOf(blockKey(ROLE.SOUND, k))) cmd(`Sound ${k + 1}`, () => select(blockKey(ROLE.SOUND, k), { view: 'sound' }));
     cmd('Library', () => { st.view = 'library'; render(); });
     cmd('Memory', () => { st.view = 'memory'; render(); });
-    cmd('Compare A/B', () => { st.view = 'compare'; render(); });
+    cmd('Compare A/B', () => { st.view = 'ab'; render(); });
     cmd('Keep as A', () => keepA());
     if (st.ab.A) cmd('Switch A/B', () => switchAB());
     cmd('Undo', () => undo());

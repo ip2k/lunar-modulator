@@ -704,7 +704,7 @@ export async function startEditor(env) {
       if (st.view === 'flow') view.append(flowView());
       else if (st.view === 'mod') view.append(chains.modView());
       else if (st.view === 'memory') view.append(project.memoryView());
-      else if (st.view === 'compare') view.append(project.compareView());
+      else if (st.view === 'ab') view.append(project.compareView());
       else if (st.view === 'library') {
         const slot = el('div', 'ed-lib-slot');
         view.append(slot);
@@ -743,7 +743,7 @@ export async function startEditor(env) {
       st.mirror ? `${nMods}·${nCables}` : null));
     outline.append(el('h3', 'ed-out-h', { text: 'Project' }));
     outline.append(mk('Library', 'LIB', 'ed-out-lib', () => { st.view = 'library'; render(); }, st.view === 'library'));
-    outline.append(mk('Compare A/B', 'A/B', 'ed-out-ab', () => { st.view = 'compare'; render(); }, st.view === 'compare',
+    outline.append(mk('Compare A/B', 'A/B', 'ed-out-ab', () => { st.view = 'ab'; render(); }, st.view === 'ab',
       st.ab && st.ab.A ? st.ab.playing : null));
     outline.append(mk('Memory', 'RAM', 'ed-out-mem', () => { st.view = 'memory'; render(); }, st.view === 'memory'));
     outline.append(el('button', 'ed-out ed-out-search', { type: 'button', onclick: () => project.openSearch(), title: `Search (${MOD}K)` }, [
