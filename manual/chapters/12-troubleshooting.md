@@ -12,6 +12,8 @@ those messages so you can search for them.
 | --- | --- | --- |
 | No sound after **Power on** | The browser blocked audio, or the computer's output is muted or set to another device | Click **Power on** again; check the computer's volume and output device; turn [[MASTER]] up |
 | **Power on** does nothing, and the status line still says *Powered off* | The page was opened as a file, so its scripts did not load | Open the project's website, or serve your checkout: `cd sim/web/www && python3 -m http.server 8000`, then open `http://localhost:8000/` |
+| The status line says *The browser is holding the sound back* | The browser has not started the sound yet, or has stopped it: on an iPhone or iPad a call, Siri or another app's audio does this | Tap the panel or press a key |
+| No sound on an iPhone or iPad, though the screen runs | Silent mode is on, and this version of iOS does not let a page play through it | Turn Silent mode off (the Ring/Silent switch, or the Action button), or update iOS |
 | The status line says *This page needs a secure context for its audio* | The page was opened over plain http from another computer's address | Open it over https, as the project's website serves it, or from `http://localhost` on the computer that serves it |
 | The status line says *Could not start audio* | One of the simulator's files did not load | Reload the page; check that the whole folder is served, `fm1.wasm` included |
 | The status line says *This browser has no AudioWorklet* | The browser is too old, or lacks the audio feature the simulator needs | Use a current Chromium-based browser such as Chrome or Edge |

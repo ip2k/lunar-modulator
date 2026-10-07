@@ -17,17 +17,61 @@
 //           canonical JSON (a set as .movy1 text): { text }
 //   pack    { text }             JSON to the binary container: { bin }
 //   start   {}                   the start chain as a binary project: { bin }
-// MIT licence, like the rest of this repository.
+// and, for the editor (stage ED1, notes/2026-10-06-web-editor.md §5, §6),
+// everything it must not ask the audio thread for:
+//   metaId  {}                   the module's metadata id: { id } (a whole
+//                                export's work, so never in the worklet)
+//   meta    {}                   the metadata export itself: { text }, when
+//                                meta.json and the module disagree
+//   format  { id, uid, values }  the screen's digits for each value of a
+//                                module's parameter: { texts }
+//   parse   { id, uid, text }    typed text back to a value (C's parser):
+//                                { value } or ok false
+//   hash    { bin }              a project's hash: loaded here, then C's
+//                                fm1w_state_hash (CRC-32 of the binary
+//                                container, nothing deflated, no view):
+//                                { hash }, for undo's check
+//   diff    { a, b, kind, arg }  two projects' differences in `kind` (the
+//                                project unless said; arg as save's, e.g.
+//                                a sound for A/B), member by member of
+//                                their canonical JSON: { changes }, each a
+//                                path, its steps `at`, and both values
+//   fromPicks { a, b, kind, arg, take }
+//                                B's canonical file with A's value at each
+//                                `at` in `take` (A/B's "Make B from the
+//                                picks"): { text }, for pass 1 to judge
+// and for stage ED3 (§5's previews: what an edit would do, before it is made):
+//   save    { ..., mod: true }   also the rack and the matrix as packed
+//                                records (fm1w_mod_records): { text, mod }
+//   preview { live, ops, each, mod }
+//                                `ops` (packed records or verbs, fm1_edit.h)
+//                                applied to a copy of `live`: each one's
+//                                verdict and the RAM after, as C counts it,
+//                                { codes, ram: [{ total, parts }], budget };
+//                                with `each`, every op is tried alone on the
+//                                live state (a picker's RAM column); with
+//                                `mod` (stage ED5b), also the rack and the
+//                                matrix after the ops, as `save`'s `mod`
+//                                (the planner's verdict of each cable)
+// None of them names an engine: ids and uids come from the caller and the
+// metadata, and C answers.
 
 import { instantiateFm1 } from './fm1-wasm.mjs';
 
 const QUIET = 4;           // FM1_APP_LOAD_QUIET
+const REC = 24;            // FM1_EDIT_REC_BYTES
 let fm1 = null;
 let ex = null;
 let rate = 0;
 let ready = null;
 const decoder = new TextDecoder();
 
+// The rack and the matrix as packed records, then each slot's verdict and, for a cable read a tick late, the loop it closes (fm1w_mod_records).
+function modRecords() {
+  if (typeof ex.fm1w_mod_records !== 'function') return undefined;
+  const recs = ex.fm1w_mod_records();
+  return buf().slice(0, recs * REC + 64);
+}
 function buf() { return new Uint8Array(fm1.memory.buffer, ex.fm1w_text_buf(), ex.fm1w_text_cap()); }
 function put(bytes) {
   if (bytes.length > ex.fm1w_text_cap()) throw refusal('TOO_BIG', 'The file is larger than the 256 KiB the simulator reads.');
@@ -63,6 +107,86 @@ function mirror(live) {
 function start() {
   ex.fm1w_init(rate);
   ex.fm1w_default_chain();
+}
+
+// A NUL-terminated id, and after it optionally a second string, into the
+// text buffer.
+function putIds(id, text) {
+  const enc = new TextEncoder();
+  const a = enc.encode(String(id)).subarray(0, 63);
+  const b = text === undefined ? null : enc.encode(String(text)).subarray(0, 63);
+  const t = buf();
+  t.set(a);
+  t[a.length] = 0;
+  if (b) {
+    t.set(b, a.length + 1);
+    t[a.length + 1 + b.length] = 0;
+  }
+}
+
+// A binary file's canonical JSON as an object (kind 1, the project, unless
+// said): loaded quietly, saved back by C's writer.
+function canonical(bin, kind, arg) {
+  mirror(bin);
+  const n = ex.fm1w_state_save(kind || 1, arg | 0, 0);
+  if (n < 0) throw refusal('BAD', report().message);
+  return JSON.parse(decoder.decode(buf().slice(0, n)));
+}
+
+// Where two canonical files differ: a path (for people), the same path as
+// its steps (`at`: member names and array indexes, for a machine: a name may
+// hold a dot) and both values per member, arrays item by item. Data, not
+// rules: the C writer made both.
+function differences(a, b, path, out, at = []) {
+  if (out.length >= 2000) return out;
+  const ta = a === null ? 'null' : Array.isArray(a) ? 'array' : typeof a;
+  const tb = b === null ? 'null' : Array.isArray(b) ? 'array' : typeof b;
+  if (ta !== tb || (ta !== 'object' && ta !== 'array')) {
+    if (ta !== tb || a !== b) out.push({ path, at, a, b });
+    return out;
+  }
+  const keys = ta === 'array' ? [...Array(Math.max(a.length, b.length)).keys()]
+    : [...new Set([...Object.keys(a), ...Object.keys(b)])];
+  for (const k of keys) {
+    const p = ta === 'array' ? `${path}[${k}]` : (path ? `${path}.${k}` : String(k));
+    if (!(k in a)) out.push({ path: p, at: [...at, k], a: undefined, b: b[k] });
+    else if (!(k in b)) out.push({ path: p, at: [...at, k], a: a[k], b: undefined });
+    else differences(a[k], b[k], p, out, [...at, k]);
+  }
+  return out;
+}
+
+// B's canonical file with A's value at each picked place (stage "v1 completed",
+// §9 "Make B from the picks"): a pick is a difference's `at`. Items A has
+// and B lacks are added, items B has and A lacks are taken out, last index
+// first so the others keep their places. The result is a file; C's pass 1
+// judges it like any other.
+function mixPicks(a, b, picks) {
+  const get = (o, at) => { for (const k of at) { if (o === undefined || o === null || typeof o !== 'object') return undefined; o = o[k]; } return o; };
+  const parent = (o, at) => get(o, at.slice(0, -1));
+  const out = JSON.parse(JSON.stringify(b));
+  const todo = picks.map((at) => ({ at, v: get(a, at) })).filter((x) => x.at.length);
+  // Removals of array items go last, highest index first.
+  const isCut = (x) => x.v === undefined && Array.isArray(parent(out, x.at));
+  const sets = todo.filter((x) => !isCut(x)).sort((p, q) => String(p.at[p.at.length - 1]).localeCompare(String(q.at[q.at.length - 1]), undefined, { numeric: true }));
+  const cuts = todo.filter(isCut).sort((p, q) => q.at[q.at.length - 1] - p.at[p.at.length - 1]);
+  for (const x of sets) {
+    const t = parent(out, x.at);
+    if (t === undefined || t === null || typeof t !== 'object') continue;
+    const k = x.at[x.at.length - 1];
+    if (x.v === undefined) delete t[k]; else t[k] = JSON.parse(JSON.stringify(x.v));
+  }
+  for (const x of cuts) { const t = parent(out, x.at); if (Array.isArray(t)) t.splice(x.at[x.at.length - 1], 1); }
+  return out;
+}
+
+function crc32(bytes) {
+  let c = ~0;
+  for (let i = 0; i < bytes.length; ++i) {
+    c ^= bytes[i];
+    for (let k = 0; k < 8; ++k) c = (c >>> 1) ^ (0xedb88320 & -(c & 1));
+  }
+  return ~c >>> 0;
 }
 
 const ops = {
@@ -108,7 +232,36 @@ const ops = {
     mirror(m.live);
     const n = ex.fm1w_state_save(m.kind, m.arg | 0, 0);
     if (n < 0) return { ok: false, report: report() };
-    return { text: decoder.decode(buf().slice(0, n)) };
+    const text = decoder.decode(buf().slice(0, n));
+    if (!m.mod) return { text };
+    return { text, mod: modRecords() };
+  },
+  preview(m) {
+    const ops = m.ops instanceof Uint8Array ? m.ops : new Uint8Array(0);
+    const n = Math.floor(ops.length / REC);
+    if (!n || n > 64) throw new Error('preview: 1 to 64 packed records');
+    const one = (from, count) => {
+      new Uint8Array(fm1.memory.buffer, ex.fm1w_edit_buf(), 64 * REC).set(ops.subarray(from * REC, (from + count) * REC));
+      ex.fm1w_edit(count, 0);
+      const codes = Array.from(new Int8Array(fm1.memory.buffer, ex.fm1w_edit_codes(), count));
+      const parts = [];
+      for (let k = 0; k < 6 && typeof ex.fm1w_ram_part === 'function'; ++k) parts.push(ex.fm1w_ram_part(k) >>> 0);
+      return { codes, ram: { total: ex.fm1w_ram() >>> 0, parts } };
+    };
+    const budget = ex.fm1w_ram_budget() >>> 0;
+    if (!m.each) {
+      mirror(m.live);
+      const r = one(0, n);
+      return { codes: r.codes, ram: [r.ram], budget, mod: m.mod ? modRecords() : undefined };
+    }
+    const codes = [], ram = [];
+    for (let i = 0; i < n; ++i) {
+      mirror(m.live);
+      const r = one(i, 1);
+      codes.push(r.codes[0]);
+      ram.push(r.ram);
+    }
+    return { codes, ram, budget };
   },
   pack(m) {
     const n = put(new TextEncoder().encode(m.text));
@@ -121,6 +274,50 @@ const ops = {
     const n = ex.fm1w_state_save(1, 0, 1);
     if (n < 0) return { ok: false, report: report() };
     return { bin: buf().slice(0, n) };
+  },
+  metaId() {
+    return { id: ex.fm1w_meta_id() >>> 0 };
+  },
+  meta() {
+    const parts = [];
+    for (let off = 0; ; ) {
+      const n = ex.fm1w_meta_read(off);
+      if (!n) break;
+      parts.push(buf().slice(0, n));
+      off += n;
+    }
+    return { text: parts.map((p) => decoder.decode(p)).join('') };
+  },
+  format(m) {
+    const texts = [];
+    for (const v of m.values || []) {
+      putIds(m.id);
+      const n = ex.fm1w_param_text(m.uid >>> 0, Number(v));
+      texts.push(n ? decoder.decode(buf().slice(0, n)) : null);
+    }
+    return { texts };
+  },
+  parse(m) {
+    putIds(m.id, m.text);
+    if (ex.fm1w_param_parse(m.uid >>> 0) !== 1) return { ok: false };
+    return { value: ex.fm1w_param_value() };
+  },
+  hash(m) {
+    // C's one definition (fm1_edit_state_hash): the project with nothing
+    // deflated and its view left out, so a follow that moves the panel
+    // changes no hash (stage ED4). An older module: the same bytes by hand.
+    mirror(m.bin);
+    if (typeof ex.fm1w_state_hash === 'function') return { hash: ex.fm1w_state_hash() >>> 0 };
+    const n = ex.fm1w_state_save(1, 0, 3);
+    if (n < 0) return { ok: false, report: report() };
+    return { hash: crc32(buf().subarray(0, n)) };
+  },
+  diff(m) {
+    return { changes: differences(canonical(m.a, m.kind, m.arg), canonical(m.b, m.kind, m.arg), '', []) };
+  },
+  fromPicks(m) {
+    const text = JSON.stringify(mixPicks(canonical(m.a, m.kind, m.arg), canonical(m.b, m.kind, m.arg), (m.take || []).filter(Array.isArray)));
+    return { text };
   },
 };
 
@@ -138,5 +335,6 @@ self.onmessage = async (e) => {
     reply = { ok: false, error: String(err && err.message || err), report: err && err.report };
   }
   const transfer = reply.bin && reply.bin !== m.bytes ? [reply.bin.buffer] : [];
+  if (reply.mod) transfer.push(reply.mod.buffer);
   self.postMessage({ re: m.id, ...reply }, transfer);
 };

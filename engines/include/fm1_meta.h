@@ -41,8 +41,14 @@ extern "C" {
  * 2026-10-06) added, for the advanced editor, each module's licence, its
  * page names and an audio effect's group, each parameter's knob detent
  * (`step`), the effect groups, the refusal codes with their words, the
- * telemetry block's layout and the export's id (`meta_id`). */
-#define FM1_META_LUNAR "1.1"
+ * telemetry block's layout and the export's id (`meta_id`). 1.2 (the editor's
+ * v1 completion, 2026-10-07) added the modulation sources' groups (`group`
+ * and `mod.source_groups`), the curves' points (`mod.curve_points`), a
+ * refusal's repair (`fix`) and the matrix marks (`marks`). 1.3 (2026-10-07)
+ * added how a cable's ids are laid out and the chain's shape, so an editor
+ * holds none of it (`mod.source_base`, `mod.source_stride`, `mod.unit_base`,
+ * `mod.sounds`, `mod.inserts`, `mod.masters`). */
+#define FM1_META_LUNAR "1.3"
 /* The rate files are checked at and instance bytes are given at: the FM-1's. */
 #define FM1_META_RATE 44118u
 /* The bytes the engines, effects and modulation may take on the FM-1: the

@@ -62,6 +62,11 @@ typedef struct fm1_refusal {
   const char *words;            /* the headline: "Does not fit" */
   const char *detail;           /* the line under it, with {fills}: "needs {pct}% of
                                    RAM"; NULL when the words say it all */
+  const char *fix;              /* 1.2: the id of the repair an editor offers beside
+                                   it ("global": clear the cable's per-voice
+                                   flag), from a closed set the editor knows how
+                                   to make as an ordinary edit; NULL for none */
+  const char *fix_words;        /* what its button says: "Make it global" */
 } fm1_refusal_t;
 
 /* Every code but OK, in number order. */
@@ -70,6 +75,19 @@ extern const size_t fm1_refusal_count;
 
 /* code's row, or NULL. */
 const fm1_refusal_t *fm1_refusal_find(unsigned code);
+
+/* The marks of a matrix row, as the panel's MATRIX page writes them
+ * (fm1_mod_ui.c) and the editor's table repeats: the one character, a name
+ * that never changes, the words and the line under them. {fills} as the
+ * refusals'. 1.2 (the editor's v1 completion). */
+typedef struct fm1_mark {
+  char mark;                    /* '>' runs, 'v' per voice, '~' a tick late, '!' refused, '-' off */
+  const char *name;             /* "runs" "voice" "late" "refused" "off": stable */
+  const char *words;            /* "a tick late" */
+  const char *detail;           /* the line under it; NULL when the words say it all */
+} fm1_mark_t;
+extern const fm1_mark_t fm1_marks[];
+extern const size_t fm1_mark_count;
 
 /* The words a known-but-absent id's reason gives (fm1_known.h's `reason`):
  * "gpl" "in the GPL build only", "planned" "not built yet", "retired"

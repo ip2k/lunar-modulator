@@ -103,6 +103,7 @@ enum {
 };
 #define FM1_MOD_SOUNDS 4u               /* sound units */
 #define FM1_MOD_INSERTS 2u              /* inserts per sound unit (codes for 4) */
+#define FM1_MOD_MASTERS 2u              /* master effect slots (FX1, FX2; fm1_tele.h's FM1_TELE_MASTERS) */
 #define FM1_MOD_SINKS 15u               /* SOUND FX1 FX2 HOST, sound units 2-4, the 8 inserts */
 #define FM1_MOD_SINK_PARAMS 200u        /* parameter records the bound units share,
                                            HOST's six included; fm1_mod_bind: four
@@ -570,6 +571,13 @@ void fm1_mod_get_plan(fm1_mod_t *m, fm1_mod_plan_info_t *out);
  * plan does not refuse it (off, or running). A question about the plan:
  * it builds the plan if an edit is pending and changes nothing else. */
 unsigned fm1_mod_slot_refusal(fm1_mod_t *m, unsigned i);
+/* The loop a delayed slot (plan info's `delayed`) closes: the component
+ * both its ends share, numbered as the plan info's `comp`, with the rack
+ * positions in it as a bit mask in *positions (bit p: position p); 0xFF and
+ * an empty mask for a slot that is not delayed. A question, as above: it
+ * builds the plan if an edit is pending and changes nothing else. So an
+ * editor can say which cycle a late cable breaks (stage ED1). */
+unsigned fm1_mod_slot_loop(fm1_mod_t *m, unsigned i, uint8_t *positions);
 
 typedef struct fm1_mod_stats {
   uint64_t ticks;
@@ -607,6 +615,15 @@ int fm1_mod_voice(const fm1_mod_t *m, unsigned i, fm1_mod_voice_info_t *out);
 /* Voice i's instance at position pos: an output's value at the last tick
  * (0 when the position does not run per voice or the voice is free). */
 float fm1_mod_voice_out(const fm1_mod_t *m, unsigned i, unsigned pos, unsigned port);
+/* Voice i's effective value of the destination that matrix slot `slot`
+ * reaches per voice (a VOICE cable), in that parameter's unit: what the
+ * engine holds for it (the last value sent where cables reach it for every
+ * voice, else the knob's) plus the voice's offset, held to the parameter's
+ * range (the note's pitch: in its own unit, not held). Read-only: it builds
+ * nothing and changes no state. Returns 1 and sets *value; 0 when the voice
+ * is free, the slot is not a running VOICE cable into that voice's sound, or
+ * a plan is pending (the next tick builds it). */
+int fm1_mod_voice_dest(const fm1_mod_t *m, unsigned i, unsigned slot, float *value);
 /* How many voices sound now (held or still running). */
 unsigned fm1_mod_voice_count(const fm1_mod_t *m);
 

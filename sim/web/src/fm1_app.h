@@ -190,6 +190,7 @@ extern "C" {
 #define FM1_APP_TONE_SAY 0
 #define FM1_APP_TONE_REFUSE 1
 #define FM1_APP_TONE_REFUSE_ALL 2
+#define FM1_APP_TONE_ASK 3          /* a question: its first line in C_REFUSE (the CLEAR confirm) */
 
 /* Arena sizes. The largest instances today are Shapes at 12 voices
  * (~206 KB) and PSX Verb (~134 KB); the arenas leave room for growth and
@@ -494,6 +495,10 @@ typedef struct fm1_app {
    * it leads. NULL in the browser. */
   void (*on_mod)(void *ctx, uint64_t frame, const char *line);
   void *on_mod_ctx;
+  /* The edit layer (fm1_edit.h, stage ED1): its change ring, telemetry and
+   * the source of what is being edited now. The host's; NULL without one
+   * (the hooks then do nothing). A project load keeps it. */
+  struct fm1_edit *edit;
 
   fm1_app_dx7_t dx7;             /* FM6's user bank */
   /* The bottom bar's left text as last drawn ("2/7 RHYTHM", "1/4 Sound"):
@@ -780,6 +785,13 @@ int fm1_app_banner(const fm1_app_t *a, char *buf, size_t size);
  * sound unit past the first (FM1_APP_MIX_BLOCK_BYTES). */
 size_t fm1_app_ram(const fm1_app_t *a);
 
+/* fm1_app_ram by part, for the editor's RAM by part (stage ED2): 0-3 a
+ * sound (its engine, its two inserts and its MIDI effect while on), 4 the
+ * master slots, 5 the rest (the sequencer, the Mix's blocks, the modulation
+ * runtime, the MIDI effects' stage). The six add up to fm1_app_ram. */
+#define FM1_APP_RAM_PARTS 6
+size_t fm1_app_ram_part(const fm1_app_t *a, int part);
+
 /* What fm1_app_ram would be with registry entry `index` in `unit` (-1:
  * emptied): the RAM meter's test before a load. */
 size_t fm1_app_ram_with(const fm1_app_t *a, int unit, int index);
@@ -855,6 +867,25 @@ int fm1_app_unit_of_track(const fm1_app_t *a, int track);
 /* A JSON description of every registered engine and effect (ids, names,
  * kinds, voices, credits, parameters with ranges, pages and list names).
  * Built once into a static buffer; NULL if it did not fit. */
+/* ---- for the edit layer (fm1_edit.h, stage ED1) ----------------------------------
+ * The panel's own edits as calls, so the editor's ops reach the same code:
+ * two effect units trade places with their cables (SEL, then SELECT; 0, or
+ * FM1_APP_SELECT_BAD); a rack position's kind, a module parameter's base, a
+ * matrix slot and a module's move, as the RACK and MATRIX pages make them
+ * (fm1_mod_ui.h: emitted as --mod lines; the runtime's results); the page
+ * the panel shows, from a view's mode (FM1_VIEW_*) and its 1-based keys,
+ * checked (0, or -1 with nothing changed); and what KNOB1-4 turn now: per
+ * knob, kind 0 nothing, 1 unit[k]'s parameter index[k], 2 sound unit[k]'s
+ * level, 3 sound unit[k]'s MIDI effect's parameter index[k], 4 rack position
+ * unit[k]'s parameter index[k]. */
+int fm1_app_swap_units(fm1_app_t *a, int ua, int ub);
+int fm1_app_mod_edit_kind(fm1_app_t *a, unsigned pos, int kind);
+int fm1_app_mod_edit_param(fm1_app_t *a, unsigned pos, unsigned index, float value);
+int fm1_app_mod_edit_slot(fm1_app_t *a, unsigned i, const fm1_mod_slot_t *s);
+int fm1_app_mod_edit_move(fm1_app_t *a, unsigned from, unsigned to);
+int fm1_app_show(fm1_app_t *a, unsigned mode, unsigned has, const uint8_t *keys);
+void fm1_app_knobs(const fm1_app_t *a, int kind[4], int unit[4], int index[4]);
+
 const char *fm1_app_catalog_json(void);
 
 #ifdef __cplusplus

@@ -150,7 +150,9 @@ def graph():
 def test_the_core_needs_no_modules_object(graph):
     """Leaving a module out drops its objects: nothing but the registries
     may refer to them (the app layer reaches FM6's bank and the Resonator's
-    readout only under FM1_WITH_DX7 and FM1_WITH_RESONATOR)."""
+    readout only under FM1_WITH_DX7 and FM1_WITH_RESONATOR, the edit layer
+    Comp's, Limiter's and Squash's gain
+    under FM1_WITH_COMP, FM1_WITH_LIMIT and FM1_WITH_SQUASH)."""
     all_owned = set().union(*graph["owned"].values())
     assert all_owned <= graph["objs"]
     registries = {o for o in graph["objs"] if o.endswith(("/our/src/registry.o", "/midi_fx/registry.o",
@@ -158,7 +160,10 @@ def test_the_core_needs_no_modules_object(graph):
     assert len(registries) == 3
     # The two references the app layer makes under FM1_WITH_DX7 and
     # FM1_WITH_RESONATOR (the reduced build below links without them).
-    guarded = {("sim/src/fm1_app.o", "our/src/msfa_dx7.o"), ("sim/src/fm1_mod_ui.o", "mod/mod/kinds/mod_resonator.o")}
+    guarded = {("sim/src/fm1_app.o", "our/src/msfa_dx7.o"), ("sim/src/fm1_mod_ui.o", "mod/mod/kinds/mod_resonator.o"),
+               ("sim/src/fm1_edit.o", "our/src/fx_comp.o"),   # Comp's reduction, under FM1_WITH_COMP
+               ("sim/src/fm1_edit.o", "our/src/fx_limit.o"),  # Limiter's and Squash's gain,
+               ("sim/src/fm1_edit.o", "our/src/fx_squash.o")}  # under FM1_WITH_LIMIT and _SQUASH
     b = str(graph["build"]) + "/"
     for o in graph["objs"] - all_owned - registries:
         bad = {x for x in graph["edges"][o] & all_owned if (o[len(b):], x[len(b):]) not in guarded}

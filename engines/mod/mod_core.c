@@ -371,7 +371,13 @@ void fm1_mod_default_rack(fm1_mod_t *m) {
 }
 
 static uint8_t remap_src(uint8_t src, const uint8_t *perm) {
-  if (src == MOD_NONE || src < FM1_MOD_SRC_MODULE) return src;
+  /* A source past the last position's ports names nothing (the planner
+   * refuses it, NO_SOURCE) and stays as it is: perm has one entry a
+   * position (found by the edit layer's fuzz, stage ED1). */
+  if (src == MOD_NONE || src < FM1_MOD_SRC_MODULE ||
+      src >= FM1_MOD_SRC_MODULE + 8u * FM1_MOD_POSITIONS) {
+    return src;
+  }
   return (uint8_t)(FM1_MOD_SRC_MODULE + 8u * perm[(src - FM1_MOD_SRC_MODULE) / 8u] +
                    (src - FM1_MOD_SRC_MODULE) % 8u);
 }
@@ -1677,6 +1683,32 @@ float fm1_mod_voice_out(const fm1_mod_t *m, unsigned i, unsigned pos, unsigned p
   if (!kd || port >= kd->n_out || i >= FM1_MOD_VOICES || m->voice[i].state == MOD_V_FREE) return 0.0f;
   o = voice_outs((fm1_mod_t *)m, i, pos);   /* reads only */
   return o ? o[port] : 0.0f;
+}
+
+int fm1_mod_voice_dest(const fm1_mod_t *m, unsigned i, unsigned slot, float *value) {
+  const mod_voice_t *vc;
+  unsigned j;
+  if (!m || !value || i >= FM1_MOD_VOICES || slot >= FM1_MOD_SLOTS || m->dirty) return 0;
+  vc = &m->voice[i];
+  if (vc->state == MOD_V_FREE) return 0;
+  for (j = 0; j < m->plan.n_vd; ++j) {
+    const mod_vdest_t *e = &m->plan.vd[j];
+    const mod_meta_t *q;
+    float held;
+    int r;
+    if (e->sound != vc->sound || !((e->slots >> slot) & 1u)) continue;
+    r = e->pitch ? (int)FM1_MOD_HOST_PITCH
+                 : sink_rec(m, fm1_mod_sink_index(fm1_mod_sound_unit(e->sound)), e->index);
+    if (r < 0) return 0;
+    q = &m->meta[r];
+    /* What the engine holds now: the last value sent where cables reach the
+     * parameter for every voice, else the knob's. The voice's offset is
+     * added to it in the engine (voice_sinks). */
+    held = m->plan.sdest[r] != MOD_NONE ? m->sink_sent[r] : m->sink_base[r];
+    *value = e->pitch ? held + vc->sent[j] : mod_clampf(held + vc->sent[j], q->min, q->max, q->def);
+    return 1;
+  }
+  return 0;
 }
 
 unsigned fm1_mod_voice_count(const fm1_mod_t *m) {

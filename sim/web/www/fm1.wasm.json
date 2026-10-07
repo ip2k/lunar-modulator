@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "be6b0b632e53cb8e823e156acff1a868ec6aa242f76292c73249498b94a57226",
-  "wasm_bytes": 1494869,
+  "wasm_sha256": "6e86861d3752139c8ef6b01c960889d65cf485161407df0ca9bbada203b55081",
+  "wasm_bytes": 1546618,
   "sources_sha256": {
-    "engines": "b1d01bab24cfb51c913dbfef3d4b9f77b992b0642d5f942fa6af037a49c17b41",
-    "sim": "af42254f81b5a34650bfd3cf5744b41006af21b87995cbfc9d50c154a4e96b26"
+    "engines": "38ac9b71817237d20f9078aa386aa45df0547bf1ba03d488542ecfb25c325066",
+    "sim": "41f86074c8057b5aec7ce37509a258cff8f90610f13321b185d270c015cdf78e"
   },
   "engines": "working tree",
-  "built": "2026-10-06T22:11:23Z",
+  "built": "2026-10-07T16:48:24Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -76,19 +76,19 @@
     }
   ],
   "parity": {
-    "passed": 103,
+    "passed": 104,
     "failed": 0,
-    "identical_to_js": 103,
-    "identical_to_musl": 103,
-    "identical_to_glibc": 100,
+    "identical_to_js": 104,
+    "identical_to_musl": 104,
+    "identical_to_glibc": 101,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "meta": {
-    "meta_id": "58719c76",
-    "module_meta_id": "58719c76",
-    "bytes": 246054,
-    "lunar": "1.1",
-    "native_meta_id": "bbbbe618",
+    "meta_id": "9855d7e3",
+    "module_meta_id": "9855d7e3",
+    "bytes": 251560,
+    "lunar": "1.3",
+    "native_meta_id": "09c32023",
     "ram_differ_at_64_bits": 9,
     "passed": true
   },
@@ -169,6 +169,48 @@
         "pass": true
       }
     ]
+  },
+  "edit": {
+    "parity": "ok",
+    "audio_max_lsb": 0,
+    "storm": {
+      "seconds": 30,
+      "quanta": 10341,
+      "deadline_ms": 2.9013101228523506,
+      "late": 0,
+      "applied": 82728,
+      "resyncs": 0,
+      "telemetry_blocks": 862,
+      "p50_ms": 0.061807999999984986,
+      "p99_ms": 0.09610399999999686,
+      "max_ms": 0.2993009999999998,
+      "edit_us_per_quantum": 7.679970602455349
+    },
+    "check": {
+      "params": 467,
+      "steps": 34376,
+      "text_bad": 0,
+      "codes": [
+        "UNKNOWN",
+        "RATE",
+        "RAM",
+        "NO_ROOM",
+        "BAD",
+        "NO_SOURCE",
+        "NO_DEST",
+        "NOLOCK",
+        "ENUM_NO_MOD",
+        "VOICE_TO_MONO",
+        "VOICE_TO_EFFECT",
+        "UNIT_RESERVED",
+        "VOICE_FULL"
+      ],
+      "hands": 47,
+      "sweeps": 40,
+      "lock_blocks": 900,
+      "tele_fills": 30,
+      "failed": 0
+    }
   },
   "scenarios": [
     {
@@ -1251,6 +1293,38 @@
         "native_dropped": 0
       },
       "panel": "seq/panel-tracks.panel"
+    },
+    {
+      "name": "seq-panel-session-song",
+      "samples": 705888,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 148940,
+        "native64": 161804
+      },
+      "cmd": "seq/panel-session-song.verbs",
+      "seq": {
+        "lines": 1,
+        "lines_match": true,
+        "ui_cmds": 7,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "seq/panel-session-song.panel"
     },
     {
       "name": "seq-panel-locks",

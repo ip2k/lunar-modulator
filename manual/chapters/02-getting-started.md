@@ -140,6 +140,17 @@ press **Power on**, and it is as you left it. To start from an example, open
 *Saved in this browser, Recent and examples* under the status line and load
 *First orbit*, the guide's first song.
 
+### The advanced editor
+
+The switch at the top of the page, **Panel**, **Workbench** and **Editor**,
+opens the advanced editor beside the panel or in its place. It shows every
+value of a sound at once, grouped by the panel's own pages, and changes the
+same simulator the panel plays: turn a knob on the panel and its row lights
+in the editor; move a slider in the editor and the panel opens that page.
+It also draws the signal flow, the modulation rack and its cables (as a table
+or as a patch bay), and says what each choice would cost in memory before you
+make it. [Chapter 15](15-the-advanced-editor.md) describes it.
+
 ### Running the simulator from your own copy
 
 To run the simulator without the website, for example from a copy of the

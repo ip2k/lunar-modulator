@@ -46,7 +46,7 @@ Nothing was built or run, so every CPU figure for the FM-1 below is
 | Flash for code | App area up to `0xD9000` in FM-1+VA's layout (about 852 KB). The stock app is 581 KB; FM-1+VA's is 692 KB | [verified] docs/01 §2 |
 | Flash writes | 4 KB sectors. The write routine re-encrypts only below a boundary, so a partition above it may be readable in place unencrypted | [reported] AL-255 `09-storage.md`; [inferred] |
 | Controls for parameters | **Four** free parameter knobs (KNOB1–4), plus SELECT/ALGORITHM for lists, PRESETS, MASTER (volume) and a 240×240 colour TFT. docs/06 said eight knobs map one-to-one onto Movy's pages; in practice it is four knobs per page | [reported] Baud Girl's manual; docs/01 §3 |
-| Built-in effect slots | Stock's FX chain is already a small plugin table: 6 slots, each entry `{init, …, process(buf, frames)}`, sharing an 8 KB arena | [reported] AL-255 `04-synth-engine.md` §4 |
+| Built-in effect slots | Stock's FX chain is already a small plugin table: 6 slots, each entry `{init, …, process(buf, frames)}`, sharing an 8 KB arena; but V15's delay allocates a 110,294-byte ring of its own, so the 8 KB is not all of their memory | [reported] AL-255 `04-synth-engine.md` §4; Echomatter, PR #1 here (`notes/2026-10-06-echomatter-pr1.md`) |
 
 What that buys, in round numbers [inferred]:
 

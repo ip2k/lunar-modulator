@@ -6,7 +6,7 @@ engines/state/fm1_meta.c) to, less what only C can say (instance bytes per
 engine, aliases, known ids). `subset` cuts an export down to a few engines
 and kinds, as engines/state/examples/metadata.json is.
 
-Level 1.1 (stage ED0) adds members only C's tables can say (page names, an
+Levels 1.1 (stage ED0), 1.2 (the v1 completion: source groups, a refusal's fix, the marks) and 1.3 (the id layout) add members only C's tables can say (page names, an
 effect's group, whether a module is GPL, a modulation kind's licence, the
 refusals, the telemetry layout, the id): EDITOR_ONLY_* list them,
 `without_editor` takes them out, and tests/test_engine_editor_meta.py checks them on
@@ -48,7 +48,13 @@ FLAG_ORDER = ["latch", "smooth", "nolock", "mod", "input", "poly", "log", "keysr
 # top.
 EDITOR_ONLY_ENGINE = ("group", "gpl", "page_names")
 EDITOR_ONLY_KIND = ("licence", "gpl", "page_names")
-EDITOR_ONLY_TOP = ("effect_groups", "refusals", "telemetry", "meta_id")
+EDITOR_ONLY_TOP = ("effect_groups", "refusals", "marks", "telemetry", "meta_id")
+# Level 1.2's: a source's group, the groups and the curves' points (in `mod`), and the marks
+# at the top (above). Level 1.3's, in `mod`: how the ids of a cable are laid out and the shape
+# of the chain.
+EDITOR_ONLY_SOURCE = ("group",)
+EDITOR_ONLY_MOD = ("source_groups", "curve_points", "source_base", "source_stride", "unit_base",
+                   "sounds", "inserts", "masters")
 
 
 def detent(p):
@@ -74,8 +80,9 @@ def without_editor(doc):
     """doc less level 1.1's members that only C's tables say."""
     out = {k: v for k, v in doc.items() if k not in EDITOR_ONLY_TOP}
     out["engines"] = [{k: v for k, v in e.items() if k not in EDITOR_ONLY_ENGINE} for e in doc["engines"]]
-    out["mod"] = dict(doc["mod"], kinds=[{k: v for k, v in m.items() if k not in EDITOR_ONLY_KIND}
-                                         for m in doc["mod"]["kinds"]])
+    out["mod"] = {k: v for k, v in doc["mod"].items() if k not in EDITOR_ONLY_MOD}
+    out["mod"]["kinds"] = [{k: v for k, v in m.items() if k not in EDITOR_ONLY_KIND} for m in doc["mod"]["kinds"]]
+    out["mod"]["sources"] = [{k: v for k, v in x.items() if k not in EDITOR_ONLY_SOURCE} for x in doc["mod"]["sources"]]
     return out
 
 
@@ -107,7 +114,7 @@ def metadata_from_build(listed, mod, engines=None, kinds=None):
     """The export's layout, from fm1-render --list and --list-mod: what the C
     export (stage E2) must write, less what the build cannot say yet
     (instance bytes per engine, aliases, known ids)."""
-    doc = {"lunar": "1.1", "kind": "metadata",
+    doc = {"lunar": "1.3", "kind": "metadata",
            "made": {"by": "desktop", "version": "0.0.0", "commit": "0000000"}}
     doc["build"] = {
         "engine_api": _define(ENGINES / "include" / "fm1_engine.h", "FM1_ENGINE_API_VERSION"),

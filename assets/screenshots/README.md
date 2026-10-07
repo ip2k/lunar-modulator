@@ -38,6 +38,11 @@ bar reads *1/3 Sound*), from the module of the GPL follow-ups (1,273,791 B,
 | `panel-params.png` | The same on the panel, with the four knobs turned; the chord is held, and a start and stop of the transport emptied Capture, so REC is dark |
 | `screen-seq.png` | SEQ mode's Track view while the demo pattern plays: the status line (120 BPM, the eight tracks as tiles in Sound 1's blue, each with its sound's number, 1, the first focused and taller, PLAY), the grid with the playhead, the knob strip, the model line |
 | `screen-matrix.png` | The modulation matrix: the default rack's two RTRG cables and LFO1's cable to Sound 1's Timbre, chosen; sources in the modulation colour, each mark 4 px clear of its source and destination, the hint "To S1 Timbre" |
+| `page-editor-flow.png` | The advanced editor on *First orbit* at 1,280 px: the outline, the Flow with the four sounds into the mix and the master slots, the screen card |
+| `page-editor-sound.png` | Sound 3 in the editor: its engine, inserts and the cables into it |
+| `page-editor-table.png` | Modulation as a table: the rack as eight cards with live traces and the matrix |
+| `page-editor-map.png` | Modulation as the Map, with the envelope in rack position 3 in focus |
+| `page-editor-memory.png` | The Memory page: the share by part, what is free, what would still fit |
 | `parity.png` | The browser module's output against native `fm1-render`: 25 ms of Six-Op FM, and 0 of 105,882 samples different over the whole render |
 | `phone.png` | The page at 390 × 844 (2× pixels), in `virtual-fm1.png`'s state: the panel keeps playable sizes and scrolls sideways in its own box |
 
@@ -66,3 +71,12 @@ no text may overlap, crowd or be cut by an edge (the page's sideways
 scrolling panel on a phone is the one deliberate cut). The report fails if
 the figure's text runs come closer than 4 px, if the phone page scrolls
 sideways, or if REC is lit in a panel picture.
+
+The `page-editor-*.png` pictures (the advanced editor, for the manual's
+chapter 15) are made by `sim/web/test/editor-shots.mjs`, which runs in the
+Playwright container on aeon like the other page tests (build-on-aeon.sh
+stages the tree; run it by hand with `PLAYWRIGHT_DIR=/pw node
+sim/web/test/editor-shots.mjs sim/web/www OUT`), at 1,280 px on the *First
+orbit* example. Each was looked at, then rewritten as a 256-colour PNG with
+`assets/web-editor/src/shrink.mjs` (the editor is flat colour: nothing a
+reader can see is lost), 2026-10-07, Chromium 153.

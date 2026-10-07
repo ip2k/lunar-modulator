@@ -1,0 +1,20 @@
+# Session and the Song page from the panel (S9+): SEQ, then SEQ tapped:
+# Session. LOOP held with white keys 1, 2 and 3 launches scene 1 and makes
+# the song [1, 2, 3] (`scene 0`, `sgnew 0`, `songadd 1`, `songadd 2`).
+# SHIFT + LOOP opens the Song page: KNOB4 ends the song with Stop, SELECT
+# takes the cursor to entry 1 and KNOB2 gives it two repeats; SHIFT + PLAY
+# relaunches it on the next bar (`sgjump 0`). The song plays to its end
+# and the transport stops by itself.
+--button 0.05:SEQ
+--button 0.10:SEQ
+--key 0.20:3:100:0.5
+--key 0.30:0:100:0.05
+--key 0.40:2:100:0.05
+--key 0.50:4:100:0.05
+--button 0.90:SEL:0.1
+--key 0.92:3:100:0.05
+--turn 1.10:KNOB4:2
+--turn 1.20:SELECT:-3
+--turn 1.30:KNOB2:1
+--button 1.50:SEL:0.1
+--button 1.52:PLAY/STOP

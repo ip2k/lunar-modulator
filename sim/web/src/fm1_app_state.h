@@ -60,6 +60,10 @@ extern "C" {
                                         FM6 voices with no free slot are left out */
 #define FM1_APP_LOAD_REPLACE 0x02u   /* a clip into a slot that holds one (the page asked) */
 #define FM1_APP_LOAD_QUIET 0x04u     /* no banner on the device screen */
+#define FM1_APP_LOAD_KEEP_TRANSPORT 0x08u   /* a project load that goes on playing: a running
+                                        transport is carried over the load (fm1_seq.h,
+                                        fm1_seq_transport_take and _put); the editor's A/B,
+                                        its undo and its picks ask for it. Stopped stays stopped */
 
 typedef struct fm1_app_load_opts {
   unsigned kind;      /* the kind the caller expects (FM1_STATE_*), or 0 for the file's */
@@ -101,7 +105,10 @@ int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t tot
  * text) as canonical JSON, or with `binary` as the binary container (a
  * set: a SET container; the text itself with binary 0); binary 2 is the
  * container with no chunk deflated, the page's autosave: cheaper on the
- * audio thread, and loaded as any other (owner, 2026-10-06). Out through put,
+ * audio thread, and loaded as any other (owner, 2026-10-06); binary 3 is
+ * that container without where the panel is (the project's view and
+ * its current sound), the one form the state hash
+ * reads (fm1_edit_state_hash, the shadow Worker's `hash`). Out through put,
  * in pieces. 1, or 0 with rep's code (BAD for a kind or target with nothing
  * to save). */
 int fm1_app_state_save(fm1_app_t *a, unsigned kind, int arg, int binary, fm1_put_t put, void *ctx,

@@ -3,6 +3,8 @@
  * fm1_app_state.h has the rules. C99. MIT licence. */
 #include "fm1_app_state.h"
 
+#include "fm1_edit.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -348,11 +350,16 @@ static void lines_out(col_t *c, const char *s, uint32_t n, unsigned which) {
   }
 }
 
+/* Set by a save with binary 3 (the state hash's form): the project without
+ * where the panel is (its view and the current sound), so a follow that
+ * moves the panel changes no hash (stage ED4). */
+static int g_no_view;
+
 static void session_out(col_t *c, const fm1_app_t *a) {
   fm1_rec_t r = blank(FM1_REC_SESSION);
   int scale = 0;
   const int root = fm1_app_project_key(a, &scale);
-  r.u.session.current = (int8_t)a->sound;
+  r.u.session.current = (int8_t)(g_no_view ? 0 : a->sound);   /* the hash: where the panel is, left out */
   r.u.session.octave = (int8_t)a->octave;
   r.u.session.transpose = (int8_t)a->transpose;
   /* The key's one home is the set's `key` line; this copy is written from
@@ -387,8 +394,17 @@ static void view_out(col_t *c, const fm1_app_t *a) {
       VSET(FM1_VK_PAGE, a->glo_page + 1);
       break;
     case FM1_MODE_SEQ:
-      r.u.view.mode = FM1_VIEW_SEQ;
       VSET(FM1_VK_TRACK, a->ui.track + 1);
+      if (a->ui.view == FM1_SEQ_VIEW_SESSION) {          /* S9: Session, its track */
+        r.u.view.mode = FM1_VIEW_SESSION;
+        break;
+      }
+      if (a->ui.view == FM1_SEQ_VIEW_SONG) {             /* the Song page, its cursor */
+        r.u.view.mode = FM1_VIEW_SONG;
+        if (a->ui.song_cur < a->ui.song_entries) VSET(FM1_VK_ENTRY, a->ui.song_cur + 1);
+        break;
+      }
+      r.u.view.mode = FM1_VIEW_SEQ;
       VSET(FM1_VK_BAR, a->ui.bar + 1);
       if (a->ui.view == FM1_SEQ_VIEW_SET) VSET(FM1_VK_PANEL, 1);
       else if (a->ui.view == FM1_SEQ_VIEW_CLIP) VSET(FM1_VK_PANEL, 2);
@@ -457,7 +473,7 @@ static int collect(fm1_app_t *a, unsigned kind, int arg, fm1_rec_sink_t sink, vo
       }
       mod_out(&c, a, MOD_ALL, 0, NULL);
       if (set_text(a)) lines_out(&c, g_set, g_set_n, FM1_LINES_SET);
-      view_out(&c, a);
+      if (!g_no_view) view_out(&c, a);
       break;
     }
     case FM1_STATE_SOUND: {
@@ -592,8 +608,9 @@ int fm1_app_state_save(fm1_app_t *a, unsigned kind, int arg, int binary, fm1_put
   static const uint8_t version[3] = { 0, 1, 0 };
   const char *why = "";
   fm1_state_report_t own;
-  const unsigned bflags = binary == 2 ? 0u : FM1_STATE_BIN_DEFLATE;   /* 2: no deflate */
+  const unsigned bflags = binary >= 2 ? 0u : FM1_STATE_BIN_DEFLATE;   /* 2, 3: no deflate */
   if (!rep) rep = &own;
+  g_no_view = binary == 3;             /* 3: the hash's form, no view either */
   fm1_state_report_init(rep);
   rep->kind = (uint8_t)kind;
   if (kind == FM1_STATE_SET && !binary) {
@@ -965,6 +982,12 @@ static const char *kind_word(unsigned kind) {
   }
 }
 
+/* "a" or "an" ("A" or "An" when capital) for a word the way it is said. */
+static const char *article(const char *word, int capital) {
+  const int vowel = word && strchr("aeiouAEIOU", word[0]) != NULL;
+  return vowel ? (capital ? "An" : "an") : (capital ? "A" : "a");
+}
+
 /* The refusal's words: the page's line and the screen's two. */
 static int refuse_load(plan_t *p, unsigned code, const char *screen, const char *fmt, const char *arg) {
   fm1_app_state_report_t *rep = p->rep;
@@ -1025,9 +1048,11 @@ static int plan_finish(plan_t *p) {
   int sounds = 0;
   rep->r.kind = (uint8_t)p->kind;
   if (p->o->kind && p->o->kind != p->kind) {
-    char want[48];
-    snprintf(want, sizeof want, "%s, not a %s", kind_word(p->o->kind), kind_word(p->kind));
-    return refuse_load(p, FM1_STATE_BAD, "Wrong kind", "A %s was expected.", want);
+    char want[72];
+    const char *w = kind_word(p->o->kind), *got = kind_word(p->kind);
+    /* "A sound, not an effects chain, was expected." The article follows the word. */
+    snprintf(want, sizeof want, "%s %s, not %s %s, was expected.", article(w, 1), w, article(got, 0), got);
+    return refuse_load(p, FM1_STATE_BAD, "Wrong kind", "%s", want);
   }
   if ((p->kind == FM1_STATE_SOUND || p->kind == FM1_STATE_FX) && p->o->into >= FM1_APP_SOUNDS) {
     return refuse_load(p, FM1_STATE_BAD, "No such sound", "There is no Sound %s.", "5");
@@ -1294,8 +1319,10 @@ static void project_reset(fm1_app_t *a) {
   void (*on_note_in)(void *, uint64_t, int, int, int) = a->on_note_in;
   void (*on_mfx)(void *, uint64_t, int, int, float) = a->on_mfx;
   void *cmd_ctx = a->on_cmd_ctx;
+  struct fm1_edit *edit = a->edit;       /* the edit layer's ring goes on (fm1_edit.h) */
   fm1_app_all_notes_off(a);
   fm1_app_init(a, rate);
+  a->edit = edit;
   a->master = master;
   a->gain = master * master;
   a->settings = settings;
@@ -1490,8 +1517,16 @@ static void apply_view(fm1_app_t *a, const fm1_rec_t *v) {
       fm1_seq_ui_enter(&a->ui);
       if (HAS(FM1_VK_TRACK) && a->seq && x[FM1_VK_TRACK] <= a->seq_lim.tracks) a->ui.track = (uint8_t)(x[FM1_VK_TRACK] - 1);
       if (HAS(FM1_VK_BAR) && x[FM1_VK_BAR] <= 16) a->ui.bar = (uint8_t)(x[FM1_VK_BAR] - 1);
-      if (HAS(FM1_VK_PANEL) && x[FM1_VK_PANEL] == 1) fm1_seq_ui_open(&a->ui, FM1_SEQ_VIEW_SET);
-      else if (HAS(FM1_VK_PANEL) && x[FM1_VK_PANEL] == 2) fm1_seq_ui_open(&a->ui, FM1_SEQ_VIEW_CLIP);
+      if (v->u.view.mode == FM1_VIEW_SESSION) {
+        fm1_seq_ui_open(&a->ui, FM1_SEQ_VIEW_SESSION);
+      } else if (v->u.view.mode == FM1_VIEW_SONG) {    /* the cursor on its entry, or `+ add` */
+        fm1_seq_ui_open_song(&a->ui, HAS(FM1_VK_ENTRY) && x[FM1_VK_ENTRY] >= 1 ? x[FM1_VK_ENTRY] - 1u
+                                                                             : FM1_SEQ_UI_SONG_MAX);
+      } else if (HAS(FM1_VK_PANEL) && x[FM1_VK_PANEL] == 1) {
+        fm1_seq_ui_open(&a->ui, FM1_SEQ_VIEW_SET);
+      } else if (HAS(FM1_VK_PANEL) && x[FM1_VK_PANEL] == 2) {
+        fm1_seq_ui_open(&a->ui, FM1_SEQ_VIEW_CLIP);
+      }
       break;
     case FM1_VIEW_RACK:
       a->mode = FM1_MODE_RACK;
@@ -1647,6 +1682,8 @@ int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t tot
   void *on_mod_ctx;
   void (*on_mfx)(void *, uint64_t, int, int, float);
   void (*on_cmd)(void *, uint64_t, const fm1_seq_cmd_t *);
+  fm1_seq_transport_t carry;
+  int edit_was;
   if (!o) {
     fm1_app_load_opts_init(&none);
     o = &none;
@@ -1655,7 +1692,14 @@ int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t tot
     if (!(o->flags & FM1_APP_LOAD_QUIET)) fm1_app_say(a, FM1_APP_TONE_REFUSE, rep->screen[0], rep->screen[1], NULL);
     return 0;
   }
-  /* Pass 2. A load is not an edit: the native harness's logs hear none of it. */
+  /* The transport of a project that goes on playing: read now, before the project is made again. */
+  memset(&carry, 0, sizeof carry);
+  if ((o->flags & FM1_APP_LOAD_KEEP_TRANSPORT) && p->kind == FM1_STATE_PROJECT && a->seq) {
+    fm1_seq_transport_take(a->seq, &carry);
+  }
+  /* Pass 2. A load is not an edit: the native harness's logs hear none of
+   * it, and the edit layer's ring gets one LOADED entry (fm1_edit.h). */
+  edit_was = fm1_edit_enter(a, FM1_EDIT_LOAD);
   on_mod = a->on_mod;
   on_mod_ctx = a->on_mod_ctx;
   on_mfx = a->on_mfx;
@@ -1693,10 +1737,18 @@ int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t tot
     else fm1_state_json_read(names(), rd, rctx, plan_sink, p, &r2);
     apply_finish(p);
   }
+  if (carry.playing && a->seq) {
+    /* A Play (the new set's clips launch, or its song starts), then the old clock and playheads over it. */
+    fm1_seq_cmd_t c;
+    fm1_seq_cmd_make(&c, FM1_SEQ_V_PLAY, 0, NULL);
+    if (fm1_app_seq_cmd(a, &c) == FM1_APP_SEQ_APPLIED) fm1_seq_transport_put(a->seq, &carry);
+  }
   a->on_mod = on_mod;
   a->on_mod_ctx = on_mod_ctx;
   a->on_mfx = on_mfx;
   a->on_cmd = on_cmd;
+  fm1_edit_note_loaded(a);
+  fm1_edit_leave(a, edit_was);
   rep->ram = (uint32_t)fm1_app_ram(a);
   rep->percent = (uint16_t)fm1_app_ram_percent(rep->ram);
   snprintf(rep->screen[0], sizeof rep->screen[0], "LOADED");

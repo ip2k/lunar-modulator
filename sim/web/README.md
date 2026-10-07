@@ -38,7 +38,8 @@ the "Power on" button, as browsers require a gesture.
 | Info | GLO shows the sample rate, block size, the chain's RAM as a percentage of what the stock layout leaves free (387,924 B, docs/11 §2; the meter's figure, rounded up, red past 100 %), voices, octave and transpose on *1/2 Globe*, and SELECT turns to *2/2 Key*, the project key (below, "The arpeggiator"). A user sees memory only as that percentage, on the screen, the page and in refusals, never in bytes (owner, 2026-10-06; until then GLO read `245K/379K` and a refusal `150K over budget`): the meter, GLO and the refusals round up with `fm1_app_ram_percent`, and the page's status line ("The chain takes N% of the FM-1's memory.") with `memoryPercent` the same way, so they never differ and a refused chain never reads 100 %. WebAssembly has 4-byte pointers like pi32v2, so these are the 32-bit instance sizes. The RAM figure includes the sequencer: its instance (31,880 B at 8 tracks, the same at 32 and 64 bits) and its 3,264-byte event buffer (3,072 B, 256 events, until stage S6, so a chain's figure can read 1K more than before: 4 of the 54 one-effect chains do). It is the RAM meter's figure (below), which also counts the sequencer's pending record, UI bound and click voice and the modulation runtime |
 | Sequencer | The app hosts the sequencer core (engines/seq.md) through the shared host bridge (`engines/include/fm1_seq_host.h`), exactly as `fm1-render` does: script lines and commands at block starts, each block's events, and the sound's render split at every note and lock of a track routed to it. 8 tracks (owner decision O3, 2026-10-02), a 272-event buffer (256 until stage S6), one pending command record, and the event-room rule: an op goes in only while 201 events of room are free, otherwise it waits a block, so no note-off is ever lost. The harness and the parity test play verb scripts and `movy1` sets through it; every one of the 34 Movy oracle scripts plays through the app byte for byte as through `fm1-render` at 64-frame blocks [verified: `tests/test_sim_seq.py`]. On the panel (below): PLAY/STOP, SEQ mode's Track view and a demo pattern (docs/15 stage S3), step entry: the white keys as steps, the Step pages, SHIFT and bar paging (S4), record, step record and Capture (S5), tracks, mute, the Set, Clip and Track pages and the metronome's click (S6), and parameter locks from KNOB1–4 (S8) |
 
-Tested in Chromium only. In headless Chromium 153 (Playwright 1.63, on
+The page is tested in Chromium; the Advanced editor's five page tests also run in Firefox and WebKit
+("Other browsers" below), on the Linux host and in CI (the `editor-page-tests` job). In headless Chromium 153 (Playwright 1.63, on
 aeon) [verified: `build/screenshots/report.json`, 2026-10-01]: the page is titled
 "Lunar Modulator", Audiowide loads from `fonts/`, the background is the
 palette's base; it powers on, a
@@ -518,6 +519,532 @@ the other with no request), and the page at 1,440 and 390 px
 [verified 2026-10-06: all pass, Chromium 153]. `tests/test_sim_files.py`
 checks the static half; `test/origins.mjs` (Node, through
 `tests/test_sim_origins.py`) the exception's rules.
+
+## The edit layer (stage ED1, for the advanced editor)
+
+The advanced editor (`notes/2026-10-06-web-editor.md`) changes the virtual
+FM-1 through one C layer, `src/fm1_edit.c` (`fm1_edit.h`), which the
+panel's own handlers share, so a knob turned on the panel and a slider in
+the editor make the same change, the same change-ring entry and the same
+`--mod` line. This is the editor's engine room; its first views are stage
+ED2's (next section).
+
+- **Edits are the state core's records** (a unit, a MIDI effect's on, a
+  parameter, a level, a rack position's kind, a matrix slot) **and four
+  verbs**: swap (two effect slots trade places, cables and all), move (a
+  rack module; an effect slot, in groups of two, swaps), current and view
+  (what the panel shows). Each is applied live through the app's own calls
+  with their clamps, the LOG law and the RAM rule. A refusal is a code of
+  `engines/include/fm1_refusal.h` and changes nothing; a cable's codes
+  (32 and on) are the planner's verdict on a slot that was written and does
+  not run, as the panel's MATRIX leaves it.
+- **Packed records** are 24 bytes, little-endian (the layout is in
+  `fm1_edit.h`); the audio thread sees nothing else.
+- **The change ring** keeps the last 256 base changes, each with its number,
+  its source (the panel's keys, buttons and encoders; the editor, with its
+  op's tag; a load, as one `LOADED` entry; the page's own menus) and the
+  record. Hooks in `fm1_app.c` fill it: `fm1_app_set_param`, the
+  arpeggiator's log, select, level, current, the effect swap, and a scan of
+  the modulation runtime after every modulation edit, whoever made it. A
+  reader more than a ring behind is told to resync and takes a snapshot.
+- **Telemetry** fills `engines/include/fm1_tele.h`'s block (1,443 floats)
+  for the subscribed rows only, at most 30 blocks a second of audio:
+  meters (peak and RMS) at every point of the chain, gain reduction (Comp,
+  Limiter, Squash and the output limiter; stage ED5a filled the last three
+  rows, see its section below), voices, each module output with its
+  extremes over the block, per-voice outputs, and each running cable's
+  destination as sent, and for a per-voice cable each voice's own value
+  (`voice_dests`, ED5a).
+  The taps on the render path only read: the audio with every row
+  subscribed is the audio without the layer, bit for bit.
+- **The view** (`fm1_edit_view`): the panel's mode, sound, page and slot,
+  and what each of KNOB1-4 turns now (the editor's K1-K4 chips).
+- **`fm1_param_parse`** (`fm1_look.h`) reads what a person typed, a number
+  with "k" and the parameter's own unit word ("1.2 kHz", "-6 dB", "1 s"),
+  or a list entry by name, and clamps it as a knob does.
+
+**The module** exports `fm1w_edit` (n records from `fm1w_edit_buf`, their
+verdicts in `fm1w_edit_codes`), `fm1w_edit_verb`, `fm1w_changes` with
+`fm1w_changes_buf` and `fm1w_edit_gen`, `fm1w_subscribe` (`fm1w_tele_mask`)
+and `fm1w_telemetry` (`fm1w_tele_buf`), `fm1w_view_get`; and, for the
+shadow Worker and the tests only, `fm1w_edit_text`, `fm1w_edit_dump`,
+`fm1w_param_text`, `fm1w_param_parse` and `fm1w_param_value`.
+
+**The worklet** gives the editor a port of its own (`editor-port`, a
+transferred `MessagePort`): `edit` in, at most 64 records applied a
+quantum before it renders, `edited` back with each record's verdict;
+`subscribe`; `changes` at most once every six quanta (`resync` when the
+editor fell behind); `view` when it changes; `telemetry` in two pooled
+buffers handed back; `snapshot`; and `stats` once a second, which counts the
+quanta that took longer than they play (the underrun counter), where the
+worklet's scope has a clock. **The shadow Worker** adds `metaId`, `meta`,
+`format` and `parse` (C's digits and parser by module id and uid), `hash`
+and `diff`, so the audio thread never formats, parses, hashes or diffs.
+
+**Tests.** `fm1-sim-render --edit-check` (`tests/test_sim_edit.py`): every
+knob step of every parameter of every engine, effect, MIDI effect,
+modulation kind and the host reads back through `fm1_param_parse` as the
+screen shows it (467 parameters, 34,376 steps); every refusal an edit can
+meet, each leaving the state's hash and the ring as they were (the codes
+that cannot be reached with today's modules are named in the test); the
+ring's sources, its LOADED entry and its overflow; seven panel gestures
+whose ring entries, replayed as editor ops on a fresh app, give the same
+entries and the same state; the verbs; the view and knob map; telemetry's
+layout, rate and rows; and 400 batches of hostile records and verbs
+(random fields, edges, NaN and infinities, ids with no NUL, counts past
+64), each verdict a known code and the audio finite. `test/edit.mjs` plays `test/edit/verbs.edit` (every
+record type and verb, refusals and panel gestures between) to the module
+and to `fm1-sim-render --edit-run`: the verdicts, the ring, the view and the
+state's hash identical, the screen too, the audio within one 16-bit step;
+then a 30-second edit storm with the demo song playing, eight records a
+quantum, the change feed drained and every telemetry row filled, each
+quantum timed against the 2.90 ms it plays. `build.sh` runs both and
+records the results in `fm1.wasm.json` (`edit`). `test/editor.mjs`
+(headless Chromium, in `build-on-aeon.sh`'s page step) storms the real
+worklet's editor port for 30 seconds with the song playing and passes when
+every op is answered with its verdicts, changes, views and telemetry come
+back, a snapshot is binary, and Chromium's playback stats count no
+underrun [verified 2026-10-06: 58,016 records, 0 underruns, Chromium 153;
+its worklet scope has no clock, so the worklet's own late count reads "not
+timed" there].
+
+## The advanced editor (stage ED2: shell, flow and sound)
+
+`www/editor/` holds the editor's plain ES modules, loaded with `import()` the
+first time the layout switch leaves Panel, so the plain simulator loads what
+it loaded before (`notes/2026-10-06-web-editor.md` §4, §23):
+
+| File | What it is |
+| --- | --- |
+| `editor/model.js` | No DOM: `fm1_edit.h`'s packed records, change entries and view; the metadata (`meta.json`) with each parameter's control by §6's table, the LOG law, the knob detents; memory as a percentage of the budget, rounded up as the screen's meter; the mirror, built from C's canonical JSON (the shadow Worker's `save`) and kept by the change feed |
+| `editor/history.js` | No DOM: one history for the editor's and the panel's edits; a drag is one step, repeats within 600 ms merge, 200 steps |
+| `editor/editor.js` | The shell, the Flow and the sound inspector, follow, K1-K4, undo, PLAY and EDIT |
+| `editor/editor.css` | Its look, in the page's role colours (`PALETTE.md` v2) |
+
+- **Layouts** (the switch in the page's header, moved into the editor's app
+  bar while it is shown; kept as the preference `lunar.sim.editor.layout`):
+  *Panel*, the page as it was; *Workbench*, the panel and the editor side by
+  side from 1,400 px (the panel keeps the 800 px its smallest targets need)
+  and stacked below; *Editor*, the panel folded to its screen, which the
+  editor's outline draws from the same frame (`sim.screenListeners`), in the
+  head below 1,180 px.
+- **The app bar:** the keys chip (PLAY or EDIT), *Follow the panel* and *Open
+  on the panel*, Undo and Redo, and RAM by part: one bar in the sound
+  colours with the whole as a percentage, and a list of the four sounds,
+  the master slots, what they share and what is free, each in percent
+  (`fm1w_ram_part`, posted by the worklet as `ram` when a figure moves).
+- **The Flow** (the editor's home): four strips (the MIDI effect, the
+  engine, In1, In2, the level with its meter) into the Mix and M1, M2 and
+  the output; a click selects a block and its inspector opens below
+  (moving and swapping are ED3's). Its meters are the telemetry block's,
+  subscribed only while the Flow is on screen and the tab is visible.
+- **A sound:** its chain as a path, then its engine by the device's pages
+  ("Page 2 · KNOB1–3", the arpeggiator's PLAY ... SEED), both inserts and its
+  MIDI effect (the first three pages open, the rest as summaries). Controls
+  come from the metadata only: a slider with a typed value field (C's text
+  and C's parser, through the shadow Worker), LOG on its law, bipolar from
+  zero; segments up to 4 entries, a grid up to 8, a list with its place
+  beyond, filtered past 24; the GPL chip from the module's licence.
+- **Follow** (§7). The panel's changes come in the change feed: the row
+  lights (not under reduced motion), "From the panel: KNOB2 ..." says it,
+  the history gets a line, a polite announcement at most once a second. In
+  the Workbench the editor opens the block and page the panel shows,
+  never while a value is typed, a slider is held or a control in the
+  editor has the focus; in Editor the block is only marked "on the panel".
+  Selecting a block or a row sends the `view` verb, and the panel opens
+  that page. The rows KNOB1-4 turn now carry K1-K4 (`fm1_edit_view`).
+- **Undo** (§8): Undo and Redo, ⌘Z and ⇧⌘Z (Ctrl+Z, Ctrl+Y), over the
+  editor's and the panel's parameter, level and on/off changes alike. A step
+  goes back by sending its `before` as an edit; a step recorded for an
+  engine the block no longer has is refused in words. Structural steps
+  (stage ED3) and the snapshot fallback (stage ED4) came later: their own
+  sections.
+- **PLAY and EDIT** (§13): a click or the focus in the editor, or ⌘E (Ctrl+E),
+  gives it the computer keys (`sim.keysToEditor`; `app.js` then sends no key
+  to the FM-1); Esc, or a click on the panel, gives them back. Sliders take
+  ← → (one detent, ⇧ ten, ⌥ a tenth), Home, End, D (the default) and Enter
+  (type a value).
+- **Tests.** `test/editor-unit.mjs` (node, `tests/test_sim_editor_ui.py`)
+  checks every parameter's control, the LOG law and detents, records packed
+  by `model.js` against the module and back through the change feed, the
+  view verb and the knob map, the mirror against C's values, the history's
+  merging, and 120 random edits undone to the first state hash and redone
+  to the last. `test/editor-ui.mjs` (headless Chromium, the page step of
+  `build-on-aeon.sh`) checks the lazy load, follow both ways, K1-K4, undo
+  by the shadow Worker's hash, PLAY and EDIT, every module's inspector at
+  two column widths with nothing overflowing, and the two layouts at 1,440
+  and 1,024 px, with screenshots in `build/screenshots/ed2-*.png`.
+
+## The advanced editor, stage ED3: chains and modulation
+
+Stage ED3 of `notes/2026-10-06-web-editor.md` (§10, §13, §18; the note's §24
+has it as built) adds `www/editor/chains.js` to the editor: everything that
+changes structure, and the modulation. Every edit is still one of the edit
+layer's records or verbs on the editor's port; every verdict, RAM figure
+and refusal is C's.
+
+- **Move and swap** (ED7). An insert or a master slot's effect is dragged
+  onto another effect slot (a swap verb; the cables follow it), a rack card
+  onto another position (a move verb). While a block is in hand (gold), the
+  slot under it shows C's verdict before the drop: the shadow Worker's
+  `preview` applies the verb to a copy of the live state and answers with
+  the code and the RAM after, in percent of the budget, or the refusal in
+  the metadata's words. The keyboard twin (§13): Space picks the focused
+  block up, the arrows aim it, Space drops it, Esc cancels; ⌥ and an arrow
+  swap with the neighbour; each inspector has *Swap with…* / *Move to…*.
+  The inserts of a sound with no engine are not places: no file could hold
+  an effect there, and the edit layer now refuses one (code BAD).
+- **Pickers.** *Choose engine…*, *Choose effect…* (by the metadata's
+  groups), *Choose MIDI effect…*, *Choose module…*: each choice tried alone
+  on the live state in the shadow Worker (`preview` with `each`), its row
+  showing the RAM after or C's refusal (RAM's "needs N% of RAM", RATE,
+  ARENA); a choice C answers BAD is not offered (S1's engine cannot be
+  emptied). A GPL chip marks the GPL modules.
+- **Meters** (telemetry): an insert's and a master slot's in and out, peak
+  in dB, and gain reduction where C reads it out; the Mix's levels with
+  each sound's meter, *Make current* (the current verb), the Mix and the
+  output with the limiter's reduction. Meter rows are found by the
+  telemetry layout's order in the metadata, never by name.
+- **A kit's pads** (API v4, flags `focus` and `per_focus`): a pad strip (the
+  focus parameter) above the rows marked *pad*; a per-pad edit names its pad
+  in the record's focus byte, so undo reaches that pad wherever the panel's
+  focus is by then. The mirror keeps every pad's values.
+- **Modulation** (the outline's *Modulation*; ED8: the matrix table is the
+  editing view, the patch-bay Map is ED5b's, below): the rack as eight cards with a
+  live trace of each module's first output (value with its min and max over
+  the frame) and its cable count; the matrix with a filter, *Empty slots*,
+  sort (slot, source, destination, refused first), *Add a cable*, and per
+  slot On, From, VIA, To (every parameter with `mod`, each module's gates,
+  the host's), Amount (typed or ↑↓), the live value of its destination and
+  the planner's verdict in words, with marks (`v` per voice, `!` refused,
+  `–` off). The slot inspector edits every field (amount and offset as
+  sliders, polarity, curve, per voice) and *Remove*; the module inspector
+  shows the kind's pages, its outputs live and its gate inputs with what
+  reaches them. Each block's inspector lists the cables into it.
+- **The rack and the matrix come from C**: `fm1w_mod_records` (new export,
+  shadow Worker only) writes a MODULE record per position, a CABLE record
+  per slot and each slot's planner verdict, so the editor reads cables by
+  their codes and never parses a file's names for them; names come from the
+  metadata (`mod.sources`, `mod.units`, each kind's `outs` and `gates`).
+- **Structural undo** (§8): an engine, effect, MIDI effect or module chosen
+  keeps the records that put the block back (its unit, every value, a kit's
+  pads one by one) and the matrix as it was; undo sends them, then every
+  slot that held a cable then or holds one now. A swap undoes by itself, a
+  move by the move back; redo sends the edit again. Cable edits are value
+  steps, field by field. The panel's structural changes (PRESETS, FX,
+  RACK, MATRIX) enter the same history from the mirror as it was.
+- **Tests.** `test/editor-unit.mjs`: modules, cables, swaps and moves as
+  packed records, the feed and `fm1w_mod_records` decoded the same, a
+  planner verdict as a code, refused records leaving the state hash alone,
+  and 28 random structural edits through `chains.js` undone to the first
+  state hash and redone to the last. `test/editor-ui.mjs` (headless
+  Chromium on aeon): the keyboard twin and a pointer drag with the verdict
+  over the target, a picker's RAM column and choice, a refusal in the
+  metadata's words that changes nothing, the matrix (a cable added, its
+  amount typed, polarity set, aimed where the planner leaves it out) and
+  the rack (a module moved by keys, one chosen, one emptied), each undone to
+  the state before it; the rack's kinds among the inspectors; the
+  Modulation view in both layouts at 1,440 and 1,024 px.
+
+## The advanced editor, stage ED4: files and the project
+
+Stage ED4 of `notes/2026-10-06-web-editor.md` (§8-§10, §13, §18; the
+note's §25 has it as built) adds `www/editor/project.js`. Files go through
+W1's paths (`files.js`): pass 1 in the shadow Worker, binary to the
+worklet, C's canonical writer for everything written.
+
+- **Drop targets** (§9). A file dropped on a sound (or its MIDI effect, or
+  an empty strip), on an insert or a master slot, or on the rack is checked
+  first: `files.verdict` runs pass 1 as the kind the block takes (sound,
+  effects into that sound or the master, mod rack) against the live state,
+  and the card above the view says C's words and the RAM after in percent,
+  with *Load*; a refusal is C's (a wrong kind reads "…, not a …"), with
+  *Load without what does not fit* where C offers it. One file at a time,
+  at most the module's 256 KiB; nothing loads until *Load*, which is W1's
+  load with its notice and *Undo load*. The page-level drop leaves a drop
+  the editor took. A library item dragged over a block gets its verdict
+  while it hovers (a desktop file's bytes are not readable before the drop).
+- **Export and the library.** Each inspector has *Export…* (W1's `saveAs`:
+  `NAME-s2.sound.lunar`, `NAME-s2.fx.lunar`, `NAME-master.fx.lunar`,
+  `NAME.mods.lunar`) and *Save to my library* (the canonical JSON in W1's
+  `files` store, with its kind). The *Library* view lists the store and
+  Recent; W1's own library loads such items into a target it asks for.
+- **Links** (§9). `?view=edit` opens the Editor layout; `sel=` names a
+  block (`s1`-`s4`, `s2.in1`, `s2.mfx1`, `m1`, `p3`, `c12`, `mix`) and,
+  after a colon, a parameter by its name. `files.parseSel` reads only that
+  shape (48 characters at most, a fixed pattern); the editor finds the
+  block in its mirror and the name in the metadata, or says why not. It
+  loads nothing, and applies after the load and the POWER press like W1's
+  hints; the address is cleared once applied.
+- **Search** (⌘K / Ctrl+K): blocks, every parameter of every block (from
+  the metadata's pages) and commands (views, undo, export, Copy a link,
+  A/B, the keys). Words must all match; the arrows choose, Enter runs, Esc
+  closes; a combobox with a listbox and `aria-activedescendant`.
+- **A/B** (§9). *Keep as A* keeps the project, or one sound, as a binary
+  snapshot (in memory, not IndexedDB); X (keys in EDIT) or the button
+  switches: the live state is kept as the side being left and the other is
+  loaded through W1's load (a sound file into its sound for one sound).
+  The differences come from the shadow Worker's `diff` (now with `arg`),
+  the view and the current sound left out.
+- **Memory** (§10): each part from `fm1w_ram_part` in percent of the
+  budget, in use (rounded up) and free (rounded down), and which sounds and
+  effects would fit in what is free, from the metadata's RAM figures.
+- **Undo's hash check and snapshot fallback** (§8). When the editor makes
+  a structural edit while its copy of the project is current (no change
+  since, nothing on its way: it is taken again 400 ms after changes stop),
+  the entry keeps that binary and its hash (4 MB of snapshots at most).
+  After the entry's undo has been applied, the Worker hashes the state;
+  on a mismatch the snapshot is loaded (quietly, no Recent) and the entry
+  says so. The hash is C's one definition: `fm1_edit_state_hash`, exported
+  as `fm1w_state_hash` and called by the Worker's `hash`, over
+  `fm1_app_state_save`'s binary 3 (nothing deflated, no view, the current
+  sound left out), so a follow that moves the panel changes no hash.
+- **The ARP pages.** The view verb's HOME takes `entry=2` for the panel's
+  ARP pages (with `page`); selecting a MIDI effect opens them.
+- **Tests.** `test/origins.mjs`: `sel` shapes, good and hostile.
+  `test/fm1_edit_check.c`: the ARP view and its knobs, `entry=3` refused,
+  the hash unmoved by the view and the current sound. `test/editor-ui.mjs`
+  (headless Chromium on aeon): export, the ARP pages, drops (too large, two
+  files, malformed, random bytes, a DX7 file, a wrong kind: each refused in
+  words with the state unchanged; a sound loaded after its verdict), the
+  library's hover verdicts, search by keys, Memory, A/B by X, undo checked
+  by hash and the fallback, and links (a parameter, an empty block, hostile
+  `sel` values, an off-site `load`), with the new views at 1,440 and
+  1,024 px. CI's ASan + UBSan job now runs `tests/test_sim_edit.py`.
+
+## The advanced editor, stage ED5a: reach and the read-outs
+
+Stage ED5a of `notes/2026-10-06-web-editor.md` (§12-§14, §18; the note's
+§26 has it as built) is the first half of ED5: the telemetry ED1 left
+empty, the keyboard and screen-reader passes, the phone layout and the
+layout check. The Map and the manual's chapter are the second half.
+
+- **Read-outs, all read-only.** `engines/include/fm1_dynamics.h`:
+  `fm1_limit_gain` (the Limiter's envelope: the lower channel's `1 - red`)
+  and `fm1_squash_gain` (the gain the sounding Type applied to the last
+  frame, before Output and Mix, the lower channel). Both read state the
+  effect already keeps, so the audio, the instance size and every golden
+  are as they were. `fm1_mod_voice_dest` (`fm1_mod.h`): voice i's value of
+  the destination a VOICE cable reaches, what the engine holds (the last
+  value sent where cables reach the parameter for every voice, else the
+  knob's) plus the voice's offset, held to the range; free voices, slots
+  that are not running VOICE cables and a pending plan give nothing. The
+  edit layer fills the `reduction` rows for Limiter and Squash (a cut in
+  dB, 0 at unity and above: Squash's Mu makeup and Split's lift are not a
+  reduction) and the `voice_dests` rows (NaN where a voice has no value).
+- **Where they show.** An insert's or master slot's *Out* meter has a thin
+  gain-reduction bar under it and "GR n dB" beside the peak, while the
+  effect cuts by more than 0.05 dB and a signal is going in (Squash's gate,
+  closed over silence, is a cut of its own and would read as a constant
+  "GR" at rest). In the matrix, a per-voice cable's *Live* cell reads the
+  range of its sounding voices (`0.54-0.66`; one value when they agree),
+  with the voice count as its title. (The ED3 page showed gain reduction
+  only for a negative dB, which C never sends: it showed none.)
+- **Keyboard and screen reader** (§13). Tests drive Playwright's
+  accessibility snapshot of every view: no control without a name, every
+  slider with `aria-valuenow`, a valuetext in words and a label (the
+  per-voice badge no longer leaks a "v" into a slider's name: it is an
+  image named "per voice"). One focus ring everywhere, 2 px in the focus
+  colour (`.ed :focus-visible`). Announcements are at most one a second, the
+  latest kept (`say`); a refusal reaches the polite live region in C's words
+  and nothing announces while the editor idles. Tab into the editor gives it
+  the keys.
+- **Phones** (§14), at 640 px and under: the layout switch is two tabs,
+  *Panel* and *Edit* (the Workbench, which needs the room, becomes Edit);
+  the outline is a row of tabs that scrolls inside itself; the screen card
+  shows a 96 px screen; the strips and rows stack (a row's name above its
+  slider and value); the matrix is a list of cables, each cable a card with
+  its cells named (`data-h`, shown as small captions); no Map is offered.
+- **The layout check** (`test/layout-probe.js`, run by `editor-ui.mjs` in
+  every view at 1,440, 1,024, 768 and 375 px, and by hand in any browser as
+  `lunarLayoutProbe()`): no sideways scroll; no text or control past the
+  page; no text clipped by an ancestor that hides overflow; no two pieces of
+  text, or a control and a piece of text, overlapping by more than 2 px
+  (popups and dialogs laid over the page on purpose are left out).
+- **Tests.** `test/fm1_edit_check.c`: a per-voice cable's `voice_dests` row
+  (a value inside the parameter's range for a sounding voice, none for a
+  slot with no such cable), Limiter at Drive +24 dB and Squash at 1 each
+  reading a cut of 1 dB or more, Limiter at rest reading none, and the audio
+  with every row subscribed still bit for bit the audio without the layer.
+  `test/editor-reach.mjs` (headless Chromium on aeon): the snapshot checks,
+  the keyboard (reach, 40 ring stops, targets), announcements, the phone
+  layout and its cable list, a Limiter driven by the keyboard reading
+  "GR n dB", and a per-voice cable reading its voices. `tests/test_module_list.py`:
+  the edit layer's references to the Limiter and Squash objects are
+  guarded by `FM1_WITH_LIMIT` and `FM1_WITH_SQUASH`, as Comp's are.
+
+## The advanced editor, stage ED5b: the Map, other browsers and the manual
+
+Stage ED5b of `notes/2026-10-06-web-editor.md` (§10, §13, §14, §18; the
+note's §27 has it as built) is the second half of ED5.
+
+- **The Map** (`www/editor/map.js`, Modulation's *Table | Map* switch; the
+  table stays the default and the keyboard and screen-reader view): the
+  matrix's slots as a patch bay. Three columns, **Sources** (the metadata's
+  fixed sources, those in use always shown and the rest folded in groups:
+  each sound's notes, the sequencer's lanes), the **Rack** (a block per
+  position with its gate inputs and parameters that take a cable on the left
+  and its outputs, live, on the right, and a trace) and **Destinations**
+  (a group per sound, insert, master slot and the host: parameters that have
+  a cable, the rest behind *n more*). Cables are drawn in the gutters between
+  the columns and in a band above the rack, never across a block or a label:
+  a source to a module input or a module to a destination is one curve in
+  its gutter; a source to a destination, or a module back to a module, runs
+  in lanes, along the band above the rack or along the gap between two
+  blocks. A cable's kind is its line: dashed (modulation), dotted (gate), a
+  pale band under it (per voice), the refusal colour with a cross at its end
+  (the planner leaves it out). A **pill** (amount, live value) is placed in a
+  clear place in a gutter or the band, never over a label, a block or
+  another pill, for the selected cable, the lit ones in focus and the refused
+  ones; a place for the selected cable may be over another cable when the Map
+  is crowded.
+- **Focus** (`st.mapMode`): selecting a module or a destination, or clicking a
+  source, or **F** on a jack or block, keeps its cables bright and dims the
+  rest without pills; *Refused* does the same for the cables that do not run;
+  **Esc** and *All* show everything.
+- **Making a cable**: drag from an output jack to an input jack, or **Enter**
+  on an output, arrows between inputs, **Enter** to drop (**Esc** puts it
+  back). While one is in hand every destination opens. Over an input the
+  Map asks C: the shadow Worker's `preview` of one CABLE record in the first
+  empty slot, with `mod` (new: the rack and matrix after the op, as `save`'s
+  `mod`, so the planner's verdict is C's own), and shows the refusal in the
+  metadata's words ("Cannot be modulated: Model rebuilds the voices"), or
+  *Runs*. The drop is one CABLE record through `chains.makeCable` (the table's
+  *Add a cable* uses the same), 25 %, selected: one history step.
+- **The Map is not an engine rule**: it names no engine, effect, kind or
+  source. Jacks, groups and names come from the metadata and the mirror;
+  live values reach it through the table's own `data-out` and `data-dest`
+  hooks; one tab stop in each column (a toolbar, arrows inside, every jack
+  named); the picture is `aria-hidden`.
+- **Room**: from 620 px of the editor's width. Narrower (a phone), the
+  switch is not shown and the matrix stays a list of cables.
+- **`Map faults()`**: `window.fm1.editor.chains.map.faults()` lists a cable
+  over a label or a block, two labels over each other, a pill over a label, a
+  block or a lit cable that is not its own, clipped text and sideways scroll.
+  The tests ask it at 1,440, 1,024 and 768 px and with all 32 slots used.
+- **Other browsers**: `test/launch.mjs` starts Chromium, Firefox or WebKit
+  (`BROWSER=firefox|webkit`) for `editor.mjs`, `editor-ui.mjs`,
+  `editor-reach.mjs` and `editor-map.mjs`. Firefox in a headless container
+  needs an audio device (its AudioContext stays *suspended* otherwise, with
+  or without its null-context pref): PulseAudio with a null sink does it.
+  By hand, on aeon, in the Playwright container that `build-on-aeon.sh` used
+  (the staged tree is under its remote directory's `src/`, its `playwright/`
+  holds the npm package), run as root with `-e BROWSER=firefox`: `apt-get
+  install pulseaudio pulseaudio-utils`, then `pulseaudio --system -n
+  --disallow-exit --exit-idle-time=-1 --load=module-null-sink
+  --load="module-native-protocol-unix auth-anonymous=1 socket=/tmp/pa.sock"
+  -D; export PULSE_SERVER=unix:/tmp/pa.sock`, then each of the four tests
+  with `PLAYWRIGHT_DIR=/pw node test/editor-map.mjs WWW OUT` (and `editor.mjs
+  WWW OUT 30` for the storm). WebKit needs no device. Firefox and WebKit do not
+  measure lateness or underruns, only that every edit applies. The tests that
+  resolve a made-up host name (`files.mjs`, `screenshot.mjs`) use a Chromium
+  flag and stay on Chromium.
+- **The manual**: chapter 15, *The advanced editor* (`manual/chapters/`), with
+  five pictures of the page (`assets/screenshots/page-editor-*.png`, made by
+  `test/editor-shots.mjs` and shown by the manual's new `{{page KEY caption}}`).
+
+## The advanced editor: the v1 completion
+
+The audit of v1 after ED5b (`notes/2026-10-06-web-editor.md` §28 has each
+gap, how it was built and how it was checked) found what the stages had left
+out. Built, with `test/editor-v1.mjs` (all five editor tests run in Chromium,
+Firefox and WebKit):
+
+- **Modulation on the parameter rows** (`chains.js`: `decorateRow`,
+  `tickRows`; §6 flag `mod`, §7, §11, §13). A row a live cable reaches (on,
+  and not refused: C's verdict) has its label in the modulation colour, a chip
+  naming the source, a bracket round the base (the cables' depth, as the panel
+  screen draws it) and the destination's effective value as a tick, one for
+  each sounding voice for a per-voice cable. The slider speaks it: "Cutoff,
+  420 hertz, modulated by 1 LFO Out, plus 35 percent". The telemetry's `dests`
+  and `voice_dests` rows of the live cables are subscribed in the Flow and a
+  sound too, not only in Modulation. Key **C** on a slider makes a cable into
+  that parameter (or says "Takes no modulation", C's words).
+- **Late cables.** `fm1w_mod_records` ends with one more byte for each slot:
+  the rack positions of the loop a cable read a tick late closes, as a bit
+  mask (`fm1_mod_slot_loop`; 0 when it is not late). The table marks `>` runs,
+  `v`, `~` late, `!`, `–` from the metadata's `marks` (level 1.2: the panel's
+  own characters and words), the slot inspector says which modules the loop
+  passes through, the Map has an *A tick late* chip and `~` on the pill.
+- **A refusal's repair, drawn curves, each voice's value.** Level 1.2's
+  `refusals.codes[].fix` (`global` for VOICE_TO_MONO and VOICE_TO_EFFECT)
+  becomes a button that makes the ordinary edit; the slot inspector draws every
+  curve from `mod.curve_points` (C's `fm1_mod_curve`, 33 points) and lists
+  each sounding voice's value for a per-voice cable.
+- **Source groups from the metadata** (`mod.source_groups`, a `group` on each
+  source): the Map holds no source name any more.
+- **Search operators** (`project.js`): `>cutoff` into, `lfo>` out of, `!`
+  refused, `~` late, `v` per voice, `s2` a sound, a unit such as `hz`; cables
+  are a group.
+- **A/B picks.** Each listed difference has an A or B pick; *Make B from the
+  picks* asks the shadow Worker's new `fromPicks` op for B's file with A's values
+  at the picked places (`differences` now also gives each change's steps,
+  `at`), has pass 1 judge it, records one history step (undone from its
+  snapshot, redone from the file) and loads it. A and B are kept in
+  IndexedDB's new `snapshots` store (database version 2) and come back after
+  a reload for the same project.
+- **Out, per block.** *Copy a link* for a block's file (`#lunar=...&into=s3`),
+  and in Chromium a sound's tag in the Flow dragged to the desktop gives its
+  file (`DownloadURL`, the file made as the pointer comes near).
+- **The arrival card** says what the target holds now and what the file
+  brings; RAM and acceptance are still C's.
+- **The Flow's blocks** carry their cable count (and refusals) and a level bar.
+- **Phones** (`sheets.js`): *Add a cable* as three steps (source, destination,
+  amount, with C's verdict) where the editor has no room for the table's row;
+  a block's menu from a long press, a right click or the menu key.
+- **Small ones**: "A sound, not an effects chain, was expected." (C's article
+  follows the word); stale text in `history.js` and this file.
+- **Tests §17 left out**: axe-core's rules on every view at 1,440, 1,024 and
+  375 px (found and fixed: muted text at 4.46:1, headings out of order, names
+  that did not hold the visible text, the sound tag's contrast), a
+  reduced-motion run (half the telemetry, no animation), telemetry stopped
+  while the editor is hidden, a lock playing changing no base (native
+  `--edit-check` and the page), a sweep of 40 random gesture runs for the
+  parity of hands (native), and the main thread's budget while a slider is
+  dragged.
+
+The test needs axe-core in the Playwright directory (`build-on-aeon.sh`
+installs it next to Playwright).
+
+## The advanced editor: the review's seven fixes
+
+A review of the v1 build (`notes/2026-10-06-web-editor.md` §30 has each defect,
+its fix and its check) found seven things wrong; fixed, with a check that fails
+without each:
+
+- **A/B keeps the transport.** `files.load(..., { same: true })` (A/B's own
+  loads, "Make B from the picks", the undos of either) sets the new load flag
+  `FM1_APP_LOAD_KEEP_TRANSPORT` (8). C reads a running transport before the
+  project is made again (`fm1_seq_transport_take`, `engines/seq/seq_engine.c`)
+  and, once the set is in, plays it and lays the old clock and playheads over it
+  (`fm1_seq_transport_put`): the master tick and its phase, each track's clip,
+  playhead and loop count for a clip the new set has, the song's place when it
+  is the same list. A stopped transport stays stopped; recording, a count-in
+  and Capture end with the load. Native: `--edit-check`'s `check_transport`;
+  page: `test/editor-v1.mjs` §11.
+- **A long list's filter** rebuilds the `<select>`'s options (Safari's dropdown
+  ignores `hidden`); `editor-v1.mjs` §12 types into it, the picker's filter and
+  the matrix's, in all three engines.
+- **Units are spoken as words** from one table (`spokenText`): "+7 semitones".
+- **The id layout and the chain's shape are the metadata's** (level 1.3,
+  `mod.source_base`, `source_stride`, `unit_base`, `sounds`, `inserts`,
+  `masters`): `model.js` reads them once (`setLayout`) and a metadata without
+  them is refused with a message. `tests/test_sim_editor_ui.py` greps the
+  editor's code for a stride, a base or a count written as a number.
+- **Stored A and B belong to a project**, not to a title: a project has an
+  identity (`files.pid`) that the autosave carries.
+- **The IndexedDB upgrade** (`files.js`, `openDb`): a blocked open stays
+  pending, the visit works from memory meanwhile and says why, memory is
+  written when storage is free, and the connection closes on `versionchange`.
+  `editor-v1.mjs` §13 holds a version 1 open from a second page.
+
+**CI** runs the editor's page tests (`.github/workflows/ci.yml`, job
+`editor-page-tests`): `editor-unit`, `editor-ui`, `editor-reach`, `editor-map`,
+`editor-v1` and the 30-second storm in Chromium, Firefox and WebKit, in
+`mcr.microsoft.com/playwright:v1.63.0-noble` with Playwright and axe-core as
+`build-on-aeon.sh` installs them (`tests/test_ci_pins.py` holds the two
+together), and the page's `screenshot` and `files` tests in Chromium. They need
+the committed `www/` only. A failing run uploads the screenshots and reports.
 
 ## Parity: does the browser sound like the native engines?
 

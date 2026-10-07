@@ -205,10 +205,46 @@ const asset = (name) => new URL(name, import.meta.url).href;
 // rate whatever the browser gives (FM1_APP_RAM_RATE).
 const WANT_RATE = 44100;
 
+// iPhone and iPad (issue #53). Safari gives Web Audio the "ambient" audio
+// session unless the page asks for another, and Silent mode (the Ring/Silent
+// switch, or the Action button) mutes that session as it mutes a game; a
+// music app asks for "playback". Safari also stops a running context when
+// something interrupts it (a call, Siri, another app's audio) and starts it
+// again only from a tap. So the page asks for the playback session while it
+// is powered on (the Audio Session API, where the browser has it), resumes
+// the context inside the tap that powers it on, before anything is awaited,
+// and resumes it from the next tap or key whenever the browser holds it,
+// saying so on the status line meanwhile.
+const HELD = 'The browser is holding the sound back: tap the panel or press a key to start it.';
+
+function audioSession(type) {
+  try {
+    if (navigator.audioSession) navigator.audioSession.type = type;
+  } catch {
+    // A browser that will not change it plays as it would have.
+  }
+}
+
+function wake(ctx) {
+  if (ctx && ctx.state !== 'running' && ctx.state !== 'closed') ctx.resume().catch(() => {});
+}
+
+function onContextState(ctx) {
+  if (ctx !== sim.ctx || ctx.state === 'closed') return;
+  sim.held = ctx.state !== 'running';
+  if (sim.held || sim.state) showStatus();
+  else statusEl.textContent = 'Starting...';
+}
+
+for (const type of ['pointerdown', 'pointerup', 'keydown']) {
+  window.addEventListener(type, () => wake(sim.ctx), { capture: true, passive: true });
+}
+
 async function makeContext() {
   let last = null;
   try {
     const ctx = new AudioContext({ latencyHint: 'interactive', sampleRate: WANT_RATE });
+    wake(ctx);
     if (ctx.sampleRate === WANT_RATE) {
       sim.requestedRate = WANT_RATE;
       sim.rateRefused = '';
@@ -231,6 +267,7 @@ async function makeContext() {
   // and why.
   try {
     const ctx = new AudioContext({ latencyHint: 'interactive' });
+    wake(ctx);
     sim.requestedRate = null;
     return ctx;
   } catch (err) {
@@ -260,6 +297,7 @@ async function start() {
     return;
   }
   statusEl.textContent = 'Starting...';
+  audioSession('playback');
   let ctx = null;
   try {
     ctx = await makeContext();
@@ -276,15 +314,21 @@ async function start() {
     analyser.fftSize = 2048;
     node.connect(ctx.destination);
     node.connect(analyser);
-    Object.assign(sim, { ctx, node, analyser, notice: '' });
+    Object.assign(sim, { ctx, node, analyser, notice: '', held: false });
+    ctx.addEventListener('statechange', () => onContextState(ctx));
     node.port.postMessage({ type: 'init', wasm, master: sim.master }, [wasm]);
-    await ctx.resume();
+    // Not awaited: a browser that holds the context would keep the page at
+    // "Starting..." with no way on. Still held a moment later, the status
+    // line asks for a tap (above).
+    wake(ctx);
+    setTimeout(() => { if (ctx === sim.ctx && ctx.state === 'suspended') onContextState(ctx); }, 1500);
     overlay.hidden = true;
     powerEl.classList.add('on');
     document.getElementById('power-off').disabled = false;
     dx7Button.disabled = false;
     for (const id of FILE_CONTROLS) document.getElementById(id).disabled = false;
     files.afterPowerOn().catch((err) => console.error('files', err));
+    window.dispatchEvent(new CustomEvent('fm1-power', { detail: { on: true } }));
   } catch (err) {
     if (ctx && ctx !== sim.ctx && ctx.state !== 'closed') await ctx.close();
     await powerOff();
@@ -297,7 +341,8 @@ async function powerOff() {
   releaseEverything();
   if (sim.node && files) await files.beforePowerOff();
   if (sim.ctx) await sim.ctx.close();
-  Object.assign(sim, { ctx: null, node: null, analyser: null, state: null, seq: null });
+  audioSession('auto');
+  Object.assign(sim, { ctx: null, node: null, analyser: null, state: null, seq: null, held: false });
   overlay.hidden = false;
   powerEl.classList.remove('on');
   document.getElementById('power-off').disabled = true;
@@ -308,6 +353,7 @@ async function powerOff() {
   for (const g of [...keyEls, ...buttonEls]) g.classList.remove('lit');
   for (const c of [tft, mirror]) c.getContext('2d').clearRect(0, 0, 240, 240);
   statusEl.textContent = 'Powered off.';
+  window.dispatchEvent(new CustomEvent('fm1-power', { detail: { on: false } }));
 }
 
 // ---- licences: the GPL offer (docs/12 §6, "The GPL switch") ----------------------
@@ -484,6 +530,10 @@ function memoryPercent(bytes, budget) {
 
 function showStatus() {
   const st = sim.state;
+  if (sim.ctx && sim.held) {
+    statusEl.textContent = HELD;
+    return;
+  }
   if (!sim.ctx || !st) return;
   const rate = sim.ctx.sampleRate;
   const fellBack = rate === WANT_RATE ? ''
@@ -510,6 +560,7 @@ function drawScreen(px) {
   }
   tft.getContext('2d').putImageData(image, 0, 0);
   if (!document.getElementById('mirror').hidden) mirror.getContext('2d').putImageData(image, 0, 0);
+  if (sim.screenListeners) for (const f of sim.screenListeners) f(image);   // the editor's screen card
   ++sim.screens;
 }
 
@@ -635,6 +686,7 @@ window.addEventListener('drop', (e) => {
   e.preventDefault();
   dragDepth = 0;
   dropHint.hidden = true;
+  if (e.lunarInto) return;            // the editor's drop target took it (stage ED4)
   files.openFiles([...e.dataTransfer.files]);
 });
 
@@ -812,6 +864,9 @@ function keydown(e) {
   // macOS does not deliver the keyup of a key released while Cmd is down,
   // so Cmd lets go of every held key first.
   if (e.key === 'Meta') { releaseKeys(); return; }
+  // EDIT (the Advanced editor has the keys, notes/2026-10-06-web-editor.md
+  // §13): no computer key plays the FM-1 until Esc gives them back.
+  if (sim.keysToEditor) return;
   if (e.metaKey || e.ctrlKey || e.altKey) return;     // browser and system shortcuts
   if (e.target.closest && e.target.closest('select, input, textarea')) return;
   const focused = document.activeElement;
@@ -974,6 +1029,66 @@ function controlEl(name) {
 }
 drawPanel();
 files = initFiles({ sim, powerOn, loadDx7Files, controlEl });
+sim.releaseKeys = releaseKeys;
+
+// ---- the Advanced editor's layouts (stage ED2, notes/2026-10-06-web-editor.md §4)
+// Panel is the page as it was; Workbench puts the editor beside the panel
+// (below it under 1,280 px); Editor folds the panel to its screen, drawn in
+// the editor's outline. The editor's modules load on the first switch away
+// from Panel, so the plain simulator loads what it loaded before.
+const LAYOUTS = ['panel', 'workbench', 'editor'];
+// On a phone (stage ED5a, §14) the layouts are two tabs, Panel and Edit: the
+// Workbench, which puts both in one page, becomes Edit.
+const phone = window.matchMedia('(max-width: 640px)');
+const layoutSwitch = document.getElementById('layout-switch');
+let editor = null;
+let editorLoading = null;
+async function setLayout(name, save = true) {
+  if (!LAYOUTS.includes(name)) name = 'panel';
+  if (phone.matches && name === 'workbench') name = 'editor';
+  for (const b of layoutSwitch.querySelectorAll('[data-layout]')) {
+    const on = b.dataset.layout === name;
+    b.setAttribute('aria-checked', String(on));
+    b.tabIndex = on ? 0 : -1;
+  }
+  document.body.dataset.layout = name;
+  if (save) pref('editor.layout', name);
+  const host = document.getElementById('editor-host');
+  host.hidden = name === 'panel';
+  if (name !== 'panel' && !editor) {
+    editorLoading = editorLoading || import('./editor/editor.js').then((m) => m.startEditor({
+      sim, files, host, layoutSwitch, header: document.querySelector('.top'), powerOn,
+    }));
+    try {
+      editor = await editorLoading;
+    } catch (err) {
+      editorLoading = null;
+      statusEl.textContent = `The editor could not load: ${err.message || err}`;
+      return;
+    }
+  }
+  if (editor && document.body.dataset.layout === name) editor.setLayout(name);
+}
+layoutSwitch.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-layout]');
+  if (b) setLayout(b.dataset.layout);
+});
+layoutSwitch.addEventListener('keydown', (e) => {
+  const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+  if (!d) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const tabs = phone.matches ? LAYOUTS.filter((x) => x !== 'workbench') : LAYOUTS;
+  const i = tabs.indexOf(document.body.dataset.layout || 'panel');
+  const next = tabs[(i + d + tabs.length) % tabs.length];
+  setLayout(next).then(() => layoutSwitch.querySelector(`[data-layout="${next}"]`).focus());
+});
+setLayout(pref('editor.layout') || 'panel', false);
+phone.addEventListener('change', () => { if (phone.matches && document.body.dataset.layout === 'workbench') setLayout('editor', false); });
+// A link's view=edit or sel (stage ED4): the Editor layout, at that block.
+window.addEventListener('lunar-editor-link', (e) => {
+  setLayout('editor', false).then(() => { if (editor) editor.applyLink(e.detail); });
+});
 setAngle(masterEl, -150 + 300 * sim.master);
 revealScreen();
 document.getElementById('power-on').addEventListener('click', powerOn);

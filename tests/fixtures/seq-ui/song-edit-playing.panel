@@ -1,0 +1,28 @@
+# Editing while the song plays (SG10). From `+ add`, keys 1, 2, 2 and 3
+# make [1, 2x2, 3], and SHIFT + F#3 moves entry 3 a place up: [1, 3, 2x2].
+# PLAY; in entry 2 the cursor trails it, and CLEAR deletes it: entry 2
+# (scene 2) falls in on the next bar. KNOB1 two detents makes it scene 4,
+# heard on the next bar, and white key 11 gives it three repeats. SELECT
+# up and SHIFT + PLAY: entry 1 relaunched on the next bar (`sgjump 0`).
+# SHIFT + CLEAR asks, CLEAR clears the song (`sgclr`); what plays keeps
+# playing. PLAY/STOP.
+--button 0.05:SEQ
+--button 0.10:SEL:0.1
+--key 0.12:3:100:0.05
+--key 0.20:0:100:0.02
+--key 0.25:2:100:0.02
+--key 0.30:2:100:0.02
+--key 0.35:4:100:0.02
+--button 0.40:SEL:0.06
+--key 0.42:1:100:0.02
+--button 0.50:PLAY/STOP
+--key 1.70:10:100:0.05
+--turn 3.00:KNOB1:2
+--key 3.20:18:100:0.05
+--turn 4.20:SELECT:-1
+--button 4.30:SEL:0.1
+--button 4.32:PLAY/STOP
+--button 6.00:SEL:0.1
+--key 6.02:10:100:0.05
+--key 6.30:10:100:0.05
+--button 7.00:PLAY/STOP

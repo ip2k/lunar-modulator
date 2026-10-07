@@ -139,6 +139,16 @@ round (`0xC1` as msfa's original, `0x41` as a Dexed-family fix). Either way the
 engine is msfa-lineage code. The FM6 engine (`engines/msfa.md`) runs Google's
 table and closes the two loops in its own code.
 
+It is msfa-lineage in its tables, algorithm table, envelope and patch format,
+but not in its operator arithmetic. V15's operator works in the log domain
+(exponent and log-sine tables, no phase interpolation, attenuation ramped
+per sample across each block), where msfa multiplies a linear gain, and its
+three-operator kernel runs algorithm 4's feedback loop, which msfa's `FmCore`
+leaves out **[reported: Echomatter, PR #1 here; both tables equal its
+formulas entry for entry, verified 2026-10-06]**. So the FM-1 is
+sound-compatible with msfa at the level of patches, not of the arithmetic.
+Details: `notes/2026-10-06-echomatter-pr1.md`.
+
 Other supporting evidence: the DX7 parameter names (`Algorithm`, `Feedback`,
 `Osc Sync`, `Lfo Sync`, `BreakPoint`, `L Depth`, `R Depth`, `RateScale`,
 `A ModSens`, `KeyVelocity`, `OscMode`, `FreqCoarse`, `FreqFine`, `Detune`),

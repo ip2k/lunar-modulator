@@ -9,6 +9,133 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The editor's page tests run in CI.** A new job, `editor-page-tests`, runs
+  the Advanced editor's tests (`editor-unit`, `editor-ui`, `editor-reach`,
+  `editor-map`, `editor-v1` and the 30-second storm) in Chromium, Firefox and
+  WebKit, and the page's own `screenshot` and `files` tests in Chromium, in the
+  Playwright container the Linux build script uses (the same version; a test
+  holds the two together). They run against the committed module, so no
+  native build is needed; a failing run uploads its screenshots and reports.
+- **A test harness is planned** (owner, 2026-10-07, not built): one that plays
+  the simulator in headless Chromium, Firefox and WebKit into a loopback audio
+  device (PipeWire or similar) and checks the audio and the underruns in all
+  three, which Firefox and WebKit cannot measure from inside the page.
+- **The advanced editor: the v1 gaps** (the audit after ED5b). A parameter a
+  cable moves now looks it, as the screen does: its name in the modulation
+  colour, a chip naming the cable's source, a bracket round the value, a tick
+  where it is now (one for each sounding note for a per-voice cable), and the
+  slider says it aloud ("Cutoff, 420 hertz, modulated by 1 LFO Out, plus 35
+  percent"); <kbd>C</kbd> makes a cable into the parameter. Cables that run a
+  tick late are marked `~` in the table and the Map and explained (which
+  modules the loop passes through); a cable the instrument refuses can offer
+  its repair (*Make it global*); the cable's curves are drawn and a per-voice
+  cable shows each note's value. Search understands `>cutoff`, `lfo>`, `!`,
+  `~`, `v`, `s2` and units such as `hz`, and finds cables. A/B lists each
+  difference with an A or B pick and can make B from the picks in one undoable
+  step; A and B survive a reload. Each block can copy a link to its file, and in
+  Chromium a sound's tag can be dragged to the desktop. A file dropped on a
+  block says what it replaces and what it brings. Flow blocks show their cable
+  counts and level bars. On a phone, *Add a cable* is three steps and a long
+  press opens a block's menu. The Map's source groups now come from the
+  instrument (parameter metadata level 1.2, which also carries the matrix
+  marks, the curves' points and the repairs). The editor's views pass
+  axe-core's rules at desktop, tablet and phone widths; muted text, headings
+  and some button names were fixed for it.
+- **The advanced editor: the Map** (stage ED5b, finishing the editor). The
+  modulation view has a second face, *Map*, next to *Table*: the same cables
+  drawn as a patch bay, with sources on the left, the rack in the middle and
+  destinations on the right. Click a module, a destination or a source (or
+  press F) and its cables stay bright with their amounts while the rest dim;
+  *Refused* does the same for the cables that do not run. Drag a cable from
+  an output to an input, or press Enter on an output, move with the arrows and
+  press Enter again; over an input the Map says whether it would run, in the
+  instrument's own words. The Map is for windows about 620 pixels wide and
+  up; a phone keeps the cable list. A new chapter of the manual, *The
+  advanced editor*, describes the whole editor with pictures. The editor's
+  tests now also run in Firefox and WebKit.
+- **The advanced editor: reach and the read-outs** (stage ED5a). Effects that
+  turn the sound down show it: an effect's *Out* meter has a gain-reduction
+  bar and "GR n dB" while Comp, Limiter or Squash is cutting (Limiter and
+  Squash had no read-out before), and a per-voice cable's *Live* value shows
+  the range of its sounding voices. The editor is usable by keyboard and
+  screen reader: every control has a name, one 2-pixel focus ring everywhere,
+  sliders speak their values, announcements come at most once a second and
+  never for live values. On a phone the switch is two tabs, *Panel* and
+  *Edit*; the outline becomes a row of tabs, the screen card a small screen,
+  and the matrix a list of cables. Tests now look for text that overlaps or
+  is clipped in every view at 1,440, 1,024, 768 and 375 pixels.
+- **The advanced editor: files and the project** (stage ED4). Drop a sound,
+  effects or mod rack file on the block it belongs to: the editor says what
+  it would do and how much memory the project would take, or why it does
+  not fit, before anything loads. Each block exports its own file and can be
+  saved to the library in this browser; the *Library* view lists what is
+  saved and Recent, and a saved sound or effects can be dragged onto a block
+  with its verdict shown while it hovers. Ctrl+K (⌘K) searches blocks,
+  parameters and commands. *Compare A/B* keeps the project or one sound as
+  A, and X switches between A and B, with the differences listed. *Memory*
+  shows each part's share of the FM-1's memory in percent, what is free and
+  what would still fit. Links can open the editor at a block or a parameter
+  (`?view=edit&sel=s3.in1:Cutoff`). Selecting an arpeggiator opens its ARP
+  pages on the panel. Undo checks itself: when an engine or effect change
+  does not come back exactly, the project as it was is restored instead.
+- **The advanced editor: effects, the mix and modulation** (stage ED3). The
+  editor now changes the structure of a project: *Choose engine…*, *Choose
+  effect…*, *Choose MIDI effect…* and *Choose module…* list every choice
+  with the memory the project would take, in percent, and say why a choice
+  does not fit. Drag an effect onto another slot, of any sound or the
+  master, to swap them (or pick it up with Space, aim with the arrow keys,
+  drop with Space); the slot says whether it fits before you let go. The
+  Mix shows each sound's level and meter and which sound is current; the
+  effects show their level in and out. A drum kit has a pad chooser above
+  its per-pad values. *Modulation* shows the mod rack as cards with each
+  module's live output, and the matrix: every cable, what it does, its live
+  value and why it does not run when it does not, with *Add a cable* and
+  every setting of a cable. Undo covers engine and effect changes, swaps,
+  moved modules and cables, from the editor and the panel alike.
+- **The simulator no longer lets an effect into a sound with no engine**
+  from the editor: no saved file could hold it, so it vanished on the next
+  save.
+- **The advanced editor, first views** (stage ED2). A switch at the top of
+  the simulator's page (Panel, Workbench, Editor) opens an editor beside the
+  panel or in its place. *Flow* shows the four sounds into the mix and the
+  master slots; a sound shows its engine, both effects and its arpeggiator
+  with every value at once, grouped by the panel's pages, as sliders with a
+  typed value, rows of choices or lists. The editor and the panel follow
+  each other: a knob turned on the panel lights its row and says so, a value
+  chosen in the editor opens its page on the panel, and the rows the four
+  knobs turn now are marked K1 to K4. Undo and Redo cover changes from both.
+  The computer keyboard plays the instrument (PLAY) until you click in the
+  editor or press Ctrl+E / ⌘E (EDIT), and Esc gives it back. The memory the
+  project takes is shown in percent, by sound.
+- **The advanced editor's engine room** (stage ED1; no visible change yet).
+  The simulator now has one way in for every edit, which the panel's own
+  knobs and buttons share and the coming web editor will use: sounds,
+  effects, levels, the arpeggiator, the mod rack and the matrix, swapping
+  and moving effects and modules, the current sound and the page the panel
+  shows. Every change is recorded with who made it (the panel, the editor
+  or a load), so the editor and the panel will follow each other; live
+  meters, modulation outputs and what each cable reaches are measured as
+  the sound plays, without changing a sample of it; and typed values such
+  as "1.2 kHz", "-6 dB" or "1/8D" are read as the screen shows them. A
+  30-second storm of edits with the song playing kept the audio thread at
+  a fraction of its time.
+- **Session and the song on the simulator's panel** (stage S9+;
+  notes/2026-10-06-song-and-scenes.md, every decision adopted). Press SEQ
+  in SEQ mode for the session view: every track's eight slots, white keys
+  1–8 launch the focused track's clips on the bar and 9–16 focus tracks.
+  Hold LOOP (G#3) and press keys 1–8 to launch scenes: one press launches
+  a scene alone and keeps the song, two or more build a new song. COPY
+  (C#4) held copies and pastes clips. SHIFT + LOOP opens the new song page:
+  each entry's scene, name, repeats, bars and start time; keys 1–8 add
+  scenes, 9–16 set repeats, the knobs set the scene, repeats, the scene's
+  name and what the song does at its end (Loop, Park or Stop), SHIFT + the
+  arrows move an entry, CLEAR deletes one, and SHIFT + PLAY plays from it.
+  The song can be edited while it plays. A song band along the bottom of
+  the session view, SONG and END on the status line and a *Next* hint in
+  the last bar show where it is. Deleting a clip (a CLEAR tap in the track
+  view, CLEAR + a slot in the session view) or the whole song asks first,
+  until the next press. A saved project remembers the session view and the
+  song page. Manual chapter 7 describes all of it.
 - **Run the simulator yourself and drive it from another local page.**
   Served from `localhost`, `127.0.0.1` or `[::1]`, the simulator now
   answers a page on any local port that embeds it (as the guide does), and
@@ -938,6 +1065,14 @@ history.
     `engines/mod/README.md`, tested in `tests/test_engines_mod_runtime.py`
     and `fm1-mod-core-test`. The JieLi compile check covers the modulation
     code too.
+- notes/2026-10-06-echomatter-pr1.md: what Echomatter's closed PR #1 teaches
+  us about the stock firmware. Its FM operator works in the log domain, not
+  with msfa's arithmetic; it runs algorithm 4's feedback loop; its envelope
+  is msfa's, with no holds, as FM6's; and its effects use far more than the
+  8 KB the docs said. Its exponent and log-sine tables, and its decoder
+  against the vendor's disassembly, were checked here. docs/02 §5,
+  `engines/msfa.md`, `engines/mi-fx.md` and docs/11 §2 are corrected to
+  match, and the memory map's discovery is credited.
 - notes/2026-10-05-community-repos.md: what Lunar learns from JieLi's current
   AC79 SDK on Gitee and from three FM-1 projects, Felucca (with its recovery
   tool FM-1-transporter), its fork SLOOP, and fm1-nes. Other open firmware
@@ -1625,6 +1760,18 @@ history.
     Arp, czietz's gist) in the reference table; a note for cloud sessions;
     and a current kick-off prompt. The 2026-09-06 prompt is kept, marked
     historical.
+- **Parameter metadata is at level 1.3.** The export now says how a cable's ids
+  are laid out and the shape of the chain (`mod.source_base`, `source_stride`,
+  `unit_base`, `sounds`, `inserts`, `masters`), so an editor holds none of
+  them; the schema requires them from 1.3, and the example and the page's
+  `meta.json` are regenerated. For editors: the layout is read once and a
+  metadata without it is refused with a message.
+- **The editor note records the owner's decisions after v1** (2026-10-07): in
+  search Enter selects the highlighted match and ⇧Enter every match, for a batch
+  edit; the Map's cable ends can be dragged to move and started from an input;
+  Squash's closed gate gets its own read-out; an effect into an insert of a
+  sound with no engine is refused in the editor and on the panel. Recorded as
+  the next stage (the note's §29), not built.
 - **The arpeggiator swings with the set** (owner, 2026-10-06). Its own
   Swing knob is gone from the FEEL page; the Swing on the sequencer's Set
   page now swings the arpeggiator too, playing or stopped. A file saved
@@ -2238,6 +2385,39 @@ history.
     and the bugs it found on the way.
 
 ### Fixed
+- **The advanced editor: the v1 review's seven fixes.**
+  - Switching A and B no longer stops the transport: the sequencer's clock and
+    playheads go over a project load, so what was playing goes on playing from
+    the same place (a stopped transport stays stopped). Making B from the picks
+    and undoing it keep the transport too.
+  - A long list's filter (Shapes' 47 shapes, Six-Op's 96 patches, FM6's 64)
+    works in Safari, whose dropdown ignores hidden entries: the list itself
+    is rebuilt. The effect picker's filter did nothing in any browser (a style
+    rule kept the filtered-out choices on show); now it hides them, and the
+    choices the instrument says are not offered stay out.
+  - Semitones are read aloud as "semitones", not "st".
+  - A and B kept in the browser come back for the same project, not for any
+    project with the same title (two "Untitled" ones used to swap them).
+  - Storage no longer goes missing for a visit when an older tab of the page
+    is still open on the previous version of the database: the page says so,
+    works from memory meanwhile, saves what it kept when the old tab lets go,
+    and lets a newer tab upgrade.
+  - Stale text in the design note, DEVELOPERS.md and `sim/web/README.md`
+    (the editor was said to be unbuilt, and untested outside Chromium).
+- **A refusal for the wrong kind of file reads properly.** "A sound, not a effects chain was expected" is now "A sound, not an effects chain, was expected.": the article follows the word.
+- **Sound on iPhones and iPads** ([#53](https://github.com/ip2k/lunar-modulator/issues/53)).
+  The simulator now plays through Silent mode, as a music app does (where
+  Safari lets a page ask for that: iOS 18 does), and starts its sound again after a call, Siri or another
+  app took the audio: the status line asks for a tap, and the next tap or
+  key starts it. A browser that holds the sound back at power-on no longer
+  leaves the page at *Starting...*.
+- **Tests can no longer leave a tool running for days.** Every tool a test
+  starts now has a wall-clock timeout (20 minutes unless the test sets one)
+  and a CPU-time limit set inside the tool itself (30 minutes), so a tool
+  whose pytest run was killed dies on its own instead of spinning a core.
+  An `fm1-limit-test` left behind on 2026-10-02 had run for almost four
+  days. `FM1_TEST_TIMEOUT` and `FM1_TEST_CPU_SECONDS` change the limits
+  (0 turns one off); `tests/conftest.py` says how.
 - `fm1-render --load` read files through a 64 KiB stack buffer, which
   overflowed its JavaScript build's stack.
 - The JieLi compile check now compiles the MIDI effects and their registry

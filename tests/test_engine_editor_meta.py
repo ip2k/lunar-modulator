@@ -1,4 +1,4 @@
-"""What the metadata export says for the advanced editor (level 1.1, stage
+"""What the metadata export says for the advanced editor (levels 1.1 to 1.3, stage
 ED0; notes/2026-10-06-web-editor.md §6, decisions ED4, ED11 and ED16):
 
 - every engine, audio effect, MIDI effect and modulation kind of the build is
@@ -29,7 +29,7 @@ import pytest
 
 from tests import state_canon as canon
 from tests.engine_helpers import ENGINES, ROOT, renderer  # noqa: F401
-from tests.state_meta import EDITOR_ONLY_ENGINE, EDITOR_ONLY_TOP
+from tests.state_meta import EDITOR_ONLY_ENGINE, EDITOR_ONLY_MOD, EDITOR_ONLY_SOURCE, EDITOR_ONLY_TOP
 
 FIXTURE = ROOT / "tests" / "fixtures" / "editor-meta.json"
 REFUSAL_TEST = ENGINES / "build" / "fm1-mod-refusal-test"
@@ -68,9 +68,9 @@ def _modules(meta):
     return meta["engines"] + meta["mod"]["kinds"]
 
 
-def test_level_1_1_carries_every_editor_member(meta):
-    assert meta["lunar"] == "1.1"
-    assert list(meta)[-4:] == list(EDITOR_ONLY_TOP)
+def test_level_1_2_carries_every_editor_member(meta):
+    assert meta["lunar"] == "1.3"
+    assert list(meta)[-len(EDITOR_ONLY_TOP):] == list(EDITOR_ONLY_TOP)
     for e in meta["engines"]:
         want = {"licence", *EDITOR_ONLY_ENGINE} - (set() if e["kind"] == "audio_fx" else {"group"})
         assert want <= set(e), e["id"]
@@ -80,6 +80,95 @@ def test_level_1_1_carries_every_editor_member(meta):
     for m in _modules(meta) + [{"id": "host", "params": meta["mod"]["host"]}]:
         for p in m["params"]:
             assert p["step"] > 0, (m["id"], p["name"])
+    assert set(EDITOR_ONLY_MOD) <= set(meta["mod"])
+    assert all(set(EDITOR_ONLY_SOURCE) <= set(x) for x in meta["mod"]["sources"])
+
+
+def test_source_groups_are_the_patch_bays(meta):
+    """Level 1.2: a source's group is from its id (the ranges fm1_mod.h gives),
+    so the editor holds no source name; the names of the groups are C's."""
+    groups = meta["mod"]["source_groups"]
+    ids = [g["id"] for g in groups]
+    assert ids == ["notes", "sound", "lanes", "lane_values"]
+    assert [g["name"] for g in groups] == ["Notes, clock and chance", "Sound {sound}'s notes",
+                                           "Sequencer lanes", "Lane values"]
+    header = (ENGINES / "include" / "fm1_mod.h").read_text()
+    seq_gate, seq_vel, s_note = (int(re.search(r"%s = ([0-9]+)" % n, header).group(1)) for n in
+                                 ("FM1_MOD_SRC_SEQ_GATE", "FM1_MOD_SRC_SEQ_VEL", "FM1_MOD_SRC_S_NOTE"))
+    for x in meta["mod"]["sources"]:
+        want = ("sound" if x["id"] >= s_note else "lane_values" if seq_vel <= x["id"] < seq_vel + 8
+                else "lanes" if seq_gate <= x["id"] < seq_gate + 8 else "notes")
+        assert x["group"] == want, x["name"]
+        assert x["group"] in ids
+        assert ("sound" in x) == (x["group"] == "sound"), x["name"]
+        # The lanes' names are what the old name pattern said, so the Map's groups did not move.
+        if x["group"] == "lanes":
+            assert re.fullmatch(r"SEQ[1-8]", x["name"])
+        if x["group"] == "lane_values":
+            assert re.fullmatch(r"SQV[1-8]", x["name"])
+    assert {x["group"] for x in meta["mod"]["sources"]} == set(ids)
+
+
+def test_the_id_layout_and_the_chain_shape_are_the_headers(meta):
+    """Level 1.3: the editor reads how a cable's ids are laid out (a module's
+    outputs are source_base + source_stride x position + port; its parameters
+    and gate inputs unit_base + position) and the chain's shape from the
+    export, and holds none of it. They are fm1_mod.h's, and a saved record
+    carries them, so they are pinned."""
+    header = (ENGINES / "include" / "fm1_mod.h").read_text()
+    enum = lambda n: int(re.search(r"%s = ([0-9]+)" % n, header).group(1))   # noqa: E731
+    mod = meta["mod"]
+    assert mod["source_base"] == enum("FM1_MOD_SRC_MODULE") == enum("FM1_MOD_SRC_SYSTEM")
+    assert mod["unit_base"] == enum("FM1_MOD_MODULE")
+    assert mod["source_stride"] == _define(ENGINES / "include" / "fm1_mod.h", "FM1_MOD_MAX_OUTS")
+    assert mod["sounds"] == _define(ENGINES / "include" / "fm1_mod.h", "FM1_MOD_SOUNDS")
+    assert mod["inserts"] == _define(ENGINES / "include" / "fm1_mod.h", "FM1_MOD_INSERTS")
+    assert mod["masters"] == _define(ENGINES / "include" / "fm1_mod.h", "FM1_MOD_MASTERS")
+    # The telemetry block counts the same chain, and the sinks of `units` are its shape.
+    tele = ENGINES / "include" / "fm1_tele.h"
+    assert (mod["sounds"], mod["inserts"], mod["masters"]) == tuple(
+        _define(tele, n) for n in ("FM1_TELE_SOUNDS", "FM1_TELE_INSERTS", "FM1_TELE_MASTERS"))
+    assert mod["positions"] <= 8 and mod["source_stride"] >= max(len(k["outs"]) for k in mod["kinds"])
+    names = {u["name"] for u in mod["units"]}
+    assert {f"snd{k + 1}.fx{j + 1}" for k in range(mod["sounds"]) for j in range(mod["inserts"])} <= names
+    # The id of the last module output stays below 256 (a record keeps it in a byte).
+    assert mod["source_base"] + mod["source_stride"] * mod["positions"] <= 256
+    assert mod["unit_base"] + mod["positions"] <= 16          # below the first sound unit (16)
+
+
+def test_curve_points_are_the_runtimes(meta):
+    """Level 1.2: each curve sampled in 33 steps; the lin curve is the identity, every
+    curve is sign-preserving and passes through 0 and the ends."""
+    pts = meta["mod"]["curve_points"]
+    names = meta["mod"]["curves"]
+    assert len(pts) == len(names) and all(len(c) == 33 for c in pts)
+    lin = pts[names.index("lin")]
+    assert all(abs(lin[k] - (-1 + k / 16)) < 1e-6 for k in range(33))
+    for n, c in zip(names, pts):
+        assert c[16] == 0 and c[0] == -1 and c[32] == 1, n
+        assert all(c[k] <= c[k + 1] + 1e-6 for k in range(32)), n
+
+
+def test_marks_are_the_panels(meta):
+    """Level 1.2: the matrix marks, with the characters the panel's MATRIX page
+    writes (fm1_mod_ui.c), and a repair only where one exists."""
+    marks = meta["marks"]
+    assert [m["mark"] for m in marks] == [">", "v", "~", "!", "-"]
+    assert [m["name"] for m in marks] == ["runs", "voice", "late", "refused", "off"]
+    ui = (ROOT / "sim" / "web" / "src" / "fm1_mod_ui.c").read_text()
+    for c in "-!v":
+        assert "mk[0] = '%s'" % c in ui, c
+    assert "'~' : '>'" in ui
+    late = marks[2]
+    assert late["words"] == "a tick late" and late["fills"] == ["loop"]
+    assert all(m["detail"] is None or m["fills"] == list(dict.fromkeys(re.findall(r"\{(\w+)\}", m["detail"])))
+               for m in marks)
+
+
+def test_refusal_fixes_are_few_and_closed(meta):
+    fixes = {c["name"]: c["fix"] for c in meta["refusals"]["codes"] if "fix" in c}
+    assert fixes == {"VOICE_TO_MONO": {"id": "global", "words": "Make it global"},
+                     "VOICE_TO_EFFECT": {"id": "global", "words": "Make it global"}}
 
 
 def test_every_module_of_the_build_is_there(meta, listed, listed_mod):
@@ -164,6 +253,9 @@ def test_refusals_are_the_loaders_and_the_planners(meta):
     # the plan on every slot of its fuzz.
     out = json.loads(_run(REFUSAL_TEST, "1000"))
     assert out["failed"] == 0 and out["cases"] >= 30 and out["fuzz_slots"] == 32000
+    # The loop each late slot closes (fm1_mod_slot_loop, stage ED1): checked
+    # on every delayed slot of the fuzz, and there are some.
+    assert out["late_loops"] > 0
     cable = {c["name"] for c in codes if "cable" in c["of"] and c["code"] >= 32}
     assert set(out["reasons"]) <= cable
     assert {"NO_SOURCE", "NO_DEST", "NOLOCK", "ENUM_NO_MOD", "VOICE_TO_MONO", "VOICE_TO_EFFECT",
@@ -238,6 +330,11 @@ def test_pinned_ids_stay_put(meta):
     for want, got in zip(pin["telemetry"]["sections"], t["sections"]):
         assert got["name"] == want["name"] and got["offset"] == want["offset"]
         assert got["rows"][:len(want["rows"])] == want["rows"]
+    assert [m["mark"] for m in meta["marks"]][:len(pin["marks"])] == pin["marks"]
+    assert [g["id"] for g in meta["mod"]["source_groups"]][:len(pin["source_groups"])] == pin["source_groups"]
+    assert {k: meta["mod"][k] for k in pin["mod_layout"]} == pin["mod_layout"]
+    fixes = {str(c["code"]): c["fix"]["id"] for c in meta["refusals"]["codes"] if "fix" in c}
+    assert all(fixes.get(k) == v for k, v in pin["refusal_fix"].items())
     pages = {m["id"]: m["page_names"] for m in _modules(meta)}
     assert all(pages[k][:len(v)] == v for k, v in pin["page_names"].items() if k in pages)
     assert "arp" in pages

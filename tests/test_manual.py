@@ -293,6 +293,10 @@ def test_full_build(renderer, tmp_path):  # noqa: F811
     if (ROOT / "assets" / "screenshots" / "screen-params.png").is_file():
         assert (manual / "assets" / "screens" / "screen-params.png").is_file()
         assert "assets/screens/screen-params.png" in (manual / "03-panel-tour.html").read_text()
+    # The advanced editor's pictures ({{page}}) likewise, when the page tests have made them.
+    if (ROOT / "assets" / "screenshots" / "page-editor-map.png").is_file():
+        assert (manual / "assets" / "pages" / "page-editor-map.png").is_file()
+        assert "assets/pages/page-editor-map.png" in (manual / "15-the-advanced-editor.html").read_text()
     engines = json.loads((manual / "reference.json").read_text())["engines"]
     ch5 = (manual / "05-sound-engines.html").read_text()
     for e in engines:

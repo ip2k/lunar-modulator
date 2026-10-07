@@ -157,7 +157,66 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   GPL modules marked, the refusal codes in the screen's words (memory only
   as a percentage of the budget), the telemetry layout and an id, which the
   virtual FM-1's module returns (`fm1w_meta_id`) and its build writes beside
-  it as `sim/web/www/meta.json`.
+  it as `sim/web/www/meta.json`. The editor changes the virtual FM-1 through
+  one C edit layer the panel's own handlers share (stage ED1,
+  `sim/web/src/fm1_edit.c`): the state core's records and four verbs
+  applied live, a change ring with each change's source, the telemetry
+  block, the panel's view with its knob map, and `fm1_param_parse`; the
+  audio thread gets binary only, and a shadow Worker does the text, hashes
+  and diffs ([sim/web/README.md, "The edit layer"](sim/web/README.md#the-edit-layer-stage-ed1-for-the-advanced-editor)).
+  Its first views (stage ED2, `sim/web/www/editor/`) are on the simulator's
+  page behind a Panel/Workbench/Editor switch: the Flow, a sound's
+  inspector drawn from the metadata alone, follow both ways with the K1-K4
+  chips, one undo history for the editor and the panel, PLAY and EDIT keys,
+  and RAM by part in percent (`fm1w_ram_part`) ([sim/web/README.md, "The
+  advanced editor"](sim/web/README.md#the-advanced-editor-stage-ed2-shell-flow-and-sound)).
+  Stage ED3 (`www/editor/chains.js`) adds what changes structure: move and
+  swap by pointer or keys with C's verdict before the drop (the shadow
+  Worker's `preview`), pickers with each choice's RAM in percent, meters
+  for inserts, master slots and the Mix, a kit's pads, the rack's cards and
+  the matrix table with slot and module inspectors read from C's packed
+  records (`fm1w_mod_records`), and structural undo ([sim/web/README.md,
+  "Stage ED3"](sim/web/README.md#the-advanced-editor-stage-ed3-chains-and-modulation)).
+  Stage ED4 (`www/editor/project.js`) adds files and the project: drop
+  targets with pass 1's verdict before the load, per-block export and the
+  library through W1's save path, `view=edit` and `sel` links, ⌘K search,
+  A/B, the Memory page, and undo's hash check with its snapshot fallback;
+  the state hash (`fm1_edit_state_hash`, `fm1w_state_hash`) now leaves out
+  where the panel is ([sim/web/README.md,
+  "Stage ED4"](sim/web/README.md#the-advanced-editor-stage-ed4-files-and-the-project)).
+  Stage ED5a is the first half of the last stage: read-only gain-reduction
+  taps for Limiter and Squash (`engines/include/fm1_dynamics.h`) and per-voice
+  destination values (`fm1_mod_voice_dest`) filling the telemetry ED1 left
+  empty, keyboard and screen-reader passes tested through the accessibility
+  snapshot, a phone layout (Panel and Edit tabs, the matrix as a list of
+  cables) and a layout probe that finds overlapping and clipped text at four
+  widths ([sim/web/README.md,
+  "Stage ED5a"](sim/web/README.md#the-advanced-editor-stage-ed5a-reach-and-the-read-outs)).
+  Stage ED5b finishes it: the patch-bay Map (`www/editor/map.js`) as a second
+  view of the matrix's slots with focus, a cable made by pointer or keys with
+  C's verdict over the input (the shadow Worker's `preview` with `mod`), the
+  editor's page tests in Firefox and WebKit as well as Chromium, and the
+  manual's chapter 15 ([sim/web/README.md,
+  "Stage ED5b"](sim/web/README.md#the-advanced-editor-stage-ed5b-the-map-other-browsers-and-the-manual)).
+  The v1 completion (2026-10-07; the note's §28) builds what the audit of
+  v1 found missing: modulation on the parameter rows (bracket, live tick,
+  chip, the cables spoken), late cables with the loop each closes (a new
+  tail of `fm1w_mod_records`), metadata level 1.2 (the matrix marks, the
+  sources' groups, the curves' points, a refusal's repair), search operators,
+  A/B picks with "Make B from the picks" and A and B kept in IndexedDB, per-block links,
+  the arrival card's replaced and brought, the Flow's counts and bars, the
+  phone's three-step *Add a cable* and a block's long-press menu, and §17's
+  tests (axe-core, reduced motion, hidden telemetry, a lock playing, the
+  main thread's budget, a sweep of hands) ([sim/web/README.md, "The editor's
+  v1 completion"](sim/web/README.md#the-advanced-editor-the-v1-completion)).
+  The review of that build (the note's §30) fixed seven defects: A/B keeps
+  the transport running (a load flag that carries the sequencer's clock and
+  playheads over a project load), a long list's filter works in Safari, units
+  are spoken as words, the id layout and the chain's shape come from the
+  metadata (level 1.3: `mod.source_base`, `source_stride`, `unit_base`,
+  `sounds`, `inserts`, `masters`), stored A and B belong to a project's
+  identity and not its title, and the IndexedDB upgrade no longer leaves a
+  tab without storage.
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free
@@ -393,12 +452,13 @@ decisions: [`notes/2026-10-06-state-files.md`](notes/2026-10-06-state-files.md),
   Lunar can split its work that way is to be tried on the dev kit.
 - **The screen:** the firmware's own RGB565 frame buffer, copied to a
   canvas, its text in three faces (the project's 5×9 at ×2, Spleen 8×16
-  and 6×12). All 4,546 screens of the layout sweep (3,645 with the GPL
-  switch off before stage A1's twelve), the sequencer's, modulation's and the arpeggiator's, the
+  and 6×12). All 4,584 screens of the layout sweep (3,645 with the GPL
+  switch off before stage A1's twelve and S9+'s 38), the sequencer's
+  (Session and the Song page included), modulation's and the arpeggiator's, the
   global page's Key page, FM6's user bank, the GPL modules' pages, every
   list popup at every entry and the knobs' lists included, pass a layout
   check, with no text cut short and nothing closer than 4 px [verified:
-  `fm1-sim-render --screens`, 2026-10-06].
+  `fm1-sim-render --screens`, 2026-10-06, after S9+].
 - **What the panel does:** every engine and effect, four sounds with their
   inserts and the master bus, the sequencer (SEQ, PLAY/STOP, REC),
   modulation (LFO, ENV, EDIT) and the arpeggiator (ARP); SAVE keeps the
@@ -416,12 +476,29 @@ decisions: [`notes/2026-10-06-state-files.md`](notes/2026-10-06-state-files.md),
   files relative to itself, so `sim/web/www/` publishes as static files at
   any path. Opened over plain `http://` from another machine, Power on says
   it needs a secure context.
-- **Browsers:** tested in Chromium only. That means headless Chromium 153 on
-  Linux, from a local server and over https under a sub-path, and Chromium
-  152 on macOS. Firefox, Safari, real touch screens and MIDI hardware are not
-  tested yet.
+- **Browsers:** the page as a whole is tested in Chromium: headless Chromium
+  153 on Linux, from a local server and over https under a sub-path, and
+  Chromium 152 on macOS. The Advanced editor's page tests run in Chromium,
+  Firefox and WebKit (the engine of Safari), both on the Linux host
+  (`build-on-aeon.sh`) and in CI (below). Real Safari, real touch screens and
+  MIDI hardware are not tested yet.
 - **Checks:** sim/web/README.md, "Limits"; `fm1-sim-render --screens`; and the
   2026-10-01 page test [verified].
+- **Page tests:** `sim/web/test/*.mjs`, run by Playwright 1.63 in its container
+  image (`build-on-aeon.sh` on a Docker host, and the CI job
+  `editor-page-tests`, which pins the same image and npm versions:
+  `tests/test_ci_pins.py` holds the two to each other). The CI job needs no
+  native build, only the committed `sim/web/www/` (`fm1.wasm`, `meta.json`):
+  `editor-unit`, `editor-ui`, `editor-reach`, `editor-map`, `editor-v1` and
+  the editor's 30-second storm in Chromium, Firefox (with a PulseAudio null
+  sink: without an audio device its AudioContext never runs) and WebKit, and
+  the page's own `screenshot` and `files` tests in Chromium. A failing run
+  uploads its screenshots and reports as an artifact. Lateness and underruns
+  are measured in Chromium only. **Planned, not built** (owner, 2026-10-07):
+  a harness that plays the simulator in headless Chromium, Firefox and WebKit
+  into a loopback audio device (PipeWire or similar) on a Linux host and
+  checks the audio that comes out and the underruns in all three, which the
+  page cannot measure from inside Firefox or WebKit (the editor note's §29).
 
 **Rebuilding the module** is only needed after changing `engines/` or
 `sim/web/src/`.
@@ -747,7 +824,8 @@ build, and the research still to do.
 > - **Desktop and browser:** CI builds the engines, effects and sequencer
 >   core on Linux and macOS, and on Linux also as a 32-bit build and under
 >   ASan + UBSan; more than 1,400 tests pass [verified: CI on `main`,
->   2026-10-01]. The virtual FM-1 is tested in Chromium only
+>   2026-10-01]. The virtual FM-1's page is tested in Chromium, and the
+>   Advanced editor's page tests also run in Firefox and WebKit
 >   ([What it does](README.md#what-it-does), [Try it in your browser](README.md#try-it-in-your-browser)).
 > - **On a JieLi chip:** nothing has been built with JieLi's compiler yet, so
 >   speed and memory on pi32v2 are not measured. A JieLi AC79 dev kit and

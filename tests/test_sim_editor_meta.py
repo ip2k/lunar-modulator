@@ -5,7 +5,7 @@ notes/2026-10-06-web-editor.md §6, decision ED4):
   bottom bar names a page exactly where `page_names` does, with the same
   word (the arpeggiator's PLAY ... SEED, Acid Gen's LINE ... SEED);
 - the page's static www/meta.json is the simulator's export: canonical, a
-  1.1 export that validates, `made.by` "simulator", and its `meta_id` is its
+  1.3 export that validates, `made.by` "simulator", and its `meta_id` is its
   own CRC-32 less `made` and itself;
 - the module wrote it (fm1w_meta_read, with the 32-bit module's instance
   bytes) and the build record (www/fm1.wasm.json) says its fm1w_meta_id was
@@ -68,7 +68,7 @@ def test_meta_json_is_the_simulators_export():
     text = path.read_text(encoding="utf-8")
     meta = canon.loads(text)
     assert canon.dumps(meta) == text
-    assert meta["kind"] == "metadata" and meta["lunar"] == "1.1"
+    assert meta["kind"] == "metadata" and meta["lunar"] == "1.3"
     assert meta["made"] == {"by": "simulator", "version": "0.0.0", "commit": "0000000"}
     doc = dict(meta)
     mid = doc.pop("meta_id")
