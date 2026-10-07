@@ -1203,6 +1203,22 @@ static size_t ram_of(const fm1_app_t *a, int unit, size_t bytes, int loaded) {
 
 size_t fm1_app_ram(const fm1_app_t *a) { return ram_of(a, -1, 0, 0); }
 
+size_t fm1_app_ram_part(const fm1_app_t *a, int part) {
+  size_t t = 0;
+  if (part >= 0 && part < FM1_APP_SOUNDS) {
+    const fm1_mfx_slot_t *sl = fm1_mfx_slot(&a->mfx, (unsigned)part, 0);
+    t = a->unit[fm1_app_sound_unit(part)].ram;
+    for (int j = 0; j < FM1_APP_INSERTS; ++j) t += a->unit[fm1_app_insert_unit(part, j)].ram;
+    if (sl && sl->fx && sl->on) t += sl->fx->engine.instance_size(&a->ram_host);
+  } else if (part == FM1_APP_SOUNDS) {
+    for (int s = 0; s < FM1_APP_FX_SLOTS; ++s) t += a->unit[1 + s].ram;
+  } else if (part == FM1_APP_RAM_PARTS - 1) {
+    t = fm1_app_ram(a);
+    for (int k = 0; k < FM1_APP_RAM_PARTS - 1; ++k) t -= fm1_app_ram_part(a, k);
+  }
+  return t;
+}
+
 size_t fm1_app_ram_with(const fm1_app_t *a, int unit, int index) {
   const fm1_engine_t *e = entry(index);
   if (unit < 0 || unit >= FM1_APP_UNITS) return fm1_app_ram(a);

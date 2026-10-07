@@ -77,6 +77,8 @@ void fm1w_set_param(int unit, int index, float value) {
 }
 float fm1w_get_param(int unit, int index) { return fm1_app_get_param(&g_app, unit, index); }
 unsigned fm1w_ram(void) { return (unsigned)fm1_app_ram(&g_app); }
+/* The RAM figure by part (fm1_app_ram_part): the editor's RAM by part. */
+unsigned fm1w_ram_part(int part) { return (unsigned)fm1_app_ram_part(&g_app, part); }
 unsigned fm1w_unit_bytes(int unit) {
   return unit >= 0 && unit < FM1_APP_UNITS ? (unsigned)g_app.unit[unit].bytes : 0u;
 }
