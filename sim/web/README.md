@@ -655,8 +655,9 @@ it loaded before (`notes/2026-10-06-web-editor.md` §4, §23):
 - **Undo** (§8): Undo and Redo, ⌘Z and ⇧⌘Z (Ctrl+Z, Ctrl+Y), over the
   editor's and the panel's parameter, level and on/off changes alike. A step
   goes back by sending its `before` as an edit; a step recorded for an
-  engine the block no longer has is refused in words. Structural steps and
-  the snapshot fallback come with ED3 and ED4 (ED4's section).
+  engine the block no longer has is refused in words. Structural steps
+  (stage ED3) and the snapshot fallback (stage ED4) came later: their own
+  sections.
 - **PLAY and EDIT** (§13): a click or the focus in the editor, or ⌘E (Ctrl+E),
   gives it the computer keys (`sim.keysToEditor`; `app.js` then sends no key
   to the FM-1); Esc, or a click on the panel, gives them back. Sliders take

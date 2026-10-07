@@ -34,7 +34,12 @@
 //   diff    { a, b, kind, arg }  two projects' differences in `kind` (the
 //                                project unless said; arg as save's, e.g.
 //                                a sound for A/B), member by member of
-//                                their canonical JSON: { changes }
+//                                their canonical JSON: { changes }, each a
+//                                path, its steps `at`, and both values
+//   mix     { a, b, kind, arg, take }
+//                                B's canonical file with A's value at each
+//                                `at` in `take` (A/B's "Make B from the
+//                                picks"): { text }, for pass 1 to judge
 // and for stage ED3 (§5's previews: what an edit would do, before it is made):
 //   save    { ..., mod: true }   also the rack and the matrix as packed
 //                                records (fm1w_mod_records): { text, mod }
@@ -128,24 +133,50 @@ function canonical(bin, kind, arg) {
   return JSON.parse(decoder.decode(buf().slice(0, n)));
 }
 
-// Where two canonical files differ: a path and both values per member,
-// arrays item by item. Data, not rules: the C writer made both.
-function differences(a, b, path, out) {
+// Where two canonical files differ: a path (for people), the same path as
+// its steps (`at`: member names and array indexes, for a machine: a name may
+// hold a dot) and both values per member, arrays item by item. Data, not
+// rules: the C writer made both.
+function differences(a, b, path, out, at = []) {
   if (out.length >= 2000) return out;
   const ta = a === null ? 'null' : Array.isArray(a) ? 'array' : typeof a;
   const tb = b === null ? 'null' : Array.isArray(b) ? 'array' : typeof b;
   if (ta !== tb || (ta !== 'object' && ta !== 'array')) {
-    if (ta !== tb || a !== b) out.push({ path, a, b });
+    if (ta !== tb || a !== b) out.push({ path, at, a, b });
     return out;
   }
   const keys = ta === 'array' ? [...Array(Math.max(a.length, b.length)).keys()]
     : [...new Set([...Object.keys(a), ...Object.keys(b)])];
   for (const k of keys) {
     const p = ta === 'array' ? `${path}[${k}]` : (path ? `${path}.${k}` : String(k));
-    if (!(k in a)) out.push({ path: p, a: undefined, b: b[k] });
-    else if (!(k in b)) out.push({ path: p, a: a[k], b: undefined });
-    else differences(a[k], b[k], p, out);
+    if (!(k in a)) out.push({ path: p, at: [...at, k], a: undefined, b: b[k] });
+    else if (!(k in b)) out.push({ path: p, at: [...at, k], a: a[k], b: undefined });
+    else differences(a[k], b[k], p, out, [...at, k]);
   }
+  return out;
+}
+
+// B's canonical file with A's value at each picked place (stage "v1 completed",
+// §9 "Make B from the picks"): a pick is a difference's `at`. Items A has
+// and B lacks are added, items B has and A lacks are taken out, last index
+// first so the others keep their places. The result is a file; C's pass 1
+// judges it like any other.
+function mixPicks(a, b, picks) {
+  const get = (o, at) => { for (const k of at) { if (o === undefined || o === null || typeof o !== 'object') return undefined; o = o[k]; } return o; };
+  const parent = (o, at) => get(o, at.slice(0, -1));
+  const out = JSON.parse(JSON.stringify(b));
+  const todo = picks.map((at) => ({ at, v: get(a, at) })).filter((x) => x.at.length);
+  // Removals of array items go last, highest index first.
+  const isCut = (x) => x.v === undefined && Array.isArray(parent(out, x.at));
+  const sets = todo.filter((x) => !isCut(x)).sort((p, q) => String(p.at[p.at.length - 1]).localeCompare(String(q.at[q.at.length - 1]), undefined, { numeric: true }));
+  const cuts = todo.filter(isCut).sort((p, q) => q.at[q.at.length - 1] - p.at[p.at.length - 1]);
+  for (const x of sets) {
+    const t = parent(out, x.at);
+    if (t === undefined || t === null || typeof t !== 'object') continue;
+    const k = x.at[x.at.length - 1];
+    if (x.v === undefined) delete t[k]; else t[k] = JSON.parse(JSON.stringify(x.v));
+  }
+  for (const x of cuts) { const t = parent(out, x.at); if (Array.isArray(t)) t.splice(x.at[x.at.length - 1], 1); }
   return out;
 }
 
@@ -283,6 +314,10 @@ const ops = {
   },
   diff(m) {
     return { changes: differences(canonical(m.a, m.kind, m.arg), canonical(m.b, m.kind, m.arg), '', []) };
+  },
+  mix(m) {
+    const text = JSON.stringify(mixPicks(canonical(m.a, m.kind, m.arg), canonical(m.b, m.kind, m.arg), (m.take || []).filter(Array.isArray)));
+    return { text };
   },
 };
 

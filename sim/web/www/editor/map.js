@@ -71,7 +71,7 @@ const bezier = (p0, p1, p2, p3, n = 40) => {
 
 export function makeMap(ctx, h) {
   const { st, meta, mm, el } = ctx;
-  const { cableOf, verdictOf, destName, srcName, verdictWords, makeCable, toValue, pickerButton, preview } = h;
+  const { cableOf, verdictOf, destName, srcName, verdictWords, makeCable, toValue, pickerButton, preview, isLate, markChar, markWords } = h;
   const open = (name) => (st[name] || (st[name] = new Set()));
 
   let map = null, svg = null, pills = null, cols = {}, jacks = new Map(), geo = [], patch = null, obs = null, ghost = null;
@@ -79,6 +79,7 @@ export function makeMap(ctx, h) {
   // ---- what is in focus ---------------------------------------------------------
   function focusTarget() {
     if (st.mapMode === 'refused') return { kind: 'refused' };
+    if (st.mapMode === 'late') return { kind: 'late' };
     if (st.mapMode !== 'focus') return null;
     if (st.mapSrc != null && st.mapSrcSel === `${st.selected}|${st.selCable}`) return { kind: 'src', code: st.mapSrc };
     const sel = st.selected;
@@ -96,6 +97,7 @@ export function makeMap(ctx, h) {
     const c = cableOf(i);
     if (t.kind === 'cable') return t.i === i;
     if (t.kind === 'refused') return verdictOf(i).code !== 0;
+    if (t.kind === 'late') return isLate(i);
     if (t.kind === 'src') return c.src === t.code || c.via === t.code;
     if (t.kind === 'mod') return isOutOf(c.src, t.pos) || isOutOf(c.via, t.pos) || mm.unitKey(c.unit) === modKey(t.pos);
     const k = mm.unitKey(c.unit);
@@ -109,7 +111,7 @@ export function makeMap(ctx, h) {
     if (t.kind === 'mod') { const b = ctx.blockOf(modKey(t.pos)); const k = b ? mm.kind(b.engine) : null; return `${t.pos + 1} ${k ? k.abbr : 'empty'}`; }
     if (t.kind === 'dst') return blockTag(t.key);
     if (t.kind === 'cable') return `cable ${t.i + 1}`;
-    return 'refused';
+    return t.kind === 'late' ? markWords('late') : 'refused';
   }
 
   // ---- the jacks ------------------------------------------------------------------
@@ -138,7 +140,6 @@ export function makeMap(ctx, h) {
     const cables = st.mirror.cables.map((c, i) => [c, i]).filter(([c]) => !cableEmpty(c));
     const used = new Set(), viaOf = new Map();
     for (const [c, i] of cables) { used.add(c.src); if (c.via !== NONE) { used.add(c.via); viaOf.set(c.via, i); } }
-    const fixed = [...mm.sources.values()];
     const row = (s) => {
       const r = el('div', `ed-map-row ed-map-src${used.has(s.id) ? ' is-used' : ' is-idle'}`, { 'data-srcrow': String(s.id) });
       const nm = el('span', 'ed-map-t ed-map-nm', { text: s.name });
@@ -148,13 +149,12 @@ export function makeMap(ctx, h) {
       r.append(outJack(s.id, s.name, isGate(s.kind)));
       return r;
     };
-    const per = [1, 2, 3, 4].map((k) => ({ id: `S${k}`, title: `Sound ${k}'s notes`, list: fixed.filter((s) => new RegExp(`^S${k}[A-Z]`).test(s.name)) }));
-    const lanes = [{ id: 'SEQ', title: 'Sequencer lanes', list: fixed.filter((s) => /^SEQ[0-9]+$/.test(s.name)) }, { id: 'SQV', title: 'Lane values', list: fixed.filter((s) => /^SQV[0-9]+$/.test(s.name)) }];
-    const rest = fixed.filter((s) => !per.some((g) => g.list.includes(s)) && !lanes.some((g) => g.list.includes(s)));
-    col.append(el('span', 'ed-map-g ed-map-t', { text: 'Notes, clock and chance' }));
-    for (const s of rest) col.append(row(s));
-    for (const g of [...per, ...lanes]) {
-      if (!g.list.length) continue;
+    // The groups are the metadata's (1.2): the first is always open, the rest fold until asked for.
+    const groups = mm.groupedSources();
+    const [first, ...more] = groups;
+    col.append(el('span', 'ed-map-g ed-map-t', { text: first ? first.title : 'Sources' }));
+    for (const s of first ? first.list : []) col.append(row(s));
+    for (const g of more) {
       const isOpen = open('mapSrcOpen').has(g.id);
       const shown = g.list.filter((s) => isOpen || used.has(s.id));
       const head = el('button', 'ed-map-more ed-map-btn', { type: 'button', 'aria-expanded': String(isOpen), 'data-fk': `mp:g${g.id}`,
@@ -329,16 +329,18 @@ export function makeMap(ctx, h) {
     const wrap = el('section', 'ed-map-wrap', { 'aria-label': 'Cable map' });
     const cables = st.mirror.cables.map((c, i) => i).filter((i) => !cableEmpty(cableOf(i)));
     const refused = cables.filter((i) => verdictOf(i).code).length;
+    const late = cables.filter((i) => isLate(i)).length;
     const t = focusTarget();
     const chip = (text, on, fn, extra = '') => el('button', `ed-fchip${on ? ' is-on' : ''}${extra}`, { type: 'button', 'aria-pressed': String(on), 'data-fk': `mp:f${text.slice(0, 8)}`, text, onclick: fn });
     const nIn = t ? cables.filter((i) => inFocus(i, t)).length : 0;
     const chips = el('div', 'ed-fchips', { role: 'group', 'aria-label': 'Which cables are bright' }, [
       chip(`All ${cables.length}`, !t, () => { st.mapMode = 'all'; ctx.render(); }),
-      t && t.kind !== 'refused' ? chip(`Focus: ${focusName(t)} · ${nIn}`, true, () => { st.mapMode = 'all'; ctx.render(); }) : null,
+      t && t.kind !== 'refused' && t.kind !== 'late' ? chip(`Focus: ${focusName(t)} · ${nIn}`, true, () => { st.mapMode = 'all'; ctx.render(); }) : null,
       !t && (st.selected && (parseModKey(st.selected) >= 0 || (parseBlockKey(st.selected) && st.selected !== 'host'))) ? chip(`Focus: ${blockTag(st.selected)}`, false, () => { st.mapMode = 'focus'; st.mapSrc = null; ctx.render(); }) : null,
       refused ? chip(`Refused · ${refused}`, !!t && t.kind === 'refused', () => { st.mapMode = t && t.kind === 'refused' ? 'all' : 'refused'; ctx.render(); }, ' is-refused') : null,
+      late ? chip(`${markWords('late').replace(/^./, (c) => c.toUpperCase())} · ${late}`, !!t && t.kind === 'late', () => { st.mapMode = t && t.kind === 'late' ? 'all' : 'late'; ctx.render(); }, ' is-late') : null,
     ]);
-    const legend = el('p', 'ed-legend ed-map-legend', {}, [el('span', 'ed-l-mod', { text: 'modulation' }), el('span', 'ed-l-gate', { text: 'gate or trigger' }), el('span', 'ed-l-voice', { text: 'per voice (v)' }), el('span', 'ed-l-refuse', { text: '✕ refused' })]);
+    const legend = el('p', 'ed-legend ed-map-legend', {}, [el('span', 'ed-l-mod', { text: 'modulation' }), el('span', 'ed-l-gate', { text: 'gate or trigger' }), el('span', 'ed-l-voice', { text: `${markWords('voice')} (${markChar('voice', 'v')})` }), el('span', 'ed-l-late', { text: `${markWords('late')} (${markChar('late', '~')})` }), el('span', 'ed-l-refuse', { text: '✕ refused' })]);
     wrap.append(el('div', 'ed-map-head', {}, [chips, legend]));
     wrap.append(el('p', 'ed-map-hand', { 'aria-hidden': 'true' }));
     map = el('div', 'ed-map');
@@ -644,7 +646,7 @@ export function makeMap(ctx, h) {
       const c = x.c, ref = !!verdictOf(x.i).code;
       const amt = pctOfQ14(c.amount);
       const p = el('div', `ed-map-pill${ref ? ' is-refused' : ''}${st.selCable === `c${x.i + 1}` ? ' is-sel' : ''}`, { 'data-cable': String(x.i) });
-      p.append(...[(c.flags & VOICE) ? el('span', 'ed-pill-v', { text: 'v' }) : null, ref ? el('span', 'ed-pill-r', { text: '!' }) : null,
+      p.append(...[(c.flags & VOICE) ? el('span', 'ed-pill-v', { text: markChar('voice', 'v') }) : null, isLate(x.i) ? el('span', 'ed-pill-l', { title: markWords('late'), text: markChar('late', '~') }) : null, ref ? el('span', 'ed-pill-r', { text: markChar('refused', '!') }) : null,
         el('span', 'ed-pill-a', { text: `${amt > 0 ? '+' : ''}${amt} %` }), el('span', 'ed-live ed-map-live', { 'data-dest': String(x.i), text: '' })].filter(Boolean));
       p.addEventListener('click', () => { st.selCable = `c${x.i + 1}`; ctx.select(`c${x.i + 1}`, { view: 'mod' }); });
       p.style.visibility = 'hidden';

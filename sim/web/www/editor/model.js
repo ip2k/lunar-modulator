@@ -617,6 +617,8 @@ export class ModMeta {
     this.host = m.host || [];
     this.polarities = m.polarities || [];
     this.curves = m.curves || [];
+    this.curvePoints = m.curve_points || [];          // 1.2: each curve at s = -1 to 1 in 33 steps, C's own
+    this.sourceGroups = m.source_groups || [];        // 1.2: how a patch bay lists the sources
     this.positions = m.positions || POSITIONS;
     this.slots = m.slots || SLOTS;
   }
@@ -662,6 +664,24 @@ export class ModMeta {
       (k && k.outs ? k.outs : []).forEach((o, port) => out.push({ code: SRC_MODULE + 8 * pos + port,
         name: `${pos + 1} ${k.abbr} ${o.name}`, kind: o.kind, group: 'Modules' }));
     });
+    return out;
+  }
+  // The fixed sources as the metadata groups them (1.2: each source's `group`,
+  // and `source_groups` for the order and the names): [{ id, title, list }], a
+  // group with a {sound} in its name once for each sound. The editor holds no
+  // source name: a build whose metadata has no groups lists them all in one.
+  groupedSources() {
+    const all = [...this.sources.values()];
+    if (!this.sourceGroups.length) return [{ id: 'all', title: 'Sources', list: all }];
+    const out = [];
+    for (const g of this.sourceGroups) {
+      const mine = all.filter((x) => x.group === g.id);
+      if (!mine.length) continue;
+      if (!g.name.includes('{sound}')) { out.push({ id: g.id, title: g.name, list: mine }); continue; }
+      for (const n of [...new Set(mine.map((x) => x.sound))].sort((a, b) => a - b)) {
+        out.push({ id: `${g.id}${n}`, title: g.name.replace('{sound}', String(n)), list: mine.filter((x) => x.sound === n) });
+      }
+    }
     return out;
   }
   // A cable's polarity, curve and the rest, from its flags.

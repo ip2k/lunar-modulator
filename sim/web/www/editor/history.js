@@ -13,7 +13,9 @@
 // Structural entries (stage ED3: an engine or effect chosen, a swap, a
 // module moved or chosen) carry the records that undo and redo them in
 // `info` and never vanish when they end where they began; undo's snapshot
-// fallback comes with ED4. MIT licence, like the rest of this repository.
+// fallback (stage ED4, project.js) loads the project as it was when the
+// inverse edits leave a different state hash. MIT licence, like the rest of
+// this repository.
 
 export const MERGE_MS = 600;
 export const LIMIT = 200;

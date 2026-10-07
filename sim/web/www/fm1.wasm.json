@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "9d11197d8aae2ec77cec79d0bf6b6819596747a7541decfbd3b7822868fcacfc",
-  "wasm_bytes": 1543763,
+  "wasm_sha256": "f971ee98a34c8a03c052ef5115cde6ed53e6dc2d1acf598893b9847ca1c4a47c",
+  "wasm_bytes": 1544271,
   "sources_sha256": {
-    "engines": "b02c9f1087e2d0c25d1d1eb260aac9c5412deb91a6662242e085e55e802f8160",
-    "sim": "475ef7f6a3be5539e62c7543a963d78dda7f835b34360ccda08e4afc8f15660a"
+    "engines": "362e3064eb60b223fbfbb7cdaef8dc91133c816f36881f0b7e783e140e5ea043",
+    "sim": "49fedf0ab23fc770db56a2aeb4de2f2f54b0bb0362738701587d7ff3273aaf99"
   },
   "engines": "working tree",
-  "built": "2026-10-07T12:33:44Z",
+  "built": "2026-10-07T12:37:54Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -83,11 +83,11 @@
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "meta": {
-    "meta_id": "60befb65",
-    "module_meta_id": "60befb65",
-    "bytes": 248588,
+    "meta_id": "ee8a1b8d",
+    "module_meta_id": "ee8a1b8d",
+    "bytes": 253616,
     "lunar": "1.2",
-    "native_meta_id": "96fb6267",
+    "native_meta_id": "366f3117",
     "ram_differ_at_64_bits": 9,
     "passed": true
   },
@@ -180,10 +180,10 @@
       "applied": 82728,
       "resyncs": 0,
       "telemetry_blocks": 862,
-      "p50_ms": 0.06146699999999328,
-      "p99_ms": 0.09447999999999013,
-      "max_ms": 0.25474600000001146,
-      "edit_us_per_quantum": 7.681742771492174
+      "p50_ms": 0.06190800000001673,
+      "p99_ms": 0.09583299999997053,
+      "max_ms": 0.24026899999999785,
+      "edit_us_per_quantum": 7.803755342809632
     },
     "check": {
       "params": 467,
@@ -204,7 +204,9 @@
         "UNIT_RESERVED",
         "VOICE_FULL"
       ],
-      "hands": 7,
+      "hands": 47,
+      "sweeps": 40,
+      "lock_blocks": 900,
       "tele_fills": 30,
       "failed": 0
     }

@@ -628,27 +628,31 @@ export function initFiles(env) {
   }
 
   // ---- Copy link ----
-  async function copyLink() {
+  // A link to the project, or (stage "v1 completed", §9 "Out, per block") to one block's file: a sound, a
+  // sound's or the master's effects, the mod rack, with the `into` hint that says where it goes.
+  async function copyLink(kind = 'project', arg = 0) {
+    const what = kind === 'project' ? 'project' : KIND_WORD[kind] || kind;
     try {
-      const text = await saveText('project');
+      const text = await saveText(kind, arg);
       const data = await deflateLink(JSON.stringify(JSON.parse(text)));
       if (data.length > LINK_CAP) {
-        notice('refused', `This project needs a ${Math.ceil(data.length / 1024)} KiB link, more than the ` +
-          `${LINK_CAP / 1024} KiB a link holds. Save… the project and share the file instead.`);
+        notice('refused', `This ${what} needs a ${Math.ceil(data.length / 1024)} KiB link, more than the ` +
+          `${LINK_CAP / 1024} KiB a link holds. Save… the ${what} and share the file instead.`);
         return null;
       }
-      const link = `${location.origin}${location.pathname}#lunar=${data}`;
+      const into = kind === 'sound' ? `&into=s${arg + 1}` : kind === 'fx' ? (arg < 0 ? '&into=master' : `&into=s${arg + 1}`) : '';
+      const link = `${location.origin}${location.pathname}#lunar=${data}${into}`;
       let copied = false;
       try { await navigator.clipboard.writeText(link); copied = true; } catch (err) { /* shown below */ }
       notice('info', copied ? `Link copied: ${Math.ceil(data.length / 1024)} KiB of the ${LINK_CAP / 1024} KiB a link holds. ` +
-        'Anyone who opens it gets this project, in their own browser.'
+        `Anyone who opens it gets this ${what}, in their own browser.`
         : 'The browser would not copy the link; it is selected below to copy by hand.');
       if (!copied) {
         const input = document.createElement('input');
         input.className = 'link-out';
         input.readOnly = true;
         input.value = link;
-        input.setAttribute('aria-label', 'Link to this project');
+        input.setAttribute('aria-label', `Link to this ${what}`);
         noticeEl.insertBefore(input, noticeEl.querySelector('.notice-actions'));
         input.select();
       }
@@ -1123,7 +1127,7 @@ export function initFiles(env) {
   // headless page check.
   return Object.assign(f, {
     openFiles, afterPowerOn, beforePowerOff, touched, fillSaveKinds, renderLibrary, autosave, copyLink, highlight,
-    saveText, undoLoad, store,
+    saveText, fileName, undoLoad, store,
     shadow,                    // the shadow Worker, for the editor (format, parse, save)
     // stage ED4, for the editor: a load with W1's checks and notices, the
     // verdict before a drop, per-block export and the library.
