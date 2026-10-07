@@ -668,7 +668,7 @@ chain's four slots and two sends.
 | --- | --- | --- |
 | **ED0** Metadata and C helpers | The metadata additions of §6 in E2's `fm1-render --meta`, with their golden; `fm1_param_parse` and its round-trip test; per-slot refusal codes and the loop each late slot closes, in the planner's info | `engines/` and `tools/` only: after the state core (E1–E3, with E2's metadata export) has landed |
 | **ED1** Edit layer and shadow Worker (**built**, §22) | `fm1_edit.c` (live apply of records and verbs, the change ring with sources, telemetry with a subscription mask, the view record and knob map); the hooks in `fm1_app.c`; the wasm exports and worklet messages of §5; `editor/shadow.worker.js`; the parity, refusal and underrun tests. No UI | A1 |
-| **ED2** Shell, flow and sound | The layouts, outline and screen card, app bar and RAM by part; the Flow (selection only) and the Sound inspector from metadata; the detail bar; follow both ways and K1–K4; history and undo for parameters; PLAY and EDIT | ED1, W1 |
+| **ED2** Shell, flow and sound (**built**, §23) | The layouts, outline and screen card, app bar and RAM by part; the Flow (selection only) and the Sound inspector from metadata; the detail bar; follow both ways and K1–K4; history and undo for parameters; PLAY and EDIT | ED1, W1 |
 | **ED3** Chains and modulation | Drag to move and swap with its keyboard twin and RAM verdicts; effect pickers; master inspectors with meters; the Mix; per-pad rows (API v4); the rack cards, the matrix table, slot and module inspectors; structural undo | ED2 |
 | **ED4** Files and project | Drop targets, per-block export, the library, `view=edit` and `sel`; ⌘K search; A/B and the Memory page; undo's snapshot fallback | ED3 |
 | **ED5** The Map and reach | The patch-bay Map with focus; phones; keyboard and screen-reader passes; the layout check in the page tests; a manual chapter | ED4 |
@@ -924,3 +924,65 @@ desktop browser with a real one, Firefox and WebKit remain to be measured
 104 parity scenarios still match fm1-render [verified: 104 of 104, audio
 identical to the JavaScript and musl builds, screens identical], and the
 layout sweep passes 4,584 screens with no fault.
+
+## 23. Stage ED2, as built (2026-10-06)
+
+Marks here were checked on the ED2 branch, cut from main at `c9b4c40`
+(PR #91, ED1), natively, in node against the module, in the browser pane
+and in headless Chromium on aeon.
+
+**What it is** [verified: `sim/web/www/editor/`, `sim/web/README.md`, "The
+advanced editor"]:
+- **Where it lives** as §4 has it: plain ES modules in `www/editor/`
+  (`model.js` and `history.js` with no DOM, `editor.js`, `editor.css`),
+  imported on the first switch away from Panel; the page's one module in the
+  worklet, the editor's own port, the shadow Worker of W1 and ED1 for text,
+  JSON and hashes. The layout switch is the page's (`index.html`), moved
+  into the editor's app bar while the editor shows.
+- **The shell:** the app bar (the switch, the keys chip, the two follow
+  toggles, Undo and Redo, RAM by part), the outline (S1-S4, the Flow; a rail
+  in the Workbench and below 1,180 px), the screen card in the Editor layout
+  (the panel's frame drawn a second time), the detail bar (the parameter's
+  path in the context colour, its value, range, default, flags in words and
+  its keys), the history list.
+- **The Flow** with selection only: four strips into the Mix, M1, M2 and the
+  output, each with the level and a meter from the telemetry block; the
+  selected block's inspector below. **A sound**: its path, its engine by the
+  device's pages with its level, both inserts, its MIDI effect (three pages
+  open, the rest as summaries).
+- **Controls from metadata only**, §6's table: 360 shown parameters in this
+  build, 274 sliders, 56 segment rows, 14 grids, 13 lists and 3 filtered
+  lists [verified: `test/editor-unit.mjs`]; values in C's text and typed
+  values read by C's parser, both in the shadow Worker; no engine, kind or
+  source id in the code (`tests/test_sim_editor_ui.py`).
+- **Follow both ways and K1-K4** (§7), **one history for both hands** (§8),
+  **PLAY and EDIT** (§13), as `sim/web/README.md` details.
+
+**Differences from the plan.**
+- **RAM by part is C's**: `fm1_app_ram_part` (four sounds with their inserts
+  and MIDI effect, the master slots, the rest) and `fm1w_ram_part`, posted
+  by the worklet's editor port as `ram` when a figure moves; the six parts
+  add up to the meter's figure [verified]. Each part reads in percent of the
+  budget, rounded up as the screen's meter, "under 1 %" below one; so the
+  parts can add up to a percent or two more than the whole.
+- **The Workbench is side by side from 1,400 px, not 1,280:** the page keeps
+  the panel at 800 px or more, below which its smallest targets fall under
+  24 px; between 1,024 and 1,400 px the panel sits above the editor.
+- **Undo is by value only**, as ED2's row has it: a step goes back by
+  sending its `before` as an edit. A step whose block has another engine
+  since (the panel changed it) is refused in words, not applied to the new
+  engine's parameter of the same uid. The hash check and snapshot fallback
+  of §8 are ED4's; the tests do the hash check instead.
+- **A MIDI effect's page cannot be opened on the panel by the view verb**
+  (its keys have no ARP page), so selecting one opens its sound's HOME.
+- **The page has one theme**, the dark one (`color-scheme: dark`): a light
+  system setting changes nothing [verified: the browser pane, both settings].
+- **Per-pad rows** (API v4) are ED3's: a kit's per-pad parameters show and
+  edit the focused pad, as the knobs do.
+
+**Measured** [verified]: `test/editor-unit.mjs` against the module: every
+check passes, 120 random edits over the start chain undone to the first
+state hash and redone to the last. The module is rebuilt for
+`fm1w_ram_part`; parity 104 of 104, the edit layer's parity and storm (0
+late quanta of 10,341). The page test results are below.
+
