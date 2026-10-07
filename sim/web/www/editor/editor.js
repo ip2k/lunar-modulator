@@ -881,7 +881,7 @@ export async function startEditor(env) {
     // Each segment at least as wide as the longest entry, so a name wraps
     // to a new row of segments, never inside a word.
     const longest = Math.max(...p.entries.map((x) => String(x).length));
-    seg.style.setProperty('--minw', `calc(${longest}ch * 0.82 + 18px)`);
+    seg.style.setProperty('--minw', `calc(${(longest * 0.62).toFixed(2)}em + 22px)`);
     p.entries.forEach((name, i) => {
       seg.append(el('button', 'ed-segbtn', { type: 'button', role: 'radio', text: name, onclick: () => setValue(r.key, p.uid, i, 'set') }));
     });

@@ -68,8 +68,11 @@ await page.evaluate(() => {
       sim.node.port.addEventListener('message', on);
       post({ type: 'state-save', kind: 1, arg: 0, plain: true, id });
     });
-    const r = await sim.files.shadow('hash', { bin });
-    return r.hash;
+    const r = await sim.files.shadow('hash', { bin: bin.slice(0) });
+    window.__bins = window.__bins || [];
+    window.__bins.push(bin);
+    const v = window.fm1.editor.state.panelView;
+    return { hash: r.hash, bin: window.__bins.length - 1, view: `${v.mode}.${v.sound}.${v.slot}` };
   };
 });
 
@@ -154,9 +157,22 @@ const undone = await page.evaluate(() => window.__hash());
 await page.keyboard.press('Control+Shift+z');
 await page.waitForTimeout(400);
 const redone = await page.evaluate(() => window.__hash());
-report.undo = { first, changed, undone, redone };
-check('undo ends at the first state hash', changed !== first && undone === first, report.undo);
-check('redo ends at the edited hash', redone === changed, report.undo);
+// The shadow Worker's hash covers the project's view too, which follow
+// moves (the panel went from M1 to S2's page): the projects are compared
+// member by member as well, the view left out.
+const sameBut = await page.evaluate(async ({ a, b }) => {
+  const d = await window.fm1.files.shadow('diff', { a: window.__bins[a], b: window.__bins[b] });
+  return (d.changes || []).filter((c) => !c.path.startsWith('view.')).map((c) => c.path);
+}, { a: first.bin, b: undone.bin });
+const sameRedo = await page.evaluate(async ({ a, b }) => {
+  const d = await window.fm1.files.shadow('diff', { a: window.__bins[a], b: window.__bins[b] });
+  return (d.changes || []).filter((c) => !c.path.startsWith('view.')).map((c) => c.path);
+}, { a: changed.bin, b: redone.bin });
+report.undo = { first: first.hash, changed: changed.hash, undone: undone.hash, redone: redone.hash,
+  undone_vs_first: sameBut, redone_vs_changed: sameRedo, view_first: first.view, view_undone: undone.view };
+check('undo ends at the first state (by hash where the view is the same, else member by member less the view)',
+  changed.hash !== first.hash && (undone.hash === first.hash || (first.view !== undone.view && sameBut.length === 0)), report.undo);
+check('redo ends at the edited state', redone.hash === changed.hash || sameRedo.length === 0, report.undo);
 await page.keyboard.press('Escape');
 await page.waitForTimeout(100);
 const play = await page.evaluate(async () => {
