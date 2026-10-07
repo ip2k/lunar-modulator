@@ -11,6 +11,11 @@
 </head>
 <body>
 <header class="top">
+  <div class="layout-switch" id="layout-switch" role="radiogroup" aria-label="Layout">
+    <button type="button" role="radio" data-layout="panel" aria-checked="true">Panel</button>
+    <button type="button" role="radio" data-layout="workbench" aria-checked="false" tabindex="-1">Workbench</button>
+    <button type="button" role="radio" data-layout="editor" aria-checked="false" tabindex="-1">Editor</button>
+  </div>
   <h1 class="brand">Lunar Modulator</h1>
   <p class="tagline">Intergalactic Modulation Station</p>
   <p class="lede">An open firmware for the M-VAVE FM-1, running in your browser. Its engines and effects
@@ -19,6 +24,7 @@
 </header>
 
 <main>
+  <div class="stage" id="stage">
   <div class="device-wrap">
     <div class="device-scroll" id="device-scroll">
       <div class="device" id="device">
@@ -42,6 +48,8 @@
   </div>
   <p class="narrow-hint">The panel is wider than this screen so its keys stay playable: drag the case
     sideways for the rest, or turn the phone to landscape.</p>
+  <div class="editor-host" id="editor-host" hidden></div>
+  </div>
 
   <div class="mirror" id="mirror" hidden>
     <canvas id="tft-mirror" width="240" height="240" aria-label="FM-1 screen, enlarged"></canvas>

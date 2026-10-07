@@ -570,6 +570,13 @@ void fm1_mod_get_plan(fm1_mod_t *m, fm1_mod_plan_info_t *out);
  * plan does not refuse it (off, or running). A question about the plan:
  * it builds the plan if an edit is pending and changes nothing else. */
 unsigned fm1_mod_slot_refusal(fm1_mod_t *m, unsigned i);
+/* The loop a delayed slot (plan info's `delayed`) closes: the component
+ * both its ends share, numbered as the plan info's `comp`, with the rack
+ * positions in it as a bit mask in *positions (bit p: position p); 0xFF and
+ * an empty mask for a slot that is not delayed. A question, as above: it
+ * builds the plan if an edit is pending and changes nothing else. So an
+ * editor can say which cycle a late cable breaks (stage ED1). */
+unsigned fm1_mod_slot_loop(fm1_mod_t *m, unsigned i, uint8_t *positions);
 
 typedef struct fm1_mod_stats {
   uint64_t ticks;

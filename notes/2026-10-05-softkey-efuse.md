@@ -37,6 +37,8 @@ Main results:
 (4) Only loader commands FD05, FC0A and FC14 are read-only, but uploading the loader is a RAM write and runs JieLi's code. The loader's flash init can write the flash status register in quad mode.
 (5) A read-only test plan for the owner's unit is given below, with the questions the owner must decide first.
 
+Credit (added 2026-10-06): Echomatter's PR #1 here (2026-09-14, its docs 13) had already placed app.bin at 0x02000120 and read the 0xA05C-byte copy to RAM; this note found the same independently, without knowing it (notes/2026-10-06-echomatter-pr1.md).
+
 Correction to existing notes: AL-255's "mask-ROM 0xFFC0xxxx" call targets come from disassembling at base 0. app.bin is loaded at 0x02000120, so all of those targets are RAM addresses 0x01C0xxxx. This affects AL-255's docs, FM-1-transporter's docs and the memory-map line in our CLAUDE.md.
 
 - app.bin file offset 0 is VA 0x02000120, not 0x02000000. AL-255's listing used base 0 and added 0x02000000 to the left-hand addresses only. [[verified]] — Four checks agree:

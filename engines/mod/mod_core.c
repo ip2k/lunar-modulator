@@ -371,7 +371,13 @@ void fm1_mod_default_rack(fm1_mod_t *m) {
 }
 
 static uint8_t remap_src(uint8_t src, const uint8_t *perm) {
-  if (src == MOD_NONE || src < FM1_MOD_SRC_MODULE) return src;
+  /* A source past the last position's ports names nothing (the planner
+   * refuses it, NO_SOURCE) and stays as it is: perm has one entry a
+   * position (found by the edit layer's fuzz, stage ED1). */
+  if (src == MOD_NONE || src < FM1_MOD_SRC_MODULE ||
+      src >= FM1_MOD_SRC_MODULE + 8u * FM1_MOD_POSITIONS) {
+    return src;
+  }
   return (uint8_t)(FM1_MOD_SRC_MODULE + 8u * perm[(src - FM1_MOD_SRC_MODULE) / 8u] +
                    (src - FM1_MOD_SRC_MODULE) % 8u);
 }

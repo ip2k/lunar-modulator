@@ -519,6 +519,230 @@ the other with no request), and the page at 1,440 and 390 px
 checks the static half; `test/origins.mjs` (Node, through
 `tests/test_sim_origins.py`) the exception's rules.
 
+## The edit layer (stage ED1, for the advanced editor)
+
+The advanced editor (`notes/2026-10-06-web-editor.md`) changes the virtual
+FM-1 through one C layer, `src/fm1_edit.c` (`fm1_edit.h`), which the
+panel's own handlers share, so a knob turned on the panel and a slider in
+the editor make the same change, the same change-ring entry and the same
+`--mod` line. This is the editor's engine room; its first views are stage
+ED2's (next section).
+
+- **Edits are the state core's records** (a unit, a MIDI effect's on, a
+  parameter, a level, a rack position's kind, a matrix slot) **and four
+  verbs**: swap (two effect slots trade places, cables and all), move (a
+  rack module; an effect slot, in groups of two, swaps), current and view
+  (what the panel shows). Each is applied live through the app's own calls
+  with their clamps, the LOG law and the RAM rule. A refusal is a code of
+  `engines/include/fm1_refusal.h` and changes nothing; a cable's codes
+  (32 and on) are the planner's verdict on a slot that was written and does
+  not run, as the panel's MATRIX leaves it.
+- **Packed records** are 24 bytes, little-endian (the layout is in
+  `fm1_edit.h`); the audio thread sees nothing else.
+- **The change ring** keeps the last 256 base changes, each with its number,
+  its source (the panel's keys, buttons and encoders; the editor, with its
+  op's tag; a load, as one `LOADED` entry; the page's own menus) and the
+  record. Hooks in `fm1_app.c` fill it: `fm1_app_set_param`, the
+  arpeggiator's log, select, level, current, the effect swap, and a scan of
+  the modulation runtime after every modulation edit, whoever made it. A
+  reader more than a ring behind is told to resync and takes a snapshot.
+- **Telemetry** fills `engines/include/fm1_tele.h`'s block (1,443 floats)
+  for the subscribed rows only, at most 30 blocks a second of audio:
+  meters (peak and RMS) at every point of the chain, gain reduction (Comp
+  and the output limiter; Limiter and Squash have no read-out yet), voices,
+  each module output with its extremes over the block, per-voice outputs,
+  and each running cable's destination as sent. `voice_dests` reads NaN:
+  the runtime keeps each voice's offsets but has no read-out for them yet.
+  The taps on the render path only read: the audio with every row
+  subscribed is the audio without the layer, bit for bit.
+- **The view** (`fm1_edit_view`): the panel's mode, sound, page and slot,
+  and what each of KNOB1-4 turns now (the editor's K1-K4 chips).
+- **`fm1_param_parse`** (`fm1_look.h`) reads what a person typed, a number
+  with "k" and the parameter's own unit word ("1.2 kHz", "-6 dB", "1 s"),
+  or a list entry by name, and clamps it as a knob does.
+
+**The module** exports `fm1w_edit` (n records from `fm1w_edit_buf`, their
+verdicts in `fm1w_edit_codes`), `fm1w_edit_verb`, `fm1w_changes` with
+`fm1w_changes_buf` and `fm1w_edit_gen`, `fm1w_subscribe` (`fm1w_tele_mask`)
+and `fm1w_telemetry` (`fm1w_tele_buf`), `fm1w_view_get`; and, for the
+shadow Worker and the tests only, `fm1w_edit_text`, `fm1w_edit_dump`,
+`fm1w_param_text`, `fm1w_param_parse` and `fm1w_param_value`.
+
+**The worklet** gives the editor a port of its own (`editor-port`, a
+transferred `MessagePort`): `edit` in, at most 64 records applied a
+quantum before it renders, `edited` back with each record's verdict;
+`subscribe`; `changes` at most once every six quanta (`resync` when the
+editor fell behind); `view` when it changes; `telemetry` in two pooled
+buffers handed back; `snapshot`; and `stats` once a second, which counts the
+quanta that took longer than they play (the underrun counter), where the
+worklet's scope has a clock. **The shadow Worker** adds `metaId`, `meta`,
+`format` and `parse` (C's digits and parser by module id and uid), `hash`
+and `diff`, so the audio thread never formats, parses, hashes or diffs.
+
+**Tests.** `fm1-sim-render --edit-check` (`tests/test_sim_edit.py`): every
+knob step of every parameter of every engine, effect, MIDI effect,
+modulation kind and the host reads back through `fm1_param_parse` as the
+screen shows it (467 parameters, 34,376 steps); every refusal an edit can
+meet, each leaving the state's hash and the ring as they were (the codes
+that cannot be reached with today's modules are named in the test); the
+ring's sources, its LOADED entry and its overflow; seven panel gestures
+whose ring entries, replayed as editor ops on a fresh app, give the same
+entries and the same state; the verbs; the view and knob map; telemetry's
+layout, rate and rows; and 400 batches of hostile records and verbs
+(random fields, edges, NaN and infinities, ids with no NUL, counts past
+64), each verdict a known code and the audio finite. `test/edit.mjs` plays `test/edit/verbs.edit` (every
+record type and verb, refusals and panel gestures between) to the module
+and to `fm1-sim-render --edit-run`: the verdicts, the ring, the view and the
+state's hash identical, the screen too, the audio within one 16-bit step;
+then a 30-second edit storm with the demo song playing, eight records a
+quantum, the change feed drained and every telemetry row filled, each
+quantum timed against the 2.90 ms it plays. `build.sh` runs both and
+records the results in `fm1.wasm.json` (`edit`). `test/editor.mjs`
+(headless Chromium, in `build-on-aeon.sh`'s page step) storms the real
+worklet's editor port for 30 seconds with the song playing and passes when
+every op is answered with its verdicts, changes, views and telemetry come
+back, a snapshot is binary, and Chromium's playback stats count no
+underrun [verified 2026-10-06: 58,016 records, 0 underruns, Chromium 153;
+its worklet scope has no clock, so the worklet's own late count reads "not
+timed" there].
+
+## The advanced editor (stage ED2: shell, flow and sound)
+
+`www/editor/` holds the editor's plain ES modules, loaded with `import()` the
+first time the layout switch leaves Panel, so the plain simulator loads what
+it loaded before (`notes/2026-10-06-web-editor.md` §4, §23):
+
+| File | What it is |
+| --- | --- |
+| `editor/model.js` | No DOM: `fm1_edit.h`'s packed records, change entries and view; the metadata (`meta.json`) with each parameter's control by §6's table, the LOG law, the knob detents; memory as a percentage of the budget, rounded up as the screen's meter; the mirror, built from C's canonical JSON (the shadow Worker's `save`) and kept by the change feed |
+| `editor/history.js` | No DOM: one history for the editor's and the panel's edits; a drag is one step, repeats within 600 ms merge, 200 steps |
+| `editor/editor.js` | The shell, the Flow and the sound inspector, follow, K1-K4, undo, PLAY and EDIT |
+| `editor/editor.css` | Its look, in the page's role colours (`PALETTE.md` v2) |
+
+- **Layouts** (the switch in the page's header, moved into the editor's app
+  bar while it is shown; kept as the preference `lunar.sim.editor.layout`):
+  *Panel*, the page as it was; *Workbench*, the panel and the editor side by
+  side from 1,400 px (the panel keeps the 800 px its smallest targets need)
+  and stacked below; *Editor*, the panel folded to its screen, which the
+  editor's outline draws from the same frame (`sim.screenListeners`), in the
+  head below 1,180 px.
+- **The app bar:** the keys chip (PLAY or EDIT), *Follow the panel* and *Open
+  on the panel*, Undo and Redo, and RAM by part: one bar in the sound
+  colours with the whole as a percentage, and a list of the four sounds,
+  the master slots, what they share and what is free, each in percent
+  (`fm1w_ram_part`, posted by the worklet as `ram` when a figure moves).
+- **The Flow** (the editor's home): four strips (the MIDI effect, the
+  engine, In1, In2, the level with its meter) into the Mix and M1, M2 and
+  the output; a click selects a block and its inspector opens below
+  (moving and swapping are ED3's). Its meters are the telemetry block's,
+  subscribed only while the Flow is on screen and the tab is visible.
+- **A sound:** its chain as a path, then its engine by the device's pages
+  ("Page 2 · KNOB1–3", the arpeggiator's PLAY ... SEED), both inserts and its
+  MIDI effect (the first three pages open, the rest as summaries). Controls
+  come from the metadata only: a slider with a typed value field (C's text
+  and C's parser, through the shadow Worker), LOG on its law, bipolar from
+  zero; segments up to 4 entries, a grid up to 8, a list with its place
+  beyond, filtered past 24; the GPL chip from the module's licence.
+- **Follow** (§7). The panel's changes come in the change feed: the row
+  lights (not under reduced motion), "From the panel: KNOB2 ..." says it,
+  the history gets a line, a polite announcement at most once a second. In
+  the Workbench the editor opens the block and page the panel shows,
+  never while a value is typed, a slider is held or a control in the
+  editor has the focus; in Editor the block is only marked "on the panel".
+  Selecting a block or a row sends the `view` verb, and the panel opens
+  that page. The rows KNOB1-4 turn now carry K1-K4 (`fm1_edit_view`).
+- **Undo** (§8): Undo and Redo, ⌘Z and ⇧⌘Z (Ctrl+Z, Ctrl+Y), over the
+  editor's and the panel's parameter, level and on/off changes alike. A step
+  goes back by sending its `before` as an edit; a step recorded for an
+  engine the block no longer has is refused in words. Structural steps and
+  the snapshot fallback come with ED3 and ED4.
+- **PLAY and EDIT** (§13): a click or the focus in the editor, or ⌘E (Ctrl+E),
+  gives it the computer keys (`sim.keysToEditor`; `app.js` then sends no key
+  to the FM-1); Esc, or a click on the panel, gives them back. Sliders take
+  ← → (one detent, ⇧ ten, ⌥ a tenth), Home, End, D (the default) and Enter
+  (type a value).
+- **Tests.** `test/editor-unit.mjs` (node, `tests/test_sim_editor_ui.py`)
+  checks every parameter's control, the LOG law and detents, records packed
+  by `model.js` against the module and back through the change feed, the
+  view verb and the knob map, the mirror against C's values, the history's
+  merging, and 120 random edits undone to the first state hash and redone
+  to the last. `test/editor-ui.mjs` (headless Chromium, the page step of
+  `build-on-aeon.sh`) checks the lazy load, follow both ways, K1-K4, undo
+  by the shadow Worker's hash, PLAY and EDIT, every module's inspector at
+  two column widths with nothing overflowing, and the two layouts at 1,440
+  and 1,024 px, with screenshots in `build/screenshots/ed2-*.png`.
+
+## The advanced editor, stage ED3: chains and modulation
+
+Stage ED3 of `notes/2026-10-06-web-editor.md` (§10, §13, §18; the note's §24
+has it as built) adds `www/editor/chains.js` to the editor: everything that
+changes structure, and the modulation. Every edit is still one of the edit
+layer's records or verbs on the editor's port; every verdict, RAM figure
+and refusal is C's.
+
+- **Move and swap** (ED7). An insert or a master slot's effect is dragged
+  onto another effect slot (a swap verb; the cables follow it), a rack card
+  onto another position (a move verb). While a block is in hand (gold), the
+  slot under it shows C's verdict before the drop: the shadow Worker's
+  `preview` applies the verb to a copy of the live state and answers with
+  the code and the RAM after, in percent of the budget, or the refusal in
+  the metadata's words. The keyboard twin (§13): Space picks the focused
+  block up, the arrows aim it, Space drops it, Esc cancels; ⌥ and an arrow
+  swap with the neighbour; each inspector has *Swap with…* / *Move to…*.
+  The inserts of a sound with no engine are not places: no file could hold
+  an effect there, and the edit layer now refuses one (code BAD).
+- **Pickers.** *Choose engine…*, *Choose effect…* (by the metadata's
+  groups), *Choose MIDI effect…*, *Choose module…*: each choice tried alone
+  on the live state in the shadow Worker (`preview` with `each`), its row
+  showing the RAM after or C's refusal (RAM's "needs N% of RAM", RATE,
+  ARENA); a choice C answers BAD is not offered (S1's engine cannot be
+  emptied). A GPL chip marks the GPL modules.
+- **Meters** (telemetry): an insert's and a master slot's in and out, peak
+  in dB, and gain reduction where C reads it out; the Mix's levels with
+  each sound's meter, *Make current* (the current verb), the Mix and the
+  output with the limiter's reduction. Meter rows are found by the
+  telemetry layout's order in the metadata, never by name.
+- **A kit's pads** (API v4, flags `focus` and `per_focus`): a pad strip (the
+  focus parameter) above the rows marked *pad*; a per-pad edit names its pad
+  in the record's focus byte, so undo reaches that pad wherever the panel's
+  focus is by then. The mirror keeps every pad's values.
+- **Modulation** (the outline's *Modulation*; ED8: the matrix table is the
+  editing view, the patch-bay Map is ED5's): the rack as eight cards with a
+  live trace of each module's first output (value with its min and max over
+  the frame) and its cable count; the matrix with a filter, *Empty slots*,
+  sort (slot, source, destination, refused first), *Add a cable*, and per
+  slot On, From, VIA, To (every parameter with `mod`, each module's gates,
+  the host's), Amount (typed or ↑↓), the live value of its destination and
+  the planner's verdict in words, with marks (`v` per voice, `!` refused,
+  `–` off). The slot inspector edits every field (amount and offset as
+  sliders, polarity, curve, per voice) and *Remove*; the module inspector
+  shows the kind's pages, its outputs live and its gate inputs with what
+  reaches them. Each block's inspector lists the cables into it.
+- **The rack and the matrix come from C**: `fm1w_mod_records` (new export,
+  shadow Worker only) writes a MODULE record per position, a CABLE record
+  per slot and each slot's planner verdict, so the editor reads cables by
+  their codes and never parses a file's names for them; names come from the
+  metadata (`mod.sources`, `mod.units`, each kind's `outs` and `gates`).
+- **Structural undo** (§8): an engine, effect, MIDI effect or module chosen
+  keeps the records that put the block back (its unit, every value, a kit's
+  pads one by one) and the matrix as it was; undo sends them, then every
+  slot that held a cable then or holds one now. A swap undoes by itself, a
+  move by the move back; redo sends the edit again. Cable edits are value
+  steps, field by field. The panel's structural changes (PRESETS, FX,
+  RACK, MATRIX) enter the same history from the mirror as it was.
+- **Tests.** `test/editor-unit.mjs`: modules, cables, swaps and moves as
+  packed records, the feed and `fm1w_mod_records` decoded the same, a
+  planner verdict as a code, refused records leaving the state hash alone,
+  and 28 random structural edits through `chains.js` undone to the first
+  state hash and redone to the last. `test/editor-ui.mjs` (headless
+  Chromium on aeon): the keyboard twin and a pointer drag with the verdict
+  over the target, a picker's RAM column and choice, a refusal in the
+  metadata's words that changes nothing, the matrix (a cable added, its
+  amount typed, polarity set, aimed where the planner leaves it out) and
+  the rack (a module moved by keys, one chosen, one emptied), each undone to
+  the state before it; the rack's kinds among the inspectors; the
+  Modulation view in both layouts at 1,440 and 1,024 px.
+
 ## Parity: does the browser sound like the native engines?
 
 `build-on-aeon.sh` renders 69 scenarios (`test/scenarios.json`) four ways

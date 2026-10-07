@@ -67,8 +67,10 @@ the same structs out for `i386-apple-macos10.13` (`-fsyntax-only`, sizes read
 from a template diagnostic). The upstream classes themselves are 68/56/44 B
 on 32-bit, 80/64/56 B on 64-bit; the delay memory dominates. pi32v2 is also
 ILP32, so it should match the i386 column [inferred]. The Plate alone is
-about 11 % of the FM-1's 578 KB SRAM and eight times stock's shared 8 KB FX
-arena (docs/11 §2) [inferred from those figures]. Rings shares one buffer
+about 11 % of the FM-1's 578 KB SRAM [inferred from those figures]. Stock's
+effects are no smaller: V15's delay allocates a 110,294-byte ring of its own,
+so the shared 8 KB buffer AL-255 reports (docs/11 §2) is not all of their
+memory [reported: Echomatter, PR #1; `notes/2026-10-06-echomatter-pr1.md`]. Rings shares one buffer
 between its reverb, chorus and ensemble because only one runs at a time; a
 host that allows one reverb-class effect at a time could do the same.
 

@@ -164,6 +164,9 @@ def test_refusals_are_the_loaders_and_the_planners(meta):
     # the plan on every slot of its fuzz.
     out = json.loads(_run(REFUSAL_TEST, "1000"))
     assert out["failed"] == 0 and out["cases"] >= 30 and out["fuzz_slots"] == 32000
+    # The loop each late slot closes (fm1_mod_slot_loop, stage ED1): checked
+    # on every delayed slot of the fuzz, and there are some.
+    assert out["late_loops"] > 0
     cable = {c["name"] for c in codes if "cable" in c["of"] and c["code"] >= 32}
     assert set(out["reasons"]) <= cable
     assert {"NO_SOURCE", "NO_DEST", "NOLOCK", "ENUM_NO_MOD", "VOICE_TO_MONO", "VOICE_TO_EFFECT",

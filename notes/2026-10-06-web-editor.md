@@ -30,7 +30,8 @@ recommended (§19), with two answers on top:
 
 The build order is decided too: ED0 after the state core (E1–E3) lands, ED1
 after A1, ED2–ED5 after W1 (§18). **ED0 is built** (2026-10-06): what it
-holds, and where it differs from §6 and §18, is §21.
+holds, and where it differs from §6 and §18, is §21. **ED1 is built**
+(2026-10-06): §22.
 
 **Read with.**
 - `notes/2026-10-06-state-files.md` and `notes/2026-10-06-song-and-scenes.md`
@@ -79,6 +80,9 @@ never sends") stands.
 19. Owner decisions
 20. Found on the way
 21. Stage ED0, as built
+22. Stage ED1, as built
+23. Stage ED2, as built
+24. Stage ED3, as built
 
 ## 1. Short answer
 
@@ -665,9 +669,9 @@ chain's four slots and two sends.
 | Stage | Contents | Needs |
 | --- | --- | --- |
 | **ED0** Metadata and C helpers | The metadata additions of §6 in E2's `fm1-render --meta`, with their golden; `fm1_param_parse` and its round-trip test; per-slot refusal codes and the loop each late slot closes, in the planner's info | `engines/` and `tools/` only: after the state core (E1–E3, with E2's metadata export) has landed |
-| **ED1** Edit layer and shadow Worker | `fm1_edit.c` (live apply of records and verbs, the change ring with sources, telemetry with a subscription mask, the view record and knob map); the hooks in `fm1_app.c`; the wasm exports and worklet messages of §5; `editor/shadow.worker.js`; the parity, refusal and underrun tests. No UI | A1 |
-| **ED2** Shell, flow and sound | The layouts, outline and screen card, app bar and RAM by part; the Flow (selection only) and the Sound inspector from metadata; the detail bar; follow both ways and K1–K4; history and undo for parameters; PLAY and EDIT | ED1, W1 |
-| **ED3** Chains and modulation | Drag to move and swap with its keyboard twin and RAM verdicts; effect pickers; master inspectors with meters; the Mix; per-pad rows (API v4); the rack cards, the matrix table, slot and module inspectors; structural undo | ED2 |
+| **ED1** Edit layer and shadow Worker (**built**, §22) | `fm1_edit.c` (live apply of records and verbs, the change ring with sources, telemetry with a subscription mask, the view record and knob map); the hooks in `fm1_app.c`; the wasm exports and worklet messages of §5; `editor/shadow.worker.js`; the parity, refusal and underrun tests. No UI | A1 |
+| **ED2** Shell, flow and sound (**built**, §23) | The layouts, outline and screen card, app bar and RAM by part; the Flow (selection only) and the Sound inspector from metadata; the detail bar; follow both ways and K1–K4; history and undo for parameters; PLAY and EDIT | ED1, W1 |
+| **ED3** Chains and modulation (**built**, §24) | Drag to move and swap with its keyboard twin and RAM verdicts; effect pickers; master inspectors with meters; the Mix; per-pad rows (API v4); the rack cards, the matrix table, slot and module inspectors; structural undo | ED2 |
 | **ED4** Files and project | Drop targets, per-block export, the library, `view=edit` and `sel`; ⌘K search; A/B and the Memory page; undo's snapshot fallback | ED3 |
 | **ED5** The Map and reach | The patch-bay Map with focus; phones; keyboard and screen-reader passes; the layout check in the page tests; a manual chapter | ED4 |
 | later | The pop-out window; a song-list view on S9+'s data; an FM6 (DX7) voice editor, a later stage by the owner's decision (ED17); the device target (§16) | — |
@@ -818,3 +822,276 @@ as built [verified: `tests/test_engine_editor_meta.py`]:
   with ED1, which is the first to need them.
 - The module grew by 39,711 B, to 1,383,314 B (the export's writer, its
   tables and the known ids) [verified: `fm1.wasm.json`].
+
+## 22. Stage ED1, as built (2026-10-06)
+
+Marks here were checked on the ED1 branch, cut from main at `c8d267b`
+(after PR #85) and merged with main at `f15de9b` (S9+, PR #88), natively
+and in the module built on aeon.
+
+**What it is** [verified: `sim/web/src/fm1_edit.c`, `fm1_edit.h`]:
+- **One edit layer** as §5 has it: `fm1_edit_apply` (records),
+  `fm1_edit_verb` (swap, move, current, view), `fm1_edit_packed` (the
+  worklet's 24-byte form of both), `fm1_edit_changes`,
+  `fm1_edit_telemetry` with `fm1_edit_subscribe`, `fm1_edit_view`. Records
+  go through the app's own calls: `fm1_app_set_param`, `fm1_app_select`,
+  the level, the arpeggiator's, and for the rack and the matrix the RACK
+  and MATRIX pages' own `fm1_mod_ui_set_*`, so they emit the same `--mod`
+  lines. A pad's own value (API v4) moves the focus to the pad for the
+  write and back.
+- **One truth.** The panel's keys, buttons and encoders enter as source
+  PANEL (`fm1_app_key`, `_button`, `_encoder` wrap their handlers), so the
+  hooks give the panel's changes and the editor's the same entries. The
+  check replays seven panel gestures' ring entries as editor ops on a fresh
+  app and gets the same entries and the same state hash [verified].
+- **The change ring**: 256 entries of 32 bytes (gen, source, tag, the packed
+  record); a load is one `LOADED` entry; a reader more than a ring behind
+  gets `RESYNC`. Modulation changes are found by comparing the runtime with
+  a snapshot after every modulation edit, so the pages, script lines, the
+  engine-change rule's re-aimed cables and the editor all show up; a moved
+  module shows as the two positions' records and the cables' new ends.
+- **Telemetry** fills `fm1_tele.h`'s block for the subscribed rows only.
+  The block comes at most every 1/30 s of audio; with 128-frame quanta that
+  is one every 12, 28.7 a second at 44,118 Hz [verified: 862 in the 30-second
+  storm]. Not filled yet, said in the code: Limiter's and Squash's
+  reduction (no read-out; Comp's and the output limiter's are), and
+  `voice_dests` (NaN: the runtime keeps each voice's offsets but has no
+  read-out). Destinations read as the last block ran the plan, never
+  building it early. With every row subscribed the audio is the audio
+  without the layer, bit for bit [verified: `--edit-check`].
+- **The wasm exports and worklet messages of §5**, binary only: the
+  editor's own port (`editor-port`), at most 64 records a quantum, `edited`,
+  `changes`/`resync`, `view`, `telemetry` in two pooled buffers,
+  `snapshot`, and `stats` with the late quanta. The shadow Worker is the
+  existing `www/shadow.worker.js` (W1's), extended with `metaId`, `meta`,
+  `format`, `parse`, `hash` and `diff`; no new file.
+- **ED0's leftovers.** `fm1_param_parse` (in `fm1_edit.c`, declared beside
+  `fm1_look_value`) with its round trip: 467 parameters, 34,376 knob steps,
+  every one read back as the screen shows it [verified]; the criterion is
+  the displayed value (within half the last printed digit), since 1,039
+  neighbouring steps print the same text and one step can print "100.0"
+  and read back as 100, which prints "100". The loop each late slot closes
+  is a question, as ED0 made the per-slot reasons: `fm1_mod_slot_loop`
+  returns the component and its positions, checked on every delayed slot of
+  the planner's fuzz (43 in 1,000 racks) [verified].
+
+**Differences from the plan.**
+- **A cable's refusal codes are verdicts, not refusals.** A cable that is
+  on but that the planner leaves out is written, as the panel's MATRIX
+  writes it, and its verdict is the planner's reason (32-41). Every other
+  code changes nothing: the check holds the state's hash and the ring
+  unchanged for each [verified].
+- **Codes an edit cannot meet today**: NOT_LUNAR, TOO_NEW, TOO_BIG and
+  STOPPED are a file's; NO_MOD needs a float without MOD, which no module
+  has (every float takes a cable unless NOLOCK); ARENA needs an effect or a
+  kind larger than its arena, which none is, even at 96 kHz; VOICE_ROOM
+  cannot happen with today's kinds (§21). The other thirteen are reached
+  through the layer [verified: `--edit-check`].
+- **`move` of an effect slot is a swap**, as the slots come in groups of two
+  until the master chain's four slots; `move` of a rack module is
+  `fm1_mod_ui_move`.
+- **The view verb** takes a file's view keys, checked (a key out of range
+  refuses), and an `entry` key for FX's slot (In1, In2, Mix, M1, M2), which
+  a file's view has no need of.
+
+**Found on the way.**
+- **`fm1_mod_move` read past its permutation** for a slot whose source or
+  VIA names nothing past the last position's ports (128-254): `remap_src`
+  indexed `perm[]` with (src - 64) / 8. The panel cannot make such a slot,
+  but an editor's cable record can (the planner refuses it, NO_SOURCE). The
+  check's fuzz of hostile records found it under AddressSanitizer; such a
+  source now stays as it is, with a test in `fm1-mod-refusal-test`. The
+  fuzz (12,774 records and verbs, fields random and at their edges) then
+  runs clean under ASan and UBSan, but for an old left shift of a negative
+  value in `third_party/fm1-x0x/dsp/fastmath.h`, which is not this stage's.
+
+**Measured** [verified: `test/edit.mjs` on aeon, Node's V8 in the
+emscripten/emsdk container]: the module and the native harness give the
+same verdicts, ring, view and state hash for `test/edit/verbs.edit`, the
+same screen less its RAM figure, and the same audio (0 LSB apart). The
+30-second storm (the demo song playing, eight records a quantum, the change
+feed drained every sixth quantum, every telemetry row filled when due):
+**0 late quanta of 10,341**, median 0.062 ms, 99th percentile 0.096 ms,
+slowest 0.25 ms of the 2.90 ms a quantum plays; the edit layer's own work
+7.9 µs a quantum, under §12's 58 µs. **In the real AudioWorklet**
+(`test/editor.mjs`, headless Chromium 153 on aeon, 44,100 Hz, the demo song
+playing): 30 seconds of 7,252 ops, 58,016 records, every one applied with
+verdict 0, 1,724 change batches, 905 telemetry blocks handed back and
+reused, a binary snapshot; **Chromium's own playback stats counted 0
+underruns** [verified]. Chromium's AudioWorklet scope has no clock
+(`performance` is absent), so the worklet's own late-quantum counter reads
+"not timed" there; headless Chromium plays to a fake output device, so a
+desktop browser with a real one, Firefox and WebKit remain to be measured
+(ED5). The module grew by 26,249 B, to 1,538,812 B, after main's S9+. The
+104 parity scenarios still match fm1-render [verified: 104 of 104, audio
+identical to the JavaScript and musl builds, screens identical], and the
+layout sweep passes 4,584 screens with no fault.
+
+## 23. Stage ED2, as built (2026-10-06)
+
+Marks here were checked on the ED2 branch, cut from main at `c9b4c40`
+(PR #91, ED1), natively, in node against the module, in the browser pane
+and in headless Chromium on aeon.
+
+**What it is** [verified: `sim/web/www/editor/`, `sim/web/README.md`, "The
+advanced editor"]:
+- **Where it lives** as §4 has it: plain ES modules in `www/editor/`
+  (`model.js` and `history.js` with no DOM, `editor.js`, `editor.css`),
+  imported on the first switch away from Panel; the page's one module in the
+  worklet, the editor's own port, the shadow Worker of W1 and ED1 for text,
+  JSON and hashes. The layout switch is the page's (`index.html`), moved
+  into the editor's app bar while the editor shows.
+- **The shell:** the app bar (the switch, the keys chip, the two follow
+  toggles, Undo and Redo, RAM by part), the outline (S1-S4, the Flow; a rail
+  in the Workbench and below 1,180 px), the screen card in the Editor layout
+  (the panel's frame drawn a second time), the detail bar (the parameter's
+  path in the context colour, its value, range, default, flags in words and
+  its keys), the history list.
+- **The Flow** with selection only: four strips into the Mix, M1, M2 and the
+  output, each with the level and a meter from the telemetry block; the
+  selected block's inspector below. **A sound**: its path, its engine by the
+  device's pages with its level, both inserts, its MIDI effect (three pages
+  open, the rest as summaries).
+- **Controls from metadata only**, §6's table: 360 shown parameters in this
+  build, 274 sliders, 56 segment rows, 14 grids, 13 lists and 3 filtered
+  lists [verified: `test/editor-unit.mjs`]; values in C's text and typed
+  values read by C's parser, both in the shadow Worker; no engine, kind or
+  source id in the code (`tests/test_sim_editor_ui.py`).
+- **Follow both ways and K1-K4** (§7), **one history for both hands** (§8),
+  **PLAY and EDIT** (§13), as `sim/web/README.md` details.
+
+**Differences from the plan.**
+- **RAM by part is C's**: `fm1_app_ram_part` (four sounds with their inserts
+  and MIDI effect, the master slots, the rest) and `fm1w_ram_part`, posted
+  by the worklet's editor port as `ram` when a figure moves; the six parts
+  add up to the meter's figure [verified]. Each part reads in percent of the
+  budget, rounded up as the screen's meter, "under 1 %" below one; so the
+  parts can add up to a percent or two more than the whole.
+- **The Workbench is side by side from 1,400 px, not 1,280:** the page keeps
+  the panel at 800 px or more, below which its smallest targets fall under
+  24 px; between 1,024 and 1,400 px the panel sits above the editor.
+- **Undo is by value only**, as ED2's row has it: a step goes back by
+  sending its `before` as an edit. A step whose block has another engine
+  since (the panel changed it) is refused in words, not applied to the new
+  engine's parameter of the same uid. The hash check and snapshot fallback
+  of §8 are ED4's; the tests do the hash check instead.
+- **A MIDI effect's page cannot be opened on the panel by the view verb**
+  (its keys have no ARP page), so selecting one opens its sound's HOME.
+- **The page has one theme**, the dark one (`color-scheme: dark`): a light
+  system setting changes nothing [verified: the browser pane, both settings].
+- **Per-pad rows** (API v4) are ED3's: a kit's per-pad parameters show and
+  edit the focused pad, as the knobs do.
+
+**Measured** [verified]: `test/editor-unit.mjs` against the module: every
+check passes, 120 random edits over the start chain undone to the first
+state hash and redone to the last. The module is rebuilt for
+`fm1w_ram_part`; parity 104 of 104, the edit layer's parity and storm (0
+late quanta of 10,341). `fm1w_ram_part` grew the module by 233 B, to
+1,539,045 B. In headless Chromium 153 on aeon (`test/editor-ui.mjs`), every
+check passes: the Panel layout requests none of `editor/`; a turn of KNOB2
+reaches the editor's row in 3 frames (32 ms) as a panel entry with
+"From the panel: KNOB2"; the K1-K4 chips are the knob map's four; selecting
+M1 in the Flow puts the panel on FX M1 within 150 ms; four arrow keys in
+EDIT are one history step and send no key to the FM-1, Ctrl+Z puts the
+project back (the shadow Worker's diff: nothing but the view, which follow
+moved) and Ctrl+Shift+Z forward; in PLAY the keys play and D edits
+nothing; all 40 modules' inspectors (720 rows) at 620 and 360 px with no
+overflow or overlap; the Workbench and Editor layouts, Flow and sound, at
+1,440 and 1,024 px with no sideways scroll and nothing overflowing. The
+eight screenshots and the browser pane's renders (light and dark system
+settings) were looked at. Not measured here: Firefox and WebKit, a desktop
+browser's real audio device, screen readers (ED5).
+
+**Found on the way.** The shadow Worker's `hash` covers a project's view,
+unlike C's `fm1_edit_state_hash`, which leaves it out: a follow that moves
+the panel changes it. §8's hash check (ED4) should compare without the view
+[verified: `diff` of the two projects names `view.mode` and `view.unit`
+only].
+
+## 24. Stage ED3, as built (2026-10-06)
+
+Marks here were checked on the ED3 branch, cut from main at `835c15e`
+(PR #92, ED2), natively, in node against the module, in the browser pane
+and in headless Chromium on aeon.
+
+**What it is** [verified: `sim/web/www/editor/chains.js`, `sim/web/README.md`,
+"Stage ED3"]: §18's ED3 row, in one module beside `editor.js`:
+- **Move and swap** with the verdict before the drop: a pointer drag past
+  6 px or the keyboard twin (Space, arrows, Space; Esc; ⌥ and an arrow for
+  the neighbour; *Swap with…* / *Move to…*). The verdict is the shadow
+  Worker's new `preview`: the verb applied to a copy of the live state, its
+  code and the RAM after in percent, or the refusal in the metadata's words.
+- **Pickers** for engines, effects (by the metadata's groups), MIDI effects
+  and rack modules: every choice tried alone on the live state (`preview`
+  with `each`), its RAM after or C's refusal; a choice C answers BAD is not
+  offered.
+- **Meters** for inserts, master slots and the Mix from the telemetry
+  block, found by the layout's order, with gain reduction where C reads it
+  out; *Make current* (the current verb).
+- **Per-pad rows** (API v4): a pad strip above the rows marked *pad*; a
+  per-pad edit names its pad in the record, the mirror keeps every pad.
+- **Modulation** (ED8): the rack's cards with a live trace and cable count,
+  the matrix table (filter, empty slots, sort, *Add a cable*; On, From, VIA,
+  To, Amount, live value, the planner's verdict in words, marks `v ! –`),
+  the slot inspector (every field, *Remove*) and the module inspector
+  (pages, outputs live, gate inputs and what reaches them); each block's
+  inspector lists the cables into it. The Map is ED5's.
+- **Structural undo**: a choice keeps the records that put the block back
+  (its unit, every value, a kit's pads) and the matrix as it was; a swap
+  undoes by itself, a move by the move back; redo sends the edit again; the
+  panel's structural changes enter the same history from the mirror as it
+  was.
+
+**Differences from the plan.**
+- **The rack and the matrix come from C as records**: `fm1w_mod_records`
+  (new export, used by the shadow Worker only) writes a MODULE record per
+  position, a CABLE record per slot and each slot's planner verdict. The
+  editor reads cables by their codes and names them from the metadata
+  (`mod.sources`, `mod.units`, each kind's `outs` and `gates`), so it never
+  reverses a file's names or its percent rounding.
+- **An effect into an insert of a sound with no engine is refused** (BAD)
+  by the edit layer, as a record or a swap: a file writes a sound's inserts
+  with its engine, so such an effect vanished from every save and every
+  hash. The random structural undo test found it; `fm1_edit_check` swaps
+  into that slot only after giving the sound an engine. The panel was not
+  changed.
+- **Previews read the last snapshot**, not a fresh one: the editor keeps the
+  binary it last mirrored (taken again after every structural change), so a
+  preview costs the audio thread nothing; values moved since do not change
+  a RAM figure.
+- **Undo is still by records**, as §8 has it; the hash check and the
+  snapshot fallback stay ED4's. The tests check by hash instead.
+
+**Found on the way.**
+- A refusal shown in the detail bar was wiped by the redraw that the
+  snapshot after it brings (ED2 had the same): it now stays for 8 s or until
+  another parameter is selected.
+- The history holds 200 entries; a test that counts steps by its length
+  stops counting at the limit. The page checks count by entry id.
+
+**Measured** [verified]: `test/editor-unit.mjs` against the rebuilt
+module: every check passes; the packed CABLE and MODULE records come back
+through the feed and `fm1w_mod_records` as sent; six hostile records and
+verbs (an engine swapped with an insert, an unknown kind or effect, slot 40,
+an effect into an empty sound's insert, a swap with one) are refused with
+the state hash unchanged; 28 random structural edits through `chains.js`
+(17 steps after C's refusals) undo to the first state hash and redo to the
+last. In headless Chromium 153 on aeon (`test/editor-ui.mjs`), every check
+passes: the keyboard twin shows "Swap · RAM 69 %" over S1 In1 and swaps M1
+into it as one step, the keys staying with the block; a pointer drag shows
+the same verdict and swaps; M1's picker lists 25 choices with the RAM after
+each; S1's engine cannot be emptied (not offered; asked anyway, "Cannot be
+read" and nothing changes); a cable added, its amount typed (-40 %, Q1.14
+-6554) and polarity set, aimed at a parameter that rebuilds the voices
+(the planner's NOLOCK in the metadata's words); a rack module moved by keys
+to the first empty place (the others close up, as `fm1_mod_ui_move` does),
+one chosen and one emptied; each undone to the state before it, the view and
+the current sound aside (follow moves them). All 56 modules' inspectors (the
+40 engines and effects and the 16 rack kinds) at 620 and 360 px with nothing
+overflowing; the Workbench and Editor layouts, Flow, sound and Modulation,
+at 1,440 and 1,024 px with no sideways scroll; the screenshots were looked
+at. The module grew by 679 B, to 1,539,724 B; parity 104 of 104, the edit
+layer's storm 0 late quanta of 10,341, Chromium's 0 underruns, the layout
+sweep 4,584 screens with no fault. Not measured: Firefox and WebKit, a real
+audio device, screen readers, phones (ED5).
+

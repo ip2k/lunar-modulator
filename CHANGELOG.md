@@ -9,6 +9,47 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The advanced editor: effects, the mix and modulation** (stage ED3). The
+  editor now changes the structure of a project: *Choose engine…*, *Choose
+  effect…*, *Choose MIDI effect…* and *Choose module…* list every choice
+  with the memory the project would take, in percent, and say why a choice
+  does not fit. Drag an effect onto another slot, of any sound or the
+  master, to swap them (or pick it up with Space, aim with the arrow keys,
+  drop with Space); the slot says whether it fits before you let go. The
+  Mix shows each sound's level and meter and which sound is current; the
+  effects show their level in and out. A drum kit has a pad chooser above
+  its per-pad values. *Modulation* shows the mod rack as cards with each
+  module's live output, and the matrix: every cable, what it does, its live
+  value and why it does not run when it does not, with *Add a cable* and
+  every setting of a cable. Undo covers engine and effect changes, swaps,
+  moved modules and cables, from the editor and the panel alike.
+- **The simulator no longer lets an effect into a sound with no engine**
+  from the editor: no saved file could hold it, so it vanished on the next
+  save.
+- **The advanced editor, first views** (stage ED2). A switch at the top of
+  the simulator's page (Panel, Workbench, Editor) opens an editor beside the
+  panel or in its place. *Flow* shows the four sounds into the mix and the
+  master slots; a sound shows its engine, both effects and its arpeggiator
+  with every value at once, grouped by the panel's pages, as sliders with a
+  typed value, rows of choices or lists. The editor and the panel follow
+  each other: a knob turned on the panel lights its row and says so, a value
+  chosen in the editor opens its page on the panel, and the rows the four
+  knobs turn now are marked K1 to K4. Undo and Redo cover changes from both.
+  The computer keyboard plays the instrument (PLAY) until you click in the
+  editor or press Ctrl+E / ⌘E (EDIT), and Esc gives it back. The memory the
+  project takes is shown in percent, by sound.
+- **The advanced editor's engine room** (stage ED1; no visible change yet).
+  The simulator now has one way in for every edit, which the panel's own
+  knobs and buttons share and the coming web editor will use: sounds,
+  effects, levels, the arpeggiator, the mod rack and the matrix, swapping
+  and moving effects and modules, the current sound and the page the panel
+  shows. Every change is recorded with who made it (the panel, the editor
+  or a load), so the editor and the panel will follow each other; live
+  meters, modulation outputs and what each cable reaches are measured as
+  the sound plays, without changing a sample of it; and typed values such
+  as "1.2 kHz", "-6 dB" or "1/8D" are read as the screen shows them. A
+  30-second storm of edits with the song playing kept the audio thread at
+  a fraction of its time.
 - **Session and the song on the simulator's panel** (stage S9+;
   notes/2026-10-06-song-and-scenes.md, every decision adopted). Press SEQ
   in SEQ mode for the session view: every track's eight slots, white keys
@@ -955,6 +996,14 @@ history.
     `engines/mod/README.md`, tested in `tests/test_engines_mod_runtime.py`
     and `fm1-mod-core-test`. The JieLi compile check covers the modulation
     code too.
+- notes/2026-10-06-echomatter-pr1.md: what Echomatter's closed PR #1 teaches
+  us about the stock firmware. Its FM operator works in the log domain, not
+  with msfa's arithmetic; it runs algorithm 4's feedback loop; its envelope
+  is msfa's, with no holds, as FM6's; and its effects use far more than the
+  8 KB the docs said. Its exponent and log-sine tables, and its decoder
+  against the vendor's disassembly, were checked here. docs/02 §5,
+  `engines/msfa.md`, `engines/mi-fx.md` and docs/11 §2 are corrected to
+  match, and the memory map's discovery is credited.
 - notes/2026-10-05-community-repos.md: what Lunar learns from JieLi's current
   AC79 SDK on Gitee and from three FM-1 projects, Felucca (with its recovery
   tool FM-1-transporter), its fork SLOOP, and fm1-nes. Other open firmware

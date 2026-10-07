@@ -589,3 +589,26 @@ unsigned fm1_mod_slot_refusal(fm1_mod_t *m, unsigned i) {
   (void)index;
   return FM1_REFUSE_VOICE_ROOM;
 }
+
+/* ---- The loop a late slot closes (fm1_mod_slot_loop) -----------------------------
+ * A delayed cable has both ends in one component (step 4), so the loop it
+ * closes is that component: its number in the plan's run order and the rack
+ * positions in it. A question, as fm1_mod_slot_refusal is: nothing grows. */
+unsigned fm1_mod_slot_loop(fm1_mod_t *m, unsigned i, uint8_t *positions) {
+  fm1_mod_plan_info_t info;
+  const fm1_mod_slot_t *s;
+  unsigned comp, pos;
+  uint8_t in = 0;
+  if (positions) *positions = 0;
+  if (!m || i >= FM1_MOD_SLOTS) return MOD_NONE;
+  fm1_mod_get_plan(m, &info);
+  if (!((info.delayed >> i) & 1u)) return MOD_NONE;
+  s = &m->slot[i];
+  if (!is_module(s->dst_unit)) return MOD_NONE;   /* cannot happen: only module cables wait */
+  comp = m->plan.comp[(unsigned)s->dst_unit - FM1_MOD_MODULE];
+  for (pos = 0; pos < FM1_MOD_POSITIONS; ++pos) {
+    if (mod_kind_at(m, pos) && m->plan.comp[pos] == comp) in = (uint8_t)(in | (1u << pos));
+  }
+  if (positions) *positions = in;
+  return comp;
+}
