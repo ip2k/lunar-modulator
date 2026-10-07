@@ -15,7 +15,7 @@ import subprocess
 
 import pytest
 
-from tests.engine_helpers import ROOT
+from tests.engine_helpers import GPL_MODS, ROOT
 from tests.test_sim_web import tools  # noqa: F401  (the harness fixture)
 
 SIM = ROOT / "sim" / "web"
@@ -42,7 +42,9 @@ def check(tools):  # noqa: F811
 def test_every_parameter_reads_back_what_the_screen_shows(check):
     # fm1_param_parse(fm1_look_value(v)) for every knob step of every
     # engine, effect, MIDI effect, modulation kind and host parameter.
-    assert check["params"] >= 400 and check["steps"] >= 30000
+    # 467 parameters and 34,376 steps with the GPL switch on; the MIT/BSD
+    # build has fewer modules (373 parameters).
+    assert check["params"] >= (400 if GPL_MODS else 300) and check["steps"] >= (30000 if GPL_MODS else 20000)
     assert check["text_bad"] == 0, check["text_first_bad"]
 
 
