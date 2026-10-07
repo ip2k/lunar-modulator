@@ -1067,6 +1067,7 @@ export function initFiles(env) {
   return Object.assign(f, {
     openFiles, afterPowerOn, beforePowerOff, touched, fillSaveKinds, renderLibrary, autosave, copyLink, highlight,
     saveText, undoLoad, store,
+    shadow,                    // the shadow Worker, for the editor (format, parse, save)
     onWorklet(m) {
       if (m.type === 'state-saved' || m.type === 'state-loaded') {
         const w = waiting.get(m.id);
