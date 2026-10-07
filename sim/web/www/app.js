@@ -1037,11 +1037,15 @@ sim.releaseKeys = releaseKeys;
 // the editor's outline. The editor's modules load on the first switch away
 // from Panel, so the plain simulator loads what it loaded before.
 const LAYOUTS = ['panel', 'workbench', 'editor'];
+// On a phone (stage ED5a, §14) the layouts are two tabs, Panel and Edit: the
+// Workbench, which puts both in one page, becomes Edit.
+const phone = window.matchMedia('(max-width: 640px)');
 const layoutSwitch = document.getElementById('layout-switch');
 let editor = null;
 let editorLoading = null;
 async function setLayout(name, save = true) {
   if (!LAYOUTS.includes(name)) name = 'panel';
+  if (phone.matches && name === 'workbench') name = 'editor';
   for (const b of layoutSwitch.querySelectorAll('[data-layout]')) {
     const on = b.dataset.layout === name;
     b.setAttribute('aria-checked', String(on));
@@ -1074,11 +1078,13 @@ layoutSwitch.addEventListener('keydown', (e) => {
   if (!d) return;
   e.preventDefault();
   e.stopPropagation();
-  const i = LAYOUTS.indexOf(document.body.dataset.layout || 'panel');
-  const next = LAYOUTS[(i + d + LAYOUTS.length) % LAYOUTS.length];
+  const tabs = phone.matches ? LAYOUTS.filter((x) => x !== 'workbench') : LAYOUTS;
+  const i = tabs.indexOf(document.body.dataset.layout || 'panel');
+  const next = tabs[(i + d + tabs.length) % tabs.length];
   setLayout(next).then(() => layoutSwitch.querySelector(`[data-layout="${next}"]`).focus());
 });
 setLayout(pref('editor.layout') || 'panel', false);
+phone.addEventListener('change', () => { if (phone.matches && document.body.dataset.layout === 'workbench') setLayout('editor', false); });
 // A link's view=edit or sel (stage ED4): the Editor layout, at that block.
 window.addEventListener('lunar-editor-link', (e) => {
   setLayout('editor', false).then(() => { if (editor) editor.applyLink(e.detail); });

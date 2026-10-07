@@ -408,16 +408,21 @@ export function makeChains(ctx) {
     if (b.role === ROLE.MASTER) { const i = SOUNDS * (1 + INSERTS) + 1 + b.slot; return { out: rows[i], in: rows[i - 1] }; }
     return null;
   }
-  function meterRow(label, row, red) {
+  // A meter row: the level bar (with a thin gain-reduction bar under it where
+  // the row has one), its peak in dB, and "GR n dB" while the effect cuts. `inRow`
+  // is the meter point before the effect: with no signal in there is nothing
+  // to reduce (Squash's gate, closed over silence, is a cut of its own).
+  function meterRow(label, row, red, inRow) {
     return el('div', 'ed-mrow', {}, [el('span', 'ed-m-l', { text: label }),
-      el('span', 'ed-meter ed-meter-wide', { 'data-meter': row, 'aria-hidden': 'true' }),
+      el('span', 'ed-m-bars', {}, [el('span', 'ed-meter ed-meter-wide', { 'data-meter': row, 'aria-hidden': 'true' }),
+        red ? el('span', 'ed-gr', { 'data-gr': red, 'data-grin': inRow || '', 'aria-hidden': 'true' }) : null]),
       el('span', 'ed-m-db', { 'data-db': row, text: '–' }),
-      red ? el('span', 'ed-m-red', { 'data-red': red, text: '' }) : null]);
+      red ? el('span', 'ed-m-red', { 'data-red': red, 'data-grin': inRow || '', text: '' }) : null]);
   }
   function meters(key) {
     const pt = meterPoint(key);
     if (!pt) return null;
-    return el('div', 'ed-meters', { role: 'group', 'aria-label': `${blockTag(key)} levels` }, [meterRow('In', pt.in), meterRow('Out', pt.out, pt.out)]);
+    return el('div', 'ed-meters', { role: 'group', 'aria-label': `${blockTag(key)} levels` }, [meterRow('In', pt.in), meterRow('Out', pt.out, pt.out, pt.in)]);
   }
 
   // The Mix (§10, the Mix page's own records): each sound's level and
@@ -770,6 +775,8 @@ export function makeChains(ctx) {
     const cell = (x, cls = 'ed-mx-c') => el('span', cls, { role: 'cell' }, [x]);
     row.append(cell(num), el('span', 'ed-mx-on', { role: 'cell' }, [on]), cell(src), cell(via), cell(to),
       el('span', 'ed-mx-amt', { role: 'cell' }, [amt, el('span', 'ed-u', { text: '%' })]), live, verdict);
+    // The cells' names, for the cable list a phone shows (the table's header row says them otherwise).
+    ['#', 'On', 'From', 'VIA', 'To', 'Amount', 'Live', 'Verdict'].forEach((h, n) => { if (row.children[n]) row.children[n].dataset.h = h; });
     row.addEventListener('focusin', () => { if (st.selCable !== key) { st.selCable = key; for (const r of ctx.root.querySelectorAll('.ed-mx-r.is-sel')) r.classList.remove('is-sel'); row.classList.add('is-sel'); ctx.openOnPanel(key); } });
     return row;
   }
@@ -843,7 +850,7 @@ export function makeChains(ctx) {
     const want = [];
     const all = (name) => { const s = secOf(name); if (s) for (let r = 0; r < s.rows.length; ++r) want.push(s.mask + r); };
     if (view === 'flow' || view === 'sound') { all('meters'); all('reduction'); }
-    if (view === 'mod') { all('outs'); all('dests'); }
+    if (view === 'mod') { all('outs'); all('dests'); all('voice_dests'); }
     return want;
   }
   // A live value short enough for its cell: 1.13k, 420, 12.5, 0.33.
@@ -862,10 +869,21 @@ export function makeChains(ctx) {
       }
     }
     if (red) {
-      for (const m of ctx.root.querySelectorAll('[data-red]')) {
-        const r = red.rows.indexOf(m.dataset.red);
+      // C's words: dB cut, 0 or more. Shown while there is signal in (the
+      // effect's input meter) and the cut is more than a twentieth of a dB.
+      const gr = (name, inName) => {
+        const r = red.rows.indexOf(name);
+        const i = inName && met ? met.rows.indexOf(inName) : -1;
         const db = r >= 0 ? f[red.offset + r] : NaN;
-        m.textContent = Number.isFinite(db) && db < -0.05 ? `GR ${db.toFixed(1)} dB` : '';
+        const live = i < 0 || f[met.offset + i * met.fields.length] > 1e-6;
+        return Number.isFinite(db) && db > 0.05 && live ? db : 0;
+      };
+      for (const m of ctx.root.querySelectorAll('[data-red]')) {
+        const db = gr(m.dataset.red, m.dataset.grin);
+        m.textContent = db ? `GR ${db.toFixed(1)} dB` : '';
+      }
+      for (const m of ctx.root.querySelectorAll('[data-gr]')) {
+        m.style.setProperty('--gr', Math.min(1, gr(m.dataset.gr, m.dataset.grin) / 24).toFixed(3));
       }
     }
     if (outs) {
@@ -886,9 +904,22 @@ export function makeChains(ctx) {
       }
     }
     if (dests) {
+      const vd = secOf('voice_dests');
+      const nv = vd ? vd.fields.length : 0;
       for (const m of ctx.root.querySelectorAll('[data-dest]')) {
-        const x = f[dests.offset + Number(m.dataset.dest)];
+        const i = Number(m.dataset.dest);
+        if (vd && (cableOf(i).flags & VOICE)) {
+          // A per-voice cable: each sounding voice has its own value.
+          const vals = [];
+          for (let v = 0; v < nv; ++v) { const x = f[vd.offset + i * nv + v]; if (Number.isFinite(x)) vals.push(x); }
+          const lo = Math.min(...vals), hi = Math.max(...vals);
+          m.textContent = !vals.length ? '–' : short(lo) === short(hi) ? short(lo) : `${short(lo)}–${short(hi)}`;
+          m.title = vals.length ? `${vals.length} voice${vals.length > 1 ? 's' : ''} sounding` : 'no voice sounding';
+          continue;
+        }
+        const x = f[dests.offset + i];
         m.textContent = Number.isFinite(x) ? short(x) : '–';
+        m.removeAttribute('title');
       }
     }
   }

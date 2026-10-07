@@ -318,7 +318,7 @@
 .ed-refused { color: var(--refuse); font-weight: 600; }
 
 @media (forced-colors: active) {
-  .ed-fill, .ed-thumb, .ed-meter::after { background: Highlight; }
+  .ed-fill, .ed-thumb, .ed-meter::after, .ed-gr::after { background: Highlight; }
   .ed-segbtn[aria-checked="true"] { outline: 2px solid Highlight; }
 }
 
@@ -374,7 +374,13 @@
 
 /* Meters of an insert, a master slot and the Mix: a bar, its dB, gain reduction. */
 .ed-meters { display: flex; flex-direction: column; gap: 4px; margin: 8px 0 2px; }
-.ed-mrow { display: grid; grid-template-columns: 3.2em minmax(60px, 1fr) 5.6em auto; align-items: center; gap: 10px; }
+.ed-mrow { display: grid; grid-template-columns: 3.2em minmax(60px, 1fr) 5.6em 6.4em; align-items: center; gap: 10px; }
+.ed-m-bars { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ed-gr {
+  --gr: 0; position: relative; display: block; height: 3px; border-radius: 2px; overflow: hidden;
+  background: var(--rp-highlight-med);
+}
+.ed-gr::after { content: ""; position: absolute; top: 0; bottom: 0; right: 0; width: calc(var(--gr) * 100%); background: var(--held); }
 .ed-m-l { color: var(--muted); font-size: 0.8rem; }
 .ed-meter-wide { width: auto; height: 8px; }
 .ed-meter-wide::after { top: 0; bottom: 0; right: auto; height: auto; width: calc(var(--lvl) * 100%); }
@@ -550,4 +556,67 @@
 @media (forced-colors: active) {
   .ed-search-o.is-at { outline: 2px solid Highlight; }
   .ed-mem-fill { background: Highlight; }
+}
+
+/* ---- stage ED5a: phones (§14) ------------------------------------------------------
+ * Tabs, not columns: the outline becomes a row of tabs above everything (it
+ * scrolls inside itself, never the page), the screen card shrinks to 96 px,
+ * the strips and the rows stack, and the matrix is a list of cables. The
+ * Map is not offered here (it needs room for a picture of the matrix, which
+ * the table above it already is). */
+@media (max-width: 640px) {
+  .ed { --ed-pad: 10px; }
+  .ed-body { grid-template-columns: minmax(0, 1fr); grid-template-areas: "nav" "card" "main"; }
+  .ed-outline {
+    flex-direction: row; gap: 6px; padding: 8px var(--ed-pad); overflow-x: auto; overscroll-behavior-x: contain;
+    border-right: 0; border-bottom: 1px solid var(--border); scrollbar-width: thin;
+  }
+  .ed-outline .ed-out { flex: none; width: auto; min-width: 44px; min-height: 36px; justify-content: center; padding: 4px 6px; }
+  .ed-card { grid-template-columns: 96px minmax(0, 1fr); gap: 4px 12px; padding-top: 10px; }
+  .ed-screen { width: 96px; height: 96px; }
+  .ed-screen-cap { font-size: 0.75rem; }
+  .ed-appbar { padding: 8px var(--ed-pad); gap: 6px 10px; }
+  .ed-ram-list { right: auto; left: 0; min-width: 0; width: min(280px, calc(100vw - 4 * var(--ed-pad))); }
+  .ed-hint-move { display: none; }
+  .ed-cols { grid-template-columns: minmax(0, 1fr); }
+  /* The strips: tag and level on the first line, then the blocks two by two. */
+  .ed-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ed-strip.is-empty { grid-template-columns: 40px minmax(0, 1fr); }
+  .ed-strip > .ed-tag { grid-column: 1; grid-row: 1; }
+  .ed-strip > .ed-level { grid-column: 2; grid-row: 1; justify-self: end; }
+  .ed-masters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* A parameter row: its name on the first line, the slider and the value under it. */
+  .ed-row { grid-template-columns: 28px minmax(0, 1fr) 84px; row-gap: 0; padding: 3px 4px; }
+  .ed-label { grid-column: 2 / -1; }
+  .ed-slider { grid-column: 1 / span 2; }
+  .ed-val { grid-column: 3; }
+  .ed-row-segments .ed-seg, .ed-row-seg .ed-seg, .ed-row-list .ed-list, .ed-row-search .ed-list { grid-column: 1 / -1; }
+  .ed-row-grid .ed-seg { grid-column: 1 / -1; }
+  .ed-row-out .ed-live, .ed-row-out .ed-note { grid-column: 2 / -1; text-align: left; padding: 0; }
+  .ed-rack { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ed-mrow { grid-template-columns: 2.6em minmax(40px, 1fr) 4.6em 5.6em; gap: 6px; }
+}
+
+/* The cable list: each cable of the matrix a small card, its cells named. */
+@container (max-width: 520px) {
+  .ed-mx-h { display: none; }
+  .ed-mx-body { max-height: none; }
+  .ed-mx-r {
+    grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; padding: 8px 10px;
+    grid-template-areas: "n on" "src src" "via via" "to to" "amt live" "verdict verdict";
+  }
+  .ed-mx-r > :nth-child(1) { grid-area: n; }
+  .ed-mx-r > :nth-child(2) { grid-area: on; justify-self: end; }
+  .ed-mx-r > :nth-child(3) { grid-area: src; }
+  .ed-mx-r > :nth-child(4) { grid-area: via; display: block; }
+  .ed-mx-r > :nth-child(5) { grid-area: to; }
+  .ed-mx-r > :nth-child(6) { grid-area: amt; }
+  .ed-mx-r > :nth-child(7) { grid-area: live; display: block; text-align: right; }
+  .ed-mx-r > :nth-child(8) { grid-area: verdict; grid-column: auto; }
+  .ed-mx-r.is-empty > :nth-child(n+3) { display: none; }
+  .ed-mx-r > [data-h]:nth-child(n+3)::before {
+    content: attr(data-h); display: block; font: 600 0.68rem/1.3 var(--small); letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .ed-mx-r > :nth-child(7)::before { text-align: right; }
 }

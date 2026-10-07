@@ -742,8 +742,10 @@ check('an off-site load in a link is refused, and nothing off-site is asked for'
   links.log.length === 0, links);
 check('an unknown parameter in sel is said so', /not one of/.test(links.bogus.notice) && links.bogus.sel === 's1', links.bogus);
 
-// ---- the layouts at desktop and tablet widths ---------------------------------------
+// ---- the layouts at desktop, tablet and phone widths ---------------------------------------
+await page.addScriptTag({ path: new URL('./layout-probe.js', import.meta.url).pathname });
 async function layoutCheck(name) {
+  const probed = await page.evaluate(() => window.lunarLayoutProbe());   // overlaps, clipped text, text past the page
   return page.evaluate(() => {
     const bad = [];
     const vw = document.documentElement.clientWidth;
@@ -759,12 +761,12 @@ async function layoutCheck(name) {
       if (r.width && (r.right > p.right + 1 || r.left < p.left - 1)) bad.push(`${b.dataset.block} outside its row`);
     }
     return bad;
-  }).then((bad) => { report.layouts = report.layouts || {}; report.layouts[name] = bad.slice(0, 10); return bad; });
+  }).then((bad) => { bad = bad.concat(probed); report.layouts = report.layouts || {}; report.layouts[name] = bad.slice(0, 10); return bad; });
 }
 const shots = [];
-for (const [w, h] of [[1440, 1000], [1024, 768]]) {
+for (const [w, h] of [[1440, 1000], [1024, 768], [768, 1024], [375, 812]]) {
   await page.setViewportSize({ width: w, height: h });
-  for (const layout of ['workbench', 'editor']) {
+  for (const layout of w <= 640 ? ['editor'] : ['workbench', 'editor']) {     // a phone has Panel and Edit only (§14)
     for (const view of ['sound', 'flow', 'mod', 'library', 'memory', 'compare', 'search']) {
       if (layout === 'workbench' && ['library', 'memory', 'compare', 'search'].includes(view)) continue;
       await page.evaluate(async ({ layout, view }) => {
@@ -789,7 +791,7 @@ for (const [w, h] of [[1440, 1000], [1024, 768]]) {
       }, { layout, view });
       const name = `${view === 'mod' ? 'ed3' : ['sound', 'flow'].includes(view) ? 'ed2' : 'ed4'}-${layout}-${view}-${w}`;
       const bad = await layoutCheck(name);
-      check(`${layout}, ${view} at ${w} px: no sideways scroll, nothing overflowing`, bad.length === 0, bad);
+      check(`${layout}, ${view} at ${w} px: no sideways scroll, nothing overflowing, clipped or overlapping`, bad.length === 0, bad);
       const file = join(out, `${name}.png`);
       await page.screenshot({ path: file, fullPage: true });
       shots.push(file);
