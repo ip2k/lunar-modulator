@@ -86,6 +86,7 @@ never sends") stands.
 25. Stage ED4, as built
 26. Stage ED5a, as built
 27. Stage ED5b, as built
+28. v1 completed (2026-10-07)
 
 ## 1. Short answer
 
@@ -1408,3 +1409,116 @@ the page tests' reports of 2026-10-07):
   from an input; the table and the slot inspector do both.
 - A crowded Map (all 32 slots in use) is a band of lanes above the rack, 160
   px high; Focus is the answer to reading it, as the mockup said.
+
+## 28. v1 completed (2026-10-07)
+
+Marks here were checked on the `editor-v1-complete` branch, cut from main at
+`b551834` (PR #96, ED5b), after an audit of v1 against this note that found
+sixteen gaps the stages' "Differences" never named, and six decisions that are
+the owner's. The module and `meta.json` were built on aeon (parity and the
+edit layer's checks, natively and in WebAssembly), the page tests ran in
+headless Chromium 153, Firefox 155 and WebKit 26.6 (Playwright 1.63, its
+container on aeon; axe-core 4.14.0 next to it), and the local suite and CI
+checked the rest (their figures are in the pull request).
+
+**The gaps, and how each was closed** [verified: the test named]:
+
+| # | Gap | Built | Checked by |
+| --- | --- | --- | --- |
+| 1 | The design note itself: ED5b's edit replaced lines 1-836 with a preamble | §1-§22 restored from `d9c4854^` (1,279 lines), the ED5b measurements back into §27 | `git diff` of the note: only the restored lines and §27's move |
+| 2 | Modulation on the parameter rows | `chains.js` `decorateRow` and `tickRows`: the label in the modulation colour, a chip naming the source, the bracket (the cables' depth: the sum of their amounts, as `fm1_mod_view_row` draws it), the effective value as a tick (a voice's own for a per-voice cable), the cables in `aria-valuetext`; the `dests` and `voice_dests` rows of the live cables are subscribed in the Flow and a sound | `editor-v1.mjs`: a modulated row (chip "1 LFO Out", bracket 70 % wide, tick, "Cutoff, 420 hertz, modulated by 1 LFO Out, plus 35 percent"), a row with none has none of it, subscription in a sound, two notes give two or more voice ticks |
+| 3 | Late cables | `fm1w_mod_records` ends with one byte for each slot: the bit mask of the rack positions of the loop `fm1_mod_slot_loop` names (0 when not late); metadata 1.2 `marks` (the panel's characters `> v ~ ! -` and their words, with the loop's sentence); the table's marks, the slot's explanation naming the modules, the Map's *A tick late* chip and the `~` on the pill, search `~` | `editor-unit.mjs` (a loop of two LFOs: the cable up the rack has mask `1<<5 \| 1<<6`, the other 0, and after breaking it none), `editor-v1.mjs` (marks, words, the slot's sentence, the chip and pill, no Map fault) |
+| 4 | Refused-cable fixes, the slot inspector's curves and voices | metadata 1.2 `refusals.codes[].fix` (`global`, for VOICE_TO_MONO and VOICE_TO_EFFECT: the editor makes the ordinary edit and C judges it) and `mod.curve_points` (each curve through `fm1_mod_curve`, 33 points); the slot inspector draws each curve on its button and the chosen one larger, and lists each sounding voice's value | `editor-v1.mjs` (VOICE_TO_EFFECT: "Make it global" clears the flag and the verdict becomes 0; 8 thumbnails and a 33-point plot; four voice values), `test_engine_editor_meta.py` (the points start at -1, pass 0, end at 1) |
+| 5 | Search operators | `project.js`: `>cutoff`, `lfo>` (and `lfo1>`, a module as a person says it), `!`, `~`, `v` (the characters are the metadata's marks), `s2`, a unit such as `hz`; cables are a group | `editor-v1.mjs` (each operator's result, their combination, Enter on a cable) |
+| 6 | A/B picks | each listed difference has an A or B pick; *Make B from the picks* asks the shadow Worker's new `mix` op (B's file with A's value at the picked steps, `differences` now giving each change's `at`), has pass 1 judge the result (RAM in percent), records one history step and loads it | `editor-v1.mjs` (picks, the count, Make B: A's value in the picked row and B's in the other, one history step; one undo puts B back; redo makes it again) |
+| 7 | A/B snapshots in IndexedDB | the `snapshots` store (database version 2): A, B, which is playing and the project's title, one record for each thing compared; restored after a reload for the same project | `editor-v1.mjs` (the record, then a reload: A and B are back and the view says which is playing) |
+| 8 | Slider key C | `chains.cableInto`: a cable from the first module output into the parameter, in the first empty slot, opened; on a parameter without the `mod` flag C's NO_MOD words; the detail bar lists the key | `editor-v1.mjs` |
+| 9 | Per-block *Copy a link* and the drag to the desktop | `files.copyLink(kind, arg)` writes `#lunar=...&into=s3` (`into=master`); a sound's tag in the Flow is draggable in Chromium and gives `DownloadURL` (the file made as the pointer comes near, used only while no edit has come since) | `editor-v1.mjs` (the link's shape; the data a `dragstart` carries; elsewhere the tag is plain) |
+| 10 | The arrival card | "Replaces" from the mirror and "Brings" from the file's own JSON, with C's words and RAM after, for a refused drop too | `editor-v1.mjs` (a sound that does not fit; a rack that does: Load offered) |
+| 11 | Flow blocks' counts and meters | each block's cable count ("1 cable, 1 refused" in love's colour) and a level bar from the metadata's meter rows (the unit names are the rows' names) | `editor-v1.mjs` (counts; the bars move with a note) |
+| 12 | Phone sheet and long-press menu | `sheets.js`: *Add a cable* in three steps with C's verdict before it is made, a block's menu from a half-second touch, a right click or the menu key | `editor-v1.mjs` at 375 px (the three steps, the cable and its 40 %, Esc; a short touch only selects; the menu's items; contextmenu) |
+| 13 | §17's leftover tests | axe-core on every view at 1,440, 1,024 and 375 px (0 violations after four fixes below); reduced motion (the telemetry drawn 28 times in 2 s against 58, no animation running); telemetry stopped while hidden (nothing subscribed, nothing arrives, nothing drawn; back in 26 frames of 0.9 s); a lock playing changes no base (native: 900 blocks of the demo with every parameter of every unit unchanged and no parameter write in the ring; the page: four seconds, no value moved, no history entry); parity of hands as 40 random runs of the panel gestures (native); the main thread while a slider is dragged (121 moves, no long task, 95th percentile 0.9 ms a move and 0.3 ms a telemetry frame in Chromium) | `fm1_edit_check.c` (`hands` 47, `sweeps` 40, `lock_blocks` 900), `editor-v1.mjs` |
+| 14 | "a effects chain" | `fm1_app_state.c`: the article follows the word: "A sound, not an effects chain, was expected." | `editor-v1.mjs` |
+| 15 | Source groups from the metadata | metadata 1.2: a `group` on each source and `mod.source_groups`; the Map holds no source name | `test_engine_editor_meta.py` (the group follows the id ranges), `editor-unit.mjs`, `editor-v1.mjs` |
+| 16 | Stale text | `history.js` and the README's ED2 paragraph | read |
+
+**Metadata level 1.2** (`FM1_META_LUNAR`; the schema, `tests/state_meta.py`'s
+independent builder with its editor-only lists, the pinned fixture and the
+example all follow): `marks`, a source's `group` and `mod.source_groups`,
+`mod.curve_points`, a refusal's `fix`. The simulator's `meta.json` is 253,616 B
+with id `ee8a1b8d`.
+
+**Differences from the plan.**
+- §10 writes the operator as `lfo1>`; the metadata names a module's output
+  "1 LFO Out", so `lfo>` is the plain form and `lfo1>` is matched by the kind
+  and place as one word.
+- §10's `~` and §3 mockup 05's *Late* chip read "a tick late" because those
+  are C's words (`marks`), not the note's.
+- A/B's "Make B" keeps A and B as they were; the picks decide the result and
+  the result becomes B. §9 does not say, and the mockup's "Keep A", "Keep B"
+  are here "Pick all A" and "Pick all B".
+- The editor's muted text is a little lighter than the page's (4.5:1 on the
+  tinted strips and the selected rows); axe-core found 4.46:1.
+
+**Found on the way.**
+- axe-core found four real defects ED5a's accessibility snapshot could not:
+  muted text at 4.46:1 (the page's token), headings out of order (the outline
+  and the card used h3 before any h2), names that did not hold the visible text
+  (WCAG 2.5.3: the Keys chip, the RAM button, the Flow blocks, the rack
+  cards, the matrix's numbers), and the sound tags in the Flow, dark text
+  needed on the sound colour (1.88:1).
+- npm's `install --no-save` of one package removes the other unsaved
+  ones: Playwright and axe-core are installed in one command.
+- The Mix's key is `the-mix`, not `mix`: `select('mix')` is silently
+  ignored (a test of the first run made no sound current).
+- A touch that opens a menu may end in a click: it is not a selection, and
+  the mark that says so is forgotten after 1.2 s if no click comes. A
+  right-click leaves no mark.
+- Loads at power-on set A as any load does, but stored A and B for the same
+  project win over them.
+
+**Open** (the owner's, not built):
+- *Squash's closed gate* (ED5a): the display shows the cut only while a
+  signal goes in; keep that, or make the closed gate a read-out of its own.
+- *What ⇧Enter in search does* (§10: "selects every match for one batch edit"):
+  which batch edits exist (set one value on every matching parameter, switch
+  matching cables off or remove them, something else) and whether a batch is
+  one undo step.
+- *The Map's cable ends* (ED5b): drag a cable's end, or start a cable from an
+  input, in the Map: the table and the slot inspector do both.
+- *Panel parity for effects in empty sounds* (ED3): the edit layer refuses an
+  effect into a sound with no engine, the panel allows it; refuse in both, or
+  let a file hold it.
+- *What closes the unmeasurable checks*: lateness and underruns in Firefox and
+  WebKit, a real audio device, a finger on the Map and on a phone, a screen
+  reader itself.
+- *§20.2*: do the hardware sizes in the manual's specifications (578 KB of
+  SRAM, 1 MB of flash) stay now that memory is a percentage.
+
+Later by design, unchanged (§18): the pop-out window, a song-list view, an FM6
+voice editor, the device target, the master chain's four slots and two sends,
+lanes and clips (with the gold lane dot and the search's *lanes* group), and a
+Map on phones.
+
+**Measured** [verified: `fm1.wasm.json`, the page tests' reports of
+2026-10-07]:
+- Module: 104 of 104 scenarios identical to the JavaScript harness and to the
+  musl build, 101 to glibc (largest difference 1 LSB); the edit layer's
+  parity 0 LSB; the 30-second storm in the harness: 10,341 quanta, 82,728
+  edits applied, **0 late**, p99 0.096 ms against a 2.9 ms deadline; in the
+  real worklet (Chromium): 7,246 edits, 0 refused, 0 resyncs. The native
+  `--edit-check`: 467 parameters and 34,376 steps read back, `hands` 47
+  (7 gestures and 40 random runs), a lock playing for 900 blocks, 0 failed.
+- Page tests, each browser, the same tests: `editor-v1` **71 of 71** in
+  Chromium, Firefox and WebKit; `editor-ui`, `editor-reach` pass; `editor-map`
+  35 of 35. The storm of `editor.mjs` ran in Chromium only: the edit layer did
+  not change, only the shadow Worker's records.
+- Looked at (the screenshots, not only the probe): the modulated row, the
+  late slot and the Map's chip, the refused slot with its curves, the Flow's
+  counts, A/B's picks, the arrival card, the sheet and the block menu at 375
+  px, the Sound and Modulation pages at 375 px, and the manual's five pictures
+  made again from the final tree. No label sits on another or is clipped; one
+  thing seen and left: in a narrow column a chip's text ("3 ENV Env") wraps
+  to two lines inside its pill, within its bounds.
+- Not measured: see *Open*. The manual's strict build ran in CI (the local
+  venv has no `markdown`).
