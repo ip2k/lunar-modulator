@@ -279,6 +279,10 @@ export async function startEditor(env) {
       const r = applyToMirror(meta, st.mirror, c.rec);
       if (r === 'structure') { structure = true; continue; }
       if (!r) continue;
+      // A kit's pad chosen: its per-pad values are the new pad's, which the
+      // feed does not carry, so the mirror is taken again.
+      const fp = typeof r.uid === 'number' ? paramOf(r.key, r.uid) : null;
+      if (fp && hasFlag(fp, 'focus') && r.before !== r.after) structure = true;
       const target = `${r.key}:${r.uid}`;
       if (info) {
         if (info.entry) history.confirm(info.entry, r.after);
