@@ -27,8 +27,9 @@
 //                                module's parameter: { texts }
 //   parse   { id, uid, text }    typed text back to a value (C's parser):
 //                                { value } or ok false
-//   hash    { bin }              a project's hash: loaded here and saved back
-//                                canonical (binary, nothing deflated), CRC-32:
+//   hash    { bin }              a project's hash: loaded here, then C's
+//                                fm1w_state_hash (CRC-32 of the binary
+//                                container, nothing deflated, no view):
 //                                { hash }, for undo's check
 //   diff    { a, b, kind }       two projects' differences in `kind` (the
 //                                project unless said), member by member of
@@ -261,8 +262,12 @@ const ops = {
     return { value: ex.fm1w_param_value() };
   },
   hash(m) {
+    // C's one definition (fm1_edit_state_hash): the project with nothing
+    // deflated and its view left out, so a follow that moves the panel
+    // changes no hash (stage ED4). An older module: the same bytes by hand.
     mirror(m.bin);
-    const n = ex.fm1w_state_save(1, 0, 2);
+    if (typeof ex.fm1w_state_hash === 'function') return { hash: ex.fm1w_state_hash() >>> 0 };
+    const n = ex.fm1w_state_save(1, 0, 3);
     if (n < 0) return { ok: false, report: report() };
     return { hash: crc32(buf().subarray(0, n)) };
   },

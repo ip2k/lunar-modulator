@@ -498,6 +498,25 @@ static void check_verbs(void) {
   CHECK(edit_line("view matrix slot=32", 8, NULL) == 0 && g_a.mui.slot == 31);
   CHECK(edit_line("view glo page=2", 8, NULL) == 0 && g_a.glo_page == 1);
   CHECK(edit_line("view home sound=1 page=99", 8, NULL) == 0 && g_a.page < 99);   /* clamped, as SELECT stops */
+  /* The ARP pages (stage ED4): HOME's entry 2 opens them, at a page. */
+  if (fm1_app_mfx_engine(&g_a, 0)) {
+    CHECK(edit_line("view home sound=1 entry=2 page=1", 8, NULL) == 0 && g_a.mode == FM1_MODE_ARP);
+    fm1_edit_view(&g_a, &v);
+    CHECK(v.mode == FM1_VIEW_HOME && v.arp == 1 && v.sound == 0 && v.page == 0);
+    fm1_app_knobs(&g_a, kind, unit, index);
+    CHECK(kind[0] == 3 && unit[0] == 0);                            /* the knobs turn the arpeggiator */
+    CHECK(edit_line("view home sound=1 entry=1", 8, NULL) == 0 && g_a.mode == FM1_MODE_HOME);
+  } else {
+    fail(__LINE__, "sound 1 has no MIDI effect");
+  }
+  CHECK(refused_cleanly("view home sound=1 entry=3", FM1_REFUSE_BAD));
+  /* The state hash leaves the view out (stage ED4): moving the panel moves no hash. */
+  {
+    const uint32_t h = fm1_edit_state_hash(&g_a);
+    CHECK(edit_line("view rack pos=3", 8, NULL) == 0 && fm1_edit_state_hash(&g_a) == h);
+    CHECK(edit_line("view home sound=1 entry=2", 8, NULL) == 0 && fm1_edit_state_hash(&g_a) == h);
+    CHECK(edit_line("view home sound=1", 8, NULL) == 0);
+  }
   /* A pad's own value (engine API v4): written to that pad, the focus kept. */
   for (size_t k = 0; k < fm1_engine_count; ++k) {
     const fm1_engine_t *e = fm1_engines[k];

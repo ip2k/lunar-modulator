@@ -435,6 +435,10 @@ static uint8_t g_view[FM1_EDIT_VIEW_BYTES];
 static float g_param_value;
 
 uint8_t *fm1w_edit_buf(void) { return g_edit_in; }
+/* The state's hash, fm1_edit_state_hash: the project as the binary container
+ * with nothing deflated and its view left out (stage ED4, undo's check).
+ * The shadow Worker's `hash` is this and nothing else. */
+unsigned fm1w_state_hash(void) { return (unsigned)fm1_edit_state_hash(&g_app); }
 const int8_t *fm1w_edit_codes(void) { return g_edit_codes; }
 /* n records or verbs from the buffer, as the editor's op `tag`: how many
  * were applied; each one's verdict in fm1w_edit_codes. */
