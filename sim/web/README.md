@@ -672,6 +672,77 @@ it loaded before (`notes/2026-10-06-web-editor.md` §4, §23):
   two column widths with nothing overflowing, and the two layouts at 1,440
   and 1,024 px, with screenshots in `build/screenshots/ed2-*.png`.
 
+## The advanced editor, stage ED3: chains and modulation
+
+Stage ED3 of `notes/2026-10-06-web-editor.md` (§10, §13, §18; the note's §24
+has it as built) adds `www/editor/chains.js` to the editor: everything that
+changes structure, and the modulation. Every edit is still one of the edit
+layer's records or verbs on the editor's port; every verdict, RAM figure
+and refusal is C's.
+
+- **Move and swap** (ED7). An insert or a master slot's effect is dragged
+  onto another effect slot (a swap verb; the cables follow it), a rack card
+  onto another position (a move verb). While a block is in hand (gold), the
+  slot under it shows C's verdict before the drop: the shadow Worker's
+  `preview` applies the verb to a copy of the live state and answers with
+  the code and the RAM after, in percent of the budget, or the refusal in
+  the metadata's words. The keyboard twin (§13): Space picks the focused
+  block up, the arrows aim it, Space drops it, Esc cancels; ⌥ and an arrow
+  swap with the neighbour; each inspector has *Swap with…* / *Move to…*.
+  The inserts of a sound with no engine are not places: no file could hold
+  an effect there, and the edit layer now refuses one (code BAD).
+- **Pickers.** *Choose engine…*, *Choose effect…* (by the metadata's
+  groups), *Choose MIDI effect…*, *Choose module…*: each choice tried alone
+  on the live state in the shadow Worker (`preview` with `each`), its row
+  showing the RAM after or C's refusal (RAM's "needs N% of RAM", RATE,
+  ARENA); a choice C answers BAD is not offered (S1's engine cannot be
+  emptied). A GPL chip marks the GPL modules.
+- **Meters** (telemetry): an insert's and a master slot's in and out, peak
+  in dB, and gain reduction where C reads it out; the Mix's levels with
+  each sound's meter, *Make current* (the current verb), the Mix and the
+  output with the limiter's reduction. Meter rows are found by the
+  telemetry layout's order in the metadata, never by name.
+- **A kit's pads** (API v4, flags `focus` and `per_focus`): a pad strip (the
+  focus parameter) above the rows marked *pad*; a per-pad edit names its pad
+  in the record's focus byte, so undo reaches that pad wherever the panel's
+  focus is by then. The mirror keeps every pad's values.
+- **Modulation** (the outline's *Modulation*; ED8: the matrix table is the
+  editing view, the patch-bay Map is ED5's): the rack as eight cards with a
+  live trace of each module's first output (value with its min and max over
+  the frame) and its cable count; the matrix with a filter, *Empty slots*,
+  sort (slot, source, destination, refused first), *Add a cable*, and per
+  slot On, From, VIA, To (every parameter with `mod`, each module's gates,
+  the host's), Amount (typed or ↑↓), the live value of its destination and
+  the planner's verdict in words, with marks (`v` per voice, `!` refused,
+  `–` off). The slot inspector edits every field (amount and offset as
+  sliders, polarity, curve, per voice) and *Remove*; the module inspector
+  shows the kind's pages, its outputs live and its gate inputs with what
+  reaches them. Each block's inspector lists the cables into it.
+- **The rack and the matrix come from C**: `fm1w_mod_records` (new export,
+  shadow Worker only) writes a MODULE record per position, a CABLE record
+  per slot and each slot's planner verdict, so the editor reads cables by
+  their codes and never parses a file's names for them; names come from the
+  metadata (`mod.sources`, `mod.units`, each kind's `outs` and `gates`).
+- **Structural undo** (§8): an engine, effect, MIDI effect or module chosen
+  keeps the records that put the block back (its unit, every value, a kit's
+  pads one by one) and the matrix as it was; undo sends them, then every
+  slot that held a cable then or holds one now. A swap undoes by itself, a
+  move by the move back; redo sends the edit again. Cable edits are value
+  steps, field by field. The panel's structural changes (PRESETS, FX,
+  RACK, MATRIX) enter the same history from the mirror as it was.
+- **Tests.** `test/editor-unit.mjs`: modules, cables, swaps and moves as
+  packed records, the feed and `fm1w_mod_records` decoded the same, a
+  planner verdict as a code, refused records leaving the state hash alone,
+  and 28 random structural edits through `chains.js` undone to the first
+  state hash and redone to the last. `test/editor-ui.mjs` (headless
+  Chromium on aeon): the keyboard twin and a pointer drag with the verdict
+  over the target, a picker's RAM column and choice, a refusal in the
+  metadata's words that changes nothing, the matrix (a cable added, its
+  amount typed, polarity set, aimed where the planner leaves it out) and
+  the rack (a module moved by keys, one chosen, one emptied), each undone to
+  the state before it; the rack's kinds among the inspectors; the
+  Modulation view in both layouts at 1,440 and 1,024 px.
+
 ## Parity: does the browser sound like the native engines?
 
 `build-on-aeon.sh` renders 69 scenarios (`test/scenarios.json`) four ways
