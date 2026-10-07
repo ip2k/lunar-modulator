@@ -228,7 +228,11 @@ for (const view of VIEWS) {
   if (bad.length) report.why.push(`phone ${view}: ${JSON.stringify(bad.slice(0, 4))}`);
 }
 check('every view at 375 px is clean: no sideways scroll, nothing clipped or overlapping', sweep.every(([, n]) => n === 0), sweep);
-await page.screenshot({ path: join(out, 'ed5a-phone-mod-375.png'), fullPage: true });
+await goView('mod');
+await page.locator('.ed-matrix').scrollIntoViewIfNeeded();
+await page.screenshot({ path: join(out, 'ed5a-phone-matrix-375.png') });
+await goView('flow');
+await page.screenshot({ path: join(out, 'ed5a-phone-flow-375.png') });
 await page.setViewportSize({ width: 1440, height: 1000 });
 await page.waitForTimeout(300);
 
@@ -269,6 +273,7 @@ if (gr.rowReady) {
     }
     return { text, bar };
   });
+  await page.locator('.ed-flow-insp').screenshot({ path: join(out, 'ed5a-limiter-gr.png') });
   await page.evaluate(() => window.fm1.node.port.postMessage({ type: 'note-off', note: 60 }));
   report.gr.seen = seen;
   check('a Limiter driven hard shows its gain reduction ("GR n dB" and a bar) on its card', /^GR \d/.test(seen.text) && seen.bar > 0, seen);
@@ -295,6 +300,7 @@ const vd = await page.evaluate(async () => {
   }
   return { voiceRows: voiceRows.length, seen };
 });
+await page.locator('.ed-matrix').screenshot({ path: join(out, 'ed5a-voice-dests.png') });
 await page.evaluate(() => window.fm1.node.port.postMessage({ type: 'note-off', note: 64 }));
 report.voiceDests = vd;
 check('a per-voice cable shows its voices\' value in the live column while a note sounds', vd.voiceRows >= 1 && vd.seen && /\d/.test(vd.seen.text) && /voice/.test(vd.seen.title), vd);
