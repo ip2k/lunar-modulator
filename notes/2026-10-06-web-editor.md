@@ -18,7 +18,7 @@ the page tests' reports of 2026-10-07):
   and 768 px with the layout probe, none at 375 px, focus, a cable by pointer
   and by keys with C's verdict, a refused cable, "n more", 32 cables, a 33rd
   refused), and the storm of `editor.mjs`, 30 s, 10,695 quanta in each, 0
-  refused edits, 0 resyncs (Chromium 7,252 edits applied, Firefox 7,204,
+  refused edits, 0 resyncs (Chromium 7,242 edits applied, Firefox 7,204,
   WebKit 3,757).
 - **Not measured in Firefox and WebKit:** lateness and underruns. The
   harness times the worklet and counts underruns only where Chromium's
