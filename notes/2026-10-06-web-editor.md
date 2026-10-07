@@ -909,9 +909,9 @@ same verdicts, ring, view and state hash for `test/edit/verbs.edit`, the
 same screen less its RAM figure, and the same audio (0 LSB apart). The
 30-second storm (the demo song playing, eight records a quantum, the change
 feed drained every sixth quantum, every telemetry row filled when due):
-**0 late quanta of 10,341**, median 0.062 ms, 99th percentile 0.094 ms,
-slowest 0.23 ms of the 2.90 ms a quantum plays; the edit layer's own work
-7.5 µs a quantum, under §12's 58 µs. **In the real AudioWorklet**
+**0 late quanta of 10,341**, median 0.062 ms, 99th percentile 0.096 ms,
+slowest 0.25 ms of the 2.90 ms a quantum plays; the edit layer's own work
+7.9 µs a quantum, under §12's 58 µs. **In the real AudioWorklet**
 (`test/editor.mjs`, headless Chromium 153 on aeon, 44,100 Hz, the demo song
 playing): 30 seconds of 7,252 ops, 58,016 records, every one applied with
 verdict 0, 1,724 change batches, 905 telemetry blocks handed back and
