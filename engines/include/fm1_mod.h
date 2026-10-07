@@ -614,6 +614,15 @@ int fm1_mod_voice(const fm1_mod_t *m, unsigned i, fm1_mod_voice_info_t *out);
 /* Voice i's instance at position pos: an output's value at the last tick
  * (0 when the position does not run per voice or the voice is free). */
 float fm1_mod_voice_out(const fm1_mod_t *m, unsigned i, unsigned pos, unsigned port);
+/* Voice i's effective value of the destination that matrix slot `slot`
+ * reaches per voice (a VOICE cable), in that parameter's unit: what the
+ * engine holds for it (the last value sent where cables reach it for every
+ * voice, else the knob's) plus the voice's offset, held to the parameter's
+ * range (the note's pitch: in its own unit, not held). Read-only: it builds
+ * nothing and changes no state. Returns 1 and sets *value; 0 when the voice
+ * is free, the slot is not a running VOICE cable into that voice's sound, or
+ * a plan is pending (the next tick builds it). */
+int fm1_mod_voice_dest(const fm1_mod_t *m, unsigned i, unsigned slot, float *value);
 /* How many voices sound now (held or still running). */
 unsigned fm1_mod_voice_count(const fm1_mod_t *m);
 

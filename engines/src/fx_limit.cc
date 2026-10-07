@@ -131,6 +131,7 @@
 // no multiply-add is fused (below), so the browser's build computes what the
 // native one does.
 
+#include "fm1_dynamics.h"
 #include "fm1_engine.h"
 
 #include <stdint.h>
@@ -873,8 +874,25 @@ void RenderEntry(void *p, float *lr, uint32_t frames) {
   Render(static_cast<Instance *>(p), lr, frames);
 }
 
+// The gain now (fm1_dynamics.h): one minus the deeper channel's reduction,
+// from the envelope Render is running (the same tests as its loop's).
+float GainNow(const Instance *s) {
+  const bool zero = s->d == 0, zero_old = s->fade_pos != 0 && s->d_old == 0;
+  float red = 0.0f;
+  for (uint32_t c = 0; c < 2; ++c) {
+    if (!zero || (s->fade_pos != 0 && !zero_old)) red = s->ch[c].red > red ? s->ch[c].red : red;
+    if (zero || zero_old) red = s->ch[c].red0 > red ? s->ch[c].red0 : red;
+  }
+  if (!(red > 0.0f)) return 1.0f;           // none (a NaN reads as none)
+  return red < 1.0f ? 1.0f - red : 1e-6f;   // the gain stays above 0
+}
+
 }  // namespace limit
 }  // namespace fm1
+
+extern "C" float fm1_limit_gain(const void *instance) {
+  return instance ? fm1::limit::GainNow(static_cast<const fm1::limit::Instance *>(instance)) : 1.0f;
+}
 
 extern "C" const fm1_engine_t fm1_engine_limit = {
   FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_AUDIO_FX,
