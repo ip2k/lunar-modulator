@@ -625,3 +625,129 @@
 .ed :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .ed .ed-slider:focus-visible, .ed .ed-block:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 @media (forced-colors: active) { .ed :focus-visible { outline-color: Highlight; } }
+
+/* ---- the Map (stage ED5b, §3 mockup 05, §10) --------------------------------------------------
+ * Sources, the rack and destinations in three columns with a gutter between; cables are drawn in
+ * the gutters and in a band above the rack (map.js), jacks sit on the columns' edges, amounts on
+ * pills with an opaque ground. Colour is never the only cue: gate cables are dotted, per-voice
+ * ones have a band, refused ones end in a cross and say so on the pill. */
+.ed-map-wrap { margin-top: 8px; }
+.ed-map-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; margin-bottom: 4px; }
+.ed-fchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ed-fchip {
+  min-height: 28px; padding: 3px 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg);
+  color: var(--text); cursor: pointer; font-variant-numeric: tabular-nums;
+}
+.ed-fchip.is-on { background: var(--select); border-color: var(--select); color: var(--accent-text); font-weight: 700; }
+.ed-fchip.is-refused { color: var(--refuse); border-color: var(--refuse); }
+.ed-fchip.is-refused.is-on { background: var(--refuse); color: var(--rp-base); }
+.ed-map-legend { margin: 0; }
+.ed-map-legend .ed-l-gate::before { border-top: 3px dotted var(--live); }
+.ed-map-legend .ed-l-voice::before { height: 7px; border-top: 2px dashed var(--live); background: color-mix(in srgb, var(--live) 22%, transparent); }
+.ed-map-hand { margin: 0 0 6px; min-height: 1.35em; color: var(--muted); font-size: 0.8rem; }
+.ed-map {
+  position: relative; display: grid; align-items: start;
+  grid-template-columns: minmax(118px, 1fr) clamp(60px, 10cqw, 124px) minmax(190px, 1.3fr) clamp(60px, 10cqw, 124px) minmax(150px, 1fr);
+  padding: 26px 14px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface);
+}
+.ed-map-col { grid-row: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ed-map-srcs { grid-column: 1; } .ed-map-rack { grid-column: 3; } .ed-map-dsts { grid-column: 5; }
+.ed-map-h { margin: 0 0 6px; font: 400 0.8rem/1.3 var(--display); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.ed-map-g { margin: 8px 0 2px; font: 600 0.68rem/1.3 var(--small); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.ed-map-row { display: flex; align-items: center; gap: 8px; min-height: 24px; min-width: 0; }
+.ed-map-src .ed-jack-out { margin-left: auto; }
+.ed-map-src.is-idle .ed-map-nm { color: var(--muted); }
+.ed-map-src .ed-map-nm { cursor: pointer; }
+.ed-map-note { color: var(--muted); font-size: 0.72rem; }
+.ed-map-nm { font-variant-numeric: tabular-nums; }
+.ed-map-t { white-space: nowrap; }
+.ed-map-btn { background: none; border: 0; padding: 0; color: inherit; text-align: left; cursor: pointer; }
+.ed-map-more { color: var(--muted); font-size: 0.8rem; min-height: 24px; text-align: left; }
+.ed-map-more:hover { color: var(--text); }
+.ed-map-morelist { display: none; flex-direction: column; gap: 2px; }
+.ed-map.is-patching .ed-map-morelist { display: flex; }
+.ed-map-none { margin: 2px 0 0; }
+
+/* Jacks sit on the edges of their blocks; the hit area is 24 px. */
+.ed-jack {
+  position: relative; z-index: 3; flex: 0 0 auto; box-sizing: border-box; width: 14px; height: 14px; min-width: 14px; min-height: 14px; max-height: 14px; padding: 0; border-radius: 50%;
+  border: 2px solid var(--muted); background: var(--surface); cursor: pointer; display: inline-block;
+}
+.ed-jack::after { content: ""; position: absolute; inset: -6px; }
+.ed-jack.is-gate { border-radius: 3px; }
+.ed-jack.is-wired { border-color: var(--live); background: var(--live); }
+.ed-jack.is-stub { border-style: dashed; cursor: default; }
+.ed-jack-in { margin-left: -5px; }
+.ed-jack-out { margin-right: -5px; }
+.ed-jack.is-hand { border-color: var(--held); background: var(--held); }
+.ed-map.is-patching .ed-jack-in { border-color: var(--select); }
+.ed-jack.is-aim.is-ok { background: var(--select); }
+.ed-jack.is-aim.is-no, .ed-jack.is-no { border-color: var(--refuse); background: var(--refuse); }
+.ed-jack:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+
+/* The rack: a block per position. */
+.ed-map-mod {
+  border: 1px solid var(--border); border-radius: 8px; background: var(--bg); padding: 6px 10px 8px; margin-bottom: 14px;
+  display: flex; flex-direction: column; gap: 4px; min-width: 0;
+}
+.ed-map-mod:last-child { margin-bottom: 0; }
+.ed-map-mod.is-empty { border-style: dashed; background: transparent; color: var(--muted); flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; }
+.ed-map-mod.is-sel { border-color: var(--select); box-shadow: 0 0 0 1px var(--select); }
+.ed-map-mh { display: flex; align-items: baseline; gap: 8px; min-height: 24px; width: 100%; background: none; color: inherit; }
+.ed-map-kind { color: var(--muted); font-size: 0.78rem; }
+.ed-map-mb { display: grid; grid-template-columns: auto minmax(40px, 1fr) auto; gap: 4px 10px; align-items: start; }
+.ed-map-ins, .ed-map-outs { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ed-map-outs .ed-map-row { justify-content: flex-end; }
+.ed-map-mid { align-self: center; display: flex; justify-content: center; min-width: 0; }
+.ed-map-mid .ed-trace { width: 100%; max-width: 140px; height: 28px; }
+.ed-map-val { min-width: 3.4em; padding: 0 2px; text-align: right; }
+
+/* The destinations: a group per block. */
+.ed-map-grp {
+  --snd: var(--border);
+  border: 1px solid var(--border); border-left: 3px solid var(--snd); border-radius: 8px; background: var(--bg);
+  padding: 6px 10px 8px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 2px; min-width: 0;
+}
+.ed-map-grp.is-nested { margin-left: 14px; margin-top: -2px; }
+.ed-map-grp.is-sel { border-color: var(--select); box-shadow: 0 0 0 1px var(--select); }
+.ed-map-gh { display: flex; align-items: center; gap: 8px; min-height: 24px; width: 100%; background: none; color: inherit; }
+.ed-map-in .ed-poly { margin-left: auto; }
+
+/* Cables. */
+.ed-map-svg { position: absolute; left: 0; top: 0; z-index: 2; pointer-events: none; overflow: visible; }
+.ed-cab-line { fill: none; stroke: var(--live); stroke-width: 1.8; stroke-dasharray: 6 3.5; }
+.ed-cab-band { fill: none; stroke: var(--live); stroke-width: 8; stroke-opacity: 0.22; }
+.ed-cab.is-gate .ed-cab-line { stroke-width: 2.6; stroke-dasharray: 0.1 4.6; stroke-linecap: round; }
+.ed-cab.is-off .ed-cab-line { stroke-opacity: 0.45; }
+.ed-cab.is-refused .ed-cab-line { stroke: var(--refuse); }
+.ed-cab.is-refused .ed-cab-band { stroke: var(--refuse); }
+.ed-cab-x { fill: none; stroke: var(--refuse); stroke-width: 2.2; }
+.ed-cab.is-sel .ed-cab-line { stroke: var(--select); stroke-width: 3; }
+.ed-cab.is-sel .ed-cab-band { stroke: var(--select); }
+.ed-cab.is-sel.is-refused .ed-cab-line { stroke: var(--refuse); }
+.ed-cab.is-dim .ed-cab-line, .ed-cab.is-dim .ed-cab-band, .ed-cab.is-dim .ed-cab-x { opacity: 0.22; }
+.ed-cab-hit { fill: none; stroke: transparent; stroke-width: 12; pointer-events: stroke; cursor: pointer; }
+.ed-cab-ghost { fill: none; stroke: var(--held); stroke-width: 2.4; stroke-dasharray: 6 3.5; }
+.ed-map-pills { position: absolute; left: 0; top: 0; right: 0; bottom: 0; z-index: 4; pointer-events: none; }
+.ed-map-pill {
+  position: absolute; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 5px; pointer-events: auto; cursor: pointer;
+  padding: 1px 8px; min-height: 20px; border-radius: 10px; background: var(--surface); border: 1px solid var(--live); color: var(--text);
+  font: 600 0.75rem/1.3 var(--small); white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.ed-map-pill.is-sel { border-color: var(--select); }
+.ed-map-pill.is-refused { border-color: var(--refuse); color: var(--refuse); }
+.ed-pill-v { color: var(--live); }
+.ed-map-live { padding: 0; font-weight: 400; }
+.ed-map-how { margin: 8px 0 0; }
+@container (max-width: 980px) { .ed-map-live { display: none; } }
+@container (max-width: 900px) {
+  .ed-map-mid { display: none; }
+  .ed-map-mb { grid-template-columns: minmax(0, 1fr) auto; }
+}
+@media (forced-colors: active) {
+  .ed-cab-line, .ed-cab-band { stroke: CanvasText; }
+  .ed-cab.is-refused .ed-cab-line, .ed-cab-x { stroke: Mark; }
+  .ed-cab.is-sel .ed-cab-line { stroke: Highlight; }
+  .ed-jack { border-color: CanvasText; forced-color-adjust: none; background: Canvas; }
+  .ed-jack.is-wired { background: Highlight; border-color: Highlight; }
+}

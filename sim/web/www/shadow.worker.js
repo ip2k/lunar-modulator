@@ -38,12 +38,16 @@
 // and for stage ED3 (§5's previews: what an edit would do, before it is made):
 //   save    { ..., mod: true }   also the rack and the matrix as packed
 //                                records (fm1w_mod_records): { text, mod }
-//   preview { live, ops, each }  `ops` (packed records or verbs, fm1_edit.h)
+//   preview { live, ops, each, mod }
+//                                `ops` (packed records or verbs, fm1_edit.h)
 //                                applied to a copy of `live`: each one's
 //                                verdict and the RAM after, as C counts it,
 //                                { codes, ram: [{ total, parts }], budget };
 //                                with `each`, every op is tried alone on the
-//                                live state (a picker's RAM column)
+//                                live state (a picker's RAM column); with
+//                                `mod` (stage ED5b), also the rack and the
+//                                matrix after the ops, as `save`'s `mod`
+//                                (the planner's verdict of each cable)
 // None of them names an engine: ids and uids come from the caller and the
 // metadata, and C answers.
 
@@ -57,6 +61,12 @@ let rate = 0;
 let ready = null;
 const decoder = new TextDecoder();
 
+// The rack and the matrix as packed records, then each slot's verdict (fm1w_mod_records).
+function modRecords() {
+  if (typeof ex.fm1w_mod_records !== 'function') return undefined;
+  const recs = ex.fm1w_mod_records();
+  return buf().slice(0, recs * REC + 32);
+}
 function buf() { return new Uint8Array(fm1.memory.buffer, ex.fm1w_text_buf(), ex.fm1w_text_cap()); }
 function put(bytes) {
   if (bytes.length > ex.fm1w_text_cap()) throw refusal('TOO_BIG', 'The file is larger than the 256 KiB the simulator reads.');
@@ -192,9 +202,8 @@ const ops = {
     const n = ex.fm1w_state_save(m.kind, m.arg | 0, 0);
     if (n < 0) return { ok: false, report: report() };
     const text = decoder.decode(buf().slice(0, n));
-    if (!m.mod || typeof ex.fm1w_mod_records !== 'function') return { text };
-    const recs = ex.fm1w_mod_records();
-    return { text, mod: buf().slice(0, recs * REC + 32) };
+    if (!m.mod) return { text };
+    return { text, mod: modRecords() };
   },
   preview(m) {
     const ops = m.ops instanceof Uint8Array ? m.ops : new Uint8Array(0);
@@ -212,7 +221,7 @@ const ops = {
     if (!m.each) {
       mirror(m.live);
       const r = one(0, n);
-      return { codes: r.codes, ram: [r.ram], budget };
+      return { codes: r.codes, ram: [r.ram], budget, mod: m.mod ? modRecords() : undefined };
     }
     const codes = [], ram = [];
     for (let i = 0; i < n; ++i) {
