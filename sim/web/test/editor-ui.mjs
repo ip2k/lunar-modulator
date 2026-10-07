@@ -338,11 +338,16 @@ const mx = await page.evaluate(async () => {
   bi.click();
   await w(900);
   const c = ed.state.mirror.cables[i];
-  const s1 = ed.meta.engine(ed.state.mirror.blocks.get('s1').engine);
-  const nl = s1.params.find((p) => (p.flags || []).includes('nolock'));
+  // Any sound's parameter that rebuilds the voices (flag nolock).
+  let nl = null, nk = null;
+  for (const [k, b] of ed.state.mirror.blocks) {
+    const e = /^s[1-4]$/.test(k) ? ed.meta.engine(b.engine) : null;
+    const p = e && e.params.find((x) => (x.flags || []).includes('nolock'));
+    if (p) { nl = p; nk = k; break; }
+  }
   let late = null;
   if (nl) {
-    const to = `${ed.mm.unitCode('s1')}:${nl.uid}:0`;
+    const to = `${ed.mm.unitCode(nk)}:${nl.uid}:0`;
     const sel = document.querySelector(`.ed-mx-r[data-cable="${i}"] [data-fk="c${i + 1}:to"]`);
     if (![...sel.options].some((o) => o.value === to)) sel.append(new Option('test', to));
     sel.value = to;
@@ -356,7 +361,7 @@ const mx = await page.evaluate(async () => {
 report.ed3.matrix = mx;
 check('Add a cable puts one in the first empty slot', mx.n1 === mx.n0 + 1, mx);
 check('its amount typed and its polarity chosen reach C', mx.amount === Math.round(-0.4 * 16384) && mx.pol === 2, mx);
-check('a cable the planner leaves out shows its reason in the metadata\'s words', !mx.late || (mx.late.refused && mx.late.text.startsWith(mx.late.words)), mx.late);
+check('a cable the planner leaves out shows its reason in the metadata\'s words', !!mx.late && mx.late.refused && mx.late.text.startsWith(mx.late.words), mx.late);
 await page.evaluate(async (n) => { for (let k = 0; k < n; ++k) { window.fm1.editor.undo(); await new Promise((r) => setTimeout(r, 300)); } }, mx.steps);
 await page.waitForTimeout(800);
 const e4 = await page.evaluate(() => window.__hash());
@@ -381,15 +386,16 @@ const rk = await page.evaluate(async () => {
   key(' ');
   await w(1000);
   const r1 = rack();
+  const moved = ed.history.entries[ed.history.entries.length - 1];
   const kinds = [...ed.mm.kinds.keys()];
   ed.chains.choose('p8', kinds[kinds.length - 1]);
   await w(1000);
   ed.chains.choose(`p${empty + 1}`, '');
   await w(1000);
-  return { r0, r1, r2: rack(), empty, steps: ed.history.entries.filter((e) => e.id > h0).length };
+  return { r0, r1, r2: rack(), empty, steps: ed.history.entries.filter((e) => e.id > h0).length, movedAfter: moved && moved.after };
 });
 report.ed3.rack = rk;
-check('a rack module moves by keys, its kind with it', rk.empty > 0 && rk.r1[rk.empty] === rk.r0[0], rk);
+check('a rack module moves by keys, its kind with it, as one step in words', rk.empty > 0 && rk.r1[rk.empty] === rk.r0[0] && rk.movedAfter === 'moved', rk);
 await page.evaluate(async (n) => { for (let k = 0; k < n; ++k) { window.fm1.editor.undo(); await new Promise((r) => setTimeout(r, 350)); } }, rk.steps);
 await page.waitForTimeout(800);
 const e5 = await page.evaluate(() => window.__hash());
@@ -458,7 +464,7 @@ async function layoutCheck(name) {
     if (document.documentElement.scrollWidth > vw + 1) bad.push(`page scrolls sideways (${document.documentElement.scrollWidth} > ${vw})`);
     const ed = document.querySelector('.ed');
     if (ed.getBoundingClientRect().right > vw + 1) bad.push('the editor runs past the page');
-    for (const t of ed.querySelectorAll('.ed-label, .ed-segbtn, .ed-blk-n, .ed-blk-k, .ed-out-name, .ed-step, .ed-chip, .ed-ram, .ed-toggle, .ed-mx-v, .ed-mx-n, .ed-btn')) {
+    for (const t of ed.querySelectorAll('.ed-label, .ed-segbtn, .ed-blk-n, .ed-blk-k, .ed-out-name, .ed-step, .ed-chip, .ed-ram, .ed-toggle, .ed-mx-v, .ed-mx-n, .ed-btn, .ed-live')) {
       if (t.getClientRects().length && t.scrollWidth > t.clientWidth + 1) bad.push(`"${t.textContent.slice(0, 30)}" overflows`);
     }
     for (const b of ed.querySelectorAll('.ed-block, .ed-insp, .ed-card-m, .ed-mx-r')) {

@@ -724,7 +724,7 @@ export function makeChains(ctx) {
     const sel = st.selCable === key;
     const row = el('div', `ed-mx-r${sel ? ' is-sel' : ''}${v.code ? ' is-refused' : ''}${cableEmpty(s) ? ' is-empty' : ''}`, { role: 'row', 'data-cable': String(i) });
     const pick = () => { if (st.selCable !== key) { st.selCable = key; ctx.select(key, { view: 'mod' }); } };
-    const num = el('button', 'ed-mx-n', { type: 'button', role: 'cell', 'data-fk': `${key}:n`, 'aria-label': `Cable ${i + 1}: open its inspector`, onclick: pick },
+    const num = el('button', 'ed-mx-n', { type: 'button', 'data-fk': `${key}:n`, 'aria-label': `Cable ${i + 1}: open its inspector`, onclick: pick },
       [String(i + 1), ...marks(i).map(([m, w]) => el('abbr', 'ed-mark', { title: w, text: m }))]);
     const on = el('input', null, { type: 'checkbox', 'aria-label': `Cable ${i + 1} on`, 'data-fk': `${key}:on` });
     on.checked = !!(s.flags & SLOT_ON);
@@ -757,8 +757,10 @@ export function makeChains(ctx) {
     });
     const live = el('span', 'ed-live', { role: 'cell', 'data-dest': String(i), text: '–' });
     const verdict = el('span', `ed-mx-v${v.code ? ' is-refused' : ''}`, { role: 'cell', text: v.text, title: v.text });
-    for (const c of [src, via, to]) c.setAttribute('role', 'cell');
-    row.append(num, el('span', 'ed-mx-on', { role: 'cell' }, [on]), src, via, to, el('span', 'ed-mx-amt', { role: 'cell' }, [amt, el('span', 'ed-u', { text: '%' })]), live, verdict);
+    // Each control inside its cell, so it keeps its own role (button, list).
+    const cell = (x, cls = 'ed-mx-c') => el('span', cls, { role: 'cell' }, [x]);
+    row.append(cell(num), el('span', 'ed-mx-on', { role: 'cell' }, [on]), cell(src), cell(via), cell(to),
+      el('span', 'ed-mx-amt', { role: 'cell' }, [amt, el('span', 'ed-u', { text: '%' })]), live, verdict);
     row.addEventListener('focusin', () => { if (st.selCable !== key) { st.selCable = key; for (const r of ctx.root.querySelectorAll('.ed-mx-r.is-sel')) r.classList.remove('is-sel'); row.classList.add('is-sel'); ctx.openOnPanel(key); } });
     return row;
   }
@@ -835,6 +837,11 @@ export function makeChains(ctx) {
     if (view === 'mod') { all('outs'); all('dests'); }
     return want;
   }
+  // A live value short enough for its cell: 1.13k, 420, 12.5, 0.33.
+  const short = (x) => {
+    const a = Math.abs(x);
+    return a >= 10000 ? `${(x / 1000).toFixed(1)}k` : a >= 1000 ? `${(x / 1000).toFixed(2)}k` : a >= 100 ? x.toFixed(0) : a >= 10 ? x.toFixed(1) : x.toFixed(2);
+  };
   function onTelemetry(f) {
     const outs = secOf('outs'), dests = secOf('dests'), red = secOf('reduction'), met = secOf('meters');
     if (met) {
@@ -857,7 +864,7 @@ export function makeChains(ctx) {
       for (const m of ctx.root.querySelectorAll('[data-out]')) {
         const [pos, port] = m.dataset.out.split(':').map(Number);
         const x = f[outs.offset + (pos * ni + port) * nf];
-        m.textContent = Number.isFinite(x) ? x.toFixed(3) : '–';
+        m.textContent = Number.isFinite(x) ? short(x) : '–';
       }
       for (const c of ctx.root.querySelectorAll('canvas[data-trace]')) {
         const pos = Number(c.dataset.trace);
@@ -872,7 +879,7 @@ export function makeChains(ctx) {
     if (dests) {
       for (const m of ctx.root.querySelectorAll('[data-dest]')) {
         const x = f[dests.offset + Number(m.dataset.dest)];
-        m.textContent = Number.isFinite(x) ? x.toFixed(3) : '–';
+        m.textContent = Number.isFinite(x) ? short(x) : '–';
       }
     }
   }

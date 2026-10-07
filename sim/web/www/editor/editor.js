@@ -314,7 +314,7 @@ export async function startEditor(env) {
       if (fp && hasFlag(fp, 'focus') && r.before !== r.after) structure = true;
       const target = `${r.key}:${r.uid}`;
       if (info) {
-        if (info.entry) history.confirm(info.entry, r.after);
+        if (info.entry && !info.struct) history.confirm(info.entry, r.after);
       } else if (c.src !== SRC_EDITOR) {
         const origin = c.src === SRC_PANEL ? 'panel' : SOURCES[c.src] || 'host';
         history.record({ target, label: labelOf(r.key, r.uid), before: r.before, after: r.after, origin, how: 'knob',
