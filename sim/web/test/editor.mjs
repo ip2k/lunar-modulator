@@ -12,20 +12,18 @@
 //   PLAYWRIGHT_DIR=/pw node editor.mjs WWW OUT [SECONDS]
 // MIT licence, like the rest of this repository.
 
-import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { serve } from './serve.mjs';
+import { launch } from './launch.mjs';
 
-const require = createRequire(`${process.env.PLAYWRIGHT_DIR || '/pw'}/`);
-const { chromium } = require('playwright');
 
 const [www, out, secondsArg] = process.argv.slice(2);
 const SECONDS = Number(secondsArg || 30);
 mkdirSync(out, { recursive: true });
 const { server, url } = await serve(www, 8767);
-const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
-const report = { browser: `Chromium ${browser.version()} (Playwright, headless)`, seconds: SECONDS, logs: [] };
+const { browser, name: browserName } = await launch();
+const report = { browser: browserName, seconds: SECONDS, logs: [] };
 const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
 page.on('pageerror', (e) => report.logs.push(`pageerror: ${e.message}`));
 page.on('console', (m) => { if (m.type() === 'error') report.logs.push(`error: ${m.text()}`); });

@@ -25,19 +25,16 @@
 //  - the keyboard: one tab stop a column, arrows inside, every jack named.
 // MIT licence, like the rest of this repository.
 
-import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { serve } from './serve.mjs';
+import { launch } from './launch.mjs';
 
-const require = createRequire(`${process.env.PLAYWRIGHT_DIR || '/pw'}/`);
-const pw = require('playwright');
-const which = process.env.BROWSER || 'chromium';
 const [www, out] = process.argv.slice(2);
 mkdirSync(out, { recursive: true });
 const { server, url } = await serve(www, 8771);
-const browser = await pw[which].launch(which === 'chromium' ? { args: ['--autoplay-policy=no-user-gesture-required'] } : {});
-const report = { browser: `${which} ${browser.version()} (Playwright, headless)`, checks: {}, logs: [], why: [] };
+const { browser, name: browserName } = await launch();
+const report = { browser: browserName, checks: {}, logs: [], why: [] };
 function check(name, ok, why) {
   report.checks[name] = !!ok;
   if (!ok) report.why.push(`${name}: ${typeof why === 'string' ? why : JSON.stringify(why)}`);
