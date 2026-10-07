@@ -230,7 +230,7 @@ export function makeChains(ctx) {
       if (!start || e.pointerId !== start.id) return;
       if (!held) {
         if (Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) return;
-        btn.setPointerCapture(e.pointerId);
+        try { btn.setPointerCapture(e.pointerId); } catch { /* a pointer the browser no longer tracks */ }
         held = { key, target: null };
         st.dragKey = `block:${key}`;
         dragged = true;

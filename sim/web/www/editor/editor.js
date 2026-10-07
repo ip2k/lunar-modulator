@@ -1167,12 +1167,20 @@ export async function startEditor(env) {
   }
 
   // ---- the detail bar (mockup 02) --------------------------------------------------
+  // A refusal stays in the detail bar for a while, through the redraw the
+  // snapshot after it brings, until another parameter is selected.
   function showRefusal(label, words) {
-    detail.innerHTML = '';
-    detail.append(el('span', 'ed-refused', { text: `${label || 'The edit'}: ${words}` }));
+    st.refusal = { text: `${label || 'The edit'}: ${words}`, until: performance.now() + 8000, row: st.selRow };
+    renderDetail();
   }
   function renderDetail() {
     detail.innerHTML = '';
+    const rf = st.refusal;
+    if (rf && performance.now() < rf.until && rf.row === st.selRow) {
+      detail.append(el('span', 'ed-refused', { text: rf.text }));
+      return;
+    }
+    st.refusal = null;
     const sel = st.selRow ? rows.get(st.selRow) : null;
     if (!sel || !st.mirror) {
       detail.append(el('span', 'ed-note', { text: 'Select a parameter: its range, default, flags and keys show here.' }));

@@ -242,7 +242,10 @@ await page.waitForTimeout(700);
 const e1 = await page.evaluate(() => window.__hash());
 const kbBack = await lessView(e0.bin, e1.bin);
 check('undo puts the swap back', kbBack.length === 0, kbBack);
-// The pointer: M1 dragged onto S1 In2.
+// The pointer: M1 dragged onto S1 In2 (both in view first, or the mouse
+// would land on the panel's knobs).
+await page.evaluate(() => { document.querySelector('.ed-flow').scrollIntoView({ block: 'start' }); });
+await page.waitForTimeout(200);
 const box = async (sel) => page.locator(sel).first().boundingBox();
 const from = await box('.ed-block[data-block="m1"]');
 const to = await box('.ed-block[data-block="s1.in2"]');
@@ -295,10 +298,11 @@ const refusal = await page.evaluate(async () => {
   await new Promise((r) => setTimeout(r, 2500));
   const emptyOffered = !!document.querySelector('.ed-pick-o[data-id=""]:not([hidden])');
   ed.chains.closePicker();
-  const n = ed.history.entries.length;
+  const lastId = () => (ed.history.entries.length ? ed.history.entries[ed.history.entries.length - 1].id : 0);
+  const n = lastId();
   ed.chains.choose('s1', '');
   await new Promise((r) => setTimeout(r, 900));
-  return { emptyOffered, kept: ed.history.entries.length === n, detail: document.querySelector('.ed-detail').textContent, words: ed.meta.refusalWords(8) };
+  return { emptyOffered, kept: lastId() === n, detail: document.querySelector('.ed-detail').textContent, words: ed.meta.refusalWords(8) };
 });
 const e3 = await page.evaluate(() => window.__hash());
 const refBack = await lessView(e0.bin, e3.bin);
@@ -313,7 +317,8 @@ const mx = await page.evaluate(async () => {
   const ed = window.fm1.editor;
   const w = (t) => new Promise((r) => setTimeout(r, t));
   const used = () => ed.state.mirror.cables.filter((c) => c.flags & 1).length;
-  const n0 = used(), h0 = ed.history.entries.length;
+  const n0 = used();
+  const h0 = ed.history.entries.length ? ed.history.entries[ed.history.entries.length - 1].id : 0;
   [...document.querySelectorAll('.ed-btn')].find((b) => b.textContent === 'Add a cable').click();
   await w(1000);
   const i = Number(ed.state.selCable.slice(1)) - 1;
@@ -340,7 +345,7 @@ const mx = await page.evaluate(async () => {
     const row = document.querySelector(`.ed-mx-r[data-cable="${i}"]`);
     late = { refused: row.classList.contains('is-refused'), text: row.querySelector('.ed-mx-v').textContent, words: ed.meta.refusalWords(34) };
   }
-  return { n0, n1: used(), steps: ed.history.entries.length - h0, amount: c.amount, pol: (c.flags & 6) >> 1, late, slot: i };
+  return { n0, n1: used(), steps: ed.history.entries.filter((e) => e.id > h0).length, amount: c.amount, pol: (c.flags & 6) >> 1, late, slot: i };
 });
 report.ed3.matrix = mx;
 check('Add a cable puts one in the first empty slot', mx.n1 === mx.n0 + 1, mx);
@@ -358,7 +363,7 @@ const rk = await page.evaluate(async () => {
   const rack = () => ed.state.mirror.rack.slice();
   const r0 = rack();
   const empty = r0.indexOf('');
-  const h0 = ed.history.entries.length;
+  const h0 = ed.history.entries.length ? ed.history.entries[ed.history.entries.length - 1].id : 0;
   ed.select('p1', { view: 'mod' });
   await w(300);
   document.querySelector('.ed-card-m[data-block="p1"]').focus();
@@ -375,7 +380,7 @@ const rk = await page.evaluate(async () => {
   await w(1000);
   ed.chains.choose(`p${empty + 1}`, '');
   await w(1000);
-  return { r0, r1, r2: rack(), empty, steps: ed.history.entries.length - h0 };
+  return { r0, r1, r2: rack(), empty, steps: ed.history.entries.filter((e) => e.id > h0).length };
 });
 report.ed3.rack = rk;
 check('a rack module moves by keys, its kind with it', rk.empty > 0 && rk.r1[rk.empty] === rk.r0[0], rk);
