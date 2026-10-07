@@ -1,5 +1,5 @@
 {
-  "lunar": "1.1",
+  "lunar": "1.2",
   "kind": "metadata",
   "made": {"by": "desktop", "version": "0.0.0", "commit": "0000000"},
   "build": {
@@ -1670,169 +1670,197 @@
         "id": 0,
         "name": "VEL",
         "kind": "cv_uni",
-        "unit": "none"
+        "unit": "none",
+        "group": "notes"
       },
       {
         "id": 1,
         "name": "NOTE",
         "kind": "cv_bi",
-        "unit": "semi"
+        "unit": "semi",
+        "group": "notes"
       },
       {
         "id": 2,
         "name": "RAND",
         "kind": "cv_bi",
-        "unit": "none"
+        "unit": "none",
+        "group": "notes"
       },
       {
         "id": 16,
         "name": "KEY",
         "kind": "gate",
-        "unit": "none"
+        "unit": "none",
+        "group": "notes"
       },
       {
         "id": 17,
         "name": "TRIG",
         "kind": "gate",
-        "unit": "none"
+        "unit": "none",
+        "group": "notes"
       },
       {
         "id": 18,
         "name": "CLOCK",
         "kind": "gate",
-        "unit": "none"
+        "unit": "none",
+        "group": "notes"
       },
       {
         "id": 19,
         "name": "BEAT",
         "kind": "gate",
-        "unit": "none"
+        "unit": "none",
+        "group": "notes"
       },
       {
         "id": 20,
         "name": "BAR",
         "kind": "gate",
-        "unit": "none"
+        "unit": "none",
+        "group": "notes"
       },
       {
         "id": 21,
         "name": "RUN",
         "kind": "gate",
-        "unit": "none"
+        "unit": "none",
+        "group": "notes"
       },
       {
         "id": 22,
         "name": "START",
         "kind": "gate",
-        "unit": "none"
+        "unit": "none",
+        "group": "notes"
       },
       {
         "id": 23,
         "name": "RTRG",
         "kind": "gate",
-        "unit": "none"
+        "unit": "none",
+        "group": "notes"
       },
       {
         "id": 24,
         "name": "SEQ1",
         "kind": "gate",
-        "unit": "none"
+        "unit": "none",
+        "group": "lanes"
       },
       {
         "id": 25,
         "name": "SEQ2",
         "kind": "gate",
-        "unit": "none"
+        "unit": "none",
+        "group": "lanes"
       },
       {
         "id": 26,
         "name": "SEQ3",
         "kind": "gate",
-        "unit": "none"
+        "unit": "none",
+        "group": "lanes"
       },
       {
         "id": 27,
         "name": "SEQ4",
         "kind": "gate",
-        "unit": "none"
+        "unit": "none",
+        "group": "lanes"
       },
       {
         "id": 28,
         "name": "SEQ5",
         "kind": "gate",
-        "unit": "none"
+        "unit": "none",
+        "group": "lanes"
       },
       {
         "id": 29,
         "name": "SEQ6",
         "kind": "gate",
-        "unit": "none"
+        "unit": "none",
+        "group": "lanes"
       },
       {
         "id": 30,
         "name": "SEQ7",
         "kind": "gate",
-        "unit": "none"
+        "unit": "none",
+        "group": "lanes"
       },
       {
         "id": 31,
         "name": "SEQ8",
         "kind": "gate",
-        "unit": "none"
+        "unit": "none",
+        "group": "lanes"
       },
       {
         "id": 32,
         "name": "SQV1",
         "kind": "cv_uni",
-        "unit": "none"
+        "unit": "none",
+        "group": "lane_values"
       },
       {
         "id": 33,
         "name": "SQV2",
         "kind": "cv_uni",
-        "unit": "none"
+        "unit": "none",
+        "group": "lane_values"
       },
       {
         "id": 34,
         "name": "SQV3",
         "kind": "cv_uni",
-        "unit": "none"
+        "unit": "none",
+        "group": "lane_values"
       },
       {
         "id": 35,
         "name": "SQV4",
         "kind": "cv_uni",
-        "unit": "none"
+        "unit": "none",
+        "group": "lane_values"
       },
       {
         "id": 36,
         "name": "SQV5",
         "kind": "cv_uni",
-        "unit": "none"
+        "unit": "none",
+        "group": "lane_values"
       },
       {
         "id": 37,
         "name": "SQV6",
         "kind": "cv_uni",
-        "unit": "none"
+        "unit": "none",
+        "group": "lane_values"
       },
       {
         "id": 38,
         "name": "SQV7",
         "kind": "cv_uni",
-        "unit": "none"
+        "unit": "none",
+        "group": "lane_values"
       },
       {
         "id": 39,
         "name": "SQV8",
         "kind": "cv_uni",
-        "unit": "none"
+        "unit": "none",
+        "group": "lane_values"
       },
       {
         "id": 44,
         "name": "S1NOTE",
         "kind": "cv_bi",
         "unit": "semi",
+        "group": "sound",
         "sound": 1
       },
       {
@@ -1840,6 +1868,7 @@
         "name": "S2NOTE",
         "kind": "cv_bi",
         "unit": "semi",
+        "group": "sound",
         "sound": 2
       },
       {
@@ -1847,6 +1876,7 @@
         "name": "S3NOTE",
         "kind": "cv_bi",
         "unit": "semi",
+        "group": "sound",
         "sound": 3
       },
       {
@@ -1854,6 +1884,7 @@
         "name": "S4NOTE",
         "kind": "cv_bi",
         "unit": "semi",
+        "group": "sound",
         "sound": 4
       },
       {
@@ -1861,6 +1892,7 @@
         "name": "S1VEL",
         "kind": "cv_uni",
         "unit": "none",
+        "group": "sound",
         "sound": 1
       },
       {
@@ -1868,6 +1900,7 @@
         "name": "S2VEL",
         "kind": "cv_uni",
         "unit": "none",
+        "group": "sound",
         "sound": 2
       },
       {
@@ -1875,6 +1908,7 @@
         "name": "S3VEL",
         "kind": "cv_uni",
         "unit": "none",
+        "group": "sound",
         "sound": 3
       },
       {
@@ -1882,6 +1916,7 @@
         "name": "S4VEL",
         "kind": "cv_uni",
         "unit": "none",
+        "group": "sound",
         "sound": 4
       },
       {
@@ -1889,6 +1924,7 @@
         "name": "S1KEY",
         "kind": "gate",
         "unit": "none",
+        "group": "sound",
         "sound": 1
       },
       {
@@ -1896,6 +1932,7 @@
         "name": "S2KEY",
         "kind": "gate",
         "unit": "none",
+        "group": "sound",
         "sound": 2
       },
       {
@@ -1903,6 +1940,7 @@
         "name": "S3KEY",
         "kind": "gate",
         "unit": "none",
+        "group": "sound",
         "sound": 3
       },
       {
@@ -1910,6 +1948,7 @@
         "name": "S4KEY",
         "kind": "gate",
         "unit": "none",
+        "group": "sound",
         "sound": 4
       },
       {
@@ -1917,6 +1956,7 @@
         "name": "S1TRIG",
         "kind": "gate",
         "unit": "none",
+        "group": "sound",
         "sound": 1
       },
       {
@@ -1924,6 +1964,7 @@
         "name": "S2TRIG",
         "kind": "gate",
         "unit": "none",
+        "group": "sound",
         "sound": 2
       },
       {
@@ -1931,6 +1972,7 @@
         "name": "S3TRIG",
         "kind": "gate",
         "unit": "none",
+        "group": "sound",
         "sound": 3
       },
       {
@@ -1938,6 +1980,7 @@
         "name": "S4TRIG",
         "kind": "gate",
         "unit": "none",
+        "group": "sound",
         "sound": 4
       },
       {
@@ -1945,6 +1988,7 @@
         "name": "S1RTRG",
         "kind": "gate",
         "unit": "none",
+        "group": "sound",
         "sound": 1
       },
       {
@@ -1952,6 +1996,7 @@
         "name": "S2RTRG",
         "kind": "gate",
         "unit": "none",
+        "group": "sound",
         "sound": 2
       },
       {
@@ -1959,6 +2004,7 @@
         "name": "S3RTRG",
         "kind": "gate",
         "unit": "none",
+        "group": "sound",
         "sound": 3
       },
       {
@@ -1966,8 +2012,37 @@
         "name": "S4RTRG",
         "kind": "gate",
         "unit": "none",
+        "group": "sound",
         "sound": 4
       }
+    ],
+    "source_groups": [
+      {
+        "id": "notes",
+        "name": "Notes, clock and chance"
+      },
+      {
+        "id": "sound",
+        "name": "Sound {sound}'s notes"
+      },
+      {
+        "id": "lanes",
+        "name": "Sequencer lanes"
+      },
+      {
+        "id": "lane_values",
+        "name": "Lane values"
+      }
+    ],
+    "curve_points": [
+      [-1, -0.9375, -0.875, -0.8125, -0.75, -0.6875, -0.625, -0.5625, -0.5, -0.4375, -0.375, -0.3125, -0.25, -0.1875, -0.125, -0.0625, 0, 0.0625, 0.125, 0.1875, 0.25, 0.3125, 0.375, 0.4375, 0.5, 0.5625, 0.625, 0.6875, 0.75, 0.8125, 0.875, 0.9375, 1],
+      [-1, -0.87890625, -0.765625, -0.66015625, -0.5625, -0.47265625, -0.390625, -0.31640625, -0.25, -0.19140625, -0.140625, -0.09765625, -0.0625, -0.03515625, -0.015625, -0.00390625, 0, 0.00390625, 0.015625, 0.03515625, 0.0625, 0.09765625, 0.140625, 0.19140625, 0.25, 0.31640625, 0.390625, 0.47265625, 0.5625, 0.66015625, 0.765625, 0.87890625, 1],
+      [-1, -0.8239746, -0.6699219, -0.53637695, -0.421875, -0.32495117, -0.24414062, -0.17797852, -0.125, -0.083740234, -0.052734375, -0.030517578, -0.015625, -0.006591797, -0.001953125, -0.00024414062, 0, 0.00024414062, 0.001953125, 0.006591797, 0.015625, 0.030517578, 0.052734375, 0.083740234, 0.125, 0.17797852, 0.24414062, 0.32495117, 0.421875, 0.53637695, 0.6699219, 0.8239746, 1],
+      [-1, -0.96824586, -0.9354144, -0.9013878, -0.8660254, -0.8291562, -0.7905694, -0.75, -0.70710677, -0.6614378, -0.61237246, -0.559017, -0.5, -0.4330127, -0.35355338, -0.25, 0, 0.25, 0.35355338, 0.4330127, 0.5, 0.559017, 0.61237246, 0.6614378, 0.70710677, 0.75, 0.7905694, 0.8291562, 0.8660254, 0.9013878, 0.9354144, 0.96824586, 1],
+      [-1, -0.9787169, -0.9564656, -0.93312776, -0.9085603, -0.8825871, -0.854988, -0.82548183, -0.7937005, -0.7591472, -0.72112477, -0.6786044, -0.62996054, -0.5723571, -0.5, -0.39685026, 0, 0.39685026, 0.5, 0.5723571, 0.62996054, 0.6786044, 0.72112477, 0.7591472, 0.7937005, 0.82548183, 0.854988, 0.8825871, 0.9085603, 0.93312776, 0.9564656, 0.9787169, 1],
+      [-1, -0.77467376, -0.5991896, -0.4625223, -0.35608575, -0.27319285, -0.20863582, -0.15835875, -0.11920292, -0.08870833, -0.06495913, -0.046463225, -0.032058604, -0.020840272, -0.012103426, -0.0052991644, 0, 0.0052991644, 0.012103426, 0.020840272, 0.032058604, 0.046463225, 0.06495913, 0.08870833, 0.11920292, 0.15835875, 0.20863582, 0.27319285, 0.35608575, 0.4625223, 0.5991896, 0.77467376, 1],
+      [-1, -0.98417044, -0.96727043, -0.9491446, -0.92960113, -0.90839934, -0.88523144, -0.8596952, -0.83125067, -0.7991493, -0.76231, -0.71908826, -0.666799, -0.60059977, -0.5102976, -0.36753732, 0, 0.36753732, 0.5102976, 0.60059977, 0.666799, 0.71908826, 0.76231, 0.7991493, 0.83125067, 0.8596952, 0.88523144, 0.90839934, 0.92960113, 0.9491446, 0.96727043, 0.98417044, 1],
+      [-1, -0.98876953, -0.95703125, -0.90771484, -0.84375, -0.7680664, -0.68359375, -0.5932617, -0.5, -0.40673828, -0.31640625, -0.2319336, -0.15625, -0.092285156, -0.04296875, -0.011230469, 0, 0.011230469, 0.04296875, 0.092285156, 0.15625, 0.2319336, 0.31640625, 0.40673828, 0.5, 0.5932617, 0.68359375, 0.7680664, 0.84375, 0.90771484, 0.95703125, 0.98876953, 1]
     ],
     "units": [
       {
@@ -2615,7 +2690,11 @@
         ],
         "words": "Per voice into one value",
         "detail": "poly never reaches mono",
-        "fills": []
+        "fills": [],
+        "fix": {
+          "id": "global",
+          "words": "Make it global"
+        }
       },
       {
         "code": 38,
@@ -2625,7 +2704,11 @@
         ],
         "words": "Per voice into an effect",
         "detail": "an effect plays every voice at once",
-        "fills": []
+        "fills": [],
+        "fix": {
+          "id": "global",
+          "words": "Make it global"
+        }
       },
       {
         "code": 39,
@@ -2679,6 +2762,45 @@
       }
     ]
   },
+  "marks": [
+    {
+      "mark": ">",
+      "name": "runs",
+      "words": "runs",
+      "detail": null,
+      "fills": []
+    },
+    {
+      "mark": "v",
+      "name": "voice",
+      "words": "per voice",
+      "detail": "one value for each sounding voice",
+      "fills": []
+    },
+    {
+      "mark": "~",
+      "name": "late",
+      "words": "a tick late",
+      "detail": "closes a loop through {loop}, so it reads its source from the tick before",
+      "fills": [
+        "loop"
+      ]
+    },
+    {
+      "mark": "!",
+      "name": "refused",
+      "words": "refused",
+      "detail": null,
+      "fills": []
+    },
+    {
+      "mark": "-",
+      "name": "off",
+      "words": "off",
+      "detail": null,
+      "fills": []
+    }
+  ],
   "telemetry": {
     "version": 1,
     "hz": 30,
@@ -2934,5 +3056,5 @@
       }
     ]
   },
-  "meta_id": "bbbbe618"
+  "meta_id": "eb58a1fc"
 }
