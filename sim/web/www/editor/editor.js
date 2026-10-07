@@ -17,7 +17,7 @@
 // this repository.
 
 import {
-  Meta, ROLE, T, SRC_EDITOR, SRC_PANEL, SOURCES, SOUNDS, INSERTS, MASTERS, LEVEL_MAX,
+  Meta, MIX_KEY, ROLE, T, SRC_EDITOR, SRC_PANEL, SOURCES, SOUNDS, INSERTS, MASTERS, LEVEL_MAX,
   packParam, packLevel, packOn, packView, decodeChanges, decodeView, applyToMirror, mirrorFromProject,
   blockKey, parseBlockKey, blockTag, viewFor, blockOfView, viewWords, controlKind, isBipolar, isLog, hasFlag,
   toPos, fromPos, zeroPos, stepValue, rawText, unitText, unitWords, flagWords, ramWords, ramPercent, toF32,
@@ -323,7 +323,7 @@ export async function startEditor(env) {
     if (!moved || st.layout !== 'workbench' || !st.followPanel || st.typing || st.dragKey) return;
     const at = blockOfView(v);
     if (!at) return;
-    if (at.key === 'mix' || parseBlockKey(at.key).role === ROLE.MASTER) {
+    if (at.key === MIX_KEY || parseBlockKey(at.key).role === ROLE.MASTER) {
       select(at.key, { view: 'flow', quiet: true, page: at.page });
     } else {
       select(at.key, { view: 'sound', quiet: true, page: at.page });
@@ -555,7 +555,7 @@ export async function startEditor(env) {
 
   // ---- selection and the views (§10) -------------------------------------------------
   function select(key, opt = {}) {
-    if (key !== 'mix' && !parseBlockKey(key)) return;
+    if (key !== MIX_KEY && !parseBlockKey(key)) return;
     st.selected = key;
     const b = parseBlockKey(key);
     if (opt.view) st.view = opt.view;
@@ -611,7 +611,7 @@ export async function startEditor(env) {
     const strips = el('div', 'ed-strips');
     for (let k = 0; k < SOUNDS; ++k) strips.append(strip(k));
     const masters = el('div', 'ed-masters', { role: 'group', 'aria-label': 'Master' });
-    masters.append(flowBlock('mix', 'Mix', 'MIX', `${st.mirror.blocks.size ? soundsOn() : 0} sounds`, 'ed-mix'));
+    masters.append(flowBlock(MIX_KEY, 'Mix', 'MIX', `${st.mirror.blocks.size ? soundsOn() : 0} sounds`, 'ed-mix'));
     for (let j = 0; j < MASTERS; ++j) {
       const key = blockKey(ROLE.MASTER, 0, j);
       const b = blockOf(key);
@@ -623,7 +623,7 @@ export async function startEditor(env) {
     seen.disconnect();
     seen.observe(flow);
     const insp = el('div', 'ed-flow-insp');
-    if (st.selected === 'mix') insp.append(mixInspector());
+    if (st.selected === MIX_KEY) insp.append(mixInspector());
     else if (blockOf(st.selected)) insp.append(inspector(st.selected));
     else insp.append(el('p', 'ed-note', { text: `${blockTag(st.selected)} is empty. Effect pickers come with the next stage.` }));
     wrap.append(insp);
@@ -681,7 +681,7 @@ export async function startEditor(env) {
 
   // The Mix's selection: the four levels (the Mix page's own records).
   function mixInspector() {
-    const box = el('section', 'ed-insp', { 'data-block': 'mix', 'aria-label': 'Mix' });
+    const box = el('section', 'ed-insp', { 'data-block': MIX_KEY, 'aria-label': 'Mix' });
     box.append(el('header', 'ed-insp-head', {}, [el('span', 'ed-tag ed-tag-mix', { text: 'MIX' }), el('h3', 'ed-insp-name', { text: 'Mix' })]));
     const page = el('div', 'ed-page', { 'data-page': '1' });
     for (let k = 0; k < SOUNDS; ++k) if (blockOf(blockKey(ROLE.SOUND, k))) page.append(levelRow(k));

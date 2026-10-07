@@ -32,6 +32,8 @@ export const MODES = ['home', 'fx', 'glo', 'seq', 'session', 'song', 'rack', 'ma
 export const VK = { sound: 0, page: 1, unit: 2, track: 3, bar: 4, panel: 5, pos: 6, slot: 7, entry: 8 };
 // FX mode's entries (fm1_edit_view's slot): In1, In2, Mix, M1, M2.
 export const FX_ENTRIES = ['In1', 'In2', 'Mix', 'M1', 'M2'];
+// The Mix's block (it has no unit): its key in the Flow.
+export const MIX_KEY = 'the-mix';
 export const SOUNDS = 4;
 export const INSERTS = 2;
 export const MASTERS = 2;
@@ -207,7 +209,7 @@ export function blockOfView(v) {
   }
   if (v.mode === 'fx') {
     if (v.slot < INSERTS) return { key: blockKey(ROLE.INSERT, v.sound, v.slot), page: v.page + 1 };
-    if (v.slot === 2) return { key: 'mix', page: null };
+    if (v.slot === 2) return { key: MIX_KEY, page: null };
     if (v.slot <= 4) return { key: blockKey(ROLE.MASTER, 0, v.slot - 3), page: v.page + 1 };
   }
   return null;
