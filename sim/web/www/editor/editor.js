@@ -442,7 +442,17 @@ export async function startEditor(env) {
     }
   }
 
-  function say(text) { live.textContent = text; }
+  // At most one announcement a second (§13): the first at once, then the
+  // latest of any that follow, when the second is up.
+  let sayAt = -1e9, sayTimer = 0, sayLast = '';
+  function say(text) {
+    const wait = 1000 - (performance.now() - sayAt);
+    sayLast = text;
+    if (wait <= 0 && !sayTimer) { sayAt = performance.now(); live.textContent = text; return; }
+    if (!sayTimer) {
+      sayTimer = setTimeout(() => { sayTimer = 0; sayAt = performance.now(); live.textContent = sayLast; }, Math.max(0, wait));
+    }
+  }
 
   // ---- RAM by part (§11: a percentage of the FM-1's budget only) -----------------------
   function onRam(m) {
@@ -987,7 +997,7 @@ export async function startEditor(env) {
     r.p = p;
     r.page = pg.page;
     if (hasFlag(p, 'mod')) r.label.classList.add('can-mod');
-    if (hasFlag(p, 'poly')) r.label.append(el('span', 'ed-poly', { text: 'v', title: 'per voice: a per-voice cable may land here' }));
+    if (hasFlag(p, 'poly')) r.label.append(el('span', 'ed-poly', { role: 'img', 'aria-label': 'per voice', text: 'v', title: 'per voice: a per-voice cable may land here' }));
     if (hasFlag(p, 'per_focus')) r.label.append(el('span', 'ed-pad-b', { text: 'pad', title: 'per pad: the pad chosen above' }));
     if (kind === 'slider') sliderControl(r, p, () => valueOf(key, p.uid), (v) => withUnit(p, fmt(blockOf(key).engine, p, v)));
     else if (kind === 'segments' || kind === 'grid') segControl(r, p, kind);
@@ -1061,6 +1071,8 @@ export async function startEditor(env) {
   // zero, one detent per arrow key (⇧ ten, ⌥ a tenth), Home and End, D the
   // default, Enter to type. A drag is one history step and sends at most one
   // op a frame; a `nolock` parameter is sent once, on release.
+  // A row's name without its badges (the per-voice mark): the label's own text.
+  const labelName = (r) => [...r.label.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim() || r.label.textContent;
   function sliderControl(r, p, get, text) {
     const s = el('div', 'ed-slider', { role: 'slider', tabindex: '0', 'aria-labelledby': r.id, 'data-fk': `${r.key}:${r.uid}`,
       'aria-valuemin': String(p.min), 'aria-valuemax': String(p.max) });
@@ -1070,7 +1082,7 @@ export async function startEditor(env) {
     if (zero) zero.style.left = `${(zeroPos(p) * 100).toFixed(2)}%`;
     s.append(...[el('span', 'ed-track', { 'aria-hidden': 'true' }), fill, zero, thumb].filter(Boolean));
     if (isLog(p)) s.classList.add('is-log');
-    const field = el('input', 'ed-val', { type: 'text', inputmode: 'decimal', spellcheck: 'false', 'aria-label': `${r.label.textContent}: type a value` });
+    const field = el('input', 'ed-val', { type: 'text', inputmode: 'decimal', spellcheck: 'false', 'aria-label': `${labelName(r)}: type a value` });
     const target = `${r.key}:${r.uid}`;
     const nolock = hasFlag(p, 'nolock');
     let dragV = null;
@@ -1084,7 +1096,7 @@ export async function startEditor(env) {
       const t = text(v);
       if (!st.typing || document.activeElement !== field) field.value = t;
       s.setAttribute('aria-valuenow', String(Math.round(v * 1000) / 1000));
-      s.setAttribute('aria-valuetext', `${r.label.textContent}, ${t.replace(/ dB$/, ' decibels').replace(/ Hz$/, ' hertz').replace(/ ms$/, ' milliseconds').replace(/ %$/, ' percent')}`);
+      s.setAttribute('aria-valuetext', `${labelName(r)}, ${t.replace(/ dB$/, ' decibels').replace(/ Hz$/, ' hertz').replace(/ ms$/, ' milliseconds').replace(/ %$/, ' percent')}`);
     };
     r.update = () => draw(dragV !== null ? dragV : get());
     const commit = (v, how) => setValue(r.key, r.uid, v, how);
@@ -1282,7 +1294,7 @@ export async function startEditor(env) {
 
   render();
   const api = {
-    setLayout, state: st, history, meta, mm, chains, rows, select, undo, redo, setKeys, project,
+    setLayout, state: st, history, meta, mm, chains, rows, select, undo, redo, setKeys, project, say,
     applyLink: (l) => project.applyLink(l),
     // The page test's hooks: an inspector for any module, drawn from the
     // metadata with its defaults, and the mirror as it stands.

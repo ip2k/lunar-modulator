@@ -567,6 +567,61 @@ static void lfo_cable(void) {
   CHECK(!"a parameter that takes a cable");
 }
 
+/* A per-voice cable from LFO1 into the first parameter of Sound 1 that takes
+ * one, in slot 5; returns that parameter. */
+static const fm1_param_t *g_vparam;
+static const fm1_param_t *voice_cable(void) {
+  const fm1_engine_t *e = fm1_app_unit_engine(&g_a, 0);
+  char line[96];
+  for (unsigned i = 0; e && i < e->n_params; ++i) {
+    snprintf(line, sizeof line, "cable 5 64 255 0 129 %u 8000 0", e->params[i].uid);
+    if (edit_line(line, 1, NULL) == 0) return &e->params[i];
+  }
+  CHECK(!"a parameter that takes a per-voice cable");
+  return NULL;
+}
+
+/* Limiter's and Squash's gain read-outs (fm1_dynamics.h): a loud note into
+ * each at its extreme setting reads a cut of a decibel or more, finite; the
+ * Limiter left alone with no note reads none. */
+static void check_gain_readouts(void) {
+  static const struct { const char *id, *knob; float hot; } kFx[] = { { "limit", "Drive", 24.0f }, { "squash", "Squash", 1.0f } };
+  const fm1_tele_section_t *red = fm1_tele_section(FM1_TELE_REDUCTION);
+  uint32_t one[FM1_TELE_MASK_WORDS];
+  memset(one, 0, sizeof one);
+  one[red->mask / 32] |= 1u << (red->mask % 32);        /* Sound 1's first insert */
+  for (size_t k = 0; k < sizeof kFx / sizeof kFx[0]; ++k) {
+    const fm1_engine_t *e = NULL;
+    char line[96];
+    float quiet, loud;
+    for (size_t i = 0; i < fm1_engine_count; ++i) if (strcmp(fm1_engines[i]->id, kFx[k].id) == 0) e = fm1_engines[i];
+    if (!e) continue;                                    /* a build without that module */
+    fresh(44118.0f);
+    snprintf(line, sizeof line, "unit insert 0 0 %s", e->id);
+    CHECK(edit_line(line, 1, NULL) == 0);
+    fm1_edit_subscribe(&g_a, one);
+    render(20);
+    CHECK(fm1_edit_telemetry(&g_a, g_tele, sizeof g_tele / sizeof g_tele[0]) == fm1_tele_floats());
+    quiet = g_tele[red->offset];
+    /* Squash's gate, closed over silence, is a cut of its own (the editor
+     * shows a read-out only while a signal is present), so only the
+     * Limiter's idle reading is held to none. */
+    CHECK(isfinite(quiet) && quiet >= 0.0f && (strcmp(e->id, "limit") != 0 || quiet < 0.1f));
+    for (unsigned i = 0; i < e->n_params; ++i) {
+      if (strcmp(e->params[i].name, kFx[k].knob) != 0) continue;
+      snprintf(line, sizeof line, "param insert 0 0 %u %.9g", e->params[i].uid, (double)kFx[k].hot);
+      CHECK(edit_line(line, 1, NULL) == 0);
+    }
+    fm1_app_note_on(&g_a, 60, 127);
+    render(80);
+    g_a.edit->tele_at = ~(uint64_t)0;                     /* due now */
+    CHECK(fm1_edit_telemetry(&g_a, g_tele, sizeof g_tele / sizeof g_tele[0]) == fm1_tele_floats());
+    loud = g_tele[red->offset];
+    CHECK(isfinite(loud) && loud >= 1.0f && loud < 120.0f);
+    fprintf(stderr, "gain read-out %s: %.3f dB quiet, %.3f dB loud\n", e->id, (double)quiet, (double)loud);
+  }
+}
+
 static void check_telemetry(void) {
   uint32_t all[FM1_TELE_MASK_WORDS], one[FM1_TELE_MASK_WORDS];
   const fm1_tele_section_t *met = fm1_tele_section(FM1_TELE_METERS);
@@ -578,9 +633,11 @@ static void check_telemetry(void) {
   fm1_app_init(&g_a, 44118.0f);
   fm1_app_default_chain(&g_a);
   lfo_cable();
+  voice_cable();
   play(g_out_a, blocks, 0);
   fresh(44118.0f);
   lfo_cable();
+  g_vparam = voice_cable();
   fm1_edit_subscribe(&g_a, all);
   g_fills = 0;
   play(g_out_b, blocks, 1);
@@ -618,6 +675,25 @@ static void check_telemetry(void) {
     CHECK(o[1] <= o[0] && o[0] <= o[2] && o[1] < o[2]);
     CHECK(isfinite(g_tele[dests->offset + 3]) && isnan(g_tele[dests->offset + 4]));
   }
+  /* The per-voice cable in slot 5: some voice has a value inside the
+   * parameter's range, a slot with no such cable has none, and a cable that
+   * reaches every voice at once (slot 3) has no per-voice values either. */
+  {
+    const fm1_tele_section_t *vd = fm1_tele_section(FM1_TELE_VOICE_DESTS);
+    const fm1_param_t *p = g_vparam;
+    unsigned live = 0, none = 0;
+    for (unsigned v = 0; v < vd->fields; ++v) {
+      const float x = g_tele[vd->offset + 5u * vd->items * vd->fields + v];
+      if (isfinite(x)) {
+        ++live;
+        CHECK(!p || (x >= p->min - 1e-3f && x <= p->max + 1e-3f));
+      }
+      none += isnan(g_tele[vd->offset + 3u * vd->items * vd->fields + v]) + isnan(g_tele[vd->offset + v]);
+    }
+    CHECK(live >= 1 && live <= vd->fields);
+    CHECK(none == 2u * vd->fields);
+  }
+  check_gain_readouts();
 }
 
 /* ---- hostile input --------------------------------------------------------------- */

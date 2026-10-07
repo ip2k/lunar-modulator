@@ -184,6 +184,14 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   the state hash (`fm1_edit_state_hash`, `fm1w_state_hash`) now leaves out
   where the panel is ([sim/web/README.md,
   "Stage ED4"](sim/web/README.md#the-advanced-editor-stage-ed4-files-and-the-project)).
+  Stage ED5a is the first half of the last stage: read-only gain-reduction
+  taps for Limiter and Squash (`engines/include/fm1_dynamics.h`) and per-voice
+  destination values (`fm1_mod_voice_dest`) filling the telemetry ED1 left
+  empty, keyboard and screen-reader passes tested through the accessibility
+  snapshot, a phone layout (Panel and Edit tabs, the matrix as a list of
+  cables) and a layout probe that finds overlapping and clipped text at four
+  widths ([sim/web/README.md,
+  "Stage ED5a"](sim/web/README.md#the-advanced-editor-stage-ed5a-reach-and-the-read-outs)).
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free

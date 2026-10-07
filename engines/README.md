@@ -1642,6 +1642,8 @@ lookahead [verified: `third_party/mutable/stmlib/dsp/limiter.h`]; it is
 not used. Mode Round (2026-10-05) ports the loop of Airwindows ClipOnly2
 (Chris Johnson, MIT; `third_party/airwindows/`).
 
+**Gain read-out.** `fm1_limit_gain(instance)` (`include/fm1_dynamics.h`) returns the gain the envelope is applying now, the lower channel's `1 - red` (1 for none), for the editor's gain-reduction meter (stage ED5a). It reads state the Limiter already keeps: no new state, no change to the audio or the instance size.
+
 | Page | Knob | Range (default) | What it does |
 | --- | --- | --- | --- |
 | 1 | Ceiling | −24 to 0 dB (−1) | The most the output reaches. In dB: `FM1_UNIT_DB` since engine API v3 |
@@ -2996,6 +2998,8 @@ what they do, after the 2026-10-02 naming rule: **Snap** (after Pop3),
 plug-in's own, as a time or a level where the plug-in's 0..1 knob maps onto
 one, with the same arithmetic underneath; Output and Mix are ours, for every
 Type.
+
+**Gain read-out.** `fm1_squash_gain(instance)` (`include/fm1_dynamics.h`) returns the gain the sounding Type applied to the last frame, the lower channel, before Output and Mix (above 1 where Mu's makeup or Split's lift raises the sound; the editor shows the cut only, and only while a signal is going in, since Snap's gate closed over silence is a cut of its own). Read-only, like the Limiter's.
 
     guard -> the Type's gain per channel (Snap, Mu or Split; two while a Type fades)
              (Mu's with its partial makeup, bounded so it adds no clipping)

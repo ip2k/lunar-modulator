@@ -674,7 +674,7 @@ chain's four slots and two sends.
 | **ED2** Shell, flow and sound (**built**, §23) | The layouts, outline and screen card, app bar and RAM by part; the Flow (selection only) and the Sound inspector from metadata; the detail bar; follow both ways and K1–K4; history and undo for parameters; PLAY and EDIT | ED1, W1 |
 | **ED3** Chains and modulation (**built**, §24) | Drag to move and swap with its keyboard twin and RAM verdicts; effect pickers; master inspectors with meters; the Mix; per-pad rows (API v4); the rack cards, the matrix table, slot and module inspectors; structural undo | ED2 |
 | **ED4** Files and project (**built**, §25) | Drop targets, per-block export, the library, `view=edit` and `sel`; ⌘K search; A/B and the Memory page; undo's snapshot fallback | ED3 |
-| **ED5** The Map and reach | The patch-bay Map with focus; phones; keyboard and screen-reader passes; the layout check in the page tests; a manual chapter | ED4 |
+| **ED5** The Map and reach | **ED5a (built, §26):** the telemetry ED1 left empty (Limiter's and Squash's gain reduction, `voice_dests`); keyboard and screen-reader passes; phones; the layout check in the page tests. **ED5b (to do):** the patch-bay Map with focus; the manual's chapter; Firefox and WebKit measured | ED4 |
 | later | The pop-out window; a song-list view on S9+'s data; an FM6 (DX7) voice editor, a later stage by the owner's decision (ED17); the device target (§16) | — |
 
 - Each stage that adds state to the page adds nothing to the files: the
@@ -1194,4 +1194,84 @@ layout sweep 4,584 screens with no fault, `screenshot.mjs`, `files.mjs` and
 `editor.mjs` pass. Not measured: Firefox and WebKit, a real drag from a
 desktop (the tests build the drop events), a real audio device, screen
 readers, phones (ED5).
+
+## 26. Stage ED5a, as built (2026-10-07)
+
+Marks here were checked on the ED5a branch, cut from main at `15627bd`
+(PR #94, after ED4), natively, in the browser pane and in headless
+Chromium on aeon. ED5a is the first half of §18's ED5 row: reach and the
+read-outs. The Map and the manual's chapter are ED5b.
+
+**What it is** [verified: `sim/web/README.md`, "Stage ED5a"]:
+- **Read-only taps, no new state.** `fm1_limit_gain` and `fm1_squash_gain`
+  (`engines/include/fm1_dynamics.h`) read what the effects already keep
+  (the Limiter's per-channel `red` and `red0`, chosen by the tests its
+  render loop makes; Squash's `gain[2]`), so no instance grew and no golden
+  moved. `fm1_mod_voice_dest` reads a voice's offset for a VOICE cable's
+  destination and adds what the engine holds. The edit layer fills the
+  `reduction` rows for both effects (a cut in dB) and the `voice_dests`
+  rows (NaN where a voice has no value or a plan is pending). Where the
+  runtime was left out of a build (`FM1_WITH_LIMIT`, `FM1_WITH_SQUASH`),
+  the edit layer's references go with it (guarded in
+  `tests/test_module_list.py`).
+- **Display.** An effect's *Out* meter gets a thin reduction bar and "GR n
+  dB" while the cut is over 0.05 dB and the meter point before it has a
+  signal. A per-voice cable's *Live* cell reads the range of its voices.
+- **Keyboard and screen reader (§13).** The snapshot test (below) found two
+  things, both fixed: the per-voice badge ("v") was part of every
+  poly slider's accessible name ("Harmonicsv"), and focus rings were the
+  browser's where the CSS set none. The badge is an image named "per
+  voice"; one 2 px ring covers the editor. Announcements are throttled
+  to one a second (the first at once, then the latest).
+- **Phones (§14).** Two tabs (Panel, Edit; the Workbench becomes Edit),
+  the outline a row of tabs, a 96 px screen, stacked strips and rows, and
+  the matrix a list of cables with its cells named. No Map, since there is
+  none yet.
+- **The layout probe** (`test/layout-probe.js`): overlaps and clipped text
+  at four widths, a check §17 asks for and ED2-ED4 did not have.
+
+**Found on the way.**
+- **ED3's gain-reduction text never showed.** `onTelemetry` tested `db <
+  -0.05` while C sends the cut as a positive number (Comp, the output
+  limiter), so no "GR" was ever drawn. Fixed with the new rows.
+- **Squash's gain is not 1 at rest.** Snap's gate state starts at 1 and
+  closes the gain by about 1.4 dB over a first 30 ms of silence [verified]
+  (and, by its formula, toward -12 dB over a long one [inferred]) even with Gate at -80 dB, its "off". Silence in
+  gives silence out, so nothing is heard, but a raw read-out would show a
+  constant "GR". The display shows the cut only while a signal goes in.
+  Whether Snap's closed gate should be a read-out of its own is left open.
+- At 375 px the ED4 editor scrolled the page sideways by 42 px (the rows'
+  fixed columns); the phone layout is the fix.
+- C's kind refusal, "A sound, not a effects chain was expected" (ED4's
+  open issue), is still there: a fixed article in a format string.
+
+**Measured** [verified]: native `--edit-check`: Limiter at Drive +24 dB
+reads 1.794 dB of cut and Squash at 1 reads 11.757 dB with a note held,
+Limiter at rest 0.000 dB; a per-voice cable's row has a value inside the
+parameter's range for a sounding voice and NaN for a slot without one; the
+audio with every row subscribed is the audio without the layer, bit for
+bit. In headless Chromium 153 on aeon: `test/editor-ui.mjs` 93 of 93
+(the 76 before, plus every view at 768 and 375 px, with the probe at all
+four widths: no sideways scroll, nothing clipped or overlapping; the
+screenshots were looked at); `test/editor-reach.mjs` 31 of 31: the
+accessibility snapshot of six views names every control, every slider has
+`aria-valuenow`, a valuetext starting with its name, and a label; one
+polite live region (the search box's count aside), silent for 1.5 s of
+idle; a refusal reaches it in C's words ("S1 engine: Cannot be read.");
+thirty announcements in half a second are throttled, the last kept; 40
+Tab stops, all in the editor, each with a ring of 2 px or more and a
+target of 24 px or more; the first Tab into the editor gives it the keys;
+at 375 px the switch has two tabs, the outline scrolls inside itself, the
+screen is 96 px, the matrix header is gone and each cell is named, no
+Map; a Limiter set to its Drive's end by the keyboard shows "GR 5.6 dB"
+and a bar at 0.2; the example's per-voice cable shows `0.54-0.66`
+while one note sounds. The module grew by 789 B, to 1,540,870 B (the
+accessors and the rows); parity 104 of 104, the storm 0 late quanta of
+10,341 (99th percentile 0.092 ms, the layer's own work 7.8 us a quantum),
+the layout sweep 4,584 screens with no fault, `screenshot.mjs`, `files.mjs`
+and `editor.mjs` pass. Not measured: Firefox and WebKit, a real drag, a
+real audio device (Chromium's playback stats counted 0 underruns on the
+fake one), a screen reader itself (only the snapshot Chromium builds for
+one), a real phone (a 375 px viewport and a mobile user agent only), and
+the manual's strict build (CI).
 

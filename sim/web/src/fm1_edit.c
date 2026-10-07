@@ -14,6 +14,7 @@
 
 #include "fm1_app_state.h"
 #include "fm1_comp.h"
+#include "fm1_dynamics.h"
 #include "fm1_look.h"
 #include "fm1_modules.h"     /* FM1_WITH_COMP: the module list may leave Comp out */
 #include "fm1_refusal.h"
@@ -778,6 +779,11 @@ void fm1_edit_block_end(fm1_app_t *a) {
   }
 }
 
+/* A gain's cut in dB: 0 at unity and above (a lift is not a reduction). */
+#if FM1_WITH_LIMIT || FM1_WITH_SQUASH
+static float gain_cut_db(float g) { return g < 1.0f ? -20.0f * log10f(g) : 0.0f; }
+#endif
+
 static float reduction(fm1_app_t *a, unsigned r) {
   int unit = -1;
   if (r < FM1_TELE_SOUNDS * FM1_TELE_INSERTS) {
@@ -788,10 +794,18 @@ static float reduction(fm1_app_t *a, unsigned r) {
     const fm1_mix_limiter_t *l = &a->limiter;
     return l->envelope > l->ceiling ? 20.0f * log10f(l->envelope / l->ceiling) : 0.0f;
   }
-  /* Comp says what it took (fm1_comp.h); Limiter and Squash have no such
-   * read-out yet, and every other effect reduces nothing. */
+  /* Comp says what it took (fm1_comp.h); Limiter and Squash say the gain
+   * they are applying (fm1_dynamics.h), a cut in dB here; every other effect
+   * reduces nothing. */
+  if (!a->unit[unit].e) return 0.0f;
 #if FM1_WITH_COMP
-  if (a->unit[unit].e && strcmp(a->unit[unit].e->id, "comp") == 0) return fm1_comp_reduction_db(a->unit[unit].self);
+  if (strcmp(a->unit[unit].e->id, "comp") == 0) return fm1_comp_reduction_db(a->unit[unit].self);
+#endif
+#if FM1_WITH_LIMIT
+  if (strcmp(a->unit[unit].e->id, "limit") == 0) return gain_cut_db(fm1_limit_gain(a->unit[unit].self));
+#endif
+#if FM1_WITH_SQUASH
+  if (strcmp(a->unit[unit].e->id, "squash") == 0) return gain_cut_db(fm1_squash_gain(a->unit[unit].self));
 #endif
   return 0.0f;
 }
@@ -818,6 +832,14 @@ static float dest_value(fm1_app_t *a, unsigned i) {
     if (info.uid == s.dst && fm1_mod_sink_index(info.unit) == fm1_mod_sink_index(s.dst_unit)) return info.value;
   }
   return NAN;
+}
+
+/* Voice v's value of slot i's destination now, as the last block ran the
+ * plan (the same rules as dest_value); NaN when it has none. */
+static float voice_dest_value(fm1_app_t *a, unsigned i, unsigned v) {
+  float x;
+  if (!a->mod || a->edit->gen != a->edit->gen_rendered || !((a->mui.plan.active >> i) & 1u)) return NAN;
+  return fm1_mod_voice_dest(a->mod, v, i, &x) ? x : NAN;
 }
 
 static void fill_row(fm1_app_t *a, unsigned s, unsigned r, float *o) {
@@ -855,10 +877,8 @@ static void fill_row(fm1_app_t *a, unsigned s, unsigned r, float *o) {
       }
       break;
     case FM1_TELE_DESTS: o[0] = dest_value(a, r); break;
-    default:
-      /* voice_dests: the runtime keeps each voice's offsets but has no
-       * read-out for them yet (a later stage), so the rows say "none". */
-      for (unsigned f = 0; f < items * fields; ++f) o[f] = NAN;
+    default:                            /* voice_dests: each voice's value of a per-voice cable's target */
+      for (unsigned v = 0; v < fields; ++v) o[v] = voice_dest_value(a, r, v);
       break;
   }
 }
