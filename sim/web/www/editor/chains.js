@@ -215,6 +215,13 @@ export function makeChains(ctx) {
     ctx.say(label);
   }
 
+  // A pointer drag whose block was redrawn under it never sees its own
+  // pointerup: the page's ends it, so nothing stays held.
+  if (typeof window !== 'undefined') {
+    window.addEventListener('pointerup', () => { if (held && held.pointer) cancel(); });
+    window.addEventListener('pointercancel', () => { if (held && held.pointer) cancel(); });
+  }
+
   // A block that can be picked up: by pointer (a drag past 6 px), by keys
   // (Space picks up, arrows aim, Space drops, Esc cancels; ⌥ and an arrow
   // swap with the neighbour).
@@ -231,7 +238,7 @@ export function makeChains(ctx) {
       if (!held) {
         if (Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) return;
         try { btn.setPointerCapture(e.pointerId); } catch { /* a pointer the browser no longer tracks */ }
-        held = { key, target: null };
+        held = { key, target: null, pointer: true };
         st.dragKey = `block:${key}`;
         dragged = true;
         btn.classList.add('is-held');
