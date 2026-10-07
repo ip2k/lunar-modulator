@@ -984,5 +984,25 @@ advanced editor"]:
 check passes, 120 random edits over the start chain undone to the first
 state hash and redone to the last. The module is rebuilt for
 `fm1w_ram_part`; parity 104 of 104, the edit layer's parity and storm (0
-late quanta of 10,341). The page test results are below.
+late quanta of 10,341). `fm1w_ram_part` grew the module by 233 B, to
+1,539,045 B. In headless Chromium 153 on aeon (`test/editor-ui.mjs`), every
+check passes: the Panel layout requests none of `editor/`; a turn of KNOB2
+reaches the editor's row in 3 frames (32 ms) as a panel entry with
+"From the panel: KNOB2"; the K1-K4 chips are the knob map's four; selecting
+M1 in the Flow puts the panel on FX M1 within 150 ms; four arrow keys in
+EDIT are one history step and send no key to the FM-1, Ctrl+Z puts the
+project back (the shadow Worker's diff: nothing but the view, which follow
+moved) and Ctrl+Shift+Z forward; in PLAY the keys play and D edits
+nothing; all 40 modules' inspectors (720 rows) at 620 and 360 px with no
+overflow or overlap; the Workbench and Editor layouts, Flow and sound, at
+1,440 and 1,024 px with no sideways scroll and nothing overflowing. The
+eight screenshots and the browser pane's renders (light and dark system
+settings) were looked at. Not measured here: Firefox and WebKit, a desktop
+browser's real audio device, screen readers (ED5).
+
+**Found on the way.** The shadow Worker's `hash` covers a project's view,
+unlike C's `fm1_edit_state_hash`, which leaves it out: a follow that moves
+the panel changes it. §8's hash check (ED4) should compare without the view
+[verified: `diff` of the two projects names `view.mode` and `view.unit`
+only].
 
