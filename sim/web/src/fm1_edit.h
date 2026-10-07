@@ -207,7 +207,8 @@ int fm1_edit_parse_text(const char *line, uint8_t out[FM1_EDIT_REC_BYTES]);
 void fm1_edit_rec_text(const uint8_t rec[FM1_EDIT_REC_BYTES], char *buf, size_t cap);
 
 /* The ring, the view and the state's hash (CRC-32 of the whole project as
- * the binary container with no chunk deflated, its view left out) as text:
+ * the binary container with no chunk deflated, its view and current sound
+ * left out: fm1_app_state_save's binary 3) as text:
  * what the parity test compares between the module and the native harness.
  * Returns the length written (NUL included in cap). */
 size_t fm1_edit_dump(fm1_app_t *a, char *buf, size_t cap);

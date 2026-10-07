@@ -478,6 +478,14 @@ code { font: 0.9em ui-monospace, Menlo, Consolas, monospace; color: var(--text);
   border-radius: 6px; font: 500 0.9rem/1.2 var(--small);
 }
 .layout-switch button[aria-checked="true"] { background: var(--select); color: var(--accent-text); }
+.layout-switch .ly-short { display: none; }
+/* Phones (stage ED5a): two tabs, Panel and Edit; the Workbench, which puts
+ * the panel and the editor in one page, is for screens that have the room. */
+@media (max-width: 640px) {
+  .layout-switch [data-layout="workbench"] { display: none; }
+  .layout-switch .ly-long { display: none; }
+  .layout-switch .ly-short { display: inline; }
+}
 body[data-layout="workbench"] .top .lede, body[data-layout="editor"] .top .lede { display: none; }
 body[data-layout="workbench"] .top, body[data-layout="workbench"] main,
 body[data-layout="editor"] .top, body[data-layout="editor"] main { max-width: 1720px; }

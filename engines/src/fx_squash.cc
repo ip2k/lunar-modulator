@@ -113,6 +113,7 @@
  * Airwindows notice above; the rest is MIT like this repository.
  */
 
+#include "fm1_dynamics.h"
 #include "fm1_engine.h"
 #include "fm1_smooth.h"
 
@@ -673,6 +674,13 @@ static void SquashRender(void *s, float *lr, uint32_t frames) {
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+float fm1_squash_gain(const void *instance) {
+  const SquashInstance *self = (const SquashInstance *)instance;
+  if (!self) return 1.0f;
+  const float g = self->gain[0] < self->gain[1] ? self->gain[0] : self->gain[1];
+  return g > 0.0f ? g : 1.0f;     /* a NaN or a non-positive gain reads as none */
+}
 
 extern const fm1_engine_t fm1_engine_squash;
 const fm1_engine_t fm1_engine_squash = {

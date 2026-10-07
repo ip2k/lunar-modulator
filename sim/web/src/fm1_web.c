@@ -435,6 +435,10 @@ static uint8_t g_view[FM1_EDIT_VIEW_BYTES];
 static float g_param_value;
 
 uint8_t *fm1w_edit_buf(void) { return g_edit_in; }
+/* The state's hash, fm1_edit_state_hash: the project as the binary container
+ * with nothing deflated and its view left out (stage ED4, undo's check).
+ * The shadow Worker's `hash` is this and nothing else. */
+unsigned fm1w_state_hash(void) { return (unsigned)fm1_edit_state_hash(&g_app); }
 const int8_t *fm1w_edit_codes(void) { return g_edit_codes; }
 /* n records or verbs from the buffer, as the editor's op `tag`: how many
  * were applied; each one's verdict in fm1w_edit_codes. */
@@ -509,8 +513,13 @@ float fm1w_param_value(void) { return g_param_value; }
  * matrix slot, then one byte per slot: 0, or the planner's refusal code for
  * a cable that is on but does not run (fm1_mod_slot_refusal, fm1_refusal.h).
  * The editor reads cables by these codes, so it never parses a file's names
- * for them. For the shadow Worker, never the audio thread. Returns the
- * records written (FM1_MOD_POSITIONS + FM1_MOD_SLOTS). */
+ * for them. After those, one more byte per slot (stage "v1 completed"): 0 for
+ * a cable that runs on time or does not run, or, for one the planner reads a
+ * tick late (fm1_mod_plan_info_t `delayed`), the rack positions of the loop
+ * it closes as a bit mask (fm1_mod_slot_loop; never 0, the destination is in
+ * it). For the shadow Worker, never the audio thread. Returns the records
+ * written (FM1_MOD_POSITIONS + FM1_MOD_SLOTS); the buffer holds 2 x
+ * FM1_MOD_SLOTS bytes after them. */
 unsigned fm1w_mod_records(void) {
   uint8_t *out = (uint8_t *)g_text;
   unsigned n = 0, i;
@@ -538,6 +547,11 @@ unsigned fm1w_mod_records(void) {
     if (g_app.mod) fm1_mod_get_slot(g_app.mod, i, &s);
     out[n * FM1_EDIT_REC_BYTES + i] =
         g_app.mod && (s.flags & FM1_MOD_SLOT_ON) ? (uint8_t)fm1_mod_slot_refusal(g_app.mod, i) : 0u;
+  }
+  for (i = 0; i < FM1_MOD_SLOTS; ++i) {
+    uint8_t loop = 0;
+    if (g_app.mod && fm1_mod_slot_loop(g_app.mod, i, &loop) == 0xFFu) loop = 0;
+    out[n * FM1_EDIT_REC_BYTES + FM1_MOD_SLOTS + i] = loop;
   }
   return n;
 }

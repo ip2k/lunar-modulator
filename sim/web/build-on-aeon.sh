@@ -12,8 +12,13 @@
 # test/files.mjs for Open, Save, storage, links and the embed API, then
 # test/editor.mjs, a 30-second storm on the editor's port of the real
 # AudioWorklet, then test/editor-ui.mjs, the editor's shell, flow and sound
-# (follow, undo, PLAY and EDIT, every inspector, the layouts), all in the
-# Playwright container), and brings back www/fm1.wasm, www/meta.json, www/fm1.wasm.json
+# (follow, undo, PLAY and EDIT, every inspector, the layouts), then
+# test/editor-reach.mjs (keyboard, screen-reader and phone passes, gain
+# read-outs, then test/editor-map.mjs, the Map, then test/editor-v1.mjs, the
+# v1 completion: rows, late cables, search operators, A/B picks, sheets, axe-core),
+# all in the Playwright
+# container; BROWSER=firefox or webkit runs the editor's five tests in those
+# browsers too, by hand, sim/web/README.md "Stage ED5b"), and brings back www/fm1.wasm, www/meta.json, www/fm1.wasm.json
 # and the screenshots (sim/web/build/screenshots/). Nothing runs on this
 # machine but ssh, tar and scp; nothing is installed on aeon's host.
 #
@@ -46,6 +51,7 @@ EMSDK_IMAGE=emscripten/emsdk:6.0.10
 ALPINE_IMAGE=alpine:3.22
 PLAYWRIGHT_IMAGE=mcr.microsoft.com/playwright:v1.63.0-noble
 PLAYWRIGHT_NPM=playwright@1.63.0
+AXE_NPM=axe-core@4         # the editor's v1 page test runs its rules (test/editor-v1.mjs)
 
 ENGINES_REF=""
 SCREENSHOT=1
@@ -112,11 +118,14 @@ if [ "$SCREENSHOT" = 1 ]; then
   echo "== page in headless Chromium ($PLAYWRIGHT_IMAGE)"
   ssh "$HOST" "mkdir -p '$REMOTE/playwright' && docker run --rm ${LABELS[*]} --ipc=host \
     -v '$REMOTE/playwright:/pw' -v '$STAGE:/src' -w /pw $PLAYWRIGHT_IMAGE \
-    sh -c '[ -d node_modules/playwright ] || npm install --no-save --no-audit --no-fund $PLAYWRIGHT_NPM >/dev/null; \
+    sh -c '[ -d node_modules/playwright ] && [ -d node_modules/axe-core ] || npm install --no-save --no-audit --no-fund $PLAYWRIGHT_NPM $AXE_NPM >/dev/null; \
            PLAYWRIGHT_DIR=/pw node /src/sim/web/test/screenshot.mjs /src/sim/web/www /src/sim/web/build/screenshots; \
            s=\$?; PLAYWRIGHT_DIR=/pw node /src/sim/web/test/files.mjs /src/sim/web/www /src/sim/web/build/screenshots \
              || s=1; PLAYWRIGHT_DIR=/pw node /src/sim/web/test/editor.mjs /src/sim/web/www /src/sim/web/build/screenshots 30 \
              || s=1; PLAYWRIGHT_DIR=/pw node /src/sim/web/test/editor-ui.mjs /src/sim/web/www /src/sim/web/build/screenshots \
+             || s=1; PLAYWRIGHT_DIR=/pw node /src/sim/web/test/editor-reach.mjs /src/sim/web/www /src/sim/web/build/screenshots \
+             || s=1; PLAYWRIGHT_DIR=/pw node /src/sim/web/test/editor-map.mjs /src/sim/web/www /src/sim/web/build/screenshots \
+             || s=1; PLAYWRIGHT_DIR=/pw node /src/sim/web/test/editor-v1.mjs /src/sim/web/www /src/sim/web/build/screenshots \
              || s=1; if [ $README_SHOTS = 1 ] && [ \$s = 0 ]; then \
              PLAYWRIGHT_DIR=/pw node /src/sim/web/test/readme-screenshots.mjs /src/sim/web/www \
                /src/sim/web/build/readme-screenshots /src/sim/web/build/parity; s=\$?; fi; \

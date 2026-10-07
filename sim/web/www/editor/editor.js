@@ -25,6 +25,7 @@ import {
 } from './model.js';
 import { History } from './history.js';
 import { makeChains, cableIndex } from './chains.js';
+import { makeProject } from './project.js';
 
 const PREF = 'lunar.sim.editor.';
 function pref(key, value) {
@@ -90,7 +91,7 @@ export async function startEditor(env) {
   const ramList = el('ul', 'ed-ram-list', { id: nextId('ram') });
   const ramBtn = el('button', 'ed-ram', { type: 'button', 'aria-expanded': 'false', 'aria-controls': ramList.id,
     onclick: () => { const open = ramList.hidden; ramList.hidden = !open; ramBtn.setAttribute('aria-expanded', String(open)); } },
-  [el('span', 'ed-ram-label', { text: 'RAM' }), ramBar, ramText]);
+  [el('span', 'ed-ram-label', { text: 'RAM' }), ' ', ramBar, ' ', ramText]);
   ramList.hidden = true;
   const title = el('span', 'ed-title', {}, [el('span', 'ed-brand', { text: 'Advanced editor' }), el('span', 'ed-project')]);
   const appbar = el('div', 'ed-appbar', { role: 'toolbar', 'aria-label': 'Editor' }, [
@@ -104,7 +105,7 @@ export async function startEditor(env) {
   const outline = el('nav', 'ed-outline', { 'aria-label': 'Outline' });
   const screen = el('canvas', 'ed-screen', { width: 240, height: 240, 'aria-label': 'The FM-1 screen, as on the panel' });
   const screenCap = el('p', 'ed-screen-cap');
-  const card = el('section', 'ed-card', { 'aria-label': 'On the FM-1' }, [el('h3', 'ed-card-title', { text: 'On the FM-1' }), screen, screenCap]);
+  const card = el('section', 'ed-card', { 'aria-label': 'On the FM-1' }, [el('p', 'ed-card-title', { text: 'On the FM-1' }), screen, screenCap]);
   const context = el('p', 'ed-context');
   const fromPanel = el('p', 'ed-from', { hidden: true });
   const view = el('div', 'ed-view');
@@ -124,6 +125,14 @@ export async function startEditor(env) {
   const chains = makeChains({
     st, meta, mm, el, history, files, root, nextId, sendOps, say, showRefusal, select, render, blockOf, engineName,
     inspector, sliderControl, rowShell, segControl, levelRow, renderHistory, snapshotSoon, setValue, openOnPanel,
+    onStruct: (e) => project.onStruct(e),
+    projectTools: (k) => project.headTools(k),
+  });
+  // Stage ED4: drop targets, export, the library, links, search, A/B, Memory
+  // and undo's snapshot fallback.
+  const project = makeProject({
+    st, meta, el, files, root, view, nextId, say, select, render, blockOf, engineName, rows, selectRow: (r) => selectRow(r),
+    snapshotSoon, history, undo: () => undo(), redo: () => redo(), setKeys: (m) => setKeys(m), post, chains, mm,
   });
 
   // ---- PLAY and EDIT (§13) ---------------------------------------------------
@@ -136,8 +145,9 @@ export async function startEditor(env) {
     keysChip.innerHTML = '';
     keysChip.append('Keys ', el('b', null, { text: mode === 'play' ? 'PLAY' : 'EDIT' }),
       el('span', 'ed-hint', { text: mode === 'play' ? ` · ${MOD}E edits` : ' · Esc plays' }));
-    keysChip.setAttribute('aria-label', mode === 'play'
-      ? `Keys play the FM-1. ${MOD}E gives them to the editor.` : 'Keys edit. Escape gives them back to the FM-1.');
+    // The name starts with what is written on the chip (WCAG 2.5.3), then says what it does.
+    keysChip.setAttribute('aria-label', `${keysChip.textContent.replace(/\s+/g, ' ').trim()}. ${mode === 'play'
+      ? `Keys play the FM-1; ${MOD}E gives them to the editor.` : 'Keys edit; Escape gives them back to the FM-1.'}`);
   }
   st.keys = '';
   setKeys('play');
@@ -156,9 +166,10 @@ export async function startEditor(env) {
       if (st.keys === 'play') { setKeys('edit'); focusSelection(); } else toPlay();
       return;
     }
+    const inText = e.target.closest && e.target.closest('input[type=text], input[type=search], select');
+    if (project.onKey(e, mod, inText)) return;
     if (st.keys !== 'edit') return;
     if (e.key === 'Escape' && !st.typing) { e.preventDefault(); toPlay(); return; }
-    const inText = e.target.closest && e.target.closest('input[type=text], input[type=search], select');
     if (mod && !inText && (e.key.toLowerCase() === 'z' || e.key.toLowerCase() === 'y')) {
       e.preventDefault();
       if (e.key.toLowerCase() === 'y' || e.shiftKey) redo(); else undo();
@@ -226,6 +237,7 @@ export async function startEditor(env) {
   function sendOps(bytes, info) {
     if (!st.port) return 0;
     const tag = newTag(info);
+    st.inflight += 1;
     post({ type: 'edit', tag, bytes }, [bytes.buffer]);
     return tag;
   }
@@ -242,6 +254,7 @@ export async function startEditor(env) {
     // Refused while the module is still starting: asked again shortly.
     if (!reply.ok) { if (st.port) setTimeout(() => { if (id === st.snapId) snapshot(); }, 250); return; }
     st.live = reply.bytes.slice(0);
+    st.liveGen = reply.gen >>> 0;
     const r = await files.shadow('save', { kind: 1, live: reply.bytes, mod: true });
     if (id !== st.snapId) return;
     if (!r || !r.text) { if (st.port) setTimeout(() => { if (id === st.snapId) snapshot(); }, 250); return; }
@@ -252,6 +265,7 @@ export async function startEditor(env) {
     st.pendingChanges = [];
     render();
     for (const c of waiting) onChanges(c);
+    project.applyPendingSel();
   }
   let snapTimer = 0;
   function snapshotSoon() {
@@ -281,6 +295,7 @@ export async function startEditor(env) {
 
   function onChanges(list) {
     if (st.loading || !st.mirror) { st.pendingChanges.push(list); return; }
+    project.staleSoon();
     let structure = false, cables = false;
     const structFrom = new Set();       // sources whose structural change this batch already holds
     for (const c of list) {
@@ -289,6 +304,7 @@ export async function startEditor(env) {
       const info = c.src === SRC_EDITOR ? st.tags.get(c.tag) : null;
       const origin = c.src === SRC_PANEL ? 'panel' : SOURCES[c.src] || 'host';
       const t = c.rec.type;
+      if (t === REC_T.LOADED) project.onLoaded();      // A/B: a load sets A (§9)
       // The panel's (or a script's) structural change, into the history
       // from the mirror as it was; the cables it re-aimed come with it.
       if (c.src !== SRC_EDITOR && origin !== 'load' && (t === REC_T.UNIT || t === REC_T.MODULE || t === REC_T.SWAP || t === REC_T.MOVE)) {
@@ -323,6 +339,7 @@ export async function startEditor(env) {
       }
       if (st.dragKey !== target) refreshValue(r.key, r.uid);
     }
+    if (cables) chains.refreshMods();
     if (structure) snapshotSoon();
     else if (cables) {
       // A cable's verdict is the planner's: the mirror is taken again, once
@@ -334,6 +351,8 @@ export async function startEditor(env) {
   }
 
   function onEdited(tag, codes) {
+    st.inflight = Math.max(0, st.inflight - 1);
+    project.staleSoon();
     const info = st.tags.get(tag);
     if (!info) return;
     const list = codes && codes.length ? Array.from(codes) : [];
@@ -352,6 +371,7 @@ export async function startEditor(env) {
       say(`${info.label || 'The cable'} is written but does not run: ${words}.`);
       showRefusal(`${info.label || 'The cable'} does not run`, words);
     }
+    if (!code && info.undo && info.entryRef) project.checkUndo(info.entryRef);   // §8's hash check
     // The tag stays known until its change has come back.
     setTimeout(() => st.tags.delete(tag), 2000);
   }
@@ -425,7 +445,17 @@ export async function startEditor(env) {
     }
   }
 
-  function say(text) { live.textContent = text; }
+  // At most one announcement a second (§13): the first at once, then the
+  // latest of any that follow, when the second is up.
+  let sayAt = -1e9, sayTimer = 0, sayLast = '';
+  function say(text) {
+    const wait = 1000 - (performance.now() - sayAt);
+    sayLast = text;
+    if (wait <= 0 && !sayTimer) { sayAt = performance.now(); live.textContent = text; return; }
+    if (!sayTimer) {
+      sayTimer = setTimeout(() => { sayTimer = 0; sayAt = performance.now(); live.textContent = sayLast; }, Math.max(0, wait));
+    }
+  }
 
   // ---- RAM by part (§11: a percentage of the FM-1's budget only) -----------------------
   function onRam(m) {
@@ -610,7 +640,12 @@ export async function startEditor(env) {
   }
   function undo() {
     const e = history.undo();
-    if (e && e.info && e.info.struct) { chains.undoStruct(e, false); renderHistory(); return; }
+    if (e && e.info && e.info.struct) {
+      // §8: checked by hash once C has applied it (onEdited); with nothing to send, now.
+      if (!chains.undoStruct(e, false)) project.checkUndo(e);
+      renderHistory();
+      return;
+    }
     if (!e || stale(e, 'undone')) return;
     write(e.info.key, e.info.uid, e.before, { undo: true, label: e.label, focus: e.info.focus });
     say(`Undone: ${e.label}, ${textOf(e.info.key, e.info.uid, e.before)}`);
@@ -618,6 +653,7 @@ export async function startEditor(env) {
   }
   function redo() {
     const e = history.redo();
+    if (e && e.info && e.info.reload) { project.redoPicks(e); renderHistory(); return; }      // A/B's picks: the file they made
     if (e && e.info && e.info.struct) { chains.undoStruct(e, true); renderHistory(); return; }
     if (!e || stale(e, 'redone')) return;
     write(e.info.key, e.info.uid, e.after, { redo: true, label: e.label, focus: e.info.focus });
@@ -677,9 +713,17 @@ export async function startEditor(env) {
     rows.clear();
     view.innerHTML = '';
     if (st.port && st.mirror) {
+      const card = project.arrivalCard();
+      if (card) view.append(card);
       if (st.view === 'flow') view.append(flowView());
       else if (st.view === 'mod') view.append(chains.modView());
-      else view.append(soundView(st.sound));
+      else if (st.view === 'memory') view.append(project.memoryView());
+      else if (st.view === 'ab') view.append(project.compareView());
+      else if (st.view === 'library') {
+        const slot = el('div', 'ed-lib-slot');
+        view.append(slot);
+        project.libraryView().then((v) => { if (slot.isConnected) slot.replaceWith(v); });
+      } else view.append(soundView(st.sound));
     }
     if (fk) {
       const t = root.querySelector(`[data-fk="${CSS.escape(fk)}"]`);
@@ -699,18 +743,25 @@ export async function startEditor(env) {
       { type: 'button', onclick: on, 'aria-current': current ? 'true' : null, title: label }, [
         el('span', 'ed-out-tag', { text: short }), el('span', 'ed-out-name', { text: label }),
         extra ? el('span', 'ed-out-x', { text: extra }) : null]);
-    outline.append(el('h3', 'ed-out-h', { text: 'Sounds' }));
+    outline.append(el('p', 'ed-out-h', { text: 'Sounds' }));
     for (let k = 0; k < SOUNDS; ++k) {
       const b = blockOf(blockKey(ROLE.SOUND, k));
       outline.append(mk(b ? engineName(b.engine) : 'Empty', `S${k + 1}`, `ed-s${k + 1}`,
         () => select(blockKey(ROLE.SOUND, k), { view: 'sound' }), st.view === 'sound' && st.sound === k));
     }
-    outline.append(el('h3', 'ed-out-h', { text: 'Signal' }));
+    outline.append(el('p', 'ed-out-h', { text: 'Signal' }));
     outline.append(mk('Flow and effects', 'FX', 'ed-out-fx', () => { st.view = 'flow'; render(); }, st.view === 'flow'));
     const nMods = st.mirror ? st.mirror.rack.filter(Boolean).length : 0;
     const nCables = st.mirror ? st.mirror.cables.filter((c) => c.flags & 1).length : 0;
     outline.append(mk('Modulation', 'MOD', 'ed-out-mod', () => { st.view = 'mod'; render(); }, st.view === 'mod',
       st.mirror ? `${nMods}·${nCables}` : null));
+    outline.append(el('p', 'ed-out-h', { text: 'Project' }));
+    outline.append(mk('Library', 'LIB', 'ed-out-lib', () => { st.view = 'library'; render(); }, st.view === 'library'));
+    outline.append(mk('Compare A/B', 'A/B', 'ed-out-ab', () => { st.view = 'ab'; render(); }, st.view === 'ab',
+      st.ab && st.ab.A ? st.ab.playing : null));
+    outline.append(mk('Memory', 'RAM', 'ed-out-mem', () => { st.view = 'memory'; render(); }, st.view === 'memory'));
+    outline.append(el('button', 'ed-out ed-out-search', { type: 'button', onclick: () => project.openSearch(), title: `Search (${MOD}K)` }, [
+      el('span', 'ed-out-tag', { text: MOD === '⌘' ? '⌘K' : '^K' }), el('span', 'ed-out-name', { text: 'Search' })]));
   }
 
   // The Flow (§10, mockup 01): four strips into the Mix and the master slots.
@@ -744,10 +795,11 @@ export async function startEditor(env) {
     const sk = blockKey(ROLE.SOUND, k);
     const s = blockOf(sk);
     const row = el('div', `ed-strip ed-s${k + 1}${s ? '' : ' is-empty'}`, { role: 'group', 'aria-label': `Sound ${k + 1}` });
-    row.append(el('span', 'ed-tag', { text: `S${k + 1}` }));
+    row.append(el('span', `ed-tag ed-s${k + 1}`, { text: `S${k + 1}` }));      // the sound's own colour pair: its text on it is dark
+    if (s) project.wireStripDrag(row.firstChild, sk);
     if (!s) {
       row.append(el('span', 'ed-strip-empty', { text: 'Empty' }), chains.pickerButton(sk));
-      return row;
+      return project.wireDrop(row, sk);    // a sound file loads into an empty sound too
     }
     const mk = blockKey(ROLE.MFX, k, 0);
     const m = blockOf(mk);
@@ -780,12 +832,24 @@ export async function startEditor(env) {
     const p = pg && pg.params.find((x) => x.type === 'enum');
     return p ? rawText(p, b.values.get(p.uid)) : '';
   }
+  // The cables that end on a block, in words: "2 cables", and "1 refused" when C refuses some (§10: each block
+  // with its meter and its cable or refusal count).
+  function cableWords(c) {
+    if (!c.n) return '';
+    const n = `${c.n} cable${c.n === 1 ? '' : 's'}`;
+    return c.refused ? `${n}, ${c.refused} refused` : n;
+  }
   function flowBlock(key, name, kind, sub, cls = '') {
+    const cnt = key === MIX_KEY ? { n: 0, refused: 0 } : chains.cableCount(key);
+    const lit = blockOf(key) || key === MIX_KEY;
+    const mtr = lit ? chains.blockMeter(key === MIX_KEY ? 'the-mix' : key) : null;
     const btn = el('button', `ed-block ${cls}${st.selected === key ? ' is-sel' : ''}`,
       { type: 'button', 'data-block': key, 'data-fk': key, 'aria-pressed': st.selected === key ? 'true' : 'false',
-        'aria-label': `${kind} ${name}${sub ? `, ${sub}` : ''}`, onclick: () => select(key, { view: 'flow' }) },
-      [el('span', 'ed-blk-k', { text: kind }), el('span', 'ed-blk-n', { text: name }), sub ? el('span', 'ed-blk-s', { text: sub }) : null]);
-    return btn;
+        'aria-label': [kind, name, sub, cableWords(cnt)].filter(Boolean).join(' '), onclick: () => select(key, { view: 'flow' }) },
+      [el('span', 'ed-blk-k', { text: kind }), ' ', el('span', 'ed-blk-n', { text: name }), sub ? ' ' : null, sub ? el('span', 'ed-blk-s', { text: sub }) : null,
+        cnt.n ? ' ' : null, cnt.n ? el('span', `ed-blk-c${cnt.refused ? ' is-refused' : ''}`, { 'data-cables': String(cnt.n), 'data-refused': String(cnt.refused), text: cableWords(cnt) }) : null,
+        mtr ? el('span', 'ed-blk-m', { 'data-meter': mtr, 'aria-hidden': 'true' }) : null]);
+    return key === MIX_KEY ? btn : project.wireDrop(chains.wireMenu(btn, key), key);
   }
 
   // An empty slot: what it is, and its picker.
@@ -854,7 +918,7 @@ export async function startEditor(env) {
       e && e.gpl ? el('span', 'ed-gpl', { text: 'GPL', title: `Licence: ${e.licence}` }) : null,
       el('span', 'ed-insp-ram', { text: e && st.ram ? `RAM ${ramWords(e.ram, st.ram.budget)}` : '' })]);
     box.append(head);
-    if (st.mirror && st.mirror.cables && !opt.bare) head.append(el('span', 'ed-tools', {}, chains.headTools(key)));
+    if (st.mirror && st.mirror.cables && !opt.bare) head.append(el('span', 'ed-tools', {}, [...chains.headTools(key), ...project.headTools(key)]));
     if (e && e.credits) box.append(el('p', 'ed-credits', { text: `${e.credits}${e.group ? ` · ${meta.groupName(e.group)}` : ''}` }));
     if (!e) { box.append(el('p', 'ed-note', { text: `${b.engine} is not in this build's metadata.` })); return box; }
     const mt = opt.bare ? null : chains.meters(key);
@@ -950,9 +1014,9 @@ export async function startEditor(env) {
     r.p = p;
     r.page = pg.page;
     if (hasFlag(p, 'mod')) r.label.classList.add('can-mod');
-    if (hasFlag(p, 'poly')) r.label.append(el('span', 'ed-poly', { text: 'v', title: 'per voice: a per-voice cable may land here' }));
+    if (hasFlag(p, 'poly')) r.label.append(el('span', 'ed-poly', { role: 'img', 'aria-label': 'per voice', text: 'v', title: 'per voice: a per-voice cable may land here' }));
     if (hasFlag(p, 'per_focus')) r.label.append(el('span', 'ed-pad-b', { text: 'pad', title: 'per pad: the pad chosen above' }));
-    if (kind === 'slider') sliderControl(r, p, () => valueOf(key, p.uid), (v) => withUnit(p, fmt(blockOf(key).engine, p, v)));
+    if (kind === 'slider') { sliderControl(r, p, () => valueOf(key, p.uid), (v) => withUnit(p, fmt(blockOf(key).engine, p, v))); chains.decorateRow(r, key, p); r.update(); }
     else if (kind === 'segments' || kind === 'grid') segControl(r, p, kind);
     else listControl(r, p, kind);
     return r.el;
@@ -1024,6 +1088,8 @@ export async function startEditor(env) {
   // zero, one detent per arrow key (⇧ ten, ⌥ a tenth), Home and End, D the
   // default, Enter to type. A drag is one history step and sends at most one
   // op a frame; a `nolock` parameter is sent once, on release.
+  // A row's name without its badges (the per-voice mark): the label's own text.
+  const labelName = (r) => [...r.label.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim() || r.label.textContent;
   function sliderControl(r, p, get, text) {
     const s = el('div', 'ed-slider', { role: 'slider', tabindex: '0', 'aria-labelledby': r.id, 'data-fk': `${r.key}:${r.uid}`,
       'aria-valuemin': String(p.min), 'aria-valuemax': String(p.max) });
@@ -1033,7 +1099,7 @@ export async function startEditor(env) {
     if (zero) zero.style.left = `${(zeroPos(p) * 100).toFixed(2)}%`;
     s.append(...[el('span', 'ed-track', { 'aria-hidden': 'true' }), fill, zero, thumb].filter(Boolean));
     if (isLog(p)) s.classList.add('is-log');
-    const field = el('input', 'ed-val', { type: 'text', inputmode: 'decimal', spellcheck: 'false', 'aria-label': `${r.label.textContent}: type a value` });
+    const field = el('input', 'ed-val', { type: 'text', inputmode: 'decimal', spellcheck: 'false', 'aria-label': `${labelName(r)}: type a value` });
     const target = `${r.key}:${r.uid}`;
     const nolock = hasFlag(p, 'nolock');
     let dragV = null;
@@ -1047,7 +1113,8 @@ export async function startEditor(env) {
       const t = text(v);
       if (!st.typing || document.activeElement !== field) field.value = t;
       s.setAttribute('aria-valuenow', String(Math.round(v * 1000) / 1000));
-      s.setAttribute('aria-valuetext', `${r.label.textContent}, ${t.replace(/ dB$/, ' decibels').replace(/ Hz$/, ' hertz').replace(/ ms$/, ' milliseconds').replace(/ %$/, ' percent')}`);
+      s.setAttribute('aria-valuetext', `${labelName(r)}, ${t.replace(/ dB$/, ' decibels').replace(/ Hz$/, ' hertz').replace(/ ms$/, ' milliseconds').replace(/ %$/, ' percent')}${r.modWords ? r.modWords() : ''}`);
+      if (r.modDraw) r.modDraw(v);
     };
     r.update = () => draw(dragV !== null ? dragV : get());
     const commit = (v, how) => setValue(r.key, r.uid, v, how);
@@ -1098,6 +1165,7 @@ export async function startEditor(env) {
       else if (e.key === 'Home') nv = p.min;
       else if (e.key === 'End') nv = p.max;
       else if (e.key === 'd' || e.key === 'D') { if (!e.metaKey && !e.ctrlKey) nv = p.def; }
+      else if ((e.key === 'c' || e.key === 'C') && !e.metaKey && !e.ctrlKey && !e.altKey && typeof p.uid === 'number') { e.preventDefault(); chains.cableInto(r.key, p); return; }
       else if (e.key === 'Enter') { e.preventDefault(); field.focus(); field.select(); return; }
       if (nv === null) return;
       e.preventDefault();
@@ -1208,7 +1276,7 @@ export async function startEditor(env) {
     }
     const keys = el('span', 'ed-d-keys', {}, p && p.type === 'float' ? [
       el('kbd', null, { text: '←→' }), ' one detent', el('kbd', null, { text: '⇧' }), ' ten', el('kbd', null, { text: 'Enter' }), ' type',
-      el('kbd', null, { text: 'D' }), ' default'] : [el('kbd', null, { text: '←→' }), ' choose']);
+      el('kbd', null, { text: 'D' }), ' default', ...(p.flags && p.flags.includes('mod') ? [el('kbd', null, { text: 'C' }), ' cable'] : [])] : [el('kbd', null, { text: '←→' }), ' choose']);
     detail.append(keys);
   }
 
@@ -1245,7 +1313,8 @@ export async function startEditor(env) {
 
   render();
   const api = {
-    setLayout, state: st, history, meta, mm, chains, rows, select, undo, redo, setKeys,
+    setLayout, state: st, history, meta, mm, chains, rows, select, undo, redo, setKeys, project, say,
+    applyLink: (l) => project.applyLink(l),
     // The page test's hooks: an inspector for any module, drawn from the
     // metadata with its defaults, and the mirror as it stands.
     inspectorFor(id) {

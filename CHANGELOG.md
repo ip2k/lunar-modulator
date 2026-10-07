@@ -9,6 +9,64 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The advanced editor: the v1 gaps** (the audit after ED5b). A parameter a
+  cable moves now looks it, as the screen does: its name in the modulation
+  colour, a chip naming the cable's source, a bracket round the value, a tick
+  where it is now (one for each sounding note for a per-voice cable), and the
+  slider says it aloud ("Cutoff, 420 hertz, modulated by 1 LFO Out, plus 35
+  percent"); <kbd>C</kbd> makes a cable into the parameter. Cables that run a
+  tick late are marked `~` in the table and the Map and explained (which
+  modules the loop passes through); a cable the instrument refuses can offer
+  its repair (*Make it global*); the cable's curves are drawn and a per-voice
+  cable shows each note's value. Search understands `>cutoff`, `lfo>`, `!`,
+  `~`, `v`, `s2` and units such as `hz`, and finds cables. A/B lists each
+  difference with an A or B pick and can make B from the picks in one undoable
+  step; A and B survive a reload. Each block can copy a link to its file, and in
+  Chromium a sound's tag can be dragged to the desktop. A file dropped on a
+  block says what it replaces and what it brings. Flow blocks show their cable
+  counts and level bars. On a phone, *Add a cable* is three steps and a long
+  press opens a block's menu. The Map's source groups now come from the
+  instrument (parameter metadata level 1.2, which also carries the matrix
+  marks, the curves' points and the repairs). The editor's views pass
+  axe-core's rules at desktop, tablet and phone widths; muted text, headings
+  and some button names were fixed for it.
+- **The advanced editor: the Map** (stage ED5b, finishing the editor). The
+  modulation view has a second face, *Map*, next to *Table*: the same cables
+  drawn as a patch bay, with sources on the left, the rack in the middle and
+  destinations on the right. Click a module, a destination or a source (or
+  press F) and its cables stay bright with their amounts while the rest dim;
+  *Refused* does the same for the cables that do not run. Drag a cable from
+  an output to an input, or press Enter on an output, move with the arrows and
+  press Enter again; over an input the Map says whether it would run, in the
+  instrument's own words. The Map is for windows about 620 pixels wide and
+  up; a phone keeps the cable list. A new chapter of the manual, *The
+  advanced editor*, describes the whole editor with pictures. The editor's
+  tests now also run in Firefox and WebKit.
+- **The advanced editor: reach and the read-outs** (stage ED5a). Effects that
+  turn the sound down show it: an effect's *Out* meter has a gain-reduction
+  bar and "GR n dB" while Comp, Limiter or Squash is cutting (Limiter and
+  Squash had no read-out before), and a per-voice cable's *Live* value shows
+  the range of its sounding voices. The editor is usable by keyboard and
+  screen reader: every control has a name, one 2-pixel focus ring everywhere,
+  sliders speak their values, announcements come at most once a second and
+  never for live values. On a phone the switch is two tabs, *Panel* and
+  *Edit*; the outline becomes a row of tabs, the screen card a small screen,
+  and the matrix a list of cables. Tests now look for text that overlaps or
+  is clipped in every view at 1,440, 1,024, 768 and 375 pixels.
+- **The advanced editor: files and the project** (stage ED4). Drop a sound,
+  effects or mod rack file on the block it belongs to: the editor says what
+  it would do and how much memory the project would take, or why it does
+  not fit, before anything loads. Each block exports its own file and can be
+  saved to the library in this browser; the *Library* view lists what is
+  saved and Recent, and a saved sound or effects can be dragged onto a block
+  with its verdict shown while it hovers. Ctrl+K (⌘K) searches blocks,
+  parameters and commands. *Compare A/B* keeps the project or one sound as
+  A, and X switches between A and B, with the differences listed. *Memory*
+  shows each part's share of the FM-1's memory in percent, what is free and
+  what would still fit. Links can open the editor at a block or a parameter
+  (`?view=edit&sel=s3.in1:Cutoff`). Selecting an arpeggiator opens its ARP
+  pages on the panel. Undo checks itself: when an engine or effect change
+  does not come back exactly, the project as it was is restored instead.
 - **The advanced editor: effects, the mix and modulation** (stage ED3). The
   editor now changes the structure of a project: *Choose engine…*, *Choose
   effect…*, *Choose MIDI effect…* and *Choose module…* list every choice
@@ -2307,6 +2365,7 @@ history.
   - The manual's recovery chapter no longer calls the open dongle design
     "complete": its firmware builds and is simulated, but nobody has built
     the board.
+- **A refusal for the wrong kind of file reads properly.** "A sound, not a effects chain was expected" is now "A sound, not an effects chain, was expected.": the article follows the word.
 - **Sound on iPhones and iPads** ([#53](https://github.com/ip2k/lunar-modulator/issues/53)).
   The simulator now plays through Silent mode, as a music app does (where
   Safari lets a page ask for that: iOS 18 does), and starts its sound again after a call, Siri or another

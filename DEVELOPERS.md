@@ -177,6 +177,38 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   the matrix table with slot and module inspectors read from C's packed
   records (`fm1w_mod_records`), and structural undo ([sim/web/README.md,
   "Stage ED3"](sim/web/README.md#the-advanced-editor-stage-ed3-chains-and-modulation)).
+  Stage ED4 (`www/editor/project.js`) adds files and the project: drop
+  targets with pass 1's verdict before the load, per-block export and the
+  library through W1's save path, `view=edit` and `sel` links, ⌘K search,
+  A/B, the Memory page, and undo's hash check with its snapshot fallback;
+  the state hash (`fm1_edit_state_hash`, `fm1w_state_hash`) now leaves out
+  where the panel is ([sim/web/README.md,
+  "Stage ED4"](sim/web/README.md#the-advanced-editor-stage-ed4-files-and-the-project)).
+  Stage ED5a is the first half of the last stage: read-only gain-reduction
+  taps for Limiter and Squash (`engines/include/fm1_dynamics.h`) and per-voice
+  destination values (`fm1_mod_voice_dest`) filling the telemetry ED1 left
+  empty, keyboard and screen-reader passes tested through the accessibility
+  snapshot, a phone layout (Panel and Edit tabs, the matrix as a list of
+  cables) and a layout probe that finds overlapping and clipped text at four
+  widths ([sim/web/README.md,
+  "Stage ED5a"](sim/web/README.md#the-advanced-editor-stage-ed5a-reach-and-the-read-outs)).
+  Stage ED5b finishes it: the patch-bay Map (`www/editor/map.js`) as a second
+  view of the matrix's slots with focus, a cable made by pointer or keys with
+  C's verdict over the input (the shadow Worker's `preview` with `mod`), the
+  editor's page tests in Firefox and WebKit as well as Chromium, and the
+  manual's chapter 15 ([sim/web/README.md,
+  "Stage ED5b"](sim/web/README.md#the-advanced-editor-stage-ed5b-the-map-other-browsers-and-the-manual)).
+  The v1 completion (2026-10-07; the note's §28) builds what the audit of
+  v1 found missing: modulation on the parameter rows (bracket, live tick,
+  chip, the cables spoken), late cables with the loop each closes (a new
+  tail of `fm1w_mod_records`), metadata level 1.2 (the matrix marks, the
+  sources' groups, the curves' points, a refusal's repair), search operators,
+  A/B picks with "Make B from the picks" and A and B kept in IndexedDB, per-block links,
+  the arrival card's replaced and brought, the Flow's counts and bars, the
+  phone's three-step *Add a cable* and a block's long-press menu, and §17's
+  tests (axe-core, reduced motion, hidden telemetry, a lock playing, the
+  main thread's budget, a sweep of hands) ([sim/web/README.md, "The editor's
+  v1 completion"](sim/web/README.md#the-advanced-editor-the-v1-completion)).
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free

@@ -117,7 +117,7 @@ record = {
     # own checks.
     "edit": {"parity": edit["parity"], "audio_max_lsb": edit["audio_max_lsb"], "storm": edit["storm"],
              "check": {k: edit_check[k] for k in ("params", "steps", "text_bad", "codes", "hands",
-                                                  "tele_fills", "failed")}},
+                                                  "sweeps", "lock_blocks", "tele_fills", "failed")}},
     "scenarios": [
         {"name": s["name"], "samples": s["samples"], "libm_sensitive": s["libm_sensitive"],
          **{k: (None if s[k] is None else {"differing": s[k]["differing"], "max_lsb": s[k]["max"]})

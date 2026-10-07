@@ -56,8 +56,22 @@ def test_the_panel_and_the_editor_make_the_same_changes(check):
     # Seven panel gestures (knobs over two pages, PRESETS, the Mix page,
     # SEL + SELECT, SHIFT + PRESETS, the arpeggiator, the rack), their ring
     # entries replayed as editor ops: the same entries and the same state.
-    assert check["hands"] == 7
+    assert check["hands"] == 7 + 40
     assert check["tele_fills"] in (29, 30, 31)
+
+
+def test_a_sweep_of_random_gestures_gives_the_same_state_either_way(check):
+    # The note's section 17, "parity of hands": forty runs of the families above with
+    # random deltas, in random order, each replayed as editor ops (the seed is the run's
+    # number).
+    assert check["sweeps"] == 40 and check["failed"] == 0
+
+
+def test_a_lock_playing_moves_no_base(check):
+    # Section 7, "heard, not set": the start chain's demo pattern plays for 900 blocks;
+    # every parameter of every unit reads what it did, and the ring holds no parameter write.
+    assert check["lock_blocks"] == 900 and check["failed"] == 0
+
 
 
 def test_the_verbs_script_parses_in_c():

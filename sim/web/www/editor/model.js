@@ -197,8 +197,8 @@ export function blockTag(key) {
 }
 
 // The view verb that opens a block's page on the panel (follow, editor to
-// panel). A MIDI effect's pages open from the panel's ARP button; the verb
-// takes its sound's HOME (the view keys have none for them).
+// panel). A MIDI effect's pages are HOME's entry 2 (stage ED4): the panel's
+// ARP pages, as its ARP button opens them.
 export function viewFor(key, page = 1) {
   const c = /^c([0-9]+)$/.exec(key);
   if (c) return { mode: 'matrix', keys: { slot: Number(c[1]) } };
@@ -208,7 +208,7 @@ export function viewFor(key, page = 1) {
   if (b.role === ROLE.INSERT) return { mode: 'fx', keys: { sound: b.sound + 1, entry: b.slot + 1, page } };
   if (b.role === ROLE.MASTER) return { mode: 'fx', keys: { entry: 4 + b.slot, page } };
   if (b.role === ROLE.MODULE) return { mode: 'rack', keys: { pos: b.slot + 1 } };
-  return { mode: 'home', keys: { sound: b.sound + 1 } };
+  return { mode: 'home', keys: { sound: b.sound + 1, entry: 2, page } };
 }
 
 // Where the panel is, as a block and a page (follow, panel to editor), or
@@ -430,7 +430,7 @@ function blockFrom(meta, unit, pad) {
 
 export function mirrorFromProject(meta, doc, modBytes) {
   const m = { current: 0, blocks: new Map(), levels: [0, 0, 0, 0], title: doc.title || doc.name || '',
-    rack: new Array(8).fill(''), cables: [], verdicts: [], pads: new Map() };
+    rack: new Array(8).fill(''), cables: [], verdicts: [], loops: [], pads: new Map() };
   m.current = doc.session && Number.isInteger(doc.session.current) ? doc.session.current - 1 : 0;
   (doc.sounds || []).slice(0, SOUNDS).forEach((s, k) => {
     if (!s) return;
@@ -469,14 +469,16 @@ export function mirrorFromProject(meta, doc, modBytes) {
     const b = blockFrom(meta, { engine: r.kind, params: r.params }, null);
     if (b && r.pos >= 1 && r.pos <= 8) m.blocks.set(blockKey(ROLE.MODULE, 0, r.pos - 1), b);
   }
-  if (modBytes && modBytes.length >= (POSITIONS + SLOTS) * REC + SLOTS) {
+  if (modBytes && modBytes.length >= (POSITIONS + SLOTS) * REC + SLOTS) {   // an older module's 32 bytes: no loops
     const d = decodeMod(modBytes);
     m.rack = d.rack;
     m.cables = d.cables;
     m.verdicts = d.verdicts;
+    m.loops = d.loops;
   } else {
     m.cables = Array.from({ length: SLOTS }, emptyCable);
     m.verdicts = new Array(SLOTS).fill(0);
+    m.loops = new Array(SLOTS).fill(0);
   }
   return m;
 }
@@ -592,13 +594,16 @@ export function parseModKey(key) {
   return m ? m[1] - 1 : -1;
 }
 
-// What fm1w_mod_records writes: the rack (kind ids), the slots, a verdict a slot.
+// What fm1w_mod_records writes: the rack (kind ids), the slots, a verdict a
+// slot, and a loop mask a slot (the rack positions of the loop a cable read a
+// tick late closes, as a bit mask; 0 for a cable that is not late).
 export function decodeMod(bytes) {
-  const rack = [], cables = [], verdicts = [];
+  const rack = [], cables = [], verdicts = [], loops = [];
   for (let i = 0; i < POSITIONS; ++i) rack.push(unpack(bytes, i * REC).id || '');
   for (let i = 0; i < SLOTS; ++i) cables.push(unpackCable(bytes, (POSITIONS + i) * REC));
   for (let i = 0; i < SLOTS; ++i) verdicts.push(bytes[(POSITIONS + SLOTS) * REC + i] || 0);
-  return { rack, cables, verdicts };
+  for (let i = 0; i < SLOTS; ++i) loops.push(bytes[(POSITIONS + SLOTS) * REC + SLOTS + i] || 0);
+  return { rack, cables, verdicts, loops };
 }
 
 // The rack and matrix of the metadata: kinds, sources, units, curves.
@@ -612,6 +617,8 @@ export class ModMeta {
     this.host = m.host || [];
     this.polarities = m.polarities || [];
     this.curves = m.curves || [];
+    this.curvePoints = m.curve_points || [];          // 1.2: each curve at s = -1 to 1 in 33 steps, C's own
+    this.sourceGroups = m.source_groups || [];        // 1.2: how a patch bay lists the sources
     this.positions = m.positions || POSITIONS;
     this.slots = m.slots || SLOTS;
   }
@@ -657,6 +664,24 @@ export class ModMeta {
       (k && k.outs ? k.outs : []).forEach((o, port) => out.push({ code: SRC_MODULE + 8 * pos + port,
         name: `${pos + 1} ${k.abbr} ${o.name}`, kind: o.kind, group: 'Modules' }));
     });
+    return out;
+  }
+  // The fixed sources as the metadata groups them (1.2: each source's `group`,
+  // and `source_groups` for the order and the names): [{ id, title, list }], a
+  // group with a {sound} in its name once for each sound. The editor holds no
+  // source name: a build whose metadata has no groups lists them all in one.
+  groupedSources() {
+    const all = [...this.sources.values()];
+    if (!this.sourceGroups.length) return [{ id: 'all', title: 'Sources', list: all }];
+    const out = [];
+    for (const g of this.sourceGroups) {
+      const mine = all.filter((x) => x.group === g.id);
+      if (!mine.length) continue;
+      if (!g.name.includes('{sound}')) { out.push({ id: g.id, title: g.name, list: mine }); continue; }
+      for (const n of [...new Set(mine.map((x) => x.sound))].sort((a, b) => a - b)) {
+        out.push({ id: `${g.id}${n}`, title: g.name.replace('{sound}', String(n)), list: mine.filter((x) => x.sound === n) });
+      }
+    }
     return out;
   }
   // A cable's polarity, curve and the rest, from its flags.

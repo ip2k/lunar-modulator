@@ -101,7 +101,10 @@ int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t tot
  * text) as canonical JSON, or with `binary` as the binary container (a
  * set: a SET container; the text itself with binary 0); binary 2 is the
  * container with no chunk deflated, the page's autosave: cheaper on the
- * audio thread, and loaded as any other (owner, 2026-10-06). Out through put,
+ * audio thread, and loaded as any other (owner, 2026-10-06); binary 3 is
+ * that container without where the panel is (the project's view and
+ * its current sound), the one form the state hash
+ * reads (fm1_edit_state_hash, the shadow Worker's `hash`). Out through put,
  * in pieces. 1, or 0 with rep's code (BAD for a kind or target with nothing
  * to save). */
 int fm1_app_state_save(fm1_app_t *a, unsigned kind, int arg, int binary, fm1_put_t put, void *ctx,

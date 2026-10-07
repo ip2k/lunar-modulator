@@ -214,10 +214,24 @@ function parseInto(text, kind) {
   return null;
 }
 
+// sel=s3.in1:Cutoff (stage ED4, notes/2026-10-06-web-editor.md §9): a block
+// of the editor (a sound, an insert, a MIDI effect, a master slot, a rack
+// position, a matrix slot or the Mix) and, after a colon, a parameter by its
+// name. Only its shape is read here; the editor finds the name in the
+// metadata, and nothing in it is ever loaded, fetched or run.
+const SEL = /^(s[1-4](\.(in[12]|mfx[1-4]))?|m[12]|p[1-8]|c([1-9]|[12][0-9]|3[0-2])|mix)(:[A-Za-z0-9][A-Za-z0-9 .+/-]{0,31})?$/;
+export function parseSel(text) {
+  if (typeof text !== 'string' || text.length > 48 || !SEL.test(text)) return null;
+  const i = text.indexOf(':');
+  return i < 0 ? { key: text, param: null } : { key: text.slice(0, i), param: text.slice(i + 1) };
+}
+
 function readHints(params) {
   const h = {};
   if (params.has('into')) h.into = params.get('into');
-  if (params.has('view')) h.view = params.get('view');
+  if (params.get('view') === 'edit') h.edit = true;           // the editor, not a panel view
+  else if (params.has('view')) h.view = params.get('view');
+  if (params.has('sel')) h.sel = params.get('sel');
   if (params.has('hl')) h.hl = params.get('hl').split(',').map((s) => s.trim().toUpperCase()).filter(Boolean).slice(0, 16);
   if (params.get('play') === '1') h.play = true;
   if (params.has('entry')) {
@@ -228,19 +242,20 @@ function readHints(params) {
 }
 
 // ---- browser storage: IndexedDB, or memory when it is blocked ------------------------
-const memory = { files: new Map(), autosave: new Map(), recent: new Map() };
+const memory = { files: new Map(), autosave: new Map(), recent: new Map(), snapshots: new Map() };
 let memoryId = 1;
 let dbPromise = null;
 function openDb() {
   if (!dbPromise) {
     dbPromise = new Promise((resolve) => {
       try {
-        const req = indexedDB.open('lunar-modulator', 1);
+        const req = indexedDB.open('lunar-modulator', 2);   // 2: the editor's A/B `snapshots`
         req.onupgradeneeded = () => {
           const d = req.result;
           if (!d.objectStoreNames.contains('files')) d.createObjectStore('files', { keyPath: 'id', autoIncrement: true });
           if (!d.objectStoreNames.contains('autosave')) d.createObjectStore('autosave');
           if (!d.objectStoreNames.contains('recent')) d.createObjectStore('recent', { keyPath: 'id', autoIncrement: true });
+          if (!d.objectStoreNames.contains('snapshots')) d.createObjectStore('snapshots');   // A/B, one record for each thing compared
         };
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => resolve(null);
@@ -614,27 +629,31 @@ export function initFiles(env) {
   }
 
   // ---- Copy link ----
-  async function copyLink() {
+  // A link to the project, or (stage "v1 completed", §9 "Out, per block") to one block's file: a sound, a
+  // sound's or the master's effects, the mod rack, with the `into` hint that says where it goes.
+  async function copyLink(kind = 'project', arg = 0) {
+    const what = kind === 'project' ? 'project' : KIND_WORD[kind] || kind;
     try {
-      const text = await saveText('project');
+      const text = await saveText(kind, arg);
       const data = await deflateLink(JSON.stringify(JSON.parse(text)));
       if (data.length > LINK_CAP) {
-        notice('refused', `This project needs a ${Math.ceil(data.length / 1024)} KiB link, more than the ` +
-          `${LINK_CAP / 1024} KiB a link holds. Save… the project and share the file instead.`);
+        notice('refused', `This ${what} needs a ${Math.ceil(data.length / 1024)} KiB link, more than the ` +
+          `${LINK_CAP / 1024} KiB a link holds. Save… the ${what} and share the file instead.`);
         return null;
       }
-      const link = `${location.origin}${location.pathname}#lunar=${data}`;
+      const into = kind === 'sound' ? `&into=s${arg + 1}` : kind === 'fx' ? (arg < 0 ? '&into=master' : `&into=s${arg + 1}`) : '';
+      const link = `${location.origin}${location.pathname}#lunar=${data}${into}`;
       let copied = false;
       try { await navigator.clipboard.writeText(link); copied = true; } catch (err) { /* shown below */ }
       notice('info', copied ? `Link copied: ${Math.ceil(data.length / 1024)} KiB of the ${LINK_CAP / 1024} KiB a link holds. ` +
-        'Anyone who opens it gets this project, in their own browser.'
+        `Anyone who opens it gets this ${what}, in their own browser.`
         : 'The browser would not copy the link; it is selected below to copy by hand.');
       if (!copied) {
         const input = document.createElement('input');
         input.className = 'link-out';
         input.readOnly = true;
         input.value = link;
-        input.setAttribute('aria-label', 'Link to this project');
+        input.setAttribute('aria-label', `Link to this ${what}`);
         noticeEl.insertBefore(input, noticeEl.querySelector('.notice-actions'));
         input.select();
       }
@@ -647,6 +666,33 @@ export function initFiles(env) {
   }
 
   // ---- the library: saved, Recent, examples ----
+  // A saved item is a project (binary), or since stage ED4 a sound, effects
+  // or mod rack the editor kept (`kind`, its canonical JSON as C wrote it).
+  function loadItem(it, o = {}) {
+    const d = it.kind && it.kind !== 'project' ? { ...describe(it.bin, it.file), kind: it.kind, title: it.name }
+      : { enc: 1, kind: 'project', title: it.name.replace(/^Before /, '') };
+    return load(it.bin, { d, ui: true, ...o });
+  }
+  // A sound, effects or mod rack into the library, as C's canonical JSON.
+  async function saveToLibrary(kind, arg = 0) {
+    const text = await saveText(kind, arg);
+    const bin = encoder.encode(text);
+    const file = fileName(kind, arg);
+    const name = `${f.title} · ${kind === 'sound' ? `Sound ${arg + 1}` : kind === 'fx' ? (arg < 0 ? 'master effects' : `Sound ${arg + 1}'s effects`) : KIND_WORD[kind]}`;
+    await store.put('files', { name, kind, file, bin, size: bin.length, modified: Date.now() });
+    renderLibrary();
+    return { name, size: bin.length };
+  }
+  // The verdict before a drop (stage ED4, §9): pass 1 of `bytes` into the
+  // target, as the kind the target takes, against the live state. Nothing
+  // changes. { ok, report, d }: C's words either way.
+  async function verdict(bytes, name, kind, target) {
+    const d = describe(bytes, name);
+    let live;
+    try { live = await liveBin(); } catch (err) { return { ok: false, d, report: { code: 'OFF', message: err.message } }; }
+    const c = await shadow('check', { bytes, kind: KIND[kind] || 0, into: target.into, slot: target.slot | 0, flags: 0, live: live.slice(0) });
+    return { ok: !!c.ok, d, report: report(c) };
+  }
   const libEl = $('library-lists');
   async function renderLibrary() {
     if (!libEl) return;
@@ -691,9 +737,12 @@ export function initFiles(env) {
     const asItems = (list) => list.sort((a, b) => b.modified - a.modified)
       .map((x) => ({ ...x, meta: `${when(x.modified)}, ${Math.ceil(x.size / 1024)} KB` }));
     const binActions = (it, del) => [
-      ['Load', () => load(it.bin, { d: { enc: 1, kind: 'project', title: it.name.replace(/^Before /, '') }, ui: true })],
+      ['Load', () => loadItem(it)],
       ['Download', async () => {
-        try { download(await saveText('project', 0, it.bin), `${slug(it.name)}.lunar`, 'application/json'); } catch (err) {
+        try {
+          if (it.kind && it.kind !== 'project') download(decoder.decode(it.bin), it.file || `${slug(it.name)}.lunar`, 'application/json');
+          else download(await saveText('project', 0, it.bin), `${slug(it.name)}.lunar`, 'application/json');
+        } catch (err) {
           notice('refused', `Not saved: ${err.message}`);
         }
       }],
@@ -902,7 +951,7 @@ export function initFiles(env) {
   function clearLinkFromAddress() {
     try {
       const u = new URL(location.href);
-      for (const k of ['load', 'into', 'view', 'hl', 'play', 'entry']) u.searchParams.delete(k);
+      for (const k of ['load', 'into', 'view', 'hl', 'play', 'entry', 'sel']) u.searchParams.delete(k);
       if (/^#lunar=/.test(u.hash)) u.hash = '';
       history.replaceState(null, '', u.href);
     } catch (err) { /* the address keeps the link */ }
@@ -922,11 +971,24 @@ export function initFiles(env) {
       } catch (err) {
         notice('refused', `The link's project could not be read: ${err.message || err}.`);
       }
+    } else {
+      editorLink(hints);                 // view=edit and sel need no file
     }
+  }
+  // view=edit and sel (stage ED4): the editor opens, at a block; app.js
+  // switches the layout and the editor checks the block against its mirror.
+  function editorLink(h) {
+    if (!h.edit && h.sel === undefined) return;
+    const sel = h.sel === undefined ? null : parseSel(h.sel);
+    if (h.sel !== undefined && !sel) notice('refused', 'The link\'s selection was not applied: it names no block of the editor.');
+    f.editorLink = { edit: true, sel };
+    setTimeout(() => window.dispatchEvent(new CustomEvent('lunar-editor-link', { detail: f.editorLink })), 0);
+    clearLinkFromAddress();              // applied once, as W1's hints are
   }
 
   // Hints, after the load and the POWER press.
   async function applyHints(h) {
+    editorLink(h);
     if (h.view) {
       const v = parseView(h.view);
       if (!v || !(await setView(v))) notice('refused', `The link's view “${h.view}” was not applied.`);
@@ -1066,8 +1128,11 @@ export function initFiles(env) {
   // headless page check.
   return Object.assign(f, {
     openFiles, afterPowerOn, beforePowerOff, touched, fillSaveKinds, renderLibrary, autosave, copyLink, highlight,
-    saveText, undoLoad, store,
+    saveText, fileName, undoLoad, store,
     shadow,                    // the shadow Worker, for the editor (format, parse, save)
+    // stage ED4, for the editor: a load with W1's checks and notices, the
+    // verdict before a drop, per-block export and the library.
+    load, loadItem, verdict, saveAs, saveToLibrary, notice, describe,
     onWorklet(m) {
       if (m.type === 'state-saved' || m.type === 'state-loaded') {
         const w = waiting.get(m.id);

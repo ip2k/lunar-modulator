@@ -350,11 +350,16 @@ static void lines_out(col_t *c, const char *s, uint32_t n, unsigned which) {
   }
 }
 
+/* Set by a save with binary 3 (the state hash's form): the project without
+ * where the panel is (its view and the current sound), so a follow that
+ * moves the panel changes no hash (stage ED4). */
+static int g_no_view;
+
 static void session_out(col_t *c, const fm1_app_t *a) {
   fm1_rec_t r = blank(FM1_REC_SESSION);
   int scale = 0;
   const int root = fm1_app_project_key(a, &scale);
-  r.u.session.current = (int8_t)a->sound;
+  r.u.session.current = (int8_t)(g_no_view ? 0 : a->sound);   /* the hash: where the panel is, left out */
   r.u.session.octave = (int8_t)a->octave;
   r.u.session.transpose = (int8_t)a->transpose;
   /* The key's one home is the set's `key` line; this copy is written from
@@ -468,7 +473,7 @@ static int collect(fm1_app_t *a, unsigned kind, int arg, fm1_rec_sink_t sink, vo
       }
       mod_out(&c, a, MOD_ALL, 0, NULL);
       if (set_text(a)) lines_out(&c, g_set, g_set_n, FM1_LINES_SET);
-      view_out(&c, a);
+      if (!g_no_view) view_out(&c, a);
       break;
     }
     case FM1_STATE_SOUND: {
@@ -603,8 +608,9 @@ int fm1_app_state_save(fm1_app_t *a, unsigned kind, int arg, int binary, fm1_put
   static const uint8_t version[3] = { 0, 1, 0 };
   const char *why = "";
   fm1_state_report_t own;
-  const unsigned bflags = binary == 2 ? 0u : FM1_STATE_BIN_DEFLATE;   /* 2: no deflate */
+  const unsigned bflags = binary >= 2 ? 0u : FM1_STATE_BIN_DEFLATE;   /* 2, 3: no deflate */
   if (!rep) rep = &own;
+  g_no_view = binary == 3;             /* 3: the hash's form, no view either */
   fm1_state_report_init(rep);
   rep->kind = (uint8_t)kind;
   if (kind == FM1_STATE_SET && !binary) {
@@ -976,6 +982,12 @@ static const char *kind_word(unsigned kind) {
   }
 }
 
+/* "a" or "an" ("A" or "An" when capital) for a word the way it is said. */
+static const char *article(const char *word, int capital) {
+  const int vowel = word && strchr("aeiouAEIOU", word[0]) != NULL;
+  return vowel ? (capital ? "An" : "an") : (capital ? "A" : "a");
+}
+
 /* The refusal's words: the page's line and the screen's two. */
 static int refuse_load(plan_t *p, unsigned code, const char *screen, const char *fmt, const char *arg) {
   fm1_app_state_report_t *rep = p->rep;
@@ -1036,9 +1048,11 @@ static int plan_finish(plan_t *p) {
   int sounds = 0;
   rep->r.kind = (uint8_t)p->kind;
   if (p->o->kind && p->o->kind != p->kind) {
-    char want[48];
-    snprintf(want, sizeof want, "%s, not a %s", kind_word(p->o->kind), kind_word(p->kind));
-    return refuse_load(p, FM1_STATE_BAD, "Wrong kind", "A %s was expected.", want);
+    char want[72];
+    const char *w = kind_word(p->o->kind), *got = kind_word(p->kind);
+    /* "A sound, not an effects chain, was expected." The article follows the word. */
+    snprintf(want, sizeof want, "%s %s, not %s %s, was expected.", article(w, 1), w, article(got, 0), got);
+    return refuse_load(p, FM1_STATE_BAD, "Wrong kind", "%s", want);
   }
   if ((p->kind == FM1_STATE_SOUND || p->kind == FM1_STATE_FX) && p->o->into >= FM1_APP_SOUNDS) {
     return refuse_load(p, FM1_STATE_BAD, "No such sound", "There is no Sound %s.", "5");
