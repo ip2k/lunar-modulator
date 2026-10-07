@@ -548,11 +548,12 @@ ED2's (next section).
   reader more than a ring behind is told to resync and takes a snapshot.
 - **Telemetry** fills `engines/include/fm1_tele.h`'s block (1,443 floats)
   for the subscribed rows only, at most 30 blocks a second of audio:
-  meters (peak and RMS) at every point of the chain, gain reduction (Comp
-  and the output limiter; Limiter and Squash have no read-out yet), voices,
-  each module output with its extremes over the block, per-voice outputs,
-  and each running cable's destination as sent. `voice_dests` reads NaN:
-  the runtime keeps each voice's offsets but has no read-out for them yet.
+  meters (peak and RMS) at every point of the chain, gain reduction (Comp,
+  Limiter, Squash and the output limiter; stage ED5a filled the last three
+  rows, see its section below), voices, each module output with its
+  extremes over the block, per-voice outputs, and each running cable's
+  destination as sent, and for a per-voice cable each voice's own value
+  (`voice_dests`, ED5a).
   The taps on the render path only read: the audio with every row
   subscribed is the audio without the layer, bit for bit.
 - **The view** (`fm1_edit_view`): the panel's mode, sound, page and slot,
@@ -808,6 +809,67 @@ worklet, C's canonical writer for everything written.
   by hash and the fallback, and links (a parameter, an empty block, hostile
   `sel` values, an off-site `load`), with the new views at 1,440 and
   1,024 px. CI's ASan + UBSan job now runs `tests/test_sim_edit.py`.
+
+## The advanced editor, stage ED5a: reach and the read-outs
+
+Stage ED5a of `notes/2026-10-06-web-editor.md` (§12-§14, §18; the note's
+§26 has it as built) is the first half of ED5: the telemetry ED1 left
+empty, the keyboard and screen-reader passes, the phone layout and the
+layout check. The Map and the manual's chapter are the second half.
+
+- **Read-outs, all read-only.** `engines/include/fm1_dynamics.h`:
+  `fm1_limit_gain` (the Limiter's envelope: the lower channel's `1 - red`)
+  and `fm1_squash_gain` (the gain the sounding Type applied to the last
+  frame, before Output and Mix, the lower channel). Both read state the
+  effect already keeps, so the audio, the instance size and every golden
+  are as they were. `fm1_mod_voice_dest` (`fm1_mod.h`): voice i's value of
+  the destination a VOICE cable reaches, what the engine holds (the last
+  value sent where cables reach the parameter for every voice, else the
+  knob's) plus the voice's offset, held to the range; free voices, slots
+  that are not running VOICE cables and a pending plan give nothing. The
+  edit layer fills the `reduction` rows for Limiter and Squash (a cut in
+  dB, 0 at unity and above: Squash's Mu makeup and Split's lift are not a
+  reduction) and the `voice_dests` rows (NaN where a voice has no value).
+- **Where they show.** An insert's or master slot's *Out* meter has a thin
+  gain-reduction bar under it and "GR n dB" beside the peak, while the
+  effect cuts by more than 0.05 dB and a signal is going in (Squash's gate,
+  closed over silence, is a cut of its own and would read as a constant
+  "GR" at rest). In the matrix, a per-voice cable's *Live* cell reads the
+  range of its sounding voices (`0.54-0.66`; one value when they agree),
+  with the voice count as its title. (The ED3 page showed gain reduction
+  only for a negative dB, which C never sends: it showed none.)
+- **Keyboard and screen reader** (§13). Tests drive Playwright's
+  accessibility snapshot of every view: no control without a name, every
+  slider with `aria-valuenow`, a valuetext in words and a label (the
+  per-voice badge no longer leaks a "v" into a slider's name: it is an
+  image named "per voice"). One focus ring everywhere, 2 px in the focus
+  colour (`.ed :focus-visible`). Announcements are at most one a second, the
+  latest kept (`say`); a refusal reaches the polite live region in C's words
+  and nothing announces while the editor idles. Tab into the editor gives it
+  the keys.
+- **Phones** (§14), at 640 px and under: the layout switch is two tabs,
+  *Panel* and *Edit* (the Workbench, which needs the room, becomes Edit);
+  the outline is a row of tabs that scrolls inside itself; the screen card
+  shows a 96 px screen; the strips and rows stack (a row's name above its
+  slider and value); the matrix is a list of cables, each cable a card with
+  its cells named (`data-h`, shown as small captions); no Map is offered.
+- **The layout check** (`test/layout-probe.js`, run by `editor-ui.mjs` in
+  every view at 1,440, 1,024, 768 and 375 px, and by hand in any browser as
+  `lunarLayoutProbe()`): no sideways scroll; no text or control past the
+  page; no text clipped by an ancestor that hides overflow; no two pieces of
+  text, or a control and a piece of text, overlapping by more than 2 px
+  (popups and dialogs laid over the page on purpose are left out).
+- **Tests.** `test/fm1_edit_check.c`: a per-voice cable's `voice_dests` row
+  (a value inside the parameter's range for a sounding voice, none for a
+  slot with no such cable), Limiter at Drive +24 dB and Squash at 1 each
+  reading a cut of 1 dB or more, Limiter at rest reading none, and the audio
+  with every row subscribed still bit for bit the audio without the layer.
+  `test/editor-reach.mjs` (headless Chromium on aeon): the snapshot checks,
+  the keyboard (reach, 40 ring stops, targets), announcements, the phone
+  layout and its cable list, a Limiter driven by the keyboard reading
+  "GR n dB", and a per-voice cable reading its voices. `tests/test_module_list.py`:
+  the edit layer's references to the Limiter and Squash objects are
+  guarded by `FM1_WITH_LIMIT` and `FM1_WITH_SQUASH`, as Comp's are.
 
 ## Parity: does the browser sound like the native engines?
 

@@ -202,6 +202,18 @@ in the editor; move a slider in the editor and the panel opens that page.
 - A link can open the editor at a block or a parameter: add `?view=edit&sel=s1`
   or `?view=edit&sel=s3.in1:Cutoff` to the simulator's address.
 
+- **Gain reduction:** an effect's *Out* meter has a thin bar under it and
+  "GR 4.8 dB" beside it while the effect (Comp, Limiter, Squash) is turning
+  the sound down. A cable that works per voice shows, in its *Live* cell, the
+  range of the values its sounding voices have.
+- **Keyboard and screen reader:** Tab moves through every control, each with a
+  name and a 2-pixel ring; sliders speak their value in words ("Cutoff, 420
+  hertz"); the editor announces your changes and refusals, at most once a
+  second, and never a live value.
+- **On a phone** the switch has two tabs, *Panel* and *Edit*. Edit shows the
+  outline as a row of tabs along the top, a small screen, and the modulation
+  matrix as a list of cables, each with its settings named.
+
 The patch-bay view of the modulation comes to the editor in a later version.
 
 ### Running the simulator from your own copy

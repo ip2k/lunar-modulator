@@ -9,6 +9,17 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The advanced editor: reach and the read-outs** (stage ED5a). Effects that
+  turn the sound down show it: an effect's *Out* meter has a gain-reduction
+  bar and "GR n dB" while Comp, Limiter or Squash is cutting (Limiter and
+  Squash had no read-out before), and a per-voice cable's *Live* value shows
+  the range of its sounding voices. The editor is usable by keyboard and
+  screen reader: every control has a name, one 2-pixel focus ring everywhere,
+  sliders speak their values, announcements come at most once a second and
+  never for live values. On a phone the switch is two tabs, *Panel* and
+  *Edit*; the outline becomes a row of tabs, the screen card a small screen,
+  and the matrix a list of cables. Tests now look for text that overlaps or
+  is clipped in every view at 1,440, 1,024, 768 and 375 pixels.
 - **The advanced editor: files and the project** (stage ED4). Drop a sound,
   effects or mod rack file on the block it belongs to: the editor says what
   it would do and how much memory the project would take, or why it does
