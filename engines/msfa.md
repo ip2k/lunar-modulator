@@ -207,8 +207,11 @@ builds each voice from the same parts, in the order `Dx7Note::init` and
   sixth in 6. msfa's table marks those loops (`FB_IN` on the sixth,
   `FB_OUT` on the fourth or fifth) but `FmCore::compute` only runs an
   operator fed back to itself ("todo: more than one op in a feedback
-  loop"), so msfa, and with it the stock FM-1 if its `FmCore` is msfa's
-  [inferred], plays those two algorithms with no feedback at all. FM6 runs
+  loop"), so msfa plays those two algorithms with no feedback at all. The stock
+  FM-1 does not: V15's own three-operator kernel runs algorithm 4's loop,
+  the third operator's output fed back to the first [reported: Echomatter,
+  PR #1; `notes/2026-10-06-echomatter-pr1.md`]; algorithm 6's is not
+  established. FM6 runs
   the loop's operators sample by sample as a chain (`src/dx7_loop.cc`),
   the last one's output fed back to the first exactly as msfa feeds an
   operator to itself (the mean of its last two outputs, shifted by
@@ -300,7 +303,9 @@ Known, not exhaustive:
   from, a DX7 still takes the stage's time; Dexed's msfa adds that
   (`ACCURATE_ENVELOPE`), Google's moves to the next stage at once. FM6 runs
   Google's: a voice with L1 = L2 decays sooner than on a DX7 [reported:
-  Dexed, via Felucca's port].
+  Dexed, via Felucca's port]. So does the stock FM-1, whose envelope is
+  Google's `env.cc` with no hold counter [reported: Echomatter, PR #1; the
+  missing holds inferred there].
 - **LFO speeds** follow msfa's formula; Dexed replaced it with a table of
   rates in hertz [reported: the table in Felucca's generator, which names
   Dexed's `lfo.cc` as its source].
@@ -326,8 +331,13 @@ Known, not exhaustive:
   included (`0x41`: the loop marked, not run by msfa's `FmCore`)
   [verified: the table; docs/02 §5 had called those rows a Dexed-family
   change, which they are not: Felucca's port of Dexed's msfa has `0xC1`
-  there; Dexed itself not checked]. Whether stock adds AM or the loops in
-  its own code is not known.
+  there; Dexed itself not checked]. Its operator arithmetic is its own,
+  though: log-domain, with no phase interpolation and the attenuation
+  ramped per sample, where msfa multiplies a linear gain; and V15 runs
+  algorithm 4's loop in its own kernel [reported: Echomatter, PR #1; the
+  exponent and log-sine tables verified against its formulas here,
+  `notes/2026-10-06-echomatter-pr1.md`]. Algorithm 6's loop and AM are not
+  known.
 
 ## Checks
 
@@ -517,8 +527,9 @@ loop algorithms are the dearest case here.
 
 - **A listening pass over the 32 built-in voices** (designed by numbers).
 - **Envelope holds** (`ACCURATE_ENVELOPE`): adding them means an envelope
-  of our own instead of msfa's `Env`, or a check of whether the stock FM-1
-  has them first.
+  of our own instead of msfa's `Env`. The stock FM-1 has none either
+  [reported: Echomatter, PR #1], so FM6 matches stock here and differs
+  from a DX7.
 - **AM depths** are a design (above), not a measurement of a DX7.
 - **The user bank on the FM-1:** the simulator's bank lasts until power
   off. On the FM-1 it would live in a flash partition, which waits for the

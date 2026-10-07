@@ -67,6 +67,13 @@ experimental firmware and package builders.
   `tools/verify_reflash_record.py`, 27 tests). First non-stock package known to
   have run on an FM-1. Our 2026-09-06 identity capture decodes correctly with
   its parser and not with `main`'s.
+- **PR #1 here by Echomatter (2026-09-14, closed by its author 2026-10-05
+  unmerged):** a pure-Python pi32v2 decoder and interpreter, the stock V15
+  operator kernel (log-domain arithmetic, algorithm 4's loop), its envelope
+  (Google's `env.cc`), the six effects' callbacks and allocations, and
+  package rebuild and rollback tools; the `0x02000120` base before our
+  2026-10-05 note. Its tables and decoder were checked here
+  (`notes/2026-10-06-echomatter-pr1.md`).
 - **Our engagement (2026-09-06):** hardware confirmation of the plain
   identity parse posted on PR #2 (comment with the byte-exact `FM-1_015`
   reply and a fixture); V15 analysis on issue #1; **PR #3**
