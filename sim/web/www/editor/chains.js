@@ -717,10 +717,10 @@ export function makeChains(ctx) {
     const k = blk ? mm.kind(blk.engine) : null;
     const n = st.mirror.cables.filter((c) => !cableEmpty(c) && ((c.src >= 64 && ((c.src - 64) >> 3) === pos) || mm.unitKey(c.unit) === key)).length;
     const card = el('button', `ed-card-m${blk ? '' : ' is-empty'}${st.selected === key ? ' is-sel' : ''}`, { type: 'button', 'data-block': key, 'data-fk': key,
-      'aria-pressed': String(st.selected === key), 'aria-label': `Rack ${pos + 1}: ${k ? k.name : 'empty'}${n ? `, ${n} cables` : ''}`,
+      'aria-pressed': String(st.selected === key), 'aria-label': [`RACK ${pos + 1}`, k ? k.name : 'empty', n ? `${n} cable${n > 1 ? 's' : ''}` : k ? 'no cables' : ''].filter(Boolean).join(' '),
       onclick: () => ctx.select(key, { view: 'mod' }) }, [
-      el('span', 'ed-blk-k', { text: `RACK ${pos + 1}` }),
-      el('span', 'ed-blk-n', { text: k ? k.name : 'empty' }),
+      el('span', 'ed-blk-k', { text: `RACK ${pos + 1}` }), ' ',
+      el('span', 'ed-blk-n', { text: k ? k.name : 'empty' }), ' ',
       k ? el('canvas', 'ed-trace', { width: 120, height: 28, 'data-trace': String(pos), 'aria-hidden': 'true' }) : null,
       el('span', 'ed-blk-s', { text: n ? `${n} cable${n > 1 ? 's' : ''}` : k ? 'no cables' : '' })]);
     return movable(sheets.wireMenu(card, key), key);
@@ -818,8 +818,10 @@ export function makeChains(ctx) {
     const sel = st.selCable === key;
     const row = el('div', `ed-mx-r${sel ? ' is-sel' : ''}${v.code ? ' is-refused' : ''}${cableEmpty(s) ? ' is-empty' : ''}`, { role: 'row', 'data-cable': String(i) });
     const pick = () => { if (st.selCable !== key) { st.selCable = key; ctx.select(key, { view: 'mod' }); } };
-    const num = el('button', 'ed-mx-n', { type: 'button', 'data-fk': `${key}:n`, 'aria-label': `Cable ${i + 1}: open its inspector`, onclick: pick },
-      [String(i + 1), ...marks(i).map(([m, w]) => el('abbr', 'ed-mark', { title: w, text: markGlyph(m) }))]);
+    // The name starts with what is written on the button (the number and its marks), then says what it is.
+    const mk = marks(i);
+    const num = el('button', 'ed-mx-n', { type: 'button', 'data-fk': `${key}:n`, 'aria-label': `${i + 1}${mk.map(([m]) => markGlyph(m)).join('')} Cable ${i + 1}${mk.length ? `, ${mk.map(([, w]) => w).join(', ')}` : ''}: open its inspector`, onclick: pick },
+      [String(i + 1), ...mk.map(([m, w]) => el('abbr', 'ed-mark', { title: w, text: markGlyph(m) }))]);
     const on = el('input', null, { type: 'checkbox', 'aria-label': `Cable ${i + 1} on`, 'data-fk': `${key}:on` });
     on.checked = !!(s.flags & SLOT_ON);
     on.addEventListener('change', () => ctx.setValue(key, 'on', on.checked, 'set'));

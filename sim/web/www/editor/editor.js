@@ -91,7 +91,7 @@ export async function startEditor(env) {
   const ramList = el('ul', 'ed-ram-list', { id: nextId('ram') });
   const ramBtn = el('button', 'ed-ram', { type: 'button', 'aria-expanded': 'false', 'aria-controls': ramList.id,
     onclick: () => { const open = ramList.hidden; ramList.hidden = !open; ramBtn.setAttribute('aria-expanded', String(open)); } },
-  [el('span', 'ed-ram-label', { text: 'RAM' }), ramBar, ramText]);
+  [el('span', 'ed-ram-label', { text: 'RAM' }), ' ', ramBar, ' ', ramText]);
   ramList.hidden = true;
   const title = el('span', 'ed-title', {}, [el('span', 'ed-brand', { text: 'Advanced editor' }), el('span', 'ed-project')]);
   const appbar = el('div', 'ed-appbar', { role: 'toolbar', 'aria-label': 'Editor' }, [
@@ -105,7 +105,7 @@ export async function startEditor(env) {
   const outline = el('nav', 'ed-outline', { 'aria-label': 'Outline' });
   const screen = el('canvas', 'ed-screen', { width: 240, height: 240, 'aria-label': 'The FM-1 screen, as on the panel' });
   const screenCap = el('p', 'ed-screen-cap');
-  const card = el('section', 'ed-card', { 'aria-label': 'On the FM-1' }, [el('h3', 'ed-card-title', { text: 'On the FM-1' }), screen, screenCap]);
+  const card = el('section', 'ed-card', { 'aria-label': 'On the FM-1' }, [el('p', 'ed-card-title', { text: 'On the FM-1' }), screen, screenCap]);
   const context = el('p', 'ed-context');
   const fromPanel = el('p', 'ed-from', { hidden: true });
   const view = el('div', 'ed-view');
@@ -145,8 +145,9 @@ export async function startEditor(env) {
     keysChip.innerHTML = '';
     keysChip.append('Keys ', el('b', null, { text: mode === 'play' ? 'PLAY' : 'EDIT' }),
       el('span', 'ed-hint', { text: mode === 'play' ? ` · ${MOD}E edits` : ' · Esc plays' }));
-    keysChip.setAttribute('aria-label', mode === 'play'
-      ? `Keys play the FM-1. ${MOD}E gives them to the editor.` : 'Keys edit. Escape gives them back to the FM-1.');
+    // The name starts with what is written on the chip (WCAG 2.5.3), then says what it does.
+    keysChip.setAttribute('aria-label', `${keysChip.textContent.replace(/\s+/g, ' ').trim()}. ${mode === 'play'
+      ? `Keys play the FM-1; ${MOD}E gives them to the editor.` : 'Keys edit; Escape gives them back to the FM-1.'}`);
   }
   st.keys = '';
   setKeys('play');
@@ -742,19 +743,19 @@ export async function startEditor(env) {
       { type: 'button', onclick: on, 'aria-current': current ? 'true' : null, title: label }, [
         el('span', 'ed-out-tag', { text: short }), el('span', 'ed-out-name', { text: label }),
         extra ? el('span', 'ed-out-x', { text: extra }) : null]);
-    outline.append(el('h3', 'ed-out-h', { text: 'Sounds' }));
+    outline.append(el('p', 'ed-out-h', { text: 'Sounds' }));
     for (let k = 0; k < SOUNDS; ++k) {
       const b = blockOf(blockKey(ROLE.SOUND, k));
       outline.append(mk(b ? engineName(b.engine) : 'Empty', `S${k + 1}`, `ed-s${k + 1}`,
         () => select(blockKey(ROLE.SOUND, k), { view: 'sound' }), st.view === 'sound' && st.sound === k));
     }
-    outline.append(el('h3', 'ed-out-h', { text: 'Signal' }));
+    outline.append(el('p', 'ed-out-h', { text: 'Signal' }));
     outline.append(mk('Flow and effects', 'FX', 'ed-out-fx', () => { st.view = 'flow'; render(); }, st.view === 'flow'));
     const nMods = st.mirror ? st.mirror.rack.filter(Boolean).length : 0;
     const nCables = st.mirror ? st.mirror.cables.filter((c) => c.flags & 1).length : 0;
     outline.append(mk('Modulation', 'MOD', 'ed-out-mod', () => { st.view = 'mod'; render(); }, st.view === 'mod',
       st.mirror ? `${nMods}·${nCables}` : null));
-    outline.append(el('h3', 'ed-out-h', { text: 'Project' }));
+    outline.append(el('p', 'ed-out-h', { text: 'Project' }));
     outline.append(mk('Library', 'LIB', 'ed-out-lib', () => { st.view = 'library'; render(); }, st.view === 'library'));
     outline.append(mk('Compare A/B', 'A/B', 'ed-out-ab', () => { st.view = 'ab'; render(); }, st.view === 'ab',
       st.ab && st.ab.A ? st.ab.playing : null));
@@ -794,7 +795,7 @@ export async function startEditor(env) {
     const sk = blockKey(ROLE.SOUND, k);
     const s = blockOf(sk);
     const row = el('div', `ed-strip ed-s${k + 1}${s ? '' : ' is-empty'}`, { role: 'group', 'aria-label': `Sound ${k + 1}` });
-    row.append(el('span', 'ed-tag', { text: `S${k + 1}` }));
+    row.append(el('span', `ed-tag ed-s${k + 1}`, { text: `S${k + 1}` }));      // the sound's own colour pair: its text on it is dark
     if (s) project.wireStripDrag(row.firstChild, sk);
     if (!s) {
       row.append(el('span', 'ed-strip-empty', { text: 'Empty' }), chains.pickerButton(sk));
@@ -844,9 +845,9 @@ export async function startEditor(env) {
     const mtr = lit ? chains.blockMeter(key === MIX_KEY ? 'the-mix' : key) : null;
     const btn = el('button', `ed-block ${cls}${st.selected === key ? ' is-sel' : ''}`,
       { type: 'button', 'data-block': key, 'data-fk': key, 'aria-pressed': st.selected === key ? 'true' : 'false',
-        'aria-label': `${kind} ${name}${sub ? `, ${sub}` : ''}${cnt.n ? `, ${cableWords(cnt)}` : ''}`, onclick: () => select(key, { view: 'flow' }) },
-      [el('span', 'ed-blk-k', { text: kind }), el('span', 'ed-blk-n', { text: name }), sub ? el('span', 'ed-blk-s', { text: sub }) : null,
-        cnt.n ? el('span', `ed-blk-c${cnt.refused ? ' is-refused' : ''}`, { 'data-cables': String(cnt.n), 'data-refused': String(cnt.refused), text: cableWords(cnt) }) : null,
+        'aria-label': [kind, name, sub, cableWords(cnt)].filter(Boolean).join(' '), onclick: () => select(key, { view: 'flow' }) },
+      [el('span', 'ed-blk-k', { text: kind }), ' ', el('span', 'ed-blk-n', { text: name }), sub ? ' ' : null, sub ? el('span', 'ed-blk-s', { text: sub }) : null,
+        cnt.n ? ' ' : null, cnt.n ? el('span', `ed-blk-c${cnt.refused ? ' is-refused' : ''}`, { 'data-cables': String(cnt.n), 'data-refused': String(cnt.refused), text: cableWords(cnt) }) : null,
         mtr ? el('span', 'ed-blk-m', { 'data-meter': mtr, 'aria-hidden': 'true' }) : null]);
     return key === MIX_KEY ? btn : project.wireDrop(chains.wireMenu(btn, key), key);
   }

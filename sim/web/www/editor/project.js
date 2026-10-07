@@ -565,8 +565,8 @@ export function makeProject(ctx) {
           el('button', 'ed-btn', { type: 'button', text: 'Pick all A', onclick: () => setAll('A') }),
           el('button', 'ed-btn', { type: 'button', text: 'Pick all B', onclick: () => setAll('B') }),
           el('button', 'ed-btn ed-btn-go ed-ab-makeb', { type: 'button', disabled: !nA || ab.busy, text: 'Make B from the picks', onclick: () => makeFromPicks() }),
-          el('span', 'ed-ab-count', { role: 'status', text: `${shown.length - nA} from B, ${nA} from A` })]),
-        ab.verdict ? el('p', `ed-note${ab.verdict.ok ? '' : ' ed-refused'}`, { text: ab.verdict.text }) : null);
+          el('span', 'ed-ab-count', { role: 'status', text: `${shown.length - nA} from B, ${nA} from A` })]));
+        if (ab.verdict) wrap.append(el('p', `ed-note${ab.verdict.ok ? '' : ' ed-refused'}`, { text: ab.verdict.text }));
       }
     } else if (ab.A) {
       wrap.append(el('p', 'ed-note', { text: 'Edit, then switch: the differences show here, from C’s own files.' }));

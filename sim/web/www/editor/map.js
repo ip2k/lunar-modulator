@@ -136,7 +136,7 @@ export function makeMap(ctx, h) {
   // ---- the sources --------------------------------------------------------------------
   function sourcesColumn() {
     const col = el('div', 'ed-map-col ed-map-srcs', { 'data-col': 'srcs', role: 'toolbar', 'aria-orientation': 'vertical', 'aria-label': 'Sources: outputs a cable can start from' });
-    col.append(el('h4', 'ed-map-h ed-map-t', { text: 'Sources' }));
+    col.append(el('h3', 'ed-map-h ed-map-t', { text: 'Sources' }));
     const cables = st.mirror.cables.map((c, i) => [c, i]).filter(([c]) => !cableEmpty(c));
     const used = new Set(), viaOf = new Map();
     for (const [c, i] of cables) { used.add(c.src); if (c.via !== NONE) { used.add(c.via); viaOf.set(c.via, i); } }
@@ -211,9 +211,9 @@ export function makeMap(ctx, h) {
     const used = usedDst();
     const sel = st.selected === key;
     const box = el('div', `ed-map-mod${sel ? ' is-sel' : ''}`, { 'data-block': key, 'data-pos': String(pos) });
-    const head = el('button', 'ed-map-mh ed-map-btn', { type: 'button', 'data-fk': `mp:m${pos}`, 'aria-current': sel ? 'true' : 'false', 'aria-label': `Rack ${pos + 1}: ${k.name}. Select, and keep its cables bright`,
+    const head = el('button', 'ed-map-mh ed-map-btn', { type: 'button', 'data-fk': `mp:m${pos}`, 'aria-current': sel ? 'true' : 'false', 'aria-label': `${pos + 1} ${k.abbr} ${k.name}. Select, and keep its cables bright`,
       onclick: () => { st.mapMode = 'focus'; st.mapSrc = null; ctx.select(key, { view: 'mod' }); } }, [
-      el('span', 'ed-map-t ed-map-nm', { text: `${pos + 1} ${k.abbr}` }), el('span', 'ed-map-t ed-map-kind', { text: k.name })]);
+      el('span', 'ed-map-t ed-map-nm', { text: `${pos + 1} ${k.abbr}` }), ' ', el('span', 'ed-map-t ed-map-kind', { text: k.name })]);
     box.append(head);
     const body = el('div', 'ed-map-mb');
     const ins = el('div', 'ed-map-ins');
@@ -242,7 +242,7 @@ export function makeMap(ctx, h) {
   }
   function rackColumn() {
     const col = el('div', 'ed-map-col ed-map-rack', { 'data-col': 'rack', role: 'toolbar', 'aria-orientation': 'vertical', 'aria-label': 'Rack: modules, their inputs and outputs' });
-    col.append(el('h4', 'ed-map-h ed-map-t', { text: 'Rack' }));
+    col.append(el('h3', 'ed-map-h ed-map-t', { text: 'Rack' }));
     for (let pos = 0; pos < mm.positions; ++pos) col.append(moduleBlock(pos));
     return col;
   }
@@ -261,9 +261,9 @@ export function makeMap(ctx, h) {
     const sel = st.selected === key;
     const box = el('div', `ed-map-grp${lvl ? ' is-nested' : ''}${sel ? ' is-sel' : ''}${key[0] === 's' && key.length === 2 ? ` ed-${key}` : ''}`, { 'data-block': key });
     const head = el('button', 'ed-map-gh ed-map-btn', { type: 'button', 'data-fk': `mp:g${key}`, 'aria-current': sel ? 'true' : 'false',
-      'aria-label': `${title}${sub ? `, ${sub}` : ''}. Select, and keep its cables bright`,
+      'aria-label': `${title}${sub ? ` ${sub}` : ''}. Select, and keep its cables bright`,
       onclick: () => { st.mapMode = 'focus'; st.mapSrc = null; if (key === 'host') { st.selected = key; ctx.render(); } else ctx.select(key, { view: 'mod' }); } }, [
-      el('span', 'ed-tag ed-map-tag', { text: title }), el('span', 'ed-map-t ed-map-nm', { text: sub }),
+      el('span', 'ed-tag ed-map-tag', { text: title }), sub ? ' ' : null, el('span', 'ed-map-t ed-map-nm', { text: sub }),
     ]);
     box.append(head);
     const row = (p) => box.append(el('div', 'ed-map-row ed-map-in', {}, [
@@ -283,7 +283,7 @@ export function makeMap(ctx, h) {
   }
   function destinationsColumn() {
     const col = el('div', 'ed-map-col ed-map-dsts', { 'data-col': 'dsts', role: 'toolbar', 'aria-orientation': 'vertical', 'aria-label': 'Destinations: parameters a cable can end at' });
-    col.append(el('h4', 'ed-map-h ed-map-t', { text: 'Destinations' }));
+    col.append(el('h3', 'ed-map-h ed-map-t', { text: 'Destinations' }));
     const cables = st.mirror.cables.map((c, i) => [c, i]).filter(([c]) => !cableEmpty(c));
     const into = new Set(cables.map(([c]) => mm.unitKey(c.unit)));
     const all = open('mapOpen').has('*');

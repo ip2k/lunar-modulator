@@ -826,3 +826,7 @@
 .ed-sheet-foot { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .ed-sheet-list { display: flex; flex-direction: column; gap: 6px; }
 .ed-sheet-i { min-height: 36px; justify-content: flex-start; text-align: left; }
+/* Muted text on the editor's surfaces, a little lighter than the page's: 4.5:1 on the tinted strips and the
+ * selected rows too (axe-core's contrast rule). */
+.ed { --muted: color-mix(in srgb, var(--rp-subtle) 75%, var(--rp-text)); }
+.ed-out.is-sel .ed-out-x { color: var(--text); }
