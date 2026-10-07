@@ -157,7 +157,13 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   GPL modules marked, the refusal codes in the screen's words (memory only
   as a percentage of the budget), the telemetry layout and an id, which the
   virtual FM-1's module returns (`fm1w_meta_id`) and its build writes beside
-  it as `sim/web/www/meta.json`.
+  it as `sim/web/www/meta.json`. The editor changes the virtual FM-1 through
+  one C edit layer the panel's own handlers share (stage ED1,
+  `sim/web/src/fm1_edit.c`): the state core's records and four verbs
+  applied live, a change ring with each change's source, the telemetry
+  block, the panel's view with its knob map, and `fm1_param_parse`; the
+  audio thread gets binary only, and a shadow Worker does the text, hashes
+  and diffs ([sim/web/README.md, "The edit layer"](sim/web/README.md#the-edit-layer-stage-ed1-for-the-advanced-editor)).
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free

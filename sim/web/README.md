@@ -519,6 +519,93 @@ the other with no request), and the page at 1,440 and 390 px
 checks the static half; `test/origins.mjs` (Node, through
 `tests/test_sim_origins.py`) the exception's rules.
 
+## The edit layer (stage ED1, for the advanced editor)
+
+The advanced editor (`notes/2026-10-06-web-editor.md`) changes the virtual
+FM-1 through one C layer, `src/fm1_edit.c` (`fm1_edit.h`), which the
+panel's own handlers share, so a knob turned on the panel and a slider in
+the editor make the same change, the same change-ring entry and the same
+`--mod` line. No editor UI exists yet (stages ED2-ED5); this is its engine
+room.
+
+- **Edits are the state core's records** (a unit, a MIDI effect's on, a
+  parameter, a level, a rack position's kind, a matrix slot) **and four
+  verbs**: swap (two effect slots trade places, cables and all), move (a
+  rack module; an effect slot, in groups of two, swaps), current and view
+  (what the panel shows). Each is applied live through the app's own calls
+  with their clamps, the LOG law and the RAM rule. A refusal is a code of
+  `engines/include/fm1_refusal.h` and changes nothing; a cable's codes
+  (32 and on) are the planner's verdict on a slot that was written and does
+  not run, as the panel's MATRIX leaves it.
+- **Packed records** are 24 bytes, little-endian (the layout is in
+  `fm1_edit.h`); the audio thread sees nothing else.
+- **The change ring** keeps the last 256 base changes, each with its number,
+  its source (the panel's keys, buttons and encoders; the editor, with its
+  op's tag; a load, as one `LOADED` entry; the page's own menus) and the
+  record. Hooks in `fm1_app.c` fill it: `fm1_app_set_param`, the
+  arpeggiator's log, select, level, current, the effect swap, and a scan of
+  the modulation runtime after every modulation edit, whoever made it. A
+  reader more than a ring behind is told to resync and takes a snapshot.
+- **Telemetry** fills `engines/include/fm1_tele.h`'s block (1,443 floats)
+  for the subscribed rows only, at most 30 blocks a second of audio:
+  meters (peak and RMS) at every point of the chain, gain reduction (Comp
+  and the output limiter; Limiter and Squash have no read-out yet), voices,
+  each module output with its extremes over the block, per-voice outputs,
+  and each running cable's destination as sent. `voice_dests` reads NaN:
+  the runtime keeps each voice's offsets but has no read-out for them yet.
+  The taps on the render path only read: the audio with every row
+  subscribed is the audio without the layer, bit for bit.
+- **The view** (`fm1_edit_view`): the panel's mode, sound, page and slot,
+  and what each of KNOB1-4 turns now (the editor's K1-K4 chips).
+- **`fm1_param_parse`** (`fm1_look.h`) reads what a person typed, a number
+  with "k" and the parameter's own unit word ("1.2 kHz", "-6 dB", "1 s"),
+  or a list entry by name, and clamps it as a knob does.
+
+**The module** exports `fm1w_edit` (n records from `fm1w_edit_buf`, their
+verdicts in `fm1w_edit_codes`), `fm1w_edit_verb`, `fm1w_changes` with
+`fm1w_changes_buf` and `fm1w_edit_gen`, `fm1w_subscribe` (`fm1w_tele_mask`)
+and `fm1w_telemetry` (`fm1w_tele_buf`), `fm1w_view_get`; and, for the
+shadow Worker and the tests only, `fm1w_edit_text`, `fm1w_edit_dump`,
+`fm1w_param_text`, `fm1w_param_parse` and `fm1w_param_value`.
+
+**The worklet** gives the editor a port of its own (`editor-port`, a
+transferred `MessagePort`): `edit` in, at most 64 records applied a
+quantum before it renders, `edited` back with each record's verdict;
+`subscribe`; `changes` at most once every six quanta (`resync` when the
+editor fell behind); `view` when it changes; `telemetry` in two pooled
+buffers handed back; `snapshot`; and `stats` once a second, which counts the
+quanta that took longer than they play (the underrun counter), where the
+worklet's scope has a clock. **The shadow Worker** adds `metaId`, `meta`,
+`format` and `parse` (C's digits and parser by module id and uid), `hash`
+and `diff`, so the audio thread never formats, parses, hashes or diffs.
+
+**Tests.** `fm1-sim-render --edit-check` (`tests/test_sim_edit.py`): every
+knob step of every parameter of every engine, effect, MIDI effect,
+modulation kind and the host reads back through `fm1_param_parse` as the
+screen shows it (467 parameters, 34,376 steps); every refusal an edit can
+meet, each leaving the state's hash and the ring as they were (the codes
+that cannot be reached with today's modules are named in the test); the
+ring's sources, its LOADED entry and its overflow; seven panel gestures
+whose ring entries, replayed as editor ops on a fresh app, give the same
+entries and the same state; the verbs; the view and knob map; telemetry's
+layout, rate and rows; and 400 batches of hostile records and verbs
+(random fields, edges, NaN and infinities, ids with no NUL, counts past
+64), each verdict a known code and the audio finite. `test/edit.mjs` plays `test/edit/verbs.edit` (every
+record type and verb, refusals and panel gestures between) to the module
+and to `fm1-sim-render --edit-run`: the verdicts, the ring, the view and the
+state's hash identical, the screen too, the audio within one 16-bit step;
+then a 30-second edit storm with the demo song playing, eight records a
+quantum, the change feed drained and every telemetry row filled, each
+quantum timed against the 2.90 ms it plays. `build.sh` runs both and
+records the results in `fm1.wasm.json` (`edit`). `test/editor.mjs`
+(headless Chromium, in `build-on-aeon.sh`'s page step) storms the real
+worklet's editor port for 30 seconds with the song playing and passes when
+every op is answered with its verdicts, changes, views and telemetry come
+back, a snapshot is binary, and Chromium's playback stats count no
+underrun [verified 2026-10-06: 58,016 records, 0 underruns, Chromium 153;
+its worklet scope has no clock, so the worklet's own late count reads "not
+timed" there].
+
 ## Parity: does the browser sound like the native engines?
 
 `build-on-aeon.sh` renders 69 scenarios (`test/scenarios.json`) four ways

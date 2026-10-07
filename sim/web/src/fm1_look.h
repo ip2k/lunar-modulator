@@ -165,6 +165,14 @@ static inline uint16_t fm1_sound_colour(int sound) {
 /* A parameter's value as the screen shows it: an ENUM's entry name, else a
  * number with 0, 1 or 2 decimals by range. */
 void fm1_look_value(const fm1_param_t *p, float v, char *buf, size_t size);
+/* What a person typed for p, back to a value (fm1_edit.c; the editor's
+ * typed field, notes/2026-10-06-web-editor.md §5): a number with an
+ * optional "k" (thousand) and unit word (Hz, kHz, ms, s, dB, %, st, deg),
+ * which must be p's; an entry of a list by its name (case ignored) or the
+ * number the screen shows. Clamped into p's range as a knob is. 1 and
+ * *out, or 0 for text it cannot read. fm1_param_parse(fm1_look_value(v))
+ * reads back the value the screen shows for every knob step. */
+int fm1_param_parse(const fm1_param_t *p, const char *text, float *out);
 
 /* A value bar, logged as one graphic: from the minimum (or from zero when
  * the range spans it), or an ENUM's segment, in `fill` over the bar's

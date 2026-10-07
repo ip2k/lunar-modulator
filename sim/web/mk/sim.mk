@@ -39,20 +39,25 @@ SIM_META_OBJ = $(META_OBJ) $(STATE_OBJ) $(STATE_REG_OBJ) $(STATE_MOD_OBJ) $(STAT
 # fm1_mod_view; docs/16 MG3).
 SIM_APP_OBJ := $(BUILD)/sim/src/fm1_app.o $(BUILD)/sim/src/fm1_tft.o \
   $(BUILD)/sim/src/fm1_seq_ui.o $(BUILD)/sim/src/fm1_seq_view.o \
-  $(BUILD)/sim/src/fm1_mod_ui.o $(BUILD)/sim/src/fm1_mod_view.o $(BUILD)/sim/src/fm1_app_state.o
+  $(BUILD)/sim/src/fm1_mod_ui.o $(BUILD)/sim/src/fm1_mod_view.o $(BUILD)/sim/src/fm1_app_state.o \
+  $(BUILD)/sim/src/fm1_edit.o
 
 # The harness reads verb scripts (host/seq_script.h); the app reads
 # modulation lines (host/mod_script.h).
 $(BUILD)/sim/test/fm1_sim_render.o: SIM_CFLAGS += -Ihost
 $(BUILD)/sim/src/fm1_app.o $(BUILD)/sim/src/fm1_mod_ui.o: SIM_CFLAGS += -Ihost
-$(BUILD)/sim/src/fm1_app_state.o $(BUILD)/sim/src/fm1_web.o $(BUILD)/sim/test/fm1_sim_render.o: \
-  SIM_CFLAGS += -Istate -Ihost
+# The edit layer (fm1_edit.c, stage ED1) speaks the state core's records;
+# the app takes its view verb's FM1_VIEW_* from there too.
+$(BUILD)/sim/src/fm1_app.o: SIM_CFLAGS += -Istate
+$(BUILD)/sim/src/fm1_app_state.o $(BUILD)/sim/src/fm1_web.o $(BUILD)/sim/test/fm1_sim_render.o \
+  $(BUILD)/sim/src/fm1_edit.o $(BUILD)/sim/test/fm1_edit_check.o: SIM_CFLAGS += -Istate -Ihost
 
 $(BUILD)/sim/%.o: $(SIM)/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(SIM_CFLAGS) -c $< -o $@
 
-$(BUILD)/fm1-sim-render: $(SIM_APP_OBJ) $(BUILD)/sim/test/fm1_sim_render.o $(SIM_ENGINE_OBJ) \
+$(BUILD)/fm1-sim-render: $(SIM_APP_OBJ) $(BUILD)/sim/test/fm1_sim_render.o $(BUILD)/sim/test/fm1_edit_check.o \
+    $(SIM_ENGINE_OBJ) \
     $(SIM_META_OBJ) $(SEQ_HOST_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
 
@@ -71,7 +76,10 @@ WASM_EXPORTS := fm1w_init fm1w_default_chain fm1w_catalog fm1w_select fm1w_unit_
   fm1w_arp_on fm1w_arp_set_on fm1w_arp_set_param fm1w_arp_get_param fm1w_mfx_select \
   fm1w_dx7_load fm1w_dx7_result fm1w_dx7_name fm1w_meta_id fm1w_meta_read \
   fm1w_state_save fm1w_state_check fm1w_state_load fm1w_state_pack fm1w_state_report \
-  fm1w_save_gen fm1w_store_ready fm1w_saved
+  fm1w_save_gen fm1w_store_ready fm1w_saved \
+  fm1w_edit_buf fm1w_edit_codes fm1w_edit fm1w_edit_verb fm1w_edit_text fm1w_edit_gen \
+  fm1w_changes_buf fm1w_changes fm1w_tele_mask fm1w_subscribe fm1w_tele_buf fm1w_telemetry \
+  fm1w_view_get fm1w_edit_dump fm1w_param_text fm1w_param_parse fm1w_param_value
 comma := ,
 empty :=
 space := $(empty) $(empty)
@@ -89,4 +97,5 @@ $(BUILD)/fm1.wasm: $(SIM_APP_OBJ) $(BUILD)/sim/src/fm1_web.o $(SIM_ENGINE_OBJ) $
 $(BUILD)/fm1-render.js: $(RENDER_PRODUCT_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -sNODERAWFS=1 -sALLOW_MEMORY_GROWTH=1 -sEXIT_RUNTIME=1 -o $@ $^
 
--include $(SIM_APP_OBJ:.o=.d) $(BUILD)/sim/src/fm1_web.d $(BUILD)/sim/test/fm1_sim_render.d
+-include $(SIM_APP_OBJ:.o=.d) $(BUILD)/sim/src/fm1_web.d $(BUILD)/sim/test/fm1_sim_render.d \
+  $(BUILD)/sim/test/fm1_edit_check.d

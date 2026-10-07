@@ -33,6 +33,27 @@
 // unparsed. SAVE on the panel is fm1w_save_gen counting up, posted as
 // `save-pressed`; the page's store answers with `saved`. Nothing here
 // reaches a device.
+//
+// The editor (stage ED1, notes/2026-10-06-web-editor.md §5, §12) gets a port
+// of its own (`editor-port`, a transferred MessagePort), so its traffic never
+// queues behind the panel's, and it speaks binary only:
+//   in   edit {tag, bytes}        packed records and verbs (fm1_edit.h, 24 B
+//                                 each), at most 64 applied a quantum, before
+//                                 it renders; `edited` {tag, codes} answers
+//        subscribe {mask}         the telemetry rows on screen (4 words)
+//        telemetry-buffer {buffer}  a block handed back for reuse
+//        snapshot {id, kind, arg} the project (or one kind) as the binary
+//                                 container: `snapshot` {id, ok, bytes}
+//        changes-from {gen}       where the editor's mirror stands
+//   out  changes {bytes}          the change ring's new entries (32 B each),
+//                                 at most one batch every ~17 ms; `resync`
+//                                 {gen} when the editor fell a ring behind
+//        view {bytes}             the panel's view and knob map, when it changed
+//        telemetry {buffer}       one block, at most 30 a second, in two pooled
+//                                 buffers transferred and handed back
+//        stats {...}              once a second: quanta, the late ones (a
+//                                 quantum that took longer than it plays) and
+//                                 the slowest, where the clock is available
 // MIT licence, like the rest of this repository.
 
 import { instantiateFm1, BLOCK, SCREEN, KEYS, BUTTONS } from './fm1-wasm.mjs';
@@ -42,6 +63,14 @@ const LIVE_FRAMES = 1470;        // a live scope redraws at most every ~33 ms
 const SCREEN_BUFFERS = 2;
 const LEDS = KEYS + BUTTONS.length;
 const SEQ_WATCHED = 6;           // fm1w_seq_info's words compared each quantum
+const REC = 24;                  // a packed record (fm1_edit.h)
+const CHANGE = 32;               // a change-ring entry
+const EDITS_PER_QUANTUM = 64;
+const CHANGES_EVERY = 6;         // quanta between change batches (~17 ms)
+const TELE_BUFFERS = 2;
+const RESYNC = 0xffffffff;
+const clock = globalThis.performance && typeof globalThis.performance.now === 'function'
+  ? () => globalThis.performance.now() : null;
 
 class FM1Processor extends AudioWorkletProcessor {
   constructor() {
@@ -56,11 +85,122 @@ class FM1Processor extends AudioWorkletProcessor {
     this.seqLast[1] = 0xffffffff;   // nothing posted yet
     this.saveGen = 0;
     this.port.onmessage = (e) => this.onMessage(e.data);
+    // The editor's port and its state (ED1).
+    this.editor = null;
+    this.edits = [];
+    this.changesGen = 0;
+    this.mask = null;
+    this.teleFree = [];
+    this.viewLast = new Uint8Array(40);
+    this.stats = { quanta: 0, late: 0, maxMs: 0, editMs: 0, timed: clock !== null };
+  }
+
+  // The editor's messages: kept until the module is ready, applied in
+  // process() between quanta. Anything malformed is dropped here.
+  onEditor(m) {
+    if (!m || typeof m !== 'object') return;
+    switch (m.type) {
+      case 'edit':
+        if (m.bytes instanceof Uint8Array && m.bytes.length > 0 && m.bytes.length % REC === 0) {
+          this.edits.push({ tag: m.tag & 0xffff, bytes: m.bytes, done: 0, codes: new Int8Array(m.bytes.length / REC) });
+        }
+        break;
+      case 'subscribe':
+        if (m.mask instanceof Uint32Array && m.mask.length === 4) this.mask = m.mask;
+        break;
+      case 'telemetry-buffer':
+        if (m.buffer instanceof ArrayBuffer && this.teleFree.length < TELE_BUFFERS) this.teleFree.push(m.buffer);
+        break;
+      case 'changes-from':
+        this.changesGen = m.gen >>> 0;
+        break;
+      case 'snapshot':
+        if (this.fm1) this.snapshot(m);
+        else this.editor.postMessage({ type: 'snapshot', id: m.id, ok: false, bytes: null });
+        break;
+      default: break;
+    }
+  }
+
+  snapshot(m) {
+    const ex = this.fm1.exports;
+    const n = ex.fm1w_state_save(m.kind || 1, m.arg | 0, 1);
+    const bytes = n > 0 ? this.text().slice(0, n) : null;
+    this.editor.postMessage({ type: 'snapshot', id: m.id, ok: n > 0, gen: ex.fm1w_edit_gen() >>> 0, bytes },
+      bytes ? [bytes.buffer] : []);
+  }
+
+  // Up to EDITS_PER_QUANTUM records, in the order they came.
+  applyEdits() {
+    const ex = this.fm1.exports;
+    let room = EDITS_PER_QUANTUM;
+    while (this.edits.length && room > 0) {
+      const e = this.edits[0];
+      const total = e.codes.length;
+      const n = Math.min(total - e.done, room);
+      new Uint8Array(this.fm1.memory.buffer, ex.fm1w_edit_buf(), EDITS_PER_QUANTUM * REC)
+        .set(e.bytes.subarray(e.done * REC, (e.done + n) * REC));
+      ex.fm1w_edit(n, e.tag);
+      e.codes.set(new Int8Array(this.fm1.memory.buffer, ex.fm1w_edit_codes(), n), e.done);
+      e.done += n;
+      room -= n;
+      if (e.done === total) {
+        this.edits.shift();
+        this.editor.postMessage({ type: 'edited', tag: e.tag, codes: e.codes }, [e.codes.buffer]);
+      }
+    }
+  }
+
+  // The change feed, the view and telemetry, after the quantum rendered.
+  postEditor() {
+    const ex = this.fm1.exports;
+    const mem = this.fm1.memory.buffer;
+    if (this.mask) {
+      new Uint32Array(mem, ex.fm1w_tele_mask(), 4).set(this.mask);
+      ex.fm1w_subscribe();
+      this.mask = null;
+    }
+    if (this.quanta % CHANGES_EVERY === 0) {
+      const n = ex.fm1w_changes(this.changesGen, 256) >>> 0;
+      if (n === RESYNC) {
+        this.changesGen = ex.fm1w_edit_gen() >>> 0;
+        this.editor.postMessage({ type: 'resync', gen: this.changesGen });
+      } else if (n > 0) {
+        const bytes = new Uint8Array(mem, ex.fm1w_changes_buf(), n * CHANGE).slice();
+        this.changesGen = new DataView(bytes.buffer).getUint32((n - 1) * CHANGE, true);
+        this.editor.postMessage({ type: 'changes', bytes }, [bytes.buffer]);
+      }
+      const view = new Uint8Array(mem, ex.fm1w_view_get(), 40);
+      let same = true;
+      for (let i = 0; i < 40 && same; ++i) same = view[i] === this.viewLast[i];
+      if (!same) {
+        this.viewLast.set(view);
+        const bytes = view.slice();
+        this.editor.postMessage({ type: 'view', bytes }, [bytes.buffer]);
+      }
+    }
+    if (this.teleFree.length) {
+      const floats = ex.fm1w_telemetry();
+      if (floats > 0 && this.teleFree[0].byteLength < floats * 4) {
+        this.teleFree.shift();             // too small for the block: dropped
+      } else if (floats > 0) {
+        const buffer = this.teleFree.shift();
+        new Float32Array(buffer, 0, floats).set(new Float32Array(mem, ex.fm1w_tele_buf(), floats));
+        this.editor.postMessage({ type: 'telemetry', buffer }, [buffer]);
+      }
+    }
   }
 
   async onMessage(m) {
     if (m.type === 'screen-buffer') {
       this.free.push(new Uint16Array(m.buffer));
+      return;
+    }
+    if (m.type === 'editor-port') {
+      if (m.port && typeof m.port.postMessage === 'function') {
+        this.editor = m.port;
+        this.editor.onmessage = (e) => this.onEditor(e.data);
+      }
       return;
     }
     if (m.type === 'init') {
@@ -249,7 +389,10 @@ class FM1Processor extends AudioWorkletProcessor {
       return true;
     }
     const ex = this.fm1.exports;
+    const t0 = clock ? clock() : 0;
     let v = null;
+    if (this.editor && this.edits.length) this.applyEdits();
+    const t1 = clock ? clock() : 0;
     for (let off = 0; off < left.length; off += BLOCK) {
       const n = Math.min(BLOCK, left.length - off);
       v = this.getViews(ex.fm1w_render(n));   // always the app's one buffer
@@ -281,7 +424,31 @@ class FM1Processor extends AudioWorkletProcessor {
       px.set(v.screen);
       this.port.postMessage({ type: 'screen', px }, [px.buffer]);
     }
+    if (this.editor) {
+      const t2 = clock ? clock() : 0;
+      this.postEditor();
+      this.measure(t0, t2 - t1, left.length);
+    }
     return true;
+  }
+
+  // The underrun counter (ED1, §12): a quantum that took longer than it
+  // plays is late; the edit layer's own share is counted apart.
+  measure(t0, renderMs, frames) {
+    const s = this.stats;
+    s.quanta += 1;
+    if (clock) {
+      const ms = clock() - t0;
+      s.editMs += ms - renderMs;
+      if (ms > s.maxMs) s.maxMs = ms;
+      if (ms > (1000 * frames) / sampleRate) s.late += 1;
+    }
+    if (s.quanta % 345 === 0) {           // about once a second
+      this.editor.postMessage({
+        type: 'stats', quanta: s.quanta, timed: s.timed,
+        late: s.timed ? s.late : null, maxMs: s.timed ? s.maxMs : null, editMs: s.timed ? s.editMs : null,
+      });
+    }
   }
 }
 

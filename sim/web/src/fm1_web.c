@@ -15,9 +15,13 @@
 #include <string.h>
 
 #include "fm1_app_state.h"
+#include "fm1_edit.h"
+#include "fm1_look.h"
+#include "fm1_refusal.h"
 #include "fm1_meta.h"
 
 static fm1_app_t g_app;
+static fm1_edit_t g_edit;
 
 /* Multi-sound (fm1_app.h's fm1_app_unit_*): sound units by
  * number 0..3, the user's Sounds 1..4. */
@@ -57,7 +61,10 @@ float fm1w_arp_get_param(int sound, int index) { return fm1_app_arp_get_param(&g
  * cannot export data, so the address and size come from functions. */
 static char g_text[FM1_STATE_CAP_PROJECT];
 
-void fm1w_init(float sample_rate) { fm1_app_init(&g_app, sample_rate); }
+void fm1w_init(float sample_rate) {
+  fm1_app_init(&g_app, sample_rate);
+  fm1_edit_attach(&g_app, &g_edit, 0);   /* the edit layer: its ring starts with LOADED */
+}
 int fm1w_default_chain(void) { return fm1_app_default_chain(&g_app); }
 
 const char *fm1w_catalog(void) { return fm1_app_catalog_json(); }
@@ -409,3 +416,87 @@ void fm1w_saved(int ok) {
   g_text[sizeof g_text - 1] = '\0';
   fm1_app_saved(&g_app, ok, ok ? NULL : g_text);
 }
+
+/* ---- the edit layer (fm1_edit.h, stage ED1; notes/2026-10-06-web-editor.md §5)
+ * Binary only, for the audio thread: packed records and verbs in (the edit
+ * buffer, FM1_EDIT_REC_BYTES each), a verdict a record out (the codes
+ * buffer), the change feed (FM1_EDIT_CHANGE_BYTES an entry), the telemetry
+ * block (fm1_tele.h) for the rows the mask names, and the view. The text
+ * forms (fm1w_edit_text, fm1w_edit_dump, fm1w_param_*) are for the shadow
+ * Worker and the tests, never the audio thread. */
+static uint8_t g_edit_in[FM1_EDIT_MAX_RECS * FM1_EDIT_REC_BYTES];
+static int8_t g_edit_codes[FM1_EDIT_MAX_RECS];
+static fm1_change_t g_changes[FM1_EDIT_RING];
+static uint32_t g_tele_mask[FM1_TELE_MASK_WORDS];
+static float g_tele[1536];
+static uint8_t g_view[FM1_EDIT_VIEW_BYTES];
+static float g_param_value;
+
+uint8_t *fm1w_edit_buf(void) { return g_edit_in; }
+const int8_t *fm1w_edit_codes(void) { return g_edit_codes; }
+/* n records or verbs from the buffer, as the editor's op `tag`: how many
+ * were applied; each one's verdict in fm1w_edit_codes. */
+int fm1w_edit(unsigned n, unsigned tag) {
+  return fm1_edit_packed(&g_app, g_edit_in, n, FM1_EDIT_EDITOR, (uint16_t)tag, g_edit_codes);
+}
+/* The buffer's first entry as a verb: 0, or its refusal code. */
+int fm1w_edit_verb(unsigned tag) {
+  fm1_rec_t r;
+  fm1_edit_verb_t v;
+  if (fm1_edit_unpack(g_edit_in, &r, &v) != 2) return FM1_REFUSE_BAD;
+  return fm1_edit_verb(&g_app, &v, FM1_EDIT_EDITOR, (uint16_t)tag);
+}
+/* A line of fm1_edit.h's text form (the text buffer, len bytes) packed into
+ * the edit buffer's first entry: 1, or 0. */
+int fm1w_edit_text(unsigned len) {
+  char line[200];
+  if (len >= sizeof line) return 0;
+  memcpy(line, g_text, len);
+  line[len] = 0;
+  return fm1_edit_parse_text(line, g_edit_in);
+}
+unsigned fm1w_edit_gen(void) { return fm1_edit_gen(&g_app); }
+/* Entries newer than gen into fm1w_changes_buf: how many, or 0xFFFFFFFF
+ * (resync: take a snapshot and read on from fm1w_edit_gen). */
+const fm1_change_t *fm1w_changes_buf(void) { return g_changes; }
+unsigned fm1w_changes(unsigned gen, unsigned max) {
+  return fm1_edit_changes(&g_app, gen, g_changes, max < FM1_EDIT_RING ? max : FM1_EDIT_RING);
+}
+uint32_t *fm1w_tele_mask(void) { return g_tele_mask; }
+void fm1w_subscribe(void) { fm1_edit_subscribe(&g_app, g_tele_mask); }
+const float *fm1w_tele_buf(void) { return g_tele; }
+/* A block into fm1w_tele_buf: its floats, or 0 (too soon, or nothing
+ * subscribed). Call it after a render. */
+unsigned fm1w_telemetry(void) {
+  return fm1_edit_telemetry(&g_app, g_tele, (uint32_t)(sizeof g_tele / sizeof g_tele[0]));
+}
+const uint8_t *fm1w_view_get(void) {
+  fm1_view_t v;
+  fm1_edit_view(&g_app, &v);
+  fm1_edit_view_pack(&v, g_view);
+  return g_view;
+}
+/* The ring, the view and the state's hash as text, into the text buffer. */
+unsigned fm1w_edit_dump(void) { return (unsigned)fm1_edit_dump(&g_app, g_text, sizeof g_text); }
+/* A parameter's text and back, by its module's id (in the text buffer,
+ * NUL-terminated) and uid: the screen's digits for value, into the text
+ * buffer (their length; 0 for no such parameter); and the text after the
+ * id's NUL read back (1, the value in fm1w_param_value; 0 refused). */
+unsigned fm1w_param_text(unsigned uid, float value) {
+  const fm1_param_t *p;
+  g_text[63] = 0;
+  p = fm1_edit_find_param(g_text, (uint16_t)uid);
+  if (!p) return 0;
+  fm1_look_value(p, value, g_text, 64);
+  return (unsigned)strlen(g_text);
+}
+int fm1w_param_parse(unsigned uid) {
+  const fm1_param_t *p;
+  size_t n;
+  g_text[63] = 0;
+  n = strlen(g_text);
+  p = fm1_edit_find_param(g_text, (uint16_t)uid);
+  g_text[n + 1 + 63] = 0;
+  return p && fm1_param_parse(p, g_text + n + 1, &g_param_value);
+}
+float fm1w_param_value(void) { return g_param_value; }

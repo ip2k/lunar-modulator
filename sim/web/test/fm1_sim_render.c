@@ -5019,6 +5019,9 @@ static void log_mfx(FILE *f, uint32_t pos) {
   }
 }
 
+int fm1_edit_check(void);                          /* fm1_edit_check.c */
+int fm1_edit_run(const char *script, const char *dir);
+
 int main(int argc, char **argv) {
   const char *load_spec[4], *save_spec[8];
   int n_loads = 0;
@@ -5059,6 +5062,10 @@ int main(int argc, char **argv) {
     if (strcmp(a, "--mod-format-check") == 0) return mod_format_check();
     if (strcmp(a, "--font-check") == 0) return font_check();
     if (strcmp(a, "--page-labels") == 0) return page_labels(rate);
+    /* The edit layer (sim/web/src/fm1_edit.h, stage ED1): its checks, and
+     * a script run the wasm parity test (test/edit.mjs) repeats. */
+    if (strcmp(a, "--edit-check") == 0) return fm1_edit_check();
+    if (strcmp(a, "--edit-run") == 0 && i + 2 < argc) return fm1_edit_run(argv[i + 1], argv[i + 2]);
     if (strcmp(a, "--slots") == 0) continue;                 /* implied: the app routes by slot */
     if (strcmp(a, "--start") == 0) { g_start = 1; continue; }
     if (strcmp(a, "--without") == 0) { load_flags |= FM1_APP_LOAD_WITHOUT; continue; }

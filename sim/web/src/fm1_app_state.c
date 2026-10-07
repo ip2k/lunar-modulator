@@ -3,6 +3,8 @@
  * fm1_app_state.h has the rules. C99. MIT licence. */
 #include "fm1_app_state.h"
 
+#include "fm1_edit.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1303,8 +1305,10 @@ static void project_reset(fm1_app_t *a) {
   void (*on_note_in)(void *, uint64_t, int, int, int) = a->on_note_in;
   void (*on_mfx)(void *, uint64_t, int, int, float) = a->on_mfx;
   void *cmd_ctx = a->on_cmd_ctx;
+  struct fm1_edit *edit = a->edit;       /* the edit layer's ring goes on (fm1_edit.h) */
   fm1_app_all_notes_off(a);
   fm1_app_init(a, rate);
+  a->edit = edit;
   a->master = master;
   a->gain = master * master;
   a->settings = settings;
@@ -1664,6 +1668,7 @@ int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t tot
   void *on_mod_ctx;
   void (*on_mfx)(void *, uint64_t, int, int, float);
   void (*on_cmd)(void *, uint64_t, const fm1_seq_cmd_t *);
+  int edit_was;
   if (!o) {
     fm1_app_load_opts_init(&none);
     o = &none;
@@ -1672,7 +1677,9 @@ int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t tot
     if (!(o->flags & FM1_APP_LOAD_QUIET)) fm1_app_say(a, FM1_APP_TONE_REFUSE, rep->screen[0], rep->screen[1], NULL);
     return 0;
   }
-  /* Pass 2. A load is not an edit: the native harness's logs hear none of it. */
+  /* Pass 2. A load is not an edit: the native harness's logs hear none of
+   * it, and the edit layer's ring gets one LOADED entry (fm1_edit.h). */
+  edit_was = fm1_edit_enter(a, FM1_EDIT_LOAD);
   on_mod = a->on_mod;
   on_mod_ctx = a->on_mod_ctx;
   on_mfx = a->on_mfx;
@@ -1714,6 +1721,8 @@ int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t tot
   a->on_mod_ctx = on_mod_ctx;
   a->on_mfx = on_mfx;
   a->on_cmd = on_cmd;
+  fm1_edit_note_loaded(a);
+  fm1_edit_leave(a, edit_was);
   rep->ram = (uint32_t)fm1_app_ram(a);
   rep->percent = (uint16_t)fm1_app_ram_percent(rep->ram);
   snprintf(rep->screen[0], sizeof rep->screen[0], "LOADED");

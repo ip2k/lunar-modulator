@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "82fa41169cdedabb540b847ab60ae0425393ecc5392b9359f9b164afbf667704",
-  "wasm_bytes": 1512563,
+  "wasm_sha256": "3ee92dc130219d088b10bb37f2c225c84070ce4a9b2d358b0f0a295a1eb10345",
+  "wasm_bytes": 1538812,
   "sources_sha256": {
-    "engines": "b1d01bab24cfb51c913dbfef3d4b9f77b992b0642d5f942fa6af037a49c17b41",
-    "sim": "63b9eec03fb8989795839daae4ccd790f8ef33c9bb693212468a50e806c1684d"
+    "engines": "d6bfe532172ee71af1021f1942dd33fac962feb93765f0dd6ca1f6efb73a5fa0",
+    "sim": "99978e31666c2d5e3ac0382fe21beb6e9099d385421e6bdd0dd10e11730f4b95"
   },
   "engines": "working tree",
-  "built": "2026-10-06T23:09:29Z",
+  "built": "2026-10-07T00:31:01Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -169,6 +169,46 @@
         "pass": true
       }
     ]
+  },
+  "edit": {
+    "parity": "ok",
+    "audio_max_lsb": 0,
+    "storm": {
+      "seconds": 30,
+      "quanta": 10341,
+      "deadline_ms": 2.9013101228523506,
+      "late": 0,
+      "applied": 82728,
+      "resyncs": 0,
+      "telemetry_blocks": 862,
+      "p50_ms": 0.06205899999997655,
+      "p99_ms": 0.09608399999999051,
+      "max_ms": 0.24856600000001094,
+      "edit_us_per_quantum": 7.860417561163703
+    },
+    "check": {
+      "params": 467,
+      "steps": 34376,
+      "text_bad": 0,
+      "codes": [
+        "UNKNOWN",
+        "RATE",
+        "RAM",
+        "NO_ROOM",
+        "BAD",
+        "NO_SOURCE",
+        "NO_DEST",
+        "NOLOCK",
+        "ENUM_NO_MOD",
+        "VOICE_TO_MONO",
+        "VOICE_TO_EFFECT",
+        "UNIT_RESERVED",
+        "VOICE_FULL"
+      ],
+      "hands": 7,
+      "tele_fills": 30,
+      "failed": 0
+    }
   },
   "scenarios": [
     {
