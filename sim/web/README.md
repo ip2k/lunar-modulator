@@ -595,7 +595,14 @@ state's hash identical, the screen too, the audio within one 16-bit step;
 then a 30-second edit storm with the demo song playing, eight records a
 quantum, the change feed drained and every telemetry row filled, each
 quantum timed against the 2.90 ms it plays. `build.sh` runs both and
-records the results in `fm1.wasm.json` (`edit`).
+records the results in `fm1.wasm.json` (`edit`). `test/editor.mjs`
+(headless Chromium, in `build-on-aeon.sh`'s page step) storms the real
+worklet's editor port for 30 seconds with the song playing and passes when
+every op is answered with its verdicts, changes, views and telemetry come
+back, a snapshot is binary, and Chromium's playback stats count no
+underrun [verified 2026-10-06: 58,040 records, 0 underruns, Chromium 153;
+its worklet scope has no clock, so the worklet's own late count reads "not
+timed" there].
 
 ## Parity: does the browser sound like the native engines?
 

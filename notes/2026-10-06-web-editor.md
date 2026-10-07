@@ -899,8 +899,15 @@ same screen less its RAM figure, and the same audio (0 LSB apart). The
 feed drained every sixth quantum, every telemetry row filled when due):
 **0 late quanta of 10,341**, median 0.065 ms, 99th percentile 0.098 ms,
 slowest 0.26 ms of the 2.90 ms a quantum plays; the edit layer's own work
-10.7 µs a quantum, under §12's 58 µs. Not measured: a real AudioWorklet in
-Chromium, Firefox or WebKit (ED5's stage; the worklet now counts late
-quanta and posts them as `stats` where its scope has a clock). The 103
-parity scenarios still match fm1-render [verified: 103 of 103, audio
-identical to the JavaScript build, screens identical].
+10.7 µs a quantum, under §12's 58 µs. **In the real AudioWorklet**
+(`test/editor.mjs`, headless Chromium 153 on aeon, 44,100 Hz, the demo song
+playing): 30 seconds of 7,255 ops, 58,040 records, every one applied with
+verdict 0, 1,724 change batches, 905 telemetry blocks handed back and
+reused, a binary snapshot; **Chromium's own playback stats counted 0
+underruns** [verified]. Chromium's AudioWorklet scope has no clock
+(`performance` is absent), so the worklet's own late-quantum counter reads
+"not timed" there; headless Chromium plays to a fake output device, so a
+desktop browser with a real one, Firefox and WebKit remain to be measured
+(ED5). The module grew by 26,032 B, to 1,520,901 B. The 103 parity
+scenarios still match fm1-render [verified: 103 of 103, audio identical to
+the JavaScript build, screens identical].

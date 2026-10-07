@@ -77,6 +77,7 @@ const r = await page.evaluate(async (seconds) => {
     b[at] = type;
     b[at + 2] = sound;
     if (type === 6) {
+      b[at + 1] = 1;                  // FM1_ROLE_SOUND
       dv.setUint16(4, uid, true);
       b[at + 6] = 0xff;
       dv.setFloat32(8, value, true);
