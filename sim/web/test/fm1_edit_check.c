@@ -515,6 +515,8 @@ static void check_verbs(void) {
     const uint32_t h = fm1_edit_state_hash(&g_a);
     CHECK(edit_line("view rack pos=3", 8, NULL) == 0 && fm1_edit_state_hash(&g_a) == h);
     CHECK(edit_line("view home sound=1 entry=2", 8, NULL) == 0 && fm1_edit_state_hash(&g_a) == h);
+    CHECK(edit_line("current 2", 8, NULL) == 0 && fm1_edit_state_hash(&g_a) == h);   /* nor the current sound */
+    CHECK(edit_line("current 0", 8, NULL) == 0);
     CHECK(edit_line("view home sound=1", 8, NULL) == 0);
   }
   /* A pad's own value (engine API v4): written to that pad, the focus kept. */

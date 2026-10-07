@@ -350,11 +350,16 @@ static void lines_out(col_t *c, const char *s, uint32_t n, unsigned which) {
   }
 }
 
+/* Set by a save with binary 3 (the state hash's form): the project without
+ * where the panel is (its view and the current sound), so a follow that
+ * moves the panel changes no hash (stage ED4). */
+static int g_no_view;
+
 static void session_out(col_t *c, const fm1_app_t *a) {
   fm1_rec_t r = blank(FM1_REC_SESSION);
   int scale = 0;
   const int root = fm1_app_project_key(a, &scale);
-  r.u.session.current = (int8_t)a->sound;
+  r.u.session.current = (int8_t)(g_no_view ? 0 : a->sound);   /* the hash: where the panel is, left out */
   r.u.session.octave = (int8_t)a->octave;
   r.u.session.transpose = (int8_t)a->transpose;
   /* The key's one home is the set's `key` line; this copy is written from
@@ -365,10 +370,6 @@ static void session_out(col_t *c, const fm1_app_t *a) {
            fm1_app_scale_id(scale) ? fm1_app_scale_id(scale) : "major");
   out(c, &r);
 }
-
-/* Set by a save with binary 3 (the state hash's form): the project without
- * its view, so a follow that moves the panel changes no hash (stage ED4). */
-static int g_no_view;
 
 static void view_out(col_t *c, const fm1_app_t *a) {
   fm1_rec_t r = blank(FM1_REC_VIEW);

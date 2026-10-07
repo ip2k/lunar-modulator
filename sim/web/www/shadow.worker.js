@@ -31,8 +31,9 @@
 //                                fm1w_state_hash (CRC-32 of the binary
 //                                container, nothing deflated, no view):
 //                                { hash }, for undo's check
-//   diff    { a, b, kind }       two projects' differences in `kind` (the
-//                                project unless said), member by member of
+//   diff    { a, b, kind, arg }  two projects' differences in `kind` (the
+//                                project unless said; arg as save's, e.g.
+//                                a sound for A/B), member by member of
 //                                their canonical JSON: { changes }
 // and for stage ED3 (§5's previews: what an edit would do, before it is made):
 //   save    { ..., mod: true }   also the rack and the matrix as packed
@@ -110,9 +111,9 @@ function putIds(id, text) {
 
 // A binary file's canonical JSON as an object (kind 1, the project, unless
 // said): loaded quietly, saved back by C's writer.
-function canonical(bin, kind) {
+function canonical(bin, kind, arg) {
   mirror(bin);
-  const n = ex.fm1w_state_save(kind || 1, 0, 0);
+  const n = ex.fm1w_state_save(kind || 1, arg | 0, 0);
   if (n < 0) throw refusal('BAD', report().message);
   return JSON.parse(decoder.decode(buf().slice(0, n)));
 }
@@ -272,7 +273,7 @@ const ops = {
     return { hash: crc32(buf().subarray(0, n)) };
   },
   diff(m) {
-    return { changes: differences(canonical(m.a, m.kind), canonical(m.b, m.kind), '', []) };
+    return { changes: differences(canonical(m.a, m.kind, m.arg), canonical(m.b, m.kind, m.arg), '', []) };
   },
 };
 
