@@ -1235,8 +1235,8 @@ read-outs. The Map and the manual's chapter are ED5b.
   -0.05` while C sends the cut as a positive number (Comp, the output
   limiter), so no "GR" was ever drawn. Fixed with the new rows.
 - **Squash's gain is not 1 at rest.** Snap's gate state starts at 1 and
-  closes the gain by about 1.4 dB over a first 30 ms of silence (and toward
-  -12 dB over a long one) even with Gate at -80 dB, its "off". Silence in
+  closes the gain by about 1.4 dB over a first 30 ms of silence [verified]
+  (and, by its formula, toward -12 dB over a long one [inferred]) even with Gate at -80 dB, its "off". Silence in
   gives silence out, so nothing is heard, but a raw read-out would show a
   constant "GR". The display shows the cut only while a signal goes in.
   Whether Snap's closed gate should be a read-out of its own is left open.
