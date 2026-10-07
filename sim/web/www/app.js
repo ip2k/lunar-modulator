@@ -328,6 +328,7 @@ async function start() {
     dx7Button.disabled = false;
     for (const id of FILE_CONTROLS) document.getElementById(id).disabled = false;
     files.afterPowerOn().catch((err) => console.error('files', err));
+    window.dispatchEvent(new CustomEvent('fm1-power', { detail: { on: true } }));
   } catch (err) {
     if (ctx && ctx !== sim.ctx && ctx.state !== 'closed') await ctx.close();
     await powerOff();
@@ -352,6 +353,7 @@ async function powerOff() {
   for (const g of [...keyEls, ...buttonEls]) g.classList.remove('lit');
   for (const c of [tft, mirror]) c.getContext('2d').clearRect(0, 0, 240, 240);
   statusEl.textContent = 'Powered off.';
+  window.dispatchEvent(new CustomEvent('fm1-power', { detail: { on: false } }));
 }
 
 // ---- licences: the GPL offer (docs/12 §6, "The GPL switch") ----------------------
@@ -558,6 +560,7 @@ function drawScreen(px) {
   }
   tft.getContext('2d').putImageData(image, 0, 0);
   if (!document.getElementById('mirror').hidden) mirror.getContext('2d').putImageData(image, 0, 0);
+  if (sim.screenListeners) for (const f of sim.screenListeners) f(image);   // the editor's screen card
   ++sim.screens;
 }
 
@@ -860,6 +863,9 @@ function keydown(e) {
   // macOS does not deliver the keyup of a key released while Cmd is down,
   // so Cmd lets go of every held key first.
   if (e.key === 'Meta') { releaseKeys(); return; }
+  // EDIT (the Advanced editor has the keys, notes/2026-10-06-web-editor.md
+  // §13): no computer key plays the FM-1 until Esc gives them back.
+  if (sim.keysToEditor) return;
   if (e.metaKey || e.ctrlKey || e.altKey) return;     // browser and system shortcuts
   if (e.target.closest && e.target.closest('select, input, textarea')) return;
   const focused = document.activeElement;
@@ -1022,6 +1028,56 @@ function controlEl(name) {
 }
 drawPanel();
 files = initFiles({ sim, powerOn, loadDx7Files, controlEl });
+sim.releaseKeys = releaseKeys;
+
+// ---- the Advanced editor's layouts (stage ED2, notes/2026-10-06-web-editor.md §4)
+// Panel is the page as it was; Workbench puts the editor beside the panel
+// (below it under 1,280 px); Editor folds the panel to its screen, drawn in
+// the editor's outline. The editor's modules load on the first switch away
+// from Panel, so the plain simulator loads what it loaded before.
+const LAYOUTS = ['panel', 'workbench', 'editor'];
+const layoutSwitch = document.getElementById('layout-switch');
+let editor = null;
+let editorLoading = null;
+async function setLayout(name, save = true) {
+  if (!LAYOUTS.includes(name)) name = 'panel';
+  for (const b of layoutSwitch.querySelectorAll('[data-layout]')) {
+    const on = b.dataset.layout === name;
+    b.setAttribute('aria-checked', String(on));
+    b.tabIndex = on ? 0 : -1;
+  }
+  document.body.dataset.layout = name;
+  if (save) pref('editor.layout', name);
+  const host = document.getElementById('editor-host');
+  host.hidden = name === 'panel';
+  if (name !== 'panel' && !editor) {
+    editorLoading = editorLoading || import('./editor/editor.js').then((m) => m.startEditor({
+      sim, files, host, layoutSwitch, header: document.querySelector('.top'), powerOn,
+    }));
+    try {
+      editor = await editorLoading;
+    } catch (err) {
+      editorLoading = null;
+      statusEl.textContent = `The editor could not load: ${err.message || err}`;
+      return;
+    }
+  }
+  if (editor && document.body.dataset.layout === name) editor.setLayout(name);
+}
+layoutSwitch.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-layout]');
+  if (b) setLayout(b.dataset.layout);
+});
+layoutSwitch.addEventListener('keydown', (e) => {
+  const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+  if (!d) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const i = LAYOUTS.indexOf(document.body.dataset.layout || 'panel');
+  const next = LAYOUTS[(i + d + LAYOUTS.length) % LAYOUTS.length];
+  setLayout(next).then(() => layoutSwitch.querySelector(`[data-layout="${next}"]`).focus());
+});
+setLayout(pref('editor.layout') || 'panel', false);
 setAngle(masterEl, -150 + 300 * sim.master);
 revealScreen();
 document.getElementById('power-on').addEventListener('click', powerOn);

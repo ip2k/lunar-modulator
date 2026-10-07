@@ -525,8 +525,8 @@ The advanced editor (`notes/2026-10-06-web-editor.md`) changes the virtual
 FM-1 through one C layer, `src/fm1_edit.c` (`fm1_edit.h`), which the
 panel's own handlers share, so a knob turned on the panel and a slider in
 the editor make the same change, the same change-ring entry and the same
-`--mod` line. No editor UI exists yet (stages ED2-ED5); this is its engine
-room.
+`--mod` line. This is the editor's engine room; its first views are stage
+ED2's (next section).
 
 - **Edits are the state core's records** (a unit, a MIDI effect's on, a
   parameter, a level, a rack position's kind, a matrix slot) **and four
@@ -605,6 +605,72 @@ back, a snapshot is binary, and Chromium's playback stats count no
 underrun [verified 2026-10-06: 58,016 records, 0 underruns, Chromium 153;
 its worklet scope has no clock, so the worklet's own late count reads "not
 timed" there].
+
+## The advanced editor (stage ED2: shell, flow and sound)
+
+`www/editor/` holds the editor's plain ES modules, loaded with `import()` the
+first time the layout switch leaves Panel, so the plain simulator loads what
+it loaded before (`notes/2026-10-06-web-editor.md` §4, §23):
+
+| File | What it is |
+| --- | --- |
+| `editor/model.js` | No DOM: `fm1_edit.h`'s packed records, change entries and view; the metadata (`meta.json`) with each parameter's control by §6's table, the LOG law, the knob detents; memory as a percentage of the budget, rounded up as the screen's meter; the mirror, built from C's canonical JSON (the shadow Worker's `save`) and kept by the change feed |
+| `editor/history.js` | No DOM: one history for the editor's and the panel's edits; a drag is one step, repeats within 600 ms merge, 200 steps |
+| `editor/editor.js` | The shell, the Flow and the sound inspector, follow, K1-K4, undo, PLAY and EDIT |
+| `editor/editor.css` | Its look, in the page's role colours (`PALETTE.md` v2) |
+
+- **Layouts** (the switch in the page's header, moved into the editor's app
+  bar while it is shown; kept as the preference `lunar.sim.editor.layout`):
+  *Panel*, the page as it was; *Workbench*, the panel and the editor side by
+  side from 1,400 px (the panel keeps the 800 px its smallest targets need)
+  and stacked below; *Editor*, the panel folded to its screen, which the
+  editor's outline draws from the same frame (`sim.screenListeners`), in the
+  head below 1,180 px.
+- **The app bar:** the keys chip (PLAY or EDIT), *Follow the panel* and *Open
+  on the panel*, Undo and Redo, and RAM by part: one bar in the sound
+  colours with the whole as a percentage, and a list of the four sounds,
+  the master slots, what they share and what is free, each in percent
+  (`fm1w_ram_part`, posted by the worklet as `ram` when a figure moves).
+- **The Flow** (the editor's home): four strips (the MIDI effect, the
+  engine, In1, In2, the level with its meter) into the Mix and M1, M2 and
+  the output; a click selects a block and its inspector opens below
+  (moving and swapping are ED3's). Its meters are the telemetry block's,
+  subscribed only while the Flow is on screen and the tab is visible.
+- **A sound:** its chain as a path, then its engine by the device's pages
+  ("Page 2 · KNOB1–3", the arpeggiator's PLAY ... SEED), both inserts and its
+  MIDI effect (the first three pages open, the rest as summaries). Controls
+  come from the metadata only: a slider with a typed value field (C's text
+  and C's parser, through the shadow Worker), LOG on its law, bipolar from
+  zero; segments up to 4 entries, a grid up to 8, a list with its place
+  beyond, filtered past 24; the GPL chip from the module's licence.
+- **Follow** (§7). The panel's changes come in the change feed: the row
+  lights (not under reduced motion), "From the panel: KNOB2 ..." says it,
+  the history gets a line, a polite announcement at most once a second. In
+  the Workbench the editor opens the block and page the panel shows,
+  never while a value is typed, a slider is held or a control in the
+  editor has the focus; in Editor the block is only marked "on the panel".
+  Selecting a block or a row sends the `view` verb, and the panel opens
+  that page. The rows KNOB1-4 turn now carry K1-K4 (`fm1_edit_view`).
+- **Undo** (§8): Undo and Redo, ⌘Z and ⇧⌘Z (Ctrl+Z, Ctrl+Y), over the
+  editor's and the panel's parameter, level and on/off changes alike. A step
+  goes back by sending its `before` as an edit; a step recorded for an
+  engine the block no longer has is refused in words. Structural steps and
+  the snapshot fallback come with ED3 and ED4.
+- **PLAY and EDIT** (§13): a click or the focus in the editor, or ⌘E (Ctrl+E),
+  gives it the computer keys (`sim.keysToEditor`; `app.js` then sends no key
+  to the FM-1); Esc, or a click on the panel, gives them back. Sliders take
+  ← → (one detent, ⇧ ten, ⌥ a tenth), Home, End, D (the default) and Enter
+  (type a value).
+- **Tests.** `test/editor-unit.mjs` (node, `tests/test_sim_editor_ui.py`)
+  checks every parameter's control, the LOG law and detents, records packed
+  by `model.js` against the module and back through the change feed, the
+  view verb and the knob map, the mirror against C's values, the history's
+  merging, and 120 random edits undone to the first state hash and redone
+  to the last. `test/editor-ui.mjs` (headless Chromium, the page step of
+  `build-on-aeon.sh`) checks the lazy load, follow both ways, K1-K4, undo
+  by the shadow Worker's hash, PLAY and EDIT, every module's inspector at
+  two column widths with nothing overflowing, and the two layouts at 1,440
+  and 1,024 px, with screenshots in `build/screenshots/ed2-*.png`.
 
 ## Parity: does the browser sound like the native engines?
 

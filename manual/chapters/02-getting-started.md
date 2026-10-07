@@ -140,6 +140,30 @@ press **Power on**, and it is as you left it. To start from an example, open
 *Saved in this browser, Recent and examples* under the status line and load
 *First orbit*, the guide's first song.
 
+### The advanced editor
+
+The switch at the top of the page, **Panel**, **Workbench** and **Editor**,
+opens the advanced editor beside the panel or in its place. It shows every
+value of a sound at once, grouped by the panel's own pages, and changes the
+same simulator the panel plays: turn a knob on the panel and its row lights
+in the editor; move a slider in the editor and the panel opens that page.
+
+- **Flow** shows the four sounds into the mix and the two master slots; click
+  a block to see its values below.
+- A sound (S1 to S4 on the left) shows its engine, its two effects and its
+  arpeggiator. Drag a slider, use the arrow keys, or type a value and press
+  Enter; **D** puts a value back to its default.
+- **Undo** and **Redo** cover changes from the editor and from the panel's
+  knobs alike.
+- *Keys PLAY* means the computer keyboard plays the instrument; click in the
+  editor (or press Ctrl+E, ⌘E on a Mac) and it reads *Keys EDIT*, so the
+  keys edit and play nothing. **Esc** gives them back.
+- **RAM** shows how much of the FM-1's memory the project takes, in percent,
+  and how much each sound takes.
+
+Choosing engines and effects, moving effects and the modulation come to the
+editor in later versions; until then, use the panel.
+
 ### Running the simulator from your own copy
 
 To run the simulator without the website, for example from a copy of the

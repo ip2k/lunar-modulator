@@ -785,6 +785,13 @@ int fm1_app_banner(const fm1_app_t *a, char *buf, size_t size);
  * sound unit past the first (FM1_APP_MIX_BLOCK_BYTES). */
 size_t fm1_app_ram(const fm1_app_t *a);
 
+/* fm1_app_ram by part, for the editor's RAM by part (stage ED2): 0-3 a
+ * sound (its engine, its two inserts and its MIDI effect while on), 4 the
+ * master slots, 5 the rest (the sequencer, the Mix's blocks, the modulation
+ * runtime, the MIDI effects' stage). The six add up to fm1_app_ram. */
+#define FM1_APP_RAM_PARTS 6
+size_t fm1_app_ram_part(const fm1_app_t *a, int part);
+
 /* What fm1_app_ram would be with registry entry `index` in `unit` (-1:
  * emptied): the RAM meter's test before a load. */
 size_t fm1_app_ram_with(const fm1_app_t *a, int unit, int index);

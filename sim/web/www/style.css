@@ -463,3 +463,37 @@ code { font: 0.9em ui-monospace, Menlo, Consolas, monospace; color: var(--text);
   /* below the rear ports' labels, over the case's top row */
   .power-overlay { align-items: flex-start; padding-top: 6%; }
 }
+
+/* ---- the Advanced editor's layouts (stage ED2, notes/2026-10-06-web-editor.md §4) ----
+ * The switch sits in the page's header in Panel and moves into the editor's
+ * app bar in Workbench and Editor (editor/editor.js); the editor's own look
+ * is editor/editor.css, loaded with it. */
+.top { position: relative; }
+.layout-switch {
+  display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--border);
+  border-radius: 8px; background: var(--surface); float: right; margin: 0 0 8px 16px;
+}
+.layout-switch button {
+  border: 0; background: transparent; color: var(--text); padding: 4px 12px; min-height: 28px;
+  border-radius: 6px; font: 500 0.9rem/1.2 var(--small);
+}
+.layout-switch button[aria-checked="true"] { background: var(--select); color: var(--accent-text); }
+body[data-layout="workbench"] .top .lede, body[data-layout="editor"] .top .lede { display: none; }
+body[data-layout="workbench"] .top, body[data-layout="workbench"] main,
+body[data-layout="editor"] .top, body[data-layout="editor"] main { max-width: 1720px; }
+.editor-host[hidden] { display: none; }
+.editor-host { margin-top: 16px; min-width: 0; }
+/* Side by side from 1,400 px: the panel keeps the 800 px under which its
+ * smallest targets would drop below 24 px (above); narrower, it stacks. */
+@media (min-width: 1400px) {
+  body[data-layout="workbench"] .stage {
+    display: grid; grid-template-columns: minmax(800px, 46fr) minmax(0, 54fr); gap: 0 20px; align-items: start;
+  }
+  body[data-layout="workbench"] .stage > .device-wrap { grid-column: 1; grid-row: 1; position: sticky; top: 8px; }
+  body[data-layout="workbench"] .stage > .narrow-hint { grid-column: 1; grid-row: 2; }
+  body[data-layout="workbench"] .stage > .editor-host { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }
+}
+/* Editor: the panel folds to its screen, which the editor's outline draws.
+ * The power overlay goes with it; the editor has its own Power on. */
+body[data-layout="editor"] .stage > .device-wrap,
+body[data-layout="editor"] .stage > .narrow-hint { display: none; }

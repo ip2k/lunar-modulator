@@ -9,6 +9,19 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The advanced editor, first views** (stage ED2). A switch at the top of
+  the simulator's page (Panel, Workbench, Editor) opens an editor beside the
+  panel or in its place. *Flow* shows the four sounds into the mix and the
+  master slots; a sound shows its engine, both effects and its arpeggiator
+  with every value at once, grouped by the panel's pages, as sliders with a
+  typed value, rows of choices or lists. The editor and the panel follow
+  each other: a knob turned on the panel lights its row and says so, a value
+  chosen in the editor opens its page on the panel, and the rows the four
+  knobs turn now are marked K1 to K4. Undo and Redo cover changes from both.
+  The computer keyboard plays the instrument (PLAY) until you click in the
+  editor or press Ctrl+E / ⌘E (EDIT), and Esc gives it back. The memory the
+  project takes is shown in percent, by sound. Choosing engines and
+  effects, moving effects and modulation come in the next stages.
 - **The advanced editor's engine room** (stage ED1; no visible change yet).
   The simulator now has one way in for every edit, which the panel's own
   knobs and buttons share and the coming web editor will use: sounds,

@@ -49,6 +49,9 @@
 //                                 at most one batch every ~17 ms; `resync`
 //                                 {gen} when the editor fell a ring behind
 //        view {bytes}             the panel's view and knob map, when it changed
+//        ram {total, budget, parts}  the RAM figure and its six parts
+//                                 (fm1w_ram_part: four sounds, the master
+//                                 slots, the rest), when they changed (ED2)
 //        telemetry {buffer}       one block, at most 30 a second, in two pooled
 //                                 buffers transferred and handed back
 //        stats {...}              once a second: quanta, the late ones (a
@@ -92,6 +95,8 @@ class FM1Processor extends AudioWorkletProcessor {
     this.mask = null;
     this.teleFree = [];
     this.viewLast = new Uint8Array(40);
+    this.ramLast = new Uint32Array(7);
+    this.ramSent = false;
     this.stats = { quanta: 0, late: 0, maxMs: 0, editMs: 0, timed: clock !== null };
   }
 
@@ -178,6 +183,7 @@ class FM1Processor extends AudioWorkletProcessor {
         const bytes = view.slice();
         this.editor.postMessage({ type: 'view', bytes }, [bytes.buffer]);
       }
+      this.postRam();
     }
     if (this.teleFree.length) {
       const floats = ex.fm1w_telemetry();
@@ -189,6 +195,22 @@ class FM1Processor extends AudioWorkletProcessor {
         this.editor.postMessage({ type: 'telemetry', buffer }, [buffer]);
       }
     }
+  }
+
+  // RAM by part (ED2): C's figures, sent when one of them moved.
+  postRam() {
+    const ex = this.fm1.exports;
+    if (typeof ex.fm1w_ram_part !== 'function') return;
+    const now = new Uint32Array(7);
+    now[0] = ex.fm1w_ram() >>> 0;
+    for (let k = 0; k < 6; ++k) now[k + 1] = ex.fm1w_ram_part(k) >>> 0;
+    let same = this.ramSent;
+    for (let i = 0; i < 7 && same; ++i) same = now[i] === this.ramLast[i];
+    if (same) return;
+    this.ramLast.set(now);
+    this.ramSent = true;
+    const parts = now.slice(1);
+    this.editor.postMessage({ type: 'ram', total: now[0], budget: ex.fm1w_ram_budget() >>> 0, parts }, [parts.buffer]);
   }
 
   async onMessage(m) {

@@ -66,7 +66,7 @@ $(BUILD)/fm1-sim-render: $(SIM_APP_OBJ) $(BUILD)/sim/test/fm1_sim_render.o $(BUI
 # The page's own loader (www/fm1-wasm.mjs) stubs any import, so the module
 # must not depend on one: test/parity.mjs lists them and fails on any.
 WASM_EXPORTS := fm1w_init fm1w_default_chain fm1w_catalog fm1w_select fm1w_unit_index \
-  fm1w_set_param fm1w_get_param fm1w_ram fm1w_unit_bytes fm1w_note_on fm1w_note_off \
+  fm1w_set_param fm1w_get_param fm1w_ram fm1w_ram_part fm1w_unit_bytes fm1w_note_on fm1w_note_off \
   fm1w_pitch_bend fm1w_all_notes_off fm1w_key fm1w_button fm1w_encoder fm1w_master \
   fm1w_render fm1w_draw fm1w_screen fm1w_leds fm1w_leds_changed fm1w_mode \
   fm1w_text_buf fm1w_text_cap fm1w_seq_text fm1w_seq_reset fm1w_seq_dropped \
