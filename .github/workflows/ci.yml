@@ -177,6 +177,7 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.63.0-noble
       options: --ipc=host
     env:
+      HOME: /root         # a container job sets HOME to /github/home, owned by pwuser, and Firefox will not run as root in another user's home
       PLAYWRIGHT_DIR: /pw
       BROWSER: ${{ matrix.browser }}
       SHOTS: page-test-output/${{ matrix.browser }}      # relative to the repository (inside the container, github.workspace is the host's path)
