@@ -103,6 +103,7 @@ enum {
 };
 #define FM1_MOD_SOUNDS 4u               /* sound units */
 #define FM1_MOD_INSERTS 2u              /* inserts per sound unit (codes for 4) */
+#define FM1_MOD_MASTERS 2u              /* master effect slots (FX1, FX2; fm1_tele.h's FM1_TELE_MASTERS) */
 #define FM1_MOD_SINKS 15u               /* SOUND FX1 FX2 HOST, sound units 2-4, the 8 inserts */
 #define FM1_MOD_SINK_PARAMS 200u        /* parameter records the bound units share,
                                            HOST's six included; fm1_mod_bind: four

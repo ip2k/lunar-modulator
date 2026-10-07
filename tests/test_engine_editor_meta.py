@@ -1,4 +1,4 @@
-"""What the metadata export says for the advanced editor (levels 1.1 and 1.2, stage
+"""What the metadata export says for the advanced editor (levels 1.1 to 1.3, stage
 ED0; notes/2026-10-06-web-editor.md §6, decisions ED4, ED11 and ED16):
 
 - every engine, audio effect, MIDI effect and modulation kind of the build is
@@ -69,7 +69,7 @@ def _modules(meta):
 
 
 def test_level_1_2_carries_every_editor_member(meta):
-    assert meta["lunar"] == "1.2"
+    assert meta["lunar"] == "1.3"
     assert list(meta)[-len(EDITOR_ONLY_TOP):] == list(EDITOR_ONLY_TOP)
     for e in meta["engines"]:
         want = {"licence", *EDITOR_ONLY_ENGINE} - (set() if e["kind"] == "audio_fx" else {"group"})
@@ -107,6 +107,33 @@ def test_source_groups_are_the_patch_bays(meta):
         if x["group"] == "lane_values":
             assert re.fullmatch(r"SQV[1-8]", x["name"])
     assert {x["group"] for x in meta["mod"]["sources"]} == set(ids)
+
+
+def test_the_id_layout_and_the_chain_shape_are_the_headers(meta):
+    """Level 1.3: the editor reads how a cable's ids are laid out (a module's
+    outputs are source_base + source_stride x position + port; its parameters
+    and gate inputs unit_base + position) and the chain's shape from the
+    export, and holds none of it. They are fm1_mod.h's, and a saved record
+    carries them, so they are pinned."""
+    header = (ENGINES / "include" / "fm1_mod.h").read_text()
+    enum = lambda n: int(re.search(r"%s = ([0-9]+)" % n, header).group(1))   # noqa: E731
+    mod = meta["mod"]
+    assert mod["source_base"] == enum("FM1_MOD_SRC_MODULE") == enum("FM1_MOD_SRC_SYSTEM")
+    assert mod["unit_base"] == enum("FM1_MOD_MODULE")
+    assert mod["source_stride"] == _define(ENGINES / "include" / "fm1_mod.h", "FM1_MOD_MAX_OUTS")
+    assert mod["sounds"] == _define(ENGINES / "include" / "fm1_mod.h", "FM1_MOD_SOUNDS")
+    assert mod["inserts"] == _define(ENGINES / "include" / "fm1_mod.h", "FM1_MOD_INSERTS")
+    assert mod["masters"] == _define(ENGINES / "include" / "fm1_mod.h", "FM1_MOD_MASTERS")
+    # The telemetry block counts the same chain, and the sinks of `units` are its shape.
+    tele = ENGINES / "include" / "fm1_tele.h"
+    assert (mod["sounds"], mod["inserts"], mod["masters"]) == tuple(
+        _define(tele, n) for n in ("FM1_TELE_SOUNDS", "FM1_TELE_INSERTS", "FM1_TELE_MASTERS"))
+    assert mod["positions"] <= 8 and mod["source_stride"] >= max(len(k["outs"]) for k in mod["kinds"])
+    names = {u["name"] for u in mod["units"]}
+    assert {f"snd{k + 1}.fx{j + 1}" for k in range(mod["sounds"]) for j in range(mod["inserts"])} <= names
+    # The id of the last module output stays below 256 (a record keeps it in a byte).
+    assert mod["source_base"] + mod["source_stride"] * mod["positions"] <= 256
+    assert mod["unit_base"] + mod["positions"] <= 16          # below the first sound unit (16)
 
 
 def test_curve_points_are_the_runtimes(meta):
@@ -305,6 +332,7 @@ def test_pinned_ids_stay_put(meta):
         assert got["rows"][:len(want["rows"])] == want["rows"]
     assert [m["mark"] for m in meta["marks"]][:len(pin["marks"])] == pin["marks"]
     assert [g["id"] for g in meta["mod"]["source_groups"]][:len(pin["source_groups"])] == pin["source_groups"]
+    assert {k: meta["mod"][k] for k in pin["mod_layout"]} == pin["mod_layout"]
     fixes = {str(c["code"]): c["fix"]["id"] for c in meta["refusals"]["codes"] if "fix" in c}
     assert all(fixes.get(k) == v for k, v in pin["refusal_fix"].items())
     pages = {m["id"]: m["page_names"] for m in _modules(meta)}
