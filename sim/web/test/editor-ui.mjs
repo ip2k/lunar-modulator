@@ -205,9 +205,12 @@ await page.keyboard.press('Escape');
 check('Ctrl+E gives them to the editor', ctrlE === 'edit', ctrlE);
 
 // ---- stage ED3: move and swap, pickers, refusals, the matrix, structural undo -------------
+// Compared less the view and the current sound: opening a sound's page on
+// the panel (follow, the view verb) makes it the current one, which a file
+// keeps as session.current; neither is an edit nor in the history (§7, §8).
 const lessView = (a, b) => page.evaluate(async ({ a, b }) => {
   const d = await window.fm1.files.shadow('diff', { a: window.__bins[a], b: window.__bins[b] });
-  return (d.changes || []).filter((c) => !c.path.startsWith('view.')).map((c) => c.path);
+  return (d.changes || []).filter((c) => !c.path.startsWith('view.') && c.path !== 'session.current').map((c) => c.path);
 }, { a, b });
 await page.click('[data-layout="editor"]');
 await page.evaluate(() => window.fm1.editor.select('m1', { view: 'flow' }));
