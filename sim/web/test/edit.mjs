@@ -10,8 +10,10 @@
 // fm1w_edit_text into the edit buffer, then fm1w_edit, the worklet's call;
 // panel gestures through fm1w_button and fm1w_encoder; 64-frame blocks). The
 // verdicts, the change ring (gens, sources, tags, records), the view with its
-// knob map and the state's hash must be identical, the screens too, and the
-// audio within one 16-bit step (a native build's libm is not Emscripten's).
+// knob map and the state's hash must be identical, the screens too (less the
+// bottom bar's RAM figure, as parity.mjs masks it: 32-bit instance sizes),
+// and the audio within one 16-bit step (a native build's libm is not
+// Emscripten's).
 //
 // The storm (§12, §17): SECONDS of audio rendered as the worklet renders it,
 // 128-frame quanta of two blocks, with the demo song playing, eight editor
@@ -97,7 +99,17 @@ ex.fm1w_draw(0);
 const screen = Buffer.from(new Uint8Array(fm1.memory.buffer, ex.fm1w_screen(), 240 * 240 * 2));
 writeFileSync(join(work, 'wasm-edit.txt'), log);
 check(log === native.log, 'the verdicts, the ring, the view and the hash match the native harness');
-check(screen.equals(native.screen), 'the screen matches the native harness');
+{
+  // The bottom bar's right half shows the chain's RAM, 32-bit here.
+  const a = new Uint16Array(screen.buffer.slice(screen.byteOffset, screen.byteOffset + screen.length));
+  const b = new Uint16Array(native.screen.buffer.slice(native.screen.byteOffset, native.screen.byteOffset + native.screen.length));
+  let differing = a.length === b.length ? 0 : 1;
+  for (let i = 0; i < Math.min(a.length, b.length); ++i) {
+    if ((i % 240) >= 120 && Math.floor(i / 240) >= 216) continue;
+    if (a[i] !== b[i]) ++differing;
+  }
+  check(differing === 0, `the screen matches the native harness (${differing} px differ)`);
+}
 let maxDiff = 0;
 const flat = new Float32Array(audio.length * 2 * BLOCK);
 audio.forEach((b, i) => flat.set(b, i * 2 * BLOCK));
@@ -169,7 +181,9 @@ if (seconds > 0) {
     edit_us_per_quantum: (1000 * editMs) / quanta,
   };
   check(applied === quanta * 8, 'every storm record applied');
-  check(fills <= Math.ceil(seconds * 30) + 1 && fills >= Math.floor(seconds * 30) - 1, `telemetry at 30 a second (${fills})`);
+  // At most 30 a second; a block waits for the first quantum past 1/30 s,
+  // so 128-frame quanta give one every 12 (28.7 a second at 44,118 Hz).
+  check(fills <= Math.ceil(seconds * 30) + 1 && fills >= Math.floor(seconds * 28), `telemetry at most 30 a second (${fills})`);
 }
 
 const summary = { parity: fails.length === 0 ? 'ok' : 'failed', audio_max_lsb: maxDiff, storm, fails };
