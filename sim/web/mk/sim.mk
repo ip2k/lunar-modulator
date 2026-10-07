@@ -76,7 +76,10 @@ WASM_EXPORTS := fm1w_init fm1w_default_chain fm1w_catalog fm1w_select fm1w_unit_
   fm1w_arp_on fm1w_arp_set_on fm1w_arp_set_param fm1w_arp_get_param fm1w_mfx_select \
   fm1w_dx7_load fm1w_dx7_result fm1w_dx7_name fm1w_meta_id fm1w_meta_read \
   fm1w_state_save fm1w_state_check fm1w_state_load fm1w_state_pack fm1w_state_report \
-  fm1w_save_gen fm1w_store_ready fm1w_saved
+  fm1w_save_gen fm1w_store_ready fm1w_saved \
+  fm1w_edit_buf fm1w_edit_codes fm1w_edit fm1w_edit_verb fm1w_edit_text fm1w_edit_gen \
+  fm1w_changes_buf fm1w_changes fm1w_tele_mask fm1w_subscribe fm1w_tele_buf fm1w_telemetry \
+  fm1w_view_get fm1w_edit_dump fm1w_param_text fm1w_param_parse fm1w_param_value
 comma := ,
 empty :=
 space := $(empty) $(empty)
