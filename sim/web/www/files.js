@@ -978,6 +978,7 @@ export function initFiles(env) {
     if (h.sel !== undefined && !sel) notice('refused', 'The link\'s selection was not applied: it names no block of the editor.');
     f.editorLink = { edit: true, sel };
     setTimeout(() => window.dispatchEvent(new CustomEvent('lunar-editor-link', { detail: f.editorLink })), 0);
+    clearLinkFromAddress();              // applied once, as W1's hints are
   }
 
   // Hints, after the load and the POWER press.

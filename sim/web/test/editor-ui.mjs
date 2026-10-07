@@ -638,7 +638,7 @@ const abSetup = await page.evaluate(async () => {
   await ed.project.keepA();
   ed.select('s1', { view: 'sound' });
   await w(400);
-  const s = document.querySelector('.ed-insp[data-block="s1"] .ed-row-slider [role=slider]');
+  const s = document.querySelector('.ed-insp[data-block="s1"] .ed-row-slider [role=slider]:not([aria-valuemax="100"])');
   s.focus();
   return { A: !!ed.state.ab.A, scope: ed.state.ab.scope, now: s.getAttribute('aria-valuenow'), max: s.getAttribute('aria-valuemax'),
     row: s.closest('.ed-row') && s.closest('.ed-row').dataset.fk };
@@ -646,7 +646,7 @@ const abSetup = await page.evaluate(async () => {
 await page.keyboard.press(abSetup.now === abSetup.max ? 'Home' : 'End');
 await page.waitForTimeout(600);
 const abVal = () => page.evaluate(() => {
-  const s = document.querySelector('.ed-insp[data-block="s1"] .ed-row-slider [role=slider]');
+  const s = document.querySelector('.ed-insp[data-block="s1"] .ed-row-slider [role=slider]:not([aria-valuemax="100"])');
   return s ? s.getAttribute('aria-valuenow') : null;
 });
 const abB = await abVal();
@@ -671,7 +671,7 @@ const fb = await page.evaluate(async () => {
   await w(1200);                                     // the editor's copy goes current
   const h0 = await window.__hash();
   const cur = (ed.state.mirror.blocks.get('s1.in2') || {}).engine;
-  const id = ed.meta.doc.engines.filter((e) => e.kind === 'audio_fx' && e.id !== cur && e.ram < 40000).map((e) => e.id)[0];
+  const id = ed.meta.doc.engines.filter((e) => e.kind === 'audio_fx' && e.id !== cur).sort((a, b) => a.ram - b.ram).map((e) => e.id)[0];
   ed.chains.choose('s1.in2', id);
   await w(1500);
   const e = ed.history.entries[ed.history.at - 1];
