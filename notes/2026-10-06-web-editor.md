@@ -891,7 +891,7 @@ Marks here were checked on the ED1 branch, cut from main at `c8d267b`
   refuses), and an `entry` key for FX's slot (In1, In2, Mix, M1, M2), which
   a file's view has no need of.
 
-**Measured** [verified: `test/edit.mjs` on aeon, Node 22's V8 in the
+**Measured** [verified: `test/edit.mjs` on aeon, Node's V8 in the
 emscripten/emsdk container]: the module and the native harness give the
 same verdicts, ring, view and state hash for `test/edit/verbs.edit`, the
 same screen less its RAM figure, and the same audio (0 LSB apart). The
