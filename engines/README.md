@@ -4472,7 +4472,7 @@ firmware; `fm1-state meta` prints the same document. 246,238 B for today's
 registry with the GPL switch on, 204,417 B with it off, 19,537 B gzipped
 [verified: 2026-10-06, level 1.1]; level 1.2 (2026-10-07: the sources' groups,
 the curves' points, the matrix marks and a refusal's repair, for the editor's
-v1 completion) makes the simulator's `meta.json` 253,616 B, 22,495 B gzipped, with the
+v1 completion) makes the simulator's `meta.json` 251,440 B, 22,461 B gzipped, with the
 GPL switch on [verified: 2026-10-07]. `engines/state/examples/metadata.json` is the
 export cut to Shapes, Drums, Filter, the arpeggiator, the LFO and the
 Envelope, byte for byte: the golden file

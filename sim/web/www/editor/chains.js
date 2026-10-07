@@ -964,7 +964,7 @@ export function makeChains(ctx) {
   function applyFix(i, fx) {
     if (fx.id !== 'global') return;
     ctx.setValue(`c${i + 1}`, 'voice', 0, 'set');
-    ctx.say(`Cable ${i + 1}: ${fx.words.replace(/^./, (c) => c.toLowerCase())}.`);
+    ctx.say(`${fx.words}: cable ${i + 1} is global now.`);
   }
   // A curve as C computes it (metadata 1.2: 33 points from -1 to 1), as a small drawing.
   function curveSvg(idx, w, h, cls) {

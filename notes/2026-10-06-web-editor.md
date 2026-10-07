@@ -1445,8 +1445,8 @@ checked the rest (their figures are in the pull request).
 **Metadata level 1.2** (`FM1_META_LUNAR`; the schema, `tests/state_meta.py`'s
 independent builder with its editor-only lists, the pinned fixture and the
 example all follow): `marks`, a source's `group` and `mod.source_groups`,
-`mod.curve_points`, a refusal's `fix`. The simulator's `meta.json` is 253,616 B
-with id `ee8a1b8d`.
+`mod.curve_points`, a refusal's `fix`. The simulator's `meta.json` is 251,440 B
+with id `02e7c1eb`.
 
 **Differences from the plan.**
 - §10 writes the operator as `lfo1>`; the metadata names a module's output
@@ -1505,8 +1505,8 @@ Map on phones.
 - Module: 104 of 104 scenarios identical to the JavaScript harness and to the
   musl build, 101 to glibc (largest difference 1 LSB); the edit layer's
   parity 0 LSB; the 30-second storm in the harness: 10,341 quanta, 82,728
-  edits applied, **0 late**, p99 0.096 ms against a 2.9 ms deadline; in the
-  real worklet (Chromium): 7,246 edits, 0 refused, 0 resyncs. The native
+  edits applied, **0 late**, p99 0.094 ms against a 2.9 ms deadline; in the
+  real worklet (Chromium): 7,287 edits, 0 refused, 0 resyncs. The native
   `--edit-check`: 467 parameters and 34,376 steps read back, `hands` 47
   (7 gestures and 40 random runs), a lock playing for 900 blocks, 0 failed.
 - Page tests, each browser, the same tests: `editor-v1` **71 of 71** in

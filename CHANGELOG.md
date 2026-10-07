@@ -2337,6 +2337,7 @@ history.
     and the bugs it found on the way.
 
 ### Fixed
+- **A refusal for the wrong kind of file reads properly.** "A sound, not a effects chain was expected" is now "A sound, not an effects chain, was expected.": the article follows the word.
 - **Sound on iPhones and iPads** ([#53](https://github.com/ip2k/lunar-modulator/issues/53)).
   The simulator now plays through Silent mode, as a music app does (where
   Safari lets a page ask for that: iOS 18 does), and starts its sound again after a call, Siri or another
