@@ -708,7 +708,7 @@ and refusal is C's.
   in the record's focus byte, so undo reaches that pad wherever the panel's
   focus is by then. The mirror keeps every pad's values.
 - **Modulation** (the outline's *Modulation*; ED8: the matrix table is the
-  editing view, the patch-bay Map is ED5's): the rack as eight cards with a
+  editing view, the patch-bay Map is ED5b's, below): the rack as eight cards with a
   live trace of each module's first output (value with its min and max over
   the frame) and its cable count; the matrix with a filter, *Empty slots*,
   sort (slot, source, destination, refused first), *Add a cable*, and per
@@ -870,6 +870,67 @@ layout check. The Map and the manual's chapter are the second half.
   "GR n dB", and a per-voice cable reading its voices. `tests/test_module_list.py`:
   the edit layer's references to the Limiter and Squash objects are
   guarded by `FM1_WITH_LIMIT` and `FM1_WITH_SQUASH`, as Comp's are.
+
+## The advanced editor, stage ED5b: the Map, other browsers and the manual
+
+Stage ED5b of `notes/2026-10-06-web-editor.md` (§10, §13, §14, §18; the
+note's §27 has it as built) is the second half of ED5.
+
+- **The Map** (`www/editor/map.js`, Modulation's *Table | Map* switch; the
+  table stays the default and the keyboard and screen-reader view): the
+  matrix's slots as a patch bay. Three columns, **Sources** (the metadata's
+  fixed sources, those in use always shown and the rest folded in groups:
+  each sound's notes, the sequencer's lanes), the **Rack** (a block per
+  position with its gate inputs and parameters that take a cable on the left
+  and its outputs, live, on the right, and a trace) and **Destinations**
+  (a group per sound, insert, master slot and the host: parameters that have
+  a cable, the rest behind *n more*). Cables are drawn in the gutters between
+  the columns and in a band above the rack, never across a block or a label:
+  a source to a module input or a module to a destination is one curve in
+  its gutter; a source to a destination, or a module back to a module, runs
+  in lanes, along the band above the rack or along the gap between two
+  blocks. A cable's kind is its line: dashed (modulation), dotted (gate), a
+  pale band under it (per voice), the refusal colour with a cross at its end
+  (the planner leaves it out). A **pill** (amount, live value) is placed in a
+  clear place in a gutter or the band, never over a label, a block or
+  another pill, for the selected cable, the lit ones in focus and the refused
+  ones; a place for the selected cable may be over another cable when the Map
+  is crowded.
+- **Focus** (`st.mapMode`): selecting a module or a destination, or clicking a
+  source, or **F** on a jack or block, keeps its cables bright and dims the
+  rest without pills; *Refused* does the same for the cables that do not run;
+  **Esc** and *All* show everything.
+- **Making a cable**: drag from an output jack to an input jack, or **Enter**
+  on an output, arrows between inputs, **Enter** to drop (**Esc** puts it
+  back). While one is in hand every destination opens. Over an input the
+  Map asks C: the shadow Worker's `preview` of one CABLE record in the first
+  empty slot, with `mod` (new: the rack and matrix after the op, as `save`'s
+  `mod`, so the planner's verdict is C's own), and shows the refusal in the
+  metadata's words ("Cannot be modulated: Model rebuilds the voices"), or
+  *Runs*. The drop is one CABLE record through `chains.makeCable` (the table's
+  *Add a cable* uses the same), 25 %, selected: one history step.
+- **The Map is not an engine rule**: it names no engine, effect, kind or
+  source. Jacks, groups and names come from the metadata and the mirror;
+  live values reach it through the table's own `data-out` and `data-dest`
+  hooks; one tab stop in each column (a toolbar, arrows inside, every jack
+  named); the picture is `aria-hidden`.
+- **Room**: from 620 px of the editor's width. Narrower (a phone), the
+  switch is not shown and the matrix stays a list of cables.
+- **`Map faults()`**: `window.fm1.editor.chains.map.faults()` lists a cable
+  over a label or a block, two labels over each other, a pill over a label, a
+  block or a lit cable that is not its own, clipped text and sideways scroll.
+  The tests ask it at 1,440, 1,024 and 768 px and with all 32 slots used.
+- **Other browsers**: `test/launch.mjs` starts Chromium, Firefox or WebKit
+  (`BROWSER=firefox|webkit`) for `editor.mjs`, `editor-ui.mjs`,
+  `editor-reach.mjs` and `editor-map.mjs`. Firefox in a headless container
+  needs an audio device (its AudioContext stays *suspended* otherwise, with
+  or without its null-context pref): PulseAudio with a null sink does it
+  (`apt-get install pulseaudio; pulseaudio -D; pactl load-module
+  module-null-sink`). The tests that resolve a made-up host name
+  (`files.mjs`, `screenshot.mjs`) use a Chromium flag and stay on Chromium.
+- **The manual**: chapter 15, *The advanced editor* (`manual/chapters/`), with
+  five pictures of the page (`assets/screenshots/page-editor-*.png`, made by
+  `test/editor-shots.mjs` and shown by the manual's new `{{page KEY caption}}`).
 
 ## Parity: does the browser sound like the native engines?
 

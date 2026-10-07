@@ -162,7 +162,7 @@ export function makeMap(ctx, h) {
       for (const s of shown) col.append(row(s));
     }
     // A cable from a module that is gone has no jack to start from: it gets a stub, in words.
-    const orphans = cables.filter(([c]) => !jacks.has(`s${c.src}`) && c.src >= SRC_MODULE);
+    const orphans = cables.filter(([c]) => !jacks.has(`s${c.src}`));
     if (orphans.length) col.append(el('span', 'ed-map-g ed-map-t', { text: 'No source' }));
     for (const [c, i] of orphans) {
       const r = el('div', 'ed-map-row ed-map-src is-used', { 'data-srcrow': `x${i}` }, [el('span', 'ed-map-t ed-map-nm', { text: `cable ${i + 1}: ${srcName(c.src)}` })]);
@@ -443,9 +443,10 @@ export function makeMap(ctx, h) {
     const r = await preview([rec], false, true);
     if (!r) return { ok: true, text: 'Drop to patch' };
     const code = r.codes[0];
-    if (code) return { ok: false, code, text: verdictWords(code) };
-    const mod = r.mod ? decodeMod(r.mod) : null;
-    const v = mod ? mod.verdicts[free] : 0;
+    if (code && code < 32) return { ok: false, code, text: verdictWords(code) };          // the edit itself is refused
+    // From 32 up the cable is written but the planner leaves it out (C's code); else ask the rack as it would be.
+    let v = code;
+    if (!v && r.mod) v = decodeMod(r.mod).verdicts[free];
     if (!v) return { ok: true, text: 'Runs' };
     // The planner's own code, in the metadata's words, with the names it leaves to fill in.
     const [u, d, g] = dst.split(':').map(Number);

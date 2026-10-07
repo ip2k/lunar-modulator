@@ -9,6 +9,18 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The advanced editor: the Map** (stage ED5b, finishing the editor). The
+  modulation view has a second face, *Map*, next to *Table*: the same cables
+  drawn as a patch bay, with sources on the left, the rack in the middle and
+  destinations on the right. Click a module, a destination or a source (or
+  press F) and its cables stay bright with their amounts while the rest dim;
+  *Refused* does the same for the cables that do not run. Drag a cable from
+  an output to an input, or press Enter on an output, move with the arrows and
+  press Enter again; over an input the Map says whether it would run, in the
+  instrument's own words. The Map is for windows about 620 pixels wide and
+  up; a phone keeps the cable list. A new chapter of the manual, *The
+  advanced editor*, describes the whole editor with pictures. The editor's
+  tests now also run in Firefox and WebKit.
 - **The advanced editor: reach and the read-outs** (stage ED5a). Effects that
   turn the sound down show it: an effect's *Out* meter has a gain-reduction
   bar and "GR n dB" while Comp, Limiter or Squash is cutting (Limiter and
