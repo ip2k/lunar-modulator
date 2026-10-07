@@ -2873,7 +2873,6 @@ int fm1_app_show(fm1_app_t *a, unsigned mode, unsigned has, const uint8_t *x) {
   }
   if ((mode == FM1_VIEW_SEQ || mode == FM1_VIEW_SESSION || mode == FM1_VIEW_SONG) && !a->seq) return -1;
   fm1_app_unit_set_current(a, sound);
-  a->popup_lines = 0;
   switch (mode) {
     case FM1_VIEW_FX:
       set_mode(a, FM1_MODE_FX);

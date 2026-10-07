@@ -144,6 +144,9 @@ typedef struct fm1_edit {
   uint32_t n[FM1_TELE_POINTS];
   float omin[FM1_MOD_POSITIONS][8], omax[FM1_MOD_POSITIONS][8];
   uint8_t out_seen;
+  uint32_t gen_rendered;        /* gen at the last block's end: an edit since may
+                                   leave the modulation plan to build, which
+                                   telemetry must not do early (dests read NaN) */
   /* Counters, for tests and the page's status. */
   uint32_t applied, refused, dropped_;
 } fm1_edit_t;

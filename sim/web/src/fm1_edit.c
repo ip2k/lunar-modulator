@@ -742,7 +742,9 @@ void fm1_edit_meter(fm1_app_t *a, unsigned point, const float *lr, uint32_t n) {
 
 void fm1_edit_block_end(fm1_app_t *a) {
   fm1_edit_t *e = a->edit;
-  if (!e || !e->outs_on || !a->mod) return;
+  if (!e) return;
+  e->gen_rendered = e->gen;
+  if (!e->outs_on || !a->mod) return;
   for (unsigned pos = 0; pos < FM1_MOD_POSITIONS; ++pos) {
     if (fm1_mod_kind_at(a->mod, pos) < 0) continue;
     for (unsigned port = 0; port < 8u; ++port) {
@@ -775,7 +777,9 @@ static float reduction(fm1_app_t *a, unsigned r) {
 static float dest_value(fm1_app_t *a, unsigned i) {
   fm1_mod_slot_t s;
   fm1_mod_sink_info_t info;
-  if (!a->mod || !((a->mui.plan.active >> i) & 1u)) return NAN;
+  /* Only as the last block ran it: reading sinks builds a pending plan,
+   * which must wait for the next tick, as fm1-render's does. */
+  if (!a->mod || a->edit->gen != a->edit->gen_rendered || !((a->mui.plan.active >> i) & 1u)) return NAN;
   fm1_mod_get_slot(a->mod, i, &s);
   if (s.flags & (FM1_MOD_SLOT_GATE_DST | FM1_MOD_SLOT_VOICE)) return NAN;
   if (s.dst_unit >= FM1_MOD_MODULE && s.dst_unit < FM1_MOD_MODULE + FM1_MOD_POSITIONS) {
