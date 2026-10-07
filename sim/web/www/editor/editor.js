@@ -79,8 +79,8 @@ export async function startEditor(env) {
   followEditorBox.checked = st.followEditor;
   followPanelBox.addEventListener('change', () => { st.followPanel = followPanelBox.checked; pref('follow-panel', st.followPanel ? 1 : 0); });
   followEditorBox.addEventListener('change', () => { st.followEditor = followEditorBox.checked; pref('follow-editor', st.followEditor ? 1 : 0); });
-  const undoBtn = el('button', 'ed-icon', { type: 'button', 'aria-label': 'Undo', title: `Undo (${MOD}Z)`, text: '↶', onclick: () => undo() });
-  const redoBtn = el('button', 'ed-icon', { type: 'button', 'aria-label': 'Redo', title: `Redo (${isMac ? '⇧⌘Z' : 'Ctrl+Y'})`, text: '↷', onclick: () => redo() });
+  const undoBtn = el('button', 'ed-icon', { type: 'button', title: `Undo (${MOD}Z)`, text: 'Undo', onclick: () => undo() });
+  const redoBtn = el('button', 'ed-icon', { type: 'button', title: `Redo (${isMac ? '⇧⌘Z' : 'Ctrl+Y'})`, text: 'Redo', onclick: () => redo() });
   const ramBar = el('span', 'ed-ram-bar', { 'aria-hidden': 'true' });
   const ramText = el('span', 'ed-ram-text', { text: 'RAM –' });
   const ramList = el('ul', 'ed-ram-list', { id: nextId('ram') });
@@ -230,10 +230,11 @@ export async function startEditor(env) {
       post({ type: 'snapshot', id, kind: 1 });
     });
     if (id !== st.snapId) return;        // a newer one is on its way
-    if (!reply.ok) { st.loading = false; return; }
+    // Refused while the module is still starting: asked again shortly.
+    if (!reply.ok) { if (st.port) setTimeout(() => { if (id === st.snapId) snapshot(); }, 250); return; }
     const r = await files.shadow('save', { kind: 1, live: reply.bytes });
     if (id !== st.snapId) return;
-    if (!r || !r.text) { st.loading = false; return; }
+    if (!r || !r.text) { if (st.port) setTimeout(() => { if (id === st.snapId) snapshot(); }, 250); return; }
     st.mirror = mirrorFromProject(meta, JSON.parse(r.text));
     st.gen = reply.gen >>> 0;
     st.loading = false;
@@ -859,7 +860,10 @@ export async function startEditor(env) {
 
   function segControl(r, p, kind) {
     const seg = el('div', `ed-seg${kind === 'grid' ? ' ed-seg-grid' : ''}`, { role: 'radiogroup', 'aria-labelledby': r.id });
-    if (kind === 'grid') seg.style.setProperty('--cols', String(Math.min(4, p.entries.length)));
+    // Each segment at least as wide as the longest entry, so a name wraps
+    // to a new row of segments, never inside a word.
+    const longest = Math.max(...p.entries.map((x) => String(x).length));
+    seg.style.setProperty('--minw', `calc(${longest}ch * 0.82 + 18px)`);
     p.entries.forEach((name, i) => {
       seg.append(el('button', 'ed-segbtn', { type: 'button', role: 'radio', text: name, onclick: () => setValue(r.key, p.uid, i, 'set') }));
     });
@@ -909,7 +913,7 @@ export async function startEditor(env) {
     const fill = el('span', 'ed-fill', { 'aria-hidden': 'true' });
     const thumb = el('span', 'ed-thumb', { 'aria-hidden': 'true' });
     if (zero) zero.style.left = `${(zeroPos(p) * 100).toFixed(2)}%`;
-    s.append(el('span', 'ed-track', { 'aria-hidden': 'true' }), fill, zero, thumb);
+    s.append(...[el('span', 'ed-track', { 'aria-hidden': 'true' }), fill, zero, thumb].filter(Boolean));
     if (isLog(p)) s.classList.add('is-log');
     const field = el('input', 'ed-val', { type: 'text', inputmode: 'decimal', spellcheck: 'false', 'aria-label': `${r.label.textContent}: type a value` });
     const target = `${r.key}:${r.uid}`;
