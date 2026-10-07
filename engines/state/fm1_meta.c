@@ -530,7 +530,7 @@ static void mod(jw_t *w, const fm1_host_t *host) {
   jw_arr(w);
   for (i = 0; i < FM1_MOD_CURVE_COUNT; ++i) {
     unsigned k;
-    jw_arr(w);
+    jw_open(w, '[', ']', 1);           /* an array of numbers is written on one line (state_canon.py) */
     for (k = 0; k < 33u; ++k) jw_f32(w, fm1_mod_curve(i, -1.0f + (float)k * (1.0f / 16.0f)));
     jw_end(w);
   }

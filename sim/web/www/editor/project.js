@@ -479,7 +479,7 @@ export function makeProject(ctx) {
       const a = ab.playing === 'A' ? live : ab.A, b = ab.playing === 'B' ? live : ab.B;
       if (!a || !b) { say('Switch to B once first: B is kept when you switch.'); return; }
       const k = abKind();
-      const r = await files.shadow('mix', { a: a.slice(0), b: b.slice(0), kind: k.kind, arg: k.arg, take });
+      const r = await files.shadow('fromPicks', { a: a.slice(0), b: b.slice(0), kind: k.kind, arg: k.arg, take });
       if (!r.ok || typeof r.text !== 'string') { say(`The picks could not be put together: ${r.error || 'no file'}.`); return; }
       const bytes = encoder.encode(r.text);
       const proj = ab.scope === 'project';

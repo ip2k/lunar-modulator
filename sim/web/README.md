@@ -976,7 +976,7 @@ Firefox and WebKit):
   refused, `~` late, `v` per voice, `s2` a sound, a unit such as `hz`; cables
   are a group.
 - **A/B picks.** Each listed difference has an A or B pick; *Make B from the
-  picks* asks the shadow Worker's new `mix` op for B's file with A's values
+  picks* asks the shadow Worker's new `fromPicks` op for B's file with A's values
   at the picked places (`differences` now also gives each change's steps,
   `at`), has pass 1 judge it, records one history step (undone from its
   snapshot, redone from the file) and loads it. A and B are kept in

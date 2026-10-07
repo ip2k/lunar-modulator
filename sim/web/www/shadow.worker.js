@@ -36,7 +36,7 @@
 //                                a sound for A/B), member by member of
 //                                their canonical JSON: { changes }, each a
 //                                path, its steps `at`, and both values
-//   mix     { a, b, kind, arg, take }
+//   fromPicks { a, b, kind, arg, take }
 //                                B's canonical file with A's value at each
 //                                `at` in `take` (A/B's "Make B from the
 //                                picks"): { text }, for pass 1 to judge
@@ -315,7 +315,7 @@ const ops = {
   diff(m) {
     return { changes: differences(canonical(m.a, m.kind, m.arg), canonical(m.b, m.kind, m.arg), '', []) };
   },
-  mix(m) {
+  fromPicks(m) {
     const text = JSON.stringify(mixPicks(canonical(m.a, m.kind, m.arg), canonical(m.b, m.kind, m.arg), (m.take || []).filter(Array.isArray)));
     return { text };
   },
