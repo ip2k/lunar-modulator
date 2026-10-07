@@ -1132,7 +1132,7 @@ static void hash_put(void *ctx, const char *b, size_t n) {
 uint32_t fm1_edit_state_hash(fm1_app_t *a) {
   uint32_t crc = 0;
   fm1_state_report_t rep;
-  if (!fm1_app_state_save(a, FM1_STATE_PROJECT, 0, 2, hash_put, &crc, &rep)) return 0;
+  if (!fm1_app_state_save(a, FM1_STATE_PROJECT, 0, 3, hash_put, &crc, &rep)) return 0;
   return crc;
 }
 

@@ -83,6 +83,7 @@ never sends") stands.
 22. Stage ED1, as built
 23. Stage ED2, as built
 24. Stage ED3, as built
+25. Stage ED4, as built
 
 ## 1. Short answer
 
@@ -672,7 +673,7 @@ chain's four slots and two sends.
 | **ED1** Edit layer and shadow Worker (**built**, §22) | `fm1_edit.c` (live apply of records and verbs, the change ring with sources, telemetry with a subscription mask, the view record and knob map); the hooks in `fm1_app.c`; the wasm exports and worklet messages of §5; `editor/shadow.worker.js`; the parity, refusal and underrun tests. No UI | A1 |
 | **ED2** Shell, flow and sound (**built**, §23) | The layouts, outline and screen card, app bar and RAM by part; the Flow (selection only) and the Sound inspector from metadata; the detail bar; follow both ways and K1–K4; history and undo for parameters; PLAY and EDIT | ED1, W1 |
 | **ED3** Chains and modulation (**built**, §24) | Drag to move and swap with its keyboard twin and RAM verdicts; effect pickers; master inspectors with meters; the Mix; per-pad rows (API v4); the rack cards, the matrix table, slot and module inspectors; structural undo | ED2 |
-| **ED4** Files and project | Drop targets, per-block export, the library, `view=edit` and `sel`; ⌘K search; A/B and the Memory page; undo's snapshot fallback | ED3 |
+| **ED4** Files and project (**built**, §25) | Drop targets, per-block export, the library, `view=edit` and `sel`; ⌘K search; A/B and the Memory page; undo's snapshot fallback | ED3 |
 | **ED5** The Map and reach | The patch-bay Map with focus; phones; keyboard and screen-reader passes; the layout check in the page tests; a manual chapter | ED4 |
 | later | The pop-out window; a song-list view on S9+'s data; an FM6 (DX7) voice editor, a later stage by the owner's decision (ED17); the device target (§16) | — |
 
@@ -1094,4 +1095,103 @@ at. The module grew by 679 B, to 1,539,724 B; parity 104 of 104, the edit
 layer's storm 0 late quanta of 10,341, Chromium's 0 underruns, the layout
 sweep 4,584 screens with no fault. Not measured: Firefox and WebKit, a real
 audio device, screen readers, phones (ED5).
+
+## 25. Stage ED4, as built (2026-10-07)
+
+Marks here were checked on the ED4 branch, cut from main at `cf2ede3`
+(PR #90, after ED3's PR #93), natively, in node, in the browser pane and in
+headless Chromium on aeon.
+
+**What it is** [verified: `sim/web/www/editor/project.js`, `sim/web/README.md`,
+"Stage ED4"]: §18's ED4 row, in one module beside `editor.js` and
+`chains.js`, over W1's paths in `files.js`:
+- **Drop targets** (§9): a file on a sound (its MIDI effect, an empty
+  strip), an insert, a master slot or the rack gets pass 1 as the kind the
+  block takes before anything loads, and a card with C's words and the RAM
+  after in percent; *Load* is W1's load. A library item gets its verdict
+  while it hovers.
+- **Export per block** and *Save to my library* (W1's `saveAs` and `files`
+  store, with a kind); the *Library* view (saved and Recent).
+- **Links**: `view=edit`, `sel=BLOCK[:Parameter]` (`files.parseSel`, a fixed
+  shape; the editor finds the block and the name or says why not).
+- **Search** (⌘K / Ctrl+K) over blocks, parameters and commands.
+- **A/B** of the project or one sound (X switches; a load sets A), and the
+  **Memory** page (each part, free, what would fit; percent only).
+- **Undo's hash check and snapshot fallback** (§8) for the editor's
+  structural entries.
+- **ED1-ED3's leftovers**: the hash leaves the view out in one place (C's);
+  the view verb opens the ARP pages; `tests/test_sim_edit.py` runs under
+  ASan + UBSan in CI; the page tests that ED3's last commit missed ran.
+
+**Differences from the plan.**
+- **The hash leaves out where the panel is: the view and the current
+  sound.** `fm1_app_state_save`'s binary 3 writes the project with nothing
+  deflated, no VIEW record and `session.current` 0;
+  `fm1_edit_state_hash` reads it, the module exports it as
+  `fm1w_state_hash`, and the shadow Worker's `hash` calls that. ED3's tests
+  compared "less the view and the current sound" by hand; follow moves
+  both (the view verb makes a sound current), so a hash with either in it
+  failed every undo that a follow had crossed. A file still saves both.
+- **The ARP pages are HOME's `entry=2`** (with `page`), not a new view key:
+  the view record and its file form are unchanged; `entry` 3 or more in
+  HOME is refused (BAD), and so is entry 2 for a sound with no MIDI effect.
+- **A desktop file's verdict comes on the drop, not before it**: a browser
+  does not let a page read a dragged file until it is dropped, so the
+  verdict card comes first and nothing loads until *Load*. A library item
+  (the page's own bytes) has its verdict while it hovers.
+- **Snapshots only when the editor's copy is current** (no change since it
+  was taken, nothing on its way; it is taken again 400 ms after changes
+  stop): an entry made otherwise keeps no snapshot and its undo is by
+  records alone. The panel's structural entries keep none (their "before"
+  has already passed when the editor hears of them).
+- **A/B keeps its snapshots in memory**, not in an IndexedDB `snapshots`
+  store; "Make B from the picks" is not built.
+- **Search reads words only**: the `>cutoff`, `lfo1>`, `!`, `~`, `v` and
+  unit forms and ⇧Enter's batch edit are left for later.
+- **Words that are module ids** (`mix`, `compare`) cannot appear quoted in
+  the editor's code (§17's check), so the A/B view is `ab` inside and the
+  `sel` word for the Mix is matched by a pattern.
+
+**Found on the way.**
+- C's kind refusal reads "A sound, not a effects chain was expected" (the
+  article is fixed in the format string): W1's words, left for a C pass.
+- A file dropped from the desktop cannot be judged before the drop (above);
+  the arrival card is the "before".
+- The library's tiles' tags took the light text of a tag with no sound
+  colour; on S4's yellow it vanished. They carry their sound's class now.
+
+**Measured** [verified]: `fm1_edit_check` (native, `tests/test_sim_edit.py`):
+the ARP view (HOME `entry=2` opens the ARP pages, the knobs turn the
+arpeggiator), `entry=3` refused with the state and ring unchanged, and the
+hash unmoved by a view verb, the ARP view and the current sound.
+`test/origins.mjs`: 8 good `sel` values read, 25 hostile ones (tags, a URL,
+`..`, control characters, overlong values, numbers past the blocks) refused.
+In headless Chromium 153 on aeon (`test/editor-ui.mjs`), all 76 checks pass,
+ED2's and ED3's included (so the page tests ED3's last commit missed have
+run): M1's export is `first-orbit-master.fx.lunar` of kind `fx`; selecting
+S1's arpeggiator opens the ARP pages on the panel; dropped on S1, a 300 KB
+file, two files, a cut-off JSON file, 4 KB of random bytes, a DX7 SysEx and
+a mod rack are each refused at the block in words ("This is not a Lunar
+Modulator file.", "A sound, not a mod rack was expected.") with the state
+hash unchanged and nothing asked, and a sound file shows "RAM 69 %" and
+loads on *Load*; from the library, S1's effects hovering S4 show C's
+refusal, S1's sound hovering S3 shows "Load · RAM 64 %" and loads there;
+Ctrl+K, "memory", Enter opens Memory, "s1 Tune", ↓↑, Tab (kept), Enter
+selects S1's Tune row, "zzzz nothing" says "Nothing matches", Esc closes;
+Memory shows eight rows, 64 % in use and 36 % free, no bytes; A/B on Sound 1:
+Tune 0 kept as A, End to 24, X hears 0 with one difference listed, X hears
+24 again; an effect chosen into S1 In2 keeps a snapshot, its undo is
+checked by hash (back to the first hash), and with its inverse records
+taken away the undo loads the snapshot, back to the same hash; the links
+open the editor at S1's Harmonics (address cleared), say an empty block
+(`p8`) and an unknown parameter so, refuse four hostile `sel` values in
+words with nothing injected, and refuse an off-site `load` with no request
+leaving the page's origin. Library, Memory, Compare and the search at
+1,440 and 1,024 px: no sideways scroll, nothing overflowing; the
+screenshots were looked at. The module grew by 357 B, to 1,540,081 B;
+parity 104 of 104, the edit layer's storm 0 late quanta of 10,341, the
+layout sweep 4,584 screens with no fault, `screenshot.mjs`, `files.mjs` and
+`editor.mjs` pass. Not measured: Firefox and WebKit, a real drag from a
+desktop (the tests build the drop events), a real audio device, screen
+readers, phones (ED5).
 

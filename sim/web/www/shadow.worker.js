@@ -27,11 +27,13 @@
 //                                module's parameter: { texts }
 //   parse   { id, uid, text }    typed text back to a value (C's parser):
 //                                { value } or ok false
-//   hash    { bin }              a project's hash: loaded here and saved back
-//                                canonical (binary, nothing deflated), CRC-32:
+//   hash    { bin }              a project's hash: loaded here, then C's
+//                                fm1w_state_hash (CRC-32 of the binary
+//                                container, nothing deflated, no view):
 //                                { hash }, for undo's check
-//   diff    { a, b, kind }       two projects' differences in `kind` (the
-//                                project unless said), member by member of
+//   diff    { a, b, kind, arg }  two projects' differences in `kind` (the
+//                                project unless said; arg as save's, e.g.
+//                                a sound for A/B), member by member of
 //                                their canonical JSON: { changes }
 // and for stage ED3 (§5's previews: what an edit would do, before it is made):
 //   save    { ..., mod: true }   also the rack and the matrix as packed
@@ -109,9 +111,9 @@ function putIds(id, text) {
 
 // A binary file's canonical JSON as an object (kind 1, the project, unless
 // said): loaded quietly, saved back by C's writer.
-function canonical(bin, kind) {
+function canonical(bin, kind, arg) {
   mirror(bin);
-  const n = ex.fm1w_state_save(kind || 1, 0, 0);
+  const n = ex.fm1w_state_save(kind || 1, arg | 0, 0);
   if (n < 0) throw refusal('BAD', report().message);
   return JSON.parse(decoder.decode(buf().slice(0, n)));
 }
@@ -261,13 +263,17 @@ const ops = {
     return { value: ex.fm1w_param_value() };
   },
   hash(m) {
+    // C's one definition (fm1_edit_state_hash): the project with nothing
+    // deflated and its view left out, so a follow that moves the panel
+    // changes no hash (stage ED4). An older module: the same bytes by hand.
     mirror(m.bin);
-    const n = ex.fm1w_state_save(1, 0, 2);
+    if (typeof ex.fm1w_state_hash === 'function') return { hash: ex.fm1w_state_hash() >>> 0 };
+    const n = ex.fm1w_state_save(1, 0, 3);
     if (n < 0) return { ok: false, report: report() };
     return { hash: crc32(buf().subarray(0, n)) };
   },
   diff(m) {
-    return { changes: differences(canonical(m.a, m.kind), canonical(m.b, m.kind), '', []) };
+    return { changes: differences(canonical(m.a, m.kind, m.arg), canonical(m.b, m.kind, m.arg), '', []) };
   },
 };
 

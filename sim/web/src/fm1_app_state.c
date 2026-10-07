@@ -350,11 +350,16 @@ static void lines_out(col_t *c, const char *s, uint32_t n, unsigned which) {
   }
 }
 
+/* Set by a save with binary 3 (the state hash's form): the project without
+ * where the panel is (its view and the current sound), so a follow that
+ * moves the panel changes no hash (stage ED4). */
+static int g_no_view;
+
 static void session_out(col_t *c, const fm1_app_t *a) {
   fm1_rec_t r = blank(FM1_REC_SESSION);
   int scale = 0;
   const int root = fm1_app_project_key(a, &scale);
-  r.u.session.current = (int8_t)a->sound;
+  r.u.session.current = (int8_t)(g_no_view ? 0 : a->sound);   /* the hash: where the panel is, left out */
   r.u.session.octave = (int8_t)a->octave;
   r.u.session.transpose = (int8_t)a->transpose;
   /* The key's one home is the set's `key` line; this copy is written from
@@ -468,7 +473,7 @@ static int collect(fm1_app_t *a, unsigned kind, int arg, fm1_rec_sink_t sink, vo
       }
       mod_out(&c, a, MOD_ALL, 0, NULL);
       if (set_text(a)) lines_out(&c, g_set, g_set_n, FM1_LINES_SET);
-      view_out(&c, a);
+      if (!g_no_view) view_out(&c, a);
       break;
     }
     case FM1_STATE_SOUND: {
@@ -603,8 +608,9 @@ int fm1_app_state_save(fm1_app_t *a, unsigned kind, int arg, int binary, fm1_put
   static const uint8_t version[3] = { 0, 1, 0 };
   const char *why = "";
   fm1_state_report_t own;
-  const unsigned bflags = binary == 2 ? 0u : FM1_STATE_BIN_DEFLATE;   /* 2: no deflate */
+  const unsigned bflags = binary >= 2 ? 0u : FM1_STATE_BIN_DEFLATE;   /* 2, 3: no deflate */
   if (!rep) rep = &own;
+  g_no_view = binary == 3;             /* 3: the hash's form, no view either */
   fm1_state_report_init(rep);
   rep->kind = (uint8_t)kind;
   if (kind == FM1_STATE_SET && !binary) {

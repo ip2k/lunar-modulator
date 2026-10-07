@@ -197,8 +197,8 @@ export function blockTag(key) {
 }
 
 // The view verb that opens a block's page on the panel (follow, editor to
-// panel). A MIDI effect's pages open from the panel's ARP button; the verb
-// takes its sound's HOME (the view keys have none for them).
+// panel). A MIDI effect's pages are HOME's entry 2 (stage ED4): the panel's
+// ARP pages, as its ARP button opens them.
 export function viewFor(key, page = 1) {
   const c = /^c([0-9]+)$/.exec(key);
   if (c) return { mode: 'matrix', keys: { slot: Number(c[1]) } };
@@ -208,7 +208,7 @@ export function viewFor(key, page = 1) {
   if (b.role === ROLE.INSERT) return { mode: 'fx', keys: { sound: b.sound + 1, entry: b.slot + 1, page } };
   if (b.role === ROLE.MASTER) return { mode: 'fx', keys: { entry: 4 + b.slot, page } };
   if (b.role === ROLE.MODULE) return { mode: 'rack', keys: { pos: b.slot + 1 } };
-  return { mode: 'home', keys: { sound: b.sound + 1 } };
+  return { mode: 'home', keys: { sound: b.sound + 1, entry: 2, page } };
 }
 
 // Where the panel is, as a block and a page (follow, panel to editor), or

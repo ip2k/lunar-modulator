@@ -182,8 +182,27 @@ in the editor; move a slider in the editor and the panel opens that page.
 - **Undo** covers all of this too: an engine or effect changed, a swap, a
   module moved, a cable edited.
 
-The patch-bay view of the modulation, files and A/B come to the editor in
-later versions.
+- **Files on a block:** drop a `.lunar` sound on a sound, an effects file on
+  a sound's effects or the master, a mod rack on the rack. Before anything
+  loads, the editor says what the file would do and how much memory the
+  project would take, or why it does not fit; **Load** loads it. Each box has
+  *Export…* (a sound, a sound's effects, the master effects or the mod rack,
+  as a file) and *Save to my library*.
+- **Library** (on the left) lists what is saved in this browser and Recent.
+  Load a project from it, or drag a saved sound or effects onto the block it
+  fits: the block says whether it fits while you hold it there.
+- **Search:** Ctrl+K (⌘K on a Mac) finds a sound, an effect, a parameter by
+  name ("s2 cutoff") or a command; the arrow keys choose and Enter goes there.
+  Esc closes it.
+- **Compare A/B** keeps the project, or one sound, as A: *Keep as A*, then
+  edit, and **X** switches between A and what you made (B). The differences
+  are listed.
+- **Memory** shows how much of the FM-1's memory each part takes, in
+  percent, what is free, and which sounds and effects would still fit.
+- A link can open the editor at a block or a parameter: add `?view=edit&sel=s1`
+  or `?view=edit&sel=s3.in1:Cutoff` to the simulator's address.
+
+The patch-bay view of the modulation comes to the editor in a later version.
 
 ### Running the simulator from your own copy
 

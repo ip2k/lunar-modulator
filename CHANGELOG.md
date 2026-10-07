@@ -9,6 +9,20 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The advanced editor: files and the project** (stage ED4). Drop a sound,
+  effects or mod rack file on the block it belongs to: the editor says what
+  it would do and how much memory the project would take, or why it does
+  not fit, before anything loads. Each block exports its own file and can be
+  saved to the library in this browser; the *Library* view lists what is
+  saved and Recent, and a saved sound or effects can be dragged onto a block
+  with its verdict shown while it hovers. Ctrl+K (⌘K) searches blocks,
+  parameters and commands. *Compare A/B* keeps the project or one sound as
+  A, and X switches between A and B, with the differences listed. *Memory*
+  shows each part's share of the FM-1's memory in percent, what is free and
+  what would still fit. Links can open the editor at a block or a parameter
+  (`?view=edit&sel=s3.in1:Cutoff`). Selecting an arpeggiator opens its ARP
+  pages on the panel. Undo checks itself: when an engine or effect change
+  does not come back exactly, the project as it was is restored instead.
 - **The advanced editor: effects, the mix and modulation** (stage ED3). The
   editor now changes the structure of a project: *Choose engine…*, *Choose
   effect…*, *Choose MIDI effect…* and *Choose module…* list every choice

@@ -116,6 +116,7 @@ export function makeChains(ctx) {
     const cables = st.mirror.cables.map((c) => ({ ...c }));
     const entry = history.record({ target, label, before, after, origin, how,
       info: { struct: true, key, undo, cables, redo: ops ? concat(ops) : null } });
+    if (entry && origin === 'editor' && ctx.onStruct) ctx.onStruct(entry);   // undo's snapshot (ED4, §8)
     if (ops) ctx.sendOps(concat(ops), { entry: entry ? entry.id : 0, label, struct: true });
     ctx.renderHistory();
     return entry;
@@ -123,13 +124,14 @@ export function makeChains(ctx) {
   function undoStruct(e, redo) {
     const recs = redo ? [e.info.redo] : [concat(e.info.undo || []), concat(cableRecs(e.info.cables))];
     const all = recs.filter((b) => b && b.length);
-    if (!all.length) return;
+    if (!all.length) return 0;
     const n = all.reduce((s, b) => s + b.length, 0);
     const out = new Uint8Array(n);
     let o = 0;
     for (const b of all) { out.set(b, o); o += b.length; }
-    ctx.sendOps(out, { label: e.label, struct: true, [redo ? 'redo' : 'undo']: true });
+    const tag = ctx.sendOps(out, { label: e.label, struct: true, entryRef: e, [redo ? 'redo' : 'undo']: true });
     ctx.say(`${redo ? 'Redone' : 'Undone'}: ${e.label}`);
+    return tag;
   }
 
   // A change the panel made to the structure: into the history from the

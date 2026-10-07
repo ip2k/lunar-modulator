@@ -2925,6 +2925,10 @@ int fm1_app_show(fm1_app_t *a, unsigned mode, unsigned has, const uint8_t *x) {
     if (x[FM1_VK_ENTRY] < 1 || x[FM1_VK_ENTRY] > FX_SLOT_COUNT) return -1;
     fx_slot = x[FM1_VK_ENTRY] - 1;       /* In1, In2, Mix, M1, M2 */
   }
+  if (mode == FM1_VIEW_HOME && HAS(FM1_VK_ENTRY)) {   /* HOME: entry 1 the engine's pages, 2 the ARP pages */
+    if (x[FM1_VK_ENTRY] < 1 || x[FM1_VK_ENTRY] > 2) return -1;
+    if (x[FM1_VK_ENTRY] == 2 && !fm1_app_mfx_engine(a, sound)) return -1;
+  }
   if ((mode == FM1_VIEW_SEQ || mode == FM1_VIEW_SESSION || mode == FM1_VIEW_SONG) && !a->seq) return -1;
   if ((mode == FM1_VIEW_RACK || mode == FM1_VIEW_MATRIX || mode == FM1_VIEW_CHAIN) && !a->mod) return -1;
   fm1_app_unit_set_current(a, sound);
@@ -2963,6 +2967,11 @@ int fm1_app_show(fm1_app_t *a, unsigned mode, unsigned has, const uint8_t *x) {
       break;
     default:
       set_mode(a, FM1_MODE_HOME);
+      if (HAS(FM1_VK_ENTRY) && x[FM1_VK_ENTRY] == 2) {   /* the ARP pages, opened from HOME */
+        a->arp_page = clampi(HAS(FM1_VK_PAGE) ? x[FM1_VK_PAGE] - 1 : 0, 0, arp_pages(a) - 1);
+        arp_open(a);
+        break;
+      }
       a->page = clampi(HAS(FM1_VK_PAGE) ? x[FM1_VK_PAGE] - 1 : a->page, 0, page_count(cur(a)->e) - 1);
       forget_knob_hint(a);
       break;
