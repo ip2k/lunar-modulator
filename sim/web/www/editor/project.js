@@ -247,7 +247,9 @@ export function makeProject(ctx) {
     r.parts.forEach((bytes, i) => { if (names[i]) tbl.append(row(names[i][2], names[i][0], names[i][1], bytes, ramWords(bytes, r.budget))); });
     const over = r.total > r.budget;
     tbl.append(row('ed-mem-total', 'All', 'In use', r.total, over ? `${ramPercent(r.total - r.budget, r.budget)} % over` : ramWords(r.total, r.budget)));
-    tbl.append(row('ed-mem-free', 'Free', 'What is left', Math.max(0, r.budget - r.total), over ? 'none' : ramWords(r.budget - r.total, r.budget)));
+    // What is left, rounded down (what is used rounds up), so the two add to 100 at most.
+    const freePc = over ? 0 : Math.floor((r.budget - r.total) * 100 / r.budget);
+    tbl.append(row('ed-mem-free', 'Free', 'What is left', Math.max(0, r.budget - r.total), over ? 'none' : `${freePc} %`));
     wrap.append(tbl);
     // What would fit in what is left: the metadata's own RAM figures.
     const free = r.budget - r.total;
@@ -255,7 +257,7 @@ export function makeProject(ctx) {
       .sort((a, b) => b.ram - a.ram);
     const line = (label, list) => el('p', 'ed-mem-fit', {}, [el('b', null, { text: `${label}: ` }),
       document.createTextNode(list.length ? `${list.length} would fit, the largest ${list.slice(0, 4).map((e) => `${e.name} (${ramWords(e.ram, r.budget)})`).join(', ')}` : 'none would fit')]);
-    wrap.append(el('h3', 'ed-sec', { text: 'What would fit' }), line('Sounds', fits('sound')), line('Effects', fits('effect')));
+    wrap.append(el('h3', 'ed-sec', { text: 'What would fit' }), line('Sounds', fits('sound')), line('Effects', fits('audio_fx')));
     return wrap;
   }
 
@@ -396,15 +398,15 @@ export function makeProject(ctx) {
   root.append(sBox);
   let sItems = [], sShown = [], sAt = 0, sFrom = null;
   function items() {
-    const out = [];
-    const cmd = (label, run) => out.push({ group: 'Commands', label, run });
+    const out = [], params = [], cmds = [];
+    const cmd = (label, run) => cmds.push({ group: 'Commands', label, run });
     if (st.mirror) {
       for (const [key, b] of st.mirror.blocks) {
         const e = meta.engine(b.engine);
         const name = e ? e.name : b.engine;
         out.push({ group: 'Blocks', label: `${blockTag(key)} ${name}`, run: () => select(key, { view: parseBlockKey(key).role === ROLE.MODULE ? 'mod' : 'flow' }) });
         for (const pg of meta.pages(b.engine)) {
-          for (const p of pg.params) out.push({ group: 'Parameters', label: `${blockTag(key)} ${name} · ${p.name}`, run: () => goParam(key, p) });
+          for (const p of pg.params) params.push({ group: 'Parameters', label: `${blockTag(key)} ${name} · ${p.name}`, run: () => goParam(key, p) });
         }
       }
     }
@@ -426,7 +428,7 @@ export function makeProject(ctx) {
       cmd(`Save ${blockTag(st.selected)} to my library`, () => keepBlock(st.selected));
     }
     cmd('Give the keys back to the panel (PLAY)', () => setKeys('play'));
-    return out;
+    return [...out, ...params, ...cmds];
   }
   function openSearch() {
     if (!sBox.hidden) return;
