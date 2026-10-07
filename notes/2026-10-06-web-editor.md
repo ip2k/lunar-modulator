@@ -1069,5 +1069,29 @@ and in headless Chromium on aeon.
 - The history holds 200 entries; a test that counts steps by its length
   stops counting at the limit. The page checks count by entry id.
 
-**Measured** [verified]: MEASURED.
+**Measured** [verified]: `test/editor-unit.mjs` against the rebuilt
+module: every check passes; the packed CABLE and MODULE records come back
+through the feed and `fm1w_mod_records` as sent; six hostile records and
+verbs (an engine swapped with an insert, an unknown kind or effect, slot 40,
+an effect into an empty sound's insert, a swap with one) are refused with
+the state hash unchanged; 28 random structural edits through `chains.js`
+(17 steps after C's refusals) undo to the first state hash and redo to the
+last. In headless Chromium 153 on aeon (`test/editor-ui.mjs`), every check
+passes: the keyboard twin shows "Swap · RAM 69 %" over S1 In1 and swaps M1
+into it as one step, the keys staying with the block; a pointer drag shows
+the same verdict and swaps; M1's picker lists 25 choices with the RAM after
+each; S1's engine cannot be emptied (not offered; asked anyway, "Cannot be
+read" and nothing changes); a cable added, its amount typed (-40 %, Q1.14
+-6554) and polarity set, aimed at a parameter that rebuilds the voices
+(the planner's NOLOCK in the metadata's words); a rack module moved by keys
+to the first empty place (the others close up, as `fm1_mod_ui_move` does),
+one chosen and one emptied; each undone to the state before it, the view and
+the current sound aside (follow moves them). All 56 modules' inspectors (the
+40 engines and effects and the 16 rack kinds) at 620 and 360 px with nothing
+overflowing; the Workbench and Editor layouts, Flow, sound and Modulation,
+at 1,440 and 1,024 px with no sideways scroll; the screenshots were looked
+at. The module grew by 679 B, to 1,539,724 B; parity 104 of 104, the edit
+layer's storm 0 late quanta of 10,341, Chromium's 0 underruns, the layout
+sweep 4,584 screens with no fault. Not measured: Firefox and WebKit, a real
+audio device, screen readers, phones (ED5).
 
