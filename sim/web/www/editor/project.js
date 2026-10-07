@@ -117,7 +117,7 @@ export function makeProject(ctx) {
       if (list.length !== 1) { refuseCard(t, list.length ? 'Drop one file at a time on a block.' : 'Nothing to load was dropped.'); return; }
       const file = list[0];
       if (file.size > FILE_CAP) {
-        refuseCard(t, `“${file.name}” is ${Math.ceil(file.size / 1024)} KiB, larger than the ${FILE_CAP / 1024} KiB the simulator reads.`);
+        refuseCard(t, `“${file.name}” is larger than the simulator reads.`);   // the cap is files.js's to say
         return;
       }
       let bytes;
@@ -194,7 +194,7 @@ export function makeProject(ctx) {
         const kind = it.kind || 'project';
         const li = el('li', 'ed-lib-item', { draggable: kind !== 'project' ? 'true' : null, 'data-kind': kind }, [
           el('span', 'ed-lib-name', { text: it.name }),
-          el('span', 'ed-lib-meta', { text: `${KW[kind] || kind} · ${Math.ceil((it.size || it.bin.length) / 1024)} KB` }),
+          el('span', 'ed-lib-meta', { text: `${KW[kind] || kind} · ${new Date(it.modified).toLocaleDateString()}` }),
           el('span', 'ed-lib-b', {}, [el('button', 'ed-btn', { type: 'button', text: 'Load', onclick: () => files.loadItem(it).then(() => snapshotSoon()) })])]);
         if (kind !== 'project') {
           li.addEventListener('dragstart', (e) => {
