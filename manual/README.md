@@ -67,6 +67,7 @@ Additions:
 | `{{figure panel}}`, `{{figure edge}}` | A numbered figure from `figures.py` |
 | `{{diagram signal-flow}}` | A numbered block or state diagram from `diagrams/signal-flow.toml`, with the caption and the long description written there ([diagrams/README.md](diagrams/README.md)) |
 | `{{screen params Caption text.}}` | A numbered figure of the firmware's screen, from the simulator's `assets/screenshots/screen-params.png` (left out, with a warning, when the file is missing). The caption is plain text: write the typographic apostrophe (’) yourself |
+| `{{page editor-map Caption text.}}` | A numbered figure of the browser page, from `assets/screenshots/page-editor-map.png` (the advanced editor's pictures, made by `sim/web/test/editor-shots.mjs`; left out, with a warning, when the file is missing). Written like `{{screen}}` |
 | `{{status-key}}`, `{{build-info}}`, `{{controls-index}}` | The status legend, the edition table, the generated index of controls |
 
 Directives sit on a line of their own and are never expanded inside code

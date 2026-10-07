@@ -80,6 +80,11 @@ summary = "The instrument and the firmware in figures."
 file = "14-credits-and-licences.md"
 summary = "Whose work Lunar Modulator builds on, and the terms."
 
+[[chapter]]
+file = "15-the-advanced-editor.md"
+summary = "The editor in the browser simulator: the flow, sounds and effects, the modulation table and its patch-bay Map, files, memory and undo, and how to reach it by keyboard and on a phone."
+features = true
+
 # Back matter: unnumbered, after the chapters.
 [[backmatter]]
 file = "glossary.md"

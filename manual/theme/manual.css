@@ -292,6 +292,8 @@ figcaption { font-size: .92rem; margin-top: .55rem; }
    doubled in the file, so it stays sharp at 1x and 2x). */
 figure.screen { max-width: 22rem; }
 figure.screen .screen-shot { display: block; width: 240px; max-width: 100%; height: auto; image-rendering: pixelated; border: 1px solid var(--rule-strong); border-radius: var(--radius); }
+/* A picture of the browser page (the advanced editor): at its own size, at most the column wide. */
+figure.page .page-shot { display: block; width: 100%; max-width: 1280px; height: auto; border: 1px solid var(--rule-strong); border-radius: var(--radius); }
 figcaption .fig-label { font-weight: 700; margin-right: .35em; }
 
 /* ---- pager and colophon -------------------------------------------- */
