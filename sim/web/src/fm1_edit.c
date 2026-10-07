@@ -15,6 +15,7 @@
 #include "fm1_app_state.h"
 #include "fm1_comp.h"
 #include "fm1_look.h"
+#include "fm1_modules.h"     /* FM1_WITH_COMP: the module list may leave Comp out */
 #include "fm1_refusal.h"
 
 /* ---- small helpers ------------------------------------------------------------- */
@@ -773,7 +774,9 @@ static float reduction(fm1_app_t *a, unsigned r) {
   }
   /* Comp says what it took (fm1_comp.h); Limiter and Squash have no such
    * read-out yet, and every other effect reduces nothing. */
+#if FM1_WITH_COMP
   if (a->unit[unit].e && strcmp(a->unit[unit].e->id, "comp") == 0) return fm1_comp_reduction_db(a->unit[unit].self);
+#endif
   return 0.0f;
 }
 
