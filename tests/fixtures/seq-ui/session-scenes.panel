@@ -1,0 +1,17 @@
+# LOOP held in Session with white keys 1, 2, 2 and 3 (D16): the first press
+# launches scene 1 alone (`scene 0`), the second makes the song [1] and adds
+# scene 2 (`sgnew 0`, `songadd 1`), the others add. The song plays; at 6 s
+# LOOP + key 5 launches scene 5 alone, which detaches the song and keeps its
+# list; STOP then PLAY follows it again from entry 1.
+--button 0.05:SEQ
+--button 0.10:SEQ
+--key 0.20:3:100:0.6
+--key 0.30:0:100:0.05
+--key 0.40:2:100:0.05
+--key 0.50:2:100:0.05
+--key 0.60:4:100:0.05
+--key 6.00:3:100:0.3
+--key 6.10:7:100:0.05
+--button 8.00:PLAY/STOP
+--button 8.50:PLAY/STOP
+--button 12.00:PLAY/STOP

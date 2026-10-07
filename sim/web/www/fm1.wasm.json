@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "be6b0b632e53cb8e823e156acff1a868ec6aa242f76292c73249498b94a57226",
-  "wasm_bytes": 1494869,
+  "wasm_sha256": "82fa41169cdedabb540b847ab60ae0425393ecc5392b9359f9b164afbf667704",
+  "wasm_bytes": 1512563,
   "sources_sha256": {
     "engines": "b1d01bab24cfb51c913dbfef3d4b9f77b992b0642d5f942fa6af037a49c17b41",
-    "sim": "af42254f81b5a34650bfd3cf5744b41006af21b87995cbfc9d50c154a4e96b26"
+    "sim": "63b9eec03fb8989795839daae4ccd790f8ef33c9bb693212468a50e806c1684d"
   },
   "engines": "working tree",
-  "built": "2026-10-06T22:11:23Z",
+  "built": "2026-10-06T23:09:29Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -76,11 +76,11 @@
     }
   ],
   "parity": {
-    "passed": 103,
+    "passed": 104,
     "failed": 0,
-    "identical_to_js": 103,
-    "identical_to_musl": 103,
-    "identical_to_glibc": 100,
+    "identical_to_js": 104,
+    "identical_to_musl": 104,
+    "identical_to_glibc": 101,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "meta": {
@@ -1251,6 +1251,38 @@
         "native_dropped": 0
       },
       "panel": "seq/panel-tracks.panel"
+    },
+    {
+      "name": "seq-panel-session-song",
+      "samples": 705888,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 148940,
+        "native64": 161804
+      },
+      "cmd": "seq/panel-session-song.verbs",
+      "seq": {
+        "lines": 1,
+        "lines_match": true,
+        "ui_cmds": 7,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "seq/panel-session-song.panel"
     },
     {
       "name": "seq-panel-locks",

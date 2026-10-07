@@ -11,6 +11,7 @@
  */
 #include "fm1_seq_ui.h"
 
+#include <stddef.h>
 #include <string.h>
 
 #include "fm1_seq_host.h"
@@ -25,7 +26,9 @@ enum {
   ROLE_BLACK,                       /* a black key's role, or none yet */
   ROLE_SREC,                        /* step record: a pitch at the head */
   ROLE_MUTE,                        /* MUTE: a tap mutes the focused track on release */
-  ROLE_CLEAR                        /* CLEAR (S8): held, a knob detent clears a lane */
+  ROLE_CLEAR,                       /* CLEAR (S8): held, a knob detent clears a lane */
+  ROLE_LOOP,                        /* LOOP in Session (S9): held, the scene row */
+  ROLE_COPY                         /* COPY in Session (S9): held, slots copy and paste */
 };
 
 #define VEL_PER_DETENT 4            /* Movy's VEL_STEP */
@@ -135,9 +138,24 @@ static int is_page(int view) {
 }
 
 void fm1_seq_ui_open(fm1_seq_ui_t *u, int view) {
-  u->view = (uint8_t)(is_page(view) ? view : FM1_SEQ_VIEW_TRACK);
+  u->view = (uint8_t)(is_page(view) || view == FM1_SEQ_VIEW_SESSION || view == FM1_SEQ_VIEW_SONG
+                          ? view : FM1_SEQ_VIEW_TRACK);
   u->hint = FM1_SEQ_HINT_NONE;
   u->knob = -1;
+  if (view == FM1_SEQ_VIEW_SONG) {
+    u->back_view = FM1_SEQ_VIEW_TRACK;
+    u->song_trail = 1;
+  }
+}
+
+void fm1_seq_ui_open_song(fm1_seq_ui_t *u, unsigned entry) {
+  fm1_seq_ui_open(u, FM1_SEQ_VIEW_SONG);
+  u->song_cur = (uint8_t)(entry < FM1_SEQ_UI_SONG_MAX ? entry : FM1_SEQ_UI_SONG_MAX);
+  u->song_trail = 0;                         /* the next sync clamps it to the song */
+}
+
+void fm1_seq_ui_seq_tap(fm1_seq_ui_t *u) {
+  fm1_seq_ui_open(u, u->view == FM1_SEQ_VIEW_TRACK ? FM1_SEQ_VIEW_SESSION : FM1_SEQ_VIEW_TRACK);
 }
 
 /* ---- commands ------------------------------------------------------------------ */
@@ -249,7 +267,7 @@ static void drop_all_held(fm1_seq_ui_t *u) {
   u->held_n = 0;
   u->len_valid = 0;
   u->hold_valid = 0;
-  u->view = FM1_SEQ_VIEW_TRACK;
+  if (u->view != FM1_SEQ_VIEW_SESSION && u->view != FM1_SEQ_VIEW_SONG) u->view = FM1_SEQ_VIEW_TRACK;
 }
 
 /* The held steps go with no toggle; keys still down stay the UI's until
@@ -282,7 +300,11 @@ void fm1_seq_ui_leave(fm1_seq_ui_t *u) {
   srec_end(u);
   u->hint = FM1_SEQ_HINT_NONE;
   u->mute_held = 0;                          /* MUTE's release then does nothing */
-  u->clear_held = 0;                         /* nor CLEAR's */
+  u->clear_held = 0;                         /* nor CLEAR's, */
+  u->clear_gestured = 1;
+  u->loop_held = 0;                          /* LOOP's */
+  u->copy_held = 0;                          /* or COPY's */
+  u->confirm = FM1_SEQ_CONFIRM_NONE;         /* a question only SEQ mode shows */
 }
 
 /* The head moves (Movy's setHead): a fresh step, and the bar on the keys
@@ -594,6 +616,76 @@ static void bar_bounds(fm1_seq_ui_t *u) {
   u->bar = (uint8_t)clampi(u->bar, u->bar_min, u->bar_max);
 }
 
+/* Session's grid (S9): every track's slots, what plays and what waits for
+ * the bar, and how far each playing clip is through its loop. */
+static void read_session(fm1_seq_ui_t *u, const fm1_seq_t *s) {
+  u->sess_clips = 0;
+  u->sess_stop = 0;
+  for (unsigned t = 0; t < 8u; ++t) {
+    fm1_seq_track_info_t tr;
+    u->sess_active[t] = u->sess_play[t] = u->sess_queue[t] = FM1_SEQ_NONE;
+    u->sess_pos[t] = 0;
+    memset(&tr, 0, sizeof tr);
+    if (t >= u->tracks || !fm1_seq_get_track(s, (uint8_t)t, &tr)) continue;
+    u->sess_active[t] = tr.active;
+    u->sess_queue[t] = tr.queued;
+    u->sess_play[t] = u->playing ? tr.playing : FM1_SEQ_NONE;
+    if (tr.pending_stop) u->sess_stop = (uint8_t)(u->sess_stop | (1u << t));
+    for (unsigned k = 0; k < FM1_SEQ_SLOTS; ++k) {
+      fm1_seq_clip_info_t c;
+      if (!fm1_seq_get_clip(s, (uint8_t)t, (uint8_t)k, &c) || !c.length_steps) continue;
+      u->sess_clips |= (uint64_t)1 << (8u * t + k);
+      if (k == u->sess_play[t]) {
+        const uint32_t at = tr.pos_tick / FM1_SEQ_TICKS_PER_STEP;
+        const uint32_t in = at > c.loop_start ? at - c.loop_start : 0u;
+        u->sess_pos[t] = (uint8_t)(in >= c.length_steps ? 255u : in * 256u / c.length_steps);
+      }
+    }
+  }
+}
+
+/* The song as the Song page and the band read it. */
+static void read_song(fm1_seq_ui_t *u, const fm1_seq_info_t *i) {
+  u->compat = i->compat;
+  u->song_len = i->song_len;
+  u->song_entries = i->song_entries;
+  u->song_entry = i->song_entry;
+  u->song_armed = i->song_armed;
+  u->song_pass = i->song_pass;
+  u->song_pass_bar = i->song_pass_bar;
+  u->song_end = i->song_end;
+  u->song_jump = i->song_jump;
+  u->song_follow = i->song_follow;
+  u->song_parked = i->song_parked;
+  /* The cursor trails the playing entry until it is moved off it. */
+  if (u->song_trail && i->playing && i->song_follow && i->song_entry < i->song_entries) {
+    u->song_cur = i->song_entry;
+  }
+  if (u->song_cur > u->song_entries) u->song_cur = u->song_entries;
+  /* The scenes it uses, the one playing, and the one due next: the jump
+   * target, else the next entry, wrapping in Loop, none at the end. */
+  {
+    unsigned first[FM1_SEQ_UI_SONG_MAX + 1u], e = 0;
+    const unsigned len = i->song_len;
+    u->song_scenes = 0;
+    for (unsigned k = 0; k < len; ++k) {
+      if (i->song[k] < 8u) u->song_scenes = (uint8_t)(u->song_scenes | (1u << i->song[k]));
+      if ((k == 0 || i->song[k] != i->song[k - 1]) && e < FM1_SEQ_UI_SONG_MAX) first[e++] = k;
+    }
+    u->song_now = u->song_next = FM1_SEQ_NONE;
+    if (i->song_entry < e) {
+      unsigned nx = i->song_entry + 1u;
+      u->song_now = i->song[first[i->song_entry]];
+      if (i->song_jump < e) nx = i->song_jump;
+      else if (nx >= e && i->song_end == FM1_SEQ_SONG_LOOP) nx = 0;
+      if (nx < e) u->song_next = i->song[first[nx]];
+    }
+    u->song_cur_presses = (uint8_t)(u->song_cur < e ? (u->song_cur + 1u < e ? first[u->song_cur + 1u] : len) -
+                                                         first[u->song_cur]
+                                                   : 0u);
+  }
+}
+
 int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t frame) {
   fm1_seq_info_t i;
   fm1_seq_track_info_t tr;
@@ -626,6 +718,12 @@ int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t 
   u->dq = i.default_quant;
   u->metro = i.metronome;
   read_track(u, s);
+  read_session(u, s);
+  read_song(u, &i);
+  {
+    const uint32_t fast = u->rate / 4u ? u->rate / 4u : 1u;
+    u->blink = (uint8_t)((frame % fast) < fast / 2u);
+  }
   memset(&tr, 0, sizeof tr);
   memset(&c, 0, sizeof c);
   tr.active = FM1_SEQ_NONE;
@@ -689,7 +787,18 @@ int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t 
                     was.route_index != u->route_index || was.locks != u->locks ||
                     was.lanes != u->lanes || was.take_param != u->take_param ||
                     was.take_v != u->take_v ||
-                    memcmp(&was.hold, &u->hold, sizeof u->hold) != 0;
+                    memcmp(&was.hold, &u->hold, sizeof u->hold) != 0 ||
+                    /* The transport word and the Next hint (SG11). */
+                    was.song_len != u->song_len || was.song_follow != u->song_follow ||
+                    was.song_parked != u->song_parked || was.song_armed != u->song_armed ||
+                    was.song_entry != u->song_entry || was.song_jump != u->song_jump ||
+                    /* Session and the Song page: their grid, the song, its
+                     * blinks and anything the input may have renamed. */
+                    ((u->view == FM1_SEQ_VIEW_SESSION || u->view == FM1_SEQ_VIEW_SONG) &&
+                     (memcmp(&was.sess_clips, &u->sess_clips,
+                             (size_t)((const char *)&u->song_gen - (const char *)&u->sess_clips)) != 0 ||
+                      u->song_gen != gen));
+    u->song_gen = gen;
     return (seq ? FM1_SEQ_UI_SYNC_SEQ : 0) | (overlay ? FM1_SEQ_UI_SYNC_OVERLAY : 0);
   }
 }
@@ -807,6 +916,7 @@ static int lane_for(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_sound_
 static void clear_lane(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_sound_t *snd,
                        int param, const fm1_seq_ui_emit_t *out) {
   const int lane = snd && snd->e ? fm1_seq_ui_lane_of(s, u->track, snd->e, param) : -1;
+  u->clear_gestured = 1;                     /* CLEAR's release then asks nothing */
   if (lane >= 0) {
     const int64_t arg[2] = { u->track, lane };
     emit(out, FM1_SEQ_V_ACLR, 2, arg);
@@ -870,6 +980,7 @@ int fm1_seq_ui_sound_knob(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_
   const int lock_sound = snd && snd->e && snd->current && param >= 0 && param < snd->e->n_params;
   u->shift_clean = 0;
   if (u->clear_held) {                       /* CLEAR + knob is CLEAR's gesture (Movy) */
+    u->clear_gestured = 1;
     if (lock_sound) clear_lane(u, s, snd, param, out);
     return 1;
   }
@@ -898,6 +1009,324 @@ int fm1_seq_ui_sound_knob(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_
   return 0;
 }
 
+/* ---- Session and the song (S9+; notes/2026-10-06-song-and-scenes.md) --------------- */
+
+typedef char fm1_seq_ui_s9_run_unpadded[offsetof(fm1_seq_ui_t, song_gen) -
+                                            offsetof(fm1_seq_ui_t, sess_clips) == 8u + 64u ? 1 : -1];
+
+static int slot_has_clip(const fm1_seq_ui_t *u, unsigned t, unsigned k) {
+  return t < 8u && k < 8u && ((u->sess_clips >> (8u * t + k)) & 1u);
+}
+
+/* The song's entries as the core holds them now (an edit sent earlier in the
+ * same block included), for the Song page's edits to work out where the
+ * cursor goes and what a join made: equal neighbours are one entry. */
+typedef struct song_model {
+  int n;
+  uint8_t sc[FM1_SEQ_UI_SONG_MAX], pr[FM1_SEQ_UI_SONG_MAX];
+} song_model_t;
+
+static void model_read(const fm1_seq_t *s, song_model_t *m) {
+  fm1_seq_song_entry_t x;
+  m->n = 0;
+  while (m->n < (int)FM1_SEQ_UI_SONG_MAX && fm1_seq_song_entry(s, (uint8_t)m->n, &x)) {
+    m->sc[m->n] = x.scene;
+    m->pr[m->n] = x.presses;
+    ++m->n;
+  }
+}
+
+static unsigned model_presses(const song_model_t *m) {
+  unsigned n = 0;
+  for (int k = 0; k < m->n; ++k) n += m->pr[k];
+  return n;
+}
+
+/* Joins equal neighbours, as the format does; *mark follows its entry.
+ * Returns 1 when the marked entry took part in a join. */
+static int model_join(song_model_t *m, int *mark) {
+  int joined = 0;
+  for (int k = 1; k < m->n;) {
+    if (m->sc[k] != m->sc[k - 1]) {
+      ++k;
+      continue;
+    }
+    m->pr[k - 1] = (uint8_t)(m->pr[k - 1] + m->pr[k]);
+    if (*mark == k || *mark == k - 1) joined = 1;
+    if (*mark >= k) --*mark;
+    memmove(&m->sc[k], &m->sc[k + 1], (size_t)(m->n - k - 1));
+    memmove(&m->pr[k], &m->pr[k + 1], (size_t)(m->n - k - 1));
+    --m->n;
+  }
+  return joined;
+}
+
+/* After an edit: the cursor on the marked entry, and the Joined toast. */
+static void song_landed(fm1_seq_ui_t *u, song_model_t *m, int mark) {
+  const int joined = model_join(m, &mark);
+  u->song_cur = (uint8_t)(mark < 0 ? 0 : mark);
+  u->song_trail = 0;
+  if (joined && mark >= 0 && mark < m->n) {
+    toast(u, FM1_SEQ_TOAST_JOINED, mark);
+    u->toast_scene = m->sc[mark];
+    u->toast_presses = m->pr[mark];
+  }
+}
+
+static void song_full(fm1_seq_ui_t *u) { toast(u, FM1_SEQ_TOAST_SONG_FULL, FM1_SEQ_UI_SONG_MAX); }
+
+/* `sgset e s r`. */
+static void emit_sgset(const fm1_seq_ui_emit_t *out, int e, unsigned scene, unsigned presses) {
+  const int64_t arg[3] = { e, scene, presses };
+  emit(out, FM1_SEQ_V_SGSET, 3, arg);
+}
+
+/* White key 1-8 on the Song page: scene n once after the cursor's entry, or
+ * at the end from `+ add`; the cursor's own scene (or, from `+ add`, the
+ * last entry's) grows by a repeat instead, as a double press in Movy. */
+static void song_insert(fm1_seq_ui_t *u, const fm1_seq_t *s, unsigned n,
+                        const fm1_seq_ui_emit_t *out) {
+  song_model_t m;
+  int cur, grow;
+  model_read(s, &m);
+  cur = u->song_cur < m.n ? u->song_cur : m.n;
+  if (model_presses(&m) + 1u > FM1_SEQ_UI_SONG_MAX) {
+    song_full(u);
+    return;
+  }
+  grow = cur < m.n && m.sc[cur] == n ? cur : (cur == m.n && m.n && m.sc[m.n - 1] == n ? m.n - 1 : -1);
+  if (grow >= 0) {
+    emit_sgset(out, grow, n, m.pr[grow] + 1u);
+    u->song_cur = (uint8_t)grow;
+    u->song_trail = 0;
+    return;
+  }
+  {
+    const int p = cur < m.n ? cur + 1 : m.n;
+    const int64_t arg[3] = { p, n, 1 };
+    emit(out, FM1_SEQ_V_SGINS, 3, arg);
+    memmove(&m.sc[p + 1], &m.sc[p], (size_t)(m.n - p));
+    memmove(&m.pr[p + 1], &m.pr[p], (size_t)(m.n - p));
+    m.sc[p] = (uint8_t)n;
+    m.pr[p] = 1;
+    ++m.n;
+    song_landed(u, &m, p);
+  }
+}
+
+/* White key 9-16 (r 1-8) or KNOB2: the cursor's entry repeats r times. */
+static void song_repeats(fm1_seq_ui_t *u, const fm1_seq_t *s, int r, int relative,
+                         const fm1_seq_ui_emit_t *out) {
+  song_model_t m;
+  int cur;
+  unsigned room;
+  model_read(s, &m);
+  cur = u->song_cur;
+  if (cur >= m.n) return;
+  if (relative) r = clampi(m.pr[cur] + r, 1, 255);
+  if (r < 1) return;
+  room = m.pr[cur] + (FM1_SEQ_UI_SONG_MAX - model_presses(&m));
+  if ((unsigned)r > room) {
+    song_full(u);
+    r = (int)room;
+  }
+  if (r != m.pr[cur]) emit_sgset(out, cur, m.sc[cur], (unsigned)r);
+}
+
+/* KNOB1: the cursor's entry's scene, 1-8. */
+static void song_scene(fm1_seq_ui_t *u, const fm1_seq_t *s, int delta, const fm1_seq_ui_emit_t *out) {
+  song_model_t m;
+  int cur, sc;
+  model_read(s, &m);
+  cur = u->song_cur;
+  if (cur >= m.n) return;
+  sc = clampi(m.sc[cur] + delta, 0, (int)FM1_SEQ_SCENES - 1);
+  if (sc == m.sc[cur]) return;
+  emit_sgset(out, cur, (unsigned)sc, m.pr[cur]);
+  m.sc[cur] = (uint8_t)sc;
+  song_landed(u, &m, cur);
+}
+
+/* SHIFT + F#3 / A#3: the cursor's entry one place earlier or later. */
+static void song_move(fm1_seq_ui_t *u, const fm1_seq_t *s, int d, const fm1_seq_ui_emit_t *out) {
+  song_model_t m;
+  int cur, to;
+  model_read(s, &m);
+  cur = u->song_cur;
+  to = cur + d;
+  if (cur >= m.n || to < 0 || to >= m.n) return;
+  {
+    const int64_t arg[2] = { cur, d };
+    const uint8_t sc = m.sc[cur], pr = m.pr[cur];
+    emit(out, FM1_SEQ_V_SGMOV, 2, arg);
+    m.sc[cur] = m.sc[to];
+    m.pr[cur] = m.pr[to];
+    m.sc[to] = sc;
+    m.pr[to] = pr;
+  }
+  song_landed(u, &m, to);
+}
+
+/* CLEAR on the Song page: the cursor's entry goes, with no confirm. */
+static void song_delete(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_emit_t *out) {
+  song_model_t m;
+  int cur;
+  model_read(s, &m);
+  cur = u->song_cur;
+  if (cur >= m.n) return;
+  {
+    const int64_t arg[1] = { cur };
+    emit(out, FM1_SEQ_V_SGDEL, 1, arg);
+  }
+  memmove(&m.sc[cur], &m.sc[cur + 1], (size_t)(m.n - cur - 1));
+  memmove(&m.pr[cur], &m.pr[cur + 1], (size_t)(m.n - cur - 1));
+  --m.n;
+  song_landed(u, &m, cur);
+  toast(u, FM1_SEQ_TOAST_ENTRY_DELETED, cur);
+}
+
+/* KNOB3: the cursor's scene's name, from the panel's list (SG6). */
+static void song_name(fm1_seq_ui_t *u, const fm1_seq_t *s, int delta, const fm1_seq_ui_emit_t *out) {
+  song_model_t m;
+  const char *now;
+  int k = 0;
+  model_read(s, &m);
+  if (u->song_cur >= m.n) return;
+  now = fm1_seq_scene_name(s, m.sc[u->song_cur]);
+  for (unsigned p = 1; now[0] && p <= FM1_SEQ_SCENE_PICKS; ++p) {
+    if (strcmp(now, fm1_seq_scene_name_pick(p)) == 0) k = (int)p;
+  }
+  {
+    const int to = clampi(k + delta, 0, (int)FM1_SEQ_SCENE_PICKS);
+    const int64_t arg[2] = { m.sc[u->song_cur], to };
+    if (to != k) emit(out, FM1_SEQ_V_SGNAME, 2, arg);
+  }
+}
+
+/* The Song page's cursor, up or down the entries and `+ add`, no wrap. On
+ * the playing entry it trails it again. */
+static void song_cursor(fm1_seq_ui_t *u, int delta) {
+  u->song_cur = (uint8_t)clampi(u->song_cur + delta, 0, u->song_entries);
+  u->song_trail = u->playing && u->song_follow && u->song_cur == u->song_entry;
+}
+
+/* LOOP + white key 1-8 in Session: a scene. Movy (compat): the hold's first
+ * press starts a song, later ones add to it. D16: the first launches the
+ * scene alone (`scene`), the second makes the song of the hold's first
+ * scene (`sgnew`) and adds itself, and later ones add. */
+static void scene_press(fm1_seq_ui_t *u, unsigned n, const fm1_seq_ui_emit_t *out) {
+  int64_t arg[1];
+  if (u->compat) {
+    arg[0] = n;
+    emit(out, u->loop_scenes ? FM1_SEQ_V_SONGADD : FM1_SEQ_V_SONG, 1, arg);
+  } else if (!u->loop_scenes) {
+    arg[0] = n;
+    emit(out, FM1_SEQ_V_SCENE, 1, arg);
+  } else {
+    if (u->loop_scenes == 1) {
+      arg[0] = u->loop_first;
+      emit(out, FM1_SEQ_V_SGNEW, 1, arg);
+    }
+    arg[0] = n;
+    emit(out, FM1_SEQ_V_SONGADD, 1, arg);
+  }
+  if (!u->loop_scenes) u->loop_first = (uint8_t)n;
+  if (u->loop_scenes < 255) ++u->loop_scenes;
+}
+
+/* A white key in Session: slots, scenes (LOOP held), COPY and CLEAR on a
+ * slot, the focus keys. */
+static void session_white(fm1_seq_ui_t *u, const fm1_seq_t *s, int n, const fm1_seq_ui_emit_t *out) {
+  const unsigned t = u->track;
+  if (n >= 8) {                              /* keys 9-16: focus tracks 1-8 */
+    if (!u->loop_held && !u->copy_held && !u->clear_held) focus(u, s, (unsigned)n - 8u, out);
+    return;
+  }
+  if (u->loop_held) {
+    scene_press(u, (unsigned)n, out);
+  } else if (u->clear_held) {               /* CLEAR + a slot: the confirm */
+    u->clear_gestured = 1;
+    if (slot_has_clip(u, t, (unsigned)n)) {
+      u->confirm = FM1_SEQ_CONFIRM_SLOT;
+      u->confirm_track = (uint8_t)t;
+      u->confirm_slot = (uint8_t)n;
+    }
+  } else if (u->copy_held) {                /* COPY + a slot: copy, then paste */
+    const int64_t arg[2] = { t, n };
+    if (!u->copied) {
+      if (!slot_has_clip(u, t, (unsigned)n)) return;
+      emit(out, FM1_SEQ_V_CLIPCOPY, 2, arg);
+      u->copied = 1;
+      toast(u, FM1_SEQ_TOAST_CLIP_COPIED, (int)t);
+    } else {
+      emit(out, FM1_SEQ_V_CLIPPASTE, 2, arg);
+      toast(u, FM1_SEQ_TOAST_CLIP_PASTED, (int)t);
+    }
+    u->toast_scene = (uint8_t)n;
+  } else {                                  /* the slot, on the bar; empty: the track stops */
+    const int64_t arg[2] = { t, n };
+    emit(out, FM1_SEQ_V_LAUNCH, 2, arg);
+  }
+}
+
+/* The confirm's answer: CLEAR deletes; any other press only closes it. */
+static int answer_confirm(fm1_seq_ui_t *u, int yes, const fm1_seq_ui_emit_t *out) {
+  const int what = u->confirm;
+  u->confirm = FM1_SEQ_CONFIRM_NONE;
+  u->shift_clean = 0;
+  if (!yes) return 1;
+  if (what == FM1_SEQ_CONFIRM_SONG) {
+    emit(out, FM1_SEQ_V_SGCLR, 0, NULL);
+    u->song_cur = 0;
+    u->song_trail = 1;
+    toast(u, FM1_SEQ_TOAST_SONG_CLEARED, 0);
+  } else if (what == FM1_SEQ_CONFIRM_SLOT) {
+    const int64_t arg[2] = { u->confirm_track, u->confirm_slot };
+    emit(out, FM1_SEQ_V_CLIPDELAT, 2, arg);
+    toast(u, FM1_SEQ_TOAST_CLIP_DELETED, u->confirm_track);
+    u->toast_scene = u->confirm_slot;
+  } else if (what == FM1_SEQ_CONFIRM_CLIP) {
+    const int64_t arg[1] = { u->confirm_track };
+    emit(out, FM1_SEQ_V_CLIPDEL, 1, arg);
+    toast(u, FM1_SEQ_TOAST_CLIP_DELETED, u->confirm_track);
+    u->toast_scene = u->confirm_slot;
+  }
+  return 1;
+}
+
+/* SHIFT + LOOP: the Song page, and from it back where it was opened. */
+static void song_page_toggle(fm1_seq_ui_t *u) {
+  if (u->view == FM1_SEQ_VIEW_SONG) {
+    fm1_seq_ui_open(u, u->back_view);
+    return;
+  }
+  {
+    const uint8_t back = u->view == FM1_SEQ_VIEW_SESSION ? FM1_SEQ_VIEW_SESSION : FM1_SEQ_VIEW_TRACK;
+    let_go_of_steps(u);
+    fm1_seq_ui_open(u, FM1_SEQ_VIEW_SONG);
+    u->back_view = back;
+  }
+}
+
+/* A black key on the Song page: the cursor (F#3, A#3), moving an entry
+ * (SHIFT), CLEAR's delete or the confirm (SHIFT), and as everywhere MUTE
+ * and the track keys; the rest are inert. */
+static void song_black(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, const fm1_seq_ui_emit_t *out) {
+  if (key == FM1_SEQ_UI_KEY_BAR_BACK || key == FM1_SEQ_UI_KEY_BAR_ON) {
+    const int d = key == FM1_SEQ_UI_KEY_BAR_ON ? 1 : -1;
+    if (u->shift) song_move(u, s, d, out);
+    else song_cursor(u, d);
+  } else if (key == FM1_SEQ_UI_KEY_CLEAR) {
+    if (u->shift) {
+      if (u->song_entries) u->confirm = FM1_SEQ_CONFIRM_SONG;
+    } else {
+      song_delete(u, s, out);
+    }
+  } else if (key == FM1_SEQ_UI_KEY_LOOP) {
+    if (u->shift) song_page_toggle(u);
+  }
+}
+
 /* ---- buttons ------------------------------------------------------------------- */
 
 /* A SHIFT tap during a hold: the held steps' notes go (`del t s s -1`);
@@ -924,7 +1353,8 @@ static int rec_button(fm1_seq_ui_t *u, int down, uint64_t frame, int mode,
     if (u->shift && mode != FM1_MODE_FX) {
       u->rec_role = FM1_SEQ_UI_REC_CAPTURE;
       capture(u, out);
-    } else if (!u->playing && mode == FM1_MODE_SEQ) {
+    } else if (!u->playing && mode == FM1_MODE_SEQ && u->view != FM1_SEQ_VIEW_SESSION &&
+               u->view != FM1_SEQ_VIEW_SONG) {
       u->rec_role = FM1_SEQ_UI_REC_STEP;
       srec_begin(u);
     } else {
@@ -948,6 +1378,10 @@ int fm1_seq_ui_button(fm1_seq_ui_t *u, const fm1_seq_t *s, int button, int down,
     if (button == FM1_BTN_REC) u->rec_role = FM1_SEQ_UI_REC_NONE;   /* its release does nothing */
     u->shift_clean = 0;
     return close_overlay(u, out);
+  }
+  if (down && u->confirm) {                  /* the confirm: a button only closes it */
+    if (button == FM1_BTN_REC) u->rec_role = FM1_SEQ_UI_REC_NONE;
+    return answer_confirm(u, 0, out);
   }
   if (button == FM1_BTN_REC) {
     if (down) u->shift_clean = 0;
@@ -985,6 +1419,20 @@ int fm1_seq_ui_button(fm1_seq_ui_t *u, const fm1_seq_t *s, int button, int down,
     const int restart = u->playing && u->shift;
     fm1_seq_cmd_t c;
     srec_end(u);                             /* step record is a stopped-transport mode */
+    if (mode == FM1_MODE_SEQ && u->view == FM1_SEQ_VIEW_SONG) {
+      u->song_trail = 1;                     /* PLAY: the cursor trails the song again */
+      if (u->shift && u->song_cur < u->song_entries) {
+        /* SHIFT + PLAY on the Song page (SG5): from the cursor's entry,
+         * relaunched on the next bar while playing. */
+        const int64_t e = u->song_cur;
+        emit(out, FM1_SEQ_V_SGJUMP, 1, &e);
+        if (!u->playing) {
+          emit(out, FM1_SEQ_V_PLAY, 0, NULL);
+          u->playing = 1;
+        }
+        return 0;
+      }
+    }
     fm1_seq_cmd_make(&c, restart || !u->playing ? FM1_SEQ_V_PLAY : FM1_SEQ_V_STOP, 0, NULL);
     if (out && out->cmd) out->cmd(out->ctx, &c);
     /* Until the next block's sync reads the core: a second press before
@@ -1064,7 +1512,12 @@ static void black_down(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, uint64_t fr
   if (key == FM1_SEQ_UI_KEY_CLEAR) {         /* CLEAR: held steps' locks; held, + knob */
     u->key_role[key] = ROLE_CLEAR;
     u->clear_held = 1;
+    u->clear_gestured = u->held_n > 0;
     if (u->held_n) clear_held_steps(u, s, out);
+    return;
+  }
+  if (key == FM1_SEQ_UI_KEY_LOOP) {          /* SHIFT + LOOP: the Song page (S9+) */
+    if (u->shift && !u->held_n) song_page_toggle(u);
     return;
   }
   if (key == FM1_SEQ_UI_KEY_MUTE) {          /* MUTE: held, the mute map; a tap, on release */
@@ -1181,7 +1634,19 @@ int fm1_seq_ui_key(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, int down, int v
       u->mute_held = 0;
       if (!u->mute_gestured) set_mute(u, u->track, !track_muted(u, u->track), out);
     }
-    if (role == ROLE_CLEAR) u->clear_held = 0;   /* a tap: the clip's delete comes with S9 */
+    if (role == ROLE_CLEAR) {
+      /* A tap in the Track view with nothing held (S9, O15): delete the
+       * focused clip, once CLEAR is pressed again (the confirm). */
+      if (u->clear_held && !u->clear_gestured && mode == FM1_MODE_SEQ &&
+          u->view == FM1_SEQ_VIEW_TRACK && !u->held_n && u->length && u->slot < FM1_SEQ_SLOTS) {
+        u->confirm = FM1_SEQ_CONFIRM_CLIP;
+        u->confirm_track = u->track;
+        u->confirm_slot = u->slot;
+      }
+      u->clear_held = 0;
+    }
+    if (role == ROLE_LOOP) u->loop_held = 0;
+    if (role == ROLE_COPY) u->copy_held = 0;
     if (role == ROLE_SREC) {
       u->srec_keys &= ~(1u << key);
       srec_maybe_advance(u, out);
@@ -1194,6 +1659,11 @@ int fm1_seq_ui_key(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, int down, int v
     u->key_role[key] = ROLE_NONE;
     u->shift_clean = 0;
     return close_overlay(u, out);
+  }
+  if (u->confirm) {                          /* CLEAR answers yes; any other key no */
+    u->keys_down |= 1u << key;
+    u->key_role[key] = ROLE_NONE;
+    return answer_confirm(u, key == FM1_SEQ_UI_KEY_CLEAR, out);
   }
   if (mode != FM1_MODE_SEQ) return 0;
   u->keys_down |= 1u << key;
@@ -1208,16 +1678,54 @@ int fm1_seq_ui_key(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, int down, int v
       }
       return 1;
     }
-    if (u->clear_held) {                     /* CLEAR + a key: S9's (del + aclrstep) */
-      u->key_role[key] = ROLE_NONE;
-      return 1;
-    }
     if (u->mute_held) {                      /* MUTE + white key 1-8: the mute map */
       u->key_role[key] = ROLE_NONE;
       if (n >= 0 && n < 8 && n < u->tracks) {
         set_mute(u, (unsigned)n, !track_muted(u, (unsigned)n), out);
         u->mute_gestured = 1;
       }
+      return 1;
+    }
+    if (u->view == FM1_SEQ_VIEW_SESSION || u->view == FM1_SEQ_VIEW_SONG) {
+      const int song = u->view == FM1_SEQ_VIEW_SONG;
+      u->key_role[key] = ROLE_NONE;
+      if (n < 0) {
+        if (key == FM1_SEQ_UI_KEY_MUTE || key == FM1_SEQ_UI_KEY_TRACK_PREV ||
+            key == FM1_SEQ_UI_KEY_TRACK_NEXT) {
+          u->key_role[key] = ROLE_BLACK;
+          black_down(u, s, key, frame, out);
+        } else if (song) {
+          song_black(u, s, key, out);
+        } else if (key == FM1_SEQ_UI_KEY_LOOP) {
+          if (u->shift) {
+            song_page_toggle(u);
+          } else {
+            u->key_role[key] = ROLE_LOOP;
+            u->loop_held = 1;
+            u->loop_scenes = 0;
+          }
+        } else if (key == FM1_SEQ_UI_KEY_COPY) {
+          u->key_role[key] = ROLE_COPY;
+          u->copy_held = 1;
+          u->copied = 0;
+        } else if (key == FM1_SEQ_UI_KEY_CLEAR) {
+          u->key_role[key] = ROLE_CLEAR;
+          u->clear_held = 1;
+          u->clear_gestured = 0;
+        }
+      } else if (u->shift && !u->loop_held && !u->copy_held && !u->clear_held) {
+        white_down(u, s, key, n, velocity, frame, pitch, out);   /* Movy's shortcuts */
+      } else if (song) {
+        if (n < 8) song_insert(u, s, (unsigned)n, out);
+        else song_repeats(u, s, n - 7, 0, out);
+      } else {
+        session_white(u, s, n, out);
+      }
+      return 1;
+    }
+    if (u->clear_held) {                     /* CLEAR + a key: S9's (del + aclrstep) */
+      u->key_role[key] = ROLE_NONE;
+      u->clear_gestured = 1;
       return 1;
     }
     if (u->srec) {
@@ -1446,7 +1954,26 @@ int fm1_seq_ui_encoder(fm1_seq_ui_t *u, const fm1_seq_t *s, int encoder, int del
     }
     return close_overlay(u, out);
   }
+  if (u->confirm && delta) return 1;         /* the confirm swallows turns (SG9) */
   if (mode != FM1_MODE_SEQ || delta == 0) return 0;
+  if (u->view == FM1_SEQ_VIEW_SONG && !u->held_n) {   /* the Song page (S9+) */
+    switch (encoder) {                       /* a detent a step; a fast turn, more */
+      case FM1_ENC_SELECT: song_cursor(u, delta); return 1;
+      case FM1_ENC_KNOB1: song_scene(u, s, delta, out); return 1;
+      case FM1_ENC_KNOB2: song_repeats(u, s, delta, 1, out); return 1;
+      case FM1_ENC_KNOB3: song_name(u, s, delta, out); return 1;
+      case FM1_ENC_KNOB4: {
+        const int end = clampi(u->song_end + delta, FM1_SEQ_SONG_LOOP, FM1_SEQ_SONG_STOP);
+        if (end != u->song_end) {
+          const int64_t arg[1] = { end };
+          emit(out, FM1_SEQ_V_SGEND, 1, arg);
+          u->song_end = (uint8_t)end;
+        }
+        return 1;
+      }
+      default: return 0;                     /* PRESETS and ALGORITHM: the sound */
+    }
+  }
   if (!u->held_n && is_page(u->view)) {     /* the Set, Clip and Track pages */
     if (encoder == FM1_ENC_SELECT) {
       page_walk(u, delta);
@@ -1598,6 +2125,68 @@ uint16_t fm1_seq_ui_under_mask(const fm1_seq_ui_t *u) {
   return m;
 }
 
+/* MUTE and the track keys, where they work (S6). */
+static uint32_t track_key_leds(const fm1_seq_ui_t *u) {
+  uint32_t m = 1u << FM1_SEQ_UI_KEY_MUTE;
+  if (u->track > 0) m |= 1u << FM1_SEQ_UI_KEY_TRACK_PREV;
+  if (u->track + 1u < u->tracks) m |= 1u << FM1_SEQ_UI_KEY_TRACK_NEXT;
+  return m;
+}
+
+/* Session (S9; the note's §5.1): white keys 1-8 the focused track's slots
+ * (on: a clip; fast: queued; slow: playing), 9-16 the tracks (slow: the
+ * focused one). LOOP held, the scenes: with a song, on for the one playing,
+ * fast for the next one armed, slow for another the song uses; with none,
+ * on where the column has a clip and fast where one is queued. */
+static uint32_t session_leds(const fm1_seq_ui_t *u, int slow_on, int fast_on) {
+  uint32_t m = 1u << FM1_SEQ_UI_KEY_LOOP | 1u << FM1_SEQ_UI_KEY_COPY | 1u << FM1_SEQ_UI_KEY_CLEAR |
+               track_key_leds(u);
+  for (unsigned n = 0; n < 8u; ++n) {
+    int on;
+    if (u->loop_held && u->song_len) {
+      on = n == u->song_now && u->playing ? 1
+         : n == u->song_next && u->song_armed && u->playing ? fast_on
+         : (u->song_scenes >> n) & 1u ? slow_on : 0;
+    } else if (u->loop_held) {
+      int clip = 0, queued = 0;
+      for (unsigned t = 0; t < u->tracks && t < 8u; ++t) {
+        clip |= slot_has_clip(u, t, n);
+        queued |= u->sess_queue[t] == n;
+      }
+      on = queued ? fast_on : clip;
+    } else {
+      const unsigned t = u->track < 8u ? u->track : 0u;
+      on = u->sess_play[t] == n ? slow_on : u->sess_queue[t] == n ? fast_on : slot_has_clip(u, t, n);
+    }
+    if (on) m |= 1u << fm1_white_key((int)n);
+  }
+  for (unsigned t = 0; !u->loop_held && t < u->tracks && t < 8u; ++t) {
+    if (t == u->track ? slow_on : 1) m |= 1u << fm1_white_key((int)(8u + t));
+  }
+  return m;
+}
+
+/* The Song page: white keys 1-8 insert while the song has room, 9-16 the
+ * cursor's entry's repeats (on: its count, up to 8); the arrows while the
+ * cursor can move, CLEAR on an entry, LOOP (SHIFT: back). */
+static uint32_t song_leds(const fm1_seq_ui_t *u) {
+  uint32_t m = 1u << FM1_SEQ_UI_KEY_LOOP | track_key_leds(u);
+  if (u->song_len < FM1_SEQ_UI_SONG_MAX) {
+    for (unsigned n = 0; n < 8u; ++n) m |= 1u << fm1_white_key((int)n);
+  }
+  if (u->song_cur < u->song_entries) {
+    m |= 1u << FM1_SEQ_UI_KEY_CLEAR;
+    for (unsigned n = 0; n < 8u; ++n) {
+      if (n + 1u == u->song_cur_presses) {    /* the cursor's repeats, as sync read them */
+        m |= 1u << fm1_white_key((int)(8u + n));
+      }
+    }
+  }
+  if (u->song_cur > 0) m |= 1u << FM1_SEQ_UI_KEY_BAR_BACK;
+  if (u->song_cur < u->song_entries) m |= 1u << FM1_SEQ_UI_KEY_BAR_ON;
+  return m;
+}
+
 uint32_t fm1_seq_ui_key_leds(const fm1_seq_ui_t *u, uint64_t frame) {
   uint32_t m = 0;
   if (u->seq_held) {                         /* SEQ held: the focused track's key */
@@ -1614,6 +2203,8 @@ uint32_t fm1_seq_ui_key_leds(const fm1_seq_ui_t *u, uint64_t frame) {
   const int slow_on = (frame % u->rate) < u->rate / 2u;    /* the 1 s blink */
   const uint32_t fast = u->rate / 4u ? u->rate / 4u : 1u;
   const int fast_on = (frame % fast) < fast / 2u;          /* the 0.25 s blink */
+  if (u->view == FM1_SEQ_VIEW_SESSION) return session_leds(u, slow_on, fast_on);
+  if (u->view == FM1_SEQ_VIEW_SONG) return song_leds(u);
   for (unsigned n = 0; n < FM1_APP_WHITE_KEYS; ++n) {
     const unsigned step = u->bar * 16u + n, g = step - u->grid_first;
     int on = g < FM1_SEQ_UI_GRID_STEPS && ((u->notes >> g) & 1u) && step >= u->loop_start &&

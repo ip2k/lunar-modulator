@@ -9,6 +9,23 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Session and the song on the simulator's panel** (stage S9+;
+  notes/2026-10-06-song-and-scenes.md, every decision adopted). Press SEQ
+  in SEQ mode for the session view: every track's eight slots, white keys
+  1–8 launch the focused track's clips on the bar and 9–16 focus tracks.
+  Hold LOOP (G#3) and press keys 1–8 to launch scenes: one press launches
+  a scene alone and keeps the song, two or more build a new song. COPY
+  (C#4) held copies and pastes clips. SHIFT + LOOP opens the new song page:
+  each entry's scene, name, repeats, bars and start time; keys 1–8 add
+  scenes, 9–16 set repeats, the knobs set the scene, repeats, the scene's
+  name and what the song does at its end (Loop, Park or Stop), SHIFT + the
+  arrows move an entry, CLEAR deletes one, and SHIFT + PLAY plays from it.
+  The song can be edited while it plays. A song band along the bottom of
+  the session view, SONG and END on the status line and a *Next* hint in
+  the last bar show where it is. Deleting a clip (a CLEAR tap in the track
+  view, CLEAR + a slot in the session view) or the whole song asks first,
+  until the next press. A saved project remembers the session view and the
+  song page. Manual chapter 7 describes all of it.
 - **Run the simulator yourself and drive it from another local page.**
   Served from `localhost`, `127.0.0.1` or `[::1]`, the simulator now
   answers a page on any local port that embeds it (as the guide does), and
@@ -2241,6 +2258,12 @@ history.
   - The manual's recovery chapter no longer calls the open dongle design
     "complete": its firmware builds and is simulated, but nobody has built
     the board.
+- **Sound on iPhones and iPads** ([#53](https://github.com/ip2k/lunar-modulator/issues/53)).
+  The simulator now plays through Silent mode, as a music app does (where
+  Safari lets a page ask for that: iOS 18 does), and starts its sound again after a call, Siri or another
+  app took the audio: the status line asks for a tap, and the next tap or
+  key starts it. A browser that holds the sound back at power-on no longer
+  leaves the page at *Starting...*.
 - **Tests can no longer leave a tool running for days.** Every tool a test
   starts now has a wall-clock timeout (20 minutes unless the test sets one)
   and a CPU-time limit set inside the tool itself (30 minutes), so a tool

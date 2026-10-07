@@ -15,7 +15,8 @@ with the state stages on `feature/2026-10-06@state-core`): the verbs of
 §5.5, the `fm1_seq_info_t` fields, the `se`, `sn` and `dq` lines, D15-D17,
 ST11's reseed, and a fourth fix found in testing, D18, which awaits the
 owner's word (`engines/seq.md`, "The song"; `tests/test_seq_song.py`). The
-Session view and the Song page (S9+) are not built. The companion note
+Session view and the Song page (S9+) are built too
+(`feature/2026-10-06@session-song`, 2026-10-06; manual chapter 7). The companion note
 [2026-10-06-state-files.md](2026-10-06-state-files.md) covers files and
 launch links; this one says what the song puts in them (§5.6).
 
@@ -319,7 +320,7 @@ sound follows on the next bar. The playing position stays with its entry.
 
 | View | Readout |
 | --- | --- |
-| Song page | The playing entry has `>` in C_LIVE. Its repeat field shows the pass (`2/4`, or `12` alone above ×9), and its bar field shows bars into the pass (`13/16`). In the armed last bar, the next entry's number blinks fast. The context line shows the total time and end mode on the left, and the place (`5/10`) on the right: C_LIVE for the playing entry, else the cursor's in C_LABEL |
+| Song page | The playing entry has a play triangle (▶, drawn 4 px wide, 4 px clear of its number) in C_LIVE. Its repeat field shows the pass (`2/4`, or `12` alone above ×9), and its bar field shows bars into the pass (`13/16`). In the armed last bar, the next entry's number blinks fast. The context line shows the total time and end mode on the left, and the place (`5/10`) on the right: C_LIVE for the playing entry, else the cursor's in C_LABEL |
 | Session view | Movy's band at the bottom: `SONG`, then one token per entry (`3` or `3x2`). The playing entry is boxed in C_LIVE, and the armed next one blinks. `END` or `STOP` appears when the end mode is not Loop. The window keeps the current and next entries in view |
 | Track view, Set, Clip and Track pages | The status line's transport word is `SONG` (C_LIVE) while a song is followed, and `END` (C_LABEL) when parked. In the playing entry's last bar, the hint line reads `Next` / `4 Chorus` (C_LIVE), unless a fresh knob hint is showing (SG11). Movy shows nothing here |
 | HOME, FX, GLO, modulation pages | Nothing new |
@@ -494,7 +495,7 @@ A row is 27 MID characters, from x 12 to x 228:
 
 | Columns | Field | Example | Colour |
 | --- | --- | --- | --- |
-| 0 | playing mark | `>` | C_LIVE |
+| 0 | playing mark | ▶, a drawn triangle 4 px wide (a `>` glyph sat against a two-digit number) | C_LIVE |
 | 1–2 | entry number, right-aligned (≤ 64, SG3) | `10` | C_LABEL; blinks fast when armed next |
 | 4–11 | scene and name | `3 Verse`, `Scene 3`, `5 (end)` | C_TEXT; `(end)` C_LABEL |
 | 13–15 | repeats, or the pass while playing | `x2`, `2/4`, `12` | C_TEXT; the pass in C_LIVE |
