@@ -686,6 +686,7 @@ window.addEventListener('drop', (e) => {
   e.preventDefault();
   dragDepth = 0;
   dropHint.hidden = true;
+  if (e.lunarInto) return;            // the editor's drop target took it (stage ED4)
   files.openFiles([...e.dataTransfer.files]);
 });
 
@@ -1078,6 +1079,10 @@ layoutSwitch.addEventListener('keydown', (e) => {
   setLayout(next).then(() => layoutSwitch.querySelector(`[data-layout="${next}"]`).focus());
 });
 setLayout(pref('editor.layout') || 'panel', false);
+// A link's view=edit or sel (stage ED4): the Editor layout, at that block.
+window.addEventListener('lunar-editor-link', (e) => {
+  setLayout('editor', false).then(() => { if (editor) editor.applyLink(e.detail); });
+});
 setAngle(masterEl, -150 + 300 * sim.master);
 revealScreen();
 document.getElementById('power-on').addEventListener('click', powerOn);
