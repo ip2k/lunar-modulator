@@ -824,7 +824,8 @@ as built [verified: `tests/test_engine_editor_meta.py`]:
 ## 22. Stage ED1, as built (2026-10-06)
 
 Marks here were checked on the ED1 branch, cut from main at `c8d267b`
-(after PR #85), natively and in the module built on aeon.
+(after PR #85) and merged with main at `f15de9b` (S9+, PR #88), natively
+and in the module built on aeon.
 
 **What it is** [verified: `sim/web/src/fm1_edit.c`, `fm1_edit.h`]:
 - **One edit layer** as §5 has it: `fm1_edit_apply` (records),
@@ -908,17 +909,18 @@ same verdicts, ring, view and state hash for `test/edit/verbs.edit`, the
 same screen less its RAM figure, and the same audio (0 LSB apart). The
 30-second storm (the demo song playing, eight records a quantum, the change
 feed drained every sixth quantum, every telemetry row filled when due):
-**0 late quanta of 10,341**, median 0.065 ms, 99th percentile 0.098 ms,
-slowest 0.26 ms of the 2.90 ms a quantum plays; the edit layer's own work
-10.7 µs a quantum, under §12's 58 µs. **In the real AudioWorklet**
+**0 late quanta of 10,341**, median 0.062 ms, 99th percentile 0.094 ms,
+slowest 0.23 ms of the 2.90 ms a quantum plays; the edit layer's own work
+7.5 µs a quantum, under §12's 58 µs. **In the real AudioWorklet**
 (`test/editor.mjs`, headless Chromium 153 on aeon, 44,100 Hz, the demo song
-playing): 30 seconds of 7,255 ops, 58,040 records, every one applied with
+playing): 30 seconds of 7,252 ops, 58,016 records, every one applied with
 verdict 0, 1,724 change batches, 905 telemetry blocks handed back and
 reused, a binary snapshot; **Chromium's own playback stats counted 0
 underruns** [verified]. Chromium's AudioWorklet scope has no clock
 (`performance` is absent), so the worklet's own late-quantum counter reads
 "not timed" there; headless Chromium plays to a fake output device, so a
 desktop browser with a real one, Firefox and WebKit remain to be measured
-(ED5). The module grew by 26,032 B, to 1,520,901 B. The 103 parity
-scenarios still match fm1-render [verified: 103 of 103, audio identical to
-the JavaScript build, screens identical].
+(ED5). The module grew by 26,249 B, to 1,538,812 B, after main's S9+. The
+104 parity scenarios still match fm1-render [verified: 104 of 104, audio
+identical to the JavaScript and musl builds, screens identical], and the
+layout sweep passes 4,584 screens with no fault.

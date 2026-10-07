@@ -602,7 +602,7 @@ records the results in `fm1.wasm.json` (`edit`). `test/editor.mjs`
 worklet's editor port for 30 seconds with the song playing and passes when
 every op is answered with its verdicts, changes, views and telemetry come
 back, a snapshot is binary, and Chromium's playback stats count no
-underrun [verified 2026-10-06: 58,040 records, 0 underruns, Chromium 153;
+underrun [verified 2026-10-06: 58,016 records, 0 underruns, Chromium 153;
 its worklet scope has no clock, so the worklet's own late count reads "not
 timed" there].
 
