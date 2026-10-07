@@ -2,7 +2,7 @@
 // by default, or Firefox or WebKit with BROWSER=firefox|webkit, as Playwright
 // ships them. The tests that name a host to resolve (files.mjs, screenshot.mjs)
 // need Chromium's resolver rules and stay on Chromium; the editor's tests
-// (editor.mjs, editor-ui.mjs, editor-reach.mjs, editor-map.mjs) run in all three.
+// (editor.mjs, editor-ui.mjs, editor-reach.mjs, editor-map.mjs, editor-v1.mjs) run in all three.
 // Firefox needs an audio device: in a headless container with no sound card its
 // AudioContext never leaves "suspended" (its null-context pref does not help), so
 // the worklet never runs. A PulseAudio null sink does it (the commands are in

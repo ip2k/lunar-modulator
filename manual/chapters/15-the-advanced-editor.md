@@ -50,8 +50,11 @@ The outline on the left lists the four sounds, **Flow and effects**,
 
 **Flow and effects** draws the signal path: each sound's engine into its two
 inserts, the four sounds into the mix, and on into the two master effects.
-Every block shows its name and a meter. Click a block and its values open below
-it.
+Every block shows its name, a level bar and, when cables end on it, how many
+(*2 cables*, or *1 cable, 1 refused* when one of them does not run). Click a
+block and its values open below it. A long press on a block, a right click or
+the keyboard's menu key opens a small menu for it: its page, another engine or
+effect, *Swap with…*, *Export…*, *Save to my library* and *Copy a link*.
 
 A sound opens as a page of sliders grouped by the panel's own pages. A slider
 moves with the mouse or the arrow keys. <kbd>Shift</kbd> moves it ten steps,
@@ -59,6 +62,16 @@ moves with the mouse or the arrow keys. <kbd>Shift</kbd> moves it ten steps,
 ends, and <kbd>Enter</kbd> lets you type a value. <kbd>D</kbd> puts a value back
 to its default. A small *v* on a parameter means a cable can move it for each
 note on its own (see [Modulation](08-modulation.md#per-voice)).
+
+Where a cable moves a value, you see it on the slider as the screen shows it:
+the parameter's name turns the modulation colour, a chip beside it names the
+cable's source (click it to open the cable), a bracket shows how far the cables
+can move the value either side of where you set it, and a white tick shows where
+it is now. A per-voice cable draws one tick for each sounding note. The slider
+says the same in words to a screen reader: “Cutoff, 420 hertz, modulated by 1 LFO
+Out, plus 35 percent”. <kbd>C</kbd> on a parameter that takes a cable makes one
+into it, from the first module's output, and opens it; on one that does not, the
+editor says so in the instrument's words.
 
 {{page editor-sound Sound 3 in the editor: its engine, two inserts and the cables into it, with a slider for every value.}}
 
@@ -97,9 +110,15 @@ it does not run, why.
 A cable's number opens all of its settings: on or off, source, VIA, destination,
 amount, offset, polarity, curve and per voice. Remove deletes it. *Add a
 cable* puts a new one in the first free slot. A mark by the number says more at
-a glance: *v* is per voice, *!* is a cable that does not run, and *–* is one
-that is switched off. A cable that does not run is kept as you wrote it, with
-the reason beside it, and runs once the reason is put right.
+a glance, in the instrument's own characters: *>* runs, *v* is per voice, *~*
+runs a tick late, *!* does not run, and *–* is switched off. A cable that does not
+run is kept as you wrote it, with the reason beside it, and runs once the reason
+is put right; where the reason has a remedy, a button offers it (*Make it global*
+for a per-voice cable aimed at an effect), and the instrument judges the result.
+A cable marked *~* closes a loop: the cables run in rack order, so a cable that
+goes back up the rack reads its source from the tick before. Its settings say
+which modules the loop passes through. Curves are drawn, each on its button and
+the chosen one larger, and a per-voice cable shows each sounding note's own value.
 
 The amount is a percentage of the destination's range. Type a number and press
 <kbd>Enter</kbd>, or use <kbd>↑</kbd> and <kbd>↓</kbd> (<kbd>Shift</kbd> for
@@ -135,6 +154,7 @@ they never cross a module or a label.
 | Dotted line | A gate or trigger |
 | Dashed line over a pale band, a *v* on its pill | A per-voice cable: each sounding note has its own value |
 | Line in the refusal colour, ending in a cross | A cable that does not run. Its pill has a *!* |
+| Any line, a *~* on its pill | A cable that runs a tick late. *A tick late* above the Map brings these forward |
 | Thicker line in the selection colour | The cable chosen in the table below, or the one you clicked |
 
 A **pill** beside a cable says its amount, and while the cable has something to
@@ -148,7 +168,8 @@ destination's heading or a source's name and the Map goes into focus: that
 block's cables stay bright and carry their amounts; every other cable dims and
 loses its label. <kbd>F</kbd> does the same for the jack or block that has the
 keys, and again to leave. <kbd>Esc</kbd>, or *All* above the Map, shows
-everything again. *Refused* brings forward the cables that do not run.
+everything again. *Refused* brings forward the cables that do not run, and *A tick late* the ones
+that close a loop.
 
 ### Making a cable
 
@@ -182,14 +203,20 @@ would replace and what it would bring, and how much memory the project would
 use, or why it does not fit. **Load** goes ahead; nothing changes until you
 choose it.
 
-Each box has *Export…*, which saves that block as a file, and *Save to my
-library*. The **Library** lists what you have saved in this browser, with Recent
+Each box has *Export…*, which saves that block as a file, *Save to my
+library* and *Copy a link*, a link that opens that block's file in someone else's
+browser. In Chromium you can also drag a sound's tag in the Flow (*S2*) to the
+desktop, and it becomes the sound's file. The **Library** lists what you have saved in this browser, with Recent
 and the examples; load a project from it, or drag a saved sound or effects onto
 the block it fits, and the block says whether it fits while you hold it there.
 
 **Search** (<kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>⌘</kbd>+<kbd>K</kbd> on a Mac) finds
-a sound, an effect, a parameter by name (*s2 cutoff*) or a command. Arrows
-choose, <kbd>Enter</kbd> goes there, <kbd>Esc</kbd> closes it.
+a sound, an effect, a parameter by name (*s2 cutoff*), a cable or a command.
+Arrows choose, <kbd>Enter</kbd> goes there, <kbd>Esc</kbd> closes it. A few
+signs narrow it: *>cutoff* is the cables into a Cutoff, *lfo>* the cables out of
+an LFO, *!* the cables that do not run, *~* the ones a tick late, *v* the per-voice
+ones, *s2* what belongs to Sound 2, and a unit such as *hz* the parameters in
+hertz. They combine (*>cutoff !*).
 
 A link can open the editor at a place: add `?view=edit&sel=s1` or
 `?view=edit&sel=s3.in1:Cutoff` to the simulator's address.
@@ -200,7 +227,10 @@ A link can open the editor at a place: add `?view=edit&sel=s1` or
 
 **Compare A/B** keeps the project, or one sound, as A: choose *Keep as A*, then
 edit as you like. <kbd>X</kbd> switches between A and what you made, B, and the
-differences are listed.
+differences are listed, each with a choice of A or B. *Make B from the picks*
+loads B with A's value in every row you chose from A and B's in the rest, as one
+step you can undo, after the instrument has said whether it fits. A and B are
+kept in this browser, so they are still there after a reload.
 
 **Memory** shows how much each part takes, as a percentage of what the FM-1 has:
 each sound with its inserts, the two master effects, and what is shared (the
@@ -222,7 +252,7 @@ through the controls, each with a name and a two-pixel ring around it. Sliders
 say their value in words (“Cutoff, 420 hertz”). The editor announces your
 changes and any refusal, at most once a second, and never a live value.
 
-Colour is never the only signal: the marks *v*, *!* and *–* come with words,
+Colour is never the only signal: the marks *>*, *v*, *~*, *!* and *–* come with words,
 cable styles differ by line as well as colour, and a memory share that does not
 fit is spelt out as “over”. In forced-colours mode the cables use the system's
 colours and keep their dashes. With reduced motion set, nothing flashes or
@@ -235,8 +265,10 @@ moves apart from the meters, which are information.
 On a tablet the outline becomes a narrow rail and the Workbench stacks the panel
 above the editor. On a phone the switch has two tabs, **Panel** and **Edit**.
 Edit shows the outline as a row of tabs along the top, a small screen, and the
-modulation matrix as a list of cables with every setting named. The Map is for
-wider windows.
+modulation matrix as a list of cables with every setting named. *Add a cable*
+asks in three steps, with a sheet at the bottom of the screen: where it comes
+from, where it goes, and how much, with the instrument's verdict before you
+make it. A long press on a block opens its menu. The Map is for wider windows.
 
 ## Browsers
 
@@ -244,6 +276,7 @@ wider windows.
 
 The editor is tested in Chromium, Firefox and WebKit (the engine of Safari) on a
 desktop. It needs a browser with audio worklets and workers; the simulator's own
-requirements are in [chapter 2](02-getting-started.md). It has not been tried on a phone
-or a tablet itself, only at their window sizes, and not with a screen reader
-itself, only with the accessibility tree a browser builds for one.
+requirements are in [chapter 2](02-getting-started.md). Its views are checked with axe-core's
+rules at desktop, tablet and phone widths. It has not been tried on a phone or a
+tablet itself, only at their window sizes, and not with a screen reader itself,
+only with the accessibility tree a browser builds for one.

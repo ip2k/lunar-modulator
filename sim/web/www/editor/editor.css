@@ -816,7 +816,7 @@
 .ed-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 .ed-sheet-t { min-width: 0; overflow-wrap: anywhere; }
 .ed-sheet-step { margin: 0 0 6px; color: var(--muted); font-size: 0.8rem; }
-.ed-sheet-body .ed-select, .ed-sheet-list .ed-select { width: 100%; min-height: 36px; }
+.ed-sheet-body .ed-select, .ed-sheet-list .ed-select { flex: none; width: 100%; min-height: 36px; height: 36px; }
 .ed-sheet-sum { margin: 0 0 8px; overflow-wrap: anywhere; font-weight: 600; }
 .ed-sheet-row { display: flex; align-items: center; gap: 12px; }
 .ed-sheet-range { flex: 1; min-width: 0; min-height: 24px; accent-color: var(--select); }
