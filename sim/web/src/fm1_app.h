@@ -190,6 +190,7 @@ extern "C" {
 #define FM1_APP_TONE_SAY 0
 #define FM1_APP_TONE_REFUSE 1
 #define FM1_APP_TONE_REFUSE_ALL 2
+#define FM1_APP_TONE_ASK 3          /* a question: its first line in C_REFUSE (the CLEAR confirm) */
 
 /* Arena sizes. The largest instances today are Shapes at 12 voices
  * (~206 KB) and PSX Verb (~134 KB); the arenas leave room for growth and

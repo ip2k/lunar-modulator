@@ -1983,6 +1983,207 @@ static void seq_track_screens(const char *dir, float rate) {
   destroy_units();
 }
 
+/* ---- --screens: Session and the Song page (S9+) ------------------------ */
+
+/* Blocks until `*flag` reads `want` (at most `max` blocks). */
+static int run_until(const uint8_t *flag, unsigned want, int max) {
+  for (int k = 0; k < max && *flag != want; ++k) blocks(1);
+  return *flag == want;
+}
+
+static void shift_loop(void) {
+  button_edge(FM1_BTN_SEL, 1);
+  key_edge(FM1_SEQ_UI_KEY_LOOP, 1);
+  key_edge(FM1_SEQ_UI_KEY_LOOP, 0);
+  button_edge(FM1_BTN_SEL, 0);
+}
+
+static void key_tap(int key) {
+  key_edge(key, 1);
+  key_edge(key, 0);
+}
+
+/* Session at 1, 4 and 8 tracks with every cell state (empty, clip,
+ * playing, queued, stopping, the active slot, a muted track), both blink
+ * phases, LOOP held with and without a song, and the band; the Song page
+ * empty, with 1, 7, 8 and 64 entries, the longest names, 64 repeats, an
+ * entry starting past ten minutes, playing on its first and last entries;
+ * the three confirms; the Track view's SONG, END and Next. */
+static void seq_session_screens(const char *dir, float rate) {
+  static const int kTracks[3] = { 1, 4, 8 };
+  char name[128], ops[1024];
+  for (int v = 0; v < 3; ++v) {
+    const int n = kTracks[v];
+    destroy_units();
+    fm1_app_init(&g_app, rate);
+    fm1_app_select(&g_app, 0, fm1_app_find("macro"));
+    expect(fm1_app_seq_reset(&g_app, n) == 0 || g_app.ui.tracks <= 8, "the sequencer's reset");
+    fm1_app_seq_default_route(&g_app);
+    seq_line("bpm 6000");
+    for (int t = 0; t < n; ++t) {
+      for (int k = 0; k < 8; ++k) {
+        if ((k + t) % 3 == 2) continue;
+        snprintf(ops, sizeof ops, "clipsel %d %d;tog %d 0 %d 100", t, k, t, 48 + k + t);
+        seq_line(ops);
+      }
+      snprintf(ops, sizeof ops, "clipsel %d 0;route %d 1 %d", t, t, t % 4);   /* the sounds' colours */
+      seq_line(ops);
+    }
+    blocks(1);
+    button_edge(FM1_BTN_SEQ, 1);
+    button_edge(FM1_BTN_SEQ, 0);
+    button_edge(FM1_BTN_SEQ, 1);
+    button_edge(FM1_BTN_SEQ, 0);
+    expect(g_app.ui.view == FM1_SEQ_VIEW_SESSION, "SEQ in SEQ mode did not open Session");
+    snprintf(name, sizeof name, "seq-session-%d-stopped", n);
+    step_check(name, dir, 1);
+    seq_line("play");
+    blocks(2);
+    if (n > 1) seq_line("stoptrk 1");
+    if (n > 2) seq_line("mute 2 1");
+    seq_line("launch 0 3");
+    blocks(2);
+    expect(g_app.ui.sess_queue[0] == 3, "slot 4 was not queued");
+    snprintf(name, sizeof name, "seq-session-%d-states", n);
+    step_check(name, dir, 1);
+    {
+      const uint8_t phase = g_app.ui.blink;
+      run_until(&g_app.ui.blink, !phase, 4000);
+      snprintf(name, sizeof name, "seq-session-%d-states-blink", n);
+      step_check(name, dir, 1);
+    }
+    key_edge(FM1_SEQ_UI_KEY_LOOP, 1);
+    snprintf(name, sizeof name, "seq-session-%d-loop", n);
+    step_check(name, dir, 1);
+    key_tap(fm1_white_key(0));
+    key_tap(fm1_white_key(1));
+    key_tap(fm1_white_key(1));
+    key_tap(fm1_white_key(3));
+    expect(g_app.ui.song_entries == 3 && g_app.ui.song_len == 4, "LOOP + 1 2 2 4 did not make 3 entries");
+    snprintf(name, sizeof name, "seq-session-%d-loop-song", n);
+    step_check(name, dir, 1);
+    key_edge(FM1_SEQ_UI_KEY_LOOP, 0);
+    run_until(&g_app.ui.song_armed, 1, 40000);
+    snprintf(name, sizeof name, "seq-session-%d-song-armed", n);
+    step_check(name, dir, 1);
+    seq_line("stop");
+    blocks(1);
+  }
+  /* The band at its longest: 64 alternating presses, 64 entries, stopped
+   * and playing in the middle; the Song page over them. */
+  seq_line("sgclr;sgend 2;bpm 30000");
+  ops[0] = '\0';
+  for (int e = 0; e < 64; ++e) {
+    char one[24];
+    snprintf(one, sizeof one, "%ssgins %d %d", e ? ";" : "", e, e & 1);
+    strcat(ops, one);
+  }
+  seq_line(ops);
+  blocks(1);
+  expect(g_app.ui.song_entries == 64, "64 alternating presses are not 64 entries");
+  step_check("seq-session-band-64", dir, 1);
+  seq_line("sgjump 40;play");
+  run_until(&g_app.ui.song_entry, 40, 4000);
+  run_until(&g_app.ui.song_armed, 1, 40000);
+  step_check("seq-session-band-64-playing", dir, 1);
+  shift_loop();
+  expect(g_app.ui.view == FM1_SEQ_VIEW_SONG && g_app.ui.song_cur == 40, "the Song page's cursor is not on the playing entry");
+  step_check("seq-song-64-playing", dir, 1);
+  seq_line("stop");
+  blocks(1);
+  turn(FM1_ENC_SELECT, -64);
+  step_check("seq-song-64-top", dir, 1);
+  turn(FM1_ENC_SELECT, 64);
+  expect(g_app.ui.song_cur == 64, "the cursor did not reach + add");
+  step_check("seq-song-64-add", dir, 1);
+  key_edge(fm1_white_key(2), 1);           /* the song is full */
+  key_edge(fm1_white_key(2), 0);
+  expect(g_app.popup_lines == 1 && strcmp(g_app.popup[0], "Song full: 64") == 0, "no Song full toast");
+  check_screen("seq-song-full", dir, 1);
+  g_app.popup_lines = 0;
+  /* SHIFT + CLEAR: the confirm; CLEAR clears. */
+  button_edge(FM1_BTN_SEL, 1);
+  key_edge(FM1_SEQ_UI_KEY_CLEAR, 1);
+  key_edge(FM1_SEQ_UI_KEY_CLEAR, 0);
+  button_edge(FM1_BTN_SEL, 0);
+  expect(g_app.ui.confirm == FM1_SEQ_CONFIRM_SONG, "SHIFT + CLEAR did not ask");
+  step_check("seq-confirm-song", dir, 1);
+  key_tap(FM1_SEQ_UI_KEY_CLEAR);
+  expect(!g_app.ui.confirm && g_app.ui.song_entries == 0, "CLEAR again did not clear the song");
+  step_check("seq-song-empty", dir, 1);
+  /* 1, 7 and 8 entries, the longest names. */
+  seq_line("bpm 6000;sgname 3 4;sgname 1 8;sgname 2 2;sgname 5 6;sgins 0 3 2");
+  blocks(1);
+  step_check("seq-song-1", dir, 1);
+  seq_line("sgins 1 1;sgins 2 2 3;sgins 3 0;sgins 4 5 8;sgins 5 6;sgins 6 1 2");
+  blocks(1);
+  step_check("seq-song-7", dir, 1);
+  seq_line("sgins 7 7 4");
+  blocks(1);
+  expect(g_app.ui.song_entries == 8, "8 entries");
+  step_check("seq-song-8", dir, 1);
+  seq_line("sgjump 0;play");
+  run_until(&g_app.ui.song_pass_bar, 1, 4000);
+  turn(FM1_ENC_SELECT, -8);
+  button_edge(FM1_BTN_PLAY, 1);             /* PLAY: the cursor trails the song again */
+  button_edge(FM1_BTN_PLAY, 0);
+  button_edge(FM1_BTN_PLAY, 1);
+  button_edge(FM1_BTN_PLAY, 0);
+  blocks(2);
+  step_check("seq-song-8-playing-first", dir, 1);
+  seq_line("sgjump 7");
+  run_until(&g_app.ui.song_entry, 7, 40000);
+  step_check("seq-song-8-playing-last", dir, 1);
+  /* The Track view: SONG and the Next hint in the last bar, END parked. */
+  button_edge(FM1_BTN_SEQ, 1);
+  button_edge(FM1_BTN_SEQ, 0);
+  expect(g_app.ui.view == FM1_SEQ_VIEW_TRACK, "SEQ from the Song page did not go to the Track view");
+  run_until(&g_app.ui.song_armed, 1, 80000);
+  step_check("seq-track-song-next", dir, 1);
+  seq_line("sgend 1");
+  run_until(&g_app.ui.song_parked, 1, 80000);
+  expect(g_app.ui.song_parked, "the song did not park");
+  step_check("seq-track-song-end", dir, 1);
+  seq_line("stop");
+  blocks(1);
+  /* 64 repeats of a 16-bar scene, and an entry past ten minutes. */
+  seq_line("sgclr;clipsel 0 4;clen 0 256;clipsel 0 0;sgins 0 4 40;sgins 1 6 1;sgins 0 2 9");
+  blocks(1);
+  shift_loop();
+  expect(g_app.ui.view == FM1_SEQ_VIEW_SONG, "SHIFT + LOOP did not open the Song page");
+  turn(FM1_ENC_SELECT, -8);
+  step_check("seq-song-long", dir, 1);
+  seq_line("sgclr;sgins 0 4 64");
+  blocks(1);
+  step_check("seq-song-x64", dir, 1);
+  seq_line("play");
+  blocks(2);
+  step_check("seq-song-x64-playing", dir, 1);
+  seq_line("stop");
+  blocks(1);
+  /* Session's CLEAR + slot and the Track view's CLEAR tap: the confirms. */
+  shift_loop();
+  expect(g_app.ui.view == FM1_SEQ_VIEW_TRACK, "SHIFT + LOOP did not go back");
+  button_edge(FM1_BTN_SEQ, 1);
+  button_edge(FM1_BTN_SEQ, 0);
+  key_edge(FM1_SEQ_UI_KEY_CLEAR, 1);
+  key_tap(fm1_white_key(0));
+  key_edge(FM1_SEQ_UI_KEY_CLEAR, 0);
+  expect(g_app.ui.confirm == FM1_SEQ_CONFIRM_SLOT, "CLEAR + a slot did not ask");
+  step_check("seq-confirm-slot", dir, 1);
+  key_tap(fm1_white_key(4));               /* no */
+  expect(!g_app.ui.confirm, "a key did not close the confirm");
+  button_edge(FM1_BTN_SEQ, 1);
+  button_edge(FM1_BTN_SEQ, 0);
+  key_tap(FM1_SEQ_UI_KEY_CLEAR);
+  expect(g_app.ui.confirm == FM1_SEQ_CONFIRM_CLIP, "a CLEAR tap did not ask");
+  step_check("seq-confirm-clip", dir, 1);
+  button_edge(FM1_BTN_HOME, 1);            /* no, and HOME does nothing else */
+  button_edge(FM1_BTN_HOME, 0);
+  expect(!g_app.ui.confirm && g_app.mode == FM1_MODE_SEQ, "HOME over the confirm left SEQ mode");
+  destroy_units();
+}
+
 /* ---- --screens: parameter locks (docs/15 §4, S8) ---------------------- */
 
 /* Up to 8 lanes on track 1 for the lockable parameters of unit 0's engine,
@@ -3648,6 +3849,7 @@ static int run_screens(const char *dir, float rate) {
   seq_step_screens(dir, rate);
   seq_rec_screens(dir, rate);
   seq_track_screens(dir, rate);
+  seq_session_screens(dir, rate);
   multi_screens(dir, rate);
   seq_lock_screens(dir, rate);
   mod_screens(dir, rate);
@@ -5519,6 +5721,15 @@ int main(int argc, char **argv) {
            (unsigned)g_app.ui.swing, (unsigned)g_app.ui.dq, (unsigned)g_app.ui.metro,
            (unsigned)g_app.ui.clip_num, (unsigned)g_app.ui.clip_den, (unsigned)g_app.ui.clip_quant,
            (int)g_app.ui.clip_tr, (unsigned)g_app.ui.route_kind, (unsigned)g_app.ui.route_index);
+    /* Session and the song (S9+), as the UI mirrors them. */
+    printf(",\"song\":{\"confirm\":%u,\"cur\":%u,\"entries\":%u,\"entry\":%u,\"presses\":%u,"
+           "\"armed\":%u,\"follow\":%u,\"parked\":%u,\"end\":%u,\"jump\":%u,\"now\":%u,"
+           "\"next\":%u,\"loop_held\":%u,\"clips\":\"%016llx\"}",
+           (unsigned)g_app.ui.confirm, (unsigned)g_app.ui.song_cur, (unsigned)g_app.ui.song_entries,
+           (unsigned)g_app.ui.song_entry, (unsigned)g_app.ui.song_len, (unsigned)g_app.ui.song_armed,
+           (unsigned)g_app.ui.song_follow, (unsigned)g_app.ui.song_parked, (unsigned)g_app.ui.song_end,
+           (unsigned)g_app.ui.song_jump, (unsigned)g_app.ui.song_now, (unsigned)g_app.ui.song_next,
+           (unsigned)g_app.ui.loop_held, (unsigned long long)g_app.ui.sess_clips);
     /* Record and Capture (S5): the transport's record state, step record's
      * head, and Capture as the UI mirrors it. */
     printf(",\"rec\":{\"recording\":%u,\"counting_in\":%u,\"rec_track\":%u,\"srec\":%u,"

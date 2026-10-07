@@ -135,6 +135,33 @@
  *                  lane step v`, heard (Movy's live take, no quiet flag),
  *                  at the playing step; detents add up until 600 ms pass
  *                  without one, Movy's knob release
+ * S9+ adds Session and the Song page (notes/2026-10-06-song-and-scenes.md,
+ * every decision adopted: SG1-SG13, D15-D18 in the default mode; the core's
+ * compat mode keeps Movy's `song`):
+ *
+ *   SEQ tap        inside SEQ mode, released with no track focused: the
+ *                  Track view and Session swap; any other view goes to the
+ *                  Track view
+ *   Session        white keys 1-8 the focused track's slots (`launch t s`,
+ *                  an empty slot stops it), 9-16 focus tracks 1-8; G#3
+ *                  (LOOP) held: keys 1-8 are scenes (D16: one press
+ *                  `scene s`; a second `sgnew` of the first and `songadd`,
+ *                  later ones `songadd`; compat: `song`, then `songadd`);
+ *                  C#4 (COPY) held: a slot with a clip `clipcopy`, then
+ *                  `clippaste`; D#4 (CLEAR) held + a slot: the confirm
+ *   SHIFT + LOOP   the Song page, from the Track view or Session; again,
+ *                  back. Its cursor walks the entries and `+ add` (SELECT,
+ *                  F#3, A#3; SHIFT + the arrows `sgmov`); white keys 1-8
+ *                  insert a scene after it (`sgins`, or `sgset` for a
+ *                  repeat of its own scene), 9-16 set its repeats; KNOB1-4
+ *                  its scene, repeats, the scene's name (`sgname`) and the
+ *                  end (`sgend`); CLEAR `sgdel`, SHIFT + CLEAR the confirm
+ *                  for `sgclr`; SHIFT + PLAY `sgjump` (and `play`, stopped)
+ *   the confirm    a CLEAR tap in the Track view (`clipdel`), CLEAR + a
+ *                  slot (`clipdelat`), SHIFT + CLEAR on the Song page
+ *                  (`sgclr`): CLEAR again sends it; any other press only
+ *                  closes it, and knob turns are swallowed (O15, SG9)
+ *
  * The knob grid and the lanes' bases with no step held are the app's
  * (fm1_app.c): a laned parameter turns on the 7-bit grid and every lane on
  * it, of every track that plays that sound, follows at once (`abaseq`).
@@ -160,9 +187,21 @@ enum {
   FM1_SEQ_VIEW_STEP = 1,            /* the held steps' Step page (step_page) */
   FM1_SEQ_VIEW_SET = 2,             /* the Set page: tempo, swing, default quantize, metro */
   FM1_SEQ_VIEW_CLIP = 3,            /* the Clip page: speed, length, transpose, quantize */
-  FM1_SEQ_VIEW_TRACKPG = 4          /* the Track page (track_page 0: route and mute;
+  FM1_SEQ_VIEW_TRACKPG = 4,         /* the Track page (track_page 0: route and mute;
                                        1: the lanes) */
+  FM1_SEQ_VIEW_SESSION = 5,         /* Session (S9): 8 tracks x 8 slots, the scenes, the band */
+  FM1_SEQ_VIEW_SONG = 6             /* the Song page (S9+): the song list's editor */
 };
+
+/* The CLEAR confirm (O15, SG9): what CLEAR pressed again deletes. */
+enum {
+  FM1_SEQ_CONFIRM_NONE = 0,
+  FM1_SEQ_CONFIRM_CLIP,             /* a CLEAR tap in the Track view: `clipdel t` */
+  FM1_SEQ_CONFIRM_SLOT,             /* CLEAR + a slot in Session: `clipdelat t s` */
+  FM1_SEQ_CONFIRM_SONG              /* SHIFT + CLEAR on the Song page: `sgclr` */
+};
+#define FM1_SEQ_UI_SONG_MAX 64u     /* song presses (SG3; the core's limits.song) */
+#define FM1_SEQ_UI_SONG_ROWS 7      /* the Song page's entry rows (MID) */
 #define FM1_SEQ_UI_TRACK_PAGES 2
 
 /* What the Track view's hint line holds instead of the model line. */
@@ -181,7 +220,15 @@ enum {
   FM1_SEQ_TOAST_NOLOCK,             /* the lock sound's parameter toast_arg is NOLOCK */
   FM1_SEQ_TOAST_LOCK_CLEARED,       /* `aclrs`: parameter toast_arg's lock on the step */
   FM1_SEQ_TOAST_LANE_CLEARED,       /* `aclr`: parameter toast_arg's lane */
-  FM1_SEQ_TOAST_LOCKS_CLEARED       /* `aclrstep` on the held steps */
+  FM1_SEQ_TOAST_LOCKS_CLEARED,      /* `aclrstep` on the held steps */
+  FM1_SEQ_TOAST_SONG_FULL,          /* an edit past FM1_SEQ_UI_SONG_MAX presses (S9+) */
+  FM1_SEQ_TOAST_ENTRY_DELETED,      /* CLEAR on the Song page: entry toast_arg (0-based) */
+  FM1_SEQ_TOAST_JOINED,             /* an edit joined entry toast_arg with a neighbour;
+                                       toast_scene and toast_presses say what it is now */
+  FM1_SEQ_TOAST_SONG_CLEARED,       /* the confirm's `sgclr` */
+  FM1_SEQ_TOAST_CLIP_DELETED,       /* the confirm's `clipdel` or `clipdelat` */
+  FM1_SEQ_TOAST_CLIP_COPIED,        /* COPY + a slot in Session: `clipcopy` */
+  FM1_SEQ_TOAST_CLIP_PASTED         /* COPY + another slot: `clippaste` */
 };
 
 /* What REC's press did, for its release (fm1_seq_ui_t.rec_role). */
@@ -206,6 +253,8 @@ enum { FM1_SEQ_UI_CAPTURE_NONE = 0, FM1_SEQ_UI_CAPTURE_PICK = 1, FM1_SEQ_UI_CAPT
 #define FM1_SEQ_UI_KEY_BAR_BACK 1   /* F#3: the previous bar; nudge earlier */
 #define FM1_SEQ_UI_KEY_BAR_ON 5     /* A#3: the next bar; nudge later */
 #define FM1_SEQ_UI_FULL_VEL_KEY 9   /* SHIFT + white key 10: full velocity */
+#define FM1_SEQ_UI_KEY_LOOP 3       /* G#3 (OP2): LOOP; held in Session, the scenes (S9) */
+#define FM1_SEQ_UI_KEY_COPY 8       /* C#4 (OP4): COPY; held in Session, slots (S9) */
 #define FM1_SEQ_UI_KEY_CLEAR 10     /* D#4 (OP5): CLEAR (S8) */
 #define FM1_SEQ_UI_KEY_MUTE 13      /* F#4 (OP6): MUTE */
 #define FM1_SEQ_UI_KEY_TRACK_PREV 20   /* C#5 (MONO): the previous track */
@@ -404,6 +453,40 @@ typedef struct fm1_seq_ui {
   uint8_t take_lane, take_v;        /* its lane and its 7-bit value */
   uint32_t take_idle;               /* ceil(0.6 x rate): a pause this long ends the take */
   uint64_t take_frame;              /* its last detent */
+
+  /* Session and the song (S9+; notes/2026-10-06-song-and-scenes.md). The
+   * slots, the song and the scene names are read once per block. From
+   * sess_clips to song_gen, a run with no padding: sync compares it whole. */
+  uint64_t sess_clips;              /* bit 8 t + s: slot s of track t holds a clip */
+  uint8_t compat;                   /* the core runs Movy's rules (no D16: `song`) */
+  uint8_t back_view;                /* the view SHIFT + LOOP goes back to from the Song page */
+  uint8_t loop_held;                /* LOOP is down in Session: the scene row */
+  uint8_t loop_scenes, loop_first;  /* scene presses in this hold, and its first scene */
+  uint8_t copy_held, copied;        /* COPY is down in Session; a slot was copied in this hold */
+  uint8_t clear_gestured;           /* CLEAR did something while down: its release asks nothing */
+  uint8_t confirm;                  /* FM1_SEQ_CONFIRM_*: up until the next press */
+  uint8_t confirm_track, confirm_slot;
+  uint8_t blink;                    /* the 0.25 s blink's phase, read in sync */
+  uint8_t sess_active[8];           /* each track's active slot (FM1_SEQ_NONE: none) */
+  uint8_t sess_play[8];             /* its playing slot, while the transport runs */
+  uint8_t sess_queue[8];            /* its queued slot */
+  uint8_t sess_pos[8];              /* the playing clip's place, 0..255 of its length */
+  uint8_t sess_stop;                /* bit per track: a pending stop */
+  uint8_t song_len;                 /* presses (fm1_seq_info_t) */
+  uint8_t song_entries, song_entry, song_armed, song_pass, song_pass_bar;
+  uint8_t song_end, song_jump, song_follow, song_parked;
+  uint8_t song_cur;                 /* the Song page's cursor: an entry, or song_entries
+                                       for the `+ add` row */
+  uint8_t song_trail;               /* the cursor follows the playing entry */
+  uint8_t toast_scene, toast_presses;   /* a Joined toast's entry, as it is now; a
+                                           clip toast's slot */
+  uint8_t song_scenes;              /* bit per scene the song uses */
+  uint8_t song_now, song_next;      /* the playing entry's scene, and the one armed or
+                                       due after it (FM1_SEQ_NONE: none, the end) */
+  uint8_t song_cur_presses;         /* the cursor's entry's repeats, as last read */
+  uint8_t song_pad;                 /* always 0: no padding before song_gen, so the
+                                       run sync compares holds no indeterminate byte */
+  uint32_t song_gen;                /* the input generation the song was read at */
 } fm1_seq_ui_t;
 
 /* Track 1 focused, the Track view, bar 1, Step page 1, no hint, nothing
@@ -414,10 +497,18 @@ void fm1_seq_ui_init(fm1_seq_ui_t *u, float rate);
  * Session; in S4 it stays). */
 void fm1_seq_ui_enter(fm1_seq_ui_t *u);
 
-/* A page of SEQ mode (FM1_SEQ_VIEW_SET, _CLIP or _TRACKPG), as SELECT
- * reaches it past the sound's last page; any other view is the Track view.
- * Nothing is sent. */
+/* A page of SEQ mode (FM1_SEQ_VIEW_SET, _CLIP or _TRACKPG, as SELECT
+ * reaches it past the sound's last page; _SESSION, or _SONG with its cursor
+ * on entry `entry`, 0-based, as a saved view opens them: fm1_seq_ui_open_song);
+ * any other view is the Track view. Nothing is sent. */
 void fm1_seq_ui_open(fm1_seq_ui_t *u, int view);
+
+void fm1_seq_ui_open_song(fm1_seq_ui_t *u, unsigned entry);
+
+/* SEQ tapped inside SEQ mode (pressed and let go with no track focused while
+ * it was down): the Track view goes to Session, any other view to the Track
+ * view. */
+void fm1_seq_ui_seq_tap(fm1_seq_ui_t *u);
 
 /* SEQ mode left (HOME, FX, GLO, a modulation page): the held steps are let
  * go without toggling, and the Track view comes back next time. Keys still

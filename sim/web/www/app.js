@@ -205,10 +205,46 @@ const asset = (name) => new URL(name, import.meta.url).href;
 // rate whatever the browser gives (FM1_APP_RAM_RATE).
 const WANT_RATE = 44100;
 
+// iPhone and iPad (issue #53). Safari gives Web Audio the "ambient" audio
+// session unless the page asks for another, and Silent mode (the Ring/Silent
+// switch, or the Action button) mutes that session as it mutes a game; a
+// music app asks for "playback". Safari also stops a running context when
+// something interrupts it (a call, Siri, another app's audio) and starts it
+// again only from a tap. So the page asks for the playback session while it
+// is powered on (the Audio Session API, where the browser has it), resumes
+// the context inside the tap that powers it on, before anything is awaited,
+// and resumes it from the next tap or key whenever the browser holds it,
+// saying so on the status line meanwhile.
+const HELD = 'The browser is holding the sound back: tap the panel or press a key to start it.';
+
+function audioSession(type) {
+  try {
+    if (navigator.audioSession) navigator.audioSession.type = type;
+  } catch {
+    // A browser that will not change it plays as it would have.
+  }
+}
+
+function wake(ctx) {
+  if (ctx && ctx.state !== 'running' && ctx.state !== 'closed') ctx.resume().catch(() => {});
+}
+
+function onContextState(ctx) {
+  if (ctx !== sim.ctx || ctx.state === 'closed') return;
+  sim.held = ctx.state !== 'running';
+  if (sim.held || sim.state) showStatus();
+  else statusEl.textContent = 'Starting...';
+}
+
+for (const type of ['pointerdown', 'pointerup', 'keydown']) {
+  window.addEventListener(type, () => wake(sim.ctx), { capture: true, passive: true });
+}
+
 async function makeContext() {
   let last = null;
   try {
     const ctx = new AudioContext({ latencyHint: 'interactive', sampleRate: WANT_RATE });
+    wake(ctx);
     if (ctx.sampleRate === WANT_RATE) {
       sim.requestedRate = WANT_RATE;
       sim.rateRefused = '';
@@ -231,6 +267,7 @@ async function makeContext() {
   // and why.
   try {
     const ctx = new AudioContext({ latencyHint: 'interactive' });
+    wake(ctx);
     sim.requestedRate = null;
     return ctx;
   } catch (err) {
@@ -260,6 +297,7 @@ async function start() {
     return;
   }
   statusEl.textContent = 'Starting...';
+  audioSession('playback');
   let ctx = null;
   try {
     ctx = await makeContext();
@@ -276,9 +314,14 @@ async function start() {
     analyser.fftSize = 2048;
     node.connect(ctx.destination);
     node.connect(analyser);
-    Object.assign(sim, { ctx, node, analyser, notice: '' });
+    Object.assign(sim, { ctx, node, analyser, notice: '', held: false });
+    ctx.addEventListener('statechange', () => onContextState(ctx));
     node.port.postMessage({ type: 'init', wasm, master: sim.master }, [wasm]);
-    await ctx.resume();
+    // Not awaited: a browser that holds the context would keep the page at
+    // "Starting..." with no way on. Still held a moment later, the status
+    // line asks for a tap (above).
+    wake(ctx);
+    setTimeout(() => { if (ctx === sim.ctx && ctx.state === 'suspended') onContextState(ctx); }, 1500);
     overlay.hidden = true;
     powerEl.classList.add('on');
     document.getElementById('power-off').disabled = false;
@@ -297,7 +340,8 @@ async function powerOff() {
   releaseEverything();
   if (sim.node && files) await files.beforePowerOff();
   if (sim.ctx) await sim.ctx.close();
-  Object.assign(sim, { ctx: null, node: null, analyser: null, state: null, seq: null });
+  audioSession('auto');
+  Object.assign(sim, { ctx: null, node: null, analyser: null, state: null, seq: null, held: false });
   overlay.hidden = false;
   powerEl.classList.remove('on');
   document.getElementById('power-off').disabled = true;
@@ -484,6 +528,10 @@ function memoryPercent(bytes, budget) {
 
 function showStatus() {
   const st = sim.state;
+  if (sim.ctx && sim.held) {
+    statusEl.textContent = HELD;
+    return;
+  }
   if (!sim.ctx || !st) return;
   const rate = sim.ctx.sampleRate;
   const fellBack = rate === WANT_RATE ? ''

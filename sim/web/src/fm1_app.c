@@ -480,6 +480,32 @@ static void ui_toast(fm1_app_t *a) {
       popup(a, lock_param_name(a, a->ui.toast_arg), "lane cleared", NULL, -1);
       break;
     case FM1_SEQ_TOAST_LOCKS_CLEARED: popup(a, "Locks cleared", NULL, NULL, -1); break;
+    case FM1_SEQ_TOAST_SONG_FULL: refuse(a, FM1_APP_TONE_REFUSE_ALL, "Song full: 64", NULL, NULL); break;
+    case FM1_SEQ_TOAST_SONG_CLEARED: popup(a, "Song cleared", NULL, NULL, -1); break;
+    case FM1_SEQ_TOAST_ENTRY_DELETED: {
+      char line[24];
+      snprintf(line, sizeof line, "Entry %u deleted", (unsigned)a->ui.toast_arg + 1u);
+      popup(a, line, NULL, NULL, -1);
+      break;
+    }
+    case FM1_SEQ_TOAST_JOINED: {         /* "Joined" / "3 Verse x3" */
+      char line[24];
+      fm1_seq_view_scene(a->seq, a->ui.toast_scene, line, sizeof line);
+      snprintf(line + strlen(line), sizeof line - strlen(line), " x%u", (unsigned)a->ui.toast_presses);
+      popup(a, "Joined", line, NULL, -1);
+      break;
+    }
+    case FM1_SEQ_TOAST_CLIP_DELETED:
+    case FM1_SEQ_TOAST_CLIP_COPIED:
+    case FM1_SEQ_TOAST_CLIP_PASTED: {
+      char line[24];
+      snprintf(line, sizeof line, "T%u clip %u %s", (unsigned)a->ui.toast_arg + 1u,
+               (unsigned)a->ui.toast_scene + 1u,
+               a->ui.toast == FM1_SEQ_TOAST_CLIP_DELETED ? "deleted"
+               : a->ui.toast == FM1_SEQ_TOAST_CLIP_COPIED ? "copied" : "pasted");
+      popup(a, line, NULL, NULL, -1);
+      break;
+    }
     default: break;
   }
   a->ui.toast = FM1_SEQ_TOAST_NONE;
@@ -1777,6 +1803,16 @@ static void button_in(fm1_app_t *a, int button, int down) {
     a->leds_changed = 1;
     return;
   }
+  if (button == FM1_BTN_SEQ && !down && was && !a->ui.seq_gestured &&
+      a->seq_from_mode == FM1_MODE_SEQ && a->mode == FM1_MODE_SEQ) {
+    /* SEQ tapped inside SEQ mode (S9): the Track view and Session swap, and
+     * any other view goes back to the Track view. */
+    fm1_seq_ui_seq_tap(&a->ui);
+    fm1_seq_ui_sync(&a->ui, a->seq, a->seq_gen, a->frames);
+    a->dirty = 1;
+    a->leds_changed = 1;
+    return;
+  }
   if (a->mod && (down != 0) != (was != 0) && mod_button(a, button, down != 0)) return;
   if (button == FM1_BTN_ARP) {
     if ((down != 0) != (was != 0)) arp_button(a, down != 0);
@@ -1824,9 +1860,11 @@ static void button_in(fm1_app_t *a, int button, int down) {
         break;
       }
       a->seq_from_mode = a->mode;
-      a->mode = FM1_MODE_SEQ;
       a->fx_grab = 0;
-      fm1_seq_ui_enter(&a->ui);
+      if (a->mode != FM1_MODE_SEQ) {       /* inside SEQ mode, its release decides (S9) */
+        a->mode = FM1_MODE_SEQ;
+        fm1_seq_ui_enter(&a->ui);
+      }
       fm1_seq_ui_sync(&a->ui, a->seq, a->seq_gen, a->frames);
       a->dirty = 1;
       break;
@@ -3000,7 +3038,10 @@ static void update_leds(fm1_app_t *a) {
    * keys show the bar's steps, the playhead inverted, and the two bar keys
    * their role (sequencer notes light no key outside it: owner decision
    * O6). */
-  led[FM1_APP_KEYS + FM1_BTN_SEQ] = a->mode == FM1_MODE_SEQ;
+  led[FM1_APP_KEYS + FM1_BTN_SEQ] =
+      (uint8_t)(a->mode == FM1_MODE_SEQ &&
+                ((a->ui.view != FM1_SEQ_VIEW_SESSION && a->ui.view != FM1_SEQ_VIEW_SONG) ||
+                 fmod(seconds(a), 1.0) < 0.5));   /* slow in Session and the Song page (S9) */
   led[FM1_APP_KEYS + FM1_BTN_PLAY] = a->ui.playing != 0;
   led[FM1_APP_KEYS + FM1_BTN_REC] =
       (uint8_t)fm1_seq_ui_rec_led(&a->ui, a->frames, a->button_down[FM1_BTN_REC]);
@@ -3595,7 +3636,10 @@ static void draw_popup_lines(fm1_app_t *a, const char (*text)[FM1_LIST_ENTRY], i
     int ly = y0 + i * pitch;
     int w = fm1_tft_text_width(text[i], POPUP_CHARS, SCALE);
     uint16_t color = C_TEXT;
-    if (tone == FM1_APP_TONE_REFUSE_ALL || (tone == FM1_APP_TONE_REFUSE && i > 0)) color = C_REFUSE;
+    if (tone == FM1_APP_TONE_REFUSE_ALL || (tone == FM1_APP_TONE_REFUSE && i > 0) ||
+        (tone == FM1_APP_TONE_ASK && i == 0)) {
+      color = C_REFUSE;
+    }
     if (i == mark) {
       fm1_tft_paint(&a->tft, 12, ly - 3, FM1_TFT_W - 24, 24, C_SELECT);
       color = C_BG;
@@ -3812,6 +3856,22 @@ static void draw_capture(fm1_app_t *a) {
   snprintf(text[lines++], sizeof text[0], "Captured");
   snprintf(text[lines++], sizeof text[0], "at %s", bpm);
   draw_popup_lines(a, (const char (*)[FM1_LIST_ENTRY])text, lines, -1, FM1_APP_TONE_SAY);
+}
+
+/* The CLEAR confirm (O15, SG9): the three-line popup, its question in
+ * C_REFUSE, until the next press. */
+static void draw_confirm(fm1_app_t *a) {
+  const fm1_seq_ui_t *u = &a->ui;
+  char text[3][FM1_LIST_ENTRY];
+  if (u->confirm == FM1_SEQ_CONFIRM_SONG) {
+    snprintf(text[0], sizeof text[0], "Clear the song?");
+  } else {
+    snprintf(text[0], sizeof text[0], "Delete T%u clip %u?", (unsigned)u->confirm_track + 1u,
+             (unsigned)u->confirm_slot + 1u);
+  }
+  snprintf(text[1], sizeof text[1], "CLEAR again: yes");
+  snprintf(text[2], sizeof text[2], "other keys: no");
+  draw_popup_lines(a, (const char (*)[FM1_LIST_ENTRY])text, 3, -1, FM1_APP_TONE_ASK);
 }
 
 void fm1_look_row(fm1_tft_t *t, int y, const char *label, const char *value, uint16_t color) {
@@ -4166,7 +4226,8 @@ static void draw(fm1_app_t *a) {
     draw_line(a, y, "Transpose", a->transpose ? v : "0");
     draw_bottom(a, "1/2 Globe");
   }
-  if (a->popup_lines) draw_popup(a);
+  if (a->ui.confirm && a->mode == FM1_MODE_SEQ) draw_confirm(a);   /* until a press (SG9) */
+  else if (a->popup_lines) draw_popup(a);
   else if (a->ui.capture_mode) draw_capture(a);
   t->record = record;
 }

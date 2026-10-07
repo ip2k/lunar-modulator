@@ -1,0 +1,8 @@
+# The Track view's CLEAR tap (S9, O15) asks to confirm; CLEAR again deletes
+# the focused clip (`clipdel 0`). A tap with no clip asks nothing. Then
+# PLAY/STOP: the other tracks play.
+--button 0.05:SEQ
+--key 0.20:10:100:0.05
+--key 0.50:10:100:0.05
+--key 0.80:10:100:0.05
+--button 1.00:PLAY/STOP

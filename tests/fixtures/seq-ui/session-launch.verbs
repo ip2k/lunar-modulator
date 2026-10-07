@@ -1,0 +1,7 @@
+#! rate=44118 block=64 tracks=8 end=1102950
+@0 bpm 24000;route 1 1 0;route 2 1 0;clipsel 0 0;tog 0 0 48 110;tog 0 8 55 100;clipsel 1 0;tog 1 4 64 90;clipsel 0 1;tog 0 0 49 110;tog 0 8 56 100;clipsel 2 1;tog 2 12 73 80;clipsel 0 2;tog 0 0 50 110;tog 0 8 57 100;clipsel 1 2;tog 1 4 66 90;clipsel 0 3;tog 0 0 51 110;tog 0 8 58 100;clipsel 2 3;tog 2 12 75 80;clipsel 0 4;tog 0 0 52 110;tog 0 8 59 100;clipsel 1 4;tog 1 4 68 90;clipsel 0 5;tog 0 0 53 110;tog 0 8 60 100;clipsel 2 5;tog 2 12 77 80;clipsel 0 6;tog 0 0 54 110;tog 0 8 61 100;clipsel 1 6;tog 1 4 70 90;clipsel 0 0;clipsel 1 0;clipsel 2 1
+@8832 launch 0 0
+@26496 launch 0 2
+@57408 watch 1
+@61824 launch 1 1
+@110336 stop
