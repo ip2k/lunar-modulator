@@ -164,6 +164,12 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   block, the panel's view with its knob map, and `fm1_param_parse`; the
   audio thread gets binary only, and a shadow Worker does the text, hashes
   and diffs ([sim/web/README.md, "The edit layer"](sim/web/README.md#the-edit-layer-stage-ed1-for-the-advanced-editor)).
+  Its first views (stage ED2, `sim/web/www/editor/`) are on the simulator's
+  page behind a Panel/Workbench/Editor switch: the Flow, a sound's
+  inspector drawn from the metadata alone, follow both ways with the K1-K4
+  chips, one undo history for the editor and the panel, PLAY and EDIT keys,
+  and RAM by part in percent (`fm1w_ram_part`) ([sim/web/README.md, "The
+  advanced editor"](sim/web/README.md#the-advanced-editor-stage-ed2-shell-flow-and-sound)).
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free
