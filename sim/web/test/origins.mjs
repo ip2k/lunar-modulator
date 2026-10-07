@@ -12,7 +12,7 @@ import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const www = resolve(process.argv[2] || join(import.meta.dirname, '..', 'www'));
-const { isLocalOrigin, trustedOrigin, loadUrl } = await import(pathToFileURL(join(www, 'files.js')).href);
+const { isLocalOrigin, trustedOrigin, loadUrl, parseSel } = await import(pathToFileURL(join(www, 'files.js')).href);
 const fails = [];
 const check = (what, got, want) => { if (got !== want) fails.push(`${what}: got ${got}, want ${want}`); };
 
@@ -52,6 +52,18 @@ for (const bad of ['http://localhost:5173/missions/first.lunar?x=1', 'http://loc
   'http://lunar.test:8766/examples/first-orbit.lunar', 'https://ip2k.github.io/a.lunar', 'http://LOCALHOST:5173/a.lunar',
   'http://localhost.evil.test/a.lunar', 'javascript:alert(1)', '//localhost:5173/a.lunar']) {
   check(`local page refuses ${bad}`, loadUrl(bad, `${LOCAL}/index.html`, LOCAL), null);
+}
+
+// sel= (stage ED4): a block of the editor and a parameter's name, nothing else.
+for (const [good, key, param] of [['s1', 's1', null], ['s3.in1:Cutoff', 's3.in1', 'Cutoff'], ['m2', 'm2', null],
+  ['p8', 'p8', null], ['c32', 'c32', null], ['mix', 'mix', null], ['s2.mfx1:Gate', 's2.mfx1', 'Gate'], ['s1:Env Pitch', 's1', 'Env Pitch']]) {
+  const v = parseSel(good);
+  check(`sel ${good}`, v && `${v.key}|${v.param}`, `${key}|${param}`);
+}
+for (const bad of ['', 's0', 's5', 's1.in3', 'm3', 'p9', 'c0', 'c33', 'S1', 's1:', 's1::x', 's1:<img src=x onerror=alert(1)>',
+  `p1:${'A'.repeat(40)}`, 'https://evil.example/a.lunar', '../s1', 's1 ', ' s1', 's1:a"b', 's1:a\nb', 'mix:Level\u0000',
+  's1.in1:Cut;off', 'javascript:alert(1)', 'x'.repeat(100), null, 42]) {
+  check(`sel refuses ${String(bad).slice(0, 30)}`, parseSel(bad), null);
 }
 
 console.log(JSON.stringify({ pass: fails.length === 0, fails }));

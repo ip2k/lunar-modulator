@@ -27,7 +27,7 @@
 // MIT licence, like the rest of this repository.
 
 import { createRequire } from 'node:module';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { serve } from './serve.mjs';
 
@@ -456,6 +456,292 @@ report.inspectors = { modules: inspectors.modules, rows: inspectors.rows, faults
 check('every module draws an inspector from the metadata with nothing overflowing', inspectors.bad.length === 0 &&
   inspectors.modules >= 30, inspectors.bad.slice(0, 10));
 
+// ---- stage ED4: files and the project (§8-§10, §13) -----------------------------------------
+await page.evaluate(() => document.querySelector('[data-layout="editor"]').click());
+await page.waitForTimeout(300);
+report.ed4 = {};
+// Per-block export: C's canonical file through the shadow Worker, named as W1 names files.
+await page.evaluate(() => window.fm1.editor.select('m1', { view: 'flow' }));
+await page.waitForTimeout(400);
+const [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-export="m1"]')]);
+const dlText = readFileSync(await dl.path(), 'utf8');
+report.ed4.export = { name: dl.suggestedFilename(), kind: (() => { try { return JSON.parse(dlText).kind; } catch { return null; } })() };
+check('a block exports its file, named as W1 names files', /-master\.fx\.lunar$/.test(report.ed4.export.name) &&
+  report.ed4.export.kind === 'fx', report.ed4.export);
+
+// The ARP pages: selecting a MIDI effect opens them on the panel (HOME's entry 2).
+const arp = await page.evaluate(async () => {
+  const ed = window.fm1.editor;
+  const key = [...ed.state.mirror.blocks.keys()].find((k) => /^s[1-4]\.mfx1$/.test(k));
+  if (!key) return { key: null };
+  ed.select(key, { view: 'flow' });
+  await new Promise((r) => setTimeout(r, 900));
+  const v = ed.state.panelView;
+  return { key, arp: v.arp, sound: v.sound };
+});
+check('selecting an arpeggiator opens its ARP pages on the panel', arp.key && arp.arp === true &&
+  arp.sound === Number(arp.key[1]) - 1, arp);
+
+// Drops from the desktop: the verdict before anything loads; hostile files refused in words.
+const dropped = await page.evaluate(async () => {
+  const ed = window.fm1.editor;
+  const w = (t) => new Promise((r) => setTimeout(r, t));
+  const files = window.fm1.files;
+  const enc = new TextEncoder();
+  const soundText = await files.saveText('sound', 0);
+  const modsText = await files.saveText('mods', 0);
+  ed.select('s1', { view: 'flow' });
+  await w(400);
+  const drop = async (sel, list) => {
+    const old = document.querySelector('.ed-arrive');
+    if (old) old.querySelector('.ed-arrive-b button:last-child').click();
+    await w(100);
+    const t = document.querySelector(sel);
+    if (!t) return { missing: sel };
+    const dt = new DataTransfer();
+    for (const f of list) dt.items.add(f);
+    for (const type of ['dragenter', 'dragover', 'drop']) t.dispatchEvent(new DragEvent(type, { dataTransfer: dt, bubbles: true, cancelable: true }));
+    for (let i = 0; i < 60 && !document.querySelector('.ed-arrive'); ++i) await w(50);
+    const c = document.querySelector('.ed-arrive');
+    return c ? { ok: c.classList.contains('is-ok'), text: c.innerText.replace(/\s+/g, ' ').slice(0, 200),
+      asked: !document.getElementById('target-card').hidden } : { none: true };
+  };
+  const h0 = await window.__hash();
+  const out = {
+    big: await drop('.ed-block[data-block="s1"]', [new File([new Uint8Array(300 * 1024)], 'big.lunar')]),
+    two: await drop('.ed-block[data-block="s1"]', [new File(['{}'], 'a.lunar'), new File(['{}'], 'b.lunar')]),
+    malformed: await drop('.ed-block[data-block="s1"]', [new File(['{"kind":"sound","sounds":[{'], 'bad.lunar')]),
+    garbage: await drop('.ed-block[data-block="s1"]', [new File([crypto.getRandomValues(new Uint8Array(4096))], 'x.lunar')]),
+    syx: await drop('.ed-block[data-block="s1"]', [new File([new Uint8Array([0xf0, 0x43, 0, 9, 0x20, 0, 0xf7])], 'p.syx')]),
+    wrongKind: await drop('.ed-block[data-block="s1"]', [new File([enc.encode(modsText)], 'rack.mods.lunar')]),
+  };
+  const h1 = await window.__hash();
+  out.unchanged = h0.hash === h1.hash;
+  out.good = await drop('.ed-block[data-block="s1"]', [new File([enc.encode(soundText)], 'mine.sound.lunar')]);
+  const go = document.querySelector('.ed-arrive .ed-btn-go');
+  if (go) go.click();
+  await w(1500);
+  out.loaded = document.querySelector('.ed-arrive') === null;
+  return out;
+});
+report.ed4.drops = dropped;
+const refusedCard = (d) => d && d.ok === false && d.text && !d.asked;
+check('a file too large for the module is refused at the block, in words', refusedCard(dropped.big) && /larger than/.test(dropped.big.text), dropped.big);
+check('two files at once are refused at the block', refusedCard(dropped.two), dropped.two);
+check('malformed, random and DX7 files are refused with C\'s words, nothing asked', refusedCard(dropped.malformed) &&
+  refusedCard(dropped.garbage) && refusedCard(dropped.syx), [dropped.malformed, dropped.garbage, dropped.syx]);
+check('a mod rack dropped on a sound is refused in C\'s words', refusedCard(dropped.wrongKind) && /mod rack/i.test(dropped.wrongKind.text), dropped.wrongKind);
+check('no refused drop changes the state', dropped.unchanged, dropped);
+check('a sound dropped on a sound shows C\'s verdict and RAM after, then loads', dropped.good && dropped.good.ok &&
+  /RAM \d+ %/.test(dropped.good.text) && dropped.loaded, dropped.good);
+
+// The library: Save to my library, then drag it onto a block, the verdict while it hovers.
+const lib = await page.evaluate(async () => {
+  const ed = window.fm1.editor;
+  const w = (t) => new Promise((r) => setTimeout(r, t));
+  ed.select('s1', { view: 'flow' });
+  await w(400);
+  document.querySelector('.ed-insp[data-block="s1"] .ed-keep').click();
+  await w(800);
+  ed.select('m1', { view: 'flow' });
+  await w(400);
+  document.querySelector('.ed-insp[data-block="m1"] .ed-keep').click();
+  await w(800);
+  document.querySelector('.ed-out-lib').click();
+  for (let i = 0; i < 40 && !document.querySelector('.ed-lib-item'); ++i) await w(50);
+  const hover = async (kind, sel) => {
+    const li = document.querySelector(`.ed-lib-item[data-kind="${kind}"]`);
+    const t = document.querySelector(sel);
+    if (!li || !t) return { missing: [!!li, !!t] };
+    const dt = new DataTransfer();
+    li.dispatchEvent(new DragEvent('dragstart', { dataTransfer: dt, bubbles: true }));
+    t.dispatchEvent(new DragEvent('dragenter', { dataTransfer: dt, bubbles: true, cancelable: true }));
+    for (let i = 0; i < 60 && !t.dataset.verdict; ++i) await w(50);
+    return { t, dt, li, verdict: t.dataset.verdict || '', ok: t.classList.contains('is-drop-ok') };
+  };
+  const wrong = await hover('fx', '.ed-drop[data-block="s4"]');
+  const wrongOut = { verdict: wrong.verdict, ok: wrong.ok };
+  if (wrong.t) { wrong.t.dispatchEvent(new DragEvent('dragleave', { dataTransfer: wrong.dt, bubbles: true })); wrong.li.dispatchEvent(new DragEvent('dragend', { bubbles: true })); }
+  const right = await hover('sound', '.ed-drop[data-block="s3"]');
+  const rightOut = { verdict: right.verdict, ok: right.ok };
+  if (right.t) right.t.dispatchEvent(new DragEvent('drop', { dataTransfer: right.dt, bubbles: true, cancelable: true }));
+  for (let i = 0; i < 60 && !document.querySelector('.ed-arrive .ed-btn-go'); ++i) await w(50);
+  const go = document.querySelector('.ed-arrive .ed-btn-go');
+  if (go) go.click();
+  await w(1500);
+  const eng = (k) => (ed.state.mirror.blocks.get(k) || {}).engine || '';
+  return { items: document.querySelectorAll('.ed-lib-item').length, wrong: wrongOut, right: rightOut, s1: eng('s1'), s3: eng('s3') };
+});
+report.ed4.library = lib;
+check('the library lists what was saved to it', lib.items >= 2, lib);
+check('a library item hovering a block it does not fit shows C\'s refusal before the drop', lib.wrong.ok === false && lib.wrong.verdict.length > 0 &&
+  !/^Load/.test(lib.wrong.verdict), lib.wrong);
+check('a library sound hovering a sound shows its verdict and loads on the drop', lib.right.ok && /^Load · RAM \d+ %$/.test(lib.right.verdict) &&
+  lib.s3 === lib.s1, lib);
+
+// Search: Ctrl+K, words, the arrows, Enter; Esc gives the focus back.
+await page.evaluate(() => { window.fm1.editor.select('s1', { view: 'flow' }); document.querySelector('.ed-block[data-block="s1"]').focus(); });
+await page.waitForTimeout(300);
+await page.keyboard.press('Control+k');
+await page.keyboard.type('memory');
+const s1 = await page.evaluate(() => ({ open: window.fm1.editor.project.searchOpen, at: (document.querySelector('.ed-search-o.is-at') || {}).textContent,
+  active: document.activeElement.className }));
+await page.keyboard.press('Enter');
+await page.waitForTimeout(300);
+const s1v = await page.evaluate(() => window.fm1.editor.state.view);
+const pname = await page.evaluate(() => {
+  const ed = window.fm1.editor;
+  const p = ed.meta.pages(ed.state.mirror.blocks.get('s1').engine)[0].params[1];
+  return { name: p.name, uid: p.uid };
+});
+await page.keyboard.press('Control+k');
+await page.keyboard.type(`s1 ${pname.name}`);
+const before = await page.evaluate(() => document.querySelector('.ed-search-in').getAttribute('aria-activedescendant'));
+await page.keyboard.press('ArrowDown');
+await page.keyboard.press('ArrowUp');
+const after = await page.evaluate(() => document.querySelector('.ed-search-in').getAttribute('aria-activedescendant'));
+await page.keyboard.press('Tab');
+const kept = await page.evaluate(() => document.activeElement.className);
+await page.keyboard.press('Enter');
+await page.waitForTimeout(500);
+const s2 = await page.evaluate(() => ({ row: window.fm1.editor.state.selRow, open: window.fm1.editor.project.searchOpen }));
+await page.keyboard.press('Control+k');
+await page.keyboard.type('zzzz nothing');
+const none = await page.evaluate(() => document.querySelector('.ed-search-n').textContent);
+await page.keyboard.press('Escape');
+const s3 = await page.evaluate(() => ({ open: window.fm1.editor.project.searchOpen, keys: window.fm1.editor.state.keys }));
+report.ed4.search = { s1, s1v, pname, before, after, kept, s2, none, s3 };
+check('Ctrl+K opens the search with the keys in it', s1.open && s1.active === 'ed-search-in', s1);
+check('a command found by its words runs on Enter', s1v === 'memory', s1v);
+check('a parameter found by sound and name: Enter selects its row', s2.row === `s1:${pname.uid}` && !s2.open && before === after && kept === 'ed-search-in', report.ed4.search);
+check('nothing matching is said so; Esc closes', none === 'Nothing matches' && !s3.open, report.ed4.search);
+
+// Memory: RAM by part in percent, and what is free; the two add to 100 at most.
+const mem = await page.evaluate(() => {
+  document.querySelector('.ed-out-mem').click();
+  const pc = (sel) => { const t = document.querySelector(sel); return t ? t.textContent : ''; };
+  return { rows: document.querySelectorAll('.ed-mem-row').length, used: pc('.ed-mem-total .ed-mem-pc'), free: pc('.ed-mem-free .ed-mem-pc'),
+    bytes: /\b(KB|kB|bytes|B)\b/.test(document.querySelector('.ed-mem').innerText) };
+});
+report.ed4.memory = mem;
+check('the Memory page shows each part and what is free in percent, never in bytes', mem.rows === 8 && /^\d+ %$/.test(mem.used) &&
+  /^\d+ %$/.test(mem.free) && parseInt(mem.used, 10) + parseInt(mem.free, 10) <= 100 && !mem.bytes, mem);
+
+// A/B on one sound: Keep as A, edit, X hears A, X hears B again; C loads each.
+const abSetup = await page.evaluate(async () => {
+  const ed = window.fm1.editor;
+  const w = (t) => new Promise((r) => setTimeout(r, t));
+  document.querySelector('.ed-out-ab').click();
+  await w(200);
+  document.querySelectorAll('.ed-ab-scope .ed-segbtn')[1].click();        // Sound 1
+  await w(200);
+  await ed.project.keepA();
+  ed.select('s1', { view: 'sound' });
+  await w(400);
+  const s = document.querySelector('.ed-insp[data-block="s1"] .ed-row-slider [role=slider]');
+  s.focus();
+  return { A: !!ed.state.ab.A, scope: ed.state.ab.scope, now: s.getAttribute('aria-valuenow'), max: s.getAttribute('aria-valuemax'),
+    row: s.closest('.ed-row') && s.closest('.ed-row').dataset.fk };
+});
+await page.keyboard.press(abSetup.now === abSetup.max ? 'Home' : 'End');
+await page.waitForTimeout(600);
+const abVal = () => page.evaluate(() => {
+  const s = document.querySelector('.ed-insp[data-block="s1"] .ed-row-slider [role=slider]');
+  return s ? s.getAttribute('aria-valuenow') : null;
+});
+const abB = await abVal();
+await page.keyboard.press('KeyX');
+await page.waitForTimeout(1800);
+const abA = await abVal();
+const abState = await page.evaluate(() => ({ playing: window.fm1.editor.state.ab.playing, diff: (window.fm1.editor.state.ab.diff || []).length }));
+await page.keyboard.press('KeyX');
+await page.waitForTimeout(1800);
+const abB2 = await abVal();
+const abState2 = await page.evaluate(() => window.fm1.editor.state.ab.playing);
+report.ed4.ab = { abSetup, abB, abA, abState, abB2, abState2 };
+check('A/B: X hears A, as kept, with the differences from C', abSetup.A && abSetup.scope === 0 && abB !== abSetup.now &&
+  abA === abSetup.now && abState.playing === 'A' && abState.diff >= 1, report.ed4.ab);
+check('A/B: X again hears B, the edit back', abB2 === abB && abState2 === 'B', report.ed4.ab);
+
+// Undo's hash check and snapshot fallback (§8).
+const fb = await page.evaluate(async () => {
+  const ed = window.fm1.editor;
+  const w = (t) => new Promise((r) => setTimeout(r, t));
+  ed.select('s1', { view: 'flow' });
+  await w(1200);                                     // the editor's copy goes current
+  const h0 = await window.__hash();
+  const cur = (ed.state.mirror.blocks.get('s1.in2') || {}).engine;
+  const id = ed.meta.doc.engines.filter((e) => e.kind === 'audio_fx' && e.id !== cur && e.ram < 40000).map((e) => e.id)[0];
+  ed.chains.choose('s1.in2', id);
+  await w(1500);
+  const e = ed.history.entries[ed.history.at - 1];
+  const had = !!(e && e.snap);
+  ed.undo();
+  await w(1800);
+  const h1 = await window.__hash();
+  const check1 = e.check;
+  ed.redo();
+  await w(1500);
+  // Its inverse records taken away: only the snapshot can put it back.
+  e.info.undo = [];
+  e.info.cables = ed.state.mirror.cables.map((c) => ({ ...c }));
+  ed.undo();
+  await w(3000);
+  const h2 = await window.__hash();
+  return { id, had, check1, check2: e.check, h0: h0.hash, h1: h1.hash, h2: h2.hash };
+});
+report.ed4.fallback = fb;
+check('a structural edit keeps a snapshot; its undo is checked by hash (no view, no current sound)', fb.had && fb.check1 === 'hash' &&
+  fb.h1 === fb.h0, fb);
+check('an undo whose inverse records fall short loads the snapshot, back to the same hash', fb.check2 === 'snapshot' && fb.h2 === fb.h0, fb);
+
+// Links: view=edit and sel, and hostile ones, on a fresh page (no load, no storage).
+const linkPage = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+const linkLog = [];
+const linkReq = [];
+linkPage.on('pageerror', (e) => linkLog.push(e.message));
+linkPage.on('dialog', (d) => { linkLog.push(`dialog: ${d.message()}`); d.dismiss(); });
+linkPage.on('request', (r) => linkReq.push(r.url()));
+const tryLink = async (q, power) => {
+  await linkPage.goto(`${url}?${q}`);
+  await linkPage.waitForTimeout(800);
+  if (power) {
+    await linkPage.waitForFunction(() => window.fm1 && window.fm1.editor, null, { timeout: 10000 });
+    await linkPage.click('.ed-power');
+    await linkPage.waitForFunction(() => window.fm1.editor.state.mirror, null, { timeout: 20000 });
+    await linkPage.waitForTimeout(1200);
+  }
+  return linkPage.evaluate(() => {
+    const n = document.getElementById('file-notice');
+    const ed = window.fm1 && window.fm1.editor;
+    return { layout: document.body.dataset.layout, notice: n.hidden ? '' : n.innerText.split('\n')[0], sel: ed ? ed.state.selected : null,
+      row: ed ? ed.state.selRow || null : null, view: ed ? ed.state.view : null, imgs: document.querySelectorAll('img[src="x"]').length,
+      address: location.search };
+  });
+};
+const links = {
+  param: await tryLink('view=edit&sel=s1:Harmonics', true),
+  empty: await tryLink('view=edit&sel=p8', true),
+  noBlock: await tryLink('view=edit&sel=s9'),
+  html: await tryLink(`view=edit&sel=${encodeURIComponent('s1:<img src=x onerror=alert(1)>')}`),
+  long: await tryLink(`view=edit&sel=p1:${'A'.repeat(200)}`),
+  url: await tryLink(`view=edit&sel=${encodeURIComponent('https://evil.example/a.lunar')}`),
+  load: await tryLink(`view=edit&load=${encodeURIComponent('https://evil.example/a.lunar')}`),
+  bogus: await tryLink('view=edit&sel=s1:NoSuchParameter', true),
+};
+await linkPage.close();
+links.offsite = linkReq.filter((u) => !u.startsWith(url) && !u.startsWith('data:') && !u.startsWith('blob:'));
+links.log = linkLog;
+report.ed4.links = links;
+check('view=edit&sel=s1:Harmonics opens the editor at that parameter', links.param.layout === 'editor' && links.param.row === 's1:2' &&
+  links.param.view === 'sound' && links.param.address === '', links.param);
+check('a link to an empty block opens the editor and says so', links.empty.layout === 'editor' && /empty/.test(links.empty.notice), links.empty);
+check('hostile sel links are refused in words, nothing injected', [links.noBlock, links.html, links.long, links.url].every((l) =>
+  l.layout === 'editor' && /names no block/.test(l.notice) && l.imgs === 0), links);
+check('an off-site load in a link is refused, and nothing off-site is asked for', /not|refus/i.test(links.load.notice) && links.offsite.length === 0 &&
+  links.log.length === 0, links);
+check('an unknown parameter in sel is said so', /not one of/.test(links.bogus.notice) && links.bogus.sel === 's1', links.bogus);
+
 // ---- the layouts at desktop and tablet widths ---------------------------------------
 async function layoutCheck(name) {
   return page.evaluate(() => {
@@ -464,7 +750,7 @@ async function layoutCheck(name) {
     if (document.documentElement.scrollWidth > vw + 1) bad.push(`page scrolls sideways (${document.documentElement.scrollWidth} > ${vw})`);
     const ed = document.querySelector('.ed');
     if (ed.getBoundingClientRect().right > vw + 1) bad.push('the editor runs past the page');
-    for (const t of ed.querySelectorAll('.ed-label, .ed-segbtn, .ed-blk-n, .ed-blk-k, .ed-out-name, .ed-step, .ed-chip, .ed-ram, .ed-toggle, .ed-mx-v, .ed-mx-n, .ed-btn, .ed-live')) {
+    for (const t of ed.querySelectorAll('.ed-label, .ed-segbtn, .ed-blk-n, .ed-blk-k, .ed-out-name, .ed-step, .ed-chip, .ed-ram, .ed-toggle, .ed-mx-v, .ed-mx-n, .ed-btn, .ed-live, .ed-lib-name, .ed-lib-meta, .ed-mem-name, .ed-mem-pc, .ed-drop, .ed-ab-v, .ed-search-o')) {
       if (t.getClientRects().length && t.scrollWidth > t.clientWidth + 1) bad.push(`"${t.textContent.slice(0, 30)}" overflows`);
     }
     for (const b of ed.querySelectorAll('.ed-block, .ed-insp, .ed-card-m, .ed-mx-r')) {
@@ -479,17 +765,29 @@ const shots = [];
 for (const [w, h] of [[1440, 1000], [1024, 768]]) {
   await page.setViewportSize({ width: w, height: h });
   for (const layout of ['workbench', 'editor']) {
-    for (const view of ['sound', 'flow', 'mod']) {
+    for (const view of ['sound', 'flow', 'mod', 'library', 'memory', 'compare', 'search']) {
+      if (layout === 'workbench' && ['library', 'memory', 'compare', 'search'].includes(view)) continue;
       await page.evaluate(async ({ layout, view }) => {
         document.querySelector(`[data-layout="${layout}"]`).click();
         await new Promise((r) => setTimeout(r, 150));
+        const ed = window.fm1.editor;
+        if (ed.project.searchOpen) ed.project.closeSearch(false);
         if (view === 'flow') document.querySelector('.ed-out-fx').click();
         else if (view === 'mod') document.querySelector('.ed-out-mod').click();
-        else document.querySelectorAll('.ed-out')[2].click();       // S3
+        else if (view === 'library') document.querySelector('.ed-out-lib').click();
+        else if (view === 'memory') document.querySelector('.ed-out-mem').click();
+        else if (view === 'compare') document.querySelector('.ed-out-ab').click();
+        else if (view === 'search') {
+          document.querySelector('.ed-out-fx').click();
+          ed.project.openSearch();
+          const i = document.querySelector('.ed-search-in');
+          i.value = 's1';
+          i.dispatchEvent(new Event('input'));
+        } else document.querySelectorAll('.ed-out')[2].click();       // S3
         window.scrollTo(0, 0);
-        await new Promise((r) => setTimeout(r, 250));
+        await new Promise((r) => setTimeout(r, 400));
       }, { layout, view });
-      const name = `${view === 'mod' ? 'ed3' : 'ed2'}-${layout}-${view}-${w}`;
+      const name = `${view === 'mod' ? 'ed3' : ['sound', 'flow'].includes(view) ? 'ed2' : 'ed4'}-${layout}-${view}-${w}`;
       const bad = await layoutCheck(name);
       check(`${layout}, ${view} at ${w} px: no sideways scroll, nothing overflowing`, bad.length === 0, bad);
       const file = join(out, `${name}.png`);
@@ -499,7 +797,7 @@ for (const [w, h] of [[1440, 1000], [1024, 768]]) {
   }
 }
 report.screenshots = shots;
-await page.evaluate(() => document.querySelector('[data-layout="panel"]').click());
+await page.evaluate(() => { const ed = window.fm1.editor; if (ed.project.searchOpen) ed.project.closeSearch(false); document.querySelector('[data-layout="panel"]').click(); });
 report.logs = report.logs.filter((l) => !/AudioContext was not allowed/.test(l));
 check('no page errors', report.logs.length === 0, report.logs);
 

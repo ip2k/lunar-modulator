@@ -626,7 +626,12 @@ export async function startEditor(env) {
   }
   function undo() {
     const e = history.undo();
-    if (e && e.info && e.info.struct) { chains.undoStruct(e, false); renderHistory(); return; }
+    if (e && e.info && e.info.struct) {
+      // §8: checked by hash once C has applied it (onEdited); with nothing to send, now.
+      if (!chains.undoStruct(e, false)) project.checkUndo(e);
+      renderHistory();
+      return;
+    }
     if (!e || stale(e, 'undone')) return;
     write(e.info.key, e.info.uid, e.before, { undo: true, label: e.label, focus: e.info.focus });
     say(`Undone: ${e.label}, ${textOf(e.info.key, e.info.uid, e.before)}`);
@@ -778,7 +783,7 @@ export async function startEditor(env) {
     row.append(el('span', 'ed-tag', { text: `S${k + 1}` }));
     if (!s) {
       row.append(el('span', 'ed-strip-empty', { text: 'Empty' }), chains.pickerButton(sk));
-      return row;
+      return project.wireDrop(row, sk);    // a sound file loads into an empty sound too
     }
     const mk = blockKey(ROLE.MFX, k, 0);
     const m = blockOf(mk);
