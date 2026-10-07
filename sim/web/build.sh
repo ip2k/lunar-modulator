@@ -19,7 +19,11 @@
 #      id the module returns (fm1w_meta_id), and the native harness's export
 #      (--meta) in everything else, so the editor can trust the static file
 #      (notes/2026-10-06-web-editor.md §6);
-#   6. www/fm1.wasm, www/meta.json and the build record www/fm1.wasm.json,
+#   6. test/edit.mjs: the edit layer (stage ED1) in the module against the
+#      native harness (verdicts, change ring, view, state hash, screen and
+#      audio of test/edit/verbs.edit), and a 30-second edit storm's cost on
+#      the audio thread, its late quanta counted (the underrun counter);
+#   7. www/fm1.wasm, www/meta.json and the build record www/fm1.wasm.json,
 #      only if all of that passed. The record names the GPL switch the module was built with
 #      (FM1_GPL_MODS, engines/Makefile; on unless the environment says 0) and
 #      every module whose code is not all MIT, with its licence, so the page
@@ -60,6 +64,11 @@ echo "== metadata (the editor's meta.json and the module's id)"
 node "$SIM/test/meta.mjs" --wasm "$OUT/wasm/fm1.wasm" --native "$OUT/meta-native.json" \
   --out "$OUT/meta.json" --summary "$OUT/meta-check.json"
 
+echo "== the edit layer (parity with the harness, and a 30-second storm)"
+node "$SIM/test/edit.mjs" --wasm "$OUT/wasm/fm1.wasm" --sim "$OUT/native/fm1-sim-render" \
+  --script "$SIM/test/edit/verbs.edit" --work "$OUT/edit" --storm 30 --summary "$OUT/edit.json"
+"$OUT/native/fm1-sim-render" --edit-check >"$OUT/edit-check.json"
+
 echo "== record"
 cp "$OUT/wasm/fm1.wasm" "$SIM/www/fm1.wasm"
 cp "$OUT/meta.json" "$SIM/www/meta.json"
@@ -68,7 +77,7 @@ cp "$OUT/meta.json" "$SIM/www/meta.json"
 EMCC_VERSION=$(emcc --version | head -1) GCC_VERSION=$(gcc --version | head -1) \
 ENGINES_REF=${ENGINES_REF:-working tree} FM1_IMAGES=${FM1_IMAGES:-} \
 python3 - "$ROOT" "$OUT/parity.json" "$SIM/www" "$OUT/sysex.json" "$OUT/list.json" "$OUT/build-info.json" \
-  "$OUT/meta-check.json" <<'EOF'
+  "$OUT/meta-check.json" "$OUT/edit.json" "$OUT/edit-check.json" <<'EOF'
 import hashlib, json, os, sys, datetime
 from pathlib import Path
 root, parity_path, www = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
@@ -76,6 +85,8 @@ sysex = json.loads(Path(sys.argv[4]).read_text())
 listed = json.loads(Path(sys.argv[5]).read_text())
 info = json.loads(Path(sys.argv[6]).read_text())
 meta_check = json.loads(Path(sys.argv[7]).read_text())
+edit = json.loads(Path(sys.argv[8]).read_text())
+edit_check = json.loads(Path(sys.argv[9]).read_text())
 sys.path.insert(0, str(root / "sim" / "web" / "tools"))
 from source_hash import source_hashes
 parity = json.loads(parity_path.read_text())
@@ -101,6 +112,12 @@ record = {
     # The editor's www/meta.json: its id, the module's (fm1w_meta_id), its size.
     "meta": meta_check,
     "dx7_sysex": sysex,
+    # The edit layer (stage ED1): parity with the harness, the storm's
+    # measured cost (late quanta: the underrun counter) and the harness's
+    # own checks.
+    "edit": {"parity": edit["parity"], "audio_max_lsb": edit["audio_max_lsb"], "storm": edit["storm"],
+             "check": {k: edit_check[k] for k in ("params", "steps", "text_bad", "codes", "hands",
+                                                  "tele_fills", "failed")}},
     "scenarios": [
         {"name": s["name"], "samples": s["samples"], "libm_sensitive": s["libm_sensitive"],
          **{k: (None if s[k] is None else {"differing": s[k]["differing"], "max_lsb": s[k]["max"]})

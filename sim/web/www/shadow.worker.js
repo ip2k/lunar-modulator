@@ -17,7 +17,24 @@
 //           canonical JSON (a set as .movy1 text): { text }
 //   pack    { text }             JSON to the binary container: { bin }
 //   start   {}                   the start chain as a binary project: { bin }
-// MIT licence, like the rest of this repository.
+// and, for the editor (stage ED1, notes/2026-10-06-web-editor.md §5, §6),
+// everything it must not ask the audio thread for:
+//   metaId  {}                   the module's metadata id: { id } (a whole
+//                                export's work, so never in the worklet)
+//   meta    {}                   the metadata export itself: { text }, when
+//                                meta.json and the module disagree
+//   format  { id, uid, values }  the screen's digits for each value of a
+//                                module's parameter: { texts }
+//   parse   { id, uid, text }    typed text back to a value (C's parser):
+//                                { value } or ok false
+//   hash    { bin }              a project's hash: loaded here and saved back
+//                                canonical (binary, nothing deflated), CRC-32:
+//                                { hash }, for undo's check
+//   diff    { a, b, kind }       two projects' differences in `kind` (the
+//                                project unless said), member by member of
+//                                their canonical JSON: { changes }
+// None of them names an engine: ids and uids come from the caller and the
+// metadata, and C answers.
 
 import { instantiateFm1 } from './fm1-wasm.mjs';
 
@@ -63,6 +80,60 @@ function mirror(live) {
 function start() {
   ex.fm1w_init(rate);
   ex.fm1w_default_chain();
+}
+
+// A NUL-terminated id, and after it optionally a second string, into the
+// text buffer.
+function putIds(id, text) {
+  const enc = new TextEncoder();
+  const a = enc.encode(String(id)).subarray(0, 63);
+  const b = text === undefined ? null : enc.encode(String(text)).subarray(0, 63);
+  const t = buf();
+  t.set(a);
+  t[a.length] = 0;
+  if (b) {
+    t.set(b, a.length + 1);
+    t[a.length + 1 + b.length] = 0;
+  }
+}
+
+// A binary file's canonical JSON as an object (kind 1, the project, unless
+// said): loaded quietly, saved back by C's writer.
+function canonical(bin, kind) {
+  mirror(bin);
+  const n = ex.fm1w_state_save(kind || 1, 0, 0);
+  if (n < 0) throw refusal('BAD', report().message);
+  return JSON.parse(decoder.decode(buf().slice(0, n)));
+}
+
+// Where two canonical files differ: a path and both values per member,
+// arrays item by item. Data, not rules: the C writer made both.
+function differences(a, b, path, out) {
+  if (out.length >= 2000) return out;
+  const ta = a === null ? 'null' : Array.isArray(a) ? 'array' : typeof a;
+  const tb = b === null ? 'null' : Array.isArray(b) ? 'array' : typeof b;
+  if (ta !== tb || (ta !== 'object' && ta !== 'array')) {
+    if (ta !== tb || a !== b) out.push({ path, a, b });
+    return out;
+  }
+  const keys = ta === 'array' ? [...Array(Math.max(a.length, b.length)).keys()]
+    : [...new Set([...Object.keys(a), ...Object.keys(b)])];
+  for (const k of keys) {
+    const p = ta === 'array' ? `${path}[${k}]` : (path ? `${path}.${k}` : String(k));
+    if (!(k in a)) out.push({ path: p, a: undefined, b: b[k] });
+    else if (!(k in b)) out.push({ path: p, a: a[k], b: undefined });
+    else differences(a[k], b[k], p, out);
+  }
+  return out;
+}
+
+function crc32(bytes) {
+  let c = ~0;
+  for (let i = 0; i < bytes.length; ++i) {
+    c ^= bytes[i];
+    for (let k = 0; k < 8; ++k) c = (c >>> 1) ^ (0xedb88320 & -(c & 1));
+  }
+  return ~c >>> 0;
 }
 
 const ops = {
@@ -121,6 +192,42 @@ const ops = {
     const n = ex.fm1w_state_save(1, 0, 1);
     if (n < 0) return { ok: false, report: report() };
     return { bin: buf().slice(0, n) };
+  },
+  metaId() {
+    return { id: ex.fm1w_meta_id() >>> 0 };
+  },
+  meta() {
+    const parts = [];
+    for (let off = 0; ; ) {
+      const n = ex.fm1w_meta_read(off);
+      if (!n) break;
+      parts.push(buf().slice(0, n));
+      off += n;
+    }
+    return { text: parts.map((p) => decoder.decode(p)).join('') };
+  },
+  format(m) {
+    const texts = [];
+    for (const v of m.values || []) {
+      putIds(m.id);
+      const n = ex.fm1w_param_text(m.uid >>> 0, Number(v));
+      texts.push(n ? decoder.decode(buf().slice(0, n)) : null);
+    }
+    return { texts };
+  },
+  parse(m) {
+    putIds(m.id, m.text);
+    if (ex.fm1w_param_parse(m.uid >>> 0) !== 1) return { ok: false };
+    return { value: ex.fm1w_param_value() };
+  },
+  hash(m) {
+    mirror(m.bin);
+    const n = ex.fm1w_state_save(1, 0, 2);
+    if (n < 0) return { ok: false, report: report() };
+    return { hash: crc32(buf().subarray(0, n)) };
+  },
+  diff(m) {
+    return { changes: differences(canonical(m.a, m.kind), canonical(m.b, m.kind), '', []) };
   },
 };
 
