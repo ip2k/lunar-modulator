@@ -177,6 +177,13 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   the matrix table with slot and module inspectors read from C's packed
   records (`fm1w_mod_records`), and structural undo ([sim/web/README.md,
   "Stage ED3"](sim/web/README.md#the-advanced-editor-stage-ed3-chains-and-modulation)).
+  Stage ED4 (`www/editor/project.js`) adds files and the project: drop
+  targets with pass 1's verdict before the load, per-block export and the
+  library through W1's save path, `view=edit` and `sel` links, ⌘K search,
+  A/B, the Memory page, and undo's hash check with its snapshot fallback;
+  the state hash (`fm1_edit_state_hash`, `fm1w_state_hash`) now leaves out
+  where the panel is ([sim/web/README.md,
+  "Stage ED4"](sim/web/README.md#the-advanced-editor-stage-ed4-files-and-the-project)).
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free

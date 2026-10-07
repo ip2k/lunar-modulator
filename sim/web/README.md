@@ -655,7 +655,7 @@ it loaded before (`notes/2026-10-06-web-editor.md` §4, §23):
   editor's and the panel's parameter, level and on/off changes alike. A step
   goes back by sending its `before` as an edit; a step recorded for an
   engine the block no longer has is refused in words. Structural steps and
-  the snapshot fallback come with ED3 and ED4.
+  the snapshot fallback come with ED3 and ED4 (ED4's section).
 - **PLAY and EDIT** (§13): a click or the focus in the editor, or ⌘E (Ctrl+E),
   gives it the computer keys (`sim.keysToEditor`; `app.js` then sends no key
   to the FM-1); Esc, or a click on the panel, gives them back. Sliders take
@@ -742,6 +742,72 @@ and refusal is C's.
   the rack (a module moved by keys, one chosen, one emptied), each undone to
   the state before it; the rack's kinds among the inspectors; the
   Modulation view in both layouts at 1,440 and 1,024 px.
+
+## The advanced editor, stage ED4: files and the project
+
+Stage ED4 of `notes/2026-10-06-web-editor.md` (§8-§10, §13, §18; the
+note's §25 has it as built) adds `www/editor/project.js`. Files go through
+W1's paths (`files.js`): pass 1 in the shadow Worker, binary to the
+worklet, C's canonical writer for everything written.
+
+- **Drop targets** (§9). A file dropped on a sound (or its MIDI effect, or
+  an empty strip), on an insert or a master slot, or on the rack is checked
+  first: `files.verdict` runs pass 1 as the kind the block takes (sound,
+  effects into that sound or the master, mod rack) against the live state,
+  and the card above the view says C's words and the RAM after in percent,
+  with *Load*; a refusal is C's (a wrong kind reads "…, not a …"), with
+  *Load without what does not fit* where C offers it. One file at a time,
+  at most the module's 256 KiB; nothing loads until *Load*, which is W1's
+  load with its notice and *Undo load*. The page-level drop leaves a drop
+  the editor took. A library item dragged over a block gets its verdict
+  while it hovers (a desktop file's bytes are not readable before the drop).
+- **Export and the library.** Each inspector has *Export…* (W1's `saveAs`:
+  `NAME-s2.sound.lunar`, `NAME-s2.fx.lunar`, `NAME-master.fx.lunar`,
+  `NAME.mods.lunar`) and *Save to my library* (the canonical JSON in W1's
+  `files` store, with its kind). The *Library* view lists the store and
+  Recent; W1's own library loads such items into a target it asks for.
+- **Links** (§9). `?view=edit` opens the Editor layout; `sel=` names a
+  block (`s1`-`s4`, `s2.in1`, `s2.mfx1`, `m1`, `p3`, `c12`, `mix`) and,
+  after a colon, a parameter by its name. `files.parseSel` reads only that
+  shape (48 characters at most, a fixed pattern); the editor finds the
+  block in its mirror and the name in the metadata, or says why not. It
+  loads nothing, and applies after the load and the POWER press like W1's
+  hints; the address is cleared once applied.
+- **Search** (⌘K / Ctrl+K): blocks, every parameter of every block (from
+  the metadata's pages) and commands (views, undo, export, Copy a link,
+  A/B, the keys). Words must all match; the arrows choose, Enter runs, Esc
+  closes; a combobox with a listbox and `aria-activedescendant`.
+- **A/B** (§9). *Keep as A* keeps the project, or one sound, as a binary
+  snapshot (in memory, not IndexedDB); X (keys in EDIT) or the button
+  switches: the live state is kept as the side being left and the other is
+  loaded through W1's load (a sound file into its sound for one sound).
+  The differences come from the shadow Worker's `diff` (now with `arg`),
+  the view and the current sound left out.
+- **Memory** (§10): each part from `fm1w_ram_part` in percent of the
+  budget, in use (rounded up) and free (rounded down), and which sounds and
+  effects would fit in what is free, from the metadata's RAM figures.
+- **Undo's hash check and snapshot fallback** (§8). When the editor makes
+  a structural edit while its copy of the project is current (no change
+  since, nothing on its way: it is taken again 400 ms after changes stop),
+  the entry keeps that binary and its hash (4 MB of snapshots at most).
+  After the entry's undo has been applied, the Worker hashes the state;
+  on a mismatch the snapshot is loaded (quietly, no Recent) and the entry
+  says so. The hash is C's one definition: `fm1_edit_state_hash`, exported
+  as `fm1w_state_hash` and called by the Worker's `hash`, over
+  `fm1_app_state_save`'s binary 3 (nothing deflated, no view, the current
+  sound left out), so a follow that moves the panel changes no hash.
+- **The ARP pages.** The view verb's HOME takes `entry=2` for the panel's
+  ARP pages (with `page`); selecting a MIDI effect opens them.
+- **Tests.** `test/origins.mjs`: `sel` shapes, good and hostile.
+  `test/fm1_edit_check.c`: the ARP view and its knobs, `entry=3` refused,
+  the hash unmoved by the view and the current sound. `test/editor-ui.mjs`
+  (headless Chromium on aeon): export, the ARP pages, drops (too large, two
+  files, malformed, random bytes, a DX7 file, a wrong kind: each refused in
+  words with the state unchanged; a sound loaded after its verdict), the
+  library's hover verdicts, search by keys, Memory, A/B by X, undo checked
+  by hash and the fallback, and links (a parameter, an empty block, hostile
+  `sel` values, an off-site `load`), with the new views at 1,440 and
+  1,024 px. CI's ASan + UBSan job now runs `tests/test_sim_edit.py`.
 
 ## Parity: does the browser sound like the native engines?
 
