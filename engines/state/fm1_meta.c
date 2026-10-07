@@ -459,6 +459,23 @@ static int in_build(const char *id) {
   return 0;
 }
 
+/* 1.2: how a patch bay groups the system sources, in the order it lists
+ * them (the editor's Map and its search). The sound group is one per sound:
+ * a source's `sound` says which, and {sound} in the name is that number. */
+static const struct { const char *id; const char *name; } kSourceGroups[] = {
+  { "notes", "Notes, clock and chance" },
+  { "sound", "Sound {sound}'s notes" },
+  { "lanes", "Sequencer lanes" },
+  { "lane_values", "Lane values" },
+};
+
+static const char *source_group(unsigned id) {
+  if (id >= FM1_MOD_SRC_S_NOTE) return "sound";                        /* S1NOTE ... S4RTRG */
+  if (id >= FM1_MOD_SRC_SEQ_VEL && id < FM1_MOD_SRC_SEQ_VEL + 8u) return "lane_values";   /* SQV1-8 */
+  if (id >= FM1_MOD_SRC_SEQ_GATE && id < FM1_MOD_SRC_SEQ_GATE + 8u) return "lanes";       /* SEQ1-8 */
+  return "notes";
+}
+
 static void mod(jw_t *w, const fm1_host_t *host) {
   static const char *const kPolarities[] = { "auto", "uni", "bi", "inv" };
   static const char *const kCurves[] = { "lin", "square", "cube", "root", "cbrt", "exp", "log", "s" };
@@ -489,10 +506,32 @@ static void mod(jw_t *w, const fm1_host_t *host) {
     jw_str(w, port_kind(si->kind));
     jw_key(w, "unit");
     jw_str(w, unit_name(si->unit));
+    jw_key(w, "group");                                        /* 1.2 */
+    jw_str(w, source_group(i));
     if (i >= FM1_MOD_SRC_S_NOTE && i < FM1_MOD_SRC_SYSTEM) {   /* S1NOTE ... S4RTRG */
       jw_key(w, "sound");
       jw_int(w, (i - FM1_MOD_SRC_S_NOTE) % 4u + 1u);
     }
+    jw_end(w);
+  }
+  jw_end(w);
+  jw_key(w, "source_groups");        /* 1.2: how a patch bay lists the sources */
+  jw_arr(w);
+  for (i = 0; i < sizeof kSourceGroups / sizeof kSourceGroups[0]; ++i) {
+    jw_obj(w);
+    jw_key(w, "id");
+    jw_str(w, kSourceGroups[i].id);
+    jw_key(w, "name");
+    jw_str(w, kSourceGroups[i].name);
+    jw_end(w);
+  }
+  jw_end(w);
+  jw_key(w, "curve_points");         /* 1.2: each curve (`curves`, in order) at s = -1 .. 1 in 33 steps */
+  jw_arr(w);
+  for (i = 0; i < FM1_MOD_CURVE_COUNT; ++i) {
+    unsigned k;
+    jw_arr(w);
+    for (k = 0; k < 33u; ++k) jw_f32(w, fm1_mod_curve(i, -1.0f + (float)k * (1.0f / 16.0f)));
     jw_end(w);
   }
   jw_end(w);
@@ -635,6 +674,15 @@ static void refusals(jw_t *w) {
     jw_key(w, "detail");
     if (r->detail) jw_str(w, r->detail); else jw_null(w);
     fills(w, r->detail);
+    if (r->fix) {                                  /* 1.2: the repair offered beside it */
+      jw_key(w, "fix");
+      jw_obj(w);
+      jw_key(w, "id");
+      jw_str(w, r->fix);
+      jw_key(w, "words");
+      jw_str(w, r->fix_words ? r->fix_words : r->fix);
+      jw_end(w);
+    }
     jw_end(w);
   }
   jw_end(w);
@@ -659,6 +707,31 @@ static void names(jw_t *w, const char *key, unsigned s, unsigned n,
   jw_key(w, key);
   jw_arr(w);
   for (k = 0; k < n; ++k) jw_str(w, name(s, k, buf, sizeof(buf)));
+  jw_end(w);
+}
+
+/* 1.2: the marks of a matrix row (fm1_marks). */
+static void marks(jw_t *w) {
+  size_t i;
+  jw_key(w, "marks");
+  jw_arr(w);
+  for (i = 0; i < fm1_mark_count; ++i) {
+    const fm1_mark_t *m = &fm1_marks[i];
+    char c[2];
+    c[0] = m->mark;
+    c[1] = 0;
+    jw_obj(w);
+    jw_key(w, "mark");
+    jw_str(w, c);
+    jw_key(w, "name");
+    jw_str(w, m->name);
+    jw_key(w, "words");
+    jw_str(w, m->words);
+    jw_key(w, "detail");
+    if (m->detail) jw_str(w, m->detail); else jw_null(w);
+    fills(w, m->detail);
+    jw_end(w);
+  }
   jw_end(w);
 }
 
@@ -850,6 +923,7 @@ static size_t write_doc(const fm1_meta_build_t *b, fm1_meta_put_t put, void *ctx
 
   effect_groups(&w);
   refusals(&w);
+  marks(&w);
   telemetry(&w);
   if (!for_id) {
     static const char kHex[] = "0123456789abcdef";

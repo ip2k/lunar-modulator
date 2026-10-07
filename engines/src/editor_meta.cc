@@ -108,9 +108,9 @@ const fm1_refusal_t fm1_refusals[] = {
     "{param} is a list that takes no cable" },
   { FM1_REFUSE_NO_MOD, "NO_MOD", "cable", "Takes no modulation", "{param} takes no cable" },
   { FM1_REFUSE_VOICE_TO_MONO, "VOICE_TO_MONO", "cable", "Per voice into one value",
-    "poly never reaches mono" },
+    "poly never reaches mono", "global", "Make it global" },
   { FM1_REFUSE_VOICE_TO_EFFECT, "VOICE_TO_EFFECT", "cable", "Per voice into an effect",
-    "an effect plays every voice at once" },
+    "an effect plays every voice at once", "global", "Make it global" },
   { FM1_REFUSE_UNIT_RESERVED, "UNIT_RESERVED", "cable", "Not a destination yet",
     "kept for a later version" },
   { FM1_REFUSE_VOICE_FULL, "VOICE_FULL", "cable", "Too many per-voice cables",
@@ -119,6 +119,19 @@ const fm1_refusal_t fm1_refusals[] = {
     "the modules' voices do not fit" },
 };
 const size_t fm1_refusal_count = sizeof(fm1_refusals) / sizeof(fm1_refusals[0]);
+
+// ---- Marks ----------------------------------------------------------------------
+// The panel's MATRIX page marks each row with one character (fm1_mod_ui.c: '-' off,
+// '!' refused, 'v' per voice, else '~' a tick late or '>' running); the editor's
+// table shows the same, in these words.
+const fm1_mark_t fm1_marks[] = {
+  { '>', "runs", "runs", NULL },
+  { 'v', "voice", "per voice", "one value for each sounding voice" },
+  { '~', "late", "a tick late", "closes a loop through {loop}, so it reads its source from the tick before" },
+  { '!', "refused", "refused", NULL },
+  { '-', "off", "off", NULL },
+};
+const size_t fm1_mark_count = sizeof(fm1_marks) / sizeof(fm1_marks[0]);
 
 const fm1_refusal_t *fm1_refusal_find(unsigned code) {
   size_t i;

@@ -59,7 +59,7 @@ def test_the_export_is_canonical_and_steady(renderer, text, meta):
 
 def test_it_agrees_with_the_list_tools(renderer, meta):
     """Everything --list and --list-mod say, the export says the same way;
-    only the instance bytes per engine, the known ids and level 1.1's
+    only the instance bytes per engine, the known ids and levels 1.1's and 1.2's
     editor members (tests/test_engine_editor_meta.py) are its own."""
     ref = metadata_from_build(_run(renderer, "--list"), _run(renderer, "--list-mod"))
     mine = without_editor(json.loads(json.dumps(meta)))

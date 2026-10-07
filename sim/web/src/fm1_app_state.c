@@ -982,6 +982,12 @@ static const char *kind_word(unsigned kind) {
   }
 }
 
+/* "a" or "an" ("A" or "An" when capital) for a word the way it is said. */
+static const char *article(const char *word, int capital) {
+  const int vowel = word && strchr("aeiouAEIOU", word[0]) != NULL;
+  return vowel ? (capital ? "An" : "an") : (capital ? "A" : "a");
+}
+
 /* The refusal's words: the page's line and the screen's two. */
 static int refuse_load(plan_t *p, unsigned code, const char *screen, const char *fmt, const char *arg) {
   fm1_app_state_report_t *rep = p->rep;
@@ -1042,9 +1048,11 @@ static int plan_finish(plan_t *p) {
   int sounds = 0;
   rep->r.kind = (uint8_t)p->kind;
   if (p->o->kind && p->o->kind != p->kind) {
-    char want[48];
-    snprintf(want, sizeof want, "%s, not a %s", kind_word(p->o->kind), kind_word(p->kind));
-    return refuse_load(p, FM1_STATE_BAD, "Wrong kind", "A %s was expected.", want);
+    char want[72];
+    const char *w = kind_word(p->o->kind), *got = kind_word(p->kind);
+    /* "A sound, not an effects chain, was expected." The article follows the word. */
+    snprintf(want, sizeof want, "%s %s, not %s %s, was expected.", article(w, 1), w, article(got, 0), got);
+    return refuse_load(p, FM1_STATE_BAD, "Wrong kind", "%s", want);
   }
   if ((p->kind == FM1_STATE_SOUND || p->kind == FM1_STATE_FX) && p->o->into >= FM1_APP_SOUNDS) {
     return refuse_load(p, FM1_STATE_BAD, "No such sound", "There is no Sound %s.", "5");

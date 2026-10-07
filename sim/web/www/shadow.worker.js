@@ -61,11 +61,11 @@ let rate = 0;
 let ready = null;
 const decoder = new TextDecoder();
 
-// The rack and the matrix as packed records, then each slot's verdict (fm1w_mod_records).
+// The rack and the matrix as packed records, then each slot's verdict and, for a cable read a tick late, the loop it closes (fm1w_mod_records).
 function modRecords() {
   if (typeof ex.fm1w_mod_records !== 'function') return undefined;
   const recs = ex.fm1w_mod_records();
-  return buf().slice(0, recs * REC + 32);
+  return buf().slice(0, recs * REC + 64);
 }
 function buf() { return new Uint8Array(fm1.memory.buffer, ex.fm1w_text_buf(), ex.fm1w_text_cap()); }
 function put(bytes) {

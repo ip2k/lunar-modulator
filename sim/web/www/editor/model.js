@@ -430,7 +430,7 @@ function blockFrom(meta, unit, pad) {
 
 export function mirrorFromProject(meta, doc, modBytes) {
   const m = { current: 0, blocks: new Map(), levels: [0, 0, 0, 0], title: doc.title || doc.name || '',
-    rack: new Array(8).fill(''), cables: [], verdicts: [], pads: new Map() };
+    rack: new Array(8).fill(''), cables: [], verdicts: [], loops: [], pads: new Map() };
   m.current = doc.session && Number.isInteger(doc.session.current) ? doc.session.current - 1 : 0;
   (doc.sounds || []).slice(0, SOUNDS).forEach((s, k) => {
     if (!s) return;
@@ -469,14 +469,16 @@ export function mirrorFromProject(meta, doc, modBytes) {
     const b = blockFrom(meta, { engine: r.kind, params: r.params }, null);
     if (b && r.pos >= 1 && r.pos <= 8) m.blocks.set(blockKey(ROLE.MODULE, 0, r.pos - 1), b);
   }
-  if (modBytes && modBytes.length >= (POSITIONS + SLOTS) * REC + SLOTS) {
+  if (modBytes && modBytes.length >= (POSITIONS + SLOTS) * REC + SLOTS) {   // an older module's 32 bytes: no loops
     const d = decodeMod(modBytes);
     m.rack = d.rack;
     m.cables = d.cables;
     m.verdicts = d.verdicts;
+    m.loops = d.loops;
   } else {
     m.cables = Array.from({ length: SLOTS }, emptyCable);
     m.verdicts = new Array(SLOTS).fill(0);
+    m.loops = new Array(SLOTS).fill(0);
   }
   return m;
 }
@@ -592,13 +594,16 @@ export function parseModKey(key) {
   return m ? m[1] - 1 : -1;
 }
 
-// What fm1w_mod_records writes: the rack (kind ids), the slots, a verdict a slot.
+// What fm1w_mod_records writes: the rack (kind ids), the slots, a verdict a
+// slot, and a loop mask a slot (the rack positions of the loop a cable read a
+// tick late closes, as a bit mask; 0 for a cable that is not late).
 export function decodeMod(bytes) {
-  const rack = [], cables = [], verdicts = [];
+  const rack = [], cables = [], verdicts = [], loops = [];
   for (let i = 0; i < POSITIONS; ++i) rack.push(unpack(bytes, i * REC).id || '');
   for (let i = 0; i < SLOTS; ++i) cables.push(unpackCable(bytes, (POSITIONS + i) * REC));
   for (let i = 0; i < SLOTS; ++i) verdicts.push(bytes[(POSITIONS + SLOTS) * REC + i] || 0);
-  return { rack, cables, verdicts };
+  for (let i = 0; i < SLOTS; ++i) loops.push(bytes[(POSITIONS + SLOTS) * REC + SLOTS + i] || 0);
+  return { rack, cables, verdicts, loops };
 }
 
 // The rack and matrix of the metadata: kinds, sources, units, curves.
