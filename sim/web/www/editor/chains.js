@@ -985,8 +985,8 @@ export function makeChains(ctx) {
   const map = makeMap(ctx, { cableOf, verdictOf, destName, srcName, verdictWords, makeCable, cableRecord, toValue, pickerButton, preview });
   // The Map comes and goes as the editor's width crosses its room (a tablet turned over).
   let hadRoom = null;
-  const mainEl = ctx.root.querySelector('.ed-main');
-  if (mainEl && typeof ResizeObserver === 'function') {
+  const mainEl = ctx.root ? ctx.root.querySelector('.ed-main') : null;
+  if (mainEl && typeof ResizeObserver !== 'undefined') {
     new ResizeObserver(() => {
       const room = mapRoom();
       if (hadRoom !== null && room !== hadRoom && st.view === 'mod' && st.modMap && st.mirror) ctx.render();

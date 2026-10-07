@@ -28,6 +28,8 @@ const sv = (tag, attrs = {}) => {
   for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v));
   return n;
 };
+// A signal's kind in the metadata is cv_... for a continuous one; anything else is a gate or a trigger.
+const isGate = (kind) => typeof kind === 'string' && !kind.startsWith('cv');
 const visible = (e) => !!e && e.getClientRects().length > 0;
 const inRect = (p, r, pad = 0) => p.x >= r.l - pad && p.x <= r.r + pad && p.y >= r.t - pad && p.y <= r.b + pad;
 const hit = (a, b, pad = 0) => a.l < b.r + pad && a.r > b.l - pad && a.t < b.b + pad && a.b > b.t - pad;
@@ -143,7 +145,7 @@ export function makeMap(ctx, h) {
       nm.addEventListener('click', () => focusSource(s.id));
       r.append(nm);
       if (viaOf.has(s.id)) r.append(el('span', 'ed-map-t ed-map-note', { text: `via, cable ${viaOf.get(s.id) + 1}` }));
-      r.append(outJack(s.id, s.name, s.kind === 'gate'));
+      r.append(outJack(s.id, s.name, isGate(s.kind)));
       return r;
     };
     const per = [1, 2, 3, 4].map((k) => ({ id: `S${k}`, title: `Sound ${k}'s notes`, list: fixed.filter((s) => new RegExp(`^S${k}[A-Z]`).test(s.name)) }));
@@ -232,7 +234,7 @@ export function makeMap(ctx, h) {
     (k.outs || []).forEach((o, port) => {
       const code = SRC_MODULE + 8 * pos + port;
       outs.append(el('div', 'ed-map-row ed-map-out', {}, [el('span', 'ed-map-t', { text: o.name }), el('span', 'ed-live ed-map-val', { 'data-out': `${pos}:${port}`, text: '–' }),
-        outJack(code, `${pos + 1} ${k.abbr} ${o.name}`, o.kind === 'gate')]));
+        outJack(code, `${pos + 1} ${k.abbr} ${o.name}`, isGate(o.kind))]));
     });
     body.append(ins, mid, outs);
     box.append(body);
@@ -336,7 +338,7 @@ export function makeMap(ctx, h) {
       !t && (st.selected && (parseModKey(st.selected) >= 0 || (parseBlockKey(st.selected) && st.selected !== 'host'))) ? chip(`Focus: ${blockTag(st.selected)}`, false, () => { st.mapMode = 'focus'; st.mapSrc = null; ctx.render(); }) : null,
       refused ? chip(`Refused · ${refused}`, !!t && t.kind === 'refused', () => { st.mapMode = t && t.kind === 'refused' ? 'all' : 'refused'; ctx.render(); }, ' is-refused') : null,
     ]);
-    const legend = el('p', 'ed-legend ed-map-legend', {}, [el('span', 'ed-l-mod', { text: 'modulation' }), el('span', 'ed-l-gate', { text: 'gate' }), el('span', 'ed-l-voice', { text: 'per voice (v)' }), el('span', 'ed-l-refuse', { text: '✕ refused' })]);
+    const legend = el('p', 'ed-legend ed-map-legend', {}, [el('span', 'ed-l-mod', { text: 'modulation' }), el('span', 'ed-l-gate', { text: 'gate or trigger' }), el('span', 'ed-l-voice', { text: 'per voice (v)' }), el('span', 'ed-l-refuse', { text: '✕ refused' })]);
     wrap.append(el('div', 'ed-map-head', {}, [chips, legend]));
     wrap.append(el('p', 'ed-map-hand', { 'aria-hidden': 'true' }));
     map = el('div', 'ed-map');
@@ -612,7 +614,7 @@ export function makeMap(ctx, h) {
     const order = [...items].sort((a, b) => (lit(a) - lit(b)) || (sel(a) - sel(b)));
     for (const x of order) {
       const c = x.c, ref = !!verdictOf(x.i).code;
-      const cls = `ed-cab${c.src < SRC_MODULE && mm.sources.get(c.src) && mm.sources.get(c.src).kind === 'gate' ? ' is-gate' : ''}${c.flags & GATE_DST ? ' is-gate' : ''}${ref ? ' is-refused' : ''}${sel(x) ? ' is-sel' : ''}${lit(x) ? '' : ' is-dim'}${!(c.flags & SLOT_ON) ? ' is-off' : ''}`;
+      const cls = `ed-cab${c.src < SRC_MODULE && mm.sources.get(c.src) && isGate(mm.sources.get(c.src).kind) ? ' is-gate' : ''}${c.flags & GATE_DST ? ' is-gate' : ''}${ref ? ' is-refused' : ''}${sel(x) ? ' is-sel' : ''}${lit(x) ? '' : ' is-dim'}${!(c.flags & SLOT_ON) ? ' is-off' : ''}`;
       const g = sv('g', { class: cls, 'data-cable': x.i });
       if (c.flags & VOICE) g.append(sv('path', { d: x.d_, class: 'ed-cab-band' }));
       g.append(sv('path', { d: x.d_, class: 'ed-cab-line' }));

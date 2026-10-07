@@ -84,6 +84,8 @@ never sends") stands.
 23. Stage ED2, as built
 24. Stage ED3, as built
 25. Stage ED4, as built
+26. Stage ED5a, as built
+27. Stage ED5b, as built
 
 ## 1. Short answer
 
@@ -674,7 +676,7 @@ chain's four slots and two sends.
 | **ED2** Shell, flow and sound (**built**, §23) | The layouts, outline and screen card, app bar and RAM by part; the Flow (selection only) and the Sound inspector from metadata; the detail bar; follow both ways and K1–K4; history and undo for parameters; PLAY and EDIT | ED1, W1 |
 | **ED3** Chains and modulation (**built**, §24) | Drag to move and swap with its keyboard twin and RAM verdicts; effect pickers; master inspectors with meters; the Mix; per-pad rows (API v4); the rack cards, the matrix table, slot and module inspectors; structural undo | ED2 |
 | **ED4** Files and project (**built**, §25) | Drop targets, per-block export, the library, `view=edit` and `sel`; ⌘K search; A/B and the Memory page; undo's snapshot fallback | ED3 |
-| **ED5** The Map and reach | **ED5a (built, §26):** the telemetry ED1 left empty (Limiter's and Squash's gain reduction, `voice_dests`); keyboard and screen-reader passes; phones; the layout check in the page tests. **ED5b (to do):** the patch-bay Map with focus; the manual's chapter; Firefox and WebKit measured | ED4 |
+| **ED5** The Map and reach (**built**, §26, §27) | **ED5a (§26):** the telemetry ED1 left empty (Limiter's and Squash's gain reduction, `voice_dests`); keyboard and screen-reader passes; phones; the layout check in the page tests. **ED5b (§27):** the patch-bay Map with focus; the manual's chapter 15; the editor's tests in Firefox and WebKit | ED4 |
 | later | The pop-out window; a song-list view on S9+'s data; an FM6 (DX7) voice editor, a later stage by the owner's decision (ED17); the device target (§16) | — |
 
 - Each stage that adds state to the page adds nothing to the files: the

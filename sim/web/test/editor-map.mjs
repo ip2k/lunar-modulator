@@ -72,12 +72,13 @@ const first = await page.evaluate(() => {
   const ed = window.fm1.editor, m = ed.chains.map;
   const cables = ed.state.mirror.cables.map((c, i) => [c, i]).filter(([c]) => c.flags & 1 || c.amount || c.unit || c.dst || c.src).map(([, i]) => i);
   return { shown: m.stats().cables, slots: cables.length, switchOn: !!document.querySelector('.ed-mapsw'), faults: m.faults(), table: !!document.querySelector('.ed-mx'),
-    jacks: document.querySelectorAll('.ed-map .ed-jack').length, unnamed: [...document.querySelectorAll('.ed-map .ed-jack')].filter((b) => b.tagName === 'BUTTON' && !b.getAttribute('aria-label')).length };
+    jacks: document.querySelectorAll('.ed-map .ed-jack').length, unnamed: [...document.querySelectorAll('.ed-map .ed-jack')].filter((b) => b.tagName === 'BUTTON' && !b.getAttribute('aria-label')).length,
+    small: [...document.querySelectorAll('.ed-map button')].filter((b) => b.getClientRects().length && (b.getBoundingClientRect().width < 24 || b.getBoundingClientRect().height < 24)).map((b) => `${b.className} ${Math.round(b.getBoundingClientRect().width)}x${Math.round(b.getBoundingClientRect().height)}`).slice(0, 5) };
 });
 report.first = first;
 check('the Map shows every cable of the matrix, each on a jack at both ends', first.shown === first.slots && first.slots >= 3, first);
 check('the Map replaces the table, and has a switch back', first.switchOn && !first.table, first);
-check('every jack is named', first.jacks > 20 && first.unnamed === 0, first);
+check('every jack is named, and every button on the Map is 24 px or more each way', first.jacks > 20 && first.unnamed === 0 && first.small.length === 0, first);
 check('1,440 px: no cable over a label or a block, no label over a label, no pill over a label', first.faults.length === 0, first.faults);
 const probe0 = await page.evaluate(() => window.lunarLayoutProbe());
 check('1,440 px: the page-wide layout probe finds no overlap, clipping or sideways scroll', probe0.length === 0, probe0.slice(0, 6));

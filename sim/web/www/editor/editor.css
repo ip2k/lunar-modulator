@@ -668,22 +668,28 @@
 .ed-map-morelist.is-open, .ed-map.is-patching .ed-map-morelist { display: flex; }
 .ed-map-none { margin: 2px 0 0; }
 
-/* Jacks sit on the edges of their blocks; the hit area is 24 px. */
+/* Jacks sit on the edges of their blocks. The button is 24 px (a target a finger or a
+ * pointer can hit); the jack drawn in it is 14 px, centred, and a cable ends at its centre. */
 .ed-jack {
-  position: relative; z-index: 3; flex: 0 0 auto; box-sizing: border-box; width: 14px; height: 14px; min-width: 14px; min-height: 14px; max-height: 14px; padding: 0; border-radius: 50%;
-  border: 2px solid var(--muted); background: var(--surface); cursor: pointer; display: inline-block;
+  position: relative; z-index: 3; flex: 0 0 auto; box-sizing: border-box; display: inline-block; cursor: pointer;
+  width: 24px; height: 24px; min-width: 24px; min-height: 24px; max-height: 24px; padding: 0; border: 0; background: none; border-radius: 50%;
 }
-.ed-jack::after { content: ""; position: absolute; inset: -6px; }
-.ed-jack.is-gate { border-radius: 3px; }
-.ed-jack.is-wired { border-color: var(--live); background: var(--live); }
-.ed-jack.is-stub { border-style: dashed; cursor: default; }
-.ed-jack-in { margin-left: -5px; }
-.ed-jack-out { margin-right: -5px; touch-action: none; }
-.ed-jack.is-hand { border-color: var(--held); background: var(--held); }
-.ed-map.is-patching .ed-jack-in { border-color: var(--select); }
-.ed-jack.is-aim.is-ok { background: var(--select); }
-.ed-jack.is-aim.is-no, .ed-jack.is-no { border-color: var(--refuse); background: var(--refuse); }
-.ed-jack:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.ed-jack::before {
+  content: ""; position: absolute; left: 5px; top: 5px; width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%;
+  border: 2px solid var(--muted); background: var(--surface);
+}
+.ed-jack.is-gate::before { border-radius: 3px; }
+.ed-jack.is-wired::before { border-color: var(--live); background: var(--live); }
+.ed-jack.is-stub { cursor: default; }
+.ed-jack.is-stub::before { border-style: dashed; }
+.ed-jack-in { margin-left: -10px; }
+.ed-jack-out { margin-right: -10px; touch-action: none; }
+.ed-jack.is-hand::before { border-color: var(--held); background: var(--held); }
+.ed-map.is-patching .ed-jack-in::before { border-color: var(--select); }
+.ed-jack.is-aim.is-ok::before { background: var(--select); }
+.ed-jack.is-aim.is-no::before, .ed-jack.is-no::before { border-color: var(--refuse); background: var(--refuse); }
+.ed-jack:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.ed-map { user-select: none; }
 
 /* The rack: a block per position. */
 .ed-map-mod {
@@ -748,6 +754,6 @@
   .ed-cab-line, .ed-cab-band { stroke: CanvasText; }
   .ed-cab.is-refused .ed-cab-line, .ed-cab-x { stroke: Mark; }
   .ed-cab.is-sel .ed-cab-line { stroke: Highlight; }
-  .ed-jack { border-color: CanvasText; forced-color-adjust: none; background: Canvas; }
-  .ed-jack.is-wired { background: Highlight; border-color: Highlight; }
+  .ed-jack::before { border-color: CanvasText; forced-color-adjust: none; background: Canvas; }
+  .ed-jack.is-wired::before { background: Highlight; border-color: Highlight; }
 }

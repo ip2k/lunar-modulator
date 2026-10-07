@@ -32,12 +32,19 @@ await page.waitForTimeout(800);
 const shot = async (file, setup, what = '.ed') => {
   await page.evaluate(setup);
   await page.waitForTimeout(900);
-  await page.locator(what).screenshot({ path: join(out, file) });
+  // The region with 12 px of the page around it, so nothing sits on the picture's edge.
+  const box = await page.evaluate((sel) => {
+    const r = document.querySelector(sel).getBoundingClientRect();
+    return { x: r.left + scrollX, y: r.top + scrollY, width: r.width, height: r.height };
+  }, what);
+  const pad = what === '.ed' ? 0 : 12;
+  await page.screenshot({ path: join(out, file), fullPage: true,
+    clip: { x: Math.max(0, box.x - pad), y: Math.max(0, box.y - pad), width: box.width + 2 * pad, height: box.height + 2 * pad } });
   console.log(`${name}: ${file}`);
 };
 await shot('page-editor-flow.png', () => { document.querySelector('.ed-out-fx').click(); });
 await shot('page-editor-sound.png', () => { window.fm1.editor.select('s3', { view: 'sound' }); });
-await shot('page-editor-table.png', () => { window.fm1.editor.state.modMap = false; document.querySelector('.ed-out-mod').click(); });
+await shot('page-editor-table.png', () => { window.fm1.editor.state.modMap = false; document.querySelector('.ed-out-mod').click(); }, '.ed-mod');
 // The Map alone: the rack's inspector under it is left out of the picture.
 await shot('page-editor-map.png', () => {
   const ed = window.fm1.editor;
