@@ -468,6 +468,11 @@ static void check_verbs(void) {
   fm1_mod_get_slot(g_a.mod, 5, &s);
   CHECK(s.dst_unit == FM1_MOD_FX2);                               /* the cable followed */
   CHECK(edit_line("move master 0 0 master 0 1", 3, NULL) == 0 && strcmp(g_a.unit[1].e->id, a1) == 0);
+  /* Sound 3 has no engine: no file could hold an effect in its insert, so
+   * the swap is refused and nothing moves (stage ED3); with an engine it swaps. */
+  CHECK(edit_line("swap insert 2 1 master 0 0", 3, NULL) == FM1_REFUSE_BAD && g_a.unit[1].e != NULL);
+  CHECK(edit_line("unit insert 2 0 echo", 3, NULL) == FM1_REFUSE_BAD);
+  CHECK(edit_line("unit sound 2 0 macro", 3, NULL) == 0);
   CHECK(edit_line("swap insert 2 1 master 0 0", 3, NULL) == 0 && g_a.unit[1].e == NULL);
   {
     const int k0 = fm1_mod_kind_at(g_a.mod, 0);

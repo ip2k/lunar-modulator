@@ -33,12 +33,22 @@
 //   diff    { a, b, kind }       two projects' differences in `kind` (the
 //                                project unless said), member by member of
 //                                their canonical JSON: { changes }
+// and for stage ED3 (§5's previews: what an edit would do, before it is made):
+//   save    { ..., mod: true }   also the rack and the matrix as packed
+//                                records (fm1w_mod_records): { text, mod }
+//   preview { live, ops, each }  `ops` (packed records or verbs, fm1_edit.h)
+//                                applied to a copy of `live`: each one's
+//                                verdict and the RAM after, as C counts it,
+//                                { codes, ram: [{ total, parts }], budget };
+//                                with `each`, every op is tried alone on the
+//                                live state (a picker's RAM column)
 // None of them names an engine: ids and uids come from the caller and the
 // metadata, and C answers.
 
 import { instantiateFm1 } from './fm1-wasm.mjs';
 
 const QUIET = 4;           // FM1_APP_LOAD_QUIET
+const REC = 24;            // FM1_EDIT_REC_BYTES
 let fm1 = null;
 let ex = null;
 let rate = 0;
@@ -179,7 +189,37 @@ const ops = {
     mirror(m.live);
     const n = ex.fm1w_state_save(m.kind, m.arg | 0, 0);
     if (n < 0) return { ok: false, report: report() };
-    return { text: decoder.decode(buf().slice(0, n)) };
+    const text = decoder.decode(buf().slice(0, n));
+    if (!m.mod || typeof ex.fm1w_mod_records !== 'function') return { text };
+    const recs = ex.fm1w_mod_records();
+    return { text, mod: buf().slice(0, recs * REC + 32) };
+  },
+  preview(m) {
+    const ops = m.ops instanceof Uint8Array ? m.ops : new Uint8Array(0);
+    const n = Math.floor(ops.length / REC);
+    if (!n || n > 64) throw new Error('preview: 1 to 64 packed records');
+    const one = (from, count) => {
+      new Uint8Array(fm1.memory.buffer, ex.fm1w_edit_buf(), 64 * REC).set(ops.subarray(from * REC, (from + count) * REC));
+      ex.fm1w_edit(count, 0);
+      const codes = Array.from(new Int8Array(fm1.memory.buffer, ex.fm1w_edit_codes(), count));
+      const parts = [];
+      for (let k = 0; k < 6 && typeof ex.fm1w_ram_part === 'function'; ++k) parts.push(ex.fm1w_ram_part(k) >>> 0);
+      return { codes, ram: { total: ex.fm1w_ram() >>> 0, parts } };
+    };
+    const budget = ex.fm1w_ram_budget() >>> 0;
+    if (!m.each) {
+      mirror(m.live);
+      const r = one(0, n);
+      return { codes: r.codes, ram: [r.ram], budget };
+    }
+    const codes = [], ram = [];
+    for (let i = 0; i < n; ++i) {
+      mirror(m.live);
+      const r = one(i, 1);
+      codes.push(r.codes[0]);
+      ram.push(r.ram);
+    }
+    return { codes, ram, budget };
   },
   pack(m) {
     const n = put(new TextEncoder().encode(m.text));
@@ -245,5 +285,6 @@ self.onmessage = async (e) => {
     reply = { ok: false, error: String(err && err.message || err), report: err && err.report };
   }
   const transfer = reply.bin && reply.bin !== m.bytes ? [reply.bin.buffer] : [];
+  if (reply.mod) transfer.push(reply.mod.buffer);
   self.postMessage({ re: m.id, ...reply }, transfer);
 };

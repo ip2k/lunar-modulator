@@ -21,8 +21,10 @@ import {
   packParam, packLevel, packOn, packView, decodeChanges, decodeView, applyToMirror, mirrorFromProject,
   blockKey, parseBlockKey, blockTag, viewFor, blockOfView, viewWords, controlKind, isBipolar, isLog, hasFlag,
   toPos, fromPos, zeroPos, stepValue, rawText, unitText, unitWords, flagWords, ramWords, ramPercent, toF32,
+  ModMeta, T as REC_T, parseModKey,
 } from './model.js';
 import { History } from './history.js';
+import { makeChains, cableIndex } from './chains.js';
 
 const PREF = 'lunar.sim.editor.';
 function pref(key, value) {
@@ -59,6 +61,7 @@ export async function startEditor(env) {
   document.head.append(css);
   const metaRes = await fetch(new URL('../meta.json', import.meta.url));
   const meta = new Meta(await metaRes.json());
+  const mm = new ModMeta(meta);
 
   const st = {
     layout: 'panel', view: 'flow', sound: 0, selected: 's1', keys: 'play',
@@ -66,6 +69,7 @@ export async function startEditor(env) {
     port: null, node: null, mirror: null, gen: 0, loading: false, pendingChanges: [], panelView: null,
     ram: null, typing: false, dragKey: null, tag: 0, tags: new Map(), snapId: 0, snapWait: new Map(),
     lastViewSent: '', announceAt: 0, flash: null, teleOn: false, tele: null, lastPanelLine: '',
+    live: null, picker: null, selCable: null, verdictDirty: false, teleSig: '',
   };
   const history = new History();
   const rows = new Map();         // `${key}:${uid}` -> row
@@ -117,6 +121,10 @@ export async function startEditor(env) {
   const body = el('div', 'ed-body', {}, [outline, card, main]);
   const root = el('section', 'ed', { 'aria-label': 'Advanced editor', 'data-keys': 'play' }, [appbar, off, body, detail, live]);
   host.append(root);
+  const chains = makeChains({
+    st, meta, mm, el, history, files, root, nextId, sendOps, say, showRefusal, select, render, blockOf, engineName,
+    inspector, sliderControl, rowShell, segControl, levelRow, renderHistory, snapshotSoon, setValue, openOnPanel,
+  });
 
   // ---- PLAY and EDIT (§13) ---------------------------------------------------
   function setKeys(mode) {
@@ -185,6 +193,7 @@ export async function startEditor(env) {
   function attach() {
     if (!sim.node || st.node === sim.node) return;
     st.node = sim.node;
+    st.teleSig = '';
     const ch = new MessageChannel();
     st.port = ch.port1;
     st.port.onmessage = (e) => onPort(e.data);
@@ -232,10 +241,11 @@ export async function startEditor(env) {
     if (id !== st.snapId) return;        // a newer one is on its way
     // Refused while the module is still starting: asked again shortly.
     if (!reply.ok) { if (st.port) setTimeout(() => { if (id === st.snapId) snapshot(); }, 250); return; }
-    const r = await files.shadow('save', { kind: 1, live: reply.bytes });
+    st.live = reply.bytes.slice(0);
+    const r = await files.shadow('save', { kind: 1, live: reply.bytes, mod: true });
     if (id !== st.snapId) return;
     if (!r || !r.text) { if (st.port) setTimeout(() => { if (id === st.snapId) snapshot(); }, 250); return; }
-    st.mirror = mirrorFromProject(meta, JSON.parse(r.text));
+    st.mirror = mirrorFromProject(meta, JSON.parse(r.text), r.mod);
     st.gen = reply.gen >>> 0;
     st.loading = false;
     const waiting = st.pendingChanges;
@@ -271,21 +281,40 @@ export async function startEditor(env) {
 
   function onChanges(list) {
     if (st.loading || !st.mirror) { st.pendingChanges.push(list); return; }
-    let structure = false;
+    let structure = false, cables = false;
+    const structFrom = new Set();       // sources whose structural change this batch already holds
     for (const c of list) {
       if (c.gen <= st.gen) continue;
       st.gen = c.gen;
       const info = c.src === SRC_EDITOR ? st.tags.get(c.tag) : null;
+      const origin = c.src === SRC_PANEL ? 'panel' : SOURCES[c.src] || 'host';
+      const t = c.rec.type;
+      // The panel's (or a script's) structural change, into the history
+      // from the mirror as it was; the cables it re-aimed come with it.
+      if (c.src !== SRC_EDITOR && origin !== 'load' && (t === REC_T.UNIT || t === REC_T.MODULE || t === REC_T.SWAP || t === REC_T.MOVE)) {
+        chains.fromPanel(c.rec, origin);
+        structFrom.add(c.src);
+      }
       const r = applyToMirror(meta, st.mirror, c.rec);
       if (r === 'structure') { structure = true; continue; }
       if (!r) continue;
+      if (r.cable !== undefined) {
+        cables = true;
+        if (c.src !== SRC_EDITOR && !structFrom.has(c.src) && origin !== 'load') {
+          for (const f of chains.cableFields(r.was, r.now)) {
+            history.record({ target: `${r.key}:${f}`, label: chains.cableLabel(r.cable, f), before: chains.fieldOf(r.was, f),
+              after: chains.fieldOf(r.now, f), origin, how: 'knob', info: { key: r.key, uid: f } });
+          }
+        }
+        continue;
+      }
       // A kit's pad chosen: its per-pad values are the new pad's, which the
       // feed does not carry, so the mirror is taken again.
       const fp = typeof r.uid === 'number' ? paramOf(r.key, r.uid) : null;
       if (fp && hasFlag(fp, 'focus') && r.before !== r.after) structure = true;
       const target = `${r.key}:${r.uid}`;
       if (info) {
-        if (info.entry) history.confirm(info.entry, r.after);
+        if (info.entry && !info.struct) history.confirm(info.entry, r.after);
       } else if (c.src !== SRC_EDITOR) {
         const origin = c.src === SRC_PANEL ? 'panel' : SOURCES[c.src] || 'host';
         history.record({ target, label: labelOf(r.key, r.uid), before: r.before, after: r.after, origin, how: 'knob',
@@ -295,19 +324,33 @@ export async function startEditor(env) {
       if (st.dragKey !== target) refreshValue(r.key, r.uid);
     }
     if (structure) snapshotSoon();
+    else if (cables) {
+      // A cable's verdict is the planner's: the mirror is taken again, once
+      // no drag or typed value is in hand.
+      if (st.dragKey || st.typing) st.verdictDirty = true;
+      else snapshotSoon();
+    }
     renderHistory();
   }
 
   function onEdited(tag, codes) {
     const info = st.tags.get(tag);
     if (!info) return;
-    const code = codes && codes.length ? codes.find((c) => c !== 0) : 0;
+    const list = codes && codes.length ? Array.from(codes) : [];
+    const code = list.find((c) => c !== 0 && c < 32) || 0;
+    const late = list.find((c) => c >= 32) || 0;
     if (code && !info.verb) {
       if (info.entry) history.drop(info.entry);
-      say(`${info.label || 'The edit'}: ${meta.refusalWords(code)}.`, true);
-      showRefusal(info.label, meta.refusalWords(code));
+      const words = chains.verdictWords(code);
+      say(`${info.label || 'The edit'}: ${words}.`, true);
+      showRefusal(info.label, words);
       snapshotSoon();
       renderHistory();
+    } else if (late) {
+      // A cable written but left out by the planner: kept, and said why.
+      const words = chains.verdictWords(late);
+      say(`${info.label || 'The cable'} is written but does not run: ${words}.`);
+      showRefusal(`${info.label || 'The cable'} does not run`, words);
     }
     // The tag stays known until its change has come back.
     setTimeout(() => st.tags.delete(tag), 2000);
@@ -324,11 +367,14 @@ export async function startEditor(env) {
     markKnobs();
     markPanelBlock();
     const moved = !was || was.mode !== v.mode || was.sound !== v.sound || was.page !== v.page || was.slot !== v.slot || was.arp !== v.arp;
-    if (!moved || st.layout !== 'workbench' || !st.followPanel || st.typing || st.dragKey) return;
+    if (!moved || st.layout !== 'workbench' || !st.followPanel || st.typing || st.dragKey || st.picker) return;
     if (st.keys === 'edit' && view.contains(document.activeElement)) return;     // a hand is in the editor
     const at = blockOfView(v);
     if (!at) return;
-    if (at.key === MIX_KEY || parseBlockKey(at.key).role === ROLE.MASTER) {
+    if (cableIndex(at.key) >= 0 || parseModKey(at.key) >= 0) {
+      if (cableIndex(at.key) >= 0) st.selCable = at.key;
+      select(at.key, { view: 'mod', quiet: true });
+    } else if (at.key === MIX_KEY || parseBlockKey(at.key).role === ROLE.MASTER) {
       select(at.key, { view: 'flow', quiet: true, page: at.page });
     } else {
       select(at.key, { view: 'sound', quiet: true, page: at.page });
@@ -412,18 +458,24 @@ export async function startEditor(env) {
   }
 
   // ---- telemetry: the Flow's meters, only while they are seen (§12) ----------------------
+  // Only what the view shows, only while it is seen (§12): the meters and
+  // gain reduction for the Flow and a sound, module outputs and each
+  // cable's destination for Modulation.
   let flowSeen = false;
   const seen = new IntersectionObserver((list) => {
     flowSeen = list.some((x) => x.isIntersecting);
     subscribe();
   });
+  seen.observe(view);
   function subscribe() {
-    const want = !!st.port && st.layout !== 'panel' && st.view === 'flow' && flowSeen && document.visibilityState === 'visible';
-    if (want === st.teleOn || !st.port) { st.teleOn = want && !!st.port; return; }
-    st.teleOn = want;
+    const want = !!st.port && st.layout !== 'panel' && flowSeen && document.visibilityState === 'visible' && !!st.mirror;
+    const rowsOn = want ? chains.wantRows(st.view) : [];
+    const sig = rowsOn.join(',');
+    st.teleOn = want && rowsOn.length > 0;
+    if (!st.port || sig === st.teleSig) return;
+    st.teleSig = sig;
     const mask = new Uint32Array(meta.doc.telemetry ? meta.doc.telemetry.mask_words : 4);
-    const sec = meterSection();
-    if (want && sec) for (let r = 0; r < sec.rows.length; ++r) mask[(sec.mask + r) >> 5] |= 1 << ((sec.mask + r) & 31);
+    for (const b of rowsOn) mask[b >> 5] |= 1 << (b & 31);
     post({ type: 'subscribe', mask });
   }
   document.addEventListener('visibilitychange', subscribe);
@@ -443,6 +495,7 @@ export async function startEditor(env) {
       const db = peak > 0 ? 20 * Math.log10(peak) : -90;
       m.style.setProperty('--lvl', `${Math.max(0, Math.min(1, (db + 60) / 60)).toFixed(3)}`);
     }
+    chains.onTelemetry(f);
   }
 
   // ---- names and text ----------------------------------------------------------------
@@ -453,6 +506,7 @@ export async function startEditor(env) {
     return b ? meta.param(b.engine, uid) : null;
   }
   function labelOf(key, uid) {
+    if (cableIndex(key) >= 0) return chains.cableLabel(cableIndex(key), uid);
     if (uid === 'level') return `${blockTag(key)} Level`;
     if (uid === 'on') return `${blockTag(key)} On`;
     const p = paramOf(key, uid);
@@ -460,6 +514,7 @@ export async function startEditor(env) {
   }
   function valueOf(key, uid) {
     if (!st.mirror) return 0;
+    if (cableIndex(key) >= 0) return chains.cableGet(cableIndex(key), uid);
     if (uid === 'level') return st.mirror.levels[parseBlockKey(key).sound];
     const b = blockOf(key);
     if (!b) return 0;
@@ -467,6 +522,7 @@ export async function startEditor(env) {
     return b.values.get(uid);
   }
   function textOf(key, uid, v) {
+    if (cableIndex(key) >= 0) return chains.cableText(cableIndex(key), uid, v);
     if (uid === 'level') return `${Math.round(v)} %`;
     if (uid === 'on') return v ? 'on' : 'off';
     const b = blockOf(key);
@@ -502,15 +558,25 @@ export async function startEditor(env) {
   function setValue(key, uid, v, how) {
     if (!st.mirror) return;
     const before = valueOf(key, uid);
+    if (cableIndex(key) >= 0 && (uid === 'on' || uid === 'voice')) v = !!v;
     if (uid !== 'on' && uid !== 'level' && paramOf(key, uid) && paramOf(key, uid).type === 'float') v = toF32(v);
     if (v === before) return;
     const target = `${key}:${uid}`;
-    const entry = history.record({ target, label: labelOf(key, uid), before, after: v, origin: 'editor', how,
-      info: { key, uid, engine: engineOf(key) } });
-    write(key, uid, v, { entry: entry ? entry.id : 0, label: labelOf(key, uid) });
+    // A kit's per-pad value goes to the pad shown now, named in the record,
+    // so undo reaches the same pad wherever the panel's focus is then.
+    const p = paramOf(key, uid);
+    const focus = p && hasFlag(p, 'per_focus') ? chains.padOf(key) : undefined;
+    const entry = history.record({ target: focus !== undefined ? `${target}:${focus}` : target, label: labelOf(key, uid), before, after: v, origin: 'editor', how,
+      info: { key, uid, engine: engineOf(key), focus } });
+    write(key, uid, v, { entry: entry ? entry.id : 0, label: labelOf(key, uid), focus });
     renderHistory();
   }
   function write(key, uid, v, info) {
+    if (cableIndex(key) >= 0) {
+      chains.cableSet(cableIndex(key), uid, v, info);
+      refreshValue(key, uid);
+      return;
+    }
     const b = parseBlockKey(key);
     let bytes;
     if (uid === 'level') {
@@ -521,8 +587,12 @@ export async function startEditor(env) {
       bytes = packOn(b.sound, b.slot, v);
     } else {
       const p = paramOf(key, uid);
-      blockOf(key).values.set(uid, v);
-      bytes = p.type === 'enum' ? packParam({ ...b, uid, index: Math.round(v) }) : packParam({ ...b, uid, value: v });
+      const blk = blockOf(key);
+      const focus = info && info.focus !== undefined ? info.focus : undefined;
+      if (focus === undefined || focus === chains.padOf(key)) blk.values.set(uid, v);
+      if (focus !== undefined && blk.pads && blk.pads[focus]) blk.pads[focus].set(uid, v);
+      const at = focus !== undefined ? { ...b, uid, focus } : { ...b, uid };
+      bytes = p.type === 'enum' ? packParam({ ...at, index: Math.round(v) }) : packParam({ ...at, value: v });
     }
     sendOps(bytes, info);
     refreshValue(key, uid);
@@ -540,15 +610,17 @@ export async function startEditor(env) {
   }
   function undo() {
     const e = history.undo();
+    if (e && e.info && e.info.struct) { chains.undoStruct(e, false); renderHistory(); return; }
     if (!e || stale(e, 'undone')) return;
-    write(e.info.key, e.info.uid, e.before, { undo: true, label: e.label });
+    write(e.info.key, e.info.uid, e.before, { undo: true, label: e.label, focus: e.info.focus });
     say(`Undone: ${e.label}, ${textOf(e.info.key, e.info.uid, e.before)}`);
     renderHistory();
   }
   function redo() {
     const e = history.redo();
+    if (e && e.info && e.info.struct) { chains.undoStruct(e, true); renderHistory(); return; }
     if (!e || stale(e, 'redone')) return;
-    write(e.info.key, e.info.uid, e.after, { redo: true, label: e.label });
+    write(e.info.key, e.info.uid, e.after, { redo: true, label: e.label, focus: e.info.focus });
     say(`Redone: ${e.label}, ${textOf(e.info.key, e.info.uid, e.after)}`);
     renderHistory();
   }
@@ -572,7 +644,8 @@ export async function startEditor(env) {
 
   // ---- selection and the views (§10) -------------------------------------------------
   function select(key, opt = {}) {
-    if (key !== MIX_KEY && !parseBlockKey(key)) return;
+    if (key !== MIX_KEY && !parseBlockKey(key) && cableIndex(key) < 0) return;
+    if (cableIndex(key) >= 0) st.selCable = key;
     const same = key === st.selected && (!opt.view || opt.view === st.view) && view.firstChild;
     if (same && opt.quiet) {             // following the panel to where it already is
       markPanelBlock();
@@ -581,7 +654,7 @@ export async function startEditor(env) {
     st.selected = key;
     const b = parseBlockKey(key);
     if (opt.view) st.view = opt.view;
-    if (b && b.role !== ROLE.MASTER) st.sound = b.sound;
+    if (b && b.role !== ROLE.MASTER && b.role !== ROLE.MODULE) st.sound = b.sound;
     render();
     if (!opt.quiet) openOnPanel(key, opt.page || 1);
     if (opt.page) {
@@ -591,6 +664,12 @@ export async function startEditor(env) {
   }
 
   function render() {
+    // The control that had the keys keeps them across a redraw (data-fk).
+    const ae = document.activeElement;
+    const fkEl = ae && root.contains(ae) && ae.closest ? ae.closest('[data-fk]') : null;
+    const fk = st.focusAfter || (fkEl ? fkEl.dataset.fk : null);
+    if (st.mirror) st.focusAfter = null;
+    chains.closePicker();
     root.classList.toggle('is-off', !st.port || !st.mirror);
     off.hidden = !!st.port;
     title.querySelector('.ed-project').textContent = files.title ? `· ${files.title}` : '';
@@ -599,7 +678,12 @@ export async function startEditor(env) {
     view.innerHTML = '';
     if (st.port && st.mirror) {
       if (st.view === 'flow') view.append(flowView());
+      else if (st.view === 'mod') view.append(chains.modView());
       else view.append(soundView(st.sound));
+    }
+    if (fk) {
+      const t = root.querySelector(`[data-fk="${CSS.escape(fk)}"]`);
+      if (t) t.focus({ preventScroll: true });
     }
     markKnobs();
     markPanelBlock();
@@ -623,6 +707,10 @@ export async function startEditor(env) {
     }
     outline.append(el('h3', 'ed-out-h', { text: 'Signal' }));
     outline.append(mk('Flow and effects', 'FX', 'ed-out-fx', () => { st.view = 'flow'; render(); }, st.view === 'flow'));
+    const nMods = st.mirror ? st.mirror.rack.filter(Boolean).length : 0;
+    const nCables = st.mirror ? st.mirror.cables.filter((c) => c.flags & 1).length : 0;
+    outline.append(mk('Modulation', 'MOD', 'ed-out-mod', () => { st.view = 'mod'; render(); }, st.view === 'mod',
+      st.mirror ? `${nMods}·${nCables}` : null));
   }
 
   // The Flow (§10, mockup 01): four strips into the Mix and the master slots.
@@ -637,17 +725,16 @@ export async function startEditor(env) {
     for (let j = 0; j < MASTERS; ++j) {
       const key = blockKey(ROLE.MASTER, 0, j);
       const b = blockOf(key);
-      masters.append(flowBlock(key, b ? engineName(b.engine) : 'empty', `M${j + 1}`, b ? summary(key) : '', b ? '' : 'is-empty'));
+      masters.append(chains.movable(flowBlock(key, b ? engineName(b.engine) : 'empty', `M${j + 1}`, b ? summary(key) : '', b ? '' : 'is-empty'), key));
     }
     masters.append(el('div', 'ed-out-meter', {}, [el('span', 'ed-blk-k', { text: 'OUT' }), el('span', 'ed-meter', { 'data-meter': 'out', 'aria-hidden': 'true' })]));
     const flow = el('div', 'ed-flow', { 'aria-label': 'Flow' }, [strips, masters]);
-    wrap.append(el('div', 'ed-sec-head', {}, [el('h2', 'ed-sec ed-sec-big', { text: 'Flow' }), legend]), flow);
-    seen.disconnect();
-    seen.observe(flow);
+    wrap.append(el('div', 'ed-sec-head', {}, [el('h2', 'ed-sec ed-sec-big', { text: 'Flow' }), legend]),
+      el('p', 'ed-note ed-hint-move', { text: 'Drag an effect onto another slot to swap them, or pick one up with Space, aim with the arrows and drop with Space.' }), flow);
     const insp = el('div', 'ed-flow-insp');
-    if (st.selected === MIX_KEY) insp.append(mixInspector());
+    if (st.selected === MIX_KEY) insp.append(chains.mixInspector());
     else if (blockOf(st.selected)) insp.append(inspector(st.selected));
-    else insp.append(el('p', 'ed-note', { text: `${blockTag(st.selected)} is empty. Effect pickers come with the next stage.` }));
+    else if (parseBlockKey(st.selected) && parseBlockKey(st.selected).role !== ROLE.MODULE) insp.append(emptyInspector(st.selected));
     wrap.append(insp);
     return wrap;
   }
@@ -659,7 +746,7 @@ export async function startEditor(env) {
     const row = el('div', `ed-strip ed-s${k + 1}${s ? '' : ' is-empty'}`, { role: 'group', 'aria-label': `Sound ${k + 1}` });
     row.append(el('span', 'ed-tag', { text: `S${k + 1}` }));
     if (!s) {
-      row.append(el('span', 'ed-strip-empty', { text: 'Empty: choose its engine on the panel (PRESETS)' }));
+      row.append(el('span', 'ed-strip-empty', { text: 'Empty' }), chains.pickerButton(sk));
       return row;
     }
     const mk = blockKey(ROLE.MFX, k, 0);
@@ -670,7 +757,7 @@ export async function startEditor(env) {
     for (let j = 0; j < INSERTS; ++j) {
       const ik = blockKey(ROLE.INSERT, k, j);
       const ib = blockOf(ik);
-      row.append(flowBlock(ik, ib ? engineName(ib.engine) : 'empty', `IN${j + 1}`, ib ? summary(ik) : '', ib ? '' : 'is-empty'));
+      row.append(chains.movable(flowBlock(ik, ib ? engineName(ib.engine) : 'empty', `IN${j + 1}`, ib ? summary(ik) : '', ib ? '' : 'is-empty'), ik));
     }
     const lvl = st.mirror.levels[k];
     row.append(el('div', 'ed-level', { title: `Level ${Math.round(lvl)} %` }, [
@@ -695,20 +782,18 @@ export async function startEditor(env) {
   }
   function flowBlock(key, name, kind, sub, cls = '') {
     const btn = el('button', `ed-block ${cls}${st.selected === key ? ' is-sel' : ''}`,
-      { type: 'button', 'data-block': key, 'aria-pressed': st.selected === key ? 'true' : 'false',
+      { type: 'button', 'data-block': key, 'data-fk': key, 'aria-pressed': st.selected === key ? 'true' : 'false',
         'aria-label': `${kind} ${name}${sub ? `, ${sub}` : ''}`, onclick: () => select(key, { view: 'flow' }) },
       [el('span', 'ed-blk-k', { text: kind }), el('span', 'ed-blk-n', { text: name }), sub ? el('span', 'ed-blk-s', { text: sub }) : null]);
     return btn;
   }
 
-  // The Mix's selection: the four levels (the Mix page's own records).
-  function mixInspector() {
-    const box = el('section', 'ed-insp', { 'data-block': MIX_KEY, 'aria-label': 'Mix' });
-    box.append(el('header', 'ed-insp-head', {}, [el('span', 'ed-tag ed-tag-mix', { text: 'MIX' }), el('h3', 'ed-insp-name', { text: 'Mix' })]));
-    const page = el('div', 'ed-page', { 'data-page': '1' });
-    for (let k = 0; k < SOUNDS; ++k) if (blockOf(blockKey(ROLE.SOUND, k))) page.append(levelRow(k));
-    box.append(page);
-    return box;
+  // An empty slot: what it is, and its picker.
+  function emptyInspector(key) {
+    const b = parseBlockKey(key);
+    const tag = b.role === ROLE.INSERT ? `IN${b.slot + 1}` : b.role === ROLE.MFX ? 'MIDI' : b.role === ROLE.MASTER ? `M${b.slot + 1}` : 'ENGINE';
+    return el('section', 'ed-insp is-empty', { 'data-block': key, 'aria-label': `${blockTag(key)} empty` }, [
+      el('header', 'ed-insp-head', {}, [el('span', 'ed-tag', { text: tag }), el('h3', 'ed-insp-name', { text: `${blockTag(key)} · empty` }), ...chains.headTools(key)])]);
   }
 
   // A sound (§10, mockup 02): the path, then its engine, inserts and MIDI effect.
@@ -721,7 +806,7 @@ export async function startEditor(env) {
       s ? el('span', 'ed-note', { text: `${engineName(s.engine)} · level ${Math.round(st.mirror.levels[k])} %` }) : null]);
     wrap.append(head);
     if (!s) {
-      wrap.append(el('p', 'ed-note', { text: 'Choose its engine on the panel (SHIFT + PRESETS, then PRESETS); engine pickers come with the next stage.' }));
+      wrap.append(emptyInspector(sk));
       return wrap;
     }
     const path = el('nav', 'ed-path', { 'aria-label': `Sound ${k + 1}'s chain` });
@@ -745,16 +830,12 @@ export async function startEditor(env) {
     for (let j = 0; j < INSERTS; ++j) {
       const ik = blockKey(ROLE.INSERT, k, j);
       if (blockOf(ik)) insCol.append(inspector(ik));
-      else insCol.append(el('section', 'ed-insp is-empty', { 'data-block': ik, 'aria-label': `In${j + 1} empty` }, [
-        el('header', 'ed-insp-head', {}, [el('span', 'ed-tag', { text: `IN${j + 1}` }), el('h3', 'ed-insp-name', { text: 'empty' })]),
-        el('p', 'ed-note', { text: 'Effect pickers come with the next stage; choose one on the panel (FX).' })]));
+      else insCol.append(emptyInspector(ik));
     }
     cols.append(engineCol, insCol);
-    if (m) {
-      const mfxCol = el('div', 'ed-col');
-      mfxCol.append(inspector(mk, { open: 3 }));
-      cols.append(mfxCol);
-    }
+    const mfxCol = el('div', 'ed-col');
+    mfxCol.append(m ? inspector(mk, { open: 3 }) : emptyInspector(mk));
+    cols.append(mfxCol);
     wrap.append(cols);
     return wrap;
   }
@@ -765,7 +846,7 @@ export async function startEditor(env) {
     const e = meta.engine(b.engine);
     const bk = parseBlockKey(key);
     const tagText = bk.role === ROLE.SOUND ? 'ENGINE' : bk.role === ROLE.INSERT ? `IN${bk.slot + 1}` :
-      bk.role === ROLE.MFX ? 'MIDI' : `M${bk.slot + 1}`;
+      bk.role === ROLE.MFX ? 'MIDI' : bk.role === ROLE.MODULE ? `RACK ${bk.slot + 1}` : `M${bk.slot + 1}`;
     const box = el('section', `ed-insp${st.selected === key ? ' is-sel' : ''}`, { 'data-block': key, 'aria-label': `${blockTag(key)} ${e ? e.name : b.engine}` });
     const head = el('header', 'ed-insp-head', {}, [
       el('span', `ed-tag${bk.role === ROLE.SOUND ? ` ed-s${bk.sound + 1}` : ''}`, { text: tagText }),
@@ -773,10 +854,22 @@ export async function startEditor(env) {
       e && e.gpl ? el('span', 'ed-gpl', { text: 'GPL', title: `Licence: ${e.licence}` }) : null,
       el('span', 'ed-insp-ram', { text: e && st.ram ? `RAM ${ramWords(e.ram, st.ram.budget)}` : '' })]);
     box.append(head);
+    if (st.mirror && st.mirror.cables && !opt.bare) head.append(el('span', 'ed-tools', {}, chains.headTools(key)));
     if (e && e.credits) box.append(el('p', 'ed-credits', { text: `${e.credits}${e.group ? ` · ${meta.groupName(e.group)}` : ''}` }));
     if (!e) { box.append(el('p', 'ed-note', { text: `${b.engine} is not in this build's metadata.` })); return box; }
+    const mt = opt.bare ? null : chains.meters(key);
+    if (mt) box.append(mt);
     if (bk.role === ROLE.MFX) box.append(onRow(key));
     if (opt.level !== undefined) box.append(el('div', 'ed-page', { 'data-page': '0' }, [levelRow(opt.level)]));
+    // A kit (API v4): the pad strip above its per-pad rows; the pad follows
+    // the panel's focus, and choosing one here moves the panel's too.
+    const fp = e.params.find((p) => hasFlag(p, 'focus') && !p.hidden && p.page >= 1);
+    if (fp) {
+      const strip = el('div', 'ed-page ed-padstrip', { 'data-page': String(fp.page) });
+      strip.append(paramRow(key, fp, { page: fp.page }));
+      strip.append(el('p', 'ed-note', { text: `Rows marked "pad" are the pad chosen here, ${rawText(fp, b.values.get(fp.uid))}.` }));
+      box.append(strip);
+    }
     meta.pages(b.engine).forEach((pg, i) => {
       const label = pg.name ? pg.name : `Page ${pg.page}`;
       if (opt.open && i >= opt.open) {
@@ -790,9 +883,11 @@ export async function startEditor(env) {
       }
       const page = el('div', 'ed-page', { 'data-page': String(pg.page) }, [el('div', 'ed-page-head', {}, [
         el('span', 'ed-page-n', { text: label }), el('span', 'ed-page-k', { text: pg.knobs })])]);
-      for (const p of pg.params) page.append(paramRow(key, p, pg));
+      for (const p of pg.params) if (p !== fp) page.append(paramRow(key, p, pg));
       box.append(page);
     });
+    const into = opt.bare || !st.mirror.cables ? null : chains.cablesInto(key);
+    if (into) box.append(into);
     return box;
   }
 
@@ -856,6 +951,7 @@ export async function startEditor(env) {
     r.page = pg.page;
     if (hasFlag(p, 'mod')) r.label.classList.add('can-mod');
     if (hasFlag(p, 'poly')) r.label.append(el('span', 'ed-poly', { text: 'v', title: 'per voice: a per-voice cable may land here' }));
+    if (hasFlag(p, 'per_focus')) r.label.append(el('span', 'ed-pad-b', { text: 'pad', title: 'per pad: the pad chosen above' }));
     if (kind === 'slider') sliderControl(r, p, () => valueOf(key, p.uid), (v) => withUnit(p, fmt(blockOf(key).engine, p, v)));
     else if (kind === 'segments' || kind === 'grid') segControl(r, p, kind);
     else listControl(r, p, kind);
@@ -929,7 +1025,7 @@ export async function startEditor(env) {
   // default, Enter to type. A drag is one history step and sends at most one
   // op a frame; a `nolock` parameter is sent once, on release.
   function sliderControl(r, p, get, text) {
-    const s = el('div', 'ed-slider', { role: 'slider', tabindex: '0', 'aria-labelledby': r.id,
+    const s = el('div', 'ed-slider', { role: 'slider', tabindex: '0', 'aria-labelledby': r.id, 'data-fk': `${r.key}:${r.uid}`,
       'aria-valuemin': String(p.min), 'aria-valuemax': String(p.max) });
     const zero = isBipolar(p) ? el('span', 'ed-zero', { 'aria-hidden': 'true' }) : null;
     const fill = el('span', 'ed-fill', { 'aria-hidden': 'true' });
@@ -986,6 +1082,7 @@ export async function startEditor(env) {
       st.dragKey = null;
       dragV = null;
       r.update();
+      if (st.verdictDirty) { st.verdictDirty = false; snapshotSoon(); }
     };
     s.addEventListener('pointerup', release);
     s.addEventListener('pointercancel', release);
@@ -1007,7 +1104,7 @@ export async function startEditor(env) {
       commit(nv, e.key === 'd' || e.key === 'D' ? 'default' : 'key');
     });
     field.addEventListener('focus', () => { st.typing = true; field.select(); });
-    field.addEventListener('blur', () => { st.typing = false; r.update(); });
+    field.addEventListener('blur', () => { st.typing = false; r.update(); if (st.verdictDirty) { st.verdictDirty = false; snapshotSoon(); } });
     field.addEventListener('keydown', async (e) => {
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); field.blur(); s.focus(); return; }
       if (e.key !== 'Enter') return;
@@ -1033,8 +1130,8 @@ export async function startEditor(env) {
   // "1.2k", "-6 dB" and "1/8D"; the level is a plain number.
   async function parseTyped(r, p, text) {
     if (!text) return null;
-    if (r.uid === 'level') {
-      const n = Number(text.replace(/%/g, '').trim());
+    if (r.uid === 'level' || cableIndex(r.key) >= 0) {
+      const n = Number(text.replace(/[%+]/g, '').trim());
       return Number.isFinite(n) ? n : null;
     }
     const b = blockOf(r.key);
@@ -1070,12 +1167,20 @@ export async function startEditor(env) {
   }
 
   // ---- the detail bar (mockup 02) --------------------------------------------------
+  // A refusal stays in the detail bar for a while, through the redraw the
+  // snapshot after it brings, until another parameter is selected.
   function showRefusal(label, words) {
-    detail.innerHTML = '';
-    detail.append(el('span', 'ed-refused', { text: `${label || 'The edit'}: ${words}` }));
+    st.refusal = { text: `${label || 'The edit'}: ${words}`, until: performance.now() + 8000, row: st.selRow };
+    renderDetail();
   }
   function renderDetail() {
     detail.innerHTML = '';
+    const rf = st.refusal;
+    if (rf && performance.now() < rf.until && rf.row === st.selRow) {
+      detail.append(el('span', 'ed-refused', { text: rf.text }));
+      return;
+    }
+    st.refusal = null;
     const sel = st.selRow ? rows.get(st.selRow) : null;
     if (!sel || !st.mirror) {
       detail.append(el('span', 'ed-note', { text: 'Select a parameter: its range, default, flags and keys show here.' }));
@@ -1087,9 +1192,10 @@ export async function startEditor(env) {
     detail.append(path, el('b', 'ed-d-val', { text: textOf(sel.key, sel.uid, v) }));
     if (p && p.type === 'float') {
       const b = blockOf(sel.key);
-      const lo = sel.uid === 'level' ? `${p.min} %` : withUnit(p, fmt(b.engine, p, p.min, renderDetail));
-      const hi = sel.uid === 'level' ? `${p.max} %` : withUnit(p, fmt(b.engine, p, p.max, renderDetail));
-      const df = sel.uid === 'level' ? `${p.def} %` : withUnit(p, fmt(b.engine, p, p.def, renderDetail));
+      const plain = sel.uid === 'level' || !b;
+      const lo = plain ? `${p.min} %` : withUnit(p, fmt(b.engine, p, p.min, renderDetail));
+      const hi = plain ? `${p.max} %` : withUnit(p, fmt(b.engine, p, p.max, renderDetail));
+      const df = plain ? `${p.def} %` : withUnit(p, fmt(b.engine, p, p.def, renderDetail));
       detail.append(el('span', 'ed-d', { text: `${lo} to ${hi}` }), el('span', 'ed-d', { text: `default ${df}` }));
     } else if (p && p.type === 'enum') {
       detail.append(el('span', 'ed-d', { text: `${p.entries.length} choices · default ${p.entries[p.def] ?? p.def}` }));
@@ -1123,8 +1229,8 @@ export async function startEditor(env) {
       histList.append(el('li', doneIds.has(e.id) ? '' : 'is-undone', {}, [
         el('span', `ed-origin is-${e.origin}`, { text: e.origin }),
         el('span', 'ed-h-how', { text: e.how }),
-        el('span', 'ed-h-what', {}, [`${e.label} `, el('span', 'ed-was', { text: textOf(e.info.key, e.info.uid, e.before) }), ' → ',
-          el('b', null, { text: textOf(e.info.key, e.info.uid, e.after) })])]));
+        el('span', 'ed-h-what', {}, [`${e.label} `, el('span', 'ed-was', { text: e.info.struct ? e.before : textOf(e.info.key, e.info.uid, e.before) }), ' → ',
+          el('b', null, { text: e.info.struct ? e.after : textOf(e.info.key, e.info.uid, e.after) })])]));
     }
   }
 
@@ -1139,17 +1245,17 @@ export async function startEditor(env) {
 
   render();
   const api = {
-    setLayout, state: st, history, meta, rows, select, undo, redo, setKeys,
+    setLayout, state: st, history, meta, mm, chains, rows, select, undo, redo, setKeys,
     // The page test's hooks: an inspector for any module, drawn from the
     // metadata with its defaults, and the mirror as it stands.
     inspectorFor(id) {
       const e = meta.engine(id);
       if (!e) return null;
       const values = new Map(e.params.map((p) => [p.uid, p.def]));
-      const key = e.kind === 'sound' ? 's4' : e.kind === 'midi_fx' ? 's4.mfx1' : 's4.in2';
+      const key = e.kind === 'sound' ? 's4' : e.kind === 'midi_fx' ? 's4.mfx1' : e.kind === 'mod' ? 'p8' : 's4.in2';
       const saved = st.mirror;
       st.mirror = { blocks: new Map([[key, { engine: id, values, on: true }]]), levels: [0, 0, 0, 0], current: 3 };
-      try { return inspector(key, { level: e.kind === 'sound' ? 3 : undefined }); } finally { st.mirror = saved; }
+      try { return inspector(key, { level: e.kind === 'sound' ? 3 : undefined, bare: true }); } finally { st.mirror = saved; }
     },
   };
   sim.editor = api;

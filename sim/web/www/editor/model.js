@@ -123,6 +123,9 @@ export function unpack(bytes, off = 0) {
       r.id = new TextDecoder().decode(b.subarray(4, end));
       break;
     }
+    case T.CABLE: r.cable = unpackCable(b, 0); break;
+    case T.SWAP:
+    case T.MOVE: r.to = { role: b[4], sound: b[5], slot: b[6] }; break;
     default: break;
   }
   return r;
@@ -163,6 +166,7 @@ export function blockKey(role, sound = 0, slot = 0) {
     case ROLE.INSERT: return `s${sound + 1}.in${slot + 1}`;
     case ROLE.MFX: return `s${sound + 1}.mfx${slot + 1}`;
     case ROLE.MASTER: return `m${slot + 1}`;
+    case ROLE.MODULE: return `p${slot + 1}`;
     default: return `r${role}.${sound}.${slot}`;
   }
 }
@@ -176,6 +180,8 @@ export function parseBlockKey(key) {
   if (m) return { role: ROLE.MFX, sound: m[1] - 1, slot: m[2] - 1 };
   m = /^m([12])$/.exec(key);
   if (m) return { role: ROLE.MASTER, sound: 0, slot: m[1] - 1 };
+  m = /^p([1-8])$/.exec(key);
+  if (m) return { role: ROLE.MODULE, sound: 0, slot: m[1] - 1 };
   return null;
 }
 
@@ -186,6 +192,7 @@ export function blockTag(key) {
   if (b.role === ROLE.SOUND) return `S${b.sound + 1}`;
   if (b.role === ROLE.INSERT) return `S${b.sound + 1} In${b.slot + 1}`;
   if (b.role === ROLE.MFX) return `S${b.sound + 1} MIDI ${b.slot + 1}`;
+  if (b.role === ROLE.MODULE) return `Rack ${b.slot + 1}`;
   return `M${b.slot + 1}`;
 }
 
@@ -193,11 +200,14 @@ export function blockTag(key) {
 // panel). A MIDI effect's pages open from the panel's ARP button; the verb
 // takes its sound's HOME (the view keys have none for them).
 export function viewFor(key, page = 1) {
+  const c = /^c([0-9]+)$/.exec(key);
+  if (c) return { mode: 'matrix', keys: { slot: Number(c[1]) } };
   const b = parseBlockKey(key);
   if (!b) return null;
   if (b.role === ROLE.SOUND) return { mode: 'home', keys: { sound: b.sound + 1, page } };
   if (b.role === ROLE.INSERT) return { mode: 'fx', keys: { sound: b.sound + 1, entry: b.slot + 1, page } };
   if (b.role === ROLE.MASTER) return { mode: 'fx', keys: { entry: 4 + b.slot, page } };
+  if (b.role === ROLE.MODULE) return { mode: 'rack', keys: { pos: b.slot + 1 } };
   return { mode: 'home', keys: { sound: b.sound + 1 } };
 }
 
@@ -212,6 +222,8 @@ export function blockOfView(v) {
     if (v.slot === 2) return { key: MIX_KEY, page: null };
     if (v.slot <= 4) return { key: blockKey(ROLE.MASTER, 0, v.slot - 3), page: v.page + 1 };
   }
+  if (v.mode === 'rack' && v.slot < 8) return { key: blockKey(ROLE.MODULE, 0, v.slot), page: v.page + 1 };
+  if (v.mode === 'matrix' && v.slot < 32) return { key: `c${v.slot + 1}`, page: null };
   return null;
 }
 
@@ -247,6 +259,8 @@ export class Meta {
     this.budget = doc.build && doc.build.ram_budget ? doc.build.ram_budget : 1;
     this.byId = new Map();
     for (const e of doc.engines || []) this.byId.set(e.id, e);
+    // The rack's kinds share the lookups (their ids never meet an engine's).
+    for (const k of (doc.mod && doc.mod.kinds) || []) if (!this.byId.has(k.id)) this.byId.set(k.id, { ...k, kind: 'mod' });
     this.groups = new Map((doc.effect_groups || []).map((g) => [g.id, g.name]));
     this.refusals = new Map(((doc.refusals && doc.refusals.codes) || []).map((r) => [r.code, r]));
     this.pagesCache = new Map();
@@ -414,8 +428,9 @@ function blockFrom(meta, unit, pad) {
   return { engine: unit.engine, values, on: unit.on !== false };
 }
 
-export function mirrorFromProject(meta, doc) {
-  const m = { current: 0, blocks: new Map(), levels: [0, 0, 0, 0], title: doc.title || doc.name || '' };
+export function mirrorFromProject(meta, doc, modBytes) {
+  const m = { current: 0, blocks: new Map(), levels: [0, 0, 0, 0], title: doc.title || doc.name || '',
+    rack: new Array(8).fill(''), cables: [], verdicts: [], pads: new Map() };
   m.current = doc.session && Number.isInteger(doc.session.current) ? doc.session.current - 1 : 0;
   (doc.sounds || []).slice(0, SOUNDS).forEach((s, k) => {
     if (!s) return;
@@ -429,6 +444,11 @@ export function mirrorFromProject(meta, doc) {
     }
     const b = blockFrom(meta, s, pad);
     if (b) m.blocks.set(blockKey(ROLE.SOUND, k), b);
+    // Every pad's own values, for undo (API v4: a kit's per-pad parameters).
+    if (b && pad && e) {
+      const per = e.params.filter((p) => hasFlag(p, 'per_focus'));
+      b.pads = s.pads.map((pd) => new Map(per.map((p) => [p.uid, pd && p.name in pd ? valueOf(p, pd[p.name]) : p.def])));
+    }
     m.levels[k] = Number(s.level) || 0;
     (s.inserts || []).slice(0, INSERTS).forEach((u, j) => {
       const ib = blockFrom(meta, u, null);
@@ -443,6 +463,21 @@ export function mirrorFromProject(meta, doc) {
     const b = blockFrom(meta, u, null);
     if (b) m.blocks.set(blockKey(ROLE.MASTER, 0, j), b);
   });
+  // The rack (its parameters by name, as an engine's) and the matrix (C's
+  // packed slots, fm1w_mod_records).
+  for (const r of (doc.mod && doc.mod.rack) || []) {
+    const b = blockFrom(meta, { engine: r.kind, params: r.params }, null);
+    if (b && r.pos >= 1 && r.pos <= 8) m.blocks.set(blockKey(ROLE.MODULE, 0, r.pos - 1), b);
+  }
+  if (modBytes && modBytes.length >= (POSITIONS + SLOTS) * REC + SLOTS) {
+    const d = decodeMod(modBytes);
+    m.rack = d.rack;
+    m.cables = d.cables;
+    m.verdicts = d.verdicts;
+  } else {
+    m.cables = Array.from({ length: SLOTS }, emptyCable);
+    m.verdicts = new Array(SLOTS).fill(0);
+  }
   return m;
 }
 
@@ -478,9 +513,156 @@ export function applyToMirror(meta, m, rec) {
     case T.CURRENT:
       m.current = rec.sound;
       return null;
+    case T.CABLE: {
+      if (!m.cables || rec.slot >= m.cables.length) return 'structure';
+      const before = m.cables[rec.slot];
+      const after = rec.cable;
+      m.cables[rec.slot] = after;
+      return { key: `c${rec.slot + 1}`, uid: 'all', before: JSON.stringify(before), after: JSON.stringify(after), cable: rec.slot, was: before, now: after };
+    }
     case T.VIEW:
       return null;
     default:
       return 'structure';
   }
 }
+
+// ---- chains and modulation (stage ED3, §5, §10) --------------------------------
+// The records and verbs that change structure, the rack and the matrix as
+// C packs them (fm1w_mod_records), and their names from the metadata. The
+// cable's fields are fm1_mod.h's slot layout (fm1_mod_slot_t); which cable
+// may run, and why not, is C's (the planner's verdicts).
+
+export const POSITIONS = 8;           // FM1_MOD_POSITIONS (the metadata's mod.positions)
+export const SLOTS = 32;              // FM1_MOD_SLOTS (mod.slots)
+export const NONE = 0xff;             // FM1_MOD_NONE: no source, no VIA
+export const ANY = 0xff;              // FM1_EDIT_ANY: the first empty slot or position
+// fm1_mod_slot_t's flags and codes (fm1_mod.h).
+export const SLOT_ON = 0x01, POL_MASK = 0x06, POL_SHIFT = 1, GATE_DST = 0x08, CURVE_MASK = 0x70, CURVE_SHIFT = 4, VOICE = 0x80;
+export const SRC_MODULE = 64;         // 64 + 8 x position + port
+export const UNIT_MODULE = 8;         // 8 + position: a module's parameters or gates
+export const Q14 = 16384;             // amount and offset: Q1.14 of the destination's range
+
+export function packUnit(role, sound, slot, id) {
+  const b = blank(T.UNIT, role, sound, slot);
+  b.set(new TextEncoder().encode(String(id || '')).subarray(0, 15), 4);
+  return b;
+}
+export function packModule(pos, id) {
+  const b = blank(T.MODULE, ROLE.MODULE, 0, pos);
+  b.set(new TextEncoder().encode(String(id || '')).subarray(0, 15), 4);
+  return b;
+}
+// A matrix slot: s as unpack gives it ({src, via, unit, flags, dst, amount, offset, uid}).
+export function packCable(slot, s) {
+  const b = blank(T.CABLE, 0, 0, slot);
+  const dv = new DataView(b.buffer);
+  b[4] = s.src; b[5] = s.via; b[6] = s.unit; b[7] = s.flags;
+  dv.setUint16(8, s.dst, true);
+  dv.setInt16(10, s.amount, true);
+  dv.setInt16(12, s.offset, true);
+  dv.setUint16(14, s.uid || 0, true);
+  return b;
+}
+// swap and move: two blocks ({role, sound, slot}).
+export function packVerb(type, a, b2) {
+  const b = blank(type, a.role, a.sound, a.slot);
+  b[4] = b2.role; b[5] = b2.sound; b[6] = b2.slot;
+  return b;
+}
+export function packCurrent(sound) { return blank(T.CURRENT, 0, sound, 0); }
+
+export function unpackCable(bytes, off = 0) {
+  const dv = new DataView(bytes.buffer, bytes.byteOffset + off, REC);
+  return { src: bytes[off + 4], via: bytes[off + 5], unit: bytes[off + 6], flags: bytes[off + 7],
+    dst: dv.getUint16(8, true), amount: dv.getInt16(10, true), offset: dv.getInt16(12, true), uid: dv.getUint16(14, true) };
+}
+export const emptyCable = () => ({ src: 0, via: NONE, unit: 0, flags: 0, dst: 0, amount: 0, offset: 0, uid: 0 });
+export const cableEqual = (a, b) => a.src === b.src && a.via === b.via && a.unit === b.unit && a.flags === b.flags &&
+  a.dst === b.dst && a.amount === b.amount && a.offset === b.offset && a.uid === b.uid;
+// A slot the panel shows as empty: nothing aimed and off (fm1_mod_ui_empty's sense).
+export const cableEmpty = (s) => !(s.flags & SLOT_ON) && s.dst === 0 && s.amount === 0 && s.src === 0 && s.unit === 0;
+export const pctOfQ14 = (q) => (q >= 0 ? Math.floor((q * 100 + 8192) / Q14) : -Math.floor((-q * 100 + 8192) / Q14));
+export const q14OfPct = (p) => Math.max(-Q14, Math.min(Q14, Math.round((p / 100) * Q14)));
+
+// The module keys: p1 ... p8, a rack position's block.
+export const modKey = (pos) => `p${pos + 1}`;
+export function parseModKey(key) {
+  const m = /^p([1-8])$/.exec(key);
+  return m ? m[1] - 1 : -1;
+}
+
+// What fm1w_mod_records writes: the rack (kind ids), the slots, a verdict a slot.
+export function decodeMod(bytes) {
+  const rack = [], cables = [], verdicts = [];
+  for (let i = 0; i < POSITIONS; ++i) rack.push(unpack(bytes, i * REC).id || '');
+  for (let i = 0; i < SLOTS; ++i) cables.push(unpackCable(bytes, (POSITIONS + i) * REC));
+  for (let i = 0; i < SLOTS; ++i) verdicts.push(bytes[(POSITIONS + SLOTS) * REC + i] || 0);
+  return { rack, cables, verdicts };
+}
+
+// The rack and matrix of the metadata: kinds, sources, units, curves.
+export class ModMeta {
+  constructor(meta) {
+    const m = meta.doc.mod || {};
+    this.meta = meta;
+    this.kinds = new Map((m.kinds || []).map((k) => [k.id, k]));
+    this.sources = new Map((m.sources || []).map((s) => [s.id, s]));
+    this.units = new Map((m.units || []).map((u) => [u.code, u.name]));
+    this.host = m.host || [];
+    this.polarities = m.polarities || [];
+    this.curves = m.curves || [];
+    this.positions = m.positions || POSITIONS;
+    this.slots = m.slots || SLOTS;
+  }
+  kind(id) { return this.kinds.get(id) || null; }
+  // A unit code's block key in the editor (a sound, an insert, a master
+  // slot), 'host', a module's key, or null; by the metadata's unit names.
+  unitKey(code) {
+    if (code >= UNIT_MODULE && code < UNIT_MODULE + this.positions) return modKey(code - UNIT_MODULE);
+    const name = this.units.get(code);
+    if (!name) return null;
+    if (name === 'host') return 'host';
+    let r = /^snd([1-4])$/.exec(name);
+    if (r) return blockKey(ROLE.SOUND, r[1] - 1);
+    r = /^snd([1-4])\.fx([1-4])$/.exec(name);
+    if (r) return blockKey(ROLE.INSERT, r[1] - 1, r[2] - 1);
+    r = /^fx([1-4])$/.exec(name);
+    if (r) return blockKey(ROLE.MASTER, 0, r[1] - 1);
+    return null;
+  }
+  unitCode(key) {
+    const pos = parseModKey(key);
+    if (pos >= 0) return UNIT_MODULE + pos;
+    for (const [code, name] of this.units) if (this.unitKey(code) === key && name !== 'snd') return code;
+    return -1;
+  }
+  // A source code's name: a fixed source by the metadata, or a module's
+  // output ("2 Env Out"); `rack` is the kind id at each position.
+  sourceName(code, rack) {
+    if (code === NONE) return '–';
+    if (code < SRC_MODULE) { const s = this.sources.get(code); return s ? s.name : `#${code}`; }
+    const pos = (code - SRC_MODULE) >> 3, port = (code - SRC_MODULE) & 7;
+    const k = this.kind(rack[pos]);
+    const out = k && k.outs ? k.outs[port] : null;
+    return `${pos + 1} ${k ? k.abbr : 'empty'} ${out ? out.name : `out ${port + 1}`}`;
+  }
+  // Every source a cable can start from now: the fixed ones, then each
+  // module's outputs. {code, name, kind (cv_uni, cv_bi, gate), group}.
+  sourceList(rack) {
+    const out = [];
+    for (const s of this.sources.values()) out.push({ code: s.id, name: s.name, kind: s.kind, group: 'Sources' });
+    rack.forEach((id, pos) => {
+      const k = this.kind(id);
+      (k && k.outs ? k.outs : []).forEach((o, port) => out.push({ code: SRC_MODULE + 8 * pos + port,
+        name: `${pos + 1} ${k.abbr} ${o.name}`, kind: o.kind, group: 'Modules' }));
+    });
+    return out;
+  }
+  // A cable's polarity, curve and the rest, from its flags.
+  pol(s) { return this.polarities[(s.flags & POL_MASK) >> POL_SHIFT] || ''; }
+  curve(s) { return this.curves[(s.flags & CURVE_MASK) >> CURVE_SHIFT] || ''; }
+}
+export const withPol = (flags, i) => (flags & ~POL_MASK) | ((i << POL_SHIFT) & POL_MASK);
+export const withCurve = (flags, i) => (flags & ~CURVE_MASK) | ((i << CURVE_SHIFT) & CURVE_MASK);
+export const withBit = (flags, bit, on) => (on ? flags | bit : flags & ~bit);

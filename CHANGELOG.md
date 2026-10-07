@@ -9,6 +9,23 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The advanced editor: effects, the mix and modulation** (stage ED3). The
+  editor now changes the structure of a project: *Choose engine…*, *Choose
+  effect…*, *Choose MIDI effect…* and *Choose module…* list every choice
+  with the memory the project would take, in percent, and say why a choice
+  does not fit. Drag an effect onto another slot, of any sound or the
+  master, to swap them (or pick it up with Space, aim with the arrow keys,
+  drop with Space); the slot says whether it fits before you let go. The
+  Mix shows each sound's level and meter and which sound is current; the
+  effects show their level in and out. A drum kit has a pad chooser above
+  its per-pad values. *Modulation* shows the mod rack as cards with each
+  module's live output, and the matrix: every cable, what it does, its live
+  value and why it does not run when it does not, with *Add a cable* and
+  every setting of a cable. Undo covers engine and effect changes, swaps,
+  moved modules and cables, from the editor and the panel alike.
+- **The simulator no longer lets an effect into a sound with no engine**
+  from the editor: no saved file could hold it, so it vanished on the next
+  save.
 - **The advanced editor, first views** (stage ED2). A switch at the top of
   the simulator's page (Panel, Workbench, Editor) opens an editor beside the
   panel or in its place. *Flow* shows the four sounds into the mix and the
@@ -20,8 +37,7 @@ history.
   knobs turn now are marked K1 to K4. Undo and Redo cover changes from both.
   The computer keyboard plays the instrument (PLAY) until you click in the
   editor or press Ctrl+E / ⌘E (EDIT), and Esc gives it back. The memory the
-  project takes is shown in percent, by sound. Choosing engines and
-  effects, moving effects and modulation come in the next stages.
+  project takes is shown in percent, by sound.
 - **The advanced editor's engine room** (stage ED1; no visible change yet).
   The simulator now has one way in for every edit, which the panel's own
   knobs and buttons share and the coming web editor will use: sounds,

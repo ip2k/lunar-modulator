@@ -74,6 +74,20 @@ static int is_effect_unit(int unit) {
   return role == FM1_ROLE_INSERT || role == FM1_ROLE_MASTER;
 }
 
+/* An insert of a sound with no engine. A file writes a sound's inserts with
+ * its engine and has no place for them without one, so the editor may not
+ * put an effect there (stage ED3): an effect moved into such a slot would
+ * vanish from every save and every hash. */
+static int insert_of_empty(const fm1_app_t *a, int unit) {
+  uint8_t role, sound, slot;
+  int su;
+  if (unit < 0) return 0;
+  where(unit, &role, &sound, &slot);
+  if (role != FM1_ROLE_INSERT) return 0;
+  su = unit_of(FM1_ROLE_SOUND, sound, 0);
+  return su < 0 || !a->unit[su].e;
+}
+
 const fm1_param_t *fm1_edit_find_param(const char *id, uint16_t uid) {
   const fm1_param_t *ps = NULL;
   unsigned n = 0, i;
@@ -569,6 +583,7 @@ static int apply_unit(fm1_app_t *a, const fm1_rec_t *r) {
     int index;
     if (unit < 0) return FM1_REFUSE_BAD;
     if (!id[0]) return unit > 0 ? select_code(fm1_app_select(a, unit, -1)) : FM1_REFUSE_BAD;
+    if (insert_of_empty(a, unit)) return FM1_REFUSE_BAD;
     index = fm1_app_find(id);
     if (index < 0) return fm1_midi_fx_find(id) ? FM1_REFUSE_BAD : FM1_REFUSE_UNKNOWN;
     if (a->unit[unit].index == index) return 0;   /* as a picker left on its entry: no reload */
@@ -663,6 +678,7 @@ int fm1_edit_verb(fm1_app_t *a, const fm1_edit_verb_t *v, uint8_t src, uint16_t 
       {
         const int ua = verb_unit(v, 0), ub = verb_unit(v, 1);
         if (!is_effect_unit(ua) || !is_effect_unit(ub) || ua == ub) code = FM1_REFUSE_BAD;
+        else if (insert_of_empty(a, ua) || insert_of_empty(a, ub)) code = FM1_REFUSE_BAD;
         else if (fm1_app_swap_units(a, ua, ub) != 0) code = FM1_REFUSE_BAD;
       }
       break;

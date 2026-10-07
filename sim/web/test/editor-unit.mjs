@@ -1,4 +1,4 @@
-// editor-unit.mjs -- the web editor's data and history (stage ED2,
+// editor-unit.mjs -- the web editor's data and history (stages ED2 and ED3,
 // notes/2026-10-06-web-editor.md §6, §8), against the module itself:
 //
 //   node editor-unit.mjs WWW_DIR
@@ -11,7 +11,11 @@
 // matches the module's own values; the history merges a drag, key repeats
 // and knob turns as §8 says, and undoing every step of a random edit
 // sequence ends at the first state hash, redoing at the last; RAM by part
-// adds up to the whole (when the module has fm1w_ram_part). Prints a JSON
+// adds up to the whole (when the module has fm1w_ram_part). ED3: modules,
+// cables, swaps and moves as packed records, the feed and fm1w_mod_records
+// decoded the same; refused records change nothing; random structural edits
+// made through chains.js undone to the first state hash and redone to the
+// last. Prints a JSON
 // report; exits 1 on any failure. MIT licence, like the rest of this
 // repository.
 
@@ -232,6 +236,125 @@ changes();
   report.undo = { steps: h.entries.length, refused, first, last, back, again };
   check('undoing every step ends at the first hash', back === first && last !== first, JSON.stringify(report.undo));
   check('redoing every step ends at the last hash', again === last, JSON.stringify(report.undo));
+}
+
+// ---- stage ED3: structure, the rack, the matrix, structural undo ------------------------
+{
+  const C = await imp('editor/chains.js');
+  const mm = new M.ModMeta(meta);
+  const REC = M.REC;
+  const stateHash = () => { const n = ex.fm1w_edit_dump(); return /hash ([0-9a-f]+)/.exec(dec.decode(text().slice(0, n)))[1]; };
+  function applyAll(bytes) {
+    const codes = [];
+    for (let o = 0; o < bytes.length; o += 64 * REC) {
+      const chunk = bytes.subarray(o, Math.min(bytes.length, o + 64 * REC));
+      new Uint8Array(fm1.memory.buffer, ex.fm1w_edit_buf(), 64 * REC).set(chunk);
+      ex.fm1w_edit(chunk.length / REC, 0);
+      codes.push(...new Int8Array(fm1.memory.buffer, ex.fm1w_edit_codes(), chunk.length / REC));
+    }
+    ex.fm1w_render(64);
+    return codes;
+  }
+  const hasRecords = typeof ex.fm1w_mod_records === 'function';
+  const modBytes = () => { if (!hasRecords) return null; const n = ex.fm1w_mod_records(); return text().slice(0, n * REC + M.SLOTS); };
+  const snap = () => M.mirrorFromProject(meta, project(), modBytes());
+  changes();
+
+  // Records and verbs in, the change feed and fm1w_mod_records out, decoded the same.
+  const kinds = [...mm.kinds.keys()];
+  const s1e = meta.engine(snap().blocks.get('s1').engine);
+  const modP = s1e.params.find((p) => M.hasFlag(p, 'mod') && !M.hasFlag(p, 'nolock') && p.type === 'float');
+  const nolockP = s1e.params.find((p) => M.hasFlag(p, 'nolock'));
+  const cab = { src: M.SRC_MODULE + 8 * 7, via: M.NONE, unit: mm.unitCode('s1'), flags: M.SLOT_ON | M.withPol(0, 2), dst: modP.uid,
+    amount: M.q14OfPct(-37), offset: M.q14OfPct(12), uid: 0 };
+  const r = applyAll(M.concat([M.packModule(7, kinds[1]), M.packCable(31, cab)]));
+  const fed = changes();
+  const fc = fed.find((c) => c.rec.type === M.T.CABLE && c.rec.slot === 31);
+  const fm = fed.find((c) => c.rec.type === M.T.MODULE && c.rec.slot === 7);
+  check('a module and a cable from the editor apply', r[0] === 0 && r[1] === 0, JSON.stringify(r));
+  check('the feed carries them back, decoded as packed', !!fc && M.cableEqual(fc.rec.cable, cab) && !!fm && fm.rec.id === kinds[1],
+    JSON.stringify({ fc: fc && fc.rec.cable, cab }));
+  if (hasRecords) {
+    const d = M.decodeMod(modBytes());
+    check('fm1w_mod_records gives the rack and the matrix as C keeps them', d.rack[7] === kinds[1] && M.cableEqual(d.cables[31], cab) && d.verdicts[31] === 0,
+      JSON.stringify({ rack: d.rack, c: d.cables[31], v: d.verdicts[31] }));
+    if (nolockP) {
+      const rr = applyAll(M.packCable(30, { ...cab, dst: nolockP.uid }));
+      const d2 = M.decodeMod(modBytes());
+      check('a cable the planner leaves out is written, with its reason as verdict', rr[0] >= 32 && d2.verdicts[30] === rr[0] && !M.cableEmpty(d2.cables[30]),
+        JSON.stringify({ rr, v: d2.verdicts[30] }));
+      applyAll(M.packCable(30, M.emptyCable()));
+    }
+  } else {
+    report.ed3 = 'the module predates fm1w_mod_records';
+  }
+  check('the rack and the matrix name every source and destination from the metadata',
+    mm.sourceName(cab.src, snap().rack).startsWith('8 ') && mm.unitKey(cab.unit) === 's1' && mm.unitKey(mm.unitCode('s2.in1')) === 's2.in1' &&
+    mm.unitKey(mm.unitCode('m2')) === 'm2' && mm.unitKey(mm.unitCode('p3')) === 'p3', '');
+  changes();
+
+  // Refusals change nothing (§17).
+  const h0 = stateHash();
+  const bad = applyAll(M.concat([M.packVerb(M.T.SWAP, { role: M.ROLE.SOUND, sound: 0, slot: 0 }, { role: M.ROLE.INSERT, sound: 1, slot: 1 }),
+    M.packModule(2, 'no-such-kind'), M.packCable(40, cab), M.packUnit(M.ROLE.INSERT, 0, 0, 'no-such-fx'),
+    // an effect into an insert of a sound with no engine: no file could hold it
+    M.packUnit(M.ROLE.INSERT, 3, 0, metaDoc.engines.find((e) => e.kind === 'audio_fx').id),
+    M.packVerb(M.T.SWAP, { role: M.ROLE.MASTER, sound: 0, slot: 0 }, { role: M.ROLE.INSERT, sound: 3, slot: 1 })]));
+  check('refused swaps, modules, slots and units leave the state as it was', bad.every((c) => c > 0 && c < 32) && stateHash() === h0,
+    JSON.stringify({ bad, same: stateHash() === h0 }));
+  // A swap twice is no swap.
+  const sw = M.packVerb(M.T.SWAP, { role: M.ROLE.INSERT, sound: 0, slot: 0 }, { role: M.ROLE.MASTER, sound: 0, slot: 0 });
+  applyAll(sw);
+  const h1 = stateHash();
+  applyAll(sw);
+  check('a swap undoes by itself', h1 !== h0 && stateHash() === h0, '');
+
+  // Structural undo: random choices, swaps and moves made through chains.js,
+  // undone to the first state hash and redone to the last.
+  let t = 0;
+  const st = { mirror: snap(), live: null, keys: 'edit' };
+  const h = new History({ now: () => (t += 5000) });
+  let refusedOps = 0;
+  const ctx = {
+    st, meta, mm, history: h, files: {}, el: null, root: null,
+    blockOf: (k) => st.mirror.blocks.get(k) || null,
+    engineName: (id) => (meta.engine(id) ? meta.engine(id).name : id),
+    sendOps: (bytes, info) => {
+      const codes = applyAll(bytes);
+      if (info && info.entry && codes.some((c) => c > 0 && c < 32)) { h.drop(info.entry); refusedOps += 1; }
+      st.mirror = snap();
+      return 1;
+    },
+    renderHistory() {}, say() {}, showRefusal() {},
+  };
+  const ch = C.makeChains(ctx);
+  let seed = 7;
+  const rnd = (n) => { seed = (seed * 1103515245 + 12345) >>> 0; return (seed >>> 8) % n; };
+  const fx = [''].concat(metaDoc.engines.filter((e) => e.kind === 'audio_fx').map((e) => e.id));
+  const snd = metaDoc.engines.filter((e) => e.kind === 'sound').map((e) => e.id);
+  const mfx = metaDoc.engines.filter((e) => e.kind === 'midi_fx').map((e) => e.id);
+  const effects = ch.effectKeys();
+  const first = stateHash();
+  const did = [];
+  for (let i = 0; i < 28; ++i) {
+    const k = rnd(6);
+    if (k === 0) { const key = effects[rnd(effects.length)]; ch.choose(key, fx[rnd(fx.length)]); did.push(`fx ${key}`); }
+    else if (k === 1) { const s = 1 + rnd(3); ch.choose(`s${s + 1}`, snd[rnd(snd.length)]); did.push(`engine s${s + 1}`); }
+    else if (k === 2) { ch.choose(M.modKey(rnd(8)), rnd(4) ? kinds[rnd(kinds.length)] : ''); did.push('module'); }
+    else if (k === 3) { const a = rnd(8), b = rnd(8); if (a !== b) { ch.moveTo(M.modKey(a), M.modKey(b)); did.push('move'); } }
+    else if (k === 4) { const a = rnd(effects.length), b = rnd(effects.length); if (a !== b) { ch.moveTo(effects[a], effects[b]); did.push('swap'); } }
+    else { ch.choose(`s${1 + rnd(4)}.mfx1`, mfx[rnd(mfx.length)]); did.push('midi'); }
+  }
+  const last = stateHash();
+  const steps = h.entries.length;
+  let e;
+  while ((e = h.undo())) ch.undoStruct(e, false);
+  const back = stateHash();
+  while ((e = h.redo())) ch.undoStruct(e, true);
+  const again = stateHash();
+  report.structural = { steps, refused: refusedOps, first, last, back, again };
+  check('undoing every structural step ends at the first state hash', steps >= 15 && last !== first && back === first, JSON.stringify(report.structural));
+  check('redoing every structural step ends at the last', again === last, JSON.stringify(report.structural));
 }
 
 // ---- RAM by part ----------------------------------------------------------------------------

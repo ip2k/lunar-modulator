@@ -1,5 +1,6 @@
-// editor-ui.mjs -- the Advanced editor's shell, flow and sound in headless
-// Chromium (stage ED2, notes/2026-10-06-web-editor.md §4, §7, §8, §13, §14,
+// editor-ui.mjs -- the Advanced editor's shell, flow, sound, chains and
+// modulation in headless Chromium (stages ED2 and ED3,
+// notes/2026-10-06-web-editor.md §4, §7, §8, §10, §13, §14,
 // §17). Runs in the Playwright container on aeon after editor.mjs
 // (build-on-aeon.sh), never on the Mac:
 //
@@ -16,6 +17,13 @@
 // metadata with no overflow at the Workbench's and the tablet's column
 // widths; the Workbench and Editor layouts at 1,440 and 1,024 px with no
 // sideways scroll, no label over its control, and screenshots to look at.
+// ED3: a block moved by its keyboard twin and by a pointer drag, with C's
+// verdict before the drop; a picker's RAM column; a refusal C makes, in the
+// metadata's words, changing nothing; the matrix (a cable added, typed,
+// its polarity set, one the planner leaves out); the rack (a module moved by
+// keys, one chosen, one emptied); each undone to the state before it, the
+// view aside; the rack's kinds among the inspectors; the Modulation view in
+// the layouts.
 // MIT licence, like the rest of this repository.
 
 import { createRequire } from 'node:module';
@@ -196,10 +204,208 @@ const ctrlE = await page.evaluate(() => window.fm1.editor.state.keys);
 await page.keyboard.press('Escape');
 check('Ctrl+E gives them to the editor', ctrlE === 'edit', ctrlE);
 
+// ---- stage ED3: move and swap, pickers, refusals, the matrix, structural undo -------------
+// Compared less the view and the current sound: opening a sound's page on
+// the panel (follow, the view verb) makes it the current one, which a file
+// keeps as session.current; neither is an edit nor in the history (§7, §8).
+const lessView = (a, b) => page.evaluate(async ({ a, b }) => {
+  const d = await window.fm1.files.shadow('diff', { a: window.__bins[a], b: window.__bins[b] });
+  return (d.changes || []).filter((c) => !c.path.startsWith('view.') && c.path !== 'session.current').map((c) => c.path);
+}, { a, b });
+await page.click('[data-layout="editor"]');
+await page.evaluate(() => window.fm1.editor.select('m1', { view: 'flow' }));
+await page.waitForTimeout(400);
+const e0 = await page.evaluate(() => window.__hash());
+// The keyboard twin: M1 picked up with Space, aimed with the arrows, dropped with Space.
+const kb = await page.evaluate(async () => {
+  const ed = window.fm1.editor;
+  const w = (t) => new Promise((r) => setTimeout(r, t));
+  const eng = (k) => (ed.state.mirror.blocks.get(k) || {}).engine || '';
+  const places = ed.chains.effectKeys();
+  document.querySelector('.ed-block[data-block="m1"]').focus();
+  ed.setKeys('edit');
+  const key = (k) => document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+  key(' ');
+  for (let i = places.indexOf('m1'); i > 0; --i) { key('ArrowUp'); await w(40); }
+  await w(900);
+  const pill = document.querySelector('.ed-verdict');
+  const target = document.querySelector('.is-target');
+  const before = [eng('m1'), eng(places[0])];
+  key(' ');
+  await w(1000);
+  const last = ed.history.entries[ed.history.entries.length - 1];
+  return { verdict: pill && pill.textContent, target: target && target.dataset.drop, first: places[0], before, after: [eng('m1'), eng(places[0])],
+    label: last && last.label, focus: document.activeElement && document.activeElement.dataset.block };
+});
+report.ed3 = { keys: kb };
+check('Space picks a block up and the arrows aim it, with C\'s verdict before the drop', /^Swap · RAM \d+ %$/.test(kb.verdict || '') && kb.target === kb.first, kb);
+check('Space drops it: the two slots swap, as one history step', kb.after[0] === kb.before[1] && kb.after[1] === kb.before[0] && /^Swap M1 and /.test(kb.label || ''), kb);
+check('the keys stay with the moved block', kb.focus === kb.first, kb);
+await page.evaluate(() => window.fm1.editor.undo());
+await page.waitForTimeout(700);
+const e1 = await page.evaluate(() => window.__hash());
+const kbBack = await lessView(e0.bin, e1.bin);
+check('undo puts the swap back', kbBack.length === 0, kbBack);
+// The pointer: M1 dragged onto S1 In2 (both in view first, or the mouse
+// would land on the panel's knobs).
+await page.evaluate(() => { document.querySelector('.ed-flow').scrollIntoView({ block: 'center', behavior: 'instant' }); });
+await page.waitForTimeout(200);
+const box = async (sel) => page.locator(sel).first().boundingBox();
+const from = await box('.ed-block[data-block="m1"]');
+const to = await box('.ed-block[data-block="s1.in2"]');
+const hits = await page.evaluate(({ a, b }) => [a, b].map(([x, y]) => { const e = document.elementFromPoint(x, y); return e ? `${e.tagName}.${e.className}` : null; }),
+  { a: [from.x + from.width / 2, from.y + from.height / 2], b: [to.x + to.width / 2, to.y + to.height / 2] });
+await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+await page.mouse.down();
+for (let i = 1; i <= 8; ++i) await page.mouse.move(from.x + from.width / 2 + ((to.x - from.x) * i) / 8, from.y + from.height / 2 + ((to.y - from.y) * i) / 8);
+await page.waitForTimeout(900);
+const dragPill = await page.evaluate(() => { const p = document.querySelector('.ed-verdict'); return p && p.textContent; });
+await page.mouse.up();
+await page.waitForTimeout(1000);
+const drag = await page.evaluate(() => {
+  const ed = window.fm1.editor;
+  return { m1: (ed.state.mirror.blocks.get('m1') || {}).engine || '', in2: (ed.state.mirror.blocks.get('s1.in2') || {}).engine || '' };
+});
+report.ed3.drag = { pill: dragPill, ...drag, hits };
+check('a pointer drag shows the verdict over its target and swaps on release', /^Swap · RAM/.test(dragPill || '') && drag.in2 === kb.before[0], report.ed3.drag);
+await page.evaluate(() => window.fm1.editor.undo());
+await page.waitForTimeout(700);
+// A picker: each choice's RAM after in percent (or C's refusal), the choice made, then undone.
+await page.evaluate(() => window.fm1.editor.select('m1', { view: 'flow' }));
+await page.waitForTimeout(300);
+await page.click('.ed-flow-insp .ed-pick');
+await page.waitForFunction(() => document.querySelectorAll('.ed-pick-ram').length > 3 &&
+  [...document.querySelectorAll('.ed-pick-o:not([hidden]) .ed-pick-ram')].every((c) => c.textContent !== '…'), null, { timeout: 15000 });
+const pick = await page.evaluate(async () => {
+  const ed = window.fm1.editor;
+  const cells = [...document.querySelectorAll('.ed-pick-o:not([hidden])')].map((o) => [o.dataset.id, o.querySelector('.ed-pick-ram').textContent, o.classList.contains('is-refused')]);
+  const was = (ed.state.mirror.blocks.get('m1') || {}).engine || '';
+  const o = [...document.querySelectorAll('.ed-pick-o:not([hidden]):not(.is-refused):not(.is-cur)')].find((x) => x.dataset.id);
+  o.click();
+  await new Promise((r) => setTimeout(r, 1000));
+  return { cells, was, chose: o.dataset.id, now: (ed.state.mirror.blocks.get('m1') || {}).engine || '' };
+});
+report.ed3.picker = { rows: pick.cells.length, chose: pick.chose, sample: pick.cells.slice(0, 4) };
+check('a picker shows every choice\'s RAM in percent, or C\'s refusal in words', pick.cells.length > 10 &&
+  pick.cells.every(([, t, refused]) => (refused ? t.length > 3 && !/RAM \d/.test(t) : /^RAM \d+ %$|^\d+ % over$/.test(t))), pick.cells);
+check('choosing in it changes the block', pick.now === pick.chose && pick.chose !== pick.was, pick);
+await page.evaluate(() => window.fm1.editor.undo());
+await page.waitForTimeout(800);
+const e2 = await page.evaluate(() => window.__hash());
+const pickBack = await lessView(e0.bin, e2.bin);
+check('undo puts the effect back', pickBack.length === 0, pickBack);
+// A refusal from C: S1's engine cannot be emptied. The picker does not
+// offer it; asked anyway, nothing changes and the words are the metadata's.
+const refusal = await page.evaluate(async () => {
+  const ed = window.fm1.editor;
+  ed.select('s1', { view: 'sound' });
+  await new Promise((r) => setTimeout(r, 300));
+  document.querySelector('.ed-insp[data-block="s1"] .ed-pick').click();
+  await new Promise((r) => setTimeout(r, 2500));
+  const emptyOffered = !!document.querySelector('.ed-pick-o[data-id=""]:not([hidden])');
+  ed.chains.closePicker();
+  const lastId = () => (ed.history.entries.length ? ed.history.entries[ed.history.entries.length - 1].id : 0);
+  const n = lastId();
+  ed.chains.choose('s1', '');
+  await new Promise((r) => setTimeout(r, 900));
+  return { emptyOffered, kept: lastId() === n, detail: document.querySelector('.ed-detail').textContent, words: ed.meta.refusalWords(8) };
+});
+const e3 = await page.evaluate(() => window.__hash());
+const refBack = await lessView(e0.bin, e3.bin);
+report.ed3.refusal = refusal;
+check('a choice C refuses is not offered, and asked anyway changes nothing, in its words', !refusal.emptyOffered && refusal.kept &&
+  refusal.detail.includes(refusal.words) && refBack.length === 0, { refusal, refBack });
+// The matrix: a cable added, its amount typed, its polarity set, aimed where
+// the planner leaves it out (its reason in words), each undone.
+await page.evaluate(() => window.fm1.editor.select('p1', { view: 'mod' }));
+await page.waitForTimeout(500);
+const mx = await page.evaluate(async () => {
+  const ed = window.fm1.editor;
+  const w = (t) => new Promise((r) => setTimeout(r, t));
+  const used = () => ed.state.mirror.cables.filter((c) => c.flags & 1).length;
+  const n0 = used();
+  const h0 = ed.history.entries.length ? ed.history.entries[ed.history.entries.length - 1].id : 0;
+  [...document.querySelectorAll('.ed-btn')].find((b) => b.textContent === 'Add a cable').click();
+  await w(1000);
+  const i = Number(ed.state.selCable.slice(1)) - 1;
+  const amt = document.querySelector(`.ed-mx-r[data-cable="${i}"] .ed-amt`);
+  amt.focus();
+  amt.value = '-40';
+  amt.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  amt.blur();
+  await w(900);
+  const bi = [...document.querySelectorAll('.ed-slot .ed-segbtn')].find((b) => b.textContent === ed.mm.polarities[2]);
+  bi.click();
+  await w(900);
+  const c = ed.state.mirror.cables[i];
+  // Any sound's parameter that rebuilds the voices (flag nolock).
+  let nl = null, nk = null;
+  for (const [k, b] of ed.state.mirror.blocks) {
+    const e = /^s[1-4]$/.test(k) ? ed.meta.engine(b.engine) : null;
+    const p = e && e.params.find((x) => (x.flags || []).includes('nolock'));
+    if (p) { nl = p; nk = k; break; }
+  }
+  let late = null;
+  if (nl) {
+    const to = `${ed.mm.unitCode(nk)}:${nl.uid}:0`;
+    const sel = document.querySelector(`.ed-mx-r[data-cable="${i}"] [data-fk="c${i + 1}:to"]`);
+    if (![...sel.options].some((o) => o.value === to)) sel.append(new Option('test', to));
+    sel.value = to;
+    sel.dispatchEvent(new Event('change'));
+    await w(1200);
+    const row = document.querySelector(`.ed-mx-r[data-cable="${i}"]`);
+    late = { refused: row.classList.contains('is-refused'), text: row.querySelector('.ed-mx-v').textContent, words: ed.meta.refusalWords(34) };
+  }
+  return { n0, n1: used(), steps: ed.history.entries.filter((e) => e.id > h0).length, amount: c.amount, pol: (c.flags & 6) >> 1, late, slot: i };
+});
+report.ed3.matrix = mx;
+check('Add a cable puts one in the first empty slot', mx.n1 === mx.n0 + 1, mx);
+check('its amount typed and its polarity chosen reach C', mx.amount === Math.round(-0.4 * 16384) && mx.pol === 2, mx);
+check('a cable the planner leaves out shows its reason in the metadata\'s words', !!mx.late && mx.late.refused && mx.late.text.startsWith(mx.late.words), mx.late);
+await page.evaluate(async (n) => { for (let k = 0; k < n; ++k) { window.fm1.editor.undo(); await new Promise((r) => setTimeout(r, 300)); } }, mx.steps);
+await page.waitForTimeout(800);
+const e4 = await page.evaluate(() => window.__hash());
+const mxBack = await lessView(e0.bin, e4.bin);
+check('undoing the matrix edits ends where they began', mxBack.length === 0, mxBack);
+// The rack: a module moved by keys to the first empty place, one chosen and one emptied, each undone.
+const rk = await page.evaluate(async () => {
+  const ed = window.fm1.editor;
+  const w = (t) => new Promise((r) => setTimeout(r, t));
+  const rack = () => ed.state.mirror.rack.slice();
+  const r0 = rack();
+  const empty = r0.indexOf('');
+  const h0 = ed.history.entries.length ? ed.history.entries[ed.history.entries.length - 1].id : 0;
+  ed.select('p1', { view: 'mod' });
+  await w(300);
+  document.querySelector('.ed-card-m[data-block="p1"]').focus();
+  ed.setKeys('edit');
+  const key = (k) => document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+  key(' ');
+  for (let i = 0; i < empty; ++i) { key('ArrowRight'); await w(40); }
+  await w(800);
+  key(' ');
+  await w(1000);
+  const r1 = rack();
+  const moved = ed.history.entries[ed.history.entries.length - 1];
+  const kinds = [...ed.mm.kinds.keys()];
+  ed.chains.choose('p8', kinds[kinds.length - 1]);
+  await w(1000);
+  ed.chains.choose(`p${empty + 1}`, '');
+  await w(1000);
+  return { r0, r1, r2: rack(), empty, steps: ed.history.entries.filter((e) => e.id > h0).length, movedAfter: moved && moved.after };
+});
+report.ed3.rack = rk;
+check('a rack module moves by keys, its kind with it, as one step in words', rk.empty > 0 && rk.r1[rk.empty] === rk.r0[0] && rk.movedAfter === 'moved', rk);
+await page.evaluate(async (n) => { for (let k = 0; k < n; ++k) { window.fm1.editor.undo(); await new Promise((r) => setTimeout(r, 350)); } }, rk.steps);
+await page.waitForTimeout(800);
+const e5 = await page.evaluate(() => window.__hash());
+const rkBack = await lessView(e0.bin, e5.bin);
+check('undoing the rack edits ends at the state before them', rk.steps === 3 && rkBack.length === 0, { steps: rk.steps, rkBack });
+
 // ---- every module's inspector from the metadata, at two column widths ----------------
 const inspectors = await page.evaluate(async () => {
   const ed = window.fm1.editor;
-  const ids = ed.meta.doc.engines.map((e) => e.id);
+  const ids = ed.meta.doc.engines.map((e) => e.id).concat(ed.mm ? [...ed.mm.kinds.keys()] : []);
   const bad = [];
   let rows = 0;
   for (const width of [620, 360]) {
@@ -258,10 +464,10 @@ async function layoutCheck(name) {
     if (document.documentElement.scrollWidth > vw + 1) bad.push(`page scrolls sideways (${document.documentElement.scrollWidth} > ${vw})`);
     const ed = document.querySelector('.ed');
     if (ed.getBoundingClientRect().right > vw + 1) bad.push('the editor runs past the page');
-    for (const t of ed.querySelectorAll('.ed-label, .ed-segbtn, .ed-blk-n, .ed-blk-k, .ed-out-name, .ed-step, .ed-chip, .ed-ram, .ed-toggle')) {
+    for (const t of ed.querySelectorAll('.ed-label, .ed-segbtn, .ed-blk-n, .ed-blk-k, .ed-out-name, .ed-step, .ed-chip, .ed-ram, .ed-toggle, .ed-mx-v, .ed-mx-n, .ed-btn, .ed-live')) {
       if (t.getClientRects().length && t.scrollWidth > t.clientWidth + 1) bad.push(`"${t.textContent.slice(0, 30)}" overflows`);
     }
-    for (const b of ed.querySelectorAll('.ed-block, .ed-insp')) {
+    for (const b of ed.querySelectorAll('.ed-block, .ed-insp, .ed-card-m, .ed-mx-r')) {
       const r = b.getBoundingClientRect();
       const p = b.parentElement.getBoundingClientRect();
       if (r.width && (r.right > p.right + 1 || r.left < p.left - 1)) bad.push(`${b.dataset.block} outside its row`);
@@ -273,16 +479,17 @@ const shots = [];
 for (const [w, h] of [[1440, 1000], [1024, 768]]) {
   await page.setViewportSize({ width: w, height: h });
   for (const layout of ['workbench', 'editor']) {
-    for (const view of ['sound', 'flow']) {
+    for (const view of ['sound', 'flow', 'mod']) {
       await page.evaluate(async ({ layout, view }) => {
         document.querySelector(`[data-layout="${layout}"]`).click();
         await new Promise((r) => setTimeout(r, 150));
         if (view === 'flow') document.querySelector('.ed-out-fx').click();
+        else if (view === 'mod') document.querySelector('.ed-out-mod').click();
         else document.querySelectorAll('.ed-out')[2].click();       // S3
         window.scrollTo(0, 0);
         await new Promise((r) => setTimeout(r, 250));
       }, { layout, view });
-      const name = `ed2-${layout}-${view}-${w}`;
+      const name = `${view === 'mod' ? 'ed3' : 'ed2'}-${layout}-${view}-${w}`;
       const bad = await layoutCheck(name);
       check(`${layout}, ${view} at ${w} px: no sideways scroll, nothing overflowing`, bad.length === 0, bad);
       const file = join(out, `${name}.png`);

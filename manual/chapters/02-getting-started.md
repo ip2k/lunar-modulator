@@ -161,8 +161,29 @@ in the editor; move a slider in the editor and the panel opens that page.
 - **RAM** shows how much of the FM-1's memory the project takes, in percent,
   and how much each sound takes.
 
-Choosing engines and effects, moving effects and the modulation come to the
-editor in later versions; until then, use the panel.
+- **Choose engine…**, **Choose effect…**, **Choose MIDI effect…** and
+  **Choose module…** list every choice with the memory the project would
+  take with it, in percent; a choice that does not fit says why and cannot
+  be picked.
+- **Moving effects:** drag an effect onto another effect slot, of any sound
+  or the master, and the two swap places, with their modulation. Before you
+  let go, the slot under it says whether it fits. With the keyboard: Space
+  picks the effect up, the arrow keys choose where, Space drops it and Esc
+  cancels. *Swap with…* in an effect's box does the same from a list.
+- **Mix** (in Flow) has each sound's level and meter, and *Make current*.
+  The master effects and each sound's effects show their level in and out.
+- A drum kit shows a **pad** chooser above the values that belong to that
+  pad (marked *pad*).
+- **Modulation** (on the left) shows the mod rack as eight cards, each with
+  its live output, and the matrix below: every cable with where it comes
+  from, where it goes, how much, its live value, and why it does not run
+  when it does not. Click a cable's number for all of its settings; *Add a
+  cable* adds one. Drag a module's card to another place to move it.
+- **Undo** covers all of this too: an engine or effect changed, a swap, a
+  module moved, a cable edited.
+
+The patch-bay view of the modulation, files and A/B come to the editor in
+later versions.
 
 ### Running the simulator from your own copy
 
