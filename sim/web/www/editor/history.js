@@ -59,7 +59,10 @@ export class History {
       }
       return last;
     }
-    this.entries.length = this.at;               // a new edit: no more redo
+    // A new edit: no more redo (kept aside until C has answered, so an edit
+    // it refuses gives the redo back, in drop).
+    this.tail = { id: this.nextId, entries: this.entries.slice(this.at) };
+    this.entries.length = this.at;
     const e = { id: this.nextId++, target: c.target, label: c.label || c.target, before: c.before, after: c.after,
       origin: c.origin, how: c.how || 'set', at: t, info: c.info || null };
     this.entries.push(e);
@@ -81,7 +84,9 @@ export class History {
     if (i >= 0 && i === this.at - 1 && this.at === this.entries.length) {
       this.entries.splice(i, 1);
       this.at -= 1;
+      if (this.tail && this.tail.id === id) this.entries.push(...this.tail.entries);
     }
+    this.tail = null;
   }
 
   undo() {

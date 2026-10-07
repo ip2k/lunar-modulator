@@ -81,6 +81,8 @@ never sends") stands.
 20. Found on the way
 21. Stage ED0, as built
 22. Stage ED1, as built
+23. Stage ED2, as built
+24. Stage ED3, as built
 
 ## 1. Short answer
 
@@ -669,7 +671,7 @@ chain's four slots and two sends.
 | **ED0** Metadata and C helpers | The metadata additions of §6 in E2's `fm1-render --meta`, with their golden; `fm1_param_parse` and its round-trip test; per-slot refusal codes and the loop each late slot closes, in the planner's info | `engines/` and `tools/` only: after the state core (E1–E3, with E2's metadata export) has landed |
 | **ED1** Edit layer and shadow Worker (**built**, §22) | `fm1_edit.c` (live apply of records and verbs, the change ring with sources, telemetry with a subscription mask, the view record and knob map); the hooks in `fm1_app.c`; the wasm exports and worklet messages of §5; `editor/shadow.worker.js`; the parity, refusal and underrun tests. No UI | A1 |
 | **ED2** Shell, flow and sound (**built**, §23) | The layouts, outline and screen card, app bar and RAM by part; the Flow (selection only) and the Sound inspector from metadata; the detail bar; follow both ways and K1–K4; history and undo for parameters; PLAY and EDIT | ED1, W1 |
-| **ED3** Chains and modulation | Drag to move and swap with its keyboard twin and RAM verdicts; effect pickers; master inspectors with meters; the Mix; per-pad rows (API v4); the rack cards, the matrix table, slot and module inspectors; structural undo | ED2 |
+| **ED3** Chains and modulation (**built**, §24) | Drag to move and swap with its keyboard twin and RAM verdicts; effect pickers; master inspectors with meters; the Mix; per-pad rows (API v4); the rack cards, the matrix table, slot and module inspectors; structural undo | ED2 |
 | **ED4** Files and project | Drop targets, per-block export, the library, `view=edit` and `sel`; ⌘K search; A/B and the Memory page; undo's snapshot fallback | ED3 |
 | **ED5** The Map and reach | The patch-bay Map with focus; phones; keyboard and screen-reader passes; the layout check in the page tests; a manual chapter | ED4 |
 | later | The pop-out window; a song-list view on S9+'s data; an FM6 (DX7) voice editor, a later stage by the owner's decision (ED17); the device target (§16) | — |
@@ -1005,4 +1007,67 @@ unlike C's `fm1_edit_state_hash`, which leaves it out: a follow that moves
 the panel changes it. §8's hash check (ED4) should compare without the view
 [verified: `diff` of the two projects names `view.mode` and `view.unit`
 only].
+
+## 24. Stage ED3, as built (2026-10-06)
+
+Marks here were checked on the ED3 branch, cut from main at `835c15e`
+(PR #92, ED2), natively, in node against the module, in the browser pane
+and in headless Chromium on aeon.
+
+**What it is** [verified: `sim/web/www/editor/chains.js`, `sim/web/README.md`,
+"Stage ED3"]: §18's ED3 row, in one module beside `editor.js`:
+- **Move and swap** with the verdict before the drop: a pointer drag past
+  6 px or the keyboard twin (Space, arrows, Space; Esc; ⌥ and an arrow for
+  the neighbour; *Swap with…* / *Move to…*). The verdict is the shadow
+  Worker's new `preview`: the verb applied to a copy of the live state, its
+  code and the RAM after in percent, or the refusal in the metadata's words.
+- **Pickers** for engines, effects (by the metadata's groups), MIDI effects
+  and rack modules: every choice tried alone on the live state (`preview`
+  with `each`), its RAM after or C's refusal; a choice C answers BAD is not
+  offered.
+- **Meters** for inserts, master slots and the Mix from the telemetry
+  block, found by the layout's order, with gain reduction where C reads it
+  out; *Make current* (the current verb).
+- **Per-pad rows** (API v4): a pad strip above the rows marked *pad*; a
+  per-pad edit names its pad in the record, the mirror keeps every pad.
+- **Modulation** (ED8): the rack's cards with a live trace and cable count,
+  the matrix table (filter, empty slots, sort, *Add a cable*; On, From, VIA,
+  To, Amount, live value, the planner's verdict in words, marks `v ! –`),
+  the slot inspector (every field, *Remove*) and the module inspector
+  (pages, outputs live, gate inputs and what reaches them); each block's
+  inspector lists the cables into it. The Map is ED5's.
+- **Structural undo**: a choice keeps the records that put the block back
+  (its unit, every value, a kit's pads) and the matrix as it was; a swap
+  undoes by itself, a move by the move back; redo sends the edit again; the
+  panel's structural changes enter the same history from the mirror as it
+  was.
+
+**Differences from the plan.**
+- **The rack and the matrix come from C as records**: `fm1w_mod_records`
+  (new export, used by the shadow Worker only) writes a MODULE record per
+  position, a CABLE record per slot and each slot's planner verdict. The
+  editor reads cables by their codes and names them from the metadata
+  (`mod.sources`, `mod.units`, each kind's `outs` and `gates`), so it never
+  reverses a file's names or its percent rounding.
+- **An effect into an insert of a sound with no engine is refused** (BAD)
+  by the edit layer, as a record or a swap: a file writes a sound's inserts
+  with its engine, so such an effect vanished from every save and every
+  hash. The random structural undo test found it; `fm1_edit_check` swaps
+  into that slot only after giving the sound an engine. The panel was not
+  changed.
+- **Previews read the last snapshot**, not a fresh one: the editor keeps the
+  binary it last mirrored (taken again after every structural change), so a
+  preview costs the audio thread nothing; values moved since do not change
+  a RAM figure.
+- **Undo is still by records**, as §8 has it; the hash check and the
+  snapshot fallback stay ED4's. The tests check by hash instead.
+
+**Found on the way.**
+- A refusal shown in the detail bar was wiped by the redraw that the
+  snapshot after it brings (ED2 had the same): it now stays for 8 s or until
+  another parameter is selected.
+- The history holds 200 entries; a test that counts steps by its length
+  stops counting at the limit. The page checks count by entry id.
+
+**Measured** [verified]: MEASURED.
 

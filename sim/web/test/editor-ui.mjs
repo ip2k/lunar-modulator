@@ -209,7 +209,8 @@ const lessView = (a, b) => page.evaluate(async ({ a, b }) => {
   const d = await window.fm1.files.shadow('diff', { a: window.__bins[a], b: window.__bins[b] });
   return (d.changes || []).filter((c) => !c.path.startsWith('view.')).map((c) => c.path);
 }, { a, b });
-await page.evaluate(() => { window.fm1.editor.setLayout('editor'); window.fm1.editor.select('m1', { view: 'flow' }); });
+await page.click('[data-layout="editor"]');
+await page.evaluate(() => window.fm1.editor.select('m1', { view: 'flow' }));
 await page.waitForTimeout(400);
 const e0 = await page.evaluate(() => window.__hash());
 // The keyboard twin: M1 picked up with Space, aimed with the arrows, dropped with Space.
@@ -244,11 +245,13 @@ const kbBack = await lessView(e0.bin, e1.bin);
 check('undo puts the swap back', kbBack.length === 0, kbBack);
 // The pointer: M1 dragged onto S1 In2 (both in view first, or the mouse
 // would land on the panel's knobs).
-await page.evaluate(() => { document.querySelector('.ed-flow').scrollIntoView({ block: 'start' }); });
+await page.evaluate(() => { document.querySelector('.ed-flow').scrollIntoView({ block: 'center', behavior: 'instant' }); });
 await page.waitForTimeout(200);
 const box = async (sel) => page.locator(sel).first().boundingBox();
 const from = await box('.ed-block[data-block="m1"]');
 const to = await box('.ed-block[data-block="s1.in2"]');
+const hits = await page.evaluate(({ a, b }) => [a, b].map(([x, y]) => { const e = document.elementFromPoint(x, y); return e ? `${e.tagName}.${e.className}` : null; }),
+  { a: [from.x + from.width / 2, from.y + from.height / 2], b: [to.x + to.width / 2, to.y + to.height / 2] });
 await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
 await page.mouse.down();
 for (let i = 1; i <= 8; ++i) await page.mouse.move(from.x + from.width / 2 + ((to.x - from.x) * i) / 8, from.y + from.height / 2 + ((to.y - from.y) * i) / 8);
@@ -260,7 +263,7 @@ const drag = await page.evaluate(() => {
   const ed = window.fm1.editor;
   return { m1: (ed.state.mirror.blocks.get('m1') || {}).engine || '', in2: (ed.state.mirror.blocks.get('s1.in2') || {}).engine || '' };
 });
-report.ed3.drag = { pill: dragPill, ...drag };
+report.ed3.drag = { pill: dragPill, ...drag, hits };
 check('a pointer drag shows the verdict over its target and swaps on release', /^Swap · RAM/.test(dragPill || '') && drag.in2 === kb.before[0], report.ed3.drag);
 await page.evaluate(() => window.fm1.editor.undo());
 await page.waitForTimeout(700);
