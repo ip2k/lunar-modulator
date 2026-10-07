@@ -18,6 +18,7 @@ import {
   blockKey, parseBlockKey, blockTag, modKey, parseModKey, hasFlag, ramPercent,
   cableEmpty, cableEqual, emptyCable, pctOfQ14, Q14, withPol, withCurve, withBit,
 } from './model.js';
+import { makeMap } from './map.js';
 
 export const cableIndex = (key) => { const m = /^c([0-9]+)$/.exec(key || ''); return m ? Number(m[1]) - 1 : -1; };
 const toQ = (pct) => Math.max(-Q14, Math.min(Q14, Math.round((pct * Q14) / 100)));
@@ -42,9 +43,9 @@ export function makeChains(ctx) {
   }
 
   // ---- previews: what an edit would do (the shadow Worker, §5) ----------------
-  async function preview(list, each) {
+  async function preview(list, each, mod) {
     if (!st.live || !files.shadow || !list.length) return null;
-    const r = await files.shadow('preview', { live: st.live.slice(0), ops: concat(list), each: !!each });
+    const r = await files.shadow('preview', { live: st.live.slice(0), ops: concat(list), each: !!each, mod: !!mod });
     return r && r.ok !== false ? r : null;
   }
 
@@ -615,15 +616,45 @@ export function makeChains(ctx) {
     return m;
   }
 
+  // The Map (stage ED5b) needs room: from 620 px of the editor's width. A phone keeps the cable list.
+  const mapRoom = () => { const m = ctx.root.querySelector('.ed-main'); return !!m && m.clientWidth >= 620; };
+  const mapOn = () => !!st.modMap && mapRoom();
+  function viewSwitch() {
+    const seg = el('div', 'ed-seg ed-mapsw', { role: 'radiogroup', 'aria-label': 'Modulation view' });
+    [[false, 'Table'], [true, 'Map']].forEach(([v, label]) => seg.append(el('button', 'ed-segbtn', { type: 'button', role: 'radio', text: label, 'data-fk': `mod:v${label}`,
+      'aria-checked': String(!!st.modMap === v), tabindex: !!st.modMap === v ? '0' : '-1', onclick: () => { st.modMap = v; ctx.render(); } })));
+    seg.addEventListener('keydown', (e) => {
+      const btns = [...seg.querySelectorAll('[role=radio]')];
+      const i = btns.indexOf(document.activeElement);
+      const j = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? Math.min(1, i + 1) : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? Math.max(0, i - 1) : -1;
+      if (i < 0 || j < 0) return;
+      e.preventDefault();
+      st.focusAfter = `mod:v${j ? 'Map' : 'Table'}`;
+      st.modMap = !!j;
+      ctx.render();
+    });
+    return seg;
+  }
   function modView() {
     const wrap = el('div', 'ed-mod');
+    const wide = mapRoom();
     wrap.append(el('div', 'ed-sec-head', {}, [el('h2', 'ed-sec ed-sec-big', { text: 'Modulation' }),
-      el('p', 'ed-legend', {}, [el('span', 'ed-l-mod', { text: 'live value' }), el('span', 'ed-l-refuse', { text: '! refused' }), el('span', null, { text: 'v per voice' })])]));
+      wide ? viewSwitch() : null,
+      mapOn() ? null : el('p', 'ed-legend', {}, [el('span', 'ed-l-mod', { text: 'live value' }), el('span', 'ed-l-refuse', { text: '! refused' }), el('span', null, { text: 'v per voice' })])]));
+    const sel = st.selected;
+    if (mapOn()) {
+      wrap.append(map.view());
+      const insp = el('div', 'ed-mod-insp');
+      if (isModule(sel)) insp.append(moduleInspector(sel));
+      wrap.append(insp);
+      const ci = cableIndex(st.selCable);
+      if (ci >= 0) wrap.append(slotInspector(ci));
+      return wrap;
+    }
     // The rack: eight positions as cards.
     const rack = el('div', 'ed-rack', { role: 'group', 'aria-label': 'Rack' });
     for (let pos = 0; pos < mm.positions; ++pos) rack.append(rackCard(pos));
     wrap.append(el('h3', 'ed-sec', { text: 'Rack' }), rack);
-    const sel = st.selected;
     const insp = el('div', 'ed-mod-insp');
     if (isModule(sel)) insp.append(moduleInspector(sel));
     wrap.append(insp);
@@ -780,25 +811,34 @@ export function makeChains(ctx) {
     row.addEventListener('focusin', () => { if (st.selCable !== key) { st.selCable = key; for (const r of ctx.root.querySelectorAll('.ed-mx-r.is-sel')) r.classList.remove('is-sel'); row.classList.add('is-sel'); ctx.openOnPanel(key); } });
     return row;
   }
-  function addCable() {
+  // A new cable from a source code to a destination ("unit:dst:gate"), 25 % to start with.
+  const newSlot = (src, dest) => {
+    const [u, dst, g] = String(dest).split(':').map(Number);
+    return { src, via: NONE, unit: u, dst, flags: SLOT_ON | (g ? GATE_DST : 0), amount: toQ(25), offset: 0, uid: 0 };
+  };
+  const cableRecord = (i, src, dest) => packCable(i, newSlot(src, dest));
+  // Puts a cable in the first empty slot and selects it; -1 (and C's words) when the matrix is full.
+  function makeCable(src, dest) {
     const i = st.mirror.cables.findIndex((c) => cableEmpty(c));
     if (i < 0) {
       const w = verdictWords(6, { what: 'matrix', used: SLOTS, max: SLOTS });
       ctx.showRefusal('Add a cable', w);
       ctx.say(w);
-      return;
+      return -1;
     }
+    ctx.setValue(`c${i + 1}`, 'all', JSON.stringify(newSlot(src, dest)), 'set');
+    st.selCable = `c${i + 1}`;
+    ctx.select(`c${i + 1}`, { view: 'mod' });
+    return i;
+  }
+  function addCable() {
     const srcs = sourceOptions(false);
     const mod = srcs.find((x) => x.value >= 64) || srcs[0];
     const dl = destList();
     const sel = ctx.blockOf(st.selected) ? mm.unitCode(st.selected) : -1;
     const d = dl.find((x) => Number(x.value.split(':')[0]) === sel) || dl[0];
     if (!d) return;
-    const [u, dst, g] = d.value.split(':').map(Number);
-    const s = { src: mod.value, via: NONE, unit: u, dst, flags: SLOT_ON | (g ? GATE_DST : 0), amount: toQ(25), offset: 0, uid: 0 };
-    ctx.setValue(`c${i + 1}`, 'all', JSON.stringify(s), 'set');
-    st.selCable = `c${i + 1}`;
-    ctx.select(`c${i + 1}`, { view: 'mod' });
+    makeCable(mod.value, d.value);
   }
 
   // The slot inspector: every field of one cable, its verdict and its fix.
@@ -942,7 +982,22 @@ export function makeChains(ctx) {
     g.stroke();
   }
 
+  const map = makeMap(ctx, { cableOf, verdictOf, destName, srcName, verdictWords, makeCable, cableRecord, toValue, pickerButton, preview });
+  // The Map comes and goes as the editor's width crosses its room (a tablet turned over).
+  let hadRoom = null;
+  const mainEl = ctx.root ? ctx.root.querySelector('.ed-main') : null;
+  if (mainEl && typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(() => {
+      const room = mapRoom();
+      // A frame later: the render changes the size this observer watches, and a change made inside
+      // its own callback is the loop WebKit reports as an error.
+      if (hadRoom !== null && room !== hadRoom && st.view === 'mod' && st.modMap && st.mirror) requestAnimationFrame(() => ctx.render());
+      hadRoom = room;
+    }).observe(mainEl);
+  }
+
   return {
+    map, mapOn, makeCable,
     effectKeys, isEffect, isModule, movable, moveSelect, moveTo, pickerButton, openPicker, closePicker, choose,
     meters, mixInspector, padOf, modView, headTools, cablesInto, verdictWords, ramAfter, preview,
     blockRecs, cableRecs, structural, undoStruct, fromPanel, cableGet, cableSet, cableText, cableLabel, cableFields, fieldOf,

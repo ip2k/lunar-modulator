@@ -192,6 +192,12 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   cables) and a layout probe that finds overlapping and clipped text at four
   widths ([sim/web/README.md,
   "Stage ED5a"](sim/web/README.md#the-advanced-editor-stage-ed5a-reach-and-the-read-outs)).
+  Stage ED5b finishes it: the patch-bay Map (`www/editor/map.js`) as a second
+  view of the matrix's slots with focus, a cable made by pointer or keys with
+  C's verdict over the input (the shadow Worker's `preview` with `mod`), the
+  editor's page tests in Firefox and WebKit as well as Chromium, and the
+  manual's chapter 15 ([sim/web/README.md,
+  "Stage ED5b"](sim/web/README.md#the-advanced-editor-stage-ed5b-the-map-other-browsers-and-the-manual)).
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free

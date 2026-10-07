@@ -147,74 +147,9 @@ opens the advanced editor beside the panel or in its place. It shows every
 value of a sound at once, grouped by the panel's own pages, and changes the
 same simulator the panel plays: turn a knob on the panel and its row lights
 in the editor; move a slider in the editor and the panel opens that page.
-
-- **Flow** shows the four sounds into the mix and the two master slots; click
-  a block to see its values below.
-- A sound (S1 to S4 on the left) shows its engine, its two effects and its
-  arpeggiator. Drag a slider, use the arrow keys, or type a value and press
-  Enter; **D** puts a value back to its default.
-- **Undo** and **Redo** cover changes from the editor and from the panel's
-  knobs alike.
-- *Keys PLAY* means the computer keyboard plays the instrument; click in the
-  editor (or press Ctrl+E, ⌘E on a Mac) and it reads *Keys EDIT*, so the
-  keys edit and play nothing. **Esc** gives them back.
-- **RAM** shows how much of the FM-1's memory the project takes, in percent,
-  and how much each sound takes.
-
-- **Choose engine…**, **Choose effect…**, **Choose MIDI effect…** and
-  **Choose module…** list every choice with the memory the project would
-  take with it, in percent; a choice that does not fit says why and cannot
-  be picked.
-- **Moving effects:** drag an effect onto another effect slot, of any sound
-  or the master, and the two swap places, with their modulation. Before you
-  let go, the slot under it says whether it fits. With the keyboard: Space
-  picks the effect up, the arrow keys choose where, Space drops it and Esc
-  cancels. *Swap with…* in an effect's box does the same from a list.
-- **Mix** (in Flow) has each sound's level and meter, and *Make current*.
-  The master effects and each sound's effects show their level in and out.
-- A drum kit shows a **pad** chooser above the values that belong to that
-  pad (marked *pad*).
-- **Modulation** (on the left) shows the mod rack as eight cards, each with
-  its live output, and the matrix below: every cable with where it comes
-  from, where it goes, how much, its live value, and why it does not run
-  when it does not. Click a cable's number for all of its settings; *Add a
-  cable* adds one. Drag a module's card to another place to move it.
-- **Undo** covers all of this too: an engine or effect changed, a swap, a
-  module moved, a cable edited.
-
-- **Files on a block:** drop a `.lunar` sound on a sound, an effects file on
-  a sound's effects or the master, a mod rack on the rack. Before anything
-  loads, the editor says what the file would do and how much memory the
-  project would take, or why it does not fit; **Load** loads it. Each box has
-  *Export…* (a sound, a sound's effects, the master effects or the mod rack,
-  as a file) and *Save to my library*.
-- **Library** (on the left) lists what is saved in this browser and Recent.
-  Load a project from it, or drag a saved sound or effects onto the block it
-  fits: the block says whether it fits while you hold it there.
-- **Search:** Ctrl+K (⌘K on a Mac) finds a sound, an effect, a parameter by
-  name ("s2 cutoff") or a command; the arrow keys choose and Enter goes there.
-  Esc closes it.
-- **Compare A/B** keeps the project, or one sound, as A: *Keep as A*, then
-  edit, and **X** switches between A and what you made (B). The differences
-  are listed.
-- **Memory** shows how much of the FM-1's memory each part takes, in
-  percent, what is free, and which sounds and effects would still fit.
-- A link can open the editor at a block or a parameter: add `?view=edit&sel=s1`
-  or `?view=edit&sel=s3.in1:Cutoff` to the simulator's address.
-
-- **Gain reduction:** an effect's *Out* meter has a thin bar under it and
-  "GR 4.8 dB" beside it while the effect (Comp, Limiter, Squash) is turning
-  the sound down. A cable that works per voice shows, in its *Live* cell, the
-  range of the values its sounding voices have.
-- **Keyboard and screen reader:** Tab moves through every control, each with a
-  name and a 2-pixel ring; sliders speak their value in words ("Cutoff, 420
-  hertz"); the editor announces your changes and refusals, at most once a
-  second, and never a live value.
-- **On a phone** the switch has two tabs, *Panel* and *Edit*. Edit shows the
-  outline as a row of tabs along the top, a small screen, and the modulation
-  matrix as a list of cables, each with its settings named.
-
-The patch-bay view of the modulation comes to the editor in a later version.
+It also draws the signal flow, the modulation rack and its cables (as a table
+or as a patch bay), and says what each choice would cost in memory before you
+make it. [Chapter 15](15-the-advanced-editor.md) describes it.
 
 ### Running the simulator from your own copy
 

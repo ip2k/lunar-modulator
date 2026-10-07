@@ -22,6 +22,7 @@ import json
 import os
 import re
 import shutil
+import struct
 import subprocess
 import sys
 import tomllib
@@ -88,6 +89,7 @@ class Build:
     warnings: list[str] = field(default_factory=list)
     sim_dir: Path | None = None
     screens: set = field(default_factory=set)        # assets/screenshots/screen-*.png in use
+    pages: set = field(default_factory=set)          # assets/screenshots/page-*.png in use
     diagrams: dict = field(default_factory=dict)     # name -> (Diagram, svg), manual/diagrams/*.toml
 
 
@@ -266,6 +268,27 @@ def make_directive(b: Build):
                              f"height='240' alt='The screen. {html.escape(caption)}'>"
                              f"<figcaption><span class='fig-label'>{label}</span>"
                              f"{html.escape(caption)}</figcaption></figure>")]
+        if name == "page":
+            # {{page KEY caption}}: a picture of the browser page (the advanced editor), from
+            # assets/screenshots/page-KEY.png, shown at its own size, at most the column wide.
+            key = args[0] if args else ""
+            caption = " ".join(args[1:])
+            src = b.repo / "assets" / "screenshots" / f"page-{key}.png"
+            if not re.fullmatch(r"[a-z0-9-]+", key) or not caption:
+                b.errors.append(f"{ch.file}: {{{{page}}}} wants a name and a caption")
+                return []
+            if not src.is_file():
+                b.warnings.append(f"{ch.file}: no {src.relative_to(b.repo)}; that picture is left out")
+                return []
+            width, height = struct.unpack(">II", src.read_bytes()[16:24])
+            b.pages.add(src)
+            ch.figures += 1
+            label = f"Figure {ch.number}.{ch.figures}" if ch.number else f"Figure {ch.figures}"
+            return [("html", f"<figure class='page' id='page-{key}'><a href='assets/pages/{src.name}'>"
+                             f"<img class='page-shot' src='assets/pages/{src.name}' width='{width}' "
+                             f"height='{height}' alt='{html.escape(caption)}'></a>"
+                             f"<figcaption><span class='fig-label'>{label}</span>"
+                             f"{html.escape(caption)}</figcaption></figure>")]
         if name == "controls-index":
             return [("html", CONTROLS_INDEX_TOKEN)]
         if name == "requires":
@@ -442,6 +465,10 @@ def write_site(b: Build) -> None:
         (assets / "diagrams").mkdir(exist_ok=True)
         for key, (_d, svg) in sorted(b.diagrams.items()):
             (assets / "diagrams" / f"{key}.svg").write_text(svg, encoding="utf-8")
+    if b.pages:
+        (assets / "pages").mkdir(exist_ok=True)
+        for src in sorted(b.pages):
+            shutil.copy2(src, assets / "pages" / src.name)
     if b.screens:
         (assets / "screens").mkdir(exist_ok=True)
         for src in sorted(b.screens):
