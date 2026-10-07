@@ -1682,6 +1682,7 @@ int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t tot
   void *on_mod_ctx;
   void (*on_mfx)(void *, uint64_t, int, int, float);
   void (*on_cmd)(void *, uint64_t, const fm1_seq_cmd_t *);
+  fm1_seq_transport_t carry;
   int edit_was;
   if (!o) {
     fm1_app_load_opts_init(&none);
@@ -1690,6 +1691,11 @@ int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t tot
   if (!check(a, rd, rctx, total, o, rep)) {
     if (!(o->flags & FM1_APP_LOAD_QUIET)) fm1_app_say(a, FM1_APP_TONE_REFUSE, rep->screen[0], rep->screen[1], NULL);
     return 0;
+  }
+  /* The transport of a project that goes on playing: read now, before the project is made again. */
+  memset(&carry, 0, sizeof carry);
+  if ((o->flags & FM1_APP_LOAD_KEEP_TRANSPORT) && p->kind == FM1_STATE_PROJECT && a->seq) {
+    fm1_seq_transport_take(a->seq, &carry);
   }
   /* Pass 2. A load is not an edit: the native harness's logs hear none of
    * it, and the edit layer's ring gets one LOADED entry (fm1_edit.h). */
@@ -1730,6 +1736,12 @@ int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t tot
     if (p->enc == 1) fm1_state_bin_read(rd, rctx, total, plan_sink, p, &r2, 0);
     else fm1_state_json_read(names(), rd, rctx, plan_sink, p, &r2);
     apply_finish(p);
+  }
+  if (carry.playing && a->seq) {
+    /* A Play (the new set's clips launch, or its song starts), then the old clock and playheads over it. */
+    fm1_seq_cmd_t c;
+    fm1_seq_cmd_make(&c, FM1_SEQ_V_PLAY, 0, NULL);
+    if (fm1_app_seq_cmd(a, &c) == FM1_APP_SEQ_APPLIED) fm1_seq_transport_put(a->seq, &carry);
   }
   a->on_mod = on_mod;
   a->on_mod_ctx = on_mod_ctx;

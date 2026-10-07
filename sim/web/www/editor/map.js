@@ -18,7 +18,7 @@
 // repository.
 
 import {
-  ROLE, SOUNDS, INSERTS, MASTERS, SLOTS, NONE, GATE_DST, SLOT_ON, VOICE, SRC_MODULE,
+  ROLE, SOUNDS, INSERTS, MASTERS, SLOTS, NONE, GATE_DST, SLOT_ON, VOICE, moduleSource, isModuleSource, sourcePosition,
   blockKey, blockTag, modKey, parseBlockKey, parseModKey, hasFlag, cableEmpty, pctOfQ14, decodeMod,
 } from './model.js';
 
@@ -91,7 +91,7 @@ export function makeMap(ctx, h) {
     if (ci) return { kind: 'cable', i: Number(ci[1]) - 1 };
     return null;
   }
-  const isOutOf = (code, pos) => code >= SRC_MODULE && code !== NONE && ((code - SRC_MODULE) >> 3) === pos;
+  const isOutOf = (code, pos) => isModuleSource(code) && sourcePosition(code) === pos;
   function inFocus(i, t) {
     if (!t) return true;
     const c = cableOf(i);
@@ -232,7 +232,7 @@ export function makeMap(ctx, h) {
       ins.append(more);
     }
     (k.outs || []).forEach((o, port) => {
-      const code = SRC_MODULE + 8 * pos + port;
+      const code = moduleSource(pos, port);
       outs.append(el('div', 'ed-map-row ed-map-out', {}, [el('span', 'ed-map-t', { text: o.name }), el('span', 'ed-live ed-map-val', { 'data-out': `${pos}:${port}`, text: '–' }),
         outJack(code, `${pos + 1} ${k.abbr} ${o.name}`, isGate(o.kind))]));
     });
@@ -531,7 +531,7 @@ export function makeMap(ctx, h) {
       }
     });
   }
-  const jackIsModule = (j) => Number(j.dataset.src) >= SRC_MODULE;
+  const jackIsModule = (j) => isModuleSource(Number(j.dataset.src));
   function drawGhost(x, y, from) {
     const B = frame();
     const r = from.getBoundingClientRect();
@@ -615,7 +615,7 @@ export function makeMap(ctx, h) {
     const order = [...items].sort((a, b) => (lit(a) - lit(b)) || (sel(a) - sel(b)));
     for (const x of order) {
       const c = x.c, ref = !!verdictOf(x.i).code;
-      const cls = `ed-cab${c.src < SRC_MODULE && mm.sources.get(c.src) && isGate(mm.sources.get(c.src).kind) ? ' is-gate' : ''}${c.flags & GATE_DST ? ' is-gate' : ''}${ref ? ' is-refused' : ''}${sel(x) ? ' is-sel' : ''}${lit(x) ? '' : ' is-dim'}${!(c.flags & SLOT_ON) ? ' is-off' : ''}`;
+      const cls = `ed-cab${!isModuleSource(c.src) && mm.sources.get(c.src) && isGate(mm.sources.get(c.src).kind) ? ' is-gate' : ''}${c.flags & GATE_DST ? ' is-gate' : ''}${ref ? ' is-refused' : ''}${sel(x) ? ' is-sel' : ''}${lit(x) ? '' : ' is-dim'}${!(c.flags & SLOT_ON) ? ' is-off' : ''}`;
       const g = sv('g', { class: cls, 'data-cable': x.i });
       if (c.flags & VOICE) g.append(sv('path', { d: x.d_, class: 'ed-cab-band' }));
       g.append(sv('path', { d: x.d_, class: 'ed-cab-line' }));

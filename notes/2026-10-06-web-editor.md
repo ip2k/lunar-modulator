@@ -16,8 +16,11 @@ this note judges them dimension by dimension and keeps the best of both:
 - **design B**, a dense inspector: every parameter of a sound on one screen,
   sliders with typed values, a sortable matrix, search, A/B and memory.
 
-Neither proposal is committed; what survives is here. **Nothing is built.**
-The six final mockups are in `assets/web-editor/` (§3).
+Neither proposal is committed; what survives is here. **It is built** (as of
+2026-10-07, v1 complete: stages ED0 to ED5b, §21 to §27, and the v1
+completion, §28); the design below is the record of what was decided and
+why, and each stage's section says where the build differs from it. The six
+final mockups are in `assets/web-editor/` (§3).
 
 **Status: decided** (owner, 2026-10-06). ED1–ED18 are adopted as
 recommended (§19), with two answers on top:
@@ -28,10 +31,11 @@ recommended (§19), with two answers on top:
   (DEVELOPERS.md, `engines/README.md`, notes like this one). This settles
   §20.2; the mockups predate it (§3).
 
-The build order is decided too: ED0 after the state core (E1–E3) lands, ED1
-after A1, ED2–ED5 after W1 (§18). **ED0 is built** (2026-10-06): what it
-holds, and where it differs from §6 and §18, is §21. **ED1 is built**
-(2026-10-06): §22.
+The build order was decided too: ED0 after the state core (E1–E3) lands,
+ED1 after A1, ED2–ED5 after W1 (§18). All of it is built: **ED0** (§21),
+**ED1** (§22), **ED2** (§23), **ED3** (§24), **ED4** (§25), **ED5a** (§26),
+**ED5b** (§27) and the **v1 completion** (§28). What the owner decided after
+v1, and what is next, is §29.
 
 **Read with.**
 - `notes/2026-10-06-state-files.md` and `notes/2026-10-06-song-and-scenes.md`
@@ -87,6 +91,8 @@ never sends") stands.
 26. Stage ED5a, as built
 27. Stage ED5b, as built
 28. v1 completed (2026-10-07)
+29. Owner decisions after v1 (2026-10-07)
+30. The v1 review's seven fixes (2026-10-07)
 
 ## 1. Short answer
 
@@ -678,7 +684,8 @@ chain's four slots and two sends.
 | **ED3** Chains and modulation (**built**, §24) | Drag to move and swap with its keyboard twin and RAM verdicts; effect pickers; master inspectors with meters; the Mix; per-pad rows (API v4); the rack cards, the matrix table, slot and module inspectors; structural undo | ED2 |
 | **ED4** Files and project (**built**, §25) | Drop targets, per-block export, the library, `view=edit` and `sel`; ⌘K search; A/B and the Memory page; undo's snapshot fallback | ED3 |
 | **ED5** The Map and reach (**built**, §26, §27) | **ED5a (§26):** the telemetry ED1 left empty (Limiter's and Squash's gain reduction, `voice_dests`); keyboard and screen-reader passes; phones; the layout check in the page tests. **ED5b (§27):** the patch-bay Map with focus; the manual's chapter 15; the editor's tests in Firefox and WebKit | ED4 |
-| later | The pop-out window; a song-list view on S9+'s data; an FM6 (DX7) voice editor, a later stage by the owner's decision (ED17); the device target (§16) | — |
+| next | The owner's decisions after v1 (§29): search's Enter and ⇧Enter, the Map's cable ends, Squash's closed-gate read-out, the panel's refusal of an effect into an empty sound | v1 |
+| later | The pop-out window; a song-list view on S9+'s data; an FM6 (DX7) voice editor, a later stage by the owner's decision (ED17); the device target (§16); a test harness that plays the page into a loopback audio device (§29) | — |
 
 - Each stage that adds state to the page adds nothing to the files: the
   editor writes only through ops and W1's file path, so the state note's
@@ -746,9 +753,10 @@ still show KB today are listed in §20.2.
      the size table);
    - the state note's RAM refusal example, on its branch.
    File sizes (a DX7 file the simulator reads up to 64 KB, a set sent over
-   MIDI) are not memory figures [inferred], and whether the specifications
-   chapter's hardware sizes (578 KB of SRAM, 1 MB of flash) stay is a
-   question for the owner.
+   MIDI) are not memory figures [inferred]. **Answered** (owner,
+   2026-10-06): the specifications keep the hardware sizes (578 KB of SRAM,
+   1 MB of flash) as "N % (real size)", the percentage first and the real
+   size after it (§29).
 3. **RAM figures round up.** 300,672 of 387,924 B is 77.5 %, and the
    screen says 78 % [verified: the harness's figures; `draw_ram_meter`
    in `fm1_app.c` divides with `+ FM1_APP_RAM_BUDGET - 1`]; the page's
@@ -1480,20 +1488,25 @@ with id `02e7c1eb`.
 **Open** (the owner's, not built):
 - *Squash's closed gate* (ED5a): the display shows the cut only while a
   signal goes in; keep that, or make the closed gate a read-out of its own.
+  **Answered, §29 (3): its own read-out.**
 - *What ⇧Enter in search does* (§10: "selects every match for one batch edit"):
   which batch edits exist (set one value on every matching parameter, switch
   matching cables off or remove them, something else) and whether a batch is
-  one undo step.
+  one undo step. **Answered, §29 (1): Enter selects the highlighted match,
+  ⇧Enter every match; the batch edits themselves are still to be designed.**
 - *The Map's cable ends* (ED5b): drag a cable's end, or start a cable from an
-  input, in the Map: the table and the slot inspector do both.
+  input, in the Map: the table and the slot inspector do both. **Answered,
+  §29 (2): both.**
 - *Panel parity for effects in empty sounds* (ED3): the edit layer refuses an
   effect into a sound with no engine, the panel allows it; refuse in both, or
-  let a file hold it.
+  let a file hold it. **Answered, §29 (4): refuse in both.**
 - *What closes the unmeasurable checks*: lateness and underruns in Firefox and
   WebKit, a real audio device, a finger on the Map and on a phone, a screen
-  reader itself.
+  reader itself. **Partly answered, §29 (6): a loopback audio harness is
+  planned for the first.**
 - *§20.2*: do the hardware sizes in the manual's specifications (578 KB of
-  SRAM, 1 MB of flash) stay now that memory is a percentage.
+  SRAM, 1 MB of flash) stay now that memory is a percentage. **Answered
+  (owner, 2026-10-06), §20.2: they stay, as "N % (real size)".**
 
 Later by design, unchanged (§18): the pop-out window, a song-list view, an FM6
 voice editor, the device target, the master chain's four slots and two sends,
@@ -1522,3 +1535,41 @@ Map on phones.
   to two lines inside its pill, within its bounds.
 - Not measured: see *Open*. The manual's strict build ran in CI (the local
   venv has no `markdown`).
+
+## 29. Owner decisions after v1 (2026-10-07)
+
+The owner's answers to §28's *Open* list. **Decided, not built**, but for (5),
+which is built in the pull request that records them; the rest are the next
+stage's, in the order the table has.
+
+| # | Question | Decision (owner, 2026-10-07) | State |
+| --- | --- | --- | --- |
+| 1 | What Enter and ⇧Enter do in search (§10) | **Enter selects the highlighted match; ⇧Enter selects every match, for a batch edit.** Which batch edits there are (one value on every matching parameter; matching cables off or removed; something else) and whether a batch is one undo step are for that stage to design with the owner: the selection comes first | next stage |
+| 2 | The Map's cable ends (ED5b) | **Both**: drag a cable's end to move it, and start a cable from an input, as the table and the slot inspector already do. One CABLE record each, through `chains.makeCable`, with C's verdict shown over the input as for a new cable | next stage |
+| 3 | Squash's closed gate (ED5a) | **It gets its own read-out.** The gain-reduction display keeps showing the cut only while a signal goes in; the closed gate is a read-out of its own | next stage |
+| 4 | An effect into an insert of a sound with no engine (ED3) | **Refused in both the editor and the panel.** The edit layer refuses it today (`editor-unit.mjs` checks that it does); the panel allows it and must refuse with the same words, so no file ever holds an insert in an empty sound | next stage (the panel's half) |
+| 5 | The editor's page tests in CI | **Yes.** Built in the pull request that records this: the `editor-page-tests` job runs `editor-unit`, `editor-ui`, `editor-reach`, `editor-map`, `editor-v1` and the storm in the Playwright container `build-on-aeon.sh` uses (the same image and npm versions, held to each other by `tests/test_ci_pins.py`), in Chromium, Firefox (with a PulseAudio null sink) and WebKit, plus the page's own `screenshot` and `files` tests in Chromium; a failing run uploads its screenshots and reports. They need no native build: they run against the committed `fm1.wasm` and `meta.json` | built |
+| 6 | Measuring audio in every browser | **Later:** a test harness that plays the simulator in headless Chromium, Firefox and WebKit into a loopback audio device (PipeWire or similar, on a Linux host) and checks the audio that comes out and the underruns, which Firefox and WebKit cannot measure from inside the page today (§27, §28). It is the way to close §28's first unmeasurable check. Planned: DEVELOPERS.md says so in its page-tests paragraph | later |
+
+Also recorded: the earlier answer to §20.2 (owner, 2026-10-06), the
+specifications keep the hardware sizes as "N % (real size)" (marked there).
+
+## 30. The v1 review's seven fixes (2026-10-07)
+
+A read-only review of the v1 build on `c63b51a` found seven defects; they are
+fixed in one pull request, each with a check that fails without the fix
+[verified: the checks named; the figures are in the pull request]:
+
+| # | Defect | Fix | Checked by |
+| --- | --- | --- | --- |
+| 1 | A/B stopped the transport: a project-scope switch is a whole-project load, and C made the sequencer again | A load flag, `FM1_APP_LOAD_KEEP_TRANSPORT`, that A/B's own loads, "Make B from the picks" and the undo of either set. C reads the running transport before the project is made again (`fm1_seq_transport_take`), then plays the new set from the same place (`fm1_seq_transport_put`): the master tick and the clock's phase, each track's clip and playhead and loop count for a clip the new set has, and the song's place when the new song is the same list. A stopped transport stays stopped. Recording, a count-in and Capture end with the load. The sound scope loads one sound and never touched the transport | `fm1_edit_check.c` (`check_transport`: the tick, clips and playheads after a load; none without the flag; stopped stays stopped), `editor-v1.mjs` §11 (every transport message the worklet posts while A/B switches the project and a sound: none says "stopped") |
+| 2 | A long list's filter did nothing in Safari: it set `hidden` on the `<option>`s of a native `<select>`, which Safari's dropdown ignores | The options are rebuilt for the filter (the chosen entry stays); the picker's and the matrix's filters never relied on it | `editor-v1.mjs` §12 in all three engines: the select has only the matches, choosing sets the parameter, the picker's and the matrix's filters |
+| 3 | Semitones were spoken as "st" | One `spokenText` (the unit's word from the same table as its symbol; one of a unit is singular) in place of four regular expressions | `editor-unit.mjs` (every unit of the metadata), `editor-reach.mjs` (every slider of every module) |
+| 4 | The module-source id layout and the chain's shape were numbers in the editor's code (`SRC_MODULE` 64, strides of 8, `UNIT_MODULE` 8, 4 sounds, 2 inserts, 2 masters, 8 positions, 32 slots) | Metadata **level 1.3**: `mod.source_base`, `mod.source_stride`, `mod.unit_base`, `mod.sounds`, `mod.inserts`, `mod.masters` (`mod.positions` and `mod.slots` were there); `model.js` reads them once and the rest of the code names them by exports (`moduleSource`, `sourcePosition`, `isModuleSource`). An older metadata is refused with a clear message | `test_engine_editor_meta.py` (equal to the headers; pinned), `test_sim_editor_ui.py` (§17's grep extended: no stride, base, count or key pattern as a number), `editor-unit.mjs` (another layout moves every code and key; a file without the layout is refused) |
+| 5 | Text that contradicted what is built | This note's preamble, DEVELOPERS.md's and `sim/web/README.md`'s browser statements | read |
+| 6 | Stored A and B matched a project by its title | A project has an identity (`files.pid`): made when a person loads a project, carried by the autosave, kept by the loads that put the same project back (A/B, undo, the autosave's restore). A and B come back for the same identity only | `editor-v1.mjs` §14 (another project of the same title, and a record with no identity, restore nothing; a project opened again is another) |
+| 7 | The upgrade to IndexedDB version 2 could leave a tab with no storage for good: a blocked open was cached as "no storage", and the connection did not close for a newer upgrade | A blocked open stays pending and succeeds when the older tab lets go; until then the visit uses memory and says why, and when storage is free what memory held is written to it; the connection closes on `versionchange` | `editor-v1.mjs` §13 (a held version 1: blocked, then freed and flushed; a newer tab's upgrade is not blocked) |
+
+What these do not change: the audio (byte for byte), the edit layer's
+records, the layout sweep, and what the browser sends to a device (nothing).
+

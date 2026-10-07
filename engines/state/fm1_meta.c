@@ -488,6 +488,22 @@ static void mod(jw_t *w, const fm1_host_t *host) {
   jw_int(w, FM1_MOD_SLOTS);
   jw_key(w, "tick");
   jw_int(w, FM1_MOD_TICK);
+  /* 1.3: how ids are laid out, and the chain's shape: a module's outputs are
+   * source_base + source_stride x position + port, its parameters and gate
+   * inputs unit_base + position; the app's chain is `sounds` sound units
+   * with `inserts` insert slots each and `masters` master effect slots. */
+  jw_key(w, "source_base");
+  jw_int(w, FM1_MOD_SRC_MODULE);
+  jw_key(w, "source_stride");
+  jw_int(w, FM1_MOD_MAX_OUTS);
+  jw_key(w, "unit_base");
+  jw_int(w, FM1_MOD_MODULE);
+  jw_key(w, "sounds");
+  jw_int(w, FM1_MOD_SOUNDS);
+  jw_key(w, "inserts");
+  jw_int(w, FM1_MOD_INSERTS);
+  jw_key(w, "masters");
+  jw_int(w, FM1_MOD_MASTERS);
   jw_key(w, "kinds");
   jw_arr(w);
   for (i = 0; i < fm1_mod_kind_count; ++i) mod_kind(w, fm1_mod_kinds[i], host);

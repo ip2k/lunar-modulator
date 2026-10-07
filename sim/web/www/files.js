@@ -20,7 +20,7 @@ const KIND = { project: 1, sound: 2, fx: 3, mods: 4, clip: 5, settings: 6, set: 
 const KIND_NAME = Object.fromEntries(Object.entries(KIND).map(([k, v]) => [v, k]));
 const KIND_WORD = { project: 'project', sound: 'sound', fx: 'effects', mods: 'mod rack', clip: 'clip',
   settings: 'settings', set: 'set' };
-const FLAG_WITHOUT = 1, FLAG_REPLACE = 2, FLAG_QUIET = 4;
+const FLAG_WITHOUT = 1, FLAG_REPLACE = 2, FLAG_QUIET = 4, FLAG_KEEP_TRANSPORT = 8;   // FM1_APP_LOAD_* (fm1_app_state.h)
 const TEXT_CAP = 262144;          // the module's text buffer (fm1w_text_cap)
 const SYX_CAP = 65536;            // FM1_APP_DX7_FILE_MAX
 const LINK_CAP = 32768;           // #lunar=: characters of base64url (ST13)
@@ -242,30 +242,87 @@ function readHints(params) {
 }
 
 // ---- browser storage: IndexedDB, or memory when it is blocked ------------------------
+// The database is version 2 (the editor's A/B `snapshots`). An upgrade waits for every tab that
+// holds the older version open: such a request is *blocked*, and it stays pending, finishing the
+// moment those tabs let go. So a blocked open is never taken for "no storage": this visit falls
+// back to memory for now, the page says why (`store.watch`), and the connection is used from the
+// time the request succeeds. This version's own connection closes when a newer tab upgrades
+// (`versionchange`), so it never blocks the next one.
 const memory = { files: new Map(), autosave: new Map(), recent: new Map(), snapshots: new Map() };
 let memoryId = 1;
-let dbPromise = null;
+const DB_NAME = 'lunar-modulator', DB_VERSION = 2;
+const dbs = { db: null, req: null, waiting: [], blocked: false, failed: false };
+const dbWatchers = new Set();
+const dbTell = () => {
+  const now = { open: !!dbs.db, blocked: dbs.blocked, failed: dbs.failed };
+  for (const fn of dbWatchers) { try { fn(now); } catch (err) { /* a watcher must not break the store */ } }
+};
+function dbSettle(value) {
+  const w = dbs.waiting.splice(0);
+  for (const r of w) r(value);
+}
 function openDb() {
-  if (!dbPromise) {
-    dbPromise = new Promise((resolve) => {
-      try {
-        const req = indexedDB.open('lunar-modulator', 2);   // 2: the editor's A/B `snapshots`
-        req.onupgradeneeded = () => {
-          const d = req.result;
-          if (!d.objectStoreNames.contains('files')) d.createObjectStore('files', { keyPath: 'id', autoIncrement: true });
-          if (!d.objectStoreNames.contains('autosave')) d.createObjectStore('autosave');
-          if (!d.objectStoreNames.contains('recent')) d.createObjectStore('recent', { keyPath: 'id', autoIncrement: true });
-          if (!d.objectStoreNames.contains('snapshots')) d.createObjectStore('snapshots');   // A/B, one record for each thing compared
-        };
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => resolve(null);
-        req.onblocked = () => resolve(null);
-      } catch (err) {
-        resolve(null);
-      }
-    });
+  if (dbs.db) return Promise.resolve(dbs.db);
+  if (dbs.failed) return Promise.resolve(null);                  // refused outright: memory for this visit
+  // Under way: wait for it, unless it is blocked, which can last as long as the other tab stays open.
+  if (dbs.req) return dbs.blocked ? Promise.resolve(null) : new Promise((resolve) => dbs.waiting.push(resolve));
+  return new Promise((resolve) => {
+    dbs.waiting.push(resolve);
+    let req;
+    try {
+      req = indexedDB.open(DB_NAME, DB_VERSION);
+    } catch (err) {
+      dbs.failed = true;
+      dbSettle(null);
+      dbTell();
+      return;
+    }
+    dbs.req = req;
+    req.onupgradeneeded = () => {
+      const d = req.result;
+      if (!d.objectStoreNames.contains('files')) d.createObjectStore('files', { keyPath: 'id', autoIncrement: true });
+      if (!d.objectStoreNames.contains('autosave')) d.createObjectStore('autosave');
+      if (!d.objectStoreNames.contains('recent')) d.createObjectStore('recent', { keyPath: 'id', autoIncrement: true });
+      if (!d.objectStoreNames.contains('snapshots')) d.createObjectStore('snapshots');   // A/B, one record for each thing compared
+    };
+    req.onsuccess = () => {
+      const d = req.result;
+      const gone = () => { if (dbs.db === d) { dbs.db = null; dbTell(); } };
+      d.onversionchange = () => { d.close(); gone(); };           // a newer tab upgrades: let it
+      d.onclose = gone;                                           // the browser closed it (site data cleared)
+      const wasBlocked = dbs.blocked;
+      dbs.db = d;
+      dbs.req = null;
+      dbs.blocked = false;
+      dbSettle(d);
+      // What this visit kept in memory while the open waited is written now (an upgrade that was blocked).
+      if (wasBlocked) flushMemory().then(dbTell, dbTell); else dbTell();
+    };
+    req.onerror = () => {
+      dbs.req = null;
+      dbs.failed = true;                                          // refused (a private window, a newer version): memory
+      dbs.blocked = false;
+      dbSettle(null);
+      dbTell();
+    };
+    req.onblocked = () => {
+      dbs.blocked = true;                                         // the request stays; it succeeds when the other tabs close
+      dbSettle(null);
+      dbTell();
+    };
+  });
+}
+// Memory into the database: keyed stores by their keys, the others as new records (their ids are the
+// database's own, so a memory id never overwrites a saved file).
+async function flushMemory() {
+  for (const name of Object.keys(memory)) {
+    for (const [k, v] of [...memory[name]]) {
+      const keyed = name === 'autosave' || name === 'snapshots';
+      const { id, ...rest } = v || {};
+      const r = await idb(name, 'readwrite', (st) => (keyed ? st.put(v, k) : st.add(rest)));
+      if (r !== null) memory[name].delete(k);
+    }
   }
-  return dbPromise;
 }
 async function idb(store, mode, fn) {
   const d = await openDb();
@@ -278,12 +335,18 @@ async function idb(store, mode, fn) {
         t.onerror = () => reject(t.error);
         t.onabort = () => reject(t.error);
       });
-    } catch (err) { /* fall through to memory */ }
+    } catch (err) {
+      // A connection that was closed under us is dropped, so the next call opens a new one.
+      if (err && err.name === 'InvalidStateError' && dbs.db === d) { dbs.db = null; dbTell(); }
+    }
   }
   return null;
 }
 export const store = {
   async available() { return (await openDb()) !== null; },
+  // { open, blocked, failed } now; `watch(fn)` calls fn with it at every change and returns a way to stop.
+  status() { return { open: !!dbs.db, blocked: dbs.blocked, failed: dbs.failed }; },
+  watch(fn) { dbWatchers.add(fn); return () => dbWatchers.delete(fn); },
   async get(name, key) {
     const r = await idb(name, 'readonly', (s) => s.get(key));
     return r !== null ? r : memory[name].get(key) || null;
@@ -308,12 +371,21 @@ export const store = {
 };
 
 // ---- the page's files ------------------------------------------------------------
+// A project's identity, apart from its title: two projects can be called the same ("Untitled"), and a
+// file opened again is another project. It is made when a project is loaded by the person (a file, a
+// link, the library, a fresh start), carried by the autosave, and kept by the loads that only put the same
+// project back (the editor's A/B, an undo, the restore of the autosave). What belongs to a project in
+// this browser (the editor's A and B) is matched by it.
+function newProjectId() {
+  try { if (crypto.randomUUID) return crypto.randomUUID(); } catch (err) { /* an insecure page: below */ }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
 export function initFiles(env) {
   const { sim, powerOn, loadDx7Files, controlEl } = env;
   const params = new URLSearchParams(location.search);
   const embed = params.get('embed') === '1' && window.parent !== window;
   const f = {
-    title: pref('title') || 'Untitled', gen: 0, dirty: false, pending: [], undo: null,
+    title: pref('title') || 'Untitled', pid: newProjectId(), gen: 0, dirty: false, pending: [], undo: null,
     shadowCalls: 0, workletLoads: [], autosaves: 0, lastNotice: null,
   };
   sim.files = f;
@@ -458,6 +530,7 @@ export function initFiles(env) {
   // "Load without …", "Replace the clip" and Undo load.
   async function load(bytes, o = {}) {
     const d = o.d || describe(bytes, o.name);
+    const pidBefore = f.pid;
     if (d.enc === 0 && o.name && /\.syx$/i.test(o.name)) d.enc = 4;
     let kind = d.kind;
     let target = o.target || null;
@@ -487,7 +560,7 @@ export function initFiles(env) {
       return { ok: false, report: rep };
     }
     const l = await worklet({ type: 'state-load', bytes: c.bin, kind: 0, into: target.into, slot: target.slot,
-      flags: flags | (o.quiet ? FLAG_QUIET : 0) }, [c.bin.buffer]);
+      flags: flags | (o.quiet ? FLAG_QUIET : 0) | (o.same ? FLAG_KEEP_TRANSPORT : 0) }, [c.bin.buffer]);
     f.workletLoads.push({ binary: l.binary === true, ok: l.ok === true });
     const rep = l.report ? JSON.parse(l.report) : { code: 'BAD', message: 'The audio thread takes the binary container only.' };
     if (!l.ok) {
@@ -498,9 +571,12 @@ export function initFiles(env) {
     // load changes nothing, Recent included.
     if (o.before !== false) {
       await addRecent(`Before ${d.title}`, live);
-      f.undo = { bin: live, title: d.title };
+      f.undo = { bin: live, title: d.title, pid: pidBefore };
     }
-    if (kind === 'project') setTitle(d.title);
+    if (kind === 'project') {
+      setTitle(d.title);
+      f.pid = o.pid || (o.same ? pidBefore : newProjectId());      // the same project put back, or another one
+    }
     touched();
     if (o.ui) {
       notice('loaded', loadedText(rep, d, targetText(kind, target)), subText(rep),
@@ -526,7 +602,7 @@ export function initFiles(env) {
     const u = f.undo;
     if (!u) return;
     f.undo = null;
-    const r = await load(u.bin, { d: { enc: 1, kind: 'project', title: u.title }, before: false, quiet: true });
+    const r = await load(u.bin, { d: { enc: 1, kind: 'project', title: u.title }, before: false, quiet: true, pid: u.pid });
     if (r.ok) notice('info', `The load of “${u.title}” was undone: the project is as it was before it.`);
     else notice('refused', `The load could not be undone: ${r.report.message}`);
   }
@@ -544,7 +620,7 @@ export function initFiles(env) {
     renderLibrary();
   }
 
-  let autosaveTimer = null, firstDirty = 0, lastAutosave = 0, lastBytes = null;
+  let autosaveTimer = null, firstDirty = 0, lastAutosave = 0, lastBytes = null, lastPid = null;
   function touched() {
     f.dirty = true;
     ++f.gen;
@@ -564,9 +640,12 @@ export function initFiles(env) {
     lastAutosave = Date.now();
     let bin;
     try { bin = await liveBin(true); } catch (err) { return false; }
-    if (lastBytes && lastBytes.length === bin.length && lastBytes.every((b, i) => b === bin[i])) return true;
+    // The same bytes of the same project need not be written again; the same bytes of another project do (a file
+    // opened again is another project, and A and B are matched to it by the identity the autosave carries).
+    if (lastPid === f.pid && lastBytes && lastBytes.length === bin.length && lastBytes.every((b, i) => b === bin[i])) return true;
     lastBytes = bin;
-    await store.put('autosave', { name: f.title, bin, size: bin.length, modified: Date.now() }, 'project');
+    lastPid = f.pid;
+    await store.put('autosave', { name: f.title, bin, size: bin.length, modified: Date.now(), pid: f.pid }, 'project');
     ++f.autosaves;
     return true;
   }
@@ -839,11 +918,12 @@ export function initFiles(env) {
     if (embed) post({ event: 'power', on: true });
   }
   async function restore(saved, quietly) {
-    const r = await load(saved.bin, { d: { enc: 1, kind: 'project', title: saved.name }, before: false, quiet: true });
+    const r = await load(saved.bin, { d: { enc: 1, kind: 'project', title: saved.name }, before: false, quiet: true, pid: saved.pid });
     if (r.ok) {
       setTitle(saved.name);
       f.dirty = false;
       lastBytes = saved.bin;
+      lastPid = f.pid;
       if (!quietly) {
         notice('info', `Restored “${saved.name}”, autosaved in this browser ${when(saved.modified)}.`, '',
           [{ label: 'Start fresh', fn: startFresh }]);
@@ -1124,6 +1204,24 @@ export function initFiles(env) {
   readLink();
   fillSaveKinds();
   renderLibrary();
+  // Browser storage that waits for another tab: an upgrade of the database is blocked while an older
+  // tab of this page holds it open (the store falls back to memory until the request goes through).
+  // Say so, and say when it is free again, rather than leaving a visit without saving.
+  let storageWaiting = false;
+  store.watch((s) => {
+    if (s.blocked && !s.open) {
+      storageWaiting = true;
+      f.memoryOnly = true;
+      notice('info', 'Another tab of this page is open on an older version and holds this browser\'s storage.',
+        'Close or reload that tab. Until then autosave, Recent and A/B are kept for this visit only; they are saved as soon as storage is free.');
+    } else if (s.open && storageWaiting) {
+      storageWaiting = false;
+      f.memoryOnly = false;
+      lastBytes = null;                       // the autosave writes again, whatever it wrote to memory
+      notice('info', 'Browser storage is free again: autosave, Recent and A/B are being saved.');
+      touched();
+    }
+  });
   // window.fm1.files: this state and these calls, for the console and the
   // headless page check.
   return Object.assign(f, {

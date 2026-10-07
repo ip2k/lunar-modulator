@@ -38,7 +38,8 @@ the "Power on" button, as browsers require a gesture.
 | Info | GLO shows the sample rate, block size, the chain's RAM as a percentage of what the stock layout leaves free (387,924 B, docs/11 §2; the meter's figure, rounded up, red past 100 %), voices, octave and transpose on *1/2 Globe*, and SELECT turns to *2/2 Key*, the project key (below, "The arpeggiator"). A user sees memory only as that percentage, on the screen, the page and in refusals, never in bytes (owner, 2026-10-06; until then GLO read `245K/379K` and a refusal `150K over budget`): the meter, GLO and the refusals round up with `fm1_app_ram_percent`, and the page's status line ("The chain takes N% of the FM-1's memory.") with `memoryPercent` the same way, so they never differ and a refused chain never reads 100 %. WebAssembly has 4-byte pointers like pi32v2, so these are the 32-bit instance sizes. The RAM figure includes the sequencer: its instance (31,880 B at 8 tracks, the same at 32 and 64 bits) and its 3,264-byte event buffer (3,072 B, 256 events, until stage S6, so a chain's figure can read 1K more than before: 4 of the 54 one-effect chains do). It is the RAM meter's figure (below), which also counts the sequencer's pending record, UI bound and click voice and the modulation runtime |
 | Sequencer | The app hosts the sequencer core (engines/seq.md) through the shared host bridge (`engines/include/fm1_seq_host.h`), exactly as `fm1-render` does: script lines and commands at block starts, each block's events, and the sound's render split at every note and lock of a track routed to it. 8 tracks (owner decision O3, 2026-10-02), a 272-event buffer (256 until stage S6), one pending command record, and the event-room rule: an op goes in only while 201 events of room are free, otherwise it waits a block, so no note-off is ever lost. The harness and the parity test play verb scripts and `movy1` sets through it; every one of the 34 Movy oracle scripts plays through the app byte for byte as through `fm1-render` at 64-frame blocks [verified: `tests/test_sim_seq.py`]. On the panel (below): PLAY/STOP, SEQ mode's Track view and a demo pattern (docs/15 stage S3), step entry: the white keys as steps, the Step pages, SHIFT and bar paging (S4), record, step record and Capture (S5), tracks, mute, the Set, Clip and Track pages and the metronome's click (S6), and parameter locks from KNOB1–4 (S8) |
 
-Tested in Chromium only. In headless Chromium 153 (Playwright 1.63, on
+The page is tested in Chromium; the Advanced editor's five page tests also run in Firefox and WebKit
+("Other browsers" below), on the Linux host and in CI (the `editor-page-tests` job). In headless Chromium 153 (Playwright 1.63, on
 aeon) [verified: `build/screenshots/report.json`, 2026-10-01]: the page is titled
 "Lunar Modulator", Audiowide loads from `fonts/`, the background is the
 palette's base; it powers on, a
@@ -1004,6 +1005,46 @@ Firefox and WebKit):
 
 The test needs axe-core in the Playwright directory (`build-on-aeon.sh`
 installs it next to Playwright).
+
+## The advanced editor: the review's seven fixes
+
+A review of the v1 build (`notes/2026-10-06-web-editor.md` §30 has each defect,
+its fix and its check) found seven things wrong; fixed, with a check that fails
+without each:
+
+- **A/B keeps the transport.** `files.load(..., { same: true })` (A/B's own
+  loads, "Make B from the picks", the undos of either) sets the new load flag
+  `FM1_APP_LOAD_KEEP_TRANSPORT` (8). C reads a running transport before the
+  project is made again (`fm1_seq_transport_take`, `engines/seq/seq_engine.c`)
+  and, once the set is in, plays it and lays the old clock and playheads over it
+  (`fm1_seq_transport_put`): the master tick and its phase, each track's clip,
+  playhead and loop count for a clip the new set has, the song's place when it
+  is the same list. A stopped transport stays stopped; recording, a count-in
+  and Capture end with the load. Native: `--edit-check`'s `check_transport`;
+  page: `test/editor-v1.mjs` §11.
+- **A long list's filter** rebuilds the `<select>`'s options (Safari's dropdown
+  ignores `hidden`); `editor-v1.mjs` §12 types into it, the picker's filter and
+  the matrix's, in all three engines.
+- **Units are spoken as words** from one table (`spokenText`): "+7 semitones".
+- **The id layout and the chain's shape are the metadata's** (level 1.3,
+  `mod.source_base`, `source_stride`, `unit_base`, `sounds`, `inserts`,
+  `masters`): `model.js` reads them once (`setLayout`) and a metadata without
+  them is refused with a message. `tests/test_sim_editor_ui.py` greps the
+  editor's code for a stride, a base or a count written as a number.
+- **Stored A and B belong to a project**, not to a title: a project has an
+  identity (`files.pid`) that the autosave carries.
+- **The IndexedDB upgrade** (`files.js`, `openDb`): a blocked open stays
+  pending, the visit works from memory meanwhile and says why, memory is
+  written when storage is free, and the connection closes on `versionchange`.
+  `editor-v1.mjs` §13 holds a version 1 open from a second page.
+
+**CI** runs the editor's page tests (`.github/workflows/ci.yml`, job
+`editor-page-tests`): `editor-unit`, `editor-ui`, `editor-reach`, `editor-map`,
+`editor-v1` and the 30-second storm in Chromium, Firefox and WebKit, in
+`mcr.microsoft.com/playwright:v1.63.0-noble` with Playwright and axe-core as
+`build-on-aeon.sh` installs them (`tests/test_ci_pins.py` holds the two
+together), and the page's `screenshot` and `files` tests in Chromium. They need
+the committed `www/` only. A failing run uploads the screenshots and reports.
 
 ## Parity: does the browser sound like the native engines?
 

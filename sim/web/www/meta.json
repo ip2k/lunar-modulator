@@ -1,5 +1,5 @@
 {
-  "lunar": "1.2",
+  "lunar": "1.3",
   "kind": "metadata",
   "made": {"by": "simulator", "version": "0.0.0", "commit": "0000000"},
   "build": {
@@ -7875,6 +7875,12 @@
     "positions": 8,
     "slots": 32,
     "tick": 32,
+    "source_base": 64,
+    "source_stride": 8,
+    "unit_base": 8,
+    "sounds": 4,
+    "inserts": 2,
+    "masters": 2,
     "kinds": [
       {
         "id": "lfo",
@@ -11796,5 +11802,5 @@
       }
     ]
   },
-  "meta_id": "02e7c1eb"
+  "meta_id": "9855d7e3"
 }

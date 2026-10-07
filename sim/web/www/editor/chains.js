@@ -16,7 +16,7 @@ import {
   ROLE, T, SOUNDS, INSERTS, MASTERS, NONE, GATE_DST, SLOT_ON, VOICE, SLOTS,
   packUnit, packModule, packCable, packVerb, packParam, packOn, packCurrent, concat,
   blockKey, parseBlockKey, blockTag, modKey, parseModKey, hasFlag, ramPercent,
-  cableEmpty, cableEqual, emptyCable, pctOfQ14, Q14, withPol, withCurve, withBit, toPos,
+  cableEmpty, cableEqual, emptyCable, pctOfQ14, Q14, withPol, withCurve, withBit, toPos, isModuleSource, sourcePosition,
 } from './model.js';
 import { makeMap } from './map.js';
 import { makeSheets } from './sheets.js';
@@ -715,7 +715,7 @@ export function makeChains(ctx) {
     const key = modKey(pos);
     const blk = ctx.blockOf(key);
     const k = blk ? mm.kind(blk.engine) : null;
-    const n = st.mirror.cables.filter((c) => !cableEmpty(c) && ((c.src >= 64 && ((c.src - 64) >> 3) === pos) || mm.unitKey(c.unit) === key)).length;
+    const n = st.mirror.cables.filter((c) => !cableEmpty(c) && ((isModuleSource(c.src) && sourcePosition(c.src) === pos) || mm.unitKey(c.unit) === key)).length;
     const card = el('button', `ed-card-m${blk ? '' : ' is-empty'}${st.selected === key ? ' is-sel' : ''}`, { type: 'button', 'data-block': key, 'data-fk': key,
       'aria-pressed': String(st.selected === key), 'aria-label': [`RACK ${pos + 1}`, k ? k.name : 'empty', n ? `${n} cable${n > 1 ? 's' : ''}` : k ? 'no cables' : ''].filter(Boolean).join(' '),
       onclick: () => ctx.select(key, { view: 'mod' }) }, [
@@ -886,7 +886,7 @@ export function makeChains(ctx) {
     // Where the editor has no room for the table's row (a phone), the cable is made in three steps.
     if (!mapRoom() && sheets) { sheets.addCableSheet(anchor); return; }
     const srcs = sourceOptions(false);
-    const mod = srcs.find((x) => x.value >= 64) || srcs[0];
+    const mod = srcs.find((x) => isModuleSource(x.value)) || srcs[0];
     const dl = destList();
     const sel = ctx.blockOf(st.selected) ? mm.unitCode(st.selected) : -1;
     const d = dl.find((x) => Number(x.value.split(':')[0]) === sel) || dl[0];
@@ -1096,7 +1096,7 @@ export function makeChains(ctx) {
       return -1;
     }
     const srcs = sourceOptions(false);
-    const mod = srcs.find((x) => x.value >= 64) || srcs[0];
+    const mod = srcs.find((x) => isModuleSource(x.value)) || srcs[0];
     const unit = mm.unitCode(key);
     if (!mod || unit < 0) return -1;
     const i = makeCable(mod.value, `${unit}:${p.uid}:0`);
