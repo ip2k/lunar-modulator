@@ -502,3 +502,42 @@ int fm1w_param_parse(unsigned uid) {
   return p && fm1_param_parse(p, g_text + n + 1, &g_param_value);
 }
 float fm1w_param_value(void) { return g_param_value; }
+
+/* The rack and the matrix as the edit layer's packed records (stage ED3,
+ * notes/2026-10-06-web-editor.md §5): into the text buffer, a MODULE record
+ * per rack position (an empty kind for an empty one), then a CABLE record per
+ * matrix slot, then one byte per slot: 0, or the planner's refusal code for
+ * a cable that is on but does not run (fm1_mod_slot_refusal, fm1_refusal.h).
+ * The editor reads cables by these codes, so it never parses a file's names
+ * for them. For the shadow Worker, never the audio thread. Returns the
+ * records written (FM1_MOD_POSITIONS + FM1_MOD_SLOTS). */
+unsigned fm1w_mod_records(void) {
+  uint8_t *out = (uint8_t *)g_text;
+  unsigned n = 0, i;
+  for (i = 0; i < FM1_MOD_POSITIONS; ++i, ++n) {
+    fm1_rec_t r;
+    const int kind = g_app.mod ? fm1_mod_kind_at(g_app.mod, i) : -1;
+    memset(&r, 0, sizeof r);
+    r.type = FM1_REC_MODULE;
+    r.role = FM1_ROLE_MODULE;
+    r.slot = (uint8_t)i;
+    if (kind >= 0) snprintf(r.u.unit.id, sizeof r.u.unit.id, "%s", fm1_mod_kinds[kind]->id);
+    fm1_edit_pack(&r, out + n * FM1_EDIT_REC_BYTES);
+  }
+  for (i = 0; i < FM1_MOD_SLOTS; ++i, ++n) {
+    fm1_rec_t r;
+    memset(&r, 0, sizeof r);
+    r.type = FM1_REC_CABLE;
+    r.slot = (uint8_t)i;
+    if (g_app.mod) fm1_mod_get_slot(g_app.mod, i, &r.u.cable.s);
+    fm1_edit_pack(&r, out + n * FM1_EDIT_REC_BYTES);
+  }
+  for (i = 0; i < FM1_MOD_SLOTS; ++i) {
+    fm1_mod_slot_t s;
+    memset(&s, 0, sizeof s);
+    if (g_app.mod) fm1_mod_get_slot(g_app.mod, i, &s);
+    out[n * FM1_EDIT_REC_BYTES + i] =
+        g_app.mod && (s.flags & FM1_MOD_SLOT_ON) ? (uint8_t)fm1_mod_slot_refusal(g_app.mod, i) : 0u;
+  }
+  return n;
+}

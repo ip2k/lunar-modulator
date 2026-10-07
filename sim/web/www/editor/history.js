@@ -10,8 +10,10 @@
 //   `after` as an edit, and the change that comes back is not recorded again
 //   (the caller passes it to `confirm`).
 // - A new edit clears what could be redone; 200 entries at most.
-// Structural entries (a swap, a cable, a load) and undo's snapshot fallback
-// come with ED3 and ED4. MIT licence, like the rest of this repository.
+// Structural entries (stage ED3: an engine or effect chosen, a swap, a
+// module moved or chosen) carry the records that undo and redo them in
+// `info` and never vanish when they end where they began; undo's snapshot
+// fallback comes with ED4. MIT licence, like the rest of this repository.
 
 export const MERGE_MS = 600;
 export const LIMIT = 200;
@@ -48,7 +50,8 @@ export class History {
     if (merge) {
       last.after = c.after;
       last.at = t;
-      if (last.after === last.before) {          // back where it began: no step
+      if (c.info && c.info.redo) last.info.redo = c.info.redo;
+      if (last.after === last.before && !(last.info && last.info.struct)) {          // back where it began: no step
         this.entries.splice(this.at - 1, 1);
         this.at -= 1;
         if (inDrag) this.dragEntry = null;
