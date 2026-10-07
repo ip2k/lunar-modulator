@@ -242,19 +242,20 @@ function readHints(params) {
 }
 
 // ---- browser storage: IndexedDB, or memory when it is blocked ------------------------
-const memory = { files: new Map(), autosave: new Map(), recent: new Map() };
+const memory = { files: new Map(), autosave: new Map(), recent: new Map(), snapshots: new Map() };
 let memoryId = 1;
 let dbPromise = null;
 function openDb() {
   if (!dbPromise) {
     dbPromise = new Promise((resolve) => {
       try {
-        const req = indexedDB.open('lunar-modulator', 1);
+        const req = indexedDB.open('lunar-modulator', 2);   // 2: the editor's A/B `snapshots`
         req.onupgradeneeded = () => {
           const d = req.result;
           if (!d.objectStoreNames.contains('files')) d.createObjectStore('files', { keyPath: 'id', autoIncrement: true });
           if (!d.objectStoreNames.contains('autosave')) d.createObjectStore('autosave');
           if (!d.objectStoreNames.contains('recent')) d.createObjectStore('recent', { keyPath: 'id', autoIncrement: true });
+          if (!d.objectStoreNames.contains('snapshots')) d.createObjectStore('snapshots');   // A/B, one record for each thing compared
         };
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => resolve(null);
