@@ -592,7 +592,7 @@ export function parseModKey(key) {
   return m ? m[1] - 1 : -1;
 }
 
-// fm1w_mod_records' bytes: the rack (kind ids), the slots and each slot's verdict.
+// What fm1w_mod_records writes: the rack (kind ids), the slots, a verdict a slot.
 export function decodeMod(bytes) {
   const rack = [], cables = [], verdicts = [];
   for (let i = 0; i < POSITIONS; ++i) rack.push(unpack(bytes, i * REC).id || '');

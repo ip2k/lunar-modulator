@@ -408,7 +408,7 @@
 .ed .ed-card-m[aria-pressed="true"] { background: var(--surface); color: var(--text); }
 .ed-trace { width: 100%; max-width: 160px; height: 28px; }
 .ed-mod-insp:not(:empty) { margin-top: 12px; }
-.ed-row-out { grid-template-columns: 0 minmax(0, 1fr) auto; }
+.ed-row-out .ed-live, .ed-row-out .ed-note { grid-column: 3 / -1; }
 .ed-live { color: var(--live); text-align: right; padding-left: 8px; }
 
 /* The matrix table (ED8: the editing view). */

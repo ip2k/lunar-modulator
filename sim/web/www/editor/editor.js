@@ -667,7 +667,8 @@ export async function startEditor(env) {
     // The control that had the keys keeps them across a redraw (data-fk).
     const ae = document.activeElement;
     const fkEl = ae && root.contains(ae) && ae.closest ? ae.closest('[data-fk]') : null;
-    const fk = fkEl ? fkEl.dataset.fk : null;
+    const fk = st.focusAfter || (fkEl ? fkEl.dataset.fk : null);
+    if (st.mirror) st.focusAfter = null;
     chains.closePicker();
     root.classList.toggle('is-off', !st.port || !st.mirror);
     off.hidden = !!st.port;

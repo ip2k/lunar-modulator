@@ -49,9 +49,15 @@ export function makeChains(ctx) {
   }
 
   // ---- the blocks that move -----------------------------------------------------
+  // The effect slots a block can move to: the master's, and the inserts of
+  // every sound that has an engine (a sound with none shows no slots, and C
+  // refuses an effect there: no file could hold it).
   const effectKeys = () => {
     const out = [];
-    for (let k = 0; k < SOUNDS; ++k) for (let j = 0; j < INSERTS; ++j) out.push(blockKey(ROLE.INSERT, k, j));
+    for (let k = 0; k < SOUNDS; ++k) {
+      if (st.mirror && !st.mirror.blocks.has(blockKey(ROLE.SOUND, k))) continue;
+      for (let j = 0; j < INSERTS; ++j) out.push(blockKey(ROLE.INSERT, k, j));
+    }
     for (let j = 0; j < MASTERS; ++j) out.push(blockKey(ROLE.MASTER, 0, j));
     return out;
   };
@@ -203,6 +209,9 @@ export function makeChains(ctx) {
     structural({ key: a, target: `${a}>${b}`, label, before: `${blockTag(a)} ${nameAt(a)}, ${blockTag(b)} ${nameAt(b)}`,
       after: mod ? 'moved' : 'swapped', ops: [op], undo: [back] });
     st.selected = b;
+    // The keys stay with the block: on its new place once the view redraws.
+    const ae = typeof document !== 'undefined' ? document.activeElement : null;
+    if (ae && ae.dataset && ae.dataset.fk === a) st.focusAfter = b;
     ctx.say(label);
   }
 
@@ -287,6 +296,9 @@ export function makeChains(ctx) {
     const b = parseBlockKey(key);
     const want = b.role === ROLE.SOUND ? 'sound' : b.role === ROLE.MFX ? 'midi_fx' : b.role === ROLE.MODULE ? 'mod' : 'audio_fx';
     const list = (want === 'mod' ? [...mm.kinds.values()] : meta.doc.engines.filter((e) => e.kind === want)).map((e) => ({ id: e.id, e }));
+    // Effects by the metadata's groups, in its order (an editor hint, never a rule).
+    const order = (meta.doc.effect_groups || []).map((g) => g.id);
+    if (want === 'audio_fx') list.sort((a, b) => order.indexOf(a.e.group) - order.indexOf(b.e.group));
     return [{ id: '', e: null }, ...list];
   }
   function pickerOp(key, id) {
@@ -372,11 +384,19 @@ export function makeChains(ctx) {
   }
 
   // ---- meters (telemetry, §12): an insert's, a master slot's, the Mix's ----------------
+  // The meter rows, by the telemetry layout's order (fm1_tele.h, named in
+  // the metadata): each sound with its inserts, then the Mix, the master
+  // slots and the output.
+  const meterRows = () => { const m = secOf('meters'); return m ? m.rows : []; };
+  const mixRow = () => meterRows()[SOUNDS * (1 + INSERTS)] || '';
+  const outRow = () => meterRows()[meterRows().length - 1] || '';
+  const limiterRow = () => { const r = secOf('reduction'); return r ? r.rows[r.rows.length - 1] : ''; };
   function meterPoint(key) {
     const b = parseBlockKey(key);
     if (!b) return null;
-    if (b.role === ROLE.INSERT) return { out: `snd${b.sound + 1}.fx${b.slot + 1}`, in: b.slot ? `snd${b.sound + 1}.fx${b.slot}` : `snd${b.sound + 1}` };
-    if (b.role === ROLE.MASTER) return { out: `fx${b.slot + 1}`, in: b.slot ? `fx${b.slot}` : 'mix' };
+    const rows = meterRows();
+    if (b.role === ROLE.INSERT) { const i = b.sound * (1 + INSERTS) + 1 + b.slot; return { out: rows[i], in: rows[i - 1] }; }
+    if (b.role === ROLE.MASTER) { const i = SOUNDS * (1 + INSERTS) + 1 + b.slot; return { out: rows[i], in: rows[i - 1] }; }
     return null;
   }
   function meterRow(label, row, red) {
@@ -404,9 +424,9 @@ export function makeChains(ctx) {
       const now = el('button', `ed-btn ed-cur${cur ? ' is-on' : ''}`, { type: 'button', 'aria-pressed': String(cur), text: cur ? 'Current' : 'Make current',
         title: 'The sound the panel plays and edits (SHIFT + PRESETS)', 'data-fk': `mix:cur${k}` });
       now.addEventListener('click', () => { if (!cur) ctx.sendOps(packCurrent(k), { verb: true, label: `S${k + 1} current` }); });
-      page.append(el('div', 'ed-mix-row', {}, [row, el('span', 'ed-meter', { 'data-meter': `snd${k + 1}.fx2`, 'aria-hidden': 'true' }), now]));
+      page.append(el('div', 'ed-mix-row', {}, [row, el('span', 'ed-meter', { 'data-meter': meterRows()[k * (1 + INSERTS) + INSERTS], 'aria-hidden': 'true' }), now]));
     }
-    box.append(page, el('div', 'ed-meters', { role: 'group', 'aria-label': 'Mix and output levels' }, [meterRow('Mix', 'mix'), meterRow('Out', 'out', 'limiter')]));
+    box.append(page, el('div', 'ed-meters', { role: 'group', 'aria-label': 'Mix and output levels' }, [meterRow('Mix', mixRow()), meterRow('Out', outRow(), limiterRow())]));
     return box;
   }
 
@@ -668,7 +688,7 @@ export function makeChains(ctx) {
     const sec = el('section', 'ed-matrix', { 'aria-label': 'Matrix' });
     const q = el('input', 'ed-find', { type: 'search', placeholder: 'Filter: source or destination', 'aria-label': 'Filter the matrix', value: filt.q, 'data-fk': 'mx:find' });
     q.addEventListener('focus', () => { st.typing = true; });
-    q.addEventListener('blur', () => { st.typing = false; });
+    q.addEventListener('blur', () => { st.typing = false; if (st.verdictDirty) { st.verdictDirty = false; ctx.snapshotSoon(); } });
     q.addEventListener('input', () => { filt.q = q.value; fillRows(); });
     const showEmpty = el('input', null, { type: 'checkbox', id: ctx.nextId('mx'), 'data-fk': 'mx:empty' });
     showEmpty.checked = filt.empty;
@@ -717,7 +737,11 @@ export function makeChains(ctx) {
     const amt = el('input', 'ed-val ed-amt', { type: 'text', inputmode: 'numeric', 'aria-label': `Cable ${i + 1} amount, percent`, 'data-fk': `${key}:amt`,
       value: String(pctOfQ14(s.amount)) });
     amt.addEventListener('focus', () => { st.typing = true; amt.select(); });
-    amt.addEventListener('blur', () => { st.typing = false; amt.value = String(pctOfQ14(cableOf(i).amount)); });
+    amt.addEventListener('blur', () => {
+      st.typing = false;
+      amt.value = String(pctOfQ14(cableOf(i).amount));
+      if (st.verdictDirty) { st.verdictDirty = false; ctx.snapshotSoon(); }
+    });
     amt.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault();
