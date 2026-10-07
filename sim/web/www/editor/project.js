@@ -174,7 +174,8 @@ export function makeProject(ctx) {
     const head = v.ok ? `Load “${arrival.title}” into ${t.words}?` : arrival.title ? `“${arrival.title}” cannot go into ${t.words}.` : `Nothing loads into ${t.words}.`;
     return el('section', `ed-arrive ${v.ok ? 'is-ok' : 'is-no'}`, { 'aria-label': 'Drop', role: 'region' }, [
       el('p', 'ed-arrive-h', { text: head }),
-      el('p', 'ed-arrive-w', { text: v.report.message || v.report.code }),
+      // C's words; a plain OK says nothing the heading does not.
+      v.ok && /^ok\.?$/i.test(v.report.message || 'OK') ? null : el('p', 'ed-arrive-w', { text: v.report.message || v.report.code }),
       v.ok ? el('p', 'ed-arrive-ram', { text: `${ramText(v.report)} of the FM-1's memory after it` }) : null,
       el('div', 'ed-arrive-b', {}, btns)]);
   }
@@ -216,9 +217,9 @@ export function makeProject(ctx) {
     for (let k = 0; k < SOUNDS; ++k) {
       const key = blockKey(ROLE.SOUND, k);
       targets.append(wireDrop(el('div', `ed-drop ed-s${k + 1}`, { 'data-block': key }, [
-        el('span', 'ed-tag', { text: `S${k + 1}` }), el('span', null, { text: blockOf(key) ? engineName(blockOf(key).engine) : 'Empty' })]), key));
+        el('span', `ed-tag ed-s${k + 1}`, { text: `S${k + 1}` }), el('span', null, { text: blockOf(key) ? engineName(blockOf(key).engine) : 'Empty' })]), key));
       targets.append(wireDrop(el('div', `ed-drop ed-s${k + 1}`, { 'data-block': blockKey(ROLE.INSERT, k, 0) }, [
-        el('span', 'ed-tag', { text: `S${k + 1} FX` }), el('span', null, { text: 'its effects' })]), blockKey(ROLE.INSERT, k, 0)));
+        el('span', `ed-tag ed-s${k + 1}`, { text: `S${k + 1} FX` }), el('span', null, { text: 'its effects' })]), blockKey(ROLE.INSERT, k, 0)));
     }
     targets.append(wireDrop(el('div', 'ed-drop', { 'data-block': 'm1' }, [el('span', 'ed-tag', { text: 'MASTER' }), el('span', null, { text: 'master effects' })]), 'm1'),
       wireDrop(el('div', 'ed-drop', { 'data-block': 'p1' }, [el('span', 'ed-tag', { text: 'RACK' }), el('span', null, { text: 'mod rack' })]), 'p1'));
