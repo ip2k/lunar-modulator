@@ -9,6 +9,18 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The advanced editor's engine room** (stage ED1; no visible change yet).
+  The simulator now has one way in for every edit, which the panel's own
+  knobs and buttons share and the coming web editor will use: sounds,
+  effects, levels, the arpeggiator, the mod rack and the matrix, swapping
+  and moving effects and modules, the current sound and the page the panel
+  shows. Every change is recorded with who made it (the panel, the editor
+  or a load), so the editor and the panel will follow each other; live
+  meters, modulation outputs and what each cable reaches are measured as
+  the sound plays, without changing a sample of it; and typed values such
+  as "1.2 kHz", "-6 dB" or "1/8D" are read as the screen shows them. A
+  30-second storm of edits with the song playing kept the audio thread at
+  a fraction of its time.
 - **Run the simulator yourself and drive it from another local page.**
   Served from `localhost`, `127.0.0.1` or `[::1]`, the simulator now
   answers a page on any local port that embeds it (as the guide does), and
