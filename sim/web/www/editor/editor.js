@@ -285,7 +285,7 @@ export async function startEditor(env) {
       } else if (c.src !== SRC_EDITOR) {
         const origin = c.src === SRC_PANEL ? 'panel' : SOURCES[c.src] || 'host';
         history.record({ target, label: labelOf(r.key, r.uid), before: r.before, after: r.after, origin, how: 'knob',
-          info: { key: r.key, uid: r.uid } });
+          info: { key: r.key, uid: r.uid, engine: engineOf(r.key) } });
         panelChanged(r);
       }
       if (st.dragKey !== target) refreshValue(r.key, r.uid);
@@ -321,6 +321,7 @@ export async function startEditor(env) {
     markPanelBlock();
     const moved = !was || was.mode !== v.mode || was.sound !== v.sound || was.page !== v.page || was.slot !== v.slot || was.arp !== v.arp;
     if (!moved || st.layout !== 'workbench' || !st.followPanel || st.typing || st.dragKey) return;
+    if (st.keys === 'edit' && view.contains(document.activeElement)) return;     // a hand is in the editor
     const at = blockOfView(v);
     if (!at) return;
     if (at.key === MIX_KEY || parseBlockKey(at.key).role === ROLE.MASTER) {
@@ -500,7 +501,8 @@ export async function startEditor(env) {
     if (uid !== 'on' && uid !== 'level' && paramOf(key, uid) && paramOf(key, uid).type === 'float') v = toF32(v);
     if (v === before) return;
     const target = `${key}:${uid}`;
-    const entry = history.record({ target, label: labelOf(key, uid), before, after: v, origin: 'editor', how, info: { key, uid } });
+    const entry = history.record({ target, label: labelOf(key, uid), before, after: v, origin: 'editor', how,
+      info: { key, uid, engine: engineOf(key) } });
     write(key, uid, v, { entry: entry ? entry.id : 0, label: labelOf(key, uid) });
     renderHistory();
   }
@@ -521,16 +523,27 @@ export async function startEditor(env) {
     sendOps(bytes, info);
     refreshValue(key, uid);
   }
+  // A block's engine now: a step recorded for another engine (the panel
+  // changed it since) cannot be undone by value, and is said so (the
+  // structural undo is ED3's).
+  function engineOf(key) { const b = blockOf(key); return b ? b.engine : null; }
+  function stale(e, verb) {
+    if (engineOf(e.info.key) === e.info.engine) return false;
+    say(`${e.label} cannot be ${verb}: ${blockTag(e.info.key)} has another engine now.`);
+    showRefusal(e.label, `${blockTag(e.info.key)} has another engine now`);
+    renderHistory();
+    return true;
+  }
   function undo() {
     const e = history.undo();
-    if (!e) return;
+    if (!e || stale(e, 'undone')) return;
     write(e.info.key, e.info.uid, e.before, { undo: true, label: e.label });
     say(`Undone: ${e.label}, ${textOf(e.info.key, e.info.uid, e.before)}`);
     renderHistory();
   }
   function redo() {
     const e = history.redo();
-    if (!e) return;
+    if (!e || stale(e, 'redone')) return;
     write(e.info.key, e.info.uid, e.after, { redo: true, label: e.label });
     say(`Redone: ${e.label}, ${textOf(e.info.key, e.info.uid, e.after)}`);
     renderHistory();
@@ -556,6 +569,11 @@ export async function startEditor(env) {
   // ---- selection and the views (§10) -------------------------------------------------
   function select(key, opt = {}) {
     if (key !== MIX_KEY && !parseBlockKey(key)) return;
+    const same = key === st.selected && (!opt.view || opt.view === st.view) && view.firstChild;
+    if (same && opt.quiet) {             // following the panel to where it already is
+      markPanelBlock();
+      return;
+    }
     st.selected = key;
     const b = parseBlockKey(key);
     if (opt.view) st.view = opt.view;
@@ -653,7 +671,7 @@ export async function startEditor(env) {
     const lvl = st.mirror.levels[k];
     row.append(el('div', 'ed-level', { title: `Level ${Math.round(lvl)} %` }, [
       el('span', 'ed-meter', { 'data-meter': meterRow(k), 'aria-hidden': 'true' }),
-      el('span', 'ed-level-n', { text: `${Math.round(lvl)} %` })]));
+      el('span', 'ed-level-n', { 'data-level': String(k), text: `${Math.round(lvl)} %` })]));
     return row;
   }
   // The telemetry row of a sound's output: the metadata's name for it.
@@ -1028,7 +1046,7 @@ export async function startEditor(env) {
       const blk = root.querySelector(`.ed-flow [data-block="${key}"] .ed-blk-s`);
       if (blk) blk.textContent = uid === 'on' ? (valueOf(key, 'on') ? 'on' : 'off') : summary(key);
       if (uid === 'level') {
-        const n = root.querySelectorAll('.ed-level-n')[parseBlockKey(key).sound];
+        const n = root.querySelector(`.ed-level-n[data-level="${parseBlockKey(key).sound}"]`);
         if (n) n.textContent = `${Math.round(valueOf(key, 'level'))} %`;
       }
     }
