@@ -924,10 +924,19 @@ note's §27 has it as built) is the second half of ED5.
   (`BROWSER=firefox|webkit`) for `editor.mjs`, `editor-ui.mjs`,
   `editor-reach.mjs` and `editor-map.mjs`. Firefox in a headless container
   needs an audio device (its AudioContext stays *suspended* otherwise, with
-  or without its null-context pref): PulseAudio with a null sink does it
-  (`apt-get install pulseaudio; pulseaudio -D; pactl load-module
-  module-null-sink`). The tests that resolve a made-up host name
-  (`files.mjs`, `screenshot.mjs`) use a Chromium flag and stay on Chromium.
+  or without its null-context pref): PulseAudio with a null sink does it.
+  By hand, on aeon, in the Playwright container that `build-on-aeon.sh` used
+  (the staged tree is under its remote directory's `src/`, its `playwright/`
+  holds the npm package), run as root with `-e BROWSER=firefox`: `apt-get
+  install pulseaudio pulseaudio-utils`, then `pulseaudio --system -n
+  --disallow-exit --exit-idle-time=-1 --load=module-null-sink
+  --load="module-native-protocol-unix auth-anonymous=1 socket=/tmp/pa.sock"
+  -D; export PULSE_SERVER=unix:/tmp/pa.sock`, then each of the four tests
+  with `PLAYWRIGHT_DIR=/pw node test/editor-map.mjs WWW OUT` (and `editor.mjs
+  WWW OUT 30` for the storm). WebKit needs no device. Firefox and WebKit do not
+  measure lateness or underruns, only that every edit applies. The tests that
+  resolve a made-up host name (`files.mjs`, `screenshot.mjs`) use a Chromium
+  flag and stay on Chromium.
 - **The manual**: chapter 15, *The advanced editor* (`manual/chapters/`), with
   five pictures of the page (`assets/screenshots/page-editor-*.png`, made by
   `test/editor-shots.mjs` and shown by the manual's new `{{page KEY caption}}`).

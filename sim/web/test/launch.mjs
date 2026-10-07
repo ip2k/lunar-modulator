@@ -5,8 +5,9 @@
 // (editor.mjs, editor-ui.mjs, editor-reach.mjs, editor-map.mjs) run in all three.
 // Firefox needs an audio device: in a headless container with no sound card its
 // AudioContext never leaves "suspended" (its null-context pref does not help), so
-// the worklet never runs. A PulseAudio null sink does it (build-on-aeon.sh sets one
-// up for the Firefox run); the clock is then the sink's, not a card's.
+// the worklet never runs. A PulseAudio null sink does it (the commands are in
+// sim/web/README.md, "Stage ED5b"; build-on-aeon.sh runs only Chromium); the clock
+// is then the sink's, not a card's.
 // MIT licence, like the rest of this repository.
 
 import { createRequire } from 'node:module';
