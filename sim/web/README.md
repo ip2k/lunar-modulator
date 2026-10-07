@@ -655,8 +655,9 @@ it loaded before (`notes/2026-10-06-web-editor.md` §4, §23):
 - **Undo** (§8): Undo and Redo, ⌘Z and ⇧⌘Z (Ctrl+Z, Ctrl+Y), over the
   editor's and the panel's parameter, level and on/off changes alike. A step
   goes back by sending its `before` as an edit; a step recorded for an
-  engine the block no longer has is refused in words. Structural steps and
-  the snapshot fallback come with ED3 and ED4 (ED4's section).
+  engine the block no longer has is refused in words. Structural steps
+  (stage ED3) and the snapshot fallback (stage ED4) came later: their own
+  sections.
 - **PLAY and EDIT** (§13): a click or the focus in the editor, or ⌘E (Ctrl+E),
   gives it the computer keys (`sim.keysToEditor`; `app.js` then sends no key
   to the FM-1); Esc, or a click on the panel, gives them back. Sliders take
@@ -940,6 +941,69 @@ note's §27 has it as built) is the second half of ED5.
 - **The manual**: chapter 15, *The advanced editor* (`manual/chapters/`), with
   five pictures of the page (`assets/screenshots/page-editor-*.png`, made by
   `test/editor-shots.mjs` and shown by the manual's new `{{page KEY caption}}`).
+
+## The advanced editor: the v1 completion
+
+The audit of v1 after ED5b (`notes/2026-10-06-web-editor.md` §28 has each
+gap, how it was built and how it was checked) found what the stages had left
+out. Built, with `test/editor-v1.mjs` (all five editor tests run in Chromium,
+Firefox and WebKit):
+
+- **Modulation on the parameter rows** (`chains.js`: `decorateRow`,
+  `tickRows`; §6 flag `mod`, §7, §11, §13). A row a live cable reaches (on,
+  and not refused: C's verdict) has its label in the modulation colour, a chip
+  naming the source, a bracket round the base (the cables' depth, as the panel
+  screen draws it) and the destination's effective value as a tick, one for
+  each sounding voice for a per-voice cable. The slider speaks it: "Cutoff,
+  420 hertz, modulated by 1 LFO Out, plus 35 percent". The telemetry's `dests`
+  and `voice_dests` rows of the live cables are subscribed in the Flow and a
+  sound too, not only in Modulation. Key **C** on a slider makes a cable into
+  that parameter (or says "Takes no modulation", C's words).
+- **Late cables.** `fm1w_mod_records` ends with one more byte for each slot:
+  the rack positions of the loop a cable read a tick late closes, as a bit
+  mask (`fm1_mod_slot_loop`; 0 when it is not late). The table marks `>` runs,
+  `v`, `~` late, `!`, `–` from the metadata's `marks` (level 1.2: the panel's
+  own characters and words), the slot inspector says which modules the loop
+  passes through, the Map has an *A tick late* chip and `~` on the pill.
+- **A refusal's repair, drawn curves, each voice's value.** Level 1.2's
+  `refusals.codes[].fix` (`global` for VOICE_TO_MONO and VOICE_TO_EFFECT)
+  becomes a button that makes the ordinary edit; the slot inspector draws every
+  curve from `mod.curve_points` (C's `fm1_mod_curve`, 33 points) and lists
+  each sounding voice's value for a per-voice cable.
+- **Source groups from the metadata** (`mod.source_groups`, a `group` on each
+  source): the Map holds no source name any more.
+- **Search operators** (`project.js`): `>cutoff` into, `lfo>` out of, `!`
+  refused, `~` late, `v` per voice, `s2` a sound, a unit such as `hz`; cables
+  are a group.
+- **A/B picks.** Each listed difference has an A or B pick; *Make B from the
+  picks* asks the shadow Worker's new `fromPicks` op for B's file with A's values
+  at the picked places (`differences` now also gives each change's steps,
+  `at`), has pass 1 judge it, records one history step (undone from its
+  snapshot, redone from the file) and loads it. A and B are kept in
+  IndexedDB's new `snapshots` store (database version 2) and come back after
+  a reload for the same project.
+- **Out, per block.** *Copy a link* for a block's file (`#lunar=...&into=s3`),
+  and in Chromium a sound's tag in the Flow dragged to the desktop gives its
+  file (`DownloadURL`, the file made as the pointer comes near).
+- **The arrival card** says what the target holds now and what the file
+  brings; RAM and acceptance are still C's.
+- **The Flow's blocks** carry their cable count (and refusals) and a level bar.
+- **Phones** (`sheets.js`): *Add a cable* as three steps (source, destination,
+  amount, with C's verdict) where the editor has no room for the table's row;
+  a block's menu from a long press, a right click or the menu key.
+- **Small ones**: "A sound, not an effects chain, was expected." (C's article
+  follows the word); stale text in `history.js` and this file.
+- **Tests §17 left out**: axe-core's rules on every view at 1,440, 1,024 and
+  375 px (found and fixed: muted text at 4.46:1, headings out of order, names
+  that did not hold the visible text, the sound tag's contrast), a
+  reduced-motion run (half the telemetry, no animation), telemetry stopped
+  while the editor is hidden, a lock playing changing no base (native
+  `--edit-check` and the page), a sweep of 40 random gesture runs for the
+  parity of hands (native), and the main thread's budget while a slider is
+  dragged.
+
+The test needs axe-core in the Playwright directory (`build-on-aeon.sh`
+installs it next to Playwright).
 
 ## Parity: does the browser sound like the native engines?
 

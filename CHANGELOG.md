@@ -9,6 +9,27 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The advanced editor: the v1 gaps** (the audit after ED5b). A parameter a
+  cable moves now looks it, as the screen does: its name in the modulation
+  colour, a chip naming the cable's source, a bracket round the value, a tick
+  where it is now (one for each sounding note for a per-voice cable), and the
+  slider says it aloud ("Cutoff, 420 hertz, modulated by 1 LFO Out, plus 35
+  percent"); <kbd>C</kbd> makes a cable into the parameter. Cables that run a
+  tick late are marked `~` in the table and the Map and explained (which
+  modules the loop passes through); a cable the instrument refuses can offer
+  its repair (*Make it global*); the cable's curves are drawn and a per-voice
+  cable shows each note's value. Search understands `>cutoff`, `lfo>`, `!`,
+  `~`, `v`, `s2` and units such as `hz`, and finds cables. A/B lists each
+  difference with an A or B pick and can make B from the picks in one undoable
+  step; A and B survive a reload. Each block can copy a link to its file, and in
+  Chromium a sound's tag can be dragged to the desktop. A file dropped on a
+  block says what it replaces and what it brings. Flow blocks show their cable
+  counts and level bars. On a phone, *Add a cable* is three steps and a long
+  press opens a block's menu. The Map's source groups now come from the
+  instrument (parameter metadata level 1.2, which also carries the matrix
+  marks, the curves' points and the repairs). The editor's views pass
+  axe-core's rules at desktop, tablet and phone widths; muted text, headings
+  and some button names were fixed for it.
 - **The advanced editor: the Map** (stage ED5b, finishing the editor). The
   modulation view has a second face, *Map*, next to *Table*: the same cables
   drawn as a patch bay, with sources on the left, the rack in the middle and
@@ -2316,6 +2337,7 @@ history.
     and the bugs it found on the way.
 
 ### Fixed
+- **A refusal for the wrong kind of file reads properly.** "A sound, not a effects chain was expected" is now "A sound, not an effects chain, was expected.": the article follows the word.
 - **Sound on iPhones and iPads** ([#53](https://github.com/ip2k/lunar-modulator/issues/53)).
   The simulator now plays through Silent mode, as a music app does (where
   Safari lets a page ask for that: iOS 18 does), and starts its sound again after a call, Siri or another

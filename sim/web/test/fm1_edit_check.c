@@ -372,6 +372,7 @@ static void check_ring(void) {
 static void normal_view(void) { edit_line("view home sound=1 page=1", 0, NULL); }
 
 static unsigned g_hands;
+static unsigned g_lock_blocks, g_sweeps;
 
 static void hands(void (*gesture)(void)) {
   static fm1_change_t panel[FM1_EDIT_RING], editor[FM1_EDIT_RING];
@@ -449,6 +450,84 @@ static void g_rack(void) {
   fm1_app_button(&g_a, FM1_BTN_LFO, 1), fm1_app_button(&g_a, FM1_BTN_LFO, 0);
   fm1_app_encoder(&g_a, FM1_ENC_KNOB1, 9);
   fm1_app_encoder(&g_a, FM1_ENC_KNOB2, -4);
+}
+
+/* A sweep: runs of the families above with random deltas, in random order
+ * (the note's §17 "parity of hands": the editor's op and the panel gesture
+ * give the same state hash and the same ring entries). The seed is the
+ * sweep's number, so a failure names the run that found it. */
+static uint32_t g_sweep_seed, g_srng;
+static uint32_t srnd(void) {                       /* its own stream: the fuzz below keeps its own */
+  g_srng = g_srng * 1664525u + 1013904223u;
+  return g_srng >> 8;
+}
+static int g_d(int span) { return (int)(srnd() % (unsigned)(2 * span + 1)) - span; }
+static void g_sweep(void) {
+  g_srng = 0x9E3779B9u * (g_sweep_seed + 1u);
+  fm1_app_encoder(&g_a, FM1_ENC_KNOB1, 1 + (int)(srnd() % 9));          /* at least one change */
+  for (int n = 1 + (int)(srnd() % 3); n > 0; --n) {
+    switch (srnd() % 6) {
+      case 0:
+        for (int k = 0; k < 4; ++k) fm1_app_encoder(&g_a, FM1_ENC_KNOB1 + k, g_d(8));
+        break;
+      case 1:
+        fm1_app_encoder(&g_a, FM1_ENC_SELECT, g_d(1));
+        fm1_app_encoder(&g_a, FM1_ENC_KNOB2, g_d(9));
+        break;
+      case 2:
+        fm1_app_button(&g_a, FM1_BTN_FX, 1), fm1_app_button(&g_a, FM1_BTN_FX, 0);
+        fm1_app_encoder(&g_a, FM1_ENC_KNOB1, g_d(20));
+        fm1_app_encoder(&g_a, FM1_ENC_KNOB3, g_d(6));
+        break;
+      case 3:
+        fm1_app_button(&g_a, FM1_BTN_ARP, 1), fm1_app_button(&g_a, FM1_BTN_ARP, 0);
+        fm1_app_encoder(&g_a, FM1_ENC_KNOB1, g_d(3));
+        fm1_app_encoder(&g_a, FM1_ENC_KNOB2, g_d(2));
+        break;
+      case 4:
+        fm1_app_button(&g_a, FM1_BTN_LFO, 1), fm1_app_button(&g_a, FM1_BTN_LFO, 0);
+        fm1_app_encoder(&g_a, FM1_ENC_KNOB1, g_d(9));
+        fm1_app_encoder(&g_a, FM1_ENC_KNOB2, g_d(5));
+        break;
+      default:
+        fm1_app_encoder(&g_a, FM1_ENC_KNOB4, g_d(12));
+        fm1_app_encoder(&g_a, FM1_ENC_KNOB3, g_d(12));
+        break;
+    }
+  }
+}
+
+/* ---- a lock playing moves no base ------------------------------------------------ */
+
+/* The note's §7 ("heard, not set") and §17 (sync): the start chain's demo
+ * pattern locks a parameter; played for a few bars, every unit's every
+ * parameter reads the value it had, and the ring holds no parameter write. */
+static float g_base[FM1_APP_UNITS][64];
+static void check_locks(void) {
+  static fm1_change_t ring[FM1_EDIT_RING];
+  uint32_t gen, n, writes = 0;
+  float peak = 0.0f;
+  fresh(44118.0f);
+  render(4);
+  for (int u = 0; u < FM1_APP_UNITS; ++u) {
+    const fm1_engine_t *e = fm1_app_unit_engine(&g_a, u);
+    for (unsigned i = 0; e && i < e->n_params && i < 64u; ++i) g_base[u][i] = fm1_app_get_param(&g_a, u, (int)i);
+  }
+  gen = fm1_edit_gen(&g_a);
+  fm1_app_button(&g_a, FM1_BTN_PLAY, 1), fm1_app_button(&g_a, FM1_BTN_PLAY, 0);
+  for (int k = 0; k < 900; ++k) {                          /* about 5 s: a bar and more of the demo */
+    const float *o = fm1_app_render(&g_a, FM1_APP_MAX_FRAMES);
+    for (unsigned j = 0; j < 2u * FM1_APP_MAX_FRAMES; ++j) peak = fabsf(o[j]) > peak ? fabsf(o[j]) : peak;
+  }
+  CHECK(peak > 0.01f);                                      /* it did play */
+  for (int u = 0; u < FM1_APP_UNITS; ++u) {
+    const fm1_engine_t *e = fm1_app_unit_engine(&g_a, u);
+    for (unsigned i = 0; e && i < e->n_params && i < 64u; ++i) CHECK(fm1_app_get_param(&g_a, u, (int)i) == g_base[u][i]);
+  }
+  n = fm1_edit_changes(&g_a, gen, ring, FM1_EDIT_RING);
+  for (uint32_t i = 0; i < n && n != FM1_EDIT_RESYNC; ++i) writes += ring[i].rec[0] == FM1_REC_PARAM;
+  CHECK(n != FM1_EDIT_RESYNC && writes == 0);
+  g_lock_blocks = 900;
 }
 
 /* ---- verbs and the view --------------------------------------------------------- */
@@ -772,6 +851,8 @@ int fm1_edit_check(void) {
   hands(g_current);
   hands(g_arp);
   hands(g_rack);
+  for (g_sweep_seed = 0; g_sweep_seed < 40; ++g_sweep_seed, ++g_sweeps) hands(g_sweep);
+  check_locks();
   check_verbs();
   check_telemetry();
   check_fuzz();
@@ -781,7 +862,7 @@ int fm1_edit_check(void) {
     const fm1_refusal_t *r = g_codes[c] ? fm1_refusal_find((unsigned)c) : NULL;
     if (r) printf("%s\"%s\"", n_codes++ ? "," : "", r->name);
   }
-  printf("],\"hands\":%u,\"tele_fills\":%u,\"fuzz\":%u,\"failed\":%d,\"why\":\"%s\"}\n", g_hands, g_fills, g_fuzz, g_failed, g_why);
+  printf("],\"hands\":%u,\"sweeps\":%u,\"lock_blocks\":%u,\"tele_fills\":%u,\"fuzz\":%u,\"failed\":%d,\"why\":\"%s\"}\n", g_hands, g_sweeps, g_lock_blocks, g_fills, g_fuzz, g_failed, g_why);
   return g_failed ? 1 : 0;
 }
 

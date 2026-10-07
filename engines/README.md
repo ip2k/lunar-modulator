@@ -4470,7 +4470,10 @@ It is for the desktop tools and the simulator (its id since stage ED0,
 `fm1w_meta_id`; the document itself in stage A1, `fm1w_meta`), never the
 firmware; `fm1-state meta` prints the same document. 246,238 B for today's
 registry with the GPL switch on, 204,417 B with it off, 19,537 B gzipped
-[verified: 2026-10-06, level 1.1]. `engines/state/examples/metadata.json` is the
+[verified: 2026-10-06, level 1.1]; level 1.2 (2026-10-07: the sources' groups,
+the curves' points, the matrix marks and a refusal's repair, for the editor's
+v1 completion) makes the simulator's `meta.json` 251,440 B, 22,461 B gzipped, with the
+GPL switch on [verified: 2026-10-07]. `engines/state/examples/metadata.json` is the
 export cut to Shapes, Drums, Filter, the arpeggiator, the LFO and the
 Envelope, byte for byte: the golden file
 (`tests/test_state_schema.py`; `tools/state_examples.py --write` rewrites
@@ -4483,7 +4486,7 @@ it).
   budget (the simulator's `FM1_APP_RAM_BUDGET`) and caps as the headers;
   the float writer equal to the reference on every exponent's edges, knob
   values and 20,000 random float32s.
-- `tests/test_engine_editor_meta.py`: level 1.1's members on every module
+- `tests/test_engine_editor_meta.py`: level 1.1's and 1.2's members on every module
   and parameter; every module of the build present; page names one per
   panel page; the effect groups the project page's, every audio effect in
   one; the refusal codes the loader's and the planner's (it runs
@@ -4491,8 +4494,10 @@ it).
   32,000 fuzzed slots a reason exactly when the plan refuses), with the
   screen's words and no memory figure but a percentage; the telemetry
   layout adds up; `meta_id` is the export's CRC-32; the codes, groups,
-  sections and page names pinned in `tests/fixtures/editor-meta.json`
-  stay put; licences as the licence table, and both builds of the GPL
+  sections, page names, marks, source groups and repairs pinned in
+  `tests/fixtures/editor-meta.json` stay put; each source's group follows its
+  id; the marks are the characters the panel's MATRIX page writes; the
+  curves' points start at -1, pass 0 and end at 1; licences as the licence table, and both builds of the GPL
   switch (on: the GPL modules marked; off: none, each a `gpl` known id).
 - `tests/test_engine_names.py`: every list's entries pinned in
   `tests/fixtures/enum-names.json` still name their indices (lists only

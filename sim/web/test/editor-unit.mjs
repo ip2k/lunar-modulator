@@ -256,7 +256,7 @@ changes();
     return codes;
   }
   const hasRecords = typeof ex.fm1w_mod_records === 'function';
-  const modBytes = () => { if (!hasRecords) return null; const n = ex.fm1w_mod_records(); return text().slice(0, n * REC + M.SLOTS); };
+  const modBytes = () => { if (!hasRecords) return null; const n = ex.fm1w_mod_records(); return text().slice(0, n * REC + 2 * M.SLOTS); };
   const snap = () => M.mirrorFromProject(meta, project(), modBytes());
   changes();
 
@@ -285,6 +285,21 @@ changes();
         JSON.stringify({ rr, v: d2.verdicts[30] }));
       applyAll(M.packCable(30, M.emptyCable()));
     }
+    // A loop (the editor's v1 completion): LFO in rack 6 into LFO 7's Rate and back. The cable that runs up the rack
+    // is read a tick late, and C names the loop it closes: both rack positions.
+    const lfoRate = mm.kind('lfo').params.find((p) => p.name === 'Rate');
+    const loopCab = (from, to) => ({ src: M.SRC_MODULE + 8 * from, via: M.NONE, unit: mm.unitCode(`p${to + 1}`), flags: M.SLOT_ON, dst: lfoRate.uid, amount: M.q14OfPct(20), offset: 0, uid: 0 });
+    const rl = applyAll(M.concat([M.packModule(5, 'lfo'), M.packModule(6, 'lfo'), M.packCable(20, loopCab(5, 6)), M.packCable(21, loopCab(6, 5))]));
+    const d3 = M.decodeMod(modBytes());
+    check('fm1w_mod_records names the loop a late cable closes: the cable up the rack reads a tick late (both positions in the loop), the one down it runs on time',
+      rl.every((c) => c === 0) && d3.loops[20] === 0 && d3.loops[21] === (1 << 5 | 1 << 6) && d3.verdicts[20] === 0 && d3.verdicts[21] === 0 && d3.loops.filter(Boolean).length === 1,
+      JSON.stringify({ rl, loops: d3.loops.slice(18, 24), v: d3.verdicts.slice(18, 24) }));
+    applyAll(M.concat([M.packCable(20, M.emptyCable()), M.packCable(21, M.emptyCable())]));
+    check('with the loop broken no cable is late', M.decodeMod(modBytes()).loops.every((x) => x === 0), '');
+    const doc = meta.doc;
+    check('the metadata has the 1.2 members the editor reads: marks, source groups, curve points, refusal fixes',
+      doc.lunar === '1.2' && doc.marks.map((m) => m.mark).join('') === '>v~!-' && mm.groupedSources().length >= 7 && mm.curvePoints.length === mm.curves.length && mm.curvePoints.every((c) => c.length === 33) &&
+      meta.refusals.get(38).fix.id === 'global' && meta.refusals.get(37).fix.id === 'global' && !meta.refusals.get(33).fix, JSON.stringify({ lunar: doc.lunar }));
   } else {
     report.ed3 = 'the module predates fm1w_mod_records';
   }

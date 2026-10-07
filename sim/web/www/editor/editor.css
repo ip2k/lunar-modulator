@@ -528,7 +528,7 @@
 .ed-ab-state.is-A, .ed-ab-state.is-B { color: var(--text); font-weight: 600; }
 .ed-ab-diff { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
 .ed-ab-diff li {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(5em, auto) minmax(5em, auto); gap: 2px 16px; align-items: baseline;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(5em, auto) minmax(5em, auto) auto; gap: 2px 16px; align-items: center;
   overflow-wrap: anywhere; font-variant-numeric: tabular-nums; padding: 2px 0; border-bottom: 1px solid var(--rp-highlight-low, var(--border));
 }
 .ed-ab-v { white-space: nowrap; }
@@ -757,3 +757,76 @@
   .ed-jack::before { border-color: CanvasText; forced-color-adjust: none; background: Canvas; }
   .ed-jack.is-wired::before { background: Highlight; border-color: Highlight; }
 }
+
+/* ---- the editor's v1 completion (notes/2026-10-06-web-editor.md "v1 completed") --------------------
+ * Modulation on the parameter rows: the label and a chip in the modulation colour, a bracket round the
+ * base and the live value as a tick (one for each sounding voice); late cables; the drawn curves; the
+ * per-voice values; the Flow blocks' counts and bars; A/B's picks; the sheets and the search's hint. */
+.ed-label.is-modulated { color: var(--live); }
+.ed-chip-c {
+  display: inline-flex; align-items: center; min-height: 24px; min-width: 24px; margin-left: 6px; padding: 0 8px; border-radius: 12px;
+  border: 1px solid var(--live); background: transparent; color: var(--live); font: 600 0.7rem/1.3 var(--small); cursor: pointer;
+  vertical-align: middle; font-variant-numeric: tabular-nums;
+}
+.ed-bracket { position: absolute; top: 3px; bottom: 3px; border: 1px solid var(--live); border-radius: 3px; pointer-events: none; }
+.ed-tick { position: absolute; top: 1px; bottom: 1px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--text); pointer-events: none; }
+.ed-tick[hidden] { display: none; }
+.ed-tick.is-voice { top: 5px; bottom: 5px; opacity: 0.85; }
+.ed-late { color: var(--live); font-weight: 600; margin: 4px 0; }
+.ed-pill-l { color: var(--live); }
+.ed-fchip.is-late { border-style: dashed; color: var(--live); border-color: var(--live); }
+.ed-fchip.is-late.is-on { background: var(--live); color: var(--rp-base); border-style: solid; }
+.ed-fix { margin: 2px 0 6px; }
+.ed-voices { grid-column: 3 / -1; display: flex; flex-wrap: wrap; gap: 4px 6px; justify-content: flex-end; color: var(--live); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.ed-voice { padding: 0 8px; border: 1px solid var(--border); border-radius: 10px; white-space: nowrap; }
+.ed-row[data-uid="curve"] .ed-seg { --minw: 78px !important; }
+.ed-segbtn svg { vertical-align: middle; margin-right: 4px; }
+.ed-curve-plot { grid-column: 2 / span 3; justify-self: start; margin: 4px 0 2px; }
+.ed-curve-axis { fill: none; stroke: var(--rp-highlight-high); stroke-width: 1; }
+.ed-curve-line { fill: none; stroke: var(--live); stroke-width: 1.6; stroke-linejoin: round; }
+.ed-segbtn[aria-checked="true"] .ed-curve-line { stroke: var(--accent-text); }
+.ed-segbtn[aria-checked="true"] .ed-curve-axis { stroke: color-mix(in srgb, var(--accent-text) 45%, transparent); }
+.ed-blk-c { color: var(--live); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+.ed-blk-c.is-refused { color: var(--refuse); font-weight: 600; }
+.ed-blk-m { --lvl: 0; position: relative; display: block; align-self: stretch; height: 4px; margin-top: 4px; border-radius: 2px; background: var(--rp-highlight-med); overflow: hidden; }
+.ed-blk-m::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--lvl) * 100%); background: var(--live); }
+@media (forced-colors: active) { .ed-blk-m::after, .ed-bracket, .ed-tick { background: Highlight; border-color: Highlight; forced-color-adjust: none; } }
+.ed-ab-pick { display: inline-flex; gap: 2px; }
+.ed-ab-p { flex: none; min-width: 28px; min-height: 24px; padding: 0 6px; }
+.ed-ab-diff li.is-a { background: color-mix(in srgb, var(--live) 8%, transparent); }
+.ed-ab-make { margin-top: 12px; }
+.ed-ab-count { color: var(--muted); font-variant-numeric: tabular-nums; }
+@container (max-width: 520px) {
+  .ed-ab-diff li { grid-template-columns: minmax(0, 1fr) auto; }
+  .ed-ab-diff li > code { grid-column: 1 / -1; }
+}
+.ed-arrive-d { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 12px; margin: 0 0 6px; }
+.ed-arrive-d dt { color: var(--muted); }
+.ed-arrive-d dd { margin: 0; overflow-wrap: anywhere; }
+.ed-search-ops { margin: 0; color: var(--muted); font-size: 0.75rem; }
+[data-drag-file] { cursor: grab; }
+/* The sheets: the three-step Add a cable and a block's menu. At the bottom of the screen on a phone, a card
+ * above the page elsewhere. */
+.ed-sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; max-height: 75vh; overflow-y: auto; box-sizing: border-box;
+  padding: 12px var(--ed-pad, 16px) 16px; border-top: 1px solid var(--border); background: var(--surface); color: var(--text);
+  box-shadow: 0 -8px 24px color-mix(in srgb, var(--rp-base) 60%, transparent);
+}
+@media (min-width: 641px) { .ed-sheet { left: 50%; right: auto; bottom: 24px; width: min(460px, calc(100vw - 32px)); transform: translateX(-50%); border: 1px solid var(--border); border-radius: 12px; } }
+.ed-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.ed-sheet-t { min-width: 0; overflow-wrap: anywhere; }
+.ed-sheet-step { margin: 0 0 6px; color: var(--muted); font-size: 0.8rem; }
+.ed-sheet-body .ed-select, .ed-sheet-list .ed-select { flex: none; width: 100%; min-height: 36px; height: 36px; }
+.ed-sheet-sum { margin: 0 0 8px; overflow-wrap: anywhere; font-weight: 600; }
+.ed-sheet-row { display: flex; align-items: center; gap: 12px; }
+.ed-sheet-range { flex: 1; min-width: 0; min-height: 24px; accent-color: var(--select); }
+.ed-sheet-amt { min-width: 4.5em; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ed-sheet-verdict { margin: 8px 0 0; color: var(--live); }
+.ed-sheet-verdict.is-no { color: var(--refuse); }
+.ed-sheet-foot { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.ed-sheet-list { display: flex; flex-direction: column; gap: 6px; }
+.ed-sheet-i { min-height: 36px; justify-content: flex-start; text-align: left; }
+/* Muted text on the editor's surfaces, a little lighter than the page's: 4.5:1 on the tinted strips and the
+ * selected rows too (axe-core's contrast rule). */
+.ed { --muted: color-mix(in srgb, var(--rp-subtle) 75%, var(--rp-text)); }
+.ed-out.is-sel .ed-out-x { color: var(--text); }

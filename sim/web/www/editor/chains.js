@@ -16,9 +16,10 @@ import {
   ROLE, T, SOUNDS, INSERTS, MASTERS, NONE, GATE_DST, SLOT_ON, VOICE, SLOTS,
   packUnit, packModule, packCable, packVerb, packParam, packOn, packCurrent, concat,
   blockKey, parseBlockKey, blockTag, modKey, parseModKey, hasFlag, ramPercent,
-  cableEmpty, cableEqual, emptyCable, pctOfQ14, Q14, withPol, withCurve, withBit,
+  cableEmpty, cableEqual, emptyCable, pctOfQ14, Q14, withPol, withCurve, withBit, toPos,
 } from './model.js';
 import { makeMap } from './map.js';
+import { makeSheets } from './sheets.js';
 
 export const cableIndex = (key) => { const m = /^c([0-9]+)$/.exec(key || ''); return m ? Number(m[1]) - 1 : -1; };
 const toQ = (pct) => Math.max(-Q14, Math.min(Q14, Math.round((pct * Q14) / 100)));
@@ -409,6 +410,24 @@ export function makeChains(ctx) {
     if (b.role === ROLE.MASTER) { const i = SOUNDS * (1 + INSERTS) + 1 + b.slot; return { out: rows[i], in: rows[i - 1] }; }
     return null;
   }
+  // The row a block's own level comes from (a Flow block's bar): its output point, or the Mix.
+  function blockMeter(key) {
+    if (key === 'the-mix') return mixRow() || null;
+    const b = parseBlockKey(key);
+    if (b && b.role === ROLE.SOUND) return meterRows()[b.sound * (1 + INSERTS)] || null;
+    const pt = meterPoint(key);
+    return pt && pt.out ? pt.out : null;
+  }
+  // The cables that end on a block, and how many of them C refuses (the Flow block's count).
+  function cableCount(key) {
+    let n = 0, refused = 0;
+    (st.mirror && st.mirror.cables || []).forEach((c, i) => {
+      if (cableEmpty(c) || mm.unitKey(c.unit) !== key) return;
+      ++n;
+      if (st.mirror.verdicts[i]) ++refused;
+    });
+    return { n, refused };
+  }
   // A meter row: the level bar (with a thin gain-reduction bar under it where
   // the row has one), its peak in dB, and "GR n dB" while the effect cuts. `inRow`
   // is the meter point before the effect: with no signal in there is nothing
@@ -598,23 +617,52 @@ export function makeChains(ctx) {
     try { return cableGet(0, f); } finally { st.mirror.cables[0] = saved; }
   }
 
+  // The marks and their words are C's (metadata 1.2: `marks`); a loop is the
+  // rack positions the planner reports for a cable it reads a tick late.
+  const markRow = (name) => (meta.doc.marks || []).find((m) => m.name === name) || null;
+  const markWords = (name) => { const r = markRow(name); return r ? r.words : name; };
+  const markChar = (name, fallback) => { const r = markRow(name); return r ? r.mark : fallback; };
+  const loopOf = (i) => (st.mirror.loops && st.mirror.loops[i]) || 0;
+  const isLate = (i) => loopOf(i) !== 0 && !!(cableOf(i).flags & SLOT_ON) && !(st.mirror.verdicts[i] || 0);
+  // "LFO (rack 1) and S&H (rack 3)": the modules in the loop a late cable closes.
+  function loopWords(i) {
+    const names = [];
+    for (let pos = 0; pos < mm.positions; ++pos) {
+      if (!((loopOf(i) >> pos) & 1)) continue;
+      const b = ctx.blockOf(modKey(pos));
+      const k = b ? mm.kind(b.engine) : null;
+      names.push(`${k ? k.name : 'empty'} (rack ${pos + 1})`);
+    }
+    return names.length < 3 ? names.join(' and ') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  }
+  // The late mark's sentence: "A tick late: closes a loop through ..." (C's words, the loop filled in).
+  function lateSentence(i) {
+    const r = markRow('late');
+    const head = `${markWords('late').replace(/^./, (c) => c.toUpperCase())}`;
+    return r && r.detail ? `${head}: ${r.detail.replace('{loop}', loopWords(i))}.` : `${head}.`;
+  }
   function verdictOf(i) {
     const s = cableOf(i);
     const code = st.mirror.verdicts[i] || 0;
     if (cableEmpty(s)) return { code: 0, text: '' };
-    if (!(s.flags & SLOT_ON)) return { code: 0, text: 'off' };
-    if (!code) return { code: 0, text: 'runs' };
+    if (!(s.flags & SLOT_ON)) return { code: 0, text: markWords('off') };
+    if (!code) return isLate(i) ? { code: 0, late: true, text: `${markWords('runs')}, ${markWords('late')}` } : { code: 0, text: markWords('runs') };
     const p = (() => { const k = mm.unitKey(s.unit); const b = k && ctx.blockOf(k); const q = b ? meta.param(b.engine, s.dst) : null; return q ? q.name : `#${s.dst}`; })();
     return { code, text: verdictWords(code, { from: srcName(s.src), to: destName(s), param: p }) };
   }
+  // A row's marks: its state (runs, refused or off), then per voice and a tick late, each [character, words].
   function marks(i) {
     const s = cableOf(i), v = verdictOf(i);
+    if (cableEmpty(s)) return [];
+    const mk = (name, fb) => [markChar(name, fb), markWords(name)];
     const m = [];
-    if (s.flags & VOICE) m.push(['v', 'per voice']);
-    if (v.code) m.push(['!', 'refused']);
-    if (!cableEmpty(s) && !(s.flags & SLOT_ON)) m.push(['–', 'off']);
+    if (!(s.flags & SLOT_ON)) m.push(mk('off', '-'));
+    else m.push(v.code ? mk('refused', '!') : mk('runs', '>'));
+    if (s.flags & VOICE) m.push(mk('voice', 'v'));
+    if (isLate(i)) m.push(mk('late', '~'));
     return m;
   }
+  const markGlyph = (c) => (c === '-' ? '–' : c);
 
   // The Map (stage ED5b) needs room: from 620 px of the editor's width. A phone keeps the cable list.
   const mapRoom = () => { const m = ctx.root.querySelector('.ed-main'); return !!m && m.clientWidth >= 620; };
@@ -640,7 +688,7 @@ export function makeChains(ctx) {
     const wide = mapRoom();
     wrap.append(el('div', 'ed-sec-head', {}, [el('h2', 'ed-sec ed-sec-big', { text: 'Modulation' }),
       wide ? viewSwitch() : null,
-      mapOn() ? null : el('p', 'ed-legend', {}, [el('span', 'ed-l-mod', { text: 'live value' }), el('span', 'ed-l-refuse', { text: '! refused' }), el('span', null, { text: 'v per voice' })])]));
+      mapOn() ? null : el('p', 'ed-legend', {}, [el('span', 'ed-l-mod', { text: 'live value' }), el('span', 'ed-l-refuse', { text: `${markChar('refused', '!')} ${markWords('refused')}` }), el('span', null, { text: `${markChar('voice', 'v')} ${markWords('voice')}` }), el('span', null, { text: `${markChar('late', '~')} ${markWords('late')}` })])]));
     const sel = st.selected;
     if (mapOn()) {
       wrap.append(map.view());
@@ -669,13 +717,13 @@ export function makeChains(ctx) {
     const k = blk ? mm.kind(blk.engine) : null;
     const n = st.mirror.cables.filter((c) => !cableEmpty(c) && ((c.src >= 64 && ((c.src - 64) >> 3) === pos) || mm.unitKey(c.unit) === key)).length;
     const card = el('button', `ed-card-m${blk ? '' : ' is-empty'}${st.selected === key ? ' is-sel' : ''}`, { type: 'button', 'data-block': key, 'data-fk': key,
-      'aria-pressed': String(st.selected === key), 'aria-label': `Rack ${pos + 1}: ${k ? k.name : 'empty'}${n ? `, ${n} cables` : ''}`,
+      'aria-pressed': String(st.selected === key), 'aria-label': [`RACK ${pos + 1}`, k ? k.name : 'empty', n ? `${n} cable${n > 1 ? 's' : ''}` : k ? 'no cables' : ''].filter(Boolean).join(' '),
       onclick: () => ctx.select(key, { view: 'mod' }) }, [
-      el('span', 'ed-blk-k', { text: `RACK ${pos + 1}` }),
-      el('span', 'ed-blk-n', { text: k ? k.name : 'empty' }),
+      el('span', 'ed-blk-k', { text: `RACK ${pos + 1}` }), ' ',
+      el('span', 'ed-blk-n', { text: k ? k.name : 'empty' }), ' ',
       k ? el('canvas', 'ed-trace', { width: 120, height: 28, 'data-trace': String(pos), 'aria-hidden': 'true' }) : null,
       el('span', 'ed-blk-s', { text: n ? `${n} cable${n > 1 ? 's' : ''}` : k ? 'no cables' : '' })]);
-    return movable(card, key);
+    return movable(sheets.wireMenu(card, key), key);
   }
   function moduleInspector(key) {
     const blk = ctx.blockOf(key);
@@ -723,7 +771,8 @@ export function makeChains(ctx) {
       box.append(el('button', `ed-into-c${v.code ? ' is-refused' : ''}`, { type: 'button', 'data-fk': `into:${i}`,
         onclick: () => { st.selCable = `c${i + 1}`; ctx.select(`c${i + 1}`, { view: 'mod' }); } },
       [`${srcName(cableOf(i).src)} → ${destName(cableOf(i))} `, el('b', null, { text: cableText(i, 'amount', cableGet(i, 'amount')) }),
-        v.code ? el('span', 'ed-refused', { text: ` ✕ ${v.text}` }) : null]));
+        v.code ? el('span', 'ed-refused', { text: ` ✕ ${v.text}` }) : null,
+        v.late ? el('abbr', 'ed-mark', { title: markWords('late'), text: ` ${markChar('late', '~')}` }) : null]));
     }
     return box;
   }
@@ -741,7 +790,7 @@ export function makeChains(ctx) {
     const sort = selectOf([{ value: 'slot', name: 'Sort: slot' }, { value: 'src', name: 'Sort: source' }, { value: 'to', name: 'Sort: destination' }, { value: 'refused', name: 'Sort: refused first' }],
       filt.sort, 'Sort the matrix', 'mx:sort', (v) => { filt.sort = v; fillRows(); });
     const used = st.mirror.cables.filter((c) => !cableEmpty(c)).length;
-    const add = el('button', 'ed-btn', { type: 'button', text: 'Add a cable', 'data-fk': 'mx:add', onclick: () => addCable() });
+    const add = el('button', 'ed-btn', { type: 'button', text: 'Add a cable', 'data-fk': 'mx:add', onclick: (e) => addCable(e.currentTarget) });
     sec.append(el('div', 'ed-sec-head', {}, [el('h3', 'ed-sec', { text: 'Matrix' }), el('span', 'ed-note', { text: `${used} of ${SLOTS} slots` })]),
       el('div', 'ed-mx-tools', {}, [q, el('label', 'ed-toggle', { for: showEmpty.id }, [showEmpty, el('span', null, { text: 'Empty slots' })]), sort, add]));
     const table = el('div', 'ed-mx', { role: 'table', 'aria-label': 'Modulation matrix' });
@@ -769,8 +818,10 @@ export function makeChains(ctx) {
     const sel = st.selCable === key;
     const row = el('div', `ed-mx-r${sel ? ' is-sel' : ''}${v.code ? ' is-refused' : ''}${cableEmpty(s) ? ' is-empty' : ''}`, { role: 'row', 'data-cable': String(i) });
     const pick = () => { if (st.selCable !== key) { st.selCable = key; ctx.select(key, { view: 'mod' }); } };
-    const num = el('button', 'ed-mx-n', { type: 'button', 'data-fk': `${key}:n`, 'aria-label': `Cable ${i + 1}: open its inspector`, onclick: pick },
-      [String(i + 1), ...marks(i).map(([m, w]) => el('abbr', 'ed-mark', { title: w, text: m }))]);
+    // The name starts with what is written on the button (the number and its marks), then says what it is.
+    const mk = marks(i);
+    const num = el('button', 'ed-mx-n', { type: 'button', 'data-fk': `${key}:n`, 'aria-label': `${i + 1}${mk.map(([m]) => markGlyph(m)).join('')} Cable ${i + 1}${mk.length ? `, ${mk.map(([, w]) => w).join(', ')}` : ''}: open its inspector`, onclick: pick },
+      [String(i + 1), ...mk.map(([m, w]) => el('abbr', 'ed-mark', { title: w, text: markGlyph(m) }))]);
     const on = el('input', null, { type: 'checkbox', 'aria-label': `Cable ${i + 1} on`, 'data-fk': `${key}:on` });
     on.checked = !!(s.flags & SLOT_ON);
     on.addEventListener('change', () => ctx.setValue(key, 'on', on.checked, 'set'));
@@ -812,13 +863,13 @@ export function makeChains(ctx) {
     return row;
   }
   // A new cable from a source code to a destination ("unit:dst:gate"), 25 % to start with.
-  const newSlot = (src, dest) => {
+  const newSlot = (src, dest, pct = 25) => {
     const [u, dst, g] = String(dest).split(':').map(Number);
-    return { src, via: NONE, unit: u, dst, flags: SLOT_ON | (g ? GATE_DST : 0), amount: toQ(25), offset: 0, uid: 0 };
+    return { src, via: NONE, unit: u, dst, flags: SLOT_ON | (g ? GATE_DST : 0), amount: toQ(pct), offset: 0, uid: 0 };
   };
   const cableRecord = (i, src, dest) => packCable(i, newSlot(src, dest));
   // Puts a cable in the first empty slot and selects it; -1 (and C's words) when the matrix is full.
-  function makeCable(src, dest) {
+  function makeCable(src, dest, pct = 25) {
     const i = st.mirror.cables.findIndex((c) => cableEmpty(c));
     if (i < 0) {
       const w = verdictWords(6, { what: 'matrix', used: SLOTS, max: SLOTS });
@@ -826,12 +877,14 @@ export function makeChains(ctx) {
       ctx.say(w);
       return -1;
     }
-    ctx.setValue(`c${i + 1}`, 'all', JSON.stringify(newSlot(src, dest)), 'set');
+    ctx.setValue(`c${i + 1}`, 'all', JSON.stringify(newSlot(src, dest, pct)), 'set');
     st.selCable = `c${i + 1}`;
     ctx.select(`c${i + 1}`, { view: 'mod' });
     return i;
   }
-  function addCable() {
+  function addCable(anchor) {
+    // Where the editor has no room for the table's row (a phone), the cable is made in three steps.
+    if (!mapRoom() && sheets) { sheets.addCableSheet(anchor); return; }
     const srcs = sourceOptions(false);
     const mod = srcs.find((x) => x.value >= 64) || srcs[0];
     const dl = destList();
@@ -851,13 +904,35 @@ export function makeChains(ctx) {
       el('h3', 'ed-insp-name', { text: cableEmpty(s) ? 'empty' : `${srcName(s.src)} → ${destName(s)}` }),
       el('button', 'ed-btn', { type: 'button', text: 'Remove', 'data-fk': `${key}:rm`, disabled: cableEmpty(s),
         onclick: () => ctx.setValue(key, 'all', JSON.stringify(emptyCable()), 'set') })]));
-    if (v.code) box.append(el('p', 'ed-refused ed-why', { text: `${v.text}. The cable is kept as written; it runs once this is put right.` }));
+    if (v.code) {
+      box.append(el('p', 'ed-refused ed-why', { text: `${v.text}. The cable is kept as written; it runs once this is put right.` }));
+      // A repair the metadata names (1.2: `fix`), made as the ordinary edit it is; C judges the result.
+      const fx = fixOf(v.code);
+      if (fx) box.append(el('button', 'ed-btn ed-fix', { type: 'button', 'data-fk': `${key}:fix`, text: fx.words, onclick: () => applyFix(i, fx) }));
+    }
+    if (isLate(i)) box.append(el('p', 'ed-late ed-why', { text: lateSentence(i) }));
     const page = el('div', 'ed-page', { 'data-page': '1' });
-    const seg = (f, label, names) => {
+    const segR = (f, label, names) => {
       const r = ctx.rowShell(key, f, label, 'ed-row-seg');
       const p = { uid: f, name: label, type: 'enum', entries: names, def: 0, flags: [] };
       r.p = p;
       ctx.segControl(r, p, names.length <= 4 ? 'segments' : 'grid');
+      return r;
+    };
+    const seg = (f, label, names) => segR(f, label, names).el;
+    // Curve: the segments name it, and each is drawn (C's own points, metadata 1.2), the chosen one larger.
+    const curveRow = () => {
+      const r = segR('curve', 'Curve', mm.curves);
+      const idx = () => Math.max(0, Math.min(mm.curves.length - 1, Math.round(Number(cableGet(i, 'curve')) || 0)));
+      const big = el('span', 'ed-curve-plot', { 'aria-hidden': 'true' });
+      const paint = () => {
+        [...r.el.querySelectorAll('[role=radio]')].forEach((b, k) => { if (!b.querySelector('svg')) b.prepend(curveSvg(k, 22, 22, 'ed-curve-thumb')); });
+        big.replaceChildren(curveSvg(idx(), 96, 64, 'ed-curve-big'));
+      };
+      const was = r.update;
+      r.update = () => { was(); paint(); };
+      paint();
+      r.el.append(big);
       return r.el;
     };
     const sel = (f, label, opts) => {
@@ -875,11 +950,158 @@ export function makeChains(ctx) {
     const dl = destList();
     dl.missing = destName(s);
     page.append(seg('on', 'On', ['Off', 'On']), sel('src', 'From', sourceOptions(false)), sel('via', 'VIA', sourceOptions(true)), sel('to', 'To', dl),
-      slider('amount', 'Amount'), slider('offset', 'Offset'), seg('pol', 'Polarity', mm.polarities), seg('curve', 'Curve', mm.curves),
+      slider('amount', 'Amount'), slider('offset', 'Offset'), seg('pol', 'Polarity', mm.polarities), curveRow(),
       seg('voice', 'Per voice', ['Off', 'On']));
-    page.append(el('div', 'ed-row ed-row-out', {}, [el('span', 'ed-label', { text: 'Live value' }), el('span', 'ed-live', { 'data-dest': String(i), text: '–' })]));
+    // The live value: one number, or for a per-voice cable each sounding voice's own (§10, mockup 04).
+    const liveRow = el('div', 'ed-row ed-row-out', {}, [el('span', 'ed-label', { text: (s.flags & VOICE) ? 'Live values, by voice' : 'Live value' }),
+      (s.flags & VOICE) ? el('span', 'ed-voices', { 'data-voices': String(i), 'aria-label': 'each sounding voice', text: '–' }) : el('span', 'ed-live', { 'data-dest': String(i), text: '–' })]);
+    page.append(liveRow);
     box.append(page);
     return box;
+  }
+  // The metadata's repair for a refusal code (1.2), or null; applying one is an ordinary edit.
+  const fixOf = (code) => { const r = meta.refusals.get(code); return r && r.fix ? r.fix : null; };
+  function applyFix(i, fx) {
+    if (fx.id !== 'global') return;
+    ctx.setValue(`c${i + 1}`, 'voice', 0, 'set');
+    ctx.say(`${fx.words}: cable ${i + 1} is global now.`);
+  }
+  // A curve as C computes it (metadata 1.2: 33 points from -1 to 1), as a small drawing.
+  function curveSvg(idx, w, h, cls) {
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    svg.setAttribute('width', String(w));
+    svg.setAttribute('height', String(h));
+    svg.setAttribute('class', cls);
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    const pts = mm.curvePoints[idx];
+    const pad = 3;
+    const ax = document.createElementNS(NS, 'path');
+    ax.setAttribute('d', `M${pad} ${h / 2}H${w - pad}M${w / 2} ${pad}V${h - pad}`);
+    ax.setAttribute('class', 'ed-curve-axis');
+    svg.append(ax);
+    if (pts && pts.length) {
+      const d = pts.map((y, k) => `${k ? 'L' : 'M'}${(pad + (k / (pts.length - 1)) * (w - 2 * pad)).toFixed(1)} ${(h / 2 - y * (h / 2 - pad)).toFixed(1)}`).join('');
+      const line = document.createElementNS(NS, 'path');
+      line.setAttribute('d', d);
+      line.setAttribute('class', 'ed-curve-line');
+      svg.append(line);
+    }
+    return svg;
+  }
+
+  // ---- modulation on the parameter rows (§6 flag `mod`, §7 "heard, not set", §11, §13) --------
+  // A row whose parameter takes a cable gets, when a live cable reaches it: its label in the
+  // modulation colour, a chip naming the source, a bracket round the base (the cables' depth, as
+  // the screen draws it), the destination's effective value as a tick (one tick for each sounding
+  // voice for a per-voice cable), and the cables spoken in its aria-valuetext. Which cables are
+  // live is C's verdict (the planner's: on, and not refused); the effective value is C's too, from
+  // the telemetry. Nothing here moves a base.
+  const modRows = new Set();
+  const rowCables = (key, uid) => {
+    const out = [];
+    if (!st.mirror || !st.mirror.cables) return out;
+    st.mirror.cables.forEach((c, i) => {
+      if (cableEmpty(c) || !(c.flags & SLOT_ON) || (c.flags & GATE_DST) || c.dst !== uid || mm.unitKey(c.unit) !== key) return;
+      if (st.mirror.verdicts[i]) return;
+      out.push(i);
+    });
+    return out;
+  };
+  const signed = (q) => { const n = pctOfQ14(q); return `${n < 0 ? 'minus' : 'plus'} ${Math.abs(n)} percent`; };
+  // "modulated by LFO1, plus 35 percent" (more than one: "..., plus 35 percent, and ENV2, minus 10 percent").
+  function modSpoken(cables) {
+    if (!cables.length) return '';
+    const parts = cables.map((i) => `${srcName(cableOf(i).src)}, ${signed(cableOf(i).amount)}`);
+    return `, modulated by ${parts.length < 2 ? parts[0] : `${parts.slice(0, -1).join(', ')}, and ${parts[parts.length - 1]}`}`;
+  }
+  const baseOf = (m) => { const b = ctx.blockOf(m.key); const v = b ? b.values.get(m.p.uid) : undefined; return Number.isFinite(v) ? v : m.p.def; };
+  function placeBracket(r, v) {
+    const m = r.mod;
+    if (!m || !m.bracket) return;
+    const depth = m.cables.reduce((a, i) => a + Math.abs(cableOf(i).amount) / Q14, 0);
+    const u = toPos(m.p, Number.isFinite(v) ? v : baseOf(m));
+    const lo = Math.max(0, u - depth), hi = Math.min(1, u + depth);
+    m.bracket.style.left = `${(lo * 100).toFixed(2)}%`;
+    m.bracket.style.width = `${Math.max(0, (hi - lo) * 100).toFixed(2)}%`;
+  }
+  function applyRow(r) {
+    const m = r.mod;
+    m.cables = rowCables(m.key, m.p.uid);
+    const on = m.cables.length > 0;
+    r.label.classList.toggle('is-modulated', on);
+    r.el.classList.toggle('is-modulated', on);
+    if (!on) {
+      if (m.chip) { m.chip.remove(); m.chip = null; }
+      if (m.bracket) { m.bracket.remove(); m.bracket = null; }
+      for (const t of m.ticks) t.remove();
+      m.ticks = [];
+      return;
+    }
+    const names = m.cables.map((i) => srcName(cableOf(i).src));
+    if (!m.chip) { m.chip = el('button', 'ed-chip-c', { type: 'button', 'data-fk': `${m.key}:${m.p.uid}:chip` }); m.chip.addEventListener('click', (e) => { e.stopPropagation(); const i = m.cables[0]; st.selCable = `c${i + 1}`; ctx.select(`c${i + 1}`, { view: 'mod' }); }); r.label.append(document.createTextNode(' '), m.chip); }
+    m.chip.textContent = names.length === 1 ? names[0] : `${names.length} cables`;
+    m.chip.title = modSpoken(m.cables).replace(/^, m/, 'M');
+    m.chip.setAttribute('aria-label', `${m.chip.title}: open cable ${m.cables[0] + 1}`);
+    if (m.slider && !m.bracket) { m.bracket = el('span', 'ed-bracket', { 'aria-hidden': 'true' }); m.slider.prepend(m.bracket); }
+    placeBracket(r);
+  }
+  // Called by the editor for each parameter row it builds (and by refreshMods when cables change).
+  function decorateRow(r, key, p) {
+    if (!hasFlag(p, 'mod') || p.type !== 'float') return;
+    r.mod = { key, p, cables: [], slider: r.el.querySelector('.ed-slider'), bracket: null, chip: null, ticks: [] };
+    r.modWords = () => modSpoken(r.mod.cables);
+    r.modDraw = (v) => placeBracket(r, v);
+    modRows.add(r);
+    applyRow(r);
+  }
+  function refreshMods() {
+    for (const r of [...modRows]) {
+      if (!r.el.isConnected) { modRows.delete(r); continue; }
+      applyRow(r);
+      if (r.update) r.update();
+    }
+  }
+  // The effective value of each live row: a tick (a voice's own for a per-voice cable).
+  function tickRows(f, dests) {
+    const vd = secOf('voice_dests');
+    const nv = vd ? vd.fields.length : 0;
+    for (const r of [...modRows]) {
+      const m = r.mod;
+      if (!r.el.isConnected) { modRows.delete(r); continue; }        // a view that was drawn again: its rows are gone
+      if (!m || !m.cables.length || !m.slider) continue;
+      const i = m.cables[0];
+      const xs = [];
+      if (vd && (cableOf(i).flags & VOICE)) {
+        for (let v = 0; v < nv; ++v) { const x = f[vd.offset + i * nv + v]; if (Number.isFinite(x)) xs.push(x); }
+      } else {
+        const x = f[dests.offset + i];
+        if (Number.isFinite(x)) xs.push(x);
+      }
+      while (m.ticks.length < xs.length) { const t = el('span', 'ed-tick', { 'aria-hidden': 'true' }); m.slider.append(t); m.ticks.push(t); }
+      m.ticks.forEach((t, k) => {
+        t.hidden = k >= xs.length;
+        if (k < xs.length) { t.style.left = `${(toPos(m.p, xs[k]) * 100).toFixed(2)}%`; t.classList.toggle('is-voice', xs.length > 1); }
+      });
+    }
+  }
+  // C makes the cable: the first module output into this parameter, in the first empty slot (key C).
+  function cableInto(key, p) {
+    if (!hasFlag(p, 'mod')) {
+      const w = verdictWords(36, { param: p.name });
+      ctx.showRefusal(p.name, w);
+      ctx.say(`${p.name}: ${w}.`);
+      return -1;
+    }
+    const srcs = sourceOptions(false);
+    const mod = srcs.find((x) => x.value >= 64) || srcs[0];
+    const unit = mm.unitCode(key);
+    if (!mod || unit < 0) return -1;
+    const i = makeCable(mod.value, `${unit}:${p.uid}:0`);
+    if (i >= 0) ctx.say(`Cable ${i + 1} made into ${p.name}, from ${srcName(mod.value)}.`);
+    return i;
   }
 
   // ---- telemetry: traces, outputs and destinations (§12) ------------------------------------
@@ -889,7 +1111,16 @@ export function makeChains(ctx) {
   function wantRows(view) {
     const want = [];
     const all = (name) => { const s = secOf(name); if (s) for (let r = 0; r < s.rows.length; ++r) want.push(s.mask + r); };
-    if (view === 'flow' || view === 'sound') { all('meters'); all('reduction'); }
+    if (view === 'flow' || view === 'sound') {
+      all('meters'); all('reduction');
+      // The live cables' destinations, for the ticks on the rows (a voice's own for a per-voice cable).
+      const d = secOf('dests'), vd = secOf('voice_dests');
+      (st.mirror && st.mirror.cables || []).forEach((c, i) => {
+        if (cableEmpty(c) || !(c.flags & SLOT_ON) || (c.flags & GATE_DST) || st.mirror.verdicts[i]) return;
+        if (d) want.push(d.mask + i);
+        if (vd && (c.flags & VOICE)) want.push(vd.mask + i);
+      });
+    }
     if (view === 'mod') { all('outs'); all('dests'); all('voice_dests'); }
     return want;
   }
@@ -944,8 +1175,21 @@ export function makeChains(ctx) {
       }
     }
     if (dests) {
+      tickRows(f, dests);
       const vd = secOf('voice_dests');
       const nv = vd ? vd.fields.length : 0;
+      for (const m of ctx.root.querySelectorAll('[data-voices]')) {
+        const i = Number(m.dataset.voices);
+        const vals = [];
+        for (let v = 0; vd && v < nv; ++v) { const x = f[vd.offset + i * nv + v]; if (Number.isFinite(x)) vals.push(x); }
+        if (!vals.length) { m.textContent = 'no voice sounding'; continue; }
+        while (m.children.length > vals.length) m.lastChild.remove();
+        if (m.firstChild && m.firstChild.nodeType === 3) m.firstChild.remove();
+        vals.forEach((x, v) => {
+          if (!m.children[v]) m.append(el('span', 'ed-voice', { 'data-voice': String(v) }));
+          m.children[v].textContent = `${v + 1} ${short(x)}`;
+        });
+      }
       for (const m of ctx.root.querySelectorAll('[data-dest]')) {
         const i = Number(m.dataset.dest);
         if (vd && (cableOf(i).flags & VOICE)) {
@@ -982,7 +1226,9 @@ export function makeChains(ctx) {
     g.stroke();
   }
 
-  const map = makeMap(ctx, { cableOf, verdictOf, destName, srcName, verdictWords, makeCable, cableRecord, toValue, pickerButton, preview });
+  let sheets = null;
+  const map = makeMap(ctx, { cableOf, verdictOf, destName, srcName, verdictWords, makeCable, cableRecord, toValue, pickerButton, preview, isLate, markChar, markWords });
+  sheets = makeSheets(ctx, { sourceOptions, destList, selectOf, srcName, makeCable, verdictFor: (a, b) => map.verdictFor(a, b), unitCode: (k) => mm.unitCode(k), moveSelect });
   // The Map comes and goes as the editor's width crosses its room (a tablet turned over).
   let hadRoom = null;
   const mainEl = ctx.root ? ctx.root.querySelector('.ed-main') : null;
@@ -997,11 +1243,11 @@ export function makeChains(ctx) {
   }
 
   return {
-    map, mapOn, makeCable,
+    map, mapOn, makeCable, sheets, wireMenu: (n, k) => sheets.wireMenu(n, k),
     effectKeys, isEffect, isModule, movable, moveSelect, moveTo, pickerButton, openPicker, closePicker, choose,
     meters, mixInspector, padOf, modView, headTools, cablesInto, verdictWords, ramAfter, preview,
     blockRecs, cableRecs, structural, undoStruct, fromPanel, cableGet, cableSet, cableText, cableLabel, cableFields, fieldOf,
-    onTelemetry, wantRows, verdictOf, destName, srcName, cancel, get held() { return held; },
+    onTelemetry, wantRows, blockMeter, cableCount, decorateRow, refreshMods, cableInto, modSpoken, verdictOf, destName, srcName, cancel, isLate, loopWords, lateSentence, marks, markRow, get held() { return held; },
   };
 }
 export { cableEqual };

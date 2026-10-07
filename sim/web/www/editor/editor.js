@@ -91,7 +91,7 @@ export async function startEditor(env) {
   const ramList = el('ul', 'ed-ram-list', { id: nextId('ram') });
   const ramBtn = el('button', 'ed-ram', { type: 'button', 'aria-expanded': 'false', 'aria-controls': ramList.id,
     onclick: () => { const open = ramList.hidden; ramList.hidden = !open; ramBtn.setAttribute('aria-expanded', String(open)); } },
-  [el('span', 'ed-ram-label', { text: 'RAM' }), ramBar, ramText]);
+  [el('span', 'ed-ram-label', { text: 'RAM' }), ' ', ramBar, ' ', ramText]);
   ramList.hidden = true;
   const title = el('span', 'ed-title', {}, [el('span', 'ed-brand', { text: 'Advanced editor' }), el('span', 'ed-project')]);
   const appbar = el('div', 'ed-appbar', { role: 'toolbar', 'aria-label': 'Editor' }, [
@@ -105,7 +105,7 @@ export async function startEditor(env) {
   const outline = el('nav', 'ed-outline', { 'aria-label': 'Outline' });
   const screen = el('canvas', 'ed-screen', { width: 240, height: 240, 'aria-label': 'The FM-1 screen, as on the panel' });
   const screenCap = el('p', 'ed-screen-cap');
-  const card = el('section', 'ed-card', { 'aria-label': 'On the FM-1' }, [el('h3', 'ed-card-title', { text: 'On the FM-1' }), screen, screenCap]);
+  const card = el('section', 'ed-card', { 'aria-label': 'On the FM-1' }, [el('p', 'ed-card-title', { text: 'On the FM-1' }), screen, screenCap]);
   const context = el('p', 'ed-context');
   const fromPanel = el('p', 'ed-from', { hidden: true });
   const view = el('div', 'ed-view');
@@ -126,12 +126,13 @@ export async function startEditor(env) {
     st, meta, mm, el, history, files, root, nextId, sendOps, say, showRefusal, select, render, blockOf, engineName,
     inspector, sliderControl, rowShell, segControl, levelRow, renderHistory, snapshotSoon, setValue, openOnPanel,
     onStruct: (e) => project.onStruct(e),
+    projectTools: (k) => project.headTools(k),
   });
   // Stage ED4: drop targets, export, the library, links, search, A/B, Memory
   // and undo's snapshot fallback.
   const project = makeProject({
     st, meta, el, files, root, view, nextId, say, select, render, blockOf, engineName, rows, selectRow: (r) => selectRow(r),
-    snapshotSoon, history, undo: () => undo(), redo: () => redo(), setKeys: (m) => setKeys(m), post,
+    snapshotSoon, history, undo: () => undo(), redo: () => redo(), setKeys: (m) => setKeys(m), post, chains, mm,
   });
 
   // ---- PLAY and EDIT (§13) ---------------------------------------------------
@@ -144,8 +145,9 @@ export async function startEditor(env) {
     keysChip.innerHTML = '';
     keysChip.append('Keys ', el('b', null, { text: mode === 'play' ? 'PLAY' : 'EDIT' }),
       el('span', 'ed-hint', { text: mode === 'play' ? ` · ${MOD}E edits` : ' · Esc plays' }));
-    keysChip.setAttribute('aria-label', mode === 'play'
-      ? `Keys play the FM-1. ${MOD}E gives them to the editor.` : 'Keys edit. Escape gives them back to the FM-1.');
+    // The name starts with what is written on the chip (WCAG 2.5.3), then says what it does.
+    keysChip.setAttribute('aria-label', `${keysChip.textContent.replace(/\s+/g, ' ').trim()}. ${mode === 'play'
+      ? `Keys play the FM-1; ${MOD}E gives them to the editor.` : 'Keys edit; Escape gives them back to the FM-1.'}`);
   }
   st.keys = '';
   setKeys('play');
@@ -337,6 +339,7 @@ export async function startEditor(env) {
       }
       if (st.dragKey !== target) refreshValue(r.key, r.uid);
     }
+    if (cables) chains.refreshMods();
     if (structure) snapshotSoon();
     else if (cables) {
       // A cable's verdict is the planner's: the mirror is taken again, once
@@ -650,6 +653,7 @@ export async function startEditor(env) {
   }
   function redo() {
     const e = history.redo();
+    if (e && e.info && e.info.reload) { project.redoPicks(e); renderHistory(); return; }      // A/B's picks: the file they made
     if (e && e.info && e.info.struct) { chains.undoStruct(e, true); renderHistory(); return; }
     if (!e || stale(e, 'redone')) return;
     write(e.info.key, e.info.uid, e.after, { redo: true, label: e.label, focus: e.info.focus });
@@ -739,19 +743,19 @@ export async function startEditor(env) {
       { type: 'button', onclick: on, 'aria-current': current ? 'true' : null, title: label }, [
         el('span', 'ed-out-tag', { text: short }), el('span', 'ed-out-name', { text: label }),
         extra ? el('span', 'ed-out-x', { text: extra }) : null]);
-    outline.append(el('h3', 'ed-out-h', { text: 'Sounds' }));
+    outline.append(el('p', 'ed-out-h', { text: 'Sounds' }));
     for (let k = 0; k < SOUNDS; ++k) {
       const b = blockOf(blockKey(ROLE.SOUND, k));
       outline.append(mk(b ? engineName(b.engine) : 'Empty', `S${k + 1}`, `ed-s${k + 1}`,
         () => select(blockKey(ROLE.SOUND, k), { view: 'sound' }), st.view === 'sound' && st.sound === k));
     }
-    outline.append(el('h3', 'ed-out-h', { text: 'Signal' }));
+    outline.append(el('p', 'ed-out-h', { text: 'Signal' }));
     outline.append(mk('Flow and effects', 'FX', 'ed-out-fx', () => { st.view = 'flow'; render(); }, st.view === 'flow'));
     const nMods = st.mirror ? st.mirror.rack.filter(Boolean).length : 0;
     const nCables = st.mirror ? st.mirror.cables.filter((c) => c.flags & 1).length : 0;
     outline.append(mk('Modulation', 'MOD', 'ed-out-mod', () => { st.view = 'mod'; render(); }, st.view === 'mod',
       st.mirror ? `${nMods}·${nCables}` : null));
-    outline.append(el('h3', 'ed-out-h', { text: 'Project' }));
+    outline.append(el('p', 'ed-out-h', { text: 'Project' }));
     outline.append(mk('Library', 'LIB', 'ed-out-lib', () => { st.view = 'library'; render(); }, st.view === 'library'));
     outline.append(mk('Compare A/B', 'A/B', 'ed-out-ab', () => { st.view = 'ab'; render(); }, st.view === 'ab',
       st.ab && st.ab.A ? st.ab.playing : null));
@@ -791,7 +795,8 @@ export async function startEditor(env) {
     const sk = blockKey(ROLE.SOUND, k);
     const s = blockOf(sk);
     const row = el('div', `ed-strip ed-s${k + 1}${s ? '' : ' is-empty'}`, { role: 'group', 'aria-label': `Sound ${k + 1}` });
-    row.append(el('span', 'ed-tag', { text: `S${k + 1}` }));
+    row.append(el('span', `ed-tag ed-s${k + 1}`, { text: `S${k + 1}` }));      // the sound's own colour pair: its text on it is dark
+    if (s) project.wireStripDrag(row.firstChild, sk);
     if (!s) {
       row.append(el('span', 'ed-strip-empty', { text: 'Empty' }), chains.pickerButton(sk));
       return project.wireDrop(row, sk);    // a sound file loads into an empty sound too
@@ -827,12 +832,24 @@ export async function startEditor(env) {
     const p = pg && pg.params.find((x) => x.type === 'enum');
     return p ? rawText(p, b.values.get(p.uid)) : '';
   }
+  // The cables that end on a block, in words: "2 cables", and "1 refused" when C refuses some (§10: each block
+  // with its meter and its cable or refusal count).
+  function cableWords(c) {
+    if (!c.n) return '';
+    const n = `${c.n} cable${c.n === 1 ? '' : 's'}`;
+    return c.refused ? `${n}, ${c.refused} refused` : n;
+  }
   function flowBlock(key, name, kind, sub, cls = '') {
+    const cnt = key === MIX_KEY ? { n: 0, refused: 0 } : chains.cableCount(key);
+    const lit = blockOf(key) || key === MIX_KEY;
+    const mtr = lit ? chains.blockMeter(key === MIX_KEY ? 'the-mix' : key) : null;
     const btn = el('button', `ed-block ${cls}${st.selected === key ? ' is-sel' : ''}`,
       { type: 'button', 'data-block': key, 'data-fk': key, 'aria-pressed': st.selected === key ? 'true' : 'false',
-        'aria-label': `${kind} ${name}${sub ? `, ${sub}` : ''}`, onclick: () => select(key, { view: 'flow' }) },
-      [el('span', 'ed-blk-k', { text: kind }), el('span', 'ed-blk-n', { text: name }), sub ? el('span', 'ed-blk-s', { text: sub }) : null]);
-    return key === MIX_KEY ? btn : project.wireDrop(btn, key);
+        'aria-label': [kind, name, sub, cableWords(cnt)].filter(Boolean).join(' '), onclick: () => select(key, { view: 'flow' }) },
+      [el('span', 'ed-blk-k', { text: kind }), ' ', el('span', 'ed-blk-n', { text: name }), sub ? ' ' : null, sub ? el('span', 'ed-blk-s', { text: sub }) : null,
+        cnt.n ? ' ' : null, cnt.n ? el('span', `ed-blk-c${cnt.refused ? ' is-refused' : ''}`, { 'data-cables': String(cnt.n), 'data-refused': String(cnt.refused), text: cableWords(cnt) }) : null,
+        mtr ? el('span', 'ed-blk-m', { 'data-meter': mtr, 'aria-hidden': 'true' }) : null]);
+    return key === MIX_KEY ? btn : project.wireDrop(chains.wireMenu(btn, key), key);
   }
 
   // An empty slot: what it is, and its picker.
@@ -999,7 +1016,7 @@ export async function startEditor(env) {
     if (hasFlag(p, 'mod')) r.label.classList.add('can-mod');
     if (hasFlag(p, 'poly')) r.label.append(el('span', 'ed-poly', { role: 'img', 'aria-label': 'per voice', text: 'v', title: 'per voice: a per-voice cable may land here' }));
     if (hasFlag(p, 'per_focus')) r.label.append(el('span', 'ed-pad-b', { text: 'pad', title: 'per pad: the pad chosen above' }));
-    if (kind === 'slider') sliderControl(r, p, () => valueOf(key, p.uid), (v) => withUnit(p, fmt(blockOf(key).engine, p, v)));
+    if (kind === 'slider') { sliderControl(r, p, () => valueOf(key, p.uid), (v) => withUnit(p, fmt(blockOf(key).engine, p, v))); chains.decorateRow(r, key, p); r.update(); }
     else if (kind === 'segments' || kind === 'grid') segControl(r, p, kind);
     else listControl(r, p, kind);
     return r.el;
@@ -1096,7 +1113,8 @@ export async function startEditor(env) {
       const t = text(v);
       if (!st.typing || document.activeElement !== field) field.value = t;
       s.setAttribute('aria-valuenow', String(Math.round(v * 1000) / 1000));
-      s.setAttribute('aria-valuetext', `${labelName(r)}, ${t.replace(/ dB$/, ' decibels').replace(/ Hz$/, ' hertz').replace(/ ms$/, ' milliseconds').replace(/ %$/, ' percent')}`);
+      s.setAttribute('aria-valuetext', `${labelName(r)}, ${t.replace(/ dB$/, ' decibels').replace(/ Hz$/, ' hertz').replace(/ ms$/, ' milliseconds').replace(/ %$/, ' percent')}${r.modWords ? r.modWords() : ''}`);
+      if (r.modDraw) r.modDraw(v);
     };
     r.update = () => draw(dragV !== null ? dragV : get());
     const commit = (v, how) => setValue(r.key, r.uid, v, how);
@@ -1147,6 +1165,7 @@ export async function startEditor(env) {
       else if (e.key === 'Home') nv = p.min;
       else if (e.key === 'End') nv = p.max;
       else if (e.key === 'd' || e.key === 'D') { if (!e.metaKey && !e.ctrlKey) nv = p.def; }
+      else if ((e.key === 'c' || e.key === 'C') && !e.metaKey && !e.ctrlKey && !e.altKey && typeof p.uid === 'number') { e.preventDefault(); chains.cableInto(r.key, p); return; }
       else if (e.key === 'Enter') { e.preventDefault(); field.focus(); field.select(); return; }
       if (nv === null) return;
       e.preventDefault();
@@ -1257,7 +1276,7 @@ export async function startEditor(env) {
     }
     const keys = el('span', 'ed-d-keys', {}, p && p.type === 'float' ? [
       el('kbd', null, { text: '←→' }), ' one detent', el('kbd', null, { text: '⇧' }), ' ten', el('kbd', null, { text: 'Enter' }), ' type',
-      el('kbd', null, { text: 'D' }), ' default'] : [el('kbd', null, { text: '←→' }), ' choose']);
+      el('kbd', null, { text: 'D' }), ' default', ...(p.flags && p.flags.includes('mod') ? [el('kbd', null, { text: 'C' }), ' cable'] : [])] : [el('kbd', null, { text: '←→' }), ' choose']);
     detail.append(keys);
   }
 

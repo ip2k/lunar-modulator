@@ -1,5 +1,5 @@
 {
-  "about": "Pinned by tests/test_engine_editor_meta.py: the metadata export's (level 1.1, stage ED0) refusal codes, effect groups, each audio effect's group, the telemetry block's sections and the page names the panel shows. An entry never changes or moves; new ones are added (a new code, group, effect, section or row at the end). A module the build lacks (a GPL one with the switch off) is skipped.",
+  "about": "Pinned by tests/test_engine_editor_meta.py: the metadata export's (level 1.1, stage ED0) refusal codes, effect groups, each audio effect's group, the telemetry block's sections the page names the panel shows, the matrix marks, the source groups and the refusals' repairs (level 1.2). An entry never changes or moves; new ones are added (a new code, group, effect, section or row at the end). A module the build lacks (a GPL one with the switch off) is skipped.",
   "refusal_codes": {
     "1": "NOT_LUNAR",
     "2": "TOO_NEW",
@@ -238,5 +238,22 @@
       "PLAY",
       "SEED"
     ]
+  },
+  "marks": [
+    ">",
+    "v",
+    "~",
+    "!",
+    "-"
+  ],
+  "source_groups": [
+    "notes",
+    "sound",
+    "lanes",
+    "lane_values"
+  ],
+  "refusal_fix": {
+    "37": "global",
+    "38": "global"
   }
 }
