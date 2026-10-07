@@ -530,6 +530,88 @@ static void check_locks(void) {
   g_lock_blocks = 900;
 }
 
+/* ---- a project load that goes on playing (A/B) ----------------------------------- */
+
+/* The editor's A/B puts the other project in while the transport runs; with FM1_APP_LOAD_KEEP_TRANSPORT
+ * the transport is where it was (playing, the master tick, each track's clip and playhead), and
+ * without it a project load starts from a stopped sequencer, as it always did. A stopped transport
+ * stays stopped. */
+static void check_transport(void) {
+  static uint8_t buf[FM1_STATE_BIN_MAX];
+  uint32_t len = 0;
+  fm1_app_state_mem_t mem;
+  fm1_app_state_report_t rep;
+  fm1_app_load_opts_t o;
+  fm1_state_report_t r;
+  fm1_seq_info_t before, after;
+  fm1_seq_track_info_t tb[FM1_SEQ_MAX_TRACKS], ta[FM1_SEQ_MAX_TRACKS];
+  unsigned tracks, moving = 0;
+  fresh(44118.0f);
+  render(4);
+  fm1_app_button(&g_a, FM1_BTN_PLAY, 1), fm1_app_button(&g_a, FM1_BTN_PLAY, 0);
+  render(700);                                              /* a little over a second of the demo pattern */
+  fm1_seq_get_info(fm1_app_seq(&g_a), &before);
+  CHECK(before.playing && before.master_tick > 100);
+  tracks = before.tracks < FM1_SEQ_MAX_TRACKS ? before.tracks : FM1_SEQ_MAX_TRACKS;
+  for (unsigned t = 0; t < tracks; ++t) CHECK(fm1_seq_get_track(fm1_app_seq(&g_a), (uint8_t)t, &tb[t]));
+  CHECK(fm1_app_state_save(&g_a, FM1_STATE_PROJECT, 0, 1, fm1_edit_check_put, &len, &r));
+  CHECK(len <= sizeof buf);
+  memcpy(buf, fm1_edit_check_buf(), len);
+  mem.b = buf;
+  mem.n = len;
+  /* With the flag: playing, the same tick and the same clips and playheads, then it goes on. */
+  fm1_app_load_opts_init(&o);
+  o.flags = FM1_APP_LOAD_QUIET | FM1_APP_LOAD_KEEP_TRANSPORT;
+  CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep) == 1);
+  fm1_seq_get_info(fm1_app_seq(&g_a), &after);
+  CHECK(after.playing == 1 && after.master_tick == before.master_tick);
+  for (unsigned t = 0; t < tracks; ++t) {
+    CHECK(fm1_seq_get_track(fm1_app_seq(&g_a), (uint8_t)t, &ta[t]));
+    CHECK(ta[t].playing == tb[t].playing && ta[t].pos_tick == tb[t].pos_tick && ta[t].cycle == tb[t].cycle);
+    moving += ta[t].playing != FM1_SEQ_NONE;
+  }
+  CHECK(moving > 0);                                        /* something was playing to carry */
+  render(200);
+  fm1_seq_get_info(fm1_app_seq(&g_a), &after);
+  CHECK(after.playing == 1 && after.master_tick > before.master_tick + 20);
+  /* Without it a project load leaves the sequencer stopped, as before. */
+  o.flags = FM1_APP_LOAD_QUIET;
+  CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep) == 1);
+  fm1_seq_get_info(fm1_app_seq(&g_a), &after);
+  CHECK(after.playing == 0);
+  /* Stopped stays stopped, with the flag. */
+  o.flags = FM1_APP_LOAD_QUIET | FM1_APP_LOAD_KEEP_TRANSPORT;
+  CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep) == 1);
+  fm1_seq_get_info(fm1_app_seq(&g_a), &after);
+  CHECK(after.playing == 0);
+  /* The carried transport laid over a running one, built by hand: a playhead past the clip's loop begins the
+   * loop again; a track that was not playing comes in on the next bar (queued), so it keeps the bar's grid;
+   * a song the set does not have is not carried. */
+  {
+    fm1_seq_transport_t tr;
+    fm1_seq_info_t i2;
+    fm1_seq_track_info_t ti, t0;
+    fm1_app_button(&g_a, FM1_BTN_PLAY, 1), fm1_app_button(&g_a, FM1_BTN_PLAY, 0);
+    render(300);
+    fm1_seq_transport_take(fm1_app_seq(&g_a), &tr);
+    CHECK(tr.playing && tr.master_tick > 0);
+    CHECK(fm1_seq_get_track(fm1_app_seq(&g_a), 0, &t0) && t0.playing != FM1_SEQ_NONE);   /* the demo plays track 1 */
+    for (unsigned t = 0; t < FM1_SEQ_MAX_TRACKS; ++t) tr.track[t].pos_tick = 0xFFFFu;   /* beyond any loop */
+    tr.track[0].playing = FM1_SEQ_NONE;                                                 /* track 1 was not playing */
+    tr.n_tracks = FM1_SEQ_MAX_TRACKS;
+    tr.song_len = 3;                                        /* a song the set does not have: not carried */
+    fm1_seq_transport_put(fm1_app_seq(&g_a), &tr);
+    fm1_seq_get_info(fm1_app_seq(&g_a), &i2);
+    CHECK(i2.playing && i2.master_tick == tr.master_tick);
+    CHECK(fm1_seq_get_track(fm1_app_seq(&g_a), 0, &ti));
+    CHECK(ti.playing == FM1_SEQ_NONE && ti.queued == t0.playing);
+    for (unsigned t = 1; t < tracks; ++t) {
+      CHECK(fm1_seq_get_track(fm1_app_seq(&g_a), (uint8_t)t, &ti));
+      CHECK(ti.pos_tick != 0xFFFFu);
+    }
+  }
+}
+
 /* ---- verbs and the view --------------------------------------------------------- */
 
 static void check_verbs(void) {
@@ -853,6 +935,7 @@ int fm1_edit_check(void) {
   hands(g_rack);
   for (g_sweep_seed = 0; g_sweep_seed < 40; ++g_sweep_seed, ++g_sweeps) hands(g_sweep);
   check_locks();
+  check_transport();
   check_verbs();
   check_telemetry();
   check_fuzz();
