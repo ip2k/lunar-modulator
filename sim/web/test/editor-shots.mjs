@@ -29,20 +29,22 @@ await page.waitForFunction(() => window.fm1.editor.state.mirror && window.fm1.ed
 await page.click('[data-layout="editor"]');
 await page.waitForTimeout(800);
 
-const shot = async (file, setup) => {
+const shot = async (file, setup, what = '.ed') => {
   await page.evaluate(setup);
   await page.waitForTimeout(900);
-  await page.locator('.ed').screenshot({ path: join(out, file) });
+  await page.locator(what).screenshot({ path: join(out, file) });
   console.log(`${name}: ${file}`);
 };
 await shot('page-editor-flow.png', () => { document.querySelector('.ed-out-fx').click(); });
 await shot('page-editor-sound.png', () => { window.fm1.editor.select('s3', { view: 'sound' }); });
 await shot('page-editor-table.png', () => { window.fm1.editor.state.modMap = false; document.querySelector('.ed-out-mod').click(); });
+// The Map alone: the rack's inspector under it is left out of the picture.
 await shot('page-editor-map.png', () => {
   const ed = window.fm1.editor;
   ed.state.modMap = true; ed.state.mapMode = 'focus'; ed.state.mapSrc = null;
   ed.select('p3', { view: 'mod' });
-});
+  setTimeout(() => { for (const e of document.querySelectorAll('.ed-mod-insp')) e.style.display = 'none'; }, 300);
+}, '.ed-mod');
 await shot('page-editor-memory.png', () => { document.querySelector('.ed-out-mem').click(); });
 await browser.close();
 server.close();

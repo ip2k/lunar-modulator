@@ -71,3 +71,12 @@ no text may overlap, crowd or be cut by an edge (the page's sideways
 scrolling panel on a phone is the one deliberate cut). The report fails if
 the figure's text runs come closer than 4 px, if the phone page scrolls
 sideways, or if REC is lit in a panel picture.
+
+The `page-editor-*.png` pictures (the advanced editor, for the manual's
+chapter 15) are made by `sim/web/test/editor-shots.mjs`, which runs in the
+Playwright container on aeon like the other page tests (build-on-aeon.sh
+stages the tree; run it by hand with `PLAYWRIGHT_DIR=/pw node
+sim/web/test/editor-shots.mjs sim/web/www OUT`), at 1,280 px on the *First
+orbit* example. Each was looked at, then rewritten as a 256-colour PNG with
+`assets/web-editor/src/shrink.mjs` (the editor is flat colour: nothing a
+reader can see is lost), 2026-10-07, Chromium 153.
