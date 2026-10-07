@@ -737,7 +737,7 @@
 .ed-map-pill.is-sel { border-color: var(--select); }
 .ed-map-pill.is-refused { border-color: var(--refuse); color: var(--refuse); }
 .ed-pill-v { color: var(--live); }
-.ed-map-live { padding: 0; font-weight: 400; }
+.ed-map-live { padding: 0 0 0 7px; margin-left: 2px; border-left: 1px solid var(--border); font-weight: 400; }
 .ed-map-how { margin: 8px 0 0; }
 @container (max-width: 980px) { .ed-map-live { display: none; } }
 @container (max-width: 900px) {

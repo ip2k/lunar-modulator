@@ -47,6 +47,7 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 page.on('pageerror', (e) => report.logs.push(`pageerror: ${e.message}`));
 page.on('console', (m) => { if (m.type() === 'error') report.logs.push(`error: ${m.text()}`); });
 await page.goto(`${url}?load=examples/first-orbit.lunar`);
+await page.addScriptTag({ path: new URL('./layout-probe.js', import.meta.url).pathname });
 await page.waitForTimeout(500);
 await page.click('[data-layout="workbench"]');
 await page.waitForFunction(() => window.fm1 && window.fm1.editor, null, { timeout: 15000 });
@@ -81,12 +82,16 @@ check('the Map shows every cable of the matrix, each on a jack at both ends', fi
 check('the Map replaces the table, and has a switch back', first.switchOn && !first.table, first);
 check('every jack is named', first.jacks > 20 && first.unnamed === 0, first);
 check('1,440 px: no cable over a label or a block, no label over a label, no pill over a label', first.faults.length === 0, first.faults);
+const probe0 = await page.evaluate(() => window.lunarLayoutProbe());
+check('1,440 px: the page-wide layout probe finds no overlap, clipping or sideways scroll', probe0.length === 0, probe0.slice(0, 6));
 await page.screenshot({ path: join(out, 'ed5b-map-1440.png') });
 for (const w of [1024, 768]) {
   await page.setViewportSize({ width: w, height: 1000 });
   await wait(700);
   const g = await page.evaluate(() => ({ faults: window.fm1.editor.chains.map.faults(), room: window.fm1.editor.chains.mapOn(), side: document.documentElement.scrollWidth > document.documentElement.clientWidth }));
   check(`${w} px: the Map has no faults and the page does not scroll sideways`, g.room && g.faults.length === 0 && !g.side, g);
+  const pr = await page.evaluate(() => window.lunarLayoutProbe());
+  check(`${w} px: the page-wide layout probe finds no overlap or clipping`, pr.length === 0, pr.slice(0, 6));
   await page.screenshot({ path: join(out, `ed5b-map-${w}.png`) });
 }
 await page.setViewportSize({ width: 375, height: 800 });
@@ -226,6 +231,33 @@ const typed = await page.evaluate(async () => {
   return { text, was };
 });
 check('an amount changed through the edit layer reaches the Map\'s pill', /-55 %/.test(typed.text || ''), typed);
+
+// ---- a refused cable: per voice into an effect (C's planner says no) ----------------------------------------------
+const ref = await page.evaluate(async () => {
+  const ed = window.fm1.editor;
+  const w = (ms) => new Promise((r) => setTimeout(r, ms));
+  ed.state.mapMode = 'all';
+  const jack = [...document.querySelectorAll('.ed-map-dsts .ed-jack-in')].find((j) => /^(m[12]|s[1-4]\.in[12])$/.test(j.closest('[data-block]').dataset.block) && !j.closest('.ed-map-morelist'))
+    || [...document.querySelectorAll('.ed-map-dsts .ed-jack-in')].find((j) => /^(m[12]|s[1-4]\.in[12])$/.test(j.closest('[data-block]').dataset.block));
+  const to = jack.dataset.dst;
+  const i = ed.chains.makeCable(64 + 8 * 2, to);
+  await w(900);
+  ed.chains.cableSet(i, 'voice', true, {});
+  await w(1300);
+  document.querySelector('.ed-out-mod').click();
+  await w(900);
+  const g = document.querySelector(`.ed-cab[data-cable="${i}"]`);
+  const pill = document.querySelector(`.ed-map-pill[data-cable="${i}"]`);
+  const r = { i, refused: !!g && g.classList.contains('is-refused'), x: !!g && !!g.querySelector('.ed-cab-x'), band: !!g && !!g.querySelector('.ed-cab-band'), pill: pill ? pill.textContent : null,
+    faults: ed.chains.map.faults(), words: ed.chains.verdictOf(i).text, to };
+  return r;
+});
+report.refusedCable = ref;
+check('a per-voice cable into an effect is drawn refused: the refusal colour, a cross at its end, its band and a "!" on its pill', ref.refused && ref.x && ref.band && /!/.test(ref.pill || ''), ref);
+check('and the Map says why in C\'s words (the table and the Map agree)', ref.words.length > 8, ref);
+check('a refused cable adds no fault', ref.faults.length === 0, ref.faults);
+await page.screenshot({ path: join(out, 'ed5b-map-refused.png') });
+await page.evaluate(async () => { const ed = window.fm1.editor; const i = Number(document.querySelector('.ed-map-pill.is-refused').dataset.cable); ed.chains.cableSet(i, 'voice', false, {}); await new Promise((r) => setTimeout(r, 600)); ed.undo(); await new Promise((r) => setTimeout(r, 900)); });
 
 // ---- live values ---------------------------------------------------------------------------------------------------
 await page.evaluate(() => window.fm1.node.port.postMessage({ type: 'note-on', note: 64, velocity: 100 }));
