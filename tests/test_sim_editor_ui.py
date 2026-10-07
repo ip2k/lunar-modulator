@@ -69,3 +69,26 @@ def test_the_editor_shows_memory_only_as_a_percentage():
     texts = ["".join(t) for t in re.findall(r"'([^'\n]*)'|`([^`\n]*)`", code)]
     shown = [t for t in texts if re.search(r"\bKB\b|\bkB\b|\bKiB\b|\bbytes\b", re.sub(r"\$\{[^}]*\}", "", t))]
     assert not shown, shown
+
+
+def test_the_map_is_the_tables_second_view():
+    """Stage ED5b (§10, §13): the Map draws the matrix's slots and edits them
+    only through chains.js's makeCable (one CABLE record, the table's own
+    path); it holds no edit of its own, sends nothing to a device, and asks C
+    for its verdicts (the shadow Worker's `preview`, which now takes `mod`)."""
+    map_js = (EDITOR / "map.js").read_text()
+    chains = (EDITOR / "chains.js").read_text()
+    assert "import { makeMap } from './map.js'" in chains and "makeCable" in chains
+    code = re.sub(r"//[^\n]*", "", map_js)          # the comments may name what the code must not do
+    for forbidden in ("sendOps", "setValue", "postMessage", "requestMIDIAccess", "fetch(", "localStorage"):
+        assert forbidden not in code, forbidden
+    # The verdict is C's: the preview of the cable record, with the rack after it.
+    assert "preview([rec], false, true)" in map_js and "decodeMod" in map_js
+    worker = (WWW / "shadow.worker.js").read_text()
+    assert "mod: m.mod ? modRecords() : undefined" in worker
+    # Wired into the page tests, and the editor's four tests run in the three engines.
+    assert "editor-map.mjs" in (SIM / "build-on-aeon.sh").read_text()
+    launcher = (SIM / "test" / "launch.mjs").read_text()
+    assert "process.env.BROWSER" in launcher and "firefox" in launcher and "webkit" in launcher
+    for t in ("editor.mjs", "editor-ui.mjs", "editor-reach.mjs", "editor-map.mjs"):
+        assert "launch.mjs" in (SIM / "test" / t).read_text(), t

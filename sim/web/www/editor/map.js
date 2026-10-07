@@ -18,7 +18,7 @@
 // repository.
 
 import {
-  ROLE, SOUNDS, INSERTS, MASTERS, NONE, GATE_DST, SLOT_ON, VOICE, SRC_MODULE,
+  ROLE, SOUNDS, INSERTS, MASTERS, SLOTS, NONE, GATE_DST, SLOT_ON, VOICE, SRC_MODULE,
   blockKey, blockTag, modKey, parseBlockKey, parseModKey, hasFlag, cableEmpty, pctOfQ14, decodeMod,
 } from './model.js';
 
@@ -74,7 +74,7 @@ export function makeMap(ctx, h) {
   const { cableOf, verdictOf, destName, srcName, verdictWords, makeCable, toValue, pickerButton, preview } = h;
   const open = (name) => (st[name] || (st[name] = new Set()));
 
-  let map = null, svg = null, pills = null, cols = {}, jacks = new Map(), geo = [], patch = null, obs = null, hover = null, ghost = null;
+  let map = null, svg = null, pills = null, cols = {}, jacks = new Map(), geo = [], patch = null, obs = null, ghost = null;
 
   // ---- what is in focus ---------------------------------------------------------
   function focusTarget() {
@@ -440,7 +440,7 @@ export function makeMap(ctx, h) {
   }
   async function verdictFor(src, dst) {
     const free = st.mirror.cables.findIndex((c) => cableEmpty(c));
-    if (free < 0) return { ok: false, text: verdictWords(6, { what: 'matrix', used: 32, max: 32 }) };
+    if (free < 0) return { ok: false, text: verdictWords(6, { what: 'matrix', used: SLOTS, max: SLOTS }) };
     const rec = h.cableRecord(free, src, dst);
     const r = await preview([rec], false, true);
     if (!r) return { ok: true, text: 'Drop to patch' };
@@ -576,7 +576,7 @@ export function makeMap(ctx, h) {
     const lane = (g, k, n) => (n <= 1 ? (g.l + g.r) / 2 : g.l + 16 + (k * (g.r - g.l - 32)) / (n - 1));
     const laneUsers = items.filter((x) => x.kind === 'B' || x.kind === 'D');
     const gapUse = new Map();
-    let kB = 0, kL = 0;
+    let kB = 0;
     for (const x of items) {
       x.p0 = ctr(x.s);
       x.p1 = ctr(x.d);
@@ -602,7 +602,6 @@ export function makeMap(ctx, h) {
         gapUse.set(gi, n + 1);
         const y = gy + (n % 3 - 1) * 3;
         pts = [x.p0, { x: L2, y: x.p0.y }, { x: L2, y }, { x: L1, y }, { x: L1, y: x.p1.y }, x.p1];
-        kL++;
       }
       x.pts = pts;
       x.poly = samples(pts);

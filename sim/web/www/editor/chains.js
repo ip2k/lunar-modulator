@@ -989,7 +989,9 @@ export function makeChains(ctx) {
   if (mainEl && typeof ResizeObserver !== 'undefined') {
     new ResizeObserver(() => {
       const room = mapRoom();
-      if (hadRoom !== null && room !== hadRoom && st.view === 'mod' && st.modMap && st.mirror) ctx.render();
+      // A frame later: the render changes the size this observer watches, and a change made inside
+      // its own callback is the loop WebKit reports as an error.
+      if (hadRoom !== null && room !== hadRoom && st.view === 'mod' && st.modMap && st.mirror) requestAnimationFrame(() => ctx.render());
       hadRoom = room;
     }).observe(mainEl);
   }
