@@ -891,6 +891,17 @@ Marks here were checked on the ED1 branch, cut from main at `c8d267b`
   refuses), and an `entry` key for FX's slot (In1, In2, Mix, M1, M2), which
   a file's view has no need of.
 
+**Found on the way.**
+- **`fm1_mod_move` read past its permutation** for a slot whose source or
+  VIA names nothing past the last position's ports (128-254): `remap_src`
+  indexed `perm[]` with (src - 64) / 8. The panel cannot make such a slot,
+  but an editor's cable record can (the planner refuses it, NO_SOURCE). The
+  check's fuzz of hostile records found it under AddressSanitizer; such a
+  source now stays as it is, with a test in `fm1-mod-refusal-test`. The
+  fuzz (12,774 records and verbs, fields random and at their edges) then
+  runs clean under ASan and UBSan, but for an old left shift of a negative
+  value in `third_party/fm1-x0x/dsp/fastmath.h`, which is not this stage's.
+
 **Measured** [verified: `test/edit.mjs` on aeon, Node's V8 in the
 emscripten/emsdk container]: the module and the native harness give the
 same verdicts, ring, view and state hash for `test/edit/verbs.edit`, the

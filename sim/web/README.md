@@ -588,7 +588,9 @@ that cannot be reached with today's modules are named in the test); the
 ring's sources, its LOADED entry and its overflow; seven panel gestures
 whose ring entries, replayed as editor ops on a fresh app, give the same
 entries and the same state; the verbs; the view and knob map; telemetry's
-layout, rate and rows. `test/edit.mjs` plays `test/edit/verbs.edit` (every
+layout, rate and rows; and 400 batches of hostile records and verbs
+(random fields, edges, NaN and infinities, ids with no NUL, counts past
+64), each verdict a known code and the audio finite. `test/edit.mjs` plays `test/edit/verbs.edit` (every
 record type and verb, refusals and panel gestures between) to the module
 and to `fm1-sim-render --edit-run`: the verdicts, the ring, the view and the
 state's hash identical, the screen too, the audio within one 16-bit step;
