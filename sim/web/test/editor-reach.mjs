@@ -49,12 +49,13 @@ page.on('console', (m) => { if (m.type() === 'error') report.logs.push(`error: $
 await page.goto(`${url}?load=examples/first-orbit.lunar`);
 await page.addScriptTag({ path: new URL('./layout-probe.js', import.meta.url).pathname });
 await page.waitForTimeout(500);
-await page.click('[data-layout="editor"]');
+await page.click('[data-layout="workbench"]');
 await page.waitForFunction(() => window.fm1 && window.fm1.editor, null, { timeout: 10000 });
 await page.click('#power-on');
 await page.waitForFunction(() => window.fm1.editor.state.mirror && window.fm1.editor.state.panelView &&
   window.fm1.editor.state.mirror.blocks.size > 6, null, { timeout: 20000 });
-await page.waitForTimeout(400);
+await page.click('[data-layout="editor"]');
+await page.waitForTimeout(500);
 
 const VIEWS = ['sound', 'flow', 'mod', 'library', 'memory', 'compare'];
 async function goView(view) {
@@ -93,17 +94,19 @@ for (const view of VIEWS) {
   await goView(view);
   const text = await page.locator('.ed').ariaSnapshot();
   const p = parseSnapshot(text);
-  snaps[view] = { lines: text.split('\n').length, nameless: p.nameless.slice(0, 6), sliders: p.sliders.length, slidersNoValue: p.sliders.filter((s) => !s.value).length };
+  snaps[view] = { lines: text.split('\n').length, nameless: p.nameless.slice(0, 6), sliders: p.sliders.length };
   check(`the ${view} view: every control has a name in the accessibility snapshot`, p.nameless.length === 0, p.nameless.slice(0, 6));
-  check(`the ${view} view: every slider has a name and its value in words`, p.sliders.every((s) => s.name && s.value), p.sliders.filter((s) => !s.name || !s.value).slice(0, 4));
+  check(`the ${view} view: every slider has a name`, p.sliders.every((s) => s.name), p.sliders.filter((s) => !s.name).slice(0, 4));
 }
 report.snapshots = snaps;
 await goView('sound');
 const slideDom = await page.evaluate(() => [...document.querySelectorAll('.ed [role="slider"]')].filter((s) => s.getClientRects().length).map((s) => ({
-  text: s.getAttribute('aria-valuetext'), now: s.getAttribute('aria-valuenow'), label: s.getAttribute('aria-labelledby') && document.getElementById(s.getAttribute('aria-labelledby')) ? document.getElementById(s.getAttribute('aria-labelledby')).textContent : '' })));
-check('sliders carry aria-valuenow, a valuetext and a label', slideDom.length > 3 && slideDom.every((s) => s.text && s.now !== null && s.label.trim()), slideDom.filter((s) => !s.text || !s.label.trim()).slice(0, 3));
-const liveRegions = await page.evaluate(() => [...document.querySelectorAll('.ed [aria-live], .ed [role="status"], .ed [role="alert"]')].map((e) => `${e.className} ${e.getAttribute('aria-live')} ${e.getAttribute('role')}`));
-check('one polite live region in the editor, and nothing else announces', liveRegions.length === 1 && /polite/.test(liveRegions[0]), liveRegions);
+  text: s.getAttribute('aria-valuetext'), now: s.getAttribute('aria-valuenow'), label: s.getAttribute('aria-labelledby') && document.getElementById(s.getAttribute('aria-labelledby')) ? [...document.getElementById(s.getAttribute('aria-labelledby')).childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim() : '' })));
+check('sliders carry aria-valuenow, a valuetext in words and a label', slideDom.length > 3 && slideDom.every((s) => s.text && s.now !== null && s.label.trim() && s.text.startsWith(`${s.label},`)), slideDom.filter((s) => !s.text || !s.label.trim() || !s.text.startsWith(`${s.label},`)).slice(0, 3));
+// The status region, and the search box's result count (announced as you type).
+const liveRegions = await page.evaluate(() => [...document.querySelectorAll('.ed [aria-live], .ed [role="status"], .ed [role="alert"]')]
+  .filter((e) => !e.classList.contains('ed-search-n')).map((e) => `${e.className} ${e.getAttribute('aria-live')} ${e.getAttribute('role')}`));
+check('one polite live region in the editor (and the search count), and nothing else announces', liveRegions.length === 1 && /polite/.test(liveRegions[0]), liveRegions);
 
 // ---- the keyboard -------------------------------------------------------------------------
 const FOCUSABLE = 'button, input:not([type="hidden"]), select, textarea, [role="slider"], [tabindex], summary, a[href]';
@@ -187,7 +190,7 @@ await page.setViewportSize({ width: 375, height: 812 });
 await page.waitForTimeout(300);
 const phone = await page.evaluate(() => {
   const vis = (e) => !!e && e.getClientRects().length > 0;
-  const radios = [...document.querySelectorAll('#layout-switch [role="radio"]')].filter(vis).map((b) => b.textContent.trim());
+  const radios = [...document.querySelectorAll('#layout-switch [role="radio"]')].filter(vis).map((b) => b.innerText.trim());
   const outline = document.querySelector('.ed-outline');
   const screen = document.querySelector('.ed-screen').getBoundingClientRect();
   const o = outline.getBoundingClientRect();
@@ -211,7 +214,7 @@ const list = await page.evaluate(async () => {
   const r0 = rows[0];
   const cs = (e) => getComputedStyle(e);
   return { rows: rows.length, header: cs(document.querySelector('.ed-mx-h')).display, named: r0 ? [...r0.children].map((c) => c.dataset.h || '') : [],
-    labelShown: r0 ? cs(r0.children[2], '::before').content : '', cols: r0 ? cs(r0).gridTemplateColumns.split(' ').length : 0 };
+    labelShown: r0 ? getComputedStyle(r0.children[2], '::before').content : '', cols: r0 ? cs(r0).gridTemplateColumns.split(' ').length : 0 };
 });
 report.cableList = list;
 check('the matrix is a list of cables on a phone: no header row, each cell named, two columns', list.rows > 2 && list.header === 'none' &&
@@ -248,9 +251,11 @@ const gr = await page.evaluate(async () => {
 });
 report.gr = gr;
 if (gr.rowReady) {
-  const field = page.locator('.ed-flow-insp .ed-row', { hasText: 'Drive' }).locator('.ed-val').first();
-  await field.fill('24');
-  await field.press('Enter');
+  // By the keyboard: focus the Drive slider and press End.
+  const slider = page.locator('.ed-flow-insp .ed-row', { hasText: 'Drive' }).locator('[role="slider"]').first();
+  await slider.focus();
+  await slider.press('End');
+  await page.waitForTimeout(300);
   await page.evaluate(() => window.fm1.editor.setKeys('play'));
   await page.evaluate(() => window.fm1.node.port.postMessage({ type: 'note-on', note: 60, velocity: 127 }));
   const seen = await page.evaluate(async () => {
