@@ -265,7 +265,7 @@ changes();
   const s1e = meta.engine(snap().blocks.get('s1').engine);
   const modP = s1e.params.find((p) => M.hasFlag(p, 'mod') && !M.hasFlag(p, 'nolock') && p.type === 'float');
   const nolockP = s1e.params.find((p) => M.hasFlag(p, 'nolock'));
-  const cab = { src: M.SRC_MODULE + 8 * 7, via: M.NONE, unit: mm.unitCode('s1'), flags: M.SLOT_ON | M.withPol(0, 2), dst: modP.uid,
+  const cab = { src: M.moduleSource(7, 0), via: M.NONE, unit: mm.unitCode('s1'), flags: M.SLOT_ON | M.withPol(0, 2), dst: modP.uid,
     amount: M.q14OfPct(-37), offset: M.q14OfPct(12), uid: 0 };
   const r = applyAll(M.concat([M.packModule(7, kinds[1]), M.packCable(31, cab)]));
   const fed = changes();
@@ -288,7 +288,7 @@ changes();
     // A loop (the editor's v1 completion): LFO in rack 6 into LFO 7's Rate and back. The cable that runs up the rack
     // is read a tick late, and C names the loop it closes: both rack positions.
     const lfoRate = mm.kind('lfo').params.find((p) => p.name === 'Rate');
-    const loopCab = (from, to) => ({ src: M.SRC_MODULE + 8 * from, via: M.NONE, unit: mm.unitCode(`p${to + 1}`), flags: M.SLOT_ON, dst: lfoRate.uid, amount: M.q14OfPct(20), offset: 0, uid: 0 });
+    const loopCab = (from, to) => ({ src: M.moduleSource(from, 0), via: M.NONE, unit: mm.unitCode(`p${to + 1}`), flags: M.SLOT_ON, dst: lfoRate.uid, amount: M.q14OfPct(20), offset: 0, uid: 0 });
     const rl = applyAll(M.concat([M.packModule(5, 'lfo'), M.packModule(6, 'lfo'), M.packCable(20, loopCab(5, 6)), M.packCable(21, loopCab(6, 5))]));
     const d3 = M.decodeMod(modBytes());
     check('fm1w_mod_records names the loop a late cable closes: the cable up the rack reads a tick late (both positions in the loop), the one down it runs on time',
@@ -297,8 +297,8 @@ changes();
     applyAll(M.concat([M.packCable(20, M.emptyCable()), M.packCable(21, M.emptyCable())]));
     check('with the loop broken no cable is late', M.decodeMod(modBytes()).loops.every((x) => x === 0), '');
     const doc = meta.doc;
-    check('the metadata has the 1.2 members the editor reads: marks, source groups, curve points, refusal fixes',
-      doc.lunar === '1.2' && doc.marks.map((m) => m.mark).join('') === '>v~!-' && mm.groupedSources().length >= 7 && mm.curvePoints.length === mm.curves.length && mm.curvePoints.every((c) => c.length === 33) &&
+    check('the metadata has the 1.2 and 1.3 members the editor reads: marks, source groups, curve points, refusal fixes, the id layout',
+      doc.lunar === '1.3' && doc.marks.map((m) => m.mark).join('') === '>v~!-' && mm.groupedSources().length >= 7 && mm.curvePoints.length === mm.curves.length && mm.curvePoints.every((c) => c.length === 33) &&
       meta.refusals.get(38).fix.id === 'global' && meta.refusals.get(37).fix.id === 'global' && !meta.refusals.get(33).fix, JSON.stringify({ lunar: doc.lunar }));
   } else {
     report.ed3 = 'the module predates fm1w_mod_records';
@@ -381,6 +381,55 @@ if (typeof ex.fm1w_ram_part === 'function') {
     JSON.stringify(report.ram));
 } else {
   report.ram = 'the module predates fm1w_ram_part';
+}
+
+// ---- every unit is spoken as a word ---------------------------------------------------------------------
+{
+  const bad = [], seen = new Set();
+  for (const e of [...metaDoc.engines, ...metaDoc.mod.kinds]) {
+    for (const p of e.params || []) {
+      if (p.type === 'enum' || p.unit === 'none') continue;
+      const shown = `${M.rawText(p, p.def)} ${M.unitText(p)}`;
+      const said = M.spokenText(p, shown);
+      seen.add(p.unit);
+      const word = M.unitWords(p);
+      if (!word || !said.endsWith(word) && !said.endsWith(word.replace(/s$/, '')) || said.endsWith(` ${M.unitText(p)}`) && M.unitText(p) !== word) bad.push(`${e.id}.${p.name}: ${said}`);
+    }
+  }
+  check('every unit in the metadata (semitones, hertz, milliseconds, decibels, percent) is spoken as a word, none as its symbol',
+    bad.length === 0 && ['semi', 'hz', 'ms', 'db', 'pct'].every((u) => seen.has(u)), JSON.stringify({ bad: bad.slice(0, 4), seen: [...seen] }));
+}
+
+// ---- the id layout and the chain's shape are the metadata's (level 1.3) ------------------------------------
+// The editor holds none of them: a metadata with another layout gives another editor, and an older one
+// (without them) is refused rather than guessed at.
+{
+  const real = JSON.stringify([M.SOUNDS, M.INSERTS, M.MASTERS, M.POSITIONS, M.SLOTS, M.SRC_MODULE, M.SRC_STRIDE, M.UNIT_MODULE]);
+  const want = JSON.stringify([metaDoc.mod.sounds, metaDoc.mod.inserts, metaDoc.mod.masters, metaDoc.mod.positions, metaDoc.mod.slots,
+    metaDoc.mod.source_base, metaDoc.mod.source_stride, metaDoc.mod.unit_base]);
+  check('the layout the editor uses is the metadata\'s', real === want && M.SRC_STRIDE > 0 && M.SOUNDS > 0, `${real} against ${want}`);
+  // Another layout, not the FM-1's: three sounds with one insert, one master slot, five positions, 20 slots, outputs in fours from 96.
+  const alt = JSON.parse(JSON.stringify(metaDoc));
+  Object.assign(alt.mod, { source_base: 96, source_stride: 4, unit_base: 100, sounds: 3, inserts: 1, masters: 1, positions: 5, slots: 20 });   // outputs in fours from 96, rack units from 100
+  alt.mod.units = alt.mod.units.filter((u) => /^(snd[1-3](\.fx1)?|fx1|host)$/.test(u.name));
+  const m2 = new M.Meta(alt);
+  const mm2 = new M.ModMeta(m2);
+  const code = M.moduleSource(2, 3);
+  const rack = ['lfo', 'env', 'lfo', 'env', 'lfo'];
+  const k3 = mm2.kind('lfo');
+  const alts = {
+    code: code === 96 + 4 * 2 + 3 && M.sourcePosition(code) === 2 && M.sourcePort(code) === 3 && M.isModuleSource(96) && !M.isModuleSource(95) && !M.isModuleSource(M.NONE),
+    names: mm2.sourceName(M.moduleSource(2, 0), rack).startsWith('3 ') && mm2.sourceList(rack).filter((x) => x.group === 'Modules').every((x) => M.isModuleSource(x.code) && M.sourcePort(x.code) < 4),
+    units: mm2.unitKey(100 + 1) === 'p2' && mm2.unitCode('p5') === 100 + 4 && mm2.unitKey(100 + 5) === null && mm2.unitKey(17) === 's2' && mm2.unitKey(21) === null,
+    keys: M.parseBlockKey('s4') === null && M.parseBlockKey('s3').sound === 2 && M.parseBlockKey('s1.in2') === null && M.parseBlockKey('m2') === null &&
+      M.parseBlockKey('m1').role === M.ROLE.MASTER && M.parseBlockKey('p6') === null && M.parseBlockKey('p5').slot === 4,
+    shape: mm2.positions === 5 && mm2.slots === 20 && M.mirrorFromProject(m2, {}, null).rack.length === 5 && M.mirrorFromProject(m2, {}, null).levels.length === 3,
+  };
+  check('another layout in the metadata moves every source code, unit code and key the editor builds (nothing is hard-coded)', Object.values(alts).every(Boolean), JSON.stringify({ alts, k3: !!k3 }));
+  let refused = '';
+  try { const old = JSON.parse(JSON.stringify(metaDoc)); delete old.mod.source_base; new M.Meta(old); } catch (e) { refused = e.message; }
+  check('a metadata without the layout (older than 1.3) is refused with a clear message, not guessed at', /missing mod\.source_base/.test(refused), refused);
+  new M.Meta(metaDoc);                    // back to the module's own layout
 }
 
 console.log(JSON.stringify(report, null, 1));

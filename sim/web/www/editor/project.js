@@ -20,7 +20,7 @@
 // None of it names an engine or decides a rule: C answers, the page shows
 // C's words. MIT licence, like the rest of this repository.
 
-import { ROLE, MIX_KEY, SOUNDS, INSERTS, blockKey, parseBlockKey, parseModKey, blockTag, ramPercent, ramWords, cableEmpty, pctOfQ14, VOICE, SRC_MODULE } from './model.js';
+import { ROLE, MIX_KEY, SOUNDS, INSERTS, MASTERS, blockKey, parseBlockKey, parseModKey, blockTag, ramPercent, ramWords, cableEmpty, pctOfQ14, VOICE, isModuleSource, sourcePosition } from './model.js';
 
 const ITEM_TYPE = 'application/x-lunar-item';
 const FILE_CAP = 262144;              // the module's text buffer (files.js TEXT_CAP)
@@ -236,7 +236,7 @@ export function makeProject(ctx) {
       return e ? [`Sound ${t.arg + 1}: ${e}`, ...ins].join(', ') : `Sound ${t.arg + 1}, which is empty`;
     }
     if (t.kind === 'fx') {
-      const keys = t.arg < 0 ? [0, 1].map((j) => blockKey(ROLE.MASTER, 0, j)) : [...Array(INSERTS).keys()].map((j) => blockKey(ROLE.INSERT, t.arg, j));
+      const keys = t.arg < 0 ? [...Array(MASTERS).keys()].map((j) => blockKey(ROLE.MASTER, 0, j)) : [...Array(INSERTS).keys()].map((j) => blockKey(ROLE.INSERT, t.arg, j));
       const held = keys.map((k, j) => ({ j, n: name(k) })).filter((x) => x.n).map((x) => `${t.arg < 0 ? 'M' : 'In'}${x.j + 1} ${x.n}`);
       return held.length ? `${t.words}: ${held.join(', ')}` : `${t.words}, which hold nothing`;
     }
@@ -369,17 +369,19 @@ export function makeProject(ctx) {
       const ab = st.ab;
       try {
         if (!ab.A) await files.store.del('snapshots', abId());
-        else await files.store.put('snapshots', { id: abId(), scope: ab.scope, A: ab.A, B: ab.B, playing: ab.playing, title: files.title, modified: Date.now() }, abId());
+        else await files.store.put('snapshots', { id: abId(), scope: ab.scope, A: ab.A, B: ab.B, playing: ab.playing, title: files.title, pid: files.pid, modified: Date.now() }, abId());
       } catch (err) { /* storage blocked: A and B stay in memory */ }
     }, 200);
   }
-  // Back from storage: only for the project it was kept in (its title), and only while nothing is kept now.
+  // Back from storage: only for the project it was kept in (its identity, files.pid: the autosave carries it, so a
+  // reload is the same project, and another project of the same title, or the same file opened again, is not),
+  // and only while nothing is kept now.
   async function restoreAB() {
     const ab = st.ab;
     if (ab.A || ab.busy || !st.port) return false;
     let rec = null;
     try { rec = await files.store.get('snapshots', abId()); } catch (err) { rec = null; }
-    if (!rec || !rec.A || rec.title !== files.title) return false;
+    if (!rec || !rec.A || !rec.pid || rec.pid !== files.pid) return false;
     if (ab.A || ab.scope !== rec.scope) return false;
     Object.assign(ab, { A: rec.A, B: rec.B, playing: rec.playing || 'B', diff: null, picks: new Map() });
     if (st.view === 'ab') render();
@@ -446,7 +448,7 @@ export function makeProject(ctx) {
   // A kept state back into the thing compared, quietly (A/B's own loads set no A).
   async function loadSlot(bin) {
     const ab = st.ab;
-    if (ab.scope === 'project') return files.load(bin.slice(0), { d: { enc: 1, kind: 'project', title: files.title }, before: false, quiet: true });
+    if (ab.scope === 'project') return files.load(bin.slice(0), { d: { enc: 1, kind: 'project', title: files.title }, before: false, quiet: true, same: true });
     const s = await files.shadow('save', { kind: 2, arg: ab.scope, live: bin.slice(0) });
     if (!s.ok || typeof s.text !== 'string') return { ok: false, report: { message: 'it could not be read back' } };
     return files.load(encoder.encode(s.text), { d: { enc: 2, kind: 'sound', title: `Sound ${ab.scope + 1}` },
@@ -495,7 +497,7 @@ export function makeProject(ctx) {
         info: { struct: true, key: 'ab', undo: [], cables: st.mirror ? st.mirror.cables.map((c) => ({ ...c })) : [], redo: null, reload: bytes, scope: ab.scope } });
       if (entry) onStruct(entry, live);
       const lr = await (proj
-        ? files.load(bytes.slice(0), { d: { enc: 2, kind: 'project', title: files.title }, before: false, quiet: true })
+        ? files.load(bytes.slice(0), { d: { enc: 2, kind: 'project', title: files.title }, before: false, quiet: true, same: true })
         : files.load(bytes.slice(0), { d: { enc: 2, kind: 'sound', title: `Sound ${ab.scope + 1}` }, target: { into: ab.scope, slot: 0 }, before: false, quiet: true }));
       if (!lr.ok) {
         if (entry) history.drop(entry);
@@ -523,7 +525,7 @@ export function makeProject(ctx) {
     ab.quietUntil = performance.now() + 1500;
     const proj = e.info.scope === 'project';
     const r = await (proj
-      ? files.load(e.info.reload.slice(0), { d: { enc: 2, kind: 'project', title: files.title }, before: false, quiet: true })
+      ? files.load(e.info.reload.slice(0), { d: { enc: 2, kind: 'project', title: files.title }, before: false, quiet: true, same: true })
       : files.load(e.info.reload.slice(0), { d: { enc: 2, kind: 'sound', title: `Sound ${e.info.scope + 1}` }, target: { into: e.info.scope, slot: 0 }, before: false, quiet: true }));
     say(r.ok ? `Redone: ${e.label}` : `${e.label} could not be redone: ${r.report.message || r.report.code}`);
     snapshotSoon();
@@ -649,7 +651,7 @@ export function makeProject(ctx) {
         const src = chains.srcName(c.src), dst = chains.destName(c);
         // A module also by its kind and place as one word ("lfo1", "env3"), the way a person says it.
         const word = (pos) => { const k = pos >= 0 ? mm.kind(st.mirror.rack[pos]) : null; return k ? ` ${k.abbr}${pos + 1}` : ''; };
-        const srcWord = c.src >= SRC_MODULE && c.src < 255 ? word((c.src - SRC_MODULE) >> 3) : '';
+        const srcWord = isModuleSource(c.src) ? word(sourcePosition(c.src)) : '';
         const dstWord = word(parseModKey(mm.unitKey(c.unit) || ''));
         const key = mm.unitKey(c.unit);
         const srcInfo = mm.sources.get(c.src);
@@ -705,7 +707,7 @@ export function makeProject(ctx) {
       else if (t === mVoice) { q.voice = true; q.cables = true; }
       else if ((m = /^>(.*)$/.exec(t))) { q.into.push(m[1]); q.cables = true; }
       else if ((m = /^(.+)>$/.exec(t))) { q.from.push(m[1]); q.cables = true; }
-      else if ((m = /^s([1-4])$/.exec(t))) q.sound = Number(m[1]) - 1;
+      else if ((m = /^s(\d+)$/.exec(t)) && m[1] >= 1 && m[1] <= SOUNDS) q.sound = Number(m[1]) - 1;
       else if (units.has(t)) q.unit = t;
       else q.words.push(t);
     }
@@ -811,7 +813,7 @@ export function makeProject(ctx) {
     if (before === null || before === undefined) { e.check = 'none'; return; }
     if (h === before) { e.check = 'hash'; return; }
     st.ab.quietUntil = performance.now() + 1500;        // not a load that sets A
-    const r = await files.load(e.snap.bin.slice(0), { d: { enc: 1, kind: 'project', title: files.title }, before: false, quiet: true });
+    const r = await files.load(e.snap.bin.slice(0), { d: { enc: 1, kind: 'project', title: files.title }, before: false, quiet: true, same: true });
     e.check = r.ok ? 'snapshot' : 'failed';
     say(r.ok ? `${e.label}: undone from its snapshot, as the inverse edits left it otherwise.` : `${e.label} could not be undone exactly: ${r.report.message || r.report.code}`);
     snapshotSoon();

@@ -352,6 +352,10 @@
 }
 .ed-verdict.is-refused { background: var(--refuse); }
 
+/* The `hidden` attribute hides: an author rule that sets `display` (a picker's choice is a grid) would otherwise win over
+   the user agent's, and the picker's filter, and the choices C says are not offered here, would stay on show. */
+.ed [hidden] { display: none !important; }
+
 /* Pickers: a list with each choice's RAM after, in percent of the budget, or C's refusal. */
 .ed-picker {
   position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; width: min(360px, 86vw); max-height: 380px; overflow: auto;

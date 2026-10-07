@@ -34,9 +34,31 @@ export const VK = { sound: 0, page: 1, unit: 2, track: 3, bar: 4, panel: 5, pos:
 export const FX_ENTRIES = ['In1', 'In2', 'Mix', 'M1', 'M2'];
 // The Mix's block (it has no unit): its key in the Flow.
 export const MIX_KEY = 'the-mix';
-export const SOUNDS = 4;
-export const INSERTS = 2;
-export const MASTERS = 2;
+// The chain's shape and how a cable's ids are laid out are the metadata's (mod.*, level 1.3), set once
+// by `new Meta(doc)`: live bindings, so a file that imports them sees what the metadata says. The editor
+// holds no number of them; a layout the metadata does not give is an error, not a guess (setLayout).
+export let SOUNDS = 0;          // mod.sounds: sound units
+export let INSERTS = 0;         // mod.inserts: insert slots for each sound
+export let MASTERS = 0;         // mod.masters: master effect slots
+export let POSITIONS = 0;       // mod.positions: rack positions
+export let SLOTS = 0;           // mod.slots: matrix slots
+export let SRC_MODULE = 0;      // mod.source_base: a module's output n of position p is SRC_MODULE + SRC_STRIDE x p + n
+export let SRC_STRIDE = 0;      // mod.source_stride
+export let UNIT_MODULE = 0;     // mod.unit_base: UNIT_MODULE + position is a module's parameters or gate inputs
+export function setLayout(mod) {
+  const want = { SOUNDS: 'sounds', INSERTS: 'inserts', MASTERS: 'masters', POSITIONS: 'positions', SLOTS: 'slots',
+    SRC_MODULE: 'source_base', SRC_STRIDE: 'source_stride', UNIT_MODULE: 'unit_base' };
+  const m = mod || {};
+  const bad = Object.values(want).filter((k) => !Number.isInteger(m[k]) || m[k] < 0);
+  if (bad.length) throw new Error(`The metadata (level 1.3 or newer) is missing mod.${bad.join(', mod.')}: this editor needs the module that wrote it.`);
+  SOUNDS = m.sounds; INSERTS = m.inserts; MASTERS = m.masters; POSITIONS = m.positions; SLOTS = m.slots;
+  SRC_MODULE = m.source_base; SRC_STRIDE = m.source_stride; UNIT_MODULE = m.unit_base;
+}
+// A module's output as a source code, and a source code as (position, port), by that layout.
+export const moduleSource = (pos, port) => SRC_MODULE + SRC_STRIDE * pos + port;
+export const isModuleSource = (code) => code >= SRC_MODULE && code !== NONE;
+export const sourcePosition = (code) => Math.floor((code - SRC_MODULE) / SRC_STRIDE);
+export const sourcePort = (code) => (code - SRC_MODULE) % SRC_STRIDE;
 // The Mix page's level, in percent (FM1_APP_LEVEL_MAX): C clamps it.
 export const LEVEL_MAX = 100;
 
@@ -171,17 +193,19 @@ export function blockKey(role, sound = 0, slot = 0) {
   }
 }
 
+// A 1-based number in a key, when it is in 1 .. max (the chain's shape is the metadata's).
+const nth = (n, max) => (Number(n) >= 1 && Number(n) <= max ? Number(n) - 1 : -1);
 export function parseBlockKey(key) {
-  let m = /^s([1-4])$/.exec(key);
-  if (m) return { role: ROLE.SOUND, sound: m[1] - 1, slot: 0 };
-  m = /^s([1-4])\.in([12])$/.exec(key);
-  if (m) return { role: ROLE.INSERT, sound: m[1] - 1, slot: m[2] - 1 };
-  m = /^s([1-4])\.mfx([1-4])$/.exec(key);
-  if (m) return { role: ROLE.MFX, sound: m[1] - 1, slot: m[2] - 1 };
-  m = /^m([12])$/.exec(key);
-  if (m) return { role: ROLE.MASTER, sound: 0, slot: m[1] - 1 };
-  m = /^p([1-8])$/.exec(key);
-  if (m) return { role: ROLE.MODULE, sound: 0, slot: m[1] - 1 };
+  let m = /^s(\d+)$/.exec(key);
+  if (m && nth(m[1], SOUNDS) >= 0) return { role: ROLE.SOUND, sound: m[1] - 1, slot: 0 };
+  m = /^s(\d+)\.in(\d+)$/.exec(key);
+  if (m && nth(m[1], SOUNDS) >= 0 && nth(m[2], INSERTS) >= 0) return { role: ROLE.INSERT, sound: m[1] - 1, slot: m[2] - 1 };
+  m = /^s(\d+)\.mfx([1-4])$/.exec(key);
+  if (m && nth(m[1], SOUNDS) >= 0) return { role: ROLE.MFX, sound: m[1] - 1, slot: m[2] - 1 };
+  m = /^m(\d+)$/.exec(key);
+  if (m && nth(m[1], MASTERS) >= 0) return { role: ROLE.MASTER, sound: 0, slot: m[1] - 1 };
+  m = /^p(\d+)$/.exec(key);
+  if (m && nth(m[1], POSITIONS) >= 0) return { role: ROLE.MODULE, sound: 0, slot: m[1] - 1 };
   return null;
 }
 
@@ -222,8 +246,8 @@ export function blockOfView(v) {
     if (v.slot === 2) return { key: MIX_KEY, page: null };
     if (v.slot <= 4) return { key: blockKey(ROLE.MASTER, 0, v.slot - 3), page: v.page + 1 };
   }
-  if (v.mode === 'rack' && v.slot < 8) return { key: blockKey(ROLE.MODULE, 0, v.slot), page: v.page + 1 };
-  if (v.mode === 'matrix' && v.slot < 32) return { key: `c${v.slot + 1}`, page: null };
+  if (v.mode === 'rack' && v.slot < POSITIONS) return { key: blockKey(ROLE.MODULE, 0, v.slot), page: v.page + 1 };
+  if (v.mode === 'matrix' && v.slot < SLOTS) return { key: `c${v.slot + 1}`, page: null };
   return null;
 }
 
@@ -257,6 +281,7 @@ export class Meta {
   constructor(doc) {
     this.doc = doc;
     this.budget = doc.build && doc.build.ram_budget ? doc.build.ram_budget : 1;
+    setLayout(doc.mod);
     this.byId = new Map();
     for (const e of doc.engines || []) this.byId.set(e.id, e);
     // The rack's kinds share the lookups (their ids never meet an engine's).
@@ -375,6 +400,14 @@ export function rawText(p, v) {
 
 export function unitText(p) { return UNIT_TEXT[p.unit] ?? ''; }
 export function unitWords(p) { return UNIT_WORDS[p.unit] ?? ''; }
+// A shown value as a screen reader should say it: the unit's symbol becomes its word ("+7 st" is "+7 semitones",
+// "420 Hz" "420 hertz", "-3.0 dB" "-3.0 decibels"; one of a unit is singular). Every unit comes from UNIT_WORDS.
+export function spokenText(p, shown) {
+  const sym = unitText(p), word = unitWords(p);
+  if (!sym || !word || p.type === 'enum' || !String(shown).endsWith(` ${sym}`)) return shown;
+  const num = String(shown).slice(0, -sym.length - 1);
+  return `${num} ${/^[+\u2212-]?1(\.0+)?$/.test(num.trim()) && word.endsWith('s') ? word.slice(0, -1) : word}`;
+}
 export function flagWords(p) {
   return (p.flags || []).filter((f) => FLAG_WORDS[f]).map((f) => FLAG_WORDS[f]);
 }
@@ -429,8 +462,8 @@ function blockFrom(meta, unit, pad) {
 }
 
 export function mirrorFromProject(meta, doc, modBytes) {
-  const m = { current: 0, blocks: new Map(), levels: [0, 0, 0, 0], title: doc.title || doc.name || '',
-    rack: new Array(8).fill(''), cables: [], verdicts: [], loops: [], pads: new Map() };
+  const m = { current: 0, blocks: new Map(), levels: new Array(SOUNDS).fill(0), title: doc.title || doc.name || '',
+    rack: new Array(POSITIONS).fill(''), cables: [], verdicts: [], loops: [], pads: new Map() };
   m.current = doc.session && Number.isInteger(doc.session.current) ? doc.session.current - 1 : 0;
   (doc.sounds || []).slice(0, SOUNDS).forEach((s, k) => {
     if (!s) return;
@@ -535,14 +568,10 @@ export function applyToMirror(meta, m, rec) {
 // cable's fields are fm1_mod.h's slot layout (fm1_mod_slot_t); which cable
 // may run, and why not, is C's (the planner's verdicts).
 
-export const POSITIONS = 8;           // FM1_MOD_POSITIONS (the metadata's mod.positions)
-export const SLOTS = 32;              // FM1_MOD_SLOTS (mod.slots)
 export const NONE = 0xff;             // FM1_MOD_NONE: no source, no VIA
 export const ANY = 0xff;              // FM1_EDIT_ANY: the first empty slot or position
 // fm1_mod_slot_t's flags and codes (fm1_mod.h).
 export const SLOT_ON = 0x01, POL_MASK = 0x06, POL_SHIFT = 1, GATE_DST = 0x08, CURVE_MASK = 0x70, CURVE_SHIFT = 4, VOICE = 0x80;
-export const SRC_MODULE = 64;         // 64 + 8 x position + port
-export const UNIT_MODULE = 8;         // 8 + position: a module's parameters or gates
 export const Q14 = 16384;             // amount and offset: Q1.14 of the destination's range
 
 export function packUnit(role, sound, slot, id) {
@@ -587,11 +616,11 @@ export const cableEmpty = (s) => !(s.flags & SLOT_ON) && s.dst === 0 && s.amount
 export const pctOfQ14 = (q) => (q >= 0 ? Math.floor((q * 100 + 8192) / Q14) : -Math.floor((-q * 100 + 8192) / Q14));
 export const q14OfPct = (p) => Math.max(-Q14, Math.min(Q14, Math.round((p / 100) * Q14)));
 
-// The module keys: p1 ... p8, a rack position's block.
+// The module keys: p1 ... a rack position's block (the metadata's mod.positions of them).
 export const modKey = (pos) => `p${pos + 1}`;
 export function parseModKey(key) {
-  const m = /^p([1-8])$/.exec(key);
-  return m ? m[1] - 1 : -1;
+  const m = /^p(\d+)$/.exec(key);
+  return m && nth(m[1], POSITIONS) >= 0 ? m[1] - 1 : -1;
 }
 
 // What fm1w_mod_records writes: the rack (kind ids), the slots, a verdict a
@@ -619,8 +648,8 @@ export class ModMeta {
     this.curves = m.curves || [];
     this.curvePoints = m.curve_points || [];          // 1.2: each curve at s = -1 to 1 in 33 steps, C's own
     this.sourceGroups = m.source_groups || [];        // 1.2: how a patch bay lists the sources
-    this.positions = m.positions || POSITIONS;
-    this.slots = m.slots || SLOTS;
+    this.positions = POSITIONS;
+    this.slots = SLOTS;
   }
   kind(id) { return this.kinds.get(id) || null; }
   // A unit code's block key in the editor (a sound, an insert, a master
@@ -630,12 +659,12 @@ export class ModMeta {
     const name = this.units.get(code);
     if (!name) return null;
     if (name === 'host') return 'host';
-    let r = /^snd([1-4])$/.exec(name);
-    if (r) return blockKey(ROLE.SOUND, r[1] - 1);
-    r = /^snd([1-4])\.fx([1-4])$/.exec(name);
-    if (r) return blockKey(ROLE.INSERT, r[1] - 1, r[2] - 1);
-    r = /^fx([1-4])$/.exec(name);
-    if (r) return blockKey(ROLE.MASTER, 0, r[1] - 1);
+    let r = /^snd(\d+)$/.exec(name);
+    if (r && r[1] >= 1 && r[1] <= SOUNDS) return blockKey(ROLE.SOUND, r[1] - 1);
+    r = /^snd(\d+)\.fx(\d+)$/.exec(name);
+    if (r && r[1] >= 1 && r[1] <= SOUNDS && r[2] >= 1 && r[2] <= INSERTS) return blockKey(ROLE.INSERT, r[1] - 1, r[2] - 1);
+    r = /^fx(\d+)$/.exec(name);
+    if (r && r[1] >= 1 && r[1] <= MASTERS) return blockKey(ROLE.MASTER, 0, r[1] - 1);
     return null;
   }
   unitCode(key) {
@@ -649,7 +678,7 @@ export class ModMeta {
   sourceName(code, rack) {
     if (code === NONE) return '–';
     if (code < SRC_MODULE) { const s = this.sources.get(code); return s ? s.name : `#${code}`; }
-    const pos = (code - SRC_MODULE) >> 3, port = (code - SRC_MODULE) & 7;
+    const pos = sourcePosition(code), port = sourcePort(code);
     const k = this.kind(rack[pos]);
     const out = k && k.outs ? k.outs[port] : null;
     return `${pos + 1} ${k ? k.abbr : 'empty'} ${out ? out.name : `out ${port + 1}`}`;
@@ -661,7 +690,7 @@ export class ModMeta {
     for (const s of this.sources.values()) out.push({ code: s.id, name: s.name, kind: s.kind, group: 'Sources' });
     rack.forEach((id, pos) => {
       const k = this.kind(id);
-      (k && k.outs ? k.outs : []).forEach((o, port) => out.push({ code: SRC_MODULE + 8 * pos + port,
+      (k && k.outs ? k.outs : []).forEach((o, port) => out.push({ code: moduleSource(pos, port),
         name: `${pos + 1} ${k.abbr} ${o.name}`, kind: o.kind, group: 'Modules' }));
     });
     return out;

@@ -45,6 +45,45 @@ def test_the_editor_names_no_module():
     assert not found, f"editor/*.js names {found}"
 
 
+def test_the_editor_holds_no_id_layout_or_chain_shape():
+    """§17, extended after the v1 review: the editor's code holds no module
+    source id layout (the base, the stride, the unit base) and no count of the
+    chain (sounds, inserts, masters, rack positions, matrix slots); the
+    metadata gives them (level 1.3, `mod.*`), model.js reads them in once
+    (`setLayout`) and the rest of the code names them by those exports. The
+    names test above greps names; these are the binary-record details that
+    always passed the page tests."""
+    meta = json.loads((WWW / "meta.json").read_text())
+    mod = meta["mod"]
+    assert meta["lunar"] >= "1.3"
+    for key in ("source_base", "source_stride", "unit_base", "sounds", "inserts", "masters", "positions", "slots"):
+        assert isinstance(mod[key], int) and mod[key] >= 0, key
+    files = {p.name: p.read_text() for p in sorted(EDITOR.glob("*.js"))}
+    model = files["model.js"]
+    # The eight are read from the metadata: no number at their declarations.
+    for name in ("SOUNDS", "INSERTS", "MASTERS", "POSITIONS", "SLOTS", "SRC_MODULE", "SRC_STRIDE", "UNIT_MODULE"):
+        assert re.search(r"export let %s = 0;" % name, model), name
+        assert not re.search(r"(const|let|var)\s+%s\s*=\s*[1-9]" % name, "\n".join(files.values())), name
+    assert "setLayout(doc.mod)" in model
+    # And the arithmetic and the counts are not written out anywhere: strides, source bases, the
+    # bare 64, loops to a count, arrays of one, key patterns of 1-4 / 1-8.
+    forbidden = {
+        "a stride shift or mask": r">>\s*3\b|&\s*7\b",
+        "the source base as a number": r"[<>]=?\s*64\b|[-+]\s*64\b",
+        "a stride as a number": r"\b8\s*\*\s*(pos|from|to)\b|\b(pos|from|to)\s*\*\s*8\b",
+        "a count of the chain": r"new Array\((2|4|8|32)\)|\[0,\s*1\]\.map|levels:\s*\[0,\s*0,\s*0,\s*0\]|slot\s*<\s*(8|32)\b",
+        "a key pattern with its count": r"\^(s|p|m)\(\[1-[48]\]\)|\.in\(\[12\]\)|\^m\(\[12\]\)",
+    }
+    found = []
+    for fname, code in files.items():
+        for line_no, line in enumerate(code.splitlines(), 1):
+            text = re.sub(r"//.*$", "", line)
+            for what, rx in forbidden.items():
+                if re.search(rx, text) and "mfx" not in text:
+                    found.append(f"{fname}:{line_no} {what}: {line.strip()[:90]}")
+    assert not found, found
+
+
 def test_the_editor_loads_on_first_use_and_keys_are_gated():
     html = (WWW / "index.html").read_text()
     app = (WWW / "app.js").read_text()
