@@ -158,6 +158,76 @@ jobs:
           UBSAN_OPTIONS: suppressions=${{ github.workspace }}/engines/sanitizers/ubsan.supp:halt_on_error=1:print_stacktrace=1
         run: python -m pytest -v tests/test_sim_web.py tests/test_sim_seq.py tests/test_seq_ui.py tests/test_sim_multi.py tests/test_sim_mod.py tests/test_sim_lists.py tests/test_sim_edit.py
 
+  editor-page-tests:
+    # The Advanced editor's page tests (sim/web/test/editor-*.mjs, notes/2026-10-06-web-editor.md §17),
+    # against the committed module (sim/web/www/fm1.wasm and meta.json: no native build here), in
+    # the Playwright container build-on-aeon.sh uses, pinned to the same version (tests/test_ci_pins.py holds
+    # the two to each other). Chromium, Firefox and WebKit run the same five tests; Chromium also runs the
+    # page's own tests (screenshot.mjs, files.mjs) and the 30-second storm. Firefox needs an audio device,
+    # so a PulseAudio null sink is started for it (sim/web/README.md, "Stage ED5b"); WebKit needs none.
+    # Lateness and underruns are measured in Chromium only. A failing run uploads its screenshots and reports.
+    name: editor page tests (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --ipc=host
+    env:
+      HOME: /root         # a container job sets HOME to /github/home, owned by pwuser, and Firefox will not run as root in another user's home
+      PLAYWRIGHT_DIR: /pw
+      BROWSER: ${{ matrix.browser }}
+      SHOTS: page-test-output/${{ matrix.browser }}      # relative to the repository (inside the container, github.workspace is the host's path)
+    steps:
+      - uses: actions/checkout@v4
+      - name: Playwright and axe-core, as build-on-aeon.sh installs them
+        run: |
+          mkdir -p /pw && cd /pw
+          npm install --no-save --no-audit --no-fund playwright@1.63.0 axe-core@4 >/dev/null
+          node -e "console.log('playwright', require('/pw/node_modules/playwright/package.json').version)"
+      - name: A null audio sink (Firefox's AudioContext stays suspended without a device)
+        if: matrix.browser == 'firefox'
+        run: |
+          apt-get update -qq && apt-get install -y -qq pulseaudio pulseaudio-utils >/dev/null
+          pulseaudio --system -n --disallow-exit --exit-idle-time=-1 --load=module-null-sink \
+            --load="module-native-protocol-unix auth-anonymous=1 socket=/tmp/pa.sock" -D
+          echo "PULSE_SERVER=unix:/tmp/pa.sock" >> "$GITHUB_ENV"
+      - name: The editor's data and history against the module (node)
+        run: node sim/web/test/editor-unit.mjs sim/web/www > /dev/null
+      - name: The editor's page tests
+        run: |
+          mkdir -p "$SHOTS"
+          status=0
+          for t in editor-ui editor-reach editor-map editor-v1; do
+            echo "::group::$t ($BROWSER)"
+            node "sim/web/test/$t.mjs" sim/web/www "$SHOTS" || status=1
+            echo "::endgroup::"
+          done
+          echo "::group::editor (30-second storm, $BROWSER)"
+          node sim/web/test/editor.mjs sim/web/www "$SHOTS" 30 || status=1
+          echo "::endgroup::"
+          exit $status
+      - name: The page's own tests (Chromium resolves made-up host names; only it runs them)
+        if: matrix.browser == 'chromium'
+        run: |
+          status=0
+          for t in screenshot files; do
+            echo "::group::$t"
+            node "sim/web/test/$t.mjs" sim/web/www "$SHOTS" || status=1
+            echo "::endgroup::"
+          done
+          exit $status
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: editor-page-test-output-${{ matrix.browser }}
+          path: page-test-output/${{ matrix.browser }}
+          retention-days: 14
+          if-no-files-found: ignore
+
   dongle-firmware:
     name: dongle firmware (RP2040 UF2)
     runs-on: ubuntu-latest

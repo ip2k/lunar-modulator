@@ -101,6 +101,24 @@ await goView('sound');
 const slideDom = await page.evaluate(() => [...document.querySelectorAll('.ed [role="slider"]')].filter((s) => s.getClientRects().length).map((s) => ({
   text: s.getAttribute('aria-valuetext'), now: s.getAttribute('aria-valuenow'), label: s.getAttribute('aria-labelledby') && document.getElementById(s.getAttribute('aria-labelledby')) ? [...document.getElementById(s.getAttribute('aria-labelledby')).childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim() : '' })));
 check('sliders carry aria-valuenow, a valuetext in words and a label', slideDom.length > 3 && slideDom.every((s) => s.text && s.now !== null && s.label.trim() && s.text.startsWith(`${s.label},`)), slideDom.filter((s) => !s.text || !s.label.trim() || !s.text.startsWith(`${s.label},`)).slice(0, 3));
+// Every unit is spoken in words ("+7 semitones", never "+7 st"), on every module that has one: the review found
+// the semitone parameters read as "st".
+const spoken = await page.evaluate(() => {
+  const ed = window.fm1.editor, bad = [], units = new Set();
+  let n = 0;
+  for (const e of ed.meta.doc.engines) {
+    const insp = ed.inspectorFor(e.id);
+    if (!insp) continue;
+    for (const sl of insp.querySelectorAll('[role="slider"]')) {
+      const t = sl.getAttribute('aria-valuetext') || '';
+      ++n;
+      for (const w of ['semitone', 'hertz', 'millisecond', 'decibel', 'percent']) if (t.includes(w)) units.add(w);
+      if (/(\b(st|Hz|ms|dB)\b|\d\s?%)/.test(t)) bad.push(`${e.id}: ${t}`);
+    }
+  }
+  return { n, bad: bad.slice(0, 5), units: [...units].sort() };
+});
+check('no slider speaks a unit symbol (st, Hz, ms, dB, %): each is a word, semitones included', spoken.n > 100 && spoken.bad.length === 0 && spoken.units.includes('semitone') && spoken.units.includes('hertz') && spoken.units.includes('decibel'), spoken);
 // The status region, and the search box's result count (announced as you type).
 const liveRegions = await page.evaluate(() => [...document.querySelectorAll('.ed [aria-live], .ed [role="status"], .ed [role="alert"]')]
   .filter((e) => !e.classList.contains('ed-search-n')).map((e) => `${e.className} ${e.getAttribute('aria-live')} ${e.getAttribute('role')}`));

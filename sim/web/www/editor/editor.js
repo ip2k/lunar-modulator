@@ -17,10 +17,10 @@
 // this repository.
 
 import {
-  Meta, MIX_KEY, ROLE, T, SRC_EDITOR, SRC_PANEL, SOURCES, SOUNDS, INSERTS, MASTERS, LEVEL_MAX,
+  Meta, MIX_KEY, ROLE, T, SRC_EDITOR, SRC_PANEL, SOURCES, SOUNDS, INSERTS, MASTERS, POSITIONS, LEVEL_MAX,
   packParam, packLevel, packOn, packView, decodeChanges, decodeView, applyToMirror, mirrorFromProject,
   blockKey, parseBlockKey, blockTag, viewFor, blockOfView, viewWords, controlKind, isBipolar, isLog, hasFlag,
-  toPos, fromPos, zeroPos, stepValue, rawText, unitText, unitWords, flagWords, ramWords, ramPercent, toF32,
+  toPos, fromPos, zeroPos, stepValue, rawText, unitText, spokenText, flagWords, ramWords, ramPercent, toF32,
   ModMeta, T as REC_T, parseModKey,
 } from './model.js';
 import { History } from './history.js';
@@ -1061,14 +1061,28 @@ export async function startEditor(env) {
   function listControl(r, p, kind) {
     const wrap = el('div', 'ed-list');
     const select = el('select', 'ed-select', { 'aria-labelledby': r.id });
-    p.entries.forEach((name, i) => select.append(el('option', null, { value: String(i), text: name })));
+    let query = '';
+    // The options are rebuilt for a filter, not hidden: Safari's dropdown ignores `hidden` on an <option>. The
+    // chosen entry is always among them, so the select shows what the parameter is.
+    const build = () => {
+      const cur = Math.round(valueOf(r.key, p.uid));
+      const opts = [];
+      p.entries.forEach((name, i) => {
+        if (!query || i === cur || name.toLowerCase().includes(query)) opts.push(el('option', null, { value: String(i), text: name }));
+      });
+      select.replaceChildren(...opts);
+      select.value = String(cur);
+      return opts.length;
+    };
+    build();
     const place = el('span', 'ed-place', { 'aria-hidden': 'true' });
     select.addEventListener('change', () => setValue(r.key, p.uid, Number(select.value), 'set'));
     if (kind === 'search') {
       const find = el('input', 'ed-find', { type: 'search', placeholder: `Filter ${p.entries.length}`, 'aria-label': `Filter ${p.name}` });
       find.addEventListener('input', () => {
-        const q = find.value.trim().toLowerCase();
-        for (const o of select.options) o.hidden = !!q && !o.textContent.toLowerCase().includes(q);
+        query = find.value.trim().toLowerCase();
+        build();
+        find.title = query ? `${p.entries.filter((name) => name.toLowerCase().includes(query)).length} of ${p.entries.length} match` : '';
       });
       find.addEventListener('focus', () => { st.typing = true; });
       find.addEventListener('blur', () => { st.typing = false; });
@@ -1077,6 +1091,7 @@ export async function startEditor(env) {
     wrap.append(select, place);
     r.update = () => {
       const v = Math.round(valueOf(r.key, p.uid));
+      if (![...select.options].some((o) => o.value === String(v))) build();     // the chosen entry is always offered
       select.value = String(v);
       place.textContent = `${v + 1}/${p.entries.length}`;
     };
@@ -1113,7 +1128,7 @@ export async function startEditor(env) {
       const t = text(v);
       if (!st.typing || document.activeElement !== field) field.value = t;
       s.setAttribute('aria-valuenow', String(Math.round(v * 1000) / 1000));
-      s.setAttribute('aria-valuetext', `${labelName(r)}, ${t.replace(/ dB$/, ' decibels').replace(/ Hz$/, ' hertz').replace(/ ms$/, ' milliseconds').replace(/ %$/, ' percent')}${r.modWords ? r.modWords() : ''}`);
+      s.setAttribute('aria-valuetext', `${labelName(r)}, ${spokenText(p, t)}${r.modWords ? r.modWords() : ''}`);
       if (r.modDraw) r.modDraw(v);
     };
     r.update = () => draw(dragV !== null ? dragV : get());
@@ -1321,10 +1336,11 @@ export async function startEditor(env) {
       const e = meta.engine(id);
       if (!e) return null;
       const values = new Map(e.params.map((p) => [p.uid, p.def]));
-      const key = e.kind === 'sound' ? 's4' : e.kind === 'midi_fx' ? 's4.mfx1' : e.kind === 'mod' ? 'p8' : 's4.in2';
+      const last = `s${SOUNDS}`;      // the last sound, its last insert, the last rack position: nothing in the mirror yet
+      const key = e.kind === 'sound' ? last : e.kind === 'midi_fx' ? `${last}.mfx1` : e.kind === 'mod' ? `p${POSITIONS}` : `${last}.in${INSERTS}`;
       const saved = st.mirror;
-      st.mirror = { blocks: new Map([[key, { engine: id, values, on: true }]]), levels: [0, 0, 0, 0], current: 3 };
-      try { return inspector(key, { level: e.kind === 'sound' ? 3 : undefined, bare: true }); } finally { st.mirror = saved; }
+      st.mirror = { blocks: new Map([[key, { engine: id, values, on: true }]]), levels: new Array(SOUNDS).fill(0), current: SOUNDS - 1 };
+      try { return inspector(key, { level: e.kind === 'sound' ? SOUNDS - 1 : undefined, bare: true }); } finally { st.mirror = saved; }
     },
   };
   sim.editor = api;

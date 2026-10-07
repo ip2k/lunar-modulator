@@ -722,6 +722,245 @@ report.budget = budget;
 check('while a slider is dragged no long task passes 50 ms (Chromium measures it; elsewhere the handlers\' own cost stands)', budget.moves >= 60 && (budget.noLong || budget.long.every((d) => d <= 50)), budget);
 check('a pointer move costs the page under 4 ms of script (95th percentile), and a telemetry frame too', budget.movesP95 < 4 && budget.teleP95 < 4 && budget.tele > 20, budget);
 
+// ---- 11. A/B does not stop the transport ------------------------------------------------------------
+// The editor review: switching A and B loaded a whole project and C reset the sequencer, so the transport
+// stopped at the first X. Every transport message the worklet posts is recorded; none may say "stopped".
+await loadExample();
+await page.setViewportSize({ width: 1440, height: 1000 });
+await sel('s2', 'ab');
+await page.evaluate(() => window.fm1.editor.project.keepA());
+await wait(700);
+await page.evaluate(() => {
+  const sim = window.fm1;
+  let cur = sim.seq;
+  window.__seqLog = [];
+  Object.defineProperty(sim, 'seq', { configurable: true, get: () => cur, set: (v) => { cur = v; window.__seqLog.push(v.playing); } });
+  const port = sim.node.port;
+  port.postMessage({ type: 'button', button: 12, down: true }); port.postMessage({ type: 'button', button: 12, down: false });
+});
+await wait(900);
+const playingAt = () => page.evaluate(() => ({ playing: !!(window.fm1.seq && window.fm1.seq.playing), log: window.__seqLog.slice() }));
+const t0 = await playingAt();
+check('PLAY starts the transport (the test\'s own start)', t0.playing, t0);
+for (const [label, scope] of [['project', 'project'], ['a sound', 0]]) {
+  if (scope !== 'project') {
+    await page.evaluate((k) => { const b = [...document.querySelectorAll('.ed-ab-scope button')].find((x) => x.textContent === `Sound ${k + 1}`); if (b) b.click(); }, scope);
+    await wait(300);
+    await page.evaluate(() => window.fm1.editor.project.keepA());
+    await wait(700);
+  }
+  const mark = (await playingAt()).log.length;
+  await page.evaluate(async () => { await window.fm1.editor.project.switchAB(); });
+  await wait(900);
+  const toA = await playingAt();
+  await page.evaluate(async () => { await window.fm1.editor.project.switchAB(); });
+  await wait(900);
+  const toB = await playingAt();
+  check(`switching A/B (${label}) twice keeps the transport playing: no "stopped" is posted, and it plays after each`,
+    toA.playing && toB.playing && !toB.log.slice(mark).includes(false), { label, mark, toA: toA.playing, toB: toB.playing, log: toB.log.slice(mark) });
+}
+// Make B from the picks and an undo of it are project loads too.
+await page.evaluate(() => { const b = [...document.querySelectorAll('.ed-ab-scope button')].find((x) => x.textContent === 'Project'); if (b) b.click(); });
+await wait(300);
+await page.evaluate(() => window.fm1.editor.project.keepA());
+await wait(700);
+const ident = await page.evaluate(async () => {
+  const f = window.fm1.files, ed = window.fm1.editor;
+  const pid0 = f.pid;
+  await ed.project.switchAB();
+  await new Promise((r) => setTimeout(r, 700));
+  const pidAfterSwitch = f.pid;
+  await ed.project.switchAB();
+  await new Promise((r) => setTimeout(r, 700));
+  return { pid0, pidAfterSwitch, pidBack: f.pid, playing: !!window.fm1.seq.playing };
+});
+check('the project\'s identity is kept through A/B\'s own loads', !!ident.pid0 && ident.pid0 === ident.pidAfterSwitch && ident.pid0 === ident.pidBack && ident.playing, ident);
+
+// ---- 12. the filters (a long list, the picker, the matrix) ---------------------------------------------
+// Safari's dropdown ignores `hidden` on an <option>, so a filter that only hides them does nothing there: the
+// options themselves must be fewer.
+await loadExample();
+await page.setViewportSize({ width: 1440, height: 1000 });
+// The smallest sound with a long list that the example's sound 4 can hold (the biggest would not fit: C refuses it).
+const longList = await page.evaluate(async () => {
+  const ed = window.fm1.editor;
+  const cands = ed.meta.doc.engines.filter((e) => e.kind === 'sound' && e.params.some((x) => x.type === 'enum' && x.entries.length > 24)).sort((a, b) => a.ram - b.ram);
+  for (const e of cands) {
+    ed.chains.choose('s4', e.id);
+    await new Promise((r) => setTimeout(r, 1500));
+    const b = ed.state.mirror.blocks.get('s4');
+    if (b && b.engine === e.id) {
+      const p = e.params.find((x) => x.type === 'enum' && x.entries.length > 24);
+      return { id: e.id, uid: p.uid, name: p.name, entries: p.entries };
+    }
+  }
+  return null;
+});
+check('some sound with an enum of more than 24 entries (the search control) fits in sound 4', !!longList, longList && longList.id);
+if (longList) {
+  await sel('s4', 'sound');
+  const q = (longList.entries[Math.floor(longList.entries.length / 2)].split(/\s+/).find((w) => w.length >= 3) || 'a').slice(0, 3).toLowerCase();
+  const hits = longList.entries.filter((n) => n.toLowerCase().includes(q)).length;
+  const base = `.ed-insp[data-block="s4"] .ed-row[data-uid="${longList.uid}"]`;
+  const optionsNow = () => page.evaluate((b) => { const s = document.querySelector(`${b} select.ed-select`); return s ? { n: s.options.length, texts: [...s.options].map((o) => o.textContent), cur: s.selectedOptions[0] && s.selectedOptions[0].textContent } : null; }, base);
+  const all = await optionsNow();
+  await page.fill(`${base} .ed-find`, q);
+  await wait(150);
+  const some = await optionsNow();
+  const curHit = longList.entries[Math.round(await page.evaluate(([k, uid]) => window.fm1.editor.state.mirror.blocks.get(k).values.get(uid), ['s4', longList.uid]))];
+  const want = hits + (curHit && !curHit.toLowerCase().includes(q) ? 1 : 0);
+  check('a long list\'s filter rebuilds the select\'s options: only the matches (and the chosen entry) remain', all && all.n === longList.entries.length && some && some.n === want && some.n < all.n && some.texts.every((t) => t.toLowerCase().includes(q) || t === curHit), { q, hits, want, all: all && all.n, some: some && some.n });
+  await shot('v1-longlist-filter.png', base);
+  // Choosing from the filtered list sets the parameter, and the list keeps the chosen entry.
+  const pickText = some.texts.find((t) => t !== curHit) || curHit;
+  await page.selectOption(`${base} select.ed-select`, { label: pickText });
+  await wait(500);
+  const chosen = await page.evaluate(([k, uid]) => window.fm1.editor.state.mirror.blocks.get(k).values.get(uid), ['s4', longList.uid]);
+  check('choosing from the filtered list sets the parameter', longList.entries[Math.round(chosen)] === pickText, { pickText, chosen });
+  await page.fill(`${base} .ed-find`, '');
+  await wait(150);
+  check('clearing the filter brings every entry back', (await optionsNow()).n === longList.entries.length, '');
+  // The picker's filter: buttons, hidden by the attribute, on every browser.
+  await page.click('.ed-insp[data-block="s4"] [data-fk="s4:pick"]');
+  await page.waitForSelector('.ed-picker .ed-find');
+  await wait(900);
+  const pickNames = await page.evaluate(() => [...document.querySelectorAll('.ed-picker .ed-pick-o')].filter((o) => o.offsetParent !== null).map((o) => o.querySelector('.ed-pick-n').textContent.toLowerCase()));
+  const pq = (pickNames[3] || pickNames[1] || 'a').slice(0, 2);
+  const pwant = pickNames.filter((n) => n.includes(pq)).length;
+  await page.fill('.ed-picker .ed-find', pq);
+  await wait(150);
+  await shot('v1-picker-filter.png', '.ed-picker');
+  const pickSome = await page.evaluate(() => [...document.querySelectorAll('.ed-picker .ed-pick-o')].filter((o) => o.offsetParent !== null).map((o) => o.querySelector('.ed-pick-n').textContent.toLowerCase()));
+  check('the picker\'s filter shows only the choices naming what was typed (a rule that set `display` once kept every one on show)', pickNames.length > 3 && pickSome.length === pwant && pwant > 0 && pwant < pickNames.length && pickSome.every((t) => t.includes(pq)), { pq, all: pickNames.length, want: pwant, some: pickSome.length });
+  await page.fill('.ed-picker .ed-find', '');
+  await wait(150);
+  check('and clearing it brings them all back', (await page.evaluate(() => [...document.querySelectorAll('.ed-picker .ed-pick-o')].filter((o) => o.offsetParent !== null).length)) === pickNames.length, '');
+  await page.keyboard.press('Escape');
+  await wait(200);
+}
+// The matrix filter: rows by what they read.
+await loadExample();
+await sel('p1', 'mod');
+await page.evaluate(() => { const t = [...document.querySelectorAll('.ed-mapsw [role=radio]')].find((b) => b.textContent === 'Table'); if (t) t.click(); });
+await wait(500);
+const rowsText = () => page.evaluate(() => [...document.querySelectorAll('.ed-mx-body .ed-mx-r')].map((r) => [...r.querySelectorAll('select')].map((s) => (s.selectedOptions[0] || {}).textContent || '').join(' ').toLowerCase()));
+const mxAll = await rowsText();
+const word = (mxAll.find((t) => /\w{3}/.test(t)) || '').split(/\s+/).find((w) => w.length >= 3 && mxAll.some((t) => !t.includes(w))) || '';
+if (word) {
+  await page.fill('[data-fk="mx:find"]', word);
+  await wait(200);
+  const mxSome = await rowsText();
+  check('the matrix filter keeps the cables that read what was typed, and no others', mxSome.length > 0 && mxSome.length < mxAll.length && mxSome.every((t) => t.includes(word)), { word, all: mxAll.length, some: mxSome.length });
+  await page.fill('[data-fk="mx:find"]', 'zzzzzz');
+  await wait(200);
+  check('a filter that matches nothing says so', await page.evaluate(() => /No cable matches/.test(document.querySelector('.ed-mx-body').textContent)), '');
+  await page.fill('[data-fk="mx:find"]', '');
+  await wait(200);
+  check('and clearing it brings the cables back', (await rowsText()).length === mxAll.length, '');
+} else {
+  check('the example has cables to filter', false, mxAll);
+}
+
+// ---- 13. storage: an upgrade an older tab blocks, and a newer tab upgrading --------------------------------
+// Version 2 of the database came with the editor's `snapshots`. A tab opened after a deploy, while a tab of the
+// old page holds version 1, used to take the blocked request for "no storage" for good; and the connection set
+// no versionchange handler, so it would block the next upgrade in turn.
+{
+  const ctx = await browser.newContext();
+  const holder = await ctx.newPage();
+  await holder.goto(new URL('source.json', url).href);      // the page's origin, nothing else loaded
+  await holder.evaluate(() => new Promise((resolve, reject) => {
+    const req = indexedDB.open('lunar-modulator', 1);        // held open like the old page: no versionchange handler
+    req.onupgradeneeded = () => {
+      const d = req.result;
+      d.createObjectStore('files', { keyPath: 'id', autoIncrement: true });
+      d.createObjectStore('autosave');
+      d.createObjectStore('recent', { keyPath: 'id', autoIncrement: true });
+    };
+    req.onsuccess = () => { window.__old = req.result; resolve(true); };
+    req.onerror = () => reject(req.error);
+  }));
+  const tab = await ctx.newPage();
+  tab.on('pageerror', (e) => report.logs.push(`pageerror (storage tab): ${e.message}`));
+  await tab.goto(url);
+  const blocked = await tab.evaluate(async () => {
+    const s = window.fm1.files.store;
+    const ok = await s.available();
+    await new Promise((r) => setTimeout(r, 300));
+    await s.put('snapshots', { id: 'kept', n: 1 }, 'kept');
+    return { ok, status: s.status(), memory: (await s.get('snapshots', 'kept')) !== null, note: (document.getElementById('file-notice') || {}).textContent || '' };
+  });
+  await tab.locator('#file-notice').screenshot({ path: join(out, 'v1-storage-blocked.png') }).catch(() => {});
+  check('with an older tab holding the database, the open is blocked, not failed: memory for now, and the page says why',
+    !blocked.ok && blocked.status.blocked && !blocked.status.failed && blocked.memory && /older version/.test(blocked.note), blocked);
+  await holder.evaluate(() => window.__old.close());
+  let freed = true;
+  try { await tab.waitForFunction(() => window.fm1.files.store.status().open, null, { timeout: 8000 }); } catch (err) { freed = false; }
+  const after = freed ? await tab.evaluate(async () => {
+    const s = window.fm1.files.store;
+    await new Promise((r) => setTimeout(r, 500));
+    return { ok: await s.available(), status: s.status(), note: (document.getElementById('file-notice') || {}).textContent || '' };
+  }) : null;
+  check('when the older tab lets go, the pending request goes through and storage is used from then on, with a notice', freed && after.ok && !after.status.blocked && /free again/.test(after.note), after);
+  const flushed = await holder.evaluate(() => new Promise((resolve) => {
+    const r = indexedDB.open('lunar-modulator');
+    r.onsuccess = () => {
+      const g = r.result.transaction('snapshots', 'readonly').objectStore('snapshots').get('kept');
+      g.onsuccess = () => { r.result.close(); resolve(g.result || null); };
+    };
+    r.onerror = () => resolve(null);
+  }));
+  check('what the tab kept in memory while it waited is written to the database', !!flushed && flushed.n === 1, flushed);
+  // A newer tab upgrades: this tab's connection closes on versionchange, so the upgrade is not blocked.
+  const up = await holder.evaluate(() => new Promise((resolve) => {
+    const r = indexedDB.open('lunar-modulator', 3);
+    let blockedUp = false;
+    r.onblocked = () => { blockedUp = true; };
+    r.onupgradeneeded = () => {};
+    r.onsuccess = () => { r.result.close(); resolve({ blocked: blockedUp }); };
+    r.onerror = () => resolve({ error: String(r.error), blocked: blockedUp });
+    setTimeout(() => resolve({ timeout: true, blocked: blockedUp }), 6000);
+  }));
+  const down = await tab.evaluate(async () => {
+    const s = window.fm1.files.store;
+    const k = await s.put('autosave', { name: 'x', bin: new Uint8Array(4), modified: 0 }, 'project');
+    return { open: s.status().open, put: k };
+  });
+  check('a newer tab\'s upgrade is not blocked by this one (its connection closes on versionchange), and this tab keeps working', !up.blocked && !up.timeout && !up.error && down.open === false && down.put === 'project', { up, down });
+  await holder.evaluate(() => new Promise((resolve) => { const r = indexedDB.deleteDatabase('lunar-modulator'); r.onsuccess = r.onerror = r.onblocked = () => resolve(true); setTimeout(() => resolve(true), 2000); }));
+  await ctx.close();
+}
+
+// ---- 14. stored A and B belong to a project, not to a title -------------------------------------------------
+await loadExample();
+await sel('s2', 'ab');
+const own = await page.evaluate(async () => {
+  const ed = window.fm1.editor, ab = ed.state.ab, f = window.fm1.files;
+  await ed.project.keepA();
+  await new Promise((r) => setTimeout(r, 600));
+  const pid = f.pid, title = f.title, A = ab.A;
+  const put = (p) => f.store.put('snapshots', { id: 'ab:project', scope: 'project', A, B: A, playing: 'B', title, pid: p, modified: Date.now() }, 'ab:project');
+  const clear = () => Object.assign(ab, { A: null, B: null, playing: null });
+  await put('another-project'); clear();
+  const other = await ed.project.restoreAB();            // the same title, another project
+  await put(undefined); clear();
+  const none = await ed.project.restoreAB();             // a record with no identity (before this check existed)
+  await put(pid); clear();
+  const same = await ed.project.restoreAB();             // this project
+  return { other, none, same, hasA: !!ab.A, pid: !!pid };
+});
+check('stored A and B come back for the same project and not for another of the same title, nor for a record without identity', own.pid && own.same === true && own.hasA && own.other === false && own.none === false, own);
+const fresh = await page.evaluate(async () => {
+  const f = window.fm1.files, before = f.pid;
+  const bytes = new Uint8Array(await (await fetch('examples/first-orbit.lunar')).arrayBuffer());
+  await f.load(bytes, { d: { enc: 2, kind: 'project', title: f.title }, before: false, quiet: true });
+  await new Promise((r) => setTimeout(r, 300));
+  await f.autosave();                                    // the same bytes as the last autosave, another project
+  const saved = await f.store.get('autosave', 'project');
+  return { before, after: f.pid, saved: saved && saved.pid };
+});
+check('opening a project again (even a file of the same name) is another project, and the autosave carries the new identity though its bytes are the same', !!fresh.before && !!fresh.after && fresh.before !== fresh.after && fresh.saved === fresh.after, fresh);
+
 writeFileSync(join(out, 'editor-v1.json'), JSON.stringify(report, null, 1));
 await browser.close();
 server.close();

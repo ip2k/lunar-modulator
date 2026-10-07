@@ -393,6 +393,34 @@ typedef struct fm1_seq_clock {
   uint8_t reserved[3];
 } fm1_seq_clock_t;
 void fm1_seq_get_clock(const fm1_seq_t *s, fm1_seq_clock_t *out);
+
+/* ---- Carrying the transport into another instance --------------------------
+ * The editor's A/B puts another project in while the transport runs: the
+ * sequencer is made again from the file, and the transport goes on where it
+ * was. fm1_seq_transport_take reads a running transport (playing = 0 when it
+ * is stopped); after the new set is in, a Play (fm1_seq_apply) and then
+ * fm1_seq_transport_put lay the old clock and playheads over it: the master
+ * tick and the clock's phase; each track's playing and queued clip and its
+ * playhead and loop count, for a clip the new set has; a clip that Play
+ * started and was not playing before comes in on the next bar, as a launch
+ * does, so every playhead keeps the bar's grid; the song's place, when the
+ * new song is the same list (a different song starts at its top, with the
+ * clock, as Play left it). Nothing else is carried: recording, a count-in
+ * and Capture end. */
+typedef struct fm1_seq_transport {
+  uint8_t playing, n_tracks;
+  uint8_t song_len, song_pos, song_has_start, song_armed, song_armed_launch, song_follow;
+  uint32_t song_hash;           /* of the first song_len entries */
+  uint64_t master_tick, clock_tick, accum, song_start_bar;
+  struct {
+    uint8_t active, playing, queued;
+    uint16_t pos_tick;
+    uint32_t cycle;
+    uint16_t scale_acc;
+  } track[FM1_SEQ_MAX_TRACKS];
+} fm1_seq_transport_t;
+void fm1_seq_transport_take(const fm1_seq_t *s, fm1_seq_transport_t *out);
+void fm1_seq_transport_put(fm1_seq_t *s, const fm1_seq_transport_t *in);
 int fm1_seq_get_track(const fm1_seq_t *s, uint8_t track, fm1_seq_track_info_t *out);
 const char *fm1_seq_lane_label(const fm1_seq_t *s, uint8_t track, uint8_t lane);
 int fm1_seq_get_clip(const fm1_seq_t *s, uint8_t track, uint8_t slot, fm1_seq_clip_info_t *out);

@@ -209,6 +209,14 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   tests (axe-core, reduced motion, hidden telemetry, a lock playing, the
   main thread's budget, a sweep of hands) ([sim/web/README.md, "The editor's
   v1 completion"](sim/web/README.md#the-advanced-editor-the-v1-completion)).
+  The review of that build (the note's §30) fixed seven defects: A/B keeps
+  the transport running (a load flag that carries the sequencer's clock and
+  playheads over a project load), a long list's filter works in Safari, units
+  are spoken as words, the id layout and the chain's shape come from the
+  metadata (level 1.3: `mod.source_base`, `source_stride`, `unit_base`,
+  `sounds`, `inserts`, `masters`), stored A and B belong to a project's
+  identity and not its title, and the IndexedDB upgrade no longer leaves a
+  tab without storage.
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free
@@ -468,12 +476,29 @@ decisions: [`notes/2026-10-06-state-files.md`](notes/2026-10-06-state-files.md),
   files relative to itself, so `sim/web/www/` publishes as static files at
   any path. Opened over plain `http://` from another machine, Power on says
   it needs a secure context.
-- **Browsers:** tested in Chromium only. That means headless Chromium 153 on
-  Linux, from a local server and over https under a sub-path, and Chromium
-  152 on macOS. Firefox, Safari, real touch screens and MIDI hardware are not
-  tested yet.
+- **Browsers:** the page as a whole is tested in Chromium: headless Chromium
+  153 on Linux, from a local server and over https under a sub-path, and
+  Chromium 152 on macOS. The Advanced editor's page tests run in Chromium,
+  Firefox and WebKit (the engine of Safari), both on the Linux host
+  (`build-on-aeon.sh`) and in CI (below). Real Safari, real touch screens and
+  MIDI hardware are not tested yet.
 - **Checks:** sim/web/README.md, "Limits"; `fm1-sim-render --screens`; and the
   2026-10-01 page test [verified].
+- **Page tests:** `sim/web/test/*.mjs`, run by Playwright 1.63 in its container
+  image (`build-on-aeon.sh` on a Docker host, and the CI job
+  `editor-page-tests`, which pins the same image and npm versions:
+  `tests/test_ci_pins.py` holds the two to each other). The CI job needs no
+  native build, only the committed `sim/web/www/` (`fm1.wasm`, `meta.json`):
+  `editor-unit`, `editor-ui`, `editor-reach`, `editor-map`, `editor-v1` and
+  the editor's 30-second storm in Chromium, Firefox (with a PulseAudio null
+  sink: without an audio device its AudioContext never runs) and WebKit, and
+  the page's own `screenshot` and `files` tests in Chromium. A failing run
+  uploads its screenshots and reports as an artifact. Lateness and underruns
+  are measured in Chromium only. **Planned, not built** (owner, 2026-10-07):
+  a harness that plays the simulator in headless Chromium, Firefox and WebKit
+  into a loopback audio device (PipeWire or similar) on a Linux host and
+  checks the audio that comes out and the underruns in all three, which the
+  page cannot measure from inside Firefox or WebKit (the editor note's §29).
 
 **Rebuilding the module** is only needed after changing `engines/` or
 `sim/web/src/`.
@@ -802,7 +827,8 @@ build, and the research still to do.
 >   (clones in `reference/` that checkout lacked, a manual check that needs
 >   the `markdown` module, and one that needs an unpacked stock package) and
 >   2 are expected failures (Movy's undo, not ported) [verified: `pytest`,
->   2026-10-05]. The virtual FM-1 is tested in Chromium only
+>   2026-10-05]. The virtual FM-1's page is tested in Chromium, and the
+>   Advanced editor's page tests also run in Firefox and WebKit
 >   ([What it does](README.md#what-it-does), [Try it in your browser](README.md#try-it-in-your-browser)).
 > - **On a JieLi chip:** every object compiles for pi32v2 with JieLi's
 >   toolchain (compile-only, 2026-10-02, and again on 2026-10-05 against

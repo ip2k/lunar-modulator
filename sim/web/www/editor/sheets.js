@@ -11,7 +11,7 @@
 // `verdictFor`), and what a menu item does is what the same control in the
 // inspector does. MIT licence, like the rest of this repository.
 
-import { blockTag, parseBlockKey, parseModKey } from './model.js';
+import { blockTag, parseBlockKey, parseModKey, isModuleSource } from './model.js';
 
 const HOLD_MS = 500;       // a long press
 const SLOP = 8;            // px a held touch may drift
@@ -57,7 +57,7 @@ export function makeSheets(ctx, h) {
     const pick = { src: null, dest: null, pct: 25 };
     const srcs = h.sourceOptions(false);
     const dests = h.destList();
-    const mod = srcs.find((x) => x.value >= 64) || srcs[0];
+    const mod = srcs.find((x) => isModuleSource(x.value)) || srcs[0];
     pick.src = mod ? mod.value : null;
     const sel = ctx.blockOf(st.selected) ? h.unitCode(st.selected) : -1;
     const d0 = dests.find((x) => Number(x.value.split(':')[0]) === sel) || dests[0];

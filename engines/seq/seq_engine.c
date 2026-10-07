@@ -646,6 +646,94 @@ void sq_play(fm1_seq_t *s) {
   sq_play_selected(s);
 }
 
+/* ---- Carrying the transport into another instance (fm1_seq.h) ------------ */
+
+static uint32_t song_hash(const fm1_seq_t *s) {
+  const uint8_t *song = sq_csong(s);
+  uint32_t h = 2166136261u;                       /* FNV-1a */
+  unsigned i;
+  for (i = 0; i < s->song_len; ++i) h = (h ^ song[i]) * 16777619u;
+  return h;
+}
+
+void fm1_seq_transport_take(const fm1_seq_t *s, fm1_seq_transport_t *o) {
+  unsigned t;
+  memset(o, 0, sizeof(*o));
+  o->playing = s->playing;
+  if (!s->playing) return;
+  o->master_tick = s->master_tick;
+  o->clock_tick = s->clock_tick;
+  o->accum = s->accum;
+  o->song_len = s->song_len;
+  o->song_hash = song_hash(s);
+  o->song_pos = (uint8_t)s->song_pos;
+  o->song_has_start = s->song_has_start;
+  o->song_armed = s->song_armed;
+  o->song_armed_launch = s->song_armed_launch;
+  o->song_follow = s->song_follow;
+  o->song_start_bar = s->song_start_bar;
+  o->n_tracks = s->n_tracks < FM1_SEQ_MAX_TRACKS ? s->n_tracks : (uint8_t)FM1_SEQ_MAX_TRACKS;
+  for (t = 0; t < o->n_tracks; ++t) {
+    const sq_track_t *tr = &sq_ctracks(s)[t];
+    o->track[t].active = tr->active;
+    o->track[t].playing = tr->playing;
+    o->track[t].queued = tr->queued;
+    o->track[t].pos_tick = tr->pos_tick;
+    o->track[t].cycle = tr->cycle;
+    o->track[t].scale_acc = tr->scale_acc;
+  }
+}
+
+void fm1_seq_transport_put(fm1_seq_t *s, const fm1_seq_transport_t *in) {
+  unsigned t;
+  /* The same song list: its place goes on. */
+  const int same_song = in->song_len > 0 && in->song_len == s->song_len && in->song_hash == song_hash(s) &&
+                        in->song_pos < s->song_len;
+  if (!in->playing || !s->playing) return;
+  /* A different song starts at its top, as the Play left it: the clock and playheads stay at the top too,
+   * since they only mean something together. */
+  if (s->song_len > 0 && !same_song) return;
+  s->master_tick = in->master_tick;
+  s->bar_tick = (uint16_t)(in->master_tick % FM1_SEQ_TICKS_PER_BAR);
+  s->clock_tick = in->clock_tick;
+  s->accum = in->accum < s->threshold ? in->accum : 0;
+  if (same_song) {
+    s->song_pos = in->song_pos;
+    s->song_has_start = in->song_has_start;
+    s->song_armed = in->song_armed;
+    s->song_armed_launch = in->song_armed_launch;
+    s->song_follow = in->song_follow;
+    s->song_start_bar = in->song_start_bar;
+  }
+  for (t = 0; t < s->n_tracks; ++t) {
+    sq_track_t *tr = &sq_tracks(s)[t];
+    const int had = t < in->n_tracks;
+    const unsigned slot = had ? in->track[t].playing : SQ_NONE;
+    if (same_song && had && in->track[t].active < FM1_SEQ_SLOTS) tr->active = in->track[t].active;
+    if (slot < FM1_SEQ_SLOTS && sq_exists(sq_clip(s, t, slot))) {
+      /* What was playing goes on, at its place in the loop. */
+      const sq_clip_t *c = sq_clip(s, t, slot);
+      const uint32_t pos = in->track[t].pos_tick;
+      tr->playing = (uint8_t)slot;
+      tr->queued = SQ_NONE;
+      tr->pending_stop = 0;
+      tr->pos_tick = (uint16_t)(pos >= sq_start_ticks(c) && pos < sq_end_ticks(c) ? pos : sq_start_ticks(c));
+      tr->cycle = in->track[t].cycle ? in->track[t].cycle : 1u;
+      tr->scale_acc = in->track[t].scale_acc;
+      tr->last_auto_step = -1;
+      memset(tr->auto_cur, 0xFF, sizeof(tr->auto_cur));
+    } else if (tr->playing != SQ_NONE) {
+      /* The Play started a clip that was not playing (or whose slot the new set lacks): it comes in on the
+       * next bar, as a launch on a running transport does, so it keeps the bar's grid. */
+      tr->queued = tr->playing;
+      tr->playing = SQ_NONE;
+    }
+    if (had && in->track[t].queued < FM1_SEQ_SLOTS && sq_exists(sq_clip(s, t, in->track[t].queued))) {
+      tr->queued = in->track[t].queued;
+    }
+  }
+}
+
 void sq_ensure_selected_playing(fm1_seq_t *s, unsigned t) {
   sq_track_t *tr;
   if (!s->playing || !track_ok(s, t)) return;

@@ -33,6 +33,12 @@
         "positions": {"type": "integer", "minimum": 1},
         "slots": {"type": "integer", "minimum": 1},
         "tick": {"description": "Frames per control tick.", "type": "integer", "minimum": 1},
+        "source_base": {"description": "1.3: the first source id of a module's outputs: source_base + source_stride x position + port (fm1_mod.h FM1_MOD_SRC_MODULE).", "type": "integer", "minimum": 1, "maximum": 255},
+        "source_stride": {"description": "1.3: source ids per rack position (FM1_MOD_MAX_OUTS).", "type": "integer", "minimum": 1, "maximum": 16},
+        "unit_base": {"description": "1.3: the unit code of rack position 0, for a module's parameters and gate inputs: unit_base + position (FM1_MOD_MODULE).", "type": "integer", "minimum": 0, "maximum": 255},
+        "sounds": {"description": "1.3: sound units in the chain (FM1_MOD_SOUNDS).", "type": "integer", "minimum": 1, "maximum": 16},
+        "inserts": {"description": "1.3: insert effect slots for each sound unit (FM1_MOD_INSERTS).", "type": "integer", "minimum": 0, "maximum": 4},
+        "masters": {"description": "1.3: master effect slots after the mix (FM1_MOD_MASTERS).", "type": "integer", "minimum": 0, "maximum": 4},
         "kinds": {"type": "array", "items": {"$ref": "#/$defs/modKind"}},
         "sources": {"type": "array", "items": {"$ref": "#/$defs/source"}},
         "source_groups": {
@@ -262,7 +268,12 @@
     "required": ["effect_groups", "refusals", "telemetry", "meta_id"],
     "if": {"properties": {"lunar": {"const": "1.1"}}},
     "then": {"not": {"required": ["marks"]}},
-    "else": {"required": ["marks"]}
+    "else": {
+      "required": ["marks"],
+      "if": {"properties": {"lunar": {"const": "1.2"}}},
+      "then": {"properties": {"mod": {"not": {"anyOf": [{"required": ["source_base"]}, {"required": ["source_stride"]}, {"required": ["unit_base"]}, {"required": ["sounds"]}, {"required": ["inserts"]}, {"required": ["masters"]}]}}}},
+      "else": {"properties": {"mod": {"required": ["source_base", "source_stride", "unit_base", "sounds", "inserts", "masters"]}}}
+    }
   },
   "unevaluatedProperties": false,
   "$defs": {

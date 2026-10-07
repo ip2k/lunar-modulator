@@ -9,6 +9,17 @@ history.
 ## [Unreleased]
 
 ### Added
+- **The editor's page tests run in CI.** A new job, `editor-page-tests`, runs
+  the Advanced editor's tests (`editor-unit`, `editor-ui`, `editor-reach`,
+  `editor-map`, `editor-v1` and the 30-second storm) in Chromium, Firefox and
+  WebKit, and the page's own `screenshot` and `files` tests in Chromium, in the
+  Playwright container the Linux build script uses (the same version; a test
+  holds the two together). They run against the committed module, so no
+  native build is needed; a failing run uploads its screenshots and reports.
+- **A test harness is planned** (owner, 2026-10-07, not built): one that plays
+  the simulator in headless Chromium, Firefox and WebKit into a loopback audio
+  device (PipeWire or similar) and checks the audio and the underruns in all
+  three, which Firefox and WebKit cannot measure from inside the page.
 - **The advanced editor: the v1 gaps** (the audit after ED5b). A parameter a
   cable moves now looks it, as the screen does: its name in the modulation
   colour, a chip naming the cable's source, a bracket round the value, a tick
@@ -1724,6 +1735,18 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **Parameter metadata is at level 1.3.** The export now says how a cable's ids
+  are laid out and the shape of the chain (`mod.source_base`, `source_stride`,
+  `unit_base`, `sounds`, `inserts`, `masters`), so an editor holds none of
+  them; the schema requires them from 1.3, and the example and the page's
+  `meta.json` are regenerated. For editors: the layout is read once and a
+  metadata without it is refused with a message.
+- **The editor note records the owner's decisions after v1** (2026-10-07): in
+  search Enter selects the highlighted match and ⇧Enter every match, for a batch
+  edit; the Map's cable ends can be dragged to move and started from an input;
+  Squash's closed gate gets its own read-out; an effect into an insert of a
+  sound with no engine is refused in the editor and on the panel. Recorded as
+  the next stage (the note's §29), not built.
 - **The arpeggiator swings with the set** (owner, 2026-10-06). Its own
   Swing knob is gone from the FEEL page; the Swing on the sequencer's Set
   page now swings the arpeggiator too, playing or stopped. A file saved
@@ -2365,6 +2388,25 @@ history.
   - The manual's recovery chapter no longer calls the open dongle design
     "complete": its firmware builds and is simulated, but nobody has built
     the board.
+- **The advanced editor: the v1 review's seven fixes.**
+  - Switching A and B no longer stops the transport: the sequencer's clock and
+    playheads go over a project load, so what was playing goes on playing from
+    the same place (a stopped transport stays stopped). Making B from the picks
+    and undoing it keep the transport too.
+  - A long list's filter (Shapes' 47 shapes, Six-Op's 96 patches, FM6's 64)
+    works in Safari, whose dropdown ignores hidden entries: the list itself
+    is rebuilt. The effect picker's filter did nothing in any browser (a style
+    rule kept the filtered-out choices on show); now it hides them, and the
+    choices the instrument says are not offered stay out.
+  - Semitones are read aloud as "semitones", not "st".
+  - A and B kept in the browser come back for the same project, not for any
+    project with the same title (two "Untitled" ones used to swap them).
+  - Storage no longer goes missing for a visit when an older tab of the page
+    is still open on the previous version of the database: the page says so,
+    works from memory meanwhile, saves what it kept when the old tab lets go,
+    and lets a newer tab upgrade.
+  - Stale text in the design note, DEVELOPERS.md and `sim/web/README.md`
+    (the editor was said to be unbuilt, and untested outside Chromium).
 - **A refusal for the wrong kind of file reads properly.** "A sound, not a effects chain was expected" is now "A sound, not an effects chain, was expected.": the article follows the word.
 - **Sound on iPhones and iPads** ([#53](https://github.com/ip2k/lunar-modulator/issues/53)).
   The simulator now plays through Silent mode, as a music app does (where
