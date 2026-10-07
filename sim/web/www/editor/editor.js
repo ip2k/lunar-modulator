@@ -302,6 +302,7 @@ export async function startEditor(env) {
       const info = c.src === SRC_EDITOR ? st.tags.get(c.tag) : null;
       const origin = c.src === SRC_PANEL ? 'panel' : SOURCES[c.src] || 'host';
       const t = c.rec.type;
+      if (t === REC_T.LOADED) project.onLoaded();      // A/B: a load sets A (§9)
       // The panel's (or a script's) structural change, into the history
       // from the mirror as it was; the cables it re-aimed come with it.
       if (c.src !== SRC_EDITOR && origin !== 'load' && (t === REC_T.UNIT || t === REC_T.MODULE || t === REC_T.SWAP || t === REC_T.MOVE)) {

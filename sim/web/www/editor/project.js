@@ -269,13 +269,27 @@ export function makeProject(ctx) {
     return m.ok ? m.bytes.slice(0) : null;
   }
   const abKind = () => (st.ab.scope === 'project' ? { kind: 1, arg: 0 } : { kind: 2, arg: st.ab.scope });
-  async function keepA() {
+  async function keepA(quiet) {
     const live = await takeLive();
     if (!live) return;
     Object.assign(st.ab, { A: live, B: null, playing: 'B', diff: null });
-    say(`A kept: ${abWords()}. Edit on; X switches between A and B.`);
-    render();
+    if (!quiet) say(`A kept: ${abWords()}. Edit on; X switches between A and B.`);
+    if (!quiet || st.view === 'compare') render();
   }
+  // A load (a file, a drop, the library) sets A to what it loaded; A/B's
+  // own loads, and their echoes for a moment after, do not.
+  let loadTimer = 0;
+  function onLoaded() {
+    if (st.ab.busy || performance.now() < (st.ab.quietUntil || 0)) return;
+    clearTimeout(loadTimer);
+    loadTimer = setTimeout(() => { if (!st.ab.busy && performance.now() >= (st.ab.quietUntil || 0)) keepA(true); }, 300);
+  }
+  window.addEventListener('fm1-power', (e) => {
+    if (e.detail && e.detail.on) return;
+    Object.assign(st.ab, { A: null, B: null, playing: null, diff: null, busy: false });
+    arrival = null;
+    dragging = null;
+  });
   async function switchAB() {
     const ab = st.ab;
     if (!ab.A || ab.busy || !st.port) { if (!ab.A) say('Keep an A first: Compare, then Keep as A.'); return; }
@@ -303,6 +317,7 @@ export function makeProject(ctx) {
       await diffAB();
     } finally {
       ab.busy = false;
+      ab.quietUntil = performance.now() + 1500;
       if (st.view === 'compare') render();
     }
   }
@@ -515,6 +530,7 @@ export function makeProject(ctx) {
     const [h, before] = await Promise.all([files.shadow('hash', { bin: now }).then((r) => r.hash), e.snap.hash]);
     if (before === null || before === undefined) { e.check = 'none'; return; }
     if (h === before) { e.check = 'hash'; return; }
+    st.ab.quietUntil = performance.now() + 1500;        // not a load that sets A
     const r = await files.load(e.snap.bin.slice(0), { d: { enc: 1, kind: 'project', title: files.title }, before: false, quiet: true });
     e.check = r.ok ? 'snapshot' : 'failed';
     say(r.ok ? `${e.label}: undone from its snapshot, as the inverse edits left it otherwise.` : `${e.label} could not be undone exactly: ${r.report.message || r.report.code}`);
@@ -546,7 +562,7 @@ export function makeProject(ctx) {
 
   return {
     headTools, wireDrop, arrivalCard, libraryView, memoryView, compareView, applyLink, applyPendingSel,
-    openSearch, closeSearch, onStruct, checkUndo, staleSoon, onKey, keepA, switchAB, targetOf,
+    openSearch, closeSearch, onStruct, checkUndo, staleSoon, onKey, keepA, switchAB, targetOf, onLoaded,
     get searchOpen() { return !sBox.hidden; },
   };
 }
