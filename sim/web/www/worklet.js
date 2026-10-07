@@ -116,6 +116,7 @@ class FM1Processor extends AudioWorkletProcessor {
         break;
       case 'snapshot':
         if (this.fm1) this.snapshot(m);
+        else this.editor.postMessage({ type: 'snapshot', id: m.id, ok: false, bytes: null });
         break;
       default: break;
     }
@@ -180,7 +181,9 @@ class FM1Processor extends AudioWorkletProcessor {
     }
     if (this.teleFree.length) {
       const floats = ex.fm1w_telemetry();
-      if (floats > 0 && this.teleFree[0].byteLength >= floats * 4) {
+      if (floats > 0 && this.teleFree[0].byteLength < floats * 4) {
+        this.teleFree.shift();             // too small for the block: dropped
+      } else if (floats > 0) {
         const buffer = this.teleFree.shift();
         new Float32Array(buffer, 0, floats).set(new Float32Array(mem, ex.fm1w_tele_buf(), floats));
         this.editor.postMessage({ type: 'telemetry', buffer }, [buffer]);

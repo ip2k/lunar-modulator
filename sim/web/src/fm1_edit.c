@@ -215,12 +215,13 @@ int fm1_edit_enter(fm1_app_t *a, uint8_t src) {
   if (!a->edit) return -1;
   was = a->edit->src;
   a->edit->src = src;
+  ++a->edit->depth_;
   return was;
 }
 
 void fm1_edit_leave(fm1_app_t *a, int was) {
   if (!a->edit || was < 0) return;
-  fm1_edit_mod_scan(a);
+  if (--a->edit->depth_ == 0) fm1_edit_mod_scan(a);   /* the outermost leave only */
   a->edit->src = (uint8_t)was;
 }
 
@@ -682,6 +683,9 @@ int fm1_edit_verb(fm1_app_t *a, const fm1_edit_verb_t *v, uint8_t src, uint16_t 
 
 int fm1_edit_packed(fm1_app_t *a, const uint8_t *b, uint32_t n, uint8_t src, uint16_t tag, int8_t *codes) {
   int applied = 0;
+  /* One source for the batch, so the safety scan of the modulation runs
+   * once (each modulation edit is found as it is emitted anyway). */
+  const int was = fm1_edit_enter(a, src);
   if (n > FM1_EDIT_MAX_RECS) n = FM1_EDIT_MAX_RECS;
   for (uint32_t i = 0; i < n; ++i) {
     fm1_rec_t r;
@@ -699,6 +703,7 @@ int fm1_edit_packed(fm1_app_t *a, const uint8_t *b, uint32_t n, uint8_t src, uin
     }
     if (codes) codes[i] = code;
   }
+  fm1_edit_leave(a, was);
   return applied;
 }
 

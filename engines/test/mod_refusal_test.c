@@ -287,11 +287,32 @@ static void fuzz(unsigned rounds, unsigned *slots, unsigned counts[64]) {
   }
 }
 
+/* A move keeps a source that names nothing as it is (ED1's fuzz found
+ * fm1_mod_move reading past its permutation for one). */
+static void move_keeps_nothing(void) {
+  fm1_mod_t *m = make(7);
+  fm1_mod_slot_t s, back;
+  memset(&s, 0, sizeof(s));
+  s.src = 200;
+  s.via = 130;
+  s.dst_unit = FM1_MOD_MODULE + 1u;
+  s.flags = FM1_MOD_SLOT_ON;
+  fm1_mod_set_kind(m, 0, 0);
+  fm1_mod_set_kind(m, 1, 0);
+  fm1_mod_set_slot(m, 0, &s);
+  CHECK(fm1_mod_move(m, 0, 7) == 1);
+  fm1_mod_get_slot(m, 0, &back);
+  CHECK(back.src == 200 && back.via == 130 && back.dst_unit == FM1_MOD_MODULE + 0u);
+  CHECK(fm1_mod_slot_refusal(m, 0) == FM1_REFUSE_NO_SOURCE);
+  fm1_mod_destroy(m);
+}
+
 int main(int argc, char **argv) {
   unsigned cases = 0, slots = 0, counts[64], i, first = 1;
   const unsigned rounds = argc > 1 ? (unsigned)atoi(argv[1]) : 2000u;
   memset(counts, 0, sizeof(counts));
   each_reason(&cases);
+  move_keeps_nothing();
   fuzz(rounds, &slots, counts);
   printf("{\"cases\":%u,\"fuzz_slots\":%u,\"reasons\":{", cases, slots);
   for (i = 1; i < 64; ++i) {

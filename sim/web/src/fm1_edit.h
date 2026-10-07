@@ -125,7 +125,7 @@ typedef struct fm1_view {
  * attaches it after fm1_app_init; it survives a project load. */
 typedef struct fm1_edit {
   uint8_t src;                  /* who is editing now */
-  uint8_t depth_;
+  uint8_t depth_;               /* fm1_edit_enter calls not yet left */
   uint16_t tag;
   uint32_t gen;                 /* the newest entry's */
   fm1_change_t ring[FM1_EDIT_RING];

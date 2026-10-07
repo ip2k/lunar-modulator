@@ -594,6 +594,59 @@ static void check_telemetry(void) {
   }
 }
 
+/* ---- hostile input --------------------------------------------------------------- */
+
+static uint32_t g_rng = 0x1234567u;
+static uint32_t rnd(void) {
+  g_rng = g_rng * 1664525u + 1013904223u;
+  return g_rng >> 8;
+}
+
+/* Random packed records and verbs, the types the layer takes and others,
+ * with fields at random and at their edges: nothing crashes, every verdict
+ * is 0 or a code of fm1_refusal.h, and the audio stays finite. */
+static unsigned g_fuzz;
+
+static void check_fuzz(void) {
+  static const uint8_t kTypes[] = { FM1_REC_PARAM, FM1_REC_UNIT, FM1_REC_ON, FM1_REC_LEVEL, FM1_REC_MODULE,
+                                    FM1_REC_CABLE, FM1_EDIT_SWAP, FM1_EDIT_MOVE, FM1_EDIT_CURRENT, FM1_EDIT_VIEW,
+                                    FM1_REC_DX7, FM1_EDIT_LOADED, 0, 0xFF };
+  static const char *const kIds[] = { "macro", "comp", "echo", "lfo", "env", "arp", "", "\xff\xfe", "drive" };
+  uint8_t b[FM1_EDIT_MAX_RECS * FM1_EDIT_REC_BYTES];
+  int8_t codes[FM1_EDIT_MAX_RECS];
+  fresh(44118.0f);
+  fm1_app_note_on(&g_a, 60, 100);
+  for (int round = 0; round < 400; ++round) {
+    const uint32_t n = 1 + rnd() % FM1_EDIT_MAX_RECS;
+    for (uint32_t i = 0; i < n; ++i) {
+      uint8_t *r = b + i * FM1_EDIT_REC_BYTES;
+      for (unsigned k = 0; k < FM1_EDIT_REC_BYTES; ++k) r[k] = (uint8_t)(rnd() % 7 ? rnd() % 9 : rnd());
+      r[0] = kTypes[rnd() % (sizeof kTypes / sizeof kTypes[0])];
+      if (r[0] == FM1_REC_UNIT || r[0] == FM1_REC_MODULE) {
+        const char *id = kIds[rnd() % 9];
+        memset(r + 4, 0, 16);
+        memcpy(r + 4, id, strlen(id));
+        if (rnd() % 5 == 0) memset(r + 4, 'x', 16);       /* no NUL */
+      }
+      if (r[0] == FM1_REC_PARAM && rnd() % 2) {
+        const float edge[] = { NAN, INFINITY, -INFINITY, 1e30f, -1e30f, 0.0f, -0.0f, 1e-30f };
+        float f = edge[rnd() % 8];
+        memcpy(r + 8, &f, 4);
+      }
+    }
+    fm1_edit_packed(&g_a, b, n + (rnd() % 8 == 0 ? 500u : 0u), FM1_EDIT_EDITOR, (uint16_t)round, codes);
+    for (uint32_t i = 0; i < n; ++i) {
+      CHECK(codes[i] == 0 || fm1_refusal_find((unsigned)(uint8_t)codes[i]) != NULL);
+      ++g_fuzz;
+    }
+    {
+      const float *o = fm1_app_render(&g_a, FM1_APP_MAX_FRAMES);
+      for (unsigned k = 0; k < 2u * FM1_APP_MAX_FRAMES; ++k) CHECK(isfinite(o[k]));
+    }
+    if (round % 50 == 0) fm1_app_draw(&g_a, 0);
+  }
+}
+
 /* ---- the whole check ------------------------------------------------------------ */
 
 static char g_save[FM1_STATE_BIN_MAX];
@@ -619,13 +672,14 @@ int fm1_edit_check(void) {
   hands(g_rack);
   check_verbs();
   check_telemetry();
+  check_fuzz();
   printf("{\"params\":%u,\"steps\":%u,\"text_same\":%u,\"text_bad\":%u,\"text_first_bad\":\"%s\",\"codes\":[",
          g_rt_params, g_rt_steps, g_rt_same, g_rt_bad, g_rt_first);
   for (int c = 1; c < 64; ++c) {
     const fm1_refusal_t *r = g_codes[c] ? fm1_refusal_find((unsigned)c) : NULL;
     if (r) printf("%s\"%s\"", n_codes++ ? "," : "", r->name);
   }
-  printf("],\"hands\":%u,\"tele_fills\":%u,\"failed\":%d,\"why\":\"%s\"}\n", g_hands, g_fills, g_failed, g_why);
+  printf("],\"hands\":%u,\"tele_fills\":%u,\"fuzz\":%u,\"failed\":%d,\"why\":\"%s\"}\n", g_hands, g_fills, g_fuzz, g_failed, g_why);
   return g_failed ? 1 : 0;
 }
 

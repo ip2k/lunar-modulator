@@ -2910,6 +2910,7 @@ int fm1_app_show(fm1_app_t *a, unsigned mode, unsigned has, const uint8_t *x) {
     fx_slot = x[FM1_VK_ENTRY] - 1;       /* In1, In2, Mix, M1, M2 */
   }
   if ((mode == FM1_VIEW_SEQ || mode == FM1_VIEW_SESSION || mode == FM1_VIEW_SONG) && !a->seq) return -1;
+  if ((mode == FM1_VIEW_RACK || mode == FM1_VIEW_MATRIX || mode == FM1_VIEW_CHAIN) && !a->mod) return -1;
   fm1_app_unit_set_current(a, sound);
   switch (mode) {
     case FM1_VIEW_FX:
@@ -2932,19 +2933,16 @@ int fm1_app_show(fm1_app_t *a, unsigned mode, unsigned has, const uint8_t *x) {
       if (HAS(FM1_VK_PANEL)) fm1_seq_ui_open(&a->ui, x[FM1_VK_PANEL] == 1 ? FM1_SEQ_VIEW_SET : FM1_SEQ_VIEW_CLIP);
       break;
     case FM1_VIEW_RACK:
-      if (!a->mod) return -1;
       set_mode(a, FM1_MODE_RACK);
       if (HAS(FM1_VK_POS)) a->mui.pos = (uint8_t)(x[FM1_VK_POS] - 1);
       a->mui.page = (uint8_t)clampi(HAS(FM1_VK_PAGE) ? x[FM1_VK_PAGE] - 1 : 0, 0,
                                     fm1_mod_ui_rack_pages(a->mod, a->mui.pos) - 1);
       break;
     case FM1_VIEW_MATRIX:
-      if (!a->mod) return -1;
       set_mode(a, FM1_MODE_MATRIX);
       if (HAS(FM1_VK_SLOT)) a->mui.slot = (uint8_t)(x[FM1_VK_SLOT] - 1);
       break;
     case FM1_VIEW_CHAIN:
-      if (!a->mod) return -1;
       set_mode(a, FM1_MODE_CHAIN);
       break;
     default:
@@ -3274,7 +3272,14 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
     for (uint32_t i = 0; i < 2 * n; ++i) out[i] *= a->gain;
   }
   a->frames += n;
-  arp_poll(a);                           /* ARP held: Latch, for the next block */
+  if (a->edit) {                         /* ARP held: Latch, for the next block: the panel's */
+    const uint8_t src = a->edit->src;
+    a->edit->src = FM1_EDIT_PANEL;
+    arp_poll(a);
+    a->edit->src = src;
+  } else {
+    arp_poll(a);
+  }
   if (a->popup_lines && a->frames >= a->popup_until) {
     const int was = fm1_edit_enter(a, FM1_EDIT_PANEL);
     mod_commit(a);                       /* a picker commits a second after its last turn */
