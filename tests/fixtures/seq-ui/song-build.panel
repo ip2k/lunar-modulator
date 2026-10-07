@@ -1,0 +1,34 @@
+# The Song page (S9+): SHIFT + LOOP from the Track view; from `+ add`,
+# white keys 1 1 2 2 3 3 4 4 5 5 3 2 4 4 6 6 7 7 7 7 build the worked
+# example's ten entries (a key on the cursor's own scene adds a repeat).
+# KNOB4 two detents: the song ends with Stop. KNOB3 names scene 7 Outro,
+# and, a row up, scene 6 Drop. PLAY plays the 20 bars hands-free, and the
+# transport stops after the last.
+--button 0.05:SEQ
+--button 0.10:SEL:0.1
+--key 0.12:3:100:0.05
+--key 0.30:0:100:0.02
+--key 0.35:0:100:0.02
+--key 0.40:2:100:0.02
+--key 0.45:2:100:0.02
+--key 0.50:4:100:0.02
+--key 0.55:4:100:0.02
+--key 0.60:6:100:0.02
+--key 0.65:6:100:0.02
+--key 0.70:7:100:0.02
+--key 0.75:7:100:0.02
+--key 0.80:4:100:0.02
+--key 0.85:2:100:0.02
+--key 0.90:6:100:0.02
+--key 0.95:6:100:0.02
+--key 1.00:9:100:0.02
+--key 1.05:9:100:0.02
+--key 1.10:11:100:0.02
+--key 1.15:11:100:0.02
+--key 1.20:11:100:0.02
+--key 1.25:11:100:0.02
+--turn 1.50:KNOB4:2
+--turn 1.60:KNOB3:10
+--turn 1.70:SELECT:-1
+--turn 1.80:KNOB3:5
+--button 2.00:PLAY/STOP

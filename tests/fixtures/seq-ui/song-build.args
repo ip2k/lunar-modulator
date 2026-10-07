@@ -1,0 +1,5 @@
+--slots
+--engine
+test-sine
+--mod
+tests/fixtures/seq-ui/song-build.mod

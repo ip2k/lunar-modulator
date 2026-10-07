@@ -387,8 +387,17 @@ static void view_out(col_t *c, const fm1_app_t *a) {
       VSET(FM1_VK_PAGE, a->glo_page + 1);
       break;
     case FM1_MODE_SEQ:
-      r.u.view.mode = FM1_VIEW_SEQ;
       VSET(FM1_VK_TRACK, a->ui.track + 1);
+      if (a->ui.view == FM1_SEQ_VIEW_SESSION) {          /* S9: Session, its track */
+        r.u.view.mode = FM1_VIEW_SESSION;
+        break;
+      }
+      if (a->ui.view == FM1_SEQ_VIEW_SONG) {             /* the Song page, its cursor */
+        r.u.view.mode = FM1_VIEW_SONG;
+        if (a->ui.song_cur < a->ui.song_entries) VSET(FM1_VK_ENTRY, a->ui.song_cur + 1);
+        break;
+      }
+      r.u.view.mode = FM1_VIEW_SEQ;
       VSET(FM1_VK_BAR, a->ui.bar + 1);
       if (a->ui.view == FM1_SEQ_VIEW_SET) VSET(FM1_VK_PANEL, 1);
       else if (a->ui.view == FM1_SEQ_VIEW_CLIP) VSET(FM1_VK_PANEL, 2);
@@ -1490,8 +1499,16 @@ static void apply_view(fm1_app_t *a, const fm1_rec_t *v) {
       fm1_seq_ui_enter(&a->ui);
       if (HAS(FM1_VK_TRACK) && a->seq && x[FM1_VK_TRACK] <= a->seq_lim.tracks) a->ui.track = (uint8_t)(x[FM1_VK_TRACK] - 1);
       if (HAS(FM1_VK_BAR) && x[FM1_VK_BAR] <= 16) a->ui.bar = (uint8_t)(x[FM1_VK_BAR] - 1);
-      if (HAS(FM1_VK_PANEL) && x[FM1_VK_PANEL] == 1) fm1_seq_ui_open(&a->ui, FM1_SEQ_VIEW_SET);
-      else if (HAS(FM1_VK_PANEL) && x[FM1_VK_PANEL] == 2) fm1_seq_ui_open(&a->ui, FM1_SEQ_VIEW_CLIP);
+      if (v->u.view.mode == FM1_VIEW_SESSION) {
+        fm1_seq_ui_open(&a->ui, FM1_SEQ_VIEW_SESSION);
+      } else if (v->u.view.mode == FM1_VIEW_SONG) {    /* the cursor on its entry, or `+ add` */
+        fm1_seq_ui_open_song(&a->ui, HAS(FM1_VK_ENTRY) && x[FM1_VK_ENTRY] >= 1 ? x[FM1_VK_ENTRY] - 1u
+                                                                             : FM1_SEQ_UI_SONG_MAX);
+      } else if (HAS(FM1_VK_PANEL) && x[FM1_VK_PANEL] == 1) {
+        fm1_seq_ui_open(&a->ui, FM1_SEQ_VIEW_SET);
+      } else if (HAS(FM1_VK_PANEL) && x[FM1_VK_PANEL] == 2) {
+        fm1_seq_ui_open(&a->ui, FM1_SEQ_VIEW_CLIP);
+      }
       break;
     case FM1_VIEW_RACK:
       a->mode = FM1_MODE_RACK;

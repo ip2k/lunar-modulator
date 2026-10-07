@@ -1,0 +1,16 @@
+# COPY held with white key 1 copies track 1's slot 1, then key 8 pastes it
+# into slot 8 (`clipcopy 0 0`, `clippaste 0 7`). CLEAR held with key 8 asks
+# to confirm, and CLEAR again deletes it (`clipdelat 0 7`). CLEAR + key 2
+# asks again, and key 5 only closes the question. Then PLAY/STOP.
+--button 0.05:SEQ
+--button 0.10:SEQ
+--key 0.20:8:100:0.4
+--key 0.30:0:100:0.05
+--key 0.40:12:100:0.05
+--key 0.80:10:100:0.3
+--key 0.90:12:100:0.05
+--key 1.30:10:100:0.05
+--key 1.60:10:100:0.3
+--key 1.70:2:100:0.05
+--key 2.10:7:100:0.05
+--button 2.50:PLAY/STOP

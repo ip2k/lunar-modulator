@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "fm1_look.h"
+#include "fm1_panel.h"
 #include "fm1_seq_host.h"
 
 /* The Track view's geometry (docs/15 §4): the status line at CONTENT_Y, the
@@ -110,7 +111,10 @@ static void draw_status(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_
   char bpm[24];
   const int mine = u->rec_track == u->track;
   const int rec = mine && u->recording, count = mine && !u->recording && u->counting_in;
-  const char *state = rec || count ? "REC" : u->srec ? "STEP" : u->playing ? "PLAY" : "STOP";
+  /* A song followed reads SONG, and END once parked (SG11). */
+  const int song = u->playing && u->song_len && u->song_follow;
+  const char *state = rec || count ? "REC" : u->srec ? "STEP"
+                    : song ? (u->song_parked ? "END" : "SONG") : u->playing ? "PLAY" : "STOP";
   fm1_seq_view_bpm(u->bpm_x100, bpm, sizeof bpm);
   if (fm1_tft_text_width(bpm, 10, SCALE) <= TEMPO_W) {
     fm1_tft_text(t, MARGIN, STATUS_Y, bpm, 10, SCALE, C_TEXT);
@@ -119,7 +123,8 @@ static void draw_status(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_
                       FM1_TFT_MID, C_TEXT);
   }
   fm1_tft_text(t, RIGHT - fm1_tft_text_width(state, 4, SCALE), STATUS_Y, state, 4, SCALE,
-               rec || u->srec ? C_REFUSE : count ? C_HELD : u->playing ? C_LIVE : C_LABEL);
+               rec || u->srec ? C_REFUSE : count ? C_HELD
+               : song && u->song_parked ? C_LABEL : u->playing ? C_LIVE : C_LABEL);
   /* The tracks (S6): each a tile in its sound's colour with the sound's
    * number on it, the focused one the line's full height; a muted one
    * unlit, its number alone in the sound's colour (focused, between the
@@ -278,6 +283,12 @@ static void draw_track(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_s
       fm1_look_value(p, snd->value[snd->idx[u->knob]], v, sizeof v);
       fm1_look_row(t, HINT_Y, p->name, v, C_TEXT);
     }
+  } else if (u->playing && u->song_armed && u->song_follow && !u->song_parked && u->song_len) {
+    /* The playing entry's last bar (SG11): what falls in next. */
+    char v[24];
+    if (u->song_next != FM1_SEQ_NONE) fm1_seq_view_scene(snd->seq, u->song_next, v, sizeof v);
+    else snprintf(v, sizeof v, "%s", u->song_end == FM1_SEQ_SONG_STOP ? "Stop" : "End");
+    fm1_look_row(t, HINT_Y, "Next", v, C_LIVE);
   } else if (snd->e && snd->model >= 0) {
     char v[24];
     /* The model, in the context colour, by its full name where the line
@@ -598,8 +609,338 @@ static void draw_trackpg(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view
   }
 }
 
+/* ---- Session (S9) and the Song page (S9+; notes/2026-10-06-song-and-scenes.md §6) ---- */
+
+void fm1_seq_view_scene(const fm1_seq_t *s, unsigned scene, char *buf, size_t size) {
+  const char *name = s && scene < FM1_SEQ_SCENES ? fm1_seq_scene_name(s, (uint8_t)scene) : "";
+  if (name[0]) snprintf(buf, size, "%u %.6s", scene + 1u, name);
+  else snprintf(buf, size, "Scene %u", scene + 1u);
+}
+
+/* Session's geometry: the scene header under the status line, the grid of
+ * 8 slots a track (columns SESS_COL apart, cells SESS_CELL_W wide; rows 16
+ * px apart with cells 12 tall, or 30 and 26 with four tracks or fewer), the
+ * tracks' numbers left of it, and the song band above the bottom bar. */
+#define SESS_HEAD_Y 50
+#define SESS_GRID_X 17
+#define SESS_GRID_Y 67
+#define SESS_COL 27
+#define SESS_CELL_W 24
+#define SESS_LABEL_X 5
+#define SESS_BAND_Y 194                /* its ground, 20 px, on C_TITLE_BG */
+#define SESS_BAND_H 20
+#define SESS_BAND_TEXT_Y (SESS_BAND_Y + 3)
+#define SESS_BAND_CHARS MID_LINE_CHARS /* "SONG " and 23 more */
+
+typedef char fm1_seq_view_session_fits[SESS_GRID_X + 7 * SESS_COL + SESS_CELL_W + 1 <= RIGHT &&
+                                       SESS_LABEL_X + FM1_TFT_SMALL_ADVANCE + 4 <= SESS_GRID_X - 1 &&
+                                       SESS_HEAD_Y + FM1_TFT_SMALL_H + 4 <= SESS_GRID_Y - 1 &&
+                                       SESS_GRID_Y + 7 * 16 + 12 + 1 + 4 <= SESS_BAND_TEXT_Y &&
+                                       SESS_BAND_TEXT_Y + MID_LINE_H + 4 <= BOTTOM_Y ? 1 : -1];
+
+static void sess_rows(const fm1_seq_ui_t *u, int *pitch, int *h) {
+  const int few = u->tracks <= 4u;
+  *pitch = few ? 30 : 16;
+  *h = few ? 26 : 12;
+}
+
+/* One slot: empty, a clip (its top edge in the track's colour), playing
+ * (filled, its place along the bottom), queued (clip and playing in turn)
+ * or stopping (playing and empty in turn), every 0.25 s. */
+static void sess_cell(fm1_tft_t *t, int x, int y, int h, int clip, int playing, int queued,
+                      int stopping, unsigned pos, uint16_t c, int blink) {
+  int look = !clip ? 0 : 1;                  /* 0 empty, 1 clip, 2 playing */
+  if (playing) look = stopping ? (blink ? 2 : 0) : 2;
+  else if (queued) look = blink ? 2 : 1;
+  if (look == 0) {
+    fm1_tft_frame(t, x, y, SESS_CELL_W, h, C_BAR_BG);
+  } else if (look == 1) {
+    fm1_tft_paint(t, x, y, SESS_CELL_W, h, C_BAR_BG);
+    fm1_tft_paint(t, x, y, SESS_CELL_W, 2, c);
+  } else {
+    fm1_tft_paint(t, x, y, SESS_CELL_W, h, c);
+    if (playing) fm1_tft_paint(t, x, y + h - 2, (int)((SESS_CELL_W * pos + 128u) / 256u), 2, C_TEXT);
+  }
+}
+
+static void draw_band(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_t *s);
+
+static void draw_session(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd) {
+  const unsigned n = u->tracks < 8u ? u->tracks : 8u;
+  int pitch, h;
+  sess_rows(u, &pitch, &h);
+  draw_status(t, u, snd);
+  {                                          /* the scene header, 1-8 */
+    const int lit = u->playing && u->song_len && u->song_follow && u->song_now < 8u;
+    char d[8][2];
+    fm1_tft_span_t sp[8];
+    uint8_t lead[8];
+    for (unsigned c = 0; c < 8u; ++c) {
+      const int boxed = lit && c == u->song_now;
+      d[c][0] = (char)('1' + c);
+      d[c][1] = '\0';
+      sp[c].s = d[c];
+      sp[c].color = boxed ? C_BG : u->loop_held ? C_TEXT : C_LABEL;
+      lead[c] = (uint8_t)(c ? SESS_COL - FM1_TFT_SMALL_ADVANCE : 0);
+      if (boxed) {                           /* the playing scene, on a C_LIVE tile */
+        fm1_tft_paint(t, SESS_GRID_X + (int)c * SESS_COL + SESS_CELL_W / 2 - 6, SESS_HEAD_Y - 1, 12,
+                      FM1_TFT_SMALL_H + 2, C_LIVE);
+      }
+    }
+    fm1_tft_span_text_lead(t, SESS_GRID_X + SESS_CELL_W / 2 - FM1_TFT_SMALL_ADVANCE / 2, SESS_HEAD_Y,
+                           sp, lead, 8, 8, FM1_TFT_SMALL);
+  }
+  if (n) fm1_tft_graphic(t, SESS_GRID_X - 1, SESS_GRID_Y - 1, 7 * SESS_COL + SESS_CELL_W + 2,
+                         (int)(n - 1u) * pitch + h + 2);
+  for (unsigned k = 0; k < n; ++k) {
+    const int y = SESS_GRID_Y + (int)k * pitch;
+    const int focused = k == u->track, muted = (u->muted >> k) & 1u;
+    uint16_t c;
+    char tag[2];
+    tag[0] = (char)('1' + k);
+    tag[1] = '\0';
+    track_tag(snd, k, &c);
+    if (muted) c = C_LABEL;
+    if (focused) {
+      fm1_tft_paint(t, SESS_LABEL_X - 2, y + (h - FM1_TFT_SMALL_H) / 2 - 1, FM1_TFT_SMALL_ADVANCE + 4,
+                    FM1_TFT_SMALL_H + 2, C_SELECT);
+    }
+    fm1_tft_font_text(t, SESS_LABEL_X, y + (h - FM1_TFT_SMALL_H) / 2, tag, 1, FM1_TFT_SMALL,
+                      focused ? C_BG : c);
+    for (unsigned sl = 0; sl < 8u; ++sl) {
+      const int x = SESS_GRID_X + (int)sl * SESS_COL;
+      const int clip = (u->sess_clips >> (8u * k + sl)) & 1u;
+      const int playing = u->sess_play[k] == sl;
+      sess_cell(t, x, y, h, clip, playing, u->sess_queue[k] == sl, playing && ((u->sess_stop >> k) & 1u),
+                u->sess_pos[k], c, u->blink);
+      if (u->sess_active[k] == sl) fm1_tft_frame(t, x - 1, y - 1, SESS_CELL_W + 2, h + 2, C_SELECT);
+    }
+  }
+  draw_band(t, u, snd->seq);
+}
+
+/* The song band (§6.1): "SONG", one token per entry ("3", "3x2"), the
+ * playing one framed in C_LIVE and the armed next one blinking, "END" or
+ * "STOP" after the last when the song does not loop; '<' and '>' where
+ * entries are out of the window, which keeps the playing and next entries
+ * in view. */
+static void draw_band(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_t *s) {
+  char tok[SESS_BAND_CHARS][8];
+  fm1_tft_span_t sp[SESS_BAND_CHARS];
+  fm1_tft_paint(t, 0, SESS_BAND_Y, FM1_TFT_W, SESS_BAND_H, C_TITLE_BG);
+  if (!u->song_len) {
+    const fm1_tft_span_t hint[2] = {
+      { "SONG  ", C_LABEL },
+      { u->loop_held ? "keys 1-8: scenes" : "hold LOOP: scenes", u->loop_held ? C_HINT : C_LABEL },
+    };
+    fm1_tft_span_text(t, MARGIN, SESS_BAND_TEXT_Y, hint, 2, SESS_BAND_CHARS, FM1_TFT_MID);
+    return;
+  }
+  {
+    const int live = u->playing && u->song_follow && !u->song_parked;
+    const unsigned entries = u->song_entries;
+    unsigned focus = live && u->song_entry < entries ? u->song_entry : 0u, first, e, ns = 0;
+    int chars, frame_at = -1, frame_len = 0, room = SESS_BAND_CHARS - 5;
+    const unsigned next = u->song_jump < entries ? u->song_jump : u->song_entry + 1u;
+    const char *end = u->song_end == FM1_SEQ_SONG_STOP ? "STOP" : u->song_end == FM1_SEQ_SONG_PARK ? "END" : NULL;
+    first = focus ? focus - 1u : 0u;
+    sp[ns].s = "SONG ";
+    sp[ns++].color = live ? C_LIVE : C_LABEL;
+    chars = 5;
+    if (first) {
+      snprintf(tok[ns], sizeof tok[ns], "< ");
+      sp[ns].s = tok[ns];
+      sp[ns++].color = C_LABEL;
+      chars += 2;
+      room -= 2;
+    }
+    for (e = first; e < entries; ++e) {
+      fm1_seq_song_entry_t x;
+      unsigned sc, pr;
+      const int last = e + 1u == entries;
+      char one[8];
+      int len, need;
+      memset(&x, 0, sizeof x);
+      if (!s || !fm1_seq_song_entry(s, (uint8_t)e, &x) || ns + 3u >= SESS_BAND_CHARS) break;
+      sc = x.scene;
+      pr = x.presses;
+      if (pr > 1u) snprintf(one, sizeof one, "%ux%u", sc + 1u, pr);
+      else snprintf(one, sizeof one, "%u", sc + 1u);
+      len = (int)strlen(one);
+      /* room for this token, a space, and " >" if more follow, or the end */
+      need = len + 1 + (last ? (end ? (int)strlen(end) : 0) : 2);
+      if (need > room && e > focus + 1u) break;
+      if (len + 1 > room) break;
+      snprintf(tok[ns], sizeof tok[ns], "%s ", one);
+      sp[ns].s = tok[ns];
+      sp[ns].color = C_TEXT;
+      if (live && e == u->song_entry) {
+        sp[ns].color = C_LIVE;
+        frame_at = chars;
+        frame_len = len;
+      } else if (live && u->song_armed && e == next) {
+        sp[ns].color = u->blink ? C_LIVE : C_TEXT;
+      }
+      ++ns;
+      chars += len + 1;
+      room -= len + 1;
+    }
+    if (e < entries) {
+      sp[ns].s = ">";
+      sp[ns++].color = C_LABEL;
+    } else if (end && room >= (int)strlen(end)) {
+      sp[ns].s = end;
+      sp[ns++].color = C_LABEL;
+    }
+    fm1_tft_span_text(t, MARGIN, SESS_BAND_TEXT_Y, sp, (int)ns, SESS_BAND_CHARS, FM1_TFT_MID);
+    if (frame_at >= 0) {                     /* the playing entry, framed */
+      fm1_tft_frame(t, MARGIN + frame_at * MID_ADVANCE - 3, SESS_BAND_Y + 1,
+                    frame_len * MID_ADVANCE + 5, SESS_BAND_H - 2, C_LIVE);
+    }
+  }
+}
+
+/* ---- the Song page --------------------------------------------------------------- */
+
+#define SONG_ROW_CHARS 27
+#define SONG_LEGEND_Y 196
+#define SONG_MORE_DOWN_Y (LIST_Y + (FM1_SEQ_UI_SONG_ROWS - 1) * LIST_PITCH_MID + MID_LINE_H + 4)
+
+typedef char fm1_seq_view_song_fits[SONG_MORE_DOWN_Y + LIST_MARK_H + 4 <= SONG_LEGEND_Y &&
+                                    SONG_LEGEND_Y + FM1_TFT_SMALL_H + 4 <= BOTTOM_Y &&
+                                    LIST_X + SONG_ROW_CHARS * MID_ADVANCE <= FM1_TFT_W - LIST_X ? 1 : -1];
+
+/* A time at the tempo: "1:06", from ten minutes "12m". */
+static void song_time(uint32_t bars, uint32_t bpm_x100, char *buf, size_t size) {
+  const uint64_t secs = bpm_x100 ? ((uint64_t)bars * 48000u + bpm_x100) / (2u * (uint64_t)bpm_x100) : 0u;
+  if (secs >= 600u) snprintf(buf, size, "%um", (unsigned)(secs / 60u));
+  else snprintf(buf, size, "%u:%02u", (unsigned)(secs / 60u), (unsigned)(secs % 60u));
+}
+
+static void song_mark(fm1_tft_t *t, int y, int up) {
+  const int cx = FM1_TFT_W / 2;
+  fm1_tft_graphic(t, cx - LIST_MARK_W / 2, y, LIST_MARK_W, LIST_MARK_H);
+  for (int r = 0; r < LIST_MARK_H; ++r) {
+    const int half = r * (LIST_MARK_W / 2) / (LIST_MARK_H - 1);
+    fm1_tft_paint(t, cx - half, up ? y + r : y + LIST_MARK_H - 1 - r, 2 * half + 1, 1, C_SELECT);
+  }
+}
+
+/* The playing entry's mark in the row's first column: a play triangle,
+ * 4 px wide, drawn rather than a '>' so a two-digit entry number keeps
+ * 4 px of room from it (a '>' glyph sat right against "41"). */
+#define SONG_PLAY_W 4
+#define SONG_PLAY_H 7
+static void song_play_mark(fm1_tft_t *t, int x, int y, uint16_t color) {
+  const int y0 = y + (MID_LINE_H - SONG_PLAY_H) / 2;
+  fm1_tft_graphic(t, x, y0, SONG_PLAY_W, SONG_PLAY_H);
+  for (int r = 0; r < SONG_PLAY_H; ++r) {
+    const int w = r <= SONG_PLAY_H / 2 ? r + 1 : SONG_PLAY_H - r;
+    fm1_tft_paint(t, x, y0 + r, w, 1, color);
+  }
+}
+
+static void draw_song(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd) {
+  const fm1_seq_t *s = snd->seq;
+  const unsigned entries = u->song_entries;
+  const int live = u->playing && u->song_follow && !u->song_parked && u->song_entry < entries;
+  const unsigned next = u->song_jump < entries ? u->song_jump
+                      : u->song_entry + 1u < entries ? u->song_entry + 1u
+                      : u->song_end == FM1_SEQ_SONG_LOOP ? 0u : FM1_SEQ_NONE;
+  char text[40], place[16], tm[8];
+  {                                          /* the context line */
+    static const char *const kEnd[3] = { "Loop", "Park", "Stop" };
+    uint16_t pc = C_LABEL;
+    song_time(s ? fm1_seq_song_bars(s) : 0u, u->bpm_x100, tm, sizeof tm);
+    snprintf(text, sizeof text, "Song %s %s", tm, kEnd[u->song_end < 3u ? u->song_end : 0u]);
+    place[0] = '\0';
+    if (live) {
+      snprintf(place, sizeof place, "%u/%u", (unsigned)u->song_entry + 1u, entries);
+      pc = C_LIVE;
+    } else if (u->song_cur < entries) {
+      snprintf(place, sizeof place, "%u/%u", (unsigned)u->song_cur + 1u, entries);
+    }
+    fm1_tft_font_text(t, LIST_X, LIST_TITLE_Y, text, 18, FM1_TFT_MID, C_CONTEXT);
+    if (place[0]) {
+      fm1_tft_font_text(t, FM1_TFT_W - LIST_X - fm1_tft_font_width(place, 8, FM1_TFT_MID), LIST_TITLE_Y,
+                        place, 8, FM1_TFT_MID, pc);
+    }
+  }
+  if (!entries) {                            /* nothing yet: how to start (MAIN) */
+    fm1_tft_text(t, MARGIN, CONTEXT_NEXT_Y + 4, "No song yet", LINE_CHARS, SCALE, C_HINT);
+    fm1_tft_text(t, MARGIN, CONTEXT_NEXT_Y + 4 + LINE_PITCH, "Keys 1-8: add", LINE_CHARS, SCALE, C_HINT);
+    fm1_tft_text(t, MARGIN, CONTEXT_NEXT_Y + 4 + 2 * LINE_PITCH, "or LOOP in Session", LINE_CHARS, SCALE,
+                 C_HINT);
+  } else {
+    const int total = (int)entries + 1;      /* the entries and `+ add` */
+    const int first = fm1_list_first(total, u->song_cur, FM1_SEQ_UI_SONG_ROWS);
+    const int rows = total - first < FM1_SEQ_UI_SONG_ROWS ? total - first : FM1_SEQ_UI_SONG_ROWS;
+    if (first > 0) song_mark(t, LIST_MORE_Y, 1);
+    for (int r = 0; r < rows; ++r) {
+      const unsigned e = (unsigned)(first + r);
+      const int y = LIST_Y + r * LIST_PITCH_MID;
+      const int cursor = e == u->song_cur;
+      char f[6][16];
+      fm1_tft_span_t sp[6];
+      if (cursor) fm1_tft_paint(t, MARGIN, y - 2, RIGHT - MARGIN, LIST_PITCH_MID - 1, C_SELECT);
+      if (e == entries) {
+        const fm1_tft_span_t add = { "    + add", cursor ? C_BG : C_LABEL };
+        fm1_tft_span_text(t, LIST_X, y, &add, 1, SONG_ROW_CHARS, FM1_TFT_MID);
+        continue;
+      }
+      {
+        fm1_seq_song_entry_t x;
+        const int playing = live && e == u->song_entry;
+        char sc[16], rep[8], bars[8];
+        memset(&x, 0, sizeof x);
+        if (s) fm1_seq_song_entry(s, (uint8_t)e, &x);
+        if (x.empty) snprintf(sc, sizeof sc, "%u (end)", (unsigned)x.scene + 1u);
+        else fm1_seq_view_scene(s, x.scene, sc, sizeof sc);
+        /* The pass and the bar into it count from 1: before the entry's
+         * first tick (0 in the core) it is on its first. */
+        const unsigned pass = u->song_pass ? u->song_pass : 1u;
+        const unsigned bar = u->song_pass_bar ? u->song_pass_bar : 1u;
+        if (playing && x.presses > 9u) snprintf(rep, sizeof rep, "%u", pass);
+        else if (playing) snprintf(rep, sizeof rep, "%u/%u", pass, (unsigned)x.presses);
+        else snprintf(rep, sizeof rep, "x%u", (unsigned)x.presses);
+        if (playing) snprintf(bars, sizeof bars, "%u/%u", bar, (unsigned)x.bars);
+        else snprintf(bars, sizeof bars, "%ub", (unsigned)x.bars * x.presses);
+        song_time(x.start_bar, u->bpm_x100, tm, sizeof tm);
+        f[0][0] = '\0';                     /* the first column: song_play_mark */
+        snprintf(f[1], sizeof f[1], "%2u ", e + 1u);
+        snprintf(f[2], sizeof f[2], "%-8.8s ", sc);
+        snprintf(f[3], sizeof f[3], "%-3.3s ", rep);
+        snprintf(f[4], sizeof f[4], "%5.5s ", bars);
+        snprintf(f[5], sizeof f[5], "%4.4s", tm);
+        for (int k = 0; k < 6; ++k) sp[k].s = f[k];
+        sp[0].color = C_LIVE;
+        sp[1].color = live && u->song_armed && e == next ? (u->blink ? C_LIVE : C_LABEL) : C_LABEL;
+        sp[2].color = x.empty ? C_LABEL : C_TEXT;
+        sp[3].color = playing ? C_LIVE : C_TEXT;
+        sp[4].color = playing ? C_LIVE : C_LABEL;
+        sp[5].color = C_LABEL;
+        if (cursor) {
+          for (int k = 0; k < 6; ++k) sp[k].color = C_BG;
+        }
+        if (playing) song_play_mark(t, LIST_X, y, sp[0].color);
+        fm1_tft_span_text(t, LIST_X + MID_ADVANCE, y, sp + 1, 5, SONG_ROW_CHARS - 1, FM1_TFT_MID);
+      }
+    }
+    if (first + rows < total) song_mark(t, SONG_MORE_DOWN_Y, 0);
+  }
+  {                                          /* the knob legend, SMALL */
+    const fm1_tft_span_t sp[8] = {
+      { "K1 ", C_LABEL }, { "SCENE  ", C_HINT }, { "K2 ", C_LABEL }, { "REPEAT  ", C_HINT },
+      { "K3 ", C_LABEL }, { "NAME  ", C_HINT }, { "K4 ", C_LABEL }, { "END", C_HINT },
+    };
+    fm1_tft_span_text(t, MARGIN, SONG_LEGEND_Y, sp, 8, SMALL_LINE_CHARS, FM1_TFT_SMALL);
+  }
+}
+
 void fm1_seq_view_draw(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd) {
-  if (u->view == FM1_SEQ_VIEW_STEP && u->held_n) draw_step(t, u, snd);
+  if (u->view == FM1_SEQ_VIEW_SESSION) draw_session(t, u, snd);
+  else if (u->view == FM1_SEQ_VIEW_SONG) draw_song(t, u, snd);
+  else if (u->view == FM1_SEQ_VIEW_STEP && u->held_n) draw_step(t, u, snd);
   else if (u->view == FM1_SEQ_VIEW_SET) draw_set(t, u);
   else if (u->view == FM1_SEQ_VIEW_CLIP) draw_clip(t, u);
   else if (u->view == FM1_SEQ_VIEW_TRACKPG) draw_trackpg(t, u, snd);
@@ -621,6 +962,10 @@ void fm1_seq_view_bottom(const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd,
   } else if (u->view == FM1_SEQ_VIEW_TRACKPG) {
     snprintf(buf, size, "%d/%d Track %u", u->track_page + 1, FM1_SEQ_UI_TRACK_PAGES,
              (unsigned)u->track + 1u);
+  } else if (u->view == FM1_SEQ_VIEW_SESSION) {
+    snprintf(buf, size, "Session T%u", (unsigned)u->track + 1u);
+  } else if (u->view == FM1_SEQ_VIEW_SONG) {
+    snprintf(buf, size, "Song T%u", (unsigned)u->track + 1u);
   } else {
     snprintf(buf, size, "%d/%d Seq T%u", snd->page + 1, snd->pages, (unsigned)u->track + 1u);
   }
