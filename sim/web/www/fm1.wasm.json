@@ -3,17 +3,16 @@
   "wasm_sha256": "3b12fb4568b36d0f7d411ab61862e87ac4f14b57deaf8debf8aacfa7dd15a6f8",
   "wasm_bytes": 1544271,
   "sources_sha256": {
-    "engines": "96f64b15b3f85a2d598e40ec5a493e0217ca9cccf63e0ecede2b4ffe538f3c0a",
+    "engines": "e317d9d797635fd47675bf6d65c3a302487346c8c73633cd2243ea402b81b2cc",
     "sim": "92c9e0d095f05ec5aaf084ef8ec090cc342a60ae0e8eeb6dd24975bfa92c0533"
   },
   "engines": "working tree",
-  "built": "2026-10-07T14:02:50Z",
+  "built": "2026-10-07T14:21:15Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
     "alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8",
-    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65",
-    "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27"
+    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65"
   ],
   "imports": [],
   "gpl_mods": 1,
@@ -181,10 +180,10 @@
       "applied": 82728,
       "resyncs": 0,
       "telemetry_blocks": 862,
-      "p50_ms": 0.0609670000000051,
-      "p99_ms": 0.09411000000000058,
-      "max_ms": 0.3015760000000114,
-      "edit_us_per_quantum": 7.654199497147876
+      "p50_ms": 0.06146800000000496,
+      "p99_ms": 0.09613400000000638,
+      "max_ms": 0.2171650000000227,
+      "edit_us_per_quantum": 7.724980272701144
     },
     "check": {
       "params": 467,
