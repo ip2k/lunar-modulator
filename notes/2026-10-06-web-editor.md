@@ -1164,8 +1164,8 @@ headless Chromium on aeon.
 the ARP view (HOME `entry=2` opens the ARP pages, the knobs turn the
 arpeggiator), `entry=3` refused with the state and ring unchanged, and the
 hash unmoved by a view verb, the ARP view and the current sound.
-`test/origins.mjs`: 8 good `sel` values read, 24 hostile ones (tags, a URL,
-`..`, control characters, 200 characters, numbers past the blocks) refused.
+`test/origins.mjs`: 8 good `sel` values read, 25 hostile ones (tags, a URL,
+`..`, control characters, overlong values, numbers past the blocks) refused.
 In headless Chromium 153 on aeon (`test/editor-ui.mjs`), all 76 checks pass,
 ED2's and ED3's included (so the page tests ED3's last commit missed have
 run): M1's export is `first-orbit-master.fx.lunar` of kind `fx`; selecting
