@@ -521,7 +521,12 @@
 .ed-ab-state { color: var(--muted); }
 .ed-ab-state.is-A, .ed-ab-state.is-B { color: var(--text); font-weight: 600; }
 .ed-ab-diff { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
-.ed-ab-diff li { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.ed-ab-diff li {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(5em, auto) minmax(5em, auto); gap: 2px 16px; align-items: baseline;
+  overflow-wrap: anywhere; font-variant-numeric: tabular-nums; padding: 2px 0; border-bottom: 1px solid var(--rp-highlight-low, var(--border));
+}
+.ed-ab-v { white-space: nowrap; }
+.ed-segbtn:disabled { opacity: 0.5; cursor: default; }
 .ed-ab-diff code { font-size: 0.8rem; color: var(--muted); }
 .ed-search[hidden] { display: none; }
 .ed-search {

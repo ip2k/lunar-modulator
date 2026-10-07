@@ -83,7 +83,7 @@ export function makeProject(ctx) {
   function wireDrop(node, key) {
     const t = targetOf(key);
     if (!t) return node;
-    node.dataset.drop = t.kind;
+    node.dataset.fileDrop = t.kind;   // not data-drop: that is chains.js's move target
     const clear = () => { node.classList.remove('is-drop-ok', 'is-drop-no'); node.removeAttribute('data-verdict'); };
     node.addEventListener('dragenter', (e) => {
       if (!hasFiles(e) && !(hasItem(e) && dragging)) return;
@@ -341,7 +341,7 @@ export function makeProject(ctx) {
       const list = el('ul', 'ed-ab-diff');
       for (const c of ab.diff.slice(0, 24)) {
         list.append(el('li', null, {}, [el('code', null, { text: c.path }),
-          el('span', null, { text: ` A ${short(c.a)} · B ${short(c.b)}` })]));
+          el('span', 'ed-ab-v', { text: `A ${short(c.a)}` }), el('span', 'ed-ab-v', { text: `B ${short(c.b)}` })]));
       }
       wrap.append(el('h3', 'ed-sec', { text: ab.diff.length ? `${ab.diff.length} difference${ab.diff.length === 1 ? '' : 's'}` : 'A and B are the same' }), list);
     } else if (ab.A) {
