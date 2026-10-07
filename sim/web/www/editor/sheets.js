@@ -131,18 +131,20 @@ export function makeSheets(ctx, h) {
   function wireMenu(node, key) {
     if (!node || node.dataset.menu) return node;
     node.dataset.menu = key;
-    let timer = 0, start = null, swallow = false;
+    let timer = 0, start = null, swallow = false, forget = 0;
     const clear = () => { clearTimeout(timer); timer = 0; start = null; };
     node.addEventListener('pointerdown', (e) => {
+      swallow = false;
       if (e.pointerType === 'mouse' || e.button !== 0) return;
       start = { x: e.clientX, y: e.clientY, id: e.pointerId };
       clearTimeout(timer);
-      timer = setTimeout(() => { timer = 0; swallow = true; blockMenu(key, node); }, HOLD_MS);
+      // The touch that opened the menu may end in a click: that one is not a selection. If none comes, it is forgotten.
+      timer = setTimeout(() => { timer = 0; swallow = true; clearTimeout(forget); forget = setTimeout(() => { swallow = false; }, 1200); blockMenu(key, node); }, HOLD_MS);
     });
     node.addEventListener('pointermove', (e) => { if (start && e.pointerId === start.id && Math.hypot(e.clientX - start.x, e.clientY - start.y) > SLOP) clear(); });
     node.addEventListener('pointerup', clear);
     node.addEventListener('pointercancel', clear);
-    node.addEventListener('contextmenu', (e) => { e.preventDefault(); clear(); swallow = true; blockMenu(key, node); });
+    node.addEventListener('contextmenu', (e) => { e.preventDefault(); clear(); blockMenu(key, node); });
     node.addEventListener('click', (e) => { if (swallow) { swallow = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
     return node;
   }

@@ -1041,7 +1041,7 @@ export function makeChains(ctx) {
       return;
     }
     const names = m.cables.map((i) => srcName(cableOf(i).src));
-    if (!m.chip) { m.chip = el('button', 'ed-chip-c', { type: 'button', 'data-fk': `${m.key}:${m.p.uid}:chip` }); m.chip.addEventListener('click', (e) => { e.stopPropagation(); const i = m.cables[0]; st.selCable = `c${i + 1}`; ctx.select(`c${i + 1}`, { view: 'mod' }); }); r.label.append(m.chip); }
+    if (!m.chip) { m.chip = el('button', 'ed-chip-c', { type: 'button', 'data-fk': `${m.key}:${m.p.uid}:chip` }); m.chip.addEventListener('click', (e) => { e.stopPropagation(); const i = m.cables[0]; st.selCable = `c${i + 1}`; ctx.select(`c${i + 1}`, { view: 'mod' }); }); r.label.append(document.createTextNode(' '), m.chip); }
     m.chip.textContent = names.length === 1 ? names[0] : `${names.length} cables`;
     m.chip.title = modSpoken(m.cables).replace(/^, m/, 'M');
     m.chip.setAttribute('aria-label', `${m.chip.title}: open cable ${m.cables[0] + 1}`);
@@ -1068,9 +1068,10 @@ export function makeChains(ctx) {
   function tickRows(f, dests) {
     const vd = secOf('voice_dests');
     const nv = vd ? vd.fields.length : 0;
-    for (const r of modRows) {
+    for (const r of [...modRows]) {
       const m = r.mod;
-      if (!m || !m.cables.length || !m.slider || !r.el.isConnected) continue;
+      if (!r.el.isConnected) { modRows.delete(r); continue; }        // a view that was drawn again: its rows are gone
+      if (!m || !m.cables.length || !m.slider) continue;
       const i = m.cables[0];
       const xs = [];
       if (vd && (cableOf(i).flags & VOICE)) {

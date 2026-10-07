@@ -20,7 +20,7 @@
 // None of it names an engine or decides a rule: C answers, the page shows
 // C's words. MIT licence, like the rest of this repository.
 
-import { ROLE, MIX_KEY, SOUNDS, INSERTS, blockKey, parseBlockKey, blockTag, ramPercent, ramWords, cableEmpty, pctOfQ14, SLOT_ON, VOICE } from './model.js';
+import { ROLE, MIX_KEY, SOUNDS, INSERTS, blockKey, parseBlockKey, parseModKey, blockTag, ramPercent, ramWords, cableEmpty, pctOfQ14, VOICE, SRC_MODULE } from './model.js';
 
 const ITEM_TYPE = 'application/x-lunar-item';
 const FILE_CAP = 262144;              // the module's text buffer (files.js TEXT_CAP)
@@ -397,6 +397,7 @@ export function makeProject(ctx) {
   // own loads, and their echoes for a moment after, do not.
   let loadTimer = 0;
   function onLoaded() {
+    if (st.ab.powering) { st.ab.powered = true; return; }          // the load that comes with power: see below
     if (st.ab.busy || performance.now() < (st.ab.quietUntil || 0)) return;
     clearTimeout(loadTimer);
     loadTimer = setTimeout(() => { if (!st.ab.busy && performance.now() >= (st.ab.quietUntil || 0)) keepA(true); }, 300);
@@ -404,8 +405,14 @@ export function makeProject(ctx) {
   window.addEventListener('fm1-power', (e) => {
     if (e.detail && e.detail.on) {
       // The project comes back from its autosave first (a load, which would set A); then A and B come back from storage.
-      st.ab.quietUntil = performance.now() + 2500;
-      setTimeout(() => { restoreAB(); }, 2700);
+      // A load that comes with it sets A as any load does, unless stored A and B come back for that project instead.
+      Object.assign(st.ab, { powering: true, powered: false });
+      setTimeout(async () => {
+        st.ab.powering = false;
+        const back = await restoreAB();
+        if (!back && st.ab.powered && !st.ab.A) keepA(true);
+        st.ab.powered = false;
+      }, 2700);
       return;
     }
     Object.assign(st.ab, { A: null, B: null, playing: null, diff: null, busy: false, picks: new Map() });
@@ -640,12 +647,16 @@ export function makeProject(ctx) {
       (st.mirror.cables || []).forEach((c, i) => {
         if (cableEmpty(c)) return;
         const src = chains.srcName(c.src), dst = chains.destName(c);
+        // A module also by its kind and place as one word ("lfo1", "env3"), the way a person says it.
+        const word = (pos) => { const k = pos >= 0 ? mm.kind(st.mirror.rack[pos]) : null; return k ? ` ${k.abbr}${pos + 1}` : ''; };
+        const srcWord = c.src >= SRC_MODULE && c.src < 255 ? word((c.src - SRC_MODULE) >> 3) : '';
+        const dstWord = word(parseModKey(mm.unitKey(c.unit) || ''));
         const key = mm.unitKey(c.unit);
         const srcInfo = mm.sources.get(c.src);
         const marks = chains.marks(i).map(([m]) => m).join('');
         const pct = pctOfQ14(c.amount);
         cables.push({ group: 'Cables', label: `Cable ${i + 1} · ${src} → ${dst} · ${pct > 0 ? '+' : ''}${pct} %${marks ? ` · ${marks}` : ''}`,
-          src: src.toLowerCase(), dst: dst.toLowerCase(), refused: !!chains.verdictOf(i).code, late: chains.isLate(i), voice: !!(c.flags & VOICE),
+          src: `${src}${srcWord}`.toLowerCase(), dst: `${dst}${dstWord}`.toLowerCase(), refused: !!chains.verdictOf(i).code, late: chains.isLate(i), voice: !!(c.flags & VOICE),
           sound: key ? soundOf(key) : -1, srcSound: srcInfo && srcInfo.sound ? srcInfo.sound - 1 : -1,
           run: () => { st.selCable = `c${i + 1}`; select(`c${i + 1}`, { view: 'mod' }); } });
       });

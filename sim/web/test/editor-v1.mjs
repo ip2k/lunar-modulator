@@ -250,11 +250,12 @@ async function search(q) {
   return r;
 }
 const q = {};
-for (const w of ['>cutoff', 'lfo>', '!', '~', 'v', 's2', 'hz', '>cutoff !', 'cable']) q[w] = await search(w);
+for (const w of ['>cutoff', 'lfo>', 'lfo1>', '>lfo2', '!', '~', 'v', 's2', 'hz', '>cutoff !', 'cable']) q[w] = await search(w);
 report.search = q;
 const only = (r, g) => r.groups.length === 1 && r.groups[0] === g;
 check('>cutoff finds the cables into a Cutoff, and only cables', only(q['>cutoff'], 'Cables') && q['>cutoff'].items.length === 1 && /Cable 3 · 1 LFO Out → S2 In1 Cutoff/.test(q['>cutoff'].items[0]), q['>cutoff']);
 check('lfo> finds the cables out of an LFO (all three of the loop file\'s)', only(q['lfo>'], 'Cables') && q['lfo>'].items.length === 3, q['lfo>']);
+check('a module can be said as a person says it: lfo1> is the cables out of the LFO in rack 1, >lfo2 the cables into the one in rack 2', only(q['lfo1>'], 'Cables') && q['lfo1>'].items.length === 2 && q['lfo1>'].items.every((t) => /Cable [13] /.test(t)) && only(q['>lfo2'], 'Cables') && q['>lfo2'].items.length === 1 && /^Cable 1 /.test(q['>lfo2'].items[0]), { a: q['lfo1>'], b: q['>lfo2'] });
 check('! finds the refused cables: C\'s verdict, not a guess', only(q['!'], 'Cables') && q['!'].items.length === 1 && /^Cable 3 /.test(q['!'].items[0]) && /!/.test(q['!'].items[0]), q['!']);
 check('~ finds the cable read a tick late', only(q['~'], 'Cables') && q['~'].items.length === 1 && /^Cable 2 /.test(q['~'].items[0]) && /~/.test(q['~'].items[0]), q['~']);
 check('v finds the per-voice cables', only(q.v, 'Cables') && q.v.items.length === 1 && /^Cable 3 /.test(q.v.items[0]), q.v);
@@ -478,6 +479,7 @@ await page.waitForFunction(() => window.fm1 && window.fm1.editor, null, { timeou
 await page.click('[data-layout="workbench"]');
 await page.click('#power-on');
 await page.waitForFunction(() => window.fm1.editor.state.mirror && window.fm1.editor.state.panelView && window.fm1.editor.state.mirror.blocks.size > 6, null, { timeout: 30000 });
+await page.addScriptTag({ path: new URL('./layout-probe.js', import.meta.url).pathname });
 await page.click('[data-layout="editor"]');
 await wait(4200);
 const back = await page.evaluate(() => { const ab = window.fm1.editor.state.ab; return { A: !!ab.A, B: !!ab.B, playing: ab.playing }; });
@@ -554,6 +556,42 @@ await wait(400);
 check('"Open its page" selects the block and closes the menu', await page.evaluate(() => !document.querySelector('.ed-sheet') && window.fm1.editor.state.selected === 's2.in1'), 'open its page');
 await page.setViewportSize({ width: 1440, height: 1000 });
 await wait(700);
+
+// ---- the new UI states, looked at by the layout probe (no overlap, no clipping, no sideways scroll) ---
+await loadMods(loopFile);
+await sel('s2.in1', 'sound');
+await page.evaluate(() => window.fm1.editor.project.keepA());
+await wait(600);
+await page.focus(`[data-fk="s2.in1:${abSetup.ps[0].uid}"]`);
+for (let i = 0; i < 4; ++i) await page.keyboard.press('ArrowRight');
+await wait(700);
+await page.evaluate(async () => { await window.fm1.editor.project.switchAB(); });
+await wait(900);
+const probeViews = [['sound', () => sel('s2.in1', 'sound')], ['flow', () => sel('s2', 'flow')],
+  ['mod-table', async () => { await sel('p1', 'mod'); await page.evaluate(() => { const t = [...document.querySelectorAll('.ed-mapsw [role=radio]')].find((b) => b.textContent === 'Table'); if (t) t.click(); }); await wait(400); }],
+  ['mod-map', async () => { await sel('p1', 'mod'); await page.evaluate(() => { const t = [...document.querySelectorAll('.ed-mapsw [role=radio]')].find((b) => b.textContent === 'Map'); if (t) t.click(); }); await wait(600); }],
+  ['slot', async () => { await sel('c2', 'mod'); await wait(300); }],
+  ['compare', () => sel('s2', 'ab')]];
+const faults = {};
+for (const w of [1440, 1024, 768, 375]) {
+  await page.setViewportSize({ width: w, height: 1000 });
+  await wait(700);
+  for (const [name, go] of probeViews) { await go(); await wait(300); faults[`${w}-${name}`] = await page.evaluate(() => window.lunarLayoutProbe()); if ((w === 375 && ['sound', 'mod-table', 'compare'].includes(name)) || (w === 1024 && name === 'sound')) await page.screenshot({ path: join(out, `v1-${w}-${name}.png`), fullPage: false }); }
+  if (w === 375) {
+    await page.evaluate(() => { document.querySelector('.ed-flow') || window.fm1.editor.select('s2', { view: 'flow' }); });
+    await sel('s2', 'flow');
+    await page.evaluate(() => document.querySelector('.ed-flow .ed-block[data-block="s2.in1"]').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })));
+    await wait(300);
+    faults['375-menu-open'] = await page.evaluate(() => window.lunarLayoutProbe());
+    await page.keyboard.press('Escape');
+  }
+}
+await page.evaluate(() => { const t = [...document.querySelectorAll('.ed-mapsw [role=radio]')].find((b) => b.textContent === 'Table'); if (t) t.click(); });
+await page.setViewportSize({ width: 1440, height: 1000 });
+await wait(700);
+report.faults = faults;
+const dirty = Object.entries(faults).filter(([, v]) => v.length);
+check('the new UI at 1,440, 1,024, 768 and 375 px (modulated rows, counts and bars, late marks, the slot, Compare with picks, a menu): no overlap, clipping or sideways scroll', dirty.length === 0, dirty.slice(0, 4).map(([k, v]) => `${k}: ${v.slice(0, 3).join(' | ')}`));
 
 // ---- 10. §17's leftovers ---------------------------------------------------------------------
 // axe-core on the layouts: the editor at 1,440 and 1,024 px in every view, and at 375 px.
