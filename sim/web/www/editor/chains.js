@@ -445,7 +445,13 @@ export function makeChains(ctx) {
   // modulation (flag mod), the modules' gates, the host's.
   function destList() {
     const out = [];
-    const add = (group, unit, list) => { for (const x of list) out.push({ group, value: `${unit}:${x.dst}:${x.gate ? 1 : 0}`, name: x.name }); };
+    // Each named in full (a closed list shows only the option), grouped by block.
+    const add = (group, unit, list) => {
+      for (const x of list) {
+        out.push({ group, value: `${unit}:${x.dst}:${x.gate ? 1 : 0}`,
+          name: destName({ src: 1, via: NONE, unit, dst: x.dst, flags: SLOT_ON | (x.gate ? GATE_DST : 0), amount: 1, offset: 0 }) });
+      }
+    };
     const keys = [];
     for (let k = 0; k < SOUNDS; ++k) { keys.push(blockKey(ROLE.SOUND, k)); for (let j = 0; j < INSERTS; ++j) keys.push(blockKey(ROLE.INSERT, k, j)); }
     for (let j = 0; j < MASTERS; ++j) keys.push(blockKey(ROLE.MASTER, 0, j));
@@ -457,7 +463,7 @@ export function makeChains(ctx) {
       const e = meta.engine(blk.engine);
       if (!e) continue;
       const list = e.params.filter((p) => hasFlag(p, 'mod')).map((p) => ({ dst: p.uid, name: p.name }));
-      if (isModule(key)) (mm.kind(blk.engine).gates || []).forEach((g, gi) => list.push({ dst: gi, name: `${g.name} (gate)`, gate: true }));
+      if (isModule(key)) (mm.kind(blk.engine).gates || []).forEach((g, gi) => list.push({ dst: gi, name: g.name, gate: true }));
       add(`${blockTag(key)} · ${e.name}`, unit, list);
     }
     const hostCode = mm.unitCode('host');
