@@ -424,7 +424,7 @@ class FM1Processor extends AudioWorkletProcessor {
     if (this.editor) {
       const t2 = clock ? clock() : 0;
       this.postEditor();
-      if (clock) this.measure(t0, t2 - t1, left.length);
+      this.measure(t0, t2 - t1, left.length);
     }
     return true;
   }
@@ -433,13 +433,18 @@ class FM1Processor extends AudioWorkletProcessor {
   // plays is late; the edit layer's own share is counted apart.
   measure(t0, renderMs, frames) {
     const s = this.stats;
-    const ms = clock() - t0;
     s.quanta += 1;
-    s.editMs += ms - renderMs;
-    if (ms > s.maxMs) s.maxMs = ms;
-    if (ms > (1000 * frames) / sampleRate) s.late += 1;
+    if (clock) {
+      const ms = clock() - t0;
+      s.editMs += ms - renderMs;
+      if (ms > s.maxMs) s.maxMs = ms;
+      if (ms > (1000 * frames) / sampleRate) s.late += 1;
+    }
     if (s.quanta % 345 === 0) {           // about once a second
-      this.editor.postMessage({ type: 'stats', quanta: s.quanta, late: s.late, maxMs: s.maxMs, editMs: s.editMs });
+      this.editor.postMessage({
+        type: 'stats', quanta: s.quanta, timed: s.timed,
+        late: s.timed ? s.late : null, maxMs: s.timed ? s.maxMs : null, editMs: s.timed ? s.editMs : null,
+      });
     }
   }
 }
