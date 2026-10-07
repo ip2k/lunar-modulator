@@ -12,8 +12,9 @@
 # test/files.mjs for Open, Save, storage, links and the embed API, then
 # test/editor.mjs, a 30-second storm on the editor's port of the real
 # AudioWorklet, then test/editor-ui.mjs, the editor's shell, flow and sound
-# (follow, undo, PLAY and EDIT, every inspector, the layouts), all in the
-# Playwright container), and brings back www/fm1.wasm, www/meta.json, www/fm1.wasm.json
+# (follow, undo, PLAY and EDIT, every inspector, the layouts), then
+# test/editor-reach.mjs (keyboard, screen-reader and phone passes, gain
+# read-outs), all in the Playwright container), and brings back www/fm1.wasm, www/meta.json, www/fm1.wasm.json
 # and the screenshots (sim/web/build/screenshots/). Nothing runs on this
 # machine but ssh, tar and scp; nothing is installed on aeon's host.
 #
@@ -117,6 +118,7 @@ if [ "$SCREENSHOT" = 1 ]; then
            s=\$?; PLAYWRIGHT_DIR=/pw node /src/sim/web/test/files.mjs /src/sim/web/www /src/sim/web/build/screenshots \
              || s=1; PLAYWRIGHT_DIR=/pw node /src/sim/web/test/editor.mjs /src/sim/web/www /src/sim/web/build/screenshots 30 \
              || s=1; PLAYWRIGHT_DIR=/pw node /src/sim/web/test/editor-ui.mjs /src/sim/web/www /src/sim/web/build/screenshots \
+             || s=1; PLAYWRIGHT_DIR=/pw node /src/sim/web/test/editor-reach.mjs /src/sim/web/www /src/sim/web/build/screenshots \
              || s=1; if [ $README_SHOTS = 1 ] && [ \$s = 0 ]; then \
              PLAYWRIGHT_DIR=/pw node /src/sim/web/test/readme-screenshots.mjs /src/sim/web/www \
                /src/sim/web/build/readme-screenshots /src/sim/web/build/parity; s=\$?; fi; \

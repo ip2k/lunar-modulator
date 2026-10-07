@@ -620,3 +620,8 @@
   }
   .ed-mx-r > :nth-child(7)::before { text-align: right; }
 }
+
+/* Focus (§13): one ring for everything the editor draws, 2 px in the focus colour. */
+.ed :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.ed .ed-slider:focus-visible, .ed .ed-block:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+@media (forced-colors: active) { .ed :focus-visible { outline-color: Highlight; } }

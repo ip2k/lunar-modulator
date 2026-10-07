@@ -442,7 +442,17 @@ export async function startEditor(env) {
     }
   }
 
-  function say(text) { live.textContent = text; }
+  // At most one announcement a second (§13): the first at once, then the
+  // latest of any that follow, when the second is up.
+  let sayAt = -1e9, sayTimer = 0, sayLast = '';
+  function say(text) {
+    const wait = 1000 - (performance.now() - sayAt);
+    sayLast = text;
+    if (wait <= 0 && !sayTimer) { sayAt = performance.now(); live.textContent = text; return; }
+    if (!sayTimer) {
+      sayTimer = setTimeout(() => { sayTimer = 0; sayAt = performance.now(); live.textContent = sayLast; }, Math.max(0, wait));
+    }
+  }
 
   // ---- RAM by part (§11: a percentage of the FM-1's budget only) -----------------------
   function onRam(m) {
@@ -1282,7 +1292,7 @@ export async function startEditor(env) {
 
   render();
   const api = {
-    setLayout, state: st, history, meta, mm, chains, rows, select, undo, redo, setKeys, project,
+    setLayout, state: st, history, meta, mm, chains, rows, select, undo, redo, setKeys, project, say,
     applyLink: (l) => project.applyLink(l),
     // The page test's hooks: an inspector for any module, drawn from the
     // metadata with its defaults, and the mirror as it stands.
