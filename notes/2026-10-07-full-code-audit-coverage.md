@@ -223,20 +223,20 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/mi_macro_heavy.cc` — READ completely (907 lines); voice/model/arena lifecycle, shared Speech bank and quantizer, stereo resampler handoff, note/glide ordering, per-note controls, LPG/self-envelope termination and failure paths reviewed; batch 55 (2026-10-07)
 - [x] `engines/src/mi_shapes.cc` — READ completely (465 lines); held-note/glide integration, fixed 96 kHz chunk/resampler, per-note controls, Shape update, oscillator bounds/safe Timbre and envelope lifecycle reviewed; batch 57 (2026-10-07)
 - [x] `engines/src/mi_sixop.cc` — READ completely (516 lines); DX patch parsing/cache, pitch/transpose/glide order, one-sample gate-low priming, LFO lead/follower ownership, voice freeing, resampler and scratch bounds reviewed; batch 56 (2026-10-07)
-- [ ] `engines/src/msfa.h` — PENDING
+- [x] `engines/src/msfa.h` — READ completely; vendored include/namespace and ROM pointer interface reviewed; batch 63 (2026-10-07)
 - [x] `engines/src/msfa_dx7.cc` — READ completely (777 lines); DX voice setup/render/release and user-slot paths plus glide/Mono/Legato operator retuning, Q24 conversion, per-note offsets and fixed-rate LFO/envelope behavior reviewed; batches 40, 58 (2026-10-07)
-- [ ] `engines/src/msfa_prelude.h` — PENDING
-- [ ] `engines/src/msfa_rom.cc` — PENDING
-- [ ] `engines/src/msfa_tables.cc` — PENDING
-- [ ] `engines/src/msfa_unit.cc` — PENDING
+- [x] `engines/src/msfa_prelude.h` — READ completely; header guards, system include placement, portable-kernel substitution, table macros and oracle variant reviewed; batch 63 (2026-10-07)
+- [x] `engines/src/msfa_rom.cc` — Generated constant-table tier reviewed through complete generator equivalence (`tools/msfa_tables.py --check` passes), declarations and data boundaries; SHA-256 `8e1acae454fd9b5e1ff3b16ac97fcd1b17328cac651d132897981f309c47014a`; batch 63 (2026-10-07)
+- [x] `engines/src/msfa_tables.cc` — READ completely; const table pointer wiring and arbitrary-rate table generation reviewed; batch 63 (2026-10-07)
+- [x] `engines/src/msfa_unit.cc` — READ completely; production/oracle namespace split and separate translation-unit contract reviewed; batch 63 (2026-10-07)
 - [x] `engines/src/note_offsets.h` — READ completely (87 lines); bit layout, offset normalization, clear/set and clamped effective-value path reviewed; batch 62 (2026-10-07)
 - [x] `engines/src/registry.cc` — READ complete; build/GPL/module table consistency (batch 22)
-- [ ] `engines/src/schwung_abi.h` — PENDING
-- [ ] `engines/src/schwung_module_prefix.h` — PENDING
+- [x] `engines/src/schwung_abi.h` — READ completely; 32/64-bit ABI assertion adaptation and C linkage reviewed; batch 63 (2026-10-07)
+- [x] `engines/src/schwung_module_prefix.h` — READ completely; allocator and decimal parser redirection scope reviewed; batch 63 (2026-10-07)
 - [ ] `engines/src/schwung_shim.cc` — PENDING
 - [ ] `engines/src/schwung_shim.h` — PENDING
-- [ ] `engines/src/sw_psxverb.cc` — PENDING
-- [ ] `engines/src/sw_sophie.cc` — PENDING
+- [x] `engines/src/sw_psxverb.cc` — READ completely; parameter/key table, headroom, memory budget and effect API descriptor reviewed; batch 63 (2026-10-07)
+- [x] `engines/src/sw_sophie.cc` — READ completely; pad focus mapping, per-focus fields, lock flags, entry key formatting, memory budget and engine descriptor reviewed; batch 63 (2026-10-07)
 - [ ] `engines/src/test_ext.cc` — PENDING
 - [ ] `engines/src/test_gain.cc` — PENDING
 - [ ] `engines/src/test_sine.cc` — PENDING
@@ -290,8 +290,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/test/mod_kinds_test.c` — READ; audit report batches 15–16; not executed
 - [x] `engines/test/mod_mi_ref.cc` — READ; audit report batch 16; not executed
 - [ ] `engines/test/mod_refusal_test.c` — PENDING
-- [ ] `engines/test/msfa_ref.cc` — PENDING
-- [ ] `engines/test/msfa_ref.h` — PENDING
+- [x] `engines/test/msfa_ref.cc` — READ completely; oracle table initialization and reference pointer lifetime reviewed; batch 63 (2026-10-07)
+- [x] `engines/test/msfa_ref.h` — READ completely; test-only table API declarations reviewed; batch 63 (2026-10-07)
 - [ ] `engines/test/param_get_test.cc` — PENDING
 - [ ] `engines/test/plate_test.cc` — PENDING
 - [ ] `engines/test/ref_braids_fx.cc` — PENDING
@@ -518,7 +518,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tools/movy-oracle/gen_scripts.py` — PENDING
 - [ ] `tools/movy-oracle/regen-fixtures.sh` — PENDING
 - [ ] `tools/movy-oracle/run-on-aeon.sh` — PENDING
-- [ ] `tools/msfa_tables.py` — PENDING
+- [x] `tools/msfa_tables.py` — READ completely; Decimal trigonometric/table formulas, rounding, fixed rate and deterministic output generation reviewed; `--check` passed; batch 63 (2026-10-07)
 - [ ] `tools/seq_bench.py` — PENDING
 - [ ] `tools/state_examples.py` — PENDING
 - [ ] `tools/state_goldens.py` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `1b61185e9b5e564d16b51a9f4e9025d8ab47a11d` (Batches 1–61; remote SHA verified). Batch 62 is pending checkpoint.
+- Last pushed commit: `417f03625d156031f8c12faa44649730dcde2f7f` (Batches 1–62; remote SHA verified). Batch 63 is pending checkpoint.
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
