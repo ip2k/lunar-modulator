@@ -344,3 +344,11 @@ No confirmed defect was established in these implementations. Echo and EQ regres
 Read `engines/src/fx_filter.cc` (855 lines) and `fx_filter_dsp.h` (114) completely. Reviewed the six processors (SVF, transistor ladder, diode ladder, Sallen-Key, SK Mixed and Formant), their secant-based nonlinear solves, per-type coefficient storage, cutoff/mode/morph mapping, type reset/warm/crossfade queue, control-grid timing, level/mix path and flush behavior. Checked the shared bit-based `exp2`/`log2` domains and input guard against the supported sample-rate and clamped-parameter ranges.
 
 No confirmed defect was established in this source pair. The main Filter regression suite and cross-platform sanitizer/parity checks remain pending. No source changes, builds or tests occurred.
+
+### Batch 46 — Fold and Gate effects
+
+Read `engines/src/fx_fold.cc` (391 lines) and `fx_gate.cc` (779) completely. Traced Fold's periodic curve reduction, small-step corner integral, larger-step antiderivative, symmetry offset cancellation, DC blocker and tone-state lifecycle. In Gate, followed Schmitt/hysteresis episodes, accepted-trigger and lockout behavior, attack/hold/decay ramps, threshold-derived gains, two key SVFs, link/listen interpolation, caller-provided key/state hooks, aligned lookahead allocation and circular read/write indices.
+
+**[P3] Gate advertises 5 ms maximum lookahead but caps actual delay at 510 frames. [verified]** The supported sample-rate range is 8–384 kHz (`fx_gate.cc:159-160`), while the requested maximum is computed as 5 ms (`:164`, `:419-423`) and then capped at 510 frames (`:423`). `Lookahead=5` therefore yields at most 2.66 ms at 192 kHz and 1.33 ms at 384 kHz; the advertised 5 ms is reachable only through 102 kHz. This is the behavior of an explicit memory cap, so the defect is the mismatch with the parameter's advertised range, not an unbounded allocation. Confidence high from the rate, conversion and cap expressions; no renderer run was performed. The Limiter uses a similar cap and needs comparison when its source batch is reviewed.
+
+Fold and Gate regression suites remain pending source review and execution. No source changes or device actions occurred.
