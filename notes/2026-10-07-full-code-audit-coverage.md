@@ -393,16 +393,16 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tests/test_dongle_model.py` — READ; audit report batch 2 (2026-10-07)
 - [ ] `tests/test_engine_acid_bass.py` — PENDING
 - [x] `tests/test_engine_acid_gen.py` — READ completely (331 lines); TB-3PO equivalence, effect timing, key/project context, GPL listing and allocation-symbol tests reviewed; batch 35; not executed
-- [ ] `tests/test_engine_api_v3.py` — PENDING
-- [ ] `tests/test_engine_api_v4.py` — PENDING
+- [x] `tests/test_engine_api_v3.py` — READ completely (299 lines); effect-extension transport timing, legacy v2 path, LOG positioning/locks, UI knob/bar and modulation behavior reviewed; batch 75
+- [x] `tests/test_engine_api_v4.py` — READ completely (82 lines); get/copy/replay contract and focused pad-kit coverage reviewed; batch 75
 - [x] `tests/test_engine_arp.py` — READ completely (951 lines); golden tables/order, Yarns parity, timing, note balance, randomized capacity and origin/grid scenarios reviewed; batch 34; not executed
 - [ ] `tests/test_engine_comet_kit.py` — PENDING
 - [ ] `tests/test_engine_crater_kit.py` — PENDING
 - [x] `tests/test_engine_drums.py` — READ completely (718 lines); all pad/model/choke/voice pressure, parameter, block-size, memory-fill, per-note and extreme-value assertions reviewed; batch 39 (2026-10-07)
-- [ ] `tests/test_engine_editor_meta.py` — PENDING
+- [x] `tests/test_engine_editor_meta.py` — READ completely (376 lines); editor metadata v1.1–1.3, source groups, curves, refusals, telemetry, stable ids and switch-dependent licensing projections reviewed; batch 75
 - [x] `tests/test_engine_felucca.py` — READ completely (531 lines); source-reviewed oracle, factory sound, stability, block/rate, latch, instance isolation and per-note regression cases; not executed; batch 41 (2026-10-07)
 - [x] `tests/test_engine_glide.py` — READ completely (835 lines); exact pitch-path oracle, all voice/glide/time modes, note stack, duplicate/high keys, block/memory parity and FM-1-rate timing scenarios reviewed; execution pending; batch 53 (2026-10-07)
-- [ ] `tests/test_engine_host.py` — PENDING
+- [x] `tests/test_engine_host.py` — READ completely (129 lines); limiter bad-sample recovery, initial memory independence, parameter extremes, pitch bend and live parameter changes reviewed; batch 75
 - [x] `tests/test_engine_metadata.py` — READ completely (158 lines); canonical export, independent CLI comparison, instance sizes, schema limits, key vocabulary and float differential tests reviewed; batch 72
 - [x] `tests/test_engine_midi_fx.py` — READ completely (652 lines); host chain/bypass/lifetime, tempo/grid/TRG, fuzz, CLI refusal and no-heap tests reviewed; batch 35; not executed
 - [x] `tests/test_engine_names.py` — READ completely (153 lines); enum append-only pins, alias and known-id consistency, and generated C table check reviewed; batch 74

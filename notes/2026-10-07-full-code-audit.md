@@ -520,3 +520,9 @@ No additional confirmed product defect was established by these test sources. Th
 Read `tests/test_state_render.py` (226 lines), `tests/test_engine_names.py` (153) and `tests/test_engine_params.py` (355) completely. Traced saved sound state versus CLI-flag rendering, loaded state round trips, binary equivalence, RAM/missing-engine/full-rack refusal and clip-to-set lane placement. Reviewed enum append-only records, alias/retired-uid and known-id checks, generated registry consistency, full parameter UID/flag fixture coverage, focus/per-focus save behavior, native versus Schwung UID ranges, LOG/unit/abbr rules and the API v4 parameter-contract selftest path.
 
 No additional confirmed product defect was established. The engine metadata and render tests depend on native executables that are absent here, so no runtime or audio parity result is claimed. No source, device or licence changes occurred.
+
+### Batch 75 — Engine API and editor metadata tests
+
+Read `tests/test_engine_api_v3.py` (299 lines), `tests/test_engine_api_v4.py` (82), `tests/test_engine_host.py` (129), and `tests/test_engine_editor_meta.py` (376) completely. Traced transport callbacks and beat frame expectations, v2 compatibility, LOG parameter/lock interpolation and modulation behavior, UI encoder/bar rendering assertions, focused get/copy/replay restoration contracts, bad-sample limiter recovery, initial-memory independence, parameter extrema and bend/live-change paths. Reviewed editor metadata schema/version field ordering, source groups and ranges, module layout ids, runtime curve samples, refusal/page/group/telemetry stability, metadata CRC and GPL-on/off checks.
+
+No additional confirmed product defect was established in these test sources. Their native renderers, simulator and refusal/selftest tools were not run in this worktree. No source, device or licence changes occurred.
