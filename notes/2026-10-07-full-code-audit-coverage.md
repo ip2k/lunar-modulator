@@ -485,15 +485,15 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tests/test_uboot_read.py` — READ; audit report batch 1 (2026-10-07)
 - [x] `tests/test_uboot_restore.py` — READ; audit report batch 1 (2026-10-07)
 - [x] `tests/test_usb_key_pio.py` — READ; audit report batch 2 (2026-10-07)
-- [ ] `tools/check_msfa_table.py` — PENDING
+- [x] `tools/check_msfa_table.py` — READ complete (123 lines); anchor/truncation behavior and file/XIP offset reporting reviewed; batch 127 (2026-10-08)
 - [x] `tools/dx7_bank.py` — READ completely (604 lines); bank source DSL, parameter conversion/packing, SysEx, header and test-data generation reviewed; `--check` and `--test-bank --check` pass; batch 40
-- [ ] `tools/extract_fwsc_from_updater.py` — PENDING
+- [x] `tools/extract_fwsc_from_updater.py` — READ complete (91 lines); trailer search, candidate bounds, package validation and output behavior reviewed; crafted decoy regression confirmed in batch 127 (2026-10-08)
 - [x] `tools/fm1_identify.py` — READ; audit report batch 2 (2026-10-07)
 - [x] `tools/fm1_identify.sh` — READ; audit report batch 2 (2026-10-07)
 - [x] `tools/fm1_softkey_probe.py` — READ; audit report batch 1 (2026-10-07)
 - [x] `tools/fm1_uboot_read.py` — READ; audit report batch 1 (2026-10-07)
 - [x] `tools/fm1_uboot_restore_test.py` — READ; audit report batch 1 (2026-10-07)
-- [ ] `tools/gen_known.py` — PENDING
+- [x] `tools/gen_known.py` — READ complete (91 lines); generated C escaping, schema assumptions, alias sentinels and stale-check/write paths reviewed; batch 127 (2026-10-08)
 - [x] `tools/jieli/analyze.py` — READ; audit report batch 3 (2026-10-07)
 - [x] `tools/jieli/audit_link.py` — READ; audit report batch 3 (2026-10-07)
 - [x] `tools/jieli/compile-check.sh` — READ; audit report batch 3 (2026-10-07)

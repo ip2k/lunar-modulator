@@ -817,6 +817,14 @@ The templates still describe device firmware as not yet running on the FM-1 and 
 
 No new confirmed CSS/template defect was established in this source pass. Some visual claims and responsive interactions need output-level verification, but no large manual build or browser rendering was run in this batch. No source, hardware or licence changes occurred.
 
+### Batch 127 — firmware image inspection and generated-name tools
+
+Read all 305 lines of `tools/check_msfa_table.py`, `tools/extract_fwsc_from_updater.py`, and `tools/gen_known.py`. Reviewed binary anchor matching, partial-table handling, package trailer/length/chip validation, multi-slice output naming and write behavior, plus generated C string escaping, alias row selection and sentinel/count output. The generated-name check path was source reviewed; its test is recorded elsewhere in the coverage manifest.
+
+**[P3] A length-matching decoy can stop the firmware-package search before the real package. [verified]** In `tools/extract_fwsc_from_updater.py:56-64`, the reverse scan breaks on the first length word that matches the trailer boundary even when the candidate fails the `AC791N` marker check. A crafted 200 KiB minimum-size valid package with a closer length-matching non-AC791N candidate returned no package in a small in-memory reproduction. Thus an updater with a coincidental framing decoy before a valid embedded package produces a false negative; ordinary tested updater copies are not known to contain this layout. This is a diagnostic-tool P3, high confidence for the control-flow defect, low confidence that a shipped updater triggers it.
+
+`check_msfa_table.py` can report a truncated table if the anchor occurs too close to EOF, but it safely emits short rows and flags the differences; this is a malformed-input diagnostic limitation, not a separate ranked finding. No source, hardware or licence changes occurred.
+
 ### Batch 122 — resampler test and analysis utility
 
 Read all 705 lines of `engines/test/resampler_test.cc`, cross-checked its API assumptions against `engines/include/fm1_resampler.h` (389 lines, previously read in batch 21), and reviewed `tests/test_engines_resampler.py`'s ring-window assertion and command matrix (506 lines, batch 82). Reviewed every executable mode: table and passband sweep, timing/FFT fit, benchmark, exact pass-through, chunk equivalence, worst-case gains, refusal, poisoned input-ring windows, WAV conversion, tone probes and peak extraction. The 4:1 endpoint is included in the read-window scan: the rates vector's first 3,000 points ends at exactly 4:1, and index 2,999 is visited by the `i = 9; i < 3000; i += 10` loop; no finding was filed for that case.
