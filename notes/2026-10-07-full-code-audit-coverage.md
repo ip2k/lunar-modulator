@@ -514,7 +514,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tools/manual/mdext.py` — READ complete (208 lines); directive preprocessing, inline parsing, heading/status/control bookkeeping and extension priorities reviewed; batch 130 (2026-10-08)
 - [x] `tools/manual/policy.py` — READ complete (40 lines); private-path/network and project-brand scan rules reviewed; batch 129 (2026-10-08)
 - [x] `tools/manual/reference.py` — READ complete (398 lines); generated engine tables, tool-bound metadata, sequencer constants/verbs and memory output reviewed; batch 131 (2026-10-08)
-- [ ] `tools/movy-oracle/driver/src/main.rs` — PENDING
+- [x] `tools/movy-oracle/driver/src/main.rs` — READ complete (661 lines); script bounds, panic handling, JSON output, whole-block/frame replay equivalence, event/tick attribution, state IO and CLI review; batch 135 (2026-10-08)
 - [x] `tools/movy-oracle/gen_scripts.py` — READ complete (603 lines); seeded script synthesis, model bounds, undo/capture, frame ordering and CLI parameters reviewed; batch 134 (2026-10-08)
 - [x] `tools/movy-oracle/regen-fixtures.sh` — READ complete (30 lines); fixture copy/delete semantics and remote orchestration reviewed; not run; batch 134 (2026-10-08)
 - [x] `tools/movy-oracle/run-on-aeon.sh` — READ complete (105 lines); remote command quoting, container mounts, cleanup, rsync and job lifecycle reviewed; command-injection edge confirmed by expansion analysis; not run; batch 134 (2026-10-08)
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: batch 124 pending checkpoint; previous pushed commit `c3382a8693a91f441c130b993ed75eabaf143dbf` (Batches 1–124; remote SHA verified).
+- Last pushed commit: batch 135 pending checkpoint; previous pushed commit `3adb5da00f5b22cf79ec7e2be4203f2a830b116e` (Batches 126–134; remote SHA verified).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
