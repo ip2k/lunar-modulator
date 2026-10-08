@@ -532,3 +532,9 @@ No additional confirmed product defect was established in these test sources. Th
 Read `tests/test_ci_pins.py` (35 lines), `tests/test_gpl_switch.py` (262), and `tests/test_engine_acid_bass.py` (355) completely. Traced CI browser/package-version pinning, switch-on/off generated build selection, dependency-file and object-symbol checks, license/source directory mapping, page notice and build-record checks, and scenario GPL labels. Reviewed Acid Bass upstream-vendoring checks, C oracle parity on 16-sample scheduling across rates/block sizes, parameter-to-unit mapping, mono slide/retrigger/release, velocity accent, pitch bend and per-note offsets, latch/smooth paths, extreme inputs, idle quieting and the realtime cost bound.
 
 No additional confirmed defect was established in these test sources. The GPL switch tests invoke native `make -j4`, inspect built artifacts, and run licensing metadata paths; none were run here. The Acid Bass native/audio tests also remain unexecuted. No code or licensing report was changed.
+
+### Batch 77 — Comet Kit integration and audio tests
+
+Read `tests/test_engine_comet_kit.py` (690 lines) completely. Reviewed its GPL-only gate, source-vendoring and generated-sample reproducibility checks, 16-sample oracle parity, 9W9 pot mapping, all-pad rendering, voice lifecycle and hat choke assertions, latch/smooth behavior, block/memory/rate invariance, extreme-value and subnormal checks, cost bound, and the 8-bit mu-law cymbal provenance and SNR calculations.
+
+No additional confirmed defect was established in this test source. The oracle, renderer and generated int16 reference header are unavailable in this worktree, so no audio parity or runtime results are claimed. In particular, source-review of the loudness/SNR expectations is not a substitute for running their fixtures. No source, device or licence changes occurred.
