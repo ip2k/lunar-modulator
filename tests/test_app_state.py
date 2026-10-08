@@ -18,7 +18,7 @@ import subprocess
 import pytest
 
 from tests import state_canon as canon
-from tests.engine_helpers import GPL_MODS, ROOT, gpl_only, renderer  # noqa: F401
+from tests.engine_helpers import ROOT, gpl_only, renderer  # noqa: F401
 from tests.test_sim_web import tools  # noqa: F401
 from tools import lunar_state as ls
 

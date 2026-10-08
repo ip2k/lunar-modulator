@@ -11,7 +11,7 @@
 // `verdictFor`), and what a menu item does is what the same control in the
 // inspector does. MIT licence, like the rest of this repository.
 
-import { blockTag, parseBlockKey, parseModKey, isModuleSource } from './model.js';
+import { blockTag, parseModKey, isModuleSource } from './model.js';
 
 const HOLD_MS = 500;       // a long press
 const SLOP = 8;            // px a held touch may drift
