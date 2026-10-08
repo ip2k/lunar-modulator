@@ -93,17 +93,25 @@ FM1_GPL_MODS`, its sources in its own fragment; CI tests both settings, and
 `tests/test_gpl_switch.py` fails if the switch-off build compiles, links or
 lists anything GPL. Details: docs/12 §6.
 
-## The one rule
+## Hardware experimentation policy (owner revised, 2026-10-07)
 
-**Nothing gets flashed to, or written on, the FM-1 until a full flash dump and a
-byte-identical restore have been demonstrated on that unit.** There is one
-device, one flash bank, no debug pads, and no proven recovery path. The only
-traffic allowed before that is the read-only identity query
-`F0 00 32 45 00 00 00 40 7F F7` and passive captures. See `docs/07` §4 for the
-full rules of engagement; they come from AL-255's safety review and are not
-negotiable without new evidence. The owner's own install of FM-1+VA
-(2026-09) was the owner's call and does not relax the rule for anything this
-project builds or sends.
+The owner explicitly replaced the blanket dump-and-byte-identical-restore
+precondition, authorizing exploration of soft-key UBOOT entry and dump/restore
+on bench01 without waiting for the development kit. A prior full restore is
+**not** required to attempt recovery entry, read flash, or prepare a prototype.
+
+Proceed in recorded stages: identify the connected unit; send the vetted
+`F0 22 24 35 7D F7` soft key once and observe USB enumeration; use a reviewed,
+allowlisted RAM loader for private full-flash backups; then evaluate a bounded
+restore or prototype installation with its concrete image and recovery plan.
+Take and compare backups before any flash erase/program operation. Do not infer
+proven recovery from UBOOT enumeration alone. No blanket erase, arbitrary vendor
+commands or eFuse programming is authorized. Keep the stock SPL, OTA/cfg and
+partition safeguards; a prototype must retain a route back to USB update mode.
+
+The current experiment and authorization are recorded in
+`notes/2026-10-07-fm1-softkey-bench.md`; docs/07 §4 holds the revised rules.
+Historical references to "the one rule" describe the superseded policy.
 
 ## Hardware in one table
 
@@ -202,9 +210,10 @@ vendor packages there.
    - Stock V15 reboots into mask-ROM `UBOOT1.00` on it [reported:
      FM-1-transporter `a632d92`]; FM-1_092 is unchecked. The upgrade command
      `F0 22 24 35 7F F7` differs by one byte.
-   - Never send it before the dump-and-restore gate (the one rule).
+   - Send it only through the authorized staged hardware plan above; a prior
+     full restore is no longer a precondition for this probe.
    - FM-1-transporter's `fm1t.py` sends it by itself when it sees V15
-     [verified: its README]: never run that tool against the owner's unit.
+     [verified: its README]: do not run its unreviewed automatic path against the owner's unit.
      Its key drive is also push-pull with no series resistors, which docs/10
      E1 rules out [verified: `pio/usb_key.pio`, README].
 10. **Audio is ALNK0 (I2S, `0x12E00`) to an external codec, not the

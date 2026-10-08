@@ -9,6 +9,12 @@ history.
 ## [Unreleased]
 
 ### Added
+- A Linux soft-key probe with fresh identity checks, an exact exception for
+  the known FM-1_092 identity-checksum bug, a two-message allowlist and
+  durable USB/session logs. No loader upload or flash commands in this tool.
+- Owner-authorized staged bench01 recovery experiments replace the blanket
+  prior-dump-and-restore prerequisite; the dev kit is no longer a prerequisite
+  for soft-key exploration. Stock package and eFuse safeguards remain.
 - **The editor's page tests run in CI.** A new job, `editor-page-tests`, runs
   the Advanced editor's tests (`editor-unit`, `editor-ui`, `editor-reach`,
   `editor-map`, `editor-v1` and the 30-second storm) in Chromium, Firefox and
