@@ -395,7 +395,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_engine_acid_gen.py` — PENDING
 - [ ] `tests/test_engine_api_v3.py` — PENDING
 - [ ] `tests/test_engine_api_v4.py` — PENDING
-- [ ] `tests/test_engine_arp.py` — PENDING
+- [x] `tests/test_engine_arp.py` — READ completely (951 lines); golden tables/order, Yarns parity, timing, note balance, randomized capacity and origin/grid scenarios reviewed; batch 34; not executed
 - [ ] `tests/test_engine_comet_kit.py` — PENDING
 - [ ] `tests/test_engine_crater_kit.py` — PENDING
 - [ ] `tests/test_engine_drums.py` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `f70e4361f3c547004b9b1c07c3bec3d5b71bf936` (Batches 1–32; remote SHA verified). Batch 33 is pending checkpoint.
-- Outstanding: see all `PENDING` entries above; broader MIDI-effect tests, engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. MIDI-effect regression tests remain unexecuted.
+- Last pushed commit: `0eb95df5e7adb078a2d62b9cb75426d0d151af6e` (Batches 1–33; remote SHA verified). Batch 34 is pending checkpoint.
+- Outstanding: see all `PENDING` entries above; broader MIDI-effect tests, engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Arpeggiator tests remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
