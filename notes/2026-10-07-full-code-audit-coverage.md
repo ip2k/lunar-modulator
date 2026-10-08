@@ -287,8 +287,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/test/limit_test.cc` — PENDING
 - [ ] `engines/test/meta_number_test.c` — PENDING
 - [ ] `engines/test/mod_core_test.c` — PENDING
-- [ ] `engines/test/mod_kinds_test.c` — PENDING
-- [ ] `engines/test/mod_mi_ref.cc` — PENDING
+- [x] `engines/test/mod_kinds_test.c` — READ; audit report batches 15–16; not executed
+- [x] `engines/test/mod_mi_ref.cc` — READ; audit report batch 16; not executed
 - [ ] `engines/test/mod_refusal_test.c` — PENDING
 - [ ] `engines/test/msfa_ref.cc` — PENDING
 - [ ] `engines/test/msfa_ref.h` — PENDING
@@ -430,9 +430,9 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_engines_limit.py` — PENDING
 - [ ] `tests/test_engines_mi_fx.py` — PENDING
 - [x] `tests/test_engines_mod.py` — READ; audit report batch 15; not executed
-- [ ] `tests/test_engines_mod_data.py` — PENDING
+- [x] `tests/test_engines_mod_data.py` — READ; audit report batch 16; not executed
 - [x] `tests/test_engines_mod_kinds.py` — READ; audit report batch 15; not executed
-- [ ] `tests/test_engines_mod_runtime.py` — PENDING
+- [x] `tests/test_engines_mod_runtime.py` — READ; audit report batch 16; not executed
 - [x] `tests/test_engines_mod_voices.py` — READ in full (305 lines); per-note parity, stealing, pitch and voice sources (batch 14)
 - [ ] `tests/test_engines_plaits_env.py` — PENDING
 - [ ] `tests/test_engines_plaits_heavy.py` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `4d9e3080c65c98a35f6b93bf47c4e70781545bd4` (Batches 1–14; remote SHA verified). This pending report/coverage update adds Batch 15.
-- Outstanding: see all `PENDING` entries above; desktop render/tooling, editor-branch variant, source corpus and most vendor integrations remain open. `engines/test/mod_kinds_test.c` and the modulation data/reference/runtime tests remain unreviewed. Native modulation regression tests remain unexecuted.
+- Last pushed commit: `90217ae9e485a10654bb798c47009c774d6d6b75` (Batches 1–15; remote SHA verified). This pending report/coverage update adds Batch 16.
+- Outstanding: see all `PENDING` entries above; desktop render/tooling, editor-branch variant, source corpus and most vendor integrations remain open. Native modulation regression tests remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
