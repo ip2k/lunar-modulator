@@ -200,9 +200,9 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/fx_crush.cc` — READ completely (256 lines); sample hold/countdown, RNG, quantizer, smoothing and low-pass state reviewed; batch 42
 - [x] `engines/src/fx_djfilter.cc` — READ completely (625 lines); segment phase, side entry/exit, coefficient ramps, TPT state init, 12/24 dB crossfade and rate bounds reviewed; batch 43 (2026-10-07)
 - [x] `engines/src/fx_drive.cc` — READ completely (600 lines); generated curves, ADAA piece integrals, Auto gain, Type crossfade, pre/de-emphasis and DC/tone state reviewed; batch 43
-- [ ] `engines/src/fx_echo.cc` — PENDING
-- [ ] `engines/src/fx_eq.cc` — PENDING
-- [ ] `engines/src/fx_eq_math.h` — PENDING
+- [x] `engines/src/fx_echo.cc` — READ completely (332 lines); fixed ring indexing, slow-clock interpolation, read/write ordering, anti-alias/reconstruction filters, cross-feed and integer storage reviewed; batch 44 (2026-10-07)
+- [x] `engines/src/fx_eq.cc` — READ completely (608 lines); SVF coefficients, gain ramps, idle/settle/wake state transitions, host-driven state and count wrap reviewed; batch 44
+- [x] `engines/src/fx_eq_math.h` — READ completely (82 lines); exponent-bit scaling, positive-input log2 domain and tan cutoff range reviewed; batch 44
 - [ ] `engines/src/fx_filter.cc` — PENDING
 - [ ] `engines/src/fx_filter_dsp.h` — PENDING
 - [ ] `engines/src/fx_fold.cc` — PENDING

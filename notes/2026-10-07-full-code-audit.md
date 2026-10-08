@@ -332,3 +332,9 @@ No confirmed defect was established in these files. The shared math wrapper dele
 Read `engines/src/fx_djfilter.cc` (625 lines) and `fx_drive.cc` (600) completely. Traced the DJ Filter's 16-frame control grid, sweep/dead-zone entry and side switching, TPT SVF state initialization, 12/24 dB transition lifetime, coefficient ramps, cutoff/rate limits and guarded bypass. In Drive, followed its generated piecewise curves and ADAA integration, dead-zone/bias segmentation, quadrature Auto gain, Type transition queuing, pre/de-emphasis, DC blocker, tone tilt, and per-channel state across calls.
 
 No confirmed defect was established in these wrappers. Drive's generated curve coefficients are reviewed as a table here but still need comparison with the canonical generator/test source. The regression suites remain pending. No source changes or tests/builds occurred.
+
+### Batch 44 — Echo and three-band EQ
+
+Read `engines/src/fx_echo.cc` (332 lines), `fx_eq.cc` (608), and `fx_eq_math.h` (82) completely. Traced Echo's fixed ring dimensions and modulo indexing, negative read-age conversion, slow clock and interpolation, anti-alias/reconstruction filters, feedback routing and bounded 16-bit storage. In EQ, followed the three SVF coefficient/mix equations, 8-frame control grid, neutral passthrough, driven-idle gate, settle-time calculation, wake warm-up and per-channel integrators. Reviewed the math helpers against the positive frequency/Q and bounded tangent domains at supported rates.
+
+No confirmed defect was established in these implementations. Echo and EQ regression suites remain pending source review and execution; no local engine build or test run occurred. No code, device or licence changes occurred.
