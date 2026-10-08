@@ -148,14 +148,14 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/mod/kinds/mod_register.c` — PENDING
 - [ ] `engines/mod/kinds/mod_resonator.c` — PENDING
 - [ ] `engines/mod/kinds/mod_slew.c` — PENDING
-- [ ] `engines/mod/mod_core.c` — PENDING
+- [x] `engines/mod/mod_core.c` — READ in full (1,880 lines); runtime lifecycle, event windows, gates, sinks and voice ownership (batch 13)
 - [ ] `engines/mod/mod_curves.c` — PENDING
 - [ ] `engines/mod/mod_glue.c` — PENDING
 - [ ] `engines/mod/mod_int.h` — PENDING
 - [ ] `engines/mod/mod_mi.c` — PENDING
 - [ ] `engines/mod/mod_mi.h` — PENDING
 - [ ] `engines/mod/mod_mi_tables.c` — PENDING
-- [ ] `engines/mod/mod_plan.c` — PENDING
+- [x] `engines/mod/mod_plan.c` — READ in full (614 lines); slot planning, graph ordering, voice layout/refusal (batch 13)
 - [ ] `engines/mod/mod_registry.c` — PENDING
 - [ ] `engines/mod/mp_clkdiv.c` — PENDING
 - [ ] `engines/mod/mp_env.c` — PENDING
@@ -329,7 +329,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `sim/web/src/fm1_font_mid.h` — READ; generated subset structurally checked against Spleen BDF (batch 9)
 - [x] `sim/web/src/fm1_font_small.h` — READ; generated subset structurally checked against Spleen BDF (batch 9)
 - [x] `sim/web/src/fm1_look.h` — READ in full; audit report batch 9 (2026-10-07)
-- [x] `sim/web/src/fm1_mod_ui.c` — READ in full (1,694 lines); destination short-name defect in audit report batch 12 (2026-10-07)
+- [x] `sim/web/src/fm1_mod_ui.c` — READ in full (1,694 lines); no additional confirmed issue (batch 12, 2026-10-07)
 - [x] `sim/web/src/fm1_mod_ui.h` — READ in full (348 lines); audit report batch 12 (2026-10-07)
 - [x] `sim/web/src/fm1_mod_view.c` — READ in full (388 lines); static geometry/role layout in audit report batch 12 (2026-10-07)
 - [x] `sim/web/src/fm1_mod_view.h` — READ in full (65 lines); audit report batch 12 (2026-10-07)
@@ -451,7 +451,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_gpl_switch.py` — PENDING
 - [ ] `tests/test_manual.py` — PENDING
 - [ ] `tests/test_manual_diagrams.py` — PENDING
-- [ ] `tests/test_module_list.py` — PENDING
+- [x] `tests/test_module_list.py` — READ in full (247 lines); build/link tests reviewed, intentionally not run (batch 13)
 - [ ] `tests/test_movy_oracle_fixtures.py` — PENDING
 - [x] `tests/test_package_guard.py` — READ; audit report batch 3 (2026-10-07)
 - [ ] `tests/test_seq_core.py` — PENDING
@@ -463,12 +463,12 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tests/test_seq_ui.py` — READ in full (1,053 lines); S3-S8 gesture, state-size, audio replay and lock tests (batch 10)
 - [ ] `tests/test_sim_arp.py` — PENDING
 - [ ] `tests/test_sim_edit.py` — PENDING
-- [ ] `tests/test_sim_editor_meta.py` — PENDING
+- [x] `tests/test_sim_editor_meta.py` — READ in full (123 lines); static export/module record tests reviewed (batch 13)
 - [ ] `tests/test_sim_editor_ui.py` — PENDING
 - [x] `tests/test_sim_files.py` — READ; static file/link/audio-boundary tests in audit report batch 5
 - [ ] `tests/test_sim_fonts.py` — PENDING
 - [x] `tests/test_sim_lists.py` — READ in full (247 lines); picker/list source review (batch 12)
-- [ ] `tests/test_sim_mod.py` — PENDING
+- [x] `tests/test_sim_mod.py` — READ in full (576 lines); modulation runtime, UI and parity tests reviewed (batch 13)
 - [ ] `tests/test_sim_multi.py` — PENDING
 - [x] `tests/test_sim_origins.py` — READ; Node-backed pure-origin test wrapper in audit report batch 5
 - [ ] `tests/test_sim_palette.py` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `c580776d82c9ee8c12eda034e5d6924bd5b915b2` (Batch 1–8; remote SHA verified). This checkpoint adds font and palette provenance review.
-- Outstanding: see all `PENDING` entries above; first-party sequencer/modulation UI, desktop render/tooling, editor-branch variant, source corpus and most vendor integrations remain open.
+- Last pushed commit: `1f80119623b4e23ff8af01c8b7242ed1aa29dec6` (Batches 1–12; remote SHA verified). The uncommitted report/coverage update adds Batch 13.
+- Outstanding: see all `PENDING` entries above; desktop render/tooling, editor-branch variant, source corpus and most vendor integrations remain open. Native modulation regression tests remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
