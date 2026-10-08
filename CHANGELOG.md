@@ -9,6 +9,8 @@ history.
 ## [Unreleased]
 
 ### Added
+- Saved the deferred iPhone Advanced editor plan, device transport prerequisites
+  and native Core MIDI / LAN relay connection options in a mobile editor note.
 - A Linux soft-key probe with fresh identity checks, an exact exception for
   the known FM-1_092 identity-checksum bug, a two-message allowlist and
   durable USB/session logs. No loader upload or flash commands in this tool.

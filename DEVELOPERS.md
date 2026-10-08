@@ -164,6 +164,9 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   block, the panel's view with its knob map, and `fm1_param_parse`; the
   audio thread gets binary only, and a shadow Worker does the text, hashes
   and diffs ([sim/web/README.md, "The edit layer"](sim/web/README.md#the-edit-layer-stage-ed1-for-the-advanced-editor)).
+  Mobile editing of a real FM-1 is planned and deferred until installable
+  firmware; the connection options and resume checklist are in
+  [the mobile editor note](notes/2026-10-07-mobile-advanced-editor.md).
   Its first views (stage ED2, `sim/web/www/editor/`) are on the simulator's
   page behind a Panel/Workbench/Editor switch: the Flow, a sound's
   inspector drawn from the metadata alone, follow both ways with the K1-K4
