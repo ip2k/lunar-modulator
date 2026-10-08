@@ -434,10 +434,10 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tests/test_engines_mod_kinds.py` — READ; audit report batch 15; not executed
 - [x] `tests/test_engines_mod_runtime.py` — READ; audit report batch 16; not executed
 - [x] `tests/test_engines_mod_voices.py` — READ in full (305 lines); per-note parity, stealing, pitch and voice sources (batch 14)
-- [ ] `tests/test_engines_plaits_env.py` — PENDING
-- [ ] `tests/test_engines_plaits_heavy.py` — PENDING
+- [x] `tests/test_engines_plaits_env.py` — READ completely (397 lines); page-3 envelope/LPG behavior and native/host-rate upstream comparisons reviewed; batch 81
+- [x] `tests/test_engines_plaits_heavy.py` — READ completely (502 lines); Six-Op bank names, heavy models/patches, tuning, voice pressure/release, stereo and resource tests reviewed; batch 81
 - [x] `tests/test_engines_plate_freeze.py` — READ completely (186 lines); Freeze parameter and switch, freeze/release/lifetime/input-isolation, hostile input and rate scenarios reviewed; execution pending; batch 61 (2026-10-07)
-- [ ] `tests/test_engines_reference_braids_fx.py` — PENDING
+- [x] `tests/test_engines_reference_braids_fx.py` — READ completely (886 lines); Shapes oscillator/edge/random stream tests and Plate/Ensemble/Diffuse reference/coefficient/rate/stereo checks reviewed; batch 81
 - [ ] `tests/test_engines_reference_plaits.py` — PENDING
 - [ ] `tests/test_engines_reference_room.py` — PENDING
 - [ ] `tests/test_engines_resampler.py` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `7cf7547a2beb66cbc8e98cf074a2b12daf06b388` (Batches 1–79; remote SHA verified).
+- Last pushed commit: `ea83f03995658e094bd30d9de22fda6b02f55e72` (Batches 1–80; remote SHA verified).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
