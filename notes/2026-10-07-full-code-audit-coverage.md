@@ -334,8 +334,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `sim/web/src/fm1_mod_view.c` — PENDING
 - [ ] `sim/web/src/fm1_mod_view.h` — PENDING
 - [x] `sim/web/src/fm1_panel.h` — READ in full; audit report batch 9 (2026-10-07)
-- [ ] `sim/web/src/fm1_seq_ui.c` — PENDING
-- [ ] `sim/web/src/fm1_seq_ui.h` — PENDING
+- [x] `sim/web/src/fm1_seq_ui.c` — READ in full (2,258 lines); audit report batch 10 (2026-10-07)
+- [x] `sim/web/src/fm1_seq_ui.h` — READ in full (636 lines); audit report batch 10 (2026-10-07)
 - [ ] `sim/web/src/fm1_seq_view.c` — PENDING
 - [ ] `sim/web/src/fm1_seq_view.h` — PENDING
 - [x] `sim/web/src/fm1_tft.c` — READ in full (254 lines); audit report batch 8 (2026-10-07)
@@ -460,7 +460,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_seq_render.py` — PENDING
 - [ ] `tests/test_seq_song.py` — PENDING
 - [ ] `tests/test_seq_song_ui.py` — PENDING
-- [ ] `tests/test_seq_ui.py` — PENDING
+- [x] `tests/test_seq_ui.py` — READ in full (1,053 lines); S3-S8 gesture, state-size, audio replay and lock tests (batch 10)
 - [ ] `tests/test_sim_arp.py` — PENDING
 - [ ] `tests/test_sim_edit.py` — PENDING
 - [ ] `tests/test_sim_editor_meta.py` — PENDING
