@@ -119,3 +119,19 @@ yet been attempted. Such a test demonstrates restoring that sector and
 unchanged complete flash before/after; it is not a demonstration of a full
 1 MiB rewrite or of recovery from a nonbooting application. The owner has
 been asked to power-cycle and verify the return to the normal screen.
+
+## Prepared bounded restore proof
+
+`tools/fm1_uboot_restore_test.py` permits only the fixed pattern in
+`[0xD8000,0xD9000)` and a sector erase there to restore its original FF bytes.
+Opcode/layout were checked against jl-uboot-tool’s LoaderV2 methods; other
+writes, chip erase and eFuse commands are rejected. Two fresh complete dumps
+precede programming, and a complete post-test dump must match their hash.
+A partial program also enters the bounded restoration path. Command intent
+is flushed and fsynced before each operation. This proves a sector restore,
+not a complete flash rewrite or recovery from a broken boot chain.
+
+All 18 focused probe, dump and restore tests pass [verified]. No restore
+operation has run yet. Await the owner’s power-cycle/normal-screen response
+before any writes, then establish a fresh audited loader session if needed.
+Private original backups remain off-host as well as on bench01.

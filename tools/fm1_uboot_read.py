@@ -86,8 +86,11 @@ class Reader:
     def close(self):
         os.close(self.fd)
 
+    def build_request(self, op, address, payload):
+        return request(op, self.phase, address=address, payload=payload)
+
     def cmd(self, op, *, address=0, payload=b''):
-        cdb, data_out, in_size = request(op, self.phase, address=address, payload=payload)
+        cdb, data_out, in_size = self.build_request(op, address, payload)
         command = C.create_string_buffer(cdb)
         sense = C.create_string_buffer(32)
         data = C.create_string_buffer(data_out) if data_out else C.create_string_buffer(in_size)

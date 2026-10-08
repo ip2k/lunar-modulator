@@ -195,7 +195,8 @@ vendor packages there.
 8. **Movy/Schwung are Linux-only by nature**; do not plan around porting them.
 9. **The "soft key" `F0 22 24 35 7D F7` is not the identity query.**
    - Stock V15 reboots into mask-ROM `UBOOT1.00` on it [reported:
-     FM-1-transporter `a632d92`]; FM-1_092 is unchecked. The upgrade command
+     FM-1-transporter `a632d92`]. It also enters UBOOT on the owner’s
+     FM-1_092 [verified: `notes/2026-10-07-fm1-softkey-bench.md`]. The upgrade command
      `F0 22 24 35 7F F7` differs by one byte.
    - Send it only through the authorized staged hardware plan above; a prior
      full restore is no longer a precondition for this probe.
