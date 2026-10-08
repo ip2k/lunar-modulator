@@ -191,9 +191,9 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/dx7_voice.cc` — READ completely (291 lines); sanitize/unpack/pack, SysEx framing/checksum, slot sequencing, callbacks and writer bounds reviewed; batch 40
 - [x] `engines/src/dx7_voice.h` — READ completely (70 lines); offsets, byte counts, parse and callback contracts reviewed; batch 40
 - [x] `engines/src/editor_meta.cc` — READ complete; static metadata tables and bounded lookups (batch 22)
-- [ ] `engines/src/felucca_bridge.c` — PENDING
-- [ ] `engines/src/felucca_bridge.h` — PENDING
-- [ ] `engines/src/felucca_shim.cc` — PENDING
+- [x] `engines/src/felucca_bridge.c` — READ completely (263 lines); state lending, WHEEL static arrays, voice/envelope/render call paths and C boundary reviewed; batch 41 (2026-10-07)
+- [x] `engines/src/felucca_bridge.h` — READ completely (103 lines); fixed-width world and modulation contracts reviewed; batch 41
+- [x] `engines/src/felucca_shim.cc` — READ completely (736 lines); parameter metadata/maps, allocation/latch/glide, per-note offsets, block staging, gains and lifecycle reviewed; batch 41
 - [ ] `engines/src/fx_comb.cc` — PENDING
 - [ ] `engines/src/fx_comp.cc` — PENDING
 - [ ] `engines/src/fx_comp_math.h` — PENDING
@@ -274,7 +274,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/test/dx7_oracle.cc` — READ completely (349 lines); loop/table/oracle setup, resource/error paths and output metrics reviewed; batch 40
 - [ ] `engines/test/echo_selftest.cc` — PENDING
 - [ ] `engines/test/eq_test.cc` — PENDING
-- [ ] `engines/test/felucca_oracle.c` — PENDING
+- [x] `engines/test/felucca_oracle.c` — READ completely (261 lines); Felucca test stubs, bounded argument/event storage, instance allocation, event scheduling and comparison flow reviewed; batch 41 (2026-10-07)
 - [ ] `engines/test/filter_test.cc` — PENDING
 - [ ] `engines/test/fold_test.cc` — PENDING
 - [ ] `engines/test/fx3_hostile.cc` — PENDING
@@ -400,7 +400,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_engine_crater_kit.py` — PENDING
 - [x] `tests/test_engine_drums.py` — READ completely (718 lines); all pad/model/choke/voice pressure, parameter, block-size, memory-fill, per-note and extreme-value assertions reviewed; batch 39 (2026-10-07)
 - [ ] `tests/test_engine_editor_meta.py` — PENDING
-- [ ] `tests/test_engine_felucca.py` — PENDING
+- [x] `tests/test_engine_felucca.py` — READ completely (531 lines); source-reviewed oracle, factory sound, stability, block/rate, latch, instance isolation and per-note regression cases; not executed; batch 41 (2026-10-07)
 - [ ] `tests/test_engine_glide.py` — PENDING
 - [ ] `tests/test_engine_host.py` — PENDING
 - [ ] `tests/test_engine_metadata.py` — PENDING
