@@ -394,3 +394,9 @@ No confirmed defect was established in the source or reviewed test contracts. Th
 Read `engines/src/glide.h` (371 lines) and `tests/test_engine_glide.py` (835) completely. Traced Time and Rate stepping, fresh/played pitch availability, note-on source selection under Poly/Mono/Legato, Always versus held-key sources, note-off return, the 16-key held stack and eviction, and per-event configuration. The test oracle computes single-precision offsets and compares engine renders byte-for-byte across all six supported engine configurations (GPL phase-bend conditional), then covers mode transitions, mid-glide time changes, bends, poly chords, voice steals, held-key stacks, invalid keys, and measured FM-1-rate behavior.
 
 No confirmed helper or test-contract defect was established. The six engine integrations that embed this helper remain separate coverage items. This source-level review did not execute renderer/pytest tests or builds. No code, device or licence changes occurred.
+
+### Batch 54 — Macro integration of note glide and Plaits
+
+Read `engines/src/mi_macro.cc` (569 lines) completely. Traced voice allocation and same-key retrigger, Mono/Legato retuning and release ordering, model rebuild/lifecycle, held-key and glide state, fixed-rate block advancement through the pull resampler, per-note smoothed controls, per-model arena sizing, and LPG Gate/Ping/Off envelope and termination paths. This was a focused integration review; its broad Plaits/vendored DSP internals have their own vendor coverage tier.
+
+No confirmed new defect was established in the Macro integration. The glide oracle suite was source-reviewed in batch 53 but not executed, and the remaining five engine integrations remain pending. No code, device or licence changes occurred.
