@@ -210,8 +210,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/fx_hall.cc` — READ completely (612 lines); rate-sized power-of-two rings, line partitions and fractional reads, FDN orthogonal mix, damping/decay gains, freeze and modulation reviewed; batch 47 (2026-10-07)
 - [x] `engines/src/fx_isolator.cc` — READ completely (569 lines); LR4 band topology, seven TPT updates/channel, gain/crossover mapping, unity bypass and idle/wake warm-up reviewed; batch 47
 - [x] `engines/src/fx_limit.cc` — READ completely (911 lines); integer gain windows, bounded allocations, lookahead tap transitions, Mode transition, ROUND delayed state, input guards and rate ceilings reviewed; batch 48 (2026-10-07)
-- [ ] `engines/src/fx_room.cc` — PENDING
-- [ ] `engines/src/fx_room_math.h` — PENDING
+- [x] `engines/src/fx_room.cc` — READ completely (416 lines); wrapper state/lifetime, grid-aligned parameter glides, rate mapping, loop and diffuser calls, sweep/flush and mono-width/mix paths reviewed; batch 49 (2026-10-07)
+- [x] `engines/src/fx_room_math.h` — READ completely (107 lines); IEEE exponent handling, subnormal scaling and bounded caller domains checked; batch 49 (2026-10-07)
 - [ ] `engines/src/fx_sat.cc` — PENDING
 - [ ] `engines/src/fx_shaper.cc` — PENDING
 - [ ] `engines/src/fx_squash.cc` — PENDING
@@ -298,7 +298,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/test/ref_plaits.cc` — PENDING
 - [ ] `engines/test/ref_room.cc` — PENDING
 - [ ] `engines/test/resampler_test.cc` — PENDING
-- [ ] `engines/test/room_test.cc` — PENDING
+- [x] `engines/test/room_test.cc` — READ completely (363 lines); mixed bad inputs, change timing, block invariance, tail, rate, math and probe contracts reviewed; execution pending; batch 49 (2026-10-07)
 - [ ] `engines/test/sat_test.cc` — PENDING
 - [ ] `engines/test/schwung_race.cc` — PENDING
 - [ ] `engines/test/schwung_selftest.cc` — PENDING
@@ -441,7 +441,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_engines_reference_plaits.py` — PENDING
 - [ ] `tests/test_engines_reference_room.py` — PENDING
 - [ ] `tests/test_engines_resampler.py` — PENDING
-- [ ] `tests/test_engines_room.py` — PENDING
+- [x] `tests/test_engines_room.py` — READ completely (363 lines); CLI/runtime, tail, width, decay, math and zero-state assertions reviewed; execution pending missing pytest/native binaries and no large local build; batch 49 (2026-10-07)
 - [ ] `tests/test_engines_sat.py` — PENDING
 - [ ] `tests/test_engines_schwung.py` — PENDING
 - [ ] `tests/test_engines_shapes_edges.py` — PENDING
