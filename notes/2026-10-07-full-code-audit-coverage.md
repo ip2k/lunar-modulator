@@ -530,17 +530,17 @@ Vendored code is not silently counted as first-party. Review its licence/provena
 - [ ] `engines/third_party/airwindows/oracle/airwindows_oracle.cc` — PENDING
 - [ ] `engines/third_party/airwindows/oracle/make_fixture.py` — PENDING
 - [ ] `engines/third_party/airwindows/oracle/run-on-aeon.sh` — PENDING
-- [ ] `engines/third_party/felucca-fm6/fm6_core.c` — PENDING
-- [ ] `engines/third_party/felucca-fm6/vendor.py` — PENDING
-- [ ] `engines/third_party/felucca/gen/felucca_tables.h` — PENDING
-- [ ] `engines/third_party/felucca/src/core.h` — PENDING
-- [ ] `engines/third_party/felucca/src/dsp.c` — PENDING
-- [ ] `engines/third_party/felucca/src/eng_phase.c` — PENDING
-- [ ] `engines/third_party/felucca/src/eng_trio.c` — PENDING
-- [ ] `engines/third_party/felucca/src/eng_wheel.c` — PENDING
-- [ ] `engines/third_party/felucca/src/voice.c` — PENDING
-- [ ] `engines/third_party/felucca/tools/gen_tables.py` — PENDING
-- [ ] `engines/third_party/felucca/vendor.py` — PENDING
+- [x] `engines/third_party/felucca-fm6/fm6_core.c` — EXCLUDED algorithm body (563 lines); Apache-2.0 desktop oracle only, not linked into firmware/browser; pinned SHA and stated limits reviewed; batch 136
+- [x] `engines/third_party/felucca-fm6/vendor.py` — READ complete (52 lines); fixed commit extraction and copy/check behavior reviewed; batch 136
+- [x] `engines/third_party/felucca/gen/felucca_tables.h` — GENERATED DATA; all 468 lines excluded from manual inspection, SHA matches pinned provenance manifest; batch 136
+- [x] `engines/third_party/felucca/src/core.h` — READ complete (348 lines); types, migration helpers, static layout and global state reviewed; batch 136
+- [x] `engines/third_party/felucca/src/dsp.c` — READ complete (150 lines); fixed-point ranges and shared oscillator/filter/curve helpers reviewed; batch 136
+- [x] `engines/third_party/felucca/src/eng_phase.c` — READ complete (201 lines); all phase distortion wave paths, tuning and parameter bounds reviewed; batch 136
+- [x] `engines/third_party/felucca/src/eng_trio.c` — READ complete (373 lines); oscillator/sync/ring/filter paths and state boundaries reviewed; batch 136
+- [x] `engines/third_party/felucca/src/eng_wheel.c` — READ complete (297 lines); static state lending, folding, rotor, percussion and click paths reviewed; batch 136
+- [x] `engines/third_party/felucca/src/voice.c` — READ complete (605 lines); allocation, shared voice budget, envelopes, switching, render and modulation boundary reviewed; batch 136
+- [x] `engines/third_party/felucca/tools/gen_tables.py` — READ complete (119 lines); deterministic data generation formulas reviewed; unreachable print after return recorded in batch 136
+- [x] `engines/third_party/felucca/vendor.py` — READ complete (91 lines); commit-pinned extraction/check paths reviewed; batch 136
 - [ ] `engines/third_party/fm1-x0x/dsp/bass303.c` — PENDING
 - [ ] `engines/third_party/fm1-x0x/dsp/bass303.h` — PENDING
 - [ ] `engines/third_party/fm1-x0x/dsp/drum808.c` — PENDING
