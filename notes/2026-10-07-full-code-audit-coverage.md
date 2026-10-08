@@ -746,7 +746,7 @@ Vendored code is not silently counted as first-party. Review its licence/provena
 - [ ] `engines/third_party/mutable/vendor.py` — PENDING
 - [ ] `engines/third_party/schwung-modules/psxverb/audio_fx_api_v1.h` — PENDING
 - [ ] `engines/third_party/schwung-modules/psxverb/plugin_api_v1.h` — PENDING
-- [ ] `engines/third_party/schwung-modules/psxverb/psxverb.c` — PENDING
+- [x] `engines/third_party/schwung-modules/psxverb/psxverb.c` — READ completely (898 lines); DSP, delay scaling/work-area bounds, controls, state API and halfband path reviewed; pinned SHA-256 matches UPSTREAM.md; batch 65 (2026-10-07). Confirmed interpolation defect in report.
 - [ ] `engines/third_party/schwung-modules/sophie/plugin_api_v1.h` — PENDING
 - [ ] `engines/third_party/schwung-modules/sophie/sophie.c` — PENDING
 - [ ] `engines/third_party/schwung/audio_fx_api_v2.h` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `a6a499db40402f2ed01df3819f9d85b5085a396f` (Batches 1–63; remote SHA verified). Batch 64 is pending checkpoint.
+- Last pushed commit: `b1d3bd14f4eaa60acf8f12494cde4d60ebc5420d` (Batches 1–64; remote SHA verified). Batch 65 is pending checkpoint.
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
