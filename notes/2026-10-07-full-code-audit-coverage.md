@@ -261,15 +261,15 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/state/state_print.c` — READ; Batch 4
 - [x] `engines/state/state_registry.c` — READ; Batch 4
 - [ ] `engines/test/acid_oracle.cc` — PENDING
-- [ ] `engines/test/bass303_drive.c` — PENDING
+- [x] `engines/test/bass303_drive.c` — READ completely (75 lines); GPL 303 upstream/vendored output driver, timing, slide/accent, block/tail bounds reviewed; batch 103 (2026-10-08)
 - [ ] `engines/test/comet_oracle.cc` — PENDING
 - [ ] `engines/test/comp_test.cc` — PENDING
 - [ ] `engines/test/crater_oracle.cc` — PENDING
 - [ ] `engines/test/djfilter_test.cc` — PENDING
 - [ ] `engines/test/drive_test.cc` — PENDING
-- [ ] `engines/test/drum808_drive.c` — PENDING
-- [ ] `engines/test/drum909_cymbals.c` — PENDING
-- [ ] `engines/test/drum909_drive.c` — PENDING
+- [x] `engines/test/drum808_drive.c` — READ completely (77 lines); GPL 808 settings/pattern/sends, render/output order and buffer/tail bounds reviewed; batch 103 (2026-10-08)
+- [x] `engines/test/drum909_cymbals.c` — READ completely (58 lines); four sampled voices/tuning and shortened tail-call bounds reviewed; batch 103 (2026-10-08)
+- [x] `engines/test/drum909_drive.c` — READ completely (111 lines); GPL 909 pattern/retrigger/choke/distortion settings and odd block lengths reviewed; batch 103 (2026-10-08)
 - [x] `engines/test/dx7_felucca.c` — READ completely (100 lines); oracle-only Felucca integration/table derivation; not firmware-linked; batch 40
 - [x] `engines/test/dx7_oracle.cc` — READ completely (349 lines); loop/table/oracle setup, resource/error paths and output metrics reviewed; batch 40
 - [ ] `engines/test/echo_selftest.cc` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `0136351e8e98fb1507f2e2748febc4b1bff25bfe` (Batches 1–101; remote SHA verified; batch 102 pending checkpoint).
+- Last pushed commit: `ac822ade8114d72b47a6474ef19e380d31bf80f9` (Batches 1–102; remote SHA verified; batch 103 pending checkpoint).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
