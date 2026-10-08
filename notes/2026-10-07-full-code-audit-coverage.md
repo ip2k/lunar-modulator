@@ -757,23 +757,23 @@ Vendored code is not silently counted as first-party. Review its licence/provena
 
 Review `git diff 64209e3..861b725` and read every modified source file in its complete editor-branch form plus relevant callers/tests. Record each path and status here.
 
-- [ ] `engines/include/fm1_dynamics.h` — PENDING (editor variant)
-- [ ] `engines/include/fm1_tele.h` — PENDING (editor variant)
-- [ ] `engines/mk/squash.mk` — PENDING (editor variant)
-- [ ] `engines/src/editor_meta.cc` — PENDING (editor variant)
-- [ ] `engines/src/fx_squash.cc` — PENDING (editor variant)
-- [ ] `sim/web/build-on-aeon.sh` — PENDING (editor variant)
-- [ ] `sim/web/src/fm1_app.c` — PENDING (editor variant)
-- [ ] `sim/web/src/fm1_app_state.c` — PENDING (editor variant)
-- [ ] `sim/web/src/fm1_app_state.h` — PENDING (editor variant)
-- [ ] `sim/web/src/fm1_edit.c` — PENDING (editor variant)
-- [ ] `sim/web/test/audio-analysis-check.mjs` — PENDING (editor variant)
-- [ ] `sim/web/test/audio-analysis.mjs` — PENDING (editor variant)
-- [ ] `sim/web/test/audio-loopback.mjs` — PENDING (editor variant)
+- [x] `engines/include/fm1_dynamics.h` — complete baseline read plus full 861b725 API addition and caller diff; gate-state API contract reviewed; batch 139 (2026-10-08)
+- [x] `engines/include/fm1_tele.h` — complete baseline read plus full 861b725 schema/version diff; rows, field count and mask mapping cross-checked; batch 139 (2026-10-08)
+- [x] `engines/mk/squash.mk` — complete baseline read plus reference-symbol alias diff; batch 139 (2026-10-08)
+- [x] `engines/src/editor_meta.cc` — complete baseline read plus all changed telemetry table/name hunks; offsets and field naming cross-checked with `fm1_tele.h`; batch 139 (2026-10-08)
+- [x] `engines/src/fx_squash.cc` — complete baseline read plus new gate-state API and type/gate checks; batch 139 (2026-10-08)
+- [x] `sim/web/build-on-aeon.sh` — complete 160-line 861b725 variant read; staged paths, remote Docker limits, tests, artifacts, cleanup and output handling reviewed; not executed; batch 139 (2026-10-08)
+- [x] `sim/web/src/fm1_app.c` — complete baseline read plus all 861b725 selection and empty-sound FX diff hunks; caller/rollback behavior reviewed; batch 139 (2026-10-08)
+- [x] `sim/web/src/fm1_app_state.c` — complete 1,825-line 861b725 variant read in bounded ranges; restore planner/apply ordering, identity checks, cable collision refusal and unchanged-module preservation reviewed; batch 139 (2026-10-08)
+- [x] `sim/web/src/fm1_app_state.h` — complete 141-line 861b725 variant read; restore flag contract and load bounds reviewed; batch 139 (2026-10-08)
+- [x] `sim/web/src/fm1_edit.c` — complete baseline read plus all telemetry gate-field hunks; row stride and absent-gate NaN behavior reviewed; batch 139 (2026-10-08)
+- [x] `sim/web/test/audio-analysis-check.mjs` — READ complete (16 lines); positive tone and silence/held/skipped/channel-loss/no-output cases checked; executed successfully from pinned editor blob; batch 139 (2026-10-08)
+- [x] `sim/web/test/audio-analysis.mjs` — READ complete (46 lines); active-window, crossing, channel and PCM-WAV checks reviewed; batch 139 (2026-10-08)
+- [x] `sim/web/test/audio-loopback.mjs` — READ complete (140 lines); monitor capture, Playwright lifecycle, stress edits, A/B playback, report and output checks reviewed; not executed (external audio container test); batch 139 (2026-10-08)
 - [x] `sim/web/test/editor-map.mjs` — READ baseline plus 60-line diff and full added flow at editor head 861b725 (2026-10-07)
 - [x] `sim/web/test/editor-v1.mjs` — READ baseline plus all 63 added lines and full surrounding contexts at editor head 861b725 (2026-10-07)
-- [ ] `sim/web/test/editor.mjs` — PENDING (editor variant)
-- [ ] `sim/web/test/fm1_edit_check.c` — PENDING (editor variant)
+- [x] `sim/web/test/editor.mjs` — complete baseline read plus dynamic telemetry-buffer sizing diff; batch 139 (2026-10-08)
+- [x] `sim/web/test/fm1_edit_check.c` — baseline harness plus full 861b725 restore, telemetry, empty-sound and gate regression additions reviewed; batch 139 (2026-10-08)
 - [x] `sim/web/test/launch.mjs` — READ baseline plus all four editor-branch changes at head 861b725 (2026-10-08)
 - [x] `sim/web/www/editor/chains.js` — READ complete 861b725 variant (2026-10-07)
 - [x] `sim/web/www/editor/editor.css` — READ complete 861b725 variant; source-only layout review, no rendered screenshot evidence (2026-10-07)
@@ -783,16 +783,16 @@ Review `git diff 64209e3..861b725` and read every modified source file in its co
 - [x] `sim/web/www/editor/sheets.js` — READ complete 861b725 variant; import-removal diff checked (2026-10-07)
 - [x] `sim/web/www/files.js` — READ complete 861b725 variant; restoreSound/request dispatch diffs checked (2026-10-07)
 - [x] `sim/web/www/shadow.worker.js` — READ complete 861b725 variant; request/reply correlation checked (2026-10-07)
-- [ ] `tests/test_app_state.py` — PENDING (editor variant)
-- [ ] `tests/test_ci_pins.py` — PENDING (editor variant)
-- [ ] `tests/test_engine_acid_bass.py` — PENDING (editor variant)
+- [x] `tests/test_app_state.py` — complete baseline read plus unused-import removal diff; batch 139 (2026-10-08)
+- [x] `tests/test_ci_pins.py` — full editor diff; audio tests added to CI name checks; workflow boundary checked; batch 139 (2026-10-08)
+- [x] `tests/test_engine_acid_bass.py` — complete baseline read plus unused-import removal diff; batch 139 (2026-10-08)
 - [x] `tests/test_engine_drums.py` — same blob as audited baseline (no editor-branch change); covered in batch 39
-- [ ] `tests/test_engine_editor_meta.py` — PENDING (editor variant)
-- [ ] `tests/test_gpl_switch.py` — PENDING (editor variant)
-- [ ] `tests/test_seq_song.py` — PENDING (editor variant)
-- [ ] `tests/test_sim_editor_ui.py` — PENDING (editor variant)
-- [ ] `tests/test_tools.py` — PENDING (editor variant)
-- [ ] `tools/lunar_state.py` — PENDING (editor variant)
+- [x] `tests/test_engine_editor_meta.py` — complete baseline read plus telemetry version/field assertions; schema offsets and CRC relationship checked; batch 139 (2026-10-08)
+- [x] `tests/test_gpl_switch.py` — complete baseline read plus unused-import removal diff; licence assertions remain; batch 139 (2026-10-08)
+- [x] `tests/test_seq_song.py` — complete baseline read plus unused-import removal diff; batch 139 (2026-10-08)
+- [x] `tests/test_sim_editor_ui.py` — complete baseline read plus metadata-derived telemetry-field exemption in id scan; batch 139 (2026-10-08)
+- [x] `tests/test_tools.py` — complete baseline read plus unused-import removal diff; batch 139 (2026-10-08)
+- [x] `tools/lunar_state.py` — complete baseline read plus `Fraction` import removal; no other tool behavior changed; batch 139 (2026-10-08)
 
 ## Script and test-data corpus
 
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Latest checkpoint: batch 137 at `5d9853cd3deda2f6a47490dc817fa7f650fddb31`, pushed with the explicit branch refspec and verified against the remote SHA.
+- Latest checkpoint: batch 138 at `fe5ae374479bcff7dd5dd7d5c9448a05d131eafd`, pushed with the explicit branch refspec and verified against the remote SHA.
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
