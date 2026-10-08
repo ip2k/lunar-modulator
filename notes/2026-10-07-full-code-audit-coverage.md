@@ -775,14 +775,14 @@ Review `git diff 64209e3..861b725` and read every modified source file in its co
 - [ ] `sim/web/test/editor.mjs` — PENDING (editor variant)
 - [ ] `sim/web/test/fm1_edit_check.c` — PENDING (editor variant)
 - [ ] `sim/web/test/launch.mjs` — PENDING (editor variant)
-- [ ] `sim/web/www/editor/chains.js` — PENDING (editor variant)
-- [ ] `sim/web/www/editor/editor.css` — PENDING (editor variant)
-- [ ] `sim/web/www/editor/map.js` — PENDING (editor variant)
-- [ ] `sim/web/www/editor/model.js` — PENDING (editor variant)
-- [ ] `sim/web/www/editor/project.js` — PENDING (editor variant)
-- [ ] `sim/web/www/editor/sheets.js` — PENDING (editor variant)
-- [ ] `sim/web/www/files.js` — PENDING (editor variant)
-- [ ] `sim/web/www/shadow.worker.js` — PENDING (editor variant)
+- [x] `sim/web/www/editor/chains.js` — READ complete 861b725 variant (2026-10-07)
+- [x] `sim/web/www/editor/editor.css` — READ complete 861b725 variant; source-only layout review, no rendered screenshot evidence (2026-10-07)
+- [x] `sim/web/www/editor/map.js` — READ complete 861b725 variant, including endpoint patching (2026-10-07)
+- [x] `sim/web/www/editor/model.js` — READ complete 861b725 variant; removed export diff checked (2026-10-07)
+- [x] `sim/web/www/editor/project.js` — READ complete 861b725 variant; stale cable batch target finding in report batch 19 (2026-10-07)
+- [x] `sim/web/www/editor/sheets.js` — READ complete 861b725 variant; import-removal diff checked (2026-10-07)
+- [x] `sim/web/www/files.js` — READ complete 861b725 variant; restoreSound/request dispatch diffs checked (2026-10-07)
+- [x] `sim/web/www/shadow.worker.js` — READ complete 861b725 variant; request/reply correlation checked (2026-10-07)
 - [ ] `tests/test_app_state.py` — PENDING (editor variant)
 - [ ] `tests/test_ci_pins.py` — PENDING (editor variant)
 - [ ] `tests/test_engine_acid_bass.py` — PENDING (editor variant)
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `efb04b1e8262f27cd0999cf8c19fb5ae6cf39ac5` (Batches 1–16; remote SHA verified). This pending report/coverage update adds Batch 17.
-- Outstanding: see all `PENDING` entries above; desktop render/tooling, editor-branch variant, source corpus and most vendor integrations remain open. Native modulation regression tests remain unexecuted.
-- Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
+- Last pushed commit: `ad13d122f64cd4d5a999c59bf49784d0ef792563` (Batches 1–18; remote SHA verified). This pending report/coverage update adds Batch 19.
+- Outstanding: see all `PENDING` entries above; desktop render/tooling, editor-branch variants, source corpus and most vendor integrations remain open. Native modulation regression tests remain unexecuted.
+- Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
