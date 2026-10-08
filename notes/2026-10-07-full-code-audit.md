@@ -582,3 +582,9 @@ No additional confirmed defect or material coverage gap was established in these
 Read `tests/test_engines.py` (136 lines), `test_engines_comb.py` (141), and `test_engines_comp.py` (568) completely. Traced registration metadata, macro/Shapes pitch and sound checks, voice release, limiter/instance-size and in-place FX contracts; reviewed Comb's UID preservation and byte-pinned type split, block/memory invariance and hostile-value cases; followed Compressor's static gain curve, detector/release laws, handover/glide, Auto Gain onset ceiling and the large clip-safety matrix.
 
 No additional confirmed defect or material coverage gap was established in these test sources. The cited renderer and probes were unavailable, so numerical/audio assertions were not independently executed. No source, device or licence changes occurred.
+
+### Batch 85 — Drive and Echo integration tests
+
+Read `tests/test_engines_drive.py` (636 lines) and `test_engines_echo.py` (374) completely. Traced generated quintic Drive curves against the declared knot design, alias reduction/ADAA, Type and parameter glides, DC compensation, block/memory/rate/input guard behavior and full effect-chain paths. Reviewed Echo delay and fractional timing across its full-clock and slowed-clock regions, ping-pong/feedback/mix/tone/wow laws, maximum feedback/tail truncation, invalid input recovery and selftest coverage.
+
+No additional confirmed defect or material coverage gap was established in these tests. Their renderer and selftest were unavailable, so the measured acoustic/timing assertions were not reproduced. No code, device or licence changes occurred.
