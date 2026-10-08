@@ -173,10 +173,10 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/seq/seq_capture.c` — READ complete; packed ring, rebase, tempo fit and commit paths (batch 23)
 - [x] `engines/seq/seq_clip.c` — READ complete; pool compaction, clip edits and fire-tick index (batch 23)
 - [x] `engines/seq/seq_cmd.c` — READ complete; full parser and typed/text command dispatch (batch 23)
-- [ ] `engines/seq/seq_engine.c` — PENDING
+- [x] `engines/seq/seq_engine.c` — READ complete (2,239 lines); scheduler, transport, recording, song and getters; trig-import UB is in adjacent persistence file (batch 24)
 - [x] `engines/seq/seq_host.c` — READ complete; event room, reroute ownership, dispatch hooks and slot order (batch 23)
 - [x] `engines/seq/seq_int.h` — READ complete; full internal state layout and pool accessors (batch 23)
-- [ ] `engines/seq/seq_persist.c` — PENDING
+- [x] `engines/seq/seq_persist.c` — READ complete (700 lines); export and streaming import; malformed trig-lane uninitialized read finding (batch 24)
 - [ ] `engines/src/acid_bass.cc` — PENDING
 - [ ] `engines/src/acid_bass.h` — PENDING
 - [ ] `engines/src/comet_kit.cc` — PENDING
