@@ -250,7 +250,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/state/fm1_num.h` — READ; Batch 4
 - [x] `engines/state/fm1_state.h` — READ; Batch 4
 - [x] `engines/state/fm1_state_mod.h` — READ; Batch 4
-- [ ] `engines/state/fuzz/state_fuzz.c` — PENDING
+- [x] `engines/state/fuzz/state_fuzz.c` — READ completely (400 lines); bounded mutation, checksum repair, streamed JSON/binary invariants, sequencer imports, global lifetime and failure artifact path reviewed; batch 72
 - [x] `engines/state/state_bin.c` — READ; Batch 4 findings
 - [x] `engines/state/state_json_read.c` — READ; Batch 4
 - [x] `engines/state/state_json_write.c` — READ; Batch 4
@@ -285,7 +285,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/test/idle_test.cc` — PENDING
 - [ ] `engines/test/isolator_test.cc` — PENDING
 - [x] `engines/test/limit_test.cc` — READ completely (856 lines); hostile ceiling matrix, runtime changes, block invariance, probe instrumentation and rate-boundary checks reviewed; batch 48 (2026-10-07)
-- [ ] `engines/test/meta_number_test.c` — PENDING
+- [x] `engines/test/meta_number_test.c` — READ completely (54 lines); exponent-edge, knob-range and deterministic random float32 probe reviewed; batch 72
 - [ ] `engines/test/mod_core_test.c` — PENDING
 - [x] `engines/test/mod_kinds_test.c` — READ; audit report batches 15–16; not executed
 - [x] `engines/test/mod_mi_ref.cc` — READ; audit report batch 16; not executed
@@ -306,7 +306,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/test/shapes_hostile.cc` — PENDING
 - [x] `engines/test/smooth_test.cc` — READ completely (228 lines); event ordering, NaN/Inf schedule, partition independence and summary contracts reviewed; execution pending; batch 61 (2026-10-07)
 - [x] `engines/test/squash_test.cc` — READ completely (913 lines); upstream oracle adapters, randomized block/memory matrix, makeup frame bounds, host contracts and Transient probes reviewed; execution pending; batch 51 (2026-10-07)
-- [ ] `engines/test/state_alias_test.c` — PENDING
+- [x] `engines/test/state_alias_test.c` — READ completely (80 lines); alias table construction, capped input read and C record output reviewed; batch 72
 - [ ] `engines/test/tb3po_line.c` — PENDING
 - [x] `engines/test/tilt_test.cc` — READ completely (444 lines); DFT response probe, exact bypass, block independence, jump/zipper/sweep/silence/rate scenarios reviewed; execution pending; batch 52 (2026-10-07)
 - [x] `firmware/boot/boot_compat_test.c` — READ; audit report batch 2 (2026-10-07)
@@ -403,7 +403,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tests/test_engine_felucca.py` — READ completely (531 lines); source-reviewed oracle, factory sound, stability, block/rate, latch, instance isolation and per-note regression cases; not executed; batch 41 (2026-10-07)
 - [x] `tests/test_engine_glide.py` — READ completely (835 lines); exact pitch-path oracle, all voice/glide/time modes, note stack, duplicate/high keys, block/memory parity and FM-1-rate timing scenarios reviewed; execution pending; batch 53 (2026-10-07)
 - [ ] `tests/test_engine_host.py` — PENDING
-- [ ] `tests/test_engine_metadata.py` — PENDING
+- [x] `tests/test_engine_metadata.py` — READ completely (158 lines); canonical export, independent CLI comparison, instance sizes, schema limits, key vocabulary and float differential tests reviewed; batch 72
 - [x] `tests/test_engine_midi_fx.py` — READ completely (652 lines); host chain/bypass/lifetime, tempo/grid/TRG, fuzz, CLI refusal and no-heap tests reviewed; batch 35; not executed
 - [ ] `tests/test_engine_names.py` — PENDING
 - [x] `tests/test_engine_note_params.py` — READ completely (572 lines); engine coverage, finite/NaN/extreme offsets, note lifecycle, isolation, block invariance and API refusal contracts reviewed; batch 62 (2026-10-07)
@@ -479,7 +479,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_state_codec.py` — PENDING
 - [ ] `tests/test_state_render.py` — PENDING
 - [ ] `tests/test_state_schema.py` — PENDING
-- [ ] `tests/test_state_whole.py` — PENDING
+- [x] `tests/test_state_whole.py` — READ completely (401 lines); per-kind JSON/binary fixed points, project audio parity, known-id refusals, alias parity, kit pads and unknown module parameters reviewed; batch 72
 - [ ] `tests/test_test_guard.py` — PENDING
 - [ ] `tests/test_tools.py` — PENDING
 - [x] `tests/test_uboot_read.py` — READ; audit report batch 1 (2026-10-07)
