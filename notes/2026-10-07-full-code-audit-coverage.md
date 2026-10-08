@@ -351,7 +351,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `sim/web/test/editor.mjs` — PENDING
 - [x] `sim/web/test/files.mjs` — READ; complete headless browser test flow in audit report batch 5; not executed (Playwright container required)
 - [ ] `sim/web/test/fm1_edit_check.c` — PENDING
-- [ ] `sim/web/test/fm1_sim_render.c` — PENDING
+- [x] `sim/web/test/fm1_sim_render.c` — READ completely (5,856 lines); screen, format, lock, font and modulation probes, input parsers, resource ownership, CLI, event/render loop, parity logs and summary serialization reviewed; audit report batches 94–95 (2026-10-07)
 - [ ] `sim/web/test/launch.mjs` — PENDING
 - [ ] `sim/web/test/layout-probe.js` — PENDING
 - [ ] `sim/web/test/meta.mjs` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `abd509a9c2881289877959d26346b062ce0cb93f` (Batches 1–92; remote SHA verified; batch 93 pending checkpoint).
+- Last pushed commit: `adb160b4f4e90cb43717070eb4677e9051f00a8e` (Batches 1–94; remote SHA verified; batch 95 pending checkpoint).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
