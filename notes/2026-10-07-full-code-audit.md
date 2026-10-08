@@ -655,4 +655,12 @@ Read `sim/web/test/fm1_edit_check.c` (1,032 lines) and `sim/web/test/edit.mjs` (
 
 No additional confirmed defect was established in the editor parity test logic. The storm's real-time measurements are Node/V8 observations and do not establish Chromium, Firefox, or WebKit audio-thread deadlines; the source comments state this limit.
 
+### Batch 97 — Editor reachability and cable-map browser suites
+
+Read `sim/web/test/editor-map.mjs` (363 baseline lines) and `sim/web/test/editor-reach.mjs` (331 lines) completely. Separately reviewed all 60 lines added to `editor-map.mjs` at the pinned editor head `861b725`, checking input-origin cable creation, endpoint moves, preservation of other cable fields and undo assertions against the surrounding baseline flow. Neither browser suite was run because the project requires its Playwright container on the LAN host; no daemon or browser session was started here.
+
+**[P3] The editor reach test silently skips limiter telemetry when the expected UI row is absent. [verified]** `editor-reach.mjs:263-270` sets `{rowReady:true}` only when it finds the limiter's Drive row, then runs the GR assertion only inside `if (gr.rowReady)` at `:272`. If `ed.chains.choose()` fails to load the limiter or the Drive row disappears, `gr` records an error but no check fails; all other checks can still yield a passing suite. This leaves the claimed limiter telemetry path untested precisely when its prerequisite UI is missing. Confidence high; severity P3 test gap.
+
+The added editor-map checks exercise the newly introduced input-start and end-drag flows, though those browser assertions remain unexecuted. No additional confirmed product defect was established in these two test files.
+
 No runtime reproduction was possible because the generated native simulator binary is absent. No source, device or licence changes occurred.

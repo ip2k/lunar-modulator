@@ -341,9 +341,9 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `sim/web/src/fm1_tft.c` — READ in full (254 lines); audit report batch 8 (2026-10-07)
 - [x] `sim/web/src/fm1_tft.h` — READ in full (198 lines); audit report batch 8 (2026-10-07)
 - [x] `sim/web/src/fm1_web.c` — READ; complete WebAssembly ABI and state bridge in audit report batch 5
-- [ ] `sim/web/test/edit.mjs` — PENDING
-- [ ] `sim/web/test/editor-map.mjs` — PENDING
-- [ ] `sim/web/test/editor-reach.mjs` — PENDING
+- [x] `sim/web/test/edit.mjs` — READ completely (192 lines); native/WASM parity, buffer handling and optional storm metric reviewed; audit report batches 96–97 (2026-10-07)
+- [x] `sim/web/test/editor-map.mjs` — READ completely (363 baseline lines plus all 60 lines of editor-branch additions); map rendering, cable gestures, keyboard flow, layout probe and changed endpoint/undo checks reviewed; audit report batch 97 (2026-10-07)
+- [x] `sim/web/test/editor-reach.mjs` — READ completely (331 lines); accessibility snapshots, keyboard reach, announcements, phone layouts and telemetry assertions reviewed; audit report batch 97 (2026-10-07)
 - [ ] `sim/web/test/editor-shots.mjs` — PENDING
 - [ ] `sim/web/test/editor-ui.mjs` — PENDING
 - [ ] `sim/web/test/editor-unit.mjs` — PENDING
@@ -770,7 +770,7 @@ Review `git diff 64209e3..861b725` and read every modified source file in its co
 - [ ] `sim/web/test/audio-analysis-check.mjs` — PENDING (editor variant)
 - [ ] `sim/web/test/audio-analysis.mjs` — PENDING (editor variant)
 - [ ] `sim/web/test/audio-loopback.mjs` — PENDING (editor variant)
-- [ ] `sim/web/test/editor-map.mjs` — PENDING (editor variant)
+- [x] `sim/web/test/editor-map.mjs` — READ baseline plus 60-line diff and full added flow at editor head 861b725 (2026-10-07)
 - [ ] `sim/web/test/editor-v1.mjs` — PENDING (editor variant)
 - [ ] `sim/web/test/editor.mjs` — PENDING (editor variant)
 - [ ] `sim/web/test/fm1_edit_check.c` — PENDING (editor variant)
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `adb160b4f4e90cb43717070eb4677e9051f00a8e` (Batches 1–94; remote SHA verified; batch 95 pending checkpoint).
+- Last pushed commit: `a3051c9e7e73faff985b7bd19d991e3fe4a6692f` (Batches 1–96; remote SHA verified; batch 97 pending checkpoint).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
