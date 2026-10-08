@@ -837,6 +837,18 @@ Read all 157 lines of `tools/manual/build-in-docker.sh`, `tools/manual/policy.py
 
 No confirmed defect was established. The wrapper does not expose a hardware interaction path; it transfers a repository tar stream into an ephemeral image and returns the generated site. The manual-only versus full-site behavior is controlled by the forwarded `--only-manual` option and remains for direct confirmation against `build.py`. No source, hardware or licence changes occurred.
 
+### Batch 130 — manual diagram theme and Markdown extension
+
+Read all 444 lines of `tools/manual/diagram_theme.py` and `tools/manual/mdext.py`. Reviewed color conversions and gamut search, contrast-based role-tone derivation and fixed derived palette, semantic edge-kind declarations, Markdown directive stashing, control/status vocabulary validation, heading numbering and chapter-state collection. The tree processor is registered after the TOC extension's id assignment and resolves HTML-stashed heading text before numbering; status association follows the nearest current h2.
+
+No confirmed defect was established in these files. Palette claims depend on the accompanying tests and rendered manual outputs; neither is inferred solely from the source, and full rendered-output validation remains outstanding. No source, hardware or licence changes occurred.
+
+### Batch 131 — manual references, figure generation and collision checker
+
+Read all 931 lines of `tools/manual/reference.py`, `tools/manual/figures.py`, and `tools/manual/diagram_check.py`. Reviewed HTML escaping for generated references, metadata subprocess bounds, sequencer constant/verb parsing, SVG geometry and alt text, SVG path tokenization, text metrics, box/edge collision tests and CLI behavior. Ran the collision checker on all eight tracked SVGs in `manual/diagrams/`; it exited successfully with no reported collisions.
+
+No confirmed defect was established. The checker models straight, axis-aligned frames and generated text widths from the declared font metrics; it is not a full browser/PDF renderer. The generated hardware drawing geometry has source citations and remains to be checked against product behavior in full documentation/provenance review. No source, hardware or licence changes occurred.
+
 ### Batch 122 — resampler test and analysis utility
 
 Read all 705 lines of `engines/test/resampler_test.cc`, cross-checked its API assumptions against `engines/include/fm1_resampler.h` (389 lines, previously read in batch 21), and reviewed `tests/test_engines_resampler.py`'s ring-window assertion and command matrix (506 lines, batch 82). Reviewed every executable mode: table and passband sweep, timing/FFT fit, benchmark, exact pass-through, chunk equivalence, worst-case gains, refusal, poisoned input-ring windows, WAV conversion, tone probes and peak extraction. The 4:1 endpoint is included in the read-window scan: the rates vector's first 3,000 points ends at exactly 4:1, and index 2,999 is visited by the `i = 9; i < 3000; i += 10` loop; no finding was filed for that case.
