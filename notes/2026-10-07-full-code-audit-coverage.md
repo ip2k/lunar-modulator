@@ -179,8 +179,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/seq/seq_persist.c` — READ complete (700 lines); export and streaming import; malformed trig-lane uninitialized read finding (batch 24)
 - [x] `engines/src/acid_bass.cc` — READ completely (434 lines); GPL gate, X0X unit lifetime, chunk alignment, parameter smoothing/offsets, pitch/bend and key-stack transitions reviewed; batch 36 (2026-10-07)
 - [x] `engines/src/acid_bass.h` — READ completely; host-rate/chunk and oracle bridge contract reviewed; batch 36
-- [ ] `engines/src/comet_kit.cc` — PENDING
-- [ ] `engines/src/comet_kit.h` — PENDING
+- [x] `engines/src/comet_kit.cc` — READ completely (485 lines); GPL gate, per-pad/kit voicings, shared-voice routing, ramp ownership, output chunking and API v4 focus reads reviewed; batch 37 (2026-10-07)
+- [x] `engines/src/comet_kit.h` — READ completely; pad-to-voice and oracle bridge contract reviewed; batch 37
 - [ ] `engines/src/crater_kit.cc` — PENDING
 - [ ] `engines/src/crater_kit.h` — PENDING
 - [ ] `engines/src/drum_voices.h` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `ec6e41316fcab9bea94c929d92040fa6b4a99645` (Batches 1–35; remote SHA verified). Batch 36 is pending checkpoint.
-- Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. MIDI-effect tests remain unexecuted.
+- Last pushed commit: `1ac357f10d5b1b750c5203b78bc6cd10897fc2b9` (Batches 1–36; remote SHA verified). Batch 37 is pending checkpoint.
+- Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
