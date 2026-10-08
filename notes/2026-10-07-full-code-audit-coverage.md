@@ -183,8 +183,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/comet_kit.h` — READ completely; pad-to-voice and oracle bridge contract reviewed; batch 37
 - [x] `engines/src/crater_kit.cc` — READ completely (429 lines); GPL gate, 16 sound/track map, per-pad latches and ramps, tune/bend, choke/volume and chunk behavior reviewed against vendored trigger readers; batch 38 (2026-10-07)
 - [x] `engines/src/crater_kit.h` — READ completely; pad/track map, rate and velocity contract reviewed; batch 38
-- [ ] `engines/src/drum_voices.h` — PENDING
-- [ ] `engines/src/drums.cc` — PENDING
+- [x] `engines/src/drum_voices.h` — READ completely (326 lines); four custom voice DSPs, bounded numeric domains, RNG/noise lifetime and filter state reviewed; batch 39 (2026-10-07)
+- [x] `engines/src/drums.cc` — READ completely (802 lines); model/kit tables, voice allocation/choke/retrigger, smoothing, per-note offsets, noise ownership, resampler and cleanup reviewed with engine contract and full test source; batch 39 (2026-10-07)
 - [ ] `engines/src/dx7_bank.h` — PENDING
 - [ ] `engines/src/dx7_loop.cc` — PENDING
 - [ ] `engines/src/dx7_loop.h` — PENDING
@@ -398,7 +398,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tests/test_engine_arp.py` — READ completely (951 lines); golden tables/order, Yarns parity, timing, note balance, randomized capacity and origin/grid scenarios reviewed; batch 34; not executed
 - [ ] `tests/test_engine_comet_kit.py` — PENDING
 - [ ] `tests/test_engine_crater_kit.py` — PENDING
-- [ ] `tests/test_engine_drums.py` — PENDING
+- [x] `tests/test_engine_drums.py` — READ completely (718 lines); all pad/model/choke/voice pressure, parameter, block-size, memory-fill, per-note and extreme-value assertions reviewed; batch 39 (2026-10-07)
 - [ ] `tests/test_engine_editor_meta.py` — PENDING
 - [ ] `tests/test_engine_felucca.py` — PENDING
 - [ ] `tests/test_engine_glide.py` — PENDING
@@ -786,7 +786,7 @@ Review `git diff 64209e3..861b725` and read every modified source file in its co
 - [ ] `tests/test_app_state.py` — PENDING (editor variant)
 - [ ] `tests/test_ci_pins.py` — PENDING (editor variant)
 - [ ] `tests/test_engine_acid_bass.py` — PENDING (editor variant)
-- [ ] `tests/test_engine_drums.py` — PENDING (editor variant)
+- [x] `tests/test_engine_drums.py` — same blob as audited baseline (no editor-branch change); covered in batch 39
 - [ ] `tests/test_engine_editor_meta.py` — PENDING (editor variant)
 - [ ] `tests/test_gpl_switch.py` — PENDING (editor variant)
 - [ ] `tests/test_seq_song.py` — PENDING (editor variant)
