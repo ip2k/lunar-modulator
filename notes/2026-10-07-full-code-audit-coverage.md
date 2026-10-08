@@ -800,6 +800,10 @@ The following custom languages and fixtures are inputs to parsers, tests or prod
 
 - [ ] `*.verbs`, `*.panel`, `*.lunar`, `*.mod`, `*.movy1`, `*.args`, `*.records`, `*.edit` — PENDING corpus review
 - [ ] `*.json`, `*.jsonl`, `*.syx`, `*.list`, `*.rgb565`, `*.bdf`, `*.gz`, `*.wav`, `*.png`, `*.jpg`, `*.ttf` — PENDING overall data/provenance review
+  - [x] Eight files under `photos/2026-09-29/` — owner's FM-1 board evidence/crops and referenced note reviewed; basic EXIF/TIFF scan found no GPS/date/device metadata; physical identifying marks are visible and source-context is personal evidence; batch 147 (2026-10-08)
+  - [x] `sim/web/test/dx7/lunar-test-bank.syx`, `sim/web/test/dx7/lunar-test-voices.syx` — source documents locally authored 32-voice LUNAR test bank and equivalent single-voice dumps, not Yamaha content; consumer/test source read; batch 147 (2026-10-08)
+  - [x] Three tracked TTFs — Audiowide and Exo 2 font sources/licences and their recorded upstream hashes reviewed; byte identity/hash checks documented; batch 147 (2026-10-08)
+  - [x] Three `engines/third_party/fm1-x0x/assets/909/*.wav` — source licence and local generated table path reviewed; ER-99 origin is reported by X0X but recording source unspecified; retained GPL integration/provenance risk; batch 147 (2026-10-08)
   - [x] Spleen 2.2.0 `spleen-8x16.bdf`, `spleen-6x12.bdf`, `LICENSE`: Git blob hashes independently match `UPSTREAM.md` and `tests/test_sim_fonts.py`; `gen_font.py --check` reproduces both ASCII tables. Review limited to the 95 product glyphs and parser-derived BDF metrics. Excluded the remainder of the 33,734-line BDFs from manual visual inspection; exact vendor blobs verified.
 - [x] `tools/jieli/ac79-sdk-sparse.txt` — READ; audit report batch 3 (2026-10-07)
 - [x] `engines/third_party/fm1-x0x/local.patch` — READ complete (841 lines); all eight modified-file diffs reviewed; hash matches the local provenance manifest; pinned upstream checkout absent, so original-side hashes were not independently compared; batch 137
@@ -810,15 +814,15 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 
 - [x] `.github/workflows/ci.yml`, `.github/workflows/pages.yml` — READ completely; audit report batch 25 (2026-10-07)
 - [x] `engines/Makefile`, `engines/mk/*.mk`, `engines/modules/catalogue.mk`, `sim/web/mk/sim.mk` — READ; engine and simulator build graph reviewed; audit report batch 25 (2026-10-07)
-- [ ] `sim/web/www/fm1.wasm` and `fm1.wasm.json` — PENDING provenance/use review
+- [x] `sim/web/www/fm1.wasm`, `sim/web/www/fm1.wasm.json`, `sim/web/www/source.json` — binary SHA, source digests, generation/use/licence display path reviewed; current source digests reproduce record; parity claims not rerun; batch 148 (2026-10-08)
 - [ ] `LICENSE*`, `third_party/**/LICENSE*`, `UPSTREAM.md`, notices — PENDING
 - [ ] `AGENTS.md`, `CLAUDE.md`, `HANDOFF.md`, package/recovery docs — PENDING consistency review
 
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Latest checkpoint: batch 138 at `fe5ae374479bcff7dd5dd7d5c9448a05d131eafd`, pushed with the explicit branch refspec and verified against the remote SHA.
-- Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
+- Latest checkpoint: batch 146 was the last pushed commit before batches 147–149; update after the next coherent checkpoint.
+- Outstanding: see all `PENDING` entries above; remaining image/data provenance, licence/notice manifests, and technical documentation consistency still require closure. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
 
