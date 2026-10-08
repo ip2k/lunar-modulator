@@ -809,6 +809,18 @@ Read all 1,120 lines of `engines/test/ref_plaits.cc` and cross-checked the full 
 
 No source, hardware or licence changes occurred. The reference executable and comparison suite were not run because generated engine artifacts are absent.
 
+### Batch 122 — resampler test and analysis utility
+
+Read all 705 lines of `engines/test/resampler_test.cc`, cross-checked its API assumptions against `engines/include/fm1_resampler.h` (389 lines, previously read in batch 21), and reviewed `tests/test_engines_resampler.py`'s ring-window assertion and command matrix (506 lines, batch 82). Reviewed every executable mode: table and passband sweep, timing/FFT fit, benchmark, exact pass-through, chunk equivalence, worst-case gains, refusal, poisoned input-ring windows, WAV conversion, tone probes and peak extraction. The 4:1 endpoint is included in the read-window scan: the rates vector's first 3,000 points ends at exactly 4:1, and index 2,999 is visited by the `i = 9; i < 3000; i += 10` loop; no finding was filed for that case.
+
+**[P3] Negative `--outputs` becomes a huge unsigned benchmark allocation. [verified]** The parser casts `atol()` to `size_t` at line 682; `fm1-resampler-test bench --outputs -1` therefore produces `SIZE_MAX` on the supported desktop target. The guard at line 691 only rejects zero. `Bench` then computes a much larger-than-representable double frame count and casts it to `size_t` at line 208 before vector allocation. This malformed developer invocation can cause an undefined conversion, allocation failure or process abort rather than a bounded usage error. Confidence high; tool-only P3.
+
+**[P3] Overflowing peak-window bounds can make the `peaks` mode loop forever. [verified]** `--start` and `--length` are parsed to `size_t` from signed `atol()` at lines 685–686. With a normal input file, `fm1-resampler-test peaks --in input.wav --start 1 --length -1` yields `length == SIZE_MAX`; `start + length` wraps to zero, so the fallback bounds check at line 628 does not shorten it. At line 630, repeated `n *= 2` eventually wraps `n` to zero, after which `n * 2 <= length` remains true forever. This deterministic CLI hang is severity P3, confidence high.
+
+**[P3] A negative-infinite sweep start never advances. [verified]** `--from` is accepted without a finite check at line 679. In sweep mode, `--from -inf` keeps `f < to` and `f < in_rate / 2` true; adding the positive default step leaves `f` at negative infinity, so the outer loop at line 158 never terminates. This developer-tool hang is P3, confidence high.
+
+No source, hardware or licence changes occurred. The resampler test binary was not run because generated engine artifacts are absent.
+
 ### Batch 121 — Clouds room reference harness
 
 Read all 266 lines of `engines/test/ref_room.cc` and cross-checked its fixed 32-frame processor order, control formulas and rate compensation against the Room implementation/math reviewed earlier, and its comparisons against the complete `tests/test_engines_reference_room.py` (282 lines, batch 82). Reviewed the float WAV parser/writer, sample generation, host block tail, stereo chaining, reported metrics, and option validation.
