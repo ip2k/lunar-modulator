@@ -292,7 +292,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/test/mod_refusal_test.c` — PENDING
 - [x] `engines/test/msfa_ref.cc` — READ completely; oracle table initialization and reference pointer lifetime reviewed; batch 63 (2026-10-07)
 - [x] `engines/test/msfa_ref.h` — READ completely; test-only table API declarations reviewed; batch 63 (2026-10-07)
-- [ ] `engines/test/param_get_test.cc` — PENDING
+- [x] `engines/test/param_get_test.cc` — READ completely (390 lines); focus/copy/replay behavior cross-checked against API v4 wrapper and registry assertions; batch 113
 - [ ] `engines/test/plate_test.cc` — PENDING
 - [ ] `engines/test/ref_braids_fx.cc` — PENDING
 - [ ] `engines/test/ref_plaits.cc` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: batch 112 pending checkpoint; previous pushed commit `11631c94c9b99f30b4e1025890cf8caf6acda833` (Batches 1–111; remote SHA verified).
+- Last pushed commit: batch 113 pending checkpoint; previous pushed commit `b63f681c70eea445ad09a75d2d970b73940881ac` (Batches 1–112; remote SHA verified).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
