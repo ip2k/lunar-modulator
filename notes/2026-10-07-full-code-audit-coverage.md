@@ -557,30 +557,30 @@ Vendored code is not silently counted as first-party. Review its licence/provena
 - [x] `engines/third_party/fm1-x0x/seq/tb3po.h` — READ complete (20 lines); generator API reviewed; batch 137
 - [x] `engines/third_party/fm1-x0x/tools/gen_drum_samples.py` — READ complete (201 lines); WAV reader, Decimal µ-law mapping, sample/tables output and CLI reviewed; generated outputs match; batch 137
 - [x] `engines/third_party/fm1-x0x/vendor.py` — READ complete (112 lines); pinned checkout mappings, patch application and temporary verification/copy lifecycle reviewed; batch 137
-- [ ] `engines/third_party/msfa/aligned_buf.h` — PENDING
-- [ ] `engines/third_party/msfa/controllers.h` — PENDING
-- [ ] `engines/third_party/msfa/dx7note.cc` — PENDING
-- [ ] `engines/third_party/msfa/dx7note.h` — PENDING
-- [ ] `engines/third_party/msfa/env.cc` — PENDING
-- [ ] `engines/third_party/msfa/env.h` — PENDING
-- [ ] `engines/third_party/msfa/exp2.cc` — PENDING
-- [ ] `engines/third_party/msfa/exp2.h` — PENDING
-- [ ] `engines/third_party/msfa/fm_core.cc` — PENDING
-- [ ] `engines/third_party/msfa/fm_core.h` — PENDING
-- [ ] `engines/third_party/msfa/fm_op_kernel.cc` — PENDING
-- [ ] `engines/third_party/msfa/fm_op_kernel.h` — PENDING
-- [ ] `engines/third_party/msfa/freqlut.cc` — PENDING
-- [ ] `engines/third_party/msfa/freqlut.h` — PENDING
-- [ ] `engines/third_party/msfa/lfo.cc` — PENDING
-- [ ] `engines/third_party/msfa/lfo.h` — PENDING
-- [ ] `engines/third_party/msfa/patch.cc` — PENDING
-- [ ] `engines/third_party/msfa/patch.h` — PENDING
-- [ ] `engines/third_party/msfa/pitchenv.cc` — PENDING
-- [ ] `engines/third_party/msfa/pitchenv.h` — PENDING
-- [ ] `engines/third_party/msfa/sin.cc` — PENDING
-- [ ] `engines/third_party/msfa/sin.h` — PENDING
-- [ ] `engines/third_party/msfa/synth.h` — PENDING
-- [ ] `engines/third_party/msfa/vendor.py` — PENDING
+- [x] `engines/third_party/msfa/aligned_buf.h` — READ completely (34 lines); aligned scratch storage extent and alignment assumptions reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/controllers.h` — READ completely (30 lines); controller index layout cross-checked with engine setup; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/dx7note.cc` — READ completely (211 lines); note scaling, pitch/frequency, envelope setup, pitch bend, operator dispatch and parameter bounds traced against the engine's sanitized voice path; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/dx7note.h` — READ completely (62 lines); note/voice state and kernel contracts reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/env.cc` — READ completely (101 lines); rate and level progression, release transition and clamped parameter domain checked; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/env.h` — READ completely (63 lines); envelope state contract reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/exp2.cc` — READ completely (65 lines); reference table initialization compared to const-table generator contract; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/exp2.h` — READ completely (80 lines); masked interpolation indices and caller-domain exponent shifts reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/fm_core.cc` — READ completely (151 lines); algorithm table, bus state, gain threshold, operator order and feedback limitation reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/fm_core.h` — READ completely (37 lines); aligned buffer ownership and operator contract reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/fm_op_kernel.cc` — READ completely (382 lines); integer/NEON branches, phase/gain interpolation, pure/feedback paths and dormant alternatives reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/fm_op_kernel.h` — READ completely (35 lines); kernel argument and gain-step contract reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/freqlut.cc` — READ completely (55 lines); initialized/ROM frequency table pointer, interpolation and logarithmic range assumptions reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/freqlut.h` — READ completely (21 lines); lookup API and init lifetime reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/lfo.cc` — READ completely (97 lines); waveform phase arithmetic, rate and delay state cross-checked with sanitized patch initialization; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/lfo.h` — READ completely (43 lines); per-instance and shared-rate state reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/patch.cc` — READ completely (51 lines); packed-bank unpack offsets cross-checked with 128-byte input contract; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/patch.h` — READ completely (21 lines); unpack buffer extents reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/pitchenv.cc` — READ completely (91 lines); pitch/rate lookup bounds and release transitions reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/pitchenv.h` — READ completely (50 lines); instance and shared-rate lifetime contract reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/sin.cc` — READ completely (141 lines); reference table initializer, masked lookup, integer phase and dormant polynomial implementations reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/sin.h` — READ completely (62 lines); table size and lookup indexing reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/synth.h` — EXCLUDED by integration tier: read fully and verified it is shadowed by `msfa_prelude.h`; NEON path is unreachable in product and test builds; platform atomics are not imported; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/vendor.py` — READ completely (72 lines); pinned Git-object source mapping, copy/check behavior, argument handling and write target reviewed; external checkout absent; batch 138 (2026-10-08)
 - [ ] `engines/third_party/mutable/braids/analog_oscillator.cc` — PENDING
 - [ ] `engines/third_party/mutable/braids/analog_oscillator.h` — PENDING
 - [ ] `engines/third_party/mutable/braids/digital_oscillator.cc` — PENDING
