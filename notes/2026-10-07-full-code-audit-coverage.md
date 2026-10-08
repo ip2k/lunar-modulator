@@ -336,8 +336,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `sim/web/src/fm1_panel.h` — READ in full; audit report batch 9 (2026-10-07)
 - [x] `sim/web/src/fm1_seq_ui.c` — READ in full (2,258 lines); audit report batch 10 (2026-10-07)
 - [x] `sim/web/src/fm1_seq_ui.h` — READ in full (636 lines); audit report batch 10 (2026-10-07)
-- [ ] `sim/web/src/fm1_seq_view.c` — PENDING
-- [ ] `sim/web/src/fm1_seq_view.h` — PENDING
+- [x] `sim/web/src/fm1_seq_view.c` — READ in full (972 lines); audit report batch 11 (2026-10-07)
+- [x] `sim/web/src/fm1_seq_view.h` — READ in full (119 lines); audit report batch 11 (2026-10-07)
 - [x] `sim/web/src/fm1_tft.c` — READ in full (254 lines); audit report batch 8 (2026-10-07)
 - [x] `sim/web/src/fm1_tft.h` — READ in full (198 lines); audit report batch 8 (2026-10-07)
 - [x] `sim/web/src/fm1_web.c` — READ; complete WebAssembly ABI and state bridge in audit report batch 5
@@ -459,7 +459,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_seq_oracle.py` — PENDING
 - [ ] `tests/test_seq_render.py` — PENDING
 - [ ] `tests/test_seq_song.py` — PENDING
-- [ ] `tests/test_seq_song_ui.py` — PENDING
+- [x] `tests/test_seq_song_ui.py` — READ in full (164 lines); session/Song UI tests reviewed (batch 11)
 - [x] `tests/test_seq_ui.py` — READ in full (1,053 lines); S3-S8 gesture, state-size, audio replay and lock tests (batch 10)
 - [ ] `tests/test_sim_arp.py` — PENDING
 - [ ] `tests/test_sim_edit.py` — PENDING

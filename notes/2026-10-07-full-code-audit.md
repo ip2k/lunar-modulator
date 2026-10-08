@@ -100,4 +100,12 @@ Read all 2,258 lines of `sim/web/src/fm1_seq_ui.c`, all 636 lines of its public 
 
 No additional confirmed defect was established in this batch. The UI deliberately ignores the emitter's result and the app counts commands held or refused when event capacity is unavailable (`fm1_seq_ui.h:265-270`, `sim/web/src/fm1_seq_ui.c:164-181`, `sim/web/src/fm1_app.c:3404-3421`); this is the documented event-room policy, and this source review did not establish a concrete normal-capacity path that loses a user edit. The pure gesture tests were read but not run: their fixture imports require the native simulator/render tools and pytest, neither of which was built or available in this worktree. No source changes or hardware actions occurred.
 
-The audit branch is currently at pushed commit `19f7842baa69019d047b80cb095eeb0d35bef4c5`, verified against `origin/chore/2026-10-07@full-code-audit` before this batch was recorded. The report and ledger edits are now uncommitted and are the next checkpoint; the audit remains in progress.
+
+The audit branch was at pushed commit `19f7842baa69019d047b80cb095eeb0d35bef4c5` before the batch 10 checkpoint; that note was committed as `c4ff6cce7b9c966d1b0b4edb2a50c143bcb8ab11` and remote-verified.
+
+
+### Batch 11 — sequencer screens and Session/Song UI scenarios
+
+Read all 972 lines of `sim/web/src/fm1_seq_view.c`, its 119-line header, and all 164 lines of `tests/test_seq_song_ui.py`. Followed the Track, Step, Set, Clip, Track, Session and Song render paths, text/value formatting, song band/list truncation, and their static geometry assertions. Cross-checked the Session and Song page inputs against the sequencer UI snapshot fields and their state tests. The screen source has compile-time fits for grid, track strip, scene grid, list, legend and lane layout; the bottom-bar labels are bounded with `snprintf`. The song-time formatter uses the correct 4-beat-bar duration for hundredths-of-BPM values; the test examples cover saved views, hand-built Song playback, cursor edits, join feedback, confirmation, scene keys and Session LEDs.
+
+No additional confirmed defect was established in these files. The panel tests were read but not executed because their shared fixture requires native simulator/render binaries and pytest, neither built or available in this worktree. The `--screens` raster/layout sweep that supplies visual evidence remains pending; static geometry assertions are not recorded as a rendered visual check. No source changes or device actions occurred.
