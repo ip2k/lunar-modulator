@@ -406,3 +406,9 @@ No confirmed new defect was established in the Macro integration. The glide orac
 Read `engines/src/mi_macro_heavy.cc` (907 lines) completely. Followed all 13 model registrations and exact arena-byte requirements, shared LPC speech bank ownership/quantization/restart, per-voice speech controllers, string-machine stereo resamplers and state-copy/stop conditions, other-model mono resampler equivalence, voice allocation and glide transitions, smoothing/per-note controls, self-enveloped silence timeout, LPG modes, and null-engine handling when arena checks fail.
 
 No confirmed defect was established in the Macro Heavy wrapper paths reviewed. The shared glide test suite remains source-reviewed only; no build/test ran. Four other integrations remain pending. No source, device or licence changes occurred.
+
+### Batch 56 — Six-Op FM integration
+
+Read `engines/src/mi_sixop.cc` (516 lines) completely. Traced all 96 patch labels and conditional renames, patch unpack/cache and transpose, voice allocation and held-note transitions, gate-low one-sample setup/retrigger renders, per-block note/bend/glide ordering, leader/follower LFO routing across same and different patches, silent voice retirement, shared algorithm table, scratch-buffer ranges, smoothing and resampler feed.
+
+No confirmed defect was established in the Six-Op wrapper. The existing full glide test suite covers it by source review but was not run; Three integrations remain pending. No source, device or licence changes occurred.

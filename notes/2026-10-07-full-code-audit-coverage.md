@@ -223,7 +223,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/src/mi_macro_heavy.cc` — PENDING
 - [ ] `engines/src/mi_plaits_env.h` — PENDING
 - [ ] `engines/src/mi_shapes.cc` — PENDING
-- [ ] `engines/src/mi_sixop.cc` — PENDING
+- [x] `engines/src/mi_sixop.cc` — READ completely (516 lines); DX patch parsing/cache, pitch/transpose/glide order, one-sample gate-low priming, LFO lead/follower ownership, voice freeing, resampler and scratch bounds reviewed; batch 56 (2026-10-07)
 - [ ] `engines/src/msfa.h` — PENDING
 - [x] `engines/src/msfa_dx7.cc` — READ completely (777 lines); FM voice setup/render/release and user-slot load paths reviewed; batch 40 (2026-10-07)
 - [ ] `engines/src/msfa_prelude.h` — PENDING
