@@ -325,15 +325,15 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `sim/web/src/fm1_app_state.h` — READ; complete public contract in audit report batch 4
 - [x] `sim/web/src/fm1_edit.c` — READ in full (1,184 lines); audit report batch 7 (2026-10-07)
 - [x] `sim/web/src/fm1_edit.h` — READ in full (243 lines); audit report batch 7 (2026-10-07)
-- [ ] `sim/web/src/fm1_font.h` — PENDING
-- [ ] `sim/web/src/fm1_font_mid.h` — PENDING
-- [ ] `sim/web/src/fm1_font_small.h` — PENDING
-- [ ] `sim/web/src/fm1_look.h` — PENDING
+- [x] `sim/web/src/fm1_font.h` — READ; generated from repository-owned ASCII sheet; `gen_font.py --check` passed (batch 9)
+- [x] `sim/web/src/fm1_font_mid.h` — READ; generated subset structurally checked against Spleen BDF (batch 9)
+- [x] `sim/web/src/fm1_font_small.h` — READ; generated subset structurally checked against Spleen BDF (batch 9)
+- [x] `sim/web/src/fm1_look.h` — READ in full; audit report batch 9 (2026-10-07)
 - [ ] `sim/web/src/fm1_mod_ui.c` — PENDING
 - [ ] `sim/web/src/fm1_mod_ui.h` — PENDING
 - [ ] `sim/web/src/fm1_mod_view.c` — PENDING
 - [ ] `sim/web/src/fm1_mod_view.h` — PENDING
-- [ ] `sim/web/src/fm1_panel.h` — PENDING
+- [x] `sim/web/src/fm1_panel.h` — READ in full; audit report batch 9 (2026-10-07)
 - [ ] `sim/web/src/fm1_seq_ui.c` — PENDING
 - [ ] `sim/web/src/fm1_seq_ui.h` — PENDING
 - [ ] `sim/web/src/fm1_seq_view.c` — PENDING
@@ -361,7 +361,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `sim/web/test/screenshot.mjs` — PENDING
 - [x] `sim/web/test/serve.mjs` — READ; complete local static test server in audit report batch 5
 - [ ] `sim/web/test/sysex.mjs` — PENDING
-- [ ] `sim/web/tools/gen_font.py` — PENDING
+- [x] `sim/web/tools/gen_font.py` — READ in full; `--check` and `--sizes` passed (batch 9)
 - [ ] `sim/web/tools/palette.py` — PENDING
 - [ ] `sim/web/tools/source_hash.py` — PENDING
 - [ ] `sim/web/www/app.js` — PENDING
@@ -799,7 +799,8 @@ Review `git diff 64209e3..861b725` and read every modified source file in its co
 The following custom languages and fixtures are inputs to parsers, tests or product serialization. Review their interpreters/consumers and validate corpus shape/coverage; inspect the corpus itself in manageable chunks, recording any exclusions by path and reason.
 
 - [ ] `*.verbs`, `*.panel`, `*.lunar`, `*.mod`, `*.movy1`, `*.args`, `*.records`, `*.edit` — PENDING corpus review
-- [ ] `*.json`, `*.jsonl`, `*.syx`, `*.list`, `*.rgb565`, `*.bdf`, `*.gz`, `*.wav`, `*.png`, `*.jpg`, `*.ttf` — PENDING data/provenance review
+- [ ] `*.json`, `*.jsonl`, `*.syx`, `*.list`, `*.rgb565`, `*.bdf`, `*.gz`, `*.wav`, `*.png`, `*.jpg`, `*.ttf` — PENDING overall data/provenance review
+  - [x] Spleen 2.2.0 `spleen-8x16.bdf`, `spleen-6x12.bdf`, `LICENSE`: Git blob hashes independently match `UPSTREAM.md` and `tests/test_sim_fonts.py`; `gen_font.py --check` reproduces both ASCII tables. Review limited to the 95 product glyphs and parser-derived BDF metrics. Excluded the remainder of the 33,734-line BDFs from manual visual inspection; exact vendor blobs verified.
 - [x] `tools/jieli/ac79-sdk-sparse.txt` — READ; audit report batch 3 (2026-10-07)
 - [ ] `engines/third_party/fm1-x0x/local.patch` — PENDING patch provenance/integration review
 
@@ -816,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `23c7922eec3851ebf508e27ff3569eb09ef2ab1b` (Batch 1–4 checkpoint; pushed and remote SHA verified)
-- Outstanding: all audit work represented by pending entries above; state-codec source review is complete, while app/desktop consumers and browser inflater parity remain open.
-- Checks: targeted pytest remains unavailable because the active interpreter has no `pytest` and this worktree has no `.venv`; generated engine tools are also absent. Direct Python DEFLATE reproductions confirmed Batch 4 finding. No firmware build or hardware action was taken.
+- Last pushed commit: `c580776d82c9ee8c12eda034e5d6924bd5b915b2` (Batch 1–8; remote SHA verified). This checkpoint adds font and palette provenance review.
+- Outstanding: see all `PENDING` entries above; first-party sequencer/modulation UI, desktop render/tooling, editor-branch variant, source corpus and most vendor integrations remain open.
+- Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
