@@ -438,9 +438,9 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tests/test_engines_plaits_heavy.py` — READ completely (502 lines); Six-Op bank names, heavy models/patches, tuning, voice pressure/release, stereo and resource tests reviewed; batch 81
 - [x] `tests/test_engines_plate_freeze.py` — READ completely (186 lines); Freeze parameter and switch, freeze/release/lifetime/input-isolation, hostile input and rate scenarios reviewed; execution pending; batch 61 (2026-10-07)
 - [x] `tests/test_engines_reference_braids_fx.py` — READ completely (886 lines); Shapes oscillator/edge/random stream tests and Plate/Ensemble/Diffuse reference/coefficient/rate/stereo checks reviewed; batch 81
-- [ ] `tests/test_engines_reference_plaits.py` — PENDING
-- [ ] `tests/test_engines_reference_room.py` — PENDING
-- [ ] `tests/test_engines_resampler.py` — PENDING
+- [x] `tests/test_engines_reference_plaits.py` — READ completely (1,757 lines); slot/patch mapping, exact/statistical gates, resampler timing, self-comparison, freeing, negative controls and optional sweep tooling reviewed; batch 82
+- [x] `tests/test_engines_reference_room.py` — READ completely (282 lines); Clouds coefficient parity, Mix/Width model, stereo chaining and host-rate/decay checks reviewed; batch 82
+- [x] `tests/test_engines_resampler.py` — READ completely (506 lines); table generation, passband/stopband/alias, boundaries, chunking, rates and Shapes integration reviewed; batch 82
 - [x] `tests/test_engines_room.py` — READ completely (363 lines); CLI/runtime, tail, width, decay, math and zero-state assertions reviewed; execution pending missing pytest/native binaries and no large local build; batch 49 (2026-10-07)
 - [x] `tests/test_engines_sat.py` — READ completely (443 lines); input/idle-adjacent contracts, curve/alias measurements and host-rate expectations reviewed; execution pending missing pytest/native binaries and no large local build; batch 50 (2026-10-07)
 - [x] `tests/test_engines_schwung.py` — READ completely (488 lines); shim selftest, module contract, render/latency/headroom, NaN and pinned vendor manifests reviewed; not executed; batch 64 (2026-10-07)
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `ea83f03995658e094bd30d9de22fda6b02f55e72` (Batches 1–80; remote SHA verified).
+- Last pushed commit: `1b9fe920da688d295480a04d433a7eb7abec56b2` (Batches 1–81; remote SHA verified).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
