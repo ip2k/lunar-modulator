@@ -515,11 +515,11 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tools/manual/policy.py` — READ complete (40 lines); private-path/network and project-brand scan rules reviewed; batch 129 (2026-10-08)
 - [x] `tools/manual/reference.py` — READ complete (398 lines); generated engine tables, tool-bound metadata, sequencer constants/verbs and memory output reviewed; batch 131 (2026-10-08)
 - [ ] `tools/movy-oracle/driver/src/main.rs` — PENDING
-- [ ] `tools/movy-oracle/gen_scripts.py` — PENDING
-- [ ] `tools/movy-oracle/regen-fixtures.sh` — PENDING
-- [ ] `tools/movy-oracle/run-on-aeon.sh` — PENDING
+- [x] `tools/movy-oracle/gen_scripts.py` — READ complete (603 lines); seeded script synthesis, model bounds, undo/capture, frame ordering and CLI parameters reviewed; batch 134 (2026-10-08)
+- [x] `tools/movy-oracle/regen-fixtures.sh` — READ complete (30 lines); fixture copy/delete semantics and remote orchestration reviewed; not run; batch 134 (2026-10-08)
+- [x] `tools/movy-oracle/run-on-aeon.sh` — READ complete (105 lines); remote command quoting, container mounts, cleanup, rsync and job lifecycle reviewed; command-injection edge confirmed by expansion analysis; not run; batch 134 (2026-10-08)
 - [x] `tools/msfa_tables.py` — READ completely; Decimal trigonometric/table formulas, rounding, fixed rate and deterministic output generation reviewed; `--check` passed; batch 63 (2026-10-07)
-- [ ] `tools/seq_bench.py` — PENDING
+- [x] `tools/seq_bench.py` — READ complete (89 lines); stress-script generation, scale input and benchmark result cleanup reviewed; not run; batch 134 (2026-10-08)
 - [x] `tools/state_examples.py` — READ complete (446 lines); fixed example domain, C metadata source, core-export flow, prototype encoding and output paths reviewed; batch 128 (2026-10-08)
 - [x] `tools/state_goldens.py` — READ complete (162 lines); random bounded fixture generation, schema inputs, canonicalization, force/missing policy and binary/records naming reviewed; batch 128 (2026-10-08)
 

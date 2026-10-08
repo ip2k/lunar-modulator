@@ -819,6 +819,14 @@ Read all 857 lines of `tools/manual/build.py`. Reviewed engine/sequencer data lo
 
 No build or PDF generation was run because the full manual builder's default path can invoke a desktop build and this audit avoids large local builds. No source, hardware or licence changes occurred.
 
+### Batch 134 — sequencer benchmark and Movy oracle wrappers/generator
+
+Read all 827 lines of `tools/seq_bench.py`, `tools/movy-oracle/gen_scripts.py`, `tools/movy-oracle/regen-fixtures.sh`, and `tools/movy-oracle/run-on-aeon.sh`. Reviewed generated event bounds and deterministic seeding, explicit benchmark-output cleanup, fixture regeneration/delete behavior, pinned upstream revision handling, job staging, remote volume mounts, subprocess argument construction, result copyback and trap cleanup. No LAN command, Docker command, fixture rewrite or stress benchmark was run.
+
+**[P2] `--frames` is interpolated into a remote shell command without enum validation or quoting. [verified]** `run-on-aeon.sh:43` accepts any value after `--frames`, and line 88 expands the flags array into the `sh -c` program rather than passing them as an argv array. A value such as `block; touch /work/driver/marker` becomes a second shell command inside the container, which runs with the remote user's UID and the oracle work directory mounted read/write. The documented values are only `block` and `tick`; rejecting every other value or passing argv without shell interpolation would close the command-injection path. Confidence high; the scenario requires a caller to supply an invalid/untrusted option value.
+
+The runner's `--clean` option intentionally removes its configured remote oracle directory, while routine jobs use a unique timestamp/PID work directory and a trap that removes only that job. No additional confirmed generator or wrapper defect was established. The Rust oracle driver remains pending its own source review.
+
 ### Batch 126 — manual page templates and primary page/editor styles
 
 Read the complete six manual templates/styles in `manual/theme/` (six files, 622 lines total), `sim/web/www/style.css` (507 lines), and the base-branch `sim/web/www/editor/editor.css` (836 lines). The latter was independently reviewed earlier in its complete editor-stream form at pinned `861b725`; this pass records base-source coverage. Reviewed source-level page landmarks, link placeholders, hidden-state selectors, focus treatment, narrow-screen and print layouts, generated navigation/reference selectors, numeric spacing, contrast-token references, and modal/drop overlay placement. Source-only CSS inspection cannot establish pixel-level collision behavior; the editor-branch CSS review is recorded without a rendered screenshot claim.
