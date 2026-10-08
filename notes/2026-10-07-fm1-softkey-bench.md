@@ -99,3 +99,23 @@ keepalives and insists on identical hashes. CLI requires the successful
 across probe and dump tools, including rejection of every opcode outside
 the allowlist, loader range/config overflow, altered blob, unsafe jump,
 flash-read bounds and online-device configuration [verified].
+
+## Full backup result
+
+[verified, same bench session] Pinned loader upload/jump, FC14 and FC0A
+succeeded. The loader reports a 256-byte USB buffer, flash type 3 and JEDEC
+0x856014. Two full 1,048,576-byte reads match:
+SHA-256 `96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4`.
+No flash erase/program command was issued. The private manifest, command log
+and dumps are retained at `/home/claude/fm1-backups/2026-10-07-session1/` on
+bench01 and copied off-machine to the main checkout's ignored
+`scratch/fm1-bench-20261007/backup-session1/`; copied hashes were checked.
+The full dump is private and includes installed firmware/user data.
+
+[verified: raw backups] `[0xAE000,0xD9000)` is entirely FF, matching the
+unused area after the 092 package image. `[0xD8000,0xD9000)` is a candidate
+4 KiB scratch sector for a bounded program/read/restore test. No restore has
+yet been attempted. Such a test demonstrates restoring that sector and
+unchanged complete flash before/after; it is not a demonstration of a full
+1 MiB rewrite or of recovery from a nonbooting application. The owner has
+been asked to power-cycle and verify the return to the normal screen.
