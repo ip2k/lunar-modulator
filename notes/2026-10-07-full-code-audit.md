@@ -663,4 +663,12 @@ Read `sim/web/test/editor-map.mjs` (363 baseline lines) and `sim/web/test/editor
 
 The added editor-map checks exercise the newly introduced input-start and end-drag flows, though those browser assertions remain unexecuted. No additional confirmed product defect was established in these two test files.
 
+### Batch 98 — Editor model unit suite and documentation screenshots
+
+Read `sim/web/test/editor-unit.mjs` (436 lines) and `sim/web/test/editor-shots.mjs` (57 lines) completely. The model suite covers metadata-driven controls and detents, C/WASM packed-record and change-feed parity, model mirror values, merged history and undo/redo hashes, structural module/cable operations, refusal invariants, dynamic layout metadata, and RAM-part accounting. The screenshot tool drives the local test server and browser through its five manual-image states. Neither test nor screenshot generation ran; the required generated module and LAN Playwright container are unavailable here.
+
+**[P3] ED3 structural metadata assertions are silently skipped if the module lacks `fm1w_mod_records`. [verified]** `editor-unit.mjs:258-305` puts the module/cable/loop metadata checks under `if (hasRecords)`, but its `else` branch only writes `report.ed3 = 'the module predates fm1w_mod_records'`; it does not fail the suite. Consequently an older or incorrectly built WASM module can exit successfully without checking the advertised ED3 rack, matrix, and loop-record parity. Confidence high; severity P3 test gap. This does not show that the pinned baseline module is stale; it shows the test does not enforce the feature prerequisite.
+
+No other confirmed defect was established in these test helpers. Browser screenshot and runtime claims remain unverified in this environment.
+
 No runtime reproduction was possible because the generated native simulator binary is absent. No source, device or licence changes occurred.
