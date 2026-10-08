@@ -423,10 +423,10 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_engines_fx3_hostile.py` — PENDING
 - [x] `tests/test_engines_fx_hostile.py` — READ completely (107 lines); pack-wide chaos, block/memory, pass-through, rate/glide, tail and bad-index host contracts reviewed; batch 79
 - [x] `tests/test_engines_fx_switches.py` — READ completely (159 lines); rapid switch schedules, held-control step baselines, 5 ms fade bounds, ceilings and modulation cases reviewed; batch 79
-- [ ] `tests/test_engines_gate.py` — PENDING
-- [ ] `tests/test_engines_hall.py` — PENDING
-- [ ] `tests/test_engines_idle.py` — PENDING
-- [ ] `tests/test_engines_isolator.py` — PENDING
+- [x] `tests/test_engines_gate.py` — READ completely (597 lines); host guards, timing/detector/key-filter references, look-ahead, switching and integration cases reviewed; batch 80
+- [x] `tests/test_engines_hall.py` — READ completely (358 lines); FDN registration/size/mix, arrival, decay/damping/diffusion, stereo, freeze and tail tests reviewed; batch 80
+- [x] `tests/test_engines_idle.py` — READ completely (316 lines); idle/wake equivalence, warm-up, driven cables, short-lock limits, hostile inputs and rate tests reviewed; batch 80
+- [x] `tests/test_engines_isolator.py` — READ completely (285 lines); exact unity, Linkwitz-Riley response, kill masks, crossover glide, switching and rate tests reviewed; batch 80
 - [x] `tests/test_engines_limit.py` — READ completely (459 lines); desktop and float-probe assertions reviewed; execution pending missing pytest/native binaries and no large local build; batch 48 (2026-10-07)
 - [x] `tests/test_engines_mi_fx.py` — READ completely (444 lines); registration, tails, max-feedback, Mix bypass, input guards, levels, stereo, block parity, sizes and rate/control response reviewed; no NaN-parameter assertion; execution pending; batch 61 (2026-10-07)
 - [x] `tests/test_engines_mod.py` — READ; audit report batch 15; not executed
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `c2c6301d3225f073ecc47019f43b0d8109bb20ea` (Batches 1–78; remote SHA verified).
+- Last pushed commit: `7cf7547a2beb66cbc8e98cf074a2b12daf06b388` (Batches 1–79; remote SHA verified).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.

@@ -552,3 +552,9 @@ No other confirmed defect was established in this test source. Native oracle and
 Read `tests/test_engines_shapes_edges.py` (144 lines), `test_engines_shapes_hostile.py` (74), `test_engines_fx_hostile.py` (107), and `test_engines_fx_switches.py` (159) completely. Traced Braids edge-case pitch/timbre clamps across shapes, hostile between-value schedules and memory fills, master-effect block/rate/input/extreme recovery contracts, and fast switch modulation against held-control step bounds and effect ceilings.
 
 No additional confirmed defect or material coverage gap was established from these four test sources. The required `fm1-render`, hostile-effect tools and sanitizer build are unavailable here; the tests were not executed, so their numerical/audio bounds remain source-reviewed rather than reproduced. No code, device or licence changes occurred.
+
+### Batch 80 — Gate, Hall, idle-path and Isolator suites
+
+Read `tests/test_engines_gate.py` (597 lines), `test_engines_hall.py` (358), `test_engines_idle.py` (316), and `test_engines_isolator.py` (285) completely. Traced Gate host guards, stereo/key-filter and detector timing references, look-ahead latency and switch schedules; Hall size/pre-delay/diffusion/decay/freeze and tail contracts; idle/wake warm-up against non-idle reference builds, modulation-driven awake behavior and known lost-short-lock tradeoffs; and Isolator Linkwitz-Riley response, kill masks, exact-unity path and crossover glide landing.
+
+No additional confirmed defect or material coverage gap was established in these test sources. The associated renderer and selftest tools are unavailable, so none of their long audio/reference tests were run. Their metrics and pinned hashes remain claims recorded in source, not re-measured by this audit. No code, device or licence changes occurred.
