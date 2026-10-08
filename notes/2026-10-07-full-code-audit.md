@@ -400,3 +400,9 @@ No confirmed helper or test-contract defect was established. The six engine inte
 Read `engines/src/mi_macro.cc` (569 lines) completely. Traced voice allocation and same-key retrigger, Mono/Legato retuning and release ordering, model rebuild/lifecycle, held-key and glide state, fixed-rate block advancement through the pull resampler, per-note smoothed controls, per-model arena sizing, and LPG Gate/Ping/Off envelope and termination paths. This was a focused integration review; its broad Plaits/vendored DSP internals have their own vendor coverage tier.
 
 No confirmed new defect was established in the Macro integration. The glide oracle suite was source-reviewed in batch 53 but not executed, and the remaining five engine integrations remain pending. No code, device or licence changes occurred.
+
+### Batch 55 — Macro Heavy integration, speech sharing and stereo path
+
+Read `engines/src/mi_macro_heavy.cc` (907 lines) completely. Followed all 13 model registrations and exact arena-byte requirements, shared LPC speech bank ownership/quantization/restart, per-voice speech controllers, string-machine stereo resamplers and state-copy/stop conditions, other-model mono resampler equivalence, voice allocation and glide transitions, smoothing/per-note controls, self-enveloped silence timeout, LPG modes, and null-engine handling when arena checks fail.
+
+No confirmed defect was established in the Macro Heavy wrapper paths reviewed. The shared glide test suite remains source-reviewed only; no build/test ran. Four other integrations remain pending. No source, device or licence changes occurred.

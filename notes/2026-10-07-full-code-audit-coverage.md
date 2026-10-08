@@ -219,6 +219,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/glide.h` — READ completely (371 lines); Time/Rate slew arithmetic, voice selection/plans, held-key cap/return logic and event-time mode semantics reviewed; callers remain separately pending; batch 53 (2026-10-07)
 - [ ] `engines/src/mi_fx.cc` — PENDING
 - [x] `engines/src/mi_macro.cc` — READ completely (569 lines); allocation/model rebuild, held-note/glide event ordering, smoothing/per-note controls, Plaits arena sizing, resampler consumption and LPG modes reviewed; batch 54 (2026-10-07)
+- [x] `engines/src/mi_macro_heavy.cc` — READ completely (907 lines); voice/model/arena lifecycle, shared Speech bank and quantizer, stereo resampler handoff, note/glide ordering, per-note controls, LPG/self-envelope termination and failure paths reviewed; batch 55 (2026-10-07)
 - [ ] `engines/src/mi_macro_heavy.cc` — PENDING
 - [ ] `engines/src/mi_plaits_env.h` — PENDING
 - [ ] `engines/src/mi_shapes.cc` — PENDING
