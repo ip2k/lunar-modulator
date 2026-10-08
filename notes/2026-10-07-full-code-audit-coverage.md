@@ -907,3 +907,293 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 - [x] `sim/web/test/seq/sixop-two-tracks-swing.verbs` — READ complete (7 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
 
 - [x] `sim/web/test/state/play.verbs` — READ complete (6 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/capture-nothing.panel` — READ complete (4 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/capture-nothing.verbs` — READ complete (3 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/capture-playing.panel` — READ complete (8 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/capture-playing.verbs` — READ complete (10 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/capture-stopped-fitted.panel` — READ complete (9 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/capture-stopped-fitted.verbs` — READ complete (12 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/capture-stopped-picker.panel` — READ complete (15 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/capture-stopped-picker.verbs` — READ complete (18 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/clip-page.panel` — READ complete (12 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/clip-page.verbs` — READ complete (8 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/clip-quant-cycle.panel` — READ complete (12 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/clip-quant-cycle.verbs` — READ complete (7 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/empty.verbs` — READ complete (4 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/input.verbs` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-eight-lanes.panel` — READ complete (20 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-eight-lanes.verbs` — READ complete (27 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-knob-sync.panel` — READ complete (15 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-knob-sync.verbs` — READ complete (8 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-clear-knob.panel` — READ complete (14 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-clear-knob.verbs` — READ complete (7 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-clear-step.panel` — READ complete (13 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-clear-step.verbs` — READ complete (7 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-held-step.panel` — READ complete (16 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-held-step.verbs` — READ complete (7 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-live-take.panel` — READ complete (12 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-live-take.verbs` — READ complete (8 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-nolock.panel` — READ complete (14 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-nolock.verbs` — READ complete (3 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-tap-clear.panel` — READ complete (15 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-tap-clear.verbs` — READ complete (7 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-several-clear.panel` — READ complete (19 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-several-clear.verbs` — READ complete (8 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-several-held.panel` — READ complete (10 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-several-held.verbs` — READ complete (3 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/metro-shortcut.panel` — READ complete (8 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/metro-shortcut.verbs` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/mute-map.panel` — READ complete (10 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/mute-map.verbs` — READ complete (6 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/mute-tap.panel` — READ complete (6 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/mute-tap.verbs` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/pages-browse.panel` — READ complete (16 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/pages-browse.verbs` — READ complete (3 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/play-stop-from-fx.panel` — READ complete (4 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/play-stop-from-fx.verbs` — READ complete (4 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/play-stop-from-home.panel` — READ complete (3 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/play-stop-from-home.verbs` — READ complete (4 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/play-stop-from-seq.panel` — READ complete (7 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/play-stop-from-seq.verbs` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/play-twice.panel` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/play-twice.verbs` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec-count-in.panel` — READ complete (8 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec-count-in.verbs` — READ complete (9 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec-empty-clip-waits.panel` — READ complete (8 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec-empty-clip-waits.verbs` — READ complete (10 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec-hold-untouched.panel` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec-hold-untouched.verbs` — READ complete (3 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec-overdub.panel` — READ complete (7 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec-overdub.verbs` — READ complete (10 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec-seq-tap.panel` — READ complete (7 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec-seq-tap.verbs` — READ complete (7 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec.verbs` — READ complete (6 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/seq-enter-exit.panel` — READ complete (10 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/seq-enter-exit.verbs` — READ complete (2 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-copy-clear.args` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-copy-clear.mod` — READ complete (13 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-copy-clear.panel` — READ complete (16 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-copy-clear.verbs` — READ complete (6 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-launch.args` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-launch.mod` — READ complete (13 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-launch.panel` — READ complete (12 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-launch.verbs` — READ complete (7 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-scenes.args` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-scenes.mod` — READ complete (13 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-scenes.panel` — READ complete (17 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-scenes.verbs` — READ complete (11 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-track-clear.args` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-track-clear.mod` — READ complete (13 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-track-clear.panel` — READ complete (8 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-track-clear.verbs` — READ complete (4 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/song-build.args` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/song-build.mod` — READ complete (13 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/song-build.panel` — READ complete (34 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/song-build.verbs` — READ complete (26 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/song-edit-playing.args` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/song-edit-playing.mod` — READ complete (13 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/song-edit-playing.panel` — READ complete (28 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/song-edit-playing.verbs` — READ complete (14 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/song.verbs` — READ complete (6 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-add-pitch.panel` — READ complete (11 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-add-pitch.verbs` — READ complete (5 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-bar-paging.panel` — READ complete (13 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-bar-paging.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-chord-from-keys.panel` — READ complete (10 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-chord-from-keys.verbs` — READ complete (11 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-chord-from-midi.panel` — READ complete (7 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-chord-from-midi.verbs` — READ complete (8 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-clear.panel` — READ complete (13 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-clear.verbs` — READ complete (4 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-co-press.panel` — READ complete (8 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-co-press.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-condition.panel` — READ complete (8 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-condition.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-full-velocity.panel` — READ complete (11 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-full-velocity.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-hidden-tail.panel` — READ complete (9 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-hidden-tail.verbs` — READ complete (5 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-hold-then-home.panel` — READ complete (8 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-hold-then-home.verbs` — READ complete (5 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-hold.panel` — READ complete (7 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-hold.verbs` — READ complete (4 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-invert.panel` — READ complete (14 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-invert.verbs` — READ complete (7 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-length-knob.panel` — READ complete (9 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-length-knob.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-length.panel` — READ complete (12 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-length.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-midi-adds-pitch.panel` — READ complete (8 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-midi-adds-pitch.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-nudge.panel` — READ complete (9 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-nudge.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-oct.panel` — READ complete (9 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-oct.verbs` — READ complete (5 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-probability.panel` — READ complete (8 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-probability.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-record-grow.panel` — READ complete (9 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-record-grow.verbs` — READ complete (13 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-record.panel` — READ complete (16 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-record.verbs` — READ complete (13 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-several-held.panel` — READ complete (10 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-several-held.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-shift-play.panel` — READ complete (5 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-shift-play.verbs` — READ complete (5 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-tap.panel` — READ complete (7 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-tap.verbs` — READ complete (5 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-velocity.panel` — READ complete (8 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-velocity.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/steps.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/tail.verbs` — READ complete (4 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/track-focus-from-home.panel` — READ complete (9 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/track-focus-from-home.verbs` — READ complete (7 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/track-focus.panel` — READ complete (11 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/track-focus.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/track-page-route.panel` — READ complete (15 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/track-page-route.verbs` — READ complete (9 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/tracks.verbs` — READ complete (7 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
