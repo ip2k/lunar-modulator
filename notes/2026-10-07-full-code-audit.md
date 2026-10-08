@@ -252,3 +252,9 @@ No other confirmed defect was established in the file during this pass. The code
 Read `engines/midi_fx/fm1_arp.h`, `arp_engine.c`, `arp_rhythm.c`, `registry.c`, `engines/include/fm1_smooth.h`, and `engines/mod/mod_mi_tables.c` in full. Checked the public event/capacity and transport contracts, engine parameter ordering/UID/core-value mapping, module guards, bounded Euclidean grouping/flattening, sample-rate ramp arithmetic, and generated-table attribution and shape. The Euclidean work arrays stay within 32 entries for `len` in 1..32; the 2.5 ms smoothing multiplication remains within 32-bit unsigned range after its 1 MHz rate clamp.
 
 No confirmed defect was established in these files. The wrapper and rhythm tests and the generated-table comparison remain unexecuted; the core arpeggiator implementation and its full regression suite are still pending. No source changes, builds or device actions occurred.
+
+### Batch 31 — arpeggiator runtime core
+
+Read all 944 lines of `engines/midi_fx/fm1_arp.c`. Traced the fixed instance state, note ledger and deferred note-off policy, live/sequencer key ownership, sustain/latch/stop behavior, all order construction modes, octave spans and lifts, deterministic step randomization, rhythm and Euclidean indexing, ratchet/gate timing, free and sequencer-locked clocks, event ordering, parameter updates and caller-supplied output capacity. Maximum cycle construction remains within 128 entries for 16 held keys and four octaves; note generation's ratchet list is bounded by the 16-key chord. The core does not allocate or use global mutable state.
+
+No confirmed defect was established from the implementation. `tests/test_engine_arp.py` (951 lines) and the broader MIDI effect tests were not read or executed yet. No build or device action occurred.
