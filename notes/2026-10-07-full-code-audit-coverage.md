@@ -190,7 +190,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/src/dx7_loop.h` — PENDING
 - [ ] `engines/src/dx7_voice.cc` — PENDING
 - [ ] `engines/src/dx7_voice.h` — PENDING
-- [ ] `engines/src/editor_meta.cc` — PENDING
+- [x] `engines/src/editor_meta.cc` — READ complete; static metadata tables and bounded lookups (batch 22)
 - [ ] `engines/src/felucca_bridge.c` — PENDING
 - [ ] `engines/src/felucca_bridge.h` — PENDING
 - [ ] `engines/src/felucca_shim.cc` — PENDING
@@ -230,7 +230,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/src/msfa_tables.cc` — PENDING
 - [ ] `engines/src/msfa_unit.cc` — PENDING
 - [ ] `engines/src/note_offsets.h` — PENDING
-- [ ] `engines/src/registry.cc` — PENDING
+- [x] `engines/src/registry.cc` — READ complete; build/GPL/module table consistency (batch 22)
 - [ ] `engines/src/schwung_abi.h` — PENDING
 - [ ] `engines/src/schwung_module_prefix.h` — PENDING
 - [ ] `engines/src/schwung_shim.cc` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `a6a72e9e955ce1faed75ac6b7777942d34b78303` (Batches 1–20; remote SHA verified). Batch 21 is pending checkpoint.
+- Last pushed commit: `d59e2aedb37f8ae01e6e12cfcb202ce1632d7708` (Batches 1–21; remote SHA verified). Batch 22 is pending checkpoint.
 - Outstanding: see all `PENDING` entries above; desktop render/tooling, editor-branch variants, source corpus and most vendor integrations remain open. Native modulation regression tests remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
