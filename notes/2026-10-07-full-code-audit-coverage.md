@@ -541,22 +541,22 @@ Vendored code is not silently counted as first-party. Review its licence/provena
 - [x] `engines/third_party/felucca/src/voice.c` — READ complete (605 lines); allocation, shared voice budget, envelopes, switching, render and modulation boundary reviewed; batch 136
 - [x] `engines/third_party/felucca/tools/gen_tables.py` — READ complete (119 lines); deterministic data generation formulas reviewed; unreachable print after return recorded in batch 136
 - [x] `engines/third_party/felucca/vendor.py` — READ complete (91 lines); commit-pinned extraction/check paths reviewed; batch 136
-- [ ] `engines/third_party/fm1-x0x/dsp/bass303.c` — PENDING
-- [ ] `engines/third_party/fm1-x0x/dsp/bass303.h` — PENDING
-- [ ] `engines/third_party/fm1-x0x/dsp/drum808.c` — PENDING
-- [ ] `engines/third_party/fm1-x0x/dsp/drum808.h` — PENDING
-- [ ] `engines/third_party/fm1-x0x/dsp/drum909.c` — PENDING
-- [ ] `engines/third_party/fm1-x0x/dsp/drum909.h` — PENDING
-- [ ] `engines/third_party/fm1-x0x/dsp/drum909_dsp.h` — PENDING
-- [ ] `engines/third_party/fm1-x0x/dsp/fastmath.h` — PENDING
-- [ ] `engines/third_party/fm1-x0x/dsp/x0x_param.h` — PENDING
-- [ ] `engines/third_party/fm1-x0x/gen/x0x_drum_samples.h` — PENDING
-- [ ] `engines/third_party/fm1-x0x/gen/x0x_drum_tables.h` — PENDING
-- [ ] `engines/third_party/fm1-x0x/seq/pattern.h` — PENDING
-- [ ] `engines/third_party/fm1-x0x/seq/tb3po.c` — PENDING
-- [ ] `engines/third_party/fm1-x0x/seq/tb3po.h` — PENDING
-- [ ] `engines/third_party/fm1-x0x/tools/gen_drum_samples.py` — PENDING
-- [ ] `engines/third_party/fm1-x0x/vendor.py` — PENDING
+- [x] `engines/third_party/fm1-x0x/dsp/bass303.c` — PATCH hunks reviewed; unchanged upstream algorithm body (755 lines total) excluded by vendor tier; BASS303_SR call sites and wrapper bounds cross-checked; batch 137
+- [x] `engines/third_party/fm1-x0x/dsp/bass303.h` — READ complete (173 lines); instance layout, API and sample-rate/float-pot changes reviewed; batch 137
+- [x] `engines/third_party/fm1-x0x/dsp/drum808.c` — PATCH hunks reviewed; unchanged upstream algorithm body (1,750 lines total) excluded by vendor tier; float pot initialization/use cross-checked; batch 137
+- [x] `engines/third_party/fm1-x0x/dsp/drum808.h` — READ complete (217 lines); runtime state and float-pot API reviewed; batch 137
+- [x] `engines/third_party/fm1-x0x/dsp/drum909.c` — PATCH hunks reviewed; unchanged upstream algorithm body (863 lines total) excluded by vendor tier; all rate macro call paths cross-checked; batch 137
+- [x] `engines/third_party/fm1-x0x/dsp/drum909.h` — READ complete (139 lines); rate state, sample coding and float-pot API reviewed; batch 137
+- [x] `engines/third_party/fm1-x0x/dsp/drum909_dsp.h` — PATCH hunks/API reviewed; unchanged helper body excluded by vendor tier; sample-rate helper reachability cross-checked; batch 137
+- [x] `engines/third_party/fm1-x0x/dsp/fastmath.h` — READ complete (215 lines); documented argument preconditions, IEEE bit operations and shift behavior reviewed; P3 shift finding in batch 137
+- [x] `engines/third_party/fm1-x0x/dsp/x0x_param.h` — READ complete (17 lines); descriptor bounds and caller contract reviewed; batch 137
+- [x] `engines/third_party/fm1-x0x/gen/x0x_drum_samples.h` — GENERATED DATA (6,956 lines); excluded from manual code review; complete blob SHA verified and regenerated output compared byte-for-byte; batch 137
+- [x] `engines/third_party/fm1-x0x/gen/x0x_drum_tables.h` — GENERATED DATA (659 lines); excluded from manual code review; complete blob SHA verified and regenerated output compared byte-for-byte; batch 137
+- [x] `engines/third_party/fm1-x0x/seq/pattern.h` — READ complete (79 lines); 303/TB-3PO records and inert break settings reviewed; optional persisted-layout removal candidate noted; batch 137
+- [x] `engines/third_party/fm1-x0x/seq/tb3po.c` — READ complete (146 lines); seed, bounds, probability and slide generation reviewed; batch 137
+- [x] `engines/third_party/fm1-x0x/seq/tb3po.h` — READ complete (20 lines); generator API reviewed; batch 137
+- [x] `engines/third_party/fm1-x0x/tools/gen_drum_samples.py` — READ complete (201 lines); WAV reader, Decimal µ-law mapping, sample/tables output and CLI reviewed; generated outputs match; batch 137
+- [x] `engines/third_party/fm1-x0x/vendor.py` — READ complete (112 lines); pinned checkout mappings, patch application and temporary verification/copy lifecycle reviewed; batch 137
 - [ ] `engines/third_party/msfa/aligned_buf.h` — PENDING
 - [ ] `engines/third_party/msfa/controllers.h` — PENDING
 - [ ] `engines/third_party/msfa/dx7note.cc` — PENDING
@@ -802,7 +802,7 @@ The following custom languages and fixtures are inputs to parsers, tests or prod
 - [ ] `*.json`, `*.jsonl`, `*.syx`, `*.list`, `*.rgb565`, `*.bdf`, `*.gz`, `*.wav`, `*.png`, `*.jpg`, `*.ttf` — PENDING overall data/provenance review
   - [x] Spleen 2.2.0 `spleen-8x16.bdf`, `spleen-6x12.bdf`, `LICENSE`: Git blob hashes independently match `UPSTREAM.md` and `tests/test_sim_fonts.py`; `gen_font.py --check` reproduces both ASCII tables. Review limited to the 95 product glyphs and parser-derived BDF metrics. Excluded the remainder of the 33,734-line BDFs from manual visual inspection; exact vendor blobs verified.
 - [x] `tools/jieli/ac79-sdk-sparse.txt` — READ; audit report batch 3 (2026-10-07)
-- [ ] `engines/third_party/fm1-x0x/local.patch` — PENDING patch provenance/integration review
+- [x] `engines/third_party/fm1-x0x/local.patch` — READ complete (841 lines); all eight modified-file diffs reviewed; hash matches the local provenance manifest; pinned upstream checkout absent, so original-side hashes were not independently compared; batch 137
 
 ## Non-code inputs
 
