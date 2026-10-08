@@ -49,8 +49,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/host/mod_script.c` — PENDING
 - [ ] `engines/host/mod_script.h` — PENDING
 - [ ] `engines/host/render.cc` — PENDING
-- [ ] `engines/host/render_state.cc` — PENDING
-- [ ] `engines/host/render_state.h` — PENDING
+- [x] `engines/host/render_state.cc` — READ; full desktop state import/export flow in audit report batch 4
+- [x] `engines/host/render_state.h` — READ; full desktop state import/export contract in audit report batch 4
 - [ ] `engines/host/seq_script.c` — PENDING
 - [ ] `engines/host/seq_script.h` — PENDING
 - [ ] `engines/host/seq_tool.c` — PENDING
@@ -321,8 +321,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `sim/web/mk/sim.mk` — PENDING
 - [ ] `sim/web/src/fm1_app.c` — PENDING
 - [ ] `sim/web/src/fm1_app.h` — PENDING
-- [ ] `sim/web/src/fm1_app_state.c` — PENDING
-- [ ] `sim/web/src/fm1_app_state.h` — PENDING
+- [x] `sim/web/src/fm1_app_state.c` — READ; complete load/save planner and apply path in audit report batch 4
+- [x] `sim/web/src/fm1_app_state.h` — READ; complete public contract in audit report batch 4
 - [ ] `sim/web/src/fm1_edit.c` — PENDING
 - [ ] `sim/web/src/fm1_edit.h` — PENDING
 - [ ] `sim/web/src/fm1_font.h` — PENDING
@@ -373,10 +373,10 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `sim/web/www/editor/model.js` — PENDING
 - [ ] `sim/web/www/editor/project.js` — PENDING
 - [ ] `sim/web/www/editor/sheets.js` — PENDING
-- [ ] `sim/web/www/files.js` — PENDING
+- [x] `sim/web/www/files.js` — READ; complete file, link, storage and embed flow in audit report batch 5
 - [ ] `sim/web/www/fm1-wasm.mjs` — PENDING
 - [ ] `sim/web/www/index.html` — PENDING
-- [ ] `sim/web/www/shadow.worker.js` — PENDING
+- [x] `sim/web/www/shadow.worker.js` — READ; complete request protocol and state/editor operations in audit report batch 5
 - [ ] `sim/web/www/style.css` — PENDING
 - [ ] `sim/web/www/worklet.js` — PENDING
 - [ ] `tests/__init__.py` — PENDING
@@ -386,7 +386,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/state_canon.py` — PENDING
 - [ ] `tests/state_meta.py` — PENDING
 - [ ] `tests/state_random.py` — PENDING
-- [ ] `tests/test_app_state.py` — PENDING
+- [x] `tests/test_app_state.py` — READ; full app load/save/refusal test body in audit report batch 4
 - [x] `tests/test_audit_link.py` — READ; audit report batch 3 (2026-10-07)
 - [x] `tests/test_boot_compat.py` — READ; audit report batch 2 (2026-10-07)
 - [ ] `tests/test_ci_pins.py` — PENDING
@@ -465,7 +465,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_sim_edit.py` — PENDING
 - [ ] `tests/test_sim_editor_meta.py` — PENDING
 - [ ] `tests/test_sim_editor_ui.py` — PENDING
-- [ ] `tests/test_sim_files.py` — PENDING
+- [x] `tests/test_sim_files.py` — READ; static file/link/audio-boundary tests in audit report batch 5
 - [ ] `tests/test_sim_fonts.py` — PENDING
 - [ ] `tests/test_sim_lists.py` — PENDING
 - [ ] `tests/test_sim_mod.py` — PENDING
