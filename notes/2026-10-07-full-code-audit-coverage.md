@@ -310,12 +310,12 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/test/tb3po_line.c` — READ completely (45 lines); argument contract, upstream TB-3PO generation/mutation adapter and JSON output reviewed against Acid Gen tests; batch 124 (2026-10-08)
 - [x] `engines/test/tilt_test.cc` — READ completely (444 lines); DFT response probe, exact bypass, block independence, jump/zipper/sweep/silence/rate scenarios reviewed; execution pending; batch 52 (2026-10-07)
 - [x] `firmware/boot/boot_compat_test.c` — READ; audit report batch 2 (2026-10-07)
-- [ ] `manual/theme/book.html` — PENDING
-- [ ] `manual/theme/cover.html` — PENDING
-- [ ] `manual/theme/landing.html` — PENDING
-- [ ] `manual/theme/manual.css` — PENDING
-- [ ] `manual/theme/page.html` — PENDING
-- [ ] `manual/theme/print.css` — PENDING
+- [x] `manual/theme/book.html` — READ complete (37 lines); generated print book shell and device-status language checked against current recovery notes; batch 126 (2026-10-08)
+- [x] `manual/theme/cover.html` — READ complete (48 lines); web cover links, navigation and device-status wording checked; batch 126 (2026-10-08)
+- [x] `manual/theme/landing.html` — READ complete (27 lines); landing claims checked against manual build output contract; batch 126 (2026-10-08)
+- [x] `manual/theme/manual.css` — READ complete (352 lines); screen layout, contrast tokens, focus, responsive/print rules and generated content selectors reviewed; batch 126 (2026-10-08)
+- [x] `manual/theme/page.html` — READ complete (49 lines); chapter shell, navigation/landmarks and metadata reviewed; batch 126 (2026-10-08)
+- [x] `manual/theme/print.css` — READ complete (109 lines); pagination, running heads, target counters and print layout reviewed; batch 126 (2026-10-08)
 - [x] `sim/web/build-on-aeon.sh` — READ completely; static build/publish boundary reviewed; batch 25 (2026-10-07)
 - [x] `sim/web/build.sh` — READ completely; build/test/record pipeline reviewed; batch 25 (2026-10-07)
 - [x] `sim/web/mk/sim.mk` — READ completely; native/WASM object and export boundary reviewed; batch 25 (2026-10-07)
@@ -366,7 +366,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `sim/web/tools/source_hash.py` — READ completely (101 lines); source glob scope, path filtering and digest construction reviewed; batch 93 (2026-10-07)
 - [x] `sim/web/www/app.js` — READ in full (1,109 lines); baseline page and input/lifecycle review, audit report batch 17
 - [x] `sim/web/www/editor/chains.js` — READ in full (1,253 lines); patch preview/drag and keyboard flows, record packing, telemetry, module inspectors and cable matrix (batch 18)
-- [ ] `sim/web/www/editor/editor.css` — PENDING
+- [x] `sim/web/www/editor/editor.css` — READ complete at baseline d7111a9 (836 lines); responsive editor, state affordances, hidden/focus behavior, overlays and meter/label spacing reviewed; editor-branch variant separately covered at 861b725; batch 126 (2026-10-08)
 - [x] `sim/web/www/editor/editor.js` — READ in full (1,348 lines); lifecycle, worklet port, snapshots, edits, history, views and metadata controls (batch 18)
 - [x] `sim/web/www/editor/history.js` — READ in full; repeated picks redo payload finding in audit report batch 17
 - [x] `sim/web/www/editor/map.js` — READ in full (717 lines); patch gestures, planner preview, keyboard roving, SVG geometry and layout/fault checks (batch 18)
@@ -377,7 +377,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `sim/web/www/fm1-wasm.mjs` — READ; full module import/instantiation wrapper in audit report batch 5
 - [x] `sim/web/www/index.html` — READ in full (235 lines); audit report batch 17
 - [x] `sim/web/www/shadow.worker.js` — READ; complete request protocol and state/editor operations in audit report batch 5
-- [ ] `sim/web/www/style.css` — PENDING
+- [x] `sim/web/www/style.css` — READ complete at baseline d7111a9 (507 lines); simulator page, device hit-area scaling, file notices and layout modes reviewed; batch 126 (2026-10-08)
 - [x] `sim/web/www/worklet.js` — READ; full audio/editor message and render lifecycle in audit report batch 5
 - [x] `tests/__init__.py` — READ; empty package marker; batch 69 (2026-10-07)
 - [x] `tests/conftest.py` — READ completely (48 lines); wall/CPU limits, argument rewriting and subprocess monkeypatch scope reviewed; batch 69 (2026-10-07)

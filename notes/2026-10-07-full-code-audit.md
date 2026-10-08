@@ -809,6 +809,14 @@ Read all 1,120 lines of `engines/test/ref_plaits.cc` and cross-checked the full 
 
 No source, hardware or licence changes occurred. The reference executable and comparison suite were not run because generated engine artifacts are absent.
 
+### Batch 126 — manual page templates and primary page/editor styles
+
+Read the complete six manual templates/styles in `manual/theme/` (six files, 622 lines total), `sim/web/www/style.css` (507 lines), and the base-branch `sim/web/www/editor/editor.css` (836 lines). The latter was independently reviewed earlier in its complete editor-stream form at pinned `861b725`; this pass records base-source coverage. Reviewed source-level page landmarks, link placeholders, hidden-state selectors, focus treatment, narrow-screen and print layouts, generated navigation/reference selectors, numeric spacing, contrast-token references, and modal/drop overlay placement. Source-only CSS inspection cannot establish pixel-level collision behavior; the editor-branch CSS review is recorded without a rendered screenshot claim.
+
+The templates still describe device firmware as not yet running on the FM-1 and say device work will wait for safe recovery. The latest bench note establishes a successful softkey, full backups and a bounded restore, while explicitly leaving full-image restore untested; it does not establish a project firmware install or remove the stated restore blocker. The status language therefore remains consistent with the available evidence. The landing template's simulator-publication sentence applies to the manual-only output mode; its actual build-path relationship remains to be verified with the manual builder.
+
+No new confirmed CSS/template defect was established in this source pass. Some visual claims and responsive interactions need output-level verification, but no large manual build or browser rendering was run in this batch. No source, hardware or licence changes occurred.
+
 ### Batch 122 — resampler test and analysis utility
 
 Read all 705 lines of `engines/test/resampler_test.cc`, cross-checked its API assumptions against `engines/include/fm1_resampler.h` (389 lines, previously read in batch 21), and reviewed `tests/test_engines_resampler.py`'s ring-window assertion and command matrix (506 lines, batch 82). Reviewed every executable mode: table and passband sweep, timing/FFT fit, benchmark, exact pass-through, chunk equivalence, worst-case gains, refusal, poisoned input-ring windows, WAV conversion, tone probes and peak extraction. The 4:1 endpoint is included in the read-window scan: the rates vector's first 3,000 points ends at exactly 4:1, and index 2,999 is visited by the `i = 9; i < 3000; i += 10` loop; no finding was filed for that case.
