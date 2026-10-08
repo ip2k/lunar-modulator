@@ -527,9 +527,9 @@ Update status only after reading and recording evidence. A search or mechanical 
 
 Vendored code is not silently counted as first-party. Review its licence/provenance, entry points, build inclusion, copied/modified status and called API boundaries. For maintained/adapted code, read the complete included source; for unmodified upstream bulk, document exact exclusions and perform focused interface/security/lifetime review. Record each decision in the report. All entries start PENDING.
 
-- [ ] `engines/third_party/airwindows/oracle/airwindows_oracle.cc` — PENDING
-- [ ] `engines/third_party/airwindows/oracle/make_fixture.py` — PENDING
-- [ ] `engines/third_party/airwindows/oracle/run-on-aeon.sh` — PENDING
+- [x] `engines/third_party/airwindows/oracle/airwindows_oracle.cc` — READ complete (338 lines); test-only double oracle interfaces and processing loops reviewed; batch 141 (2026-10-08)
+- [x] `engines/third_party/airwindows/oracle/make_fixture.py` — READ complete (36 lines); fixture parsing, decimation, RMS and serialization reviewed; batch 141 (2026-10-08)
+- [x] `engines/third_party/airwindows/oracle/run-on-aeon.sh` — READ complete (45 lines); remote command construction and cleanup reviewed; shell injection finding batch 141 (2026-10-08)
 - [x] `engines/third_party/felucca-fm6/fm6_core.c` — EXCLUDED algorithm body (563 lines); Apache-2.0 desktop oracle only, not linked into firmware/browser; pinned SHA and stated limits reviewed; batch 136
 - [x] `engines/third_party/felucca-fm6/vendor.py` — READ complete (52 lines); fixed commit extraction and copy/check behavior reviewed; batch 136
 - [x] `engines/third_party/felucca/gen/felucca_tables.h` — GENERATED DATA; all 468 lines excluded from manual inspection, SHA matches pinned provenance manifest; batch 136
