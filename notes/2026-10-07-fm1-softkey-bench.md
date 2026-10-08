@@ -67,3 +67,35 @@ captures/backup images belong under ignored scratch or private bench storage,
 never Git. Record probe results here before proceeding to loader/dump work.
 The advanced-editor branch and PR #99 remain separate, awaiting owner listening
 feedback. Confirm backup by comparing this branch's HEAD and origin ref.
+
+## Soft-key result on this unit
+
+[verified, bench session] `7D` succeeded once at 2026-10-07 21:43 Pacific.
+The passive usbmon capture contains one 8-byte EP4 OUT transfer:
+`04 f0 22 24 07 35 7d f7`. Normal `4c4a:c755` (bus 3 device 10)
+changed to `4c4a:8057`, product `WL80UBOOT1.00` (device 11), in 0.745 s.
+SCSI sysfs reports `WL82` / `UBOOT1.00`; endpoints are OUT 0x01 / IN 0x81,
+64-byte packets, USB mass-storage bulk-only. Loading the existing Linux `sg`
+module exposed `/dev/sg0`; no persistent host configuration was changed.
+The host's USB storage driver also sends normal INQUIRY / TEST UNIT READY /
+REQUEST SENSE traffic; these are visible in the capture.
+
+The capture and entry JSONL are retained privately under the main checkout's
+ignored `scratch/fm1-bench-20261007/` and `/tmp/` on bench01. No flash dump or
+restore has yet occurred at this checkpoint. Device remains in UBOOT.
+
+## Bounded dump tool
+
+`tools/fm1_uboot_read.py` uses stdlib Linux SG_IO with a hard phase allowlist:
+ROM INQUIRY, FB06 within `[0x01C02000,0x01C07E00)`, FB08 only to 0x01C02000
+with argument 1; loader FC14, FC0A and FD05 only. No flash write/erase or key
+operations exist. Loader is jl-uboot-tool `adb3f188`'s 24,064-byte WL82 blob,
+SHA-256 `d41da6126760c9d66660bcc0cac8d27d221806c5e369a8036921efe68dca5376`,
+the blob audited in the desk investigation. No config block is uploaded.
+Unused CDB bytes are FF; reads use the reported WL82 256-byte buffer limit.
+The tool checks flash type 3 / JEDEC 0x856014, takes two 1 MiB dumps with
+keepalives and insists on identical hashes. CLI requires the successful
+092 entry log and checks the same USB path/enumeration. Twelve tests pass
+across probe and dump tools, including rejection of every opcode outside
+the allowlist, loader range/config overflow, altered blob, unsafe jump,
+flash-read bounds and online-device configuration [verified].
