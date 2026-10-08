@@ -198,8 +198,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/fx_comp.cc` — READ completely (512 lines); dB curve, detector states, character/auto-release handover, makeup bound, alias safety and API lifecycle reviewed; batch 42
 - [x] `engines/src/fx_comp_math.h` — READ completely (29 lines); shared fm1 math dispatch and stated numeric domain reviewed; batch 42
 - [x] `engines/src/fx_crush.cc` — READ completely (256 lines); sample hold/countdown, RNG, quantizer, smoothing and low-pass state reviewed; batch 42
-- [ ] `engines/src/fx_djfilter.cc` — PENDING
-- [ ] `engines/src/fx_drive.cc` — PENDING
+- [x] `engines/src/fx_djfilter.cc` — READ completely (625 lines); segment phase, side entry/exit, coefficient ramps, TPT state init, 12/24 dB crossfade and rate bounds reviewed; batch 43 (2026-10-07)
+- [x] `engines/src/fx_drive.cc` — READ completely (600 lines); generated curves, ADAA piece integrals, Auto gain, Type crossfade, pre/de-emphasis and DC/tone state reviewed; batch 43
 - [ ] `engines/src/fx_echo.cc` — PENDING
 - [ ] `engines/src/fx_eq.cc` — PENDING
 - [ ] `engines/src/fx_eq_math.h` — PENDING

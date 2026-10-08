@@ -326,3 +326,9 @@ No confirmed product defect was established in the bridge or shim during source 
 Read `engines/src/fx_comb.cc` (296 lines), `fx_comp.cc` (512), `fx_comp_math.h` (29), and `fx_crush.cc` (256) completely. Traced the Comb delay allocation and read/write age bounds, interpolation and saturated feedback, control/sample-clock glides and dry/wet path; the Comp static curve, RMS detector, reduction-state handover and per-sample Auto Gain bound; and Crush countdown, seeded per-instance jitter, quantizer, wet low-pass and all ramp fields. Checked instance initialization and memory-size calculations against the engine's caller-allocated storage and sample-rate contracts.
 
 No confirmed defect was established in these files. The shared math wrapper delegates to the engine math helpers and documents their input range. Associated regression tests have not yet been source-reviewed or executed, and no native builds were performed. No source or licence changes occurred.
+
+### Batch 43 — DJ Filter and Drive effects
+
+Read `engines/src/fx_djfilter.cc` (625 lines) and `fx_drive.cc` (600) completely. Traced the DJ Filter's 16-frame control grid, sweep/dead-zone entry and side switching, TPT SVF state initialization, 12/24 dB transition lifetime, coefficient ramps, cutoff/rate limits and guarded bypass. In Drive, followed its generated piecewise curves and ADAA integration, dead-zone/bias segmentation, quadrature Auto gain, Type transition queuing, pre/de-emphasis, DC blocker, tone tilt, and per-channel state across calls.
+
+No confirmed defect was established in these wrappers. Drive's generated curve coefficients are reviewed as a table here but still need comparison with the canonical generator/test source. The regression suites remain pending. No source changes or tests/builds occurred.
