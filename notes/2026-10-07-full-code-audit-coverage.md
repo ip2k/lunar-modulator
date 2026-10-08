@@ -265,7 +265,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/test/comet_oracle.cc` — READ completely (578 lines); 909 reference mapping, panel voicings, event/chunk timing, state scans and field reporters reviewed; batch 104 (2026-10-08)
 - [x] `engines/test/comp_test.cc` — READ completely (869 lines); compressor curves/timing/handling, block determinism, hostile input, auto-gain, math approximation and perf harness reviewed; batch 105 (2026-10-08). Confirmed ULP-helper test gap in report.
 - [x] `engines/test/crater_oracle.cc` — READ completely (355 lines); 808 pattern/pad mapping, chunk parity, field scans, pad duration and buffer bounds reviewed; batch 104 (2026-10-08)
-- [ ] `engines/test/djfilter_test.cc` — PENDING
+- [x] `engines/test/djfilter_test.cc` — READ completely (559 lines); bypass, response, block modulation, transitions, tail, rate and bench probes reviewed; batch 108 (2026-10-08)
 - [x] `engines/test/drive_test.cc` — READ completely (563 lines); ADAA quadrature, alias analysis, tape emphasis, control/timing, rates/hash/benchmark reviewed; batch 107 (2026-10-08)
 - [x] `engines/test/drum808_drive.c` — READ completely (77 lines); GPL 808 settings/pattern/sends, render/output order and buffer/tail bounds reviewed; batch 103 (2026-10-08)
 - [x] `engines/test/drum909_cymbals.c` — READ completely (58 lines); four sampled voices/tuning and shortened tail-call bounds reviewed; batch 103 (2026-10-08)
@@ -273,7 +273,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/test/dx7_felucca.c` — READ completely (100 lines); oracle-only Felucca integration/table derivation; not firmware-linked; batch 40
 - [x] `engines/test/dx7_oracle.cc` — READ completely (349 lines); loop/table/oracle setup, resource/error paths and output metrics reviewed; batch 40
 - [ ] `engines/test/echo_selftest.cc` — PENDING
-- [ ] `engines/test/eq_test.cc` — PENDING
+- [x] `engines/test/eq_test.cc` — READ completely (591 lines); impulse response, exact bypass, click/glide, silence, math accuracy, rate, hash and perf tests reviewed; batch 108 (2026-10-08)
 - [x] `engines/test/felucca_oracle.c` — READ completely (261 lines); Felucca test stubs, bounded argument/event storage, instance allocation, event scheduling and comparison flow reviewed; batch 41 (2026-10-07)
 - [ ] `engines/test/filter_test.cc` — PENDING
 - [x] `engines/test/fold_test.cc` — READ completely (197 lines); parameter sweep, block independent changes, silence tails and rate checks reviewed; batch 107 (2026-10-08)
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `1b86a6f1b96b98ede5e0d64c9005f88600a04af7` (Batches 1–106; remote SHA verified; batch 107 pending checkpoint).
+- Last pushed commit: `ec5b8723c97df662b024e68dfde54cc0b234a6c6` (Batches 1–107; remote SHA verified; batch 108 pending checkpoint).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
