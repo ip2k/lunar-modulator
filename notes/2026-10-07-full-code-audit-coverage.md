@@ -302,7 +302,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/test/sat_test.cc` — READ completely (513 lines); changing controls, bypass, curve, glue, tone/alias probe and output digest harness reviewed; execution pending; batch 50 (2026-10-07)
 - [x] `engines/test/schwung_race.cc` — READ completely; documented control/audio concurrency probe reviewed (not run; requires TSan build); batch 64 (2026-10-07)
 - [x] `engines/test/schwung_selftest.cc` — READ completely (674 lines); allocator guard/exhaustion, MIDI and parameter encoding, block/FIFO, headroom, host immutability, init lifetime and parser checks reviewed; not executed; batch 64 (2026-10-07)
-- [ ] `engines/test/seq_host_test.c` — PENDING
+- [x] `engines/test/seq_host_test.c` — READ completely (1,012 lines); text/typed parity, event dispatch, MIDI routing, bounds clamp, API v2 UID resolution, lock quantization, hook M6 order, slot dispatch and no-buffer behavior reviewed; batch 123 (2026-10-08)
 - [ ] `engines/test/shapes_hostile.cc` — PENDING
 - [x] `engines/test/smooth_test.cc` — READ completely (228 lines); event ordering, NaN/Inf schedule, partition independence and summary contracts reviewed; execution pending; batch 61 (2026-10-07)
 - [x] `engines/test/squash_test.cc` — READ completely (913 lines); upstream oracle adapters, randomized block/memory matrix, makeup frame bounds, host contracts and Transient probes reviewed; execution pending; batch 51 (2026-10-07)
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: batch 121 pending checkpoint; previous pushed commit `1dc129cc0a495b57fc7cd16479740f34d7385847` (Batches 1–121; remote SHA verified).
+- Last pushed commit: batch 122 pending checkpoint; previous pushed commit `a65b4675faba8051196226c7134198b8751c79cc` (Batches 1–122; remote SHA verified).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.

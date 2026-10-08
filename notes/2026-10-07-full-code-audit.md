@@ -821,6 +821,12 @@ Read all 705 lines of `engines/test/resampler_test.cc`, cross-checked its API as
 
 No source, hardware or licence changes occurred. The resampler test binary was not run because generated engine artifacts are absent.
 
+### Batch 123 — sequencer host bridge native harness
+
+Read all 1,012 lines of `engines/test/seq_host_test.c` and cross-checked its expected dispatch and UID behavior against `engines/seq/seq_host.c` (previously read completely in batch 23), `engines/include/fm1_seq_host.h`, and the Python integration assertions in `tests/test_seq_render.py:440-451` (whole suite read in batch 91). Reviewed the deterministic typed-versus-text script, host event buffer sizing, frame-ordered sink trace, MIDI-track suppression, frame-past-block clamp, lane-label resolution and import/release transitions, every 7-bit float/enum lock value and UI inverse, hook event order and tick writes, multi-slot dispatch, and null-buffer behavior.
+
+No additional confirmed defect was established. Scripted live-note parsing uses valid fixed commands; its typed parser results are checked before use except for the same controlled fixed script in the helper path. The 512-entry trace is larger than the script's maximum per-block deliveries, and the bounded hook traces carry eight fixed events into 32-entry arrays. Hand-built events remain within their 16-entry buffers; the only event beyond a 64-frame block is deliberate and the implementation clamps it. This native harness was not built or run because generated engine artifacts are absent. No source, hardware or licence changes occurred.
+
 ### Batch 121 — Clouds room reference harness
 
 Read all 266 lines of `engines/test/ref_room.cc` and cross-checked its fixed 32-frame processor order, control formulas and rate compensation against the Room implementation/math reviewed earlier, and its comparisons against the complete `tests/test_engines_reference_room.py` (282 lines, batch 82). Reviewed the float WAV parser/writer, sample generation, host block tail, stereo chaining, reported metrics, and option validation.
