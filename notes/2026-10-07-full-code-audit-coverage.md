@@ -509,7 +509,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tools/manual/diagram_check.py` — READ complete (312 lines); SVG geometry/parser/collision checks reviewed; passed against all 8 tracked manual diagrams; batch 131 (2026-10-08)
 - [x] `tools/manual/diagram_metrics.py` — READ complete (61 lines); glyph/weight table shape and missing-character fallback reviewed; batch 129 (2026-10-08)
 - [x] `tools/manual/diagram_theme.py` — READ complete (236 lines); OKLCH/gamut/color derivation, WCAG-role tone and diagram semantics reviewed; batch 130 (2026-10-08)
-- [ ] `tools/manual/diagrams.py` — PENDING
+- [x] `tools/manual/diagrams.py` — READ complete (1,360 lines); source schema, grid measurement, route/port/track assignment, label growth, SVG rendering and CLI reviewed; `--check` passed all 8 current sources/outputs; batch 132 (2026-10-08)
 - [x] `tools/manual/figures.py` — READ complete (221 lines); measured SVG geometry, escaping, key coordinates, callouts and alt text reviewed; batch 131 (2026-10-08)
 - [x] `tools/manual/mdext.py` — READ complete (208 lines); directive preprocessing, inline parsing, heading/status/control bookkeeping and extension priorities reviewed; batch 130 (2026-10-08)
 - [x] `tools/manual/policy.py` — READ complete (40 lines); private-path/network and project-brand scan rules reviewed; batch 129 (2026-10-08)
