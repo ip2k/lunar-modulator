@@ -203,8 +203,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/fx_echo.cc` — READ completely (332 lines); fixed ring indexing, slow-clock interpolation, read/write ordering, anti-alias/reconstruction filters, cross-feed and integer storage reviewed; batch 44 (2026-10-07)
 - [x] `engines/src/fx_eq.cc` — READ completely (608 lines); SVF coefficients, gain ramps, idle/settle/wake state transitions, host-driven state and count wrap reviewed; batch 44
 - [x] `engines/src/fx_eq_math.h` — READ completely (82 lines); exponent-bit scaling, positive-input log2 domain and tan cutoff range reviewed; batch 44
-- [ ] `engines/src/fx_filter.cc` — PENDING
-- [ ] `engines/src/fx_filter_dsp.h` — PENDING
+- [x] `engines/src/fx_filter.cc` — READ completely (855 lines); all six circuit solvers, coefficient updates, type warm/fade, per-type state reset and audio loop reviewed; batch 45 (2026-10-07)
+- [x] `engines/src/fx_filter_dsp.h` — READ completely (114 lines); log/exp domain, saturation secants, input guard, flush and glide helpers reviewed; batch 45
 - [ ] `engines/src/fx_fold.cc` — PENDING
 - [ ] `engines/src/fx_gate.cc` — PENDING
 - [ ] `engines/src/fx_hall.cc` — PENDING

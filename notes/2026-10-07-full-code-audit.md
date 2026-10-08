@@ -338,3 +338,9 @@ No confirmed defect was established in these wrappers. Drive's generated curve c
 Read `engines/src/fx_echo.cc` (332 lines), `fx_eq.cc` (608), and `fx_eq_math.h` (82) completely. Traced Echo's fixed ring dimensions and modulo indexing, negative read-age conversion, slow clock and interpolation, anti-alias/reconstruction filters, feedback routing and bounded 16-bit storage. In EQ, followed the three SVF coefficient/mix equations, 8-frame control grid, neutral passthrough, driven-idle gate, settle-time calculation, wake warm-up and per-channel integrators. Reviewed the math helpers against the positive frequency/Q and bounded tangent domains at supported rates.
 
 No confirmed defect was established in these implementations. Echo and EQ regression suites remain pending source review and execution; no local engine build or test run occurred. No code, device or licence changes occurred.
+
+### Batch 45 — Multimode Filter solver and shared DSP math
+
+Read `engines/src/fx_filter.cc` (855 lines) and `fx_filter_dsp.h` (114) completely. Reviewed the six processors (SVF, transistor ladder, diode ladder, Sallen-Key, SK Mixed and Formant), their secant-based nonlinear solves, per-type coefficient storage, cutoff/mode/morph mapping, type reset/warm/crossfade queue, control-grid timing, level/mix path and flush behavior. Checked the shared bit-based `exp2`/`log2` domains and input guard against the supported sample-rate and clamped-parameter ranges.
+
+No confirmed defect was established in this source pair. The main Filter regression suite and cross-platform sanitizer/parity checks remain pending. No source changes, builds or tests occurred.
