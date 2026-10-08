@@ -15,7 +15,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 ## Coverage totals
 
 - Tracked repository files: 1350
-- Source/build files inventoried: 681 (456 first-party, 225 vendored); 176,580 first-party lines and 81,114 vendored lines.
+- Source/build files inventoried: 683 (458 first-party, 225 vendored); 177,279 first-party lines and 81,114 vendored lines.
 
 ## First-party source and build-file ledger
 
@@ -34,16 +34,16 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `assets/web-editor/src/render.mjs` — PENDING
 - [ ] `assets/web-editor/src/shell.js` — PENDING
 - [ ] `assets/web-editor/src/shrink.mjs` — PENDING
-- [ ] `dongle/__init__.py` — PENDING
-- [ ] `dongle/firmware/CMakeLists.txt` — PENDING
-- [ ] `dongle/firmware/config.h` — PENDING
-- [ ] `dongle/firmware/main.c` — PENDING
-- [ ] `dongle/sim/__init__.py` — PENDING
-- [ ] `dongle/sim/cosim.py` — PENDING
-- [ ] `dongle/sim/dongle.py` — PENDING
-- [ ] `dongle/sim/jieli_rom.py` — PENDING
-- [ ] `dongle/sim/params.py` — PENDING
-- [ ] `dongle/sim/pio_waveform.py` — PENDING
+- [x] `dongle/__init__.py` — READ; empty package marker; audit report batch 2 (2026-10-07)
+- [x] `dongle/firmware/CMakeLists.txt` — READ; audit report batch 2 (2026-10-07)
+- [x] `dongle/firmware/config.h` — READ; audit report batch 2 (2026-10-07)
+- [x] `dongle/firmware/main.c` — READ; audit report batch 2 (2026-10-07)
+- [x] `dongle/sim/__init__.py` — READ; empty package marker; audit report batch 2 (2026-10-07)
+- [x] `dongle/sim/cosim.py` — READ; audit report batch 2 (2026-10-07)
+- [x] `dongle/sim/dongle.py` — READ; audit report batch 2 (2026-10-07)
+- [x] `dongle/sim/jieli_rom.py` — READ; audit report batch 2 (2026-10-07)
+- [x] `dongle/sim/params.py` — READ; audit report batch 2 (2026-10-07)
+- [x] `dongle/sim/pio_waveform.py` — READ; audit report batch 2 (2026-10-07)
 - [ ] `engines/Makefile` — PENDING
 - [ ] `engines/host/mod_script.c` — PENDING
 - [ ] `engines/host/mod_script.h` — PENDING
@@ -267,7 +267,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/test/state_alias_test.c` — PENDING
 - [ ] `engines/test/tb3po_line.c` — PENDING
 - [ ] `engines/test/tilt_test.cc` — PENDING
-- [ ] `firmware/boot/boot_compat_test.c` — PENDING
+- [x] `firmware/boot/boot_compat_test.c` — READ; audit report batch 2 (2026-10-07)
 - [ ] `manual/theme/book.html` — PENDING
 - [ ] `manual/theme/cover.html` — PENDING
 - [ ] `manual/theme/landing.html` — PENDING
@@ -345,9 +345,9 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/state_random.py` — PENDING
 - [ ] `tests/test_app_state.py` — PENDING
 - [ ] `tests/test_audit_link.py` — PENDING
-- [ ] `tests/test_boot_compat.py` — PENDING
+- [x] `tests/test_boot_compat.py` — READ; audit report batch 2 (2026-10-07)
 - [ ] `tests/test_ci_pins.py` — PENDING
-- [ ] `tests/test_dongle_model.py` — PENDING
+- [x] `tests/test_dongle_model.py` — READ; audit report batch 2 (2026-10-07)
 - [ ] `tests/test_engine_acid_bass.py` — PENDING
 - [ ] `tests/test_engine_acid_gen.py` — PENDING
 - [ ] `tests/test_engine_api_v3.py` — PENDING
@@ -441,12 +441,12 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_tools.py` — PENDING
 - [x] `tests/test_uboot_read.py` — READ; audit report batch 1 (2026-10-07)
 - [x] `tests/test_uboot_restore.py` — READ; audit report batch 1 (2026-10-07)
-- [ ] `tests/test_usb_key_pio.py` — PENDING
+- [x] `tests/test_usb_key_pio.py` — READ; audit report batch 2 (2026-10-07)
 - [ ] `tools/check_msfa_table.py` — PENDING
 - [ ] `tools/dx7_bank.py` — PENDING
 - [ ] `tools/extract_fwsc_from_updater.py` — PENDING
-- [ ] `tools/fm1_identify.py` — PENDING
-- [ ] `tools/fm1_identify.sh` — PENDING
+- [x] `tools/fm1_identify.py` — READ; audit report batch 2 (2026-10-07)
+- [x] `tools/fm1_identify.sh` — READ; audit report batch 2 (2026-10-07)
 - [x] `tools/fm1_softkey_probe.py` — READ; audit report batch 1 (2026-10-07)
 - [x] `tools/fm1_uboot_read.py` — READ; audit report batch 1 (2026-10-07)
 - [x] `tools/fm1_uboot_restore_test.py` — READ; audit report batch 1 (2026-10-07)
@@ -470,6 +470,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tools/manual/mdext.py` — PENDING
 - [ ] `tools/manual/policy.py` — PENDING
 - [ ] `tools/manual/reference.py` — PENDING
+- [ ] `tools/movy-oracle/driver/src/main.rs` — PENDING
 - [ ] `tools/movy-oracle/gen_scripts.py` — PENDING
 - [ ] `tools/movy-oracle/regen-fixtures.sh` — PENDING
 - [ ] `tools/movy-oracle/run-on-aeon.sh` — PENDING
@@ -706,7 +707,7 @@ Vendored code is not silently counted as first-party. Review its licence/provena
 - [ ] `engines/third_party/schwung-modules/sophie/sophie.c` — PENDING
 - [ ] `engines/third_party/schwung/audio_fx_api_v2.h` — PENDING
 - [ ] `engines/third_party/schwung/plugin_api_v1.h` — PENDING
-- [ ] `firmware/third_party/fm1-nes/boot_compat.c` — PENDING
+- [x] `firmware/third_party/fm1-nes/boot_compat.c` — READ; audit report batch 2 (2026-10-07)
 
 ## Editor variant ledger
 
@@ -747,6 +748,14 @@ Review `git diff 64209e3..861b725` and read every modified source file in its co
 - [ ] `tests/test_sim_editor_ui.py` — PENDING (editor variant)
 - [ ] `tests/test_tools.py` — PENDING (editor variant)
 - [ ] `tools/lunar_state.py` — PENDING (editor variant)
+
+## Script and test-data corpus
+
+The following custom languages and fixtures are inputs to parsers, tests or product serialization. Review their interpreters/consumers and validate corpus shape/coverage; inspect the corpus itself in manageable chunks, recording any exclusions by path and reason.
+
+- [ ] `*.verbs`, `*.panel`, `*.lunar`, `*.mod`, `*.movy1`, `*.args`, `*.records`, `*.edit` — PENDING corpus review
+- [ ] `*.json`, `*.jsonl`, `*.syx`, `*.list`, `*.rgb565`, `*.bdf`, `*.gz`, `*.wav`, `*.png`, `*.jpg`, `*.ttf` — PENDING data/provenance review
+- [ ] `engines/third_party/fm1-x0x/local.patch` — PENDING patch provenance/integration review
 
 ## Non-code inputs
 
