@@ -209,7 +209,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/fx_gate.cc` — READ completely (779 lines); trigger/lockout/hold and ramp state, key filters/link/listen, lookahead allocation/indexing and external state hooks reviewed; batch 46
 - [x] `engines/src/fx_hall.cc` — READ completely (612 lines); rate-sized power-of-two rings, line partitions and fractional reads, FDN orthogonal mix, damping/decay gains, freeze and modulation reviewed; batch 47 (2026-10-07)
 - [x] `engines/src/fx_isolator.cc` — READ completely (569 lines); LR4 band topology, seven TPT updates/channel, gain/crossover mapping, unity bypass and idle/wake warm-up reviewed; batch 47
-- [ ] `engines/src/fx_limit.cc` — PENDING
+- [x] `engines/src/fx_limit.cc` — READ completely (911 lines); integer gain windows, bounded allocations, lookahead tap transitions, Mode transition, ROUND delayed state, input guards and rate ceilings reviewed; batch 48 (2026-10-07)
 - [ ] `engines/src/fx_room.cc` — PENDING
 - [ ] `engines/src/fx_room_math.h` — PENDING
 - [ ] `engines/src/fx_sat.cc` — PENDING
@@ -284,7 +284,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/test/hall_selftest.cc` — PENDING
 - [ ] `engines/test/idle_test.cc` — PENDING
 - [ ] `engines/test/isolator_test.cc` — PENDING
-- [ ] `engines/test/limit_test.cc` — PENDING
+- [x] `engines/test/limit_test.cc` — READ completely (856 lines); hostile ceiling matrix, runtime changes, block invariance, probe instrumentation and rate-boundary checks reviewed; batch 48 (2026-10-07)
 - [ ] `engines/test/meta_number_test.c` — PENDING
 - [ ] `engines/test/mod_core_test.c` — PENDING
 - [x] `engines/test/mod_kinds_test.c` — READ; audit report batches 15–16; not executed
@@ -427,7 +427,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_engines_hall.py` — PENDING
 - [ ] `tests/test_engines_idle.py` — PENDING
 - [ ] `tests/test_engines_isolator.py` — PENDING
-- [ ] `tests/test_engines_limit.py` — PENDING
+- [x] `tests/test_engines_limit.py` — READ completely (459 lines); desktop and float-probe assertions reviewed; execution pending missing pytest/native binaries and no large local build; batch 48 (2026-10-07)
 - [ ] `tests/test_engines_mi_fx.py` — PENDING
 - [x] `tests/test_engines_mod.py` — READ; audit report batch 15; not executed
 - [x] `tests/test_engines_mod_data.py` — READ; audit report batch 16; not executed
