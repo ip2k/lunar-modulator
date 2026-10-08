@@ -153,10 +153,24 @@ Any claimed GPL System Library exclusion needs a specific dependency/target
 analysis; this evaluation does not establish one. Current project's conservative
 GPL-off rule for SDK-linked shared images therefore remains unchanged.
 
+| Application platform | GPL module switch | Whole application / distribution position |
+| --- | --- | --- |
+| SDK runtime | off | Not an MIT-only binary; SDK grant scope and modified FreeRTOS/source duties need audit. |
+| SDK runtime | on | Current project policy forbids shared firmware; corresponding-source/compatibility route not established. |
+| Felucca GPL HAL/runtime | either | GPL application even when engine GPL switch is off; satisfy GPL release obligations. |
+| Independently permissive SDK-free HAL/runtime | on | GPLv3 combined application, subject to every component's compatible terms. |
+| Independently permissive SDK-free HAL/runtime | off | Permissive aggregate, with retained MIT/BSD/Apache and other applicable notices. |
+
+None of the last two profiles requires a whole-repository licence change
+[inferred]. Separate package components and their grants must still be audited.
+
 ## Work implied, without implementing it
 
 These are planning ranges in engineering effort for one developer, not a delivery
-promise [inferred]. They overlap and hardware surprises may extend them:
+promise [inferred]. They overlap and hardware surprises may extend them. The
+2–5-day item is evaluation/documentation work; most hardware weeks are missing
+integration required under either architecture. No measured narrow incremental
+estimate for dropping the SDK is available:
 
 1. Dependency/provenance matrix, runtime archive/member audit, release profiles,
    notice/source packaging plan: roughly 2–5 days. Own-core dual-licence paperwork
