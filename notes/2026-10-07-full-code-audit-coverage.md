@@ -357,8 +357,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `sim/web/test/meta.mjs` — READ completely (126 lines); metadata export buffer, CRC identity, native registry parity and noninterference checks reviewed; batch 100 (2026-10-08)
 - [x] `sim/web/test/origins.mjs` — READ; direct Node test passed in audit report batch 5
 - [x] `sim/web/test/parity.mjs` — READ completely (627 lines); native/musl/WASM/app render setup, parser mirrors, frame scheduling, sample/screen comparisons and report gates reviewed; batch 101 (2026-10-08)
-- [ ] `sim/web/test/readme-screenshots.mjs` — PENDING
-- [ ] `sim/web/test/screenshot.mjs` — PENDING
+- [x] `sim/web/test/readme-screenshots.mjs` — READ completely (408 lines); docs screenshot sequence, screenshots, browser/input flows and recorder checks reviewed; batch 102 (2026-10-08)
+- [x] `sim/web/test/screenshot.mjs` — READ completely (810 lines); initial state, audio rate fallback, input lifetimes, wheel/screen rendering, responsive targets, secure publishing, sequencer/modulation, DX7 and audio assertions reviewed; batch 102 (2026-10-08). Confirmed temporary publishing server cleanup gap in audit report.
 - [x] `sim/web/test/serve.mjs` — READ; complete local static test server in audit report batch 5
 - [x] `sim/web/test/sysex.mjs` — READ completely (278 lines); DX7 load/malformed input caps, slot/name placement, playback and packed-bank sample parity cases reviewed; batch 101 (2026-10-08)
 - [x] `sim/web/tools/gen_font.py` — READ in full; `--check` and `--sizes` passed (batch 9)
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `f196349c5d1320c85b253cf165897b2b7db58b4e` (Batches 1–100; remote SHA verified; batch 101 pending checkpoint).
+- Last pushed commit: `0136351e8e98fb1507f2e2748febc4b1bff25bfe` (Batches 1–101; remote SHA verified; batch 102 pending checkpoint).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.

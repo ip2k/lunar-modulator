@@ -692,3 +692,11 @@ Read `sim/web/test/parity.mjs` (627 lines) and `sim/web/test/sysex.mjs` (278 lin
 No additional confirmed defect or material test gap was established in these files. The parity suite's libm-sensitive cases intentionally waive the glibc one-LSB threshold per scenario label, while still requiring exact app-vs-JS and screen parity; this exception remains scenario-specific as designed.
 
 No runtime reproduction was possible because the generated native simulator binary is absent. No source, device or licence changes occurred.
+
+### Batch 102 — User-facing screenshot suites
+
+Read `sim/web/test/readme-screenshots.mjs` (408 lines) and `sim/web/test/screenshot.mjs` (810 lines) completely. Reviewed their screenshot/report gates, engine-rate fallback, held-input release and pointer paths, sequencer and modulation scenarios, DX7 file chooser/drop behavior, mobile targets and publishing checks. They were not run because the generated module and LAN Playwright container are unavailable. No hardware or device commands were run.
+
+**[P3] A failure in a temporary publishing server check can keep the screenshot process alive. [verified]** `screenshot.mjs:326-327,337-356,360-373` starts HTTPS and plain-HTTP test servers, but closes each only on the successful path. An exception during navigation, audio startup, or assertions before those close calls escapes to the outer handler; its `finally` closes only the browser and the separate primary server (`:792-795`), leaving the temporary listener(s) open. This makes a failing browser test hang instead of reporting its failure and can block later test jobs. Confidence high; severity P3 test-harness reliability. No source fix was made.
+
+No other confirmed defect was established in these suites. `readme-screenshots.mjs` saves only its declared image/report outputs and closes the browser and primary server in its top-level `finally`. The screenshot test runs and visual output remain unverified in this environment.
