@@ -323,8 +323,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `sim/web/src/fm1_app.h` — PENDING
 - [x] `sim/web/src/fm1_app_state.c` — READ; complete load/save planner and apply path in audit report batch 4
 - [x] `sim/web/src/fm1_app_state.h` — READ; complete public contract in audit report batch 4
-- [ ] `sim/web/src/fm1_edit.c` — PENDING
-- [ ] `sim/web/src/fm1_edit.h` — PENDING
+- [x] `sim/web/src/fm1_edit.c` — READ in full (1,184 lines); audit report batch 7 (2026-10-07)
+- [x] `sim/web/src/fm1_edit.h` — READ in full (243 lines); audit report batch 7 (2026-10-07)
 - [ ] `sim/web/src/fm1_font.h` — PENDING
 - [ ] `sim/web/src/fm1_font_mid.h` — PENDING
 - [ ] `sim/web/src/fm1_font_small.h` — PENDING
