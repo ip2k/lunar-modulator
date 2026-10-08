@@ -284,3 +284,9 @@ The suite was not executed because pytest and the generated `engines/build/fm1-a
 Read `tests/test_engine_acid_gen.py` (331 lines) and `tests/test_engine_midi_fx.py` (652 lines) in full. The acid-generator suite checks the vendored TB-3PO line against the vendored/upstream implementations, timing and slides against an independent expected-event model, key/project context, bypass and block invariance, GPL listing and no-allocation imports. The host MIDI-effect suite exercises bypass/no-op, multi-sound/chains, event ownership across effect changes, note-off balance, output capacity, sequencer clocks and grids, TRG events, modulation voice ends, invalid flags and allocation/stdio/libm symbol checks. These tests cover much of the main claimed runtime contract.
 
 Both suites were source-reviewed but not executed; pytest and renderer build artifacts are unavailable in this worktree and native compilation remains out of scope. No new confirmed defect was established by reading them. No code or licensing report was changed.
+
+### Batch 36 — Acid Bass wrapper around the GPL X0X unit
+
+Read `engines/src/acid_bass.cc` (434 lines) and `acid_bass.h` completely. Traced the GPL build assertion, in-place X0X instance lifecycle, accepted sample rates, 16-sample staging buffer across host block splits, SMOOTH parameter ramps, per-note offsets, switch latching, pitch/bend multipliers, gain, key stack insertion/removal, slide and slide-back handling, and idle transitions. Verified the API flag macros mark the listed continuous parameters for smoothing and modulation, including the logarithmic fields.
+
+No confirmed defect was established in this wrapper from source review. Its waveform/oracle comparison, engine parameter tests, and GCC/Clang/wasm build variants remain pending/unexecuted. No source or licensing report changed; no hardware action occurred.
