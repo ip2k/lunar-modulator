@@ -825,6 +825,12 @@ Read all 305 lines of `tools/check_msfa_table.py`, `tools/extract_fwsc_from_upda
 
 `check_msfa_table.py` can report a truncated table if the anchor occurs too close to EOF, but it safely emits short rows and flags the differences; this is a malformed-input diagnostic limitation, not a separate ranked finding. No source, hardware or licence changes occurred.
 
+### Batch 128 — state example and golden-fixture generators
+
+Read all 608 lines of `tools/state_examples.py` and `tools/state_goldens.py`. Cross-checked their canonical JSON helper, metadata subset and name registry inputs against `tests/state_canon.py`, `tests/state_meta.py`, and `tools/lunar_state.py` coverage already recorded in the manifest. Reviewed fixed own-voice example values, deterministic seeded project/pad fixtures, string/float encoding in the size-only binary prototype, generated MOVY export integration, released-format directory policy, `--force` behavior, temporary-file cleanup and path suffixes.
+
+No additional confirmed defect was established. The generators deliberately require built desktop executables and mutate examples/fixtures only when their explicit write modes are selected; the desktop artifacts are absent, so generation and codec checks were not run. The prototype is clearly labeled approximate and is not the product codec. No source, hardware or licence changes occurred.
+
 ### Batch 122 — resampler test and analysis utility
 
 Read all 705 lines of `engines/test/resampler_test.cc`, cross-checked its API assumptions against `engines/include/fm1_resampler.h` (389 lines, previously read in batch 21), and reviewed `tests/test_engines_resampler.py`'s ring-window assertion and command matrix (506 lines, batch 82). Reviewed every executable mode: table and passband sweep, timing/FFT fit, benchmark, exact pass-through, chunk equivalence, worst-case gains, refusal, poisoned input-ring windows, WAV conversion, tone probes and peak extraction. The 4:1 endpoint is included in the read-window scan: the rates vector's first 3,000 points ends at exactly 4:1, and index 2,999 is visited by the `i = 9; i < 3000; i += 10` loop; no finding was filed for that case.

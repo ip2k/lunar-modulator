@@ -520,8 +520,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tools/movy-oracle/run-on-aeon.sh` — PENDING
 - [x] `tools/msfa_tables.py` — READ completely; Decimal trigonometric/table formulas, rounding, fixed rate and deterministic output generation reviewed; `--check` passed; batch 63 (2026-10-07)
 - [ ] `tools/seq_bench.py` — PENDING
-- [ ] `tools/state_examples.py` — PENDING
-- [ ] `tools/state_goldens.py` — PENDING
+- [x] `tools/state_examples.py` — READ complete (446 lines); fixed example domain, C metadata source, core-export flow, prototype encoding and output paths reviewed; batch 128 (2026-10-08)
+- [x] `tools/state_goldens.py` — READ complete (162 lines); random bounded fixture generation, schema inputs, canonicalization, force/missing policy and binary/records naming reviewed; batch 128 (2026-10-08)
 
 ## Vendored source ledger and review depth
 
