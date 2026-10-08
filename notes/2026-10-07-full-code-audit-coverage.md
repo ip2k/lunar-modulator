@@ -283,7 +283,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/test/gate_test.cc` — READ completely (779 lines); assertions cross-checked against `tests/test_engines_gate.py`; lookahead buffers and frame counters reviewed; batch 110
 - [ ] `engines/test/hall_selftest.cc` — PENDING
 - [x] `engines/test/idle_test.cc` — READ completely (770 lines); event, buffer and wake/release windows cross-checked against the Python suite and idle helper; batch 111
-- [ ] `engines/test/isolator_test.cc` — PENDING
+- [x] `engines/test/isolator_test.cc` — READ completely (477 lines); response, buffer and glide-landing paths cross-checked against implementation and Python assertions; batch 112
 - [x] `engines/test/limit_test.cc` — READ completely (856 lines); hostile ceiling matrix, runtime changes, block invariance, probe instrumentation and rate-boundary checks reviewed; batch 48 (2026-10-07)
 - [x] `engines/test/meta_number_test.c` — READ completely (54 lines); exponent-edge, knob-range and deterministic random float32 probe reviewed; batch 72
 - [ ] `engines/test/mod_core_test.c` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: batch 111 pending checkpoint; previous pushed commit `90c3fd216caee0efabbee0b49597847627967fe8` (Batches 1–110; remote SHA verified).
+- Last pushed commit: batch 112 pending checkpoint; previous pushed commit `11631c94c9b99f30b4e1025890cf8caf6acda833` (Batches 1–111; remote SHA verified).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
