@@ -588,3 +588,9 @@ No additional confirmed defect or material coverage gap was established in these
 Read `tests/test_engines_drive.py` (636 lines) and `test_engines_echo.py` (374) completely. Traced generated quintic Drive curves against the declared knot design, alias reduction/ADAA, Type and parameter glides, DC compensation, block/memory/rate/input guard behavior and full effect-chain paths. Reviewed Echo delay and fractional timing across its full-clock and slowed-clock regions, ping-pong/feedback/mix/tone/wow laws, maximum feedback/tail truncation, invalid input recovery and selftest coverage.
 
 No additional confirmed defect or material coverage gap was established in these tests. Their renderer and selftest were unavailable, so the measured acoustic/timing assertions were not reproduced. No code, device or licence changes occurred.
+
+### Batch 86 — EQ, Filter and Fold tests
+
+Read `tests/test_engines_eq.py` (370 lines), `test_engines_filter.py` (442), and `test_engines_fold.py` (358) completely. Traced EQ registration and exact zero-gain bypass, independent RBJ cookbook response calculations, hostile inputs, modulation glides and response hash assertions; reviewed Filter's six retained circuits plus the separate Comb tool path, response/self-oscillation/drive sweeps, crossfade, state flush and host limits; reviewed Fold's symmetry/shape/tone laws, ADAA alias comparison and runtime parameter/rate cases.
+
+No additional confirmed defect or material coverage gap was established in these suites. Their renderer and response tools are unavailable, so none of the acoustic claims were reproduced. No code, device or licence changes occurred.
