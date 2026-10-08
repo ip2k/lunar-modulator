@@ -600,3 +600,11 @@ No additional confirmed defect or material coverage gap was established in these
 Read `tests/test_manual.py` (305 lines), `test_manual_diagrams.py` (245), and `test_movy_oracle_fixtures.py` (267) completely. Traced manual metadata/policy and RAM claims, generated reference tables and full-build assertions; checked SVG regeneration determinism, collision/layout/contrast/glyph tests; followed curated and seeded Movy script parsing, event log constraints, D1 offsets, exported movy1 shape and oracle summary consistency.
 
 No additional confirmed defect or material coverage gap was established. Full manual build and fixture regeneration were not run; the tests here were source-reviewed. No source, device or licence changes occurred.
+
+### Batch 88 — Test guard, host tools and Movy oracle test harness
+
+Read `tests/test_test_guard.py` (55 lines), `tests/test_tools.py` (133), and `tests/test_seq_oracle.py` (198) completely. Traced subprocess timeout/CPU wrappers, identity decode and updater carving contracts, msfa table source parity, and C-core/renderer Movy compatibility, D1 offsets, documented default deviations and seeded random replay checks.
+
+**Confirmed test gap [P3, high confidence]:** `tests/test_tools.py:41-44` creates each byte with a fresh `random.Random(size)` instance inside the generator expression. Every byte in one test vector is therefore the same first PRNG output, so the unpack7 round-trip never checks varied byte values within a packed group. This leaves mixed-bit carry/ordering cases across adjacent source bytes underrepresented; it does not establish an implementation defect. No code change was made.
+
+No other confirmed defect or material gap was established in these test harnesses. The sequence and renderer executables were unavailable, and no tests were run. No device action occurred.
