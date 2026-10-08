@@ -303,11 +303,11 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/test/schwung_race.cc` — READ completely; documented control/audio concurrency probe reviewed (not run; requires TSan build); batch 64 (2026-10-07)
 - [x] `engines/test/schwung_selftest.cc` — READ completely (674 lines); allocator guard/exhaustion, MIDI and parameter encoding, block/FIFO, headroom, host immutability, init lifetime and parser checks reviewed; not executed; batch 64 (2026-10-07)
 - [x] `engines/test/seq_host_test.c` — READ completely (1,012 lines); text/typed parity, event dispatch, MIDI routing, bounds clamp, API v2 UID resolution, lock quantization, hook M6 order, slot dispatch and no-buffer behavior reviewed; batch 123 (2026-10-08)
-- [ ] `engines/test/shapes_hostile.cc` — PENDING
+- [x] `engines/test/shapes_hostile.cc` — READ completely (278 lines); all-shape hostile schedules, block/fill determinism, clamp-equivalence construction and allocation/event bounds reviewed; batch 124 (2026-10-08)
 - [x] `engines/test/smooth_test.cc` — READ completely (228 lines); event ordering, NaN/Inf schedule, partition independence and summary contracts reviewed; execution pending; batch 61 (2026-10-07)
 - [x] `engines/test/squash_test.cc` — READ completely (913 lines); upstream oracle adapters, randomized block/memory matrix, makeup frame bounds, host contracts and Transient probes reviewed; execution pending; batch 51 (2026-10-07)
 - [x] `engines/test/state_alias_test.c` — READ completely (80 lines); alias table construction, capped input read and C record output reviewed; batch 72
-- [ ] `engines/test/tb3po_line.c` — PENDING
+- [x] `engines/test/tb3po_line.c` — READ completely (45 lines); argument contract, upstream TB-3PO generation/mutation adapter and JSON output reviewed against Acid Gen tests; batch 124 (2026-10-08)
 - [x] `engines/test/tilt_test.cc` — READ completely (444 lines); DFT response probe, exact bypass, block independence, jump/zipper/sweep/silence/rate scenarios reviewed; execution pending; batch 52 (2026-10-07)
 - [x] `firmware/boot/boot_compat_test.c` — READ; audit report batch 2 (2026-10-07)
 - [ ] `manual/theme/book.html` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: batch 122 pending checkpoint; previous pushed commit `a65b4675faba8051196226c7134198b8751c79cc` (Batches 1–122; remote SHA verified).
+- Last pushed commit: batch 123 pending checkpoint; previous pushed commit `40e4c1d85f9958361c75e58e91321992c1a49126` (Batches 1–123; remote SHA verified).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.

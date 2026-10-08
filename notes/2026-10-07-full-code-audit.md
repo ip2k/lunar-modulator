@@ -827,6 +827,12 @@ Read all 1,012 lines of `engines/test/seq_host_test.c` and cross-checked its exp
 
 No additional confirmed defect was established. Scripted live-note parsing uses valid fixed commands; its typed parser results are checked before use except for the same controlled fixed script in the helper path. The 512-entry trace is larger than the script's maximum per-block deliveries, and the bounded hook traces carry eight fixed events into 32-entry arrays. Hand-built events remain within their 16-entry buffers; the only event beyond a 64-frame block is deliberate and the implementation clamps it. This native harness was not built or run because generated engine artifacts are absent. No source, hardware or licence changes occurred.
 
+### Batch 124 — Shapes hostile-edge and TB-3PO line test helpers
+
+Read all 278 lines of `engines/test/shapes_hostile.cc` and all 45 lines of `engines/test/tb3po_line.c`. Cross-checked the Shapes schedules and clamp-equivalence scripts against `engines/src/mi_shapes.cc` (465 lines, batch 57) and `tests/test_engines_shapes_hostile.py` (74 lines, batch 79); cross-checked the TB-3PO adapter contract and fixed argument fixtures against `tests/test_engine_acid_gen.py` (331 lines, batch 35). Reviewed aligned instance allocations, per-frame event clipping, shared RNG resets, per-note offsets, held-control comparisons, fixed JSON capture, generator mutation and sequence output.
+
+No additional confirmed defect was established. Shapes scripts are sorted by monotonic generated frame times, and `Render` drains all same-frame events before requesting a positive-size render piece. `Held` preserves frame order while replacing the parameters under comparison; all outputs are nonempty before their hash or `memcmp` reads. The TB-3PO helper is deliberately a narrow adapter for test-controlled arguments; it casts those validated settings into the upstream 8-bit fields, calls upstream generation/mutation, and prints the resulting line. The helper was not compiled, and no firmware, hardware or licence changes occurred.
+
 ### Batch 121 — Clouds room reference harness
 
 Read all 266 lines of `engines/test/ref_room.cc` and cross-checked its fixed 32-frame processor order, control formulas and rate compensation against the Room implementation/math reviewed earlier, and its comparisons against the complete `tests/test_engines_reference_room.py` (282 lines, batch 82). Reviewed the float WAV parser/writer, sample generation, host block tail, stereo chaining, reported metrics, and option validation.
