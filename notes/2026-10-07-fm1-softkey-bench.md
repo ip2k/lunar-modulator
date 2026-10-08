@@ -135,3 +135,34 @@ All 18 focused probe, dump and restore tests pass [verified]. No restore
 operation has run yet. Await the owner’s power-cycle/normal-screen response
 before any writes, then establish a fresh audited loader session if needed.
 Private original backups remain off-host as well as on bench01.
+
+## Bounded restore result
+
+[verified, 2026-10-07 bench01 session] The owner confirmed normal boot after
+the first recovery session. Fresh identity was FM-1_092; a second single
+soft key entered UBOOT in 0.753 s. The pinned RAM loader took two more full
+backups, both with the original `96006a51…ecc44c4e4` hash. These were copied
+off bench01 before the write test.
+
+The fixed `[0xD8000,0xD9000)` pattern was programmed and read back exactly
+(pattern SHA-256 `f965b526538d757ca2d6114af6517c57cbcb3650b71d8cfb92046a04ef2f566b`).
+One sector erase restored all 4,096 bytes to their original FF state. The
+complete post-test 1,048,576-byte dump exactly matches both fresh pre-test
+dumps and all original backups:
+`96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4`.
+Thus bounded programming/readback/restoration worked, with the whole flash
+byte-identical afterward. This is not a full-image rewrite, a broken-app
+recovery test, or a Lunar firmware installation.
+
+Private evidence is in `/home/claude/fm1-backups/2026-10-07-session2/` and
+`2026-10-07-restore1/` on bench01, copied to the original checkout’s ignored
+`scratch/fm1-bench-20261007/backup-session2/` and `restore1/`. Copied dump
+hashes and the pattern/restoration command events were verified. No
+private dumps or vendor loader bytes are committed. A second owner
+power-cycle/normal-screen confirmation is pending after the restore test.
+
+Checkpoint handoff: branch `feature/2026-10-07@fm1-softkey-probe`; prepared
+tool checkpoint `5680a09`, mobile plan `6258c0a`, both pushed. Next: confirm
+normal boot after restoration, then prepare a minimal bootable Lunar proof
+and its stock-partition/package checks. Never describe this result as a
+complete-image restore proof.

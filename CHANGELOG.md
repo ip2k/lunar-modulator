@@ -9,6 +9,9 @@ history.
 ## [Unreleased]
 
 ### Added
+- Verified soft-key UBOOT entry, matching complete flash backups, and bounded
+  4 KiB programming/restoration on FM-1_092 with the full flash unchanged.
+  Full-image restore and Lunar firmware installation remain untested.
 - Saved the deferred iPhone Advanced editor plan, device transport prerequisites
   and native Core MIDI / LAN relay connection options in a mobile editor note.
 - A Linux soft-key probe with fresh identity checks, an exact exception for

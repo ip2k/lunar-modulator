@@ -8,8 +8,11 @@ Guidance for Claude Code working in this repo.
 firmware for the **M-VAVE FM-1** (JieLi AC791N SoC, pi32v2 CPU; the stock
 firmware's FM engine is msfa/Dexed).
 
-Status, 2026-10-01: **the code runs on a desktop and in a browser, not yet on
-a JieLi chip or an FM-1; nothing flashed by this project.**
+Status, 2026-10-07: **Lunar runs on a desktop and in a browser; no Lunar
+application has run on the FM-1 yet.** Soft-key UBOOT entry, two matching
+full-flash backups and a bounded unused-sector program/restore succeeded on
+the owner’s FM-1_092 [verified: `notes/2026-10-07-fm1-softkey-bench.md`].
+The audited recovery loader ran in RAM. Full-image restore remains untested.
 - Built and tested on the desktop: an engine platform with Mutable- and
   Schwung-derived engines and effects (`engines/`, checked against reference
   renders), and a C99 port of Movy's sequencer core with its Movy oracle
