@@ -77,16 +77,16 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/include/fm1_resampler.h` — READ complete (389 lines, kernel included); arithmetic/ring contract (batch 21)
 - [x] `engines/include/fm1_seq.h` — READ complete; limits, transport and import interfaces (batch 21)
 - [x] `engines/include/fm1_seq_host.h` — READ complete; dispatch and hook contracts (batch 21)
-- [ ] `engines/include/fm1_smooth.h` — PENDING
+- [x] `engines/include/fm1_smooth.h` — READ completely; integer sample/block ramp arithmetic and boundary assumptions reviewed; batch 30 (2026-10-07)
 - [x] `engines/include/fm1_state_caps.h` — READ; state reader caps (2026-10-07)
 - [x] `engines/include/fm1_tele.h` — READ baseline; v2 field/version separately reviewed in editor variant ledger (2026-10-07)
 - [ ] `engines/midi_fx/acid_gen.c` — PENDING
-- [ ] `engines/midi_fx/arp_engine.c` — PENDING
-- [ ] `engines/midi_fx/arp_rhythm.c` — PENDING
+- [x] `engines/midi_fx/arp_engine.c` — READ completely; parameter schema/core mapping, event contract and API v4 registration reviewed; batch 30
+- [x] `engines/midi_fx/arp_rhythm.c` — READ completely; rhythm tables and fixed-array Euclidean generator bounds reviewed; batch 30
 - [ ] `engines/midi_fx/arp_tool.c` — PENDING
 - [ ] `engines/midi_fx/fm1_arp.c` — PENDING
-- [ ] `engines/midi_fx/fm1_arp.h` — PENDING
-- [ ] `engines/midi_fx/registry.c` — PENDING
+- [x] `engines/midi_fx/fm1_arp.h` — READ completely; public storage, event, capacity and transport contracts reviewed; batch 30
+- [x] `engines/midi_fx/registry.c` — READ completely; feature/GPL module guards reviewed; batch 30
 - [x] `engines/mk/comp.mk` — READ completely; batch 25 (2026-10-07)
 - [x] `engines/mk/crush.mk` — READ completely; batch 25 (2026-10-07)
 - [x] `engines/mk/djfilter.mk` — READ completely; batch 25 (2026-10-07)
@@ -154,7 +154,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/mod/mod_int.h` — READ in full; state layout, gate and voice helpers (batch 13/14)
 - [x] `engines/mod/mod_mi.c` — READ; audit report batch 15
 - [x] `engines/mod/mod_mi.h` — READ; audit report batch 15
-- [ ] `engines/mod/mod_mi_tables.c` — PENDING
+- [x] `engines/mod/mod_mi_tables.c` — READ completely; generated table provenance and constant arrays reviewed; batch 30
 - [x] `engines/mod/mod_plan.c` — READ in full (614 lines); slot planning, graph ordering, voice layout/refusal (batch 13)
 - [x] `engines/mod/mod_registry.c` — READ in full; kind/source/host tables (batch 14)
 - [x] `engines/mod/mp_clkdiv.c` — READ in full; overflow bounds and pulse distribution (batch 14)
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `57f42c399665fba3faca827456f49a702a6f8933` (Batches 1–28; remote SHA verified). Batch 29 is pending checkpoint.
-- Outstanding: see all `PENDING` entries above; editor-branch variants, source corpus and most vendor integrations remain open. Native modulation regression tests remain unexecuted.
+- Last pushed commit: `20aeaefe13098d39e25cb483dcc23a923175a81a` (Batches 1–29; remote SHA verified). Batch 30 is pending checkpoint.
+- Outstanding: see all `PENDING` entries above; core arpeggiator, GPL MIDI effect, broader engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Native modulation regression tests remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
