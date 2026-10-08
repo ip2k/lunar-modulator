@@ -418,3 +418,9 @@ No confirmed defect was established in the Six-Op wrapper. The existing full gli
 Read `engines/src/mi_shapes.cc` (465 lines) completely. Traced 96 kHz chunk/resampler flow, note allocation/glide and legato no-Strike behavior, per-note envelope/control offsets, enum shape application, pitch clamp before integer conversion, Comb/Wave Line Timbre guards, oscillator input ranges, and attack/release envelope/state retirement. Checked the API's declared finite ±48-semitone pitch-bend contract against the wrapper's pre-clamp pitch conversion.
 
 No confirmed defect was established in the Shapes wrapper. Shapes edge/hostile tests and the glide suite were source-reviewed elsewhere but not executed. Two glide integrations remain pending. No code, device or licence changes occurred.
+
+### Batch 58 — FM6/msfa integration of glide and retuning
+
+Re-read `engines/src/msfa_dx7.cc` (777 lines) with attention to the new glide/voice-mode path in addition to its previously recorded voice setup, rendering and user-slot paths. Traced key clamping at note-on/off, LFO program/keydown lifecycle, mono/legato operator retuning in log-frequency Q24, transpose and ratio-operator delta, per-note pitch plus bend plus glide composition, envelope and pitch-envelope block clocks, parameter smoothing, table ownership by rate, shared first-create rate gate, and quiet-voice release retirement.
+
+No confirmed defect was established in the FM6 integration. The API limits pitch-bend callbacks to finite values within ±48 semitones, and its Q24 conversion also clamps. Glide-path tests remain source-reviewed only. One integration remains pending. No code, device or licence changes occurred.

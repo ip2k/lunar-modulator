@@ -225,7 +225,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/mi_shapes.cc` — READ completely (465 lines); held-note/glide integration, fixed 96 kHz chunk/resampler, per-note controls, Shape update, oscillator bounds/safe Timbre and envelope lifecycle reviewed; batch 57 (2026-10-07)
 - [x] `engines/src/mi_sixop.cc` — READ completely (516 lines); DX patch parsing/cache, pitch/transpose/glide order, one-sample gate-low priming, LFO lead/follower ownership, voice freeing, resampler and scratch bounds reviewed; batch 56 (2026-10-07)
 - [ ] `engines/src/msfa.h` — PENDING
-- [x] `engines/src/msfa_dx7.cc` — READ completely (777 lines); FM voice setup/render/release and user-slot load paths reviewed; batch 40 (2026-10-07)
+- [x] `engines/src/msfa_dx7.cc` — READ completely (777 lines); DX voice setup/render/release and user-slot paths plus glide/Mono/Legato operator retuning, Q24 conversion, per-note offsets and fixed-rate LFO/envelope behavior reviewed; batches 40, 58 (2026-10-07)
 - [ ] `engines/src/msfa_prelude.h` — PENDING
 - [ ] `engines/src/msfa_rom.cc` — PENDING
 - [ ] `engines/src/msfa_tables.cc` — PENDING
