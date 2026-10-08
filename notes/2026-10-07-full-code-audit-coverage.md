@@ -1,0 +1,767 @@
+# Full code audit coverage and handoff — 2026-10-07
+
+This is the durable file-level ledger for `notes/2026-10-07-full-code-audit.md`.
+Update status only after reading and recording evidence. A search or mechanical scan does not count as reviewed.
+
+## Pinned snapshots
+
+- Audit worktree baseline: `d7111a985d5d6262767d6af49ba26caf0e1b9453` (`chore/2026-10-07@full-code-audit`), based on fetched `origin/main`.
+- Fetched `origin/main`: `64209e3c08222ada0eb61afcaef89e909ae07955`.
+- Fetched editor stream: `origin/feature/2026-10-07@editor-panel-improvements` at `861b725bbe4efadb2d56400853a03b78f695f4cf`.
+- Current branch includes the 16-file post-main hardware recovery/provenance delta through `d7111a9`; these files are part of audit coverage. Do not mutate benchmark/tool paths.
+- Audit scope includes source in baseline HEAD, the post-main delta, and the editor branch diff plus full modified-file context. Do not merge variants.
+- Counts below are tracked files at baseline HEAD. Source line counts are physical lines, excluding binary inputs. Vendor counts are separate and are not claimed as fully read until their tier is completed.
+
+## Coverage totals
+
+- Tracked repository files: 1350
+- Source/build files inventoried: 681 (456 first-party, 225 vendored); 176,580 first-party lines and 81,114 vendored lines.
+
+## First-party source and build-file ledger
+
+`PENDING` means not yet read in full. Change each entry to `READ` with report section/findings reference after review; `EXCLUDED` requires a reason in the audit report.
+
+- [ ] `assets/branding/render_branding.py` — PENDING
+- [ ] `assets/web-editor/src/01-workbench.html` — PENDING
+- [ ] `assets/web-editor/src/02-sound.html` — PENDING
+- [ ] `assets/web-editor/src/03-chain.html` — PENDING
+- [ ] `assets/web-editor/src/04-modulation.html` — PENDING
+- [ ] `assets/web-editor/src/05-map.html` — PENDING
+- [ ] `assets/web-editor/src/06-project.html` — PENDING
+- [ ] `assets/web-editor/src/editor.css` — PENDING
+- [ ] `assets/web-editor/src/editor.js` — PENDING
+- [ ] `assets/web-editor/src/meta.js` — PENDING
+- [ ] `assets/web-editor/src/render.mjs` — PENDING
+- [ ] `assets/web-editor/src/shell.js` — PENDING
+- [ ] `assets/web-editor/src/shrink.mjs` — PENDING
+- [ ] `dongle/__init__.py` — PENDING
+- [ ] `dongle/firmware/CMakeLists.txt` — PENDING
+- [ ] `dongle/firmware/config.h` — PENDING
+- [ ] `dongle/firmware/main.c` — PENDING
+- [ ] `dongle/sim/__init__.py` — PENDING
+- [ ] `dongle/sim/cosim.py` — PENDING
+- [ ] `dongle/sim/dongle.py` — PENDING
+- [ ] `dongle/sim/jieli_rom.py` — PENDING
+- [ ] `dongle/sim/params.py` — PENDING
+- [ ] `dongle/sim/pio_waveform.py` — PENDING
+- [ ] `engines/Makefile` — PENDING
+- [ ] `engines/host/mod_script.c` — PENDING
+- [ ] `engines/host/mod_script.h` — PENDING
+- [ ] `engines/host/render.cc` — PENDING
+- [ ] `engines/host/render_state.cc` — PENDING
+- [ ] `engines/host/render_state.h` — PENDING
+- [ ] `engines/host/seq_script.c` — PENDING
+- [ ] `engines/host/seq_script.h` — PENDING
+- [ ] `engines/host/seq_tool.c` — PENDING
+- [ ] `engines/host/state_clip.c` — PENDING
+- [ ] `engines/host/state_clip.h` — PENDING
+- [ ] `engines/host/state_tool.c` — PENDING
+- [ ] `engines/include/fm1_comp.h` — PENDING
+- [ ] `engines/include/fm1_dx7.h` — PENDING
+- [ ] `engines/include/fm1_dynamics.h` — PENDING
+- [ ] `engines/include/fm1_engine.h` — PENDING
+- [ ] `engines/include/fm1_engine_meta.h` — PENDING
+- [ ] `engines/include/fm1_fx_host.h` — PENDING
+- [ ] `engines/include/fm1_fx_idle.h` — PENDING
+- [ ] `engines/include/fm1_gate.h` — PENDING
+- [ ] `engines/include/fm1_known.h` — PENDING
+- [ ] `engines/include/fm1_math.h` — PENDING
+- [ ] `engines/include/fm1_meta.h` — PENDING
+- [ ] `engines/include/fm1_mfx_host.h` — PENDING
+- [ ] `engines/include/fm1_midi_ev.h` — PENDING
+- [ ] `engines/include/fm1_mix_limiter.h` — PENDING
+- [ ] `engines/include/fm1_mod.h` — PENDING
+- [ ] `engines/include/fm1_mod_host.h` — PENDING
+- [ ] `engines/include/fm1_refusal.h` — PENDING
+- [ ] `engines/include/fm1_resampler.h` — PENDING
+- [ ] `engines/include/fm1_seq.h` — PENDING
+- [ ] `engines/include/fm1_seq_host.h` — PENDING
+- [ ] `engines/include/fm1_smooth.h` — PENDING
+- [ ] `engines/include/fm1_state_caps.h` — PENDING
+- [ ] `engines/include/fm1_tele.h` — PENDING
+- [ ] `engines/midi_fx/acid_gen.c` — PENDING
+- [ ] `engines/midi_fx/arp_engine.c` — PENDING
+- [ ] `engines/midi_fx/arp_rhythm.c` — PENDING
+- [ ] `engines/midi_fx/arp_tool.c` — PENDING
+- [ ] `engines/midi_fx/fm1_arp.c` — PENDING
+- [ ] `engines/midi_fx/fm1_arp.h` — PENDING
+- [ ] `engines/midi_fx/registry.c` — PENDING
+- [ ] `engines/mod/fm1_mp.h` — PENDING
+- [ ] `engines/mod/gen_curves.py` — PENDING
+- [ ] `engines/mod/gen_mi_tables.py` — PENDING
+- [ ] `engines/mod/gen_tables.py` — PENDING
+- [ ] `engines/mod/kinds/kinds_int.h` — PENDING
+- [ ] `engines/mod/kinds/mod_bounce.c` — PENDING
+- [ ] `engines/mod/kinds/mod_burst.c` — PENDING
+- [ ] `engines/mod/kinds/mod_calc.c` — PENDING
+- [ ] `engines/mod/kinds/mod_chance.c` — PENDING
+- [ ] `engines/mod/kinds/mod_coin.c` — PENDING
+- [ ] `engines/mod/kinds/mod_compare.c` — PENDING
+- [ ] `engines/mod/kinds/mod_divide.c` — PENDING
+- [ ] `engines/mod/kinds/mod_env.c` — PENDING
+- [ ] `engines/mod/kinds/mod_function.c` — PENDING
+- [ ] `engines/mod/kinds/mod_lfo.c` — PENDING
+- [ ] `engines/mod/kinds/mod_logic.c` — PENDING
+- [ ] `engines/mod/kinds/mod_mix.c` — PENDING
+- [ ] `engines/mod/kinds/mod_quantize.c` — PENDING
+- [ ] `engines/mod/kinds/mod_register.c` — PENDING
+- [ ] `engines/mod/kinds/mod_resonator.c` — PENDING
+- [ ] `engines/mod/kinds/mod_slew.c` — PENDING
+- [ ] `engines/mod/mod_core.c` — PENDING
+- [ ] `engines/mod/mod_curves.c` — PENDING
+- [ ] `engines/mod/mod_glue.c` — PENDING
+- [ ] `engines/mod/mod_int.h` — PENDING
+- [ ] `engines/mod/mod_mi.c` — PENDING
+- [ ] `engines/mod/mod_mi.h` — PENDING
+- [ ] `engines/mod/mod_mi_tables.c` — PENDING
+- [ ] `engines/mod/mod_plan.c` — PENDING
+- [ ] `engines/mod/mod_registry.c` — PENDING
+- [ ] `engines/mod/mp_clkdiv.c` — PENDING
+- [ ] `engines/mod/mp_env.c` — PENDING
+- [ ] `engines/mod/mp_int.h` — PENDING
+- [ ] `engines/mod/mp_lfo.c` — PENDING
+- [ ] `engines/mod/mp_rng.c` — PENDING
+- [ ] `engines/mod/mp_sah.c` — PENDING
+- [ ] `engines/mod/mp_slew.c` — PENDING
+- [ ] `engines/mod/mp_tables.c` — PENDING
+- [ ] `engines/mod/mp_tool.c` — PENDING
+- [ ] `engines/mod/mp_turing.c` — PENDING
+- [ ] `engines/seq/fx_host.c` — PENDING
+- [ ] `engines/seq/mfx_host.c` — PENDING
+- [ ] `engines/seq/seq_capture.c` — PENDING
+- [ ] `engines/seq/seq_clip.c` — PENDING
+- [ ] `engines/seq/seq_cmd.c` — PENDING
+- [ ] `engines/seq/seq_engine.c` — PENDING
+- [ ] `engines/seq/seq_host.c` — PENDING
+- [ ] `engines/seq/seq_int.h` — PENDING
+- [ ] `engines/seq/seq_persist.c` — PENDING
+- [ ] `engines/src/acid_bass.cc` — PENDING
+- [ ] `engines/src/acid_bass.h` — PENDING
+- [ ] `engines/src/comet_kit.cc` — PENDING
+- [ ] `engines/src/comet_kit.h` — PENDING
+- [ ] `engines/src/crater_kit.cc` — PENDING
+- [ ] `engines/src/crater_kit.h` — PENDING
+- [ ] `engines/src/drum_voices.h` — PENDING
+- [ ] `engines/src/drums.cc` — PENDING
+- [ ] `engines/src/dx7_bank.h` — PENDING
+- [ ] `engines/src/dx7_loop.cc` — PENDING
+- [ ] `engines/src/dx7_loop.h` — PENDING
+- [ ] `engines/src/dx7_voice.cc` — PENDING
+- [ ] `engines/src/dx7_voice.h` — PENDING
+- [ ] `engines/src/editor_meta.cc` — PENDING
+- [ ] `engines/src/felucca_bridge.c` — PENDING
+- [ ] `engines/src/felucca_bridge.h` — PENDING
+- [ ] `engines/src/felucca_shim.cc` — PENDING
+- [ ] `engines/src/fx_comb.cc` — PENDING
+- [ ] `engines/src/fx_comp.cc` — PENDING
+- [ ] `engines/src/fx_comp_math.h` — PENDING
+- [ ] `engines/src/fx_crush.cc` — PENDING
+- [ ] `engines/src/fx_djfilter.cc` — PENDING
+- [ ] `engines/src/fx_drive.cc` — PENDING
+- [ ] `engines/src/fx_echo.cc` — PENDING
+- [ ] `engines/src/fx_eq.cc` — PENDING
+- [ ] `engines/src/fx_eq_math.h` — PENDING
+- [ ] `engines/src/fx_filter.cc` — PENDING
+- [ ] `engines/src/fx_filter_dsp.h` — PENDING
+- [ ] `engines/src/fx_fold.cc` — PENDING
+- [ ] `engines/src/fx_gate.cc` — PENDING
+- [ ] `engines/src/fx_hall.cc` — PENDING
+- [ ] `engines/src/fx_isolator.cc` — PENDING
+- [ ] `engines/src/fx_limit.cc` — PENDING
+- [ ] `engines/src/fx_room.cc` — PENDING
+- [ ] `engines/src/fx_room_math.h` — PENDING
+- [ ] `engines/src/fx_sat.cc` — PENDING
+- [ ] `engines/src/fx_shaper.cc` — PENDING
+- [ ] `engines/src/fx_squash.cc` — PENDING
+- [ ] `engines/src/fx_tilt.cc` — PENDING
+- [ ] `engines/src/glide.h` — PENDING
+- [ ] `engines/src/mi_fx.cc` — PENDING
+- [ ] `engines/src/mi_macro.cc` — PENDING
+- [ ] `engines/src/mi_macro_heavy.cc` — PENDING
+- [ ] `engines/src/mi_plaits_env.h` — PENDING
+- [ ] `engines/src/mi_shapes.cc` — PENDING
+- [ ] `engines/src/mi_sixop.cc` — PENDING
+- [ ] `engines/src/msfa.h` — PENDING
+- [ ] `engines/src/msfa_dx7.cc` — PENDING
+- [ ] `engines/src/msfa_prelude.h` — PENDING
+- [ ] `engines/src/msfa_rom.cc` — PENDING
+- [ ] `engines/src/msfa_tables.cc` — PENDING
+- [ ] `engines/src/msfa_unit.cc` — PENDING
+- [ ] `engines/src/note_offsets.h` — PENDING
+- [ ] `engines/src/registry.cc` — PENDING
+- [ ] `engines/src/schwung_abi.h` — PENDING
+- [ ] `engines/src/schwung_module_prefix.h` — PENDING
+- [ ] `engines/src/schwung_shim.cc` — PENDING
+- [ ] `engines/src/schwung_shim.h` — PENDING
+- [ ] `engines/src/sw_psxverb.cc` — PENDING
+- [ ] `engines/src/sw_sophie.cc` — PENDING
+- [ ] `engines/src/test_ext.cc` — PENDING
+- [ ] `engines/src/test_gain.cc` — PENDING
+- [ ] `engines/src/test_sine.cc` — PENDING
+- [ ] `engines/state/fm1_deflate.c` — PENDING
+- [ ] `engines/state/fm1_deflate.h` — PENDING
+- [ ] `engines/state/fm1_json.c` — PENDING
+- [ ] `engines/state/fm1_json.h` — PENDING
+- [ ] `engines/state/fm1_known.c` — PENDING
+- [ ] `engines/state/fm1_meta.c` — PENDING
+- [ ] `engines/state/fm1_num.c` — PENDING
+- [ ] `engines/state/fm1_num.h` — PENDING
+- [ ] `engines/state/fm1_state.h` — PENDING
+- [ ] `engines/state/fm1_state_mod.h` — PENDING
+- [ ] `engines/state/fuzz/state_fuzz.c` — PENDING
+- [ ] `engines/state/state_bin.c` — PENDING
+- [ ] `engines/state/state_json_read.c` — PENDING
+- [ ] `engines/state/state_json_write.c` — PENDING
+- [ ] `engines/state/state_mod.c` — PENDING
+- [ ] `engines/state/state_movy1.c` — PENDING
+- [ ] `engines/state/state_movy1.h` — PENDING
+- [ ] `engines/state/state_names.c` — PENDING
+- [ ] `engines/state/state_print.c` — PENDING
+- [ ] `engines/state/state_registry.c` — PENDING
+- [ ] `engines/test/acid_oracle.cc` — PENDING
+- [ ] `engines/test/bass303_drive.c` — PENDING
+- [ ] `engines/test/comet_oracle.cc` — PENDING
+- [ ] `engines/test/comp_test.cc` — PENDING
+- [ ] `engines/test/crater_oracle.cc` — PENDING
+- [ ] `engines/test/djfilter_test.cc` — PENDING
+- [ ] `engines/test/drive_test.cc` — PENDING
+- [ ] `engines/test/drum808_drive.c` — PENDING
+- [ ] `engines/test/drum909_cymbals.c` — PENDING
+- [ ] `engines/test/drum909_drive.c` — PENDING
+- [ ] `engines/test/dx7_felucca.c` — PENDING
+- [ ] `engines/test/dx7_oracle.cc` — PENDING
+- [ ] `engines/test/echo_selftest.cc` — PENDING
+- [ ] `engines/test/eq_test.cc` — PENDING
+- [ ] `engines/test/felucca_oracle.c` — PENDING
+- [ ] `engines/test/filter_test.cc` — PENDING
+- [ ] `engines/test/fold_test.cc` — PENDING
+- [ ] `engines/test/fx3_hostile.cc` — PENDING
+- [ ] `engines/test/fx_ext_test.cc` — PENDING
+- [ ] `engines/test/fx_hostile_test.cc` — PENDING
+- [ ] `engines/test/gate_test.cc` — PENDING
+- [ ] `engines/test/hall_selftest.cc` — PENDING
+- [ ] `engines/test/idle_test.cc` — PENDING
+- [ ] `engines/test/isolator_test.cc` — PENDING
+- [ ] `engines/test/limit_test.cc` — PENDING
+- [ ] `engines/test/meta_number_test.c` — PENDING
+- [ ] `engines/test/mod_core_test.c` — PENDING
+- [ ] `engines/test/mod_kinds_test.c` — PENDING
+- [ ] `engines/test/mod_mi_ref.cc` — PENDING
+- [ ] `engines/test/mod_refusal_test.c` — PENDING
+- [ ] `engines/test/msfa_ref.cc` — PENDING
+- [ ] `engines/test/msfa_ref.h` — PENDING
+- [ ] `engines/test/param_get_test.cc` — PENDING
+- [ ] `engines/test/plate_test.cc` — PENDING
+- [ ] `engines/test/ref_braids_fx.cc` — PENDING
+- [ ] `engines/test/ref_plaits.cc` — PENDING
+- [ ] `engines/test/ref_room.cc` — PENDING
+- [ ] `engines/test/resampler_test.cc` — PENDING
+- [ ] `engines/test/room_test.cc` — PENDING
+- [ ] `engines/test/sat_test.cc` — PENDING
+- [ ] `engines/test/schwung_race.cc` — PENDING
+- [ ] `engines/test/schwung_selftest.cc` — PENDING
+- [ ] `engines/test/seq_host_test.c` — PENDING
+- [ ] `engines/test/shapes_hostile.cc` — PENDING
+- [ ] `engines/test/smooth_test.cc` — PENDING
+- [ ] `engines/test/squash_test.cc` — PENDING
+- [ ] `engines/test/state_alias_test.c` — PENDING
+- [ ] `engines/test/tb3po_line.c` — PENDING
+- [ ] `engines/test/tilt_test.cc` — PENDING
+- [ ] `firmware/boot/boot_compat_test.c` — PENDING
+- [ ] `manual/theme/book.html` — PENDING
+- [ ] `manual/theme/cover.html` — PENDING
+- [ ] `manual/theme/landing.html` — PENDING
+- [ ] `manual/theme/manual.css` — PENDING
+- [ ] `manual/theme/page.html` — PENDING
+- [ ] `manual/theme/print.css` — PENDING
+- [ ] `sim/web/build-on-aeon.sh` — PENDING
+- [ ] `sim/web/build.sh` — PENDING
+- [ ] `sim/web/src/fm1_app.c` — PENDING
+- [ ] `sim/web/src/fm1_app.h` — PENDING
+- [ ] `sim/web/src/fm1_app_state.c` — PENDING
+- [ ] `sim/web/src/fm1_app_state.h` — PENDING
+- [ ] `sim/web/src/fm1_edit.c` — PENDING
+- [ ] `sim/web/src/fm1_edit.h` — PENDING
+- [ ] `sim/web/src/fm1_font.h` — PENDING
+- [ ] `sim/web/src/fm1_font_mid.h` — PENDING
+- [ ] `sim/web/src/fm1_font_small.h` — PENDING
+- [ ] `sim/web/src/fm1_look.h` — PENDING
+- [ ] `sim/web/src/fm1_mod_ui.c` — PENDING
+- [ ] `sim/web/src/fm1_mod_ui.h` — PENDING
+- [ ] `sim/web/src/fm1_mod_view.c` — PENDING
+- [ ] `sim/web/src/fm1_mod_view.h` — PENDING
+- [ ] `sim/web/src/fm1_panel.h` — PENDING
+- [ ] `sim/web/src/fm1_seq_ui.c` — PENDING
+- [ ] `sim/web/src/fm1_seq_ui.h` — PENDING
+- [ ] `sim/web/src/fm1_seq_view.c` — PENDING
+- [ ] `sim/web/src/fm1_seq_view.h` — PENDING
+- [ ] `sim/web/src/fm1_tft.c` — PENDING
+- [ ] `sim/web/src/fm1_tft.h` — PENDING
+- [ ] `sim/web/src/fm1_web.c` — PENDING
+- [ ] `sim/web/test/edit.mjs` — PENDING
+- [ ] `sim/web/test/editor-map.mjs` — PENDING
+- [ ] `sim/web/test/editor-reach.mjs` — PENDING
+- [ ] `sim/web/test/editor-shots.mjs` — PENDING
+- [ ] `sim/web/test/editor-ui.mjs` — PENDING
+- [ ] `sim/web/test/editor-unit.mjs` — PENDING
+- [ ] `sim/web/test/editor-v1.mjs` — PENDING
+- [ ] `sim/web/test/editor.mjs` — PENDING
+- [ ] `sim/web/test/files.mjs` — PENDING
+- [ ] `sim/web/test/fm1_edit_check.c` — PENDING
+- [ ] `sim/web/test/fm1_sim_render.c` — PENDING
+- [ ] `sim/web/test/launch.mjs` — PENDING
+- [ ] `sim/web/test/layout-probe.js` — PENDING
+- [ ] `sim/web/test/meta.mjs` — PENDING
+- [ ] `sim/web/test/origins.mjs` — PENDING
+- [ ] `sim/web/test/parity.mjs` — PENDING
+- [ ] `sim/web/test/readme-screenshots.mjs` — PENDING
+- [ ] `sim/web/test/screenshot.mjs` — PENDING
+- [ ] `sim/web/test/serve.mjs` — PENDING
+- [ ] `sim/web/test/sysex.mjs` — PENDING
+- [ ] `sim/web/tools/gen_font.py` — PENDING
+- [ ] `sim/web/tools/palette.py` — PENDING
+- [ ] `sim/web/tools/source_hash.py` — PENDING
+- [ ] `sim/web/www/app.js` — PENDING
+- [ ] `sim/web/www/editor/chains.js` — PENDING
+- [ ] `sim/web/www/editor/editor.css` — PENDING
+- [ ] `sim/web/www/editor/editor.js` — PENDING
+- [ ] `sim/web/www/editor/history.js` — PENDING
+- [ ] `sim/web/www/editor/map.js` — PENDING
+- [ ] `sim/web/www/editor/model.js` — PENDING
+- [ ] `sim/web/www/editor/project.js` — PENDING
+- [ ] `sim/web/www/editor/sheets.js` — PENDING
+- [ ] `sim/web/www/files.js` — PENDING
+- [ ] `sim/web/www/fm1-wasm.mjs` — PENDING
+- [ ] `sim/web/www/index.html` — PENDING
+- [ ] `sim/web/www/shadow.worker.js` — PENDING
+- [ ] `sim/web/www/style.css` — PENDING
+- [ ] `sim/web/www/worklet.js` — PENDING
+- [ ] `tests/__init__.py` — PENDING
+- [ ] `tests/conftest.py` — PENDING
+- [ ] `tests/engine_helpers.py` — PENDING
+- [ ] `tests/seq_helpers.py` — PENDING
+- [ ] `tests/state_canon.py` — PENDING
+- [ ] `tests/state_meta.py` — PENDING
+- [ ] `tests/state_random.py` — PENDING
+- [ ] `tests/test_app_state.py` — PENDING
+- [ ] `tests/test_audit_link.py` — PENDING
+- [ ] `tests/test_boot_compat.py` — PENDING
+- [ ] `tests/test_ci_pins.py` — PENDING
+- [ ] `tests/test_dongle_model.py` — PENDING
+- [ ] `tests/test_engine_acid_bass.py` — PENDING
+- [ ] `tests/test_engine_acid_gen.py` — PENDING
+- [ ] `tests/test_engine_api_v3.py` — PENDING
+- [ ] `tests/test_engine_api_v4.py` — PENDING
+- [ ] `tests/test_engine_arp.py` — PENDING
+- [ ] `tests/test_engine_comet_kit.py` — PENDING
+- [ ] `tests/test_engine_crater_kit.py` — PENDING
+- [ ] `tests/test_engine_drums.py` — PENDING
+- [ ] `tests/test_engine_editor_meta.py` — PENDING
+- [ ] `tests/test_engine_felucca.py` — PENDING
+- [ ] `tests/test_engine_glide.py` — PENDING
+- [ ] `tests/test_engine_host.py` — PENDING
+- [ ] `tests/test_engine_metadata.py` — PENDING
+- [ ] `tests/test_engine_midi_fx.py` — PENDING
+- [ ] `tests/test_engine_names.py` — PENDING
+- [ ] `tests/test_engine_note_params.py` — PENDING
+- [ ] `tests/test_engine_params.py` — PENDING
+- [ ] `tests/test_engine_smooth.py` — PENDING
+- [ ] `tests/test_engines.py` — PENDING
+- [ ] `tests/test_engines_comb.py` — PENDING
+- [ ] `tests/test_engines_comp.py` — PENDING
+- [ ] `tests/test_engines_crush.py` — PENDING
+- [ ] `tests/test_engines_djfilter.py` — PENDING
+- [ ] `tests/test_engines_drive.py` — PENDING
+- [ ] `tests/test_engines_dx7.py` — PENDING
+- [ ] `tests/test_engines_echo.py` — PENDING
+- [ ] `tests/test_engines_eq.py` — PENDING
+- [ ] `tests/test_engines_filter.py` — PENDING
+- [ ] `tests/test_engines_fold.py` — PENDING
+- [ ] `tests/test_engines_fx3_hostile.py` — PENDING
+- [ ] `tests/test_engines_fx_hostile.py` — PENDING
+- [ ] `tests/test_engines_fx_switches.py` — PENDING
+- [ ] `tests/test_engines_gate.py` — PENDING
+- [ ] `tests/test_engines_hall.py` — PENDING
+- [ ] `tests/test_engines_idle.py` — PENDING
+- [ ] `tests/test_engines_isolator.py` — PENDING
+- [ ] `tests/test_engines_limit.py` — PENDING
+- [ ] `tests/test_engines_mi_fx.py` — PENDING
+- [ ] `tests/test_engines_mod.py` — PENDING
+- [ ] `tests/test_engines_mod_data.py` — PENDING
+- [ ] `tests/test_engines_mod_kinds.py` — PENDING
+- [ ] `tests/test_engines_mod_runtime.py` — PENDING
+- [ ] `tests/test_engines_mod_voices.py` — PENDING
+- [ ] `tests/test_engines_plaits_env.py` — PENDING
+- [ ] `tests/test_engines_plaits_heavy.py` — PENDING
+- [ ] `tests/test_engines_plate_freeze.py` — PENDING
+- [ ] `tests/test_engines_reference_braids_fx.py` — PENDING
+- [ ] `tests/test_engines_reference_plaits.py` — PENDING
+- [ ] `tests/test_engines_reference_room.py` — PENDING
+- [ ] `tests/test_engines_resampler.py` — PENDING
+- [ ] `tests/test_engines_room.py` — PENDING
+- [ ] `tests/test_engines_sat.py` — PENDING
+- [ ] `tests/test_engines_schwung.py` — PENDING
+- [ ] `tests/test_engines_shapes_edges.py` — PENDING
+- [ ] `tests/test_engines_shapes_hostile.py` — PENDING
+- [ ] `tests/test_engines_squash.py` — PENDING
+- [ ] `tests/test_engines_tilt.py` — PENDING
+- [ ] `tests/test_gpl_switch.py` — PENDING
+- [ ] `tests/test_manual.py` — PENDING
+- [ ] `tests/test_manual_diagrams.py` — PENDING
+- [ ] `tests/test_module_list.py` — PENDING
+- [ ] `tests/test_movy_oracle_fixtures.py` — PENDING
+- [ ] `tests/test_package_guard.py` — PENDING
+- [ ] `tests/test_seq_core.py` — PENDING
+- [ ] `tests/test_seq_movy.py` — PENDING
+- [ ] `tests/test_seq_oracle.py` — PENDING
+- [ ] `tests/test_seq_render.py` — PENDING
+- [ ] `tests/test_seq_song.py` — PENDING
+- [ ] `tests/test_seq_song_ui.py` — PENDING
+- [ ] `tests/test_seq_ui.py` — PENDING
+- [ ] `tests/test_sim_arp.py` — PENDING
+- [ ] `tests/test_sim_edit.py` — PENDING
+- [ ] `tests/test_sim_editor_meta.py` — PENDING
+- [ ] `tests/test_sim_editor_ui.py` — PENDING
+- [ ] `tests/test_sim_files.py` — PENDING
+- [ ] `tests/test_sim_fonts.py` — PENDING
+- [ ] `tests/test_sim_lists.py` — PENDING
+- [ ] `tests/test_sim_mod.py` — PENDING
+- [ ] `tests/test_sim_multi.py` — PENDING
+- [ ] `tests/test_sim_origins.py` — PENDING
+- [ ] `tests/test_sim_palette.py` — PENDING
+- [ ] `tests/test_sim_screen_cues.py` — PENDING
+- [ ] `tests/test_sim_seq.py` — PENDING
+- [ ] `tests/test_sim_web.py` — PENDING
+- [ ] `tests/test_softkey_probe.py` — PENDING
+- [ ] `tests/test_state_codec.py` — PENDING
+- [ ] `tests/test_state_render.py` — PENDING
+- [ ] `tests/test_state_schema.py` — PENDING
+- [ ] `tests/test_state_whole.py` — PENDING
+- [ ] `tests/test_test_guard.py` — PENDING
+- [ ] `tests/test_tools.py` — PENDING
+- [ ] `tests/test_uboot_read.py` — PENDING
+- [ ] `tests/test_uboot_restore.py` — PENDING
+- [ ] `tests/test_usb_key_pio.py` — PENDING
+- [ ] `tools/check_msfa_table.py` — PENDING
+- [ ] `tools/dx7_bank.py` — PENDING
+- [ ] `tools/extract_fwsc_from_updater.py` — PENDING
+- [ ] `tools/fm1_identify.py` — PENDING
+- [ ] `tools/fm1_identify.sh` — PENDING
+- [ ] `tools/fm1_softkey_probe.py` — PENDING
+- [ ] `tools/fm1_uboot_read.py` — PENDING
+- [ ] `tools/fm1_uboot_restore_test.py` — PENDING
+- [ ] `tools/gen_known.py` — PENDING
+- [ ] `tools/jieli/analyze.py` — PENDING
+- [ ] `tools/jieli/audit_link.py` — PENDING
+- [ ] `tools/jieli/compile-check.sh` — PENDING
+- [ ] `tools/jieli/in-container.sh` — PENDING
+- [ ] `tools/jieli/package_guard.py` — PENDING
+- [ ] `tools/jieli/sizes.c` — PENDING
+- [ ] `tools/jieli/sizes.cc` — PENDING
+- [ ] `tools/jieli/sizes_felucca.c` — PENDING
+- [ ] `tools/lunar_state.py` — PENDING
+- [ ] `tools/manual/build-in-docker.sh` — PENDING
+- [ ] `tools/manual/build.py` — PENDING
+- [ ] `tools/manual/diagram_check.py` — PENDING
+- [ ] `tools/manual/diagram_metrics.py` — PENDING
+- [ ] `tools/manual/diagram_theme.py` — PENDING
+- [ ] `tools/manual/diagrams.py` — PENDING
+- [ ] `tools/manual/figures.py` — PENDING
+- [ ] `tools/manual/mdext.py` — PENDING
+- [ ] `tools/manual/policy.py` — PENDING
+- [ ] `tools/manual/reference.py` — PENDING
+- [ ] `tools/movy-oracle/gen_scripts.py` — PENDING
+- [ ] `tools/movy-oracle/regen-fixtures.sh` — PENDING
+- [ ] `tools/movy-oracle/run-on-aeon.sh` — PENDING
+- [ ] `tools/msfa_tables.py` — PENDING
+- [ ] `tools/seq_bench.py` — PENDING
+- [ ] `tools/state_examples.py` — PENDING
+- [ ] `tools/state_goldens.py` — PENDING
+
+## Vendored source ledger and review depth
+
+Vendored code is not silently counted as first-party. Review its licence/provenance, entry points, build inclusion, copied/modified status and called API boundaries. For maintained/adapted code, read the complete included source; for unmodified upstream bulk, document exact exclusions and perform focused interface/security/lifetime review. Record each decision in the report. All entries start PENDING.
+
+- [ ] `engines/third_party/airwindows/oracle/airwindows_oracle.cc` — PENDING
+- [ ] `engines/third_party/airwindows/oracle/make_fixture.py` — PENDING
+- [ ] `engines/third_party/airwindows/oracle/run-on-aeon.sh` — PENDING
+- [ ] `engines/third_party/felucca-fm6/fm6_core.c` — PENDING
+- [ ] `engines/third_party/felucca-fm6/vendor.py` — PENDING
+- [ ] `engines/third_party/felucca/gen/felucca_tables.h` — PENDING
+- [ ] `engines/third_party/felucca/src/core.h` — PENDING
+- [ ] `engines/third_party/felucca/src/dsp.c` — PENDING
+- [ ] `engines/third_party/felucca/src/eng_phase.c` — PENDING
+- [ ] `engines/third_party/felucca/src/eng_trio.c` — PENDING
+- [ ] `engines/third_party/felucca/src/eng_wheel.c` — PENDING
+- [ ] `engines/third_party/felucca/src/voice.c` — PENDING
+- [ ] `engines/third_party/felucca/tools/gen_tables.py` — PENDING
+- [ ] `engines/third_party/felucca/vendor.py` — PENDING
+- [ ] `engines/third_party/fm1-x0x/dsp/bass303.c` — PENDING
+- [ ] `engines/third_party/fm1-x0x/dsp/bass303.h` — PENDING
+- [ ] `engines/third_party/fm1-x0x/dsp/drum808.c` — PENDING
+- [ ] `engines/third_party/fm1-x0x/dsp/drum808.h` — PENDING
+- [ ] `engines/third_party/fm1-x0x/dsp/drum909.c` — PENDING
+- [ ] `engines/third_party/fm1-x0x/dsp/drum909.h` — PENDING
+- [ ] `engines/third_party/fm1-x0x/dsp/drum909_dsp.h` — PENDING
+- [ ] `engines/third_party/fm1-x0x/dsp/fastmath.h` — PENDING
+- [ ] `engines/third_party/fm1-x0x/dsp/x0x_param.h` — PENDING
+- [ ] `engines/third_party/fm1-x0x/gen/x0x_drum_samples.h` — PENDING
+- [ ] `engines/third_party/fm1-x0x/gen/x0x_drum_tables.h` — PENDING
+- [ ] `engines/third_party/fm1-x0x/seq/pattern.h` — PENDING
+- [ ] `engines/third_party/fm1-x0x/seq/tb3po.c` — PENDING
+- [ ] `engines/third_party/fm1-x0x/seq/tb3po.h` — PENDING
+- [ ] `engines/third_party/fm1-x0x/tools/gen_drum_samples.py` — PENDING
+- [ ] `engines/third_party/fm1-x0x/vendor.py` — PENDING
+- [ ] `engines/third_party/msfa/aligned_buf.h` — PENDING
+- [ ] `engines/third_party/msfa/controllers.h` — PENDING
+- [ ] `engines/third_party/msfa/dx7note.cc` — PENDING
+- [ ] `engines/third_party/msfa/dx7note.h` — PENDING
+- [ ] `engines/third_party/msfa/env.cc` — PENDING
+- [ ] `engines/third_party/msfa/env.h` — PENDING
+- [ ] `engines/third_party/msfa/exp2.cc` — PENDING
+- [ ] `engines/third_party/msfa/exp2.h` — PENDING
+- [ ] `engines/third_party/msfa/fm_core.cc` — PENDING
+- [ ] `engines/third_party/msfa/fm_core.h` — PENDING
+- [ ] `engines/third_party/msfa/fm_op_kernel.cc` — PENDING
+- [ ] `engines/third_party/msfa/fm_op_kernel.h` — PENDING
+- [ ] `engines/third_party/msfa/freqlut.cc` — PENDING
+- [ ] `engines/third_party/msfa/freqlut.h` — PENDING
+- [ ] `engines/third_party/msfa/lfo.cc` — PENDING
+- [ ] `engines/third_party/msfa/lfo.h` — PENDING
+- [ ] `engines/third_party/msfa/patch.cc` — PENDING
+- [ ] `engines/third_party/msfa/patch.h` — PENDING
+- [ ] `engines/third_party/msfa/pitchenv.cc` — PENDING
+- [ ] `engines/third_party/msfa/pitchenv.h` — PENDING
+- [ ] `engines/third_party/msfa/sin.cc` — PENDING
+- [ ] `engines/third_party/msfa/sin.h` — PENDING
+- [ ] `engines/third_party/msfa/synth.h` — PENDING
+- [ ] `engines/third_party/msfa/vendor.py` — PENDING
+- [ ] `engines/third_party/mutable/braids/analog_oscillator.cc` — PENDING
+- [ ] `engines/third_party/mutable/braids/analog_oscillator.h` — PENDING
+- [ ] `engines/third_party/mutable/braids/digital_oscillator.cc` — PENDING
+- [ ] `engines/third_party/mutable/braids/digital_oscillator.h` — PENDING
+- [ ] `engines/third_party/mutable/braids/excitation.h` — PENDING
+- [ ] `engines/third_party/mutable/braids/macro_oscillator.cc` — PENDING
+- [ ] `engines/third_party/mutable/braids/macro_oscillator.h` — PENDING
+- [ ] `engines/third_party/mutable/braids/parameter_interpolation.h` — PENDING
+- [ ] `engines/third_party/mutable/braids/quantizer.cc` — PENDING
+- [ ] `engines/third_party/mutable/braids/quantizer.h` — PENDING
+- [ ] `engines/third_party/mutable/braids/quantizer_scales.h` — PENDING
+- [ ] `engines/third_party/mutable/braids/resources.cc` — PENDING
+- [ ] `engines/third_party/mutable/braids/resources.h` — PENDING
+- [ ] `engines/third_party/mutable/braids/settings.h` — PENDING
+- [ ] `engines/third_party/mutable/braids/svf.h` — PENDING
+- [ ] `engines/third_party/mutable/clouds/dsp/frame.h` — PENDING
+- [ ] `engines/third_party/mutable/clouds/dsp/fx/diffuser.h` — PENDING
+- [ ] `engines/third_party/mutable/clouds/dsp/fx/fx_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/clouds/dsp/fx/reverb.h` — PENDING
+- [ ] `engines/third_party/mutable/peaks/gate_processor.h` — PENDING
+- [ ] `engines/third_party/mutable/peaks/modulations/bouncing_ball.h` — PENDING
+- [ ] `engines/third_party/mutable/peaks/pulse_processor/pulse_randomizer.cc` — PENDING
+- [ ] `engines/third_party/mutable/peaks/pulse_processor/pulse_randomizer.h` — PENDING
+- [ ] `engines/third_party/mutable/peaks/pulse_processor/pulse_shaper.cc` — PENDING
+- [ ] `engines/third_party/mutable/peaks/pulse_processor/pulse_shaper.h` — PENDING
+- [ ] `engines/third_party/mutable/peaks/resources.cc` — PENDING
+- [ ] `engines/third_party/mutable/peaks/resources.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/chords/chord_bank.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/chords/chord_bank.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/downsampler/4x_downsampler.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/drums/analog_bass_drum.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/drums/analog_snare_drum.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/drums/hi_hat.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/drums/synthetic_bass_drum.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/drums/synthetic_snare_drum.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/dsp.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/additive_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/additive_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/bass_drum_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/bass_drum_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/chord_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/chord_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/fm_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/fm_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/grain_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/grain_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/hi_hat_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/hi_hat_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/modal_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/modal_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/noise_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/noise_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/particle_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/particle_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/snare_drum_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/snare_drum_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/speech_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/speech_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/string_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/string_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/swarm_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/swarm_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/virtual_analog_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/virtual_analog_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/waveshaping_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/waveshaping_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/wavetable_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine/wavetable_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine2/arpeggiator.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine2/chiptune_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine2/chiptune_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine2/phase_distortion_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine2/phase_distortion_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine2/six_op_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine2/six_op_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine2/string_machine_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine2/string_machine_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine2/wave_terrain_engine.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/engine2/wave_terrain_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/envelope.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/fm/algorithms.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/fm/algorithms.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/fm/dx_units.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/fm/dx_units.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/fm/envelope.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/fm/lfo.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/fm/operator.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/fm/patch.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/fm/voice.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/fx/diffuser.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/fx/ensemble.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/fx/fx_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/fx/low_pass_gate.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/fx/overdrive.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/fx/sample_rate_reducer.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/noise/clocked_noise.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/noise/dust.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/noise/fractal_random_generator.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/noise/particle.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/noise/smooth_random_generator.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/oscillator/formant_oscillator.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/oscillator/grainlet_oscillator.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/oscillator/harmonic_oscillator.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/oscillator/nes_triangle_oscillator.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/oscillator/oscillator.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/oscillator/sine_oscillator.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/oscillator/string_synth_oscillator.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/oscillator/super_square_oscillator.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/oscillator/variable_saw_oscillator.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/oscillator/variable_shape_oscillator.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/oscillator/vosim_oscillator.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/oscillator/wavetable_oscillator.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/oscillator/z_oscillator.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/physical_modelling/delay_line.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/physical_modelling/modal_voice.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/physical_modelling/modal_voice.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/physical_modelling/resonator.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/physical_modelling/resonator.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/physical_modelling/string.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/physical_modelling/string.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/physical_modelling/string_voice.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/physical_modelling/string_voice.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/speech/lpc_speech_synth.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/speech/lpc_speech_synth.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/speech/lpc_speech_synth_controller.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/speech/lpc_speech_synth_controller.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/speech/lpc_speech_synth_phonemes.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/speech/lpc_speech_synth_words.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/speech/lpc_speech_synth_words.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/speech/naive_speech_synth.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/speech/naive_speech_synth.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/speech/sam_speech_synth.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/speech/sam_speech_synth.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/voice.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/dsp/voice.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/resources.cc` — PENDING
+- [ ] `engines/third_party/mutable/plaits/resources.h` — PENDING
+- [ ] `engines/third_party/mutable/plaits/user_data.h` — PENDING
+- [ ] `engines/third_party/mutable/rings/dsp/fx/fx_engine.h` — PENDING
+- [ ] `engines/third_party/mutable/rings/dsp/fx/reverb.h` — PENDING
+- [ ] `engines/third_party/mutable/stmlib/dsp/atan.cc` — PENDING
+- [ ] `engines/third_party/mutable/stmlib/dsp/atan.h` — PENDING
+- [ ] `engines/third_party/mutable/stmlib/dsp/cosine_oscillator.h` — PENDING
+- [ ] `engines/third_party/mutable/stmlib/dsp/dsp.h` — PENDING
+- [ ] `engines/third_party/mutable/stmlib/dsp/filter.h` — PENDING
+- [ ] `engines/third_party/mutable/stmlib/dsp/hysteresis_quantizer.h` — PENDING
+- [ ] `engines/third_party/mutable/stmlib/dsp/limiter.h` — PENDING
+- [ ] `engines/third_party/mutable/stmlib/dsp/parameter_interpolator.h` — PENDING
+- [ ] `engines/third_party/mutable/stmlib/dsp/polyblep.h` — PENDING
+- [ ] `engines/third_party/mutable/stmlib/dsp/rsqrt.h` — PENDING
+- [ ] `engines/third_party/mutable/stmlib/dsp/units.cc` — PENDING
+- [ ] `engines/third_party/mutable/stmlib/dsp/units.h` — PENDING
+- [ ] `engines/third_party/mutable/stmlib/stmlib.h` — PENDING
+- [ ] `engines/third_party/mutable/stmlib/system/flash_programming.h` — PENDING
+- [ ] `engines/third_party/mutable/stmlib/utils/buffer_allocator.h` — PENDING
+- [ ] `engines/third_party/mutable/stmlib/utils/dsp.h` — PENDING
+- [ ] `engines/third_party/mutable/stmlib/utils/random.cc` — PENDING
+- [ ] `engines/third_party/mutable/stmlib/utils/random.h` — PENDING
+- [ ] `engines/third_party/mutable/stmlib/utils/ring_buffer.h` — PENDING
+- [ ] `engines/third_party/mutable/vendor.py` — PENDING
+- [ ] `engines/third_party/schwung-modules/psxverb/audio_fx_api_v1.h` — PENDING
+- [ ] `engines/third_party/schwung-modules/psxverb/plugin_api_v1.h` — PENDING
+- [ ] `engines/third_party/schwung-modules/psxverb/psxverb.c` — PENDING
+- [ ] `engines/third_party/schwung-modules/sophie/plugin_api_v1.h` — PENDING
+- [ ] `engines/third_party/schwung-modules/sophie/sophie.c` — PENDING
+- [ ] `engines/third_party/schwung/audio_fx_api_v2.h` — PENDING
+- [ ] `engines/third_party/schwung/plugin_api_v1.h` — PENDING
+- [ ] `firmware/third_party/fm1-nes/boot_compat.c` — PENDING
+
+## Editor variant ledger
+
+Review `git diff 64209e3..861b725` and read every modified source file in its complete editor-branch form plus relevant callers/tests. Record each path and status here.
+
+- [ ] `engines/include/fm1_dynamics.h` — PENDING (editor variant)
+- [ ] `engines/include/fm1_tele.h` — PENDING (editor variant)
+- [ ] `engines/src/editor_meta.cc` — PENDING (editor variant)
+- [ ] `engines/src/fx_squash.cc` — PENDING (editor variant)
+- [ ] `sim/web/build-on-aeon.sh` — PENDING (editor variant)
+- [ ] `sim/web/src/fm1_app.c` — PENDING (editor variant)
+- [ ] `sim/web/src/fm1_app_state.c` — PENDING (editor variant)
+- [ ] `sim/web/src/fm1_app_state.h` — PENDING (editor variant)
+- [ ] `sim/web/src/fm1_edit.c` — PENDING (editor variant)
+- [ ] `sim/web/test/audio-analysis-check.mjs` — PENDING (editor variant)
+- [ ] `sim/web/test/audio-analysis.mjs` — PENDING (editor variant)
+- [ ] `sim/web/test/audio-loopback.mjs` — PENDING (editor variant)
+- [ ] `sim/web/test/editor-map.mjs` — PENDING (editor variant)
+- [ ] `sim/web/test/editor-v1.mjs` — PENDING (editor variant)
+- [ ] `sim/web/test/editor.mjs` — PENDING (editor variant)
+- [ ] `sim/web/test/fm1_edit_check.c` — PENDING (editor variant)
+- [ ] `sim/web/test/launch.mjs` — PENDING (editor variant)
+- [ ] `sim/web/www/editor/chains.js` — PENDING (editor variant)
+- [ ] `sim/web/www/editor/editor.css` — PENDING (editor variant)
+- [ ] `sim/web/www/editor/map.js` — PENDING (editor variant)
+- [ ] `sim/web/www/editor/model.js` — PENDING (editor variant)
+- [ ] `sim/web/www/editor/project.js` — PENDING (editor variant)
+- [ ] `sim/web/www/editor/sheets.js` — PENDING (editor variant)
+- [ ] `sim/web/www/files.js` — PENDING (editor variant)
+- [ ] `sim/web/www/shadow.worker.js` — PENDING (editor variant)
+- [ ] `tests/test_app_state.py` — PENDING (editor variant)
+- [ ] `tests/test_ci_pins.py` — PENDING (editor variant)
+- [ ] `tests/test_engine_acid_bass.py` — PENDING (editor variant)
+- [ ] `tests/test_engine_drums.py` — PENDING (editor variant)
+- [ ] `tests/test_engine_editor_meta.py` — PENDING (editor variant)
+- [ ] `tests/test_gpl_switch.py` — PENDING (editor variant)
+- [ ] `tests/test_seq_song.py` — PENDING (editor variant)
+- [ ] `tests/test_sim_editor_ui.py` — PENDING (editor variant)
+- [ ] `tests/test_tools.py` — PENDING (editor variant)
+- [ ] `tools/lunar_state.py` — PENDING (editor variant)
+
+## Non-code inputs
+
+Review relevant build/link configuration, generated-artifact provenance, licence manifests, CI workflows, runtime documentation and firmware/package constraints as evidence. Do not treat docs as source code; record any stale or conflicting operational claims in the audit report. Generated binaries receive provenance/reproducibility review, not decompilation unless a specific concern requires it.
+
+- [ ] `.github/workflows/**` — PENDING
+- [ ] `engines/Makefile`, `engines/**/*.mk`, `sim/web/**/*.mk` — PENDING
+- [ ] `sim/web/www/fm1.wasm` and `fm1.wasm.json` — PENDING provenance/use review
+- [ ] `LICENSE*`, `third_party/**/LICENSE*`, `UPSTREAM.md`, notices — PENDING
+- [ ] `AGENTS.md`, `CLAUDE.md`, `HANDOFF.md`, package/recovery docs — PENDING consistency review
+
+## Checkpoint and recovery
+
+- Branch: `chore/2026-10-07@full-code-audit`
+- Last pushed commit: `d7111a985d5d6262767d6af49ba26caf0e1b9453`
+- Outstanding: all audit work represented by pending entries above; report is an in-progress scope/method stub.
+- Checks: none run at inventory checkpoint; no source was edited and no hardware action was taken.
+- Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
