@@ -412,15 +412,15 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_engines.py` — PENDING
 - [ ] `tests/test_engines_comb.py` — PENDING
 - [ ] `tests/test_engines_comp.py` — PENDING
-- [ ] `tests/test_engines_crush.py` — PENDING
-- [ ] `tests/test_engines_djfilter.py` — PENDING
+- [x] `tests/test_engines_crush.py` — READ completely (319 lines); Crush sample/parameter, memory, block/rate, channel and hostile-input contracts reviewed; batch 83 (2026-10-07)
+- [x] `tests/test_engines_djfilter.py` — READ completely (462 lines); analytic response, modulation, zipper/transient/tail, rate and hostile-input contracts reviewed; batch 83 (2026-10-07)
 - [ ] `tests/test_engines_drive.py` — PENDING
 - [x] `tests/test_engines_dx7.py` — READ completely (942 lines); full DX7 engine, table, oracle, Sysex, storage, voice pressure and rate test coverage reviewed; batch 40
 - [ ] `tests/test_engines_echo.py` — PENDING
 - [ ] `tests/test_engines_eq.py` — PENDING
 - [ ] `tests/test_engines_filter.py` — PENDING
 - [ ] `tests/test_engines_fold.py` — PENDING
-- [ ] `tests/test_engines_fx3_hostile.py` — PENDING
+- [x] `tests/test_engines_fx3_hostile.py` — READ completely (70 lines); hostile host-effect inputs reviewed; batch 83 (2026-10-07)
 - [x] `tests/test_engines_fx_hostile.py` — READ completely (107 lines); pack-wide chaos, block/memory, pass-through, rate/glide, tail and bad-index host contracts reviewed; batch 79
 - [x] `tests/test_engines_fx_switches.py` — READ completely (159 lines); rapid switch schedules, held-control step baselines, 5 ms fade bounds, ceilings and modulation cases reviewed; batch 79
 - [x] `tests/test_engines_gate.py` — READ completely (597 lines); host guards, timing/detector/key-filter references, look-ahead, switching and integration cases reviewed; batch 80
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `1b9fe920da688d295480a04d433a7eb7abec56b2` (Batches 1–81; remote SHA verified).
+- Last pushed commit: `7f4675fb9f0ac18adad2f62ddc5971290f96a1d2` (Batches 1–82; remote SHA verified).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
