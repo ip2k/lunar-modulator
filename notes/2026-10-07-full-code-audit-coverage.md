@@ -505,7 +505,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tools/jieli/sizes_felucca.c` — READ; audit report batch 3 (2026-10-07)
 - [x] `tools/lunar_state.py` — READ (complete Python source); Batch 4 finding, C/browser parity follow-up pending
 - [x] `tools/manual/build-in-docker.sh` — READ complete (56 lines); tar exclusions, build context, arg forwarding and output extraction reviewed; container build not run; batch 129 (2026-10-08)
-- [ ] `tools/manual/build.py` — PENDING
+- [x] `tools/manual/build.py` — READ complete (857 lines); input/prescan/conversion, HTML/PDF output, site assembly, path deletion, links/privacy checks and CLI lifecycle reviewed; batch 133 (2026-10-08)
 - [x] `tools/manual/diagram_check.py` — READ complete (312 lines); SVG geometry/parser/collision checks reviewed; passed against all 8 tracked manual diagrams; batch 131 (2026-10-08)
 - [x] `tools/manual/diagram_metrics.py` — READ complete (61 lines); glyph/weight table shape and missing-character fallback reviewed; batch 129 (2026-10-08)
 - [x] `tools/manual/diagram_theme.py` — READ complete (236 lines); OKLCH/gamut/color derivation, WCAG-role tone and diagram semantics reviewed; batch 130 (2026-10-08)

@@ -809,6 +809,16 @@ Read all 1,120 lines of `engines/test/ref_plaits.cc` and cross-checked the full 
 
 No source, hardware or licence changes occurred. The reference executable and comparison suite were not run because generated engine artifacts are absent.
 
+### Batch 133 — manual build and publication driver
+
+Read all 857 lines of `tools/manual/build.py`. Reviewed engine/sequencer data loading, chapter pre-scan, generated directive HTML and escaping, Markdown conversion and status validation, control-index anchors, HTML/book assembly, output asset copying, simulator and schema publication, link/private-word checks, PDF metadata, server binding, CLI path handling and strict-error behavior. Confirmed the landing template's simulator sentence: it is used only when the full-site build finds no `sim/web/www/index.html`; `--only-manual` skips site-front-page assembly entirely.
+
+**[P2] Choosing the repository as `--site` recursively deletes the source manual. [verified]** `main()` resolves `site` and sets `out = site / "manual"`, then unconditionally calls `shutil.rmtree(out)` when it exists (`tools/manual/build.py:783-789`). Running from the repository root with `--site .` (or passing the repository root as the site path) makes `out` the source `manual/` directory, so the command deletes chapters, configuration, templates and diagrams before it later tries to read them. This is a direct source-data-loss path in the documented build CLI, high confidence; no command exercising the destructive path was run.
+
+**[P3] Reused site roots retain files removed from the source tree. [verified]** `assemble_site()` overlays simulator files with `copytree(..., dirs_exist_ok=True)` and copies root files into the existing site (`tools/manual/build.py:651-661`); `publish_schemas()` also overlays the schema directory (`637-648`). The builder clears only `SITE/manual`, not the site root. If an existing output contains a simulator asset or schema that is later removed from source, rebuilding to that same `--site` leaves the old file publishable. This is a stale-publication reliability issue, high confidence; fresh CI output paths avoid the ordinary trigger.
+
+No build or PDF generation was run because the full manual builder's default path can invoke a desktop build and this audit avoids large local builds. No source, hardware or licence changes occurred.
+
 ### Batch 126 — manual page templates and primary page/editor styles
 
 Read the complete six manual templates/styles in `manual/theme/` (six files, 622 lines total), `sim/web/www/style.css` (507 lines), and the base-branch `sim/web/www/editor/editor.css` (836 lines). The latter was independently reviewed earlier in its complete editor-stream form at pinned `861b725`; this pass records base-source coverage. Reviewed source-level page landmarks, link placeholders, hidden-state selectors, focus treatment, narrow-screen and print layouts, generated navigation/reference selectors, numeric spacing, contrast-token references, and modal/drop overlay placement. Source-only CSS inspection cannot establish pixel-level collision behavior; the editor-branch CSS review is recorded without a rendered screenshot claim.
