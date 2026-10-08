@@ -504,15 +504,15 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tools/jieli/sizes.cc` — READ; audit report batch 3 (2026-10-07)
 - [x] `tools/jieli/sizes_felucca.c` — READ; audit report batch 3 (2026-10-07)
 - [x] `tools/lunar_state.py` — READ (complete Python source); Batch 4 finding, C/browser parity follow-up pending
-- [ ] `tools/manual/build-in-docker.sh` — PENDING
+- [x] `tools/manual/build-in-docker.sh` — READ complete (56 lines); tar exclusions, build context, arg forwarding and output extraction reviewed; container build not run; batch 129 (2026-10-08)
 - [ ] `tools/manual/build.py` — PENDING
 - [ ] `tools/manual/diagram_check.py` — PENDING
-- [ ] `tools/manual/diagram_metrics.py` — PENDING
+- [x] `tools/manual/diagram_metrics.py` — READ complete (61 lines); glyph/weight table shape and missing-character fallback reviewed; batch 129 (2026-10-08)
 - [ ] `tools/manual/diagram_theme.py` — PENDING
 - [ ] `tools/manual/diagrams.py` — PENDING
 - [ ] `tools/manual/figures.py` — PENDING
 - [ ] `tools/manual/mdext.py` — PENDING
-- [ ] `tools/manual/policy.py` — PENDING
+- [x] `tools/manual/policy.py` — READ complete (40 lines); private-path/network and project-brand scan rules reviewed; batch 129 (2026-10-08)
 - [ ] `tools/manual/reference.py` — PENDING
 - [ ] `tools/movy-oracle/driver/src/main.rs` — PENDING
 - [ ] `tools/movy-oracle/gen_scripts.py` — PENDING

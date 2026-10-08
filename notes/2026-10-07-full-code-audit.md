@@ -831,6 +831,12 @@ Read all 608 lines of `tools/state_examples.py` and `tools/state_goldens.py`. Cr
 
 No additional confirmed defect was established. The generators deliberately require built desktop executables and mutate examples/fixtures only when their explicit write modes are selected; the desktop artifacts are absent, so generation and codec checks were not run. The prototype is clearly labeled approximate and is not the product codec. No source, hardware or licence changes occurred.
 
+### Batch 129 — manual build wrapper, publication policy and diagram metrics
+
+Read all 157 lines of `tools/manual/build-in-docker.sh`, `tools/manual/policy.py`, and `tools/manual/diagram_metrics.py`. Reviewed the Docker build-context tar filters and round-trip streams, output-directory creation, commit injection and argument forwarding; private-path/network-name and branding rejection patterns; and glyph table fallback behavior. The container build is intentionally not run in this audit because it performs a full CPU build in Docker.
+
+No confirmed defect was established. The wrapper does not expose a hardware interaction path; it transfers a repository tar stream into an ephemeral image and returns the generated site. The manual-only versus full-site behavior is controlled by the forwarded `--only-manual` option and remains for direct confirmation against `build.py`. No source, hardware or licence changes occurred.
+
 ### Batch 122 — resampler test and analysis utility
 
 Read all 705 lines of `engines/test/resampler_test.cc`, cross-checked its API assumptions against `engines/include/fm1_resampler.h` (389 lines, previously read in batch 21), and reviewed `tests/test_engines_resampler.py`'s ring-window assertion and command matrix (506 lines, batch 82). Reviewed every executable mode: table and passband sweep, timing/FFT fit, benchmark, exact pass-through, chunk equivalence, worst-case gains, refusal, poisoned input-ring windows, WAV conversion, tone probes and peak extraction. The 4:1 endpoint is included in the read-window scan: the rates vector's first 3,000 points ends at exactly 4:1, and index 2,999 is visited by the `i = 9; i < 3000; i += 10` loop; no finding was filed for that case.
