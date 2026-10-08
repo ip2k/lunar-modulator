@@ -181,8 +181,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/acid_bass.h` — READ completely; host-rate/chunk and oracle bridge contract reviewed; batch 36
 - [x] `engines/src/comet_kit.cc` — READ completely (485 lines); GPL gate, per-pad/kit voicings, shared-voice routing, ramp ownership, output chunking and API v4 focus reads reviewed; batch 37 (2026-10-07)
 - [x] `engines/src/comet_kit.h` — READ completely; pad-to-voice and oracle bridge contract reviewed; batch 37
-- [ ] `engines/src/crater_kit.cc` — PENDING
-- [ ] `engines/src/crater_kit.h` — PENDING
+- [x] `engines/src/crater_kit.cc` — READ completely (429 lines); GPL gate, 16 sound/track map, per-pad latches and ramps, tune/bend, choke/volume and chunk behavior reviewed against vendored trigger readers; batch 38 (2026-10-07)
+- [x] `engines/src/crater_kit.h` — READ completely; pad/track map, rate and velocity contract reviewed; batch 38
 - [ ] `engines/src/drum_voices.h` — PENDING
 - [ ] `engines/src/drums.cc` — PENDING
 - [ ] `engines/src/dx7_bank.h` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `1ac357f10d5b1b750c5203b78bc6cd10897fc2b9` (Batches 1–36; remote SHA verified). Batch 37 is pending checkpoint.
+- Last pushed commit: `aff568690a1c9d61f159e5b9d3191fc124c079b7` (Batches 1–37; remote SHA verified). Batch 38 is pending checkpoint.
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
