@@ -647,4 +647,12 @@ Read `sim/web/test/fm1_sim_render.c` completely (5,856 lines), including screen 
 
 The rest of the renderer’s own scheduling and serialization paths yielded no additional confirmed defect in source review. Its test-only probes are now covered; end-to-end parity and sanitizer behavior remain unverified because this worktree lacks generated native simulator binaries.
 
+### Batch 96 — Editor parity checks and script runner
+
+Read `sim/web/test/fm1_edit_check.c` (1,032 lines) and `sim/web/test/edit.mjs` (192 lines) completely. Traced the parameter formatting sweep, refusal invariants and code coverage, cable destination sweep, change-ring overflow, panel-to-editor gesture replay, transport-preserving state loads, view/knob map, telemetry cadence and audio noninterference, deterministic packed-record fuzzing, native/WASM parity comparison, and optional audio-thread storm. No test was run because the generated native renderer and WebAssembly module are absent from this worktree.
+
+**[P2] `--edit-run` overflows its fixed output buffer on a sufficiently long edit script. [verified]** `g_dump` is 65,536 bytes (`sim/web/test/fm1_edit_check.c:971`), but each script line appends `snprintf`'s desired output length to `n` even when the call truncates (`:995`, `:1000`, `:1009`). Once the accumulated log exceeds the buffer, the next call computes `g_dump + n` beyond the object and `sizeof g_dump - n` wraps as `size_t`; at finalization `fm1_edit_dump()` and `fwrite(..., n, ...)` also receive an invalid destination/length (`:1017`, `:1021`). A valid script with a few hundred lines can exceed 64 KiB, so this is reachable through the native `--edit-run SCRIPT DIR` interface without malformed records. It causes out-of-bounds memory access and can crash or corrupt adjacent process state. Confidence high from source; no runtime repro because the binary is unavailable. Severity P2 for a test/tool harness, not device firmware.
+
+No additional confirmed defect was established in the editor parity test logic. The storm's real-time measurements are Node/V8 observations and do not establish Chromium, Firefox, or WebKit audio-thread deadlines; the source comments state this limit.
+
 No runtime reproduction was possible because the generated native simulator binary is absent. No source, device or licence changes occurred.

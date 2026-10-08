@@ -350,7 +350,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `sim/web/test/editor-v1.mjs` — PENDING
 - [ ] `sim/web/test/editor.mjs` — PENDING
 - [x] `sim/web/test/files.mjs` — READ; complete headless browser test flow in audit report batch 5; not executed (Playwright container required)
-- [ ] `sim/web/test/fm1_edit_check.c` — PENDING
+- [x] `sim/web/test/fm1_edit_check.c` — READ completely (1,032 lines); edit refusal/cable/ring/parity/transport/view/telemetry/fuzz checks and native script runner reviewed; audit report batch 96 (2026-10-07)
 - [x] `sim/web/test/fm1_sim_render.c` — READ completely (5,856 lines); screen, format, lock, font and modulation probes, input parsers, resource ownership, CLI, event/render loop, parity logs and summary serialization reviewed; audit report batches 94–95 (2026-10-07)
 - [ ] `sim/web/test/launch.mjs` — PENDING
 - [ ] `sim/web/test/layout-probe.js` — PENDING
