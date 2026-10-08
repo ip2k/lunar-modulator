@@ -340,7 +340,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `sim/web/src/fm1_seq_view.h` — PENDING
 - [ ] `sim/web/src/fm1_tft.c` — PENDING
 - [ ] `sim/web/src/fm1_tft.h` — PENDING
-- [ ] `sim/web/src/fm1_web.c` — PENDING
+- [x] `sim/web/src/fm1_web.c` — READ; complete WebAssembly ABI and state bridge in audit report batch 5
 - [ ] `sim/web/test/edit.mjs` — PENDING
 - [ ] `sim/web/test/editor-map.mjs` — PENDING
 - [ ] `sim/web/test/editor-reach.mjs` — PENDING
@@ -349,17 +349,17 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `sim/web/test/editor-unit.mjs` — PENDING
 - [ ] `sim/web/test/editor-v1.mjs` — PENDING
 - [ ] `sim/web/test/editor.mjs` — PENDING
-- [ ] `sim/web/test/files.mjs` — PENDING
+- [x] `sim/web/test/files.mjs` — READ; complete headless browser test flow in audit report batch 5; not executed (Playwright container required)
 - [ ] `sim/web/test/fm1_edit_check.c` — PENDING
 - [ ] `sim/web/test/fm1_sim_render.c` — PENDING
 - [ ] `sim/web/test/launch.mjs` — PENDING
 - [ ] `sim/web/test/layout-probe.js` — PENDING
 - [ ] `sim/web/test/meta.mjs` — PENDING
-- [ ] `sim/web/test/origins.mjs` — PENDING
+- [x] `sim/web/test/origins.mjs` — READ; direct Node test passed in audit report batch 5
 - [ ] `sim/web/test/parity.mjs` — PENDING
 - [ ] `sim/web/test/readme-screenshots.mjs` — PENDING
 - [ ] `sim/web/test/screenshot.mjs` — PENDING
-- [ ] `sim/web/test/serve.mjs` — PENDING
+- [x] `sim/web/test/serve.mjs` — READ; complete local static test server in audit report batch 5
 - [ ] `sim/web/test/sysex.mjs` — PENDING
 - [ ] `sim/web/tools/gen_font.py` — PENDING
 - [ ] `sim/web/tools/palette.py` — PENDING
@@ -374,11 +374,11 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `sim/web/www/editor/project.js` — PENDING
 - [ ] `sim/web/www/editor/sheets.js` — PENDING
 - [x] `sim/web/www/files.js` — READ; complete file, link, storage and embed flow in audit report batch 5
-- [ ] `sim/web/www/fm1-wasm.mjs` — PENDING
+- [x] `sim/web/www/fm1-wasm.mjs` — READ; full module import/instantiation wrapper in audit report batch 5
 - [ ] `sim/web/www/index.html` — PENDING
 - [x] `sim/web/www/shadow.worker.js` — READ; complete request protocol and state/editor operations in audit report batch 5
 - [ ] `sim/web/www/style.css` — PENDING
-- [ ] `sim/web/www/worklet.js` — PENDING
+- [x] `sim/web/www/worklet.js` — READ; full audio/editor message and render lifecycle in audit report batch 5
 - [ ] `tests/__init__.py` — PENDING
 - [ ] `tests/conftest.py` — PENDING
 - [ ] `tests/engine_helpers.py` — PENDING
@@ -470,7 +470,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_sim_lists.py` — PENDING
 - [ ] `tests/test_sim_mod.py` — PENDING
 - [ ] `tests/test_sim_multi.py` — PENDING
-- [ ] `tests/test_sim_origins.py` — PENDING
+- [x] `tests/test_sim_origins.py` — READ; Node-backed pure-origin test wrapper in audit report batch 5
 - [ ] `tests/test_sim_palette.py` — PENDING
 - [ ] `tests/test_sim_screen_cues.py` — PENDING
 - [ ] `tests/test_sim_seq.py` — PENDING
