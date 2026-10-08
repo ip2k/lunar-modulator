@@ -608,3 +608,9 @@ Read `tests/test_test_guard.py` (55 lines), `tests/test_tools.py` (133), and `te
 **Confirmed test gap [P3, high confidence]:** `tests/test_tools.py:41-44` creates each byte with a fresh `random.Random(size)` instance inside the generator expression. Every byte in one test vector is therefore the same first PRNG output, so the unpack7 round-trip never checks varied byte values within a packed group. This leaves mixed-bit carry/ordering cases across adjacent source bytes underrepresented; it does not establish an implementation defect. No code change was made.
 
 No other confirmed defect or material gap was established in these test harnesses. The sequence and renderer executables were unavailable, and no tests were run. No device action occurred.
+
+### Batch 89 — Sequencer core contract suite
+
+Read `tests/test_seq_core.py` (1,253 lines) completely. Reviewed D1–D13 timing/deviation contracts, block-size identity and drift, bounded pools/event overflow/note-off preservation, Capture ring rollover and packed-field edges, movy1 integer parsing/round trips, heap and RAM assertions, seeded mutation/index checks, routing/key persistence and page/record getters. Its long-duration Capture cases exercise 1,000–1,900 bars but were not run; no generated sequencer tools are present.
+
+No additional confirmed defect or material test gap was established by this suite's source review. No device action or code change occurred.
