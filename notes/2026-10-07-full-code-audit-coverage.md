@@ -405,9 +405,9 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_engine_host.py` — PENDING
 - [x] `tests/test_engine_metadata.py` — READ completely (158 lines); canonical export, independent CLI comparison, instance sizes, schema limits, key vocabulary and float differential tests reviewed; batch 72
 - [x] `tests/test_engine_midi_fx.py` — READ completely (652 lines); host chain/bypass/lifetime, tempo/grid/TRG, fuzz, CLI refusal and no-heap tests reviewed; batch 35; not executed
-- [ ] `tests/test_engine_names.py` — PENDING
+- [x] `tests/test_engine_names.py` — READ completely (153 lines); enum append-only pins, alias and known-id consistency, and generated C table check reviewed; batch 74
 - [x] `tests/test_engine_note_params.py` — READ completely (572 lines); engine coverage, finite/NaN/extreme offsets, note lifecycle, isolation, block invariance and API refusal contracts reviewed; batch 62 (2026-10-07)
-- [ ] `tests/test_engine_params.py` — PENDING
+- [x] `tests/test_engine_params.py` — READ completely (355 lines); UID/flag fixture, latch/modulation/focus rules, units, abbreviations, per-note coverage and Schwung-derived ids reviewed; batch 74
 - [x] `tests/test_engine_smooth.py` — READ completely (209 lines); all-engine parameter-change/ramp schedules and partition checks reviewed; NaN default semantics are not asserted; execution pending; batch 61 (2026-10-07)
 - [ ] `tests/test_engines.py` — PENDING
 - [ ] `tests/test_engines_comb.py` — PENDING
@@ -477,7 +477,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_sim_web.py` — PENDING
 - [x] `tests/test_softkey_probe.py` — READ; audit report batch 1 (2026-10-07)
 - [x] `tests/test_state_codec.py` — READ completely (666 lines); C/Python parity, canonical numbers, hostile inputs, binary mutations, compression, fuzz, and link-fragment contracts reviewed; batch 73
-- [ ] `tests/test_state_render.py` — PENDING
+- [x] `tests/test_state_render.py` — READ completely (226 lines); state-vs-flags audio parity, JSON/binary save behavior, RAM/refusal paths and clip/set lane matching reviewed; batch 74
 - [x] `tests/test_state_schema.py` — READ completely (363 lines); schema/examples/order/resolution, metadata contract, sequencer exports and Q1.14 canonical tests reviewed; batch 73
 - [x] `tests/test_state_whole.py` — READ completely (401 lines); per-kind JSON/binary fixed points, project audio parity, known-id refusals, alias parity, kit pads and unknown module parameters reviewed; batch 72
 - [ ] `tests/test_test_guard.py` — PENDING

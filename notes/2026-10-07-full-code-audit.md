@@ -514,3 +514,9 @@ Read `tests/test_state_codec.py` (666 lines) and `tests/test_state_schema.py` (3
 **Confirmed test gap [P3, high confidence]:** `test_deflate_interoperates_with_zlib` claims to reject a DEFLATE match more than 4 KiB back (`tests/test_state_codec.py:591-607`), but the local `bits()` encoder is never called. The produced zlib stream consists of 5,000 stored literal bytes plus an empty final block; a local zlib decode confirms its output is 5,000 bytes, while the test asks `ls.inflate(..., 5100)` to produce 5,100. The expected refusal can therefore pass on decoded-length mismatch without exercising the distance/window check. This leaves the intended C/Python 4 KiB-distance contract unverified by this test.
 
 No additional confirmed product defect was established by these test sources. The state and schema suites could not be run because `fm1-state`, `fm1-seq`, `fm1-render` and pytest are unavailable in the audit worktree; prior targeted Python-only validation remains recorded above. No source, device or licence changes occurred.
+
+### Batch 74 — Desktop state rendering and parameter/name contracts
+
+Read `tests/test_state_render.py` (226 lines), `tests/test_engine_names.py` (153) and `tests/test_engine_params.py` (355) completely. Traced saved sound state versus CLI-flag rendering, loaded state round trips, binary equivalence, RAM/missing-engine/full-rack refusal and clip-to-set lane placement. Reviewed enum append-only records, alias/retired-uid and known-id checks, generated registry consistency, full parameter UID/flag fixture coverage, focus/per-focus save behavior, native versus Schwung UID ranges, LOG/unit/abbr rules and the API v4 parameter-contract selftest path.
+
+No additional confirmed product defect was established. The engine metadata and render tests depend on native executables that are absent here, so no runtime or audio parity result is claimed. No source, device or licence changes occurred.
