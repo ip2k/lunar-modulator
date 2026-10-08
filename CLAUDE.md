@@ -96,6 +96,18 @@ FM1_GPL_MODS`, its sources in its own fragment; CI tests both settings, and
 `tests/test_gpl_switch.py` fails if the switch-off build compiles, links or
 lists anything GPL. Details: docs/12 §6.
 
+## Recorded platform decision work
+
+Before device firmware implementation, read
+`notes/2026-10-07-sdk-runtime-evaluation.md`: the SDK value, Felucca comparison,
+GPL/permissive build profiles, dual-licensing limits and effort estimates.
+Recommendation: keep the reusable core MIT; prefer an independently
+permissive SDK-free runtime if both release variants matter. Reusing
+Felucca’s GPL HAL makes the application GPL even with GPL engines disabled.
+This is an evaluation, not a licence change or an implemented platform.
+The owner requested a thorough whole-repository code audit before beginning
+device firmware work (2026-10-07); finish/review that audit first.
+
 ## Hardware experimentation policy (owner revised, 2026-10-07)
 
 The owner explicitly replaced the blanket dump-and-byte-identical-restore

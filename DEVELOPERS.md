@@ -2136,3 +2136,11 @@ document. By topic:
   [docs/14](docs/14-verification-ladder.md) the verification ladder.
 - **Sources:** [docs/04](docs/04-prior-art.md) prior art, and the bench and
   study notes in [`notes/`](notes/).
+
+## Platform and licence evaluation before device firmware
+
+The [SDK/runtime evaluation](notes/2026-10-07-sdk-runtime-evaluation.md)
+records the evidence, GPL versus permissive profiles, why whole-repository
+dual licensing is unnecessary for those profiles, and the work involved.
+No licence or runtime implementation was changed. The owner requested a
+thorough whole-repository audit before device firmware work begins.

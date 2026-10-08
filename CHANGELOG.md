@@ -9,6 +9,9 @@ history.
 ## [Unreleased]
 
 ### Added
+- Recorded the SDK versus bare-metal platform and GPL/permissive/dual-licence
+  evaluation with reasoning, release boundaries and effort estimates; linked
+  it from the Claude/Codex guidance. No licence changes implemented.
 - Verified soft-key UBOOT entry, matching complete flash backups, and bounded
   4 KiB programming/restoration on FM-1_092 with the full flash unchanged.
   Full-image restore and Lunar firmware installation remain untested.
