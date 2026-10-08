@@ -1197,3 +1197,90 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 - [x] `tests/fixtures/seq-ui/track-page-route.verbs` — READ complete (9 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
 
 - [x] `tests/fixtures/seq-ui/tracks.verbs` — READ complete (7 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/movy/01-clock-tempo.verbs` — READ complete (23 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/02-clock-rate48k-block7.verbs` — READ complete (15 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/03-notes-gates.verbs` — READ complete (24 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/04-locks-latch.verbs` — READ complete (28 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/05-locks-first-step.verbs` — READ complete (21 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/06-conditions.verbs` — READ complete (33 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/07-probability.verbs` — READ complete (23 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/08-quantise-swing.verbs` — READ complete (41 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/09-scale.verbs` — READ complete (24 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/10-loop-window.verbs` — READ complete (23 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/11-transpose-drum.verbs` — READ complete (24 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/12-launch-session.verbs` — READ complete (24 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/13-scenes-song.verbs` — READ complete (22 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/14-record-countin.verbs` — READ complete (31 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/15-record-overdub.verbs` — READ complete (30 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/16-edits.verbs` — READ complete (29 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/17-copy-paste.verbs` — READ complete (30 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/18-undo.verbs` — READ complete (24 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/19-nudge-panic.verbs` — READ complete (22 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/20-movy1-import.verbs` — READ complete (12 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/21-capture-optional.verbs` — READ complete (37 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/22-nudge-panic-order.verbs` — READ complete (12 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/23-ext-clock-follow.verbs` — READ complete (376 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/24-ext-clock-stale.verbs` — READ complete (241 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/20-movy1-import.in.movy1` — READ complete (26 lines); intentional unknown record exercises ignore behavior; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/movy-chains.movy1` — READ complete (29 lines); Git blob matches UPSTREAM.md; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/schwung-tracks.movy1` — READ complete (32 lines); Git blob matches UPSTREAM.md; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/device-set.movy1` — READ complete (19 lines); Git blob matches UPSTREAM.md; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/hold-env-fx.mod` — READ complete (15 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/hold-env-fx.panel` — READ complete (12 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/hold-lfo-home.mod` — READ complete (16 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/hold-lfo-home.panel` — READ complete (10 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/input.verbs` — READ complete (6 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/kind-change.mod` — READ complete (16 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/kind-change.panel` — READ complete (10 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/matrix-edit.mod` — READ complete (21 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/matrix-edit.panel` — READ complete (20 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/rack-gesture.mod` — READ complete (16 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/rack-gesture.panel` — READ complete (15 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/routed-knob.mod` — READ complete (15 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/routed-knob.panel` — READ complete (13 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+### Movy generated-data exclusions
+
+- `[x]` `tests/fixtures/movy/{01..24}-*.jsonl`, the six curated `*.d1.jsonl` files, and `tests/fixtures/movy/{01..24}-*.out.movy1` — generated by the pinned external Movy oracle; output contents excluded from manual review; consumers and structural/equality assertions in `tests/test_movy_oracle_fixtures.py` and `tests/test_seq_oracle.py` reviewed; pytest unavailable in this worktree.
+- `[x]` `tests/fixtures/movy/random/rand-601-00353`, `rand-601-00377`, `rand-601-00732`, `rand-602-00033`, `rand-602-00098`, `rand-603-00031`, `rand-603-00069`, `rand-603-00165`, `rand-604-00035`, `rand-604-00159` (`.verbs` body and paired `.jsonl.gz`/`.out.movy1.gz`) — generated with seeds and options in the corpus README; random command/event bodies excluded from manual reading; decompression and documented corpus shape checked; equivalence test code reviewed but not run.
