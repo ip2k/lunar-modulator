@@ -503,7 +503,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tools/jieli/sizes.c` — READ; audit report batch 3 (2026-10-07)
 - [x] `tools/jieli/sizes.cc` — READ; audit report batch 3 (2026-10-07)
 - [x] `tools/jieli/sizes_felucca.c` — READ; audit report batch 3 (2026-10-07)
-- [ ] `tools/lunar_state.py` — PENDING
+- [x] `tools/lunar_state.py` — READ (complete Python source); Batch 4 finding, C/browser parity follow-up pending
 - [ ] `tools/manual/build-in-docker.sh` — PENDING
 - [ ] `tools/manual/build.py` — PENDING
 - [ ] `tools/manual/diagram_check.py` — PENDING
@@ -816,7 +816,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `d7111a985d5d6262767d6af49ba26caf0e1b9453`
-- Outstanding: all audit work represented by pending entries above; report is an in-progress scope/method stub.
-- Checks: batch-1 targeted pytest invocation attempted with `python3`; unavailable because the active interpreter has no `pytest` and this worktree has no `.venv`. No source was edited and no hardware action was taken.
+- Last pushed commit: `4cbf5f7529b31c585b13e853ce98ef76c6fbd341` (Batch 1–3 checkpoint)
+- Outstanding: all audit work represented by pending entries above; state-codec source review is partial, with Python source read and C/browser parity still open.
+- Checks: targeted pytest remains unavailable because the active interpreter has no `pytest` and this worktree has no `.venv`; generated engine tools are also absent. A direct Python DEFLATE reproduction confirmed Batch 4 finding. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
