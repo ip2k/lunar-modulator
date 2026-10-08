@@ -461,20 +461,20 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tests/test_seq_song.py` — READ completely (685 lines); list model, live edits/arms, jump/end modes, D15–D17, serialization/RNG and four-minute song tests reviewed; batch 91 (2026-10-07)
 - [x] `tests/test_seq_song_ui.py` — READ in full (164 lines); session/Song UI tests reviewed (batch 11)
 - [x] `tests/test_seq_ui.py` — READ in full (1,053 lines); S3-S8 gesture, state-size, audio replay and lock tests (batch 10)
-- [ ] `tests/test_sim_arp.py` — PENDING
-- [ ] `tests/test_sim_edit.py` — PENDING
+- [x] `tests/test_sim_arp.py` — READ completely (430 lines); app MIDI-FX/ARP panel, playback, replay and sound assertions reviewed; batch 92 (2026-10-07)
+- [x] `tests/test_sim_edit.py` — READ completely (125 lines); editor source checks, native parity, map metadata boundaries reviewed; batch 92 (2026-10-07)
 - [x] `tests/test_sim_editor_meta.py` — READ in full (123 lines); static export/module record tests reviewed (batch 13)
-- [ ] `tests/test_sim_editor_ui.py` — PENDING
+- [x] `tests/test_sim_editor_ui.py` — READ completely (133 lines); app state/history, lazy map loading, key gating and map path reviewed; batch 92 (2026-10-07)
 - [x] `tests/test_sim_files.py` — READ; static file/link/audio-boundary tests in audit report batch 5
-- [ ] `tests/test_sim_fonts.py` — PENDING
+- [x] `tests/test_sim_fonts.py` — READ completely (214 lines); Spleen pin/glyph metrics, ASCII table parity and spacing checks reviewed; batch 92 (2026-10-07)
 - [x] `tests/test_sim_lists.py` — READ in full (247 lines); picker/list source review (batch 12)
 - [x] `tests/test_sim_mod.py` — READ in full (576 lines); modulation runtime, UI and parity tests reviewed (batch 13)
-- [ ] `tests/test_sim_multi.py` — PENDING
+- [x] `tests/test_sim_multi.py` — READ completely (361 lines); multi-sound replay, reroute note release, RAM fit and refusal tests reviewed; batch 92 (2026-10-07)
 - [x] `tests/test_sim_origins.py` — READ; Node-backed pure-origin test wrapper in audit report batch 5
-- [ ] `tests/test_sim_palette.py` — PENDING
-- [ ] `tests/test_sim_screen_cues.py` — PENDING
-- [ ] `tests/test_sim_seq.py` — PENDING
-- [ ] `tests/test_sim_web.py` — PENDING
+- [x] `tests/test_sim_palette.py` — READ completely (190 lines); token agreement, RGB565/colour transforms, contrast, distance and checker mutations reviewed; batch 92 (2026-10-07)
+- [x] `tests/test_sim_screen_cues.py` — READ completely (262 lines); rendered track/sound labels, matrix/chain spacing and refusal/budget cues reviewed; batch 92 (2026-10-07)
+- [x] `tests/test_sim_seq.py` — READ completely (101 lines); sequencer app rendering/replay, routing and track reroute note-off cases reviewed; batch 92 (2026-10-07)
+- [x] `tests/test_sim_web.py` — READ completely (1,057 lines); native app parity, sequencer/UI, screen sweeps, DX7 bank, asset/font/module gates reviewed; batch 92 (2026-10-07)
 - [x] `tests/test_softkey_probe.py` — READ; audit report batch 1 (2026-10-07)
 - [x] `tests/test_state_codec.py` — READ completely (666 lines); C/Python parity, canonical numbers, hostile inputs, binary mutations, compression, fuzz, and link-fragment contracts reviewed; batch 73
 - [x] `tests/test_state_render.py` — READ completely (226 lines); state-vs-flags audio parity, JSON/binary save behavior, RAM/refusal paths and clip/set lane matching reviewed; batch 74
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `44569691f4d5d1dbefbb2ba5f9076b8ee7fa4552` (Batches 1–90; remote SHA verified).
+- Last pushed commit: `a877c8756a8b04a7732f207365b992f492865958` (Batches 1–91; remote SHA verified; batch 92 pending checkpoint).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
