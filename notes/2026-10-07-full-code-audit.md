@@ -546,3 +546,9 @@ Read `tests/test_engine_crater_kit.py` (522 lines) completely. Reviewed GPL gati
 **Confirmed test gap [P3, high confidence]:** the test function named `test_tune_is_in_semitones_on_every_pad` checks rendered pitch only for the kick and low tom (`tests/test_engine_crater_kit.py:306-315`), and the `--fields` oracle provides exact Tune-law assertions for only four pads (kick, low tom, cymbal and cowbell; see settings at `engines/test/crater_oracle.cc:275-279` and assertions at `tests/test_engine_crater_kit.py:213-223`). This does not establish audio semitone behavior across the remaining voice families/pads despite the suite's top-level “every pad” claim. A regression in a pad-family Tune conversion or sound's tune response could therefore escape these assertions. Source inspection of `ApplyTune()` (`engines/src/crater_kit.cc:249-260`) did not show a confirmed implementation defect.
 
 No other confirmed defect was established in this test source. Native oracle and audio tests were not run because generated tools are absent. No code, device or licence changes occurred.
+
+### Batch 79 — Shapes edge and master-FX hostile/switch tests
+
+Read `tests/test_engines_shapes_edges.py` (144 lines), `test_engines_shapes_hostile.py` (74), `test_engines_fx_hostile.py` (107), and `test_engines_fx_switches.py` (159) completely. Traced Braids edge-case pitch/timbre clamps across shapes, hostile between-value schedules and memory fills, master-effect block/rate/input/extreme recovery contracts, and fast switch modulation against held-control step bounds and effect ceilings.
+
+No additional confirmed defect or material coverage gap was established from these four test sources. The required `fm1-render`, hostile-effect tools and sanitizer build are unavailable here; the tests were not executed, so their numerical/audio bounds remain source-reviewed rather than reproduced. No code, device or licence changes occurred.

@@ -421,8 +421,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_engines_filter.py` — PENDING
 - [ ] `tests/test_engines_fold.py` — PENDING
 - [ ] `tests/test_engines_fx3_hostile.py` — PENDING
-- [ ] `tests/test_engines_fx_hostile.py` — PENDING
-- [ ] `tests/test_engines_fx_switches.py` — PENDING
+- [x] `tests/test_engines_fx_hostile.py` — READ completely (107 lines); pack-wide chaos, block/memory, pass-through, rate/glide, tail and bad-index host contracts reviewed; batch 79
+- [x] `tests/test_engines_fx_switches.py` — READ completely (159 lines); rapid switch schedules, held-control step baselines, 5 ms fade bounds, ceilings and modulation cases reviewed; batch 79
 - [ ] `tests/test_engines_gate.py` — PENDING
 - [ ] `tests/test_engines_hall.py` — PENDING
 - [ ] `tests/test_engines_idle.py` — PENDING
@@ -444,8 +444,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tests/test_engines_room.py` — READ completely (363 lines); CLI/runtime, tail, width, decay, math and zero-state assertions reviewed; execution pending missing pytest/native binaries and no large local build; batch 49 (2026-10-07)
 - [x] `tests/test_engines_sat.py` — READ completely (443 lines); input/idle-adjacent contracts, curve/alias measurements and host-rate expectations reviewed; execution pending missing pytest/native binaries and no large local build; batch 50 (2026-10-07)
 - [x] `tests/test_engines_schwung.py` — READ completely (488 lines); shim selftest, module contract, render/latency/headroom, NaN and pinned vendor manifests reviewed; not executed; batch 64 (2026-10-07)
-- [ ] `tests/test_engines_shapes_edges.py` — PENDING
-- [ ] `tests/test_engines_shapes_hostile.py` — PENDING
+- [x] `tests/test_engines_shapes_edges.py` — READ completely (144 lines); 47-shape key/bend/timbre/color edge sweep and exact clamp equivalence reviewed; batch 79
+- [x] `tests/test_engines_shapes_hostile.py` — READ completely (74 lines); hostile mid-note schedules, memory-fill/block invariance and clamp boundaries reviewed; batch 79
 - [x] `tests/test_engines_squash.py` — READ completely (330 lines); fixture pin, oracle tolerances, Type/makeup/gate/transition and Transient behavior assertions reviewed; execution pending missing pytest/native binaries and no large local build; batch 51 (2026-10-07)
 - [x] `tests/test_engines_tilt.py` — READ completely (401 lines); independent frequency model, host contracts, registration, input faults, exact pass-through, curve shape, modulation/glide and rate assertions reviewed; execution pending; batch 52 (2026-10-07)
 - [x] `tests/test_gpl_switch.py` — READ completely (262 lines); switch-on/off build gates, dependency/symbol scans, source/license directory mapping, page/build record and GPL parity flags reviewed; batch 76
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `8c869501b3407fd3b8406d246ab49c51fd99204b` (Batches 1–77; remote SHA verified).
+- Last pushed commit: `c2c6301d3225f073ecc47019f43b0d8109bb20ea` (Batches 1–78; remote SHA verified).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
