@@ -821,3 +821,89 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
+
+- [x] `sim/web/test/arp/acid-gen-run.verbs` — READ complete (8 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/arp/arp-latch-stop.verbs` — READ complete (12 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/arp/arp-sequencer.verbs` — READ complete (9 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/arp/arp-trg.verbs` — READ complete (8 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/arp/panel-arp-stop.panel` — READ complete (24 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/arp/panel-arp-stop.verbs` — READ complete (5 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/arp/panel-arp.panel` — READ complete (37 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/arp/panel-arp.verbs` — READ complete (6 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/edit/verbs.edit` — READ complete (47 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/mod/idle-driven.mod` — READ complete (7 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/mod/log-keytrack.mod` — READ complete (11 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/mod/multi-panel.panel` — READ complete (33 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/mod/multi-panel.verbs` — READ complete (9 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/mod/multi-routes.mod` — READ complete (26 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/mod/panel-gestures.panel` — READ complete (29 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/mod/panel-gestures.verbs` — READ complete (9 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/mod/routes.mod` — READ complete (24 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/mod/voice-routes.mod` — READ complete (25 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/capture-stopped-capsel.verbs` — READ complete (25 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/capture-while-playing.verbs` — READ complete (14 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/ext-transport.verbs` — READ complete (11 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/metro-click.verbs` — READ complete (9 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/multi-four-sounds.verbs` — READ complete (16 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-capture-stopped.panel` — READ complete (12 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-capture-stopped.verbs` — READ complete (7 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-locks.panel` — READ complete (20 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-locks.verbs` — READ complete (5 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-multi-sound.panel` — READ complete (22 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-multi-sound.verbs` — READ complete (7 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-play-stop.panel` — READ complete (12 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-play-stop.verbs` — READ complete (7 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-record.panel` — READ complete (27 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-record.verbs` — READ complete (7 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-session-song.panel` — READ complete (20 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-session-song.verbs` — READ complete (4 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-step-entry.panel` — READ complete (36 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-step-entry.verbs` — READ complete (9 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-tracks.panel` — READ complete (29 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-tracks.verbs` — READ complete (7 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/sine-volume-locks.verbs` — READ complete (10 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/sixop-patch-enum-lock.verbs` — READ complete (7 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/sixop-two-tracks-swing.verbs` — READ complete (7 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/state/play.verbs` — READ complete (6 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
