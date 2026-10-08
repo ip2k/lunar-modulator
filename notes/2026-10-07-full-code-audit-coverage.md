@@ -329,10 +329,10 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `sim/web/src/fm1_font_mid.h` — READ; generated subset structurally checked against Spleen BDF (batch 9)
 - [x] `sim/web/src/fm1_font_small.h` — READ; generated subset structurally checked against Spleen BDF (batch 9)
 - [x] `sim/web/src/fm1_look.h` — READ in full; audit report batch 9 (2026-10-07)
-- [ ] `sim/web/src/fm1_mod_ui.c` — PENDING
-- [ ] `sim/web/src/fm1_mod_ui.h` — PENDING
-- [ ] `sim/web/src/fm1_mod_view.c` — PENDING
-- [ ] `sim/web/src/fm1_mod_view.h` — PENDING
+- [x] `sim/web/src/fm1_mod_ui.c` — READ in full (1,694 lines); destination short-name defect in audit report batch 12 (2026-10-07)
+- [x] `sim/web/src/fm1_mod_ui.h` — READ in full (348 lines); audit report batch 12 (2026-10-07)
+- [x] `sim/web/src/fm1_mod_view.c` — READ in full (388 lines); static geometry/role layout in audit report batch 12 (2026-10-07)
+- [x] `sim/web/src/fm1_mod_view.h` — READ in full (65 lines); audit report batch 12 (2026-10-07)
 - [x] `sim/web/src/fm1_panel.h` — READ in full; audit report batch 9 (2026-10-07)
 - [x] `sim/web/src/fm1_seq_ui.c` — READ in full (2,258 lines); audit report batch 10 (2026-10-07)
 - [x] `sim/web/src/fm1_seq_ui.h` — READ in full (636 lines); audit report batch 10 (2026-10-07)
@@ -467,7 +467,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_sim_editor_ui.py` — PENDING
 - [x] `tests/test_sim_files.py` — READ; static file/link/audio-boundary tests in audit report batch 5
 - [ ] `tests/test_sim_fonts.py` — PENDING
-- [ ] `tests/test_sim_lists.py` — PENDING
+- [x] `tests/test_sim_lists.py` — READ in full (247 lines); picker/list source review (batch 12)
 - [ ] `tests/test_sim_mod.py` — PENDING
 - [ ] `tests/test_sim_multi.py` — PENDING
 - [x] `tests/test_sim_origins.py` — READ; Node-backed pure-origin test wrapper in audit report batch 5
