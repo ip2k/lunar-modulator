@@ -476,9 +476,9 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_sim_seq.py` — PENDING
 - [ ] `tests/test_sim_web.py` — PENDING
 - [x] `tests/test_softkey_probe.py` — READ; audit report batch 1 (2026-10-07)
-- [ ] `tests/test_state_codec.py` — PENDING
+- [x] `tests/test_state_codec.py` — READ completely (666 lines); C/Python parity, canonical numbers, hostile inputs, binary mutations, compression, fuzz, and link-fragment contracts reviewed; batch 73
 - [ ] `tests/test_state_render.py` — PENDING
-- [ ] `tests/test_state_schema.py` — PENDING
+- [x] `tests/test_state_schema.py` — READ completely (363 lines); schema/examples/order/resolution, metadata contract, sequencer exports and Q1.14 canonical tests reviewed; batch 73
 - [x] `tests/test_state_whole.py` — READ completely (401 lines); per-kind JSON/binary fixed points, project audio parity, known-id refusals, alias parity, kit pads and unknown module parameters reviewed; batch 72
 - [ ] `tests/test_test_guard.py` — PENDING
 - [ ] `tests/test_tools.py` — PENDING
