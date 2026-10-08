@@ -212,8 +212,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/fx_limit.cc` — READ completely (911 lines); integer gain windows, bounded allocations, lookahead tap transitions, Mode transition, ROUND delayed state, input guards and rate ceilings reviewed; batch 48 (2026-10-07)
 - [x] `engines/src/fx_room.cc` — READ completely (416 lines); wrapper state/lifetime, grid-aligned parameter glides, rate mapping, loop and diffuser calls, sweep/flush and mono-width/mix paths reviewed; batch 49 (2026-10-07)
 - [x] `engines/src/fx_room_math.h` — READ completely (107 lines); IEEE exponent handling, subnormal scaling and bounded caller domains checked; batch 49 (2026-10-07)
-- [ ] `engines/src/fx_sat.cc` — PENDING
-- [ ] `engines/src/fx_shaper.cc` — PENDING
+- [x] `engines/src/fx_sat.cc` — READ completely (728 lines); curve translation, filter math, glue envelope, param/shape changes, state flush, exact bypass and idle/wake branches traced; batch 50 (2026-10-07)
+- [x] `engines/src/fx_shaper.cc` — READ completely (237 lines); envelope ordering, log-domain signal comparison, parameter ramps and bounded gain path reviewed; batch 50 (2026-10-07)
 - [ ] `engines/src/fx_squash.cc` — PENDING
 - [ ] `engines/src/fx_tilt.cc` — PENDING
 - [ ] `engines/src/glide.h` — PENDING
@@ -299,7 +299,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/test/ref_room.cc` — PENDING
 - [ ] `engines/test/resampler_test.cc` — PENDING
 - [x] `engines/test/room_test.cc` — READ completely (363 lines); mixed bad inputs, change timing, block invariance, tail, rate, math and probe contracts reviewed; execution pending; batch 49 (2026-10-07)
-- [ ] `engines/test/sat_test.cc` — PENDING
+- [x] `engines/test/sat_test.cc` — READ completely (513 lines); changing controls, bypass, curve, glue, tone/alias probe and output digest harness reviewed; execution pending; batch 50 (2026-10-07)
 - [ ] `engines/test/schwung_race.cc` — PENDING
 - [ ] `engines/test/schwung_selftest.cc` — PENDING
 - [ ] `engines/test/seq_host_test.c` — PENDING
@@ -442,7 +442,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_engines_reference_room.py` — PENDING
 - [ ] `tests/test_engines_resampler.py` — PENDING
 - [x] `tests/test_engines_room.py` — READ completely (363 lines); CLI/runtime, tail, width, decay, math and zero-state assertions reviewed; execution pending missing pytest/native binaries and no large local build; batch 49 (2026-10-07)
-- [ ] `tests/test_engines_sat.py` — PENDING
+- [x] `tests/test_engines_sat.py` — READ completely (443 lines); input/idle-adjacent contracts, curve/alias measurements and host-rate expectations reviewed; execution pending missing pytest/native binaries and no large local build; batch 50 (2026-10-07)
 - [ ] `tests/test_engines_schwung.py` — PENDING
 - [ ] `tests/test_engines_shapes_edges.py` — PENDING
 - [ ] `tests/test_engines_shapes_hostile.py` — PENDING
