@@ -21,19 +21,19 @@ Update status only after reading and recording evidence. A search or mechanical 
 
 `PENDING` means not yet read in full. Change each entry to `READ` with report section/findings reference after review; `EXCLUDED` requires a reason in the audit report.
 
-- [ ] `assets/branding/render_branding.py` — PENDING
-- [ ] `assets/web-editor/src/01-workbench.html` — PENDING
-- [ ] `assets/web-editor/src/02-sound.html` — PENDING
-- [ ] `assets/web-editor/src/03-chain.html` — PENDING
-- [ ] `assets/web-editor/src/04-modulation.html` — PENDING
-- [ ] `assets/web-editor/src/05-map.html` — PENDING
-- [ ] `assets/web-editor/src/06-project.html` — PENDING
-- [ ] `assets/web-editor/src/editor.css` — PENDING
-- [ ] `assets/web-editor/src/editor.js` — PENDING
-- [ ] `assets/web-editor/src/meta.js` — PENDING
-- [ ] `assets/web-editor/src/render.mjs` — PENDING
-- [ ] `assets/web-editor/src/shell.js` — PENDING
-- [ ] `assets/web-editor/src/shrink.mjs` — PENDING
+- [x] `assets/branding/render_branding.py` — READ completely; audit report batch 26 (2026-10-07)
+- [x] `assets/web-editor/src/01-workbench.html` — READ completely; batch 26
+- [x] `assets/web-editor/src/02-sound.html` — READ completely; batch 26
+- [x] `assets/web-editor/src/03-chain.html` — READ completely; batch 26
+- [x] `assets/web-editor/src/04-modulation.html` — READ completely; batch 26
+- [x] `assets/web-editor/src/05-map.html` — READ completely; batch 26
+- [x] `assets/web-editor/src/06-project.html` — READ completely; batch 26
+- [x] `assets/web-editor/src/editor.css` — READ completely; visual layout source review; batch 26
+- [x] `assets/web-editor/src/editor.js` — READ completely; metadata-driven controls/layout checker reviewed; batch 26
+- [x] `assets/web-editor/src/meta.js` — JSON payload parsed and all bounds/default/log/enum metadata checked; batch 26
+- [x] `assets/web-editor/src/render.mjs` — READ completely; browser DevTools lifecycle reviewed; batch 26
+- [x] `assets/web-editor/src/shell.js` — READ completely; static frame template reviewed; batch 26
+- [x] `assets/web-editor/src/shrink.mjs` — READ completely; PNG decode/encode and palette quantization reviewed; batch 26
 - [x] `dongle/__init__.py` — READ; empty package marker; audit report batch 2 (2026-10-07)
 - [x] `dongle/firmware/CMakeLists.txt` — READ; audit report batch 2 (2026-10-07)
 - [x] `dongle/firmware/config.h` — READ; audit report batch 2 (2026-10-07)
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `524aaec31a7c8bf1624ebc6d8915b5c2cb20020a` (Batches 1–24; remote SHA verified). Batch 25 is pending checkpoint.
+- Last pushed commit: `e666ce1d3e1e9e3049505603dbb9205692d6de6b` (Batches 1–25; remote SHA verified). Batch 26 is pending checkpoint.
 - Outstanding: see all `PENDING` entries above; desktop render/tooling, editor-branch variants, source corpus and most vendor integrations remain open. Native modulation regression tests remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
