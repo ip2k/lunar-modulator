@@ -9,7 +9,7 @@ Status: **in progress; no completion claim yet**. Device firmware implementation
 - Fetched editor feature head: `861b725bbe4efadb2d56400853a03b78f695f4cf`.
 - The audit branch contains a post-main 16-file hardware-recovery/provenance delta. Review those files as present without executing device tools.
 - The editor branch is a separate source variant. Review its diff and complete modified-file context; do not merge it into this branch.
-- File-by-file progress is recorded in [the coverage ledger](2026-10-07-full-code-audit-coverage.md). No generated firmware or hardware command is authorized by this audit task.
+- File-by-file progress is recorded in [the coverage ledger](2026-10-07-full-code-audit-coverage.md): 726 source/build files are tracked there (501 first-party, 225 vendored; 178,989 and 81,114 physical lines respectively). The separately pinned editor delta contains 36 source/build paths. No generated firmware or hardware command is authorized by this audit task.
 
 ## Method
 
@@ -33,4 +33,18 @@ Read the complete RP2040 firmware/PIO programs and config, all five simulator mo
 
 No other confirmed defect in this batch. `firmware/third_party/fm1-nes/boot_compat.c` is the only included upstream source file in this group; its declared Apache-2.0 origin and delta are documented in `firmware/third_party/fm1-nes/UPSTREAM.md`. Host tests are present but could not run because pytest is missing. No hardware action or source edit occurred.
 
-Audit batches and findings will be appended here with the ledger updated in the same checkpoint.
+### Batch 3 — JieLi compile, link and package gates
+
+Read the complete ELF link gate, package guard, compile-check and in-container scripts, object manifest, size probes, SDK sparse list, analyzer, and the synthetic ELF/package tests. No SDK checkout, device command, or build was run.
+
+#### Findings
+
+1. **[P2] The reserved IRQ-123 source gate is bypassable through a named constant. [verified]** `tools/jieli/audit_link.py:103-109,466-476` checks each source line with a regex that recognizes only a numeric literal (optionally one cast). For `#define APP_IRQ 123` followed by `request_irq(APP_IRQ, ...)`, neither line matches. The ELF immediate scan checks the IRQ vector address, not the small IRQ number passed to `request_irq`; thus the compile-time guard can report clean while future app code claims SDK-reserved IRQ 123. Existing tracked code has no `request_irq` call. The current tests (`tests/test_audit_link.py:455-459`) cover literals/casts only, not macro expansion. Fix or explicitly constrain this before relying on the gate for a firmware build.
+
+2. **[P2] The compile-check command can return success after engine objects fail to compile. [verified]** `tools/jieli/in-container.sh:105-110` records and prints per-profile failure counts, while `tools/jieli/analyze.py:273-285` records failed objects in the report. The script never turns those failures into a nonzero result; its final exit gate at `in-container.sh:212-215` only considers the boot bridge and `audit_link.py`. Since `analyze.py` also exits normally after writing its report, an object failure can leave `compile-check.sh` green with failure rows in `report.md`. The compile check must not be treated as a pass unless its caller inspects every profile failure.
+
+3. **[P3] Compile records can say clean when staged build inputs are dirty. [verified]** `tools/jieli/compile-check.sh:172-174` stages `engines`, all of `sim/web`, `firmware` and `tools/jieli`, but line 184 counts worktree changes only under `engines`, `sim/web/src` and `tools/jieli`. An uncommitted edit in `firmware/third_party/fm1-nes/boot_compat.c` or `sim/web/mk/sim.mk` is staged and compiled while `record.json` can claim `uncommitted_files: 0`. Expand the recorded dirty scope to the staged build inputs or record a content diff/hash.
+
+The compile-only and link gates are not yet equivalent to an accepted firmware link: `in-container.sh` states that late-initcall layout and the exact `sdk_meky_check` machine code remain pending until a real link. The report also confirms no package build or chip run is part of this script. Those limits are documented and remain device-readiness gates, not new defects.
+
+No source edits were made. Targeted tests remain unavailable because pytest is not installed in this environment; a small direct regex check confirmed the alias bypass (`literal matches: True`, macro alias matches: False).

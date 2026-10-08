@@ -14,8 +14,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 
 ## Coverage totals
 
-- Tracked repository files: 1350
-- Source/build files inventoried: 683 (458 first-party, 225 vendored); 177,279 first-party lines and 81,114 vendored lines.
+- Tracked repository files at pinned baseline: 1350
+- Source/build files inventoried: 726 (501 first-party, 225 vendored); 178,989 first-party lines and 81,114 vendored lines. (Includes C/C++, Python, Rust, JavaScript, shell, PIO and 43 Make fragments.)
 
 ## First-party source and build-file ledger
 
@@ -38,6 +38,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `dongle/firmware/CMakeLists.txt` — READ; audit report batch 2 (2026-10-07)
 - [x] `dongle/firmware/config.h` — READ; audit report batch 2 (2026-10-07)
 - [x] `dongle/firmware/main.c` — READ; audit report batch 2 (2026-10-07)
+- [x] `dongle/firmware/usb_key.pio` — READ; audit report batch 2 (2026-10-07)
 - [x] `dongle/sim/__init__.py` — READ; empty package marker; audit report batch 2 (2026-10-07)
 - [x] `dongle/sim/cosim.py` — READ; audit report batch 2 (2026-10-07)
 - [x] `dongle/sim/dongle.py` — READ; audit report batch 2 (2026-10-07)
@@ -86,6 +87,46 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/midi_fx/fm1_arp.c` — PENDING
 - [ ] `engines/midi_fx/fm1_arp.h` — PENDING
 - [ ] `engines/midi_fx/registry.c` — PENDING
+- [ ] `engines/mk/comp.mk` — PENDING
+- [ ] `engines/mk/crush.mk` — PENDING
+- [ ] `engines/mk/djfilter.mk` — PENDING
+- [ ] `engines/mk/drive.mk` — PENDING
+- [ ] `engines/mk/drums.mk` — PENDING
+- [ ] `engines/mk/editor_meta.mk` — PENDING
+- [ ] `engines/mk/eq.mk` — PENDING
+- [ ] `engines/mk/felucca.mk` — PENDING
+- [ ] `engines/mk/filter.mk` — PENDING
+- [ ] `engines/mk/fm1-x0x.mk` — PENDING
+- [ ] `engines/mk/fold.mk` — PENDING
+- [ ] `engines/mk/fx-echo.mk` — PENDING
+- [ ] `engines/mk/fx-ext.mk` — PENDING
+- [ ] `engines/mk/fx-hostile.mk` — PENDING
+- [ ] `engines/mk/fx3-hostile.mk` — PENDING
+- [ ] `engines/mk/gate.mk` — PENDING
+- [ ] `engines/mk/hall.mk` — PENDING
+- [ ] `engines/mk/idle.mk` — PENDING
+- [ ] `engines/mk/isolator.mk` — PENDING
+- [ ] `engines/mk/limit.mk` — PENDING
+- [ ] `engines/mk/meta.mk` — PENDING
+- [ ] `engines/mk/mi-fx.mk` — PENDING
+- [ ] `engines/mk/midi_fx.mk` — PENDING
+- [ ] `engines/mk/mod.mk` — PENDING
+- [ ] `engines/mk/msfa.mk` — PENDING
+- [ ] `engines/mk/param_get.mk` — PENDING
+- [ ] `engines/mk/plaits-heavy.mk` — PENDING
+- [ ] `engines/mk/ref-braids-fx.mk` — PENDING
+- [ ] `engines/mk/ref-plaits.mk` — PENDING
+- [ ] `engines/mk/resampler.mk` — PENDING
+- [ ] `engines/mk/room.mk` — PENDING
+- [ ] `engines/mk/sat.mk` — PENDING
+- [ ] `engines/mk/schwung.mk` — PENDING
+- [ ] `engines/mk/seq.mk` — PENDING
+- [ ] `engines/mk/shapes-hostile.mk` — PENDING
+- [ ] `engines/mk/smooth.mk` — PENDING
+- [ ] `engines/mk/squash.mk` — PENDING
+- [ ] `engines/mk/state.mk` — PENDING
+- [ ] `engines/mk/tilt.mk` — PENDING
+- [ ] `engines/mk/x0x-crater.mk` — PENDING
 - [ ] `engines/mod/fm1_mp.h` — PENDING
 - [ ] `engines/mod/gen_curves.py` — PENDING
 - [ ] `engines/mod/gen_mi_tables.py` — PENDING
@@ -126,6 +167,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/mod/mp_tables.c` — PENDING
 - [ ] `engines/mod/mp_tool.c` — PENDING
 - [ ] `engines/mod/mp_turing.c` — PENDING
+- [ ] `engines/modules/catalogue.mk` — PENDING
 - [ ] `engines/seq/fx_host.c` — PENDING
 - [ ] `engines/seq/mfx_host.c` — PENDING
 - [ ] `engines/seq/seq_capture.c` — PENDING
@@ -276,6 +318,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `manual/theme/print.css` — PENDING
 - [ ] `sim/web/build-on-aeon.sh` — PENDING
 - [ ] `sim/web/build.sh` — PENDING
+- [ ] `sim/web/mk/sim.mk` — PENDING
 - [ ] `sim/web/src/fm1_app.c` — PENDING
 - [ ] `sim/web/src/fm1_app.h` — PENDING
 - [ ] `sim/web/src/fm1_app_state.c` — PENDING
@@ -344,7 +387,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/state_meta.py` — PENDING
 - [ ] `tests/state_random.py` — PENDING
 - [ ] `tests/test_app_state.py` — PENDING
-- [ ] `tests/test_audit_link.py` — PENDING
+- [x] `tests/test_audit_link.py` — READ; audit report batch 3 (2026-10-07)
 - [x] `tests/test_boot_compat.py` — READ; audit report batch 2 (2026-10-07)
 - [ ] `tests/test_ci_pins.py` — PENDING
 - [x] `tests/test_dongle_model.py` — READ; audit report batch 2 (2026-10-07)
@@ -410,7 +453,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_manual_diagrams.py` — PENDING
 - [ ] `tests/test_module_list.py` — PENDING
 - [ ] `tests/test_movy_oracle_fixtures.py` — PENDING
-- [ ] `tests/test_package_guard.py` — PENDING
+- [x] `tests/test_package_guard.py` — READ; audit report batch 3 (2026-10-07)
 - [ ] `tests/test_seq_core.py` — PENDING
 - [ ] `tests/test_seq_movy.py` — PENDING
 - [ ] `tests/test_seq_oracle.py` — PENDING
@@ -451,14 +494,15 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tools/fm1_uboot_read.py` — READ; audit report batch 1 (2026-10-07)
 - [x] `tools/fm1_uboot_restore_test.py` — READ; audit report batch 1 (2026-10-07)
 - [ ] `tools/gen_known.py` — PENDING
-- [ ] `tools/jieli/analyze.py` — PENDING
-- [ ] `tools/jieli/audit_link.py` — PENDING
-- [ ] `tools/jieli/compile-check.sh` — PENDING
-- [ ] `tools/jieli/in-container.sh` — PENDING
-- [ ] `tools/jieli/package_guard.py` — PENDING
-- [ ] `tools/jieli/sizes.c` — PENDING
-- [ ] `tools/jieli/sizes.cc` — PENDING
-- [ ] `tools/jieli/sizes_felucca.c` — PENDING
+- [x] `tools/jieli/analyze.py` — READ; audit report batch 3 (2026-10-07)
+- [x] `tools/jieli/audit_link.py` — READ; audit report batch 3 (2026-10-07)
+- [x] `tools/jieli/compile-check.sh` — READ; audit report batch 3 (2026-10-07)
+- [x] `tools/jieli/in-container.sh` — READ; audit report batch 3 (2026-10-07)
+- [x] `tools/jieli/objects.mk` — READ; audit report batch 3 (2026-10-07)
+- [x] `tools/jieli/package_guard.py` — READ; audit report batch 3 (2026-10-07)
+- [x] `tools/jieli/sizes.c` — READ; audit report batch 3 (2026-10-07)
+- [x] `tools/jieli/sizes.cc` — READ; audit report batch 3 (2026-10-07)
+- [x] `tools/jieli/sizes_felucca.c` — READ; audit report batch 3 (2026-10-07)
 - [ ] `tools/lunar_state.py` — PENDING
 - [ ] `tools/manual/build-in-docker.sh` — PENDING
 - [ ] `tools/manual/build.py` — PENDING
@@ -715,6 +759,7 @@ Review `git diff 64209e3..861b725` and read every modified source file in its co
 
 - [ ] `engines/include/fm1_dynamics.h` — PENDING (editor variant)
 - [ ] `engines/include/fm1_tele.h` — PENDING (editor variant)
+- [ ] `engines/mk/squash.mk` — PENDING (editor variant)
 - [ ] `engines/src/editor_meta.cc` — PENDING (editor variant)
 - [ ] `engines/src/fx_squash.cc` — PENDING (editor variant)
 - [ ] `sim/web/build-on-aeon.sh` — PENDING (editor variant)
@@ -755,6 +800,7 @@ The following custom languages and fixtures are inputs to parsers, tests or prod
 
 - [ ] `*.verbs`, `*.panel`, `*.lunar`, `*.mod`, `*.movy1`, `*.args`, `*.records`, `*.edit` — PENDING corpus review
 - [ ] `*.json`, `*.jsonl`, `*.syx`, `*.list`, `*.rgb565`, `*.bdf`, `*.gz`, `*.wav`, `*.png`, `*.jpg`, `*.ttf` — PENDING data/provenance review
+- [x] `tools/jieli/ac79-sdk-sparse.txt` — READ; audit report batch 3 (2026-10-07)
 - [ ] `engines/third_party/fm1-x0x/local.patch` — PENDING patch provenance/integration review
 
 ## Non-code inputs
