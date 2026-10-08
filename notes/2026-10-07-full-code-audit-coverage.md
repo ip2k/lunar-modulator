@@ -304,7 +304,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/test/schwung_selftest.cc` — PENDING
 - [ ] `engines/test/seq_host_test.c` — PENDING
 - [ ] `engines/test/shapes_hostile.cc` — PENDING
-- [ ] `engines/test/smooth_test.cc` — PENDING
+- [x] `engines/test/smooth_test.cc` — READ completely (228 lines); event ordering, NaN/Inf schedule, partition independence and summary contracts reviewed; execution pending; batch 61 (2026-10-07)
 - [x] `engines/test/squash_test.cc` — READ completely (913 lines); upstream oracle adapters, randomized block/memory matrix, makeup frame bounds, host contracts and Transient probes reviewed; execution pending; batch 51 (2026-10-07)
 - [ ] `engines/test/state_alias_test.c` — PENDING
 - [ ] `engines/test/tb3po_line.c` — PENDING
@@ -408,7 +408,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_engine_names.py` — PENDING
 - [ ] `tests/test_engine_note_params.py` — PENDING
 - [ ] `tests/test_engine_params.py` — PENDING
-- [ ] `tests/test_engine_smooth.py` — PENDING
+- [x] `tests/test_engine_smooth.py` — READ completely (209 lines); all-engine parameter-change/ramp schedules and partition checks reviewed; NaN default semantics are not asserted; execution pending; batch 61 (2026-10-07)
 - [ ] `tests/test_engines.py` — PENDING
 - [ ] `tests/test_engines_comb.py` — PENDING
 - [ ] `tests/test_engines_comp.py` — PENDING
@@ -428,7 +428,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_engines_idle.py` — PENDING
 - [ ] `tests/test_engines_isolator.py` — PENDING
 - [x] `tests/test_engines_limit.py` — READ completely (459 lines); desktop and float-probe assertions reviewed; execution pending missing pytest/native binaries and no large local build; batch 48 (2026-10-07)
-- [ ] `tests/test_engines_mi_fx.py` — PENDING
+- [x] `tests/test_engines_mi_fx.py` — READ completely (444 lines); registration, tails, max-feedback, Mix bypass, input guards, levels, stereo, block parity, sizes and rate/control response reviewed; no NaN-parameter assertion; execution pending; batch 61 (2026-10-07)
 - [x] `tests/test_engines_mod.py` — READ; audit report batch 15; not executed
 - [x] `tests/test_engines_mod_data.py` — READ; audit report batch 16; not executed
 - [x] `tests/test_engines_mod_kinds.py` — READ; audit report batch 15; not executed
@@ -436,7 +436,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tests/test_engines_mod_voices.py` — READ in full (305 lines); per-note parity, stealing, pitch and voice sources (batch 14)
 - [ ] `tests/test_engines_plaits_env.py` — PENDING
 - [ ] `tests/test_engines_plaits_heavy.py` — PENDING
-- [ ] `tests/test_engines_plate_freeze.py` — PENDING
+- [x] `tests/test_engines_plate_freeze.py` — READ completely (186 lines); Freeze parameter and switch, freeze/release/lifetime/input-isolation, hostile input and rate scenarios reviewed; execution pending; batch 61 (2026-10-07)
 - [ ] `tests/test_engines_reference_braids_fx.py` — PENDING
 - [ ] `tests/test_engines_reference_plaits.py` — PENDING
 - [ ] `tests/test_engines_reference_room.py` — PENDING
