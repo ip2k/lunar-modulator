@@ -168,14 +168,14 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/mod/mp_tool.c` — READ in full; desktop parser and bounded buffers (batch 14)
 - [x] `engines/mod/mp_turing.c` — READ in full; length 32 and shift bounds (batch 14)
 - [ ] `engines/modules/catalogue.mk` — PENDING
-- [ ] `engines/seq/fx_host.c` — PENDING
-- [ ] `engines/seq/mfx_host.c` — PENDING
-- [ ] `engines/seq/seq_capture.c` — PENDING
-- [ ] `engines/seq/seq_clip.c` — PENDING
-- [ ] `engines/seq/seq_cmd.c` — PENDING
+- [x] `engines/seq/fx_host.c` — READ complete; audio-effect clock and transport event split (batch 23)
+- [x] `engines/seq/mfx_host.c` — READ complete; MIDI-FX queue, chain and flush lifecycle (batch 23)
+- [x] `engines/seq/seq_capture.c` — READ complete; packed ring, rebase, tempo fit and commit paths (batch 23)
+- [x] `engines/seq/seq_clip.c` — READ complete; pool compaction, clip edits and fire-tick index (batch 23)
+- [x] `engines/seq/seq_cmd.c` — READ complete; full parser and typed/text command dispatch (batch 23)
 - [ ] `engines/seq/seq_engine.c` — PENDING
-- [ ] `engines/seq/seq_host.c` — PENDING
-- [ ] `engines/seq/seq_int.h` — PENDING
+- [x] `engines/seq/seq_host.c` — READ complete; event room, reroute ownership, dispatch hooks and slot order (batch 23)
+- [x] `engines/seq/seq_int.h` — READ complete; full internal state layout and pool accessors (batch 23)
 - [ ] `engines/seq/seq_persist.c` — PENDING
 - [ ] `engines/src/acid_bass.cc` — PENDING
 - [ ] `engines/src/acid_bass.h` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `d59e2aedb37f8ae01e6e12cfcb202ce1632d7708` (Batches 1–21; remote SHA verified). Batch 22 is pending checkpoint.
+- Last pushed commit: `63cf6200b0fe697efa59bd0a5b43dcd2f02c10a0` (Batches 1–22; remote SHA verified). Batch 23 is pending checkpoint.
 - Outstanding: see all `PENDING` entries above; desktop render/tooling, editor-branch variants, source corpus and most vendor integrations remain open. Native modulation regression tests remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
