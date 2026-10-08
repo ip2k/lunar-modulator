@@ -9,6 +9,14 @@ history.
 ## [Unreleased]
 
 ### Added
+- External browser audio checks: an isolated PulseAudio monitor records a
+  sustained simulator tone during edit storms and musical A/B playback in
+  Chromium, Firefox and WebKit. CI runs the detector and captures; native
+  Safari's filtered dropdowns have been checked on a Mac.
+- Repeated sound A/B restores reuse modulation slots instead of filling the
+  rack with imported copies. Unchanged sources keep their phase; changed
+  shared sources and conflicting cable slots are refused. External imports
+  still merge normally; A/B picks and redo follow the restore rules.
 - Shadow-worker requests keep their correlation ID separate from the module
   ID, so typed parameter parsing and formatting resolve instead of hanging.
 - A bounded cleanup audit, with nine unused helpers/imports removed. Optional

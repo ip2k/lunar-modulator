@@ -537,6 +537,52 @@ static void check_locks(void) {
  * the transport is where it was (playing, the master tick, each track's clip and playhead), and
  * without it a project load starts from a stopped sequencer, as it always did. A stopped transport
  * stays stopped. */
+static void check_sound_restore(void) {
+  static uint8_t buf[FM1_STATE_BIN_MAX];
+  uint32_t len = 0;
+  fm1_app_state_mem_t mem;
+  fm1_app_state_report_t rep;
+  fm1_app_load_opts_t o;
+  fm1_state_report_t r;
+  fm1_mod_slot_t cable, got;
+  fresh(44118.0f);
+  CHECK(fm1_app_select(&g_a, fm1_app_sound_unit(1), fm1_app_find("macro")) == 0);
+  memset(&cable, 0, sizeof cable);
+  cable.src = FM1_MOD_SRC_MODULE; cable.via = FM1_MOD_NONE;
+  cable.dst_unit = (uint8_t)fm1_mod_sound_unit(1); cable.dst = 2;
+  cable.flags = FM1_MOD_SLOT_ON; cable.amount = 1000;
+  CHECK(fm1_mod_set_slot(g_a.mod, 0, &cable));
+  CHECK(fm1_app_state_save(&g_a, FM1_STATE_SOUND, 1, 1, fm1_edit_check_put, &len, &r));
+  CHECK(len <= sizeof buf); memcpy(buf, fm1_edit_check_buf(), len);
+  mem.b = buf; mem.n = len;
+  fm1_app_load_opts_init(&o); o.into = 1;
+  o.flags = FM1_APP_LOAD_QUIET | FM1_APP_LOAD_RESTORE_SOUND;
+  for (unsigned n = 0; n < 12; ++n) {
+    unsigned modules = 0, cables = 0;
+    CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
+    for (unsigned i = 0; i < FM1_MOD_POSITIONS; ++i) modules += fm1_mod_kind_at(g_a.mod, i) >= 0;
+    for (unsigned i = 0; i < FM1_MOD_SLOTS; ++i) {
+      CHECK(fm1_mod_get_slot(g_a.mod, i, &got)); cables += got.dst != 0;
+    }
+    CHECK(modules == 5 && cables == 1);
+    CHECK(fm1_mod_get_slot(g_a.mod, 0, &got) && got.src == cable.src && got.amount == cable.amount);
+    render(4);
+  }
+  /* A changed shared source must not be overwritten by a sound restore. */
+  cable.dst_unit = FM1_MOD_SOUND;
+  CHECK(fm1_mod_set_slot(g_a.mod, 1, &cable));
+  CHECK(fm1_mod_set_param(g_a.mod, 0, 0, fm1_mod_param_base(g_a.mod, 0, 0) + 0.1f));
+  {
+    const uint32_t hash = fm1_edit_state_hash(&g_a);
+    CHECK(!fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
+    CHECK(rep.r.code == FM1_STATE_NO_ROOM && fm1_edit_state_hash(&g_a) == hash);
+  }
+  /* An ordinary external import still remaps instead of replacing identities. */
+  o.flags = FM1_APP_LOAD_QUIET;
+  CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
+  CHECK(fm1_mod_kind_at(g_a.mod, 5) >= 0);
+}
+
 static void check_transport(void) {
   static uint8_t buf[FM1_STATE_BIN_MAX];
   uint32_t len = 0;
@@ -981,6 +1027,7 @@ int fm1_edit_check(void) {
   for (g_sweep_seed = 0; g_sweep_seed < 40; ++g_sweep_seed, ++g_sweeps) hands(g_sweep);
   check_locks();
   check_transport();
+  check_sound_restore();
   check_verbs();
   check_telemetry();
   check_fuzz();

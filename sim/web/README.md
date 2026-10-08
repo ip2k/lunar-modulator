@@ -1635,3 +1635,36 @@ as open/closing/closed independently of GR (`reduction.gate`, NaN
 when no gate applies). This adds a field to each reduction row, so telemetry
 is version 2; consumers use the metadata’s field order. The shared panel
 selection path refuses an insert into a sound without an engine.
+
+## External audio checks
+
+In an isolated Linux Playwright container, install `pulseaudio` and
+`pulseaudio-utils`, then start the sink and its monitor:
+
+```sh
+pulseaudio --system -n --disallow-exit --exit-idle-time=-1 \
+  --load="module-null-sink sink_name=lunar rate=48000 channels=2" \
+  --load="module-native-protocol-unix auth-anonymous=1 socket=/tmp/pa.sock" -D
+export PULSE_SERVER=unix:/tmp/pa.sock PULSE_SOURCE=lunar.monitor
+node sim/web/test/audio-analysis-check.mjs
+BROWSER=chromium PLAYWRIGHT_DIR=/pw node sim/web/test/audio-loopback.mjs "$PWD/sim/web/www" OUT 30
+```
+
+Run again with `BROWSER=firefox` and `BROWSER=webkit`. CI runs all three.
+Keep the sink isolated from unrelated audio; use a disposable container on
+an appropriately capped Docker host, not the owner's desktop audio daemon.
+The output includes float32 monitor captures, an A/B listening WAV and a
+JSON report. The tone detector checks signal duration, finite samples,
+near-zero spans of 128 samples and 440 Hz cycle errors over two samples;
+startup/shutdown and the note envelope are excluded. Injected silent,
+held and skipped blocks must fail the detector. Musical pauses are not
+judged by that detector. See `notes/2026-10-07-editor-audio.md` for evidence.
+
+Sound A/B restores use load flag `FM1_APP_LOAD_RESTORE_SOUND` (16) through
+`files.load`'s `restoreSound` option. This is for the same project's saved
+slot identities, not an external sound import: it replaces that sound's
+cables in their original slots and reuses unchanged modulation modules,
+including their running phase. A changed module shared with another
+sound or module, or an original cable slot taken by another destination,
+is refused before changes. External file loads retain their ordinary merge
+and remap behavior. A/B picks and their redo use the same restore path.

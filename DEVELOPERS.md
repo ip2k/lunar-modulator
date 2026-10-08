@@ -480,7 +480,9 @@ decisions: [`notes/2026-10-06-state-files.md`](notes/2026-10-06-state-files.md),
   153 on Linux, from a local server and over https under a sub-path, and
   Chromium 152 on macOS. The Advanced editor's page tests run in Chromium,
   Firefox and WebKit (the engine of Safari), both on the Linux host
-  (`build-on-aeon.sh`) and in CI (below). Real Safari, real touch screens and
+  (`build-on-aeon.sh`) and in CI (below). Safari 26.6.2 on macOS 26.7 has
+  passed the native filtered-dropdown and A/B playback-control checks
+  [verified: notes/2026-10-07-editor-audio.md]. Real touch screens and
   MIDI hardware are not tested yet.
 - **Checks:** sim/web/README.md, "Limits"; `fm1-sim-render --screens`; and the
   2026-10-01 page test [verified].
@@ -493,12 +495,15 @@ decisions: [`notes/2026-10-06-state-files.md`](notes/2026-10-06-state-files.md),
   the editor's 30-second storm in Chromium, Firefox (with a PulseAudio null
   sink: without an audio device its AudioContext never runs) and WebKit, and
   the page's own `screenshot` and `files` tests in Chromium. A failing run
-  uploads its screenshots and reports as an artifact. Lateness and underruns
-  are measured in Chromium only. **Planned, not built** (owner, 2026-10-07):
-  a harness that plays the simulator in headless Chromium, Firefox and WebKit
-  into a loopback audio device (PipeWire or similar) on a Linux host and
-  checks the audio that comes out and the underruns in all three, which the
-  page cannot measure from inside Firefox or WebKit (the editor note's §29).
+  uploads its screenshots and reports as an artifact. Page timing counters
+  are available in Chromium only. The external-audio harness
+  `audio-loopback.mjs` records an isolated PulseAudio sink's monitor in all
+  three browsers: a sustained Test Sine during a 30-second edit storm,
+  then First orbit through project and sound A/B switches. It checks silence
+  and phase continuity in the tone and saves the musical capture for
+  listening. `audio-analysis-check.mjs` validates the detector with injected
+  failures. This measures the browser/backend path, not a physical device;
+  the thresholds and run evidence are in notes/2026-10-07-editor-audio.md.
 
 **Rebuilding the module** is only needed after changing `engines/` or
 `sim/web/src/`.

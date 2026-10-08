@@ -295,3 +295,8 @@ requirements are in [chapter 2](02-getting-started.md). Its views are checked wi
 rules at desktop, tablet and phone widths. It has not been tried on a phone or a
 tablet itself, only at their window sizes, and not with a screen reader itself,
 only with the accessibility tree a browser builds for one.
+
+A sound comparison reuses its modulation connections, so repeated A/B
+switches do not fill the rack. If a shared modulation source has changed,
+use the project comparison to compare it too; the sound comparison refuses
+to overwrite a changed source that another destination uses.

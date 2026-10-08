@@ -453,7 +453,7 @@ export function makeProject(ctx) {
     const s = await files.shadow('save', { kind: 2, arg: ab.scope, live: bin.slice(0) });
     if (!s.ok || typeof s.text !== 'string') return { ok: false, report: { message: 'it could not be read back' } };
     return files.load(encoder.encode(s.text), { d: { enc: 2, kind: 'sound', title: `Sound ${ab.scope + 1}` },
-      target: { into: ab.scope, slot: 0 }, before: false, quiet: true });
+      target: { into: ab.scope, slot: 0 }, before: false, quiet: true, restoreSound: true });
   }
   async function diffAB() {
     const ab = st.ab;
@@ -487,7 +487,7 @@ export function makeProject(ctx) {
       const bytes = encoder.encode(r.text);
       const proj = ab.scope === 'project';
       const target = proj ? { into: -1, slot: 0 } : { into: ab.scope, slot: 0 };
-      const v = await files.verdict(bytes, 'picks', proj ? 'project' : 'sound', target);
+      const v = await files.verdict(bytes, 'picks', proj ? 'project' : 'sound', target, { restoreSound: !proj });
       if (!v.ok) {
         ab.verdict = { ok: false, text: v.report.message || v.report.code };
         say(`Not made: ${ab.verdict.text}`);
@@ -499,7 +499,7 @@ export function makeProject(ctx) {
       if (entry) onStruct(entry, live);
       const lr = await (proj
         ? files.load(bytes.slice(0), { d: { enc: 2, kind: 'project', title: files.title }, before: false, quiet: true, same: true })
-        : files.load(bytes.slice(0), { d: { enc: 2, kind: 'sound', title: `Sound ${ab.scope + 1}` }, target: { into: ab.scope, slot: 0 }, before: false, quiet: true }));
+        : files.load(bytes.slice(0), { d: { enc: 2, kind: 'sound', title: `Sound ${ab.scope + 1}` }, target: { into: ab.scope, slot: 0 }, before: false, quiet: true, restoreSound: true }));
       if (!lr.ok) {
         if (entry) history.drop(entry);
         say(`The picks were not loaded: ${lr.report.message || lr.report.code}`);
@@ -527,7 +527,7 @@ export function makeProject(ctx) {
     const proj = e.info.scope === 'project';
     const r = await (proj
       ? files.load(e.info.reload.slice(0), { d: { enc: 2, kind: 'project', title: files.title }, before: false, quiet: true, same: true })
-      : files.load(e.info.reload.slice(0), { d: { enc: 2, kind: 'sound', title: `Sound ${e.info.scope + 1}` }, target: { into: e.info.scope, slot: 0 }, before: false, quiet: true }));
+      : files.load(e.info.reload.slice(0), { d: { enc: 2, kind: 'sound', title: `Sound ${e.info.scope + 1}` }, target: { into: e.info.scope, slot: 0 }, before: false, quiet: true, restoreSound: true }));
     say(r.ok ? `Redone: ${e.label}` : `${e.label} could not be redone: ${r.report.message || r.report.code}`);
     snapshotSoon();
   }

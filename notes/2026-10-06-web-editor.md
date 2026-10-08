@@ -1634,3 +1634,14 @@ Firefox and WebKit's storm reports cannot measure underruns; a passing
 storm does not establish dropout-free audio there. The loopback harness
 remains the later work recorded in §29 and DEVELOPERS.md. No FM-1 was
 written to. The bounded cleanup audit leaves the complete source audit due.
+
+
+## 32. Real Safari and external audio follow-up (2026-10-07)
+
+The owner requested the remaining Safari, listening and loopback work.
+The real native Safari dropdown check and the three-browser external audio
+runs are recorded in `notes/2026-10-07-editor-audio.md`, including the
+repeated sound A/B modulation-import defect they exposed and its fix.
+The harness requested in §29 (6) is now built and runs in CI. The earlier
+“not checked” list in §31 describes that stage; the audio note keeps the
+current listening status separate from measured output continuity.

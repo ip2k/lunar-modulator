@@ -46,7 +46,8 @@ Open **<https://ip2k.github.io/lunar-modulator/>** and press **Power on**
 
 It needs a current browser with WebAssembly and AudioWorklet, and has been
 tested in headless Chromium, Firefox and WebKit, including the advanced
-editor. Safari on a real Mac, real touch screens and MIDI hardware still
+editor. Safari on a real Mac has also been checked for the editor’s filtered
+dropdowns and playback controls. Real touch screens and MIDI hardware still
 need hands-on checks. The page
 loads only its own files and sends nothing anywhere.
 
