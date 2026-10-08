@@ -362,8 +362,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `sim/web/test/serve.mjs` — READ; complete local static test server in audit report batch 5
 - [ ] `sim/web/test/sysex.mjs` — PENDING
 - [x] `sim/web/tools/gen_font.py` — READ in full; `--check` and `--sizes` passed (batch 9)
-- [ ] `sim/web/tools/palette.py` — PENDING
-- [ ] `sim/web/tools/source_hash.py` — PENDING
+- [x] `sim/web/tools/palette.py` — READ completely (661 lines); RGB565/OKLCH/CIELAB/CIEDE2000/CVD and semantic checker flow reviewed; `python3 sim/web/tools/palette.py` passed; batch 93 (2026-10-07)
+- [x] `sim/web/tools/source_hash.py` — READ completely (101 lines); source glob scope, path filtering and digest construction reviewed; batch 93 (2026-10-07)
 - [x] `sim/web/www/app.js` — READ in full (1,109 lines); baseline page and input/lifecycle review, audit report batch 17
 - [x] `sim/web/www/editor/chains.js` — READ in full (1,253 lines); patch preview/drag and keyboard flows, record packing, telemetry, module inspectors and cable matrix (batch 18)
 - [ ] `sim/web/www/editor/editor.css` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `a877c8756a8b04a7732f207365b992f492865958` (Batches 1–91; remote SHA verified; batch 92 pending checkpoint).
+- Last pushed commit: `abd509a9c2881289877959d26346b062ce0cb93f` (Batches 1–92; remote SHA verified; batch 93 pending checkpoint).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
