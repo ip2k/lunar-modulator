@@ -397,7 +397,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tests/test_engine_api_v4.py` — READ completely (82 lines); get/copy/replay contract and focused pad-kit coverage reviewed; batch 75
 - [x] `tests/test_engine_arp.py` — READ completely (951 lines); golden tables/order, Yarns parity, timing, note balance, randomized capacity and origin/grid scenarios reviewed; batch 34; not executed
 - [x] `tests/test_engine_comet_kit.py` — READ completely (690 lines); GPL-only Comet Kit source and generated-sample provenance, oracle parity, pot mapping, voice/audio behavior, block/rate/extrema/resource checks and mu-law SNR contracts reviewed; batch 77
-- [ ] `tests/test_engine_crater_kit.py` — PENDING
+- [x] `tests/test_engine_crater_kit.py` — READ completely (522 lines); GPL/upstream oracle, 8W8 pot laws, pad/tail/channel/choke, latch/ramp/rate/extrema/resource checks reviewed; Tune coverage overclaim recorded in batch 78
 - [x] `tests/test_engine_drums.py` — READ completely (718 lines); all pad/model/choke/voice pressure, parameter, block-size, memory-fill, per-note and extreme-value assertions reviewed; batch 39 (2026-10-07)
 - [x] `tests/test_engine_editor_meta.py` — READ completely (376 lines); editor metadata v1.1–1.3, source groups, curves, refusals, telemetry, stable ids and switch-dependent licensing projections reviewed; batch 75
 - [x] `tests/test_engine_felucca.py` — READ completely (531 lines); source-reviewed oracle, factory sound, stability, block/rate, latch, instance isolation and per-note regression cases; not executed; batch 41 (2026-10-07)
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `862c7bc81c495007812d6e3144f63a48e7d7f612` (Batches 1–76; remote SHA verified).
+- Last pushed commit: `8c869501b3407fd3b8406d246ab49c51fd99204b` (Batches 1–77; remote SHA verified).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.

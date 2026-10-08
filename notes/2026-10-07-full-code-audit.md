@@ -538,3 +538,11 @@ No additional confirmed defect was established in these test sources. The GPL sw
 Read `tests/test_engine_comet_kit.py` (690 lines) completely. Reviewed its GPL-only gate, source-vendoring and generated-sample reproducibility checks, 16-sample oracle parity, 9W9 pot mapping, all-pad rendering, voice lifecycle and hat choke assertions, latch/smooth behavior, block/memory/rate invariance, extreme-value and subnormal checks, cost bound, and the 8-bit mu-law cymbal provenance and SNR calculations.
 
 No additional confirmed defect was established in this test source. The oracle, renderer and generated int16 reference header are unavailable in this worktree, so no audio parity or runtime results are claimed. In particular, source-review of the loudness/SNR expectations is not a substitute for running their fixtures. No source, device or licence changes occurred.
+
+### Batch 78 — Crater Kit integration and audio tests
+
+Read `tests/test_engine_crater_kit.py` (522 lines) completely. Reviewed GPL gating, upstream sample equivalence, upstream host-test integration, the 16-sample oracle, 8W8 pot and semitone mapping, all-pad loudness/tail coverage, channel-sharing and choke behavior, velocity/bend/latch/ramp paths, rate and block restrictions, extrema/cost checks, and writable-global inspection.
+
+**Confirmed test gap [P3, high confidence]:** the test function named `test_tune_is_in_semitones_on_every_pad` checks rendered pitch only for the kick and low tom (`tests/test_engine_crater_kit.py:306-315`), and the `--fields` oracle provides exact Tune-law assertions for only four pads (kick, low tom, cymbal and cowbell; see settings at `engines/test/crater_oracle.cc:275-279` and assertions at `tests/test_engine_crater_kit.py:213-223`). This does not establish audio semitone behavior across the remaining voice families/pads despite the suite's top-level “every pad” claim. A regression in a pad-family Tune conversion or sound's tune response could therefore escape these assertions. Source inspection of `ApplyTune()` (`engines/src/crater_kit.cc:249-260`) did not show a confirmed implementation defect.
+
+No other confirmed defect was established in this test source. Native oracle and audio tests were not run because generated tools are absent. No code, device or licence changes occurred.
