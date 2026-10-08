@@ -383,9 +383,9 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tests/conftest.py` — READ completely (48 lines); wall/CPU limits, argument rewriting and subprocess monkeypatch scope reviewed; batch 69 (2026-10-07)
 - [x] `tests/engine_helpers.py` — READ completely (106 lines); build/GPL guard, renderer protocol and WAV/pitch/RMS helpers reviewed; batch 69 (2026-10-07)
 - [x] `tests/seq_helpers.py` — READ completely (209 lines); integer clock model, script generation, state/event parsing and helper contracts reviewed; batch 69 (2026-10-07)
-- [ ] `tests/state_canon.py` — PENDING
-- [ ] `tests/state_meta.py` — PENDING
-- [ ] `tests/state_random.py` — PENDING
+- [x] `tests/state_canon.py` — READ completely (272 lines); decimal-to-f32 reference, canonical JSON tokens/formatting, exact Q1.14 conversion and duplicate-key refusal reviewed; batch 70
+- [x] `tests/state_meta.py` — READ completely (177 lines); engine metadata construction, detent rules, editor-only projection and subset filtering reviewed; batch 70
+- [x] `tests/state_random.py` — READ completely (255 lines); seeded sound/effect/project/mod/clip/settings fixture generation and loose serialization reviewed; batch 70
 - [x] `tests/test_app_state.py` — READ; full app load/save/refusal test body in audit report batch 4
 - [x] `tests/test_audit_link.py` — READ; audit report batch 3 (2026-10-07)
 - [x] `tests/test_boot_compat.py` — READ; audit report batch 2 (2026-10-07)
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `742dc409d52eb3e94cad70d75627d59f2aedbd48` (Batches 1–68; remote SHA verified). Batch 69 is pending checkpoint.
+- Last pushed commit: update after batch 70 checkpoint.
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
