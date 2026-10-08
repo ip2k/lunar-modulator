@@ -364,18 +364,18 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `sim/web/tools/gen_font.py` — READ in full; `--check` and `--sizes` passed (batch 9)
 - [ ] `sim/web/tools/palette.py` — PENDING
 - [ ] `sim/web/tools/source_hash.py` — PENDING
-- [ ] `sim/web/www/app.js` — PENDING
+- [x] `sim/web/www/app.js` — READ in full (1,109 lines); baseline page and input/lifecycle review, audit report batch 17
 - [ ] `sim/web/www/editor/chains.js` — PENDING
 - [ ] `sim/web/www/editor/editor.css` — PENDING
 - [ ] `sim/web/www/editor/editor.js` — PENDING
-- [ ] `sim/web/www/editor/history.js` — PENDING
+- [x] `sim/web/www/editor/history.js` — READ in full; repeated picks redo payload finding in audit report batch 17
 - [ ] `sim/web/www/editor/map.js` — PENDING
-- [ ] `sim/web/www/editor/model.js` — PENDING
+- [x] `sim/web/www/editor/model.js` — READ in full (722 lines); audit report batch 17
 - [ ] `sim/web/www/editor/project.js` — PENDING
-- [ ] `sim/web/www/editor/sheets.js` — PENDING
+- [x] `sim/web/www/editor/sheets.js` — READ in full; audit report batch 17
 - [x] `sim/web/www/files.js` — READ; complete file, link, storage and embed flow in audit report batch 5
 - [x] `sim/web/www/fm1-wasm.mjs` — READ; full module import/instantiation wrapper in audit report batch 5
-- [ ] `sim/web/www/index.html` — PENDING
+- [x] `sim/web/www/index.html` — READ in full (235 lines); audit report batch 17
 - [x] `sim/web/www/shadow.worker.js` — READ; complete request protocol and state/editor operations in audit report batch 5
 - [ ] `sim/web/www/style.css` — PENDING
 - [x] `sim/web/www/worklet.js` — READ; full audio/editor message and render lifecycle in audit report batch 5
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `90217ae9e485a10654bb798c47009c774d6d6b75` (Batches 1–15; remote SHA verified). This pending report/coverage update adds Batch 16.
+- Last pushed commit: `efb04b1e8262f27cd0999cf8c19fb5ae6cf39ac5` (Batches 1–16; remote SHA verified). This pending report/coverage update adds Batch 17.
 - Outstanding: see all `PENDING` entries above; desktop render/tooling, editor-branch variant, source corpus and most vendor integrations remain open. Native modulation regression tests remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
