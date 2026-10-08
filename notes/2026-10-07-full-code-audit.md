@@ -258,3 +258,9 @@ No confirmed defect was established in these files. The wrapper and rhythm tests
 Read all 944 lines of `engines/midi_fx/fm1_arp.c`. Traced the fixed instance state, note ledger and deferred note-off policy, live/sequencer key ownership, sustain/latch/stop behavior, all order construction modes, octave spans and lifts, deterministic step randomization, rhythm and Euclidean indexing, ratchet/gate timing, free and sequencer-locked clocks, event ordering, parameter updates and caller-supplied output capacity. Maximum cycle construction remains within 128 entries for 16 held keys and four octaves; note generation's ratchet list is bounded by the 16-key chord. The core does not allocate or use global mutable state.
 
 No confirmed defect was established from the implementation. `tests/test_engine_arp.py` (951 lines) and the broader MIDI effect tests were not read or executed yet. No build or device action occurred.
+
+### Batch 32 — GPL acid-line MIDI effect
+
+Read the complete 553-line `engines/midi_fx/acid_gen.c`. Followed its GPL build assertion and TB-3PO dependency, parameter-to-generator mapping, deterministic and automatic mutation rebuilds, project-key tracking, transpose/run modes, note stack, ping-pong/random directions, slide/tie and gate timing, small-cap output deferral, and panic/reset/flush handling. The eight-entry owed-off queue exceeds the maximum two notes this effect can have active during a slide transition; note-ons are omitted when output has no room. This source review does not change the existing licensing/runtime report or authorize any license edits.
+
+No confirmed correctness or lifetime defect was established in this file. The GPL switch build test and MIDI-effect behavior tests remain unread/unexecuted. No source or licence changes, builds or device actions occurred.

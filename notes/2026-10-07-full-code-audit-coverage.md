@@ -80,7 +80,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/include/fm1_smooth.h` — READ completely; integer sample/block ramp arithmetic and boundary assumptions reviewed; batch 30 (2026-10-07)
 - [x] `engines/include/fm1_state_caps.h` — READ; state reader caps (2026-10-07)
 - [x] `engines/include/fm1_tele.h` — READ baseline; v2 field/version separately reviewed in editor variant ledger (2026-10-07)
-- [ ] `engines/midi_fx/acid_gen.c` — PENDING
+- [x] `engines/midi_fx/acid_gen.c` — READ completely (553 lines); GPL gating, TB-3PO integration, note/slide lifetime, run/transpose behavior and bounded queues reviewed; batch 32 (2026-10-07)
 - [x] `engines/midi_fx/arp_engine.c` — READ completely; parameter schema/core mapping, event contract and API v4 registration reviewed; batch 30
 - [x] `engines/midi_fx/arp_rhythm.c` — READ completely; rhythm tables and fixed-array Euclidean generator bounds reviewed; batch 30
 - [ ] `engines/midi_fx/arp_tool.c` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `1a5d2804b01939c71147e902598ad52084679ba6` (Batches 1–30; remote SHA verified). Batch 31 is pending checkpoint.
-- Outstanding: see all `PENDING` entries above; GPL MIDI effect, broader engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Arpeggiator regression tests remain unexecuted.
+- Last pushed commit: `9b128b0235d5625af3c183b4221df7031ec49210` (Batches 1–31; remote SHA verified). Batch 32 is pending checkpoint.
+- Outstanding: see all `PENDING` entries above; broader MIDI-effect tooling/tests, engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. MIDI-effect regression tests remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
