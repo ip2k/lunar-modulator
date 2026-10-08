@@ -388,3 +388,9 @@ No confirmed functional defect was established. **[P4, optional dead-state remov
 Read `engines/src/fx_tilt.cc` (377 lines), `engines/test/tilt_test.cc` (444), and `tests/test_engines_tilt.py` (401) completely. Traced the one- and two-section TPT transfer equations and prewarp, bounded polynomial tan domain, Shelf/Slope coefficient mapping, two-stage control glide, first-render priming, per-channel state/update ordering, exact neutral bypass, input guard, flush and all host-rate bounds. Reviewed the independent double-precision response oracle and its registration, random block-size, mid-stream control, modulation, silence, hostile input, and rate tests.
 
 No confirmed defect was established in the source or reviewed test contracts. The native probe and pytest suite were not executed; generated binaries/pytest are unavailable and a local engine build is outside this audit's constraints. No source, device or licence changes occurred.
+
+### Batch 53 — Shared note glide rules and exact-path tests
+
+Read `engines/src/glide.h` (371 lines) and `tests/test_engine_glide.py` (835) completely. Traced Time and Rate stepping, fresh/played pitch availability, note-on source selection under Poly/Mono/Legato, Always versus held-key sources, note-off return, the 16-key held stack and eviction, and per-event configuration. The test oracle computes single-precision offsets and compares engine renders byte-for-byte across all six supported engine configurations (GPL phase-bend conditional), then covers mode transitions, mid-glide time changes, bends, poly chords, voice steals, held-key stacks, invalid keys, and measured FM-1-rate behavior.
+
+No confirmed helper or test-contract defect was established. The six engine integrations that embed this helper remain separate coverage items. This source-level review did not execute renderer/pytest tests or builds. No code, device or licence changes occurred.

@@ -216,7 +216,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/fx_shaper.cc` — READ completely (237 lines); envelope ordering, log-domain signal comparison, parameter ramps and bounded gain path reviewed; batch 50 (2026-10-07)
 - [x] `engines/src/fx_squash.cc` — READ completely (703 lines); Snap stereo-state/gate recurrence, Mu speed/makeup bounds, Split half-wave states, parameter derivation, Type seed/crossfade, gain meter and memory lifecycle reviewed; batch 51 (2026-10-07)
 - [x] `engines/src/fx_tilt.cc` — READ completely (377 lines); first-order TPT sections, prewarped polynomial tan domain, staggered response, glide/state transitions, host contracts, input guard and coefficient bounds reviewed; batch 52 (2026-10-07)
-- [ ] `engines/src/glide.h` — PENDING
+- [x] `engines/src/glide.h` — READ completely (371 lines); Time/Rate slew arithmetic, voice selection/plans, held-key cap/return logic and event-time mode semantics reviewed; callers remain separately pending; batch 53 (2026-10-07)
 - [ ] `engines/src/mi_fx.cc` — PENDING
 - [ ] `engines/src/mi_macro.cc` — PENDING
 - [ ] `engines/src/mi_macro_heavy.cc` — PENDING
@@ -401,7 +401,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tests/test_engine_drums.py` — READ completely (718 lines); all pad/model/choke/voice pressure, parameter, block-size, memory-fill, per-note and extreme-value assertions reviewed; batch 39 (2026-10-07)
 - [ ] `tests/test_engine_editor_meta.py` — PENDING
 - [x] `tests/test_engine_felucca.py` — READ completely (531 lines); source-reviewed oracle, factory sound, stability, block/rate, latch, instance isolation and per-note regression cases; not executed; batch 41 (2026-10-07)
-- [ ] `tests/test_engine_glide.py` — PENDING
+- [x] `tests/test_engine_glide.py` — READ completely (835 lines); exact pitch-path oracle, all voice/glide/time modes, note stack, duplicate/high keys, block/memory parity and FM-1-rate timing scenarios reviewed; execution pending; batch 53 (2026-10-07)
 - [ ] `tests/test_engine_host.py` — PENDING
 - [ ] `tests/test_engine_metadata.py` — PENDING
 - [x] `tests/test_engine_midi_fx.py` — READ completely (652 lines); host chain/bypass/lifetime, tempo/grid/TRG, fuzz, CLI refusal and no-heap tests reviewed; batch 35; not executed
