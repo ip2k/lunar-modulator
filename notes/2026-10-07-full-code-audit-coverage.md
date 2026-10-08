@@ -319,7 +319,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `sim/web/build-on-aeon.sh` — PENDING
 - [ ] `sim/web/build.sh` — PENDING
 - [ ] `sim/web/mk/sim.mk` — PENDING
-- [ ] `sim/web/src/fm1_app.c` — PENDING
+- [x] `sim/web/src/fm1_app.c` — READ in full (4,373 lines); audit report batch 6 (2026-10-07)
 - [ ] `sim/web/src/fm1_app.h` — PENDING
 - [x] `sim/web/src/fm1_app_state.c` — READ; complete load/save planner and apply path in audit report batch 4
 - [x] `sim/web/src/fm1_app_state.h` — READ; complete public contract in audit report batch 4
