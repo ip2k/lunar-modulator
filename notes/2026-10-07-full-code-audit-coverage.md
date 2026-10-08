@@ -57,29 +57,29 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/host/state_clip.c` — PENDING
 - [ ] `engines/host/state_clip.h` — PENDING
 - [ ] `engines/host/state_tool.c` — PENDING
-- [ ] `engines/include/fm1_comp.h` — PENDING
-- [ ] `engines/include/fm1_dx7.h` — PENDING
-- [ ] `engines/include/fm1_dynamics.h` — PENDING
+- [x] `engines/include/fm1_comp.h` — READ; reduction tap contract (2026-10-07)
+- [x] `engines/include/fm1_dx7.h` — READ; DX7 import/export bounds and thread contract (2026-10-07)
+- [x] `engines/include/fm1_dynamics.h` — READ baseline; new gate-state API separately reviewed in editor variant ledger (2026-10-07)
 - [ ] `engines/include/fm1_engine.h` — PENDING
-- [ ] `engines/include/fm1_engine_meta.h` — PENDING
-- [ ] `engines/include/fm1_fx_host.h` — PENDING
-- [ ] `engines/include/fm1_fx_idle.h` — PENDING
-- [ ] `engines/include/fm1_gate.h` — PENDING
-- [ ] `engines/include/fm1_known.h` — PENDING
-- [ ] `engines/include/fm1_math.h` — PENDING
+- [x] `engines/include/fm1_engine_meta.h` — READ; page/detent contract (2026-10-07)
+- [x] `engines/include/fm1_fx_host.h` — READ; event/beat splitting interface (2026-10-07)
+- [x] `engines/include/fm1_fx_idle.h` — READ; decay bound and integer warm-up helpers (2026-10-07)
+- [x] `engines/include/fm1_gate.h` — READ; gate state and sidechain buffer ownership contract (2026-10-07)
+- [x] `engines/include/fm1_known.h` — READ; generated ids/aliases and sentinel contracts (2026-10-07)
+- [x] `engines/include/fm1_math.h` — READ; normal-input assumptions and exact-range behavior (2026-10-07)
 - [ ] `engines/include/fm1_meta.h` — PENDING
 - [ ] `engines/include/fm1_mfx_host.h` — PENDING
-- [ ] `engines/include/fm1_midi_ev.h` — PENDING
-- [ ] `engines/include/fm1_mix_limiter.h` — PENDING
+- [x] `engines/include/fm1_midi_ev.h` — READ; packed source/velocity and event values (2026-10-07)
+- [x] `engines/include/fm1_mix_limiter.h` — READ; sample guard and limiter recurrence (2026-10-07)
 - [ ] `engines/include/fm1_mod.h` — PENDING
-- [ ] `engines/include/fm1_mod_host.h` — PENDING
-- [ ] `engines/include/fm1_refusal.h` — PENDING
+- [x] `engines/include/fm1_mod_host.h` — READ; host callback buffers and slot ownership (2026-10-07)
+- [x] `engines/include/fm1_refusal.h` — READ; stable codes and metadata surface (2026-10-07)
 - [ ] `engines/include/fm1_resampler.h` — PENDING
 - [ ] `engines/include/fm1_seq.h` — PENDING
 - [ ] `engines/include/fm1_seq_host.h` — PENDING
 - [ ] `engines/include/fm1_smooth.h` — PENDING
-- [ ] `engines/include/fm1_state_caps.h` — PENDING
-- [ ] `engines/include/fm1_tele.h` — PENDING
+- [x] `engines/include/fm1_state_caps.h` — READ; state reader caps (2026-10-07)
+- [x] `engines/include/fm1_tele.h` — READ baseline; v2 field/version separately reviewed in editor variant ledger (2026-10-07)
 - [ ] `engines/midi_fx/acid_gen.c` — PENDING
 - [ ] `engines/midi_fx/arp_engine.c` — PENDING
 - [ ] `engines/midi_fx/arp_rhythm.c` — PENDING
