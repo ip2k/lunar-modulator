@@ -389,9 +389,9 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tests/test_app_state.py` — READ; full app load/save/refusal test body in audit report batch 4
 - [x] `tests/test_audit_link.py` — READ; audit report batch 3 (2026-10-07)
 - [x] `tests/test_boot_compat.py` — READ; audit report batch 2 (2026-10-07)
-- [ ] `tests/test_ci_pins.py` — PENDING
+- [x] `tests/test_ci_pins.py` — READ completely (35 lines); workflow/page-test/browser package pins and editor test inclusion reviewed; batch 76
 - [x] `tests/test_dongle_model.py` — READ; audit report batch 2 (2026-10-07)
-- [ ] `tests/test_engine_acid_bass.py` — PENDING
+- [x] `tests/test_engine_acid_bass.py` — READ completely (355 lines); vendored source equivalence, 16-frame scheduling, parameter mapping, note/slide/poly/latch behavior, block/rate independence and numeric bounds reviewed; batch 76
 - [x] `tests/test_engine_acid_gen.py` — READ completely (331 lines); TB-3PO equivalence, effect timing, key/project context, GPL listing and allocation-symbol tests reviewed; batch 35; not executed
 - [x] `tests/test_engine_api_v3.py` — READ completely (299 lines); effect-extension transport timing, legacy v2 path, LOG positioning/locks, UI knob/bar and modulation behavior reviewed; batch 75
 - [x] `tests/test_engine_api_v4.py` — READ completely (82 lines); get/copy/replay contract and focused pad-kit coverage reviewed; batch 75
@@ -448,7 +448,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_engines_shapes_hostile.py` — PENDING
 - [x] `tests/test_engines_squash.py` — READ completely (330 lines); fixture pin, oracle tolerances, Type/makeup/gate/transition and Transient behavior assertions reviewed; execution pending missing pytest/native binaries and no large local build; batch 51 (2026-10-07)
 - [x] `tests/test_engines_tilt.py` — READ completely (401 lines); independent frequency model, host contracts, registration, input faults, exact pass-through, curve shape, modulation/glide and rate assertions reviewed; execution pending; batch 52 (2026-10-07)
-- [ ] `tests/test_gpl_switch.py` — PENDING
+- [x] `tests/test_gpl_switch.py` — READ completely (262 lines); switch-on/off build gates, dependency/symbol scans, source/license directory mapping, page/build record and GPL parity flags reviewed; batch 76
 - [ ] `tests/test_manual.py` — PENDING
 - [ ] `tests/test_manual_diagrams.py` — PENDING
 - [x] `tests/test_module_list.py` — READ in full (247 lines); build/link tests reviewed, intentionally not run (batch 13)
