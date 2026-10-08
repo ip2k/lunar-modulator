@@ -352,3 +352,9 @@ Read `engines/src/fx_fold.cc` (391 lines) and `fx_gate.cc` (779) completely. Tra
 **[P3] Gate advertises 5 ms maximum lookahead but caps actual delay at 510 frames. [verified]** The supported sample-rate range is 8–384 kHz (`fx_gate.cc:159-160`), while the requested maximum is computed as 5 ms (`:164`, `:419-423`) and then capped at 510 frames (`:423`). `Lookahead=5` therefore yields at most 2.66 ms at 192 kHz and 1.33 ms at 384 kHz; the advertised 5 ms is reachable only through 102 kHz. This is the behavior of an explicit memory cap, so the defect is the mismatch with the parameter's advertised range, not an unbounded allocation. Confidence high from the rate, conversion and cap expressions; no renderer run was performed. The Limiter uses a similar cap and needs comparison when its source batch is reviewed.
 
 Fold and Gate regression suites remain pending source review and execution. No source changes or device actions occurred.
+
+### Batch 47 — Hall reverb and Isolator
+
+Read `engines/src/fx_hall.cc` (612 lines) and `fx_isolator.cc` (569) completely. In Hall, traced rate-specific line/pre-delay layout, power-of-two storage, line partition maximum reads, pointer movement, modulated fractional delays, all-pass locations, shelf/damping gain calculation, Freeze rounding behavior and state initialization. In Isolator, followed the three-band LR4 tree and phase compensation, per-sample TPT coefficients, unity bypass/crossfade, driven-idle behavior and wake warm-up.
+
+No confirmed defect was established in these implementations. Their specific regression suites remain pending source review and execution. This pass did not compare Gate's 510-frame limit against the Limiter; that comparison remains pending. No source changes or tests/builds occurred.

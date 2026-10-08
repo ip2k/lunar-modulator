@@ -207,8 +207,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/fx_filter_dsp.h` — READ completely (114 lines); log/exp domain, saturation secants, input guard, flush and glide helpers reviewed; batch 45
 - [x] `engines/src/fx_fold.cc` — READ completely (391 lines); piecewise triangle/sine ADAA, small-step corner math, DC removal, TPT tone filter and parameter state reviewed; batch 46 (2026-10-07)
 - [x] `engines/src/fx_gate.cc` — READ completely (779 lines); trigger/lockout/hold and ramp state, key filters/link/listen, lookahead allocation/indexing and external state hooks reviewed; batch 46
-- [ ] `engines/src/fx_hall.cc` — PENDING
-- [ ] `engines/src/fx_isolator.cc` — PENDING
+- [x] `engines/src/fx_hall.cc` — READ completely (612 lines); rate-sized power-of-two rings, line partitions and fractional reads, FDN orthogonal mix, damping/decay gains, freeze and modulation reviewed; batch 47 (2026-10-07)
+- [x] `engines/src/fx_isolator.cc` — READ completely (569 lines); LR4 band topology, seven TPT updates/channel, gain/crossover mapping, unity bypass and idle/wake warm-up reviewed; batch 47
 - [ ] `engines/src/fx_limit.cc` — PENDING
 - [ ] `engines/src/fx_room.cc` — PENDING
 - [ ] `engines/src/fx_room_math.h` — PENDING
