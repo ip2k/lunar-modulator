@@ -229,7 +229,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/src/msfa_rom.cc` — PENDING
 - [ ] `engines/src/msfa_tables.cc` — PENDING
 - [ ] `engines/src/msfa_unit.cc` — PENDING
-- [ ] `engines/src/note_offsets.h` — PENDING
+- [x] `engines/src/note_offsets.h` — READ completely (87 lines); bit layout, offset normalization, clear/set and clamped effective-value path reviewed; batch 62 (2026-10-07)
 - [x] `engines/src/registry.cc` — READ complete; build/GPL/module table consistency (batch 22)
 - [ ] `engines/src/schwung_abi.h` — PENDING
 - [ ] `engines/src/schwung_module_prefix.h` — PENDING
@@ -406,7 +406,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_engine_metadata.py` — PENDING
 - [x] `tests/test_engine_midi_fx.py` — READ completely (652 lines); host chain/bypass/lifetime, tempo/grid/TRG, fuzz, CLI refusal and no-heap tests reviewed; batch 35; not executed
 - [ ] `tests/test_engine_names.py` — PENDING
-- [ ] `tests/test_engine_note_params.py` — PENDING
+- [x] `tests/test_engine_note_params.py` — READ completely (572 lines); engine coverage, finite/NaN/extreme offsets, note lifecycle, isolation, block invariance and API refusal contracts reviewed; batch 62 (2026-10-07)
 - [ ] `tests/test_engine_params.py` — PENDING
 - [x] `tests/test_engine_smooth.py` — READ completely (209 lines); all-engine parameter-change/ramp schedules and partition checks reviewed; NaN default semantics are not asserted; execution pending; batch 61 (2026-10-07)
 - [ ] `tests/test_engines.py` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `aff568690a1c9d61f159e5b9d3191fc124c079b7` (Batches 1–37; remote SHA verified). Batch 38 is pending checkpoint.
+- Last pushed commit: `1b61185e9b5e564d16b51a9f4e9025d8ab47a11d` (Batches 1–61; remote SHA verified). Batch 62 is pending checkpoint.
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
