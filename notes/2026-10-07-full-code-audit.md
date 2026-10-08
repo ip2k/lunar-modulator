@@ -808,3 +808,11 @@ Read all 1,120 lines of `engines/test/ref_plaits.cc` and cross-checked the full 
 **[P3] Comparator accepts a zero lower spectral bound that makes BandPowers loop forever. [verified]** `CompareMain` parses `--lsd-lo` at line 871 without validating it, then calls `BandPowers` at line 987. With an ordinary valid WAV pair and `--lsd-lo 0`, `BandPowers` starts `f0` at zero and repeatedly multiplies zero by a positive constant at line 595, so its `f0 < hi` loop never advances. Negative lower bounds have the same non-progress behavior. This is a deterministic developer-tool hang; default test options use a positive 50 Hz bound. Severity P3, confidence high.
 
 No source, hardware or licence changes occurred. The reference executable and comparison suite were not run because generated engine artifacts are absent.
+
+### Batch 121 — Clouds room reference harness
+
+Read all 266 lines of `engines/test/ref_room.cc` and cross-checked its fixed 32-frame processor order, control formulas and rate compensation against the Room implementation/math reviewed earlier, and its comparisons against the complete `tests/test_engines_reference_room.py` (282 lines, batch 82). Reviewed the float WAV parser/writer, sample generation, host block tail, stereo chaining, reported metrics, and option validation.
+
+**[P3] Positive-infinite rate or duration reaches an undefined frame-count conversion. [verified]** The validation at lines 179–181 requires `rate > 0` and `seconds > 0`, which both accept positive infinity. The generated-input path converts `seconds * rate` to `uint32_t` at line 217 without a finiteness or representability check. For example, `fm1-ref-room --rate inf --seconds 1 --out ref.wav` reaches an out-of-range float-to-integer conversion with undefined behavior and may then allocate or iterate based on the resulting count. The ordinary finite rate/duration test settings are unaffected. This is a developer-tool-only P3 with high confidence.
+
+No source, hardware or licence changes occurred. The reference executable and comparison suite were not run because generated engine artifacts are absent.
