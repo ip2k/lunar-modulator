@@ -409,9 +409,9 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tests/test_engine_note_params.py` — READ completely (572 lines); engine coverage, finite/NaN/extreme offsets, note lifecycle, isolation, block invariance and API refusal contracts reviewed; batch 62 (2026-10-07)
 - [x] `tests/test_engine_params.py` — READ completely (355 lines); UID/flag fixture, latch/modulation/focus rules, units, abbreviations, per-note coverage and Schwung-derived ids reviewed; batch 74
 - [x] `tests/test_engine_smooth.py` — READ completely (209 lines); all-engine parameter-change/ramp schedules and partition checks reviewed; NaN default semantics are not asserted; execution pending; batch 61 (2026-10-07)
-- [ ] `tests/test_engines.py` — PENDING
-- [ ] `tests/test_engines_comb.py` — PENDING
-- [ ] `tests/test_engines_comp.py` — PENDING
+- [x] `tests/test_engines.py` — READ completely (136 lines); registry, pitch/model, voice release, deterministic render, instance and FX-chain contracts reviewed; batch 84 (2026-10-07)
+- [x] `tests/test_engines_comb.py` — READ completely (141 lines); Comb UID/type split, fixture pins, block/memory invariance and hostile host contracts reviewed; batch 84 (2026-10-07)
+- [x] `tests/test_engines_comp.py` — READ completely (568 lines); static curve, detector/time constants, Auto Gain clipping bound, transitions, block/rate and hostile-input contracts reviewed; batch 84 (2026-10-07)
 - [x] `tests/test_engines_crush.py` — READ completely (319 lines); Crush sample/parameter, memory, block/rate, channel and hostile-input contracts reviewed; batch 83 (2026-10-07)
 - [x] `tests/test_engines_djfilter.py` — READ completely (462 lines); analytic response, modulation, zipper/transient/tail, rate and hostile-input contracts reviewed; batch 83 (2026-10-07)
 - [ ] `tests/test_engines_drive.py` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `7f4675fb9f0ac18adad2f62ddc5971290f96a1d2` (Batches 1–82; remote SHA verified).
+- Last pushed commit: `613deed23c9cd71a437de4cde7208df8f5dec659` (Batches 1–83; remote SHA verified).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.

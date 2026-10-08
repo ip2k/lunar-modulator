@@ -576,3 +576,9 @@ No additional confirmed defect or material coverage gap was established by sourc
 Read `tests/test_engines_crush.py` (319 lines), `test_engines_djfilter.py` (462), and `test_engines_fx3_hostile.py` (70) completely. Traced Crush's sample-hold/quantizer/tone/mix tests across block sizes, rates, channel state, parameter extremes and bad audio; reviewed DJ Filter's parameter/analytic-response contracts, changing controls, block-size invariance, zipper/click/tail bounds and host-rate refusal matrix; reviewed hostile input constraints for the FX3 host effects.
 
 No additional confirmed defect or material coverage gap was established in these tests. Their renderer and hostile tools are absent, so the audio and numerical bounds were not reproduced. No code, device or licence changes occurred.
+
+### Batch 84 — Core engine smoke, Comb split and Compressor tests
+
+Read `tests/test_engines.py` (136 lines), `test_engines_comb.py` (141), and `test_engines_comp.py` (568) completely. Traced registration metadata, macro/Shapes pitch and sound checks, voice release, limiter/instance-size and in-place FX contracts; reviewed Comb's UID preservation and byte-pinned type split, block/memory invariance and hostile-value cases; followed Compressor's static gain curve, detector/release laws, handover/glide, Auto Gain onset ceiling and the large clip-safety matrix.
+
+No additional confirmed defect or material coverage gap was established in these test sources. The cited renderer and probes were unavailable, so numerical/audio assertions were not independently executed. No source, device or licence changes occurred.
