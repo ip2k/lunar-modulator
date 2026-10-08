@@ -345,10 +345,10 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `sim/web/test/editor-map.mjs` — READ completely (363 baseline lines plus all 60 lines of editor-branch additions); map rendering, cable gestures, keyboard flow, layout probe and changed endpoint/undo checks reviewed; audit report batch 97 (2026-10-07)
 - [x] `sim/web/test/editor-reach.mjs` — READ completely (331 lines); accessibility snapshots, keyboard reach, announcements, phone layouts and telemetry assertions reviewed; audit report batch 97 (2026-10-07)
 - [x] `sim/web/test/editor-shots.mjs` — READ completely (57 lines); browser setup, clipped page-editor captures, screenshot output and shutdown reviewed; batch 98 (2026-10-07)
-- [ ] `sim/web/test/editor-ui.mjs` — PENDING
+- [x] `sim/web/test/editor-ui.mjs` — READ completely (809 lines); panel/editor transfer, history, structure, file drops, library, search, layout, accessibility surfaces and fallback undo checks reviewed; batch 99 (2026-10-07)
 - [x] `sim/web/test/editor-unit.mjs` — READ completely (436 lines); metadata controls, packed-record/feed parity, history undo/redo, structural edits, RAM and unit-layout checks reviewed; batch 98 (2026-10-07)
-- [ ] `sim/web/test/editor-v1.mjs` — PENDING
-- [ ] `sim/web/test/editor.mjs` — PENDING
+- [x] `sim/web/test/editor-v1.mjs` — READ completely (971 baseline lines plus all 63 lines of editor-branch additions); modulation/late-cable/repair/search/AB/phone/storage/batch actions and telemetry/load assertions reviewed; batch 99 (2026-10-07)
+- [x] `sim/web/test/editor.mjs` — READ completely (122 lines baseline plus full context of telemetry-buffer sizing diff); browser AudioWorklet port storm, timing and snapshot assertions reviewed; batch 99 (2026-10-07)
 - [x] `sim/web/test/files.mjs` — READ; complete headless browser test flow in audit report batch 5; not executed (Playwright container required)
 - [x] `sim/web/test/fm1_edit_check.c` — READ completely (1,032 lines); edit refusal/cable/ring/parity/transport/view/telemetry/fuzz checks and native script runner reviewed; audit report batch 96 (2026-10-07)
 - [x] `sim/web/test/fm1_sim_render.c` — READ completely (5,856 lines); screen, format, lock, font and modulation probes, input parsers, resource ownership, CLI, event/render loop, parity logs and summary serialization reviewed; audit report batches 94–95 (2026-10-07)
@@ -771,7 +771,7 @@ Review `git diff 64209e3..861b725` and read every modified source file in its co
 - [ ] `sim/web/test/audio-analysis.mjs` — PENDING (editor variant)
 - [ ] `sim/web/test/audio-loopback.mjs` — PENDING (editor variant)
 - [x] `sim/web/test/editor-map.mjs` — READ baseline plus 60-line diff and full added flow at editor head 861b725 (2026-10-07)
-- [ ] `sim/web/test/editor-v1.mjs` — PENDING (editor variant)
+- [x] `sim/web/test/editor-v1.mjs` — READ baseline plus all 63 added lines and full surrounding contexts at editor head 861b725 (2026-10-07)
 - [ ] `sim/web/test/editor.mjs` — PENDING (editor variant)
 - [ ] `sim/web/test/fm1_edit_check.c` — PENDING (editor variant)
 - [ ] `sim/web/test/launch.mjs` — PENDING (editor variant)
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `deb65b9de469963ceb4199556f7b62b96eea7909` (Batches 1–97; remote SHA verified; batch 98 pending checkpoint).
+- Last pushed commit: `d15525e69921f1075c8b88852fd333c42c4929e8` (Batches 1–98; remote SHA verified; batch 99 pending checkpoint).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.

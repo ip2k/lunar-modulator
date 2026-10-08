@@ -671,4 +671,10 @@ Read `sim/web/test/editor-unit.mjs` (436 lines) and `sim/web/test/editor-shots.m
 
 No other confirmed defect was established in these test helpers. Browser screenshot and runtime claims remain unverified in this environment.
 
+### Batch 99 — Editor UI, v1 integration and worklet stress suites
+
+Read `sim/web/test/editor-ui.mjs` (809 lines), `sim/web/test/editor-v1.mjs` (971 baseline lines), and `sim/web/test/editor.mjs` (122 lines) completely. Separately reviewed the 63 added lines in `editor-v1.mjs` at pinned editor head `861b725` and the full three-line telemetry-buffer sizing change in `editor.mjs`. This included inspector/flow interaction, keyboard and pointer edits, history rollback, file drop and storage behavior, modulation/cable flows, search and batch edits, mobile sheet behavior, reduced-motion/hidden-document telemetry, lock-state preservation, and audio-thread timing instrumentation. Browser tests and screenshots remain unexecuted because the generated module and required Playwright container are unavailable.
+
+No additional confirmed product defect or material test gap was established in these suites. The worklet stress result is explicitly conditional on browser timing and playback statistics being available; it cannot alone certify all browser engines or physical-device performance.
+
 No runtime reproduction was possible because the generated native simulator binary is absent. No source, device or licence changes occurred.
