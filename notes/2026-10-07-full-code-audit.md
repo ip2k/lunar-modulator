@@ -594,3 +594,9 @@ No additional confirmed defect or material coverage gap was established in these
 Read `tests/test_engines_eq.py` (370 lines), `test_engines_filter.py` (442), and `test_engines_fold.py` (358) completely. Traced EQ registration and exact zero-gain bypass, independent RBJ cookbook response calculations, hostile inputs, modulation glides and response hash assertions; reviewed Filter's six retained circuits plus the separate Comb tool path, response/self-oscillation/drive sweeps, crossfade, state flush and host limits; reviewed Fold's symmetry/shape/tone laws, ADAA alias comparison and runtime parameter/rate cases.
 
 No additional confirmed defect or material coverage gap was established in these suites. Their renderer and response tools are unavailable, so none of the acoustic claims were reproduced. No code, device or licence changes occurred.
+
+### Batch 87 — Manual, diagram and Movy fixture tests
+
+Read `tests/test_manual.py` (305 lines), `test_manual_diagrams.py` (245), and `test_movy_oracle_fixtures.py` (267) completely. Traced manual metadata/policy and RAM claims, generated reference tables and full-build assertions; checked SVG regeneration determinism, collision/layout/contrast/glyph tests; followed curated and seeded Movy script parsing, event log constraints, D1 offsets, exported movy1 shape and oracle summary consistency.
+
+No additional confirmed defect or material coverage gap was established. Full manual build and fixture regeneration were not run; the tests here were source-reviewed. No source, device or licence changes occurred.

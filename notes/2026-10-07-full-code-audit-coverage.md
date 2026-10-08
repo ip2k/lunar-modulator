@@ -449,10 +449,10 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tests/test_engines_squash.py` — READ completely (330 lines); fixture pin, oracle tolerances, Type/makeup/gate/transition and Transient behavior assertions reviewed; execution pending missing pytest/native binaries and no large local build; batch 51 (2026-10-07)
 - [x] `tests/test_engines_tilt.py` — READ completely (401 lines); independent frequency model, host contracts, registration, input faults, exact pass-through, curve shape, modulation/glide and rate assertions reviewed; execution pending; batch 52 (2026-10-07)
 - [x] `tests/test_gpl_switch.py` — READ completely (262 lines); switch-on/off build gates, dependency/symbol scans, source/license directory mapping, page/build record and GPL parity flags reviewed; batch 76
-- [ ] `tests/test_manual.py` — PENDING
-- [ ] `tests/test_manual_diagrams.py` — PENDING
+- [x] `tests/test_manual.py` — READ completely (305 lines); generated manual/reference, RAM/policy and build contract tests reviewed; batch 87 (2026-10-07)
+- [x] `tests/test_manual_diagrams.py` — READ completely (245 lines); generated SVG, collision/layout, contrast and glyph checks reviewed; batch 87 (2026-10-07)
 - [x] `tests/test_module_list.py` — READ in full (247 lines); build/link tests reviewed, intentionally not run (batch 13)
-- [ ] `tests/test_movy_oracle_fixtures.py` — PENDING
+- [x] `tests/test_movy_oracle_fixtures.py` — READ completely (267 lines); script/event parsing, D1 traces, movy1 structure and oracle-summary constraints reviewed; batch 87 (2026-10-07)
 - [x] `tests/test_package_guard.py` — READ; audit report batch 3 (2026-10-07)
 - [ ] `tests/test_seq_core.py` — PENDING
 - [ ] `tests/test_seq_movy.py` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `40c71e31a78bd98c88fcbd59e508d25363876079` (Batches 1–85; remote SHA verified).
+- Last pushed commit: `237c6697e69268b83d10565ab3b072de997e3da6` (Batches 1–86; remote SHA verified).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
