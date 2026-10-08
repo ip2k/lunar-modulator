@@ -245,7 +245,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/state/fm1_json.c` — READ; Batch 4
 - [x] `engines/state/fm1_json.h` — READ; Batch 4
 - [x] `engines/state/fm1_known.c` — READ; Batch 4
-- [ ] `engines/state/fm1_meta.c` — PENDING
+- [x] `engines/state/fm1_meta.c` — READ completely (999 lines); canonical metadata writer, schema/source enumeration, CRC id path and buffer/stack bounds reviewed; batch 71
 - [x] `engines/state/fm1_num.c` — READ; Batch 4
 - [x] `engines/state/fm1_num.h` — READ; Batch 4
 - [x] `engines/state/fm1_state.h` — READ; Batch 4
