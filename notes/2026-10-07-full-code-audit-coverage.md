@@ -432,24 +432,24 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_sim_screen_cues.py` — PENDING
 - [ ] `tests/test_sim_seq.py` — PENDING
 - [ ] `tests/test_sim_web.py` — PENDING
-- [ ] `tests/test_softkey_probe.py` — PENDING
+- [x] `tests/test_softkey_probe.py` — READ; audit report batch 1 (2026-10-07)
 - [ ] `tests/test_state_codec.py` — PENDING
 - [ ] `tests/test_state_render.py` — PENDING
 - [ ] `tests/test_state_schema.py` — PENDING
 - [ ] `tests/test_state_whole.py` — PENDING
 - [ ] `tests/test_test_guard.py` — PENDING
 - [ ] `tests/test_tools.py` — PENDING
-- [ ] `tests/test_uboot_read.py` — PENDING
-- [ ] `tests/test_uboot_restore.py` — PENDING
+- [x] `tests/test_uboot_read.py` — READ; audit report batch 1 (2026-10-07)
+- [x] `tests/test_uboot_restore.py` — READ; audit report batch 1 (2026-10-07)
 - [ ] `tests/test_usb_key_pio.py` — PENDING
 - [ ] `tools/check_msfa_table.py` — PENDING
 - [ ] `tools/dx7_bank.py` — PENDING
 - [ ] `tools/extract_fwsc_from_updater.py` — PENDING
 - [ ] `tools/fm1_identify.py` — PENDING
 - [ ] `tools/fm1_identify.sh` — PENDING
-- [ ] `tools/fm1_softkey_probe.py` — PENDING
-- [ ] `tools/fm1_uboot_read.py` — PENDING
-- [ ] `tools/fm1_uboot_restore_test.py` — PENDING
+- [x] `tools/fm1_softkey_probe.py` — READ; audit report batch 1 (2026-10-07)
+- [x] `tools/fm1_uboot_read.py` — READ; audit report batch 1 (2026-10-07)
+- [x] `tools/fm1_uboot_restore_test.py` — READ; audit report batch 1 (2026-10-07)
 - [ ] `tools/gen_known.py` — PENDING
 - [ ] `tools/jieli/analyze.py` — PENDING
 - [ ] `tools/jieli/audit_link.py` — PENDING
@@ -763,5 +763,5 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 - Branch: `chore/2026-10-07@full-code-audit`
 - Last pushed commit: `d7111a985d5d6262767d6af49ba26caf0e1b9453`
 - Outstanding: all audit work represented by pending entries above; report is an in-progress scope/method stub.
-- Checks: none run at inventory checkpoint; no source was edited and no hardware action was taken.
+- Checks: batch-1 targeted pytest invocation attempted with `python3`; unavailable because the active interpreter has no `pytest` and this worktree has no `.venv`. No source was edited and no hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
