@@ -45,7 +45,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `dongle/sim/jieli_rom.py` — READ; audit report batch 2 (2026-10-07)
 - [x] `dongle/sim/params.py` — READ; audit report batch 2 (2026-10-07)
 - [x] `dongle/sim/pio_waveform.py` — READ; audit report batch 2 (2026-10-07)
-- [ ] `engines/Makefile` — PENDING
+- [x] `engines/Makefile` — READ completely; audit report batch 25 (2026-10-07)
 - [ ] `engines/host/mod_script.c` — PENDING
 - [ ] `engines/host/mod_script.h` — PENDING
 - [ ] `engines/host/render.cc` — PENDING
@@ -87,46 +87,46 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/midi_fx/fm1_arp.c` — PENDING
 - [ ] `engines/midi_fx/fm1_arp.h` — PENDING
 - [ ] `engines/midi_fx/registry.c` — PENDING
-- [ ] `engines/mk/comp.mk` — PENDING
-- [ ] `engines/mk/crush.mk` — PENDING
-- [ ] `engines/mk/djfilter.mk` — PENDING
-- [ ] `engines/mk/drive.mk` — PENDING
-- [ ] `engines/mk/drums.mk` — PENDING
-- [ ] `engines/mk/editor_meta.mk` — PENDING
-- [ ] `engines/mk/eq.mk` — PENDING
-- [ ] `engines/mk/felucca.mk` — PENDING
-- [ ] `engines/mk/filter.mk` — PENDING
-- [ ] `engines/mk/fm1-x0x.mk` — PENDING
-- [ ] `engines/mk/fold.mk` — PENDING
-- [ ] `engines/mk/fx-echo.mk` — PENDING
-- [ ] `engines/mk/fx-ext.mk` — PENDING
-- [ ] `engines/mk/fx-hostile.mk` — PENDING
-- [ ] `engines/mk/fx3-hostile.mk` — PENDING
-- [ ] `engines/mk/gate.mk` — PENDING
-- [ ] `engines/mk/hall.mk` — PENDING
-- [ ] `engines/mk/idle.mk` — PENDING
-- [ ] `engines/mk/isolator.mk` — PENDING
-- [ ] `engines/mk/limit.mk` — PENDING
-- [ ] `engines/mk/meta.mk` — PENDING
-- [ ] `engines/mk/mi-fx.mk` — PENDING
-- [ ] `engines/mk/midi_fx.mk` — PENDING
-- [ ] `engines/mk/mod.mk` — PENDING
-- [ ] `engines/mk/msfa.mk` — PENDING
-- [ ] `engines/mk/param_get.mk` — PENDING
-- [ ] `engines/mk/plaits-heavy.mk` — PENDING
-- [ ] `engines/mk/ref-braids-fx.mk` — PENDING
-- [ ] `engines/mk/ref-plaits.mk` — PENDING
-- [ ] `engines/mk/resampler.mk` — PENDING
-- [ ] `engines/mk/room.mk` — PENDING
-- [ ] `engines/mk/sat.mk` — PENDING
-- [ ] `engines/mk/schwung.mk` — PENDING
-- [ ] `engines/mk/seq.mk` — PENDING
-- [ ] `engines/mk/shapes-hostile.mk` — PENDING
-- [ ] `engines/mk/smooth.mk` — PENDING
-- [ ] `engines/mk/squash.mk` — PENDING
-- [ ] `engines/mk/state.mk` — PENDING
-- [ ] `engines/mk/tilt.mk` — PENDING
-- [ ] `engines/mk/x0x-crater.mk` — PENDING
+- [x] `engines/mk/comp.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/crush.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/djfilter.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/drive.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/drums.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/editor_meta.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/eq.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/felucca.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/filter.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/fm1-x0x.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/fold.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/fx-echo.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/fx-ext.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/fx-hostile.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/fx3-hostile.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/gate.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/hall.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/idle.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/isolator.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/limit.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/meta.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/mi-fx.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/midi_fx.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/mod.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/msfa.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/param_get.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/plaits-heavy.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/ref-braids-fx.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/ref-plaits.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/resampler.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/room.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/sat.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/schwung.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/seq.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/shapes-hostile.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/smooth.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/squash.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/state.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/tilt.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/x0x-crater.mk` — READ completely; batch 25 (2026-10-07)
 - [x] `engines/mod/fm1_mp.h` — READ in full (315 lines); primitive contracts/capacity claims (batch 14)
 - [x] `engines/mod/gen_curves.py` — READ in full; generated table check passed (batch 14)
 - [x] `engines/mod/gen_mi_tables.py` — READ in full; upstream-derived tables check passed (batch 14)
@@ -167,7 +167,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/mod/mp_tables.c` — generated tables reproduced by pinned generator check (batch 14)
 - [x] `engines/mod/mp_tool.c` — READ in full; desktop parser and bounded buffers (batch 14)
 - [x] `engines/mod/mp_turing.c` — READ in full; length 32 and shift bounds (batch 14)
-- [ ] `engines/modules/catalogue.mk` — PENDING
+- [x] `engines/modules/catalogue.mk` — READ completely; module/object/licence gating reviewed; audit report batch 25 (2026-10-07)
 - [x] `engines/seq/fx_host.c` — READ complete; audio-effect clock and transport event split (batch 23)
 - [x] `engines/seq/mfx_host.c` — READ complete; MIDI-FX queue, chain and flush lifecycle (batch 23)
 - [x] `engines/seq/seq_capture.c` — READ complete; packed ring, rebase, tempo fit and commit paths (batch 23)
@@ -316,9 +316,9 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `manual/theme/manual.css` — PENDING
 - [ ] `manual/theme/page.html` — PENDING
 - [ ] `manual/theme/print.css` — PENDING
-- [ ] `sim/web/build-on-aeon.sh` — PENDING
-- [ ] `sim/web/build.sh` — PENDING
-- [ ] `sim/web/mk/sim.mk` — PENDING
+- [x] `sim/web/build-on-aeon.sh` — READ completely; static build/publish boundary reviewed; batch 25 (2026-10-07)
+- [x] `sim/web/build.sh` — READ completely; build/test/record pipeline reviewed; batch 25 (2026-10-07)
+- [x] `sim/web/mk/sim.mk` — READ completely; native/WASM object and export boundary reviewed; batch 25 (2026-10-07)
 - [x] `sim/web/src/fm1_app.c` — READ in full (4,373 lines); audit report batch 6 (2026-10-07)
 - [x] `sim/web/src/fm1_app.h` — READ in full (895 lines); audit report batch 8 (2026-10-07)
 - [x] `sim/web/src/fm1_app_state.c` — READ; complete load/save planner and apply path in audit report batch 4
@@ -808,8 +808,8 @@ The following custom languages and fixtures are inputs to parsers, tests or prod
 
 Review relevant build/link configuration, generated-artifact provenance, licence manifests, CI workflows, runtime documentation and firmware/package constraints as evidence. Do not treat docs as source code; record any stale or conflicting operational claims in the audit report. Generated binaries receive provenance/reproducibility review, not decompilation unless a specific concern requires it.
 
-- [ ] `.github/workflows/**` — PENDING
-- [ ] `engines/Makefile`, `engines/**/*.mk`, `sim/web/**/*.mk` — PENDING
+- [x] `.github/workflows/ci.yml`, `.github/workflows/pages.yml` — READ completely; audit report batch 25 (2026-10-07)
+- [x] `engines/Makefile`, `engines/mk/*.mk`, `engines/modules/catalogue.mk`, `sim/web/mk/sim.mk` — READ; engine and simulator build graph reviewed; audit report batch 25 (2026-10-07)
 - [ ] `sim/web/www/fm1.wasm` and `fm1.wasm.json` — PENDING provenance/use review
 - [ ] `LICENSE*`, `third_party/**/LICENSE*`, `UPSTREAM.md`, notices — PENDING
 - [ ] `AGENTS.md`, `CLAUDE.md`, `HANDOFF.md`, package/recovery docs — PENDING consistency review
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `63cf6200b0fe697efa59bd0a5b43dcd2f02c10a0` (Batches 1–22; remote SHA verified). Batch 23 is pending checkpoint.
+- Last pushed commit: `524aaec31a7c8bf1624ebc6d8915b5c2cb20020a` (Batches 1–24; remote SHA verified). Batch 25 is pending checkpoint.
 - Outstanding: see all `PENDING` entries above; desktop render/tooling, editor-branch variants, source corpus and most vendor integrations remain open. Native modulation regression tests remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
