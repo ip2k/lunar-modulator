@@ -193,7 +193,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/editor_meta.cc` — READ complete; static metadata tables and bounded lookups (batch 22)
 - [x] `engines/src/felucca_bridge.c` — READ completely (263 lines); state lending, WHEEL static arrays, voice/envelope/render call paths and C boundary reviewed; batch 41 (2026-10-07)
 - [x] `engines/src/felucca_bridge.h` — READ completely (103 lines); fixed-width world and modulation contracts reviewed; batch 41
-- [x] `engines/src/felucca_shim.cc` — READ completely (736 lines); parameter metadata/maps, allocation/latch/glide, per-note offsets, block staging, gains and lifecycle reviewed; batch 41
+- [x] `engines/src/felucca_shim.cc` — READ completely (736 lines); parameter maps and LATCH rules, GPL-gated phase-bend note-on/off glide flow, retune bridge call, per-note pitch/volume mixes, block staging, pitch quantization and world allocation/lifecycle reviewed; batches 41, 59 (2026-10-07)
 - [x] `engines/src/fx_comb.cc` — READ completely (296 lines); aligned delay allocation, interpolation/ring bounds, feedback loop, control glide and input/output guard reviewed; batch 42 (2026-10-07)
 - [x] `engines/src/fx_comp.cc` — READ completely (512 lines); dB curve, detector states, character/auto-release handover, makeup bound, alias safety and API lifecycle reviewed; batch 42
 - [x] `engines/src/fx_comp_math.h` — READ completely (29 lines); shared fm1 math dispatch and stated numeric domain reviewed; batch 42

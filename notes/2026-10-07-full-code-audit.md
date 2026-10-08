@@ -424,3 +424,9 @@ No confirmed defect was established in the Shapes wrapper. Shapes edge/hostile t
 Re-read `engines/src/msfa_dx7.cc` (777 lines) with attention to the new glide/voice-mode path in addition to its previously recorded voice setup, rendering and user-slot paths. Traced key clamping at note-on/off, LFO program/keydown lifecycle, mono/legato operator retuning in log-frequency Q24, transpose and ratio-operator delta, per-note pitch plus bend plus glide composition, envelope and pitch-envelope block clocks, parameter smoothing, table ownership by rate, shared first-create rate gate, and quiet-voice release retirement.
 
 No confirmed defect was established in the FM6 integration. The API limits pitch-bend callbacks to finite values within ±48 semitones, and its Q24 conversion also clamps. Glide-path tests remain source-reviewed only. One integration remains pending. No code, device or licence changes occurred.
+
+### Batch 59 — Felucca Phase Bend shim integration
+
+Re-read `engines/src/felucca_shim.cc` (736 lines), covering Drawbar, Trio and Phase Bend entry points. Traced compile-time GPL gate and per-engine parameter slot maps, LATCH snapshots, shared voice allocation and held-key return, Phase Bend glide on/off and bridge retune ordering, per-note pitch and voice-gain side buffers, float-to-Felucca pitch quantization, block buffering, voice-release cleanup, and aligned world allocation sized from the vendor bridge.
+
+No confirmed defect was established in the Phase Bend integration. Its test path is conditional on `FM1_GPL_MODS`; no vendor binaries/builds or hardware operations were run. All six shared-glide wrappers have now had source review, but the glide suite remains unexecuted. No code, device or licence changes occurred.
