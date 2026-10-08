@@ -457,8 +457,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tests/test_seq_core.py` — READ completely (1,253 lines); sequencer deviations/timing, pools/event safety, Capture encoding, memory, mutation, routing/key and page contracts reviewed; batch 89 (2026-10-07)
 - [x] `tests/test_seq_movy.py` — READ completely (1,315 lines); source-linked Movy clock, playback, edit, automation, recording, launch/song, Capture and persistence tests reviewed; batch 90 (2026-10-07)
 - [x] `tests/test_seq_oracle.py` — READ completely (198 lines); compatibility replay, D1 frame trace and documented default-mode deviations reviewed; batch 88 (2026-10-07)
-- [ ] `tests/test_seq_render.py` — PENDING
-- [ ] `tests/test_seq_song.py` — PENDING
+- [x] `tests/test_seq_render.py` — READ completely (485 lines); renderer bridge, routing, lane resolution, event buffer and oracle-log contracts reviewed; batch 91 (2026-10-07)
+- [x] `tests/test_seq_song.py` — READ completely (685 lines); list model, live edits/arms, jump/end modes, D15–D17, serialization/RNG and four-minute song tests reviewed; batch 91 (2026-10-07)
 - [x] `tests/test_seq_song_ui.py` — READ in full (164 lines); session/Song UI tests reviewed (batch 11)
 - [x] `tests/test_seq_ui.py` — READ in full (1,053 lines); S3-S8 gesture, state-size, audio replay and lock tests (batch 10)
 - [ ] `tests/test_sim_arp.py` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `0ea5fb19a8ef65e2b6759417d73c14fb2773738d` (Batches 1–89; remote SHA verified).
+- Last pushed commit: `44569691f4d5d1dbefbb2ba5f9076b8ee7fa4552` (Batches 1–90; remote SHA verified).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.

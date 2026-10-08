@@ -620,3 +620,9 @@ No additional confirmed defect or material test gap was established by this suit
 Read `tests/test_seq_movy.py` (1,315 lines) completely. Traced the source-linked clock and transport tests, playback/transposition/mute/condition semantics, editing and automation verbs, record/count-in/punch behavior, launch/song scheduling, Capture and persistence round trips. Compared each test's adapted command route and expected output against the named upstream Movy test and the local sequencer helper semantics.
 
 No additional confirmed defect or material test gap was established in the transcription. Long-running clocks/Capture cases and all native tools remain unexecuted in this worktree. No device action or code change occurred.
+
+### Batch 91 — Sequencer renderer and song tests
+
+Read `tests/test_seq_render.py` (485 lines) and `test_seq_song.py` (685) completely. Traced frame-accurate rendering and per-track engine/MIDI routing, lane label and UID resolution, NOLOCK refusal and block splitting, oracle logs and app-sized event-buffer pressure. Reviewed the 64-entry song edit model, live edits/arm and jump state, scene handoff/end modes, D15–D17 compatibility differences, LOOP hold equivalence, file lines/RNG reseeding, and the four-minute end-to-end song expectations.
+
+No additional confirmed defect or material gap was established in these suites. They require missing generated sequencer/renderer binaries; no runtime or audio claims are made. No device action or source change occurred.
