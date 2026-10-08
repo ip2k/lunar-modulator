@@ -158,11 +158,14 @@ Private evidence is in `/home/claude/fm1-backups/2026-10-07-session2/` and
 `2026-10-07-restore1/` on bench01, copied to the original checkout’s ignored
 `scratch/fm1-bench-20261007/backup-session2/` and `restore1/`. Copied dump
 hashes and the pattern/restoration command events were verified. No
-private dumps or vendor loader bytes are committed. A second owner
-power-cycle/normal-screen confirmation is pending after the restore test.
+private dumps or vendor loader bytes are committed. The owner confirmed a second power cycle and normal boot after the restore
+test: “power cycled again and boots up fine again.”
 
 Checkpoint handoff: branch `feature/2026-10-07@fm1-softkey-probe`; prepared
 tool checkpoint `5680a09`, mobile plan `6258c0a`, both pushed. Next: confirm
 normal boot after restoration, then prepare a minimal bootable Lunar proof
 and its stock-partition/package checks. Never describe this result as a
 complete-image restore proof.
+
+[verified: fresh post-restore identity query] Normal USB mode and FM-1_092
+identity were rechecked after that power cycle; no soft key was sent.

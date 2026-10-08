@@ -19,8 +19,7 @@ in RAM, matching full backups were saved off-host, and an unused 4 KiB
 sector was programmed and restored with the entire flash unchanged
 [verified: [bench note](notes/2026-10-07-fm1-softkey-bench.md)]. Full-image
 restoration and a Lunar application on hardware remain untested. Normal
-boot after the initial dump session was owner-confirmed; the post-restore
-boot check is pending. The mobile hardware editor is explicitly deferred
+boot after both the initial dump and the restoration was owner-confirmed. The mobile hardware editor is explicitly deferred
 until installable firmware; see [its resume plan](notes/2026-10-07-mobile-advanced-editor.md).
 
 ## 1. Where things stand
