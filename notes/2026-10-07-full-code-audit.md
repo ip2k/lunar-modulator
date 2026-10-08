@@ -685,4 +685,10 @@ Read `sim/web/test/launch.mjs` (the 26-line baseline plus all three changed line
 
 No additional issue was established in the launcher or metadata test helper. The layout probe’s results should be interpreted with this sibling-pair exclusion in mind until corrected.
 
+### Batch 101 — Audio parity and DX7 SysEx test harnesses
+
+Read `sim/web/test/parity.mjs` (627 lines) and `sim/web/test/sysex.mjs` (278 lines) completely. Traced the scenario-to-CLI argument mirror, timed script/panel/modulation replay, WASM setup and event order, integer WAV conversion, screen masking, native/musl comparisons, module import gate, SysEx load result counters, file/text-buffer limits, slot placement and playback parity. Neither harness was executed; generated native/WASM tools are absent from this worktree.
+
+No additional confirmed defect or material test gap was established in these files. The parity suite's libm-sensitive cases intentionally waive the glibc one-LSB threshold per scenario label, while still requiring exact app-vs-JS and screen parity; this exception remains scenario-specific as designed.
+
 No runtime reproduction was possible because the generated native simulator binary is absent. No source, device or licence changes occurred.
