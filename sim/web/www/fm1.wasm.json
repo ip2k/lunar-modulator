@@ -1,19 +1,18 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "6e86861d3752139c8ef6b01c960889d65cf485161407df0ca9bbada203b55081",
-  "wasm_bytes": 1546618,
+  "wasm_sha256": "8c4757ae4cd1fb09647f0b00263ba234d0c4fd52380702a29f4f95f495b52c80",
+  "wasm_bytes": 1547559,
   "sources_sha256": {
-    "engines": "38ac9b71817237d20f9078aa386aa45df0547bf1ba03d488542ecfb25c325066",
-    "sim": "41f86074c8057b5aec7ce37509a258cff8f90610f13321b185d270c015cdf78e"
+    "engines": "2baae210c71d1444c9f471d58ad72b2b600a090eaaf174dd47421e1f97c7d2c5",
+    "sim": "0f260d6ee1913faf4a90a2367b3dcc875f2abfb7ba969fb2e455f1b306a84aa3"
   },
   "engines": "working tree",
-  "built": "2026-10-07T16:48:24Z",
+  "built": "2026-10-08T03:21:21Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
     "alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8",
-    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65",
-    "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27"
+    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65"
   ],
   "imports": [],
   "gpl_mods": 1,
@@ -84,11 +83,11 @@
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "meta": {
-    "meta_id": "9855d7e3",
-    "module_meta_id": "9855d7e3",
-    "bytes": 251560,
+    "meta_id": "b34abd40",
+    "module_meta_id": "b34abd40",
+    "bytes": 251578,
     "lunar": "1.3",
-    "native_meta_id": "09c32023",
+    "native_meta_id": "03535ce3",
     "ram_differ_at_64_bits": 9,
     "passed": true
   },
@@ -181,10 +180,10 @@
       "applied": 82728,
       "resyncs": 0,
       "telemetry_blocks": 862,
-      "p50_ms": 0.061807999999984986,
-      "p99_ms": 0.09610399999999686,
-      "max_ms": 0.2993009999999998,
-      "edit_us_per_quantum": 7.679970602455349
+      "p50_ms": 0.06278999999999257,
+      "p99_ms": 0.09653500000001713,
+      "max_ms": 0.2597970000000487,
+      "edit_us_per_quantum": 7.890165747993441
     },
     "check": {
       "params": 467,

@@ -30,6 +30,7 @@
 #include "fm1_edit.h"
 #include "fm1_engine_meta.h"
 #include "fm1_look.h"
+#include "fm1_modules.h"
 #include "fm1_panel.h"
 #include "fm1_refusal.h"
 
@@ -783,11 +784,53 @@ static void check_gain_readouts(void) {
   }
 }
 
+static void check_empty_sound_insert(void) {
+  const int sound = 3, unit = fm1_app_insert_unit(sound, 0);
+  fresh(44118.0f);
+  CHECK(!g_a.unit[fm1_app_sound_unit(sound)].e);
+  const uint32_t hash = fm1_edit_state_hash(&g_a);
+  CHECK(fm1_app_select(&g_a, unit, fm1_app_find("comp")) == FM1_APP_SELECT_BAD);
+  CHECK(!g_a.unit[unit].e && fm1_edit_state_hash(&g_a) == hash);
+  CHECK(edit_line("unit insert 3 0 comp", 1, NULL) == FM1_REFUSE_BAD);
+  CHECK(fm1_edit_state_hash(&g_a) == hash);
+  CHECK(fm1_app_select(&g_a, unit, -1) == 0);  /* clearing remains harmless */
+  CHECK(fm1_app_unit_select(&g_a, sound, fm1_app_find("test-sine")) == 0);
+  CHECK(fm1_app_select(&g_a, unit, fm1_app_find("comp")) == 0);
+}
+
+static void check_gate_readout(void) {
+#if FM1_WITH_SQUASH
+  const int index = fm1_app_find("squash");
+  if (index < 0) return;
+  const fm1_tele_section_t *red = fm1_tele_section(FM1_TELE_REDUCTION);
+  uint32_t one[FM1_TELE_MASK_WORDS] = {0};
+  fresh(44118.0f);
+  CHECK(edit_line("unit insert 0 0 squash", 1, NULL) == 0);
+  CHECK(edit_line("param insert 0 0 12 10", 1, NULL) == 0); /* fast gate release */
+  one[red->mask / 32] |= 1u << (red->mask % 32);
+  fm1_edit_subscribe(&g_a, one);
+  render(600);
+  g_a.edit->tele_at = ~(uint64_t)0;
+  CHECK(fm1_edit_telemetry(&g_a, g_tele, sizeof g_tele / sizeof g_tele[0]) == fm1_tele_floats());
+  CHECK(g_tele[red->offset + 1] == 2.0f);             /* silence closes the gate */
+  fm1_app_note_on(&g_a, 60, 127);
+  render(100);
+  g_a.edit->tele_at = ~(uint64_t)0;
+  fm1_edit_telemetry(&g_a, g_tele, sizeof g_tele / sizeof g_tele[0]);
+  CHECK(g_tele[red->offset + 1] == 0.0f);             /* a note opens it */
+  CHECK(edit_line("param insert 0 0 1 1 index", 1, NULL) == 0);
+  render(100);
+  g_a.edit->tele_at = ~(uint64_t)0;
+  fm1_edit_telemetry(&g_a, g_tele, sizeof g_tele / sizeof g_tele[0]);
+  CHECK(isnan(g_tele[red->offset + 1]));              /* Mu has no gate */
+#endif
+}
+
 static void check_telemetry(void) {
   uint32_t all[FM1_TELE_MASK_WORDS], one[FM1_TELE_MASK_WORDS];
   const fm1_tele_section_t *met = fm1_tele_section(FM1_TELE_METERS);
   const int blocks = 690;                       /* 1.0 s at 44,118 Hz */
-  CHECK(fm1_tele_floats() == 1443 && fm1_tele_mask_bits() == 119);
+  CHECK(fm1_tele_floats() == 1454 && fm1_tele_mask_bits() == 119);
   memset(all, 0, sizeof all);
   for (unsigned b = 0; b < fm1_tele_mask_bits(); ++b) all[b / 32] |= 1u << (b % 32);
   /* The audio with everything subscribed is the audio without the layer. */
@@ -855,6 +898,8 @@ static void check_telemetry(void) {
     CHECK(none == 2u * vd->fields);
   }
   check_gain_readouts();
+  check_empty_sound_insert();
+  check_gate_readout();
 }
 
 /* ---- hostile input --------------------------------------------------------------- */

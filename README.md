@@ -6,7 +6,7 @@
 
 Lunar Modulator is open alternative firmware for the M-VAVE FM-1, the compact, low-cost,
 battery-powered FM synthesizer from M-VAVE (AKA Cuvave).
-**Current Status**: Active development, runs on the included in-browser simulator only for now.
+**Current Status**: Active development, runs on computers and in the included browser simulator; not yet on an FM-1.
 
 Play with the latest firmware in your browser: **<https://ip2k.github.io/lunar-modulator/>** 
 
@@ -45,8 +45,9 @@ Open **<https://ip2k.github.io/lunar-modulator/>** and press **Power on**
 - turn the knobs and watch the screen follow.
 
 It needs a current browser with WebAssembly and AudioWorklet, and has been
-tested only in Chromium, the engine behind Chrome and Edge, so far: Firefox,
-Safari, real touch screens and MIDI hardware are not tested yet. The page
+tested in headless Chromium, Firefox and WebKit, including the advanced
+editor. Safari on a real Mac, real touch screens and MIDI hardware still
+need hands-on checks. The page
 loads only its own files and sends nothing anywhere.
 
 To run it from your own copy of this repository you need Python 3 (the
@@ -78,7 +79,7 @@ Drag a knob up or down, or scroll over it. Click or touch a button or a key.
 | LFO, ENV, EDIT | The modulation rack and the matrix. Hold LFO or ENV and turn a knob to run a cable to that knob's parameter | |
 | GLO, HOME | The global page (rate, memory, voices, octave) and, on its second page, the project key; back to the sound | |
 | ARP | The arpeggiator on the current sound: tap to switch it on (its pages open) or off, hold to latch; with SEL, its pages | |
-| SAVE | Not in the simulator yet | |
+| SAVE | Keeps the whole project in this browser, ready to load or download again | |
 | Everything | | `Esc` releases every note |
 
 Under the panel:
@@ -210,8 +211,9 @@ A step sequencer whose design follows Movy by megadake
   **Capture**, which keeps what you just played even if you were not
   recording.
 
-It starts with a one-bar demo pattern: press PLAY/STOP, or Space. Clips,
-scenes and songs run in the desktop tools so far.
+It starts with a one-bar demo pattern: press PLAY/STOP, or Space. The
+Session pages launch clips and scenes; Song arranges them into a playing
+order, with repeats. Projects keep the sounds, clips, scenes and song together.
 
 <img src="assets/screenshots/screen-seq.png" width="240" alt="SEQ mode while the demo pattern plays: 120 BPM, the eight tracks and PLAY on the status line, the bar's 16 steps with the playhead, the knob strip, and the sound's model, VA Pair">
 
@@ -266,6 +268,25 @@ with their lights, MASTER and the seven encoders.
 
 <img src="assets/screenshots/panel-params.png" width="560" alt="The screen beside KNOB1-4, turned: Model 2-op FM, Harmonics 0.68, Timbre 0.28, Morph 0.81"> <img src="assets/screenshots/phone.png" width="200" alt="The page on a 390-pixel-wide phone: the panel keeps playable key sizes and scrolls sideways">
 
+### The advanced editor
+
+Choose **Workbench** to use the panel and editor together, or **Editor**
+for the whole page. Both edit the same instrument.
+- **Sounds and Flow:** all parameters, the four sounds and their effects,
+  live levels and gain reduction, and Squash’s gate state. Choices show
+  their memory cost before you make them.
+- **Modulation:** a table and a patch-bay Map. Start a cable from either
+  end, or select one and drag an end to reconnect it.
+- **Search:** Enter opens the highlighted match; Shift+Enter selects all
+  matches. Set compatible parameters to one value, or enable, disable or
+  remove matching cables, with one Undo for the whole batch.
+- **Files and library:** open and save projects, sounds, effects and racks,
+  keep favourites in this browser, compare A/B, and undo or redo changes.
+  Projects also autosave. FM6 loads your DX7 voices from `.syx` files.
+
+[The advanced editor’s manual chapter](https://ip2k.github.io/lunar-modulator/manual/15-the-advanced-editor.html)
+explains the controls and keyboard shortcuts.
+
 ## Roadmap
 
 Nothing on this list installs on an FM-1 yet: everything on the device waits
@@ -279,7 +300,7 @@ for the first installable build
 - Twenty-two effects, among them the new dynamics: Squash, Transient and
   the Limiter's Round mode.
 - The sequencer: eight tracks, steps, locks, conditions, recording,
-  Capture and the metronome.
+  Capture, the metronome, clips, scenes and songs.
 - Modulation: the rack, sixteen kinds of module, the matrix, the gesture
   and per-voice modulation (each note its own envelope, for example).
 - The arpeggiator, with the stock modes as presets, alongside the
@@ -291,14 +312,12 @@ for the first installable build
 - **Lighter effects:** EQ, Isolator and Master Sat take almost no
   processing time when left at their neutral settings, and stay ready
   whenever a lock or a modulation cable drives them.
-- FM6 loads your own DX7 voices from SysEx files, in the desktop tools.
-
-**In progress**
-- **Your DX7 voices in the browser:** a file picker that loads SysEx into
-  FM6, and FM6 taking less memory.
-- **A fix for Shapes:** a few shapes at the far ends of their settings (Wave
-  Line, Comb, Flute, the filter and Sync shapes) will sound the same on
-  every build.
+- FM6 loads your own DX7 voices from SysEx files in the browser and the
+  desktop tools, with a smaller memory footprint.
+- Shapes’ Wave Line, Comb, Flute, filter and Sync edge settings have
+  deterministic guards across builds.
+- The advanced editor, including cable reconnection, search batches,
+  A/B comparison, the library, and project saving and autosaving.
 
 **Next**
 - **A master chain:** four master slots in order, and shared send reverb and
@@ -308,10 +327,9 @@ for the first installable build
 - **Tempo delays:** echoes in time with the sequencer, tape, taps, beat
   repeat, smear and pitch.
 - **Per-voice filters** in Macro and Shapes, and later a subtractive engine.
-- **Sets in the browser and Web MIDI:** save and load your sets (also as
-  files), follow a MIDI clock, and send MIDI if you choose to.
+- **Web MIDI:** follow a MIDI clock, and send MIDI if you choose to.
 - **More MIDI effects:** chords, scales, note echo and chance, in the three
-  MIDI-effect slots each track has after the arpeggiator.
+  MIDI-effect slots each sound has after the arpeggiator.
 - **Later:** more engines and effects, such as resonator engines after Rings
   and Elements, granular textures after Clouds, and shimmer and classic
   reverbs.
@@ -402,6 +420,7 @@ its source is [`manual/`](manual/).
 12. [Troubleshooting](https://ip2k.github.io/lunar-modulator/manual/12-troubleshooting.html)
 13. [Specifications](https://ip2k.github.io/lunar-modulator/manual/13-specifications.html)
 14. [Credits and licences](https://ip2k.github.io/lunar-modulator/manual/14-credits-and-licences.html)
+15. [The advanced editor](https://ip2k.github.io/lunar-modulator/manual/15-the-advanced-editor.html)
 
 Plus a [glossary](https://ip2k.github.io/lunar-modulator/manual/glossary.html)
 and an [index of controls](https://ip2k.github.io/lunar-modulator/manual/index-of-controls.html).
@@ -590,7 +609,7 @@ MIT/BSD.
 | [`tools/jieli/`](tools/jieli/) | The compile-only check for the FM-1's processor with JieLi's toolchain and SDK, and the link audit and packaging guard that keep its key and eFuse code inert |
 | [`tools/seq_bench.py`](tools/seq_bench.py) | Worst-case scripts for the sequencer core's cycle budget |
 | [`tools/movy-oracle/`](tools/movy-oracle/) | The Movy oracle: a driver for Movy's own `seq-core`, run in containers on the LAN, plus a random script generator; it produced the golden fixtures the sequencer tests use |
-| [`tests/`](tests/), [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | pytest suite (tools, PIO emulation, dongle/ROM co-simulation, the engines and their reference renders, the sequencer and its Movy oracle fixtures, modulation, the virtual FM-1) and CI: tests on Linux/macOS, 32-bit and ASan + UBSan builds of the engines, sequencer and virtual FM-1, the RP2040 UF2 build, AL-255's suite on our fork |
+| [`tests/`](tests/), [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | pytest suite (tools, PIO emulation, dongle/ROM co-simulation, the engines and their reference renders, the sequencer and its Movy oracle fixtures, modulation, the virtual FM-1) and CI: tests on Linux/macOS, 32-bit and ASan + UBSan builds of the engines, sequencer and virtual FM-1, the RP2040 UF2 build, AL-255's suite on our fork, and editor page tests in Chromium, Firefox and WebKit |
 | [`notes/2026-09-06-bench.md`](notes/2026-09-06-bench.md) | Bench session 1: USB descriptors, identity reply, MIDI probes, V14 vs V15 |
 | [`notes/2026-09-06-research-log.md`](notes/2026-09-06-research-log.md) | What was checked, what was blocked, where the numbers come from |
 | [`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`](notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md) | Baud Girl's FM-1+VA, its `FM-1_092` package diffed against V15, and the owner's board photos |

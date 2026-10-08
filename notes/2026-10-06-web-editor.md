@@ -1538,16 +1538,15 @@ Map on phones.
 
 ## 29. Owner decisions after v1 (2026-10-07)
 
-The owner's answers to §28's *Open* list. **Decided, not built**, but for (5),
-which is built in the pull request that records them; the rest are the next
-stage's, in the order the table has.
+The owner's answers to §28's *Open* list. **Implemented in the editor/panel follow-up branch**, except the later
+loopback-audio harness. Validation of that branch is recorded in §31.
 
 | # | Question | Decision (owner, 2026-10-07) | State |
 | --- | --- | --- | --- |
-| 1 | What Enter and ⇧Enter do in search (§10) | **Enter selects the highlighted match; ⇧Enter selects every match, for a batch edit.** Which batch edits there are (one value on every matching parameter; matching cables off or removed; something else) and whether a batch is one undo step are for that stage to design with the owner: the selection comes first | next stage |
-| 2 | The Map's cable ends (ED5b) | **Both**: drag a cable's end to move it, and start a cable from an input, as the table and the slot inspector already do. One CABLE record each, through `chains.makeCable`, with C's verdict shown over the input as for a new cable | next stage |
-| 3 | Squash's closed gate (ED5a) | **It gets its own read-out.** The gain-reduction display keeps showing the cut only while a signal goes in; the closed gate is a read-out of its own | next stage |
-| 4 | An effect into an insert of a sound with no engine (ED3) | **Refused in both the editor and the panel.** The edit layer refuses it today (`editor-unit.mjs` checks that it does); the panel allows it and must refuse with the same words, so no file ever holds an insert in an empty sound | next stage (the panel's half) |
+| 1 | What Enter and ⇧Enter do in search (§10) | **Enter selects the highlighted match; ⇧Enter selects every match, for a batch edit.** The follow-up implements common values for compatible parameters and enable/disable/remove for cables, each as one undo step (§31) | follow-up branch |
+| 2 | The Map's cable ends (ED5b) | **Both**: drag a cable's end to move it, and start a cable from an input, as the table and the slot inspector already do. One CABLE record each, through `chains.makeCable`, with C's verdict shown over the input as for a new cable | follow-up branch |
+| 3 | Squash's closed gate (ED5a) | **It gets its own read-out.** The gain-reduction display keeps showing the cut only while a signal goes in; the closed gate is a read-out of its own | follow-up branch |
+| 4 | An effect into an insert of a sound with no engine (ED3) | **Refused in both the editor and the panel.** The edit layer refuses it today (`editor-unit.mjs` checks that it does); the shared panel selection now refuses it too, before allocation or routing changes | follow-up branch |
 | 5 | The editor's page tests in CI | **Yes.** Built in the pull request that records this: the `editor-page-tests` job runs `editor-unit`, `editor-ui`, `editor-reach`, `editor-map`, `editor-v1` and the storm in the Playwright container `build-on-aeon.sh` uses (the same image and npm versions, held to each other by `tests/test_ci_pins.py`), in Chromium, Firefox (with a PulseAudio null sink) and WebKit, plus the page's own `screenshot` and `files` tests in Chromium; a failing run uploads its screenshots and reports. They need no native build: they run against the committed `fm1.wasm` and `meta.json` | built |
 | 6 | Measuring audio in every browser | **Later:** a test harness that plays the simulator in headless Chromium, Firefox and WebKit into a loopback audio device (PipeWire or similar, on a Linux host) and checks the audio that comes out and the underruns, which Firefox and WebKit cannot measure from inside the page today (§27, §28). It is the way to close §28's first unmeasurable check. Planned: DEVELOPERS.md says so in its page-tests paragraph | later |
 
@@ -1573,3 +1572,65 @@ fixed in one pull request, each with a check that fails without the fix
 What these do not change: the audio (byte for byte), the edit layer's
 records, the layout sweep, and what the browser sends to a device (nothing).
 
+
+## 31. Editor and panel follow-up (2026-10-07)
+
+[verified: source] §29’s first four decisions are implemented. Search opens
+the highlighted result with Enter and selects every match with Shift+Enter,
+including those beyond the first sixty shown. The initial batch actions are
+one common value for parameters with matching type, unit, range and enum
+entries, and enable/disable/remove for cables. Each batch is one undo step,
+with C parsing/previews before applying it. Mixed matches offer selection
+and explain why they need a narrower search. Focus-selector parameters are
+excluded; per-pad parameters edit the currently selected pad.
+
+The Map starts a cable from either kind of jack and reconnects either end
+of a selected cable in its existing slot, preserving its other settings.
+Squash’s Snap gate reports open/closing/closed separately from gain reduction;
+telemetry version 2 adds `gate` to each reduction row (1,454 floats).
+Shared panel selection rejects inserts into sounds without an engine.
+
+The README and manual now describe these features and correct completed
+project storage, DX7 import and Session/Song features previously listed as
+future work. The bounded background cleanup audit is in
+`notes/2026-10-07-cleanup-audit.md`; it does not reset the full-audit mark.
+
+[verified: source] README verification covered module counts and capabilities
+against the metadata export, panel controls against `fm1_app.c` and the user
+manual, browser file features against `files.js` and `index.html`, current
+engine fixes against `engines/README.md`, and test coverage against CI. All
+local README links resolve. Hardware status and installability remain unchanged.
+
+The parameter-batch checks exposed an existing worker correlation collision:
+`id` meant both the request number and the module name. The envelope now uses
+`request`, leaving `id` for parameter operations; typed parsing and formatting
+resolve. Selected Map handles have 24 pixels of separation from jack centres
+so jack hit targets cannot cover them.
+
+[verified: LAN container runs, 2026-10-07] Validation of this follow-up:
+
+- The rebuilt WebAssembly module passes 104/104 parity scenarios, all
+  identical to JS and musl; 101 are identical to glibc, with at most one
+  LSB difference in the exact scenarios. Native edit checks pass, including
+  gate states and the empty-sound guard. The native 30-second storm applies
+  82,728 edits with no late quantum or resync.
+- Chromium 153, Firefox 155 and WebKit 26.6 pass editor UI (93), reach (32),
+  Map (41) and v1 (98) checks, and each passes the 30-second edit storm.
+  The editor unit suite passes; Chromium's file and screenshot checks pass.
+  Final batch/history checks also pass in all three engines after the CSS
+  adjustment. Screenshots were inspected at desktop and phone widths;
+  the batch card fits the viewport and its long lists scroll internally.
+- The full Python run collected 5,013 tests: 4,992 passed, 18 skipped,
+  two expected failures and one source-check false positive. That check
+  mistook the telemetry field `gate` for an engine choice. After narrowing
+  its exception to metadata-known field lookups, the 54 affected editor,
+  metadata, schema and manual checks pass. The final two artifact/licence
+  record checks pass against the refreshed build without stale warnings.
+  Skips need optional reference clones or the unpacked stock package.
+
+Not checked: Safari's dropdown on a real Mac, A/B during playback by ear,
+real touch/MIDI hardware, or browser audio measured through loopback.
+Firefox and WebKit's storm reports cannot measure underruns; a passing
+storm does not establish dropout-free audio there. The loopback harness
+remains the later work recorded in §29 and DEVELOPERS.md. No FM-1 was
+written to. The bounded cleanup audit leaves the complete source audit due.

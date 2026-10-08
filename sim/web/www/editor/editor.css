@@ -834,3 +834,16 @@
  * selected rows too (axe-core's contrast rule). */
 .ed { --muted: color-mix(in srgb, var(--rp-subtle) 75%, var(--rp-text)); }
 .ed-out.is-sel .ed-out-x { color: var(--text); }
+
+/* Selected cable endpoints are handles; the jacks remain separate targets. */
+.ed-cab-end { fill: var(--bg); stroke: var(--select); stroke-width: 2; pointer-events: all; cursor: grab; touch-action: none; }
+.ed-jack-in { touch-action: none; }
+.ed-gate-state { min-height: 1.4em; }
+
+.ed-search-card { max-height: calc(88dvh - 16px); box-sizing: border-box; overflow-y: auto; }
+.ed-search-card > :not(.ed-search-list) { flex-shrink: 0; }
+.ed-search-list.is-batch { max-height: 140px; flex-shrink: 0; }
+.ed-batch-list { max-height: 140px; overflow-y: auto; padding-left: 20px; margin: 12px 0; }
+.ed-batch-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 12px 0; }
+.ed-search-batch { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; }
+.ed-batch-value { min-height: 32px; max-width: 100%; }

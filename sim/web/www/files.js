@@ -414,7 +414,7 @@ export function initFiles(env) {
     ++f.shadowCalls;
     return new Promise((resolve) => {
       waiting.set(id, resolve);
-      worker.postMessage({ id, op, ...msg }, transfer);
+      worker.postMessage({ op, ...msg, request: id }, transfer);
     });
   }
   function worklet(msg, transfer = []) {

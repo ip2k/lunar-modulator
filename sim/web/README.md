@@ -547,7 +547,7 @@ ED2's (next section).
   arpeggiator's log, select, level, current, the effect swap, and a scan of
   the modulation runtime after every modulation edit, whoever made it. A
   reader more than a ring behind is told to resync and takes a snapshot.
-- **Telemetry** fills `engines/include/fm1_tele.h`'s block (1,443 floats)
+- **Telemetry** fills `engines/include/fm1_tele.h`'s block (version 2, 1,454 floats)
   for the subscribed rows only, at most 30 blocks a second of audio:
   meters (peak and RMS) at every point of the chain, gain reduction (Comp,
   Limiter, Squash and the output limiter; stage ED5a filled the last three
@@ -1623,3 +1623,15 @@ and the page over https or from localhost. The page test serves it over
 https under a sub-path (above); a real static host has not been tried. A
 host that serves pages from an opaque origin (a sandboxed iframe) would
 also need CORS headers on the module scripts [inferred].
+
+### Editor and panel follow-up, 2026-10-07
+
+[verified: source] Search Enter opens the highlighted match; Shift+Enter
+selects all matches. Compatible parameter values and cable enable/disable/
+remove batches use C previews and one history entry. The Map starts cables
+from inputs as well as outputs and reconnects either selected endpoint in
+place, preserving the rest of the cable record. Squash exposes its Snap gate
+as open/closing/closed independently of GR (`reduction.gate`, NaN
+when no gate applies). This adds a field to each reduction row, so telemetry
+is version 2; consumers use the metadata’s field order. The shared panel
+selection path refuses an insert into a sound without an engine.

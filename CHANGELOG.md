@@ -9,6 +9,19 @@ history.
 ## [Unreleased]
 
 ### Added
+- Shadow-worker requests keep their correlation ID separate from the module
+  ID, so typed parameter parsing and formatting resolve instead of hanging.
+- A bounded cleanup audit, with nine unused helpers/imports removed. Optional
+  refactors and the remaining full-audit scope are recorded in the audit note.
+- **Advanced editor follow-up:** Shift+Enter selects every search match;
+  compatible parameters accept a common value, and matching cables can be
+  enabled, disabled or removed, each batch in one undo step. The Map can
+  start a cable from an input and reconnect either end of a selected cable
+  without losing its settings. Squash shows its Snap gate separately from
+  gain reduction (telemetry version 2). The panel refuses insert effects
+  into sounds with no engine. The manual describes these controls, and the
+  README now includes the editor, storage, browser DX7 imports and the
+  Session/Song pages instead of listing completed features as future work.
 - **The editor's page tests run in CI.** A new job, `editor-page-tests`, runs
   the Advanced editor's tests (`editor-unit`, `editor-ui`, `editor-reach`,
   `editor-map`, `editor-v1` and the 30-second storm) in Chromium, Firefox and
