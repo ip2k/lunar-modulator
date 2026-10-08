@@ -320,7 +320,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `sim/web/build.sh` — PENDING
 - [ ] `sim/web/mk/sim.mk` — PENDING
 - [x] `sim/web/src/fm1_app.c` — READ in full (4,373 lines); audit report batch 6 (2026-10-07)
-- [ ] `sim/web/src/fm1_app.h` — PENDING
+- [x] `sim/web/src/fm1_app.h` — READ in full (895 lines); audit report batch 8 (2026-10-07)
 - [x] `sim/web/src/fm1_app_state.c` — READ; complete load/save planner and apply path in audit report batch 4
 - [x] `sim/web/src/fm1_app_state.h` — READ; complete public contract in audit report batch 4
 - [x] `sim/web/src/fm1_edit.c` — READ in full (1,184 lines); audit report batch 7 (2026-10-07)
@@ -338,8 +338,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `sim/web/src/fm1_seq_ui.h` — PENDING
 - [ ] `sim/web/src/fm1_seq_view.c` — PENDING
 - [ ] `sim/web/src/fm1_seq_view.h` — PENDING
-- [ ] `sim/web/src/fm1_tft.c` — PENDING
-- [ ] `sim/web/src/fm1_tft.h` — PENDING
+- [x] `sim/web/src/fm1_tft.c` — READ in full (254 lines); audit report batch 8 (2026-10-07)
+- [x] `sim/web/src/fm1_tft.h` — READ in full (198 lines); audit report batch 8 (2026-10-07)
 - [x] `sim/web/src/fm1_web.c` — READ; complete WebAssembly ABI and state bridge in audit report batch 5
 - [ ] `sim/web/test/edit.mjs` — PENDING
 - [ ] `sim/web/test/editor-map.mjs` — PENDING
