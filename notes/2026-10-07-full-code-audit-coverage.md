@@ -352,9 +352,9 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `sim/web/test/files.mjs` — READ; complete headless browser test flow in audit report batch 5; not executed (Playwright container required)
 - [x] `sim/web/test/fm1_edit_check.c` — READ completely (1,032 lines); edit refusal/cable/ring/parity/transport/view/telemetry/fuzz checks and native script runner reviewed; audit report batch 96 (2026-10-07)
 - [x] `sim/web/test/fm1_sim_render.c` — READ completely (5,856 lines); screen, format, lock, font and modulation probes, input parsers, resource ownership, CLI, event/render loop, parity logs and summary serialization reviewed; audit report batches 94–95 (2026-10-07)
-- [ ] `sim/web/test/launch.mjs` — PENDING
-- [ ] `sim/web/test/layout-probe.js` — PENDING
-- [ ] `sim/web/test/meta.mjs` — PENDING
+- [x] `sim/web/test/launch.mjs` — READ completely (29 lines editor variant); Playwright executable resolution, browser flags, audible Chromium option and cross-browser constraints reviewed; batch 100 (2026-10-08)
+- [x] `sim/web/test/layout-probe.js` — READ completely (85 lines); text/control clipping, viewport bounds and overlap filtering reviewed; audit report batch 100 (2026-10-08)
+- [x] `sim/web/test/meta.mjs` — READ completely (126 lines); metadata export buffer, CRC identity, native registry parity and noninterference checks reviewed; batch 100 (2026-10-08)
 - [x] `sim/web/test/origins.mjs` — READ; direct Node test passed in audit report batch 5
 - [ ] `sim/web/test/parity.mjs` — PENDING
 - [ ] `sim/web/test/readme-screenshots.mjs` — PENDING
@@ -774,7 +774,7 @@ Review `git diff 64209e3..861b725` and read every modified source file in its co
 - [x] `sim/web/test/editor-v1.mjs` — READ baseline plus all 63 added lines and full surrounding contexts at editor head 861b725 (2026-10-07)
 - [ ] `sim/web/test/editor.mjs` — PENDING (editor variant)
 - [ ] `sim/web/test/fm1_edit_check.c` — PENDING (editor variant)
-- [ ] `sim/web/test/launch.mjs` — PENDING (editor variant)
+- [x] `sim/web/test/launch.mjs` — READ baseline plus all four editor-branch changes at head 861b725 (2026-10-08)
 - [x] `sim/web/www/editor/chains.js` — READ complete 861b725 variant (2026-10-07)
 - [x] `sim/web/www/editor/editor.css` — READ complete 861b725 variant; source-only layout review, no rendered screenshot evidence (2026-10-07)
 - [x] `sim/web/www/editor/map.js` — READ complete 861b725 variant, including endpoint patching (2026-10-07)
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `d15525e69921f1075c8b88852fd333c42c4929e8` (Batches 1–98; remote SHA verified; batch 99 pending checkpoint).
+- Last pushed commit: `b7c716293e0e49dd63f8bfd5afd4078c4f5c4fc4` (Batches 1–99; remote SHA verified; batch 100 pending checkpoint).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.

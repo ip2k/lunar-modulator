@@ -677,4 +677,12 @@ Read `sim/web/test/editor-ui.mjs` (809 lines), `sim/web/test/editor-v1.mjs` (971
 
 No additional confirmed product defect or material test gap was established in these suites. The worklet stress result is explicitly conditional on browser timing and playback statistics being available; it cannot alone certify all browser engines or physical-device performance.
 
+### Batch 100 — Browser launcher, layout probe and metadata exporter
+
+Read `sim/web/test/launch.mjs` (the 26-line baseline plus all three changed lines at editor head `861b725`), `layout-probe.js` (85 lines) and `meta.mjs` (126 lines) completely. The browser helper's executable resolution and Chromium/Firefox audio settings, the in-page visual scan's text/control clipping and overlap logic, and the metadata exporter’s CRC identity, WASM/native parity and noninterference checks were reviewed. No commands requiring the LAN browser container or WASM build were run.
+
+**[P3] The layout probe skips overlaps for all siblings that share a direct parent. [verified]** `sim/web/test/layout-probe.js:73-78` immediately continues when `a.el.parentElement === b.el.parentElement`, before testing geometry. Many editor labels and controls are sibling elements within a row or card, so the probe can report clean even if those siblings visibly overlap. The probe is used by the editor layout tests (`editor-ui.mjs`, `editor-map.mjs`, `editor-v1.mjs`), weakening their stated no-overlap evidence. Confidence high; severity P3 test gap.
+
+No additional issue was established in the launcher or metadata test helper. The layout probe’s results should be interpreted with this sibling-pair exclusion in mind until corrected.
+
 No runtime reproduction was possible because the generated native simulator binary is absent. No source, device or licence changes occurred.
