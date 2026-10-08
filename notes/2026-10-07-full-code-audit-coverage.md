@@ -185,11 +185,11 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/crater_kit.h` — READ completely; pad/track map, rate and velocity contract reviewed; batch 38
 - [x] `engines/src/drum_voices.h` — READ completely (326 lines); four custom voice DSPs, bounded numeric domains, RNG/noise lifetime and filter state reviewed; batch 39 (2026-10-07)
 - [x] `engines/src/drums.cc` — READ completely (802 lines); model/kit tables, voice allocation/choke/retrigger, smoothing, per-note offsets, noise ownership, resampler and cleanup reviewed with engine contract and full test source; batch 39 (2026-10-07)
-- [ ] `engines/src/dx7_bank.h` — PENDING
-- [ ] `engines/src/dx7_loop.cc` — PENDING
-- [ ] `engines/src/dx7_loop.h` — PENDING
-- [ ] `engines/src/dx7_voice.cc` — PENDING
-- [ ] `engines/src/dx7_voice.h` — PENDING
+- [x] `engines/src/dx7_bank.h` — GENERATED DATA; provenance checked against full generator and `tools/dx7_bank.py --check` (batch 40)
+- [x] `engines/src/dx7_loop.cc` — READ completely (82 lines); 1-3 operator chain/feedback arithmetic, parameter restoration and dispatch reviewed with MSFA kernel contracts; batch 40 (2026-10-07)
+- [x] `engines/src/dx7_loop.h` — READ completely (53 lines); documented n/ranges and loop integration interface reviewed; batch 40
+- [x] `engines/src/dx7_voice.cc` — READ completely (291 lines); sanitize/unpack/pack, SysEx framing/checksum, slot sequencing, callbacks and writer bounds reviewed; batch 40
+- [x] `engines/src/dx7_voice.h` — READ completely (70 lines); offsets, byte counts, parse and callback contracts reviewed; batch 40
 - [x] `engines/src/editor_meta.cc` — READ complete; static metadata tables and bounded lookups (batch 22)
 - [ ] `engines/src/felucca_bridge.c` — PENDING
 - [ ] `engines/src/felucca_bridge.h` — PENDING
@@ -224,7 +224,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/src/mi_shapes.cc` — PENDING
 - [ ] `engines/src/mi_sixop.cc` — PENDING
 - [ ] `engines/src/msfa.h` — PENDING
-- [ ] `engines/src/msfa_dx7.cc` — PENDING
+- [x] `engines/src/msfa_dx7.cc` — READ completely (777 lines); FM voice setup/render/release and user-slot load paths reviewed; batch 40 (2026-10-07)
 - [ ] `engines/src/msfa_prelude.h` — PENDING
 - [ ] `engines/src/msfa_rom.cc` — PENDING
 - [ ] `engines/src/msfa_tables.cc` — PENDING
@@ -270,8 +270,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/test/drum808_drive.c` — PENDING
 - [ ] `engines/test/drum909_cymbals.c` — PENDING
 - [ ] `engines/test/drum909_drive.c` — PENDING
-- [ ] `engines/test/dx7_felucca.c` — PENDING
-- [ ] `engines/test/dx7_oracle.cc` — PENDING
+- [x] `engines/test/dx7_felucca.c` — READ completely (100 lines); oracle-only Felucca integration/table derivation; not firmware-linked; batch 40
+- [x] `engines/test/dx7_oracle.cc` — READ completely (349 lines); loop/table/oracle setup, resource/error paths and output metrics reviewed; batch 40
 - [ ] `engines/test/echo_selftest.cc` — PENDING
 - [ ] `engines/test/eq_test.cc` — PENDING
 - [ ] `engines/test/felucca_oracle.c` — PENDING
@@ -415,7 +415,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_engines_crush.py` — PENDING
 - [ ] `tests/test_engines_djfilter.py` — PENDING
 - [ ] `tests/test_engines_drive.py` — PENDING
-- [ ] `tests/test_engines_dx7.py` — PENDING
+- [x] `tests/test_engines_dx7.py` — READ completely (942 lines); full DX7 engine, table, oracle, Sysex, storage, voice pressure and rate test coverage reviewed; batch 40
 - [ ] `tests/test_engines_echo.py` — PENDING
 - [ ] `tests/test_engines_eq.py` — PENDING
 - [ ] `tests/test_engines_filter.py` — PENDING
@@ -486,7 +486,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tests/test_uboot_restore.py` — READ; audit report batch 1 (2026-10-07)
 - [x] `tests/test_usb_key_pio.py` — READ; audit report batch 2 (2026-10-07)
 - [ ] `tools/check_msfa_table.py` — PENDING
-- [ ] `tools/dx7_bank.py` — PENDING
+- [x] `tools/dx7_bank.py` — READ completely (604 lines); bank source DSL, parameter conversion/packing, SysEx, header and test-data generation reviewed; `--check` and `--test-bank --check` pass; batch 40
 - [ ] `tools/extract_fwsc_from_updater.py` — PENDING
 - [x] `tools/fm1_identify.py` — READ; audit report batch 2 (2026-10-07)
 - [x] `tools/fm1_identify.sh` — READ; audit report batch 2 (2026-10-07)
