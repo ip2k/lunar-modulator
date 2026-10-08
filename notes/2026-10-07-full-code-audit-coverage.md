@@ -60,23 +60,23 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/include/fm1_comp.h` — READ; reduction tap contract (2026-10-07)
 - [x] `engines/include/fm1_dx7.h` — READ; DX7 import/export bounds and thread contract (2026-10-07)
 - [x] `engines/include/fm1_dynamics.h` — READ baseline; new gate-state API separately reviewed in editor variant ledger (2026-10-07)
-- [ ] `engines/include/fm1_engine.h` — PENDING
+- [x] `engines/include/fm1_engine.h` — READ complete (678 lines); lifecycle, API v4, callbacks (batch 21)
 - [x] `engines/include/fm1_engine_meta.h` — READ; page/detent contract (2026-10-07)
 - [x] `engines/include/fm1_fx_host.h` — READ; event/beat splitting interface (2026-10-07)
 - [x] `engines/include/fm1_fx_idle.h` — READ; decay bound and integer warm-up helpers (2026-10-07)
 - [x] `engines/include/fm1_gate.h` — READ; gate state and sidechain buffer ownership contract (2026-10-07)
 - [x] `engines/include/fm1_known.h` — READ; generated ids/aliases and sentinel contracts (2026-10-07)
 - [x] `engines/include/fm1_math.h` — READ; normal-input assumptions and exact-range behavior (2026-10-07)
-- [ ] `engines/include/fm1_meta.h` — PENDING
-- [ ] `engines/include/fm1_mfx_host.h` — PENDING
+- [x] `engines/include/fm1_meta.h` — READ complete; metadata export/version contract (batch 21)
+- [x] `engines/include/fm1_mfx_host.h` — READ complete; effect-chain event, clock and ownership contracts (batch 21)
 - [x] `engines/include/fm1_midi_ev.h` — READ; packed source/velocity and event values (2026-10-07)
 - [x] `engines/include/fm1_mix_limiter.h` — READ; sample guard and limiter recurrence (2026-10-07)
-- [ ] `engines/include/fm1_mod.h` — PENDING
+- [x] `engines/include/fm1_mod.h` — READ complete (655 lines); one stale parameter-count comment pending implementation cross-check (batch 21)
 - [x] `engines/include/fm1_mod_host.h` — READ; host callback buffers and slot ownership (2026-10-07)
 - [x] `engines/include/fm1_refusal.h` — READ; stable codes and metadata surface (2026-10-07)
-- [ ] `engines/include/fm1_resampler.h` — PENDING
-- [ ] `engines/include/fm1_seq.h` — PENDING
-- [ ] `engines/include/fm1_seq_host.h` — PENDING
+- [x] `engines/include/fm1_resampler.h` — READ complete (389 lines, kernel included); arithmetic/ring contract (batch 21)
+- [x] `engines/include/fm1_seq.h` — READ complete; limits, transport and import interfaces (batch 21)
+- [x] `engines/include/fm1_seq_host.h` — READ complete; dispatch and hook contracts (batch 21)
 - [ ] `engines/include/fm1_smooth.h` — PENDING
 - [x] `engines/include/fm1_state_caps.h` — READ; state reader caps (2026-10-07)
 - [x] `engines/include/fm1_tele.h` — READ baseline; v2 field/version separately reviewed in editor variant ledger (2026-10-07)
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `ad13d122f64cd4d5a999c59bf49784d0ef792563` (Batches 1–18; remote SHA verified). This pending report/coverage update adds Batch 19.
+- Last pushed commit: `a6a72e9e955ce1faed75ac6b7777942d34b78303` (Batches 1–20; remote SHA verified). Batch 21 is pending checkpoint.
 - Outstanding: see all `PENDING` entries above; desktop render/tooling, editor-branch variants, source corpus and most vendor integrations remain open. Native modulation regression tests remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
