@@ -222,7 +222,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/mi_macro_heavy.cc` — READ completely (907 lines); voice/model/arena lifecycle, shared Speech bank and quantizer, stereo resampler handoff, note/glide ordering, per-note controls, LPG/self-envelope termination and failure paths reviewed; batch 55 (2026-10-07)
 - [ ] `engines/src/mi_macro_heavy.cc` — PENDING
 - [ ] `engines/src/mi_plaits_env.h` — PENDING
-- [ ] `engines/src/mi_shapes.cc` — PENDING
+- [x] `engines/src/mi_shapes.cc` — READ completely (465 lines); held-note/glide integration, fixed 96 kHz chunk/resampler, per-note controls, Shape update, oscillator bounds/safe Timbre and envelope lifecycle reviewed; batch 57 (2026-10-07)
 - [x] `engines/src/mi_sixop.cc` — READ completely (516 lines); DX patch parsing/cache, pitch/transpose/glide order, one-sample gate-low priming, LFO lead/follower ownership, voice freeing, resampler and scratch bounds reviewed; batch 56 (2026-10-07)
 - [ ] `engines/src/msfa.h` — PENDING
 - [x] `engines/src/msfa_dx7.cc` — READ completely (777 lines); FM voice setup/render/release and user-slot load paths reviewed; batch 40 (2026-10-07)

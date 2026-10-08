@@ -412,3 +412,9 @@ No confirmed defect was established in the Macro Heavy wrapper paths reviewed. T
 Read `engines/src/mi_sixop.cc` (516 lines) completely. Traced all 96 patch labels and conditional renames, patch unpack/cache and transpose, voice allocation and held-note transitions, gate-low one-sample setup/retrigger renders, per-block note/bend/glide ordering, leader/follower LFO routing across same and different patches, silent voice retirement, shared algorithm table, scratch-buffer ranges, smoothing and resampler feed.
 
 No confirmed defect was established in the Six-Op wrapper. The existing full glide test suite covers it by source review but was not run; Three integrations remain pending. No source, device or licence changes occurred.
+
+### Batch 57 — Shapes/Braids integration and guarded pitch edges
+
+Read `engines/src/mi_shapes.cc` (465 lines) completely. Traced 96 kHz chunk/resampler flow, note allocation/glide and legato no-Strike behavior, per-note envelope/control offsets, enum shape application, pitch clamp before integer conversion, Comb/Wave Line Timbre guards, oscillator input ranges, and attack/release envelope/state retirement. Checked the API's declared finite ±48-semitone pitch-bend contract against the wrapper's pre-clamp pitch conversion.
+
+No confirmed defect was established in the Shapes wrapper. Shapes edge/hostile tests and the glide suite were source-reviewed elsewhere but not executed. Two glide integrations remain pending. No code, device or licence changes occurred.
