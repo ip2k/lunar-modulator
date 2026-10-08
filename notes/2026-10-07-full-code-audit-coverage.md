@@ -237,9 +237,9 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/schwung_shim.h` — READ completely; ABI wrapper contracts, module metadata and public shim API reviewed; batch 64 (2026-10-07)
 - [x] `engines/src/sw_psxverb.cc` — READ completely; parameter/key table, headroom, memory budget and effect API descriptor reviewed; batch 63 (2026-10-07)
 - [x] `engines/src/sw_sophie.cc` — READ completely; pad focus mapping, per-focus fields, lock flags, entry key formatting, memory budget and engine descriptor reviewed; batch 63 (2026-10-07)
-- [ ] `engines/src/test_ext.cc` — PENDING
-- [ ] `engines/src/test_gain.cc` — PENDING
-- [ ] `engines/src/test_sine.cc` — PENDING
+- [x] `engines/src/test_ext.cc` — READ completely (111 lines); API v3 effect extension, optional key pass-through, tempo probe and first-piece transport marks reviewed; batch 125 (2026-10-08)
+- [x] `engines/src/test_gain.cc` — READ completely (73 lines); clamped API parameter and sample-accurate post-start gain ramp reviewed; batch 125 (2026-10-08)
+- [x] `engines/src/test_sine.cc` — READ completely (146 lines); 12-voice allocation/steal policy, gate envelope, bend/pitch, smooth volume and sample generation reviewed; batch 125 (2026-10-08)
 - [x] `engines/state/fm1_deflate.c` — READ; Batch 4 findings
 - [x] `engines/state/fm1_deflate.h` — READ; Batch 4 findings
 - [x] `engines/state/fm1_json.c` — READ; Batch 4
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: batch 123 pending checkpoint; previous pushed commit `40e4c1d85f9958361c75e58e91321992c1a49126` (Batches 1–123; remote SHA verified).
+- Last pushed commit: batch 124 pending checkpoint; previous pushed commit `c3382a8693a91f441c130b993ed75eabaf143dbf` (Batches 1–124; remote SHA verified).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.

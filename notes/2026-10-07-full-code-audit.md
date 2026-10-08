@@ -833,6 +833,12 @@ Read all 278 lines of `engines/test/shapes_hostile.cc` and all 45 lines of `engi
 
 No additional confirmed defect was established. Shapes scripts are sorted by monotonic generated frame times, and `Render` drains all same-frame events before requesting a positive-size render piece. `Held` preserves frame order while replacing the parameters under comparison; all outputs are nonempty before their hash or `memcmp` reads. The TB-3PO helper is deliberately a narrow adapter for test-controlled arguments; it casts those validated settings into the upstream 8-bit fields, calls upstream generation/mutation, and prints the resulting line. The helper was not compiled, and no firmware, hardware or licence changes occurred.
 
+### Batch 125 — minimal host-test engines
+
+Read all 111 lines of `engines/src/test_ext.cc`, 73 lines of `engines/src/test_gain.cc`, and 146 lines of `engines/src/test_sine.cc`. Cross-checked extension calling assumptions with `tests/test_engine_api_v3.py` (299 lines, batch 75), and the engine/chain contracts with `tests/test_engines.py` (136 lines, batch 84), plus their broader host/API tests already covered in batches 81–123. Reviewed null-key extension fallback, tempo/event marking, render adapter, gain ramp initialization and per-frame completion, sine voice reuse/steal, zero-velocity note-off, envelope retirement, smooth volume and fixed stereo writes.
+
+No additional confirmed defect was established in the exercised host-test domain. Test Sine's frequency path has no explicit guard for non-finite direct-API bends, but no current host/test caller supplied one in the reviewed scenarios; this is a desktop fixture, not a product sound engine, so no finding was ranked. Test Ext's extended render callback is registered with its three request flags and its legacy render adapter supplies a non-null fallback extension. These source files were not built or run because generated engine artifacts are absent. No hardware or licence changes occurred.
+
 ### Batch 121 — Clouds room reference harness
 
 Read all 266 lines of `engines/test/ref_room.cc` and cross-checked its fixed 32-frame processor order, control formulas and rate compensation against the Room implementation/math reviewed earlier, and its comparisons against the complete `tests/test_engines_reference_room.py` (282 lines, batch 82). Reviewed the float WAV parser/writer, sample generation, host block tail, stereo chaining, reported metrics, and option validation.
