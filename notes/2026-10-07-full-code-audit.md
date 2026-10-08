@@ -614,3 +614,9 @@ No other confirmed defect or material gap was established in these test harnesse
 Read `tests/test_seq_core.py` (1,253 lines) completely. Reviewed D1–D13 timing/deviation contracts, block-size identity and drift, bounded pools/event overflow/note-off preservation, Capture ring rollover and packed-field edges, movy1 integer parsing/round trips, heap and RAM assertions, seeded mutation/index checks, routing/key persistence and page/record getters. Its long-duration Capture cases exercise 1,000–1,900 bars but were not run; no generated sequencer tools are present.
 
 No additional confirmed defect or material test gap was established by this suite's source review. No device action or code change occurred.
+
+### Batch 90 — Movy seq-core compatibility transcription
+
+Read `tests/test_seq_movy.py` (1,315 lines) completely. Traced the source-linked clock and transport tests, playback/transposition/mute/condition semantics, editing and automation verbs, record/count-in/punch behavior, launch/song scheduling, Capture and persistence round trips. Compared each test's adapted command route and expected output against the named upstream Movy test and the local sequencer helper semantics.
+
+No additional confirmed defect or material test gap was established in the transcription. Long-running clocks/Capture cases and all native tools remain unexecuted in this worktree. No device action or code change occurred.

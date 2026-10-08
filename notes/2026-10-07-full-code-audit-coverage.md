@@ -455,7 +455,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `tests/test_movy_oracle_fixtures.py` — READ completely (267 lines); script/event parsing, D1 traces, movy1 structure and oracle-summary constraints reviewed; batch 87 (2026-10-07)
 - [x] `tests/test_package_guard.py` — READ; audit report batch 3 (2026-10-07)
 - [x] `tests/test_seq_core.py` — READ completely (1,253 lines); sequencer deviations/timing, pools/event safety, Capture encoding, memory, mutation, routing/key and page contracts reviewed; batch 89 (2026-10-07)
-- [ ] `tests/test_seq_movy.py` — PENDING
+- [x] `tests/test_seq_movy.py` — READ completely (1,315 lines); source-linked Movy clock, playback, edit, automation, recording, launch/song, Capture and persistence tests reviewed; batch 90 (2026-10-07)
 - [x] `tests/test_seq_oracle.py` — READ completely (198 lines); compatibility replay, D1 frame trace and documented default-mode deviations reviewed; batch 88 (2026-10-07)
 - [ ] `tests/test_seq_render.py` — PENDING
 - [ ] `tests/test_seq_song.py` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `8ac9ef710a60abe7401ed0c90837dbef14e005c1` (Batches 1–88; remote SHA verified).
+- Last pushed commit: `0ea5fb19a8ef65e2b6759417d73c14fb2773738d` (Batches 1–89; remote SHA verified).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
