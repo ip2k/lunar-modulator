@@ -217,11 +217,10 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/fx_squash.cc` — READ completely (703 lines); Snap stereo-state/gate recurrence, Mu speed/makeup bounds, Split half-wave states, parameter derivation, Type seed/crossfade, gain meter and memory lifecycle reviewed; batch 51 (2026-10-07)
 - [x] `engines/src/fx_tilt.cc` — READ completely (377 lines); first-order TPT sections, prewarped polynomial tan domain, staggered response, glide/state transitions, host contracts, input guard and coefficient bounds reviewed; batch 52 (2026-10-07)
 - [x] `engines/src/glide.h` — READ completely (371 lines); Time/Rate slew arithmetic, voice selection/plans, held-key cap/return logic and event-time mode semantics reviewed; callers remain separately pending; batch 53 (2026-10-07)
-- [ ] `engines/src/mi_fx.cc` — PENDING
+- [x] `engines/src/mi_fx.cc` — READ completely (577 lines); Plate freeze ramp and state, native-rate compensation, effect input guards, Ensemble dry/wet extraction and width delay, Diffuse decorrelation/filter and allocation/smoothing paths reviewed; batch 60 (2026-10-07)
+- [x] `engines/src/mi_plaits_env.h` — READ completely (74 lines); exact attenuation, modulator, clamps and velocity accent parity reviewed; batch 60 (2026-10-07)
 - [x] `engines/src/mi_macro.cc` — READ completely (569 lines); allocation/model rebuild, held-note/glide event ordering, smoothing/per-note controls, Plaits arena sizing, resampler consumption and LPG modes reviewed; batch 54 (2026-10-07)
 - [x] `engines/src/mi_macro_heavy.cc` — READ completely (907 lines); voice/model/arena lifecycle, shared Speech bank and quantizer, stereo resampler handoff, note/glide ordering, per-note controls, LPG/self-envelope termination and failure paths reviewed; batch 55 (2026-10-07)
-- [ ] `engines/src/mi_macro_heavy.cc` — PENDING
-- [ ] `engines/src/mi_plaits_env.h` — PENDING
 - [x] `engines/src/mi_shapes.cc` — READ completely (465 lines); held-note/glide integration, fixed 96 kHz chunk/resampler, per-note controls, Shape update, oscillator bounds/safe Timbre and envelope lifecycle reviewed; batch 57 (2026-10-07)
 - [x] `engines/src/mi_sixop.cc` — READ completely (516 lines); DX patch parsing/cache, pitch/transpose/glide order, one-sample gate-low priming, LFO lead/follower ownership, voice freeing, resampler and scratch bounds reviewed; batch 56 (2026-10-07)
 - [ ] `engines/src/msfa.h` — PENDING
