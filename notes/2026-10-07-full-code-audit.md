@@ -704,3 +704,7 @@ No other confirmed defect was established in these suites. `readme-screenshots.m
 ### Batch 103 — X0X reference-output drivers
 
 Read `engines/test/bass303_drive.c`, `drum808_drive.c`, `drum909_cymbals.c`, and `drum909_drive.c` completely. Traced each deterministic pattern/settings loop, fixed-size render buffer, per-call output ordering, tail duration and the upstream-versus-vendored sample comparison described by the corresponding Python tests. Block sizes never exceed the 256-frame buffers; the cymbal harness uses a shorter final render call. They were not built or run because the required engine/oracle setup is absent. No additional defect was established; no source edits were made.
+
+### Batch 104 — Acid Bass, Crater Kit and Comet Kit oracle drivers
+
+Read `engines/test/acid_oracle.cc` (274 lines), `crater_oracle.cc` (355 lines), and `comet_oracle.cc` (578 lines) completely. Traced command-line mode selection; generated event/pattern ordering; host-block splits at events; upstream chunk scheduling; unit copies and aligned instance buffers; parameter/panel mirroring; stereo/output, non-finite and subnormal checks; and pad/tail measurements. The acoustic oracle commands were not built or executed because generated engine artifacts are absent. No additional confirmed defect was established; invalid-rate and oversized-block inputs are not checked consistently across the internal oracle CLIs and remain a robustness consideration, not a demonstrated product/runtime defect. No source, hardware or licensing changes occurred.
