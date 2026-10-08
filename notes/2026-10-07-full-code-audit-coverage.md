@@ -365,13 +365,13 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `sim/web/tools/palette.py` — PENDING
 - [ ] `sim/web/tools/source_hash.py` — PENDING
 - [x] `sim/web/www/app.js` — READ in full (1,109 lines); baseline page and input/lifecycle review, audit report batch 17
-- [ ] `sim/web/www/editor/chains.js` — PENDING
+- [x] `sim/web/www/editor/chains.js` — READ in full (1,253 lines); patch preview/drag and keyboard flows, record packing, telemetry, module inspectors and cable matrix (batch 18)
 - [ ] `sim/web/www/editor/editor.css` — PENDING
-- [ ] `sim/web/www/editor/editor.js` — PENDING
+- [x] `sim/web/www/editor/editor.js` — READ in full (1,348 lines); lifecycle, worklet port, snapshots, edits, history, views and metadata controls (batch 18)
 - [x] `sim/web/www/editor/history.js` — READ in full; repeated picks redo payload finding in audit report batch 17
-- [ ] `sim/web/www/editor/map.js` — PENDING
+- [x] `sim/web/www/editor/map.js` — READ in full (717 lines); patch gestures, planner preview, keyboard roving, SVG geometry and layout/fault checks (batch 18)
 - [x] `sim/web/www/editor/model.js` — READ in full (722 lines); audit report batch 17
-- [ ] `sim/web/www/editor/project.js` — PENDING
+- [x] `sim/web/www/editor/project.js` — READ in full (850 lines); file import/export, library, A/B, picks, search, links and structural snapshot fallback (batch 18)
 - [x] `sim/web/www/editor/sheets.js` — READ in full; audit report batch 17
 - [x] `sim/web/www/files.js` — READ; complete file, link, storage and embed flow in audit report batch 5
 - [x] `sim/web/www/fm1-wasm.mjs` — READ; full module import/instantiation wrapper in audit report batch 5
