@@ -798,8 +798,8 @@ Review `git diff 64209e3..861b725` and read every modified source file in its co
 
 The following custom languages and fixtures are inputs to parsers, tests or product serialization. Review their interpreters/consumers and validate corpus shape/coverage; inspect the corpus itself in manageable chunks, recording any exclusions by path and reason.
 
-- [ ] `*.verbs`, `*.panel`, `*.lunar`, `*.mod`, `*.movy1`, `*.args`, `*.records`, `*.edit` — PENDING corpus review
-- [ ] `*.json`, `*.jsonl`, `*.syx`, `*.list`, `*.rgb565`, `*.bdf`, `*.gz`, `*.wav`, `*.png`, `*.jpg`, `*.ttf` — PENDING overall data/provenance review
+- [x] `*.verbs`, `*.panel`, `*.lunar`, `*.mod`, `*.movy1`, `*.args`, `*.records`, `*.edit` — scenario/corpus inputs read by their explicit child rows; generated Movy oracle/random outputs and saved-state record payloads are the noted data-only manual-reading exclusions (batches 143–146).
+- [x] `*.json`, `*.jsonl`, `*.syx`, `*.list`, `*.rgb565`, `*.bdf`, `*.gz`, `*.wav`, `*.png`, `*.jpg`, `*.ttf` — structured text parsed or scenario-tested; binary assets received provenance/format/hash review with the child rows below and in batches 145, 147 and 151. Exclusions: generated oracle payload semantics are covered by reviewed consumers/equality tests but not manually reread; PNG pixels were not visually rechecked in this audit. No tracked code is in these data classes.
   - [x] Eight files under `photos/2026-09-29/` — owner's FM-1 board evidence/crops and referenced note reviewed; basic EXIF/TIFF scan found no GPS/date/device metadata; physical identifying marks are visible and source-context is personal evidence; batch 147 (2026-10-08)
   - [x] `sim/web/test/dx7/lunar-test-bank.syx`, `sim/web/test/dx7/lunar-test-voices.syx` — source documents locally authored 32-voice LUNAR test bank and equivalent single-voice dumps, not Yamaha content; consumer/test source read; batch 147 (2026-10-08)
   - [x] Three tracked TTFs — Audiowide and Exo 2 font sources/licences and their recorded upstream hashes reviewed; byte identity/hash checks documented; batch 147 (2026-10-08)
@@ -815,14 +815,14 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 - [x] `.github/workflows/ci.yml`, `.github/workflows/pages.yml` — READ completely; audit report batch 25 (2026-10-07)
 - [x] `engines/Makefile`, `engines/mk/*.mk`, `engines/modules/catalogue.mk`, `sim/web/mk/sim.mk` — READ; engine and simulator build graph reviewed; audit report batch 25 (2026-10-07)
 - [x] `sim/web/www/fm1.wasm`, `sim/web/www/fm1.wasm.json`, `sim/web/www/source.json` — binary SHA, source digests, generation/use/licence display path reviewed; current source digests reproduce record; parity claims not rerun; batch 148 (2026-10-08)
-- [ ] `LICENSE*`, `third_party/**/LICENSE*`, `UPSTREAM.md`, notices — PENDING
-- [ ] `AGENTS.md`, `CLAUDE.md`, `HANDOFF.md`, package/recovery docs — PENDING consistency review
+- [x] 31 tracked `LICENSE*`, `UPSTREAM.md`, OFL and notice files — licence/provenance claims cross-checked against inclusion, switch and serving boundaries; batch 150. Excludes a legal opinion and external Git-object re-verification where the pinned vendor clone is absent; those cases are individually noted in vendor batch reports.
+- [x] `AGENTS.md`, `CLAUDE.md`, `HANDOFF.md` and package/recovery docs — current policy and relevant status/gate sections reviewed for consistency; current owner policy is correct in AGENTS/CLAUDE/docs/07, while stale contributor guidance is a P2 in batch 149. `HANDOFF.md` was read fully; unrelated historical research narratives in other docs were not line-by-line reviewed, since this ledger covers code plus operational/package consistency.
 
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Latest checkpoint: batch 146 was the last pushed commit before batches 147–149; update after the next coherent checkpoint.
-- Outstanding: see all `PENDING` entries above; remaining image/data provenance, licence/notice manifests, and technical documentation consistency still require closure. Renderer/engine suites remain unexecuted.
+- Latest checkpoint before final disposition: `f200bce5b23da6a3e5f5265967d7f73e2cd8d09b` (batches 147–149), pushed and remote SHA verified. Final disposition and batches 150–151 are included in the pending checkpoint.
+- Outstanding: no first-party source files remain unreviewed at the stated tiers. Full pixel-level visual review of PNGs, semantic re-reading of generated oracle payloads, external Git-object verification for absent vendor checkouts, and broad historical narrative-doc proofreading are explicit exclusions; renderer/engine/pytest suites remain unexecuted. Audit is complete at the documented review tiers; device firmware readiness remains blocked as described in the report.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
 

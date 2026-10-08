@@ -148,17 +148,16 @@ vendor packages there.
 
 ## Conventions
 
-- **Dead-code audit:** first done 2026-10-05 (PR #74) over the tree at
-  `d781f07` (PR #52): 91,901 lines of the repo's own source, 91,732 after its
-  removals (`db24f89`). Scope: `dongle/`, `engines/` and `firmware/` less
-  `third_party/`, `sim/`, `tests/` and `tools/`. The count is `wc -l` over the
-  tracked files less Markdown, data (JSON, verb, panel and mod scripts, fonts,
-  the built module) and `tests/fixtures/`; by the same count the stage A2 mark
-  of 2026-09-30 was 7,440. The candidates left for the owner's decision are in
-  PR #74. The ~28,300 lines that merged after `d781f07` (19 PRs, #55 to #75;
-  120,007 in all at the merge with #75, `401e83c`) were not read, so the next
-  audit is due already: start from `git diff d781f07`, then audit again after
-  about every 10,000 lines.
+- **Dead-code and full-code audit:** completed 2026-10-08 on baseline
+  `d7111a985d5d6262767d6af49ba26caf0e1b9453` (501 first-party source/build files,
+  178,989 physical lines; 225 vendored files, 81,114 lines, reviewed at the
+  source tiers documented in `notes/2026-10-07-full-code-audit-coverage.md`).
+  The editor stream `861b725bbe4efadb2d56400853a03b78f695f4cf` was reviewed
+  separately across 36 changed source/build paths. Findings, exclusions,
+  removal candidates and verification limits are in
+  `notes/2026-10-07-full-code-audit.md`. The next audit is due after roughly
+  10,000 additional source lines, counting from this baseline and preserving
+  the same file-counting method.
 - **Confidence marks in every technical claim:** `[verified]` (checked here
   against binaries, photos or SDK files), `[reported]` (named source, not
   re-checked), `[inferred]`. Never upgrade a claim without doing the check.
