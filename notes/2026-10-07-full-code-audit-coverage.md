@@ -214,7 +214,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/fx_room_math.h` — READ completely (107 lines); IEEE exponent handling, subnormal scaling and bounded caller domains checked; batch 49 (2026-10-07)
 - [x] `engines/src/fx_sat.cc` — READ completely (728 lines); curve translation, filter math, glue envelope, param/shape changes, state flush, exact bypass and idle/wake branches traced; batch 50 (2026-10-07)
 - [x] `engines/src/fx_shaper.cc` — READ completely (237 lines); envelope ordering, log-domain signal comparison, parameter ramps and bounded gain path reviewed; batch 50 (2026-10-07)
-- [ ] `engines/src/fx_squash.cc` — PENDING
+- [x] `engines/src/fx_squash.cc` — READ completely (703 lines); Snap stereo-state/gate recurrence, Mu speed/makeup bounds, Split half-wave states, parameter derivation, Type seed/crossfade, gain meter and memory lifecycle reviewed; batch 51 (2026-10-07)
 - [ ] `engines/src/fx_tilt.cc` — PENDING
 - [ ] `engines/src/glide.h` — PENDING
 - [ ] `engines/src/mi_fx.cc` — PENDING
@@ -305,7 +305,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/test/seq_host_test.c` — PENDING
 - [ ] `engines/test/shapes_hostile.cc` — PENDING
 - [ ] `engines/test/smooth_test.cc` — PENDING
-- [ ] `engines/test/squash_test.cc` — PENDING
+- [x] `engines/test/squash_test.cc` — READ completely (913 lines); upstream oracle adapters, randomized block/memory matrix, makeup frame bounds, host contracts and Transient probes reviewed; execution pending; batch 51 (2026-10-07)
 - [ ] `engines/test/state_alias_test.c` — PENDING
 - [ ] `engines/test/tb3po_line.c` — PENDING
 - [ ] `engines/test/tilt_test.cc` — PENDING
@@ -446,7 +446,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_engines_schwung.py` — PENDING
 - [ ] `tests/test_engines_shapes_edges.py` — PENDING
 - [ ] `tests/test_engines_shapes_hostile.py` — PENDING
-- [ ] `tests/test_engines_squash.py` — PENDING
+- [x] `tests/test_engines_squash.py` — READ completely (330 lines); fixture pin, oracle tolerances, Type/makeup/gate/transition and Transient behavior assertions reviewed; execution pending missing pytest/native binaries and no large local build; batch 51 (2026-10-07)
 - [ ] `tests/test_engines_tilt.py` — PENDING
 - [ ] `tests/test_gpl_switch.py` — PENDING
 - [ ] `tests/test_manual.py` — PENDING
