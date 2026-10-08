@@ -392,7 +392,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_ci_pins.py` — PENDING
 - [x] `tests/test_dongle_model.py` — READ; audit report batch 2 (2026-10-07)
 - [ ] `tests/test_engine_acid_bass.py` — PENDING
-- [ ] `tests/test_engine_acid_gen.py` — PENDING
+- [x] `tests/test_engine_acid_gen.py` — READ completely (331 lines); TB-3PO equivalence, effect timing, key/project context, GPL listing and allocation-symbol tests reviewed; batch 35; not executed
 - [ ] `tests/test_engine_api_v3.py` — PENDING
 - [ ] `tests/test_engine_api_v4.py` — PENDING
 - [x] `tests/test_engine_arp.py` — READ completely (951 lines); golden tables/order, Yarns parity, timing, note balance, randomized capacity and origin/grid scenarios reviewed; batch 34; not executed
@@ -404,7 +404,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_engine_glide.py` — PENDING
 - [ ] `tests/test_engine_host.py` — PENDING
 - [ ] `tests/test_engine_metadata.py` — PENDING
-- [ ] `tests/test_engine_midi_fx.py` — PENDING
+- [x] `tests/test_engine_midi_fx.py` — READ completely (652 lines); host chain/bypass/lifetime, tempo/grid/TRG, fuzz, CLI refusal and no-heap tests reviewed; batch 35; not executed
 - [ ] `tests/test_engine_names.py` — PENDING
 - [ ] `tests/test_engine_note_params.py` — PENDING
 - [ ] `tests/test_engine_params.py` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `0eb95df5e7adb078a2d62b9cb75426d0d151af6e` (Batches 1–33; remote SHA verified). Batch 34 is pending checkpoint.
-- Outstanding: see all `PENDING` entries above; broader MIDI-effect tests, engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Arpeggiator tests remain unexecuted.
+- Last pushed commit: `7cb3a33d9bab329595a760f3f5aa1004341cb1f9` (Batches 1–34; remote SHA verified). Batch 35 is pending checkpoint.
+- Outstanding: see all `PENDING` entries above; engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. MIDI-effect tests remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
