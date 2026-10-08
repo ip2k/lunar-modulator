@@ -134,26 +134,26 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/mod/kinds/kinds_int.h` — READ in full; event merge/native-rate helpers (batch 14)
 - [x] `engines/mod/kinds/mod_bounce.c` — READ in full; Peaks port integration (batch 14)
 - [x] `engines/mod/kinds/mod_burst.c` — READ in full; Peaks port integration and clock behavior (batch 14)
-- [ ] `engines/mod/kinds/mod_calc.c` — PENDING
+- [x] `engines/mod/kinds/mod_calc.c` — READ; audit report batch 15
 - [x] `engines/mod/kinds/mod_chance.c` — READ in full; noise/S&H/T&H clocks (batch 14)
 - [x] `engines/mod/kinds/mod_coin.c` — READ in full; probability/latch transitions (batch 14)
-- [ ] `engines/mod/kinds/mod_compare.c` — PENDING
+- [x] `engines/mod/kinds/mod_compare.c` — READ; MID skipped-zone transition finding in audit report batch 15
 - [x] `engines/mod/kinds/mod_divide.c` — READ in full; div/mult/euclidean queues (batch 14)
 - [x] `engines/mod/kinds/mod_env.c` — READ in full; time/event and per-voice paths (batch 14)
 - [x] `engines/mod/kinds/mod_function.c` — READ in full; shaped segments and gate/event paths (batch 14)
 - [x] `engines/mod/kinds/mod_lfo.c` — READ in full; sync/restart/hold paths (batch 14)
-- [ ] `engines/mod/kinds/mod_logic.c` — PENDING
-- [ ] `engines/mod/kinds/mod_mix.c` — PENDING
-- [ ] `engines/mod/kinds/mod_quantize.c` — PENDING
+- [x] `engines/mod/kinds/mod_logic.c` — READ; audit report batch 15
+- [x] `engines/mod/kinds/mod_mix.c` — READ; audit report batch 15
+- [x] `engines/mod/kinds/mod_quantize.c` — READ; audit report batch 15
 - [x] `engines/mod/kinds/mod_register.c` — READ in full; register, data and gate outputs (batch 14)
-- [ ] `engines/mod/kinds/mod_resonator.c` — PENDING
-- [ ] `engines/mod/kinds/mod_slew.c` — PENDING
+- [x] `engines/mod/kinds/mod_resonator.c` — READ; audit report batch 15
+- [x] `engines/mod/kinds/mod_slew.c` — READ; audit report batch 15
 - [x] `engines/mod/mod_core.c` — READ in full (1,880 lines); runtime lifecycle, event windows, gates, sinks and voice ownership (batch 13)
 - [x] `engines/mod/mod_curves.c` — generated table check passed and runtime interpolation reviewed (batch 14)
 - [x] `engines/mod/mod_glue.c` — READ in full; sequencer hook and per-note writes (batch 14)
 - [x] `engines/mod/mod_int.h` — READ in full; state layout, gate and voice helpers (batch 13/14)
-- [ ] `engines/mod/mod_mi.c` — PENDING
-- [ ] `engines/mod/mod_mi.h` — PENDING
+- [x] `engines/mod/mod_mi.c` — READ; audit report batch 15
+- [x] `engines/mod/mod_mi.h` — READ; audit report batch 15
 - [ ] `engines/mod/mod_mi_tables.c` — PENDING
 - [x] `engines/mod/mod_plan.c` — READ in full (614 lines); slot planning, graph ordering, voice layout/refusal (batch 13)
 - [x] `engines/mod/mod_registry.c` — READ in full; kind/source/host tables (batch 14)
@@ -429,9 +429,9 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_engines_isolator.py` — PENDING
 - [ ] `tests/test_engines_limit.py` — PENDING
 - [ ] `tests/test_engines_mi_fx.py` — PENDING
-- [ ] `tests/test_engines_mod.py` — PENDING
+- [x] `tests/test_engines_mod.py` — READ; audit report batch 15; not executed
 - [ ] `tests/test_engines_mod_data.py` — PENDING
-- [ ] `tests/test_engines_mod_kinds.py` — PENDING
+- [x] `tests/test_engines_mod_kinds.py` — READ; audit report batch 15; not executed
 - [ ] `tests/test_engines_mod_runtime.py` — PENDING
 - [x] `tests/test_engines_mod_voices.py` — READ in full (305 lines); per-note parity, stealing, pitch and voice sources (batch 14)
 - [ ] `tests/test_engines_plaits_env.py` — PENDING
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `706094a8ad8857debe72049284e4fcdc6f43e06e` (Batches 1–13; remote SHA verified). The uncommitted report/coverage update adds Batch 14.
-- Outstanding: see all `PENDING` entries above; desktop render/tooling, editor-branch variant, source corpus and most vendor integrations remain open. Native modulation regression tests remain unexecuted.
+- Last pushed commit: `4d9e3080c65c98a35f6b93bf47c4e70781545bd4` (Batches 1–14; remote SHA verified). This pending report/coverage update adds Batch 15.
+- Outstanding: see all `PENDING` entries above; desktop render/tooling, editor-branch variant, source corpus and most vendor integrations remain open. `engines/test/mod_kinds_test.c` and the modulation data/reference/runtime tests remain unreviewed. Native modulation regression tests remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
