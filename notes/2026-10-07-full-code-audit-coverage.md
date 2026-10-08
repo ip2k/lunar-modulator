@@ -233,8 +233,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/src/registry.cc` — READ complete; build/GPL/module table consistency (batch 22)
 - [x] `engines/src/schwung_abi.h` — READ completely; 32/64-bit ABI assertion adaptation and C linkage reviewed; batch 63 (2026-10-07)
 - [x] `engines/src/schwung_module_prefix.h` — READ completely; allocator and decimal parser redirection scope reviewed; batch 63 (2026-10-07)
-- [ ] `engines/src/schwung_shim.cc` — PENDING
-- [ ] `engines/src/schwung_shim.h` — PENDING
+- [x] `engines/src/schwung_shim.cc` — READ completely (700 lines); singleton host setup, init lifetime, bounded allocator/realloc, decimal conversion, render-ahead/FIFO, parameter ramps and focus-value readback reviewed; batch 64 (2026-10-07)
+- [x] `engines/src/schwung_shim.h` — READ completely; ABI wrapper contracts, module metadata and public shim API reviewed; batch 64 (2026-10-07)
 - [x] `engines/src/sw_psxverb.cc` — READ completely; parameter/key table, headroom, memory budget and effect API descriptor reviewed; batch 63 (2026-10-07)
 - [x] `engines/src/sw_sophie.cc` — READ completely; pad focus mapping, per-focus fields, lock flags, entry key formatting, memory budget and engine descriptor reviewed; batch 63 (2026-10-07)
 - [ ] `engines/src/test_ext.cc` — PENDING
@@ -300,8 +300,8 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/test/resampler_test.cc` — PENDING
 - [x] `engines/test/room_test.cc` — READ completely (363 lines); mixed bad inputs, change timing, block invariance, tail, rate, math and probe contracts reviewed; execution pending; batch 49 (2026-10-07)
 - [x] `engines/test/sat_test.cc` — READ completely (513 lines); changing controls, bypass, curve, glue, tone/alias probe and output digest harness reviewed; execution pending; batch 50 (2026-10-07)
-- [ ] `engines/test/schwung_race.cc` — PENDING
-- [ ] `engines/test/schwung_selftest.cc` — PENDING
+- [x] `engines/test/schwung_race.cc` — READ completely; documented control/audio concurrency probe reviewed (not run; requires TSan build); batch 64 (2026-10-07)
+- [x] `engines/test/schwung_selftest.cc` — READ completely (674 lines); allocator guard/exhaustion, MIDI and parameter encoding, block/FIFO, headroom, host immutability, init lifetime and parser checks reviewed; not executed; batch 64 (2026-10-07)
 - [ ] `engines/test/seq_host_test.c` — PENDING
 - [ ] `engines/test/shapes_hostile.cc` — PENDING
 - [x] `engines/test/smooth_test.cc` — READ completely (228 lines); event ordering, NaN/Inf schedule, partition independence and summary contracts reviewed; execution pending; batch 61 (2026-10-07)
@@ -443,7 +443,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `tests/test_engines_resampler.py` — PENDING
 - [x] `tests/test_engines_room.py` — READ completely (363 lines); CLI/runtime, tail, width, decay, math and zero-state assertions reviewed; execution pending missing pytest/native binaries and no large local build; batch 49 (2026-10-07)
 - [x] `tests/test_engines_sat.py` — READ completely (443 lines); input/idle-adjacent contracts, curve/alias measurements and host-rate expectations reviewed; execution pending missing pytest/native binaries and no large local build; batch 50 (2026-10-07)
-- [ ] `tests/test_engines_schwung.py` — PENDING
+- [x] `tests/test_engines_schwung.py` — READ completely (488 lines); shim selftest, module contract, render/latency/headroom, NaN and pinned vendor manifests reviewed; not executed; batch 64 (2026-10-07)
 - [ ] `tests/test_engines_shapes_edges.py` — PENDING
 - [ ] `tests/test_engines_shapes_hostile.py` — PENDING
 - [x] `tests/test_engines_squash.py` — READ completely (330 lines); fixture pin, oracle tolerances, Type/makeup/gate/transition and Transient behavior assertions reviewed; execution pending missing pytest/native binaries and no large local build; batch 51 (2026-10-07)
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `417f03625d156031f8c12faa44649730dcde2f7f` (Batches 1–62; remote SHA verified). Batch 63 is pending checkpoint.
+- Last pushed commit: `a6a499db40402f2ed01df3819f9d85b5085a396f` (Batches 1–63; remote SHA verified). Batch 64 is pending checkpoint.
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
