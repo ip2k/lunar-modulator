@@ -295,7 +295,7 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [x] `engines/test/param_get_test.cc` — READ completely (390 lines); focus/copy/replay behavior cross-checked against API v4 wrapper and registry assertions; batch 113
 - [x] `engines/test/plate_test.cc` — READ completely (464 lines); randomized parameter/input abuse, block/fill parity, minute hold/lifetime, Freeze isolation and toggles, release, deferred controls, rates and benchmark reviewed; batch 118 (2026-10-08)
 - [x] `engines/test/ref_braids_fx.cc` — READ completely (497 lines); Braids and MI reference effect invocation, WAV parser/writer, argument conversion, input alignment, rate compensation and buffer handling reviewed; batch 119 (2026-10-08)
-- [ ] `engines/test/ref_plaits.cc` — PENDING
+- [x] `engines/test/ref_plaits.cc` — READ completely (1,120 lines); upstream Voice render, host-rate resampling/timing, WAV I/O, comparator FFT/envelope/timing metrics, CLI domains and allocation paths reviewed; batch 120 (2026-10-08)
 - [ ] `engines/test/ref_room.cc` — PENDING
 - [ ] `engines/test/resampler_test.cc` — PENDING
 - [x] `engines/test/room_test.cc` — READ completely (363 lines); mixed bad inputs, change timing, block invariance, tail, rate, math and probe contracts reviewed; execution pending; batch 49 (2026-10-07)
@@ -817,7 +817,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: batch 118 pending checkpoint; previous pushed commit `ab80c23af11119482b3d31bd7d982d8859eb01a3` (Batches 1–118; remote SHA verified).
+- Last pushed commit: batch 119 pending checkpoint; previous pushed commit `7bc57141166038ca02d80646fe8436466552473e` (Batches 1–119; remote SHA verified).
 - Outstanding: see all `PENDING` entries above; other engine implementations, editor-branch variants, source corpus and most vendor integrations remain open. Renderer/engine suites remain unexecuted.
 - Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
