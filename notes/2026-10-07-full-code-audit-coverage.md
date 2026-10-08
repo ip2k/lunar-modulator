@@ -240,26 +240,26 @@ Update status only after reading and recording evidence. A search or mechanical 
 - [ ] `engines/src/test_ext.cc` — PENDING
 - [ ] `engines/src/test_gain.cc` — PENDING
 - [ ] `engines/src/test_sine.cc` — PENDING
-- [ ] `engines/state/fm1_deflate.c` — PENDING
-- [ ] `engines/state/fm1_deflate.h` — PENDING
-- [ ] `engines/state/fm1_json.c` — PENDING
-- [ ] `engines/state/fm1_json.h` — PENDING
-- [ ] `engines/state/fm1_known.c` — PENDING
+- [x] `engines/state/fm1_deflate.c` — READ; Batch 4 findings
+- [x] `engines/state/fm1_deflate.h` — READ; Batch 4 findings
+- [x] `engines/state/fm1_json.c` — READ; Batch 4
+- [x] `engines/state/fm1_json.h` — READ; Batch 4
+- [x] `engines/state/fm1_known.c` — READ; Batch 4
 - [ ] `engines/state/fm1_meta.c` — PENDING
-- [ ] `engines/state/fm1_num.c` — PENDING
-- [ ] `engines/state/fm1_num.h` — PENDING
-- [ ] `engines/state/fm1_state.h` — PENDING
-- [ ] `engines/state/fm1_state_mod.h` — PENDING
+- [x] `engines/state/fm1_num.c` — READ; Batch 4
+- [x] `engines/state/fm1_num.h` — READ; Batch 4
+- [x] `engines/state/fm1_state.h` — READ; Batch 4
+- [x] `engines/state/fm1_state_mod.h` — READ; Batch 4
 - [ ] `engines/state/fuzz/state_fuzz.c` — PENDING
-- [ ] `engines/state/state_bin.c` — PENDING
-- [ ] `engines/state/state_json_read.c` — PENDING
-- [ ] `engines/state/state_json_write.c` — PENDING
-- [ ] `engines/state/state_mod.c` — PENDING
-- [ ] `engines/state/state_movy1.c` — PENDING
-- [ ] `engines/state/state_movy1.h` — PENDING
-- [ ] `engines/state/state_names.c` — PENDING
-- [ ] `engines/state/state_print.c` — PENDING
-- [ ] `engines/state/state_registry.c` — PENDING
+- [x] `engines/state/state_bin.c` — READ; Batch 4 findings
+- [x] `engines/state/state_json_read.c` — READ; Batch 4
+- [x] `engines/state/state_json_write.c` — READ; Batch 4
+- [x] `engines/state/state_mod.c` — READ; Batch 4
+- [x] `engines/state/state_movy1.c` — READ; Batch 4
+- [x] `engines/state/state_movy1.h` — READ; Batch 4
+- [x] `engines/state/state_names.c` — READ; Batch 4
+- [x] `engines/state/state_print.c` — READ; Batch 4
+- [x] `engines/state/state_registry.c` — READ; Batch 4
 - [ ] `engines/test/acid_oracle.cc` — PENDING
 - [ ] `engines/test/bass303_drive.c` — PENDING
 - [ ] `engines/test/comet_oracle.cc` — PENDING
@@ -816,7 +816,7 @@ Review relevant build/link configuration, generated-artifact provenance, licence
 ## Checkpoint and recovery
 
 - Branch: `chore/2026-10-07@full-code-audit`
-- Last pushed commit: `4cbf5f7529b31c585b13e853ce98ef76c6fbd341` (Batch 1–3 checkpoint)
-- Outstanding: all audit work represented by pending entries above; state-codec source review is partial, with Python source read and C/browser parity still open.
-- Checks: targeted pytest remains unavailable because the active interpreter has no `pytest` and this worktree has no `.venv`; generated engine tools are also absent. A direct Python DEFLATE reproduction confirmed Batch 4 finding. No firmware build or hardware action was taken.
+- Last pushed commit: `23c7922eec3851ebf508e27ff3569eb09ef2ab1b` (Batch 1–4 checkpoint; pushed and remote SHA verified)
+- Outstanding: all audit work represented by pending entries above; state-codec source review is complete, while app/desktop consumers and browser inflater parity remain open.
+- Checks: targeted pytest remains unavailable because the active interpreter has no `pytest` and this worktree has no `.venv`; generated engine tools are also absent. Direct Python DEFLATE reproductions confirmed Batch 4 finding. No firmware build or hardware action was taken.
 - Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
