@@ -249,3 +249,19 @@ PR #99 but is still subject to its integration/CI gate. Audit-specific P3s
 remain explicitly open; targeted fixes do not imply blanket closure. The next
 useful audit step is a source/status pass over the remaining P2s after those
 branch outcomes settle, rather than rerunning the whole audit.
+
+### Next bounded audit item
+
+The full audit's P2 for repeated “Make B from the picks” undo/redo mismatch
+(batch 39, finding at `notes/2026-10-07-full-code-audit.md:156`) remains the
+clearest code-level item not covered by the current integration streams. The
+current main `project.js` still merges structural edits by the shared `ab:`
+target while `redoPicks` reuses `entry.info.reload`; PR #99's source diff adds
+the captured-cable identity check for stale Search batches, but does not change
+this picks/history payload. A small regression can perform two same-scope picks
+loads inside the history merge window, then assert undo restores the exact
+pre-first state and redo restores the second selection. If assigned, fix the
+history grouping/payload at the editor history boundary and test the history
+semantics without needing hardware or a browser build. This is a review priority
+recommendation, not an implementation claim. The hardware-policy docs finding
+#1012 remains blocked on the policy conflict above.
