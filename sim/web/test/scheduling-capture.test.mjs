@@ -82,3 +82,16 @@ test('unsupported CDP retains resource evidence and records the failure', async 
     assert.deepEqual(f.json('editor-audio-trace.json').traceEvents, []);
   } finally { f.clean(); }
 });
+
+test('resource-only capture works for browsers without CDP', async () => {
+  const f = fixture();
+  try {
+    const browser = { newBrowserCDPSession: async () => { assert.fail('CDP must not be called'); } };
+    const c = await startSchedulingCapture(browser, f.out, { trace: false, snapshot });
+    const r = await c.finish();
+    assert.equal(r.trace_requested, false);
+    assert.equal(r.samples.length, 2);
+    assert.deepEqual(r.errors, []);
+    assert.doesNotMatch(r.perturbation, /CDP/);
+  } finally { f.clean(); }
+});

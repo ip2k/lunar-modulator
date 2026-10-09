@@ -66,9 +66,9 @@ pressure deltas support correlation, not automatic proof of causation.
 
 ## Validation
 
-[verified] Four Node regressions cover unavailable files, preservation of raw
+[verified] Five Node regressions cover unavailable files, preservation of raw
 counter units, browser-wide CDP use/final-batch delivery, bounded truncation,
-incomplete drain, and unsupported CDP. The existing 35 editor unit checks
+incomplete drain, unsupported CDP, and resource-only capture for other browsers. The existing 35 editor unit checks
 also pass. `git diff --check` passes.
 
 [verified] LAN validation uses the pinned Playwright 1.63.0 image, Chromium
@@ -79,5 +79,20 @@ without truncation/errors: 81,318 events, 14,577,426 bytes, and 33 resource
 samples. This checks collection under the actual Lunar workload; it is not
 GitHub CI evidence.
 
-Controlled failure-path validation is pending at this checkpoint. No GitHub
-failure has yet been observed with this instrumentation.
+[verified] A separate controlled eight-second Lunar storm, with one CPU of
+quota and two busy Node workers in the same container, exited 1 under the
+unchanged acceptance expression. It reported 246 playback events / 2,460 ms,
+zero rejected edits/resyncs, and a valid snapshot. Its complete trace had
+22,193 events and 259 `SyncReader` timeouts; all 95 observed quota periods
+were throttled (`throttled_usec` delta 22,831,570, an aggregate counter rather
+than wall duration). The 11 resource samples and both artifacts survived the
+failure, with no capture errors or truncation. Trace and API counts have
+different windows/delivery paths and are not asserted to match exactly.
+
+The compact [recorded validation summary](data/2026-10-09-chromium-storm-capture.json)
+keeps editor reports, raw first/last resource snapshots, markers and counts.
+Full raw artifacts remain in the isolated LAN stage
+`/home/claude/mvave-fm1/chromium-tracing-20261009/{baseline,pressure}` on aeon;
+large traces are not committed. The pressure harness is an offline validation
+fixture in that stage, not part of CI. No GitHub failure has yet been
+observed with this instrumentation.
