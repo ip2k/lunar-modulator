@@ -1239,6 +1239,34 @@ How it works [verified: tests/test_engines_echo.py and
   reset call to drop the tail without re-creating the 64 KiB instance (the
   host feature listed below).
 
+## Warble
+
+Warble (`src/fx_warble.cc`) is an original, compact wow/flutter delay effect
+written here under MIT. CHOMPI's Warble is a conceptual inspiration only; no
+CHOMPI or DaisySP implementation code is used. It uses one fixed stereo ring
+per instance and two deterministic, independent modulation phases. Recreating
+an instance clears the ring and resets both phases.
+
+| Page | Parameter | Range | Default | What it does |
+| --- | --- | --- | --- | --- |
+| 1 | Wow | 0–1 | 0.35 | Slow 0.35 Hz delay modulation, up to ±3 ms |
+| 1 | Flutter | 0–1 | 0.25 | Faster 6.5 Hz delay modulation, up to ±0.45 ms |
+| 1 | Mix | 0–1 | 0.5 | Linear dry/wet balance; zero returns the input bit for bit |
+
+The base delay is 12 ms; the combined maximum modulation is 3.45 ms. Delay
+times are converted to samples from the host rate, so the time range and LFO
+frequencies stay constant across rates. The 4,096-cell ring stores interleaved
+16-bit stereo samples (16 KiB); even at 192 kHz the maximum read remains inside
+the ring. Controls glide with a one-pole smoother (about 20 ms for Wow and
+Flutter, 5 ms for Mix); values set before the first render take effect
+immediately. A zero Mix still advances modulation and records input, allowing
+the effect to be enabled without reviving stale history.
+
+`tests/test_engines_warble.py` and `build/fm1-warble-selftest` cover the
+metadata, dry bypass, sample-rate scaling, deterministic reset, live
+parameter glides, hostile values and the instance memory bound. These checks
+are desktop evidence; target timing and device behavior remain untested.
+
 ## Filter
 
 A multimode filter (`src/fx_filter.cc`, our own code, MIT) with six
@@ -4556,7 +4584,7 @@ on 2026-10-06:
 | `src/drums.cc`, `src/drum_voices.h` | Drums: the kit around Plaits' drum classes, and the rim shot, clap, cowbell and cymbal of our own ([above](#drums)) |
 | `src/crater_kit.cc`, `src/crater_kit.h` | Crater Kit, a GPL module: the pads, grid and parameters around fm1-x0x's 808 ([above](#crater-kit)) |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
-| `src/fx_*.cc` | Effects written in this repository (Crush, [Drive](#drive), Echo, [Filter](#filter), [Comb](#comb), [Comp](#comp), [Limiter](#limiter), [DJ Filter](#dj-filter), [Tilt](#tilt), [Master Sat](#master-sat), [Isolator](#isolator), [EQ](#eq), [Hall](#hall), [Gate](#gate), [Transient](#transient); [Room](#room) wraps Clouds' classes; [Squash](#squash) ports Airwindows' loops) |
+| `src/fx_*.cc` | Effects written in this repository (Crush, [Drive](#drive), Echo, [Warble](#warble), [Filter](#filter), [Comb](#comb), [Comp](#comp), [Limiter](#limiter), [DJ Filter](#dj-filter), [Tilt](#tilt), [Master Sat](#master-sat), [Isolator](#isolator), [EQ](#eq), [Hall](#hall), [Gate](#gate), [Transient](#transient); [Room](#room) wraps Clouds' classes; [Squash](#squash) ports Airwindows' loops) |
 | `src/fx_filter_dsp.h` | The arithmetic Filter and Comb share (2^x, log2, the saturating curve, the guard, the glide) |
 | `src/fx_comp_math.h` | `CompExp2` and `CompLog2`, now `include/fm1_math.h`'s base-2 exponential and logarithm without libm (the same bits on every build) under the names Comp, Tilt, DJ Filter and the Gate use |
 | `src/test_sine.cc`, `src/test_gain.cc`, `src/test_ext.cc` | Test engines: a sine voice, a gain stage, and Test Ext, the smallest effect with the API v3 extension ([below](#engine-api-v3)) |

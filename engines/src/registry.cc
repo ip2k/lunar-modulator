@@ -36,6 +36,7 @@ extern const fm1_engine_t fm1_engine_crush;
 extern const fm1_engine_t fm1_engine_fold;
 extern const fm1_engine_t fm1_engine_drive;
 extern const fm1_engine_t fm1_engine_echo;
+extern const fm1_engine_t fm1_engine_warble;
 extern const fm1_engine_t fm1_engine_filter;
 extern const fm1_engine_t fm1_engine_comb;
 extern const fm1_engine_t fm1_engine_comp;
@@ -90,6 +91,7 @@ const fm1_engine_t *const fm1_engines[] = {
   FM1_IF(FM1_WITH_FOLD, &fm1_engine_fold)
   FM1_IF(FM1_WITH_DRIVE, &fm1_engine_drive)
   FM1_IF(FM1_WITH_ECHO, &fm1_engine_echo)
+  FM1_IF(FM1_WITH_WARBLE, &fm1_engine_warble)
   FM1_IF(FM1_WITH_FILTER, &fm1_engine_filter)
   FM1_IF(FM1_WITH_COMB, &fm1_engine_comb)
   FM1_IF(FM1_WITH_COMP, &fm1_engine_comp)
