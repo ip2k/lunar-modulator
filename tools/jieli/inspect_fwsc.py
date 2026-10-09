@@ -4,7 +4,7 @@
 Format evidence: kagaimiq's MIT jl-misctools fwunpack_newfw.py and
 AL-255's FM-1-RE fm1_ota.py, checked against the local stock V15 package.
 This independently authored reader validates only established outer layers.
-Encrypted auxiliary payloads and nested flash rewrite rules remain gates.
+Nested flash rewrite and remaining metadata rules remain packing gates.
 """
 import argparse
 import binascii
@@ -21,6 +21,7 @@ PREFIX = 20 * 48
 LOGICAL_PREFIX = 20 * 47
 PLAIN_TYPES = {0, 2, 100, 255}
 ENCRYPTED_TYPES = {50, 52, 251, 161}
+STOCK_CHIP_KEY = 0x980f
 
 
 def crc16(data):
@@ -28,14 +29,23 @@ def crc16(data):
     return binascii.crc_hqx(data, 0)
 
 
-def header_decode(data):
+def header_decode(data, initial=0xffff):
     """Symmetric ENC XOR stream; restart 0xffff at each header/entry."""
-    state = 0xffff
+    state = initial
     output = bytearray()
     for value in data:
         output.append(value ^ (state & 255))
         state = ((state << 1) ^ (0x1021 if state & 0x8000 else 0)) & 0xffff
     return bytes(output)
+
+
+def sfc_decode(data, logical_offset):
+    """Stock auxiliary SFC blocks use container origin zero, not entry origin."""
+    if logical_offset % 32:
+        raise ValueError("unaligned SFC auxiliary payload")
+    return b''.join(header_decode(data[index:index + 32],
+                                 STOCK_CHIP_KEY ^ ((logical_offset + index) >> 2))
+                    for index in range(0, len(data), 32))
 
 
 def cstring(data):
@@ -86,15 +96,15 @@ def inspect(raw, stock=None):
                 raise ValueError("overlapping entry allocations")
             ranges.append((offset, offset + allocated))
         payload = logical[offset:offset + size]
-        checked = kind in PLAIN_TYPES
-        if checked and crc16(payload) != checksum:
+        decoded = sfc_decode(payload, offset) if kind in ENCRYPTED_TYPES else payload
+        if crc16(decoded) != checksum:
             raise ValueError(f"payload CRC mismatch: {name}")
-        if not checked:
-            pending.append(f"{name}: type {kind:#x} encrypted payload CRC/decode not established")
         entries.append(dict(name=name, type=kind, index=ordinal, offset=offset,
                             physical_offset=offset + 20, bytes=size, allocated_bytes=allocated,
-                            crc16=checksum, crc_verified=checked,
-                            sha256=hashlib.sha256(payload).hexdigest()))
+                            crc16=checksum, crc_verified=True,
+                            encoding='sfc-stock-key-logical-origin-zero' if kind in ENCRYPTED_TYPES else 'raw',
+                            sha256=hashlib.sha256(payload).hexdigest(),
+                            decoded_sha256=hashlib.sha256(decoded).hexdigest()))
     by_name = {entry['name']: entry for entry in entries}
     if by_name.get('flash.bin', {}).get('type') != 0 or by_name.get('ota.bin', {}).get('type') != 100:
         raise ValueError("missing established flash/OTA entries")
@@ -137,7 +147,7 @@ def main():
                 output.write('\n')
     except (OSError, ValueError, UnicodeError, struct.error) as exc:
         parser.exit(1, f'inspect_fwsc: {exc}\n')
-    print(f"{result['identity']}: outer header/list and plaintext payload CRCs checked; "
+    print(f"{result['identity']}: outer header/list and all payload CRCs checked; "
           f"{len(result['pending'])} pending gates, packaging_ready=false")
 
 
