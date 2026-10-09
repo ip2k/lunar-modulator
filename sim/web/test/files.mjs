@@ -9,7 +9,8 @@
 // for its target); a file over the FM-1's RAM is refused on the page in the
 // refusal colour, as a percent, and changes nothing; every load reaches the
 // worklet as the binary container, after pass 1 in the shadow Worker, and the
-// worklet refuses JSON; SAVE on the panel stores the project in IndexedDB;
+// worklet refuses JSON; SAVE on the panel stores the project in IndexedDB
+// and reports a failed write without clearing the unsaved state;
 // the autosave writes on its own timer and the next visit restores it;
 // Recent keeps "Before …" and Undo load puts the project back byte for byte;
 // ?load= takes allowlisted same-origin paths only (no request leaves for
@@ -135,16 +136,85 @@ async function filesChecks() {
     };
     port.postMessage({ type: 'state-load', id: 999999, bytes: new TextEncoder().encode('{"lunar":"1.0","kind":"settings"}') });
   }));
-  // SAVE on the panel: the project into IndexedDB.
+  // A transaction failure after IndexedDB opened is not a memory-only save:
+  // it must be reported to the worklet and the library must remain empty.
+  await page.evaluate(() => {
+    const port = window.fm1.node.port;
+    const post = port.postMessage.bind(port);
+    window.fm1.savedReplies = [];
+    window.fm1.savePresses = [];
+    port.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'save-pressed') window.fm1.savePresses.push(event.data.gen);
+    });
+    port.start();
+    port.postMessage = (message, ...args) => {
+      if (message && message.type === 'saved') window.fm1.savedReplies.push({ ok: message.ok, reason: new TextDecoder().decode(message.reason) });
+      return post(message, ...args);
+    };
+    const transaction = IDBDatabase.prototype.transaction;
+    window.fm1.restoreTransaction = () => { IDBDatabase.prototype.transaction = transaction; };
+    IDBDatabase.prototype.transaction = function (stores, mode, ...args) {
+      const names = Array.isArray(stores) ? stores : [stores];
+      if (mode === 'readwrite' && names.includes('files')) throw new DOMException('Quota exceeded', 'QuotaExceededError');
+      return transaction.call(this, stores, mode, ...args);
+    };
+  });
   await page.evaluate(() => {
     const port = window.fm1.node.port;
     port.postMessage({ type: 'button', button: 9, down: true });
     setTimeout(() => port.postMessage({ type: 'button', button: 9, down: false }), 80);
   });
-  await waitNotice(page, /^Saved “First orbit” in this browser/);
+  await waitNotice(page, /^Not saved:/);
+  r.write_failure = await page.evaluate(async () => ({
+    replies: window.fm1.savedReplies,
+    files: await window.fm1.files.store.all('files'),
+    notice: document.querySelector('#file-notice .notice-text').textContent,
+  }));
+  // Let the first simulated panel press release; failure notices can arrive
+  // before its 80 ms key-up timer, and two overlapping downs are one press.
+  await wait(page, 120);
+  await page.evaluate(() => window.fm1.restoreTransaction());
+  // SAVE on the panel: the project into IndexedDB after storage recovers.
+  await page.evaluate(() => {
+    const port = window.fm1.node.port;
+    port.postMessage({ type: 'button', button: 9, down: true });
+    setTimeout(() => port.postMessage({ type: 'button', button: 9, down: false }), 80);
+  });
+  await page.waitForFunction(() => window.fm1.savedReplies.length === 2, null, { timeout: 8000 }).catch(() => {});
+  r.write_retry = await page.evaluate(async () => ({
+    replies: window.fm1.savedReplies,
+    savePresses: window.fm1.savePresses,
+    notice: document.querySelector('#file-notice .notice-text').textContent,
+    files: await window.fm1.files.store.all('files'),
+  }));
+  if (r.write_retry.replies[1]?.ok) await waitNotice(page, /^Saved “First orbit” in this browser/);
   r.saved = await page.evaluate(async () => (await window.fm1.files.store.all('files')).map((x) => [x.name, x.bin[0]]));
   // Autosave on its own timer: an edit, then 5 s quiet.
   const autosaves = await page.evaluate(() => window.fm1.files.autosaves);
+  // A failed autosave leaves the project dirty and can be retried once the
+  // transaction succeeds. Do not count the failed attempt as an autosave.
+  await page.evaluate(() => {
+    const transaction = IDBDatabase.prototype.transaction;
+    window.fm1.restoreAutosaveTransaction = () => { IDBDatabase.prototype.transaction = transaction; };
+    IDBDatabase.prototype.transaction = function (stores, mode, ...args) {
+      const names = Array.isArray(stores) ? stores : [stores];
+      if (mode === 'readwrite' && names.includes('autosave')) throw new DOMException('Quota exceeded', 'QuotaExceededError');
+      return transaction.call(this, stores, mode, ...args);
+    };
+    window.fm1.node.port.postMessage({ type: 'encoder', encoder: 4, delta: 1 });
+    window.fm1.files.touched();
+  });
+  await wait(page, 100);
+  r.autosave_failure = await page.evaluate(async () => {
+    const before = window.fm1.files.autosaves;
+    const result = await window.fm1.files.autosave();
+    return { result, dirty: window.fm1.files.dirty, count: window.fm1.files.autosaves, before };
+  });
+  await page.evaluate(() => window.fm1.restoreAutosaveTransaction());
+  r.autosave_retry = await page.evaluate(async () => {
+    const result = await window.fm1.files.autosave();
+    return { result, dirty: window.fm1.files.dirty, count: window.fm1.files.autosaves };
+  });
   await page.evaluate(() => window.fm1.node.port.postMessage({ type: 'encoder', encoder: 4, delta: 3 }));
   await page.evaluate(() => window.fm1.files.touched());
   await wait(page, 6500);
@@ -195,9 +265,44 @@ async function filesChecks() {
     !/bytes|KB/.test(r.refusal.text) && r.refusal.color === 'rgb(235, 111, 146)' && r.unchanged &&
     r.worklet_loads.length >= 2 && r.worklet_loads.every((l) => l.binary) && r.shadow_calls > 0 &&
     r.json_to_worklet.ok === false && r.json_to_worklet.binary === false &&
+    r.write_failure.replies.length === 1 && !r.write_failure.replies[0].ok && r.write_failure.replies[0].reason === 'STORAGE FAILED' &&
+    /still unsaved/.test(r.write_failure.notice) && r.write_failure.files.length === 0 &&
+    r.write_retry.files.length === 1 && /^Saved “First orbit” in this browser/.test(r.write_retry.notice) &&
     r.saved.length === 1 && r.saved[0][0] === 'First orbit' && r.saved[0][1] === 0x89 &&
+    !r.autosave_failure.result && r.autosave_failure.dirty && r.autosave_failure.count === r.autosave_failure.before &&
+    r.autosave_retry.result && !r.autosave_retry.dirty && r.autosave_retry.count === r.autosave_failure.before + 1 &&
     r.autosave_timer && r.recent.includes('Before First orbit') && r.restored && r.fx_changed && r.undo_identical &&
     r.recent_after.includes('Before Space verbs') && r.link_refused_kept;
+  return r;
+}
+
+async function unavailableStorageChecks() {
+  const ctx = await browser.newContext();
+  await ctx.addInitScript(() => {
+    IDBFactory.prototype.open = function () { throw new DOMException('Storage is unavailable', 'SecurityError'); };
+  });
+  const page = await open(ctx);
+  await powerOn(page);
+  await page.evaluate(() => {
+    const port = window.fm1.node.port;
+    const post = port.postMessage.bind(port);
+    window.fm1.savedReplies = [];
+    port.postMessage = (message, ...args) => {
+      if (message && message.type === 'saved') window.fm1.savedReplies.push({ ok: message.ok, reason: new TextDecoder().decode(message.reason) });
+      return post(message, ...args);
+    };
+    port.postMessage({ type: 'button', button: 9, down: true });
+    setTimeout(() => port.postMessage({ type: 'button', button: 9, down: false }), 80);
+  });
+  await waitNotice(page, /^Not saved:/);
+  const r = await page.evaluate(async () => ({
+    available: await window.fm1.files.store.available(),
+    replies: window.fm1.savedReplies,
+    files: await window.fm1.files.store.all('files'),
+    notice: document.querySelector('#file-notice .notice-text').textContent,
+  }));
+  await ctx.close();
+  r.pass = !r.available && r.replies.length === 1 && !r.replies[0].ok && r.files.length === 0 && /still unsaved/.test(r.notice);
   return r;
 }
 
@@ -429,6 +534,7 @@ async function localChecks() {
 
 try {
   report.checks.files = await filesChecks();
+  report.checks.unavailable_storage = await unavailableStorageChecks();
   report.checks.load_link = await loadLinkChecks();
   report.checks.hash = await hashChecks();
   report.checks.embed = await embedChecks();
@@ -441,7 +547,7 @@ try {
   server.close();
 }
 const c = report.checks;
-report.pass = !report.error && ['files', 'load_link', 'hash', 'embed', 'local', 'layout'].every((k) => c[k] && c[k].pass) &&
+report.pass = !report.error && ['files', 'unavailable_storage', 'load_link', 'hash', 'embed', 'local', 'layout'].every((k) => c[k] && c[k].pass) &&
   !report.logs.some((l) => l.includes('pageerror'));
 writeFileSync(join(out, 'files-report.json'), JSON.stringify(report, null, 2) + '\n');
 console.log(JSON.stringify({ pass: report.pass, browser: report.browser,

@@ -66,8 +66,11 @@ and native/Wasm edit parity with zero late storm quanta. Chromium's 30-second
 page storm passed with zero reported playback underruns on the LAN runner.
 The preceding CI checkpoint failed its stale-Wasm check and reported one
 10 ms Chromium underrun (the test originally mislabeled the API's 0.01
-seconds as milliseconds; corrected 2026-10-09); the final rebuilt commit
-still requires CI.
+seconds as milliseconds; corrected 2026-10-09). The final checkpoint was
+merged as PR #100 at `3c7b6a0ad153eff2f80444af9b2830da2c280538`; GitHub CI
+run 37890685197 and the Pages build both passed before merge. This records
+the merged firmware audit checkpoint only; subsequent editor durability work
+is on its own branch.
 These are compile checks, not a linked or installable hardware application.
 
 ## Firmware memory boundary
