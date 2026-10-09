@@ -88,6 +88,15 @@ tests and actual target audit/byte comparison provide this checkpoint's
 evidence. See prior notes for Rarefaction/Serena Python-root limitations;
 neither verifies this CPU ABI.
 
+The focused host/layout/audit/package suite passed 121 tests with the local
+stock fixture and original inert target enabled [verified]. A fresh default
+inert target rebuild remains 200 flash bytes, 4144 reserved RAM bytes and
+SHA-256 `5566edb6742aebb695a4ed2ab0e9d979ebadb615190bb030c55f59f2258fee08`,
+with zero audit failures/pending [verified]. Rarefaction C orientation used
+the original checkout's Apache bridge, reporting fallback clangd flags and
+no root compilation database; Serena's symbol overview found both bridge
+functions. Neither index describes the new managed-worktree target ABI.
+
 Parent owns independent review, CI and integration. No merge occurred in
 this worktree. Keep ignored ELF/disassembly/report artifacts for review and
 regenerate through the named LAN command if the worktree is restored.
