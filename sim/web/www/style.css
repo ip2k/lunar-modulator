@@ -423,11 +423,25 @@ body.embed .top, body.embed .help, body.embed .narrow-hint { display: none; }
 
 .help {
   margin: 24px 0 40px;
-  padding: 16px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
 }
+.help summary {
+  padding: 12px 16px;
+  min-height: 44px;
+  box-sizing: border-box;
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 600;
+}
+.help summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.cheat-sheet-icon {
+  width: 20px; height: 20px; margin: 0 8px 0 4px; vertical-align: middle;
+  fill: none; stroke: currentColor; stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.cheat-sheet-content { padding: 0 16px 16px; }
 .help dl { margin: 0; display: grid; gap: 10px; }
 .help dl > div { display: grid; grid-template-columns: 9rem 1fr; gap: 12px; }
 .help dt { font-weight: 600; color: var(--accent); }
