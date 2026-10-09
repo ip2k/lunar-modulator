@@ -45,12 +45,15 @@ modulation, manual and edit suites passed (six dependency skips); X0X suites:
 114 passed, seven reference-checkout skips. ASan/UBSan over X0X, sequencer and
 modulation suites: 293 passed, seven reference-checkout skips.
 
-[verified] The pinned vendor compiler compiled 151 objects in each of four
-profiles without failures, with the GPL switch enabled and the full module
-list. Injecting a deliberate compile error returned status 1, recorded one
+[verified] The initial target runs compiled 151 objects per profile but
+omitted the shared metadata/state codec objects. The corrected, deduplicated
+object list compiled 164 objects in each of four profiles without failures,
+with the GPL switch enabled and the full module list. Two regression cases
+(GPL on/off) verify codec coverage and uniqueness in a reduced module list. Injecting a deliberate compile error returned status 1, recorded one
 failure in each profile and preserved the report; the injected source was
 restored. Object-level guards passed, with two linked-image checks pending.
-The state-import correction also passed all four target profiles. Native
+Both the app-state correction and the C codec corrections are covered by
+the final four-profile target run. Native
 state suites passed with GPL modules on (nine passed, three dependency skips)
 and off (eight passed, four dependency/module skips); the unknown-effect
 regression reproduced before the correction in JSON and binary.
@@ -76,6 +79,12 @@ plan. The simulator's chain meter estimates live engine resources; it does
 not certify this compiled layout against the FM-1's SRAM. Firmware needs
 bounded instance allocation, display buffering and streaming persistence,
 then a real linked-image map, stack/interrupt budget and runtime measurements.
+The expanded target check also exposes a compiler warning for an 8,264-byte
+`fm1_state_bin_read` frame (the disassembly prologue estimator reports 4,148
+bytes). Neither measure is a complete call-chain budget; retain the larger
+compiler warning as a device-readiness constraint until linked analysis and
+stack measurements resolve it. The codec checks passing do not establish
+that its current stack use is appropriate for the FM-1.
 
 ## Remaining work and recovery
 

@@ -17,7 +17,8 @@ Resume on `fix/2026-10-08@firmware-readiness-audit`, in the managed
 [its report](notes/2026-10-07-full-code-audit.md); verified corrections,
 test results and remaining firmware prerequisites are in
 [the remediation ledger](notes/2026-10-08-audit-remediation.md).
-Native sanitizer and four-profile target compile checks pass. This is not a
+Native sanitizer and four-profile target compile checks pass (164 unique
+objects per profile, now including the previously omitted state codecs). This is not a
 linked firmware application: simulator arenas and persistence scratch exceed
 device SRAM and require a device layout. No hardware traffic in this work.
 PR #100 holds this batch. The codec suite passes (105 passed, one corpus skip),

@@ -1,6 +1,6 @@
 # Full code audit — 2026-10-07
 
-Status: **source audit complete at the documented review tiers** (2026-10-08); see the final disposition below. Device firmware implementation remains paused pending owner review of findings and the recorded device-readiness blockers.
+Status: **source audit complete at the documented review tiers** (2026-10-08); see the final disposition below. The owner resumed firmware work on 2026-10-08. Corrections and remaining device-readiness blockers are tracked in [the remediation ledger](2026-10-08-audit-remediation.md).
 
 ## Scope and pinned source variants
 
