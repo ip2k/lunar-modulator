@@ -29,6 +29,10 @@ no licence change is required or authorized by this implementation work.
 - Sound imports omit unavailable MIDI-effect ON/PARAM records and reset the
   replaced slot to the bypassed default used by preflight, rather than
   changing or retaining the previous sound's effect.
+- Compressed state chunks and launch links require stream completion and
+  reject trailing bytes in C/Python, including CRC-consistent containers.
+- Binary state chunks reject duplicate keys and duplicate parameter UID/focus
+  pairs instead of silently keeping the last value.
 - Technical status and recovery instructions now distinguish bounded sector
   recovery from untested full-image recovery and Lunar installation.
 
@@ -39,8 +43,8 @@ modulation, manual and edit suites passed (six dependency skips); X0X suites:
 114 passed, seven reference-checkout skips. ASan/UBSan over X0X, sequencer and
 modulation suites: 293 passed, seven reference-checkout skips.
 
-[verified] The pinned vendor compiler compiled 123 objects in each of four
-profiles without failures, with the GPL switch enabled and default module
+[verified] The pinned vendor compiler compiled 151 objects in each of four
+profiles without failures, with the GPL switch enabled and the full module
 list. Injecting a deliberate compile error returned status 1, recorded one
 failure in each profile and preserved the report; the injected source was
 restored. Object-level guards passed, with two linked-image checks pending.
@@ -48,6 +52,10 @@ The state-import correction also passed all four target profiles. Native
 state suites passed with GPL modules on (nine passed, three dependency skips)
 and off (eight passed, four dependency/module skips); the unknown-effect
 regression reproduced before the correction in JSON and binary.
+The codec suite with GPL off passed (105 passed, one external-corpus skip),
+including zlib streams with an empty final block and duplicate-field cases.
+Regressions reproduced acceptance of trailing chunk data and incomplete or
+trailing launch-link streams before the correction.
 These are compile checks, not a linked or installable hardware application.
 
 ## Firmware memory boundary
@@ -65,7 +73,7 @@ then a real linked-image map, stack/interrupt budget and runtime measurements.
 ## Remaining work and recovery
 
 All unresolved findings remain in the full audit report, including editor
-persistence/history/cable identity checks and compressed/binary state validation. No
+persistence/history/cable identity checks and the remaining state-validation findings. No
 hardware operation occurred during this remediation. Full-image restore,
 broken-app recovery and a Lunar application on the device remain untested.
 

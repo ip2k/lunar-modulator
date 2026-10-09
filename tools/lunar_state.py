@@ -1654,7 +1654,7 @@ def inflate(data, out_len):
             if not piece:
                 break
             out += piece
-        if len(out) != out_len or not d.eof:
+        if len(out) != out_len or not d.eof or d.unused_data or d.unconsumed_tail:
             raise ValueError
     except (zlib.error, ValueError):
         raise Refused("BAD", "a deflated chunk that cannot be read") from None
@@ -2048,8 +2048,12 @@ class _Chunk:
         n = self.u16()
         if n > 64:
             raise Refused("TOO_BIG", "more than 64 entries")
+        seen = set()
         for _ in range(n):
             key, typ, flags, ln = struct.unpack("<HBBH", self.take(6))
+            if key in seen:
+                raise Refused("BAD", "an entry given twice")
+            seen.add(key)
             if flags:
                 raise Refused("BAD", "unknown entry flags")
             yield key, typ, self.take(ln)
@@ -2256,8 +2260,12 @@ def read_bin(data):
                 raise Refused("TOO_BIG", "more than 512 records in a unit")
             if n and not eid:
                 raise Refused("BAD", "an empty unit with values")
+            seen_params = set()
             for _ in range(n):
                 uid, focus, vtype, bits = struct.unpack("<HBBI", c.take(8))
+                if (uid, focus) in seen_params:
+                    raise Refused("BAD", "a parameter given twice")
+                seen_params.add((uid, focus))
                 if not 1 <= uid <= 4095:
                     raise Refused("BAD", "a uid out of range")
                 if focus != NONE and (focus >= 32 or role != SOUND):
@@ -2514,10 +2522,15 @@ def read_link(fragment, names):
     if len(data) > LINK_CAP:
         raise Refused("TOO_BIG", "past the 32 KiB a link carries")
     raw = base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))
-    d = zlib.decompressobj(-15)
-    text = d.decompress(raw, KIND_CAP[1] + 1)
-    if len(text) > KIND_CAP[1]:
-        raise Refused("TOO_BIG", "larger than any kind's cap")
+    try:
+        d = zlib.decompressobj(-15)
+        text = d.decompress(raw, KIND_CAP[1] + 1)
+        if len(text) > KIND_CAP[1]:
+            raise Refused("TOO_BIG", "larger than any kind's cap")
+        if not d.eof or d.unused_data or d.unconsumed_tail:
+            raise ValueError
+    except (zlib.error, ValueError):
+        raise Refused("BAD", "a deflated link that cannot be read") from None
     return read_json(text, names)
 
 

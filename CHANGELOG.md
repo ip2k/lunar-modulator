@@ -14,6 +14,9 @@ history.
   deletion safety and remote oracle argument validation.
 - Defined X0X exponent bit arithmetic without sanitizer exemptions and kept
   Comet hit voicing stable during parameter ramps.
+- Binary state chunks reject duplicate keys and parameter UID/focus pairs.
+- Compressed state chunks and launch links reject incomplete streams and
+  trailing bytes instead of accepting malformed compressed content.
 - Sound imports no longer apply unavailable MIDI-effect settings to a previous
   slot; omitted effects load as the bypassed default used by preflight.
 - Reconciled technical recovery status with the verified bounded-sector

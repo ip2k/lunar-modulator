@@ -654,14 +654,20 @@ typedef int (*kv_fn)(br_t *b, cs_t *c, unsigned key, unsigned type, unsigned n, 
 
 static int kv_each(br_t *b, cs_t *c, kv_fn fn, void *ctx) {
   uint8_t h[6];
+  uint16_t seen[64];
   unsigned count, i;
   if (!cs_get(c, h, 2)) return short_chunk(b);
   count = get16(h);
   if (count > 64u) return brefuse(b, FM1_STATE_TOO_BIG, "more than 64 entries");
   for (i = 0; i < count; ++i) {
     if (!cs_get(c, h, 6)) return short_chunk(b);
+    unsigned j;
     if (h[3]) return bbad(b, "unknown entry flags");
-    if (!fn(b, c, get16(h), h[2], get16(h + 4), ctx)) return 0;
+    seen[i] = (uint16_t)get16(h);
+    for (j = 0; j < i; ++j) {
+      if (seen[j] == seen[i]) return bbad(b, "an entry given twice");
+    }
+    if (!fn(b, c, seen[i], h[2], get16(h + 4), ctx)) return 0;
   }
   return 1;
 }
@@ -833,6 +839,9 @@ static int unit_place(const br_t *b, unsigned role, unsigned sound, unsigned slo
 
 static int read_unit(br_t *b, cs_t *c) {
   uint8_t h[8];
+  /* Bounded by the format's record cap; do not allocate a UID-by-pad map. */
+  uint16_t seen_uid[512];
+  uint8_t seen_focus[512];
   fm1_rec_t r;
   acc_t lv;
   unsigned count, i;
@@ -889,6 +898,16 @@ static int read_unit(br_t *b, cs_t *c) {
       return bbad(b, "a pad out of range");
     }
     if (!value_ok(r.u.param.vtype, r.u.param.bits)) return bbad(b, "a value that cannot be read");
+    {
+      unsigned j;
+      for (j = 0; j < i; ++j) {
+        if (seen_uid[j] == r.u.param.uid && seen_focus[j] == r.u.param.focus) {
+          return bbad(b, "a parameter given twice");
+        }
+      }
+      seen_uid[i] = r.u.param.uid;
+      seen_focus[i] = r.u.param.focus;
+    }
     if (!bemit(b, &r)) return 0;
   }
   memset(&lv, 0, sizeof(lv));
