@@ -17,8 +17,9 @@ artifacts are `build/jieli-runtime-evidence/stock-app.{bin,S}` and
 
 [verified] All offsets below are raw app-body offsets. Executable addresses
 are `0x02000120 + offset`. A relocatable `.incbin` wrapper has zero section
-address, so absolute annotations for PC-relative calls, especially ROM calls,
-must be rebased; their printed target alone is not a physical ROM address.
+address, so absolute annotations for PC-relative calls must be rebased with
+the complete `0x02000120` base modulo 32 bits. A negative printed target
+does not imply mask ROM: stock also calls routines relocated into RAM.
 
 | Raw offset | Fresh vendor decode | Boundary |
 | --- | --- | --- |
@@ -27,7 +28,7 @@ must be rebased; their printed target alone is not a physical ROM address.
 | `0x16..0x46` | Zero 103,872 bytes from `0x01c0a05c`; copy 41,052 bytes to `0x01c00000` from `0x02084060`. | These are stock reservations, not permission to reuse them in a new runtime. |
 | `0x90..0x96` | Indirect branch to `0x02001c32` (raw `0x1b12`). | Entry into stock platform setup. |
 | `0x1b14..0x1b28` | CLI, read `cnum`, increment a per-core RAM counter, CSYNC. | Stock startup is core-aware; inherited core identity has not been measured. |
-| `0x1b2a..0x1b50` | Two writes through a wrapper using P33 address `0x80`, values 0 and 12; then OR-style calls with 32, 64, 16. | Operation semantics must be tied to pinned primary definitions before reuse. |
+| `0x1b2a..0x1b50` | Two writes through a wrapper using P33 address `0x80`, values 0 and 12; then OR calls with 32, 64, 16. | Relocated RAM implementations are traced below; not reusable after overwriting stock RAM. |
 | `0x1b5e..0x1d74` | Reads clock registers and selects paths, programs clock/timer controls, calls another setup routine. | The stock app establishes its own clock contract; an inherited SPL clock cannot be inferred from the normal application's final clock. |
 
 ## Reference boundaries
@@ -74,9 +75,22 @@ P33 address 23 bit 6. [inferred] The V15 sequence above matches that SDK
 watchdog initialization with period field 12 (`WDT_4S` in pinned `asm/wdt.h`,
 not a period measured here). Matching operations is not
 proof of the final watchdog state at the SPL-to-new-app handover: the fresh
-app performs this setup after handover. The stock wrapper's rebased ROM
-targets are `0xffc0104e` and `0xffc010b4`; their operation names still need a
-primary ROM-symbol binding before a new runtime could call them.
+app performs this setup after handover.
+
+[verified] The stock wrappers call **RAM** addresses `0x01c0104e` and
+`0x01c010b4`, not ROM. For example,
+`(0xffc00f2e + 0x02000120) & 0xffffffff = 0x01c0104e`.
+The data copy above maps these to raw file offsets `0x84f8e` and `0x84ff4`:
+`raw = (0x02084060 - 0x02000120) + (RAM - 0x01c00000)`.
+Both decoded bodies transact through the P33 SPI registers `0x13e08` and
+`0x13e0c`; the first sends the address-high write-operation byte, address-low
+and value, while the second ORs `0x20` into the operation byte. These match
+the operations in fresh pinned SDK `p33.c.ll` (`p33_tx_1byte` and
+`p33_or_1byte`), including the primary register addresses and command bytes.
+Stock's transfer helper at raw `0x84f08` polls busy without a deadline, and
+the surrounding routines use stock RAM lock/IRQ helpers. Their existence
+does not authorize reuse: a new runtime overwrites that RAM and lacks those
+lock/IRQ dependencies. No Lunar code calls either routine.
 
 [verified] Raw `0x23c1c` selects SPI1 port B through IOMAP CON1 bit 4.
 Raw `0x23c20..0x23c3e` establishes PC7 and PC8–PC10 output directions; raw
@@ -162,3 +176,6 @@ untested risks; this offline stream does not perform that experiment.
 - 2026-10-09: Checkpoint full byte-matched vendor V15 decode and source-specific
   startup/LCD prerequisites; add an independently authored, host-tested and
   target-compiled callback probe while leaving hardware activation gated.
+- 2026-10-09: Correct the earlier P33 call rebasing, which mistakenly labelled
+  relocated RAM routines as ROM; trace the data-load correspondence and
+  operations against fresh SDK IR. The component implementation is unchanged.
