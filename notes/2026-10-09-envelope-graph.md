@@ -53,3 +53,12 @@ Combined editor integration checkpoint: origin/main `ebc6690` and PR #99
 are resolved; generated Wasm/metadata temporarily retain the envelope-only
 artifacts pending a combined rebuild on aeon. This is a WIP checkpoint,
 not merge-ready; PR #99 must land first.
+
+Combined metadata checkpoint: canonical metadata regenerated against the
+combined PR #99/envelope registry, including Squash gate telemetry v2 and
+shifted offsets. Canonical and served project examples match. On aeon the
+state schema/codec/app-state, editor metadata and CI-pin checks passed
+(151 passed, one optional skip across the full run and a focused rerun).
+The initial full run omitted README from the staged test root; after copying
+it the one affected metadata-page comparison passes. Combined browser build
+continues; generated Wasm artifacts are not finalized at this checkpoint.
