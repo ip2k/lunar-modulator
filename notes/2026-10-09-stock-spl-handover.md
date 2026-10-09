@@ -65,9 +65,10 @@ hardware or establish a safe bare-metal RAM layout.
   P33 serial interface (`SPI_CON = 0x13e08`, `SPI_DAT = 0x13e0c`) with
   bytes `0x40`, `0x80`, `0xef`, with chip select and busy polling.
   [verified] SDK `p33.h` identifies P33 register `0x80` as `P3_WDT_CON`.
-  [inferred] This is consistent with a watchdog-register write, not an
-  untouched watchdog. Its exact enabled/reset mode, remaining timeout,
-  and state at the application call are **not established** by this trace.
+  [verified] The SDK helpers identify `0x40` as an **AND** command: this
+  clears watchdog enable bit 4, equivalent to `wdt_disable()`, rather than
+  writing `0xef` into the register. Period and IRQ/reset selection are
+  preserved. The detailed evidence and final-state limit are below.
   Community approximate watchdog periods must not become a diagnostic's
   timing guarantee.
 - **Clocks:** [verified] The SPL programs clock and SFC settings through
@@ -105,6 +106,81 @@ clocks, interrupt routing, debug and P33 latches, before OS startup. Its
 successful integration pattern therefore cannot be treated as proof that
 LCD code is ready to run immediately at the stock SPL call.
 
-Validation: fresh vendor decode and complete input-byte comparison; named
-SDK/source cross-checks; documentation whitespace check. No runtime,
-watchdog-duration, LCD, hardware recovery, or target-ABI test is claimed.
+## Watchdog follow-up: operation, mode, and limits
+
+[verified] Fresh LLVM IR was regenerated with JieLi's installed compiler from
+the `wdt.c.o` and `p33.c.o` members of `cpu/wl82/liba/cpu.a`, independently
+for SDK V1.1.9 (`8eae66452ce4c34d64ad38a2764ba1c0610900e3`, matching the
+stock SPL's release) and the pinned V1.2.13 (`e30b1ee375d1f2993fc23bf92c8b99006a6e5f9d`).
+The inspected helpers agree on the operations below. This comparison
+identifies the stock transaction's meaning; it does not substitute newer
+SDK initialization for the stock SPL's path.
+
+| Helper / field | Verified operation in both SDK archive members |
+| --- | --- |
+| `p33_and_1byte` | Command byte `((address >> 8) & 3) \| 0x40`, then address low byte and AND mask. |
+| `p33_or_1byte` | Same address encoding with command bits `0x20`. |
+| `p33_tx_1byte` | Plain write uses the address high bits with neither `0x40` nor `0x20`. |
+| `wdt_enable` / `wdt_disable` | OR `0x10` / AND `0xef` on register `0x80`; bit 4 controls enable. |
+| `wdt_clear` | OR `0x40`; bit 6 is the watchdog clear/service operation. |
+| `wdt_set_irq` | Sets/clears bit 5, services via bit 6, and sets/clears bit 6 of `P3_VLD_KEEP` (`0x17`). |
+| `wdt_reset_enable` | Reads the register, masks with `0x9f`, ORs `0x40`, then writes it; it preserves enable bit 4 rather than enabling the timer itself. |
+| `wdt_init` | Writes zero, writes the period code masked to low four bits, selects IRQ mode and enables the watchdog. |
+
+[verified] Therefore the early SPL AND transaction clears **only bit 4**.
+It does not choose IRQ versus reset mode (bit 5), set a period (bits 0–3),
+or perform the SDK's service operation (bit 6). No watchdog duration or
+elapsed/remaining count follows from `0xef`. The SDK's nominal period table
+cannot identify an inherited period when those bits were not observed.
+
+[verified] A further explicit register-`0x80` transaction occurs in the
+optional RAM-test helper: `r0 = 0x80` at `0x6ea`, `r1 = 0` at `0x6ec`,
+then the plain-write helper at `0x418` is called at `0x6f0`. This closes
+the watchdog if that helper runs. No direct re-enable was found in the
+inspected SPL code paths. However, at `0x2f74` the SPL calls an indirect
+target taken from offset 8 of a 32-byte record held at `sp + 200`; that
+target's behavior has not been resolved. [inferred] The verified early
+disable and absence of a known later enable are useful static evidence,
+but do not prove the register's value at every possible application call.
+IRQ/reset mode at handover remains unknown, as does secondary-core activity.
+
+[verified] Reproduction on the existing read-only SDK mounts: extract those
+two members with vendor `llvm-ar x`, then run vendor
+`clang -target pi32v2 -mcpu=r3 -S -emit-llvm -x ir MEMBER -o OUTPUT.ll`.
+The V1.1.9 archive Git blob is `f0f65e4b2e1ac68d4a2bebaf66d6fc3a1b549d1b`;
+the V1.2.13 archive blob is `dd8053fcac26e94c88c24f53419fa7dcdd78e27d`.
+Raw members and IR remain untracked in `/tmp/lunar-stock-spl-handover/fresh/`.
+
+## Necessary shape of a non-returning startup
+
+[verified] SPL startup clears `[0x01c05840, 0x01c065a0)` and sets the two
+stacks described above. It sets `rete = 0`, then `reti = 0x01c02036` before
+an `rti` transition (`0x1c..0x44`); this is startup control flow, not an
+established application exception-vector contract. No later explicit SPL
+assignment to `ssp`, `rete`, or `reti` was found in the decoded code.
+Other observed SPL storage includes `r15 = 0x01c06460`, metadata at
+`0x01c075e8`, and the boot information at `0x01c7fe08`. These observations
+do not constitute a complete SRAM ownership map.
+
+[inferred] A minimal diagnostic startup should preserve the `r0` boot
+argument before changing registers, keep interrupts masked, establish
+explicit application `sp` **and `ssp`** reservations and an exception policy,
+then initialize only its bounded data/BSS ranges. It must remain non-returning
+if those ranges overwrite the SPL and avoid calls or exception paths back
+into discarded SPL storage. Any boot-information copy must respect the
+six-word prefix and its pointed-to 32-byte header, including pointer relocation
+if the copied prefix is retained independently.
+
+[inferred] The diagnostic should retain the proven XIP/SFC/cache setup until
+a replacement policy is established. An explicit, independently implemented
+watchdog-disable operation can remove reliance on the earlier transaction;
+enabling it later requires a deliberate mode/period/service policy. This is
+a proposed initialization boundary, **not** implementation or evidence of
+safe execution. Exception routing, secondary-core quiescence, TLB ownership,
+and concrete clock rates remain gates before LCD access. The current static
+evidence is insufficient to declare a complete startup contract or private RAM.
+
+Validation: fresh vendor decode and complete input-byte comparison; fresh
+two-version archive-member IR inspection; named SDK/source cross-checks;
+documentation whitespace check. No runtime, watchdog-duration, LCD, hardware
+recovery, or target-ABI test is claimed.
