@@ -16,7 +16,8 @@ implementation was copied. This note does not authorize a hardware experiment.
   containing `.section .fw,"ax",@progbits` and `.incbin` of that exact SPL.
   Every disassembly byte column was compared with the input: 14,384 bytes
   covered, zero mismatches. Offsets below are **SPL file offsets**, including
-  its 16-byte header; add `0x01c02000` for RAM addresses. The header's load
+  its 16-byte header; loaded-body RAM addresses are
+  `0x01c02000 + file_offset - 16`. The header's load
   address word is `0x01c02000` and entry-offset word is `0x10`.
 - [verified] The run used the existing `lunar-jieli-check:bookworm` container
   (`sha256:bcffae0f43893343df2c5ec1a0e53458682cc421f1e33ec7802a98482afd3495`),
@@ -85,8 +86,8 @@ hardware or establish a safe bare-metal RAM layout.
 
 ## RAM ownership and the next gate
 
-[verified] The SPL header load base plus its byte length spans
-`[0x01c02000, 0x01c05830)`. The currently linked minimal diagnostic's
+[verified] The SPL bank excludes its 16-byte header from the loaded body.
+The 14,368-byte body spans `[0x01c02000, 0x01c05820)`. The currently linked minimal diagnostic's
 4,144-byte RAM reservation, `[0x01c02000, 0x01c03030)`, therefore overlaps
 SPL bytes. Avoiding the SDK's optional first-8-KiB TLB reservation does not
 make that range private. This is a confirmed static overlap, **not** a
@@ -184,3 +185,12 @@ Validation: fresh vendor decode and complete input-byte comparison; fresh
 two-version archive-member IR inspection; named SDK/source cross-checks;
 documentation whitespace check. No runtime, watchdog-duration, LCD, hardware
 recovery, or target-ABI test is claimed.
+
+### Offline mapping correction
+
+[verified: PR #108 parallel header/mapping inspection] File offsets include
+the 16-byte bank header; it is excluded from loaded-body RAM addresses.
+The earlier `0x01c05830` end and plain base-plus-offset rule were off by
+16 bytes. The diagnostic overlap remains. Odd-immediate symbolic labels in
+vendor objdump can also differ by one from the decimal literal; use the
+actual literal rather than treating the annotation as an exact pointer.
