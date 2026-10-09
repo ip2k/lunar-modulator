@@ -42,8 +42,11 @@ parent envelope-graph implementation.
   Chromium storage-failure regressions passed locally. PR is open; CI/review
   remain pending. This is not yet on main.
 - **PR #102** recovery-status wording is open and needs current CI review. Its
-  Chromium page suite failed the 30-second storm with two underruns / 0.02 ms;
-  the other reported matrix jobs passed. Do not call its PR checks green based
+  Chromium page suite failed the 30-second storm with two underruns reported
+  as `0.02` by playbackStats. That field is in seconds, despite the test's
+  `_ms` output suffix, so the reported duration is 20 ms (traced events were
+  10–20 ms), not 0.02 ms; the other reported matrix jobs passed. Do not call
+  its PR checks green based
   only on the prior successful targeted tests. The staged recovery evidence
   remains bounded sector write/restore plus matching full-image comparisons;
   whole-image rewrite, recovery from a nonbooting app, and Lunar execution on
@@ -127,6 +130,11 @@ for #105–108 were pending. These states can change after this note.
   revive the conflicted branch. Current source pointers are
   `notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md` §4, `docs/13`'s Movy
   claims table, and `notes/2026-10-07-fm1-softkey-bench.md`.
+
+PR #110 ports the three verified factual corrections in a focused branch and
+records evidence in `notes/2026-10-09-factual-doc-corrections.md`; its CI and
+review remain pending. The audit-remediation note also now reports the
+`0.01` playbackStats value as 10 ms, not 0.01 ms.
 
 ## Product metadata and audit status corrections
 
