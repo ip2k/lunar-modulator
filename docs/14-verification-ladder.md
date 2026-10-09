@@ -12,13 +12,19 @@ chip. The 2026-10-02 compile check (§5.2) verified what compiling alone can
 show: code generation, sizes and symbols. Every claim about how pi32v2 code
 behaves when run stays [inferred] until §5's probes replace it.
 
+**Owner update, 2026-10-07:** direct FM-1 soft-key/recovery exploration is
+authorized on bench01 without waiting for this dev kit or proving a full
+restore first. The staged hardware policy in docs/07 §4 supersedes this plan's
+original "one rule" gates. Backups and a concrete recovery plan precede flash
+writes; hardware equivalence remains unverified until measured.
+
 ## 1. Short answer
 
 | Question | Answer |
 | --- | --- |
 | What does "1:1" mean? | **Bit-exact wherever both sides do the same arithmetic.** That covers sequencer events, screen frames, LED states and MIDI bytes. It covers the DSP too, once float contraction and libm are pinned. A tolerance is allowed only where a named cause differs (compiler, libm, FPU edge cases, the analog path). It is never found by loosening a bound until a test passes. |
 | Emulator ↔ dev board? | Expected to be bit-exact in a "ladder" build profile: `-ffp-contract=off` and one libm on every rung [inferred]. Today the browser module matches native `fm1-render` built against musl in 12 of 12 scenarios, and built against glibc in 10 of 12. The two Sophie scenarios differ because of libm [verified: sim/web/README.md, "Parity"]. |
-| Dev board ↔ FM-1? | Same ISA, FPU, toolchain and object code, so the output before the DAC should be bit-exact. The differences are confined to the board: analog stage, crystal tolerance, flash and cache timing, keys, LEDs, TFT [inferred]. **This rung opens only after the FM-1 has been dumped and restored byte for byte** (CLAUDE.md, the one rule). |
+| Dev board ↔ FM-1? | Same ISA, FPU, toolchain and object code, so the output before the DAC should be bit-exact. The differences are confined to the board: analog stage, crystal tolerance, flash and cache timing, keys, LEDs, TFT [inferred]. This rung follows the owner-authorized staged hardware policy (docs/07 §4). |
 | Stock firmware ↔ ours? | Never 1:1. Stock is msfa with its own effects, trims and UI. Before the gate it is a black box: the owner plays it by hand and we observe passively (§4.1). |
 | How? | One golden corpus, one heap-free C runner built for every rung, per-block hashes, one diff tool, and a results record per rung like `www/fm1.wasm.json` (§3). |
 | First week? | Inventory, toolchain, the kit's own dump and restore, blink and UART, FPU probes, the second-core probe, audio out, then rung 2 offline and the stage B numbers (§5). |
@@ -32,7 +38,7 @@ behaves when run stays [inferred] until §5's probes replace it.
 | R0 desktop | `fm1-render`, `fm1-seq`, `fm1-sim-render`: 64-bit, `-m32`, ASan + UBSan | clang and GCC, CI | [verified] in CI |
 | R1 browser | `fm1.wasm`: the virtual FM-1's app layer and every engine | Emscripten 6.0.10 on aeon | [verified] 12/12 against musl R0 |
 | R2 dev board | the same C sources on the AC7916, in two modes: *offline* (a render loop) and *live* (driven by the DAC interrupt) | JieLi Clang/LLVM 4.0.1 with newlib 2.2.0's libc and libm [verified: §5.2] | stage B: compile-only done (§5.2); nothing run |
-| R3 FM-1, ours | R2's portable code with the FM-1's board-support layer; RAM-only first, flash later | the same | gated by the one rule |
+| R3 FM-1, ours | R2's portable code with the FM-1's board-support layer; RAM-only first, flash later | the same | staged bench work authorized; not yet run |
 | Rs FM-1, installed | `FM-1_092` (Baud Girl's FM-1+VA) today; stock V15 if the owner rolls back | — | black box only |
 
 ### 2.2 Where the arithmetic can differ

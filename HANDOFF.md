@@ -10,6 +10,18 @@ original conversation; last updated 2026-09-29 (Baud Girl's FM-1+VA, the
 owner's PCB photos) and 2026-10-01 (engines, sequencer, the new name). Read
 this first, then `DEVELOPERS.md` (the README is the product page), then `docs/`.
 
+## Latest hardware update — 2026-10-07
+
+The original research summary below is historical. The owner authorized
+staged recovery experiments, superseding the prior dump-and-restore
+prerequisite. Soft-key UBOOT entry works on FM-1_092; the audited loader ran
+in RAM, matching full backups were saved off-host, and an unused 4 KiB
+sector was programmed and restored with the entire flash unchanged
+[verified: [bench note](notes/2026-10-07-fm1-softkey-bench.md)]. Full-image
+restoration and a Lunar application on hardware remain untested. Normal
+boot after both the initial dump and the restoration was owner-confirmed. The mobile hardware editor is explicitly deferred
+until installable firmware; see [its resume plan](notes/2026-10-07-mobile-advanced-editor.md).
+
 ## 1. Where things stand
 
 - **Owner:** Sean (GitHub `ip2k`). Works from a MacBook with Claude Desktop /
@@ -19,7 +31,7 @@ this first, then `DEVELOPERS.md` (the README is the product page), then `docs/`.
 - **This repository** is the research output: nine documents, three tools, one
   research log, plus bench session 1 (`notes/2026-09-06-bench.md`): the unit
   answered the identity query as `FM-1_015`, V15 is unpacked and diffed against
-  V14. This project has written nothing to the device. The case has been
+  V14. At that research checkpoint, this project had written nothing to the device. The case has been
   opened for photos (2026-09-29, `photos/2026-09-29/`, described in
   `notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`).
 - **The owner's unit now runs Baud Girl's FM-1+VA**: the owner installed it
