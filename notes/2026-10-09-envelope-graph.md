@@ -44,3 +44,6 @@ The state schema, codec and application-state suites pass in the Emscripten
 container on aeon. This changes fixtures, not reader compatibility or DSP.
 PR #103's durable browser-save correction merged at `ebc6690` after full CI.
 PR #99 must merge before this branch, followed by a combined Wasm rebuild.
+
+The two changed browser example copies are synchronized with their canonical
+engine examples; all five served examples remain byte-identical.
