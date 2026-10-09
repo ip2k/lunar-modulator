@@ -6,14 +6,12 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 
 Written 2026-09-06 at the end of the research session that created this
 repository, so a fresh Claude project (or a human) can continue without the
-original conversation; last updated 2026-09-29 (Baud Girl's FM-1+VA, the
-owner's PCB photos) and 2026-10-01 (engines, sequencer, the new name). Read
-this first, then `DEVELOPERS.md` (the README is the product page), then `docs/`.
+original conversation; last updated 2026-10-09. Read this first, then
+`DEVELOPERS.md` (the README is the product page), then `docs/`.
 
 ## Audit remediation — 2026-10-08
 
-Resume on `fix/2026-10-08@firmware-readiness-audit`, in the managed
-`full-code-audit` worktree. The full audit is recorded in
+The full-code audit is recorded in
 [its report](notes/2026-10-07-full-code-audit.md); verified corrections,
 test results and remaining firmware prerequisites are in
 [the remediation ledger](notes/2026-10-08-audit-remediation.md).
@@ -23,14 +21,16 @@ linked firmware application: simulator arenas and persistence scratch exceed
 device SRAM and require a device layout. No hardware traffic in this work.
 PR #100 holds this batch. The codec suite passes (105 passed, one corpus skip),
 including compressed stream termination and duplicate-field rejection. The committed Wasm has been rebuilt: all 104 parity scenarios pass and
-Chromium's LAN page storm reports zero underruns. The preceding CI checkpoint
-failed stale-Wasm and Chromium storm checks; verify the rebuilt commit's CI
-before merging. The runtime choice
+Chromium's LAN page storm reports zero underruns. PR #100 merged the rebuilt
+commit as `3c7b6a0`; CI run `37890685197` passed all jobs. The runtime choice
 (independent permissive board implementation versus Felucca GPL reuse) is
 pending; no board runtime has been implemented. The concrete next milestone
 and memory/link/audio gates are in
-[the device bring-up plan](notes/2026-10-08-device-bringup-plan.md).
-The separate editor improvements branch/PR #99 remains unmerged.
+[the device bring-up plan](notes/2026-10-08-device-bringup-plan.md). The
+separate editor PR #99 remains open; PR #101 tracks the envelope graph, and
+PR #103 tracks IndexedDB save durability. Verify current PR and CI state
+before resuming either stream. The linked diagnostic in PR #104 is merged,
+but has not been run on native hardware.
 
 ## Latest hardware update — 2026-10-07
 

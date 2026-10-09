@@ -65,7 +65,11 @@ The updated Wasm passed 104 parity scenarios, 18 SysEx cases, metadata checks
 and native/Wasm edit parity with zero late storm quanta. Chromium's 30-second
 page storm passed with zero reported playback underruns on the LAN runner.
 The preceding CI checkpoint failed its stale-Wasm check and reported one
-0.01 ms Chromium underrun; the final rebuilt commit still requires CI.
+0.01 ms Chromium underrun. The final rebuilt commit was merged in PR #100 as
+`3c7b6a0ad153eff2f80444af9b2830da2c280538`; GitHub check run `37890685197`
+passed all jobs. PR #100 closes this remediation branch's review/CI gate;
+later work is tracked separately in the current open PRs, not by continuing
+the old branch.
 These are compile checks, not a linked or installable hardware application.
 
 ## Firmware memory boundary
@@ -90,14 +94,17 @@ that its current stack use is appropriate for the FM-1.
 
 ## Remaining work and recovery
 
-All unresolved findings remain in the full audit report, including editor
-persistence/history/cable identity checks and the remaining state-validation findings. No
-hardware operation occurred during this remediation. Full-image restore,
+The full audit report retains unresolved findings. The cable-target identity
+correction is implemented in open PR #99 and the IndexedDB save-durability
+correction in open PR #103; neither is merged on this note's baseline. Other
+state-validation findings remain to be resolved against their original
+batches. No hardware operation occurred during this remediation. Full-image restore,
 broken-app recovery and a Lunar application on the device remain untested.
 
 Serena indexes this worktree; Rarefaction indexes the original checkout, so
 its orientation is context only. Neither index proves target ABI behavior.
-Continue on `fix/2026-10-08@firmware-readiness-audit`; target/native checks use
-isolated bounded LAN containers. Do not treat a passing compile report as
-permission to install an image. Preserve stock package components and the
-current staged recovery policy in docs/07 §4.
+The remediation branch `fix/2026-10-08@firmware-readiness-audit` is closed by
+merged PR #100. For subsequent work, start from current `origin/main`; target
+and native checks use isolated bounded LAN containers. Do not treat a passing
+compile report as permission to install an image. Preserve stock package
+components and the current staged recovery policy in docs/07 §4.
