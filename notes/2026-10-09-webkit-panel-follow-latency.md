@@ -1,0 +1,21 @@
+# WebKit panel-follow CI latency, 2026-10-09
+
+[verified] PR #99 head `a0dc7c0`, [WebKit job 113999003155](https://github.com/ip2k/lunar-modulator/actions/runs/37983321178/job/113999003155), produced a panel-follow result of **24 animation frames / 383 ms**. The unchanged acceptance is **at most 12 frames**. The row was `s2:2`; its history was a panel knob edit, the text showed `KNOB2 S2 Harmonics 0.30 → 0.33`, and the row flashed. The downloaded `editor-ui.json` contains 93 checks, only this latency check failing, and no page/console error logs. A compact transcription of that artifact is in [the evidence JSON](data/2026-10-09-webkit-panel-follow-ci.json).
+
+[verified] The test starts its clock, posts `encoder:4, delta:3` to the main AudioWorklet port, then observes the original row after each `requestAnimationFrame`, for up to 60 frames. Its elapsed time includes delivery to the worklet, the C encoder handling, change-feed publication/delivery, editor processing, and observation at the next animation frame. It is not solely the cost of choosing a row or drawing it. The original measurement has no intermediate timestamps, audio clock, loading state, or CPU-pressure evidence.
+
+[verified: source] `worklet.js` applies an encoder message directly through `fm1w_encoder`; `fm1_web.c` calls `fm1_app_encoder`. The editor feed is polled every six 128-frame quanta, about 17.4 ms at 44.1 kHz when the worklet is advancing normally. In `editor.js`, `onChanges` normally refreshes a value synchronously. During a snapshot it instead queues changes while `st.loading` is true; snapshot decoding awaits the shadow Worker and then replaces the mirror/rows and replays queued changes. The UI test waits for a nonempty mirror and panel view and sleeps 400 ms, but does not assert that a later snapshot cannot overlap the measurement. These are source facts and candidate stages to observe; they do **not** identify which stage caused the recorded failure. No fixed 383 ms delay was found in the ordinary encoder path.
+
+## Bounded observations
+
+The test-only `panel-follow.mjs` extracts the existing follow measurement and records its initial state, up to 60 animation-frame states, and up to 128 main/editor port observations, with explicit dropped-event count. Editor messages are recorded before and after invoking the exact original handler, with its original receiver; handlers/listeners are restored in `finally`. The observations include relative main-thread time, `AudioContext.currentTime`/state, mirror generation, snapshot-loading/pending-change/inflight state, whether the originally observed row remains connected, and the values of both the original and current row. Payloads are not copied into the trace. The test adds no message to the worklet and changes no production source.
+
+A change message delivered early but left pending during loading is distinguishable from a message first delivered late; a detached original row is distinguishable from the current row. An audio clock that is not advancing supports investigation of the audio path, but is not a direct AudioWorklet callback timestamp. Main-thread port observations cannot distinguish delayed worklet receipt/production from an already-produced message delayed in the channel. WebKit clock precision and browser scheduling still need consideration. Reading clocks/DOM and wrapping handlers can perturb timing, which the trace marks explicitly. Preserve the failed result and interpret its observations with that limit.
+
+The original encoder, observed row/value predicate, 60-frame maximum, and **12-frame acceptance remain unchanged**. There are no retries, new readiness waits, or larger thresholds. The resulting `trace` lives in the existing `editor-ui.json` failed-job artifact.
+
+## Validation and remaining decision
+
+Four synthetic regressions cover late delivery retaining 24 frames, early delivery with deferred application, bounded observation when no delivery occurs, and restoration after an exception. These test observations/cleanup, not browser performance. CI runs them beside its existing editor data/history unit checks.
+
+LAN validation pending; no cause is yet proven for the original CI failure. This stream starts from PR #99 and should be integrated with that dependency explicit; it does not fix the underlying latency.

@@ -197,7 +197,9 @@ jobs:
           echo "PULSE_SERVER=unix:/tmp/pa.sock" >> "$GITHUB_ENV"
           echo "PULSE_SOURCE=lunar.monitor" >> "$GITHUB_ENV"
       - name: The editor's data and history against the module (node)
-        run: node sim/web/test/editor-unit.mjs sim/web/www > /dev/null
+        run: |
+          node --test sim/web/test/panel-follow.test.mjs
+          node sim/web/test/editor-unit.mjs sim/web/www > /dev/null
       - name: External audio detector and browser loopback
         run: |
           node sim/web/test/audio-analysis-check.mjs
