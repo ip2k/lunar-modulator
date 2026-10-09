@@ -2,8 +2,11 @@
 
 Short answer: **an open application is feasible and most of the hard analysis
 is already done; a *wholly* open stack is bounded by JieLi's closed compiler
-and libraries, and the whole effort is gated by one unsolved safety problem —
-there is no proven way to recover a bricked FM-1.**
+and libraries.** Recovery is partially demonstrated on the owner's unit:
+matching full backups and bounded sector restoration passed, with normal
+boots afterward. Full-image restoration and broken-app recovery remain
+untested [verified: [bench note](../notes/2026-10-07-fm1-softkey-bench.md)].
+Firmware preparation follows the owner's staged policy (docs/07 §4).
 
 ## 1. What "open" can mean on this chip
 
@@ -53,22 +56,28 @@ platform for features M-VAVE will never ship.
 
 ## 3. What blocks it
 
-### 3.1 No proven recovery path (the real blocker)
+### 3.1 Recovery demonstrated in part; broken-app recovery untested
 
 - Single application bank; an interrupted or bad write leaves nothing to fall
   back to.
 - No debug pads, no recovery button; `RESET=PB01_08_0` only resets.
-- The stock OTA needs the stock application running; it cannot rescue a device
-  whose app does not boot, and it has never accepted a non-stock package.
-- JieLi's mask-ROM USB boot mode (`UBOOT1.00`) *should* be reachable through
-  the USB connector with the `USB_KEY` signal, and would allow full dump and
-  restore with `jl-uboot-tool` (`wl82loader.bin`) or the vendor's
-  `isd_download`. Until 2026-09 this had never been demonstrated on an FM-1.
-  - Now two owners report reaching it with czietz's Pico dongle, and one
-    reports a firmware backup and a write [reported: issue #2, docs/10 §1.1].
-  - It has not been done on this project's unit. Until it is, every custom
-    flash here risks a permanent brick.
-  - docs/07 is the plan to close this.
+- The stock OTA needs a running application with the update service; it
+  cannot rescue a device whose app does not boot. Non-stock applications
+  install through this path [reported: Echomatter, Baud Girl, Felucca and
+  SLOOP; docs/04].
+- Two owners report reaching mask-ROM USB boot mode (`UBOOT1.00`) with
+  czietz's Pico dongle, and one reports a firmware backup and a write
+  [reported: issue #2, docs/10 §1.1]. This project's physical dongle remains
+  untried.
+- On this project's FM-1_092, the vetted soft key entered UBOOT and a pinned
+  RAM loader took matching full 1 MiB backups. A bounded 4 KiB write/readback
+  and sector restoration passed; the complete post-test dump matched the
+  backups, and the owner confirmed normal boots [verified:
+  [bench note](../notes/2026-10-07-fm1-softkey-bench.md)].
+- This proves restoration of that unused sector, not a whole-image rewrite
+  or recovery from a nonbooting app. Soft-key entry depends on the running
+  app; an independent recovery-entry path remains untested here. Use docs/07
+  §4 for the exact backup, image/range and recovery-plan conditions.
 
 ### 3.2 The verifier gate
 
@@ -81,8 +90,9 @@ Cable-only installation of an open firmware is therefore **demonstrated** for
 a package that carries a new version, keeps the stock flash head (the OTA
 loader can rewrite it) and keeps the stock loader path. It is still not a
 development workflow: a build that does not boot, or that loses its USB descriptor or
-update service, cannot be replaced this way. With mask-ROM access the whole
-flash can be written directly.
+update service, cannot be replaced this way. Direct programming through
+mask-ROM access has been demonstrated only for the bounded unused sector on
+this project's unit; whole-image rewriting remains untested [verified: bench note].
 Explaining the gate becomes much easier once a device can be freely
 re-flashed and its RAM inspected (`jlrunner.py` can execute code and read
 memory in UBOOT mode).

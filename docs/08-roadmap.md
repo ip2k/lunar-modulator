@@ -3,6 +3,8 @@
 Phases with exit criteria. Current hardware status (2026-10-08): soft-key
 UBOOT entry, a RAM recovery loader, matching full backups and bounded sector
 restoration succeeded [verified: [bench note](../notes/2026-10-07-fm1-softkey-bench.md)].
+The complete post-test dump matched the backups; the owner confirmed normal
+boots after the read-only session and after restoration [verified: bench note].
 No Lunar application has been linked or installed. Full-image restoration
 and broken-app recovery remain untested. The owner authorized firmware
 preparation and audit remediation; see the
@@ -41,6 +43,15 @@ Detailed commands in docs/09.
 
 ## Phase 2 — Recovery
 
+The soft-key path has completed matching full backups and one bounded 4 KiB
+unused-sector write/readback/restore, followed by a byte-identical complete
+flash comparison and an owner-confirmed normal boot [verified:
+[bench note](../notes/2026-10-07-fm1-softkey-bench.md)]. The physical dongle,
+whole-image restoration and recovery from a nonbooting app remain untested.
+The remaining recovery work below follows docs/07 §4; a prior whole-image
+restore is not a blanket prerequisite for firmware preparation or evaluating
+a concrete prototype experiment.
+
 - Build the RP2040 `USB_KEY` dongle from docs/10 (firmware in `dongle/`, UF2
   from CI, logic tested against a ROM model); rehearse on an AC791N dev board
   if one can be bought (JL_AC79_DevKit V1.0 on Taobao), otherwise proceed
@@ -55,10 +66,15 @@ Detailed commands in docs/09.
   polarity and timing that worked, the power-switch sequence.
 - Extend `jl-uboot-tool` for wl82 if needed (read-only first): chip ID, flash
   JEDEC ID, full 1 MB dump ×2 (must match), compare to the stock package.
-- Restore the dump; boot; dump again; compare. Then, and only then, write a
-  deliberately altered byte in a harmless region and restore it.
+- Evaluate further restoration tests with exact reviewed images/ranges and a
+  recovery plan. Take and compare full backups before every erase/program
+  operation, then compare complete flash and confirm normal boot afterward.
+  The bounded unused-sector result does not close the whole-image or
+  broken-app recovery questions.
 - Write `docs/10-recovery-procedure.md` with photos and exact commands.
-- **Exit:** two byte-identical dump/restore cycles on the FM-1.
+- **Current milestone:** the bounded-sector restoration passed. Whole-image
+  restoration and recovery entry without a running app remain open; use
+  docs/07 §4 to evaluate the next concrete experiment.
 
 ## Phase 3 — First custom code
 

@@ -28,12 +28,12 @@ Cuvave or any space agency.
 > **Preview: not yet installable on an FM-1.**
 > - Lunar Modulator runs today as a virtual FM-1 in your browser, with the
 >   firmware's own screen and sound.
-> - Before it can be installed, it has to run on a JieLi development kit;
->   nothing has run on a JieLi chip yet.
-> - A full backup and a byte-identical restore of an FM-1's memory also
->   have to be proven, so that a unit that fails to start can be put back
->   ([Installing on your FM-1](#installing-on-your-fm-1)).
-> - This project has never written anything to an FM-1.
+> - Lunar's application still needs to be linked and tested on the chip.
+> - The owner's FM-1 has matching full backups and passed a small unused-sector
+>   write and restore, with the full flash memory unchanged afterward and
+>   normal boots confirmed [verified: [bench record](notes/2026-10-07-fm1-softkey-bench.md)].
+> - Restoring a whole image or recovering an application that will not start
+>   remains untested ([Installing on your FM-1](#installing-on-your-fm-1)).
 
 ## Try it in your browser
 
@@ -320,9 +320,10 @@ for the first installable build
 - **Installing on a real FM-1:** in preparation
   ([below](#installing-on-your-fm-1)).
 - **Develop in the simulator, check on hardware:** new sounds and effects
-  are written and heard in the simulator, then checked on a JieLi
-  development kit and, once a safe restore is proven, on an FM-1, so that
-  what the simulator plays is what the synth plays.
+  are written and heard in the simulator, then checked on hardware through
+  staged experiments with backups and a recovery plan, so that what the
+  simulator plays is what the synth plays. This hardware validation is still
+  ahead [verified: [bench record](notes/2026-10-07-fm1-softkey-bench.md)].
 - **Sounds and patterns saved on the synth.**
 - **MIDI out over USB.** The FM-1 already shows the computer a MIDI port
   that can send [verified]; it needs Lunar Modulator's own USB-MIDI driver.
@@ -353,20 +354,23 @@ The detail behind each line is in
 **Not yet.** Two things have to happen first.
 - **Lunar Modulator has to run on the FM-1's chip.** Today it runs on
   computers and in the browser. It already compiles for the FM-1's
-  processor with JieLi's tools, but it has not run on a JieLi chip. A JieLi
-  development kit is on order, and it runs there first.
+  processor with JieLi's tools, but no Lunar application has been linked or
+  run on the chip [verified: [current work record](notes/2026-10-08-audit-remediation.md)].
 - **A safe way back has to be proven.** The FM-1 keeps one copy of its
   firmware and has no recovery button, so a bad install could leave a synth
-  that does not start. Before Lunar Modulator offers an install, it must be
-  shown that an FM-1's memory can be backed up in full and restored byte for
-  byte.
+  that does not start. Recovery testing has made progress, but does not yet
+  show that a whole image or a failed application can be restored.
   - That goes through the chip's USB recovery mode. Two other FM-1 owners
     report reaching it with a small Raspberry Pi Pico adapter, and one
     reports backing up and writing firmware that way
     ([issue #2](https://github.com/ip2k/lunar-modulator/issues/2)).
-  - This project will check it on the development kit first, then on an
-    FM-1. A way into that mode without an adapter is being studied too;
-    nothing has been sent to an FM-1 for it.
+  - On the owner's FM-1, a command from the running application entered USB
+    recovery mode without an adapter. Matching full backups were taken; a
+    small unused sector was written, checked and restored. The complete
+    flash memory matched the backups afterward, and the owner confirmed
+    normal boots [verified: [bench record](notes/2026-10-07-fm1-softkey-bench.md)].
+    That command depends on an application that still runs; recovery when
+    it does not run remains untested.
 
 Once both are done, the plan is for Lunar Modulator to install over USB
 through the FM-1's own update path, as other third-party firmware already
