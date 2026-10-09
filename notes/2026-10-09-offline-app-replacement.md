@@ -29,9 +29,11 @@ comparing against the original. It separately compares outer metadata,
 records, padding and all non-flash bytes. Tests repair CRCs after corrupting
 the unused app tail, resource bytes, outer metadata or trailer to prove that
 CRC validity alone cannot bypass preservation. Empty and oversized app
-inputs fail closed. More hostile allocation tests and final review follow.
+inputs fail closed. Repaired-CRC oversized apps that still fit a directory
+gap, app relocations and changed partition descriptors are rejected. CLI
+tests confirm report overwrite refusal and no binary-output option.
 
-109 focused tests currently pass, including actual V15 and the existing
+112 focused tests pass, including actual V15 and the existing
 linked inert diagnostic [verified]. Actual in-memory result:
 
 - Original FWSC SHA-256:
@@ -53,6 +55,12 @@ variant stays intact. Missing full-image/broken-app recovery is a specific
 risk to assess under the owner's staged candidate/range review and fresh
 backup policy, not a blanket ban inferred from this model.
 
+Rarefaction's root remains the original checkout and excludes the managed
+worktree/new files; original package-guard navigation works. Serena rejected
+the new ignored Python path in its active project. Both were attempted;
+bounded file inspection and actual parsers/tests provide the local evidence,
+without claiming semantic checks succeeded on the new module.
+
 ## Reproduce and continuation
 
 ```sh
@@ -69,8 +77,10 @@ report is `build/jieli-diagnostic/offline-app-replacement-report.json` (ignored)
 Focused tests use the original project's `.venv/bin/python`; set
 `FM1_STOCK_FWSC`, `FM1_STOCK_UNPACK`, `FM1_DIAGNOSTIC_ELF` and
 `FM1_DIAGNOSTIC_APP` to enable actual-file verification. Parent owns review/CI
-integration. Next: add malicious repaired-CRC size/allocation regressions,
-verify CLI output restrictions, checkpoint and obtain independent review.
+integration. Next: independent review and CI, then explain identity/version
+and trailer policy before any emitted container. A later diagnostic should
+own SSP/exception state and supply observable output after clock/power/core
+handover evidence; this stream deliberately retains the inert variant.
 
 ## Change log
 

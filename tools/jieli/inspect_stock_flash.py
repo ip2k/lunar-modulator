@@ -230,6 +230,7 @@ def _inspect_nested(raw, stock, replacement=None):
                 spl_bank=dict(bytes=bank_size, load_address=bank_load,
                               header_crc_verified=True, data_crc_verified=True),
                 bound_component_sha256={path: digest(data) for path, data in components.items()},
+                app_binding='guarded-stock-reference' if replacement is None else 'supplied-model-bytes',
                 nested_file_sha256={name: digest(data) for name, data in files.items()},
                 stock_xip=dict(image_app_directory_offset=APP_BASE,
                                virtual_directory_base=XIP_BASE,
@@ -240,7 +241,8 @@ def _inspect_nested(raw, stock, replacement=None):
                                evidence='stock metadata and static SPL trace; no device execution'),
                 full_container_noop_identical=True, sha256=digest(raw),
                 flash_payload_sha256=digest(flash), preserved_uninterpreted_app_tail_bytes=len(flash) - cursor,
-                pending=['modified-image repack/CRC/address rules not implemented',
+                pending=['modified-image repack/CRC/address rules not implemented' if replacement is None
+                         else 'replacement inspected only; emitting/version/allocation changes are outside this verifier',
                          'auxiliary metadata/trailer/version and runtime XIP behavior require explanation',
                          'SPL handover/observable runtime and candidate/range recovery review unresolved; full-image/broken-app recovery unproven'])
 

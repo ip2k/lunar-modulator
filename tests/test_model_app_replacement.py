@@ -13,7 +13,7 @@ import model_app_replacement as model
 from tests.test_inspect_stock_flash import synthetic_decoded, stock_files, encode, jlfs
 
 
-def fix_envelope(image, flash_crc=None):
+def fix_envelope(image):
     count = 3
     for index in range(count):
         offset = 64 + index * 80
@@ -82,6 +82,36 @@ def test_rejects_empty_or_growing_replacement(source, app):
         model._build(raw, stock, app)
 
 
+def test_rejects_oversized_app_even_when_valid_directory_and_crcs_fit(source):
+    raw, stock = source
+    candidate = model._build(raw, stock, b'HI')
+    app = b'X' * 20  # Fits the synthetic gap before cfg_tool, but exceeds old extent 4.
+    def mutate(data):
+        data[0x120:0x134] = app
+        data[32:64] = jlfs('app.bin', 0x120, len(app), 0x82, 0, app)
+        data[:32] = jlfs('app_area_head', 0x02000120, 0x400, 0x83, 0, data[32:0x400])
+    damaged = mutate_flash(candidate, mutate)
+    nested._inspect_app_replacement(damaged, stock, app)
+    with pytest.raises(ValueError, match='original app extent'):
+        model.verify_replacement(raw, damaged, stock, app)
+
+
+def test_rejects_relocated_app_and_partition_changes_with_repaired_crcs(source):
+    raw, stock = source
+    candidate = model._build(raw, stock, b'HI')
+    def relocate(data):
+        data[0x130:0x132] = b'HI'
+        data[32:64] = jlfs('app.bin', 0x130, 2, 0x82, 0, b'HI')
+        data[:32] = jlfs('app_area_head', 0x02000120, 0x400, 0x83, 0, data[32:0x400])
+    with pytest.raises(ValueError, match='entry disagrees'):
+        model.verify_replacement(raw, mutate_flash(candidate, relocate), stock, b'HI')
+    def partition(data):
+        data[0x60:0x80] = jlfs('VM', 0x92000, 0x56000, 0x12, 0)
+        data[:32] = jlfs('app_area_head', 0x02000120, 0x400, 0x83, 0, data[32:0x400])
+    with pytest.raises(ValueError, match='reserved descriptor differs'):
+        model.verify_replacement(raw, mutate_flash(candidate, partition), stock, b'HI')
+
+
 def test_rejects_repaired_crc_unused_tail_modification(source):
     raw, stock = source
     candidate = model._build(raw, stock, b'HI')
@@ -143,6 +173,25 @@ def test_rejects_wrong_expected_app_and_unvalidated_elf(source):
         model.verify_replacement(raw, candidate, stock, b'NO')
     with pytest.raises(ValueError):
         model.model(raw, stock, bytes(64), b'HI')
+
+
+def test_cli_has_no_binary_output_and_refuses_report_overwrite(tmp_path, monkeypatch):
+    report_path = tmp_path / 'report.json'
+    report_path.write_text('preserve me')
+    for name in ('fwsc', 'elf', 'app'):
+        (tmp_path / name).write_bytes(b'input')
+    args = ['model_app_replacement', str(tmp_path / 'fwsc'), '--stock', str(tmp_path),
+            '--elf', str(tmp_path / 'elf'), '--app', str(tmp_path / 'app'),
+            '--json', str(report_path)]
+    monkeypatch.setattr(model, 'model', lambda *args: {'identity': 'FM-1_015'})
+    monkeypatch.setattr(sys, 'argv', args)
+    with pytest.raises(SystemExit) as error:
+        model.main()
+    assert error.value.code == 1 and report_path.read_text() == 'preserve me'
+    monkeypatch.setattr(sys, 'argv', args + ['--out', str(tmp_path / 'candidate.fwsc')])
+    with pytest.raises(SystemExit) as error:
+        model.main()
+    assert error.value.code == 2 and not (tmp_path / 'candidate.fwsc').exists()
 
 
 @pytest.mark.skipif(not all(os.environ.get(name) for name in
