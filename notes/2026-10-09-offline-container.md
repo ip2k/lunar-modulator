@@ -21,7 +21,7 @@ USR under this strict V14/V15 profile; its relocated auxiliary representation
 is explained below. Every successful result explicitly says
 `inspected-incomplete`, `packaging_ready=false` and
 `device_execution=unverified`: nested flash rewrite remains unfinished.
-99 focused tests pass, including outer-envelope and nested checks
+100 focused tests pass, including outer-envelope and nested checks
 (with optional real-container validation enabled), and the real stock SPL
 pin check [verified]. No vendor bytes are
 committed.
@@ -121,7 +121,9 @@ four ENC top-directory records, one SPL bank header, two SFC app/resource
 records and seven child records: 15 header CRCs in total. It also checks eight
 stored data CRCs (SPL, config, bank body, two directory bodies and three regular
 files) and the stock chip-key blob CRC. The bank is uncompressed, 14368 code
-bytes plus a 16-byte header, loaded at `0x01C02000`. Its decoded complete
+bytes loaded at `0x01C02000`, plus a separate 16-byte file header. The loaded
+body occupies `0x01C02000..0x01C05820` (end exclusive); raw SPL file offsets
+map to RAM by subtracting 16 before adding the load address. Its decoded complete
 14384-byte SPL, top config and cfg resource are byte-identical to the
 `package_guard.py`-checked components. Outer inspection separately binds OTA.
 App, cfg_tool and eq_cfg_hw extracted hashes also match the independent
@@ -146,8 +148,9 @@ Strict profile guards retain their observed addresses, sizes and flags:
 These are verified descriptor fields, not a verified write/address mapping.
 PRCT overlaps the image by design as a descriptor; its operational meaning
 remains unresolved. The app-dir entry is `0x02000120`, while app.bin lies at
-flash-payload offset `0x4120`. XIP translation must be established before any
-modified app placement. The 556 bytes after the final resource block are
+flash-payload offset `0x4120`. The static translation and recorded physical
+base-zero evidence are now in [stock app mapping](2026-10-09-stock-app-mapping.md);
+runtime execution remains unverified. The 556 bytes after the final resource block are
 preserved exactly with no padding/encoding semantic claim.
 
 The inspector decodes and inversely reconstructs nested regions in memory,
@@ -181,8 +184,8 @@ proof before a fail-closed modified-image builder is appropriate.
 1. Explain auxiliary allocation metadata, trailer/version fields and the
    FM-1_092 relocated-ciphertext representation. Preserve the strict stock
    profile and damaged-layer regressions while these rules remain open.
-2. Verify physical/XIP mapping and fixed app/resource allocation using named
-   SPL instructions and actual package bytes. Preserve all guarded components,
+2. Extend the established static physical/XIP mapping to modified app/resource
+   allocation rules. Preserve all guarded components,
    observed reservation descriptors and their uninterpreted metadata. Model
    changed app size/CRC, directory-body CRC, outer flash CRC and list/header
    CRC propagation; validate a synthetic modified-image experiment offline.
@@ -193,7 +196,8 @@ proof before a fail-closed modified-image builder is appropriate.
 Parallel stock-SPL research is on `chore/2026-10-09@stock-spl-handover`
 (`e1201e9`), note `notes/2026-10-09-stock-spl-handover.md`. It reports a
 `call r1` with boot argument 0x01c7fe08, disabled interrupts, and loaded SPL
-RAM 0x01c02000..0x01c05830 overlapping the inert diagnostic reservation.
+body RAM 0x01c02000..0x01c05820 overlapping the inert diagnostic reservation
+(the 16-byte file header is separate).
 These are static findings, not executed behavior. Before a device experiment,
 resolve that RAM/exception-stack ownership and final watchdog/clock/cache/secondary-
 core handover, implement an observable diagnostic, and document the owner's
@@ -258,3 +262,9 @@ PR #104 integration; root owns PR/CI/integration.
 - 2026-10-09: Closed the stock-result classification gap found by independent
   review by binding all three extracted files to reference bytes; 99 focused
   checks pass including repaired-CRC modifications and actual V15 validation.
+
+- 2026-10-09: Established static SPL physical/XIP/entry correspondence and
+  recorded physical image base zero from all four saved device dumps; added
+  repaired-CRC app relocation rejection. Corrected loaded SPL body/header
+  distinction and odd-immediate objdump annotation. 100 focused tests pass;
+  no modified container or device traffic.

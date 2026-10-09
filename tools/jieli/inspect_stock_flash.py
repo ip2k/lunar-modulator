@@ -15,6 +15,7 @@ from inspect_fwsc import crc16, header_decode, inspect, sfc_decode
 
 FLASH_BYTES = 0x100000
 APP_BASE = 0x4000
+XIP_BASE = 0x02000000
 EXPECTED_RESERVED = {
     'key_mac': (0xff000, 0x1000, 0x12),
     'VM': (0x93000, 0x56000, 0x12),
@@ -172,6 +173,9 @@ def inspect_nested(raw, stock):
             or set(files) != {'app.bin', 'cfg_tool.bin', 'eq_cfg_hw.bin'}
             or found_reserved != set(EXPECTED_RESERVED)):
         raise ValueError('unexpected stock application/reservation tree')
+    application = next(child for child in blocks[0]['children'] if child['name'] == 'app.bin')
+    if blocks[0]['address'] != XIP_BASE + application['address']:
+        raise ValueError('stock entry disagrees with app.bin XIP placement')
     stock = Path(stock)
     components = {'top/uboot.boot': bytes(spl_data), 'top/isd_config.ini': bytes(config_data),
                   'files/cfg': bytes(decoded[blocks[1]['header_offset']:cursor])}
@@ -215,10 +219,17 @@ def inspect_nested(raw, stock):
                               header_crc_verified=True, data_crc_verified=True),
                 bound_component_sha256={path: digest(data) for path, data in components.items()},
                 nested_file_sha256={name: digest(data) for name, data in files.items()},
+                stock_xip=dict(image_app_directory_offset=APP_BASE,
+                               virtual_directory_base=XIP_BASE,
+                               entry=blocks[0]['address'],
+                               app_image_offset=APP_BASE + application['address'],
+                               app_bytes=application['bytes'],
+                               physical_image_base='ROM supplied; inspector has no device dump input',
+                               evidence='stock metadata and static SPL trace; no device execution'),
                 full_container_noop_identical=True, sha256=digest(raw),
                 flash_payload_sha256=digest(flash), preserved_uninterpreted_app_tail_bytes=len(flash) - cursor,
                 pending=['modified-image repack/CRC/address rules not implemented',
-                         'auxiliary metadata/trailer/version and physical XIP mapping require explanation',
+                         'auxiliary metadata/trailer/version and runtime XIP behavior require explanation',
                          'SPL handover, observable runtime, and full recovery gate unresolved'])
 
 

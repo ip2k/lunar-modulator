@@ -86,6 +86,8 @@ def test_nested_synthetic_noop_and_binding(monkeypatch, tmp_path):
     assert result['full_container_noop_identical'] and not result['packaging_ready']
     assert result['device_execution'] == 'unverified'
     assert result['spl_bank']['load_address'] == 0x01c02000
+    assert result['stock_xip']['entry'] == 0x02000120
+    assert result['stock_xip']['app_image_offset'] == 0x4120
     assert result['top'][-1]['data_crc_verified'] is False
     assert set(result['nested_file_sha256']) == {'app.bin', 'cfg_tool.bin', 'eq_cfg_hw.bin'}
     (stock / 'files/cfg').write_bytes(b'changed')
@@ -142,6 +144,17 @@ def test_eq_file_reference_is_required_even_when_cfg_block_matches(monkeypatch, 
     (stock / 'files/eq_cfg_hw.bin').write_bytes(b'bad')
     monkeypatch.setattr(nested, 'inspect', fake_outer)
     with pytest.raises(ValueError, match='files/eq_cfg_hw.bin'):
+        nested.inspect_nested(encode(decoded), stock)
+
+
+def test_rejects_app_relocation_despite_matching_file_and_repaired_crcs(monkeypatch, tmp_path):
+    decoded = synthetic_decoded()
+    stock = stock_files(tmp_path, decoded)
+    decoded[0x4130:0x4134] = b'CODE'
+    decoded[0x4020:0x4040] = jlfs('app.bin', 0x130, 4, 0x82, 0, b'CODE')
+    decoded[0x4000:0x4020] = jlfs('app_area_head', 0x02000120, 0x400, 0x83, 0, decoded[0x4020:0x4400])
+    monkeypatch.setattr(nested, 'inspect', fake_outer)
+    with pytest.raises(ValueError, match='entry disagrees'):
         nested.inspect_nested(encode(decoded), stock)
 
 
