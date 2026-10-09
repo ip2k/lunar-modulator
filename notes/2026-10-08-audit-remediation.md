@@ -65,7 +65,9 @@ The updated Wasm passed 104 parity scenarios, 18 SysEx cases, metadata checks
 and native/Wasm edit parity with zero late storm quanta. Chromium's 30-second
 page storm passed with zero reported playback underruns on the LAN runner.
 The preceding CI checkpoint failed its stale-Wasm check and reported one
-0.01 ms Chromium underrun; the final rebuilt commit still requires CI.
+10 ms Chromium underrun (the test originally mislabeled the API's 0.01
+seconds as milliseconds; corrected 2026-10-09); the final rebuilt commit
+still requires CI.
 These are compile checks, not a linked or installable hardware application.
 
 ## Firmware memory boundary
