@@ -70,9 +70,9 @@ is in seconds despite the result field's `_ms` suffix: a reported `0.01` is
 10 ms, not 0.01 ms. The traced events were 10–20 ms. The final rebuilt commit
 was merged in PR #100 as
 `3c7b6a0ad153eff2f80444af9b2830da2c280538`; GitHub check run `37890685197`
-passed all jobs. PR #100 closes this remediation branch's review/CI gate;
-later work is tracked separately in the current open PRs, not by continuing
-the old branch.
+and the Pages build passed before merge. PR #100 closes this remediation
+branch's review/CI gate. The separate IndexedDB save-durability correction was
+later merged in PR #103 at `ebc6690c7595469359336b145cf1d7c0b4fe333a`.
 These are compile checks, not a linked or installable hardware application.
 
 ## Firmware memory boundary

@@ -324,7 +324,7 @@ async function flushMemory() {
     }
   }
 }
-async function idb(store, mode, fn) {
+async function idb(store, mode, fn, strict = false) {
   const d = await openDb();
   if (d) {
     try {
@@ -338,6 +338,7 @@ async function idb(store, mode, fn) {
     } catch (err) {
       // A connection that was closed under us is dropped, so the next call opens a new one.
       if (err && err.name === 'InvalidStateError' && dbs.db === d) { dbs.db = null; dbTell(); }
+      if (strict) throw err;
     }
   }
   return null;
@@ -351,11 +352,13 @@ export const store = {
     const r = await idb(name, 'readonly', (s) => s.get(key));
     return r !== null ? r : memory[name].get(key) || null;
   },
-  async put(name, value, key) {
+  async put(name, value, key, { durable = false } = {}) {
     if (await openDb()) {
-      const r = await idb(name, 'readwrite', (s) => (key === undefined ? s.put(value) : s.put(value, key)));
+      const r = await idb(name, 'readwrite', (s) => (key === undefined ? s.put(value) : s.put(value, key)), durable);
       if (r !== null) return r;
+      if (durable) throw new Error('Browser storage closed before the write completed.');
     }
+    if (durable) throw new Error('Browser storage is unavailable; this write cannot be saved durably.');
     const k = key !== undefined ? key : value.id || memoryId++;
     memory[name].set(k, key === undefined ? { ...value, id: k } : value);
     return k;
@@ -635,37 +638,57 @@ export function initFiles(env) {
     clearTimeout(autosaveTimer);
     autosaveTimer = null;
     if (!f.dirty || !sim.node) return false;
-    f.dirty = false;
-    firstDirty = 0;
-    lastAutosave = Date.now();
+    const gen = f.gen, pid = f.pid, title = f.title;
     let bin;
     try { bin = await liveBin(true); } catch (err) { return false; }
+    // A project switch or edit while the worklet is answering means this image
+    // no longer belongs to the identity captured above. Leave it dirty for a
+    // fresh autosave instead of attaching it to the wrong project.
+    if (f.gen !== gen || f.pid !== pid || f.title !== title) return false;
     // The same bytes of the same project need not be written again; the same bytes of another project do (a file
     // opened again is another project, and A and B are matched to it by the identity the autosave carries).
-    if (lastPid === f.pid && lastBytes && lastBytes.length === bin.length && lastBytes.every((b, i) => b === bin[i])) return true;
-    lastBytes = bin;
-    lastPid = f.pid;
-    await store.put('autosave', { name: f.title, bin, size: bin.length, modified: Date.now(), pid: f.pid }, 'project');
-    ++f.autosaves;
-    return true;
+    if (lastPid === pid && lastBytes && lastBytes.length === bin.length && lastBytes.every((b, i) => b === bin[i])) {
+      if (f.gen === gen) { f.dirty = false; firstDirty = 0; }
+      return true;
+    }
+    try {
+      await store.put('autosave', { name: title, bin, size: bin.length, modified: Date.now(), pid }, 'project', { durable: true });
+      lastBytes = bin;
+      lastPid = pid;
+      lastAutosave = Date.now();
+      ++f.autosaves;
+      if (f.gen === gen) { f.dirty = false; firstDirty = 0; }
+      return true;
+    } catch (err) {
+      f.dirty = true;
+      notice('refused', 'Autosave could not be written to browser storage. Your changes are still unsaved; edit again or press SAVE to retry.');
+      return false;
+    }
   }
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') autosave(); });
   window.addEventListener('pagehide', () => { autosave(); });
 
   async function savePressed() {
     let ok = false, reason = 'NOT SAVED';
+    let savedTitle = f.title;
     try {
+      const gen = f.gen, pid = f.pid, title = f.title;
+      savedTitle = title;
       const bin = await liveBin();
-      await store.put('files', { kind: 'project', name: f.title, bin, size: bin.length, origin: 'user', mission: null,
-        modified: Date.now() });
-      ok = true;
+      if (gen !== f.gen || pid !== f.pid || title !== f.title) throw new Error('The project changed while SAVE was in progress.');
+      reason = 'STORAGE FAILED';
+      await store.put('files', { kind: 'project', name: title, bin, size: bin.length, origin: 'user', mission: null,
+        modified: Date.now() }, undefined, { durable: true });
+      if (gen !== f.gen || pid !== f.pid || title !== f.title) {
+        reason = 'PROJECT CHANGED';
+        notice('info', `Saved “${title}” before the project changed. The current project still has unsaved changes.`);
+      } else ok = true;
     } catch (err) {
-      reason = 'STORAGE BLOCKED';
+      notice('refused', `Not saved: “${f.title}” could not be written to browser storage. Your changes are still unsaved; free storage and press SAVE again, or use Save… to download a copy.`);
     }
     if (sim.node) sim.node.port.postMessage({ type: 'saved', ok, reason: encoder.encode(reason) });
     if (ok) {
-      notice('info', f.memoryOnly ? `Saved “${f.title}” for this visit only: this browser blocks storage.`
-        : `Saved “${f.title}” in this browser: Files, Saved in this browser, lists it.`);
+      notice('info', `Saved “${savedTitle}” in this browser: Files, Saved in this browser, lists it.`);
     }
     renderLibrary();
   }
@@ -758,7 +781,7 @@ export function initFiles(env) {
     const bin = encoder.encode(text);
     const file = fileName(kind, arg);
     const name = `${f.title} · ${kind === 'sound' ? `Sound ${arg + 1}` : kind === 'fx' ? (arg < 0 ? 'master effects' : `Sound ${arg + 1}'s effects`) : KIND_WORD[kind]}`;
-    await store.put('files', { name, kind, file, bin, size: bin.length, modified: Date.now() });
+    await store.put('files', { name, kind, file, bin, size: bin.length, modified: Date.now() }, undefined, { durable: true });
     renderLibrary();
     return { name, size: bin.length };
   }
@@ -1213,7 +1236,7 @@ export function initFiles(env) {
       storageWaiting = true;
       f.memoryOnly = true;
       notice('info', 'Another tab of this page is open on an older version and holds this browser\'s storage.',
-        'Close or reload that tab. Until then autosave, Recent and A/B are kept for this visit only; they are saved as soon as storage is free.');
+        'Close or reload that tab. Recent and A/B are kept for this visit only; autosave stays unsaved until browser storage is free.');
     } else if (s.open && storageWaiting) {
       storageWaiting = false;
       f.memoryOnly = false;
