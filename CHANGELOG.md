@@ -10,7 +10,7 @@ history.
 
 ### Fixed
 - Target compile checks include shared state codecs and metadata, with each
-  object compiled once.
+  object compiled once. Stack reports count split prologue reservations.
 - Audit findings in target compile failure handling, IRQ source guards,
   malformed sequencer/modulation input, edit dump bounds, manual output
   deletion safety and remote oracle argument validation.

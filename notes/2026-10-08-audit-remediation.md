@@ -80,10 +80,12 @@ not certify this compiled layout against the FM-1's SRAM. Firmware needs
 bounded instance allocation, display buffering and streaming persistence,
 then a real linked-image map, stack/interrupt budget and runtime measurements.
 The expanded target check also exposes a compiler warning for an 8,264-byte
-`fm1_state_bin_read` frame (the disassembly prologue estimator reports 4,148
-bytes). Neither measure is a complete call-chain budget; retain the larger
-compiler warning as a device-readiness constraint until linked analysis and
-stack measurements resolve it. The codec checks passing do not establish
+`fm1_state_bin_read` frame. Its disassembly uses three stack decrements;
+the report initially counted only the first and understated the frame as
+4,148 bytes. The corrected report sums all three and agrees at 8,264 bytes
+(three focused regressions pass). This is not a complete call-chain budget;
+retain it as a device-readiness constraint until linked analysis and stack
+measurements establish the actual requirement. The codec checks passing do not establish
 that its current stack use is appropriate for the FM-1.
 
 ## Remaining work and recovery
