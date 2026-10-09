@@ -43,6 +43,11 @@ pending until the real link (DEVELOPERS.md I1).
   --sources DIR                       our C/C++ sources: no request_irq(123)
                                       and no IRQ-123 vector address
 
+  --runtime sdk-free                  explicit SDK-free policy: requires a
+                                      linked executable, no dormant key or
+                                      initcall machinery, and no SDK mailbox
+                                      exceptions. The default remains sdk.
+
 What this does NOT cover, by design: the packaging safeguards
 (notes/2026-10-05-softkey-efuse.md §4.4) -- asserting the stock SPL hash
 730e54f0... and byte-identical isd_config.ini/ota.bin/cfg -- live in
@@ -324,8 +329,10 @@ def _find_le32(blob, value):
     return hits
 
 
-def audit(elves, flat_images, linked, sources=None):
+def audit(elves, flat_images, linked, sources=None, runtime="sdk"):
     """sources: None, or [(path, line number, line)] of our C/C++ sources."""
+    if runtime not in ("sdk", "sdk-free"):
+        raise ValueError(f"unknown runtime: {runtime}")
     checks = []
 
     def record(key, status, detail):
@@ -349,8 +356,15 @@ def audit(elves, flat_images, linked, sources=None):
     #    but record what is there for the review trail.
     present = sorted({s for name, e in elves for s in e.defined_symbols()
                       if s in ALLOWED_KEYCHECK_SYMBOLS})
-    record("dormant_keycheck_present", "pass",
-           f"allowed dormant symbols present: {present or 'none (objects do not link the SDK check yet)'}")
+    if runtime == "sdk-free":
+        refs = sorted({s for _name, e in elves
+                       for s in e.undefined_symbols() | e.relocation_symbol_names()
+                       if s in ALLOWED_KEYCHECK_SYMBOLS})
+        record("dormant_keycheck_absent", "fail" if present or refs else "pass",
+               f"defined: {present}; referenced: {refs}")
+    else:
+        record("dormant_keycheck_present", "pass",
+               f"allowed dormant symbols present: {present or 'none (objects do not link the SDK check yet)'}")
 
     # 3-6. Byte / immediate scans over every allocated section and flat image.
     #      Each is a 4-byte little-endian immediate or a literal signature.
@@ -399,7 +413,7 @@ def audit(elves, flat_images, linked, sources=None):
         if not hits:
             record(key, "pass", clean_detail)
             return
-        if not linked:
+        if not linked or runtime == "sdk-free":
             record(key, "fail", [fmt(h) for h in hits])
             return
         bad = [h for h in hits if (h[3], h[2]) not in allowed and h[3] not in DORMANT_FUNCTIONS]
@@ -448,7 +462,16 @@ def audit(elves, flat_images, linked, sources=None):
     #    audit_boot.py:251-264): the dormant check is linked, not stubbed or
     #    dropped, and nothing else was added to the group.
     image = next((e for _n, e in elves if e.e_type == ET_EXEC), None) if linked else None
-    if image is None:
+    if runtime == "sdk-free":
+        init_hits = [f"{name}: {s}" for name, e in elves for s in e.defined_symbols()
+                     if "initcall" in s]
+        init_hits += [f"{name}: section {s['name']}" for name, e in elves for s in e.sections
+                      if "initcall" in s["name"]]
+        record("late_initcall_group", "fail" if init_hits else "pass",
+               init_hits or "SDK-free image has no initcall machinery")
+        record("sdk_free_linked", "pass" if image is not None else "fail",
+               "requires a linked executable; objects alone cannot establish SDK absence")
+    elif image is None:
         record("late_initcall_group", "pending", "needs the linked image (SDK __initcall section)")
     else:
         begin = image.symbol_value("late_initcall_begin")
@@ -474,7 +497,10 @@ def audit(elves, flat_images, linked, sources=None):
     # 10. sdk_meky_check's exact scheduling: <= 2 request_irq(123, isr_check_key)
     #     and sys_timeout_add(_mkey_check, 8000). Needs the vendor objdump's
     #     decode of pi32v2 long calls (trap 4); pending until the real link.
-    if linked:
+    if runtime == "sdk-free":
+        record("sdk_meky_check_scheduling", "pass" if not present else "fail",
+               "SDK-free runtime requires the dormant check to be absent")
+    elif linked:
         record("sdk_meky_check_scheduling", "pending",
                "linked image: verify sdk_meky_check does only <=2 request_irq(123, isr_check_key) "
                "and sys_timeout_add(_mkey_check, 8000) with the vendor objdump "
@@ -487,6 +513,7 @@ def audit(elves, flat_images, linked, sources=None):
     return dict(
         passed=not failed,
         linked=linked,
+        runtime=runtime,
         inputs=[name for name, _ in elves] + [name for name, _ in flat_images],
         n_fail=len(failed),
         n_pending=len(pending),
@@ -518,6 +545,8 @@ def main(argv=None):
     ap.add_argument("--sources", action="append", metavar="DIR",
                     help="our C/C++ sources, scanned for request_irq(123) (repeatable)")
     ap.add_argument("--json", help="write the full report here")
+    ap.add_argument("--runtime", choices=("sdk", "sdk-free"), default="sdk",
+                    help="SDK policy (default), or a linked SDK-free image with no key/initcall machinery")
     args = ap.parse_args(argv)
     if not (args.elf or args.app or args.objects):
         ap.error("give at least one of --elf, --app or --objects")
@@ -538,7 +567,7 @@ def main(argv=None):
             print(f"audit_link: warning: {name} machine 0x{e.e_machine:x} is not pi32v2", file=sys.stderr)
 
     sources = collect_sources(args.sources) if args.sources else None
-    report = audit(elves, flat, linked, sources)
+    report = audit(elves, flat, linked, sources, runtime=args.runtime)
     if args.json:
         Path(args.json).write_text(json.dumps(report, indent=2))
 
