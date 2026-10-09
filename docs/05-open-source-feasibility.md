@@ -134,14 +134,19 @@ carry effects in float.
 
 | Question | Answer |
 | --- | --- |
-| Can custom code run on the FM-1? | **Yes, routinely**: first a version-bumped V15 package (Echomatter, AL-255 PR #2, 2026-09-04), then Baud Girl's public FM-1+VA releases `FM-1_020` … `FM-1_092` (2026-09), all through the stock OTA path. The mask-ROM path is reported working on two other FM-1s, with a firmware backup and a write on one (issue #2, docs/10 §1.1), and is not yet shown on this project's unit. |
+| Can custom code run on the FM-1? | **Yes, routinely**: first a version-bumped V15 package (Echomatter, AL-255 PR #2, 2026-09-04), then Baud Girl's public FM-1+VA releases `FM-1_020` … `FM-1_092` (2026-09), all through the stock OTA path. The mask-ROM path is reported working on two other FM-1s, with a firmware backup and a write on one (issue #2, docs/10 §1.1), and soft-key entry, full backups and bounded sector restoration succeeded on this project's FM-1_092 [verified: [bench note](../notes/2026-10-07-fm1-softkey-bench.md)]. Full-image restoration remains untested. |
 | Can it be sound-compatible with stock? | Yes: same msfa engine, same DX7 patch format. |
 | Can it be fully open source? | The application, bootloader and (with work) drivers can be. The compiler and the Bluetooth stack cannot in any foreseeable timeframe without a dedicated compiler/BLE effort. |
-| Is it safe to start hacking on the one device we have? | **Not until recovery is proven.** First milestone is a full flash dump and a byte-identical restore. |
+| Is it safe to start hacking on the one device we have? | The owner authorized staged experiments (docs/07 §4). Matching full backups and bounded sector restoration passed; full-image restoration and broken-app recovery remain untested [verified: bench note]. |
 | Is porting schwung-movy the way in? | No; reimplement its ideas in C (docs/06). |
-| Biggest unknowns | (1) whether `USB_KEY` works on the AC791N through the FM-1's USB-C port, (2) which encoders use the hardware decoders, and the display pinout. The verifier gate is largely explained (docs/03 §5). |
+| Biggest unknowns | Full-image restoration and broken-app recovery on this unit; the Lunar runtime, linked memory/stack budget and audio timing. The display/key wiring is reported by Felucca and fm1-nes (docs/01 §3.1); the physical `USB_KEY` dongle remains untried here. |
 
 ## 6. Recommended strategy
+
+The original sequence below predates the 2026-10-07 recovery results and
+owner policy revision. Use docs/07 §4 for bench authorization and the
+[SDK-runtime evaluation](../notes/2026-10-07-sdk-runtime-evaluation.md) for
+the proposed SDK-free platform; no replacement SPL or loader is authorized.
 
 1. Read-only bench session (docs/09), including capturing the stock updater
    traffic and extracting the V15 package from `M-UPGRADE-FM1.app`.

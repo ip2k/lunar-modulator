@@ -839,3 +839,15 @@
            f"tanh {TANH_N + 2} + {len(EXP_RANGES)} pot curves -> {out_t.name}")
  
  
+--- a/dsp/fastmath.h
++++ b/dsp/fastmath.h
+@@ -57 +57,2 @@
+-    b.i += n << 23;
++    /* Lunar Modulator: negative exponent bits use defined unsigned arithmetic. */
++    b.u += (uint32_t)n << 23;
+--- a/dsp/drum808.c
++++ b/dsp/drum808.c
+@@ -168 +168,2 @@
+-    b.i += (int32_t)n << 23;
++    /* Lunar Modulator: negative exponent bits use defined unsigned arithmetic. */
++    b.u += (uint32_t)(int32_t)n << 23;

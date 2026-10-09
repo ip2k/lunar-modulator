@@ -431,7 +431,7 @@ switch. docs/12 §6 has the full rules.
 | --- | --- | --- | --- |
 | A — desk | any computer, no hardware | `fm1_engine_t` API and a desktop host (the same source building for a simulator and for JACK/CoreAudio, as AL-255's branch does); port the Plaits light engines and Braids at 44.1 kHz and 64 frames; the Schwung v2 shim with `schwung-braids` and PSX Verb compiled through it; build with `-std=c++11 -fno-exceptions -fno-rtti` for a 32-bit target | renders match upstream MI (VCV or MI's own test harness) within tolerance; memory per voice measured |
 | B — bench | a JieLi AC79 dev board (docs/07 §3 already suggests one) with the Linux toolchain | build stage A for pi32v2; read the cycle counter per block for msfa, Plaits light and heavy engines, Braids, Rings and the MI reverb; try `-fPIC` and read the relocations | a cycles-per-block table, and a yes or no on Tier 2 |
-| C — FM-1 | only after the dump-and-restore of docs/07 | Tier 0 in the open firmware, or in a hook build if the owner chooses that route | engines selectable per preset, CPU meter on screen |
+| C — FM-1 | staged owner-authorized work under docs/07 §4; full-image recovery remains untested | Tier 0 in the open firmware, or in a hook build if the owner chooses that route | engines selectable per preset, CPU meter on screen |
 | D | FM-1 | Tier 1 RAM units over USB-MIDI; then flash-stored units and Berry scripts if wanted | a unit built outside the firmware tree loads, runs, and is refused cleanly when over budget |
 
 Stage A can start today and costs nothing. Stage B is the one purchase

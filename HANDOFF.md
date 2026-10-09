@@ -10,6 +10,18 @@ original conversation; last updated 2026-09-29 (Baud Girl's FM-1+VA, the
 owner's PCB photos) and 2026-10-01 (engines, sequencer, the new name). Read
 this first, then `DEVELOPERS.md` (the README is the product page), then `docs/`.
 
+## Audit remediation — 2026-10-08
+
+Resume on `fix/2026-10-08@firmware-readiness-audit`, in the managed
+`full-code-audit` worktree. The full audit is recorded in
+[its report](notes/2026-10-07-full-code-audit.md); verified corrections,
+test results and remaining firmware prerequisites are in
+[the remediation ledger](notes/2026-10-08-audit-remediation.md).
+Native sanitizer and four-profile target compile checks pass. This is not a
+linked firmware application: simulator arenas and persistence scratch exceed
+device SRAM and require a device layout. No hardware traffic in this work.
+The separate editor improvements branch/PR #99 remains unmerged.
+
 ## Latest hardware update — 2026-10-07
 
 The original research summary below is historical. The owner authorized
@@ -50,8 +62,8 @@ until installable firmware; see [its resume plan](notes/2026-10-07-mobile-advanc
   unit, written through mask ROM [reported]. Their code maps the board
   (docs/01 §3.1): audio is ALNK0 (I2S) to an external codec, not the internal
   DAC, and the encoders are scanned in the key matrix. Stock V15 also enters
-  mask ROM on the SysEx "soft key" `F0 22 24 35 7D F7`, which this project
-  must not send before the gate (CLAUDE.md trap 9).
+  mask ROM on the SysEx "soft key" `F0 22 24 35 7D F7`, which was subsequently verified on this unit under the revised staged
+  policy (see the latest hardware update above).
 - **Where the repo lives now:** `~/Developer/mvave-fm1-firmware` on the
   owner's MacBook (the folder keeps its old name), branch `main`, remote
   `ip2k/lunar-modulator` (published 2026-09-06 as

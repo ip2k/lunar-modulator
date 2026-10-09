@@ -8,6 +8,15 @@ history.
 
 ## [Unreleased]
 
+### Fixed
+- Audit findings in target compile failure handling, IRQ source guards,
+  malformed sequencer/modulation input, edit dump bounds, manual output
+  deletion safety and remote oracle argument validation.
+- Defined X0X exponent bit arithmetic without sanitizer exemptions and kept
+  Comet hit voicing stable during parameter ramps.
+- Reconciled technical recovery status with the verified bounded-sector
+  experiments; full-image recovery and Lunar installation remain untested.
+
 ### Added
 - Recorded the SDK versus bare-metal platform and GPL/permissive/dual-licence
   evaluation with reasoning, release boundaries and effort estimates; linked
