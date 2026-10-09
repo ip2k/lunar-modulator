@@ -47,3 +47,9 @@ PR #99 must merge before this branch, followed by a combined Wasm rebuild.
 
 The two changed browser example copies are synchronized with their canonical
 engine examples; all five served examples remain byte-identical.
+
+Combined editor integration checkpoint: origin/main `ebc6690` and PR #99
+`a0dc7c0` are integrated into this branch for verification. Source conflicts
+are resolved; generated Wasm/metadata temporarily retain the envelope-only
+artifacts pending a combined rebuild on aeon. This is a WIP checkpoint,
+not merge-ready; PR #99 must land first.

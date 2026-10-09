@@ -27,6 +27,27 @@ history.
   experiments; full-image recovery and Lunar installation remain untested.
 
 ### Added
+- External browser audio checks: an isolated PulseAudio monitor records a
+  sustained simulator tone during edit storms and musical A/B playback in
+  Chromium, Firefox and WebKit. CI runs the detector and captures; native
+  Safari's filtered dropdowns have been checked on a Mac.
+- Repeated sound A/B restores reuse modulation slots instead of filling the
+  rack with imported copies. Unchanged sources keep their phase; changed
+  shared sources and conflicting cable slots are refused. External imports
+  still merge normally; A/B picks and redo follow the restore rules.
+- Shadow-worker requests keep their correlation ID separate from the module
+  ID, so typed parameter parsing and formatting resolve instead of hanging.
+- A bounded cleanup audit, with nine unused helpers/imports removed. Optional
+  refactors and the remaining full-audit scope are recorded in the audit note.
+- **Advanced editor follow-up:** Shift+Enter selects every search match;
+  compatible parameters accept a common value, and matching cables can be
+  enabled, disabled or removed, each batch in one undo step. The Map can
+  start a cable from an input and reconnect either end of a selected cable
+  without losing its settings. Squash shows its Snap gate separately from
+  gain reduction (telemetry version 2). The panel refuses insert effects
+  into sounds with no engine. The manual describes these controls, and the
+  README now includes the editor, storage, browser DX7 imports and the
+  Session/Song pages instead of listing completed features as future work.
 - Recorded the SDK versus bare-metal platform and GPL/permissive/dual-licence
   evaluation with reasoning, release boundaries and effort estimates; linked
   it from the Claude/Codex guidance. No licence changes implemented.

@@ -352,7 +352,7 @@ export function makeMap(ctx, h) {
     cols.srcs = sourcesColumn();
     map.append(svg, pills, cols.srcs, cols.rack, cols.dsts);
     wrap.append(map, el('p', 'ed-note ed-map-how', {}, [
-      'Drag from an output to an input, or press Enter on an output, move to an input with the arrows and press Enter again. ',
+      'Start from either an output or an input: drag to the other end, or use Enter, arrows and Enter. Select a cable to drag either end. ',
       'F keeps the selected module, destination or source bright; Esc shows all. The table has every cable in words.']));
     for (const col of Object.values(cols)) rove(col);
     wire(map);
@@ -393,16 +393,18 @@ export function makeMap(ctx, h) {
       for (const b of col.querySelectorAll('button')) b.tabIndex = b === cur ? 0 : -1;
     }
   }
-  const patchTargets = () => [...map.querySelectorAll('.ed-jack-in')].filter((b) => b.tagName === 'BUTTON' && visible(b));
+  const patchTargets = () => [...map.querySelectorAll(patch && patch.dst ? '.ed-jack-out' : '.ed-jack-in')].filter((b) => b.tagName === 'BUTTON' && visible(b));
 
   // ---- making a cable: by pointer or by keys ------------------------------------------------------
   function srcLabel(code) { return srcName(code); }
-  function begin(code, jack, how) {
-    patch = { src: code, jack, how, over: null, verdicts: new Map() };
+  function begin(code, jack, how, dst = null, slot = -1) {
+    patch = { src: code, dst, slot, jack, how, over: null, verdicts: new Map() };
     map.classList.add('is-patching');
     jack.classList.add('is-hand');
-    say(`${srcLabel(code)} in hand. Drop it on an input; Esc puts it back.`);
-    ctx.say(`${srcLabel(code)}: a cable is in hand. Arrow keys move between inputs, Enter drops it, Escape cancels.`);
+    const label = dst ? jack.getAttribute('aria-label').replace(': a cable can end here', '') : srcLabel(code);
+    const ends = dst ? 'outputs' : 'inputs';
+    say(`${label} in hand. Drop it on an ${dst ? 'output' : 'input'}; Esc puts it back.`);
+    ctx.say(`${label}: a cable is in hand. Arrow keys move between ${ends}, Enter drops it, Escape cancels.`);
     layout();
   }
   function end(drop, target) {
@@ -414,9 +416,10 @@ export function makeMap(ctx, h) {
     if (ghost) { ghost.remove(); ghost = null; }
     say('');
     if (p && drop && target) {
-      const dst = target.dataset.dst;
-      if (!dst) return;
-      makeCable(p.src, dst);
+      const dst = p.dst || target.dataset.dst;
+      const src = p.dst ? Number(target.dataset.src) : p.src;
+      if (!dst || !Number.isFinite(src)) return;
+      makeCable(src, dst, 25, p.slot);
     } else if (p && p.jack && p.jack.isConnected && p.how === 'key') p.jack.focus();
     layout();
   }
@@ -428,20 +431,22 @@ export function makeMap(ctx, h) {
     p.over = target;
     if (!target) return;
     target.classList.add('is-aim');
-    const dst = target.dataset.dst;
-    let v = p.verdicts.get(dst);
+    const dst = p.dst || target.dataset.dst;
+    const src = p.dst ? Number(target.dataset.src) : p.src;
+    const key = `${src}:${dst}`;
+    let v = p.verdicts.get(key);
     if (!v) {
-      v = await verdictFor(p.src, dst);
-      p.verdicts.set(dst, v);
+      v = await verdictFor(src, dst, p.slot);
+      p.verdicts.set(key, v);
     }
     if (patch !== p || p.over !== target) return;
     target.classList.add(v.ok ? 'is-ok' : 'is-no');
     target.title = v.text;
-    say(`${srcLabel(p.src)} to ${target.getAttribute('aria-label').replace(': a cable can end here', '')}: ${v.text}`);
+    say(`${srcLabel(src)}: ${v.text}`);
     ctx.say(`${v.text}.`);
   }
-  async function verdictFor(src, dst) {
-    const free = st.mirror.cables.findIndex((c) => cableEmpty(c));
+  async function verdictFor(src, dst, slot = -1) {
+    const free = slot >= 0 ? slot : st.mirror.cables.findIndex((c) => cableEmpty(c));
     if (free < 0) return { ok: false, text: verdictWords(6, { what: 'matrix', used: SLOTS, max: SLOTS }) };
     const rec = h.cableRecord(free, src, dst);
     const r = await preview([rec], false, true);
@@ -463,33 +468,39 @@ export function makeMap(ctx, h) {
     root.addEventListener('click', (e) => {
       const j = e.target.closest && e.target.closest('button.ed-jack');
       if (!j) return;
-      if (j.classList.contains('ed-jack-out')) {
-        if (patch && patch.jack === j) { end(false); return; }
-        if (patch) end(false);
-        begin(Number(j.dataset.src), j, e.detail === 0 ? 'key' : 'click');
-        if (e.detail === 0) { const f = patchTargets()[0]; if (f) f.focus(); }
-        return;
+      if (patch) {
+        if (patch.jack === j) { end(false); return; }
+        if (patch.dst ? j.classList.contains('ed-jack-out') : j.classList.contains('ed-jack-in')) { end(true, j); return; }
+        end(false);
       }
-      if (patch) { end(true, j); return; }
-      // An input with a cable on it: open that cable.
-      const i = st.mirror.cables.findIndex((c) => !cableEmpty(c) && toValue(c) === j.dataset.dst);
-      if (i >= 0) { st.selCable = `c${i + 1}`; ctx.select(`c${i + 1}`, { view: 'mod' }); }
+      const input = j.classList.contains('ed-jack-in');
+      begin(input ? null : Number(j.dataset.src), j, e.detail === 0 ? 'key' : 'click', input ? j.dataset.dst : null);
+      if (e.detail === 0) { const f = patchTargets()[0]; if (f) f.focus(); }
     });
     root.addEventListener('pointerdown', (e) => {
-      const j = e.target.closest && e.target.closest('button.ed-jack-out');
-      if (!j || e.button !== 0) return;
+      const handle = e.target.closest && e.target.closest('.ed-cab-end');
+      const j = e.target.closest && e.target.closest('button.ed-jack');
+      if ((!j && !handle) || e.button !== 0) return;
       const start = { x: e.clientX, y: e.clientY };
+      const slot = handle ? Number(handle.dataset.slot) : -1;
+      const c = slot >= 0 ? cableOf(slot) : null;
+      const input = handle ? handle.dataset.end === 'source' : j.classList.contains('ed-jack-in');
+      const anchor = handle ? jacks.get(input ? `d${toValue(c)}` : `s${c.src}`) : j;
+      if (!anchor || anchor.tagName !== 'BUTTON') return;
       let dragging = false;
+      const targetAt = (ev) => {
+        const t = document.elementFromPoint(ev.clientX, ev.clientY);
+        return t && t.closest ? t.closest(input ? 'button.ed-jack-out' : 'button.ed-jack-in') : null;
+      };
       const move = (ev) => {
         if (!dragging && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) > 5) {
           dragging = true;
           if (patch) end(false);
-          begin(Number(j.dataset.src), j, 'drag');
+          begin(input ? null : (c ? c.src : Number(j.dataset.src)), anchor, 'drag', input ? (c ? toValue(c) : j.dataset.dst) : null, slot);
         }
         if (!dragging || !patch) return;
-        drawGhost(ev.clientX, ev.clientY, j);
-        const t = document.elementFromPoint(ev.clientX, ev.clientY);
-        const to = t && t.closest ? t.closest('button.ed-jack-in') : null;
+        drawGhost(ev.clientX, ev.clientY, anchor);
+        const to = targetAt(ev);
         if (to !== patch.over) aim(to);
       };
       const cancel = () => {
@@ -503,10 +514,8 @@ export function makeMap(ctx, h) {
         window.removeEventListener('pointerup', up);
         window.removeEventListener('pointercancel', cancel);
         if (dragging) {
-          const t = document.elementFromPoint(ev.clientX, ev.clientY);
-          const to = t && t.closest ? t.closest('button.ed-jack-in') : null;
+          const to = targetAt(ev);
           end(!!to, to);
-          // The click that follows a drag must not pick the cable up again.
           const swallow = (c) => { c.stopPropagation(); c.preventDefault(); };
           window.addEventListener('click', swallow, { capture: true, once: true });
           setTimeout(() => window.removeEventListener('click', swallow, { capture: true }), 0);
@@ -623,6 +632,12 @@ export function makeMap(ctx, h) {
       hitp.addEventListener('click', () => { st.selCable = `c${x.i + 1}`; ctx.select(`c${x.i + 1}`, { view: 'mod' }); });
       g.append(hitp);
       if (ref) { const e = x.p1; g.append(sv('path', { d: `M${e.x - 18} ${e.y - 4} l8 8 M${e.x - 18} ${e.y + 4} l8 -8`, class: 'ed-cab-x' })); }
+      if (sel(x)) {
+        for (const [end, p, shift] of [['source', x.p0, 24], ['destination', x.p1, -24]]) {
+          g.append(sv('circle', { class: 'ed-cab-end', cx: p.x + shift, cy: p.y, r: 7,
+            'data-slot': x.i, 'data-end': end }));
+        }
+      }
       svg.append(g);
       geo.push(x);
     }

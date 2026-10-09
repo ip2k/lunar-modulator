@@ -7,7 +7,8 @@
 // free slots and the RAM rule (every instance at 44,118 Hz, ST6) included.
 // The worklet then gets the packed file and nothing else.
 //
-// Requests are { id, op, ... }; each reply is { re: id, ok, ... }.
+// Requests are { request, op, ... }; each reply is { re: request, ok, ... }.
+// Parameter operations use id for the module name, separately from the request id.
 //   init    { wasm, rate }       the module's bytes and the AudioContext's rate
 //   check   { bytes, kind, into, slot, flags, live }
 //           pass 1 of `bytes` (a .lunar file, JSON or binary, or a .movy1 set)
@@ -336,5 +337,5 @@ self.onmessage = async (e) => {
   }
   const transfer = reply.bin && reply.bin !== m.bytes ? [reply.bin.buffer] : [];
   if (reply.mod) transfer.push(reply.mod.buffer);
-  self.postMessage({ re: m.id, ...reply }, transfer);
+  self.postMessage({ re: m.request ?? m.id, ...reply }, transfer);
 };

@@ -26,7 +26,7 @@ all: $(BUILD)/fm1-squash-test
 
 $(BUILD)/squash-ref/fx_squash.o: src/fx_squash.cc
 	@mkdir -p $(dir $@)
-	$(CXX) $(COMMON) $(OUR_WARN) -DFM1_SQUASH_MU_MAKEUP=0 -Dfm1_engine_squash=fm1_engine_squash_ref -Dfm1_squash_gain=fm1_squash_gain_ref -c $< -o $@
+	$(CXX) $(COMMON) $(OUR_WARN) -DFM1_SQUASH_MU_MAKEUP=0 -Dfm1_engine_squash=fm1_engine_squash_ref -Dfm1_squash_gain=fm1_squash_gain_ref -Dfm1_squash_gate_state=fm1_squash_gate_state_ref -c $< -o $@
 
 $(BUILD)/fm1-squash-test: $(SQUASH_TEST_OBJ) $(BUILD)/our/src/fx_squash.o $(BUILD)/our/src/fx_shaper.o \
                          $(BUILD)/our/src/fx_limit.o $(SQUASH_REF_OBJ)

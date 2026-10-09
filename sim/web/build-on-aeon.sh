@@ -104,19 +104,19 @@ DIGESTS=$(printf '%s' "$DIGESTS" | paste -sd';' -)
 echo "$DIGESTS" | tr ';' '\n'
 
 echo "== static musl reference in $ALPINE_IMAGE"
-ssh "$HOST" "docker run --rm ${LABELS[*]} -v '$STAGE:/src' -w /src $ALPINE_IMAGE \
+ssh "$HOST" "docker run --rm --cgroup-parent=docker-batch.slice --memory=8g --memory-swap=8g ${LABELS[*]} -v '$STAGE:/src' -w /src $ALPINE_IMAGE \
   sh -c 'apk add -q build-base >/dev/null && \
          make -C engines BUILD=/src/sim/web/build/musl CC=gcc CXX=g++ EXTRA=-static FM1_GPL_MODS=$GPL_MODS -j\$(nproc) \
            /src/sim/web/build/musl/fm1-render >/dev/null; s=\$?; chown -R \$(stat -c %u:%g /src) /src; exit \$s'"
 
 echo "== build and parity in $EMSDK_IMAGE"
-ssh "$HOST" "docker run --rm ${LABELS[*]} -e ENGINES_REF='${ENGINES_REF:-working tree}' -e FM1_IMAGES='$DIGESTS' -e FM1_GPL_MODS=$GPL_MODS \
+ssh "$HOST" "docker run --rm --cgroup-parent=docker-batch.slice --memory=8g --memory-swap=8g ${LABELS[*]} -e ENGINES_REF='${ENGINES_REF:-working tree}' -e FM1_IMAGES='$DIGESTS' -e FM1_GPL_MODS=$GPL_MODS \
   -v '$STAGE:/src' -w /src $EMSDK_IMAGE \
   sh -c 'bash sim/web/build.sh; s=\$?; chown -R \$(stat -c %u:%g /src) /src; exit \$s'"
 
 if [ "$SCREENSHOT" = 1 ]; then
   echo "== page in headless Chromium ($PLAYWRIGHT_IMAGE)"
-  ssh "$HOST" "mkdir -p '$REMOTE/playwright' && docker run --rm ${LABELS[*]} --ipc=host \
+  ssh "$HOST" "mkdir -p '$REMOTE/playwright' && docker run --rm --cgroup-parent=docker-batch.slice --memory=8g --memory-swap=8g ${LABELS[*]} --ipc=host \
     -v '$REMOTE/playwright:/pw' -v '$STAGE:/src' -w /pw $PLAYWRIGHT_IMAGE \
     sh -c '[ -d node_modules/playwright ] && [ -d node_modules/axe-core ] || npm install --no-save --no-audit --no-fund $PLAYWRIGHT_NPM $AXE_NPM >/dev/null; \
            PLAYWRIGHT_DIR=/pw node /src/sim/web/test/screenshot.mjs /src/sim/web/www /src/sim/web/build/screenshots; \
