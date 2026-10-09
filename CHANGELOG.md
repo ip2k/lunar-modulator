@@ -14,6 +14,8 @@ history.
   deletion safety and remote oracle argument validation.
 - Defined X0X exponent bit arithmetic without sanitizer exemptions and kept
   Comet hit voicing stable during parameter ramps.
+- Sound imports no longer apply unavailable MIDI-effect settings to a previous
+  slot; omitted effects load as the bypassed default used by preflight.
 - Reconciled technical recovery status with the verified bounded-sector
   experiments; full-image recovery and Lunar installation remain untested.
 

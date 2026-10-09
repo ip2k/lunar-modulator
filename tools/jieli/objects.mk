@@ -4,7 +4,8 @@
 #   make -C engines -f Makefile -f ../sim/web/mk/sim.mk -f ../tools/jieli/objects.mk \
 #        SIM=<abs sim/web> BUILD=<abs dir> print-objs
 #
-# Everything a firmware would link: our engines and effects, the vendored
+# Compile coverage for reusable code and simulator integration; this is not
+# a device link list or a device SRAM layout. Our engines and effects, the vendored
 # Mutable, Schwung and msfa code (MSFA_OBJ, mk/msfa.mk), the sequencer core, the modulation primitives
 # and runtime (MOD_OBJ, MODC_OBJ: mk/mod.mk), the MIDI effects and their
 # registry (ARP_OBJ, mk/midi_fx.mk; missing here until 2026-10-06), the

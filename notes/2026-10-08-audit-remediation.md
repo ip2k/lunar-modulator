@@ -26,6 +26,9 @@ no licence change is required or authorized by this implementation work.
 - Remote oracle runners reject unsafe paths and frame options before SSH;
   Airwindows jobs use the batch resource limits.
 - Comet retains each hit's kit and distortion choice throughout control ramps.
+- Sound imports omit unavailable MIDI-effect ON/PARAM records and reset the
+  replaced slot to the bypassed default used by preflight, rather than
+  changing or retaining the previous sound's effect.
 - Technical status and recovery instructions now distinguish bounded sector
   recovery from untested full-image recovery and Lunar installation.
 
@@ -41,6 +44,10 @@ profiles without failures, with the GPL switch enabled and default module
 list. Injecting a deliberate compile error returned status 1, recorded one
 failure in each profile and preserved the report; the injected source was
 restored. Object-level guards passed, with two linked-image checks pending.
+The state-import correction also passed all four target profiles. Native
+state suites passed with GPL modules on (nine passed, three dependency skips)
+and off (eight passed, four dependency/module skips); the unknown-effect
+regression reproduced before the correction in JSON and binary.
 These are compile checks, not a linked or installable hardware application.
 
 ## Firmware memory boundary
@@ -58,7 +65,7 @@ then a real linked-image map, stack/interrupt budget and runtime measurements.
 ## Remaining work and recovery
 
 All unresolved findings remain in the full audit report, including editor
-persistence/history/cable identity checks and state-import validation. No
+persistence/history/cable identity checks and compressed/binary state validation. No
 hardware operation occurred during this remediation. Full-image restore,
 broken-app recovery and a Lunar application on the device remain untested.
 
