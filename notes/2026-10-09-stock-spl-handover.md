@@ -37,7 +37,7 @@ implementation was copied. This note does not authorize a hardware experiment.
 
 | Item | Evidence and limit |
 | --- | --- |
-| Entry | [verified] At `0x3294`, `r1 = [r12]`; at `0x329c`, **`call r1`**. This is a metadata-selected call, not a jump or reset vector. Stock metadata selects `0x02000120`. The return continuation is `0x01c0529e`. |
+| Entry | [verified] At `0x3294`, `r1 = [r12]`; at `0x329c`, **`call r1`**. This is a metadata-selected call, not a jump or reset vector. Stock metadata selects `0x02000120`. The return continuation is `0x01c0528e` (file offset `0x329e`, excluding the 16-byte bank header). |
 | Argument | [verified] `r10 = 0x01c7fd80` at `0x2dd0`; `r0 = r10 + 136` immediately before the call, giving `0x01c7fe08`. Only this boot argument has been established; other incoming registers are not an application API. |
 | Boot information | [verified] `0x31ea..0x31fc` copies six words, replaces word 0 with the address of a separately copied 32-byte header at `0x01c7fe20`, then copies that header. The total copied storage is 56 bytes. Do not read a modern SDK's longer structure directly from the six-word prefix. |
 | Interrupts | [verified] `cli` appears at `0x31d2`. There is no subsequent `sti` on the ordinary XIP path to `call r1`; that path should be treated as entering with interrupts masked. This does not establish exception routing or secondary-core state. |
@@ -194,3 +194,7 @@ The earlier `0x01c05830` end and plain base-plus-offset rule were off by
 16 bytes. The diagnostic overlap remains. Odd-immediate symbolic labels in
 vendor objdump can also differ by one from the decimal literal; use the
 actual literal rather than treating the annotation as an exact pointer.
+
+- 2026-10-09: Follow-up byte inspection corrected the application-call return
+  continuation to `0x01c0528e`; the loaded-body mapping excludes the bank
+  header here as well. This does not establish a return-compatible ABI.
