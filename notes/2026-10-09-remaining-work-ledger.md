@@ -1,9 +1,9 @@
 # Remaining work ledger — 2026-10-09
 
-Reconciled with current `origin/main` at `e76392b` (PR #104 merged), open PRs,
-tracked audit notes, and the editor/recovery branches. This is a prioritized
-status record, not a blanket closure of the audit. It does not repeat the
-parent envelope-graph implementation.
+Initial reconciliation was against `origin/main` at `e76392b` (PR #104 merged).
+The live update at the end of this note supersedes that snapshot. This is a
+prioritized status record, not a blanket closure of the audit. It does not
+repeat the parent envelope-graph implementation.
 
 ## Completed and current evidence
 
@@ -39,8 +39,8 @@ parent envelope-graph implementation.
   `b6a6b58acbbe167eae2bcf7424aacf4c554b6220`) addresses the IndexedDB false-save
   P2: durable writes fail visibly instead of silently falling back to memory,
   failed saves retain dirty state, and retry remains possible. Focused
-  Chromium storage-failure regressions passed locally. PR is open; CI/review
-  remain pending. This is not yet on main.
+  Chromium storage-failure regressions passed locally. It has since merged as
+  PR #103 into `main` at `ebc6690`; the fix is now part of the current baseline.
 - **PR #102** recovery-status wording is open and needs current CI review. Its
   Chromium page suite failed the 30-second storm with two underruns reported
   as `0.02` by playbackStats. That field is in seconds, despite the test's
@@ -55,11 +55,11 @@ parent envelope-graph implementation.
 ## Prioritized remaining work
 
 1. **Close the open PR streams on evidence, without treating local checks as
-   CI or hardware proof.** PR #99 editor, PR #101 envelope graph, PR #102
-   recovery-status docs, PR #103 save durability, PR #105 test-server path
-   containment, PR #106 resampler CLI bounds, PR #107 verified stock-SPL
-   handover docs, and PR #108 guarded offline stock-package inspection are
-   open as of this snapshot. Check each live CI/review state before acting.
+   CI or hardware proof.** At the live update below, PR #99 editor, #101
+   envelope graph, #102 recovery-status docs, #105 test-server path containment,
+   #106 resampler CLI bounds, #107 stock-SPL handover docs, #108 offline stock
+   inspection, and #112–114 bounded oracle/MIDI fixes remain open. PR #103 has
+   merged. Check each live CI/review state before acting.
    PR #101's envelope work belongs to its owner stream; it is not duplicated
    in this ledger. PR #105's sibling traversal, outside-symlink escape and
    malformed-URL regressions reportedly pass the actual HTTP checks, but its
@@ -82,7 +82,8 @@ parent envelope-graph implementation.
 
 ## GitHub snapshot
 
-The merged baseline is `origin/main` `e76392b8a962e938e99ea4d13bdac2c7893822ba`.
+This was the historical merged baseline `origin/main`
+`e76392b8a962e938e99ea4d13bdac2c7893822ba` at initial reconciliation.
 Open PR heads at reconciliation time: #99 `a0dc7c0`, #101 `a994088`, #102
 `275f8b3`, #103 `b6a6b58`, #105 `ba7ab93`, #106 `18035e0`, #107 `e1201e9`,
 and #108 `dcd5c67`. This status is deliberately point-in-time; verify GitHub
@@ -150,3 +151,65 @@ physical lines and a separately tiered vendor count. The audit notes still
 retain unresolved P3 candidates; PR #100/#105 are targeted fixes, not blanket
 closure. PR #104 is merged, but its SDK-free diagnostic has not been run on
 native hardware.
+
+## Live update — 2026-10-09, `origin/main` `ebc6690c7595469359336b145cf1d7c0b4fe333a`
+
+This section supersedes the earlier point-in-time GitHub snapshot above.
+
+- **Merged baseline and editor durability:** `origin/main` is still
+  `ebc6690c7595469359336b145cf1d7c0b4fe333a`; PR #103 save durability is
+  merged. PR #104's SDK-free linked diagnostic is also merged but still has not
+  run on the dev kit or FM-1. Firmware runtime, native audio, and FM-1 behavior
+  remain unverified.
+- **Combined editor/envelope verification:** the owner reports the combined
+  LAN browser run passed at PR #101 head
+  `506b76459be4e96b83f487aa08f3c45ca2e8681d`. GitHub checks for PR #101 are
+  still pending. The captured-WAV A/B comparison still needs a by-ear judgment;
+  do not infer a listening pass from automated waveform/browser checks.
+- **PR #108 stock inspector:** the independent review finding about false
+  stock/no-op classification is resolved at `0a7407d81419f82481d4959946fca3278f1aa6e5`:
+  `app.bin`, `cfg_tool.bin`, and `eq_cfg_hw.bin` are each byte-bound to the
+  guarded reference, with repaired-CRC regressions. PR #110 records that
+  bounded re-review at commit `0a2c8b8f13c064d7d4c8060301ae6439c259975f`.
+  The independent synthetic suite passed 14 tests; one optional real-stock test
+  was skipped because its private inputs were unavailable. PR #108 has since
+  advanced to `2807f732481facc58d91bc7da604c463913af9eb`; its owner reports an
+  added entry-placement guard and 100 focused checks including actual V15
+  no-op validation. This is report-level evidence, not device execution or a
+  review of that later change. PR #108 remains open with GitHub checks pending.
+- **New bounded audit fixes:** PR #112 (`7e3c600`) rejects non-finite and
+  oversized room-oracle rates/frame counts before conversion or allocation;
+  capped-container evidence reports infinity/NaN, oversized inputs and a valid
+  32-frame render covered by focused regressions. PR #113 (`d87c7cf`) emits
+  ordered MID pulses when modulation crosses the whole band in a single tick;
+  the bounded build/test reports 1,240,305 checks plus filter/fill/fuzz cases.
+  PR #114 (`e954c03`) checks Movy oracle run-length arithmetic before replay;
+  bounded debug/release regressions passed, maximum-frame CLI repros now fail
+  safely, and 24 curated event logs/sets regenerated byte-identically. All
+  three PRs are open; their GitHub checks were pending at this update. No
+  device traffic was involved.
+- **PR #110 and the older docs PRs:** PR #110 is open at
+  `0a2c8b8f13c064d7d4c8060301ae6439c259975f`, currently dirty against main, and
+  GitHub reports no checks for its branch. Its three factual ports cover the
+  FM-1_015/FM-1_092 ownership chronology, Movy commit-versus-tag identity, and
+  the simulated-but-unassembled recovery dongle; the evidence index is
+  `notes/2026-10-09-factual-doc-corrections.md`, with the PR108 re-review in
+  `notes/2026-10-09-pr108-review.md`. PR #22 remains a superseded HANDOFF
+  snapshot (all its reported checks pass, but it is dirty against main). PR #58
+  remains a superseded broad fact sweep (editor/engine checks pass, but its
+  site/manual build failed; it is also dirty against main). No edits are needed
+  on either old branch: #22 contains no unique current correction, and #58's
+  only three still-useful claims are already ported in #110. The remaining
+  question is review/integration of #110, not resurrection of #22/#58.
+- **Still-open audit and product gates:** targeted fixes do not close the
+  remaining P3 candidates or state-validation findings in
+  `notes/2026-10-07-full-code-audit.md`; use
+  `notes/2026-10-07-full-code-audit-coverage.md` for scope. The completed
+  2026-10-08 dead-code audit/count remains the baseline in `CLAUDE.md`; no
+  replacement audit is due absent another ~10,000 first-party source lines.
+  The SDK runtime/licensing recommendation remains unapproved; preserve the
+  existing GPL boundary and consult
+  `notes/2026-10-07-sdk-runtime-evaluation.md`. The mobile advanced editor is
+  still deferred until installable firmware; no native bridge, relay, BLE
+  stack, or hardware protocol is selected; see
+  `notes/2026-10-07-mobile-advanced-editor.md`.
