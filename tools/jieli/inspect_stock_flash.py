@@ -175,6 +175,7 @@ def inspect_nested(raw, stock):
     stock = Path(stock)
     components = {'top/uboot.boot': bytes(spl_data), 'top/isd_config.ini': bytes(config_data),
                   'files/cfg': bytes(decoded[blocks[1]['header_offset']:cursor])}
+    components.update({f'files/{name}': data for name, data in files.items()})
     for path, data in components.items():
         if data != (stock / path).read_bytes():
             raise ValueError(f'guarded decoded component differs: {path}')

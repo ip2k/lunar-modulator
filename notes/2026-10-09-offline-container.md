@@ -21,7 +21,7 @@ USR under this strict V14/V15 profile; its relocated auxiliary representation
 is explained below. Every successful result explicitly says
 `inspected-incomplete`, `packaging_ready=false` and
 `device_execution=unverified`: nested flash rewrite remains unfinished.
-95 focused tests pass, including 13 outer-envelope checks, eleven nested checks
+99 focused tests pass, including outer-envelope and nested checks
 (with optional real-container validation enabled), and the real stock SPL
 pin check [verified]. No vendor bytes are
 committed.
@@ -165,6 +165,13 @@ nested layers even if an attacker repairs outer CRCs; the real-container test
 runs the complete outer/stock guard. Damaged CRCs, component changes, name,
 range and reservation errors are rejected.
 
+All three extracted files (`app.bin`, `cfg_tool.bin`, `eq_cfg_hw.bin`) are
+also compared byte-for-byte to the guarded reference [verified]. CRCs and
+no-op reconstruction alone do not establish stock provenance: independent
+review demonstrated that a modified app with repaired child/directory CRCs
+previously passed. That classification gap is closed, with repaired-CRC
+regressions for all three files and a separate EQ-reference mismatch check.
+
 ## Exact next gates and bounded offline experiment
 
 No packager was implemented. The successful no-op reconstruction retains
@@ -210,6 +217,13 @@ No heavy build was required; the new work is a small offline Python reader.
 The previously bounded LAN toolchain/runtime artifacts remain unchanged.
 Nested reproduction (new report filename required):
 
+The nested inspector requires the guarded reference to contain
+`files/app.bin`, `files/cfg_tool.bin` and `files/eq_cfg_hw.bin` in addition to
+the existing SPL/config/OTA/cfg assets. Copy the first two from the known
+V15 unpack tree; copy the EQ file from its `files/cfg-extracted/eq_cfg_hw.bin`
+to the reference's `files/eq_cfg_hw.bin`. These local vendor files remain
+ignored; a missing or different reference file fails inspection.
+
 ```sh
 python3 tools/jieli/inspect_stock_flash.py \
   /Users/likwid/Developer/mvave-fm1-firmware/scratch/FM-1_v15_cdn.fwsc \
@@ -240,3 +254,7 @@ PR #104 integration; root owns PR/CI/integration.
   established nested CRCs, and reconstructed the full stock FWSC identically
   in memory. Preserved reserved descriptors and unknown tail bytes; no
   modified-image builder or installable output was created.
+
+- 2026-10-09: Closed the stock-result classification gap found by independent
+  review by binding all three extracted files to reference bytes; 99 focused
+  checks pass including repaired-CRC modifications and actual V15 validation.

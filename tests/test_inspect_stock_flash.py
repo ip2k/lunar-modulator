@@ -72,6 +72,9 @@ def stock_files(tmp_path, decoded):
     (tmp_path / 'top/uboot.boot').write_bytes(decoded[0xa0:0x38d0])
     (tmp_path / 'top/isd_config.ini').write_bytes(decoded[0x38d0:0x38d0 + 699])
     (tmp_path / 'files/cfg').write_bytes(decoded[0x4400:0x4480])
+    (tmp_path / 'files/app.bin').write_bytes(decoded[0x4120:0x4124])
+    (tmp_path / 'files/cfg_tool.bin').write_bytes(decoded[0x4140:0x4142])
+    (tmp_path / 'files/eq_cfg_hw.bin').write_bytes(decoded[0x4440:0x4443])
     return tmp_path
 
 
@@ -112,6 +115,34 @@ def test_helpers_reject_unchecked_ranges_names_and_reserved_layout():
         nested.record(jlfs('ABCDEFGHIJKLMNOP', 0, 0, 0x82, 1), 0)
     with pytest.raises(ValueError, match='stock chip-key blob CRC'):
         nested.stock_key(bytes(34)[:-1] + b'x')
+
+
+@pytest.mark.parametrize('name,offset,size,header', [('app.bin', 0x4120, 4, 0x4020),
+                                                   ('cfg_tool.bin', 0x4140, 2, 0x4040),
+                                                   ('eq_cfg_hw.bin', 0x4440, 3, 0x4420)])
+def test_rejects_changed_files_after_all_nested_crcs_repaired(monkeypatch, tmp_path, name, offset, size, header):
+    decoded = synthetic_decoded()
+    stock = stock_files(tmp_path, decoded)
+    decoded[offset:offset + size] = b'X' * size
+    block = 0x4400 if name == 'eq_cfg_hw.bin' else 0x4000
+    decoded[header:header + 32] = jlfs(name, offset - block, size, 0x82,
+                                     int(name == 'eq_cfg_hw.bin'), b'X' * size)
+    decoded[block:block + 32] = jlfs('cfg' if block == 0x4400 else 'app_area_head',
+                                   0x20 if block == 0x4400 else 0x02000120,
+                                   0x80 if block == 0x4400 else 0x400, 0x83,
+                                   int(block == 0x4400), decoded[block + 32:block + (0x80 if block == 0x4400 else 0x400)])
+    monkeypatch.setattr(nested, 'inspect', fake_outer)
+    with pytest.raises(ValueError, match='guarded decoded component differs'):
+        nested.inspect_nested(encode(decoded), stock)
+
+
+def test_eq_file_reference_is_required_even_when_cfg_block_matches(monkeypatch, tmp_path):
+    decoded = synthetic_decoded()
+    stock = stock_files(tmp_path, decoded)
+    (stock / 'files/eq_cfg_hw.bin').write_bytes(b'bad')
+    monkeypatch.setattr(nested, 'inspect', fake_outer)
+    with pytest.raises(ValueError, match='files/eq_cfg_hw.bin'):
+        nested.inspect_nested(encode(decoded), stock)
 
 
 @pytest.mark.skipif(not os.environ.get('FM1_STOCK_FWSC') or not os.environ.get('FM1_STOCK_UNPACK'),
