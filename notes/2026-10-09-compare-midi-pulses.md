@@ -36,5 +36,10 @@ and a separate normal verification (1 pass each). This updates the expected
 intended behavior, not a tolerance or gate.
 
 The branch's committed simulator build record also predates its simulator
-sources; a fresh bounded Wasm/native parity rebuild is in progress. CI must
-pass the new complete head before integration.
+sources; a fresh bounded Wasm/native parity rebuild completed. All 104
+scenarios match JS/musl exactly, 101 match glibc exactly and the other
+exact-scenario comparison differs by at most 1 LSB. Native edit-layer parity
+passed; the 30-second storm applied 82,728 edits across 10,341 quanta with
+zero late quanta/resyncs (p99 0.092377ms, max 0.226653ms). Record source and
+module hashes were checked locally. CI must pass the new complete head
+before integration. No browser-page rerun is claimed for this rebuild.
