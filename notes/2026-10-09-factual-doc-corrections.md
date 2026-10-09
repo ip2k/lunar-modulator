@@ -1,7 +1,7 @@
 # Factual documentation corrections — 2026-10-09
 
 This pass ports three still-useful factual corrections from conflicted PR #58
-onto current `origin/main` (`e76392b`), without carrying its obsolete status
+onto current `origin/main` (`ebc6690`), without carrying its obsolete status
 claims or recovery wording.
 
 | Correction | Evidence checked | Result |
