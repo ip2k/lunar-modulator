@@ -56,6 +56,73 @@ its source does not establish whether PA2 is panel reset, backlight or output
 enable. The apparent register support does not prove that clocks, rails and
 pad state are ready at stock SPL handover.
 
+## Additional fresh runtime evidence
+
+[verified] Stock's interrupt setup at raw `0x16a4` clears CPU `icfg` bit 8,
+reads `cnum`, zeros 32 routing words at `0x01eef100` for core 0 or
+`0x01eef300` for the other core, then sets CPU `icfg` bit 8. This proves a
+core-dependent routing setup; it does not establish an appropriate exception
+handler or second-core parking policy for Lunar. The vector table at
+`0x01c7fe00` overlaps the incoming boot-input address `0x01c7fe08`, reinforcing
+the need to capture boot input before any vector-table initialization.
+
+[verified] Pinned SDK `asm/p33.h` defines `P3_WDT_CON = 0x80`. Fresh pinned
+`cpu.a` IR in `/tmp/lunar-stock-spl-handover/fresh/v1213/wdt.c.ll` implements
+`wdt_init` as write 0, write period, IRQ enable, then watchdog enable.
+Its IRQ enable performs OR 32 and OR 64 at the watchdog register and modifies
+P33 address 23 bit 6. [inferred] The V15 sequence above matches that SDK
+watchdog initialization with period field 12. Matching operations is not
+proof of the final watchdog state at the SPL-to-new-app handover: the fresh
+app performs this setup after handover. The stock wrapper's rebased ROM
+targets are `0xffc0104e` and `0xffc010b4`; their operation names still need a
+primary ROM-symbol binding before a new runtime could call them.
+
+[verified] Raw `0x23c1c` selects SPI1 port B through IOMAP CON1 bit 4.
+Raw `0x23c20..0x23c3e` establishes PC7 and PC8–PC10 output directions; raw
+`0x23c42..0x23c50` writes SPI1 CON `0x4021` and BAUD 4. The vendor annotation
+for the CON immediate misleadingly prints `0x4020`; the decoded value is
+16,417 (`0x4021`). Stock uses 32-bit register writes and polls CON bit 15
+without a deadline. This sequence needs a calibrated bounded replacement,
+not an assumption that BAUD 4 means a known SPI frequency under inherited
+clocks. PA2's exact electrical role remains unresolved here.
+
+[verified] The V15 setup table is 21 records of 18 bytes at raw `0x4f76c`.
+Stock waits 100 ms before sleep-out (`0x11`); record 1 begins `45 78` but the
+loop handles it as a 120 ms delay, not a transmitted command `0x45`. The
+remaining records configure a 240-column window and rows 40–279, RGB565 word
+format, orientation and panel parameters. The decoded display-fill routine
+sends memory-write `0x2c` at raw `0x22222`, completes its pixel transfers,
+then sends display-on `0x29` at raw `0x22270`. This is protocol evidence;
+actual pixel colors and timing have not been observed here.
+
+## Independently authored offline component
+
+`firmware/display/panel_probe.{c,h}` emits the recovered setup and a fixed
+four-band 240×240 RGB565 word pattern through caller-supplied transport and
+delay callbacks. No framebuffer or allocator is needed. It calls no SDK/ROM
+service and performs no MMIO, IRQ or flash operation. There is no hardware
+backend or startup caller, so this is preparation for an observable diagnostic,
+not an observable diagnostic or an installable application.
+
+[verified] Sixteen focused host tests passed, including the optional direct
+comparison of emitted setup bytes with the SHA-pinned private V15 table.
+The complete trace has 22 command transactions, 54 setup-data bytes and
+115,200 pixel bytes, with waits of 100 and 120 ms. Fault cases cover setup,
+pixel and display-on commands, data at beginning/middle/end, both delays,
+and missing callbacks. A transfer failure stops further traffic and invokes
+transaction cleanup. Logical loops are finite; callbacks must themselves
+enforce finite deadlines, including cleanup.
+
+[verified] The existing aeon vendor toolchain compiled the component with
+`-target pi32v2 -mcpu=r3 -mfprev1 -Oz -ffreestanding -fno-builtin` and strict
+warnings. Object SHA-256 is
+`ad63cc687b44446cadbfb9747c12768094ef7f4475746dd52daa4c18008f84e2`.
+The vendor decode shows the bounded command/pixel loops and indirect callback
+calls. This is target object evidence, not a linked application audit. A fresh
+SDK-free audit of the **unchanged** PR #122 handover ELF passed with zero
+failures and zero pending checks; the new panel component is not linked into
+that ELF. Ignored artifacts are under `build/jieli-runtime-evidence/`.
+
 ## Next gate
 
 Do not turn a reference's running-app LCD test into a handover-ready runtime.
@@ -73,4 +140,5 @@ untested risks; this offline stream does not perform that experiment.
 ## Changelog
 
 - 2026-10-09: Checkpoint full byte-matched vendor V15 decode and source-specific
-  startup/LCD prerequisites; leave hardware writes gated on missing evidence.
+  startup/LCD prerequisites; add an independently authored, host-tested and
+  target-compiled callback probe while leaving hardware activation gated.
