@@ -14,6 +14,8 @@ history.
   deletion safety and remote oracle argument validation.
 - Defined X0X exponent bit arithmetic without sanitizer exemptions and kept
   Comet hit voicing stable during parameter ramps.
+- Updater firmware extraction skips false length-prefix candidates instead
+  of stopping before a valid package.
 - Binary state chunks reject duplicate keys and parameter UID/focus pairs.
 - Compressed state chunks and launch links reject incomplete streams and
   trailing bytes instead of accepting malformed compressed content.

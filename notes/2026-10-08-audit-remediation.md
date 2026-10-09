@@ -33,11 +33,13 @@ no licence change is required or authorized by this implementation work.
   reject trailing bytes in C/Python, including CRC-consistent containers.
 - Binary state chunks reject duplicate keys and duplicate parameter UID/focus
   pairs instead of silently keeping the last value.
+- Updater extraction continues past a length-matching non-AC791N decoy;
+  the synthetic regression reproduces the original false negative.
 - Technical status and recovery instructions now distinguish bounded sector
   recovery from untested full-image recovery and Lunar installation.
 
 [verified] Local guard regressions: 70 passed, four manual dependency skips;
-remote-runner safety regressions: 14 passed. The manual overlap regressions
+remote-runner safety regressions: 14 passed; host tools: 13 passed. The manual overlap regressions
 then ran with the real manual dependencies: four passed. Native sequencer,
 modulation, manual and edit suites passed (six dependency skips); X0X suites:
 114 passed, seven reference-checkout skips. ASan/UBSan over X0X, sequencer and

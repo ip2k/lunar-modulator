@@ -86,6 +86,15 @@ class TestExtractFwsc:
         found = self.mod.find_packages(blob)
         assert len(found) == 1 and next(iter(found.values()))[1] == pkg
 
+    def test_length_matching_decoy_does_not_hide_valid_package(self):
+        pkg = bytearray(self.package(4, self.mod.MIN_SIZE + 4096))
+        decoy = 4096
+        pkg[decoy - 4:decoy] = self.mod.MIN_SIZE.to_bytes(4, "big")
+        pkg[decoy + self.mod.CHIP_MARK_OFFSET:decoy + self.mod.CHIP_MARK_OFFSET + 6] = b"XXXXXX"
+        blob = len(pkg).to_bytes(4, "big") + bytes(pkg)
+        found = self.mod.find_packages(blob)
+        assert list(found.values()) == [(4, bytes(pkg))]
+
     def test_requires_chip_marker(self):
         pkg = bytearray(self.package(3))
         pkg[0x424:0x42A] = b"XXXXXX"
