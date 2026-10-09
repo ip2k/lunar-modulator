@@ -71,7 +71,8 @@ the need to capture boot input before any vector-table initialization.
 `wdt_init` as write 0, write period, IRQ enable, then watchdog enable.
 Its IRQ enable performs OR 32 and OR 64 at the watchdog register and modifies
 P33 address 23 bit 6. [inferred] The V15 sequence above matches that SDK
-watchdog initialization with period field 12. Matching operations is not
+watchdog initialization with period field 12 (`WDT_4S` in pinned `asm/wdt.h`,
+not a period measured here). Matching operations is not
 proof of the final watchdog state at the SPL-to-new-app handover: the fresh
 app performs this setup after handover. The stock wrapper's rebased ROM
 targets are `0xffc0104e` and `0xffc010b4`; their operation names still need a
@@ -118,10 +119,29 @@ enforce finite deadlines, including cleanup.
 warnings. Object SHA-256 is
 `ad63cc687b44446cadbfb9747c12768094ef7f4475746dd52daa4c18008f84e2`.
 The vendor decode shows the bounded command/pixel loops and indirect callback
-calls. This is target object evidence, not a linked application audit. A fresh
+calls. The ELF parser reports 266 bytes of code, 312 bytes of read-only data,
+no undefined symbols, and relocations only to `command`, `setup` and the band
+words. The row division uses a native target instruction, not a helper call.
+This is target object evidence, not a linked application audit. A fresh
 SDK-free audit of the **unchanged** PR #122 handover ELF passed with zero
 failures and zero pending checks; the new panel component is not linked into
 that ELF. Ignored artifacts are under `build/jieli-runtime-evidence/`.
+
+The compile command additionally uses `-fno-common -fno-unwind-tables
+-ffunction-sections -fdata-sections -mllvm -pi32v2-large-program=true
+-Wall -Wextra -Werror`; the vendor dump uses separate `-d -r` options.
+The installed LAN toolchain is `20250324.1`, not the requested but absent
+`20250805.1`; no installation was performed. The component's ordinary pytest
+run does not require private vendor files; the direct table comparison requires
+`LUNAR_STOCK_APP=build/jieli-runtime-evidence/stock-app.bin`.
+
+[verified] Stock also has a later core-start routine at raw `0x5990e`. It
+places stock's secondary entry `0x020001b8` at `0x01c7fff8`, manipulates
+`0x10008` and core-control `0x01eee004` bits 3 and 1, then waits for a RAM
+acknowledgement. This proves explicit stock secondary-core setup, not that the
+secondary core is active or parked at SPL handover. A new runtime must not
+release that stock entry after overwriting stock's image/RAM. The current
+component has no core-control operations.
 
 ## Next gate
 
