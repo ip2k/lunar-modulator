@@ -213,3 +213,39 @@ This section supersedes the earlier point-in-time GitHub snapshot above.
   still deferred until installable firmware; no native bridge, relay, BLE
   stack, or hardware protocol is selected; see
   `notes/2026-10-07-mobile-advanced-editor.md`.
+
+## Checkpoint — PR rebase and current gate evidence (2026-10-09)
+
+Both documentation branches are now rebased by merge onto the fetched
+`origin/main` `ebc6690c7595469359336b145cf1d7c0b4fe333a`, with their focused
+changes retained. PR #109 is at `bccf2c3df322883d10973e6e6a3cc4f711e084b3`;
+its exact-head pull-request CI run `37986003488` is queued. PR #110 is at
+`e8e818732bb79652dca45a48b9711f46637474b5`; exact-head pull-request CI
+`37986034260` is queued and Pages run `37986034297` is in progress. A manual
+CI/Pages dispatch was also started on that same exact PR #110 head
+(`37986057082`, `37986060318`) before the automatic runs appeared; these are
+duplicates, not stale-head checks. The old PR #109 run on
+`ab706468be23f1a348cf4bc742b1b5cf0374cf03` and old PR #110 dispatch CI on
+`0a2c8b8f13c064d7d4c8060301ae6439c259975f` were cancelled; old-head Pages
+success does not validate the current head. Neither PR is merged.
+
+One policy conflict needs owner resolution before porting the audit's stale
+hardware-guidance finding: the project instructions supplied directly with
+this task retain the original full-flash dump plus byte-identical restore
+prerequisite, while the checked-out `AGENTS.md`, `CLAUDE.md`, `DEVELOPERS.md`
+and `docs/07` describe the owner's later staged-recovery policy. The audit's
+finding #1012 assumes that later staged policy is authoritative and recommends
+removing the blanket prerequisite. I have not edited safety guidance or
+reconciled those conflicting instructions. Do not present #1012 as a confirmed
+documentation error until the governing policy is identified; if the staged
+policy is confirmed, this is the highest-impact bounded doc correction, and if
+the supplied full-image rule governs, the current repo policy files need review
+instead.
+
+The remaining P2 list should be reconciled against the live source before new
+implementation: #912 was addressed by PR #112; #920 by PR #114; editor save
+reliability (#70) merged in PR #103; cable target identity (#173) is present on
+PR #99 but is still subject to its integration/CI gate. Audit-specific P3s
+remain explicitly open; targeted fixes do not imply blanket closure. The next
+useful audit step is a source/status pass over the remaining P2s after those
+branch outcomes settle, rather than rerunning the whole audit.
