@@ -24,12 +24,16 @@ device SRAM and require a device layout. No hardware traffic in this work.
 PR #100 holds this batch. The codec suite passes (105 passed, one corpus skip),
 including compressed stream termination and duplicate-field rejection. The committed Wasm has been rebuilt: all 104 parity scenarios pass and
 Chromium's LAN page storm reports zero underruns. The preceding CI checkpoint
-failed stale-Wasm and Chromium storm checks; the rebuilt final commit passed CI. The runtime choice
-(independent permissive board implementation versus Felucca GPL reuse) is
-pending; no board runtime has been implemented. The concrete next milestone
+failed stale-Wasm and Chromium storm checks; the rebuilt final commit passed CI. An independently authored permissive minimal startup diagnostic is being
+implemented on `feature/2026-10-09@board-diagnostic`; its link and package
+gates remain pending, and no Lunar firmware has run on the device. The concrete next milestone
 and memory/link/audio gates are in
 [the device bring-up plan](notes/2026-10-08-device-bringup-plan.md).
-The separate editor improvements branch/PR #99 remains unmerged.
+The separate editor improvements branch/PR #99 remains unmerged. The envelope
+branch implements zero-default Delay, Log/Smooth curves and the live graph;
+its focused tests, 104 parity scenarios and 4,621-screen layout sweep pass.
+See [the envelope note](notes/2026-10-09-envelope-graph.md). Parallel audit
+follow-up covers save durability and stale recovery documentation.
 
 ## Latest hardware update — 2026-10-07
 

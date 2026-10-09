@@ -1347,6 +1347,13 @@ static void delayed_envelope(void) {
   CHECK(delayed.seg == delayed.sustain && fm1_mp_env_value(&delayed) == 0);
   fm1_mp_env_process(&delayed, 100);
   CHECK(fm1_mp_env_done(&delayed));
+  fm1_mp_env_set_delayed(&delayed, 0, .01f, .02f, .4f, .03f, 0, 0, 0);
+  fm1_mp_env_set_segment(&delayed, 0, 1, .01f, 0);
+  fm1_mp_env_configure(&delayed, 1, 0, 0, 0);
+  fm1_mp_env_trigger(&delayed);
+  CHECK(delayed.seg == 0 && !fm1_mp_env_done(&delayed));
+  fm1_mp_env_process(&delayed, 100);
+  fm1_mp_env_gate(&delayed, 0);
   fm1_mp_env_set_delayed(&delayed, .01f, .01f, .02f, .4f, .03f, 0, FM1_MP_ENV_LOOP_ADR, 0);
   fm1_mp_env_gate(&delayed, 1);
   fm1_mp_env_process(&delayed, 75);

@@ -8076,9 +8076,10 @@
         "flags": [
           "poly_ok"
         ],
-        "ram": 124,
+        "ram": 128,
         "data": null,
         "page_names": [
+          null,
           null,
           null
         ],
@@ -8153,7 +8154,7 @@
             "abbr": "Curve",
             "type": "enum",
             "min": 0,
-            "max": 2,
+            "max": 4,
             "def": 1,
             "step": 1,
             "unit": "none",
@@ -8163,7 +8164,9 @@
             "entries": [
               "Linear",
               "Expo",
-              "Quartic"
+              "Quartic",
+              "Log",
+              "Smooth"
             ]
           },
           {
@@ -8215,6 +8218,22 @@
             "unit": "none",
             "page": 2,
             "knob": 4,
+            "flags": [
+              "mod"
+            ]
+          },
+          {
+            "uid": 9,
+            "name": "Delay",
+            "abbr": "Delay",
+            "type": "float",
+            "min": 0,
+            "max": 1,
+            "def": 0,
+            "step": 0.01,
+            "unit": "none",
+            "page": 3,
+            "knob": 1,
             "flags": [
               "mod"
             ]
@@ -11802,5 +11821,5 @@
       }
     ]
   },
-  "meta_id": "9855d7e3"
+  "meta_id": "400073af"
 }

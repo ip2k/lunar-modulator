@@ -282,6 +282,8 @@ for the first installable build
   Capture and the metronome.
 - Modulation: the rack, sixteen kinds of module, the matrix, the gesture
   and per-voice modulation (each note its own envelope, for example).
+  Envelopes have a delay stage, five curve choices and a live graph with
+  a playhead and a faint audio trace.
 - The arpeggiator, with the stock modes as presets, alongside the
   sequencer.
 - **Glide:** on Macro, Macro Heavy, Six-Op FM, FM6 and Shapes, notes slide

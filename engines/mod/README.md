@@ -299,8 +299,8 @@ Batchelor, MIT) and Music Thing Modular's Workshop System Computer card 106
 Gate input TRIG (no normal). Outputs HELD, SMTH (HELD through the slew) and
 STEP (a trigger at each new value).
 
-**Instance sizes:** LFO 112 B, Envelope 124 B, Chance 160 B on 64-bit arm64,
-and 100, 124 and 152 B with `gcc -m32` [verified: `fm1-render --list-mod`];
+**Instance sizes:** LFO 112 B, Envelope 128 B, Chance 160 B on 64-bit arm64,
+and 100, 128 and 152 B with `gcc -m32` [verified: `fm1-render --list-mod`];
 under 256 B everywhere but MG2's Burst, 312 B, which ports Peaks' 32-pulse
 buffer whole [verified: test]. The default rack (LFO, LFO, Envelope,
 Envelope, Chance) takes 640 B of the 8 KB arena.

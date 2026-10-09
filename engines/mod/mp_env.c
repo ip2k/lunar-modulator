@@ -121,6 +121,7 @@ void fm1_mp_env_set_start_level(fm1_mp_env_t *e, float level) {
 
 void fm1_mp_env_configure(fm1_mp_env_t *e, int segments, int sustain, int loop_start,
                           int loop_end) {
+  e->delay_stage = 0;
   reshape(e, segments, sustain, loop_start, loop_end, fm1_mp_env_value(e), is_done(e));
 }
 
