@@ -21,11 +21,14 @@ Native sanitizer and four-profile target compile checks pass. This is not a
 linked firmware application: simulator arenas and persistence scratch exceed
 device SRAM and require a device layout. No hardware traffic in this work.
 PR #100 holds this batch. The codec suite passes (105 passed, one corpus skip),
-including compressed stream termination and duplicate-field rejection. CI on
-the preceding checkpoint found stale committed Wasm and a Chromium storm
-underrun; rebuild the module and verify CI before merging. The runtime choice
+including compressed stream termination and duplicate-field rejection. The committed Wasm has been rebuilt: all 104 parity scenarios pass and
+Chromium's LAN page storm reports zero underruns. The preceding CI checkpoint
+failed stale-Wasm and Chromium storm checks; verify the rebuilt commit's CI
+before merging. The runtime choice
 (independent permissive board implementation versus Felucca GPL reuse) is
-pending; no board runtime has been implemented.
+pending; no board runtime has been implemented. The concrete next milestone
+and memory/link/audio gates are in
+[the device bring-up plan](notes/2026-10-08-device-bringup-plan.md).
 The separate editor improvements branch/PR #99 remains unmerged.
 
 ## Latest hardware update — 2026-10-07

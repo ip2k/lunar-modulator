@@ -56,6 +56,11 @@ The codec suite with GPL off passed (105 passed, one external-corpus skip),
 including zlib streams with an empty final block and duplicate-field cases.
 Regressions reproduced acceptance of trailing chunk data and incomplete or
 trailing launch-link streams before the correction.
+The updated Wasm passed 104 parity scenarios, 18 SysEx cases, metadata checks
+and native/Wasm edit parity with zero late storm quanta. Chromium's 30-second
+page storm passed with zero reported playback underruns on the LAN runner.
+The preceding CI checkpoint failed its stale-Wasm check and reported one
+0.01 ms Chromium underrun; the final rebuilt commit still requires CI.
 These are compile checks, not a linked or installable hardware application.
 
 ## Firmware memory boundary
