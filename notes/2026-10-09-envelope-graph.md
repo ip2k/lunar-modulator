@@ -62,3 +62,10 @@ state schema/codec/app-state, editor metadata and CI-pin checks passed
 The initial full run omitted README from the staged test root; after copying
 it the one affected metadata-page comparison passes. Combined browser build
 continues; generated Wasm artifacts are not finalized at this checkpoint.
+
+Combined rebuild completed on aeon: 104/104 parity scenarios match JS and
+musl exactly (101 match glibc exactly, remaining max 1 LSB), native 30-second
+edit storm zero late quanta; Chromium page/files/UI/reach checks pass,
+30-second playback storm zero reported underruns, Map 41/41 and advanced
+editor 99/99 pass. Rebuilt Wasm, build record and served metadata are now
+from the combined source. CI remains required; PR #99 must land first.
