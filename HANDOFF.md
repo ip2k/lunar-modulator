@@ -25,8 +25,9 @@ PR #100 holds this batch. The codec suite passes (105 passed, one corpus skip),
 including compressed stream termination and duplicate-field rejection. The committed Wasm has been rebuilt: all 104 parity scenarios pass and
 Chromium's LAN page storm reports zero underruns. The preceding CI checkpoint
 failed stale-Wasm and Chromium storm checks; the rebuilt final commit passed CI. An independently authored permissive minimal startup diagnostic is being
-implemented on `feature/2026-10-09@board-diagnostic`; its link and package
-gates remain pending, and no Lunar firmware has run on the device. The concrete next milestone
+implemented on `feature/2026-10-09@board-diagnostic`; it links a 200-byte image and passes guarded stock-component staging with
+71 focused tests (PR #104). Stock handover and visible transport remain
+pending, and no Lunar firmware has run on the device. The concrete next milestone
 and memory/link/audio gates are in
 [the device bring-up plan](notes/2026-10-08-device-bringup-plan.md).
 The separate editor improvements branch/PR #99 remains unmerged. The envelope

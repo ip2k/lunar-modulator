@@ -7,7 +7,7 @@
  *   fm1_mp_lfo_t     phase-accumulator LFO: 8 shapes, rate ratio, retrigger,
  *                    one-shot and half-cycle, wrap-exact random shapes
  *   fm1_mp_env_t     multistage envelope after Mutable Instruments' Peaks:
- *                    ADSR, AD, loops, linear/expo/quartic curves
+ *                    delayed ADSR, AD, loops, linear/expo/quartic/log/smooth curves
  *   fm1_mp_slew_t    slew limiter, separate rise and fall, linear or expo
  *   fm1_mp_sah_t     sample-and-hold and track-and-hold
  *   fm1_mp_turing_t  Turing-machine shift register (length, flip chance)
@@ -196,10 +196,10 @@ void fm1_mp_env_set_start_level(fm1_mp_env_t *e, float level);
 /* Retrigger from the current value (Peaks' default), or from level 0 of the
  * shape with hard reset on. */
 void fm1_mp_env_set_hard_reset(fm1_mp_env_t *e, int on);
-/* A rising gate starts segment 0; a falling one jumps to the sustain point's
+/* A rising gate starts segment 0 (segment 1 when a reserved delay is zero); a falling one jumps to the sustain point's
  * segment (the release). Repeating the same level does nothing. */
 void fm1_mp_env_gate(fm1_mp_env_t *e, int high);
-/* Start segment 0 now and set the gate high, even if it already was. */
+/* Start the first timed segment now (bypassing zero delay), even if gated. */
 void fm1_mp_env_trigger(fm1_mp_env_t *e);
 float fm1_mp_env_process(fm1_mp_env_t *e, uint32_t n);
 void fm1_mp_env_render(fm1_mp_env_t *e, float *out, uint32_t n);

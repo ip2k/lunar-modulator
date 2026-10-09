@@ -22,5 +22,13 @@ verified the fix for stale delay state when configuring custom segments, then
 passed 27,000 exact zero-delay comparisons across modes, curves and retriggers.
 No remaining actionable findings in that focused review. Final CI remains
 required before merge.
-Firmware bring-up remains the independent minimal diagnostic application in
-`2026-10-08-device-bringup-plan.md`; this feature does not complete that gate.
+Firmware bring-up is tracked independently in PR #104 and its linked
+diagnostic note; this feature does not establish device execution.
+
+First CI caught an omitted curve-name pin and absent container digests in the
+direct build record. Both are corrected: the pinned fixture includes Log and Smooth, and the
+build records the actual container digests and musl reference. All 104
+scenarios match JavaScript and musl exactly; seven focused CI regression
+tests pass. Chromium CI reported one 0.01 ms underrun; the same
+report occurred on the docs-only baseline branch. The bounded LAN Chromium
+page storm passes with zero reported underruns; CI must still pass before merge.

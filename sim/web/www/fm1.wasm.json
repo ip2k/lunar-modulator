@@ -3,14 +3,17 @@
   "wasm_sha256": "15bd0b8e9444ed82cebb715176193b8cddb82df09df08216ad3ddf43709d4024",
   "wasm_bytes": 1550943,
   "sources_sha256": {
-    "engines": "e5a0cafcc2d35d601c98382bd890b07361f5374415b85cb58b0829ec669af948",
-    "sim": "14e801884f130061a787121fbbba5b9b56af3639e7732d5fd552a91d9214bb20"
+    "engines": "38c5ff4f0452fe3954551dd98d22c51807de55a47c1300fed19bae9d46bce120",
+    "sim": "1e0f26474580a61f5aa403dea1dd16b8ed920a8f06045170915acb465913e4f7"
   },
   "engines": "working tree",
-  "built": "2026-10-09T19:24:19Z",
+  "built": "2026-10-09T19:39:43Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
-  "images": [],
+  "images": [
+    "emscripten/emsdk@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65",
+    "alpine@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8"
+  ],
   "imports": [],
   "gpl_mods": 1,
   "licences": [
@@ -75,7 +78,7 @@
     "passed": 104,
     "failed": 0,
     "identical_to_js": 104,
-    "identical_to_musl": null,
+    "identical_to_musl": 104,
     "identical_to_glibc": 101,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
@@ -177,10 +180,10 @@
       "applied": 82728,
       "resyncs": 0,
       "telemetry_blocks": 862,
-      "p50_ms": 0.06168800000000374,
-      "p99_ms": 0.09272700000002487,
-      "max_ms": 0.2250800000000055,
-      "edit_us_per_quantum": 7.767256648293474
+      "p50_ms": 0.06265000000001919,
+      "p99_ms": 0.12118199999997614,
+      "max_ms": 0.3021379999999567,
+      "edit_us_per_quantum": 8.2193689198338
     },
     "check": {
       "params": 468,
@@ -217,7 +220,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -236,7 +242,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -255,7 +264,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -274,7 +286,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -293,7 +308,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -312,7 +330,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -331,7 +352,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -350,7 +374,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -369,7 +396,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -388,7 +418,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -407,7 +440,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -426,7 +462,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -445,7 +484,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 23286,
         "max_lsb": 4082
@@ -464,7 +506,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 694,
         "max_lsb": 12330
@@ -483,7 +528,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -502,7 +550,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -521,7 +572,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -540,7 +594,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -559,7 +616,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -578,7 +638,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -597,7 +660,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -616,7 +682,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -635,7 +704,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -663,7 +735,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -682,7 +757,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -701,7 +779,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -720,7 +801,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -739,7 +823,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -767,7 +854,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -795,7 +885,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -823,7 +916,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -851,7 +947,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -879,7 +978,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -907,7 +1009,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -927,7 +1032,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -947,7 +1055,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -967,7 +1078,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -996,7 +1110,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1025,7 +1142,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1054,7 +1174,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1083,7 +1206,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1112,7 +1238,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1140,7 +1269,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1169,7 +1301,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1198,7 +1333,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1227,7 +1365,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1246,7 +1387,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 19,
         "max_lsb": 1
@@ -1265,7 +1409,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1284,7 +1431,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1303,7 +1453,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1322,7 +1475,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1341,7 +1497,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1360,7 +1519,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1379,7 +1541,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1398,7 +1563,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1417,7 +1585,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1436,7 +1607,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1455,7 +1629,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1474,7 +1651,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1493,7 +1673,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1512,7 +1695,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1531,7 +1717,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1550,7 +1739,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1569,7 +1761,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1588,7 +1783,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1607,7 +1805,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1626,7 +1827,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1645,7 +1849,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1664,7 +1871,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1683,7 +1893,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1702,7 +1915,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1721,7 +1937,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1740,7 +1959,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1759,7 +1981,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1778,7 +2003,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1797,7 +2025,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1816,7 +2047,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1835,7 +2069,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1854,7 +2091,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1873,7 +2113,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1892,7 +2135,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1911,7 +2157,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1930,7 +2179,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1949,7 +2201,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1968,7 +2223,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -1987,7 +2245,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -2007,7 +2268,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -2036,7 +2300,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -2056,7 +2323,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -2075,7 +2345,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -2103,7 +2376,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -2122,7 +2398,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -2141,7 +2420,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -2170,7 +2452,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -2189,7 +2474,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -2217,7 +2505,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -2236,7 +2527,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -2264,7 +2558,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -2293,7 +2590,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -2321,7 +2621,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -2350,7 +2653,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -2369,7 +2675,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -2388,7 +2697,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
@@ -2407,7 +2719,10 @@
         "differing": 0,
         "max_lsb": 0
       },
-      "app_vs_musl": null,
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
       "app_vs_glibc": {
         "differing": 0,
         "max_lsb": 0
