@@ -217,7 +217,9 @@ struct PadState {
   float value[S_COUNT];               // Tune .. Drive as the voice reads them (ramped)
   fm1_smooth_t ramp[S_COUNT];
   uint8_t dist;                       // Drive Type (LATCH: read at the pad's hit)
-  uint8_t pad[3];
+  uint8_t hit_kit;                    // voicing and Drive Type for the current hit
+  uint8_t hit_dist;
+  uint8_t pad;
 };
 
 struct Instance {
@@ -274,7 +276,7 @@ struct Instance {
       for (int s = 0; s < S_COUNT; ++s) pad.value[s] = kParams[P_TUNE + s].def;
       fm1_smooth_init(pad.ramp, pad.value, S_COUNT);
       pad.dist = 0;
-      pad.pad[0] = pad.pad[1] = pad.pad[2] = 0;
+      pad.hit_kit = pad.hit_dist = pad.pad = 0;
     }
     for (int i = 0; i < P_COUNT; ++i) kit_value[i] = kParams[i].def;
     fm1_smooth_init(kit_ramp, kit_value, P_COUNT);
@@ -315,12 +317,12 @@ struct Instance {
   void Apply(int p) {
     const int v = kPadVoice[p];
     const PadState &pad = pads[p];
-    const uint8_t *at = voicing[kit][p];
+    const uint8_t *at = voicing[pad.hit_kit][p];
     for (int s = 0; s <= S_COUNT; ++s) {
       const int i = slot_pot[v][s];
       if (i < 0) continue;
       float x;
-      if (s == S_COUNT) x = static_cast<float>(pad.dist);
+      if (s == S_COUNT) x = static_cast<float>(pad.hit_dist);
       else if (s == S_SWEEP || s == S_DRIVE) x = Added(static_cast<float>(at[s]), pad.value[s]);
       else x = About(static_cast<float>(at[s]), pad.value[s]);
       if (x == applied[v][i]) continue;
@@ -389,6 +391,8 @@ struct Instance {
     const int p = key - kFirstNote;
     const int v = kPadVoice[p];
     voice_pad[v] = static_cast<int8_t>(p);
+    pads[p].hit_kit = static_cast<uint8_t>(kit);
+    pads[p].hit_dist = pads[p].dist;
     Apply(p);                         // the pad's values, its voicing in this Kit, its Drive Type
     drum909_trigger(&unit, v, static_cast<float>(velocity > 127 ? 127 : velocity) * (1.0f / 127.0f));
   }

@@ -226,7 +226,7 @@ def functions(text):
 
 
 def frame_of(body):
-    """Bytes the prologue reserves: 4 per pushed register plus the sp adjustment."""
+    """Bytes reserved in the first eight prologue instructions, including split adjustments."""
     regs = adj = 0
     how = ""
     for line in body[:8]:
@@ -237,8 +237,10 @@ def frame_of(body):
                 r = re.match(r"r(\d+)-r(\d+)$", part)
                 regs += abs(int(r.group(1)) - int(r.group(2))) + 1 if r else (1 if part else 0)
         m = SP_ADJ.search(line)
-        if m and adj == 0:
-            adj = int(m.group(1) or m.group(2))
+        if m:
+            # Large frames use multiple immediate decrements (e.g. 4096,
+            # 4096, 20); retaining only the first undercounts device RAM.
+            adj += int(m.group(1) or m.group(2))
         if SP_ODD.search(line):
             how = "sp set from a register: " + line.split("\t")[-1].strip()
     return regs * 4 + adj, how

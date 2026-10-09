@@ -1251,3 +1251,14 @@ def test_info_names_the_track_rec_armed(seq_tools, tmp_path):
     s = fm1(tracks=4).cmd("tog 2 0 60 100").cmd("rec 2").blocks(2)
     r = s.run(seq_tools, tmp_path, compat=False)
     assert r.end["rec_track"] == 2 and (r.end["counting_in"] or r.end["recording"])
+
+
+@pytest.mark.parametrize("lane", ["bad", "", "-", "32768", "-32769"])
+def test_invalid_signed_trig_lane_is_ignored(seq_tools, tmp_path, lane):
+    source = tmp_path / "bad.movy1"
+    source.write_text(f"movy1\ntg 0 0 0:{lane}:50:1:1:0\n")
+    output = tmp_path / "saved.movy1"
+    res = subprocess.run([str(seq_tools), "--seq", str(source), "--export", str(output)],
+                         capture_output=True, text=True)
+    assert res.returncode == 0, res.stderr
+    assert not any(line.startswith("tg ") for line in output.read_text().splitlines())

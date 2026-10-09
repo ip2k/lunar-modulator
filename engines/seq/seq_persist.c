@@ -331,7 +331,7 @@ static void field_end(fm1_seq_import_t *im) {
   } else if (im->key == K_LK) {
     if (f < 3u) im->fok[f] = (uint8_t)num_u(&im->num, kLock[f], &im->fv[f]);
   } else if (f == 1u) {                        /* a trig row's lane is signed */
-    int64_t lane;
+    int64_t lane = 0;
     im->fok[f] = (uint8_t)num_i(&im->num, -32768, 32767, &lane);
     im->fv[f] = (uint64_t)lane;
   } else {

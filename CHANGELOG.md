@@ -8,7 +8,39 @@ history.
 
 ## [Unreleased]
 
+### Fixed
+- Target compile checks include shared state codecs and metadata, with each
+  object compiled once. Stack reports count split prologue reservations.
+- Audit findings in target compile failure handling, IRQ source guards,
+  malformed sequencer/modulation input, edit dump bounds, manual output
+  deletion safety and remote oracle argument validation.
+- Defined X0X exponent bit arithmetic without sanitizer exemptions and kept
+  Comet hit voicing stable during parameter ramps.
+- Updater firmware extraction skips false length-prefix candidates instead
+  of stopping before a valid package.
+- Binary state chunks reject duplicate keys and parameter UID/focus pairs.
+- Compressed state chunks and launch links reject incomplete streams and
+  trailing bytes instead of accepting malformed compressed content.
+- Sound imports no longer apply unavailable MIDI-effect settings to a previous
+  slot; omitted effects load as the bypassed default used by preflight.
+- Reconciled technical recovery status with the verified bounded-sector
+  experiments; full-image recovery and Lunar installation remain untested.
+
 ### Added
+- Recorded the SDK versus bare-metal platform and GPL/permissive/dual-licence
+  evaluation with reasoning, release boundaries and effort estimates; linked
+  it from the Claude/Codex guidance. No licence changes implemented.
+- Verified soft-key UBOOT entry, matching complete flash backups, and bounded
+  4 KiB programming/restoration on FM-1_092 with the full flash unchanged.
+  Full-image restore and Lunar firmware installation remain untested.
+- Saved the deferred iPhone Advanced editor plan, device transport prerequisites
+  and native Core MIDI / LAN relay connection options in a mobile editor note.
+- A Linux soft-key probe with fresh identity checks, an exact exception for
+  the known FM-1_092 identity-checksum bug, a two-message allowlist and
+  durable USB/session logs. No loader upload or flash commands in this tool.
+- Owner-authorized staged bench01 recovery experiments replace the blanket
+  prior-dump-and-restore prerequisite; the dev kit is no longer a prerequisite
+  for soft-key exploration. Stock package and eFuse safeguards remain.
 - **The editor's page tests run in CI.** A new job, `editor-page-tests`, runs
   the Advanced editor's tests (`editor-unit`, `editor-ui`, `editor-reach`,
   `editor-map`, `editor-v1` and the 30-second storm) in Chromium, Firefox and

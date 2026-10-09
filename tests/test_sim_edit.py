@@ -123,3 +123,13 @@ def test_the_editor_port_and_the_shadow_name_no_module():
     for name, code in (("shadow.worker.js", shadow), ("the worklet's editor code", editor_part)):
         quoted = set(re.findall(r"'([a-z0-9_-]+)'", code)) | set(re.findall(r'"([a-z0-9_-]+)"', code))
         assert not (quoted & ids), (name, quoted & ids)
+
+
+def test_long_edit_run_fails_without_writing_truncated_results(tools, tmp_path):
+    script = tmp_path / "long.edit"
+    # Valid harmless actions exceed the harness's complete-output budget.
+    script.write_text("@0 off 60\n" * 6000 + "@0 end\n")
+    res = subprocess.run([str(tools["sim"]), "--edit-run", str(script), str(tmp_path)],
+                         capture_output=True, text=True, timeout=60)
+    assert res.returncode == 2 and "bounded output buffer" in res.stderr
+    assert not (tmp_path / "edit.txt").exists()

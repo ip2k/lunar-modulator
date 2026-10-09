@@ -94,6 +94,19 @@ def test_the_gpl_switch_comes_first():
     assert "comet" not in mods and "acid-gen" not in mods
 
 
+@pytest.mark.parametrize("gpl", [0, 1])
+def test_target_compile_list_includes_state_dependencies(tmp_path, gpl):
+    listed = make("print-objs", f"FM1_GPL_MODS={gpl}",
+                  "FM1_MODULES=shapes,plate,arp", build=tmp_path).stdout.split()
+    objects = set(listed)
+    assert len(listed) == len(objects)
+    required = {"state/state/state_bin.o", "state/state/fm1_deflate.o",
+                "state/state/state_json_read.o", "state/state/state_json_write.o",
+                "state/state/state_registry.o", "state/state/state_mod.o",
+                "state/host/state_clip.o", "c/state/fm1_meta.o"}
+    assert {str(tmp_path / path) for path in required} <= objects
+
+
 def test_the_default_list_names_catalogue_modules():
     """engines/modules/default.list, the FM-1's proposed list (DEVELOPERS.md,
     "Choosing the modules"): every id is in the catalogue, it has a sound

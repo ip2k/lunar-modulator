@@ -6,7 +6,7 @@
 
 Lunar Modulator is open alternative firmware for the M-VAVE FM-1, the compact, low-cost,
 battery-powered FM synthesizer from M-VAVE (AKA Cuvave).
-**Current Status**: Active development, runs on the included in-browser simulator only for now.
+**Current Status**: Active development: playable on a desktop and in the included browser simulator. Lunar firmware is not installed on an FM-1 yet.
 
 Play with the latest firmware in your browser: **<https://ip2k.github.io/lunar-modulator/>** 
 
