@@ -19,9 +19,9 @@ are conservative link budgets [inferred], not a measured SPL ownership
 contract. The diagnostic has no watchdog service, clock/power/cache setup,
 exception setup, secondary-core synchronization or peripheral initialization.
 Those handover prerequisites must be established before a device experiment.
-The stock SPL is itself loaded at `0x01c02000..0x01c05830` [reported:
-independent vendor decode, `notes/2026-10-09-stock-spl-handover.md` on branch
-`chore/2026-10-09@stock-spl-handover`]. This overlaps the diagnostic's RAM
+The stock SPL body is loaded at `0x01c02000..0x01c05820` (end exclusive),
+excluding its separate 16-byte file header [verified:
+`notes/2026-10-09-stock-app-mapping.md`]. This overlaps the diagnostic's RAM
 reservation. The current nonreturning loop calls no SPL services, but the
 window's ownership and inherited exception stack remain unproven; "private"
 describes this link's reservation, not established SPL handover ownership.
@@ -37,10 +37,13 @@ bash tools/jieli/link-diagnostic.sh claude@192.168.1.25 \
   /home/claude/mvave-fm1/codex-board-diagnostic-20261009
 ```
 
-The cached toolchain is `jieli-linux-toolchains-20250805.1.tar.xz`, SHA-256
+The acquisition pin is `jieli-linux-toolchains-20250805.1.tar.xz`, SHA-256
 `f686586bcfb45e0f0bb27fd2b39c7a7f313cb4f0e88a66a14da621ffa8225958`,
 the same pin as `tools/jieli/compile-check.sh`. Validate the cache provenance
 through that existing acquisition workflow when establishing a new host.
+The inspected existing aeon `toolchain/current` symlink instead resolves to
+`jieli-linux-toolchains-20250324.1` [verified 2026-10-09]; prior target evidence
+uses that cache and is not proof the newer acquisition pin was installed.
 Outputs are ignored under `build/jieli-diagnostic/`: ELF, map, vendor
 disassembly, raw application, exported load sections, link audit and memory
 report. No vendor binaries enter Git.
