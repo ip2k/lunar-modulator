@@ -12,8 +12,8 @@ this first, then `DEVELOPERS.md` (the README is the product page), then `docs/`.
 
 ## Audit remediation — 2026-10-08
 
-Resume on `fix/2026-10-08@firmware-readiness-audit`, in the managed
-`full-code-audit` worktree. The full audit is recorded in
+PR #100 merged at `3c7b6a0`; its full CI passed. The managed
+`full-code-audit` worktree now holds `feature/2026-10-09@envelope-graph`. The full audit is recorded in
 [its report](notes/2026-10-07-full-code-audit.md); verified corrections,
 test results and remaining firmware prerequisites are in
 [the remediation ledger](notes/2026-10-08-audit-remediation.md).
@@ -24,8 +24,7 @@ device SRAM and require a device layout. No hardware traffic in this work.
 PR #100 holds this batch. The codec suite passes (105 passed, one corpus skip),
 including compressed stream termination and duplicate-field rejection. The committed Wasm has been rebuilt: all 104 parity scenarios pass and
 Chromium's LAN page storm reports zero underruns. The preceding CI checkpoint
-failed stale-Wasm and Chromium storm checks; verify the rebuilt commit's CI
-before merging. The runtime choice
+failed stale-Wasm and Chromium storm checks; the rebuilt final commit passed CI. The runtime choice
 (independent permissive board implementation versus Felucca GPL reuse) is
 pending; no board runtime has been implemented. The concrete next milestone
 and memory/link/audio gates are in

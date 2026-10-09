@@ -2,6 +2,7 @@
  * C99, no heap. MIT licence, like the rest of this repository.
  */
 #include "fm1_mod_ui.h"
+#include "fm1_mp.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -616,6 +617,13 @@ void fm1_mod_ui_hint(const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u, uint64_
 int fm1_mod_ui_value(const fm1_mod_ui_env_t *env, unsigned pos, unsigned index, float v, char *buf,
                      size_t cap) {
   const fm1_mod_kind_t *kd = kind_at(env->m, pos);
+  if (kd && strcmp(kd->id, "env") == 0 &&
+      (index == 0 || index == 1 || index == 3 || index == 8)) {
+    float seconds = index == 8 && v <= 0.0f ? 0.0f : fm1_mp_env_time_from_knob(v);
+    if (seconds < 1.0f) snprintf(buf, cap, "%.1fms", (double)(seconds * 1000.0f));
+    else snprintf(buf, cap, "%.2fs", (double)seconds);
+    return 1;
+  }
   float hz;
   if (!kd || !(env->rate > 0.0f) || index >= kd->n_params || strcmp(kd->id, "resonator") != 0 ||
       strcmp(kd->params[index].name, "Cutoff") != 0) {
