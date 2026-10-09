@@ -21,8 +21,9 @@ USR under this strict V14/V15 profile; its relocated auxiliary representation
 is explained below. Every successful result explicitly says
 `inspected-incomplete`, `packaging_ready=false` and
 `device_execution=unverified`: nested flash rewrite remains unfinished.
-84 focused tests pass, including 13 synthetic envelope/CRC/allocation/identity
-checks and the real stock SPL pin check [verified]. No vendor bytes are
+95 focused tests pass, including 13 outer-envelope checks, eleven nested checks
+(with optional real-container validation enabled), and the real stock SPL
+pin check [verified]. No vendor bytes are
 committed.
 
 Rarefaction Python orientation used the original checkout's on-open Pyright
@@ -112,34 +113,82 @@ The UFW isd_config.ini auxiliary entry is 3296 bytes, whereas the guarded
 unpacked top/isd_config.ini is 699 bytes: these are different representations
 and must not be silently substituted [verified lengths].
 
+## Nested stock validation and no-op reconstruction
+
+`tools/jieli/inspect_stock_flash.py` adds a read-only **stock FM-1_015** nested
+profile [verified against the local V15 package]. It checks the flash header,
+four ENC top-directory records, one SPL bank header, two SFC app/resource
+records and seven child records: 15 header CRCs in total. It also checks eight
+stored data CRCs (SPL, config, bank body, two directory bodies and three regular
+files) and the stock chip-key blob CRC. The bank is uncompressed, 14368 code
+bytes plus a 16-byte header, loaded at `0x01C02000`. Its decoded complete
+14384-byte SPL, top config and cfg resource are byte-identical to the
+`package_guard.py`-checked components. Outer inspection separately binds OTA.
+App, cfg_tool and eq_cfg_hw extracted hashes also match the independent
+jl-misctools unpacker's files [verified local comparison].
+
+The app/resource SFC stream uses chip key `0x980F` with origin at flash-payload
+`0x4000`; this differs from the outer auxiliary origin zero. Directory records
+may cross 32-byte block boundaries, so the aligned region is decoded once.
+VM, PRCT, BTIF, USR and key_mac are reserved descriptors with CRC `0xFFFF`,
+not payloads to read/erase/checksum. Some reserved name tails contain additional
+metadata (`CODE`, `AUTO`, or numeric bytes), retained without interpretation.
+Strict profile guards retain their observed addresses, sizes and flags:
+
+| Reservation | Physical flash descriptor address | Bytes | Flags |
+| --- | ---: | ---: | ---: |
+| key_mac | 0xFF000 | 4096 | 0x12 |
+| VM | 0x93000 | 352256 | 0x12 |
+| PRCT | 0 | 602112 | 0x92 |
+| BTIF | 0xE9000 | 4096 | 0x92 |
+| USR | 0xEA000 | 73728 | 0x92 |
+
+These are verified descriptor fields, not a verified write/address mapping.
+PRCT overlaps the image by design as a descriptor; its operational meaning
+remains unresolved. The app-dir entry is `0x02000120`, while app.bin lies at
+flash-payload offset `0x4120`. XIP translation must be established before any
+modified app placement. The 556 bytes after the final resource block are
+preserved exactly with no padding/encoding semantic claim.
+
+The inspector decodes and inversely reconstructs nested regions in memory,
+retaining all unknown bytes; it also reverses the outer ENC records and
+reconstructs identity markers. The entire reconstructed 699956-byte FWSC is
+byte-identical to the input [verified]. No binary is emitted. This no-op
+proof checks preservation under the established decode rules; it does not
+validate a modified image builder or device behavior. Original/reconstructed
+FWSC SHA-256:
+`db1642b2b6fa5c2cccb11ffd13878068bb28601678d3644049f99dc40e7edb8a`.
+Flash payload SHA-256:
+`c1068a403c04a6378a626afb66cc217f72d13f10aa200e983b7a9817cc1dac03`.
+Synthetic negative tests bypass only the outer gate to exercise malformed
+nested layers even if an attacker repairs outer CRCs; the real-container test
+runs the complete outer/stock guard. Damaged CRCs, component changes, name,
+range and reservation errors are rejected.
+
 ## Exact next gates and bounded offline experiment
 
-No packager was implemented: nested JLFS/SFC rewrite and trailer rules
-are not sufficiently established for a
-fail-closed builder. Preserve the stock encrypted envelope and all reserved
-layout, USR/VM/calibration data when resolving them.
+No packager was implemented. The successful no-op reconstruction retains
+stock structure; changed size/address/CRC rules and remaining metadata need
+proof before a fail-closed modified-image builder is appropriate.
 
-1. Explain the auxiliary allocation metadata and trailer fields, including
-   the FM-1_092 relocated-ciphertext representation. Keep the strict V14/V15
-   decode profile and corruption regressions while these rules remain open.
-2. Parse the complete nested flash tree, verify every directory/data CRC
-   and bind decoded SPL/config/cfg/OTA bytes to the unchanged package guard.
-   Establish physical flash addresses, app allocation, VM/USR reservations,
-   chip-key/SFC block origin and resource placement from actual stock bytes.
-3. Start with a **no-op offline round trip** of stock V15. Require identical
-   full-container bytes, successful independent extraction, all nested CRCs
-   and matching component hashes. Unknown metadata must remain untouched.
-4. Only then build an offline experimental candidate with a bounded linked
-   app, explicit identity/version policy, exact address/size manifest,
-   byte-identical guarded components, unchanged reserved regions and complete
-   structural revalidation. A container is not proof of bootability.
+1. Explain auxiliary allocation metadata, trailer/version fields and the
+   FM-1_092 relocated-ciphertext representation. Preserve the strict stock
+   profile and damaged-layer regressions while these rules remain open.
+2. Verify physical/XIP mapping and fixed app/resource allocation using named
+   SPL instructions and actual package bytes. Preserve all guarded components,
+   observed reservation descriptors and their uninterpreted metadata. Model
+   changed app size/CRC, directory-body CRC, outer flash CRC and list/header
+   CRC propagation; validate a synthetic modified-image experiment offline.
+3. Only after those checks, construct an offline experimental container with
+   an explicit identity/version policy, exact address/size manifest and
+   complete independent revalidation. A container is not bootability proof.
 
 Parallel stock-SPL research is on `chore/2026-10-09@stock-spl-handover`
-(`fcb5b04`), note `notes/2026-10-09-stock-spl-handover.md`. It reports a
+(`e1201e9`), note `notes/2026-10-09-stock-spl-handover.md`. It reports a
 `call r1` with boot argument 0x01c7fe08, disabled interrupts, and loaded SPL
 RAM 0x01c02000..0x01c05830 overlapping the inert diagnostic reservation.
 These are static findings, not executed behavior. Before a device experiment,
-resolve that RAM/exception-stack ownership and watchdog/clock/cache/secondary-
+resolve that RAM/exception-stack ownership and final watchdog/clock/cache/secondary-
 core handover, implement an observable diagnostic, and document the owner's
 staged recovery/address/rollback gate. Existing bounded 4 KiB restoration
 is not full-image or broken-application recovery proof.
@@ -159,7 +208,21 @@ The reference and reports remain ignored. Existing report:
 `build/jieli-diagnostic/stock-v15-envelope-sfc-report.json`.
 No heavy build was required; the new work is a small offline Python reader.
 The previously bounded LAN toolchain/runtime artifacts remain unchanged.
-Source is on the stacked feature branch; root owns PR/CI/integration.
+Nested reproduction (new report filename required):
+
+```sh
+python3 tools/jieli/inspect_stock_flash.py \
+  /Users/likwid/Developer/mvave-fm1-firmware/scratch/FM-1_v15_cdn.fwsc \
+  --stock build/jieli-diagnostic/stock-v15-reference \
+  --json build/jieli-diagnostic/stock-v15-nested-noop-new.json
+```
+
+Ignored successful report: `build/jieli-diagnostic/stock-v15-nested-noop-final.json`.
+Focused tests use the original project's `.venv/bin/python`; system Python
+lacks pytest. Set `FM1_STOCK_FWSC` to the local V15 package and
+`FM1_STOCK_UNPACK` to the guarded reference to enable actual-container/SPL
+checks. Source is on the feature branch, now merged with origin/main after
+PR #104 integration; root owns PR/CI/integration.
 
 ## Change log
 
@@ -172,3 +235,8 @@ Source is on the stacked feature branch; root owns PR/CI/integration.
   and all payload CRCs; retained strict rejection of FM-1_092's relocated
   ciphertext and recorded the exact comparison instead of guessing a decode
   origin. Three structural/device-version gate groups remain.
+
+- 2026-10-09: Bound nested V15 SPL/config/cfg to guarded stock, validated all
+  established nested CRCs, and reconstructed the full stock FWSC identically
+  in memory. Preserved reserved descriptors and unknown tail bytes; no
+  modified-image builder or installable output was created.
