@@ -157,6 +157,15 @@ secondary core is active or parked at SPL handover. A new runtime must not
 release that stock entry after overwriting stock's image/RAM. The current
 component has no core-control operations.
 
+[verified] Pinned SDK `asm/irq.h` implements local IRQ save by clearing CPU
+`icfg` bit 8; `asm/hwi.h` identifies exception IRQ 1 and soft IRQ 123.
+`cpu/wl82/debug.c:debug_init` explicitly registers an exception handler at IRQ
+1, priority 7, before configuring exception/debug monitoring. Thus clearing
+external routing and retaining CLI is not an established exception policy for
+Lunar. Its future handler must use its own SSP and avoid inherited vector
+targets and vendor exception-log/flash paths. IRQ 123 stays reserved by the
+existing SDK safety contract; this component accesses neither IRQ.
+
 ## Next gate
 
 Do not turn a reference's running-app LCD test into a handover-ready runtime.
