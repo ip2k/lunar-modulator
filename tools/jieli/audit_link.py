@@ -100,12 +100,46 @@ KEY_CHECK_DEMO_HASH_PREFIX = bytes.fromhex("9956B646")
 # scan in the notes (no app library does it) and by never linking a loader.
 EFUSE_SFR_LO, EFUSE_SFR_HI = 0x13700, 0x1371F
 
-# Our sources must not claim IRQ 123: request_irq(123, ...) with a literal
-# first argument, or the vector-slot address written out.
-IRQ123_SOURCE_PATTERNS = (
-    re.compile(r"\brequest_irq\s*\(\s*(?:\(\s*\w+\s*\)\s*)?(?:123|0[xX]0*7[bB])\b"),
-    re.compile(r"\b0[xX]0*1[cC]801[eE][cC]\b"),
-)
+# Only explicit literal IRQ arguments are accepted in the source guard.
+# A macro/enum/expression cannot be proved safe by a textual scanner; reject it
+# rather than silently accepting a possible alias for reserved IRQ 123.
+IRQ123_VECTOR_SOURCE = re.compile(r"\b0[xX]0*1[cC]801[eE][cC]\b")
+IRQ_CALL = re.compile(r"\brequest_irq\s*\(([^,;{}]+),")
+IRQ_LITERAL = re.compile(r"(?:0[xX][0-9a-fA-F]+|[0-9]+)[uUlL]*")
+
+
+def irq_source_hits(sources):
+    grouped = {}
+    for path, line_no, line in sources:
+        grouped.setdefault(path, []).append((line_no, line))
+    hits = []
+    for path, lines in grouped.items():
+        text = "\n".join(line for _, line in lines)
+        # Preserve newlines for diagnostics while removing comments/strings.
+        text = re.sub(r'/\*.*?\*/|//[^\n]*|"(?:\\.|[^"\\])*"',
+                      lambda m: "".join("\n" if c == "\n" else " " for c in m[0]),
+                      text, flags=re.S)
+        for m in IRQ123_VECTOR_SOURCE.finditer(text):
+            hits.append(f"{path}:{lines[text[:m.start()].count(chr(10))][0]}: IRQ-123 vector address")
+        for m in IRQ_CALL.finditer(text):
+            arg = m[1].strip()
+            # Strip a single type cast and redundant parentheses around a literal.
+            arg = re.sub(r"^\(\s*[A-Za-z_]\w*\s*\)\s*", "", arg).strip()
+            arg = arg.strip("() \t\r\n")
+            literal = bool(IRQ_LITERAL.fullmatch(arg))
+            value = None
+            if literal:
+                raw = arg.rstrip("uUlL")
+                try:
+                    value = int(raw, 16 if raw.lower().startswith("0x") else 8 if len(raw)>1 and raw.startswith("0") else 10)
+                except ValueError:
+                    literal = False
+            if not literal or value == 123:
+                line = lines[text[:m.start()].count(chr(10))][0]
+                hits.append(f"{path}:{line}: request_irq argument {m[1].strip()!r} is reserved or not a proven literal")
+    return hits
+
+
 SOURCE_SUFFIXES = (".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".s", ".S", ".inc")
 
 SHT_SYMTAB, SHT_NOBITS, SHT_RELA, SHT_REL = 2, 8, 4, 9
@@ -400,12 +434,9 @@ def audit(elves, flat_images, linked, sources=None):
     classify("irq123_reserved", imm_hits([IRQ123_VECTOR], attributable=True), set(),
              f"no reference to IRQ-123 vector 0x{IRQ123_VECTOR:08X}")
     if sources is not None:
-        src_hits = []
-        for path, line_no, line in sources:
-            if any(rx.search(line) for rx in IRQ123_SOURCE_PATTERNS):
-                src_hits.append(f"{path}:{line_no}: {line.strip()[:100]}")
+        src_hits = irq_source_hits(sources)
         record("irq123_unused_in_sources", "fail" if src_hits else "pass",
-               src_hits or "no request_irq(123, ...) or IRQ-123 vector address in our sources")
+               src_hits or "only proven literal non-123 IRQ arguments; no IRQ-123 vector address")
 
     # 8. eFuse controller never touched (the application never reads or writes
     #    JL_EFUSE; only the never-linked download loader does). No exceptions.

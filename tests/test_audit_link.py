@@ -18,6 +18,8 @@ import importlib.util
 import pathlib
 import struct
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
@@ -474,3 +476,19 @@ def test_cli_runs_with_sources_and_objects(tmp_path):
     assert AL.main(["--objects", str(obj), "--sources", str(src), "--json", str(out)]) == 0
     (src / "bad.c").write_text("void f(void) { request_irq(123, 6, g, 0); }\n")
     assert AL.main(["--objects", str(obj), "--sources", str(src)]) == 1
+
+
+@pytest.mark.parametrize("source", [
+    "#define APP_IRQ 123\nrequest_irq(APP_IRQ, 6, f, 0);",
+    "enum { APP_IRQ = 123 };\nrequest_irq(APP_IRQ, 6, f, 0);",
+    "request_irq(120 + 3, 6, f, 0);",
+    "request_irq(\n  123, 6, f, 0);",
+    "request_irq(0173, 6, f, 0);",
+])
+def test_sources_reject_reserved_alias_or_unproven_argument(tmp_path, source):
+    assert status(scan_sources(tmp_path, source), "irq123_unused_in_sources") == "fail"
+
+
+def test_sources_safe_multiline_literal_and_comments(tmp_path):
+    source = "// request_irq(123, 0, f, 0);\nrequest_irq(\n (u8)11U, 3, f, 0);"
+    assert status(scan_sources(tmp_path, source), "irq123_unused_in_sources") == "pass"

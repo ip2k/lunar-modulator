@@ -201,3 +201,11 @@ say what the bass and the kits are after; "Acid Bass", "Acid Gen", "Comet
 Kit" and "Crater Kit" are this project's names (proposed to the owner,
 `notes/2026-10-06-fm1-x0x.md` §6.1), and TB-3PO, X0X, 9W9, ER-99 and 8W8
 appear only in credits.
+
+## Audit correction (2026-10-08)
+
+`dsp/fastmath.h` and `dsp/drum808.c` scale exponent bits using unsigned
+32-bit addition and shifting. This defines the intended modulo bit operation
+for negative exponents instead of relying on signed-left-shift undefined
+behavior. Their previous UBSan shift exemptions are removed. Audio parity
+verification is recorded in the audit remediation note.
