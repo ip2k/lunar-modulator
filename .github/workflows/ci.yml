@@ -180,6 +180,7 @@ jobs:
       HOME: /root         # a container job sets HOME to /github/home, owned by pwuser, and Firefox will not run as root in another user's home
       PLAYWRIGHT_DIR: /pw
       BROWSER: ${{ matrix.browser }}
+      FM1_SCHEDULING_CAPTURE: '1' # resource snapshots; Chromium also records a browser-wide audio trace
       SHOTS: page-test-output/${{ matrix.browser }}      # relative to the repository (inside the container, github.workspace is the host's path)
     steps:
       - uses: actions/checkout@v4
@@ -196,7 +197,9 @@ jobs:
             --load="module-native-protocol-unix auth-anonymous=1 socket=/tmp/pa.sock" -D
           echo "PULSE_SERVER=unix:/tmp/pa.sock" >> "$GITHUB_ENV"
       - name: The editor's data and history against the module (node)
-        run: node sim/web/test/editor-unit.mjs sim/web/www > /dev/null
+        run: |
+          node --test sim/web/test/scheduling-capture.test.mjs
+          node sim/web/test/editor-unit.mjs sim/web/www > /dev/null
       - name: The editor's page tests
         run: |
           mkdir -p "$SHOTS"

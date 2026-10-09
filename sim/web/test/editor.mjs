@@ -15,7 +15,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { serve } from './serve.mjs';
-import { launch } from './launch.mjs';
+import { startSchedulingCapture } from './scheduling-capture.mjs';
+import { launch, which } from './launch.mjs';
 import { playbackDelta } from './playback-stats.mjs';
 
 
@@ -33,7 +34,12 @@ await page.click('#power-on');
 await page.waitForFunction(() => window.fm1 && window.fm1.screens > 0, null, { timeout: 20000 });
 await page.waitForTimeout(300);
 
-const r = await page.evaluate(async (seconds) => {
+const capture = process.env.FM1_SCHEDULING_CAPTURE === '1'
+  ? await startSchedulingCapture(browser, out, { trace: which === 'chromium' }) : null;
+report.scheduling_capture = !!capture;
+let r, stormError;
+try {
+r = await page.evaluate(async (seconds) => {
   const node = window.fm1.node;
   const ctx = window.fm1.ctx;
   const PLAY = 12;
@@ -110,6 +116,20 @@ const r = await page.evaluate(async (seconds) => {
   got.playback = { before: under0, after: playback() };
   return got;
 }, SECONDS);
+} catch (e) {
+  report.pass = false;
+  report.logs.push(`storm failed: ${e.message}`);
+  writeFileSync(join(out, 'editor.json'), JSON.stringify(report, null, 2) + '\n');
+  stormError = e;
+} finally {
+  if (capture) await capture.finish();
+}
+
+if (stormError) {
+  await browser.close();
+  server.close();
+  throw stormError;
+}
 
 r.playback = playbackDelta(r.playback.before, r.playback.after);
 Object.assign(report, r);
