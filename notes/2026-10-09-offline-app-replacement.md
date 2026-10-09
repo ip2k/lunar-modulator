@@ -45,9 +45,12 @@ linked inert diagnostic [verified]. Actual in-memory result:
 - App 200 bytes, old stock extent 581564, untouched tail 581364; 204 physical
   bytes differ across 16 exact ranges recorded in the ignored JSON report.
 
-These are offline format/link results. The image retains `FM-1_015` identity,
-which the stock service refuses if already running that version [reported:
-AL-255's OTA analysis]. No version policy is invented, the remaining trailer
+These are offline format/link results. The image retains `FM-1_015` identity.
+Same-version refusal is reported; acceptance of an arbitrary new version is
+not established by that fact. AL-255's V13 analysis also reports cfg/OTA
+checks; their applicability to V15/092 is unresolved. See the exact evidence
+and preserved opaque trailer profile in
+`notes/2026-10-09-version-trailer-contract.md`. No version policy is invented, the remaining trailer
 semantics stay unresolved, and no claim of installation acceptance follows.
 FM-1_092's auxiliary-origin refusal is unchanged. Observable output and full
 SP/SSP/exception/clock/core/IRQ/watchdog startup remain unresolved; the inert
