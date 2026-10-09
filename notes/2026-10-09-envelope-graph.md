@@ -29,6 +29,18 @@ First CI caught an omitted curve-name pin and absent container digests in the
 direct build record. Both are corrected: the pinned fixture includes Log and Smooth, and the
 build records the actual container digests and musl reference. All 104
 scenarios match JavaScript and musl exactly; seven focused CI regression
-tests pass. Chromium CI reported one 0.01 ms underrun; the same
+tests pass. Chromium CI reported one 10 ms underrun (the test incorrectly labelled
+0.01 seconds as milliseconds); the same
 report occurred on the docs-only baseline branch. The bounded LAN Chromium
 page storm passes with zero reported underruns; CI must still pass before merge.
+
+
+The second CI checkpoint exposed three stale generated state examples. The
+new Delay parameter must appear with its zero default in the canonical project
+and modulation examples; the metadata example must also include the new curve
+names, third page and 128-byte instance. Regenerated these through
+`tools/state_examples.py --write` against the rebuilt default registry on aeon.
+The state schema, codec and application-state suites pass in the Emscripten
+container on aeon. This changes fixtures, not reader compatibility or DSP.
+PR #103's durable browser-save correction merged at `ebc6690` after full CI.
+PR #99 must merge before this branch, followed by a combined Wasm rebuild.
