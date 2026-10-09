@@ -13,7 +13,7 @@ libm, compiler runtime, ROM or other provider is required [verified: linked
 symbol table has no unresolved symbols]. The default SDK audit is preserved;
 an explicit stricter SDK-free policy requires key/initcall machinery absent.
 
-The first successful LAN build produced these exact figures [verified:
+The final volatile-guard LAN build produced these exact figures [verified:
 `report.json`, `diagnostic.map`, vendor `diagnostic.disasm.txt`]:
 
 | Item | Result |
@@ -36,11 +36,37 @@ path stack use [verified: this link's disassembly], not a device stack
 measurement. The byte-for-byte flat-image verifier passes. Host tests cover
 data copy/BSS clearing with boundary guards and zero-length ranges; audit
 regressions cover SDK-free absence and retain the original SDK policy.
+The final flat application's SHA-256 is
+`5566edb6742aebb695a4ed2ab0e9d979ebadb615190bb030c55f59f2258fee08`.
+An independent bounded review confirmed the actual guard load remains in
+each loop iteration and reconstructed the flat bytes from vendor section
+exports [verified]. The reviewer found a report weakness accepting mutated
+stack section metadata; exact data/BSS/stack section bounds now agree with
+linker symbols, and negative regressions reject that overlap and damaged
+section permissions/types/exports. The focused audit, memory, layout,
+staging-rejection and package-guard suite passes all 71 tests, including the
+real stock SPL pin check [verified].
+
+## Guarded staging result
+
+`stage-diagnostic.py` produced an ignored local staging tree with the current
+application beside byte-identical stock V15 SPL, `isd_config.ini`, `ota.bin`
+and `cfg`; the unchanged `package_guard.py` passed all checks [verified].
+The stock OTA loader was carved from the local V15 FWSC at offset `0xA5F14`,
+length 19,969 bytes, and its SHA-256 matched
+`ef1f2db89b011fa53e71df363f0122de0ea896618c53fb53e8da676322004541`
+[verified: carve compared with `notes/2026-09-06-bench.md` §7]. The manifest
+at `build/jieli-diagnostic/staged-v15-inert/staging-manifest.json` records
+component/application/ELF hashes and the successful link/layout/guard reports.
+Staging creates no FWSC/UFW container, version header, CRC or full flash image.
+The script rejects an existing destination, invalid link export or invalid
+stock reference without replacing prior output or publishing a partial tree.
 
 ## Evidence boundaries and exact next gate
 
-This is linked code, not a board runtime, package, sound engine, or device
-execution result. Its RAM-only state currently has no observation transport.
+This is linked and guarded staged code, not a board runtime, installable
+package, sound engine, or device execution result. Its RAM-only state
+currently has no observation transport.
 No watchdog, clock, power, cache/MMU, exception, second-core or peripheral
 contract has been implemented or verified. The incoming `r0` is only saved;
 it is not claimed to be a verified stock-SPL boot-info pointer.
@@ -54,9 +80,11 @@ Next establish the stock SPL handover from vendor/stock disassembly and
 permissive references: live memory ownership, CPU mode/stack alignment,
 cache/TLB setup, interrupts/exceptions, watchdog state and secondary-core
 state. Add only the minimal justified initialization and an observable
-diagnostic transport. Then stage a candidate with stock SPL/OTA/cfg/layout
-byte-identical and run `package_guard.py`; packaging success will not prove
-bootability. A device experiment needs the owner's staged recovery policy,
+diagnostic transport. The guarded staging gate is complete for this inert
+application; the next packaging gate is an independently checked stock-compatible
+container with application/version/CRC/layout accounting, after the handover
+and observation work. Packaging success will not prove bootability.
+A device experiment needs the owner's staged recovery policy,
 an exact image/address manifest and documented rollback procedure. Existing
 matching backups and the bounded 4 KiB restore do not establish full-image
 restoration or broken-application recovery [reported: current bring-up plan].
@@ -74,3 +102,9 @@ in `firmware/diagnostic/README.md`. Its container is capped at 4 GiB under
 `docker-batch.slice`. Results stay ignored, source and this evidence note
 are committed and pushed. Never flash the raw diagnostic as a substitute
 for the remaining gates.
+
+## Change log
+
+- 2026-10-09: Independently linked and disassembled the inert MIT diagnostic;
+  strengthened layout rejection after bounded review; verified stock-component
+  staging and preserved explicit runtime/package/device boundaries.

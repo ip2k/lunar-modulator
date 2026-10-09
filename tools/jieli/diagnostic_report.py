@@ -47,6 +47,7 @@ def report(elf_bytes, app, audit):
         raise ValueError("flat image does not match flash bounds")
     expected = bytearray(length)
     sections = []
+    load_ranges = []
     for section in image.sections:
         if not section["flags"] & 2 or not section["size"]:
             continue
@@ -57,17 +58,30 @@ def report(elf_bytes, app, audit):
         lower = RAM if is_ram else FLASH
         if not lower <= address < address + size <= lower + BUDGET:
             raise ValueError(f"section outside its budget: {name}")
-        if (section["flags"] & 1) != (1 if is_ram else 0) or (is_ram and section["flags"] & 4):
+        if name == ".entry" and address != FLASH:
+            raise ValueError("entry section misplaced")
+        if section["flags"] & 7 != (3 if is_ram else 6):
             raise ValueError(f"invalid section permissions: {name}")
+        if name == ".data" and (address, size) != (bounds["__data_begin"], bounds["__data_end"] - bounds["__data_begin"]):
+            raise ValueError("data section disagrees with boundary symbols")
+        if name == ".bss" and (address, size) != (bounds["__bss_begin"], bounds["__bss_end"] - bounds["__bss_begin"]):
+            raise ValueError("BSS section disagrees with boundary symbols")
+        if name == ".stack" and (address, size) != (bounds["__stack_guard"], bounds["__stack_top"] - bounds["__stack_guard"]):
+            raise ValueError("stack section disagrees with boundary symbols")
         if section["type"] == SHT_PROGBITS:
             load = bounds["__data_load"] if name == ".data" else address
             offset = load - FLASH
             if not 0 <= offset <= offset + size <= length:
                 raise ValueError(f"load bytes outside flash: {name}")
+            if any(offset < end and offset + size > begin for begin, end in load_ranges):
+                raise ValueError(f"overlapping flash load ranges: {name}")
+            load_ranges.append((offset, offset + size))
             expected[offset:offset + size] = elf_bytes[section["offset"]:section["offset"] + size]
-        elif name not in (".bss", ".stack"):
+        elif section["type"] != 8 or name not in (".bss", ".stack"):
             raise ValueError(f"missing file bytes: {name}")
         sections.append(dict(name=name, address=address, bytes=size))
+    if len(sections) != 5 or {section["name"] for section in sections} != {".entry", ".text", ".data", ".bss", ".stack"}:
+        raise ValueError("missing or duplicate required diagnostic section")
     if bytes(expected) != app:
         raise ValueError("flat application differs from ELF load bytes")
     return dict(entry=entry, flash_bytes=length,

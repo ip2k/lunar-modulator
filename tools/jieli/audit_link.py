@@ -43,6 +43,11 @@ pending until the real link (DEVELOPERS.md I1).
   --sources DIR                       our C/C++ sources: no request_irq(123)
                                       and no IRQ-123 vector address
 
+  --runtime sdk-free                  explicit SDK-free policy: requires a
+                                      linked executable, no dormant key or
+                                      initcall machinery, and no SDK mailbox
+                                      exceptions. The default remains sdk.
+
 What this does NOT cover, by design: the packaging safeguards
 (notes/2026-10-05-softkey-efuse.md §4.4) -- asserting the stock SPL hash
 730e54f0... and byte-identical isd_config.ini/ota.bin/cfg -- live in

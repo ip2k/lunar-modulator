@@ -1,7 +1,8 @@
 /* MIT. Inert RAM-only diagnostic. No MMIO, ROM calls, interrupts or services. */
 #include "runtime.h"
 extern unsigned char __data_begin[], __data_end[], __data_load[];
-extern unsigned char __bss_begin[], __bss_end[], __stack_guard[];
+extern unsigned char __bss_begin[], __bss_end[];
+extern volatile unsigned char __stack_guard[];
 static volatile diag_u32 data_cookie = 0x4c554e41u;
 static volatile diag_u32 bss_cookie;
 struct diagnostic_state {

@@ -46,4 +46,23 @@ policy remains the default and still requires its dormant check unchanged.
 or unexpected sections, writable code, stack overlap and ELF/flat-image
 differences. It does not prove runtime execution or recovery.
 
+## Stage beside stock components
+
+With an unpacked stock V15 reference including its byte-exact `ota.bin`:
+
+```sh
+python3 tools/jieli/stage-diagnostic.py \
+  --stock build/jieli-diagnostic/stock-v15-reference \
+  --elf build/jieli-diagnostic/diagnostic.elf \
+  --app build/jieli-diagnostic/diagnostic.bin \
+  --out build/jieli-diagnostic/staged-v15-inert
+```
+
+The destination must be new. The script repeats the link/layout checks,
+copies the stock SPL, configuration and OTA loader unchanged, runs the
+existing package guard and records SHA-256 hashes in a staging manifest.
+It creates no installable container, version header or flash image. An
+unknown inherited watchdog may reset the inert loop, and there is currently
+no debugger or device transport to observe its RAM state.
+
 See [the linked result and remaining gates](../../notes/2026-10-09-linked-diagnostic.md).
