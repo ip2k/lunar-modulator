@@ -394,6 +394,18 @@ def test_kit_and_drive_type_are_read_when_a_pad_is_struck(renderer, tmp_path):
     assert max(abs(a - b) for a, b in zip(late[n + 64:], fold[n + 64:])) < 1e-3
 
 
+@pytest.mark.parametrize("latched", ["Kit=1", "Drive Type=5"])
+def test_hit_latched_controls_stay_latched_during_a_smooth_ramp(renderer, tmp_path, latched):
+    notes = [f"0:{KICK}:127:0.1", f"0.5:{KICK}:127:0.1"]
+    ramp = ["--param-at", "0.2:Drive=0.9"]
+    _, _, unchanged = run(renderer, tmp_path, "ramp", [], notes, ramp, seconds=0.8)
+    _, _, changed = run(renderer, tmp_path, "latch", [], notes,
+                        ramp + ["--param-at", f"0.201:{latched}"], seconds=0.8)
+    n = int(0.5 * RATE)
+    assert changed[:n] == unchanged[:n]
+    assert changed[n + 64:] != unchanged[n + 64:]
+
+
 def test_a_smooth_knob_reaches_a_sounding_pad(renderer, tmp_path):
     notes = [f"0:{KICK}:127:0.1"]
     _, _, plain = run(renderer, tmp_path, "p", [], notes, seconds=0.8)

@@ -21,6 +21,7 @@
  * C99. MIT licence, like the rest of this repository.
  */
 #include <math.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1063,6 +1064,19 @@ static int encoder_of(const char *s) {
 static char g_dump[1 << 16];
 static float g_audio[2 * FM1_APP_MAX_FRAMES * 4096];
 
+/* Count stored bytes, never snprintf's desired (possibly truncated) length. */
+static int dump_append(size_t *n, const char *fmt, ...) {
+  va_list ap;
+  int k;
+  const size_t left = sizeof g_dump - *n;
+  va_start(ap, fmt);
+  k = vsnprintf(g_dump + *n, left, fmt, ap);
+  va_end(ap);
+  if (k < 0 || (size_t)k >= left) return 0;
+  *n += (size_t)k;
+  return 1;
+}
+
 int fm1_edit_run(const char *script, const char *dir) {
   FILE *f = fopen(script, "r"), *out;
   char line[256], path[1024];
@@ -1084,12 +1098,12 @@ int fm1_edit_run(const char *script, const char *dir) {
              sizeof(float) * 2 * FM1_APP_MAX_FRAMES);
     }
     snprintf(arg1, sizeof arg1, "%s", line + used);
-    n += (size_t)snprintf(g_dump + n, sizeof g_dump - n, "B%ld %s ->", block, line);
+    if (!dump_append(&n, "B%ld %s ->", block, line)) goto log_full;
     if (strcmp(verb, "edit") == 0) {
       uint8_t b[FM1_EDIT_REC_BYTES];
       int8_t c = -1;
       if (fm1_edit_parse_text(arg1, b)) fm1_edit_packed(&g_a, b, 1, FM1_EDIT_EDITOR, ++tag, &c);
-      n += (size_t)snprintf(g_dump + n, sizeof g_dump - n, " %d\n", c);
+      if (!dump_append(&n, " %d\n", c)) goto log_full;
     } else {
       char name[16];
       int x = 0, y = 0;
@@ -1098,7 +1112,7 @@ int fm1_edit_run(const char *script, const char *dir) {
       else if (strcmp(verb, "turn") == 0 && encoder_of(name) >= 0) fm1_app_encoder(&g_a, encoder_of(name), x);
       else if (strcmp(verb, "note") == 0) fm1_app_note_on(&g_a, atoi(name), x);
       else if (strcmp(verb, "off") == 0) fm1_app_note_off(&g_a, atoi(name));
-      n += (size_t)snprintf(g_dump + n, sizeof g_dump - n, " .\n");
+      if (!dump_append(&n, " .\n")) goto log_full;
     }
   }
   fclose(f);
@@ -1121,4 +1135,8 @@ int fm1_edit_run(const char *script, const char *dir) {
   fwrite(g_audio, sizeof(float), (size_t)2 * FM1_APP_MAX_FRAMES * (size_t)block, out);
   fclose(out);
   return 0;
+log_full:
+  fclose(f);
+  fprintf(stderr, "edit-run log exceeds its bounded output buffer\n");
+  return 2;
 }

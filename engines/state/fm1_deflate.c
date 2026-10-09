@@ -240,8 +240,11 @@ uint32_t fm1_inflate_read(fm1_inflate_t *z, uint8_t *out, uint32_t n) {
 }
 
 int fm1_inflate_done(const fm1_inflate_t *z) {
-  return !z->err && z->final && z->state != Z_HUFF && z->state != Z_STORED && !z->match_len &&
-         z->out_total == z->out_cap;
+  /* Reaching the output length is not enough: consume the end marker,
+   * including any empty final block, and allow only padding in its last byte. */
+  return !z->err && z->final && z->state == Z_DONE && !z->match_len &&
+         z->out_total == z->out_cap && z->in_off == z->in_end &&
+         z->in_pos == z->in_len && z->bitcnt < 8u;
 }
 
 /* ---- Deflate --------------------------------------------------------------------- */

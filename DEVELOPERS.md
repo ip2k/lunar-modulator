@@ -13,13 +13,15 @@ technical:
 
 It is for contributors, and for anyone who wants to know how Lunar
 Modulator works. Today the code runs on a desktop and in a browser, not yet
-on a JieLi chip or an FM-1, so everything can be built, tested and played on
+as a Lunar application on the FM-1, so the instrument can be built, tested and played on
 an ordinary computer: [Getting started](#getting-started) takes about five
 minutes. For the whole project in six points, read [Key facts](#key-facts).
 
-> **The one rule.** Nothing gets flashed to, or written on, an FM-1 until a
-> full flash dump and a byte-identical restore have been demonstrated on
-> that unit. [The details](#the-one-rule) come before any work on hardware.
+> **Hardware policy (2026-10-07).** The owner authorized staged recovery
+> experiments. Soft-key entry, matching full backups and bounded sector
+> restoration succeeded [verified: [bench note](notes/2026-10-07-fm1-softkey-bench.md)].
+> Full-image restore and a Lunar application remain untested.
+> [The current rules](#the-one-rule) come before hardware work.
 
 Until 2026-10-01 the project was called "Open firmware for the M-VAVE FM-1"
 (`ip2k/mvave-fm1-open-firmware`). GitHub redirects the old URLs [reported:
@@ -164,6 +166,9 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   block, the panel's view with its knob map, and `fm1_param_parse`; the
   audio thread gets binary only, and a shadow Worker does the text, hashes
   and diffs ([sim/web/README.md, "The edit layer"](sim/web/README.md#the-edit-layer-stage-ed1-for-the-advanced-editor)).
+  Mobile editing of a real FM-1 is planned and deferred until installable
+  firmware; the connection options and resume checklist are in
+  [the mobile editor note](notes/2026-10-07-mobile-advanced-editor.md).
   Its first views (stage ED2, `sim/web/www/editor/`) are on the simulator's
   page behind a Panel/Workbench/Editor switch: the Flow, a sound's
   inspector drawn from the metadata alone, follow both ways with the K1-K4
@@ -832,28 +837,17 @@ build, and the research still to do.
 >   2026-10-01]. The virtual FM-1's page is tested in Chromium, and the
 >   Advanced editor's page tests also run in Firefox and WebKit
 >   ([What it does](README.md#what-it-does), [Try it in your browser](README.md#try-it-in-your-browser)).
-> - **On a JieLi chip:** nothing has been built with JieLi's compiler yet, so
->   speed and memory on pi32v2 are not measured. A JieLi AC79 dev kit and
->   JieLi's USB updater dongle are on order, to run the code there first and
->   to rehearse a flash dump and restore on the kit
->   ([`docs/14`](docs/14-verification-ladder.md)).
-> - **On the FM-1:** this project writes nothing to an FM-1 until a full
->   flash dump and a byte-identical restore have been shown on the owner's
->   unit ([`docs/07`](docs/07-recovery-and-risk.md) §4). The dump goes
->   through the chip's mask-ROM USB mode, entered over the USB-C port with a
->   `USB_KEY` dongle: JieLi's (on order), or ours, which is specified,
->   implemented and simulated but not yet run on hardware
->   ([`docs/10`](docs/10-usb-key-dongle.md), [`dongle/`](dongle/)). Two other
->   FM-1 owners report reaching that mode with czietz's Pico dongle, and one
->   reports backing up and writing firmware afterwards [reported:
->   [issue #2](https://github.com/ip2k/lunar-modulator/issues/2),
->   [`docs/10`](docs/10-usb-key-dongle.md) §1.1]; nobody here has run it.
-> - **The owner's unit** runs Baud Girl's
->   [FM-1+VA](https://baudgirl.com/work/FM-1+VA), a third-party firmware the
->   owner installed themselves; it identified as `FM-1_092` on 2026-09-29
->   [verified]. This project has only ever sent it read-only requests
->   ([`notes/2026-09-06-bench.md`](notes/2026-09-06-bench.md),
->   [`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`](notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md)).
+> - **On pi32v2:** the compile-only check builds engine and simulator objects
+>   with JieLi's compiler [verified: [`2026-10-02 report`](notes/2026-10-02-jieli-compile-check.md)].
+>   No Lunar target application has been linked or run; hardware timing and
+>   memory use remain unmeasured.
+> - **On the FM-1:** the audited recovery loader ran in RAM; soft-key entry,
+>   matching full backups and bounded unused-sector restoration succeeded
+>   [verified: [`bench note`](notes/2026-10-07-fm1-softkey-bench.md)]. Full-image
+>   restore, recovery from a broken application and a Lunar install remain untested.
+> - **The owner's unit** runs Baud Girl's FM-1+VA, identifies as `FM-1_092`,
+>   and booted normally after the recovery experiments [verified: bench note,
+>   including owner-confirmed power cycles].
 >
 > For the verdict on how open the firmware can be, read
 > [`docs/05`](docs/05-open-source-feasibility.md); for the plan from desktop
@@ -1391,8 +1385,8 @@ decide:
   soft key by itself (CLAUDE.md trap 9).
 - New since 2026-10-05 (the study's §6): an SDK app (L1) or bare metal (L2)
   for the preview; M-VAVE's loader or our own for install and rollback;
-  whether the soft key may ever be sent to the owner's unit (not for the
-  gate); whether to vendor Felucca's Apache-2.0 `fm6_core.c` as an msfa
+  soft-key entry on the owner's unit (answered: works on FM-1_092,
+  [verified: 2026-10-07 bench note]); whether to vendor Felucca's Apache-2.0 `fm6_core.c` as an msfa
   oracle (answered: yes, as FM6's test oracle only, 2026-10-05,
   `engines/third_party/felucca-fm6/`); whether to read V1.1.9's `system.a` with a modern `llvm-dis` in a
   container on aeon (output kept in scratch) to see how `#C<n>` is parsed.
@@ -1917,21 +1911,18 @@ rules keep the one FM-1 safe and the project's builds shareable.
 
 ### The one rule
 
-**Nothing gets flashed to, or written on, an FM-1 until a full flash dump and
-a byte-identical restore have been demonstrated on that unit.**
-- The FM-1 has one flash bank, no debug pads and no recovery button.
-- The only traffic allowed before that is the read-only identity query
-  `F0 00 32 45 00 00 00 40 7F F7` and passive captures.
-- Never send syscmd 33–36 or 48, or any `5A AA A5` online-tool frame: some
-  copy memory or touch flash.
-- Never send the "soft key" `F0 22 24 35 7D F7`: stock V15 reboots into mask
-  ROM on it [reported: FM-1-transporter]. It is one byte from the upgrade
-  command `F0 22 24 35 7F F7`, and tools that send it by themselves, such
-  as FM-1-transporter's `fm1t.py`, stay away from an FM-1 before the gate.
+The owner replaced the original blanket prerequisite with staged hardware
+experiments on 2026-10-07. The operative rules are in
+[docs/07 §4](docs/07-recovery-and-risk.md#4-rules-of-engagement).
+Soft-key entry, repeated matching full backups and bounded 4 KiB restoration
+are verified on the owner's FM-1_092; full-image restoration and recovery
+from a broken application remain untested ([bench note](notes/2026-10-07-fm1-softkey-bench.md)).
 
-The full rules of engagement are in
-[docs/07](docs/07-recovery-and-risk.md) §4. They come from AL-255's safety
-review.
+Keep the backups off the bench host, use only audited commands and bounded
+ranges, and retain stock SPL/OTA/configuration and partition layout. Never
+send eFuse writes or SDK key-provisioning commands. Preparing a Lunar build
+is authorized; this resumption does not authorize an arbitrary flash write.
+Any installation needs a concrete reviewed image and recovery procedure.
 
 ### Conventions
 
@@ -2138,3 +2129,11 @@ document. By topic:
   [docs/14](docs/14-verification-ladder.md) the verification ladder.
 - **Sources:** [docs/04](docs/04-prior-art.md) prior art, and the bench and
   study notes in [`notes/`](notes/).
+
+## Platform and licence evaluation before device firmware
+
+The [SDK/runtime evaluation](notes/2026-10-07-sdk-runtime-evaluation.md)
+records the evidence, GPL versus permissive profiles, why whole-repository
+dual licensing is unnecessary for those profiles, and the work involved.
+No licence or runtime implementation was changed. The owner requested a
+thorough whole-repository audit before device firmware work begins.

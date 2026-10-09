@@ -89,6 +89,7 @@ export -f mk build_one
 export SRC OUT JCC
 
 echo "== toolchain: $($TC/common/bin/clang --version | head -1)"
+FAIL_COMPILE=0
 echo "== GPL switch: FM1_GPL_MODS=${FM1_GPL_MODS:-1} (engines/Makefile)"
 echo "== module list: FM1_MODULES=${FM1_MODULES:-all} (engines/modules/catalogue.mk)"
 for p in "${PROFILES[@]}"; do
@@ -107,6 +108,7 @@ for p in "${PROFILES[@]}"; do
     <"$OUT/$name/objects.txt"
   fails=$(grep -L '^0$' $(find "$OUT/$name/logs" -name '*.rc') | wc -l)
   echo "   failed: $fails"
+  if [ "$fails" -ne 0 ]; then FAIL_COMPILE=1; fi
 done
 
 echo "== disassembly (ladder), for stack frames"
@@ -212,4 +214,4 @@ echo "== link-audit (compile-only: over the ladder objects and the boot bridge)"
 python3 "$SRC/tools/jieli/audit_link.py" --objects "$OUT/ladder/obj" --objects "$BB" \
   --sources "$SRC/engines" --sources "$SRC/sim/web/src" --sources "$SRC/firmware" \
   --json "$OUT/audit_link.json" || { echo "   LINK AUDIT FAILED (see $OUT/audit_link.json)"; FAIL_AUDIT=1; }
-[ -z "${FAIL_AUDIT:-}" ] || exit 1
+[ -z "${FAIL_AUDIT:-}" ] && [ "$FAIL_COMPILE" -eq 0 ] || exit 1

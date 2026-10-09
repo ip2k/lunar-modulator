@@ -61,7 +61,7 @@ def find_packages(blob):
                 pkg = blob[start:end]
                 if pkg[CHIP_MARK_OFFSET:CHIP_MARK_OFFSET + len(CHIP_MARK)] == CHIP_MARK:
                     found.setdefault(hashlib.sha256(pkg).hexdigest(), (start, pkg))
-                break
+                    break
         pos = blob.find(TRAILER, pos + 1)
     return found
 

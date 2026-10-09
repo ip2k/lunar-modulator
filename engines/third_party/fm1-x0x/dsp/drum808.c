@@ -165,7 +165,8 @@ static float d8_exp2_cr(float x)
     for (k = 10; k >= 0; k--)
         s = ff_add(ff_mul(s, r), k_ifact[k]);
     b.f = s.hi + s.lo;
-    b.i += (int32_t)n << 23;
+    /* Lunar Modulator: negative exponent bits use defined unsigned arithmetic. */
+    b.u += (uint32_t)(int32_t)n << 23;
     return b.f;
 }
 

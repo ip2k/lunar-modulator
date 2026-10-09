@@ -8,8 +8,11 @@ Guidance for Codex working in this repo.
 firmware for the **M-VAVE FM-1** (JieLi AC791N SoC, pi32v2 CPU; the stock
 firmware's FM engine is msfa/Dexed).
 
-Status, 2026-10-01: **the code runs on a desktop and in a browser, not yet on
-a JieLi chip or an FM-1; nothing flashed by this project.**
+Status, 2026-10-07: **Lunar runs on a desktop and in a browser; no Lunar
+application has run on the FM-1 yet.** Soft-key UBOOT entry, two matching
+full-flash backups and a bounded unused-sector program/restore succeeded on
+the owner’s FM-1_092 [verified: `notes/2026-10-07-fm1-softkey-bench.md`].
+The audited recovery loader ran in RAM. Full-image restore remains untested.
 - Built and tested on the desktop: an engine platform with Mutable- and
   Schwung-derived engines and effects (`engines/`, checked against reference
   renders), and a C99 port of Movy's sequencer core with its Movy oracle
@@ -80,17 +83,37 @@ and ideas, with credit; their code comes in only as a GPL module behind the
 GPL switch (docs/12 §6), as three of Felucca's engines have
 (`engines/third_party/felucca/`, 2026-10-06).
 
-## The one rule
+## Recorded platform decision work
 
-**Nothing gets flashed to, or written on, the FM-1 until a full flash dump and a
-byte-identical restore have been demonstrated on that unit.** There is one
-device, one flash bank, no debug pads, and no proven recovery path. The only
-traffic allowed before that is the read-only identity query
-`F0 00 32 45 00 00 00 40 7F F7` and passive captures. See `docs/07` §4 for the
-full rules of engagement; they come from AL-255's safety review and are not
-negotiable without new evidence. The owner's own install of FM-1+VA
-(2026-09) was the owner's call and does not relax the rule for anything this
-project builds or sends.
+Before device firmware implementation, read
+`notes/2026-10-07-sdk-runtime-evaluation.md`: the SDK value, Felucca comparison,
+GPL/permissive build profiles, dual-licensing limits and effort estimates.
+Recommendation: keep the reusable core MIT; prefer an independently
+permissive SDK-free runtime if both release variants matter. Reusing
+Felucca’s GPL HAL makes the application GPL even with GPL engines disabled.
+This is an evaluation, not a licence change or an implemented platform.
+The owner requested a thorough whole-repository code audit before beginning
+device firmware work (2026-10-07); finish/review that audit first.
+
+## Hardware experimentation policy (owner revised, 2026-10-07)
+
+The owner explicitly replaced the blanket dump-and-byte-identical-restore
+precondition, authorizing exploration of soft-key UBOOT entry and dump/restore
+on bench01 without waiting for the development kit. A prior full restore is
+**not** required to attempt recovery entry, read flash, or prepare a prototype.
+
+Proceed in recorded stages: identify the connected unit; send the vetted
+`F0 22 24 35 7D F7` soft key once and observe USB enumeration; use a reviewed,
+allowlisted RAM loader for private full-flash backups; then evaluate a bounded
+restore or prototype installation with its concrete image and recovery plan.
+Take and compare backups before any flash erase/program operation. Do not infer
+proven recovery from UBOOT enumeration alone. No blanket erase, arbitrary vendor
+commands or eFuse programming is authorized. Keep the stock SPL, OTA/cfg and
+partition safeguards; a prototype must retain a route back to USB update mode.
+
+The current experiment and authorization are recorded in
+`notes/2026-10-07-fm1-softkey-bench.md`; docs/07 §4 holds the revised rules.
+Historical references to "the one rule" describe the superseded policy.
 
 ## Hardware in one table
 
@@ -125,17 +148,16 @@ vendor packages there.
 
 ## Conventions
 
-- **Dead-code audit:** first done 2026-10-05 (PR #74) over the tree at
-  `d781f07` (PR #52): 91,901 lines of the repo's own source, 91,732 after its
-  removals (`db24f89`). Scope: `dongle/`, `engines/` and `firmware/` less
-  `third_party/`, `sim/`, `tests/` and `tools/`. The count is `wc -l` over the
-  tracked files less Markdown, data (JSON, verb, panel and mod scripts, fonts,
-  the built module) and `tests/fixtures/`; by the same count the stage A2 mark
-  of 2026-09-30 was 7,440. The candidates left for the owner's decision are in
-  PR #74. The ~28,300 lines that merged after `d781f07` (19 PRs, #55 to #75;
-  120,007 in all at the merge with #75, `401e83c`) were not read, so the next
-  audit is due already: start from `git diff d781f07`, then audit again after
-  about every 10,000 lines.
+- **Dead-code and full-code audit:** completed 2026-10-08 on baseline
+  `d7111a985d5d6262767d6af49ba26caf0e1b9453` (501 first-party source/build files,
+  178,989 physical lines; 225 vendored files, 81,114 lines, reviewed at the
+  source tiers documented in `notes/2026-10-07-full-code-audit-coverage.md`).
+  The editor stream `861b725bbe4efadb2d56400853a03b78f695f4cf` was reviewed
+  separately across 36 changed source/build paths. Findings, exclusions,
+  removal candidates and verification limits are in
+  `notes/2026-10-07-full-code-audit.md`. The next audit is due after roughly
+  10,000 additional source lines, counting from this baseline and preserving
+  the same file-counting method.
 - **Confidence marks in every technical claim:** `[verified]` (checked here
   against binaries, photos or SDK files), `[reported]` (named source, not
   re-checked), `[inferred]`. Never upgrade a claim without doing the check.
@@ -187,11 +209,13 @@ vendor packages there.
 8. **Movy/Schwung are Linux-only by nature**; do not plan around porting them.
 9. **The "soft key" `F0 22 24 35 7D F7` is not the identity query.**
    - Stock V15 reboots into mask-ROM `UBOOT1.00` on it [reported:
-     FM-1-transporter `a632d92`]; FM-1_092 is unchecked. The upgrade command
+     FM-1-transporter `a632d92`]. It also enters UBOOT on the owner’s
+     FM-1_092 [verified: `notes/2026-10-07-fm1-softkey-bench.md`]. The upgrade command
      `F0 22 24 35 7F F7` differs by one byte.
-   - Never send it before the dump-and-restore gate (the one rule).
+   - Send it only through the authorized staged hardware plan above; a prior
+     full restore is no longer a precondition for this probe.
    - FM-1-transporter's `fm1t.py` sends it by itself when it sees V15
-     [verified: its README]: never run that tool against the owner's unit.
+     [verified: its README]: do not run its unreviewed automatic path against the owner's unit.
      Its key drive is also push-pull with no series resistors, which docs/10
      E1 rules out [verified: `pio/usb_key.pio`, README].
 10. **Audio is ALNK0 (I2S, `0x12E00`) to an external codec, not the

@@ -3,6 +3,7 @@
 #include "mod_script.h"
 
 #include <ctype.h>
+#include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,7 +49,7 @@ static int tokens(const char *line, char tok[MAX_TOK][TOK_LEN]) {
 static int number(const char *s, double *out) {
   char *end = NULL;
   *out = strtod(s, &end);
-  return end != s && *end == '\0';
+  return end != s && *end == '\0' && isfinite(*out);
 }
 
 /* A position 1..8 written as text. */

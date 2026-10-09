@@ -783,7 +783,12 @@ def main(argv=None) -> int:
     repo = args.repo.resolve()
     cfg = tomllib.loads((repo / "manual" / "manual.toml").read_text())
     site = args.site if args.site.is_absolute() else Path.cwd() / args.site
-    out = site / "manual"
+    out = (site / "manual").resolve()
+    # Never recursively delete source inputs, including through a symlink or
+    # an output ancestor containing the repository.
+    source = (repo / "manual").resolve()
+    if out == source or source in out.parents or out in source.parents:
+        ap.error("--site/manual must not overlap the source manual directory")
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)

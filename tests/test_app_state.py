@@ -238,6 +238,39 @@ def test_each_kind_loads_into_its_target(tools, tmp_path):  # noqa: F811
     assert "rt 0 1 0" in (tmp_path / "y.movy1").read_text().split("\n")
 
 
+@pytest.mark.parametrize("missing", [False, True])
+@pytest.mark.parametrize("binary", [False, True])
+def test_sound_import_cannot_apply_unknown_mfx_to_old_slot(tools, tmp_path, missing, binary):
+    source = canon.loads((EX / "deep-bass.sound.lunar").read_text())
+    source["sound"]["engine"] = "macro"
+    source["sound"]["params"] = {}
+    source["sound"]["inserts"] = []
+    source.pop("mod", None)
+    source["sound"]["midi_fx"] = [] if missing else [
+        {"engine": "future-arp", "on": True, "params": {"Rate": 7, "Latch": 1}}]
+    incoming = tmp_path / ("incoming.lunarb" if binary else "incoming.lunar")
+    if binary:
+        names = ls.Names.from_build(tools["render"])
+        if not missing:
+            source["sound"]["midi_fx"][0]["engine"] = "arp"
+        records, _ = ls.read_json(json.dumps(source), names)
+        for record in records:
+            if record["rec"] == "unit" and record["role"] == "mfx":
+                record["engine"] = "future-arp"
+        incoming.write_bytes(ls.write_bin(records))
+    else:
+        incoming.write_text(json.dumps(source))
+    saved = tmp_path / "after.lunar"
+    out = sim(tools, "--start", "--mfx", "2:arp", "--mfx-param", "2:Rate=3",
+              "--mfx-param", "2:Latch=1", "--load", f"s2:{incoming}", "--without",
+              "--save", f"project:{saved}")
+    assert out["load"]["ok"] == 1, out["load"]
+    after = canon.loads(saved.read_text())["sounds"][1]["midi_fx"][0]
+    # An omitted/unavailable effect becomes the bypassed default, as preflight budgets.
+    baseline = canon.loads(project(tools, tmp_path, "--start"))["sounds"][0]["midi_fx"][0]
+    assert after == baseline
+
+
 def test_every_refusal_changes_nothing(tools, tmp_path):  # noqa: F811
     bad = tmp_path / "bad.lunar"
     bad.write_text("hello")

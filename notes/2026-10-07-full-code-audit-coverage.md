@@ -1,0 +1,1382 @@
+# Full code audit coverage and handoff — 2026-10-07
+
+This is the durable file-level ledger for `notes/2026-10-07-full-code-audit.md`.
+Update status only after reading and recording evidence. A search or mechanical scan does not count as reviewed.
+
+## Pinned snapshots
+
+- Audit worktree baseline: `d7111a985d5d6262767d6af49ba26caf0e1b9453` (`chore/2026-10-07@full-code-audit`), based on fetched `origin/main`.
+- Fetched `origin/main`: `64209e3c08222ada0eb61afcaef89e909ae07955`.
+- Fetched editor stream: `origin/feature/2026-10-07@editor-panel-improvements` at `861b725bbe4efadb2d56400853a03b78f695f4cf`.
+- Current branch includes the 16-file post-main hardware recovery/provenance delta through `d7111a9`; these files are part of audit coverage. Do not mutate benchmark/tool paths.
+- Audit scope includes source in baseline HEAD, the post-main delta, and the editor branch diff plus full modified-file context. Do not merge variants.
+- Counts below are tracked files at baseline HEAD. Source line counts are physical lines, excluding binary inputs. Vendor counts are separate and are not claimed as fully read until their tier is completed.
+
+## Coverage totals
+
+- Tracked repository files at pinned baseline: 1350
+- Source/build files inventoried: 726 (501 first-party, 225 vendored); 178,989 first-party lines and 81,114 vendored lines. (Includes C/C++, Python, Rust, JavaScript, shell, PIO and 43 Make fragments.)
+
+## First-party source and build-file ledger
+
+`PENDING` means not yet read in full. Change each entry to `READ` with report section/findings reference after review; `EXCLUDED` requires a reason in the audit report.
+
+- [x] `assets/branding/render_branding.py` — READ completely; audit report batch 26 (2026-10-07)
+- [x] `assets/web-editor/src/01-workbench.html` — READ completely; batch 26
+- [x] `assets/web-editor/src/02-sound.html` — READ completely; batch 26
+- [x] `assets/web-editor/src/03-chain.html` — READ completely; batch 26
+- [x] `assets/web-editor/src/04-modulation.html` — READ completely; batch 26
+- [x] `assets/web-editor/src/05-map.html` — READ completely; batch 26
+- [x] `assets/web-editor/src/06-project.html` — READ completely; batch 26
+- [x] `assets/web-editor/src/editor.css` — READ completely; visual layout source review; batch 26
+- [x] `assets/web-editor/src/editor.js` — READ completely; metadata-driven controls/layout checker reviewed; batch 26
+- [x] `assets/web-editor/src/meta.js` — JSON payload parsed and all bounds/default/log/enum metadata checked; batch 26
+- [x] `assets/web-editor/src/render.mjs` — READ completely; browser DevTools lifecycle reviewed; batch 26
+- [x] `assets/web-editor/src/shell.js` — READ completely; static frame template reviewed; batch 26
+- [x] `assets/web-editor/src/shrink.mjs` — READ completely; PNG decode/encode and palette quantization reviewed; batch 26
+- [x] `dongle/__init__.py` — READ; empty package marker; audit report batch 2 (2026-10-07)
+- [x] `dongle/firmware/CMakeLists.txt` — READ; audit report batch 2 (2026-10-07)
+- [x] `dongle/firmware/config.h` — READ; audit report batch 2 (2026-10-07)
+- [x] `dongle/firmware/main.c` — READ; audit report batch 2 (2026-10-07)
+- [x] `dongle/firmware/usb_key.pio` — READ; audit report batch 2 (2026-10-07)
+- [x] `dongle/sim/__init__.py` — READ; empty package marker; audit report batch 2 (2026-10-07)
+- [x] `dongle/sim/cosim.py` — READ; audit report batch 2 (2026-10-07)
+- [x] `dongle/sim/dongle.py` — READ; audit report batch 2 (2026-10-07)
+- [x] `dongle/sim/jieli_rom.py` — READ; audit report batch 2 (2026-10-07)
+- [x] `dongle/sim/params.py` — READ; audit report batch 2 (2026-10-07)
+- [x] `dongle/sim/pio_waveform.py` — READ; audit report batch 2 (2026-10-07)
+- [x] `engines/Makefile` — READ completely; audit report batch 25 (2026-10-07)
+- [x] `engines/host/mod_script.c` — READ completely; numeric/parser validation and callers traced; batch 27 (2026-10-07)
+- [x] `engines/host/mod_script.h` — READ completely; batch 27 (2026-10-07)
+- [x] `engines/host/render.cc` — READ completely (2,174 lines); CLI parsing, engine/effect/MFX instantiation, sequencer/modulation scheduling, audio render loop, diagnostics, and cleanup reviewed; batch 28 (2026-10-07)
+- [x] `engines/host/render_state.cc` — READ; full desktop state import/export flow in audit report batch 4
+- [x] `engines/host/render_state.h` — READ; full desktop state import/export contract in audit report batch 4
+- [x] `engines/host/seq_script.c` — READ completely; timed script parser/event and command serialization reviewed; batch 27 (2026-10-07)
+- [x] `engines/host/seq_script.h` — READ completely; batch 27 (2026-10-07)
+- [x] `engines/host/seq_tool.c` — READ completely; CLI/event/state load-save flow reviewed; batch 27 (2026-10-07)
+- [x] `engines/host/state_clip.c` — READ completely; clip remapping and line ownership reviewed; batch 27 (2026-10-07)
+- [x] `engines/host/state_clip.h` — READ completely; batch 27 (2026-10-07)
+- [x] `engines/host/state_tool.c` — READ completely (747 lines); canonicalization, streaming readers, RAM check, diff and CLI/output paths reviewed; batch 29 (2026-10-07)
+- [x] `engines/include/fm1_comp.h` — READ; reduction tap contract (2026-10-07)
+- [x] `engines/include/fm1_dx7.h` — READ; DX7 import/export bounds and thread contract (2026-10-07)
+- [x] `engines/include/fm1_dynamics.h` — READ baseline; new gate-state API separately reviewed in editor variant ledger (2026-10-07)
+- [x] `engines/include/fm1_engine.h` — READ complete (678 lines); lifecycle, API v4, callbacks (batch 21)
+- [x] `engines/include/fm1_engine_meta.h` — READ; page/detent contract (2026-10-07)
+- [x] `engines/include/fm1_fx_host.h` — READ; event/beat splitting interface (2026-10-07)
+- [x] `engines/include/fm1_fx_idle.h` — READ; decay bound and integer warm-up helpers (2026-10-07)
+- [x] `engines/include/fm1_gate.h` — READ; gate state and sidechain buffer ownership contract (2026-10-07)
+- [x] `engines/include/fm1_known.h` — READ; generated ids/aliases and sentinel contracts (2026-10-07)
+- [x] `engines/include/fm1_math.h` — READ; normal-input assumptions and exact-range behavior (2026-10-07)
+- [x] `engines/include/fm1_meta.h` — READ complete; metadata export/version contract (batch 21)
+- [x] `engines/include/fm1_mfx_host.h` — READ complete; effect-chain event, clock and ownership contracts (batch 21)
+- [x] `engines/include/fm1_midi_ev.h` — READ; packed source/velocity and event values (2026-10-07)
+- [x] `engines/include/fm1_mix_limiter.h` — READ; sample guard and limiter recurrence (2026-10-07)
+- [x] `engines/include/fm1_mod.h` — READ complete (655 lines); one stale parameter-count comment pending implementation cross-check (batch 21)
+- [x] `engines/include/fm1_mod_host.h` — READ; host callback buffers and slot ownership (2026-10-07)
+- [x] `engines/include/fm1_refusal.h` — READ; stable codes and metadata surface (2026-10-07)
+- [x] `engines/include/fm1_resampler.h` — READ complete (389 lines, kernel included); arithmetic/ring contract (batch 21)
+- [x] `engines/include/fm1_seq.h` — READ complete; limits, transport and import interfaces (batch 21)
+- [x] `engines/include/fm1_seq_host.h` — READ complete; dispatch and hook contracts (batch 21)
+- [x] `engines/include/fm1_smooth.h` — READ completely; integer sample/block ramp arithmetic and boundary assumptions reviewed; batch 30 (2026-10-07)
+- [x] `engines/include/fm1_state_caps.h` — READ; state reader caps (2026-10-07)
+- [x] `engines/include/fm1_tele.h` — READ baseline; v2 field/version separately reviewed in editor variant ledger (2026-10-07)
+- [x] `engines/midi_fx/acid_gen.c` — READ completely (553 lines); GPL gating, TB-3PO integration, note/slide lifetime, run/transpose behavior and bounded queues reviewed; batch 32 (2026-10-07)
+- [x] `engines/midi_fx/arp_engine.c` — READ completely; parameter schema/core mapping, event contract and API v4 registration reviewed; batch 30
+- [x] `engines/midi_fx/arp_rhythm.c` — READ completely; rhythm tables and fixed-array Euclidean generator bounds reviewed; batch 30
+- [x] `engines/midi_fx/arp_tool.c` — READ completely (347 lines); script parsing/sorting, frame-width conversions, block cuts, output-capacity drain and CLI bounds reviewed; batch 33 (2026-10-07)
+- [x] `engines/midi_fx/fm1_arp.c` — READ completely (944 lines); held-key origin/latch handling, order cycles, ratchets, gates, transport grid, event-capacity and note ledger reviewed; batch 31 (2026-10-07)
+- [x] `engines/midi_fx/fm1_arp.h` — READ completely; public storage, event, capacity and transport contracts reviewed; batch 30
+- [x] `engines/midi_fx/registry.c` — READ completely; feature/GPL module guards reviewed; batch 30
+- [x] `engines/mk/comp.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/crush.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/djfilter.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/drive.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/drums.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/editor_meta.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/eq.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/felucca.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/filter.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/fm1-x0x.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/fold.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/fx-echo.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/fx-ext.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/fx-hostile.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/fx3-hostile.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/gate.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/hall.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/idle.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/isolator.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/limit.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/meta.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/mi-fx.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/midi_fx.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/mod.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/msfa.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/param_get.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/plaits-heavy.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/ref-braids-fx.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/ref-plaits.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/resampler.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/room.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/sat.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/schwung.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/seq.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/shapes-hostile.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/smooth.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/squash.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/state.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/tilt.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mk/x0x-crater.mk` — READ completely; batch 25 (2026-10-07)
+- [x] `engines/mod/fm1_mp.h` — READ in full (315 lines); primitive contracts/capacity claims (batch 14)
+- [x] `engines/mod/gen_curves.py` — READ in full; generated table check passed (batch 14)
+- [x] `engines/mod/gen_mi_tables.py` — READ in full; upstream-derived tables check passed (batch 14)
+- [x] `engines/mod/gen_tables.py` — READ in full; generated table check passed (batch 14)
+- [x] `engines/mod/kinds/kinds_int.h` — READ in full; event merge/native-rate helpers (batch 14)
+- [x] `engines/mod/kinds/mod_bounce.c` — READ in full; Peaks port integration (batch 14)
+- [x] `engines/mod/kinds/mod_burst.c` — READ in full; Peaks port integration and clock behavior (batch 14)
+- [x] `engines/mod/kinds/mod_calc.c` — READ; audit report batch 15
+- [x] `engines/mod/kinds/mod_chance.c` — READ in full; noise/S&H/T&H clocks (batch 14)
+- [x] `engines/mod/kinds/mod_coin.c` — READ in full; probability/latch transitions (batch 14)
+- [x] `engines/mod/kinds/mod_compare.c` — READ; MID skipped-zone transition finding in audit report batch 15
+- [x] `engines/mod/kinds/mod_divide.c` — READ in full; div/mult/euclidean queues (batch 14)
+- [x] `engines/mod/kinds/mod_env.c` — READ in full; time/event and per-voice paths (batch 14)
+- [x] `engines/mod/kinds/mod_function.c` — READ in full; shaped segments and gate/event paths (batch 14)
+- [x] `engines/mod/kinds/mod_lfo.c` — READ in full; sync/restart/hold paths (batch 14)
+- [x] `engines/mod/kinds/mod_logic.c` — READ; audit report batch 15
+- [x] `engines/mod/kinds/mod_mix.c` — READ; audit report batch 15
+- [x] `engines/mod/kinds/mod_quantize.c` — READ; audit report batch 15
+- [x] `engines/mod/kinds/mod_register.c` — READ in full; register, data and gate outputs (batch 14)
+- [x] `engines/mod/kinds/mod_resonator.c` — READ; audit report batch 15
+- [x] `engines/mod/kinds/mod_slew.c` — READ; audit report batch 15
+- [x] `engines/mod/mod_core.c` — READ in full (1,880 lines); runtime lifecycle, event windows, gates, sinks and voice ownership (batch 13)
+- [x] `engines/mod/mod_curves.c` — generated table check passed and runtime interpolation reviewed (batch 14)
+- [x] `engines/mod/mod_glue.c` — READ in full; sequencer hook and per-note writes (batch 14)
+- [x] `engines/mod/mod_int.h` — READ in full; state layout, gate and voice helpers (batch 13/14)
+- [x] `engines/mod/mod_mi.c` — READ; audit report batch 15
+- [x] `engines/mod/mod_mi.h` — READ; audit report batch 15
+- [x] `engines/mod/mod_mi_tables.c` — READ completely; generated table provenance and constant arrays reviewed; batch 30
+- [x] `engines/mod/mod_plan.c` — READ in full (614 lines); slot planning, graph ordering, voice layout/refusal (batch 13)
+- [x] `engines/mod/mod_registry.c` — READ in full; kind/source/host tables (batch 14)
+- [x] `engines/mod/mp_clkdiv.c` — READ in full; overflow bounds and pulse distribution (batch 14)
+- [x] `engines/mod/mp_env.c` — READ in full; timing, reshape and loop code paths (batch 14)
+- [x] `engines/mod/mp_int.h` — READ in full; finite/math/table helpers (batch 14)
+- [x] `engines/mod/mp_lfo.c` — READ in full; fixed-point carry/sync and random state (batch 14)
+- [x] `engines/mod/mp_rng.c` — READ in full; integer PRNG and float mapping (batch 14)
+- [x] `engines/mod/mp_sah.c` — READ in full; gate/state transitions (batch 14)
+- [x] `engines/mod/mp_slew.c` — READ in full; Q format and arithmetic bounds (batch 14)
+- [x] `engines/mod/mp_tables.c` — generated tables reproduced by pinned generator check (batch 14)
+- [x] `engines/mod/mp_tool.c` — READ in full; desktop parser and bounded buffers (batch 14)
+- [x] `engines/mod/mp_turing.c` — READ in full; length 32 and shift bounds (batch 14)
+- [x] `engines/modules/catalogue.mk` — READ completely; module/object/licence gating reviewed; audit report batch 25 (2026-10-07)
+- [x] `engines/seq/fx_host.c` — READ complete; audio-effect clock and transport event split (batch 23)
+- [x] `engines/seq/mfx_host.c` — READ complete; MIDI-FX queue, chain and flush lifecycle (batch 23)
+- [x] `engines/seq/seq_capture.c` — READ complete; packed ring, rebase, tempo fit and commit paths (batch 23)
+- [x] `engines/seq/seq_clip.c` — READ complete; pool compaction, clip edits and fire-tick index (batch 23)
+- [x] `engines/seq/seq_cmd.c` — READ complete; full parser and typed/text command dispatch (batch 23)
+- [x] `engines/seq/seq_engine.c` — READ complete (2,239 lines); scheduler, transport, recording, song and getters; trig-import UB is in adjacent persistence file (batch 24)
+- [x] `engines/seq/seq_host.c` — READ complete; event room, reroute ownership, dispatch hooks and slot order (batch 23)
+- [x] `engines/seq/seq_int.h` — READ complete; full internal state layout and pool accessors (batch 23)
+- [x] `engines/seq/seq_persist.c` — READ complete (700 lines); export and streaming import; malformed trig-lane uninitialized read finding (batch 24)
+- [x] `engines/src/acid_bass.cc` — READ completely (434 lines); GPL gate, X0X unit lifetime, chunk alignment, parameter smoothing/offsets, pitch/bend and key-stack transitions reviewed; batch 36 (2026-10-07)
+- [x] `engines/src/acid_bass.h` — READ completely; host-rate/chunk and oracle bridge contract reviewed; batch 36
+- [x] `engines/src/comet_kit.cc` — READ completely (485 lines); GPL gate, per-pad/kit voicings, shared-voice routing, ramp ownership, output chunking and API v4 focus reads reviewed; batch 37 (2026-10-07)
+- [x] `engines/src/comet_kit.h` — READ completely; pad-to-voice and oracle bridge contract reviewed; batch 37
+- [x] `engines/src/crater_kit.cc` — READ completely (429 lines); GPL gate, 16 sound/track map, per-pad latches and ramps, tune/bend, choke/volume and chunk behavior reviewed against vendored trigger readers; batch 38 (2026-10-07)
+- [x] `engines/src/crater_kit.h` — READ completely; pad/track map, rate and velocity contract reviewed; batch 38
+- [x] `engines/src/drum_voices.h` — READ completely (326 lines); four custom voice DSPs, bounded numeric domains, RNG/noise lifetime and filter state reviewed; batch 39 (2026-10-07)
+- [x] `engines/src/drums.cc` — READ completely (802 lines); model/kit tables, voice allocation/choke/retrigger, smoothing, per-note offsets, noise ownership, resampler and cleanup reviewed with engine contract and full test source; batch 39 (2026-10-07)
+- [x] `engines/src/dx7_bank.h` — GENERATED DATA; provenance checked against full generator and `tools/dx7_bank.py --check` (batch 40)
+- [x] `engines/src/dx7_loop.cc` — READ completely (82 lines); 1-3 operator chain/feedback arithmetic, parameter restoration and dispatch reviewed with MSFA kernel contracts; batch 40 (2026-10-07)
+- [x] `engines/src/dx7_loop.h` — READ completely (53 lines); documented n/ranges and loop integration interface reviewed; batch 40
+- [x] `engines/src/dx7_voice.cc` — READ completely (291 lines); sanitize/unpack/pack, SysEx framing/checksum, slot sequencing, callbacks and writer bounds reviewed; batch 40
+- [x] `engines/src/dx7_voice.h` — READ completely (70 lines); offsets, byte counts, parse and callback contracts reviewed; batch 40
+- [x] `engines/src/editor_meta.cc` — READ complete; static metadata tables and bounded lookups (batch 22)
+- [x] `engines/src/felucca_bridge.c` — READ completely (263 lines); state lending, WHEEL static arrays, voice/envelope/render call paths and C boundary reviewed; batch 41 (2026-10-07)
+- [x] `engines/src/felucca_bridge.h` — READ completely (103 lines); fixed-width world and modulation contracts reviewed; batch 41
+- [x] `engines/src/felucca_shim.cc` — READ completely (736 lines); parameter maps and LATCH rules, GPL-gated phase-bend note-on/off glide flow, retune bridge call, per-note pitch/volume mixes, block staging, pitch quantization and world allocation/lifecycle reviewed; batches 41, 59 (2026-10-07)
+- [x] `engines/src/fx_comb.cc` — READ completely (296 lines); aligned delay allocation, interpolation/ring bounds, feedback loop, control glide and input/output guard reviewed; batch 42 (2026-10-07)
+- [x] `engines/src/fx_comp.cc` — READ completely (512 lines); dB curve, detector states, character/auto-release handover, makeup bound, alias safety and API lifecycle reviewed; batch 42
+- [x] `engines/src/fx_comp_math.h` — READ completely (29 lines); shared fm1 math dispatch and stated numeric domain reviewed; batch 42
+- [x] `engines/src/fx_crush.cc` — READ completely (256 lines); sample hold/countdown, RNG, quantizer, smoothing and low-pass state reviewed; batch 42
+- [x] `engines/src/fx_djfilter.cc` — READ completely (625 lines); segment phase, side entry/exit, coefficient ramps, TPT state init, 12/24 dB crossfade and rate bounds reviewed; batch 43 (2026-10-07)
+- [x] `engines/src/fx_drive.cc` — READ completely (600 lines); generated curves, ADAA piece integrals, Auto gain, Type crossfade, pre/de-emphasis and DC/tone state reviewed; batch 43
+- [x] `engines/src/fx_echo.cc` — READ completely (332 lines); fixed ring indexing, slow-clock interpolation, read/write ordering, anti-alias/reconstruction filters, cross-feed and integer storage reviewed; batch 44 (2026-10-07)
+- [x] `engines/src/fx_eq.cc` — READ completely (608 lines); SVF coefficients, gain ramps, idle/settle/wake state transitions, host-driven state and count wrap reviewed; batch 44
+- [x] `engines/src/fx_eq_math.h` — READ completely (82 lines); exponent-bit scaling, positive-input log2 domain and tan cutoff range reviewed; batch 44
+- [x] `engines/src/fx_filter.cc` — READ completely (855 lines); all six circuit solvers, coefficient updates, type warm/fade, per-type state reset and audio loop reviewed; batch 45 (2026-10-07)
+- [x] `engines/src/fx_filter_dsp.h` — READ completely (114 lines); log/exp domain, saturation secants, input guard, flush and glide helpers reviewed; batch 45
+- [x] `engines/src/fx_fold.cc` — READ completely (391 lines); piecewise triangle/sine ADAA, small-step corner math, DC removal, TPT tone filter and parameter state reviewed; batch 46 (2026-10-07)
+- [x] `engines/src/fx_gate.cc` — READ completely (779 lines); trigger/lockout/hold and ramp state, key filters/link/listen, lookahead allocation/indexing and external state hooks reviewed; batch 46
+- [x] `engines/src/fx_hall.cc` — READ completely (612 lines); rate-sized power-of-two rings, line partitions and fractional reads, FDN orthogonal mix, damping/decay gains, freeze and modulation reviewed; batch 47 (2026-10-07)
+- [x] `engines/src/fx_isolator.cc` — READ completely (569 lines); LR4 band topology, seven TPT updates/channel, gain/crossover mapping, unity bypass and idle/wake warm-up reviewed; batch 47
+- [x] `engines/src/fx_limit.cc` — READ completely (911 lines); integer gain windows, bounded allocations, lookahead tap transitions, Mode transition, ROUND delayed state, input guards and rate ceilings reviewed; batch 48 (2026-10-07)
+- [x] `engines/src/fx_room.cc` — READ completely (416 lines); wrapper state/lifetime, grid-aligned parameter glides, rate mapping, loop and diffuser calls, sweep/flush and mono-width/mix paths reviewed; batch 49 (2026-10-07)
+- [x] `engines/src/fx_room_math.h` — READ completely (107 lines); IEEE exponent handling, subnormal scaling and bounded caller domains checked; batch 49 (2026-10-07)
+- [x] `engines/src/fx_sat.cc` — READ completely (728 lines); curve translation, filter math, glue envelope, param/shape changes, state flush, exact bypass and idle/wake branches traced; batch 50 (2026-10-07)
+- [x] `engines/src/fx_shaper.cc` — READ completely (237 lines); envelope ordering, log-domain signal comparison, parameter ramps and bounded gain path reviewed; batch 50 (2026-10-07)
+- [x] `engines/src/fx_squash.cc` — READ completely (703 lines); Snap stereo-state/gate recurrence, Mu speed/makeup bounds, Split half-wave states, parameter derivation, Type seed/crossfade, gain meter and memory lifecycle reviewed; batch 51 (2026-10-07)
+- [x] `engines/src/fx_tilt.cc` — READ completely (377 lines); first-order TPT sections, prewarped polynomial tan domain, staggered response, glide/state transitions, host contracts, input guard and coefficient bounds reviewed; batch 52 (2026-10-07)
+- [x] `engines/src/glide.h` — READ completely (371 lines); Time/Rate slew arithmetic, voice selection/plans, held-key cap/return logic and event-time mode semantics reviewed; callers remain separately pending; batch 53 (2026-10-07)
+- [x] `engines/src/mi_fx.cc` — READ completely (577 lines); Plate freeze ramp and state, native-rate compensation, effect input guards, Ensemble dry/wet extraction and width delay, Diffuse decorrelation/filter and allocation/smoothing paths reviewed; batch 60 (2026-10-07)
+- [x] `engines/src/mi_plaits_env.h` — READ completely (74 lines); exact attenuation, modulator, clamps and velocity accent parity reviewed; batch 60 (2026-10-07)
+- [x] `engines/src/mi_macro.cc` — READ completely (569 lines); allocation/model rebuild, held-note/glide event ordering, smoothing/per-note controls, Plaits arena sizing, resampler consumption and LPG modes reviewed; batch 54 (2026-10-07)
+- [x] `engines/src/mi_macro_heavy.cc` — READ completely (907 lines); voice/model/arena lifecycle, shared Speech bank and quantizer, stereo resampler handoff, note/glide ordering, per-note controls, LPG/self-envelope termination and failure paths reviewed; batch 55 (2026-10-07)
+- [x] `engines/src/mi_shapes.cc` — READ completely (465 lines); held-note/glide integration, fixed 96 kHz chunk/resampler, per-note controls, Shape update, oscillator bounds/safe Timbre and envelope lifecycle reviewed; batch 57 (2026-10-07)
+- [x] `engines/src/mi_sixop.cc` — READ completely (516 lines); DX patch parsing/cache, pitch/transpose/glide order, one-sample gate-low priming, LFO lead/follower ownership, voice freeing, resampler and scratch bounds reviewed; batch 56 (2026-10-07)
+- [x] `engines/src/msfa.h` — READ completely; vendored include/namespace and ROM pointer interface reviewed; batch 63 (2026-10-07)
+- [x] `engines/src/msfa_dx7.cc` — READ completely (777 lines); DX voice setup/render/release and user-slot paths plus glide/Mono/Legato operator retuning, Q24 conversion, per-note offsets and fixed-rate LFO/envelope behavior reviewed; batches 40, 58 (2026-10-07)
+- [x] `engines/src/msfa_prelude.h` — READ completely; header guards, system include placement, portable-kernel substitution, table macros and oracle variant reviewed; batch 63 (2026-10-07)
+- [x] `engines/src/msfa_rom.cc` — Generated constant-table tier reviewed through complete generator equivalence (`tools/msfa_tables.py --check` passes), declarations and data boundaries; SHA-256 `8e1acae454fd9b5e1ff3b16ac97fcd1b17328cac651d132897981f309c47014a`; batch 63 (2026-10-07)
+- [x] `engines/src/msfa_tables.cc` — READ completely; const table pointer wiring and arbitrary-rate table generation reviewed; batch 63 (2026-10-07)
+- [x] `engines/src/msfa_unit.cc` — READ completely; production/oracle namespace split and separate translation-unit contract reviewed; batch 63 (2026-10-07)
+- [x] `engines/src/note_offsets.h` — READ completely (87 lines); bit layout, offset normalization, clear/set and clamped effective-value path reviewed; batch 62 (2026-10-07)
+- [x] `engines/src/registry.cc` — READ complete; build/GPL/module table consistency (batch 22)
+- [x] `engines/src/schwung_abi.h` — READ completely; 32/64-bit ABI assertion adaptation and C linkage reviewed; batch 63 (2026-10-07)
+- [x] `engines/src/schwung_module_prefix.h` — READ completely; allocator and decimal parser redirection scope reviewed; batch 63 (2026-10-07)
+- [x] `engines/src/schwung_shim.cc` — READ completely (700 lines); singleton host setup, init lifetime, bounded allocator/realloc, decimal conversion, render-ahead/FIFO, parameter ramps and focus-value readback reviewed; batch 64 (2026-10-07)
+- [x] `engines/src/schwung_shim.h` — READ completely; ABI wrapper contracts, module metadata and public shim API reviewed; batch 64 (2026-10-07)
+- [x] `engines/src/sw_psxverb.cc` — READ completely; parameter/key table, headroom, memory budget and effect API descriptor reviewed; batch 63 (2026-10-07)
+- [x] `engines/src/sw_sophie.cc` — READ completely; pad focus mapping, per-focus fields, lock flags, entry key formatting, memory budget and engine descriptor reviewed; batch 63 (2026-10-07)
+- [x] `engines/src/test_ext.cc` — READ completely (111 lines); API v3 effect extension, optional key pass-through, tempo probe and first-piece transport marks reviewed; batch 125 (2026-10-08)
+- [x] `engines/src/test_gain.cc` — READ completely (73 lines); clamped API parameter and sample-accurate post-start gain ramp reviewed; batch 125 (2026-10-08)
+- [x] `engines/src/test_sine.cc` — READ completely (146 lines); 12-voice allocation/steal policy, gate envelope, bend/pitch, smooth volume and sample generation reviewed; batch 125 (2026-10-08)
+- [x] `engines/state/fm1_deflate.c` — READ; Batch 4 findings
+- [x] `engines/state/fm1_deflate.h` — READ; Batch 4 findings
+- [x] `engines/state/fm1_json.c` — READ; Batch 4
+- [x] `engines/state/fm1_json.h` — READ; Batch 4
+- [x] `engines/state/fm1_known.c` — READ; Batch 4
+- [x] `engines/state/fm1_meta.c` — READ completely (999 lines); canonical metadata writer, schema/source enumeration, CRC id path and buffer/stack bounds reviewed; batch 71
+- [x] `engines/state/fm1_num.c` — READ; Batch 4
+- [x] `engines/state/fm1_num.h` — READ; Batch 4
+- [x] `engines/state/fm1_state.h` — READ; Batch 4
+- [x] `engines/state/fm1_state_mod.h` — READ; Batch 4
+- [x] `engines/state/fuzz/state_fuzz.c` — READ completely (400 lines); bounded mutation, checksum repair, streamed JSON/binary invariants, sequencer imports, global lifetime and failure artifact path reviewed; batch 72
+- [x] `engines/state/state_bin.c` — READ; Batch 4 findings
+- [x] `engines/state/state_json_read.c` — READ; Batch 4
+- [x] `engines/state/state_json_write.c` — READ; Batch 4
+- [x] `engines/state/state_mod.c` — READ; Batch 4
+- [x] `engines/state/state_movy1.c` — READ; Batch 4
+- [x] `engines/state/state_movy1.h` — READ; Batch 4
+- [x] `engines/state/state_names.c` — READ; Batch 4
+- [x] `engines/state/state_print.c` — READ; Batch 4
+- [x] `engines/state/state_registry.c` — READ; Batch 4
+- [x] `engines/test/acid_oracle.cc` — READ completely (274 lines); pattern/events, 16-frame X0X reference, engine block splits and coefficient reporter reviewed; batch 104 (2026-10-08)
+- [x] `engines/test/bass303_drive.c` — READ completely (75 lines); GPL 303 upstream/vendored output driver, timing, slide/accent, block/tail bounds reviewed; batch 103 (2026-10-08)
+- [x] `engines/test/comet_oracle.cc` — READ completely (578 lines); 909 reference mapping, panel voicings, event/chunk timing, state scans and field reporters reviewed; batch 104 (2026-10-08)
+- [x] `engines/test/comp_test.cc` — READ completely (869 lines); compressor curves/timing/handling, block determinism, hostile input, auto-gain, math approximation and perf harness reviewed; batch 105 (2026-10-08). Confirmed ULP-helper test gap in report.
+- [x] `engines/test/crater_oracle.cc` — READ completely (355 lines); 808 pattern/pad mapping, chunk parity, field scans, pad duration and buffer bounds reviewed; batch 104 (2026-10-08)
+- [x] `engines/test/djfilter_test.cc` — READ completely (559 lines); bypass, response, block modulation, transitions, tail, rate and bench probes reviewed; batch 108 (2026-10-08)
+- [x] `engines/test/drive_test.cc` — READ completely (563 lines); ADAA quadrature, alias analysis, tape emphasis, control/timing, rates/hash/benchmark reviewed; batch 107 (2026-10-08)
+- [x] `engines/test/drum808_drive.c` — READ completely (77 lines); GPL 808 settings/pattern/sends, render/output order and buffer/tail bounds reviewed; batch 103 (2026-10-08)
+- [x] `engines/test/drum909_cymbals.c` — READ completely (58 lines); four sampled voices/tuning and shortened tail-call bounds reviewed; batch 103 (2026-10-08)
+- [x] `engines/test/drum909_drive.c` — READ completely (111 lines); GPL 909 pattern/retrigger/choke/distortion settings and odd block lengths reviewed; batch 103 (2026-10-08)
+- [x] `engines/test/dx7_felucca.c` — READ completely (100 lines); oracle-only Felucca integration/table derivation; not firmware-linked; batch 40
+- [x] `engines/test/dx7_oracle.cc` — READ completely (349 lines); loop/table/oracle setup, resource/error paths and output metrics reviewed; batch 40
+- [x] `engines/test/echo_selftest.cc` — READ completely (284 lines); allocation/rate refusals, event order, hostile controls/input, clock sweep, block parity and feedback-tail bounds reviewed; batch 116 (2026-10-08)
+- [x] `engines/test/eq_test.cc` — READ completely (591 lines); impulse response, exact bypass, click/glide, silence, math accuracy, rate, hash and perf tests reviewed; batch 108 (2026-10-08)
+- [x] `engines/test/felucca_oracle.c` — READ completely (261 lines); Felucca test stubs, bounded argument/event storage, instance allocation, event scheduling and comparison flow reviewed; batch 41 (2026-10-07)
+- [x] `engines/test/filter_test.cc` — READ completely (636 lines); Filter/Comb rates, response, self-oscillation, hostile signal, transitions and benchmark harness reviewed; batch 109 (2026-10-08). Confirmed moving benchmark omission in report.
+- [x] `engines/test/fold_test.cc` — READ completely (197 lines); parameter sweep, block independent changes, silence tails and rate checks reviewed; batch 107 (2026-10-08)
+- [x] `engines/test/fx3_hostile.cc` — READ completely (300 lines); room/hall/gate/plate hostile schedules, key and look-ahead comparisons, poisoned allocation and tails reviewed; batch 106 (2026-10-08)
+- [x] `engines/test/fx_ext_test.cc` — READ completely (394 lines); API v3 v2 adapter, key alias cases, sequencer transport/position and LOG grid checks reviewed; batch 106 (2026-10-08)
+- [x] `engines/test/fx_hostile_test.cc` — READ completely (469 lines); master bus hostile input, block/fill parity, neutral, rates, glides, tails and bad indices reviewed; batch 106 (2026-10-08)
+- [x] `engines/test/gate_test.cc` — READ completely (779 lines); assertions cross-checked against `tests/test_engines_gate.py`; lookahead buffers and frame counters reviewed; batch 110
+- [x] `engines/test/hall_selftest.cc` — READ completely (456 lines); bad rates/instance sizing, hostile controls/input, event-aware blocks, multi-rate sweeps, decay-to-zero/T60 and Freeze isolation/transition checks reviewed; batch 117 (2026-10-08)
+- [x] `engines/test/idle_test.cc` — READ completely (770 lines); event, buffer and wake/release windows cross-checked against the Python suite and idle helper; batch 111
+- [x] `engines/test/isolator_test.cc` — READ completely (477 lines); response, buffer and glide-landing paths cross-checked against implementation and Python assertions; batch 112
+- [x] `engines/test/limit_test.cc` — READ completely (856 lines); hostile ceiling matrix, runtime changes, block invariance, probe instrumentation and rate-boundary checks reviewed; batch 48 (2026-10-07)
+- [x] `engines/test/meta_number_test.c` — READ completely (54 lines); exponent-edge, knob-range and deterministic random float32 probe reviewed; batch 72
+- [x] `engines/test/mod_core_test.c` — READ completely (1,294 lines); planner, gates, voices and host event ordering cross-checked; batch 114
+- [x] `engines/test/mod_kinds_test.c` — READ; audit report batches 15–16; not executed
+- [x] `engines/test/mod_mi_ref.cc` — READ; audit report batch 16; not executed
+- [x] `engines/test/mod_refusal_test.c` — READ completely (326 lines); refusal reasons, planner fuzz, loop explanation and malformed-move regression reviewed; batch 115
+- [x] `engines/test/msfa_ref.cc` — READ completely; oracle table initialization and reference pointer lifetime reviewed; batch 63 (2026-10-07)
+- [x] `engines/test/msfa_ref.h` — READ completely; test-only table API declarations reviewed; batch 63 (2026-10-07)
+- [x] `engines/test/param_get_test.cc` — READ completely (390 lines); focus/copy/replay behavior cross-checked against API v4 wrapper and registry assertions; batch 113
+- [x] `engines/test/plate_test.cc` — READ completely (464 lines); randomized parameter/input abuse, block/fill parity, minute hold/lifetime, Freeze isolation and toggles, release, deferred controls, rates and benchmark reviewed; batch 118 (2026-10-08)
+- [x] `engines/test/ref_braids_fx.cc` — READ completely (497 lines); Braids and MI reference effect invocation, WAV parser/writer, argument conversion, input alignment, rate compensation and buffer handling reviewed; batch 119 (2026-10-08)
+- [x] `engines/test/ref_plaits.cc` — READ completely (1,120 lines); upstream Voice render, host-rate resampling/timing, WAV I/O, comparator FFT/envelope/timing metrics, CLI domains and allocation paths reviewed; batch 120 (2026-10-08)
+- [x] `engines/test/ref_room.cc` — READ completely (266 lines); Clouds caller mapping, WAV parser/writer, parameter compensation, block chaining and numeric frame bounds reviewed; batch 121 (2026-10-08)
+- [x] `engines/test/resampler_test.cc` — READ completely (705 lines); frequency/FFT measurements, chunk API matrices, extreme bounds, refused rates, poisoned-ring scans, WAV I/O and tone/peak CLI paths reviewed; batch 122 (2026-10-08)
+- [x] `engines/test/room_test.cc` — READ completely (363 lines); mixed bad inputs, change timing, block invariance, tail, rate, math and probe contracts reviewed; execution pending; batch 49 (2026-10-07)
+- [x] `engines/test/sat_test.cc` — READ completely (513 lines); changing controls, bypass, curve, glue, tone/alias probe and output digest harness reviewed; execution pending; batch 50 (2026-10-07)
+- [x] `engines/test/schwung_race.cc` — READ completely; documented control/audio concurrency probe reviewed (not run; requires TSan build); batch 64 (2026-10-07)
+- [x] `engines/test/schwung_selftest.cc` — READ completely (674 lines); allocator guard/exhaustion, MIDI and parameter encoding, block/FIFO, headroom, host immutability, init lifetime and parser checks reviewed; not executed; batch 64 (2026-10-07)
+- [x] `engines/test/seq_host_test.c` — READ completely (1,012 lines); text/typed parity, event dispatch, MIDI routing, bounds clamp, API v2 UID resolution, lock quantization, hook M6 order, slot dispatch and no-buffer behavior reviewed; batch 123 (2026-10-08)
+- [x] `engines/test/shapes_hostile.cc` — READ completely (278 lines); all-shape hostile schedules, block/fill determinism, clamp-equivalence construction and allocation/event bounds reviewed; batch 124 (2026-10-08)
+- [x] `engines/test/smooth_test.cc` — READ completely (228 lines); event ordering, NaN/Inf schedule, partition independence and summary contracts reviewed; execution pending; batch 61 (2026-10-07)
+- [x] `engines/test/squash_test.cc` — READ completely (913 lines); upstream oracle adapters, randomized block/memory matrix, makeup frame bounds, host contracts and Transient probes reviewed; execution pending; batch 51 (2026-10-07)
+- [x] `engines/test/state_alias_test.c` — READ completely (80 lines); alias table construction, capped input read and C record output reviewed; batch 72
+- [x] `engines/test/tb3po_line.c` — READ completely (45 lines); argument contract, upstream TB-3PO generation/mutation adapter and JSON output reviewed against Acid Gen tests; batch 124 (2026-10-08)
+- [x] `engines/test/tilt_test.cc` — READ completely (444 lines); DFT response probe, exact bypass, block independence, jump/zipper/sweep/silence/rate scenarios reviewed; execution pending; batch 52 (2026-10-07)
+- [x] `firmware/boot/boot_compat_test.c` — READ; audit report batch 2 (2026-10-07)
+- [x] `manual/theme/book.html` — READ complete (37 lines); generated print book shell and device-status language checked against current recovery notes; batch 126 (2026-10-08)
+- [x] `manual/theme/cover.html` — READ complete (48 lines); web cover links, navigation and device-status wording checked; batch 126 (2026-10-08)
+- [x] `manual/theme/landing.html` — READ complete (27 lines); landing claims checked against manual build output contract; batch 126 (2026-10-08)
+- [x] `manual/theme/manual.css` — READ complete (352 lines); screen layout, contrast tokens, focus, responsive/print rules and generated content selectors reviewed; batch 126 (2026-10-08)
+- [x] `manual/theme/page.html` — READ complete (49 lines); chapter shell, navigation/landmarks and metadata reviewed; batch 126 (2026-10-08)
+- [x] `manual/theme/print.css` — READ complete (109 lines); pagination, running heads, target counters and print layout reviewed; batch 126 (2026-10-08)
+- [x] `sim/web/build-on-aeon.sh` — READ completely; static build/publish boundary reviewed; batch 25 (2026-10-07)
+- [x] `sim/web/build.sh` — READ completely; build/test/record pipeline reviewed; batch 25 (2026-10-07)
+- [x] `sim/web/mk/sim.mk` — READ completely; native/WASM object and export boundary reviewed; batch 25 (2026-10-07)
+- [x] `sim/web/src/fm1_app.c` — READ in full (4,373 lines); audit report batch 6 (2026-10-07)
+- [x] `sim/web/src/fm1_app.h` — READ in full (895 lines); audit report batch 8 (2026-10-07)
+- [x] `sim/web/src/fm1_app_state.c` — READ; complete load/save planner and apply path in audit report batch 4
+- [x] `sim/web/src/fm1_app_state.h` — READ; complete public contract in audit report batch 4
+- [x] `sim/web/src/fm1_edit.c` — READ in full (1,184 lines); audit report batch 7 (2026-10-07)
+- [x] `sim/web/src/fm1_edit.h` — READ in full (243 lines); audit report batch 7 (2026-10-07)
+- [x] `sim/web/src/fm1_font.h` — READ; generated from repository-owned ASCII sheet; `gen_font.py --check` passed (batch 9)
+- [x] `sim/web/src/fm1_font_mid.h` — READ; generated subset structurally checked against Spleen BDF (batch 9)
+- [x] `sim/web/src/fm1_font_small.h` — READ; generated subset structurally checked against Spleen BDF (batch 9)
+- [x] `sim/web/src/fm1_look.h` — READ in full; audit report batch 9 (2026-10-07)
+- [x] `sim/web/src/fm1_mod_ui.c` — READ in full (1,694 lines); no additional confirmed issue (batch 12, 2026-10-07)
+- [x] `sim/web/src/fm1_mod_ui.h` — READ in full (348 lines); audit report batch 12 (2026-10-07)
+- [x] `sim/web/src/fm1_mod_view.c` — READ in full (388 lines); static geometry/role layout in audit report batch 12 (2026-10-07)
+- [x] `sim/web/src/fm1_mod_view.h` — READ in full (65 lines); audit report batch 12 (2026-10-07)
+- [x] `sim/web/src/fm1_panel.h` — READ in full; audit report batch 9 (2026-10-07)
+- [x] `sim/web/src/fm1_seq_ui.c` — READ in full (2,258 lines); audit report batch 10 (2026-10-07)
+- [x] `sim/web/src/fm1_seq_ui.h` — READ in full (636 lines); audit report batch 10 (2026-10-07)
+- [x] `sim/web/src/fm1_seq_view.c` — READ in full (972 lines); audit report batch 11 (2026-10-07)
+- [x] `sim/web/src/fm1_seq_view.h` — READ in full (119 lines); audit report batch 11 (2026-10-07)
+- [x] `sim/web/src/fm1_tft.c` — READ in full (254 lines); audit report batch 8 (2026-10-07)
+- [x] `sim/web/src/fm1_tft.h` — READ in full (198 lines); audit report batch 8 (2026-10-07)
+- [x] `sim/web/src/fm1_web.c` — READ; complete WebAssembly ABI and state bridge in audit report batch 5
+- [x] `sim/web/test/edit.mjs` — READ completely (192 lines); native/WASM parity, buffer handling and optional storm metric reviewed; audit report batches 96–97 (2026-10-07)
+- [x] `sim/web/test/editor-map.mjs` — READ completely (363 baseline lines plus all 60 lines of editor-branch additions); map rendering, cable gestures, keyboard flow, layout probe and changed endpoint/undo checks reviewed; audit report batch 97 (2026-10-07)
+- [x] `sim/web/test/editor-reach.mjs` — READ completely (331 lines); accessibility snapshots, keyboard reach, announcements, phone layouts and telemetry assertions reviewed; audit report batch 97 (2026-10-07)
+- [x] `sim/web/test/editor-shots.mjs` — READ completely (57 lines); browser setup, clipped page-editor captures, screenshot output and shutdown reviewed; batch 98 (2026-10-07)
+- [x] `sim/web/test/editor-ui.mjs` — READ completely (809 lines); panel/editor transfer, history, structure, file drops, library, search, layout, accessibility surfaces and fallback undo checks reviewed; batch 99 (2026-10-07)
+- [x] `sim/web/test/editor-unit.mjs` — READ completely (436 lines); metadata controls, packed-record/feed parity, history undo/redo, structural edits, RAM and unit-layout checks reviewed; batch 98 (2026-10-07)
+- [x] `sim/web/test/editor-v1.mjs` — READ completely (971 baseline lines plus all 63 lines of editor-branch additions); modulation/late-cable/repair/search/AB/phone/storage/batch actions and telemetry/load assertions reviewed; batch 99 (2026-10-07)
+- [x] `sim/web/test/editor.mjs` — READ completely (122 lines baseline plus full context of telemetry-buffer sizing diff); browser AudioWorklet port storm, timing and snapshot assertions reviewed; batch 99 (2026-10-07)
+- [x] `sim/web/test/files.mjs` — READ; complete headless browser test flow in audit report batch 5; not executed (Playwright container required)
+- [x] `sim/web/test/fm1_edit_check.c` — READ completely (1,032 lines); edit refusal/cable/ring/parity/transport/view/telemetry/fuzz checks and native script runner reviewed; audit report batch 96 (2026-10-07)
+- [x] `sim/web/test/fm1_sim_render.c` — READ completely (5,856 lines); screen, format, lock, font and modulation probes, input parsers, resource ownership, CLI, event/render loop, parity logs and summary serialization reviewed; audit report batches 94–95 (2026-10-07)
+- [x] `sim/web/test/launch.mjs` — READ completely (29 lines editor variant); Playwright executable resolution, browser flags, audible Chromium option and cross-browser constraints reviewed; batch 100 (2026-10-08)
+- [x] `sim/web/test/layout-probe.js` — READ completely (85 lines); text/control clipping, viewport bounds and overlap filtering reviewed; audit report batch 100 (2026-10-08)
+- [x] `sim/web/test/meta.mjs` — READ completely (126 lines); metadata export buffer, CRC identity, native registry parity and noninterference checks reviewed; batch 100 (2026-10-08)
+- [x] `sim/web/test/origins.mjs` — READ; direct Node test passed in audit report batch 5
+- [x] `sim/web/test/parity.mjs` — READ completely (627 lines); native/musl/WASM/app render setup, parser mirrors, frame scheduling, sample/screen comparisons and report gates reviewed; batch 101 (2026-10-08)
+- [x] `sim/web/test/readme-screenshots.mjs` — READ completely (408 lines); docs screenshot sequence, screenshots, browser/input flows and recorder checks reviewed; batch 102 (2026-10-08)
+- [x] `sim/web/test/screenshot.mjs` — READ completely (810 lines); initial state, audio rate fallback, input lifetimes, wheel/screen rendering, responsive targets, secure publishing, sequencer/modulation, DX7 and audio assertions reviewed; batch 102 (2026-10-08). Confirmed temporary publishing server cleanup gap in audit report.
+- [x] `sim/web/test/serve.mjs` — READ; complete local static test server in audit report batch 5
+- [x] `sim/web/test/sysex.mjs` — READ completely (278 lines); DX7 load/malformed input caps, slot/name placement, playback and packed-bank sample parity cases reviewed; batch 101 (2026-10-08)
+- [x] `sim/web/tools/gen_font.py` — READ in full; `--check` and `--sizes` passed (batch 9)
+- [x] `sim/web/tools/palette.py` — READ completely (661 lines); RGB565/OKLCH/CIELAB/CIEDE2000/CVD and semantic checker flow reviewed; `python3 sim/web/tools/palette.py` passed; batch 93 (2026-10-07)
+- [x] `sim/web/tools/source_hash.py` — READ completely (101 lines); source glob scope, path filtering and digest construction reviewed; batch 93 (2026-10-07)
+- [x] `sim/web/www/app.js` — READ in full (1,109 lines); baseline page and input/lifecycle review, audit report batch 17
+- [x] `sim/web/www/editor/chains.js` — READ in full (1,253 lines); patch preview/drag and keyboard flows, record packing, telemetry, module inspectors and cable matrix (batch 18)
+- [x] `sim/web/www/editor/editor.css` — READ complete at baseline d7111a9 (836 lines); responsive editor, state affordances, hidden/focus behavior, overlays and meter/label spacing reviewed; editor-branch variant separately covered at 861b725; batch 126 (2026-10-08)
+- [x] `sim/web/www/editor/editor.js` — READ in full (1,348 lines); lifecycle, worklet port, snapshots, edits, history, views and metadata controls (batch 18)
+- [x] `sim/web/www/editor/history.js` — READ in full; repeated picks redo payload finding in audit report batch 17
+- [x] `sim/web/www/editor/map.js` — READ in full (717 lines); patch gestures, planner preview, keyboard roving, SVG geometry and layout/fault checks (batch 18)
+- [x] `sim/web/www/editor/model.js` — READ in full (722 lines); audit report batch 17
+- [x] `sim/web/www/editor/project.js` — READ in full (850 lines); file import/export, library, A/B, picks, search, links and structural snapshot fallback (batch 18)
+- [x] `sim/web/www/editor/sheets.js` — READ in full; audit report batch 17
+- [x] `sim/web/www/files.js` — READ; complete file, link, storage and embed flow in audit report batch 5
+- [x] `sim/web/www/fm1-wasm.mjs` — READ; full module import/instantiation wrapper in audit report batch 5
+- [x] `sim/web/www/index.html` — READ in full (235 lines); audit report batch 17
+- [x] `sim/web/www/shadow.worker.js` — READ; complete request protocol and state/editor operations in audit report batch 5
+- [x] `sim/web/www/style.css` — READ complete at baseline d7111a9 (507 lines); simulator page, device hit-area scaling, file notices and layout modes reviewed; batch 126 (2026-10-08)
+- [x] `sim/web/www/worklet.js` — READ; full audio/editor message and render lifecycle in audit report batch 5
+- [x] `tests/__init__.py` — READ; empty package marker; batch 69 (2026-10-07)
+- [x] `tests/conftest.py` — READ completely (48 lines); wall/CPU limits, argument rewriting and subprocess monkeypatch scope reviewed; batch 69 (2026-10-07)
+- [x] `tests/engine_helpers.py` — READ completely (106 lines); build/GPL guard, renderer protocol and WAV/pitch/RMS helpers reviewed; batch 69 (2026-10-07)
+- [x] `tests/seq_helpers.py` — READ completely (209 lines); integer clock model, script generation, state/event parsing and helper contracts reviewed; batch 69 (2026-10-07)
+- [x] `tests/state_canon.py` — READ completely (272 lines); decimal-to-f32 reference, canonical JSON tokens/formatting, exact Q1.14 conversion and duplicate-key refusal reviewed; batch 70
+- [x] `tests/state_meta.py` — READ completely (177 lines); engine metadata construction, detent rules, editor-only projection and subset filtering reviewed; batch 70
+- [x] `tests/state_random.py` — READ completely (255 lines); seeded sound/effect/project/mod/clip/settings fixture generation and loose serialization reviewed; batch 70
+- [x] `tests/test_app_state.py` — READ; full app load/save/refusal test body in audit report batch 4
+- [x] `tests/test_audit_link.py` — READ; audit report batch 3 (2026-10-07)
+- [x] `tests/test_boot_compat.py` — READ; audit report batch 2 (2026-10-07)
+- [x] `tests/test_ci_pins.py` — READ completely (35 lines); workflow/page-test/browser package pins and editor test inclusion reviewed; batch 76
+- [x] `tests/test_dongle_model.py` — READ; audit report batch 2 (2026-10-07)
+- [x] `tests/test_engine_acid_bass.py` — READ completely (355 lines); vendored source equivalence, 16-frame scheduling, parameter mapping, note/slide/poly/latch behavior, block/rate independence and numeric bounds reviewed; batch 76
+- [x] `tests/test_engine_acid_gen.py` — READ completely (331 lines); TB-3PO equivalence, effect timing, key/project context, GPL listing and allocation-symbol tests reviewed; batch 35; not executed
+- [x] `tests/test_engine_api_v3.py` — READ completely (299 lines); effect-extension transport timing, legacy v2 path, LOG positioning/locks, UI knob/bar and modulation behavior reviewed; batch 75
+- [x] `tests/test_engine_api_v4.py` — READ completely (82 lines); get/copy/replay contract and focused pad-kit coverage reviewed; batch 75
+- [x] `tests/test_engine_arp.py` — READ completely (951 lines); golden tables/order, Yarns parity, timing, note balance, randomized capacity and origin/grid scenarios reviewed; batch 34; not executed
+- [x] `tests/test_engine_comet_kit.py` — READ completely (690 lines); GPL-only Comet Kit source and generated-sample provenance, oracle parity, pot mapping, voice/audio behavior, block/rate/extrema/resource checks and mu-law SNR contracts reviewed; batch 77
+- [x] `tests/test_engine_crater_kit.py` — READ completely (522 lines); GPL/upstream oracle, 8W8 pot laws, pad/tail/channel/choke, latch/ramp/rate/extrema/resource checks reviewed; Tune coverage overclaim recorded in batch 78
+- [x] `tests/test_engine_drums.py` — READ completely (718 lines); all pad/model/choke/voice pressure, parameter, block-size, memory-fill, per-note and extreme-value assertions reviewed; batch 39 (2026-10-07)
+- [x] `tests/test_engine_editor_meta.py` — READ completely (376 lines); editor metadata v1.1–1.3, source groups, curves, refusals, telemetry, stable ids and switch-dependent licensing projections reviewed; batch 75
+- [x] `tests/test_engine_felucca.py` — READ completely (531 lines); source-reviewed oracle, factory sound, stability, block/rate, latch, instance isolation and per-note regression cases; not executed; batch 41 (2026-10-07)
+- [x] `tests/test_engine_glide.py` — READ completely (835 lines); exact pitch-path oracle, all voice/glide/time modes, note stack, duplicate/high keys, block/memory parity and FM-1-rate timing scenarios reviewed; execution pending; batch 53 (2026-10-07)
+- [x] `tests/test_engine_host.py` — READ completely (129 lines); limiter bad-sample recovery, initial memory independence, parameter extremes, pitch bend and live parameter changes reviewed; batch 75
+- [x] `tests/test_engine_metadata.py` — READ completely (158 lines); canonical export, independent CLI comparison, instance sizes, schema limits, key vocabulary and float differential tests reviewed; batch 72
+- [x] `tests/test_engine_midi_fx.py` — READ completely (652 lines); host chain/bypass/lifetime, tempo/grid/TRG, fuzz, CLI refusal and no-heap tests reviewed; batch 35; not executed
+- [x] `tests/test_engine_names.py` — READ completely (153 lines); enum append-only pins, alias and known-id consistency, and generated C table check reviewed; batch 74
+- [x] `tests/test_engine_note_params.py` — READ completely (572 lines); engine coverage, finite/NaN/extreme offsets, note lifecycle, isolation, block invariance and API refusal contracts reviewed; batch 62 (2026-10-07)
+- [x] `tests/test_engine_params.py` — READ completely (355 lines); UID/flag fixture, latch/modulation/focus rules, units, abbreviations, per-note coverage and Schwung-derived ids reviewed; batch 74
+- [x] `tests/test_engine_smooth.py` — READ completely (209 lines); all-engine parameter-change/ramp schedules and partition checks reviewed; NaN default semantics are not asserted; execution pending; batch 61 (2026-10-07)
+- [x] `tests/test_engines.py` — READ completely (136 lines); registry, pitch/model, voice release, deterministic render, instance and FX-chain contracts reviewed; batch 84 (2026-10-07)
+- [x] `tests/test_engines_comb.py` — READ completely (141 lines); Comb UID/type split, fixture pins, block/memory invariance and hostile host contracts reviewed; batch 84 (2026-10-07)
+- [x] `tests/test_engines_comp.py` — READ completely (568 lines); static curve, detector/time constants, Auto Gain clipping bound, transitions, block/rate and hostile-input contracts reviewed; batch 84 (2026-10-07)
+- [x] `tests/test_engines_crush.py` — READ completely (319 lines); Crush sample/parameter, memory, block/rate, channel and hostile-input contracts reviewed; batch 83 (2026-10-07)
+- [x] `tests/test_engines_djfilter.py` — READ completely (462 lines); analytic response, modulation, zipper/transient/tail, rate and hostile-input contracts reviewed; batch 83 (2026-10-07)
+- [x] `tests/test_engines_drive.py` — READ completely (636 lines); generated curve and ADAA reference, all controls, transitions, host/rate/input guards and chain tests reviewed; batch 85 (2026-10-07)
+- [x] `tests/test_engines_dx7.py` — READ completely (942 lines); full DX7 engine, table, oracle, Sysex, storage, voice pressure and rate test coverage reviewed; batch 40
+- [x] `tests/test_engines_echo.py` — READ completely (374 lines); delay/ping-pong/feedback/tone/wow, memory/rate, hostile recovery, tails and selftest contracts reviewed; batch 85 (2026-10-07)
+- [x] `tests/test_engines_eq.py` — READ completely (370 lines); RBJ analytic response, bypass, modulation, transitions, tails/math and host tests reviewed; batch 86 (2026-10-07)
+- [x] `tests/test_engines_filter.py` — READ completely (442 lines); circuits/Comb, response, self-oscillation, drive, type transitions, resource and host tests reviewed; batch 86 (2026-10-07)
+- [x] `tests/test_engines_fold.py` — READ completely (358 lines); parameter laws, ADAA alias tests, modulation, host guards and rate tests reviewed; batch 86 (2026-10-07)
+- [x] `tests/test_engines_fx3_hostile.py` — READ completely (70 lines); hostile host-effect inputs reviewed; batch 83 (2026-10-07)
+- [x] `tests/test_engines_fx_hostile.py` — READ completely (107 lines); pack-wide chaos, block/memory, pass-through, rate/glide, tail and bad-index host contracts reviewed; batch 79
+- [x] `tests/test_engines_fx_switches.py` — READ completely (159 lines); rapid switch schedules, held-control step baselines, 5 ms fade bounds, ceilings and modulation cases reviewed; batch 79
+- [x] `tests/test_engines_gate.py` — READ completely (597 lines); host guards, timing/detector/key-filter references, look-ahead, switching and integration cases reviewed; batch 80
+- [x] `tests/test_engines_hall.py` — READ completely (358 lines); FDN registration/size/mix, arrival, decay/damping/diffusion, stereo, freeze and tail tests reviewed; batch 80
+- [x] `tests/test_engines_idle.py` — READ completely (316 lines); idle/wake equivalence, warm-up, driven cables, short-lock limits, hostile inputs and rate tests reviewed; batch 80
+- [x] `tests/test_engines_isolator.py` — READ completely (285 lines); exact unity, Linkwitz-Riley response, kill masks, crossover glide, switching and rate tests reviewed; batch 80
+- [x] `tests/test_engines_limit.py` — READ completely (459 lines); desktop and float-probe assertions reviewed; execution pending missing pytest/native binaries and no large local build; batch 48 (2026-10-07)
+- [x] `tests/test_engines_mi_fx.py` — READ completely (444 lines); registration, tails, max-feedback, Mix bypass, input guards, levels, stereo, block parity, sizes and rate/control response reviewed; no NaN-parameter assertion; execution pending; batch 61 (2026-10-07)
+- [x] `tests/test_engines_mod.py` — READ; audit report batch 15; not executed
+- [x] `tests/test_engines_mod_data.py` — READ; audit report batch 16; not executed
+- [x] `tests/test_engines_mod_kinds.py` — READ; audit report batch 15; not executed
+- [x] `tests/test_engines_mod_runtime.py` — READ; audit report batch 16; not executed
+- [x] `tests/test_engines_mod_voices.py` — READ in full (305 lines); per-note parity, stealing, pitch and voice sources (batch 14)
+- [x] `tests/test_engines_plaits_env.py` — READ completely (397 lines); page-3 envelope/LPG behavior and native/host-rate upstream comparisons reviewed; batch 81
+- [x] `tests/test_engines_plaits_heavy.py` — READ completely (502 lines); Six-Op bank names, heavy models/patches, tuning, voice pressure/release, stereo and resource tests reviewed; batch 81
+- [x] `tests/test_engines_plate_freeze.py` — READ completely (186 lines); Freeze parameter and switch, freeze/release/lifetime/input-isolation, hostile input and rate scenarios reviewed; execution pending; batch 61 (2026-10-07)
+- [x] `tests/test_engines_reference_braids_fx.py` — READ completely (886 lines); Shapes oscillator/edge/random stream tests and Plate/Ensemble/Diffuse reference/coefficient/rate/stereo checks reviewed; batch 81
+- [x] `tests/test_engines_reference_plaits.py` — READ completely (1,757 lines); slot/patch mapping, exact/statistical gates, resampler timing, self-comparison, freeing, negative controls and optional sweep tooling reviewed; batch 82
+- [x] `tests/test_engines_reference_room.py` — READ completely (282 lines); Clouds coefficient parity, Mix/Width model, stereo chaining and host-rate/decay checks reviewed; batch 82
+- [x] `tests/test_engines_resampler.py` — READ completely (506 lines); table generation, passband/stopband/alias, boundaries, chunking, rates and Shapes integration reviewed; batch 82
+- [x] `tests/test_engines_room.py` — READ completely (363 lines); CLI/runtime, tail, width, decay, math and zero-state assertions reviewed; execution pending missing pytest/native binaries and no large local build; batch 49 (2026-10-07)
+- [x] `tests/test_engines_sat.py` — READ completely (443 lines); input/idle-adjacent contracts, curve/alias measurements and host-rate expectations reviewed; execution pending missing pytest/native binaries and no large local build; batch 50 (2026-10-07)
+- [x] `tests/test_engines_schwung.py` — READ completely (488 lines); shim selftest, module contract, render/latency/headroom, NaN and pinned vendor manifests reviewed; not executed; batch 64 (2026-10-07)
+- [x] `tests/test_engines_shapes_edges.py` — READ completely (144 lines); 47-shape key/bend/timbre/color edge sweep and exact clamp equivalence reviewed; batch 79
+- [x] `tests/test_engines_shapes_hostile.py` — READ completely (74 lines); hostile mid-note schedules, memory-fill/block invariance and clamp boundaries reviewed; batch 79
+- [x] `tests/test_engines_squash.py` — READ completely (330 lines); fixture pin, oracle tolerances, Type/makeup/gate/transition and Transient behavior assertions reviewed; execution pending missing pytest/native binaries and no large local build; batch 51 (2026-10-07)
+- [x] `tests/test_engines_tilt.py` — READ completely (401 lines); independent frequency model, host contracts, registration, input faults, exact pass-through, curve shape, modulation/glide and rate assertions reviewed; execution pending; batch 52 (2026-10-07)
+- [x] `tests/test_gpl_switch.py` — READ completely (262 lines); switch-on/off build gates, dependency/symbol scans, source/license directory mapping, page/build record and GPL parity flags reviewed; batch 76
+- [x] `tests/test_manual.py` — READ completely (305 lines); generated manual/reference, RAM/policy and build contract tests reviewed; batch 87 (2026-10-07)
+- [x] `tests/test_manual_diagrams.py` — READ completely (245 lines); generated SVG, collision/layout, contrast and glyph checks reviewed; batch 87 (2026-10-07)
+- [x] `tests/test_module_list.py` — READ in full (247 lines); build/link tests reviewed, intentionally not run (batch 13)
+- [x] `tests/test_movy_oracle_fixtures.py` — READ completely (267 lines); script/event parsing, D1 traces, movy1 structure and oracle-summary constraints reviewed; batch 87 (2026-10-07)
+- [x] `tests/test_package_guard.py` — READ; audit report batch 3 (2026-10-07)
+- [x] `tests/test_seq_core.py` — READ completely (1,253 lines); sequencer deviations/timing, pools/event safety, Capture encoding, memory, mutation, routing/key and page contracts reviewed; batch 89 (2026-10-07)
+- [x] `tests/test_seq_movy.py` — READ completely (1,315 lines); source-linked Movy clock, playback, edit, automation, recording, launch/song, Capture and persistence tests reviewed; batch 90 (2026-10-07)
+- [x] `tests/test_seq_oracle.py` — READ completely (198 lines); compatibility replay, D1 frame trace and documented default-mode deviations reviewed; batch 88 (2026-10-07)
+- [x] `tests/test_seq_render.py` — READ completely (485 lines); renderer bridge, routing, lane resolution, event buffer and oracle-log contracts reviewed; batch 91 (2026-10-07)
+- [x] `tests/test_seq_song.py` — READ completely (685 lines); list model, live edits/arms, jump/end modes, D15–D17, serialization/RNG and four-minute song tests reviewed; batch 91 (2026-10-07)
+- [x] `tests/test_seq_song_ui.py` — READ in full (164 lines); session/Song UI tests reviewed (batch 11)
+- [x] `tests/test_seq_ui.py` — READ in full (1,053 lines); S3-S8 gesture, state-size, audio replay and lock tests (batch 10)
+- [x] `tests/test_sim_arp.py` — READ completely (430 lines); app MIDI-FX/ARP panel, playback, replay and sound assertions reviewed; batch 92 (2026-10-07)
+- [x] `tests/test_sim_edit.py` — READ completely (125 lines); editor source checks, native parity, map metadata boundaries reviewed; batch 92 (2026-10-07)
+- [x] `tests/test_sim_editor_meta.py` — READ in full (123 lines); static export/module record tests reviewed (batch 13)
+- [x] `tests/test_sim_editor_ui.py` — READ completely (133 lines); app state/history, lazy map loading, key gating and map path reviewed; batch 92 (2026-10-07)
+- [x] `tests/test_sim_files.py` — READ; static file/link/audio-boundary tests in audit report batch 5
+- [x] `tests/test_sim_fonts.py` — READ completely (214 lines); Spleen pin/glyph metrics, ASCII table parity and spacing checks reviewed; batch 92 (2026-10-07)
+- [x] `tests/test_sim_lists.py` — READ in full (247 lines); picker/list source review (batch 12)
+- [x] `tests/test_sim_mod.py` — READ in full (576 lines); modulation runtime, UI and parity tests reviewed (batch 13)
+- [x] `tests/test_sim_multi.py` — READ completely (361 lines); multi-sound replay, reroute note release, RAM fit and refusal tests reviewed; batch 92 (2026-10-07)
+- [x] `tests/test_sim_origins.py` — READ; Node-backed pure-origin test wrapper in audit report batch 5
+- [x] `tests/test_sim_palette.py` — READ completely (190 lines); token agreement, RGB565/colour transforms, contrast, distance and checker mutations reviewed; batch 92 (2026-10-07)
+- [x] `tests/test_sim_screen_cues.py` — READ completely (262 lines); rendered track/sound labels, matrix/chain spacing and refusal/budget cues reviewed; batch 92 (2026-10-07)
+- [x] `tests/test_sim_seq.py` — READ completely (101 lines); sequencer app rendering/replay, routing and track reroute note-off cases reviewed; batch 92 (2026-10-07)
+- [x] `tests/test_sim_web.py` — READ completely (1,057 lines); native app parity, sequencer/UI, screen sweeps, DX7 bank, asset/font/module gates reviewed; batch 92 (2026-10-07)
+- [x] `tests/test_softkey_probe.py` — READ; audit report batch 1 (2026-10-07)
+- [x] `tests/test_state_codec.py` — READ completely (666 lines); C/Python parity, canonical numbers, hostile inputs, binary mutations, compression, fuzz, and link-fragment contracts reviewed; batch 73
+- [x] `tests/test_state_render.py` — READ completely (226 lines); state-vs-flags audio parity, JSON/binary save behavior, RAM/refusal paths and clip/set lane matching reviewed; batch 74
+- [x] `tests/test_state_schema.py` — READ completely (363 lines); schema/examples/order/resolution, metadata contract, sequencer exports and Q1.14 canonical tests reviewed; batch 73
+- [x] `tests/test_state_whole.py` — READ completely (401 lines); per-kind JSON/binary fixed points, project audio parity, known-id refusals, alias parity, kit pads and unknown module parameters reviewed; batch 72
+- [x] `tests/test_test_guard.py` — READ completely (55 lines); subprocess timeout/CPU wrapper expectations reviewed; batch 88 (2026-10-07)
+- [x] `tests/test_tools.py` — READ completely (133 lines); identity decoder, package extraction and msfa table contracts reviewed; unpack7 vector coverage gap recorded in batch 88
+- [x] `tests/test_uboot_read.py` — READ; audit report batch 1 (2026-10-07)
+- [x] `tests/test_uboot_restore.py` — READ; audit report batch 1 (2026-10-07)
+- [x] `tests/test_usb_key_pio.py` — READ; audit report batch 2 (2026-10-07)
+- [x] `tools/check_msfa_table.py` — READ complete (123 lines); anchor/truncation behavior and file/XIP offset reporting reviewed; batch 127 (2026-10-08)
+- [x] `tools/dx7_bank.py` — READ completely (604 lines); bank source DSL, parameter conversion/packing, SysEx, header and test-data generation reviewed; `--check` and `--test-bank --check` pass; batch 40
+- [x] `tools/extract_fwsc_from_updater.py` — READ complete (91 lines); trailer search, candidate bounds, package validation and output behavior reviewed; crafted decoy regression confirmed in batch 127 (2026-10-08)
+- [x] `tools/fm1_identify.py` — READ; audit report batch 2 (2026-10-07)
+- [x] `tools/fm1_identify.sh` — READ; audit report batch 2 (2026-10-07)
+- [x] `tools/fm1_softkey_probe.py` — READ; audit report batch 1 (2026-10-07)
+- [x] `tools/fm1_uboot_read.py` — READ; audit report batch 1 (2026-10-07)
+- [x] `tools/fm1_uboot_restore_test.py` — READ; audit report batch 1 (2026-10-07)
+- [x] `tools/gen_known.py` — READ complete (91 lines); generated C escaping, schema assumptions, alias sentinels and stale-check/write paths reviewed; batch 127 (2026-10-08)
+- [x] `tools/jieli/analyze.py` — READ; audit report batch 3 (2026-10-07)
+- [x] `tools/jieli/audit_link.py` — READ; audit report batch 3 (2026-10-07)
+- [x] `tools/jieli/compile-check.sh` — READ; audit report batch 3 (2026-10-07)
+- [x] `tools/jieli/in-container.sh` — READ; audit report batch 3 (2026-10-07)
+- [x] `tools/jieli/objects.mk` — READ; audit report batch 3 (2026-10-07)
+- [x] `tools/jieli/package_guard.py` — READ; audit report batch 3 (2026-10-07)
+- [x] `tools/jieli/sizes.c` — READ; audit report batch 3 (2026-10-07)
+- [x] `tools/jieli/sizes.cc` — READ; audit report batch 3 (2026-10-07)
+- [x] `tools/jieli/sizes_felucca.c` — READ; audit report batch 3 (2026-10-07)
+- [x] `tools/lunar_state.py` — READ (complete Python source); Batch 4 finding, C/browser parity follow-up pending
+- [x] `tools/manual/build-in-docker.sh` — READ complete (56 lines); tar exclusions, build context, arg forwarding and output extraction reviewed; container build not run; batch 129 (2026-10-08)
+- [x] `tools/manual/build.py` — READ complete (857 lines); input/prescan/conversion, HTML/PDF output, site assembly, path deletion, links/privacy checks and CLI lifecycle reviewed; batch 133 (2026-10-08)
+- [x] `tools/manual/diagram_check.py` — READ complete (312 lines); SVG geometry/parser/collision checks reviewed; passed against all 8 tracked manual diagrams; batch 131 (2026-10-08)
+- [x] `tools/manual/diagram_metrics.py` — READ complete (61 lines); glyph/weight table shape and missing-character fallback reviewed; batch 129 (2026-10-08)
+- [x] `tools/manual/diagram_theme.py` — READ complete (236 lines); OKLCH/gamut/color derivation, WCAG-role tone and diagram semantics reviewed; batch 130 (2026-10-08)
+- [x] `tools/manual/diagrams.py` — READ complete (1,360 lines); source schema, grid measurement, route/port/track assignment, label growth, SVG rendering and CLI reviewed; `--check` passed all 8 current sources/outputs; batch 132 (2026-10-08)
+- [x] `tools/manual/figures.py` — READ complete (221 lines); measured SVG geometry, escaping, key coordinates, callouts and alt text reviewed; batch 131 (2026-10-08)
+- [x] `tools/manual/mdext.py` — READ complete (208 lines); directive preprocessing, inline parsing, heading/status/control bookkeeping and extension priorities reviewed; batch 130 (2026-10-08)
+- [x] `tools/manual/policy.py` — READ complete (40 lines); private-path/network and project-brand scan rules reviewed; batch 129 (2026-10-08)
+- [x] `tools/manual/reference.py` — READ complete (398 lines); generated engine tables, tool-bound metadata, sequencer constants/verbs and memory output reviewed; batch 131 (2026-10-08)
+- [x] `tools/movy-oracle/driver/src/main.rs` — READ complete (661 lines); script bounds, panic handling, JSON output, whole-block/frame replay equivalence, event/tick attribution, state IO and CLI review; batch 135 (2026-10-08)
+- [x] `tools/movy-oracle/gen_scripts.py` — READ complete (603 lines); seeded script synthesis, model bounds, undo/capture, frame ordering and CLI parameters reviewed; batch 134 (2026-10-08)
+- [x] `tools/movy-oracle/regen-fixtures.sh` — READ complete (30 lines); fixture copy/delete semantics and remote orchestration reviewed; not run; batch 134 (2026-10-08)
+- [x] `tools/movy-oracle/run-on-aeon.sh` — READ complete (105 lines); remote command quoting, container mounts, cleanup, rsync and job lifecycle reviewed; command-injection edge confirmed by expansion analysis; not run; batch 134 (2026-10-08)
+- [x] `tools/msfa_tables.py` — READ completely; Decimal trigonometric/table formulas, rounding, fixed rate and deterministic output generation reviewed; `--check` passed; batch 63 (2026-10-07)
+- [x] `tools/seq_bench.py` — READ complete (89 lines); stress-script generation, scale input and benchmark result cleanup reviewed; not run; batch 134 (2026-10-08)
+- [x] `tools/state_examples.py` — READ complete (446 lines); fixed example domain, C metadata source, core-export flow, prototype encoding and output paths reviewed; batch 128 (2026-10-08)
+- [x] `tools/state_goldens.py` — READ complete (162 lines); random bounded fixture generation, schema inputs, canonicalization, force/missing policy and binary/records naming reviewed; batch 128 (2026-10-08)
+
+## Vendored source ledger and review depth
+
+Vendored code is not silently counted as first-party. Review its licence/provenance, entry points, build inclusion, copied/modified status and called API boundaries. For maintained/adapted code, read the complete included source; for unmodified upstream bulk, document exact exclusions and perform focused interface/security/lifetime review. Record each decision in the report. All entries start PENDING.
+
+- [x] `engines/third_party/airwindows/oracle/airwindows_oracle.cc` — READ complete (338 lines); test-only double oracle interfaces and processing loops reviewed; batch 141 (2026-10-08)
+- [x] `engines/third_party/airwindows/oracle/make_fixture.py` — READ complete (36 lines); fixture parsing, decimation, RMS and serialization reviewed; batch 141 (2026-10-08)
+- [x] `engines/third_party/airwindows/oracle/run-on-aeon.sh` — READ complete (45 lines); remote command construction and cleanup reviewed; shell injection finding batch 141 (2026-10-08)
+- [x] `engines/third_party/felucca-fm6/fm6_core.c` — EXCLUDED algorithm body (563 lines); Apache-2.0 desktop oracle only, not linked into firmware/browser; pinned SHA and stated limits reviewed; batch 136
+- [x] `engines/third_party/felucca-fm6/vendor.py` — READ complete (52 lines); fixed commit extraction and copy/check behavior reviewed; batch 136
+- [x] `engines/third_party/felucca/gen/felucca_tables.h` — GENERATED DATA; all 468 lines excluded from manual inspection, SHA matches pinned provenance manifest; batch 136
+- [x] `engines/third_party/felucca/src/core.h` — READ complete (348 lines); types, migration helpers, static layout and global state reviewed; batch 136
+- [x] `engines/third_party/felucca/src/dsp.c` — READ complete (150 lines); fixed-point ranges and shared oscillator/filter/curve helpers reviewed; batch 136
+- [x] `engines/third_party/felucca/src/eng_phase.c` — READ complete (201 lines); all phase distortion wave paths, tuning and parameter bounds reviewed; batch 136
+- [x] `engines/third_party/felucca/src/eng_trio.c` — READ complete (373 lines); oscillator/sync/ring/filter paths and state boundaries reviewed; batch 136
+- [x] `engines/third_party/felucca/src/eng_wheel.c` — READ complete (297 lines); static state lending, folding, rotor, percussion and click paths reviewed; batch 136
+- [x] `engines/third_party/felucca/src/voice.c` — READ complete (605 lines); allocation, shared voice budget, envelopes, switching, render and modulation boundary reviewed; batch 136
+- [x] `engines/third_party/felucca/tools/gen_tables.py` — READ complete (119 lines); deterministic data generation formulas reviewed; unreachable print after return recorded in batch 136
+- [x] `engines/third_party/felucca/vendor.py` — READ complete (91 lines); commit-pinned extraction/check paths reviewed; batch 136
+- [x] `engines/third_party/fm1-x0x/dsp/bass303.c` — PATCH hunks reviewed; unchanged upstream algorithm body (755 lines total) excluded by vendor tier; BASS303_SR call sites and wrapper bounds cross-checked; batch 137
+- [x] `engines/third_party/fm1-x0x/dsp/bass303.h` — READ complete (173 lines); instance layout, API and sample-rate/float-pot changes reviewed; batch 137
+- [x] `engines/third_party/fm1-x0x/dsp/drum808.c` — PATCH hunks reviewed; unchanged upstream algorithm body (1,750 lines total) excluded by vendor tier; float pot initialization/use cross-checked; batch 137
+- [x] `engines/third_party/fm1-x0x/dsp/drum808.h` — READ complete (217 lines); runtime state and float-pot API reviewed; batch 137
+- [x] `engines/third_party/fm1-x0x/dsp/drum909.c` — PATCH hunks reviewed; unchanged upstream algorithm body (863 lines total) excluded by vendor tier; all rate macro call paths cross-checked; batch 137
+- [x] `engines/third_party/fm1-x0x/dsp/drum909.h` — READ complete (139 lines); rate state, sample coding and float-pot API reviewed; batch 137
+- [x] `engines/third_party/fm1-x0x/dsp/drum909_dsp.h` — PATCH hunks/API reviewed; unchanged helper body excluded by vendor tier; sample-rate helper reachability cross-checked; batch 137
+- [x] `engines/third_party/fm1-x0x/dsp/fastmath.h` — READ complete (215 lines); documented argument preconditions, IEEE bit operations and shift behavior reviewed; P3 shift finding in batch 137
+- [x] `engines/third_party/fm1-x0x/dsp/x0x_param.h` — READ complete (17 lines); descriptor bounds and caller contract reviewed; batch 137
+- [x] `engines/third_party/fm1-x0x/gen/x0x_drum_samples.h` — GENERATED DATA (6,956 lines); excluded from manual code review; complete blob SHA verified and regenerated output compared byte-for-byte; batch 137
+- [x] `engines/third_party/fm1-x0x/gen/x0x_drum_tables.h` — GENERATED DATA (659 lines); excluded from manual code review; complete blob SHA verified and regenerated output compared byte-for-byte; batch 137
+- [x] `engines/third_party/fm1-x0x/seq/pattern.h` — READ complete (79 lines); 303/TB-3PO records and inert break settings reviewed; optional persisted-layout removal candidate noted; batch 137
+- [x] `engines/third_party/fm1-x0x/seq/tb3po.c` — READ complete (146 lines); seed, bounds, probability and slide generation reviewed; batch 137
+- [x] `engines/third_party/fm1-x0x/seq/tb3po.h` — READ complete (20 lines); generator API reviewed; batch 137
+- [x] `engines/third_party/fm1-x0x/tools/gen_drum_samples.py` — READ complete (201 lines); WAV reader, Decimal µ-law mapping, sample/tables output and CLI reviewed; generated outputs match; batch 137
+- [x] `engines/third_party/fm1-x0x/vendor.py` — READ complete (112 lines); pinned checkout mappings, patch application and temporary verification/copy lifecycle reviewed; batch 137
+- [x] `engines/third_party/msfa/aligned_buf.h` — READ completely (34 lines); aligned scratch storage extent and alignment assumptions reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/controllers.h` — READ completely (30 lines); controller index layout cross-checked with engine setup; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/dx7note.cc` — READ completely (211 lines); note scaling, pitch/frequency, envelope setup, pitch bend, operator dispatch and parameter bounds traced against the engine's sanitized voice path; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/dx7note.h` — READ completely (62 lines); note/voice state and kernel contracts reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/env.cc` — READ completely (101 lines); rate and level progression, release transition and clamped parameter domain checked; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/env.h` — READ completely (63 lines); envelope state contract reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/exp2.cc` — READ completely (65 lines); reference table initialization compared to const-table generator contract; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/exp2.h` — READ completely (80 lines); masked interpolation indices and caller-domain exponent shifts reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/fm_core.cc` — READ completely (151 lines); algorithm table, bus state, gain threshold, operator order and feedback limitation reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/fm_core.h` — READ completely (37 lines); aligned buffer ownership and operator contract reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/fm_op_kernel.cc` — READ completely (382 lines); integer/NEON branches, phase/gain interpolation, pure/feedback paths and dormant alternatives reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/fm_op_kernel.h` — READ completely (35 lines); kernel argument and gain-step contract reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/freqlut.cc` — READ completely (55 lines); initialized/ROM frequency table pointer, interpolation and logarithmic range assumptions reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/freqlut.h` — READ completely (21 lines); lookup API and init lifetime reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/lfo.cc` — READ completely (97 lines); waveform phase arithmetic, rate and delay state cross-checked with sanitized patch initialization; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/lfo.h` — READ completely (43 lines); per-instance and shared-rate state reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/patch.cc` — READ completely (51 lines); packed-bank unpack offsets cross-checked with 128-byte input contract; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/patch.h` — READ completely (21 lines); unpack buffer extents reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/pitchenv.cc` — READ completely (91 lines); pitch/rate lookup bounds and release transitions reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/pitchenv.h` — READ completely (50 lines); instance and shared-rate lifetime contract reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/sin.cc` — READ completely (141 lines); reference table initializer, masked lookup, integer phase and dormant polynomial implementations reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/sin.h` — READ completely (62 lines); table size and lookup indexing reviewed; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/synth.h` — EXCLUDED by integration tier: read fully and verified it is shadowed by `msfa_prelude.h`; NEON path is unreachable in product and test builds; platform atomics are not imported; batch 138 (2026-10-08)
+- [x] `engines/third_party/msfa/vendor.py` — READ completely (72 lines); pinned Git-object source mapping, copy/check behavior, argument handling and write target reviewed; external checkout absent; batch 138 (2026-10-08)
+- [x] `engines/third_party/mutable/braids/analog_oscillator.cc` — TIER EXCLUSION: 602 lines; active Braids/Clouds/Rings source or resource outside the automated Plaits/MI digest sets; wrapper/call boundary and pinned-revision claim checked, algorithm body not read line-by-line, external checkout absent; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/braids/analog_oscillator.h` — TIER EXCLUSION: 162 lines; active Braids/Clouds/Rings source or resource outside the automated Plaits/MI digest sets; wrapper/call boundary and pinned-revision claim checked, algorithm body not read line-by-line, external checkout absent; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/braids/digital_oscillator.cc` — TIER EXCLUSION: 2567 lines; active Braids/Clouds/Rings source or resource outside the automated Plaits/MI digest sets; wrapper/call boundary and pinned-revision claim checked, algorithm body not read line-by-line, external checkout absent; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/braids/digital_oscillator.h` — TIER EXCLUSION: 383 lines; active Braids/Clouds/Rings source or resource outside the automated Plaits/MI digest sets; wrapper/call boundary and pinned-revision claim checked, algorithm body not read line-by-line, external checkout absent; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/braids/excitation.h` — TIER EXCLUSION: 88 lines; active Braids/Clouds/Rings source or resource outside the automated Plaits/MI digest sets; wrapper/call boundary and pinned-revision claim checked, algorithm body not read line-by-line, external checkout absent; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/braids/macro_oscillator.cc` — TIER EXCLUSION: 431 lines; active Braids/Clouds/Rings source or resource outside the automated Plaits/MI digest sets; wrapper/call boundary and pinned-revision claim checked, algorithm body not read line-by-line, external checkout absent; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/braids/macro_oscillator.h` — TIER EXCLUSION: 117 lines; active Braids/Clouds/Rings source or resource outside the automated Plaits/MI digest sets; wrapper/call boundary and pinned-revision claim checked, algorithm body not read line-by-line, external checkout absent; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/braids/parameter_interpolation.h` — TIER EXCLUSION: 111 lines; active Braids/Clouds/Rings source or resource outside the automated Plaits/MI digest sets; wrapper/call boundary and pinned-revision claim checked, algorithm body not read line-by-line, external checkout absent; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/braids/quantizer.cc` — TIER EXCLUSION: 107 lines; MIT upstream oracle/table source, port bodies are first-party-reviewed and parity-pinned (12 files; algorithm body excluded line-by-line); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/braids/quantizer.h` — TIER EXCLUSION: 71 lines; MIT upstream oracle/table source, port bodies are first-party-reviewed and parity-pinned (12 files; algorithm body excluded line-by-line); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/braids/quantizer_scales.h` — TIER EXCLUSION: 139 lines; MIT upstream oracle/table source, port bodies are first-party-reviewed and parity-pinned (12 files; algorithm body excluded line-by-line); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/braids/resources.cc` — TIER EXCLUSION: 11506 lines; active Braids/Clouds/Rings source or resource outside the automated Plaits/MI digest sets; wrapper/call boundary and pinned-revision claim checked, algorithm body not read line-by-line, external checkout absent; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/braids/resources.h` — TIER EXCLUSION: 200 lines; active Braids/Clouds/Rings source or resource outside the automated Plaits/MI digest sets; wrapper/call boundary and pinned-revision claim checked, algorithm body not read line-by-line, external checkout absent; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/braids/settings.h` — TIER EXCLUSION: 376 lines; active Braids/Clouds/Rings source or resource outside the automated Plaits/MI digest sets; wrapper/call boundary and pinned-revision claim checked, algorithm body not read line-by-line, external checkout absent; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/braids/svf.h` — TIER EXCLUSION: 120 lines; active Braids/Clouds/Rings source or resource outside the automated Plaits/MI digest sets; wrapper/call boundary and pinned-revision claim checked, algorithm body not read line-by-line, external checkout absent; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/clouds/dsp/frame.h` — TIER EXCLUSION: 44 lines; active Braids/Clouds/Rings source or resource outside the automated Plaits/MI digest sets; wrapper/call boundary and pinned-revision claim checked, algorithm body not read line-by-line, external checkout absent; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/clouds/dsp/fx/diffuser.h` — TIER EXCLUSION: 112 lines; active Braids/Clouds/Rings source or resource outside the automated Plaits/MI digest sets; wrapper/call boundary and pinned-revision claim checked, algorithm body not read line-by-line, external checkout absent; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/clouds/dsp/fx/fx_engine.h` — TIER EXCLUSION: 302 lines; active Braids/Clouds/Rings source or resource outside the automated Plaits/MI digest sets; wrapper/call boundary and pinned-revision claim checked, algorithm body not read line-by-line, external checkout absent; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/clouds/dsp/fx/reverb.h` — TIER EXCLUSION: 180 lines; active Braids/Clouds/Rings source or resource outside the automated Plaits/MI digest sets; wrapper/call boundary and pinned-revision claim checked, algorithm body not read line-by-line, external checkout absent; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/peaks/gate_processor.h` — TIER EXCLUSION: 69 lines; MIT upstream oracle/table source, port bodies are first-party-reviewed and parity-pinned (12 files; algorithm body excluded line-by-line); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/peaks/modulations/bouncing_ball.h` — TIER EXCLUSION: 126 lines; MIT upstream oracle/table source, port bodies are first-party-reviewed and parity-pinned (12 files; algorithm body excluded line-by-line); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/peaks/pulse_processor/pulse_randomizer.cc` — TIER EXCLUSION: 115 lines; MIT upstream oracle/table source, port bodies are first-party-reviewed and parity-pinned (12 files; algorithm body excluded line-by-line); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/peaks/pulse_processor/pulse_randomizer.h` — TIER EXCLUSION: 101 lines; MIT upstream oracle/table source, port bodies are first-party-reviewed and parity-pinned (12 files; algorithm body excluded line-by-line); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/peaks/pulse_processor/pulse_shaper.cc` — TIER EXCLUSION: 134 lines; MIT upstream oracle/table source, port bodies are first-party-reviewed and parity-pinned (12 files; algorithm body excluded line-by-line); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/peaks/pulse_processor/pulse_shaper.h` — TIER EXCLUSION: 106 lines; MIT upstream oracle/table source, port bodies are first-party-reviewed and parity-pinned (12 files; algorithm body excluded line-by-line); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/peaks/resources.cc` — TIER EXCLUSION: 11090 lines; MIT upstream oracle/table source, port bodies are first-party-reviewed and parity-pinned (12 files; algorithm body excluded line-by-line); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/peaks/resources.h` — TIER EXCLUSION: 110 lines; MIT upstream oracle/table source, port bodies are first-party-reviewed and parity-pinned (12 files; algorithm body excluded line-by-line); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/chords/chord_bank.cc` — TIER EXCLUSION: 154 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/chords/chord_bank.h` — TIER EXCLUSION: 111 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/downsampler/4x_downsampler.h` — TIER EXCLUSION: 71 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/drums/analog_bass_drum.h` — TIER EXCLUSION: 195 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/drums/analog_snare_drum.h` — TIER EXCLUSION: 201 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/drums/hi_hat.h` — TIER EXCLUSION: 265 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/drums/synthetic_bass_drum.h` — TIER EXCLUSION: 248 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/drums/synthetic_snare_drum.h` — TIER EXCLUSION: 198 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/dsp.h` — TIER EXCLUSION: 55 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/additive_engine.cc` — TIER EXCLUSION: 151 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/additive_engine.h` — TIER EXCLUSION: 73 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/bass_drum_engine.cc` — TIER EXCLUSION: 96 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/bass_drum_engine.h` — TIER EXCLUSION: 65 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/chord_engine.cc` — TIER EXCLUSION: 172 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/chord_engine.h` — TIER EXCLUSION: 74 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/engine.h` — TIER EXCLUSION: 133 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/fm_engine.cc` — TIER EXCLUSION: 123 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/fm_engine.h` — TIER EXCLUSION: 69 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/grain_engine.cc` — TIER EXCLUSION: 89 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/grain_engine.h` — TIER EXCLUSION: 68 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/hi_hat_engine.cc` — TIER EXCLUSION: 81 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/hi_hat_engine.h` — TIER EXCLUSION: 63 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/modal_engine.cc` — TIER EXCLUSION: 73 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/modal_engine.h` — TIER EXCLUSION: 61 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/noise_engine.cc` — TIER EXCLUSION: 102 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/noise_engine.h` — TIER EXCLUSION: 70 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/particle_engine.cc` — TIER EXCLUSION: 99 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/particle_engine.h` — TIER EXCLUSION: 64 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/snare_drum_engine.cc` — TIER EXCLUSION: 78 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/snare_drum_engine.h` — TIER EXCLUSION: 61 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/speech_engine.cc` — TIER EXCLUSION: 142 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/speech_engine.h` — TIER EXCLUSION: 81 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/string_engine.cc` — TIER EXCLUSION: 91 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/string_engine.h` — TIER EXCLUSION: 66 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/swarm_engine.cc` — TIER EXCLUSION: 86 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/swarm_engine.h` — TIER EXCLUSION: 256 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/virtual_analog_engine.cc` — TIER EXCLUSION: 245 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/virtual_analog_engine.h` — TIER EXCLUSION: 72 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/waveshaping_engine.cc` — TIER EXCLUSION: 137 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/waveshaping_engine.h` — TIER EXCLUSION: 63 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/wavetable_engine.cc` — TIER EXCLUSION: 219 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine/wavetable_engine.h` — TIER EXCLUSION: 80 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine2/arpeggiator.h` — TIER EXCLUSION: 133 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine2/chiptune_engine.cc` — TIER EXCLUSION: 128 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine2/chiptune_engine.h` — TIER EXCLUSION: 79 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine2/phase_distortion_engine.cc` — TIER EXCLUSION: 87 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine2/phase_distortion_engine.h` — TIER EXCLUSION: 62 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine2/six_op_engine.cc` — TIER EXCLUSION: 180 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine2/six_op_engine.h` — TIER EXCLUSION: 118 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine2/string_machine_engine.cc` — TIER EXCLUSION: 138 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine2/string_machine_engine.h` — TIER EXCLUSION: 70 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine.cc` — TIER EXCLUSION: 131 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine.h` — TIER EXCLUSION: 70 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine2/wave_terrain_engine.cc` — TIER EXCLUSION: 235 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/engine2/wave_terrain_engine.h` — TIER EXCLUSION: 75 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/envelope.h` — TIER EXCLUSION: 130 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/fm/algorithms.cc` — TIER EXCLUSION: 457 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/fm/algorithms.h` — TIER EXCLUSION: 214 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/fm/dx_units.cc` — TIER EXCLUSION: 115 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/fm/dx_units.h` — TIER EXCLUSION: 206 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/fm/envelope.h` — TIER EXCLUSION: 258 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/fm/lfo.h` — TIER EXCLUSION: 192 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/fm/operator.h` — TIER EXCLUSION: 138 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/fm/patch.h` — TIER EXCLUSION: 152 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/fm/voice.h` — TIER EXCLUSION: 288 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/fx/diffuser.h` — TIER EXCLUSION: 108 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/fx/ensemble.h` — TIER EXCLUSION: 136 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/fx/fx_engine.h` — TIER EXCLUSION: 300 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/fx/low_pass_gate.h` — TIER EXCLUSION: 92 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/fx/overdrive.h` — TIER EXCLUSION: 83 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/fx/sample_rate_reducer.h` — TIER EXCLUSION: 136 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/noise/clocked_noise.h` — TIER EXCLUSION: 104 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/noise/dust.h` — TIER EXCLUSION: 48 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/noise/fractal_random_generator.h` — TIER EXCLUSION: 73 lines; no reference in current source/include closure; recorded as optional removal candidate; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/noise/particle.h` — TIER EXCLUSION: 93 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/noise/smooth_random_generator.h` — TIER EXCLUSION: 69 lines; no reference in current source/include closure; recorded as optional removal candidate; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/oscillator/formant_oscillator.h` — TIER EXCLUSION: 129 lines; no reference in current source/include closure; recorded as optional removal candidate; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/oscillator/grainlet_oscillator.h` — TIER EXCLUSION: 195 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/oscillator/harmonic_oscillator.h` — TIER EXCLUSION: 120 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/oscillator/nes_triangle_oscillator.h` — TIER EXCLUSION: 167 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/oscillator/oscillator.h` — TIER EXCLUSION: 254 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/oscillator/sine_oscillator.h` — TIER EXCLUSION: 254 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/oscillator/string_synth_oscillator.h` — TIER EXCLUSION: 179 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/oscillator/super_square_oscillator.h` — TIER EXCLUSION: 164 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/oscillator/variable_saw_oscillator.h` — TIER EXCLUSION: 165 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/oscillator/variable_shape_oscillator.h` — TIER EXCLUSION: 285 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/oscillator/vosim_oscillator.h` — TIER EXCLUSION: 139 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/oscillator/wavetable_oscillator.h` — TIER EXCLUSION: 190 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/oscillator/z_oscillator.h` — TIER EXCLUSION: 205 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/physical_modelling/delay_line.h` — TIER EXCLUSION: 103 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/physical_modelling/modal_voice.cc` — TIER EXCLUSION: 100 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/physical_modelling/modal_voice.h` — TIER EXCLUSION: 68 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/physical_modelling/resonator.cc` — TIER EXCLUSION: 136 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/physical_modelling/resonator.h` — TIER EXCLUSION: 134 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/physical_modelling/string.cc` — TIER EXCLUSION: 190 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/physical_modelling/string.h` — TIER EXCLUSION: 97 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/physical_modelling/string_voice.cc` — TIER EXCLUSION: 113 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/physical_modelling/string_voice.h` — TIER EXCLUSION: 69 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/speech/lpc_speech_synth.cc` — TIER EXCLUSION: 163 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/speech/lpc_speech_synth.h` — TIER EXCLUSION: 110 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/speech/lpc_speech_synth_controller.cc` — TIER EXCLUSION: 335 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/speech/lpc_speech_synth_controller.h` — TIER EXCLUSION: 197 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/speech/lpc_speech_synth_phonemes.cc` — TIER EXCLUSION: 126 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/speech/lpc_speech_synth_words.cc` — TIER EXCLUSION: 1573 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/speech/lpc_speech_synth_words.h` — TIER EXCLUSION: 48 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/speech/naive_speech_synth.cc` — TIER EXCLUSION: 160 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/speech/naive_speech_synth.h` — TIER EXCLUSION: 85 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/speech/sam_speech_synth.cc` — TIER EXCLUSION: 185 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/speech/sam_speech_synth.h` — TIER EXCLUSION: 90 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/voice.cc` — TIER EXCLUSION: 272 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/dsp/voice.h` — TIER EXCLUSION: 258 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/resources.cc` — TIER EXCLUSION: 10548 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/resources.h` — TIER EXCLUSION: 113 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/plaits/user_data.h` — TIER EXCLUSION: 116 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/rings/dsp/fx/fx_engine.h` — TIER EXCLUSION: 301 lines; active Braids/Clouds/Rings source or resource outside the automated Plaits/MI digest sets; wrapper/call boundary and pinned-revision claim checked, algorithm body not read line-by-line, external checkout absent; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/rings/dsp/fx/reverb.h` — TIER EXCLUSION: 184 lines; active Braids/Clouds/Rings source or resource outside the automated Plaits/MI digest sets; wrapper/call boundary and pinned-revision claim checked, algorithm body not read line-by-line, external checkout absent; batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/stmlib/dsp/atan.cc` — TIER EXCLUSION: 114 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/stmlib/dsp/atan.h` — TIER EXCLUSION: 84 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/stmlib/dsp/cosine_oscillator.h` — TIER EXCLUSION: 103 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/stmlib/dsp/dsp.h` — TIER EXCLUSION: 165 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/stmlib/dsp/filter.h` — TIER EXCLUSION: 769 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/stmlib/dsp/hysteresis_quantizer.h` — TIER EXCLUSION: 142 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/stmlib/dsp/limiter.h` — TIER EXCLUSION: 67 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/stmlib/dsp/parameter_interpolator.h` — TIER EXCLUSION: 76 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/stmlib/dsp/polyblep.h` — TIER EXCLUSION: 59 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/stmlib/dsp/rsqrt.h` — TIER EXCLUSION: 89 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/stmlib/dsp/units.cc` — TIER EXCLUSION: 180 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/stmlib/dsp/units.h` — TIER EXCLUSION: 68 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/stmlib/stmlib.h` — TIER EXCLUSION: 114 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/stmlib/system/flash_programming.h` — TIER EXCLUSION: 46 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/stmlib/utils/buffer_allocator.h` — TIER EXCLUSION: 87 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/stmlib/utils/dsp.h` — TIER EXCLUSION: 179 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/stmlib/utils/random.cc` — TIER EXCLUSION: 36 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/stmlib/utils/random.h` — TIER EXCLUSION: 65 lines; unmodified Plaits product/reference closure, exact local aggregate digest matches `tests/test_engines_reference_plaits.py` (129 files; algorithm bodies excluded line-by-line, runtime integration and parity boundary reviewed); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/stmlib/utils/ring_buffer.h` — TIER EXCLUSION: 151 lines; MIT upstream oracle/table source, port bodies are first-party-reviewed and parity-pinned (12 files; algorithm body excluded line-by-line); batch 140 (2026-10-08)
+- [x] `engines/third_party/mutable/vendor.py` — READ complete (104 lines); include-closure copying, unvalidated checkout revisions, copy target and no compare/prune mode reviewed; batch 140 (2026-10-08)
+- [x] `engines/third_party/schwung-modules/psxverb/audio_fx_api_v1.h` — READ completely; v1 prefix and v2's shorter module-local struct compatibility reviewed; pinned hash matches UPSTREAM.md; batch 67 (2026-10-07)
+- [x] `engines/third_party/schwung-modules/psxverb/plugin_api_v1.h` — READ completely; module-local host layout and v1/v2 function table reviewed against canonical adapter layout; pinned hash matches UPSTREAM.md; batch 67 (2026-10-07)
+- [x] `engines/third_party/schwung-modules/psxverb/psxverb.c` — READ completely (898 lines); DSP, delay scaling/work-area bounds, controls, state API and halfband path reviewed; pinned SHA-256 matches UPSTREAM.md; batch 65 (2026-10-07). Confirmed interpolation defect in report.
+- [x] `engines/third_party/schwung-modules/sophie/plugin_api_v1.h` — READ completely; trimmed host struct's extra callback tail checked against the zeroed reserved area (unused by Sophie); pinned hash matches UPSTREAM.md; batch 67 (2026-10-07)
+- [x] `engines/third_party/schwung-modules/sophie/sophie.c` — READ completely (637 lines); state/patch mapping, one-shot voices, allocation, oscillator/filter/ring DSP and get/set APIs reviewed; pinned SHA-256 matches UPSTREAM.md; batch 66 (2026-10-07)
+- [x] `engines/third_party/schwung/audio_fx_api_v2.h` — READ completely; v2 effect callback ordering and optional MIDI tail reviewed against old PSX module struct; pinned hash matches UPSTREAM.md; batch 67 (2026-10-07)
+- [x] `engines/third_party/schwung/plugin_api_v1.h` — READ completely; host reserved-tail ABI, v1/v2 layouts and optional split-render contract reviewed; batch 67 (2026-10-07)
+- [x] `firmware/third_party/fm1-nes/boot_compat.c` — READ; audit report batch 2 (2026-10-07)
+
+## Editor variant ledger
+
+Review `git diff 64209e3..861b725` and read every modified source file in its complete editor-branch form plus relevant callers/tests. Record each path and status here.
+
+- [x] `engines/include/fm1_dynamics.h` — complete baseline read plus full 861b725 API addition and caller diff; gate-state API contract reviewed; batch 139 (2026-10-08)
+- [x] `engines/include/fm1_tele.h` — complete baseline read plus full 861b725 schema/version diff; rows, field count and mask mapping cross-checked; batch 139 (2026-10-08)
+- [x] `engines/mk/squash.mk` — complete baseline read plus reference-symbol alias diff; batch 139 (2026-10-08)
+- [x] `engines/src/editor_meta.cc` — complete baseline read plus all changed telemetry table/name hunks; offsets and field naming cross-checked with `fm1_tele.h`; batch 139 (2026-10-08)
+- [x] `engines/src/fx_squash.cc` — complete baseline read plus new gate-state API and type/gate checks; batch 139 (2026-10-08)
+- [x] `sim/web/build-on-aeon.sh` — complete 160-line 861b725 variant read; staged paths, remote Docker limits, tests, artifacts, cleanup and output handling reviewed; not executed; batch 139 (2026-10-08)
+- [x] `sim/web/src/fm1_app.c` — complete baseline read plus all 861b725 selection and empty-sound FX diff hunks; caller/rollback behavior reviewed; batch 139 (2026-10-08)
+- [x] `sim/web/src/fm1_app_state.c` — complete 1,825-line 861b725 variant read in bounded ranges; restore planner/apply ordering, identity checks, cable collision refusal and unchanged-module preservation reviewed; batch 139 (2026-10-08)
+- [x] `sim/web/src/fm1_app_state.h` — complete 141-line 861b725 variant read; restore flag contract and load bounds reviewed; batch 139 (2026-10-08)
+- [x] `sim/web/src/fm1_edit.c` — complete baseline read plus all telemetry gate-field hunks; row stride and absent-gate NaN behavior reviewed; batch 139 (2026-10-08)
+- [x] `sim/web/test/audio-analysis-check.mjs` — READ complete (16 lines); positive tone and silence/held/skipped/channel-loss/no-output cases checked; executed successfully from pinned editor blob; batch 139 (2026-10-08)
+- [x] `sim/web/test/audio-analysis.mjs` — READ complete (46 lines); active-window, crossing, channel and PCM-WAV checks reviewed; batch 139 (2026-10-08)
+- [x] `sim/web/test/audio-loopback.mjs` — READ complete (140 lines); monitor capture, Playwright lifecycle, stress edits, A/B playback, report and output checks reviewed; not executed (external audio container test); batch 139 (2026-10-08)
+- [x] `sim/web/test/editor-map.mjs` — READ baseline plus 60-line diff and full added flow at editor head 861b725 (2026-10-07)
+- [x] `sim/web/test/editor-v1.mjs` — READ baseline plus all 63 added lines and full surrounding contexts at editor head 861b725 (2026-10-07)
+- [x] `sim/web/test/editor.mjs` — complete baseline read plus dynamic telemetry-buffer sizing diff; batch 139 (2026-10-08)
+- [x] `sim/web/test/fm1_edit_check.c` — baseline harness plus full 861b725 restore, telemetry, empty-sound and gate regression additions reviewed; batch 139 (2026-10-08)
+- [x] `sim/web/test/launch.mjs` — READ baseline plus all four editor-branch changes at head 861b725 (2026-10-08)
+- [x] `sim/web/www/editor/chains.js` — READ complete 861b725 variant (2026-10-07)
+- [x] `sim/web/www/editor/editor.css` — READ complete 861b725 variant; source-only layout review, no rendered screenshot evidence (2026-10-07)
+- [x] `sim/web/www/editor/map.js` — READ complete 861b725 variant, including endpoint patching (2026-10-07)
+- [x] `sim/web/www/editor/model.js` — READ complete 861b725 variant; removed export diff checked (2026-10-07)
+- [x] `sim/web/www/editor/project.js` — READ complete 861b725 variant; stale cable batch target finding in report batch 19 (2026-10-07)
+- [x] `sim/web/www/editor/sheets.js` — READ complete 861b725 variant; import-removal diff checked (2026-10-07)
+- [x] `sim/web/www/files.js` — READ complete 861b725 variant; restoreSound/request dispatch diffs checked (2026-10-07)
+- [x] `sim/web/www/shadow.worker.js` — READ complete 861b725 variant; request/reply correlation checked (2026-10-07)
+- [x] `tests/test_app_state.py` — complete baseline read plus unused-import removal diff; batch 139 (2026-10-08)
+- [x] `tests/test_ci_pins.py` — full editor diff; audio tests added to CI name checks; workflow boundary checked; batch 139 (2026-10-08)
+- [x] `tests/test_engine_acid_bass.py` — complete baseline read plus unused-import removal diff; batch 139 (2026-10-08)
+- [x] `tests/test_engine_drums.py` — same blob as audited baseline (no editor-branch change); covered in batch 39
+- [x] `tests/test_engine_editor_meta.py` — complete baseline read plus telemetry version/field assertions; schema offsets and CRC relationship checked; batch 139 (2026-10-08)
+- [x] `tests/test_gpl_switch.py` — complete baseline read plus unused-import removal diff; licence assertions remain; batch 139 (2026-10-08)
+- [x] `tests/test_seq_song.py` — complete baseline read plus unused-import removal diff; batch 139 (2026-10-08)
+- [x] `tests/test_sim_editor_ui.py` — complete baseline read plus metadata-derived telemetry-field exemption in id scan; batch 139 (2026-10-08)
+- [x] `tests/test_tools.py` — complete baseline read plus unused-import removal diff; batch 139 (2026-10-08)
+- [x] `tools/lunar_state.py` — complete baseline read plus `Fraction` import removal; no other tool behavior changed; batch 139 (2026-10-08)
+
+## Script and test-data corpus
+
+The following custom languages and fixtures are inputs to parsers, tests or product serialization. Review their interpreters/consumers and validate corpus shape/coverage; inspect the corpus itself in manageable chunks, recording any exclusions by path and reason.
+
+- [x] `*.verbs`, `*.panel`, `*.lunar`, `*.mod`, `*.movy1`, `*.args`, `*.records`, `*.edit` — scenario/corpus inputs read by their explicit child rows; generated Movy oracle/random outputs and saved-state record payloads are the noted data-only manual-reading exclusions (batches 143–146).
+- [x] `*.json`, `*.jsonl`, `*.syx`, `*.list`, `*.rgb565`, `*.bdf`, `*.gz`, `*.wav`, `*.png`, `*.jpg`, `*.ttf` — structured text parsed or scenario-tested; binary assets received provenance/format/hash review with the child rows below and in batches 145, 147 and 151. Exclusions: generated oracle payload semantics are covered by reviewed consumers/equality tests but not manually reread; PNG pixels were not visually rechecked in this audit. No tracked code is in these data classes.
+  - [x] Eight files under `photos/2026-09-29/` — owner's FM-1 board evidence/crops and referenced note reviewed; basic EXIF/TIFF scan found no GPS/date/device metadata; physical identifying marks are visible and source-context is personal evidence; batch 147 (2026-10-08)
+  - [x] `sim/web/test/dx7/lunar-test-bank.syx`, `sim/web/test/dx7/lunar-test-voices.syx` — source documents locally authored 32-voice LUNAR test bank and equivalent single-voice dumps, not Yamaha content; consumer/test source read; batch 147 (2026-10-08)
+  - [x] Three tracked TTFs — Audiowide and Exo 2 font sources/licences and their recorded upstream hashes reviewed; byte identity/hash checks documented; batch 147 (2026-10-08)
+  - [x] Three `engines/third_party/fm1-x0x/assets/909/*.wav` — source licence and local generated table path reviewed; ER-99 origin is reported by X0X but recording source unspecified; retained GPL integration/provenance risk; batch 147 (2026-10-08)
+  - [x] Spleen 2.2.0 `spleen-8x16.bdf`, `spleen-6x12.bdf`, `LICENSE`: Git blob hashes independently match `UPSTREAM.md` and `tests/test_sim_fonts.py`; `gen_font.py --check` reproduces both ASCII tables. Review limited to the 95 product glyphs and parser-derived BDF metrics. Excluded the remainder of the 33,734-line BDFs from manual visual inspection; exact vendor blobs verified.
+- [x] `tools/jieli/ac79-sdk-sparse.txt` — READ; audit report batch 3 (2026-10-07)
+- [x] `engines/third_party/fm1-x0x/local.patch` — READ complete (841 lines); all eight modified-file diffs reviewed; hash matches the local provenance manifest; pinned upstream checkout absent, so original-side hashes were not independently compared; batch 137
+
+## Non-code inputs
+
+Review relevant build/link configuration, generated-artifact provenance, licence manifests, CI workflows, runtime documentation and firmware/package constraints as evidence. Do not treat docs as source code; record any stale or conflicting operational claims in the audit report. Generated binaries receive provenance/reproducibility review, not decompilation unless a specific concern requires it.
+
+- [x] `.github/workflows/ci.yml`, `.github/workflows/pages.yml` — READ completely; audit report batch 25 (2026-10-07)
+- [x] `engines/Makefile`, `engines/mk/*.mk`, `engines/modules/catalogue.mk`, `sim/web/mk/sim.mk` — READ; engine and simulator build graph reviewed; audit report batch 25 (2026-10-07)
+- [x] `sim/web/www/fm1.wasm`, `sim/web/www/fm1.wasm.json`, `sim/web/www/source.json` — binary SHA, source digests, generation/use/licence display path reviewed; current source digests reproduce record; parity claims not rerun; batch 148 (2026-10-08)
+- [x] 31 tracked `LICENSE*`, `UPSTREAM.md`, OFL and notice files — licence/provenance claims cross-checked against inclusion, switch and serving boundaries; batch 150. Excludes a legal opinion and external Git-object re-verification where the pinned vendor clone is absent; those cases are individually noted in vendor batch reports.
+- [x] `AGENTS.md`, `CLAUDE.md`, `HANDOFF.md` and package/recovery docs — current policy and relevant status/gate sections reviewed for consistency; current owner policy is correct in AGENTS/CLAUDE/docs/07, while stale contributor guidance is a P2 in batch 149. `HANDOFF.md` was read fully; unrelated historical research narratives in other docs were not line-by-line reviewed, since this ledger covers code plus operational/package consistency.
+
+## Checkpoint and recovery
+
+- Branch: `chore/2026-10-07@full-code-audit`
+- Latest checkpoint before final disposition: `f200bce5b23da6a3e5f5265967d7f73e2cd8d09b` (batches 147–149), pushed and remote SHA verified. Final disposition and batches 150–151 are included in the pending checkpoint.
+- Outstanding: no first-party source files remain unreviewed at the stated tiers. Full pixel-level visual review of PNGs, semantic re-reading of generated oracle payloads, external Git-object verification for absent vendor checkouts, and broad historical narrative-doc proofreading are explicit exclusions; renderer/engine/pytest suites remain unexecuted. Audit is complete at the documented review tiers; device firmware readiness remains blocked as described in the report.
+- Checks: `node sim/web/test/origins.mjs sim/web/www` passed; direct Python DEFLATE repros and Node path-prefix repro passed. `python3 sim/web/tools/gen_font.py --check` passed; `--sizes` reported MAIN 855, MID 1,330, SMALL 1,140 bytes; Spleen blob hashes match its pinned upstream records. `node sim/web/test/editor-unit.mjs sim/web/www` passed at the baseline snapshot. Pytest and generated engine tools are absent from this worktree, so pytest suites were not run. No firmware build or hardware action was taken.
+- Recovery: resume from this manifest; inspect report findings and ledger before rereading. Check `git status`; commit and push explicit branch refspec at each coherent batch. No hardware actions or local heavyweight builds are in scope.
+
+- [x] `sim/web/test/arp/acid-gen-run.verbs` — READ complete (8 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/arp/arp-latch-stop.verbs` — READ complete (12 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/arp/arp-sequencer.verbs` — READ complete (9 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/arp/arp-trg.verbs` — READ complete (8 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/arp/panel-arp-stop.panel` — READ complete (24 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/arp/panel-arp-stop.verbs` — READ complete (5 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/arp/panel-arp.panel` — READ complete (37 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/arp/panel-arp.verbs` — READ complete (6 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/edit/verbs.edit` — READ complete (47 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/mod/idle-driven.mod` — READ complete (7 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/mod/log-keytrack.mod` — READ complete (11 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/mod/multi-panel.panel` — READ complete (33 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/mod/multi-panel.verbs` — READ complete (9 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/mod/multi-routes.mod` — READ complete (26 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/mod/panel-gestures.panel` — READ complete (29 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/mod/panel-gestures.verbs` — READ complete (9 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/mod/routes.mod` — READ complete (24 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/mod/voice-routes.mod` — READ complete (25 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/capture-stopped-capsel.verbs` — READ complete (25 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/capture-while-playing.verbs` — READ complete (14 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/ext-transport.verbs` — READ complete (11 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/metro-click.verbs` — READ complete (9 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/multi-four-sounds.verbs` — READ complete (16 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-capture-stopped.panel` — READ complete (12 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-capture-stopped.verbs` — READ complete (7 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-locks.panel` — READ complete (20 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-locks.verbs` — READ complete (5 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-multi-sound.panel` — READ complete (22 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-multi-sound.verbs` — READ complete (7 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-play-stop.panel` — READ complete (12 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-play-stop.verbs` — READ complete (7 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-record.panel` — READ complete (27 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-record.verbs` — READ complete (7 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-session-song.panel` — READ complete (20 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-session-song.verbs` — READ complete (4 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-step-entry.panel` — READ complete (36 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-step-entry.verbs` — READ complete (9 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-tracks.panel` — READ complete (29 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/panel-tracks.verbs` — READ complete (7 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/sine-volume-locks.verbs` — READ complete (10 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/sixop-patch-enum-lock.verbs` — READ complete (7 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/seq/sixop-two-tracks-swing.verbs` — READ complete (7 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `sim/web/test/state/play.verbs` — READ complete (6 lines); timed scenario inputs and bounds reviewed; batch 142 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/capture-nothing.panel` — READ complete (4 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/capture-nothing.verbs` — READ complete (3 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/capture-playing.panel` — READ complete (8 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/capture-playing.verbs` — READ complete (10 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/capture-stopped-fitted.panel` — READ complete (9 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/capture-stopped-fitted.verbs` — READ complete (12 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/capture-stopped-picker.panel` — READ complete (15 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/capture-stopped-picker.verbs` — READ complete (18 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/clip-page.panel` — READ complete (12 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/clip-page.verbs` — READ complete (8 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/clip-quant-cycle.panel` — READ complete (12 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/clip-quant-cycle.verbs` — READ complete (7 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/empty.verbs` — READ complete (4 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/input.verbs` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-eight-lanes.panel` — READ complete (20 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-eight-lanes.verbs` — READ complete (27 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-knob-sync.panel` — READ complete (15 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-knob-sync.verbs` — READ complete (8 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-clear-knob.panel` — READ complete (14 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-clear-knob.verbs` — READ complete (7 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-clear-step.panel` — READ complete (13 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-clear-step.verbs` — READ complete (7 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-held-step.panel` — READ complete (16 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-held-step.verbs` — READ complete (7 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-live-take.panel` — READ complete (12 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-live-take.verbs` — READ complete (8 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-nolock.panel` — READ complete (14 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-nolock.verbs` — READ complete (3 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-tap-clear.panel` — READ complete (15 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-movy-tap-clear.verbs` — READ complete (7 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-several-clear.panel` — READ complete (19 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-several-clear.verbs` — READ complete (8 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-several-held.panel` — READ complete (10 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/lock-several-held.verbs` — READ complete (3 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/metro-shortcut.panel` — READ complete (8 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/metro-shortcut.verbs` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/mute-map.panel` — READ complete (10 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/mute-map.verbs` — READ complete (6 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/mute-tap.panel` — READ complete (6 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/mute-tap.verbs` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/pages-browse.panel` — READ complete (16 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/pages-browse.verbs` — READ complete (3 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/play-stop-from-fx.panel` — READ complete (4 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/play-stop-from-fx.verbs` — READ complete (4 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/play-stop-from-home.panel` — READ complete (3 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/play-stop-from-home.verbs` — READ complete (4 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/play-stop-from-seq.panel` — READ complete (7 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/play-stop-from-seq.verbs` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/play-twice.panel` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/play-twice.verbs` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec-count-in.panel` — READ complete (8 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec-count-in.verbs` — READ complete (9 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec-empty-clip-waits.panel` — READ complete (8 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec-empty-clip-waits.verbs` — READ complete (10 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec-hold-untouched.panel` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec-hold-untouched.verbs` — READ complete (3 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec-overdub.panel` — READ complete (7 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec-overdub.verbs` — READ complete (10 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec-seq-tap.panel` — READ complete (7 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec-seq-tap.verbs` — READ complete (7 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/rec.verbs` — READ complete (6 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/seq-enter-exit.panel` — READ complete (10 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/seq-enter-exit.verbs` — READ complete (2 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-copy-clear.args` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-copy-clear.mod` — READ complete (13 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-copy-clear.panel` — READ complete (16 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-copy-clear.verbs` — READ complete (6 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-launch.args` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-launch.mod` — READ complete (13 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-launch.panel` — READ complete (12 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-launch.verbs` — READ complete (7 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-scenes.args` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-scenes.mod` — READ complete (13 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-scenes.panel` — READ complete (17 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-scenes.verbs` — READ complete (11 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-track-clear.args` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-track-clear.mod` — READ complete (13 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-track-clear.panel` — READ complete (8 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/session-track-clear.verbs` — READ complete (4 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/song-build.args` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/song-build.mod` — READ complete (13 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/song-build.panel` — READ complete (34 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/song-build.verbs` — READ complete (26 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/song-edit-playing.args` — READ complete (5 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/song-edit-playing.mod` — READ complete (13 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/song-edit-playing.panel` — READ complete (28 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/song-edit-playing.verbs` — READ complete (14 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/song.verbs` — READ complete (6 lines); sequencer/UI scenario inputs reviewed; batch 143 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-add-pitch.panel` — READ complete (11 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-add-pitch.verbs` — READ complete (5 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-bar-paging.panel` — READ complete (13 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-bar-paging.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-chord-from-keys.panel` — READ complete (10 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-chord-from-keys.verbs` — READ complete (11 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-chord-from-midi.panel` — READ complete (7 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-chord-from-midi.verbs` — READ complete (8 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-clear.panel` — READ complete (13 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-clear.verbs` — READ complete (4 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-co-press.panel` — READ complete (8 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-co-press.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-condition.panel` — READ complete (8 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-condition.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-full-velocity.panel` — READ complete (11 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-full-velocity.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-hidden-tail.panel` — READ complete (9 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-hidden-tail.verbs` — READ complete (5 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-hold-then-home.panel` — READ complete (8 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-hold-then-home.verbs` — READ complete (5 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-hold.panel` — READ complete (7 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-hold.verbs` — READ complete (4 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-invert.panel` — READ complete (14 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-invert.verbs` — READ complete (7 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-length-knob.panel` — READ complete (9 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-length-knob.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-length.panel` — READ complete (12 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-length.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-midi-adds-pitch.panel` — READ complete (8 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-midi-adds-pitch.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-nudge.panel` — READ complete (9 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-nudge.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-oct.panel` — READ complete (9 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-oct.verbs` — READ complete (5 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-probability.panel` — READ complete (8 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-probability.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-record-grow.panel` — READ complete (9 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-record-grow.verbs` — READ complete (13 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-record.panel` — READ complete (16 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-record.verbs` — READ complete (13 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-several-held.panel` — READ complete (10 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-several-held.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-shift-play.panel` — READ complete (5 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-shift-play.verbs` — READ complete (5 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-tap.panel` — READ complete (7 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-tap.verbs` — READ complete (5 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-velocity.panel` — READ complete (8 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/step-velocity.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/steps.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/tail.verbs` — READ complete (4 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/track-focus-from-home.panel` — READ complete (9 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/track-focus-from-home.verbs` — READ complete (7 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/track-focus.panel` — READ complete (11 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/track-focus.verbs` — READ complete (6 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/track-page-route.panel` — READ complete (15 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/track-page-route.verbs` — READ complete (9 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/seq-ui/tracks.verbs` — READ complete (7 lines); step/track sequencer inputs reviewed; batch 144 (2026-10-08)
+
+- [x] `tests/fixtures/movy/01-clock-tempo.verbs` — READ complete (23 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/02-clock-rate48k-block7.verbs` — READ complete (15 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/03-notes-gates.verbs` — READ complete (24 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/04-locks-latch.verbs` — READ complete (28 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/05-locks-first-step.verbs` — READ complete (21 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/06-conditions.verbs` — READ complete (33 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/07-probability.verbs` — READ complete (23 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/08-quantise-swing.verbs` — READ complete (41 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/09-scale.verbs` — READ complete (24 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/10-loop-window.verbs` — READ complete (23 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/11-transpose-drum.verbs` — READ complete (24 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/12-launch-session.verbs` — READ complete (24 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/13-scenes-song.verbs` — READ complete (22 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/14-record-countin.verbs` — READ complete (31 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/15-record-overdub.verbs` — READ complete (30 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/16-edits.verbs` — READ complete (29 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/17-copy-paste.verbs` — READ complete (30 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/18-undo.verbs` — READ complete (24 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/19-nudge-panic.verbs` — READ complete (22 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/20-movy1-import.verbs` — READ complete (12 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/21-capture-optional.verbs` — READ complete (37 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/22-nudge-panic-order.verbs` — READ complete (12 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/23-ext-clock-follow.verbs` — READ complete (376 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/24-ext-clock-stale.verbs` — READ complete (241 lines); curated Movy scenario reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/20-movy1-import.in.movy1` — READ complete (26 lines); intentional unknown record exercises ignore behavior; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/movy-chains.movy1` — READ complete (29 lines); Git blob matches UPSTREAM.md; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/schwung-tracks.movy1` — READ complete (32 lines); Git blob matches UPSTREAM.md; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/movy/device-set.movy1` — READ complete (19 lines); Git blob matches UPSTREAM.md; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/hold-env-fx.mod` — READ complete (15 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/hold-env-fx.panel` — READ complete (12 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/hold-lfo-home.mod` — READ complete (16 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/hold-lfo-home.panel` — READ complete (10 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/input.verbs` — READ complete (6 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/kind-change.mod` — READ complete (16 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/kind-change.panel` — READ complete (10 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/matrix-edit.mod` — READ complete (21 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/matrix-edit.panel` — READ complete (20 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/rack-gesture.mod` — READ complete (16 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/rack-gesture.panel` — READ complete (15 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/routed-knob.mod` — READ complete (15 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+- [x] `tests/fixtures/mod-ui/routed-knob.panel` — READ complete (13 lines); mod UI scenario input reviewed; batch 145 (2026-10-08)
+
+### Movy generated-data exclusions
+
+- `[x]` `tests/fixtures/movy/{01..24}-*.jsonl`, the six curated `*.d1.jsonl` files, and `tests/fixtures/movy/{01..24}-*.out.movy1` — generated by the pinned external Movy oracle; output contents excluded from manual review; consumers and structural/equality assertions in `tests/test_movy_oracle_fixtures.py` and `tests/test_seq_oracle.py` reviewed; pytest unavailable in this worktree.
+- `[x]` `tests/fixtures/movy/random/rand-601-00353`, `rand-601-00377`, `rand-601-00732`, `rand-602-00033`, `rand-602-00098`, `rand-603-00031`, `rand-603-00069`, `rand-603-00165`, `rand-604-00035`, `rand-604-00159` (`.verbs` body and paired `.jsonl.gz`/`.out.movy1.gz`) — generated with seeds and options in the corpus README; random command/event bodies excluded from manual reading; decompression and documented corpus shape checked; equivalence test code reviewed but not run.
+
+- [x] `engines/state/examples/bass-a.clip.lunar` — JSON parsed and project reader accepted (15 lines); subset-metadata skips/external full equality tests documented in batch 146 (2026-10-08)
+
+- [x] `engines/state/examples/deep-bass.sound.lunar` — JSON parsed and project reader accepted (75 lines); subset-metadata skips/external full equality tests documented in batch 146 (2026-10-08)
+
+- [x] `engines/state/examples/first-orbit.lunar` — JSON parsed and project reader accepted (551 lines); subset-metadata skips/external full equality tests documented in batch 146 (2026-10-08)
+
+- [x] `engines/state/examples/metadata.json` — JSON parsed; intentionally subset metadata; used to explain incomplete standalone sample round-trip; batch 146 (2026-10-08)
+
+- [x] `engines/state/examples/settings.lunar` — JSON parsed and project reader accepted (11 lines); subset-metadata skips/external full equality tests documented in batch 146 (2026-10-08)
+
+- [x] `engines/state/examples/space-verbs.fx.lunar` — JSON parsed and project reader accepted (70 lines); subset-metadata skips/external full equality tests documented in batch 146 (2026-10-08)
+
+- [x] `engines/state/examples/wobble.mods.lunar` — JSON parsed and project reader accepted (82 lines); subset-metadata skips/external full equality tests documented in batch 146 (2026-10-08)
+
+- [x] `engines/state/schema/clip.schema.json` — JSON schema parsed; schema behavior tests source-reviewed but not run; batch 146 (2026-10-08)
+
+- [x] `engines/state/schema/common.schema.json` — JSON schema parsed; schema behavior tests source-reviewed but not run; batch 146 (2026-10-08)
+
+- [x] `engines/state/schema/fx.schema.json` — JSON schema parsed; schema behavior tests source-reviewed but not run; batch 146 (2026-10-08)
+
+- [x] `engines/state/schema/mods.schema.json` — JSON schema parsed; schema behavior tests source-reviewed but not run; batch 146 (2026-10-08)
+
+- [x] `engines/state/schema/project.schema.json` — JSON schema parsed; schema behavior tests source-reviewed but not run; batch 146 (2026-10-08)
+
+- [x] `engines/state/schema/settings.schema.json` — JSON schema parsed; schema behavior tests source-reviewed but not run; batch 146 (2026-10-08)
+
+- [x] `engines/state/schema/sound.schema.json` — JSON schema parsed; schema behavior tests source-reviewed but not run; batch 146 (2026-10-08)
+
+- [x] `sim/web/www/examples/bass-a.clip.lunar` — byte-identical to `engines/state/examples/bass-a.clip.lunar` (15 lines); public web static copy; batch 146 (2026-10-08)
+
+- [x] `sim/web/www/examples/deep-bass.sound.lunar` — byte-identical to `engines/state/examples/deep-bass.sound.lunar` (75 lines); public web static copy; batch 146 (2026-10-08)
+
+- [x] `sim/web/www/examples/first-orbit.lunar` — byte-identical to `engines/state/examples/first-orbit.lunar` (551 lines); public web static copy; batch 146 (2026-10-08)
+
+- [x] `sim/web/www/examples/space-verbs.fx.lunar` — byte-identical to `engines/state/examples/space-verbs.fx.lunar` (70 lines); public web static copy; batch 146 (2026-10-08)
+
+- [x] `sim/web/www/examples/wobble.mods.lunar` — byte-identical to `engines/state/examples/wobble.mods.lunar` (82 lines); public web static copy; batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/bass-a.clip.lunar` — JSON parsed and project reader accepted (15 lines); subset-metadata skips/external full equality tests documented in batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/bass-a.clip.lunarb` — Python binary reader accepted and header/magic checked (302 bytes); full golden equality tests source-reviewed, not run; batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/bass-a.clip.records` — JSON-lines records parsed (11 lines); record semantics golden is data-only, full codec tests not run; batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/deep-bass.sound.lunar` — JSON parsed and project reader accepted (73 lines); subset-metadata skips/external full equality tests documented in batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/deep-bass.sound.lunarb` — Python binary reader accepted and header/magic checked (535 bytes); full golden equality tests source-reviewed, not run; batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/deep-bass.sound.records` — JSON-lines records parsed (38 lines); record semantics golden is data-only, full codec tests not run; batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/first-orbit.lunar` — JSON parsed and project reader accepted (523 lines); subset-metadata skips/external full equality tests documented in batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/first-orbit.lunarb` — Python binary reader accepted and header/magic checked (2684 bytes); full golden equality tests source-reviewed, not run; batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/first-orbit.records` — JSON-lines records parsed (331 lines); record semantics golden is data-only, full codec tests not run; batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/four-way.fx.lunar` — JSON parsed and project reader accepted (109 lines); subset-metadata skips/external full equality tests documented in batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/four-way.fx.lunarb` — Python binary reader accepted and header/magic checked (710 bytes); full golden equality tests source-reviewed, not run; batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/four-way.fx.records` — JSON-lines records parsed (49 lines); record semantics golden is data-only, full codec tests not run; batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/orbit.set.lunarb` — Python binary reader accepted and header/magic checked (258 bytes); full golden equality tests source-reviewed, not run; batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/orbit.set.movy1` — byte-identical duplicate of canonical engine example; public web static serving copy; batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/orbit.set.records` — JSON-lines records parsed (24 lines); record semantics golden is data-only, full codec tests not run; batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/settings.lunar` — JSON parsed and project reader accepted (11 lines); subset-metadata skips/external full equality tests documented in batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/settings.lunarb` — Python binary reader accepted and header/magic checked (116 bytes); full golden equality tests source-reviewed, not run; batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/settings.records` — JSON-lines records parsed (7 lines); record semantics golden is data-only, full codec tests not run; batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/space-verbs.fx.lunar` — JSON parsed and project reader accepted (70 lines); subset-metadata skips/external full equality tests documented in batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/space-verbs.fx.lunarb` — Python binary reader accepted and header/magic checked (462 bytes); full golden equality tests source-reviewed, not run; batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/space-verbs.fx.records` — JSON-lines records parsed (36 lines); record semantics golden is data-only, full codec tests not run; batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/tin-kit.sound.lunar` — JSON parsed and project reader accepted (245 lines); subset-metadata skips/external full equality tests documented in batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/tin-kit.sound.lunarb` — Python binary reader accepted and header/magic checked (1620 bytes); full golden equality tests source-reviewed, not run; batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/tin-kit.sound.records` — JSON-lines records parsed (171 lines); record semantics golden is data-only, full codec tests not run; batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/wobble.mods.lunar` — JSON parsed and project reader accepted (82 lines); subset-metadata skips/external full equality tests documented in batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/wobble.mods.lunarb` — Python binary reader accepted and header/magic checked (328 bytes); full golden equality tests source-reviewed, not run; batch 146 (2026-10-08)
+
+- [x] `tests/fixtures/state/1.0/wobble.mods.records` — JSON-lines records parsed (29 lines); record semantics golden is data-only, full codec tests not run; batch 146 (2026-10-08)

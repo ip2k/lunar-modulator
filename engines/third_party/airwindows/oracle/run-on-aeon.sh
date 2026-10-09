@@ -20,6 +20,9 @@ export COPYFILE_DISABLE=1
 IMAGE=gcc:12
 HOST="${FM1_SIM_HOST:?set FM1_SIM_HOST=user@host (a Linux machine with Docker)}"
 REMOTE=${FM1_REMOTE_DIR:-$(ssh "$HOST" 'printf %s "$HOME"')/mvave-fm1/airwindows-oracle}
+# Reject shell syntax and broad cleanup targets before touching local output.
+[[ "$REMOTE" =~ ^/([A-Za-z0-9_-][A-Za-z0-9._-]*/){2,}[A-Za-z0-9_-][A-Za-z0-9._-]*$ ]] || {
+  echo "FM1_REMOTE_DIR: use an absolute work path with at least three components" >&2; exit 2; }
 ROOT=$(git -C "$(dirname "$0")" rev-parse --show-toplevel)
 HERE=$ROOT/engines/third_party/airwindows/oracle
 OUT=$ROOT/engines/build/airwindows-oracle
@@ -34,7 +37,8 @@ tar -C "$HERE" --no-xattrs -cf - airwindows_oracle.cc | ssh "$HOST" "tar -x -C '
 
 DIGEST=$(ssh "$HOST" "docker image inspect --format '{{index .RepoDigests 0}}' $IMAGE 2>/dev/null || docker pull -q $IMAGE")
 echo "== $DIGEST"
-ssh "$HOST" "docker run --rm --label project=mvave-fm1-firmware --label session=airwindows-oracle \
+ssh "$HOST" "docker run --rm --cgroup-parent=docker-batch.slice --memory=6g --memory-swap=6g --cpus=6 \
+  --label project=mvave-fm1-firmware --label session=airwindows-oracle \
   -v '$REMOTE':/w -w /w $IMAGE sh -c '
     g++ -O2 -std=c++11 -ffp-contract=off -o oracle airwindows_oracle.cc &&
     while read name kind sig a b c d e f g h; do

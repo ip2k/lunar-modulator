@@ -1175,8 +1175,10 @@ size_t fm1_edit_dump(fm1_app_t *a, char *buf, size_t cap) {
   fm1_view_t v;
   char line[160];
   const fm1_edit_t *e = a->edit;
-#define PUT(...) do { int k_ = snprintf(buf + n, n < cap ? cap - n : 0, __VA_ARGS__); \
-                      if (k_ > 0) n += (size_t)k_; } while (0)
+#define PUT(...) do { if (n < cap - 1) { \
+  int k_ = snprintf(buf + n, cap - n, __VA_ARGS__); \
+  if (k_ > 0) n += (size_t)k_ < cap - n ? (size_t)k_ : cap - n - 1; \
+} } while (0)
   if (!cap) return 0;
   buf[0] = 0;
   if (e) {

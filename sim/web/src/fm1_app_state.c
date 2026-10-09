@@ -1423,7 +1423,9 @@ static void apply_param(plan_t *p, const fm1_rec_t *r) {
     }
   } else if (m <= -2) {
     const int k = -2 - m;
-    const fm1_engine_t *e = fm1_app_mfx_engine(a, k);
+    /* An unavailable imported effect's UIDs must never address the old
+     * slot or the bypassed default installed for it. */
+    const fm1_engine_t *e = p->mfx[k] ? fm1_app_mfx_engine(a, k) : NULL;
     const int idx = e ? fm1_param_index(e, r->u.param.uid) : -1;
     if (idx >= 0) fm1_app_arp_set_param(a, k, idx, rec_value(&e->params[idx], r));
   }
@@ -1473,7 +1475,7 @@ static int plan_pass2(plan_t *p, const fm1_rec_t *r) {
       break;
     case FM1_REC_ON: {
       const int m = map_unit(p, r->role, r->sound, r->slot);
-      if (m <= -2) fm1_app_arp_set_on(a, -2 - m, r->u.on);
+      if (m <= -2 && p->mfx[-2 - m]) fm1_app_arp_set_on(a, -2 - m, r->u.on);
       break;
     }
     case FM1_REC_PARAM:
@@ -1783,6 +1785,16 @@ int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t tot
     for (int u = FM1_APP_UNITS - 1; u > 0; --u) {
       if (target_unit(p, u) && unit_sound(u) < 0) fm1_app_select(a, u, -1);
     }
+  }
+  if (p->kind == FM1_STATE_SOUND) {
+    /* Preflight budgets an absent/unavailable MIDI effect as the default
+     * bypassed arp. Make the target match that plan before applying records;
+     * this also prevents the previous sound's effect leaking into the load. */
+    const int k = p->o->into;
+    const fm1_engine_t *e = fm1_app_arp_engine();
+    fm1_app_arp_set_on(a, k, 0);
+    fm1_app_mfx_select(a, k, e->id);
+    for (uint16_t i = 0; i < e->n_params; ++i) fm1_app_arp_set_param(a, k, i, e->params[i].def);
   }
   if (p->kind == FM1_STATE_SET) {
     apply_finish(p);

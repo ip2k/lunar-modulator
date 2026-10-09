@@ -181,7 +181,7 @@ ssh "$HOST" "rm -rf '$REMOTE/out' && mkdir -p '$REMOTE/out' && docker run --rm $
 
 echo "== record"
 COMMIT=$(git -C "$ROOT" rev-parse HEAD)
-DIRTY=$(git -C "$ROOT" status --porcelain -- engines sim/web/src tools/jieli | wc -l | tr -d ' ')
+DIRTY=$(git -C "$ROOT" status --porcelain -- engines sim/web firmware tools/jieli | wc -l | tr -d ' ')
 ssh "$HOST" "cat > '$REMOTE/out/record.json'" <<EOF
 {"tree": "$COMMIT", "uncommitted_files": $DIRTY, "gpl_mods": $GPL_MODS, "modules": "$MODULES",
  "toolchain_archive": "$TOOLCHAIN_ARCHIVE", "toolchain_sha256": "$TOOLCHAIN_SHA256",
