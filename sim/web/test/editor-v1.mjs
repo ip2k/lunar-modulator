@@ -972,6 +972,36 @@ await shot('editor-search-selection.png', '.ed-search-card');
 await page.evaluate(() => window.fm1.editor.project.closeSearch(false));
 await page.evaluate(() => window.fm1.editor.project.openSearch());
 await page.fill('.ed-search-in', '>');
+await page.keyboard.press('Shift+Enter');
+const staleCableSetup = await page.evaluate(() => {
+  const ed = window.fm1.editor, st = ed.state, picks = st.searchPicks;
+  if (picks.length < 2) return { ready: false, picks: picks.length };
+  const target = picks[0].index, source = picks[picks.length - 1].index;
+  const before = st.mirror.cables.map((c) => ({ ...c }));
+  if (JSON.stringify(before[target]) === JSON.stringify(before[source])) return { ready: false, picks: picks.length };
+  window.__staleCableOriginal = before[target];
+  st.mirror.cables[target] = { ...before[source] }; // simulate a slot replacement after Search captured its result
+  return { ready: true, target, source, steps: ed.history.entries.length };
+});
+if (staleCableSetup.ready) {
+  await page.getByRole('button', { name: 'Disable selected cables', exact: true }).click();
+  const staleCableResult = await page.evaluate((setup) => {
+    const ed = window.fm1.editor, st = ed.state;
+    const result = { message: document.querySelector('.ed-search-batch [role=status]').textContent,
+      steps: ed.history.entries.length, target: st.mirror.cables[setup.target] };
+    // Restore the editor's pre-test state before continuing the ordinary batch scenario.
+    st.mirror.cables[setup.target] = window.__staleCableOriginal;
+    delete window.__staleCableOriginal;
+    return result;
+  }, staleCableSetup);
+  check('a cable batch refuses a slot whose cable changed after Search captured it', /A selected cable changed/.test(staleCableResult.message) && staleCableResult.steps === staleCableSetup.steps, staleCableResult);
+  await page.evaluate(() => window.fm1.editor.project.closeSearch(false));
+} else {
+  check('a cable batch has distinct cables available for stale-target regression', false, staleCableSetup);
+  await page.evaluate(() => window.fm1.editor.project.closeSearch(false));
+}
+await page.evaluate(() => window.fm1.editor.project.openSearch());
+await page.fill('.ed-search-in', '>');
 const beforeBatch = await page.evaluate(() => ({ cables: JSON.stringify(window.fm1.editor.state.mirror.cables), steps: window.fm1.editor.history.entries.length }));
 await page.keyboard.press('Shift+Enter');
 await page.getByRole('button', { name: 'Disable selected cables', exact: true }).click();

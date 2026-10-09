@@ -676,7 +676,9 @@ export function makeProject(ctx) {
     for (const it of picks) {
       if (it.group === 'Cables') {
         const before = st.mirror.cables[it.index];
-        if (!before || cableEmpty(before)) { status.textContent = 'A selected cable changed. Search again.'; return; }
+        if (!before || cableEmpty(before) || JSON.stringify(before) !== JSON.stringify(it.cable)) {
+          status.textContent = 'A selected cable changed. Search again.'; return;
+        }
         const after = action === 'remove' ? emptyCable() : { ...before, flags: action === 'on' ? before.flags | SLOT_ON : before.flags & ~SLOT_ON };
         if (JSON.stringify(before) === JSON.stringify(after)) continue;
         ops.push(packCable(it.index, after)); undoOps.push(packCable(it.index, before));
@@ -735,7 +737,7 @@ export function makeProject(ctx) {
         const srcInfo = mm.sources.get(c.src);
         const marks = chains.marks(i).map(([m]) => m).join('');
         const pct = pctOfQ14(c.amount);
-        cables.push({ group: 'Cables', index: i, label: `Cable ${i + 1} · ${src} → ${dst} · ${pct > 0 ? '+' : ''}${pct} %${marks ? ` · ${marks}` : ''}`,
+        cables.push({ group: 'Cables', index: i, cable: { ...c }, label: `Cable ${i + 1} · ${src} → ${dst} · ${pct > 0 ? '+' : ''}${pct} %${marks ? ` · ${marks}` : ''}`,
           src: `${src}${srcWord}`.toLowerCase(), dst: `${dst}${dstWord}`.toLowerCase(), refused: !!chains.verdictOf(i).code, late: chains.isLate(i), voice: !!(c.flags & VOICE),
           sound: key ? soundOf(key) : -1, srcSound: srcInfo && srcInfo.sound ? srcInfo.sound - 1 : -1,
           run: () => { st.selCable = `c${i + 1}`; select(`c${i + 1}`, { view: 'mod' }); } });
