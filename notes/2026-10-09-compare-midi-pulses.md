@@ -25,3 +25,16 @@ checkout instead of this isolated worktree; the exact-position query was
 therefore not used as evidence. Serena was activated on this worktree and
 returned the Compare processing body. The regression and native run are the
 behavior evidence.
+
+CI follow-up: the full Compare trace correctly changed when previously lost
+MID pulses began appearing between the sampled excerpt ticks. Regenerated
+only Compare's golden trace with the native renderer on bounded LAN Linux
+clang; all 4,134 rows and excerpt length are unchanged, other kinds are
+byte-for-byte unchanged, and the new digest `a9e6c48d…` matches the failing
+macOS CI's actual digest. The focused golden test passes both regeneration
+and a separate normal verification (1 pass each). This updates the expected
+intended behavior, not a tolerance or gate.
+
+The branch's committed simulator build record also predates its simulator
+sources; a fresh bounded Wasm/native parity rebuild is in progress. CI must
+pass the new complete head before integration.
