@@ -1,0 +1,342 @@
+{
+  "pr": 141,
+  "head": "9ecd5ad2373ad0bd15106f31a44f50d68bc9c28e",
+  "run": 38034613510,
+  "job": 114162364372,
+  "artifact": 11663670965,
+  "editor": {
+    "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+    "seconds": 30,
+    "logs": [],
+    "scheduling_capture": true,
+    "edited": 7262,
+    "codes_not_ok": 0,
+    "changes": 1724,
+    "entries": 58099,
+    "resyncs": 0,
+    "views": 1,
+    "telemetry": 905,
+    "stats": {
+      "quanta": 10695,
+      "timed": false,
+      "late": null,
+      "maxMs": null,
+      "editMs": null
+    },
+    "snapshot": {
+      "ok": true,
+      "bytes": 1115,
+      "binary": true
+    },
+    "ops": 7262,
+    "records": 58096,
+    "rate": 44100,
+    "playback": {
+      "underrun_events": 1,
+      "underrun_ms": 11.609
+    },
+    "pass": false
+  },
+  "follow_panel": {
+    "key": "s2:2",
+    "frames": 3,
+    "ms": 32.100000000034925,
+    "chips": [
+      "K1",
+      "K2",
+      "K3",
+      "K4"
+    ],
+    "knobs": 4,
+    "entry": {
+      "origin": "panel",
+      "how": "knob",
+      "label": "S2 Harmonics"
+    },
+    "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+    "flashed": true,
+    "trace": {
+      "observer": "main-thread",
+      "perturbsTiming": true,
+      "events": [
+        {
+          "phase": "main-port",
+          "type": "state",
+          "ms": 1.7999999999883585,
+          "audioTime": 0.6849886621315193,
+          "audioState": "running",
+          "loading": false,
+          "gen": 4,
+          "pendingChanges": 0,
+          "inflight": 0,
+          "rowConnected": true,
+          "value": "0.30",
+          "currentRowValue": "0.30"
+        },
+        {
+          "phase": "editor-before",
+          "type": "telemetry",
+          "bytes": null,
+          "ms": 4.100000000034925,
+          "audioTime": 0.687891156462585,
+          "audioState": "running",
+          "loading": false,
+          "gen": 4,
+          "pendingChanges": 0,
+          "inflight": 0,
+          "rowConnected": true,
+          "value": "0.30",
+          "currentRowValue": "0.30"
+        },
+        {
+          "phase": "editor-after",
+          "type": "telemetry",
+          "bytes": null,
+          "ms": 4.5,
+          "audioTime": 0.6936961451247166,
+          "audioState": "running",
+          "loading": false,
+          "gen": 4,
+          "pendingChanges": 0,
+          "inflight": 0,
+          "rowConnected": true,
+          "value": "0.30",
+          "currentRowValue": "0.30"
+        },
+        {
+          "phase": "main-port",
+          "type": "screen",
+          "bytes": null,
+          "ms": 5,
+          "audioTime": 0.6965986394557823,
+          "audioState": "running",
+          "loading": false,
+          "gen": 4,
+          "pendingChanges": 0,
+          "inflight": 0,
+          "rowConnected": true,
+          "value": "0.30",
+          "currentRowValue": "0.30"
+        },
+        {
+          "phase": "editor-before",
+          "type": "changes",
+          "bytes": 32,
+          "ms": 16.100000000034925,
+          "audioTime": 0.7024036281179138,
+          "audioState": "running",
+          "loading": false,
+          "gen": 4,
+          "pendingChanges": 0,
+          "inflight": 0,
+          "rowConnected": true,
+          "value": "0.30",
+          "currentRowValue": "0.30"
+        },
+        {
+          "phase": "editor-after",
+          "type": "changes",
+          "bytes": 32,
+          "ms": 18.100000000034925,
+          "audioTime": 0.7082086167800453,
+          "audioState": "running",
+          "loading": false,
+          "gen": 5,
+          "pendingChanges": 0,
+          "inflight": 0,
+          "rowConnected": true,
+          "value": "0.33",
+          "currentRowValue": "0.33"
+        }
+      ],
+      "frames": [
+        {
+          "frame": 1,
+          "ms": 0.20000000001164153,
+          "audioTime": 0.6849886621315193,
+          "audioState": "running",
+          "loading": false,
+          "gen": 4,
+          "pendingChanges": 0,
+          "inflight": 0,
+          "rowConnected": true,
+          "value": "0.30",
+          "currentRowValue": "0.30"
+        },
+        {
+          "frame": 2,
+          "ms": 13.299999999988358,
+          "audioTime": 0.6965986394557823,
+          "audioState": "running",
+          "loading": false,
+          "gen": 4,
+          "pendingChanges": 0,
+          "inflight": 0,
+          "rowConnected": true,
+          "value": "0.30",
+          "currentRowValue": "0.30"
+        },
+        {
+          "frame": 3,
+          "ms": 32.100000000034925,
+          "audioTime": 0.7198185941043084,
+          "audioState": "running",
+          "loading": false,
+          "gen": 5,
+          "pendingChanges": 0,
+          "inflight": 0,
+          "rowConnected": true,
+          "value": "0.33",
+          "currentRowValue": "0.33"
+        }
+      ],
+      "droppedEvents": 0,
+      "initial": {
+        "ms": 0,
+        "audioTime": 0.6849886621315193,
+        "audioState": "running",
+        "loading": false,
+        "gen": 4,
+        "pendingChanges": 0,
+        "inflight": 0,
+        "rowConnected": true,
+        "value": "0.30",
+        "currentRowValue": "0.30"
+      }
+    }
+  },
+  "capture": {
+    "schema": 1,
+    "trace_requested": true,
+    "trace_started": true,
+    "trace_complete": true,
+    "trace_categories": "audio,webaudio,disabled-by-default-audio",
+    "perturbation": "CDP tracing and one-second resource reads can affect scheduling; this is an instrumented run.",
+    "trace_window": "Starts before storm page.evaluate and ends after it, including the snapshot drain. Playback counters have their own narrower window.",
+    "errors": [],
+    "trace_events_saved": 86962,
+    "trace_events_dropped": 0
+  },
+  "sample_count": 33,
+  "cpu_stat_delta": {
+    "usage_usec": 8732551,
+    "user_usec": 7696220,
+    "system_usec": 1036330,
+    "nice_usec": 0,
+    "core_sched.force_idle_usec": 0,
+    "nr_periods": 0,
+    "nr_throttled": 0,
+    "throttled_usec": 0,
+    "nr_bursts": 0,
+    "burst_usec": 0
+  },
+  "first_sample": {
+    "utc": "2026-10-10T07:40:43.199Z",
+    "monotonic_ns": "721655914768",
+    "affinity_parallelism": 4,
+    "logical_cpus": 4,
+    "files": {
+      "/proc/self/cgroup": {
+        "text": "0::/",
+        "error": null
+      },
+      "/proc/self/mountinfo": {
+        "text": "421 420 0:30 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime - cgroup2 cgroup rw,nsdelegate,memory_recursiveprot",
+        "error": null
+      },
+      "/sys/fs/cgroup/cpu.max": {
+        "text": "max 100000",
+        "error": null
+      },
+      "/sys/fs/cgroup/cpu.stat": {
+        "text": "usage_usec 169464852\nuser_usec 150402959\nsystem_usec 19061893\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0",
+        "error": null
+      },
+      "/sys/fs/cgroup/cpu.pressure": {
+        "text": "some avg10=0.91 avg60=0.36 avg300=0.29 total=3963338\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=1592002",
+        "error": null
+      },
+      "/proc/pressure/cpu": {
+        "text": "some avg10=1.15 avg60=0.46 avg300=1.06 total=14844563\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0",
+        "error": null
+      },
+      "/proc/stat": {
+        "text": "cpu  17013 1 4222 259572 1793 0 133 0 0 0\ncpu0 4404 0 1061 64775 410 0 9 0 0 0\ncpu1 4219 0 1105 64788 572 0 68 0 0 0\ncpu2 4198 0 1018 64945 411 0 9 0 0 0\ncpu3 4191 1 1036 65062 399 0 45 0 0 0",
+        "error": null
+      },
+      "/proc/loadavg": {
+        "text": "0.49 0.43 0.24 1/372 1448",
+        "error": null
+      },
+      "/proc/self/status": {
+        "text": "Cpus_allowed_list:\t0-3",
+        "error": null
+      }
+    }
+  },
+  "last_sample": {
+    "utc": "2026-10-10T07:41:14.723Z",
+    "monotonic_ns": "753180308166",
+    "affinity_parallelism": 4,
+    "logical_cpus": 4,
+    "files": {
+      "/proc/self/cgroup": {
+        "text": "0::/",
+        "error": null
+      },
+      "/proc/self/mountinfo": {
+        "text": "421 420 0:30 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime - cgroup2 cgroup rw,nsdelegate,memory_recursiveprot",
+        "error": null
+      },
+      "/sys/fs/cgroup/cpu.max": {
+        "text": "max 100000",
+        "error": null
+      },
+      "/sys/fs/cgroup/cpu.stat": {
+        "text": "usage_usec 178197403\nuser_usec 158099179\nsystem_usec 20098223\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0",
+        "error": null
+      },
+      "/sys/fs/cgroup/cpu.pressure": {
+        "text": "some avg10=0.08 avg60=0.30 avg300=0.28 total=4117330\nfull avg10=0.00 avg60=0.01 avg300=0.00 total=1727572",
+        "error": null
+      },
+      "/proc/pressure/cpu": {
+        "text": "some avg10=0.10 avg60=0.39 avg300=0.98 total=15015762\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0",
+        "error": null
+      },
+      "/proc/stat": {
+        "text": "cpu  17573 1 4312 271226 1793 0 133 0 0 0\ncpu0 4538 0 1082 67695 410 0 9 0 0 0\ncpu1 4360 0 1128 67701 572 0 68 0 0 0\ncpu2 4325 0 1042 67870 411 0 9 0 0 0\ncpu3 4348 1 1058 67958 399 0 45 0 0 0",
+        "error": null
+      },
+      "/proc/loadavg": {
+        "text": "0.44 0.42 0.24 2/375 1454",
+        "error": null
+      },
+      "/proc/self/status": {
+        "text": "Cpus_allowed_list:\t0-3",
+        "error": null
+      }
+    }
+  },
+  "input_sha256": {
+    "editor-reach.json": "c2c47a8ec46284ff7a911c399054644004b3e02cdf468739c3f3e6d8f73762cb",
+    "editor-v1.json": "451a7995baccc1bb69445c65a6fbb2770fc3bf32d3fff45f42ba8569806640e8",
+    "editor.json": "8ba9f898a7f1474b3a9ac0b30dca2302538eda225de4e3b48c7ce45d777bc540",
+    "editor-audio-trace.json": "c72c81efd8c8f04829b97c78479fea659becc759262b3cbc17601e1d71a2e92f",
+    "editor-map.json": "bc1aba078ec99064e18320b1f406e3dd884cf6ac579b793e6e9a66edded6f9c3",
+    "editor-scheduling.json": "38728b43a4289280a2dad969ccf01a1dea86d148cd5a362a4e73440f66f78f5a",
+    "editor-ui.json": "c5b44ab7a0a440714dbbbd01965e07ab3aba7d9396dea5bdbe4b23b3c813cf20"
+  },
+  "duration_max_us": {
+    "RealtimeAudioDestinationHandler::Render": 1241,
+    "AudioDestination::Render waiting": 5757,
+    "AudioDestination::Render": 5774,
+    "PulseAudioOutputStream::FulfillWriteRequest": 562
+  },
+  "start_gap_max_us": {
+    "RealtimeAudioDestinationHandler::Render": 16048,
+    "AudioDestination::Render waiting": 13384,
+    "AudioDestination::Render": 13384,
+    "PulseAudioOutputStream::FulfillWriteRequest": 13308
+  }
+}

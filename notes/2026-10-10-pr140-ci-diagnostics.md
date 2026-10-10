@@ -86,3 +86,37 @@ The observer explicitly labels timing perturbation. This matches the
 previous frozen-clock signature under the old default sink configuration;
 it establishes delayed worklet delivery in this observation, not an
 independent firmware or effect defect. The failed gate is preserved.
+
+## PR141 Chromium storm failure
+
+[verified] PR141 head `9ecd5ad2373ad0bd15106f31a44f50d68bc9c28e`,
+[CI38034613510, Chromium job114162364372](https://github.com/ip2k/lunar-modulator/actions/runs/38034613510/job/114162364372),
+failed its 30-second editor storm with one browser-reported underrun,
+11.609 ms. The duration equals one 512-frame output buffer at 44,100 Hz
+when rounded to three decimals. There were 7,262 edits, zero refused codes,
+zero resyncs and 905 telemetry messages. The earlier external loopback
+passed with zero silence, nonfinite samples or bad periods and eight A/B
+swaps. Panel-follow passed at three frames / 32.1 ms; map 41/41 and editor
+v1 99/99 passed. This is an audio counter failure, not a panel-follow or
+pre-browser timeout. Zero-underrun acceptance remains unchanged.
+
+[verified] Failure artifact `editor-page-test-output-chromium` (11663670965)
+contains 33 one-second resource samples and a complete 86,962-event audio
+trace with zero events dropped. Four CPUs were available. Visible cgroup
+`cpu.max` was `max 100000`; throttled periods and microseconds remained
+zero. CPU pressure `some avg10` peaked at 1.65% in the cgroup and 2.03%
+system-wide. Total pressure increments were 153,992 and 171,199 microseconds
+over the approximately 32-second capture. These samples do not establish
+CPU saturation or quota throttling as the cause. Hidden ancestors and short
+scheduling delays are not excluded by one-second observations.
+
+[verified] The largest 128-frame render duration was 1.241 ms, below the
+2.902 ms quantum; the largest destination wait was 5.757 ms. The largest
+worklet render-start gap was 16.048 ms near the end of the trace. Captured
+categories contain no explicit timestamp for the counted underrun, so these
+gaps cannot be assigned as its cause. Tracing/resource sampling explicitly
+perturb timing. The cause is unresolved; no rerun, tolerance change or
+candidate mutation was performed. The bounded extracted receipt and hashes
+of the original JSON artifacts are in
+[data/pr141-9ecd5ad-chromium-failure.json](data/pr141-9ecd5ad-chromium-failure.json).
+The full original artifact remains downloadable from the CI run.
