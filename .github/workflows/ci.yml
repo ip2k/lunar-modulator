@@ -205,10 +205,15 @@ jobs:
             --load="module-native-protocol-unix auth-anonymous=1 socket=/tmp/pa.sock" -D
           echo "PULSE_SERVER=unix:/tmp/pa.sock" >> "$GITHUB_ENV"
           echo "PULSE_SOURCE=lunar.monitor" >> "$GITHUB_ENV"
-      - name: The editor's data and history against the module (node)
+      # A pre-browser stall must identify its command instead of consuming
+      # the whole browser job with editor-unit's report discarded (#132).
+      - name: Panel-follow and scheduling helper tests (node)
+        timeout-minutes: 5
         run: |
           node --test sim/web/test/panel-follow.test.mjs sim/web/test/scheduling-capture.test.mjs
-          node sim/web/test/editor-unit.mjs sim/web/www > /dev/null
+      - name: The editor's data and history against the module (node)
+        timeout-minutes: 5
+        run: node sim/web/test/editor-unit.mjs sim/web/www
       - name: External audio detector and browser loopback
         run: |
           node sim/web/test/audio-analysis-check.mjs
