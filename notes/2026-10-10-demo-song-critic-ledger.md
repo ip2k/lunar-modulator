@@ -89,7 +89,7 @@ coverage limits, not validation of the writer worktree.
 | 2 | `f1887404` | Round 2 MD/JSON | All 32 scenes below threshold; R1 repairs partly implemented; R2-A–F open |
 | 3 | `cdf8d8fc` | Round 3 MD/JSON | All32 scenes below threshold; R2 repairs accepted/partial; R3-A–D open |
 | 4 | `75e029dc` | Round 4 MD/JSON | All 32 scenes below full threshold; real phrase/voicing/transition improvements, R4-A–C open |
-| 5 | Writer composing | — | Final permitted round |
+| 5 | `3e6eaa5f` | Round 5 MD/JSON | Complete: target unmet, 0/32 scene passes, 190/192 score cells at or below 8 |
 
 Critic branch: `chore/2026-10-10@demo-music-critic`.
 Writer branch: `feature/2026-10-10@demo-songs`.
@@ -122,3 +122,11 @@ Parent integration owns rendering, runtime acceptance and final packaging.
 ## Round 4 source checkpoint
 
 [verified] Frozen75e029dcb4416c3b0381d0f6665fac0a6c0c3160 inspected across all32 scenes and54 occurrences. All five pitched-role streams in every peak change between four-bar halves; actual Afterglow common tones, harmony-aware replies, continuous Event/Neon intros, Packet C#4-to-D4 interruption and full-bar closing sustains verified. [inferred] Scores6–9, no complete scene pass. Exact defects retained: unused Afterglow Warble configuration and four duplicate chord-reply triggers. Remaining artistic limits concern sustained articulation, distinctive contrast/verse development and local register/suspension resolution. Writer has started final Round5 separately; runtime acceptance is pending independently and no listening is claimed.
+
+## Final round 5 checkpoint
+
+[verified] Frozen `3e6eaa5fea7a38822b60a2a742af4b932856b8cc` inspected across all 32 scenes and 54 ordered occurrences. Reports: `2026-10-10-demo-song-critic-round-5.{md,json}`. Actual Afterglow Warble selection and all duplicate chord-answer attacks are corrected. Common-tone bridge holding, Event Horizon 144/192-tick swells, Neon first-chorus upper-neighbour resolution and three outro register handoffs are present in the emitted projects. File hashes, all score cells, occurrence coverage and zero same-pitch/same-onset duplicate events independently checked.
+
+[inferred] Five rounds are complete; the requested target is **unmet**. There are 0/32 full scene passes, 2/192 scores above 8, and 190/192 scores at or below 8. Remaining limits concern short repeated verse cells, localized expressive articulation, shared contrast/build design and insufficiently distinctive musical identity across the complete songs. Concrete remaining limitations and per-scene categories are retained in the final report. No sixth revision round is requested.
+
+[reported] The writer has not run final Round 5 native/Wasm/browser acceptance and identifies the parent as its owner. Exact final runtime receipts were not supplied before this source-review close; earlier passing receipts remain tied to their earlier SHAs. Parent integration owns those final checks and packaging. [verified] No by-ear listening was performed. Owner listening and any FM-1 hardware validation remain separate.
