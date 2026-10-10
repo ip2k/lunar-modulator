@@ -44,9 +44,10 @@ Open **<https://ip2k.github.io/lunar-modulator/>** and press **Power on**
 - press **Space** to hear the demo pattern;
 - turn the knobs and watch the screen follow.
 
-It needs a current browser with WebAssembly and AudioWorklet. The page tests
-run in Chromium, Firefox and WebKit; native Safari has also passed the
-filtered patch-list and A/B playback checks. Real touch screens and MIDI
+It needs a current browser with WebAssembly and AudioWorklet. Automated page
+tests run in Chromium, Firefox and WebKit. Native Safari passed the filtered
+patch-list check; Sound A/B playback is being retested after a crackling
+report. Real touch screens and MIDI
 hardware have not been tested. The page loads its own files and does not
 upload your projects or send MIDI out; MIDI input is available in supported
 browsers ([test record](notes/2026-10-07-editor-audio.md)).
