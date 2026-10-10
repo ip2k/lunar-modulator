@@ -1,6 +1,6 @@
 # Offline firmware PR integration checkpoint
 
-2026-10-10 07:28 UTC. This is a reviewable integration branch, not a merge to
+2026-10-10 07:29 UTC. This is a reviewable integration branch, not a merge to
 `main` and not a device-readiness claim. It starts at `origin/main`
 `bdba4476570b0a77d13c76a38dfb3bcfd364277b` and preserves normal merge
 histories in the requested order: combined candidate PR #140
@@ -62,14 +62,14 @@ WebKit editor job failed. PR #136's old exact-head run `38028091040` had 12
 successful jobs and the WebKit editor job failed. These failures remain
 recorded; they are neither waived nor treated as passes on this assembled
 head. Exact integrated-branch CI must decide whether the combined browser
-fixes resolve them. The current host lacks `pytest` in Python 3.14, so the
-two focused local Python suites could not run (`No module named pytest`). This
-is an environment limitation, not a test pass; the old PR checks above are
-the available test evidence until root reviews the integrated diff and starts
-fresh CI.
+fixes resolve them. Root independently ran the focused suites from the
+existing project virtual environment: **33 passed, 2 skipped** (35 total);
+the skips require private stock artifacts. Root also confirmed
+`git diff --check` passed. These focused results do not replace full
+integrated-branch CI.
 
 `git diff --check origin/main...HEAD` passed before this note was added. No
 hardware traffic, MMIO, loader, flash, package, or install operation was
-performed. Root review is required before opening a replacement PR or
-dispatching its full CI. Keep the source PRs and all their historical failed
-receipts intact until that review and replacement acceptance are complete.
+performed. Root reviewed the integrated source and build changes. A
+replacement PR is the next step for fresh full CI; keep the source PRs and all
+their historical failed receipts intact until that acceptance is complete.
