@@ -32,3 +32,21 @@ scheduling. Earlier failed CI events remain unassigned.
 Next gate: a bounded comparison using an isolated copy of the actual
 page/worklet/Wasm, with explicit finite initialization timeout. No hardware,
 no original-CI retry, no threshold change, and no production claim yet.
+
+## Bounded probe result
+
+[verified] Probe source `d6a1f545` ran once per variant/browser on aeon,
+4 CPUs / 2 GiB, private Pulse 48 kHz stereo `norewinds=1`. An isolated
+copy suspended context creation, suppressed wake until ready, connected
+then resumed. Chromium, Firefox and WebKit all delivered ready while
+suspended at currentTime/frame zero, then resumed and produced 64–66
+screens. Suspended instantiate/setup times were 3/6 ms, 11/4 ms and
+5/5 ms respectively (integer Date.now resolution). No suspended-message
+deadlock occurred within the 20-second finite wait. The running variants
+initialized on an advancing clock. Both Chromium traces were complete
+and recorded zero explicit glitch/timeout events; neither reproduced the
+CI failure. This establishes the feasibility of ordered initialization,
+not failure-rate proof, a strict storm pass, native Safari acceptance or
+human listening success. Observers/tracing, fixed pair order and warm
+browser cache can influence timing. Full compact results are in
+`data/2026-10-10-suspended-startup-probe.json`.
