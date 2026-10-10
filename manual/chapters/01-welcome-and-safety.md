@@ -65,7 +65,8 @@ mode to be retained. UBOOT entry alone is not proof of recovery. The current
 limits and safeguards are in [chapter 11](11-updating-and-recovery.md).
 
 !!! warning "There is nothing to install on your FM-1 yet"
-    There is no Lunar Modulator firmware for the FM-1 yet. Be wary of any file
+    There is no installable Lunar Modulator release for the FM-1 yet. Offline
+    diagnostic firmware variants exist, but none has run on an FM-1. Be wary of any file
     that claims to be Lunar Modulator for the device: it is not from this
     project. To try Lunar Modulator, use the browser simulator.
 

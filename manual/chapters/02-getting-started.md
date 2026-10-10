@@ -338,7 +338,12 @@ application has been installed or run on an FM-1.
 
 ### The road to the device
 
-Each step below has to succeed before the next one starts:
+The steps below describe planned workstreams, not a validated sequence or a
+claim that Lunar can be installed. Offline diagnostic builds now exist, but no
+Lunar application has run on FM-1 hardware. Full-image recovery and rescue of a
+nonbooting application also remain untested; see
+[chapter 11](11-updating-and-recovery.md). Any future installation needs its
+own reviewed recovery evidence and a usable route back to USB update mode.
 
 1. **Recovery evidence.** Continue from the verified bounded sector
    program/restore and matching full-flash backups. Full-image rewrite and
