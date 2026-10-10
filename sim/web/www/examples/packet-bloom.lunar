@@ -7,7 +7,7 @@
   "about": "A soft-focus D-minor loop that keeps shedding a beat: off-grid-feeling accents, a descending answer and brief drum edits frame the returning bloom. All parts are original MIDI patterns; no samples are used.",
   "licence": "MIT",
   "session": {
-    "current": 0,
+    "current": 2,
     "octave": 0,
     "transpose": 0,
     "key": {"root": "D", "scale": "minor"}
