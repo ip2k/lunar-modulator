@@ -92,3 +92,40 @@ full instrument integration gates remain open. Changed files already end LF.
 Both semantic MCPs used for firmware bounded review; Rarefaction source fallback
 and engine file inspection used for this checklist because Serena's engine root
 did not initialize a language server. No ABI proof inferred from clangd.
+
+## Follow-up status (2026-10-10 UTC)
+
+The combined Warble/Repeat/PSX source candidate is now built and has passed its
+108-scenario simulator matrix. Root reports 24 non-test effects and independently
+verified the committed Wasm's build record and matching source hashes. This is
+not yet a `main` merge or an installable firmware claim. PR137's Ubuntu and
+macOS runs each have two integration failures: Repeat Hold has no pinned list
+entries, and the checked-in metadata example differs from the built metadata.
+Its WebKit run also fails the strict S2 Harmonics panel-to-editor latency gate
+at 22 frames/358 ms. These need a justified correction and exact-head CI before
+the combined stream can clear its integration gate.
+
+The engine/editor candidate's native unit and undo/redo checks pass, but the
+strict WebKit editor failures on PR130 and PR138 remain captured failures until
+their fixes pass exact-head checks. The separate PR131 Chromium underrun remains
+an unresolved CI/browser-path issue; it has not been diagnosed as a production
+runtime defect. Automated checks do not settle the owner's Safari Sound 2
+listening report: the by-ear retest remains pending. No full song compositions,
+whole-chain renders or owner listening reviews are complete yet.
+
+DADSR envelope editing is available on merged main through PR101, so song
+authors can use its Delay/Attack/Decay/Sustain/Release controls. Demo completion
+still requires four original assets, canonical authority/library copies,
+admission and roundtrip checks, full native and actual Wasm renders, browser
+load/play/save/reload and scene-takeover checks, and listening. Those are planned
+acceptance steps; none is inferred from the candidate build or isolated editor
+tests. Hardware boot/install/runtime and physical listening remain independent
+and are not demo-authoring prerequisites.
+
+The full-code audit is not blanket-closed. Treat a confirmed audible DSP or
+song/editor/save defect used by an asset as a demo gate until it is fixed and
+validated at the integrated source/Wasm level. Remaining developer-tool,
+non-selected-module, audit-removal and hardware bring-up findings stay tracked
+in the audit ledger and their owning workstreams; they are not automatically
+song-authoring blockers. A candidate fix or a passing focused test does not
+close an item for `main` or clear its broader acceptance evidence.

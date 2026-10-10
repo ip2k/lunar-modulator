@@ -206,17 +206,16 @@ The implementer's bounded LAN run reports 104/104 exact JS/musl audio cases,
 DX7 18/18 and zero late quanta in the 30-second edit storm. The corrected
 Sophie framebuffer is exact against native musl; the 34 glibc scope-pixel
 differences remain diagnostics. The existing bottom-right RAM mask remains;
-there is no additional waveform mask or tolerance.
+there is no additional pixel mask or tolerance.
 
-[verified: acceptance issue] Root's artifact test verified PR139's binary
-hash but warned that its sim input hash was stale. Build/test inputs changed
-after staging the successful build; identify and regenerate the record using
-the actual pipeline before final acceptance. The record serializer also needs
-to retain the selected screen reference and glibc/musl diagnostics. These
-follow-ups are assigned to the implementer. Source review permits the combined
-Warble/Repeat candidate to incorporate the repair and perform its required full
-regeneration; PR139's current artifact is not accepted as the final combined
-artifact. Its exact-head CI remains pending.
+[verified: acceptance issue] Root's artifact test found that PR139's recorded
+sim input hash did not match the inspected input hash. The precise per-file
+staging delta was not retained, so the cause is unknown; do not infer that
+particular inputs changed after staging or edit a hash by hand. The follow-up
+serializer now records the selected screen reference and glibc/musl diagnostic
+counts. A fresh build through the actual combined pipeline is required to
+establish the final record and artifact provenance. PR139's artifact is not
+the final combined artifact.
 
 [reported: bounded reproduction] The browser investigator reproduced PR131's
 exact Chromium storm three times under a four-CPU LAN quota with the original
@@ -225,3 +224,48 @@ A Chromium shared-memory callback timeout can produce a buffer-duration glitch,
 but the failed trace does not localize that cause. Do not claim a production
 runtime fix or that PR132's headless sink correction resolves this separate
 failure. Continue exact-head CI and preserve failed receipts.
+
+## Combined-candidate and check snapshot (2026-10-10 UTC)
+
+[verified: root-reported build and artifact receipts] Combined source head
+`3519c3857d9bddb8007e14de7ef84525ef8df96a` built 108/108 scenarios. The
+recorded native metadata ID is `53ec1875`, the Wasm metadata ID is `5d726997`,
+and the registry contains 24 non-test effects. Root subsequently verified the
+combined artifact SHA256 `c88938845cd93e52f5cb99c53a650b4eaf559833e5f39fb58ecc0f0c4ab09502`
+(1,561,111 bytes), with matching engine/SIM source hashes and no stale-record
+warning. Focused committed-build-record validation passed; this candidate and
+artifact are not yet merged into `main`.
+
+[verified: CI failure receipt] PR137 head `e1416ac0578bde81192362554089c88ece65c3f9`
+has identical Ubuntu and macOS failures: 2 failed, 5,175 passed, 28 skipped
+and 2 xfailed on each platform. The failures are
+`tests/test_engine_names.py::test_list_entries_only_grow_at_their_end`
+(`repeat Hold (#1) is a list with no pinned entries`) and
+`tests/test_state_schema.py::test_the_metadata_example_is_the_builds`
+(checked-in canonical example metadata differs from the built metadata).
+These are fixture/example integration failures, not a stale artifact-hash
+diagnosis. Its WebKit check also fails the strict panel-to-editor latency gate
+for `s2:2` / `S2 Harmonics` at 22 frames (358 ms); the mapping (41/41), editor
+v1 (99/99), dialogs, and 30-second storm pass (3,757 edits, 0 refusals or
+resyncs). Preserve each failed gate until a justified correction passes on an
+exact head.
+
+[verified: GitHub check snapshot] At this snapshot PR130 head
+`d7170e043b1824f537613b65efddcb3de72d12e2` and PR138 head
+`75aaf658324f119f413090d0e989ddfe44bf41b4` each had a strict WebKit editor
+failure. PR130's macOS, Linux, GPL-on/off, module-list, 32-bit and Chromium
+checks had passed while ASan was still running. PR138's Linux/macOS, module
+list, dongle and fork checks had passed while Chromium/Firefox were still
+running. PR133 head `a5bac822d9ed9b938393ca1ef5e575d453616775` had no observed
+failures but remaining checks were in progress or queued. PR135 head
+`475c859c5187ecf94a6881f4620b93ae4d8fb614` had its manual/site, macOS,
+GPL-on module-list and 32-bit checks passed; remaining checks were queued.
+These are point-in-time statuses, not claims that the PRs are green or merged.
+
+[verified: root-reported focused checks] The combined editor candidate also
+passed the current native editor-unit suite (36/36) and parameter undo/redo
+checks (109 parameter cases plus 17 structural undo cases, exact hash restore,
+zero refusals). They do not replace outstanding exact-head cross-platform CI,
+the owner's Safari Sound 2 listening retest, or full-song browser/listening
+validation. PR101's DADSR graph is already merged on main; hardware/runtime
+readiness remains a separate, bounded claim.
