@@ -112,3 +112,74 @@ Next bounded run will compare fresh editor startup immediately after loopback
 with standalone starts under the same private Pulse sink. Backend stderr must
 actually be captured: the prior GST_DEBUG-only run emitted no backend diagnostics,
 so it cannot exclude a Pulse/GStreamer startup or silence-related stall.
+
+## Backend capture and silent startup comparison
+
+[verified: bounded LAN experiment] The private follow-up uses the same recorded
+baseline module (SHA-256 `9562448e742836a4571ebd04ad303c72d0125a8054483dffbee9d5c6240ed4e1`),
+Playwright 1.63.0 / WebKit 26.6 (`webkit-2359`, WPE in headless mode), PulseAudio
+16.1 and host-container GStreamer 1.24.2. Sources `app.js`, `worklet.js`,
+`editor-ui.mjs` and `launch.mjs` match PR #129's failing head; the engine sources
+and rebuilt CI module differ. This is a comparison of startup behavior, not an
+exact-head binary reproduction. The existing `/pw` dependency mount is read-only.
+Each own container uses the same private 48 kHz null sink, two CPU quota,
+4 GiB memory and batch cgroup, and exits normally; no shared service is changed.
+
+The unchanged 30-second loopback again passes 3,756 batches/replies, zero
+refusal/resync, nonfinite or channel mismatch, and zero bad periods; musical
+peak is 0.2676697. Six fixed fresh startup probes pass within one to four
+frames (19–97 ms): four immediately after loopback, then two after a five-second
+idle. `DEBUG=pw:browser` and `GST_DEBUG_FILE` now retain actual backend output.
+The logs identify `autoaudiosink0-actual-sink-pulse`; every passing startup has
+Pulse underflow warnings (3–11 per trial). Underflow warnings alone cannot
+identify the failing assertion [inferred]. Pulse observations and cgroup CPU
+counters are retained; quota throttling also occurs in passing trials.
+
+[verified: diagnostic clock observation] Three further fresh browsers run the
+same startup prefix, then sample `currentTime` and context state on animation
+frames for five seconds **before** the original encoder/follow probe. This
+changes observation timing and is not the unchanged acceptance run. One trial
+holds `currentTime = 0.748843537414966` for 23 consecutive sampled frames,
+spanning 347 ms (sample offsets 131–478 ms), while state remains running.
+The next samples advance to 0.8097959 and then 1.2306576 seconds. Animation
+frames continue during the plateau. The other trials' longest repeats are
+0 and 26 ms. All three later encoder probes pass in one or two frames.
+
+Two fixed comparison trials remove verbose GStreamer output while retaining
+the same clock sampler, Pulse debug log, 100 ms Pulse/cgroup polling and CPU
+quota. The first again holds a running clock, this time at 0.7546485260770975
+for 43 sampled frames / 673 ms (offsets 130–803 ms), then catches up to
+0.9839456 and 1.4860771 seconds. The second has a 61 ms two-sample repeat.
+Both later encoder probes pass. Verbose GStreamer output is therefore not
+necessary for the observed plateau [inferred]; the remaining instrumentation
+and CPU quota can still perturb timing. No retries convert a failing result
+into a pass: the six, three and two observations are separate fixed experiments.
+
+[verified: backend correlation, not causation] Both long-plateau trials record
+initial Pulse sink latency near 1.9 seconds, descending over subsequent polls.
+The three shorter silent trials peak at roughly 0.29–0.50 seconds. The verbose
+plateau trial records a burst of GStreamer clock-skew corrections and underflow
+around backend elapsed 1.19 seconds. These observations strengthen the startup
+backend/clock hypothesis, but do not prove whether sink startup, worklet/engine
+initialization or scheduling pressure caused the CI failure. A running context
+and an uncorked Pulse input do not establish uninterrupted worklet processing.
+
+The [complete compact capture](evidence/2026-10-09-webkit-audio-lifecycle/backend-probes.json)
+contains all clock and follow samples, selected Pulse/cgroup observations,
+browser stderr, backend warning excerpts, full probe/runner sources and exact
+raw-file hashes. Raw backend logs remain at
+`/home/claude/mvave-fm1/webkit-backend-probe-20261009/{out,silent-out,silent-quiet-out}`;
+local copies are `/tmp/lunar-webkit-backend-results/`. Host/machine identifiers
+and Pulse cookies are omitted from the committed observations. No vendor binary
+or audio capture is committed. The raw logs remain local/LAN recovery data;
+the evidence extraction is the GitHub-backed record.
+
+[limitation and next step] Temporary early running-clock plateaus are now
+observed locally, including without verbose GStreamer logging. The unchanged
+initial panel-follow failure remains unreproduced, and no causal runtime fix is
+established. The next useful comparison is a failing exact-head rebuilt module
+with clock samples tied to wall-clock timestamps, actual worklet receipt/render
+markers, and contemporaneous Pulse/GStreamer/cgroup records; first reduce
+observer overhead. Preserve the 12-frame check, 60-frame maximum and zero-event
+external audio gate. No extra readiness wait, resume/retry, silent oscillator,
+backend substitution or assertion change is justified by this checkpoint.
