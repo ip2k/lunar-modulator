@@ -275,3 +275,46 @@ acceptance will apply to the authored assets. Generic project-example filename
 tests and an obsolete schema-test docstring should be corrected with those
 assets. Remaining rate/input-bound audit findings stay tracked, not blanket
 closed. A separately pushed readiness ledger records these distinctions.
+
+## Exact-head follow-up — 2026-10-10
+
+[verified] GitHub inventory is now 26 open PRs after replacement #141 was
+opened. Every open head matches its remote source-branch SHA. Twenty older
+heads are ancestors of #140; #134 and #136 are ancestors of #141. #139's
+unique WebKit trace note is byte-identical in #141, while its runtime fixes
+are already integrated in #140. #22 and #58 are stale snapshots whose useful
+factual corrections have been reconciled into the current documentation;
+they must not overwrite current HANDOFF. No superseded PR has been closed
+before replacement acceptance.
+
+#140 remains frozen at `9a5fb72a54f5117169840f331fd1f756071e6fd5`.
+CI run 38034115528 has passed Chromium, Firefox, WebKit, Ubuntu, macOS,
+32-bit, both module-list builds, MIT/BSD, dongle and reference checks.
+Sanitizer engine tests passed; its virtual-app step is still running. Pages
+run 38034115529 built 17 chapters / 42 entries / 275 pages with zero manual
+warnings, errors or outline boxes; deployment is intentionally skipped.
+This is not yet full CI acceptance or merged-main evidence.
+
+#141 is frozen at `9ecd5ad2373ad0bd15106f31a44f50d68bc9c28e`.
+Root independently ran 33 passing offline layout/capture tests with two
+private-artifact skips. CI run 38034613510 failed Chromium's strict storm
+gate with one 11.609 ms underrun; its loopback and UI gates passed, as did
+Firefox/WebKit. Captured scheduling data does not establish the cause.
+The failure is retained; no blind retry or tolerance waiver is authorized.
+Detailed receipts are backed up on `chore/2026-10-10@pr140-ci-diagnostics`
+at `40791988c17aeca754c451187acc9cfdbb9daea0`.
+
+A new focused DSP branch, `fix/2026-10-10@audited-dsp-boundaries`,
+corrects Sophie multi-turn phase wrapping and Mutable FX NaN default handling,
+and clarifies Gate's fixed lookahead cap. Sophie also affects normal-rate
+high-ratio operation, correcting the earlier readiness note's low-rate-only
+claim. Root reviewed the source/provenance and independently passed the C
+60,000-step regression; the author reports old-source failure, 167 focused
+passes and regenerated 108-scenario Wasm parity. It is not yet a merged fix.
+
+Hardware research is backed up on `chore/2026-10-10@fm1-live-bringup`
+at `e2c977d3a42463ee1548001d65208444b8ed2dee`. Fresh identity is
+FM-1_092; no new firmware execution or flash writes occurred. Loader FB08
+is rejected by the audited loader, and FB42 leads to flash erase, so neither
+is an execution alternative. A bounded loader FD07 mask-ROM code-read
+proposal is undergoing offline command/bounds review before device action.
