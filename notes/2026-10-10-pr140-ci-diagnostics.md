@@ -120,3 +120,51 @@ candidate mutation was performed. The bounded extracted receipt and hashes
 of the original JSON artifacts are in
 [data/pr141-9ecd5ad-chromium-failure.json](data/pr141-9ecd5ad-chromium-failure.json).
 The full original artifact remains downloadable from the CI run.
+
+## Opt-in startup, loop and drain counter diagnostic
+
+[verified] Exact Chromium 153.0.8010.12 source limits publication of accumulated
+playback statistics to once per second, on a successful audio-graph try-lock.
+The getter transfers published statistics under the graph lock; it does not
+force pending render statistics to publish. Getter values are cached within
+a JavaScript task. Source: Chromium's
+[audio_context.cc](https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/third_party/blink/renderer/modules/webaudio/audio_context.cc)
+(`StatsUpdateRestrictor`, `HandlePreRenderTasks`, `TransferAudioFrameStatsTo`)
+and [audio_playback_stats.cc](https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/third_party/blink/renderer/modules/webaudio/audio_playback_stats.cc).
+[inferred] A pre-baseline glitch can therefore publish after the baseline.
+That is a candidate mechanism, not proof of the original PR141 cause.
+
+[verified] The diagnostic uses `FM1_STORM_PHASE_DIAGNOSTIC=storm|idle` with a
+1–60 second bound. It traces before navigation/power-on and adds user-timing
+markers for power-on, PLAY, the original baseline, loop beginning/end,
+snapshot drain/end and trace finish. One-second raw samples retain cumulative
+integer events, duration in seconds, total published duration, page/audio
+clocks and unavailable/error states. Sample times describe publication
+observations, not exact glitch times. Chromium getters take the graph lock;
+these reads and tracing can perturb scheduling.
+
+[verified] The baseline remains after PLAY/editor-port/subscription setup;
+the final counter remains after the 1,500 ms snapshot drain. The complete
+original pass expression, including zero browser underrun events, is retained.
+Neither startup events nor drain events are subtracted. Idle runs the same
+powered/playing page, telemetry, timers and snapshot drain without edit
+messages; it is explicitly a control observation, not an acceptance run.
+The default CI storm does not enable phase observation or earlier tracing.
+
+[verified] The trace classifier counts exact named `SyncReader::Read timed out`,
+`Glitch!`, FIFO pull/earmarked shortages and FIFO overruns separately and
+retains phase markers. A zero FIFO occupancy counter is not treated as a
+shortage: Chromium emits it after successful pulls too. Exact source:
+[push_pull_fifo.cc](https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/third_party/blink/renderer/platform/audio/push_pull_fifo.cc).
+Trace completeness, truncation and capped event extracts remain explicit;
+absence of these events does not establish universal glitch observability.
+
+[verified] Focused regressions cover delayed publication without erasing a
+single baseline-delta event, missing/error counters, bounded samples, exact
+phase-boundary assignment, empty-FIFO separation and final trace-batch drain.
+This diagnostic changes simulator test inputs, so the committed build record's
+simulator hash is not a fresh record for the diagnostic tree. It changes no
+DSP/runtime source or Wasm bytes. PR141 and this probe use the same Wasm SHA256
+`c88938845cd93e52f5cb99c53a650b4eaf559833e5f39fb58ecc0f0c4ab09502`.
+The original failed CI is preserved and is not rerun. A bounded paired LAN
+observation and root review remain pending; no production correction is implied.
