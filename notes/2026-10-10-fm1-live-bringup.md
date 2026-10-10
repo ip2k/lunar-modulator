@@ -4,8 +4,10 @@ Personal MIT stream `chore/2026-10-10@fm1-live-bringup`, based on main
 `bdba4476570b0a77d13c76a38dfb3bcfd364277b`. The owner authorized parallel
 firmware preparation and bounded read-only bring-up with the powered FM-1
 still directly on Bench01. The browser candidate and shared MCP projects
-remain separate. No soft key, loader upload, flash erase/program, eFuse,
-new application execution, or topology change occurred in this checkpoint.
+remain separate. The initial inventory checkpoint sent no soft key or
+loader. The later reviewed session below sent one soft key, then stopped
+before loader upload at host preflight. No flash erase/program, eFuse,
+new application execution or topology change occurred.
 
 ## Fresh physical state
 
@@ -103,8 +105,9 @@ nonbinary evidence is in [the offline receipt](data/2026-10-10-ram-leaf-offline.
 [unverified] The actual WL82 ROM argument register, inherited register/
 return context, executable RAM reservation, watchdog servicing during a
 returning call, and in-place read-cipher behavior remain unresolved.
-Neither the existing nonreturning loader execution nor host clangd proves
-them. No new custom payload, FD07, or jump was sent. Existing recovery
+Neither the existing loader execution nor host clangd proves them. Its
+static return path is recorded below; caller continuation was not captured.
+No new custom payload, FD07, or jump was sent. Existing recovery
 allowlists remain unchanged; their focused tests passed **12/12**.
 
 ## Recovery-loader command correction and rejected alternatives
@@ -278,6 +281,12 @@ not evidence that the numeric FB08 command argument is passed in `r0`.
 The leaf records incoming context only. Returning-call and stack contracts
 remain unproven.
 
+[verified, offline] Initialization entered at `0x63a` has a saved-return
+prologue and ends with `sp += 36` at `0x928`, then restoration of the saved
+PC and `r11..r4` at `0x92a`. This corrects the earlier unsupported wording
+that this loader was nonreturning. A static return path exists; the actual
+ROM caller continuation and applicability to a custom leaf remain unobserved.
+
 [verified, bounded search] Current SDK linker files name the application's
 flash region starting `0x02000120` as `rom`; that name is not a mask-ROM
 map. The conditional `__JUMP_TO_MASKROM` declaration in
@@ -288,6 +297,15 @@ application RAM calls. No verified WL82 mask-ROM code-only range was
 established by these inspected sources. Do not read an assumed `0xffc0`
 window or import a different chip's map.
 
+[verified, source] A bounded check of JieLi's
+[fw-Bootloader at `ff3b9299`](https://github.com/Jieli-Tech/fw-Bootloader/tree/ff3b9299d1b94d834b995fd858b3f75e2faa9840)
+found its WL82 `output/maskrom_stubs.ld` empty (zero-byte Git blob
+`e69de29bb2d1d6434b8b29ae775ad8c2e48c5391`). WL82 `ram_ld.c` links
+`text_ram` at `0x01c02000` and exports ISR_BASE `0x01c7fe00`; neither
+establishes a mask-ROM code map. WL82 `mask_api.h` defines an empty
+`uboot_mask_init` and declarations, with no absolute USB service targets.
+These are published source facts, not proof of the owner's ROM mapping.
+
 [proposal, separate review required] After the fixed code read establishes
 transport, a future **8-byte metadata read at `0x01c09724`** could identify
 the actual USB send/receive callback addresses copied from the ROM service
@@ -296,3 +314,44 @@ This proposal is **not enabled** in the tool or its allowlist. Observing
 pointer values would still require checking which mapped, readable code
 region they belong to before any subsequent sparse code capture. It would
 not establish ROM FB08 return semantics by itself.
+
+## Reviewed session: preflight stop before SCSI, 08:00 UTC
+
+[verified] Parent reviewed source head
+`02b625a5e430ef4b526dd588a39aa586420d248e` and authorized exactly the
+fixed 64-byte read, with fresh identity/enumeration, private backup and
+loader rechecks, SG binding to fresh USB path/devnum, exclusive access,
+and no retry/range expansion/metadata/new payload/flash write. All five
+private full-image files rehashed correctly on Bench01 and this Mac. On
+the Mac, the actual directory is `backup-session2/` (not `session2/`);
+the earlier receipt's file labels are shorthand. Transferred tool hashes
+matched the reviewed source. The private operational wrapper hash is
+`4f8d0da112e70e80850a4ee4219a7d2d3e54ef21c96eeccadbc1b8a86fb0f163`.
+Its exact historical source is preserved as a
+[text artifact](data/2026-10-10-loader-readback-wrapper.txt), not a reusable
+CLI or an instruction to rerun the stopped session. The nonbinary
+[preflight receipt](data/2026-10-10-loader-readback-preflight.json) preserves
+the operation counts and observed failure separately from the private log.
+
+[verified] At 08:00:48.507 UTC, the fresh identity matched the same exact
+known 41-byte `FM-1_092` frame, with the same decoder checksum limitation.
+The single reviewed soft key entered UBOOT in 0.753 s on direct port
+`3-2`, USB devnum 16, `4c4a:8057`, product `WL80UBOOT1.00`. The wrapper
+then stopped at 08:00:50.232 UTC because `fuser` did not establish
+exclusive SG/block access. It **never opened Reader or sent an application
+SCSI command, loader upload/jump or FD07**. No retry occurred. The private
+command log is on Bench01 at
+`/home/claude/fm1-readback-20261010-0800/commands.jsonl`; its local ignored
+copy is `scratch/fm1-bench-20261010/readback-attempt-commands.jsonl`,
+SHA-256 `051192d990948349d1c1c049f84eb2f21b0c1fb09f0ddef896e38bc93657ed3d`.
+
+[verified, read-only follow-up] `/dev/sg0` and unmounted `/dev/sda` both
+exist and correspond to that same USB parent; `fuser -s` now returns 1,
+with empty stdout/stderr (no users). Kernel logs attach both nodes during
+the same 08:00:50 second as the abort. [inferred] A device-node creation
+race or transient OS probe is plausible: the wrapper waited for sysfs
+registration, not actual `/dev` existence. The attempted node state and
+`fuser` stderr were not logged on failure, so the cause is not proven.
+No service was stopped or infrastructure changed. This is **not an FD07
+transport failure or successful memory read**. Parent was notified, and
+any continuation remains held for renewed review after this stop.

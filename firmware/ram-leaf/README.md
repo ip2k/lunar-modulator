@@ -17,8 +17,9 @@ This does **not** establish that the ROM passes its command argument in
 function, or restores/retains RAM after an encrypted read. Those contracts
 must be established and a separate exact transport boundary reviewed
 before any execution proposal. The previous successful recovery-loader
-upload used a different, pinned 24,064-byte image which never returned;
-it does not prove this leaf's call contract.
+upload used a different, pinned 24,064-byte image. Its initialization has
+a static saved-PC return path, but the actual ROM caller continuation was
+not captured. It does not prove this leaf's call contract.
 
 The pinned loader's entry preserves incoming `r0` and then dereferences it
 as a service table: words 0/1 supply USB send/receive callbacks and word 2

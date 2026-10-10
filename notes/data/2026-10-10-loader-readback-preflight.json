@@ -1,0 +1,50 @@
+{
+  "status": "stopped at exclusive SG access preflight; no SCSI commands sent",
+  "reviewed_source_head": "02b625a5e430ef4b526dd588a39aa586420d248e",
+  "start_utc": "2026-10-10T08:00:48.504Z",
+  "stop_utc": "2026-10-10T08:00:50.232Z",
+  "exact_known_identity": "FM-1_092",
+  "identity_checksum_ok": false,
+  "identity_reply_sha256": "7679e7be907c6cc32b3c1f27c48cc8ce6daa865852e8021e2207cdeae223217d",
+  "soft_key_count": 1,
+  "uboot_elapsed_seconds": 0.7529173900838941,
+  "usb": {
+    "path": "3-2",
+    "vid": "4c4a",
+    "pid": "8057",
+    "product": "WL80UBOOT1.00",
+    "busnum": "3",
+    "devnum": "16",
+    "speed": "12"
+  },
+  "application_scsi_command_count": 0,
+  "loader_uploaded": false,
+  "fd07_attempted": false,
+  "flash_write": false,
+  "custom_payload": false,
+  "retry": false,
+  "stop_error": "Cannot establish exclusive device access",
+  "wrapper_sha256": "4f8d0da112e70e80850a4ee4219a7d2d3e54ef21c96eeccadbc1b8a86fb0f163",
+  "private_log_sha256": "051192d990948349d1c1c049f84eb2f21b0c1fb09f0ddef896e38bc93657ed3d",
+  "private_backup_rechecks": {
+    "hosts": [
+      "Bench01",
+      "current Mac"
+    ],
+    "file_count_per_host": 5,
+    "each_bytes": 1048576,
+    "each_sha256": "96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4"
+  },
+  "read_only_followup": {
+    "sg": "/dev/sg0",
+    "block": "/dev/sda",
+    "both_exist": true,
+    "block_unmounted": true,
+    "fuser_returncode": 1,
+    "fuser_stdout": "",
+    "fuser_stderr": "",
+    "uboot_devnum": "16"
+  },
+  "failure_cause": "unproven; node creation or transient OS probe plausible; original fuser stderr/node state not recorded",
+  "continued_device_actions": "held for parent review"
+}

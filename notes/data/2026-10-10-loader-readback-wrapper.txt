@@ -1,0 +1,103 @@
+"""Private operational wrapper for the approved fixed read; never automatically rerun."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+BASE = Path('/home/claude/fm1-readback-20261010-0800')
+EXPECTED = {
+    'fm1_loader_readback.py': 'db5a6115fdfed30060fe1bcc4ed13af69118bb2574aa656a96b9d9f8db79ef10',
+    'fm1_uboot_read.py': '28317ee56a489e0bb38de981fe0d0c4260384be570349795741fdb9a98d6ae57',
+    'fm1_softkey_probe.py': 'c92d419c94540c8943fa5e1476dfb765da11144188fff71d901b6136af53b306',
+    'fm1_identify.py': '684342b034b1a97b0e070ff758edf9bff20714523316a968952ccf48f52c0de0',
+}
+for name, digest in EXPECTED.items():
+    if hashlib.sha256((BASE/name).read_bytes()).hexdigest() != digest:
+        raise SystemExit('Reviewed source hash mismatch before device access')
+sys.path.insert(0, str(BASE))
+from fm1_loader_readback import LoaderReadbackReader
+from fm1_uboot_read import LOADER_SHA, LOADER_SIZE
+from fm1_softkey_probe import probe, enumerate_usb, usb_parent
+
+
+def exclusive(nodes):
+    check = subprocess.run(['fuser', '-s', *map(str, nodes)], capture_output=True)
+    if check.returncode != 1:
+        raise ValueError('Cannot establish exclusive device access')
+
+
+def ancestor(p):
+    for parent in [p.resolve(), *p.resolve().parents]:
+        if (parent/'idVendor').exists():
+            return parent
+    return None
+
+
+def main():
+    os.umask(0o077)
+    loader = Path('/tmp/wl82loader.bin').read_bytes()
+    if len(loader) != LOADER_SIZE or hashlib.sha256(loader).hexdigest() != LOADER_SHA:
+        raise ValueError('Pinned loader changed; no traffic')
+    paths = [Path('/home/claude/fm1-backups/2026-10-07-session2')/n for n in ('dumpA.bin', 'dumpB.bin')]
+    paths += [Path('/home/claude/fm1-backups/2026-10-07-restore1')/n for n in ('beforeA.bin', 'beforeB.bin', 'after.bin')]
+    for p in paths:
+        data = p.read_bytes()
+        if len(data) != 1048576 or hashlib.sha256(data).hexdigest() != '96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4':
+            raise ValueError('Private backup changed; no traffic')
+    events = []
+    reader = None
+    with (BASE/'commands.jsonl').open('x') as fp:
+        def log(event, **fields):
+            item = {'time': time.time(), 'event': event, **fields}
+            events.append(item)
+            fp.write(json.dumps(item)+'\n'); fp.flush()
+        try:
+            midi = '/dev/snd/midiC2D0'
+            parent = usb_parent(midi)
+            if parent.name != '3-2':
+                raise ValueError('Direct owner port changed; no traffic')
+            devices = enumerate_usb()
+            if [d['path'] for d in devices if (d['vid'], d['pid']) == ('4c4a', 'c755')] != ['3-2'] or any((d['vid'], d['pid']) == ('4c4a', '8057') for d in devices):
+                raise ValueError('Unexpected existing FM-1/UBOOT topology; no traffic')
+            exclusive([midi])
+            log('preflight', source_head='02b625a5e430ef4b526dd588a39aa586420d248e', source_hashes=EXPECTED, backups_verified=5, exclusive_midi=True)
+            probe(midi, 'FM-1_092', True, log, known_092=True)
+            observed = [d for d in events[-1]['usb'] if (d['vid'], d['pid']) == ('4c4a', '8057')]
+            if events[-1]['event'] != 'uboot_enumerated' or len(observed) != 1 or observed[0]['path'] != '3-2':
+                raise ValueError('Unexpected fresh UBOOT enumeration; stop')
+            expected = observed[0]
+            end = time.monotonic() + 5
+            sg = []
+            while time.monotonic() < end:
+                sg = [p for p in Path('/sys/class/scsi_generic').glob('sg*') if ancestor(p/'device') == Path('/sys/bus/usb/devices/3-2').resolve()]
+                if sg:
+                    break
+                time.sleep(0.05)
+            if len(sg) != 1:
+                raise ValueError('Need one bound SG node; stop')
+            sg_node = Path('/dev')/sg[0].name
+            block = [Path('/dev')/p.name for p in Path('/sys/class/block').glob('*') if ancestor(p/'device') == Path('/sys/bus/usb/devices/3-2').resolve()]
+            exclusive([sg_node, *block])
+            reader = LoaderReadbackReader(str(sg_node), log)
+            if reader.usb.name != expected['path'] or (reader.usb/'devnum').read_text().strip() != expected['devnum']:
+                raise ValueError('Opened SG device differs from fresh USB enumeration')
+            log('bound_sg', node=str(sg_node), path=reader.usb.name, devnum=expected['devnum'], exclusive=True)
+            reader.load(loader)
+            data = reader.readback()
+            with (BASE/'loader-code-readback.bin').open('xb') as raw:
+                raw.write(data); raw.flush(); os.fsync(raw.fileno())
+            log('completed', no_retry=True, no_flash_writes=True, no_new_payload=True)
+            print(json.dumps(events[-2:]), flush=True)
+        except Exception as exc:
+            log('stopped', error=str(exc), no_retry=True)
+            raise
+        finally:
+            if reader is not None:
+                reader.close()
+            fp.flush(); os.fsync(fp.fileno())
+
+if __name__ == '__main__':
+    main()
