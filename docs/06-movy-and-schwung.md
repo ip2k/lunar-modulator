@@ -38,7 +38,7 @@ per-track LFOs, drum layouts, transport lock with Move.
 | Host framework | Schwung shim provides audio interception, module hosting, param API, display writer | none; a custom firmware *is* the whole system |
 | Display | monochrome OLED framebuffer written by the shim | 240×240 colour TFT over SPI |
 | Controls | 32 velocity/pressure pads, 8 endless encoders + jog, step buttons, transport | 27 silicone keys, **7 encoders and one MASTER pot**, ~14 LED buttons [reported: Felucca, fm1-nes; docs/01 §3] |
-| Audio | Move's instruments plus Schwung module chains | one msfa FM engine plus effects |
+| Audio | Move's instruments plus Schwung module chains | Historical stock baseline: one msfa FM engine plus effects; Lunar's current multi-engine platform runs on desktop/browser, not yet on the FM-1 |
 | Install | copy files over SSH | re-flash the chip |
 
 A "straight port" would mean running a JS bundle and a Rust shared library on a

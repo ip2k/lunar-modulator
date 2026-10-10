@@ -5,9 +5,10 @@ UBOOT entry, a RAM recovery loader, matching full backups and bounded sector
 restoration succeeded [verified: [bench note](../notes/2026-10-07-fm1-softkey-bench.md)].
 The complete post-test dump matched the backups; the owner confirmed normal
 boots after the read-only session and after restoration [verified: bench note].
-No Lunar application has been linked or installed. Full-image restoration
-and broken-app recovery remain untested. The owner authorized firmware
-preparation and audit remediation; see the
+An offline diagnostic variant has been linked, but no full-DSP Lunar
+application is linked for installation and none has run on or been installed
+on the FM-1. Full-image restoration and broken-app recovery remain untested.
+The owner authorized firmware preparation and audit remediation; see the
 [current work record](../notes/2026-10-08-audit-remediation.md) and docs/07 §4.
 
 The following 2026-10-01 checkpoint and original phase order are historical;

@@ -24,9 +24,10 @@ drawn by the code that is meant to draw the FM-1's.
   Web MIDI.
 
 The simulator is tested in Chromium, the engine behind Chrome and Edge.
-Firefox and WebKit automated checks are also run; native Safari listening,
-phones and tablets with real touch screens, and real MIDI hardware have not
-been fully verified.
+Firefox and WebKit automated checks are also run. Native Safari's filtered
+patch list has been verified, but the owner's by-ear Sound 2 A/B retest is
+pending after a reported crackle while switching sounds. Phones and tablets
+with real touch screens, and real MIDI hardware have not been fully verified.
 
 Nothing is installed. The page loads only its own files, from its own
 website, and sends nothing anywhere.

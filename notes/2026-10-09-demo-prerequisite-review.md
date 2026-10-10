@@ -51,9 +51,11 @@ meaningful checkpoint rather than resetting engine CI with a docs-only push.
 
 ## Remaining gates before/demo completion
 
-1. Merge fully green PR123/128/113 sequentially, regenerate actual combined
-   engine/Wasm/metadata/golden outputs after each engine merge, validate exact
-   current source hashes and CI. Do not select prebuilt branch artifacts.
+1. Integrate the completed engine/source streams by normal history merges into
+   one combined candidate, then perform one actual final engine/Wasm/metadata/
+   golden regeneration against that integrated source. Validate exact source
+   hashes and exact-head CI; do not select prebuilt branch artifacts or claim
+   candidate evidence is a `main` merge.
 2. Generate four original deterministic projects from the PR121 brief, with
    original names/credits, seeds, at least four distinct named scenes, 3–4 minute
    chains, four sounds/eight tracks. Use the distributable MIT/BSD profile or
@@ -71,11 +73,12 @@ meaningful checkpoint rather than resetting engine CI with a docs-only push.
    deterministic seeded repeats. Use the simulator's own admission/event limits,
    not the desktop renderer's more generous event capacity alone.
 6. Listen through each full arrangement and transitions in the served browser.
-   The owner's native Safari failure remains unresolved by-ear evidence:
+   Automated Safari/browser UI checks and focused audio captures exist, but
+   the owner's native Safari by-ear result remains unresolved:
    "Sound 2 A had a few small crackles when i switched to it" at localhost8778,
-   root 35c37940, First orbit 116 BPM. PR128's focused offline fix has not yet
-   received a measured capture or passing owner Safari retest. Preserve this
-   distinction from future composition/listening receipts and hardware proof.
+   root 35c37940, First orbit 116 BPM. PR128 has automated capture evidence,
+   but no passing owner Safari retest. Preserve this distinction from future
+   composition/listening receipts and hardware proof.
 
 ## PR134 bounded review
 
@@ -95,15 +98,19 @@ did not initialize a language server. No ABI proof inferred from clangd.
 
 ## Follow-up status (2026-10-10 UTC)
 
-The combined Warble/Repeat/PSX source candidate is now built and has passed its
-108-scenario simulator matrix. Root reports 24 non-test effects and independently
-verified the committed Wasm's build record and matching source hashes. This is
-not yet a `main` merge or an installable firmware claim. PR137's Ubuntu and
-macOS runs each have two integration failures: Repeat Hold has no pinned list
-entries, and the checked-in metadata example differs from the built metadata.
-Its WebKit run also fails the strict S2 Harmonics panel-to-editor latency gate
-at 22 frames/358 ms. These need a justified correction and exact-head CI before
-the combined stream can clear its integration gate.
+The combined Warble/Repeat/PSX source candidate is built and passed its
+108-scenario simulator matrix. Root reports 24 non-test effects and
+independently verified the committed Wasm build record and matching source
+hashes. This is not yet a `main` merge or an installable firmware claim. On
+standalone PR137 head `e1416ac`, Ubuntu and macOS each failed two integration
+checks: Repeat Hold had no pinned list entries, and the checked-in metadata
+example differed from built metadata. The combined candidate later added the
+Repeat pins/enums and passed the expanded 271-check batch plus 22 focused
+tests; PR132 configuration is now integrated into the candidate at
+`0e50f1ba`. This does not erase standalone PR137's failures or replace
+exact-head CI for the combined candidate. Its WebKit run also failed the strict S2 Harmonics
+panel-to-editor latency gate at 22 frames/358 ms; preserve that failure until a
+justified correction passes on an exact head.
 
 The engine/editor candidate's native unit and undo/redo checks pass, but the
 strict WebKit editor failures on PR130 and PR138 remain captured failures until
@@ -129,3 +136,11 @@ non-selected-module, audit-removal and hardware bring-up findings stay tracked
 in the audit ledger and their owning workstreams; they are not automatically
 song-authoring blockers. A candidate fix or a passing focused test does not
 close an item for `main` or clear its broader acceptance evidence.
+
+The documentation bundle's manual check passed on 2026-10-10. The current
+working-tree sources were staged to aeon and built in the existing manual
+container with 8 GiB / 8 CPU limits: 17 chapters, 40 engines/effects, and zero
+strict-manual errors or warnings. The engine build printed compiler warnings;
+the manual output was confined to the temporary remote directory, which was
+removed after the check. This is documentation validation on the current-main
+source tree, not the separate 24-effect combined candidate.

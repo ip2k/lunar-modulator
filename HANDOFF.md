@@ -6,42 +6,38 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 
 Written 2026-09-06 at the end of the research session that created this
 repository, so a fresh Claude project (or a human) can continue without the
-original conversation; last updated 2026-10-09. Read this first, then
+original conversation; last updated 2026-10-10. Read this first, then
 `DEVELOPERS.md` (the README is the product page), then `docs/`.
 
-## Active work — 2026-10-09
+## Active work — 2026-10-10
 
-Main is `32b321f` at this reconciliation, including PR #99 editor, PR #101
-envelope graph, PR #103 durable browser saves, PR #104 linked inert diagnostic,
-and PR #111 playback duration correction. None establishes Lunar execution
-on the FM-1. The combined aeon
-build passes 104 parity scenarios, the native and Chromium 30-second storms
-with zero late quanta/underruns, Map 41/41, editor 99/99, and saved-project
-compatibility checks. Final rebuilt artifacts and metadata are pushed.
+Live `origin/main` is `bdba4476570b0a77d13c76a38dfb3bcfd364277b`. A combined
+Warble/Repeat/PSX candidate is checkpointed at `0e50f1ba` on its separate
+branch; PR132 configuration is integrated there, but the candidate is not
+merged to `main`. Its recorded source head built 108/108 simulator
+scenarios, with 24 non-test effects, and the committed Wasm/build record and
+source hashes match. The corrected Repeat parameter pins and enums pass 271
+expanded checks plus 22 focused tests. Final integration still requires this
+documentation bundle, exact current-head CI, and normal
+reviewed merges; earlier strict-browser failures remain recorded and are not
+waived by candidate checks.
 
-Firmware bring-up includes merged PR #108: offline stock byte
-bindings and exact no-op reconstruction, followed by physical/XIP mapping.
-The earlier report-classification gap is fixed and independently reviewed
-(PR #110 note); FM-1_092 auxiliary origin remains unsupported. No hardware
-traffic occurred in this work. Whole-image restore and broken-app recovery
-remain unverified. Mobile/BLE editor work stays deferred until installable
-firmware.
+Merged PR #104 links an inert offline diagnostic variant, but no full-DSP
+Lunar application has run on or been installed on the FM-1. The offline
+diagnostic is not a physical runtime test. Full-image restoration,
+broken-app recovery and hardware audio remain unverified; no device traffic
+occurred in the work summarized here. Owner by-ear Sound 2 A/B listening is
+still pending despite automated Safari/UI and audio-capture evidence.
 
-Audit follow-ups include merged PR #106 (resampler CLI bounds) and open
-PRs #105 (server boundary), #112 (room oracle bounds), #113 (Compare MID
-pulses), #114 (Movy oracle bounds), and #116 (DX7 counter saturation).
-PR #107 records stock SPL handover; bank-body RAM
-ends at `0x01c05820`, excluding its 16-byte header. Docs are tracked by
-#102/#109/#110. Merged PR #111 fixes underrun duration units and records a controlled
-CPU-starvation reproduction; the original GitHub Chromium failure cause is
-not established. Failed Chromium jobs are real 10–20 ms events, not tiny
-floating-point durations; zero-event acceptance remains unchanged.
-
-GitHub CI is queued/running on open streams. Do not merge a failing stream
-or treat LAN success as GitHub success. Owner by-ear A/B judgment remains
-pending; Safari UI and external browser loopback results are recorded in
-the editor branch. All streams have pushed checkpoints; inspect their
-current remote heads/checks before resuming, since the work continues.
+Four complete demo songs, full-chain renders, browser project workflows and
+owner listening reviews are not complete. See the current
+[demo prerequisite review](notes/2026-10-09-demo-prerequisite-review.md).
+The whole-code audit is not blanket-closed: findings are classified by demo
+impact in the audit/remediation ledger, while developer-tool, unused-module,
+and hardware-readiness items remain tracked without being treated as automatic
+song blockers. Re-read the dated reconciliation sections below as history,
+not as current branch/PR status, and check live remote refs/checks before
+continuing integration.
 
 ## Audit remediation — 2026-10-08
 
@@ -84,8 +80,9 @@ in RAM, matching full backups were saved off-host, and an unused 4 KiB
 sector was programmed and restored with the entire flash unchanged
 [verified: [bench note](notes/2026-10-07-fm1-softkey-bench.md)]. Full-image
 restoration and a Lunar application on hardware remain untested. Normal
-boot after both the initial dump and the restoration was owner-confirmed. The mobile hardware editor is explicitly deferred
-until installable firmware; see [its resume plan](notes/2026-10-07-mobile-advanced-editor.md).
+boot after both the initial dump and the restoration was owner-confirmed. The
+mobile hardware editor is explicitly deferred until installable firmware; see
+[its resume plan](notes/2026-10-07-mobile-advanced-editor.md).
 
 ## 1. Where things stand
 
