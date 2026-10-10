@@ -37,6 +37,8 @@ extern "C" {
 #define FM1_DX7_VMEM_BYTES 4096u   /* a 32-voice bank's data, 128 per voice */
 #define FM1_DX7_NAME_BYTES 10u
 
+/* The 16-bit counters saturate at 65,535; parsing and storage continue. */
+/* The 16-bit counters saturate at 65,535; parsing and storing continue. */
 typedef struct fm1_dx7_sysex_result {
   uint16_t voices;          /* voices stored */
   uint16_t first_slot;      /* user slot (0-based) the first of them went to */
@@ -66,8 +68,8 @@ typedef struct fm1_dx7_sysex_result {
  * clamped to its range and the name to printable ASCII, so any bytes are
  * safe to load. Sounding notes keep the voice they started with; the next
  * note on a user slot plays what is stored now. Returns the number of
- * voices stored (also in res->voices when res is not NULL); 0 when nothing
- * was recognised, which leaves the slots as they were.
+ * voices stored, saturated at 65,535 (also in res->voices when res is not
+ * NULL); 0 when nothing was recognised, which leaves the slots as they were.
  * Thread: as set_param (the audio task, or with it stopped). */
 int fm1_dx7_load_sysex(void *self, const uint8_t *data, size_t len, unsigned slot,
                        fm1_dx7_sysex_result_t *res);
@@ -84,7 +86,8 @@ typedef void (*fm1_dx7_store_fn)(void *ctx, unsigned slot,
 /* Read the DX7 voices in data[0..len) as fm1_dx7_load_sysex does, slot for
  * slot, but into store(ctx, slot, vced) instead of an instance: for a host
  * that keeps a user bank of its own, or checks a file before it loads it.
- * Fills res when not NULL; returns the number of voices. No instance, no
+ * Fills res when not NULL; returns the number of voices, saturated at 65,535.
+ * No instance, no
  * allocation; any thread. */
 int fm1_dx7_read_sysex(const uint8_t *data, size_t len, unsigned slot, fm1_dx7_store_fn store,
                        void *ctx, fm1_dx7_sysex_result_t *res);

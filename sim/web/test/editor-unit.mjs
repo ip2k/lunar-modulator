@@ -22,6 +22,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { playbackDelta } from './playback-stats.mjs';
 
 const www = process.argv[2];
 const imp = (p) => import(pathToFileURL(join(www, p)).href);
@@ -33,6 +34,20 @@ const report = { checks: {}, failed: 0, why: [] };
 function check(name, ok, why) {
   report.checks[name] = !!ok;
   if (!ok) { report.failed += 1; report.why.push(`${name}: ${why || ''}`); }
+}
+
+// Browser counters are cumulative; Chromium's duration is seconds. These
+// reproduce the one/two-event CI reports, including a nonzero baseline.
+{
+  const zero = playbackDelta({ events: 3, seconds: 0.13 }, { events: 3, seconds: 0.13 });
+  const one = playbackDelta({ events: 0, seconds: 0 }, { events: 1, seconds: 0.01 });
+  const two = playbackDelta({ events: 3, seconds: 0.13 }, { events: 5, seconds: 0.15 });
+  check('playback duration is milliseconds and events stay exact',
+    zero.underrun_events === 0 && zero.underrun_ms === 0 &&
+    one.underrun_events === 1 && one.underrun_ms === 10 &&
+    two.underrun_events === 2 && Math.abs(two.underrun_ms - 20) < 1e-9 &&
+    playbackDelta(null, null) === null,
+    JSON.stringify({ zero, one, two }));
 }
 
 const metaDoc = JSON.parse(readFileSync(join(www, 'meta.json'), 'utf8'));

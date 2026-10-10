@@ -3,6 +3,8 @@
  */
 #include "fm1_mod_view.h"
 
+#include <math.h>
+#include "fm1_mp.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -151,6 +153,101 @@ static int info_spans(fm1_tft_span_t *sp, char (*buf)[16], const char *label, ui
   return ns;
 }
 
+/* Timed stages share one seconds axis. Sustain is an explicitly unbounded
+ * hold region. The audio trace has its own short time window, labelled as
+ * such: it is the recent mixed output, not a fabricated envelope waveform. */
+static void env_graph(fm1_tft_t *t, const fm1_mod_ui_env_t *env, unsigned pos) {
+  const fm1_mp_env_t *e = (const fm1_mp_env_t *)fm1_mod_view_state(env->m, pos);
+  const int x = MARGIN, y = 160, w = BAR_W, h = 32;
+  float duration[5] = {0}, total = 0, hold, starts[5], ends[5];
+  int segments[5], stage = -1, offset, ad, looping, release, prev = -1;
+  char caption[40];
+  if (!e) return;
+  offset = e->delay_stage ? 1 : 0;
+  ad = e->sustain == 0;
+  looping = e->loop_end > e->loop_start;
+  release = offset + 2;
+  for (int i = 0; i < 5; ++i) segments[i] = -1;
+  if (e->delay_stage == 1) segments[0] = 0;
+  segments[1] = offset;
+  segments[2] = offset + 1;
+  if (!ad) segments[4] = release;
+  for (int i = 0; i < 5; ++i) if (segments[i] >= 0) {
+    uint32_t inc = e->inc[segments[i]];
+    duration[i] = (float)((0x100000000ull + inc - 1u) / inc) / e->sample_rate;
+    total += duration[i];
+  }
+  hold = !ad && !looping ? total * 0.18f : 0.0f;
+  if (hold > 0 && hold < 0.05f) hold = 0.05f;
+  duration[3] = hold;
+  snprintf(caption, sizeof caption, "Env %.2fs + hold | Audio %.0fms", (double)total,
+           env->rate > 0 ? (double)(1000.0f * env->scope_n / env->rate) : 0.0);
+  if (!hold) snprintf(caption, sizeof caption, "Env %.2fs | Audio %.0fms", (double)total,
+           env->rate > 0 ? (double)(1000.0f * env->scope_n / env->rate) : 0.0);
+  fm1_tft_font_text(t, x, 144, caption, SMALL_LINE_CHARS, FM1_TFT_SMALL, C_LABEL);
+  total += hold;
+  if (total <= 0) return;
+  {
+    float at = 0;
+    for (int i = 0; i < 5; ++i) { starts[i] = at; at += duration[i]; ends[i] = at; }
+  }
+  fm1_tft_graphic(t, x, y, w, h);
+  fm1_tft_paint(t, x, y, w, h, C_SCOPE_BG);
+  if (env->scope && env->scope_n) {
+    for (int px = 0; px < w; ++px) {
+      unsigned n = ((unsigned)px * env->scope_n / (unsigned)w + env->scope_pos) % env->scope_n;
+      float v = env->scope[n];
+      if (!isfinite(v)) v = 0;
+      v = v < -1 ? -1 : v > 1 ? 1 : v;
+      int py = y + h / 2 - (int)(v * (h / 2 - 1));
+      int lo = prev < 0 || py < prev ? py : prev, hi = prev < 0 || py > prev ? py : prev;
+      fm1_tft_paint(t, x + px, lo, 1, hi - lo + 1, RP_HIGHLIGHT_HIGH);
+      prev = py;
+    }
+  }
+  prev = -1;
+  for (int px = 0; px < w; ++px) {
+    float time = total * px / (w - 1), v = 0;
+    int i = 0;
+    while (i < 4 && (duration[i] <= 0 || time > ends[i])) ++i;
+    if (i == 3) v = e->level[release];
+    else if (segments[i] >= 0) {
+      int seg = segments[i];
+      float a = e->level[seg], b = e->level[seg + 1];
+      float f = duration[i] > 0 ? (time - starts[i]) / duration[i] : 1;
+      if ((e->seg == seg || (i == 4 && !e->gate && e->seg == e->sustain)) &&
+          !fm1_mp_env_done(e)) a = e->start;
+      f = f < 0 ? 0 : f > 1 ? 1 : f;
+      v = a + (b - a) * (f >= 1 ? 1 : fm1_mp_env_curve_at(e->curve[seg], (uint32_t)((double)f * 4294967296.0)));
+    }
+    v = v < 0 ? 0 : v > 1 ? 1 : v;
+    int py = y + h - 1 - (int)(v * (h - 1) + 0.5f);
+    int lo = prev < 0 || py < prev ? py : prev, hi = prev < 0 || py > prev ? py : prev;
+    fm1_tft_paint(t, x + px, lo, 1, hi - lo + 1, C_MOD);
+    prev = py;
+  }
+  if (!fm1_mp_env_done(e)) {
+    float time = 0;
+    if (hold && e->seg == e->sustain && e->gate) { stage = 3; time = starts[3] + hold * 0.5f; }
+    else {
+      for (int i = 0; i < 5; ++i) if (segments[i] == e->seg) { stage = i; break; }
+      if (!ad && !e->gate && e->seg == e->sustain) stage = 4;
+      if (stage >= 0) time = starts[stage] + duration[stage] * ((float)e->phase / 4294967296.0f);
+    }
+    if (stage >= 0) {
+      int px = x + clampi((int)(time / total * (w - 1)), 0, w - 1);
+      fm1_tft_paint(t, px, y, 1, h, C_LIVE);
+    }
+  }
+  {
+    static const char *const names[] = { "Delay", "Attack", "Decay", "Sustain", "Release" };
+    for (int i = 0; i < 5; ++i) {
+      fm1_tft_font_text(t, x + i * 46, 198, names[i], 7, FM1_TFT_SMALL,
+                       i == stage ? C_LIVE : duration[i] > 0 ? C_LABEL : C_DIM);
+    }
+  }
+}
+
 void fm1_mod_view_rack(fm1_tft_t *t, const fm1_mod_ui_env_t *env, const fm1_mod_ui_t *u) {
   const fm1_mod_t *m = env->m;
   const int k = fm1_mod_kind_at(m, u->pos);
@@ -243,10 +340,19 @@ void fm1_mod_view_rack(fm1_tft_t *t, const fm1_mod_ui_env_t *env, const fm1_mod_
       const int routes = fm1_mod_ui_routes(m, u->plan.refused, FM1_MOD_MODULE + u->pos, q->uid, 0,
                                            &depth);
       const int own = fm1_mod_ui_value(env, u->pos, (unsigned)idx[r], base, text, sizeof text);
-      fm1_mod_view_row(t, PARAMS_Y + r * ROW_PITCH, q, base, own ? text : NULL, routes, depth,
-                       fm1_mod_param(m, u->pos, (unsigned)idx[r]));
+      if (strcmp(kd->id, "env") == 0) {
+        if (!own) fm1_look_value(q, base, text, sizeof text);
+        fm1_tft_font_text(t, MARGIN, PARAMS_Y + r * 18, q->name, 12, FM1_TFT_SMALL,
+                         routes ? C_MOD : C_LABEL);
+        fm1_tft_font_text(t, RIGHT - fm1_tft_font_width(text, 18, FM1_TFT_SMALL),
+                         PARAMS_Y + r * 18, text, 18, FM1_TFT_SMALL, C_TEXT);
+      } else {
+        fm1_mod_view_row(t, PARAMS_Y + r * ROW_PITCH, q, base, own ? text : NULL, routes, depth,
+                         fm1_mod_param(m, u->pos, (unsigned)idx[r]));
+      }
     }
   }
+  if (strcmp(kd->id, "env") == 0) env_graph(t, env, u->pos);
 }
 
 /* ---- MATRIX and CHAIN's lines ------------------------------------------------- */
