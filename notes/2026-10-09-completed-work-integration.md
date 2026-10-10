@@ -318,3 +318,22 @@ FM-1_092; no new firmware execution or flash writes occurred. Loader FB08
 is rejected by the audited loader, and FB42 leads to flash erase, so neither
 is an execution alternative. A bounded loader FD07 mask-ROM code-read
 proposal is undergoing offline command/bounds review before device action.
+
+## Accepted editor integration and PR dispositions
+
+[verified] Root re-fetched #140 at its unchanged final head: all 14 checks
+were SUCCESS, with only Pages deployment SKIPPED. Merged with a normal merge
+commit, `40c94300428acfc5688a203c2c928723ed98270a`; GitHub state and
+remote `refs/heads/main` both confirm that commit. No CI retry or gate waiver.
+The 19 fully contained source PRs were automatically marked merged.
+
+#22 and #58 were then explicitly closed as reconciled/superseded, with links
+to the accepted replacement and durable reconciliation. Their source branches
+remain retained and remotely backed up. Four PRs remain open: #139, #134,
+#136 and #141. #141's final checks are all successful except its recorded
+Chromium storm failure. #139's runtime fixes are now on main, but its unique
+final diagnostic note remains in the unmerged offline candidate, so it stays
+open until that note is accepted. A forthcoming focused DSP replacement will
+preserve the offline history and failed receipts while obtaining fresh CI for
+its actual changed head. No firmware/device runtime or human listening pass
+is inferred from #140's integration.
