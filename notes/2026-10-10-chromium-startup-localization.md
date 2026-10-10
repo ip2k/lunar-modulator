@@ -26,3 +26,30 @@ are avoidable, but they have not been tied to the observed event. No runtime
 change is justified merely by their presence. A bounded idle/storm pair
 will trace before power-on with the actual PR142 Wasm. Getter graph locks
 and tracing perturb scheduling; absence of reproduction cannot explain CI.
+
+[verified] One bounded paired run on aeon with the exact PR142 Wasm completed:
+30-second idle control: zero published events; 30-second storm: 7,304 edits,
+zero published events, rejected codes or resyncs, 905 telemetry messages and
+valid snapshot. Both complete traces had zero dropped events and no explicit
+named timeout/glitch/shortage/overrun. Both baselines still showed only
+0.002902 seconds of published total duration while audio time was about
+0.34 seconds. This directly shows publication lag; it cannot assign CI's
+event to startup. The source/provenance, original failure and both raw
+counter timelines are preserved in
+[data/2026-10-10-pr142-chromium-startup-pair.json](data/2026-10-10-pr142-chromium-startup-pair.json).
+
+[verified] The existing CI capture now begins before page navigation/power-on
+and saves bounded phase/raw-counter history, instead of capturing only after
+startup. The exact original pre-loop baseline, loop, snapshot drain and
+zero-underrun pass expression remain unchanged. No retry or baseline discard
+is introduced. Node helper regressions: 13/13 pass; syntax and diff checks
+pass. This is an observability checkpoint; it does not repair the unknown
+cause. A merge-ready artifact must be rebuilt against the changed simulator
+source inputs.
+
+[inferred] A separate startup ordering concern is measurable: the page connects
+the live worklet to the destination before Wasm instantiate, static constructors,
+firmware initialization and default-chain creation finish. No published CI
+event has yet been attributed to that work. The next bounded probe measures
+initialization time and message delivery with the node disconnected; it keeps
+the context wake inside the user's gesture to preserve browser autoplay rules.

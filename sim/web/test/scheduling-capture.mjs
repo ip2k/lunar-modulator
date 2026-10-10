@@ -35,7 +35,7 @@ export async function startSchedulingCapture(browser, out, {
     schema: 1, trace_requested: trace, trace_started: false, trace_complete: false,
     trace_categories: `audio,webaudio,disabled-by-default-audio${phases ? ',blink.user_timing' : ''}`,
     perturbation: `${trace ? 'CDP tracing and one-second resource reads' : 'One-second resource reads'} can affect scheduling; this is an instrumented run.`,
-    trace_window: phases ? 'Diagnostic starts before page navigation/power-on and ends after storm/idle evaluation and snapshot drain. Playback baseline/window and zero gate are unchanged.' : 'Starts before storm page.evaluate and ends after it, including the snapshot drain. Playback counters have their own narrower window.',
+    trace_window: phases ? 'Starts before page navigation/power-on and ends after storm/idle evaluation and snapshot drain. Playback baseline/window and zero gate are unchanged.' : 'Starts before storm page.evaluate and ends after it, including the snapshot drain. Playback counters have their own narrower window.',
     errors: [], samples: [], trace_events_saved: 0, trace_events_dropped: 0,
   };
   const events = [];
