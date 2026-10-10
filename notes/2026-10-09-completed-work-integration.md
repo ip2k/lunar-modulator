@@ -175,3 +175,17 @@ exact-head checks remain pending. Continue the audible audit disposition,
 strict WebKit correction, combined Warble/Repeat regeneration and reviewed
 green merges before composition implementation. Preserve the pending owner
 Sound 2 A/B ear check and the independent device-readiness boundaries.
+
+[verified: CI/remote] PR126 at
+`af1558248b7a670fe38e1afee9d3ff657b79a733` passed all 14 executable checks
+(Pages deployment skipped for the PR), was marked ready, and merged with an
+exact-head guard at `bdba4476570b0a77d13c76a38dfb3bcfd364277b`.
+The remote main ref matched. This integrates the portable semantic-tool
+configuration and its explicitly bounded session evaluation.
+
+[verified: source] The audible PSX Verb audit finding remains present on
+main: the odd phase table is entirely zero, the even phase table differs
+from the full kernel's even taps, and interpolation walks the zero-stuffed
+history with unit-stride phase coefficients. A focused repair is active;
+validate against an independent full-kernel calculation and retain vendor
+provenance. Avoiding this available effect in demos is not its remediation.
