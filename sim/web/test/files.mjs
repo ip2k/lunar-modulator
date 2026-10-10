@@ -223,6 +223,7 @@ async function filesChecks() {
   // Recent and Undo load: after the load of First orbit, Undo puts back
   // what was there, byte for byte.
   r.recent = await page.evaluate(async () => (await window.fm1.files.store.all('recent')).map((x) => x.name));
+  await page.click('#open-cheat-sheet');
   await page.click('details.library summary');
   await page.screenshot({ path: join(out, 'files-03-library.png'), fullPage: true });
   await page.close();
@@ -462,6 +463,7 @@ async function layoutChecks() {
     const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('#open')]);
     await chooser.setFiles(example('first-orbit.lunar'));
     await waitNotice(page, /^Loaded/);
+    await page.click('#open-cheat-sheet');
     await page.click('details.library summary');
     await wait(page, 300);
     await page.locator('.files').scrollIntoViewIfNeeded();

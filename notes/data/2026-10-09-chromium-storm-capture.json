@@ -1,0 +1,353 @@
+{
+  "environment": {
+    "image": "mcr.microsoft.com/playwright:v1.63.0-noble",
+    "memory_limit_bytes": 2147483648,
+    "network": "none",
+    "cgroup_parent": "docker-batch.slice"
+  },
+  "runs": [
+    {
+      "name": "baseline",
+      "cpus": 4,
+      "pressure_workers": 0,
+      "editor": {
+        "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+        "seconds": 30,
+        "logs": [],
+        "edited": 7244,
+        "codes_not_ok": 0,
+        "changes": 1724,
+        "entries": 57955,
+        "resyncs": 0,
+        "views": 1,
+        "telemetry": 905,
+        "stats": {
+          "quanta": 10695,
+          "timed": false,
+          "late": null,
+          "maxMs": null,
+          "editMs": null
+        },
+        "snapshot": {
+          "ok": true,
+          "bytes": 1111,
+          "binary": true
+        },
+        "ops": 7244,
+        "records": 57952,
+        "rate": 44100,
+        "playback": {
+          "underrun_events": 0,
+          "underrun_ms": 0
+        },
+        "pass": true
+      },
+      "trace": {
+        "events": 81318,
+        "timeouts": 0,
+        "complete": true,
+        "dropped": 0,
+        "errors": [],
+        "markers": [
+          {
+            "args": {
+              "sync_id": "lunar-storm-start"
+            },
+            "cat": "__metadata",
+            "name": "clock_sync",
+            "ph": "c",
+            "pid": 18,
+            "tid": 18,
+            "ts": 498337845011,
+            "tts": 45558
+          },
+          {
+            "args": {
+              "sync_id": "lunar-storm-end"
+            },
+            "cat": "__metadata",
+            "name": "clock_sync",
+            "ph": "c",
+            "pid": 18,
+            "tid": 18,
+            "ts": 498369351516,
+            "tts": 47491
+          }
+        ]
+      },
+      "resource_samples": 33,
+      "first_resource_sample": {
+        "utc": "2026-10-09T20:21:00.857Z",
+        "monotonic_ns": "498337836354562",
+        "affinity_parallelism": 4,
+        "logical_cpus": 16,
+        "files": {
+          "/proc/self/cgroup": {
+            "text": "0::/",
+            "error": null
+          },
+          "/proc/self/mountinfo": {
+            "text": "8407 8406 0:30 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime - cgroup2 cgroup rw,nsdelegate,memory_recursiveprot,memory_hugetlb_accounting",
+            "error": null
+          },
+          "/sys/fs/cgroup/cpu.max": {
+            "text": "400000 100000",
+            "error": null
+          },
+          "/sys/fs/cgroup/cpu.stat": {
+            "text": "usage_usec 950551\nuser_usec 658229\nsystem_usec 292322\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 8\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0",
+            "error": null
+          },
+          "/sys/fs/cgroup/cpu.pressure": {
+            "text": "some avg10=0.00 avg60=0.00 avg300=0.00 total=1181\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=773",
+            "error": null
+          },
+          "/proc/pressure/cpu": {
+            "text": "some avg10=0.00 avg60=0.00 avg300=0.29 total=2269341389\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0",
+            "error": null
+          },
+          "/proc/stat": {
+            "text": "cpu  26850520 417426 8188336 752389367 70651 0 789299 0 0 0\ncpu0 1051661 9609 370116 47299457 1151 0 307454 0 0 0\ncpu1 2932333 99166 1027218 45016821 14873 0 62416 0 0 0\ncpu2 1955646 14334 653013 46441283 7578 0 30481 0 0 0\ncpu3 1424258 10135 461738 47412465 3057 0 15839 0 0 0\ncpu4 1738701 13132 565234 46845401 4889 0 14951 0 0 0\ncpu5 2891015 86090 964707 45203773 12844 0 19250 0 0 0\ncpu6 1570122 12086 497934 47178939 3331 0 11090 0 0 0\ncpu7 1574244 12839 516330 47133179 3564 0 11239 0 0 0\ncpu8 1388917 10176 390195 47688320 1721 0 5556 0 0 0\ncpu9 1824059 50513 489051 46981916 5066 0 10214 0 0 0\ncpu10 1540631 10509 373040 47441993 2671 0 9340 0 0 0\ncpu11 1243032 11573 332985 47884798 1540 0 5602 0 0 0\ncpu12 1326765 12286 341428 47752122 1776 0 6641 0 0 0\ncpu13 1845917 43472 524676 46435663 3471 0 260576 0 0 0\ncpu14 1257909 11143 342107 47846780 1481 0 11127 0 0 0\ncpu15 1285304 10357 338558 47826449 1631 0 7516 0 0 0",
+            "error": null
+          },
+          "/proc/loadavg": {
+            "text": "0.50 0.56 0.71 2/3923 108",
+            "error": null
+          },
+          "/proc/self/status": {
+            "text": "Cpus_allowed_list:\t0-15",
+            "error": null
+          }
+        }
+      },
+      "last_resource_sample": {
+        "utc": "2026-10-09T20:21:32.371Z",
+        "monotonic_ns": "498369350670995",
+        "affinity_parallelism": 4,
+        "logical_cpus": 16,
+        "files": {
+          "/proc/self/cgroup": {
+            "text": "0::/",
+            "error": null
+          },
+          "/proc/self/mountinfo": {
+            "text": "8407 8406 0:30 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime - cgroup2 cgroup rw,nsdelegate,memory_recursiveprot,memory_hugetlb_accounting",
+            "error": null
+          },
+          "/sys/fs/cgroup/cpu.max": {
+            "text": "400000 100000",
+            "error": null
+          },
+          "/sys/fs/cgroup/cpu.stat": {
+            "text": "usage_usec 10217625\nuser_usec 8929588\nsystem_usec 1288037\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 323\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0",
+            "error": null
+          },
+          "/sys/fs/cgroup/cpu.pressure": {
+            "text": "some avg10=0.00 avg60=0.00 avg300=0.00 total=48019\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=46488",
+            "error": null
+          },
+          "/proc/pressure/cpu": {
+            "text": "some avg10=0.00 avg60=0.00 avg300=0.26 total=2269467419\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0",
+            "error": null
+          },
+          "/proc/stat": {
+            "text": "cpu  26852195 417426 8188825 752437073 70652 0 789353 0 0 0\ncpu0 1051710 9609 370136 47302453 1151 0 307490 0 0 0\ncpu1 2932547 99166 1027279 45019644 14873 0 62420 0 0 0\ncpu2 1955831 14334 653058 46444167 7578 0 30484 0 0 0\ncpu3 1424337 10135 461775 47415462 3057 0 15840 0 0 0\ncpu4 1738810 13132 565268 46848370 4889 0 14952 0 0 0\ncpu5 2891259 86090 964751 45206601 12844 0 19251 0 0 0\ncpu6 1570225 12086 497963 47181931 3331 0 11090 0 0 0\ncpu7 1574346 12839 516361 47136162 3564 0 11239 0 0 0\ncpu8 1388960 10176 390217 47691383 1721 0 5556 0 0 0\ncpu9 1824203 50513 489077 46984881 5066 0 10214 0 0 0\ncpu10 1540720 10509 373059 47445014 2671 0 9341 0 0 0\ncpu11 1243072 11573 333007 47887859 1540 0 5603 0 0 0\ncpu12 1326829 12286 341452 47755155 1776 0 6642 0 0 0\ncpu13 1846033 43472 524708 46438644 3471 0 260579 0 0 0\ncpu14 1257961 11143 342129 47849829 1481 0 11128 0 0 0\ncpu15 1285346 10357 338580 47829512 1631 0 7516 0 0 0",
+            "error": null
+          },
+          "/proc/loadavg": {
+            "text": "0.38 0.52 0.69 6/3936 113",
+            "error": null
+          },
+          "/proc/self/status": {
+            "text": "Cpus_allowed_list:\t0-15",
+            "error": null
+          }
+        }
+      },
+      "cpu_stat_delta": {
+        "usage_usec": 9267074,
+        "user_usec": 8271359,
+        "system_usec": 995715,
+        "nice_usec": 0,
+        "core_sched.force_idle_usec": 0,
+        "nr_periods": 315,
+        "nr_throttled": 0,
+        "throttled_usec": 0,
+        "nr_bursts": 0,
+        "burst_usec": 0
+      }
+    },
+    {
+      "name": "pressure",
+      "cpus": 1,
+      "pressure_workers": 2,
+      "editor": {
+        "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+        "seconds": 8,
+        "logs": [],
+        "scheduling_capture": true,
+        "edited": 1130,
+        "codes_not_ok": 0,
+        "changes": 312,
+        "entries": 9043,
+        "resyncs": 0,
+        "views": 1,
+        "telemetry": 241,
+        "stats": {
+          "quanta": 2760,
+          "timed": false,
+          "late": null,
+          "maxMs": null,
+          "editMs": null
+        },
+        "snapshot": {
+          "ok": true,
+          "bytes": 1111,
+          "binary": true
+        },
+        "ops": 1130,
+        "records": 9040,
+        "rate": 44100,
+        "playback": {
+          "underrun_events": 246,
+          "underrun_ms": 2460
+        },
+        "pass": false
+      },
+      "trace": {
+        "events": 22193,
+        "timeouts": 259,
+        "complete": true,
+        "dropped": 0,
+        "errors": [],
+        "markers": [
+          {
+            "args": {
+              "sync_id": "lunar-storm-start"
+            },
+            "cat": "__metadata",
+            "name": "clock_sync",
+            "ph": "c",
+            "pid": 27,
+            "tid": 27,
+            "ts": 498395708969,
+            "tts": 53841
+          },
+          {
+            "args": {
+              "sync_id": "lunar-storm-end"
+            },
+            "cat": "__metadata",
+            "name": "clock_sync",
+            "ph": "c",
+            "pid": 27,
+            "tid": 27,
+            "ts": 498405213767,
+            "tts": 55001
+          }
+        ]
+      },
+      "resource_samples": 11,
+      "first_resource_sample": {
+        "utc": "2026-10-09T20:21:58.720Z",
+        "monotonic_ns": "498395699636319",
+        "affinity_parallelism": 1,
+        "logical_cpus": 16,
+        "files": {
+          "/proc/self/cgroup": {
+            "text": "0::/",
+            "error": null
+          },
+          "/proc/self/mountinfo": {
+            "text": "8407 8406 0:30 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime - cgroup2 cgroup rw,nsdelegate,memory_recursiveprot,memory_hugetlb_accounting",
+            "error": null
+          },
+          "/sys/fs/cgroup/cpu.max": {
+            "text": "100000 100000",
+            "error": null
+          },
+          "/sys/fs/cgroup/cpu.stat": {
+            "text": "usage_usec 2390560\nuser_usec 2034940\nsystem_usec 355620\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 24\nnr_throttled 23\nthrottled_usec 7007282\nnr_bursts 0\nburst_usec 0",
+            "error": null
+          },
+          "/sys/fs/cgroup/cpu.pressure": {
+            "text": "some avg10=5.97 avg60=1.07 avg300=0.22 total=852550\nfull avg10=5.97 avg60=1.07 avg300=0.22 total=851565",
+            "error": null
+          },
+          "/proc/pressure/cpu": {
+            "text": "some avg10=7.23 avg60=1.33 avg300=0.51 total=2270363032\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0",
+            "error": null
+          },
+          "/proc/stat": {
+            "text": "cpu  26853260 417426 8189294 752477220 70656 0 789383 0 0 0\ncpu0 1051737 9609 370156 47304982 1151 0 307503 0 0 0\ncpu1 2932695 99166 1027346 45022023 14873 0 62424 0 0 0\ncpu2 1955936 14334 653087 46446629 7579 0 30486 0 0 0\ncpu3 1424385 10135 461801 47417997 3057 0 15841 0 0 0\ncpu4 1738882 13132 565297 46850867 4889 0 14953 0 0 0\ncpu5 2891476 86090 964795 45208934 12844 0 19252 0 0 0\ncpu6 1570281 12086 497995 47184446 3331 0 11091 0 0 0\ncpu7 1574404 12839 516393 47138676 3565 0 11240 0 0 0\ncpu8 1388988 10176 390247 47693941 1721 0 5557 0 0 0\ncpu9 1824248 50513 489105 46987415 5066 0 10214 0 0 0\ncpu10 1540768 10509 373084 47447553 2671 0 9341 0 0 0\ncpu11 1243109 11573 333026 47890420 1540 0 5603 0 0 0\ncpu12 1326893 12286 341481 47757677 1776 0 6642 0 0 0\ncpu13 1846081 43472 524731 46441178 3472 0 260582 0 0 0\ncpu14 1257993 11143 342147 47852394 1481 0 11129 0 0 0\ncpu15 1285378 10357 338597 47832080 1632 0 7517 0 0 0",
+            "error": null
+          },
+          "/proc/loadavg": {
+            "text": "0.40 0.52 0.69 3/3938 118",
+            "error": null
+          },
+          "/proc/self/status": {
+            "text": "Cpus_allowed_list:\t0-15",
+            "error": null
+          }
+        }
+      },
+      "last_resource_sample": {
+        "utc": "2026-10-09T20:22:08.233Z",
+        "monotonic_ns": "498405212963515",
+        "affinity_parallelism": 1,
+        "logical_cpus": 16,
+        "files": {
+          "/proc/self/cgroup": {
+            "text": "0::/",
+            "error": null
+          },
+          "/proc/self/mountinfo": {
+            "text": "8407 8406 0:30 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime - cgroup2 cgroup rw,nsdelegate,memory_recursiveprot,memory_hugetlb_accounting",
+            "error": null
+          },
+          "/sys/fs/cgroup/cpu.max": {
+            "text": "100000 100000",
+            "error": null
+          },
+          "/sys/fs/cgroup/cpu.stat": {
+            "text": "usage_usec 11917528\nuser_usec 11344302\nsystem_usec 573225\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 119\nnr_throttled 118\nthrottled_usec 29838852\nnr_bursts 0\nburst_usec 0",
+            "error": null
+          },
+          "/sys/fs/cgroup/cpu.pressure": {
+            "text": "some avg10=21.28 avg60=5.17 avg300=1.14 total=4220235\nfull avg10=21.28 avg60=5.17 avg300=1.14 total=4217935",
+            "error": null
+          },
+          "/proc/pressure/cpu": {
+            "text": "some avg10=20.17 avg60=5.05 avg300=1.35 total=2273489316\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0",
+            "error": null
+          },
+          "/proc/stat": {
+            "text": "cpu  26854615 417426 8189467 752490772 70656 0 789401 0 0 0\ncpu0 1051779 9609 370166 47305854 1151 0 307516 0 0 0\ncpu1 2932941 99166 1027366 45022701 14873 0 62425 0 0 0\ncpu2 1956028 14334 653099 46447469 7579 0 30487 0 0 0\ncpu3 1424428 10135 461809 47418889 3057 0 15842 0 0 0\ncpu4 1738933 13132 565309 46851744 4889 0 14953 0 0 0\ncpu5 2891666 86090 964804 45209681 12844 0 19252 0 0 0\ncpu6 1570317 12086 498006 47185340 3331 0 11091 0 0 0\ncpu7 1574475 12839 516406 47139534 3565 0 11240 0 0 0\ncpu8 1389019 10176 390255 47694848 1721 0 5557 0 0 0\ncpu9 1824395 50513 489114 46988208 5066 0 10215 0 0 0\ncpu10 1540843 10509 373096 47448407 2671 0 9341 0 0 0\ncpu11 1243140 11573 333035 47891323 1540 0 5603 0 0 0\ncpu12 1326944 12286 341490 47758563 1776 0 6643 0 0 0\ncpu13 1846268 43472 524743 46441924 3472 0 260583 0 0 0\ncpu14 1258028 11143 342158 47853291 1481 0 11129 0 0 0\ncpu15 1285405 10357 338605 47832987 1632 0 7517 0 0 0",
+            "error": null
+          },
+          "/proc/loadavg": {
+            "text": "0.34 0.50 0.68 3/3946 123",
+            "error": null
+          },
+          "/proc/self/status": {
+            "text": "Cpus_allowed_list:\t0-15",
+            "error": null
+          }
+        }
+      },
+      "cpu_stat_delta": {
+        "usage_usec": 9526968,
+        "user_usec": 9309362,
+        "system_usec": 217605,
+        "nice_usec": 0,
+        "core_sched.force_idle_usec": 0,
+        "nr_periods": 95,
+        "nr_throttled": 95,
+        "throttled_usec": 22831570,
+        "nr_bursts": 0,
+        "burst_usec": 0
+      }
+    }
+  ]
+}
