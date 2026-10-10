@@ -128,6 +128,8 @@ typedef struct fm1_mod_dest {
  * line; emit may be NULL. */
 typedef struct fm1_mod_ui_env {
   fm1_mod_t *m;
+  const float *scope;          /* recent mixed output, circular; optional */
+  unsigned scope_n, scope_pos;
   float rate;                  /* the host's sample rate (0: unknown), for values in Hz */
   uint8_t sound;               /* the current sound unit, 0..FM1_MOD_SOUNDS - 1 */
   const fm1_engine_t *unit[FM1_MOD_UI_SINKS];
