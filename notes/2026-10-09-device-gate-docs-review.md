@@ -67,19 +67,27 @@ still say “no fix was made”.
   lands, avoid repeated picks loads inside the history merge interval when
   creating canonical assets. Compare MID’s missed pulse P3 is PR #113, open
   at `b439606`; do not rely on a single-tick sweep through its middle zone in
-  demo modulation until the fix passes and lands. Unknown MFX load handling
-  remains an app-state P3: demo admission must use the exact integrated
-  registry and reject any unknown, refused, left-out or skipped object. That
-  existing acceptance rule is in the prerequisite checklist above; a successful
-  file read alone is not a load receipt.
+  demo modulation until the fix passes and lands. The specific unknown-MFX
+  ON/PARAM false-application defect is fixed on current `main` by merged PR
+  #100: `tests/test_app_state.py::test_sound_import_cannot_apply_unknown_mfx_to_old_slot`
+  covers JSON and binary imports and verifies that an unavailable incoming
+  effect leaves the destination at its bypassed default. This does not waive
+  the separate demo-admission check: use the exact integrated registry and
+  reject every unknown, refused, left-out or skipped object. A successful file
+  read alone is not a load receipt.
 - **Not a reason to block offline composition, but still tracked:** remaining
   malformed-input, extreme-value, cleanup, benchmark, CLI, oracle and manual
   publishing findings are mostly developer-tool reliability/safety cases.
   Use known-valid bounded parameters and output paths outside the source tree;
   do not run the destructive `--site` case or untrusted remote-runner arguments.
-  The GPL-only X0X signed-shift P2 remains a distribution/runtime concern for
-  those modules: keep GPL X0X out of MIT/BSD demo assets and builds until it is
-  resolved. Do not describe the remaining audit P3 set as fixed.
+  The GPL-only X0X signed-shift P2 was fixed by merged PR #100 and its
+  vendor-patch correction: `engines/third_party/fm1-x0x/UPSTREAM.md` records
+  the unsigned arithmetic in `dsp/fastmath.h` and `dsp/drum808.c`, removed
+  UBSan exemptions, 114 focused tests and 293 sanitizer tests (with the
+  documented reference-checkout skips). The code remains GPL-3.0-only, so
+  keep X0X out of MIT/BSD demo builds for licensing reasons, not because this
+  shift finding is unresolved. Other audit P3 findings remain tracked; this
+  note does not claim blanket resolution.
 - **Separate hardware gate:** device handover/diagnostic work and the full-image
   recovery uncertainty are not required to compose or verify desktop/browser
   demos. PR #124’s bounded offline preparation is merged, but no Lunar
