@@ -931,7 +931,7 @@ note's §27 has it as built) is the second half of ED5.
   (the staged tree is under its remote directory's `src/`, its `playwright/`
   holds the npm package), run as root with `-e BROWSER=firefox`: `apt-get
   install pulseaudio pulseaudio-utils`, then `pulseaudio --system -n
-  --disallow-exit --exit-idle-time=-1 --load=module-null-sink
+  --disallow-exit --exit-idle-time=-1 --load="module-null-sink norewinds=1"
   --load="module-native-protocol-unix auth-anonymous=1 socket=/tmp/pa.sock"
   -D; export PULSE_SERVER=unix:/tmp/pa.sock`, then each of the four tests
   with `PLAYWRIGHT_DIR=/pw node test/editor-map.mjs WWW OUT` (and `editor.mjs
@@ -1643,7 +1643,7 @@ In an isolated Linux Playwright container, install `pulseaudio` and
 
 ```sh
 pulseaudio --system -n --disallow-exit --exit-idle-time=-1 \
-  --load="module-null-sink sink_name=lunar rate=48000 channels=2" \
+  --load="module-null-sink sink_name=lunar rate=48000 channels=2 norewinds=1" \
   --load="module-native-protocol-unix auth-anonymous=1 socket=/tmp/pa.sock" -D
 export PULSE_SERVER=unix:/tmp/pa.sock PULSE_SOURCE=lunar.monitor
 node sim/web/test/audio-analysis-check.mjs
@@ -1651,6 +1651,13 @@ BROWSER=chromium PLAYWRIGHT_DIR=/pw node sim/web/test/audio-loopback.mjs "$PWD/s
 ```
 
 Run again with `BROWSER=firefox` and `BROWSER=webkit`. CI runs all three.
+Use the supported `norewinds=1` option for this isolated headless sink: it
+limits its idle clock buffer to 50 ms. PulseAudio 16.1's default two-second
+idle buffer can retain almost two seconds of latency after a browser opens
+a low-latency stream, freezing WebKit's audio clock during startup [verified:
+[backend experiment](../../notes/2026-10-09-webkit-audio-lifecycle.md)].
+This setting belongs to the test container, not the browser application's
+audio configuration.
 Keep the sink isolated from unrelated audio; use a disposable container on
 an appropriately capped Docker host, not the owner's desktop audio daemon.
 The output includes float32 monitor captures, an A/B listening WAV and a

@@ -1,9 +1,13 @@
 # WebKit frozen audio clock investigation — 2026-10-09
 
-Current result: the retained null-sink clock was reproduced independently, but
-`norewinds=1` is not yet accepted. All three full editor UI tests pass; WebKit
-external audio fails under the two-CPU LAN quota. CI and runtime remain unchanged.
-The chronological checkpoints below retain both passing and failing evidence.
+Current result: CI's private PulseAudio null sink now uses supported
+`norewinds=1`, limiting its idle clock buffer to 50 ms. The retained default
+clock was reproduced independently and an original-worklet cold-start pair
+reproduced the WebKit failure. All three browsers pass full editor UI and
+30-second external audio acceptance with the setting; WebKit needs the four-CPU
+LAN quota matching public CI capacity. The failed two-CPU recording is retained.
+Production runtime and every latency/audio assertion remain unchanged. Exact-head
+GitHub CI is still pending; local acceptance does not establish CI success.
 
 [verified: GitHub logs] PR #125 head `540ed3cf0008cc2c3a01e0eaf913339d7827319c`,
 CI run `38016847016`, WebKit job `114108904554`, fails the panel-follow
@@ -322,3 +326,62 @@ expression. The owner observed thirteen obsolete queued jobs per checkpoint.
 No matrix, test, threshold or null-sink setting changes in this checkpoint.
 Workflow YAML parsed successfully; two pin tests and all nine panel-follow /
 scheduling-capture unit tests passed locally.
+
+
+## Accepted headless sink configuration
+
+[verified: exact PR #129 source and committed Wasm] The bounded four-CPU
+controlled pair passes in both modes: unchanged full editor UI is 93/93 checks,
+37 captures each, panel follow 2 frames for default and 1 for `norewinds=1`.
+Default external audio has 3,755 batches/replies and no zero run or bad periods;
+`norewinds=1` has 3,756 batches/replies, zero refusal/resync, zero bad periods,
+maximum zero run one sample (0.0208 ms), and maximum period error 0.0082 samples.
+Both musical phases pass without transport stops or console/page errors.
+Per-test CPU throttling is 35.625 ms for default audio and 1.132 ms for the
+fixed sink, compared with the retained earlier heavily throttled two-CPU run.
+The fixed sink's Chromium and Firefox full UI and 30-second audio passes are
+recorded in the preceding two-CPU acceptance; the four-CPU pair completes
+WebKit's strict acceptance without dismissing its earlier failed recording.
+
+[verified: three additional fixed cold pairs] These six browser invocations
+remove the entire added AudioWorkletNode diagnostic wrapper, use the original
+unmodified worklet and preserve the existing strict panel observer. Default
+passes at 2/2/2 frames, `norewinds=1` at 2/2/1 frames. No added per-frame markers,
+extra readiness waits, retries or changed assertions are present. All trials
+unload/reload only the private test sink immediately before power-on. Passing
+unmarked pairs do not erase the earlier intermittent default failure or prove
+that every future backend/runner condition is covered.
+
+[verified: backend version and supported option] The same pinned Playwright
+Noble image used by CI installs PulseAudio 16.1; `pulseaudio --version` and
+`pactl list short modules` record successful `norewinds=1` activation. Official
+[v16.1 null-sink source](https://raw.githubusercontent.com/pulseaudio/pulseaudio/v16.1/src/modules/module-null-sink.c)
+accepts the option and sets its maximum idle latency to 50 ms instead of 2 s.
+The repo is public, its CI container has no CPU quota, and
+[GitHub's standard public Ubuntu runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
+has four cores [reported: official runner documentation]. The four-CPU LAN
+quota is a capacity comparison, not an exact replica of GitHub scheduling.
+
+Complete reports, cgroup counters, module arguments, version/hash receipts and
+both bounded runners are saved in
+[null-sink-acceptance-four-cpu.json](evidence/2026-10-09-webkit-audio-lifecycle/null-sink-acceptance-four-cpu.json).
+The Wasm hash remains `2ff8cfa92f34a9c023088838477b9d53fb565edcd7f6922b084b40c21c48851f`;
+the worklet hash is `f3788e723cd22303dfbd95030c8d16cce761ca60be0ac1717b453861872d33cd`.
+Raw recordings/screenshots stay in the unique LAN `quota-pair-out/` directory;
+all owned containers have exited normally. No shared service was restarted.
+
+[implemented; CI verification pending] `.github/workflows/ci.yml` and the two
+headless Pulse examples in `sim/web/README.md` now select `norewinds=1`.
+This is an existing backend setting for isolated Linux test sinks; native
+Safari, browser application code, firmware and test gates do not change.
+No runner resource setting changes. Main documentation through `65367771`
+is integrated before this fix. Root reviews/merges after exact-head CI; failed
+PR heads should receive this shared workflow fix through normal integration,
+not unchanged retries. The retained native mismatch remains a potential
+upstream candidate requiring owner sign-off; no third-party posting occurred.
+
+[verified: focused configuration checks] Workflow YAML parses with the project
+virtual environment; both `tests/test_ci_pins.py` tests and all nine unchanged
+panel-follow/scheduling-capture unit tests pass. `git diff --check` passes.
+The Mac's system Python lacks PyYAML/pytest, so validation uses the existing
+project `.venv`, without installing packages or changing runtime configuration.

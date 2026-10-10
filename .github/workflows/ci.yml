@@ -197,8 +197,11 @@ jobs:
       - name: Isolated audio sink and monitor (also enables Firefox's AudioContext)
         run: |
           apt-get update -qq && apt-get install -y -qq pulseaudio pulseaudio-utils >/dev/null
+          # norewinds limits the null sink's idle clock buffer to 50 ms; the
+          # default 2 s buffer can stall WebKit after a low-latency stream opens.
+          # Evidence: notes/2026-10-09-webkit-audio-lifecycle.md.
           pulseaudio --system -n --disallow-exit --exit-idle-time=-1 \
-            --load="module-null-sink sink_name=lunar rate=48000 channels=2" \
+            --load="module-null-sink sink_name=lunar rate=48000 channels=2 norewinds=1" \
             --load="module-native-protocol-unix auth-anonymous=1 socket=/tmp/pa.sock" -D
           echo "PULSE_SERVER=unix:/tmp/pa.sock" >> "$GITHUB_ENV"
           echo "PULSE_SOURCE=lunar.monitor" >> "$GITHUB_ENV"
