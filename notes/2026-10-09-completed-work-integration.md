@@ -279,7 +279,7 @@ closed. A separately pushed readiness ledger records these distinctions.
 ## Exact-head follow-up — 2026-10-10
 
 [verified] GitHub inventory is now 26 open PRs after replacement #141 was
-opened. Every open head matches its remote source-branch SHA. Twenty older
+opened. Every open head matches its remote source-branch SHA. Nineteen older
 heads are ancestors of #140; #134 and #136 are ancestors of #141. #139's
 unique WebKit trace note is byte-identical in #141, while its runtime fixes
 are already integrated in #140. #22 and #58 are stale snapshots whose useful
