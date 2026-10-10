@@ -545,3 +545,24 @@ rerun was requested. Full reports, decoded frame observations, exact sink
 command and log SHA-256 are saved in
 [`pr136-webkit-ci.json`](evidence/2026-10-09-webkit-audio-lifecycle/pr136-webkit-ci.json).
 The evidence backup leaves PR #132's reviewed head unchanged.
+
+## PR #132 Chromium Node timeout and browser handoff
+
+[verified] Run `38028605340`, Chromium job `114144633913`, exact reviewed
+`c6db9587c1d8d1ca6f993d8f433875761f3b2b6e`, was cancelled by the 45-minute
+job timeout at 07:18:02 UTC on 2026-10-10. All nine Node helper tests printed
+PASS with duration 73.156207 ms at 06:33:50.978 UTC. No later browser step
+started. The subsequent `editor-unit.mjs` command redirects stdout to
+`/dev/null`, so this log cannot distinguish its Node/Wasm stall from a
+lingering helper-runner process. No HTTP server is started in this step;
+the scheduling fixtures clear/unref timers, and editor-unit exits explicitly.
+Both other browser jobs ran this same step in under half a second.
+
+This is a distinct pre-browser timeout, not a failed audio assertion or full
+Chromium acceptance. No speculative cleanup fix or unchanged rerun was made.
+Exact command/output/timestamp receipt and log hash are in
+[`pr132-chromium-timeout-ci.json`](evidence/2026-10-09-webkit-audio-lifecycle/pr132-chromium-timeout-ci.json).
+Browser monitoring/actual timeout triage transfers to the combined-candidate
+review agent; #132 remains at its reviewed head, with 13 successful checks
+and Chromium cancelled. This separate evidence backup preserves the failure
+while the firmware investigation resumes.
