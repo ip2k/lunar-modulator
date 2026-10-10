@@ -30,7 +30,8 @@ removes the kick and most hats, then restores a single pulse before Vrs2.
 
 Scene chain: `0,1,1,2,3,3,4,5,6,6,7` (76 bars, about 3:18). The bass is
 slot 1; the chord and answer parts share the arpeggiator-capable slot 2 with
-its arp off; DX7 slot 3 carries the melody and a low echo send.
+its arp off; DX7 slot 3 carries the melody through Warble (Wow .26, Flutter
+.12, Mix .16).
 
 Scene pass map: Intro 1×4 bars; Verse 2×8; Lift 1×4; Hook 2×8; Bridge
 1×8; Vrs2 1×8; Hook2 2×8; Outro 1×4. Vrs2 reverses the later pitch/rhythm
@@ -41,7 +42,11 @@ Hook2 uses common-tone voice-leading even when the chord stacks change size,
 moves late answers into verified gaps, and adds a held upper response on
 phrase endings. The Lift's four lock
 bars rise separately, then its last chord stab is withheld. The outro removes
-drums in stages and ends with a held A over Am9.
+drums in stages and ends with a held A over Am9. In the bridge, a full-bar
+G-B-D voicing carries common tones from Cmaj9 into G6; its final lead phrase
+adds a G4 pickup into the C-based second verse. The outro steps through E4
+before settling on A3. Its lead insert is Warble (Wow .26, Flutter .12, Mix
+.16), not Echo.
 
 ## Event Horizon — future bass, 144 BPM, F minor, 116 bars
 
@@ -76,7 +81,8 @@ Drop2 has an authored second eight-bar sentence, rotates the chord stack,
 adds an upper answer and raises its late-scene
 brightness. The Break removes the kick and reduces the bass to two sparse
 attacks to make the second drop an arrival. The outro cadences Ab–Db–Eb–Fm
-and settles the upper line on F.
+and settles the upper line on F. Drop2 alternates 1.5- and 2-beat full chord
+stacks in its second four-bar sentence; the chord slot remains unarpeggiated.
 The chord slot's saved Rate/Gate values are inactive while its arp is off;
 slot-1 Crush remains a restrained insert. Timbre/Brightness locks rise across the build instead of
 repeating one bar shape, and the final build bar clears chord stabs from step
@@ -146,7 +152,9 @@ contrast, verse, peak, edge. The seven-note refrain uses two-note previews,
 alternating verse notes, a four-note pre-chorus lift, and the full motif in
 the choruses; the answer enters in chorus and pre-chorus. Its second eight-bar
 intro is one continuous scene, with the refrain introduced in the later half.
-The Outro sings a directional cadence and holds upper E over the final tonic.
+The first chorus adds a C5 suspension over Em7, resolves it to B4, then returns
+to E4; the Outro sings a directional cadence and holds upper E over the final
+tonic.
 Chorus chords repeat
 on beats 1 and 3, while the bridge removes the kick. The Pre lock shape climbs
 in three distinct four-bar levels, then falls below its opening center as the
