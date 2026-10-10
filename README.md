@@ -276,6 +276,7 @@ with their lights, MASTER and the seven encoders.
 
 The browser simulator now includes the sound engines, effects, sequencer,
 arpeggiator, modulation, file storage, DX7 patch import and advanced editor.
+Envelopes include delay, five curves, a live playhead and a faint audio trace.
 The simulator does not send MIDI out. The main remaining work is the FM-1
 application target and hardware validation, plus planned features such as
 USB-MIDI output and additional effects. See
