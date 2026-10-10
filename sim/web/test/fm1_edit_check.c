@@ -584,6 +584,75 @@ static void check_sound_restore(void) {
   CHECK(fm1_mod_kind_at(g_a.mod, 5) >= 0);
 }
 
+/* A/B of a complete, unchanged sound is audio transparent: retained voices,
+ * insert history and an unchanged arpeggiator clock produce the same samples.
+ * Ordinary imports still recreate units; sparse A/B files still get defaults. */
+static void check_sound_restore_audio(void) {
+  static const char *projects[] = {
+    "{\"lunar\":\"1.0\",\"kind\":\"project\",\"sounds\":[{\"engine\":\"test-sine\",\"params\":{\"Volume\":0.7}}],\"mix\":{\"levels\":[100,0,0,0]}}",
+    "{\"lunar\":\"1.0\",\"kind\":\"project\",\"sounds\":[{\"engine\":\"test-sine\",\"params\":{\"Volume\":0.7},\"inserts\":[{\"engine\":\"filter\"},{\"engine\":\"drive\"}]}],\"mix\":{\"levels\":[100,0,0,0]}}",
+    "{\"lunar\":\"1.0\",\"kind\":\"project\",\"sounds\":[{\"engine\":\"test-sine\",\"params\":{\"Volume\":0.7},\"midi_fx\":[{\"engine\":\"arp\",\"on\":true}]}],\"mix\":{\"levels\":[100,0,0,0]}}"
+  };
+  static uint8_t buf[FM1_STATE_BIN_MAX];
+  float control[5 * 2 * FM1_APP_MAX_FRAMES];
+  fm1_app_state_mem_t mem;
+  fm1_app_state_report_t rep;
+  fm1_app_load_opts_t o;
+  fm1_state_report_t r;
+  for (unsigned c = 0; c < sizeof projects / sizeof projects[0]; ++c) {
+    for (unsigned restore = 0; restore < 2; ++restore) {
+      uint32_t len = 0;
+      fresh(44118.0f);
+      fm1_app_load_opts_init(&o); o.flags = FM1_APP_LOAD_QUIET;
+      mem.b = (const uint8_t *)projects[c]; mem.n = strlen(projects[c]);
+      CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, mem.n, &o, &rep));
+      CHECK(fm1_app_arp_on(&g_a, 0) == (c == 2));
+      if (c == 1) {
+        CHECK(g_a.unit[fm1_app_insert_unit(0, 0)].e && !strcmp(g_a.unit[fm1_app_insert_unit(0, 0)].e->id, "filter"));
+        CHECK(g_a.unit[fm1_app_insert_unit(0, 1)].e && !strcmp(g_a.unit[fm1_app_insert_unit(0, 1)].e->id, "drive"));
+      }
+      CHECK(fm1_app_state_save(&g_a, FM1_STATE_SOUND, 0, 1, fm1_edit_check_put, &len, &r));
+      CHECK(len <= sizeof buf); memcpy(buf, fm1_edit_check_buf(), len);
+      fm1_app_unit_note_on(&g_a, 0, 69, 100);
+      render(50);
+      if (restore) {
+        mem.b = buf; mem.n = len;
+        o.into = 0; o.flags |= FM1_APP_LOAD_RESTORE_SOUND;
+        CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
+      }
+      for (unsigned b = 0; b < 5; ++b) {
+        const float *audio = fm1_app_render(&g_a, FM1_APP_MAX_FRAMES);
+        if (!restore) memcpy(control + b * 2 * FM1_APP_MAX_FRAMES, audio, 2 * FM1_APP_MAX_FRAMES * sizeof(float));
+        else CHECK(!memcmp(control + b * 2 * FM1_APP_MAX_FRAMES, audio, 2 * FM1_APP_MAX_FRAMES * sizeof(float)));
+      }
+      if (restore && c == 0) {
+        /* A changed value reaches the live engine without dropping its note. */
+        fm1_app_set_param(&g_a, 0, 0, 0.15f);
+        CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
+        CHECK(fm1_app_get_param(&g_a, 0, 0) == 0.7f);
+        {
+          const float *audio = fm1_app_render(&g_a, FM1_APP_MAX_FRAMES);
+          float energy = 0;
+          for (unsigned i = 0; i < 2 * FM1_APP_MAX_FRAMES; ++i) energy += fabsf(audio[i]);
+          CHECK(energy > 0.1f);
+        }
+        o.flags = FM1_APP_LOAD_QUIET;
+        CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
+        {
+          const float *audio = fm1_app_render(&g_a, FM1_APP_MAX_FRAMES);
+          for (unsigned i = 0; i < 2 * FM1_APP_MAX_FRAMES; ++i) CHECK(audio[i] == 0);
+        }
+        fm1_app_set_param(&g_a, 0, 0, 0.15f);
+        mem.b = (const uint8_t *)"{\"lunar\":\"1.0\",\"kind\":\"sound\",\"sound\":{\"engine\":\"test-sine\"}}";
+        mem.n = strlen((const char *)mem.b);
+        o.flags |= FM1_APP_LOAD_RESTORE_SOUND;
+        CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, mem.n, &o, &rep));
+        CHECK(fm1_app_get_param(&g_a, 0, 0) == 0.7f);
+      }
+    }
+  }
+}
+
 static void check_transport(void) {
   static uint8_t buf[FM1_STATE_BIN_MAX];
   uint32_t len = 0;
@@ -1029,6 +1098,7 @@ int fm1_edit_check(void) {
   check_locks();
   check_transport();
   check_sound_restore();
+  check_sound_restore_audio();
   check_verbs();
   check_telemetry();
   check_fuzz();
