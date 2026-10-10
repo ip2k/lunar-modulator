@@ -25,6 +25,15 @@ correction to the documentation stream; the candidate remains unmerged.
 A documentation correction requires a fresh exact-head CI result even
 when engine and simulator source hashes remain unchanged.
 
+[verified] After normal integration of the approved usage sections and
+CI diagnostic changes, PR140 head `9a5fb72a54f5117169840f331fd1f756071e6fd5`
+passed [Pages 38034115529, job 114160893087](https://github.com/ip2k/lunar-modulator/actions/runs/38034115529/job/114160893087).
+Its actual strict manual log at 07:22:20.5392672 UTC reports 17 chapters,
+42 engines and effects, 0 outline boxes, 0 errors and 0 warnings; the PDF
+has 275 pages. The separate Actions Node20 deprecation warning remains an
+environment warning. Full [CI 38034115528](https://github.com/ip2k/lunar-modulator/actions/runs/38034115528)
+is still pending; Pages success alone does not authorize a merge.
+
 ## Observation and remaining gates
 
 [verified] A read-only monitor records changes to PR140 checks and stops
