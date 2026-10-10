@@ -70,6 +70,14 @@ currently has no observation transport.
 No watchdog, clock, power, cache/MMU, exception, second-core or peripheral
 contract has been implemented or verified. The incoming `r0` is only saved;
 it is not claimed to be a verified stock-SPL boot-info pointer.
+Subsequent independent stock-SPL vendor decode identifies a `call r1`
+handover with `r0 = 0x01c7fe08` and interrupts disabled [reported:
+`notes/2026-10-09-stock-spl-handover.md`, branch
+`chore/2026-10-09@stock-spl-handover`, `fcb5b04`]. It also identifies the
+loaded SPL at `0x01c02000..0x01c05830`, overlapping this diagnostic's RAM
+reservation. Nonreturning startup and absence of SPL calls do not prove
+RAM ownership or inherited supervisor/exception-stack safety. Resolve that
+overlap before reusing this reservation in a board runtime.
 Inherited watchdog/reset behavior is unknown; the spin could reset rather
 than persist [inferred]. There is no debugger/transport available here to
 observe its RAM state on the unit. This is link evidence only; it is not yet
