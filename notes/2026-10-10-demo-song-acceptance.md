@@ -22,9 +22,9 @@ synthetic cases only evaluate the harness, not the demo songs.
 
 Pending: authored four-song manifest/assets, full-length renders on aeon,
 native transport/event checks, browser example selection/save/reload,
-listening review and final integration CI. Adding the test changes the
-simulator source fingerprint; regenerate the actual Wasm/build record
-before integration. Do not claim the existing build record covers this head.
+listening review and final integration CI. These JavaScript harness files are outside the simulator C source fingerprint.
+Final integration still requires the actual build and full CI; matching source
+hashes alone do not establish that the final tree passes.
 
 Semantic tools: [verified] Rarefaction's root is the original checkout,
 not this worktree; its bounded JavaScript orient query failed in the
@@ -55,3 +55,21 @@ files are refused so a new render cannot overwrite a prior review round.
 each WAV contains 2,118,188 bytes including its header, rate 44,118 Hz,
 finite samples throughout and measured peak 0.537982583. Header/data lengths
 match. Full authored-song audio remains pending.
+
+## First authored round, 2026-10-10
+
+[verified] Assets at `27939c784be6d8bacb19bc8b5eaba6bb34583ea2` (a
+serialization-only repair of critic snapshot `9a2d099`) rendered in full
+against the PR #142 Wasm in an isolated aeon container, limited to 2 CPUs
+and 2 GiB. All four save/load/save checks passed; the arrangements stopped
+within 0.1 seconds of their expected 188.57–208-second durations, with zero
+dropped sequencer events, non-finite samples or host imports. Peaks were
+0.7532–0.8684 and RMS 0.0694–0.0776. Exact samples were captured as float
+stereo WAV without normalization. File/audio hashes and per-second RMS
+are in `notes/data/2026-10-10-demo-song-round-1-wasm.json`.
+
+This is runtime evidence, not musical approval. The critic scored all 32
+scenes 3–6 using actual decoded project/source evidence; round 2 revisions
+are underway. Native full-song and browser file acceptance remain pending.
+The acceptance harness now rejects repaired or skipped project content and
+records Wasm, manifest and project hashes directly in future receipts.

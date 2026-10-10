@@ -7,6 +7,7 @@ import { readFileSync, writeFileSync, mkdirSync, openSync, writeSync, closeSync 
 import { basename, dirname, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { parseArgs } from 'node:util';
+import { createHash } from 'node:crypto';
 import { instantiateFm1, BLOCK } from '../www/fm1-wasm.mjs';
 
 const { values } = parseArgs({ options: {
@@ -22,7 +23,9 @@ const manifest = resolve(values.manifest);
 const songs = JSON.parse(readFileSync(manifest, 'utf8'));
 assert.equal(songs.length, 4, 'four complete demo songs');
 assert.equal(new Set(songs.map(song => song.title)).size, 4, 'distinct demo songs');
-const module = await WebAssembly.compile(readFileSync(values.wasm));
+const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
+const wasmBytes = readFileSync(values.wasm);
+const module = await WebAssembly.compile(wasmBytes);
 const rate = 44118;
 const results = [];
 const stripInfo = (doc) => {
@@ -58,6 +61,8 @@ for (const song of songs) {
   };
   load(bytes);
   const loadReport = JSON.parse(w.string(ex.fm1w_state_report()));
+  assert.equal(loadReport.skipped, 0, 'no project content skipped');
+  assert.equal(loadReport.repaired, 0, 'generated project needs no repairs');
   assert(loadReport.percent <= 100, 'project fits simulated RAM budget');
   const first = save();
   load(first);
@@ -146,7 +151,9 @@ for (const song of songs) {
   }
   results.push({ title: song.title, file: song.file, bpm: song.bpm, bars: song.bars,
     duration, stoppedAt: stoppedFrame / rate, peak, rms, secondRms: energy,
-    dropped: 0, ramPercent: loadReport.percent, roundTrip: true, audioPath, native });
+    dropped: 0, ramPercent: loadReport.percent, loadReport,
+    projectSha256: sha256(bytes), roundTrip: true, audioPath, native });
   console.log(`${song.title}: ${duration.toFixed(2)}s, peak ${peak.toFixed(4)}, RMS ${rms.toFixed(4)}`);
 }
-writeFileSync(values.out, JSON.stringify({ rate, songs: results, pass: true }, null, 2) + '\n');
+writeFileSync(values.out, JSON.stringify({ rate, wasmSha256: sha256(wasmBytes),
+  manifestSha256: sha256(readFileSync(manifest)), songs: results, pass: true }, null, 2) + '\n');
