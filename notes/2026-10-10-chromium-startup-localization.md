@@ -53,3 +53,18 @@ firmware initialization and default-chain creation finish. No published CI
 event has yet been attributed to that work. The next bounded probe measures
 initialization time and message delivery with the node disconnected; it keeps
 the context wake inside the user's gesture to preserve browser autoplay rules.
+
+[verified] The actual startup probe at `a53abb9a` measured an original startup
+with destination/analyser connected before ready: instantiate elapsed 3 ms,
+then synchronous firmware/default-chain/catalog/setup 6 ms. The disconnected
+variant completed instantiate (2 ms) and setup (7 ms), received ready, then
+connected both outputs and produced 66 screens with a running context. Setup
+alone exceeds a 128-frame/44,100-Hz quantum (2.902 ms); instantiate elapsed
+includes asynchronous waits and is not all blocking CPU. Both observations
+reported zero published events. This demonstrates an avoidable initialization
+hazard on an active graph and feasible connection ordering, not the cause of
+CI's event. Date.now resolution and diagnostic observers perturb the result.
+The [timing receipt](data/2026-10-10-worklet-startup-timing.json) also preserves
+the two failed routing probes; AudioWorklet fetches did not receive their
+injected timing responses. The successful probe serves an isolated instrumented
+site copy and never changes the actual input Wasm.
