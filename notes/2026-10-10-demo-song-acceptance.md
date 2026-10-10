@@ -32,3 +32,18 @@ TypeScript backend. Serena is active in another worktree and was not
 retargeted because selection is shared. This work used direct source/API
 inspection and actual-Wasm smoke testing; it does not claim successful
 semantic navigation in this worktree.
+
+The subsequent harness revision also checks distinct song titles, the
+actual number of unique chained scenes and persisted stop-at-end behavior.
+[verified] Its revised synthetic four-scene cases pass at four seconds,
+peak 0.5380 / RMS 0.0760. Optional `--native HARNESS --work DIR` runs the
+native simulator, retains WAV/PPM/JSON receipts and checks load acceptance,
+audible output, zero dropped events and final stopped transport. That
+native leg has not yet been executed for this checkpoint.
+
+`sim/web/test/demo-files.mjs` is the separate Playwright acceptance path:
+exact browser mirrors and preloaded registry entries, URL load/play,
+stop, Save download, and Open into a clean context followed by state
+comparison. [verified] Syntax checks pass; browser execution awaits the
+authored files and container integration. These scripts do not claim a
+full CI pass or musical quality approval.

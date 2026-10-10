@@ -3,18 +3,23 @@
 //   --wasm ../www/fm1.wasm --out build/demo-songs.json
 // MIT licence.
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { basename, dirname, resolve } from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { parseArgs } from 'node:util';
 import { instantiateFm1, BLOCK } from '../www/fm1-wasm.mjs';
 
 const { values } = parseArgs({ options: {
   manifest: { type: 'string' }, wasm: { type: 'string' }, out: { type: 'string' },
+  native: { type: 'string' }, work: { type: 'string' },
 } });
 assert(values.manifest && values.wasm && values.out, '--manifest, --wasm and --out required');
+assert(!values.native || values.work, '--native requires --work for audio/screen receipts');
+if (values.work) mkdirSync(values.work, { recursive: true });
 const manifest = resolve(values.manifest);
 const songs = JSON.parse(readFileSync(manifest, 'utf8'));
 assert.equal(songs.length, 4, 'four complete demo songs');
+assert.equal(new Set(songs.map(song => song.title)).size, 4, 'distinct demo songs');
 const module = await WebAssembly.compile(readFileSync(values.wasm));
 const rate = 44118;
 const results = [];
@@ -30,6 +35,11 @@ for (const song of songs) {
   const doc = JSON.parse(bytes);
   assert.equal(doc.kind, 'project');
   assert.equal(doc.title, song.title);
+  const chain = doc.set.find(line => line.startsWith('sg '));
+  assert(chain, 'song has a scene chain');
+  assert(new Set(chain.split(/\s+/).slice(1)).size >= song.scenes,
+    'chain actually uses the declared number of scenes');
+  assert(doc.set.includes('se 2'), 'stop-at-end is persisted in the project');
   const w = await instantiateFm1(module);
   const ex = w.exports;
   ex.fm1w_init(rate);
@@ -87,9 +97,24 @@ for (const song of songs) {
   assert.equal(w.calls.length, 0, 'no stubbed host calls');
   const rms = Math.sqrt(squares / (limit * 2));
   assert(rms > 0.001 && peak > 0.01, 'arrangement produces audible audio');
+  let native = null;
+  if (values.native) {
+    const stem = resolve(values.work, basename(song.file, '.lunar'));
+    writeFileSync(`${stem}.verbs`, `#! rate=${rate} block=${BLOCK} tracks=8\n@0 play\n`);
+    native = JSON.parse(execFileSync(values.native, [
+      '--load', path, '--cmd', `${stem}.verbs`, '--seconds', String(duration + 2),
+      '--master', '1', '--out', `${stem}.wav`, '--screen', `${stem}.ppm`,
+    ], { encoding: 'utf8', timeout: 600000 }));
+    assert.equal(native.load.ok, 1, 'native accepts project');
+    assert.equal(native.seq_view.playing, 0, 'native song stops');
+    assert.equal(native.seq_dropped, 0, 'native drops no sequencer events');
+    assert(native.seq_events > 0 && native.rms > 0.001 && Number.isFinite(native.peak),
+      'native actually plays finite audible audio');
+    writeFileSync(`${stem}.json`, JSON.stringify(native, null, 2) + '\n');
+  }
   results.push({ title: song.title, file: song.file, bpm: song.bpm, bars: song.bars,
     duration, stoppedAt: stoppedFrame / rate, peak, rms, secondRms: energy,
-    dropped: 0, ramPercent: loadReport.percent, roundTrip: true });
+    dropped: 0, ramPercent: loadReport.percent, roundTrip: true, native });
   console.log(`${song.title}: ${duration.toFixed(2)}s, peak ${peak.toFixed(4)}, RMS ${rms.toFixed(4)}`);
 }
 writeFileSync(values.out, JSON.stringify({ rate, songs: results, pass: true }, null, 2) + '\n');
