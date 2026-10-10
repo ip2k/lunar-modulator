@@ -2,6 +2,11 @@
 
 Reviewed immutable pushed checkpoint 3425f4ebf23c7091405f783bf667c960d02f71ae read-only, 2026-10-09. Working tree was actively changed by implementer; git-show snapshot is the evidence. No hardware traffic, no worktree edits.
 
+These are historical findings. Their corrections, including the later
+repeated Hold Off issue, were independently verified at `461eda05` in the
+[integration review](2026-10-09-engine-integration-review.md). Native source
+review does not establish the final Wasm, browser, CI or device gates.
+
 ## Confirmed findings
 
 1. Dry release endpoint corrupts dry output. engines/src/fx_repeat.cc:139 SetWet, :170 BeginRelease, :279 StepRamps. SetWet(0) when wet==0 creates zero-step ramp; immediate FinishRelease does not cancel wet_left. Endpoint assigns wet=1 because wet_step>=0, even with held=0. At default Mix=.5 and .5 DC, START/STOP/RESET or initial HoldOff outputs .25 after 221 frames at 44118 Hz instead of .5. Correct explicit endpoint/settled ramp cancellation; cover dry transport and repeated HoldOff.
