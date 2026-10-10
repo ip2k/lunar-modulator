@@ -135,3 +135,26 @@ every prerequisite or demonstrate rendered/listened-to demo songs.
 
 The A/B PR is prepared for review and CI; no main merge is performed here.
 The owner's native Safari listening failure remains a failure pending retest.
+
+## Current-main integration
+
+[verified] Integrated main `67d5e12d` (envelope #101, Room/DX7 bounds) into
+the A/B correction. Source merged cleanly; both generated Wasm conflicts
+were resolved by an actual build of the combined tree in aeon's existing
+Docker batch slice, four CPUs and 8 GiB memory, with the unchanged build gates.
+The fresh result passes 104 parity scenarios, 4621 screens with zero layout
+faults, metadata comparison, 18 DX7 checks, native edit-check (including
+complete sound restore and held-note audio continuity regressions), and
+edit audio parity with zero sample delta. The 30-second offline edit storm
+reports zero late quanta/resyncs (maximum 0.243646 ms, deadline 2.901310 ms).
+Both source hashes and module hash match the final tree.
+
+Compact receipt: `notes/data/2026-10-09-ab-main-integration.json`. Complete
+logs: `/tmp/lunar-ab-main-{build,pytest}.log`. LAN build tree:
+`/home/claude/mvave-fm1/ab-main-integrated-20261009/src`. This is offline
+native/Wasm evidence. The owner's original Safari listening failure above
+remains the listening receipt; no native Safari by-ear retest or FM-1 traffic
+is claimed. Exact-head GitHub CI remains required before merging.
+
+[verified] Thirteen focused pytest checks pass: the complete edit-layer test
+file plus canonical metadata, served examples and committed build record.
