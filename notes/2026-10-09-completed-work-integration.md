@@ -81,3 +81,38 @@ were retained.
 Firmware work continues with a separate offline inert panel-protocol link
 variant, RAM-only callback accounting, and retained packaging rejection.
 There is still no device execution or installable firmware claim.
+
+## Continued prerequisite checkpoint
+
+[verified] PR110 passed all 14 executable checks (Pages deploy skipped for
+the PR), then merged at `7eb55b1fd05b8e03fc9dcaf663ce194019299dbf`; the remote
+main SHA matched. Its factual corrections keep the Safari Sound 2 listening
+retest open. PR135 at `e1868110e6ffb69ce92b83f30f0c88a3461ef233` corrects the
+audit disposition: unknown-MFX false application and X0X signed shifts were
+fixed by PR100; separate demo admission and GPL distribution checks remain.
+PR135 still awaits full CI.
+
+[verified] Independently reviewed PR136 at
+`1299c590408e6d919181294bdadc8c28b4b7503a`: its offline tool recomputes the
+link audit and ELF-derived report, excludes the 16-byte stock bank header
+from loaded RAM, checks protected boot data and reserved alignment gaps,
+and retains unresolved ownership. The author's bounded LAN suite reports
+89 passing tests including the held stock bytes. Root reviewed source/tests
+and receipts; it did not independently rerun that private-stock check.
+Full CI is pending. No hardware authorization follows from this receipt.
+
+[reported] PR132's strict editor UI checks passed 93/93 with 37 screenshots
+in each browser. Its candidate null-sink setting still failed the two-CPU
+WebKit external capture (maximum silence 39.729 ms). The preserved run also
+recorded 76.572 seconds of CPU throttling; a four-CPU paired backend test is
+in progress. The backend change is not adopted and no audio assertion was
+relaxed. PR-only CI concurrency at `fda3539a91db82ae5753cecbe4e896b45c6dee29`
+preserves every matrix/check and main run. Only queued superseded PR heads
+were cancelled; current heads and failure evidence remain.
+
+Repeat is now an original MIT implementation stream, separate from the
+effect-inspiration research. Its reviewed direction uses the existing
+tempo/transport API, a single bounded stereo capture ring, an honest maximum
+slice control and octave subdivisions to fit the buffer. It remains unbuilt
+at this checkpoint; Warble and Repeat must integrate with real rebuilt
+Wasm/metadata before their features are used in canonical demos.
