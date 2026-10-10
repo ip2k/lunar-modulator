@@ -34,6 +34,12 @@ review scope; 10 exceptional and unusually integrated. No automatic penalty for
 simplicity, conventional harmony, grid alignment or repeated hooks. The question
 is whether that choice works for this particular section and song.
 
+Owner clarification, 2026-10-10: inspect the project in the simulator or
+programmatically inspect the actual project files across every category;
+waveforms alone are insufficient. This review uses decoded project events,
+generator logic, routing, modulation/locks/effect settings, supported voice
+behavior and parent runtime acceptance as its primary evidence.
+
 ## Evidence procedure
 
 Record exact asset SHA, authoritative file hashes, production proposal version,
@@ -68,6 +74,13 @@ does not retarget or restart shared servers; exact frozen-source inspection is
 the authoritative fallback for new demo assets. No semantic-index completeness
 or device playback claim follows from this setup.
 
+[verified] A bounded primary-checkout query of `sq_scene_launch` found the
+same definition through both tools. Rarefaction found its two direct callees
+but missed the known caller at `engines/seq/seq_cmd.c:639` and represented
+`fm1_seq_t *` as `int *` under fallback flags. Serena located the correct
+definition. These are navigation successes with demonstrated reference/type
+coverage limits, not validation of the writer worktree.
+
 ## Round ledger
 
 | Round | Frozen asset SHA | Report | Disposition |
@@ -78,3 +91,7 @@ or device playback claim follows from this setup.
 Critic branch: `chore/2026-10-10@demo-music-critic`.
 Writer branch: `feature/2026-10-10@demo-songs`.
 Parent integration owns rendering, runtime acceptance and final packaging.
+
+## Round 1 checkpoint
+
+[verified] Reviewed frozen `9a2d099d77f5dc5903453079d08e059014e480cd`: all 32 scenes, 57 ordered chain occurrences, event pitch/onset/gate/velocity, routes, locks, sound and effect parameters, modulation rack and proposal. Reports: `2026-10-10-demo-song-critic-round-1.{md,json}`. Every scene has six integer scores; none passes. [inferred] Highest-priority revisions are scene development, intentional build/bridge/ending transitions, phrase articulation, voice-leading and genre-specific modulation identity. Gate lengths are intentionally raw ticks; bass-octave and chord-quality fixes are accepted before Round 1. No listening claim; render receipts pending.
