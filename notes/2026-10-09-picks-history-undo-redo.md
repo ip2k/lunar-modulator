@@ -22,3 +22,9 @@ Verification: `node sim/web/test/editor-unit.mjs sim/web/www` passes all
 checks. No browser run was performed; this regression exercises the history
 contract directly, and the existing Playwright editor suite requires the LAN
 container documented in `sim/web/build-on-aeon.sh`.
+
+Integration checkpoint, 2026-10-09: merged current main 67d5e12d into this
+branch without conflicts. The combined editor unit suite passes with zero
+failures, including the repeated-Picks regression and the panel-follow changes.
+PR118 now targets main. Full exact-head CI is required before automatic merge;
+the previous WebKit frozen-clock failure is not waived by this unit result.
