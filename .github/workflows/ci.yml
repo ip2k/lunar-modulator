@@ -209,7 +209,7 @@ jobs:
         run: |
           mkdir -p "$SHOTS"
           status=0
-          for t in editor-ui editor-reach editor-map editor-v1; do
+          for t in editor-ui editor-reach editor-map editor-v1 info-dialogs; do
             echo "::group::$t ($BROWSER)"
             node "sim/web/test/$t.mjs" sim/web/www "$SHOTS" || status=1
             echo "::endgroup::"
