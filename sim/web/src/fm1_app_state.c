@@ -700,6 +700,10 @@ typedef struct plan {
   uint8_t given[FM1_APP_UNITS], unknown[FM1_APP_UNITS];
   const fm1_engine_t *mfx[FM1_APP_SOUNDS];
   uint8_t mfx_given[FM1_APP_SOUNDS], mfx_on[FM1_APP_SOUNDS];
+  /* Complete A/B records can retain voices and effect tails. Sparse imports
+   * still need a fresh instance to supply omitted defaults. */
+  uint32_t unit_params[FM1_APP_UNITS], mfx_params[FM1_APP_SOUNDS], mfx_changed;
+  uint8_t reuse_unit[FM1_APP_UNITS], same_mfx[FM1_APP_SOUNDS], mfx_on_given[FM1_APP_SOUNDS];
   unsigned chain_n;            /* an effects file's chain */
   /* Modulation. */
   uint8_t has_mod, has_seed, mod_drop;
@@ -895,7 +899,7 @@ static int plan_pass1(plan_t *p, const fm1_rec_t *r) {
     }
     case FM1_REC_ON: {
       const int m = map_unit(p, r->role, r->sound, r->slot);
-      if (m <= -2) p->mfx_on[-2 - m] = r->u.on;
+      if (m <= -2) { p->mfx_on[-2 - m] = r->u.on; p->mfx_on_given[-2 - m] = 1; }
       break;
     }
     case FM1_REC_DX7:
@@ -919,7 +923,19 @@ static int plan_pass1(plan_t *p, const fm1_rec_t *r) {
           fm1_mod_kind_at(a->mod, r->slot) == fm1_mod_kind_find(r->u.unit.id));
       }
       break;
-    case FM1_REC_PARAM:
+    case FM1_REC_PARAM: {
+      const int m = map_unit(p, r->role, r->sound, r->slot);
+      const fm1_engine_t *e = m >= 0 ? p->e[m] : m <= -2 ? p->mfx[-2 - m] : NULL;
+      const int idx = e ? fm1_param_index(e, r->u.param.uid) : -1;
+      if (idx >= 0 && idx < 32) {
+        if (m >= 0) p->unit_params[m] |= 1u << idx;
+        else {
+          const int k = -2 - m;
+          p->mfx_params[k] |= 1u << idx;
+          if (e != fm1_app_mfx_engine(a, k) || fm1_app_arp_get_param(a, k, idx) != rec_value(&e->params[idx], r))
+            p->mfx_changed |= 1u << k;
+        }
+      }
       if (r->role == FM1_ROLE_MODULE && r->slot < FM1_MOD_POSITIONS && p->same_mod[r->slot]) {
         const int k = fm1_mod_kind_at(a->mod, r->slot);
         const fm1_mod_kind_t *kind = fm1_mod_kinds[k];
@@ -930,6 +946,7 @@ static int plan_pass1(plan_t *p, const fm1_rec_t *r) {
         ++p->mod_params[r->slot];
       }
       break;
+    }
     case FM1_REC_DATA:
       if (r->slot < FM1_MOD_POSITIONS && p->same_mod[r->slot]) {
         uint8_t data[FM1_MOD_DATA_MAX], version = 0;
@@ -1064,6 +1081,13 @@ static int seq_fixed(const fm1_app_t *a) {
                 : 0;
 }
 
+static int complete_params(const fm1_engine_t *e, uint32_t mask) {
+  if (!e || e->n_params > 32) return 0;
+  for (unsigned i = 0; i < e->n_params; ++i)
+    if (!(mask & (1u << i)) || fm1_state_param_focus(e, i)) return 0;
+  return 1;
+}
+
 /* Pass 1's verdict once the file is read: what the load needs, against the
  * app as it is. */
 static int plan_finish(plan_t *p) {
@@ -1111,6 +1135,16 @@ static int plan_finish(plan_t *p) {
                          "Two effects fit there; this chain has %s.", n);
     }
     rep->left_out = (uint16_t)(rep->left_out + p->chain_n - 2u);
+  }
+  if (p->kind == FM1_STATE_SOUND && (flags & FM1_APP_LOAD_RESTORE_SOUND)) {
+    for (int u = 0; u < FM1_APP_UNITS; ++u)
+      p->reuse_unit[u] = (uint8_t)(p->e[u] == a->unit[u].e && complete_params(p->e[u], p->unit_params[u]));
+    /* A MIDI effect has note/clock state too. Reuse only an exactly unchanged
+     * complete record; changed configuration retains its normal flush. */
+    for (int k = 0; k < FM1_APP_SOUNDS; ++k)
+      p->same_mfx[k] = (uint8_t)(p->mfx[k] == fm1_app_mfx_engine(a, k) &&
+        !(p->mfx_changed & (1u << k)) && p->mfx_on_given[k] && p->mfx_on[k] == fm1_app_arp_on(a, k) &&
+        complete_params(p->mfx[k], p->mfx_params[k]));
   }
   /* The units after the load. */
   for (int u = 0; u < FM1_APP_UNITS; ++u) {
@@ -1440,7 +1474,7 @@ static void apply_unit(plan_t *p, const fm1_rec_t *r) {
     p->focus_idx[m] = -1;
     p->focus_has[m] = 0;
     if (e) {
-      fm1_app_select(a, m, fm1_app_find(e->id));
+      if (!p->reuse_unit[m]) fm1_app_select(a, m, fm1_app_find(e->id));
       for (uint16_t i = 0; a->unit[m].e && i < a->unit[m].e->n_params; ++i) {
         if (fm1_state_param_focus(a->unit[m].e, i) == 1) p->focus_idx[m] = (int8_t)i;
       }
@@ -1449,7 +1483,7 @@ static void apply_unit(plan_t *p, const fm1_rec_t *r) {
     }
   } else if (m <= -2) {
     const int k = -2 - m;
-    if (e) {
+    if (e && !p->same_mfx[k]) {
       fm1_app_arp_set_on(a, k, 0);
       fm1_app_mfx_select(a, k, e->id);
       e = fm1_app_mfx_engine(a, k);
@@ -1783,10 +1817,10 @@ int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t tot
    * old and the new at once. */
   if (p->kind == FM1_STATE_SOUND || p->kind == FM1_STATE_FX) {
     for (int u = FM1_APP_UNITS - 1; u > 0; --u) {
-      if (target_unit(p, u) && unit_sound(u) < 0) fm1_app_select(a, u, -1);
+      if (target_unit(p, u) && unit_sound(u) < 0 && !p->reuse_unit[u]) fm1_app_select(a, u, -1);
     }
   }
-  if (p->kind == FM1_STATE_SOUND) {
+  if (p->kind == FM1_STATE_SOUND && !p->same_mfx[p->o->into]) {
     /* Preflight budgets an absent/unavailable MIDI effect as the default
      * bypassed arp. Make the target match that plan before applying records;
      * this also prevents the previous sound's effect leaking into the load. */
