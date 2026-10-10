@@ -39,5 +39,43 @@ a private container and PulseAudio null sink at 48 kHz, two CPU quota,
 4 GiB memory and `docker-batch.slice`. It runs the unchanged 30-second
 external audio test followed by the unchanged editor UI test. GStreamer
 category diagnostics are enabled for the UI run. Files persist at
-`/home/claude/mvave-fm1/webkit-lifecycle-20261009/`; current command is running.
+`/home/claude/mvave-fm1/webkit-lifecycle-20261009/`; both containers finished
+and were removed normally.
 No hardware, shared service restart, MCP activation or upstream posting occurs.
+
+## Bounded result and next useful evidence
+
+[verified: independent LAN run] The unchanged full editor UI test passes all
+93 checks and produces 37 screenshots, with no console/page errors. Its panel
+observation receives state/screen/changes, updates `s2:2` in one frame / 18 ms,
+records the KNOB2 history entry, and advances the audio clock from 0.6182313
+to 0.6356463 seconds. The preceding unchanged external audio test passes:
+3,756 storm batches/replies, no refusal/resync, zero nonfinite samples,
+channel mismatches, zero runs or bad periods; musical A/B playback peak 0.2602.
+
+[verified: bounded startup probes] Eight separate fresh browsers then run
+only the original editor UI setup and panel-follow checks, under the same
+private 48 kHz sink and two-CPU quota. The probe is the exact `editor-ui.mjs`
+prefix ending immediately before `// ---- follow, editor to panel`, followed
+by report output and normal browser/server cleanup. Each invocation has a
+45-second external timeout. All eight pass within one to three frames
+(12–153 ms); every observed audio clock advances and messages arrive. This
+is additional passing evidence, not a reproduction of the CI failure or a
+new millisecond acceptance threshold. These probes do not include the
+preceding loopback test; the full UI run above does.
+
+The compact [machine-readable results](evidence/2026-10-09-webkit-audio-lifecycle/results.json)
+retain the complete follow traces, check verdicts, audio report and probe
+source SHA-256. The copied probe source remains in the unique LAN directory;
+no test or production source changed in this branch.
+
+[limitation] None of these nine observations reproduces the frozen clock.
+The GStreamer category environment used for the full UI run produced no
+additional backend diagnostics in its log; lack of such messages is not
+proof of backend health. No resume/retry, extra readiness wait, silent audio
+source, backend swap or changed assertion is justified. A failing CI run
+needs contemporaneous WebKit/GStreamer/Pulse diagnostics and worklet
+receipt/render timing to distinguish scheduling starvation, audio backend
+stall and message dispatch. Existing main-thread traces cannot identify
+which of those occurred. The 12-frame check, 60-frame maximum and zero-event
+external audio gate stay unchanged.
