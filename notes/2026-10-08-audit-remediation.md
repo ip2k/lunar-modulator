@@ -65,14 +65,14 @@ The updated Wasm passed 104 parity scenarios, 18 SysEx cases, metadata checks
 and native/Wasm edit parity with zero late storm quanta. Chromium's 30-second
 page storm passed with zero reported playback underruns on the LAN runner.
 The preceding CI checkpoint failed its stale-Wasm check and reported one
-Chromium playback underrun. The test's `playbackStats.underrunDuration` value
-is in seconds despite the result field's `_ms` suffix: a reported `0.01` is
-10 ms, not 0.01 ms. The traced events were 10–20 ms. The final rebuilt commit
-was merged in PR #100 as
-`3c7b6a0ad153eff2f80444af9b2830da2c280538`; GitHub check run `37890685197`
-and the Pages build passed before merge. PR #100 closes this remediation
-branch's review/CI gate. The separate IndexedDB save-durability correction was
-later merged in PR #103 at `ebc6690c7595469359336b145cf1d7c0b4fe333a`.
+10 ms Chromium underrun (the test originally mislabeled the API's 0.01
+seconds as milliseconds; corrected 2026-10-09). The final checkpoint was
+merged as PR #100 at `3c7b6a0ad153eff2f80444af9b2830da2c280538`; GitHub CI
+run 37890685197 and the Pages build both passed before merge. The separate
+IndexedDB save-durability correction later merged in PR #103 at
+`ebc6690c7595469359336b145cf1d7c0b4fe333a`. The original CI job did not
+capture audio-service traces; the controlled tracing experiment is recorded
+separately in [the Chromium scheduling note](2026-10-09-chromium-storm-underruns.md).
 These are compile checks, not a linked or installable hardware application.
 
 ## Firmware memory boundary
@@ -97,9 +97,9 @@ that its current stack use is appropriate for the FM-1.
 
 ## Remaining work and recovery
 
-The full audit report retains unresolved findings. The cable-target identity
-correction is implemented in open PR #99 and the IndexedDB save-durability
-correction in open PR #103; neither is merged on this note's baseline. Other
+The full audit report retains unresolved findings. At the 2026-10-09
+reconciliation, the cable-target identity correction is merged in PR #99 and
+the IndexedDB save-durability correction is merged in PR #103. Other
 state-validation findings remain to be resolved against their original
 batches. No hardware operation occurred during this remediation. Full-image restore,
 broken-app recovery and a Lunar application on the device remain untested.

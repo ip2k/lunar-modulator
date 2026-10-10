@@ -1500,9 +1500,10 @@
         "flags": [
           "poly_ok"
         ],
-        "ram": 124,
+        "ram": 128,
         "data": null,
         "page_names": [
+          null,
           null,
           null
         ],
@@ -1577,7 +1578,7 @@
             "abbr": "Curve",
             "type": "enum",
             "min": 0,
-            "max": 2,
+            "max": 4,
             "def": 1,
             "step": 1,
             "unit": "none",
@@ -1587,7 +1588,9 @@
             "entries": [
               "Linear",
               "Expo",
-              "Quartic"
+              "Quartic",
+              "Log",
+              "Smooth"
             ]
           },
           {
@@ -1639,6 +1642,22 @@
             "unit": "none",
             "page": 2,
             "knob": 4,
+            "flags": [
+              "mod"
+            ]
+          },
+          {
+            "uid": 9,
+            "name": "Delay",
+            "abbr": "Delay",
+            "type": "float",
+            "min": 0,
+            "max": 1,
+            "def": 0,
+            "step": 0.01,
+            "unit": "none",
+            "page": 3,
+            "knob": 1,
             "flags": [
               "mod"
             ]
@@ -2808,9 +2827,9 @@
     }
   ],
   "telemetry": {
-    "version": 1,
+    "version": 2,
     "hz": 30,
-    "floats": 1443,
+    "floats": 1454,
     "mask_words": 4,
     "sections": [
       {
@@ -2862,13 +2881,14 @@
         ],
         "items": [],
         "fields": [
-          "db"
+          "db",
+          "gate"
         ]
       },
       {
         "name": "voices",
         "unit": "none",
-        "offset": 43,
+        "offset": 54,
         "mask": 27,
         "rows": [
           "v1",
@@ -2893,7 +2913,7 @@
       {
         "name": "outs",
         "unit": "port",
-        "offset": 67,
+        "offset": 78,
         "mask": 39,
         "rows": [
           "pos1",
@@ -2924,7 +2944,7 @@
       {
         "name": "voice_outs",
         "unit": "port",
-        "offset": 259,
+        "offset": 270,
         "mask": 47,
         "rows": [
           "pos1",
@@ -2964,7 +2984,7 @@
       {
         "name": "dests",
         "unit": "param",
-        "offset": 1027,
+        "offset": 1038,
         "mask": 55,
         "rows": [
           "slot1",
@@ -3008,7 +3028,7 @@
       {
         "name": "voice_dests",
         "unit": "param",
-        "offset": 1059,
+        "offset": 1070,
         "mask": 87,
         "rows": [
           "slot1",
@@ -3062,5 +3082,5 @@
       }
     ]
   },
-  "meta_id": "09c32023"
+  "meta_id": "24982c82"
 }

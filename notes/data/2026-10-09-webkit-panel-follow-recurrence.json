@@ -1,0 +1,68 @@
+[
+  {
+    "pr": 101,
+    "head": "506b76459be4e96b83f487aa08f3c45ca2e8681d",
+    "run": 37985450550,
+    "job": 114006185119,
+    "browser": "Webkit 26.6 (Playwright, headless)",
+    "failed_checks": {
+      "a panel knob reaches the editor's row within a few frames": false
+    },
+    "why": [
+      "a panel knob reaches the editor's row within a few frames: {\"key\":\"s2:2\",\"frames\":24,\"ms\":375,\"chips\":[\"K1\",\"K2\",\"K3\",\"K4\"],\"knobs\":4,\"entry\":{\"origin\":\"panel\",\"how\":\"knob\",\"label\":\"S2 Harmonics\"},\"from\":\"From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33\",\"flashed\":true}"
+    ],
+    "logs": [],
+    "follow_panel": {
+      "key": "s2:2",
+      "frames": 24,
+      "ms": 375,
+      "chips": [
+        "K1",
+        "K2",
+        "K3",
+        "K4"
+      ],
+      "knobs": 4,
+      "entry": {
+        "origin": "panel",
+        "how": "knob",
+        "label": "S2 Harmonics"
+      },
+      "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+      "flashed": true
+    },
+    "check_count": 93
+  },
+  {
+    "pr": 118,
+    "head": "1e0b9cd684fa1c310a551fe74534a0e850775b7c",
+    "run": 37986887716,
+    "job": 114010991455,
+    "browser": "Webkit 26.6 (Playwright, headless)",
+    "failed_checks": {
+      "a panel knob reaches the editor's row within a few frames": false,
+      "it enters the history as the panel's": false
+    },
+    "why": [
+      "a panel knob reaches the editor's row within a few frames: {\"key\":\"s2:2\",\"frames\":60,\"ms\":961,\"chips\":[\"K1\",\"K2\",\"K3\",\"K4\"],\"knobs\":4,\"entry\":null,\"from\":\"\",\"flashed\":false}",
+      "it enters the history as the panel's: {\"key\":\"s2:2\",\"frames\":60,\"ms\":961,\"chips\":[\"K1\",\"K2\",\"K3\",\"K4\"],\"knobs\":4,\"entry\":null,\"from\":\"\",\"flashed\":false}"
+    ],
+    "logs": [],
+    "follow_panel": {
+      "key": "s2:2",
+      "frames": 60,
+      "ms": 961,
+      "chips": [
+        "K1",
+        "K2",
+        "K3",
+        "K4"
+      ],
+      "knobs": 4,
+      "entry": null,
+      "from": "",
+      "flashed": false
+    },
+    "check_count": 93
+  }
+]

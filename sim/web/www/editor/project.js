@@ -20,10 +20,11 @@
 // None of it names an engine or decides a rule: C answers, the page shows
 // C's words. MIT licence, like the rest of this repository.
 
-import { ROLE, MIX_KEY, SOUNDS, INSERTS, MASTERS, blockKey, parseBlockKey, parseModKey, blockTag, ramPercent, ramWords, cableEmpty, pctOfQ14, VOICE, isModuleSource, sourcePosition } from './model.js';
+import { ROLE, MIX_KEY, SOUNDS, INSERTS, MASTERS, blockKey, parseBlockKey, parseModKey, blockTag, ramPercent, ramWords, cableEmpty, pctOfQ14, VOICE, isModuleSource, sourcePosition, packParam, packCable, emptyCable, SLOT_ON, hasFlag } from './model.js';
 
 const ITEM_TYPE = 'application/x-lunar-item';
 const FILE_CAP = 262144;              // the module's text buffer (files.js TEXT_CAP)
+const PREVIEW_RECORDS = 64;          // fm1_edit_preview record limit, independent of source ids
 const SNAP_CAP = 4 * 1024 * 1024;     // §8: 4 MB of snapshots at most
 const AB_KEY = 'x';
 
@@ -452,7 +453,7 @@ export function makeProject(ctx) {
     const s = await files.shadow('save', { kind: 2, arg: ab.scope, live: bin.slice(0) });
     if (!s.ok || typeof s.text !== 'string') return { ok: false, report: { message: 'it could not be read back' } };
     return files.load(encoder.encode(s.text), { d: { enc: 2, kind: 'sound', title: `Sound ${ab.scope + 1}` },
-      target: { into: ab.scope, slot: 0 }, before: false, quiet: true });
+      target: { into: ab.scope, slot: 0 }, before: false, quiet: true, restoreSound: true });
   }
   async function diffAB() {
     const ab = st.ab;
@@ -486,7 +487,7 @@ export function makeProject(ctx) {
       const bytes = encoder.encode(r.text);
       const proj = ab.scope === 'project';
       const target = proj ? { into: -1, slot: 0 } : { into: ab.scope, slot: 0 };
-      const v = await files.verdict(bytes, 'picks', proj ? 'project' : 'sound', target);
+      const v = await files.verdict(bytes, 'picks', proj ? 'project' : 'sound', target, { restoreSound: !proj });
       if (!v.ok) {
         ab.verdict = { ok: false, text: v.report.message || v.report.code };
         say(`Not made: ${ab.verdict.text}`);
@@ -498,7 +499,7 @@ export function makeProject(ctx) {
       if (entry) onStruct(entry, live);
       const lr = await (proj
         ? files.load(bytes.slice(0), { d: { enc: 2, kind: 'project', title: files.title }, before: false, quiet: true, same: true })
-        : files.load(bytes.slice(0), { d: { enc: 2, kind: 'sound', title: `Sound ${ab.scope + 1}` }, target: { into: ab.scope, slot: 0 }, before: false, quiet: true }));
+        : files.load(bytes.slice(0), { d: { enc: 2, kind: 'sound', title: `Sound ${ab.scope + 1}` }, target: { into: ab.scope, slot: 0 }, before: false, quiet: true, restoreSound: true }));
       if (!lr.ok) {
         if (entry) history.drop(entry);
         say(`The picks were not loaded: ${lr.report.message || lr.report.code}`);
@@ -526,7 +527,7 @@ export function makeProject(ctx) {
     const proj = e.info.scope === 'project';
     const r = await (proj
       ? files.load(e.info.reload.slice(0), { d: { enc: 2, kind: 'project', title: files.title }, before: false, quiet: true, same: true })
-      : files.load(e.info.reload.slice(0), { d: { enc: 2, kind: 'sound', title: `Sound ${e.info.scope + 1}` }, target: { into: e.info.scope, slot: 0 }, before: false, quiet: true }));
+      : files.load(e.info.reload.slice(0), { d: { enc: 2, kind: 'sound', title: `Sound ${e.info.scope + 1}` }, target: { into: e.info.scope, slot: 0 }, before: false, quiet: true, restoreSound: true }));
     say(r.ok ? `Redone: ${e.label}` : `${e.label} could not be redone: ${r.report.message || r.report.code}`);
     snapshotSoon();
   }
@@ -631,6 +632,85 @@ export function makeProject(ctx) {
     el('div', 'ed-search-card', {}, [sInput, sOps, sCount, sList])]);
   root.append(sBox);
   let sItems = [], sShown = [], sAt = 0, sFrom = null;
+  const batchBox = el('div', 'ed-search-batch', { hidden: true });
+  sBox.querySelector('.ed-search-card').append(batchBox);
+  st.searchPicks = [];
+  const compatible = (p) => JSON.stringify([p.type, p.unit, p.min, p.max, p.entries || [], hasFlag(p, 'focus')]);
+  function pickAll() {
+    st.searchPicks = [...sShown];
+    batchBox.replaceChildren();
+    batchBox.hidden = false;
+    batchBox.append(el('h3', 'ed-sec', { text: `${sShown.length} matches selected` }));
+    const list = el('ul', 'ed-batch-list', { 'aria-label': 'Selected matches' });
+    for (const it of st.searchPicks) list.append(el('li', null, { text: it.label }));
+    batchBox.append(list);
+    const picked = st.searchPicks;
+    const cables = picked.length && picked.every((x) => x.group === 'Cables');
+    const params = picked.length && picked.every((x) => x.group === 'Parameters' && !hasFlag(x.p, 'focus')) &&
+      picked.every((x) => compatible(x.p) === compatible(picked[0].p));
+    const status = el('p', 'ed-note', { role: 'status' });
+    const actions = el('div', 'ed-batch-actions');
+    if (cables) {
+      for (const [action, label] of [['on', 'Enable'], ['off', 'Disable'], ['remove', 'Remove']]) {
+        actions.append(el('button', 'ed-btn', { type: 'button', text: `${label} selected cables`, onclick: () => applyBatch(action, null, status) }));
+      }
+    } else if (params) {
+      const p = picked[0].p;
+      const field = p.type === 'enum' ? el('select', 'ed-batch-value', { 'aria-label': 'Value for selected parameters' })
+        : el('input', 'ed-batch-value', { type: 'text', 'aria-label': 'Value for selected parameters', placeholder: p.unit || 'Value' });
+      if (p.type === 'enum') (p.entries || []).forEach((word, i) => field.append(el('option', null, { value: i, text: word })));
+      actions.append(field, el('button', 'ed-btn', { type: 'button', text: 'Set selected parameters', onclick: () => applyBatch('value', field.value, status) }));
+    } else status.textContent = picked.length ? 'These matches have no common batch edit. Narrow the search to compatible parameters or cables.' : 'Nothing matches.';
+    batchBox.append(actions, status, el('p', 'ed-note', { text: 'Each batch is one undo step. Enter still opens the highlighted match.' }));
+    sList.classList.add('is-batch');
+    sList.setAttribute('aria-multiselectable', 'true');
+    for (const option of sList.querySelectorAll('[role=option]')) option.setAttribute('aria-selected', 'true');
+    const control = actions.querySelector('input, select, button');
+    if (control) control.focus();
+  }
+  async function applyBatch(action, text, status) {
+    const selection = st.searchPicks, picks = [...selection], gen = st.gen;
+    if (!picks.length || !st.port || st.loading || st.inflight) { status.textContent = 'Wait for the current edit to finish, then try again.'; return; }
+    const ops = [], undoOps = [];
+    const details = [];
+    for (const it of picks) {
+      if (it.group === 'Cables') {
+        const before = st.mirror.cables[it.index];
+        if (!before || cableEmpty(before) || JSON.stringify(before) !== JSON.stringify(it.cable)) {
+          status.textContent = 'A selected cable changed. Search again.'; return;
+        }
+        const after = action === 'remove' ? emptyCable() : { ...before, flags: action === 'on' ? before.flags | SLOT_ON : before.flags & ~SLOT_ON };
+        if (JSON.stringify(before) === JSON.stringify(after)) continue;
+        ops.push(packCable(it.index, after)); undoOps.push(packCable(it.index, before));
+        details.push([it.label, before, after]);
+      } else {
+        const b = blockOf(it.key), p = it.p;
+        if (!b || b.engine !== it.engine) { status.textContent = 'A selected block changed. Search again.'; return; }
+        const reply = p.type === 'enum' ? { value: Number(text), ok: true }
+          : await files.shadow('parse', { id: b.engine, uid: p.uid, text: String(text).replace(/\s+/g, ' ').trim() });
+        if (!reply || reply.ok === false || !Number.isFinite(reply.value)) { status.textContent = `That is not a value for ${it.label}.`; return; }
+        const after = Math.min(p.max, Math.max(p.min, reply.value)), before = b.values.get(p.uid);
+        if (after === before) continue;
+        const at = { ...parseBlockKey(it.key), uid: p.uid };
+        if (hasFlag(p, 'per_focus')) at.focus = chains.padOf(it.key);
+        const rec = (v) => p.type === 'enum' ? packParam({ ...at, index: Math.round(v) }) : packParam({ ...at, value: v });
+        ops.push(rec(after)); undoOps.push(rec(before)); details.push([it.label, before, after]);
+      }
+    }
+    if (!ops.length) { status.textContent = 'The selected values are already set.'; return; }
+    for (let i = 0; i < ops.length; i += PREVIEW_RECORDS) {
+      const result = await chains.preview(ops.slice(i, i + PREVIEW_RECORDS));
+      if (!result || result.codes.some((code) => code !== 0)) { status.textContent = 'The batch was refused; nothing changed.'; return; }
+    }
+    if (sBox.hidden || st.searchPicks !== selection) return;
+    if (st.gen !== gen || st.inflight || st.loading) { status.textContent = 'The project changed while checking. Try again.'; return; }
+    chains.structural({ key: st.selected, target: 'search-batch', label: `${action === 'value' ? 'Set parameters' : action === 'remove' ? 'Remove cables' : action === 'on' ? 'Enable cables' : 'Disable cables'} (${ops.length})`,
+      before: action === 'value' ? (details.every((x) => x[1] === details[0][1]) ? String(details[0][1]) : 'Mixed values') : `${ops.length} cables`,
+      after: action === 'value' ? String(details[0][2]) : ({ on: 'Enabled', off: 'Disabled', remove: 'Removed' })[action], ops, undo: undoOps, how: 'typed' });
+    closeSearch(false);
+    say(`${ops.length} selected matches edited. One undo step.`);
+    snapshotSoon();
+  }
   // Where each kind of item sits, for the operators: the sound it belongs to and, for a parameter, its unit.
   const soundOf = (key) => { const b = parseBlockKey(key); return b && b.role !== ROLE.MASTER && b.role !== ROLE.MODULE ? b.sound : -1; };
   function items() {
@@ -640,9 +720,9 @@ export function makeProject(ctx) {
       for (const [key, b] of st.mirror.blocks) {
         const e = meta.engine(b.engine);
         const name = e ? e.name : b.engine;
-        out.push({ group: 'Blocks', label: `${blockTag(key)} ${name}`, sound: soundOf(key), run: () => select(key, { view: parseBlockKey(key).role === ROLE.MODULE ? 'mod' : 'flow' }) });
+        out.push({ group: 'Blocks', key, label: `${blockTag(key)} ${name}`, sound: soundOf(key), run: () => select(key, { view: parseBlockKey(key).role === ROLE.MODULE ? 'mod' : 'flow' }) });
         for (const pg of meta.pages(b.engine)) {
-          for (const p of pg.params) params.push({ group: 'Parameters', label: `${blockTag(key)} ${name} · ${p.name}`, sound: soundOf(key), unit: p.unit || '', run: () => goParam(key, p) });
+          for (const p of pg.params) params.push({ group: 'Parameters', key, p, engine: b.engine, label: `${blockTag(key)} ${name} · ${p.name}`, sound: soundOf(key), unit: p.unit || '', run: () => goParam(key, p) });
         }
       }
       // The cables (§10): by their ends, by the marks C gives them, by the sound they reach or come from.
@@ -657,7 +737,7 @@ export function makeProject(ctx) {
         const srcInfo = mm.sources.get(c.src);
         const marks = chains.marks(i).map(([m]) => m).join('');
         const pct = pctOfQ14(c.amount);
-        cables.push({ group: 'Cables', label: `Cable ${i + 1} · ${src} → ${dst} · ${pct > 0 ? '+' : ''}${pct} %${marks ? ` · ${marks}` : ''}`,
+        cables.push({ group: 'Cables', index: i, cable: { ...c }, label: `Cable ${i + 1} · ${src} → ${dst} · ${pct > 0 ? '+' : ''}${pct} %${marks ? ` · ${marks}` : ''}`,
           src: `${src}${srcWord}`.toLowerCase(), dst: `${dst}${dstWord}`.toLowerCase(), refused: !!chains.verdictOf(i).code, late: chains.isLate(i), voice: !!(c.flags & VOICE),
           sound: key ? soundOf(key) : -1, srcSound: srcInfo && srcInfo.sound ? srcInfo.sound - 1 : -1,
           run: () => { st.selCable = `c${i + 1}`; select(`c${i + 1}`, { view: 'mod' }); } });
@@ -742,6 +822,10 @@ export function makeProject(ctx) {
     if (back && sFrom && sFrom.isConnected) sFrom.focus();
   }
   function filter() {
+    batchBox.hidden = true;
+    st.searchPicks = [];
+    sList.classList.remove('is-batch');
+    sList.removeAttribute('aria-multiselectable');
     const q = parseQuery(sInput.value);
     sShown = sItems.filter((it) => matches(it, q));
     sAt = 0;
@@ -754,7 +838,7 @@ export function makeProject(ctx) {
     for (let i = 0; i < max; ++i) {
       const it = sShown[i];
       if (it.group !== group) { group = it.group; sList.append(el('li', 'ed-search-g', { role: 'presentation', text: group })); }
-      const li = el('li', `ed-search-o${i === sAt ? ' is-at' : ''}`, { role: 'option', id: `${sList.id}-${i}`, 'aria-selected': i === sAt ? 'true' : 'false', text: it.label });
+      const li = el('li', `ed-search-o${i === sAt ? ' is-at' : ''}`, { role: 'option', id: `${sList.id}-${i}`, 'aria-selected': !batchBox.hidden || i === sAt ? 'true' : 'false', text: it.label });
       li.addEventListener('mousedown', (e) => e.preventDefault());
       li.addEventListener('click', () => run(i));
       sList.append(li);
@@ -778,16 +862,31 @@ export function makeProject(ctx) {
       if (n) { sAt = (sAt + (e.key === 'ArrowDown' ? 1 : n - 1)) % n; drawList(); }
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      run(sAt);
+      if (e.shiftKey) pickAll(); else run(sAt);
     } else if (e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();
       closeSearch();
     } else if (e.key === 'Tab') {
-      e.preventDefault();               // the dialog keeps the keys until Esc or Enter
+      e.preventDefault();
+      if (!batchBox.hidden) {
+        const controls = [...batchBox.querySelectorAll('button, input, select')].filter((x) => !x.disabled);
+        const control = e.shiftKey ? controls.at(-1) : controls[0];
+        if (control) control.focus();
+      }
     }
   });
-  sBox.addEventListener('mousedown', (e) => { if (e.target === sBox) closeSearch(); });
+  sBox.addEventListener('keydown', (e) => {
+    if (e.target === sInput) return;
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeSearch(); }
+    if (e.key === 'Tab') {
+      const controls = [sInput, ...batchBox.querySelectorAll('button, input, select')].filter((x) => !x.disabled);
+      const at = controls.indexOf(document.activeElement);
+      e.preventDefault();
+      controls[(at + (e.shiftKey ? controls.length - 1 : 1)) % controls.length].focus();
+    }
+  });
+  sBox.addEventListener('mousedown' , (e) => { if (e.target === sBox) closeSearch(); });
 
   // ---- undo's snapshot fallback (§8) ---------------------------------------------------------
   // The editor's copy of the live project is current when no change has come

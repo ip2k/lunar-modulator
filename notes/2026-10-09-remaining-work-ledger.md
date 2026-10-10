@@ -1,13 +1,13 @@
 # Remaining work ledger — 2026-10-09
 
 Initial reconciliation was against `origin/main` at `e76392b` (PR #104 merged).
-The live update at the end of this note supersedes that snapshot. This is a
+The integration reconciliation at the end supersedes all earlier snapshots. This is a
 prioritized status record, not a blanket closure of the audit. It does not
 repeat the parent envelope-graph implementation.
 
-## Completed and current evidence
+## Initial snapshot evidence
 
-- **Dead-code/full-code audit is complete.** `CLAUDE.md` records the 2026-10-08
+- **Dead-code/full-code source review is complete; remediation is not.** `CLAUDE.md` records the 2026-10-08
   baseline `d7111a985d5d6262767d6af49ba26caf0e1b9453`: 501 first-party
   source/build files and 178,989 physical lines, with 225 vendored files /
   81,114 lines separately tiered. Coverage and exclusions are in
@@ -27,7 +27,7 @@ repeat the parent envelope-graph implementation.
   runtime, audio, hardware, or install evidence.
 - **PR #99** remains open/draft at
   `a0dc7c070a1e5158beb46fd7b837a62d4d03e21c`. It includes the four deferred
-  §29 editor decisions, repeated-picks history correction, and the stale
+  §29 editor decisions and the stale
   Search cable-target identity guard. Its refreshed Wasm passed local
   `build-on-aeon.sh` checks, including editor-v1 99/99, page suites, 104
   parity scenarios and the long Chromium storm. Latest GitHub CI was queued at
@@ -44,8 +44,8 @@ repeat the parent envelope-graph implementation.
 - **PR #102** recovery-status wording is open and needs current CI review. Its
   Chromium page suite failed the 30-second storm with two underruns reported
   as `0.02` by playbackStats. That field is in seconds, despite the test's
-  `_ms` output suffix, so the reported duration is 20 ms (traced events were
-  10–20 ms), not 0.02 ms; the other reported matrix jobs passed. Do not call
+  `_ms` output suffix, so the reported duration is 20 ms, not 0.02 ms;
+  the original CI job did not capture audio-service traces. The other reported matrix jobs passed. Do not call
   its PR checks green based
   only on the prior successful targeted tests. The staged recovery evidence
   remains bounded sector write/restore plus matching full-image comparisons;
@@ -55,20 +55,17 @@ repeat the parent envelope-graph implementation.
 ## Prioritized remaining work
 
 1. **Close the open PR streams on evidence, without treating local checks as
-   CI or hardware proof.** At the live update below, PR #99 editor, #101
-   envelope graph, #102 recovery-status docs, #105 test-server path containment,
-   #106 resampler CLI bounds, #107 stock-SPL handover docs, #108 offline stock
-   inspection, and #112–114 bounded oracle/MIDI fixes remain open. PR #103 has
-   merged. Check each live CI/review state before acting.
-   PR #101's envelope work belongs to its owner stream; it is not duplicated
-   in this ledger. PR #105's sibling traversal, outside-symlink escape and
-   malformed-URL regressions reportedly pass the actual HTTP checks, but its
-   CI is still running. PR #106–108 remain separate streams; inspect their
-   evidence and CI before labeling complete.
+   CI or hardware proof.** Use the final reconciliation below for merged/open
+   status, then check each live head and its CI/review state before acting.
+   Local source review, focused regressions and older-head CI cannot verify
+   a newly integrated branch. Each remaining stream retains its own scope.
 2. **Continue device bring-up safely.** PR #104's linked diagnostic is not
    executed on native hardware. Follow `notes/2026-10-08-device-bringup-plan.md`
-   and `firmware/diagnostic/README.md`; keep the dump/byte-identical-restore
-   rule in `AGENTS.md` as the write gate. Do not infer runtime stack/audio
+   and `firmware/diagnostic/README.md`; follow the current staged recovery
+   policy in `AGENTS.md` and docs/07 §4. Compare backups before erase/program,
+   preserve stock boot/package safeguards, and evaluate each concrete image
+   and recovery plan. A prior full-image restore is not a prerequisite for
+   recovery entry, reads or prototype preparation. Do not infer runtime stack/audio
    capacity or recovery from a host link/map.
 3. **Retain the audit remainder explicitly.** The full-code audit still has
    unresolved P3 candidates and state-validation findings. The targeted fixes
@@ -229,18 +226,13 @@ duplicates, not stale-head checks. The old PR #109 run on
 `0a2c8b8f13c064d7d4c8060301ae6439c259975f` were cancelled; old-head Pages
 success does not validate the current head. Neither PR is merged.
 
-One policy conflict needs owner resolution before porting the audit's stale
-hardware-guidance finding: the project instructions supplied directly with
-this task retain the original full-flash dump plus byte-identical restore
-prerequisite, while the checked-out `AGENTS.md`, `CLAUDE.md`, `DEVELOPERS.md`
-and `docs/07` describe the owner's later staged-recovery policy. The audit's
-finding #1012 assumes that later staged policy is authoritative and recommends
-removing the blanket prerequisite. I have not edited safety guidance or
-reconciled those conflicting instructions. Do not present #1012 as a confirmed
-documentation error until the governing policy is identified; if the staged
-policy is confirmed, this is the highest-impact bounded doc correction, and if
-the supplied full-image rule governs, the current repo policy files need review
-instead.
+[verified: current owner instructions] The earlier policy conflict is resolved:
+the owner-supplied instructions and checked-out `AGENTS.md` / `CLAUDE.md`
+agree on the 2026-10-07 staged policy. It supersedes the blanket full-image
+restore prerequisite. The audit's documentation finding at report line 1012
+must be checked against current text and later recovery-doc changes, rather
+than treated as blocked on an unanswered policy decision. This ledger does
+not authorize new hardware operations or claim full-image recovery is proven.
 
 The remaining P2 list should be reconciled against the live source before new
 implementation: #912 was addressed by PR #112; #920 by PR #114; editor save
@@ -250,18 +242,58 @@ remain explicitly open; targeted fixes do not imply blanket closure. The next
 useful audit step is a source/status pass over the remaining P2s after those
 branch outcomes settle, rather than rerunning the whole audit.
 
-### Next bounded audit item
+### Repeated-picks audit follow-up
 
 The full audit's P2 for repeated “Make B from the picks” undo/redo mismatch
 (batch 39, finding at `notes/2026-10-07-full-code-audit.md:156`) remains the
-clearest code-level item not covered by the current integration streams. The
-current main `project.js` still merges structural edits by the shared `ab:`
+item tracked by open PR #118, not an unassigned implementation task. At the
+reconciled baseline, main `project.js` still merges structural edits by the shared `ab:`
 target while `redoPicks` reuses `entry.info.reload`; PR #99's source diff adds
 the captured-cable identity check for stale Search batches, but does not change
 this picks/history payload. A small regression can perform two same-scope picks
 loads inside the history merge window, then assert undo restores the exact
 pre-first state and redo restores the second selection. If assigned, fix the
 history grouping/payload at the editor history boundary and test the history
-semantics without needing hardware or a browser build. This is a review priority
-recommendation, not an implementation claim. The hardware-policy docs finding
-#1012 remains blocked on the policy conflict above.
+semantics without needing hardware or a browser build. Review PR #118's
+implementation and integration gate before duplicating that work.
+
+## Integration reconciliation — 2026-10-09
+
+[verified: GitHub and source] This branch incorporates `main` at
+`32b321ff5674f5375e8a8ef1127150b8242909d3`. At this snapshot, PRs #99, #100,
+#101, #103, #104, #106, #108, #111, #115, #119, #122 and #124 are merged.
+PRs #102, #105, #107, #109, #110, #112–114, #116–118, #120, #121 and #123
+remain open. Further foreground merges can change
+this list; it is evidence at this named baseline, not a standing live status.
+PR #117's updated head `a973087d3eab736e25b487ab8011f69d882fb6a1` preserves
+panel-follow tests, external audio loopback/Pulse setup and scheduling capture;
+its exact-head CI run `38023257104` and Pages run `38023257065` are queued.
+
+[verified: source] The audit's batch-68 dead-import candidates have already
+been removed: `Fraction` in `tools/lunar_state.py`, `GPL_MODS` in
+`tests/test_app_state.py` / `tests/test_gpl_switch.py`, `Path` in
+`tests/test_engine_acid_bass.py`, `rms` in `tests/test_engine_drums.py`,
+`run_script` in `tests/test_seq_song.py`, and `pytest` in `tests/test_tools.py`.
+A bounded Python AST check at this baseline finds no import binding or Name
+node for those names in their respective files. The older audit is a baseline
+record, not evidence that these candidates remain open.
+
+[verified: source] Other optional dead-state candidates remain: the
+`ShaperInstance.gain_db` field and its frame-local load/store in
+`engines/src/fx_shaper.cc`, and Sophie's unwritten `error[96]` field plus
+`sophie_error` / `get_error` callback in its vendored source. No removal is
+made here; follow the original audit's behavior/provenance constraints before
+changing them. These source checks do not close the other P3 defects,
+state-validation findings or test gaps, and do not constitute a new full audit.
+
+[verified: review] Direct diffs/source and Git merge results establish these
+statuses. Shared Serena/Rarefaction selection was not changed. Their earlier
+C fallback index returned an incorrect `int *` typedef expansion for
+`ParseSysex` and omitted callers visible in `dx7_voice.cc` / `msfa_dx7.cc`;
+those navigation results do not establish this worktree's index, target ABI,
+firmware code generation or complete call graph. No hardware was used.
+
+[verified: local validation] The reconciled documentation passes `git diff --check`;
+all seven relative Markdown file links in the three changed documents resolve.
+The merge adds no source changes beyond its named main baseline. Fresh exact-head
+CI must still pass before integration; earlier green checks do not cover this merge.

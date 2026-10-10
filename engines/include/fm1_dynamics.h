@@ -29,6 +29,10 @@ float fm1_limit_gain(const void *instance);
  * .create returned. Read it on the audio task, between renders. */
 float fm1_squash_gain(const void *instance);
 
+/* Snap's gate state: 0 open, 1 closing, 2 closed. -1 for no gate (other
+ * Types, gate disabled, or NULL). A read-only tap, between renders. */
+int fm1_squash_gate_state(const void *instance);
+
 #ifdef __cplusplus
 }
 #endif
