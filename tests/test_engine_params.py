@@ -71,6 +71,8 @@ ENUM_FLAGS = {
     ("gate", "Link"): ["mod"],                  # glides the detector's and Listen's weights
     ("squash", "Type"): ["mod"],                # the new Type starts from the gain in force
                                                 #   and crossfades over 5 ms
+    ("repeat", "Hold"): ["mod"],                # ramps wet/dry over 5 ms; beat-latched capture
+    ("repeat", "Max slice"): ["mod"],           # hands over the loop with a seam crossfade
     ("test-ext", "Probe"): [],                   # a test effect's switches: lockable,
     ("test-ext", "Listen"): [],                  #   no route
     # The arpeggiator (a MIDI effect, engine API v3): every list is read at

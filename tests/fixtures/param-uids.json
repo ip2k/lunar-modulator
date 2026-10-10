@@ -422,6 +422,11 @@
       {"name": "Flutter", "type": "float", "uid": 2, "flags": ["smooth", "mod"]},
       {"name": "Mix", "type": "float", "uid": 3, "flags": ["smooth", "mod"]}
     ],
+    "repeat": [
+      {"name": "Hold", "type": "enum", "uid": 1, "flags": ["mod"]},
+      {"name": "Max slice", "type": "enum", "uid": 2, "flags": ["mod"]},
+      {"name": "Mix", "type": "float", "uid": 3, "flags": ["smooth", "mod"]}
+    ],
     "test-gain": [
       {"name": "Gain", "type": "float", "uid": 1, "flags": ["smooth", "mod"]}
     ],
