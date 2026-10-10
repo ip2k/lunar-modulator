@@ -20,9 +20,9 @@ must come from the actual combined native/Wasm build.
 
 ## WIP source checkpoint and recovery
 
-The source milestone deliberately removes `sim/web/www/fm1.wasm`,
+The preparatory source milestone deliberately removed `sim/web/www/fm1.wasm`,
 `fm1.wasm.json` and `meta.json` rather than selecting either branch's stale
-binary. This checkpoint cannot pass simulator tests or be served as a preview.
+binary. That source-only checkpoint could not pass simulator tests or be served as a preview.
 The example metadata ID has been refreshed from the combined native export
 as described below. No failing checkpoint is eligible for merge.
 
@@ -122,8 +122,8 @@ generated binary is retained.
 oracle and nullable glibc / musl diagnostics in the generated build record,
 and corrects the source-hash note and no-additional-mask wording. Its hashed
 script changes precede final regeneration. PR132's reviewed CI-only lifecycle
-configuration can integrate after its gate without changing these DSP / sim
-hashes. This new combined source still requires the complete exact-head CI;
+configuration is now integrated without changing these DSP / sim
+hashes. This combined source still requires the complete exact-head CI;
 individual failed WebKit heads are not treated as passing.
 
 ## Actual combined regeneration and corrected fixture contracts
@@ -192,3 +192,12 @@ validation. Compact receipts and before / after logs accompany this note in
 Full candidate browser / exact-head CI acceptance is still pending. Earlier
 individual WebKit latency failures and the owner's unmeasured Safari A/B
 listening failure are preserved; these offline results do not overwrite them.
+
+[verified: final Git merge parents] The reviewed CI configuration
+`c6db9587c1d8d1ca6f993d8f433875761f3b2b6e` and documentation bundle
+`7e04b1381bda1df29726dfda26c6e4c5c3116341` are merged normally.
+The latter refreshes the primary handoff and preserves recovery, by-ear and
+demo gates. Both current source hashes still exactly match the committed
+build record, and its focused check passes with `CI=true` and no stale warning.
+The final candidate requires fresh full CI; the separate PR132 Chromium job
+still pending at integration is not claimed as passed.

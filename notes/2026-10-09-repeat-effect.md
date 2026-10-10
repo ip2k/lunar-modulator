@@ -1,6 +1,6 @@
 # Repeat effect implementation note
 
-Branch: `feature/2026-10-09@repeat-effect`  
+Branch: `feature/2026-10-09@repeat-effect`
 Base: `7eb55b1fd05b8e03fc9dcaf663ce194019299dbf` (`origin/main` when work began)
 
 ## Design contract
