@@ -68,7 +68,7 @@ struct FxGroup {
 };
 const FxGroup kFxGroups[] = {
   { "plate", 0 }, { "hall", 0 }, { "room", 0 }, { "sw-psxverb", 0 },
-  { "ensemble", 1 }, { "diffuse", 1 }, { "echo", 1 },
+  { "ensemble", 1 }, { "diffuse", 1 }, { "echo", 1 }, { "warble", 1 },
   { "filter", 2 }, { "comb", 2 }, { "djfilter", 2 }, { "tilt", 2 }, { "isolator", 2 }, { "eq", 2 },
   { "drive", 3 }, { "crush", 3 }, { "fold", 3 }, { "sat", 3 },
   { "comp", 4 }, { "limit", 4 }, { "gate", 4 }, { "squash", 4 }, { "shaper", 4 },

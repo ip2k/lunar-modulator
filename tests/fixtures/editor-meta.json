@@ -39,6 +39,7 @@
     "fold": "colour",
     "drive": "colour",
     "echo": "space",
+    "warble": "space",
     "filter": "filter",
     "comb": "filter",
     "comp": "dynamics",

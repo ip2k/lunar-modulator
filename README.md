@@ -186,8 +186,8 @@ keys, at any octave.
 
 The effects:
 - **Reverbs:** Plate and Hall (both with Freeze), Room and PSX Verb.
-- **Chorus, space and delay:** Ensemble, Diffuse and Echo, a stereo
-  ping-pong delay.
+- **Chorus, space and delay:** Ensemble, Diffuse, Echo, a stereo ping-pong
+  delay, and Warble, a tape-style wow and flutter effect.
 - **Filters and EQ:** Filter (six classic types), Comb, DJ Filter, Tilt,
   Isolator (a three-band kill EQ) and EQ (a low shelf, a bell and a high
   shelf).
