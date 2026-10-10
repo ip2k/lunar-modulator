@@ -107,3 +107,23 @@ Rarefaction is available but its configured root remains the primary checkout
 orientation is useful for the shared API contract, but is not treated as
 index evidence for this branch. File inspection remains the source check for
 this new worktree.
+
+## Parameter contract correction
+
+[verified: exact source and bounded native tests] Review of source head
+`9b2d80c4c6a9df47c794fa4d413a72e12b645225` found that Repeat's controls were
+missing from `tests/fixtures/param-uids.json`, and Hold / Max slice had no
+recorded ENUM flag decisions in `tests/test_engine_params.py`. The unchanged
+checks failed for the extra `repeat` module and those two enum entries in the
+combined Warble / Repeat native build (2 failures, 11 passes).
+
+The correction appends only Repeat's existing UID 1 Hold, UID 2 Max slice and
+UID 3 Mix pins, and records the two enum controls as modulatable. Hold ramps
+wet/dry; Max slice hands over through the loop crossfade. All existing pins,
+effect source and generated artifacts are retained. An exact tracked-tree
+export of this Repeat branch, with this correction, passed all 15 tests in
+`test_engine_params.py` and `test_engines_repeat.py` on aeon in the pinned
+Emscripten 6.0.10 image (four CPUs, 8 GiB, batch slice); the Repeat self-test
+still reports 13 passing checks. This is a native contract check, not browser
+or device evidence. Recovery receipt: aeon
+`/home/claude/mvave-fm1/repeat-param-contract-20261009/src/params-after.log`.
