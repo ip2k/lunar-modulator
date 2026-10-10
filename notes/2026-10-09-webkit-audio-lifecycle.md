@@ -1,5 +1,10 @@
 # WebKit frozen audio clock investigation — 2026-10-09
 
+Current result: the retained null-sink clock was reproduced independently, but
+`norewinds=1` is not yet accepted. All three full editor UI tests pass; WebKit
+external audio fails under the two-CPU LAN quota. CI and runtime remain unchanged.
+The chronological checkpoints below retain both passing and failing evidence.
+
 [verified: GitHub logs] PR #125 head `540ed3cf0008cc2c3a01e0eaf913339d7827319c`,
 CI run `38016847016`, WebKit job `114108904554`, fails the panel-follow
 latency and panel history checks. Its observer reports 60 frames / 960 ms,
@@ -269,3 +274,41 @@ bug report or upstream fix, supported by the native pair and v16.1 source.
 Whether current PulseAudio versions retain it still needs evaluation. Choosing
 its existing low-latency null-sink option for our headless tests is a separate
 project configuration choice. No third-party code is changed or posted.
+
+## Additional CI receipts and strict acceptance failure
+
+[verified: completed GitHub job logs] PR #128 head
+`1c09c5a229dd8c4ec4dd9e725f9c7bdb27f889c5`, run `38024099624`, job
+`114131140518`, fails at 57 frames / 909 ms. Its clock holds
+`0.7169160997732427` through frame 56; first state arrives at 901 ms and the
+row changes at 904 ms. History passes. PR #105 head
+`cc43875c7b205fcfbe530c04e4e7950cd6370bae`, run `38023632174`, job
+`114129736784`, fails both panel checks at 60 frames / 952 ms, clock
+`0.7198185941043084` fixed throughout and zero incoming events. Both say running,
+loading false, no pending changes/inflight. They match the earlier clock plateau
+[inferred], without identifying either branch's changes as the cause. Complete
+traces and log hashes are saved in [pr128-ci.json](evidence/2026-10-09-webkit-audio-lifecycle/pr128-ci.json)
+and [pr105-ci.json](evidence/2026-10-09-webkit-audio-lifecycle/pr105-ci.json).
+
+[verified: exact PR #129 module, original unmodified worklet] Three further
+fixed cold-start pairs pass the unchanged panel check: default 1/3/1 frames
+(121/83/62 ms), `norewinds=1` 2/2/2 frames (85/27/28 ms). The reproduced
+default failure is intermittent; these passing trials must not be represented
+as deterministic reproduction. Full editor UI acceptance then passes all
+93 checks and 37 screenshots in Chromium, Firefox and WebKit; panel follow is
+2/1/3 frames respectively. Chromium and Firefox 30-second external loopback
+pass with 7,265 and 7,204 batches/replies, zero refusals/resyncs and no audio
+faults. WebKit has 3,755 batches/replies and zero refusals/resyncs but FAILS
+external audio: 10 bad periods, 1,907-sample / 39.729 ms maximum internal
+silence and 1,798.109-sample maximum period error. Its musical A/B phase passes.
+No assertion is changed and the candidate sink change has not been applied.
+
+The [full reports](evidence/2026-10-09-webkit-audio-lifecycle/null-sink-acceptance-two-cpu.json)
+retain every verdict and cold trace. Native raw recordings, screenshots and Pulse
+log stay in the unique LAN `acceptance-out/` directory. Pulse reports failed
+realtime/high-priority acquisition; the private two-CPU cgroup at the later UI
+observation has 513 throttled periods / 76.572 seconds throttled time. This
+is a scheduling-pressure candidate, not proof that it caused the audio gaps
+[inferred]. A bounded paired run will record per-test cgroup and timed backend
+markers with four CPU quota; CI itself has no CPU quota option. No unchanged
+retry or threshold weakening is justified by this failure.
