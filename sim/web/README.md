@@ -1458,13 +1458,7 @@ the Playwright package, about 20 MB) and the containers' session label.
 
 `tests/test_sim_web.py` runs in the normal suite (and CI): the app layer's
 output equals `fm1-render`'s byte for byte for every scenario, natively, and
-for the sequencer scenarios so do the event logs; explicitly `libm_sensitive`
-scenarios use the exact static-musl simulator screen when that harness is
-available, retaining the glibc screen comparison as a diagnostic (no pixel
-mask or tolerance). On the 2026-10-09 PR correction run, all 104 scenarios
-matched JS and musl audio; `sophie-kit` matched the musl screen exactly while
-34 scope pixels differed from glibc after the interpolation correction. The
-sequencer's sizes
+for the sequencer scenarios so do the event logs. The sequencer's sizes
 against its arena and the 36,864 B budget; the event-room rule on script
 lines and on typed commands (a stop, a play and a restart at full load in
 one gap, and 128 lane bases after a stop, which `fm1-render --events 256`
@@ -1493,6 +1487,20 @@ build, the test fails in CI (`CI=true`) and warns locally; when only the
 engines have, it warns, so engine work elsewhere does not need aeon.
 Rebuild with `build-on-aeon.sh` before publishing the page or merging a
 change to the simulator.
+
+`sim/web/test/parity.mjs`, run by `build-on-aeon.sh`, also compares the module
+with JS, glibc and (when available) static-musl renders. Scenarios marked
+`libm_sensitive` use the musl simulator as their exact screen reference while
+retaining the glibc screen result as a diagnostic. This adds no additional
+pixel mask or tolerance; the existing bottom RAM-counter mask still applies.
+On the
+2026-10-09 PSX Verb correction run, all 104 scenarios matched JS and musl
+audio; `sophie-kit` matched the musl screen exactly while 34 scope pixels
+differed from glibc after the interpolation correction.
+
+The native `tests/test_sim_web.py` suite checks the committed module against
+its build record. The musl screen oracle is exercised by `test/parity.mjs` in
+the bounded LAN build, not by that native pytest suite.
 
 `tests/test_sim_palette.py` runs `tools/palette.py`: the screen's and the
 page's tokens and roles agree, contrast after the RGB565 round trip,

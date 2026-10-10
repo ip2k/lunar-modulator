@@ -108,3 +108,24 @@ Wasm and record are deliberately removed, so all three generated simulator
 files still await an actual combined build. The 142-test and 132,354-frame
 native preflight receipts above preceded this correction; the final build
 must validate the corrected exact source, including the musl screen oracle.
+
+## Final coherent editor / effects source preparation
+
+[verified: Git merge parents] Parent-authorized integration also retains the
+reviewed exact heads for sound A/B continuity (PR128
+`1c09c5a229dd8c4ec4dd9e725f9c7bdb27f889c5`), Compare MIDI pulses (PR113
+`b43960680760092bf1eb13ad2371b2039326abd9`), native scope verification
+(PR129 `ac3d9571b8a2db6860db60b1afb5f10246134e26`), pixel preview
+(PR125 `7fe4e6cd10e5d4aa895c5df18d0273364788be5d`), and Picks history
+(PR118 `b4234c1b816d71f777796404eb4f0a5190f4eace`). PR129 adds a native
+probe and regressions; it does not change the native renderer. No inherited
+generated binary is retained.
+
+[verified: source review] PSX follow-up
+`0637bf2befd6ac0646b00157a16f4712840fbc4f` records the selected exact screen
+oracle and nullable glibc / musl diagnostics in the generated build record,
+and corrects the source-hash note and no-additional-mask wording. Its hashed
+script changes precede final regeneration. PR132's reviewed CI-only lifecycle
+configuration can integrate after its gate without changing these DSP / sim
+hashes. This new combined source still requires the complete exact-head CI;
+individual failed WebKit heads are not treated as passing.
