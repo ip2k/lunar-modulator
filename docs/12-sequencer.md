@@ -44,7 +44,7 @@ the repository.
 | Does Movy already do it? | **Yes, on the Ableton Move.** Hold a step that has notes and turn a module knob. The lock is stored for that step only, is not heard while you set it, and plays when the step plays [verified]. Movy also has per-step velocity, length, probability, A:B and invert. It has no retrigs, slides, sound locks or FILL/PRE/NEI/1ST. It is Rust and TypeScript on aarch64 Linux, so it cannot run on the FM-1 (docs/06). It is MIT, so it can serve as a spec and a desktop test oracle, and a C rewrite is allowed if its notice is kept. |
 | Code we can use? | **MCL** (BSD-3, C++ on AVR and RP2040): an allocation-free lock store and the full Elektron condition set, already running on microcontrollers. Also Schwung's `step_chance.h` (MIT, C). GPL and LXR code is allowed in personal builds since the owner's licence policy of 2026-10-01, but not in a firmware binary that is shared while it links JieLi's closed libraries (§6). |
 | The named sources? | **Eloquencer:** updater binaries and PDFs only, no source and no licence. It is a good design reference. **LMN-3:** a GPL-3 Raspberry Pi DAW whose sequencer is an on/off grid without locks. **The Elektronauts thread:** an Arduino sequencer with 3 CC + 1 program-change locks per step; its code was never published. |
-| What gates it? | Nothing on the desktop: stage A can start now in `engines/`. On the device, the one rule (CLAUDE.md) applies: no writes, and no MIDI beyond the identity query, until a dump and a byte-identical restore have been shown. |
+| What gates it? | Nothing on the desktop: stage A can start now in `engines/`. On the device, follow the staged recovery policy in `docs/07`: the owner has verified recovery entry, private matching full-flash backups and one bounded unused-sector program/restore. Full-image restore and recovery from a nonbooting app remain untested; any further flash operation needs its exact image/range and recovery plan. |
 
 ## 2. What Elektron-style p-locks are
 
@@ -385,12 +385,13 @@ and 11 accidentals.
 - **Key LEDs:** solid for a trig, slow pulse for a lock-only trig, blink for
   the playhead.
 
-### 5.7 Storage under the one rule, and CPU
+### 5.7 Storage in a device build, and CPU
 
-- **Before a dump and byte-identical restore,** patterns exist only in
-  desktop and dev-board builds. A desktop sequencer could drive the stock
-  unit in principle (notes, and FX CCs on channel 2, docs/02 §6). But notes
-  and CC are outside the allowed traffic, so that is the owner's call.
+- **Today,** sequencer patterns run in the desktop tools and simulator; no
+  Lunar application runs on the FM-1. Device persistence and MIDI control are
+  future implementation work. Any device flash experiment follows the staged
+  recovery policy in `docs/07`; this design note does not authorize new MIDI
+  traffic or flash writes.
 - **In the open firmware,** patterns live in RAM, with SysEx export and
   import. Flash storage comes last:
   - a dedicated partition, with A/B copies in 4 KB sectors;
@@ -576,5 +577,5 @@ A `--pattern` file has one line per step, for example
    - Would jmamma welcome an extracted library?
    - Read Schwung's THIRD_PARTY_LICENSES.md before taking any of its code.
    - Pin any Movy oracle to one commit.
-6. **Owner.** Should the one rule keep covering all MIDI traffic? docs/06
-   also needs updating for Movy's p-locks.
+6. **Owner.** Which device sequencer functions should follow the desktop and
+   simulator work? docs/06 also needs updating for Movy's p-locks.

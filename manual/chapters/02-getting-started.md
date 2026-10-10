@@ -24,8 +24,9 @@ drawn by the code that is meant to draw the FM-1's.
   Web MIDI.
 
 The simulator is tested in Chromium, the engine behind Chrome and Edge.
-Firefox, Safari, phones and tablets with real touch screens, and real MIDI
-hardware have not been tested yet.
+Firefox and WebKit automated checks are also run; native Safari listening,
+phones and tablets with real touch screens, and real MIDI hardware have not
+been fully verified.
 
 Nothing is installed. The page loads only its own files, from its own
 website, and sends nothing anywhere.
@@ -331,18 +332,18 @@ scripts.
 
 Nothing from this project. The FM-1 keeps whatever firmware it has: M-VAVE's
 own, or a third-party firmware you chose to install yourself.
-[Chapter 1](01-welcome-and-safety.md#the-one-rule) explains the rule that
-holds Lunar Modulator back from the device, and
-[chapter 11](11-updating-and-recovery.md) the recovery work that has to
-succeed first.
+[Chapter 1](01-welcome-and-safety.md#the-one-rule) explains the current
+staged recovery safeguards. The device roadmap remains planned: no Lunar
+application has been installed or run on an FM-1.
 
 ### The road to the device
 
 Each step below has to succeed before the next one starts:
 
-1. **A way back.** Read a complete copy of an FM-1's memory through its USB
-   socket with the recovery dongle, write it back, and show twice that the
-   unit is byte for byte as it was.
+1. **Recovery evidence.** Continue from the verified bounded sector
+   program/restore and matching full-flash backups. Full-image rewrite and
+   recovery from a nonbooting application remain untested; see
+   [chapter 11](11-updating-and-recovery.md).
 2. **A development board.** Run Lunar Modulator's code on a board with the
    same family of processor, and show that it gives the same results as the
    desktop tools and the simulator.

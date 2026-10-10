@@ -166,10 +166,13 @@ Nudge
 :   Moving a note a little earlier or later than its step, in ticks, up to a
     step either way.
 
-One rule
-:   Nothing is installed on, or written to, an FM-1 until a complete copy of
-    its memory has been read out and written back, byte for byte, on that
-    unit ([chapter 1](01-welcome-and-safety.md#the-one-rule)).
+Staged recovery policy
+:   The current safeguards for device work: compare private backups, review
+    the exact image and ranges, record a recovery plan and retain a route to
+    USB update mode before any further flash erase or program. A bounded
+    sector restore is verified; full-image restore and recovery from a
+    nonbooting application remain untested ([chapter
+    11](11-updating-and-recovery.md#the-staged-recovery-policy)).
 
 Operator
 :   In FM synthesis, one oscillator with its own envelope. Six-Op FM and FM6

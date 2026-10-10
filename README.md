@@ -45,9 +45,10 @@ Open **<https://ip2k.github.io/lunar-modulator/>** and press **Power on**
 - turn the knobs and watch the screen follow.
 
 It needs a current browser with WebAssembly and AudioWorklet. The page tests
-run in Chromium, Firefox and WebKit; native Safari has also passed the
-filtered patch-list and A/B playback checks. Real touch screens and MIDI
-hardware have not been tested. The page loads its own files and does not
+run in Chromium, Firefox and WebKit; automated native Safari editor and A/B
+checks have also passed. The owner reported a crackle when switching Sound 2,
+so a listening retest is pending. Real touch screens and MIDI hardware have
+not been tested. The page loads its own files and does not
 upload your projects or send MIDI out; MIDI input is available in supported
 browsers ([test record](notes/2026-10-07-editor-audio.md)).
 
@@ -366,8 +367,8 @@ This is a synthesis of other people's work. The details are in
 **FM-1 research and recovery**
 
 - **aroum**: updater analysis and teardown photos.
-- **AL-255**: firmware disassembly, protocol captures, the safety analysis
-  behind this project's one rule, and experimental firmware (WTFPL).
+- **AL-255**: firmware disassembly, protocol captures, recovery safeguards,
+  and experimental firmware (WTFPL).
 - **Echomatter**: in AL-255's
   [PR #2](https://github.com/AL-255/FM-1-RE/pull/2), installed a
   version-bumped V15 package on an FM-1 and rolled it back (2026-09-04). It is

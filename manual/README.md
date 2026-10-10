@@ -79,8 +79,8 @@ Nothing in the manual may suggest that Lunar Modulator can be installed on an
 FM-1 today. Every `##` section of a chapter marked `features = true` in
 `manual.toml` must carry a `{{status ...}}` line, and the build stops if one
 does not. *Planned for the device* means designed and documented, not built
-for the hardware. Chapter 1 states the one rule (CLAUDE.md) and points to the
-simulator instead.
+for the hardware. Chapter 1 describes the staged recovery policy and points
+to the simulator; it does not imply full-image recovery has been proven.
 
 The research docs' confidence marks (`[verified]`, `[reported]`,
 `[inferred]`) stay out of the prose; the statuses carry that for functions,

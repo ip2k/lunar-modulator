@@ -1,15 +1,22 @@
 # Updating and recovery
 
-Lunar Modulator cannot be installed on an FM-1 today. This chapter explains
-what has to happen first, how the project means to make installing and
-removing it safe, and what to do about the firmware your FM-1 has now.
+Lunar Modulator has not been installed or run on an FM-1. This chapter records
+the recovery work completed so far, the safeguards for any further device
+work, and what remains unproven.
 
-## The one rule, again
+## The staged recovery policy
 
-Nothing is installed on, or written to, an FM-1 until a complete copy of its
-memory has been read out and written back, byte for byte, on that unit
-([chapter 1](01-welcome-and-safety.md#the-one-rule)). Every step below
-exists to meet that rule; none of them skips it.
+The owner authorized staged experiments. On the owner's FM-1_092, the project
+has verified recovery-mode entry, matching private full-flash backups and a
+bounded unused-sector program/readback/restore. The post-test full-flash
+image matched the backups. A full-image rewrite, recovery from a nonbooting
+application and Lunar installation remain untested.
+
+Before any further flash erase or program, compare private backups, review the
+exact image and ranges, record the recovery plan and retain a route to USB
+update mode. UBOOT entry alone does not prove recovery. The detailed rules are
+in [the recovery record](../docs/07-recovery-and-risk.md#4-rules-of-engagement-owner-revised-2026-10-07)
+and [the bench note](../notes/2026-10-07-fm1-softkey-bench.md).
 
 !!! warning "No installer exists"
     This project publishes no firmware file for the FM-1 and no installer
@@ -44,8 +51,9 @@ There are two kinds:
   chip.
 
 The open design is complete: its firmware builds, and it has been tested
-against a simulation of the chip's recovery mode. Neither dongle has been
-used on an FM-1 by this project yet.
+against a simulation of the chip's recovery mode. The project used the
+soft-key route and reviewed RAM loader on the owner's FM-1; it has not used
+the project's RP2040 dongle on that unit.
 
 Other FM-1 owners have reported that the route works. czietz built a
 simpler dongle of their own from a Raspberry Pi Pico, which brings their
@@ -53,9 +61,9 @@ FM-1 into recovery mode about one power-on in two, and masanaohayashi used
 it to back up their FM-1's firmware and to write firmware to it. Their
 reports, in issue #2 on the project's repository, also showed which of the
 two USB data lines carries the signal, and this project's dongle now tries
-that one first. This project has not run their dongle, and the one rule
-still asks for the whole procedure below on a unit before anything is
-written to it.
+that one first. This project has not run their dongle. The bounded sector
+result above does not establish full-image recovery or a path back from a
+failed application.
 
 ### How it connects
 
@@ -74,10 +82,13 @@ The dongle sits between the computer and the FM-1:
     chip. Never run it against an FM-1. Reading the memory is done with
     open tools that the project checks step by step.
 
-### The procedure, once proven
+### The original recovery plan (superseded)
 
-The project's first goal with the dongle is to show, on one FM-1, that a
-unit can always be brought back:
+The earlier plan was to prove a full-image restore through the dongle before
+any bounded write. It was superseded by the owner's staged authorization and
+the verified bounded sector test recorded above. The checklist below is
+historical; it is not a current prerequisite or a claim that full-image
+recovery has been tested.
 
 1. Bring the FM-1 into recovery mode with the dongle.
 2. Read out its whole flash memory, twice, and check that both copies are
@@ -87,8 +98,8 @@ unit can always be brought back:
    unit must be byte for byte as it was.
 5. Do it twice. Then change one byte in a harmless place, and put it back.
 
-Only after this has worked does anything else get written to an FM-1. The
-project will publish the exact procedure, with photographs, when it has.
+The project has not performed this full-image rewrite. Recovery from a
+nonbooting application and installation of Lunar on an FM-1 remain untested.
 
 ### What the dongle cannot do
 
@@ -107,7 +118,10 @@ Lunar Modulator reaches the FM-1 in stages, each with its own test:
 
 1. **Measuring a unit, read-only.** Asking the FM-1 which firmware it runs
    and listening to it, without changing anything. Done in part.
-2. **Recovery.** The dongle procedure above, on a unit, twice.
+2. **Recovery evidence.** Recovery-mode entry, matching private full-flash
+   backups and one bounded unused-sector program/restore are verified on the
+   owner's unit. Full-image restore and recovery from a nonbooting app remain
+   untested.
 3. **A development board.** The firmware's code runs on a JieLi development
    board from the same chip family. Its output is compared, bit for bit,
    with the desktop tools and the browser simulator.
