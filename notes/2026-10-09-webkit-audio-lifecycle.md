@@ -523,3 +523,25 @@ Chromium's Node step is still running at this checkpoint, so full CI remains
 unconfirmed. The same Node helper/data/history suites passed a separate bounded
 LAN check against identical test sources/Wasm in the pinned image; this does not
 explain the quiet GitHub runner. Its eventual result must be preserved.
+
+## Preserved PR #136 WebKit startup failure
+
+[verified] PR #136 exact `1299c590408e6d919181294bdadc8c28b4b7503a`, run
+`38028091040`, WebKit job `114143127928`, failed strict panel follow: 33 frames /
+529 ms. Audio time stays at 0.7140136054 through frame 31 (497 ms), while the
+context is running, loading is false and pending/inflight counts are zero.
+The state arrives at 514 ms; the editor applies the correct value at 520 ms.
+The job uses the original null-sink command without `norewinds=1`. This agrees
+with the earlier frozen startup signature [inferred]; it does not establish
+a legal-profile source regression.
+
+[verified] The preceding strict 30-second loopback passes with 3,756 replies
+and zero bad periods, silence, refused codes or resyncs. The later editor
+storm reports 3,757 edits, 10,695 quanta, zero refused codes, **one resync**,
+and `pass=true` under its existing predicate. That resync is retained as a
+separate observation; it is not proof that the null-sink correction fixes
+queue resynchronization. No gate or assertion was changed and no unchanged
+rerun was requested. Full reports, decoded frame observations, exact sink
+command and log SHA-256 are saved in
+[`pr136-webkit-ci.json`](evidence/2026-10-09-webkit-audio-lifecycle/pr136-webkit-ci.json).
+The evidence backup leaves PR #132's reviewed head unchanged.

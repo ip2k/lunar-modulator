@@ -1,0 +1,827 @@
+{
+  "pr": 136,
+  "head": "1299c590408e6d919181294bdadc8c28b4b7503a",
+  "run": 38028091040,
+  "job": 114143127928,
+  "result": "failure",
+  "log_sha256": "74a54505f9142da9d55aacc327acc6b3fcdd9a2a1ffc6bc2f063c44d6f09dc58",
+  "sink_command_receipt": "2026-10-10T07:00:22.7536032Z   --load=\"module-null-sink sink_name=lunar rate=48000 channels=2\" \\",
+  "classification": "Frozen WebKit startup clock signature; strict panel-follow assertion failed. Storm resync is separately retained and not established as the same cause.",
+  "reports": [
+    {
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "seconds": 30,
+      "source": "lunar.monitor",
+      "events": [
+        {
+          "scope": "project",
+          "at": 1791615675122,
+          "before": {
+            "playing": true,
+            "side": "B"
+          },
+          "after": {
+            "playing": true,
+            "side": "A",
+            "busy": false,
+            "message": "Now A: the project.",
+            "scope": "project"
+          }
+        },
+        {
+          "scope": "project",
+          "at": 1791615677702,
+          "before": {
+            "playing": true,
+            "side": "A"
+          },
+          "after": {
+            "playing": true,
+            "side": "B",
+            "busy": false,
+            "message": "Now B: the project.",
+            "scope": "project"
+          }
+        },
+        {
+          "scope": "project",
+          "at": 1791615680258,
+          "before": {
+            "playing": true,
+            "side": "B"
+          },
+          "after": {
+            "playing": true,
+            "side": "A",
+            "busy": false,
+            "message": "Now A: the project.",
+            "scope": "project"
+          }
+        },
+        {
+          "scope": "project",
+          "at": 1791615682813,
+          "before": {
+            "playing": true,
+            "side": "A"
+          },
+          "after": {
+            "playing": true,
+            "side": "B",
+            "busy": false,
+            "message": "Now B: the project.",
+            "scope": "project"
+          }
+        },
+        {
+          "scope": "s2",
+          "at": 1791615688740,
+          "before": {
+            "playing": true,
+            "side": "B"
+          },
+          "after": {
+            "playing": true,
+            "side": "A",
+            "busy": false,
+            "message": "Now A: Sound 2.",
+            "scope": 1
+          }
+        },
+        {
+          "scope": "s2",
+          "at": 1791615691296,
+          "before": {
+            "playing": true,
+            "side": "A"
+          },
+          "after": {
+            "playing": true,
+            "side": "B",
+            "busy": false,
+            "message": "Now B: Sound 2.",
+            "scope": 1
+          }
+        },
+        {
+          "scope": "s2",
+          "at": 1791615693860,
+          "before": {
+            "playing": true,
+            "side": "B"
+          },
+          "after": {
+            "playing": true,
+            "side": "A",
+            "busy": false,
+            "message": "Now A: Sound 2.",
+            "scope": 1
+          }
+        },
+        {
+          "scope": "s2",
+          "at": 1791615696414,
+          "before": {
+            "playing": true,
+            "side": "A"
+          },
+          "after": {
+            "playing": true,
+            "side": "B",
+            "busy": false,
+            "message": "Now B: Sound 2.",
+            "scope": 1
+          }
+        }
+      ],
+      "logs": [],
+      "tone-stormStartedAt": 1791615633648,
+      "storm": {
+        "batches": 3756,
+        "replies": 3756,
+        "refused": 0,
+        "resyncs": 0,
+        "rate": 44100
+      },
+      "ab-playbackStartedAt": 1791615669028,
+      "audio": {
+        "pass": true,
+        "activeSeconds": 32.011854166666666,
+        "nonfinite": 0,
+        "channelMismatches": 0,
+        "maxZeroRun": 0,
+        "maxSilenceMs": 0,
+        "cycles": 13864,
+        "badPeriods": 0,
+        "maxPeriodError": 0.009651133240282661
+      },
+      "music": {
+        "seconds": 30.413625,
+        "peak": 0.255584716796875,
+        "nonfinite": 0
+      },
+      "transportStopped": [],
+      "pass": true
+    },
+    {
+      "pass": false,
+      "why": [
+        "a panel knob reaches the editor's row within a few frames: {\"key\":\"s2:2\",\"frames\":33,\"ms\":529,\"chips\":[\"K1\",\"K2\",\"K3\",\"K4\"],\"knobs\":4,\"entry\":{\"origin\":\"panel\",\"how\":\"knob\",\"label\":\"S2 Harmonics\"},\"from\":\"From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33\",\"flashed\":true,\"trace\":{\"observer\":\"main-thread\",\"perturbsTiming\":true,\"events\":[{\"phase\":\"main-port\",\"type\":\"state\",\"ms\":514,\"audioTime\":0.7256235827664399,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"phase\":\"main-port\",\"type\":\"screen\",\"bytes\":null,\"ms\":516,\"audioTime\":0.7517460317460317,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"phase\":\"editor-before\",\"type\":\"changes\",\"bytes\":32,\"ms\":516,\"audioTime\":0.7546485260770975,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"phase\":\"editor-after\",\"type\":\"changes\",\"bytes\":32,\"ms\":520,\"audioTime\":0.7981859410430839,\"audioState\":\"running\",\"loading\":false,\"gen\":5,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.33\",\"currentRowValue\":\"0.33\"},{\"phase\":\"editor-before\",\"type\":\"telemetry\",\"bytes\":null,\"ms\":520,\"audioTime\":0.8010884353741496,\"audioState\":\"running\",\"loading\":false,\"gen\":5,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.33\",\"currentRowValue\":\"0.33\"},{\"phase\":\"editor-after\",\"type\":\"telemetry\",\"bytes\":null,\"ms\":521,\"audioTime\":0.8068934240362812,\"audioState\":\"running\",\"loading\":false,\"gen\":5,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.33\",\"currentRowValue\":\"0.33\"},{\"phase\":\"main-port\",\"type\":\"screen\",\"bytes\":null,\"ms\":525,\"audioTime\":0.8388208616780045,\"audioState\":\"running\",\"loading\":false,\"gen\":5,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.33\",\"currentRowValue\":\"0.33\"},{\"phase\":\"editor-before\",\"type\":\"telemetry\",\"bytes\":null,\"ms\":525,\"audioTime\":0.8388208616780045,\"audioState\":\"running\",\"loading\":false,\"gen\":5,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.33\",\"currentRowValue\":\"0.33\"},{\"phase\":\"editor-after\",\"type\":\"telemetry\",\"bytes\":null,\"ms\":525,\"audioTime\":0.844625850340136,\"audioState\":\"running\",\"loading\":false,\"gen\":5,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.33\",\"currentRowValue\":\"0.33\"},{\"phase\":\"main-port\",\"type\":\"screen\",\"bytes\":null,\"ms\":529,\"audioTime\":0.8852607709750567,\"audioState\":\"running\",\"loading\":false,\"gen\":5,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.33\",\"currentRowValue\":\"0.33\"}],\"frames\":[{\"frame\":1,\"ms\":14,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":2,\"ms\":30,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":3,\"ms\":46,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":4,\"ms\":62,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":5,\"ms\":78,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":6,\"ms\":94,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":7,\"ms\":110,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":8,\"ms\":126,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":9,\"ms\":142,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":10,\"ms\":159,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":11,\"ms\":175,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":12,\"ms\":191,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":13,\"ms\":207,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":14,\"ms\":223,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":15,\"ms\":239,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":16,\"ms\":255,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":17,\"ms\":271,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":18,\"ms\":287,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":19,\"ms\":304,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":20,\"ms\":320,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":21,\"ms\":336,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":22,\"ms\":352,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":23,\"ms\":368,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":24,\"ms\":384,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":25,\"ms\":400,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":26,\"ms\":417,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":27,\"ms\":433,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":28,\"ms\":449,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":29,\"ms\":465,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":30,\"ms\":481,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":31,\"ms\":497,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":32,\"ms\":513,\"audioTime\":0.7198185941043084,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":33,\"ms\":529,\"audioTime\":0.8910657596371883,\"audioState\":\"running\",\"loading\":false,\"gen\":5,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.33\",\"currentRowValue\":\"0.33\"}],\"droppedEvents\":0,\"initial\":{\"ms\":0,\"audioTime\":0.7140136054421768,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"}}}"
+      ]
+    },
+    {
+      "pass": true,
+      "why": []
+    },
+    {
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "seconds": 30,
+      "logs": [],
+      "scheduling_capture": true,
+      "edited": 3757,
+      "codes_not_ok": 0,
+      "changes": 1689,
+      "entries": 29675,
+      "resyncs": 1,
+      "views": 1,
+      "telemetry": 905,
+      "stats": {
+        "quanta": 10695,
+        "timed": false,
+        "late": null,
+        "maxMs": null,
+        "editMs": null
+      },
+      "snapshot": {
+        "ok": true,
+        "bytes": 1115,
+        "binary": true
+      },
+      "ops": 3757,
+      "records": 30056,
+      "rate": 44100,
+      "playback": null,
+      "pass": true
+    }
+  ],
+  "decoded_panel_observations": [
+    {
+      "key": "s2:2",
+      "frames": 33,
+      "ms": 529,
+      "chips": [
+        "K1",
+        "K2",
+        "K3",
+        "K4"
+      ],
+      "knobs": 4,
+      "entry": {
+        "origin": "panel",
+        "how": "knob",
+        "label": "S2 Harmonics"
+      },
+      "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+      "flashed": true,
+      "trace": {
+        "observer": "main-thread",
+        "perturbsTiming": true,
+        "events": [
+          {
+            "phase": "main-port",
+            "type": "state",
+            "ms": 514,
+            "audioTime": 0.7256235827664399,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "phase": "main-port",
+            "type": "screen",
+            "bytes": null,
+            "ms": 516,
+            "audioTime": 0.7517460317460317,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "phase": "editor-before",
+            "type": "changes",
+            "bytes": 32,
+            "ms": 516,
+            "audioTime": 0.7546485260770975,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "phase": "editor-after",
+            "type": "changes",
+            "bytes": 32,
+            "ms": 520,
+            "audioTime": 0.7981859410430839,
+            "audioState": "running",
+            "loading": false,
+            "gen": 5,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.33",
+            "currentRowValue": "0.33"
+          },
+          {
+            "phase": "editor-before",
+            "type": "telemetry",
+            "bytes": null,
+            "ms": 520,
+            "audioTime": 0.8010884353741496,
+            "audioState": "running",
+            "loading": false,
+            "gen": 5,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.33",
+            "currentRowValue": "0.33"
+          },
+          {
+            "phase": "editor-after",
+            "type": "telemetry",
+            "bytes": null,
+            "ms": 521,
+            "audioTime": 0.8068934240362812,
+            "audioState": "running",
+            "loading": false,
+            "gen": 5,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.33",
+            "currentRowValue": "0.33"
+          },
+          {
+            "phase": "main-port",
+            "type": "screen",
+            "bytes": null,
+            "ms": 525,
+            "audioTime": 0.8388208616780045,
+            "audioState": "running",
+            "loading": false,
+            "gen": 5,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.33",
+            "currentRowValue": "0.33"
+          },
+          {
+            "phase": "editor-before",
+            "type": "telemetry",
+            "bytes": null,
+            "ms": 525,
+            "audioTime": 0.8388208616780045,
+            "audioState": "running",
+            "loading": false,
+            "gen": 5,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.33",
+            "currentRowValue": "0.33"
+          },
+          {
+            "phase": "editor-after",
+            "type": "telemetry",
+            "bytes": null,
+            "ms": 525,
+            "audioTime": 0.844625850340136,
+            "audioState": "running",
+            "loading": false,
+            "gen": 5,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.33",
+            "currentRowValue": "0.33"
+          },
+          {
+            "phase": "main-port",
+            "type": "screen",
+            "bytes": null,
+            "ms": 529,
+            "audioTime": 0.8852607709750567,
+            "audioState": "running",
+            "loading": false,
+            "gen": 5,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.33",
+            "currentRowValue": "0.33"
+          }
+        ],
+        "frames": [
+          {
+            "frame": 1,
+            "ms": 14,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 2,
+            "ms": 30,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 3,
+            "ms": 46,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 4,
+            "ms": 62,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 5,
+            "ms": 78,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 6,
+            "ms": 94,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 7,
+            "ms": 110,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 8,
+            "ms": 126,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 9,
+            "ms": 142,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 10,
+            "ms": 159,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 11,
+            "ms": 175,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 12,
+            "ms": 191,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 13,
+            "ms": 207,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 14,
+            "ms": 223,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 15,
+            "ms": 239,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 16,
+            "ms": 255,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 17,
+            "ms": 271,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 18,
+            "ms": 287,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 19,
+            "ms": 304,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 20,
+            "ms": 320,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 21,
+            "ms": 336,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 22,
+            "ms": 352,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 23,
+            "ms": 368,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 24,
+            "ms": 384,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 25,
+            "ms": 400,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 26,
+            "ms": 417,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 27,
+            "ms": 433,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 28,
+            "ms": 449,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 29,
+            "ms": 465,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 30,
+            "ms": 481,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 31,
+            "ms": 497,
+            "audioTime": 0.7140136054421768,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 32,
+            "ms": 513,
+            "audioTime": 0.7198185941043084,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          },
+          {
+            "frame": 33,
+            "ms": 529,
+            "audioTime": 0.8910657596371883,
+            "audioState": "running",
+            "loading": false,
+            "gen": 5,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.33",
+            "currentRowValue": "0.33"
+          }
+        ],
+        "droppedEvents": 0,
+        "initial": {
+          "ms": 0,
+          "audioTime": 0.7140136054421768,
+          "audioState": "running",
+          "loading": false,
+          "gen": 4,
+          "pendingChanges": 0,
+          "inflight": 0,
+          "rowConnected": true,
+          "value": "0.30",
+          "currentRowValue": "0.30"
+        }
+      }
+    }
+  ]
+}
