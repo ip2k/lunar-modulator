@@ -9,6 +9,8 @@ history.
 ## [Unreleased]
 
 ### Fixed
+- README installation status now distinguishes the linked inert diagnostic
+  from the running instrument, which remains untested on the FM-1.
 - Target compile checks include shared state codecs and metadata, with each
   object compiled once. Stack reports count split prologue reservations.
 - Audit findings in target compile failure handling, IRQ source guards,

@@ -30,6 +30,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { serve } from './serve.mjs';
 import { launch } from './launch.mjs';
+import { observePanelFollow } from './panel-follow.mjs';
 
 
 const [www, out] = process.argv.slice(2);
@@ -83,29 +84,7 @@ await page.evaluate(() => {
 });
 
 // ---- follow, panel to editor, and K1-K4 ----------------------------------------
-const follow = await page.evaluate(async () => {
-  const sim = window.fm1;
-  const ed = sim.editor;
-  const v = ed.state.panelView;
-  const knob2 = v.knobs[1];
-  const key = `${knob2.role === 1 ? `s${knob2.sound + 1}` : '?'}:${knob2.uid}`;
-  const row = ed.rows.get(key);
-  const before = row ? row.el.querySelector('.ed-val, [aria-checked="true"], select').value || row.el.textContent : null;
-  const chips = [...document.querySelectorAll('.ed-k:not([hidden])')].map((c) => c.textContent);
-  const t0 = performance.now();
-  sim.node.port.postMessage({ type: 'encoder', encoder: 4, delta: 3 });
-  let frames = 0;
-  while (frames < 60) {
-    await new Promise((r) => requestAnimationFrame(r));
-    ++frames;
-    const now = row ? row.el.querySelector('.ed-val, [aria-checked="true"], select').value || row.el.textContent : null;
-    if (now !== before) break;
-  }
-  const h = ed.history.entries[ed.history.entries.length - 1];
-  return { key, frames, ms: performance.now() - t0, chips, knobs: v.knobs.filter((k) => k.kind).length,
-    entry: h ? { origin: h.origin, how: h.how, label: h.label } : null,
-    from: document.querySelector('.ed-from').textContent, flashed: row && row.el.classList.contains('is-flash') };
-});
+const follow = await page.evaluate(observePanelFollow);
 report.follow_panel = follow;
 check('a panel knob reaches the editor\'s row within a few frames', follow.frames <= 12, follow);
 check('it enters the history as the panel\'s', follow.entry && follow.entry.origin === 'panel' && /KNOB2/.test(follow.from), follow);
