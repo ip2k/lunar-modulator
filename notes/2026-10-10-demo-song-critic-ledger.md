@@ -88,7 +88,8 @@ coverage limits, not validation of the writer worktree.
 | 1 | `9a2d099` (canonical repair `27939c7`) | Round 1 MD/JSON | All 32 scenes below threshold; R1-A–H open |
 | 2 | `f1887404` | Round 2 MD/JSON | All 32 scenes below threshold; R1 repairs partly implemented; R2-A–F open |
 | 3 | `cdf8d8fc` | Round 3 MD/JSON | All32 scenes below threshold; R2 repairs accepted/partial; R3-A–D open |
-| 4–5 | Not started | — | — |
+| 4 | `75e029dc` | Round 4 MD/JSON | All 32 scenes below full threshold; real phrase/voicing/transition improvements, R4-A–C open |
+| 5 | Writer composing | — | Final permitted round |
 
 Critic branch: `chore/2026-10-10@demo-music-critic`.
 Writer branch: `feature/2026-10-10@demo-songs`.
@@ -117,3 +118,7 @@ Parent integration owns rendering, runtime acceptance and final packaging.
 ## Round 3 runtime adjunct
 
 [verified] Exact native/Wasm and Chromium receipts retrieved from the completed aeon run, hashes verified and project hashes matched to frozen cdf8d8fc. All56 occurrences now include approximate energy aggregates; all four songs stop with zero reported drops/repairs/skips/refusals and pass browser Save/fresh Open. Complete receipts retained in Round3 JSON. [inferred] Source-based scores6–8 remain unchanged. Round4 writer work is in progress; no by-ear acceptance.
+
+## Round 4 source checkpoint
+
+[verified] Frozen75e029dcb4416c3b0381d0f6665fac0a6c0c3160 inspected across all32 scenes and54 occurrences. All five pitched-role streams in every peak change between four-bar halves; actual Afterglow common tones, harmony-aware replies, continuous Event/Neon intros, Packet C#4-to-D4 interruption and full-bar closing sustains verified. [inferred] Scores6–9, no complete scene pass. Exact defects retained: unused Afterglow Warble configuration and four duplicate chord-reply triggers. Remaining artistic limits concern sustained articulation, distinctive contrast/verse development and local register/suspension resolution. Writer has started final Round5 separately; runtime acceptance is pending independently and no listening is claimed.
