@@ -312,3 +312,13 @@ is a scheduling-pressure candidate, not proof that it caused the audio gaps
 [inferred]. A bounded paired run will record per-test cgroup and timed backend
 markers with four CPU quota; CI itself has no CPU quota option. No unchanged
 retry or threshold weakening is justified by this failure.
+
+[verified: CI queue policy] Main `9cfc46dc35c2fb859f22a1f5315f6990c415a099`
+was merged into this branch, preserving the panel observer, scheduling capture
+and modal checks. CI now uses the existing Pages policy: `ci-${{ github.ref }}`
+concurrency with cancellation enabled only for `pull_request`. A newer head
+supersedes obsolete PR work; main and manual runs are not cancelled by this
+expression. The owner observed thirteen obsolete queued jobs per checkpoint.
+No matrix, test, threshold or null-sink setting changes in this checkpoint.
+Workflow YAML parsed successfully; two pin tests and all nine panel-follow /
+scheduling-capture unit tests passed locally.

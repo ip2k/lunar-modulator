@@ -6,6 +6,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Checkpoints supersede the previous PR head; keep every main run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   python-tests:
     name: tests (${{ matrix.os }})
