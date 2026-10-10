@@ -37,3 +37,43 @@ That snapshot is not a final CI acceptance.
 The prior owner report that Sound 2 A crackled during a swap remains an
 unresolved listening failure. Browser, native and offline parity receipts
 do not establish a human listening pass or device readiness.
+
+## PR132 pre-browser timeout
+
+[verified] PR132 head `c6db9587c1d8d1ca6f993d8f433875761f3b2b6e`, CI
+[38028605340, Chromium job 114144633913](https://github.com/ip2k/lunar-modulator/actions/runs/38028605340/job/114144633913),
+was cancelled at its 45-minute job deadline. The Node helper command printed
+9 passing tests, 0 failures and duration 73.156207 ms at 06:33:50.9782178 UTC.
+The next log output was cancellation at 07:18:02.3731023 UTC. No browser
+was launched. The same step completed in under one second for Firefox and
+WebKit; the semantic reviewer also retained a passing bounded LAN receipt.
+
+[verified] The step ran two commands. The second, editor-unit, discarded
+stdout and printed its report only after its checks. The log cannot prove
+whether the helper parent had exited or whether the second process stalled
+in imports, Wasm compilation/initialization or later checks. Source review
+found explicit final process exit and cleaned/unreferenced fixture timers;
+no deterministic source cause was established. This is a lifecycle/module
+test timeout, not an observed audio assertion failure.
+
+[verified] Owner-approved CI-only correction on PR140 separates these
+commands into named steps, gives each a five-minute timeout and retains the
+editor-unit JSON output. No test content, assertion, automatic retry or audio
+tolerance changed. The manual correction and this diagnostic change were
+pushed together at `9a5fb72a54f5117169840f331fd1f756071e6fd5`. Engine and simulator
+source hashes, and actual Wasm bytes, remained unchanged. Fresh exact-head
+CI is required; this does not turn the cancelled PR132 job into a pass.
+
+## PR134 old-sink WebKit failure
+
+[verified] PR134 head `67cc933c10552f44f5f6707c89155be785848a9f`,
+[run 38029909928, WebKit job 114148477223](https://github.com/ip2k/lunar-modulator/actions/runs/38029909928/job/114148477223),
+failed the unchanged panel-follow latency gate: 32 frames, 519 ms for
+`s2:2` / S2 Harmonics. Audio time stayed at 0.7198185941043084 from the
+initial observation through frame 31 at 498 ms. During that interval the
+editor was not loading, no changes were pending and no edits were inflight.
+The changes message arrived at 511 ms; the value was correct at 515 ms.
+The observer explicitly labels timing perturbation. This matches the
+previous frozen-clock signature under the old default sink configuration;
+it establishes delayed worklet delivery in this observation, not an
+independent firmware or effect defect. The failed gate is preserved.
