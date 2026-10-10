@@ -34,5 +34,18 @@ perception interface must say so and cannot claim that it heard a render.
 Numerical render acceptance does not establish musical quality. The owner's
 final listening evaluation remains separate from the critic's judgment.
 
-Current state: protocol recorded; initial corrected assets and full renders
-are still being prepared. No round has been scored or passed yet.
+Owner clarification, 2026-10-10: the critic can inspect the simulator itself
+and analyze project files programmatically. Waveforms are supplementary evidence,
+not the sole basis for any category. Inspect decoded notes, pitch/register,
+gates, velocity, harmonic movement, rhythmic variation, routing, modulation,
+locks, scene order and each repeated occurrence. Check actual browser loading,
+playback state and Save/Open preservation against the scored asset identity.
+Tie each score and requested revision to concrete project or simulator evidence;
+keep observed behavior separate from inferred musical consequences.
+
+Current state: Rounds 1 and 2 have been scored without a passing scene/category
+threshold; complete native/Wasm and Chromium Save/Open acceptance passed for
+both. Round 3 is frozen at cdf8d8fcc0bd89518f3fe28ec1a6661a827c19bc;
+its independent source review and fresh executable acceptance are in progress.
+The writer is preparing Round 4 from specific structural findings. No musical
+acceptance or perceptual listening has been claimed.

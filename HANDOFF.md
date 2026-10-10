@@ -15,14 +15,17 @@ Live `origin/main` was verified at `40c94300428acfc5688a203c2c928723ed98270a`.
 The final reviewed DSP/audio-startup prerequisite is [PR #143](https://github.com/ip2k/lunar-modulator/pull/143),
 frozen at `aff83ab804497b0724f7e5d8ba13b115cfcdd28a`. Its fresh native/musl/Wasm
 build passed 108/108 parity scenarios; all three browser startup and external
-loopback CI steps passed. Full CI is still running: do not describe the PR as
-merged or waive a later strict-browser failure. Earlier failures remain saved.
+loopback CI steps passed. Chromium's strict gate failed with one 512-frame underrun. The trace places
+that event before playback and the edit storm; delayed counter publication
+explains its appearance in the storm interval. Investigation continues on
+`chore/2026-10-10@worklet-suspended-startup` at e874d0ff. Do not merge PR #143
+or waive the zero-underrun gate. Earlier failures remain saved.
 
 The integration worktree is
 `/Users/likwid/.codex/worktrees/completed-work-integration/mvave-fm1-firmware`,
-branch `chore/2026-10-10@demo-song-acceptance`, pushed through `95f7474f`.
+branch `chore/2026-10-10@demo-song-acceptance`, pushed through `330cd61d`.
 It includes the startup prerequisite, complete-song acceptance scripts,
-README editor controls, and independent Round-1 criticism. The nearby CI-step
+README editor controls, and independent Round-1/2 criticism. The nearby CI-step
 conflict was resolved by retaining both complete-song and startup checks;
 startup helper tests and all 36 editor-unit checks pass locally.
 
@@ -35,8 +38,10 @@ preload/play/Save/fresh-Open checks. Round-2 assets are frozen at
 Runtime passes do not establish musical approval. The independent critic
 reviews decoded project files, every scene/transition, simulator state and
 signal receipts; it has no audio-perception tool and makes no listening claim.
-Round 1 scored 3–6; Round 2 review is active while the writer prepares a separate
-Round-3 draft. Keep all reports and stop after at most five rounds, with early
+Round 1 scored 3–6; Round 2 scored 5–7. Round 3 is frozen/pushed at
+`cdf8d8fcc0bd89518f3fe28ec1a6661a827c19bc`; source critique and fresh runtime
+acceptance are in progress. The writer is drafting Round 4 to address unchanged
+voicings, repeated peak phrases and unintended out-of-key replies. Keep all reports and stop after at most five rounds, with early
 acceptance only if every scene/category is strictly above 8.
 
 Writer worktree: `/Users/likwid/.codex/worktrees/demo-songs/mvave-fm1-firmware`,
@@ -46,10 +51,12 @@ branch `feature/2026-10-10@demo-songs`. Critic worktree:
 
 No full-DSP Lunar application has run on or been installed on the FM-1.
 Full-image restoration, broken-app recovery and hardware audio remain
-unverified. Bench01 was freshly reachable with a normal `4c4a:c755` FM-1 and
-`/dev/snd/midiC2D0`; this check sent no device traffic. The next offline-reviewed
-firmware observation is in the `fm1-live-bringup` worktree at `395023b0`:
-a fixed eight-byte loader callback-slot read, not custom code execution.
+unverified. The exact offline-reviewed fixed eight-byte loader callback-slot observation
+completed once on Bench01: 52 audited SCSI commands, one FD07 read, no flash
+writes or custom code execution. The returned words are 0x01e008e4 and
+0x01e0089a; their memory-region meaning is unproven. Receipts are pushed on
+`chore/2026-10-10@fm1-live-bringup` at `65e9f639`. Owner power-cycle confirmation
+is pending; no further device operations should run before it arrives.
 The owner's Sound-2 A/B crackles still require a by-ear retest.
 
 The whole-code audit is not blanket-closed: findings are classified by demo
