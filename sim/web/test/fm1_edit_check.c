@@ -594,7 +594,7 @@ static void check_sound_restore_audio(void) {
     "{\"lunar\":\"1.0\",\"kind\":\"project\",\"sounds\":[{\"engine\":\"test-sine\",\"params\":{\"Volume\":0.7},\"midi_fx\":[{\"engine\":\"arp\",\"on\":true}]}],\"mix\":{\"levels\":[100,0,0,0]}}"
   };
   static uint8_t buf[FM1_STATE_BIN_MAX];
-  float control[5 * 2 * FM1_APP_MAX_FRAMES];
+  static float control[128 * 2 * FM1_APP_MAX_FRAMES];
   fm1_app_state_mem_t mem;
   fm1_app_state_report_t rep;
   fm1_app_load_opts_t o;
@@ -620,11 +620,14 @@ static void check_sound_restore_audio(void) {
         o.into = 0; o.flags |= FM1_APP_LOAD_RESTORE_SOUND;
         CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
       }
-      for (unsigned b = 0; b < 5; ++b) {
+      float energy = 0;
+      for (unsigned b = 0; b < 128; ++b) {
         const float *audio = fm1_app_render(&g_a, FM1_APP_MAX_FRAMES);
+        for (unsigned i = 0; i < 2 * FM1_APP_MAX_FRAMES; ++i) energy += fabsf(audio[i]);
         if (!restore) memcpy(control + b * 2 * FM1_APP_MAX_FRAMES, audio, 2 * FM1_APP_MAX_FRAMES * sizeof(float));
         else CHECK(!memcmp(control + b * 2 * FM1_APP_MAX_FRAMES, audio, 2 * FM1_APP_MAX_FRAMES * sizeof(float)));
       }
+      CHECK(energy > 0.1f);
       if (restore && c == 0) {
         /* A changed value reaches the live engine without dropping its note. */
         fm1_app_set_param(&g_a, 0, 0, 0.15f);

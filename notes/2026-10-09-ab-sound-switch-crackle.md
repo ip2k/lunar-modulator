@@ -73,3 +73,23 @@ Volume 0.70 and B 0.15 while First orbit played at 116 BPM, leaving Hearing B /
 Switch to A. These are scope-specific snapshots. Differences currently appear
 only after the first swap; the current A can show a no-difference hint before
 that swap. This usability issue is separate from the audio correction.
+
+[verified: strengthened regression] The audio comparison now covers 128 blocks
+(~186 ms), and requires audible energy in each control and restore, including
+the arpeggiator. This crosses its next step rather than allowing a silent short
+window to pass. The extended check fails 310 assertions with the old loader,
+then passes with the correction. Extended before/after JSON receipts accompany
+the original five-block receipts, which remain unchanged.
+
+[verified: browser integration] Chromium 153.0.8010.12 (Playwright headless,
+LAN) passes all 99 editor-v1 checks, including A/B picks and reload, with the
+corrected module. Its original JSON receipt is saved as
+`notes/data/2026-10-09-ab-editor-v1.json`. This is an editor integration test,
+not an external audio capture or an owner listening pass. The module/source
+record and zero-late offline storm checks pass two focused pytest checks.
+
+Checkpoint: production correction pushed and SHA verified as
+`305b8f67ed59c5d5a9fe55da1b4b2e1c56164c2b`; the following checkpoint adds the
+extended audible-window regression and browser receipt. No PR or merge is
+performed by this investigation. Owner Safari retest and separately scoped
+focused-kit/project-transition behavior remain follow-up work.
