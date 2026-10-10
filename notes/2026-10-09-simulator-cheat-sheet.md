@@ -37,6 +37,15 @@ within the viewport, and the help body scrolls inside the dialog. Exact-head
 GitHub CI is pending. No hardware, audio-device, or firmware actions were
 performed.
 
+CI follow-up: exact head `ef856a3809c1f52d6fc3cf61a13f1750cbcee114` failed
+only the Chromium `files.mjs` page test. Its two library checks still clicked
+the summary directly even though the requested UI now places it inside the
+closed Cheat Sheet dialog. The failure was a hidden-element timeout, not audio
+resource pressure. The test now opens the Cheat Sheet before using the library;
+the full `files.mjs` test passes in the bounded aeon Playwright 1.63 container
+with `files`, unavailable-storage, link/hash/embed/local, and desktop/phone
+layout checks true and no browser logs. A new exact-head CI run is pending.
+
 Semantic navigation limitation: the shared Rarefaction project still selected
 the main checkout, not this isolated worktree; Serena activated this worktree
 but had only its C++ language server and could not index the JavaScript page.
