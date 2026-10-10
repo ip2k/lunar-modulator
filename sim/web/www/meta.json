@@ -11548,9 +11548,9 @@
     }
   ],
   "telemetry": {
-    "version": 1,
+    "version": 2,
     "hz": 30,
-    "floats": 1443,
+    "floats": 1454,
     "mask_words": 4,
     "sections": [
       {
@@ -11602,13 +11602,14 @@
         ],
         "items": [],
         "fields": [
-          "db"
+          "db",
+          "gate"
         ]
       },
       {
         "name": "voices",
         "unit": "none",
-        "offset": 43,
+        "offset": 54,
         "mask": 27,
         "rows": [
           "v1",
@@ -11633,7 +11634,7 @@
       {
         "name": "outs",
         "unit": "port",
-        "offset": 67,
+        "offset": 78,
         "mask": 39,
         "rows": [
           "pos1",
@@ -11664,7 +11665,7 @@
       {
         "name": "voice_outs",
         "unit": "port",
-        "offset": 259,
+        "offset": 270,
         "mask": 47,
         "rows": [
           "pos1",
@@ -11704,7 +11705,7 @@
       {
         "name": "dests",
         "unit": "param",
-        "offset": 1027,
+        "offset": 1038,
         "mask": 55,
         "rows": [
           "slot1",
@@ -11748,7 +11749,7 @@
       {
         "name": "voice_dests",
         "unit": "param",
-        "offset": 1059,
+        "offset": 1070,
         "mask": 87,
         "rows": [
           "slot1",
@@ -11802,5 +11803,5 @@
       }
     ]
   },
-  "meta_id": "9855d7e3"
+  "meta_id": "b34abd40"
 }

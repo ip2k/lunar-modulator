@@ -58,7 +58,7 @@
     "test-ext": "test"
   },
   "telemetry": {
-    "version": 1,
+    "version": 2,
     "sections": [
       {
         "name": "meters",
@@ -101,7 +101,7 @@
       },
       {
         "name": "voices",
-        "offset": 43,
+        "offset": 54,
         "rows": [
           "v1",
           "v2",
@@ -119,7 +119,7 @@
       },
       {
         "name": "outs",
-        "offset": 67,
+        "offset": 78,
         "rows": [
           "pos1",
           "pos2",
@@ -133,7 +133,7 @@
       },
       {
         "name": "voice_outs",
-        "offset": 259,
+        "offset": 270,
         "rows": [
           "pos1",
           "pos2",
@@ -147,7 +147,7 @@
       },
       {
         "name": "dests",
-        "offset": 1027,
+        "offset": 1038,
         "rows": [
           "slot1",
           "slot2",
@@ -185,7 +185,7 @@
       },
       {
         "name": "voice_dests",
-        "offset": 1059,
+        "offset": 1070,
         "rows": [
           "slot1",
           "slot2",

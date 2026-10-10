@@ -27,7 +27,7 @@ def test_the_ci_playwright_pins_are_build_on_aeon_sh_s():
 def test_the_ci_job_runs_every_editor_page_test():
     """Every editor page test that needs no native build is run by the job."""
     job = WORKFLOW[WORKFLOW.index("  editor-page-tests:"):]
-    for name in ("editor-unit", "editor-ui", "editor-reach", "editor-map", "editor-v1", "editor.mjs", "screenshot", "files"):
+    for name in ("editor-unit", "editor-ui", "editor-reach", "editor-map", "editor-v1", "editor.mjs", "screenshot", "files", "audio-analysis-check", "audio-loopback"):
         assert name in job, name
     tests = {p.stem for p in (ROOT / "sim" / "web" / "test").glob("editor*.mjs")}
     # editor-shots makes the manual's pictures and is not a check.

@@ -412,9 +412,6 @@ export function flagWords(p) {
   return (p.flags || []).filter((f) => FLAG_WORDS[f]).map((f) => FLAG_WORDS[f]);
 }
 
-// The default, as a mirror value (an ENUM's entry index).
-export function defaultValue(p) { return p.def; }
-
 // ---- memory, in percent of the FM-1's budget (§11, §19) ------------------------
 
 // Rounded up, as the screen's meter rounds (fm1_app_ram_percent).

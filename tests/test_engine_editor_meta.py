@@ -293,6 +293,7 @@ def test_the_telemetry_layout_adds_up(meta):
     assert rows["meters"]["rows"][:3] == ["snd1", "snd1.fx1", "snd1.fx2"]
     assert rows["meters"]["rows"][-4:] == ["mix", "fx1", "fx2", "out"]
     assert rows["reduction"]["rows"][-3:] == ["fx1", "fx2", "limiter"]
+    assert t["version"] == 2 and rows["reduction"]["fields"] == ["db", "gate"]
     assert len(rows["voices"]["rows"]) == voices
     assert len(rows["outs"]["rows"]) == positions and len(rows["outs"]["items"]) == outs
     assert len(rows["voice_outs"]["fields"]) == voices
