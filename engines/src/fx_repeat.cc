@@ -238,11 +238,28 @@ struct Instance {
     if (index >= P_COUNT) return;
     if (index == P_HOLD) {
       const float clamped = fm1_param_clamp(&kParams[index], value);
-      hold = static_cast<uint8_t>(clamped >= 0.5f ? HOLD_ON : HOLD_OFF);
-      if (hold == HOLD_OFF) {
+      const uint8_t target = static_cast<uint8_t>(clamped >= 0.5f ? HOLD_ON : HOLD_OFF);
+      if (target == HOLD_OFF) {
+        if (hold == HOLD_OFF) return;
+        hold = HOLD_OFF;
         armed = arm_on_beat = latch_when_full = 0;
-        BeginRelease(false, false);
-      } else if (release_pending) {
+        if (release_pending) rearm_after_clear = 0;
+        else BeginRelease(false, false);
+        return;
+      }
+      if (hold == HOLD_ON) {
+        if (release_pending) {
+          clear_after_release = 1;
+          rearm_after_clear = 1;
+        } else if (!held) {
+          // Explicitly setting Hold On again rearms after STOP/RESET even
+          // though the saved control value was already On.
+          Arm();
+        }
+        return;
+      }
+      hold = HOLD_ON;
+      if (release_pending) {
         // A quick re-hold waits for the release to reach dry, then requires
         // a complete fresh capture so the released frozen segment cannot be
         // latched again at the next beat.

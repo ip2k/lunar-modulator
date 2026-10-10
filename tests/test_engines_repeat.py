@@ -29,7 +29,15 @@ def test_repeat_native_transport_and_memory_regressions(renderer):
     result = subprocess.run([str(SELFTEST)], check=True, capture_output=True, text=True)
     rows = [json.loads(line) for line in result.stdout.splitlines()]
     summary = rows[-1]
-    assert summary == {"summary": "repeat", "passed": 8, "failed": 0}
+    assert summary == {"summary": "repeat", "passed": 13, "failed": 0}
+    checks = {row["check"] for row in rows if "check" in row}
+    assert {
+        "dry_start_stop_reset_and_hold_off_stay_dry",
+        "same_mix_target_does_not_restart_ramp",
+        "quick_rehold_waits_for_fresh_ring_and_beat",
+        "same_hold_off_does_not_restart_release",
+        "explicit_unchanged_hold_on_rearms_after_stop",
+    } <= checks
     caps = [row for row in rows if row.get("diagnostic") == "effective_slice"]
     assert [(row["rate"], row["bpm"], row["requested_denominator"],
              row["effective_denominator"], row["frames"]) for row in caps] == [

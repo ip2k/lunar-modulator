@@ -1265,7 +1265,10 @@ the native regression checks this against a discontinuous source. Tempo or
 slice changes take effect on a later beat and crossfade old and new windows
 over 5 ms. Hold Off fades wet output over 5 ms before recording resumes.
 STOP fades and clears the history; START begins a fresh capture. A high Hold
-does not recapture after STOP until Hold is toggled or START occurs. RESET is
+does not recapture after STOP until Hold is toggled or START occurs. If Hold is
+turned back on before its 5 ms release finishes, the released loop is cleared
+when the output reaches dry; a full new ring and (while running) a later beat
+are required before capture. RESET is
 handled by the effect API, but the current host does not send it. The effect
 leaves API `get_param` unset because the host already stores the clamped values
 passed to `set_param`; saved Max slice therefore remains the requested choice

@@ -59,18 +59,23 @@ copied. It uses the existing API v3 `render_ext` host events, not a new clock.
 
 ## Verification boundary
 
-Independent source review found two smoothing defects and one quick-rehold lifecycle
-defect in the initial implementation.
+Independent source review found three ramp/repeated-write defects and one quick-rehold
+lifecycle defect in the initial implementation.
 When a transport/release action requested wet=0 while already dry, a zero-delta wet
 ramp ended by inferring its target from the sign of the step and incorrectly set wet=1.
 Also, resending an unchanged Mix target restarted an in-flight ramp. The implementation
 now tracks the explicit wet target at ramp completion, cancels already-settled wet ramps,
-and leaves an unchanged Mix target's original deadline intact. A rapid re-hold during a
+and leaves unchanged Mix and Hold targets' original deadlines intact. Repeated Hold-Off
+does not restart release or discard STOP's clear request; explicitly setting unchanged
+Hold-On after STOP still rearms capture. A rapid re-hold during a
 release now clears the frozen ring at the dry endpoint and waits for a new full capture
-before accepting BEAT. Native regressions cover
-START, STOP, RESET and Hold-Off while dry with nonzero Mix, plus a same-target Mix write
-five frames into the ramp and a re-hold followed by both an early BEAT and a fresh-ring
-BEAT. Current focused native self-test: 11 passed, 0 failed. The exact emitted instance
+before accepting BEAT while running (stopped capture latches when that ring fills).
+Native regressions cover
+START, STOP, RESET and Hold-Off while dry with nonzero Mix, same-target Mix and Hold-Off
+writes five frames into their ramps, and a re-hold followed by both an early BEAT and a
+fresh-ring BEAT. The tests also preserve STOP's clear request through repeated Hold-Off
+and verify an explicit unchanged Hold-On can rearm after STOP. Current focused native
+self-test: 13 passed, 0 failed. The exact emitted instance
 size and profile metadata still need regeneration after the added per-instance wet target;
 the 105,100-byte parity scenario figure is total scenario memory, not the Repeat instance.
 

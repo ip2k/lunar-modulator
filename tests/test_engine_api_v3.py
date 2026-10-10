@@ -49,7 +49,7 @@ def beat_frames(bpm_x100, until):
 
 # ---- the extension's plumbing ----------------------------------------------------
 
-def test_only_test_ext_asks_for_the_extension(renderer):  # noqa: F811
+def test_api_v3_effects_declare_their_extension_needs(renderer):  # noqa: F811
     listed = json.loads(subprocess.run([str(renderer), "--list"], check=True,
                                        capture_output=True, text=True).stdout)
     for e in listed:

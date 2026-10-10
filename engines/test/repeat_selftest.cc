@@ -315,6 +315,65 @@ void TestQuickReholdRequiresFreshCapture() {
         beat_cannot_restore_old_loop && u.state()->held);
 }
 
+void TestRepeatedHoldOffKeepsReleaseDeadline() {
+  Unit once(44118.0f), repeated(44118.0f);
+  float warm_a[2] = { 0.1f, -0.2f }, warm_b[2] = { 0.1f, -0.2f };
+  once.Run(warm_a, 1, 120.0f, true);
+  repeated.Run(warm_b, 1, 120.0f, true);
+  once.Set(fm1::repeat::P_HOLD, 1.0f);
+  repeated.Set(fm1::repeat::P_HOLD, 1.0f);
+  Fill(once, fm1::repeat::kCapacity - 1u, 120.0f, true);
+  Fill(repeated, fm1::repeat::kCapacity - 1u, 120.0f, true);
+  once.Run(warm_a, 1, 120.0f, true, FM1_FX_EV_BEAT);
+  repeated.Run(warm_b, 1, 120.0f, true, FM1_FX_EV_BEAT);
+  once.Set(fm1::repeat::P_HOLD, 0.0f);
+  repeated.Set(fm1::repeat::P_HOLD, 0.0f);
+  Fill(once, 5u, 120.0f, true);
+  Fill(repeated, 5u, 120.0f, true);
+  repeated.Set(fm1::repeat::P_HOLD, 0.0f);
+  const uint32_t remaining_frames = once.state()->ramp_frames - 5u;
+  Fill(once, remaining_frames, 120.0f, true);
+  Fill(repeated, remaining_frames, 120.0f, true);
+  Check("same_hold_off_does_not_restart_release", once.state()->wet == 0.0f &&
+        repeated.state()->wet == 0.0f && !once.state()->release_pending &&
+        !repeated.state()->release_pending && !once.state()->held && !repeated.state()->held);
+}
+
+void TestExplicitHoldOnRearmsAfterStop() {
+  Unit u(44118.0f);
+  float sample[2] = { 0.1f, -0.2f };
+  u.Run(sample, 1, 120.0f, true);
+  u.Set(fm1::repeat::P_HOLD, 1.0f);
+  Fill(u, fm1::repeat::kCapacity - 1u, 120.0f, true);
+  u.Run(sample, 1, 120.0f, true, FM1_FX_EV_BEAT);
+  u.Run(sample, 1, 120.0f, false, FM1_FX_EV_STOP);
+  Fill(u, u.state()->ramp_frames, 120.0f, false);
+  const bool stopped_cleared = !u.state()->held && !u.state()->armed &&
+                               u.state()->ring_valid <= 1u && u.state()->hold == fm1::repeat::HOLD_ON;
+  u.Set(fm1::repeat::P_HOLD, 1.0f);
+  const bool rearmed = u.state()->armed && u.state()->latch_when_full;
+
+  Unit off(44118.0f);
+  float off_sample[2] = { 0.1f, -0.2f };
+  off.Run(off_sample, 1, 120.0f, true);
+  off.Set(fm1::repeat::P_HOLD, 1.0f);
+  Fill(off, fm1::repeat::kCapacity - 1u, 120.0f, true);
+  off.Run(off_sample, 1, 120.0f, true, FM1_FX_EV_BEAT);
+  off.Run(off_sample, 1, 120.0f, false, FM1_FX_EV_STOP);
+  off.Set(fm1::repeat::P_HOLD, 0.0f);
+  off.Set(fm1::repeat::P_HOLD, 0.0f);
+  Fill(off, off.state()->ramp_frames, 120.0f, false);
+  const bool repeated_off_kept_stop_clear = !off.state()->release_pending &&
+       !off.state()->held && !off.state()->armed && off.state()->ring_valid <= 1u;
+  if (!(stopped_cleared && rearmed && repeated_off_kept_stop_clear))
+    printf("{\"diagnostic\":\"hold_rearm\",\"clear\":%s,\"rearm\":%s,\"repeat_off_clear\":%s,\"armed\":%u,\"latch_full\":%u,\"ring\":%u}\n",
+           stopped_cleared ? "true" : "false", rearmed ? "true" : "false",
+           repeated_off_kept_stop_clear ? "true" : "false", u.state()->armed,
+           u.state()->latch_when_full, off.state()->ring_valid);
+  Check("explicit_unchanged_hold_on_rearms_after_stop", stopped_cleared && rearmed &&
+        repeated_off_kept_stop_clear);
+}
+
 void TestChunkInvariant() {
   Unit a(44118.0f), b(44118.0f);
   a.Set(fm1::repeat::P_HOLD, 1.0f); b.Set(fm1::repeat::P_HOLD, 1.0f);
@@ -349,6 +408,8 @@ int main() {
   TestDryReleaseActionsStayDry();
   TestRepeatedMixTargetKeepsRampDeadline();
   TestQuickReholdRequiresFreshCapture();
+  TestRepeatedHoldOffKeepsReleaseDeadline();
+  TestExplicitHoldOnRearmsAfterStop();
   TestChunkInvariant();
   printf("{\"summary\":\"repeat\",\"passed\":%d,\"failed\":%d}\n", passed, failed);
   return failed ? 1 : 0;
