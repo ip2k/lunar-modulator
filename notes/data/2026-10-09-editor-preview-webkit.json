@@ -1,0 +1,477 @@
+{
+  "browser": "Webkit 26.6 (Playwright, headless)",
+  "checks": {
+    "the sound view: every control has a name in the accessibility snapshot": true,
+    "the sound view: every slider has a name": true,
+    "the flow view: every control has a name in the accessibility snapshot": true,
+    "the flow view: every slider has a name": true,
+    "the mod view: every control has a name in the accessibility snapshot": true,
+    "the mod view: every slider has a name": true,
+    "the library view: every control has a name in the accessibility snapshot": true,
+    "the library view: every slider has a name": true,
+    "the memory view: every control has a name in the accessibility snapshot": true,
+    "the memory view: every slider has a name": true,
+    "the compare view: every control has a name in the accessibility snapshot": true,
+    "the compare view: every slider has a name": true,
+    "sliders carry aria-valuenow, a valuetext in words and a label": true,
+    "no slider speaks a unit symbol (st, Hz, ms, dB, %): each is a word, semitones included": true,
+    "one polite live region in the editor (and the search count), and nothing else announces": true,
+    "every visible control is reachable by Tab (or sits in a group the arrows walk)": true,
+    "Tab lands in the editor and gives it the keys": true,
+    "the first 40 stops: each shows a ring of 2 px or more": true,
+    "the first 40 stops: each target is 24 px or more each way": true,
+    "nothing is announced while the editor is idle": true,
+    "a refusal from C reaches the live region in its words": true,
+    "a burst of thirty announcements is at most three updates, the last one kept": true,
+    "preview at 320 px preserves native framebuffer and CSS content pixels": true,
+    "preview at 320 px contains an unclipped screen and separate caption": true,
+    "preview at 375 px preserves native framebuffer and CSS content pixels": true,
+    "preview at 375 px contains an unclipped screen and separate caption": true,
+    "preview at 640 px preserves native framebuffer and CSS content pixels": true,
+    "preview at 640 px contains an unclipped screen and separate caption": true,
+    "preview at 641 px preserves native framebuffer and CSS content pixels": true,
+    "preview at 641 px contains an unclipped screen and separate caption": true,
+    "preview at 768 px preserves native framebuffer and CSS content pixels": true,
+    "preview at 768 px contains an unclipped screen and separate caption": true,
+    "preview at 1179 px preserves native framebuffer and CSS content pixels": true,
+    "preview at 1179 px contains an unclipped screen and separate caption": true,
+    "preview at 1180 px preserves native framebuffer and CSS content pixels": true,
+    "preview at 1180 px contains an unclipped screen and separate caption": true,
+    "preview at 1440 px preserves native framebuffer and CSS content pixels": true,
+    "preview at 1440 px contains an unclipped screen and separate caption": true,
+    "a phone has two tabs, Panel and Edit": true,
+    "the outline is a row of tabs that scrolls inside itself, not the page": true,
+    "no Map on a phone": true,
+    "the Workbench becomes Edit on a phone": true,
+    "the matrix is a list of cables on a phone: no header row, each cell named, two columns": true,
+    "every view at 375 px is clean: no sideways scroll, nothing clipped or overlapping": true,
+    "a Limiter driven hard shows its gain reduction (\"GR n dB\" and a bar) on its card": true,
+    "a per-voice cable shows its voices' value in the live column while a note sounds": true,
+    "no page errors": true
+  },
+  "logs": [],
+  "why": [],
+  "snapshots": {
+    "sound": {
+      "lines": 281,
+      "nameless": [],
+      "sliders": 17
+    },
+    "flow": {
+      "lines": 157,
+      "nameless": [],
+      "sliders": 9
+    },
+    "mod": {
+      "lines": 1202,
+      "nameless": [],
+      "sliders": 0
+    },
+    "library": {
+      "lines": 55,
+      "nameless": [],
+      "sliders": 0
+    },
+    "memory": {
+      "lines": 78,
+      "nameless": [],
+      "sliders": 0
+    },
+    "compare": {
+      "lines": 51,
+      "nameless": [],
+      "sliders": 0
+    }
+  },
+  "keyboard": {
+    "stops": 40,
+    "inEditor": 40
+  },
+  "say": {
+    "idle": 0,
+    "refusal": "S1 engine: Cannot be read.",
+    "burst": 1,
+    "last": "announcement 29",
+    "words": "Cannot be read"
+  },
+  "preview": [
+    {
+      "width": 320,
+      "framebuffer": [
+        240,
+        240
+      ],
+      "content": [
+        240,
+        240
+      ],
+      "screen": {
+        "left": 27,
+        "top": 473.296875,
+        "right": 269,
+        "bottom": 715.296875,
+        "width": 242,
+        "height": 242
+      },
+      "card": {
+        "left": 17,
+        "top": 443.703125,
+        "right": 303,
+        "bottom": 751.671875,
+        "width": 286,
+        "height": 307.96875
+      },
+      "caption": {
+        "left": 27,
+        "top": 719.296875,
+        "right": 293,
+        "bottom": 751.671875,
+        "width": 266,
+        "height": 32.375
+      },
+      "captionText": "HOME · S1 · page 1: the page the panel shows now",
+      "clipped": [],
+      "contained": true,
+      "separated": true,
+      "sw": 320,
+      "vw": 320
+    },
+    {
+      "width": 375,
+      "framebuffer": [
+        240,
+        240
+      ],
+      "content": [
+        240,
+        240
+      ],
+      "screen": {
+        "left": 27,
+        "top": 372.984375,
+        "right": 269,
+        "bottom": 614.984375,
+        "width": 242,
+        "height": 242
+      },
+      "card": {
+        "left": 17,
+        "top": 343.390625,
+        "right": 358,
+        "bottom": 635.171875,
+        "width": 341,
+        "height": 291.78125
+      },
+      "caption": {
+        "left": 27,
+        "top": 618.984375,
+        "right": 348,
+        "bottom": 635.171875,
+        "width": 321,
+        "height": 16.1875
+      },
+      "captionText": "HOME · S1 · page 1: the page the panel shows now",
+      "clipped": [],
+      "contained": true,
+      "separated": true,
+      "sw": 375,
+      "vw": 375
+    },
+    {
+      "width": 640,
+      "framebuffer": [
+        240,
+        240
+      ],
+      "content": [
+        240,
+        240
+      ],
+      "screen": {
+        "left": 27,
+        "top": 310.234375,
+        "right": 269,
+        "bottom": 552.234375,
+        "width": 242,
+        "height": 242
+      },
+      "card": {
+        "left": 17,
+        "top": 280.640625,
+        "right": 623,
+        "bottom": 572.421875,
+        "width": 606,
+        "height": 291.78125
+      },
+      "caption": {
+        "left": 27,
+        "top": 556.234375,
+        "right": 613,
+        "bottom": 572.421875,
+        "width": 586,
+        "height": 16.1875
+      },
+      "captionText": "HOME · S1 · page 1: the page the panel shows now",
+      "clipped": [],
+      "contained": true,
+      "separated": true,
+      "sw": 640,
+      "vw": 640
+    },
+    {
+      "width": 641,
+      "framebuffer": [
+        240,
+        240
+      ],
+      "content": [
+        240,
+        240
+      ],
+      "screen": {
+        "left": 93,
+        "top": 267.296875,
+        "right": 335,
+        "bottom": 509.296875,
+        "width": 242,
+        "height": 242
+      },
+      "card": {
+        "left": 81,
+        "top": 235.703125,
+        "right": 624,
+        "bottom": 509.296875,
+        "width": 543,
+        "height": 273.59375
+      },
+      "caption": {
+        "left": 351,
+        "top": 267.296875,
+        "right": 612,
+        "bottom": 301.828125,
+        "width": 261,
+        "height": 34.53125
+      },
+      "captionText": "HOME · S1 · page 1: the page the panel shows now",
+      "clipped": [],
+      "contained": true,
+      "separated": true,
+      "sw": 641,
+      "vw": 641
+    },
+    {
+      "width": 768,
+      "framebuffer": [
+        240,
+        240
+      ],
+      "content": [
+        240,
+        240
+      ],
+      "screen": {
+        "left": 93,
+        "top": 272.6875,
+        "right": 335,
+        "bottom": 514.6875,
+        "width": 242,
+        "height": 242
+      },
+      "card": {
+        "left": 81,
+        "top": 241.09375,
+        "right": 751,
+        "bottom": 514.6875,
+        "width": 670,
+        "height": 273.59375
+      },
+      "caption": {
+        "left": 351,
+        "top": 272.6875,
+        "right": 739,
+        "bottom": 289.953125,
+        "width": 388,
+        "height": 17.265625
+      },
+      "captionText": "HOME · S1 · page 1: the page the panel shows now",
+      "clipped": [],
+      "contained": true,
+      "separated": true,
+      "sw": 768,
+      "vw": 768
+    },
+    {
+      "width": 1179,
+      "framebuffer": [
+        240,
+        240
+      ],
+      "content": [
+        240,
+        240
+      ],
+      "screen": {
+        "left": 93,
+        "top": 242.671875,
+        "right": 335,
+        "bottom": 484.671875,
+        "width": 242,
+        "height": 242
+      },
+      "card": {
+        "left": 81,
+        "top": 211.078125,
+        "right": 1162,
+        "bottom": 484.671875,
+        "width": 1081,
+        "height": 273.59375
+      },
+      "caption": {
+        "left": 351,
+        "top": 242.671875,
+        "right": 1150,
+        "bottom": 259.9375,
+        "width": 799,
+        "height": 17.265625
+      },
+      "captionText": "HOME · S1 · page 1: the page the panel shows now",
+      "clipped": [],
+      "contained": true,
+      "separated": true,
+      "sw": 1179,
+      "vw": 1179
+    },
+    {
+      "width": 1180,
+      "framebuffer": [
+        240,
+        240
+      ],
+      "content": [
+        240,
+        240
+      ],
+      "screen": {
+        "left": 36,
+        "top": 702.8125,
+        "right": 278,
+        "bottom": 944.8125,
+        "width": 242,
+        "height": 242
+      },
+      "card": {
+        "left": 25,
+        "top": 668.21875,
+        "right": 289,
+        "bottom": 1002.28125,
+        "width": 264,
+        "height": 334.0625
+      },
+      "caption": {
+        "left": 36,
+        "top": 956.75,
+        "right": 278,
+        "bottom": 991.28125,
+        "width": 242,
+        "height": 34.53125
+      },
+      "captionText": "HOME · S1 · page 1: the page the panel shows now",
+      "clipped": [],
+      "contained": true,
+      "separated": true,
+      "sw": 1180,
+      "vw": 1180
+    },
+    {
+      "width": 1440,
+      "framebuffer": [
+        240,
+        240
+      ],
+      "content": [
+        240,
+        240
+      ],
+      "screen": {
+        "left": 36,
+        "top": 664.8125,
+        "right": 278,
+        "bottom": 906.8125,
+        "width": 242,
+        "height": 242
+      },
+      "card": {
+        "left": 25,
+        "top": 630.21875,
+        "right": 289,
+        "bottom": 964.28125,
+        "width": 264,
+        "height": 334.0625
+      },
+      "caption": {
+        "left": 36,
+        "top": 918.75,
+        "right": 278,
+        "bottom": 953.28125,
+        "width": 242,
+        "height": 34.53125
+      },
+      "captionText": "HOME · S1 · page 1: the page the panel shows now",
+      "clipped": [],
+      "contained": true,
+      "separated": true,
+      "sw": 1440,
+      "vw": 1440
+    }
+  ],
+  "phone": {
+    "radios": [
+      "Panel",
+      "Edit"
+    ],
+    "outlineScrolls": true,
+    "outlineRow": "row",
+    "outlineTop": 290,
+    "screen": [
+      242,
+      242
+    ],
+    "layout": "editor",
+    "sw": 375,
+    "vw": 375,
+    "map": false
+  },
+  "cableList": {
+    "rows": 4,
+    "header": "none",
+    "named": [
+      "#",
+      "On",
+      "From",
+      "VIA",
+      "To",
+      "Amount",
+      "Live",
+      "Verdict"
+    ],
+    "labelShown": "\"From\"",
+    "cols": 2
+  },
+  "gr": {
+    "key": "s3.in1",
+    "k": 2,
+    "rowReady": true,
+    "seen": {
+      "text": "GR 5.7 dB",
+      "bar": 0.236
+    }
+  },
+  "voiceDests": {
+    "voiceRows": 2,
+    "seen": {
+      "text": "0.66",
+      "title": "1 voice sounding"
+    }
+  },
+  "pass": true
+}

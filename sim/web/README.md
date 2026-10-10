@@ -852,7 +852,8 @@ layout check. The Map and the manual's chapter are the second half.
 - **Phones** (§14), at 640 px and under: the layout switch is two tabs,
   *Panel* and *Edit* (the Workbench, which needs the room, becomes Edit);
   the outline is a row of tabs that scrolls inside itself; the screen card
-  shows a 96 px screen; the strips and rows stack (a row's name above its
+  preserves the native 240 by 240 screen pixels with the caption below;
+  the strips and rows stack (a row's name above its
   slider and value); the matrix is a list of cables, each cable a card with
   its cells named (`data-h`, shown as small captions); no Map is offered.
 - **The layout check** (`test/layout-probe.js`, run by `editor-ui.mjs` in

@@ -1,0 +1,47 @@
+{
+  "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+  "rows": [
+    {
+      "width": 640,
+      "content": [
+        240,
+        240
+      ],
+      "framebuffer": [
+        240,
+        240
+      ],
+      "outer": [
+        242,
+        242
+      ],
+      "separated": true,
+      "contained": true,
+      "noOverflow": true
+    },
+    {
+      "width": 641,
+      "content": [
+        240,
+        240
+      ],
+      "framebuffer": [
+        240,
+        240
+      ],
+      "outer": [
+        242,
+        242
+      ],
+      "separated": true,
+      "contained": true,
+      "noOverflow": true
+    }
+  ],
+  "oldContent": [
+    96,
+    96
+  ],
+  "baselineRejected": true,
+  "pass": true
+}
