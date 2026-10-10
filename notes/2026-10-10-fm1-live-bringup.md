@@ -556,3 +556,29 @@ explicit authorization, fresh guarded operation with one eight-byte read,
 private receipt backup, and owner power-cycle confirmation. Any callback
 interpretation and custom-code return proof remain a separate offline
 follow-up requiring new boundaries. No shared semantic server was retargeted.
+
+## Executed fixed callback observation, root review — 2026-10-10
+
+[verified] Root reviewed the unchanged operational wrapper and allowlisted
+reader, reran all 67 focused offline checks, verified wrapper SHA
+`4fc26f751c51966a5c877d6c2112b884468f3b9164b16a84e3a2c7d2196e6fe2`,
+and proceeded under the owner's standing staged bring-up instruction.
+Fresh bench01 enumeration selected the one directly connected FM-1 at
+USB `3-2`, normal devnum 17, and identity `FM-1_092`. All five private
+full-backup hashes and the pinned loader hash matched before traffic.
+Exclusive node checks passed. One soft key produced UBOOT devnum 18;
+SG INQUIRY returned `WL82` / `UBOOT1.00`.
+
+[verified] The exact planned 52 SCSI commands completed: one INQUIRY,
+47 pinned-loader FB06 blocks, one FB08 loader entry, FC14 and FC0A,
+and one FD07 read `fd0701c097240008ffffffffffffffff`. The resulting
+little-endian words are **send `0x01e008e4`**, **receive `0x01e0089a`**.
+No flash writes, new payload, pointer invocation or code-range read occurred.
+The returned values are observations; their memory region and function
+contract remain unproven. The wrapper completed once without retry.
+
+Receipt: [callback observation](data/2026-10-10-loader-callback-observation.json).
+Private logs remain at `/home/claude/fm1-callbacks-20261010/` on bench01 and
+were copied locally under ignored `scratch/loader-callbacks-20261010/`.
+The owner has been asked to power-cycle and confirm the normal screen;
+confirmation is pending. No further device traffic until that response.

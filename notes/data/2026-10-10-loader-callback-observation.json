@@ -1,0 +1,687 @@
+{
+  "pass": true,
+  "application_scsi_commands": 52,
+  "callback_observation": {
+    "address": "0x01c09724",
+    "bytes": 8,
+    "words_little_endian": {
+      "send": 31459556,
+      "receive": 31459482
+    },
+    "memory_regions_unproven": true,
+    "no_pointer_execution_or_code_read": true
+  },
+  "command_log_sha256": "070f72b25bf603c7726d2b97613c8c9c6590fca47b861346d686b141312f56f2",
+  "events": [
+    {
+      "time": 1791623958.1494029,
+      "event": "exclusive_access_check",
+      "nodes": [
+        {
+          "node": "/dev/snd/midiC2D0",
+          "dev": "116:8"
+        }
+      ],
+      "returncode": 1,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "time": 1791623958.1520572,
+      "event": "preflight",
+      "source_head": "6689c3920d93699f40244d919a64b6c2405df4f8",
+      "source_hashes": {
+        "fm1_loader_callbacks.py": "2f7422d64c830383f8796750883ee044b86072db92648f313e91baf67db6be2a",
+        "fm1_uboot_read.py": "28317ee56a489e0bb38de981fe0d0c4260384be570349795741fdb9a98d6ae57",
+        "fm1_softkey_probe.py": "c92d419c94540c8943fa5e1476dfb765da11144188fff71d901b6136af53b306",
+        "fm1_identify.py": "684342b034b1a97b0e070ff758edf9bff20714523316a968952ccf48f52c0de0"
+      },
+      "backups_verified": 5,
+      "usb": {
+        "path": "3-2",
+        "vid": "4c4a",
+        "pid": "c755",
+        "product": "FM-1",
+        "busnum": "3",
+        "devnum": "17",
+        "speed": "12"
+      }
+    },
+    {
+      "time": 1791623958.156438,
+      "event": "before",
+      "usb": [
+        {
+          "path": "3-1",
+          "vid": "1d50",
+          "pid": "615b",
+          "product": "USB Analyzer",
+          "busnum": "3",
+          "devnum": "9",
+          "speed": "480"
+        },
+        {
+          "path": "3-2",
+          "vid": "4c4a",
+          "pid": "c755",
+          "product": "FM-1",
+          "busnum": "3",
+          "devnum": "17",
+          "speed": "12"
+        },
+        {
+          "path": "usb1",
+          "vid": "1d6b",
+          "pid": "0002",
+          "product": "xHCI Host Controller",
+          "busnum": "1",
+          "devnum": "1",
+          "speed": "480"
+        },
+        {
+          "path": "usb2",
+          "vid": "1d6b",
+          "pid": "0003",
+          "product": "xHCI Host Controller",
+          "busnum": "2",
+          "devnum": "1",
+          "speed": "5000"
+        },
+        {
+          "path": "usb3",
+          "vid": "1d6b",
+          "pid": "0002",
+          "product": "xHCI Host Controller",
+          "busnum": "3",
+          "devnum": "1",
+          "speed": "480"
+        },
+        {
+          "path": "usb4",
+          "vid": "1d6b",
+          "pid": "0003",
+          "product": "xHCI Host Controller",
+          "busnum": "4",
+          "devnum": "1",
+          "speed": "5000"
+        }
+      ],
+      "midi": "/dev/snd/midiC2D0",
+      "usb_path": "3-2"
+    },
+    {
+      "time": 1791623958.1569953,
+      "event": "sending_identity",
+      "hex": "f0 00 32 45 00 00 00 40 7f f7"
+    },
+    {
+      "time": 1791623958.159594,
+      "event": "identity",
+      "reply": "f0 00 32 45 58 01 00 00 23 4d 5a 44 79 05 26 0e 19 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 20 06 f7",
+      "decoded": {
+        "sysex_header": "F0 00 32 45 58  (packed form of the 00 59 11 ID block)",
+        "id_block": "34 bytes: 00 59 11 1B 00 00 46 4D 2D 31 5F 30 39 32 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 19",
+        "body_len": 27,
+        "checksum_ok": false,
+        "plain_field": "FM-1_092.................",
+        "model": "FM-1",
+        "version": 92,
+        "identity": "FM-1_092",
+        "al255_second_field": "0000000000000000000I -> version 0"
+      }
+    },
+    {
+      "time": 1791623958.160034,
+      "event": "sending_soft_key",
+      "hex": "f0 22 24 35 7d f7",
+      "expected_usb_packet": "04 f0 22 24 07 35 7d f7"
+    },
+    {
+      "time": 1791623958.9030502,
+      "event": "uboot_enumerated",
+      "elapsed": 0.7417993529234082,
+      "usb": [
+        {
+          "path": "3-1",
+          "vid": "1d50",
+          "pid": "615b",
+          "product": "USB Analyzer",
+          "busnum": "3",
+          "devnum": "9",
+          "speed": "480"
+        },
+        {
+          "path": "3-2",
+          "vid": "4c4a",
+          "pid": "8057",
+          "product": "WL80UBOOT1.00",
+          "busnum": "3",
+          "devnum": "18",
+          "speed": "12"
+        },
+        {
+          "path": "usb1",
+          "vid": "1d6b",
+          "pid": "0002",
+          "product": "xHCI Host Controller",
+          "busnum": "1",
+          "devnum": "1",
+          "speed": "480"
+        },
+        {
+          "path": "usb2",
+          "vid": "1d6b",
+          "pid": "0003",
+          "product": "xHCI Host Controller",
+          "busnum": "2",
+          "devnum": "1",
+          "speed": "5000"
+        },
+        {
+          "path": "usb3",
+          "vid": "1d6b",
+          "pid": "0002",
+          "product": "xHCI Host Controller",
+          "busnum": "3",
+          "devnum": "1",
+          "speed": "480"
+        },
+        {
+          "path": "usb4",
+          "vid": "1d6b",
+          "pid": "0003",
+          "product": "xHCI Host Controller",
+          "busnum": "4",
+          "devnum": "1",
+          "speed": "5000"
+        }
+      ]
+    },
+    {
+      "time": 1791623959.8662999,
+      "event": "exclusive_access_check",
+      "nodes": [
+        {
+          "node": "/dev/sg0",
+          "dev": "21:0"
+        },
+        {
+          "node": "/dev/sda",
+          "dev": "8:0"
+        }
+      ],
+      "returncode": 1,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "time": 1791623959.8725772,
+      "event": "bound_sg",
+      "node": "/dev/sg0",
+      "usb": {
+        "path": "3-2",
+        "vid": "4c4a",
+        "pid": "8057",
+        "product": "WL80UBOOT1.00",
+        "busnum": "3",
+        "devnum": "18",
+        "speed": "12"
+      }
+    },
+    {
+      "time": 1791623959.8732421,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "120000002400",
+      "out_len": 0,
+      "in_len": 36
+    },
+    {
+      "time": 1791623959.8738675,
+      "event": "inquiry",
+      "vendor": "WL82",
+      "product": "UBOOT1.00"
+    },
+    {
+      "time": 1791623959.8742535,
+      "event": "loader_upload",
+      "sha256": "d41da6126760c9d66660bcc0cac8d27d221806c5e369a8036921efe68dca5376",
+      "bytes": 24064,
+      "base": 29368320
+    },
+    {
+      "time": 1791623959.8748245,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c02000020000cb29ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.876656,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c022000200005b01ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.8785925,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c02400020000c1a2ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.8804145,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c02600020000cbf2ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.8821812,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c028000200003033ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.8840601,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c02a00020000071dffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.8858817,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c02c00020000813affffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.887642,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c02e00020000742cffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.8895895,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c03000020000bfaaffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.8914077,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c032000200004a3cffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.8931715,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c034000200004342ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.8949666,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c03600020000a778ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.8967505,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c03800020000907affffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.898589,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c03a000200002b70ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9004085,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c03c00020000c21effffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.902296,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c03e00020000ba31ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9041727,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c0400002000098f1ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9059584,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c042000200001646ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9077497,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c04400020000462bffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9096434,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c0460002000086c5ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9115896,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c04800020000ced8ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9136095,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c04a000200009741ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9155946,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c04c00020000cb49ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9174192,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c04e000200006570ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9192984,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c050000200004a69ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9210556,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c05200020000c8faffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9228806,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c05400020000f08effffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9246376,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c056000200008776ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9265857,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c05800020000d8f3ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9284275,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c05a000200003e8affffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9302967,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c05c00020000234affffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9321826,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c05e000200008f2affffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9340594,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c060000200002368ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.935934,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c062000200004cbcffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9377663,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c064000200003ce7ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.93959,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c066000200009c12ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9415915,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c0680002000018f8ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.943415,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c06a00020000f164ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9451773,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c06c000200004f04ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9469748,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c06e00020000b15cffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9488838,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c07000020000e54fffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9507527,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c07200020000f678ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.952593,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c07400020000ce79ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.954416,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c076000200007980ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.956302,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c0780002000008bfffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9581795,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c07a000200000f47ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.9600587,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0601c07c00020000fee7ffffffffff",
+      "out_len": 512,
+      "in_len": 0
+    },
+    {
+      "time": 1791623959.961931,
+      "event": "command",
+      "phase": "rom",
+      "cdb": "fb0801c020000001ffffffffffffffff",
+      "out_len": 0,
+      "in_len": 16
+    },
+    {
+      "time": 1791623959.9702418,
+      "event": "command",
+      "phase": "loader",
+      "cdb": "fc14ffffffffffffffffffffffffffff",
+      "out_len": 0,
+      "in_len": 16
+    },
+    {
+      "time": 1791623959.9708183,
+      "event": "loader_buffer",
+      "size": 32768
+    },
+    {
+      "time": 1791623959.9712093,
+      "event": "command",
+      "phase": "loader",
+      "cdb": "fc0affffffffffffffffffffffffffff",
+      "out_len": 0,
+      "in_len": 16
+    },
+    {
+      "time": 1791623959.9762673,
+      "event": "command",
+      "phase": "loader",
+      "cdb": "fd0701c097240008ffffffffffffffff",
+      "out_len": 0,
+      "in_len": 8
+    },
+    {
+      "time": 1791623959.9774468,
+      "event": "loader_callback_slots_observed",
+      "address": 29398820,
+      "bytes": 8,
+      "words_little_endian": {
+        "send": 31459556,
+        "receive": 31459482
+      }
+    },
+    {
+      "time": 1791623959.9783201,
+      "event": "completed",
+      "soft_key_count": 1,
+      "no_retry": true,
+      "no_flash_writes": true,
+      "no_new_payload": true,
+      "no_pointer_execution": true,
+      "no_code_read": true
+    }
+  ],
+  "power_cycle_confirmation": "pending"
+}
