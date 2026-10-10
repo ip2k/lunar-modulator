@@ -11,10 +11,15 @@
  * is on. The differences are in engines/mod/README.md. */
 #include "mp_int.h"
 
-static float curve_at(uint8_t c, uint32_t phase) {
+float fm1_mp_env_curve_at(uint8_t c, uint32_t phase) {
   switch (c) {
     case FM1_MP_CURVE_EXPO: return mp_table(fm1_mp_curve_expo, phase);
     case FM1_MP_CURVE_QUARTIC: return mp_table(fm1_mp_curve_quartic, phase);
+    case FM1_MP_CURVE_LOG: return mp_table(fm1_mp_curve_log, phase);
+    case FM1_MP_CURVE_SMOOTH: {
+      float t = (float)phase / 4294967296.0f;
+      return t * t * (3.0f - 2.0f * t);
+    }
     default: return (float)phase * (1.0f / 4294967296.0f);
   }
 }
@@ -78,7 +83,7 @@ float fm1_mp_env_value(const fm1_mp_env_t *e) {
   if (is_done(e)) return e->start;
   a = e->start;
   b = e->level[e->seg + 1];
-  return mp_clampf(a + (b - a) * curve_at(e->curve[e->seg], e->phase), -1.0f, 1.0f, 0.0f);
+  return mp_clampf(a + (b - a) * fm1_mp_env_curve_at(e->curve[e->seg], e->phase), -1.0f, 1.0f, 0.0f);
 }
 
 /* After a change of shape: a finished envelope stays finished (at its value),
@@ -116,6 +121,7 @@ void fm1_mp_env_set_start_level(fm1_mp_env_t *e, float level) {
 
 void fm1_mp_env_configure(fm1_mp_env_t *e, int segments, int sustain, int loop_start,
                           int loop_end) {
+  e->delay_stage = 0;
   reshape(e, segments, sustain, loop_start, loop_end, fm1_mp_env_value(e), is_done(e));
 }
 
@@ -124,6 +130,7 @@ void fm1_mp_env_set_adsr(fm1_mp_env_t *e, float a, float d, float s, float r, in
   const float v = fm1_mp_env_value(e);
   const int was_done = is_done(e);
   s = mp_clampf(s, 0.0f, 1.0f, 0.0f);
+  e->delay_stage = 0;
   e->level[0] = 0.0f;
   fm1_mp_env_set_segment(e, 0, 1.0f, a, curve);
   if (loop == FM1_MP_ENV_LOOP_AD) {
@@ -148,10 +155,40 @@ void fm1_mp_env_set_adsr(fm1_mp_env_t *e, float a, float d, float s, float r, in
 void fm1_mp_env_set_ad(fm1_mp_env_t *e, float a, float d, int curve, int loop) {
   const float v = fm1_mp_env_value(e);
   const int was_done = is_done(e);
+  e->delay_stage = 0;
   e->level[0] = 0.0f;
   fm1_mp_env_set_segment(e, 0, 1.0f, a, curve);
   fm1_mp_env_set_segment(e, 1, 0.0f, d, curve);
   reshape(e, 2, 0, 0, loop ? 2 : 0, v, was_done);
+}
+
+
+/* Always reserve segment 0 for delay, so changing Delay during a note does
+ * not renumber its running stages. Loops start at attack, without pre-delay. */
+void fm1_mp_env_set_delayed(fm1_mp_env_t *e, float delay, float a, float d,
+                            float s, float r, int curve, int loop, int trigger) {
+  const float v = fm1_mp_env_value(e);
+  const int was_done = is_done(e);
+  delay = mp_clampf(delay, 0.0f, 8.0f, 0.0f);
+  s = mp_clampf(s, 0.0f, 1.0f, 0.0f);
+  e->delay_stage = delay > 0.0f ? 1 : 2;
+  e->level[0] = 0.0f;
+  fm1_mp_env_set_segment(e, 0, 0.0f, delay, FM1_MP_CURVE_LINEAR);
+  fm1_mp_env_set_segment(e, 1, 1.0f, a, curve);
+  if (trigger) {
+    fm1_mp_env_set_segment(e, 2, 0.0f, d, curve);
+    reshape(e, 3, 0, loop ? 1 : 0, loop ? 3 : 0, v, was_done);
+  } else if (loop == FM1_MP_ENV_LOOP_ADR) {
+    fm1_mp_env_set_segment(e, 2, s, d, curve);
+    fm1_mp_env_set_segment(e, 3, 0.0f, r, curve);
+    fm1_mp_env_set_segment(e, 4, 0.0f, r, curve);
+    reshape(e, 5, 4, 1, 4, v, was_done);
+  } else {
+    fm1_mp_env_set_segment(e, 2, loop == FM1_MP_ENV_LOOP_AD ? 0.0f : s, d, curve);
+    fm1_mp_env_set_segment(e, 3, 0.0f, r, curve);
+    reshape(e, 4, 3, loop == FM1_MP_ENV_LOOP_AD ? 1 : 0,
+            loop == FM1_MP_ENV_LOOP_AD ? 3 : 0, v, was_done);
+  }
 }
 
 void fm1_mp_env_init(fm1_mp_env_t *e, float sample_rate) {
@@ -169,7 +206,7 @@ void fm1_mp_env_init(fm1_mp_env_t *e, float sample_rate) {
   e->sustain = e->loop_start = e->loop_end = 0;
   e->gate = 0;
   e->hard_reset = 0;
-  e->pad_ = 0;
+  e->delay_stage = 0;
   fm1_mp_env_set_adsr(e, 0.002f, 0.25f, 0.5f, 0.5f, FM1_MP_CURVE_EXPO, FM1_MP_ENV_LOOP_OFF);
   e->seg = e->num_segments;
   e->start = 0.0f;
@@ -180,8 +217,8 @@ void fm1_mp_env_set_hard_reset(fm1_mp_env_t *e, int on) {
 }
 
 static void attack(fm1_mp_env_t *e) {
-  e->start = (is_done(e) || e->hard_reset) ? e->level[0] : fm1_mp_env_value(e);
-  e->seg = 0;
+  e->start = (e->delay_stage == 1 || is_done(e) || e->hard_reset) ? e->level[0] : fm1_mp_env_value(e);
+  e->seg = e->delay_stage == 2 ? 1 : 0;
   e->phase = 0;
 }
 

@@ -712,6 +712,9 @@ static void mod_emit(void *ctx, const char *line) {
 }
 
 static void mod_env(fm1_app_t *a, fm1_mod_ui_env_t *env) {
+  env->scope = a->scope;
+  env->scope_n = FM1_APP_SCOPE;
+  env->scope_pos = (unsigned)a->scope_pos;
   env->m = a->mod;
   env->rate = a->host.sample_rate;
   env->sound = (uint8_t)a->sound;
@@ -930,6 +933,16 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
   if (!e || e->magic != FM1_ENGINE_MAGIC || e->api_version != FM1_ENGINE_API_VERSION ||
       e->kind != want || e->n_params > FM1_APP_MAX_PARAMS) {
     return FM1_APP_SELECT_BAD;
+  }
+  /* Inserts are saved only with their sound's engine. Refuse before any
+   * instance or routing changes, whoever called (panel or editor). */
+  for (int sound = 0; sound < FM1_APP_SOUNDS; ++sound) {
+    for (int slot = 0; slot < FM1_APP_INSERTS; ++slot) {
+      if (unit == fm1_app_insert_unit(sound, slot) && !a->unit[fm1_app_sound_unit(sound)].e) {
+        refuse(a, FM1_APP_TONE_REFUSE, e->name, "Choose an engine", "before an effect");
+        return FM1_APP_SELECT_BAD;
+      }
+    }
   }
   size_t bytes = e->instance_size(&a->host);
   if (bytes > u->cap) return FM1_APP_SELECT_ARENA;
@@ -2205,6 +2218,10 @@ int fm1_app_swap_units(fm1_app_t *a, int ua, int ub) {
  * meter (or anything else) refuses, as PRESETS does, so every effect past
  * it stays reachable; the popup names the first one refused and why. */
 static void fx_choose(fm1_app_t *a, int unit, int delta) {
+  if (a->fx_slot < FX_MIX && !cur(a)->e) {
+    refuse(a, FM1_APP_TONE_REFUSE, "Empty sound", "Choose an engine", "before an effect");
+    return;
+  }
   const int dir = delta > 0 ? 1 : -1;
   int to = a->unit[unit].index, refused = -1, code = 0, r = -1;
   size_t over = 0;

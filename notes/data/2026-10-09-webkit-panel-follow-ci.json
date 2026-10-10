@@ -1,0 +1,29 @@
+{
+  "source_job": "https://github.com/ip2k/lunar-modulator/actions/runs/37983321178/job/113999003155",
+  "head": "a0dc7c070a1e5158beb46fd7b837a62d4d03e21c",
+  "browser": "Webkit 26.6 (Playwright, headless)",
+  "checks_total": 93,
+  "failed_checks": [
+    "a panel knob reaches the editor's row within a few frames"
+  ],
+  "logs": [],
+  "follow_panel": {
+    "key": "s2:2",
+    "frames": 24,
+    "ms": 383,
+    "chips": [
+      "K1",
+      "K2",
+      "K3",
+      "K4"
+    ],
+    "knobs": 4,
+    "entry": {
+      "origin": "panel",
+      "how": "knob",
+      "label": "S2 Harmonics"
+    },
+    "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+    "flashed": true
+  }
+}
