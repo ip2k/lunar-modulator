@@ -159,3 +159,51 @@ new policy is backed up with this repository note once this branch is pushed.
 Serena also registered the isolated checkout in `/Users/likwid/.serena/serena_config.yml`
 as a consequence of explicit activation [verified]; other registrations were retained.
 Already-loaded instructions in other live sessions are not retroactively updated.
+
+## PR 126 WebKit CI investigation (2026-10-09)
+
+At head `725cde4c2cdf03ba81916bd08a29d9451571f082`,
+[CI run 38010337231, attempt 1](https://github.com/ip2k/lunar-modulator/actions/runs/38010337231)
+failed only the
+[WebKit editor job](https://github.com/ip2k/lunar-modulator/actions/runs/38010337231/job/114088622292)
+[verified from downloaded job logs]. The `editor-ui` report contained two failed
+assertions: panel KNOB2 reaches the editor within 12 animation frames, and the
+change enters history with panel origin. Its probe reached 60 frames in about
+959 ms, with no received port events and no history entry. In every recorded
+frame, `AudioContext.currentTime` stayed at `0.7111111111111111` despite state
+`running`; the connected row stayed at `0.30`, with no pending changes or inflight
+editor operations [verified].
+
+The same job passed external browser audio loopback (30 seconds, zero bad
+periods/nonfinite samples/channel mismatches), editor reach, editor map (41/41),
+editor v1 (99/99), and the 30-second editor storm (3756/3756 operations, zero
+refused, 1724 change packets, 905 telemetry packets, valid binary snapshot)
+[verified]. The storm reported `timed: false`, so WebKit supplied no worklet
+lateness or execution-duration measurement. These later passes do not establish
+the cause of the earlier stopped clock or rule out transient audio scheduling
+pressure [inferred limitation].
+
+The probe in `sim/web/test/panel-follow.mjs` posts encoder 4/delta 3 and samples
+the clock/row once per animation frame; it measures main-thread observations,
+not receipt inside the AudioWorklet [verified from source]. A stopped clock and
+absent messages make an intermittent audio/render execution stall a stronger
+explanation than editor deferral during this observation window [inferred]; the
+logs do not prove a browser or PulseAudio root cause. No timeout was relaxed and
+no application change was made.
+
+The PR's only paths are semantic configuration, ignore rules and this note.
+Its simulator assets, tests, Wasm binary and CI workflow equal its branch base
+`0a033d4eeca12103dbdbddbd9124fc078196c936` [verified by Git diff]. The editor CI
+job serves `sim/web/www` directly through `serve.mjs`; it does not invoke either
+semantic MCP or compile/transpile through the new `jsconfig.json` [verified from
+workflow/source]. No PR 126 configuration or source regression is supported by
+this failure evidence [inferred]. One failed-job-only rerun of the unchanged
+head was requested with `gh run rerun 38010337231 --failed`; attempt 2 was queued
+when this investigation was checkpointed [verified]. A rerun pass would show
+intermittence, not prove the underlying defect fixed. CI still needs a successful
+result at the final PR head before merge.
+
+Raw logs and the extracted failed report were retained locally under ignored
+`build/pr126-webkit.log` and `build/pr126-webkit-failed-report.json`; the named
+remote run and this summary are the durable evidence. No shared MCP was
+reconfigured/restarted and no hardware was accessed during this CI investigation.
