@@ -25,6 +25,8 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements-dev.txt
+      - name: Demo project generation is current
+        run: python tools/demo_songs.py --check
       - run: python -m pytest -v
 
   engines-mit:
@@ -214,6 +216,13 @@ jobs:
       - name: The editor's data and history against the module (node)
         timeout-minutes: 5
         run: node sim/web/test/editor-unit.mjs sim/web/www
+      - name: Complete demo arrangements against the shipped module
+        if: matrix.browser == 'chromium'
+        timeout-minutes: 10
+        run: |
+          mkdir -p "$SHOTS/demo-songs"
+          node sim/web/test/demo-songs.mjs --manifest sim/web/test/demo-songs.json \
+            --wasm sim/web/www/fm1.wasm --out "$SHOTS/demo-songs/render.json"
       - name: External audio detector and browser loopback
         run: |
           node sim/web/test/audio-analysis-check.mjs
@@ -241,6 +250,10 @@ jobs:
             echo "::endgroup::"
           done
           exit $status
+      - name: Preloaded demo projects, downloads and fresh-context reopen
+        if: matrix.browser == 'chromium'
+        timeout-minutes: 5
+        run: node sim/web/test/demo-files.mjs sim/web/www sim/web/test/demo-songs.json "$SHOTS/demo-files"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

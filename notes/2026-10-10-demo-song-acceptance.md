@@ -73,3 +73,19 @@ scenes 3–6 using actual decoded project/source evidence; round 2 revisions
 are underway. Native full-song and browser file acceptance remain pending.
 The acceptance harness now rejects repaired or skipped project content and
 records Wasm, manifest and project hashes directly in future receipts.
+
+[verified] The strengthened acceptance harness at `542782f8` passed full
+Wasm and newly built native simulator playback on the same round-1 assets.
+Every project loads with zero repairs/skips, fits 54–69% of the simulator
+RAM budget and finishes with no dropped events. Native event totals are
+11,786 / 19,394 / 14,254 / 16,650 respectively. This is not a native/Wasm
+sample-parity claim. Receipts: `notes/data/2026-10-10-demo-song-round-1-native.json`.
+
+[verified] Chromium 153.0.8010.12 accepted all four preloaded example entries,
+started playback through their URL paths, downloaded Save output and reopened
+it in fresh browser contexts with executable state unchanged and zero page
+exceptions. Receipt: `notes/data/2026-10-10-demo-song-round-1-browser.json`.
+The captured Event Horizon page was visually inspected for clipped or
+overlapping labels; none found. CI now checks generator freshness on both
+Python platforms and full-song Wasm/file-workflow acceptance in Chromium.
+Required full CI and subsequent musical rounds remain pending.
