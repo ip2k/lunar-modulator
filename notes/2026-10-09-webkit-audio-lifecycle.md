@@ -197,3 +197,75 @@ history check passes. This is the same early frozen-clock signature with a
 shorter plateau, rather than evidence of a slow editor handler [inferred].
 The [complete follow trace and failed check](evidence/2026-10-09-webkit-audio-lifecycle/pr109-ci.json)
 retain log hash and exact identities. Original log: `/tmp/lunar-pr109-webkit.log`.
+
+
+## Exact module and causal null-sink experiment
+
+[verified: bounded LAN experiment] The module committed at the failing PR #129
+head `ac3d9571b8a2db6860db60b1afb5f10246134e26` is now used directly, SHA-256
+`2ff8cfa92f34a9c023088838477b9d53fb565edcd7f6922b084b40c21c48851f`.
+All `sim/web/` sources are from that exact Git head. No rebuild or vendor binary
+is committed. The private LAN directory is
+`/home/claude/mvave-fm1/webkit-exact129-probe-20261009/`; dependency mount and
+container limits remain the same as above. The original 30-second WebKit
+loopback passes. Six fixed ordinary startups with the default null sink and
+six with `norewinds=1` each pass the original 12-frame check. Half have the
+original worklet; half have optional ten-per-second clock/receipt markers.
+Passing ordinary starts alone cannot establish the cause or fix [inferred].
+
+[verified: native backend isolation] PulseAudio 16.1 alone, with no browser,
+UI or Wasm, exposes the clock mismatch. Load a fresh default null sink then
+start `pacat` requesting 100 ms buffering: configured sink latency becomes
+30 ms while actual sink latency is 1,956.652 ms. It falls to 1,903.112 ms,
+1,854.850 ms, 1,704.752 ms, 1,453.345 ms, 953.606 ms and 454.460 ms at the
+fixed 50, 100, 250, 500, 1,000 and 1,500 ms observations, before reaching
+13.055 ms at 2,000 ms. With supported `norewinds=1`, idle configured latency
+is 50 ms, first client actual latency is 36.822 ms and every later sample is
+10.666–28.140 ms. Both native clients report no error.
+
+[reported: official implementation] PulseAudio v16.1
+[`module-null-sink.c`](https://raw.githubusercontent.com/pulseaudio/pulseaudio/v16.1/src/modules/module-null-sink.c)
+uses a two-second default block and a 50 ms block with `norewinds`.
+The requested-latency callback changes the block/request/rewind limits;
+it does not reset the existing future timestamp. Rendering fills toward that
+timestamp, and rewind subtracts only the bounded rewind amount.
+[`sink.c`](https://raw.githubusercontent.com/pulseaudio/pulseaudio/v16.1/src/pulsecore/sink.c)
+assigns sink implementations responsibility for rewinding buffered data when
+the requested latency decreases. Retained idle timestamp plus a newly smaller
+rewind limit explains the measured native mismatch [inferred].
+
+[verified: controlled original-worklet reproduction] After the editor loads,
+load a fresh private null sink immediately before clicking power-on; this
+controls the backend clock phase and changes neither the source runtime nor
+any assertion, existing wait, threshold or retry policy. With the original
+unmodified PR #129 worklet, default sink startup fails at 34 frames / 549 ms.
+Its running clock holds `0.7575510204081632` through frames 1–33; the first
+state arrives at 542 ms and the editor updates at 546 ms. The immediately
+paired `norewinds=1` trial passes at three frames / 30 ms. This reproduces
+the CI failure signature by changing the backend's initial state [inferred].
+A second pair with optional worklet markers passes in both modes (two frames);
+those markers perturb scheduling and are not regression acceptance evidence.
+Complete native, ordinary-start and cold-start observations and exact probe
+sources are in [null-sink-startup.json](evidence/2026-10-09-webkit-audio-lifecycle/null-sink-startup.json).
+
+[verified: additional CI signature] PR #118 head `b4234c1`, run `38023559253`,
+WebKit job `114129510987`, holds the running clock at
+`0.7169160997732427` for all 60 frames / 953 ms, with zero incoming events,
+no loading/pending/inflight state and row 0.30. Its full failure trace and
+source-log hash are in [pr118-ci.json](evidence/2026-10-09-webkit-audio-lifecycle/pr118-ci.json).
+The log was obtained through the completed job's API while the full run was
+still active; local source is `/tmp/lunar-pr118-webkit.log`.
+
+[checkpoint and next step] Three fixed additional cold-start pairs with the
+original worklet and full unchanged editor UI plus 30-second external loopback
+in Chromium, Firefox and WebKit are running. `norewinds=1` is a supported
+configuration for the isolated headless null sink; it does not change native
+Safari or a production audio backend. Do not alter CI configuration until
+that acceptance completes. No latency assertion or audio gate is relaxed.
+
+[potential contribution; no upstream posting authorized] The native default
+null-sink requested-latency/retained-timestamp mismatch is a candidate PulseAudio
+bug report or upstream fix, supported by the native pair and v16.1 source.
+Whether current PulseAudio versions retain it still needs evaluation. Choosing
+its existing low-latency null-sink option for our headless tests is a separate
+project configuration choice. No third-party code is changed or posted.
