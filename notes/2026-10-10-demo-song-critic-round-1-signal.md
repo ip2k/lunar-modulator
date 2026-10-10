@@ -10,7 +10,7 @@ Source score remains unchanged. Signal evidence demonstrates macro energy contra
 
 ## Afterglow Relay
 
-[verified] Peak 0.7546; full capture RMS 0.0776; dropped events 0; sequencer-reported RAM 67%; round-trip True; Stop 198.268s versus nominal 198.261s.
+[verified] Peak 0.7546; full capture RMS 0.0776; dropped events 0; project-loader RAM 67%; round-trip True; Stop 198.268s versus nominal 198.261s.
 
 | Bars | Scene | Approx RMS | Δ dB from previous entry |
 | --- | --- | --- | --- |
@@ -30,7 +30,7 @@ Source score remains unchanged. Signal evidence demonstrates macro energy contra
 
 ## Event Horizon
 
-[verified] Peak 0.8684; full capture RMS 0.0694; dropped events 0; sequencer-reported RAM 69%; round-trip True; Stop 193.339s versus nominal 193.333s.
+[verified] Peak 0.8684; full capture RMS 0.0694; dropped events 0; project-loader RAM 69%; round-trip True; Stop 193.339s versus nominal 193.333s.
 
 | Bars | Scene | Approx RMS | Δ dB from previous entry |
 | --- | --- | --- | --- |
@@ -56,7 +56,7 @@ Source score remains unchanged. Signal evidence demonstrates macro energy contra
 
 ## Packet Bloom
 
-[verified] Peak 0.7532; full capture RMS 0.0741; dropped events 0; sequencer-reported RAM 54%; round-trip True; Stop 188.578s versus nominal 188.571s.
+[verified] Peak 0.7532; full capture RMS 0.0741; dropped events 0; project-loader RAM 54%; round-trip True; Stop 188.578s versus nominal 188.571s.
 
 | Bars | Scene | Approx RMS | Δ dB from previous entry |
 | --- | --- | --- | --- |
@@ -78,7 +78,7 @@ Source score remains unchanged. Signal evidence demonstrates macro energy contra
 
 ## Neon Transit
 
-[verified] Peak 0.8459; full capture RMS 0.0728; dropped events 0; sequencer-reported RAM 67%; round-trip True; Stop 208.007s versus nominal 208.000s.
+[verified] Peak 0.8459; full capture RMS 0.0728; dropped events 0; project-loader RAM 67%; round-trip True; Stop 208.007s versus nominal 208.000s.
 
 | Bars | Scene | Approx RMS | Δ dB from previous entry |
 | --- | --- | --- | --- |
@@ -103,4 +103,8 @@ Source score remains unchanged. Signal evidence demonstrates macro energy contra
 
 ## Limits
 
-RAM percent is a reported sequencer statistic, not measured total hardware SRAM headroom or an FM-1 deployment result. Zero event drops does not establish absence of synth voice stealing or masking. Peak/RMS do not measure spectral balance, pitch clarity, spatial impression or listener fatigue. Those issues remain scoped to source inference and owner listening. The source report already traces every transition; this addendum quantifies each entry without turning energy into a musical score.
+RAM percent is a reported project-loader statistic, not measured total hardware SRAM headroom or an FM-1 deployment result. Zero event drops does not establish absence of synth voice stealing or masking. Peak/RMS do not measure spectral balance, pitch clarity, spatial impression or listener fatigue. Those issues remain scoped to source inference and owner listening. The source report already traces every transition; this addendum quantifies each entry without turning energy into a musical score.
+
+## Native and actual browser state
+
+[verified] Read full native and browser receipts. Every song has zero skipped/repaired fields, refused locks and dropped events. Native sequencer events total 11,786 / 19,394 / 14,254 / 16,650 respectively. Independently compared actual browser Save files: `master`, `mod` and `dx7` objects are identical; the `set` command multiset is preserved with serialization ordering changes. Sounds are identical after removing only newly serialized disabled default arp objects from previously empty MIDI-FX arrays. This is semantic preservation, not byte identity. Parent browser receipt records preload, play, download and fresh-context Open passing all four with no page exceptions. JSON retains receipt hashes, Wasm hash, load reports and native counters. This strengthens runtime evidence without changing musical judgments.
