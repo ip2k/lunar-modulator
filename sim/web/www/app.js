@@ -6,6 +6,7 @@
 
 import { BUTTONS, ENCODERS, KEYS } from './fm1-wasm.mjs';
 import { initFiles, pref } from './files.js';
+import { connectOnReady } from './startup-ready.mjs';
 
 // ---- panel geometry, millimetres --------------------------------------------
 // Case 161.5 x 96.5 mm (M-VAVE manual, specifications). Control centres
@@ -329,12 +330,10 @@ async function start() {
     const node = new AudioWorkletNode(ctx, 'fm1', {
       numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2],
     });
-    node.port.onmessage = (e) => onWorklet(e.data, node);
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 2048;
-    node.connect(ctx.destination);
-    node.connect(analyser);
     Object.assign(sim, { ctx, node, analyser, notice: '', held: false });
+    connectOnReady(node, ctx, analyser, () => sim.node === node && sim.ctx === ctx, onWorklet);
     ctx.addEventListener('statechange', () => onContextState(ctx));
     node.port.postMessage({ type: 'init', wasm, master: sim.master }, [wasm]);
     // Not awaited: a browser that holds the context would keep the page at
