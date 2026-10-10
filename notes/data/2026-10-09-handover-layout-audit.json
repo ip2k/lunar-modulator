@@ -1,0 +1,398 @@
+{
+  "date": "2026-10-09",
+  "base_main": "9cfc46dc",
+  "artifact_source_pr": 134,
+  "artifact_source_head": "7385bee77d70e81d0bf588e7479c016ee5a9e154",
+  "tool_sha256": "7708edb6ffa03adfc5f684236adeeb22973ffa8fc27e60f18b492e89b024cb7f",
+  "reports": {
+    "inert": {
+      "status": "layout-evidence-only",
+      "layout_verified": true,
+      "elf_sha256": "068c3afb58bb0534c129cd329e2a82f45e4888c8577d25f488419bd91be41c09",
+      "app_sha256": "5566edb6742aebb695a4ed2ab0e9d979ebadb615190bb030c55f59f2258fee08",
+      "stock_bank": {
+        "file_bytes": 14384,
+        "header_bytes": 16,
+        "body_bytes": 14368,
+        "load_begin": 29368320,
+        "load_end": 29382688,
+        "sha256": "730e54f0a439f58d147be4364ad21e19566945ada9d3a7bbc8371dce5068d3ef"
+      },
+      "layout": {
+        "profile": "inert",
+        "entry": 33554720,
+        "flash_bytes": 200,
+        "data_bytes": 4,
+        "bss_bytes": 24,
+        "stack_bytes": 4096,
+        "stack_guard_bytes": 16,
+        "ssp_stack_bytes": 0,
+        "ssp_guard_bytes": 0,
+        "ram_reserved_bytes": 4144,
+        "ram_budget_bytes": 16384,
+        "unresolved_symbols": [],
+        "sdk_libraries": [],
+        "sections": [
+          {
+            "name": ".entry",
+            "address": 33554720,
+            "bytes": 20
+          },
+          {
+            "name": ".text",
+            "address": 33554740,
+            "bytes": 174
+          },
+          {
+            "name": ".data",
+            "address": 29368320,
+            "bytes": 4
+          },
+          {
+            "name": ".bss",
+            "address": 29368324,
+            "bytes": 24
+          },
+          {
+            "name": ".stack",
+            "address": 29368352,
+            "bytes": 4112
+          }
+        ],
+        "bounds": {
+          "__data_begin": 29368320,
+          "__data_end": 29368324,
+          "__data_load": 33554916,
+          "__bss_begin": 29368324,
+          "__bss_end": 29368348,
+          "__stack_guard": 29368352,
+          "__stack_bottom": 29368368,
+          "__stack_top": 29372464,
+          "__flash_end": 33554920
+        },
+        "device_execution": "unverified",
+        "package": "not created"
+      },
+      "ram_sections": [
+        {
+          "name": ".data",
+          "begin": 29368320,
+          "end": 29368324,
+          "bytes": 4,
+          "loaded_spl_overlap_bytes": 4,
+          "ownership": "unresolved"
+        },
+        {
+          "name": ".bss",
+          "begin": 29368324,
+          "end": 29368348,
+          "bytes": 24,
+          "loaded_spl_overlap_bytes": 24,
+          "ownership": "unresolved"
+        },
+        {
+          "name": ".stack",
+          "begin": 29368352,
+          "end": 29372464,
+          "bytes": 4112,
+          "loaded_spl_overlap_bytes": 4112,
+          "ownership": "unresolved"
+        }
+      ],
+      "protected_ranges": [
+        {
+          "name": "boot_prefix",
+          "begin": 29883912,
+          "end": 29883936
+        },
+        {
+          "name": "boot_header",
+          "begin": 29883936,
+          "end": 29883968
+        }
+      ],
+      "requires_nonreturning": true,
+      "private_ram_proven": false,
+      "device_execution": "unverified",
+      "unresolved_runtime_gates": [
+        "core identity and secondary-core quiescence",
+        "exception vector routing and policy",
+        "MMU/TLB ownership",
+        "final watchdog state",
+        "clock/power and XIP/cache/SFC contract"
+      ],
+      "package_created": false
+    },
+    "handover": {
+      "status": "layout-evidence-only",
+      "layout_verified": true,
+      "elf_sha256": "f02c501923991780532ca4b47dda01d306aa92cf58c1aa2c4838c59e6690631f",
+      "app_sha256": "0991eae9c0fc77bf4ed80f73b2d643972d70bb9151b3b0da29a2a68d41a1b19c",
+      "stock_bank": {
+        "file_bytes": 14384,
+        "header_bytes": 16,
+        "body_bytes": 14368,
+        "load_begin": 29368320,
+        "load_end": 29382688,
+        "sha256": "730e54f0a439f58d147be4364ad21e19566945ada9d3a7bbc8371dce5068d3ef"
+      },
+      "layout": {
+        "profile": "handover",
+        "entry": 33554720,
+        "flash_bytes": 288,
+        "data_bytes": 4,
+        "bss_bytes": 116,
+        "stack_bytes": 4096,
+        "stack_guard_bytes": 16,
+        "ssp_stack_bytes": 4096,
+        "ssp_guard_bytes": 16,
+        "ram_reserved_bytes": 8352,
+        "ram_budget_bytes": 16384,
+        "unresolved_symbols": [],
+        "sdk_libraries": [],
+        "sections": [
+          {
+            "name": ".entry",
+            "address": 33554720,
+            "bytes": 30
+          },
+          {
+            "name": ".text",
+            "address": 33554750,
+            "bytes": 252
+          },
+          {
+            "name": ".data",
+            "address": 29368320,
+            "bytes": 4
+          },
+          {
+            "name": ".bss",
+            "address": 29368324,
+            "bytes": 116
+          },
+          {
+            "name": ".stack",
+            "address": 29368448,
+            "bytes": 4112
+          },
+          {
+            "name": ".ssp_stack",
+            "address": 29372560,
+            "bytes": 4112
+          }
+        ],
+        "bounds": {
+          "__data_begin": 29368320,
+          "__data_end": 29368324,
+          "__data_load": 33555004,
+          "__bss_begin": 29368324,
+          "__bss_end": 29368440,
+          "__stack_guard": 29368448,
+          "__stack_bottom": 29368464,
+          "__stack_top": 29372560,
+          "__flash_end": 33555008,
+          "__ssp_guard": 29372560,
+          "__ssp_bottom": 29372576,
+          "__ssp_top": 29376672
+        },
+        "device_execution": "unverified",
+        "package": "not created"
+      },
+      "ram_sections": [
+        {
+          "name": ".data",
+          "begin": 29368320,
+          "end": 29368324,
+          "bytes": 4,
+          "loaded_spl_overlap_bytes": 4,
+          "ownership": "unresolved"
+        },
+        {
+          "name": ".bss",
+          "begin": 29368324,
+          "end": 29368440,
+          "bytes": 116,
+          "loaded_spl_overlap_bytes": 116,
+          "ownership": "unresolved"
+        },
+        {
+          "name": ".stack",
+          "begin": 29368448,
+          "end": 29372560,
+          "bytes": 4112,
+          "loaded_spl_overlap_bytes": 4112,
+          "ownership": "unresolved"
+        },
+        {
+          "name": ".ssp_stack",
+          "begin": 29372560,
+          "end": 29376672,
+          "bytes": 4112,
+          "loaded_spl_overlap_bytes": 4112,
+          "ownership": "unresolved"
+        }
+      ],
+      "protected_ranges": [
+        {
+          "name": "boot_prefix",
+          "begin": 29883912,
+          "end": 29883936
+        },
+        {
+          "name": "boot_header",
+          "begin": 29883936,
+          "end": 29883968
+        }
+      ],
+      "requires_nonreturning": true,
+      "private_ram_proven": false,
+      "device_execution": "unverified",
+      "unresolved_runtime_gates": [
+        "core identity and secondary-core quiescence",
+        "exception vector routing and policy",
+        "MMU/TLB ownership",
+        "final watchdog state",
+        "clock/power and XIP/cache/SFC contract"
+      ],
+      "package_created": false
+    },
+    "panel-protocol": {
+      "status": "layout-evidence-only",
+      "layout_verified": true,
+      "elf_sha256": "2dbac7e4a7d16720dca11bd9479c0ac2ed1f3d8749dae0611d5790fa9728a119",
+      "app_sha256": "ebbe370cf135d0e1dd2ad16a04b47cf67bcdfbfaa4c837b960d946a5fc86cbcb",
+      "stock_bank": {
+        "file_bytes": 14384,
+        "header_bytes": 16,
+        "body_bytes": 14368,
+        "load_begin": 29368320,
+        "load_end": 29382688,
+        "sha256": "730e54f0a439f58d147be4364ad21e19566945ada9d3a7bbc8371dce5068d3ef"
+      },
+      "layout": {
+        "profile": "handover",
+        "entry": 33554720,
+        "flash_bytes": 1212,
+        "data_bytes": 4,
+        "bss_bytes": 160,
+        "stack_bytes": 4096,
+        "stack_guard_bytes": 16,
+        "ssp_stack_bytes": 4096,
+        "ssp_guard_bytes": 16,
+        "ram_reserved_bytes": 8400,
+        "ram_budget_bytes": 16384,
+        "unresolved_symbols": [],
+        "sdk_libraries": [],
+        "sections": [
+          {
+            "name": ".entry",
+            "address": 33554720,
+            "bytes": 30
+          },
+          {
+            "name": ".text",
+            "address": 33554750,
+            "bytes": 1176
+          },
+          {
+            "name": ".data",
+            "address": 29368320,
+            "bytes": 4
+          },
+          {
+            "name": ".bss",
+            "address": 29368324,
+            "bytes": 160
+          },
+          {
+            "name": ".stack",
+            "address": 29368496,
+            "bytes": 4112
+          },
+          {
+            "name": ".ssp_stack",
+            "address": 29372608,
+            "bytes": 4112
+          }
+        ],
+        "bounds": {
+          "__data_begin": 29368320,
+          "__data_end": 29368324,
+          "__data_load": 33555928,
+          "__bss_begin": 29368324,
+          "__bss_end": 29368484,
+          "__stack_guard": 29368496,
+          "__stack_bottom": 29368512,
+          "__stack_top": 29372608,
+          "__flash_end": 33555932,
+          "__ssp_guard": 29372608,
+          "__ssp_bottom": 29372624,
+          "__ssp_top": 29376720
+        },
+        "device_execution": "unverified",
+        "package": "not created"
+      },
+      "ram_sections": [
+        {
+          "name": ".data",
+          "begin": 29368320,
+          "end": 29368324,
+          "bytes": 4,
+          "loaded_spl_overlap_bytes": 4,
+          "ownership": "unresolved"
+        },
+        {
+          "name": ".bss",
+          "begin": 29368324,
+          "end": 29368484,
+          "bytes": 160,
+          "loaded_spl_overlap_bytes": 160,
+          "ownership": "unresolved"
+        },
+        {
+          "name": ".stack",
+          "begin": 29368496,
+          "end": 29372608,
+          "bytes": 4112,
+          "loaded_spl_overlap_bytes": 4112,
+          "ownership": "unresolved"
+        },
+        {
+          "name": ".ssp_stack",
+          "begin": 29372608,
+          "end": 29376720,
+          "bytes": 4112,
+          "loaded_spl_overlap_bytes": 4112,
+          "ownership": "unresolved"
+        }
+      ],
+      "protected_ranges": [
+        {
+          "name": "boot_prefix",
+          "begin": 29883912,
+          "end": 29883936
+        },
+        {
+          "name": "boot_header",
+          "begin": 29883936,
+          "end": 29883968
+        }
+      ],
+      "requires_nonreturning": true,
+      "private_ram_proven": false,
+      "device_execution": "unverified",
+      "unresolved_runtime_gates": [
+        "core identity and secondary-core quiescence",
+        "exception vector routing and policy",
+        "MMU/TLB ownership",
+        "final watchdog state",
+        "clock/power and XIP/cache/SFC contract"
+      ],
+      "package_created": false
+    }
+  },
+  "hardware_traffic": false,
+  "runtime_verified": false,
+  "package_created": false
+}

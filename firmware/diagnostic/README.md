@@ -79,3 +79,10 @@ See [the linked result and remaining gates](../../notes/2026-10-09-linked-diagno
 The separate [handover preparation variant](../handover/README.md) reserves
 its own supervisor stack and captures six boot words in RAM. It requires an
 explicit build/report profile and remains outside this inert staging path.
+
+`tools/jieli/handover_layout.py --elf <linked ELF> --app <flat binary>
+--spl <decoded stock top/uboot.boot> --profile inert` compares the audited
+link's RAM ranges with the pinned stock SPL body and protected boot data.
+Use `--profile handover` for the separate SP/SSP variants. It reports SPL
+overlap and unresolved ownership; it does not approve device execution or
+produce a package. See [the layout evidence and limits](../../notes/2026-10-09-handover-layout-audit.md).
