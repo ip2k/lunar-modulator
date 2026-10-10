@@ -34,8 +34,8 @@ that sound first ([chapter 5](05-sound-engines.md#four-sounds-at-once)).
 
 **To put an effect in the chosen slot:** turn [[ALGORITHM]]. It steps through
 *Empty slot*, Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo,
-Filter, Comb, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Room,
-Hall, Gate, Squash, Transient, Test Gain and Test Ext, and round again, stepping over an effect
+Warble, Filter, Comb, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Room,
+Hall, Gate, Squash, Transient, Repeat, Test Gain and Test Ext, and round again, stepping over an effect
 that would not fit the memory (below). The list on the screen spells the short
 names out: Compressor, Master Saturation, Equaliser, Transient Shaper. In the simulator you can also use the
 **Effect 1** and **Effect 2** lists under the panel for the two master
@@ -385,6 +385,25 @@ long the time.
 Echo does not yet follow the sequencer's tempo; set Time by ear.
 
 {{engine-table echo}}
+
+## Warble
+
+{{status sim desktop planned}}
+
+Warble adds the slow pitch drift and faster flutter of a short, moving delay.
+Use it to soften a steady bass or give chords and pads the motion of a worn
+tape. The modulation repeats predictably whenever the effect starts.
+
+- **Wow** sets the depth of the slower movement.
+- **Flutter** sets the depth of the quicker movement.
+- **Mix** blends the dry sound with the moving delay. At zero the signal
+  passes unchanged.
+
+!!! tip "Starting points"
+    - **Subtle movement:** Wow about 0.2, Flutter about 0.1, Mix about 0.3.
+    - **Worn-tape wobble:** Wow about 0.7, Flutter about 0.35, Mix about 0.5.
+
+{{engine-table warble}}
 
 ## Filter
 
@@ -1103,6 +1122,34 @@ glide over a few milliseconds.
     - **Softer plucks:** Attack −60 %, Window about 40.
 
 {{engine-table shaper}}
+
+## Repeat
+
+{{status sim desktop planned}}
+
+Repeat holds a beat-sized slice and loops it as a rhythmic stutter. It follows
+the sequencer's beat events; incoming MIDI clock does not provide the beat
+events this effect needs.
+
+- **Hold** arms the capture. While the sequencer runs, the most recent audio
+  is captured on a beat once the buffer has filled. With transport stopped,
+  it captures when that history is full.
+- **Max slice** chooses the longest beat division to use: 1/8, 1/16 or 1/32.
+  At slow tempos or high sample rates, Repeat halves that exact beat division
+  until it fits its buffer.
+- **Mix** blends the dry sound with the held slice. At zero the signal passes
+  unchanged.
+
+Turn **Hold** off to release the loop. If you turn it back on before the
+release finishes, Repeat clears the old slice and waits for a full new buffer
+before it can capture another beat.
+
+!!! tip "Beat stutter"
+    Choose **1/16 max**, arm Hold, then turn Hold off when you want the
+    original sound to return. Put Repeat in a master slot to stutter the
+    whole mix, or in an insert for just one sound.
+
+{{engine-table repeat}}
 
 ## Test Gain
 

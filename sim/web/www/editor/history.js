@@ -11,11 +11,11 @@
 //   (the caller passes it to `confirm`).
 // - A new edit clears what could be redone; 200 entries at most.
 // Structural entries (stage ED3: an engine or effect chosen, a swap, a
-// module moved or chosen) carry the records that undo and redo them in
-// `info` and never vanish when they end where they began; undo's snapshot
-// fallback (stage ED4, project.js) loads the project as it was when the
-// inverse edits leave a different state hash. MIT licence, like the rest of
-// this repository.
+// module moved or chosen) carry the records that undo and redo them in `info`,
+// keep their own undo boundaries, and never vanish when they end where they
+// began; undo's snapshot fallback (stage ED4, project.js) loads the project
+// when inverse edits leave a different state hash. MIT licence, like the rest
+// of this repository.
 
 export const MERGE_MS = 600;
 export const LIMIT = 200;
@@ -46,7 +46,10 @@ export class History {
     const t = this.now();
     const last = this.at > 0 ? this.entries[this.at - 1] : null;
     const inDrag = this.drag !== null && this.drag === c.target && c.origin === 'editor';
-    const merge = last && last.target === c.target && last.origin === c.origin && this.at === this.entries.length &&
+    // Structural edits own snapshots or inverse records in info; combining
+    // them would keep one operation's redo payload and lose an undo boundary.
+    const structural = (c.info && c.info.struct) || (last && last.info && last.info.struct);
+    const merge = !structural && last && last.target === c.target && last.origin === c.origin && this.at === this.entries.length &&
       ((inDrag && this.dragEntry === last) ||
        (!inDrag && c.how !== 'typed' && last.how === c.how && t - last.at <= this.mergeMs));
     if (merge) {

@@ -1,0 +1,564 @@
+{
+ "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+ "checks": {
+  "a row a live cable reaches has its label in the modulation colour and a chip naming the source": true,
+  "its slider has the bracket round the base and the live value as a tick": true,
+  "its aria-valuetext speaks the cable: \"modulated by …, plus … percent\"": true,
+  "a row that takes a cable and has none shows no chip, bracket or tick, and speaks no cable": true,
+  "the telemetry rows of the live cables are subscribed in a sound (not only in Modulation)": true,
+  "a per-voice cable draws a tick for each sounding voice (two notes: two ticks)": true,
+  "a rack with a loop loads": true,
+  "C reports the loop each late cable closes (one cable, the one that runs up the rack; both rack positions in the loop)": true,
+  "the table marks it ~ and says so in C's words: \"a tick late\"": true,
+  "a cable that runs on time has the > mark and no ~": true,
+  "the legend names the marks from C's words": true,
+  "the slot inspector explains the loop in words, naming the modules in it": true,
+  "the Map has a Late chip with the count; it lights that cable with ~ on its pill and no label under a cable": true,
+  "a per-voice cable into an effect is refused by C (VOICE_TO_EFFECT)": true,
+  "a refusal with a repair offers it, in C's words: \"Make it global\"": true,
+  "the slot inspector draws every curve (C's own 33 points) and the chosen one larger": true,
+  "\"Make it global\" clears the per-voice flag as an edit, and C then runs the cable": true,
+  "the slot inspector of a per-voice cable shows each sounding voice's own value": true,
+  "the sources' groups come from the metadata: notes, a group for each sound, the lanes and their values": true,
+  ">cutoff finds the cables into a Cutoff, and only cables": true,
+  "lfo> finds the cables out of an LFO (all three of the loop file's)": true,
+  "a module can be said as a person says it: lfo1> is the cables out of the LFO in rack 1, >lfo2 the cables into the one in rack 2": true,
+  "! finds the refused cables: C's verdict, not a guess": true,
+  "~ finds the cable read a tick late": true,
+  "v finds the per-voice cables": true,
+  "s2 keeps what belongs to Sound 2: its blocks, parameters and the cable into it": true,
+  "hz keeps the parameters in hertz, and only parameters (as many as the blocks hold)": true,
+  "operators and words combine: >cutoff ! is the refused cable into a Cutoff": true,
+  "cables are a group of their own, searched by name": true,
+  "Enter on a found cable opens its slot in Modulation": true,
+  "a Flow block carries its cable count, and the refusals among them in love's colour and in words": true,
+  "a block no cable ends on has no count": true,
+  "the Flow blocks carry a meter each (engine, inserts, master slots, the Mix)": true,
+  "a note lights the bars of the blocks it passes through": true,
+  "the example has a modulatable parameter without a cable": true,
+  "key C on a slider makes a cable into that parameter and opens it": true,
+  "the detail bar lists the C key for a parameter that takes a cable": true,
+  "Copy a link on a block gives a link to that block's file, with where it goes": true,
+  "a sound's tag dragged to the desktop gives its file (DownloadURL: type, name, blob)": true,
+  "a sound file dropped on a sound says what it replaces and what it brings (here C refuses: it does not fit)": true,
+  "a rack that fits says what it replaces and brings, the RAM after, and offers Load": true,
+  "C's kind refusal has its article right: \"A sound, not an effects chain, was expected.\"": true,
+  "A and B differ in the two edited parameters (A as kept, B as edited)": true,
+  "the difference list has a pick for every row (A or B), all B to begin with, and Make B is off until one is picked from A": true,
+  "picking a row from A updates the count and offers Make B from the picks": true,
+  "Make B from the picks loads B with A's value in the picked row and B's in the rest, as one step in the history": true,
+  "one undo puts the project back as B was": true,
+  "redo makes it again": true,
+  "A and B are kept in this browser's `snapshots` store": true,
+  "after a reload A and B are back, and the compare view can switch": true,
+  "the Compare view says which is playing after the reload": true,
+  "on a phone, Add a cable opens a sheet at step 1 of 3: the source": true,
+  "step 2 is the destination": true,
+  "step 3 is the amount, with the pair and C's verdict before the cable is made": true,
+  "Make the cable puts it in the first empty slot with the chosen amount (40 %), and closes the sheet": true,
+  "Esc closes the sheet and gives the focus back to the button": true,
+  "a short touch only selects the block (no menu)": true,
+  "a touch held half a second opens that block's menu: its page, another effect, move, export, library, link": true,
+  "the touch that opened the menu did not also select the block": true,
+  "the menu key (contextmenu) opens it too, for the keyboard": true,
+  "\"Open its page\" selects the block and closes the menu": true,
+  "the new UI at 1,440, 1,024, 768 and 375 px (modulated rows, counts and bars, late marks, the slot, Compare with picks, a menu): no overlap, clipping or sideways scroll": true,
+  "axe-core is available to the page test": true,
+  "axe-core finds no violation in any view at 1,440, 1,024 or 375 px (WCAG 2.x A and AA, and its best practices)": true,
+  "under reduced motion the telemetry is drawn about half as often (15 a second)": true,
+  "under reduced motion no animation is running": true,
+  "the telemetry stops while the editor is hidden: nothing is subscribed, nothing arrives, nothing is drawn": true,
+  "and starts again when it is seen": true,
+  "a lock playing for four seconds changes no base value in the editor and adds nothing to its history": true,
+  "while a slider is dragged no long task passes 50 ms (Chromium measures it; elsewhere the handlers' own cost stands)": true,
+  "a pointer move costs the page under 4 ms of script (95th percentile), and a telemetry frame too": true,
+  "PLAY starts the transport (the test's own start)": true,
+  "switching A/B (project) twice keeps the transport playing: no \"stopped\" is posted, and it plays after each": true,
+  "switching A/B (a sound) twice keeps the transport playing: no \"stopped\" is posted, and it plays after each": true,
+  "the project's identity is kept through A/B's own loads": true,
+  "some sound with an enum of more than 24 entries (the search control) fits in sound 4": true,
+  "a long list's filter rebuilds the select's options: only the matches (and the chosen entry) remain": true,
+  "choosing from the filtered list sets the parameter": true,
+  "clearing the filter brings every entry back": true,
+  "the picker's filter shows only the choices naming what was typed (a rule that set `display` once kept every one on show)": true,
+  "and clearing it brings them all back": true,
+  "the matrix filter keeps the cables that read what was typed, and no others": true,
+  "a filter that matches nothing says so": true,
+  "and clearing it brings the cables back": true,
+  "with an older tab holding the database, the open is blocked, not failed: memory for now, and the page says why": true,
+  "when the older tab lets go, the pending request goes through and storage is used from then on, with a notice": true,
+  "what the tab kept in memory while it waited is written to the database": true,
+  "a newer tab's upgrade is not blocked by this one (its connection closes on versionchange), and this tab keeps working": true,
+  "stored A and B come back for the same project and not for another of the same title, nor for a record without identity": true,
+  "opening a project again (even a file of the same name) is another project, and the autosave carries the new identity though its bytes are the same": true,
+  "Shift+Enter selects every match, including matches beyond the first 60 shown": true,
+  "a cable batch refuses a slot whose cable changed after Search captured it": true,
+  "a batch disables the matching cables in one history step": true,
+  "one undo restores every cable in the batch": true,
+  "one redo disables the entire batch again": true,
+  "an invalid common value changes nothing and leaves the batch available to correct": true,
+  "compatible parameters accept one common value parsed by C": true,
+  "one undo restores each parameter to its own previous value": true,
+  "Squash shows its closed gate over silence separately from gain reduction": true
+ },
+ "logs": [],
+ "why": [],
+ "rowFacts": {
+  "cab": 0,
+  "label": "ed-label can-mod is-modulated",
+  "chip": "1 LFO Out",
+  "bracket": true,
+  "bracketW": "70%",
+  "tick": 76.73,
+  "valuetext": "Cutoff, 420 hertz, modulated by 1 LFO Out, plus 35 percent",
+  "plain": {
+   "chip": false,
+   "bracket": false,
+   "tick": false,
+   "text": "Resonance, 0.30"
+  },
+  "sig": 79,
+  "on": true
+ },
+ "voiceTicks": {
+  "cab": 1,
+  "ticks": [
+   {
+    "left": 51.63,
+    "voice": true
+   },
+   {
+    "left": 50.18,
+    "voice": true
+   },
+   {
+    "left": 56.57,
+    "voice": true
+   },
+   {
+    "left": 77.04,
+    "voice": true
+   }
+  ]
+ },
+ "late": {
+  "idx": [
+   1
+  ],
+  "mask": [
+   3
+  ],
+  "marks": [
+   [
+    {
+     "ch": ">",
+     "title": "runs"
+    },
+    {
+     "ch": "~",
+     "title": "a tick late"
+    }
+   ]
+  ],
+  "verdict": [
+   "runs, a tick late"
+  ],
+  "runMarks": [
+   {
+    "ch": ">",
+    "title": "runs"
+   }
+  ],
+  "legend": "live value! refusedv per voice~ a tick late",
+  "tried": 3
+ },
+ "mapLate": {
+  "chip": "A tick late · 1",
+  "pill": "~",
+  "lit": 2,
+  "faults": []
+ },
+ "fixUi": {
+  "fix": "Make it global",
+  "why": "Per voice into an effect: an effect plays every voice at once. The cable is kept as written; it runs once this is put right.",
+  "thumbs": 8,
+  "points": 33,
+  "curves": 8,
+  "chosen": "cube"
+ },
+ "cur": 2,
+ "voiceVals": {
+  "chips": [
+   "1 0.52",
+   "2 0.50",
+   "3 0.58",
+   "4 0.83"
+  ],
+  "label": "Live values, by voice"
+ },
+ "groups": {
+  "groups": [
+   "Notes, clock and chance:11",
+   "Sound 1's notes:5",
+   "Sound 2's notes:5",
+   "Sound 3's notes:5",
+   "Sound 4's notes:5",
+   "Sequencer lanes:8",
+   "Lane values:8"
+  ],
+  "codeNames": true
+ },
+ "search": {
+  ">cutoff": {
+   "groups": [
+    "Cables"
+   ],
+   "items": [
+    "Cable 3 · 1 LFO Out → S2 In1 Cutoff · +30 % · !v"
+   ],
+   "n": "1 result"
+  },
+  "lfo>": {
+   "groups": [
+    "Cables"
+   ],
+   "items": [
+    "Cable 1 · 1 LFO Out → Rack 2 LFO Rate · +20 % · >",
+    "Cable 2 · 2 LFO Out → Rack 1 LFO Rate · +15 % · >~",
+    "Cable 3 · 1 LFO Out → S2 In1 Cutoff · +30 % · !v"
+   ],
+   "n": "3 results"
+  },
+  "lfo1>": {
+   "groups": [
+    "Cables"
+   ],
+   "items": [
+    "Cable 1 · 1 LFO Out → Rack 2 LFO Rate · +20 % · >",
+    "Cable 3 · 1 LFO Out → S2 In1 Cutoff · +30 % · !v"
+   ],
+   "n": "2 results"
+  },
+  ">lfo2": {
+   "groups": [
+    "Cables"
+   ],
+   "items": [
+    "Cable 1 · 1 LFO Out → Rack 2 LFO Rate · +20 % · >"
+   ],
+   "n": "1 result"
+  },
+  "!": {
+   "groups": [
+    "Cables"
+   ],
+   "items": [
+    "Cable 3 · 1 LFO Out → S2 In1 Cutoff · +30 % · !v"
+   ],
+   "n": "1 result"
+  },
+  "~": {
+   "groups": [
+    "Cables"
+   ],
+   "items": [
+    "Cable 2 · 2 LFO Out → Rack 1 LFO Rate · +15 % · >~"
+   ],
+   "n": "1 result"
+  },
+  "v": {
+   "groups": [
+    "Cables"
+   ],
+   "items": [
+    "Cable 3 · 1 LFO Out → S2 In1 Cutoff · +30 % · !v"
+   ],
+   "n": "1 result"
+  },
+  "s2": {
+   "groups": [
+    "Blocks",
+    "Parameters",
+    "Cables"
+   ],
+   "items": [
+    "S2 Macro",
+    "S2 In1 Filter",
+    "S2 In2 Drive",
+    "S2 MIDI 1 Arp",
+    "S2 Macro · Model",
+    "S2 Macro · Harmonics",
+    "S2 Macro · Timbre",
+    "S2 Macro · Morph",
+    "S2 Macro · Decay",
+    "S2 Macro · Colour",
+    "S2 Macro · Volume",
+    "S2 Macro · Env Pitch",
+    "S2 Macro · Env Timbre",
+    "S2 Macro · Env Morph",
+    "S2 Macro · LPG",
+    "S2 Macro · Glide",
+    "S2 Macro · Voice Mode",
+    "S2 Macro · Glide Mode",
+    "S2 Macro · Time Mode",
+    "S2 In1 Filter · Type",
+    "S2 In1 Filter · Cutoff",
+    "S2 In1 Filter · Resonance",
+    "S2 In1 Filter · Drive",
+    "S2 In1 Filter · Mode",
+    "S2 In1 Filter · Morph",
+    "S2 In1 Filter · Mix",
+    "S2 In1 Filter · Level",
+    "S2 In2 Drive · Type",
+    "S2 In2 Drive · Drive",
+    "S2 In2 Drive · Tone",
+    "S2 In2 Drive · Mix",
+    "S2 In2 Drive · Bias",
+    "S2 In2 Drive · Gate",
+    "S2 In2 Drive · Level",
+    "S2 In2 Drive · Auto",
+    "S2 MIDI 1 Arp · Mode",
+    "S2 MIDI 1 Arp · Rate",
+    "S2 MIDI 1 Arp · Gate",
+    "S2 MIDI 1 Arp · Octaves",
+    "S2 MIDI 1 Arp · Pattern",
+    "S2 MIDI 1 Arp · Fill",
+    "S2 MIDI 1 Arp · Rotate",
+    "S2 MIDI 1 Arp · Length",
+    "S2 MIDI 1 Arp · Chance",
+    "S2 MIDI 1 Arp · Ratchet",
+    "S2 MIDI 1 Arp · Vel Spread",
+    "S2 MIDI 1 Arp · Loop",
+    "S2 MIDI 1 Arp · Oct Mode",
+    "S2 MIDI 1 Arp · Velocity",
+    "S2 MIDI 1 Arp · Join",
+    "S2 MIDI 1 Arp · Order",
+    "S2 MIDI 1 Arp · Repeat",
+    "S2 MIDI 1 Arp · Chord %",
+    "S2 MIDI 1 Arp · Oct Jump",
+    "S2 MIDI 1 Arp · Latch",
+    "S2 MIDI 1 Arp · Sync",
+    "S2 MIDI 1 Arp · Ratchet %",
+    "S2 MIDI 1 Arp · Gate Sprd",
+    "S2 MIDI 1 Arp · Seed",
+    "Cable 3 · 1 LFO Out → S2 In1 Cutoff · +30 % · !v"
+   ],
+   "n": "60 results"
+  },
+  "hz": {
+   "groups": [
+    "Parameters"
+   ],
+   "items": [
+    "S2 In1 Filter · Cutoff"
+   ],
+   "n": "1 result"
+  },
+  ">cutoff !": {
+   "groups": [
+    "Cables"
+   ],
+   "items": [
+    "Cable 3 · 1 LFO Out → S2 In1 Cutoff · +30 % · !v"
+   ],
+   "n": "1 result"
+  },
+  "cable": {
+   "groups": [
+    "Cables"
+   ],
+   "items": [
+    "Cable 1 · 1 LFO Out → Rack 2 LFO Rate · +20 % · >",
+    "Cable 2 · 2 LFO Out → Rack 1 LFO Rate · +15 % · >~",
+    "Cable 3 · 1 LFO Out → S2 In1 Cutoff · +30 % · !v"
+   ],
+   "n": "3 results"
+  }
+ },
+ "counts": {
+  "in1": {
+   "text": "1 cable, 1 refused",
+   "refused": true,
+   "label": "IN1 Filter Ladder 1 cable, 1 refused"
+  },
+  "s1": null,
+  "meters": [
+   "snd1",
+   "snd2",
+   "snd2.fx1",
+   "snd2.fx2",
+   "snd3",
+   "snd4",
+   "snd4.fx1",
+   "mix",
+   "fx1",
+   "fx2"
+  ],
+  "mix": true
+ },
+ "keyC": {
+  "keyC": {
+   "uid": 3,
+   "name": "Resonance",
+   "plain": null,
+   "before": 3
+  },
+  "madeC": {
+   "i": 4,
+   "sel": "c5",
+   "view": "mod",
+   "n": 4,
+   "src": "1 LFO Out"
+  }
+ },
+ "dragged": {
+  "tag": true,
+  "draggable": true,
+  "data": "application/json:first-orbit-s3.sound.lunar:blob:http://127.0.0.1:8772/681438f5-36f4-44b4-b1f8-6bfc9eeff126"
+ },
+ "arrived": {
+  "card": true,
+  "head": "“Deep space bass” cannot go into Sound 2.",
+  "dl": [
+   "Replaces",
+   "Sound 2: Macro, In1 Filter, In2 Drive",
+   "Brings",
+   "“Deep space bass” · Shapes, In1 Filter; 1 module and 1 cable"
+  ],
+  "buttons": [
+   "Dismiss"
+  ]
+ },
+ "fits": {
+  "card": true,
+  "head": "Load “Wobble” into the mod rack?",
+  "dl": [
+   "Replaces",
+   "5 modules and 5 cables",
+   "Brings",
+   "“Wobble”; 2 modules and 3 cables"
+  ],
+  "ram": "RAM 69 % of the FM-1's memory after it",
+  "buttons": [
+   "Load into the mod rack",
+   "Cancel"
+  ]
+ },
+ "abView": {
+  "rows": 2,
+  "picks": 4,
+  "count": "2 from B, 0 from A",
+  "make": true
+ },
+ "made": {
+  "histBefore": 4,
+  "n": 5,
+  "last": "Make B from the picks",
+  "mixed": [
+   0.30000001192092896,
+   0.05999999865889549
+  ],
+  "aVals": [
+   0.30000001192092896,
+   0
+  ],
+  "bVals": [
+   0.36000001430511475,
+   0.05999999865889549
+  ]
+ },
+ "longPress": {
+  "open": true,
+  "title": "S2 In1 · Filter",
+  "items": [
+   "Open its page",
+   "Choose another…",
+   "Export S2's effects…",
+   "Save to my library",
+   "Copy a link"
+  ],
+  "sel": "s2",
+  "move": true
+ },
+ "faults": {
+  "1440-sound": [],
+  "1440-flow": [],
+  "1440-mod-table": [],
+  "1440-mod-map": [],
+  "1440-slot": [],
+  "1440-compare": [],
+  "1024-sound": [],
+  "1024-flow": [],
+  "1024-mod-table": [],
+  "1024-mod-map": [],
+  "1024-slot": [],
+  "1024-compare": [],
+  "768-sound": [],
+  "768-flow": [],
+  "768-mod-table": [],
+  "768-mod-map": [],
+  "768-slot": [],
+  "768-compare": [],
+  "375-sound": [],
+  "375-flow": [],
+  "375-mod-table": [],
+  "375-mod-map": [],
+  "375-slot": [],
+  "375-compare": [],
+  "375-menu-open": []
+ },
+ "axe": {
+  "1440-flow": [],
+  "1440-sound": [],
+  "1440-mod-table": [],
+  "1440-mod-map": [],
+  "1440-library": [],
+  "1440-memory": [],
+  "1440-compare": [],
+  "1024-flow": [],
+  "1024-sound": [],
+  "1024-mod-table": [],
+  "1024-mod-map": [],
+  "1024-library": [],
+  "1024-memory": [],
+  "1024-compare": [],
+  "375-flow": [],
+  "375-sound": [],
+  "375-mod-table": []
+ },
+ "reduced": {
+  "normal": 57,
+  "reduced": 29,
+  "anims": []
+ },
+ "hiddenRun": {
+  "seen": {
+   "on": true,
+   "sig": 76
+  },
+  "hidden": {
+   "on": false,
+   "sig": 0,
+   "raw": 0,
+   "frames": 0
+  },
+  "back": {
+   "on": true,
+   "frames": 26
+  }
+ },
+ "lockRun": {
+  "same": true,
+  "moved": 0,
+  "entries": 0
+ },
+ "budget": {
+  "long": [],
+  "noLong": false,
+  "moves": 121,
+  "movesP95": 0.800000011920929,
+  "tele": 116,
+  "teleP95": 0.30000001192092896,
+  "teleMax": 0.40000003576278687
+ }
+}

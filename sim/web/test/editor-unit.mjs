@@ -213,6 +213,41 @@ changes();
   check('200 entries at most', big.entries.length === 200);
 }
 
+// Two "Make B from the picks" project loads to the same scope are separate
+// structural changes even when they finish inside the value-edit merge window.
+// Their snapshots restore each preceding project, and redo uses each exact file.
+{
+  let t = 0;
+  const h = new History({ now: () => t });
+  let live = 'project before first pick';
+  const pick = (selection) => {
+    const before = live;
+    const e = h.record({ target: 'ab:project', label: 'Make B from the picks', before: 'B', after: selection,
+      origin: 'editor', how: 'set', info: { struct: true, scope: 'project', reload: selection } });
+    if (e) e.snap = { bin: before };
+    live = selection;
+  };
+  pick('first picked selection');
+  t += 500;
+  pick('second picked selection');
+  const undoSecond = h.undo();
+  if (undoSecond && undoSecond.snap) live = undoSecond.snap.bin;
+  const secondUndo = live;
+  const undoFirst = h.undo();
+  if (undoFirst && undoFirst.snap) live = undoFirst.snap.bin;
+  const firstUndo = live;
+  const redoFirst = h.redo();
+  if (redoFirst && redoFirst.info && redoFirst.info.reload) live = redoFirst.info.reload;
+  const firstRedo = live;
+  const redoSecond = h.redo();
+  if (redoSecond && redoSecond.info && redoSecond.info.reload) live = redoSecond.info.reload;
+  const secondRedo = live;
+  check('two picks loads inside 600 ms remain separate, undo to the original, and redo each exact selection',
+    h.entries.length === 2 && secondUndo === 'first picked selection' && firstUndo === 'project before first pick' &&
+      firstRedo === 'first picked selection' && secondRedo === 'second picked selection',
+    JSON.stringify({ entries: h.entries.length, secondUndo, firstUndo, firstRedo, secondRedo }));
+}
+
 // ---- undo to the first hash, redo to the last (§17's undo test) -----------------------
 {
   let seed = 12345;

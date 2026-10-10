@@ -1,0 +1,107 @@
+# Current device-gate wording review — 2026-10-09
+
+Updated user-facing manual and the sequencer/recovery notes against the staged
+hardware policy in `AGENTS.md` and the verified owner bench record
+`notes/2026-10-07-fm1-softkey-bench.md`.
+
+The owner’s FM-1_092 has verified soft-key UBOOT entry, reviewed RAM-loader
+reads, matching private full-flash backups, and a bounded unused-sector
+program/readback/restore. The complete post-test image matched the backups.
+This is not a full-image rewrite, recovery-from-nonbooting-app test, or Lunar
+installation. The docs retain those limits and require backups, exact
+image/ranges, a recovery plan, and a route to USB update mode before any
+further erase/program operation. The project's RP2040 dongle has not been
+used on the owner’s FM-1.
+
+The README and manual now qualify native Safari claims: automated editor/A-B
+checks ran, but the owner reported a Sound 2 switching crackle and the
+listening retest remains pending. PR128 was open at head
+`1c09c5a229dd8c4ec4dd9e725f9c7bdb27f889c5` when checked; its Pages build had
+passed while CI was still queued/in progress. No PR128 fix or listening
+success is claimed here.
+
+The parent’s bounded demo-prerequisite assessment is preserved verbatim at
+[`2026-10-09-demo-prerequisite-review.md`](2026-10-09-demo-prerequisite-review.md).
+It distinguishes existing source/test contracts from the remaining asset,
+full-chain, simulator admission, library, and listening gates. It is a
+captured review, not evidence that demo prerequisites have since completed;
+PR and branch statuses in it must be refreshed before acting on them.
+
+Validation: `git diff --check` passed. The strict manual/site build completed
+on aeon using the project’s existing cached `lunar-modulator-manual:ubuntu-24.04`
+image, in `docker-batch.slice`, bounded to 4 CPUs and 4 GiB memory. Source was
+`415efaa5d5778ab11ee4dcf16a1db1fb911e3c09`; it built the engines and ran
+`tools/manual/build.py --site /out --pdf --strict --no-make`. The result was
+17 chapters, 40 engines/effects, a 272-page PDF, and zero strict-manual errors
+or warnings. Its PDF receipt at
+`/tmp/lunar-pr135-415efaa/out/manual/lunar-modulator-manual.pdf` is 2,386,182
+bytes, SHA-256
+`91ed8becbbb06f82df321e18aa6baba19f740e83288ba610b7545f4307df9d5c`.
+The generated chapter 11 HTML contains the independent-workstreams, no-board-
+prerequisite and route-specific working-unit wording. The aeon GCC engine build
+printed existing compiler warnings; the manual builder’s strict validation
+passed. No local daemon was restarted, no build artifacts were written into the
+repository, and no device or hardware was contacted. PR #135 CI and Pages checks
+were queued at this exact head; this LAN receipt does not replace those checks.
+
+## Bounded full-code-audit disposition for demo work
+
+This is a cross-check of the audit’s findings that intersect project authoring,
+state loading, playback, distribution or device readiness, not a rerun or blanket
+closure of the full audit. Findings remain in
+`notes/2026-10-07-full-code-audit.md`; several entries there predate fixes and
+still say “no fix was made”.
+
+- **Resolved on current `main`:** the IndexedDB false-success/data-loss P2 is
+  in merged PR #103 (`b6a6b58`), so the browser must not claim a durable save
+  when storage failed. The stale cable-target P2 is in merged PR #99, commit
+  `dd1ecf2`; `sim/web/test/editor-v1.mjs` now changes a cable after Search
+  captures it and asserts the batch refuses the target. The malformed trig
+  lane P2 was fixed in merged PR #100, commit `17b7495`; `field_end()` now
+  initializes the signed lane and `tests/test_seq_core.py` rejects bad and
+  out-of-range lane tokens. The infinite rate/duration P3 in the Room oracle
+  is fixed in merged PR #112; its current entry checks finite, positive,
+  representable frames before converting/allocation.
+- **Still a bounded editor/runtime follow-up:** repeated “Make B from the
+  picks” undo/redo P2 is PR #118, open at `b4234c1` when checked; until it
+  lands, avoid repeated picks loads inside the history merge interval when
+  creating canonical assets. Compare MID’s missed pulse P3 is PR #113, open
+  at `b439606`; do not rely on a single-tick sweep through its middle zone in
+  demo modulation until the fix passes and lands. The specific unknown-MFX
+  ON/PARAM false-application defect is fixed on current `main` by merged PR
+  #100: `tests/test_app_state.py::test_sound_import_cannot_apply_unknown_mfx_to_old_slot`
+  covers JSON and binary imports and verifies that an unavailable incoming
+  effect leaves the destination at its bypassed default. This does not waive
+  the separate demo-admission check: use the exact integrated registry and
+  reject every unknown, refused, left-out or skipped object. A successful file
+  read alone is not a load receipt.
+- **Not a reason to block offline composition, but still tracked:** remaining
+  malformed-input, extreme-value, cleanup, benchmark, CLI, oracle and manual
+  publishing findings are mostly developer-tool reliability/safety cases.
+  Use known-valid bounded parameters and output paths outside the source tree;
+  do not run the destructive `--site` case or untrusted remote-runner arguments.
+  The GPL-only X0X signed-shift P2 was fixed by merged PR #100 and its
+  vendor-patch correction: `engines/third_party/fm1-x0x/UPSTREAM.md` records
+  the unsigned arithmetic in `dsp/fastmath.h` and `dsp/drum808.c`, removed
+  UBSan exemptions, 114 focused tests and 293 sanitizer tests (with the
+  documented reference-checkout skips). The code remains GPL-3.0-only, so
+  keep X0X out of MIT/BSD demo builds for licensing reasons, not because this
+  shift finding is unresolved. Other audit P3 findings remain tracked; this
+  note does not claim blanket resolution.
+- **Separate hardware gate:** device handover/diagnostic work and the full-image
+  recovery uncertainty are not required to compose or verify desktop/browser
+  demos. PR #124’s bounded offline preparation is merged, but no Lunar
+  application has run on the FM-1; no installability, full-image restore or
+  firmware-runtime claim follows from the offline evidence.
+
+For composition readiness, the outstanding product-facing gates remain the
+exact integrated engine/Wasm artifacts and admission checks, complete project
+roundtrips and entire-chain renders, browser load/play/listening for each song,
+and the owner’s pending Safari Sound 2 listening retest. One test-harness
+follow-up belongs with the future demo assets: `tests/test_state_schema.py`
+currently hardcodes the `first-orbit` project stem in
+`test_example_validates_and_is_canonical`; generalize it to validate the
+project filename convention while preserving sound/effect suffix conventions
+when the additional projects are added. This is not evidence of invalid
+existing project files. This disposition does not claim the gates complete and
+does not supersede CI or owner listening.

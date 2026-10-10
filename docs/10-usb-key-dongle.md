@@ -3,10 +3,11 @@
 Specification, reference implementation and test harness for the dongle that
 puts the FM-1's JieLi AC791N into its mask-ROM USB download mode
 (`UBOOT1.00`) through the USB-C port, so the flash can be dumped and restored
-without opening the case. This is Phase 2 of the roadmap (docs/08): nothing
-else may be written to the device until this works (docs/07 §4).
+without opening the case. This is Phase 2 of the roadmap (docs/08). Bench
+work follows the owner's staged backup, image/range and recovery-plan
+conditions (docs/07 §4); this dongle is not a blanket prerequisite for it.
 
-Status 2026-09-06: **specified, implemented and simulated; not yet run against
+Status 2026-10-09: **specified, implemented and simulated; not yet run against
 an FM-1.** JieLi sells a ready-made equivalent ("JL USB Updater", docs/07 §2.1);
 buy that first. This design is the open, instrumented alternative. Confidence marks as elsewhere: [reported] = kagaimiq's write-ups,
 or the reports in issue #2 and czietz's gist where §1.1 says so, [inferred] =
@@ -18,9 +19,10 @@ Update 2026-10-01:
   on this repository (§1.1) that their own Pico dongle reaches UBOOT mode on
   their FM-1. Another owner, masanaohayashi, used it to put their FM-1 into
   boot mode, back up its firmware and write firmware [reported].
-- **So the mask-ROM route this document plans is reported working on two
-  other units.** Nothing has run on this project's unit, and the one rule
-  still applies to it (docs/07 §4).
+- **So the dongle route this document plans is reported working on two
+  other units.** This project's dongle remains untried. The owner's staged
+  policy superseded the original blanket restore prerequisite on 2026-10-07
+  (docs/07 §4); the soft-key result below is a separate entry method.
 - **What the reports show:** D+ is the clock, moving the cable to the PC
   works as the hand-over, and the ROM may listen only briefly after power-up.
 - **Sections updated to match:** §1 items 3 and 7, §3, §5, §6 and §8.
@@ -36,6 +38,17 @@ Update 2026-10-05 (`notes/2026-10-05-community-repos.md`):
   entry on FM-1_092 is now verified and owner-authorized (docs/07 §4;
   [bench note](../notes/2026-10-07-fm1-softkey-bench.md)); broken-app recovery
   remains untested.
+
+Update 2026-10-09 [verified: [bench note](../notes/2026-10-07-fm1-softkey-bench.md)]:
+
+- **The soft-key path reached flash on the owner's FM-1_092.** A pinned
+  recovery loader ran in RAM and took matching full 1 MiB backups. A bounded
+  4 KiB unused-sector write/readback/restore passed; the complete post-test
+  dump matched the backups. The owner confirmed normal boots after the
+  read-only session and after restoration, followed by a fresh identity check.
+- **The limits remain:** no whole-image restoration, broken-app recovery or
+  Lunar application execution has been demonstrated. The physical dongle
+  implementation described here has not run on the owner's unit.
 
 ## 1. What the mask ROM does [reported: kagaimiq]
 
@@ -429,15 +442,19 @@ one line per transition with microsecond timestamps.
 - Expected: a new mass-storage device whose SCSI inquiry product string is
   `UBOOT1.00` and whose vendor field is the chip family, which `jluboottool.py`
   uses as the chip name. czietz's gist gives `WL80UBOOT1.00` as its example
-  name (§1.1), so expect `WL82` [inferred]. The VID:PID is unknown for WL82;
-  BR23–BR34 use VID `4C4A` with PIDs `x342`. `python3 jldevfind.py` lists it.
-- Then, **read-only first**: `python3 jluboottool.py --chip wl82` loads
-  `wl82loader.bin` (address `0x1C02000`, MengLi cipher); inside the shell,
-  identify the flash (JEDEC ID; expect a 1 MB density code `0x14`) and
-  `read 0 0x100000 dump1.bin`. Power-cycle, re-enter, `read` again to
-  `dump2.bin`; the two must be identical and must match the stock package
-  where it maps (docs/01 §2). Only then is a `write` of `dump1.bin` allowed,
-  followed by a third dump. Exit criteria are in docs/08 Phase 2.
+  name (§1.1). This unit enumerated as `4C4A:8057` `WL80UBOOT1.00`, with SCSI
+  `WL82`/`UBOOT1.00` [verified: [bench note](../notes/2026-10-07-fm1-softkey-bench.md)].
+- **Read-only first:** the bench used the reviewed `tools/fm1_uboot_read.py`
+  with pinned jl-uboot-tool `adb3f188`'s loader, uploaded to `0x01C02000` in
+  RAM. It reported JEDEC `0x856014` and took two matching 1 MiB dumps using
+  256-byte transfers [verified: bench note]. Keep private backups off-host;
+  do not publish their firmware or user data.
+- Matching backups alone do not authorize an arbitrary whole-image write.
+  Evaluate exact images/ranges and a recovery plan under docs/07 §4. The
+  reviewed `tools/fm1_uboot_restore_test.py` restored only the unused sector
+  `[0xD8000,0xD9000)`, followed by a complete flash comparison and normal boot
+  [verified: bench note]. Whole-image restoration remains untested. Exit
+  criteria are in docs/08 Phase 2.
 - `jlrunner.py` can load and run code in RAM without touching flash; that is
   the path for the first custom code (docs/08 Phase 3).
 
@@ -506,10 +523,10 @@ and whether VBUS alone powers the SoC. Those are §6.
 | Does the ROM listen continuously or only briefly at power-up? | perhaps briefly [inferred]: czietz's blind key/SOF loop hits about one power-on in two, which fits a window from milliseconds to a few hundred (§1.1 item 4). Keying from before power-up covers it; fixed polarity A avoids the alternate-mode miss |
 | Does the chip stay in `UBOOT1.00` while the cable moves from dongle to PC? | yes on two FM-1s [reported, §1.1]; presumably the battery holds the SoC up through the swap [inferred] |
 | Push-pull drive against the chip's acknowledge | survived on FM-1s with czietz's gist and FM-1-transporter, both push-pull with no series resistors [inferred from the reported successes; drive verified in their code]; we stay open-drain (E1) |
-| Does the WL82 UBOOT route reach the flash? | a backup and a write on an FM-1 are reported (masanaohayashi, §1.1), tool and commands not stated; read-only commands first here (§5) |
+| Does the WL82 UBOOT route reach the flash? | yes through the soft-key path on this FM-1_092: matching full backups and bounded 4 KiB restoration, complete flash identical afterward and normal boot confirmed [verified: bench note]; physical dongle and whole-image restoration remain untested here (§5) |
 | Does the FM-1 SoC start on VBUS with the switch off? | **No** [verified 2026-09-06]: with the switch off the unit is absent from USB (no device node, no MIDI port, no identity reply). Power-up is the switch; no VBUS load switch needed |
 | Series/ESD parts between the USB-C receptacle and the SoC | unknown; 2.2 kΩ pull-ups tolerate a few hundred ohms in series |
-| WL82 `UBOOT1.00` VID:PID and inquiry string | `4C4A:8057` `WL80UBOOT1.00`, SCSI `WL82`/`UBOOT1.00`/`1.00` on FM-1s [reported: FM-1-transporter, fm1-nes]; jl-uboot-tool `adb3f18` works with 256-byte I/O [reported: fm1-nes]. Read-only commands first here |
+| WL82 `UBOOT1.00` VID:PID and inquiry string | `4C4A:8057` `WL80UBOOT1.00`, SCSI `WL82`/`UBOOT1.00` on this FM-1_092; pinned jl-uboot-tool `adb3f188` loader works with 256-byte I/O [verified: bench note]. Read-only commands first here |
 | MengLi cipher / loader block size for wl82 | from `usb-loaders.yaml` [reported] |
 | Battery keeps the SoC powered while "off" | No: the USB device disappears within seconds of switching off [verified 2026-09-06]. The key must be present when the switch is thrown; the dongle keys continuously |
 

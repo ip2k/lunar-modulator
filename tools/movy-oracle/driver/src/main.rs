@@ -344,12 +344,34 @@ struct RunOut {
     movy1: String,
 }
 
+fn run_length(script: &Script) -> Result<u64, String> {
+    // An explicit end may intentionally exclude later commands. Do not
+    // evaluate the implicit length at all in that case.
+    if let Some(end) = script.end {
+        return Ok(end);
+    }
+    let block = script.block as u64;
+    let last = script.cmds.last().map_or(0, |c| c.frame);
+    // Include the whole block whose start is at or after the last command.
+    // Keep harness arithmetic checked even under Movy's release semantics.
+    last.div_ceil(block)
+        .checked_add(1)
+        .and_then(|blocks| blocks.checked_mul(block))
+        .ok_or_else(|| {
+            format!(
+                "default run length exceeds u64 for frame {last} and block {block}; \
+                 specify end= to limit the run"
+            )
+        })
+}
+
 fn run(
     script: &Script,
     state: Option<&str>,
     mode: FrameMode,
     name: &str,
 ) -> Result<RunOut, String> {
+    let total = run_length(script)?;
     // A: the reported run, whole blocks, as movy-dsp. B: one frame per call.
     let mut a = Engine::new(script.rate, DEFAULT_BPM_X100);
     let mut b = Engine::new(script.rate, DEFAULT_BPM_X100);
@@ -367,12 +389,10 @@ fn run(
     };
     let mut panics: Vec<String> = Vec::new();
     let block = script.block as u64;
-    let last = script.cmds.last().map_or(0, |c| c.frame);
     // The last command lands before the first block starting at or after its
     // frame; that block is the last one run. With end=, the run is that many
     // frames: whole blocks, the last one shorter if need be, and a command
     // due at the end frame itself is applied after them.
-    let total = script.end.unwrap_or((last.div_ceil(block) + 1) * block);
 
     let mut out_a: Vec<OutEvent> = Vec::with_capacity(256);
     let mut out_b: Vec<OutEvent> = Vec::with_capacity(256);
@@ -657,5 +677,61 @@ fn main() -> ExitCode {
             eprintln!("movy-oracle: {e}");
             ExitCode::from(2)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn implicit_length_includes_the_command_block() {
+        for (last, expected) in [(0, 128), (1, 256), (128, 256), (129, 384)] {
+            let script = parse_script(&format!("@{last} stop\n")).unwrap();
+            assert_eq!(run_length(&script).unwrap(), expected);
+        }
+    }
+
+    #[test]
+    fn implicit_length_checks_addition_and_multiplication_boundaries() {
+        for block in [1u64, 2, 128, 8192] {
+            let largest_total = u64::MAX / block * block;
+            let last = largest_total - block;
+            let script = parse_script(&format!("#! block={block}\n@{last} stop\n")).unwrap();
+            assert_eq!(run_length(&script).unwrap(), largest_total);
+
+            // One frame later needs one more whole block than u64 can hold.
+            for rejected in [last + 1, u64::MAX] {
+                let script =
+                    parse_script(&format!("#! block={block}\n@{rejected} stop\n")).unwrap();
+                let error = run_length(&script).unwrap_err();
+                assert!(error.contains("default run length exceeds u64"), "{error}");
+            }
+        }
+    }
+
+    #[test]
+    fn impossible_implicit_run_fails_before_replay() {
+        let script = parse_script("#! block=1\n@18446744073709551615 play\n").unwrap();
+        let error = run(&script, None, FrameMode::Block, "overflow.verbs")
+            .err()
+            .unwrap();
+        assert!(error.contains("default run length exceeds u64"), "{error}");
+    }
+
+    #[test]
+    fn explicit_end_avoids_unused_implicit_overflow() {
+        for block in [1, 128, 8192] {
+            let script = parse_script(&format!(
+                "#! block={block} end=0\n@18446744073709551615 play\n"
+            ))
+            .unwrap();
+            assert_eq!(run_length(&script).unwrap(), 0);
+            let output = run(&script, None, FrameMode::Block, "limited.verbs").unwrap();
+            assert!(output.log.is_empty());
+            assert!(output.summary.contains("\"blocks\":0,\"events\":0"));
+        }
+        let script = parse_script("#! end=18446744073709551615\n").unwrap();
+        assert_eq!(run_length(&script).unwrap(), u64::MAX);
     }
 }

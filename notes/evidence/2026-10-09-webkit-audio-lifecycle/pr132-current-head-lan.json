@@ -1,0 +1,881 @@
+{
+  "head": "c6db9587c1d8d1ca6f993d8f433875761f3b2b6e",
+  "cpus": 4,
+  "memory": "4g",
+  "image": "mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27",
+  "runner": "set -eu\napt-get update -qq && apt-get install -y -qq pulseaudio pulseaudio-utils >/dev/null\nmkdir -p /probe/out\npulseaudio --version > /probe/out/pulse-version.txt\npulseaudio --system -n --disallow-exit --exit-idle-time=-1 --log-target=file:/probe/out/pulse.log --load=\"module-null-sink sink_name=lunar rate=48000 channels=2 norewinds=1\" --load=\"module-native-protocol-unix auth-anonymous=1 socket=/tmp/pa.sock\" -D\nexport PULSE_SERVER=unix:/tmp/pa.sock PULSE_SOURCE=lunar.monitor PLAYWRIGHT_DIR=/pw BROWSER=webkit FM1_SCHEDULING_CAPTURE=1\nsha256sum /probe/sim/web/www/fm1.wasm /probe/sim/web/www/worklet.js > /probe/out/hashes.txt\npactl list short modules > /probe/out/modules.txt\ncat /sys/fs/cgroup/cpu.stat > /probe/out/cpu-before.txt\ntimeout 120 node /probe/sim/web/test/audio-loopback.mjs /probe/sim/web/www /probe/out/audio 30 > /probe/out/audio.log 2>&1 || echo $? > /probe/out/audio-exit-status\ncat /sys/fs/cgroup/cpu.stat > /probe/out/cpu-after-audio.txt\ntimeout 180 node /probe/sim/web/test/editor-ui.mjs /probe/sim/web/www /probe/out/ui > /probe/out/ui.log 2>&1 || echo $? > /probe/out/ui-exit-status\ncat /sys/fs/cgroup/cpu.stat > /probe/out/cpu-after-ui.txt\nchown -R \"$(stat -c %u:%g /probe)\" /probe/out\n",
+  "files": {
+    "hashes.txt": "9562448e742836a4571ebd04ad303c72d0125a8054483dffbee9d5c6240ed4e1  /probe/sim/web/www/fm1.wasm\nf3788e723cd22303dfbd95030c8d16cce761ca60be0ac1717b453861872d33cd  /probe/sim/web/www/worklet.js\n",
+    "cpu-after-audio.txt": "usage_usec 63030017\nuser_usec 48025151\nsystem_usec 15004865\nnice_usec 8000\ncore_sched.force_idle_usec 0\nnr_periods 762\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0\n",
+    "modules.txt": "0\tmodule-null-sink\tsink_name=lunar rate=48000 channels=2 norewinds=1\t\n1\tmodule-native-protocol-unix\tauth-anonymous=1 socket=/tmp/pa.sock\t\n",
+    "cpu-after-ui.txt": "usage_usec 191316566\nuser_usec 159194408\nsystem_usec 32122158\nnice_usec 13000\ncore_sched.force_idle_usec 0\nnr_periods 1679\nnr_throttled 4\nthrottled_usec 58685\nnr_bursts 0\nburst_usec 0\n",
+    "pulse-version.txt": "pulseaudio 16.1\n",
+    "cpu-before.txt": "usage_usec 3667441\nuser_usec 2559832\nsystem_usec 1107609\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 81\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0\n",
+    "audio/audio-loopback.json": {
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "seconds": 30,
+      "source": "lunar.monitor",
+      "events": [
+        {
+          "scope": "project",
+          "at": 1791611528754,
+          "before": {
+            "playing": true,
+            "side": "B"
+          },
+          "after": {
+            "playing": true,
+            "side": "A",
+            "busy": false,
+            "message": "Now A: the project.",
+            "scope": "project"
+          }
+        },
+        {
+          "scope": "project",
+          "at": 1791611531304,
+          "before": {
+            "playing": true,
+            "side": "A"
+          },
+          "after": {
+            "playing": true,
+            "side": "B",
+            "busy": false,
+            "message": "Now B: the project.",
+            "scope": "project"
+          }
+        },
+        {
+          "scope": "project",
+          "at": 1791611533847,
+          "before": {
+            "playing": true,
+            "side": "B"
+          },
+          "after": {
+            "playing": true,
+            "side": "A",
+            "busy": false,
+            "message": "Now A: the project.",
+            "scope": "project"
+          }
+        },
+        {
+          "scope": "project",
+          "at": 1791611536391,
+          "before": {
+            "playing": true,
+            "side": "A"
+          },
+          "after": {
+            "playing": true,
+            "side": "B",
+            "busy": false,
+            "message": "Now B: the project.",
+            "scope": "project"
+          }
+        },
+        {
+          "scope": "s2",
+          "at": 1791611542287,
+          "before": {
+            "playing": true,
+            "side": "B"
+          },
+          "after": {
+            "playing": true,
+            "side": "A",
+            "busy": false,
+            "message": "Now A: Sound 2.",
+            "scope": 1
+          }
+        },
+        {
+          "scope": "s2",
+          "at": 1791611544834,
+          "before": {
+            "playing": true,
+            "side": "A"
+          },
+          "after": {
+            "playing": true,
+            "side": "B",
+            "busy": false,
+            "message": "Now B: Sound 2.",
+            "scope": 1
+          }
+        },
+        {
+          "scope": "s2",
+          "at": 1791611547387,
+          "before": {
+            "playing": true,
+            "side": "B"
+          },
+          "after": {
+            "playing": true,
+            "side": "A",
+            "busy": false,
+            "message": "Now A: Sound 2.",
+            "scope": 1
+          }
+        },
+        {
+          "scope": "s2",
+          "at": 1791611549937,
+          "before": {
+            "playing": true,
+            "side": "A"
+          },
+          "after": {
+            "playing": true,
+            "side": "B",
+            "busy": false,
+            "message": "Now B: Sound 2.",
+            "scope": 1
+          }
+        }
+      ],
+      "logs": [],
+      "tone-stormStartedAt": 1791611487750,
+      "storm": {
+        "batches": 3756,
+        "replies": 3756,
+        "refused": 0,
+        "resyncs": 0,
+        "rate": 44100
+      },
+      "ab-playbackStartedAt": 1791611522708,
+      "audio": {
+        "pass": true,
+        "activeSeconds": 32.011854166666666,
+        "nonfinite": 0,
+        "channelMismatches": 0,
+        "maxZeroRun": 1,
+        "maxSilenceMs": 0.020833333333333332,
+        "cycles": 13864,
+        "badPeriods": 0,
+        "maxPeriodError": 0.008821574886411554
+      },
+      "music": {
+        "seconds": 30.252395833333335,
+        "peak": 0.26702880859375,
+        "nonfinite": 0
+      },
+      "transportStopped": [],
+      "pass": true
+    },
+    "ui/editor-ui.json": {
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "checks": {
+        "the Panel layout loads none of the editor": true,
+        "the first switch loads the editor": true,
+        "a panel knob reaches the editor's row within a few frames": true,
+        "it enters the history as the panel's": true,
+        "K1-K4 mark the rows the panel's knobs turn now": true,
+        "selecting M1 in the Flow opens it on the panel": true,
+        "the Flow subscribes to its meters while it is seen": true,
+        "focus in the editor gives it the keys (EDIT)": true,
+        "arrow keys move one detent each, as one history step": true,
+        "in EDIT no computer key reaches the FM-1": true,
+        "undo ends at the first state (by hash where the view is the same, else member by member less the view)": true,
+        "redo ends at the edited state": true,
+        "Esc gives the keys back (PLAY): they play, and no editor key edits": true,
+        "Ctrl+E gives them to the editor": true,
+        "Space picks a block up and the arrows aim it, with C's verdict before the drop": true,
+        "Space drops it: the two slots swap, as one history step": true,
+        "the keys stay with the moved block": true,
+        "undo puts the swap back": true,
+        "a pointer drag shows the verdict over its target and swaps on release": true,
+        "a picker shows every choice's RAM in percent, or C's refusal in words": true,
+        "choosing in it changes the block": true,
+        "undo puts the effect back": true,
+        "a choice C refuses is not offered, and asked anyway changes nothing, in its words": true,
+        "Add a cable puts one in the first empty slot": true,
+        "its amount typed and its polarity chosen reach C": true,
+        "a cable the planner leaves out shows its reason in the metadata's words": true,
+        "undoing the matrix edits ends where they began": true,
+        "a rack module moves by keys, its kind with it, as one step in words": true,
+        "undoing the rack edits ends at the state before them": true,
+        "every module draws an inspector from the metadata with nothing overflowing": true,
+        "a block exports its file, named as W1 names files": true,
+        "selecting an arpeggiator opens its ARP pages on the panel": true,
+        "a file too large for the module is refused at the block, in words": true,
+        "two files at once are refused at the block": true,
+        "malformed, random and DX7 files are refused with C's words, nothing asked": true,
+        "a mod rack dropped on a sound is refused in C's words": true,
+        "no refused drop changes the state": true,
+        "a sound dropped on a sound shows C's verdict and RAM after, then loads": true,
+        "the library lists what was saved to it": true,
+        "a library item hovering a block it does not fit shows C's refusal before the drop": true,
+        "a library sound hovering a sound shows its verdict and loads on the drop": true,
+        "Ctrl+K opens the search with the keys in it": true,
+        "a command found by its words runs on Enter": true,
+        "a parameter found by sound and name: Enter selects its row": true,
+        "nothing matching is said so; Esc closes": true,
+        "the Memory page shows each part and what is free in percent, never in bytes": true,
+        "A/B: X hears A, as kept, with the differences from C": true,
+        "A/B: X again hears B, the edit back": true,
+        "a structural edit keeps a snapshot; its undo is checked by hash (no view, no current sound)": true,
+        "an undo whose inverse records fall short loads the snapshot, back to the same hash": true,
+        "view=edit&sel=s1:Harmonics opens the editor at that parameter": true,
+        "a link to an empty block opens the editor and says so": true,
+        "hostile sel links are refused in words, nothing injected": true,
+        "an off-site load in a link is refused, and nothing off-site is asked for": true,
+        "an unknown parameter in sel is said so": true,
+        "workbench, sound at 1440 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "workbench, flow at 1440 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "workbench, mod at 1440 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, sound at 1440 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, flow at 1440 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, mod at 1440 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, library at 1440 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, memory at 1440 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, compare at 1440 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, search at 1440 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "workbench, sound at 1024 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "workbench, flow at 1024 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "workbench, mod at 1024 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, sound at 1024 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, flow at 1024 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, mod at 1024 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, library at 1024 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, memory at 1024 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, compare at 1024 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, search at 1024 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "workbench, sound at 768 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "workbench, flow at 768 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "workbench, mod at 768 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, sound at 768 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, flow at 768 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, mod at 768 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, library at 768 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, memory at 768 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, compare at 768 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, search at 768 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, sound at 375 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, flow at 375 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, mod at 375 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, library at 375 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, memory at 375 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, compare at 375 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "editor, search at 375 px: no sideways scroll, nothing overflowing, clipped or overlapping": true,
+        "no page errors": true
+      },
+      "logs": [],
+      "why": [],
+      "follow_panel": {
+        "key": "s2:2",
+        "frames": 3,
+        "ms": 33,
+        "chips": [
+          "K1",
+          "K2",
+          "K3",
+          "K4"
+        ],
+        "knobs": 4,
+        "entry": {
+          "origin": "panel",
+          "how": "knob",
+          "label": "S2 Harmonics"
+        },
+        "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+        "flashed": true,
+        "trace": {
+          "observer": "main-thread",
+          "perturbsTiming": true,
+          "events": [
+            {
+              "phase": "main-port",
+              "type": "state",
+              "ms": 7,
+              "audioTime": 0.5485714285714286,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 8,
+              "audioTime": 0.5485714285714286,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 18,
+              "audioTime": 0.5601814058956917,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 20,
+              "audioTime": 0.5601814058956917,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 24,
+              "audioTime": 0.5659863945578232,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 25,
+              "audioTime": 0.5659863945578232,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "frames": [
+            {
+              "frame": 1,
+              "ms": 5,
+              "audioTime": 0.5456689342403628,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 2,
+              "ms": 17,
+              "audioTime": 0.5572789115646258,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 3,
+              "ms": 33,
+              "audioTime": 0.5746938775510204,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "droppedEvents": 0,
+          "initial": {
+            "ms": 0,
+            "audioTime": 0.5398639455782313,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          }
+        }
+      },
+      "follow_editor": {
+        "ok": true,
+        "ms": 150,
+        "view": "fx",
+        "slot": 3
+      },
+      "edit": {
+        "label": "Harmonicsv",
+        "keys": "edit",
+        "before": "0.33",
+        "now": "0.37",
+        "sent": [
+          "screen-buffer",
+          "screen-buffer",
+          "screen-buffer",
+          "screen-buffer",
+          "screen-buffer",
+          "screen-buffer",
+          "screen-buffer",
+          "screen-buffer",
+          "screen-buffer",
+          "screen-buffer",
+          "screen-buffer",
+          "screen-buffer",
+          "screen-buffer",
+          "screen-buffer"
+        ],
+        "entries": [
+          [
+            "editor",
+            "key",
+            0.33000001311302185,
+            0.3700000047683716
+          ]
+        ]
+      },
+      "undo": {
+        "first": 4084461473,
+        "changed": 192845863,
+        "undone": 4084461473,
+        "redone": 192845863,
+        "undone_vs_first": [],
+        "redone_vs_changed": [],
+        "view_first": "fx.1.3",
+        "view_undone": "home.1.0"
+      },
+      "play": {
+        "was": "play",
+        "n": 2,
+        "sent": [
+          "key",
+          "key",
+          "key",
+          "key",
+          "screen-buffer",
+          "screen-buffer",
+          "screen-buffer",
+          "screen-buffer",
+          "screen-buffer",
+          "screen-buffer",
+          "screen-buffer"
+        ],
+        "keys": "play"
+      },
+      "ed3": {
+        "keys": {
+          "verdict": "Swap \u00b7 RAM 69 %",
+          "target": "s1.in1",
+          "first": "s1.in1",
+          "before": [
+            "hall",
+            ""
+          ],
+          "after": [
+            "",
+            "hall"
+          ],
+          "label": "Swap M1 and S1 In1",
+          "focus": "s1.in1"
+        },
+        "drag": {
+          "pill": "Swap \u00b7 RAM 69 %",
+          "m1": "",
+          "in2": "hall",
+          "hits": [
+            "BUTTON.ed-block is-panel",
+            "BUTTON.ed-block is-empty"
+          ]
+        },
+        "picker": {
+          "rows": 25,
+          "chose": "plate",
+          "sample": [
+            [
+              "",
+              "RAM 56 %",
+              false
+            ],
+            [
+              "plate",
+              "RAM 73 %",
+              false
+            ],
+            [
+              "sw-psxverb",
+              "RAM 91 %",
+              false
+            ],
+            [
+              "room",
+              "RAM 67 %",
+              false
+            ]
+          ]
+        },
+        "refusal": {
+          "emptyOffered": false,
+          "kept": true,
+          "detail": "S1 engine: Cannot be read",
+          "words": "Cannot be read"
+        },
+        "matrix": {
+          "n0": 3,
+          "n1": 4,
+          "steps": 4,
+          "amount": -6554,
+          "pol": 2,
+          "late": {
+            "refused": true,
+            "text": "Cannot be modulated: Model rebuilds the voices",
+            "words": "Cannot be modulated"
+          },
+          "slot": 4
+        },
+        "rack": {
+          "r0": [
+            "lfo",
+            "lfo",
+            "env",
+            "env",
+            "chance",
+            "",
+            "",
+            ""
+          ],
+          "r1": [
+            "lfo",
+            "env",
+            "env",
+            "chance",
+            "",
+            "lfo",
+            "",
+            ""
+          ],
+          "r2": [
+            "lfo",
+            "env",
+            "env",
+            "chance",
+            "",
+            "",
+            "",
+            "resonator"
+          ],
+          "empty": 5,
+          "steps": 3,
+          "movedAfter": "moved"
+        }
+      },
+      "inspectors": {
+        "modules": 56,
+        "rows": 898,
+        "faults": []
+      },
+      "ed4": {
+        "export": {
+          "name": "first-orbit-master.fx.lunar",
+          "kind": "fx"
+        },
+        "drops": {
+          "big": {
+            "ok": false,
+            "text": "Nothing loads into Sound 1. \u201cbig.lunar\u201d is larger than the simulator reads. Replaces Sound 1: Drums Dismiss",
+            "asked": false
+          },
+          "two": {
+            "ok": false,
+            "text": "Nothing loads into Sound 1. Drop one file at a time on a block. Replaces Sound 1: Drums Dismiss",
+            "asked": false
+          },
+          "malformed": {
+            "ok": false,
+            "text": "\u201cbad\u201d cannot go into Sound 1. This is not a Lunar Modulator file. Replaces Sound 1: Drums Dismiss",
+            "asked": false
+          },
+          "garbage": {
+            "ok": false,
+            "text": "\u201cx\u201d cannot go into Sound 1. This is not a Lunar Modulator file. Replaces Sound 1: Drums Dismiss",
+            "asked": false
+          },
+          "syx": {
+            "ok": false,
+            "text": "\u201cp\u201d cannot go into Sound 1. This is not a Lunar Modulator file. Replaces Sound 1: Drums Dismiss",
+            "asked": false
+          },
+          "wrongKind": {
+            "ok": false,
+            "text": "\u201crack.mods\u201d cannot go into Sound 1. A sound, not a mod rack, was expected. Replaces Sound 1: Drums Brings 5 modules and 4 cables Dismiss",
+            "asked": false
+          },
+          "unchanged": true,
+          "good": {
+            "ok": true,
+            "text": "Load \u201cmine.sound\u201d into Sound 1? Replaces Sound 1: Drums Brings Drums RAM 69 % of the FM-1's memory after it Load into Sound 1 Cancel",
+            "asked": false
+          },
+          "loaded": true
+        },
+        "library": {
+          "items": 5,
+          "wrong": {
+            "verdict": "A sound, not an effects chain, was expected.",
+            "ok": false
+          },
+          "right": {
+            "verdict": "Load \u00b7 RAM 64 %",
+            "ok": true
+          },
+          "s1": "drums",
+          "s3": "drums"
+        },
+        "search": {
+          "s1": {
+            "open": true,
+            "at": "Memory",
+            "active": "ed-search-in"
+          },
+          "s1v": "memory",
+          "pname": {
+            "name": "Tune",
+            "uid": 2
+          },
+          "before": "ed-sl-4-0",
+          "after": "ed-sl-4-0",
+          "kept": "ed-search-in",
+          "s2": {
+            "row": "s1:2",
+            "open": false
+          },
+          "none": "Nothing matches",
+          "s3": {
+            "open": false,
+            "keys": "edit"
+          }
+        },
+        "memory": {
+          "rows": 8,
+          "used": "64 %",
+          "free": "36 %",
+          "bytes": false
+        },
+        "ab": {
+          "abSetup": {
+            "A": true,
+            "scope": 0,
+            "now": "0",
+            "max": "24"
+          },
+          "abB": "24",
+          "abA": "0",
+          "abState": {
+            "playing": "A",
+            "diff": 1
+          },
+          "abB2": "24",
+          "abState2": "B"
+        },
+        "fallback": {
+          "id": "test-ext",
+          "had": true,
+          "check1": "hash",
+          "check2": "snapshot",
+          "h0": 2197315409,
+          "h1": 2197315409,
+          "h2": 2197315409
+        },
+        "links": {
+          "param": {
+            "layout": "editor",
+            "notice": "",
+            "sel": "s1",
+            "row": "s1:2",
+            "view": "sound",
+            "imgs": 0,
+            "address": ""
+          },
+          "empty": {
+            "layout": "editor",
+            "notice": "The link's selection \u201cp8\u201d was not applied: that block is empty.",
+            "sel": "s1",
+            "row": null,
+            "view": "flow",
+            "imgs": 0,
+            "address": ""
+          },
+          "noBlock": {
+            "layout": "editor",
+            "notice": "The link's selection was not applied: it names no block of the editor.",
+            "sel": "s1",
+            "row": null,
+            "view": "flow",
+            "imgs": 0,
+            "address": ""
+          },
+          "html": {
+            "layout": "editor",
+            "notice": "The link's selection was not applied: it names no block of the editor.",
+            "sel": "s1",
+            "row": null,
+            "view": "flow",
+            "imgs": 0,
+            "address": ""
+          },
+          "long": {
+            "layout": "editor",
+            "notice": "The link's selection was not applied: it names no block of the editor.",
+            "sel": "s1",
+            "row": null,
+            "view": "flow",
+            "imgs": 0,
+            "address": ""
+          },
+          "url": {
+            "layout": "editor",
+            "notice": "The link's selection was not applied: it names no block of the editor.",
+            "sel": "s1",
+            "row": null,
+            "view": "flow",
+            "imgs": 0,
+            "address": ""
+          },
+          "load": {
+            "layout": "panel",
+            "notice": "The link's file \u201chttps://evil.example/a.lunar\u201d is not one this page loads: only files under guide/, manual/, examples/ on this site are, or a .lunar, .movy1 or .syx file on a local server.",
+            "sel": null,
+            "row": null,
+            "view": null,
+            "imgs": 0,
+            "address": "?view=edit&load=https%3A%2F%2Fevil.example%2Fa.lunar"
+          },
+          "bogus": {
+            "layout": "editor",
+            "notice": "The link's parameter \u201cNoSuchParameter\u201d is not one of S1's.",
+            "sel": "s1",
+            "row": null,
+            "view": "flow",
+            "imgs": 0,
+            "address": ""
+          },
+          "offsite": [],
+          "log": []
+        }
+      },
+      "layouts": {
+        "ed2-workbench-sound-1440": [],
+        "ed2-workbench-flow-1440": [],
+        "ed3-workbench-mod-1440": [],
+        "ed2-editor-sound-1440": [],
+        "ed2-editor-flow-1440": [],
+        "ed3-editor-mod-1440": [],
+        "ed4-editor-library-1440": [],
+        "ed4-editor-memory-1440": [],
+        "ed4-editor-compare-1440": [],
+        "ed4-editor-search-1440": [],
+        "ed2-workbench-sound-1024": [],
+        "ed2-workbench-flow-1024": [],
+        "ed3-workbench-mod-1024": [],
+        "ed2-editor-sound-1024": [],
+        "ed2-editor-flow-1024": [],
+        "ed3-editor-mod-1024": [],
+        "ed4-editor-library-1024": [],
+        "ed4-editor-memory-1024": [],
+        "ed4-editor-compare-1024": [],
+        "ed4-editor-search-1024": [],
+        "ed2-workbench-sound-768": [],
+        "ed2-workbench-flow-768": [],
+        "ed3-workbench-mod-768": [],
+        "ed2-editor-sound-768": [],
+        "ed2-editor-flow-768": [],
+        "ed3-editor-mod-768": [],
+        "ed4-editor-library-768": [],
+        "ed4-editor-memory-768": [],
+        "ed4-editor-compare-768": [],
+        "ed4-editor-search-768": [],
+        "ed2-editor-sound-375": [],
+        "ed2-editor-flow-375": [],
+        "ed3-editor-mod-375": [],
+        "ed4-editor-library-375": [],
+        "ed4-editor-memory-375": [],
+        "ed4-editor-compare-375": [],
+        "ed4-editor-search-375": []
+      },
+      "screenshots": [
+        "/probe/out/ui/ed2-workbench-sound-1440.png",
+        "/probe/out/ui/ed2-workbench-flow-1440.png",
+        "/probe/out/ui/ed3-workbench-mod-1440.png",
+        "/probe/out/ui/ed2-editor-sound-1440.png",
+        "/probe/out/ui/ed2-editor-flow-1440.png",
+        "/probe/out/ui/ed3-editor-mod-1440.png",
+        "/probe/out/ui/ed4-editor-library-1440.png",
+        "/probe/out/ui/ed4-editor-memory-1440.png",
+        "/probe/out/ui/ed4-editor-compare-1440.png",
+        "/probe/out/ui/ed4-editor-search-1440.png",
+        "/probe/out/ui/ed2-workbench-sound-1024.png",
+        "/probe/out/ui/ed2-workbench-flow-1024.png",
+        "/probe/out/ui/ed3-workbench-mod-1024.png",
+        "/probe/out/ui/ed2-editor-sound-1024.png",
+        "/probe/out/ui/ed2-editor-flow-1024.png",
+        "/probe/out/ui/ed3-editor-mod-1024.png",
+        "/probe/out/ui/ed4-editor-library-1024.png",
+        "/probe/out/ui/ed4-editor-memory-1024.png",
+        "/probe/out/ui/ed4-editor-compare-1024.png",
+        "/probe/out/ui/ed4-editor-search-1024.png",
+        "/probe/out/ui/ed2-workbench-sound-768.png",
+        "/probe/out/ui/ed2-workbench-flow-768.png",
+        "/probe/out/ui/ed3-workbench-mod-768.png",
+        "/probe/out/ui/ed2-editor-sound-768.png",
+        "/probe/out/ui/ed2-editor-flow-768.png",
+        "/probe/out/ui/ed3-editor-mod-768.png",
+        "/probe/out/ui/ed4-editor-library-768.png",
+        "/probe/out/ui/ed4-editor-memory-768.png",
+        "/probe/out/ui/ed4-editor-compare-768.png",
+        "/probe/out/ui/ed4-editor-search-768.png",
+        "/probe/out/ui/ed2-editor-sound-375.png",
+        "/probe/out/ui/ed2-editor-flow-375.png",
+        "/probe/out/ui/ed3-editor-mod-375.png",
+        "/probe/out/ui/ed4-editor-library-375.png",
+        "/probe/out/ui/ed4-editor-memory-375.png",
+        "/probe/out/ui/ed4-editor-compare-375.png",
+        "/probe/out/ui/ed4-editor-search-375.png"
+      ],
+      "pass": true
+    }
+  }
+}

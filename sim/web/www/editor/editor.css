@@ -113,13 +113,14 @@
 .ed-out-mod .ed-out-tag { background: var(--live); }
 .ed-outline .ed-out { justify-content: center; padding: 4px 2px; }
 
-.ed-card { padding: 12px var(--ed-pad) 0; display: grid; grid-template-columns: 144px minmax(0, 1fr); gap: 4px 16px; align-items: start; }
+.ed-card { padding: 12px var(--ed-pad) 0; display: grid; grid-template-columns: 242px minmax(0, 1fr); gap: 4px 16px; align-items: start; }
 .ed-card-title { grid-column: 1 / -1; margin: 0; font: 400 0.75rem/1.3 var(--display); text-transform: uppercase; letter-spacing: 0.08em; }
-.ed-screen { width: 144px; height: 144px; image-rendering: pixelated; background: var(--screen); border-radius: 4px; border: 1px solid var(--frame); }
+/* Keep framebuffer pixels intact: fractional shrink loses bitmap strokes. */
+.ed-screen { box-sizing: content-box; width: 240px; height: 240px; image-rendering: pixelated; background: var(--screen); border-radius: 4px; border: 1px solid var(--frame); }
 .ed-screen-cap { margin: 0; color: var(--muted); font-size: 0.8rem; }
 
 @media (min-width: 1180px) {
-  .ed[data-layout="editor"] .ed-body { grid-template-columns: 228px minmax(0, 1fr); grid-template-areas: "nav main" "card main"; }
+  .ed[data-layout="editor"] .ed-body { grid-template-columns: 280px minmax(0, 1fr); grid-template-areas: "nav main" "card main"; }
   .ed[data-layout="editor"] .ed-outline .ed-out-name,
   .ed[data-layout="editor"] .ed-outline .ed-out-h, .ed[data-layout="editor"] .ed-outline .ed-out-x { display: block; }
   .ed[data-layout="editor"] .ed-outline .ed-out { justify-content: flex-start; padding: 4px 6px; }
@@ -128,7 +129,7 @@
     background: var(--surface); align-self: start; border-right: 0;
   }
   .ed[data-layout="editor"] .ed-card { border-right: 1px solid var(--border); }
-  .ed[data-layout="editor"] .ed-screen { width: 100%; height: auto; aspect-ratio: 1; margin: 8px 0; }
+  .ed[data-layout="editor"] .ed-screen { margin: 8px 0; }
 }
 
 /* ---- heads: where the panel is, what it just did --------------------------- */
@@ -564,7 +565,7 @@
 
 /* ---- stage ED5a: phones (§14) ------------------------------------------------------
  * Tabs, not columns: the outline becomes a row of tabs above everything (it
- * scrolls inside itself, never the page), the screen card shrinks to 96 px,
+ * scrolls inside itself, never the page), the screen keeps its native size,
  * the strips and the rows stack, and the matrix is a list of cables. The
  * Map is not offered here (it needs room for a picture of the matrix, which
  * the table above it already is). */
@@ -576,8 +577,7 @@
     border-right: 0; border-bottom: 1px solid var(--border); scrollbar-width: thin;
   }
   .ed-outline .ed-out { flex: none; width: auto; min-width: 44px; min-height: 36px; justify-content: center; padding: 4px 6px; }
-  .ed-card { grid-template-columns: 96px minmax(0, 1fr); gap: 4px 12px; padding-top: 10px; }
-  .ed-screen { width: 96px; height: 96px; }
+  .ed-card { grid-template-columns: minmax(0, 1fr); gap: 4px 12px; padding-top: 10px; }
   .ed-screen-cap { font-size: 0.75rem; }
   .ed-appbar { padding: 8px var(--ed-pad); gap: 6px 10px; }
   .ed-ram-list { right: auto; left: 0; min-width: 0; width: min(280px, calc(100vw - 4 * var(--ed-pad))); }

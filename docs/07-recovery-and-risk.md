@@ -4,10 +4,12 @@
 and authorized staged hardware experiments (§4). The following opening
 describes the original rationale, not a current ban on boot-mode probes.
 
-The original single most important fact about this project: **until a full flash dump
-and a byte-identical restore have been demonstrated, every non-stock write to
-the FM-1 risks a permanent brick.** This document is the plan to remove that
-risk, ranked by how likely each path is to work and how invasive it is.
+The original single most important fact about this project: **a non-stock
+write can leave the FM-1 unable to boot, and the stock updater cannot rescue a
+nonbooting application.** The owner has since authorized and completed the
+bounded experiments in §4. A full-image restore and recovery from a broken
+application remain untested. This document records the risks and staged
+safeguards; it is not a general authorization for device writes.
 
 ## 1. Why recovery is hard on this device
 
@@ -187,7 +189,7 @@ programmer become the simplest recovery path of all; read it on the bench
 
 | Risk | Likelihood | Impact | Mitigation |
 | --- | --- | --- | --- |
-| Custom package bricks the only device | high if attempted before recovery | total loss of the unit | **do not flash non-stock before 2.1 is proven**; buy a second FM-1 or an AC791N dev board for first experiments. The board is **JL-AC79-DevKit V1.0**: base board, core board JL-AC79-WIFI V1.0 with an **AC7916** (same dual pi32v2 at up to 320 MHz, 578 KB SRAM), LCD board and cameras. eBay resellers list it for about US$126–144 delivered (2026-09-30). The AC7916 may carry in-package SDRAM the FM-1 lacks; keep benchmark state in internal SRAM. It is also where to rehearse `USB_KEY` and the JieLi USB updater before the FM-1 |
+| Custom package bricks the only device | high if attempted without a retained recovery path | total loss of the unit | Follow §4 rule 1 before any flash erase/program. The verified bounded sector restore does not prove full-image recovery or rescue from a nonbooting application; rehearse firmware on the AC791N dev board when available. The board is **JL-AC79-DevKit V1.0**: base board, core board JL-AC79-WIFI V1.0 with an **AC7916** (same dual pi32v2 at up to 320 MHz, 578 KB SRAM), LCD board and cameras. The AC7916 may carry in-package SDRAM the FM-1 lacks; keep benchmark state in internal SRAM. It is also where to rehearse `USB_KEY` and the JieLi USB updater before the FM-1 |
 | `USB_KEY` does not work on AC791N through the connector | low (reported working on FM-1s through the USB-C port with czietz's dongle and with FM-1-transporter, docs/10 §1.1) | forces soldering (2.4) | D+ clock first, then the other polarity; quiet bus; dev-board rehearsal |
 | Wrong loader / wrong chip family in tooling | medium | corrupt flash | jl-uboot-tool marks WL82 "unknown", but `adb3f18`'s `wl82loader.bin` works on FM-1s with 256-byte I/O [reported: fm1-nes guard patch]. Read-only operations first, compare the dump with the stock package before any write, and finish dump, compare and write in one session: if the host drops the device, the chip boots flash [reported: FM-1-transporter] |
 | Interrupted write (power loss, USB drop) | medium | unbootable app | battery charged, no hubs during writes, dump before every write. Through the stock path, a loader left waiting after step 1 can be resumed [reported: Baud Girl] |
@@ -221,21 +223,23 @@ programmer become the simplest recovery path of all; read it on the bench
 7. Log everything on the bench: USB descriptors, SysEx traces, dumps with
    SHA-256, photos of pin probes. Put them under `notes/`.
 
-**Historical policy note (2026-09-29; superseded by rule 1 above).** Baud Girl's FM-1+VA (docs/04) shows the stock path
+**Historical policy note (2026-09-29; superseded by §4 rule 1 and the 2026-10-07 bench result).** Baud Girl's FM-1+VA (docs/04) shows the stock path
 installing and removing non-stock applications at scale. That is new
 evidence, but it is evidence about *transfers*. Rule 1 exists for the image
 that does not come back, and no FM-1 has yet been dumped and restored through
 mask ROM. Since 2026-10-01 a backup and a write through mask ROM are reported
 on another owner's FM-1 (issue #2, docs/10 §1.1), but not a byte-identical
-restore, and nothing here on this project's unit. Since then fm1-nes
+restore. At that time there had been no such test on this project's unit.
+Since then fm1-nes
 (Keitark) wrote 51 sectors through mask ROM on its maintainer's V14 unit,
 FM-1-transporter erased and rewrote one sector on a V15 unit, and Felucca
 and SLOOP install and roll back through the stock path [reported; docs/04].
-None of it was on this project's unit. The rules stand unchanged unless the
-owner decides otherwise.
+Those reports and the statements above are historical context, not current
+rules or current bench status. See §4 rule 1 and the current bench record.
 
-The owner has since installed FM-1+VA on the unit by their own decision (it
-identifies as `FM-1_092` on 2026-09-29). That leaves the rules as they are:
-they govern what *this project* builds and sends. The documented way back to
-stock is M-VAVE's V15 `.fwsc` through Baud Girl's installer [reported]; it
-has not been exercised here. A dump taken now captures FM-1+VA, not stock.
+The owner had installed FM-1+VA on the unit by their own decision (it
+identifies as `FM-1_092` on 2026-09-29). Current rules are in §4; the
+project's later bounded recovery result is recorded in the bench note. The
+documented way back to stock is M-VAVE's V15 `.fwsc` through Baud Girl's
+installer [reported]; it has not been exercised here. A dump taken now
+captures FM-1+VA, not stock.

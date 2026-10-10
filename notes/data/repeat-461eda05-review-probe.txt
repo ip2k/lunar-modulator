@@ -1,0 +1,30 @@
+ev=2 n=221 wet=0 held=0 armed=0 last=0.5
+ev=1 n=221 wet=0 held=0 armed=0 last=0.5
+ev=8 n=221 wet=0 held=0 armed=0 last=0.5
+ev=0 n=221 wet=0 held=0 armed=0 last=0.5
+ev=0 n=1 wet=0 held=0 armed=0 last=0.5
+ev=0 n=16384 wet=0 held=0 armed=1 last=0.5
+ev=4 n=221 wet=1 held=1 armed=0 last=0.499992
+ev=0 n=5 wet=0.977376 held=1 armed=0 last=0.499993
+ev=0 n=216 wet=0 held=0 armed=1 last=0.5
+rehold_before held=0 armed=1 write=0 capture_head=1
+ev=4 n=1 wet=0 held=0 armed=1 last=0.5
+rehold_after held=0 write=1 capture_head=1
+ev=0 n=1 wet=0 held=0 armed=0 last=0.5
+ev=0 n=16384 wet=0 held=0 armed=1 last=0.5
+ev=4 n=221 wet=1 held=1 armed=0 last=0.499992
+ev=0 n=5 wet=0.977376 held=1 armed=0 last=0.499993
+ev=0 n=1 wet=0 held=0 armed=0 last=0.5
+ev=0 n=16384 wet=0 held=0 armed=1 last=0.5
+ev=4 n=221 wet=1 held=1 armed=0 last=0.499992
+ev=0 n=5 wet=0.977376 held=1 armed=0 last=0.499993
+ev=0 n=216 wet=0 held=0 armed=0 last=0.5
+ev=0 n=216 wet=0 held=0 armed=0 last=0.5
+repeat_holdoff a_wet=0 held=0 left=0 b_wet=0 held=0 left=0
+ev=0 n=1 wet=0 held=0 armed=0 last=0.5
+ev=0 n=1 wet=0 held=0 armed=0 last=0.5
+ev=0 n=5 wet=0 held=0 armed=0 last=0.5
+ev=0 n=5 wet=0 held=0 armed=0 last=0.5
+ev=0 n=216 wet=0 held=0 armed=0 last=0.5
+ev=0 n=216 wet=0 held=0 armed=0 last=0.5
+repeat_mix a=1 left=0 b=1 left=0

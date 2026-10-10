@@ -9,9 +9,7 @@ its own code is open under the MIT licence.
 
 Lunar Modulator runs today in a web browser and on computers. It does not run
 on the FM-1 yet. This manual describes what it does, how to play it, and where
-each part of it stands. Please read this chapter before anything else: it
-explains what you can use now, and why nothing is offered for the FM-1 itself
-yet.
+each part of it stands, including the limits of the device work.
 
 ## What you can use today
 
@@ -32,7 +30,8 @@ this manual carries a status that says where it works today:
   firmware is tested, and the only place a few of the sequencer's functions
   (clips, scenes and songs) run so far.
 - **The FM-1 itself** runs none of it yet. Everything marked *Planned for the
-  device* is designed and documented, and waits for the rule described below.
+  device* is designed and documented, but still needs implementation and
+  verification on the hardware.
 
 ## Features at a glance
 
@@ -49,31 +48,31 @@ this manual carries a status that says where it works today:
 | Sequencer sets saved and loaded as text files | Desktop | [10](10-settings-and-storage.md) |
 | Any of the above on the FM-1 | Planned | [11](11-updating-and-recovery.md) |
 
-## The one rule
+## Device work and recovery {#the-one-rule}
 
-Nothing is installed on, or written to, an FM-1 until two things have been
-shown on that very unit: a complete copy of its memory has been read out, and
-that copy has been written back so that the unit is byte for byte as it was.
+The owner has authorized staged bench work. On the owner's FM-1_092, the
+project has entered USB recovery mode, taken matching private full-flash
+backups, and programmed, read back and restored one bounded unused sector;
+the complete image matched the backups afterward. This proves that bounded
+sector operation on that unit worked. It does not prove a full-image rewrite,
+recovery from a nonbooting application or a Lunar installation.
 
-The reason is that an FM-1 has no safety net. Its firmware lives in a single
-bank of memory, and the board has no recovery button and no test connector.
-The FM-1's own update method runs inside the firmware that is already
-installed: it can replace a working firmware, but it cannot rescue one that no
-longer starts. Owners of other FM-1s have reported reading out and writing
-their units' memory with a small USB dongle, but this project has not yet
-done so itself. Until a way back has been shown to work on the unit in
-question, a failed install could leave the instrument permanently unusable.
+The FM-1's own updater runs inside the installed firmware, so it cannot rescue
+an application that no longer starts. Before any further erase or program
+operation, the staged plan requires private backups to be compared, the exact
+image and ranges to be reviewed, and a recovery plan and route to USB update
+mode to be retained. UBOOT entry alone is not proof of recovery. The current
+limits and safeguards are in [chapter 11](11-updating-and-recovery.md).
 
 !!! warning "There is nothing to install on your FM-1 yet"
-    There is no Lunar Modulator firmware for the FM-1 yet, and this project
-    will not offer one until the one rule is met. Be wary of any file that
-    claims to be Lunar Modulator for the device: it is not from this project.
-    To try Lunar Modulator, use the browser simulator.
+    There is no installable Lunar Modulator release for the FM-1 yet. Offline
+    diagnostic firmware variants exist, but none has run on an FM-1. Be wary of any file
+    that claims to be Lunar Modulator for the device: it is not from this
+    project. To try Lunar Modulator, use the browser simulator.
 
-The one rule also limits what this project sends to an FM-1 while the work
-goes on: a read-only query that asks the unit which version of its firmware
-it runs, and passive listening, nothing else. [Chapter 11](11-updating-and-recovery.md)
-describes the recovery work under way and what will change once it succeeds.
+Any additional device interaction must follow the staged plan in [chapter
+11](11-updating-and-recovery.md). The project has not installed or run Lunar
+on an FM-1.
 
 ## Safety and care
 

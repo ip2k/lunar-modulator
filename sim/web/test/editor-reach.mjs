@@ -18,7 +18,8 @@
 //  - announcements: a refusal reaches the live region in C's words, and a
 //    burst of thirty is at most two updates a second;
 //  - phones (375 px): the layouts are two tabs, Panel and Edit; the outline
-//    is a row of tabs that scrolls inside itself; the screen card is 96 px;
+//    is a row of tabs that scrolls inside itself; the screen preserves its
+//    native 240 by 240 pixels at phone, tablet and desktop breakpoints;
 //    the matrix is a list of cables with each cell named; no Map; no
 //    sideways scroll in any view;
 //  - telemetry: a Limiter driven hard reads gain reduction on its card
@@ -201,6 +202,43 @@ check('nothing is announced while the editor is idle', say.idle === 0, say);
 check('a refusal from C reaches the live region in its words', say.refusal && say.refusal.includes(say.words), say);
 check('a burst of thirty announcements is at most three updates, the last one kept', say.burst <= 3 && say.last === 'announcement 29', say);
 
+// ---- native screen pixels and card bounds -----------------------------------------------------
+report.preview = [];
+for (const width of [320, 375, 640, 641, 768, 1179, 1180, 1440]) {
+  await page.setViewportSize({ width, height: 1000 });
+  const bounds = await page.evaluate(() => {
+    const screen = document.querySelector('.ed-screen');
+    const card = document.querySelector('.ed-card');
+    const caption = document.querySelector('.ed-screen-cap');
+    const rect = (e) => { const r = e.getBoundingClientRect(); return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height }; };
+    const s = rect(screen), c = rect(card), p = rect(caption), css = getComputedStyle(screen);
+    const contains = (outer, inner) => inner.left >= outer.left - 1 && inner.right <= outer.right + 1 &&
+      inner.top >= outer.top - 1 && inner.bottom <= outer.bottom + 1;
+    const clipped = [];
+    for (const el of [screen, caption]) {
+      const r = rect(el);
+      for (let a = el.parentElement; a; a = a.parentElement) {
+        const cs = getComputedStyle(a), ar = rect(a);
+        if ((['hidden', 'clip'].includes(cs.overflowX) && (r.left < ar.left - 1 || r.right > ar.right + 1)) ||
+            (['hidden', 'clip'].includes(cs.overflowY) && (r.top < ar.top - 1 || r.bottom > ar.bottom + 1))) clipped.push(a.className);
+      }
+    }
+    return { framebuffer: [screen.width, screen.height], content: [parseFloat(css.width), parseFloat(css.height)],
+      screen: s, card: c, caption: p, captionText: caption.textContent, clipped,
+      contained: contains(c, s) && contains(c, p),
+      separated: s.right <= p.left || p.right <= s.left || s.bottom <= p.top || p.bottom <= s.top,
+      sw: document.documentElement.scrollWidth, vw: document.documentElement.clientWidth };
+  });
+  report.preview.push({ width, ...bounds });
+  check(`preview at ${width} px preserves native framebuffer and CSS content pixels`,
+    bounds.framebuffer.every((n) => n === 240) && bounds.content.every((n) => n === 240) &&
+    bounds.screen.width === 242 && bounds.screen.height === 242, bounds);
+  check(`preview at ${width} px contains an unclipped screen and separate caption`, bounds.contained && bounds.separated &&
+    bounds.captionText.length > 0 && bounds.caption.width > 0 && bounds.caption.height > 0 &&
+    bounds.clipped.length === 0 && bounds.sw <= bounds.vw + 1 && bounds.screen.left >= 0 && bounds.screen.right <= bounds.vw, bounds);
+  if ([320, 768, 1440].includes(width)) await page.locator('.ed-card').screenshot({ path: join(out, `ed-preview-${width}.png`) });
+}
+
 // ---- phones ----------------------------------------------------------------------------------
 await page.setViewportSize({ width: 375, height: 812 });
 await page.waitForTimeout(300);
@@ -217,7 +255,6 @@ const phone = await page.evaluate(() => {
 report.phone = phone;
 check('a phone has two tabs, Panel and Edit', phone.radios.length === 2 && phone.radios[0] === 'Panel' && phone.radios[1] === 'Edit', phone);
 check('the outline is a row of tabs that scrolls inside itself, not the page', phone.outlineRow === 'row' && phone.outlineScrolls && phone.sw <= phone.vw + 1, phone);
-check('the screen card shows a 96 px screen', phone.screen[0] === 96 && phone.screen[1] === 96, phone);
 check('no Map on a phone', !phone.map, phone);
 // The Workbench, asked for on a phone, is Edit.
 const wb = await page.evaluate(async () => { document.querySelector('[data-layout="workbench"]').click(); await new Promise((r) => setTimeout(r, 400)); return document.body.dataset.layout; });
