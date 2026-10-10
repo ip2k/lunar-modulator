@@ -41137,6 +41137,52 @@
       "errors": [],
       "pass": true
     },
-    "method": "Duration-weighted mean square of one-second RMS bins over nominal occurrence boundaries. Fractional seconds assume stationary energy; approximate RMS, not LUFS, perceived loudness or sample-exact boundaries."
+    "method": "Duration-weighted mean square of one-second RMS bins over nominal occurrence boundaries. Fractional seconds assume stationary energy; approximate RMS, not LUFS, perceived loudness or sample-exact boundaries.",
+    "independent_browser_saved_state_comparison": [
+      {
+        "file": "afterglow-relay.lunar",
+        "browser_saved_sha256": "b3ce8a5183df08a209bb4027782d98e05de686fe2dc74026fd495ee9fffb4896",
+        "command_multiset_equal": true,
+        "all_other_fields_equal_after_normalization": true,
+        "normalization": [
+          "made.by hand -> simulator",
+          "set command order",
+          "disabled default arp objects in sounds 0,1,3"
+        ]
+      },
+      {
+        "file": "event-horizon.lunar",
+        "browser_saved_sha256": "93f6f1d55f268b5015b74b17de4045421b44d382b0a7c27b18dec7913dd4e9a8",
+        "command_multiset_equal": true,
+        "all_other_fields_equal_after_normalization": true,
+        "normalization": [
+          "made.by hand -> simulator",
+          "set command order",
+          "disabled default arp objects in sounds 0,1,3"
+        ]
+      },
+      {
+        "file": "neon-transit.lunar",
+        "browser_saved_sha256": "f229b9eea3428e2cacafe9856f55a603949b0ff7f80f7f45c3c2da969ea183ea",
+        "command_multiset_equal": true,
+        "all_other_fields_equal_after_normalization": true,
+        "normalization": [
+          "made.by hand -> simulator",
+          "set command order",
+          "disabled default arp objects in sounds 0,1,3"
+        ]
+      },
+      {
+        "file": "packet-bloom.lunar",
+        "browser_saved_sha256": "62461937e210f15ac8797615c7208806bfe1b4a1a084fbe1bf57cb1562b5b8a4",
+        "command_multiset_equal": true,
+        "all_other_fields_equal_after_normalization": true,
+        "normalization": [
+          "made.by hand -> simulator",
+          "set command order",
+          "disabled default arp objects in sounds 0,1,3"
+        ]
+      }
+    ]
   }
 }
