@@ -367,8 +367,8 @@ This is a synthesis of other people's work. The details are in
 **FM-1 research and recovery**
 
 - **aroum**: updater analysis and teardown photos.
-- **AL-255**: firmware disassembly, protocol captures, the safety analysis
-  behind this project's one rule, and experimental firmware (WTFPL).
+- **AL-255**: firmware disassembly, protocol captures, recovery safeguards,
+  and experimental firmware (WTFPL).
 - **Echomatter**: in AL-255's
   [PR #2](https://github.com/AL-255/FM-1-RE/pull/2), installed a
   version-bumped V15 package on an FM-1 and rolled it back (2026-09-04). It is

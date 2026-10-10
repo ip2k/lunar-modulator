@@ -5,8 +5,9 @@ applies to the whole instrument and sets the project key, and how projects,
 sounds and sequencer sets are kept in files.
 
 !!! warning "Nothing is stored on the FM-1"
-    Lunar Modulator writes nothing to an FM-1's memory, and will not until
-    the one rule is met ([chapter 1](01-welcome-and-safety.md#the-one-rule)).
+    Lunar Modulator writes nothing to an FM-1's memory; device storage is not
+    implemented. Any future flash operation must follow the staged safeguards
+    in [chapter 11](11-updating-and-recovery.md).
     The sounds, patterns and settings your FM-1 holds now stay as they are.
 
 ## The global page
@@ -194,8 +195,9 @@ sim/web/build/native/fm1-sim-render --load mine.lunar --load s2:deep-bass.sound.
 engines/build/fm1-state check mine.lunar           # whether a file fits, and what it holds
 ```
 
-On the FM-1, saving sounds and projects to its flash memory waits for the
-one rule ([chapter 11](11-updating-and-recovery.md#the-one-rule-again)).
+On the FM-1, saving sounds and projects to flash is not implemented. Any
+future flash operation must follow the staged safeguards in
+[chapter 11](11-updating-and-recovery.md#the-staged-recovery-policy).
 
 ## Sequencer sets
 
@@ -250,8 +252,9 @@ The FM-1 build is planned to keep sets in three stages:
    apart from the areas M-VAVE's firmware uses, only when you save. Each set
    is kept twice, so a power cut while saving cannot lose both copies.
 
-The third stage waits for the one rule
-([chapter 11](11-updating-and-recovery.md#the-one-rule-again)).
+The third stage is planned and remains unimplemented; see
+[chapter 11](11-updating-and-recovery.md#the-staged-recovery-policy) for the
+recovery evidence and remaining limits.
 
 ## Backing up
 
@@ -269,11 +272,10 @@ The patches, patterns and settings that M-VAVE's firmware keeps in the FM-1's
 flash memory stay in their own areas. Lunar Modulator is planned never to
 write there.
 
-- Reading them would need their formats, which only a complete copy of the
-  FM-1's memory can show.
-- That copy is exactly what the one rule asks for first: a full read-out of
-  the FM-1's memory, kept safe, before anything is written
-  ([chapter 11](11-updating-and-recovery.md#the-recovery-dongle)).
+- Reading them needs their formats. The existing private backup is from
+  FM-1+VA and has not been reverse-engineered for this purpose. Any later
+  write must follow the staged safeguards in
+  [chapter 11](11-updating-and-recovery.md#the-staged-recovery-policy).
 
 !!! tip "Keep your own copies"
     If you use a patch editor or librarian with M-VAVE's firmware, keep your
