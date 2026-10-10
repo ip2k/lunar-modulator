@@ -96,19 +96,20 @@ static const float g_hb_coeffs[HB_TAPS] = {
     -0.000275135f,  /* 38 */
 };
 
-/* Polyphase Phase 0: coeffs at even indices [0, 2, 4, ..., 38] */
+/* Polyphase Phase 0: coeffs at even indices [0, 2, 4, ..., 38]. */
 static const float g_hb_phase0[20] = {
     -0.000275135f, -0.001467466f, -0.004356503f, -0.009765625f,
     -0.018493652f, -0.031494141f, -0.050598145f, -0.079833984f,
-    -0.130859375f, -0.281494141f,  0.632812500f, -0.281494141f,
-    -0.130859375f, -0.079833984f, -0.050598145f, -0.031494141f,
-    -0.018493652f, -0.009765625f, -0.004356503f, -0.001467466f
+    -0.130859375f, -0.281494141f, -0.281494141f, -0.130859375f,
+    -0.079833984f, -0.050598145f, -0.031494141f, -0.018493652f,
+    -0.009765625f, -0.004356503f, -0.001467466f, -0.000275135f
 };
 
-/* Polyphase Phase 1: coeffs at odd indices (all zeros for halfband) */
+/* Polyphase Phase 1: coeffs at odd indices [1, 3, 5, ..., 37]. The center
+ * tap at raw index 19 belongs to this phase. */
 static const float g_hb_phase1[19] = {
     0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-    0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f
+    0.632812500f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f
 };
 
 typedef struct {
@@ -140,28 +141,28 @@ static float halfband_decimate(halfband_t *hb, float x0, float x1) {
     return sum;
 }
 
-/* Interpolate: 22.05kHz -> 44.1kHz (1 sample in, 2 out)
- * Exact port from Halfband39::Interpolate */
+/* Interpolate: 22.05kHz -> 44.1kHz (1 sample in, 2 out).
+ * The state stores the half-rate input stream. Each output phase therefore
+ * convolves that history at input-rate stride; its coefficients are the even
+ * or odd taps of the full-rate zero-stuffed FIR. */
 static void halfband_interpolate(halfband_t *hb, float in_tick, float *out_s0, float *out_s1) {
-    /* Push upsampled input (zero-stuff: [in, 0]) */
+    /* Keep one history entry per input sample, not one per zero-stuffed
+     * output sample. Polyphase decomposition accounts for the zeroes. */
     hb->state[hb->pos] = in_tick;
     hb->pos = (hb->pos + 1) & HB_STATE_MASK;
 
-    /* Phase 0: even coefficients (produces sample 0) */
+    /* Phase 0: even full-rate coefficients (produces sample 0). */
     float sum0 = 0.0f;
     int idx = hb->pos;
-    for (int i = 0; i < 20; ++i) {  /* 20 even taps */
+    for (int i = 0; i < 20; ++i) {
         idx = (idx - 1) & HB_STATE_MASK;
         sum0 += g_hb_phase0[i] * hb->state[idx];
     }
 
-    /* Phase 1: odd coefficients (produces sample 1) */
-    hb->state[hb->pos] = 0.0f;  /* zero-stuffed sample */
-    hb->pos = (hb->pos + 1) & HB_STATE_MASK;
-
+    /* Phase 1: odd full-rate coefficients (produces sample 1). */
     float sum1 = 0.0f;
     idx = hb->pos;
-    for (int i = 0; i < 19; ++i) {  /* 19 odd taps */
+    for (int i = 0; i < 19; ++i) {
         idx = (idx - 1) & HB_STATE_MASK;
         sum1 += g_hb_phase1[i] * hb->state[idx];
     }
