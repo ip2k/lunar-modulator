@@ -76,3 +76,32 @@ three-browser storm/loopback and exact-head CI remain pending. These
 browser-only files are outside `source_hash.py` engine/SIM inputs; the
 existing Wasm is unchanged, not a new DSP artifact claim. Native Safari
 and the owner's by-ear retest remain pending.
+
+## Actual new-source browser receipt
+
+[verified] Runtime checkpoint `adc6ae955d247dd17e48c1c5b86fd76f20a52547`
+ran one sequential batch on aeon with the pinned Playwright image, 4 CPUs /
+2 GiB and private Pulse `norewinds=1`. All nine commands passed: startup
+(two power cycles), strict 30-second edit storm and actual continuous
+loopback in Chromium, Firefox and WebKit. Each startup's node construction
+and ready happened while suspended, with unchanged audio time zero.
+
+Storm edit counts were 7,303 / 7,211 / 3,757, with zero non-OK codes and
+resyncs, 905 telemetry messages each and valid binary snapshots. Chromium
+reported zero underrun events/ms; Firefox/WebKit do not expose that counter.
+Loopback active durations were 32.0004 / 32.0062 / 32.0119 seconds: zero
+nonfinite samples, channel mismatches, silence and bad periods. Each
+completed eight project/Sound 2 A/B swaps without transport stops. All
+original assertions remain intact. Exact outputs, raw artifact hashes,
+trace classifications and resource provenance are in
+`data/2026-10-10-suspended-init-browsers.json`; raw outputs remain under
+`/home/claude/mvave-fm1/suspended-init-adc6/src/ready-results` on aeon.
+
+[verified] Engine/SIM input hashes remain `85ef296b…` / `4d861ada…` and
+Wasm `4667498f…`; `CI=true` committed-artifact check passed without stale
+warnings. Browser lifecycle source is outside those build-hash inputs.
+The batch container exited and resources were released. This bounded LAN
+receipt supports the correction; full new-head CI and owner listening
+remain required. PR143's exact aff83 head finished 13 successful checks,
+sole Chromium failure, and Pages deploy skipped; no unchanged rerun was
+performed and the failure is not replaced by this LAN receipt.
