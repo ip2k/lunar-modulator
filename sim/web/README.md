@@ -1490,11 +1490,16 @@ change to the simulator.
 `sim/web/test/parity.mjs`, run by `build-on-aeon.sh`, also compares the module
 with JS, glibc and (when available) static-musl renders. Scenarios marked
 `libm_sensitive` use the musl simulator as their exact screen reference while
-retaining the glibc screen result as a diagnostic. This adds no pixel mask or
-tolerance; the existing bottom RAM-counter mask still applies. On the
+retaining the glibc screen result as a diagnostic. This adds no additional
+pixel mask or tolerance; the existing bottom RAM-counter mask still applies.
+On the
 2026-10-09 PSX Verb correction run, all 104 scenarios matched JS and musl
 audio; `sophie-kit` matched the musl screen exactly while 34 scope pixels
 differed from glibc after the interpolation correction.
+
+The native `tests/test_sim_web.py` suite checks the committed module against
+its build record. The musl screen oracle is exercised by `test/parity.mjs` in
+the bounded LAN build, not by that native pytest suite.
 
 `tests/test_sim_palette.py` runs `tools/palette.py`: the screen's and the
 page's tokens and roles agree, contrast after the RGB565 round trip,

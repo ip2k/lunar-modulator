@@ -126,7 +126,11 @@ record = {
         {"name": s["name"], "samples": s["samples"], "libm_sensitive": s["libm_sensitive"],
          **{k: (None if s[k] is None else {"differing": s[k]["differing"], "max_lsb": s[k]["max"]})
             for k in ("app_vs_js", "app_vs_musl", "app_vs_glibc")},
-         "screen_px_differing": s["screen"]["differing"], "ram_bytes": s["ram"],
+         "screen_reference": s["screen_reference"],
+         "screen_px_differing": s["screen"]["differing"],
+         **{k: (None if s[k] is None else {"differing": s[k]["differing"], "max_lsb": s[k]["max"]})
+            for k in ("screen_glibc", "screen_musl")},
+         "ram_bytes": s["ram"],
          **({"cmd": s["cmd"], "seq": s["seq"]} if s.get("cmd") else {}),
          **({"panel": s["panel"]} if s.get("panel") else {}),
          **({"mod": s["mod"]} if s.get("mod") else {})}
