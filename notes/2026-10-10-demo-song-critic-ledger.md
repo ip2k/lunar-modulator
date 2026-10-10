@@ -87,7 +87,8 @@ coverage limits, not validation of the writer worktree.
 | --- | --- | --- | --- |
 | 1 | `9a2d099` (canonical repair `27939c7`) | Round 1 MD/JSON | All 32 scenes below threshold; R1-A–H open |
 | 2 | `f1887404` | Round 2 MD/JSON | All 32 scenes below threshold; R1 repairs partly implemented; R2-A–F open |
-| 3–5 | Not started | — | — |
+| 3 | `cdf8d8fc` | Round 3 MD/JSON | All32 scenes below threshold; R2 repairs accepted/partial; R3-A–D open |
+| 4–5 | Not started | — | — |
 
 Critic branch: `chore/2026-10-10@demo-music-critic`.
 Writer branch: `feature/2026-10-10@demo-songs`.
@@ -108,3 +109,7 @@ Parent integration owns rendering, runtime acceptance and final packaging.
 [verified] Frozen f1887404ce12a53d63ef784178fa37fccec7722e reviewed across all 32 scenes, 57 occurrences, actual serialized notes, locks, routes, sound/FX/arp and modulation state. All four authoritative asset SHA256 values match the parent native/Wasm receipt. Runtime and Chromium play/Save/fresh-Open receipts read and retained in the report JSON. [inferred] Scores are 5–7; no scene passes. Real improvements include bass holds, peak endpoints, evolving builds, kickless contrast and cadences. Remaining targets are timestamp-aware phrase development, register-aware transposition, actual call/answer gaps, Event Horizon chord-swell identity, smooth voice-leading and a single directional Neon ending. No by-ear listening; scores remain provisional where perception matters.
 
 [verified] Round 1 browser Save normalization is explicitly retained: command reordering plus disabled default arp objects in previously empty slots, preserving musical commands and existing parameters. Do not conflate canonical representation with byte equality. Parent owns acceptance and final owner listening.
+
+## Round 3 source checkpoint
+
+[verified] Frozen cdf8d8fcc0bd89518f3fe28ec1a6661a827c19bc inspected across all32 scenes and56 occurrences; Neon now has one8-bar exit. Mechanical reversal/register/gap/overlap repairs, simultaneous Event chords and staged intros confirmed. Afterglow chord events remain identical toRound2 in scenes0–6 because the nearest-voice routine rejects5/4/5/4-cardinality changes. All peak bass/chord/main/chord-answer/lead-answer streams repeat their first four-bar events in the second half. [inferred] Scores6–8; no full pass. Remaining work is actual eight-bar phrase development, harmony-aware replies, common-tone voicing and distinctive scene identity. Runtime receipt pending; no listening claim.
