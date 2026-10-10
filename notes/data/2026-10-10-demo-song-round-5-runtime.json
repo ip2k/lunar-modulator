@@ -1,0 +1,321 @@
+{
+  "schema": "lunar-demo-song-runtime-acceptance/v1",
+  "recordedUtc": "2026-10-10T17:01:32.842750+00:00",
+  "frozenAssetCommit": "3e6eaa5fea7a38822b60a2a742af4b932856b8cc",
+  "integrationHarnessCommit": "2af61f7201ec6884299cf2a9b728260c12347809",
+  "startupBrowserSourceCommit": "5805ea9cc0a0d655f66c7d30b9d4584c8a615084",
+  "rate": 44118,
+  "wasmSha256": "4667498f919529ba0f1059f127ea02e60c2c2a76ee5bc16983cfeabbb96b76ec",
+  "manifestSha256": "1c1e003dbb4f25f61209a93600eeaa4659af689900d3c55103c933a475619730",
+  "nativeRenderer": {
+    "path": "/home/claude/mvave-fm1/worklet-ready-final-c44a808/src/sim/web/build/native/fm1-sim-render",
+    "sha256": "a17a9a3255dc80a88a528f4ba24ecf85d14852fb310cb8fc831314285ce4dda2"
+  },
+  "browser": {
+    "engine": "Chromium",
+    "version": "153.0.8010.12",
+    "playwrightImage": "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27",
+    "pass": true,
+    "errors": []
+  },
+  "execution": {
+    "host": "aeon",
+    "containerLimits": "2 CPU, 2 GiB memory, docker-batch.slice",
+    "network": "disabled for native/Wasm render; loopback only for browser harness",
+    "workspace": "/home/claude/mvave-fm1/demo-round5-3e6eaa5f",
+    "scratch": "scratch/demo-song-review/round-5-3e6eaa5f"
+  },
+  "claims": {
+    "nativeAndWasmFullSongRuntimePass": true,
+    "browserPreloadPlayStopSaveFreshOpenPass": true,
+    "humanListeningPerformed": false,
+    "hardwareExecutionPerformed": false
+  },
+  "songs": [
+    {
+      "title": "Afterglow Relay",
+      "file": "../../../engines/state/examples/afterglow-relay.lunar",
+      "bpm": 92,
+      "bars": 76,
+      "scenes": 8,
+      "projectSha256": "56098c13c658450c4013f91583cf04dafa6062b30c1c240446401a4201741a62",
+      "durationSeconds": 198.26087,
+      "stoppedAtSeconds": 198.268281,
+      "peak": 0.7222757935523987,
+      "rms": 0.08067551751966766,
+      "wasmDropped": 0,
+      "wasmRamPercent": 54,
+      "wasmLoad": {
+        "code": "OK",
+        "ram": 207656,
+        "budget": 387924,
+        "sounds": 4,
+        "effects": 5,
+        "modules": 5,
+        "cables": 4,
+        "tracks": 8,
+        "clips": 64,
+        "left_out": 0,
+        "skipped": 0,
+        "repaired": 0
+      },
+      "wasmSaveLoadSaveEqual": true,
+      "native": {
+        "sampleRate": 44118,
+        "frames": 8835109,
+        "rms": 0.080676,
+        "peak": 0.722276,
+        "ramBytes": 233384,
+        "seqEvents": 11691,
+        "seqDropped": 0,
+        "seqRefused": 0,
+        "soundingAtEnd": 0
+      },
+      "browser": {
+        "title": "Afterglow Relay",
+        "file": "afterglow-relay.lunar",
+        "listed": true,
+        "playbackStarted": true,
+        "download": true,
+        "reopened": true
+      },
+      "downloadedProject": {
+        "sha256": "3c6def4f3cb7a0c202dd52e9b81aba1d10aeaded68211157877695213353ac5f",
+        "bytes": 38390,
+        "freshContextOpenRestoredState": true,
+        "path": "scratch/demo-song-review/round-5-3e6eaa5f/browser/afterglow-relay.lunar"
+      },
+      "screenshot": {
+        "sha256": "8b3722310bd5aaaebdba8f3607358e2c1f7f013138cb320888cb39aa4661811f",
+        "bytes": 110447,
+        "path": "scratch/demo-song-review/round-5-3e6eaa5f/browser/afterglow-relay.lunar.png"
+      },
+      "wasmWav": {
+        "sha256": "e4332d39d99aae34eb2697365681f05dc14bba882186aa01be47cda8b7c0306d",
+        "bytes": 70681132,
+        "path": "scratch/demo-song-review/round-5-3e6eaa5f/wasm-audio/afterglow-relay-wasm.wav"
+      },
+      "nativeWav": {
+        "sha256": "f9b0a58bd85c16507013b1cbf4ce292be9dbdc5133cb06dba372514c393c596c",
+        "bytes": 35340480,
+        "path": "scratch/demo-song-review/round-5-3e6eaa5f/native/afterglow-relay.wav"
+      }
+    },
+    {
+      "title": "Event Horizon",
+      "file": "../../../engines/state/examples/event-horizon.lunar",
+      "bpm": 144,
+      "bars": 116,
+      "scenes": 8,
+      "projectSha256": "5b92ad3d8e6448855b9cde032a935437331620819becbb206212f32845414897",
+      "durationSeconds": 193.333333,
+      "stoppedAtSeconds": 193.338955,
+      "peak": 0.8555771708488464,
+      "rms": 0.09783460668838162,
+      "wasmDropped": 0,
+      "wasmRamPercent": 67,
+      "wasmLoad": {
+        "code": "OK",
+        "ram": 256872,
+        "budget": 387924,
+        "sounds": 4,
+        "effects": 5,
+        "modules": 5,
+        "cables": 4,
+        "tracks": 8,
+        "clips": 64,
+        "left_out": 0,
+        "skipped": 0,
+        "repaired": 0
+      },
+      "wasmSaveLoadSaveEqual": true,
+      "native": {
+        "sampleRate": 44118,
+        "frames": 8617716,
+        "rms": 0.097835,
+        "peak": 0.855577,
+        "ramBytes": 282600,
+        "seqEvents": 19248,
+        "seqDropped": 0,
+        "seqRefused": 0,
+        "soundingAtEnd": 0
+      },
+      "browser": {
+        "title": "Event Horizon",
+        "file": "event-horizon.lunar",
+        "listed": true,
+        "playbackStarted": true,
+        "download": true,
+        "reopened": true
+      },
+      "downloadedProject": {
+        "sha256": "de76ae7db901b0815ef19bac16843ef05069e76c65308289ef22269f01221dca",
+        "bytes": 40547,
+        "freshContextOpenRestoredState": true,
+        "path": "scratch/demo-song-review/round-5-3e6eaa5f/browser/event-horizon.lunar"
+      },
+      "screenshot": {
+        "sha256": "74e039fd158bfde7922efbed5b9dd24087a9388c68dcd9af450e13baa3c87968",
+        "bytes": 110200,
+        "path": "scratch/demo-song-review/round-5-3e6eaa5f/browser/event-horizon.lunar.png"
+      },
+      "wasmWav": {
+        "sha256": "456e95a5dbd1a026722f9ce2eb9658d92e8a3e98bd296b124bd9587dfc0f466a",
+        "bytes": 68941868,
+        "path": "scratch/demo-song-review/round-5-3e6eaa5f/wasm-audio/event-horizon-wasm.wav"
+      },
+      "nativeWav": {
+        "sha256": "d4b1712d9e7ff57b6436913a51d12931a69bac2a9c9bd56a544e0f714c630e84",
+        "bytes": 34470908,
+        "path": "scratch/demo-song-review/round-5-3e6eaa5f/native/event-horizon.wav"
+      }
+    },
+    {
+      "title": "Packet Bloom",
+      "file": "../../../engines/state/examples/packet-bloom.lunar",
+      "bpm": 112,
+      "bars": 88,
+      "scenes": 8,
+      "projectSha256": "7d755fd777f1b0534c2518717e4bded475872db57f9596fe410d75606765e349",
+      "durationSeconds": 188.571429,
+      "stoppedAtSeconds": 188.577905,
+      "peak": 0.742282509803772,
+      "rms": 0.08267813913251265,
+      "wasmDropped": 0,
+      "wasmRamPercent": 54,
+      "wasmLoad": {
+        "code": "OK",
+        "ram": 207656,
+        "budget": 387924,
+        "sounds": 4,
+        "effects": 5,
+        "modules": 5,
+        "cables": 4,
+        "tracks": 8,
+        "clips": 64,
+        "left_out": 0,
+        "skipped": 0,
+        "repaired": 0
+      },
+      "wasmSaveLoadSaveEqual": true,
+      "native": {
+        "sampleRate": 44118,
+        "frames": 8407630,
+        "rms": 0.082678,
+        "peak": 0.742283,
+        "ramBytes": 233384,
+        "seqEvents": 14127,
+        "seqDropped": 0,
+        "seqRefused": 0,
+        "soundingAtEnd": 0
+      },
+      "browser": {
+        "title": "Packet Bloom",
+        "file": "packet-bloom.lunar",
+        "listed": true,
+        "playbackStarted": true,
+        "download": true,
+        "reopened": true
+      },
+      "downloadedProject": {
+        "sha256": "2129fbee063c9511a8705c66badef00b6a81caba0c9d91f499954f6c8d4ec658",
+        "bytes": 38397,
+        "freshContextOpenRestoredState": true,
+        "path": "scratch/demo-song-review/round-5-3e6eaa5f/browser/packet-bloom.lunar"
+      },
+      "screenshot": {
+        "sha256": "ad78bad8686a9e4c4300cee92b72d5d3e989cb9480880be438333eed9ca6109e",
+        "bytes": 110615,
+        "path": "scratch/demo-song-review/round-5-3e6eaa5f/browser/packet-bloom.lunar.png"
+      },
+      "wasmWav": {
+        "sha256": "70d27fd4a11144e67cccd659355179544077473cc794b395d61cb7c598e9ab2c",
+        "bytes": 67261484,
+        "path": "scratch/demo-song-review/round-5-3e6eaa5f/wasm-audio/packet-bloom-wasm.wav"
+      },
+      "nativeWav": {
+        "sha256": "c8304c97cea37b74e8148d06ace13c497bcebe946e3e8613639ae793d9d56167",
+        "bytes": 33630564,
+        "path": "scratch/demo-song-review/round-5-3e6eaa5f/native/packet-bloom.wav"
+      }
+    },
+    {
+      "title": "Neon Transit",
+      "file": "../../../engines/state/examples/neon-transit.lunar",
+      "bpm": 120,
+      "bars": 104,
+      "scenes": 8,
+      "projectSha256": "e19152d0747d6d2a69cc61eaabeed6d083f89fbecdfa7e1d85ba7f9911f6e251",
+      "durationSeconds": 208,
+      "stoppedAtSeconds": 208.006528,
+      "peak": 0.749209463596344,
+      "rms": 0.08577823152902897,
+      "wasmDropped": 0,
+      "wasmRamPercent": 67,
+      "wasmLoad": {
+        "code": "OK",
+        "ram": 256936,
+        "budget": 387924,
+        "sounds": 4,
+        "effects": 5,
+        "modules": 5,
+        "cables": 4,
+        "tracks": 8,
+        "clips": 64,
+        "left_out": 0,
+        "skipped": 0,
+        "repaired": 0
+      },
+      "wasmSaveLoadSaveEqual": true,
+      "native": {
+        "sampleRate": 44118,
+        "frames": 9264780,
+        "rms": 0.085778,
+        "peak": 0.749209,
+        "ramBytes": 282664,
+        "seqEvents": 16502,
+        "seqDropped": 0,
+        "seqRefused": 0,
+        "soundingAtEnd": 0
+      },
+      "browser": {
+        "title": "Neon Transit",
+        "file": "neon-transit.lunar",
+        "listed": true,
+        "playbackStarted": true,
+        "download": true,
+        "reopened": true
+      },
+      "downloadedProject": {
+        "sha256": "23758423297c8cddff817bf4ce162b56a7ede0fa3ae40c7afeb16714886f6d73",
+        "bytes": 41066,
+        "freshContextOpenRestoredState": true,
+        "path": "scratch/demo-song-review/round-5-3e6eaa5f/browser/neon-transit.lunar"
+      },
+      "screenshot": {
+        "sha256": "affb85b6d9f8c7bef15eb62bccb3850e819e13d048d237410cdbc6bf2df566e7",
+        "bytes": 109833,
+        "path": "scratch/demo-song-review/round-5-3e6eaa5f/browser/neon-transit.lunar.png"
+      },
+      "wasmWav": {
+        "sha256": "ce04aad77d37e08268ad31fea15c286ac712ff222090f4897067361119855307",
+        "bytes": 74118700,
+        "path": "scratch/demo-song-review/round-5-3e6eaa5f/wasm-audio/neon-transit-wasm.wav"
+      },
+      "nativeWav": {
+        "sha256": "da73de30957a3d1cbc09f153000fc6a9ac70312a5c53cfd6576a3aaa5ef36959",
+        "bytes": 37059164,
+        "path": "scratch/demo-song-review/round-5-3e6eaa5f/native/neon-transit.wav"
+      }
+    }
+  ],
+  "critic": {
+    "finalSourceCommit": "3e6eaa5fea7a38822b60a2a742af4b932856b8cc",
+    "reportCommit": "0a2ccc17c40c3ef2a7b87da6f0449cbe980ef752",
+    "scenesPassingAllSixCategories": 0,
+    "scenesTotal": 32,
+    "cellsAtMostEight": 190,
+    "cellsTotal": 192,
+    "sixthRoundPerformed": false
+  }
+}
