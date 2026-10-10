@@ -490,6 +490,12 @@ code { font: 0.9em ui-monospace, Menlo, Consolas, monospace; color: var(--text);
   .power-overlay { align-items: flex-start; padding-top: 6%; }
 }
 
+/* At phone-landscape widths just above the narrow-screen breakpoint, keep
+ * the panel at the same minimum playable scale as portrait. */
+@media (min-width: 832px) and (max-width: 900px) and (max-height: 520px) {
+  .device { width: 800px; }
+}
+
 /* ---- the Advanced editor's layouts (stage ED2, notes/2026-10-06-web-editor.md §4) ----
  * The switch sits in the page's header in Panel and moves into the editor's
  * app bar in Workbench and Editor (editor/editor.js); the editor's own look

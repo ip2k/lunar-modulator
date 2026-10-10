@@ -51,3 +51,16 @@ the main checkout, not this isolated worktree; Serena activated this worktree
 but had only its C++ language server and could not index the JavaScript page.
 No shared project activation was changed; the HTML/JS/CSS changes were
 inspected directly and covered with focused page tests.
+
+Landscape CI follow-up: exact head `f1a5bd3e121e82fea89348013f2b7baec2e69c7d`
+passed the modal, library, file, and editor checks, but failed the screenshot
+suite's 24px minimum painted-control test at 844x390. Its measured smallest
+control sides were 17.5px for a button and 22.2px for a black key; portrait
+targets were all at least 24px. This is a real usability regression just above
+the existing 831px narrow-screen breakpoint, not a browser/resource failure.
+The landscape rule now holds the device panel at 800px wide through 900px when
+the viewport is short, preserving portrait-scale hit targets. `git diff
+--check` passes; the focused cross-browser screenshot test awaits exact-head
+CI after this correction. No local Playwright browser/package was available,
+and the shared aeon staging path was left untouched to avoid disrupting other
+work.
