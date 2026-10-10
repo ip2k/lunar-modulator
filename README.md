@@ -180,9 +180,8 @@ keys, at any octave.
   master effects**, then a limiter that keeps a full chord from clipping.
 - **FX** shows the chain: S1 In1 In2 Mix M1 M2. The **Mix** page sets each
   sound's level.
-- A **memory meter** at the bottom of the screen shows how much of the
-  FM-1's memory it all takes. Anything that would not fit is refused, so
-  the simulator never plays more than the FM-1's memory could hold.
+- A **memory meter** tracks the simulator's estimated FM-1 budget;
+  combinations over that budget are refused.
 
 The effects:
 - **Reverbs:** Plate and Hall (both with Freeze), Room and PSX Verb.
