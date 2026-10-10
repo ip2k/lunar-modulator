@@ -56,6 +56,9 @@ def test_only_test_ext_asks_for_the_extension(renderer):  # noqa: F811
         if e["id"] == "test-ext":
             assert e["kind"] == "audio_fx" and e["render_ext"]
             assert e["fx_wants"] == ["key", "tempo", "transport"]
+        elif e["id"] == "repeat":
+            assert e["kind"] == "audio_fx" and e["render_ext"]
+            assert e["fx_wants"] == ["tempo", "transport"]
         else:
             assert not e["render_ext"] and e["fx_wants"] == [], e["id"]
 

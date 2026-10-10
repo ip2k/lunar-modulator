@@ -47,7 +47,7 @@ def floats(raw):
 
 UNITS = ["test-sine", "macro", "macro-heavy", "shapes", "sixop", "dx7", "sw-sophie", "drums",
          "plate",
-         "ensemble", "diffuse", "crush", "fold", "echo", "test-gain", "sw-psxverb",
+         "ensemble", "diffuse", "crush", "fold", "echo", "repeat", "test-gain", "sw-psxverb",
          "drive", "filter", "comb", "comp", "limit", "djfilter", "tilt", "sat", "isolator", "eq",
          "room", "hall", "gate", "squash", "shaper", "test-ext"]
 UNITS += ["acid-bass", "comet", "crater"] if GPL_MODS else []   # the GPL modules, while the switch is on

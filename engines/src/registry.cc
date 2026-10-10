@@ -50,6 +50,7 @@ extern const fm1_engine_t fm1_engine_hall;
 extern const fm1_engine_t fm1_engine_gate;
 extern const fm1_engine_t fm1_engine_squash;
 extern const fm1_engine_t fm1_engine_shaper;
+extern const fm1_engine_t fm1_engine_repeat;
 extern const fm1_engine_t fm1_engine_test_gain;
 extern const fm1_engine_t fm1_engine_test_ext;
 #if FM1_GPL_MODS
@@ -104,6 +105,7 @@ const fm1_engine_t *const fm1_engines[] = {
   FM1_IF(FM1_WITH_GATE, &fm1_engine_gate)
   FM1_IF(FM1_WITH_SQUASH, &fm1_engine_squash)
   FM1_IF(FM1_WITH_SHAPER, &fm1_engine_shaper)
+  FM1_IF(FM1_WITH_REPEAT, &fm1_engine_repeat)
   FM1_IF(FM1_WITH_TEST_GAIN, &fm1_engine_test_gain)
   FM1_IF(FM1_WITH_TEST_EXT, &fm1_engine_test_ext)
 };
