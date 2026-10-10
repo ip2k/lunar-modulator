@@ -62,3 +62,18 @@ staging `/home/claude/mvave-fm1/movy-oracle-bounds-20261009`. Rarefaction
 oriented the original Rust harness; Serena navigated the isolated Rust driver
 after its initially selected C++ project configuration excluded that file.
 No hardware was used.
+
+## Main integration check, 2026-10-09
+
+[verified] The branch merged `origin/main` at
+`67d5e12dee561abca5d0a2256fec85d75522a806` in merge commit
+`b91f6b88f2c1a5249965337711d0d83bd8688e67`. The merge introduces no changes to
+`tools/movy-oracle/` or `tests/fixtures/movy/` relative to the feature branch.
+On the merged source, both `cargo test --locked --offline` and
+`cargo test --release --locked --offline` passed (4 tests each) in the pinned
+Rust 1.98.1 container on aeon, with 2 CPUs, 2 GiB memory, 128 process limit,
+and networking disabled during the build/test. The ignored Movy dependency was
+checked out read-only at the pinned commit above. No fixture regeneration was
+needed because the merged main contributes no changes to this oracle or its
+fixtures; the 24-script comparison result above remains tied to the original
+feature source baseline.
