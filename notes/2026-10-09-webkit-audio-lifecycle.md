@@ -463,3 +463,47 @@ receipt and source-log SHA-256 are in
 Local log: `/tmp/lunar-pr125-7fe4-webkit.log`. No unchanged rerun or gate
 relaxation was used. This receipt is checkpointed on the separate evidence
 branch while PR #132's tested head remains `c6db9587`.
+
+## Preserved PR #131 Chromium underrun failure
+
+[verified] PR #131 exact `78101317052b2eb990d7a24fbe855dbb506ce1eb`, run
+`38025899085`, job `114136559601`, failed the unchanged 30-second editor storm:
+7,280 edits, 58,240 records, zero refused codes/resyncs, 10,695 quanta, but one
+Chromium `playbackStats` underrun lasting 11.609 ms. Earlier external loopback
+passed (7,273 replies, zero bad periods/refusals/resyncs). The receipt is
+[`pr131-chromium-ci.json`](evidence/2026-10-09-webkit-audio-lifecycle/pr131-chromium-ci.json).
+The complete 86,939-event audio trace has no saved `Glitch!` event; the longest
+worklet graph render is 3.969 ms wall time versus 0.852 ms thread CPU time.
+Thirty-three resource samples show four available CPUs, `cpu.max=max 100000`,
+zero recorded throttling, and 155,129 microseconds of cumulative cgroup CPU
+pressure (`some`) during the window. Mount/namespace provenance is retained.
+
+[inferred] This is distinct from the frozen WebKit startup clock signature.
+Scheduling interruption is a candidate, not a demonstrated cause; the trace
+does not localize the counted underrun. Chromium's matching-version
+[`AudioPlaybackStats`](https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/third_party/blink/renderer/modules/webaudio/audio_playback_stats.cc)
+reads the context's accumulated glitch count/duration. The trace exhibits
+[`AudioDestination`](https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/third_party/blink/renderer/platform/audio/audio_destination.cc)'s
+worklet rendering wait path. Playback statistics span storm plus snapshot drain,
+while browser-wide tracing has its own surrounding window. PR #132's null-sink
+idle-buffer option must not be presumed to fix this distinct Chromium event.
+No assertions, timing thresholds, browser features or source queues were changed.
+[verified] Three bounded fresh-browser, exact-source 30-second LAN storms all
+passed: 7,252 / 7,269 / 7,196 edits; each produced 10,695 quanta and zero
+underruns, refused codes or resyncs. They used the pinned CI image, Pulse 16.1,
+the original default sink and four-CPU quota. Full reports, resource deltas,
+trace hashes and setup limits are in
+[`pr131-chromium-lan.json`](evidence/2026-10-09-webkit-audio-lifecycle/pr131-chromium-lan.json).
+The preceding CI tests and GitHub host contention were not replicated; tracing
+was enabled as in CI and may perturb scheduling. All outcomes are retained.
+
+[verified: matching Chromium source] The renderer's
+[`AudioOutputDeviceThreadCallback`](https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/media/audio/audio_output_device_thread_callback.cc)
+reads shared-memory glitch increments and forwards them to graph rendering.
+[`SyncReader`](https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/services/audio/sync_reader.cc)
+waits for a matching renderer buffer index; a missed callback emits silence
+and accumulates one platform buffer of glitch duration. At 512 frames / 44.1 kHz,
+that duration matches the observed 11.609 ms [inferred]. Neither the timeout
+nor `Glitch!` is present in the saved CI trace, so this is a mechanism to inspect,
+not a localized cause. No justified runtime source fix was found in this bounded
+investigation, and the original CI underrun remains an independent failed gate.
