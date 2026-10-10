@@ -50,3 +50,29 @@ not failure-rate proof, a strict storm pass, native Safari acceptance or
 human listening success. Observers/tracing, fixed pair order and warm
 browser cache can influence timing. Full compact results are in
 `data/2026-10-10-suspended-startup-probe.json`.
+
+## Proposed runtime correction
+
+The `fix/2026-10-10@worklet-suspended-init` stream retains the diagnostic
+history and applies suspended initialization to the actual page. Contexts
+are created in the power-on gesture and explicitly suspended before
+loading a worklet. Global gesture wake is suppressed until the current
+node reports ready. Ready connects both outputs, marks initialization
+ready and requests resume; future gestures can retry a browser-held
+resume. Power-off resets readiness; old or closed nodes cannot connect
+or resume. Resume rejection is handled without waiting indefinitely for
+autoplay permission. The existing held-status hint remains available.
+
+The worklet ready/catalog/refused/state message order is preserved. The
+measured costly instantiate/default-chain/catalog work precedes ready;
+its pending-message/state tail is not newly isolated or independently
+measured here. No edit loop baseline, assertion or tolerance is changed.
+
+[verified] Focused local checks: seven startup lifecycle regressions,
+20 total helper regressions, and 36 editor-unit checks pass. Browser
+startup smoke now verifies a suspended context and unchanged audio time
+from node construction to ready on both power cycles. Actual new-source
+three-browser storm/loopback and exact-head CI remain pending. These
+browser-only files are outside `source_hash.py` engine/SIM inputs; the
+existing Wasm is unchanged, not a new DSP artifact claim. Native Safari
+and the owner's by-ear retest remain pending.

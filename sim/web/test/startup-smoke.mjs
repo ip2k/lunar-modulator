@@ -1,5 +1,5 @@
 // Actual browser startup/restart regression. Uses the shipped page and Wasm;
-// observers only record whether destination connections precede ready.
+// observers record initialization state and destination connection order.
 import assert from 'node:assert/strict';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -18,9 +18,12 @@ try {
     window.AudioWorkletNode = class extends Original {
       constructor(...args) {
         super(...args);
-        this.probe = { ready: false, connections: [] };
+        this.probe = { ready: false, created_state: args[0].state, created_time: args[0].currentTime, connections: [] };
+        const ctx = args[0];
         window.__startupNodes.push(this.probe);
-        this.port.addEventListener('message', ({ data }) => { if (data.type === 'ready') this.probe.ready = true; });
+        this.port.addEventListener('message', ({ data }) => { if (data.type === 'ready') {
+          this.probe.ready = true; this.probe.ready_state = ctx.state; this.probe.ready_time = ctx.currentTime;
+        } });
         this.port.start();
       }
       connect(...args) {
@@ -43,6 +46,9 @@ try {
     assert.equal(row.state, 'running');
     assert.ok(row.screens > first.screens && row.audio_seconds > first.audio_seconds);
     assert.equal(row.node.ready, true);
+    assert.equal(row.node.created_state, 'suspended');
+    assert.equal(row.node.ready_state, 'suspended');
+    assert.equal(row.node.created_time, row.node.ready_time);
     assert.equal(row.node.connections.length, 2);
     assert.ok(row.node.connections.every((c) => c.ready));
     await page.click('#power-off');

@@ -28,7 +28,6 @@ writeFileSync(join(site, 'worklet.js'), body);
 const { server, url } = await serve(site, 8767);
 const { browser } = await launch();
 const appSource = readFileSync(join(site, 'app.js'), 'utf8');
-const readySource = readFileSync(join(site, 'startup-ready.mjs'), 'utf8');
 const replaceOnce = (source, from, to) => {
   assert.equal(source.split(from).length, 2, `unique suspension anchor: ${from}`);
   return source.replace(from, to);
@@ -37,17 +36,13 @@ const results = [];
 try {
   for (const suspended of [false, true]) {
     let app = appSource;
-    let ready = readySource;
-    if (suspended) {
-      app = replaceOnce(app, 'function wake(ctx) {', 'function wake(ctx) { if (ctx && !ctx.probeReady) return;');
-      assert.equal(app.split('    wake(ctx);').length, 4);
-      // First two calls are context construction; the third startup wake
-      // remains guarded until the helper resumes after ready.
-      app = app.replace('    wake(ctx);', '    await ctx.suspend();').replace('    wake(ctx);', '    await ctx.suspend();');
-      ready = replaceOnce(ready, '      node.connect(analyser);', '      node.connect(analyser);\n      ctx.probeReady = true; ctx.resume();');
+    if (!suspended) {
+      app = replaceOnce(app, 'wakeWhenReady(ctx, ctx === sim.ctx && sim.audioReady);',
+        'wakeWhenReady(ctx, true);');
+      assert.equal(app.split('    await ctx.suspend();').length, 3);
+      app = app.replaceAll('    await ctx.suspend();', '    ctx.resume().catch(() => {});');
     }
     writeFileSync(join(site, 'app.js'), app);
-    writeFileSync(join(site, 'startup-ready.mjs'), ready);
     const dir = join(out, suspended ? 'suspended-init' : 'running-init');
     mkdirSync(dir, { recursive: true });
     const page = await browser.newPage();
