@@ -25,8 +25,7 @@ import wave
 
 import pytest
 
-from tests.engine_helpers import (ENGINES, GPL_MODS, RATE, cents, render, renderer,  # noqa: F401
-                                  rms)
+from tests.engine_helpers import (ENGINES, GPL_MODS, RATE, cents, render, renderer)  # noqa: F401
 
 KICK, RIM, SNARE, CLAP, SNARE2, LOW_TOM, CLOSED_HH, FLOOR_TOM, PEDAL_HH, MID_TOM, OPEN_HH, \
     LOW_MID, HIGH_MID, CRASH, HIGH_TOM, RIDE = range(36, 52)

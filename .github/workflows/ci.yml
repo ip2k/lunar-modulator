@@ -164,8 +164,8 @@ jobs:
     # the Playwright container build-on-aeon.sh uses, pinned to the same version (tests/test_ci_pins.py holds
     # the two to each other). Chromium, Firefox and WebKit run the same five tests; Chromium also runs the
     # page's own tests (screenshot.mjs, files.mjs) and the 30-second storm. Firefox needs an audio device,
-    # so a PulseAudio null sink is started for it (sim/web/README.md, "Stage ED5b"); WebKit needs none.
-    # Lateness and underruns are measured in Chromium only. A failing run uploads its screenshots and reports.
+    # so a PulseAudio null sink is started. All three also record its monitor
+    # for the external-audio checks. A failing run uploads screenshots and reports.
     name: editor page tests (${{ matrix.browser }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -188,15 +188,22 @@ jobs:
           mkdir -p /pw && cd /pw
           npm install --no-save --no-audit --no-fund playwright@1.63.0 axe-core@4 >/dev/null
           node -e "console.log('playwright', require('/pw/node_modules/playwright/package.json').version)"
-      - name: A null audio sink (Firefox's AudioContext stays suspended without a device)
-        if: matrix.browser == 'firefox'
+      - name: Isolated audio sink and monitor (also enables Firefox's AudioContext)
         run: |
           apt-get update -qq && apt-get install -y -qq pulseaudio pulseaudio-utils >/dev/null
-          pulseaudio --system -n --disallow-exit --exit-idle-time=-1 --load=module-null-sink \
+          pulseaudio --system -n --disallow-exit --exit-idle-time=-1 \
+            --load="module-null-sink sink_name=lunar rate=48000 channels=2" \
             --load="module-native-protocol-unix auth-anonymous=1 socket=/tmp/pa.sock" -D
           echo "PULSE_SERVER=unix:/tmp/pa.sock" >> "$GITHUB_ENV"
+          echo "PULSE_SOURCE=lunar.monitor" >> "$GITHUB_ENV"
       - name: The editor's data and history against the module (node)
-        run: node sim/web/test/editor-unit.mjs sim/web/www > /dev/null
+        run: |
+          node --test sim/web/test/panel-follow.test.mjs
+          node sim/web/test/editor-unit.mjs sim/web/www > /dev/null
+      - name: External audio detector and browser loopback
+        run: |
+          node sim/web/test/audio-analysis-check.mjs
+          node sim/web/test/audio-loopback.mjs sim/web/www "$SHOTS/audio" 30
       - name: The editor's page tests
         run: |
           mkdir -p "$SHOTS"

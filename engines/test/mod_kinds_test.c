@@ -1308,8 +1308,65 @@ static void every_kind(unsigned *fills, unsigned *fuzzed) {
   }
 }
 
+/* Delayed envelopes retain zero-delay sample timing and share their curve
+ * evaluator with the panel. Exercise release during delay and loop boundaries. */
+static void delayed_envelope(void) {
+  fm1_mp_env_t old, delayed;
+  for (int curve = 0; curve < FM1_MP_CURVE_COUNT; ++curve) {
+    float previous = -1;
+    for (unsigned i = 0; i <= 1024; ++i) {
+      uint32_t phase = i == 1024 ? UINT32_MAX : i * 4194304u;
+      float v = fm1_mp_env_curve_at((uint8_t)curve, phase);
+      CHECK(isfinite(v) && v >= previous && v >= 0 && v <= 1);
+      if (i == 0) CHECK(v == 0);
+      if (i == 1024) CHECK(v > 0.999f);
+      previous = v;
+    }
+    fm1_mp_env_init(&old, 1000);
+    fm1_mp_env_init(&delayed, 1000);
+    fm1_mp_env_set_adsr(&old, .01f, .02f, .4f, .03f, curve, 0);
+    fm1_mp_env_set_delayed(&delayed, 0, .01f, .02f, .4f, .03f, curve, 0, 0);
+    fm1_mp_env_gate(&old, 1); fm1_mp_env_gate(&delayed, 1);
+    for (unsigned i = 0; i < 100; ++i) {
+      if (i == 50) { fm1_mp_env_gate(&old, 0); fm1_mp_env_gate(&delayed, 0); }
+      CHECK(fm1_mp_env_process(&old, 1) == fm1_mp_env_process(&delayed, 1));
+    }
+    CHECK(fm1_mp_env_done(&old) && fm1_mp_env_done(&delayed));
+  }
+  fm1_mp_env_init(&delayed, 1000);
+  fm1_mp_env_set_delayed(&delayed, .01f, .01f, .02f, .4f, .03f, 0, 0, 0);
+  fm1_mp_env_gate(&delayed, 1);
+  CHECK(fm1_mp_env_process(&delayed, 9) == 0 && delayed.seg == 0);
+  fm1_mp_env_process(&delayed, 2);
+  CHECK(delayed.seg == 1);
+  fm1_mp_env_process(&delayed, 5);
+  CHECK(fm1_mp_env_value(&delayed) > 0);
+  fm1_mp_env_trigger(&delayed);
+  CHECK(delayed.seg == 0 && fm1_mp_env_value(&delayed) == 0);
+  fm1_mp_env_gate(&delayed, 0);
+  CHECK(delayed.seg == delayed.sustain && fm1_mp_env_value(&delayed) == 0);
+  fm1_mp_env_process(&delayed, 100);
+  CHECK(fm1_mp_env_done(&delayed));
+  fm1_mp_env_set_delayed(&delayed, 0, .01f, .02f, .4f, .03f, 0, 0, 0);
+  fm1_mp_env_set_segment(&delayed, 0, 1, .01f, 0);
+  fm1_mp_env_configure(&delayed, 1, 0, 0, 0);
+  fm1_mp_env_trigger(&delayed);
+  CHECK(delayed.seg == 0 && !fm1_mp_env_done(&delayed));
+  fm1_mp_env_process(&delayed, 100);
+  fm1_mp_env_gate(&delayed, 0);
+  fm1_mp_env_set_delayed(&delayed, .01f, .01f, .02f, .4f, .03f, 0, FM1_MP_ENV_LOOP_ADR, 0);
+  fm1_mp_env_gate(&delayed, 1);
+  fm1_mp_env_process(&delayed, 75);
+  CHECK(delayed.seg >= 1 && delayed.seg < 4 && !fm1_mp_env_done(&delayed));
+  fm1_mp_env_gate(&delayed, 0);
+  CHECK(delayed.seg == 4);
+  fm1_mp_env_process(&delayed, 100);
+  CHECK(fm1_mp_env_done(&delayed));
+}
+
 int main(void) {
   unsigned responses = 0, fills = 0, fuzzed = 0;
+  delayed_envelope();
   calc();
   mix();
   slew();

@@ -25,7 +25,8 @@
         {"name": "Curve", "type": "enum", "uid": 5, "flags": []},
         {"name": "Loop", "type": "enum", "uid": 6, "flags": []},
         {"name": "Mode", "type": "enum", "uid": 7, "flags": []},
-        {"name": "Level", "type": "float", "uid": 8, "flags": ["mod"]}
+        {"name": "Level", "type": "float", "uid": 8, "flags": ["mod"]},
+        {"name": "Delay", "type": "float", "uid": 9, "flags": ["mod"]}
       ],
       "gates": ["Gate"],
       "outs": ["Env", "EOC", "Act"]
