@@ -355,3 +355,23 @@ registration, not actual `/dev` existence. The attempted node state and
 No service was stopped or infrastructure changed. This is **not an FD07
 transport failure or successful memory read**. Parent was notified, and
 any continuation remains held for renewed review after this stop.
+
+## Existing-session continuation, offline proposal only
+
+[verified, offline] The separate
+[continuation proposal](data/2026-10-10-loader-readback-continuation-proposal.txt)
+does not send another soft key. It binds to the prior stopped log's exact
+hash and `3-2`/devnum 16, rechecks all source/loader/backup hashes, and
+requires precisely `/dev/sg0` plus `/dev/sda`. It checks actual node
+existence/type and matching sysfs device numbers, an unmounted block
+device, and a fresh `fuser` exit 1 with empty output. It records the exact
+node identities and `fuser` diagnostics before opening Reader, then checks
+the opened Reader's USB binding. The reviewed loader upload and one fixed
+64-byte read remain unchanged. It uses a new exclusive-create log and raw
+output file, and contains no retry, metadata or other memory read.
+
+[verified] Offline Python syntax and bounded call inspection passed without
+importing/executing the wrapper or accessing a device. These checks are not
+hardware validation. The proposal has **not been transferred or executed**;
+renewed parent review remains required after the original preflight stop.
+No additional device traffic occurred while preparing this proposal.
