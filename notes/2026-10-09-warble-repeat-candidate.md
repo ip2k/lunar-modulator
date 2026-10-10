@@ -36,3 +36,33 @@ owner listening receipts remain failures until independently resolved.
 
 Recovery worktree: `~/.codex/worktrees/warble-repeat-candidate/mvave-fm1-firmware`.
 LAN sources: `/home/claude/mvave-fm1/warble-repeat-candidate-20261009/src`.
+
+## Combined preparation and failure receipts
+
+[verified: Git merge parents] Configuration-only main
+`bdba4476570b0a77d13c76a38dfb3bcfd364277b` and Repeat's contract correction
+`e1416ac0578bde81192362554089c88ece65c3f9` are merged normally into this
+candidate. The latter appends Repeat's three new UID pins and two ENUM flag
+decisions; all prior pins are preserved, including Warble's. Before correction,
+the bounded combined native parameter suite failed exactly those two contract
+checks; the corrected Repeat branch passed all 15 parameter / Repeat tests.
+
+[verified: actual native export] The combined native build completed in the
+pinned Emscripten 6.0.10 image. Its metadata ID is `53ec1875`, and only that
+field changes in the example metadata subset. A new
+`four-sounds-warble-repeat-hold` parity scenario puts Warble then Repeat in the
+two MASTER slots with four active sounds and a Crush insert, using explicit
+sequencer Start / BEAT / Stop. It still requires actual combined musl and
+Wasm regeneration; no old binary is accepted as combined evidence.
+
+[verified: CI job log] Warble PR123 exact head
+`0e43e503be47737446c1ccd03915f1a888ce9803`, run `38025769986`, WebKit job
+`114136174695`, failed panel-follow at 46 frames / 734 ms. The audio clock
+stayed at `0.7169160997732427` through frame 45 (714 ms); state and change
+messages arrived at 725–728 ms, then the correct value / source / flash
+appeared. Trace declares timing perturbation and zero dropped events. External
+audio loopback passed. The exact trace is in
+`data/warble-0e43-webkit-panel-follow.json`. This is a failed latency gate with
+the recurring frozen-clock signature, not evidence assigning cause to Warble
+or permitting a retry / gate waiver. Existing owner listening failure remains
+unresolved by these offline checks.
