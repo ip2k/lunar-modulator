@@ -79,3 +79,36 @@ receipt/render timing to distinguish scheduling starvation, audio backend
 stall and message dispatch. Existing main-thread traces cannot identify
 which of those occurred. The 12-frame check, 60-frame maximum and zero-event
 external audio gate stay unchanged.
+
+
+## Second CI failure — PR #129
+
+[verified: GitHub job log] PR #129 head
+`ac3d9571b8a2db6860db60b1afb5f10246134e26`, run `38023499052`, WebKit job
+`114129330510`, reports the same panel latency/history failure. The 60-frame
+observation lasts 962 ms: `currentTime` stays at `0.7111111111111111` for frames
+1–59, then advances to `0.7314285714285714` on frame 60. A single main-port
+state message arrives at 961 ms with audio time `0.7169160997732427`; the row
+remains 0.30 and history is absent. Every recorded frame says running, loading
+false, pending changes/inflight zero, and the row remains connected. The late
+clock movement is important: this is a temporary stall, not proof that the audio
+thread died permanently.
+
+The preceding external loopback in the same job passes its unchanged 30-second
+storm: 3,756 batches and replies, zero refusal/resync, nonfinite or channel
+mismatch, zero bad periods, and musical peak 0.2659912. A later editor storm
+also succeeds. A passing different browser process and audible workload does
+not prove the silent startup of editor-ui is healthy [inferred]. The loopback
+closes its browser in a finally block; editor-ui launches a fresh browser and
+context. No shared production AudioContext passes between these Node processes
+[verified: launch.mjs and audio-loopback.mjs cleanup].
+
+The [extracted CI evidence](evidence/2026-10-09-webkit-audio-lifecycle/pr129-ci.json)
+preserves the complete failing trace, both failed check messages, loopback report,
+exact run/head/job and downloaded log SHA-256. The original log is retained at
+`/tmp/lunar-pr129-webkit.log`; no credentials or unrelated logs are copied.
+
+Next bounded run will compare fresh editor startup immediately after loopback
+with standalone starts under the same private Pulse sink. Backend stderr must
+actually be captured: the prior GST_DEBUG-only run emitted no backend diagnostics,
+so it cannot exclude a Pulse/GStreamer startup or silence-related stall.
