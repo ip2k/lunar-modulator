@@ -1,0 +1,6 @@
+# Lunar Modulator source navigation; activate each checkout by absolute path.
+project_name: lunar-modulator
+language_servers: [cpp, typescript, python]
+encoding: utf-8
+ignore_all_files_in_gitignore: true
+ignored_paths: ["reference/", "scratch/", ".claude/", "build/", "sim/web/build/"]
