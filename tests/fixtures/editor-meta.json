@@ -39,6 +39,7 @@
     "fold": "colour",
     "drive": "colour",
     "echo": "space",
+    "warble": "space",
     "filter": "filter",
     "comb": "filter",
     "comp": "dynamics",
@@ -54,7 +55,8 @@
     "squash": "dynamics",
     "shaper": "dynamics",
     "test-gain": "test",
-    "test-ext": "test"
+    "test-ext": "test",
+    "repeat": "space"
   },
   "telemetry": {
     "version": 2,

@@ -119,6 +119,21 @@ def test_selftest_passes(selftest_lines):
             "number_parser_matches_libc"} <= ran
 
 
+def test_psxverb_interpolator_matches_pinned_zero_stuffed_fir(tmp_path):
+    # White-box comparison against the independent direct-convolution oracle
+    # in engines/test/psxverb_interpolator_test.c. This covers the half-band
+    # phase/history indexing independently of the full reverb's feedback loop.
+    cc = shutil.which("cc")
+    if not cc:
+        pytest.skip("C compiler unavailable for the PSX Verb FIR oracle")
+    source = ENGINES / "test" / "psxverb_interpolator_test.c"
+    binary = tmp_path / "psxverb-interpolator-test"
+    subprocess.run([cc, "-std=c99", "-O2", str(source), "-lm", "-o", str(binary)],
+                   check=True, capture_output=True, text=True)
+    result = subprocess.run([str(binary)], check=True, capture_output=True, text=True)
+    assert "matches direct zero-stuffed FIR at 5 host rates" in result.stdout
+
+
 def test_modules_are_initialised_once(selftest_lines):
     # Module init functions rewrite their own static tables (PSX Verb memsets
     # the one every instance calls through), so a second create must not call

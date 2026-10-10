@@ -28,7 +28,7 @@ the "Power on" button, as browsers require a gesture.
 
 | | |
 | --- | --- |
-| Engines | Every registered sound engine and effect (engines/README.md): Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Drums, Acid Bass, Comet Kit, Crater Kit, Drawbar, Trio and Phase Bend (with the GPL switch on), Test Sine; Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Filter, Comb, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Room, Hall, Gate, Test Gain, Test Ext. Up to four sounds with two inserts and a level each, mixed into two effect slots as the master bus, then the host's bus limiter, as `fm1-render --slots` runs them; one sound with no insert at full level renders as `fm1-render`'s one engine does, to the bit (below, "Multi-sound") |
+| Engines | Every registered sound engine and effect (engines/README.md): Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Drums, Acid Bass, Comet Kit, Crater Kit, Drawbar, Trio and Phase Bend (with the GPL switch on), Test Sine; Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Warble, Filter, Comb, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Room, Hall, Gate, Test Gain, Test Ext. Up to four sounds with two inserts and a level each, mixed into two effect slots as the master bus, then the host's bus limiter, as `fm1-render --slots` runs them; one sound with no insert at full level renders as `fm1-render`'s one engine does, to the bit (below, "Multi-sound") |
 | Audio | An AudioWorklet renders each 128-frame quantum as two 64-frame host blocks. The AudioContext asks for 44,100 Hz (owner, 2026-10-06; until then 44,118, then 44,100); if the browser refuses it (the constructor throws, or a context comes back faster than 47,872 Hz), the page takes the browser's own rate and the status line says "the browser refused 44,100 Hz". Headless Chromium runs at 44,100 Hz; with a context that refuses 44,100 and gives 48,000 the page starts on Shapes and says why Macro was refused [verified 2026-10-06: `test/screenshot.mjs`, both paths]. The RAM meter counts every instance at 44,118 Hz, the FM-1's rate, whatever the browser gives (`FM1_APP_RAM_RATE`). Macro, Macro Heavy, Six-Op and Drums run Plaits at 47,872 Hz and resample to the host (engines/resampler.md), so they refuse a faster one: there the firmware starts with Shapes, PRESETS steps over the four, a refused choice puts the previous engine back, and the screen and status line say why [verified natively at 48 and 96 kHz: `tests/test_sim_web.py`] |
 | Licences | The module's catalogue carries each module's `licence` (SPDX) and `source` from the licence table beside the registry (engines/include/fm1_engine.h, "Licences"), and `build.sh` records the GPL switch the module was built with (`gpl_mods`; `FM1_GPL_MODS`, on unless `build-on-aeon.sh` is run with it 0) and every module whose code is not all MIT (`licences`) in `fm1.wasm.json`. While any of them is GPL, the page names them under the help, offers the module under the GNU GPL, version 3, and links `licences/GPL-3.0.txt` and the source: the repository at the commit the site was built from (`source.json`: the checkout's names the repository, and `tools/manual/build.py` writes the commit into the published copy), or the repository itself when served from a checkout. It reads the record before the power is on and the module's own catalogue after (docs/12 §6; `tests/test_gpl_switch.py`) |
 | Screen | The firmware draws a 240 × 240 RGB565 frame buffer (stock's layout: a top bar with the sound, the mode's content, a bottom bar with page and mode, one-second popups); the page only copies it to a canvas. A list popup (PRESETS, ALGORITHM, a knob on a list parameter of five entries or more, SHIFT + PRESETS, SHIFT + 16's quantize, the kind and destination pickers, Capture's tempos, the ARP presets) shows the list's title in the context colour, the chosen entry's place (`34/96`) and as many entries as its face holds (`fm1_list_rows`, `src/fm1_panel.h`: MAIN 6 of 18 characters, MID 8 of 27, SMALL 9 of 36; the long lists are MID, the short ones MAIN, which shows them whole), by their full names (`fm1_look_full_name`), the chosen one on the selection bar, on the third row where it can be (`fm1_list_first`), and a triangle above or below the entries where the list goes on (three lines until 2026-10-06, then six in MAIN; the audit note's "Built" section has the table). A confirmation that fits one line is a banner over the page's bottom 28 px (MAIN up to 18 characters, MID up to 27); a refusal keeps the full popup, its reason in the refusal colour. HOME's oscilloscope strip scales the trace to its window's peak (at most ×16, so quiet noise stays flat) and starts under the page's last row. 4,546 screens pass a layout check, every text box in one of the three faces at its height: nothing off screen, no text cut short, no more than 96 logged boxes, and no two labels and no label and bar closer than 4 px [verified: `fm1-sim-render --screens`, 2026-10-06, 4,546 with stage A1's twelve (SAVE with and without a store, its answers, the load banners and eight refusals); 4,534 with the GPL switch on after the GPL modules were merged with PR #80, and 3,645 with it off, main's count; 4,531 with the switch on after they were merged with each other and with PR #79, and 3,642 with it off: every page, list and knob's list of Acid Bass, Comet Kit, Crater Kit, Drawbar, Trio and Phase Bend (whose fourth page is glide's four) and Acid Gen in the MIDI-FX slot; 3,794 with Comet Kit's four pages, its pads, drive types and kits before Crater Kit, the Felucca engines and PR #79; 3,538 with Acid Bass's pages and Acid Gen's in the MIDI-FX slot (its pages at their extremes and list entries, and its popups); 3,645 with the switch off, before the GPL modules, with GLO past the budget and M1's Mix under a refused per-voice cable (unmarked) and the same cable live (marked); 3,642 with glide's modes on their own page (Shapes, Six-Op FM and FM6 have a third page), Drums' fourth page with Choke and Kit Decay, the Voice Mode keys' popups and LEDs, and the global page's Key page; 3,543 with the first three before the Key page; 3,507 with the Key page (every root in every scale, F# Mixolydian the longest, and its two lists) before them; 3,408 with glide's pages and voice modes; 3,336 with the ARP pages (134 of them with their knobs' lists) and with RACK's line in SMALL; 3,204 before them, with the knobs' lists of every sound and effect, banners over HOME, FX, GLO and MATRIX and FX mode's chip on every slot; 3,165 with per-voice modulation; 40 of them FM6's user bank (every user slot with a 10-character name, the ALGORITHM popup, SEQ mode and the load popups); 3,104 without them, with Squash and Transient; 2,695 before every list popup at every entry (2,470 recorded here on 2026-10-05), 2,338 before Drums, 2,299 before Comb and Test Ext arrived with engine API v3, which the counts below predate]. They are every page of every engine (HOME) and of every effect on both master slots (M1, M2) at defaults, minima, maxima and every list entry, the global page, every popup including the refusals, the SAVE stub and an emptied slot (600 screens), every ARP page at its defaults, extremes and list entries with its popups and knobs' lists (134), the sequencer's Track view, Step pages, record and Capture (below) in 618 states, its tracks, mute and Set, Clip and Track pages (S6) in 69, multi-sound's FX chain, Mix page, titles, popups and RAM meter in 216 (every effect as an insert, now twenty), parameter locks (S8) in 55, modulation's pages and marks (below) in 741, and Drums' pages and its sound in the others' sweeps in 132 more; since 2026-10-06 every list popup at every entry, each window checked (345: ALGORITHM through every sound's list, Six-Op FM's 96 patches the longest, PRESETS through the engines, ALGORITHM in FX mode through the effects, and the destination picker through every destination; the kind picker's 17 were already there). Until 2026-10-05 the sweep drew two sets, with the lab switch off and on (2,325 screens; 2,366 with Comb and Test Ext) |
@@ -852,7 +852,8 @@ layout check. The Map and the manual's chapter are the second half.
 - **Phones** (§14), at 640 px and under: the layout switch is two tabs,
   *Panel* and *Edit* (the Workbench, which needs the room, becomes Edit);
   the outline is a row of tabs that scrolls inside itself; the screen card
-  shows a 96 px screen; the strips and rows stack (a row's name above its
+  preserves the native 240 by 240 screen pixels with the caption below;
+  the strips and rows stack (a row's name above its
   slider and value); the matrix is a list of cables, each cable a card with
   its cells named (`data-h`, shown as small captions); no Map is offered.
 - **The layout check** (`test/layout-probe.js`, run by `editor-ui.mjs` in
@@ -931,7 +932,7 @@ note's §27 has it as built) is the second half of ED5.
   (the staged tree is under its remote directory's `src/`, its `playwright/`
   holds the npm package), run as root with `-e BROWSER=firefox`: `apt-get
   install pulseaudio pulseaudio-utils`, then `pulseaudio --system -n
-  --disallow-exit --exit-idle-time=-1 --load=module-null-sink
+  --disallow-exit --exit-idle-time=-1 --load="module-null-sink norewinds=1"
   --load="module-native-protocol-unix auth-anonymous=1 socket=/tmp/pa.sock"
   -D; export PULSE_SERVER=unix:/tmp/pa.sock`, then each of the four tests
   with `PLAYWRIGHT_DIR=/pw node test/editor-map.mjs WWW OUT` (and `editor.mjs
@@ -1421,7 +1422,7 @@ owner's LAN); about 20 seconds once that host has the three images (the
 first run pulls them). There, in containers (nothing runs locally but ssh,
 tar and scp; nothing is installed on the host):
 
-1. `alpine:3.22`: a static musl `fm1-render`.
+1. `alpine:3.22`: static musl `fm1-render` and `fm1-sim-render`; the latter supplies an exact screen oracle for explicitly `libm_sensitive` scenarios.
 2. `emscripten/emsdk:6.0.10` (`build.sh`): native `fm1-render` and
    `fm1-sim-render` with GCC 13, the screen sweep, `fm1.wasm` and
    `fm1-render.js` with Emscripten 6.0.10, `test/parity.mjs`,
@@ -1457,7 +1458,7 @@ the Playwright package, about 20 MB) and the containers' session label.
 
 `tests/test_sim_web.py` runs in the normal suite (and CI): the app layer's
 output equals `fm1-render`'s byte for byte for every scenario, natively, and
-for the sequencer scenarios so do the event logs; the sequencer's sizes
+for the sequencer scenarios so do the event logs. The sequencer's sizes
 against its arena and the 36,864 B budget; the event-room rule on script
 lines and on typed commands (a stop, a play and a restart at full load in
 one gap, and 128 lane bases after a stop, which `fm1-render --events 256`
@@ -1486,6 +1487,20 @@ build, the test fails in CI (`CI=true`) and warns locally; when only the
 engines have, it warns, so engine work elsewhere does not need aeon.
 Rebuild with `build-on-aeon.sh` before publishing the page or merging a
 change to the simulator.
+
+`sim/web/test/parity.mjs`, run by `build-on-aeon.sh`, also compares the module
+with JS, glibc and (when available) static-musl renders. Scenarios marked
+`libm_sensitive` use the musl simulator as their exact screen reference while
+retaining the glibc screen result as a diagnostic. This adds no additional
+pixel mask or tolerance; the existing bottom RAM-counter mask still applies.
+On the
+2026-10-09 PSX Verb correction run, all 104 scenarios matched JS and musl
+audio; `sophie-kit` matched the musl screen exactly while 34 scope pixels
+differed from glibc after the interpolation correction.
+
+The native `tests/test_sim_web.py` suite checks the committed module against
+its build record. The musl screen oracle is exercised by `test/parity.mjs` in
+the bounded LAN build, not by that native pytest suite.
 
 `tests/test_sim_palette.py` runs `tools/palette.py`: the screen's and the
 page's tokens and roles agree, contrast after the RGB565 round trip,
@@ -1643,7 +1658,7 @@ In an isolated Linux Playwright container, install `pulseaudio` and
 
 ```sh
 pulseaudio --system -n --disallow-exit --exit-idle-time=-1 \
-  --load="module-null-sink sink_name=lunar rate=48000 channels=2" \
+  --load="module-null-sink sink_name=lunar rate=48000 channels=2 norewinds=1" \
   --load="module-native-protocol-unix auth-anonymous=1 socket=/tmp/pa.sock" -D
 export PULSE_SERVER=unix:/tmp/pa.sock PULSE_SOURCE=lunar.monitor
 node sim/web/test/audio-analysis-check.mjs
@@ -1651,6 +1666,13 @@ BROWSER=chromium PLAYWRIGHT_DIR=/pw node sim/web/test/audio-loopback.mjs "$PWD/s
 ```
 
 Run again with `BROWSER=firefox` and `BROWSER=webkit`. CI runs all three.
+Use the supported `norewinds=1` option for this isolated headless sink: it
+limits its idle clock buffer to 50 ms. PulseAudio 16.1's default two-second
+idle buffer can retain almost two seconds of latency after a browser opens
+a low-latency stream, freezing WebKit's audio clock during startup [verified:
+[backend experiment](../../notes/2026-10-09-webkit-audio-lifecycle.md)].
+This setting belongs to the test container, not the browser application's
+audio configuration.
 Keep the sink isolated from unrelated audio; use a disposable container on
 an appropriately capped Docker host, not the owner's desktop audio daemon.
 The output includes float32 monitor captures, an A/B listening WAV and a

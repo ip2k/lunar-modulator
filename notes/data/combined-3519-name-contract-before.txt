@@ -1,0 +1,40 @@
+F......                                                                  [100%]
+=================================== FAILURES ===================================
+___________________ test_list_entries_only_grow_at_their_end ___________________
+
+meta = {'lunar': '1.3', 'kind': 'metadata', 'made': {'by': 'desktop', 'version': '0.0.0', 'commit': '0000000'}, 'build': {'engine_api': 4, 'mod_api': 2, 'rate': 44118, 'ram_budget': 387924, ...}, ...}
+
+    def test_list_entries_only_grow_at_their_end(meta):
+        pinned = json.loads(PINNED.read_text())
+        have = owners(meta)
+        seen = set()
+        gpl = gpl_ids()
+        for section in ("engines", "mod"):
+            for oid, lists in pinned[section].items():
+                if (section, oid) not in have and oid in gpl and not meta["build"]["gpl"]:
+                    continue              # a GPL module, built without the switch
+                assert (section, oid) in have, f"{oid} is pinned but not in the build: move it, never drop it"
+                params = {str(p["uid"]): p for p in have[(section, oid)]}
+                for uid, entries in lists.items():
+                    p = params.get(uid)
+                    assert p is not None and p["type"] == "enum", (oid, uid)
+                    now = p["entries"]
+                    aliases = p.get("entry_aliases", {})
+                    for i, name in enumerate(entries):
+                        assert i < len(now) and (now[i] == name or aliases.get(name) == i), \
+                            f"{oid} #{uid} entry {i} was {name!r}: append, or alias a rename"
+                    assert len(now) == len(entries), \
+                        f"{oid} #{uid} ({p['name']}) has {len(now)} entries, {len(entries)} pinned: pin the new ones"
+                    seen.add((section, oid, uid))
+        for (section, oid), params in have.items():
+            for p in params:
+                if p["type"] == "enum":
+>                   assert (section, oid, str(p["uid"])) in seen, \
+                        f"{oid} {p['name']} (#{p['uid']}) is a list with no pinned entries"
+E                   AssertionError: repeat Hold (#1) is a list with no pinned entries
+E                   assert ('engines', 'repeat', '1') in {('engines', 'acid-bass', '10'), ('engines', 'acid-bass', '6'), ('engines', 'acid-gen', '11'), ('engines', 'acid-gen', '12'), ('engines', 'acid-gen', '4'), ('engines', 'acid-gen', '5'), ...}
+
+tests/test_engine_names.py:74: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_engine_names.py::test_list_entries_only_grow_at_their_end
+1 failed, 6 passed in 0.38s

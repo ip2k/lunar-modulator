@@ -1,0 +1,99 @@
+{
+  "base_main": "67d5e12d",
+  "stage": "/home/claude/mvave-fm1/compare-main-integrated-20261009/src",
+  "wasm_sha256": "cd26fe90d9fb4428b7cf1fefd3f153d55e005f90a8af09e0688476c93f755400",
+  "sources_sha256": {
+    "engines": "076df10ec44e3150147c1150119141edbfc02b7a0e6c1c3f432b48dc6f5af7ac",
+    "sim": "2fe54266f51819f7c7a4b87c0656ebcbf38775366567852e40d3305908f7fa72"
+  },
+  "parity": {
+    "passed": 104,
+    "failed": 0,
+    "identical_to_js": 104,
+    "identical_to_musl": 104,
+    "identical_to_glibc": 101,
+    "max_lsb_vs_glibc_exact_scenarios": 1
+  },
+  "screens": {
+    "screens": 4621,
+    "faults": 0,
+    "text_boxes": {
+      "MAIN": 40877,
+      "MID": 10851,
+      "SMALL": 2380
+    }
+  },
+  "edit": {
+    "parity": "ok",
+    "audio_max_lsb": 0,
+    "storm": {
+      "seconds": 30,
+      "quanta": 10341,
+      "deadline_ms": 2.9013101228523506,
+      "late": 0,
+      "applied": 82728,
+      "resyncs": 0,
+      "telemetry_blocks": 862,
+      "p50_ms": 0.061336999999994646,
+      "p99_ms": 0.09090399999999477,
+      "max_ms": 0.23558100000000337,
+      "edit_us_per_quantum": 7.917633497727799
+    },
+    "check": {
+      "params": 468,
+      "steps": 34480,
+      "text_bad": 0,
+      "codes": [
+        "UNKNOWN",
+        "RATE",
+        "RAM",
+        "NO_ROOM",
+        "BAD",
+        "NO_SOURCE",
+        "NO_DEST",
+        "NOLOCK",
+        "ENUM_NO_MOD",
+        "VOICE_TO_MONO",
+        "VOICE_TO_EFFECT",
+        "UNIT_RESERVED",
+        "VOICE_FULL"
+      ],
+      "hands": 47,
+      "sweeps": 40,
+      "lock_blocks": 900,
+      "tele_fills": 30,
+      "failed": 0
+    }
+  },
+  "hysteresis_cases": [
+    {
+      "width": 0.25,
+      "hyst": 0.25,
+      "frames": [
+        12,
+        28
+      ]
+    },
+    {
+      "width": 0.125,
+      "hyst": 0.5,
+      "frames": [
+        20,
+        28
+      ]
+    }
+  ],
+  "browser_page_rerun": false,
+  "hardware_traffic": false,
+  "focused_pytest": {
+    "passed": 32,
+    "seconds": 13.97
+  },
+  "native_kinds": {
+    "checks": 1245985,
+    "filter_responses": 135,
+    "kinds_filled": 16,
+    "kinds_fuzzed": 32,
+    "failed": 0
+  }
+}

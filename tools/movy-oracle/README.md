@@ -88,6 +88,9 @@ block. It is delivered like a command.
   that many frames instead: whole blocks, the last one shorter if need be;
   commands due at the end frame are applied after it (their events carry
   the next block index and the end frame), and later ones never.
+  An implicit length that would exceed `u64` is rejected with an error;
+  it never wraps into a shorter successful run. An explicit `end=` avoids
+  computing the implicit length, including when later commands are excluded.
 - `tracks=<n>` is the FM-1 build's track count. Movy always has 16; a script
   addresses only tracks `0..n-1`, and the oracle fails a run that emits an
   event on a higher track.

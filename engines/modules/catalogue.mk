@@ -34,8 +34,8 @@
 
 FM1_SOUND_IDS := macro shapes macro-heavy sixop dx7 sw-sophie drums acid-bass comet crater \
                  drawbar trio phase-bend test-sine
-FM1_AUDIO_FX_IDS := plate ensemble diffuse sw-psxverb crush fold drive echo filter comb comp \
-                    limit djfilter tilt sat isolator eq room hall gate squash shaper test-gain \
+FM1_AUDIO_FX_IDS := plate ensemble diffuse sw-psxverb crush fold drive echo warble filter comb comp \
+                    limit djfilter tilt sat isolator eq room hall gate squash shaper repeat test-gain \
                     test-ext
 FM1_MIDI_FX_IDS := arp acid-gen
 FM1_MOD_IDS := lfo env chance function bounce register coin divide burst slew quantize \
@@ -84,6 +84,7 @@ FM1_OBJ.crush := our/src/fx_crush.o
 FM1_OBJ.fold := our/src/fx_fold.o
 FM1_OBJ.drive := our/src/fx_drive.o
 FM1_OBJ.echo := our/src/fx_echo.o
+FM1_OBJ.warble := our/src/fx_warble.o
 FM1_OBJ.filter := our/src/fx_filter.o
 FM1_OBJ.comb := our/src/fx_comb.o
 FM1_OBJ.comp := our/src/fx_comp.o
@@ -98,6 +99,7 @@ FM1_OBJ.hall := our/src/fx_hall.o
 FM1_OBJ.gate := our/src/fx_gate.o
 FM1_OBJ.squash := our/src/fx_squash.o
 FM1_OBJ.shaper := our/src/fx_shaper.o
+FM1_OBJ.repeat := our/src/fx_repeat.o
 FM1_OBJ.test-gain := our/src/test_gain.o
 FM1_OBJ.test-ext := our/src/test_ext.o
 

@@ -1,0 +1,318 @@
+{
+  "source_ref": "3519c3857d9bddb8007e14de7ef84525ef8df96a",
+  "sources_sha256": {
+    "engines": "b97e01d8ff7c98ad36a3f5301fae9486af5cc7602fadc2e263968a4c7036ad38",
+    "sim": "4d861adaacdcbd3454fb125fd4c5d19330aa1223d47959a65148020a85fe4377"
+  },
+  "wasm_sha256": "c88938845cd93e52f5cb99c53a650b4eaf559833e5f39fb58ecc0f0c4ab09502",
+  "wasm_bytes": 1561111,
+  "parity": {
+    "passed": 108,
+    "failed": 0,
+    "identical_to_js": 108,
+    "identical_to_musl": 108,
+    "identical_to_glibc": 105,
+    "max_lsb_vs_glibc_exact_scenarios": 1
+  },
+  "meta": {
+    "meta_id": "5d726997",
+    "module_meta_id": "5d726997",
+    "bytes": 255110,
+    "lunar": "1.3",
+    "native_meta_id": "53ec1875",
+    "ram_differ_at_64_bits": 9,
+    "passed": true
+  },
+  "screens": {
+    "screens": 4658,
+    "faults": 0
+  },
+  "dx7": {
+    "passed": 18,
+    "failed": 0,
+    "cases": [
+      {
+        "name": "a 32-voice bank fills User 1-32 with its names",
+        "pass": true
+      },
+      {
+        "name": "32 single-voice dumps in one file fill User 1-32",
+        "pass": true
+      },
+      {
+        "name": "single voices go to the slot after the last; a bank resets to User 1",
+        "pass": true
+      },
+      {
+        "name": "a bank's data without SysEx framing loads",
+        "pass": true
+      },
+      {
+        "name": "a wrong checksum loads and is counted",
+        "pass": true
+      },
+      {
+        "name": "a bank with a wrong checksum loads and is counted",
+        "pass": true
+      },
+      {
+        "name": "an empty file loads nothing",
+        "pass": true
+      },
+      {
+        "name": "text loads nothing, every byte outside SysEx",
+        "pass": true
+      },
+      {
+        "name": "another maker's SysEx loads nothing and is named foreign",
+        "pass": true
+      },
+      {
+        "name": "a bank cut short loads nothing and is named truncated",
+        "pass": true
+      },
+      {
+        "name": "a voice dump one byte short loads nothing and is named the wrong size",
+        "pass": true
+      },
+      {
+        "name": "a dump whose byte count disagrees with its header is the wrong size",
+        "pass": true
+      },
+      {
+        "name": "several dumps and other messages: the dumps load, the rest is counted",
+        "pass": true
+      },
+      {
+        "name": "a file past 64 KiB or the buffer is refused, and a refusal keeps the bank",
+        "pass": true
+      },
+      {
+        "name": "64 KiB of single voices is read whole",
+        "pass": true
+      },
+      {
+        "name": "with play, the current sound becomes FM6 on the first voice loaded",
+        "pass": true
+      },
+      {
+        "name": "an FM6 sound made after a load plays the bank",
+        "pass": true
+      },
+      {
+        "name": "each voice sounds the same from the bank as from its single dump",
+        "pass": true
+      }
+    ]
+  },
+  "edit": {
+    "parity": "ok",
+    "audio_max_lsb": 0,
+    "storm": {
+      "seconds": 30,
+      "quanta": 10341,
+      "deadline_ms": 2.9013101228523506,
+      "late": 0,
+      "applied": 82728,
+      "resyncs": 0,
+      "telemetry_blocks": 862,
+      "p50_ms": 0.062118999999995594,
+      "p99_ms": 0.09451000000001386,
+      "max_ms": 0.23187300000000732,
+      "edit_us_per_quantum": 7.832506334009994
+    },
+    "check": {
+      "params": 474,
+      "steps": 34893,
+      "text_bad": 0,
+      "codes": [
+        "UNKNOWN",
+        "RATE",
+        "RAM",
+        "NO_ROOM",
+        "BAD",
+        "NO_SOURCE",
+        "NO_DEST",
+        "NOLOCK",
+        "ENUM_NO_MOD",
+        "VOICE_TO_MONO",
+        "VOICE_TO_EFFECT",
+        "UNIT_RESERVED",
+        "VOICE_FULL"
+      ],
+      "hands": 47,
+      "sweeps": 40,
+      "lock_blocks": 900,
+      "tele_fills": 30,
+      "failed": 0
+    }
+  },
+  "focused_native": {
+    "before": {
+      "passed": 259,
+      "failed": 1,
+      "failure": "PSX UPSTREAM machine-readable hash row"
+    },
+    "after": {
+      "passed": 271,
+      "failed": 0,
+      "seconds": 11.9
+    }
+  },
+  "serialized_names": {
+    "before": {
+      "passed": 6,
+      "failed": 1,
+      "failure": "Repeat enum entries not pinned"
+    },
+    "after": {
+      "passed": 22,
+      "failed": 0,
+      "seconds": 0.6
+    }
+  },
+  "editor_unit": {
+    "checks": 36,
+    "failed": 0
+  },
+  "scenarios": [
+    {
+      "name": "sophie-kit",
+      "samples": 88236,
+      "libm_sensitive": true,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 44454,
+        "max_lsb": 4082
+      },
+      "screen_reference": "musl",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 34,
+        "max_lsb": 30036
+      },
+      "screen_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "ram_bytes": {
+        "wasm32": 277020,
+        "native64": 277116
+      }
+    },
+    {
+      "name": "seq-repeat-beat-hold",
+      "samples": 264708,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 105116,
+        "native64": 105116
+      },
+      "cmd": "seq/repeat-hold.verbs",
+      "seq": {
+        "lines": 4,
+        "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "fx-turns-diffuse-psxverb",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 236508,
+        "native64": 249420
+      }
+    },
+    {
+      "name": "four-sounds-warble-repeat-hold",
+      "samples": 264708,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 177904,
+        "native64": 192536
+      },
+      "cmd": "seq/repeat-hold.verbs",
+      "seq": {
+        "lines": 4,
+        "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    }
+  ],
+  "limits": [
+    "Offline native/Wasm checks only; no native Safari listening acceptance or device execution.",
+    "Full exact-head candidate CI and browser gates remain required.",
+    "Docs/fixture corrections after source_ref do not change engine/sim input hashes."
+  ]
+}

@@ -155,7 +155,15 @@ static void cmp_process(void *self, const fm1_mod_io_t *io) {
     kind_gate_set(&s->below, &io->gout[O_BELOW], crossing(s, d, -w - h), 1);
     zone = Z_BELOW;
   }
-  if ((zone == Z_MID) != (s->mid.level != 0)) {
+  if (s->zone == Z_ABOVE && zone == Z_BELOW) {
+    /* A single tick can traverse the complete MID band. Preserve both
+     * crossings even though MID is low at both tick boundaries. */
+    kind_gate_set(&s->mid, &io->gout[O_MID], crossing(s, d, w - h), 1);
+    kind_gate_set(&s->mid, &io->gout[O_MID], crossing(s, d, -w - h), 0);
+  } else if (s->zone == Z_BELOW && zone == Z_ABOVE) {
+    kind_gate_set(&s->mid, &io->gout[O_MID], crossing(s, d, h - w), 1);
+    kind_gate_set(&s->mid, &io->gout[O_MID], crossing(s, d, w + h), 0);
+  } else if ((zone == Z_MID) != (s->mid.level != 0)) {
     /* MID changes where the zone it left or entered changed. */
     const float level = zone == Z_MID ? (s->zone == Z_ABOVE ? w - h : h - w)
                                       : (zone == Z_ABOVE ? w + h : -w - h);

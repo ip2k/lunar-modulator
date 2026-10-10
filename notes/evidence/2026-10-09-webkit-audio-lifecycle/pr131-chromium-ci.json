@@ -1,0 +1,366 @@
+{
+  "pr": 131,
+  "head": "78101317052b2eb990d7a24fbe855dbb506ce1eb",
+  "run": 38025899085,
+  "job": 114136559601,
+  "logSha256": "2d785cd30757c760545964f6015dbf293c80580368356bd6925fea781054b0ec",
+  "artifact": {
+    "id": 11661894576,
+    "name": "editor-page-test-output-chromium",
+    "localPath": "/tmp/lunar-pr131-chromium-artifact"
+  },
+  "editorStorm": {
+    "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+    "seconds": 30,
+    "logs": [],
+    "scheduling_capture": true,
+    "edited": 7280,
+    "codes_not_ok": 0,
+    "changes": 1724,
+    "entries": 58243,
+    "resyncs": 0,
+    "views": 1,
+    "telemetry": 905,
+    "stats": {
+      "quanta": 10695,
+      "timed": false,
+      "late": null,
+      "maxMs": null,
+      "editMs": null
+    },
+    "snapshot": {
+      "ok": true,
+      "bytes": 1115,
+      "binary": true
+    },
+    "ops": 7280,
+    "records": 58240,
+    "rate": 44100,
+    "playback": {
+      "underrun_events": 1,
+      "underrun_ms": 11.609
+    },
+    "pass": false
+  },
+  "loopback": {
+    "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+    "seconds": 30,
+    "source": "lunar.monitor",
+    "events": [
+      {
+        "scope": "project",
+        "at": 1791613881681,
+        "before": {
+          "playing": true,
+          "side": "B"
+        },
+        "after": {
+          "playing": true,
+          "side": "A",
+          "busy": false,
+          "message": "Now A: the project.",
+          "scope": "project"
+        }
+      },
+      {
+        "scope": "project",
+        "at": 1791613884201,
+        "before": {
+          "playing": true,
+          "side": "A"
+        },
+        "after": {
+          "playing": true,
+          "side": "B",
+          "busy": false,
+          "message": "Now B: the project.",
+          "scope": "project"
+        }
+      },
+      {
+        "scope": "project",
+        "at": 1791613886717,
+        "before": {
+          "playing": true,
+          "side": "B"
+        },
+        "after": {
+          "playing": true,
+          "side": "A",
+          "busy": false,
+          "message": "Now A: the project.",
+          "scope": "project"
+        }
+      },
+      {
+        "scope": "project",
+        "at": 1791613889236,
+        "before": {
+          "playing": true,
+          "side": "A"
+        },
+        "after": {
+          "playing": true,
+          "side": "B",
+          "busy": false,
+          "message": "Now B: the project.",
+          "scope": "project"
+        }
+      },
+      {
+        "scope": "s2",
+        "at": 1791613895083,
+        "before": {
+          "playing": true,
+          "side": "B"
+        },
+        "after": {
+          "playing": true,
+          "side": "A",
+          "busy": false,
+          "message": "Now A: Sound 2.",
+          "scope": 1
+        }
+      },
+      {
+        "scope": "s2",
+        "at": 1791613897598,
+        "before": {
+          "playing": true,
+          "side": "A"
+        },
+        "after": {
+          "playing": true,
+          "side": "B",
+          "busy": false,
+          "message": "Now B: Sound 2.",
+          "scope": 1
+        }
+      },
+      {
+        "scope": "s2",
+        "at": 1791613900113,
+        "before": {
+          "playing": true,
+          "side": "B"
+        },
+        "after": {
+          "playing": true,
+          "side": "A",
+          "busy": false,
+          "message": "Now A: Sound 2.",
+          "scope": 1
+        }
+      },
+      {
+        "scope": "s2",
+        "at": 1791613902629,
+        "before": {
+          "playing": true,
+          "side": "A"
+        },
+        "after": {
+          "playing": true,
+          "side": "B",
+          "busy": false,
+          "message": "Now B: Sound 2.",
+          "scope": 1
+        }
+      }
+    ],
+    "logs": [],
+    "tone-stormStartedAt": 1791613840445,
+    "storm": {
+      "batches": 7273,
+      "replies": 7273,
+      "refused": 0,
+      "resyncs": 0,
+      "rate": 44100
+    },
+    "ab-playbackStartedAt": 1791613875633,
+    "audio": {
+      "pass": true,
+      "activeSeconds": 32.000395833333336,
+      "nonfinite": 0,
+      "channelMismatches": 0,
+      "maxZeroRun": 0,
+      "maxSilenceMs": 0,
+      "cycles": 13859,
+      "badPeriods": 0,
+      "maxPeriodError": 0.010069245969958729
+    },
+    "music": {
+      "seconds": 30.0001875,
+      "peak": 0.258270263671875,
+      "nonfinite": 0
+    },
+    "transportStopped": [],
+    "pass": true
+  },
+  "scheduling": {
+    "schema": 1,
+    "trace_requested": true,
+    "trace_started": true,
+    "trace_complete": true,
+    "trace_categories": "audio,webaudio,disabled-by-default-audio",
+    "perturbation": "CDP tracing and one-second resource reads can affect scheduling; this is an instrumented run.",
+    "trace_window": "Starts before storm page.evaluate and ends after it, including the snapshot drain. Playback counters have their own narrower window.",
+    "errors": [],
+    "trace_events_saved": 86939,
+    "trace_events_dropped": 0
+  },
+  "firstSample": {
+    "utc": "2026-10-10T06:37:24.576Z",
+    "monotonic_ns": "473073083976",
+    "affinity_parallelism": 4,
+    "logical_cpus": 4,
+    "files": {
+      "/proc/self/cgroup": {
+        "text": "0::/",
+        "error": null
+      },
+      "/proc/self/mountinfo": {
+        "text": "420 419 0:30 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime - cgroup2 cgroup rw,nsdelegate,memory_recursiveprot",
+        "error": null
+      },
+      "/sys/fs/cgroup/cpu.max": {
+        "text": "max 100000",
+        "error": null
+      },
+      "/sys/fs/cgroup/cpu.stat": {
+        "text": "usage_usec 152973381\nuser_usec 136004432\nsystem_usec 16968949\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0",
+        "error": null
+      },
+      "/sys/fs/cgroup/cpu.pressure": {
+        "text": "some avg10=1.79 avg60=0.49 avg300=0.27 total=3691750\nfull avg10=0.18 avg60=0.03 avg300=0.00 total=1575792",
+        "error": null
+      },
+      "/proc/pressure/cpu": {
+        "text": "some avg10=1.13 avg60=1.01 avg300=1.53 total=13363891\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0",
+        "error": null
+      },
+      "/proc/stat": {
+        "text": "cpu  15514 1 3944 162542 1454 0 183 0 0 0\ncpu0 3973 0 976 40465 448 0 32 0 0 0\ncpu1 3867 0 1021 40673 354 0 89 0 0 0\ncpu2 3771 1 1014 40681 320 0 24 0 0 0\ncpu3 3902 0 932 40720 330 0 36 0 0 0",
+        "error": null
+      },
+      "/proc/loadavg": {
+        "text": "0.26 0.41 0.24 1/373 1454",
+        "error": null
+      },
+      "/proc/self/status": {
+        "text": "Cpus_allowed_list:\t0-3",
+        "error": null
+      }
+    }
+  },
+  "lastSample": {
+    "utc": "2026-10-10T06:37:56.099Z",
+    "monotonic_ns": "504595934911",
+    "affinity_parallelism": 4,
+    "logical_cpus": 4,
+    "files": {
+      "/proc/self/cgroup": {
+        "text": "0::/",
+        "error": null
+      },
+      "/proc/self/mountinfo": {
+        "text": "420 419 0:30 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime - cgroup2 cgroup rw,nsdelegate,memory_recursiveprot",
+        "error": null
+      },
+      "/sys/fs/cgroup/cpu.max": {
+        "text": "max 100000",
+        "error": null
+      },
+      "/sys/fs/cgroup/cpu.stat": {
+        "text": "usage_usec 160250774\nuser_usec 142419472\nsystem_usec 17831302\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0",
+        "error": null
+      },
+      "/sys/fs/cgroup/cpu.pressure": {
+        "text": "some avg10=0.08 avg60=0.29 avg300=0.24 total=3846879\nfull avg10=0.00 avg60=0.01 avg300=0.00 total=1711309",
+        "error": null
+      },
+      "/proc/pressure/cpu": {
+        "text": "some avg10=0.09 avg60=0.69 avg300=1.40 total=13535827\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0",
+        "error": null
+      },
+      "/proc/stat": {
+        "text": "cpu  15956 1 4018 174347 1455 0 183 0 0 0\ncpu0 4083 0 993 43416 448 0 32 0 0 0\ncpu1 3976 0 1039 43622 354 0 89 0 0 0\ncpu2 3887 1 1032 43632 321 0 25 0 0 0\ncpu3 4009 0 951 43676 330 0 36 0 0 0",
+        "error": null
+      },
+      "/proc/loadavg": {
+        "text": "0.22 0.39 0.23 2/378 1460",
+        "error": null
+      },
+      "/proc/self/status": {
+        "text": "Cpus_allowed_list:\t0-3",
+        "error": null
+      }
+    }
+  },
+  "traceSha256": "7cbd5911aab6c8d606a79c88b79c177cbbee9b9d740099eb6a49c0cb2f027663",
+  "traceGlitchEvents": [],
+  "maxWallTimeEvents": {
+    "RealtimeAudioDestinationHandler::Render": {
+      "args": {
+        "frames": 128,
+        "playout_delay (ms)": 34.765
+      },
+      "cat": "webaudio",
+      "dur": 3969,
+      "name": "RealtimeAudioDestinationHandler::Render",
+      "ph": "X",
+      "pid": 1433,
+      "tdur": 852,
+      "tid": 1453,
+      "ts": 473092592,
+      "tts": 44660
+    },
+    "AudioDestination::Render waiting": {
+      "args": {},
+      "cat": "webaudio",
+      "dur": 5390,
+      "name": "AudioDestination::Render waiting",
+      "ph": "X",
+      "pid": 1433,
+      "tdur": 13,
+      "tid": 1454,
+      "ts": 473091276,
+      "tts": 2291
+    },
+    "AudioOutputDevice::FireRenderCallback": {
+      "args": {
+        "callback_num": 34,
+        "delay_timestamp (ms)": 473091,
+        "playout_delay (ms)": 34.765
+      },
+      "cat": "audio",
+      "dur": 5519,
+      "name": "AudioOutputDevice::FireRenderCallback",
+      "ph": "X",
+      "pid": 1433,
+      "tdur": 46,
+      "tid": 1454,
+      "ts": 473091166,
+      "tts": 2272
+    },
+    "SyncReader::WaitUntilDataIsReady": {
+      "args": {},
+      "cat": "audio",
+      "dur": 56,
+      "name": "SyncReader::WaitUntilDataIsReady",
+      "ph": "X",
+      "pid": 1443,
+      "tdur": 56,
+      "tid": 1451,
+      "ts": 496564051,
+      "tts": 253216
+    }
+  },
+  "interpretation": "Verified one playbackStats event (11.609 ms), four available CPUs and no visible cgroup throttling. No Glitch! trace event was saved. The longest render has 3969 us wall versus 852 us thread CPU; scheduling interruption is a candidate, not a demonstrated cause. This is a distinct signature from WebKit startup frozen-clock failures. PR132 null-sink buffer changes are not assumed to repair it.",
+  "upstreamSources": [
+    "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/third_party/blink/renderer/modules/webaudio/audio_playback_stats.cc",
+    "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/third_party/blink/renderer/platform/audio/audio_destination.cc",
+    "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/media/audio/pulse/pulse_output.cc",
+    "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/media/base/audio_glitch_info.cc"
+  ]
+}

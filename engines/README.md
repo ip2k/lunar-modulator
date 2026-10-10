@@ -41,6 +41,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `fold` | Fold | effect | – | this repository | a wavefolder with anti-aliasing; [below](#fold) |
 | `drive` | Drive | effect | – | this repository | overdrive and saturation: Soft, Tube, Diode, Fuzz and Tape, anti-aliased; [below](#drive) |
 | `echo` | Echo | effect | – | this repository | a stereo ping-pong delay, 10–1,000 ms; [below](#echo) |
+| `repeat` | Repeat | effect | – | this repository (MIT) | a beat-synchronised stutter/hold; the selected slice is an upper bound and may halve to fit its ring; [below](#repeat) |
 | `filter` | Filter | effect | – | this repository | six filter types (SVF, ladder, diode ladder, Sallen-Key, mixed-input Sallen-Key, formant), zero-delay feedback; [below](#filter) |
 | `comb` | Comb | effect | – | this repository, after Zölzer's universal comb (*DAFX*) | a tuned comb filter, peaks to notches; Filter's seventh type until 2026-10-05; [below](#comb) |
 | `comp` | Comp | effect | – | this repository, after Giannoulis, Massberg and Reiss (JAES 2012) | a feed-forward compressor: peak or RMS, soft knee, parallel mix; [below](#comp) |
@@ -1238,6 +1239,75 @@ How it works [verified: tests/test_engines_echo.py and
 - **Not yet:** tempo sync, which waits for the host to expose tempo, and a
   reset call to drop the tail without re-creating the 64 KiB instance (the
   host feature listed below).
+
+## Warble
+
+Warble (`src/fx_warble.cc`) is an original, compact wow/flutter delay effect
+written here under MIT. CHOMPI's Warble is a conceptual inspiration only; no
+CHOMPI or DaisySP implementation code is used. It uses one fixed stereo ring
+per instance and two deterministic, independent modulation phases. Recreating
+an instance clears the ring and resets both phases.
+
+| Page | Parameter | Range | Default | What it does |
+| --- | --- | --- | --- | --- |
+| 1 | Wow | 0–1 | 0.35 | Slow 0.35 Hz delay modulation, up to ±3 ms |
+| 1 | Flutter | 0–1 | 0.25 | Faster 6.5 Hz delay modulation, up to ±0.45 ms |
+| 1 | Mix | 0–1 | 0.5 | Linear dry/wet balance; zero returns the input bit for bit |
+
+The base delay is 12 ms; the combined maximum modulation is 3.45 ms. Delay
+times are converted to samples from the host rate, so the time range and LFO
+frequencies stay constant across rates. The 4,096-cell ring stores interleaved
+16-bit stereo samples (16 KiB); even at 192 kHz the maximum read remains inside
+the ring. Controls glide with a one-pole smoother (about 20 ms for Wow and
+Flutter, 5 ms for Mix); values set before the first render take effect
+immediately. A zero Mix still advances modulation and records input, allowing
+the effect to be enabled without reviving stale history.
+
+`tests/test_engines_warble.py` and `build/fm1-warble-selftest` cover the
+metadata, dry bypass, sample-rate scaling, deterministic reset, live
+parameter glides, hostile values and the instance memory bound. These checks
+are desktop evidence; target timing and device behavior remain untested.
+
+## Repeat
+
+An original MIT beat-synchronised stutter/hold (`src/fx_repeat.cc`). It uses
+the sequencer's explicit tempo and beat events; it does not derive a clock
+from audio or MIDI. The current host supplies these events for its sequencer,
+but external MIDI/compatibility-clock input does not produce beat splits.
+
+| Page | Control | Values | What it does |
+| --- | --- | --- | --- |
+| 1 | Hold | Off / On | Arms the effect. While running, it captures at the next host beat once a complete history window is available; while stopped, it captures when the ring is full. |
+| 1 | Max slice | 1/8 max, 1/16 max, 1/32 max | Sets the longest requested beat subdivision. At slow tempos or high sample rates the exact slice halves by powers of two through 1/256 until it fits; it is not truncated to an unsynchronised length. |
+| 1 | Mix | 0–1 | Blends the dry signal with the held slice; settled zero is bit-exact dry. |
+
+The per-instance ring stores 16,384 stereo frames of 16-bit samples
+(65,536 bytes), plus state. Admission charges the complete ring even while
+Hold is off. Capture waits for the complete ring so later beat-boundary
+changes can select any supported slice without exposing unwritten history;
+at the minimum 8 kHz host rate this means up to 2.048 seconds before the first
+capture can latch. A held slice is the most recent selected window ending at the
+capture beat, and its storage stays frozen until release. Its final 5 ms
+fade meets the first sample exactly at wrap without changing the beat period;
+the native regression checks this against a discontinuous source. Tempo or
+slice changes take effect on a later beat and crossfade old and new windows
+over 5 ms. Hold Off fades wet output over 5 ms before recording resumes.
+STOP fades and clears the history; START begins a fresh capture. A high Hold
+does not recapture after STOP until Hold is toggled or START occurs. If Hold is
+turned back on before its 5 ms release finishes, the released loop is cleared
+when the output reaches dry; a full new ring and (while running) a later beat
+are required before capture. RESET is
+handled by the effect API, but the current host does not send it. The effect
+leaves API `get_param` unset because the host already stores the clamped values
+passed to `set_param`; saved Max slice therefore remains the requested choice
+while the native diagnostic reports the note division used at the current tempo.
+
+These contracts are covered by `tests/test_engines_repeat.py` and
+`build/fm1-repeat-selftest`, including recent-window capture, full-history
+arming, exact subdivisions at the sample-rate and tempo bounds, transport
+events, chunk invariance and exact dry bypass. Desktop allocation and
+rendering checks do not measure FM-1 CPU use, SRAM admission in a linked
+firmware, or device behavior.
 
 ## Filter
 
@@ -4556,7 +4626,7 @@ on 2026-10-06:
 | `src/drums.cc`, `src/drum_voices.h` | Drums: the kit around Plaits' drum classes, and the rim shot, clap, cowbell and cymbal of our own ([above](#drums)) |
 | `src/crater_kit.cc`, `src/crater_kit.h` | Crater Kit, a GPL module: the pads, grid and parameters around fm1-x0x's 808 ([above](#crater-kit)) |
 | `src/fx_fold.cc` | Fold, a wavefolder effect of our own ([above](#fold)) |
-| `src/fx_*.cc` | Effects written in this repository (Crush, [Drive](#drive), Echo, [Filter](#filter), [Comb](#comb), [Comp](#comp), [Limiter](#limiter), [DJ Filter](#dj-filter), [Tilt](#tilt), [Master Sat](#master-sat), [Isolator](#isolator), [EQ](#eq), [Hall](#hall), [Gate](#gate), [Transient](#transient); [Room](#room) wraps Clouds' classes; [Squash](#squash) ports Airwindows' loops) |
+| `src/fx_*.cc` | Effects written in this repository (Crush, [Drive](#drive), Echo, [Warble](#warble), [Repeat](#repeat), [Filter](#filter), [Comb](#comb), [Comp](#comp), [Limiter](#limiter), [DJ Filter](#dj-filter), [Tilt](#tilt), [Master Sat](#master-sat), [Isolator](#isolator), [EQ](#eq), [Hall](#hall), [Gate](#gate), [Transient](#transient); [Room](#room) wraps Clouds' classes; [Squash](#squash) ports Airwindows' loops) |
 | `src/fx_filter_dsp.h` | The arithmetic Filter and Comb share (2^x, log2, the saturating curve, the guard, the glide) |
 | `src/fx_comp_math.h` | `CompExp2` and `CompLog2`, now `include/fm1_math.h`'s base-2 exponential and logarithm without libm (the same bits on every build) under the names Comp, Tilt, DJ Filter and the Gate use |
 | `src/test_sine.cc`, `src/test_gain.cc`, `src/test_ext.cc` | Test engines: a sine voice, a gain stage, and Test Ext, the smallest effect with the API v3 extension ([below](#engine-api-v3)) |

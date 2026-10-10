@@ -7,8 +7,8 @@
 
 import { createServer } from 'node:http';
 import { createServer as createTlsServer } from 'node:https';
-import { existsSync, readFileSync, statSync } from 'node:fs';
-import { extname, join, normalize } from 'node:path';
+import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
+import { extname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path';
 
 const TYPES = {
   '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
@@ -22,17 +22,25 @@ const TYPES = {
 //   host    the host name in the returned url (the server listens on
 //           127.0.0.1 whatever it is; map other names there in the browser)
 export async function serve(www, port, { prefix = '/', tls = null, host = '127.0.0.1' } = {}) {
+  const root = realpathSync(www);
+  const contained = (file) => {
+    const rel = relative(root, file);
+    return rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel);
+  };
   const handler = (req, res) => {
-    const pathname = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+    let pathname;
+    try { pathname = decodeURIComponent(new URL(req.url, 'http://x').pathname); }
+    catch { res.writeHead(400); res.end(); return; }
     if (!pathname.startsWith(prefix)) {
       res.writeHead(404);
       res.end();
       return;
     }
     const path = normalize(pathname.slice(prefix.length)).replace(/^\/+/, '').replace(/^\.$/, '');
-    let file = join(www, path || 'index.html');
+    let file = resolve(root, path || 'index.html');
+    if (!contained(file)) { res.writeHead(404); res.end(); return; }
     if (existsSync(file) && statSync(file).isDirectory()) file = join(file, 'index.html');
-    if (!file.startsWith(www) || !existsSync(file) || !statSync(file).isFile()) {
+    if (!existsSync(file) || !contained(realpathSync(file)) || !statSync(file).isFile()) {
       res.writeHead(404);
       res.end();
       return;
