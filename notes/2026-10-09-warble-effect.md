@@ -30,8 +30,8 @@ parameter values.
 
 Initial validation: `make -C engines build/fm1-warble-selftest` and
 `engines/build/fm1-warble-selftest` pass all seven focused C++ checks; `git diff
---check` is clean. The full native renderer/Python integration tests and the
-combined Wasm/parity/page build remain pending. No JieLi target build, FM-1
+--check` is clean. At that initial checkpoint the full renderer/Python and combined Wasm/page
+checks were pending; their completed results follow below. No JieLi target build, FM-1
 traffic, install or hardware audio test was performed. The Wasm artifact must
 be regenerated together with the other in-flight engine/module changes before
 it is treated as a combined product build.
@@ -65,5 +65,30 @@ Evidence path: `/home/claude/mvave-fm1/warble-envelope-integrated-20261009/src`,
 with local logs `/tmp/lunar-warble-integrated-{build,pytest}.log`.
 [verified] Thirty-five focused pytest checks pass (Warble, modulation kinds,
 canonical metadata export, served examples, module record and zero-late storm).
-The browser integration check is pending at this note's preparation.
+[verified] The Chromium 153.0.8010.12 integration pass on the envelope/main32
+build completed: panel-follow regression tests, editor-unit checks, all 93
+editor UI checks, all 99 v1 checks and a 30-second browser page storm with
+7277 operations, no non-OK codes, resyncs or underruns. Browser capture
+receipts summarize this precise build; they are not a native Safari listening
+receipt.
 No target build, runtime hardware observation or FM-1 traffic occurred.
+
+[verified] A second routine main merge includes the Room oracle bound fix and
+DX7 saturating import counters at `67d5e12d`. A separate actual LAN build at
+`/home/claude/mvave-fm1/warble-current-main-20261009/src` again passes 105
+parity scenarios, 4632 screens with no layout faults, metadata, all 18 DX7
+checks and native edit checks. Edit audio parity is exact and the 30-second
+offline storm has zero late quanta (maximum 0.278924 ms). The generated module
+and record were copied from that build; both source hashes match this tree.
+The served/canonical metadata is unchanged by these two bounds fixes.
+The Chromium page receipt above precedes only these two source changes;
+exact-head three-browser GitHub CI remains required. No gate was weakened.
+
+Compact receipts are in
+`notes/data/2026-10-09-warble-envelope-integration.json`; complete local logs
+are `/tmp/lunar-warble-current-main-{build,pytest}.log` and
+`/tmp/lunar-warble-integrated-browser.log`.
+
+[verified] Forty-two focused Python checks pass on the current-main build,
+including the original 35 checks plus five DX7 counter regressions and two
+Room invalid/valid request checks.

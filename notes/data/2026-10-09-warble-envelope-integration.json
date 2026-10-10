@@ -1,0 +1,134 @@
+{
+  "base_main": "67d5e12d",
+  "record_wasm_sha256": "2eacd2b829753e80dd76ac668e9f32484785b37ed4d06d36e13ab104bb69b1de",
+  "sources_sha256": {
+    "engines": "e893ccdefefbe903aadd2336b0f0b06a896f07e0be3d3bd922e5153eef3b522f",
+    "sim": "21c481956721fecced17d4f93d98a9acf0167b16941434bbc1ff5d2bcfb6665b"
+  },
+  "build_stage": "/home/claude/mvave-fm1/warble-current-main-20261009/src",
+  "parity": {
+    "passed": 105,
+    "failed": 0,
+    "identical_to_js": 105,
+    "identical_to_musl": 105,
+    "identical_to_glibc": 102,
+    "max_lsb_vs_glibc_exact_scenarios": 1,
+    "imports": []
+  },
+  "screens": {
+    "screens": 4632,
+    "faults": 0,
+    "text_boxes": {
+      "MAIN": 41030,
+      "MID": 10881,
+      "SMALL": 2380
+    }
+  },
+  "offline_edit": {
+    "parity": "ok",
+    "audio_max_lsb": 0,
+    "storm": {
+      "seconds": 30,
+      "quanta": 10341,
+      "deadline_ms": 2.9013101228523506,
+      "late": 0,
+      "applied": 82728,
+      "resyncs": 0,
+      "telemetry_blocks": 862,
+      "p50_ms": 0.06175799999999754,
+      "p99_ms": 0.09777700000000777,
+      "max_ms": 0.2789240000000035,
+      "edit_us_per_quantum": 7.780636785611195
+    },
+    "fails": []
+  },
+  "warble_selftests": [
+    {
+      "check": "refuses_bad_rates",
+      "ok": true,
+      "value": 0
+    },
+    {
+      "check": "fixed_bounded_instance",
+      "ok": true,
+      "value": 16464
+    },
+    {
+      "check": "delay_scales_in_seconds",
+      "ok": true,
+      "value": 12.2852353
+    },
+    {
+      "check": "deterministic_and_reblockable",
+      "ok": true,
+      "value": 0
+    },
+    {
+      "check": "exact_dry_and_smooth_mix",
+      "ok": true,
+      "value": 0.0132678896
+    },
+    {
+      "check": "live_wow_flutter_are_smoothed",
+      "ok": true,
+      "value": 0.0228559822
+    },
+    {
+      "check": "hostile_values_finite_and_bounded",
+      "ok": true,
+      "value": 0
+    }
+  ],
+  "browser_base_main": "32b321ff5674f5375e8a8ef1127150b8242909d3",
+  "browser_stage": "/home/claude/mvave-fm1/warble-envelope-integrated-20261009/src",
+  "browser": {
+    "ui": {
+      "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+      "checks": 93,
+      "failed": [],
+      "why": []
+    },
+    "v1": {
+      "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+      "checks": 99,
+      "failed": [],
+      "why": []
+    },
+    "storm": {
+      "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+      "seconds": 30,
+      "logs": [],
+      "edited": 7277,
+      "codes_not_ok": 0,
+      "changes": 1725,
+      "entries": 58219,
+      "resyncs": 0,
+      "views": 1,
+      "telemetry": 905,
+      "stats": {
+        "quanta": 10695,
+        "timed": false,
+        "late": null,
+        "maxMs": null,
+        "editMs": null
+      },
+      "snapshot": {
+        "ok": true,
+        "bytes": 1119,
+        "binary": true
+      },
+      "ops": 7277,
+      "records": 58216,
+      "rate": 44100,
+      "playback": {
+        "underrun_events": 0,
+        "underrun_ms": 0
+      },
+      "pass": true
+    }
+  },
+  "focused_pytest": {
+    "passed": 42,
+    "seconds": 15.07
+  }
+}
