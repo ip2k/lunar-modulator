@@ -961,6 +961,99 @@ const fresh = await page.evaluate(async () => {
 });
 check('opening a project again (even a file of the same name) is another project, and the autosave carries the new identity though its bytes are the same', !!fresh.before && !!fresh.after && fresh.before !== fresh.after && fresh.saved === fresh.after, fresh);
 
+// ---- next stage: search selection and one-step batches -------------------------------
+await page.evaluate(() => window.fm1.editor.project.openSearch());
+await page.fill('.ed-search-in', '');
+await page.keyboard.press('Shift+Enter');
+const picks = await page.evaluate(() => ({ n: window.fm1.editor.state.searchPicks.length, text: document.querySelector('.ed-search-batch').textContent,
+  shown: document.querySelectorAll('.ed-search-list [role=option]').length }));
+check('Shift+Enter selects every match, including matches beyond the first 60 shown', picks.n > 60 && picks.shown === 60 && picks.text.includes(`${picks.n} matches selected`), picks);
+await shot('editor-search-selection.png', '.ed-search-card');
+await page.evaluate(() => window.fm1.editor.project.closeSearch(false));
+await page.evaluate(() => window.fm1.editor.project.openSearch());
+await page.fill('.ed-search-in', '>');
+await page.keyboard.press('Shift+Enter');
+const staleCableSetup = await page.evaluate(() => {
+  const ed = window.fm1.editor, st = ed.state, picks = st.searchPicks;
+  if (picks.length < 2) return { ready: false, picks: picks.length };
+  const target = picks[0].index, source = picks[picks.length - 1].index;
+  const before = st.mirror.cables.map((c) => ({ ...c }));
+  if (JSON.stringify(before[target]) === JSON.stringify(before[source])) return { ready: false, picks: picks.length };
+  window.__staleCableOriginal = before[target];
+  st.mirror.cables[target] = { ...before[source] }; // simulate a slot replacement after Search captured its result
+  return { ready: true, target, source, steps: ed.history.entries.length };
+});
+if (staleCableSetup.ready) {
+  await page.getByRole('button', { name: 'Disable selected cables', exact: true }).click();
+  const staleCableResult = await page.evaluate((setup) => {
+    const ed = window.fm1.editor, st = ed.state;
+    const result = { message: document.querySelector('.ed-search-batch [role=status]').textContent,
+      steps: ed.history.entries.length, target: st.mirror.cables[setup.target] };
+    // Restore the editor's pre-test state before continuing the ordinary batch scenario.
+    st.mirror.cables[setup.target] = window.__staleCableOriginal;
+    delete window.__staleCableOriginal;
+    return result;
+  }, staleCableSetup);
+  check('a cable batch refuses a slot whose cable changed after Search captured it', /A selected cable changed/.test(staleCableResult.message) && staleCableResult.steps === staleCableSetup.steps, staleCableResult);
+  await page.evaluate(() => window.fm1.editor.project.closeSearch(false));
+} else {
+  check('a cable batch has distinct cables available for stale-target regression', false, staleCableSetup);
+  await page.evaluate(() => window.fm1.editor.project.closeSearch(false));
+}
+await page.evaluate(() => window.fm1.editor.project.openSearch());
+await page.fill('.ed-search-in', '>');
+const beforeBatch = await page.evaluate(() => ({ cables: JSON.stringify(window.fm1.editor.state.mirror.cables), steps: window.fm1.editor.history.entries.length }));
+await page.keyboard.press('Shift+Enter');
+await page.getByRole('button', { name: 'Disable selected cables', exact: true }).click();
+await wait(1300);
+const offBatch = await page.evaluate(() => ({ cables: window.fm1.editor.state.mirror.cables, steps: window.fm1.editor.history.entries.length }));
+check('a batch disables the matching cables in one history step', offBatch.cables.every((c) => !(c.flags & 1)) && offBatch.steps === beforeBatch.steps + 1, offBatch);
+await page.evaluate(() => window.fm1.editor.undo());
+await wait(1200);
+const batchUndo = await page.evaluate(() => JSON.stringify(window.fm1.editor.state.mirror.cables));
+check('one undo restores every cable in the batch', batchUndo === beforeBatch.cables, batchUndo);
+await page.evaluate(() => window.fm1.editor.redo());
+await wait(1200);
+const batchRedo = await page.evaluate(() => window.fm1.editor.state.mirror.cables.every((c) => !(c.flags & 1)));
+check('one redo disables the entire batch again', batchRedo, batchRedo);
+await page.evaluate(() => window.fm1.editor.undo());
+await wait(1200);
+await page.evaluate(() => window.fm1.editor.project.openSearch());
+await page.fill('.ed-search-in', 'lfo rate');
+await page.keyboard.press('Shift+Enter');
+const paramBatch = await page.evaluate(() => window.fm1.editor.state.searchPicks.map((x) => ({ key: x.key, uid: x.p?.uid, value: x.p && window.fm1.editor.state.mirror.blocks.get(x.key).values.get(x.p.uid) })));
+const beforeInvalid = await page.evaluate(() => window.fm1.editor.history.entries.length);
+await page.fill('.ed-batch-value', 'not a number');
+await page.getByRole('button', { name: 'Set selected parameters', exact: true }).click();
+await wait(400);
+const invalidBatch = await page.evaluate(() => ({ steps: window.fm1.editor.history.entries.length, message: document.querySelector('.ed-search-batch [role=status]').textContent }));
+check('an invalid common value changes nothing and leaves the batch available to correct', invalidBatch.steps === beforeInvalid && /not a value/.test(invalidBatch.message), invalidBatch);
+await page.fill('.ed-batch-value', '0.75');
+await page.getByRole('button', { name: 'Set selected parameters', exact: true }).click();
+await wait(1200);
+const changedParams = await page.evaluate((xs) => xs.map((x) => window.fm1.editor.state.mirror.blocks.get(x.key).values.get(x.uid)), paramBatch);
+check('compatible parameters accept one common value parsed by C', changedParams.length > 1 && changedParams.every((x) => x === 0.75), changedParams);
+await page.evaluate(() => window.fm1.editor.undo());
+await wait(1200);
+const restoredParams = await page.evaluate((xs) => xs.map((x) => window.fm1.editor.state.mirror.blocks.get(x.key).values.get(x.uid)), paramBatch);
+check('one undo restores each parameter to its own previous value', restoredParams.every((v, i) => v === paramBatch[i].value), { restoredParams, paramBatch });
+// Gate telemetry is separate from GR, including silence and non-gated Types.
+const gateResult = await page.evaluate(async () => {
+  const ed = window.fm1.editor;
+  ed.chains.choose('m1', 'squash');
+  await new Promise((r) => setTimeout(r, 800));
+  ed.select('m1', { view: 'flow' });
+  const uid = ed.meta.engine('squash').params.find((p) => p.name === 'Gate Rel').uid;
+  const row = ed.rows.get(`m1:${uid}`);
+  row.el.querySelector('[role=slider]').dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+  row.el.querySelector('[role=slider]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+  await new Promise((r) => setTimeout(r, 1800));
+  return { text: document.querySelector('[data-block="m1"] [data-gate]')?.textContent,
+    gr: document.querySelector('[data-block="m1"] [data-red]')?.textContent };
+});
+check('Squash shows its closed gate over silence separately from gain reduction', gateResult.text === 'Gate closed' && !gateResult.gr, gateResult);
+await shot('editor-squash-gate.png');
+
 writeFileSync(join(out, 'editor-v1.json'), JSON.stringify(report, null, 1));
 await browser.close();
 server.close();

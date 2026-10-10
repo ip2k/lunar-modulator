@@ -82,7 +82,8 @@ editor says so in the instrument's words.
 *Choose engine…*, *Choose effect…*, *Choose MIDI effect…* and *Choose
 module…* list every choice with the memory the project would use with it, as a
 percentage. A choice that does not fit says why, in the same words the panel
-uses, and cannot be picked.
+uses, and cannot be picked. An insert effect needs an engine in its sound;
+the editor and panel both ask you to choose an engine first.
 
 To move an effect, drag it onto another effect slot, of any sound or the
 master. The two swap places, with their cables. Before you let go, the slot
@@ -93,7 +94,10 @@ effect's box does the same from a list. Modules in the rack move the same way.
 
 Effects show what goes in and what comes out. Comp, the output limiter and
 Squash also show how much they are turning the sound down, as a thin bar and
-*GR 4.8 dB* beside the *Out* meter, while they are doing it.
+*GR 4.8 dB* beside the *Out* meter, while they are doing it. Squash’s Snap
+type also says **Gate open**, **Gate closing** or **Gate closed**, independently
+of gain reduction, so a closed gate stays visible over silence. Its other
+types have no gate readout.
 
 ## Modulation: the table
 
@@ -173,15 +177,21 @@ that close a loop.
 
 ### Making a cable
 
-Drag from an output jack to an input jack. While the cable is in your hand every
+Drag from an output jack to an input jack, or start at the input and drag
+to an output. While the cable is in your hand every
 destination opens, so any parameter can be a target. Over an input, the Map
 asks the instrument what would happen and says so in the line above the Map:
 *Runs*, or why not, in the refusal's own words. Let go to drop the cable. It
 goes into the first free slot at 25 % and is selected, so its settings are open
 under the Map; one **Undo** takes it away.
 
-Without a mouse: press <kbd>Enter</kbd> on an output jack, move between inputs
-with the arrow keys, and press <kbd>Enter</kbd> again to drop the cable.
+Select an existing cable and its two ends gain handles. Drag either handle
+to another jack to reconnect that end in the same slot. The amount, VIA,
+offset, curve and other settings stay with it; one Undo restores it.
+
+Without a mouse: press <kbd>Enter</kbd> on either kind of jack, move between
+the opposite jacks with the arrow keys, and press <kbd>Enter</kbd> again to drop
+the cable. Edit an existing cable’s endpoints in the table or slot inspector.
 <kbd>Esc</kbd> puts it back. There is one tab stop in each column; the arrow
 keys walk within it, and every jack has a name. Screen readers should use the
 table, which lists every cable in words.
@@ -212,7 +222,12 @@ the block it fits, and the block says whether it fits while you hold it there.
 
 **Search** (<kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>⌘</kbd>+<kbd>K</kbd> on a Mac) finds
 a sound, an effect, a parameter by name (*s2 cutoff*), a cable or a command.
-Arrows choose, <kbd>Enter</kbd> goes there, <kbd>Esc</kbd> closes it. A few
+Arrows choose, <kbd>Enter</kbd> goes there, <kbd>Esc</kbd> closes it.
+<kbd>Shift</kbd>+<kbd>Enter</kbd> selects every match, including those beyond
+the first sixty displayed. The selection lists what it contains before you
+change anything. Compatible parameters can take one common value; cables
+can be enabled, disabled or removed. Each batch is one Undo step. Mixed
+selections and parameters with different ranges or units need a narrower search. A few
 signs narrow it: *>cutoff* is the cables into a Cutoff, *lfo>* the cables out of
 an LFO, *!* the cables that do not run, *~* the ones a tick late, *v* the per-voice
 ones, *s2* what belongs to Sound 2, and a unit such as *hz* the parameters in
@@ -280,3 +295,8 @@ requirements are in [chapter 2](02-getting-started.md). Its views are checked wi
 rules at desktop, tablet and phone widths. It has not been tried on a phone or a
 tablet itself, only at their window sizes, and not with a screen reader itself,
 only with the accessibility tree a browser builds for one.
+
+A sound comparison reuses its modulation connections, so repeated A/B
+switches do not fill the rack. If a shared modulation source has changed,
+use the project comparison to compare it too; the sound comparison refuses
+to overwrite a changed source that another destination uses.

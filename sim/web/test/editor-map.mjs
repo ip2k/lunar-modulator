@@ -353,6 +353,66 @@ const keys = await page.evaluate(() => {
 report.keys = keys;
 check('one tab stop in each column, each a labelled toolbar; the picture itself is hidden from readers', keys.cols.length === 3 && keys.cols.every((c) => c.role === 'toolbar' && c.label && c.stops === 1) && keys.hidden === 'true', keys);
 
+// ---- next stage: start at an input, then move either cable end -----------------------
+await openMap();
+const inputStart = await page.evaluate(() => {
+  const ed = window.fm1.editor;
+  const j = [...document.querySelectorAll('.ed-map .ed-jack-in')].find((j) => j.getClientRects().length && j.tagName === 'BUTTON');
+  j.focus();
+  return { dst: j.dataset.dst, free: ed.state.mirror.cables.findIndex((c) => !(c.flags & 1) && !c.src && !c.unit && !c.dst && !c.amount) };
+});
+await page.keyboard.press('Enter');
+const inputHand = await page.evaluate(() => ({ at: document.activeElement.dataset.src, patching: window.fm1.editor.chains.map.stats().patching }));
+check('Enter on an input starts a cable and offers an output', inputHand.patching && inputHand.at !== undefined, inputHand);
+await page.keyboard.press('Enter');
+await wait(1100);
+await page.evaluate((i) => {
+  const ed = window.fm1.editor, c = ed.state.mirror.cables[i];
+  ed.chains.cableSet(i, 'all', JSON.stringify({ ...c, via: 1, offset: -1200, flags: c.flags | 32 }), {});
+}, inputStart.free);
+await wait(400);
+const inputCable = await page.evaluate((i) => ({ c: window.fm1.editor.state.mirror.cables[i], steps: window.fm1.editor.history.entries.length }), inputStart.free);
+check('starting at an input writes the same destination and selects the new cable', `${inputCable.c.unit}:${inputCable.c.dst}:${inputCable.c.flags & 8 ? 1 : 0}` === inputStart.dst && !!(inputCable.c.flags & 1), inputCable);
+async function moveEnd(end, selector) {
+  await page.evaluate((i) => { const ed = window.fm1.editor; ed.state.mapMode = 'all'; ed.state.followPanel = false; ed.select(`c${i + 1}`, { view: 'mod' }); }, inputStart.free);
+  await wait(300);
+  const handle = page.locator(`.ed-cab-end[data-slot="${inputStart.free}"][data-end="${end}"]`);
+  await page.locator('.ed-map').scrollIntoViewIfNeeded();
+  const a = await handle.evaluate((node) => { const r = node.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; });
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(a.x + 25, a.y + 20, { steps: 3 });
+  const target = page.locator(selector).first();
+  await target.scrollIntoViewIfNeeded();
+  const b = await target.boundingBox();
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 8 });
+  await wait(350);
+  await page.mouse.up();
+  await wait(1100);
+}
+await moveEnd('source', '.ed-map-srcs [data-src="1"]');
+const movedSource = await page.evaluate((i) => ({ c: window.fm1.editor.state.mirror.cables[i], steps: window.fm1.editor.history.entries.length }), inputStart.free);
+check('dragging the source end replaces that slot in one undo step, preserving amount and destination', movedSource.c.src === 1 && movedSource.c.unit === inputCable.c.unit && movedSource.c.dst === inputCable.c.dst && movedSource.c.amount === inputCable.c.amount && movedSource.c.via === inputCable.c.via && movedSource.c.offset === inputCable.c.offset && movedSource.c.flags === inputCable.c.flags && movedSource.steps === inputCable.steps + 1, movedSource);
+await page.evaluate(() => window.fm1.editor.undo());
+await wait(1100);
+const restoredSource = await page.evaluate((i) => window.fm1.editor.state.mirror.cables[i], inputStart.free);
+check('undoing the moved source restores the whole original cable', JSON.stringify(restoredSource) === JSON.stringify(inputCable.c), restoredSource);
+// Offer a different input, expanded while the cable is in hand.
+const newDest = await page.evaluate((old) => {
+  const j = [...document.querySelectorAll('.ed-map .ed-jack-in')].find((j) => j.tagName === 'BUTTON' && j.dataset.dst !== old);
+  const block = j.closest('.ed-map-morelist');
+  if (block) { const button = block.parentNode.querySelector('.ed-map-more'); if (button && button.getAttribute('aria-expanded') === 'false') button.click(); }
+  return j.dataset.dst;
+}, inputStart.dst);
+await moveEnd('destination', `.ed-map [data-dst="${newDest}"]`);
+const movedDest = await page.evaluate((i) => window.fm1.editor.state.mirror.cables[i], inputStart.free);
+check('dragging the destination end preserves the source and amount', `${movedDest.unit}:${movedDest.dst}:${movedDest.flags & 8 ? 1 : 0}` === newDest && movedDest.src === inputCable.c.src && movedDest.amount === inputCable.c.amount && movedDest.via === inputCable.c.via && movedDest.offset === inputCable.c.offset && (movedDest.flags & ~8) === (inputCable.c.flags & ~8), movedDest);
+await page.screenshot({ path: join(out, 'editor-cable-ends.png') });
+await page.evaluate(() => window.fm1.editor.undo());
+await wait(1100);
+const restoredDest = await page.evaluate((i) => window.fm1.editor.state.mirror.cables[i], inputStart.free);
+check('undoing the moved destination restores the original cable', JSON.stringify(restoredDest) === JSON.stringify(inputCable.c), restoredDest);
+
 writeFileSync(join(out, 'editor-map.json'), JSON.stringify(report, null, 1));
 await browser.close();
 server.close();

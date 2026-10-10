@@ -96,3 +96,19 @@ Full raw artifacts remain in the isolated LAN stage
 large traces are not committed. The pressure harness is an offline validation
 fixture in that stage, not part of CI. No GitHub failure has yet been
 observed with this instrumentation.
+
+## Integration checkpoint, 2026-10-09
+
+[verified: source] Updated this branch against `main` at
+`28697823de827cf989f2673a452dec43060f1917`, after PR #111 merged. The workflow
+conflict is resolved by running both panel-follow and scheduling-capture
+regressions, retaining the editor unit checks, external audio detector and
+browser loopback step, and the isolated Pulse sink/monitor configuration.
+The existing storm acceptance expression and browser matrix are unchanged.
+
+[verified: local] The combined nine Node regressions, all 35 editor unit
+checks, audio detector fixtures, and `git diff --check` pass. Browser loopback
+and the instrumented storm await CI at this updated head; the prior green
+head does not verify this integration. Serena/Rarefaction remain connected
+to their earlier selected roots, so direct source/diff inspection establishes
+this branch's workflow composition; no shared server was restarted or activated.

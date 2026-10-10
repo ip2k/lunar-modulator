@@ -71,8 +71,9 @@ r = await page.evaluate(async (seconds) => {
   };
   node.port.postMessage({ type: 'editor-port', port: ch.port2 }, [ch.port2]);
   port.postMessage({ type: 'subscribe', mask: new Uint32Array([0xffffffff, 0xffffffff, 0xffffffff, 0x7fffff]) });
+  const telemetry = (await (await fetch(new URL('meta.json', location.href))).json()).telemetry;
   for (let k = 0; k < 2; ++k) {
-    const buffer = new ArrayBuffer(1443 * 4);
+    const buffer = new ArrayBuffer(telemetry.floats * 4);
     port.postMessage({ type: 'telemetry-buffer', buffer }, [buffer]);
   }
   // Packed records (fm1_edit.h): PARAM (6) of Sound 1's uids 2 and 3, and
