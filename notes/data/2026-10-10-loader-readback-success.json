@@ -63,7 +63,12 @@
   "flash_write": false,
   "new_payload": false,
   "after_close": "same UBOOT 3-2/devnum16; fuser reports no users",
-  "owner_power_cycle_confirmation": "requested through parent; pending",
+  "owner_power_cycle_confirmation": {
+    "status": "reported by owner after successful read, relayed by parent",
+    "wording": "Power cycle complete and it works fine still.",
+    "independent_normal_mode_identity_after_cycle": false,
+    "additional_device_traffic": false
+  },
   "limitations": [
     "No ROM address/return or custom-code execution proof",
     "No full-image restore proof",

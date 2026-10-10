@@ -426,3 +426,50 @@ Parent was asked to obtain owner power-cycle confirmation; confirmation
 and the subsequent normal-mode identity remain pending. No further device
 traffic is authorized by this note. Callback metadata remains a separate,
 unimplemented proposal requiring review.
+
+[reported, owner confirmation relayed by parent after the read] “Power
+cycle complete and it works fine still.” This records the owner's
+observed return to working operation. No subsequent MIDI identity query
+or host protocol traffic was sent to verify normal USB mode independently.
+Full-image restore and Lunar application execution remain untested.
+
+## Next proof: separate callback-slot proposal, not executed
+
+[verified, offline] `tools/fm1_loader_callbacks.py` is a separate no-CLI
+proposal, not an expansion of the successful code-read tool or existing
+backup allowlist. It permits only FD07 at **`0x01c09724..0x01c0972b`**, eight
+bytes containing the two copied callback slots. Exact CDB:
+`fd0701c097240008ffffffffffffffff`; no output stage. The fixed destination
+`[0x01c09600,0x01c09608)` cannot overlap these source slots. Pinned-loader
+initialization sets `r10=0x01c09700` at offset `0x688`; offsets
+`0x890/0x894` and `0x898/0x89c` copy service-table words 0/1 into
+`r10+36/+40`. These are established loader-RAM locations, not guessed ROM.
+
+[verified, offline] The separate reader requires complete existing loader
+validation before this one attempted metadata read, consumes its attempt
+before transport, and inherits the unchanged SG_IO status/residual checks.
+It rejects the earlier 64-byte code address and all other addresses,
+phases, payloads and added opcodes. It preserves the two 32-bit little-
+endian values without stripping address bits or assuming either is ROM,
+aligned or nonzero. No pointer is called or used as a new read address.
+Unknown values must be preserved as observations requiring interpretation,
+not converted into an inferred code-range allowlist.
+
+[verified, offline] The focused backup/restore/code-read/callback test
+set passed **42/42** without opening a device. It covers exact CDB and
+nonoverlap, all other opcodes, loader-validation failure, consumed attempts
+including reload, rejected lengths, SG_IO fault/residual handling, and
+unaltered pointer decoding. One initial test expected the observation
+before the inherited command log; that test assumption was corrected to
+require the command record followed by the observation. Production
+transport behavior and all strict checks are unchanged.
+
+[proposal, not authorized for device use] This eight-byte proposal has
+not been transferred or executed. Any future hardware session still needs
+review of the exact source and operational wrapper, fresh owner identity,
+enumeration, pinned-loader/backups and exclusive access. The successful
+64-byte read does not authorize reusing its one-attempt reader, opening a
+new session, or enabling metadata automatically. Once observed, callback
+values would only guide further offline mapping/disassembly research;
+code capture or a custom returning leaf require another separate reviewed
+boundary. The leaf's actual inherited return contract remains the blocker.
