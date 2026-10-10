@@ -75,3 +75,7 @@ unknown inherited watchdog may reset the inert loop, and there is currently
 no debugger or device transport to observe its RAM state.
 
 See [the linked result and remaining gates](../../notes/2026-10-09-linked-diagnostic.md).
+
+The separate [handover preparation variant](../handover/README.md) reserves
+its own supervisor stack and captures six boot words in RAM. It requires an
+explicit build/report profile and remains outside this inert staging path.
