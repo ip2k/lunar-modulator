@@ -145,6 +145,13 @@ role changes the center. Every section replays its own clip from the beginning;
 the scene chain's repeated indexes are deliberate full-section repeats, not
 one-bar variations. Durations above assume four quarter-note beats per bar.
 
+The bass line is transposed one octave below each project's melody tonic; chord
+and lead pitches remain in their written registers. `cl` note gates are stored
+in raw Movy ticks (24 ticks per sixteenth step), not in step units. The short
+bass/lead gates are intentional staccato articulations; longer chord and edge
+gates sustain across more than one step. No tempo automation or swing is
+implied by gate lengths.
+
 ## File and playback contract
 
 Each project stores eight named scenes and a raw `sg` press chain ending with

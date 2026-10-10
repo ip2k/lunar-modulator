@@ -180,7 +180,9 @@ def bass_bar(song: dict, role: str, bar: int) -> list[str]:
         steps = [(0, 0, 7, 98), (4, third, 5, 77), (8, 7, 7, 91), (12, third, 5, 79)]
         if role in ("edge", "contrast"):
             steps = [(0, 0, 10, 82), (8, 7, 8, 63)]
-    return [ev(step, dur, root + interval, vel) for step, interval, dur, vel in steps]
+    # Keep the bass one octave below the project tonic used by the melody and
+    # chord generator. Gate values are raw Movy ticks, not sixteenth steps.
+    return [ev(step, dur, root - 12 + interval, vel) for step, interval, dur, vel in steps]
 
 
 def chord_bar(song: dict, role: str, bar: int, scene: int) -> tuple[list[str], list[str]]:
@@ -388,9 +390,14 @@ def check(files: dict[Path, bytes]) -> list[str]:
     # main pattern. Fm9 must use Ab, not the natural A from a fixed +4.
     future = next(song for song in SONGS if song["style"] == "future")
     future_edge = bass_bar(future, "edge", 0)
-    if future_edge != [ev(0, 12, future["chords"][0][0], 82),
-                       ev(10, 8, future["chords"][0][0] + 3, 60)]:
+    if future_edge != [ev(0, 12, future["chords"][0][0] - 12, 82),
+                       ev(10, 8, future["chords"][0][0] - 9, 60)]:
         errors.append("future-bass edge third does not match its minor chord quality")
+    for song in SONGS:
+        first_root = song["chords"][0][0]
+        first_bass = bass_bar(song, "verse", 0)[0].split(":")
+        if int(first_bass[2]) != first_root - 12:
+            errors.append(f"{song['title']}: bass root is not one octave below the project tonic")
     for path, expected in files.items():
         if not path.exists():
             errors.append(f"missing: {path.relative_to(ROOT)}")
