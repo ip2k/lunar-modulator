@@ -189,3 +189,39 @@ from the full kernel's even taps, and interpolation walks the zero-stuffed
 history with unit-stride phase coefficients. A focused repair is active;
 validate against an independent full-kernel calculation and retain vendor
 provenance. Avoiding this available effect in demos is not its remediation.
+
+## PSX repair review and independent offline checks
+
+[verified: independent local checks] Root ran PR136's exact
+`1299c590408e6d919181294bdadc8c28b4b7503a` `test_handover_layout.py`
+with the project's Python environment: 28 passed; the optional locally held
+stock SPL check skipped. This verifies synthetic offline contracts, not a
+device execution or an independent repeat of the author's private-stock test.
+
+[verified: independent source/test review] PR139 at
+`0e897f1cd00a9f7938bbfcf93a02bd23aa01c3bc` corrects PSX Verb's two
+interpolation phases and history domain. Root reviewed the direct 39-tap
+zero-stuffed FIR oracle and independently ran its focused test successfully.
+The implementer's bounded LAN run reports 104/104 exact JS/musl audio cases,
+DX7 18/18 and zero late quanta in the 30-second edit storm. The corrected
+Sophie framebuffer is exact against native musl; the 34 glibc scope-pixel
+differences remain diagnostics. The existing bottom-right RAM mask remains;
+there is no additional waveform mask or tolerance.
+
+[verified: acceptance issue] Root's artifact test verified PR139's binary
+hash but warned that its sim input hash was stale. Build/test inputs changed
+after staging the successful build; identify and regenerate the record using
+the actual pipeline before final acceptance. The record serializer also needs
+to retain the selected screen reference and glibc/musl diagnostics. These
+follow-ups are assigned to the implementer. Source review permits the combined
+Warble/Repeat candidate to incorporate the repair and perform its required full
+regeneration; PR139's current artifact is not accepted as the final combined
+artifact. Its exact-head CI remains pending.
+
+[reported: bounded reproduction] The browser investigator reproduced PR131's
+exact Chromium storm three times under a four-CPU LAN quota with the original
+Pulse sink; all passed. Its CI failure remains one 11.609-ms playback underrun.
+A Chromium shared-memory callback timeout can produce a buffer-duration glitch,
+but the failed trace does not localize that cause. Do not claim a production
+runtime fix or that PR132's headless sink correction resolves this separate
+failure. Continue exact-head CI and preserve failed receipts.
