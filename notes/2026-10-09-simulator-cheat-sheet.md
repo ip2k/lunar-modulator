@@ -1,18 +1,44 @@
-# Simulator Cheat Sheet
+# Simulator information dialogs
 
-Owner request, 2026-10-09: hide the informational text below the simulator
-and preset controls behind a small Cheat Sheet icon at the bottom of the page.
+Owner request, 2026-10-09: keep the simulator panel/workbench/editor and its
+controls near the top of the page. Move the long brand introduction, playing
+instructions, saved/recent/examples library, runtime status, credits, and
+licence offer into compact Cheat Sheet and Copyright Info dialogs at the
+bottom. Keep errors visible outside the dialogs.
 
-Implemented on `feature/2026-10-09@simulator-cheat-sheet`, based on PR #99:
-- Native closed-by-default `details`/`summary`, with an original inline document icon.
-- Existing playing instructions, credits and runtime licence/source links remain available inside it.
-- Saved/Recent/examples remains a separate operational control.
-- Keyboard activation, visible focus and a minimum 44px control height.
-- Existing embedded-mode help hiding is retained; no new JavaScript or preferences.
+Implemented on `feature/2026-10-09@simulator-cheat-sheet`:
 
-[verified] Local Chrome desktop (1280x1000) and phone viewport (390x844):
-initially collapsed, Enter expands, pointer collapses, no horizontal overflow.
-Rendered screenshots inspected for icon/text padding and collisions. This is
-viewport validation, not an actual iPhone test. No DSP or Wasm changes.
+- `index.html` keeps the full interactive `#status`, `#library` and
+  `#library-lists` under the Cheat Sheet dialog; all existing playing help is
+  retained. Copyright Info keeps the complete brand introduction, credits,
+  font licence links, and dynamic `#licence-note` GPL/source offer.
+- Native `<dialog>` elements open from labelled 44px bottom buttons. Each has
+  a named heading and close button, uses native Escape/focus containment, and
+  restores focus to its opener on close. Dialog content scrolls internally on
+  short and mobile viewports. Embedded simulator pages hide the information
+  controls as before.
+- Short audio, firmware, MIDI, held-context, and editor-load failures remain
+  visible in a page-level alert; their complete diagnostic stays in `#status`
+  inside Cheat Sheet. Normal runtime updates clear that alert.
+- `sim/web/test/info-dialogs.mjs` checks the shortened page shell, closed-by-
+  default state, Escape and close behavior, focus return, the 44px dynamic
+  library disclosure, visible audio-start failure with its full diagnostic
+  retained in the status paragraph, preserved text/links/live targets,
+  dialog bounds and internal scrolling at desktop and phone sizes. It is in the
+  Chromium/Firefox/WebKit page-test workflow.
 
-Pending: exact-head CI, integration after PR #99, then public-site verification.
+Validation: `node --check` on the page and test scripts, `git diff --check`,
+and an HTML nesting check passed. The focused Playwright 1.63 page test passed
+in Chromium, Firefox, and WebKit on the documented aeon container (all shell,
+desktop, licensing, focus, 44px library-target, and 390x844 internal-scroll
+checks passed). I inspected the desktop Cheat Sheet and Copyright Info and
+the phone Cheat Sheet screenshots; text is not clipped, the dialog stays
+within the viewport, and the help body scrolls inside the dialog. Exact-head
+GitHub CI is pending. No hardware, audio-device, or firmware actions were
+performed.
+
+Semantic navigation limitation: the shared Rarefaction project still selected
+the main checkout, not this isolated worktree; Serena activated this worktree
+but had only its C++ language server and could not index the JavaScript page.
+No shared project activation was changed; the HTML/JS/CSS changes were
+inspected directly and covered with focused page tests.

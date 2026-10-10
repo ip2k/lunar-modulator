@@ -168,6 +168,25 @@ function setAngle(g, deg) {
 const tft = document.getElementById('tft');
 const mirror = document.getElementById('tft-mirror');
 const statusEl = document.getElementById('status');
+const statusAlertEl = document.getElementById('status-alert');
+function setStatus(message, alert = '') {
+  statusEl.textContent = message;
+  statusAlertEl.textContent = alert;
+  statusAlertEl.hidden = !alert;
+}
+for (const [buttonId, dialogId] of [['open-cheat-sheet', 'cheat-sheet'], ['open-copyright', 'copyright-info']]) {
+  const button = document.getElementById(buttonId);
+  const dialog = document.getElementById(dialogId);
+  button.addEventListener('click', () => {
+    if (dialog.open) return;
+    dialog.showModal();
+    dialog.querySelector('.dialog-close').focus();
+  });
+  dialog.addEventListener('close', () => button.focus({ preventScroll: true }));
+  dialog.addEventListener('click', (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+}
 const overlay = document.getElementById('power-overlay');
 const selects = [document.getElementById('sel-sound'), document.getElementById('sel-fx1'),
   document.getElementById('sel-fx2')];
@@ -233,7 +252,7 @@ function onContextState(ctx) {
   if (ctx !== sim.ctx || ctx.state === 'closed') return;
   sim.held = ctx.state !== 'running';
   if (sim.held || sim.state) showStatus();
-  else statusEl.textContent = 'Starting...';
+  else setStatus('Starting...');
 }
 
 for (const type of ['pointerdown', 'pointerup', 'keydown']) {
@@ -288,15 +307,16 @@ async function start() {
   // Browsers hide AudioWorklet (and Web MIDI) from pages that are not a
   // secure context: plain http from another machine's address, say.
   if (!window.isSecureContext) {
-    statusEl.textContent = 'This page needs a secure context for its audio: open it over https, ' +
-      'or from http://localhost on the machine that serves it.';
+    setStatus('This page needs a secure context for its audio: open it over https, ' +
+      'or from http://localhost on the machine that serves it.', 'Open this page over HTTPS or localhost to start audio.');
     return;
   }
   if (!window.AudioWorkletNode) {
-    statusEl.textContent = 'This browser has no AudioWorklet; the simulator needs it (and a page served over http://localhost or https).';
+    setStatus('This browser has no AudioWorklet; the simulator needs it (and a page served over http://localhost or https).',
+      'This browser cannot start the simulator audio.');
     return;
   }
-  statusEl.textContent = 'Starting...';
+  setStatus('Starting...');
   audioSession('playback');
   let ctx = null;
   try {
@@ -332,7 +352,7 @@ async function start() {
   } catch (err) {
     if (ctx && ctx !== sim.ctx && ctx.state !== 'closed') await ctx.close();
     await powerOff();
-    statusEl.textContent = `Could not start audio: ${err.message || err}`;
+    setStatus(`Could not start audio: ${err.message || err}`, 'Could not start audio.');
   }
 }
 
@@ -352,7 +372,7 @@ async function powerOff() {
   for (const s of selects) s.disabled = true;
   for (const g of [...keyEls, ...buttonEls]) g.classList.remove('lit');
   for (const c of [tft, mirror]) c.getContext('2d').clearRect(0, 0, 240, 240);
-  statusEl.textContent = 'Powered off.';
+  setStatus('Powered off.');
   window.dispatchEvent(new CustomEvent('fm1-power', { detail: { on: false } }));
 }
 
@@ -483,7 +503,7 @@ function onWorklet(m, node) {
       showStatus();
       break;
     case 'error':
-      statusEl.textContent = `The firmware did not start: ${m.message}`;
+      setStatus(`The firmware did not start: ${m.message}`, 'The firmware did not start.');
       break;
     default:
       break;
@@ -531,7 +551,7 @@ function memoryPercent(bytes, budget) {
 function showStatus() {
   const st = sim.state;
   if (sim.ctx && sim.held) {
-    statusEl.textContent = HELD;
+    setStatus(HELD, 'Tap the panel or press a key to resume audio.');
     return;
   }
   if (!sim.ctx || !st) return;
@@ -543,10 +563,10 @@ function showStatus() {
   const seq = q ? ` Sequencer: ${bpmText(q.bpm_x100)}, ` +
     `${q.recording ? 'recording' : q.counting_in ? 'counting in' : q.playing ? 'playing' : 'stopped'}` +
     `${q.following ? ' (external clock)' : ''}.` : '';
-  statusEl.textContent = `Running at ${rate.toLocaleString('en')} Hz${fellBack}, 64-frame blocks, ` +
+  setStatus(`Running at ${rate.toLocaleString('en')} Hz${fellBack}, 64-frame blocks, ` +
     `${(latency * 1000).toFixed(0)} ms output latency. The chain takes ` +
     `${memoryPercent(st.ram, st.budget || 387924)}% of the FM-1's memory.${seq}` +
-    `${sim.notice ? ' ' + sim.notice : ''}`;
+    `${sim.notice ? ' ' + sim.notice : ''}`);
 }
 
 function drawScreen(px) {
@@ -632,7 +652,7 @@ function dx7Message(m) {
 async function loadDx7Files(files) {
   if (!sim.node) {
     sim.notice = '';
-    statusEl.textContent = 'Power on first, then load DX7 patches.';
+    setStatus('Power on first, then load DX7 patches.', 'Power on the simulator before loading DX7 patches.');
     return;
   }
   for (const file of files) {
@@ -971,7 +991,7 @@ document.addEventListener('visibilitychange', () => {
 async function connectMidi() {
   const btn = document.getElementById('midi');
   if (!navigator.requestMIDIAccess) {
-    statusEl.textContent = 'This browser has no Web MIDI.';
+    setStatus('This browser has no Web MIDI.', 'Web MIDI is unavailable in this browser.');
     return;
   }
   try {
@@ -988,7 +1008,7 @@ async function connectMidi() {
     attach();
     sim.midi = access;
   } catch (err) {
-    statusEl.textContent = `MIDI was not allowed: ${err.message || err}`;
+    setStatus(`MIDI was not allowed: ${err.message || err}`, 'MIDI access was not allowed.');
   }
 }
 
@@ -1063,7 +1083,7 @@ async function setLayout(name, save = true) {
       editor = await editorLoading;
     } catch (err) {
       editorLoading = null;
-      statusEl.textContent = `The editor could not load: ${err.message || err}`;
+      setStatus(`The editor could not load: ${err.message || err}`, 'The editor could not load.');
       return;
     }
   }
