@@ -303,3 +303,36 @@ def test_full_build(renderer, tmp_path):  # noqa: F811
         if e["kind"] == "sound":
             assert f"data-engine='{e['id']}'" in ch5, e["id"]
     assert "Generated on" in (manual / "index.html").read_text()
+
+
+@pytest.mark.parametrize("layout", ["same", "ancestor", "child", "symlink"])
+def test_build_refuses_source_output_overlap_before_deletion(tmp_path, layout):
+    pytest.importorskip("markdown")
+    repo = tmp_path / "repo"
+    source = repo / "manual"
+    source.mkdir(parents=True)
+    (source / "manual.toml").write_text("# not needed before overlap refusal\n")
+    marker = source / "chapter.md"
+    marker.write_text("irreplaceable source")
+    if layout == "same":
+        site = repo
+    elif layout == "ancestor":
+        # Output /tmp/.../manual is an ancestor of source /manual/repo/manual.
+        repo = tmp_path / "manual" / "repo"
+        source = repo / "manual"
+        source.mkdir(parents=True)
+        (source / "manual.toml").write_text("")
+        marker = source / "chapter.md"
+        marker.write_text("irreplaceable source")
+        site = tmp_path
+    elif layout == "child":
+        site = source / "nested"
+    else:
+        site = tmp_path / "site"
+        site.mkdir()
+        (site / "manual").symlink_to(source, target_is_directory=True)
+    res = subprocess.run([sys.executable, str(ROOT / "tools/manual/build.py"),
+                          "--site", str(site), "--repo", str(repo), "--no-make"],
+                         capture_output=True, text=True)
+    assert res.returncode == 2 and "must not overlap" in res.stderr
+    assert marker.read_text() == "irreplaceable source"

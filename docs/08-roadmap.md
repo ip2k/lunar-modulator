@@ -1,6 +1,15 @@
 # 08 — Roadmap
 
-Phases with exit criteria. Status on 2026-10-01:
+Phases with exit criteria. Current hardware status (2026-10-08): soft-key
+UBOOT entry, a RAM recovery loader, matching full backups and bounded sector
+restoration succeeded [verified: [bench note](../notes/2026-10-07-fm1-softkey-bench.md)].
+No Lunar application has been linked or installed. Full-image restoration
+and broken-app recovery remain untested. The owner authorized firmware
+preparation and audit remediation; see the
+[current work record](../notes/2026-10-08-audit-remediation.md) and docs/07 §4.
+
+The following 2026-10-01 checkpoint and original phase order are historical;
+their prior blanket recovery prerequisite is superseded by docs/07 §4:
 - Phase 0 is done.
 - Phase 1 has had one read-only bench session (`notes/2026-09-06-bench.md`).
 - Phase 2's dongle is built and simulated (docs/10), and an AC79 dev kit and

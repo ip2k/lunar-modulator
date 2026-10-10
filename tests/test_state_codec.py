@@ -547,6 +547,18 @@ def _golden_bin():
     return (GOLD / "first-orbit.lunarb").read_bytes()
 
 
+@pytest.mark.parametrize("record_kind", ["info", "param"])
+def test_binary_duplicate_fields_are_refused(tool, names, record_kind):
+    records = [json.loads(line) for line in (GOLD / "first-orbit.records").read_text().splitlines()]
+    index = next(i for i, record in enumerate(records) if record["rec"] == record_kind)
+    records.insert(index + 1, dict(records[index]))
+    # The writer makes internally consistent lengths and CRCs.
+    data = ls.write_bin(records)
+    rc, _, report = c_records(tool, data)
+    assert rc == 1 and report["code"] == "BAD"
+    assert py_records(data, names)[2] == "BAD"
+
+
 def test_cut_binaries_are_refused(tool, names):
     data = _golden_bin()
     for n in range(len(data)):
@@ -570,7 +582,8 @@ def test_flipped_bits_are_refused(tool, names):
         assert rep["code"] == pcode, (i, rep, pcode)
 
 
-def test_deflate_interoperates_with_zlib(tool, names):
+@pytest.mark.parametrize("empty_final", [False, True])
+def test_deflate_interoperates_with_zlib(tool, names, empty_final):
     """Our chunks inflate with zlib, zlib's (with a 4 KiB window) inflate in
     C, and a reach past 4 KiB is refused by both."""
     recs = [json.loads(line) for line in (GOLD / "first-orbit.records").read_text().splitlines()]
@@ -579,7 +592,10 @@ def test_deflate_interoperates_with_zlib(tool, names):
 
     def zlib_deflate(b):
         c = zlib.compressobj(9, zlib.DEFLATED, -12)
-        return c.compress(b) + c.flush()
+        data = c.compress(b)
+        if empty_final:
+            data += c.flush(zlib.Z_SYNC_FLUSH)
+        return data + c.flush()
     orig = ls.deflate
     try:
         ls.deflate = zlib_deflate
@@ -605,6 +621,37 @@ def test_deflate_interoperates_with_zlib(tool, names):
     assert ls.deflate(b"x" * 64)                      # (exercised elsewhere)
     with pytest.raises(ls.Refused):
         ls.inflate(stored + b"\x03\x00", 5100)
+
+
+@pytest.mark.parametrize("cut,tail", [(1, b""), (2, b""), (0, b"x"), (0, b"\0" * 100)])
+def test_compressed_chunks_require_complete_stream(tool, names, monkeypatch, cut, tail):
+    # Rebuild lengths and CRCs so refusal comes from DEFLATE validation.
+    records = [json.loads(line) for line in (GOLD / "first-orbit.records").read_text().splitlines()]
+    original = ls.deflate
+
+    def damaged(body):
+        data = original(body)
+        return (data[:-cut] if cut else data) + tail
+
+    monkeypatch.setattr(ls, "deflate", damaged)
+    data = ls.write_bin(records)
+    count = struct.unpack_from("<H", data, 14)[0]
+    assert any(struct.unpack_from("<H", data, 32 + 20 * i + 6)[0] & 1 for i in range(count))
+    assert c_records(tool, data)[0] == 1
+    assert py_records(data, names)[0] == 1
+
+
+@pytest.mark.parametrize("cut,tail", [(1, b""), (2, b""), (0, b"x"), (0, b"\0" * 100)])
+def test_launch_links_require_complete_stream(names, cut, tail):
+    import base64
+    records, _ = ls.read_json((EXAMPLES / "first-orbit.lunar").read_bytes(), names)
+    fragment = ls.link_fragment(records, names)
+    encoded = fragment.split("=", 1)[1]
+    data = base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4))
+    data = (data[:-cut] if cut else data) + tail
+    fragment = "#lunar=" + base64.urlsafe_b64encode(data).decode().rstrip("=")
+    with pytest.raises(ls.Refused, match="BAD"):
+        ls.read_link(fragment, names)
 
 
 def test_jsontestsuite(tool):

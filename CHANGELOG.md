@@ -8,7 +8,62 @@ history.
 
 ## [Unreleased]
 
+### Fixed
+- README installation status now distinguishes the linked inert diagnostic
+  from the running instrument, which remains untested on the FM-1.
+- Target compile checks include shared state codecs and metadata, with each
+  object compiled once. Stack reports count split prologue reservations.
+- Audit findings in target compile failure handling, IRQ source guards,
+  malformed sequencer/modulation input, edit dump bounds, manual output
+  deletion safety and remote oracle argument validation.
+- Defined X0X exponent bit arithmetic without sanitizer exemptions and kept
+  Comet hit voicing stable during parameter ramps.
+- Updater firmware extraction skips false length-prefix candidates instead
+  of stopping before a valid package.
+- Binary state chunks reject duplicate keys and parameter UID/focus pairs.
+- Compressed state chunks and launch links reject incomplete streams and
+  trailing bytes instead of accepting malformed compressed content.
+- Sound imports no longer apply unavailable MIDI-effect settings to a previous
+  slot; omitted effects load as the bypassed default used by preflight.
+- Reconciled technical recovery status with the verified bounded-sector
+  experiments; full-image recovery and Lunar installation remain untested.
+
 ### Added
+- External browser audio checks: an isolated PulseAudio monitor records a
+  sustained simulator tone during edit storms and musical A/B playback in
+  Chromium, Firefox and WebKit. CI runs the detector and captures; native
+  Safari's filtered dropdowns have been checked on a Mac.
+- Repeated sound A/B restores reuse modulation slots instead of filling the
+  rack with imported copies. Unchanged sources keep their phase; changed
+  shared sources and conflicting cable slots are refused. External imports
+  still merge normally; A/B picks and redo follow the restore rules.
+- Shadow-worker requests keep their correlation ID separate from the module
+  ID, so typed parameter parsing and formatting resolve instead of hanging.
+- A bounded cleanup audit, with nine unused helpers/imports removed. Optional
+  refactors and the remaining full-audit scope are recorded in the audit note.
+- **Advanced editor follow-up:** Shift+Enter selects every search match;
+  compatible parameters accept a common value, and matching cables can be
+  enabled, disabled or removed, each batch in one undo step. The Map can
+  start a cable from an input and reconnect either end of a selected cable
+  without losing its settings. Squash shows its Snap gate separately from
+  gain reduction (telemetry version 2). The panel refuses insert effects
+  into sounds with no engine. The manual describes these controls, and the
+  README now includes the editor, storage, browser DX7 imports and the
+  Session/Song pages instead of listing completed features as future work.
+- Recorded the SDK versus bare-metal platform and GPL/permissive/dual-licence
+  evaluation with reasoning, release boundaries and effort estimates; linked
+  it from the Claude/Codex guidance. No licence changes implemented.
+- Verified soft-key UBOOT entry, matching complete flash backups, and bounded
+  4 KiB programming/restoration on FM-1_092 with the full flash unchanged.
+  Full-image restore and Lunar firmware installation remain untested.
+- Saved the deferred iPhone Advanced editor plan, device transport prerequisites
+  and native Core MIDI / LAN relay connection options in a mobile editor note.
+- A Linux soft-key probe with fresh identity checks, an exact exception for
+  the known FM-1_092 identity-checksum bug, a two-message allowlist and
+  durable USB/session logs. No loader upload or flash commands in this tool.
+- Owner-authorized staged bench01 recovery experiments replace the blanket
+  prior-dump-and-restore prerequisite; the dev kit is no longer a prerequisite
+  for soft-key exploration. Stock package and eFuse safeguards remain.
 - **The editor's page tests run in CI.** A new job, `editor-page-tests`, runs
   the Advanced editor's tests (`editor-unit`, `editor-ui`, `editor-reach`,
   `editor-map`, `editor-v1` and the 30-second storm) in Chromium, Firefox and

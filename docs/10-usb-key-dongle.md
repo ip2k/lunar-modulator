@@ -32,9 +32,10 @@ Update 2026-10-05 (`notes/2026-10-05-community-repos.md`):
   resistors, which E1 rules out for this project's unit.
 - **A running stock V15 can enter `UBOOT1.00` without a dongle**, on the
   SysEx "soft key" `F0 22 24 35 7D F7` [reported: FM-1-transporter]. That is
-  no substitute for this dongle: the gate must prove the path that works
-  when no app runs, and the soft key is forbidden before it (CLAUDE.md
-  trap 9).
+  no substitute for a recovery path that works when no app runs. Soft-key
+  entry on FM-1_092 is now verified and owner-authorized (docs/07 §4;
+  [bench note](../notes/2026-10-07-fm1-softkey-bench.md)); broken-app recovery
+  remains untested.
 
 ## 1. What the mask ROM does [reported: kagaimiq]
 
@@ -148,8 +149,9 @@ What it tells us about the FM-1:
      Phase 2 plans.
    - It suggests that jl-uboot-tool's `wl82loader.bin`, which the tool lists
      as "unknown", works [inferred].
-   - The one rule is unchanged: on this project's unit, a full dump and a
-     byte-identical restore come before any write (docs/07 §4).
+   - The original blanket prerequisite was replaced by owner-authorized
+     staged experiments on 2026-10-07 (docs/07 §4); full-image restore
+     remains untested despite successful bounded sector restoration.
 3. **A square wave probably works as SOF** [inferred].
    - The loop supplies 1 ms falling edges as a 50 % square wave, and the chip
      reached `UBOOT1.00` [reported].

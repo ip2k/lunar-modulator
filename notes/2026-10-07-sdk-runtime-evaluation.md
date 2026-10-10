@@ -1,7 +1,11 @@
 # SDK runtime versus a bare-metal Lunar (2026-10-07)
 
 Evaluation only: no implementation, licence change, firmware package or device
-traffic. The FM-1 dump-and-byte-identical-restore gate remains mandatory.
+traffic. Hardware policy was subsequently revised by the owner; soft-key
+entry, full backup and bounded sector restoration now have bench evidence
+([bench note](2026-10-07-fm1-softkey-bench.md)). Full-image restoration and
+a Lunar application on hardware remain untested. This policy update does
+not change the licensing analysis.
 
 ## Conclusion
 
@@ -14,12 +18,14 @@ compiler/header source where its individual licences permit, rather than importi
 its runtime wholesale. Make the SDK-runtime decision separately from the existing
 GPL-module switch. Do not copy Felucca's GPL HAL into a promised permissive image.
 
-The premise needs correcting: **Lunar does not currently link a JieLi hardware
-application at all** [verified: build scripts and tracked firmware tree]. Its
-pi32v2 check compiles individual objects and scans candidate library symbol tables;
-there is no Lunar app ELF/map from which to enumerate actual linked SDK members.
-The GPL-off rule currently protects a *planned* SDK-linked distributable firmware.
-Desktop/browser GPL builds already distribute without those vendor runtime archives.
+At the inspected 2026-10-07 baseline, **Lunar did not link a JieLi hardware
+application** [verified at that inspection: build scripts and tracked firmware
+tree]. Its pi32v2 check compiled individual objects and scanned candidate library
+symbol tables; there was no Lunar app ELF/map from which to enumerate actual
+linked SDK members. This is historical compile/provider evidence. The GPL-off
+rule protects a *planned* SDK-linked distributable firmware. Desktop/browser GPL
+builds distribute without those vendor runtime archives. See the dated integration
+update below for the subsequent SDK-free diagnostic link.
 
 ## Evidence and exact scope
 
@@ -34,10 +40,12 @@ at `b0dcd53a251d5f5392fea9478b48244d322eeb2a` [verified: git rev-parse].
   symbol inventories; it does not perform archive extraction or a firmware link
   [verified]. The first matching provider is retained with `setdefault`, so a
   reported provider is a candidate, not proof that the linker must choose it.
-- [`DEVELOPERS.md`](../DEVELOPERS.md), hardware budget paragraph, explicitly says
-  vendor libraries and device platform code are not linked yet [verified].
-- `firmware/` contains the Apache-2.0 fm1-nes boot-info bridge and its host test,
-  not a board startup, scheduler, device USB or audio application [verified].
+- At that baseline, [`DEVELOPERS.md`](../DEVELOPERS.md), hardware budget
+  paragraph, said vendor libraries and device platform code were not linked
+  [verified at inspection].
+- At that baseline, `firmware/` contained the Apache-2.0 fm1-nes boot-info bridge
+  and its host test, without a board startup, scheduler, device USB or audio
+  application [verified at inspection].
 - The existing LAN compile report was read without rebuilding or modifying it:
   `/home/claude/mvave-fm1/sdk-v1213/out/{record.json,report.md}`. It records tree
   `41f083dfb272e5c054d15f5d8eaff412327bedb5`, 12 uncommitted files, GPL on,
@@ -45,7 +53,7 @@ at `b0dcd53a251d5f5392fea9478b48244d322eeb2a` [verified: git rev-parse].
   not a link-map assertion for today's code. Its unresolved internal MIDI/mod
   names are also historical; later object-list fixes are in current source.
 
-### What the current DSP objects need
+### What the inspected DSP objects needed
 
 The historical compile report identifies these candidate providers [verified:
 report table; no linked members claimed]:
@@ -202,12 +210,13 @@ Two implementation routes have different release consequences [inferred]:
 Recommended next decision, **if both firmware variants matter**, is the second
 route: an SDK-free **open runtime architecture**, keep
 BLE deferred, and reuse one permissive board layer across both module profiles
-[inferred]. First prove a small audio/USB/input vertical slice on a dev kit, then
-on the FM-1 only after the existing dump-and-restore prerequisite. The current
+[inferred]. First prove a small audio/USB/input vertical slice with the staged
+bench recovery and package safeguards. The owner no longer requires waiting
+for the dev kit or a prior full-image restore; see the bench note above. The current
 floating DSP and storage model must be benchmarked; Felucca's integer instrument
 is supporting evidence rather than a Lunar performance guarantee.
 
-## Handoff / backup
+## Original handoff / backup — 2026-10-07
 
 Documentation-only branch `chore/2026-10-07@sdk-runtime-evaluation`, cut from
 `origin/main` at `64209e3`; all changes are this report. No PR or merge requested
@@ -217,3 +226,41 @@ for this background evaluation. The report commit is pushed to the existing
 and verify the backed-up report commit. Resume with the parent licensing evaluation;
 implementation, ownership permissions, hardware tests and any licence change remain
 out of scope. No device or infrastructure state was changed.
+
+## Parent integration — 2026-10-07
+
+This report is also recorded in the hardware recovery branch and linked from
+CLAUDE.md, AGENTS.md and DEVELOPERS.md, so future Claude/Codex sessions can
+find the reasoning. The original evaluation branch remains backed up. This
+is an architecture recommendation; no repository licence was changed and
+no SDK-free hardware platform was implemented. Full-code audit is required
+before beginning device firmware work (owner, 2026-10-07).
+
+
+## Integration update — 2026-10-09
+
+PR #131 reconciles this original evaluation branch with main at
+`cafd77e0216bfc08ec2db49f75227ce9d5650c5d`. The only conflict was this report,
+which main already carried with the revised staged hardware policy. That policy
+correction and the original dependency analysis, licence uncertainties, confidence
+marks and effort estimates are preserved. The original handoff and parent
+integration sections above describe their dated state, not the current PR status.
+No runtime code, licence or distribution policy changes are part of this update.
+
+The current tree includes an independently authored MIT, SDK-free inert diagnostic
+and a separate handover preparation variant [verified: tracked
+[`diagnostic/README.md`](../firmware/diagnostic/README.md) and
+[`handover/README.md`](../firmware/handover/README.md)]. The diagnostic's vendor
+pi32v2 link and audit are recorded in the
+[linked diagnostic note](2026-10-09-linked-diagnostic.md) [reported here: its
+recorded LAN results; not rerun for this documentation reconciliation]. This
+supersedes the baseline's absence of any linked Lunar artifact; it does not
+establish a linked full DSP application, functional board runtime, device
+execution, actual DSP archive-member requirements or redistribution rights.
+
+The whole-source audit was completed on 2026-10-08 against baseline
+`d7111a985d5d6262767d6af49ba26caf0e1b9453`, as recorded in the current
+AGENTS.md and CLAUDE.md [verified: tracked audit record]. Findings and remediation
+limits remain in the [audit report](2026-10-07-full-code-audit.md) and
+[remediation ledger](2026-10-08-audit-remediation.md). Completing that source audit
+is separate from proving the board/runtime and release boundaries above.

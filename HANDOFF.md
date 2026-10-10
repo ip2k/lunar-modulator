@@ -10,6 +10,77 @@ original conversation; last updated 2026-09-29 (Baud Girl's FM-1+VA, the
 owner's PCB photos) and 2026-10-01 (engines, sequencer, the new name). Read
 this first, then `DEVELOPERS.md` (the README is the product page), then `docs/`.
 
+## Active work — 2026-10-09
+
+Main is `ebc6690` after green-CI merges of PR #104 (linked inert diagnostic)
+and PR #103 (durable browser saves). Neither establishes Lunar execution on
+the FM-1. PR #99 is still unmerged; the envelope branch/PR #101 integrates
+its source for validation and must follow it into main. The combined aeon
+build passes 104 parity scenarios, the native and Chromium 30-second storms
+with zero late quanta/underruns, Map 41/41, editor 99/99, and saved-project
+compatibility checks. Final rebuilt artifacts and metadata are pushed.
+
+Firmware bring-up proceeds independently in PR #108: offline stock byte
+bindings and exact no-op reconstruction, followed by physical/XIP mapping.
+The earlier report-classification gap is fixed and independently reviewed
+(PR #110 note); FM-1_092 auxiliary origin remains unsupported. No hardware
+traffic occurred in this work. Whole-image restore and broken-app recovery
+remain unverified. Mobile/BLE editor work stays deferred until installable
+firmware.
+
+Audit follow-ups are PRs #105 (server boundary), #106 (resampler CLI bounds),
+#112 (room oracle bounds), #113 (Compare MID pulses), with Movy oracle bounds
+under investigation. PR #107 records stock SPL handover; bank-body RAM
+ends at `0x01c05820`, excluding its 16-byte header. Docs are tracked by
+#102/#109/#110. PR #111 fixes underrun duration units and records a controlled
+CPU-starvation reproduction; the original GitHub Chromium failure cause is
+not established. Failed Chromium jobs are real 10–20 ms events, not tiny
+floating-point durations; zero-event acceptance remains unchanged.
+
+GitHub CI is queued/running on open streams. Do not merge a failing stream
+or treat LAN success as GitHub success. Owner by-ear A/B judgment remains
+pending; Safari UI and external browser loopback results are recorded in
+the editor branch. All streams have pushed checkpoints; inspect their
+current remote heads/checks before resuming, since the work continues.
+
+## Audit remediation — 2026-10-08
+
+PR #100 merged at `3c7b6a0`; its full CI passed. The managed
+`full-code-audit` worktree now holds `feature/2026-10-09@envelope-graph`. The full audit is recorded in
+[its report](notes/2026-10-07-full-code-audit.md); verified corrections,
+test results and remaining firmware prerequisites are in
+[the remediation ledger](notes/2026-10-08-audit-remediation.md).
+Native sanitizer and four-profile target compile checks pass (164 unique
+objects per profile, now including the previously omitted state codecs). This is not a
+linked firmware application: simulator arenas and persistence scratch exceed
+device SRAM and require a device layout. No hardware traffic in this work.
+PR #100 holds this batch. The codec suite passes (105 passed, one corpus skip),
+including compressed stream termination and duplicate-field rejection. The committed Wasm has been rebuilt: all 104 parity scenarios pass and
+Chromium's LAN page storm reports zero underruns. The preceding CI checkpoint
+failed stale-Wasm and Chromium storm checks; the rebuilt final commit passed CI. An independently authored permissive minimal startup diagnostic is being
+implemented on `feature/2026-10-09@board-diagnostic`; it links a 200-byte image and passes guarded stock-component staging with
+71 focused tests (PR #104). Stock handover and visible transport remain
+pending, and no Lunar firmware has run on the device. The concrete next milestone
+and memory/link/audio gates are in
+[the device bring-up plan](notes/2026-10-08-device-bringup-plan.md).
+The separate editor improvements branch/PR #99 remains unmerged. The envelope
+branch implements zero-default Delay, Log/Smooth curves and the live graph;
+its focused tests, 104 parity scenarios and 4,621-screen layout sweep pass.
+See [the envelope note](notes/2026-10-09-envelope-graph.md). Parallel audit
+follow-up covers save durability and stale recovery documentation.
+
+## Latest hardware update — 2026-10-07
+
+The original research summary below is historical. The owner authorized
+staged recovery experiments, superseding the prior dump-and-restore
+prerequisite. Soft-key UBOOT entry works on FM-1_092; the audited loader ran
+in RAM, matching full backups were saved off-host, and an unused 4 KiB
+sector was programmed and restored with the entire flash unchanged
+[verified: [bench note](notes/2026-10-07-fm1-softkey-bench.md)]. Full-image
+restoration and a Lunar application on hardware remain untested. Normal
+boot after both the initial dump and the restoration was owner-confirmed. The mobile hardware editor is explicitly deferred
+until installable firmware; see [its resume plan](notes/2026-10-07-mobile-advanced-editor.md).
+
 ## 1. Where things stand
 
 - **Owner:** Sean (GitHub `ip2k`). Works from a MacBook with Claude Desktop /
@@ -19,7 +90,7 @@ this first, then `DEVELOPERS.md` (the README is the product page), then `docs/`.
 - **This repository** is the research output: nine documents, three tools, one
   research log, plus bench session 1 (`notes/2026-09-06-bench.md`): the unit
   answered the identity query as `FM-1_015`, V15 is unpacked and diffed against
-  V14. This project has written nothing to the device. The case has been
+  V14. At that research checkpoint, this project had written nothing to the device. The case has been
   opened for photos (2026-09-29, `photos/2026-09-29/`, described in
   `notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`).
 - **The owner's unit now runs Baud Girl's FM-1+VA**: the owner installed it
@@ -38,8 +109,8 @@ this first, then `DEVELOPERS.md` (the README is the product page), then `docs/`.
   unit, written through mask ROM [reported]. Their code maps the board
   (docs/01 §3.1): audio is ALNK0 (I2S) to an external codec, not the internal
   DAC, and the encoders are scanned in the key matrix. Stock V15 also enters
-  mask ROM on the SysEx "soft key" `F0 22 24 35 7D F7`, which this project
-  must not send before the gate (CLAUDE.md trap 9).
+  mask ROM on the SysEx "soft key" `F0 22 24 35 7D F7`, which was subsequently verified on this unit under the revised staged
+  policy (see the latest hardware update above).
 - **Where the repo lives now:** `~/Developer/mvave-fm1-firmware` on the
   owner's MacBook (the folder keeps its old name), branch `main`, remote
   `ip2k/lunar-modulator` (published 2026-09-06 as

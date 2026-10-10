@@ -18,6 +18,8 @@ import importlib.util
 import pathlib
 import struct
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
@@ -304,7 +306,7 @@ def build_linked(funcs, init_ptrs=None, extra_syms=()):
     return ehdr + body + heads, addrs
 
 
-def run_linked(elf_bytes, tmp_path, app=None, sources=None):
+def run_linked(elf_bytes, tmp_path, app=None, sources=None, runtime="sdk"):
     p = tmp_path / "fw.elf"
     p.write_bytes(elf_bytes)
     a = None
@@ -314,11 +316,42 @@ def run_linked(elf_bytes, tmp_path, app=None, sources=None):
     args = AL.argparse.Namespace(elf=str(p), app=str(a) if a else None, objects=None, json=None)
     elves, flat, linked = AL.collect_elves(args)
     assert linked is True
-    return AL.audit(elves, flat, linked, sources)
+    return AL.audit(elves, flat, linked, sources, runtime=runtime)
 
 
 NOP = b"\x00" * 8
 DORMANT = [("sdk_meky_check", NOP), ("_mkey_check", NOP), ("isr_check_key", NOP)]
+
+
+def test_sdk_free_image_requires_no_key_or_initcall_machinery(tmp_path):
+    clean, _ = build_linked([("_start", NOP)])
+    result = run_linked(clean, tmp_path, runtime="sdk-free")
+    assert result["passed"] and result["n_pending"] == 0
+    # The SDK default still requires its dormant check; selecting the other
+    # runtime explicitly is necessary, never inferred from absent symbols.
+    assert not run_linked(clean, tmp_path)["passed"]
+    retained, _ = build_linked(DORMANT, init_ptrs=["sdk_meky_check"])
+    result = run_linked(retained, tmp_path, runtime="sdk-free")
+    assert status(result, "dormant_keycheck_absent") == "fail"
+    assert status(result, "late_initcall_group") == "fail"
+
+
+def test_sdk_free_does_not_allow_sdk_mailbox_exception(tmp_path):
+    image, _ = build_linked([("mkey_dummy_func", struct.pack("<I", 0x01C8010C))])
+    result = run_linked(image, tmp_path, runtime="sdk-free")
+    assert status(result, "keycheck_mailbox_unwritten") == "fail"
+
+
+def test_sdk_free_rejects_object_only_evidence():
+    image = AL.Elf(build_object(symbols=("our_code",)))
+    result = AL.audit([("our.o", image)], [], False, runtime="sdk-free")
+    assert status(result, "sdk_free_linked") == "fail"
+
+
+def test_sdk_free_rejects_undefined_dormant_reference():
+    image = AL.Elf(build_object(undef=("sdk_meky_check",), e_type=2))
+    result = AL.audit([("our.elf", image)], [], True, runtime="sdk-free")
+    assert status(result, "dormant_keycheck_absent") == "fail"
 
 
 def le(v):
@@ -474,3 +507,19 @@ def test_cli_runs_with_sources_and_objects(tmp_path):
     assert AL.main(["--objects", str(obj), "--sources", str(src), "--json", str(out)]) == 0
     (src / "bad.c").write_text("void f(void) { request_irq(123, 6, g, 0); }\n")
     assert AL.main(["--objects", str(obj), "--sources", str(src)]) == 1
+
+
+@pytest.mark.parametrize("source", [
+    "#define APP_IRQ 123\nrequest_irq(APP_IRQ, 6, f, 0);",
+    "enum { APP_IRQ = 123 };\nrequest_irq(APP_IRQ, 6, f, 0);",
+    "request_irq(120 + 3, 6, f, 0);",
+    "request_irq(\n  123, 6, f, 0);",
+    "request_irq(0173, 6, f, 0);",
+])
+def test_sources_reject_reserved_alias_or_unproven_argument(tmp_path, source):
+    assert status(scan_sources(tmp_path, source), "irq123_unused_in_sources") == "fail"
+
+
+def test_sources_safe_multiline_literal_and_comments(tmp_path):
+    source = "// request_irq(123, 0, f, 0);\nrequest_irq(\n (u8)11U, 3, f, 0);"
+    assert status(scan_sources(tmp_path, source), "irq123_unused_in_sources") == "pass"

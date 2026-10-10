@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "6e86861d3752139c8ef6b01c960889d65cf485161407df0ca9bbada203b55081",
-  "wasm_bytes": 1546618,
+  "wasm_sha256": "9562448e742836a4571ebd04ad303c72d0125a8054483dffbee9d5c6240ed4e1",
+  "wasm_bytes": 1553462,
   "sources_sha256": {
-    "engines": "38ac9b71817237d20f9078aa386aa45df0547bf1ba03d488542ecfb25c325066",
-    "sim": "41f86074c8057b5aec7ce37509a258cff8f90610f13321b185d270c015cdf78e"
+    "engines": "99ccb6ca0b77e1bb145f3f20c61a9d86c2f577b1d71734870e7b11a9d494f623",
+    "sim": "17100e24bdde05c710ee19080240d41af754017fd3230dd1ff33d7dc192a0927"
   },
   "engines": "working tree",
-  "built": "2026-10-07T16:48:24Z",
+  "built": "2026-10-09T20:03:11Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -84,11 +84,11 @@
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "meta": {
-    "meta_id": "9855d7e3",
-    "module_meta_id": "9855d7e3",
-    "bytes": 251560,
+    "meta_id": "4f8ea78b",
+    "module_meta_id": "4f8ea78b",
+    "bytes": 251996,
     "lunar": "1.3",
-    "native_meta_id": "09c32023",
+    "native_meta_id": "24982c82",
     "ram_differ_at_64_bits": 9,
     "passed": true
   },
@@ -181,14 +181,14 @@
       "applied": 82728,
       "resyncs": 0,
       "telemetry_blocks": 862,
-      "p50_ms": 0.061807999999984986,
-      "p99_ms": 0.09610399999999686,
-      "max_ms": 0.2993009999999998,
-      "edit_us_per_quantum": 7.679970602455349
+      "p50_ms": 0.06266000000005079,
+      "p99_ms": 0.09412000000000376,
+      "max_ms": 0.26597900000001573,
+      "edit_us_per_quantum": 7.9631023111893855
     },
     "check": {
-      "params": 467,
-      "steps": 34376,
+      "params": 468,
+      "steps": 34480,
       "text_bad": 0,
       "codes": [
         "UNKNOWN",

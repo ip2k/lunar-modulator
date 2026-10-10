@@ -49,7 +49,7 @@ void fm1_inflate_init(fm1_inflate_t *z, fm1_inflate_src_t rd, void *ctx, uint32_
                       uint32_t out_len);
 /* Up to n bytes into out; returns how many (fewer only at the end). z->err
  * is set on a malformed stream, and fm1_inflate_done says whether every
- * byte came out with the stream's final block ended. */
+ * byte came out with the stream's final block ended and no trailing bytes. */
 uint32_t fm1_inflate_read(fm1_inflate_t *z, uint8_t *out, uint32_t n);
 int fm1_inflate_done(const fm1_inflate_t *z);
 

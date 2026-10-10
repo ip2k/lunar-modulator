@@ -853,7 +853,21 @@ static void fill_row(fm1_app_t *a, unsigned s, unsigned r, float *o) {
       e->peak[r] = e->sq[r] = 0.0f;
       e->n[r] = 0;
       break;
-    case FM1_TELE_REDUCTION: o[0] = reduction(a, r); break;
+    case FM1_TELE_REDUCTION: {
+      o[0] = reduction(a, r);
+      o[1] = NAN;
+#if FM1_WITH_SQUASH
+      const int u = r < FM1_TELE_SOUNDS * FM1_TELE_INSERTS
+        ? fm1_app_insert_unit((int)(r / FM1_TELE_INSERTS), (int)(r % FM1_TELE_INSERTS))
+        : r < FM1_TELE_SOUNDS * FM1_TELE_INSERTS + FM1_TELE_MASTERS
+          ? 1 + (int)(r - FM1_TELE_SOUNDS * FM1_TELE_INSERTS) : -1;
+      if (u >= 0 && a->unit[u].e && strcmp(a->unit[u].e->id, "squash") == 0) {
+        const int state = fm1_squash_gate_state(a->unit[u].self);
+        if (state >= 0) o[1] = (float)state;
+      }
+#endif
+      break;
+    }
     case FM1_TELE_VOICES: {
       fm1_mod_voice_info_t vi;
       if (a->mod && fm1_mod_voice(a->mod, r, &vi)) o[0] = (float)(vi.sound + 1), o[1] = (float)vi.key;
@@ -1161,8 +1175,10 @@ size_t fm1_edit_dump(fm1_app_t *a, char *buf, size_t cap) {
   fm1_view_t v;
   char line[160];
   const fm1_edit_t *e = a->edit;
-#define PUT(...) do { int k_ = snprintf(buf + n, n < cap ? cap - n : 0, __VA_ARGS__); \
-                      if (k_ > 0) n += (size_t)k_; } while (0)
+#define PUT(...) do { if (n < cap - 1) { \
+  int k_ = snprintf(buf + n, cap - n, __VA_ARGS__); \
+  if (k_ > 0) n += (size_t)k_ < cap - n ? (size_t)k_ : cap - n - 1; \
+} } while (0)
   if (!cap) return 0;
   buf[0] = 0;
   if (e) {

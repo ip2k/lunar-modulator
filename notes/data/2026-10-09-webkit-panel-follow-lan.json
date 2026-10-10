@@ -1,0 +1,127 @@
+{
+  "environment": {
+    "host": "aeon",
+    "image": "mcr.microsoft.com/playwright:v1.63.0-noble",
+    "playwright": "1.63.0",
+    "cpu_limit": 4,
+    "memory_limit": "4GiB",
+    "cgroup_parent": "docker-batch.slice",
+    "audio_sink": "PulseAudio null sink, 48kHz stereo"
+  },
+  "browser": "Webkit 26.6 (Playwright, headless)",
+  "pass": true,
+  "checks_total": 93,
+  "failed_checks": [],
+  "follow_panel": {
+    "key": "s2:2",
+    "frames": 1,
+    "ms": 20,
+    "chips": [
+      "K1",
+      "K2",
+      "K3",
+      "K4"
+    ],
+    "knobs": 4,
+    "entry": {
+      "origin": "panel",
+      "how": "knob",
+      "label": "S2 Harmonics"
+    },
+    "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+    "flashed": true,
+    "trace": {
+      "observer": "main-thread",
+      "perturbsTiming": true,
+      "events": [
+        {
+          "phase": "main-port",
+          "type": "state",
+          "ms": 6,
+          "audioTime": 0.603718820861678,
+          "audioState": "running",
+          "loading": false,
+          "gen": 4,
+          "pendingChanges": 0,
+          "inflight": 0,
+          "rowConnected": true,
+          "value": "0.30",
+          "currentRowValue": "0.30"
+        },
+        {
+          "phase": "main-port",
+          "type": "screen",
+          "bytes": null,
+          "ms": 7,
+          "audioTime": 0.603718820861678,
+          "audioState": "running",
+          "loading": false,
+          "gen": 4,
+          "pendingChanges": 0,
+          "inflight": 0,
+          "rowConnected": true,
+          "value": "0.30",
+          "currentRowValue": "0.30"
+        },
+        {
+          "phase": "editor-before",
+          "type": "changes",
+          "bytes": 32,
+          "ms": 12,
+          "audioTime": 0.6095238095238096,
+          "audioState": "running",
+          "loading": false,
+          "gen": 4,
+          "pendingChanges": 0,
+          "inflight": 0,
+          "rowConnected": true,
+          "value": "0.30",
+          "currentRowValue": "0.30"
+        },
+        {
+          "phase": "editor-after",
+          "type": "changes",
+          "bytes": 32,
+          "ms": 14,
+          "audioTime": 0.6095238095238096,
+          "audioState": "running",
+          "loading": false,
+          "gen": 5,
+          "pendingChanges": 0,
+          "inflight": 0,
+          "rowConnected": true,
+          "value": "0.33",
+          "currentRowValue": "0.33"
+        }
+      ],
+      "frames": [
+        {
+          "frame": 1,
+          "ms": 20,
+          "audioTime": 0.615328798185941,
+          "audioState": "running",
+          "loading": false,
+          "gen": 5,
+          "pendingChanges": 0,
+          "inflight": 0,
+          "rowConnected": true,
+          "value": "0.33",
+          "currentRowValue": "0.33"
+        }
+      ],
+      "droppedEvents": 0,
+      "initial": {
+        "ms": 0,
+        "audioTime": 0.5950113378684807,
+        "audioState": "running",
+        "loading": false,
+        "gen": 4,
+        "pendingChanges": 0,
+        "inflight": 0,
+        "rowConnected": true,
+        "value": "0.30",
+        "currentRowValue": "0.30"
+      }
+    }
+  }
+}

@@ -21,6 +21,11 @@ HOST="${MOVY_ORACLE_HOST:?set MOVY_ORACLE_HOST=user@host (a Linux machine with D
 REMOTE="${MOVY_ORACLE_REMOTE:-/home/claude/mvave-fm1/oracle}"
 IMAGE="${MOVY_ORACLE_IMAGE:-rust:1.98.1-bookworm}"
 SESSION="${MOVY_ORACLE_SESSION:-movy-oracle-or-virtual-fm1}"
+# These values enter remote shell programs and volume/label arguments.
+[[ "$REMOTE" =~ ^/([A-Za-z0-9_-][A-Za-z0-9._-]*/){2,}[A-Za-z0-9_-][A-Za-z0-9._-]*$ ]] || {
+    echo "MOVY_ORACLE_REMOTE: use an absolute work path with at least three components" >&2; exit 2; }
+[[ "$SESSION" =~ ^[A-Za-z0-9._-]+$ && "$IMAGE" =~ ^[A-Za-z0-9._/:@-]+$ ]] || {
+    echo "invalid oracle session or image" >&2; exit 2; }
 MOVY_URL="https://github.com/DimaDake/schwung-movy.git"
 MOVY_SHA="9190e79a2f461e71d2bf0a9fa77042011945021e"
 
@@ -40,7 +45,10 @@ in_container() {
 flags=()
 while [ $# -gt 0 ]; do
     case "$1" in
-        --frames) flags+=(--frames "$2"); shift 2 ;;
+        --frames)
+            case "${2:-}" in block|tick) flags+=(--frames "$2");;
+                *) echo "--frames requires block or tick" >&2; exit 2;; esac
+            shift 2 ;;
         --movy1) flags+=(--movy1); shift ;;
         --clean)
             remote "rm -rf $REMOTE"

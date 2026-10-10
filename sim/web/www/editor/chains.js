@@ -442,7 +442,7 @@ export function makeChains(ctx) {
   function meters(key) {
     const pt = meterPoint(key);
     if (!pt) return null;
-    return el('div', 'ed-meters', { role: 'group', 'aria-label': `${blockTag(key)} levels` }, [meterRow('In', pt.in), meterRow('Out', pt.out, pt.out, pt.in)]);
+    return el('div', 'ed-meters', { role: 'group', 'aria-label': `${blockTag(key)} levels` }, [meterRow('In', pt.in), meterRow('Out', pt.out, pt.out, pt.in), el('span', 'ed-gate-state ed-note', { 'data-gate': pt.out, text: '' })]);
   }
 
   // The Mix (§10, the Mix page's own records): each sound's level and
@@ -867,17 +867,23 @@ export function makeChains(ctx) {
     const [u, dst, g] = String(dest).split(':').map(Number);
     return { src, via: NONE, unit: u, dst, flags: SLOT_ON | (g ? GATE_DST : 0), amount: toQ(pct), offset: 0, uid: 0 };
   };
-  const cableRecord = (i, src, dest) => packCable(i, newSlot(src, dest));
+  const patchSlot = (i, src, dest, pct = 25) => {
+    const next = newSlot(src, dest, pct);
+    const old = i >= 0 ? cableOf(i) : null;
+    return old && !cableEmpty(old) ? { ...old, src, unit: next.unit, dst: next.dst,
+      flags: (old.flags & ~GATE_DST) | (next.flags & GATE_DST) } : next;
+  };
+  const cableRecord = (i, src, dest) => packCable(i, patchSlot(i, src, dest));
   // Puts a cable in the first empty slot and selects it; -1 (and C's words) when the matrix is full.
-  function makeCable(src, dest, pct = 25) {
-    const i = st.mirror.cables.findIndex((c) => cableEmpty(c));
+  function makeCable(src, dest, pct = 25, slot = -1) {
+    const i = slot >= 0 ? slot : st.mirror.cables.findIndex((c) => cableEmpty(c));
     if (i < 0) {
       const w = verdictWords(6, { what: 'matrix', used: SLOTS, max: SLOTS });
       ctx.showRefusal('Add a cable', w);
       ctx.say(w);
       return -1;
     }
-    ctx.setValue(`c${i + 1}`, 'all', JSON.stringify(newSlot(src, dest, pct)), 'set');
+    ctx.setValue(`c${i + 1}`, 'all', JSON.stringify(patchSlot(i, src, dest, pct)), 'set');
     st.selCable = `c${i + 1}`;
     ctx.select(`c${i + 1}`, { view: 'mod' });
     return i;
@@ -1140,12 +1146,18 @@ export function makeChains(ctx) {
       }
     }
     if (red) {
+      const field = red.fields.indexOf('gate');
+      for (const m of ctx.root.querySelectorAll('[data-gate]')) {
+        const row = red.rows.indexOf(m.dataset.gate);
+        const state = field >= 0 && row >= 0 ? f[red.offset + row * red.fields.length + field] : NaN;
+        m.textContent = Number.isFinite(state) ? ['Gate open', 'Gate closing', 'Gate closed'][state] || '' : '';
+      }
       // C's words: dB cut, 0 or more. Shown while there is signal in (the
       // effect's input meter) and the cut is more than a twentieth of a dB.
       const gr = (name, inName) => {
         const r = red.rows.indexOf(name);
         const i = inName && met ? met.rows.indexOf(inName) : -1;
-        const db = r >= 0 ? f[red.offset + r] : NaN;
+        const db = r >= 0 ? f[red.offset + r * red.fields.length + red.fields.indexOf('db')] : NaN;
         const live = i < 0 || f[met.offset + i * met.fields.length] > 1e-6;
         return Number.isFinite(db) && db > 0.05 && live ? db : 0;
       };

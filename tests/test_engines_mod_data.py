@@ -18,6 +18,8 @@ data).
 import json
 import subprocess
 
+import pytest
+
 from tests.engine_helpers import ENGINES, renderer  # noqa: F401
 
 KINDS_TEST = ENGINES / "build" / "fm1-mod-kinds-test"
@@ -124,3 +126,10 @@ def test_the_runtime_checks_pass(renderer):
     out = subprocess.run([str(KINDS_TEST)], capture_output=True, text=True)
     assert out.returncode == 0, out.stderr
     assert json.loads(out.stdout)["failed"] == 0
+
+
+@pytest.mark.parametrize("line", ["mod nan lfo", "seed nan", "seed inf", "seed 1e999",
+    "data 1 nan 00", "slot 3 lfo2 > reg1.level lock=nan"])
+def test_nonfinite_integer_fields_refused(renderer, tmp_path, line):
+    rc, err, _, _ = run(renderer, tmp_path, SCENE + line + "\n", seconds="0.01")
+    assert rc != 0, (line, err)

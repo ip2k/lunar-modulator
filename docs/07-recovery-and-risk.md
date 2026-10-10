@@ -1,6 +1,10 @@
 # 07 — Recovery paths, risk register, rules of engagement
 
-The single most important fact about this project: **until a full flash dump
+**Policy update, 2026-10-07:** the owner has removed the blanket prerequisite
+and authorized staged hardware experiments (§4). The following opening
+describes the original rationale, not a current ban on boot-mode probes.
+
+The original single most important fact about this project: **until a full flash dump
 and a byte-identical restore have been demonstrated, every non-stock write to
 the FM-1 risks a permanent brick.** This document is the plan to remove that
 risk, ranked by how likely each path is to work and how invasive it is.
@@ -193,10 +197,16 @@ programmer become the simplest recovery path of all; read it on the bench
 | Legal complaint about redistributing vendor binaries | low | takedown | never commit `.fwsc`/`app.bin`; link to sources |
 | Bluetooth radio regulatory issues with custom firmware | low | none for personal use | keep vendor BT stack or disable BT |
 
-## 4. Rules of engagement (adopted from AL-255's safety review)
+## 4. Rules of engagement (owner revised, 2026-10-07)
 
-1. No non-stock flash on any device without a proven dump-and-restore path for
-   that device.
+1. The owner permits staged bench01 experiments without a prior full dump and
+   byte-identical restore: vetted soft-key UBOOT entry, reviewed RAM-loader
+   flash reads, then evaluation of a bounded restore or prototype install.
+   Take and compare private backups before flash erase/program operations,
+   record the exact image/ranges and recovery plan, and retain a route to USB
+   update mode. UBOOT entry alone is not proven recovery. No blanket erase or
+   eFuse programming is authorized. See
+   [the current bench record](../notes/2026-10-07-fm1-softkey-bench.md).
 2. Keep `uboot.boot`, `ota.bin`, `cfg`, `isd_config.ini` and the partition
    layout **byte-identical to stock** in any experimental package until the
    loader checks are understood.
@@ -211,7 +221,7 @@ programmer become the simplest recovery path of all; read it on the bench
 7. Log everything on the bench: USB descriptors, SysEx traces, dumps with
    SHA-256, photos of pin probes. Put them under `notes/`.
 
-**2026-09-29 note.** Baud Girl's FM-1+VA (docs/04) shows the stock path
+**Historical policy note (2026-09-29; superseded by rule 1 above).** Baud Girl's FM-1+VA (docs/04) shows the stock path
 installing and removing non-stock applications at scale. That is new
 evidence, but it is evidence about *transfers*. Rule 1 exists for the image
 that does not come back, and no FM-1 has yet been dumped and restored through
