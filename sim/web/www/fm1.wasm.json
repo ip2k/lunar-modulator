@@ -1,19 +1,18 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "2ff8cfa92f34a9c023088838477b9d53fb565edcd7f6922b084b40c21c48851f",
-  "wasm_bytes": 1549883,
+  "wasm_sha256": "b504ad920ef4d1d0b007075c11df713bd4979dbfbb6c7730c8c52d6b745faf38",
+  "wasm_bytes": 1551408,
   "sources_sha256": {
-    "engines": "2ade114a88150c9312b8260e5630460d40045b194a32a96be7efe2a3ebd69182",
-    "sim": "2d5cb53a6bab5ddd8abe9d50328e86c3fce9cd9c3bfefc46a8e9d27f6bea7ae2"
+    "engines": "a34acf9831cb039415fa98959d1ccefbf596c72580e6eaa49f4e755b1c3df4e4",
+    "sim": "516151a07682af1eac52619e7b7ea313767235e56064d77674e2c49b13684045"
   },
   "engines": "working tree",
-  "built": "2026-10-09T19:44:00Z",
+  "built": "2026-10-10T00:27:12Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
     "alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8",
-    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65",
-    "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27"
+    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65"
   ],
   "imports": [],
   "gpl_mods": 1,
@@ -76,19 +75,19 @@
     }
   ],
   "parity": {
-    "passed": 104,
+    "passed": 105,
     "failed": 0,
-    "identical_to_js": 104,
-    "identical_to_musl": 104,
-    "identical_to_glibc": 101,
+    "identical_to_js": 105,
+    "identical_to_musl": 105,
+    "identical_to_glibc": 102,
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "meta": {
-    "meta_id": "b34abd40",
-    "module_meta_id": "b34abd40",
-    "bytes": 251578,
+    "meta_id": "b29edb8e",
+    "module_meta_id": "b29edb8e",
+    "bytes": 253030,
     "lunar": "1.3",
-    "native_meta_id": "03535ce3",
+    "native_meta_id": "afcff017",
     "ram_differ_at_64_bits": 9,
     "passed": true
   },
@@ -181,14 +180,14 @@
       "applied": 82728,
       "resyncs": 0,
       "telemetry_blocks": 862,
-      "p50_ms": 0.06200800000004847,
-      "p99_ms": 0.09652499999998554,
-      "max_ms": 0.2781319999999994,
-      "edit_us_per_quantum": 7.8697297166620555
+      "p50_ms": 0.06147800000000814,
+      "p99_ms": 0.09485100000000557,
+      "max_ms": 0.26047699999992346,
+      "edit_us_per_quantum": 7.639491925345398
     },
     "check": {
-      "params": 467,
-      "steps": 34376,
+      "params": 470,
+      "steps": 34682,
       "text_bad": 0,
       "codes": [
         "UNKNOWN",
@@ -321,6 +320,28 @@
       "ram_bytes": {
         "wasm32": 335980,
         "native64": 336796
+      }
+    },
+    {
+      "name": "shapes-warble-wow-flutter",
+      "samples": 79412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_px_differing": 0,
+      "ram_bytes": {
+        "wasm32": 286716,
+        "native64": 287532
       }
     },
     {

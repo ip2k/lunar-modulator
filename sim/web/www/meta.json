@@ -4613,6 +4613,76 @@
       ]
     },
     {
+      "id": "warble",
+      "name": "Warble",
+      "kind": "audio_fx",
+      "group": "space",
+      "credits": "Written here (MIT); conceptual inspiration: CHOMPI Warble",
+      "licence": "MIT",
+      "gpl": false,
+      "max_voices": 0,
+      "per_note": false,
+      "pads": null,
+      "fx_wants": [],
+      "ram": 16464,
+      "page_names": [
+        null
+      ],
+      "params": [
+        {
+          "uid": 1,
+          "name": "Wow",
+          "abbr": "Wow",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0.35,
+          "step": 0.01,
+          "unit": "none",
+          "page": 1,
+          "knob": 1,
+          "flags": [
+            "smooth",
+            "mod"
+          ]
+        },
+        {
+          "uid": 2,
+          "name": "Flutter",
+          "abbr": "Flut",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0.25,
+          "step": 0.01,
+          "unit": "none",
+          "page": 1,
+          "knob": 2,
+          "flags": [
+            "smooth",
+            "mod"
+          ]
+        },
+        {
+          "uid": 3,
+          "name": "Mix",
+          "abbr": "Mix",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0.5,
+          "step": 0.01,
+          "unit": "none",
+          "page": 1,
+          "knob": 3,
+          "flags": [
+            "smooth",
+            "mod"
+          ]
+        }
+      ]
+    },
+    {
       "id": "filter",
       "name": "Filter",
       "kind": "audio_fx",
@@ -11803,5 +11873,5 @@
       }
     ]
   },
-  "meta_id": "b34abd40"
+  "meta_id": "b29edb8e"
 }
