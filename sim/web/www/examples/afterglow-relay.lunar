@@ -7,7 +7,7 @@
   "about": "A slow, hazy night drive: warm minor ninths, a patient bass pulse and a six-note hook that opens into the chorus. All parts are original MIDI patterns; no samples are used.",
   "licence": "MIT",
   "session": {
-    "current": 0,
+    "current": 2,
     "octave": 0,
     "transpose": 0,
     "key": {"root": "A", "scale": "minor"}

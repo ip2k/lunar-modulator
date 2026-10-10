@@ -7,7 +7,7 @@
   "about": "A bright, straight-ahead electropop ride: a singable seven-note instrumental refrain, clipped verse bass and a pre-chorus that opens into three chorus passes. All parts are original MIDI patterns; no samples are used.",
   "licence": "MIT",
   "session": {
-    "current": 0,
+    "current": 2,
     "octave": 0,
     "transpose": 0,
     "key": {"root": "E", "scale": "minor"}

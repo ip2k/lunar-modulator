@@ -7,7 +7,7 @@
   "about": "A half-time future-bass arc: a compact rising pickup, wide chord voicings and a four-pass drop whose kick and bass lock around the backbeat. All parts are original MIDI patterns; no samples are used.",
   "licence": "MIT",
   "session": {
-    "current": 0,
+    "current": 2,
     "octave": 0,
     "transpose": 0,
     "key": {"root": "F", "scale": "minor"}

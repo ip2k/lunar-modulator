@@ -333,7 +333,9 @@ def build(song: dict) -> dict:
     doc["name"] = song["name"]
     doc["title"] = song["title"]
     doc["about"] = song["about"]
-    doc["session"]["current"] = 0
+    # Project JSON stores the selected sound slot as 1..4 (the reader maps it
+    # to an internal zero-based index). Keep the template's valid slot 2.
+    doc["session"]["current"] = 2
     doc["session"]["key"] = {"root": song["root"], "scale": "minor"}
     sounds = doc["sounds"]
     sounds[0]["params"]["Kit"] = "Punch"
@@ -422,6 +424,8 @@ def check(files: dict[Path, bytes]) -> list[str]:
             if manifest[song_index] != expected_entry:
                 errors.append(f"manifest entry {song_index} does not match {song['title']}")
         doc = state_canon.loads(path.read_text(encoding="utf-8"))
+        if doc["session"]["current"] not in range(1, 5):
+            errors.append(f"{path.name}: selected sound slot is outside the 1..4 file range")
         set_lines = doc["set"]
         bpm_line = next((line for line in set_lines if line.startswith("bpm ")), "")
         if bpm_line != f"bpm {song['bpm'] * 100}":
