@@ -214,6 +214,9 @@ jobs:
       - name: The editor's data and history against the module (node)
         timeout-minutes: 5
         run: node sim/web/test/editor-unit.mjs sim/web/www
+      - name: Worklet startup and restart ordering
+        timeout-minutes: 5
+        run: node sim/web/test/startup-smoke.mjs sim/web/www "$SHOTS/startup"
       - name: External audio detector and browser loopback
         run: |
           node sim/web/test/audio-analysis-check.mjs

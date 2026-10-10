@@ -1,0 +1,1001 @@
+{
+  "schema": 1,
+  "purpose": "One bounded startup ordering fix validation; original PR142 CI event remains unassigned.",
+  "provenance": {
+    "node": "v24.20.0",
+    "playwright": "1.63.0",
+    "wasm_sha256": "4667498f919529ba0f1059f127ea02e60c2c2a76ee5bc16983cfeabbb96b76ec",
+    "source_head": "08c9f204f05c7d267e2bf453331bdf6dc54c5b37",
+    "cpus": 4,
+    "memory_bytes": 2147483648,
+    "sink": "private rate=48000 norewinds=1",
+    "attempts_per_test": 1
+  },
+  "image": "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27",
+  "host": "aeon",
+  "resource_boundary": "docker-batch.slice; 4 CPUs; 2 GiB; no added pressure workers",
+  "runtime_change": "Connect destination/analyser after current-node ready; gesture wake retained.",
+  "limits": [
+    "LAN synthetic tests do not assign the original CI underrun cause or prove absence of all browser glitches.",
+    "Trace/resource observers can perturb scheduling.",
+    "Firefox/WebKit playback counters and CDP traces unsupported; nullable evidence remains unsupported.",
+    "Actual PR142 Wasm retained for JS runtime observation; final source-hash artifact regeneration/full exact-head CI is required by integration.",
+    "No hardware or human listening validation."
+  ],
+  "helper_tests": {
+    "passed": 17,
+    "failed": 0
+  },
+  "editor_unit": {
+    "checks": {
+      "playback duration is milliseconds and events stay exact": true,
+      "every parameter gets the control \u00a76 names": true,
+      "the LOG law": true,
+      "memory reads as the screen rounds it": true,
+      "the mirror holds the start chain": true,
+      "the mirror's values are C's": true,
+      "records packed here are applied by C": true,
+      "the feed carries them back with the editor's source and tag": true,
+      "the feed keeps the mirror": true,
+      "a refusal names its words": true,
+      "a view verb opens the page, and the view names it": true,
+      "the knob map names that page's parameters (K1-K4)": true,
+      "a master slot opens on FX": true,
+      "a drag is one step; repeats within 600 ms merge; origins and targets never": true,
+      "a new edit clears redo": true,
+      "200 entries at most": true,
+      "two picks loads inside 600 ms remain separate, undo to the original, and redo each exact selection": true,
+      "undoing every step ends at the first hash": true,
+      "redoing every step ends at the last hash": true,
+      "a module and a cable from the editor apply": true,
+      "the feed carries them back, decoded as packed": true,
+      "fm1w_mod_records gives the rack and the matrix as C keeps them": true,
+      "a cable the planner leaves out is written, with its reason as verdict": true,
+      "fm1w_mod_records names the loop a late cable closes: the cable up the rack reads a tick late (both positions in the loop), the one down it runs on time": true,
+      "with the loop broken no cable is late": true,
+      "the metadata has the 1.2 and 1.3 members the editor reads: marks, source groups, curve points, refusal fixes, the id layout": true,
+      "the rack and the matrix name every source and destination from the metadata": true,
+      "refused swaps, modules, slots and units leave the state as it was": true,
+      "a swap undoes by itself": true,
+      "undoing every structural step ends at the first state hash": true,
+      "redoing every structural step ends at the last": true,
+      "RAM by part adds up to the meter's figure": true,
+      "every unit in the metadata (semitones, hertz, milliseconds, decibels, percent) is spoken as a word, none as its symbol": true,
+      "the layout the editor uses is the metadata's": true,
+      "another layout in the metadata moves every source code, unit code and key the editor builds (nothing is hard-coded)": true,
+      "a metadata without the layout (older than 1.3) is refused with a clear message, not guessed at": true
+    },
+    "failed": 0,
+    "why": [],
+    "params": 366,
+    "kinds": {
+      "grid": 14,
+      "slider": 278,
+      "segments": 58,
+      "search": 3,
+      "list": 13
+    },
+    "undo": {
+      "steps": 109,
+      "refused": 0,
+      "first": 3719389266,
+      "last": 3995419572,
+      "back": 3719389266,
+      "again": 3995419572
+    },
+    "structural": {
+      "steps": 17,
+      "refused": 0,
+      "first": "b6fe568d",
+      "last": "f0fae0f1",
+      "back": "b6fe568d",
+      "again": "f0fae0f1"
+    },
+    "ram": {
+      "total": 105884,
+      "parts": [
+        31824,
+        4240,
+        5072,
+        0,
+        384,
+        64364
+      ]
+    }
+  },
+  "browsers": {
+    "chromium": {
+      "started": "2026-10-10T08:57:57Z",
+      "completed": "2026-10-10T08:59:37Z",
+      "exits": {
+        "smoke": 0,
+        "storm": 0,
+        "audio": 0
+      },
+      "startup": {
+        "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+        "pass": true,
+        "errors": [],
+        "starts": [
+          {
+            "screens": 5,
+            "audio_seconds": 0.19736961451247165,
+            "state": "running",
+            "rate": 44100,
+            "node": {
+              "ready": true,
+              "connections": [
+                {
+                  "destination": "AudioDestinationNode",
+                  "ready": true
+                },
+                {
+                  "destination": "AnalyserNode",
+                  "ready": true
+                }
+              ]
+            }
+          },
+          {
+            "screens": 11,
+            "audio_seconds": 0.22058956916099773,
+            "state": "running",
+            "rate": 44100,
+            "node": {
+              "ready": true,
+              "connections": [
+                {
+                  "destination": "AudioDestinationNode",
+                  "ready": true
+                },
+                {
+                  "destination": "AnalyserNode",
+                  "ready": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "storm": {
+        "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+        "seconds": 30,
+        "logs": [],
+        "scheduling_capture": true,
+        "edited": 7302,
+        "codes_not_ok": 0,
+        "changes": 1724,
+        "entries": 58419,
+        "resyncs": 0,
+        "views": 1,
+        "telemetry": 905,
+        "stats": {
+          "quanta": 10695,
+          "timed": false,
+          "late": null,
+          "maxMs": null,
+          "editMs": null
+        },
+        "snapshot": {
+          "ok": true,
+          "bytes": 1115,
+          "binary": true
+        },
+        "ops": 7302,
+        "records": 58416,
+        "rate": 44100,
+        "playback": {
+          "underrun_events": 0,
+          "underrun_ms": 0
+        },
+        "pass": true
+      },
+      "external_loopback": {
+        "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+        "seconds": 30,
+        "source": "lunar.monitor",
+        "events": [
+          {
+            "scope": "project",
+            "at": 1791622753534,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791622756049,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791622758564,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791622761078,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791622766922,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791622769434,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791622771949,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791622774463,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: Sound 2.",
+              "scope": 1
+            }
+          }
+        ],
+        "logs": [],
+        "tone-stormStartedAt": 1791622712380,
+        "storm": {
+          "batches": 7293,
+          "replies": 7293,
+          "refused": 0,
+          "resyncs": 0,
+          "rate": 44100
+        },
+        "ab-playbackStartedAt": 1791622747490,
+        "audio": {
+          "pass": true,
+          "activeSeconds": 32.011895833333334,
+          "nonfinite": 0,
+          "channelMismatches": 0,
+          "maxZeroRun": 0,
+          "maxSilenceMs": 0,
+          "cycles": 13864,
+          "badPeriods": 0,
+          "maxPeriodError": 0.010341951655306048
+        },
+        "music": {
+          "seconds": 29.976979166666666,
+          "peak": 0.256561279296875,
+          "nonfinite": 0
+        },
+        "transportStopped": [],
+        "pass": true
+      },
+      "scheduling": {
+        "schema": 1,
+        "trace_requested": true,
+        "trace_started": true,
+        "trace_complete": true,
+        "trace_categories": "audio,webaudio,disabled-by-default-audio,blink.user_timing",
+        "perturbation": "CDP tracing and one-second resource reads can affect scheduling; this is an instrumented run.",
+        "trace_window": "Starts before page navigation/power-on and ends after storm/idle evaluation and snapshot drain. Playback baseline/window and zero gate are unchanged.",
+        "errors": [],
+        "trace_events_saved": 88050,
+        "trace_events_dropped": 0,
+        "audio_classification": {
+          "counts": {
+            "sync_reader_timeout": 0,
+            "glitch": 0,
+            "fifo_pull_shortage": 0,
+            "fifo_earmarked_shortage": 0,
+            "fifo_overrun": 0
+          },
+          "by_phase": {},
+          "explicit_events": [],
+          "explicit_events_dropped": 0,
+          "fifo_zero_counter_samples": 2744,
+          "markers": [
+            {
+              "phase": "page-init",
+              "ts_us": 543755185681
+            },
+            {
+              "phase": "power-on-request",
+              "ts_us": 543755214375
+            },
+            {
+              "phase": "play-request",
+              "ts_us": 543755653845
+            },
+            {
+              "phase": "baseline",
+              "ts_us": 543755659553
+            },
+            {
+              "phase": "loop-begin",
+              "ts_us": 543755659579
+            },
+            {
+              "phase": "loop-end",
+              "ts_us": 543785661203
+            },
+            {
+              "phase": "snapshot-drain",
+              "ts_us": 543785661299
+            },
+            {
+              "phase": "drain-end",
+              "ts_us": 543787161478
+            },
+            {
+              "phase": "trace-finish-request",
+              "ts_us": 543787163441
+            }
+          ],
+          "trace_complete": true,
+          "trace_events_dropped": 0,
+          "interpretation": "Counts only explicit named events in saved trace. Zero FIFO occupancy is not a shortage; absence does not prove no glitch, especially in incomplete traces."
+        }
+      },
+      "resource_sample_count": 33,
+      "evidence_sha256": {
+        "ready-results/chromium/storm-exit.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "ready-results/chromium/storm.log": "f674d76f1df92a9bdf5519432ca03bdb33081992e711ac77f0b5d1878b5953fa",
+        "ready-results/chromium/started.txt": "31f3a369851109c612207957650e638da1b4d7f4d2f4540b01a32251b63ca177",
+        "ready-results/chromium/audio-exit.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "ready-results/chromium/smoke.log": "f04bcc9e9d7a71a3ae3e0e89256419d5e69b1cd6f1400d1789054e760fdc5b80",
+        "ready-results/chromium/audio.log": "d8b3cb3628f88fa5f0700dcae71f59434e452f9b4fb6a09b63ce687fc4f5695d",
+        "ready-results/chromium/smoke-exit.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "ready-results/chromium/completed.txt": "02c49b94457af9fbd3d0b7d597d73198dce56af89619687f06c8c4cbf2d5cc41",
+        "ready-results/chromium/smoke/startup-smoke.json": "15a32d35ce2555ad0fc54f2d4186de69fac82f5440c9cfceb2ee4e3d1f7b570f",
+        "ready-results/chromium/audio/audio-loopback.json": "9b01ee6657d4e9e750213ea722a2781be3736a74aafefe43b61219c4c1f117ff",
+        "ready-results/chromium/storm/editor-playback-timeline.json": "c279bdf8ee65f2511f3c2a905559625975812ddd769fed83d741cf424d3b056f",
+        "ready-results/chromium/storm/editor.json": "44c0ab295c46bad6192b1e2fdaff0f6e51e07817896bbabd101616154b706641",
+        "ready-results/chromium/storm/editor-audio-trace.json": "0dd0a487ec6ed98f9654dfb979bb740e8b02fafb75918aebdf354c69ecf997d3",
+        "ready-results/chromium/storm/editor-scheduling.json": "34ecc0e972cd0a4a719c628cf1bcb19dac6b5630454eeaa2f0e44a6a4b293b17"
+      }
+    },
+    "firefox": {
+      "started": "2026-10-10T08:59:37Z",
+      "completed": "2026-10-10T09:01:21Z",
+      "exits": {
+        "smoke": 0,
+        "storm": 0,
+        "audio": 0
+      },
+      "startup": {
+        "browser": "Firefox 155.0 (Playwright, headless)",
+        "pass": true,
+        "errors": [],
+        "starts": [
+          {
+            "screens": 6,
+            "audio_seconds": 0.2699319727891156,
+            "state": "running",
+            "rate": 44100,
+            "node": {
+              "ready": true,
+              "connections": [
+                {
+                  "destination": "AudioDestinationNode",
+                  "ready": true
+                },
+                {
+                  "destination": "AnalyserNode",
+                  "ready": true
+                }
+              ]
+            }
+          },
+          {
+            "screens": 13,
+            "audio_seconds": 0.24671201814058957,
+            "state": "running",
+            "rate": 44100,
+            "node": {
+              "ready": true,
+              "connections": [
+                {
+                  "destination": "AudioDestinationNode",
+                  "ready": true
+                },
+                {
+                  "destination": "AnalyserNode",
+                  "ready": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "storm": {
+        "browser": "Firefox 155.0 (Playwright, headless)",
+        "seconds": 30,
+        "logs": [],
+        "scheduling_capture": true,
+        "edited": 7218,
+        "codes_not_ok": 0,
+        "changes": 1607,
+        "entries": 57747,
+        "resyncs": 0,
+        "views": 1,
+        "telemetry": 905,
+        "stats": {
+          "quanta": 10695,
+          "timed": false,
+          "late": null,
+          "maxMs": null,
+          "editMs": null
+        },
+        "snapshot": {
+          "ok": true,
+          "bytes": 1115,
+          "binary": true
+        },
+        "ops": 7218,
+        "records": 57744,
+        "rate": 44100,
+        "playback": null,
+        "pass": true
+      },
+      "external_loopback": {
+        "browser": "Firefox 155.0 (Playwright, headless)",
+        "seconds": 30,
+        "source": "lunar.monitor",
+        "events": [
+          {
+            "scope": "project",
+            "at": 1791622856597,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791622859157,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791622861716,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791622864273,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791622870185,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791622872738,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791622875299,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791622877860,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: Sound 2.",
+              "scope": 1
+            }
+          }
+        ],
+        "logs": [],
+        "tone-stormStartedAt": 1791622815297,
+        "storm": {
+          "batches": 7218,
+          "replies": 7218,
+          "refused": 0,
+          "resyncs": 0,
+          "rate": 44100
+        },
+        "ab-playbackStartedAt": 1791622850554,
+        "audio": {
+          "pass": true,
+          "activeSeconds": 32.006125,
+          "nonfinite": 0,
+          "channelMismatches": 0,
+          "maxZeroRun": 0,
+          "maxSilenceMs": 0,
+          "cycles": 13861,
+          "badPeriods": 0,
+          "maxPeriodError": 0.00884632478383196
+        },
+        "music": {
+          "seconds": 30.391166666666667,
+          "peak": 0.265167236328125,
+          "nonfinite": 0
+        },
+        "transportStopped": [],
+        "pass": true
+      },
+      "scheduling": {
+        "schema": 1,
+        "trace_requested": false,
+        "trace_started": false,
+        "trace_complete": false,
+        "trace_categories": "audio,webaudio,disabled-by-default-audio,blink.user_timing",
+        "perturbation": "One-second resource reads can affect scheduling; this is an instrumented run.",
+        "trace_window": "Starts before page navigation/power-on and ends after storm/idle evaluation and snapshot drain. Playback baseline/window and zero gate are unchanged.",
+        "errors": [],
+        "trace_events_saved": 0,
+        "trace_events_dropped": 0,
+        "audio_classification": {
+          "counts": {
+            "sync_reader_timeout": 0,
+            "glitch": 0,
+            "fifo_pull_shortage": 0,
+            "fifo_earmarked_shortage": 0,
+            "fifo_overrun": 0
+          },
+          "by_phase": {},
+          "explicit_events": [],
+          "explicit_events_dropped": 0,
+          "fifo_zero_counter_samples": 0,
+          "markers": [],
+          "trace_complete": false,
+          "trace_events_dropped": 0,
+          "interpretation": "Counts only explicit named events in saved trace. Zero FIFO occupancy is not a shortage; absence does not prove no glitch, especially in incomplete traces."
+        }
+      },
+      "resource_sample_count": 34,
+      "evidence_sha256": {
+        "ready-results/firefox/storm-exit.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "ready-results/firefox/storm.log": "e73f885d5f0003eb470e08d67180387be1f5d4b5782a241cb427b5d367a4b9f0",
+        "ready-results/firefox/started.txt": "02c49b94457af9fbd3d0b7d597d73198dce56af89619687f06c8c4cbf2d5cc41",
+        "ready-results/firefox/audio-exit.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "ready-results/firefox/smoke.log": "2354f11b62f2b7ba0b2e51d41f845b618f71c6f0dfb6fbfb9382bf28d38ec154",
+        "ready-results/firefox/audio.log": "b142af0c6d25bd58e5af1b3f7653841e31ea041f8af8cc78767fe1d2aa42ab4f",
+        "ready-results/firefox/smoke-exit.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "ready-results/firefox/completed.txt": "3b3d6f6535ee414617dbefafd160970aa88726b4db8ec9a6f45873e2aa4ad32f",
+        "ready-results/firefox/smoke/startup-smoke.json": "ff281a268e37fe9f791d955f49aad0c7cfe06ea30740c2fc6c04cb21efb26df6",
+        "ready-results/firefox/audio/audio-loopback.json": "b5714fd6a6b164151688b378c033d7faf875af598c9c8606b91c7199001bbf51",
+        "ready-results/firefox/storm/editor-playback-timeline.json": "e6c409f3ebe51362fbd1060f496cb2ecb6480db183709e412eaf439a3c5a9e95",
+        "ready-results/firefox/storm/editor.json": "30a2b0135a29679c5ff51e1c16bbf6877594dc99bb0258e08d07cd845c84068b",
+        "ready-results/firefox/storm/editor-scheduling.json": "2adc8e30e9e8e883c53087fa194bc10f9cfa4238f38d6021e582420dc32329ea"
+      }
+    },
+    "webkit": {
+      "started": "2026-10-10T09:01:21Z",
+      "completed": "2026-10-10T09:03:03Z",
+      "exits": {
+        "smoke": 0,
+        "storm": 0,
+        "audio": 0
+      },
+      "startup": {
+        "browser": "Webkit 26.6 (Playwright, headless)",
+        "pass": true,
+        "errors": [],
+        "starts": [
+          {
+            "screens": 7,
+            "audio_seconds": 0.2960544217687075,
+            "state": "running",
+            "rate": 44100,
+            "node": {
+              "ready": true,
+              "connections": [
+                {
+                  "destination": "AudioDestinationNode",
+                  "ready": true
+                },
+                {
+                  "destination": "AnalyserNode",
+                  "ready": true
+                }
+              ]
+            }
+          },
+          {
+            "screens": 13,
+            "audio_seconds": 0.24671201814058957,
+            "state": "running",
+            "rate": 44100,
+            "node": {
+              "ready": true,
+              "connections": [
+                {
+                  "destination": "AudioDestinationNode",
+                  "ready": true
+                },
+                {
+                  "destination": "AnalyserNode",
+                  "ready": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "storm": {
+        "browser": "Webkit 26.6 (Playwright, headless)",
+        "seconds": 30,
+        "logs": [],
+        "scheduling_capture": true,
+        "edited": 3757,
+        "codes_not_ok": 0,
+        "changes": 1724,
+        "entries": 30059,
+        "resyncs": 0,
+        "views": 1,
+        "telemetry": 905,
+        "stats": {
+          "quanta": 10695,
+          "timed": false,
+          "late": null,
+          "maxMs": null,
+          "editMs": null
+        },
+        "snapshot": {
+          "ok": true,
+          "bytes": 1115,
+          "binary": true
+        },
+        "ops": 3757,
+        "records": 30056,
+        "rate": 44100,
+        "playback": null,
+        "pass": true
+      },
+      "external_loopback": {
+        "browser": "Webkit 26.6 (Playwright, headless)",
+        "seconds": 30,
+        "source": "lunar.monitor",
+        "events": [
+          {
+            "scope": "project",
+            "at": 1791622958669,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791622961221,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791622963769,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791622966318,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791622972205,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791622974751,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791622977287,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791622979843,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: Sound 2.",
+              "scope": 1
+            }
+          }
+        ],
+        "logs": [],
+        "tone-stormStartedAt": 1791622917669,
+        "storm": {
+          "batches": 3756,
+          "replies": 3756,
+          "refused": 0,
+          "resyncs": 0,
+          "rate": 44100
+        },
+        "ab-playbackStartedAt": 1791622952623,
+        "audio": {
+          "pass": true,
+          "activeSeconds": 32.00610416666667,
+          "nonfinite": 0,
+          "channelMismatches": 0,
+          "maxZeroRun": 0,
+          "maxSilenceMs": 0,
+          "cycles": 13861,
+          "badPeriods": 0,
+          "maxPeriodError": 0.008851219931699461
+        },
+        "music": {
+          "seconds": 30.2636875,
+          "peak": 0.251739501953125,
+          "nonfinite": 0
+        },
+        "transportStopped": [],
+        "pass": true
+      },
+      "scheduling": {
+        "schema": 1,
+        "trace_requested": false,
+        "trace_started": false,
+        "trace_complete": false,
+        "trace_categories": "audio,webaudio,disabled-by-default-audio,blink.user_timing",
+        "perturbation": "One-second resource reads can affect scheduling; this is an instrumented run.",
+        "trace_window": "Starts before page navigation/power-on and ends after storm/idle evaluation and snapshot drain. Playback baseline/window and zero gate are unchanged.",
+        "errors": [],
+        "trace_events_saved": 0,
+        "trace_events_dropped": 0,
+        "audio_classification": {
+          "counts": {
+            "sync_reader_timeout": 0,
+            "glitch": 0,
+            "fifo_pull_shortage": 0,
+            "fifo_earmarked_shortage": 0,
+            "fifo_overrun": 0
+          },
+          "by_phase": {},
+          "explicit_events": [],
+          "explicit_events_dropped": 0,
+          "fifo_zero_counter_samples": 0,
+          "markers": [],
+          "trace_complete": false,
+          "trace_events_dropped": 0,
+          "interpretation": "Counts only explicit named events in saved trace. Zero FIFO occupancy is not a shortage; absence does not prove no glitch, especially in incomplete traces."
+        }
+      },
+      "resource_sample_count": 33,
+      "evidence_sha256": {
+        "ready-results/webkit/storm-exit.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "ready-results/webkit/storm.log": "4b9207f245b0fe459ec31e37efd8e48acaff10972f6f5357a2f586a8525e0ac4",
+        "ready-results/webkit/started.txt": "3b3d6f6535ee414617dbefafd160970aa88726b4db8ec9a6f45873e2aa4ad32f",
+        "ready-results/webkit/audio-exit.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "ready-results/webkit/smoke.log": "cb9e29d83fb86bd91afb1767cb9df9de00f49e1c0351d64e5eb98fc16a91f01b",
+        "ready-results/webkit/audio.log": "0ba996c1d6491aacca964cbb28a8ba07f48cd8158ff3c5e35bfafc380f85da74",
+        "ready-results/webkit/smoke-exit.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "ready-results/webkit/completed.txt": "12fb90c1d438452a0e80427d3c0b7a89aa54dc3edfd54e7b0aa8b6244ec150a9",
+        "ready-results/webkit/smoke/startup-smoke.json": "b8bcc7de885e1a04867c2e840876a4323be98821c58b9f9a14b48279c9b47bfe",
+        "ready-results/webkit/audio/audio-loopback.json": "deada4ed76ed35df18bff1b01e7c54f7bce269f83566a7eace6211edbc286380",
+        "ready-results/webkit/storm/editor-playback-timeline.json": "0aabf60b470ff9b3469269681fd5ee842aab96d587fec0d8baba01665603057b",
+        "ready-results/webkit/storm/editor.json": "ffef311890561e747ae90da86426882dd7b228906c6e6159f5ddaf87d437da77",
+        "ready-results/webkit/storm/editor-scheduling.json": "974de9bcec1eb4517e1f6012c6b558ebde151e257daad6e9635e4bb6efd2a3cb"
+      }
+    }
+  }
+}

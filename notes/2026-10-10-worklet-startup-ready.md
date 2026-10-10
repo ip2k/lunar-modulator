@@ -17,9 +17,30 @@ No context suspension or ready-await is introduced. Initialization errors still
 reach the page without joining outputs. Four focused ordering/error/stale/closed
 regressions and the existing 13 diagnostic helpers pass (17 total).
 
-Pending: bounded actual startup/restart smoke, unchanged strict 30-second storm
-and external loopback for Chromium/Firefox/WebKit on LAN; actual build-record
-regeneration and full exact-head CI by the parent integration stream. The current
-Wasm is the exact PR142 artifact retained for runtime observation, not a new
-source-hash acceptance record. No tolerance, baseline, drain or zero-underrun
-gate has changed. No claim about hardware or human listening.
+[verified] The bounded LAN batch tested runtime/source checkpoint
+`08c9f204f05c7d267e2bf453331bdf6dc54c5b37`, one attempt per test, with
+4 CPUs/2 GiB in `docker-batch.slice` and a private Pulse null sink using
+`norewinds=1`. Chromium 153, Firefox 155 and WebKit 26.6 each passed two actual
+power cycles: destination/analyser connected after ready, the context ran, and
+the screen and audio clock advanced. The 17 Node helper tests and 36 editor-unit
+checks passed. CI now invokes this actual startup/restart regression as its own
+step, with reports under the existing browser artifact directory.
+
+[verified] The unchanged strict 30-second storms passed with 7,302 / 7,218 /
+3,757 edits (Chromium / Firefox / WebKit), zero rejected codes or resyncs,
+905 telemetry messages each, and valid 1,115-byte binary snapshots. Chromium
+reported zero underrun events; Firefox/WebKit do not expose that counter.
+External loopback passed respectively 32.012 / 32.006 / 32.006 active seconds,
+with zero nonfinite samples, stereo mismatch, silence or bad periods. Each
+browser completed eight project/Sound 2 A/B swaps without stopping transport.
+The complete Chromium trace saved 88,050 events with zero drops and zero named
+SyncReader timeouts, glitches or FIFO shortages/overruns. These are observations
+of this instrumented run, not proof that tracing sees every browser glitch.
+Metrics, unsupported fields, provenance and raw-evidence hashes are preserved in
+`data/2026-10-10-worklet-startup-ready-browsers.json`. The container has stopped.
+
+Pending: actual build-record regeneration and full exact-head CI by the parent
+integration stream. The tested Wasm is the exact PR142 artifact retained for JS
+runtime observation, not a new source-hash acceptance record. No tolerance,
+baseline, drain or zero-underrun gate has changed. The original CI event remains
+unassigned. No claim about hardware or human listening.
