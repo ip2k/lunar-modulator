@@ -86,7 +86,7 @@ coverage limits, not validation of the writer worktree.
 | Round | Frozen asset SHA | Report | Disposition |
 | --- | --- | --- | --- |
 | 1 | `9a2d099` (canonical repair `27939c7`) | Round 1 MD/JSON | All 32 scenes below threshold; R1-A–H open |
-| 2 | `f1887404` | Round 2 MD/JSON | All 32 scenes below threshold; R1 repairs partly implemented; R2-A–E open |
+| 2 | `f1887404` | Round 2 MD/JSON | All 32 scenes below threshold; R1 repairs partly implemented; R2-A–F open |
 | 3–5 | Not started | — | — |
 
 Critic branch: `chore/2026-10-10@demo-music-critic`.
