@@ -125,8 +125,10 @@ recompute child and directory CRCs, SFC encoding, flash/list/header CRCs,
 and independently revalidate each modified layer. Explain remaining envelope
 metadata, trailer and version policy before emitting an experimental
 container. Device experimentation additionally requires an observable
-diagnostic and explicit full-image/broken-app recovery gate. Current bounded
-4 KiB restore-and-boot evidence does not satisfy that final recovery proof.
+diagnostic, a reviewed candidate and exact write range, fresh backups and the
+owner's staged recovery policy. Full-image and broken-app recovery remain
+unproven specific risks; the existing bounded 4 KiB restore-and-boot evidence
+must not be described as proof of those broader recovery cases.
 
 ## Change log
 

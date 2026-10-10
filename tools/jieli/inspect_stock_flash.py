@@ -83,6 +83,16 @@ def stock_key(data):
 
 
 def inspect_nested(raw, stock):
+    """Strict stock-only entry point; never accepts a replacement app."""
+    return _inspect_nested(raw, stock)
+
+
+def _inspect_app_replacement(raw, stock, app):
+    """Private model verifier; a modified result can never be labelled stock."""
+    return _inspect_nested(raw, stock, app)
+
+
+def _inspect_nested(raw, stock, replacement=None):
     outer = inspect(raw, stock)
     if outer['identity'] != 'FM-1_015':
         raise ValueError('nested inspection profile supports stock FM-1_015 only')
@@ -181,7 +191,8 @@ def inspect_nested(raw, stock):
                   'files/cfg': bytes(decoded[blocks[1]['header_offset']:cursor])}
     components.update({f'files/{name}': data for name, data in files.items()})
     for path, data in components.items():
-        if data != (stock / path).read_bytes():
+        expected = replacement if path == 'files/app.bin' and replacement is not None else (stock / path).read_bytes()
+        if data != expected:
             raise ValueError(f'guarded decoded component differs: {path}')
     # No candidate is written: invert every decoded region in memory, retaining
     # unknown padding/metadata exactly, then compare the full original FWSC.
@@ -212,12 +223,14 @@ def inspect_nested(raw, stock):
     restored += rebuilt[940:]
     if restored != raw:
         raise ValueError('full FWSC no-op reconstruction differs')
-    return dict(status='stock-inspected-noop-identical', packaging_ready=False,
+    return dict(status='stock-inspected-noop-identical' if replacement is None else 'modified-app-inspected-model-only',
+                packaging_ready=False,
                 device_execution='unverified', identity=outer['identity'],
                 flash_header_crc_verified=True, top=top, app_resource_blocks=blocks,
                 spl_bank=dict(bytes=bank_size, load_address=bank_load,
                               header_crc_verified=True, data_crc_verified=True),
                 bound_component_sha256={path: digest(data) for path, data in components.items()},
+                app_binding='guarded-stock-reference' if replacement is None else 'supplied-model-bytes',
                 nested_file_sha256={name: digest(data) for name, data in files.items()},
                 stock_xip=dict(image_app_directory_offset=APP_BASE,
                                virtual_directory_base=XIP_BASE,
@@ -228,9 +241,10 @@ def inspect_nested(raw, stock):
                                evidence='stock metadata and static SPL trace; no device execution'),
                 full_container_noop_identical=True, sha256=digest(raw),
                 flash_payload_sha256=digest(flash), preserved_uninterpreted_app_tail_bytes=len(flash) - cursor,
-                pending=['modified-image repack/CRC/address rules not implemented',
+                pending=['modified-image repack/CRC/address rules not implemented' if replacement is None
+                         else 'replacement inspected only; emitting/version/allocation changes are outside this verifier',
                          'auxiliary metadata/trailer/version and runtime XIP behavior require explanation',
-                         'SPL handover, observable runtime, and full recovery gate unresolved'])
+                         'SPL handover/observable runtime and candidate/range recovery review unresolved; full-image/broken-app recovery unproven'])
 
 
 def main():
