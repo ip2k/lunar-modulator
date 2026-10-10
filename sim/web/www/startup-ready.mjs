@@ -1,7 +1,12 @@
-// Initialize before joining the live graph. The context still wakes in the
-// owner's power-on gesture; waiting for ready does not suspend it.
+// Initialize while suspended, then join the live graph before waking it.
 // MIT licence, like the rest of this repository.
-export function connectOnReady(node, ctx, analyser, isCurrent, onMessage) {
+export function wakeWhenReady(ctx, ready) {
+  if (ready && ctx && ctx.state !== 'running' && ctx.state !== 'closed') {
+    ctx.resume().catch(() => {});
+  }
+}
+
+export function connectOnReady(node, ctx, analyser, isCurrent, onMessage, onReady = () => {}) {
   let connected = false;
   node.port.onmessage = ({ data }) => {
     // A ready already queued during power-off must not reconnect an old node
@@ -12,6 +17,7 @@ export function connectOnReady(node, ctx, analyser, isCurrent, onMessage) {
       connected = true;
       node.connect(ctx.destination);
       node.connect(analyser);
+      onReady();
     }
     onMessage(data, node);
   };

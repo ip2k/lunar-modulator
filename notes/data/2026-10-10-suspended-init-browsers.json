@@ -1,0 +1,901 @@
+{
+  "schema": 1,
+  "provenance": {
+    "node": "v24.20.0",
+    "playwright": "1.63.0",
+    "wasm_sha256": "4667498f919529ba0f1059f127ea02e60c2c2a76ee5bc16983cfeabbb96b76ec",
+    "source_head": "adc6ae955d247dd17e48c1c5b86fd76f20a52547",
+    "cpus": 4,
+    "memory_bytes": 2147483648,
+    "sink": "private rate=48000 norewinds=1",
+    "attempts_per_test": 1
+  },
+  "image": "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27",
+  "host": "aeon",
+  "cgroup": "docker-batch.slice",
+  "limits": [
+    "One ordered attempt per test/browser; not a failure-rate or native Safari claim.",
+    "CDP trace/counter observers perturb scheduling.",
+    "Original PR143 CI failure is preserved."
+  ],
+  "browsers": {
+    "chromium": {
+      "exits": {
+        "smoke": 0,
+        "storm": 0,
+        "audio": 0
+      },
+      "started": "2026-10-10T09:29:43Z",
+      "completed": "2026-10-10T09:31:24Z",
+      "startup": {
+        "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+        "pass": true,
+        "errors": [],
+        "starts": [
+          {
+            "screens": 6,
+            "audio_seconds": 0.18575963718820862,
+            "state": "running",
+            "rate": 44100,
+            "node": {
+              "ready": true,
+              "created_state": "suspended",
+              "created_time": 0,
+              "connections": [
+                {
+                  "destination": "AudioDestinationNode",
+                  "ready": true
+                },
+                {
+                  "destination": "AnalyserNode",
+                  "ready": true
+                }
+              ],
+              "ready_state": "suspended",
+              "ready_time": 0
+            }
+          },
+          {
+            "screens": 12,
+            "audio_seconds": 0.17414965986394557,
+            "state": "running",
+            "rate": 44100,
+            "node": {
+              "ready": true,
+              "created_state": "suspended",
+              "created_time": 0,
+              "connections": [
+                {
+                  "destination": "AudioDestinationNode",
+                  "ready": true
+                },
+                {
+                  "destination": "AnalyserNode",
+                  "ready": true
+                }
+              ],
+              "ready_state": "suspended",
+              "ready_time": 0
+            }
+          }
+        ]
+      },
+      "storm": {
+        "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+        "seconds": 30,
+        "logs": [],
+        "scheduling_capture": true,
+        "edited": 7303,
+        "codes_not_ok": 0,
+        "changes": 1725,
+        "entries": 58427,
+        "resyncs": 0,
+        "views": 1,
+        "telemetry": 905,
+        "stats": {
+          "quanta": 10695,
+          "timed": false,
+          "late": null,
+          "maxMs": null,
+          "editMs": null
+        },
+        "snapshot": {
+          "ok": true,
+          "bytes": 1111,
+          "binary": true
+        },
+        "ops": 7303,
+        "records": 58424,
+        "rate": 44100,
+        "playback": {
+          "underrun_events": 0,
+          "underrun_ms": 0
+        },
+        "pass": true
+      },
+      "loopback": {
+        "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+        "seconds": 30,
+        "source": "lunar.monitor",
+        "events": [
+          {
+            "scope": "project",
+            "at": 1791624660356,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791624662873,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791624665386,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791624667900,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791624673741,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791624676253,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791624678765,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791624681278,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: Sound 2.",
+              "scope": 1
+            }
+          }
+        ],
+        "logs": [],
+        "tone-stormStartedAt": 1791624619203,
+        "storm": {
+          "batches": 7290,
+          "replies": 7290,
+          "refused": 0,
+          "resyncs": 0,
+          "rate": 44100
+        },
+        "ab-playbackStartedAt": 1791624654315,
+        "audio": {
+          "pass": true,
+          "activeSeconds": 32.000395833333336,
+          "nonfinite": 0,
+          "channelMismatches": 0,
+          "maxZeroRun": 0,
+          "maxSilenceMs": 0,
+          "cycles": 13859,
+          "badPeriods": 0,
+          "maxPeriodError": 0.010008340383961922
+        },
+        "music": {
+          "seconds": 29.976958333333332,
+          "peak": 0.255126953125,
+          "nonfinite": 0
+        },
+        "transportStopped": [],
+        "pass": true
+      },
+      "raw_sha256": {
+        "audio/ab-playback.f32": "64070fad323a71677eb652903989917f4a136121ebb11c2d01556458ab02b0cd",
+        "audio/audio-loopback.json": "d48f1543b2e98c8cda53a842f6cb3838ec50ea9754b02acc32de280edccae9d4",
+        "audio/tone-storm.f32": "eefc2fde50bab7f500733e26c5764fce05409aa6433854094c489789cc0df41e",
+        "smoke/startup-smoke.json": "ec37d0bdde695b67edaf99660d511a0173f90eae9b31f8aacd4adc875574cd1d",
+        "storm/editor.json": "1dd6f9bb37d1c20aae3dfe4b37474c4eea05e8c4804b0c5b12a4d0c9ccafb9e8",
+        "storm/editor-scheduling.json": "6dc594e5b575c8659f55d6c8a4b13cb7390c26f7b376d70f1ca5d6312b54ea0c",
+        "storm/editor-audio-trace.json": "59ce42a8e1b9de6e788843edf4c511a1f40a9ba0079774f8d37090f59c6dfaf8",
+        "storm/editor-playback-timeline.json": "78823e9c22e1a679389d70e701e8f300277977727975cf9c6f4b3fcc5bee4b66"
+      },
+      "trace": {
+        "trace_complete": true,
+        "trace_events_saved": 87998,
+        "trace_events_dropped": 0,
+        "errors": [],
+        "audio_classification": {
+          "counts": {
+            "sync_reader_timeout": 0,
+            "glitch": 0,
+            "fifo_pull_shortage": 0,
+            "fifo_earmarked_shortage": 0,
+            "fifo_overrun": 0
+          },
+          "by_phase": {},
+          "explicit_events": [],
+          "explicit_events_dropped": 0,
+          "fifo_zero_counter_samples": 2742,
+          "markers": [
+            {
+              "phase": "page-init",
+              "ts_us": 545662033341
+            },
+            {
+              "phase": "power-on-request",
+              "ts_us": 545662060444
+            },
+            {
+              "phase": "play-request",
+              "ts_us": 545662477809
+            },
+            {
+              "phase": "baseline",
+              "ts_us": 545662484034
+            },
+            {
+              "phase": "loop-begin",
+              "ts_us": 545662484065
+            },
+            {
+              "phase": "loop-end",
+              "ts_us": 545692486548
+            },
+            {
+              "phase": "snapshot-drain",
+              "ts_us": 545692486637
+            },
+            {
+              "phase": "drain-end",
+              "ts_us": 545693986820
+            },
+            {
+              "phase": "trace-finish-request",
+              "ts_us": 545693988327
+            }
+          ],
+          "trace_complete": true,
+          "trace_events_dropped": 0,
+          "interpretation": "Counts only explicit named events in saved trace. Zero FIFO occupancy is not a shortage; absence does not prove no glitch, especially in incomplete traces."
+        }
+      }
+    },
+    "firefox": {
+      "exits": {
+        "smoke": 0,
+        "storm": 0,
+        "audio": 0
+      },
+      "started": "2026-10-10T09:31:24Z",
+      "completed": "2026-10-10T09:33:07Z",
+      "startup": {
+        "browser": "Firefox 155.0 (Playwright, headless)",
+        "pass": true,
+        "errors": [],
+        "starts": [
+          {
+            "screens": 5,
+            "audio_seconds": 0.17124716553287983,
+            "state": "running",
+            "rate": 44100,
+            "node": {
+              "ready": true,
+              "created_state": "suspended",
+              "created_time": 0,
+              "connections": [
+                {
+                  "destination": "AudioDestinationNode",
+                  "ready": true
+                },
+                {
+                  "destination": "AnalyserNode",
+                  "ready": true
+                }
+              ],
+              "ready_state": "suspended",
+              "ready_time": 0
+            }
+          },
+          {
+            "screens": 12,
+            "audio_seconds": 0.17124716553287983,
+            "state": "running",
+            "rate": 44100,
+            "node": {
+              "ready": true,
+              "created_state": "suspended",
+              "created_time": 0,
+              "connections": [
+                {
+                  "destination": "AudioDestinationNode",
+                  "ready": true
+                },
+                {
+                  "destination": "AnalyserNode",
+                  "ready": true
+                }
+              ],
+              "ready_state": "suspended",
+              "ready_time": 0
+            }
+          }
+        ]
+      },
+      "storm": {
+        "browser": "Firefox 155.0 (Playwright, headless)",
+        "seconds": 30,
+        "logs": [],
+        "scheduling_capture": true,
+        "edited": 7211,
+        "codes_not_ok": 0,
+        "changes": 1618,
+        "entries": 57691,
+        "resyncs": 0,
+        "views": 1,
+        "telemetry": 905,
+        "stats": {
+          "quanta": 10695,
+          "timed": false,
+          "late": null,
+          "maxMs": null,
+          "editMs": null
+        },
+        "snapshot": {
+          "ok": true,
+          "bytes": 1115,
+          "binary": true
+        },
+        "ops": 7211,
+        "records": 57688,
+        "rate": 44100,
+        "playback": null,
+        "pass": true
+      },
+      "loopback": {
+        "browser": "Firefox 155.0 (Playwright, headless)",
+        "seconds": 30,
+        "source": "lunar.monitor",
+        "events": [
+          {
+            "scope": "project",
+            "at": 1791624763148,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791624765685,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791624768227,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791624770783,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791624776678,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791624779250,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791624781827,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791624784388,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: Sound 2.",
+              "scope": 1
+            }
+          }
+        ],
+        "logs": [],
+        "tone-stormStartedAt": 1791624722092,
+        "storm": {
+          "batches": 7212,
+          "replies": 7212,
+          "refused": 0,
+          "resyncs": 0,
+          "rate": 44100
+        },
+        "ab-playbackStartedAt": 1791624757103,
+        "audio": {
+          "pass": true,
+          "activeSeconds": 32.006166666666665,
+          "nonfinite": 0,
+          "channelMismatches": 0,
+          "maxZeroRun": 0,
+          "maxSilenceMs": 0,
+          "cycles": 13861,
+          "badPeriods": 0,
+          "maxPeriodError": 0.009369978858472905
+        },
+        "music": {
+          "seconds": 30.355604166666666,
+          "peak": 0.26513671875,
+          "nonfinite": 0
+        },
+        "transportStopped": [],
+        "pass": true
+      },
+      "raw_sha256": {
+        "audio/ab-playback.f32": "d0abfeb9eb03d43eb7f28257acdcaef0fb37d11093bf5fb6a3601084871d229f",
+        "audio/audio-loopback.json": "38a1d36ad7a734f6cd4ce404c03789f26092c46b5df12d4a9f3d551ba567d1f8",
+        "audio/tone-storm.f32": "7b72ef71596970c7d285bced4e832243857197e008a8fa1ad65619c22cbac6e9",
+        "smoke/startup-smoke.json": "37e5808371c935c617bbc2c3ffb75d8a75d9eebd92218b0b53a3f40f41cf4394",
+        "storm/editor.json": "9532f85e08829a8148644200e255a3353b880f22a268450066e802bd0c9c4338",
+        "storm/editor-scheduling.json": "6d73db735f6cae833d09105ed0bd7d068ca941db08e48c9507335cc54faf2c18",
+        "storm/editor-playback-timeline.json": "ac83570ab942bf6e913c746b103e0b01092ef9d1f8f00a46728354b3bb9e0ab1"
+      },
+      "trace": {
+        "trace_complete": false,
+        "trace_events_saved": 0,
+        "trace_events_dropped": 0,
+        "errors": [],
+        "audio_classification": {
+          "counts": {
+            "sync_reader_timeout": 0,
+            "glitch": 0,
+            "fifo_pull_shortage": 0,
+            "fifo_earmarked_shortage": 0,
+            "fifo_overrun": 0
+          },
+          "by_phase": {},
+          "explicit_events": [],
+          "explicit_events_dropped": 0,
+          "fifo_zero_counter_samples": 0,
+          "markers": [],
+          "trace_complete": false,
+          "trace_events_dropped": 0,
+          "interpretation": "Counts only explicit named events in saved trace. Zero FIFO occupancy is not a shortage; absence does not prove no glitch, especially in incomplete traces."
+        }
+      }
+    },
+    "webkit": {
+      "exits": {
+        "smoke": 0,
+        "storm": 0,
+        "audio": 0
+      },
+      "started": "2026-10-10T09:33:07Z",
+      "completed": "2026-10-10T09:34:49Z",
+      "startup": {
+        "browser": "Webkit 26.6 (Playwright, headless)",
+        "pass": true,
+        "errors": [],
+        "starts": [
+          {
+            "screens": 7,
+            "audio_seconds": 0.22929705215419502,
+            "state": "running",
+            "rate": 44100,
+            "node": {
+              "ready": true,
+              "created_state": "suspended",
+              "created_time": 0,
+              "connections": [
+                {
+                  "destination": "AudioDestinationNode",
+                  "ready": true
+                },
+                {
+                  "destination": "AnalyserNode",
+                  "ready": true
+                }
+              ],
+              "ready_state": "suspended",
+              "ready_time": 0
+            }
+          },
+          {
+            "screens": 13,
+            "audio_seconds": 0.1799546485260771,
+            "state": "running",
+            "rate": 44100,
+            "node": {
+              "ready": true,
+              "created_state": "suspended",
+              "created_time": 0,
+              "connections": [
+                {
+                  "destination": "AudioDestinationNode",
+                  "ready": true
+                },
+                {
+                  "destination": "AnalyserNode",
+                  "ready": true
+                }
+              ],
+              "ready_state": "suspended",
+              "ready_time": 0
+            }
+          }
+        ]
+      },
+      "storm": {
+        "browser": "Webkit 26.6 (Playwright, headless)",
+        "seconds": 30,
+        "logs": [],
+        "scheduling_capture": true,
+        "edited": 3757,
+        "codes_not_ok": 0,
+        "changes": 1724,
+        "entries": 30059,
+        "resyncs": 0,
+        "views": 1,
+        "telemetry": 905,
+        "stats": {
+          "quanta": 10695,
+          "timed": false,
+          "late": null,
+          "maxMs": null,
+          "editMs": null
+        },
+        "snapshot": {
+          "ok": true,
+          "bytes": 1115,
+          "binary": true
+        },
+        "ops": 3757,
+        "records": 30056,
+        "rate": 44100,
+        "playback": null,
+        "pass": true
+      },
+      "loopback": {
+        "browser": "Webkit 26.6 (Playwright, headless)",
+        "seconds": 30,
+        "source": "lunar.monitor",
+        "events": [
+          {
+            "scope": "project",
+            "at": 1791624865325,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791624867874,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791624870417,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791624872964,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791624878855,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791624881401,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791624883937,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791624886494,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: Sound 2.",
+              "scope": 1
+            }
+          }
+        ],
+        "logs": [],
+        "tone-stormStartedAt": 1791624824120,
+        "storm": {
+          "batches": 3756,
+          "replies": 3756,
+          "refused": 0,
+          "resyncs": 0,
+          "rate": 44100
+        },
+        "ab-playbackStartedAt": 1791624859279,
+        "audio": {
+          "pass": true,
+          "activeSeconds": 32.011854166666666,
+          "nonfinite": 0,
+          "channelMismatches": 0,
+          "maxZeroRun": 0,
+          "maxSilenceMs": 0,
+          "cycles": 13864,
+          "badPeriods": 0,
+          "maxPeriodError": 0.0106029716870637
+        },
+        "music": {
+          "seconds": 30.266625,
+          "peak": 0.26678466796875,
+          "nonfinite": 0
+        },
+        "transportStopped": [],
+        "pass": true
+      },
+      "raw_sha256": {
+        "audio/ab-playback.f32": "5a2c71b4ad16d74fd2bfe4d12c8474db18966538dbe8068cd5698246ea57bbfa",
+        "audio/audio-loopback.json": "4a254ed0312290a34aa4a42bdd9a2f9bb6f4db1f3ebec70733ffcf2f893c8d0b",
+        "audio/tone-storm.f32": "ea080ab780c1cd993542ae842cf25fa7f9972ab3eebedfa42f774b49d9bf427b",
+        "smoke/startup-smoke.json": "350452d60386b0c08c701e767064ad78102bf62ddd20d1d6fd723f0bd48a0f3f",
+        "storm/editor.json": "ffef311890561e747ae90da86426882dd7b228906c6e6159f5ddaf87d437da77",
+        "storm/editor-scheduling.json": "816eaf4861cc3f38757f53706c0b4dc14203cbecffaa10e2a190bae96408199d",
+        "storm/editor-playback-timeline.json": "06237df708d4741ac2b1169c541b2533615be4a77e0d1c4685ed496f30225455"
+      },
+      "trace": {
+        "trace_complete": false,
+        "trace_events_saved": 0,
+        "trace_events_dropped": 0,
+        "errors": [],
+        "audio_classification": {
+          "counts": {
+            "sync_reader_timeout": 0,
+            "glitch": 0,
+            "fifo_pull_shortage": 0,
+            "fifo_earmarked_shortage": 0,
+            "fifo_overrun": 0
+          },
+          "by_phase": {},
+          "explicit_events": [],
+          "explicit_events_dropped": 0,
+          "fifo_zero_counter_samples": 0,
+          "markers": [],
+          "trace_complete": false,
+          "trace_events_dropped": 0,
+          "interpretation": "Counts only explicit named events in saved trace. Zero FIFO occupancy is not a shortage; absence does not prove no glitch, especially in incomplete traces."
+        }
+      }
+    }
+  }
+}
