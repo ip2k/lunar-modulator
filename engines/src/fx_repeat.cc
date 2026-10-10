@@ -80,6 +80,7 @@ struct Instance {
   float mix_target;
   float mix_step;
   float wet;
+  float wet_target;
   float wet_step;
   uint32_t mix_left;
   uint32_t wet_left;
@@ -114,21 +115,25 @@ struct Instance {
     mix = mix_target = kParams[P_MIX].def;
     mix_step = 0.0f;
     wet = wet_step = 0.0f;
+    wet_target = 0.0f;
     ramp_frames = static_cast<uint32_t>(rate * kRampSeconds + 0.5f);
     if (ramp_frames < 1u) ramp_frames = 1u;
     requested_denominator = 16u;
   }
 
   void SetMix(float value) {
-    mix_target = fm1_param_clamp(&kParams[P_MIX], value);
+    const float target = fm1_param_clamp(&kParams[P_MIX], value);
     if (!rendered) {
       // Hosts normally apply saved parameters before the first audio block.
       // Start there, rather than fading from the factory default on load.
-      mix = mix_target;
+      mix_target = target;
+      mix = target;
       mix_left = 0;
       mix_step = 0.0f;
       return;
     }
+    if (target == mix_target) return;
+    mix_target = target;
     mix_left = ramp_frames;
     mix_step = (mix_target - mix) / static_cast<float>(mix_left);
   }
@@ -136,6 +141,12 @@ struct Instance {
   void SetWet(float target) {
     if (target < 0.0f) target = 0.0f;
     if (target > 1.0f) target = 1.0f;
+    wet_target = target;
+    if (wet == target) {
+      wet_left = 0;
+      wet_step = 0.0f;
+      return;
+    }
     wet_left = ramp_frames;
     wet_step = (target - wet) / static_cast<float>(wet_left);
   }
@@ -232,10 +243,10 @@ struct Instance {
         armed = arm_on_beat = latch_when_full = 0;
         BeginRelease(false, false);
       } else if (release_pending) {
-        // A quick re-hold during the release ramp waits for the ramp to reach
-        // dry, then arms against fresh/current history; it never latches the
-        // segment that the user just asked to release.
-        clear_after_release = 0;
+        // A quick re-hold waits for the release to reach dry, then requires
+        // a complete fresh capture so the released frozen segment cannot be
+        // latched again at the next beat.
+        clear_after_release = 1;
         rearm_after_clear = 1;
       } else if (!held) {
         Arm();
@@ -283,7 +294,7 @@ struct Instance {
       --mix_left;
     }
     if (wet_left) {
-      if (wet_left == 1u) wet = wet_step >= 0.0f ? 1.0f : 0.0f;
+      if (wet_left == 1u) wet = wet_target;
       else wet += wet_step;
       --wet_left;
       if (!wet_left && wet == 0.0f && release_pending) FinishRelease();

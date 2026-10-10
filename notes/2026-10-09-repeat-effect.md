@@ -34,6 +34,10 @@ copied. It uses the existing API v3 `render_ext` host events, not a new clock.
   region at the start of the ring. A nonperiodic native fixture distinguishes
   these cursors.
 - Turning Hold off releases the wet signal over 5 ms, then recording resumes.
+  If Hold is re-enabled before that release completes, the old frozen capture is
+  cleared at the dry endpoint and the effect requires a full new ring plus a
+  BEAT before latching. This deliberately adds the normal full-ring warm-up to
+  a quick re-hold so the released segment cannot return.
   STOP releases and clears/disarms history; a still-high Hold does not
   recapture while stopped. An explicit Hold set or a later START can arm it
   again. START clears history; if Hold is high it waits for a full new ring
@@ -54,6 +58,21 @@ copied. It uses the existing API v3 `render_ext` host events, not a new clock.
   current tempo and sample rate.
 
 ## Verification boundary
+
+Independent source review found two smoothing defects and one quick-rehold lifecycle
+defect in the initial implementation.
+When a transport/release action requested wet=0 while already dry, a zero-delta wet
+ramp ended by inferring its target from the sign of the step and incorrectly set wet=1.
+Also, resending an unchanged Mix target restarted an in-flight ramp. The implementation
+now tracks the explicit wet target at ramp completion, cancels already-settled wet ramps,
+and leaves an unchanged Mix target's original deadline intact. A rapid re-hold during a
+release now clears the frozen ring at the dry endpoint and waits for a new full capture
+before accepting BEAT. Native regressions cover
+START, STOP, RESET and Hold-Off while dry with nonzero Mix, plus a same-target Mix write
+five frames into the ramp and a re-hold followed by both an early BEAT and a fresh-ring
+BEAT. Current focused native self-test: 11 passed, 0 failed. The exact emitted instance
+size and profile metadata still need regeneration after the added per-instance wet target;
+the 105,100-byte parity scenario figure is total scenario memory, not the Repeat instance.
 
 This note records design and focused progress, not completion. Meaningful checks cover the
 supported rate/tempo edges, effective divisions, initial history, stopped

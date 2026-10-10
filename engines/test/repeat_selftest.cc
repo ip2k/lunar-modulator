@@ -234,6 +234,87 @@ void TestZeroMixAndFiniteOutput() {
   Check("mix_zero_exact_dry_and_hostile_finite", exact && finite);
 }
 
+bool DryAfterAction(uint8_t event, bool running, bool change_hold) {
+  Unit u(44118.0f);
+  u.Set(fm1::repeat::P_MIX, 1.0f);
+  if (change_hold) {
+    u.Set(fm1::repeat::P_HOLD, 1.0f);
+    u.Set(fm1::repeat::P_HOLD, 0.0f);
+  }
+  float sample[2] = { 0.25f, -0.375f };
+  if (event == FM1_FX_EV_STOP) u.Run(sample, 1, 120.0f, true);
+  u.Run(sample, 1, 120.0f, running, event);
+  std::vector<float> dry(2u * (u.state()->ramp_frames + 1u));
+  for (size_t i = 0; i < dry.size(); i += 2u) {
+    dry[i] = 0.25f;
+    dry[i + 1u] = -0.375f;
+  }
+  u.Run(&dry[0], static_cast<uint32_t>(dry.size() / 2u), 120.0f, running);
+  bool exact = true;
+  for (size_t i = 0; i < dry.size(); i += 2u)
+    exact = exact && dry[i] == 0.25f && dry[i + 1u] == -0.375f;
+  return exact && u.state()->wet == 0.0f && u.state()->wet_left == 0u && !u.state()->held;
+}
+
+void TestDryReleaseActionsStayDry() {
+  const bool start = DryAfterAction(FM1_FX_EV_START, true, false);
+  const bool stop = DryAfterAction(FM1_FX_EV_STOP, false, false);
+  const bool reset = DryAfterAction(FM1_FX_EV_RESET, true, false);
+  const bool hold_off = DryAfterAction(0, false, true);
+  Check("dry_start_stop_reset_and_hold_off_stay_dry", start && stop && reset && hold_off);
+}
+
+void TestRepeatedMixTargetKeepsRampDeadline() {
+  Unit once(44118.0f), repeated(44118.0f);
+  float warm_a[2] = { 0.2f, -0.3f }, warm_b[2] = { 0.2f, -0.3f };
+  once.Run(warm_a, 1);
+  repeated.Run(warm_b, 1);
+  once.Set(fm1::repeat::P_MIX, 1.0f);
+  repeated.Set(fm1::repeat::P_MIX, 1.0f);
+  std::vector<float> first_a(10u), first_b(10u);
+  for (size_t i = 0; i < first_a.size(); i += 2u) {
+    first_a[i] = first_b[i] = 0.25f;
+    first_a[i + 1u] = first_b[i + 1u] = -0.375f;
+  }
+  once.Run(&first_a[0], 5);
+  repeated.Run(&first_b[0], 5);
+  repeated.Set(fm1::repeat::P_MIX, 1.0f);
+  const uint32_t remaining_frames = once.state()->ramp_frames - 5u;
+  std::vector<float> rest_a(2u * remaining_frames);
+  std::vector<float> rest_b(rest_a.size());
+  for (size_t i = 0; i < rest_a.size(); i += 2u) {
+    rest_a[i] = rest_b[i] = 0.25f;
+    rest_a[i + 1u] = rest_b[i + 1u] = -0.375f;
+  }
+  once.Run(&rest_a[0], remaining_frames);
+  repeated.Run(&rest_b[0], remaining_frames);
+  Check("same_mix_target_does_not_restart_ramp", once.state()->mix == 1.0f &&
+        repeated.state()->mix == once.state()->mix && once.state()->mix_left == 0u &&
+        repeated.state()->mix_left == 0u && rest_a == rest_b);
+}
+
+void TestQuickReholdRequiresFreshCapture() {
+  Unit u(44118.0f);
+  float sample[2] = { 0.3f, -0.2f };
+  u.Run(sample, 1, 120.0f, true);
+  u.Set(fm1::repeat::P_HOLD, 1.0f);
+  Fill(u, fm1::repeat::kCapacity - 1u, 120.0f, true);
+  u.Run(sample, 1, 120.0f, true, FM1_FX_EV_BEAT);
+  const bool initially_held = u.state()->held;
+  u.Set(fm1::repeat::P_HOLD, 0.0f);
+  Fill(u, 5u, 120.0f, true);
+  u.Set(fm1::repeat::P_HOLD, 1.0f);
+  Fill(u, u.state()->ramp_frames - 5u, 120.0f, true);
+  const bool cleared_and_armed = !u.state()->held && !u.state()->release_pending &&
+                                 u.state()->ring_valid == 0u && u.state()->armed;
+  u.Run(sample, 1, 120.0f, true, FM1_FX_EV_BEAT);
+  const bool beat_cannot_restore_old_loop = !u.state()->held && u.state()->ring_valid == 1u;
+  Fill(u, fm1::repeat::kCapacity - 1u, 120.0f, true);
+  u.Run(sample, 1, 120.0f, true, FM1_FX_EV_BEAT);
+  Check("quick_rehold_waits_for_fresh_ring_and_beat", initially_held && cleared_and_armed &&
+        beat_cannot_restore_old_loop && u.state()->held);
+}
+
 void TestChunkInvariant() {
   Unit a(44118.0f), b(44118.0f);
   a.Set(fm1::repeat::P_HOLD, 1.0f); b.Set(fm1::repeat::P_HOLD, 1.0f);
@@ -265,6 +346,9 @@ int main() {
   TestHoldFreezeTempoAndRetrigger();
   TestTransportAndReset();
   TestZeroMixAndFiniteOutput();
+  TestDryReleaseActionsStayDry();
+  TestRepeatedMixTargetKeepsRampDeadline();
+  TestQuickReholdRequiresFreshCapture();
   TestChunkInvariant();
   printf("{\"summary\":\"repeat\",\"passed\":%d,\"failed\":%d}\n", passed, failed);
   return failed ? 1 : 0;
