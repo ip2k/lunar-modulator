@@ -183,3 +183,17 @@ markers, and contemporaneous Pulse/GStreamer/cgroup records; first reduce
 observer overhead. Preserve the 12-frame check, 60-frame maximum and zero-event
 external audio gate. No extra readiness wait, resume/retry, silent oscillator,
 backend substitution or assertion change is justified by this checkpoint.
+
+## Shorter CI startup stall on PR #109
+
+[verified: CI log] PR #109 head `c69f9af06cbf977d26285f724d8f8604976d7221`,
+run `38023500969`, WebKit job `114129336959`, fails the unchanged panel-follow
+latency assertion at 16 frames / 261 ms. Frames 1–15 and the initial sample
+hold `currentTime = 0.7111111111111111`; context remains running, the connected
+row stays at 0.30, and loading, pending changes and inflight are all clear.
+The first state arrives at 252 ms; editor changes arrive at 255 ms and the
+handler updates generation 4 to 5 and row 0.30 to 0.33 by 258 ms. The panel
+history check passes. This is the same early frozen-clock signature with a
+shorter plateau, rather than evidence of a slow editor handler [inferred].
+The [complete follow trace and failed check](evidence/2026-10-09-webkit-audio-lifecycle/pr109-ci.json)
+retain log hash and exact identities. Original log: `/tmp/lunar-pr109-webkit.log`.
