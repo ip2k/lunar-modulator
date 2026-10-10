@@ -11,23 +11,25 @@ original conversation; last updated 2026-10-10. Read this first, then
 
 ## Active work — 2026-10-10
 
-Live `origin/main` is `bdba4476570b0a77d13c76a38dfb3bcfd364277b`. A combined
-Warble/Repeat/PSX candidate is checkpointed at `0e50f1ba` on its separate
-branch; PR132 configuration is integrated there, but the candidate is not
-merged to `main`. Its recorded source head built 108/108 simulator
-scenarios, with 24 non-test effects, and the committed Wasm/build record and
-source hashes match. The corrected Repeat parameter pins and enums pass 271
-expanded checks plus 22 focused tests. Final integration still requires this
-documentation bundle, exact current-head CI, and normal
-reviewed merges; earlier strict-browser failures remain recorded and are not
-waived by candidate checks.
+Live `origin/main` is `bdba4476570b0a77d13c76a38dfb3bcfd364277b`. The combined
+Warble/Repeat/PSX candidate is open as [PR #140](https://github.com/ip2k/lunar-modulator/pull/140)
+on its separate branch and is not merged to `main`. Its actual regenerated
+source checkpoint `3519c3857d9bddb8007e14de7ef84525ef8df96a` built 108/108
+simulator scenarios, with 24 non-test audio effects; the committed Wasm/build
+record and both source hashes match. Expanded native checks pass 271 tests,
+and the corrected Repeat pins/enums and metadata contract pass 22 focused
+checks. The reviewed documentation bundle and PR132 CI configuration are
+already integrated. Fresh exact-head CI and normal reviewed merge remain
+required; earlier strict-browser failures remain recorded and are not waived
+by candidate checks.
 
 Merged PR #104 links an inert offline diagnostic variant, but no full-DSP
 Lunar application has run on or been installed on the FM-1. The offline
 diagnostic is not a physical runtime test. Full-image restoration,
 broken-app recovery and hardware audio remain unverified; no device traffic
-occurred in the work summarized here. Owner by-ear Sound 2 A/B listening is
-still pending despite automated Safari/UI and audio-capture evidence.
+occurred in the work summarized here. The owner's reported Sound 2 A/B
+crackles remain unresolved and require a by-ear retest; automated Safari/UI
+and audio-capture evidence does not replace that judgment.
 
 Four complete demo songs, full-chain renders, browser project workflows and
 owner listening reviews are not complete. See the current
