@@ -106,10 +106,16 @@ RENDER_OBJ = $(OUR_OBJ) $(TP_OBJ) $(RENDER_EXTRA_OBJ) $(GPL_OBJ)
 RENDER_PRODUCT_OBJ = $(filter-out $(FM1_DROP_OBJ),$(RENDER_OBJ))
 
 .PHONY: all clean
-all: $(BUILD)/fm1-render
+all: $(BUILD)/fm1-render $(BUILD)/fm1-sophie-phase-test
 
 $(BUILD)/fm1-render: $(RENDER_PRODUCT_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
+
+# Exercise the vendored Sophie phase reducer directly against a double-precision
+# modulo reference at supported normal and low sample rates.
+$(BUILD)/fm1-sophie-phase-test: test/sophie_phase_test.c third_party/schwung-modules/sophie/sophie.c
+	@mkdir -p $(dir $@)
+	$(CC) -std=c11 -O2 -Wall -Wextra -Ithird_party/schwung-modules/sophie -o $@ $< -lm
 
 $(BUILD)/our/%.o: %.cc
 	@mkdir -p $(dir $@)

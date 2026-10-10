@@ -53,7 +53,7 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `eq` | EQ | effect | – | this repository, on Andrew Simper's trapezoidal SVF (public domain maths) | a low shelf, a bell and a high shelf, exact at 0 dB; [below](#eq) |
 | `room` | Room | effect | – | Clouds' reverb and diffuser | a small Dattorro room in 40 KB; [below](#room) |
 | `hall` | Hall | effect | – | this repository | a hall reverb on an eight-line feedback delay network, with Freeze; [below](#hall) |
-| `gate` | Gate | effect | – | this repository; controls after the Drawmer DS201 and DS301 manuals | a noise gate with a Duck mode, key filters, Listen, Lockout and 0–5 ms look-ahead; [below](#gate) |
+| `gate` | Gate | effect | – | this repository; controls after the Drawmer DS201 and DS301 manuals | a noise gate with a Duck mode, key filters, Listen, Lockout and 0–5 ms requested look-ahead (510-frame cap); [below](#gate) |
 | `squash` | Squash | effect | – | Airwindows Pop3, Pressure4 and ButterComp2 (Chris Johnson, MIT), ported by this repository | three compressors: Snap (with a gate), Mu (variable-mu) and Split (half-wave glue); [below](#squash) |
 | `shaper` | Transient | effect | – | this repository | a transient shaper: attack and sustain up or down; [below](#transient) |
 | `test-gain` | Test Gain | effect | – | this repository | a gain stage for tests |
@@ -2919,7 +2919,7 @@ one detector and one gain for both channels.
 | 3 | Key LP | 200 Hz–20 kHz (20 k: out) | A 12 dB/octave low-pass on the key only (hi-hat spill). At 20 kHz it is out |
 | 3 | Listen | Off, Key (Off) | Key sends the filtered key to the output, to hear what the gate is listening to while setting the filters. Crossfades over 5 ms |
 | 4 | Lockout | 0–5,000 ms (0) | After the gate opens, a new rise of the key cannot re-open it for this long (rises while it is still open keep it open). Stops a ringing drum or a flam retriggering it |
-| 4 | Lookahead | 0–5 ms (0) | Delays the audio, not the key, so the gate opens before the transient that opens it arrives. It is also the effect's latency: 88 frames at 2 ms and 44,118 Hz. A change crossfades to the new delay over 5 ms, as the Limiter's does |
+| 4 | Lookahead | 0–5 ms (0) | Requested delay of the audio, not the key, so the gate opens before the transient that opens it arrives. It is also the effect's latency: 88 frames at 2 ms and 44,118 Hz. The line caps at 510 frames, so the effective maximum is 5 ms through 102 kHz and 510/rate above that (2.66 ms at 192 kHz). A change crossfades to the new delay over 5 ms, as the Limiter's does |
 | 4 | Link | Max, Sum, Left (Max) | What the detector hears of a stereo key: the louder channel (Max; anti-phase content still opens it, and Comp detects the same way), the mono sum 0.5 (L + R) (Sum), or the left only (Left, the DS201's link). Listen hears the same: the key in stereo, or the mono sum or left on both channels. Glides over 5 ms |
 
 How it works [verified: tests/test_engines_gate.py and `build/fm1-gate-test`,
@@ -2961,12 +2961,14 @@ How it works [verified: tests/test_engines_gate.py and `build/fm1-gate-test`,
   −40 dB threshold over noise peaking near it opened the gate 9 times with
   Return 0 and Hold 2 ms; Return 4 dB, Hold 50 ms or Lockout 300 ms bring
   that to 1, 1 and 2.
-- **Look-ahead** delays only the audio, in a line of 5 ms of frames, so the
-  gate's gain leads the audio by the delay: a burst after silence at Range
+- **Look-ahead** delays only the audio, in a line sized for 5 ms up to 510
+  frames; above 102 kHz the effective maximum is 510/rate, so the capped delay
+  is 2.66 ms at 192 kHz. The line lets the gate's gain lead the audio by that
+  delay: a burst after silence at Range
   −90 and Attack 0.5 ms comes out whole, bit for bit, with Lookahead 2 ms,
   and with its first half millisecond cut without. The latency is the
   delay rounded to a frame, checked at 44.1, 48, 96 and 192 kHz (capped at
-  510 frames: 2.66 ms at 192 kHz), and `fm1_gate_state` reports it for the
+  510 frames), and `fm1_gate_state` reports it for the
   panel. The gate's OPEN state and its KEY level run on the key's time,
   the delay ahead of the audio.
 - **Bit-exact where it can be.** With Range 0 the output is the input, bit

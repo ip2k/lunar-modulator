@@ -1,6 +1,7 @@
 # Open pull request reconciliation — 2026-10-10
 
-Read-only snapshot of all 25 open PRs in `ip2k/lunar-modulator`. Source of
+Read-only snapshot of all 25 open PRs in `ip2k/lunar-modulator`, captured before
+PR #140 merged. Source of
 truth for this snapshot: GitHub PR metadata, exact-head checks, and local
 ancestry comparisons against PR #140 head
 `9a5fb72a54f5117169840f331fd1f756071e6fd5`. The PR's base was
@@ -47,6 +48,22 @@ The many old WebKit failures remain failures on their original heads. They are
 not treated as transient or waived here; #140's exact-head WebKit run is still
 queued. Likewise, old successful checks do not validate a later combined
 artifact.
+
+## Current status refresh — 2026-10-10 UTC
+
+PR #140 merged as `40c94300428acfc5688a203c2c928723ed98270a`; PR #118 later
+merged as `dd9b329211109bf07b05594a941da8451f762615`, which is an ancestor of
+the current `origin/main`. The picks undo/redo correction is therefore now on
+main. The table above remains the earlier pre-merge snapshot and its old PR
+check results are historical.
+
+At this refresh, the open PRs are #139, #134, #136 and #141. PR #141 head
+`9ecd5ad2373ad0bd15106f31a44f50d68bc9c28e` had one completed Chromium page-test
+failure, with its ASan/UBSan job still running; other completed checks shown by
+GitHub were successful. Preserve that failure as an unresolved exact-head CI
+result. The audit-boundary fixes in this branch have not yet been merged to
+main. The PSX Verb correction is separately on open PR #139; neither a focused
+test nor a candidate build closes its full acceptance gates.
 
 ## Independent firmware review and merge order
 

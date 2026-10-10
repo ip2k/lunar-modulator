@@ -127,6 +127,24 @@ def test_effects_are_registered(renderer):
     assert [p["name"] for p in engines["plate"]["params"]][4:] == ["Freeze"]
 
 
+@pytest.mark.parametrize("fx", FX)
+def test_nan_float_parameters_use_declared_defaults(renderer, tmp_path, fx):
+    listed = subprocess.run([str(renderer), "--list"], check=True,
+                            capture_output=True, text=True).stdout
+    params = next(e for e in json.loads(listed) if e["id"] == fx)["params"]
+    floats = [p for p in params if p["type"] == 0]
+    assert any(p["def"] != p["min"] for p in floats)
+
+    def render_bytes(name, value_for):
+        settings = [f"{p['name']}={value_for(p)}" for p in floats]
+        _, _, wav = render(renderer, tmp_path, input="impulse", seconds=0.5,
+                           fx=[(fx, settings)], name=name)
+        return wav.read_bytes()
+
+    assert render_bytes("nan", lambda _p: "nan") == render_bytes(
+        "defaults", lambda p: repr(float(p["def"])))
+
+
 @pytest.mark.parametrize("fx,params,windows", [
     # Plate at its default Decay: 0.5 s windows sit near -58, -69 and -84 dBFS.
     ("plate", ["Mix=1"], [(0.5, 1.0), (1.0, 1.5), (1.5, 2.0)]),

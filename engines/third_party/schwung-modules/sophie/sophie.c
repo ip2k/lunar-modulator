@@ -85,8 +85,18 @@ static float clampf(float x, float lo, float hi) {
 }
 
 static float wrap_phase(float x) {
+    /* Preserve the original one-turn path. High-ratio modulators can advance
+     * through many cycles in one sample, so reduce only if that fast path
+     * leaves the phase out of range. The increments are bounded by the
+     * oscillator cap and supported rates, making the quotient representable. */
     if (x >= SOPHIE_TAU) x -= SOPHIE_TAU;
-    if (x < 0.0f) x += SOPHIE_TAU;
+    else if (x < 0.0f) x += SOPHIE_TAU;
+    if (x >= SOPHIE_TAU || x < 0.0f) {
+        int turns = (int)(x / SOPHIE_TAU);
+        x -= (float)turns * SOPHIE_TAU;
+        if (x < 0.0f) x += SOPHIE_TAU;
+        if (x >= SOPHIE_TAU) x -= SOPHIE_TAU;
+    }
     return x;
 }
 
