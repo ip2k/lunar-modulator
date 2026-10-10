@@ -11,35 +11,52 @@ original conversation; last updated 2026-10-10. Read this first, then
 
 ## Active work — 2026-10-10
 
-Live `origin/main` is `bdba4476570b0a77d13c76a38dfb3bcfd364277b`. The combined
-Warble/Repeat/PSX candidate is open as [PR #140](https://github.com/ip2k/lunar-modulator/pull/140)
-on its separate branch and is not merged to `main`. Its actual regenerated
-source checkpoint `3519c3857d9bddb8007e14de7ef84525ef8df96a` built 108/108
-simulator scenarios, with 24 non-test audio effects; the committed Wasm/build
-record and both source hashes match. Expanded native checks pass 271 tests,
-and the corrected Repeat pins/enums and metadata contract pass 22 focused
-checks. The reviewed documentation bundle and PR132 CI configuration are
-already integrated. Fresh exact-head CI and normal reviewed merge remain
-required; earlier strict-browser failures remain recorded and are not waived
-by candidate checks.
+Live `origin/main` was verified at `40c94300428acfc5688a203c2c928723ed98270a`.
+The final reviewed DSP/audio-startup prerequisite is [PR #143](https://github.com/ip2k/lunar-modulator/pull/143),
+frozen at `aff83ab804497b0724f7e5d8ba13b115cfcdd28a`. Its fresh native/musl/Wasm
+build passed 108/108 parity scenarios; all three browser startup and external
+loopback CI steps passed. Full CI is still running: do not describe the PR as
+merged or waive a later strict-browser failure. Earlier failures remain saved.
 
-Merged PR #104 links an inert offline diagnostic variant, but no full-DSP
-Lunar application has run on or been installed on the FM-1. The offline
-diagnostic is not a physical runtime test. Full-image restoration,
-broken-app recovery and hardware audio remain unverified; no device traffic
-occurred in the work summarized here. The owner's reported Sound 2 A/B
-crackles remain unresolved and require a by-ear retest; automated Safari/UI
-and audio-capture evidence does not replace that judgment.
+The integration worktree is
+`/Users/likwid/.codex/worktrees/completed-work-integration/mvave-fm1-firmware`,
+branch `chore/2026-10-10@demo-song-acceptance`, pushed through `95f7474f`.
+It includes the startup prerequisite, complete-song acceptance scripts,
+README editor controls, and independent Round-1 criticism. The nearby CI-step
+conflict was resolved by retaining both complete-song and startup checks;
+startup helper tests and all 36 editor-unit checks pass locally.
 
-Four complete demo songs, full-chain renders, browser project workflows and
-owner listening reviews are not complete. See the current
-[demo prerequisite review](notes/2026-10-09-demo-prerequisite-review.md).
+Four eight-scene songs now exist: Afterglow Relay (chillwave), Event Horizon
+(future bass), Packet Bloom (vapor twitch), and Neon Transit (electropop).
+Round 1 and Round 2 both passed complete native/Wasm rendering and Chromium
+preload/play/Save/fresh-Open checks. Round-2 assets are frozen at
+`f1887404ce12a53d63ef784178fa37fccec7722e`; receipts are linked from
+[the acceptance record](notes/2026-10-10-demo-song-acceptance.md).
+Runtime passes do not establish musical approval. The independent critic
+reviews decoded project files, every scene/transition, simulator state and
+signal receipts; it has no audio-perception tool and makes no listening claim.
+Round 1 scored 3–6; Round 2 review is active while the writer prepares a separate
+Round-3 draft. Keep all reports and stop after at most five rounds, with early
+acceptance only if every scene/category is strictly above 8.
+
+Writer worktree: `/Users/likwid/.codex/worktrees/demo-songs/mvave-fm1-firmware`,
+branch `feature/2026-10-10@demo-songs`. Critic worktree:
+`/Users/likwid/.codex/worktrees/demo-music-critic/mvave-fm1-firmware`, branch
+`chore/2026-10-10@demo-music-critic`. Preserve each frozen round before revising.
+
+No full-DSP Lunar application has run on or been installed on the FM-1.
+Full-image restoration, broken-app recovery and hardware audio remain
+unverified. Bench01 was freshly reachable with a normal `4c4a:c755` FM-1 and
+`/dev/snd/midiC2D0`; this check sent no device traffic. The next offline-reviewed
+firmware observation is in the `fm1-live-bringup` worktree at `395023b0`:
+a fixed eight-byte loader callback-slot read, not custom code execution.
+The owner's Sound-2 A/B crackles still require a by-ear retest.
+
 The whole-code audit is not blanket-closed: findings are classified by demo
-impact in the audit/remediation ledger, while developer-tool, unused-module,
-and hardware-readiness items remain tracked without being treated as automatic
-song blockers. Re-read the dated reconciliation sections below as history,
-not as current branch/PR status, and check live remote refs/checks before
-continuing integration.
+impact in the audit/remediation ledger; developer-tool, unused-module and
+hardware-readiness items remain separately tracked. Dated sections below are
+history, not current branch/PR status. Recheck remote refs and exact-head CI
+before integration.
 
 ## Audit remediation — 2026-10-08
 
