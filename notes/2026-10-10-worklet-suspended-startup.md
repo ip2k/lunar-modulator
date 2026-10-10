@@ -1,0 +1,34 @@
+# Suspended startup investigation
+
+[verified] PR143 at `aff83ab804497b0724f7e5d8ba13b115cfcdd28a`
+failed its Chromium storm zero-underrun gate in run 38040392775, job
+114179304229: one 11.609 ms event, 7,319 edits, zero non-OK codes and
+resyncs. The separate loopback passed. Firefox and WebKit passed. This is
+a failed acceptance receipt, not a listening pass or an accepted retry.
+
+[verified] The trace began before power-on. Its SyncReader timeout and
+three propagated records of the same 11,609 us glitch occur during
+power-on, about 332 ms before the edit loop. The baseline counter was
+still zero; the event first appeared at the second one-second sample.
+The publication delay explains how this startup event entered the storm
+counter window. The strict baseline and zero-event assertion remain intact.
+
+[verified] The affected output callback waited about 18 ms before worklet
+render began; the first active render took 7.134 ms wall time / 3.877 ms
+thread CPU time. The context was already running. Connection on ready
+does not isolate initialization from a running context's worklet thread.
+[inferred] Suspended-context initialization is a candidate lifecycle
+correction, conditional on proving that initialization messages finish
+while suspended and that gesture wake remains usable across browsers.
+These intervals do not by themselves identify a particular init instruction.
+
+The compact receipt, exact anchors, raw counter samples and downloaded
+artifact JSON hashes are in
+`data/2026-10-10-pr143-chromium-startup-failure.json`. Raw CI artifacts remain
+on GitHub artifact 11665552341 and locally under
+`/tmp/lunar-pr143-aff83-chromium`. Tracing and counter reads perturb
+scheduling. Earlier failed CI events remain unassigned.
+
+Next gate: a bounded comparison using an isolated copy of the actual
+page/worklet/Wasm, with explicit finite initialization timeout. No hardware,
+no original-CI retry, no threshold change, and no production claim yet.
