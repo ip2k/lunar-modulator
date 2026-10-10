@@ -33,21 +33,22 @@ slot 1; the chord and answer parts share the arpeggiator-capable slot 2 with
 its arp off; DX7 slot 3 carries the melody and a low echo send.
 
 Scene pass map: Intro 1×4 bars; Verse 2×8; Lift 1×4; Hook 2×8; Bridge
-1×8; Vrs2 1×8; Hook2 2×8; Outro 1×4. Vrs2 changes its bass rhythm and reverses
-the phrase fragments; Hook2 rotates the chord voicing, moves the latter answer
-upward and adds a held top response on phrase endings. The Lift's four lock
+1×8; Vrs2 1×8; Hook2 2×8; Outro 1×4. Vrs2 reverses the later pitch/rhythm
+payload across the original ascending onset slots, changes its bass rhythm,
+and keeps the phrase in chronological order. Hook2 voice-leads equal-sized
+chord stacks to the nearest register, moves late answers into verified gaps,
+and adds a held upper response on phrase endings. The Lift's four lock
 bars rise separately, then its last chord stab is withheld. The outro removes
 drums in stages and ends with a held A over Am9.
 
 ## Event Horizon — future bass, 144 BPM, F minor, 116 bars
 
 The drums imply a 72 BPM half-time pocket, while the four-bar harmony
-Fm9–Dbmaj7–Ab–Eb and syncopated bass keep the 144 BPM grid moving. The slot-2
-Up-Down arpeggiator runs at an eighth-note rate with a full-step gate; peak
-chord triggers last 192 raw Movy ticks, four 48-tick eighth-note intervals.
-The two-beat chord hold carries the arp through the next two-beat voicing
-change without a beat-long input gap; it is a legato chord change, not a
-whole-bar pad.
+Fm9–Dbmaj7–Ab–Eb and syncopated bass keep the 144 BPM grid moving. Peak chords
+play as simultaneous four- or five-note stacks with the slot-2 arpeggiator
+off; each stab holds for 192 raw Movy ticks (two beats) before the next
+voicing. The major chords add an upper ninth so the wide stack remains present
+through the whole progression rather than serializing into an arp.
 The drop adds kick anticipation, steady half-time snare, brighter hats and a
 changed upper answer. The build tightens its hats and chord locks, then removes
 late attacks before the drop downbeat.
@@ -73,8 +74,8 @@ Drop2 rotates the chord stack, adds an upper answer and raises its late-scene
 brightness. The Break removes the kick and reduces the bass to two sparse
 attacks to make the second drop an arrival. The outro cadences Ab–Db–Eb–Fm
 and settles the upper line on F.
-The eighth-rate arp uses its maximum gate (100%); slot-1 Crush remains a
-restrained insert. Timbre/Brightness locks rise across the build instead of
+The chord slot's saved Rate/Gate values are inactive while its arp is off;
+slot-1 Crush remains a restrained insert. Timbre/Brightness locks rise across the build instead of
 repeating one bar shape, and the final build bar clears chord stabs from step
 12 onward and other new attacks from step 14 onward.
 
@@ -131,12 +132,12 @@ before the final chorus.
 | Bridge | 4 bars | Half-density pulse and a quieter upper phrase |
 | Vrs2 | 8 bars | Verse return with end-of-phrase lift |
 | Chor2 | 8 bars | Three chorus passes, fills on the last bar of each |
-| Outro | 4 bars | Two final passes, reduced drums and hook resolution |
+| Outro | 8 bars | One directional exit; final four bars thin to a held E |
 
-Scene chain: `0,0,1,1,2,3,3,3,4,5,5,6,6,6,7,7` (104 bars, about 3:28).
+Scene chain: `0,0,1,1,2,3,3,3,4,5,5,6,6,6,7` (104 bars, about 3:28).
 
 Scene pass map: Intro 2×4 bars; Verse 2×8; Pre 1×4; Chorus 3×8; Bridge
-1×4; Vrs2 2×8; Chor2 3×8; Outro 2×4. Roles are edge, verse, build, peak,
+1×4; Vrs2 2×8; Chor2 3×8; Outro 1×8. Roles are edge, verse, build, peak,
 contrast, verse, peak, edge. The seven-note refrain uses two-note previews,
 alternating verse notes, a four-note pre-chorus lift, and the full motif in
 the choruses; the answer enters in chorus and pre-chorus. Chorus chords repeat
