@@ -15,7 +15,9 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { serve } from './serve.mjs';
-import { launch } from './launch.mjs';
+import { startSchedulingCapture } from './scheduling-capture.mjs';
+import { launch, which } from './launch.mjs';
+import { playbackDelta } from './playback-stats.mjs';
 
 
 const [www, out, secondsArg] = process.argv.slice(2);
@@ -32,7 +34,12 @@ await page.click('#power-on');
 await page.waitForFunction(() => window.fm1 && window.fm1.screens > 0, null, { timeout: 20000 });
 await page.waitForTimeout(300);
 
-const r = await page.evaluate(async (seconds) => {
+const capture = process.env.FM1_SCHEDULING_CAPTURE === '1'
+  ? await startSchedulingCapture(browser, out, { trace: which === 'chromium' }) : null;
+report.scheduling_capture = !!capture;
+let r, stormError;
+try {
+r = await page.evaluate(async (seconds) => {
   const node = window.fm1.node;
   const ctx = window.fm1.ctx;
   const PLAY = 12;
@@ -84,7 +91,11 @@ const r = await page.evaluate(async (seconds) => {
       dv.setFloat32(4, value, true);
     }
   };
-  const under0 = ctx.playbackStats ? { events: ctx.playbackStats.underrunEvents, ms: ctx.playbackStats.underrunDuration } : null;
+  const playback = () => ctx.playbackStats ? {
+    events: ctx.playbackStats.underrunEvents,
+    seconds: ctx.playbackStats.underrunDuration,
+  } : null;
+  const under0 = playback();
   let sent = 0;
   let ops = 0;
   const t0 = performance.now();
@@ -103,13 +114,25 @@ const r = await page.evaluate(async (seconds) => {
   got.ops = ops;
   got.records = sent;
   got.rate = ctx.sampleRate;
-  got.playback = ctx.playbackStats ? {
-    underrun_events: ctx.playbackStats.underrunEvents - (under0 ? under0.events : 0),
-    underrun_ms: ctx.playbackStats.underrunDuration - (under0 ? under0.ms : 0),
-  } : null;
+  got.playback = { before: under0, after: playback() };
   return got;
 }, SECONDS);
+} catch (e) {
+  report.pass = false;
+  report.logs.push(`storm failed: ${e.message}`);
+  writeFileSync(join(out, 'editor.json'), JSON.stringify(report, null, 2) + '\n');
+  stormError = e;
+} finally {
+  if (capture) await capture.finish();
+}
 
+if (stormError) {
+  await browser.close();
+  server.close();
+  throw stormError;
+}
+
+r.playback = playbackDelta(r.playback.before, r.playback.after);
 Object.assign(report, r);
 const quantaWanted = Math.floor((SECONDS * r.rate) / 128 * 0.9);
 report.pass = r.edited === r.ops && r.codes_not_ok === 0 && r.changes > 0 && r.entries > 0 && r.telemetry > 0 &&

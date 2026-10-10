@@ -16,6 +16,7 @@
 # test/editor-reach.mjs (keyboard, screen-reader and phone passes, gain
 # read-outs, then test/editor-map.mjs, the Map, then test/editor-v1.mjs, the
 # v1 completion: rows, late cables, search operators, A/B picks, sheets, axe-core),
+# then test/info-dialogs.mjs (desktop and phone dialog behavior),
 # all in the Playwright
 # container; BROWSER=firefox or webkit runs the editor's five tests in those
 # browsers too, by hand, sim/web/README.md "Stage ED5b"), and brings back www/fm1.wasm, www/meta.json, www/fm1.wasm.json
@@ -121,6 +122,7 @@ if [ "$SCREENSHOT" = 1 ]; then
     sh -c '[ -d node_modules/playwright ] && [ -d node_modules/axe-core ] || npm install --no-save --no-audit --no-fund $PLAYWRIGHT_NPM $AXE_NPM >/dev/null; \
            PLAYWRIGHT_DIR=/pw node /src/sim/web/test/screenshot.mjs /src/sim/web/www /src/sim/web/build/screenshots; \
            s=\$?; PLAYWRIGHT_DIR=/pw node /src/sim/web/test/files.mjs /src/sim/web/www /src/sim/web/build/screenshots \
+             || s=1; BROWSER=chromium PLAYWRIGHT_DIR=/pw node /src/sim/web/test/info-dialogs.mjs /src/sim/web/www /src/sim/web/build/screenshots \
              || s=1; PLAYWRIGHT_DIR=/pw node /src/sim/web/test/editor.mjs /src/sim/web/www /src/sim/web/build/screenshots 30 \
              || s=1; PLAYWRIGHT_DIR=/pw node /src/sim/web/test/editor-ui.mjs /src/sim/web/www /src/sim/web/build/screenshots \
              || s=1; PLAYWRIGHT_DIR=/pw node /src/sim/web/test/editor-reach.mjs /src/sim/web/www /src/sim/web/build/screenshots \

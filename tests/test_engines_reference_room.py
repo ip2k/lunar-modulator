@@ -22,8 +22,10 @@ therefore exact up to the 16-bit rounding.
   (the reference calls the same libm-free functions), a stereo input (Plate's
   output) through Room, and decay rates in seconds against Clouds' rate.
 """
+import json
 import math
 import struct
+import subprocess
 
 import pytest
 
@@ -43,6 +45,13 @@ def tools(renderer):  # noqa: F811
     return renderer, REF
 
 
+@pytest.fixture(scope="session")
+def room_binary():
+    subprocess.run(["make", "-C", str(ENGINES), "build/fm1-ref-room"], check=True,
+                   stdout=subprocess.DEVNULL)
+    return REF
+
+
 def room_ref(tmp_path, input, seconds, args, name, rate=CLOUDS_RATE):
     wav = tmp_path / f"ref_{name}.wav"
     summary = run_json([REF, "--input", input, "--seconds", seconds, "--rate", repr(rate),
@@ -54,6 +63,40 @@ def room_ref(tmp_path, input, seconds, args, name, rate=CLOUDS_RATE):
 
 def room_fm1(render, tmp_path, input, seconds, rate, params, name):
     return fx_chain_fm1(render, tmp_path, input, seconds, rate, [("room", params)], name)
+
+
+def test_room_rejects_unrepresentable_sample_requests(room_binary, tmp_path):
+    ref = room_binary
+    cases = [
+        ("--rate", "inf", "finite and positive"),
+        ("--rate", "nan", "finite and positive"),
+        ("--rate", "1e20", "representable WAV range"),
+        ("--seconds", "inf", "finite and positive"),
+        ("--seconds", "nan", "finite and positive"),
+        ("--seconds", "536870912", "representable WAV frame count"),
+        ("--seconds", "1e308", "representable WAV frame count"),
+    ]
+    for index, (option, value, diagnostic) in enumerate(cases):
+        out = tmp_path / f"invalid-{index}.wav"
+        result = subprocess.run(
+            [str(ref), "--input", "silence", option, value, "--out", str(out)],
+            capture_output=True, text=True)
+        assert result.returncode == 2, (option, value, result.stderr)
+        assert diagnostic in result.stderr, (option, value, result.stderr)
+        assert not out.exists(), "invalid request must be rejected before creating output"
+
+
+def test_room_accepts_a_small_valid_render(room_binary, tmp_path):
+    ref = room_binary
+    out = tmp_path / "small.wav"
+    result = subprocess.run(
+        [str(ref), "--input", "impulse", "--seconds", "0.004", "--rate", "8000",
+         "--out", str(out)], check=True, capture_output=True, text=True)
+    summary = json.loads(result.stdout)
+    wav_rate, channels = read_wav(out)
+    assert summary["frames"] == 32
+    assert wav_rate == 8000
+    assert len(channels) == 2 and all(len(channel) == 32 for channel in channels)
 
 
 # The wrapper's knob laws, in float32 as fx_room.cc computes them (one
