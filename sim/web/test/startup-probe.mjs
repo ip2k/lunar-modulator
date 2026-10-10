@@ -1,8 +1,9 @@
 // Diagnostic only: compare unchanged startup with destination connection gated
 // on ready, using the actual page/worklet/Wasm. No acceptance gate or retry.
 import assert from 'node:assert/strict';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { serve } from './serve.mjs';
 import { launch, which } from './launch.mjs';
 import { startSchedulingCapture } from './scheduling-capture.mjs';
@@ -10,7 +11,21 @@ import { installPlaybackTimeline } from './playback-timeline.mjs';
 
 const [www, out] = process.argv.slice(2);
 mkdirSync(out, { recursive: true });
-const { server, url } = await serve(www, 8767);
+// AudioWorklet fetches bypass Playwright routing in Chromium. Serve an
+// isolated instrumented copy instead of changing the source or trusting routes.
+const site = mkdtempSync(join(tmpdir(), 'lunar-startup-'));
+cpSync(www, site, { recursive: true });
+let body = readFileSync(join(site, 'worklet.js'), 'utf8');
+const replace = (from, to) => {
+  assert.equal(body.split(from).length, 2, `unique startup anchor: ${from}`);
+  body = body.replace(from, to);
+};
+replace('const fm1 = await instantiateFm1(m.wasm);',
+  'const probeBegin = Date.now(); const fm1 = await instantiateFm1(m.wasm); const probeInstantiated = Date.now();');
+replace("this.port.postMessage({ type: 'ready', rate: sampleRate, catalog, imports: fm1.imports });",
+  "this.port.postMessage({ type: 'startup-probe', instantiate_ms: probeInstantiated - probeBegin, setup_ms: Date.now() - probeInstantiated, audio_frame: currentFrame, rate: sampleRate }); this.port.postMessage({ type: 'ready', rate: sampleRate, catalog, imports: fm1.imports });");
+writeFileSync(join(site, 'worklet.js'), body);
+const { server, url } = await serve(site, 8767);
 const { browser } = await launch();
 const results = [];
 try {
@@ -49,20 +64,6 @@ try {
         }
       };
     }, { gated });
-    // Instrument only the diagnostic response. Fail loudly if source drifts.
-    await page.context().route('**/worklet.js*', async (route) => {
-      const response = await route.fetch();
-      let body = await response.text();
-      const replace = (from, to) => {
-        assert.equal(body.split(from).length, 2, `unique startup anchor: ${from}`);
-        body = body.replace(from, to);
-      };
-      replace('const fm1 = await instantiateFm1(m.wasm);',
-        'const probeBegin = Date.now(); const fm1 = await instantiateFm1(m.wasm); const probeInstantiated = Date.now();');
-      replace("this.port.postMessage({ type: 'ready', rate: sampleRate, catalog, imports: fm1.imports });",
-        "this.port.postMessage({ type: 'startup-probe', instantiate_ms: probeInstantiated - probeBegin, setup_ms: Date.now() - probeInstantiated, audio_frame: currentFrame, rate: sampleRate }); this.port.postMessage({ type: 'ready', rate: sampleRate, catalog, imports: fm1.imports });");
-      await route.fulfill({ response, body });
-    });
     const capture = await startSchedulingCapture(browser, dir, { trace: which === 'chromium', phases: true });
     try {
       await page.goto(url);
@@ -77,10 +78,10 @@ try {
       context_state: window.fm1?.ctx?.state ?? null }));
     results.push({ gated, ...result });
     writeFileSync(join(out, 'startup-probe.json'), JSON.stringify({ schema: 1, acceptance: false,
-      perturbation: 'Two ordered diagnostic starts; route timing instrumentation, page observers, graph-lock getters and CDP tracing perturb scheduling.', results }, null, 2) + '\n');
+      perturbation: 'Two ordered diagnostic starts; isolated timing-instrumented worklet copy, page observers, graph-lock getters and CDP tracing perturb scheduling.', results }, null, 2) + '\n');
     assert.ok(result.events.some((e) => e.type === 'init-measured'));
     assert.ok(result.events.some((e) => e.type === 'ready'));
     assert.ok(result.screens > 0);
     await page.close();
   }
-} finally { await browser.close(); server.close(); }
+} finally { await browser.close(); server.close(); rmSync(site, { recursive: true, force: true }); }
