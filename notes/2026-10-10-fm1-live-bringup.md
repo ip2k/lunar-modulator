@@ -149,7 +149,8 @@ address/length, calls the copy helper at `0x351c` and sends the result via
 the device USB-send callback. The helper handles overlapping ranges as
 `memmove`; no cipher operation occurs in this dispatcher branch. This
 does **not** establish ROM FD07 behavior or permit arbitrary memory reads.
-The existing reader does not implement FD07. FC0C writes SFRs and runs
+The existing backup reader does not implement FD07. The separately prepared
+fixed readback extension below has not been used on hardware. FC0C writes SFRs and runs
 the application, so it is unsuitable for the leaf. Patching the loader
 would invalidate the pinned-image audit; it is not an alternate allowed
 execution route.
@@ -192,3 +193,106 @@ output/acknowledgment and a real WL82 mapped-code window from current
 binary/SDK evidence, then prepare guarded tests and an exact proposal for
 review. No device read, recovery entry or loader execution is authorized
 by this preparation note.
+
+## Fixed loader-code RAM readback proposal, not executed
+
+[verified, offline] `tools/fm1_loader_readback.py` subclasses the existing
+backup reader without changing its allowlist. It has no CLI or device-opening
+entry point. The only added operation is one FD07 read, after the existing
+pinned-loader hash/size, UBOOT identity, upload, jump, buffer and flash-identity
+checks have all succeeded. ROM-phase FD07, arbitrary RAM, guessed ROM,
+MMIO/eFuse, flash and payload-bearing requests are rejected. A failed
+transport consumes the single attempt; there is no automatic retry or
+re-entry. Existing commands retain their existing guards.
+
+The exact proposed read is **64 bytes at `0x01c043de..0x01c0441d`**, part of
+the already uploaded pinned loader's own code. CDB, all unused bytes FF:
+`fd0701c043de0040ffffffffffffffff`. There is no output data stage; input is
+64 bytes. Expected plain-byte SHA-256:
+`55a58166f612936e6ab55f33a373c07718bcc2069826806f9626521c68bf94c3`.
+This slice starts at the audited FD07 branch; the copy destination is the
+loader buffer at `0x01c09600`, outside the source slice. A mismatch stops
+without recording a verified result. Successful logging records only the
+address, length and hash, and does not publish vendor bytes.
+
+[verified, offline] The CDB starts at CBW+15. Dispatcher `r14=CBW+8`, so
+FD07 reads `r14+9..12` as CDB bytes 2..5 (big-endian source address), and
+`r14+13..14` as CDB bytes 6..7 (big-endian 16-bit length). At loader offsets
+`0x240c..0x2412`, `r0=0x01c09600`, `r1=source`, `r2=length` are passed to
+`memmove` at `0x351c`. Offsets `0x2416..0x241e` pass that buffer and length
+directly to the registered USB-send callback. Unlike FD05's chunk loop,
+FD07 has **no device-side length bound**. The buffer's next 256-byte boundary
+is control state at `0x01c09700`; this proposal fixes length to 64, below
+that boundary. It does not enable the full 16-bit length space.
+
+[verified, offline] FD07 skips the common 16-byte command-echo response
+path at `0x2b32`; it sends data once, then returns dispatcher result 1 via
+`0x2b5e..0x2b64`. That return value is not a data-stage acknowledgment.
+The external USB callback/CSW implementation is not present in this loader,
+so a byte-level CSW trace remains unavailable. The inherited Linux SG_IO
+transport instead requires status, host status, driver status, the error
+bit of info and residual length all zero. A short/error transfer fails
+before hash acceptance. A 64-byte result does not enter the reader's
+16-byte echo heuristic. This is a static transport proposal, not proof of
+successful FD07 completion on this unit.
+
+[verified, offline] A common command helper at `0xf00` can decrypt CDB bytes
+when control flag `0x01c09720` is nonzero. Loader startup zeros this flag;
+the observed setter at `0x20ee` belongs to the F5 handshake, which the
+existing reader rejects. The reviewed fresh-loader sequence must have no
+other host commands or concurrent session traffic. No explicit cipher call
+occurs in the FD07 copy/send branch, agreeing with the raw-data `mem_read`
+path in the pinned kagaimiq client. This does not prove arbitrary encrypted
+sessions, ROM FD07 or the caller-supplied callback's implementation.
+
+[verified, offline] New guard and mocked SG_IO tests exercise the exact CDB,
+all other opcodes, rejected phases/addresses/payloads, failed loader
+validation, consumed transport failures, short/long/wrong bytes, and SG_IO
+status/host/driver/info/residual faults. No device is opened by these tests.
+The focused command
+`.venv/bin/python -m pytest -q tests/test_uboot_read.py tests/test_uboot_restore.py tests/test_loader_readback.py`
+passed **29/29** on 2026-10-10; `git diff --check` passed. The private plain
+loader and complete disassembly stay in ignored scratch.
+
+Proposed reviewed device sequence: re-verify the directly connected owner
+unit and private backups; use the already exercised single soft-key entry
+and exact pinned-loader path, recording fresh enumeration; issue this one
+fixed FD07 read only; require successful transport and the exact hash.
+On failure, stop with the actual receipt; no automatic retry, new command
+or flash write. Recovery boundary remains the stock application's known
+power-cycle return, not an untested full-image restore. No Lunar code is
+executed. **Device execution is held for parent review of the exact diff.**
+
+## Loader entry contract and mask-ROM mapping blocker
+
+[verified, offline] Loader offset `0x0` saves incoming `r0..r2`; offset `0x4`
+sets `r0=0x01c09600`, offset `0xc` sets a 2,000-byte zero-fill length
+(`0x7d0`), clearing `[0x01c09600,0x01c09dd0)`. Offset `0x1a` restores the
+incoming registers and `0x1e` enters initialization at `0x63a`. Offsets
+`0x63e/0x640` preserve incoming `r1/r0` in `r8/r11`. At `0x890..0x89c`,
+`[r11+0]` and `[r11+4]` become USB send/receive callback pointers at
+`0x01c09724/0x01c09728`; `0x8a0..0x8ac` dereferences `[r11+8]` as the slot
+where the dispatcher address `0x01c03e4a` is registered. Thus **incoming
+`r0` is a service-table pointer in this demonstrated loader contract**,
+not evidence that the numeric FB08 command argument is passed in `r0`.
+The leaf records incoming context only. Returning-call and stack contracts
+remain unproven.
+
+[verified, bounded search] Current SDK linker files name the application's
+flash region starting `0x02000120` as `rom`; that name is not a mask-ROM
+map. The conditional `__JUMP_TO_MASKROM` declaration in
+`apps/common/update/update.c` did not provide a definition or an absolute
+USB service target in the inspected pinned SDK/library IR. Stock application
+calls previously classified as `0xffc0xxxx` using zero VMA are relocated
+application RAM calls. No verified WL82 mask-ROM code-only range was
+established by these inspected sources. Do not read an assumed `0xffc0`
+window or import a different chip's map.
+
+[proposal, separate review required] After the fixed code read establishes
+transport, a future **8-byte metadata read at `0x01c09724`** could identify
+the actual USB send/receive callback addresses copied from the ROM service
+table. Those are known loader-RAM pointer slots, not a guessed ROM window.
+This proposal is **not enabled** in the tool or its allowlist. Observing
+pointer values would still require checking which mapped, readable code
+region they belong to before any subsequent sparse code capture. It would
+not establish ROM FB08 return semantics by itself.

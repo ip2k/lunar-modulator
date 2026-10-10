@@ -20,6 +20,12 @@ before any execution proposal. The previous successful recovery-loader
 upload used a different, pinned 24,064-byte image which never returned;
 it does not prove this leaf's call contract.
 
+The pinned loader's entry preserves incoming `r0` and then dereferences it
+as a service table: words 0/1 supply USB send/receive callbacks and word 2
+points to the handler-registration slot [verified, offline]. Therefore the
+leaf's incoming `r0` must not be described as the numeric FB08 command
+argument. Its mailbox merely records whatever context the caller supplies.
+
 Build offline inside the existing bounded JieLi container with:
 
 ```sh
