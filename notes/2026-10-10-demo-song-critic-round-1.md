@@ -234,3 +234,7 @@ M musicality; C creativity; G genre/proposal; L Lunar features; S space/project 
 The corrected event step index, chord-quality and bass-octave fixes are accepted as source repairs before this first musical round. Earlier 05a8740 was an intermediate preflight, never a scored round. Short gate units are now explicitly intentional; critique concerns phrase consequences, not a mistaken step/tick assumption. No previous musical score is being overwritten. All R1-A through R1-H remain open for writer disposition; none requires adding features merely to raise a count.
 
 Render identity is pending. This round can guide composition immediately; signal evidence may add limitations but will not retroactively be described as listening. Owner listening is still required. Novelty is judged only against the proposals, the common template and these four compositions.
+
+## Canonical repair addendum
+
+[verified] `27939c784be6d8bacb19bc8b5eaba6bb34583ea2` changes only `session.current` from 0 to 2 in the four decoded projects. All events, sounds, modulation, routes and scores are unchanged. This is the render candidate corresponding to the original scored musical snapshot; per-file new hashes are in the JSON report.

@@ -12830,5 +12830,15 @@
         ]
       ]
     }
-  ]
+  ],
+  "canonical_repair": {
+    "commit": "27939c784be6d8bacb19bc8b5eaba6bb34583ea2",
+    "equivalence": "Decoded documents identical after session.current changes from 0 to 2; all musical data and scores unchanged. Original scored identity retained.",
+    "file_sha256": {
+      "afterglow-relay": "1a8685b84ec5e5a2832bc63e58c709824801da432c78d00f64839af76c716f60",
+      "event-horizon": "821617d7eb36486ece581ec404a21b0edc17ebcb14d138138e8834c7a7298d5b",
+      "packet-bloom": "7889538c993a4199c3fa880534426f455df8fbb2ffd31025f02ad6f431504f85",
+      "neon-transit": "e450beb8f8a80d8ddf1d504f15f7b5d979443d0af187a0282be3c4c2581838bd"
+    }
+  }
 }

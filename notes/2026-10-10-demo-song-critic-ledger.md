@@ -85,7 +85,7 @@ coverage limits, not validation of the writer worktree.
 
 | Round | Frozen asset SHA | Report | Disposition |
 | --- | --- | --- | --- |
-| 1 | Pending writer correction checkpoint | Pending | No scores assigned |
+| 1 | `9a2d099` (canonical repair `27939c7`) | Round 1 MD/JSON | All 32 scenes below threshold; R1-A–H open |
 | 2–5 | Not started | — | — |
 
 Critic branch: `chore/2026-10-10@demo-music-critic`.
@@ -95,3 +95,5 @@ Parent integration owns rendering, runtime acceptance and final packaging.
 ## Round 1 checkpoint
 
 [verified] Reviewed frozen `9a2d099d77f5dc5903453079d08e059014e480cd`: all 32 scenes, 57 ordered chain occurrences, event pitch/onset/gate/velocity, routes, locks, sound and effect parameters, modulation rack and proposal. Reports: `2026-10-10-demo-song-critic-round-1.{md,json}`. Every scene has six integer scores; none passes. [inferred] Highest-priority revisions are scene development, intentional build/bridge/ending transitions, phrase articulation, voice-leading and genre-specific modulation identity. Gate lengths are intentionally raw ticks; bass-octave and chord-quality fixes are accepted before Round 1. No listening claim; render receipts pending.
+
+[verified] Canonical repair `27939c784be6d8bacb19bc8b5eaba6bb34583ea2` changes only selected-slot metadata; decoded musical equivalence checked for every project, scores unchanged.
