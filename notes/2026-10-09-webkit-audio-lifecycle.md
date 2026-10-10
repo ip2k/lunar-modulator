@@ -507,3 +507,19 @@ that duration matches the observed 11.609 ms [inferred]. Neither the timeout
 nor `Glitch!` is present in the saved CI trace, so this is a mechanism to inspect,
 not a localized cause. No justified runtime source fix was found in this bounded
 investigation, and the original CI underrun remains an independent failed gate.
+
+## PR #132 completed Firefox and WebKit acceptance
+
+[verified: completed jobs] Exact reviewed head `c6db9587c1d8d1ca6f993d8f433875761f3b2b6e`
+passed both complete browser jobs in run `38028605340`: Firefox job
+`114144633961` and WebKit job `114144633999`. Both logs confirm the private
+null sink loaded with `norewinds=1`. Strict 30-second loopback passed with
+7,224 Firefox replies and 3,756 WebKit replies, zero bad periods, silence,
+refusals or resyncs. The unchanged editor storms also passed: 7,239 Firefox
+edits and 3,756 WebKit edits, 10,695 quanta each. The full job success includes
+the page checks. Reports and log hashes are in
+[`pr132-firefox-webkit-ci.json`](evidence/2026-10-09-webkit-audio-lifecycle/pr132-firefox-webkit-ci.json).
+Chromium's Node step is still running at this checkpoint, so full CI remains
+unconfirmed. The same Node helper/data/history suites passed a separate bounded
+LAN check against identical test sources/Wasm in the pinned image; this does not
+explain the quiet GitHub runner. Its eventual result must be preserved.
