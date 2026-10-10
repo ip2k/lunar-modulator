@@ -1,0 +1,54 @@
+{
+  "checked_utc": "2026-10-10T07:25:00Z",
+  "baseline": "bdba4476570b0a77d13c76a38dfb3bcfd364277b",
+  "device": {
+    "host": "bench01.local",
+    "usb_path": "3-2",
+    "vid": "4c4a",
+    "pid": "c755",
+    "speed_mbps": 12,
+    "alsa": "hw:2,0,0"
+  },
+  "traffic": {
+    "request": "f0 00 32 45 00 00 00 40 7f f7",
+    "request_count": 1,
+    "soft_key_sent": false,
+    "loader_sent": false,
+    "flash_operations": 0
+  },
+  "identity": {
+    "reply_hex": "f0 00 32 45 58 01 00 00 23 4d 5a 44 79 05 26 0e 19 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 20 06 f7",
+    "bytes": 41,
+    "sha256": "7679e7be907c6cc32b3c1f27c48cc8ce6daa865852e8021e2207cdeae223217d",
+    "decoded": {
+      "sysex_header": "F0 00 32 45 58  (packed form of the 00 59 11 ID block)",
+      "id_block": "34 bytes: 00 59 11 1B 00 00 46 4D 2D 31 5F 30 39 32 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 19",
+      "body_len": 27,
+      "checksum_ok": false,
+      "plain_field": "FM-1_092.................",
+      "model": "FM-1",
+      "version": 92,
+      "identity": "FM-1_092",
+      "al255_second_field": "0000000000000000000I -> version 0"
+    },
+    "exact_known_092": true
+  },
+  "private_backup_verification": {
+    "hosts": [
+      "bench01.local",
+      "current Mac"
+    ],
+    "files": [
+      "session2/dumpA.bin",
+      "session2/dumpB.bin",
+      "restore1/beforeA.bin",
+      "restore1/beforeB.bin",
+      "restore1/after.bin"
+    ],
+    "each_bytes": 1048576,
+    "each_sha256": "96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4"
+  },
+  "test_result": "19 passed (test_tools.py and test_softkey_probe.py)",
+  "full_image_restore": "unverified",
+  "lunar_device_execution": "unverified"
+}
