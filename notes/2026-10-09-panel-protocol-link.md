@@ -45,6 +45,18 @@ staging/docs dependencies; completing the export resolved them without
 changing the acceptance tests. The link image lacked pytest, so host C tests
 ran in the cached Python 3.13 Bookworm image with pytest installed transiently.
 
+[verified] CI head `7385bee7`, run `38026499766`, macOS job
+`114138347580` stopped during Python 3.12 / pytest collection: the new test
+used `from test_panel_probe` although the repository's tests are a package.
+The earlier partial LAN export omitted `tests/__init__.py`, masking this
+import error. A complete tracked-tree export reproduced the same failure
+with `PYTHONPATH` unset. Qualifying the import as `tests.test_panel_probe`
+restores root collection: **5207 tests collected** on bounded LAN Python
+3.12. Focused protocol, capture, layout, memory and audit checks then report
+**80 passed, 1 optional stock-dependent skip**, including the actual linked
+artifact layout and default staging rejection. No target source, linked
+artifact or acceptance gate changed; fresh CI is required for the new head.
+
 Full sizes, hashes and byte-column comparison count are in the
 [receipt](data/2026-10-09-panel-protocol-link.json). Vendor artifacts remain
 ignored in `build/jieli-panel-protocol/`; LAN source/output:

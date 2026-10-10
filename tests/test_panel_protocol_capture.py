@@ -6,7 +6,7 @@ import subprocess
 import sys
 
 import pytest
-from test_panel_probe import probe as protocol_probe, run
+from tests.test_panel_probe import probe as protocol_probe, run
 
 ROOT = Path(__file__).resolve().parents[1]
 
