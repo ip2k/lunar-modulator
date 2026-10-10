@@ -147,3 +147,81 @@ passed the strict external audio gate, with 3,756 replies and no bad periods
 or refusal/resync; the failed two-CPU receipt remains. Three additional
 uninstrumented cold pairs passed. No production runtime or assertion changes.
 Its exact-head GitHub checks are queued; this is not a CI-success claim.
+
+## Final Repeat artifact verification and remaining gates
+
+[verified: independent artifact inspection] PR137 at
+`9b2d80c4c6a9df47c794fa4d413a72e12b645225` has committed Wasm SHA256
+`edda579cc762bc225246cd8204a0652729e7d24d65bea13b5d2eeb8360898b6f`.
+Root recomputed both source-tree hashes and the binary hash against the
+actual clean checkout; all match its build record. Metadata and module ID
+both equal `0d1d0b8b`, with no imports and 106/106 passing parity scenarios.
+The beat-held Repeat scenario has 264,708 frames, no dropped events and
+zero sample/screen differences. The four-active-sound admission scenario
+has 123,530 frames and zero differences, using 185,840 bytes in Wasm32
+and 200,472 bytes in native64. Repeat alone is 65,648 bytes, including its
+65,536-byte ring; these totals are simulator evidence, not device SRAM proof.
+
+[verified: source review] The focused independent review and original
+failure traces are backed up in PR138 at
+`75aaf658324f119f413090d0e989ddfe44bf41b4`. PR113 and PR114 retain strict
+WebKit failures; passing external loopback in those runs does not erase
+their panel-follow failures or establish a human listening result.
+
+PR133 and PR135 integrated current main normally and are pushed at
+`a5bac822d9ed9b938393ca1ef5e575d453616775` and
+`475c859c5187ecf94a6881f4620b93ae4d8fb614`, respectively. Their fresh
+exact-head checks remain pending. Continue the audible audit disposition,
+strict WebKit correction, combined Warble/Repeat regeneration and reviewed
+green merges before composition implementation. Preserve the pending owner
+Sound 2 A/B ear check and the independent device-readiness boundaries.
+
+[verified: CI/remote] PR126 at
+`af1558248b7a670fe38e1afee9d3ff657b79a733` passed all 14 executable checks
+(Pages deployment skipped for the PR), was marked ready, and merged with an
+exact-head guard at `bdba4476570b0a77d13c76a38dfb3bcfd364277b`.
+The remote main ref matched. This integrates the portable semantic-tool
+configuration and its explicitly bounded session evaluation.
+
+[verified: source] The audible PSX Verb audit finding remains present on
+main: the odd phase table is entirely zero, the even phase table differs
+from the full kernel's even taps, and interpolation walks the zero-stuffed
+history with unit-stride phase coefficients. A focused repair is active;
+validate against an independent full-kernel calculation and retain vendor
+provenance. Avoiding this available effect in demos is not its remediation.
+
+## PSX repair review and independent offline checks
+
+[verified: independent local checks] Root ran PR136's exact
+`1299c590408e6d919181294bdadc8c28b4b7503a` `test_handover_layout.py`
+with the project's Python environment: 28 passed; the optional locally held
+stock SPL check skipped. This verifies synthetic offline contracts, not a
+device execution or an independent repeat of the author's private-stock test.
+
+[verified: independent source/test review] PR139 at
+`0e897f1cd00a9f7938bbfcf93a02bd23aa01c3bc` corrects PSX Verb's two
+interpolation phases and history domain. Root reviewed the direct 39-tap
+zero-stuffed FIR oracle and independently ran its focused test successfully.
+The implementer's bounded LAN run reports 104/104 exact JS/musl audio cases,
+DX7 18/18 and zero late quanta in the 30-second edit storm. The corrected
+Sophie framebuffer is exact against native musl; the 34 glibc scope-pixel
+differences remain diagnostics. The existing bottom-right RAM mask remains;
+there is no additional waveform mask or tolerance.
+
+[verified: acceptance issue] Root's artifact test verified PR139's binary
+hash but warned that its sim input hash was stale. Build/test inputs changed
+after staging the successful build; identify and regenerate the record using
+the actual pipeline before final acceptance. The record serializer also needs
+to retain the selected screen reference and glibc/musl diagnostics. These
+follow-ups are assigned to the implementer. Source review permits the combined
+Warble/Repeat candidate to incorporate the repair and perform its required full
+regeneration; PR139's current artifact is not accepted as the final combined
+artifact. Its exact-head CI remains pending.
+
+[reported: bounded reproduction] The browser investigator reproduced PR131's
+exact Chromium storm three times under a four-CPU LAN quota with the original
+Pulse sink; all passed. Its CI failure remains one 11.609-ms playback underrun.
+A Chromium shared-memory callback timeout can produce a buffer-duration glitch,
+but the failed trace does not localize that cause. Do not claim a production
+runtime fix or that PR132's headless sink correction resolves this separate
+failure. Continue exact-head CI and preserve failed receipts.
