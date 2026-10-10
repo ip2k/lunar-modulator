@@ -89,3 +89,28 @@ The captured Event Horizon page was visually inspected for clipped or
 overlapping labels; none found. CI now checks generator freshness on both
 Python platforms and full-song Wasm/file-workflow acceptance in Chromium.
 Required full CI and subsequent musical rounds remain pending.
+
+
+## Second authored round, 2026-10-10
+
+[verified] Round-2 assets frozen at `f1887404ce12a53d63ef784178fa37fccec7722e`
+were integrated at `de95694c`. Complete Wasm and native playback passed in
+an isolated aeon container with 2 CPUs and 2 GiB, using Wasm hash
+`4667498f919529ba0f1059f127ea02e60c2c2a76ee5bc16983cfeabbb96b76ec`
+and the fresh native simulator from prerequisite source `c44a808`.
+All four projects load without repairs or skipped content, round-trip
+canonically, fit 54–69% of the simulated RAM budget, and finish within
+0.1 seconds of their planned durations with zero dropped events or
+non-finite samples. Peaks are 0.7519–0.8516; RMS is 0.0825–0.0889.
+The receipt includes native state and per-second Wasm energy plus project
+hashes: `notes/data/2026-10-10-demo-song-round-2-native-wasm.json`.
+This establishes runtime acceptance, not sample parity or musical approval.
+
+[verified] Chromium 153.0.8010.12 passed all four preloaded entries, URL
+playback, Save downloads and fresh-context Open checks, with zero page
+exceptions. Receipt: `notes/data/2026-10-10-demo-song-round-2-browser.json`.
+Exact float WAVs and browser screenshots are retained under the ignored
+`scratch/demo-song-review/round-2/` directory and on aeon at
+`/home/claude/mvave-fm1/demo-round2-de95694c/src/`. The critic has been given
+these paths alongside the frozen project files. Round-2 musical review and
+full integration CI remain pending.
