@@ -3,7 +3,6 @@ import importlib.util
 import pathlib
 import random
 
-import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 

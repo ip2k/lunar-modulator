@@ -157,7 +157,7 @@ namespace {
 enum : unsigned {
   kPos = FM1_MOD_POSITIONS, kOuts = FM1_MOD_MAX_OUTS, kVoices = FM1_MOD_VOICES, kSlots = FM1_MOD_SLOTS,
   kN0 = FM1_TELE_POINTS * 2u,           // meters: peak, rms
-  kN1 = FM1_TELE_REDUCERS,              // reduction: dB
+  kN1 = FM1_TELE_REDUCERS * 2u,         // reduction: dB, gate state
   kN2 = kVoices * 2u,                   // voices: sound, note
   kN3 = kPos * kOuts * 3u,              // outs: value, min, max
   kN4 = kPos * kOuts * kVoices,         // voice_outs
@@ -173,7 +173,7 @@ typedef char tele_offsets_fit[kFloats <= 0xFFFFu ? 1 : -1];
 
 const fm1_tele_section_t kSections[FM1_TELE_SECTIONS] = {
   { "meters", "none", 0, FM1_TELE_POINTS, 1, 2, 0 },
-  { "reduction", "db", kO1, FM1_TELE_REDUCERS, 1, 1, kB1 },
+  { "reduction", "db", kO1, FM1_TELE_REDUCERS, 1, 2, kB1 },
   { "voices", "none", kO2, kVoices, 1, 2, kB2 },
   { "outs", "port", kO3, kPos, kOuts, 3, kB3 },
   { "voice_outs", "port", kO4, kPos, kOuts, kVoices, kB4 },
@@ -270,7 +270,7 @@ const char *fm1_tele_field_name(unsigned s, unsigned f, char *buf, size_t n) {
   if (!sec || f >= sec->fields) return copy("", buf, n);
   switch (s) {
     case FM1_TELE_METERS: return copy(kMeter[f], buf, n);
-    case FM1_TELE_REDUCTION: return copy("db", buf, n);
+    case FM1_TELE_REDUCTION: return copy(f == 0 ? "db" : "gate", buf, n);
     case FM1_TELE_VOICES: return copy(kVoice[f], buf, n);
     case FM1_TELE_OUTS: return copy(kOut[f], buf, n);
     case FM1_TELE_DESTS: return copy("value", buf, n);

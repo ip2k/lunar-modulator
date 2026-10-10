@@ -16,11 +16,14 @@ const require = createRequire(`${process.env.PLAYWRIGHT_DIR || '/pw'}/`);
 export const which = process.env.BROWSER || 'chromium';
 
 // { browser, name }: `name` for a report ("Firefox 150.0 (Playwright, headless)").
-export async function launch() {
+export async function launch({ audible = false } = {}) {
   const pw = require('playwright');
   if (!pw[which]) throw new Error(`BROWSER=${which}: chromium, firefox or webkit`);
   const opts = which === 'chromium' ? { args: ['--autoplay-policy=no-user-gesture-required'] }
     : which === 'firefox' ? { firefoxUserPrefs: { 'media.autoplay.default': 0, 'media.autoplay.blocking_policy': 0 } } : {};
+  // Playwright mutes Chromium by default. External monitor tests need the
+  // actual output device; ordinary page tests retain their existing defaults.
+  if (audible && which === 'chromium') opts.ignoreDefaultArgs = ['--mute-audio'];
   const browser = await pw[which].launch(opts);
   return { browser, name: `${which[0].toUpperCase()}${which.slice(1)} ${browser.version()} (Playwright, headless)` };
 }

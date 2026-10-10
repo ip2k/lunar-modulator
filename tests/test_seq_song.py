@@ -25,7 +25,7 @@ import subprocess
 
 import pytest
 
-from tests.seq_helpers import RENDER, ons, run_script, seq_tools  # noqa: F401
+from tests.seq_helpers import RENDER, ons, seq_tools  # noqa: F401
 
 RATE = 44118
 TPB = 384
