@@ -385,3 +385,141 @@ virtual environment; both `tests/test_ci_pins.py` tests and all nine unchanged
 panel-follow/scheduling-capture unit tests pass. `git diff --check` passes.
 The Mac's system Python lacks PyYAML/pytest, so validation uses the existing
 project `.venv`, without installing packages or changing runtime configuration.
+
+
+## Preserved PR #102 failure before integration
+
+[verified: completed GitHub job log] PR #102 head
+`962e8ba900f7c223b46f7dd058874fabe96ace20`, run `38023635600`, job
+`114129747188`, fails the unchanged panel latency check at 43 frames / 694 ms.
+Its running clock holds `0.7169160997732427` through frame 42; first state
+arrives at 684 ms, changes at 686 ms, and the editor applies them at 690 ms.
+History passes and loading/pending/inflight are false/zero throughout. This
+matches the retained startup plateau signature [inferred], without proving a
+branch regression. The preceding strict 30-second loopback passes with 3,756
+replies, no refusal/resync, zero silence or bad periods. Reach, Map, v1 and
+30-second editor storm pass. Full follow/audio receipt and source-log hash:
+[pr102-ci.json](evidence/2026-10-09-webkit-audio-lifecycle/pr102-ci.json).
+Local source log is `/tmp/lunar-pr102-webkit.log`. No integration, rerun or
+assertion change was made while preserving this evidence. PR #132 remains
+on exact pushed head `c6db9587`; this receipt and the current-head acceptance
+below are checkpointed separately on
+`chore/2026-10-09@webkit-audio-evidence-checkpoint`, preserving its current CI.
+
+
+[verified: current fix head LAN acceptance] While exact-head GitHub CI waits
+for runners, a new bounded private container tests current source `c6db9587`
+with the CI sink command, four CPU quota and `FM1_SCHEDULING_CAPTURE=1`.
+It uses the newer committed module (SHA-256
+`9562448e742836a4571ebd04ad303c72d0125a8054483dffbee9d5c6240ed4e1`),
+not the earlier exact PR #129 module used for causal pairing. The original
+worklet hash remains identical. WebKit's strict 30-second loopback passes:
+3,756 batches/replies, zero refusal/resync/nonfinite/channel mismatch/bad
+periods, one-sample maximum zero run and 0.00882-sample maximum period error.
+Musical A/B passes with no transport stops; full editor UI passes all 93
+assertions with 37 screenshots and panel follow at three frames / 33 ms.
+Complete reports, per-test cgroup snapshots, module/version/hash receipts
+and runner are saved in
+[pr132-current-head-lan.json](evidence/2026-10-09-webkit-audio-lifecycle/pr132-current-head-lan.json).
+This covers the current source integration difference, not the full GitHub
+matrix; no retry of an unchanged failed head or assertion relaxation occurred.
+The owned container exited normally and shared services were untouched.
+
+## Preserved PR #121 failure before integration
+
+[verified: completed GitHub job log] PR #121 head
+`32d4747f900a47de4054618195ffe269f73ccef6`, run `38025766630`, job
+`114136164786`, fails only the unchanged panel latency assertion at 18
+frames / 281 ms. Its running clock holds `0.7198185941043084` through
+frame 17 / 259 ms, then telemetry arrives at 270 ms, state at 272 ms,
+changes at 274 ms and the editor applies the value at 278 ms. Loading is
+false, pending/inflight zero and the row remains connected. The resulting
+history entry and flash are present. This matches the prior backend
+startup plateau signature [inferred]; it does not establish a PR #121
+source regression. Strict 30-second loopback passes with 3,756 replies,
+zero bad periods/silence/refusal/resync and no transport stops; the editor
+storm also passes with zero bad codes or resyncs. The full follow/audio/
+storm receipt and source-log SHA-256 are in
+[pr121-ci.json](evidence/2026-10-09-webkit-audio-lifecycle/pr121-ci.json).
+Local log: `/tmp/lunar-pr121-webkit.log`. No rerun, branch integration or
+threshold change was made to obtain this receipt. This addition is backed
+up on the separate evidence branch, preserving PR #132's reviewed CI head.
+
+## Preserved PR #125 native-preview head failure
+
+[verified: completed GitHub job log] PR #125 head
+`7fe4e6cd10e5d4aa895c5df18d0273364788be5d`, run `38025910713`, job
+`114136597222`, fails panel latency and its associated history assertion
+after the unchanged 60-frame / 960-ms observation. Audio time remains
+`0.737233560090703` in every frame while the context reports running;
+no port/editor events arrive, loading is false, pending/inflight zero and
+the row remains connected at its initial value. This repeats the earlier
+long startup plateau signature [inferred], without proving a native-preview
+regression. Strict 30-second loopback passes with 3,756 replies, zero bad
+periods/silence/refusal/resync and no transport stops; the editor storm
+passes with zero bad codes or resyncs. The complete failure/audio/storm
+receipt and source-log SHA-256 are in
+[pr125-7fe4-ci.json](evidence/2026-10-09-webkit-audio-lifecycle/pr125-7fe4-ci.json).
+Local log: `/tmp/lunar-pr125-7fe4-webkit.log`. No unchanged rerun or gate
+relaxation was used. This receipt is checkpointed on the separate evidence
+branch while PR #132's tested head remains `c6db9587`.
+
+## Preserved PR #131 Chromium underrun failure
+
+[verified] PR #131 exact `78101317052b2eb990d7a24fbe855dbb506ce1eb`, run
+`38025899085`, job `114136559601`, failed the unchanged 30-second editor storm:
+7,280 edits, 58,240 records, zero refused codes/resyncs, 10,695 quanta, but one
+Chromium `playbackStats` underrun lasting 11.609 ms. Earlier external loopback
+passed (7,273 replies, zero bad periods/refusals/resyncs). The receipt is
+[`pr131-chromium-ci.json`](evidence/2026-10-09-webkit-audio-lifecycle/pr131-chromium-ci.json).
+The complete 86,939-event audio trace has no saved `Glitch!` event; the longest
+worklet graph render is 3.969 ms wall time versus 0.852 ms thread CPU time.
+Thirty-three resource samples show four available CPUs, `cpu.max=max 100000`,
+zero recorded throttling, and 155,129 microseconds of cumulative cgroup CPU
+pressure (`some`) during the window. Mount/namespace provenance is retained.
+
+[inferred] This is distinct from the frozen WebKit startup clock signature.
+Scheduling interruption is a candidate, not a demonstrated cause; the trace
+does not localize the counted underrun. Chromium's matching-version
+[`AudioPlaybackStats`](https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/third_party/blink/renderer/modules/webaudio/audio_playback_stats.cc)
+reads the context's accumulated glitch count/duration. The trace exhibits
+[`AudioDestination`](https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/third_party/blink/renderer/platform/audio/audio_destination.cc)'s
+worklet rendering wait path. Playback statistics span storm plus snapshot drain,
+while browser-wide tracing has its own surrounding window. PR #132's null-sink
+idle-buffer option must not be presumed to fix this distinct Chromium event.
+No assertions, timing thresholds, browser features or source queues were changed.
+[verified] Three bounded fresh-browser, exact-source 30-second LAN storms all
+passed: 7,252 / 7,269 / 7,196 edits; each produced 10,695 quanta and zero
+underruns, refused codes or resyncs. They used the pinned CI image, Pulse 16.1,
+the original default sink and four-CPU quota. Full reports, resource deltas,
+trace hashes and setup limits are in
+[`pr131-chromium-lan.json`](evidence/2026-10-09-webkit-audio-lifecycle/pr131-chromium-lan.json).
+The preceding CI tests and GitHub host contention were not replicated; tracing
+was enabled as in CI and may perturb scheduling. All outcomes are retained.
+
+[verified: matching Chromium source] The renderer's
+[`AudioOutputDeviceThreadCallback`](https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/media/audio/audio_output_device_thread_callback.cc)
+reads shared-memory glitch increments and forwards them to graph rendering.
+[`SyncReader`](https://raw.githubusercontent.com/chromium/chromium/153.0.8010.12/services/audio/sync_reader.cc)
+waits for a matching renderer buffer index; a missed callback emits silence
+and accumulates one platform buffer of glitch duration. At 512 frames / 44.1 kHz,
+that duration matches the observed 11.609 ms [inferred]. Neither the timeout
+nor `Glitch!` is present in the saved CI trace, so this is a mechanism to inspect,
+not a localized cause. No justified runtime source fix was found in this bounded
+investigation, and the original CI underrun remains an independent failed gate.
+
+## PR #132 completed Firefox and WebKit acceptance
+
+[verified: completed jobs] Exact reviewed head `c6db9587c1d8d1ca6f993d8f433875761f3b2b6e`
+passed both complete browser jobs in run `38028605340`: Firefox job
+`114144633961` and WebKit job `114144633999`. Both logs confirm the private
+null sink loaded with `norewinds=1`. Strict 30-second loopback passed with
+7,224 Firefox replies and 3,756 WebKit replies, zero bad periods, silence,
+refusals or resyncs. The unchanged editor storms also passed: 7,239 Firefox
+edits and 3,756 WebKit edits, 10,695 quanta each. The full job success includes
+the page checks. Reports and log hashes are in
+[`pr132-firefox-webkit-ci.json`](evidence/2026-10-09-webkit-audio-lifecycle/pr132-firefox-webkit-ci.json).
+Chromium's Node step is still running at this checkpoint, so full CI remains
+unconfirmed. The same Node helper/data/history suites passed a separate bounded
+LAN check against identical test sources/Wasm in the pinned image; this does not
+explain the quiet GitHub runner. Its eventual result must be preserved.

@@ -2,6 +2,15 @@
 
 Guidance for Codex working in this repo.
 
+## Automatic integration — owner, 2026-10-09
+
+Merge completed project work automatically once review and required CI checks
+pass. Use a merge commit, verify the exact approved head and remote `main`,
+and preserve feature-branch backups. Resolve failures and conflicts without
+bypassing checks. This authorization applies to this owned repository, not
+upstream contributions or hardware writes. Start the four demo songs once
+their prerequisite work is integrated; keep unfinished work recorded in notes.
+
 ## What this is
 
 **Lunar Modulator** (tagline **INTERGALACTIC MODULATION STATION**) is open

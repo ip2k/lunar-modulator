@@ -1,0 +1,341 @@
+{
+  "schema": 1,
+  "head": "78101317052b2eb990d7a24fbe855dbb506ce1eb",
+  "host": "aeon",
+  "remote_path": "/home/claude/mvave-fm1/chromium-exact131-20261009",
+  "local_artifacts": "/tmp/lunar-exact131-storm-out",
+  "image": "mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27",
+  "container_limits": {
+    "cpus": 4,
+    "memory": "4g",
+    "memory_swap": "4g",
+    "cgroup_parent": "docker-batch.slice"
+  },
+  "pulse_version": "pulseaudio 16.1",
+  "pulse_modules": "0\tmodule-null-sink\tsink_name=lunar rate=48000 channels=2\t\n1\tmodule-native-protocol-unix\tauth-anonymous=1 socket=/tmp/pa.sock\t\n",
+  "source_hashes": "9562448e742836a4571ebd04ad303c72d0125a8054483dffbee9d5c6240ed4e1  /probe/sim/web/www/fm1.wasm\nf3788e723cd22303dfbd95030c8d16cce761ca60be0ac1717b453861872d33cd  /probe/sim/web/www/worklet.js\n",
+  "runner_sha256": "3ff1a4402e9e219356f47cad8f2601506734b76311d796ea06a6f1d518189e55",
+  "runs": [
+    {
+      "run": 1,
+      "report": {
+        "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+        "seconds": 30,
+        "logs": [],
+        "scheduling_capture": true,
+        "edited": 7252,
+        "codes_not_ok": 0,
+        "changes": 1724,
+        "entries": 58019,
+        "resyncs": 0,
+        "views": 1,
+        "telemetry": 905,
+        "stats": {
+          "quanta": 10695,
+          "timed": false,
+          "late": null,
+          "maxMs": null,
+          "editMs": null
+        },
+        "snapshot": {
+          "ok": true,
+          "bytes": 1111,
+          "binary": true
+        },
+        "ops": 7252,
+        "records": 58016,
+        "rate": 44100,
+        "playback": {
+          "underrun_events": 0,
+          "underrun_ms": 0
+        },
+        "pass": true
+      },
+      "samples": 33,
+      "resource_first": {
+        "utc": "2026-10-10T06:41:13.702Z",
+        "affinity_parallelism": 4,
+        "logical_cpus": 16,
+        "cpu_max": "400000 100000",
+        "cpu_stat": {
+          "usage_usec": 4894634,
+          "user_usec": 3350547,
+          "system_usec": 1544086,
+          "nice_usec": 0,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 100,
+          "nr_throttled": 0,
+          "throttled_usec": 0,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "cpu_pressure_total_us": {
+          "some": 5504,
+          "full": 5333
+        }
+      },
+      "resource_last": {
+        "utc": "2026-10-10T06:41:45.224Z",
+        "affinity_parallelism": 4,
+        "logical_cpus": 16,
+        "cpu_max": "400000 100000",
+        "cpu_stat": {
+          "usage_usec": 13668972,
+          "user_usec": 10783012,
+          "system_usec": 2885959,
+          "nice_usec": 0,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 415,
+          "nr_throttled": 0,
+          "throttled_usec": 0,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "cpu_pressure_total_us": {
+          "some": 228717,
+          "full": 96022
+        }
+      },
+      "delta": {
+        "cpu_stat": {
+          "usage_usec": 8774338,
+          "user_usec": 7432465,
+          "system_usec": 1341873,
+          "nice_usec": 0,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 315,
+          "nr_throttled": 0,
+          "throttled_usec": 0,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "cpu_pressure_total_us": {
+          "some": 223213,
+          "full": 90689
+        }
+      },
+      "trace_complete": true,
+      "trace_errors": [],
+      "trace_event_count": 86962,
+      "glitch_or_timeout_events": [],
+      "trace_sha256": "104013af8a7eb19ebdb517571888848bdfb0406f7b8818f1c7b1793a26a2f70b",
+      "scheduling_sha256": "9fca63101c6c7e03b394019d85db89ba0f05fd4c507493eb6e187a8f3c116b83"
+    },
+    {
+      "run": 2,
+      "report": {
+        "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+        "seconds": 30,
+        "logs": [],
+        "scheduling_capture": true,
+        "edited": 7269,
+        "codes_not_ok": 0,
+        "changes": 1723,
+        "entries": 58155,
+        "resyncs": 0,
+        "views": 1,
+        "telemetry": 905,
+        "stats": {
+          "quanta": 10695,
+          "timed": false,
+          "late": null,
+          "maxMs": null,
+          "editMs": null
+        },
+        "snapshot": {
+          "ok": true,
+          "bytes": 1111,
+          "binary": true
+        },
+        "ops": 7269,
+        "records": 58152,
+        "rate": 44100,
+        "playback": {
+          "underrun_events": 0,
+          "underrun_ms": 0
+        },
+        "pass": true
+      },
+      "samples": 33,
+      "resource_first": {
+        "utc": "2026-10-10T06:41:48.867Z",
+        "affinity_parallelism": 4,
+        "logical_cpus": 16,
+        "cpu_max": "400000 100000",
+        "cpu_stat": {
+          "usage_usec": 17337091,
+          "user_usec": 13758414,
+          "system_usec": 3578676,
+          "nice_usec": 0,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 452,
+          "nr_throttled": 0,
+          "throttled_usec": 0,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "cpu_pressure_total_us": {
+          "some": 412350,
+          "full": 131221
+        }
+      },
+      "resource_last": {
+        "utc": "2026-10-10T06:42:20.386Z",
+        "affinity_parallelism": 4,
+        "logical_cpus": 16,
+        "cpu_max": "400000 100000",
+        "cpu_stat": {
+          "usage_usec": 25064734,
+          "user_usec": 20488699,
+          "system_usec": 4576034,
+          "nice_usec": 0,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 767,
+          "nr_throttled": 0,
+          "throttled_usec": 0,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "cpu_pressure_total_us": {
+          "some": 596651,
+          "full": 265483
+        }
+      },
+      "delta": {
+        "cpu_stat": {
+          "usage_usec": 7727643,
+          "user_usec": 6730285,
+          "system_usec": 997358,
+          "nice_usec": 0,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 315,
+          "nr_throttled": 0,
+          "throttled_usec": 0,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "cpu_pressure_total_us": {
+          "some": 184301,
+          "full": 134262
+        }
+      },
+      "trace_complete": true,
+      "trace_errors": [],
+      "trace_event_count": 86930,
+      "glitch_or_timeout_events": [],
+      "trace_sha256": "5ecc7db66779a9fe64449a2bf53253ca47484cdd95bde03b5998aa3a310c96b8",
+      "scheduling_sha256": "c2ece962a6e749dc3e540bad911aa55f13e5247a7dddee817c3302872c6331f4"
+    },
+    {
+      "run": 3,
+      "report": {
+        "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+        "seconds": 30,
+        "logs": [],
+        "scheduling_capture": true,
+        "edited": 7196,
+        "codes_not_ok": 0,
+        "changes": 1721,
+        "entries": 57571,
+        "resyncs": 0,
+        "views": 1,
+        "telemetry": 905,
+        "stats": {
+          "quanta": 10695,
+          "timed": false,
+          "late": null,
+          "maxMs": null,
+          "editMs": null
+        },
+        "snapshot": {
+          "ok": true,
+          "bytes": 1115,
+          "binary": true
+        },
+        "ops": 7196,
+        "records": 57568,
+        "rate": 44100,
+        "playback": {
+          "underrun_events": 0,
+          "underrun_ms": 0
+        },
+        "pass": true
+      },
+      "samples": 33,
+      "resource_first": {
+        "utc": "2026-10-10T06:42:23.382Z",
+        "affinity_parallelism": 4,
+        "logical_cpus": 16,
+        "cpu_max": "400000 100000",
+        "cpu_stat": {
+          "usage_usec": 27338569,
+          "user_usec": 22272832,
+          "system_usec": 5065737,
+          "nice_usec": 0,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 797,
+          "nr_throttled": 0,
+          "throttled_usec": 0,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "cpu_pressure_total_us": {
+          "some": 598620,
+          "full": 266962
+        }
+      },
+      "resource_last": {
+        "utc": "2026-10-10T06:42:54.898Z",
+        "affinity_parallelism": 4,
+        "logical_cpus": 16,
+        "cpu_max": "400000 100000",
+        "cpu_stat": {
+          "usage_usec": 35598957,
+          "user_usec": 29350386,
+          "system_usec": 6248570,
+          "nice_usec": 0,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 1112,
+          "nr_throttled": 0,
+          "throttled_usec": 0,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "cpu_pressure_total_us": {
+          "some": 1221048,
+          "full": 473822
+        }
+      },
+      "delta": {
+        "cpu_stat": {
+          "usage_usec": 8260388,
+          "user_usec": 7077554,
+          "system_usec": 1182833,
+          "nice_usec": 0,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 315,
+          "nr_throttled": 0,
+          "throttled_usec": 0,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "cpu_pressure_total_us": {
+          "some": 622428,
+          "full": 206860
+        }
+      },
+      "trace_complete": true,
+      "trace_errors": [],
+      "trace_event_count": 86961,
+      "glitch_or_timeout_events": [],
+      "trace_sha256": "1fb4d5e8092a3aef91dcaa645ef93fe5575037aa31adb02dfb76b1675ef915b2",
+      "scheduling_sha256": "bce4031709a20d8f90d461575a610ad843fbaf2944842724dac214e11818d399"
+    }
+  ],
+  "limitations": [
+    "Original strict storm, assertions and source unchanged; original default null sink without norewinds.",
+    "Three fresh browsers on one private backend; preceding CI tests and GitHub host contention not reproduced.",
+    "Original scheduling capture enabled as in CI; tracing and resource sampling may perturb scheduling.",
+    "All three successes retained alongside original CI failure; no rerun-to-green or causal-fix claim."
+  ]
+}
