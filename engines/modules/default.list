@@ -28,7 +28,7 @@ acid-bass crater drawbar trio phase-bend
 
 # Audio effects
 plate ensemble diffuse sw-psxverb crush fold drive echo filter comb comp
-limit djfilter tilt sat isolator eq room hall gate squash shaper warble
+limit djfilter tilt sat isolator eq room hall gate squash shaper warble repeat
 
 # MIDI effects
 arp acid-gen

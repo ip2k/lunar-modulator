@@ -47,7 +47,7 @@ def floats(raw):
 
 UNITS = ["test-sine", "macro", "macro-heavy", "shapes", "sixop", "dx7", "sw-sophie", "drums",
          "plate",
-         "ensemble", "diffuse", "crush", "fold", "echo", "test-gain", "sw-psxverb",
+         "ensemble", "diffuse", "crush", "fold", "echo", "repeat", "test-gain", "sw-psxverb",
          "drive", "filter", "comb", "comp", "limit", "djfilter", "tilt", "sat", "isolator", "eq",
          "room", "hall", "gate", "squash", "shaper", "warble", "test-ext"]
 UNITS += ["acid-bass", "comet", "crater"] if GPL_MODS else []   # the GPL modules, while the switch is on
@@ -68,8 +68,13 @@ def test_changes_at_any_frame_render_the_same_at_any_split(renderer, tmp_path, e
     ref = drive(tmp_path, engine, "--split", "64", name="b64")
     for split in ("1", "7", "random"):
         assert drive(tmp_path, engine, "--split", split, name=f"b{split}") == ref, split
-    assert ref != drive(tmp_path, engine, "--schedule", "none", name="none") or engine == "sw-sophie", \
-        "the changes are heard (Sophie's edit pad 0, which these keys do not play)"
+    # Repeat's Hold requires transport/BEAT events. This generic driver calls
+    # render() without a host clock, and its scheduled Hold-Off arrives before
+    # the capture ring fills, so the expected output remains dry. Its audible
+    # event-driven behavior is covered by test/repeat_selftest.cc and the
+    # seq-repeat-beat-hold parity scenario.
+    assert ref != drive(tmp_path, engine, "--schedule", "none", name="none") or engine in ("sw-sophie", "repeat"), \
+        "the changes are heard (except host-event or edit-pad cases covered by their focused tests)"
 
 
 @pytest.mark.parametrize("engine", UNITS)

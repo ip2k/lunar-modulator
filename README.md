@@ -172,7 +172,7 @@ keys, at any octave.
 </tr>
 </table>
 
-### Four sounds and twenty-two effects
+### Four sounds and twenty-three effects
 
 - Up to **four sounds** play at once, each with its own engine and **two
   insert effects**. Hold SEL and turn PRESETS to pick the one you play.
@@ -186,8 +186,8 @@ keys, at any octave.
 
 The effects:
 - **Reverbs:** Plate and Hall (both with Freeze), Room and PSX Verb.
-- **Chorus, space and delay:** Ensemble, Diffuse, Echo, a stereo ping-pong
-  delay, and Warble, a tape-style wow and flutter effect.
+- **Chorus, space and delay:** Ensemble, Diffuse, Echo (stereo ping-pong),
+  Warble (tape-style wow and flutter), and Repeat (beat-synced stutter/hold).
 - **Filters and EQ:** Filter (six classic types), Comb, DJ Filter, Tilt,
   Isolator (a three-band kill EQ) and EQ (a low shelf, a bell and a high
   shelf).

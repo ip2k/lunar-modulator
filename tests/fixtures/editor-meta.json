@@ -55,7 +55,8 @@
     "squash": "dynamics",
     "shaper": "dynamics",
     "test-gain": "test",
-    "test-ext": "test"
+    "test-ext": "test",
+    "repeat": "space"
   },
   "telemetry": {
     "version": 2,
