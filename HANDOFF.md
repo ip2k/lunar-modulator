@@ -11,53 +11,44 @@ original conversation; last updated 2026-10-10. Read this first, then
 
 ## Active work — 2026-10-10
 
-Live `origin/main` was verified at `40c94300428acfc5688a203c2c928723ed98270a`.
-The final reviewed DSP/audio-startup prerequisite is [PR #143](https://github.com/ip2k/lunar-modulator/pull/143),
-frozen at `aff83ab804497b0724f7e5d8ba13b115cfcdd28a`. Its fresh native/musl/Wasm
-build passed 108/108 parity scenarios; all three browser startup and external
-loopback CI steps passed. Chromium's strict gate failed with one 512-frame underrun. The trace places
-that event before playback and the edit storm; delayed counter publication
-explains its appearance in the storm interval. Investigation continues on
-`chore/2026-10-10@worklet-suspended-startup` at e874d0ff. Do not merge PR #143
-or waive the zero-underrun gate. Earlier failures remain saved.
+Live `origin/main` is `b335dc2c450473dc375163aec7fa679e1b099cc3` after
+[PR #144](https://github.com/ip2k/lunar-modulator/pull/144) merged on 2026-10-10.
+Exact head `5805ea9c` passed all 14 checks. Suspended worklet initialization
+fixes the demonstrated startup scheduling hazard; strict Chromium zero-underrun
+and all three browser loopback gates passed. Native Safari and owner by-ear
+A/B retest remain pending. Earlier failed traces are preserved.
 
-The integration worktree is
+Integration worktree:
 `/Users/likwid/.codex/worktrees/completed-work-integration/mvave-fm1-firmware`,
-branch `chore/2026-10-10@demo-song-acceptance`, pushed through `330cd61d`.
-It includes the startup prerequisite, complete-song acceptance scripts,
-README editor controls, and independent Round-1/2 criticism. The nearby CI-step
-conflict was resolved by retaining both complete-song and startup checks;
-startup helper tests and all 36 editor-unit checks pass locally.
+branch `chore/2026-10-10@demo-song-acceptance`, pushed through `26a34b3c`.
+It contains the merged startup fix, final Round-5 song assets, README controls,
+complete-song acceptance harnesses and all five independent critic reports.
 
-Four eight-scene songs now exist: Afterglow Relay (chillwave), Event Horizon
-(future bass), Packet Bloom (vapor twitch), and Neon Transit (electropop).
-Round 1 and Round 2 both passed complete native/Wasm rendering and Chromium
-preload/play/Save/fresh-Open checks. Round-2 assets are frozen at
-`f1887404ce12a53d63ef784178fa37fccec7722e`; receipts are linked from
-[the acceptance record](notes/2026-10-10-demo-song-acceptance.md).
-Runtime passes do not establish musical approval. The independent critic
-reviews decoded project files, every scene/transition, simulator state and
-signal receipts; it has no audio-perception tool and makes no listening claim.
-Round 1 scored 3–6; Round 2 scored 5–7. Round 3 is frozen/pushed at
-`cdf8d8fcc0bd89518f3fe28ec1a6661a827c19bc`; source critique and fresh runtime
-acceptance are in progress. The writer is drafting Round 4 to address unchanged
-voicings, repeated peak phrases and unintended out-of-key replies. Keep all reports and stop after at most five rounds, with early
-acceptance only if every scene/category is strictly above 8.
+Four eight-scene songs are frozen at
+`3e6eaa5fea7a38822b60a2a742af4b932856b8cc`: Afterglow Relay, Event Horizon,
+Packet Bloom and Neon Transit. Generator/state checks pass; exact final
+native/Wasm and browser preload/play/Save/fresh-Open acceptance is underway.
+Do not promote earlier Round-1/2/3 runtime passes to final assets. Round 4
+has source/state checks only. Five critique rounds are complete: none of the
+32 scenes passed every category strictly above 8; 190/192 final scores are
+at most 8. Reports preserve concrete residuals: expressive articulation,
+short verse cells, shared build/contrast vocabulary and individual song identity.
+No sixth round is authorized by the five-round request. No musical or by-ear
+acceptance is claimed. The critic analyzed actual decoded projects, every
+scene/occurrence, browser state and available render receipts.
 
 Writer worktree: `/Users/likwid/.codex/worktrees/demo-songs/mvave-fm1-firmware`,
-branch `feature/2026-10-10@demo-songs`. Critic worktree:
-`/Users/likwid/.codex/worktrees/demo-music-critic/mvave-fm1-firmware`, branch
-`chore/2026-10-10@demo-music-critic`. Preserve each frozen round before revising.
+branch `feature/2026-10-10@demo-songs`. Final runtime acceptance has resumed
+there. Critic worktree: `/Users/likwid/.codex/worktrees/demo-music-critic/mvave-fm1-firmware`,
+branch `chore/2026-10-10@demo-music-critic`, final report checkpoint `0a2ccc17`.
 
 No full-DSP Lunar application has run on or been installed on the FM-1.
-Full-image restoration, broken-app recovery and hardware audio remain
-unverified. The exact offline-reviewed fixed eight-byte loader callback-slot observation
-completed once on Bench01: 52 audited SCSI commands, one FD07 read, no flash
-writes or custom code execution. The returned words are 0x01e008e4 and
-0x01e0089a; their memory-region meaning is unproven. Receipts are pushed on
-`chore/2026-10-10@fm1-live-bringup` at `65e9f639`. Owner power-cycle confirmation
-is pending; no further device operations should run before it arrives.
-The owner's Sound-2 A/B crackles still require a by-ear retest.
+Full-image restoration, broken-app recovery and hardware audio remain unverified.
+The fixed eight-byte callback observation completed once: 52 audited SCSI
+commands, one FD07 read, no flash writes or custom code execution. Returned
+words 0x01e008e4 and 0x01e0089a have unproven memory-region meaning. Receipts
+are pushed on `chore/2026-10-10@fm1-live-bringup` at `65e9f639`. Owner
+power-cycle confirmation is pending; no further device operations before it.
 
 The whole-code audit is not blanket-closed: findings are classified by demo
 impact in the audit/remediation ledger; developer-tool, unused-module and
