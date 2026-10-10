@@ -10,11 +10,15 @@ editor checkout is left untouched; current integration uses the managed
 completed-work-integration worktree and branch
 chore/2026-10-09@completed-work-integration.
 
-Pending: merge green reviewed audit/firmware preparatory branches in their
-dependency order; integrate the delayed-envelope graph and Warble effect;
+Merged and verified on remote main: PR106, PR108, PR115, PR119, PR122,
+PR124, PR111, PR101, PR112 and PR116. The latest verified remote main is
+67d5e12dee561abca5d0a2256fec85d75522a806. This includes the delayed-envelope
+graph and curves, offline firmware preparation, and bounded audit fixes.
+
+Pending: integrate the combined Warble effect build;
 resolve browser test failures for the information dialogs, native screen
-preview, Picks history and semantic configuration; open/integrate the held-note
-A/B correction; reconcile stale documentation PRs without restoring old state.
+preview, Picks history and semantic configuration; integrate the held-note
+A/B correction (PR128); reconcile stale documentation PRs without restoring old state.
 Rebuild and validate combined generated simulator artifacts after engine
 changes rather than selecting conflicting binaries arbitrarily.
 
@@ -26,3 +30,10 @@ release is claimed. Full-image/broken-app recovery remains a separate gate.
 
 Recovery: use live PR state and exact-head checks, not this dated snapshot;
 fetch origin/main before integration and preserve pushed source branches.
+
+Active checkpoints: Warble PR123 requires a real combined Wasm/metadata
+rebuild after PR101; A/B PR128 then needs the same integration. Information
+dialog PR120 has the short-landscape control-size fix at f8d70df96e4ecd3b458018ed4c7f36a28d776d39,
+awaiting exact-head CI. PR117 integration is pushed at a973087d3eab736e25b487ab8011f69d882fb6a1.
+PR109 ledger reconciliation and the shared WebKit frozen-audio-clock
+investigation remain active. No completed demo songs are claimed.
