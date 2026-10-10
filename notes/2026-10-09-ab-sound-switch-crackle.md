@@ -90,6 +90,48 @@ record and zero-late offline storm checks pass two focused pytest checks.
 
 Checkpoint: production correction pushed and SHA verified as
 `305b8f67ed59c5d5a9fe55da1b4b2e1c56164c2b`; the following checkpoint adds the
-extended audible-window regression and browser receipt. No PR or merge is
-performed by this investigation. Owner Safari retest and separately scoped
+extended audible-window regression and browser receipt. At that checkpoint no
+PR or main merge had been performed. Owner Safari retest and separately scoped
 focused-kit/project-transition behavior remain follow-up work.
+
+## Integration preparation
+
+[verified] Current main `585f781459ab3b2118caeaea9c45f2b1dabcba4e` merges
+cleanly into this branch, checkpoint `566d6bd1b1a1b032eb430b5e795053298bdbf5af`,
+pushed with the same remote SHA. The merge adds firmware preparation and the
+resampler command-line regression; it does not alter the A/B loader or its
+simulator inputs. The recorded simulator source hash remains exact. The broader
+engine hash now warns because `engines/test/resampler_test.cc` changed; the
+historical build receipt is retained, not rewritten to imply a new build.
+The parent will rebuild the integrated module before publishing it.
+[verified] After this merge, the focused committed-module record and zero-late
+storm pytest checks pass, with that expected engine-only warning; `git diff
+--check` passes. The stale shared Python 3.13 interpreter path was not changed;
+checks ran in an isolated worktree virtual environment through `uv`.
+
+[verified] Envelope PR #101 at `c2cf8e25487dc0b415eda0f300a11df50739b71f`
+and Warble PR #123 at `9d59072c66fc4d81c4f3e0a0f3b4a3bb36d866ba` each
+have fourteen successful CI jobs (runs 38008992570 and 38009148037). A read-only
+`git merge-tree --write-tree` of those heads reports only four generated-file
+conflicts: `engines/state/examples/metadata.json`, `sim/web/www/meta.json`,
+`sim/web/www/fm1.wasm`, and its build record. Their source changes merge cleanly.
+
+[inferred: integration plan] Merge envelope first, then Warble, preserving both
+source changes and regenerating all four artifacts together. Warble is inserted
+after Echo in the registry, shifting later ordinals; its stable ID is `warble`.
+State binary records carry engine strings and parameter UIDs
+(`engines/state/state_bin.c`), while the generated module and metadata must agree
+on the combined registry. Recheck canonical/served examples, the source record,
+native edit and kind checks, all parity scenarios including Warble, layout,
+the zero-late offline storm, and unchanged browser gates. Neither exact-head
+success nor the merge-tree substitutes for that integrated validation.
+
+[reported: owner demo brief] `notes/2026-10-09-demo-song-brief.md` on the demo
+brief branch requires the editor, panel, effects/module expansion and firmware
+streams to land before authoring four complete songs. It first rechecks the
+actual integrated registry and public profile. Envelope delay/curves and Warble
+can then be used where musically useful; these two merges alone do not complete
+every prerequisite or demonstrate rendered/listened-to demo songs.
+
+The A/B PR is prepared for review and CI; no main merge is performed here.
+The owner's native Safari listening failure remains a failure pending retest.
