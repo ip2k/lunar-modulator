@@ -50,6 +50,8 @@ needed for these small config/document changes.
 - `.serena/project.yml` enables `cpp`, `typescript` (JS included), and `python`,
   retains gitignore filtering, and excludes research/scratch/generated output.
   No WAT language is enabled here because Lunar has no `.wat` source [verified].
+  Serena normalizes this file to its full default template during initialization;
+  the normalized form is committed to avoid that formatting change on next start.
 - `sim/web/jsconfig.json` includes browser source and Node test scripts with
   ESNext modules and JS navigation enabled. It leaves `checkJs` disabled; this
   change does not establish that the editor is type-correct [verified].
@@ -154,4 +156,6 @@ One new owner-authorized memory update was saved at
 No existing memory file was edited. These account files are regular files outside
 Git [verified]; their local saves are not a verified off-machine backup. The exact
 new policy is backed up with this repository note once this branch is pushed.
+Serena also registered the isolated checkout in `/Users/likwid/.serena/serena_config.yml`
+as a consequence of explicit activation [verified]; other registrations were retained.
 Already-loaded instructions in other live sessions are not retroactively updated.
