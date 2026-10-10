@@ -116,3 +116,34 @@ tempo/transport API, a single bounded stereo capture ring, an honest maximum
 slice control and octave subdivisions to fit the buffer. It remains unbuilt
 at this checkpoint; Warble and Repeat must integrate with real rebuilt
 Wasm/metadata before their features are used in canonical demos.
+
+## Handover research merge and effect review
+
+[verified] PR107's exact head `93a7c1ba25c89780059f859b331ed7ab39ed7bf5`
+passed all 13 checks and was clean/mergeable. Root merged it with a merge
+commit and an exact-head guard; GitHub and the remote main ref both identify
+`c5fd5e9e01d5c8204e287d3986c929626f19422e`. This is stock-loader research,
+not a device execution or RAM-ownership proof.
+
+[verified: bounded source review] Repeat's initial short-loop cursor read
+the oldest full-ring history. The implementer corrected it to end each
+selected window at the frozen write head and added a nonperiodic capture
+regression. The original seam crossfade also approached a later head sample
+before wrapping to the first; it now reaches the first sample exactly without
+shortening the loop period. The implementer's focused native suite reports
+8/8 passing checks; full integration, Wasm, CI and listening remain pending.
+
+[verified] The controlled PR128 Sound 2 listening fixture is served at
+`http://127.0.0.1:8781/` from an immutable copy of head
+`1c09c5a229dd8c4ec4dd9e725f9c7bdb27f889c5`. Load First orbit, start playback,
+keep Sound 2 as A at Volume 0.70, set B's Volume to 0.15 and alternate A/B
+during notes. Existing previews on 8778/8780 are preserved. HTTP/source-byte
+checks establish delivery only; the owner's crackle retest remains open.
+
+[verified: reviewed configuration] PR132 head
+`c6db9587c1d8d1ca6f993d8f433875761f3b2b6e` selects supported `norewinds=1`
+only for the private headless PulseAudio sink. Its four-CPU WebKit capture
+passed the strict external audio gate, with 3,756 replies and no bad periods
+or refusal/resync; the failed two-CPU receipt remains. Three additional
+uninstrumented cold pairs passed. No production runtime or assertion changes.
+Its exact-head GitHub checks are queued; this is not a CI-success claim.
