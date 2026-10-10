@@ -9,9 +9,11 @@ the stock UI, and loads community modules (synths, effects, tools) as
 aarch64 Linux shared objects (`dlopen`, `create()`), installed over SSH by a
 desktop installer.
 
-**Movy** (DimaDake, MIT, v0.31.0) is a Schwung *tool module*: an
-Elektron-style knob UI plus a 16-track step sequencer modelled on Move's own.
-It is two artifacts:
+**Movy** (DimaDake, MIT; inspected at commit `5627d51`, whose module
+metadata says v0.31.0) is a Schwung *tool module*: an Elektron-style knob UI
+plus a 16-track step sequencer modelled on Move's own. The v0.31.0 tag is
+`675054f`, 38 commits before the inspected commit [verified 2026-10-09:
+GitHub API]. It is two artifacts:
 
 | Part | Language | Size | Runs where |
 | --- | --- | --- | --- |
@@ -35,7 +37,7 @@ per-track LFOs, drum layouts, transport lock with Move.
 | Languages | anything with an aarch64 Linux target: Rust, C, JS in QuickJS | C/C++ via JieLi's closed Clang fork; **no Rust, no mainline LLVM/GCC, no JS runtime worth the RAM** |
 | Host framework | Schwung shim provides audio interception, module hosting, param API, display writer | none; a custom firmware *is* the whole system |
 | Display | monochrome OLED framebuffer written by the shim | 240×240 colour TFT over SPI |
-| Controls | 32 velocity/pressure pads, 8 endless encoders + jog, step buttons, transport | 27 silicone keys, **8 knobs** (encoder/pot mix TBD), ~14 LED buttons |
+| Controls | 32 velocity/pressure pads, 8 endless encoders + jog, step buttons, transport | 27 silicone keys, **7 encoders and one MASTER pot**, ~14 LED buttons [reported: Felucca, fm1-nes; docs/01 §3] |
 | Audio | Move's instruments plus Schwung module chains | one msfa FM engine plus effects |
 | Install | copy files over SSH | re-flash the chip |
 
@@ -89,7 +91,8 @@ code is the stronger candidate for engines. See docs/11.
 
 ## 5a. Update 2026-10-01: Movy has parameter locks
 
-This document inspected Movy v0.31.0 (`5627d51`). Movy has since gained
+This document inspected Movy at commit `5627d51` (module metadata v0.31.0;
+the v0.31.0 tag is `675054f`). Movy has since gained
 Elektron-style per-step parameter locks: hold a step that has notes and turn
 a module knob, and the value is stored for that step only and plays when the
 step plays [verified at `9190e79`, `main` on 2026-10-01, 299 commits past
