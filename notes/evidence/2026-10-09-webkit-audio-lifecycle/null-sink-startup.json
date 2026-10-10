@@ -1,0 +1,5041 @@
+{
+  "exactHead": "ac3d9571b8a2db6860db60b1afb5f10246134e26",
+  "wasmSha256": "2ff8cfa92f34a9c023088838477b9d53fb565edcd7f6922b084b40c21c48851f",
+  "nativePulse": [
+    {
+      "mode": "default",
+      "phase": "idle",
+      "wall": 1791609713193,
+      "sinceLoadMs": 13,
+      "sinks": [
+        {
+          "name": "lunar",
+          "state": "IDLE",
+          "latency": {
+            "actual": 1995890,
+            "configured": 2000000
+          }
+        }
+      ],
+      "inputs": []
+    },
+    {
+      "mode": "default",
+      "phase": "client-0",
+      "wall": 1791609713202,
+      "sinceLoadMs": 22,
+      "sinks": [
+        {
+          "name": "lunar",
+          "state": "RUNNING",
+          "latency": {
+            "actual": 1956652,
+            "configured": 30000
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "corked": false,
+          "bufferLatency": 70000,
+          "sinkLatency": 1952905
+        }
+      ]
+    },
+    {
+      "mode": "default",
+      "phase": "client-50",
+      "wall": 1791609713256,
+      "sinceLoadMs": 76,
+      "sinks": [
+        {
+          "name": "lunar",
+          "state": "RUNNING",
+          "latency": {
+            "actual": 1903112,
+            "configured": 30000
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "corked": false,
+          "bufferLatency": 70000,
+          "sinkLatency": 1898685
+        }
+      ]
+    },
+    {
+      "mode": "default",
+      "phase": "client-100",
+      "wall": 1791609713304,
+      "sinceLoadMs": 124,
+      "sinks": [
+        {
+          "name": "lunar",
+          "state": "RUNNING",
+          "latency": {
+            "actual": 1854850,
+            "configured": 30000
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "corked": false,
+          "bufferLatency": 70000,
+          "sinkLatency": 1850689
+        }
+      ]
+    },
+    {
+      "mode": "default",
+      "phase": "client-250",
+      "wall": 1791609713454,
+      "sinceLoadMs": 274,
+      "sinks": [
+        {
+          "name": "lunar",
+          "state": "RUNNING",
+          "latency": {
+            "actual": 1704752,
+            "configured": 30000
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "corked": false,
+          "bufferLatency": 70000,
+          "sinkLatency": 1701175
+        }
+      ]
+    },
+    {
+      "mode": "default",
+      "phase": "client-500",
+      "wall": 1791609713707,
+      "sinceLoadMs": 527,
+      "sinks": [
+        {
+          "name": "lunar",
+          "state": "RUNNING",
+          "latency": {
+            "actual": 1453345,
+            "configured": 30000
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "corked": false,
+          "bufferLatency": 70000,
+          "sinkLatency": 1448159
+        }
+      ]
+    },
+    {
+      "mode": "default",
+      "phase": "client-1000",
+      "wall": 1791609714207,
+      "sinceLoadMs": 1027,
+      "sinks": [
+        {
+          "name": "lunar",
+          "state": "RUNNING",
+          "latency": {
+            "actual": 953606,
+            "configured": 30000
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "corked": false,
+          "bufferLatency": 70000,
+          "sinkLatency": 948470
+        }
+      ]
+    },
+    {
+      "mode": "default",
+      "phase": "client-1500",
+      "wall": 1791609714704,
+      "sinceLoadMs": 1524,
+      "sinks": [
+        {
+          "name": "lunar",
+          "state": "RUNNING",
+          "latency": {
+            "actual": 454460,
+            "configured": 30000
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "corked": false,
+          "bufferLatency": 70000,
+          "sinkLatency": 450967
+        }
+      ]
+    },
+    {
+      "mode": "default",
+      "phase": "client-2000",
+      "wall": 1791609715208,
+      "sinceLoadMs": 2028,
+      "sinks": [
+        {
+          "name": "lunar",
+          "state": "RUNNING",
+          "latency": {
+            "actual": 13055,
+            "configured": 30000
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "corked": false,
+          "bufferLatency": 70000,
+          "sinkLatency": 6892
+        }
+      ]
+    },
+    {
+      "mode": "default",
+      "clientStderr": ""
+    },
+    {
+      "mode": "norewinds",
+      "phase": "idle",
+      "wall": 1791609715231,
+      "sinceLoadMs": 12,
+      "sinks": [
+        {
+          "name": "lunar",
+          "state": "IDLE",
+          "latency": {
+            "actual": 46547,
+            "configured": 50000
+          }
+        }
+      ],
+      "inputs": []
+    },
+    {
+      "mode": "norewinds",
+      "phase": "client-0",
+      "wall": 1791609715240,
+      "sinceLoadMs": 21,
+      "sinks": [
+        {
+          "name": "lunar",
+          "state": "RUNNING",
+          "latency": {
+            "actual": 36822,
+            "configured": 30000
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "corked": false,
+          "bufferLatency": 70000,
+          "sinkLatency": 33296
+        }
+      ]
+    },
+    {
+      "mode": "norewinds",
+      "phase": "client-50",
+      "wall": 1791609715293,
+      "sinceLoadMs": 74,
+      "sinks": [
+        {
+          "name": "lunar",
+          "state": "RUNNING",
+          "latency": {
+            "actual": 15369,
+            "configured": 30000
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "corked": false,
+          "bufferLatency": 70000,
+          "sinkLatency": 10850
+        }
+      ]
+    },
+    {
+      "mode": "norewinds",
+      "phase": "client-100",
+      "wall": 1791609715344,
+      "sinceLoadMs": 125,
+      "sinks": [
+        {
+          "name": "lunar",
+          "state": "RUNNING",
+          "latency": {
+            "actual": 25427,
+            "configured": 30000
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "corked": false,
+          "bufferLatency": 70000,
+          "sinkLatency": 19783
+        }
+      ]
+    },
+    {
+      "mode": "norewinds",
+      "phase": "client-250",
+      "wall": 1791609715493,
+      "sinceLoadMs": 274,
+      "sinks": [
+        {
+          "name": "lunar",
+          "state": "RUNNING",
+          "latency": {
+            "actual": 26059,
+            "configured": 30000
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "corked": false,
+          "bufferLatency": 70000,
+          "sinkLatency": 21094
+        }
+      ]
+    },
+    {
+      "mode": "norewinds",
+      "phase": "client-500",
+      "wall": 1791609715746,
+      "sinceLoadMs": 527,
+      "sinks": [
+        {
+          "name": "lunar",
+          "state": "RUNNING",
+          "latency": {
+            "actual": 15508,
+            "configured": 30000
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "corked": false,
+          "bufferLatency": 70000,
+          "sinkLatency": 9400
+        }
+      ]
+    },
+    {
+      "mode": "norewinds",
+      "phase": "client-1000",
+      "wall": 1791609716245,
+      "sinceLoadMs": 1026,
+      "sinks": [
+        {
+          "name": "lunar",
+          "state": "RUNNING",
+          "latency": {
+            "actual": 28140,
+            "configured": 30000
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "corked": false,
+          "bufferLatency": 70000,
+          "sinkLatency": 22433
+        }
+      ]
+    },
+    {
+      "mode": "norewinds",
+      "phase": "client-1500",
+      "wall": 1791609716745,
+      "sinceLoadMs": 1526,
+      "sinks": [
+        {
+          "name": "lunar",
+          "state": "RUNNING",
+          "latency": {
+            "actual": 10666,
+            "configured": 30000
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "corked": false,
+          "bufferLatency": 70000,
+          "sinkLatency": 4203
+        }
+      ]
+    },
+    {
+      "mode": "norewinds",
+      "phase": "client-2000",
+      "wall": 1791609717246,
+      "sinceLoadMs": 2027,
+      "sinks": [
+        {
+          "name": "lunar",
+          "state": "RUNNING",
+          "latency": {
+            "actual": 21926,
+            "configured": 30000
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "corked": false,
+          "bufferLatency": 70000,
+          "sinkLatency": 15087
+        }
+      ]
+    },
+    {
+      "mode": "norewinds",
+      "clientStderr": ""
+    }
+  ],
+  "startupReports": {
+    "cold-out/default-1/startup-probe.json": {
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "checks": {
+        "the Panel layout loads none of the editor": true,
+        "the first switch loads the editor": true,
+        "a panel knob reaches the editor's row within a few frames": false,
+        "it enters the history as the panel's": true,
+        "K1-K4 mark the rows the panel's knobs turn now": true
+      },
+      "logs": [],
+      "why": [
+        "a panel knob reaches the editor's row within a few frames: {\"key\":\"s2:2\",\"frames\":34,\"ms\":549,\"chips\":[\"K1\",\"K2\",\"K3\",\"K4\"],\"knobs\":4,\"entry\":{\"origin\":\"panel\",\"how\":\"knob\",\"label\":\"S2 Harmonics\"},\"from\":\"From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33\",\"flashed\":true,\"trace\":{\"observer\":\"main-thread\",\"perturbsTiming\":true,\"events\":[{\"phase\":\"main-port\",\"type\":\"state\",\"ms\":542,\"audioTime\":0.7865759637188209,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"phase\":\"main-port\",\"type\":\"screen\",\"bytes\":null,\"ms\":543,\"audioTime\":0.7981859410430839,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"phase\":\"editor-before\",\"type\":\"changes\",\"bytes\":32,\"ms\":543,\"audioTime\":0.8185034013605442,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"phase\":\"editor-after\",\"type\":\"changes\",\"bytes\":32,\"ms\":546,\"audioTime\":0.8678458049886622,\"audioState\":\"running\",\"loading\":false,\"gen\":5,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.33\",\"currentRowValue\":\"0.33\"},{\"phase\":\"editor-before\",\"type\":\"telemetry\",\"bytes\":null,\"ms\":546,\"audioTime\":0.8678458049886622,\"audioState\":\"running\",\"loading\":false,\"gen\":5,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.33\",\"currentRowValue\":\"0.33\"},{\"phase\":\"editor-after\",\"type\":\"telemetry\",\"bytes\":null,\"ms\":546,\"audioTime\":0.8794557823129252,\"audioState\":\"running\",\"loading\":false,\"gen\":5,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.33\",\"currentRowValue\":\"0.33\"},{\"phase\":\"main-port\",\"type\":\"screen\",\"bytes\":null,\"ms\":546,\"audioTime\":0.8910657596371883,\"audioState\":\"running\",\"loading\":false,\"gen\":5,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.33\",\"currentRowValue\":\"0.33\"},{\"phase\":\"editor-before\",\"type\":\"telemetry\",\"bytes\":null,\"ms\":548,\"audioTime\":0.9200907029478458,\"audioState\":\"running\",\"loading\":false,\"gen\":5,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.33\",\"currentRowValue\":\"0.33\"},{\"phase\":\"editor-after\",\"type\":\"telemetry\",\"bytes\":null,\"ms\":548,\"audioTime\":0.9258956916099773,\"audioState\":\"running\",\"loading\":false,\"gen\":5,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.33\",\"currentRowValue\":\"0.33\"}],\"frames\":[{\"frame\":1,\"ms\":15,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":2,\"ms\":32,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":3,\"ms\":48,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":4,\"ms\":64,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":5,\"ms\":80,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":6,\"ms\":96,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":7,\"ms\":112,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":8,\"ms\":128,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":9,\"ms\":144,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":10,\"ms\":161,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":11,\"ms\":176,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":12,\"ms\":193,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":13,\"ms\":209,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":14,\"ms\":225,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":15,\"ms\":241,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":16,\"ms\":257,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":17,\"ms\":273,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":18,\"ms\":289,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":19,\"ms\":306,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":20,\"ms\":322,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":21,\"ms\":338,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":22,\"ms\":354,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":23,\"ms\":370,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":24,\"ms\":386,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":25,\"ms\":403,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":26,\"ms\":419,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":27,\"ms\":435,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":28,\"ms\":451,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":29,\"ms\":467,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":30,\"ms\":483,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":31,\"ms\":500,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":32,\"ms\":516,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":33,\"ms\":532,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"},{\"frame\":34,\"ms\":549,\"audioTime\":0.9607256235827665,\"audioState\":\"running\",\"loading\":false,\"gen\":5,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.33\",\"currentRowValue\":\"0.33\"}],\"droppedEvents\":0,\"initial\":{\"ms\":0,\"audioTime\":0.7575510204081632,\"audioState\":\"running\",\"loading\":false,\"gen\":4,\"pendingChanges\":0,\"inflight\":0,\"rowConnected\":true,\"value\":\"0.30\",\"currentRowValue\":\"0.30\"}}}"
+      ],
+      "sinkBeforePower": [
+        {
+          "name": "lunar",
+          "state": "IDLE",
+          "latency": {
+            "actual": 1968420,
+            "configured": 2000000
+          }
+        }
+      ],
+      "follow_panel": {
+        "key": "s2:2",
+        "frames": 34,
+        "ms": 549,
+        "chips": [
+          "K1",
+          "K2",
+          "K3",
+          "K4"
+        ],
+        "knobs": 4,
+        "entry": {
+          "origin": "panel",
+          "how": "knob",
+          "label": "S2 Harmonics"
+        },
+        "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+        "flashed": true,
+        "trace": {
+          "observer": "main-thread",
+          "perturbsTiming": true,
+          "events": [
+            {
+              "phase": "main-port",
+              "type": "state",
+              "ms": 542,
+              "audioTime": 0.7865759637188209,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 543,
+              "audioTime": 0.7981859410430839,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 543,
+              "audioTime": 0.8185034013605442,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 546,
+              "audioTime": 0.8678458049886622,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 546,
+              "audioTime": 0.8678458049886622,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 546,
+              "audioTime": 0.8794557823129252,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 546,
+              "audioTime": 0.8910657596371883,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 548,
+              "audioTime": 0.9200907029478458,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 548,
+              "audioTime": 0.9258956916099773,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "frames": [
+            {
+              "frame": 1,
+              "ms": 15,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 2,
+              "ms": 32,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 3,
+              "ms": 48,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 4,
+              "ms": 64,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 5,
+              "ms": 80,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 6,
+              "ms": 96,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 7,
+              "ms": 112,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 8,
+              "ms": 128,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 9,
+              "ms": 144,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 10,
+              "ms": 161,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 11,
+              "ms": 176,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 12,
+              "ms": 193,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 13,
+              "ms": 209,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 14,
+              "ms": 225,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 15,
+              "ms": 241,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 16,
+              "ms": 257,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 17,
+              "ms": 273,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 18,
+              "ms": 289,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 19,
+              "ms": 306,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 20,
+              "ms": 322,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 21,
+              "ms": 338,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 22,
+              "ms": 354,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 23,
+              "ms": 370,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 24,
+              "ms": 386,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 25,
+              "ms": 403,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 26,
+              "ms": 419,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 27,
+              "ms": 435,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 28,
+              "ms": 451,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 29,
+              "ms": 467,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 30,
+              "ms": 483,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 31,
+              "ms": 500,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 32,
+              "ms": 516,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 33,
+              "ms": 532,
+              "audioTime": 0.7575510204081632,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 34,
+              "ms": 549,
+              "audioTime": 0.9607256235827665,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "droppedEvents": 0,
+          "initial": {
+            "ms": 0,
+            "audioTime": 0.7575510204081632,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          }
+        }
+      },
+      "markers": [
+        {
+          "wall": 1791609870370,
+          "ms": 1031,
+          "audioTime": 0.11900226757369614,
+          "message": {
+            "type": "ready"
+          }
+        }
+      ],
+      "pass": false
+    },
+    "cold-out/default-2/startup-probe.json": {
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "checks": {
+        "the Panel layout loads none of the editor": true,
+        "the first switch loads the editor": true,
+        "a panel knob reaches the editor's row within a few frames": true,
+        "it enters the history as the panel's": true,
+        "K1-K4 mark the rows the panel's knobs turn now": true
+      },
+      "logs": [],
+      "why": [],
+      "sinkBeforePower": [
+        {
+          "name": "lunar",
+          "state": "IDLE",
+          "latency": {
+            "actual": 1994779,
+            "configured": 2000000
+          }
+        }
+      ],
+      "follow_panel": {
+        "key": "s2:2",
+        "frames": 2,
+        "ms": 22,
+        "chips": [
+          "K1",
+          "K2",
+          "K3",
+          "K4"
+        ],
+        "knobs": 4,
+        "entry": {
+          "origin": "panel",
+          "how": "knob",
+          "label": "S2 Harmonics"
+        },
+        "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+        "flashed": true,
+        "trace": {
+          "observer": "main-thread",
+          "perturbsTiming": true,
+          "events": [
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 1,
+              "audioTime": 0.6182312925170068,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 1,
+              "audioTime": 0.6182312925170068,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 2,
+              "audioTime": 0.6182312925170068,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "probe-clock",
+              "bytes": null,
+              "ms": 2,
+              "audioTime": 0.6182312925170068,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "probe-receipt",
+              "bytes": null,
+              "ms": 3,
+              "audioTime": 0.6182312925170068,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "state",
+              "ms": 3,
+              "audioTime": 0.6211337868480725,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 9,
+              "audioTime": 0.626938775510204,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 9,
+              "audioTime": 0.626938775510204,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 12,
+              "audioTime": 0.6298412698412699,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 12,
+              "audioTime": 0.6298412698412699,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 14,
+              "audioTime": 0.6298412698412699,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "frames": [
+            {
+              "frame": 1,
+              "ms": 6,
+              "audioTime": 0.6240362811791383,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 2,
+              "ms": 22,
+              "audioTime": 0.6385487528344671,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "droppedEvents": 0,
+          "initial": {
+            "ms": 0,
+            "audioTime": 0.6095238095238096,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          }
+        }
+      },
+      "markers": [
+        {
+          "wall": 1791609874984,
+          "ms": 936,
+          "audioTime": 0.06095238095238095,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609874983,
+            "frame": 2560,
+            "time": 0.058049886621315196,
+            "quanta": 1,
+            "initialized": false
+          }
+        },
+        {
+          "wall": 1791609875004,
+          "ms": 956,
+          "audioTime": 0.07256235827664399,
+          "message": {
+            "type": "ready"
+          }
+        },
+        {
+          "wall": 1791609875144,
+          "ms": 1096,
+          "audioTime": 0.22058956916099773,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609875073,
+            "frame": 6528,
+            "time": 0.14802721088435375,
+            "quanta": 32,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609875166,
+          "ms": 1117,
+          "audioTime": 0.24090702947845805,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609875166,
+            "frame": 10624,
+            "time": 0.24090702947845805,
+            "quanta": 64,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609875365,
+          "ms": 1316,
+          "audioTime": 0.44117913832199546,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609875259,
+            "frame": 14720,
+            "time": 0.33378684807256237,
+            "quanta": 96,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609875365,
+          "ms": 1317,
+          "audioTime": 0.44117913832199546,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609875351,
+            "frame": 18816,
+            "time": 0.4266666666666667,
+            "quanta": 128,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609875445,
+          "ms": 1396,
+          "audioTime": 0.519546485260771,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609875444,
+            "frame": 22912,
+            "time": 0.519546485260771,
+            "quanta": 160,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609875543,
+          "ms": 1494,
+          "audioTime": 0.6182312925170068,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609875541,
+            "frame": 27008,
+            "time": 0.6124263038548753,
+            "quanta": 192,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609875543,
+          "ms": 1495,
+          "audioTime": 0.6182312925170068,
+          "message": {
+            "type": "probe-receipt",
+            "wall": 1791609875543,
+            "frame": 27264,
+            "time": 0.6182312925170068,
+            "messageType": "encoder"
+          }
+        }
+      ],
+      "pass": true
+    },
+    "cold-out/norewinds-1/startup-probe.json": {
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "checks": {
+        "the Panel layout loads none of the editor": true,
+        "the first switch loads the editor": true,
+        "a panel knob reaches the editor's row within a few frames": true,
+        "it enters the history as the panel's": true,
+        "K1-K4 mark the rows the panel's knobs turn now": true
+      },
+      "logs": [],
+      "why": [],
+      "sinkBeforePower": [
+        {
+          "name": "lunar",
+          "state": "IDLE",
+          "latency": {
+            "actual": 44731,
+            "configured": 50000
+          }
+        }
+      ],
+      "follow_panel": {
+        "key": "s2:2",
+        "frames": 3,
+        "ms": 30,
+        "chips": [
+          "K1",
+          "K2",
+          "K3",
+          "K4"
+        ],
+        "knobs": 4,
+        "entry": {
+          "origin": "panel",
+          "how": "knob",
+          "label": "S2 Harmonics"
+        },
+        "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+        "flashed": true,
+        "trace": {
+          "observer": "main-thread",
+          "perturbsTiming": true,
+          "events": [
+            {
+              "phase": "main-port",
+              "type": "state",
+              "ms": 8,
+              "audioTime": 0.592108843537415,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 17,
+              "audioTime": 0.6008163265306122,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 22,
+              "audioTime": 0.6066213151927438,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 24,
+              "audioTime": 0.6066213151927438,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 28,
+              "audioTime": 0.6124263038548753,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 28,
+              "audioTime": 0.6124263038548753,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "frames": [
+            {
+              "frame": 1,
+              "ms": 1,
+              "audioTime": 0.5834013605442177,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 2,
+              "ms": 16,
+              "audioTime": 0.6008163265306122,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 3,
+              "ms": 30,
+              "audioTime": 0.6124263038548753,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "droppedEvents": 0,
+          "initial": {
+            "ms": 0,
+            "audioTime": 0.5834013605442177,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          }
+        }
+      },
+      "markers": [
+        {
+          "wall": 1791609873035,
+          "ms": 970,
+          "audioTime": 0.06675736961451247,
+          "message": {
+            "type": "ready"
+          }
+        }
+      ],
+      "pass": true
+    },
+    "cold-out/norewinds-2/startup-probe.json": {
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "checks": {
+        "the Panel layout loads none of the editor": true,
+        "the first switch loads the editor": true,
+        "a panel knob reaches the editor's row within a few frames": true,
+        "it enters the history as the panel's": true,
+        "K1-K4 mark the rows the panel's knobs turn now": true
+      },
+      "logs": [],
+      "why": [],
+      "sinkBeforePower": [
+        {
+          "name": "lunar",
+          "state": "IDLE",
+          "latency": {
+            "actual": 44556,
+            "configured": 50000
+          }
+        }
+      ],
+      "follow_panel": {
+        "key": "s2:2",
+        "frames": 2,
+        "ms": 29,
+        "chips": [
+          "K1",
+          "K2",
+          "K3",
+          "K4"
+        ],
+        "knobs": 4,
+        "entry": {
+          "origin": "panel",
+          "how": "knob",
+          "label": "S2 Harmonics"
+        },
+        "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+        "flashed": true,
+        "trace": {
+          "observer": "main-thread",
+          "perturbsTiming": true,
+          "events": [
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 2,
+              "audioTime": 0.6298412698412699,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "probe-receipt",
+              "bytes": null,
+              "ms": 10,
+              "audioTime": 0.6356462585034014,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "state",
+              "ms": 10,
+              "audioTime": 0.6385487528344671,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 14,
+              "audioTime": 0.6414512471655329,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 19,
+              "audioTime": 0.6472562358276645,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 21,
+              "audioTime": 0.6472562358276645,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 27,
+              "audioTime": 0.6559637188208617,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 28,
+              "audioTime": 0.6559637188208617,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "frames": [
+            {
+              "frame": 1,
+              "ms": 12,
+              "audioTime": 0.6385487528344671,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 2,
+              "ms": 29,
+              "audioTime": 0.6559637188208617,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "droppedEvents": 0,
+          "initial": {
+            "ms": 0,
+            "audioTime": 0.626938775510204,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          }
+        }
+      },
+      "markers": [
+        {
+          "wall": 1791609876990,
+          "ms": 932,
+          "audioTime": 0.06095238095238095,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609876989,
+            "frame": 2560,
+            "time": 0.058049886621315196,
+            "quanta": 1,
+            "initialized": false
+          }
+        },
+        {
+          "wall": 1791609877009,
+          "ms": 951,
+          "audioTime": 0.07256235827664399,
+          "message": {
+            "type": "ready"
+          }
+        },
+        {
+          "wall": 1791609877157,
+          "ms": 1099,
+          "audioTime": 0.22639455782312926,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609877079,
+            "frame": 6528,
+            "time": 0.14802721088435375,
+            "quanta": 32,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609877172,
+          "ms": 1114,
+          "audioTime": 0.24090702947845805,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609877172,
+            "frame": 10624,
+            "time": 0.24090702947845805,
+            "quanta": 64,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609877365,
+          "ms": 1308,
+          "audioTime": 0.43537414965986393,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609877337,
+            "frame": 14720,
+            "time": 0.33378684807256237,
+            "quanta": 96,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609877366,
+          "ms": 1308,
+          "audioTime": 0.43537414965986393,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609877357,
+            "frame": 18816,
+            "time": 0.4266666666666667,
+            "quanta": 128,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609877453,
+          "ms": 1395,
+          "audioTime": 0.5224489795918368,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609877450,
+            "frame": 22912,
+            "time": 0.519546485260771,
+            "quanta": 160,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609877543,
+          "ms": 1485,
+          "audioTime": 0.615328798185941,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609877543,
+            "frame": 27008,
+            "time": 0.6124263038548753,
+            "quanta": 192,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609877567,
+          "ms": 1509,
+          "audioTime": 0.6356462585034014,
+          "message": {
+            "type": "probe-receipt",
+            "wall": 1791609877566,
+            "frame": 28032,
+            "time": 0.6356462585034014,
+            "messageType": "encoder"
+          }
+        }
+      ],
+      "pass": true
+    },
+    "exact-out/default-1/startup-probe.json": {
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "checks": {
+        "the Panel layout loads none of the editor": true,
+        "the first switch loads the editor": true,
+        "a panel knob reaches the editor's row within a few frames": true,
+        "it enters the history as the panel's": true,
+        "K1-K4 mark the rows the panel's knobs turn now": true
+      },
+      "logs": [],
+      "why": [],
+      "follow_panel": {
+        "key": "s2:2",
+        "frames": 2,
+        "ms": 23,
+        "chips": [
+          "K1",
+          "K2",
+          "K3",
+          "K4"
+        ],
+        "knobs": 4,
+        "entry": {
+          "origin": "panel",
+          "how": "knob",
+          "label": "S2 Harmonics"
+        },
+        "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+        "flashed": true,
+        "trace": {
+          "observer": "main-thread",
+          "perturbsTiming": true,
+          "events": [
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 2,
+              "audioTime": 0.8997732426303855,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "state",
+              "ms": 6,
+              "audioTime": 0.905578231292517,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 12,
+              "audioTime": 0.9113832199546485,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 17,
+              "audioTime": 0.9171882086167801,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 19,
+              "audioTime": 0.9171882086167801,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "frames": [
+            {
+              "frame": 1,
+              "ms": 7,
+              "audioTime": 0.905578231292517,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 2,
+              "ms": 23,
+              "audioTime": 0.9200907029478458,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "droppedEvents": 0,
+          "initial": {
+            "ms": 0,
+            "audioTime": 0.8997732426303855,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          }
+        }
+      },
+      "markers": [
+        {
+          "wall": 1791609637142,
+          "ms": 933,
+          "audioTime": 0.09868480725623582,
+          "message": {
+            "type": "ready"
+          }
+        }
+      ],
+      "pass": true
+    },
+    "exact-out/default-2/startup-probe.json": {
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "checks": {
+        "the Panel layout loads none of the editor": true,
+        "the first switch loads the editor": true,
+        "a panel knob reaches the editor's row within a few frames": true,
+        "it enters the history as the panel's": true,
+        "K1-K4 mark the rows the panel's knobs turn now": true
+      },
+      "logs": [],
+      "why": [],
+      "follow_panel": {
+        "key": "s2:2",
+        "frames": 2,
+        "ms": 23,
+        "chips": [
+          "K1",
+          "K2",
+          "K3",
+          "K4"
+        ],
+        "knobs": 4,
+        "entry": {
+          "origin": "panel",
+          "how": "knob",
+          "label": "S2 Harmonics"
+        },
+        "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+        "flashed": true,
+        "trace": {
+          "observer": "main-thread",
+          "perturbsTiming": true,
+          "events": [
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 1,
+              "audioTime": 0.6646712018140589,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 4,
+              "audioTime": 0.6675736961451247,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 5,
+              "audioTime": 0.6675736961451247,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "state",
+              "ms": 9,
+              "audioTime": 0.6704761904761904,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 10,
+              "audioTime": 0.6733786848072563,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 12,
+              "audioTime": 0.6733786848072563,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 16,
+              "audioTime": 0.6791836734693878,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "frames": [
+            {
+              "frame": 1,
+              "ms": 6,
+              "audioTime": 0.6675736961451247,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 2,
+              "ms": 23,
+              "audioTime": 0.6849886621315193,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "droppedEvents": 0,
+          "initial": {
+            "ms": 0,
+            "audioTime": 0.6617687074829932,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          }
+        }
+      },
+      "markers": [
+        {
+          "wall": 1791609639375,
+          "ms": 914,
+          "audioTime": 0.09868480725623582,
+          "message": {
+            "type": "ready"
+          }
+        }
+      ],
+      "pass": true
+    },
+    "exact-out/default-3/startup-probe.json": {
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "checks": {
+        "the Panel layout loads none of the editor": true,
+        "the first switch loads the editor": true,
+        "a panel knob reaches the editor's row within a few frames": true,
+        "it enters the history as the panel's": true,
+        "K1-K4 mark the rows the panel's knobs turn now": true
+      },
+      "logs": [],
+      "why": [],
+      "follow_panel": {
+        "key": "s2:2",
+        "frames": 2,
+        "ms": 82,
+        "chips": [
+          "K1",
+          "K2",
+          "K3",
+          "K4"
+        ],
+        "knobs": 4,
+        "entry": {
+          "origin": "panel",
+          "how": "knob",
+          "label": "S2 Harmonics"
+        },
+        "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+        "flashed": true,
+        "trace": {
+          "observer": "main-thread",
+          "perturbsTiming": true,
+          "events": [
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 5,
+              "audioTime": 0.6356462585034014,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "state",
+              "ms": 7,
+              "audioTime": 0.6385487528344671,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 10,
+              "audioTime": 0.6414512471655329,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 11,
+              "audioTime": 0.6414512471655329,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 16,
+              "audioTime": 0.6472562358276645,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 72,
+              "audioTime": 0.6704761904761904,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 73,
+              "audioTime": 0.6791836734693878,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 75,
+              "audioTime": 0.7053061224489796,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 75,
+              "audioTime": 0.7053061224489796,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 75,
+              "audioTime": 0.7053061224489796,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "frames": [
+            {
+              "frame": 1,
+              "ms": 3,
+              "audioTime": 0.6327437641723356,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 2,
+              "ms": 82,
+              "audioTime": 0.7140136054421768,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "droppedEvents": 0,
+          "initial": {
+            "ms": 0,
+            "audioTime": 0.6298412698412699,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          }
+        }
+      },
+      "markers": [
+        {
+          "wall": 1791609641401,
+          "ms": 953,
+          "audioTime": 0.06675736961451247,
+          "message": {
+            "type": "ready"
+          }
+        }
+      ],
+      "pass": true
+    },
+    "exact-out/default-4/startup-probe.json": {
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "checks": {
+        "the Panel layout loads none of the editor": true,
+        "the first switch loads the editor": true,
+        "a panel knob reaches the editor's row within a few frames": true,
+        "it enters the history as the panel's": true,
+        "K1-K4 mark the rows the panel's knobs turn now": true
+      },
+      "logs": [],
+      "why": [],
+      "follow_panel": {
+        "key": "s2:2",
+        "frames": 2,
+        "ms": 28,
+        "chips": [
+          "K1",
+          "K2",
+          "K3",
+          "K4"
+        ],
+        "knobs": 4,
+        "entry": {
+          "origin": "panel",
+          "how": "knob",
+          "label": "S2 Harmonics"
+        },
+        "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+        "flashed": true,
+        "trace": {
+          "observer": "main-thread",
+          "perturbsTiming": true,
+          "events": [
+            {
+              "phase": "main-port",
+              "type": "probe-receipt",
+              "bytes": null,
+              "ms": 9,
+              "audioTime": 0.676281179138322,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "state",
+              "ms": 9,
+              "audioTime": 0.676281179138322,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 14,
+              "audioTime": 0.6791836734693878,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 14,
+              "audioTime": 0.6791836734693878,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 14,
+              "audioTime": 0.6791836734693878,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 23,
+              "audioTime": 0.6907936507936508,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 25,
+              "audioTime": 0.6907936507936508,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "frames": [
+            {
+              "frame": 1,
+              "ms": 11,
+              "audioTime": 0.676281179138322,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 2,
+              "ms": 28,
+              "audioTime": 0.6936961451247166,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "droppedEvents": 0,
+          "initial": {
+            "ms": 0,
+            "audioTime": 0.6646712018140589,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          }
+        }
+      },
+      "markers": [
+        {
+          "wall": 1791609643452,
+          "ms": 908,
+          "audioTime": 0.08707482993197278,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609643452,
+            "frame": 3712,
+            "time": 0.08417233560090703,
+            "quanta": 1,
+            "initialized": false
+          }
+        },
+        {
+          "wall": 1791609643472,
+          "ms": 928,
+          "audioTime": 0.09868480725623582,
+          "message": {
+            "type": "ready"
+          }
+        },
+        {
+          "wall": 1791609643542,
+          "ms": 998,
+          "audioTime": 0.17705215419501133,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609643541,
+            "frame": 7680,
+            "time": 0.17414965986394557,
+            "quanta": 32,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609643640,
+          "ms": 1097,
+          "audioTime": 0.27573696145124715,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609643636,
+            "frame": 11776,
+            "time": 0.26702947845804986,
+            "quanta": 64,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609643736,
+          "ms": 1192,
+          "audioTime": 0.36281179138321995,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609643736,
+            "frame": 15872,
+            "time": 0.3599092970521542,
+            "quanta": 96,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609643859,
+          "ms": 1315,
+          "audioTime": 0.49342403628117915,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609643833,
+            "frame": 19968,
+            "time": 0.4527891156462585,
+            "quanta": 128,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609643931,
+          "ms": 1387,
+          "audioTime": 0.5572789115646258,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609643930,
+            "frame": 24064,
+            "time": 0.5456689342403628,
+            "quanta": 160,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609644030,
+          "ms": 1486,
+          "audioTime": 0.6646712018140589,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609644029,
+            "frame": 28160,
+            "time": 0.6385487528344671,
+            "quanta": 192,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609644041,
+          "ms": 1497,
+          "audioTime": 0.6733786848072563,
+          "message": {
+            "type": "probe-receipt",
+            "wall": 1791609644040,
+            "frame": 29696,
+            "time": 0.6733786848072563,
+            "messageType": "encoder"
+          }
+        }
+      ],
+      "pass": true
+    },
+    "exact-out/default-5/startup-probe.json": {
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "checks": {
+        "the Panel layout loads none of the editor": true,
+        "the first switch loads the editor": true,
+        "a panel knob reaches the editor's row within a few frames": true,
+        "it enters the history as the panel's": true,
+        "K1-K4 mark the rows the panel's knobs turn now": true
+      },
+      "logs": [],
+      "why": [],
+      "follow_panel": {
+        "key": "s2:2",
+        "frames": 2,
+        "ms": 29,
+        "chips": [
+          "K1",
+          "K2",
+          "K3",
+          "K4"
+        ],
+        "knobs": 4,
+        "entry": {
+          "origin": "panel",
+          "how": "knob",
+          "label": "S2 Harmonics"
+        },
+        "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+        "flashed": true,
+        "trace": {
+          "observer": "main-thread",
+          "perturbsTiming": true,
+          "events": [
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 1,
+              "audioTime": 0.6559637188208617,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 1,
+              "audioTime": 0.6588662131519274,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 2,
+              "audioTime": 0.6617687074829932,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 2,
+              "audioTime": 0.6617687074829932,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "probe-clock",
+              "bytes": null,
+              "ms": 2,
+              "audioTime": 0.6617687074829932,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "probe-receipt",
+              "bytes": null,
+              "ms": 6,
+              "audioTime": 0.6646712018140589,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "state",
+              "ms": 7,
+              "audioTime": 0.6675736961451247,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 7,
+              "audioTime": 0.6675736961451247,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 8,
+              "audioTime": 0.6675736961451247,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 10,
+              "audioTime": 0.6704761904761904,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 15,
+              "audioTime": 0.676281179138322,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 17,
+              "audioTime": 0.676281179138322,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "frames": [
+            {
+              "frame": 1,
+              "ms": 13,
+              "audioTime": 0.6733786848072563,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 2,
+              "ms": 29,
+              "audioTime": 0.687891156462585,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "droppedEvents": 0,
+          "initial": {
+            "ms": 1,
+            "audioTime": 0.6414512471655329,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          }
+        }
+      },
+      "markers": [
+        {
+          "wall": 1791609645460,
+          "ms": 907,
+          "audioTime": 0.08997732426303855,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609645459,
+            "frame": 3840,
+            "time": 0.08707482993197278,
+            "quanta": 1,
+            "initialized": false
+          }
+        },
+        {
+          "wall": 1791609645479,
+          "ms": 926,
+          "audioTime": 0.10158730158730159,
+          "message": {
+            "type": "ready"
+          }
+        },
+        {
+          "wall": 1791609645549,
+          "ms": 996,
+          "audioTime": 0.1799546485260771,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609645549,
+            "frame": 7808,
+            "time": 0.17705215419501133,
+            "quanta": 32,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609645642,
+          "ms": 1089,
+          "audioTime": 0.2728344671201814,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609645642,
+            "frame": 11904,
+            "time": 0.2699319727891156,
+            "quanta": 64,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609645852,
+          "ms": 1299,
+          "audioTime": 0.4818140589569161,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609645736,
+            "frame": 16000,
+            "time": 0.36281179138321995,
+            "quanta": 96,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609645853,
+          "ms": 1300,
+          "audioTime": 0.4818140589569161,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609645833,
+            "frame": 20096,
+            "time": 0.4556916099773243,
+            "quanta": 128,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609645932,
+          "ms": 1379,
+          "audioTime": 0.5601814058956917,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609645932,
+            "frame": 24192,
+            "time": 0.5485714285714286,
+            "quanta": 160,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609646032,
+          "ms": 1479,
+          "audioTime": 0.6617687074829932,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609646031,
+            "frame": 28288,
+            "time": 0.6414512471655329,
+            "quanta": 192,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609646037,
+          "ms": 1483,
+          "audioTime": 0.6646712018140589,
+          "message": {
+            "type": "probe-receipt",
+            "wall": 1791609646036,
+            "frame": 29312,
+            "time": 0.6646712018140589,
+            "messageType": "encoder"
+          }
+        }
+      ],
+      "pass": true
+    },
+    "exact-out/default-6/startup-probe.json": {
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "checks": {
+        "the Panel layout loads none of the editor": true,
+        "the first switch loads the editor": true,
+        "a panel knob reaches the editor's row within a few frames": true,
+        "it enters the history as the panel's": true,
+        "K1-K4 mark the rows the panel's knobs turn now": true
+      },
+      "logs": [],
+      "why": [],
+      "follow_panel": {
+        "key": "s2:2",
+        "frames": 2,
+        "ms": 19,
+        "chips": [
+          "K1",
+          "K2",
+          "K3",
+          "K4"
+        ],
+        "knobs": 4,
+        "entry": {
+          "origin": "panel",
+          "how": "knob",
+          "label": "S2 Harmonics"
+        },
+        "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+        "flashed": true,
+        "trace": {
+          "observer": "main-thread",
+          "perturbsTiming": true,
+          "events": [
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 3,
+              "audioTime": 0.6675736961451247,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "probe-receipt",
+              "bytes": null,
+              "ms": 8,
+              "audioTime": 0.6704761904761904,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "state",
+              "ms": 8,
+              "audioTime": 0.6733786848072563,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 8,
+              "audioTime": 0.6733786848072563,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 10,
+              "audioTime": 0.6733786848072563,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 14,
+              "audioTime": 0.6791836734693878,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "frames": [
+            {
+              "frame": 1,
+              "ms": 3,
+              "audioTime": 0.6675736961451247,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 2,
+              "ms": 19,
+              "audioTime": 0.6820861678004535,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "droppedEvents": 0,
+          "initial": {
+            "ms": 0,
+            "audioTime": 0.6646712018140589,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          }
+        }
+      },
+      "markers": [
+        {
+          "wall": 1791609647455,
+          "ms": 900,
+          "audioTime": 0.08707482993197278,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609647454,
+            "frame": 3712,
+            "time": 0.08417233560090703,
+            "quanta": 1,
+            "initialized": false
+          }
+        },
+        {
+          "wall": 1791609647475,
+          "ms": 920,
+          "audioTime": 0.09868480725623582,
+          "message": {
+            "type": "ready"
+          }
+        },
+        {
+          "wall": 1791609647544,
+          "ms": 989,
+          "audioTime": 0.17414965986394557,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609647544,
+            "frame": 7680,
+            "time": 0.17414965986394557,
+            "quanta": 32,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609647642,
+          "ms": 1088,
+          "audioTime": 0.2728344671201814,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609647637,
+            "frame": 11776,
+            "time": 0.26702947845804986,
+            "quanta": 64,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609647733,
+          "ms": 1179,
+          "audioTime": 0.3657142857142857,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609647732,
+            "frame": 15872,
+            "time": 0.3599092970521542,
+            "quanta": 96,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609647852,
+          "ms": 1298,
+          "audioTime": 0.48471655328798186,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609647834,
+            "frame": 19968,
+            "time": 0.4527891156462585,
+            "quanta": 128,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609647932,
+          "ms": 1377,
+          "audioTime": 0.5630839002267574,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609647930,
+            "frame": 24064,
+            "time": 0.5456689342403628,
+            "quanta": 160,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609648031,
+          "ms": 1476,
+          "audioTime": 0.6617687074829932,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609648029,
+            "frame": 28160,
+            "time": 0.6385487528344671,
+            "quanta": 192,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609648040,
+          "ms": 1486,
+          "audioTime": 0.6704761904761904,
+          "message": {
+            "type": "probe-receipt",
+            "wall": 1791609648040,
+            "frame": 29568,
+            "time": 0.6704761904761904,
+            "messageType": "encoder"
+          }
+        }
+      ],
+      "pass": true
+    },
+    "exact-out/norewinds-1/startup-probe.json": {
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "checks": {
+        "the Panel layout loads none of the editor": true,
+        "the first switch loads the editor": true,
+        "a panel knob reaches the editor's row within a few frames": true,
+        "it enters the history as the panel's": true,
+        "K1-K4 mark the rows the panel's knobs turn now": true
+      },
+      "logs": [],
+      "why": [],
+      "follow_panel": {
+        "key": "s2:2",
+        "frames": 1,
+        "ms": 12,
+        "chips": [
+          "K1",
+          "K2",
+          "K3",
+          "K4"
+        ],
+        "knobs": 4,
+        "entry": {
+          "origin": "panel",
+          "how": "knob",
+          "label": "S2 Harmonics"
+        },
+        "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+        "flashed": true,
+        "trace": {
+          "observer": "main-thread",
+          "perturbsTiming": true,
+          "events": [
+            {
+              "phase": "main-port",
+              "type": "state",
+              "ms": 8,
+              "audioTime": 0.6791836734693878,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 9,
+              "audioTime": 0.6791836734693878,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 11,
+              "audioTime": 0.6791836734693878,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "frames": [
+            {
+              "frame": 1,
+              "ms": 12,
+              "audioTime": 0.6820861678004535,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "droppedEvents": 0,
+          "initial": {
+            "ms": 0,
+            "audioTime": 0.6704761904761904,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          }
+        }
+      },
+      "markers": [
+        {
+          "wall": 1791609649476,
+          "ms": 918,
+          "audioTime": 0.10448979591836735,
+          "message": {
+            "type": "ready"
+          }
+        }
+      ],
+      "pass": true
+    },
+    "exact-out/norewinds-2/startup-probe.json": {
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "checks": {
+        "the Panel layout loads none of the editor": true,
+        "the first switch loads the editor": true,
+        "a panel knob reaches the editor's row within a few frames": true,
+        "it enters the history as the panel's": true,
+        "K1-K4 mark the rows the panel's knobs turn now": true
+      },
+      "logs": [],
+      "why": [],
+      "follow_panel": {
+        "key": "s2:2",
+        "frames": 3,
+        "ms": 97,
+        "chips": [
+          "K1",
+          "K2",
+          "K3",
+          "K4"
+        ],
+        "knobs": 4,
+        "entry": {
+          "origin": "panel",
+          "how": "knob",
+          "label": "S2 Harmonics"
+        },
+        "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+        "flashed": true,
+        "trace": {
+          "observer": "main-thread",
+          "perturbsTiming": true,
+          "events": [
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 1,
+              "audioTime": 0.6240362811791383,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 1,
+              "audioTime": 0.6240362811791383,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 1,
+              "audioTime": 0.6240362811791383,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 1,
+              "audioTime": 0.6240362811791383,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "state",
+              "ms": 5,
+              "audioTime": 0.6298412698412699,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 11,
+              "audioTime": 0.6356462585034014,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 11,
+              "audioTime": 0.6356462585034014,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 14,
+              "audioTime": 0.6385487528344671,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 21,
+              "audioTime": 0.6443537414965986,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 22,
+              "audioTime": 0.6472562358276645,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "frames": [
+            {
+              "frame": 1,
+              "ms": 2,
+              "audioTime": 0.626938775510204,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 2,
+              "ms": 18,
+              "audioTime": 0.6414512471655329,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 3,
+              "ms": 97,
+              "audioTime": 0.6617687074829932,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "droppedEvents": 0,
+          "initial": {
+            "ms": 0,
+            "audioTime": 0.6095238095238096,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          }
+        }
+      },
+      "markers": [
+        {
+          "wall": 1791609651485,
+          "ms": 933,
+          "audioTime": 0.06965986394557823,
+          "message": {
+            "type": "ready"
+          }
+        }
+      ],
+      "pass": true
+    },
+    "exact-out/norewinds-3/startup-probe.json": {
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "checks": {
+        "the Panel layout loads none of the editor": true,
+        "the first switch loads the editor": true,
+        "a panel knob reaches the editor's row within a few frames": true,
+        "it enters the history as the panel's": true,
+        "K1-K4 mark the rows the panel's knobs turn now": true
+      },
+      "logs": [],
+      "why": [],
+      "follow_panel": {
+        "key": "s2:2",
+        "frames": 1,
+        "ms": 13,
+        "chips": [
+          "K1",
+          "K2",
+          "K3",
+          "K4"
+        ],
+        "knobs": 4,
+        "entry": {
+          "origin": "panel",
+          "how": "knob",
+          "label": "S2 Harmonics"
+        },
+        "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+        "flashed": true,
+        "trace": {
+          "observer": "main-thread",
+          "perturbsTiming": true,
+          "events": [
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 2,
+              "audioTime": 0.6675736961451247,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 2,
+              "audioTime": 0.6675736961451247,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 2,
+              "audioTime": 0.6675736961451247,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "state",
+              "ms": 5,
+              "audioTime": 0.6704761904761904,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 6,
+              "audioTime": 0.6704761904761904,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 8,
+              "audioTime": 0.6733786848072563,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 11,
+              "audioTime": 0.676281179138322,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 11,
+              "audioTime": 0.676281179138322,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 12,
+              "audioTime": 0.676281179138322,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "frames": [
+            {
+              "frame": 1,
+              "ms": 12,
+              "audioTime": 0.676281179138322,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "droppedEvents": 0,
+          "initial": {
+            "ms": 0,
+            "audioTime": 0.6501587301587302,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          }
+        }
+      },
+      "markers": [
+        {
+          "wall": 1791609653469,
+          "ms": 878,
+          "audioTime": 0.09578231292517007,
+          "message": {
+            "type": "ready"
+          }
+        }
+      ],
+      "pass": true
+    },
+    "exact-out/norewinds-4/startup-probe.json": {
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "checks": {
+        "the Panel layout loads none of the editor": true,
+        "the first switch loads the editor": true,
+        "a panel knob reaches the editor's row within a few frames": true,
+        "it enters the history as the panel's": true,
+        "K1-K4 mark the rows the panel's knobs turn now": true
+      },
+      "logs": [],
+      "why": [],
+      "follow_panel": {
+        "key": "s2:2",
+        "frames": 1,
+        "ms": 11,
+        "chips": [
+          "K1",
+          "K2",
+          "K3",
+          "K4"
+        ],
+        "knobs": 4,
+        "entry": {
+          "origin": "panel",
+          "how": "knob",
+          "label": "S2 Harmonics"
+        },
+        "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+        "flashed": true,
+        "trace": {
+          "observer": "main-thread",
+          "perturbsTiming": true,
+          "events": [
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 0,
+              "audioTime": 0.6240362811791383,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 1,
+              "audioTime": 0.6240362811791383,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 1,
+              "audioTime": 0.6240362811791383,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "probe-clock",
+              "bytes": null,
+              "ms": 1,
+              "audioTime": 0.6240362811791383,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "probe-receipt",
+              "bytes": null,
+              "ms": 2,
+              "audioTime": 0.626938775510204,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "state",
+              "ms": 3,
+              "audioTime": 0.626938775510204,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 6,
+              "audioTime": 0.6298412698412699,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 6,
+              "audioTime": 0.6298412698412699,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 8,
+              "audioTime": 0.6298412698412699,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 9,
+              "audioTime": 0.6327437641723356,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 9,
+              "audioTime": 0.6327437641723356,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "frames": [
+            {
+              "frame": 1,
+              "ms": 11,
+              "audioTime": 0.6327437641723356,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "droppedEvents": 0,
+          "initial": {
+            "ms": 0,
+            "audioTime": 0.6240362811791383,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          }
+        }
+      },
+      "markers": [
+        {
+          "wall": 1791609655470,
+          "ms": 920,
+          "audioTime": 0.06095238095238095,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609655469,
+            "frame": 2560,
+            "time": 0.058049886621315196,
+            "quanta": 1,
+            "initialized": false
+          }
+        },
+        {
+          "wall": 1791609655490,
+          "ms": 941,
+          "audioTime": 0.07256235827664399,
+          "message": {
+            "type": "ready"
+          }
+        },
+        {
+          "wall": 1791609655629,
+          "ms": 1080,
+          "audioTime": 0.19156462585034015,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609655558,
+            "frame": 6528,
+            "time": 0.14802721088435375,
+            "quanta": 32,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609655651,
+          "ms": 1102,
+          "audioTime": 0.24090702947845805,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609655651,
+            "frame": 10624,
+            "time": 0.24090702947845805,
+            "quanta": 64,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609655861,
+          "ms": 1312,
+          "audioTime": 0.4527891156462585,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609655744,
+            "frame": 14720,
+            "time": 0.33378684807256237,
+            "quanta": 96,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609655861,
+          "ms": 1312,
+          "audioTime": 0.4527891156462585,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609655837,
+            "frame": 18816,
+            "time": 0.4266666666666667,
+            "quanta": 128,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609655930,
+          "ms": 1381,
+          "audioTime": 0.5224489795918368,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609655930,
+            "frame": 22912,
+            "time": 0.519546485260771,
+            "quanta": 160,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609656033,
+          "ms": 1484,
+          "audioTime": 0.6240362811791383,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609656031,
+            "frame": 27008,
+            "time": 0.6124263038548753,
+            "quanta": 192,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609656034,
+          "ms": 1485,
+          "audioTime": 0.6240362811791383,
+          "message": {
+            "type": "probe-receipt",
+            "wall": 1791609656034,
+            "frame": 27520,
+            "time": 0.6240362811791383,
+            "messageType": "encoder"
+          }
+        }
+      ],
+      "pass": true
+    },
+    "exact-out/norewinds-5/startup-probe.json": {
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "checks": {
+        "the Panel layout loads none of the editor": true,
+        "the first switch loads the editor": true,
+        "a panel knob reaches the editor's row within a few frames": true,
+        "it enters the history as the panel's": true,
+        "K1-K4 mark the rows the panel's knobs turn now": true
+      },
+      "logs": [],
+      "why": [],
+      "follow_panel": {
+        "key": "s2:2",
+        "frames": 1,
+        "ms": 76,
+        "chips": [
+          "K1",
+          "K2",
+          "K3",
+          "K4"
+        ],
+        "knobs": 4,
+        "entry": {
+          "origin": "panel",
+          "how": "knob",
+          "label": "S2 Harmonics"
+        },
+        "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+        "flashed": true,
+        "trace": {
+          "observer": "main-thread",
+          "perturbsTiming": true,
+          "events": [
+            {
+              "phase": "main-port",
+              "type": "probe-receipt",
+              "bytes": null,
+              "ms": 9,
+              "audioTime": 0.6443537414965986,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "state",
+              "ms": 9,
+              "audioTime": 0.6472562358276645,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 72,
+              "audioTime": 0.6530612244897959,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 74,
+              "audioTime": 0.7024036281179138,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "frames": [
+            {
+              "frame": 1,
+              "ms": 76,
+              "audioTime": 0.7140136054421768,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "droppedEvents": 0,
+          "initial": {
+            "ms": 0,
+            "audioTime": 0.6385487528344671,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          }
+        }
+      },
+      "markers": [
+        {
+          "wall": 1791609657483,
+          "ms": 925,
+          "audioTime": 0.06385487528344672,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609657482,
+            "frame": 2688,
+            "time": 0.06095238095238095,
+            "quanta": 1,
+            "initialized": false
+          }
+        },
+        {
+          "wall": 1791609657503,
+          "ms": 946,
+          "audioTime": 0.07546485260770976,
+          "message": {
+            "type": "ready"
+          }
+        },
+        {
+          "wall": 1791609657659,
+          "ms": 1102,
+          "audioTime": 0.24090702947845805,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609657571,
+            "frame": 6656,
+            "time": 0.1509297052154195,
+            "quanta": 32,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609657668,
+          "ms": 1110,
+          "audioTime": 0.2438095238095238,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609657667,
+            "frame": 10752,
+            "time": 0.2438095238095238,
+            "quanta": 64,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609657855,
+          "ms": 1298,
+          "audioTime": 0.43537414965986393,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609657829,
+            "frame": 14848,
+            "time": 0.33668934240362813,
+            "quanta": 96,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609657856,
+          "ms": 1299,
+          "audioTime": 0.43537414965986393,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609657850,
+            "frame": 18944,
+            "time": 0.4295691609977324,
+            "quanta": 128,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609657943,
+          "ms": 1386,
+          "audioTime": 0.5224489795918368,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609657943,
+            "frame": 23040,
+            "time": 0.5224489795918368,
+            "quanta": 160,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609658038,
+          "ms": 1480,
+          "audioTime": 0.6182312925170068,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609658036,
+            "frame": 27136,
+            "time": 0.615328798185941,
+            "quanta": 192,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609658065,
+          "ms": 1507,
+          "audioTime": 0.6443537414965986,
+          "message": {
+            "type": "probe-receipt",
+            "wall": 1791609658065,
+            "frame": 28416,
+            "time": 0.6443537414965986,
+            "messageType": "encoder"
+          }
+        }
+      ],
+      "pass": true
+    },
+    "exact-out/norewinds-6/startup-probe.json": {
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "checks": {
+        "the Panel layout loads none of the editor": true,
+        "the first switch loads the editor": true,
+        "a panel knob reaches the editor's row within a few frames": true,
+        "it enters the history as the panel's": true,
+        "K1-K4 mark the rows the panel's knobs turn now": true
+      },
+      "logs": [],
+      "why": [],
+      "follow_panel": {
+        "key": "s2:2",
+        "frames": 2,
+        "ms": 29,
+        "chips": [
+          "K1",
+          "K2",
+          "K3",
+          "K4"
+        ],
+        "knobs": 4,
+        "entry": {
+          "origin": "panel",
+          "how": "knob",
+          "label": "S2 Harmonics"
+        },
+        "from": "From the panel: KNOB2 S2 Harmonics 0.30 \u2192 0.33",
+        "flashed": true,
+        "trace": {
+          "observer": "main-thread",
+          "perturbsTiming": true,
+          "events": [
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 1,
+              "audioTime": 0.6704761904761904,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "probe-clock",
+              "bytes": null,
+              "ms": 1,
+              "audioTime": 0.6704761904761904,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 1,
+              "audioTime": 0.676281179138322,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 1,
+              "audioTime": 0.676281179138322,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 2,
+              "audioTime": 0.676281179138322,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "probe-receipt",
+              "bytes": null,
+              "ms": 3,
+              "audioTime": 0.676281179138322,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "state",
+              "ms": 4,
+              "audioTime": 0.6791836734693878,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "main-port",
+              "type": "screen",
+              "bytes": null,
+              "ms": 7,
+              "audioTime": 0.6820861678004535,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 10,
+              "audioTime": 0.6849886621315193,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "telemetry",
+              "bytes": null,
+              "ms": 10,
+              "audioTime": 0.6849886621315193,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-before",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 18,
+              "audioTime": 0.6936961451247166,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "phase": "editor-after",
+              "type": "changes",
+              "bytes": 32,
+              "ms": 21,
+              "audioTime": 0.6936961451247166,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "frames": [
+            {
+              "frame": 1,
+              "ms": 13,
+              "audioTime": 0.687891156462585,
+              "audioState": "running",
+              "loading": false,
+              "gen": 4,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.30",
+              "currentRowValue": "0.30"
+            },
+            {
+              "frame": 2,
+              "ms": 29,
+              "audioTime": 0.7024036281179138,
+              "audioState": "running",
+              "loading": false,
+              "gen": 5,
+              "pendingChanges": 0,
+              "inflight": 0,
+              "rowConnected": true,
+              "value": "0.33",
+              "currentRowValue": "0.33"
+            }
+          ],
+          "droppedEvents": 0,
+          "initial": {
+            "ms": 0,
+            "audioTime": 0.6559637188208617,
+            "audioState": "running",
+            "loading": false,
+            "gen": 4,
+            "pendingChanges": 0,
+            "inflight": 0,
+            "rowConnected": true,
+            "value": "0.30",
+            "currentRowValue": "0.30"
+          }
+        }
+      },
+      "markers": [
+        {
+          "wall": 1791609659452,
+          "ms": 863,
+          "audioTime": 0.09287981859410431,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609659449,
+            "frame": 3840,
+            "time": 0.08707482993197278,
+            "quanta": 1,
+            "initialized": false
+          }
+        },
+        {
+          "wall": 1791609659469,
+          "ms": 881,
+          "audioTime": 0.10158730158730159,
+          "message": {
+            "type": "ready"
+          }
+        },
+        {
+          "wall": 1791609659540,
+          "ms": 952,
+          "audioTime": 0.1799546485260771,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609659538,
+            "frame": 7808,
+            "time": 0.17705215419501133,
+            "quanta": 32,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609659633,
+          "ms": 1045,
+          "audioTime": 0.2728344671201814,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609659631,
+            "frame": 11904,
+            "time": 0.2699319727891156,
+            "quanta": 64,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609659859,
+          "ms": 1271,
+          "audioTime": 0.4992290249433107,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609659736,
+            "frame": 16000,
+            "time": 0.36281179138321995,
+            "quanta": 96,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609659859,
+          "ms": 1271,
+          "audioTime": 0.4992290249433107,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609659832,
+            "frame": 20096,
+            "time": 0.4556916099773243,
+            "quanta": 128,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609659931,
+          "ms": 1343,
+          "audioTime": 0.5717913832199546,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609659930,
+            "frame": 24192,
+            "time": 0.5485714285714286,
+            "quanta": 160,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609660035,
+          "ms": 1447,
+          "audioTime": 0.6704761904761904,
+          "message": {
+            "type": "probe-clock",
+            "wall": 1791609660032,
+            "frame": 28288,
+            "time": 0.6414512471655329,
+            "quanta": 192,
+            "initialized": true
+          }
+        },
+        {
+          "wall": 1791609660038,
+          "ms": 1449,
+          "audioTime": 0.676281179138322,
+          "message": {
+            "type": "probe-receipt",
+            "wall": 1791609660038,
+            "frame": 29824,
+            "time": 0.676281179138322,
+            "messageType": "encoder"
+          }
+        }
+      ],
+      "pass": true
+    }
+  },
+  "probeSources": {
+    "cold-probe.mjs": "// editor-ui.mjs -- the Advanced editor's shell, flow, sound, chains and\n// modulation in headless Chromium (stages ED2 and ED3,\n// notes/2026-10-06-web-editor.md \u00a74, \u00a77, \u00a78, \u00a710, \u00a713, \u00a714,\n// \u00a717). Runs in the Playwright container on aeon after editor.mjs\n// (build-on-aeon.sh), never on the Mac:\n//\n//   node editor-ui.mjs WWW_DIR OUT_DIR\n//\n// Checks: the Panel layout loads none of the editor's files, and the first\n// switch loads them; follow both ways (a turn of KNOB2 on the panel reaches\n// the editor's row within a few frames and enters the history as the\n// panel's; selecting M1 in the Flow opens it on the panel); the K1-K4 chips\n// are the panel's knob map; an edit by the keyboard in EDIT then undo ends at\n// the first state hash (the shadow Worker's), redo at the edited one; PLAY\n// and EDIT (in EDIT no computer key reaches the FM-1, in PLAY no editor key\n// edits; Ctrl+E and Esc switch); every module's inspector drawn from the\n// metadata with no overflow at the Workbench's and the tablet's column\n// widths; the Workbench and Editor layouts at 1,440 and 1,024 px with no\n// sideways scroll, no label over its control, and screenshots to look at.\n// ED3: a block moved by its keyboard twin and by a pointer drag, with C's\n// verdict before the drop; a picker's RAM column; a refusal C makes, in the\n// metadata's words, changing nothing; the matrix (a cable added, typed,\n// its polarity set, one the planner leaves out); the rack (a module moved by\n// keys, one chosen, one emptied); each undone to the state before it, the\n// view aside; the rack's kinds among the inspectors; the Modulation view in\n// the layouts.\n// MIT licence, like the rest of this repository.\n\nimport { execFileSync } from 'node:child_process';\nimport { mkdirSync, readFileSync, writeFileSync } from 'node:fs';\nimport { join } from 'node:path';\nimport { serve } from './serve.mjs';\nimport { launch } from './launch.mjs';\nimport { observePanelFollow } from './panel-follow.mjs';\n\n\nconst [www, out] = process.argv.slice(2);\nmkdirSync(out, { recursive: true });\nconst { server, url } = await serve(www, 8768);\nconst { browser, name: browserName } = await launch();\nconst report = { browser: browserName, checks: {}, logs: [], why: [] };\nfunction check(name, ok, why) {\n  report.checks[name] = !!ok;\n  if (!ok) report.why.push(`${name}: ${typeof why === 'string' ? why : JSON.stringify(why)}`);\n}\n\nconst page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });\npage.on('pageerror', (e) => report.logs.push(`pageerror: ${e.message}`));\npage.on('console', (m) => { if (m.type() === 'error') report.logs.push(`error: ${m.text()}`); });\nawait page.addInitScript(() => {\n  window.__backendMarkers = [];\n  const Original = window.AudioWorkletNode;\n  window.AudioWorkletNode = class extends Original {\n    constructor(...args) {\n      super(...args);\n      this.port.addEventListener('message', (e) => {\n        if (e.data.type === 'probe-clock' || e.data.type === 'probe-receipt' || e.data.type === 'ready') {\n          window.__backendMarkers.push({wall: Date.now(), ms: performance.now(), audioTime: window.fm1?.ctx?.currentTime, message: e.data.type === 'ready' ? {type: 'ready'} : e.data});\n        }\n      });\n      this.port.start();\n    }\n  };\n});\nconst requested = [];\npage.on('request', (r) => requested.push(new URL(r.url()).pathname));\nawait page.goto(`${url}?load=examples/first-orbit.lunar`);\nawait page.waitForTimeout(500);\ncheck('the Panel layout loads none of the editor', !requested.some((p) => p.includes('/editor/')), requested);\n\nawait page.click('[data-layout=\"workbench\"]');\nawait page.waitForFunction(() => window.fm1 && window.fm1.editor, null, { timeout: 10000 });\ncheck('the first switch loads the editor', requested.some((p) => p.endsWith('/editor/editor.js')) &&\n  requested.some((p) => p.endsWith('/editor/editor.css')), requested.filter((p) => p.includes('editor')));\nif (process.env.RESET_SINK) {\n  const modules = execFileSync('pactl', ['list', 'short', 'modules'], {encoding: 'utf8'}).trim().split('\\n');\n  for (const line of modules) { const [id, name] = line.split(/\\s+/); if (name === 'module-null-sink') execFileSync('pactl', ['unload-module', id]); }\n  const args = ['load-module', 'module-null-sink', 'sink_name=lunar', 'rate=48000', 'channels=2'];\n  if (process.env.RESET_SINK === 'norewinds') args.push('norewinds=1');\n  execFileSync('pactl', args);\n  report.sinkBeforePower = JSON.parse(execFileSync('pactl', ['--format=json','list','sinks'], {encoding: 'utf8'})).map(({name,state,latency}) => ({name,state,latency}));\n}\nawait page.click('#power-on');\nawait page.waitForFunction(() => window.fm1.editor.state.mirror && window.fm1.editor.state.panelView &&\n  window.fm1.editor.state.mirror.blocks.size > 6, null, { timeout: 20000 });\nawait page.waitForTimeout(400);\n\n// The helpers the checks share: the project's hash through the shadow\n// Worker, and a count of what the page sends the worklet.\nawait page.evaluate(() => {\n  const sim = window.fm1;\n  window.__sent = [];\n  const post = sim.node.port.postMessage.bind(sim.node.port);\n  sim.node.port.postMessage = (m, t) => { window.__sent.push(m.type); return post(m, t); };\n  window.__hash = async () => {\n    const id = 900000 + Math.floor(Math.random() * 1000);\n    const bin = await new Promise((resolve) => {\n      const on = (e) => { if (e.data && e.data.type === 'state-saved' && e.data.id === id) { sim.node.port.removeEventListener('message', on); resolve(e.data.bytes); } };\n      sim.node.port.addEventListener('message', on);\n      post({ type: 'state-save', kind: 1, arg: 0, plain: true, id });\n    });\n    const r = await sim.files.shadow('hash', { bin: bin.slice(0) });\n    window.__bins = window.__bins || [];\n    window.__bins.push(bin);\n    const v = window.fm1.editor.state.panelView;\n    return { hash: r.hash, bin: window.__bins.length - 1, view: `${v.mode}.${v.sound}.${v.slot}` };\n  };\n});\n\n// ---- follow, panel to editor, and K1-K4 ----------------------------------------\nconst follow = await page.evaluate(observePanelFollow);\nreport.follow_panel = follow;\ncheck('a panel knob reaches the editor\\'s row within a few frames', follow.frames <= 12, follow);\ncheck('it enters the history as the panel\\'s', follow.entry && follow.entry.origin === 'panel' && /KNOB2/.test(follow.from), follow);\ncheck('K1-K4 mark the rows the panel\\'s knobs turn now', follow.chips.length === follow.knobs &&\n  follow.chips.every((c, i) => c === `K${i + 1}`), follow);\n\nreport.markers = await page.evaluate(() => window.__backendMarkers);\nreport.pass = Object.values(report.checks).every(Boolean);\nwriteFileSync(join(out, 'startup-probe.json'), JSON.stringify(report, null, 2) + '\\n');\nconsole.log(JSON.stringify(report));\nawait browser.close();\nserver.close();\nprocess.exit(report.pass ? 0 : 1);\n",
+    "native-run.sh": "set -eu\napt-get update -qq && apt-get install -y -qq pulseaudio pulseaudio-utils >/dev/null\nmkdir -p /probe/native-out\npulseaudio --system -n --disallow-exit --exit-idle-time=-1 --log-level=debug --log-time=1 --log-target=file:/probe/native-out/pulse.log --load=\"module-native-protocol-unix auth-anonymous=1 socket=/tmp/pa.sock\" -D\nexport PULSE_SERVER=unix:/tmp/pa.sock PULSE_SOURCE=lunar.monitor\nnode /probe/null-sink-probe.mjs > /probe/native-out/console.log\nchown -R \"$(stat -c %u:%g /probe)\" /probe/native-out\n",
+    "null-sink-probe.mjs": "import {spawn, execFileSync} from 'node:child_process';\nimport {writeFileSync} from 'node:fs';\nconst sleep=ms=>new Promise(r=>setTimeout(r,ms));\nconst pactl=(...args)=>execFileSync('pactl',args,{encoding:'utf8'});\nconst snapshots=[];\nfor (const mode of ['default','norewinds']) {\n const modules=pactl('list','short','modules').trim().split('\\n');\n for (const line of modules) if (line.split('\\t')[1]==='module-null-sink') pactl('unload-module',line.split('\\t')[0]);\n const loadedWall=Date.now();\n pactl('load-module','module-null-sink','sink_name=lunar','rate=48000','channels=2',...(mode==='norewinds'?['norewinds=1']:[]));\n const read=phase=>{\n  const sinks=JSON.parse(pactl('--format=json','list','sinks'));\n  const inputs=JSON.parse(pactl('--format=json','list','sink-inputs'));\n  snapshots.push({mode,phase,wall:Date.now(),sinceLoadMs:Date.now()-loadedWall,sinks:sinks.map(s=>({name:s.name,state:s.state,latency:s.latency})),inputs:inputs.map(i=>({corked:i.corked,bufferLatency:i.buffer_latency_usec,sinkLatency:i.sink_latency_usec}))});\n };\n read('idle');\n const client=spawn('pacat',['--playback','--raw','--rate=48000','--channels=2','--format=s16le','--latency-msec=100'],{stdio:['pipe','ignore','pipe']});\n let err='';client.stderr.on('data',d=>err+=d);client.stdin.on('error',()=>{});\n client.stdin.end(Buffer.alloc(48000*4*3));\n const t0=Date.now();\n for (const at of [0,50,100,250,500,1000,1500,2000]) {await sleep(Math.max(0,t0+at-Date.now()));read('client-'+at);}\n client.kill('SIGTERM');await new Promise(resolve=>client.once('exit',resolve));\n snapshots.push({mode,clientStderr:err});\n}\nwriteFileSync('/probe/native-out/probe.json',JSON.stringify(snapshots,null,2)+'\\n');\nconsole.log(JSON.stringify(snapshots));\n",
+    "cold-run.sh": "set -eu\napt-get update -qq && apt-get install -y -qq pulseaudio pulseaudio-utils >/dev/null\nmkdir -p /probe/cold-out\npulseaudio --system -n --disallow-exit --exit-idle-time=-1 --log-level=debug --log-time=1 --log-target=file:/probe/cold-out/pulse.log --load=\"module-native-protocol-unix auth-anonymous=1 socket=/tmp/pa.sock\" -D\nexport PULSE_SERVER=unix:/tmp/pa.sock PULSE_SOURCE=lunar.monitor PLAYWRIGHT_DIR=/pw BROWSER=webkit\nfor i in 1 2; do\n  if [ \"$i\" = 1 ]; then cp /probe/worklet-original.js /probe/sim/web/www/worklet.js; else cp /probe/worklet-marked.js /probe/sim/web/www/worklet.js; fi\n  for mode in default norewinds; do\n    dir=/probe/cold-out/$mode-$i\n    mkdir -p \"$dir\"\n    RESET_SINK=$mode timeout 45 node /probe/sim/web/test/cold-probe.mjs /probe/sim/web/www \"$dir\" > \"$dir/browser.log\" 2>&1 || echo $? > \"$dir/exit-status\"\n  done\ndone\ncp /probe/worklet-original.js /probe/sim/web/www/worklet.js\nchown -R \"$(stat -c %u:%g /probe)\" /probe/cold-out\n",
+    "startup-probe.mjs": "// editor-ui.mjs -- the Advanced editor's shell, flow, sound, chains and\n// modulation in headless Chromium (stages ED2 and ED3,\n// notes/2026-10-06-web-editor.md \u00a74, \u00a77, \u00a78, \u00a710, \u00a713, \u00a714,\n// \u00a717). Runs in the Playwright container on aeon after editor.mjs\n// (build-on-aeon.sh), never on the Mac:\n//\n//   node editor-ui.mjs WWW_DIR OUT_DIR\n//\n// Checks: the Panel layout loads none of the editor's files, and the first\n// switch loads them; follow both ways (a turn of KNOB2 on the panel reaches\n// the editor's row within a few frames and enters the history as the\n// panel's; selecting M1 in the Flow opens it on the panel); the K1-K4 chips\n// are the panel's knob map; an edit by the keyboard in EDIT then undo ends at\n// the first state hash (the shadow Worker's), redo at the edited one; PLAY\n// and EDIT (in EDIT no computer key reaches the FM-1, in PLAY no editor key\n// edits; Ctrl+E and Esc switch); every module's inspector drawn from the\n// metadata with no overflow at the Workbench's and the tablet's column\n// widths; the Workbench and Editor layouts at 1,440 and 1,024 px with no\n// sideways scroll, no label over its control, and screenshots to look at.\n// ED3: a block moved by its keyboard twin and by a pointer drag, with C's\n// verdict before the drop; a picker's RAM column; a refusal C makes, in the\n// metadata's words, changing nothing; the matrix (a cable added, typed,\n// its polarity set, one the planner leaves out); the rack (a module moved by\n// keys, one chosen, one emptied); each undone to the state before it, the\n// view aside; the rack's kinds among the inspectors; the Modulation view in\n// the layouts.\n// MIT licence, like the rest of this repository.\n\nimport { mkdirSync, readFileSync, writeFileSync } from 'node:fs';\nimport { join } from 'node:path';\nimport { serve } from './serve.mjs';\nimport { launch } from './launch.mjs';\nimport { observePanelFollow } from './panel-follow.mjs';\n\n\nconst [www, out] = process.argv.slice(2);\nmkdirSync(out, { recursive: true });\nconst { server, url } = await serve(www, 8768);\nconst { browser, name: browserName } = await launch();\nconst report = { browser: browserName, checks: {}, logs: [], why: [] };\nfunction check(name, ok, why) {\n  report.checks[name] = !!ok;\n  if (!ok) report.why.push(`${name}: ${typeof why === 'string' ? why : JSON.stringify(why)}`);\n}\n\nconst page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });\npage.on('pageerror', (e) => report.logs.push(`pageerror: ${e.message}`));\npage.on('console', (m) => { if (m.type() === 'error') report.logs.push(`error: ${m.text()}`); });\nawait page.addInitScript(() => {\n  window.__backendMarkers = [];\n  const Original = window.AudioWorkletNode;\n  window.AudioWorkletNode = class extends Original {\n    constructor(...args) {\n      super(...args);\n      this.port.addEventListener('message', (e) => {\n        if (e.data.type === 'probe-clock' || e.data.type === 'probe-receipt' || e.data.type === 'ready') {\n          window.__backendMarkers.push({wall: Date.now(), ms: performance.now(), audioTime: window.fm1?.ctx?.currentTime, message: e.data.type === 'ready' ? {type: 'ready'} : e.data});\n        }\n      });\n      this.port.start();\n    }\n  };\n});\nconst requested = [];\npage.on('request', (r) => requested.push(new URL(r.url()).pathname));\nawait page.goto(`${url}?load=examples/first-orbit.lunar`);\nawait page.waitForTimeout(500);\ncheck('the Panel layout loads none of the editor', !requested.some((p) => p.includes('/editor/')), requested);\n\nawait page.click('[data-layout=\"workbench\"]');\nawait page.waitForFunction(() => window.fm1 && window.fm1.editor, null, { timeout: 10000 });\ncheck('the first switch loads the editor', requested.some((p) => p.endsWith('/editor/editor.js')) &&\n  requested.some((p) => p.endsWith('/editor/editor.css')), requested.filter((p) => p.includes('editor')));\nawait page.click('#power-on');\nawait page.waitForFunction(() => window.fm1.editor.state.mirror && window.fm1.editor.state.panelView &&\n  window.fm1.editor.state.mirror.blocks.size > 6, null, { timeout: 20000 });\nawait page.waitForTimeout(400);\n\n// The helpers the checks share: the project's hash through the shadow\n// Worker, and a count of what the page sends the worklet.\nawait page.evaluate(() => {\n  const sim = window.fm1;\n  window.__sent = [];\n  const post = sim.node.port.postMessage.bind(sim.node.port);\n  sim.node.port.postMessage = (m, t) => { window.__sent.push(m.type); return post(m, t); };\n  window.__hash = async () => {\n    const id = 900000 + Math.floor(Math.random() * 1000);\n    const bin = await new Promise((resolve) => {\n      const on = (e) => { if (e.data && e.data.type === 'state-saved' && e.data.id === id) { sim.node.port.removeEventListener('message', on); resolve(e.data.bytes); } };\n      sim.node.port.addEventListener('message', on);\n      post({ type: 'state-save', kind: 1, arg: 0, plain: true, id });\n    });\n    const r = await sim.files.shadow('hash', { bin: bin.slice(0) });\n    window.__bins = window.__bins || [];\n    window.__bins.push(bin);\n    const v = window.fm1.editor.state.panelView;\n    return { hash: r.hash, bin: window.__bins.length - 1, view: `${v.mode}.${v.sound}.${v.slot}` };\n  };\n});\n\n// ---- follow, panel to editor, and K1-K4 ----------------------------------------\nconst follow = await page.evaluate(observePanelFollow);\nreport.follow_panel = follow;\ncheck('a panel knob reaches the editor\\'s row within a few frames', follow.frames <= 12, follow);\ncheck('it enters the history as the panel\\'s', follow.entry && follow.entry.origin === 'panel' && /KNOB2/.test(follow.from), follow);\ncheck('K1-K4 mark the rows the panel\\'s knobs turn now', follow.chips.length === follow.knobs &&\n  follow.chips.every((c, i) => c === `K${i + 1}`), follow);\n\nreport.markers = await page.evaluate(() => window.__backendMarkers);\nreport.pass = Object.values(report.checks).every(Boolean);\nwriteFileSync(join(out, 'startup-probe.json'), JSON.stringify(report, null, 2) + '\\n');\nconsole.log(JSON.stringify(report));\nawait browser.close();\nserver.close();\nprocess.exit(report.pass ? 0 : 1);\n",
+    "exact-run.sh": "set -eu\napt-get update -qq && apt-get install -y -qq pulseaudio pulseaudio-utils >/dev/null\nmkdir -p /probe/exact-out\npulseaudio --system -n --disallow-exit --exit-idle-time=-1 --log-level=debug --log-target=file:/probe/exact-out/pulse.log --load=\"module-null-sink sink_name=lunar rate=48000 channels=2\" --load=\"module-native-protocol-unix auth-anonymous=1 socket=/tmp/pa.sock\" -D\nexport PULSE_SERVER=unix:/tmp/pa.sock PULSE_SOURCE=lunar.monitor PLAYWRIGHT_DIR=/pw BROWSER=webkit\npactl --format=json list sinks > /probe/exact-out/sinks-before.json\ncp /probe/sim/web/www/worklet.js /probe/worklet-original.js\nDEBUG=pw:browser timeout 120 node /probe/sim/web/test/audio-loopback.mjs /probe/sim/web/www /probe/exact-out/audio 30 > /probe/exact-out/audio.log 2>&1\nfor mode in default norewinds; do\n  if [ \"$mode\" = norewinds ]; then\n    id=$(pactl list short modules | awk '$2 == \"module-null-sink\" {print $1}')\n    pactl unload-module \"$id\"\n    pactl load-module module-null-sink sink_name=lunar rate=48000 channels=2 norewinds=1 > /probe/exact-out/norewinds-module.txt\n    pactl --format=json list sinks > /probe/exact-out/sinks-norewinds.json\n  fi\n  for i in 1 2 3 4 5 6; do\n    dir=/probe/exact-out/$mode-$i\n    mkdir -p \"$dir\"\n    if [ \"$i\" -le 3 ]; then cp /probe/worklet-original.js /probe/sim/web/www/worklet.js; else cp /probe/worklet-marked.js /probe/sim/web/www/worklet.js; fi\n    date -u +%Y-%m-%dT%H:%M:%S.%N > \"$dir/times.log\"\n    DEBUG=pw:browser GST_DEBUG=webkitaudiodestination:4,pulse:3,audiobasesink:3 GST_DEBUG_FILE=\"$dir/gstreamer.log\" timeout 45 node /probe/sim/web/test/startup-probe.mjs /probe/sim/web/www \"$dir\" > \"$dir/browser.log\" 2>&1 || echo $? > \"$dir/exit-status\"\n    date -u +%Y-%m-%dT%H:%M:%S.%N >> \"$dir/times.log\"\n  done\ndone\ncp /probe/worklet-original.js /probe/sim/web/www/worklet.js\nchown -R \"$(stat -c %u:%g /probe)\" /probe/exact-out\n",
+    "acceptance-run.sh": "set -eu\napt-get update -qq && apt-get install -y -qq pulseaudio pulseaudio-utils >/dev/null\nmkdir -p /probe/acceptance-out\npulseaudio --system -n --disallow-exit --exit-idle-time=-1 --log-level=info --log-target=file:/probe/acceptance-out/pulse.log --load=\"module-native-protocol-unix auth-anonymous=1 socket=/tmp/pa.sock\" -D\nexport PULSE_SERVER=unix:/tmp/pa.sock PULSE_SOURCE=lunar.monitor PLAYWRIGHT_DIR=/pw BROWSER=webkit\ncp /probe/worklet-original.js /probe/sim/web/www/worklet.js\nfor i in 1 2 3; do\n for mode in default norewinds; do\n  dir=/probe/acceptance-out/cold-$mode-$i\n  mkdir -p \"$dir\"\n  RESET_SINK=$mode timeout 45 node /probe/sim/web/test/cold-probe.mjs /probe/sim/web/www \"$dir\" > \"$dir/browser.log\" 2>&1 || echo $? > \"$dir/exit-status\"\n done\ndone\npactl --format=json list sinks > /probe/acceptance-out/sinks.json\nstatus=0\nfor browser in chromium firefox webkit; do\n export BROWSER=$browser\n dir=/probe/acceptance-out/$browser\n mkdir -p \"$dir\"\n timeout 120 node /probe/sim/web/test/audio-loopback.mjs /probe/sim/web/www \"$dir/audio\" 30 > \"$dir/audio.log\" 2>&1 || { echo $? > \"$dir/audio-exit-status\"; status=1; }\n timeout 180 node /probe/sim/web/test/editor-ui.mjs /probe/sim/web/www \"$dir/ui\" > \"$dir/ui.log\" 2>&1 || { echo $? > \"$dir/ui-exit-status\"; status=1; }\ndone\nchown -R \"$(stat -c %u:%g /probe)\" /probe/acceptance-out\nexit $status\n"
+  }
+}
