@@ -50,7 +50,7 @@ try {
       };
     }, { gated });
     // Instrument only the diagnostic response. Fail loudly if source drifts.
-    await page.route('**/worklet.js*', async (route) => {
+    await page.context().route('**/worklet.js*', async (route) => {
       const response = await route.fetch();
       let body = await response.text();
       const replace = (from, to) => {
@@ -75,12 +75,12 @@ try {
     const result = await page.evaluate(() => ({ events: window.__startupProbe.events,
       timeline: window.__lunarPlaybackTimeline.stop(), screens: window.fm1?.screens ?? 0,
       context_state: window.fm1?.ctx?.state ?? null }));
-    assert.ok(result.events.some((e) => e.type === 'init-measured'));
-    assert.ok(result.events.some((e) => e.type === 'ready'));
-    assert.ok(result.screens > 0);
     results.push({ gated, ...result });
     writeFileSync(join(out, 'startup-probe.json'), JSON.stringify({ schema: 1, acceptance: false,
       perturbation: 'Two ordered diagnostic starts; route timing instrumentation, page observers, graph-lock getters and CDP tracing perturb scheduling.', results }, null, 2) + '\n');
+    assert.ok(result.events.some((e) => e.type === 'init-measured'));
+    assert.ok(result.events.some((e) => e.type === 'ready'));
+    assert.ok(result.screens > 0);
     await page.close();
   }
 } finally { await browser.close(); server.close(); }
