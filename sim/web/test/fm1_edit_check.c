@@ -31,6 +31,7 @@
 #include "fm1_edit.h"
 #include "fm1_engine_meta.h"
 #include "fm1_look.h"
+#include "fm1_modules.h"
 #include "fm1_panel.h"
 #include "fm1_refusal.h"
 
@@ -537,6 +538,52 @@ static void check_locks(void) {
  * the transport is where it was (playing, the master tick, each track's clip and playhead), and
  * without it a project load starts from a stopped sequencer, as it always did. A stopped transport
  * stays stopped. */
+static void check_sound_restore(void) {
+  static uint8_t buf[FM1_STATE_BIN_MAX];
+  uint32_t len = 0;
+  fm1_app_state_mem_t mem;
+  fm1_app_state_report_t rep;
+  fm1_app_load_opts_t o;
+  fm1_state_report_t r;
+  fm1_mod_slot_t cable, got;
+  fresh(44118.0f);
+  CHECK(fm1_app_select(&g_a, fm1_app_sound_unit(1), fm1_app_find("macro")) == 0);
+  memset(&cable, 0, sizeof cable);
+  cable.src = FM1_MOD_SRC_MODULE; cable.via = FM1_MOD_NONE;
+  cable.dst_unit = (uint8_t)fm1_mod_sound_unit(1); cable.dst = 2;
+  cable.flags = FM1_MOD_SLOT_ON; cable.amount = 1000;
+  CHECK(fm1_mod_set_slot(g_a.mod, 0, &cable));
+  CHECK(fm1_app_state_save(&g_a, FM1_STATE_SOUND, 1, 1, fm1_edit_check_put, &len, &r));
+  CHECK(len <= sizeof buf); memcpy(buf, fm1_edit_check_buf(), len);
+  mem.b = buf; mem.n = len;
+  fm1_app_load_opts_init(&o); o.into = 1;
+  o.flags = FM1_APP_LOAD_QUIET | FM1_APP_LOAD_RESTORE_SOUND;
+  for (unsigned n = 0; n < 12; ++n) {
+    unsigned modules = 0, cables = 0;
+    CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
+    for (unsigned i = 0; i < FM1_MOD_POSITIONS; ++i) modules += fm1_mod_kind_at(g_a.mod, i) >= 0;
+    for (unsigned i = 0; i < FM1_MOD_SLOTS; ++i) {
+      CHECK(fm1_mod_get_slot(g_a.mod, i, &got)); cables += got.dst != 0;
+    }
+    CHECK(modules == 5 && cables == 1);
+    CHECK(fm1_mod_get_slot(g_a.mod, 0, &got) && got.src == cable.src && got.amount == cable.amount);
+    render(4);
+  }
+  /* A changed shared source must not be overwritten by a sound restore. */
+  cable.dst_unit = FM1_MOD_SOUND;
+  CHECK(fm1_mod_set_slot(g_a.mod, 1, &cable));
+  CHECK(fm1_mod_set_param(g_a.mod, 0, 0, fm1_mod_param_base(g_a.mod, 0, 0) + 0.1f));
+  {
+    const uint32_t hash = fm1_edit_state_hash(&g_a);
+    CHECK(!fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
+    CHECK(rep.r.code == FM1_STATE_NO_ROOM && fm1_edit_state_hash(&g_a) == hash);
+  }
+  /* An ordinary external import still remaps instead of replacing identities. */
+  o.flags = FM1_APP_LOAD_QUIET;
+  CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
+  CHECK(fm1_mod_kind_at(g_a.mod, 5) >= 0);
+}
+
 static void check_transport(void) {
   static uint8_t buf[FM1_STATE_BIN_MAX];
   uint32_t len = 0;
@@ -784,11 +831,53 @@ static void check_gain_readouts(void) {
   }
 }
 
+static void check_empty_sound_insert(void) {
+  const int sound = 3, unit = fm1_app_insert_unit(sound, 0);
+  fresh(44118.0f);
+  CHECK(!g_a.unit[fm1_app_sound_unit(sound)].e);
+  const uint32_t hash = fm1_edit_state_hash(&g_a);
+  CHECK(fm1_app_select(&g_a, unit, fm1_app_find("comp")) == FM1_APP_SELECT_BAD);
+  CHECK(!g_a.unit[unit].e && fm1_edit_state_hash(&g_a) == hash);
+  CHECK(edit_line("unit insert 3 0 comp", 1, NULL) == FM1_REFUSE_BAD);
+  CHECK(fm1_edit_state_hash(&g_a) == hash);
+  CHECK(fm1_app_select(&g_a, unit, -1) == 0);  /* clearing remains harmless */
+  CHECK(fm1_app_unit_select(&g_a, sound, fm1_app_find("test-sine")) == 0);
+  CHECK(fm1_app_select(&g_a, unit, fm1_app_find("comp")) == 0);
+}
+
+static void check_gate_readout(void) {
+#if FM1_WITH_SQUASH
+  const int index = fm1_app_find("squash");
+  if (index < 0) return;
+  const fm1_tele_section_t *red = fm1_tele_section(FM1_TELE_REDUCTION);
+  uint32_t one[FM1_TELE_MASK_WORDS] = {0};
+  fresh(44118.0f);
+  CHECK(edit_line("unit insert 0 0 squash", 1, NULL) == 0);
+  CHECK(edit_line("param insert 0 0 12 10", 1, NULL) == 0); /* fast gate release */
+  one[red->mask / 32] |= 1u << (red->mask % 32);
+  fm1_edit_subscribe(&g_a, one);
+  render(600);
+  g_a.edit->tele_at = ~(uint64_t)0;
+  CHECK(fm1_edit_telemetry(&g_a, g_tele, sizeof g_tele / sizeof g_tele[0]) == fm1_tele_floats());
+  CHECK(g_tele[red->offset + 1] == 2.0f);             /* silence closes the gate */
+  fm1_app_note_on(&g_a, 60, 127);
+  render(100);
+  g_a.edit->tele_at = ~(uint64_t)0;
+  fm1_edit_telemetry(&g_a, g_tele, sizeof g_tele / sizeof g_tele[0]);
+  CHECK(g_tele[red->offset + 1] == 0.0f);             /* a note opens it */
+  CHECK(edit_line("param insert 0 0 1 1 index", 1, NULL) == 0);
+  render(100);
+  g_a.edit->tele_at = ~(uint64_t)0;
+  fm1_edit_telemetry(&g_a, g_tele, sizeof g_tele / sizeof g_tele[0]);
+  CHECK(isnan(g_tele[red->offset + 1]));              /* Mu has no gate */
+#endif
+}
+
 static void check_telemetry(void) {
   uint32_t all[FM1_TELE_MASK_WORDS], one[FM1_TELE_MASK_WORDS];
   const fm1_tele_section_t *met = fm1_tele_section(FM1_TELE_METERS);
   const int blocks = 690;                       /* 1.0 s at 44,118 Hz */
-  CHECK(fm1_tele_floats() == 1443 && fm1_tele_mask_bits() == 119);
+  CHECK(fm1_tele_floats() == 1454 && fm1_tele_mask_bits() == 119);
   memset(all, 0, sizeof all);
   for (unsigned b = 0; b < fm1_tele_mask_bits(); ++b) all[b / 32] |= 1u << (b % 32);
   /* The audio with everything subscribed is the audio without the layer. */
@@ -856,6 +945,8 @@ static void check_telemetry(void) {
     CHECK(none == 2u * vd->fields);
   }
   check_gain_readouts();
+  check_empty_sound_insert();
+  check_gate_readout();
 }
 
 /* ---- hostile input --------------------------------------------------------------- */
@@ -937,6 +1028,7 @@ int fm1_edit_check(void) {
   for (g_sweep_seed = 0; g_sweep_seed < 40; ++g_sweep_seed, ++g_sweeps) hands(g_sweep);
   check_locks();
   check_transport();
+  check_sound_restore();
   check_verbs();
   check_telemetry();
   check_fuzz();

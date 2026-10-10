@@ -682,6 +682,13 @@ float fm1_squash_gain(const void *instance) {
   return g > 0.0f ? g : 1.0f;     /* a NaN or a non-positive gain reads as none */
 }
 
+int fm1_squash_gate_state(const void *instance) {
+  const SquashInstance *self = (const SquashInstance *)instance;
+  if (!self || self->type != T_SNAP || self->ctl.gratio <= 0.0f) return -1;
+  if (self->snap.gate >= kHalfPi) return 0;
+  return self->snap.gate <= kFlush ? 2 : 1;
+}
+
 extern const fm1_engine_t fm1_engine_squash;
 const fm1_engine_t fm1_engine_squash = {
   FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_AUDIO_FX,

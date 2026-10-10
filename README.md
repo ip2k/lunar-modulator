@@ -28,12 +28,12 @@ Cuvave or any space agency.
 > **Preview: not yet installable on an FM-1.**
 > - Lunar Modulator runs today as a virtual FM-1 in your browser, with the
 >   firmware's own screen and sound.
-> - Before it can be installed, it has to run on a JieLi development kit;
->   nothing has run on a JieLi chip yet.
-> - A full backup and a byte-identical restore of an FM-1's memory also
->   have to be proven, so that a unit that fails to start can be put back
->   ([Installing on your FM-1](#installing-on-your-fm-1)).
-> - This project has never written anything to an FM-1.
+> - Lunar's application still needs to be linked and tested on the chip.
+> - The owner's FM-1 has matching full backups and passed a small unused-sector
+>   write and restore, with the full flash memory unchanged afterward and
+>   normal boots confirmed [verified: [bench record](notes/2026-10-07-fm1-softkey-bench.md)].
+> - Restoring a whole image or recovering an application that will not start
+>   remains untested ([Installing on your FM-1](#installing-on-your-fm-1)).
 
 ## Try it in your browser
 
@@ -44,10 +44,12 @@ Open **<https://ip2k.github.io/lunar-modulator/>** and press **Power on**
 - press **Space** to hear the demo pattern;
 - turn the knobs and watch the screen follow.
 
-It needs a current browser with WebAssembly and AudioWorklet, and has been
-tested only in Chromium, the engine behind Chrome and Edge, so far: Firefox,
-Safari, real touch screens and MIDI hardware are not tested yet. The page
-loads only its own files and sends nothing anywhere.
+It needs a current browser with WebAssembly and AudioWorklet. The page tests
+run in Chromium, Firefox and WebKit; native Safari has also passed the
+filtered patch-list and A/B playback checks. Real touch screens and MIDI
+hardware have not been tested. The page loads its own files and does not
+upload your projects or send MIDI out; MIDI input is available in supported
+browsers ([test record](notes/2026-10-07-editor-audio.md)).
 
 To run it from your own copy of this repository you need Python 3 (the
 built module is included):
@@ -78,7 +80,7 @@ Drag a knob up or down, or scroll over it. Click or touch a button or a key.
 | LFO, ENV, EDIT | The modulation rack and the matrix. Hold LFO or ENV and turn a knob to run a cable to that knob's parameter | |
 | GLO, HOME | The global page (rate, memory, voices, octave) and, on its second page, the project key; back to the sound | |
 | ARP | The arpeggiator on the current sound: tap to switch it on (its pages open) or off, hold to latch; with SEL, its pages | |
-| SAVE | Not in the simulator yet | |
+| SAVE | Saves the current project in this browser's storage; use Save… below for files and other project parts | |
 | Everything | | `Esc` releases every note |
 
 Under the panel:
@@ -86,7 +88,11 @@ Under the panel:
   **Effect 2** the two master effects.
 - **Connect MIDI input** plays it from a MIDI keyboard, in browsers with Web
   MIDI: notes with velocity, pitch bend (±2 semitones), CC 7 (volume) and
-  CC 123 (all notes off). It sends no MIDI yet.
+  CC 123 (all notes off). The simulator does not send MIDI out.
+- **Open… / Save…** load and save projects, sounds, effects, modulation
+  racks, clips, sets and DX7 patch files. Browser saves stay in this browser;
+  use Save… to download a file.
+- **Load DX7 patches…** imports `.syx` voices into FM6's user slots.
 - **Screen ×2** shows the screen enlarged.
 
 ## What it does
@@ -210,8 +216,8 @@ A step sequencer whose design follows Movy by megadake
   **Capture**, which keeps what you just played even if you were not
   recording.
 
-It starts with a one-bar demo pattern: press PLAY/STOP, or Space. Clips,
-scenes and songs run in the desktop tools so far.
+It starts with a one-bar demo pattern: press PLAY/STOP, or Space. Projects and
+sequencer sets can be opened and saved from the browser.
 
 <img src="assets/screenshots/screen-seq.png" width="240" alt="SEQ mode while the demo pattern plays: 120 BPM, the eight tracks and PLAY on the status line, the bar's 16 steps with the playhead, the knob strip, and the sound's model, VA Pair">
 
@@ -268,84 +274,14 @@ with their lights, MASTER and the seven encoders.
 
 ## Roadmap
 
-Nothing on this list installs on an FM-1 yet: everything on the device waits
-for the first installable build
-([Installing on your FM-1](#installing-on-your-fm-1)).
-
-**Done, in the simulator**
-- Seven sound engines (thirteen with the GPL switch on), four sounds at
-  once, two inserts each, two master
-  effects and the memory meter.
-- Twenty-two effects, among them the new dynamics: Squash, Transient and
-  the Limiter's Round mode.
-- The sequencer: eight tracks, steps, locks, conditions, recording,
-  Capture and the metronome.
-- Modulation: the rack, sixteen kinds of module, the matrix, the gesture
-  and per-voice modulation (each note its own envelope, for example).
-- The arpeggiator, with the stock modes as presets, alongside the
-  sequencer.
-- **Glide:** on Macro, Macro Heavy, Six-Op FM, FM6 and Shapes, notes slide
-  only when they overlap (legato) or always, as the stock FM-1's
-  portamento does, in a set time or at a set speed per octave; Mono and
-  Legato play one voice, and SHIFT with MONO or POLY switches.
-- **Lighter effects:** EQ, Isolator and Master Sat take almost no
-  processing time when left at their neutral settings, and stay ready
-  whenever a lock or a modulation cable drives them.
-- FM6 loads your own DX7 voices from SysEx files, in the desktop tools.
-
-**In progress**
-- **Your DX7 voices in the browser:** a file picker that loads SysEx into
-  FM6, and FM6 taking less memory.
-- **A fix for Shapes:** a few shapes at the far ends of their settings (Wave
-  Line, Comb, Flute, the filter and Sync shapes) will sound the same on
-  every build.
-
-**Next**
-- **A master chain:** four master slots in order, and shared send reverb and
-  delay.
-- **Side-chain:** Gate and Comp listening to another sound, the master or a
-  trigger from the matrix, for ducking and gating.
-- **Tempo delays:** echoes in time with the sequencer, tape, taps, beat
-  repeat, smear and pitch.
-- **Per-voice filters** in Macro and Shapes, and later a subtractive engine.
-- **Sets in the browser and Web MIDI:** save and load your sets (also as
-  files), follow a MIDI clock, and send MIDI if you choose to.
-- **More MIDI effects:** chords, scales, note echo and chance, in the three
-  MIDI-effect slots each track has after the arpeggiator.
-- **Later:** more engines and effects, such as resonator engines after Rings
-  and Elements, granular textures after Clouds, and shimmer and classic
-  reverbs.
-
-**On the FM-1 itself**
-- **Installing on a real FM-1:** in preparation
-  ([below](#installing-on-your-fm-1)).
-- **Develop in the simulator, check on hardware:** new sounds and effects
-  are written and heard in the simulator, then checked on a JieLi
-  development kit and, once a safe restore is proven, on an FM-1, so that
-  what the simulator plays is what the synth plays.
-- **Sounds and patterns saved on the synth.**
-- **MIDI out over USB.** The FM-1 already shows the computer a MIDI port
-  that can send [verified]; it needs Lunar Modulator's own USB-MIDI driver.
-- **To be investigated:** MIDI out on the 3.5 mm jack (probably not without
-  a hardware change: M-VAVE's and Baud Girl's manuals call it an input, and
-  the community firmware reads it as one [reported]), BLE MIDI,
-  and the FM-1's second CPU core, which could make room for more voices and
-  effects.
-
-**Orbital Dock**
-- **A module SDK** with friendly guides, for writing new modules (sound
-  engines, modulators, MIDI effects, audio effects) or porting existing
-  ones, as Mutable Instruments' and Schwung's code was ported here. Every
-  module gets automatic tests.
-- **A firmware builder in the browser:** pick the engines, modules, sound
-  banks and presets you want, and install them with a web flasher that
-  checks every file before writing and always keeps a way back to the
-  factory firmware.
-- **A community catalogue** to share modules, presets and recipes, each
-  passing the same checks as the built-in ones.
-
-The detail behind each line is in
-[`DEVELOPERS.md`](DEVELOPERS.md#the-roadmap-in-detail), with
+The browser simulator now includes the sound engines, effects, sequencer,
+arpeggiator, modulation, file storage, DX7 patch import and advanced editor.
+Envelopes include delay, five curves, a live playhead and a faint audio trace.
+The simulator does not send MIDI out. The main remaining work is the FM-1
+application target and hardware validation, plus planned features such as
+USB-MIDI output and additional effects. See
+[`DEVELOPERS.md`](DEVELOPERS.md#the-roadmap-in-detail) for the current
+engineering roadmap and
 [the path to an installable build](DEVELOPERS.md#the-path-to-an-installable-build).
 
 ## Installing on your FM-1
@@ -353,20 +289,24 @@ The detail behind each line is in
 **Not yet.** Two things have to happen first.
 - **Lunar Modulator has to run on the FM-1's chip.** Today it runs on
   computers and in the browser. It already compiles for the FM-1's
-  processor with JieLi's tools, but it has not run on a JieLi chip. A JieLi
-  development kit is on order, and it runs there first.
+  processor with JieLi's tools, and a small inert diagnostic application has
+  been linked. The running instrument has not been built or tested on an
+  FM-1 [verified: [diagnostic work record](https://github.com/ip2k/lunar-modulator/blob/main/notes/2026-10-09-linked-diagnostic.md)].
 - **A safe way back has to be proven.** The FM-1 keeps one copy of its
   firmware and has no recovery button, so a bad install could leave a synth
-  that does not start. Before Lunar Modulator offers an install, it must be
-  shown that an FM-1's memory can be backed up in full and restored byte for
-  byte.
+  that does not start. Recovery testing has made progress, but does not yet
+  show that a whole image or a failed application can be restored.
   - That goes through the chip's USB recovery mode. Two other FM-1 owners
     report reaching it with a small Raspberry Pi Pico adapter, and one
     reports backing up and writing firmware that way
     ([issue #2](https://github.com/ip2k/lunar-modulator/issues/2)).
-  - This project will check it on the development kit first, then on an
-    FM-1. A way into that mode without an adapter is being studied too;
-    nothing has been sent to an FM-1 for it.
+  - On the owner's FM-1, a command from the running application entered USB
+    recovery mode without an adapter. Matching full backups were taken; a
+    small unused sector was written, checked and restored. The complete
+    flash memory matched the backups afterward, and the owner confirmed
+    normal boots [verified: [bench record](notes/2026-10-07-fm1-softkey-bench.md)].
+    That command depends on an application that still runs; recovery when it
+    does not run remains untested.
 
 Once both are done, the plan is for Lunar Modulator to install over USB
 through the FM-1's own update path, as other third-party firmware already
@@ -562,7 +502,7 @@ MIT/BSD.
 | [`manual/`](manual/), [`tools/manual/`](tools/manual/) | The user manual: chapters in Markdown, a Rosé Pine Dawn theme, and the build that generates its reference from the code and publishes it to GitHub Pages |
 | [`sim/web/`](sim/web/) | The browser simulator: the firmware's app layer, its WebAssembly build, the page and its tests |
 | [`engines/`](engines/) | The engine platform: the C engine API, the sound engines, effects and modulation modules, the sequencer and arpeggiator cores, a Schwung module shim, a desktop renderer and tests |
-| [`firmware/`](firmware/) | Firmware for the FM-1's chip, so far the boot hand-off from fm1-nes and its test |
+| [`firmware/`](firmware/) | Firmware for the FM-1's chip: the boot hand-off from fm1-nes and a small inert startup diagnostic; device execution remains untested |
 | [`assets/`](assets/) | The branding art (`assets/branding/`) and the README's screenshots (`assets/screenshots/`) |
 | [`CHANGELOG.md`](CHANGELOG.md), [`HANDOFF.md`](HANDOFF.md) | What changed, and the context summary for whoever picks the work up next |
 | [`docs/01-hardware.md`](docs/01-hardware.md) | SoC, memory, board, connectors, what is still unknown |

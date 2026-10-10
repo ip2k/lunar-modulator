@@ -31,7 +31,6 @@ import struct
 import subprocess
 import sys
 import zlib
-from fractions import Fraction
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]

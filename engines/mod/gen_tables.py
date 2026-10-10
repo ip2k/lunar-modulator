@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Write engines/mod/mp_tables.c, the modulation primitives' lookup tables.
 
-The formulas are Peaks' (Emilie Gillet, MIT), from
+The original formulas are Peaks' (Emilie Gillet, MIT), from
 pichenettes/eurorack peaks/resources/lookup_tables.py at 08460a6:
 
 - envelope curves, lines 122-129: expo = 1 - exp(-4t), quartic = t^3.32,
@@ -11,6 +11,8 @@ pichenettes/eurorack peaks/resources/lookup_tables.py at 08460a6:
 - envelope times, lines 55-68: 0.5 ms to 8 s, linear in increment^-0.175.
   Peaks stores 48 kHz phase increments; this stores the times in seconds,
   which is the same curve without a sample rate.
+
+The added logarithmic curve is independently defined as log(1 + 15t) / log(16).
 
 The values are rounded to float32 here, so the C file holds exact literals
 and no libm runs on the target.
@@ -42,11 +44,12 @@ def tables():
     t = [i / 256.0 for i in range(N)]
     expo = [(1.0 - math.exp(-4.0 * x)) / (1.0 - math.exp(-4.0)) for x in t]
     quartic = [x ** 3.32 for x in t]
+    logarithmic = [math.log1p(9.0 * x) / math.log(10.0) for x in t]
     g, tmin, tmax = 0.175, 0.0005, 8.0
     times = [(tmin ** g + x * (tmax ** g - tmin ** g)) ** (1.0 / g) for x in t]
     times[0], times[-1] = tmin, tmax
     return [("fm1_mp_curve_expo", expo), ("fm1_mp_curve_quartic", quartic),
-            ("fm1_mp_env_times", times)]
+            ("fm1_mp_curve_log", logarithmic), ("fm1_mp_env_times", times)]
 
 
 def render():
