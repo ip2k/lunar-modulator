@@ -210,10 +210,13 @@ jobs:
       - name: Panel-follow and scheduling helper tests (node)
         timeout-minutes: 5
         run: |
-          node --test sim/web/test/panel-follow.test.mjs sim/web/test/scheduling-capture.test.mjs
+          node --test sim/web/test/panel-follow.test.mjs sim/web/test/startup-ready.test.mjs sim/web/test/scheduling-capture.test.mjs sim/web/test/playback-timeline.test.mjs
       - name: The editor's data and history against the module (node)
         timeout-minutes: 5
         run: node sim/web/test/editor-unit.mjs sim/web/www
+      - name: Worklet startup and restart ordering
+        timeout-minutes: 5
+        run: node sim/web/test/startup-smoke.mjs sim/web/www "$SHOTS/startup"
       - name: External audio detector and browser loopback
         run: |
           node sim/web/test/audio-analysis-check.mjs

@@ -64,9 +64,7 @@ const float kTwoPi = 6.28318530718f;
 const float kRingsRate = 48000.0f;
 
 inline float Clamp(const fm1_param_t &p, float v) {
-  if (!(v >= p.min)) v = p.min;               // also maps NaN to min
-  if (!(v <= p.max)) v = p.max;
-  return v;
+  return fm1_param_clamp(&p, v);
 }
 
 // A loop gain g per pass, made to give the same decay per second at the host

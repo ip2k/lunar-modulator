@@ -14,8 +14,9 @@ const fixture = () => {
 };
 const snapshot = () => ({ utc: 'fixture', files: {} });
 class Session extends EventEmitter {
-  async send(method) {
+  async send(method, params) {
     this.calls.push(method);
+    if (method === 'Tracing.start') this.categories = params.categories;
     if (method === 'Tracing.end') {
       // The final batch arrives during the drain, not during the storm.
       this.emit('Tracing.dataCollected', { value: [{ name: 'SyncReader::Read timed out' }, { name: 'Worker::DoRead' }] });
@@ -93,5 +94,19 @@ test('resource-only capture works for browsers without CDP', async () => {
     assert.equal(r.samples.length, 2);
     assert.deepEqual(r.errors, []);
     assert.doesNotMatch(r.perturbation, /CDP/);
+  } finally { f.clean(); }
+});
+
+test('phase mode adds user timing and retains explicit timeouts from the final trace batch', async () => {
+  const f = fixture(), session = new Session();
+  try {
+    const c = await startSchedulingCapture({ newBrowserCDPSession: async () => session }, f.out,
+      { trace: true, phases: true, snapshot });
+    const r = await c.finish();
+    assert.match(session.categories, /blink.user_timing/);
+    assert.match(r.trace_window, /before page navigation\/power-on/);
+    assert.equal(r.audio_classification.counts.sync_reader_timeout, 1);
+    assert.equal(r.audio_classification.by_phase.unlocated.sync_reader_timeout, 1);
+    assert.equal(r.audio_classification.trace_complete, true);
   } finally { f.clean(); }
 });

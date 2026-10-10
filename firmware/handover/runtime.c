@@ -1,5 +1,9 @@
 /* MIT. RAM-only handover preparation, no SDK/ROM/MMIO or board output. */
 #include "runtime.h"
+#ifdef LUNAR_PANEL_PROTOCOL_LINK
+#include "../display/protocol_capture.h"
+volatile struct lunar_panel_capture lunar_panel_protocol;
+#endif
 extern unsigned char __data_begin[], __data_end[], __data_load[];
 extern unsigned char __bss_begin[], __bss_end[];
 extern volatile unsigned char __stack_guard[], __ssp_guard[];
@@ -33,6 +37,10 @@ void lunar_handover_start(diag_u32 incoming_r0)
         __stack_guard[i] = 0xa5;
         __ssp_guard[i] = 0x5a;
     }
+#ifdef LUNAR_PANEL_PROTOCOL_LINK
+    if (lunar_handover.status == 1)
+        lunar_panel_capture_run(&lunar_panel_protocol);
+#endif
     for (;;) {
         for (i = 0; i < 16; ++i)
             if (__stack_guard[i] != 0xa5 || __ssp_guard[i] != 0x5a)

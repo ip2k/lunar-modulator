@@ -1,0 +1,310 @@
+{
+  "schema": 1,
+  "head": "aff83ab804497b0724f7e5d8ba13b115cfcdd28a",
+  "pr": 143,
+  "run": 38040392775,
+  "job": 114179304229,
+  "artifact": 11665552341,
+  "acceptance": "FAILURE; unchanged zero-underrun gate",
+  "editor": {
+    "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+    "seconds": 30,
+    "logs": [],
+    "scheduling_capture": true,
+    "edited": 7319,
+    "codes_not_ok": 0,
+    "changes": 1725,
+    "entries": 58555,
+    "resyncs": 0,
+    "views": 1,
+    "telemetry": 905,
+    "stats": {
+      "quanta": 10695,
+      "timed": false,
+      "late": null,
+      "maxMs": null,
+      "editMs": null
+    },
+    "snapshot": {
+      "ok": true,
+      "bytes": 1115,
+      "binary": true
+    },
+    "ops": 7319,
+    "records": 58552,
+    "rate": 44100,
+    "playback": {
+      "underrun_events": 1,
+      "underrun_ms": 11.609
+    },
+    "pass": false
+  },
+  "audio_classification": {
+    "counts": {
+      "sync_reader_timeout": 1,
+      "glitch": 3,
+      "fifo_pull_shortage": 0,
+      "fifo_earmarked_shortage": 0,
+      "fifo_overrun": 0
+    },
+    "by_phase": {
+      "power-on-request": {
+        "sync_reader_timeout": 1,
+        "glitch": 3,
+        "fifo_pull_shortage": 0,
+        "fifo_earmarked_shortage": 0,
+        "fifo_overrun": 0
+      }
+    },
+    "explicit_events": [
+      {
+        "kind": "sync_reader_timeout",
+        "phase": "power-on-request",
+        "ts_us": 661066222,
+        "pid": 1574,
+        "tid": 1583,
+        "args": {}
+      },
+      {
+        "kind": "glitch",
+        "phase": "power-on-request",
+        "ts_us": 661068881,
+        "pid": 1551,
+        "tid": 1585,
+        "args": {
+          "glitch count": 1,
+          "glitch duration": 11609
+        }
+      },
+      {
+        "kind": "glitch",
+        "phase": "power-on-request",
+        "ts_us": 661068887,
+        "pid": 1551,
+        "tid": 1585,
+        "args": {
+          "glitch count": 1,
+          "glitch duration": 11609
+        }
+      },
+      {
+        "kind": "glitch",
+        "phase": "power-on-request",
+        "ts_us": 661068902,
+        "pid": 1551,
+        "tid": 1582,
+        "args": {
+          "glitch count": 1,
+          "glitch duration": 11609
+        }
+      }
+    ],
+    "explicit_events_dropped": 0,
+    "fifo_zero_counter_samples": 2750,
+    "markers": [
+      {
+        "phase": "page-init",
+        "ts_us": 660842757
+      },
+      {
+        "phase": "power-on-request",
+        "ts_us": 660914223
+      },
+      {
+        "phase": "play-request",
+        "ts_us": 661394609
+      },
+      {
+        "phase": "baseline",
+        "ts_us": 661400490
+      },
+      {
+        "phase": "loop-begin",
+        "ts_us": 661400526
+      },
+      {
+        "phase": "loop-end",
+        "ts_us": 691403675
+      },
+      {
+        "phase": "snapshot-drain",
+        "ts_us": 691403766
+      },
+      {
+        "phase": "drain-end",
+        "ts_us": 692903989
+      },
+      {
+        "phase": "trace-finish-request",
+        "ts_us": 692906440
+      }
+    ],
+    "trace_complete": true,
+    "trace_events_dropped": 0,
+    "interpretation": "Counts only explicit named events in saved trace. Zero FIFO occupancy is not a shortage; absence does not prove no glitch, especially in incomplete traces."
+  },
+  "trace_complete": true,
+  "trace_events_saved": 88250,
+  "trace_events_dropped": 0,
+  "trace_errors": [],
+  "raw_counter_samples": [
+    {
+      "phase": "page-init",
+      "page_ms": 19.900000000023283,
+      "time_origin_ms": 1791623826295.7,
+      "audio_seconds": null,
+      "state": null,
+      "sample_rate": null,
+      "raw": null,
+      "error": null
+    },
+    {
+      "phase": "power-on-request",
+      "page_ms": 91,
+      "time_origin_ms": 1791623826295.7,
+      "audio_seconds": null,
+      "state": null,
+      "sample_rate": null,
+      "raw": null,
+      "error": null
+    },
+    {
+      "phase": "play-request",
+      "page_ms": 571.5,
+      "time_origin_ms": 1791623826295.7,
+      "audio_seconds": 0.40634920634920635,
+      "state": "running",
+      "sample_rate": 44100,
+      "raw": {
+        "events": 0,
+        "seconds": 0,
+        "total_seconds": 0.002902
+      },
+      "error": null
+    },
+    {
+      "phase": "baseline",
+      "page_ms": 577.3000000000466,
+      "time_origin_ms": 1791623826295.7,
+      "audio_seconds": 0.40634920634920635,
+      "state": "running",
+      "sample_rate": 44100,
+      "raw": {
+        "events": 0,
+        "seconds": 0,
+        "total_seconds": 0.002902
+      },
+      "error": null
+    },
+    {
+      "phase": "loop-begin",
+      "page_ms": 577.3000000000466,
+      "time_origin_ms": 1791623826295.7,
+      "audio_seconds": 0.40634920634920635,
+      "state": "running",
+      "sample_rate": 44100,
+      "raw": {
+        "events": 0,
+        "seconds": 0,
+        "total_seconds": 0.002902
+      },
+      "error": null
+    },
+    {
+      "phase": "tick",
+      "page_ms": 1022.4000000000233,
+      "time_origin_ms": 1791623826295.7,
+      "audio_seconds": 0.8591383219954648,
+      "state": "running",
+      "sample_rate": 44100,
+      "raw": {
+        "events": 0,
+        "seconds": 0,
+        "total_seconds": 0.002902
+      },
+      "error": null
+    },
+    {
+      "phase": "trace-finish-request",
+      "page_ms": 32083.300000000047,
+      "time_origin_ms": 1791623826295.7,
+      "audio_seconds": 31.915827664399092,
+      "state": "running",
+      "sample_rate": 44100,
+      "raw": {
+        "events": 1,
+        "seconds": 0.011609,
+        "total_seconds": 31.321287
+      },
+      "error": null
+    },
+    {
+      "phase": "tick",
+      "page_ms": 33020.10000000009,
+      "time_origin_ms": 1791623826295.7,
+      "audio_seconds": 32.8562358276644,
+      "state": "running",
+      "sample_rate": 44100,
+      "raw": {
+        "events": 1,
+        "seconds": 0.011609,
+        "total_seconds": 32.331183
+      },
+      "error": null
+    },
+    {
+      "phase": "trace-finished",
+      "page_ms": 33313.40000000002,
+      "time_origin_ms": 1791623826295.7,
+      "audio_seconds": 33.14648526077097,
+      "state": "running",
+      "sample_rate": 44100,
+      "raw": {
+        "events": 1,
+        "seconds": 0.011609,
+        "total_seconds": 32.331183
+      },
+      "error": null
+    }
+  ],
+  "trace_anchors_us": {
+    "power_on_request": 660914223,
+    "sync_reader_timeout": 661066222,
+    "glitch_records": [
+      661068881,
+      661068887,
+      661068902
+    ],
+    "play_request": 661394609,
+    "baseline": 661400490,
+    "loop_begin": 661400526,
+    "loop_end": 691403675,
+    "snapshot_drain": 691403766
+  },
+  "render_evidence": {
+    "callback_start_us": 661041199,
+    "callback_duration_us": 27650,
+    "queued_worklet_render_start_us": 661059232,
+    "queue_delay_us": 18033,
+    "first_active_render_duration_us": 7134,
+    "first_active_render_cpu_us": 3877
+  },
+  "limits": [
+    "Trace and raw counter reads perturb scheduling.",
+    "Only this exact CI event is localized; earlier failed receipts remain unassigned.",
+    "Three propagated Glitch records describe the same duration, not three independently counted underruns.",
+    "The worklet render interval alone does not identify the precise initialization instruction."
+  ],
+  "sha256": {
+    "editor-reach.json": "846386babd281520f94100d961f4e6aaa94679e24fed872989b5bd0e10f8a582",
+    "editor-v1.json": "728068cd34c5e52ca7b09960dc4c1727f1c12044d0127a516206e24dfc2e0c6f",
+    "editor-playback-timeline.json": "d468b76ce944528af260b65c1f2fad8b2d1025c4334f3e58c52c914d5a3f2dd4",
+    "editor.json": "e8b26ac9a5c185c027f164228d1a0061ef776adb2fe446cb108094875a33f79e",
+    "editor-audio-trace.json": "636cec2f5b2a910ca6ccf8031403328a3c039f2aad179f4c86b90a1d4f886f83",
+    "editor-map.json": "bc1aba078ec99064e18320b1f406e3dd884cf6ac579b793e6e9a66edded6f9c3",
+    "editor-scheduling.json": "76fe66e58776e319c94f7881153014b7e734f498141c14f7d983f73fea055711",
+    "editor-ui.json": "471babe76b45b78f808389417cbb9b6a5275958008da1b4071964ff8707eef29",
+    "audio-loopback.json": "c1ceba25ee160f16eb366c7e7af29f871e6662b0cc6e25d79c48cb4ae53f1a3e",
+    "startup-smoke.json": "16ee7cf1d31857b28cec2774ae5b0ae3731333490aaf02661e1a9e7891becd6f"
+  }
+}

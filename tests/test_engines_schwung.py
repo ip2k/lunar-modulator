@@ -316,6 +316,18 @@ def test_sophie_is_in_tune_at_the_host_rate(renderer, tmp_path, tune):
     assert abs(cents(pitch_hz(left, 0.4, 0.5), KICK_HZ * 2 ** (tune / 12))) < 1.0
 
 
+def test_sophie_high_ratio_phase_wraps_at_supported_rates(renderer):
+    # The focused C regression drives the exact production reducer with the
+    # 18 kHz oscillator cap and all three maximum modulation ratios. It checks
+    # the normal 44,118 Hz host and the shim's supported 8 kHz lower bound.
+    res = subprocess.run([str(ENGINES / "build" / "fm1-sophie-phase-test")],
+                         check=True, capture_output=True, text=True)
+    result = json.loads(res.stdout)
+    assert result == {"check": "sophie_phase_wrap", "rates": [44118, 8000],
+                      "ratios": 3, "steps_per_rate": 30000,
+                      "total_steps": 60000, "result": "pass"}
+
+
 @pytest.mark.parametrize("param", ["Model=1", "Metal=100", "Color=90", "Feedback=80",
                                    "Sweep=-60", "Tune=7"])
 def test_sophie_parameters_change_the_output(renderer, tmp_path, param):

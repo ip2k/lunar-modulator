@@ -38,3 +38,12 @@ remain unknown or incomplete. The boot-info snapshot is not an SDK ABI
 bridge, and no peripheral or MMIO is touched.
 
 See [target evidence and continuation](../../notes/2026-10-09-handover-preparation.md).
+
+The explicit `panel-protocol` link option additionally calls the existing
+display protocol through a bounded RAM sink. It records the command/data/end
+transcript hash, counts and requested waits in `lunar_panel_protocol`, without
+performing any transfer or delay. It uses the same handover layout checks and
+is also rejected by the default inert staging/replacement path. This closes
+an offline component-link gap; it does not establish a hardware transport,
+watchdog budget, usable LCD output or device execution. Its artifacts are
+ignored under `build/jieli-panel-protocol/`.

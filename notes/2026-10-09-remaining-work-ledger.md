@@ -242,20 +242,16 @@ remain explicitly open; targeted fixes do not imply blanket closure. The next
 useful audit step is a source/status pass over the remaining P2s after those
 branch outcomes settle, rather than rerunning the whole audit.
 
-### Repeated-picks audit follow-up
+### Repeated-picks audit follow-up — historical snapshot
 
 The full audit's P2 for repeated “Make B from the picks” undo/redo mismatch
-(batch 39, finding at `notes/2026-10-07-full-code-audit.md:156`) remains the
-item tracked by open PR #118, not an unassigned implementation task. At the
-reconciled baseline, main `project.js` still merges structural edits by the shared `ab:`
-target while `redoPicks` reuses `entry.info.reload`; PR #99's source diff adds
-the captured-cable identity check for stale Search batches, but does not change
-this picks/history payload. A small regression can perform two same-scope picks
-loads inside the history merge window, then assert undo restores the exact
-pre-first state and redo restores the second selection. If assigned, fix the
-history grouping/payload at the editor history boundary and test the history
-semantics without needing hardware or a browser build. Review PR #118's
-implementation and integration gate before duplicating that work.
+(batch 39, finding at `notes/2026-10-07-full-code-audit.md:156`) was tracked by
+open PR #118 at this ledger's 2026-10-09 snapshot. At that baseline, main
+`project.js` still merged structural edits by the shared `ab:` target while
+`redoPicks` reused `entry.info.reload`; PR #99's source diff added the
+captured-cable identity check for stale Search batches, but did not change this
+picks/history payload. The subsequent regression/implementation and its old
+check status are recorded in the dated PR reconciliation note.
 
 ## Integration reconciliation — 2026-10-09
 
@@ -297,3 +293,23 @@ firmware code generation or complete call graph. No hardware was used.
 all seven relative Markdown file links in the three changed documents resolve.
 The merge adds no source changes beyond its named main baseline. Fresh exact-head
 CI must still pass before integration; earlier green checks do not cover this merge.
+
+## Current readiness refresh — 2026-10-10 UTC
+
+`origin/main` is now `40c94300428acfc5688a203c2c928723ed98270a`. PR #140
+merged the combined editor/docs/Warble/Repeat/Compare/PSX candidate, and PR #118
+merged as `dd9b329211109bf07b05594a941da8451f762615`; the picks undo/redo fix is
+on main. This later status supersedes the older lists above. The focused Sophie
+phase-wrap, Mutable-derived NaN-default and Gate timing-description corrections
+are developed separately on `fix/2026-10-10@audited-dsp-boundaries`; their code
+and rebuilt Wasm are not yet on main. PR #141 remains open with its Chromium
+page-test failure preserved and ASan/UBSan still in progress at the latest
+snapshot; see `notes/2026-10-10-open-pr-reconciliation.md` for exact heads and
+checks. PRs #134, #136 and #139 are also still open at this refresh.
+
+No requested songs have been authored or accepted. The song gate remains the
+integrated current main plus four deterministic project assets, actual
+admission, full-chain native/Wasm renders, library and panel save/reload checks,
+and listening. Developer-oracle bounds, broader state validation and audit
+cleanup remain tracked separately; this ledger does not claim all P3 findings
+are fixed, nor does it make device execution a prerequisite for authoring.
