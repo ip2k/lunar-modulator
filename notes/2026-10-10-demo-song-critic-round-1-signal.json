@@ -170,7 +170,49 @@
           "approx_dbfs": -23.753412709833903,
           "change_db": -2.6030161912010588
         }
-      ]
+      ],
+      "native": {
+        "ram": 282664,
+        "seq_events": 11786,
+        "seq_notes_to_engine": 1788,
+        "seq_locks_to_engine": 912,
+        "seq_refused": 0,
+        "seq_dropped": 0,
+        "seq_max_block_events": 11
+      },
+      "loadReport": {
+        "code": "OK",
+        "kind": "project",
+        "message": "Loaded project AFTERGLOW RELAY. RAM 67%.",
+        "screen": [
+          "LOADED",
+          "RAM 67%"
+        ],
+        "percent": 67,
+        "ram": 256936,
+        "budget": 387924,
+        "sounds": 4,
+        "effects": 5,
+        "mfx_on": 0,
+        "modules": 5,
+        "cables": 4,
+        "voices": 1,
+        "tracks": 8,
+        "clips": 64,
+        "song": 11,
+        "set": 1,
+        "left_out": 0,
+        "skipped": 0,
+        "repaired": 0,
+        "line": 0,
+        "col": 0,
+        "path": "",
+        "near": "",
+        "name": "",
+        "what": "",
+        "first_skip": ""
+      },
+      "browser_state_comparison": "Exact master/mod/dx7; equal set-command multiset; sound equality after removing only newly serialized disabled default arps from previously empty midi_fx."
     },
     {
       "title": "Event Horizon",
@@ -421,7 +463,49 @@
           "approx_dbfs": -25.404634969722345,
           "change_db": -3.313766447992445
         }
-      ]
+      ],
+      "native": {
+        "ram": 291392,
+        "seq_events": 19394,
+        "seq_notes_to_engine": 2885,
+        "seq_locks_to_engine": 1572,
+        "seq_refused": 0,
+        "seq_dropped": 0,
+        "seq_max_block_events": 13
+      },
+      "loadReport": {
+        "code": "OK",
+        "kind": "project",
+        "message": "Loaded project EVENT HORIZON. RAM 69%.",
+        "screen": [
+          "LOADED",
+          "RAM 69%"
+        ],
+        "percent": 69,
+        "ram": 265472,
+        "budget": 387924,
+        "sounds": 4,
+        "effects": 5,
+        "mfx_on": 1,
+        "modules": 5,
+        "cables": 4,
+        "voices": 1,
+        "tracks": 8,
+        "clips": 64,
+        "song": 17,
+        "set": 1,
+        "left_out": 0,
+        "skipped": 0,
+        "repaired": 0,
+        "line": 0,
+        "col": 0,
+        "path": "",
+        "near": "",
+        "name": "",
+        "what": "",
+        "first_skip": ""
+      },
+      "browser_state_comparison": "Exact master/mod/dx7; equal set-command multiset; sound equality after removing only newly serialized disabled default arps from previously empty midi_fx."
     },
     {
       "title": "Packet Bloom",
@@ -616,7 +700,49 @@
           "approx_dbfs": -23.936139639064187,
           "change_db": -2.110173819612432
         }
-      ]
+      ],
+      "native": {
+        "ram": 233384,
+        "seq_events": 14254,
+        "seq_notes_to_engine": 2316,
+        "seq_locks_to_engine": 1172,
+        "seq_refused": 0,
+        "seq_dropped": 0,
+        "seq_max_block_events": 11
+      },
+      "loadReport": {
+        "code": "OK",
+        "kind": "project",
+        "message": "Loaded project PACKET BLOOM. RAM 54%.",
+        "screen": [
+          "LOADED",
+          "RAM 54%"
+        ],
+        "percent": 54,
+        "ram": 207656,
+        "budget": 387924,
+        "sounds": 4,
+        "effects": 5,
+        "mfx_on": 0,
+        "modules": 5,
+        "cables": 4,
+        "voices": 1,
+        "tracks": 8,
+        "clips": 64,
+        "song": 13,
+        "set": 1,
+        "left_out": 0,
+        "skipped": 0,
+        "repaired": 0,
+        "line": 0,
+        "col": 0,
+        "path": "",
+        "near": "",
+        "name": "",
+        "what": "",
+        "first_skip": ""
+      },
+      "browser_state_comparison": "Exact master/mod/dx7; equal set-command multiset; sound equality after removing only newly serialized disabled default arps from previously empty midi_fx."
     },
     {
       "title": "Neon Transit",
@@ -853,7 +979,91 @@
           "approx_dbfs": -24.77309509309121,
           "change_db": -0.23490170374228816
         }
-      ]
+      ],
+      "native": {
+        "ram": 282664,
+        "seq_events": 16650,
+        "seq_notes_to_engine": 2830,
+        "seq_locks_to_engine": 1004,
+        "seq_refused": 0,
+        "seq_dropped": 0,
+        "seq_max_block_events": 11
+      },
+      "loadReport": {
+        "code": "OK",
+        "kind": "project",
+        "message": "Loaded project NEON TRANSIT. RAM 67%.",
+        "screen": [
+          "LOADED",
+          "RAM 67%"
+        ],
+        "percent": 67,
+        "ram": 256936,
+        "budget": 387924,
+        "sounds": 4,
+        "effects": 5,
+        "mfx_on": 0,
+        "modules": 5,
+        "cables": 4,
+        "voices": 1,
+        "tracks": 8,
+        "clips": 64,
+        "song": 16,
+        "set": 1,
+        "left_out": 0,
+        "skipped": 0,
+        "repaired": 0,
+        "line": 0,
+        "col": 0,
+        "path": "",
+        "near": "",
+        "name": "",
+        "what": "",
+        "first_skip": ""
+      },
+      "browser_state_comparison": "Exact master/mod/dx7; equal set-command multiset; sound equality after removing only newly serialized disabled default arps from previously empty midi_fx."
     }
-  ]
+  ],
+  "native_receipt_sha256": "87504b8f02850803ab3215be5696f76859613ec64b6344dbcc461b081742a1ed",
+  "browser_receipt_sha256": "e1e5b59df70a4e6c1568ea2172d8d52f8f2cec92f339db6316fc23427e9fd086",
+  "wasm_sha256": "4667498f919529ba0f1059f127ea02e60c2c2a76ee5bc16983cfeabbb96b76ec",
+  "browser_acceptance": {
+    "browser": "153.0.8010.12",
+    "songs": [
+      {
+        "title": "Afterglow Relay",
+        "file": "afterglow-relay.lunar",
+        "listed": true,
+        "playbackStarted": true,
+        "download": true,
+        "reopened": true
+      },
+      {
+        "title": "Event Horizon",
+        "file": "event-horizon.lunar",
+        "listed": true,
+        "playbackStarted": true,
+        "download": true,
+        "reopened": true
+      },
+      {
+        "title": "Packet Bloom",
+        "file": "packet-bloom.lunar",
+        "listed": true,
+        "playbackStarted": true,
+        "download": true,
+        "reopened": true
+      },
+      {
+        "title": "Neon Transit",
+        "file": "neon-transit.lunar",
+        "listed": true,
+        "playbackStarted": true,
+        "download": true,
+        "reopened": true
+      }
+    ],
+    "errors": [],
+    "pass": true
+  }
 }

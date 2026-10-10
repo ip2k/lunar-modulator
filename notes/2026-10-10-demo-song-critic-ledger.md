@@ -86,7 +86,8 @@ coverage limits, not validation of the writer worktree.
 | Round | Frozen asset SHA | Report | Disposition |
 | --- | --- | --- | --- |
 | 1 | `9a2d099` (canonical repair `27939c7`) | Round 1 MD/JSON | All 32 scenes below threshold; R1-A–H open |
-| 2–5 | Not started | — | — |
+| 2 | `f1887404` | Round 2 MD/JSON | All 32 scenes below threshold; R1 repairs partly implemented; R2-A–E open |
+| 3–5 | Not started | — | — |
 
 Critic branch: `chore/2026-10-10@demo-music-critic`.
 Writer branch: `feature/2026-10-10@demo-songs`.
@@ -101,3 +102,9 @@ Parent integration owns rendering, runtime acceptance and final packaging.
 ## Round 1 signal adjunct
 
 [verified] Parent full-song Wasm receipt was read and every one of the 57 scene occurrences received an approximate RMS aggregate, retaining the one-second boundary limitation. Files: `2026-10-10-demo-song-critic-round-1-signal.{md,json}`. First peak versus verse is +2.26/+2.87/+1.67/+1.20 dB respectively. [inferred] An energy arc exists; the critique concerns development and promised role changes, not a claim of wholly flat output. Packet Bloom Glitch is only about 0.49 dB below its first Bloom, supporting review of its interruption role. Free LFO/effect state can vary samples despite event/lock identity. Musical scores unchanged; no listening claim.
+
+## Round 2 checkpoint
+
+[verified] Frozen f1887404ce12a53d63ef784178fa37fccec7722e reviewed across all 32 scenes, 57 occurrences, actual serialized notes, locks, routes, sound/FX/arp and modulation state. All four authoritative asset SHA256 values match the parent native/Wasm receipt. Runtime and Chromium play/Save/fresh-Open receipts read and retained in the report JSON. [inferred] Scores are 5–7; no scene passes. Real improvements include bass holds, peak endpoints, evolving builds, kickless contrast and cadences. Remaining targets are timestamp-aware phrase development, register-aware transposition, actual call/answer gaps, Event Horizon chord-swell identity, smooth voice-leading and a single directional Neon ending. No by-ear listening; scores remain provisional where perception matters.
+
+[verified] Round 1 browser Save normalization is explicitly retained: command reordering plus disabled default arp objects in previously empty slots, preserving musical commands and existing parameters. Do not conflate canonical representation with byte equality. Parent owns acceptance and final owner listening.
