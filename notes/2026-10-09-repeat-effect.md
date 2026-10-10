@@ -75,17 +75,30 @@ START, STOP, RESET and Hold-Off while dry with nonzero Mix, same-target Mix and 
 writes five frames into their ramps, and a re-hold followed by both an early BEAT and a
 fresh-ring BEAT. The tests also preserve STOP's clear request through repeated Hold-Off
 and verify an explicit unchanged Hold-On can rearm after STOP. Current focused native
-self-test: 13 passed, 0 failed. The exact emitted instance
-size and profile metadata still need regeneration after the added per-instance wet target;
-the 105,100-byte parity scenario figure is total scenario memory, not the Repeat instance.
+self-test: 13 passed, 0 failed. Generated GPL-on metadata reports a **65,648-byte Repeat
+instance**: the 65,536-byte ring plus aligned effect state. That is distinct from total
+renderer scenario memory.
 
-This note records design and focused progress, not completion. Meaningful checks cover the
-supported rate/tempo edges, effective divisions, initial history, stopped
-capture, beat alignment, frozen storage, re-trigger, STOP/START/RESET, tempo
-jumps, event offsets, chunk invariance, deterministic finite output, and
-bit-exact zero-mix dry. Native and WebAssembly checks use the project's
-bounded LAN build path. They do not establish FM-1 runtime CPU/SRAM use,
-installability, or hardware behavior.
+The final bounded aeon build used pinned Alpine 3.22 and Emscripten 6.0.10 images. Its
+106 scenarios all passed: 106/106 identical to JavaScript and musl, 103/106 identical to
+glibc with the established three libm-sensitive cases. `four-sounds-repeat-admission`
+loaded Macro, Drums, DX7 and Six-Op as four active sounds, Comp and Repeat in the two
+MASTER slots, and one Crush insert. It passed with **185,840 bytes wasm32 renderer RAM**
+(200,472 bytes native64), zero audio differences and zero screen pixels; this is desktop
+simulator admission evidence, not target-device SRAM admission. The separate
+`seq-repeat-beat-hold` scenario passed with zero dropped events and 105,116 bytes total
+scenario memory. Module: 1,557,830 bytes, SHA-256
+`edda579cc762bc225246cd8204a0652729e7d24d65bea13b5d2eeb8360898b6f`; generated metadata
+id `0d1d0b8b`; engine source hash `12db9e486085c7545fa3fe3abd2708692d3b9142cf02731e49909355f00f9db3`, simulator source hash
+`4f03098ea5cd44fbacccff518241acf8b665281f054e4bd5a8c75e3040b3ad30`. The edit-layer
+parity check passed with max audio delta 0; a 30-second storm completed 10,341 quanta
+with zero late quanta. Build used GPL modules enabled, and Repeat remains MIT / GPL-off.
+
+Native and WebAssembly checks use the project's bounded LAN build path. They do not
+establish FM-1 runtime CPU/SRAM use, installability, or hardware behavior. Browser
+screenshot/editor checks were not part of this `--no-screenshot` build.
+
+A separate GPL-off build compiled a 1,298,505-byte Wasm (`fc2030d44f34de5bf02140e74d1b7144fc445d90212d90b2351f71805aed0860`). Focused parity for `seq-repeat-beat-hold` and `four-sounds-repeat-admission` passed 2/2 against JS, musl, and glibc. The Wasm metadata test passed, with GPL disabled, Repeat still present as MIT, and 65,648-byte instance RAM (metadata id `0d94de44`). The full GPL-off parity script reaches an existing GPL-only Acid Bass scenario and exits when that module is unavailable; the full script currently does not filter GPL scenarios for this profile. The focused GPL-off cases establish Repeat's profile behavior, not full GPL-off suite coverage.
 
 Semantic tooling was checked for this task. Serena was activated at this
 worktree and its symbol overview located Echo's render implementation.

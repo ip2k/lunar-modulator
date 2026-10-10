@@ -6897,6 +6897,86 @@
       ]
     },
     {
+      "id": "repeat",
+      "name": "Repeat",
+      "kind": "audio_fx",
+      "group": "space",
+      "credits": "Original MIT implementation; beat-synchronised stutter informed by project performance-FX research",
+      "licence": "MIT",
+      "gpl": false,
+      "max_voices": 0,
+      "per_note": false,
+      "pads": null,
+      "fx_wants": [
+        "tempo",
+        "transport"
+      ],
+      "ram": 65648,
+      "page_names": [
+        null
+      ],
+      "params": [
+        {
+          "uid": 1,
+          "name": "Hold",
+          "abbr": "Hold",
+          "type": "enum",
+          "min": 0,
+          "max": 1,
+          "def": 0,
+          "step": 1,
+          "unit": "none",
+          "page": 1,
+          "knob": 1,
+          "flags": [
+            "mod"
+          ],
+          "entries": [
+            "Off",
+            "On"
+          ]
+        },
+        {
+          "uid": 2,
+          "name": "Max slice",
+          "abbr": "Slice",
+          "type": "enum",
+          "min": 0,
+          "max": 2,
+          "def": 1,
+          "step": 1,
+          "unit": "none",
+          "page": 1,
+          "knob": 2,
+          "flags": [
+            "mod"
+          ],
+          "entries": [
+            "1/8 max",
+            "1/16 max",
+            "1/32 max"
+          ]
+        },
+        {
+          "uid": 3,
+          "name": "Mix",
+          "abbr": "Mix",
+          "type": "float",
+          "min": 0,
+          "max": 1,
+          "def": 0.5,
+          "step": 0.01,
+          "unit": "none",
+          "page": 1,
+          "knob": 3,
+          "flags": [
+            "smooth",
+            "mod"
+          ]
+        }
+      ]
+    },
+    {
       "id": "test-gain",
       "name": "Test Gain",
       "kind": "audio_fx",
@@ -11822,5 +11902,5 @@
       }
     ]
   },
-  "meta_id": "4f8ea78b"
+  "meta_id": "0d1d0b8b"
 }
