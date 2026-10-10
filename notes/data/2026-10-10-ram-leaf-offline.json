@@ -1,0 +1,33 @@
+{
+  "status": "offline-only; never executed; ROM contract unresolved",
+  "target": "pi32v2 r3 fprev1",
+  "base": "0x01c02000",
+  "length": 512,
+  "code_length": 28,
+  "mailbox": "0x01c021e0",
+  "mailbox_length": 32,
+  "plain_sha256": "22a6f82ad920e320e525ad634efd013f19f2c16a785f30590519dc2e0c340bd5",
+  "code_hex": "c1ffe021c001906142e057130a199262c2ff4c554e52926040208000",
+  "remaining_bytes_zero": true,
+  "cipher_sha256": "003b2ca6a5444e0a6a0ede99ed207c4ac0cfc0c327f0d1be7d05d65228b9764b",
+  "cipher_crc16_xmodem": "5d64",
+  "cipher_round_trip": true,
+  "observed_rom_argument_register": null,
+  "observed_rom_return_contract": null,
+  "disassembly_byte_coverage": {
+    "loader": {
+      "bytes": 24064,
+      "sha256": "db8676b9cca4e2c0dfee062715cdb41528a2a8ccc827520ba8c194e4a2e0356e",
+      "covered_bytes": 24064,
+      "missing_bytes": 0,
+      "mismatched_bytes": 0
+    },
+    "stock-spl": {
+      "bytes": 14384,
+      "sha256": "730e54f0a439f58d147be4364ad21e19566945ada9d3a7bbc8371dce5068d3ef",
+      "covered_bytes": 14384,
+      "missing_bytes": 0,
+      "mismatched_bytes": 0
+    }
+  }
+}

@@ -104,7 +104,7 @@ Trap 7's syscmd 33-36 and 48 belong to the separate 00 59 framing.
 - On WL82, READ_MEMORY ciphers RAM in place for the duration of the transfer.
 There is no evidence of autonomous flash writes; the ROM has not been dumped. The slide switch removes power completely (docs/10, verified 2026-09-06).
 - The loader's command set, and which commands are read-only. Disassembled from jl-uboot-tool's wl82loader.bin after deciphering it with the documented cipher, loaded at 0x01C02000. [[verified] disassembly (out/ldr.dis); [inferred] that the default (no status-register write) applies when nothing is written after the loader] — The dispatcher is at 0x01C04194:
-- FB: 00/01/02 → ioctl 201/200/202 (erase block/sector/chip), 04 write flash, 06 write memory, 08 jump, 0x42 → ioctl 203.
+- FB: 00/01/02 → ioctl 201/200/202 (erase block/sector/chip), 04 write flash, 06 write memory, 0x42 → ioctl 203. **Correction, 2026-10-10 [verified]: this pinned RAM loader rejects FB08.** The dispatcher at 0x01C041B6 routes subcommands above 6 to 0x01C04422, which accepts only 0x42. ROM FB08 used to enter the loader is a separate path; it does not establish a loader jump command. Fresh exact-byte disassembly and the older `out/ldr.dis` agree; see `notes/2026-10-10-fm1-live-bringup.md`.
 - FC (table at 0x01C042C6): 09 read key, 0A online device (ioctl 100, cached JEDEC ID), 0B read ID, 0C run app (writes SFRs at 0x51000/0x11800, then jumps), 0D rejected, 0E flash CRC, 12 (parses a 3300-5500 range), 13, 14 USB buffer size, 16 (a data-OUT command); also 40-48, 83, 84, 9D, A0, A1.
 - FD: 05 read flash, 07 read memory, 0B ID.
 FD05 only calls the device read op (ops[1] = 0x01C04E1A), updates a RAM CRC and sends data to the host.
