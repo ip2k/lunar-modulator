@@ -1,0 +1,20 @@
+{
+  "include": [
+    "assets",
+    "dongle",
+    "engines",
+    "sim",
+    "tools",
+    "tests"
+  ],
+  "exclude": [
+    "reference",
+    "scratch",
+    ".claude",
+    ".venv",
+    "build",
+    "engines/build*",
+    "sim/web/build"
+  ],
+  "typeCheckingMode": "basic"
+}
