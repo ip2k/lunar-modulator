@@ -29,21 +29,20 @@ PR and branch statuses in it must be refreshed before acting on them.
 
 Validation: `git diff --check` passed. The strict manual/site build completed
 on aeon using the project’s existing cached `lunar-modulator-manual:ubuntu-24.04`
-image, in `docker-batch.slice`, bounded to 4 CPUs and 4 GiB memory. It built
-the engines and ran `tools/manual/build.py --site /tmp/out --pdf --strict
---no-make` at source commit `15071c8915761df6cd587c48c5d8e3e7f40140a1`.
-The result was 17 chapters, 40 engines/effects, a 272-page PDF, and zero
-strict-manual errors or warnings. The PDF receipt at
-`/tmp/lunar-pr135-manual-15071c8/lunar-modulator-manual.pdf` is 2,386,727
+image, in `docker-batch.slice`, bounded to 4 CPUs and 4 GiB memory. Source was
+`415efaa5d5778ab11ee4dcf16a1db1fb911e3c09`; it built the engines and ran
+`tools/manual/build.py --site /out --pdf --strict --no-make`. The result was
+17 chapters, 40 engines/effects, a 272-page PDF, and zero strict-manual errors
+or warnings. Its PDF receipt at
+`/tmp/lunar-pr135-415efaa/out/manual/lunar-modulator-manual.pdf` is 2,386,182
 bytes, SHA-256
-`f951b3061ae3b83fad479210023ac610d56f63aa9d7b3e9d06466c82e744e0f0`.
-The generated HTML contains the planned-workstreams wording and the corrected
-installability statement. The aeon GCC engine build printed existing compiler
-warnings; the manual builder’s strict validation passed. No local daemon was
-restarted, no build artifacts were written into the repository, and no device
-or hardware was contacted. PR #135’s GitHub CI and Pages checks were queued at
-head `15071c8915761df6cd587c48c5d8e3e7f40140a1`; this LAN receipt does not
-replace those checks.
+`91ed8becbbb06f82df321e18aa6baba19f740e83288ba610b7545f4307df9d5c`.
+The generated chapter 11 HTML contains the independent-workstreams, no-board-
+prerequisite and route-specific working-unit wording. The aeon GCC engine build
+printed existing compiler warnings; the manual builder’s strict validation
+passed. No local daemon was restarted, no build artifacts were written into the
+repository, and no device or hardware was contacted. PR #135 CI and Pages checks
+were queued at this exact head; this LAN receipt does not replace those checks.
 
 ## Bounded full-code-audit disposition for demo work
 
@@ -90,5 +89,11 @@ still say “no fix was made”.
 For composition readiness, the outstanding product-facing gates remain the
 exact integrated engine/Wasm artifacts and admission checks, complete project
 roundtrips and entire-chain renders, browser load/play/listening for each song,
-and the owner’s pending Safari Sound 2 listening retest. This disposition does
-not claim those gates complete and does not supersede CI or owner listening.
+and the owner’s pending Safari Sound 2 listening retest. One test-harness
+follow-up belongs with the future demo assets: `tests/test_state_schema.py`
+currently hardcodes the `first-orbit` project stem in
+`test_example_validates_and_is_canonical`; generalize it to validate the
+project filename convention while preserving sound/effect suffix conventions
+when the additional projects are added. This is not evidence of invalid
+existing project files. This disposition does not claim the gates complete and
+does not supersede CI or owner listening.
