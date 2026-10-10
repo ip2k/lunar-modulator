@@ -43,9 +43,9 @@ There are two kinds:
   step it takes, which helps if the ready-made one does not work on this
   chip.
 
-The open design is complete: its firmware builds, and it has been tested
-against a simulation of the chip's recovery mode. Neither dongle has been
-used on an FM-1 by this project yet.
+The open design's firmware builds and has been tested against a simulation of
+the chip's recovery mode. The project has not assembled that design, and
+neither dongle has been used on an FM-1 by this project.
 
 Other FM-1 owners have reported that the route works. czietz built a
 simpler dongle of their own from a Raspberry Pi Pico, which brings their
