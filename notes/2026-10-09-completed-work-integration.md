@@ -11,13 +11,13 @@ completed-work-integration worktree and branch
 chore/2026-10-09@completed-work-integration.
 
 Merged and verified on remote main: PR106, PR108, PR115, PR119, PR122,
-PR124, PR111, PR101, PR112 and PR116. The latest verified remote main is
-67d5e12dee561abca5d0a2256fec85d75522a806. This includes the delayed-envelope
+PR124, PR111, PR101, PR112, PR116, PR117 and PR120. The latest verified
+remote main is 9cfc46dc35c2fb859f22a1f5315f6990c415a099. This includes the delayed-envelope
 graph and curves, offline firmware preparation, and bounded audit fixes.
 
 Pending: integrate the combined Warble effect build;
-resolve browser test failures for the information dialogs, native screen
-preview, Picks history and semantic configuration; integrate the held-note
+complete exact-head browser checks for the native screen preview, Picks
+history and semantic configuration; integrate the held-note
 A/B correction (PR128); reconcile stale documentation PRs without restoring old state.
 Rebuild and validate combined generated simulator artifacts after engine
 changes rather than selecting conflicting binaries arbitrarily.
@@ -33,8 +33,9 @@ fetch origin/main before integration and preserve pushed source branches.
 
 Active checkpoints: Warble PR123 requires a real combined Wasm/metadata
 rebuild after PR101; A/B PR128 then needs the same integration. Information
-dialog PR120 has the short-landscape control-size fix at f8d70df96e4ecd3b458018ed4c7f36a28d776d39,
-awaiting exact-head CI. PR117 integration is pushed at a973087d3eab736e25b487ab8011f69d882fb6a1.
+dialog PR120 passed exact-head CI at f8d70df96e4ecd3b458018ed4c7f36a28d776d39
+and merged at 9cfc46dc. PR117 passed exact-head CI at a973087d3eab736e25b487ab8011f69d882fb6a1
+and merged at cafd77e0.
 PR109 ledger reconciliation and the shared WebKit frozen-audio-clock
 investigation remain active. No completed demo songs are claimed.
 
@@ -46,5 +47,37 @@ current README claims and has its remaining unique docs at
 Completed standalone work is now attached as PR129 (scope raster assertions),
 PR130 (distinct-effect research) and PR131 (SDK/runtime/licensing evaluation).
 They still need review/check completion before merging. PR109 reconciliation
-is pushed at c69f9af06cbf977d26285f724d8f8604976d7221. PR105/107/110/114 are
-being updated against current main, retaining their unique changes.
+is pushed at c69f9af06cbf977d26285f724d8f8604976d7221. PR105/107/110/114 have
+current-main updates pushed, retaining their unique changes; fresh CI is pending.
+
+## Current integration recovery checkpoint
+
+[verified] PR125 native-preview/modal integration is pushed at
+7fe4e6cd10e5d4aa895c5df18d0273364788be5d; semantic configuration PR126 at
+af1558248b7a670fe38e1afee9d3ff657b79a733; demo brief PR121 at
+32d4747f900a47de4054618195ffe269f73ccef6; reconciled SDK/licensing note PR131
+at 78101317052b2eb990d7a24fbe855dbb506ce1eb. All await fresh full CI.
+Warble PR123 is now at 0e43e503be47737446c1ccd03915f1a888ce9803; A/B PR128
+at 1c09c5a229dd8c4ec4dd9e725f9c7bdb27f889c5 and Compare PR113 at
+b43960680760092bf1eb13ad2371b2039326abd9 retain combined native/Wasm checks.
+Merge a green engine stream first, then rebuild the others against its actual
+integration rather than choosing a conflicting Wasm binary.
+
+[verified] Scope assertion PR129 WebKit job 114129330510 (run 38023499052)
+failed panel-follow at 60 frames/962 ms. Its trace reports audioTime
+0.7111111111111111 unchanged through frame 59 despite running state; frame 60
+advances to 0.7314285714285714. The same job passed 30-second loopback with
+3756 storm replies, no resyncs and no reported audio defects. This repeats the
+frozen-clock signature; cause remains unproven. Investigation continues in
+PR132, with strict assertions preserved.
+
+[verified] PR133 at d66e199790f2ba7f09cbdfe3d5404c88fe81a675 ports remaining
+verified control-count and Movy tag facts from old PR58. Wait for PR109 and
+PR133 integration before closing obsolete PR22/58; do not merge their stale
+snapshots wholesale. Only queued runs for superseded remote branch heads were
+cancelled to release CI capacity; current-head checks and failing evidence
+were retained.
+
+Firmware work continues with a separate offline inert panel-protocol link
+variant, RAM-only callback accounting, and retained packaging rejection.
+There is still no device execution or installable firmware claim.
