@@ -35,9 +35,11 @@ its arp off; DX7 slot 3 carries the melody and a low echo send.
 Scene pass map: Intro 1×4 bars; Verse 2×8; Lift 1×4; Hook 2×8; Bridge
 1×8; Vrs2 1×8; Hook2 2×8; Outro 1×4. Vrs2 reverses the later pitch/rhythm
 payload across the original ascending onset slots, changes its bass rhythm,
-and keeps the phrase in chronological order. Hook2 voice-leads equal-sized
-chord stacks to the nearest register, moves late answers into verified gaps,
-and adds a held upper response on phrase endings. The Lift's four lock
+and keeps the phrase in chronological order. The eight-bar Bridge drifts its
+Timbre/Brightness locks across a brighter middle before withdrawing them.
+Hook2 uses common-tone voice-leading even when the chord stacks change size,
+moves late answers into verified gaps, and adds a held upper response on
+phrase endings. The Lift's four lock
 bars rise separately, then its last chord stab is withheld. The outro removes
 drums in stages and ends with a held A over Am9.
 
@@ -55,7 +57,7 @@ late attacks before the drop downbeat.
 
 | Scene | Length | Role |
 | --- | ---: | --- |
-| Intro | 4 bars | Two-pass filtered pulse and a small motif fragment |
+| Intro | 8 bars | One continuous filtered pulse; the motif opens in its later half |
 | Verse | 8 bars | Half-time backbeat and syncopated bass |
 | Build | 4 bars | Increasing chord/hihat activity and rising pickup |
 | Drop | 8 bars | Full hook, bass syncopation, and upper chord answers |
@@ -64,13 +66,14 @@ late attacks before the drop downbeat.
 | Drop2 | 8 bars | Four-pass final drop with fourth-bar drum fills |
 | Outro | 4 bars | A final low pulse and shortened motif |
 
-Scene chain: `0,0,1,1,2,3,3,3,3,4,5,5,6,6,6,6,7` (116 bars, about 3:13).
+Scene chain: `0,1,1,2,3,3,3,3,4,5,5,6,6,6,6,7` (116 bars, about 3:13).
 No tempo automation is implied; the half-time feel is in the written kick and
 snare placements.
 
-Scene pass map: Intro 2×4 bars; Verse 2×8; Build 1×4; Drop 4×8; Break
+Scene pass map: Intro 1×8 bars; Verse 2×8; Build 1×4; Drop 4×8; Break
 1×4; Vrs2 2×8; Drop2 4×8; Outro 1×4. Vrs2 changes bass rhythm and contour;
-Drop2 rotates the chord stack, adds an upper answer and raises its late-scene
+Drop2 has an authored second eight-bar sentence, rotates the chord stack,
+adds an upper answer and raises its late-scene
 brightness. The Break removes the kick and reduces the bass to two sparse
 attacks to make the second drop an arrival. The outro cadences Ab–Db–Eb–Fm
 and settles the upper line on F.
@@ -96,7 +99,7 @@ removes some low-end hits so the returning bloom has room to expand.
 | A-side | 8 bars | Uneven kick/hats and a restrained bass answer |
 | Build | 4 bars | Chord lift with increasingly active hats |
 | Bloom | 8 bars | Full hook, bright response notes, alternating fills |
-| Glitch | 4 bars | Broken kick pattern and short motif fragments |
+| Glitch | 4 bars | Broken rhythm frames a one-bar ensemble dropout and C#4–D4 lead resolution |
 | B-side | 8 bars | New bass emphasis and quieter melody density |
 | Bloom2 | 8 bars | Hook returns with the late answer exposed |
 | Outro | 4 bars | Sparse pulse, cadence, and a held D closing tone |
@@ -107,10 +110,11 @@ groove comes from event placement rather than a hidden timing process.
 
 Scene pass map: Intro 1×4 bars; A-side 2×8; Build 1×4; Bloom 3×8; Glitch
 1×4; B-side 2×8; Bloom2 2×8; Outro 1×4. B-side reverses the verse fragments
-and changes bass rhythm; Bloom2 turns the upper voicing and adds a different
-late answer. Glitch uses isolated kick/rim events and sparse hats. Its build
-clears late chord stabs and other attacks before Bloom. The lead-slot Warble is
-set to Wow .58, Flutter .34, Mix .24; the bass has Filter and Drive, and the
+and changes bass rhythm; Bloom2 has a composed second sentence, turns the
+upper voicing and adds a chord-aware late answer. Glitch uses isolated
+kick/rim events and sparse hats around a full one-bar ensemble dropout. Its
+lead resolves C#4 to D4 across that silence. The lead-slot Warble is
+set to Wow .64, Flutter .42, Mix .29; the bass has Filter and Drive, and the
 master hall is wider/longer than the other sketches. The outro thins the pulse
 and resolves the lead to D.
 
@@ -125,7 +129,7 @@ before the final chorus.
 
 | Scene | Length | Role |
 | --- | ---: | --- |
-| Intro | 4 bars | Two passes, kick on the main beats, refrain preview |
+| Intro | 8 bars | One continuous intro; its later half brings in the refrain |
 | Verse | 8 bars | Clipped bass and reduced melody |
 | Pre | 4 bars | Rising answer notes and fuller hats |
 | Chorus | 8 bars | Full refrain, wide chord stabs and response line |
@@ -134,13 +138,16 @@ before the final chorus.
 | Chor2 | 8 bars | Three chorus passes, fills on the last bar of each |
 | Outro | 8 bars | One directional exit; final four bars thin to a held E |
 
-Scene chain: `0,0,1,1,2,3,3,3,4,5,5,6,6,6,7` (104 bars, about 3:28).
+Scene chain: `0,1,1,2,3,3,3,4,5,5,6,6,6,7` (104 bars, about 3:28).
 
-Scene pass map: Intro 2×4 bars; Verse 2×8; Pre 1×4; Chorus 3×8; Bridge
+Scene pass map: Intro 1×8 bars; Verse 2×8; Pre 1×4; Chorus 3×8; Bridge
 1×4; Vrs2 2×8; Chor2 3×8; Outro 1×8. Roles are edge, verse, build, peak,
 contrast, verse, peak, edge. The seven-note refrain uses two-note previews,
 alternating verse notes, a four-note pre-chorus lift, and the full motif in
-the choruses; the answer enters in chorus and pre-chorus. Chorus chords repeat
+the choruses; the answer enters in chorus and pre-chorus. Its second eight-bar
+intro is one continuous scene, with the refrain introduced in the later half.
+The Outro sings a directional cadence and holds upper E over the final tonic.
+Chorus chords repeat
 on beats 1 and 3, while the bridge removes the kick. The Pre lock shape climbs
 in three distinct four-bar levels, then falls below its opening center as the
 last-bar attacks withdraw; Chor2 raises Timbre and Brightness again after its
@@ -153,6 +160,11 @@ fall, and each second peak gains its own late lift. Other sections use a
 restrained four-point contour around their role center. Repeated chain indexes replay the
 same shaped scene, while Vrs2/Hook2, B-side/Bloom2, Drop2 and the ending provide
 distinct later material. Durations above assume four quarter-note beats per bar.
+
+Each outro's final bar holds the tonic in bass and chord; the lead holds the
+tonic too (Neon Transit closes an octave above). Neon Transit’s final four
+bars have no new drum attacks. Packet Bloom’s one-bar Glitch dropout leaves
+only its two-note lead resolution; effect tails may continue naturally.
 
 The bass line is transposed one octave below each project's melody tonic; chord
 and lead pitches remain in their written registers. `cl` note gates are stored
