@@ -288,8 +288,9 @@ engineering roadmap and
 **Not yet.** Two things have to happen first.
 - **Lunar Modulator has to run on the FM-1's chip.** Today it runs on
   computers and in the browser. It already compiles for the FM-1's
-  processor with JieLi's tools, but no Lunar application has been linked or
-  run on the chip [verified: [current work record](notes/2026-10-08-audit-remediation.md)].
+  processor with JieLi's tools, and a small inert diagnostic application has
+  been linked. The running instrument has not been built or tested on an
+  FM-1 [verified: [diagnostic work record](https://github.com/ip2k/lunar-modulator/blob/main/notes/2026-10-09-linked-diagnostic.md)].
 - **A safe way back has to be proven.** The FM-1 keeps one copy of its
   firmware and has no recovery button, so a bad install could leave a synth
   that does not start. Recovery testing has made progress, but does not yet
@@ -500,7 +501,7 @@ MIT/BSD.
 | [`manual/`](manual/), [`tools/manual/`](tools/manual/) | The user manual: chapters in Markdown, a Rosé Pine Dawn theme, and the build that generates its reference from the code and publishes it to GitHub Pages |
 | [`sim/web/`](sim/web/) | The browser simulator: the firmware's app layer, its WebAssembly build, the page and its tests |
 | [`engines/`](engines/) | The engine platform: the C engine API, the sound engines, effects and modulation modules, the sequencer and arpeggiator cores, a Schwung module shim, a desktop renderer and tests |
-| [`firmware/`](firmware/) | Firmware for the FM-1's chip, so far the boot hand-off from fm1-nes and its test |
+| [`firmware/`](firmware/) | Firmware for the FM-1's chip: the boot hand-off from fm1-nes and a small inert startup diagnostic; device execution remains untested |
 | [`assets/`](assets/) | The branding art (`assets/branding/`) and the README's screenshots (`assets/screenshots/`) |
 | [`CHANGELOG.md`](CHANGELOG.md), [`HANDOFF.md`](HANDOFF.md) | What changed, and the context summary for whoever picks the work up next |
 | [`docs/01-hardware.md`](docs/01-hardware.md) | SoC, memory, board, connectors, what is still unknown |
