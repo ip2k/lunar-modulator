@@ -25,7 +25,6 @@ import math
 import shutil
 import subprocess
 import wave
-from pathlib import Path
 
 import pytest
 

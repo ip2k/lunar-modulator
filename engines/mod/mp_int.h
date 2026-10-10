@@ -7,6 +7,7 @@
 #define FM1_MP_TABLE_SIZE 257
 
 extern const float fm1_mp_curve_expo[FM1_MP_TABLE_SIZE];
+extern const float fm1_mp_curve_log[FM1_MP_TABLE_SIZE];
 extern const float fm1_mp_curve_quartic[FM1_MP_TABLE_SIZE];
 extern const float fm1_mp_env_times[FM1_MP_TABLE_SIZE];
 

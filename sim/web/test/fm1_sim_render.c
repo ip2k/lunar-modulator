@@ -157,6 +157,7 @@
 #include "fm1_app_state.h"
 #include "fm1_look.h"
 #include "fm1_meta.h"
+#include "fm1_mp.h"
 #include "mod_script.h"
 #include "seq_script.h"
 
@@ -3301,6 +3302,38 @@ static void mod_screens(const char *dir, float rate) {
   expect(g_app.led[FM1_APP_KEYS + FM1_BTN_ENV] == 1 && g_app.led[FM1_APP_KEYS + FM1_BTN_LFO] == 0,
          "ENV3's page lights ENV alone");
   check_screen("rack-env1", dir, 1);
+  /* The graph reads the envelope driving the output, including delay,
+   * sustain and release; save every new curve for visual review. */
+  fm1_app_note_off(&g_app, 57);
+  blocks(1000);
+  fm1_mod_set_param(g_app.mod, 2, 0, .5f);
+  fm1_mod_set_param(g_app.mod, 2, 8, .5f);
+  for (unsigned curve = 0; curve < FM1_MP_CURVE_COUNT; ++curve) {
+    fm1_mod_set_param(g_app.mod, 2, 4, (float)curve);
+    fm1_app_note_on(&g_app, 57, 100);
+    blocks(1);
+    for (unsigned stage = 0; stage < 4; ++stage) {
+      const fm1_mp_env_t *e = NULL;
+      for (unsigned wait = 0; wait < 14000; ++wait) {
+        e = fm1_mod_view_state(g_app.mod, 2);
+        if (e && e->seg == stage) break;
+        blocks(1);
+      }
+      expect(e && e->seg == stage, "envelope graph cannot observe expected DSP stage");
+      snprintf(name, sizeof name, "rack-env-curve-%u-stage-%u", curve, stage);
+      check_screen(name, dir, 1);
+    }
+    fm1_app_note_off(&g_app, 57);
+    blocks(1);
+    snprintf(name, sizeof name, "rack-env-curve-%u-release", curve);
+    check_screen(name, dir, 1);
+    blocks(1000);
+  }
+  fm1_mod_set_param(g_app.mod, 2, 0, .1f);
+  fm1_mod_set_param(g_app.mod, 2, 8, 0);
+  fm1_mod_set_param(g_app.mod, 2, 4, 1);
+  fm1_app_note_on(&g_app, 57, 100);
+  blocks(1);
   /* SELECT walks every position and page, there and back. */
   g_app.mui.pos = 0;
   g_app.mui.page = 0;

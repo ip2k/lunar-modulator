@@ -40,6 +40,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -53,6 +54,8 @@ namespace {
 
 const float kCloudsRate = 32000.0f;
 const size_t kCloudsBlock = 32;               // clouds.cc: codec.Start(32, ...)
+const uint32_t kMaxWavRate = std::numeric_limits<uint32_t>::max() / 8u;
+const uint32_t kMaxWavFrames = (std::numeric_limits<uint32_t>::max() - 36u) / 8u;
 
 // Static storage, as on the module: the processor is a global and its
 // buffers come from a static arena, so every state starts at zero.
@@ -176,10 +179,24 @@ int main(int argc, char **argv) {
     else if (a == "--out") out = v;
     else { Usage(); return 2; }
   }
-  if ((argc - 1) % 2 != 0 || !out || !(seconds > 0.0) || !(rate > 0.0f) ||
-      compensate < 0.0f ||
+  if ((argc - 1) % 2 != 0 || !out || compensate < 0.0f ||
       (input != "impulse" && input != "noise" && input != "sine" && input != "silence")) {
     Usage();
+    return 2;
+  }
+  if (!std::isfinite(seconds) || !(seconds > 0.0) || !std::isfinite(rate) || !(rate > 0.0f)) {
+    fprintf(stderr, "--seconds and --rate must be finite and positive\n");
+    return 2;
+  }
+  const double rounded_rate = std::nearbyint(static_cast<double>(rate));
+  if (rounded_rate < 1.0 || rounded_rate > static_cast<double>(kMaxWavRate)) {
+    fprintf(stderr, "--rate is outside the representable WAV range\n");
+    return 2;
+  }
+  const uint32_t output_rate = static_cast<uint32_t>(rounded_rate);
+  const double requested_frames = seconds * static_cast<double>(rate);
+  if (!std::isfinite(requested_frames) || requested_frames > static_cast<double>(kMaxWavFrames)) {
+    fprintf(stderr, "--seconds and --rate exceed the representable WAV frame count\n");
     return 2;
   }
   std::vector<clouds::FloatFrame> x;
@@ -214,7 +231,7 @@ int main(int argc, char **argv) {
 
   // fm1-render's inputs, sample for sample (engines/host/render.cc).
   if (!input_file) {
-    const uint32_t total = static_cast<uint32_t>(seconds * rate);
+    const uint32_t total = static_cast<uint32_t>(requested_frames);
     x.resize(total);
     uint32_t noise = 0x12345678u;
     double sine_phase = 0.0;
@@ -250,7 +267,7 @@ int main(int argc, char **argv) {
       sum2 += static_cast<double>(s[c]) * s[c];
     }
   }
-  if (!WriteFloatStereo(out, x, static_cast<uint32_t>(lrintf(rate)))) {
+  if (!WriteFloatStereo(out, x, output_rate)) {
     fprintf(stderr, "cannot write %s\n", out);
     return 1;
   }
