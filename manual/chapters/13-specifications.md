@@ -112,7 +112,7 @@ the chain in use, with the sequencer's own, 10 % (36 KB), and modulation's,
 | Item | Specification |
 | --- | --- |
 | Runs in | A web browser with WebAssembly and the Web Audio API's AudioWorklet, from an `https://` address or from the computer it runs on |
-| Tested in | Chromium. Firefox, Safari, real touch screens and real MIDI hardware are not tested yet |
+| Tested in | Chromium, Firefox and WebKit; automated native Safari editor/A-B checks. Listening retest for owner-reported Sound 2 switching crackle, real touch screens and external MIDI hardware remain unverified |
 | Sample rate | Asks for 44,100 Hz. If the browser refuses, the computer's own rate, where Macro, Macro Heavy, Six-Op and Drums do not run (above 47,872 Hz); the status line says so. The memory meter counts as the FM-1 would, at 44,118 Hz |
 | Input | Mouse, touch, the computer keyboard, and MIDI from a keyboard: notes, velocity, pitch bend, control changes 7 and 123 |
 | Output | Audio only. It sends no MIDI |

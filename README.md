@@ -172,7 +172,7 @@ keys, at any octave.
 </tr>
 </table>
 
-### Four sounds and twenty-two effects
+### Four sounds and twenty-four effects
 
 - Up to **four sounds** play at once, each with its own engine and **two
   insert effects**. Hold SEL and turn PRESETS to pick the one you play.
@@ -180,14 +180,13 @@ keys, at any octave.
   master effects**, then a limiter that keeps a full chord from clipping.
 - **FX** shows the chain: S1 In1 In2 Mix M1 M2. The **Mix** page sets each
   sound's level.
-- A **memory meter** at the bottom of the screen shows how much of the
-  FM-1's memory it all takes. Anything that would not fit is refused, so
-  the simulator never plays more than the FM-1's memory could hold.
+- A **memory meter** tracks the simulator's estimated FM-1 budget;
+  combinations over that budget are refused.
 
 The effects:
 - **Reverbs:** Plate and Hall (both with Freeze), Room and PSX Verb.
-- **Chorus, space and delay:** Ensemble, Diffuse and Echo, a stereo
-  ping-pong delay.
+- **Chorus, space and delay:** Ensemble, Diffuse, Echo (stereo ping-pong),
+  Warble (tape-style wow and flutter), and Repeat (beat-synced stutter/hold).
 - **Filters and EQ:** Filter (six classic types), Comb, DJ Filter, Tilt,
   Isolator (a three-band kill EQ) and EQ (a low shelf, a bell and a high
   shelf).
@@ -367,8 +366,8 @@ This is a synthesis of other people's work. The details are in
 **FM-1 research and recovery**
 
 - **aroum**: updater analysis and teardown photos.
-- **AL-255**: firmware disassembly, protocol captures, the safety analysis
-  behind this project's one rule, and experimental firmware (WTFPL).
+- **AL-255**: firmware disassembly, protocol captures, recovery safeguards,
+  and experimental firmware (WTFPL).
 - **Echomatter**: in AL-255's
   [PR #2](https://github.com/AL-255/FM-1-RE/pull/2), installed a
   version-bumped V15 package on an FM-1 and rolled it back (2026-09-04). It is

@@ -1,0 +1,7 @@
+#! rate=44118 block=64 tracks=1 end=132354
+# Exercise Repeat through sequencer-owned tempo, Start, explicit beat events
+# and Stop. Its first usable latch must wait for one full ring and a later beat.
+@0 bpm 13200
+@0 tog 0 0 60 100;tog 0 4 67 90;tog 0 8 72 100;tog 0 12 67 90
+@0 play
+@110295 stop

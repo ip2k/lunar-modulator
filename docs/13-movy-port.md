@@ -30,7 +30,7 @@ names below are in `engine/crates/seq-core/src/`; `movy-dsp/` is under
 | Held-step locks are quiet; live-record locks audition. Movy has no external MIDI | **confirmed**: `automation.ts` 283–291; `engine.rs` 2319–2327. `src/app/globals.ts` 21 installs only `onMidiMessageInternal`, and `movy-dsp/src/lib.rs` has no `midi_send_external` call |
 | Suspected defects (§3.3) | **the code paths are confirmed**; their consequences are [inferred], and no Movy test pins them |
 | UI lane: the A:B count is per clip and reset on stop; the RNG is not deterministic | **refuted**. The count is per track (`track.rs` 60–62) and is reset at start and launch. The RNG is deterministic from engine creation |
-| docs/06 gives v0.31.0 as `5627d51`; docs/12 gives v0.34.0 as `9190e79` | **refuted**: the tags are `675054f` (v0.31.0) and `7539028` (v0.34.0). `9190e79` is 299 commits past v0.34.0, and `module.json` still says 0.34.0 |
+| docs/06 confused Movy's v0.31.0 metadata at `5627d51` with its tag; docs/12 gives v0.34.0 as `9190e79` | **refuted**: the tags are `675054f` (v0.31.0) and `7539028` (v0.34.0). `5627d51` is 38 commits after the v0.31.0 tag; `9190e79` is 299 commits after the v0.34.0 tag, and `module.json` still says 0.34.0 [verified: GitHub API; docs/06 §5a] |
 
 ## 1. Short answer
 

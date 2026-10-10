@@ -1,0 +1,74 @@
+{
+  "base_main": "67d5e12d",
+  "stage": "/home/claude/mvave-fm1/ab-main-integrated-20261009/src",
+  "wasm_sha256": "088e645728a7740b9261b79f94ce8ad9ba05d734484949a04da85f5c99595ade",
+  "sources_sha256": {
+    "engines": "47568d23c041e927c960f6c9bc1bc4da220c20003131d22f9e708ff3b8b31ba3",
+    "sim": "8605434cb476233e110f485a46b7b25416139ba1c8a8161c87fadf1b846529ab"
+  },
+  "parity": {
+    "passed": 104,
+    "failed": 0,
+    "identical_to_js": 104,
+    "identical_to_musl": 104,
+    "identical_to_glibc": 101,
+    "max_lsb_vs_glibc_exact_scenarios": 1
+  },
+  "screens": {
+    "screens": 4621,
+    "faults": 0,
+    "text_boxes": {
+      "MAIN": 40877,
+      "MID": 10851,
+      "SMALL": 2380
+    }
+  },
+  "edit": {
+    "parity": "ok",
+    "audio_max_lsb": 0,
+    "storm": {
+      "seconds": 30,
+      "quanta": 10341,
+      "deadline_ms": 2.9013101228523506,
+      "late": 0,
+      "applied": 82728,
+      "resyncs": 0,
+      "telemetry_blocks": 862,
+      "p50_ms": 0.06192899999999213,
+      "p99_ms": 0.09492199999999684,
+      "max_ms": 0.24364599999999825,
+      "edit_us_per_quantum": 7.751834638815597
+    },
+    "check": {
+      "params": 468,
+      "steps": 34480,
+      "text_bad": 0,
+      "codes": [
+        "UNKNOWN",
+        "RATE",
+        "RAM",
+        "NO_ROOM",
+        "BAD",
+        "NO_SOURCE",
+        "NO_DEST",
+        "NOLOCK",
+        "ENUM_NO_MOD",
+        "VOICE_TO_MONO",
+        "VOICE_TO_EFFECT",
+        "UNIT_RESERVED",
+        "VOICE_FULL"
+      ],
+      "hands": 47,
+      "sweeps": 40,
+      "lock_blocks": 900,
+      "tele_fills": 30,
+      "failed": 0
+    }
+  },
+  "hardware_traffic": false,
+  "native_safari_listening_retest": false,
+  "focused_pytest": {
+    "passed": 13,
+    "seconds": 12.46
+  }
+}

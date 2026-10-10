@@ -18,7 +18,7 @@ paper = "A5"
 # with a {{status ...}} line (the build checks; manual/README.md, "Honesty").
 [[chapter]]
 file = "01-welcome-and-safety.md"
-summary = "What Lunar Modulator is, what you can use today, and the one rule that keeps it off the FM-1 for now."
+summary = "What Lunar Modulator is, what you can use today, and the current limits of recovery and device work."
 
 [[chapter]]
 file = "02-getting-started.md"

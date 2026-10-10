@@ -306,6 +306,7 @@ static void slew(void) {
 
 static void compare(void) {
   fm1_mod_t *m = make(0, 0, 1);
+  fm1_mod_t *sweep = make(1, 0, 2);
   float a = -1.0f, prev;
   unsigned k, seen = 0;
   put(m, 0, "compare");
@@ -314,6 +315,49 @@ static void compare(void) {
   set(m, 0, "A", a);
   steps(m, 2);                                     /* the first block has no tick */
   CHECK(out(m, 0, 0) == 0.0f && out(m, 0, 1) == 1.0f && out(m, 0, 6) == 1.0f);   /* NOT, BELOW */
+  /* Crossing ABOVE -> MID -> BELOW in one tick must preserve MID's pulse. */
+  put(sweep, 0, "compare");
+  set(sweep, 0, "Hyst", 0.0f);
+  set(sweep, 0, "Width", 0.25f);
+  set(sweep, 0, "A", 0.5f);
+  steps(sweep, 2);
+  CHECK(out(sweep, 0, 4) == 1.0f && out(sweep, 0, 5) == 0.0f && out(sweep, 0, 6) == 0.0f);
+  set(sweep, 0, "A", -0.5f);
+  step(sweep);
+  CHECK(gout(sweep, 0, 5)->n == 2);
+  CHECK(gout(sweep, 0, 5)->ev[0].high == 1 && gout(sweep, 0, 5)->ev[0].frame == 8);
+  CHECK(gout(sweep, 0, 5)->ev[1].high == 0 && gout(sweep, 0, 5)->ev[1].frame == 24);
+  CHECK(out(sweep, 0, 5) == 0.0f && out(sweep, 0, 6) == 1.0f);
+  set(sweep, 0, "A", 0.5f);
+  step(sweep);
+  CHECK(gout(sweep, 0, 5)->n == 2);
+  CHECK(gout(sweep, 0, 5)->ev[0].high == 1 && gout(sweep, 0, 5)->ev[0].frame == 8);
+  CHECK(gout(sweep, 0, 5)->ev[1].high == 0 && gout(sweep, 0, 5)->ev[1].frame == 24);
+  CHECK(out(sweep, 0, 5) == 0.0f && out(sweep, 0, 4) == 1.0f);
+  fm1_mod_destroy(sweep);
+  /* Hysteresis shifts both crossings; it must not reverse MID's edge order,
+   * including when its half-band exceeds Width. Binary fractions pin frames. */
+  for (k = 0; k < 2; ++k) {
+    unsigned direction;
+    const unsigned first = k ? 20u : 12u;
+    sweep = make(1, 0, 2);
+    put(sweep, 0, "compare");
+    set(sweep, 0, "Hyst", k ? 0.5f : 0.25f);
+    set(sweep, 0, "Width", k ? 0.125f : 0.25f);
+    set(sweep, 0, "A", 0.5f);
+    steps(sweep, 2);
+    for (direction = 0; direction < 2; ++direction) {
+      set(sweep, 0, "A", direction ? 0.5f : -0.5f);
+      step(sweep);
+      CHECK(gout(sweep, 0, 5)->n == 2);
+      CHECK(gout(sweep, 0, 5)->ev[0].high == 1 && gout(sweep, 0, 5)->ev[0].frame == first);
+      CHECK(gout(sweep, 0, 5)->ev[1].high == 0 && gout(sweep, 0, 5)->ev[1].frame == 28);
+      CHECK(gout(sweep, 0, direction ? 6 : 4)->ev[0].frame == first);
+      CHECK(gout(sweep, 0, direction ? 4 : 6)->ev[0].frame == 28);
+      CHECK(out(sweep, 0, 5) == 0.0f && out(sweep, 0, direction ? 4 : 6) == 1.0f);
+    }
+    fm1_mod_destroy(sweep);
+  }
   /* A ramp up crosses 0.3 inside a tick: the edge is at the frame where
    * the straight line crosses it. */
   for (k = 0; k < 200; ++k) {

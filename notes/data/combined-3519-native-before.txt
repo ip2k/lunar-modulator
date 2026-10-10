@@ -1,0 +1,25 @@
+........................................................................ [ 27%]
+........................................................................ [ 55%]
+........................................................................ [ 83%]
+...............F............................                             [100%]
+=================================== FAILURES ===================================
+__________ test_vendored_files_match_their_upstream_manifest[psxverb] __________
+
+directory = PosixPath('/src/engines/third_party/schwung-modules/psxverb')
+
+    @pytest.mark.parametrize("directory", VENDORED, ids=lambda d: d.name)
+    def test_vendored_files_match_their_upstream_manifest(directory):
+        manifest = (directory / "UPSTREAM.md").read_text()
+        rows = re.findall(r"^\| `([^`]+)` \| `[^`]+` \| `([0-9a-f]{64})` \|$", manifest, re.M)
+        listed = dict(rows)
+        present = {p.name for p in directory.iterdir() if p.name != "UPSTREAM.md"}
+>       assert set(listed) == present
+E       AssertionError: assert {'LICENSE', '...gin_api_v1.h'} == {'LICENSE', '..., 'psxverb.c'}
+E
+E         Extra items in the right set:
+E         'psxverb.c'
+E         Use -v to get more diff
+
+tests/test_engines_schwung.py:499: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_engines_schwung.py::test_vendored_files_match_their_upstream_manifest[psxverb]
