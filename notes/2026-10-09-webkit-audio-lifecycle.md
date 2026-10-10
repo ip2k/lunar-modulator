@@ -424,3 +424,23 @@ and runner are saved in
 This covers the current source integration difference, not the full GitHub
 matrix; no retry of an unchanged failed head or assertion relaxation occurred.
 The owned container exited normally and shared services were untouched.
+
+## Preserved PR #121 failure before integration
+
+[verified: completed GitHub job log] PR #121 head
+`32d4747f900a47de4054618195ffe269f73ccef6`, run `38025766630`, job
+`114136164786`, fails only the unchanged panel latency assertion at 18
+frames / 281 ms. Its running clock holds `0.7198185941043084` through
+frame 17 / 259 ms, then telemetry arrives at 270 ms, state at 272 ms,
+changes at 274 ms and the editor applies the value at 278 ms. Loading is
+false, pending/inflight zero and the row remains connected. The resulting
+history entry and flash are present. This matches the prior backend
+startup plateau signature [inferred]; it does not establish a PR #121
+source regression. Strict 30-second loopback passes with 3,756 replies,
+zero bad periods/silence/refusal/resync and no transport stops; the editor
+storm also passes with zero bad codes or resyncs. The full follow/audio/
+storm receipt and source-log SHA-256 are in
+[pr121-ci.json](evidence/2026-10-09-webkit-audio-lifecycle/pr121-ci.json).
+Local log: `/tmp/lunar-pr121-webkit.log`. No rerun, branch integration or
+threshold change was made to obtain this receipt. This addition is backed
+up on the separate evidence branch, preserving PR #132's reviewed CI head.
