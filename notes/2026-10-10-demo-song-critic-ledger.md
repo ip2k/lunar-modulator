@@ -113,3 +113,7 @@ Parent integration owns rendering, runtime acceptance and final packaging.
 ## Round 3 source checkpoint
 
 [verified] Frozen cdf8d8fcc0bd89518f3fe28ec1a6661a827c19bc inspected across all32 scenes and56 occurrences; Neon now has one8-bar exit. Mechanical reversal/register/gap/overlap repairs, simultaneous Event chords and staged intros confirmed. Afterglow chord events remain identical toRound2 in scenes0–6 because the nearest-voice routine rejects5/4/5/4-cardinality changes. All peak bass/chord/main/chord-answer/lead-answer streams repeat their first four-bar events in the second half. [inferred] Scores6–8; no full pass. Remaining work is actual eight-bar phrase development, harmony-aware replies, common-tone voicing and distinctive scene identity. Runtime receipt pending; no listening claim.
+
+## Round 3 runtime adjunct
+
+[verified] Exact native/Wasm and Chromium receipts retrieved from the completed aeon run, hashes verified and project hashes matched to frozen cdf8d8fc. All56 occurrences now include approximate energy aggregates; all four songs stop with zero reported drops/repairs/skips/refusals and pass browser Save/fresh Open. Complete receipts retained in Round3 JSON. [inferred] Source-based scores6–8 remain unchanged. Round4 writer work is in progress; no by-ear acceptance.

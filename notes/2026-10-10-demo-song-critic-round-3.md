@@ -230,3 +230,20 @@ M musicality; C creativity; G genre/proposal; L Lunar features; S space/project 
 - Bars 97–104: Outro → Stop. First occurrence; role and next-scene arrival inspected.
 
 **Whole-song pacing.** [inferred] The continuous eight-bar ending now closes once, and the bridge earns the final chorus. The refrain still needs a sung second sentence and resolution of its final suspended contour across three repeated launches.
+
+## Runtime and simulator adjunct
+
+[verified] Exact asset SHA256 identities match all four files in the full-song native/Wasm receipt. All four stop, save/load/save passes, and sequencer drops, refused events, skipped fields and repairs are zero. Browser Chromium 153.0.8010.12 lists, starts, downloads and freshly reopens all four projects with no recorded exceptions. Receipt hashes: native/Wasm `ed1878fd045c84151b7d13639d73b694f92b391addc6a6c7858f31c80b5ed4ea`; browser `e1e5b59df70a4e6c1568ea2172d8d52f8f2cec92f339db6316fc23427e9fd086`. Complete JSON receipts and all 56 occurrence aggregates are retained in the companion report JSON.
+
+| Song | Duration seconds | Wasm peak | Wasm RMS | Contrast vs first peak dB | Final peak vs first peak dB |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Afterglow Relay | 198.26 | 0.8093 | 0.0876 | -3.05 | +0.06 |
+| Event Horizon | 193.33 | 0.8624 | 0.0977 | -5.49 | -0.22 |
+| Packet Bloom | 188.57 | 0.7425 | 0.0815 | -2.28 | +0.56 |
+| Neon Transit | 208.00 | 0.7765 | 0.0849 | -4.98 | -0.10 |
+
+[inferred] Each contrast scene reduces measured energy, while final peaks return near the earlier level. This supports a working large-scale energy arc; it does not resolve repeated four-bar sentences or the identified unprepared pitch choices. Scores remain unchanged.
+
+[verified] Aggregation weights each one-second RMS bin by its overlap with nominal scene time, assuming stationary energy within fractional seconds. These approximate values are not LUFS, perceived loudness or sample-exact transition measurements. Continuous effects and LFO state can change sound between identical event passages. Zero sequencer drops do not establish absence of synth voice stealing or masking, and reported loader RAM is not FM-1 hardware acceptance.
+
+Browser Save default-arp normalization remains explicitly distinguished from byte equality: prior direct inspection established disabled default arp objects and command reordering. This Round3 browser receipt proves successful save/reopen, not a fresh independent semantic diff of its downloaded files. No screenshots or WAVs were listened to or perceptually evaluated by this critic.
