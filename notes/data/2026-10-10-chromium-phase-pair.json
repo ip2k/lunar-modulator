@@ -1,0 +1,1513 @@
+{
+  "schema": 1,
+  "source_head": "e25916d0776ec756984fbdd5490f42c345dddcfc",
+  "base_main": "40c94300428acfc5688a203c2c928723ed98270a",
+  "original_failed_pr": 141,
+  "original_failed_head": "9ecd5ad2373ad0bd15106f31a44f50d68bc9c28e",
+  "provenance": {
+    "node": "v24.20.0",
+    "playwright": "1.63.0",
+    "wasm_sha256": "c88938845cd93e52f5cb99c53a650b4eaf559833e5f39fb58ecc0f0c4ab09502",
+    "source_head": "e25916d0776ec756984fbdd5490f42c345dddcfc",
+    "mode_order": [
+      "idle",
+      "storm"
+    ],
+    "seconds_per_mode": 30,
+    "cpus": 4,
+    "memory_bytes": 2147483648,
+    "sink": "private module-null-sink rate=48000 channels=2 norewinds=1"
+  },
+  "image": "mcr.microsoft.com/playwright:v1.63.0-noble",
+  "image_digest": "sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27",
+  "source_archive_sha256": "5190c5287987017158fb2acb85ec0403b33bb93271f1741b0398d890631bd04d",
+  "lan_raw_directory": "/home/claude/mvave-fm1/chromium-phase-pair-20261010-e25916d",
+  "command": "FM1_STORM_PHASE_DIAGNOSTIC=idle|storm PLAYWRIGHT_DIR=/pw BROWSER=chromium timeout --signal=TERM 90s node sim/web/test/editor.mjs sim/web/www /src/idle|storm 30",
+  "limits": "docker-batch.slice --cpus=4 --memory=2g --memory-swap=2g --ipc=host; private PulseAudio norewinds=1, no pressure workers",
+  "order": [
+    "idle",
+    "storm"
+  ],
+  "attempts_per_mode": 1,
+  "interpretation": "Counters publish discretely, behind audio clock. Neither run has a glitch. This does not locate the original CI event or prove universal trace glitch coverage; no baseline/window/gate change or failed-CI rerun. Tracing/getter sampling perturbs timing. Idle is control even though unchanged pass expression returns true due PLAY change messages.",
+  "runs": {
+    "idle": {
+      "exit_code": 0,
+      "report": {
+        "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+        "seconds": 30,
+        "logs": [],
+        "diagnostic_mode": "idle",
+        "diagnostic_is_acceptance": false,
+        "scheduling_capture": true,
+        "edited": 0,
+        "codes_not_ok": 0,
+        "changes": 1,
+        "entries": 3,
+        "resyncs": 0,
+        "views": 1,
+        "telemetry": 905,
+        "stats": {
+          "quanta": 10695,
+          "timed": false,
+          "late": null,
+          "maxMs": null,
+          "editMs": null
+        },
+        "snapshot": {
+          "ok": true,
+          "bytes": 1107,
+          "binary": true
+        },
+        "ops": 0,
+        "records": 0,
+        "rate": 44100,
+        "playback": {
+          "underrun_events": 0,
+          "underrun_ms": 0
+        },
+        "pass": true
+      },
+      "raw_timeline": {
+        "schema": 1,
+        "interval_ms": 1000,
+        "samples": [
+          {
+            "phase": "page-init",
+            "page_ms": 7.899999976158142,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": null,
+            "state": null,
+            "sample_rate": null,
+            "raw": null,
+            "error": null
+          },
+          {
+            "phase": "power-on-request",
+            "page_ms": 36,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": null,
+            "state": null,
+            "sample_rate": null,
+            "raw": null,
+            "error": null
+          },
+          {
+            "phase": "play-request",
+            "page_ms": 463.59999990463257,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 0.34829931972789113,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 0.002902
+            },
+            "error": null
+          },
+          {
+            "phase": "baseline",
+            "page_ms": 469.59999990463257,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 0.3512018140589569,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 0.002902
+            },
+            "error": null
+          },
+          {
+            "phase": "loop-begin",
+            "page_ms": 469.59999990463257,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 0.3512018140589569,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 0.002902
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 1011.5999999046326,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 0.893968253968254,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 0.002902
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 2010.7999999523163,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 1.9040362811791383,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 0.989582
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 3011.0999999046326,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 2.9024943310657596,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 1.999478
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 4011.0999999046326,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 3.900952380952381,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 3.00357
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 5008.599999904633,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 4.899410430839002,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 4.007662
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 6010.199999928474,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 5.897868480725624,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 5.017558
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 7008.599999904633,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 6.896326530612245,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 6.027454
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 8010,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 7.894784580498866,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 7.03735
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 9010,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 8.893242630385487,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 8.047246
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 10011.899999976158,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 9.903310657596371,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 9.057142
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 11009.399999976158,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 10.901768707482994,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 10.067038
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 12010.199999928474,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 11.900226757369614,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 11.076934
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 13011.099999904633,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 12.898684807256236,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 12.08683
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 14009.5,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 13.897142857142857,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 13.096726
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 15009.799999952316,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 14.895600907029479,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 14.106622
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 16011.299999952316,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 15.8940589569161,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 15.116518
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 17011.299999952316,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 16.904126984126986,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 16.126414
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 18008,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 17.890975056689342,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 17.13631
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 19008.699999928474,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 18.901043083900227,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 18.146206
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 20011.399999976158,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 19.89950113378685,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 19.156102
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 21008.599999904633,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 20.897959183673468,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 20.165998
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 22010.099999904633,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 21.89641723356009,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 21.175894
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 23009.099999904633,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 22.894875283446712,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 22.18579
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 24008.699999928474,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 23.893333333333334,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 23.195686
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 25011.699999928474,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 24.90340136054422,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 24.205582
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 26009.199999928474,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 25.901859410430838,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 25.215478
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 27010.599999904633,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 26.90031746031746,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 26.225374
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 28011.399999976158,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 27.898775510204082,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 27.23527
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 29009.899999976158,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 28.897233560090704,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 28.245166
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 30011.899999976158,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 29.895691609977323,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 29.255062
+            },
+            "error": null
+          },
+          {
+            "phase": "loop-end",
+            "page_ms": 30471.599999904633,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 30.360090702947847,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 30.264958
+            },
+            "error": null
+          },
+          {
+            "phase": "snapshot-drain",
+            "page_ms": 30471.799999952316,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 30.360090702947847,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 30.264958
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 31008,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 30.894149659863945,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 30.264958
+            },
+            "error": null
+          },
+          {
+            "phase": "drain-end",
+            "page_ms": 31972,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 31.857777777777777,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 31.274854
+            },
+            "error": null
+          },
+          {
+            "phase": "trace-finish-request",
+            "page_ms": 31974.799999952316,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 31.86938775510204,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 31.274854
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 32008,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 31.892607709750568,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 31.274854
+            },
+            "error": null
+          },
+          {
+            "phase": "trace-finished",
+            "page_ms": 32662.5,
+            "time_origin_ms": 1791619169434,
+            "audio_seconds": 32.55437641723356,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 32.28475
+            },
+            "error": null
+          }
+        ],
+        "samples_dropped": 0,
+        "interpretation": "Raw cumulative published counters; sample times are not glitch times. Getter graph-lock access and tracing perturb scheduling."
+      },
+      "resource_summary": {
+        "sample_count": 33,
+        "first_utc": "2026-10-10T07:59:29.412Z",
+        "last_utc": "2026-10-10T08:00:01.409Z",
+        "parallelism": 4,
+        "logical_cpus": 16,
+        "cpu_max": "400000 100000",
+        "cpus_allowed_list": "Cpus_allowed_list:\t0-15",
+        "self_cgroup": "0::/",
+        "cpu_stat_delta": {
+          "usage_usec": 6459493,
+          "user_usec": 5246730,
+          "system_usec": 1212763,
+          "nice_usec": 0,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 320,
+          "nr_throttled": 0,
+          "throttled_usec": 0,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "pressure": {
+          "/sys/fs/cgroup/cpu.pressure": {
+            "some_total_usec_delta": 26415.0,
+            "some_avg10_peak": 0.0
+          },
+          "/proc/pressure/cpu": {
+            "some_total_usec_delta": 118057.0,
+            "some_avg10_peak": 0.0
+          }
+        }
+      },
+      "trace_summary": {
+        "trace_started": true,
+        "trace_complete": true,
+        "trace_categories": "audio,webaudio,disabled-by-default-audio,blink.user_timing",
+        "trace_window": "Diagnostic starts before page navigation/power-on and ends after storm/idle evaluation and snapshot drain. Playback baseline/window and zero gate are unchanged.",
+        "errors": [],
+        "trace_events_saved": 88082,
+        "trace_events_dropped": 0,
+        "audio_classification": {
+          "counts": {
+            "sync_reader_timeout": 0,
+            "glitch": 0,
+            "fifo_pull_shortage": 0,
+            "fifo_earmarked_shortage": 0,
+            "fifo_overrun": 0
+          },
+          "by_phase": {},
+          "explicit_events": [],
+          "explicit_events_dropped": 0,
+          "fifo_zero_counter_samples": 2745,
+          "markers": [
+            {
+              "phase": "page-init",
+              "ts_us": 540246420891
+            },
+            {
+              "phase": "power-on-request",
+              "ts_us": 540246449166
+            },
+            {
+              "phase": "play-request",
+              "ts_us": 540246876728
+            },
+            {
+              "phase": "baseline",
+              "ts_us": 540246882815
+            },
+            {
+              "phase": "loop-begin",
+              "ts_us": 540246882842
+            },
+            {
+              "phase": "loop-end",
+              "ts_us": 540276884756
+            },
+            {
+              "phase": "snapshot-drain",
+              "ts_us": 540276884925
+            },
+            {
+              "phase": "drain-end",
+              "ts_us": 540278385147
+            },
+            {
+              "phase": "trace-finish-request",
+              "ts_us": 540278387934
+            }
+          ],
+          "trace_complete": true,
+          "trace_events_dropped": 0,
+          "interpretation": "Counts only explicit named events in saved trace. Zero FIFO occupancy is not a shortage; absence does not prove no glitch, especially in incomplete traces."
+        }
+      },
+      "raw_artifacts": {
+        "editor-audio-trace.json": {
+          "sha256": "ca0577bc818ddf89fc0d09f9e8825a1c281c22c9893385c2b1766054465af15e",
+          "bytes": 16251838
+        },
+        "editor-playback-timeline.json": {
+          "sha256": "263feb7a22cee3c61fe31a3037a1f16a11feb9d9f38b9104a10ef8bc0f128d79",
+          "bytes": 13853
+        },
+        "editor-scheduling.json": {
+          "sha256": "4940c403e1c3fc4169151d31b44404edd6e35deef970094a6e2c09ed4a2ef21e",
+          "bytes": 85015
+        },
+        "editor.json": {
+          "sha256": "83c568bf65e246682267c75b98fdc1b1784b0bb5ff10d5fd7bb1b9095662cb0b",
+          "bytes": 629
+        }
+      }
+    },
+    "storm": {
+      "exit_code": 0,
+      "report": {
+        "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+        "seconds": 30,
+        "logs": [],
+        "diagnostic_mode": "storm",
+        "diagnostic_is_acceptance": true,
+        "scheduling_capture": true,
+        "edited": 7305,
+        "codes_not_ok": 0,
+        "changes": 1724,
+        "entries": 58443,
+        "resyncs": 0,
+        "views": 1,
+        "telemetry": 905,
+        "stats": {
+          "quanta": 10695,
+          "timed": false,
+          "late": null,
+          "maxMs": null,
+          "editMs": null
+        },
+        "snapshot": {
+          "ok": true,
+          "bytes": 1115,
+          "binary": true
+        },
+        "ops": 7305,
+        "records": 58440,
+        "rate": 44100,
+        "playback": {
+          "underrun_events": 0,
+          "underrun_ms": 0
+        },
+        "pass": true
+      },
+      "raw_timeline": {
+        "schema": 1,
+        "interval_ms": 1000,
+        "samples": [
+          {
+            "phase": "page-init",
+            "page_ms": 8.600000023841858,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": null,
+            "state": null,
+            "sample_rate": null,
+            "raw": null,
+            "error": null
+          },
+          {
+            "phase": "power-on-request",
+            "page_ms": 37.39999997615814,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": null,
+            "state": null,
+            "sample_rate": null,
+            "raw": null,
+            "error": null
+          },
+          {
+            "phase": "play-request",
+            "page_ms": 461.5,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 0.3831292517006803,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 0.002902
+            },
+            "error": null
+          },
+          {
+            "phase": "baseline",
+            "page_ms": 467.8000000715256,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 0.3831292517006803,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 0.002902
+            },
+            "error": null
+          },
+          {
+            "phase": "loop-begin",
+            "page_ms": 467.8000000715256,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 0.3831292517006803,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 0.002902
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 1009.6000000238419,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 0.9287981859410431,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 0.002902
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 2010.3999999761581,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 1.9272562358276644,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 1.024406
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 3010.3000000715256,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 2.9257142857142857,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 2.034302
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 4009.600000023842,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 3.93578231292517,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 3.044198
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 5010.200000047684,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 4.934240362811791,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 4.054094
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 6008.899999976158,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 5.932698412698413,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 5.06399
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 7010.5,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 6.931156462585034,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 6.073886
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 8012.600000023842,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 7.929614512471655,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 7.083782
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 9009,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 8.928072562358278,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 8.093678
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 10010.899999976158,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 9.935238095238095,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 9.103574
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 11010,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 10.933696145124717,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 10.11347
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 12010.899999976158,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 11.935056689342403,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 11.123366
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 13009.100000023842,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 12.933514739229025,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 12.133262
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 14010.700000047684,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 13.931972789115646,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 13.143158
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 15012.700000047684,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 14.930430839002268,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 14.153054
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 16009.200000047684,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 15.928888888888888,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 15.16295
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 17009.800000071526,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 16.92734693877551,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 16.172846
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 18009,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 17.928707482993197,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 17.182742
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 19009.100000023842,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 18.935873015873018,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 18.192638
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 20010.800000071526,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 19.934331065759636,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 19.202534
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 21011.800000071526,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 20.93278911564626,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 20.21243
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 22009,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 21.93124716553288,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 21.222326
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 23010.100000023842,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 22.929705215419503,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 22.232222
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 24010.300000071526,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 23.92816326530612,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 23.242118
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 25009.300000071526,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 24.932426303854875,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 24.252014
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 26011,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 25.93668934240363,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 25.26191
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 27012.300000071526,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 26.93514739229025,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 26.271806
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 28009.899999976158,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 27.93360544217687,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 27.281702
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 29012.5,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 28.93206349206349,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 28.291598
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 30010.899999976158,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 29.930521541950114,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 29.301494
+            },
+            "error": null
+          },
+          {
+            "phase": "loop-end",
+            "page_ms": 30471.600000023842,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 30.394920634920634,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 30.31139
+            },
+            "error": null
+          },
+          {
+            "phase": "snapshot-drain",
+            "page_ms": 30471.600000023842,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 30.394920634920634,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 30.31139
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 31008.800000071526,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 30.928979591836736,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 30.31139
+            },
+            "error": null
+          },
+          {
+            "phase": "drain-end",
+            "page_ms": 31972,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 31.892607709750568,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 31.321286
+            },
+            "error": null
+          },
+          {
+            "phase": "trace-finish-request",
+            "page_ms": 31974.899999976158,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 31.901315192743763,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 31.321286
+            },
+            "error": null
+          },
+          {
+            "phase": "tick",
+            "page_ms": 32008.800000071526,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 31.927437641723355,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 31.321286
+            },
+            "error": null
+          },
+          {
+            "phase": "trace-finished",
+            "page_ms": 32675.800000071526,
+            "time_origin_ms": 1791619202419.8,
+            "audio_seconds": 32.60081632653061,
+            "state": "running",
+            "sample_rate": 44100,
+            "raw": {
+              "events": 0,
+              "seconds": 0,
+              "total_seconds": 32.331182
+            },
+            "error": null
+          }
+        ],
+        "samples_dropped": 0,
+        "interpretation": "Raw cumulative published counters; sample times are not glitch times. Getter graph-lock access and tracing perturb scheduling."
+      },
+      "resource_summary": {
+        "sample_count": 33,
+        "first_utc": "2026-10-10T08:00:02.399Z",
+        "last_utc": "2026-10-10T08:00:34.395Z",
+        "parallelism": 4,
+        "logical_cpus": 16,
+        "cpu_max": "400000 100000",
+        "cpus_allowed_list": "Cpus_allowed_list:\t0-15",
+        "self_cgroup": "0::/",
+        "cpu_stat_delta": {
+          "usage_usec": 8683277,
+          "user_usec": 7328713,
+          "system_usec": 1354565,
+          "nice_usec": 0,
+          "core_sched.force_idle_usec": 0,
+          "nr_periods": 320,
+          "nr_throttled": 0,
+          "throttled_usec": 0,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "pressure": {
+          "/sys/fs/cgroup/cpu.pressure": {
+            "some_total_usec_delta": 31541.0,
+            "some_avg10_peak": 0.0
+          },
+          "/proc/pressure/cpu": {
+            "some_total_usec_delta": 113391.0,
+            "some_avg10_peak": 0.0
+          }
+        }
+      },
+      "trace_summary": {
+        "trace_started": true,
+        "trace_complete": true,
+        "trace_categories": "audio,webaudio,disabled-by-default-audio,blink.user_timing",
+        "trace_window": "Diagnostic starts before page navigation/power-on and ends after storm/idle evaluation and snapshot drain. Playback baseline/window and zero gate are unchanged.",
+        "errors": [],
+        "trace_events_saved": 88181,
+        "trace_events_dropped": 0,
+        "audio_classification": {
+          "counts": {
+            "sync_reader_timeout": 0,
+            "glitch": 0,
+            "fifo_pull_shortage": 0,
+            "fifo_earmarked_shortage": 0,
+            "fifo_overrun": 0
+          },
+          "by_phase": {},
+          "explicit_events": [],
+          "explicit_events_dropped": 0,
+          "fifo_zero_counter_samples": 2748,
+          "markers": [
+            {
+              "phase": "page-init",
+              "ts_us": 540279407439
+            },
+            {
+              "phase": "power-on-request",
+              "ts_us": 540279436181
+            },
+            {
+              "phase": "play-request",
+              "ts_us": 540279860319
+            },
+            {
+              "phase": "baseline",
+              "ts_us": 540279866724
+            },
+            {
+              "phase": "loop-begin",
+              "ts_us": 540279866751
+            },
+            {
+              "phase": "loop-end",
+              "ts_us": 540309870428
+            },
+            {
+              "phase": "snapshot-drain",
+              "ts_us": 540309870528
+            },
+            {
+              "phase": "drain-end",
+              "ts_us": 540311370748
+            },
+            {
+              "phase": "trace-finish-request",
+              "ts_us": 540311373747
+            }
+          ],
+          "trace_complete": true,
+          "trace_events_dropped": 0,
+          "interpretation": "Counts only explicit named events in saved trace. Zero FIFO occupancy is not a shortage; absence does not prove no glitch, especially in incomplete traces."
+        }
+      },
+      "raw_artifacts": {
+        "editor-audio-trace.json": {
+          "sha256": "fb78c8f4d257157d4fbb273a1ca0fbc8964876721dfcfd97348bd76d50a86858",
+          "bytes": 16293816
+        },
+        "editor-playback-timeline.json": {
+          "sha256": "58a6214f55fc8a5bb051cf5963a48d263a047918ac4798cf70311f12917c8e56",
+          "bytes": 13933
+        },
+        "editor-scheduling.json": {
+          "sha256": "6aeb2996af171dea4b411a3ddd95e6e19375b29c60f256feec87c7d35c8928e5",
+          "bytes": 85095
+        },
+        "editor.json": {
+          "sha256": "fb0e66662c0ff7ce8e0c05ab1a9068a340c292353dd013df7f684aafae11763f",
+          "bytes": 646
+        }
+      }
+    }
+  }
+}

@@ -168,3 +168,74 @@ DSP/runtime source or Wasm bytes. PR141 and this probe use the same Wasm SHA256
 `c88938845cd93e52f5cb99c53a650b4eaf559833e5f39fb58ecc0f0c4ab09502`.
 The original failed CI is preserved and is not rerun. A bounded paired LAN
 observation and root review remain pending; no production correction is implied.
+
+### One bounded actual-fixture pair
+
+[verified] Source checkpoint `e25916d0776ec756984fbdd5490f42c345dddcfc`
+was pushed and independently compared with the remote branch before execution.
+The actual Lunar fixture ran once in idle mode, then once in storm mode, 30
+seconds each, on aeon in `docker-batch.slice` with four CPU quota equivalents,
+2 GiB RAM and a private PulseAudio `norewinds=1` sink. It reused Playwright
+1.63.0 and Chromium 153.0.8010.12. No pressure workers or hardware traffic were
+used. Both processes exited zero. Idle's unchanged pass expression is true
+because PLAY produces one change message; `diagnostic_is_acceptance: false`
+explicitly keeps it a control. The storm's original gate passed: 7,305 edits,
+zero refused codes/resyncs and 905 telemetry messages.
+
+[verified] Both raw counter timelines contain zero events and zero duration
+through the last post-trace observation. The startup traces are complete,
+88,082 and 88,181 events, with zero dropped events/errors and no explicit
+SyncReader timeout, `Glitch!`, FIFO shortage or overrun. They contain 2,745
+and 2,748 zero FIFO occupancy samples respectively, which remain separate
+from glitches.
+Each run has 33 resource snapshots and 42 raw page observations; visible
+`cpu.max` is `400000 100000`, with zero throttled periods/microseconds.
+Total cgroup CPU use was 6.459493 CPU-seconds idle and 8.683277 CPU-seconds
+storm, spread over about 32 seconds. This is not dedicated-resource proof.
+
+[verified] Publication lag is visible on the actual fixture. At the idle
+baseline, audio time was 0.351202 s but `totalDuration` was 0.002902 s.
+The first tick at page 1.012 s showed audio time 0.893968 s and the same
+published total. At page 2.011 s, total duration advanced to 0.989582 s.
+The storm showed the same shape: at page 1.010 s, audio time was 0.928798 s
+while total duration remained 0.002902 s; at page 2.010 s it advanced to
+1.024406 s. These observations agree with the exact source's bounded
+publication cadence. They do not establish that PR141's event occurred
+before its baseline, because this pair observed no glitch in any phase.
+
+[verified] The original PR141 trace was also classified with the exact names:
+zero timeout/glitch/shortage/overrun events and 2,715 zero FIFO counters.
+No failed CI was rerun, no counter event was erased, and no production
+correction or universal Chromium trace-coverage claim follows from this pair.
+No change to the original gate is justified by the present evidence.
+
+The bounded [receipt](data/2026-10-10-chromium-phase-pair.json) retains both
+complete raw counter timelines, reports, trace classifications/markers,
+resource deltas, source/archive/image/Wasm provenance and artifact hashes.
+Full trace/resource JSON remains in ignored local scratch
+`/tmp/lunar-phase-pair-e25916d/` and the isolated LAN directory
+`/home/claude/mvave-fm1/chromium-phase-pair-20261010-e25916d/`.
+13 focused helper regressions and syntax/diff checks passed before the pair;
+the same 13 helper regressions passed inside its container. The original
+pass expression was separately compared byte-for-byte with merged main.
+
+Navigation limitation: Rarefaction is attached to the primary checkout and
+returned an older editor source; Serena's active worktree is cpp-only and
+ignores these JS paths. Their readiness/navigation was checked, and current
+worktree file inspection was used without retargeting another agent's index.
+Root review remains required before proposing a production correction.
+
+## Current disposition after this investigation
+
+[verified] PR140's final exact head `9a5fb72a54f5117169840f331fd1f756071e6fd5`
+completed 14 successful checks with deployment skipped. The owner-controlled
+merge is `40c94300428acfc5688a203c2c928723ed98270a`; this evidence branch
+normally integrated that main commit before the diagnostic source checkpoint.
+Earlier pending snapshots above are historical, not current acceptance.
+PR141 retains its original Chromium failure. The pair is one sequential,
+instrumented control/storm observation on another host, not replicated CI
+causal proof; its ordering may warm caches. The diagnostic branch changes
+hashed test sources and has not regenerated its Wasm record or run full CI.
+It is a backed-up investigation checkpoint, not a merge-ready runtime fix.
+Human listening and the newly assigned DSP correctness work remain separate
+gates; the original Safari crackle report is not changed by this result.

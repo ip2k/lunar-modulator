@@ -24,7 +24,7 @@ import { installPlaybackTimeline } from './playback-timeline.mjs';
 const [www, out, secondsArg] = process.argv.slice(2);
 const SECONDS = Number(secondsArg || 30);
 // Diagnostic idle is a control observation, not a replacement acceptance test.
-// Its unchanged functional gate normally fails because there are no edits.
+// PLAY can produce changes, so a true pass field alone does not grade idle.
 const diagnosticMode = process.env.FM1_STORM_PHASE_DIAGNOSTIC || null;
 if (diagnosticMode && !['idle', 'storm'].includes(diagnosticMode)) throw new Error('FM1_STORM_PHASE_DIAGNOSTIC must be idle or storm');
 if (diagnosticMode && (!Number.isFinite(SECONDS) || SECONDS < 1 || SECONDS > 60)) throw new Error('diagnostic duration must be 1–60 seconds');
