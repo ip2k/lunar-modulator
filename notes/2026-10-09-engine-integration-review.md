@@ -25,3 +25,19 @@ this bounded re-review. This verifies the focused correction; generated
 Wasm, complete native/parity/browser checks and CI remain separate gates.
 Probe output is retained at `notes/data/repeat-461eda05-review-probe.txt`;
 LAN snapshot is `/home/claude/mvave-fm1/repeat-review-461eda05`.
+
+[verified: CI/trace] Movy oracle PR114 at
+`a97659f56cd54499a09e99f7689df4aff74cf7b3` completed 12 functional checks
+successfully but failed WebKit (run `38023785156`, job `114130198711`).
+Panel follow took 17 frames / 260 ms. Frames 1–16, through 242 ms, retain
+audioTime `0.7198185941043084` with audio state running and no pending or
+inflight changes. First telemetry appears at 250 ms, state at 252 ms,
+changes at 254 ms and the correct S2 Harmonics value at 257 ms / frame 17.
+This repeats the observed frozen-clock signature, without establishing its
+cause. The main-thread trace explicitly records timing perturbation.
+External monitor/A-B 30 s, map 41/41, v1 99/99 and page storm 30 s passed;
+storm reports zero bad codes and resyncs. This failure is not evidence of an
+oracle-source regression or a listening pass. Strict gates are unchanged;
+no rerun was requested. Exact detail:
+`notes/data/movy-a976-webkit-panel-follow.json`. The failed-run artifact
+`11661203853` retains the additional browser/pressure traces in GitHub.
