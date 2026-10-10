@@ -112,9 +112,11 @@ nonbooting application and installation of Lunar on an FM-1 remain untested.
 
 {{status planned}}
 
-### The order of work
+### The work ahead
 
-Lunar Modulator reaches the FM-1 in stages, each with its own test:
+These are separate validation routes, not a requirement to wait for one before
+starting another. FM-1 bring-up can continue while a development board is
+delayed; evidence from one route does not stand in for another:
 
 1. **Measuring a unit, read-only.** Asking the FM-1 which firmware it runs
    and listening to it, without changing anything. Done in part.
@@ -122,14 +124,16 @@ Lunar Modulator reaches the FM-1 in stages, each with its own test:
    backups and one bounded unused-sector program/restore are verified on the
    owner's unit. Full-image restore and recovery from a nonbooting app remain
    untested.
-3. **A development board.** The firmware's code runs on a JieLi development
+3. **A development board (when available).** The firmware's code runs on a JieLi development
    board from the same chip family. Its output is compared, bit for bit,
    with the desktop tools and the browser simulator.
 4. **The FM-1, from memory.** Lunar Modulator runs on an FM-1 loaded into
    its working memory, without writing the flash. Switching off brings back
    the FM-1's own firmware.
-5. **Installing.** Only then is Lunar Modulator written to the flash, with
-   the original firmware kept as a backup.
+5. **Installing.** A flash installation is a later, separately gated route:
+   it requires a concrete image, reviewed recovery plan, and the applicable
+   verification evidence. The development-board route is not a prerequisite
+   for continuing FM-1 work. No installable Lunar release is available now.
 
 ### A way back built in
 
@@ -143,8 +147,10 @@ Both are tested before anyone is asked to install it.
 The installer is not decided. Two routes exist: the FM-1's own update
 method over USB-MIDI, through which third-party firmware already installs
 on working units, and the processor's recovery mode with a dongle. Either
-way the case stays closed: the first route needs a computer and a USB-C
-cable, the second a recovery dongle as well.
+route can be considered without waiting for a development board. The first
+needs a working FM-1, a computer and a USB-C cable; the recovery route needs
+a recovery dongle. The recovery route has not yet been proven to restore a
+full image or recover every nonbooting state.
 
 ### Updating and going back
 
@@ -160,8 +166,10 @@ cable, the second a recovery dongle as well.
 M-VAVE updates the FM-1 with its own updater over USB, and publishes the
 firmware and the updater for macOS and Windows in the download centre of
 its website, m-vave.com. Third-party firmware for the FM-1 also exists and
-installs the same way. All of these need a working FM-1: they cannot repair
-one that does not start.
+some installs through that same updater. That USB-MIDI updater route needs a
+working FM-1 app; it cannot repair one that does not start. Other firmware
+may use a processor mask-ROM route, whose recovery capability depends on its
+specific loader and image.
 
 !!! note "Keep your FM-1's firmware as it is"
     Nothing in Lunar Modulator requires you to change the firmware on your
