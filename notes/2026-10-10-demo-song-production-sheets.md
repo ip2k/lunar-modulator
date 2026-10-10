@@ -10,11 +10,12 @@ fit, or hardware playback.
 
 ## Afterglow Relay — chillwave, 92 BPM, A minor, 76 bars
 
-The four-bar loop is Am9–Fmaj7–Cmaj9–G6, one chord per bar. A six-note
-descending/turning hook starts on A4 and returns to A before its last pickup.
+The harmonic palette is Am9–Fmaj7–Cmaj9–G6. Later verse/bridge sections begin
+on different chords; the four-bar outro moves C–F–G–Am. A six-note
+descending/turning hook starts on A4 and returns to A for its final held tone.
 The kick and snare sit on a slow straight pulse, with sparse offbeat hats;
-the bass alternates held roots and short fifth responses. Wide chord voicings,
-longer DX envelope and the restrained echo/hall keep the upper register soft.
+selected bass roots sustain under short fifth pickups. The eight-bar bridge
+removes the kick and most hats, then restores a single pulse before Vrs2.
 
 | Scene | Length | Role |
 | --- | ---: | --- |
@@ -32,23 +33,24 @@ slot 1; the chord and answer parts share the arpeggiator-capable slot 2 with
 its arp off; DX7 slot 3 carries the melody and a low echo send.
 
 Scene pass map: Intro 1×4 bars; Verse 2×8; Lift 1×4; Hook 2×8; Bridge
-1×8; Vrs2 1×8; Hook2 2×8; Outro 1×4. The lock role sequence is edge, verse,
-build, peak, contrast, verse, peak, edge. Melody density follows that same
-role: opening/ending use the first or last two motif notes, verses alternate
-the first four notes, the lift uses the middle four, hooks play all six, and
-the bridge plays two interior notes. Bass Timbre and lead Brightness each have
-four locks per bar at sixteenth steps 0/4/8/12; the chillwave/vapor role curves
-are edge 31/27, verse 45/41, build 70/66, peak 88/84, contrast 55/51 (bass /
-lead center values), with lock values center−5, center, center+10, center.
+1×8; Vrs2 1×8; Hook2 2×8; Outro 1×4. Vrs2 changes its bass rhythm and reverses
+the phrase fragments; Hook2 rotates the chord voicing, moves the latter answer
+upward and adds a held top response on phrase endings. The Lift's four lock
+bars rise separately, then its last chord stab is withheld. The outro removes
+drums in stages and ends with a held A over Am9.
 
 ## Event Horizon — future bass, 144 BPM, F minor, 116 bars
 
 The drums imply a 72 BPM half-time pocket, while the four-bar harmony
-Fm9–Dbmaj7–Ab–Eb and short syncopated bass keep the 144 BPM grid moving. A
-six-note upward pickup resolves down into the drop; the answer track enters
-late and above the chord stack. The slot-2 arpeggiator is enabled at an eighth
-rate for the chord rhythm. The drop adds kick anticipation, steady bar-three
-snare, brighter hats, and a three-tone chord bed without using audio samples.
+Fm9–Dbmaj7–Ab–Eb and syncopated bass keep the 144 BPM grid moving. The slot-2
+Up-Down arpeggiator runs at an eighth-note rate with a full-step gate; peak
+chord triggers last 192 raw Movy ticks, four 48-tick eighth-note intervals.
+The two-beat chord hold carries the arp through the next two-beat voicing
+change without a beat-long input gap; it is a legato chord change, not a
+whole-bar pad.
+The drop adds kick anticipation, steady half-time snare, brighter hats and a
+changed upper answer. The build tightens its hats and chord locks, then removes
+late attacks before the drop downbeat.
 
 | Scene | Length | Role |
 | --- | ---: | --- |
@@ -66,18 +68,21 @@ No tempo automation is implied; the half-time feel is in the written kick and
 snare placements.
 
 Scene pass map: Intro 2×4 bars; Verse 2×8; Build 1×4; Drop 4×8; Break
-1×4; Vrs2 2×8; Drop2 4×8; Outro 1×4. Roles are edge, verse, build, peak,
-contrast, verse, peak, edge. The lead moves from two-note edge fragments, to
-alternating verse notes, to a four-note build pickup, then the full six-note
-motif in each drop; the answer voice enters only in build/drop. The slot-2
-arp is eighth-rate with 68% gate; slot-1 Crush is a restrained insert. Bass
-Timbre and lead Brightness lock centers are edge 38/42, verse 52/56, build
-77/81, peak 95/99, contrast 62/66, with values center−5, center, center+10,
-center at steps 0/4/8/12 of every bar.
+1×4; Vrs2 2×8; Drop2 4×8; Outro 1×4. Vrs2 changes bass rhythm and contour;
+Drop2 rotates the chord stack, adds an upper answer and raises its late-scene
+brightness. The Break removes the kick and reduces the bass to two sparse
+attacks to make the second drop an arrival. The outro cadences Ab–Db–Eb–Fm
+and settles the upper line on F.
+The eighth-rate arp uses its maximum gate (100%); slot-1 Crush remains a
+restrained insert. Timbre/Brightness locks rise across the build instead of
+repeating one bar shape, and the final build bar clears chord stabs from step
+12 onward and other new attacks from step 14 onward.
 
 ## Packet Bloom — vapor twitch, 112 BPM, D minor, 88 bars
 
-The harmony Dm9–Bbmaj7–Fmaj7–Cadd9 cycles under a syncopated D bass line.
+The harmony uses Dm9–Bbmaj7–Fmaj7–Cadd9 under a syncopated D bass line; the
+later B-side and second bloom start on changed chord positions, and the outro
+cadences F–Bb–C–Dm.
 The seven-event motif has a high opening note, a clipped chromatic-feeling
 turn, then a late upward answer; pitches remain in the D natural-minor
 collection. Hats and small percussion deliberately offset the expected
@@ -93,20 +98,20 @@ removes some low-end hits so the returning bloom has room to expand.
 | Glitch | 4 bars | Broken kick pattern and short motif fragments |
 | B-side | 8 bars | New bass emphasis and quieter melody density |
 | Bloom2 | 8 bars | Hook returns with the late answer exposed |
-| Outro | 4 bars | Sparse pulse and a descending tail |
+| Outro | 4 bars | Sparse pulse, cadence, and a held D closing tone |
 
 Scene chain: `0,1,1,2,3,3,3,4,5,5,6,6,7` (88 bars, about 3:09). Swing is
 set to 59; the step patterns still use the ordinary sequencer grid, and the
 groove comes from event placement rather than a hidden timing process.
 
 Scene pass map: Intro 1×4 bars; A-side 2×8; Build 1×4; Bloom 3×8; Glitch
-1×4; B-side 2×8; Bloom2 2×8; Outro 1×4. Roles are edge, verse, build, peak,
-contrast, verse, peak, edge. The seven-note motif opens with its high pickup;
-verses use alternating early notes, the build uses its middle four, blooms
-play the full motif, and the glitch scene uses two interior notes. The lead
-slot's Warble is set to Wow .58, Flutter .34, Mix .24; the bass has Filter and
-Drive, and the master hall is wider/longer than the other sketches. Bass
-Timbre and lead Brightness lock centers follow the chillwave/vapor curve above.
+1×4; B-side 2×8; Bloom2 2×8; Outro 1×4. B-side reverses the verse fragments
+and changes bass rhythm; Bloom2 turns the upper voicing and adds a different
+late answer. Glitch uses isolated kick/rim events and sparse hats. Its build
+clears late chord stabs and other attacks before Bloom. The lead-slot Warble is
+set to Wow .58, Flutter .34, Mix .24; the bass has Filter and Drive, and the
+master hall is wider/longer than the other sketches. The outro thins the pulse
+and resolves the lead to D.
 
 ## Neon Transit — electropop, 120 BPM, E minor, 104 bars
 
@@ -135,22 +140,24 @@ Scene pass map: Intro 2×4 bars; Verse 2×8; Pre 1×4; Chorus 3×8; Bridge
 contrast, verse, peak, edge. The seven-note refrain uses two-note previews,
 alternating verse notes, a four-note pre-chorus lift, and the full motif in
 the choruses; the answer enters in chorus and pre-chorus. Chorus chords repeat
-on beats 1 and 3, while the bridge reduces the kick. Bass Timbre and lead
-Brightness lock centers use the future/electro curve above.
+on beats 1 and 3, while the bridge removes the kick. The Pre lock shape climbs
+in three distinct four-bar levels, then falls below its opening center as the
+last-bar attacks withdraw; Chor2 raises Timbre and Brightness again after its
+fourth bar.
 
-For all four projects the per-bar lock sequence is `[center−5, center,
-center+10, center]` at sixteenth steps 0, 4, 8 and 12. Thus each repeated
-scene retains a small, deterministic Timbre/Brightness contour, while section
-role changes the center. Every section replays its own clip from the beginning;
-the scene chain's repeated indexes are deliberate full-section repeats, not
-one-bar variations. Durations above assume four quarter-note beats per bar.
+Each scene writes deterministic Bass Timbre and lead Brightness locks at
+sixteenth steps 0, 4, 8 and 12. Each song has a different four-bar build
+gesture: three rising centers followed by a low release; contrast centers
+fall, and each second peak gains its own late lift. Other sections use a
+restrained four-point contour around their role center. Repeated chain indexes replay the
+same shaped scene, while Vrs2/Hook2, B-side/Bloom2, Drop2 and the ending provide
+distinct later material. Durations above assume four quarter-note beats per bar.
 
 The bass line is transposed one octave below each project's melody tonic; chord
 and lead pitches remain in their written registers. `cl` note gates are stored
-in raw Movy ticks (24 ticks per sixteenth step), not in step units. The short
-bass/lead gates are intentional staccato articulations; longer chord and edge
-gates sustain across more than one step. No tempo automation or swing is
-implied by gate lengths.
+in raw Movy ticks (24 ticks per sixteenth step), not in step units. Pickups and
+motif notes remain short; selected bass roots, peak chords and phrase endpoints
+hold for longer spans. Gate lengths do not imply tempo automation or swing.
 
 ## File and playback contract
 
