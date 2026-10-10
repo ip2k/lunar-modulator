@@ -19,6 +19,12 @@ are conservative link budgets [inferred], not a measured SPL ownership
 contract. The diagnostic has no watchdog service, clock/power/cache setup,
 exception setup, secondary-core synchronization or peripheral initialization.
 Those handover prerequisites must be established before a device experiment.
+The stock SPL is itself loaded at `0x01c02000..0x01c05830` [reported:
+independent vendor decode, `notes/2026-10-09-stock-spl-handover.md` on branch
+`chore/2026-10-09@stock-spl-handover`]. This overlaps the diagnostic's RAM
+reservation. The current nonreturning loop calls no SPL services, but the
+window's ownership and inherited exception stack remain unproven; "private"
+describes this link's reservation, not established SPL handover ownership.
 
 ## Reproduce the link
 
