@@ -268,12 +268,17 @@ MIT), on `fm1_mp_env_t`.
 | Uid | Parameter | Range | What it does |
 | --- | --- | --- | --- |
 | 1–4 | Attack, Decay, Sustain, Release | 0–1 | times on Peaks' knob curve, 0.5 ms–8 s; Sustain a level |
-| 5 | Curve | Linear, Expo, Quartic | Peaks' curves |
+| 5 | Curve | Linear, Expo, Quartic, Log, Smooth | shared curve for timed stages |
 | 6 | Loop | Off, AD, ADR | repeats while the gate is high |
 | 7 | Mode | Gate, Trigger | Gate: an ADSR on the gate; Trigger: Peaks' AD, each rise restarts it, the fall is ignored |
 | 8 | Level | 0–1 | scales the output |
+| 9 | Delay | 0–1 | zero bypasses delay; otherwise 0.5 ms–8 s before attack |
 
-Gate input GATE (normal KEY). Outputs ENV (0..1), EOC (a trigger where the
+Delay runs once before attack; AD/ADR loops exclude it. A timed-delay
+retrigger resets to silence; zero-delay retriggers retain Peaks' current-value
+behavior. Existing parameter UIDs and curve values are unchanged.
+
+Gate input GATE (normal RTRG; per voice, the voice's note). Outputs ENV (0..1), EOC (a trigger where the
 envelope ends or a loop pass completes) and ACT (high from a start until the
 end).
 
@@ -294,8 +299,8 @@ Batchelor, MIT) and Music Thing Modular's Workshop System Computer card 106
 Gate input TRIG (no normal). Outputs HELD, SMTH (HELD through the slew) and
 STEP (a trigger at each new value).
 
-**Instance sizes:** LFO 112 B, Envelope 124 B, Chance 160 B on 64-bit arm64,
-and 100, 124 and 152 B with `gcc -m32` [verified: `fm1-render --list-mod`];
+**Instance sizes:** LFO 112 B, Envelope 128 B, Chance 160 B on 64-bit arm64,
+and 100, 128 and 152 B with `gcc -m32` [verified: `fm1-render --list-mod`];
 under 256 B everywhere but MG2's Burst, 312 B, which ports Peaks' 32-pulse
 buffer whole [verified: test]. The default rack (LFO, LFO, Envelope,
 Envelope, Chance) takes 640 B of the 8 KB arena.
@@ -706,7 +711,7 @@ is Peaks':
 - retrigger from the current value, or from the first level with hard
   reset on.
 
-**Curves** come from Peaks' formulas in `peaks/resources/lookup_tables.py`
+The first three **curves** come from Peaks' formulas in `peaks/resources/lookup_tables.py`
 lines 122–129:
 
 | Curve | Formula | Shape |
@@ -714,10 +719,13 @@ lines 122–129:
 | `LINEAR` | t | straight |
 | `EXPO` | (1 − e^−4t)/(1 − e^−4) | fast, then settling: the RC charge and discharge |
 | `QUARTIC` | t^3.32 | slow, then fast |
+| `LOG` | log(1 + 9t)/log(10) | fast, then settling |
+| `SMOOTH` | 3t² − 2t³ | S-curve with flat endpoints |
 
 Synths disagree on what to call these. Some label EXPO's shape "log" on a
 rising segment, and QUARTIC's "exponential"; the names here are Peaks'.
-Values come from 257-point tables, as in Peaks. Interpolation error is
+LOG also uses a generated 257-point table; SMOOTH evaluates its polynomial.
+The original curves come from 257-point tables, as in Peaks. Interpolation error is
 under 4e-5 [verified: `test_env_curves_are_peaks`].
 
 **Presets.**

@@ -7,7 +7,7 @@
  *   fm1_mp_lfo_t     phase-accumulator LFO: 8 shapes, rate ratio, retrigger,
  *                    one-shot and half-cycle, wrap-exact random shapes
  *   fm1_mp_env_t     multistage envelope after Mutable Instruments' Peaks:
- *                    ADSR, AD, loops, linear/expo/quartic curves
+ *                    delayed ADSR, AD, loops, linear/expo/quartic/log/smooth curves
  *   fm1_mp_slew_t    slew limiter, separate rise and fall, linear or expo
  *   fm1_mp_sah_t     sample-and-hold and track-and-hold
  *   fm1_mp_turing_t  Turing-machine shift register (length, flip chance)
@@ -149,6 +149,8 @@ typedef enum {
   FM1_MP_CURVE_LINEAR = 0,
   FM1_MP_CURVE_EXPO,    /* Peaks' ENV_SHAPE_EXPONENTIAL, (1-e^-4t)/(1-e^-4): fast, then settling */
   FM1_MP_CURVE_QUARTIC, /* Peaks' ENV_SHAPE_QUARTIC, t^3.32: slow, then fast */
+  FM1_MP_CURVE_LOG,     /* log(1 + 9t) / log(10) */
+  FM1_MP_CURVE_SMOOTH,  /* smoothstep: 3t^2 - 2t^3 */
   FM1_MP_CURVE_COUNT
 } fm1_mp_curve_t;
 
@@ -167,7 +169,7 @@ typedef struct {
   float start;        /* the current segment's start value */
   uint32_t phase;
   uint8_t num_segments, sustain, loop_start, loop_end;
-  uint8_t seg, gate, hard_reset, pad_;
+  uint8_t seg, gate, hard_reset, delay_stage; /* 0 absent, 1 timed, 2 zero delay */
 } fm1_mp_env_t;
 
 /* Idle at 0, configured as ADSR 2 ms / 250 ms / 0.5 / 500 ms, expo, no loop. */
@@ -194,14 +196,19 @@ void fm1_mp_env_set_start_level(fm1_mp_env_t *e, float level);
 /* Retrigger from the current value (Peaks' default), or from level 0 of the
  * shape with hard reset on. */
 void fm1_mp_env_set_hard_reset(fm1_mp_env_t *e, int on);
-/* A rising gate starts segment 0; a falling one jumps to the sustain point's
+/* A rising gate starts segment 0 (segment 1 when a reserved delay is zero); a falling one jumps to the sustain point's
  * segment (the release). Repeating the same level does nothing. */
 void fm1_mp_env_gate(fm1_mp_env_t *e, int high);
-/* Start segment 0 now and set the gate high, even if it already was. */
+/* Start the first timed segment now (bypassing zero delay), even if gated. */
 void fm1_mp_env_trigger(fm1_mp_env_t *e);
 float fm1_mp_env_process(fm1_mp_env_t *e, uint32_t n);
 void fm1_mp_env_render(fm1_mp_env_t *e, float *out, uint32_t n);
 float fm1_mp_env_value(const fm1_mp_env_t *e);
+/* Shared by the DSP and time-domain display; phase spans [0, 2^32). */
+float fm1_mp_env_curve_at(uint8_t curve, uint32_t phase);
+/* Delay is in seconds; 0 bypasses it with no extra samples. Trigger selects AD. */
+void fm1_mp_env_set_delayed(fm1_mp_env_t *e, float delay, float a, float d,
+                            float s, float r, int curve, int loop, int trigger);
 int fm1_mp_env_done(const fm1_mp_env_t *e);
 /* Peaks' knob-to-time curve, 0..1 -> 0.5 ms..8 s (lookup_tables.py 55-68):
  * time = (0.0005^g + k (8^g - 0.0005^g))^(1/g), g = 0.175, from a 257-point

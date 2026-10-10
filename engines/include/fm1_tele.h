@@ -18,7 +18,8 @@
  *                over the frame, linear (1 is full scale);
  *   reduction    per effect slot and the output limiter: gain reduction in
  *                dB, 0 where the effect reduces nothing (all but Comp,
- *                Limiter and Squash, today);
+ *                Limiter and Squash, today), then gate (0 open, 1 closing,
+ *                2 closed, NaN where no gate applies);
  *   voices       per voice the runtime tracks: its sound (1-4, 0 when free)
  *                and its MIDI note;
  *   outs         per rack position and output: the last value and the
@@ -52,7 +53,7 @@
 extern "C" {
 #endif
 
-#define FM1_TELE_VERSION 1u
+#define FM1_TELE_VERSION 2u
 #define FM1_TELE_HZ 30u                 /* blocks a second, at most */
 #define FM1_TELE_SOUNDS 4u
 #define FM1_TELE_INSERTS 2u             /* per sound */

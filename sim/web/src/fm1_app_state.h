@@ -64,6 +64,9 @@ extern "C" {
                                         transport is carried over the load (fm1_seq.h,
                                         fm1_seq_transport_take and _put); the editor's A/B,
                                         its undo and its picks ask for it. Stopped stays stopped */
+#define FM1_APP_LOAD_RESTORE_SOUND 0x10u /* same-project sound A/B: original rack/cable identities,
+                                        not an external import. Unchanged modules keep their phase;
+                                        a changed module shared with another destination is refused. */
 
 typedef struct fm1_app_load_opts {
   unsigned kind;      /* the kind the caller expects (FM1_STATE_*), or 0 for the file's */
