@@ -37,3 +37,14 @@ dialog PR120 has the short-landscape control-size fix at f8d70df96e4ecd3b458018e
 awaiting exact-head CI. PR117 integration is pushed at a973087d3eab736e25b487ab8011f69d882fb6a1.
 PR109 ledger reconciliation and the shared WebKit frozen-audio-clock
 investigation remain active. No completed demo songs are claimed.
+
+Additional integration checkpoints: Picks PR118 now targets main and has
+current-main integration plus passing combined editor unit checks at
+b4234c1b816d71f777796404eb4f0a5190f4eace. Recovery documentation PR102 keeps
+current README claims and has its remaining unique docs at
+962e8ba900f7c223b46f7dd058874fabe96ace20. Both are pushed; fresh CI is pending.
+Completed standalone work is now attached as PR129 (scope raster assertions),
+PR130 (distinct-effect research) and PR131 (SDK/runtime/licensing evaluation).
+They still need review/check completion before merging. PR109 reconciliation
+is pushed at c69f9af06cbf977d26285f724d8f8604976d7221. PR105/107/110/114 are
+being updated against current main, retaining their unique changes.
