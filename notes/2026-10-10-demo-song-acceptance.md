@@ -47,3 +47,11 @@ stop, Save download, and Open into a clean context followed by state
 comparison. [verified] Syntax checks pass; browser execution awaits the
 authored files and container integration. These scripts do not claim a
 full CI pass or musical quality approval.
+
+The optional `--audio-dir DIR` records the same inspected Wasm samples as
+stereo IEEE-float WAV files, without normalization or clipping. Existing
+files are refused so a new render cannot overwrite a prior review round.
+[verified] All four synthetic four-second fixtures passed with capture:
+each WAV contains 2,118,188 bytes including its header, rate 44,118 Hz,
+finite samples throughout and measured peak 0.537982583. Header/data lengths
+match. Full authored-song audio remains pending.

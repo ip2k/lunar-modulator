@@ -3,7 +3,7 @@
 //   --wasm ../www/fm1.wasm --out build/demo-songs.json
 // MIT licence.
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, openSync, writeSync, closeSync } from 'node:fs';
 import { basename, dirname, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { parseArgs } from 'node:util';
@@ -12,10 +12,12 @@ import { instantiateFm1, BLOCK } from '../www/fm1-wasm.mjs';
 const { values } = parseArgs({ options: {
   manifest: { type: 'string' }, wasm: { type: 'string' }, out: { type: 'string' },
   native: { type: 'string' }, work: { type: 'string' },
+  'audio-dir': { type: 'string' },
 } });
 assert(values.manifest && values.wasm && values.out, '--manifest, --wasm and --out required');
 assert(!values.native || values.work, '--native requires --work for audio/screen receipts');
 if (values.work) mkdirSync(values.work, { recursive: true });
+if (values['audio-dir']) mkdirSync(values['audio-dir'], { recursive: true });
 const manifest = resolve(values.manifest);
 const songs = JSON.parse(readFileSync(manifest, 'utf8'));
 assert.equal(songs.length, 4, 'four complete demo songs');
@@ -67,10 +69,27 @@ for (const song of songs) {
   assert.equal(ex.fm1w_seq_text(start.length), start.length);
   const duration = song.bars * 240 / song.bpm;
   const limit = Math.ceil((duration + 2) * rate / BLOCK) * BLOCK;
+  // IEEE float stereo WAV: retain the exact samples inspected below, without
+  // clipping or normalizing a mix whose peaks the reviewer needs to assess.
+  let audioFd = null, audioPath = null;
+  const audioChunk = Buffer.alloc(BLOCK * 2 * 4 * 256);
+  let audioUsed = 0;
+  if (values['audio-dir']) {
+    audioPath = resolve(values['audio-dir'], `${basename(song.file, '.lunar')}-wasm.wav`);
+    audioFd = openSync(audioPath, 'wx');
+    const header = Buffer.alloc(44);
+    header.write('RIFF', 0); header.writeUInt32LE(36 + limit * 8, 4);
+    header.write('WAVEfmt ', 8); header.writeUInt32LE(16, 16);
+    header.writeUInt16LE(3, 20); header.writeUInt16LE(2, 22);
+    header.writeUInt32LE(rate, 24); header.writeUInt32LE(rate * 8, 28);
+    header.writeUInt16LE(8, 32); header.writeUInt16LE(32, 34);
+    header.write('data', 36); header.writeUInt32LE(limit * 8, 40);
+    writeSync(audioFd, header);
+  }
   let peak = 0, squares = 0, stoppedFrame = null, playingSeen = false;
   const energy = [];
   let windowSquares = 0, windowSamples = 0;
-  for (let frame = 0; frame < limit; frame += BLOCK) {
+  try { for (let frame = 0; frame < limit; frame += BLOCK) {
     const samples = new Float32Array(w.memory.buffer, ex.fm1w_render(BLOCK), BLOCK * 2);
     for (const sample of samples) {
       assert(Number.isFinite(sample), `${song.title}: non-finite audio at ${frame}`);
@@ -78,6 +97,14 @@ for (const song of songs) {
       squares += sample * sample;
       windowSquares += sample * sample;
       windowSamples++;
+      if (audioFd !== null) {
+        audioChunk.writeFloatLE(sample, audioUsed);
+        audioUsed += 4;
+        if (audioUsed === audioChunk.length) {
+          writeSync(audioFd, audioChunk);
+          audioUsed = 0;
+        }
+      }
     }
     if (windowSamples >= rate * 2) {
       energy.push(Math.sqrt(windowSquares / windowSamples));
@@ -87,6 +114,11 @@ for (const song of songs) {
     assert.equal(info[1], Math.round(song.bpm * 100), 'tempo matches production sheet');
     if (info[0]) playingSeen = true;
     else if (playingSeen && stoppedFrame === null) stoppedFrame = frame + BLOCK;
+  } } finally {
+    if (audioFd !== null) {
+      if (audioUsed) writeSync(audioFd, audioChunk.subarray(0, audioUsed));
+      closeSync(audioFd);
+    }
   }
   assert(playingSeen, 'transport actually started');
   assert(stoppedFrame !== null, 'song stops at end of arrangement');
@@ -114,7 +146,7 @@ for (const song of songs) {
   }
   results.push({ title: song.title, file: song.file, bpm: song.bpm, bars: song.bars,
     duration, stoppedAt: stoppedFrame / rate, peak, rms, secondRms: energy,
-    dropped: 0, ramPercent: loadReport.percent, roundTrip: true, native });
+    dropped: 0, ramPercent: loadReport.percent, roundTrip: true, audioPath, native });
   console.log(`${song.title}: ${duration.toFixed(2)}s, peak ${peak.toFixed(4)}, RMS ${rms.toFixed(4)}`);
 }
 writeFileSync(values.out, JSON.stringify({ rate, songs: results, pass: true }, null, 2) + '\n');
