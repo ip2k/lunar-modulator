@@ -20,6 +20,13 @@ namespace dx7 {
 
 namespace {
 
+// Keep bounded report counters positive after successful stores, even for
+// concatenated files containing more voices/messages than the report can hold.
+void Count(uint16_t &value, unsigned amount = 1) {
+  const unsigned sum = unsigned(value) + amount;
+  value = static_cast<uint16_t>(sum > 0xFFFFu ? 0xFFFFu : sum);
+}
+
 // The largest value of each byte of an operator, in VCED order
 // (fm1_dx7_op_fields below names them; tests/test_engines_dx7.py checks the
 // two agree).
@@ -147,8 +154,8 @@ int ParseSysex(const uint8_t *data, size_t len, unsigned slot, StoreFn store, vo
     size_t end = i + 1;
     while (end < len && data[end] < 0x80) ++end;
     if (end >= len || data[end] != 0xF7) {   // truncated, or another status byte
-      ++r.skipped;
-      ++r.truncated;
+      Count(r.skipped);
+      Count(r.truncated);
       i = end;
       continue;
     }
@@ -163,28 +170,28 @@ int ParseSysex(const uint8_t *data, size_t len, unsigned slot, StoreFn store, vo
     if (!vced && !vmem) {
       // A voice or bank dump's header (format 0 or 9) with another byte
       // count or length is a broken dump; anything else is not ours.
-      ++r.skipped;
-      if (yamaha && (m[3] == 0x00 || m[3] == 0x09)) ++r.wrong_size; else ++r.foreign;
+      Count(r.skipped);
+      if (yamaha && (m[3] == 0x00 || m[3] == 0x09)) Count(r.wrong_size); else Count(r.foreign);
       i = end + 1;
       continue;
     }
     unsigned sum = 0;
     for (unsigned k = 0; k < count; ++k) sum += m[6 + k];
-    if (((0x80u - (sum & 0x7Fu)) & 0x7Fu) != m[6 + count]) ++r.bad_checksums;
-    ++r.messages;
+    if (((0x80u - (sum & 0x7Fu)) & 0x7Fu) != m[6 + count]) Count(r.bad_checksums);
+    Count(r.messages);
     if (vced) {
       FromVced(m + 6, voice);
       store(ctx, slot, voice);
       if (first) r.first_slot = static_cast<uint16_t>(slot);
       slot = (slot + 1) % FM1_DX7_USER_SLOTS;
-      ++r.voices;
+      Count(r.voices);
     } else {
       for (unsigned k = 0; k < FM1_DX7_USER_SLOTS; ++k) {
         FromPacked(m + 6 + k * kPackedBytes, voice);
         store(ctx, k, voice);
       }
       if (first) r.first_slot = 0;
-      r.voices = static_cast<uint16_t>(r.voices + FM1_DX7_USER_SLOTS);
+      Count(r.voices, FM1_DX7_USER_SLOTS);
     }
     first = false;
     i = end + 1;

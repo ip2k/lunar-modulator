@@ -539,6 +539,12 @@ unsigned fm1_mod_current(const fm1_mod_t *m);
  * ones included. */
 void fm1_mod_reset(fm1_mod_t *m, uint32_t why);
 
+/* Read-only kind-specific drawing state, valid only until the next runtime
+ * operation. Call on the audio thread or while processing is stopped. For
+ * per-voice modules this selects the newest active voice, else the global
+ * instance. NULL for an invalid position or a kind without a view. */
+const void *fm1_mod_view_state(const fm1_mod_t *m, unsigned pos);
+
 /* ---- Reading state (logs, tests, the UI) ------------------------------------ */
 float fm1_mod_out(const fm1_mod_t *m, unsigned pos, unsigned port);
 const fm1_mod_gate_t *fm1_mod_gate_out(const fm1_mod_t *m, unsigned pos, unsigned port);

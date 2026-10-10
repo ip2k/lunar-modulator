@@ -48,12 +48,14 @@
 
 #include "fm1_resampler.h"
 
+#include <cerrno>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -156,6 +158,7 @@ int Sweep(double in_rate, double out_rate, double from, double to, double step) 
          edge);
   bool first = true;
   for (double f = from; f < to && f < in_rate / 2; f += step) {
+    if (!(f + step > f)) { fprintf(stderr, "sweep step does not advance\n"); return 2; }
     const double fo = Fold(f, out_rate);
     if (fo < 20.0 || fo > out_rate / 2 - 20.0) continue;   // DC or Nyquist: no fit
     fm1_resampler_t r;
@@ -205,7 +208,13 @@ int Sweep(double in_rate, double out_rate, double from, double to, double step) 
 }
 
 int Bench(double in_rate, double out_rate, size_t outputs) {
-  std::vector<float> in(static_cast<size_t>(outputs * in_rate / out_rate) + 4096);
+  // process() uses uint32_t lengths. Validate before floating conversion or allocation.
+  const long double inputs = static_cast<long double>(outputs) * in_rate / out_rate;
+  if (outputs > UINT32_MAX || !std::isfinite(inputs) || inputs < 0 ||
+      inputs > UINT32_MAX - 4096u) {
+    fprintf(stderr, "benchmark frame count is out of range\n"); return 2;
+  }
+  std::vector<float> in(static_cast<size_t>(inputs) + 4096);
   uint32_t state = 0x12345678u;
   for (size_t i = 0; i < in.size(); ++i) in[i] = 0.5f * Noise(&state);
   std::vector<float> out(outputs);
@@ -596,7 +605,8 @@ int Tones(const char *path, size_t start, size_t length, const std::vector<doubl
   std::vector<float> x;
   double rate = 0.0;
   if (!ReadWav(path, &x, &rate)) { fprintf(stderr, "cannot read %s\n", path); return 1; }
-  if (!length || start + length > x.size()) length = x.size() > start ? x.size() - start : 0;
+  const size_t available = start < x.size() ? x.size() - start : 0;
+  if (!length || length > available) length = available;
   if (length < 64) { fprintf(stderr, "too short\n"); return 1; }
   const std::vector<double> win = KaiserWindow(length, 20.0);
   double wsum = 0.0;
@@ -625,9 +635,10 @@ int Peaks(const char *path, size_t start, size_t length, double floor_db) {
   std::vector<float> x;
   double rate = 0.0;
   if (!ReadWav(path, &x, &rate)) { fprintf(stderr, "cannot read %s\n", path); return 1; }
-  if (!length || start + length > x.size()) length = x.size() > start ? x.size() - start : 0;
+  const size_t available = start < x.size() ? x.size() - start : 0;
+  if (!length || length > available) length = available;
   size_t n = 1;
-  while (n * 2 <= length) n *= 2;
+  while (n <= length / 2) n *= 2;
   if (n < 1024) { fprintf(stderr, "too short\n"); return 1; }
   const std::vector<double> win = KaiserWindow(n, 20.0);
   double wsum = 0.0;
@@ -656,6 +667,16 @@ int Peaks(const char *path, size_t start, size_t length, double floor_db) {
   return 0;
 }
 
+bool ParseSize(const char *text, size_t *value) {
+  if (!text[0] || text[0] < '0' || text[0] > '9') return false;
+  char *end = NULL;
+  errno = 0;
+  const unsigned long long parsed = strtoull(text, &end, 10);
+  if (errno == ERANGE || *end || parsed > std::numeric_limits<size_t>::max()) return false;
+  *value = static_cast<size_t>(parsed);
+  return true;
+}
+
 }  // namespace
 
 int main(int argc, char **argv) {
@@ -679,16 +700,23 @@ int main(int argc, char **argv) {
     else if (a == "--from") from = atof(v);
     else if (a == "--to") to = atof(v);
     else if (a == "--step") step = atof(v);
-    else if (a == "--outputs") outputs = static_cast<size_t>(atol(v));
+    else if (a == "--outputs" || a == "--start" || a == "--length") {
+      size_t *target = a == "--outputs" ? &outputs : a == "--start" ? &start : &length;
+      if (!ParseSize(v, target)) {
+        fprintf(stderr, "%s needs an unsigned frame count\n", a.c_str()); return 2;
+      }
+    }
     else if (a == "--in") in_path = v;
     else if (a == "--out") out_path = v;
-    else if (a == "--start") start = static_cast<size_t>(atol(v));
-    else if (a == "--length") length = static_cast<size_t>(atol(v));
     else if (a == "--freq") freqs.push_back(atof(v));
     else if (a == "--floor") floor_db = atof(v);
     else { fprintf(stderr, "unknown option %s\n", a.c_str()); return 2; }
   }
-  if (!(step > 0.0) || !outputs) return 2;
+  if (!std::isfinite(in_rate) || !(in_rate > 0.0) ||
+      !std::isfinite(out_rate) || !(out_rate > 0.0) ||
+      !std::isfinite(from) || !std::isfinite(to) || !std::isfinite(step) ||
+      !(step > 0.0) || !outputs || !std::isfinite(floor_db)) return 2;
+  for (size_t i = 0; i < freqs.size(); ++i) if (!std::isfinite(freqs[i])) return 2;
   if (mode == "sweep") return Sweep(in_rate, out_rate, from, to, step);
   if (mode == "bench") return Bench(in_rate, out_rate, outputs);
   if (mode == "passthrough") return Passthrough();
