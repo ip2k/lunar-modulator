@@ -1,0 +1,155 @@
+"""OFFLINE PROPOSAL ONLY: fresh owner session plus one fixed callback-slot read.
+
+Do not transfer/execute until separately reviewed. No automatic retry.
+"""
+import hashlib
+import json
+import os
+from pathlib import Path
+import stat
+import subprocess
+import sys
+import time
+
+BASE = Path('/home/claude/fm1-callbacks-20261010')
+EXPECTED = {
+    'fm1_loader_callbacks.py': '2f7422d64c830383f8796750883ee044b86072db92648f313e91baf67db6be2a',
+    'fm1_uboot_read.py': '28317ee56a489e0bb38de981fe0d0c4260384be570349795741fdb9a98d6ae57',
+    'fm1_softkey_probe.py': 'c92d419c94540c8943fa5e1476dfb765da11144188fff71d901b6136af53b306',
+    'fm1_identify.py': '684342b034b1a97b0e070ff758edf9bff20714523316a968952ccf48f52c0de0',
+}
+for name, digest in EXPECTED.items():
+    if hashlib.sha256((BASE/name).read_bytes()).hexdigest() != digest:
+        raise SystemExit('Reviewed source hash mismatch before device access')
+sys.path.insert(0, str(BASE))
+from fm1_loader_callbacks import LoaderCallbackReader
+from fm1_uboot_read import LOADER_SHA, LOADER_SIZE
+from fm1_softkey_probe import probe, enumerate_usb, usb_parent
+
+
+def ancestor(p):
+    for parent in [p.resolve(), *p.resolve().parents]:
+        if (parent/'idVendor').exists():
+            return parent
+    return None
+
+
+def node_record(node, sysfs, character):
+    info = node.stat()
+    valid = stat.S_ISCHR(info.st_mode) if character else stat.S_ISBLK(info.st_mode)
+    dev = f'{os.major(info.st_rdev)}:{os.minor(info.st_rdev)}'
+    if not valid or dev != (sysfs/'dev').read_text().strip():
+        raise ValueError('Actual device node type/number differs from bound sysfs')
+    return {'node': str(node), 'dev': dev}
+
+
+def exclusive(records, log):
+    mounted = {line.split()[2] for line in Path('/proc/self/mountinfo').read_text().splitlines()}
+    if any(r['dev'] in mounted for r in records):
+        raise ValueError('A reviewed device is mounted')
+    check = subprocess.run(['fuser', '-s', *(r['node'] for r in records)], capture_output=True, timeout=5)
+    log('exclusive_access_check', nodes=records, returncode=check.returncode,
+        stdout=check.stdout.decode(errors='replace'), stderr=check.stderr.decode(errors='replace'))
+    if check.returncode != 1 or check.stdout or check.stderr:
+        raise ValueError('Cannot establish exclusive device access')
+
+
+def same_uboot(expected):
+    devices = enumerate_usb()
+    found = [d for d in devices if (d['vid'], d['pid']) == ('4c4a', '8057')]
+    if len(found) != 1 or any(found[0][k] != expected[k] for k in ('path', 'busnum', 'devnum', 'vid', 'pid', 'product')):
+        raise ValueError('Current UBOOT differs from fresh recorded enumeration')
+    if any((d['vid'], d['pid']) == ('4c4a', 'c755') for d in devices):
+        raise ValueError('Unexpected normal FM-1 also connected')
+
+
+def ready_sg(expected, log):
+    usb = Path('/sys/bus/usb/devices/3-2').resolve()
+    end = time.monotonic() + 5
+    while True:
+        same_uboot(expected)
+        sg = [p for p in Path('/sys/class/scsi_generic').glob('sg*') if ancestor(p/'device') == usb]
+        block = [p for p in Path('/sys/class/block').glob('*') if ancestor(p) == usb]
+        if len(sg) > 1 or any(p.name != 'sg0' for p in sg) or any(p.name != 'sda' for p in block):
+            raise ValueError('Reviewed SG/block node set changed')
+        if len(sg) == 1 and len(block) == 1 and all((Path('/dev')/p.name).exists() for p in [*sg, *block]):
+            break
+        if time.monotonic() >= end:
+            log('device_nodes_not_ready', sg=[p.name for p in sg], block=[p.name for p in block])
+            raise ValueError('Exact SG/block device nodes not ready; stop')
+        time.sleep(0.05)  # Bounded enumeration readiness polling; no command retry.
+    records = [node_record(Path('/dev')/sg[0].name, sg[0], True),
+               node_record(Path('/dev')/block[0].name, block[0], False)]
+    exclusive(records, log)
+    same_uboot(expected)
+    return records[0]['node']
+
+
+def main():
+    os.umask(0o077)
+    loader = Path('/tmp/wl82loader.bin').read_bytes()
+    if len(loader) != LOADER_SIZE or hashlib.sha256(loader).hexdigest() != LOADER_SHA:
+        raise ValueError('Pinned loader changed; no traffic')
+    backups = [Path('/home/claude/fm1-backups/2026-10-07-session2')/n for n in ('dumpA.bin', 'dumpB.bin')]
+    backups += [Path('/home/claude/fm1-backups/2026-10-07-restore1')/n for n in ('beforeA.bin', 'beforeB.bin', 'after.bin')]
+    for path in backups:
+        data = path.read_bytes()
+        if len(data) != 1048576 or hashlib.sha256(data).hexdigest() != '96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4':
+            raise ValueError('Private backup changed; no traffic')
+    reader = None
+    with (BASE/'commands.jsonl').open('x') as fp, (BASE/'callback-observation.json').open('x') as out:
+        events = []
+        def log(event, **fields):
+            if event in ('before', 'identity'):
+                current = enumerate_usb()
+                selected = [d for d in current if (d['vid'], d['pid']) == ('4c4a', 'c755')]
+                if len(selected) != 1 or any(selected[0][k] != normal[0][k] for k in ('path', 'busnum', 'devnum', 'vid', 'pid', 'product')):
+                    raise ValueError('Normal FM-1 binding changed before identity/soft key; stop')
+                if any((d['vid'], d['pid']) == ('4c4a', '8057') for d in current):
+                    raise ValueError('Unexpected UBOOT before identity/soft key; stop')
+            item = {'time': time.time(), 'event': event, **fields}
+            events.append(item)
+            fp.write(json.dumps(item)+'\n'); fp.flush(); os.fsync(fp.fileno())
+            print(json.dumps(item), flush=True)
+        try:
+            midi = Path('/dev/snd/midiC2D0')
+            if usb_parent(str(midi)).name != '3-2':
+                raise ValueError('Direct owner MIDI port changed; no traffic')
+            devices = enumerate_usb()
+            normal = [d for d in devices if (d['vid'], d['pid']) == ('4c4a', 'c755')]
+            if len(normal) != 1 or normal[0]['path'] != '3-2' or any((d['vid'], d['pid']) == ('4c4a', '8057') for d in devices):
+                raise ValueError('Unexpected initial FM-1/UBOOT topology; no traffic')
+            exclusive([node_record(midi, Path('/sys/class/sound')/midi.name, True)], log)
+            log('preflight', source_head='6689c3920d93699f40244d919a64b6c2405df4f8',
+                source_hashes=EXPECTED, backups_verified=5, usb=normal[0])
+            probe(str(midi), 'FM-1_092', True, log, known_092=True)
+            if events[-1]['event'] != 'uboot_enumerated':
+                raise ValueError('Fresh UBOOT enumeration missing; stop')
+            observed = [d for d in events[-1]['usb'] if (d['vid'], d['pid']) == ('4c4a', '8057')]
+            if len(observed) != 1 or observed[0]['path'] != '3-2':
+                raise ValueError('Unexpected fresh UBOOT binding; stop')
+            expected = observed[0]
+            reader = LoaderCallbackReader(ready_sg(expected, log), log)
+            if reader.usb.name != expected['path'] or (reader.usb/'devnum').read_text().strip() != expected['devnum']:
+                raise ValueError('Opened SG differs from fresh recorded enumeration')
+            same_uboot(expected)
+            log('bound_sg', node='/dev/sg0', usb=expected)
+            reader.load(loader)
+            result = reader.callbacks()
+            json.dump({'address': '0x01c09724', 'bytes': 8, 'words_little_endian': result,
+                       'memory_regions_unproven': True, 'no_pointer_execution_or_code_read': True}, out, indent=2)
+            out.flush(); os.fsync(out.fileno())
+            log('completed', soft_key_count=1, no_retry=True, no_flash_writes=True,
+                no_new_payload=True, no_pointer_execution=True, no_code_read=True)
+        except Exception as exc:
+            log('stopped', error=str(exc), no_retry=True)
+            raise
+        finally:
+            if reader is not None:
+                reader.close()
+            fp.flush(); os.fsync(fp.fileno())
+            out.flush(); os.fsync(out.fileno())
+
+
+if __name__ == '__main__':
+    main()

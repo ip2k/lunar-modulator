@@ -473,3 +473,86 @@ new session, or enabling metadata automatically. Once observed, callback
 values would only guide further offline mapping/disassembly research;
 code capture or a custom returning leaf require another separate reviewed
 boundary. The leaf's actual inherited return contract remains the blocker.
+
+## Fresh-session eight-byte operational proposal, offline only
+
+[verified, offline] The exact
+[session wrapper](data/2026-10-10-loader-callback-session-proposal.txt)
+SHA-256 is `4fc26f751c51966a5c877d6c2112b884468f3b9164b16a84e3a2c7d2196e6fe2`.
+It has not been transferred or executed. No device traffic occurred during
+this preparation. Root must review this wrapper separately before use.
+Source tools are the unchanged reviewed `6689c392` set, with their exact
+hashes embedded. Proposed private outputs are new exclusive-create files
+under `/home/claude/fm1-callbacks-20261010/`: `commands.jsonl` and
+`callback-observation.json`. Both must be absent; a rerun stops before access.
+
+[verified, offline] Before traffic it checks the pinned loader and all five
+private backup hashes, then the actual MIDI character-node number against
+sysfs, direct USB port `3-2`, one normal FM-1 and no existing UBOOT. It
+requires unmounted nodes and `fuser` exit 1 with empty stdout/stderr;
+timeouts/errors stop. It rechecks the normal-mode USB binding before the
+fresh identity request and again before the sole soft key. The existing
+identity probe must match `FM-1_092` (including its exact previously observed
+checksum-bug exception). It records a fresh UBOOT devnum, rather than reuse
+devnum 16 from the previous session. Only readiness is polled, for at most
+five seconds; protocol commands are never retried. The exact actual
+`/dev/sg0` and `/dev/sda` nodes must exist, match USB-bound sysfs numbers,
+have no extra partition/node and pass mount/fuser checks. USB binding is
+checked again after Reader opens. Each log record is flushed and fsynced.
+These host checks do not provide an atomic lock against another process;
+parent coordination must keep all other host traffic idle throughout.
+
+[proposal] With every guard satisfied, the existing pinned loader sequence
+is followed by exactly one FD07 CDB `fd0701c097240008ffffffffffffffff`.
+Expected application SCSI count is 52, including 47 FB06 loader blocks,
+the existing ROM FB08 entry and FC14/FC0A validations. The only new
+observation is two little-endian 32-bit words. No expected pointer value
+is invented; successful decoding grants no code-read or execution permission.
+On any mismatch/error stop, preserve the receipt and ask the owner to
+power-cycle; do not adapt identities, retry or expand the range. After a
+successful observation, ask the owner to power-cycle and confirm operation.
+No flash programming, new payload, metadata expansion or pointer call is
+part of this proposal.
+
+[verified, offline] Focused transport/tool/operational-guard tests passed
+**67/67**. The new tests extract only helper definitions from the wrapper;
+they never import/run its top-level source checks or main and never access
+a device. They exercise node type/number mismatches, mounted nodes,
+fuser uncertainty/timeout, changed/duplicate USB identity, extra partitions,
+absent nodes and delayed actual-node readiness. Existing strict transport
+and one-attempt tests remain unchanged. Syntax compilation also passed.
+These are offline guard tests, not hardware validation.
+
+## Return contract: source evidence and unresolved ROM caller
+
+| Proposition | Evidence and confidence |
+| --- | --- |
+| Loader entry preserves its incoming return context | [verified, disassembly] Offset `0x63a` saves `{rets,r11-r4}` and reserves 36 stack bytes; `0x928/0x92a` restores that stack and `{pc,r11-r4}`. This is static code evidence, not a measurement of the incoming stack or PC. |
+| Its input is a service-table pointer | [verified, disassembly] Incoming `r0` becomes `r11`; `0x890..0x89c` copies words 0/1 to the observed callback slots. Offset `0x8a0..0x8ac` uses word 2 as the location to install the command dispatcher. Parallel instruction semantics preserve the old `r1` for that store. |
+| The later helper call does not relocate the table | [verified, disassembly] `0x8c4` calls `0x40c`, whose body iterates bytes and prints hex through the loader's UART formatting helpers; it is a hexdump, not a table-copy function. |
+| ROM FB08 ACK follows target return; `r0` points to five argument/service words | [reported, kagaimiq] Pinned `jl-uboot-tool` documentation describes this contract and the 16-bit command argument stored in table word 3. It does not establish the actual WL82 caller implementation, stack address or saved return PC. |
+| Known loader initialized and the command completed on this unit | [verified, hardware] Prior pinned-loader FB08 acknowledgement and subsequent FC14/FC0A/FD07 succeeded in the preserved 08:40 receipt. |
+| ROM probably resumed after the known loader returned | [inferred] Static loader return plus the reported ACK ordering and observed completed commands support this interpretation. No actual mask-ROM caller disassembly or instruction trace was obtained. |
+
+[reported, source] The primary upstream source is kagaimiq's
+[`jl-uboot-tool` loader documentation](https://github.com/kagaimiq/jl-uboot-tool/blob/adb3f18889e88ac512ce0a3c4d8cc3d3cb30696a/docs/usb-loader-v2.md),
+checked locally at commit `adb3f18889e88ac512ce0a3c4d8cc3d3cb30696a`,
+lines 196–257; `jltech/uboot.py` encodes the target and 16-bit argument but
+contains no ROM dispatcher implementation. Its distinction between ROM
+FB08 and loader-specific FB08 remains essential: the pinned loader rejects
+FB08 itself, as recorded earlier. The known loader's working entry does
+not prove a separately built leaf may inherit and return through the same
+stack safely. The proposed callback slots do not reveal the caller's saved
+PC or stack; any returned addresses remain unmapped observations.
+
+### Handoff before yielding the agent slot
+
+[verified] Work remains on `chore/2026-10-10@fm1-live-bringup`, isolated from
+root's integration branches. The operational proposal is ready for root
+source review, not device execution. No tool transfer, SSH inventory,
+identity query, soft key or SCSI traffic occurred in this step. Remaining
+work: root review of the exact wrapper and its tool hashes; only after
+explicit authorization, fresh guarded operation with one eight-byte read,
+private receipt backup, and owner power-cycle confirmation. Any callback
+interpretation and custom-code return proof remain a separate offline
+follow-up requiring new boundaries. No shared semantic server was retargeted.
