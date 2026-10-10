@@ -43,7 +43,7 @@ The existing scene/chain model should be exercised with these palettes before ad
 3. **Repeat:** specify hold/capture/retrigger/clear behavior and edge smoothing; use Echo’s existing storage if possible. Define clock division and tempo-jump policy against the engine transport API before implementing tempo sync. Test timing across transport reset, tempo changes and four chained scenes.
 4. **Phaser and Pitch:** phase it behind measured CPU/SRAM budget. Reuse the existing Clouds pitch-shifter evaluation rather than a Daisy port. For any new third-party code, pin commit, preserve copyright/license, inspect included headers and dependencies, and place it in `third_party/<name>/` with `UPSTREAM.md`.
 5. **Spectral/granular:** only after profiling current multi-scene workloads. Prototype at a reduced rate/overlap on desktop/Wasm first; estimate actual persistent and stack buffers; measure target-core cost later on an authorized dev kit. Do not use or transfer pedal firmware/models/IRs as a shortcut.
-6. **Device gate:** no device traffic or flash/write test is part of this work. Any eventual device investigation remains subject to `AGENTS.md`’s full-dump and byte-identical-restore rule.
+6. **Device gate:** no device traffic or flash/write test is part of this work. Any eventual device investigation must follow the current staged hardware policy in `AGENTS.md` and the experiment-specific authorization and recovery plan; this research does not authorize device activity.
 
 ## Source and license record
 
