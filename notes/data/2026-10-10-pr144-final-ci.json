@@ -1,0 +1,917 @@
+{
+  "tested_head": "5805ea9cc0a0d655f66c7d30b9d4584c8a615084",
+  "pr": "https://github.com/ip2k/lunar-modulator/pull/144",
+  "ci_run": 38042083160,
+  "pages_run": 38042083204,
+  "status": {
+    "headRefOid": "5805ea9cc0a0d655f66c7d30b9d4584c8a615084",
+    "mergeStateStatus": "CLEAN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-10T09:49:51Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/ip2k/lunar-modulator/actions/runs/38042083160/job/114184168824",
+        "name": "tests (ubuntu-latest)",
+        "startedAt": "2026-10-10T09:38:11Z",
+        "status": "COMPLETED",
+        "workflowName": "ci"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-10T09:39:43Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/ip2k/lunar-modulator/actions/runs/38042083204/job/114184168740",
+        "name": "build the site and the manual",
+        "startedAt": "2026-10-10T09:38:11Z",
+        "status": "COMPLETED",
+        "workflowName": "pages"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-10T09:47:37Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/ip2k/lunar-modulator/actions/runs/38042083160/job/114184168797",
+        "name": "tests (macos-latest)",
+        "startedAt": "2026-10-10T09:38:15Z",
+        "status": "COMPLETED",
+        "workflowName": "ci"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-10T09:39:43Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/ip2k/lunar-modulator/actions/runs/38042083204/job/114184428788",
+        "name": "deploy to GitHub Pages",
+        "startedAt": "2026-10-10T09:39:44Z",
+        "status": "COMPLETED",
+        "workflowName": "pages"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-10T09:45:33Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/ip2k/lunar-modulator/actions/runs/38042083160/job/114184168875",
+        "name": "engines (MIT/BSD build, GPL switch off)",
+        "startedAt": "2026-10-10T09:38:11Z",
+        "status": "COMPLETED",
+        "workflowName": "ci"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-10T09:40:02Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/ip2k/lunar-modulator/actions/runs/38042083160/job/114184168835",
+        "name": "engines (module list default, GPL switch 1)",
+        "startedAt": "2026-10-10T09:38:11Z",
+        "status": "COMPLETED",
+        "workflowName": "ci"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-10T09:39:48Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/ip2k/lunar-modulator/actions/runs/38042083160/job/114184168844",
+        "name": "engines (module list default, GPL switch 0)",
+        "startedAt": "2026-10-10T09:38:11Z",
+        "status": "COMPLETED",
+        "workflowName": "ci"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-10T09:50:56Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/ip2k/lunar-modulator/actions/runs/38042083160/job/114184168832",
+        "name": "engines (32-bit build and tests)",
+        "startedAt": "2026-10-10T09:38:11Z",
+        "status": "COMPLETED",
+        "workflowName": "ci"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-10T09:59:26Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/ip2k/lunar-modulator/actions/runs/38042083160/job/114184168718",
+        "name": "engines (ASan + UBSan)",
+        "startedAt": "2026-10-10T09:38:11Z",
+        "status": "COMPLETED",
+        "workflowName": "ci"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-10T09:47:27Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/ip2k/lunar-modulator/actions/runs/38042083160/job/114184168947",
+        "name": "editor page tests (chromium)",
+        "startedAt": "2026-10-10T09:38:11Z",
+        "status": "COMPLETED",
+        "workflowName": "ci"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-10T09:46:32Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/ip2k/lunar-modulator/actions/runs/38042083160/job/114184168827",
+        "name": "editor page tests (firefox)",
+        "startedAt": "2026-10-10T09:38:11Z",
+        "status": "COMPLETED",
+        "workflowName": "ci"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-10T09:46:29Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/ip2k/lunar-modulator/actions/runs/38042083160/job/114184168870",
+        "name": "editor page tests (webkit)",
+        "startedAt": "2026-10-10T09:38:11Z",
+        "status": "COMPLETED",
+        "workflowName": "ci"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-10T09:39:43Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/ip2k/lunar-modulator/actions/runs/38042083160/job/114184168854",
+        "name": "dongle firmware (RP2040 UF2)",
+        "startedAt": "2026-10-10T09:38:11Z",
+        "status": "COMPLETED",
+        "workflowName": "ci"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-10T09:38:31Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/ip2k/lunar-modulator/actions/runs/38042083160/job/114184169079",
+        "name": "AL-255/FM-1-RE tests on fork branch (main)",
+        "startedAt": "2026-10-10T09:38:11Z",
+        "status": "COMPLETED",
+        "workflowName": "ci"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-10T09:38:29Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/ip2k/lunar-modulator/actions/runs/38042083160/job/114184168883",
+        "name": "AL-255/FM-1-RE tests on fork branch (firmware-images-v15)",
+        "startedAt": "2026-10-10T09:38:11Z",
+        "status": "COMPLETED",
+        "workflowName": "ci"
+      }
+    ],
+    "url": "https://github.com/ip2k/lunar-modulator/pull/144"
+  },
+  "browsers": {
+    "chromium": {
+      "startup": {
+        "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+        "pass": true,
+        "errors": [],
+        "starts": [
+          {
+            "screens": 6,
+            "audio_seconds": 0.18575963718820862,
+            "state": "running",
+            "rate": 44100,
+            "node": {
+              "ready": true,
+              "created_state": "suspended",
+              "created_time": 0,
+              "connections": [
+                {
+                  "destination": "AudioDestinationNode",
+                  "ready": true
+                },
+                {
+                  "destination": "AnalyserNode",
+                  "ready": true
+                }
+              ],
+              "ready_state": "suspended",
+              "ready_time": 0
+            }
+          },
+          {
+            "screens": 12,
+            "audio_seconds": 0.18575963718820862,
+            "state": "running",
+            "rate": 44100,
+            "node": {
+              "ready": true,
+              "created_state": "suspended",
+              "created_time": 0,
+              "connections": [
+                {
+                  "destination": "AudioDestinationNode",
+                  "ready": true
+                },
+                {
+                  "destination": "AnalyserNode",
+                  "ready": true
+                }
+              ],
+              "ready_state": "suspended",
+              "ready_time": 0
+            }
+          }
+        ]
+      },
+      "loopback": {
+        "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+        "seconds": 30,
+        "source": "lunar.monitor",
+        "events": [
+          {
+            "scope": "project",
+            "at": 1791625178563,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791625181087,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791625183603,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791625186124,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791625191976,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791625194492,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791625197005,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791625199520,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: Sound 2.",
+              "scope": 1
+            }
+          }
+        ],
+        "logs": [],
+        "tone-stormStartedAt": 1791625137319,
+        "storm": {
+          "batches": 7263,
+          "replies": 7263,
+          "refused": 0,
+          "resyncs": 0,
+          "rate": 44100
+        },
+        "ab-playbackStartedAt": 1791625172510,
+        "audio": {
+          "pass": true,
+          "activeSeconds": 32.011875,
+          "nonfinite": 0,
+          "channelMismatches": 0,
+          "maxZeroRun": 1,
+          "maxSilenceMs": 0.020833333333333332,
+          "cycles": 13864,
+          "badPeriods": 0,
+          "maxPeriodError": 0.010357837922953195
+        },
+        "music": {
+          "seconds": 30.011791666666667,
+          "peak": 0.257232666015625,
+          "nonfinite": 0
+        },
+        "transportStopped": [],
+        "pass": true
+      },
+      "strict_storm": {
+        "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+        "seconds": 30,
+        "logs": [],
+        "scheduling_capture": true,
+        "edited": 7260,
+        "codes_not_ok": 0,
+        "changes": 1723,
+        "entries": 58083,
+        "resyncs": 0,
+        "views": 1,
+        "telemetry": 905,
+        "stats": {
+          "quanta": 10695,
+          "timed": false,
+          "late": null,
+          "maxMs": null,
+          "editMs": null
+        },
+        "snapshot": {
+          "ok": true,
+          "bytes": 1115,
+          "binary": true
+        },
+        "ops": 7260,
+        "records": 58080,
+        "rate": 44100,
+        "playback": {
+          "underrun_events": 0,
+          "underrun_ms": 0
+        },
+        "pass": true
+      }
+    },
+    "firefox": {
+      "startup": {
+        "browser": "Firefox 155.0 (Playwright, headless)",
+        "pass": true,
+        "errors": [],
+        "starts": [
+          {
+            "screens": 10,
+            "audio_seconds": 0.3395918367346939,
+            "state": "running",
+            "rate": 44100,
+            "node": {
+              "ready": true,
+              "created_state": "suspended",
+              "created_time": 0,
+              "connections": [
+                {
+                  "destination": "AudioDestinationNode",
+                  "ready": true
+                },
+                {
+                  "destination": "AnalyserNode",
+                  "ready": true
+                }
+              ],
+              "ready_state": "suspended",
+              "ready_time": 0
+            }
+          },
+          {
+            "screens": 16,
+            "audio_seconds": 0.1799546485260771,
+            "state": "running",
+            "rate": 44100,
+            "node": {
+              "ready": true,
+              "created_state": "suspended",
+              "created_time": 0,
+              "connections": [
+                {
+                  "destination": "AudioDestinationNode",
+                  "ready": true
+                },
+                {
+                  "destination": "AnalyserNode",
+                  "ready": true
+                }
+              ],
+              "ready_state": "suspended",
+              "ready_time": 0
+            }
+          }
+        ]
+      },
+      "loopback": {
+        "browser": "Firefox 155.0 (Playwright, headless)",
+        "seconds": 30,
+        "source": "lunar.monitor",
+        "events": [
+          {
+            "scope": "project",
+            "at": 1791625187754,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791625190321,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791625192895,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791625195435,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791625201348,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791625203916,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791625206475,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791625209052,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: Sound 2.",
+              "scope": 1
+            }
+          }
+        ],
+        "logs": [],
+        "tone-stormStartedAt": 1791625146385,
+        "storm": {
+          "batches": 7223,
+          "replies": 7223,
+          "refused": 0,
+          "resyncs": 0,
+          "rate": 44100
+        },
+        "ab-playbackStartedAt": 1791625181702,
+        "audio": {
+          "pass": true,
+          "activeSeconds": 32.000375,
+          "nonfinite": 0,
+          "channelMismatches": 0,
+          "maxZeroRun": 0,
+          "maxSilenceMs": 0,
+          "cycles": 13859,
+          "badPeriods": 0,
+          "maxPeriodError": 0.009242549570359415
+        },
+        "music": {
+          "seconds": 30.440291666666667,
+          "peak": 0.265106201171875,
+          "nonfinite": 0
+        },
+        "transportStopped": [],
+        "pass": true
+      },
+      "strict_storm": {
+        "browser": "Firefox 155.0 (Playwright, headless)",
+        "seconds": 30,
+        "logs": [],
+        "scheduling_capture": true,
+        "edited": 7224,
+        "codes_not_ok": 0,
+        "changes": 1607,
+        "entries": 57795,
+        "resyncs": 0,
+        "views": 1,
+        "telemetry": 905,
+        "stats": {
+          "quanta": 10695,
+          "timed": false,
+          "late": null,
+          "maxMs": null,
+          "editMs": null
+        },
+        "snapshot": {
+          "ok": true,
+          "bytes": 1115,
+          "binary": true
+        },
+        "ops": 7224,
+        "records": 57792,
+        "rate": 44100,
+        "playback": null,
+        "pass": true
+      }
+    },
+    "webkit": {
+      "startup": {
+        "browser": "Webkit 26.6 (Playwright, headless)",
+        "pass": true,
+        "errors": [],
+        "starts": [
+          {
+            "screens": 6,
+            "audio_seconds": 0.25541950113378686,
+            "state": "running",
+            "rate": 44100,
+            "node": {
+              "ready": true,
+              "created_state": "suspended",
+              "created_time": 0,
+              "connections": [
+                {
+                  "destination": "AudioDestinationNode",
+                  "ready": true
+                },
+                {
+                  "destination": "AnalyserNode",
+                  "ready": true
+                }
+              ],
+              "ready_state": "suspended",
+              "ready_time": 0
+            }
+          },
+          {
+            "screens": 12,
+            "audio_seconds": 0.1799546485260771,
+            "state": "running",
+            "rate": 44100,
+            "node": {
+              "ready": true,
+              "created_state": "suspended",
+              "created_time": 0,
+              "connections": [
+                {
+                  "destination": "AudioDestinationNode",
+                  "ready": true
+                },
+                {
+                  "destination": "AnalyserNode",
+                  "ready": true
+                }
+              ],
+              "ready_state": "suspended",
+              "ready_time": 0
+            }
+          }
+        ]
+      },
+      "loopback": {
+        "browser": "Webkit 26.6 (Playwright, headless)",
+        "seconds": 30,
+        "source": "lunar.monitor",
+        "events": [
+          {
+            "scope": "project",
+            "at": 1791625187432,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791625189993,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791625192535,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "project",
+            "at": 1791625195086,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: the project.",
+              "scope": "project"
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791625201000,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791625203542,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791625206083,
+            "before": {
+              "playing": true,
+              "side": "B"
+            },
+            "after": {
+              "playing": true,
+              "side": "A",
+              "busy": false,
+              "message": "Now A: Sound 2.",
+              "scope": 1
+            }
+          },
+          {
+            "scope": "s2",
+            "at": 1791625208626,
+            "before": {
+              "playing": true,
+              "side": "A"
+            },
+            "after": {
+              "playing": true,
+              "side": "B",
+              "busy": false,
+              "message": "Now B: Sound 2.",
+              "scope": 1
+            }
+          }
+        ],
+        "logs": [],
+        "tone-stormStartedAt": 1791625146114,
+        "storm": {
+          "batches": 3756,
+          "replies": 3756,
+          "refused": 0,
+          "resyncs": 0,
+          "rate": 44100
+        },
+        "ab-playbackStartedAt": 1791625181360,
+        "audio": {
+          "pass": true,
+          "activeSeconds": 32.00610416666667,
+          "nonfinite": 0,
+          "channelMismatches": 0,
+          "maxZeroRun": 0,
+          "maxSilenceMs": 0,
+          "cycles": 13861,
+          "badPeriods": 0,
+          "maxPeriodError": 0.00973440977659834
+        },
+        "music": {
+          "seconds": 30.303041666666665,
+          "peak": 0.249542236328125,
+          "nonfinite": 0
+        },
+        "transportStopped": [],
+        "pass": true
+      },
+      "strict_storm": {
+        "browser": "Webkit 26.6 (Playwright, headless)",
+        "seconds": 30,
+        "logs": [],
+        "scheduling_capture": true,
+        "edited": 3757,
+        "codes_not_ok": 0,
+        "changes": 1724,
+        "entries": 30059,
+        "resyncs": 0,
+        "views": 1,
+        "telemetry": 905,
+        "stats": {
+          "quanta": 10695,
+          "timed": false,
+          "late": null,
+          "maxMs": null,
+          "editMs": null
+        },
+        "snapshot": {
+          "ok": true,
+          "bytes": 1115,
+          "binary": true
+        },
+        "ops": 3757,
+        "records": 30056,
+        "rate": 44100,
+        "playback": null,
+        "pass": true
+      }
+    }
+  },
+  "log_sha256": {
+    "chromium": "c54a6a6515092ffde823c8de08205145769a13b4ad81a8e6f225503c5434612e",
+    "firefox": "9cf60887c00df0c56fc6b7ed991c3550b2818b0fb5c0347dd13daaa997fa6d23",
+    "webkit": "26c0753a237d80cf761f163a4a6f2278c6299001b340814a0e49f3cae792d69c",
+    "ubuntu": "2d1ab857bfe8bbb8706494b933dc4c6f4333ccfd5d6d9a87f6481da6a7e6b7af",
+    "macos": "0e0707ac2d7d00520909036bcdd6efbd4eca3df48d4a43b68cac4752f065ca38",
+    "32bit": "12d13fea363a09792afe3b86d8b78fd788dc3c6479168622eb9eba56c4df43c2",
+    "asan": "e5242649ede9b2305a95db5ebf4e9acda973571ba1693b1f35b0c3324afa5575",
+    "pages": "2b1be980d1654ba418dfd8569b52788466f63946b5ed2d2dca20708b47feff1f"
+  },
+  "native_summaries": {
+    "ubuntu": [
+      "=========== 5255 passed, 30 skipped, 2 xfailed in 684.41s (0:11:24) ============"
+    ],
+    "macos": [
+      "=========== 5255 passed, 30 skipped, 2 xfailed in 545.30s (0:09:05) ============"
+    ],
+    "32bit": [
+      "=========== 4249 passed, 16 skipped, 2 xfailed in 663.10s (0:11:03) ============",
+      "======================= 498 passed, 6 skipped in 51.86s ========================"
+    ],
+    "asan": [
+      "=========== 4249 passed, 16 skipped, 2 xfailed in 1072.45s (0:17:52) ===========",
+      "================== 508 passed, 6 skipped in 122.86s (0:02:02) =================="
+    ],
+    "pages": [
+      "manual: 17 chapters, 42 engines and effects, sequencer in the build, 0 outline boxes; 0 errors, 0 warnings -> /home/runner/work/lunar-modulator/lunar-modulator/_site/manual"
+    ]
+  }
+}
