@@ -3,7 +3,8 @@
 //
 //   node parity.mjs --native build/native/fm1-render --sim build/native/fm1-sim-render \
 //        --wasm build/wasm/fm1.wasm --render-js build/wasm/fm1-render.js \
-//        [--musl build/musl/fm1-render] --scenarios scenarios.json \
+//        [--musl build/musl/fm1-render] [--sim-musl build/musl/fm1-sim-render] \
+//        --scenarios scenarios.json \
 //        --work build/parity [--summary out.json]
 //
 // For every scenario it renders the note script up to four ways and compares
@@ -17,13 +18,19 @@
 //          first, then note-offs, then note-ons)
 // and the screen the app draws afterwards against the native harness's
 // (less the bottom bar's RAM figure: WebAssembly has 4-byte pointers, so its
-// instance sizes are the 32-bit ones, closer to pi32v2's).
+// instance sizes are the 32-bit ones, closer to pi32v2's). A libm-sensitive
+// scenario uses the static musl simulator for the exact screen oracle when
+// supplied; its audio-driven scope can differ from glibc even though the
+// simulator and Wasm agree under musl. Both screens are retained in results.
 //
 // A scenario passes when app equals js exactly (the app layer adds nothing),
 // app equals musl exactly when musl is given (the compiler adds nothing), app
 // is within 1 LSB of glibc unless the scenario is marked libm_sensitive (a
 // feedback loop that amplifies glibc's and musl's last-bit differences in
-// sinf/expf), the screens match and the module made no import calls.
+// sinf/expf), the selected exact screen reference matches and the module made
+// no import calls. For libm-sensitive scenarios the selected screen reference
+// is the musl simulator when `--sim-musl` is given; the glibc screen remains
+// an exact diagnostic and is not masked or given a tolerance.
 //
 // A scenario with `cmd` plays a sequencer verb script (fm1-render --cmd).
 // Every leg applies each line at the first 64-frame block starting at or
@@ -540,6 +547,12 @@ for (const s of scenarios) {
   if (s.cmd) simArgs.push('--log-cmds', join(dir, 'cmds.verbs'));
   if (s.panel) simArgs.push('--panel', panelPath(s));
   const native = JSON.parse(execFileSync(args.sim, simArgs, quiet).toString().trim().split('\n').pop());
+  const useMuslScreen = !!(s.libm_sensitive && args['sim-musl']);
+  if (useMuslScreen) {
+    const muslScreenArgs = [...cli, '--screen', join(dir, 'screen-musl.ppm')];
+    if (s.panel) muslScreenArgs.push('--panel', panelPath(s));
+    execFileSync(args['sim-musl'], muslScreenArgs, quiet);
+  }
   // A panel run's sidecar starts with --slots; the multi-sound flags imply it.
   const renderCli = s.panel
     ? ['--seconds', String(s.seconds), '--rate', String(s.rate ?? 44118), '--cmd', join(dir, 'cmds.verbs'),
@@ -575,6 +588,10 @@ for (const s of scenarios) {
   writePpm(join(dir, 'app-screen.ppm'), app.screen);
   writeWav(join(dir, 'app.wav'), app.out, Math.round(s.rate ?? 44118));
   imports = app.imports;
+  const screenGlibc = compare(readPpmAs565(join(dir, 'screen.ppm')), app.screen, masked);
+  const screenMusl = useMuslScreen
+    ? compare(readPpmAs565(join(dir, 'screen-musl.ppm')), app.screen, masked)
+    : null;
   const r = {
     name: s.name,
     samples: glibc.length,
@@ -582,7 +599,10 @@ for (const s of scenarios) {
     app_vs_js: compare(js, app.out),
     app_vs_musl: args.musl ? compare(readWav(join(dir, 'musl.wav')), app.out) : null,
     app_vs_glibc: compare(glibc, app.out),
-    screen: compare(readPpmAs565(join(dir, 'screen.ppm')), app.screen, masked),
+    screen_reference: useMuslScreen ? 'musl' : 'glibc',
+    screen: useMuslScreen ? screenMusl : screenGlibc,
+    screen_glibc: screenGlibc,
+    screen_musl: screenMusl,
     ram: { wasm32: app.ram, native64: native.ram },
     calls: app.calls.length,
     cmd: s.cmd ?? null,
@@ -605,7 +625,9 @@ for (const s of scenarios) {
     `${seq.dropped} events dropped` : '';
   console.log(`${r.pass ? 'pass' : 'FAIL'} ${s.name}: of ${r.samples} samples, vs js ${fmt(r.app_vs_js)}, ` +
     `vs musl ${fmt(r.app_vs_musl)}, vs glibc ${fmt(r.app_vs_glibc)}${r.libm_sensitive ? ' [libm-sensitive]' : ''}; ` +
-    `screen ${r.screen.differing} px; RAM ${r.ram.wasm32} B (wasm32) / ${r.ram.native64} B (native 64-bit)${seqNote}`);
+    `screen ${r.screen.differing} px vs ${r.screen_reference}` +
+    `${r.screen_glibc.differing ? ` (${r.screen_glibc.differing} glibc diagnostic pixels)` : ''}; ` +
+    `RAM ${r.ram.wasm32} B (wasm32) / ${r.ram.native64} B (native 64-bit)${seqNote}`);
 }
 const summary = {
   passed: results.filter((r) => r.pass).length,

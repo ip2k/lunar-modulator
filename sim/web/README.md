@@ -1421,7 +1421,7 @@ owner's LAN); about 20 seconds once that host has the three images (the
 first run pulls them). There, in containers (nothing runs locally but ssh,
 tar and scp; nothing is installed on the host):
 
-1. `alpine:3.22`: a static musl `fm1-render`.
+1. `alpine:3.22`: static musl `fm1-render` and `fm1-sim-render`; the latter supplies an exact screen oracle for explicitly `libm_sensitive` scenarios.
 2. `emscripten/emsdk:6.0.10` (`build.sh`): native `fm1-render` and
    `fm1-sim-render` with GCC 13, the screen sweep, `fm1.wasm` and
    `fm1-render.js` with Emscripten 6.0.10, `test/parity.mjs`,
@@ -1457,7 +1457,13 @@ the Playwright package, about 20 MB) and the containers' session label.
 
 `tests/test_sim_web.py` runs in the normal suite (and CI): the app layer's
 output equals `fm1-render`'s byte for byte for every scenario, natively, and
-for the sequencer scenarios so do the event logs; the sequencer's sizes
+for the sequencer scenarios so do the event logs; explicitly `libm_sensitive`
+scenarios use the exact static-musl simulator screen when that harness is
+available, retaining the glibc screen comparison as a diagnostic (no pixel
+mask or tolerance). On the 2026-10-09 PR correction run, all 104 scenarios
+matched JS and musl audio; `sophie-kit` matched the musl screen exactly while
+34 scope pixels differed from glibc after the interpolation correction. The
+sequencer's sizes
 against its arena and the 36,864 B budget; the event-room rule on script
 lines and on typed commands (a stop, a play and a restart at full load in
 one gap, and 128 lane bases after a stop, which `fm1-render --events 256`

@@ -1,19 +1,18 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "9562448e742836a4571ebd04ad303c72d0125a8054483dffbee9d5c6240ed4e1",
-  "wasm_bytes": 1553462,
+  "wasm_sha256": "75f70411e04a893824a031c2b34737c756039d332732eca0ab9d1c61ff823505",
+  "wasm_bytes": 1553383,
   "sources_sha256": {
-    "engines": "99ccb6ca0b77e1bb145f3f20c61a9d86c2f577b1d71734870e7b11a9d494f623",
-    "sim": "17100e24bdde05c710ee19080240d41af754017fd3230dd1ff33d7dc192a0927"
+    "engines": "545ccbe5262582f04d5fbc0c07a7b0282d31211ca8b2ef665985d9057728290c",
+    "sim": "788798fa82ef882b6dc78a0dbe68300c230475bdb94ce6cc8c2976ecce818c33"
   },
   "engines": "working tree",
-  "built": "2026-10-09T20:03:11Z",
+  "built": "2026-10-10T06:43:15Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
     "alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8",
-    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65",
-    "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27"
+    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65"
   ],
   "imports": [],
   "gpl_mods": 1,
@@ -181,10 +180,10 @@
       "applied": 82728,
       "resyncs": 0,
       "telemetry_blocks": 862,
-      "p50_ms": 0.06266000000005079,
-      "p99_ms": 0.09412000000000376,
-      "max_ms": 0.26597900000001573,
-      "edit_us_per_quantum": 7.9631023111893855
+      "p50_ms": 0.06118700000000388,
+      "p99_ms": 0.09140500000000884,
+      "max_ms": 0.2258020000000016,
+      "edit_us_per_quantum": 7.702799729233367
     },
     "check": {
       "params": 468,
@@ -490,7 +489,7 @@
         "max_lsb": 0
       },
       "app_vs_glibc": {
-        "differing": 23286,
+        "differing": 44454,
         "max_lsb": 4082
       },
       "screen_px_differing": 0,

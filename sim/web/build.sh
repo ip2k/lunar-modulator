@@ -9,8 +9,10 @@
 #   3. test/parity.mjs: the WebAssembly output against fm1-render (GCC with
 #      glibc, and with musl when build-on-aeon.sh has built that in
 #      build/musl/), scenario by scenario, sequencer scripts and panel
-#      traces (test/seq/) included, and the screens against the native
-#      harness;
+#      traces (test/seq/) included. Screens use the glibc harness except for
+#      scenarios marked libm_sensitive, which use the static musl harness to
+#      match the WebAssembly math library; the glibc screen remains recorded
+#      as a diagnostic comparison;
 #   4. test/sysex.mjs: the module's "Load DX7 patches" export on the
 #      original test files in test/dx7/ (what it loads, what it refuses and
 #      why, and how the loaded voices play);
@@ -52,7 +54,9 @@ ls -l "$OUT/wasm/fm1.wasm"
 echo "== parity"
 MUSL=()
 if [ -x "$OUT/musl/fm1-render" ]; then MUSL=(--musl "$OUT/musl/fm1-render"); fi
-node "$SIM/test/parity.mjs" --native "$OUT/native/fm1-render" --sim "$OUT/native/fm1-sim-render" \
+SIM_MUSL=()
+if [ -x "$OUT/musl/fm1-sim-render" ]; then SIM_MUSL=(--sim-musl "$OUT/musl/fm1-sim-render"); fi
+node "$SIM/test/parity.mjs" --native "$OUT/native/fm1-render" --sim "$OUT/native/fm1-sim-render" "${SIM_MUSL[@]}" \
   --wasm "$OUT/wasm/fm1.wasm" --render-js "$OUT/wasm/fm1-render.js" "${MUSL[@]}" \
   --scenarios "$SIM/test/scenarios.json" --work "$OUT/parity" --summary "$OUT/parity.json"
 
