@@ -3,7 +3,8 @@
  * Mutable Instruments' Peaks.
  *
  * Attack, Decay and Release are Peaks' knob-to-time curve (0.5 ms to 8 s);
- * Sustain is a level. Curve is Peaks' linear, exponential or quartic. Mode
+ * Sustain is a level. Delay adds silence before attack (zero bypasses it).
+ * Curve selects linear, exponential, quartic, logarithmic or smoothstep. Mode
  * Gate is an ADSR that follows GATE (unpatched: RTRG, the keys retriggered,
  * so with no cable every note restarts it, a note over a held one too; the
  * owner's decision of 2026-10-05; MG1 to MG3 normalled it to KEY, the
@@ -21,11 +22,11 @@
  * lists where fm1_mp's envelope differs from Peaks. */
 #include "mod_int.h"
 
-enum { P_ATK, P_DEC, P_SUS, P_REL, P_CURVE, P_LOOP, P_MODE, P_LEVEL, P_COUNT };
+enum { P_ATK, P_DEC, P_SUS, P_REL, P_CURVE, P_LOOP, P_MODE, P_LEVEL, P_DELAY, P_COUNT };
 enum { O_ENV, O_EOC, O_ACTIVE };
 enum { M_GATE, M_TRIGGER };
 
-static const char *const kCurves[] = { "Linear", "Expo", "Quartic" };
+static const char *const kCurves[] = { "Linear", "Expo", "Quartic", "Log", "Smooth" };
 static const char *const kLoops[] = { "Off", "AD", "ADR" };
 static const char *const kModes[] = { "Gate", "Trigger" };
 
@@ -35,10 +36,11 @@ static const fm1_param_t kParams[P_COUNT] = {
   { "Decay", FM1_PARAM_FLOAT, 0.0f, 1.0f, 0.5f, NULL, 0, 2, MOD, FM1_UNIT_NONE, "Dec" },
   { "Sustain", FM1_PARAM_FLOAT, 0.0f, 1.0f, 0.7f, NULL, 0, 3, MOD, FM1_UNIT_NONE, "Sus" },
   { "Release", FM1_PARAM_FLOAT, 0.0f, 1.0f, 0.5f, NULL, 0, 4, MOD, FM1_UNIT_NONE, "Rel" },
-  { "Curve", FM1_PARAM_ENUM, 0.0f, 2.0f, 1.0f, kCurves, 1, 5, 0, FM1_UNIT_NONE, "Curve" },
+  { "Curve", FM1_PARAM_ENUM, 0.0f, 4.0f, 1.0f, kCurves, 1, 5, 0, FM1_UNIT_NONE, "Curve" },
   { "Loop", FM1_PARAM_ENUM, 0.0f, 2.0f, 0.0f, kLoops, 1, 6, 0, FM1_UNIT_NONE, "Loop" },
   { "Mode", FM1_PARAM_ENUM, 0.0f, 1.0f, 0.0f, kModes, 1, 7, 0, FM1_UNIT_NONE, "Mode" },
   { "Level", FM1_PARAM_FLOAT, 0.0f, 1.0f, 1.0f, NULL, 1, 8, MOD, FM1_UNIT_NONE, "Level" },
+  { "Delay", FM1_PARAM_FLOAT, 0.0f, 1.0f, 0.0f, NULL, 2, 9, MOD, FM1_UNIT_NONE, "Delay" },
 };
 #undef MOD
 
@@ -49,7 +51,7 @@ static const fm1_port_t kOuts[] = { { "Env", FM1_PORT_CV_UNI, FM1_UNIT_NONE, MOD
 
 typedef struct env {
   fm1_mp_env_t env;
-  uint32_t shape[4];           /* the knob values last applied, as bits */
+  uint32_t shape[5];           /* the knob values last applied, as bits */
   mod_trig_t eoc;
   uint8_t curve, loop, mode, active, configured, fall_next, reserved[2];
 } env_t;
@@ -64,7 +66,7 @@ static void *env_create(void *mem, const fm1_host_t *host, uint32_t seed) {
   unsigned i;
   (void)seed;
   fm1_mp_env_init(&s->env, host ? host->sample_rate : 44118.0f);
-  for (i = 0; i < 4; ++i) s->shape[i] = 0;
+  for (i = 0; i < 5; ++i) s->shape[i] = 0;
   mod_trig_init(&s->eoc);
   s->curve = s->loop = s->mode = s->active = s->configured = s->fall_next = 0;
   s->reserved[0] = s->reserved[1] = 0;
@@ -74,23 +76,21 @@ static void *env_create(void *mem, const fm1_host_t *host, uint32_t seed) {
 static void configure(env_t *s, const float *p) {
   const unsigned curve = (unsigned)p[P_CURVE], loop = (unsigned)p[P_LOOP], mode = (unsigned)p[P_MODE];
   const uint32_t a = mod_bits(p[P_ATK]), d = mod_bits(p[P_DEC]), su = mod_bits(p[P_SUS]),
-                 r = mod_bits(p[P_REL]);
+                 r = mod_bits(p[P_REL]), delay = mod_bits(p[P_DELAY]);
   if (s->configured && a == s->shape[0] && d == s->shape[1] && su == s->shape[2] &&
-      r == s->shape[3] && curve == s->curve && loop == s->loop && mode == s->mode) {
+      r == s->shape[3] && delay == s->shape[4] && curve == s->curve && loop == s->loop && mode == s->mode) {
     return;
   }
-  if (mode == M_TRIGGER) {
-    fm1_mp_env_set_ad(&s->env, fm1_mp_env_time_from_knob(p[P_ATK]),
-                      fm1_mp_env_time_from_knob(p[P_DEC]), (int)curve, loop != 0);
-  } else {
-    fm1_mp_env_set_adsr(&s->env, fm1_mp_env_time_from_knob(p[P_ATK]),
-                        fm1_mp_env_time_from_knob(p[P_DEC]), p[P_SUS],
-                        fm1_mp_env_time_from_knob(p[P_REL]), (int)curve, (int)loop);
-  }
+  fm1_mp_env_set_delayed(&s->env,
+      p[P_DELAY] > 0.0f ? fm1_mp_env_time_from_knob(p[P_DELAY]) : 0.0f,
+      fm1_mp_env_time_from_knob(p[P_ATK]), fm1_mp_env_time_from_knob(p[P_DEC]),
+      p[P_SUS], fm1_mp_env_time_from_knob(p[P_REL]), (int)curve, (int)loop,
+      mode == M_TRIGGER);
   s->shape[0] = a;
   s->shape[1] = d;
   s->shape[2] = su;
   s->shape[3] = r;
+  s->shape[4] = delay;
   s->curve = (uint8_t)curve;
   s->loop = (uint8_t)loop;
   s->mode = (uint8_t)mode;
@@ -180,10 +180,14 @@ static void env_reset(void *self, uint32_t why) {
   }
 }
 
+static const void *env_view(const void *self) {
+  return &((const env_t *)self)->env;
+}
+
 const fm1_mod_kind_t fm1_mod_kind_env = {
   FM1_MOD_MAGIC, FM1_MOD_API_VERSION, "env", 0x454E5620u /* "ENV " */, "Envelope", "ENV",
   "Our own, on fm1_mp's multistage envelope after Mutable Instruments' Peaks (Emilie Gillet, "
   "MIT): its segments, presets, curves and knob-to-time curve.",
   kParams, P_COUNT, 1, 3, kGates, kOuts, FM1_MOD_KIND_POLY_OK, 0,
-  env_size, env_create, NULL, env_reset, env_process, NULL, NULL, NULL, 0
+  env_size, env_create, NULL, env_reset, env_process, NULL, NULL, env_view, 0
 };

@@ -430,7 +430,8 @@
           "Curve": "Expo",
           "Loop": "Off",
           "Mode": "Gate",
-          "Level": 1
+          "Level": 1,
+          "Delay": 0
         }
       },
       {
@@ -444,7 +445,8 @@
           "Curve": "Expo",
           "Loop": "Off",
           "Mode": "Gate",
-          "Level": 1
+          "Level": 1,
+          "Delay": 0
         }
       },
       {

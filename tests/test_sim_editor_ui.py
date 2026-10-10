@@ -40,6 +40,12 @@ def test_the_editor_names_no_module():
     ids |= {k["id"] for k in meta["mod"]["kinds"]}
     ids |= {s["name"] for s in meta["mod"]["sources"] if len(s["name"]) > 3}
     code = "\n".join(p.read_text() for p in sorted(EDITOR.glob("*.js")))
+    # Telemetry field names are data keys, not module choices. A field can
+    # share a name with an effect ("gate"); exempt only metadata-known names
+    # in a fields.indexOf lookup, leaving every other quoted id checked.
+    fields = {f for section in meta["telemetry"]["sections"] for f in section["fields"]}
+    code = re.sub(r"\.fields\.indexOf\(([\"'])([a-z0-9_.-]+)\1\)",
+                  lambda m: ".fields.indexOf('')" if m[2] in fields else m[0], code)
     quoted = set(re.findall(r"'([a-z0-9_.-]+)'", code)) | set(re.findall(r'"([a-z0-9_.-]+)"', code))
     found = sorted(quoted & ids)
     assert not found, f"editor/*.js names {found}"

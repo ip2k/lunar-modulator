@@ -36,8 +36,13 @@ AL-255's `extract.sh` and probonopd's SMK-37 notes use).
 | `ota.bin` | 19969 B | nested bootable image `usb_hid_ota.bin`: the **USB-MIDI OTA loader**, six LZ4 blocks, 23324 B decompressed, load address `0x01C0A800` |
 | `script.ver`, `info.log`, `USR`, `blimit.bin`, `tail.bin` | small | `script.ver` decrypts to `AC791N-v0.01-cfg_tool-v0.10` |
 
-Integrity is **CRC-16/CCITT-FALSE everywhere** (UFW header, entry list, entry
-data, nested OTA image). There is **no RSA/ECDSA signature** — confirmed
+The UFW header, stored entry list, flash payload and OTA payload use
+**CRC-16/XMODEM** (polynomial `0x1021`, initial value zero, no reflection or
+final XOR) [verified: the stock V14, V15 and FM-1_092 outer checks pass
+`tools/jieli/inspect_fwsc.py`]. The prior CCITT-FALSE label incorrectly
+implied an initial value of `0xFFFF`. Encrypted auxiliary payloads and nested
+checks need separate decoding; see `notes/2026-10-09-offline-container.md`.
+There is **no RSA/ECDSA signature** — confirmed
 independently by aroum (updater strings) and AL-255 (loader disassembly). The
 SFC cipher with the chip key is obfuscation, not authentication; the key is in
 the package.

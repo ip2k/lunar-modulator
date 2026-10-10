@@ -1,0 +1,1106 @@
+{
+  "browser_container": "mcr.microsoft.com/playwright:v1.63.0-noble",
+  "baseline_storm": {
+    "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+    "seconds": 30,
+    "logs": [],
+    "edited": 7249,
+    "codes_not_ok": 0,
+    "changes": 1724,
+    "entries": 57995,
+    "resyncs": 0,
+    "views": 1,
+    "telemetry": 905,
+    "stats": {
+      "quanta": 10695,
+      "timed": false,
+      "late": null,
+      "maxMs": null,
+      "editMs": null
+    },
+    "snapshot": {
+      "ok": true,
+      "bytes": 1111,
+      "binary": true
+    },
+    "ops": 7249,
+    "records": 57992,
+    "rate": 44100,
+    "playback": {
+      "underrun_events": 0,
+      "underrun_ms": 0
+    },
+    "pass": true
+  },
+  "probes": {
+    "1": {
+      "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+      "seconds": 10,
+      "workers": 2,
+      "drain_ms": 250,
+      "cpu_max": "100000 100000",
+      "phases": [
+        {
+          "pressure": false,
+          "playback": {
+            "underrun_events": 0,
+            "underrun_ms": 0
+          },
+          "cpu_before": "usage_usec 551295\nuser_usec 329485\nsystem_usec 221810\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 16\nnr_throttled 4\nthrottled_usec 231958\nnr_bursts 0\nburst_usec 0",
+          "cpu_after": "usage_usec 879784\nuser_usec 528492\nsystem_usec 351292\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 118\nnr_throttled 4\nthrottled_usec 231958\nnr_bursts 0\nburst_usec 0",
+          "reader_timeouts": 0,
+          "cpu_delta": {
+            "usage_usec": 328489,
+            "user_usec": 199007,
+            "system_usec": 129482,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 102,
+            "nr_throttled": 0,
+            "throttled_usec": 0,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          }
+        },
+        {
+          "pressure": true,
+          "playback": {
+            "underrun_events": 65,
+            "underrun_ms": 650
+          },
+          "cpu_before": "usage_usec 880840\nuser_usec 529548\nsystem_usec 351292\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 118\nnr_throttled 4\nthrottled_usec 231958\nnr_bursts 0\nburst_usec 0",
+          "cpu_after": "usage_usec 10962703\nuser_usec 10611410\nsystem_usec 351292\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 221\nnr_throttled 104\nthrottled_usec 13122668\nnr_bursts 0\nburst_usec 0",
+          "reader_timeouts": 67,
+          "cpu_delta": {
+            "usage_usec": 10081863,
+            "user_usec": 10081862,
+            "system_usec": 0,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 103,
+            "nr_throttled": 100,
+            "throttled_usec": 12890710,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          }
+        }
+      ],
+      "trace": {
+        "fake_worker_reads": 2102,
+        "reader_timeouts": 67
+      },
+      "trace_sha256": "248faa32723f4572db497d7ca2f633f6bb78306cdc812d4a75cc3c118b82bf3a",
+      "trace_evidence": [
+        {
+          "args": {
+            "name": "Service: tracing.mojom.TracingService"
+          },
+          "cat": "__metadata",
+          "name": "process_name",
+          "ph": "M",
+          "pid": 87,
+          "tid": 0,
+          "ts": 0
+        },
+        {
+          "args": {
+            "name": "Browser"
+          },
+          "cat": "__metadata",
+          "name": "process_name",
+          "ph": "M",
+          "pid": 19,
+          "tid": 0,
+          "ts": 0
+        },
+        {
+          "args": {
+            "name": "Renderer"
+          },
+          "cat": "__metadata",
+          "name": "process_name",
+          "ph": "M",
+          "pid": 70,
+          "tid": 0,
+          "ts": 0
+        },
+        {
+          "args": {
+            "name": "Service: audio.mojom.AudioService"
+          },
+          "cat": "__metadata",
+          "name": "process_name",
+          "ph": "M",
+          "pid": 92,
+          "tid": 0,
+          "ts": 0
+        },
+        {
+          "args": {
+            "sink information (when starting a new destination)": "sink info: DEFAULT SINK, latency hint: interactive, channel count: 2, sample rate: 44100, callback buffer size: 441"
+          },
+          "cat": "webaudio",
+          "dur": 82,
+          "name": "RealtimeAudioDestinationHandler::StartPlatformDestination",
+          "ph": "X",
+          "pid": 70,
+          "tdur": 74,
+          "tid": 70,
+          "ts": 497268294397,
+          "tts": 17079
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497279865582,
+          "tts": 120214
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497279965727,
+          "tts": 121249
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497280755680,
+          "tts": 127006
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497280765797,
+          "tts": 127068
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497281065599,
+          "tts": 129518
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497281155583,
+          "tts": 130007
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497281165684,
+          "tts": 130053
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497281745651,
+          "tts": 133920
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497281755791,
+          "tts": 133990
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497281765930,
+          "tts": 134055
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497282065601,
+          "tts": 136605
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497282465700,
+          "tts": 139118
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497282555688,
+          "tts": 140145
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497282565909,
+          "tts": 140205
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497282655707,
+          "tts": 140791
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497282665921,
+          "tts": 140890
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497282756210,
+          "tts": 141774
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497282766512,
+          "tts": 141912
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497282865694,
+          "tts": 142808
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497283955753,
+          "tts": 152139
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497283965957,
+          "tts": 152287
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497284065704,
+          "tts": 153835
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497284155939,
+          "tts": 154774
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497284166058,
+          "tts": 154827
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497284365698,
+          "tts": 156904
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497284655644,
+          "tts": 159870
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497284665871,
+          "tts": 160038
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497284765696,
+          "tts": 160714
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497285145579,
+          "tts": 163636
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497285245659,
+          "tts": 164484
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497285255864,
+          "tts": 164633
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497286045773,
+          "tts": 171149
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497286055945,
+          "tts": 171260
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497286066114,
+          "tts": 171373
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497286145598,
+          "tts": 172260
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497286155710,
+          "tts": 172317
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497286165844,
+          "tts": 172393
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497286465591,
+          "tts": 174966
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497286555689,
+          "tts": 175956
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497286565866,
+          "tts": 176072
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497286665694,
+          "tts": 177035
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497286755618,
+          "tts": 177901
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497286765742,
+          "tts": 177970
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497286845717,
+          "tts": 178757
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497286855915,
+          "tts": 178872
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497286866124,
+          "tts": 178975
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497286965593,
+          "tts": 179745
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497287045702,
+          "tts": 180667
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497287055858,
+          "tts": 180766
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497287066035,
+          "tts": 180888
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497287365779,
+          "tts": 182997
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497287465669,
+          "tts": 184074
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497287565607,
+          "tts": 185034
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497287655680,
+          "tts": 185577
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497287665850,
+          "tts": 185695
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497287965590,
+          "tts": 187890
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497288055738,
+          "tts": 189102
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497288065975,
+          "tts": 189212
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497288155583,
+          "tts": 190071
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497288165690,
+          "tts": 190124
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497288365596,
+          "tts": 191372
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497288755598,
+          "tts": 194762
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497288765717,
+          "tts": 194825
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497289255585,
+          "tts": 198549
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497289265685,
+          "tts": 198592
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497289555623,
+          "tts": 200642
+        },
+        {
+          "args": {},
+          "cat": "audio",
+          "name": "SyncReader::Read timed out",
+          "ph": "I",
+          "pid": 92,
+          "s": "t",
+          "tid": 99,
+          "ts": 497289565817,
+          "tts": 200754
+        },
+        {
+          "args": {
+            "sync_id": "idle-start"
+          },
+          "cat": "__metadata",
+          "name": "clock_sync",
+          "ph": "c",
+          "pid": 19,
+          "tid": 19,
+          "ts": 497269299745,
+          "tts": 31964
+        },
+        {
+          "args": {
+            "sync_id": "idle-end"
+          },
+          "cat": "__metadata",
+          "name": "clock_sync",
+          "ph": "c",
+          "pid": 19,
+          "tid": 19,
+          "ts": 497279555223,
+          "tts": 33186
+        },
+        {
+          "args": {
+            "sync_id": "pressure-start"
+          },
+          "cat": "__metadata",
+          "name": "clock_sync",
+          "ph": "c",
+          "pid": 19,
+          "tid": 19,
+          "ts": 497279556518,
+          "tts": 33277
+        },
+        {
+          "args": {
+            "sync_id": "pressure-end"
+          },
+          "cat": "__metadata",
+          "name": "clock_sync",
+          "ph": "c",
+          "pid": 19,
+          "tid": 19,
+          "ts": 497289833198,
+          "tts": 33590
+        }
+      ]
+    },
+    "4": {
+      "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+      "seconds": 10,
+      "workers": 2,
+      "drain_ms": 250,
+      "cpu_max": "400000 100000",
+      "phases": [
+        {
+          "pressure": false,
+          "playback": {
+            "underrun_events": 0,
+            "underrun_ms": 0
+          },
+          "cpu_before": "usage_usec 845546\nuser_usec 540612\nsystem_usec 304934\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 18\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0",
+          "cpu_after": "usage_usec 1105341\nuser_usec 705647\nsystem_usec 399693\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 120\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0",
+          "reader_timeouts": 0,
+          "cpu_delta": {
+            "usage_usec": 259795,
+            "user_usec": 165035,
+            "system_usec": 94759,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 102,
+            "nr_throttled": 0,
+            "throttled_usec": 0,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          }
+        },
+        {
+          "pressure": true,
+          "playback": {
+            "underrun_events": 0,
+            "underrun_ms": 0
+          },
+          "cpu_before": "usage_usec 1106885\nuser_usec 705802\nsystem_usec 401083\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 120\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0",
+          "cpu_after": "usage_usec 21365859\nuser_usec 20964776\nsystem_usec 401083\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 223\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0",
+          "reader_timeouts": 0,
+          "cpu_delta": {
+            "usage_usec": 20258974,
+            "user_usec": 20258974,
+            "system_usec": 0,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 103,
+            "nr_throttled": 0,
+            "throttled_usec": 0,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          }
+        }
+      ],
+      "trace": {
+        "fake_worker_reads": 2155,
+        "reader_timeouts": 0
+      },
+      "trace_sha256": "3a55b14695335cae2c8c70397c07050bc31ce976bec6c0bd4344a4715fe356f7",
+      "trace_evidence": [
+        {
+          "args": {
+            "name": "Service: tracing.mojom.TracingService"
+          },
+          "cat": "__metadata",
+          "name": "process_name",
+          "ph": "M",
+          "pid": 86,
+          "tid": 0,
+          "ts": 0
+        },
+        {
+          "args": {
+            "name": "Browser"
+          },
+          "cat": "__metadata",
+          "name": "process_name",
+          "ph": "M",
+          "pid": 19,
+          "tid": 0,
+          "ts": 0
+        },
+        {
+          "args": {
+            "name": "Renderer"
+          },
+          "cat": "__metadata",
+          "name": "process_name",
+          "ph": "M",
+          "pid": 69,
+          "tid": 0,
+          "ts": 0
+        },
+        {
+          "args": {
+            "name": "Service: audio.mojom.AudioService"
+          },
+          "cat": "__metadata",
+          "name": "process_name",
+          "ph": "M",
+          "pid": 91,
+          "tid": 0,
+          "ts": 0
+        },
+        {
+          "args": {
+            "sink information (when starting a new destination)": "sink info: DEFAULT SINK, latency hint: interactive, channel count: 2, sample rate: 44100, callback buffer size: 441"
+          },
+          "cat": "webaudio",
+          "dur": 112,
+          "name": "RealtimeAudioDestinationHandler::StartPlatformDestination",
+          "ph": "X",
+          "pid": 69,
+          "tdur": 106,
+          "tid": 69,
+          "ts": 497229057283,
+          "tts": 26030
+        },
+        {
+          "args": {
+            "sync_id": "idle-start"
+          },
+          "cat": "__metadata",
+          "name": "clock_sync",
+          "ph": "c",
+          "pid": 19,
+          "tid": 19,
+          "ts": 497230063558,
+          "tts": 43210
+        },
+        {
+          "args": {
+            "sync_id": "idle-end"
+          },
+          "cat": "__metadata",
+          "name": "clock_sync",
+          "ph": "c",
+          "pid": 19,
+          "tid": 19,
+          "ts": 497240328037,
+          "tts": 44362
+        },
+        {
+          "args": {
+            "sync_id": "pressure-start"
+          },
+          "cat": "__metadata",
+          "name": "clock_sync",
+          "ph": "c",
+          "pid": 19,
+          "tid": 19,
+          "ts": 497240336172,
+          "tts": 44551
+        },
+        {
+          "args": {
+            "sync_id": "pressure-end"
+          },
+          "cat": "__metadata",
+          "name": "clock_sync",
+          "ph": "c",
+          "pid": 19,
+          "tid": 19,
+          "ts": 497250602522,
+          "tts": 44742
+        }
+      ]
+    }
+  }
+}

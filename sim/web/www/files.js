@@ -20,7 +20,7 @@ const KIND = { project: 1, sound: 2, fx: 3, mods: 4, clip: 5, settings: 6, set: 
 const KIND_NAME = Object.fromEntries(Object.entries(KIND).map(([k, v]) => [v, k]));
 const KIND_WORD = { project: 'project', sound: 'sound', fx: 'effects', mods: 'mod rack', clip: 'clip',
   settings: 'settings', set: 'set' };
-const FLAG_WITHOUT = 1, FLAG_REPLACE = 2, FLAG_QUIET = 4, FLAG_KEEP_TRANSPORT = 8;   // FM1_APP_LOAD_* (fm1_app_state.h)
+const FLAG_WITHOUT = 1, FLAG_REPLACE = 2, FLAG_QUIET = 4, FLAG_KEEP_TRANSPORT = 8, FLAG_RESTORE_SOUND = 16;   // FM1_APP_LOAD_* (fm1_app_state.h)
 const TEXT_CAP = 262144;          // the module's text buffer (fm1w_text_cap)
 const SYX_CAP = 65536;            // FM1_APP_DX7_FILE_MAX
 const LINK_CAP = 32768;           // #lunar=: characters of base64url (ST13)
@@ -417,7 +417,7 @@ export function initFiles(env) {
     ++f.shadowCalls;
     return new Promise((resolve) => {
       waiting.set(id, resolve);
-      worker.postMessage({ id, op, ...msg }, transfer);
+      worker.postMessage({ op, ...msg, request: id }, transfer);
     });
   }
   function worklet(msg, transfer = []) {
@@ -555,7 +555,7 @@ export function initFiles(env) {
       if (!target) return { ok: false, cancelled: true, report: { code: 'CANCELLED', message: 'Not loaded.' } };
     }
     target = target || { into: 0, slot: 0 };
-    const flags = o.flags | 0;
+    const flags = (o.flags | 0) | (o.restoreSound && kind === 'sound' ? FLAG_RESTORE_SOUND : 0);
     const c = await shadow('check', { bytes, kind: 0, into: target.into, slot: target.slot, flags, live: live.slice(0) });
     if (!c.ok) {
       const rep = report(c);
@@ -788,11 +788,11 @@ export function initFiles(env) {
   // The verdict before a drop (stage ED4, §9): pass 1 of `bytes` into the
   // target, as the kind the target takes, against the live state. Nothing
   // changes. { ok, report, d }: C's words either way.
-  async function verdict(bytes, name, kind, target) {
+  async function verdict(bytes, name, kind, target, o = {}) {
     const d = describe(bytes, name);
     let live;
     try { live = await liveBin(); } catch (err) { return { ok: false, d, report: { code: 'OFF', message: err.message } }; }
-    const c = await shadow('check', { bytes, kind: KIND[kind] || 0, into: target.into, slot: target.slot | 0, flags: 0, live: live.slice(0) });
+    const c = await shadow('check', { bytes, kind: KIND[kind] || 0, into: target.into, slot: target.slot | 0, flags: o.restoreSound && kind === 'sound' ? FLAG_RESTORE_SOUND : 0, live: live.slice(0) });
     return { ok: !!c.ok, d, report: report(c) };
   }
   const libEl = $('library-lists');

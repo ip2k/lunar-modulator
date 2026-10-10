@@ -34,7 +34,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.engine_helpers import ENGINES, GPL_MODS, ROOT
+from tests.engine_helpers import ENGINES, ROOT
 
 SIM = ROOT / "sim" / "web"
 THIRD_PARTY = ENGINES / "third_party"

@@ -1798,3 +1798,22 @@ void fm1_mod_ramp_apply(const fm1_mod_ramp_t *r, uint64_t frame, float *lr, uint
     lr[2u * i + 1u] *= g;
   }
 }
+
+const void *fm1_mod_view_state(const fm1_mod_t *m, unsigned pos) {
+  const fm1_mod_kind_t *kd;
+  const void *self;
+  unsigned v, newest = FM1_MOD_VOICES;
+  if (!m || !(kd = mod_kind_at(m, pos)) || !kd->view) return NULL;
+  self = m->arena + m->handle[pos];
+  if (!m->dirty && ((m->plan.poly >> pos) & 1u)) {
+    for (v = 0; v < FM1_MOD_VOICES; ++v) {
+      if (m->voice[v].state == MOD_V_FREE || !((m->voice[v].ready >> pos) & 1u)) continue;
+      if (newest == FM1_MOD_VOICES || m->voice[v].age > m->voice[newest].age) newest = v;
+    }
+    if (newest != FM1_MOD_VOICES) {
+      const mod_vblk_t *h = (const mod_vblk_t *)mod_vblock((fm1_mod_t *)m, newest, pos);
+      self = m->arena + h->handle;
+    }
+  }
+  return kd->view(self);
+}
