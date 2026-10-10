@@ -107,8 +107,10 @@ echo "$DIGESTS" | tr ';' '\n'
 echo "== static musl reference in $ALPINE_IMAGE"
 ssh "$HOST" "docker run --rm --cgroup-parent=docker-batch.slice --memory=8g --memory-swap=8g ${LABELS[*]} -v '$STAGE:/src' -w /src $ALPINE_IMAGE \
   sh -c 'apk add -q build-base >/dev/null && \
-         make -C engines BUILD=/src/sim/web/build/musl CC=gcc CXX=g++ EXTRA=-static FM1_GPL_MODS=$GPL_MODS -j\$(nproc) \
-           /src/sim/web/build/musl/fm1-render >/dev/null; s=\$?; chown -R \$(stat -c %u:%g /src) /src; exit \$s'"
+         make -C engines -f Makefile -f /src/sim/web/mk/sim.mk SIM=/src/sim/web \
+           BUILD=/src/sim/web/build/musl CC=gcc CXX=g++ EXTRA=-static FM1_GPL_MODS=$GPL_MODS -j\$(nproc) \
+           /src/sim/web/build/musl/fm1-render /src/sim/web/build/musl/fm1-sim-render >/dev/null; \
+         s=\$?; chown -R \$(stat -c %u:%g /src) /src; exit \$s'"
 
 echo "== build and parity in $EMSDK_IMAGE"
 ssh "$HOST" "docker run --rm --cgroup-parent=docker-batch.slice --memory=8g --memory-swap=8g ${LABELS[*]} -e ENGINES_REF='${ENGINES_REF:-working tree}' -e FM1_IMAGES='$DIGESTS' -e FM1_GPL_MODS=$GPL_MODS \

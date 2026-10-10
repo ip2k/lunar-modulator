@@ -23,11 +23,11 @@ must come from the actual combined native/Wasm build.
 The source milestone deliberately removes `sim/web/www/fm1.wasm`,
 `fm1.wasm.json` and `meta.json` rather than selecting either branch's stale
 binary. This checkpoint cannot pass simulator tests or be served as a preview.
-The example metadata ID is also pending regeneration from the combined native
-export. No failing checkpoint is eligible for merge.
+The example metadata ID has been refreshed from the combined native export
+as described below. No failing checkpoint is eligible for merge.
 
-Next: bounded LAN native build; regenerate only the example metadata ID from
-its exact known-module export; build musl and Wasm from the combined sources;
+Next: merge the accepted PSX correction, refresh the native export if needed,
+then build musl and Wasm from the exact combined sources;
 run full parity/screens/metadata/edit checks and focused effect, API,
 parameter, smoothing and state checks; then checkpoint generated artifacts
 with recomputed source hashes and build provenance. Final combined acceptance
@@ -66,3 +66,45 @@ audio loopback passed. The exact trace is in
 the recurring frozen-clock signature, not evidence assigning cause to Warble
 or permitting a retry / gate waiver. Existing owner listening failure remains
 unresolved by these offline checks.
+
+[verified: bounded native preflight] With both effects and the corrected
+parameter fixture, 142 / 142 tests passed across `test_engine_params.py`,
+`test_engines_repeat.py`, `test_engines_warble.py`, `test_engine_api_v3.py`,
+`test_engine_smooth.py` and `test_state_schema.py`. Receipt: aeon
+`/home/claude/mvave-fm1/warble-repeat-candidate-20261009/src/combined-native-check.log`.
+The final combined regeneration waits for the accepted PSX interpolation
+source correction; this native preflight does not replace the future
+exact-source musl / Wasm / browser checks.
+
+[verified: native full-chain preflight] The added combined scenario rendered
+132,354 frames at 44,118 Hz through Warble then Repeat with all four sound
+instances and the Crush insert. The actual native summary reports 146
+sequencer events, zero dropped / refused events, zero nonfinite or clipped
+samples and no hung notes. Warble instance is 16,464 bytes; Repeat is 65,648
+bytes. These are instance sizes, not total project or device RAM use. This
+does not establish musl / Wasm parity or browser timing. Receipt: aeon
+`/home/claude/mvave-fm1/warble-repeat-candidate-20261009/src/combined-native-case.json`.
+
+[verified: actual combined native metadata] The `audio_fx` registry contains
+24 user audio effects after excluding Test Gain and Test Ext. Both Warble and
+Repeat and their descriptions are present. The README heading now uses this
+count. The final generated metadata must be checked again after regeneration.
+
+[verified: CI job log] The independent review / receipt PR138 exact head
+`75aaf658324f119f413090d0e989ddfe44bf41b4`, run `38030495406`, WebKit job
+`114150219567`, also failed only panel-follow: 51 frames / 810 ms. Frames
+1–50 retain audio time `0.7169160997732427` through 793 ms; the first state
+message arrives at 794 ms, the editor applies the correct value at 800 ms,
+and frame 51 observes it at 810 ms. The trace reports timing perturbation
+and zero dropped observer events. Exact failed trace is preserved in
+`data/review-75aa-webkit-panel-follow.json` without changing PR138's tested
+head. This recurring signature does not establish a root cause or excuse the
+failed gate.
+
+[verified: Git merge parent and independent source review] The accepted PSX
+interpolator / screen-oracle checkpoint
+`0e897f1cd00a9f7938bbfcf93a02bd23aa01c3bc` is merged normally. Its branch-only
+Wasm and record are deliberately removed, so all three generated simulator
+files still await an actual combined build. The 142-test and 132,354-frame
+native preflight receipts above preceded this correction; the final build
+must validate the corrected exact source, including the musl screen oracle.

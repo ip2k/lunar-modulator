@@ -172,7 +172,7 @@ keys, at any octave.
 </tr>
 </table>
 
-### Four sounds and twenty-three effects
+### Four sounds and twenty-four effects
 
 - Up to **four sounds** play at once, each with its own engine and **two
   insert effects**. Hold SEL and turn PRESETS to pick the one you play.
