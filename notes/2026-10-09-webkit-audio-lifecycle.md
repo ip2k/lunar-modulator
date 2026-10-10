@@ -444,3 +444,22 @@ storm receipt and source-log SHA-256 are in
 Local log: `/tmp/lunar-pr121-webkit.log`. No rerun, branch integration or
 threshold change was made to obtain this receipt. This addition is backed
 up on the separate evidence branch, preserving PR #132's reviewed CI head.
+
+## Preserved PR #125 native-preview head failure
+
+[verified: completed GitHub job log] PR #125 head
+`7fe4e6cd10e5d4aa895c5df18d0273364788be5d`, run `38025910713`, job
+`114136597222`, fails panel latency and its associated history assertion
+after the unchanged 60-frame / 960-ms observation. Audio time remains
+`0.737233560090703` in every frame while the context reports running;
+no port/editor events arrive, loading is false, pending/inflight zero and
+the row remains connected at its initial value. This repeats the earlier
+long startup plateau signature [inferred], without proving a native-preview
+regression. Strict 30-second loopback passes with 3,756 replies, zero bad
+periods/silence/refusal/resync and no transport stops; the editor storm
+passes with zero bad codes or resyncs. The complete failure/audio/storm
+receipt and source-log SHA-256 are in
+[pr125-7fe4-ci.json](evidence/2026-10-09-webkit-audio-lifecycle/pr125-7fe4-ci.json).
+Local log: `/tmp/lunar-pr125-7fe4-webkit.log`. No unchanged rerun or gate
+relaxation was used. This receipt is checkpointed on the separate evidence
+branch while PR #132's tested head remains `c6db9587`.
