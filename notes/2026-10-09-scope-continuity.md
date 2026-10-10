@@ -30,7 +30,8 @@ includes the actual application source to reach its private `draw_scope`.
 The test linker discards unrelated engine paths; its test-only module header
 disables FM6, which the scope does not use. There is no production C change.
 
-[verified] The focused suite passes 31 cases locally: silence, sine slopes,
+[verified] The focused suite passes 31 cases on macOS and on aeon Linux
+(`lunar-asan:ubuntu-24.04`, GCC, network disabled, two CPUs/1 GiB): silence, sine slopes,
 square steps, alternating over-range samples, quiet signals, three scope
 heights and both unwrapped/wrapped ring buffers. It checks four-neighbour
 connectivity, all 228 sample columns, confinement to the scope rectangle,
