@@ -1,0 +1,77 @@
+{
+ "checks": {
+  "playback duration is milliseconds and events stay exact": true,
+  "every parameter gets the control §6 names": true,
+  "the LOG law": true,
+  "memory reads as the screen rounds it": true,
+  "the mirror holds the start chain": true,
+  "the mirror's values are C's": true,
+  "records packed here are applied by C": true,
+  "the feed carries them back with the editor's source and tag": true,
+  "the feed keeps the mirror": true,
+  "a refusal names its words": true,
+  "a view verb opens the page, and the view names it": true,
+  "the knob map names that page's parameters (K1-K4)": true,
+  "a master slot opens on FX": true,
+  "a drag is one step; repeats within 600 ms merge; origins and targets never": true,
+  "a new edit clears redo": true,
+  "200 entries at most": true,
+  "two picks loads inside 600 ms remain separate, undo to the original, and redo each exact selection": true,
+  "undoing every step ends at the first hash": true,
+  "redoing every step ends at the last hash": true,
+  "a module and a cable from the editor apply": true,
+  "the feed carries them back, decoded as packed": true,
+  "fm1w_mod_records gives the rack and the matrix as C keeps them": true,
+  "a cable the planner leaves out is written, with its reason as verdict": true,
+  "fm1w_mod_records names the loop a late cable closes: the cable up the rack reads a tick late (both positions in the loop), the one down it runs on time": true,
+  "with the loop broken no cable is late": true,
+  "the metadata has the 1.2 and 1.3 members the editor reads: marks, source groups, curve points, refusal fixes, the id layout": true,
+  "the rack and the matrix name every source and destination from the metadata": true,
+  "refused swaps, modules, slots and units leave the state as it was": true,
+  "a swap undoes by itself": true,
+  "undoing every structural step ends at the first state hash": true,
+  "redoing every structural step ends at the last": true,
+  "RAM by part adds up to the meter's figure": true,
+  "every unit in the metadata (semitones, hertz, milliseconds, decibels, percent) is spoken as a word, none as its symbol": true,
+  "the layout the editor uses is the metadata's": true,
+  "another layout in the metadata moves every source code, unit code and key the editor builds (nothing is hard-coded)": true,
+  "a metadata without the layout (older than 1.3) is refused with a clear message, not guessed at": true
+ },
+ "failed": 0,
+ "why": [],
+ "params": 366,
+ "kinds": {
+  "grid": 14,
+  "slider": 278,
+  "segments": 58,
+  "search": 3,
+  "list": 13
+ },
+ "undo": {
+  "steps": 109,
+  "refused": 0,
+  "first": 3719389266,
+  "last": 3995419572,
+  "back": 3719389266,
+  "again": 3995419572
+ },
+ "structural": {
+  "steps": 17,
+  "refused": 0,
+  "first": "b6fe568d",
+  "last": "f0fae0f1",
+  "back": "b6fe568d",
+  "again": "f0fae0f1"
+ },
+ "ram": {
+  "total": 105884,
+  "parts": [
+   31824,
+   4240,
+   5072,
+   0,
+   384,
+   64364
+  ]
+ }
+}

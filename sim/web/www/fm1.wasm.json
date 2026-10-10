@@ -1,0 +1,3512 @@
+{
+  "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
+  "wasm_sha256": "c88938845cd93e52f5cb99c53a650b4eaf559833e5f39fb58ecc0f0c4ab09502",
+  "wasm_bytes": 1561111,
+  "sources_sha256": {
+    "engines": "b97e01d8ff7c98ad36a3f5301fae9486af5cc7602fadc2e263968a4c7036ad38",
+    "sim": "4d861adaacdcbd3454fb125fd4c5d19330aa1223d47959a65148020a85fe4377"
+  },
+  "engines": "3519c3857d9bddb8007e14de7ef84525ef8df96a",
+  "built": "2026-10-10T06:55:08Z",
+  "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
+  "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+  "images": [
+    "alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8",
+    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65"
+  ],
+  "imports": [],
+  "gpl_mods": 1,
+  "licences": [
+    {
+      "id": "dx7",
+      "name": "FM6",
+      "kind": "sound",
+      "licence": "MIT AND Apache-2.0",
+      "source": "engines/third_party/msfa"
+    },
+    {
+      "id": "acid-bass",
+      "name": "Acid Bass",
+      "kind": "sound",
+      "licence": "GPL-3.0-only AND MIT",
+      "source": "engines/third_party/fm1-x0x"
+    },
+    {
+      "id": "comet",
+      "name": "Comet Kit",
+      "kind": "sound",
+      "licence": "GPL-3.0-only AND MIT",
+      "source": "engines/third_party/fm1-x0x"
+    },
+    {
+      "id": "crater",
+      "name": "Crater Kit",
+      "kind": "sound",
+      "licence": "GPL-3.0-only AND MIT",
+      "source": "engines/third_party/fm1-x0x"
+    },
+    {
+      "id": "drawbar",
+      "name": "Drawbar",
+      "kind": "sound",
+      "licence": "GPL-3.0-only AND MIT",
+      "source": "engines/third_party/felucca"
+    },
+    {
+      "id": "trio",
+      "name": "Trio",
+      "kind": "sound",
+      "licence": "GPL-3.0-only AND MIT",
+      "source": "engines/third_party/felucca"
+    },
+    {
+      "id": "phase-bend",
+      "name": "Phase Bend",
+      "kind": "sound",
+      "licence": "GPL-3.0-only AND MIT",
+      "source": "engines/third_party/felucca"
+    },
+    {
+      "id": "acid-gen",
+      "name": "Acid Gen",
+      "kind": "midi_fx",
+      "licence": "GPL-3.0-only AND MIT",
+      "source": "engines/third_party/fm1-x0x"
+    }
+  ],
+  "parity": {
+    "passed": 108,
+    "failed": 0,
+    "identical_to_js": 108,
+    "identical_to_musl": 108,
+    "identical_to_glibc": 105,
+    "max_lsb_vs_glibc_exact_scenarios": 1
+  },
+  "meta": {
+    "meta_id": "5d726997",
+    "module_meta_id": "5d726997",
+    "bytes": 255110,
+    "lunar": "1.3",
+    "native_meta_id": "53ec1875",
+    "ram_differ_at_64_bits": 9,
+    "passed": true
+  },
+  "dx7_sysex": {
+    "passed": 18,
+    "failed": 0,
+    "cases": [
+      {
+        "name": "a 32-voice bank fills User 1-32 with its names",
+        "pass": true
+      },
+      {
+        "name": "32 single-voice dumps in one file fill User 1-32",
+        "pass": true
+      },
+      {
+        "name": "single voices go to the slot after the last; a bank resets to User 1",
+        "pass": true
+      },
+      {
+        "name": "a bank's data without SysEx framing loads",
+        "pass": true
+      },
+      {
+        "name": "a wrong checksum loads and is counted",
+        "pass": true
+      },
+      {
+        "name": "a bank with a wrong checksum loads and is counted",
+        "pass": true
+      },
+      {
+        "name": "an empty file loads nothing",
+        "pass": true
+      },
+      {
+        "name": "text loads nothing, every byte outside SysEx",
+        "pass": true
+      },
+      {
+        "name": "another maker's SysEx loads nothing and is named foreign",
+        "pass": true
+      },
+      {
+        "name": "a bank cut short loads nothing and is named truncated",
+        "pass": true
+      },
+      {
+        "name": "a voice dump one byte short loads nothing and is named the wrong size",
+        "pass": true
+      },
+      {
+        "name": "a dump whose byte count disagrees with its header is the wrong size",
+        "pass": true
+      },
+      {
+        "name": "several dumps and other messages: the dumps load, the rest is counted",
+        "pass": true
+      },
+      {
+        "name": "a file past 64 KiB or the buffer is refused, and a refusal keeps the bank",
+        "pass": true
+      },
+      {
+        "name": "64 KiB of single voices is read whole",
+        "pass": true
+      },
+      {
+        "name": "with play, the current sound becomes FM6 on the first voice loaded",
+        "pass": true
+      },
+      {
+        "name": "an FM6 sound made after a load plays the bank",
+        "pass": true
+      },
+      {
+        "name": "each voice sounds the same from the bank as from its single dump",
+        "pass": true
+      }
+    ]
+  },
+  "edit": {
+    "parity": "ok",
+    "audio_max_lsb": 0,
+    "storm": {
+      "seconds": 30,
+      "quanta": 10341,
+      "deadline_ms": 2.9013101228523506,
+      "late": 0,
+      "applied": 82728,
+      "resyncs": 0,
+      "telemetry_blocks": 862,
+      "p50_ms": 0.062118999999995594,
+      "p99_ms": 0.09451000000001386,
+      "max_ms": 0.23187300000000732,
+      "edit_us_per_quantum": 7.832506334009994
+    },
+    "check": {
+      "params": 474,
+      "steps": 34893,
+      "text_bad": 0,
+      "codes": [
+        "UNKNOWN",
+        "RATE",
+        "RAM",
+        "NO_ROOM",
+        "BAD",
+        "NO_SOURCE",
+        "NO_DEST",
+        "NOLOCK",
+        "ENUM_NO_MOD",
+        "VOICE_TO_MONO",
+        "VOICE_TO_EFFECT",
+        "UNIT_RESERVED",
+        "VOICE_FULL"
+      ],
+      "hands": 47,
+      "sweeps": 40,
+      "lock_blocks": 900,
+      "tele_fills": 30,
+      "failed": 0
+    }
+  },
+  "scenarios": [
+    {
+      "name": "macro-va-pair-chord",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 153676,
+        "native64": 166556
+      }
+    },
+    {
+      "name": "macro-models-and-bend",
+      "samples": 123530,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 83212,
+        "native64": 96076
+      }
+    },
+    {
+      "name": "macro-past-the-voice-cap",
+      "samples": 70588,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 102124,
+        "native64": 114988
+      }
+    },
+    {
+      "name": "shapes-sine-bend",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 270252,
+        "native64": 271068
+      }
+    },
+    {
+      "name": "shapes-pluck-plate",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 335980,
+        "native64": 336796
+      }
+    },
+    {
+      "name": "shapes-warble-wow-flutter",
+      "samples": 79412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 286716,
+        "native64": 287532
+      }
+    },
+    {
+      "name": "macro-heavy-speech",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 134732,
+        "native64": 134940
+      }
+    },
+    {
+      "name": "macro-heavy-modal-drums",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 269116,
+        "native64": 269372
+      }
+    },
+    {
+      "name": "sixop-epiano",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 79300,
+        "native64": 81084
+      }
+    },
+    {
+      "name": "dx7-epiano-chord-bend",
+      "samples": 123530,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 84264,
+        "native64": 84280
+      }
+    },
+    {
+      "name": "dx7-macros-patches-steal",
+      "samples": 158824,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 79528,
+        "native64": 79528
+      }
+    },
+    {
+      "name": "dx7-loop-lfo-pitch-env",
+      "samples": 176472,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 145256,
+        "native64": 145256
+      }
+    },
+    {
+      "name": "dx7-user-bank",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 79528,
+        "native64": 79528
+      }
+    },
+    {
+      "name": "sophie-kit",
+      "samples": 88236,
+      "libm_sensitive": true,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 44454,
+        "max_lsb": 4082
+      },
+      "screen_reference": "musl",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 34,
+        "max_lsb": 30036
+      },
+      "screen_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "ram_bytes": {
+        "wasm32": 277020,
+        "native64": 277116
+      }
+    },
+    {
+      "name": "sophie-clap-no-feedback",
+      "samples": 52940,
+      "libm_sensitive": true,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 694,
+        "max_lsb": 12330
+      },
+      "screen_reference": "musl",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "ram_bytes": {
+        "wasm32": 142636,
+        "native64": 142684
+      }
+    },
+    {
+      "name": "drums-deep-groove",
+      "samples": 158824,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 71196,
+        "native64": 71196
+      }
+    },
+    {
+      "name": "drums-punch-models",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 136716,
+        "native64": 136716
+      }
+    },
+    {
+      "name": "drums-full-kit-steals",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 70988,
+        "native64": 70988
+      }
+    },
+    {
+      "name": "acid-bass-line",
+      "samples": 194118,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 130332,
+        "native64": 130332
+      }
+    },
+    {
+      "name": "acid-bass-rat-devilfish",
+      "samples": 176472,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 64588,
+        "native64": 64588
+      }
+    },
+    {
+      "name": "crater-kit-groove",
+      "samples": 176472,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 69532,
+        "native64": 69532
+      }
+    },
+    {
+      "name": "crater-kit-every-pad-tuned",
+      "samples": 158824,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 69324,
+        "native64": 69324
+      }
+    },
+    {
+      "name": "acid-gen-into-acid-bass",
+      "samples": 229412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 64828,
+        "native64": 64828
+      }
+    },
+    {
+      "name": "acid-gen-run-sequencer",
+      "samples": 352944,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 72708,
+        "native64": 72900
+      },
+      "cmd": "arp/acid-gen-run.verbs",
+      "seq": {
+        "lines": 3,
+        "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "comet-kit-groove",
+      "samples": 211766,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 114764,
+        "native64": 114796
+      }
+    },
+    {
+      "name": "comet-kit-knobs-and-tails",
+      "samples": 300002,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 73580,
+        "native64": 73596
+      }
+    },
+    {
+      "name": "test-sine-gain",
+      "samples": 70588,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 82596,
+        "native64": 82596
+      }
+    },
+    {
+      "name": "macro-at-44100",
+      "samples": 70560,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 148940,
+        "native64": 161804
+      }
+    },
+    {
+      "name": "seq-sine-volume-locks",
+      "samples": 132354,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 39468,
+        "native64": 39468
+      },
+      "cmd": "seq/sine-volume-locks.verbs",
+      "seq": {
+        "lines": 6,
+        "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "seq-sixop-two-tracks-swing",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 58564,
+        "native64": 60348
+      },
+      "cmd": "seq/sixop-two-tracks-swing.verbs",
+      "seq": {
+        "lines": 4,
+        "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "seq-sixop-patch-enum-lock",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 50372,
+        "native64": 52140
+      },
+      "cmd": "seq/sixop-patch-enum-lock.verbs",
+      "seq": {
+        "lines": 4,
+        "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "seq-capture-while-playing",
+      "samples": 194118,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 124748,
+        "native64": 137612
+      },
+      "cmd": "seq/capture-while-playing.verbs",
+      "seq": {
+        "lines": 11,
+        "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "seq-capture-stopped-capsel",
+      "samples": 308826,
+      "libm_sensitive": true,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "musl",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "ram_bytes": {
+        "wasm32": 246060,
+        "native64": 246876
+      },
+      "cmd": "seq/capture-stopped-capsel.verbs",
+      "seq": {
+        "lines": 19,
+        "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "api-v3-test-ext-transport",
+      "samples": 176472,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 57324,
+        "native64": 57324
+      },
+      "cmd": "seq/ext-transport.verbs",
+      "seq": {
+        "lines": 5,
+        "lines_match": true,
+        "ui_cmds": 2,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "seq-repeat-beat-hold",
+      "samples": 264708,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 105116,
+        "native64": 105116
+      },
+      "cmd": "seq/repeat-hold.verbs",
+      "seq": {
+        "lines": 4,
+        "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "mod-log-keytrack",
+      "samples": 132354,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 149612,
+        "native64": 162476
+      },
+      "mod": "mod/log-keytrack.mod"
+    },
+    {
+      "name": "idle-driven-by-a-cable",
+      "samples": 300002,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 64428,
+        "native64": 64428
+      },
+      "mod": "mod/idle-driven.mod"
+    },
+    {
+      "name": "mod-macro-routes",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 214684,
+        "native64": 227548
+      },
+      "mod": "mod/routes.mod"
+    },
+    {
+      "name": "mod-panel-gestures",
+      "samples": 211766,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 148940,
+        "native64": 161804
+      },
+      "cmd": "mod/panel-gestures.verbs",
+      "seq": {
+        "lines": 3,
+        "lines_match": true,
+        "ui_cmds": 1,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "mod/panel-gestures.panel"
+    },
+    {
+      "name": "seq-panel-play-stop",
+      "samples": 194118,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 148940,
+        "native64": 161804
+      },
+      "cmd": "seq/panel-play-stop.verbs",
+      "seq": {
+        "lines": 2,
+        "lines_match": true,
+        "ui_cmds": 3,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "seq/panel-play-stop.panel"
+    },
+    {
+      "name": "seq-panel-step-entry",
+      "samples": 529416,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 148940,
+        "native64": 161804
+      },
+      "cmd": "seq/panel-step-entry.verbs",
+      "seq": {
+        "lines": 1,
+        "lines_match": true,
+        "ui_cmds": 19,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "seq/panel-step-entry.panel"
+    },
+    {
+      "name": "seq-panel-record",
+      "samples": 529416,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 148940,
+        "native64": 161804
+      },
+      "cmd": "seq/panel-record.verbs",
+      "seq": {
+        "lines": 1,
+        "lines_match": true,
+        "ui_cmds": 24,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "seq/panel-record.panel"
+    },
+    {
+      "name": "seq-panel-capture-stopped",
+      "samples": 441180,
+      "libm_sensitive": true,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "musl",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "ram_bytes": {
+        "wasm32": 270252,
+        "native64": 271068
+      },
+      "cmd": "seq/panel-capture-stopped.verbs",
+      "seq": {
+        "lines": 1,
+        "lines_match": true,
+        "ui_cmds": 15,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "seq/panel-capture-stopped.panel"
+    },
+    {
+      "name": "seq-metro-click",
+      "samples": 352944,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 135116,
+        "native64": 147980
+      },
+      "cmd": "seq/metro-click.verbs",
+      "seq": {
+        "lines": 5,
+        "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "seq-panel-tracks",
+      "samples": 485298,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 356364,
+        "native64": 370044
+      },
+      "cmd": "seq/panel-tracks.verbs",
+      "seq": {
+        "lines": 3,
+        "lines_match": true,
+        "ui_cmds": 11,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "seq/panel-tracks.panel"
+    },
+    {
+      "name": "seq-panel-session-song",
+      "samples": 705888,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 148940,
+        "native64": 161804
+      },
+      "cmd": "seq/panel-session-song.verbs",
+      "seq": {
+        "lines": 1,
+        "lines_match": true,
+        "ui_cmds": 7,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "seq/panel-session-song.panel"
+    },
+    {
+      "name": "seq-panel-locks",
+      "samples": 441180,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 148940,
+        "native64": 161804
+      },
+      "cmd": "seq/panel-locks.verbs",
+      "seq": {
+        "lines": 2,
+        "lines_match": true,
+        "ui_cmds": 13,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "seq/panel-locks.panel"
+    },
+    {
+      "name": "crush-chip-jitter",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 83388,
+        "native64": 96252
+      }
+    },
+    {
+      "name": "fold-sine-asymmetric",
+      "samples": 97058,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 19,
+        "max_lsb": 1
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 275148,
+        "native64": 275980
+      }
+    },
+    {
+      "name": "drive-fuzz-gated",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 336220,
+        "native64": 337036
+      }
+    },
+    {
+      "name": "drive-tape-chord",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 83452,
+        "native64": 96316
+      }
+    },
+    {
+      "name": "echo-pluck-pingpong",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 336172,
+        "native64": 336988
+      }
+    },
+    {
+      "name": "echo-long-darkened",
+      "samples": 158824,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 149116,
+        "native64": 161980
+      }
+    },
+    {
+      "name": "filter-diode-skmixed",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 84524,
+        "native64": 97388
+      }
+    },
+    {
+      "name": "filter-formant-comb",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 101708,
+        "native64": 114572
+      }
+    },
+    {
+      "name": "filter-sallenkey-svf",
+      "samples": 79412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 271564,
+        "native64": 272380
+      }
+    },
+    {
+      "name": "filter-ladder-spread",
+      "samples": 70588,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 83868,
+        "native64": 96732
+      }
+    },
+    {
+      "name": "switches-filter-drive-fast",
+      "samples": 79412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 84108,
+        "native64": 96972
+      }
+    },
+    {
+      "name": "switches-comp-limit-fast",
+      "samples": 79412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 95372,
+        "native64": 108236
+      }
+    },
+    {
+      "name": "comp-glue-parallel",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 149148,
+        "native64": 162012
+      }
+    },
+    {
+      "name": "limit-chord-then-soft-clip",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 107116,
+        "native64": 119980
+      }
+    },
+    {
+      "name": "gate-gated-plate",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 151084,
+        "native64": 163948
+      }
+    },
+    {
+      "name": "switches-gate-fast",
+      "samples": 79412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 85356,
+        "native64": 98220
+      }
+    },
+    {
+      "name": "fx-turns-crush-fold",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 270588,
+        "native64": 271404
+      }
+    },
+    {
+      "name": "fx-turns-echo-gain",
+      "samples": 123530,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 336020,
+        "native64": 336836
+      }
+    },
+    {
+      "name": "fx-turns-ensemble-plate",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 153676,
+        "native64": 166556
+      }
+    },
+    {
+      "name": "fx-turns-diffuse-psxverb",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 236508,
+        "native64": 249420
+      }
+    },
+    {
+      "name": "room-chord-blurred",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 124396,
+        "native64": 137276
+      }
+    },
+    {
+      "name": "hall-chord-modulated",
+      "samples": 158824,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 137836,
+        "native64": 150716
+      }
+    },
+    {
+      "name": "plate-freeze-into-room",
+      "samples": 123530,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 377164,
+        "native64": 377996
+      }
+    },
+    {
+      "name": "switches-freeze-fast",
+      "samples": 79412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 198828,
+        "native64": 211692
+      }
+    },
+    {
+      "name": "djfilter-resonant-low-pass",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 149164,
+        "native64": 162028
+      }
+    },
+    {
+      "name": "tilt-dark-slope-into-echo",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 336140,
+        "native64": 336956
+      }
+    },
+    {
+      "name": "sat-bus-glue",
+      "samples": 114706,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 149292,
+        "native64": 162156
+      }
+    },
+    {
+      "name": "isolator-kill-low-boost-high",
+      "samples": 88236,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 83468,
+        "native64": 96332
+      }
+    },
+    {
+      "name": "eq-three-bands",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 149356,
+        "native64": 162220
+      }
+    },
+    {
+      "name": "idle-eq-sat-wake",
+      "samples": 300002,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 83980,
+        "native64": 96844
+      }
+    },
+    {
+      "name": "idle-isolator-kill-wake",
+      "samples": 282354,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 336236,
+        "native64": 337052
+      }
+    },
+    {
+      "name": "switches-djfilter-tilt-fast",
+      "samples": 79412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 83580,
+        "native64": 96444
+      }
+    },
+    {
+      "name": "switches-sat-isolator-fast",
+      "samples": 79412,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 83820,
+        "native64": 96684
+      }
+    },
+    {
+      "name": "macro-lpg-ping-env",
+      "samples": 114706,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 83212,
+        "native64": 96076
+      }
+    },
+    {
+      "name": "macro-heavy-lpg-off",
+      "samples": 97058,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 200460,
+        "native64": 200668
+      }
+    },
+    {
+      "name": "macro-glide-legato-mono",
+      "samples": 158824,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 83212,
+        "native64": 96076
+      }
+    },
+    {
+      "name": "macro-heavy-glide-poly-mono",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 134732,
+        "native64": 134940
+      }
+    },
+    {
+      "name": "dx7-glide-legato",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 79528,
+        "native64": 79528
+      }
+    },
+    {
+      "name": "shapes-glide-always-rate",
+      "samples": 158824,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 270252,
+        "native64": 271068
+      }
+    },
+    {
+      "name": "sixop-glide-always-mono",
+      "samples": 150000,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 74564,
+        "native64": 76332
+      }
+    },
+    {
+      "name": "mod-multi-routes",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 368852,
+        "native64": 384300
+      },
+      "mod": "mod/multi-routes.mod"
+    },
+    {
+      "name": "mod-multi-panel",
+      "samples": 264708,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 361100,
+        "native64": 374796
+      },
+      "cmd": "mod/multi-panel.verbs",
+      "seq": {
+        "lines": 2,
+        "lines_match": true,
+        "ui_cmds": 5,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "mod/multi-panel.panel"
+    },
+    {
+      "name": "mod-voice-routes",
+      "samples": 158824,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 356364,
+        "native64": 370044
+      },
+      "mod": "mod/voice-routes.mod"
+    },
+    {
+      "name": "multi-two-sounds-inserts",
+      "samples": 123530,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 314668,
+        "native64": 328364
+      }
+    },
+    {
+      "name": "multi-four-sounds-seq",
+      "samples": 211766,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 317268,
+        "native64": 332748
+      },
+      "cmd": "seq/multi-four-sounds.verbs",
+      "seq": {
+        "lines": 10,
+        "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "dyn3-squash-transient",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 83772,
+        "native64": 96636
+      }
+    },
+    {
+      "name": "dyn3-round-autogain",
+      "samples": 105882,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 95372,
+        "native64": 108236
+      }
+    },
+    {
+      "name": "multi-panel",
+      "samples": 220590,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 340364,
+        "native64": 354060
+      },
+      "cmd": "seq/panel-multi-sound.verbs",
+      "seq": {
+        "lines": 4,
+        "lines_match": true,
+        "ui_cmds": 10,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "seq/panel-multi-sound.panel"
+    },
+    {
+      "name": "arp-macro-chord",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 148940,
+        "native64": 161804
+      }
+    },
+    {
+      "name": "arp-sequencer-latch",
+      "samples": 317648,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 74564,
+        "native64": 76332
+      },
+      "cmd": "arp/arp-sequencer.verbs",
+      "seq": {
+        "lines": 3,
+        "lines_match": true,
+        "ui_cmds": 4,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "arp-multi-sound",
+      "samples": 141176,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 299236,
+        "native64": 313108
+      }
+    },
+    {
+      "name": "arp-trg",
+      "samples": 317648,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 278852,
+        "native64": 279860
+      },
+      "cmd": "arp/arp-trg.verbs",
+      "seq": {
+        "lines": 3,
+        "lines_match": true,
+        "ui_cmds": 2,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "arp-panel",
+      "samples": 414708,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 148940,
+        "native64": 161804
+      },
+      "cmd": "arp/panel-arp.verbs",
+      "seq": {
+        "lines": 1,
+        "lines_match": true,
+        "ui_cmds": 24,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "arp/panel-arp.panel"
+    },
+    {
+      "name": "arp-latch-stop",
+      "samples": 529416,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 83212,
+        "native64": 96076
+      },
+      "cmd": "arp/arp-latch-stop.verbs",
+      "seq": {
+        "lines": 5,
+        "lines_match": true,
+        "ui_cmds": 6,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "arp-panel-stop",
+      "samples": 582356,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 148940,
+        "native64": 161804
+      },
+      "cmd": "arp/panel-arp-stop.verbs",
+      "seq": {
+        "lines": 1,
+        "lines_match": true,
+        "ui_cmds": 12,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      },
+      "panel": "arp/panel-arp-stop.panel"
+    },
+    {
+      "name": "drawbar-gospel-rotor",
+      "samples": 194118,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 134140,
+        "native64": 134140
+      }
+    },
+    {
+      "name": "trio-sync-ring-sweep",
+      "samples": 194118,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 67580,
+        "native64": 67580
+      }
+    },
+    {
+      "name": "phase-bend-reso-glide",
+      "samples": 194118,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 133324,
+        "native64": 133324
+      }
+    },
+    {
+      "name": "four-sounds-repeat-admission",
+      "samples": 123530,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 185840,
+        "native64": 200472
+      }
+    },
+    {
+      "name": "four-sounds-warble-repeat-hold",
+      "samples": 264708,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 177904,
+        "native64": 192536
+      },
+      "cmd": "seq/repeat-hold.verbs",
+      "seq": {
+        "lines": 4,
+        "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": true,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    },
+    {
+      "name": "project-load-play",
+      "samples": 352944,
+      "libm_sensitive": false,
+      "app_vs_js": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_musl": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "app_vs_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_reference": "glibc",
+      "screen_px_differing": 0,
+      "screen_glibc": {
+        "differing": 0,
+        "max_lsb": 0
+      },
+      "screen_musl": null,
+      "ram_bytes": {
+        "wasm32": 265536,
+        "native64": 291456
+      },
+      "cmd": "state/play.verbs",
+      "seq": {
+        "lines": 1,
+        "lines_match": true,
+        "ui_cmds": 0,
+        "replayable": false,
+        "dropped": 0,
+        "native_dropped": 0
+      }
+    }
+  ]
+}

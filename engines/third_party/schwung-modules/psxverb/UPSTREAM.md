@@ -12,7 +12,7 @@
 
 | File | Upstream path | SHA-256 |
 | --- | --- | --- |
-| `psxverb.c` | `src/dsp/psxverb.c` | `789bc7ed9f42fb0164651e986be585041b6b97305362aa9c7dcfc879b177f05b` (local interpolation correction) |
+| `psxverb.c` | `src/dsp/psxverb.c` | `789bc7ed9f42fb0164651e986be585041b6b97305362aa9c7dcfc879b177f05b` |
 | `plugin_api_v1.h` | `src/dsp/plugin_api_v1.h` | `0936fb1784d001f7ad1cac075cbe760d49d73727a52259b0b2a0d7850e02ea32` |
 | `audio_fx_api_v1.h` | `src/dsp/audio_fx_api_v1.h` | `28a54a5c79ec768f73e3730870209970518218b588872b551794e719f5072be9` |
 | `module.json` | `src/module.json` | `f63213735ea9ab408151421088a3c7c3e5b31181937a6061770f1c67820ead41` |

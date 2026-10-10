@@ -26,12 +26,8 @@ binary. This checkpoint cannot pass simulator tests or be served as a preview.
 The example metadata ID has been refreshed from the combined native export
 as described below. No failing checkpoint is eligible for merge.
 
-Next: merge the accepted PSX correction, refresh the native export if needed,
-then build musl and Wasm from the exact combined sources;
-run full parity/screens/metadata/edit checks and focused effect, API,
-parameter, smoothing and state checks; then checkpoint generated artifacts
-with recomputed source hashes and build provenance. Final combined acceptance
-also requires the normal browser/CI gates. Existing frozen-clock WebKit and
+The actual combined regeneration and focused validation are recorded below.
+Final combined acceptance still requires the normal browser/CI gates. Existing frozen-clock WebKit and
 owner listening receipts remain failures until independently resolved.
 
 Recovery worktree: `~/.codex/worktrees/warble-repeat-candidate/mvave-fm1-firmware`.
@@ -129,3 +125,70 @@ script changes precede final regeneration. PR132's reviewed CI-only lifecycle
 configuration can integrate after its gate without changing these DSP / sim
 hashes. This new combined source still requires the complete exact-head CI;
 individual failed WebKit heads are not treated as passing.
+
+## Actual combined regeneration and corrected fixture contracts
+
+[verified: exact source build] Source checkpoint
+`3519c3857d9bddb8007e14de7ef84525ef8df96a` also normally merges reviewed
+HTTP test-server containment PR105 `cc43875c7b205fcfbe530c04e4e7950cd6370bae`
+and Movy oracle bounds PR114 `a97659f56cd54499a09e99f7689df4aff74cf7b3`.
+The server's two actual HTTP regressions pass. Static musl references and
+the native / Wasm pipeline were built from the combined source tree, using
+the image digests recorded in `sim/web/www/fm1.wasm.json`. LAN containers
+used `docker-batch.slice`, four CPUs and 8 GiB limits. Build stage:
+`/home/claude/mvave-fm1/warble-repeat-psx-dbbfe939/src`; final log:
+`combined-final-build.log`. This replaces absent WIP artifacts with actual
+combined output, not a selected parent binary.
+
+[verified: binary and source checks] Wasm SHA-256 is
+`c88938845cd93e52f5cb99c53a650b4eaf559833e5f39fb58ecc0f0c4ab09502`
+(1,561,111 bytes). Local and LAN inputs exactly match the build record:
+engine hash `b97e01d8ff7c98ad36a3f5301fae9486af5cc7602fadc2e263968a4c7036ad38`,
+sim hash `4d861adaacdcbd3454fb125fd4c5d19330aa1223d47959a65148020a85fe4377`.
+Both later manifest / fixture corrections below leave these hashes unchanged.
+
+[verified: actual build] All 108 parity scenarios pass, with exact audio
+against JS and musl in all 108, and 105 exact against glibc under the existing
+libm-sensitive policy. All 4,658 native screens pass with zero layout faults;
+18 DX7 checks and metadata pass. Native metadata ID is `53ec1875`; Wasm ID
+is `5d726997` (instance-size differences are recorded). Native example
+metadata is exact, and actual metadata contains 24 user audio effects after
+excluding Test Gain and Test Ext. The 30-second offline edit storm applies
+82,728 edits across 10,341 quanta with zero late quanta / resyncs; edit parity
+is zero LSB. These checks do not measure browser audio scheduling.
+
+[verified: combined four-sound scenario] `four-sounds-warble-repeat-hold`
+compares 264,708 stereo samples (132,354 frames), all zero difference against
+JS, musl and glibc, with zero screen difference and dropped sequencer events.
+The app RAM summary is 177,904 bytes for Wasm32 and 192,536 for native64;
+this is simulator accounting, not verified device placement or timing.
+The PSX screen oracle selection and nullable diagnostics are retained in all
+108 record entries: 104 select glibc, four select musl. Sophie kit's 34 glibc
+pixel differences remain visible as diagnostics; its accepted musl comparison
+is exactly zero pixels. No new mask or threshold is introduced.
+
+[verified: focused regression and discovered omissions] The first expanded
+native batch passed 259 tests and failed only the strict PSX vendored-file
+manifest parser: a prose suffix after the hash prevented its row from being
+parsed, although the actual source hash matched. The machine-readable row is
+restored; the existing Local changes prose still credits and describes the
+interpolation correction. The corrected expanded batch passes 271 tests in
+11.90 seconds, including effects, parameter/API/smoothing/state, native scope,
+Schwung / direct PSX oracle, modulation kinds, edit layer and committed record.
+
+[verified: serialized enum contract] Follow-up PR137 macOS failure evidence
+identified Repeat's separately pinned enum entry names, omitted by the earlier
+UID / flag correction. The actual combined named checks reproduce one failed
+name contract and six passes; the metadata example test passes here. Only
+Repeat Hold UID1 (`Off`, `On`) and Max slice UID2 (`1/8 max`, `1/16 max`,
+`1/32 max`) are appended to `enum-names.json`, preserving every old engine
+and modulation entry. Names / metadata example / parameter / Repeat checks
+then pass 22 tests. The actual editor unit script also passes all 36 checks,
+including Picks structural undo/redo. Initial selector / argument invocation
+mistakes executed no relevant tests and are not counted as source failures or
+validation. Compact receipts and before / after logs accompany this note in
+`data/combined-3519-*`.
+
+Full candidate browser / exact-head CI acceptance is still pending. Earlier
+individual WebKit latency failures and the owner's unmeasured Safari A/B
+listening failure are preserved; these offline results do not overwrite them.
