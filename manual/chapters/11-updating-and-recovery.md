@@ -50,10 +50,10 @@ There are two kinds:
   step it takes, which helps if the ready-made one does not work on this
   chip.
 
-The open design is complete: its firmware builds, and it has been tested
-against a simulation of the chip's recovery mode. The project used the
-soft-key route and reviewed RAM loader on the owner's FM-1; it has not used
-the project's RP2040 dongle on that unit.
+The open design's firmware builds and has been tested against a simulation of
+the chip's recovery mode. The project has not assembled that design. On the
+owner's FM-1, the project used the soft-key route and reviewed RAM loader; it
+has not used its RP2040 dongle on the unit.
 
 Other FM-1 owners have reported that the route works. czietz built a
 simpler dongle of their own from a Raspberry Pi Pico, which brings their

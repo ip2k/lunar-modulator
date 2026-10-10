@@ -9,7 +9,8 @@ the stock UI, and loads community modules (synths, effects, tools) as
 aarch64 Linux shared objects (`dlopen`, `create()`), installed over SSH by a
 desktop installer.
 
-**Movy** (DimaDake, MIT, v0.31.0) is a Schwung *tool module*: an
+**Movy** (DimaDake, MIT; inspected at commit `5627d51`, whose module metadata
+says v0.31.0) is a Schwung *tool module*: an
 Elektron-style knob UI plus a 16-track step sequencer modelled on Move's own.
 It is two artifacts:
 
@@ -89,7 +90,8 @@ code is the stronger candidate for engines. See docs/11.
 
 ## 5a. Update 2026-10-01: Movy has parameter locks
 
-This document inspected Movy v0.31.0 (`5627d51`). Movy has since gained
+This document inspected commit `5627d51` (whose module metadata says v0.31.0;
+the v0.31.0 tag is `675054f`, as recorded in docs/13). Movy has since gained
 Elektron-style per-step parameter locks: hold a step that has notes and turn
 a module knob, and the value is stored for that step only and plays when the
 step plays [verified at `9190e79`, `main` on 2026-10-01, 299 commits past
