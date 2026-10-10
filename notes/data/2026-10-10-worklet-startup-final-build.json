@@ -1,0 +1,195 @@
+{
+  "schema": 1,
+  "tested_source": "c44a808dbe5f772d08afd4014317d4befb0176d6",
+  "remote_path": "/home/claude/mvave-fm1/worklet-ready-final-c44a808/src",
+  "host": "aeon",
+  "cpus": 2,
+  "memory_bytes": 4294967296,
+  "parallel_jobs": 2,
+  "cgroup": "docker-batch.slice",
+  "attempts": 1,
+  "started": "2026-10-10T09:06:36Z",
+  "completed": "2026-10-10T09:08:02Z",
+  "record": {
+    "wasm_sha256": "4667498f919529ba0f1059f127ea02e60c2c2a76ee5bc16983cfeabbb96b76ec",
+    "wasm_bytes": 1561532,
+    "sources_sha256": {
+      "engines": "85ef296b6c95a666389312314c3e08450a493a0ba93defa16a672f3eafa51e7d",
+      "sim": "4d861adaacdcbd3454fb125fd4c5d19330aa1223d47959a65148020a85fe4377"
+    },
+    "engines": "c44a808dbe5f772d08afd4014317d4befb0176d6",
+    "built": "2026-10-10T07:45:46Z",
+    "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
+    "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "images": [
+      "alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8",
+      "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65"
+    ],
+    "gpl_mods": 1,
+    "parity": {
+      "passed": 108,
+      "failed": 0,
+      "identical_to_js": 108,
+      "identical_to_musl": 108,
+      "identical_to_glibc": 105,
+      "max_lsb_vs_glibc_exact_scenarios": 1
+    },
+    "meta": {
+      "meta_id": "5d726997",
+      "module_meta_id": "5d726997",
+      "bytes": 255110,
+      "lunar": "1.3",
+      "native_meta_id": "53ec1875",
+      "ram_differ_at_64_bits": 9,
+      "passed": true
+    },
+    "dx7_sysex": {
+      "passed": 18,
+      "failed": 0,
+      "cases": [
+        {
+          "name": "a 32-voice bank fills User 1-32 with its names",
+          "pass": true
+        },
+        {
+          "name": "32 single-voice dumps in one file fill User 1-32",
+          "pass": true
+        },
+        {
+          "name": "single voices go to the slot after the last; a bank resets to User 1",
+          "pass": true
+        },
+        {
+          "name": "a bank's data without SysEx framing loads",
+          "pass": true
+        },
+        {
+          "name": "a wrong checksum loads and is counted",
+          "pass": true
+        },
+        {
+          "name": "a bank with a wrong checksum loads and is counted",
+          "pass": true
+        },
+        {
+          "name": "an empty file loads nothing",
+          "pass": true
+        },
+        {
+          "name": "text loads nothing, every byte outside SysEx",
+          "pass": true
+        },
+        {
+          "name": "another maker's SysEx loads nothing and is named foreign",
+          "pass": true
+        },
+        {
+          "name": "a bank cut short loads nothing and is named truncated",
+          "pass": true
+        },
+        {
+          "name": "a voice dump one byte short loads nothing and is named the wrong size",
+          "pass": true
+        },
+        {
+          "name": "a dump whose byte count disagrees with its header is the wrong size",
+          "pass": true
+        },
+        {
+          "name": "several dumps and other messages: the dumps load, the rest is counted",
+          "pass": true
+        },
+        {
+          "name": "a file past 64 KiB or the buffer is refused, and a refusal keeps the bank",
+          "pass": true
+        },
+        {
+          "name": "64 KiB of single voices is read whole",
+          "pass": true
+        },
+        {
+          "name": "with play, the current sound becomes FM6 on the first voice loaded",
+          "pass": true
+        },
+        {
+          "name": "an FM6 sound made after a load plays the bank",
+          "pass": true
+        },
+        {
+          "name": "each voice sounds the same from the bank as from its single dump",
+          "pass": true
+        }
+      ]
+    },
+    "edit": {
+      "parity": "ok",
+      "audio_max_lsb": 0,
+      "storm": {
+        "seconds": 30,
+        "quanta": 10341,
+        "deadline_ms": 2.9013101228523506,
+        "late": 0,
+        "applied": 82728,
+        "resyncs": 0,
+        "telemetry_blocks": 862,
+        "p50_ms": 0.061407000000002654,
+        "p99_ms": 0.09262699999999313,
+        "max_ms": 0.23995899999999892,
+        "edit_us_per_quantum": 7.659792960061969
+      },
+      "check": {
+        "params": 474,
+        "steps": 34893,
+        "text_bad": 0,
+        "codes": [
+          "UNKNOWN",
+          "RATE",
+          "RAM",
+          "NO_ROOM",
+          "BAD",
+          "NO_SOURCE",
+          "NO_DEST",
+          "NOLOCK",
+          "ENUM_NO_MOD",
+          "VOICE_TO_MONO",
+          "VOICE_TO_EFFECT",
+          "UNIT_RESERVED",
+          "VOICE_FULL"
+        ],
+        "hands": 47,
+        "sweeps": 40,
+        "lock_blocks": 900,
+        "tele_fills": 30,
+        "failed": 0
+      }
+    }
+  },
+  "evidence_sha256": {
+    "meta-check.json": "7ff598fe23f025ae933c04fe7a78722f1702fb4aa87b18e94c9e926e100a5837",
+    "parity.json": "b433f64904f1aadc45b0bf32f5f77b88186e641d333dbf133a9a39194a3cf7be",
+    "started.txt": "2a049670d577eef9177e8e06138aa9b07fde805c61890813c011a1ea7707cbe2",
+    "edit.json": "8bfe2a4561b23a9d0992f52ec3543c7b44948872765801c34a4eb3cc33ef3214",
+    "musl.log": "03c81462ba44fcd08745816b25a84ca8cc05648d5db0c9982d3ff44d61f2f62b",
+    "completed.txt": "ff63f76b70d4f9a89e8c515dc982bfd33d8d0bf5284ebe75f933cafcb21c0941",
+    "sysex.json": "9f51ec9ab134f27dc572cae6e6670b3bd332cecd07fd1df26035158c916dc28c",
+    "build.log": "970d5f7b82c7e50d631221cacf9c3d57a37cf8c5a4ad8f55e88a75b3c940ae20"
+  },
+  "screen_sweep": {
+    "screens": 4658,
+    "faults": 0
+  },
+  "limitations": [
+    "No browser/hardware/listening inference from native/Wasm parity.",
+    "Freshly rebuilt bytes equal the prior PR142 Wasm; matching binary hashes do not validate changed browser/test code.",
+    "Original PR142 Chromium storm event remains unassigned and is preserved separately."
+  ],
+  "scenario_summary": {
+    "count": 108,
+    "screen_references": {
+      "glibc": 104,
+      "musl": 4
+    },
+    "accepted_pixel_differences": 0,
+    "full_scenario_record": "sim/web/www/fm1.wasm.json"
+  }
+}

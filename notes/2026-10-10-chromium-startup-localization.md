@@ -18,8 +18,10 @@ a startup glitch or prove that every browser glitch emits these events.
 [verified] The opt-in pre-power-on phase/raw-counter diagnostic is preserved
 from `e25916d0776ec756984fbdd5490f42c345dddcfc`; no baseline, drain,
 assertion, tolerance, retry or acceptance window is changed. Diagnostic
-files alter simulator source-hash inputs; the PR142 Wasm is retained for
-observation, and this tree is not a fresh built-artifact acceptance tree.
+files are outside the engine/SIM input lists in `source_hash.py`; they do not
+change the recorded binary input hashes. The PR142 Wasm is retained for
+observation. Final integration still requires an actual rebuild and full
+exact-head CI; matching hashes do not validate changed browser/test code.
 
 [inferred] Per-edit typed views and per-change-check RAM scratch allocations
 are avoidable, but they have not been tied to the observed event. No runtime

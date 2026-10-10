@@ -39,8 +39,21 @@ of this instrumented run, not proof that tracing sees every browser glitch.
 Metrics, unsupported fields, provenance and raw-evidence hashes are preserved in
 `data/2026-10-10-worklet-startup-ready-browsers.json`. The container has stopped.
 
-Pending: actual build-record regeneration and full exact-head CI by the parent
-integration stream. The tested Wasm is the exact PR142 artifact retained for JS
-runtime observation, not a new source-hash acceptance record. No tolerance,
-baseline, drain or zero-underrun gate has changed. The original CI event remains
+[verified] Fresh native/glibc, static musl and Emscripten builds completed in an
+isolated aeon directory from `c44a808d`, capped at 2 CPUs/4 GiB with two compiler
+jobs. All 108 parity scenarios passed, all 108 exact against JS and musl; 104
+screens use glibc and four use musl, with zero accepted pixel differences.
+The full screen sweep rendered 4,658 screens with zero layout faults. Metadata,
+DX7 and edit parity checks passed; the build's 30-second storm reported zero
+late quanta and resyncs. The rebuilt Wasm is byte-identical to the previous
+PR142 artifact (`4667498f…76ec`, 1,561,532 bytes). The regenerated record's
+engine/SIM input hashes match the actual tree; `CI=true` build-record pytest
+passed without stale warnings. The browser/helper/diagnostic files changed here
+are outside `source_hash.py`'s binary input list; unchanged input hashes do not
+validate those files. The previous localization note is corrected accordingly.
+Build provenance, measured results and raw-evidence hashes are in
+`data/2026-10-10-worklet-startup-final-build.json`.
+
+Pending: full exact-head CI and root review/integration. No tolerance, baseline,
+drain or zero-underrun gate has changed. The original CI event remains
 unassigned. No claim about hardware or human listening.
