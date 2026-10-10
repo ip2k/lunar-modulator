@@ -147,3 +147,31 @@ passed the strict external audio gate, with 3,756 replies and no bad periods
 or refusal/resync; the failed two-CPU receipt remains. Three additional
 uninstrumented cold pairs passed. No production runtime or assertion changes.
 Its exact-head GitHub checks are queued; this is not a CI-success claim.
+
+## Final Repeat artifact verification and remaining gates
+
+[verified: independent artifact inspection] PR137 at
+`9b2d80c4c6a9df47c794fa4d413a72e12b645225` has committed Wasm SHA256
+`edda579cc762bc225246cd8204a0652729e7d24d65bea13b5d2eeb8360898b6f`.
+Root recomputed both source-tree hashes and the binary hash against the
+actual clean checkout; all match its build record. Metadata and module ID
+both equal `0d1d0b8b`, with no imports and 106/106 passing parity scenarios.
+The beat-held Repeat scenario has 264,708 frames, no dropped events and
+zero sample/screen differences. The four-active-sound admission scenario
+has 123,530 frames and zero differences, using 185,840 bytes in Wasm32
+and 200,472 bytes in native64. Repeat alone is 65,648 bytes, including its
+65,536-byte ring; these totals are simulator evidence, not device SRAM proof.
+
+[verified: source review] The focused independent review and original
+failure traces are backed up in PR138 at
+`75aaf658324f119f413090d0e989ddfe44bf41b4`. PR113 and PR114 retain strict
+WebKit failures; passing external loopback in those runs does not erase
+their panel-follow failures or establish a human listening result.
+
+PR133 and PR135 integrated current main normally and are pushed at
+`a5bac822d9ed9b938393ca1ef5e575d453616775` and
+`475c859c5187ecf94a6881f4620b93ae4d8fb614`, respectively. Their fresh
+exact-head checks remain pending. Continue the audible audit disposition,
+strict WebKit correction, combined Warble/Repeat regeneration and reviewed
+green merges before composition implementation. Preserve the pending owner
+Sound 2 A/B ear check and the independent device-readiness boundaries.
