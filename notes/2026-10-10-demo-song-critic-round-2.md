@@ -237,6 +237,10 @@ M musicality; C creativity; G genre/proposal; L Lunar features; S space/project 
 
 **Whole-song pacing.** [inferred] The kickless bridge makes the final chorus meaningful. Three repeated chorus passes need a stronger eight-bar sung sentence; the duplicated complete outro cadence currently reopens the ending after it has resolved.
 
+## Build boundary precision
+
+[verified] The final build bar removes new attacks at tick336 and later, but the generic track7 answer starts at step13 (tick312) with gate30 and ends at342. This is six ticks into the nominal final half-beat. [inferred] Treat it as attack withdrawal; shorten that answer to24 ticks or move/remove it if a complete note-off gap is intended. Effect tails may continue intentionally. This refines R2 transition guidance without changing scores.
+
 ## Runtime and signal adjunct
 
 [verified] Read the parent full-song native/Wasm receipt for the exact frozen assets. Finite output, normal Stop and zero scheduler drops support correct execution; they do not rate composition or perceived clarity. Approximate section RMS below uses duration-weighted per-second mean squares at nominal scene boundaries. Fractional seconds assume stationary energy; this is not LUFS, perceptual loudness or sample-exact segmentation.
