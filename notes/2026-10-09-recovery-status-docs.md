@@ -39,3 +39,12 @@ exact image/range review and a recovery plan remain required by docs/07 §4.
 Documentation-only change. Read each resulting recovery claim against the
 named bench evidence; checked local Markdown links and `git diff --check`.
 No firmware build, hardware test or new restore proof is implied.
+
+## Current-main integration
+
+Merged main 67d5e12d on 2026-10-09. README conflicts retained the current
+product roadmap, envelope description and linked-inert-diagnostic distinction;
+its recovery facts were already present on main. The remaining unique changes
+are docs/05, docs/08, docs/10 and this evidence note. `git diff --check` passes.
+Fresh exact-head CI must pass before automatic integration. No new hardware
+traffic, whole-image restore or running Lunar application is implied.
