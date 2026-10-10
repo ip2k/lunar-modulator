@@ -11,3 +11,17 @@ No implementation CI head was changed by this review; parent controls merges.
 [verified: native/source] Repeat fix cc84475d00006f8e83f0d84edcfe0504366e1ca6 was independently re-read and probed on LAN gcc:12 against an immutable git-show snapshot. START/STOP/RESET/initial HoldOff now stay wet0/.5DC output. Repeated Mix preserves originaldeadline (mix1,left0). Rapid re-hold clearsvalidity; immediateBEAT cannot re-latch theoldwindow. One remaining analogous repeated HoldOff during a held release restarts wet deadline: nonrepeat wet0,held0,left0 vs repeat after5frames wet.0221154,held1,left5 at originaldeadline. Implementer was notified; no reviewer source edit. Existing generic smooth fixture does not fill the ring, so focused held-output/deadline coverage is needed. Previous exact3425 findings and reproducer remain historical evidence in the separate review note.
 
 Current prerequisite order: exact green engine CI, parent-selected firstmerge, actual combined source regeneration/test for other engine branches, final Repeat native+Wasm checks and unchanged gates, then demo authoring/export/full-chain/listening checks. Offline firmware branches remain separate and cannot imply a running FM-1 application. Immutable owner PR128 preview remains http://127.0.0.1:8781/ at1c09c5a2; existing8778/8780 untouched.
+
+[verified: native/source] Repeat checkpoint
+`461eda052c517a304d2de0199c3c28cfcfe690ef` closes the remaining repeated
+Hold Off finding. The same independent probe, built from an immutable source
+snapshot on bounded LAN gcc:12, now reports both release paths at the
+original deadline as `wet=0, held=0, left=0`. The source preserves the
+pending release and STOP clear request; an explicit unchanged Hold On still
+rearms after STOP. The new held-history regressions exercise both cases.
+The documentation now qualifies the fresh-ring plus later-beat requirement
+as applying while running. No further confirmed source finding arose from
+this bounded re-review. This verifies the focused correction; generated
+Wasm, complete native/parity/browser checks and CI remain separate gates.
+Probe output is retained at `notes/data/repeat-461eda05-review-probe.txt`;
+LAN snapshot is `/home/claude/mvave-fm1/repeat-review-461eda05`.
