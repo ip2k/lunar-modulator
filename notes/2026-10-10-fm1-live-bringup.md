@@ -197,7 +197,11 @@ binary/SDK evidence, then prepare guarded tests and an exact proposal for
 review. No device read, recovery entry or loader execution is authorized
 by this preparation note.
 
-## Fixed loader-code RAM readback proposal, not executed
+## Fixed loader-code RAM readback: historical offline preparation
+
+This section preserves the reviewed offline rationale. The later single
+successful hardware read is recorded below; historical execution holds
+here describe the preparation state, not the final result.
 
 [verified, offline] `tools/fm1_loader_readback.py` subclasses the existing
 backup reader without changing its allowlist. It has no CLI or device-opening
@@ -375,3 +379,50 @@ importing/executing the wrapper or accessing a device. These checks are not
 hardware validation. The proposal has **not been transferred or executed**;
 renewed parent review remains required after the original preflight stop.
 No additional device traffic occurred while preparing this proposal.
+
+## Reviewed fixed loader-code readback succeeded, 08:40 UTC
+
+[verified, hardware] Parent reviewed the complete continuation source at
+`e9af71f53153903bd7f8773d5391e874758bc73d` and authorized exactly one
+existing-session continuation. The unchanged wrapper SHA-256
+`7d52a61b097e4235cc98e8c8f7745150a7cedf128740935f5a589dabc3d592fb`
+was checked again after transfer. Fresh enumeration still matched direct
+`3-2`, bus 3, devnum 16, `4c4a:8057`, `WL80UBOOT1.00`.
+The exact `/dev/sg0` character device `21:0` and `/dev/sda` block device
+`8:0` existed, matched USB-bound sysfs device numbers, and the block device
+was unmounted. Fresh `fuser` returned 1 with empty stdout/stderr. All
+reviewed source, pinned-loader and five private-backup hash guards passed
+before Reader opened; its USB binding matched again after opening.
+
+[verified, hardware] At 08:40:48 UTC, INQUIRY returned `WL82/UBOOT1.00`.
+The existing sequence uploaded the pinned 24,064-byte loader in 47 blocks,
+used its exact FB08 entry, and passed FC14/FC0A validation. The sole FD07
+CDB was `fd0701c043de0040ffffffffffffffff`, returning exactly 64 bytes from
+`0x01c043de`. Linux SG_IO status, host/driver/error-info and residual checks
+passed, then the exact SHA-256
+`55a58166f612936e6ab55f33a373c07718bcc2069826806f9626521c68bf94c3`
+passed. The private saved bytes also equal the actual plain-loader slice
+at file offset `0x23de`. No second soft key, retry, metadata read, flash
+write or new payload occurred. Reader closed after this result.
+
+[verified] FC14 reported 32,768 bytes. This observed value does not expand
+the reviewed 64-byte read or establish arbitrary transfer safety; the
+static FD07 copy destination/control-state boundary remains relevant.
+There were exactly 52 application SCSI commands: one INQUIRY, 47 FB06,
+one FB08, one FC14, one FC0A and one FD07. The nonbinary
+[success receipt](data/2026-10-10-loader-readback-success.json) preserves
+counts, bindings, hashes and boundaries. Private raw/log files exist on
+Bench01 and this Mac, and both copies' hashes match; vendor code bytes
+remain uncommitted. The private continuation log SHA-256 is
+`cbe6a43011bdcf389b2519ef601c040009c228cfe5ac0b10894a20998bc474c6`.
+
+[verified, boundary] This demonstrates the exact known loader-code FD07
+read transport on this unit, including its raw-byte interpretation. It
+does not prove ROM FD07/FB08 semantics, a custom leaf's inherited stack or
+return contract, a mask-ROM mapped-code window, or full-image restore.
+The original 08:00 preflight failure remains separately preserved.
+Read-only follow-up still showed UBOOT on `3-2`/devnum 16 and no node users.
+Parent was asked to obtain owner power-cycle confirmation; confirmation
+and the subsequent normal-mode identity remain pending. No further device
+traffic is authorized by this note. Callback metadata remains a separate,
+unimplemented proposal requiring review.

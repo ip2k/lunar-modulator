@@ -1,0 +1,73 @@
+{
+  "status": "verified fixed known loader-code readback; stopped after the one successful read",
+  "reviewed_source_head": "e9af71f53153903bd7f8773d5391e874758bc73d",
+  "wrapper_sha256": "7d52a61b097e4235cc98e8c8f7745150a7cedf128740935f5a589dabc3d592fb",
+  "start_utc": "2026-10-10T08:40:48.140366+00:00",
+  "completion_utc": "2026-10-10T08:40:48.231291+00:00",
+  "usb_binding": {
+    "path": "3-2",
+    "vid": "4c4a",
+    "pid": "8057",
+    "product": "WL80UBOOT1.00",
+    "busnum": "3",
+    "devnum": "16",
+    "speed": "12"
+  },
+  "node_access_check": {
+    "nodes": [
+      {
+        "node": "/dev/sg0",
+        "dev": "21:0"
+      },
+      {
+        "node": "/dev/sda",
+        "dev": "8:0"
+      }
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  "prior_stopped_log_sha256": "051192d990948349d1c1c049f84eb2f21b0c1fb09f0ddef896e38bc93657ed3d",
+  "loader_cipher_bytes": 24064,
+  "loader_cipher_sha256": "d41da6126760c9d66660bcc0cac8d27d221806c5e369a8036921efe68dca5376",
+  "private_backup_files_reverified": 5,
+  "inquiry": {
+    "vendor": "WL82",
+    "product": "UBOOT1.00"
+  },
+  "command_count": 52,
+  "opcode_counts": {
+    "1200": 1,
+    "fb06": 47,
+    "fb08": 1,
+    "fc14": 1,
+    "fc0a": 1,
+    "fd07": 1
+  },
+  "fc14_reported_buffer_bytes": 32768,
+  "readback": {
+    "address": 29377502,
+    "bytes": 64,
+    "sha256": "55a58166f612936e6ab55f33a373c07718bcc2069826806f9626521c68bf94c3"
+  },
+  "readback_cdb": "fd0701c043de0040ffffffffffffffff",
+  "readback_equals_private_plain_loader_slice": true,
+  "reader_transport_checks_passed": "status/host/driver/error-info/residual all zero; length/hash accepted",
+  "private_log_sha256": "cbe6a43011bdcf389b2519ef601c040009c228cfe5ac0b10894a20998bc474c6",
+  "private_files_bench01": "/home/claude/fm1-readback-20261010-0800/{continuation-commands.jsonl,loader-code-readback.bin}",
+  "private_files_mac": "scratch/fm1-bench-20261010/{continuation-commands.jsonl,loader-code-readback.bin}",
+  "additional_soft_key": false,
+  "retry": false,
+  "metadata_read": false,
+  "flash_write": false,
+  "new_payload": false,
+  "after_close": "same UBOOT 3-2/devnum16; fuser reports no users",
+  "owner_power_cycle_confirmation": "requested through parent; pending",
+  "limitations": [
+    "No ROM address/return or custom-code execution proof",
+    "No full-image restore proof",
+    "FC14 size is not authorization to expand this read",
+    "Previous preflight stop remains preserved"
+  ]
+}
