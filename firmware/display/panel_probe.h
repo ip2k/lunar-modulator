@@ -2,7 +2,8 @@
 #ifndef LUNAR_PANEL_PROBE_H
 #define LUNAR_PANEL_PROBE_H
 
-/* No MMIO implementation or startup caller is provided. The eventual backend
+/* No MMIO implementation is provided. The optional panel-protocol link calls
+ * this with a RAM-only offline sink, not a usable hardware backend. The eventual backend
  * must establish current-core/exception, power, clock and watchdog contracts;
  * each callback must complete in bounded time. A successful begin holds CS
  * until end. write transmits one data byte. end must release CS, including

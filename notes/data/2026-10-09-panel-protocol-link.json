@@ -1,0 +1,98 @@
+{
+  "status": "offline-linked-not-device-executed",
+  "variant": "panel-protocol",
+  "base_main": "cafd77e0216bfc08ec2db49f75227ce9d5650c5d",
+  "layout": {
+    "profile": "handover",
+    "entry": 33554720,
+    "flash_bytes": 1212,
+    "data_bytes": 4,
+    "bss_bytes": 160,
+    "stack_bytes": 4096,
+    "stack_guard_bytes": 16,
+    "ssp_stack_bytes": 4096,
+    "ssp_guard_bytes": 16,
+    "ram_reserved_bytes": 8400,
+    "ram_budget_bytes": 16384,
+    "unresolved_symbols": [],
+    "sdk_libraries": [],
+    "sections": [
+      {
+        "name": ".entry",
+        "address": 33554720,
+        "bytes": 30
+      },
+      {
+        "name": ".text",
+        "address": 33554750,
+        "bytes": 1176
+      },
+      {
+        "name": ".data",
+        "address": 29368320,
+        "bytes": 4
+      },
+      {
+        "name": ".bss",
+        "address": 29368324,
+        "bytes": 160
+      },
+      {
+        "name": ".stack",
+        "address": 29368496,
+        "bytes": 4112
+      },
+      {
+        "name": ".ssp_stack",
+        "address": 29372608,
+        "bytes": 4112
+      }
+    ],
+    "bounds": {
+      "__data_begin": 29368320,
+      "__data_end": 29368324,
+      "__data_load": 33555928,
+      "__bss_begin": 29368324,
+      "__bss_end": 29368484,
+      "__stack_guard": 29368496,
+      "__stack_bottom": 29368512,
+      "__stack_top": 29372608,
+      "__flash_end": 33555932,
+      "__ssp_guard": 29372608,
+      "__ssp_bottom": 29372624,
+      "__ssp_top": 29376720
+    },
+    "device_execution": "unverified",
+    "package": "not created"
+  },
+  "sdk_free_audit": {
+    "passed": true,
+    "n_fail": 0,
+    "n_pending": 0
+  },
+  "sha256": {
+    "diagnostic.bin": "ebbe370cf135d0e1dd2ad16a04b47cf67bcdfbfaa4c837b960d946a5fc86cbcb",
+    "diagnostic.elf": "2dbac7e4a7d16720dca11bd9479c0ac2ed1f3d8749dae0611d5790fa9728a119"
+  },
+  "vendor_disassembly_bytes_compared": 894,
+  "focused_tests": {
+    "passed": 97,
+    "skipped": 2,
+    "seconds": 0.62,
+    "actual_target_layout_and_staging_rejection_exercised": true
+  },
+  "unchanged_default_flat_sha256": {
+    "inert": "5566edb6742aebb695a4ed2ab0e9d979ebadb615190bb030c55f59f2258fee08",
+    "handover": "0991eae9c0fc77bf4ed80f73b2d643972d70bb9151b3b0da29a2a68d41a1b19c"
+  },
+  "runtime_capture_expected": {
+    "commands": 22,
+    "data_bytes": 115254,
+    "ends": 22,
+    "wait_calls": 2,
+    "requested_wait_ms": 220,
+    "protocol_error": 0
+  },
+  "waits": "recorded requests only; no actual delay",
+  "hardware": "no MMIO, hardware backend, device observation or package created"
+}
