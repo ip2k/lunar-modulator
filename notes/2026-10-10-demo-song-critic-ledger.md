@@ -87,7 +87,9 @@ coverage limits, not validation of the writer worktree.
 | --- | --- | --- | --- |
 | 1 | `9a2d099` (canonical repair `27939c7`) | Round 1 MD/JSON | All 32 scenes below threshold; R1-A–H open |
 | 2 | `f1887404` | Round 2 MD/JSON | All 32 scenes below threshold; R1 repairs partly implemented; R2-A–F open |
-| 3–5 | Not started | — | — |
+| 3 | `cdf8d8fc` | Round 3 MD/JSON | All32 scenes below threshold; R2 repairs accepted/partial; R3-A–D open |
+| 4 | `75e029dc` | Round 4 MD/JSON | All 32 scenes below full threshold; real phrase/voicing/transition improvements, R4-A–C open |
+| 5 | `3e6eaa5f` | Round 5 MD/JSON | Complete: target unmet, 0/32 scene passes, 190/192 score cells at or below 8 |
 
 Critic branch: `chore/2026-10-10@demo-music-critic`.
 Writer branch: `feature/2026-10-10@demo-songs`.
@@ -108,3 +110,23 @@ Parent integration owns rendering, runtime acceptance and final packaging.
 [verified] Frozen f1887404ce12a53d63ef784178fa37fccec7722e reviewed across all 32 scenes, 57 occurrences, actual serialized notes, locks, routes, sound/FX/arp and modulation state. All four authoritative asset SHA256 values match the parent native/Wasm receipt. Runtime and Chromium play/Save/fresh-Open receipts read and retained in the report JSON. [inferred] Scores are 5–7; no scene passes. Real improvements include bass holds, peak endpoints, evolving builds, kickless contrast and cadences. Remaining targets are timestamp-aware phrase development, register-aware transposition, actual call/answer gaps, Event Horizon chord-swell identity, smooth voice-leading and a single directional Neon ending. No by-ear listening; scores remain provisional where perception matters.
 
 [verified] Round 1 browser Save normalization is explicitly retained: command reordering plus disabled default arp objects in previously empty slots, preserving musical commands and existing parameters. Do not conflate canonical representation with byte equality. Parent owns acceptance and final owner listening.
+
+## Round 3 source checkpoint
+
+[verified] Frozen cdf8d8fcc0bd89518f3fe28ec1a6661a827c19bc inspected across all32 scenes and56 occurrences; Neon now has one8-bar exit. Mechanical reversal/register/gap/overlap repairs, simultaneous Event chords and staged intros confirmed. Afterglow chord events remain identical toRound2 in scenes0–6 because the nearest-voice routine rejects5/4/5/4-cardinality changes. All peak bass/chord/main/chord-answer/lead-answer streams repeat their first four-bar events in the second half. [inferred] Scores6–8; no full pass. Remaining work is actual eight-bar phrase development, harmony-aware replies, common-tone voicing and distinctive scene identity. Runtime receipt pending; no listening claim.
+
+## Round 3 runtime adjunct
+
+[verified] Exact native/Wasm and Chromium receipts retrieved from the completed aeon run, hashes verified and project hashes matched to frozen cdf8d8fc. All56 occurrences now include approximate energy aggregates; all four songs stop with zero reported drops/repairs/skips/refusals and pass browser Save/fresh Open. Complete receipts retained in Round3 JSON. [inferred] Source-based scores6–8 remain unchanged. Round4 writer work is in progress; no by-ear acceptance.
+
+## Round 4 source checkpoint
+
+[verified] Frozen75e029dcb4416c3b0381d0f6665fac0a6c0c3160 inspected across all32 scenes and54 occurrences. All five pitched-role streams in every peak change between four-bar halves; actual Afterglow common tones, harmony-aware replies, continuous Event/Neon intros, Packet C#4-to-D4 interruption and full-bar closing sustains verified. [inferred] Scores6–9, no complete scene pass. Exact defects retained: unused Afterglow Warble configuration and four duplicate chord-reply triggers. Remaining artistic limits concern sustained articulation, distinctive contrast/verse development and local register/suspension resolution. Writer has started final Round5 separately; runtime acceptance is pending independently and no listening is claimed.
+
+## Final round 5 checkpoint
+
+[verified] Frozen `3e6eaa5fea7a38822b60a2a742af4b932856b8cc` inspected across all 32 scenes and 54 ordered occurrences. Reports: `2026-10-10-demo-song-critic-round-5.{md,json}`. Actual Afterglow Warble selection and all duplicate chord-answer attacks are corrected. Common-tone bridge holding, Event Horizon 144/192-tick swells, Neon first-chorus upper-neighbour resolution and three outro register handoffs are present in the emitted projects. File hashes, all score cells, occurrence coverage and zero same-pitch/same-onset duplicate events independently checked.
+
+[inferred] Five rounds are complete; the requested target is **unmet**. There are 0/32 full scene passes, 2/192 scores above 8, and 190/192 scores at or below 8. Remaining limits concern short repeated verse cells, localized expressive articulation, shared contrast/build design and insufficiently distinctive musical identity across the complete songs. Concrete remaining limitations and per-scene categories are retained in the final report. No sixth revision round is requested.
+
+[reported] The writer has not run final Round 5 native/Wasm/browser acceptance and identifies the parent as its owner. Exact final runtime receipts were not supplied before this source-review close; earlier passing receipts remain tied to their earlier SHAs. Parent integration owns those final checks and packaging. [verified] No by-ear listening was performed. Owner listening and any FM-1 hardware validation remain separate.
