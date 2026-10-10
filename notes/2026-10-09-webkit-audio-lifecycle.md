@@ -385,3 +385,42 @@ virtual environment; both `tests/test_ci_pins.py` tests and all nine unchanged
 panel-follow/scheduling-capture unit tests pass. `git diff --check` passes.
 The Mac's system Python lacks PyYAML/pytest, so validation uses the existing
 project `.venv`, without installing packages or changing runtime configuration.
+
+
+## Preserved PR #102 failure before integration
+
+[verified: completed GitHub job log] PR #102 head
+`962e8ba900f7c223b46f7dd058874fabe96ace20`, run `38023635600`, job
+`114129747188`, fails the unchanged panel latency check at 43 frames / 694 ms.
+Its running clock holds `0.7169160997732427` through frame 42; first state
+arrives at 684 ms, changes at 686 ms, and the editor applies them at 690 ms.
+History passes and loading/pending/inflight are false/zero throughout. This
+matches the retained startup plateau signature [inferred], without proving a
+branch regression. The preceding strict 30-second loopback passes with 3,756
+replies, no refusal/resync, zero silence or bad periods. Reach, Map, v1 and
+30-second editor storm pass. Full follow/audio receipt and source-log hash:
+[pr102-ci.json](evidence/2026-10-09-webkit-audio-lifecycle/pr102-ci.json).
+Local source log is `/tmp/lunar-pr102-webkit.log`. No integration, rerun or
+assertion change was made while preserving this evidence. PR #132 remains
+on exact pushed head `c6db9587`; this receipt and the current-head acceptance
+below are checkpointed separately on
+`chore/2026-10-09@webkit-audio-evidence-checkpoint`, preserving its current CI.
+
+
+[verified: current fix head LAN acceptance] While exact-head GitHub CI waits
+for runners, a new bounded private container tests current source `c6db9587`
+with the CI sink command, four CPU quota and `FM1_SCHEDULING_CAPTURE=1`.
+It uses the newer committed module (SHA-256
+`9562448e742836a4571ebd04ad303c72d0125a8054483dffbee9d5c6240ed4e1`),
+not the earlier exact PR #129 module used for causal pairing. The original
+worklet hash remains identical. WebKit's strict 30-second loopback passes:
+3,756 batches/replies, zero refusal/resync/nonfinite/channel mismatch/bad
+periods, one-sample maximum zero run and 0.00882-sample maximum period error.
+Musical A/B passes with no transport stops; full editor UI passes all 93
+assertions with 37 screenshots and panel follow at three frames / 33 ms.
+Complete reports, per-test cgroup snapshots, module/version/hash receipts
+and runner are saved in
+[pr132-current-head-lan.json](evidence/2026-10-09-webkit-audio-lifecycle/pr132-current-head-lan.json).
+This covers the current source integration difference, not the full GitHub
+matrix; no retry of an unchanged failed head or assertion relaxation occurred.
+The owned container exited normally and shared services were untouched.
