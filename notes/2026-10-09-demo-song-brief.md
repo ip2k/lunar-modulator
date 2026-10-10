@@ -69,3 +69,54 @@ No borrowed melodies, commercial recordings or unlicensed assets.
 
 Status: requirement and authored direction recorded; no demo composition,
 preloaded asset, completed listening review or device performance claimed.
+
+## Voltage workflow lessons for the drops — 2026-10-09
+
+Owner requested inspiration from [Oversampled Voltage's official feature
+guide](https://oversampled.us/products/voltage). The page was read here
+[verified]; its audio examples and video tutorials were not auditioned.
+Voltage separates sound, pattern and effect rerolls; locks protect selected
+material. It offers per-hit effect values, bounded random offsets, exclusions
+by sound type, and drawn or recorded effect automation [reported: official
+guide, Main View, Pattern Sequencer, Edit Effects, FX Sequencer and
+Randomization Matrix]. These are workflow observations, not evidence that
+random generation alone makes a compelling drop.
+
+The following are our original composition proposals [inferred application],
+not instructions or compositions supplied by Oversampled:
+
+- Establish a two-bar drum/hook identity first. Preserve the kick and primary
+  backbeat; vary quieter hats, ghost hits and end-of-phrase accents within
+  narrow velocity, pitch and decay ranges. Author the variation deterministically
+  and use supported conditions/locks; a good critical downbeat must not depend
+  on an unlucky probability outcome.
+- Build tension by increasing rhythm density and opening timbre over a phrase,
+  then remove drums and bass for the final beat or half-beat. Shorten lingering
+  effect tails enough that the first drop kick/sub has room. Compare the gap by
+  ear: longer or louder is not automatically better.
+- Make the first drop state a clear hook with space around it. Alternate a
+  recognizable two-bar call with a complementary answer. Reserve the largest
+  fill or effect gesture for the fourth/eighth bar, rather than every bar.
+- Develop the second drop by changing one or two dimensions: bass rhythm,
+  chord voicing, response melody or percussion texture. Retain enough of the
+  first hook to make the return recognizable.
+
+| Song | Concrete drop / chorus plan |
+| --- | --- |
+| Event Horizon, future bass | Half-time backbeat; final half-beat gap before kick/sub and a wide chord hook. Alternate sustained and shorter chord swells, with a sparse lead answer. Plan rhythmic chord-level shaping as authored envelopes/locks; do not claim an automatic sidechain compressor exists. Second drop adds a higher response and a changed bass rhythm. |
+| Packet Bloom, vapor twitch | Keep a stable backbeat while short plucks and glassy stabs trade offbeat answers. Use deliberate rests and a single phrase-ending pitch/decay gesture; add one controlled percussion variant on later passes. Second drop flips the call/response register. |
+| Neon Transit, electropop | A short pre-chorus drum withdrawal leads into a clear four-on-the-floor chorus and repeatable lead hook. Use tighter drum tails and restrained ambience at entry; open the texture over the chorus. Final chorus changes voicing and adds an answering motif. |
+| Afterglow Relay, chillwave | Use a gentle release into the fuller refrain, preserving the soft groove and melodic identity. Warm chord voicings, bass entry and subtle hat variation supply the lift; avoid forcing an aggressive EDM drop into this arrangement. |
+
+Implementation bounds: work within Lunar's four sounds/eight tracks and actual
+effect-slot/memory admission limits. Several drum tracks can share a kit, so
+locks on shared sound parameters must be scheduled without conflicts. Scene
+columns launch clips, not arbitrary new engine snapshots. Voltage's larger
+effect chains, sample-library machinery and reroll UI are not prerequisites
+for these songs. Use original synthesis and patterns; this research introduces
+no proprietary sample, preset, melody or code dependency.
+
+Acceptance addition: audition each build-to-drop transition in the full song,
+check kick/sub headroom and tails, and compare the first and second drops for
+recognizable identity plus development. These plans remain unrendered until
+the prerequisite streams are integrated; they are not completed demos.
