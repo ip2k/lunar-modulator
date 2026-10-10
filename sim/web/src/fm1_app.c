@@ -712,6 +712,9 @@ static void mod_emit(void *ctx, const char *line) {
 }
 
 static void mod_env(fm1_app_t *a, fm1_mod_ui_env_t *env) {
+  env->scope = a->scope;
+  env->scope_n = FM1_APP_SCOPE;
+  env->scope_pos = (unsigned)a->scope_pos;
   env->m = a->mod;
   env->rate = a->host.sample_rate;
   env->sound = (uint8_t)a->sound;

@@ -13,7 +13,7 @@ from diagnostic_flat import assemble  # noqa: E402
 from audit_link import Elf  # noqa: E402
 
 
-def fixture():
+def fixture(handover=False, boundary_changes=None):
     """Small synthetic ELF with the same load/RAM contract, no target code."""
     sections = [(".entry", FLASH, b"\x60\x00", 2, 1, 6),
                 (".text", FLASH + 2, b"\x80\x00", 2, 1, 6),
@@ -25,6 +25,11 @@ def fixture():
                       __bss_begin=RAM + 4, __bss_end=RAM + 28,
                       __stack_guard=RAM + 32, __stack_bottom=RAM + 48,
                       __stack_top=RAM + 4144)
+    if handover:
+        sections.append((".ssp_stack", RAM + 4144, b"", 4112, 8, 3))
+        boundaries.update(__ssp_guard=RAM + 4144, __ssp_bottom=RAM + 4160,
+                          __ssp_top=RAM + 8256)
+    boundaries.update(boundary_changes or {})
     strings = b"\0"
     names = {}
     for name in [row[0] for row in sections] + [".shstrtab", ".strtab", ".symtab"]:
@@ -44,13 +49,13 @@ def fixture():
     for name, blob, kind, link, entry_size in (
             (".shstrtab", strings, 3, 0, 0),
             (".strtab", symbol_names, 3, 0, 0),
-            (".symtab", bytes(symbols), 2, 7, 16)):
+            (".symtab", bytes(symbols), 2, len(sections) + 2, 16)):
         headers += struct.pack("<IIIIIIIIII", names[name], kind, 0, 0,
                                len(body), len(blob), link, 0, 1, entry_size)
         body += blob
     header = b"\x7fELF" + bytes([1, 1, 1, 0]) + bytes(8)
     header += struct.pack("<HHIIIIIHHHHHH", 2, 0xF1, 1, FLASH, 0, len(body), 0,
-                          52, 0, 0, 40, 9, 6)
+                          52, 0, 0, 40, len(sections) + 4, len(sections) + 1)
     body[:52] = header
     return bytes(body + headers), b"\x60\x00\x80\x00LUNA"
 
@@ -105,6 +110,42 @@ def test_rejects_missing_required_section():
     struct.pack_into("<I", changed, shoff + 4 * 40 + 8, 0)
     with pytest.raises(ValueError, match="required"):
         report(bytes(changed), app, AUDIT)
+
+
+def test_handover_layout_is_explicit_and_separate_from_default():
+    elf, app = fixture(handover=True)
+    result = report(elf, app, AUDIT, profile="handover")
+    assert result["ram_reserved_bytes"] == 8256
+    assert result["ssp_stack_bytes"] == 4096 and result["ssp_guard_bytes"] == 16
+    with pytest.raises(ValueError, match="unexpected allocated"):
+        report(elf, app, AUDIT)
+    with pytest.raises(ValueError, match="profile"):
+        report(elf, app, AUDIT, profile="unknown")
+    elf, app = fixture()
+    with pytest.raises(ValueError, match="boundary"):
+        report(elf, app, AUDIT, profile="handover")
+
+
+@pytest.mark.parametrize("field,value,message", [(12, RAM + 32, "boundary"),
+                                                (20, 16, "boundary"),
+                                                (8, 7, "permissions"),
+                                                (4, 1, "NOBITS")])
+def test_ssp_section_rejects_overlap_size_permissions_and_file_bytes(field, value, message):
+    elf, app = fixture(handover=True)
+    changed = bytearray(elf)
+    shoff, = struct.unpack_from("<I", elf, 32)
+    struct.pack_into("<I", changed, shoff + 6 * 40 + field, value)
+    with pytest.raises(ValueError, match=message):
+        report(bytes(changed), app, AUDIT, profile="handover")
+
+
+@pytest.mark.parametrize("changes", [{"__ssp_guard": RAM + 32},
+                                    {"__ssp_bottom": RAM + 4161},
+                                    {"__ssp_top": RAM + 16385}])
+def test_ssp_boundary_reservations_fail_closed(changes):
+    elf, app = fixture(handover=True, boundary_changes=changes)
+    with pytest.raises(ValueError, match="SSP reservation"):
+        report(elf, app, AUDIT, profile="handover")
 
 
 def test_staging_fails_closed_without_overwriting_or_partial_output(tmp_path):
