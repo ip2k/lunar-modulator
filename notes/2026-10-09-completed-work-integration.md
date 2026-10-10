@@ -225,3 +225,53 @@ A Chromium shared-memory callback timeout can produce a buffer-duration glitch,
 but the failed trace does not localize that cause. Do not claim a production
 runtime fix or that PR132's headless sink correction resolves this separate
 failure. Continue exact-head CI and preserve failed receipts.
+
+## Combined candidate and renewed bench work — 2026-10-10
+
+[verified: live GitHub and source inspection] PR140 is open at
+`9a5fb72a54f5117169840f331fd1f756071e6fd5`; it is not merged. It combines
+the reviewed source histories, actual regenerated artifacts, reconciled docs,
+Warble/Repeat manual sections, and bounded separately named Node CI steps.
+The current module SHA-256 is
+`c88938845cd93e52f5cb99c53a650b4eaf559833e5f39fb58ecc0f0c4ab09502`.
+Engine/simulator input hashes match its record. Root independently checked
+the committed-artifact contract and reviewed the final documentation/CI edits.
+The candidate's recorded validation includes 108 parity scenarios, 4,658
+screens, 271 native checks, 22 contract checks and 36 editor checks. The
+documentation author reports the complete 42-entry manual now builds with
+zero errors/warnings. Fresh exact-head full CI is required before merge.
+Earlier candidate Pages succeeded with two missing-section warnings; those
+warnings prompted the actual manual correction rather than a waived gate.
+
+[verified: completed CI logs] PR132's Chromium job timed out before browser
+launch: nine Node helper tests passed, followed by an opaque stall in the
+combined Node step. The precise hanging process is not localized. PR140
+separates the commands, keeps editor-unit output, and gives each a five-minute
+timeout; no assertions or audio tolerances changed. PR134 and PR136 each
+failed WebKit startup latency on their exact heads and remain unmerged.
+No retry, full-CI pass, native Safari listening pass, or device execution is
+inferred from focused checks. The owner's Sound 2 crackle retest is pending.
+
+[verified: live inventory] GitHub has 25 open PRs. The owner explicitly
+requested disposition of all of them. The reconciliation agent is identifying
+fully/partly subsumed work and independent firmware streams; superseded PRs
+are not closed before the replacement actually merges. Four queued outdated
+PR139 runs were cancelled after checking their heads against current PR139;
+current-head and main runs were left intact. The source branches stay backed up.
+
+[reported: owner, this session] The actual FM-1 remains powered on and
+connected to bench01, and firmware work in parallel is authorized again.
+Cynthion is available if a specific USB trace is needed; the device remains
+on direct bench USB for the initial checks. The hardware investigator uses
+an isolated `fm1-live-bringup` worktree, beginning with current USB identity
+and private backup verification. Revised staged device policy applies.
+Successful scratch-sector restoration is distinct from untested full-image
+restore and broken-app recovery; no new hardware traffic is claimed here.
+
+No schema/API blocker was found for the four demo songs. Existing four sounds,
+eight tracks/eight scenes and song chains suffice. Full-song admission,
+native/Wasm render, session roundtrip, browser workflow and musical listening
+acceptance will apply to the authored assets. Generic project-example filename
+tests and an obsolete schema-test docstring should be corrected with those
+assets. Remaining rate/input-bound audit findings stay tracked, not blanket
+closed. A separately pushed readiness ledger records these distinctions.
