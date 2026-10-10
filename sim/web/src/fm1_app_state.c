@@ -706,6 +706,8 @@ typedef struct plan {
   uint32_t seed;
   uint8_t file_pos[FM1_MOD_POSITIONS];
   uint32_t file_slots;
+  uint8_t same_mod[FM1_MOD_POSITIONS];
+  uint16_t mod_params[FM1_MOD_POSITIONS], mod_data[FM1_MOD_POSITIONS];
   int8_t pos_map[FM1_MOD_POSITIONS];
   int8_t slot_map[FM1_MOD_SLOTS];
   fm1_state_mod_t sm;
@@ -860,6 +862,7 @@ static const fm1_engine_t *rec_engine(unsigned role, const char *id) {
 }
 
 static int plan_pass1(plan_t *p, const fm1_rec_t *r) {
+  fm1_app_t *a = p->a;
   fm1_state_report_t *rep = &p->rep->r;
   if (p->enc == 1) fm1_state_note_unknown(names(), r, rep);   /* the binary reader resolves no names */
   switch (r->type) {
@@ -910,7 +913,33 @@ static int plan_pass1(plan_t *p, const fm1_rec_t *r) {
       p->seed = r->u.seed;
       break;
     case FM1_REC_MODULE:
-      if (r->slot < FM1_MOD_POSITIONS) p->file_pos[r->slot] = 1;
+      if (r->slot < FM1_MOD_POSITIONS) {
+        p->file_pos[r->slot] = 1;
+        p->same_mod[r->slot] = (uint8_t)(a->mod && fm1_mod_kind_at(a->mod, r->slot) >= 0 &&
+          fm1_mod_kind_at(a->mod, r->slot) == fm1_mod_kind_find(r->u.unit.id));
+      }
+      break;
+    case FM1_REC_PARAM:
+      if (r->role == FM1_ROLE_MODULE && r->slot < FM1_MOD_POSITIONS && p->same_mod[r->slot]) {
+        const int k = fm1_mod_kind_at(a->mod, r->slot);
+        const fm1_mod_kind_t *kind = fm1_mod_kinds[k];
+        unsigned i;
+        for (i = 0; i < kind->n_params; ++i) if (kind->params[i].uid == r->u.param.uid) break;
+        if (i == kind->n_params || fm1_mod_param_base(a->mod, r->slot, i) != rec_value(&kind->params[i], r))
+          p->same_mod[r->slot] = 0;
+        ++p->mod_params[r->slot];
+      }
+      break;
+    case FM1_REC_DATA:
+      if (r->slot < FM1_MOD_POSITIONS && p->same_mod[r->slot]) {
+        uint8_t data[FM1_MOD_DATA_MAX], version = 0;
+        const unsigned n = fm1_mod_get_data(a->mod, r->slot, data, sizeof data, &version);
+        unsigned off = (r->piece & FM1_REC_FIRST) ? 0 : p->mod_data[r->slot];
+        if (version != r->u.data.version || off + r->u.data.n > n ||
+            memcmp(data + off, r->u.data.b, r->u.data.n) || ((r->piece & FM1_REC_LAST) && off + r->u.data.n != n))
+          p->same_mod[r->slot] = 0;
+        p->mod_data[r->slot] = (uint16_t)(off + r->u.data.n);
+      }
       break;
     case FM1_REC_CABLE:
       if (r->slot < FM1_MOD_SLOTS) p->file_slots |= 1u << r->slot;
@@ -1152,7 +1181,27 @@ static int plan_finish(plan_t *p) {
   /* Room for a merge's modulation: free rack positions and matrix slots. */
   for (unsigned i = 0; i < FM1_MOD_POSITIONS; ++i) p->pos_map[i] = (int8_t)i;
   for (unsigned i = 0; i < FM1_MOD_SLOTS; ++i) p->slot_map[i] = (int8_t)i;
-  if (p->has_mod && (p->kind == FM1_STATE_SOUND || p->kind == FM1_STATE_FX)) {
+  if (p->kind == FM1_STATE_SOUND && (flags & FM1_APP_LOAD_RESTORE_SOUND) && a->mod) {
+    modf_t f;
+    memset(&f, 0, sizeof f); f.mode = MOD_SOUND; f.k = p->o->into;
+    for (unsigned pos = 0; pos < FM1_MOD_POSITIONS; ++pos) {
+      const int k = fm1_mod_kind_at(a->mod, pos);
+      if (p->file_pos[pos] && k >= 0 && (p->mod_params[pos] != fm1_mod_kinds[k]->n_params ||
+          p->mod_data[pos] != fm1_mod_kinds[k]->data_bytes)) p->same_mod[pos] = 0;
+    }
+    for (unsigned i = 0; i < FM1_MOD_SLOTS; ++i) {
+      fm1_mod_slot_t slot;
+      if (!fm1_mod_get_slot(a->mod, i, &slot) || (!slot.dst && !(slot.flags & FM1_MOD_SLOT_GATE_DST)) || keep_cable(&f, &slot)) continue;
+      if ((p->file_slots >> i) & 1u)
+        return refuse_load(p, FM1_STATE_NO_ROOM, "Cable slot changed", "A/B's original cable slot now belongs to %s.", "another destination");
+      const uint8_t refs[2] = { slot.src, slot.via };
+      for (unsigned j = 0; j < 2; ++j) if (refs[j] >= FM1_MOD_SRC_MODULE && refs[j] != FM1_MOD_NONE) {
+        const unsigned pos = (refs[j] - FM1_MOD_SRC_MODULE) / 8u;
+        if (pos < FM1_MOD_POSITIONS && p->file_pos[pos] && !p->same_mod[pos])
+          return refuse_load(p, FM1_STATE_NO_ROOM, "Shared module changed", "A/B cannot replace a changed module shared with %s.", "another destination");
+      }
+    }
+  } else if (p->has_mod && (p->kind == FM1_STATE_SOUND || p->kind == FM1_STATE_FX)) {
     uint8_t taken[FM1_MOD_POSITIONS];
     uint32_t used = 0;
     int short_pos = 0, short_slot = 0;
@@ -1434,6 +1483,7 @@ static int plan_pass2(plan_t *p, const fm1_rec_t *r) {
         if (!p->sm_ready || r->slot >= FM1_MOD_POSITIONS) break;
         {
           fm1_rec_t q = *r;
+          if ((p->o->flags & FM1_APP_LOAD_RESTORE_SOUND) && p->kind == FM1_STATE_SOUND && p->same_mod[r->slot]) break;
           q.slot = (uint8_t)p->pos_map[r->slot];
           fm1_state_mod_sink(&p->sm, &q);
         }
@@ -1460,6 +1510,7 @@ static int plan_pass2(plan_t *p, const fm1_rec_t *r) {
     case FM1_REC_DATA:
       if (p->sm_ready && r->slot < FM1_MOD_POSITIONS) {
         fm1_rec_t q = *r;
+        if ((p->o->flags & FM1_APP_LOAD_RESTORE_SOUND) && p->kind == FM1_STATE_SOUND && p->same_mod[r->slot]) break;
         q.slot = (uint8_t)p->pos_map[r->slot];
         fm1_state_mod_sink(&p->sm, &q);
       }
@@ -1714,6 +1765,18 @@ int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t tot
     a->on_mfx = NULL;
     a->on_cmd = NULL;
     memset(&a->info, 0, sizeof a->info);
+  }
+  if (p->kind == FM1_STATE_SOUND && (o->flags & FM1_APP_LOAD_RESTORE_SOUND) && a->mod) {
+    modf_t f;
+    memset(&f, 0, sizeof f); f.mode = MOD_SOUND; f.k = o->into;
+    for (unsigned i = 0; i < FM1_MOD_SLOTS; ++i) {
+      fm1_mod_slot_t slot;
+      if (fm1_mod_get_slot(a->mod, i, &slot) && keep_cable(&f, &slot)) {
+        memset(&slot, 0, sizeof slot);
+        slot.src = slot.via = FM1_MOD_NONE;
+        fm1_mod_set_slot(a->mod, i, &slot);
+      }
+    }
   }
   for (int u = 0; u < FM1_APP_UNITS; ++u) p->focus_idx[u] = -1;
   /* The units a merge replaces go first, so the RAM rule never sees the

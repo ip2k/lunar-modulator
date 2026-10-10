@@ -12,7 +12,7 @@
 
 SIM ?= $(abspath ../sim/web)
 
-SIM_CFLAGS := -std=c99 $(OPT) $(EXTRA) -Wall -Wextra -Iinclude -I$(GPL_GEN) -I$(SIM)/src -MMD -MP
+SIM_CFLAGS := -std=c99 $(OPT) $(EXTRA) -Wall -Wextra -Iinclude -Imod -I$(GPL_GEN) -I$(SIM)/src -MMD -MP
 
 # Every engine object fm1-render links, without its main() (msfa's units,
 # MSFA_OBJ, mk/msfa.mk, among them, and the GPL modules' C objects, GPL_OBJ,

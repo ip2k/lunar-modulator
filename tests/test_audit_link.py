@@ -306,7 +306,7 @@ def build_linked(funcs, init_ptrs=None, extra_syms=()):
     return ehdr + body + heads, addrs
 
 
-def run_linked(elf_bytes, tmp_path, app=None, sources=None):
+def run_linked(elf_bytes, tmp_path, app=None, sources=None, runtime="sdk"):
     p = tmp_path / "fw.elf"
     p.write_bytes(elf_bytes)
     a = None
@@ -316,11 +316,42 @@ def run_linked(elf_bytes, tmp_path, app=None, sources=None):
     args = AL.argparse.Namespace(elf=str(p), app=str(a) if a else None, objects=None, json=None)
     elves, flat, linked = AL.collect_elves(args)
     assert linked is True
-    return AL.audit(elves, flat, linked, sources)
+    return AL.audit(elves, flat, linked, sources, runtime=runtime)
 
 
 NOP = b"\x00" * 8
 DORMANT = [("sdk_meky_check", NOP), ("_mkey_check", NOP), ("isr_check_key", NOP)]
+
+
+def test_sdk_free_image_requires_no_key_or_initcall_machinery(tmp_path):
+    clean, _ = build_linked([("_start", NOP)])
+    result = run_linked(clean, tmp_path, runtime="sdk-free")
+    assert result["passed"] and result["n_pending"] == 0
+    # The SDK default still requires its dormant check; selecting the other
+    # runtime explicitly is necessary, never inferred from absent symbols.
+    assert not run_linked(clean, tmp_path)["passed"]
+    retained, _ = build_linked(DORMANT, init_ptrs=["sdk_meky_check"])
+    result = run_linked(retained, tmp_path, runtime="sdk-free")
+    assert status(result, "dormant_keycheck_absent") == "fail"
+    assert status(result, "late_initcall_group") == "fail"
+
+
+def test_sdk_free_does_not_allow_sdk_mailbox_exception(tmp_path):
+    image, _ = build_linked([("mkey_dummy_func", struct.pack("<I", 0x01C8010C))])
+    result = run_linked(image, tmp_path, runtime="sdk-free")
+    assert status(result, "keycheck_mailbox_unwritten") == "fail"
+
+
+def test_sdk_free_rejects_object_only_evidence():
+    image = AL.Elf(build_object(symbols=("our_code",)))
+    result = AL.audit([("our.o", image)], [], False, runtime="sdk-free")
+    assert status(result, "sdk_free_linked") == "fail"
+
+
+def test_sdk_free_rejects_undefined_dormant_reference():
+    image = AL.Elf(build_object(undef=("sdk_meky_check",), e_type=2))
+    result = AL.audit([("our.elf", image)], [], True, runtime="sdk-free")
+    assert status(result, "dormant_keycheck_absent") == "fail"
 
 
 def le(v):
