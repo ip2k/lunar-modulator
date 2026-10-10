@@ -17,3 +17,6 @@ engines/build*/
 _site/
 # Scratch output at the top of a checkout or worktree (renders, probes).
 /build/
+# Share semantic project settings, keep indexes and local memories private.
+/.serena/*
+!/.serena/project.yml
