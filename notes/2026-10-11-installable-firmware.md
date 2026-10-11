@@ -256,3 +256,24 @@ analyzer VBUS control; installed bench support and whether VBUS cycling causes
 an FM-1 reset remain unverified. Its battery prevents treating USB power-off as
 CPU power-off. Proposed wiring and sources are recorded with the RAM probe.
 All builds continue on Hera. No new device protocol traffic or power switching.
+
+
+## Exact-image transport and current Cynthion inventory
+
+Added `tools/fm1_ram_recovery.py`, a separate ROM-only exact-image transport
+with no CLI. It validates the 700-byte artifact before opening USB, requires
+a fresh exact-owner entry record, matches the opened SG device to that record,
+and permits two fixed encrypted blocks followed by one jump. All operations
+are consumed on failure; there is no retry or loader/flash command path. The
+existing backup reader is unchanged. Offline upstream decoding reproduces all
+700 bytes plus zero padding. Hera transport/backup guard checks pass, including
+all-opcode refusal and fresh same-port identity binding.
+
+Read-only bench inventory: Cynthion r1.4, analyzer protocol 1.1, and normal
+FM-1 are present on bus 003. Existing cynthcap can query its version/speeds;
+that tool deliberately preserves power bits and has no VBUS switch command.
+Different-hub capture wiring and battery-powered reset behavior still need
+verification. No probe execution, soft key, power switching or flash mutation.
+Component checkpoint `2ce33e91a33873cc89c79b4d946387f0174084a4` was pushed
+and verified against the remote. Current goal remains the installable diagnostic
+image, with hardware startup and recovery acceptance still outstanding.

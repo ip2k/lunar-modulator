@@ -2,8 +2,12 @@
 
 Independent MIT experiment; built offline on Hera, **not uploaded or executed**.
 This is a recovery prerequisite experiment, not the installable-image milestone.
-There is currently no upload entry point. The existing backup reader still
-accepts only its audited vendor loader; do not bypass or weaken that allowlist.
+The separate `tools/fm1_ram_recovery.py` prepares the exact-image ROM-only
+transport, with no CLI entry point. It requires the exact owner reply and a
+fresh (120 seconds) same-port normal-to-UBOOT entry record, binds that record
+to the opened SG device, permits two exact encrypted blocks and one jump, and
+latches every transport failure. The existing backup reader still accepts
+only its audited vendor loader; its allowlist has not changed.
 
 [verified: target build] The 700-byte initialized image starts at `0x01c02000`.
 SHA-256: `4498aabad49b5acf1c4f90d949463b590e76e56acf80d6e6d01b292ee9d32c42`.
@@ -30,9 +34,12 @@ build. Checking current core zero does not prove the other core is stopped.
 The diagnostic RAM state is not currently accessible through a reviewed
 transport. A transmitted request is not proof that reset occurred.
 
-Before execution, prepare and test an exact-image allowlisted ROM-only upload
-path, including per-block encryption, fixed length/address, fresh owner-unit
-identity/UBOOT enumeration and one jump attempt. No flash/loader/eFuse or
+[verified: offline] The exact-image transport has been prepared and tested,
+including per-block encryption, fixed length/address, fresh owner-unit
+identity/UBOOT enumeration and one jump attempt. Hera passes the transport and
+existing backup guards; all 65,536 opcode values are exercised. An independently
+executed upstream decoder reproduces all 700 bytes plus 324 zero-padding bytes.
+These checks do not prove that ROM executes this custom image. No flash/loader/eFuse or
 arbitrary-memory operations may be added. A jump transport timeout is an
 ambiguous outcome: observe USB, never automatically repeat the jump.
 
@@ -54,3 +61,9 @@ Capture reset/enumeration transitions and test installed power-control support.
 USB VBUS cycling must not be assumed to reset the battery-powered FM-1;
 verify behavior before using it as unattended recovery. No Cynthion power or
 firmware change has been performed in this session.
+
+[verified: read-only bench] Cynthion r1.4, analyzer protocol 1.1, is attached
+to bench01. Its existing `/home/claude/cynthcap-test/cynthcap` can list it. This
+capture tool explicitly preserves power-control bits and cannot switch VBUS.
+Current Cynthion and FM-1 connections both appear on USB bus 003; check the
+new wiring against the different-hub requirement before capture.

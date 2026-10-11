@@ -31,8 +31,10 @@ exercise both components. No installable package or custom device execution.
 
 TIMER4 and recovery have 32 passing Hera host checks. An offline 700-byte
 RAM recovery probe now has a concrete plan in `firmware/ram-recovery/README.md`;
-it has no upload entry point and has not executed. Next prepare/test its exact
-ROM-only allowlist, then record distinct USB reset/enumeration. Cynthion capture
+its separate exact-image transport is tested and has no CLI/device execution.
+Next confirm capture wiring and manual power-cycle fallback, then record a
+distinct USB reset/enumeration. Last verified pushed component checkpoint:
+`2ce33e91a33873cc89c79b4d946387f0174084a4`. Cynthion capture
 and VBUS control may help, but battery-powered CPU reset must be verified.
 
 Startup/core/exception ownership, calibrated timer/clock, watchdog, PA2 and
