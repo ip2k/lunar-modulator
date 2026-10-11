@@ -13,8 +13,10 @@ A source component, checkpoint push or simulated display is not completion.
 Branch `feature/2026-10-11@installable-firmware` starts from origin/main
 `b335dc2c450473dc375163aec7fa679e1b099cc3`. Current managed checkout:
 `/Users/likwid/.codex/worktrees/installable-firmware/mvave-fm1-firmware`.
-The checkpoint containing this note is the recovery point; verify its upstream
-SHA before describing it as backed up. No PR was opened or main merge attempted.
+[verified] Implementation checkpoint `c95758b388c852b1ffd43d9746242eefbaf067d4`
+was pushed to origin on this branch and matched the remote branch SHA. The
+subsequent documentation checkpoint records these final verification receipts.
+No PR was opened or main merge attempted.
 
 ## Bench state and missing hardware acceptance
 
@@ -65,7 +67,10 @@ and concrete recovery plan are reviewed.
 
 [verified] Host `cc -std=c99 -Wall -Wextra -Werror` shared-library compilation
 passes. Focused pytest run: 31 passed, 2 optional skips (private guarded stock
-app not supplied, ignored vendor target artifact absent). `bash -n` and
+app not supplied, ignored vendor target artifact absent). A subsequent focused
+run supplied the local private stock V15 app via `LUNAR_STOCK_APP`: all 14 panel
+protocol tests passed, including its SHA-guarded stock setup-table comparison.
+The target-artifact check remains unavailable. `bash -n` and
 `git diff --check` pass. System Python lacks pytest; the existing original
 checkout `.venv/bin/python` executes the tests successfully.
 
@@ -91,7 +96,9 @@ outside its configured workspace. Bare-name fallback searched only 200 files
 and exact position in the original checkout is absent. No other session's
 server/root was changed. File inspection and host compiler checks are used;
 Rarefaction needs a connection rooted at this checkout before it can navigate
-new files. Neither tool validates device ABI/MMIO.
+new files. Serena also locates the Python stale-completion test and its exact
+body at lines 183–192; C transport diagnostics return empty, with index
+completeness unproven. Neither tool validates device ABI/MMIO.
 
 ## Next dependent work
 
