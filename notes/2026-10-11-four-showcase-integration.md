@@ -1,0 +1,9 @@
+# Four-showcase permanent integration
+
+Working branch chore/2026-10-10@demo-song-acceptance, parent basefe239518. Imported four post-f093 composition checkpoints; sourcecritique reports copied from exact criticfa6bbeb3. Permanent catalog lists four new showcases and retains original four as example sequences. Aggregate sim/web/test/showcase-songs.json contains Afterglow104/44/4,Event150/68/7,Packet82/40/5,Satellite124/60/6; legacy demo-songs.json and original assets remain unchanged. CI continues legacygenerator --check and adds newshowcase --check, routes fullruntime/browser checks to newaggregate manifest.
+
+Integration uncovered legacygenerator dependency: sourcebranch had newer Afterglow/Event patch profiles than parentlegacybranch. Added tools/showcase_palettes.json containing reviewed canonical patch/master/DX7 template data (no authored set), so tools/showcase_songs.py no longer imports legacy demo_songs.py. All four finalasset hashes remain byte-identical to reviewed/native/browser-passed versions. --check is now read-only; no live Satellite overwrite or HTTPserver change.
+
+Local exact generation checks passed for both generators; node syntax checks passed catalog and two acceptance harnesses. Local plain python lacksPyYAML, so CI YAML parse was not claimed passed. Rarefaction root remains maincheckout; left untouched, no branchsemanticclaim. Serena ownsession selected exactintegrationabsolutecheckout, bounded main/buildcaller navigation matched actualsource; no globalserverrestart.
+
+Next: exactintegration native/Wasm/browser checks in uniqueLAN stages, persistreceipts; requiredCI/review beforemerge. OwnerSatellite audition active, all musicalacceptance pending. Acid longgates implemented, newamp sustain/release capability unresolved.

@@ -5,6 +5,7 @@ Generate Satellite Hearts' six-section electropop project. Musical acceptance
 requires listening; this generator only asserts metadata and event invariants.
 """
 from __future__ import annotations
+import argparse
 import copy
 import json
 from pathlib import Path
@@ -264,10 +265,9 @@ def build_packet():
 
 
 def build_relay_or_event(style):
-    from tools import demo_songs
-    config=next(x for x in demo_songs.SONGS if x['style']==style)
-    # Retain the required engine/patch work, replace every legacy clip/chain.
-    doc=demo_songs.build(config)
+    # Immutable reviewed patch palettes; independent of the legacy generator.
+    palettes = json.loads((ROOT / 'tools/showcase_palettes.json').read_text())
+    doc = copy.deepcopy(palettes[style])
     arp=copy.deepcopy(state_canon.loads((ROOT/'engines/state/examples/first-orbit.lunar').read_text())['sounds'][2]['midi_fx'][0]);arp['on']=False
     for snd in doc['sounds']:snd['midi_fx']=[copy.deepcopy(arp)]
     doc['mod']['cables']=[]
@@ -394,23 +394,53 @@ def build_relay_or_event(style):
     return doc
 
 
-def main():
-    doc=build_satellite()
-    content=state_canon.dumps(doc)
-    for relative in ['engines/state/examples/satellite-hearts.lunar','sim/web/www/examples/satellite-hearts.lunar']:
-        (ROOT/relative).write_text(content)
-    (ROOT/'sim/web/test/satellite-hearts.json').write_text(json.dumps([{'file':'../../../engines/state/examples/satellite-hearts.lunar','title':'Satellite Hearts','bpm':124,'bars':60,'scenes':6}],indent=2)+'\n')
-    print('Satellite Hearts: 60 bars, six distinct chained scenes, 124 BPM; source invariants passed')
-    packet=state_canon.dumps(build_packet())
-    # New path keeps the owner-rejected original Packet Bloom example intact.
-    for relative in ['engines/state/examples/packet-bloom-showcase.lunar','sim/web/www/examples/packet-bloom-showcase.lunar']:
-        (ROOT/relative).write_text(packet)
-    (ROOT/'sim/web/test/packet-bloom-showcase.json').write_text(json.dumps([{'file':'../../../engines/state/examples/packet-bloom-showcase.lunar','title':'Packet Bloom','bpm':82,'bars':40,'scenes':5}],indent=2)+'\n')
-    print('Packet Bloom: 40 bars, five distinct chained scenes, 82 BPM; source invariants passed')
-    for style,slug,bpm,bars,scenes,title in [('chill','afterglow-relay-showcase',104,44,4,'Afterglow Relay'),('future','event-horizon-showcase',150,68,7,'Event Horizon')]:
-        content=state_canon.dumps(build_relay_or_event(style))
-        for relative in [f'engines/state/examples/{slug}.lunar',f'sim/web/www/examples/{slug}.lunar']:(ROOT/relative).write_text(content)
-        (ROOT/f'sim/web/test/{slug}.json').write_text(json.dumps([{'file':f'../../../engines/state/examples/{slug}.lunar','title':title,'bpm':bpm,'bars':bars,'scenes':scenes}],indent=2)+'\n')
-        print(f'{title}: {bars} bars, {scenes} distinct scenes, {bpm} BPM; source invariants passed')
+def outputs():
+    songs = [
+        ('afterglow-relay-showcase', 'Afterglow Relay', 104, 44, 4, build_relay_or_event('chill')),
+        ('event-horizon-showcase', 'Event Horizon', 150, 68, 7, build_relay_or_event('future')),
+        ('packet-bloom-showcase', 'Packet Bloom', 82, 40, 5, build_packet()),
+        ('satellite-hearts', 'Satellite Hearts', 124, 60, 6, build_satellite()),
+    ]
+    files = {}
+    manifest = []
+    for slug, title, bpm, bars, scenes, doc in songs:
+        for snd in doc['sounds']:
+            for param in META[snd['engine']]['params']:
+                records = snd.get('pads', []) if 'per_focus' in param['flags'] else [snd['params']]
+                for record in records:
+                    value = record[param['name']]
+                    assert value in param['entries'] if param['type'] == 'enum' else param['min'] <= value <= param['max']
+        raw = state_canon.dumps(doc).encode()
+        for folder in ['engines/state/examples', 'sim/web/www/examples']:
+            files[ROOT / folder / f'{slug}.lunar'] = raw
+        entry = {'file': f'../../../engines/state/examples/{slug}.lunar', 'title': title,
+                 'bpm': bpm, 'bars': bars, 'scenes': scenes}
+        files[ROOT / 'sim/web/test' / f'{slug}.json'] = (json.dumps([entry], indent=2) + '\n').encode()
+        manifest.append(entry)
+    files[ROOT / 'sim/web/test/showcase-songs.json'] = (json.dumps(manifest, indent=2) + '\n').encode()
+    return files
 
-if __name__=='__main__': main()
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--check', action='store_true', help='verify generated projects and manifests without writing')
+    group.add_argument('--write', action='store_true', help='write generated projects and manifests (default)')
+    args = parser.parse_args()
+    files = outputs()
+    if args.check:
+        stale = [str(path.relative_to(ROOT)) for path, raw in files.items()
+                 if not path.exists() or path.read_bytes() != raw]
+        if stale:
+            print('Stale showcase files: ' + ', '.join(stale), file=sys.stderr)
+            return 1
+        print('Four showcase projects, mirrors and manifests are current; source invariants passed')
+        return 0
+    for path, raw in files.items():
+        path.write_bytes(raw)
+    print(f'Wrote {len(files)} showcase files; source invariants passed')
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
