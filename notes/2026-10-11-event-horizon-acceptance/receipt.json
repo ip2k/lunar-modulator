@@ -1,0 +1,51 @@
+{
+  "revision": "e608ad855fd4934d25fc55c4df6985fe8d2422a8",
+  "native_renderer_sha256": "a17a9a3255dc80a88a528f4ba24ecf85d14852fb310cb8fc831314285ce4dda2",
+  "wasm_sha256": "4667498f919529ba0f1059f127ea02e60c2c2a76ee5bc16983cfeabbb96b76ec",
+  "projects": {
+    "afterglow-relay": "762441f46b06c067d35ad41b500ec80086c54a5acb826de7cd729d9fa6c4d76b",
+    "event-horizon": "8076eba63ed5b4b083c18ca1715ba11e34ac2d037f4652245e94b450ddeb29f7",
+    "neon-transit": "e19152d0747d6d2a69cc61eaabeed6d083f89fbecdfa7e1d85ba7f9911f6e251",
+    "packet-bloom": "7d755fd777f1b0534c2518717e4bded475872db57f9596fe410d75606765e349"
+  },
+  "native_wasm": {
+    "afterglow_relay": {
+      "status": "pass",
+      "duration_seconds": 198.26,
+      "peak": 0.6894,
+      "rms": 0.0656,
+      "native_wav_sha256": "5419f2ffd8b08b6204c4998fc493d3eba750ac5df763def4247ce5e99831690c",
+      "wasm_wav_sha256": "f8b87fed9626fb2e872dd44f3efefe7eae2d17bd5efe1c0124dc07f9a17f55a4"
+    },
+    "event_horizon": {
+      "status": "blocked_by_canonical_repair_assertion",
+      "expected_repairs": 0,
+      "actual_repairs": 1,
+      "wasm_load_status": "ok",
+      "wasm_load_ram_percent": 39,
+      "sounds": 4,
+      "effects": 2,
+      "tracks": 8,
+      "clips": 64,
+      "scenes": 16,
+      "set": 1,
+      "skipped": 0,
+      "observed_difference": "Runtime adds a disabled default arp midi_fx entry to each of four sound records; source has midi_fx: [].",
+      "interpretation": "This is a real load-save canonicalization difference. No repair was waived; native/Wasm harness stopped before full Event render."
+    },
+    "neon_transit": "not_reached",
+    "packet_bloom": "not_reached"
+  },
+  "chromium": {
+    "browser_version": "153.0.8010.12",
+    "status": "pass",
+    "all_four_listed_played_saved_and_reopened": true,
+    "errors": [],
+    "receipt": "browser-demo-files.json",
+    "remote_receipt_directory": "/home/claude/mvave-fm1/demo-event-e608ad8-20261011/lunar-event-e608ad8-20261011/receipts/browser",
+    "event_download_sha256": "b58451dfb97a518b7ff153de4eb04ba4ff77874bcc011f58314deb730460de79",
+    "event_screenshot_sha256": "96c6d6b1f58ea4b38acb1b5ced927b39ae9b2de53d5666aa92b55eaf6e8a5c10"
+  },
+  "audio_and_screenshots_remote_scratch": "/home/claude/mvave-fm1/demo-event-e608ad8-20261011/lunar-event-e608ad8-20261011",
+  "hardware_or_listening_claim": false
+}
