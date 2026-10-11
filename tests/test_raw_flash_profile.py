@@ -10,8 +10,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools/jieli'))
 import raw_flash_profile as raw  # noqa: E402
-from test_inspect_stock_flash import synthetic_decoded, jlfs  # noqa: E402
-from test_diagnostic_report import fixture as diagnostic  # noqa: E402
+from tests.test_inspect_stock_flash import synthetic_decoded, jlfs  # noqa: E402
+from tests.test_diagnostic_report import fixture as diagnostic  # noqa: E402
 
 
 def encode(decoded):
