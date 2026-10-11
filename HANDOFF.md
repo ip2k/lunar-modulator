@@ -478,3 +478,14 @@ transactions passed 156 focused Hera checks in 16 chunks (no skips). Native
 loader review is in `notes/2026-10-11-loader-native-review.md`; exact test pins
 are in `notes/2026-10-11-diagnostic-directory-last.md`. SDK recovery/native review,
 fresh physical backups, installation/restore and panel acceptance remain pending.
+
+SDK diagnostic checkpoint: C-only pinned V1.2.13 dual-core build is saved in
+firmware/sdk-diagnostic/, with native audit and builder. Hera linked a 120432-byte
+private app (SHA256 991b569df7d131320e42ef34c1b619de586d2a7ba6236c0ea1c089731eb61fa9);
+18 focused checks passed, including actual ELF mutations. Independent startup,
+registry, ordinary NOR-path and P33 review found no actionable defect within
+its stated scope; see notes/2026-10-11-sdk-diagnostic-review.md. Hardware remains
+unverified. The healthy-runtime recovery attempt does not cover a stalled
+P33 lock owner or failure to create the worker. Root is implementing the distinct
+raw SDK gate; a reviewed fixed-loader reader and fresh dual backups are still
+required before installation. Last prior verified backup: fa11706831a9f74347c6d4966276c11ef88b7c36.
