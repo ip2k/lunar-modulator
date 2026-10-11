@@ -11,7 +11,7 @@ original conversation; last updated 2026-10-11. Read this first, then
 
 ## Installable firmware image resumed — 2026-10-11
 
-The confirmed first milestone is a diagnostic image that boots, shows a display
+The agreed first milestone is a diagnostic image that boots, shows a display
 probe and retains recovery; playable Lunar follows later. Do not treat a
 component checkpoint as completion. Active branch:
 `feature/2026-10-11@installable-firmware`, managed checkout
@@ -26,7 +26,12 @@ the same port re-enumerated UBOOT. This does not independently prove marker
 or P33 execution. No flash command was sent; no flash reread was performed.
 Device commands stopped after that attempt; normal-operation acceptance remains
 pending. The owner subsequently asked whether UBOOT can reboot without a
-physical power cycle; the exact loader reset path is under offline review.
+physical power cycle. The exact loader FC0C argument-1 body requests a core
+soft reset, but loading it can parse stale RAM configuration and write NOR
+status registers. Its new guard is simulation-only while that initializer
+boundary remains unresolved. A separate minimal RAM reset stub is under offline
+review; neither path has been attempted on hardware. See
+[the reset audit](notes/2026-10-11-loader-run-app-reset.md).
 See [the bench result](notes/2026-10-11-fm1-ram-probe.md).
 
 **Build on Hera (`claude@192.168.1.48`); aeon is under owner maintenance.**
@@ -47,7 +52,7 @@ restriction below is historical and superseded. Independent review conditionally
 supports one exact 700-byte no-flash RAM probe with fresh unit/port binding,
 no retries, and a durable receipt. Post-jump enumeration alone cannot prove
 that P33 executed. Latest verified pushed recovery checkpoint:
-`fd6b9f3e1a036e82f26116e19cc7b6b3e5e8b925`.
+`2b415bd911a1255c0de74e8d170f0d46b0c5b9d9`.
 
 Recovery development now adds a persistent whole-flash protocol model, durable
 transaction artifacts and a resumable fixed scratch-sector restore mode. The
@@ -60,8 +65,9 @@ collected nodes ran exactly once; 5,451 passed, 38 skipped, zero failures/errors
 The earlier four manual-SVG discrepancies were fixed by stable summation;
 standard full collection also exposed and resolved two peer-test imports.
 Explicit diagnostic-profile propagation and raw FM-1_092 target validation
-passed independent review. A separate injected-transport diagnostic adapter is
-being tested/reviewed; the green full run predates that uncommitted adapter.
+passed independent review. A separate injected-transport diagnostic adapter
+passed independent review and 115 combined checks (two optional skips); the
+green full run predates that adapter source. It has no physical opener or CLI.
 This stream remains WIP; do not merge an unfinished checkpoint. See
 [the recovery runbook](docs/17-recovery.md) for procedures and physical limits.
 

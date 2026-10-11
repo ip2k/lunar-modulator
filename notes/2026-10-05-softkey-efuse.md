@@ -13,7 +13,7 @@ A synthesis step that was meant to write this note was stopped by an automated s
 **Soft key.**
 - In stock V15 and in FM-1_092 (byte-identical paths), the message only writes the marker string `usb_update_mode` to RAM `0x01C7FD80` and resets the chip through P33. No flash, VM or `UPDATA_PARM` write happens [verified: disassembly].
 - After the reset, the mask ROM's UBOOT mode offers memory read, memory write and jump. It waits until the host acts or the power is cycled [reported: FM-1-transporter, kagaimiq].
-- A dump needs the JieLi download loader uploaded to RAM and run, and then only read commands.
+- A dump needs the JieLi download loader uploaded to RAM and run, followed by host query/read commands. Loader initialization itself can write NOR status registers when retained RAM selects quad mode; the [2026-10-11 review](2026-10-11-loader-run-app-reset.md) narrows the earlier read-only claim [verified].
 
 **Are the eFuse checks exercised, and what blows a fuse?**
 - The SDK's key check (`sdk_meky_check`, which runs `_mkey_check` 8 s after boot) is present in every SDK release from V1.1.9 to V1.2.13 and in every stock FM-1 image (V13, V14, V15, FM-1_092) [verified].
@@ -105,12 +105,13 @@ Trap 7's syscmd 33-36 and 48 belong to the separate 00 59 framing.
 There is no evidence of autonomous flash writes; the ROM has not been dumped. The slide switch removes power completely (docs/10, verified 2026-09-06).
 - The loader's command set, and which commands are read-only. Disassembled from jl-uboot-tool's wl82loader.bin after deciphering it with the documented cipher, loaded at 0x01C02000. [[verified] disassembly (out/ldr.dis); [inferred] that the default (no status-register write) applies when nothing is written after the loader] — The dispatcher is at 0x01C04194:
 - FB: 00/01/02 → ioctl 201/200/202 (erase block/sector/chip), 04 write flash, 06 write memory, 08 jump, 0x42 → ioctl 203.
-- FC (table at 0x01C042C6): 09 read key, 0A online device (ioctl 100, cached JEDEC ID), 0B read ID, 0C run app (writes SFRs at 0x51000/0x11800, then jumps), 0D rejected, 0E flash CRC, 12 (parses a 3300-5500 range), 13, 14 USB buffer size, 16 (a data-OUT command); also 40-48, 83, 84, 9D, A0, A1.
+- FC (table at 0x01C042C6): 09 read key, 0A online device (ioctl 100, cached JEDEC ID), 0B read ID, 0C run app (writes SFRs at 0x51000/0x11800, then requests a core soft reset through 0x10000 bit4), 0D rejected, 0E flash CRC, 12 (parses a 3300-5500 range), 13, 14 USB buffer size, 16 (a data-OUT command); also 40-48, 83, 84, 9D, A0, A1. The [2026-10-11 exact-loader review](2026-10-11-loader-run-app-reset.md) corrects the earlier “then jumps” shorthand and records the default-context and initialization limits [verified].
 - FD: 05 read flash, 07 read memory, 0B ID.
 FD05 only calls the device read op (ops[1] = 0x01C04E1A), updates a RAM CRC and sends data to the host.
 Two cautions:
 - FC0A reconfigures the SPI mode if CDB bytes 6-7 are '_' '0', so pad CDBs with 0xFF.
 - The norflash init (ops[0] 0x01C04E3C → 0x01C03ACA) issues WREN + 01/31 status-register writes to set the QE bit when its configured mode is quad (4) and QE is clear. That mode comes from a config block at 0x01C07E00, right after the loader; without a block the default is mode 2 (dual), which takes no status-register write.
+  Correction, 2026-10-11 [verified]: entry also considers 0x01C08E00 and deciphers/parses 1,024 bytes even when no valid CRC-bearing header is found. Both windows are outside the exact uploaded image and are not cleared by entry. “No block uploaded” is insufficient to prove default mode with retained RAM; the earlier default-path inference remains unproven for a new session. See the exact-loader review above.
 The write path also toggles write protection ('norflash_write_protect').
 - The shortest read-only command sequence for a full dump is known. [[verified] loader dispatch; [reported] CDB layout and timing (FM-1-transporter src/jieli_uboot.c, PROTOCOL.md)] — In one session:
 1. ROM FB06 × 47 blocks of 512 B: the already-ciphered loader into 0x01C02000-0x01C07DFF, each block with CRC16-XMODEM as an argument.

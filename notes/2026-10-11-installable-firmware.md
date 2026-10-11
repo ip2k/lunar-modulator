@@ -481,3 +481,43 @@ Evidence and independent review are retained in ignored
 `build/bound-diagnostic-independent-review.md`.
 The earlier complete 16-chunk result predates this new adapter; a fresh full
 run is still required on the next stable committed source.
+
+## UBOOT reboot question and offline loader-reset guard
+
+[verified: exact vendor disassembly] The pinned WL82 LoaderV2 handles FC0C
+argument 1 by writing USB control registers and requesting a core soft reset
+at `0x00010000` bit 4. Bare mask-ROM UBOOT has no independently verified reset
+opcode here. The handler does not clear the recovery marker; reset execution,
+normal boot and USB reconnection remain separate observations. See
+[the exact reset audit](2026-10-11-loader-run-app-reset.md).
+
+The whole loader is not an unconditional no-flash-effects path: initialization
+parses 1,024-byte configuration windows at `0x01C07E00` and `0x01C08E00`
+beyond the uploaded image, including when the CRC-header search fails.
+Quad selection can set the NOR QE status bit. Those retained RAM contents
+and external initializer implementations are unresolved in this session.
+The historical dump/scratch evidence proves the recorded flash-array hash;
+it does not retroactively prove NOR status-register preservation.
+
+[verified: source, independent static review and Hera mock tests]
+`tools/fm1_loader_reset.py` implements the exact 52-command loader/reset
+sequence with exclusive private receipt creation, fsynced intent, fixed
+payloads, per-command fresh binding checks and consumption before submission.
+It requires `simulated is True` before any exchange; hardware use is rejected.
+All receipts mark `hardware_ready=false`, `initializer_boundary_resolved=false`
+and `reset_observed=false`. The existing backup Reader still rejects FC0C.
+The combined reset/unchanged-reader/RAM-upload checks passed **101 tests** on
+Hera, with no skips. Source SHA-256:
+guard `c0bb2b96f1c47dc99c2088c60896a8174982b6a0e7e4b3549e9b4229cce75368`;
+tests `71941737b99dd49a3bde91c6894c64ce61508e664663261270855d1c20a23c6b`.
+Evidence and review: ignored `build/loader-reset-evidence/`,
+`build/loader-reset-handoff.md`, `build/loader-reset-independent-review.md`
+and `build/loader-run-app-review.md`.
+
+A separate independently authored 14-byte RAM stub was built on Hera and
+checked against the vendor disassembly. It disables local interrupts, sets
+the same core-reset bit, synchronizes and spins, without stack, helpers,
+mailbox access or loader initialization. The exact-image transport and
+physical attempt remain pending independent review. No new command has been
+sent to the FM-1; it was passively observed at bus3/port3-2/device21 in UBOOT.
+The installable display/recovery milestone remains incomplete.

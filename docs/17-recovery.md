@@ -36,8 +36,20 @@ USB disconnection and a new UBOOT enumeration on the same port. No flash
 command was sent or found in the capture. This does not establish P33 execution,
 application-origin reset, unchanged flash, or recovery from a damaged app.
 Linux sent ordinary storage probes during the observation. The unit remains
-in UBOOT awaiting a later owner cold power cycle; no second attempt is planned.
+in UBOOT. A separate software-reset investigation is offline; no subsequent
+device command has been sent.
 See [the bounded result](../notes/2026-10-11-fm1-ram-probe.md).
+
+[verified: exact loader disassembly] The pinned WL82 LoaderV2's `FC0C` with
+argument 1 requests a core soft reset. It is not a documented command of bare
+mask-ROM UBOOT. Its default handler does not clear the stock recovery mailbox,
+so this is not proof that a normal boot or USB reconnection will follow.
+Loader startup itself can parse configuration left in RAM beyond the uploaded
+image and set the NOR quad-enable status bit. Loading a RAM image therefore
+does not by itself establish absence of flash effects. The fixed reset guard
+is restricted to explicitly simulated bindings while this startup gate remains
+unresolved. A minimal reset stub is being reviewed separately, with no hardware
+attempt. See [the command and initialization audit](../notes/2026-10-11-loader-run-app-reset.md).
 
 ## Triage hierarchy
 
