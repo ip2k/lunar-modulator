@@ -6,4 +6,4 @@ Integration uncovered legacygenerator dependency: sourcebranch had newer Aftergl
 
 Local exact generation checks passed for both generators; node syntax checks passed catalog and two acceptance harnesses. Local plain python lacksPyYAML, so CI YAML parse was not claimed passed. Rarefaction root remains maincheckout; left untouched, no branchsemanticclaim. Serena ownsession selected exactintegrationabsolutecheckout, bounded main/buildcaller navigation matched actualsource; no globalserverrestart.
 
-Next: exactintegration native/Wasm/browser checks in uniqueLAN stages, persistreceipts; requiredCI/review beforemerge. OwnerSatellite audition active, all musicalacceptance pending. Acid longgates implemented, newamp sustain/release capability unresolved.
+Exact integration native/Wasm/browser checks passed in isolated LAN stages; receipts are in notes/2026-10-11-four-showcase-integration-0085f2f2/. GitHub CI dispatched for source HEAD0085f2f2 (run38161344693); required CI and parent review remain before merge. OwnerSatellite audition active, all musicalacceptance pending. Acid longgates implemented, newamp sustain/release capability unresolved.
