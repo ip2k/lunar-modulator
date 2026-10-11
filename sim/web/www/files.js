@@ -34,6 +34,10 @@ const PREF = 'lunar.sim.';
 
 export const EXAMPLES = [
   { path: 'examples/first-orbit.lunar', title: 'First orbit', kind: 'project' },
+  { path: 'examples/afterglow-relay.lunar', title: 'Afterglow Relay', kind: 'project' },
+  { path: 'examples/event-horizon.lunar', title: 'Event Horizon', kind: 'project' },
+  { path: 'examples/packet-bloom.lunar', title: 'Packet Bloom', kind: 'project' },
+  { path: 'examples/neon-transit.lunar', title: 'Neon Transit', kind: 'project' },
   { path: 'examples/deep-bass.sound.lunar', title: 'Deep space bass', kind: 'sound' },
   { path: 'examples/space-verbs.fx.lunar', title: 'Space verbs', kind: 'fx' },
   { path: 'examples/wobble.mods.lunar', title: 'Wobble', kind: 'mods' },

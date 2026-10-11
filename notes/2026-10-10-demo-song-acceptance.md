@@ -1,0 +1,116 @@
+# Whole-song acceptance work
+
+Branch: `chore/2026-10-10@demo-song-acceptance`, based on PR #142's
+`ef39b23869a9d06b19ad4478554792508d186d29`. Work in progress; this is not
+a completed-song or passing integration receipt.
+
+The project filename check now accepts named projects instead of assuming
+that every project is `first-orbit.lunar`. Schema, canonical layout,
+parameter resolution and file-kind checks remain in place.
+
+`sim/web/test/demo-songs.mjs` runs complete arrangements against the actual
+browser Wasm module. It checks state save/load/save, RAM admission, tempo,
+finite samples, nonzero audio, automatic stopping at the planned duration,
+zero dropped sequencer events and zero host imports. It records peak, RMS
+and second-by-second energy for subsequent mix/listening review.
+
+[verified] JavaScript syntax and Python compilation checks pass. A bounded
+four-case synthetic smoke test, derived from First orbit with a four-bar
+stop-at-end chain at 240 BPM, passed against the unchanged PR #142 Wasm.
+Each stopped at four seconds and produced peak 0.5380 / RMS 0.0849. These
+synthetic cases only evaluate the harness, not the demo songs.
+
+Pending: authored four-song manifest/assets, full-length renders on aeon,
+native transport/event checks, browser example selection/save/reload,
+listening review and final integration CI. These JavaScript harness files are outside the simulator C source fingerprint.
+Final integration still requires the actual build and full CI; matching source
+hashes alone do not establish that the final tree passes.
+
+Semantic tools: [verified] Rarefaction's root is the original checkout,
+not this worktree; its bounded JavaScript orient query failed in the
+TypeScript backend. Serena is active in another worktree and was not
+retargeted because selection is shared. This work used direct source/API
+inspection and actual-Wasm smoke testing; it does not claim successful
+semantic navigation in this worktree.
+
+The subsequent harness revision also checks distinct song titles, the
+actual number of unique chained scenes and persisted stop-at-end behavior.
+[verified] Its revised synthetic four-scene cases pass at four seconds,
+peak 0.5380 / RMS 0.0760. Optional `--native HARNESS --work DIR` runs the
+native simulator, retains WAV/PPM/JSON receipts and checks load acceptance,
+audible output, zero dropped events and final stopped transport. That
+native leg has not yet been executed for this checkpoint.
+
+`sim/web/test/demo-files.mjs` is the separate Playwright acceptance path:
+exact browser mirrors and preloaded registry entries, URL load/play,
+stop, Save download, and Open into a clean context followed by state
+comparison. [verified] Syntax checks pass; browser execution awaits the
+authored files and container integration. These scripts do not claim a
+full CI pass or musical quality approval.
+
+The optional `--audio-dir DIR` records the same inspected Wasm samples as
+stereo IEEE-float WAV files, without normalization or clipping. Existing
+files are refused so a new render cannot overwrite a prior review round.
+[verified] All four synthetic four-second fixtures passed with capture:
+each WAV contains 2,118,188 bytes including its header, rate 44,118 Hz,
+finite samples throughout and measured peak 0.537982583. Header/data lengths
+match. Full authored-song audio remains pending.
+
+## First authored round, 2026-10-10
+
+[verified] Assets at `27939c784be6d8bacb19bc8b5eaba6bb34583ea2` (a
+serialization-only repair of critic snapshot `9a2d099`) rendered in full
+against the PR #142 Wasm in an isolated aeon container, limited to 2 CPUs
+and 2 GiB. All four save/load/save checks passed; the arrangements stopped
+within 0.1 seconds of their expected 188.57–208-second durations, with zero
+dropped sequencer events, non-finite samples or host imports. Peaks were
+0.7532–0.8684 and RMS 0.0694–0.0776. Exact samples were captured as float
+stereo WAV without normalization. File/audio hashes and per-second RMS
+are in `notes/data/2026-10-10-demo-song-round-1-wasm.json`.
+
+This is runtime evidence, not musical approval. The critic scored all 32
+scenes 3–6 using actual decoded project/source evidence; round 2 revisions
+are underway. Native full-song and browser file acceptance remain pending.
+The acceptance harness now rejects repaired or skipped project content and
+records Wasm, manifest and project hashes directly in future receipts.
+
+[verified] The strengthened acceptance harness at `542782f8` passed full
+Wasm and newly built native simulator playback on the same round-1 assets.
+Every project loads with zero repairs/skips, fits 54–69% of the simulator
+RAM budget and finishes with no dropped events. Native event totals are
+11,786 / 19,394 / 14,254 / 16,650 respectively. This is not a native/Wasm
+sample-parity claim. Receipts: `notes/data/2026-10-10-demo-song-round-1-native.json`.
+
+[verified] Chromium 153.0.8010.12 accepted all four preloaded example entries,
+started playback through their URL paths, downloaded Save output and reopened
+it in fresh browser contexts with executable state unchanged and zero page
+exceptions. Receipt: `notes/data/2026-10-10-demo-song-round-1-browser.json`.
+The captured Event Horizon page was visually inspected for clipped or
+overlapping labels; none found. CI now checks generator freshness on both
+Python platforms and full-song Wasm/file-workflow acceptance in Chromium.
+Required full CI and subsequent musical rounds remain pending.
+
+
+## Second authored round, 2026-10-10
+
+[verified] Round-2 assets frozen at `f1887404ce12a53d63ef784178fa37fccec7722e`
+were integrated at `de95694c`. Complete Wasm and native playback passed in
+an isolated aeon container with 2 CPUs and 2 GiB, using Wasm hash
+`4667498f919529ba0f1059f127ea02e60c2c2a76ee5bc16983cfeabbb96b76ec`
+and the fresh native simulator from prerequisite source `c44a808`.
+All four projects load without repairs or skipped content, round-trip
+canonically, fit 54–69% of the simulated RAM budget, and finish within
+0.1 seconds of their planned durations with zero dropped events or
+non-finite samples. Peaks are 0.7519–0.8516; RMS is 0.0825–0.0889.
+The receipt includes native state and per-second Wasm energy plus project
+hashes: `notes/data/2026-10-10-demo-song-round-2-native-wasm.json`.
+This establishes runtime acceptance, not sample parity or musical approval.
+
+[verified] Chromium 153.0.8010.12 passed all four preloaded entries, URL
+playback, Save downloads and fresh-context Open checks, with zero page
+exceptions. Receipt: `notes/data/2026-10-10-demo-song-round-2-browser.json`.
+Exact float WAVs and browser screenshots are retained under the ignored
+`scratch/demo-song-review/round-2/` directory and on aeon at
+`/home/claude/mvave-fm1/demo-round2-de95694c/src/`. The critic has been given
+these paths alongside the frozen project files. Round-2 musical review and
+full integration CI remain pending.
