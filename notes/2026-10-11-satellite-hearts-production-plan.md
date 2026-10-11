@@ -67,3 +67,24 @@ orientation of the same state-schema test matched the local file hash, but it
 does not index this Satellite branch. Recheck Rarefaction against the actual
 worktree before relying on it for implementation navigation; no source-code
 changes have been made in this stream yet.
+
+## Source milestone, 2026-10-11
+
+The contrast matrix is now frozen as implementation targets. Satellite uses
+Comet Classic drums, Drawbar Bass, Shapes Saw/Sqr and Drawbar Mellow; Sophie is
+reserved for Packet. Its 124 BPM C-major form is six unique scenes of
+4/12/8/16/8/12 bars (60 total). The borrowed F-minor window and written C
+cadence provide harmonic contrast; the independent clipped melody avoids
+simply transposing a contour over chord roots. Two organ instances have
+separate registers/envelopes. No reference audio was heard.
+
+`tools/showcase_songs.py` generates this asset independently of the legacy
+four-demo generator. Originals are untouched. Source invariants check actual
+registry parameter bounds/enums, clip endpoints, same-pitch overlap across
+tracks sharing a pitched slot, and the metadata cap. These pass. Native/Wasm
+admission, canonical runtime round-trip, full render and owner listening are
+pending; this checkpoint is WIP, not musical acceptance. Single-song runtime
+manifest: `sim/web/test/satellite-hearts.json`. Root owns generic harness and
+catalog integration. Rarefaction still indexes the main checkout; Serena was
+selected on this absolute worktree and its `build` symbol bounds matched the
+actual generator source. No shared Rarefaction reconfiguration was attempted.
