@@ -17,14 +17,6 @@
       "engine": "comet",
       "params": {
         "Pad": "1 Kick",
-        "Tune": 0.5,
-        "Decay": 0.5,
-        "Level": 0.5,
-        "Tone": 0.5,
-        "Snap": 0.5,
-        "Sweep": 0,
-        "Drive": 0,
-        "Drive Type": "Diode",
         "Accent": 1.992126,
         "Velocity": 100,
         "Volume": 0.63,
@@ -69,35 +61,165 @@
       ],
       "pads": [
         {
+          "Tune": 0.5,
           "Decay": 0.35,
           "Level": 0.78,
-          "Tone": 0.48
+          "Tone": 0.48,
+          "Snap": 0.5,
+          "Sweep": 0,
+          "Drive": 0,
+          "Drive Type": "Diode"
         },
-        {},
-        {},
         {
+          "Tune": 0.5,
+          "Decay": 0.5,
+          "Level": 0.5,
+          "Tone": 0.5,
+          "Snap": 0.5,
+          "Sweep": 0,
+          "Drive": 0,
+          "Drive Type": "Diode"
+        },
+        {
+          "Tune": 0.5,
+          "Decay": 0.5,
+          "Level": 0.5,
+          "Tone": 0.5,
+          "Snap": 0.5,
+          "Sweep": 0,
+          "Drive": 0,
+          "Drive Type": "Diode"
+        },
+        {
+          "Tune": 0.5,
           "Decay": 0.23,
-          "Level": 0.59
+          "Level": 0.59,
+          "Tone": 0.5,
+          "Snap": 0.5,
+          "Sweep": 0,
+          "Drive": 0,
+          "Drive Type": "Diode"
         },
-        {},
-        {},
         {
+          "Tune": 0.5,
+          "Decay": 0.5,
+          "Level": 0.5,
+          "Tone": 0.5,
+          "Snap": 0.5,
+          "Sweep": 0,
+          "Drive": 0,
+          "Drive Type": "Diode"
+        },
+        {
+          "Tune": 0.5,
+          "Decay": 0.5,
+          "Level": 0.5,
+          "Tone": 0.5,
+          "Snap": 0.5,
+          "Sweep": 0,
+          "Drive": 0,
+          "Drive Type": "Diode"
+        },
+        {
+          "Tune": 0.5,
           "Decay": 0.13,
           "Level": 0.22,
-          "Tone": 0.34
+          "Tone": 0.34,
+          "Snap": 0.5,
+          "Sweep": 0,
+          "Drive": 0,
+          "Drive Type": "Diode"
         },
-        {},
-        {},
-        {},
         {
-          "Decay": 0.24,
-          "Level": 0.26
+          "Tune": 0.5,
+          "Decay": 0.5,
+          "Level": 0.5,
+          "Tone": 0.5,
+          "Snap": 0.5,
+          "Sweep": 0,
+          "Drive": 0,
+          "Drive Type": "Diode"
         },
-        {},
-        {},
-        {},
-        {},
-        {}
+        {
+          "Tune": 0.5,
+          "Decay": 0.5,
+          "Level": 0.5,
+          "Tone": 0.5,
+          "Snap": 0.5,
+          "Sweep": 0,
+          "Drive": 0,
+          "Drive Type": "Diode"
+        },
+        {
+          "Tune": 0.5,
+          "Decay": 0.5,
+          "Level": 0.5,
+          "Tone": 0.5,
+          "Snap": 0.5,
+          "Sweep": 0,
+          "Drive": 0,
+          "Drive Type": "Diode"
+        },
+        {
+          "Tune": 0.5,
+          "Decay": 0.24,
+          "Level": 0.26,
+          "Tone": 0.5,
+          "Snap": 0.5,
+          "Sweep": 0,
+          "Drive": 0,
+          "Drive Type": "Diode"
+        },
+        {
+          "Tune": 0.5,
+          "Decay": 0.5,
+          "Level": 0.5,
+          "Tone": 0.5,
+          "Snap": 0.5,
+          "Sweep": 0,
+          "Drive": 0,
+          "Drive Type": "Diode"
+        },
+        {
+          "Tune": 0.5,
+          "Decay": 0.5,
+          "Level": 0.5,
+          "Tone": 0.5,
+          "Snap": 0.5,
+          "Sweep": 0,
+          "Drive": 0,
+          "Drive Type": "Diode"
+        },
+        {
+          "Tune": 0.5,
+          "Decay": 0.5,
+          "Level": 0.5,
+          "Tone": 0.5,
+          "Snap": 0.5,
+          "Sweep": 0,
+          "Drive": 0,
+          "Drive Type": "Diode"
+        },
+        {
+          "Tune": 0.5,
+          "Decay": 0.5,
+          "Level": 0.5,
+          "Tone": 0.5,
+          "Snap": 0.5,
+          "Sweep": 0,
+          "Drive": 0,
+          "Drive Type": "Diode"
+        },
+        {
+          "Tune": 0.5,
+          "Decay": 0.5,
+          "Level": 0.5,
+          "Tone": 0.5,
+          "Snap": 0.5,
+          "Sweep": 0,
+          "Drive": 0,
+          "Drive Type": "Diode"
+        }
       ]
     },
     {
