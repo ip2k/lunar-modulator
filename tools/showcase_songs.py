@@ -301,6 +301,7 @@ def build_relay_or_event(style):
                 p=prog[bar%4]
                 last=scene==len(form)-1 and bar==bars-1
                 if future:
+                    if last:p=prog[0]
                     drop=scene in (3,5);empty=scene==4
                     if t==0:
                         steps=[0,6,14] if drop and bar%2==0 else [0,10] if drop else [0] if scene==1 else []
@@ -321,7 +322,7 @@ def build_relay_or_event(style):
                         phrase=melody[bar%4] if drop else melody[bar%4][:1] if scene==1 and bar%4>1 else []
                         if scene==2:phrase=[(4,77,48),(10,80,72)] if bar<3 else [(0,84,72)]
                         if scene==5 and bar>=8:
-                            phrase=[(st,note+12 if bar%4==0 else note,gate)for st,note,gate in phrase]
+                            if bar%4==0:phrase=[(0,84,48),(5,80,60),(11,77,96)]
                             if bar%4==1:phrase=[(3,82,72),(11,77,60)]
                             if bar%4==2:phrase=[]  # EP/Trio answer owns this bar
                         if drop and bar%8==7:phrase=[(2,80,72),(10,77,72)]
