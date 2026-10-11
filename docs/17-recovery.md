@@ -48,8 +48,12 @@ Loader startup itself can parse configuration left in RAM beyond the uploaded
 image and set the NOR quad-enable status bit. Loading a RAM image therefore
 does not by itself establish absence of flash effects. The fixed reset guard
 is restricted to explicitly simulated bindings while this startup gate remains
-unresolved. A minimal reset stub is being reviewed separately, with no hardware
-attempt. See [the command and initialization audit](../notes/2026-10-11-loader-run-app-reset.md).
+unresolved. A separate 14-byte reset stub and its fixed three-command guard
+pass offline native build, static review and 170 combined Hera checks. Its
+physical adapter needs separate review; no hardware attempt has occurred.
+The stub leaves the recovery marker untouched, and normal USB return remains
+unproven. See [the command and initialization audit](../notes/2026-10-11-loader-run-app-reset.md)
+and [the minimal-stub investigation](../notes/2026-10-11-rom-core-reset-stub.md).
 
 ## Triage hierarchy
 

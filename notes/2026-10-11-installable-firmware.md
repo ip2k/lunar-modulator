@@ -517,7 +517,41 @@ and `build/loader-run-app-review.md`.
 A separate independently authored 14-byte RAM stub was built on Hera and
 checked against the vendor disassembly. It disables local interrupts, sets
 the same core-reset bit, synchronizes and spins, without stack, helpers,
-mailbox access or loader initialization. The exact-image transport and
-physical attempt remain pending independent review. No new command has been
+mailbox access or loader initialization. The exact-image transport has passed
+independent review; the private physical adapter and actual attempt remain
+pending. No new command has been
 sent to the FM-1; it was passively observed at bus3/port3-2/device21 in UBOOT.
 The installable display/recovery milestone remains incomplete.
+
+## Fixed ROM core-reset guard checkpoint
+
+[verified: source, native artifact and independent static review]
+`firmware/core-reset/` contains the independently authored assembly and fixed
+linker script. The 14-byte image SHA-256 is
+`b137c15cc0b82d0d056246f08ad2292f754216b9f70bd83a1caec4e35978cee5`.
+`tools/fm1_core_reset.py` freezes that image, its source and the exact historical
+owner entry receipt before accepting an injected transport. It permits only
+INQUIRY, one exact encrypted 512-byte FB06 upload and one FB08 jump with
+argument 1. Command intent and its directory are fsynced before the final
+binding check and exchange. Every ambiguity closes and latches without retry.
+It supplies no physical opener or CLI and does not relax the old loader-reset
+simulation gate or the earlier 700-byte probe pin.
+
+[verified: Hera isolated mock tests] The combined core-reset, loader-reset,
+unchanged Reader and RAM-upload suite passes **170 tests**, no skips, in
+13.38 seconds. Source pins: guard
+`5c11a52b478bb2ffb62156cae7e4cc9dadd5f74e251e25b5ffd8baf26c89e056`,
+tests `3bf25c4d79c8dda2c6302e35f844344d4456b5ec14f6f4518a6f86318e07b538`.
+The actual compiled image/source and private historical receipt also passed
+factory validation with an explicitly synthetic observation and no transport
+binding. Root checked all twelve local source/dependency pins against the
+Hera evidence. The injected handle/topology assertions are caller evidence;
+all output retains `physical_identity_attested=false` and
+`reset_observed=false`.
+
+Ignored evidence: `build/core-reset-stub/`,
+`build/core-reset-guard-evidence/`, `build/core-reset-guard-handoff.md` and
+`build/core-reset-independent-review.md`. No new device command occurred in
+this checkpoint. Next: review the distinct private adapter before deciding
+one bounded physical attempt, run the full suite in sixteen Hera containers
+on the committed source, and continue the unfinished visible/recovery image.

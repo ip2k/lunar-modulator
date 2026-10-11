@@ -29,8 +29,10 @@ pending. The owner subsequently asked whether UBOOT can reboot without a
 physical power cycle. The exact loader FC0C argument-1 body requests a core
 soft reset, but loading it can parse stale RAM configuration and write NOR
 status registers. Its new guard is simulation-only while that initializer
-boundary remains unresolved. A separate minimal RAM reset stub is under offline
-review; neither path has been attempted on hardware. See
+boundary remains unresolved. A separate minimal RAM reset stub and exact-image
+guard pass offline build, static review and 170 combined Hera checks; its
+private physical adapter remains under separate review. Neither reset path
+has been attempted on hardware. See
 [the reset audit](notes/2026-10-11-loader-run-app-reset.md).
 See [the bench result](notes/2026-10-11-fm1-ram-probe.md).
 
@@ -52,7 +54,7 @@ restriction below is historical and superseded. Independent review conditionally
 supports one exact 700-byte no-flash RAM probe with fresh unit/port binding,
 no retries, and a durable receipt. Post-jump enumeration alone cannot prove
 that P33 executed. Latest verified pushed recovery checkpoint:
-`2b415bd911a1255c0de74e8d170f0d46b0c5b9d9`.
+`cf8e7f8e7085c25cec13c1a23f325582027ea84a` before the core-reset checkpoint.
 
 Recovery development now adds a persistent whole-flash protocol model, durable
 transaction artifacts and a resumable fixed scratch-sector restore mode. The
