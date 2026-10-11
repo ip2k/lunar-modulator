@@ -1,0 +1,7 @@
+# Event Horizon new composition
+
+150 BPM F minor; Air8 / Call12 / Rise4 / Impact16 / Suspense8 / OpenSky16 / Land4,68bars. Required Trio Saw x3 is the hook with its per-note LP filter envelope; SixOp2 E.PIANO1 supplies short support/replies, AcidSquare bass uses long252tick held notes plus selective72tick retriggers. Deep drum kit uses half-time backbeat, displaced accents and phrase-end subtraction, unlike104Afterglow/82Packet/124Satellite. Main hook F-Ab-C then Bb-Ab-F with shorter Eb-F answer. Final OpenSky half changes hook contour, withdraws main for a separate Trio answer bar, displaces kick/backbeat and returns to an authored F minor landing. Saw highest noteC6 after critique, not earlierC7 flourish.
+
+Actual retained Trio parameters: Sawx3/LP,cutoff620,EnvAmt38,attack5,decay240,sustain22,release110,detune3. Longer Acid gates are implemented; Acid post-note amplitude release is a distinct engine capability request and remains unchanged here. FilterDecay is not ampRelease and no such feature is claimed delivered.
+
+Exact final asset0d5d871bd31db1e628efbf291fd306671b81c93bef254a950291bf95f5413d1c at3022009c. Native/Wasm and browser passed exact revised asset; notes/2026-10-11-event-showcase-3022009c. Source invariants/deterministic mirrors pass; independent finalsource recheckpending. Owner heard original Event only; these replacements have not been musically approved. No claim referenceaudio heard.
