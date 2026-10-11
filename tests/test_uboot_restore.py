@@ -43,11 +43,8 @@ def test_changed_sector_prevents_all_writes():
     r.cmd.assert_not_called()
 
 
-def test_partial_program_still_attempts_original_sector_restore():
+def test_missing_durable_backup_prevents_program_or_cleanup():
     r=Mock()
-    r.sector.side_effect=[b'\xff'*SECTOR_BYTES,b'\xff'*SECTOR_BYTES]
-    def command(op,**kwargs):
-        if op==0xFB04: raise OSError('simulated partial program')
-    r.cmd.side_effect=command
-    with pytest.raises(OSError): exercise_sector(r,b'\xff'*FLASH_SIZE)
-    assert [c.args[0] for c in r.cmd.call_args_list]==[0xFB04,0xFB01]
+    with pytest.raises(ValueError, match='Durable transaction'):
+        exercise_sector(r,b'\xff'*FLASH_SIZE)
+    r.cmd.assert_not_called()

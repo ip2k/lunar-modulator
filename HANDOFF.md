@@ -33,13 +33,22 @@ TIMER4 and recovery have 36 passing Hera host checks, including the stock
 40 MHz oscillator alternative. An offline 700-byte
 RAM recovery probe now has a concrete plan in `firmware/ram-recovery/README.md`;
 its separate exact-image transport is tested and has no CLI/device execution.
-The owner is away from the desk and explicitly deferred Cynthion. Continue
-without it; do not execute the custom RAM probe or a flash experiment while
-manual power-cycle fallback is unavailable. The wiring/power limitations are
-saved in `firmware/ram-recovery/README.md`. Next supervised bench step is the
-exact-image recovery probe and distinct USB reset/enumeration, followed by
-normal boot. Latest prior verified pushed component checkpoint:
-`a70d539be027b48ca055ae90006068b488c7222c`.
+The owner deferred Cynthion and subsequently authorized leaving the device in
+UBOOT or hung until a later physical power cycle. The immediate power-cycle
+restriction below is historical and superseded. Independent review conditionally
+supports one exact 700-byte no-flash RAM probe with fresh unit/port binding,
+no retries, and a durable receipt. Post-jump enumeration alone cannot prove
+that P33 executed. Latest verified pushed checkpoint before recovery changes:
+`c45c3963c4ff9f21648373c9be1cc489c2ed9fab`.
+
+Recovery development now adds a persistent whole-flash protocol model, durable
+transaction artifacts and a resumable fixed scratch-sector restore mode. The
+physical adapter retains its exact existing sector/payload allowlist; wider
+application writes and USB_KEY recovery are model-only. Root transaction/read/
+restore checks pass 28 tests on Hera; model-focused checks pass 58. Independent
+review and the full interruption campaign remain pending; this checkpoint is
+WIP and must not be merged yet. See [the recovery runbook](docs/17-recovery.md)
+for procedures and physical acceptance limits.
 
 
 Startup/core/exception ownership, calibrated timer/clock, watchdog, PA2 and

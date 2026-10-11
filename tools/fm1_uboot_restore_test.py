@@ -15,10 +15,12 @@ from pathlib import Path
 import time
 
 from fm1_uboot_read import Reader, request, CHUNK, FLASH_SIZE, LOADER_SHA
+from fm1_flash_transaction import create_transaction, load_transaction, run_transaction
 
 SECTOR = 0xD8000
 SECTOR_BYTES = 4096
 PATTERN = bytes((i*73+19) & 255 for i in range(SECTOR_BYTES))
+SCOPE = 'FM-1_092 fixed unused-sector proof'
 
 
 def restore_request(op, phase, *, address=0, payload=b''):
@@ -44,30 +46,56 @@ class RestoreReader(Reader):
     def sector(self):
         return b''.join(self.cmd(0xFD05,address=a) for a in range(SECTOR,SECTOR+SECTOR_BYTES,CHUNK))
 
+    def identity(self):
+        # The USB port is a session binding, not a silicon serial number. Full
+        # immutable flash comparison additionally binds this owner backup.
+        return {'unit_id': 'FM-1_092@' + self.usb.name, 'flash_size': FLASH_SIZE,
+                'sector_size': SECTOR_BYTES, 'page_size': CHUNK,
+                'jedec': 0x856014, 'simulated': False}
 
-def test_sector(reader, baseline):
+    def read(self, address, size):
+        if (address % CHUNK or size % CHUNK or size <= 0 or
+                not 0 <= address <= FLASH_SIZE-size):
+            raise ValueError('Aligned bounded flash reads only')
+        return b''.join(self.cmd(0xFD05, address=a)
+                        for a in range(address, address+size, CHUNK))
+
+    def erase(self, address):
+        self.cmd(0xFB01, address=address)
+
+    def program(self, address, data):
+        self.cmd(0xFB04, address=address, payload=data)
+
+
+def checked_scratch_transaction(directory):
+    plan, journal, baseline, target = load_transaction(directory)
+    expected = baseline[:SECTOR] + PATTERN + baseline[SECTOR+SECTOR_BYTES:]
+    if (plan['scope'] != SCOPE or plan['identity']['simulated'] is not False or
+            plan['writable_ranges'] != [[SECTOR, SECTOR+SECTOR_BYTES]] or
+            baseline[SECTOR:SECTOR+SECTOR_BYTES] != b'\xff'*SECTOR_BYTES or
+            target != expected):
+        raise ValueError('Only the fixed physical scratch transaction is permitted')
+    return plan, journal, baseline, target
+
+
+def test_sector(reader, baseline, transaction=None, baseline_b=None):
     if len(baseline)!=FLASH_SIZE or baseline[SECTOR:SECTOR+SECTOR_BYTES] != b'\xff'*SECTOR_BYTES:
         raise ValueError('Baseline does not prove the entire scratch sector is FF')
+    if transaction is None or baseline_b != baseline:
+        raise ValueError('Durable transaction and two matching fresh backups required')
     if reader.sector() != b'\xff'*SECTOR_BYTES:
         raise ValueError('Scratch sector changed since the full baseline; no write')
-    reader.online()
-    started=False
-    try:
-        # Initial sector is FF, so no erase is needed before this known pattern.
-        started=True
-        for offset in range(0,SECTOR_BYTES,CHUNK):
-            reader.cmd(0xFB04,address=SECTOR+offset,payload=PATTERN[offset:offset+CHUNK])
-        if reader.sector()!=PATTERN:
-            raise ValueError('Pattern readback mismatch')
-        reader.log('pattern_verified',sector=SECTOR,bytes=SECTOR_BYTES,sha256=hashlib.sha256(PATTERN).hexdigest())
-    finally:
-        if started:
-            # Even a partial program or a mismatched readback needs restoration.
-            reader.online()
-            reader.cmd(0xFB01,address=SECTOR)
-            if reader.sector()!=b'\xff'*SECTOR_BYTES:
-                raise ValueError('Scratch-sector restore failed; retain backups and stop')
-            reader.log('sector_restored',sector=SECTOR,bytes=SECTOR_BYTES)
+    target = baseline[:SECTOR] + PATTERN + baseline[SECTOR+SECTOR_BYTES:]
+    create_transaction(transaction, baseline, baseline_b, target, reader.identity(),
+                       ((SECTOR, SECTOR+SECTOR_BYTES),), SCOPE)
+    checked_scratch_transaction(transaction)
+    run_transaction(transaction, reader)
+    reader.log('pattern_verified', sector=SECTOR, bytes=SECTOR_BYTES,
+               sha256=hashlib.sha256(PATTERN).hexdigest())
+    # An error above exits with durable recovery intent. Do not issue an erase
+    # on the potentially stale handle inside finally, masking the first error.
+    run_transaction(transaction, reader, direction='restore')
+    reader.log('sector_restored', sector=SECTOR, bytes=SECTOR_BYTES)
 
 
 def checked_backup(directory):
@@ -91,11 +119,18 @@ def main():
     ap.add_argument('--device',required=True)
     ap.add_argument('--backup',required=True,type=Path)
     ap.add_argument('--out',required=True,type=Path)
-    ap.add_argument('--test-unused-sector',action='store_true',help='explicitly enable the fixed program/restore proof')
+    mode=ap.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--test-unused-sector',action='store_true',help='enable the fixed program/restore proof')
+    mode.add_argument('--recover-unused-sector',action='store_true',help='restore only the prior fixed scratch transaction to FF')
+    ap.add_argument('--transaction',type=Path,help='existing durable transaction, required only for recovery')
     args=ap.parse_args()
-    if not args.test_unused_sector:
-        raise SystemExit('Explicit --test-unused-sector required')
+    if args.recover_unused_sector != (args.transaction is not None):
+        raise SystemExit('--transaction is required only with --recover-unused-sector')
     old=checked_backup(args.backup)
+    if args.recover_unused_sector:
+        _, _, saved, _ = checked_scratch_transaction(args.transaction)
+        if saved[:SECTOR+SECTOR_BYTES] != old[:SECTOR+SECTOR_BYTES]:
+            raise SystemExit('Transaction differs from the checked owner backup')
     args.out.mkdir(mode=0o700,parents=True,exist_ok=False)
     with (args.out/'commands.jsonl').open('x') as fp:
         def log(event,**fields):
@@ -110,12 +145,21 @@ def main():
             reader.online()
             b=reader.dump(args.out/'beforeB.bin')
             before=(args.out/'beforeA.bin').read_bytes()
-            if a['sha256']!=b['sha256'] or before[:0xD9000]!=old[:0xD9000]:
+            if a['sha256']!=b['sha256']:
+                raise ValueError('Fresh backups differ; no write')
+            if args.recover_unused_sector:
+                result=run_transaction(args.transaction,reader,direction='restore')
+                log('resumed_scratch_restore', receipt=result)
+            elif before[:0xD9000]!=old[:0xD9000]:
                 raise ValueError('Fresh backups differ, or code/scratch differs from previous 092 backup')
-            test_sector(reader,before)
+            else:
+                test_sector(reader,before,args.out/'transaction',
+                            (args.out/'beforeB.bin').read_bytes())
             reader.online()
             after=reader.dump(args.out/'after.bin')
-            if after['sha256']!=a['sha256']:
+            expected=(hashlib.sha256(saved).hexdigest() if args.recover_unused_sector
+                      else a['sha256'])
+            if after['sha256']!=expected:
                 raise ValueError('Full-flash hash changed after restore; keep all backups')
             m={'scope':'one unused 4 KiB sector, not full flash rewrite','sector':SECTOR,
                'bytes':SECTOR_BYTES,'before':[a,b],'after':after,'full_flash_identical':True}

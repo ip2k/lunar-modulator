@@ -320,3 +320,29 @@ Next: supervised RAM recovery experiment when power-cycle fallback is available;
 then establish actual SPL-to-application clock/core/exception/watchdog and
 PA2/power contracts before activating the display. The installable diagnostic
 milestone remains unfinished; this is an offline component/evidence checkpoint.
+
+
+## Owner accepts delayed power cycle; interruption recovery in progress
+
+[reported: owner, later 2026-10-11 instruction] The FM-1 need not remain in
+normal operation while the owner is away. Proceed with useful recovery work
+and device simulation on Hera, accepting a later owner power cycle if needed.
+This supersedes the immediate manual-fallback restriction above; Cynthion
+remains deferred. It does not authorize arbitrary commands, eFuse access,
+blanket erase or bypassing image/partition guards.
+
+[verified: source and Hera host checks] The new transaction core persists two
+matching full backups, target, immutable plan and a checksummed atomic journal
+before its first mutation. It records intent before every erase/program, exits
+on ambiguous errors, reacquires actual flash on resume and refuses changes
+outside explicit ranges. The physical scratch adapter retains only D8000..D9000
+and its exact pattern, with a separate resume-to-FF mode. No general physical
+application/full-image writer is exposed. Core/read/restore checks: 28 passed.
+Persistent device-model focused checks: 58 passed. Full fault campaign and
+independent review pending. Sources/artifacts are WIP; root owns commit/push.
+
+[inferred: independent exact-probe review] One attempt of the existing 700-byte
+ROM-only probe is conditionally supported under fresh identity, same-port
+enumeration, exclusive device access and no retry. Neither a jump response nor
+a new UBOOT enumeration alone proves marker/P33 execution: ROM watchdog reset
+and retained marker are confounders. No new device traffic at this checkpoint.

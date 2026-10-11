@@ -68,7 +68,13 @@ capture tool explicitly preserves power-control bits and cannot switch VBUS.
 Current Cynthion and FM-1 connections both appear on USB bus 003; check the
 new wiring against the different-hub requirement before capture.
 
-[reported: owner, 2026-10-11] Cynthion is deferred; continue development without
-it while the owner is away from the desk. Do not execute this probe until a
-manual power-cycle fallback is available. Cynthion wiring and USB power control
-are a later experiment, not prerequisites for the offline image work.
+[reported: owner, 2026-10-11, later instruction] Cynthion is deferred. The owner
+accepts leaving the FM-1 in UBOOT or hung until a manual power cycle hours
+later; lack of an immediate power-cycle fallback no longer blocks the exact
+reviewed RAM experiment. Use one attempt, stop on ambiguity, and retain the
+receipt. Cynthion wiring and USB power control remain a later experiment.
+
+[inferred: independent source/artifact review] A distinct post-jump UBOOT
+enumeration is consistent with the intended reset but cannot prove P33 code
+execution: a ROM watchdog reset and a retained marker can resemble it. Keep
+that causal claim unverified without an independent observable readout.
