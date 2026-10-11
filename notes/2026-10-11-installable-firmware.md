@@ -555,3 +555,59 @@ Ignored evidence: `build/core-reset-stub/`,
 this checkpoint. Next: review the distinct private adapter before deciding
 one bounded physical attempt, run the full suite in sixteen Hera containers
 on the committed source, and continue the unfinished visible/recovery image.
+
+## Complete sixteen-container validation of the reset checkpoint
+
+[verified: frozen Hera execution and root aggregation review] Exact committed
+source `b397ca90864aac504f3e120cddff959e53d32e7e` collected **5,693 unique
+Python tests across 129 modules**. All sixteen isolated Hera containers ran
+simultaneously; their chunks contained 355–357 tests. All nodes ran exactly
+once, with no omission, duplicate or conflicting status: **5,655 passed,
+38 skipped, zero failures/errors**. Every container exited0 without OOM.
+Shard durations were 39.194–158.053 seconds. This supersedes the earlier full
+run for source coverage, including the bound diagnostic adapter and new reset
+guard; it does not cover the ignored physical adapter.
+
+Each container used the pinned Python3.11.2 test image
+`sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d`,
+four CPUs, 4GiB, no network and `docker-batch.slice`, with task-scoped labels.
+All sixteen owned containers were removed; the final task-label query was empty.
+Root reran aggregation, verified all152 manifest entries and reviewed each
+container's exit/resource constraints. This is Linux/Hera Python evidence,
+separate from native code generation, cross-platform CI and physical behavior.
+
+Saved local evidence: ignored `build/recovery-python-shards-core-reset/`.
+Remote evidence:
+`/home/claude/mvave-fm1/recovery-python-shards-core-reset-20261011-b397ca90/`.
+Source archive SHA256:
+`f69ff80ab6909daffeaab59673a22dc70ab5d57eeb07956193c0cb70883b7e20`;
+plan `5490fcd4dba41ca234e35727840589113d4f3e60163be287d71ecc387408c277`;
+aggregate `77e00e92ef77da25e5a8ac6953c985df91c9a0f245e9ca3868057e15adb0abb2`;
+runtime receipt `53332e08e72946758c03f7a308710392e08216663bb56c10bc75796342de0a17`;
+manifest `6728b37f400d1ad78d39b5c0ef5ab2908b835d5e4aace7ab0affe1d4d1ccdb6e`.
+
+[verified: GitHub API] Earlier exact `2b415bd9` CI
+[run38175955516](https://github.com/ip2k/lunar-modulator/actions/runs/38175955516)
+completed with all13 jobs successful. Exact `b397ca90` CI was dispatched as
+[run38177221169](https://github.com/ip2k/lunar-modulator/actions/runs/38177221169);
+it was still in progress when this checkpoint was documented. No PR or merge
+was performed for the unfinished installable-image stream.
+
+## Bench access restored through the minimal RAM stub
+
+[verified: single owner-unit attempt] After independent final adapter review,
+48 isolated Hera mocks and verification of staged inputs/live port3-2/device21,
+root submitted only INQUIRY, one fixed512-byte RAM upload and one fixed jump.
+Jump lost its reply and was latched without retry. Normal USB (`4c4a:c755`,
+device22) returned about1.5 seconds later, and a separate read-only identity
+query received the exact known FM-1_092 checksum-bug reply. Bench access is
+restored without an owner power cycle. No flash command/reread occurred.
+See [the actual result and private evidence hashes](2026-10-11-fm1-core-reset-bench.md).
+
+This was an observed UBOOT-to-installed-app return, without an independent
+instruction-execution/reset-domain witness. It does not establish corrupted-app
+recovery or unconditional reset behavior. The consumed adapter's receipt and
+old device21 binding prevent reuse. Full-loader FC0C remains simulation-only.
+The diagnostic-image boot/display/recovery milestone remains incomplete;
+current-core, secondary-core, exception/protection, clock/power and actual
+application-context recovery contracts still gate activation.

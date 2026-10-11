@@ -1,6 +1,14 @@
 # Minimal ROM RAM core-reset stub investigation (2026-10-11)
 
-**Offline artifact only; no device commands.** A smaller reset experiment can omit the download loader and its NOR initialization entirely. The compiled fixed entry contains only interrupt disable, an immediate power-register address, a read-modify-write of reset bit4, a synchronization instruction and a self-loop [verified target artifact]. Whether mask-ROM entry can execute it with inherited privilege/cache/write-protection state, and whether the resulting reset returns stock USB, remain unproven.
+**Built and reviewed offline; subsequently attempted once on the owner's unit.**
+Normal USB and a responsive FM-1_092 app returned without an owner power cycle;
+see [the actual bench result](2026-10-11-fm1-core-reset-bench.md). The research
+and proposal stages below describe the pre-attempt gates. A smaller reset
+experiment can omit the download loader and its NOR initialization entirely.
+The compiled fixed entry contains only interrupt disable, an immediate
+power-register address, a read-modify-write of reset bit4, a synchronization
+instruction and a self-loop [verified target artifact]. Independent execution,
+reset-domain coverage and repeatability remain unproven.
 
 The [loader audit](2026-10-11-loader-run-app-reset.md) established that LoaderV2 FC0C requests core soft reset via `JL_POWER->CON` at 0x00010000, OR 0x10. It also established that full loader entry can write NOR status if retained RAM selects quad mode. The alternative below avoids that code and post-image configuration parsing; it does not clear the `usb_update_mode` mailbox or change the reset domain.
 

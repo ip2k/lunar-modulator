@@ -24,15 +24,21 @@ started from fresh FM-1_092 identity and same-port soft-key entry, uploaded
 exactly two fixed blocks and jumped once. USB disconnected immediately and
 the same port re-enumerated UBOOT. This does not independently prove marker
 or P33 execution. No flash command was sent; no flash reread was performed.
-Device commands stopped after that attempt; normal-operation acceptance remains
-pending. The owner subsequently asked whether UBOOT can reboot without a
-physical power cycle. The exact loader FC0C argument-1 body requests a core
+Device commands stopped after that attempt. The owner subsequently asked
+whether UBOOT can reboot without a physical power cycle. The exact loader
+FC0C argument-1 body requests a core
 soft reset, but loading it can parse stale RAM configuration and write NOR
 status registers. Its new guard is simulation-only while that initializer
 boundary remains unresolved. A separate minimal RAM reset stub and exact-image
-guard pass offline build, static review and 170 combined Hera checks; its
-private physical adapter remains under separate review. Neither reset path
-has been attempted on hardware. See
+guard pass offline build, static review and 170 combined Hera checks. Its
+separately reviewed private adapter passed 48 isolated Hera mocks and was
+attempted once: normal USB returned about 1.5 seconds after jump, followed by
+a fresh read-only FM-1_092 identity reply (exact known checksum-bug frame).
+Bench access is restored without an owner power cycle. No flash command or
+flash reread occurred. The incomplete jump reply was latched without retry;
+the consumed adapter cannot be reused. Bare-ROM reset opcode, independent
+CPU-reset witness and full broken-app recovery remain unproven. See
+[the reset bench result](notes/2026-10-11-fm1-core-reset-bench.md) and
 [the reset audit](notes/2026-10-11-loader-run-app-reset.md).
 See [the bench result](notes/2026-10-11-fm1-ram-probe.md).
 
@@ -54,7 +60,8 @@ restriction below is historical and superseded. Independent review conditionally
 supports one exact 700-byte no-flash RAM probe with fresh unit/port binding,
 no retries, and a durable receipt. Post-jump enumeration alone cannot prove
 that P33 executed. Latest verified pushed recovery checkpoint:
-`cf8e7f8e7085c25cec13c1a23f325582027ea84a` before the core-reset checkpoint.
+`b397ca90864aac504f3e120cddff959e53d32e7e` before the subsequent bench/result
+documentation checkpoint.
 
 Recovery development now adds a persistent whole-flash protocol model, durable
 transaction artifacts and a resumable fixed scratch-sector restore mode. The
@@ -62,14 +69,15 @@ physical adapter retains its exact existing sector/payload allowlist; wider
 application writes and USB_KEY recovery remain physically unproven. Reviewed transaction/
 read/restore/transport checks pass 41 tests on Hera; all 497 interruption and
 corruption cases pass, with 32 campaign checks. The full Python suite was split
-into 16 isolated Hera containers on exact source `fd6b9f3e`: all 5,489 unique
-collected nodes ran exactly once; 5,451 passed, 38 skipped, zero failures/errors.
+into 16 isolated Hera containers on exact source `b397ca90`: all 5,693 unique
+collected nodes ran exactly once; 5,655 passed, 38 skipped, zero failures/errors.
 The earlier four manual-SVG discrepancies were fixed by stable summation;
 standard full collection also exposed and resolved two peer-test imports.
 Explicit diagnostic-profile propagation and raw FM-1_092 target validation
 passed independent review. A separate injected-transport diagnostic adapter
 passed independent review and 115 combined checks (two optional skips); the
-green full run predates that adapter source. It has no physical opener or CLI.
+fresh green full run includes that adapter and the reset guard. It has no
+physical opener or CLI.
 This stream remains WIP; do not merge an unfinished checkpoint. See
 [the recovery runbook](docs/17-recovery.md) for procedures and physical limits.
 

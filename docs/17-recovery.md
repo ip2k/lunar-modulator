@@ -35,9 +35,8 @@ soft-key entry, two exact RAM uploads succeeded. One jump caused immediate
 USB disconnection and a new UBOOT enumeration on the same port. No flash
 command was sent or found in the capture. This does not establish P33 execution,
 application-origin reset, unchanged flash, or recovery from a damaged app.
-Linux sent ordinary storage probes during the observation. The unit remains
-in UBOOT. A separate software-reset investigation is offline; no subsequent
-device command has been sent.
+Linux sent ordinary storage probes during that observation. The later minimal
+reset attempt below returned the unit to its installed application.
 See [the bounded result](../notes/2026-10-11-fm1-ram-probe.md).
 
 [verified: exact loader disassembly] The pinned WL82 LoaderV2's `FC0C` with
@@ -50,10 +49,20 @@ does not by itself establish absence of flash effects. The fixed reset guard
 is restricted to explicitly simulated bindings while this startup gate remains
 unresolved. A separate 14-byte reset stub and its fixed three-command guard
 pass offline native build, static review and 170 combined Hera checks. Its
-physical adapter needs separate review; no hardware attempt has occurred.
-The stub leaves the recovery marker untouched, and normal USB return remains
-unproven. See [the command and initialization audit](../notes/2026-10-11-loader-run-app-reset.md)
+separately reviewed private physical adapter has since been attempted once.
+The stub leaves the recovery marker untouched. See
+[the command and initialization audit](../notes/2026-10-11-loader-run-app-reset.md)
 and [the minimal-stub investigation](../notes/2026-10-11-rom-core-reset-stub.md).
+
+[verified: owner's FM-1_092, 2026-10-11] One fixed INQUIRY/upload/jump attempt
+with that 14-byte stub returned the normal `4c4a:c755` interface about 1.5
+seconds after jump. A subsequent read-only query confirmed a responsive
+FM-1_092 app using its exact known checksum-bug reply. No owner power cycle
+was needed. Jump itself lost its reply; the adapter stopped without retry.
+This is an observed exit from that UBOOT session, with no independent CPU-reset
+witness or general broken-app recovery proof. No flash command was sent and
+no flash reread was made. The consumed private adapter cannot be reused for
+a different enumeration. See [the actual bench receipt](../notes/2026-10-11-fm1-core-reset-bench.md).
 
 ## Triage hierarchy
 
@@ -61,6 +70,7 @@ and [the minimal-stub investigation](../notes/2026-10-11-rom-core-reset-stub.md)
 | --- | --- | --- |
 | App boots and stock update service runs | Install a known-good package through the stock update path. Preserve stock `uboot.boot`, `ota.bin`, `cfg`, `isd_config.ini`, and partition layout. | Requires a running app and its update service; cannot rescue a non-booting app. |
 | App runs and accepts the vetted soft key | Send the exact `7D` soft key once, observe ROM enumeration, then use the audited loader and read-only backup path. The fixed scratch proof is the only physical write currently implemented. | Proven on the owner's FM-1_092 only. `7F` is a different update command. |
+| UBOOT session needs to return to the installed app | A separately reviewed exact 14-byte RAM reset stub returned this owner's session to normal USB and a responsive FM-1_092 app once. | Bare-UBOOT reset opcode is unverified; do not replay a consumed adapter or assume every warm reset reconnects. Retain a real power-cycle fallback. |
 | App hangs or is corrupted | First observe whether the device enumerates normally. If the app is unusable, a USB_KEY-at-power-up route is a candidate; use only after its hardware procedure is independently reviewed and observed. Capture the ROM enumeration before loading the audited loader. | The USB_KEY dongle is simulated, not tried on the owner's FM-1. A ROM failed-boot route and successful entry from a broken app are not physically proven. The app soft key cannot help if the app does not run. |
 | SPL, boot metadata, or flash contents damaged | If mask ROM still enumerates, preserve the actual image and transaction evidence; recovery needs an exact owner-matched baseline and a separately reviewed bounded writer. | No complete physical restore exists. Never overwrite the SPL or metadata as an experiment. |
 | ROM does not enumerate, or SoC, power, USB, or flash hardware failed | Diagnose the electrical path and component. Consider an external programmer only after identifying the actual flash device and interface. | Software cannot repair a failed ROM, SoC, power path, or inaccessible flash. Do not infer the flash is discrete from a photo. |
