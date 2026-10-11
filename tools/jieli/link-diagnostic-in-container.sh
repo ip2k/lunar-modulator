@@ -22,13 +22,13 @@ for source in "${SOURCES[@]}"; do
     "$CC" "${FLAGS[@]}" -I"$SRC/firmware/diagnostic" -c \
         "$SRC/firmware/$FOLDER/$source" -o "$OUT/$source.o"
 done
-# Compile the prospective SPI backend independently; deliberately do not link
-# or activate it in any diagnostic. Object/disassembly are offline evidence.
-"$CC" "${FLAGS[@]}" -c "$SRC/firmware/display/spi1_transport.c" -o "$OUT/spi1_transport.o"
-"$TC/pi32v2/bin/objdump" -d -mcpu=r3 -mattr=+fprev1 "$OUT/spi1_transport.o" \
-    > "$OUT/spi1_transport.disasm.txt"
-"$TC/pi32v2/bin/objdump" -t "$OUT/spi1_transport.o" > "$OUT/spi1_transport.symbols.txt"
-python3 - "$OUT/spi1_transport.symbols.txt" <<'PY_CHECK'
+# Compile prospective hardware components independently, never link/activate.
+for component in display/spi1_transport recovery/request; do
+    name=${component##*/}
+    "$CC" "${FLAGS[@]}" -DLUNAR_PI32V2 -c "$SRC/firmware/$component.c" -o "$OUT/$name.o"
+    "$TC/pi32v2/bin/objdump" -d -mcpu=r3 -mattr=+fprev1 "$OUT/$name.o" > "$OUT/$name.disasm.txt"
+    "$TC/pi32v2/bin/objdump" -t "$OUT/$name.o" > "$OUT/$name.symbols.txt"
+    python3 - "$OUT/$name.symbols.txt" <<'PY_CHECK'
 import pathlib
 import sys
 undefined = []
@@ -39,8 +39,9 @@ for line in pathlib.Path(sys.argv[1]).read_text().splitlines():
         if len(name) > 1:
             undefined.append(name[-1])
 if undefined:
-    raise SystemExit('SPI transport has unresolved dependencies: ' + ', '.join(undefined))
+    raise SystemExit(sys.argv[1] + ': unresolved dependencies: ' + ', '.join(undefined))
 PY_CHECK
+done
 OBJECTS=("$OUT/startup.S.o" "$OUT/memory.c.o" "$OUT/runtime.c.o")
 if [[ $FOLDER == handover ]]; then
     "$CC" "${FLAGS[@]}" -I"$SRC/firmware/diagnostic" -c \

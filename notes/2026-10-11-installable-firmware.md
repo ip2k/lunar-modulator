@@ -2,9 +2,8 @@
 
 ## Objective and acceptance
 
-Resume the owner's installable-image goal. The first acceptance endpoint is
-awaiting owner clarification: a diagnostic image that boots, displays a probe
-and retains recovery, or playable Lunar with controls, MIDI and audio. Both
+Resume the owner's installable-image goal. The confirmed endpoint is a diagnostic
+image that boots, displays a probe and retains recovery. Playable Lunar follows later. We
 need actual pi32v2 compile/link, stock-component/partition package guards,
 reviewed concrete candidate and recovery plan, backups before flash mutation,
 actual hardware boot/recovery acceptance, and required CI/review/integration.
@@ -102,8 +101,7 @@ completeness unproven. Neither tool validates device ABI/MMIO.
 
 ## Next dependent work
 
-1. Receive the owner's endpoint clarification. Normal-boot confirmation is
-   complete; use Hera for every further build while aeon is under maintenance.
+1. Diagnostic bring-up endpoint and normal-boot confirmation are complete; use Hera for every further build while aeon is under maintenance.
 2. Target build access and initial object review are now complete (see resumed
    verification below); continue the independent platform-contract work.
 3. Establish independent clock/timer, watchdog, core/exception and PA2 contracts;
@@ -157,8 +155,8 @@ compiler, vendor disassembly and explicit source inspection provide current
 verification; the earlier empty diagnostics are not treated as current coverage.
 
 [verified: read-only bench inventory] Bench01 still sees bus 3/device 18
-`4c4a:8057` UBOOT. Owner power-cycle/normal-screen confirmation and milestone
-clarification remain pending. No device protocol command or flash mutation was
+`4c4a:8057` UBOOT. The owner subsequently confirmed normal boot after a power-cycle and chose
+diagnostic bring-up first. No device protocol command or flash mutation was
 sent. The installable-image objective remains unfinished; restored build access
 does not close startup, calibrated delay/clock, watchdog, core/exception, PA2,
 or recovery-route contracts.
@@ -207,5 +205,32 @@ bash tools/jieli/link-diagnostic.sh claude@192.168.1.48 \
 Replace both `PROFILE` occurrences with that profile. These separate remote
 work directories avoid concurrent-output races. No installable package or
 hardware diagnostic execution is implied by the successful builds. The owner
-endpoint question is pending; all remaining startup/recovery contracts above
+endpoint is confirmed as diagnostic bring-up first; all remaining startup/recovery contracts above
 still apply. Do not fall back to aeon builds while its maintenance is active.
+
+## Fixed recovery request checkpoint
+
+[verified: source/host/target] Added independent MIT `firmware/recovery/request.*`
+and fault simulations. The native component uses the stock 16-byte retained
+marker and one allowlisted P33 OR operation (address `0xa0`, bit 4). It verifies
+the marker before requesting reset, bounds waits, refuses preowned selection,
+latches failure and clears START during selection cleanup. It is compiled
+separately, never linked/called. Prerequisites and provenance are in its README.
+
+Hera panel-protocol build/audit passes with the unchanged 1212-byte binary
+`ebbe370cf135d0e1dd2ad16a04b47cf67bcdfbfaa4c837b960d946a5fc86cbcb`.
+Separate `request.o` SHA-256 is
+`148853163bb7ca8ee5d52ad63675f64bc34e7c298d5d2a7c1095c1694c47d5f5`.
+Vendor disassembly confirms `csync`, word P33 accesses and byte mailbox access;
+no named undefined helper remains. All 14 host fault checks pass on Hera, including held-START cleanup at each
+transfer byte. The read-only mount only causes pytest cache warnings.
+No mailbox/P33/flash access happened on the device.
+
+Fresh stock app decoding now runs on Hera from the private, guarded V15 app
+SHA-256 `306e47065f35d7a7a05ada7f5dd092f6e770952054f33f0a86b75fd10ffe3203`.
+Ignored local output: `build/jieli-runtime-evidence/stock.disasm.txt`; remote:
+`/home/claude/mvave-fm1/runtime-evidence`. Raw offset decoding must be rebased
+by `0x02000120` for flash call targets; RAM-relocated code needs its own mapping.
+Do not infer startup state from a decoded address alone. Next: finish the
+clock/timer, watchdog, core/exception, PA2 and mailbox-protection contracts,
+then link an observable diagnostic with a reviewed recovery/packaging plan.

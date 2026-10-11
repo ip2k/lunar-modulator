@@ -11,29 +11,31 @@ original conversation; last updated 2026-10-10. Read this first, then
 
 ## Installable firmware image resumed — 2026-10-11
 
-The active owner goal is an installable Lunar firmware image, with the exact
-first acceptance milestone awaiting clarification (diagnostic boot/display
-with recovery versus playable controls/MIDI/audio). Do not treat a transport
-checkpoint as completion. Work continues on
-`feature/2026-10-11@installable-firmware`, managed worktree
+The confirmed first milestone is a diagnostic image that boots, shows a display
+probe and retains recovery; playable Lunar follows later. Do not treat a
+component checkpoint as completion. Active branch:
+`feature/2026-10-11@installable-firmware`, managed checkout
 `/Users/likwid/.codex/worktrees/installable-firmware/mvave-fm1-firmware`,
 from main `b335dc2c450473dc375163aec7fa679e1b099cc3`.
 
-[verified] Bench SSH succeeds as `claude@bench01.local`; USB inventory still
-shows `4c4a:8057` UBOOT, device 18. No device protocol traffic or flash writes
-were sent this session. The prior callback-read session still needs the
-owner's power-cycle/normal-screen confirmation before more traffic; its full
-record remains in the live-bringup worktree at
-`notes/2026-10-10-fm1-live-bringup.md` (branch
-`chore/2026-10-10@fm1-live-bringup`). Do not run unreviewed transport paths.
+[reported: owner] Power-cycle returns to the normal screen. [verified: read-only
+inventory] Bench01 enumerates `4c4a:c755` with MIDI. The earlier UBOOT wait is
+closed. No new device protocol traffic or flash write has occurred.
 
-[verified: source/host simulation] A prospective bounded SPI1 transport now
-exists in `firmware/display/`, with independent compile output wired into the
-existing diagnostic build. It is not linked or activated. Full pixel stream,
-timeouts, stale completion and CS cleanup checks pass; target compile and
-hardware behavior remain pending. See
-[the session note](notes/2026-10-11-installable-firmware.md) for exact checks,
-external blockers, source navigation limits and next steps.
+**Build on Hera (`claude@192.168.1.48`); aeon is under owner maintenance.**
+Use local `/home/claude/mvave-fm1` assets; avoid NFS paths. Three parallel target
+profiles reproduce previous binaries and pass SDK-free audits. Prospective
+SPI and fixed recovery-request components compile separately with no named
+unresolved helpers, but remain excluded from boot images. Host fault checks
+exercise both components. No installable package or custom device execution.
+
+Startup/core/exception ownership, calibrated timer/clock, watchdog, PA2 and
+recovery from the actual application context still need resolution. See
+[the session note](notes/2026-10-11-installable-firmware.md) for artifact hashes,
+checks, source-navigation limitations and exact next steps. Recovery code and
+its limits are in `firmware/recovery/README.md`. Preserve stock SPL/OTA/cfg and
+partition guards; review the concrete candidate/recovery plan and compare
+backups before any flash mutation. Full broken-app restore remains unproven.
 
 ## Active work — 2026-10-10
 
@@ -359,9 +361,8 @@ Paste this as the first message of the new project (adjust paths):
 [verified] Aeon and Hera SSH/Docker are reachable. Target builds of inert,
 handover and panel-protocol pass link/audit; 33 focused tests pass without
 skips. Fixed a target-generated unresolved memcpy in SPI binding and added a
-symbol-table dependency gate. SPI is still disconnected from boot. Bench01
-still enumerates UBOOT; owner normal-screen confirmation and endpoint choice
-remain pending. See `notes/2026-10-11-installable-firmware.md` for artifact hashes,
+symbol-table dependency gate. SPI is still disconnected from boot. Bench01 subsequently returned to normal USB enumeration after the owner
+power-cycled; the owner confirmed diagnostic bring-up first. See `notes/2026-10-11-installable-firmware.md` for artifact hashes,
 remaining platform/recovery contracts and remote build paths. Active branch:
 `feature/2026-10-11@installable-firmware`; no package/install/PR/main merge.
 
@@ -374,4 +375,4 @@ Use `claude@192.168.1.48` for builds; aeon is under owner maintenance. Hera
 has the hash-pinned toolchain and build image locally. Three parallel target
 builds pass audit and reproduce aeon's images/SPI object byte for byte. See
 `notes/2026-10-11-installable-firmware.md` for exact paths and receipts. Endpoint
-choice remains pending; no installable package or device write has occurred.
+is confirmed as diagnostic bring-up first; no package or device write has occurred.

@@ -26,7 +26,7 @@ if [[ $PROFILE == panel-protocol ]]; then OUT="$ROOT/build/jieli-panel-protocol"
 ARCHIVE=$(mktemp -t lunar-diag.XXXXXX)
 trap 'rm -f "$ARCHIVE"' EXIT
 cd "$ROOT"
-COPYFILE_DISABLE=1 tar --no-xattrs -czf "$ARCHIVE" firmware/diagnostic firmware/handover firmware/display \
+COPYFILE_DISABLE=1 tar --no-xattrs -czf "$ARCHIVE" firmware/diagnostic firmware/handover firmware/display firmware/recovery \
     tools/jieli/audit_link.py tools/jieli/diagnostic_report.py \
     tools/jieli/diagnostic_flat.py tools/jieli/link-diagnostic-in-container.sh
 ssh -o BatchMode=yes "$HOST" "mkdir -p '$REMOTE/src' '$REMOTE/out'"
