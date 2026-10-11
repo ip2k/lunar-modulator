@@ -11,6 +11,18 @@ original conversation; last updated 2026-10-11. Read this first, then
 
 ## Installable firmware image resumed — 2026-10-11
 
+[verified: fixed-loader reader checkpoint] Exact fixed-reader source passed 80
+Hera checks in 16 parallel chunks, no skips/errors/OOM. Its independent review
+is [saved](notes/2026-10-11-fixed-loader-backup-review.md); campaign details and
+hashes are [recorded](notes/2026-10-11-fixed-loader-backup.md). Inputs are staged
+privately at bench01 `/home/claude/fm1-fixed-backups-20261011/stage`, with that
+fixed parent as the entry-consumption boundary. Physical campaign pending: one
+fresh same-port identity/soft-key receipt under passive usbmon capture, then
+47 exact RAM uploads and two full reads, no flash writes or retry. Normal unit
+was observed on USB 3-2 bus 3 devnum 22, raw MIDI midiC2D0. A concrete 1 MiB SDK
+raw target was emitted from historical backups (SHA `df6c963e…`), but physical
+install/restore binding and diagnostic boot/display acceptance remain pending.
+
 [verified: offline SDK raw checkpoint] The SDK-only emitter now passes 95 Hera
 checks in 16 parallel containers, with actual private ELF and historical backup
 fixtures and no skips. It reconstructs the raw application and CRC/length deltas

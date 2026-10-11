@@ -55,3 +55,18 @@ Rarefaction rejected this absolute worktree outside its configured root; Serena
 ignored Python paths. Python investigation used file inspection without changing
 another active session's shared project. pi32v2 native evidence comes from vendor
 instructions and exact ELF bytes, not substitute clangd ABI assumptions.
+
+## Concrete historical-baseline emission
+
+[verified: private Hera construction] The exact reviewed SDK app/ELF produced
+`target-historical-offline/target.bin` under the Hera evidence directory:
+1,048,576 bytes, SHA-256
+`df6c963ecd37b334f393c5bc92c2780b6094181308822a03c8190b016a4e97db`.
+The complete private receipt SHA-256 is
+`c1a8ee419d255ae74e361731fbaf90e0dfcb05b6de2770d9cc47f6595607846e`.
+There are 30 changed 4 KiB sectors, `0x4000` through `0x21000` inclusive.
+All protected bytes and unused application tail match the historical baseline.
+This is a generated raw target; physical-writer readiness and hardware approval
+remain false. It is not a stock MIDI-updater package, nor a live-backup permit.
+Private target and receipt are mirrored in ignored `build/sdk-raw-final-hera/`;
+no vendor or stock-derived binary is committed or published.
