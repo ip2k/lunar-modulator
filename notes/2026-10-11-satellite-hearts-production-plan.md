@@ -55,3 +55,14 @@ Source and structural checks can verify scene chains, event timing, state
 round-trips, parameter admission, memory estimates and finite full-length
 renders. They cannot establish musical resemblance or owner approval. Final
 release wording must separate those checks from owner listening.
+
+## Code-navigation setup
+
+Serena was activated on this exact absolute worktree and its Python overview
+matched the canonical state-schema test at `tests/test_state_schema.py`.
+Rarefaction remains rooted at `/Users/likwid/Developer/mvave-fm1-firmware`;
+it rejected this worktree as outside its configured workspace. Its bounded
+orientation of the same state-schema test matched the local file hash, but it
+does not index this Satellite branch. Recheck Rarefaction against the actual
+worktree before relying on it for implementation navigation; no source-code
+changes have been made in this stream yet.
