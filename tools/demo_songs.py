@@ -558,7 +558,9 @@ def afterglow_bass_bar(song: dict, role: str, bar: int, scene: int) -> list[str]
 
 def afterglow_chord_bar(song: dict, role: str, bar: int, scene: int) -> tuple[list[str], list[str]]:
     root, label = chord_for(song, bar, scene)
-    base = root + 12
+    # Keep the compact chord voicing below the FM lead while staying an octave
+    # above the bass foundation.
+    base = root
     intervals = chord_intervals(song, label)
     # Three close chord tones keep the pulse warm and below the FM lead. A
     # seventh/sixth joins only on the phrase's final offbeat.
@@ -628,7 +630,7 @@ def afterglow_lead_bar(song: dict, role: str, bar: int, scene: int, track: int) 
             2: [(0, 0, 42, 53), (8, 4, 30, 46)],
             3: [(0, 0, 42, 59), (3, 4, 30, 56), (8, 6, 36, 58), (14, 2, 36, 54)],
         }
-        return [ev(step, gate, afterglow_scale_pitch(root, degree), velocity)
+        return [ev(step, gate, afterglow_scale_pitch(base, degree), velocity)
                 for step, degree, gate, velocity in fragments[bar % 4]]
 
     if scene in (3, 6):
@@ -655,7 +657,7 @@ def afterglow_lead_bar(song: dict, role: str, bar: int, scene: int, track: int) 
 
     if scene == 2:
         contour = (0, 2, 4, 6)
-        return [ev(step, 30, afterglow_scale_pitch(root, degree), 50 + min(bar, 3) * 5)
+        return [ev(step, 30, afterglow_scale_pitch(base, degree), 50 + min(bar, 3) * 5)
                 for step, degree in zip((0, 4, 8, 12), contour)]
 
     if scene == 4:
@@ -670,7 +672,7 @@ def afterglow_lead_bar(song: dict, role: str, bar: int, scene: int, track: int) 
         contours = ((0, 2, 3, 1), (3, 5, 4, 2), (0, 2, 4, 1), (2, 4, 3, 0))
         contour = contours[(bar - 4) % 4]
         steps = (0, 5, 9, 13)
-        return [ev(step, gate, afterglow_scale_pitch(root, degree), velocity)
+        return [ev(step, gate, afterglow_scale_pitch(base, degree), velocity)
                 for step, degree, gate, velocity in zip(
                     steps, contour, (30, 24, 30, 18), (52, 47, 55, 45))]
 
@@ -692,7 +694,7 @@ def afterglow_lead_bar(song: dict, role: str, bar: int, scene: int, track: int) 
         phrase = ((0, 0, 42, 55), (6, 4, 24, 49), (10, 6, 36, 53), (14, 2, 18, 47))
     if bar % 4 == 3:
         phrase = ((0, 0, 42, 55), (5, 4, 24, 50), (9, 6, 36, 52), (13, 0, 18, 46))
-    return [ev(step, gate, afterglow_scale_pitch(root, degree), velocity)
+    return [ev(step, gate, afterglow_scale_pitch(base, degree), velocity)
             for step, degree, gate, velocity in phrase]
 
 
