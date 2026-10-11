@@ -11,15 +11,25 @@ original conversation; last updated 2026-10-11. Read this first, then
 
 ## Installable firmware image resumed — 2026-10-11
 
+[verified: physical fixed-loader backups] One fresh FM-1_092 identity and soft
+key took USB 3-2 device 22 to same-port ROM device 23. The fixed loader reader
+exited 0 after 8,757 successful operations; both new 1 MiB dumps match each other
+and the historical baseline (`96006a51…`) byte for byte. Passive usbmon matches
+all 8,756 vendor CDBs and transfer lengths in order. No erase/program/reset was
+sent. Private evidence is copied off bench01 under
+`build/fixed-backup-physical/`; public-safe hashes and limits are in
+[the physical backup note](notes/2026-10-11-fixed-loader-physical-backup.md).
+The loader remains active at device 23. Next: separately reviewed active-loader
+reset, SDK transaction binding/physical adapter, install/readback/restore, then
+diagnostic boot/display/recovery. This is not goal completion.
+
 [verified: fixed-loader reader checkpoint] Exact fixed-reader source passed 80
 Hera checks in 16 parallel chunks, no skips/errors/OOM. Its independent review
 is [saved](notes/2026-10-11-fixed-loader-backup-review.md); campaign details and
 hashes are [recorded](notes/2026-10-11-fixed-loader-backup.md). Inputs are staged
 privately at bench01 `/home/claude/fm1-fixed-backups-20261011/stage`, with that
-fixed parent as the entry-consumption boundary. Physical campaign pending: one
-fresh same-port identity/soft-key receipt under passive usbmon capture, then
-47 exact RAM uploads and two full reads, no flash writes or retry. Normal unit
-was observed on USB 3-2 bus 3 devnum 22, raw MIDI midiC2D0. A concrete 1 MiB SDK
+fixed parent as the entry-consumption boundary. The completed physical campaign
+used 47 exact RAM uploads and two full reads, no flash writes or retry. A concrete 1 MiB SDK
 raw target was emitted from historical backups (SHA `df6c963e…`), but physical
 install/restore binding and diagnostic boot/display acceptance remain pending.
 
@@ -31,8 +41,8 @@ separate. Independent review's ELF-architecture finding is fixed. See
 [the raw SDK evidence](notes/2026-10-11-sdk-raw-diagnostic.md) and
 [its review](notes/2026-10-11-sdk-raw-diagnostic-review.md). The diagnostic still
 has no physical boot/display acceptance or physical write permit. Next: exact
-fixed-loader reader checks, fresh same-port backup campaign, separately bound
-SDK install/restore adapter and physical diagnostic/recovery verification.
+separately bound SDK install/restore adapter and physical diagnostic/recovery
+verification against the now-matching fresh backups.
 
 The agreed first milestone is a diagnostic image that boots, shows a display
 probe and retains recovery; playable Lunar follows later. Do not treat a
