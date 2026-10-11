@@ -30,12 +30,13 @@ complete beginning-to-ending arc. Preserve song-specific phrase writing,
 scene lengths and chain order rather than inheriting the same eight-scene form
 by default.
 
-The current `origin/main` checkout does not yet contain the shared
-`tools/demo_songs.py` generator, canonical demo assets, or manifest. The Event
-Horizon candidate has those files but also a large body of review/runtime
-receipts and is not yet this branch's base. Do not duplicate the generator on
-main or edit copied `.lunar` data until the shared source branch is integrated
-or an explicit asset-base is selected.
+When this plan was first written, `origin/main` did not contain the shared
+`tools/demo_songs.py` generator, canonical demo assets, or manifest. This
+branch now contains them through a normal merge of the Event Horizon candidate
+(`22640a4`), but they remain absent from `origin/main`. The four configured
+projects are legacy examples, not the replacement showcase set. Do not extend
+the generator's four-song assumptions to Satellite Hearts: coordinate the
+legacy/showcase split in the collection manifest and checks first.
 
 ## Provisional direction, not a locked palette
 
@@ -43,7 +44,7 @@ Satellite Hearts should read as rhythmic electropop: a short, unmistakable
 instrumental hook with clear phrase endpoints; a steady dance pulse; a verse
 that leaves room for the hook; and a contrasting middle section that introduces
 a new function rather than only removing tracks. Its final palette, tempo,
-groove and form remain unselected until the other three current showcase
+groove and form remain unselected until the other three replacement-showcase
 palettes are known. This avoids another shared-template collision. The design
 must fit the real engine/voice and four-sound-slot budgets and be accepted by
 the canonical native/Wasm state and full-chain harness before it is called
