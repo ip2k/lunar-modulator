@@ -10,21 +10,21 @@ downloaded as a `.lunar`, and reopened in a fresh browser context. Its detailed
 result is copied to `browser-demo-files.json`; screenshots and downloaded
 files remain in the dated aeon scratch path recorded in the JSON.
 
-Native/Wasm execution passed the full Afterglow Relay render and then stopped
-on Event Horizon because its source needs one load-save repair. The Wasm loader
-reported status `ok` and 39% estimated RAM; a source/runtime diff showed the
-runtime inserting its disabled default `arp` MIDI effect where each sound had
-an empty `midi_fx` list. The harness expected zero repairs, so this remains a
-failed canonical-state gate, not a pass. The other three song renders were not
-reached. The WAV files and browser screenshots remain in aeon scratch under
-`/home/claude/mvave-fm1/demo-event-e608ad8-20261011/lunar-event-e608ad8-20261011`;
-their hashes and paths are recorded in the JSON. This repository note does not
-claim native/Wasm completion, hardware execution, or listening approval.
+This historical e608 native/Wasm attempt passed the full Afterglow Relay render
+and then stopped on Event Horizon after reporting one load-save repair. The
+initial Arp-default explanation was not isolated and should not be treated as
+confirmed. A later run with explicit disabled Arp records still reported one
+repair. Source inspection then found Event Horizon's 314-character `about`
+text exceeded the state format's 240-code-point limit; truncating that field to
+233 characters eliminated the repair. The complete follow-up run is recorded in
+[the final acceptance receipt](../2026-10-11-event-horizon-acceptance-final-8efb1b7/README.md).
+The original WAV files and browser screenshots remain in the e608 aeon scratch
+path; the first attempt remains preserved here as a historical failure.
 
 The result is diagnostic for the old eight-scene Event rewrite only. It does
 not make that arrangement a showcase candidate: the current collection brief
 requires four showcase songs with distinctly different tempo/feel, drums,
-instrumentation, hooks, harmony and scene topology. The independent critic's
-source review also found a repeated Trio G4 retrigger, shortened Acid gates in
-the later halves of the drops, and deliberate overlap details needing musical
-review. Preserve these findings; do not waive them to call the track accepted.
+instrumentation, hooks, harmony and scene topology. A later source critique
+found a repeated Trio G4 retrigger, shortened Acid gates in the later halves of
+the drops, and deliberate overlap details needing musical review. Preserve
+these findings; do not waive them to call the track accepted.

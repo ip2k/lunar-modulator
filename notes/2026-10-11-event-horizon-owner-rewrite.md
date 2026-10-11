@@ -80,3 +80,17 @@ The Round-5 song critic applies to the previous frozen arrangements and is not
 an acceptance claim for this owner-directed rewrite. Any updated critic review
 must inspect the frozen new Event Horizon only. Runtime, memory admission,
 browser save/reopen, and owner listening remain separate checks.
+
+## Runtime and browser acceptance follow-up — 2026-10-11
+
+The canonical four-project native/Wasm and Chromium file-flow checks now pass
+for exact branch head `8efb1b72978d25f960beb1d6988bb2237b315a90`. See
+[the bounded receipts](2026-10-11-event-horizon-acceptance-final-8efb1b7/README.md)
+for artifact hashes and all results. This is not owner listening, hardware
+execution, or musical/showcase approval. The original four songs remain legacy
+examples; the owner's collection-wide distinctness requirement remains open.
+The exact source review at critic commit
+`74ffc412a14d9b115b06ac3f98070ac660a32c8d` identifies the remaining Event
+arrangement issues, including Vrs2 duplicate Trio G4 attacks, shortened later
+Acid drop gates, overlaps and inherited eight-scene topology. Keep these as
+musical revision work rather than treating runtime success as closure.
