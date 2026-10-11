@@ -82,6 +82,8 @@ def build_satellite():
                 if t==0:
                     steps=[0,4,8,12] if scene!=4 else ([0,9] if bar>=4 else [])
                     if scene==0 and bar<2: steps=[0,8]
+                    if scene==3 and bar in (7,11): steps=[0,4,8] if bar==7 else [0,8]
+                    if scene==1 and bar%4==3: steps=[0,4,8]
                     if end: steps=[0,4,8]
                     for step in steps: add(bar,step,36,18,101 if step==0 else 91)
                 elif t==1:
@@ -92,6 +94,8 @@ def build_satellite():
                 elif t==2:
                     steps=[2,10] if scene in (1,3,5) else [0,8] if scene==2 else [0] if scene==4 else []
                     if scene==4 and bar%2: steps=[]
+                    if scene==3 and bar==11: steps=[]
+                    if scene==3 and bar==7: steps=[2]
                     if end: steps=[0]
                     for step in steps:
                         for pitch in CHORDS[chord]: add(bar,step,pitch+12,42 if scene!=4 else 150,73)
@@ -99,28 +103,45 @@ def build_satellite():
                     phrase=HOOK[bar%4] if scene in (3,5) else HOOK[bar%4][:2] if scene==1 and bar%4>=2 else []
                     if scene==0 and bar==3: phrase=[(8,76,24),(11,79,30)]
                     if scene==2: phrase=[(4,74,42),(10,76,48)] if bar%2 else [(0,72,72)]
-                    if scene==4: phrase=[(3,68,90),(11,67,72)] if bar in (1,3) else []
+                    if scene==3 and bar==7: phrase=HOOK[3][:2]
+                    if scene==3 and bar==11: phrase=[]
+                    if scene==3 and bar in (9,13): phrase=[(2,76,36),(5,79,24),(8,81,48),(14,79,30)]
+                    if scene==3 and bar==15: phrase=[(1,76,24),(4,74,24),(8,72,96)]
+                    if scene==4:
+                        middle=[[(1,68,60),(5,67,48),(10,65,72)],
+                                [(3,63,72),(8,65,60),(13,67,36)],
+                                [(0,64,96),(7,67,60),(12,72,60)],
+                                [(2,71,72),(9,67,96)]]
+                        phrase=middle[bar%4]
+                        if bar==7: phrase=[(2,67,72),(9,71,96)]
                     if final: phrase=[(step,pitch-12,gate) for step,pitch,gate in phrase]
                     if end: phrase=[(0,72,132)]
                     for step,pitch,gate in phrase: add(bar,step,pitch,gate,97)
                 elif t==4:
                     steps=[2,6,10,14] if scene in (1,3,5) else [6,14] if scene==2 else []
                     if scene==0 and bar>=2: steps=[6,14]
+                    if scene==3 and bar in (7,11): steps=[2,6]
+                    if scene==1 and bar%4==3: steps=[2,6,10]
                     if end: steps=[2,6]
                     for step in steps: add(bar,step,42,12,53 if step==14 else 43)
                 elif t==5:
                     # A single midrange answer, never a duplicate chord note.
-                    if scene in (3,5) and bar%4==3 and not end: add(bar,14,67,36,67)
+                    if scene in (3,5) and bar%4==3 and not end and bar not in (7,11): add(bar,14,67,36,67)
                 elif t==6:
                     if scene not in (0,4):
-                        for step in ([4,12] if not end else [4]): add(bar,step,39,18,86)
+                        steps=[4,12] if not end else [4]
+                        if scene==3 and bar in (7,11): steps=[4]
+                        for step in steps: add(bar,step,39,18,86)
+                    if scene==1 and bar%4==3: add(bar,15,37,18,64)
+                    if scene==3 and bar==15: add(bar,15,38,18,68)
                     if scene==2 and bar==bars-1: add(bar,15,38,18,67)
                 elif t==7:
                     # No polyphonic doubling of the main hook: octave answer
                     # only in its resting last beat, and absent at the cadence.
-                    if scene==3 and bar%4==3: add(bar,13,84,36,73)
+                    if scene==3 and bar%4==3 and bar not in (7,11,15): add(bar,13,84,36,73)
                     if scene==5 and bar%4==1 and not final: add(bar,12,84,24,69)
             events.sort()
+            assert len(events)<=512
             all_events[t,scene]=events
             encoded=';'.join(':'.join(map(str,e)) for e in events)
             lines += [f'cl {t} {scene} {bars*16} 0 {encoded}',f'cp {t} {scene} 1 1 0 0']
@@ -213,7 +234,7 @@ def build_packet():
                 elif t==7:
                     if scene==0 and bar in (2,6):add(bar,12,40,18,46)
                     if hinge and bar==4:add(bar,2,47,18,43)
-            events.sort();all_events[t,scene]=events
+            events.sort();assert len(events)<=512;all_events[t,scene]=events
             lines += [f'cl {t} {scene} {bars*16} 0 '+ ';'.join(':'.join(map(str,e))for e in events),f'cp {t} {scene} 1 1 0 0']
     for scene in range(len(form)):
         for slot in (1,2):

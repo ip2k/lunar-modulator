@@ -88,3 +88,17 @@ manifest: `sim/web/test/satellite-hearts.json`. Root owns generic harness and
 catalog integration. Rarefaction still indexes the main checkout; Serena was
 selected on this absolute worktree and its `build` symbol bounds matched the
 actual generator source. No shared Rarefaction reconfiguration was attempted.
+
+## Source critique response
+
+Independent review of `442861a4` found that the 16-bar Hearts refrain repeated
+its four-bar orchestration unchanged, and Window did not yet develop a new
+melodic function. Hearts now withdraws the end of bar 8 and the chord/lead in
+bar 12, returns with an upward answer at bars 10/14, and writes a final
+statement into Return. Window has a distinct lower four-bar countermelody,
+with its second phrase ending on B to resolve into Return's C harmony. Verse
+phrase ends omit the last kick and introduce quiet rim pickups; refrain
+phrase breaks remove clap/hat endpoints rather than using generic rolls.
+The F-minor borrowing is an established verse color, not falsely described as
+first revealed in Window. Source invariants still pass; listening remains
+pending, and aeon runtime remains blocked by `Host is down`.

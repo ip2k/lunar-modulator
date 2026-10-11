@@ -39,3 +39,11 @@ Next: review independent source critique, then exact-asset runtime checks when
 aeon becomes reachable. Current milestone is source complete, runtime blocked,
 musical acceptance pending. Serena Packet symbol/caller matched actual source
 and diagnostics returned no warnings/errors.
+
+## Critique revision milestone
+
+Independent Satellite source critique addressed: internal Hearts subtraction
+and altered answers; developed four-bar Window countermelody and B→C return;
+phrase-end drum stops/pickups. Generator also asserts the verified 512-note
+per-clip cap. Assets regenerated; source invariants pass. Packet independent
+source review is requested. Exact runtime still blocked on aeon connectivity.
