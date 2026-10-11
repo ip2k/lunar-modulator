@@ -24,8 +24,10 @@ started from fresh FM-1_092 identity and same-port soft-key entry, uploaded
 exactly two fixed blocks and jumped once. USB disconnected immediately and
 the same port re-enumerated UBOOT. This does not independently prove marker
 or P33 execution. No flash command was sent; no flash reread was performed.
-Device commands stopped; owner cold-cycle/normal-operation acceptance remains
-pending. See [the bench result](notes/2026-10-11-fm1-ram-probe.md).
+Device commands stopped after that attempt; normal-operation acceptance remains
+pending. The owner subsequently asked whether UBOOT can reboot without a
+physical power cycle; the exact loader reset path is under offline review.
+See [the bench result](notes/2026-10-11-fm1-ram-probe.md).
 
 **Build on Hera (`claude@192.168.1.48`); aeon is under owner maintenance.**
 Use local `/home/claude/mvave-fm1` assets; avoid NFS paths. Three parallel target
@@ -45,25 +47,31 @@ restriction below is historical and superseded. Independent review conditionally
 supports one exact 700-byte no-flash RAM probe with fresh unit/port binding,
 no retries, and a durable receipt. Post-jump enumeration alone cannot prove
 that P33 executed. Latest verified pushed recovery checkpoint:
-`62ef114d1b1b261d2f39e64a0a8847fa51b07869`.
+`fd6b9f3e1a036e82f26116e19cc7b6b3e5e8b925`.
 
 Recovery development now adds a persistent whole-flash protocol model, durable
 transaction artifacts and a resumable fixed scratch-sector restore mode. The
 physical adapter retains its exact existing sector/payload allowlist; wider
-application writes and USB_KEY recovery are model-only. Reviewed transaction/
+application writes and USB_KEY recovery remain physically unproven. Reviewed transaction/
 read/restore/transport checks pass 41 tests on Hera; all 497 interruption and
 corruption cases pass, with 32 campaign checks. The full Python suite was split
-into 16 isolated Hera containers: all 5,443 unique collected nodes ran exactly
-once; 5,402 passed, 37 skipped and four failed committed manual-SVG freshness
-checks. The 0.01 coordinate discrepancies are under investigation; do not
-call that run green. Explicit diagnostic-profile propagation has a separate
-77-pass/3-optional-skip result and independent review is pending. This stream
-remains WIP; do not merge an unfinished or failing checkpoint. See
+into 16 isolated Hera containers on exact source `fd6b9f3e`: all 5,489 unique
+collected nodes ran exactly once; 5,451 passed, 38 skipped, zero failures/errors.
+The earlier four manual-SVG discrepancies were fixed by stable summation;
+standard full collection also exposed and resolved two peer-test imports.
+Explicit diagnostic-profile propagation and raw FM-1_092 target validation
+passed independent review. A separate injected-transport diagnostic adapter is
+being tested/reviewed; the green full run predates that uncommitted adapter.
+This stream remains WIP; do not merge an unfinished checkpoint. See
 [the recovery runbook](docs/17-recovery.md) for procedures and physical limits.
 
 
-Offline raw flash profile/target validation and diagnostic-profile review are
-active. Stock watchdog setup/feed instructions are documented in ignored
+Offline raw flash profile/target validation now checks both complete backups,
+exact recorded geometry, actual app/ELF/audit inputs, protected bytes and derived
+changed sectors. It emits JSON evidence only; no physical writer is opened.
+The [final stock SPL contract review](notes/2026-10-11-stock-spl-final-contract.md)
+resolves the ordinary XIP entry and conditional callback, but does not prove
+core, exception or complete RAM ownership. Stock watchdog setup/feed instructions are documented in ignored
 `build/watchdog-contract-review.md`; this does not establish inherited SPL
 state or safe cross-core P33 ownership. Startup/core/exception ownership,
 calibrated timer/clock, watchdog, PA2 and

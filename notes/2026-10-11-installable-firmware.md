@@ -101,7 +101,9 @@ completeness unproven. Neither tool validates device ABI/MMIO.
 
 ## Next dependent work
 
-1. Diagnostic bring-up endpoint and normal-boot confirmation are complete; use Hera for every further build while aeon is under maintenance.
+1. The diagnostic bring-up endpoint is agreed, and the earlier owner normal-boot
+   confirmation is complete. The image itself is unfinished. Use Hera for every
+   further build while aeon is under maintenance.
 2. Target build access and initial object review are now complete (see resumed
    verification below); continue the independent platform-contract work.
 3. Establish independent clock/timer, watchdog, core/exception and PA2 contracts;
@@ -368,9 +370,11 @@ matched the remote hashes. Core/read/restore/transport review corrections
 changed-sector negative test) have a separate 41-test Hera pass.
 
 A single exact RAM-only probe subsequently ran; its observations and limits
-are in [the bench result](2026-10-11-fm1-ram-probe.md). The current unit is in
-UBOOT and no further device commands are planned before owner cold-cycle
-acceptance. This is not a completed installable diagnostic or full restore.
+are in [the bench result](2026-10-11-fm1-ram-probe.md). The current unit was last
+observed in UBOOT. The owner subsequently asked whether a UBOOT reset can
+unblock work; the exact pinned loader reset path is under offline review.
+No reset has yet been sent. This is not a completed installable diagnostic
+or full restore.
 
 ## Full Python suite in sixteen Hera containers
 
@@ -401,3 +405,79 @@ Latest verified pushed checkpoint before this continuation is
 Next: resolve SVG determinism, independently review profile selection, validate
 FM-1_092 raw NOR mappings offline, and resolve the actual SPL handoff contracts
 before wiring a visible stock-preserving diagnostic candidate.
+
+## Reviewed raw target profile and green sixteen-chunk rerun
+
+[verified: offline source and independent review] Explicit `inert`, `handover`
+and `panel-protocol` selection now propagates through diagnostic reporting,
+private staging and application-replacement modeling. Profile labels describe
+operator intent; ELF/layout/audit checks establish the actual artifact shape.
+These changes passed 77 focused checks, with three optional private-input skips.
+
+[verified: Hera] `tools/jieli/raw_flash_profile.py` validates the actual two
+full FM-1_092 backups, their manifest/identity evidence, pinned SPL/prefix,
+decoded records and reserved geometry. Target checks recompute the app/ELF
+audit, preserve protected bytes, bound decoded changes and derive only the
+changed 4-KiB sectors. The CLI emits JSON only. A private recorded-baseline
+check and synthetic small-app target passed; no candidate binary was emitted.
+Focused raw/stock/report checks passed 65 tests with one optional skip.
+The independent source/provenance review is retained in ignored
+`build/raw-profile-independent-review.md` and `build/raw-flash-profile-evidence/`.
+Content/topology evidence is not a hardware serial-number attestation.
+
+[verified: collection and JUnit receipts] A new tracked-source archive at exact
+commit `fd6b9f3e1a036e82f26116e19cc7b6b3e5e8b925` collected 5,489 unique tests
+across 126 modules with the normal repository import configuration. Sixteen
+independent Hera containers ran every collected test exactly once: **5,451
+passed, 38 skipped, zero failures/errors/duplicates/omissions**. Every container
+exited zero, had four CPUs/four GiB in `docker-batch.slice`, used the pinned
+image and labels, and reported `OOMKilled=false`. Root reran the identity
+aggregator and checked all sixteen inspections. The agent removed only its
+own containers after saving evidence. This is Python 3.11.2 evidence, not
+Python 3.12/macOS CI or device acceptance.
+
+The earlier four manual-SVG failures were caused by accumulated floating-point
+rounding across Python versions. Stable summation fixes the generator without
+weakening the freshness checks or changing committed diagrams. Full standard
+collection also caught two unqualified peer-test imports; package-qualified
+imports fixed them before this successful rerun.
+
+Ignored evidence: `build/recovery-python-shards-final/`; Hera copy:
+`/home/claude/mvave-fm1/recovery-python-shards-final-20261011-fd6b9f3e/`.
+Source archive SHA-256
+`c1d3802963ce72f4d5c2fc74ec5dac407ad59437f0fc89d1febccdaed9ce9c4c`;
+plan SHA-256
+`7c474bcf013006b7aaef3bc5213a85258b008e73d10bf69cfac313010df520d6`;
+aggregate SHA-256
+`4b1720a385e2336dff5b19e318003bbf99029c835cd2c856ea6251c0a449287b`.
+
+The [final SPL follow-up](2026-10-11-stock-spl-final-contract.md) resolves the
+ordinary XIP call and conditional callback path, and verifies watchdog enable
+semantics from two SDK versions. It does not establish live core/exception or
+complete SRAM ownership. A bound injected-transport diagnostic adapter is
+under separate review; this full-suite result predates that new source.
+The branch remains WIP and no installable display/recovery acceptance or
+main integration is claimed.
+
+## Bound diagnostic adapter checkpoint
+
+[verified: source, independent review and Hera] The separate
+`tools/fm1_bound_diagnostic.py` API binds raw-validated actual files to a frozen
+transaction/direction and injected loader transport. Exact CDB, derived sector,
+direction-selected page and durable journal-intent guards reject direct writes
+or arbitrary commands. Response/session ambiguity closes the old handle;
+install, restore, resume and completed-journal checks use fresh bindings.
+No opener or CLI exists. Injected claims and cooperative file checks cannot
+attest physical identity atomically at I/O; no physical readiness is claimed.
+
+All 51 new adapter checks pass on Hera; combined adapter/raw/stock/report checks
+pass 115 tests, with two optional private-fixture skips. Persistent model cases
+include torn writes, lost acknowledgements, changed bindings, corrupt readback
+and host checkpoint exceptions followed by fresh recovery. Exact source hashes:
+adapter `8fef10170e22a580df172094327ea6c06f5b010a77697db673bdb24cb87dbd94`;
+tests `3e1c25f44217bed6af4b396ad07c4960b6c72b25d74abc4132176c1ffd2633f5`.
+Evidence and independent review are retained in ignored
+`build/bound-diagnostic-evidence/`, `build/bound-diagnostic-handoff.md` and
+`build/bound-diagnostic-independent-review.md`.
+The earlier complete 16-chunk result predates this new adapter; a fresh full
+run is still required on the next stable committed source.

@@ -181,6 +181,27 @@ not reproduce every electrical NOR failure or an actual host filesystem power
 loss. Source and receipt hashes are in
 [the continuation note](../notes/2026-10-11-installable-firmware.md#reviewed-interruption-campaign).
 
+## Offline bound diagnostic command policy
+
+[verified: source and Hera model tests] `tools/fm1_bound_diagnostic.py` adds a
+separate injected-transport adapter. `load_policy(...)` revalidates actual
+baseline/target files, both backup records, FM-1_092 raw geometry and the
+app/ELF/audit before accepting a transport. Its immutable policy fixes the
+transaction directory, install/restore direction, exact image pages and derived
+changed sectors. Erase/program commands additionally require a matching durable
+journal intent from the transaction run; direct write calls are rejected.
+Malformed CDBs and arbitrary ROM/loader/eFuse commands are rejected before I/O.
+Ambiguous transport, response or binding failures close the handle; resume and
+restore require a fresh binding and the core's full readback checks.
+
+This adapter has **no physical opener or CLI**. Loader/session/unit bindings are
+injected assertions, not hardware attestation. Python caller code and
+cooperative file locks are not a security sandbox; a future real transport must
+own and validate its exclusive handle across re-enumeration. The 51 new model
+cases passed, with 115 passing combined raw/stock/report checks and two optional
+private-fixture skips. Physical loader/recovery binding and an actual candidate
+remain separate gates. Receipts explicitly mark hardware validation false.
+
 ## Future installable image and deferred work
 
 Any installable package must preserve the stock SPL, `ota.bin`, `cfg`,
