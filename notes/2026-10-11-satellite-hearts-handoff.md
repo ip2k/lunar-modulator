@@ -54,3 +54,12 @@ Bloom now has a distinct middle-four-bar percussion/bass relationship and
 C-sharp modal answers, addressing repetition and the missing defining Dorian
 sixth. Sophie Tune parameters are authored, not perceptually verified tuning.
 Source checks pass; runtime/owner listening pending.
+
+## Exact returned source snapshot
+
+Composition source head `aa487f85d9603fb7a8183061e73ee52164577b1f` was pushed
+and verified against origin. Satellite SHA-256:
+`b797a827904fd9899c423c9b0719c25d54f53697eff3def1f491053be73dd8a7`.
+Packet replacement SHA-256:
+`d66291ba86df901ea3f8f3897aeeb25ca6c643d29d6841f5bf1d98bd520dab4c`.
+Independent critic has these exact hashes for returned-asset source recheck.

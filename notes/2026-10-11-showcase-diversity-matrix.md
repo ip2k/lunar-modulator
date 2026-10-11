@@ -15,19 +15,19 @@ different parameters” does not satisfy that requirement.
 | --- | --- | --- | --- |
 | Afterglow Relay | Chillwave; owner supplied Neon Indian “Polish Girl” and Tycho “Awake” as direction. Only reference titles/metadata and a reconstruction article/transcript were inspected in the cited work; no agent claims to have auditioned either recording. | The reference-informed rewrite is on `feature/2026-10-10@afterglow-reference-rewrite` at `810b5aff`. It uses Punch drums, two Macro voices (VA+Filter), and FM6 User 1 `LUNAR LEAD`; the FM6 is the foreground hook voice. Owner has rejected the prior chord/drum revision and asked for a fresh composition. | Replacement still needs owner listening; its eventual palette and form are not final. |
 | Event Horizon | Future bass. Owner references: Disclosure “You & Me (Flume Remix),” San Holo “Light,” The Chainsmokers “Closer,” and Louis The Child “It’s Strange.” Titles were verified from oEmbed; no claim of direct listening. | The candidate in `feature/2026-10-11@event-horizon-rewrite` at `10d7fa98` uses Deep drums, SixOp `2 E.PIANO 1`, Trio Saw x3, and Acid Bass Square. Review found duplicated/retriggered notes, overlapping/short late-drop bass gates, and inherited repeated eight-scene form. | The owner heard and rejected the original Event, not this rewrite. The rewrite passed runtime checks; source-critic findings remain unresolved and owner musical acceptance is pending. |
-| Packet Bloom | Vapor/twitch was the old label. Owner rejected the original for sounding too much like Afterglow, specifically calling out shrill Macro chords and the shared Punch / VA+Filter / VA Pair / FM6 palette. New references supplied: INZO “Overthinker,” Medasin “Everytime,” “Flips and Flops, Drips and Drops,” and Alina Baraz & Galimatias “Pretty Thoughts.” Titles verified from oEmbed, not listened to here. | The legacy project uses Punch drums, two Macro voices (VA+Filter and VA Pair), and FM6 User 1 `LUNAR LEAD`; the parent verified the saved file matched all 64 clips and source-defined sounds. | This composition branch now owns the replacement; the concrete contrast freeze below supersedes the earlier parent-writer placeholder. |
-| Satellite Hearts | New electropop showcase, replacing the rejected Neon Transit. Owner references: Justice vs Simian “We Are Your Friends,” Justice “Neverender,” Eurythmics “Sweet Dreams,” and Robyn “Dancing On My Own (Rex The Dog Remix).” oEmbed metadata verified titles only; no claim of listening. | No Satellite project or sound palette has been authored. | This branch owns the new composition after the collection's other palettes are coordinated. |
+| Packet Bloom | Vapor/twitch was the old label. Owner rejected the original for sounding too much like Afterglow, specifically calling out shrill Macro chords and the shared Punch / VA+Filter / VA Pair / FM6 palette. New references supplied: INZO “Overthinker,” Medasin “Everytime,” “Flips and Flops, Drips and Drops,” and Alina Baraz & Galimatias “Pretty Thoughts.” Titles verified from oEmbed, not listened to here. | Legacy project uses Punch/Macro/FM6 and remains untouched. Replacement `packet-bloom-showcase.lunar` is authored at source head `aa487f85`, with Crater/Phase Bend/Modal/Sophie, 82 BPM and five asymmetric scenes. | Source critique revised; exact-asset recheck pending. Runtime blocked by aeon connectivity; musical approval pending. |
+| Satellite Hearts | New electropop showcase, replacing the rejected Neon Transit. Owner references: Justice vs Simian “We Are Your Friends,” Justice “Neverender,” Eurythmics “Sweet Dreams,” and Robyn “Dancing On My Own (Rex The Dog Remix).” oEmbed metadata verified titles only; no claim of listening. | Replacement `satellite-hearts.lunar` is authored at source head `aa487f85`: Comet/Drawbar Bass/Shapes Saw-Sqr/Drawbar Mellow, 124 BPM, six asymmetric scenes. | Source critique revised; exact-asset recheck pending. Runtime blocked by aeon connectivity; musical approval pending. |
 
 ## Contrast targets to hold during composition
 
 | Dimension | Afterglow target | Event target | Packet target | Satellite target |
 | --- | --- | --- | --- | --- |
 | Energy / pulse | Loose, warm, humanized chillwave; an unhurried pulse with a recognizable short hook. | High-energy future-bass lift with a deliberately different half-time/full-time relationship, not simply a faster four-on-floor. | 82 BPM fractured, sparse pulse; off-grid pickups and silence rather than a steady dance grid. | Forward electropop dance pulse; clear beat, clipped hook rhythm and phrase-ending stops. Avoid both Afterglow's laid-back swing and Event's big half-time drop grammar. |
-| Drum identity | Owner requested less masking/reverb and an authored chill groove; do not reuse the original repetitive even-step hats as the replacement identity. | Keep Deep kit while addressing source critique; the new composition has not received owner listening. | Must not inherit Punch as a default. Choose a distinct actual kit/source and a distinct accent/rest pattern. | A different engine-kit and a direct, mechanically clear pattern are desirable; candidate below is unverified and must not collide with Packet's choice. |
-| Pitched palette | FM6 `LUNAR LEAD` is the owner's required main voice; compose a memorable original hook around it. | Candidate reference palette: SixOp EP + Trio Saw x3 + Acid Bass Square. Do not copy it into other songs. | Crater drums, Phase Bend rounded bass, Macro Heavy Modal texture, Sophie tuned counter-percussion; no VA chord bed or FM6. | Provisional disjoint candidate below avoids FM6, Macro, SixOp, Trio and Acid. This is not approved or memory-checked. |
+| Drum identity | Owner requested less masking/reverb and an authored chill groove; do not reuse the original repetitive even-step hats as the replacement identity. | Keep Deep kit while addressing source critique; the new composition has not received owner listening. | Must not inherit Punch as a default. Choose a distinct actual kit/source and a distinct accent/rest pattern. | Comet Classic has a straight pulse, phrase-end stops and small pickups; Packet separately uses Crater and fractured rests. |
+| Pitched palette | FM6 `LUNAR LEAD` is the owner's required main voice; compose a memorable original hook around it. | Candidate reference palette: SixOp EP + Trio Saw x3 + Acid Bass Square. Do not copy it into other songs. | Crater drums, Phase Bend rounded bass, Macro Heavy Modal texture, Sophie tuned counter-percussion; no VA chord bed or FM6. | Authored Comet/Drawbar/Shapes set avoids the FM6/Macro/SixOp/Trio/Acid families. Source contrast reviewed; runtime and listening pending. |
 | Form | Write the replacement to the reference-informed chillwave brief, not the inherited eight-scene template by default. | Rewrite; old 8-scene / 116-bar plan is not accepted. | Five scenes: 8 / 10 / 6 / 12 / 4 bars; exposed texture opening, accumulating passage, empty hinge, transformed main passage, dissolving tail. | Proposed six scenes with asymmetric lengths; one middle scene introduces a new melodic function, and the ending is composed rather than another loop. |
 
-## Satellite candidate for collision review only
+## Earlier Satellite sketch, superseded by the freeze below
 
 If Packet's chosen palette leaves these engines free, test a deliberately
 non-overlapping sound-role set: Comet Kit (909-derived percussion), Drawbar
@@ -96,3 +96,19 @@ physical-model texture, not its VA oscillator/filter palette; actual collision
 review still needs listening. Satellite’s 16-bar longest scene fits the verified
 256-step clip limit in `engines/include/fm1_seq.h`. Four-slot admission and exact
 asset runtime checks remain required. No reference recording was auditioned.
+
+## Current asset boundary
+
+Composition source head `aa487f85d9603fb7a8183061e73ee52164577b1f` was
+pushed and remote-SHA verified. Satellite SHA-256
+`b797a827904fd9899c423c9b0719c25d54f53697eff3def1f491053be73dd8a7`;
+Packet replacement SHA-256
+`d66291ba86df901ea3f8f3897aeeb25ca6c643d29d6841f5bf1d98bd520dab4c`.
+Both source/web mirrors match byte-for-byte and regenerate deterministically.
+The generator's actual registry bounds/enums, complete per-pad records,
+metadata cap, 512-note clip cap, note boundaries and pitched same-key overlap
+checks pass. Independent critique prompted authored phrase development and
+percussion contrast; exact returned-asset source recheck remains pending.
+Native/Wasm admission and full renders are blocked because bounded aeon SSH
+returned `Host is down`; browser integration and owner listening remain open.
+No merge, reference audition or hardware test has been performed.

@@ -38,7 +38,7 @@ projects are legacy examples, not the replacement showcase set. Do not extend
 the generator's four-song assumptions to Satellite Hearts: coordinate the
 legacy/showcase split in the collection manifest and checks first.
 
-## Provisional direction, not a locked palette
+## Initial direction, superseded by the implementation freeze
 
 Satellite Hearts should read as rhythmic electropop: a short, unmistakable
 instrumental hook with clear phrase endpoints; a steady dance pulse; a verse
@@ -65,8 +65,8 @@ Rarefaction remains rooted at `/Users/likwid/Developer/mvave-fm1-firmware`;
 it rejected this worktree as outside its configured workspace. Its bounded
 orientation of the same state-schema test matched the local file hash, but it
 does not index this Satellite branch. Recheck Rarefaction against the actual
-worktree before relying on it for implementation navigation; no source-code
-changes have been made in this stream yet.
+worktree before relying on it for implementation navigation; the initial orientation happened before source changes; the later Packet
+symbol/caller and diagnostics check is recorded below.
 
 ## Source milestone, 2026-10-11
 
