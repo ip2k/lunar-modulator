@@ -205,7 +205,38 @@
         null,
         null
       ],
-      "midi_fx": []
+      "midi_fx": [
+        {
+          "engine": "arp",
+          "on": false,
+          "params": {
+            "Mode": "Up-Down",
+            "Order": "Pitch",
+            "Octaves": "2",
+            "Oct Mode": "Span",
+            "Rate": "1/16",
+            "Gate": 50,
+            "Pattern": "All",
+            "Length": 0,
+            "Fill": 0,
+            "Rotate": 0,
+            "Latch": "Off",
+            "Join": "Now",
+            "Sync": "Key",
+            "Repeat": "1",
+            "Ratchet": "1",
+            "Ratchet %": 100,
+            "Chance": 100,
+            "Chord %": 0,
+            "Oct Jump": 0,
+            "Velocity": 0,
+            "Vel Spread": 0,
+            "Gate Sprd": 0,
+            "Loop": 0,
+            "Seed": 0
+          }
+        }
+      ]
     },
     {
       "engine": "sixop",
@@ -224,7 +255,38 @@
         null,
         null
       ],
-      "midi_fx": []
+      "midi_fx": [
+        {
+          "engine": "arp",
+          "on": false,
+          "params": {
+            "Mode": "Up-Down",
+            "Order": "Pitch",
+            "Octaves": "2",
+            "Oct Mode": "Span",
+            "Rate": "1/16",
+            "Gate": 50,
+            "Pattern": "All",
+            "Length": 0,
+            "Fill": 0,
+            "Rotate": 0,
+            "Latch": "Off",
+            "Join": "Now",
+            "Sync": "Key",
+            "Repeat": "1",
+            "Ratchet": "1",
+            "Ratchet %": 100,
+            "Chance": 100,
+            "Chord %": 0,
+            "Oct Jump": 0,
+            "Velocity": 0,
+            "Vel Spread": 0,
+            "Gate Sprd": 0,
+            "Loop": 0,
+            "Seed": 0
+          }
+        }
+      ]
     },
     {
       "engine": "trio",
@@ -249,7 +311,38 @@
         null,
         null
       ],
-      "midi_fx": []
+      "midi_fx": [
+        {
+          "engine": "arp",
+          "on": false,
+          "params": {
+            "Mode": "Up-Down",
+            "Order": "Pitch",
+            "Octaves": "2",
+            "Oct Mode": "Span",
+            "Rate": "1/16",
+            "Gate": 50,
+            "Pattern": "All",
+            "Length": 0,
+            "Fill": 0,
+            "Rotate": 0,
+            "Latch": "Off",
+            "Join": "Now",
+            "Sync": "Key",
+            "Repeat": "1",
+            "Ratchet": "1",
+            "Ratchet %": 100,
+            "Chance": 100,
+            "Chord %": 0,
+            "Oct Jump": 0,
+            "Velocity": 0,
+            "Vel Spread": 0,
+            "Gate Sprd": 0,
+            "Loop": 0,
+            "Seed": 0
+          }
+        }
+      ]
     },
     {
       "engine": "acid-bass",
@@ -272,7 +365,38 @@
         null,
         null
       ],
-      "midi_fx": []
+      "midi_fx": [
+        {
+          "engine": "arp",
+          "on": false,
+          "params": {
+            "Mode": "Up-Down",
+            "Order": "Pitch",
+            "Octaves": "2",
+            "Oct Mode": "Span",
+            "Rate": "1/16",
+            "Gate": 50,
+            "Pattern": "All",
+            "Length": 0,
+            "Fill": 0,
+            "Rotate": 0,
+            "Latch": "Off",
+            "Join": "Now",
+            "Sync": "Key",
+            "Repeat": "1",
+            "Ratchet": "1",
+            "Ratchet %": 100,
+            "Chance": 100,
+            "Chord %": 0,
+            "Oct Jump": 0,
+            "Velocity": 0,
+            "Vel Spread": 0,
+            "Gate Sprd": 0,
+            "Loop": 0,
+            "Seed": 0
+          }
+        }
+      ]
     }
   ],
   "master": [

@@ -1172,13 +1172,19 @@ def build(song: dict) -> dict:
         # Slot 2 is the chord bed, slot 3 the per-note Trio lead, and slot 4
         # the monophonic square Acid bass. This is a genuinely different
         # palette from the earlier Macro/VA/DX7 set.
+        # Keep the template's explicit disabled Arp record on every slot.
+        # An empty list is accepted on load but the editor inserts this
+        # default on save, making generated projects non-canonical.
+        disabled_arp = copy.deepcopy(sounds[2]["midi_fx"][0])
+        disabled_arp["on"] = False
+        sounds[0]["midi_fx"] = [copy.deepcopy(disabled_arp)]
         sounds[0]["level"] = 56  # approximately 60% of the former level 90
         sounds[1].update({
             "engine": "sixop", "level": 68, "params": {
                 "Patch": "2 E.PIANO 1", "Brightness": .49,
                 "Envelope": .43, "Volume": .68, "Glide": 100,
                 "Voice Mode": "Poly", "Glide Mode": "Off", "Time Mode": "Time",
-            }, "inserts": [None, None], "midi_fx": [],
+            }, "inserts": [None, None], "midi_fx": [copy.deepcopy(disabled_arp)],
         })
         sounds[2].update({
             "engine": "trio", "level": 70, "params": {
@@ -1186,7 +1192,7 @@ def build(song: dict) -> dict:
                 "Mode": "Low-pass", "Cutoff": 620, "Resonance": 17,
                 "PW": 50, "Env Amt": 38, "Attack": 5, "Decay": 240,
                 "Sustain": 22, "Release": 110, "Volume": .62,
-            }, "inserts": [None, None], "midi_fx": [],
+            }, "inserts": [None, None], "midi_fx": [copy.deepcopy(disabled_arp)],
         })
         sounds[3].update({
             "engine": "acid-bass", "level": 72, "params": {
@@ -1194,7 +1200,7 @@ def build(song: dict) -> dict:
                 "Decay": 880, "Accent": 39, "Wave": "Square", "Tune": 0,
                 "Volume": .68, "Drive": 4, "Drive Type": "Soft",
                 "Slide": 58, "Acc Decay": 500,
-            }, "inserts": [None, None], "midi_fx": [],
+            }, "inserts": [None, None], "midi_fx": [copy.deepcopy(disabled_arp)],
         })
         # The template cables target the old Macro/DX7 pair. Trio's own
         # per-voice ADSR retriggers on each note and is the intended filter
@@ -1312,6 +1318,11 @@ def check(files: dict[Path, bytes]) -> list[str]:
             or future_doc["sounds"][2]["params"].get("Env Amt", 0) <= 0
             or future_doc["sounds"][3]["params"].get("Wave") != "Square"):
         errors.append("Event Horizon piano, per-note Trio filter and Square Acid roles are incomplete")
+    if any(len(sound["midi_fx"]) != 1
+           or sound["midi_fx"][0].get("engine") != "arp"
+           or sound["midi_fx"][0].get("on") is not False
+           for sound in future_doc["sounds"]):
+        errors.append("Event Horizon must serialize the explicit disabled Arp default on every sound")
     if future_doc["mod"]["cables"]:
         errors.append("Event Horizon must not retain modulation cables for removed template engines")
     if future_doc["master"][0]["params"].get("Mix") != .05:
