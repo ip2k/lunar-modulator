@@ -103,8 +103,8 @@ completeness unproven. Neither tool validates device ABI/MMIO.
 ## Next dependent work
 
 1. Receive the owner's endpoint clarification and normal-boot confirmation.
-2. Restore access to the existing LAN target build; compile/review the SPI object,
-   especially 32-bit MMIO accesses, pending polling, and unresolved symbols.
+2. Target build access and initial object review are now complete (see resumed
+   verification below); continue the independent platform-contract work.
 3. Establish independent clock/timer, watchdog, core/exception and PA2 contracts;
    integrate a visible startup candidate only when these are supported by evidence.
 4. Close the route back to USB update mode, then prepare the exact private image
@@ -112,3 +112,52 @@ completeness unproven. Neither tool validates device ABI/MMIO.
    stock SPL/OTA/cfg and fresh compared backups before any flash operation.
 5. Run the hardware acceptance and required review/CI/integration. Keep the
    installable-image objective active through these steps.
+
+## Resumed target verification after LAN recovery
+
+[verified: live SSH, October 11] Aeon is reachable as `claude@192.168.1.25`;
+its existing pinned toolchain and `lunar-jieli-check:bookworm` image are ready.
+Hera is reachable as `claude@192.168.1.48`, with Docker 29.9.0, 64 logical CPUs
+and approximately 119 GiB available memory at inspection. Its batch slice is
+configured. These small builds ran on aeon in existing bounded containers
+(4 CPUs/4 GiB each); no infrastructure or service configuration was changed.
+
+[verified: vendor compile/disassembly] The first target SPI object exposed an
+unresolved `memcpy` from callback-structure assignment despite freestanding,
+no-builtin flags. Explicit field copies remove that dependency. The build now
+saves the vendor symbol table and rejects named undefined SPI-object symbols.
+Rebuilt vendor disassembly shows direct word MMIO loads/stores, finite polling
+branches and explicit callback copies; no external helper remains. This is
+code-generation evidence, not device or electrical acceptance.
+
+[verified: target compile/link/audit] All three variants compile and link with
+zero unresolved application symbols and pass `audit_link` (0 fail, 0 pending).
+Local ignored artifacts are under `build/`; remote sources/artifacts remain at
+`/home/claude/mvave-fm1/codex-installable{,-inert,-handover}-20261011` on aeon.
+The SPI transport is still a separate object, never activated or linked into
+these RAM-only variants. Their reports still say device execution unverified,
+package not created. Image SHA-256 receipts:
+
+| Artifact folder | Flash bytes | Reserved RAM bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| jieli-diagnostic | 200 | 4144 | `5566edb6742aebb695a4ed2ab0e9d979ebadb615190bb030c55f59f2258fee08` |
+| jieli-handover | 288 | 8352 | `0991eae9c0fc77bf4ed80f73b2d643972d70bb9151b3b0da29a2a68d41a1b19c` |
+| jieli-panel-protocol | 1212 | 8400 | `ebbe370cf135d0e1dd2ad16a04b47cf67bcdfbfaa4c837b960d946a5fc86cbcb` |
+
+[verified: tests] After the field-copy change, the focused SPI/protocol/capture
+suite passes all 33 tests with both private stock and target-artifact fixtures;
+no skips remain. Shell syntax and whitespace checks pass.
+
+[verified: tooling limit] The subsequent Serena diagnostic request resolved
+against the original checkout and failed with missing `spi1_transport.c`.
+Selection has changed since the earlier successful worktree queries; no shared
+project was switched back because another session may be using it. Target
+compiler, vendor disassembly and explicit source inspection provide current
+verification; the earlier empty diagnostics are not treated as current coverage.
+
+[verified: read-only bench inventory] Bench01 still sees bus 3/device 18
+`4c4a:8057` UBOOT. Owner power-cycle/normal-screen confirmation and milestone
+clarification remain pending. No device protocol command or flash mutation was
+sent. The installable-image objective remains unfinished; restored build access
+does not close startup, calibrated delay/clock, watchdog, core/exception, PA2,
+or recovery-route contracts.

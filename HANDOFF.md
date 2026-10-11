@@ -352,3 +352,15 @@ Paste this as the first message of the new project (adjust paths):
 > `notes/<date>-bench.md` and update the open questions in `docs/01` §6 and the
 > version table in `docs/02` §1. Keep the [verified]/[reported]/[inferred]
 > marks honest.
+
+
+### Installable-image build access restored — 2026-10-11
+
+[verified] Aeon and Hera SSH/Docker are reachable. Target builds of inert,
+handover and panel-protocol pass link/audit; 33 focused tests pass without
+skips. Fixed a target-generated unresolved memcpy in SPI binding and added a
+symbol-table dependency gate. SPI is still disconnected from boot. Bench01
+still enumerates UBOOT; owner normal-screen confirmation and endpoint choice
+remain pending. See `notes/2026-10-11-installable-firmware.md` for artifact hashes,
+remaining platform/recovery contracts and remote build paths. Active branch:
+`feature/2026-10-11@installable-firmware`; no package/install/PR/main merge.

@@ -85,7 +85,12 @@ int lunar_spi1_bind(struct lunar_spi1 *s, const struct lunar_spi1_io *io,
 {
     if (!s || !io || !bus || !io->read || !io->write || !io->wait_ms ||
         !polls || polls > 65536u) return 0;
-    s->io = *io;
+    /* JieLi lowers whole-structure assignment to an external memcpy even
+     * with -fno-builtin. Keep this SDK-free object self-contained. */
+    s->io.context = io->context;
+    s->io.read = io->read;
+    s->io.write = io->write;
+    s->io.wait_ms = io->wait_ms;
     s->poll_limit = polls;
     s->configured = s->active = s->failed = 0;
     bus->context = s;

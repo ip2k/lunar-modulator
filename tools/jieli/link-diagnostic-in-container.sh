@@ -27,6 +27,20 @@ done
 "$CC" "${FLAGS[@]}" -c "$SRC/firmware/display/spi1_transport.c" -o "$OUT/spi1_transport.o"
 "$TC/pi32v2/bin/objdump" -d -mcpu=r3 -mattr=+fprev1 "$OUT/spi1_transport.o" \
     > "$OUT/spi1_transport.disasm.txt"
+"$TC/pi32v2/bin/objdump" -t "$OUT/spi1_transport.o" > "$OUT/spi1_transport.symbols.txt"
+python3 - "$OUT/spi1_transport.symbols.txt" <<'PY_CHECK'
+import pathlib
+import sys
+undefined = []
+for line in pathlib.Path(sys.argv[1]).read_text().splitlines():
+    if '*UND*' in line:
+        name = line.split('*UND*', 1)[1].split()
+        # objdump also emits an unnamed undefined sentinel with a size only.
+        if len(name) > 1:
+            undefined.append(name[-1])
+if undefined:
+    raise SystemExit('SPI transport has unresolved dependencies: ' + ', '.join(undefined))
+PY_CHECK
 OBJECTS=("$OUT/startup.S.o" "$OUT/memory.c.o" "$OUT/runtime.c.o")
 if [[ $FOLDER == handover ]]; then
     "$CC" "${FLAGS[@]}" -I"$SRC/firmware/diagnostic" -c \
