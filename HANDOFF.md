@@ -6,8 +6,37 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 
 Written 2026-09-06 at the end of the research session that created this
 repository, so a fresh Claude project (or a human) can continue without the
-original conversation; last updated 2026-10-10. Read this first, then
+original conversation; last updated 2026-10-11. Read this first, then
 `DEVELOPERS.md` (the README is the product page), then `docs/`.
+
+## Four-showcase replacement integration — 2026-10-11
+
+The owner rejected the original four demos as showcases; they remain unchanged
+in the permanent catalog as example sequences. Four new full-song candidates
+are integrated on `chore/2026-10-10@demo-song-acceptance` in the integration
+worktree below: Afterglow Relay (104 BPM, 44 bars, four scenes), Event Horizon
+(150 BPM, 68 bars, seven scenes), Packet Bloom (82 BPM, 40 bars, five scenes),
+and Satellite Hearts (124 BPM, 60 bars, six scenes). The current catalog and CI
+use `sim/web/test/showcase-songs.json`; the legacy manifest remains available.
+
+The composition source reviews are resolved through critic `fa6bbeb3`.
+Exact integration source `0085f2f2` passed native/Wasm acceptance on aeon,
+an independent four-song Wasm Docker run on Hera, and Chromium permanent
+catalog playback/download/reopen checks. See
+[the exact receipts](notes/2026-10-11-four-showcase-integration-0085f2f2/README.md)
+and [integration handoff](notes/2026-10-11-four-showcase-integration.md).
+Generation checks pass for both the legacy and new generators. The new
+palette fixtures preserve reviewed asset hashes independently of legacy
+palette changes. Parent review and required GitHub CI remain prerequisites
+for merge; verify the branch's latest workflow run before integrating.
+
+The owner is auditioning Satellite Hearts; all musical acceptance remains
+pending. No reference audio listening is claimed. Longer Acid note gates are
+present in the new Event candidate, but the separate requested amplitude
+sustain/release engine capability remains unimplemented. The owner's live
+HTTP audition server and playing Satellite asset were left untouched.
+
+The section below describes the earlier demos and is historical.
 
 ## Active work — 2026-10-10
 
