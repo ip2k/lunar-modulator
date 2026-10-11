@@ -9,7 +9,7 @@ drum source and pattern, sound engines/presets/timbres, register/articulation,
 hook rhythm, harmony, section topology and transitions. “Same arrangement with
 different parameters” does not satisfy that requirement.
 
-## Evidence at this snapshot
+## Historical starting evidence (superseded by current acceptance below)
 
 | Song | Owner brief and references | Current-source evidence | Status |
 | --- | --- | --- | --- |
@@ -116,3 +116,14 @@ No merge, reference audition or hardware test has been performed.
 ## Four new source assets checkpoint
 
 Afterglow now 104 BPM, Porch8 / Relay16 / Drift12 / Home8 (44 bars), FM6 LUNAR LEAD foreground, Macro VA+Filter chord/bass voices and restrained Punch. Event now150 BPM, Air8 / Call12 / Rise4 / Impact16 / Suspense8 / OpenSky16 / Land4 (68 bars), Deep/SixOp EP/TrioSawx3/AcidSquare. OpenSky final half withdraws the main hook for a three-note answer, shifts kick and backbeat, then returns to a composed F landing. Both preserve required patch work while replacing all prior clips/chain. Source guards pass; exact runtime and independent source review pending. Satellite/Packet native/Wasm pair now passed at f09319bf; stale earlier connectivity-blocked statuses are superseded. Owner listening remains pending for every new song.
+
+## Current returned-source and exact runtime status
+
+| New showcase | Tempo / form | Final asset SHA256 | Source/runtime status |
+| --- | --- | --- | --- |
+| Afterglow Relay |104 BPM,44bars,4scenes|53373bf4c508d360eccdf2751fd4242f23478d575adf893a703e6179dcd9c77f|Independent source critique no blocker; native/Wasm and browser passed exact18a30185.|
+| Event Horizon |150 BPM,68bars,7scenes|0d5d871bd31db1e628efbf291fd306671b81c93bef254a950291bf95f5413d1c|Final Fm cadence/lower C6 saw register confirmed by returned critic; native/Wasm/browser passed exact3022009c.|
+| Packet Bloom |82 BPM,40bars,5scenes|d66291ba86df901ea3f8f3897aeeb25ca6c643d29d6841f5bf1d98bd520dab4c|Returned source no blocker; native/Wasm/browser passed; independent Hera Docker Wasm also passed.|
+| Satellite Hearts |124 BPM,60bars,6scenes|2e714212f88cb7db22dc9041bdfe23dbb33160965a037a43b2a937578ff0f7ee|Window correction confirmed; source critique no blocker; native/Wasm/browser passed exact18a30185.|
+
+Exact receipts: notes/2026-10-11-four-showcase-18a30185 and notes/2026-10-11-event-showcase-3022009c. Critic returned report fa6bbeb3face958e02ac7fb04f1bd1f9a1a099f2. All prior connectivity blocks are superseded. Owner listening remains pending for all four. Acid longer held notes are authored; a new Acid post-note amplitude-release control is not implemented by this composition stream. Final integration/catalog/CI/merge belongs to parent.
