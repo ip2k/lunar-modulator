@@ -14,6 +14,7 @@ const { values } = parseArgs({ options: {
   manifest: { type: 'string' }, wasm: { type: 'string' }, out: { type: 'string' },
   native: { type: 'string' }, work: { type: 'string' },
   'audio-dir': { type: 'string' },
+  'expected-count': { type: 'string', default: '4' },
 } });
 assert(values.manifest && values.wasm && values.out, '--manifest, --wasm and --out required');
 assert(!values.native || values.work, '--native requires --work for audio/screen receipts');
@@ -21,8 +22,10 @@ if (values.work) mkdirSync(values.work, { recursive: true });
 if (values['audio-dir']) mkdirSync(values['audio-dir'], { recursive: true });
 const manifest = resolve(values.manifest);
 const songs = JSON.parse(readFileSync(manifest, 'utf8'));
-assert.equal(songs.length, 4, 'four complete demo songs');
-assert.equal(new Set(songs.map(song => song.title)).size, 4, 'distinct demo songs');
+const expectedCount = Number(values['expected-count']);
+assert(Number.isSafeInteger(expectedCount) && expectedCount > 0, 'positive integer --expected-count');
+assert.equal(songs.length, expectedCount, 'all expected complete demo songs');
+assert.equal(new Set(songs.map(song => song.title)).size, expectedCount, 'distinct demo songs');
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const wasmBytes = readFileSync(values.wasm);
 const module = await WebAssembly.compile(wasmBytes);

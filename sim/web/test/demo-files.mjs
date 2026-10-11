@@ -9,11 +9,14 @@ import { serve } from './serve.mjs';
 
 const require = createRequire(`${process.env.PLAYWRIGHT_DIR || '/pw'}/`);
 const { chromium } = require('playwright');
-const [www, manifest, out] = process.argv.slice(2);
+const [www, manifest, out, expectedCountText = '4'] = process.argv.slice(2);
 assert(www && manifest && out, 'WWW MANIFEST OUT required');
 mkdirSync(out, { recursive: true });
 const songs = JSON.parse(readFileSync(manifest, 'utf8'));
-assert.equal(songs.length, 4);
+const expectedCount = Number(expectedCountText);
+assert(Number.isSafeInteger(expectedCount) && expectedCount > 0, 'positive integer expected count');
+assert.equal(songs.length, expectedCount);
+assert.equal(new Set(songs.map(song => song.title)).size, expectedCount, 'distinct demo songs');
 const { server, url } = await serve(www, 8771);
 const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
 const report = { browser: browser.version(), songs: [], errors: [], pass: false };
