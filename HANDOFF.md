@@ -18,6 +18,13 @@ component checkpoint as completion. Active branch:
 `/Users/likwid/.codex/worktrees/installable-firmware/mvave-fm1-firmware`,
 from main `b335dc2c450473dc375163aec7fa679e1b099cc3`.
 
+[reported: owner, 2026-10-11] This is now the explicit active goal: keep working
+on recovery and verification until the diagnostic image is verified and
+installable on the physical FM-1. Completion criteria and the current dependency
+plan are in [the goal note](notes/2026-10-11-installable-firmware-goal.md).
+The next work resolves a minimal startup architecture and the RAM loader's
+retained-configuration initialization before a concrete installation campaign.
+
 [reported: owner] The earlier power cycle returned to the normal screen.
 [verified: 2026-10-11 receipt] A subsequent single, reviewed RAM-only probe
 started from fresh FM-1_092 identity and same-port soft-key entry, uploaded
