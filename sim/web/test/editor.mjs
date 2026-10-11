@@ -18,30 +18,45 @@ import { serve } from './serve.mjs';
 import { startSchedulingCapture } from './scheduling-capture.mjs';
 import { launch, which } from './launch.mjs';
 import { playbackDelta } from './playback-stats.mjs';
+import { installPlaybackTimeline } from './playback-timeline.mjs';
 
 
 const [www, out, secondsArg] = process.argv.slice(2);
 const SECONDS = Number(secondsArg || 30);
+// Diagnostic idle is a control observation, not a replacement acceptance test.
+// Its unchanged functional gate normally fails because there are no edits.
+const diagnosticMode = process.env.FM1_STORM_PHASE_DIAGNOSTIC || null;
+if (diagnosticMode && !['idle', 'storm'].includes(diagnosticMode)) throw new Error('FM1_STORM_PHASE_DIAGNOSTIC must be idle or storm');
+if (diagnosticMode && (!Number.isFinite(SECONDS) || SECONDS < 1 || SECONDS > 60)) throw new Error('diagnostic duration must be 1–60 seconds');
+// CI capture observes startup too; this does not move the playback baseline.
+const observePhases = !!diagnosticMode || process.env.FM1_SCHEDULING_CAPTURE === '1';
 mkdirSync(out, { recursive: true });
 const { server, url } = await serve(www, 8767);
 const { browser, name: browserName } = await launch();
 const report = { browser: browserName, seconds: SECONDS, logs: [] };
 const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
+const captureOptions = { trace: which === 'chromium', phases: observePhases };
+let capture = observePhases ? await startSchedulingCapture(browser, out, captureOptions) : null;
+if (diagnosticMode) {
+  report.diagnostic_mode = diagnosticMode;
+  report.diagnostic_is_acceptance = diagnosticMode === 'storm';
+}
+if (observePhases) await page.addInitScript(installPlaybackTimeline);
 page.on('pageerror', (e) => report.logs.push(`pageerror: ${e.message}`));
 page.on('console', (m) => { if (m.type() === 'error') report.logs.push(`error: ${m.text()}`); });
+let r, stormError;
+try {
 await page.goto(url);
+if (observePhases) await page.evaluate(() => window.__lunarPlaybackTimeline.mark('power-on-request'));
 await page.click('#power-on');
 await page.waitForFunction(() => window.fm1 && window.fm1.screens > 0, null, { timeout: 20000 });
 await page.waitForTimeout(300);
-
-const capture = process.env.FM1_SCHEDULING_CAPTURE === '1'
-  ? await startSchedulingCapture(browser, out, { trace: which === 'chromium' }) : null;
 report.scheduling_capture = !!capture;
-let r, stormError;
-try {
-r = await page.evaluate(async (seconds) => {
+r = await page.evaluate(async ({ seconds, diagnosticMode, observePhases }) => {
   const node = window.fm1.node;
   const ctx = window.fm1.ctx;
+  const mark = (phase, raw) => window.__lunarPlaybackTimeline?.mark(phase, raw);
+  mark('play-request');
   const PLAY = 12;
   node.port.postMessage({ type: 'button', button: PLAY, down: true });
   node.port.postMessage({ type: 'button', button: PLAY, down: false });
@@ -94,12 +109,19 @@ r = await page.evaluate(async (seconds) => {
   const playback = () => ctx.playbackStats ? {
     events: ctx.playbackStats.underrunEvents,
     seconds: ctx.playbackStats.underrunDuration,
+    ...(observePhases ? { total_seconds: ctx.playbackStats.totalDuration } : {}),
   } : null;
   const under0 = playback();
+  mark('baseline', under0);
   let sent = 0;
   let ops = 0;
   const t0 = performance.now();
+  mark('loop-begin');
   while (performance.now() - t0 < seconds * 1000) {
+    if (diagnosticMode === 'idle') {
+      await new Promise((res) => setTimeout(res, 3));
+      continue;
+    }
     const bytes = new Uint8Array(8 * 24);
     for (let k = 0; k < 8; ++k) {
       if (k % 2) rec(bytes, 24 * k, 7, (sent + k) % 4, 0, 40 + ((sent + k) % 50));
@@ -109,21 +131,32 @@ r = await page.evaluate(async (seconds) => {
     sent += 8;
     await new Promise((res) => setTimeout(res, 3));
   }
+  mark('loop-end');
   port.postMessage({ type: 'snapshot', id: 1 });
+  mark('snapshot-drain');
   await new Promise((res) => setTimeout(res, 1500));
   got.ops = ops;
   got.records = sent;
   got.rate = ctx.sampleRate;
   got.playback = { before: under0, after: playback() };
+  mark('drain-end', got.playback.after);
   return got;
-}, SECONDS);
+}, { seconds: SECONDS, diagnosticMode, observePhases });
 } catch (e) {
   report.pass = false;
   report.logs.push(`storm failed: ${e.message}`);
   writeFileSync(join(out, 'editor.json'), JSON.stringify(report, null, 2) + '\n');
   stormError = e;
 } finally {
+  if (observePhases) await page.evaluate(() => window.__lunarPlaybackTimeline?.mark('trace-finish-request')).catch(() => {});
   if (capture) await capture.finish();
+  if (observePhases) {
+    const timeline = await page.evaluate(() => {
+      window.__lunarPlaybackTimeline?.mark('trace-finished');
+      return window.__lunarPlaybackTimeline?.stop();
+    }).catch((e) => ({ error: e.message }));
+    writeFileSync(join(out, 'editor-playback-timeline.json'), JSON.stringify(timeline, null, 2) + '\n');
+  }
 }
 
 if (stormError) {

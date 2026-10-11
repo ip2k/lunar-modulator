@@ -29,13 +29,13 @@ SONGS = [
     {
         "slug": "afterglow-relay", "title": "Afterglow Relay", "name": "AFTERGLOW RELAY",
         "genre": "Chillwave", "bpm": 92, "root": "A", "midi_root": 57, "key_index": 9,
-        "bars": 76, "swing": 56, "chords": [(57, "Am9"), (53, "Fmaj7"), (48, "Cmaj9"), (55, "G6")],
+        "bars": 76, "swing": 56, "chords": [(57, "Am7"), (53, "Fmaj7"), (48, "Cmaj7"), (55, "G6")],
         "scenes": [("Intro", 4), ("Verse", 8), ("Lift", 4), ("Hook", 8),
                    ("Bridge", 8), ("Vrs2", 8), ("Hook2", 8), ("Outro", 4)],
         "chain": [0, 1, 1, 2, 3, 3, 4, 5, 6, 6, 7], "style": "chill",
         "motif": [(0, 0, 0, 6), (3, 2, 0, 4), (6, 4, 0, 6), (10, 3, 0, 4),
                   (12, 2, 0, 8), (14, 1, 0, 4)],
-        "about": "A slow, hazy night drive: warm minor ninths, a patient bass pulse and a six-note hook that opens into the chorus. All parts are original MIDI patterns; no samples are used.",
+        "about": "A slow night drive: warm low-register seventh chords, a patient bass pulse and a six-note hook that opens into the chorus. All parts are original MIDI patterns; no samples are used.",
         "peak2_chords": [2, 0, 3, 0],
         "peak2_degrees": [0, 2, 4, 5, 4, 2],
         "peak2_steps": [0, 3, 6, 9, 12, 14],
@@ -44,8 +44,8 @@ SONGS = [
         "reply_degrees": [4, 2, 1, 3, 2, 0, 4, 1], "reply_octave": 1,
         "warble": (0.26, 0.12, 0.16),
         "sound": {"bass_model": "VA+Filter", "bass_cutoff": 680, "bass_decay": .43,
-                  "chord_model": "VA Pair", "arp": False, "bass_timbre": .47, "lead_brightness": .53,
-                  "echo_mix": .18, "hall": .68, "hall_size": .76,
+                  "chord_model": "VA+Filter pluck", "arp": False, "bass_timbre": .47, "lead_brightness": .53,
+                  "echo_mix": .18, "hall": .42, "hall_size": .58, "hall_mix": .05,
                   "fx_color": "drive", "lead_fx": "warble"},
     },
     {
@@ -124,6 +124,15 @@ def ev(step: int, length: int, pitch: int, velocity: int) -> str:
     return f"{step * 24}:{length}:{pitch}:{velocity}:{step}"
 
 
+def nudge_event(event: str, ticks: int) -> str:
+    """Move an event slightly while preserving its authored swing anchor."""
+    if not ticks:
+        return event
+    fields = event.split(":")
+    fields[0] = str(int(fields[0]) + ticks)
+    return ":".join(fields)
+
+
 def scene_role(scene_index: int, scenes: list[tuple[str, int]]) -> str:
     name = scenes[scene_index][0].lower()
     if "intro" in name or "outro" in name:
@@ -181,7 +190,8 @@ def _bar_chord_tones(song: dict, bar: int, scene: int) -> list[int]:
     intervals = chord_intervals(song, label)
     if scene == 6 and len(intervals) >= 4:
         intervals = intervals[1:] + (intervals[0] + 12,)
-    return [root + 12 + interval for interval in intervals]
+    octave = 0 if song["style"] == "chill" else 12
+    return [root + octave + interval for interval in intervals]
 
 
 def _voice_motion_cost(previous: list[int], candidate: list[int]) -> int:
@@ -304,14 +314,46 @@ def drum_bar(style: str, role: str, bar: int, scene: int) -> tuple[list[str], li
             hat_steps = list(range(0, 16, 2))
         if bar == 3:
             kick_steps = [0, 6, 10]
+    chill_groove = style == "chill" and role in ("verse", "peak", "build") and scene != 7
+    chill_ghost_hat = None
+    if chill_groove:
+        # Keep the downbeat stable while varying each four-bar kick phrase.
+        # Add a quiet sixteenth pickup per bar so hats aren't confined to
+        # even step anchors, where swing has no timing effect.
+        kick_steps = ([0, 8], [0, 7], [0, 8, 11], [0])[bar % 4]
+        snare_steps = [4, 12]
+        chill_ghost_hat = (3, 11, 5, 13)[bar % 4]
     for i, step in enumerate(kick_steps):
-        kick.append(ev(step, 7, 36, 112 if i == 0 else 94))
+        velocity = 112 if i == 0 else 94
+        tick_nudge = 0
+        if chill_groove and i:
+            velocity = {7: 72, 8: 88, 11: 60}.get(step, 78)
+            tick_nudge = -1 if step == 7 else 1 if step == 11 else 0
+        kick.append(nudge_event(ev(step, 7, 36, velocity), tick_nudge))
     for step in snare_steps:
-        kick.append(ev(step, 7, 38, 101 if step == 12 else 92))
+        velocity = 101 if step == 12 else 92
+        if chill_groove and step == 12:
+            velocity = (96, 88, 100, 104)[bar % 4]
+        tick_nudge = 0
+        if chill_groove:
+            tick_nudge = (3 if step == 12 and bar % 4 == 3 else
+                          2 if step == 12 else 1)
+        kick.append(nudge_event(ev(step, 7, 38, velocity), tick_nudge))
     if role in ("peak", "build") and bar % 4 == 3:
         kick.extend([ev(14, 5, 38, 65), ev(15, 4, 42, 70)])
     for i, step in enumerate(hat_steps):
-        hats.append(ev(step, 4, 42, 72 if i % 2 == 0 else 53))
+        velocity = 72 if i % 2 == 0 else 53
+        tick_nudge = 0
+        if chill_groove:
+            velocity = (65, 43, 58, 39)[i % 4]
+            # Tiny ±1 tick displacements add a humanized pocket without
+            # changing the step anchor used by the host's swing calculation.
+            tick_nudge = (0, 1, -1, 0)[(i + bar) % 4]
+        hats.append(nudge_event(ev(step, 4, 42, velocity), tick_nudge))
+    if chill_ghost_hat is not None:
+        ghost = ev(chill_ghost_hat, 3, 42, 31 if bar % 4 in (0, 3) else 36)
+        ghost_nudge = 1 if bar % 2 == 0 else -1
+        hats.append(nudge_event(ghost, ghost_nudge))
     if style == "vapor" and role in ("peak", "contrast") and bar % 2 == 1:
         perc.extend([ev(3, 4, 46, 66), ev(11, 4, 46, 61)])
     elif role == "peak" and bar % 4 == 3:
@@ -611,11 +653,17 @@ def lead_bar(song: dict, role: str, bar: int, scene: int, track: int) -> list[st
     return out
 
 
-def offset_event(event: str, tick_offset: int) -> str:
+def offset_event(event: str, tick_offset: int, preserve_anchor: bool = False) -> str:
     fields = event.split(":")
     tick = int(fields[0]) + tick_offset
     fields[0] = str(tick)
-    fields[4] = str(tick // 24)
+    if preserve_anchor:
+        # Afterglow's microtimed events retain the authored step anchor for
+        # the host's swing calculation while moving into the clip timeline.
+        fields[4] = str(int(fields[4]) + tick_offset // 24)
+    else:
+        # Keep the original generated timing for the other three demos.
+        fields[4] = str(tick // 24)
     return ":".join(fields)
 
 
@@ -667,27 +715,28 @@ def arrangement(song: dict) -> list[str]:
     for scene_index, (scene_name, bars) in enumerate(song["scenes"]):
         role = scene_role(scene_index, song["scenes"])
         steps = bars * 16
+        preserve_anchor = song["style"] == "chill"
         all_events: dict[int, list[str]] = {t: [] for t in range(8)}
         for bar in range(bars):
             kicks, hats, perc = drum_bar(song["style"], role, bar, scene_index)
             base = bar * 16
             for evstr in kicks:
-                all_events[0].append(offset_event(evstr, base * 24))
+                all_events[0].append(offset_event(evstr, base * 24, preserve_anchor))
             for evstr in hats:
-                all_events[4].append(offset_event(evstr, base * 24))
+                all_events[4].append(offset_event(evstr, base * 24, preserve_anchor))
             for evstr in perc:
-                all_events[6].append(offset_event(evstr, base * 24))
+                all_events[6].append(offset_event(evstr, base * 24, preserve_anchor))
             for event in bass_bar(song, role, bar, scene_index):
-                all_events[1].append(offset_event(event, base * 24))
+                all_events[1].append(offset_event(event, base * 24, preserve_anchor))
             chords, answer = chord_bar(song, role, bar, scene_index)
             for event in chords:
-                all_events[2].append(offset_event(event, base * 24))
+                all_events[2].append(offset_event(event, base * 24, preserve_anchor))
             for event in answer:
-                all_events[5].append(offset_event(event, base * 24))
+                all_events[5].append(offset_event(event, base * 24, preserve_anchor))
             for event in lead_bar(song, role, bar, scene_index, 3):
-                all_events[3].append(offset_event(event, base * 24))
+                all_events[3].append(offset_event(event, base * 24, preserve_anchor))
             for event in lead_bar(song, role, bar, scene_index, 7):
-                all_events[7].append(offset_event(event, base * 24))
+                all_events[7].append(offset_event(event, base * 24, preserve_anchor))
             # Leave the final half-beat empty at the end of a build, making
             # the next section's downbeat an actual arrival.
             if role == "build" and bar == bars - 1:
@@ -751,14 +800,36 @@ def build(song: dict) -> dict:
             "Bits": 11, "Rate": .48, "Jitter": .06, "Mix": .22,
             "Tone": .72, "Level": 1,
         }}
-    sounds[2]["params"]["Model"] = song["sound"]["chord_model"]
-    sounds[2]["params"]["Timbre"] = .38 if song["style"] == "chill" else .54
-    sounds[2]["params"]["Decay"] = .52 if song["style"] in ("future", "electro") else .68
-    sounds[2]["midi_fx"][0]["on"] = song["sound"]["arp"]
-    sounds[2]["midi_fx"][0]["params"]["Rate"] = "1/8" if song["style"] == "future" else "1/16"
-    # The Future bass chord slot stays un-arpeggiated so each full voicing
-    # swells together; the stored Gate is inert while the effect is off.
-    sounds[2]["midi_fx"][0]["params"]["Gate"] = 52
+    if song["style"] == "chill":
+        # Replace the high, detuned VA Pair stack with a low-register filtered
+        # pluck. Shapes' fixed twelve-voice allocation exceeds the FM-1 budget
+        # for this four-sound project, so keep the lighter Macro engine and
+        # switch its oscillator model rather than shipping an over-budget pad.
+        sounds[2]["params"] = {
+            "Model": "VA+Filter", "Harmonics": .5, "Timbre": .34,
+            "Morph": .25, "Decay": .32, "Colour": .34, "Volume": .68,
+            "Env Pitch": 0, "Env Timbre": .12, "Env Morph": 0,
+            "LPG": "Ping", "Glide": 100, "Voice Mode": "Poly",
+            "Glide Mode": "Off", "Time Mode": "Time",
+        }
+        sounds[2]["level"] = 78
+        sounds[2]["inserts"] = [None, None]
+        sounds[2]["midi_fx"] = []
+        # Retain a restrained filter gesture without the deep envelope amount
+        # that pushed the old VA Pair into a hard-sync timbre range.
+        for cable in doc["mod"]["cables"]:
+            if (cable["to"].get("unit") == "snd3"
+                    and cable["to"].get("param") == "Timbre"):
+                cable["amount"] = 8
+    else:
+        sounds[2]["params"]["Model"] = song["sound"]["chord_model"]
+        sounds[2]["params"]["Timbre"] = .54
+        sounds[2]["params"]["Decay"] = .52 if song["style"] in ("future", "electro") else .68
+        sounds[2]["midi_fx"][0]["on"] = song["sound"]["arp"]
+        sounds[2]["midi_fx"][0]["params"]["Rate"] = "1/8" if song["style"] == "future" else "1/16"
+        # The Future bass chord slot stays un-arpeggiated so each full voicing
+        # swells together; the stored Gate is inert while the effect is off.
+        sounds[2]["midi_fx"][0]["params"]["Gate"] = 52
     sounds[3]["params"]["Brightness"] = song["sound"]["lead_brightness"]
     sounds[3]["params"]["Env Time"] = .62 if song["style"] == "chill" else .42
     if song["sound"]["lead_fx"] == "warble":
@@ -770,7 +841,18 @@ def build(song: dict) -> dict:
         sounds[3]["inserts"][0]["params"]["Mix"] = song["sound"]["echo_mix"]
     doc["master"][0]["params"]["Decay"] = song["sound"]["hall"]
     doc["master"][0]["params"]["Size"] = song["sound"]["hall_size"]
+    doc["master"][0]["params"]["Mix"] = song["sound"].get("hall_mix", .2)
     doc["set"] = arrangement(song)
+    if song["style"] == "chill":
+        # The Punch kit's drum engine is one-shot and ignores note-offs; pads'
+        # patches control the tail rather than the sequencer's short gate.
+        pads = sounds[0]["pads"]
+        pads[0].update({"Tune": -1, "Decay": .27, "Level": .88,
+                        "Tone": .43, "Snap": .42, "Sweep": .48})
+        pads[2].update({"Tune": 0, "Decay": .43, "Level": .7,
+                        "Tone": .28, "Snap": .38, "Sweep": .48})
+        pads[6].update({"Tune": 2, "Decay": .32, "Level": .59,
+                        "Tone": .34, "Snap": .35, "Sweep": .48})
     return doc
 
 
@@ -820,6 +902,54 @@ def check(files: dict[Path, bytes]) -> list[str]:
     bridge_pickup = lead_bar(afterglow, "contrast", 7, 4, 3)
     if not any(event == ev(14, 24, 67, 52) for event in bridge_pickup):
         errors.append("Afterglow bridge must stage a final G4 pickup into the C-based verse")
+    afterglow_doc = build(afterglow)
+    pad = afterglow_doc["sounds"][2]
+    if (pad["engine"] != "macro" or pad["params"] != {
+            "Model": "VA+Filter", "Harmonics": .5, "Timbre": .34,
+            "Morph": .25, "Decay": .32, "Colour": .34, "Volume": .68,
+            "Env Pitch": 0, "Env Timbre": .12, "Env Morph": 0,
+            "LPG": "Ping", "Glide": 100, "Voice Mode": "Poly",
+            "Glide Mode": "Off", "Time Mode": "Time",
+    } or pad["inserts"] != [None, None]):
+        errors.append("Afterglow chord slot must use the low-register VA+Filter pluck without inserts")
+    if afterglow_doc["master"][0]["params"]["Mix"] != .05:
+        errors.append("Afterglow Hall Mix must remain at the owner's .05 clarity setting")
+    if not any(cable["to"].get("unit") == "snd3"
+               and cable["to"].get("param") == "Timbre"
+               and cable["amount"] == 8 for cable in afterglow_doc["mod"]["cables"]):
+        errors.append("Afterglow chord modulation must stay below the old hard-sync range")
+    afterglow_pads = afterglow_doc["sounds"][0]["pads"]
+    expected_pads = {
+        0: {"Tune": -1, "Decay": .27, "Level": .88, "Tone": .43, "Snap": .42, "Sweep": .48},
+        2: {"Tune": 0, "Decay": .43, "Level": .7, "Tone": .28, "Snap": .38, "Sweep": .48},
+        6: {"Tune": 2, "Decay": .32, "Level": .59, "Tone": .34, "Snap": .35, "Sweep": .48},
+    }
+    for index, params in expected_pads.items():
+        if any(afterglow_pads[index].get(key) != value for key, value in params.items()):
+            errors.append(f"Afterglow Punch pad {index + 1} has stale tone/decay settings")
+    kick_phrases = []
+    backbeat_accents = []
+    hat_nudges = []
+    for bar in range(4):
+        kicks, hats, _ = drum_bar("chill", "peak", bar, 3)
+        kick_phrases.append(tuple(int(event.split(":")[4]) for event in kicks
+                                  if int(event.split(":")[2]) == 36))
+        backbeat = [list(map(int, event.split(":"))) for event in kicks
+                    if int(event.split(":")[2]) == 38 and int(event.split(":")[4]) == 12]
+        if not backbeat:
+            errors.append(f"Afterglow bar {bar}: missing snare backbeat")
+        else:
+            backbeat_accents.append(backbeat[0][3])
+        for event in hats:
+            fields = list(map(int, event.split(":")))
+            if fields[0] != fields[4] * 24:
+                hat_nudges.append(fields[0] - fields[4] * 24)
+    if len(set(kick_phrases)) < 3:
+        errors.append("Afterglow four-bar kick phrase needs real placement variation")
+    if len(set(backbeat_accents)) < 3:
+        errors.append("Afterglow backbeat needs bar-dependent snare accents")
+    if not hat_nudges or not all(-1 <= nudge <= 1 for nudge in hat_nudges):
+        errors.append("Afterglow hats need restrained microtiming with their step anchors intact")
     for song in SONGS:
         generated = arrangement(song)
         clips = {}
@@ -1091,8 +1221,8 @@ def check(files: dict[Path, bytes]) -> list[str]:
                 # The final field on each event is the clip-local step index.
                 for event in fields[5].split(";") if len(fields) > 5 else ():
                     event_fields = list(map(int, event.split(":")))
-                    if event_fields[4] != event_fields[0] // 24:
-                        errors.append(f"{path.name}: note step does not match its tick")
+                    if abs(event_fields[0] - event_fields[4] * 24) > 3:
+                        errors.append(f"{path.name}: note timing exceeds its authored step nudge")
             elif fields[0] == "lk" and len(fields) == 4:
                 lock_tracks.add((int(fields[1]), int(fields[2])))
         for scene, bars in scene_bars.items():

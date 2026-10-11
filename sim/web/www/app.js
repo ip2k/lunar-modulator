@@ -6,6 +6,7 @@
 
 import { BUTTONS, ENCODERS, KEYS } from './fm1-wasm.mjs';
 import { initFiles, pref } from './files.js';
+import { connectOnReady, wakeWhenReady } from './startup-ready.mjs';
 
 // ---- panel geometry, millimetres --------------------------------------------
 // Case 161.5 x 96.5 mm (M-VAVE manual, specifications). Control centres
@@ -194,7 +195,7 @@ const soundLabel = document.querySelector('label[for="sel-sound"]');
 const image = new ImageData(240, 240);
 
 const sim = {
-  ctx: null, node: null, analyser: null, catalog: null, state: null, master: 0.75,
+  ctx: null, node: null, analyser: null, audioReady: false, catalog: null, state: null, master: 0.75,
   requestedRate: null, rateRefused: '', screens: 0, midi: null, notice: '', seq: null, dx7: null,
 };
 window.fm1 = sim;    // for the headless screenshot test and the console
@@ -230,10 +231,10 @@ const WANT_RATE = 44100;
 // music app asks for "playback". Safari also stops a running context when
 // something interrupts it (a call, Siri, another app's audio) and starts it
 // again only from a tap. So the page asks for the playback session while it
-// is powered on (the Audio Session API, where the browser has it), resumes
-// the context inside the tap that powers it on, before anything is awaited,
-// and resumes it from the next tap or key whenever the browser holds it,
-// saying so on the status line meanwhile.
+// is powered on (the Audio Session API, where the browser has it),
+// creates the context inside the power-on tap and initializes the worklet
+// while suspended. Ready connects and resumes it; later taps or keys wake
+// an initialized context whenever the browser holds it, with a status hint.
 const HELD = 'The browser is holding the sound back: tap the panel or press a key to start it.';
 
 function audioSession(type) {
@@ -245,7 +246,7 @@ function audioSession(type) {
 }
 
 function wake(ctx) {
-  if (ctx && ctx.state !== 'running' && ctx.state !== 'closed') ctx.resume().catch(() => {});
+  wakeWhenReady(ctx, ctx === sim.ctx && sim.audioReady);
 }
 
 function onContextState(ctx) {
@@ -263,7 +264,7 @@ async function makeContext() {
   let last = null;
   try {
     const ctx = new AudioContext({ latencyHint: 'interactive', sampleRate: WANT_RATE });
-    wake(ctx);
+    await ctx.suspend();
     if (ctx.sampleRate === WANT_RATE) {
       sim.requestedRate = WANT_RATE;
       sim.rateRefused = '';
@@ -286,7 +287,7 @@ async function makeContext() {
   // and why.
   try {
     const ctx = new AudioContext({ latencyHint: 'interactive' });
-    wake(ctx);
+    await ctx.suspend();
     sim.requestedRate = null;
     return ctx;
   } catch (err) {
@@ -329,18 +330,16 @@ async function start() {
     const node = new AudioWorkletNode(ctx, 'fm1', {
       numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2],
     });
-    node.port.onmessage = (e) => onWorklet(e.data, node);
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 2048;
-    node.connect(ctx.destination);
-    node.connect(analyser);
-    Object.assign(sim, { ctx, node, analyser, notice: '', held: false });
+    Object.assign(sim, { ctx, node, analyser, audioReady: false, notice: '', held: false });
+    connectOnReady(node, ctx, analyser, () => sim.node === node && sim.ctx === ctx, onWorklet,
+      () => { sim.audioReady = true; wake(ctx); });
     ctx.addEventListener('statechange', () => onContextState(ctx));
     node.port.postMessage({ type: 'init', wasm, master: sim.master }, [wasm]);
-    // Not awaited: a browser that holds the context would keep the page at
-    // "Starting..." with no way on. Still held a moment later, the status
-    // line asks for a tap (above).
-    wake(ctx);
+    // Ready resumes without awaiting autoplay permission. Until then,
+    // gesture handlers must not put synchronous Wasm setup on a live clock.
+    // If the browser still holds it later, the status line asks for a tap.
     setTimeout(() => { if (ctx === sim.ctx && ctx.state === 'suspended') onContextState(ctx); }, 1500);
     overlay.hidden = true;
     powerEl.classList.add('on');
@@ -362,7 +361,7 @@ async function powerOff() {
   if (sim.node && files) await files.beforePowerOff();
   if (sim.ctx) await sim.ctx.close();
   audioSession('auto');
-  Object.assign(sim, { ctx: null, node: null, analyser: null, state: null, seq: null, held: false });
+  Object.assign(sim, { ctx: null, node: null, analyser: null, audioReady: false, state: null, seq: null, held: false });
   overlay.hidden = false;
   powerEl.classList.remove('on');
   document.getElementById('power-off').disabled = true;

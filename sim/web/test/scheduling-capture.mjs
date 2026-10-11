@@ -4,6 +4,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { availableParallelism, cpus } from 'node:os';
+import { classifyAudioTrace } from './playback-timeline.mjs';
 
 export function resourceSnapshot(read = (path) => readFileSync(path, 'utf8')) {
   const files = {};
@@ -28,12 +29,13 @@ export function resourceSnapshot(read = (path) => readFileSync(path, 'utf8')) {
 
 export async function startSchedulingCapture(browser, out, {
   trace = false, snapshot = resourceSnapshot, timeoutMs = 10000, maxEvents = 200000,
+  phases = false,
 } = {}) {
   const report = {
     schema: 1, trace_requested: trace, trace_started: false, trace_complete: false,
-    trace_categories: 'audio,webaudio,disabled-by-default-audio',
+    trace_categories: `audio,webaudio,disabled-by-default-audio${phases ? ',blink.user_timing' : ''}`,
     perturbation: `${trace ? 'CDP tracing and one-second resource reads' : 'One-second resource reads'} can affect scheduling; this is an instrumented run.`,
-    trace_window: 'Starts before storm page.evaluate and ends after it, including the snapshot drain. Playback counters have their own narrower window.',
+    trace_window: phases ? 'Starts before page navigation/power-on and ends after storm/idle evaluation and snapshot drain. Playback baseline/window and zero gate are unchanged.' : 'Starts before storm page.evaluate and ends after it, including the snapshot drain. Playback counters have their own narrower window.',
     errors: [], samples: [], trace_events_saved: 0, trace_events_dropped: 0,
   };
   const events = [];
@@ -77,6 +79,9 @@ export async function startSchedulingCapture(browser, out, {
         finally { clearTimeout(deadline); }
       }
       report.trace_events_saved = events.length;
+      if (phases) report.audio_classification = classifyAudioTrace(events, {
+        complete: report.trace_complete, dropped: report.trace_events_dropped,
+      });
       // Write partial evidence even if CDP fails; completeness is explicit.
       if (trace) writeFileSync(join(out, 'editor-audio-trace.json'), JSON.stringify({ traceEvents: events }));
       saveReport();

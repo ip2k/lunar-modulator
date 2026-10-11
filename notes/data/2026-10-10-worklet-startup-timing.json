@@ -1,0 +1,495 @@
+{
+  "schema": 1,
+  "purpose": "Measure synchronous startup setup and disconnected message delivery, not original CI cause",
+  "source_head": "a53abb9a29c6f8b6d092a594eb5e652a44ef6f68",
+  "provenance": {
+    "node": "v24.20.0",
+    "playwright": "1.63.0",
+    "wasm_sha256": "4667498f919529ba0f1059f127ea02e60c2c2a76ee5bc16983cfeabbb96b76ec",
+    "source_head": "a53abb9a29c6f8b6d092a594eb5e652a44ef6f68",
+    "variants": [
+      "original",
+      "ready-gated"
+    ],
+    "cpus": 4,
+    "memory_bytes": 2147483648,
+    "sink": "private rate=48000 norewinds=1"
+  },
+  "probe": {
+    "schema": 1,
+    "acceptance": false,
+    "perturbation": "Two ordered diagnostic starts; isolated timing-instrumented worklet copy, page observers, graph-lock getters and CDP tracing perturb scheduling.",
+    "results": [
+      {
+        "gated": false,
+        "events": [
+          {
+            "type": "node-created",
+            "page_ms": 130.90000009536743,
+            "state": "running",
+            "audio_seconds": 0.023219954648526078
+          },
+          {
+            "type": "connect-request",
+            "page_ms": 131,
+            "destination": "AudioDestinationNode",
+            "ready": false
+          },
+          {
+            "type": "connected",
+            "page_ms": 131,
+            "destination": "AudioDestinationNode",
+            "ready": false
+          },
+          {
+            "type": "connect-request",
+            "page_ms": 131,
+            "destination": "AnalyserNode",
+            "ready": false
+          },
+          {
+            "type": "connected",
+            "page_ms": 131,
+            "destination": "AnalyserNode",
+            "ready": false
+          },
+          {
+            "type": "init-measured",
+            "page_ms": 139.90000009536743,
+            "instantiate_ms": 3,
+            "setup_ms": 6,
+            "audio_frame": 1024,
+            "rate": 44100
+          },
+          {
+            "type": "ready",
+            "page_ms": 140.30000007152557,
+            "state": "running",
+            "audio_seconds": 0.023219954648526078
+          }
+        ],
+        "timeline": {
+          "schema": 1,
+          "interval_ms": 1000,
+          "samples": [
+            {
+              "phase": "page-init",
+              "page_ms": 8.5,
+              "time_origin_ms": 1791622449843.7,
+              "audio_seconds": null,
+              "state": null,
+              "sample_rate": null,
+              "raw": null,
+              "error": null
+            },
+            {
+              "phase": "power-on-request",
+              "page_ms": 35.200000047683716,
+              "time_origin_ms": 1791622449843.7,
+              "audio_seconds": null,
+              "state": null,
+              "sample_rate": null,
+              "raw": null,
+              "error": null
+            },
+            {
+              "phase": "first-screen",
+              "page_ms": 170.80000007152557,
+              "time_origin_ms": 1791622449843.7,
+              "audio_seconds": 0.046439909297052155,
+              "state": "running",
+              "sample_rate": 44100,
+              "raw": {
+                "events": 0,
+                "seconds": 0,
+                "total_seconds": 0.002902
+              },
+              "error": null
+            },
+            {
+              "phase": "tick",
+              "page_ms": 1008.6000000238419,
+              "time_origin_ms": 1791622449843.7,
+              "audio_seconds": 0.8823582766439909,
+              "state": "running",
+              "sample_rate": 44100,
+              "raw": {
+                "events": 0,
+                "seconds": 0,
+                "total_seconds": 0.002902
+              },
+              "error": null
+            },
+            {
+              "phase": "tick",
+              "page_ms": 2008.6000000238419,
+              "time_origin_ms": 1791622449843.7,
+              "audio_seconds": 1.8924263038548752,
+              "state": "running",
+              "sample_rate": 44100,
+              "raw": {
+                "events": 0,
+                "seconds": 0,
+                "total_seconds": 0.989582
+              },
+              "error": null
+            }
+          ],
+          "samples_dropped": 0,
+          "interpretation": "Raw cumulative published counters; sample times are not glitch times. Getter graph-lock access and tracing perturb scheduling."
+        },
+        "screens": 66,
+        "context_state": "running"
+      },
+      {
+        "gated": true,
+        "events": [
+          {
+            "type": "node-created",
+            "page_ms": 110.29999995231628,
+            "state": "running",
+            "audio_seconds": 0.046439909297052155
+          },
+          {
+            "type": "connect-request",
+            "page_ms": 110.5,
+            "destination": "AudioDestinationNode",
+            "ready": false
+          },
+          {
+            "type": "connect-request",
+            "page_ms": 110.5,
+            "destination": "AnalyserNode",
+            "ready": false
+          },
+          {
+            "type": "init-measured",
+            "page_ms": 120.29999995231628,
+            "instantiate_ms": 2,
+            "setup_ms": 7,
+            "audio_frame": 2048,
+            "rate": 44100
+          },
+          {
+            "type": "ready",
+            "page_ms": 121,
+            "state": "running",
+            "audio_seconds": 0.046439909297052155
+          },
+          {
+            "type": "connect-request",
+            "page_ms": 121.10000002384186,
+            "destination": "AudioDestinationNode",
+            "ready": true
+          },
+          {
+            "type": "connected",
+            "page_ms": 121.10000002384186,
+            "destination": "AudioDestinationNode",
+            "ready": true
+          },
+          {
+            "type": "connect-request",
+            "page_ms": 121.10000002384186,
+            "destination": "AnalyserNode",
+            "ready": true
+          },
+          {
+            "type": "connected",
+            "page_ms": 121.10000002384186,
+            "destination": "AnalyserNode",
+            "ready": true
+          }
+        ],
+        "timeline": {
+          "schema": 1,
+          "interval_ms": 1000,
+          "samples": [
+            {
+              "phase": "page-init",
+              "page_ms": 5.399999976158142,
+              "time_origin_ms": 1791622452305.4,
+              "audio_seconds": null,
+              "state": null,
+              "sample_rate": null,
+              "raw": null,
+              "error": null
+            },
+            {
+              "phase": "power-on-request",
+              "page_ms": 29.700000047683716,
+              "time_origin_ms": 1791622452305.4,
+              "audio_seconds": null,
+              "state": null,
+              "sample_rate": null,
+              "raw": null,
+              "error": null
+            },
+            {
+              "phase": "first-screen",
+              "page_ms": 142.20000004768372,
+              "time_origin_ms": 1791622452305.4,
+              "audio_seconds": 0.08126984126984127,
+              "state": "running",
+              "sample_rate": 44100,
+              "raw": {
+                "events": 0,
+                "seconds": 0,
+                "total_seconds": 0.002902
+              },
+              "error": null
+            },
+            {
+              "phase": "tick",
+              "page_ms": 1005.6000000238419,
+              "time_origin_ms": 1791622452305.4,
+              "audio_seconds": 0.9404081632653061,
+              "state": "running",
+              "sample_rate": 44100,
+              "raw": {
+                "events": 0,
+                "seconds": 0,
+                "total_seconds": 0.002902
+              },
+              "error": null
+            },
+            {
+              "phase": "tick",
+              "page_ms": 2005.7000000476837,
+              "time_origin_ms": 1791622452305.4,
+              "audio_seconds": 1.9388662131519274,
+              "state": "running",
+              "sample_rate": 44100,
+              "raw": {
+                "events": 0,
+                "seconds": 0,
+                "total_seconds": 1.024406
+              },
+              "error": null
+            }
+          ],
+          "samples_dropped": 0,
+          "interpretation": "Raw cumulative published counters; sample times are not glitch times. Getter graph-lock access and tracing perturb scheduling."
+        },
+        "screens": 66,
+        "context_state": "running"
+      }
+    ]
+  },
+  "traces": {
+    "original": {
+      "classification": {
+        "counts": {
+          "sync_reader_timeout": 0,
+          "glitch": 0,
+          "fifo_pull_shortage": 0,
+          "fifo_earmarked_shortage": 0,
+          "fifo_overrun": 0
+        },
+        "by_phase": {},
+        "explicit_events": [],
+        "explicit_events_dropped": 0,
+        "fifo_zero_counter_samples": 194,
+        "markers": [
+          {
+            "phase": "page-init",
+            "ts_us": 543526831136
+          },
+          {
+            "phase": "power-on-request",
+            "ts_us": 543526858015
+          },
+          {
+            "phase": "first-screen",
+            "ts_us": 543526993565
+          }
+        ],
+        "trace_complete": true,
+        "trace_events_dropped": 0,
+        "interpretation": "Counts only explicit named events in saved trace. Zero FIFO occupancy is not a shortage; absence does not prove no glitch, especially in incomplete traces."
+      },
+      "complete": true,
+      "dropped": 0,
+      "errors": [],
+      "sha256": {
+        "editor-scheduling.json": "1f57bbba795903c64146c0c38d69057680d31235179d5f0ba4c578654314bad1",
+        "editor-audio-trace.json": "50353a528df172664b178c6162cc86c9da6c29e6b6166a04c3d7b82414df565b"
+      }
+    },
+    "ready-gated": {
+      "classification": {
+        "counts": {
+          "sync_reader_timeout": 0,
+          "glitch": 0,
+          "fifo_pull_shortage": 0,
+          "fifo_earmarked_shortage": 0,
+          "fifo_overrun": 0
+        },
+        "by_phase": {},
+        "explicit_events": [],
+        "explicit_events_dropped": 0,
+        "fifo_zero_counter_samples": 197,
+        "markers": [
+          {
+            "phase": "page-init",
+            "ts_us": 543529289824
+          },
+          {
+            "phase": "power-on-request",
+            "ts_us": 543529314220
+          },
+          {
+            "phase": "first-screen",
+            "ts_us": 543529426574
+          }
+        ],
+        "trace_complete": true,
+        "trace_events_dropped": 0,
+        "interpretation": "Counts only explicit named events in saved trace. Zero FIFO occupancy is not a shortage; absence does not prove no glitch, especially in incomplete traces."
+      },
+      "complete": true,
+      "dropped": 0,
+      "errors": [],
+      "sha256": {
+        "editor-scheduling.json": "88828917d8273c4307874f1b36cd684a9da7c92b6825a1e5d2828fe5fcbcc5b3",
+        "editor-audio-trace.json": "124e92055f77f9d4227400d9f200367ade6a7e7da0d2ba66cc2eb02b0d71ee81"
+      }
+    }
+  },
+  "failed_probes": [
+    {
+      "source_head": "659a464932dedda24e2f594937a6652784e13624",
+      "outcome": "Page-route timing interception absent; first-screen reached but no measurement; assertion failed."
+    },
+    {
+      "source_head": "110a7819c0b057aa9e0ecec4e1d8deadb72de436",
+      "outcome": "Browser-context timing interception also absent; original variant reached66screens but no measurement; assertion failed.",
+      "partial_result": {
+        "schema": 1,
+        "acceptance": false,
+        "perturbation": "Two ordered diagnostic starts; route timing instrumentation, page observers, graph-lock getters and CDP tracing perturb scheduling.",
+        "results": [
+          {
+            "gated": false,
+            "events": [
+              {
+                "type": "node-created",
+                "page_ms": 128.70000004768372,
+                "state": "running",
+                "audio_seconds": 0.023219954648526078
+              },
+              {
+                "type": "connect-request",
+                "page_ms": 128.79999995231628,
+                "destination": "AudioDestinationNode",
+                "ready": false
+              },
+              {
+                "type": "connected",
+                "page_ms": 128.89999997615814,
+                "destination": "AudioDestinationNode",
+                "ready": false
+              },
+              {
+                "type": "connect-request",
+                "page_ms": 128.89999997615814,
+                "destination": "AnalyserNode",
+                "ready": false
+              },
+              {
+                "type": "connected",
+                "page_ms": 128.89999997615814,
+                "destination": "AnalyserNode",
+                "ready": false
+              },
+              {
+                "type": "ready",
+                "page_ms": 138.20000004768372,
+                "state": "running",
+                "audio_seconds": 0.023219954648526078
+              }
+            ],
+            "timeline": {
+              "schema": 1,
+              "interval_ms": 1000,
+              "samples": [
+                {
+                  "phase": "page-init",
+                  "page_ms": 8.899999976158142,
+                  "time_origin_ms": 1791622376669.4,
+                  "audio_seconds": null,
+                  "state": null,
+                  "sample_rate": null,
+                  "raw": null,
+                  "error": null
+                },
+                {
+                  "phase": "power-on-request",
+                  "page_ms": 37.799999952316284,
+                  "time_origin_ms": 1791622376669.4,
+                  "audio_seconds": null,
+                  "state": null,
+                  "sample_rate": null,
+                  "raw": null,
+                  "error": null
+                },
+                {
+                  "phase": "first-screen",
+                  "page_ms": 165.20000004768372,
+                  "time_origin_ms": 1791622376669.4,
+                  "audio_seconds": 0.058049886621315196,
+                  "state": "running",
+                  "sample_rate": 44100,
+                  "raw": {
+                    "events": 0,
+                    "seconds": 0,
+                    "total_seconds": 0.002902
+                  },
+                  "error": null
+                },
+                {
+                  "phase": "tick",
+                  "page_ms": 1009,
+                  "time_origin_ms": 1791622376669.4,
+                  "audio_seconds": 0.893968253968254,
+                  "state": "running",
+                  "sample_rate": 44100,
+                  "raw": {
+                    "events": 0,
+                    "seconds": 0,
+                    "total_seconds": 0.002902
+                  },
+                  "error": null
+                },
+                {
+                  "phase": "tick",
+                  "page_ms": 2009,
+                  "time_origin_ms": 1791622376669.4,
+                  "audio_seconds": 1.9040362811791383,
+                  "state": "running",
+                  "sample_rate": 44100,
+                  "raw": {
+                    "events": 0,
+                    "seconds": 0,
+                    "total_seconds": 0.989582
+                  },
+                  "error": null
+                }
+              ],
+              "samples_dropped": 0,
+              "interpretation": "Raw cumulative published counters; sample times are not glitch times. Getter graph-lock access and tracing perturb scheduling."
+            },
+            "screens": 66,
+            "context_state": "running"
+          }
+        ]
+      }
+    }
+  ],
+  "limits": [
+    "Date.now integer milliseconds; diagnostic timing/copy/observers/CDP perturb scheduling.",
+    "Instantiate elapsed time includes asynchronous awaits, not solely blocking CPU.",
+    "Setup measured after instantiate contains no await.",
+    "Original and gated starts both report0published underruns; cannot attribute prior CI event."
+  ]
+}
