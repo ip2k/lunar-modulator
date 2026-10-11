@@ -72,7 +72,7 @@ SONGS = [
         # transcription of any reference track.
         "motif": [(0, 0, 1, 2), (2, 2, 1, 2), (5, 4, 1, 3),
                   (8, 6, 1, 2), (10, 4, 1, 2), (14, 3, 1, 4)],
-        "about": "A half-time F-minor instrumental built around a six-note saw hook, a per-note filter-opening Trio lead, square-wave Acid bass and an electric-piano chord bed. The eight-bar opening states the hook before the first verse; the four-bar build pulls back before each drop. All patterns are original and use no samples.",
+        "about": "A half-time F-minor instrumental with a six-note saw hook, per-note Trio filter motion, square Acid bass and electric-piano chords. An eight-bar intro states the hook; four-bar builds precede the drops. Original patterns, no samples.",
         "peak2_chords": [2, 3, 1, 0],
         "peak2_degrees": [0, 4, 2, 6, 4, 0],
         "peak2_steps": [0, 2, 5, 8, 11, 14],
@@ -1301,6 +1301,10 @@ def outputs() -> dict[Path, bytes]:
 
 def check(files: dict[Path, bytes]) -> list[str]:
     errors = []
+    # Project info text is capped at 240 Unicode code points by the state
+    # format; longer descriptions are repaired on canonical load/save.
+    if any(len(song["about"]) > 240 for song in SONGS):
+        errors.append("project about text must fit the 240-code-point state limit")
     # Keep the future-bass tonic/fifth edge figure aligned with its new
     # monophonic Acid Bass role.
     future = next(song for song in SONGS if song["style"] == "future")
