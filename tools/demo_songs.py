@@ -44,7 +44,7 @@ SONGS = [
         "reply_degrees": [4, 2, 1, 3, 2, 0, 4, 1], "reply_octave": 1,
         "warble": (0.26, 0.12, 0.16),
         "sound": {"bass_model": "VA+Filter", "bass_cutoff": 680, "bass_decay": .43,
-                  "chord_model": "Shapes pad", "arp": False, "bass_timbre": .47, "lead_brightness": .53,
+                  "chord_model": "VA+Filter pluck", "arp": False, "bass_timbre": .47, "lead_brightness": .53,
                   "echo_mix": .18, "hall": .42, "hall_size": .58, "hall_mix": .05,
                   "fx_color": "drive", "lead_fx": "warble"},
     },
@@ -801,19 +801,21 @@ def build(song: dict) -> dict:
             "Tone": .72, "Level": 1,
         }}
     if song["style"] == "chill":
-        # Replace the high, detuned VA Pair stack with a low-register soft pad.
-        # At Harmonics=.35 the VA Pair's second oscillator is far from unison.
-        sounds[2]["engine"] = "shapes"
+        # Replace the high, detuned VA Pair stack with a low-register filtered
+        # pluck. Shapes' fixed twelve-voice allocation exceeds the FM-1 budget
+        # for this four-sound project, so keep the lighter Macro engine and
+        # switch its oscillator model rather than shipping an over-budget pad.
         sounds[2]["params"] = {
-            "Shape": "Sine/Tri", "Timbre": .24, "Color": .5,
-            "Attack": .34, "Release": .38, "Volume": .68,
-            "Glide": 100, "Voice Mode": "Poly", "Glide Mode": "Off",
-            "Time Mode": "Time",
+            "Model": "VA+Filter", "Harmonics": .5, "Timbre": .34,
+            "Morph": .25, "Decay": .32, "Colour": .34, "Volume": .68,
+            "Env Pitch": 0, "Env Timbre": .12, "Env Morph": 0,
+            "LPG": "Ping", "Glide": 100, "Voice Mode": "Poly",
+            "Glide Mode": "Off", "Time Mode": "Time",
         }
         sounds[2]["level"] = 78
         sounds[2]["inserts"] = [None, None]
         sounds[2]["midi_fx"] = []
-        # Retain slight note-following motion without the deep envelope amount
+        # Retain a restrained filter gesture without the deep envelope amount
         # that pushed the old VA Pair into a hard-sync timbre range.
         for cable in doc["mod"]["cables"]:
             if (cable["to"].get("unit") == "snd3"
@@ -902,13 +904,14 @@ def check(files: dict[Path, bytes]) -> list[str]:
         errors.append("Afterglow bridge must stage a final G4 pickup into the C-based verse")
     afterglow_doc = build(afterglow)
     pad = afterglow_doc["sounds"][2]
-    if (pad["engine"] != "shapes" or pad["params"] != {
-            "Shape": "Sine/Tri", "Timbre": .24, "Color": .5,
-            "Attack": .34, "Release": .38, "Volume": .68,
-            "Glide": 100, "Voice Mode": "Poly", "Glide Mode": "Off",
-            "Time Mode": "Time",
+    if (pad["engine"] != "macro" or pad["params"] != {
+            "Model": "VA+Filter", "Harmonics": .5, "Timbre": .34,
+            "Morph": .25, "Decay": .32, "Colour": .34, "Volume": .68,
+            "Env Pitch": 0, "Env Timbre": .12, "Env Morph": 0,
+            "LPG": "Ping", "Glide": 100, "Voice Mode": "Poly",
+            "Glide Mode": "Off", "Time Mode": "Time",
     } or pad["inserts"] != [None, None]):
-        errors.append("Afterglow chord slot must use the low, soft Shapes pad without inserts")
+        errors.append("Afterglow chord slot must use the low-register VA+Filter pluck without inserts")
     if afterglow_doc["master"][0]["params"]["Mix"] != .05:
         errors.append("Afterglow Hall Mix must remain at the owner's .05 clarity setting")
     if not any(cable["to"].get("unit") == "snd3"

@@ -1,0 +1,39 @@
+{
+  "browser": "153.0.8010.12",
+  "songs": [
+    {
+      "title": "Afterglow Relay",
+      "file": "afterglow-relay.lunar",
+      "listed": true,
+      "playbackStarted": true,
+      "download": true,
+      "reopened": true
+    },
+    {
+      "title": "Event Horizon",
+      "file": "event-horizon.lunar",
+      "listed": true,
+      "playbackStarted": true,
+      "download": true,
+      "reopened": true
+    },
+    {
+      "title": "Packet Bloom",
+      "file": "packet-bloom.lunar",
+      "listed": true,
+      "playbackStarted": true,
+      "download": true,
+      "reopened": true
+    },
+    {
+      "title": "Neon Transit",
+      "file": "neon-transit.lunar",
+      "listed": true,
+      "playbackStarted": true,
+      "download": true,
+      "reopened": true
+    }
+  ],
+  "errors": [],
+  "pass": true
+}
