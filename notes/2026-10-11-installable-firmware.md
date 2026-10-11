@@ -590,7 +590,7 @@ manifest `6728b37f400d1ad78d39b5c0ef5ab2908b835d5e4aace7ab0affe1d4d1ccdb6e`.
 [run38175955516](https://github.com/ip2k/lunar-modulator/actions/runs/38175955516)
 completed with all13 jobs successful. Exact `b397ca90` CI was dispatched as
 [run38177221169](https://github.com/ip2k/lunar-modulator/actions/runs/38177221169);
-it was still in progress when this checkpoint was documented. No PR or merge
+all13 jobs subsequently completed successfully [verified: GitHub API]. No PR or merge
 was performed for the unfinished installable-image stream.
 
 ## Bench access restored through the minimal RAM stub

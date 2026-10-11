@@ -60,8 +60,8 @@ restriction below is historical and superseded. Independent review conditionally
 supports one exact 700-byte no-flash RAM probe with fresh unit/port binding,
 no retries, and a durable receipt. Post-jump enumeration alone cannot prove
 that P33 executed. Latest verified pushed recovery checkpoint:
-`b2e0ed3c571f6962ee0b21994f5b75a2f1f670ed`, including the actual reset bench
-receipt and independent review.
+`ed8dca4cb26c5e530a9f20793d9650bfe5b62b24`, including the actual reset bench
+receipt, independent review and native startup ownership contract.
 
 Recovery development now adds a persistent whole-flash protocol model, durable
 transaction artifacts and a resumable fixed scratch-sector restore mode. The
@@ -91,8 +91,13 @@ core, exception or complete RAM ownership. The
 [native startup contract](notes/2026-10-11-native-startup-contract.md) preserves
 the independent core/exception reviews: no finite secondary-core hold
 acknowledgment, masked exception-delivery specification or safe SSP transition
-was established. A separate no-stack entry prerequisite and integration fault
-checks are being developed offline; they do not enable board output.
+was established. A separate 26-byte no-stack entry prerequisite now passes
+strict native auditing, final independent review and 178 focused Hera checks.
+The display/recovery controller passes 117 combined component checks with one
+optional private-stock fixture skip; five native C objects link relocatably
+without unresolved runtime helpers. These offline components do not enable
+board output or form an installation candidate. See
+[their evidence and limits](notes/2026-10-11-offline-entry-and-bringup.md).
 Stock watchdog setup/feed instructions are documented in ignored
 `build/watchdog-contract-review.md`; this does not establish inherited SPL
 state or safe cross-core P33 ownership. Startup/core/exception ownership,

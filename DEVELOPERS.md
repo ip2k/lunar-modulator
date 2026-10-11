@@ -2125,6 +2125,8 @@ document. By topic:
   records the remaining core, exception and stack premises for the first
   diagnostic image; the [UBOOT reset receipt](notes/2026-10-11-fm1-core-reset-bench.md)
   records the separately tested return to the stock application.
+  The [offline entry and composition checks](notes/2026-10-11-offline-entry-and-bringup.md)
+  cover the guarded entry artifact and combined display/recovery fault paths.
 - **What the firmware can be:** [docs/05](docs/05-open-source-feasibility.md)
   how open, [docs/06](docs/06-movy-and-schwung.md) Movy and Schwung,
   [docs/11](docs/11-plugin-platform.md) the engine platform,

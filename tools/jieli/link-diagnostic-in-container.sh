@@ -10,6 +10,7 @@ case "$PROFILE" in
     inert) FOLDER=diagnostic; SOURCES=(startup.S memory.c runtime.c) ;;
     handover) FOLDER=handover; SOURCES=(startup.S capture.c runtime.c) ;;
     panel-protocol) FOLDER=handover; REPORT_PROFILE=handover; SOURCES=(startup.S capture.c runtime.c) ;;
+    entry-guard) FOLDER=entry-guard; SOURCES=(startup.S) ;;
     *) echo "unknown diagnostic profile" >&2; exit 2 ;;
 esac
 mkdir -p "$OUT"
@@ -22,6 +23,35 @@ for source in "${SOURCES[@]}"; do
     "$CC" "${FLAGS[@]}" -I"$SRC/firmware/diagnostic" -c \
         "$SRC/firmware/$FOLDER/$source" -o "$OUT/$source.o"
 done
+# Distinct instruction-only prerequisite; never compile/link the C runtime or
+# prospective hardware components, and never use a RAM/stack layout report.
+if [[ $PROFILE == entry-guard ]]; then
+    "$TC/pi32v2/bin/ld" -T "$SRC/firmware/entry-guard/app.ld" --gc-sections \
+        -Map="$OUT/diagnostic.map" -o "$OUT/diagnostic.elf" "$OUT/startup.S.o"
+    "$TC/pi32v2/bin/objcopy" -O binary -j .entry "$OUT/diagnostic.elf" "$OUT/entry.bin"
+    cp "$OUT/entry.bin" "$OUT/diagnostic.bin"
+    "$TC/pi32v2/bin/objdump" -d -mcpu=r3 -mattr=+fprev1 "$OUT/diagnostic.elf" \
+        > "$OUT/diagnostic.disasm.txt"
+    python3 "$SRC/tools/jieli/audit_link.py" --runtime sdk-free \
+        --elf "$OUT/diagnostic.elf" --app "$OUT/diagnostic.bin" \
+        --sources "$SRC/firmware/entry-guard" --json "$OUT/audit_link.json"
+    python3 - "$OUT" <<'PY_BIND'
+import hashlib
+import json
+import pathlib
+import sys
+out = pathlib.Path(sys.argv[1])
+receipt = out / 'audit_link.json'
+data = json.loads(receipt.read_text())
+data['artifact_sha256'] = {kind: hashlib.sha256((out / name).read_bytes()).hexdigest()
+                           for kind, name in [('elf', 'diagnostic.elf'), ('app', 'diagnostic.bin')]}
+receipt.write_text(json.dumps(data, indent=2) + '\n')
+PY_BIND
+    python3 "$SRC/tools/jieli/entry_guard_audit.py" --elf "$OUT/diagnostic.elf" \
+        --app "$OUT/diagnostic.bin" --listing "$OUT/diagnostic.disasm.txt" \
+        --link-audit "$OUT/audit_link.json" > "$OUT/report.json"
+    exit 0
+fi
 # Compile prospective hardware components independently, never link/activate.
 for component in display/spi1_transport recovery/request timing/timer4; do
     name=${component##*/}
