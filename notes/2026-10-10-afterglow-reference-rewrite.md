@@ -13,7 +13,7 @@ The owner supplied the official video links for “Polish Girl” and “Awake.�
 - **Intro (4 bars):** stage the hook as fragments over an entering bass pulse, then add the drum identity.
 - **Verse (8):** use a steady bass foundation, a separate four-note FM phrase, and sparse chord calls.
 - **Lift (4):** raise the melodic contour and chord-hit density, with the existing final-bar withdrawal preserved.
-- **Hook (8):** state a six-note, chord-aware FM6 phrase over four short chord pulses per bar; the second four-bar sentence changes its interior landing and cadence.
+- **Hook (8):** state a six-note, chord-aware FM6 phrase over four syncopated, quarter-spaced chord pulses per bar; the second four-bar sentence changes its interior landing and cadence.
 - **Bridge (8):** first remove drums and thin the lead; in its second half, introduce a new four-note answer and broken-chord figure over the bass pulse.
 - **Second verse (8):** keep the same harmonic language while changing the lead contour/onsets.
 - **Hook 2 (8):** retain the six-note identity, transpose it with the progression and vary its later sentence.
@@ -25,7 +25,11 @@ The foreground is sound slot 4, DX7 **User 1** (`LUNAR LEAD` in `tools/state_exa
 
 `python3 -m py_compile tools/demo_songs.py`, `python3 tools/demo_songs.py --write`, `python3 tools/demo_songs.py --check`, and `git diff --check` pass. The generator validates the hook's six onsets, different second hook sentence, distinct second verse, bridge's new second-half figures, FM6 User 1 selection, restrained macro/echo settings, Hall Mix .05, non-overlapping lead answers and the existing drum humanization limits.
 
+An independent frozen-source review found that major-chord labels had been mistaken for minor in several generated bass and melody paths, and that some late-hook semitone edits were not intentional. The generator now derives thirds from chord quality, maps contour degrees through A natural minor, uses chord tones for phrase endings and answers, and checks every emitted pitched track for out-of-key pitch classes. The lead root is kept one octave above each written bass root to avoid a C-root octave jump. These corrections are structural pitch checks, not a claim of perceptual approval.
+
 The source and web copies of `event-horizon.lunar`, `packet-bloom.lunar`, and `neon-transit.lunar` retain their baseline SHA-256 values: `5b92ad3d…414897`, `7d755fd7…b606e9`, and `e19152d0…6e251` respectively. `tools/demo_songs.py --check` also verifies the generated copies are synchronized. These checks establish deterministic state generation and structure, not sound quality, full runtime, engine-budget fit, or browser save/reopen acceptance. Those gates and owner listening remain outstanding.
+
+An independent source review of the first freeze found accidental chromatic notes in several bass and lead phrases: major-chord third pickups were treated as minor, and some phrase variations used raw semitone subtraction. The current generator derives bass thirds from chord quality, maps melodic contours through A natural minor, uses chord tones for answers and phrase endings, and checks all pitched Afterglow tracks for out-of-key pitch classes. C-root phrases now use the same one-octave-above-root register rule as the other chord roots. Generator checks include explicit Fmaj7/Cmaj7 bass-third pickups and a full pitched-track key check. The initial freeze SHA `7ff52ac873f38d13077e56b61e3511fb2f912bd3` remains in Git history; the corrective checkpoint will supersede it for acceptance.
 
 ## Navigation-tool coverage
 

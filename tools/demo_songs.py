@@ -505,13 +505,21 @@ def chord_bar(song: dict, role: str, bar: int, scene: int) -> tuple[list[str], l
 
 
 def afterglow_pitch_base(root: int) -> int:
-    """Keep the chord-root hook in a compact mid register across the changes."""
-    return root + (24 if root == 48 else 12)
+    """Keep the chord-root hook one octave above the written bass root."""
+    return root + 12
+
+
+def afterglow_scale_pitch(root: int, degree: int) -> int:
+    """Return a pitch in A natural minor, measured from this bar's chord root."""
+    scale = (9, 11, 0, 2, 4, 5, 7)  # A B C D E F G
+    root_degree = scale.index(root % 12)
+    octave, step = divmod(degree, len(scale))
+    return root + 12 * octave + (scale[(root_degree + step) % len(scale)] - root % 12) % 12
 
 
 def afterglow_bass_bar(song: dict, role: str, bar: int, scene: int) -> list[str]:
     root, label = chord_for(song, bar, scene)
-    third = 3 if chord_quality(label).startswith("m") else 4
+    third = chord_intervals(song, label)[1]
     fifth = 7
     if scene == 0:
         pattern = [(0, 0, 96, 68)] if bar == 1 else (
@@ -608,36 +616,37 @@ def afterglow_lead_bar(song: dict, role: str, bar: int, scene: int, track: int) 
     if track == 7:
         if scene in (3, 6) and bar % 2 == 1:
             # Keep a tiny response clear of the main voice's final note.
-            return [ev(13, 18, base + 7, 40 if scene == 3 else 44)]
+            return [ev(13, 18, base + chord_intervals(song, label)[2], 40 if scene == 3 else 44)]
         if scene in (1, 5) and bar % 2 == 1:
-            return [ev(7, 18, base + 10, 37)]
+            return [ev(7, 18, base + chord_intervals(song, label)[1], 37)]
         return []
 
     if scene == 0:
         fragments = {
             0: [],
             1: [(8, 0, 36, 48)],
-            2: [(0, 0, 42, 53), (8, 7, 30, 46)],
-            3: [(0, 0, 42, 59), (3, 7, 30, 56), (8, 10, 36, 58), (14, 3, 36, 54)],
+            2: [(0, 0, 42, 53), (8, 4, 30, 46)],
+            3: [(0, 0, 42, 59), (3, 4, 30, 56), (8, 6, 36, 58), (14, 2, 36, 54)],
         }
-        return [ev(step, gate, base + interval, velocity)
-                for step, interval, gate, velocity in fragments[bar % 4]]
+        return [ev(step, gate, afterglow_scale_pitch(root, degree), velocity)
+                for step, degree, gate, velocity in fragments[bar % 4]]
 
     if scene in (3, 6):
         offsets = song["hook_intervals"][song["chords"].index(chord_for(song, bar, scene))]
         steps = song["hook_steps"]
         gates = song["hook_gates"]
         late_sentence = (bar >= 4) if scene == 3 else (bar >= 4)
+        chord_tones = chord_intervals(song, label)
         notes = []
         for index, (step, interval, gate) in enumerate(zip(steps, offsets, gates)):
             # The returning hook keeps its six-note identity but changes the
             # two phrase endings and one interior answer in sentence two.
             if late_sentence and index == 4:
-                interval = max(0, interval - 2)
+                interval = chord_tones[1]
             elif late_sentence and index == 5:
-                interval = 0 if scene == 3 else max(0, interval - 2)
+                interval = 0
             if bar % 4 == 3 and index == 2:
-                interval = max(0, interval - 2)
+                interval = chord_tones[2]
             velocity = 77 if scene == 3 else 81
             if bar >= 4:
                 velocity -= 3
@@ -645,24 +654,24 @@ def afterglow_lead_bar(song: dict, role: str, bar: int, scene: int, track: int) 
         return notes
 
     if scene == 2:
-        contour = (0, 3, 7, 10)
-        return [ev(step, 30, base + interval, 50 + min(bar, 3) * 5)
-                for step, interval in zip((0, 4, 8, 12), contour)]
+        contour = (0, 2, 4, 6)
+        return [ev(step, 30, afterglow_scale_pitch(root, degree), 50 + min(bar, 3) * 5)
+                for step, degree in zip((0, 4, 8, 12), contour)]
 
     if scene == 4:
         if bar < 4:
             # Open the breakdown with just two long, widely spaced tones.
             if bar % 2:
                 return []
-            return [ev(0, 72, base + (7 if bar == 0 else 0), 51),
-                    ev(8, 48, base + (3 if label.startswith("m") else 4), 44)]
+            return [ev(0, 72, base + (chord_intervals(song, label)[2] if bar == 0 else 0), 51),
+                    ev(8, 48, base + chord_intervals(song, label)[1], 44)]
         # A freer but composed bridge phrase enters over the new broken chord
         # pulse. The contour rises, then turns downward into the second verse.
         contours = ((0, 2, 3, 1), (3, 5, 4, 2), (0, 2, 4, 1), (2, 4, 3, 0))
         contour = contours[(bar - 4) % 4]
         steps = (0, 5, 9, 13)
-        return [ev(step, gate, base + interval, velocity)
-                for step, interval, gate, velocity in zip(
+        return [ev(step, gate, afterglow_scale_pitch(root, degree), velocity)
+                for step, degree, gate, velocity in zip(
                     steps, contour, (30, 24, 30, 18), (52, 47, 55, 45))]
 
     if scene == 7:
@@ -678,13 +687,13 @@ def afterglow_lead_bar(song: dict, role: str, bar: int, scene: int, track: int) 
     # Two genuinely different verse sentences: the second changes both
     # onset pattern and contour while retaining the same chord-tone language.
     if scene == 5:
-        phrase = ((0, 7, 42, 56), (3, 10, 24, 52), (8, 4, 42, 54), (12, 2, 24, 48))
+        phrase = ((0, 4, 42, 56), (3, 6, 24, 52), (8, 2, 42, 54), (12, 1, 24, 48))
     else:
-        phrase = ((0, 0, 42, 55), (6, 7, 24, 49), (10, 10, 36, 53), (14, 3, 18, 47))
+        phrase = ((0, 0, 42, 55), (6, 4, 24, 49), (10, 6, 36, 53), (14, 2, 18, 47))
     if bar % 4 == 3:
-        phrase = ((0, 0, 42, 55), (5, 7, 24, 50), (9, 10, 36, 52), (13, 0, 18, 46))
-    return [ev(step, gate, base + interval, velocity)
-            for step, interval, gate, velocity in phrase]
+        phrase = ((0, 0, 42, 55), (5, 4, 24, 50), (9, 6, 36, 52), (13, 0, 18, 46))
+    return [ev(step, gate, afterglow_scale_pitch(root, degree), velocity)
+            for step, degree, gate, velocity in phrase]
 
 
 def lead_bar(song: dict, role: str, bar: int, scene: int, track: int) -> list[str]:
@@ -1156,6 +1165,30 @@ def check(files: dict[Path, bytes]) -> list[str]:
         errors.append("Afterglow bridge second half must introduce its broken-chord idea")
     if len(afterglow_lead_bar(afterglow, "contrast", 4, 4, 3)) != 4:
         errors.append("Afterglow bridge second half must introduce its new lead contour")
+    for bar, third_step in ((1, 14), (2, 6)):
+        root, label = chord_for(afterglow, bar, 1)
+        bass = [event.split(":") for event in afterglow_bass_bar(afterglow, "verse", bar, 1)]
+        expected_third = 4
+        if chord_quality(label) not in ("maj7", "major") or chord_intervals(afterglow, label)[1] != expected_third:
+            errors.append(f"Afterglow major chord at verse bar {bar} has a wrong third")
+        if not any(int(fields[0]) == third_step * 24 and int(fields[2]) == root - 12 + expected_third
+                   for fields in bass):
+            errors.append(f"Afterglow bass pickup at verse bar {bar} is not the major third")
+    if afterglow_pitch_base(48) != 60:
+        errors.append("Afterglow C-root lead must stay in the same octave policy as other roots")
+    key_pitches = {0, 2, 4, 5, 7, 9, 11}
+    for line in arrangement(afterglow):
+        if not line.startswith("cl "):
+            continue
+        fields = line.split(maxsplit=5)
+        track = int(fields[1])
+        if track not in (1, 2, 3, 5, 7) or len(fields) < 6 or not fields[5]:
+            continue
+        for event in fields[5].split(";"):
+            pitch = int(event.split(":")[2])
+            if pitch % 12 not in key_pitches:
+                errors.append(f"Afterglow track {track} contains an unintended chromatic pitch {pitch}")
+                break
     afterglow_pads = afterglow_doc["sounds"][0]["pads"]
     expected_pads = {
         0: {"Tune": -1, "Decay": .27, "Level": .88, "Tone": .43, "Snap": .42, "Sweep": .48},
