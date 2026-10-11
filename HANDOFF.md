@@ -11,6 +11,17 @@ original conversation; last updated 2026-10-11. Read this first, then
 
 ## Installable firmware image resumed — 2026-10-11
 
+[verified: offline SDK raw checkpoint] The SDK-only emitter now passes 95 Hera
+checks in 16 parallel containers, with actual private ELF and historical backup
+fixtures and no skips. It reconstructs the raw application and CRC/length deltas
+while preserving protected bytes; original SDK-free/original-loader gates remain
+separate. Independent review's ELF-architecture finding is fixed. See
+[the raw SDK evidence](notes/2026-10-11-sdk-raw-diagnostic.md) and
+[its review](notes/2026-10-11-sdk-raw-diagnostic-review.md). The diagnostic still
+has no physical boot/display acceptance or physical write permit. Next: exact
+fixed-loader reader checks, fresh same-port backup campaign, separately bound
+SDK install/restore adapter and physical diagnostic/recovery verification.
+
 The agreed first milestone is a diagnostic image that boots, shows a display
 probe and retains recovery; playable Lunar follows later. Do not treat a
 component checkpoint as completion. Active branch:

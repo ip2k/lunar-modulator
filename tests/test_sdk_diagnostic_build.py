@@ -3,6 +3,7 @@ import importlib.util
 import hashlib
 import json
 import os
+import struct
 from pathlib import Path
 import sys
 from types import SimpleNamespace
@@ -67,6 +68,20 @@ def test_make_parser_preserves_multitoken_flags_and_rejects_missing_list():
     assert BUILD.make_list("CFLAGS := \\\n -target pi32v2 \\\n -Oz \\\n\n", "CFLAGS") == ["-target", "pi32v2", "-Oz"]
     with pytest.raises(ValueError, match="Missing"):
         BUILD.make_list("CFLAGS := -Oz\n", "CFLAGS")
+
+
+@pytest.mark.parametrize("machine", [0, 40, 243])
+def test_actual_native_audit_rejects_wrong_architecture(machine):
+    path = os.environ.get("LUNAR_SDK_ELF")
+    if not path:
+        pytest.skip("Set LUNAR_SDK_ELF to the private native candidate")
+    data = Path(path).read_bytes()
+    app, _ = AUDIT.reconstruct(AUDIT.Elf(data))
+    assert AUDIT.audit(data, app)["passed"] is True
+    modified = bytearray(data)
+    struct.pack_into("<H", modified, 18, machine)
+    with pytest.raises(ValueError, match="pi32v2 executable"):
+        AUDIT.audit(bytes(modified), app)
 
 def layout():
     sections = []

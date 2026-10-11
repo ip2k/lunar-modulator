@@ -22,6 +22,21 @@ def construct(baseline_a, baseline_b, manifest, identity, reference, app, elf,
     Construction is intentionally separate from its independent target check.
     """
     raw.profile_dump(baseline_a, baseline_b, manifest, identity, reference)
+    target = _replace_application(baseline_a, reference, app)
+    receipt = raw.validate_target(baseline_a, baseline_b, target, manifest,
+                                  identity, reference, app, elf,
+                                  diagnostic_profile, expected_audit)
+    receipt.update(status='private-raw-diagnostic-constructed-offline',
+                   target_bytes=len(target), binary_emitted=False,
+                   directory_sector=raw.APP_BASE,
+                   installation_order='application data sectors before directory sector',
+                   distribution='private stock-derived target; never commit or publish',
+                   hardware_approval=False)
+    return target, receipt
+
+
+def _replace_application(baseline_a, reference, app):
+    """Pure geometry operation; the caller must validate before emitting bytes."""
     if not isinstance(app, bytes) or not 0 < len(app) <= raw.APP_BYTES:
         raise ValueError('Nonempty immutable app must fit the recorded extent')
     decoded, _ = raw._parse(baseline_a, reference)
@@ -37,16 +52,7 @@ def construct(baseline_a, baseline_b, manifest, identity, reference, app, elf,
     target = (baseline_a[:raw.APP_BASE]
               + raw.sfc_decode(decoded[raw.APP_BASE:raw.PAYLOAD_END], 0)
               + baseline_a[raw.PAYLOAD_END:])
-    receipt = raw.validate_target(baseline_a, baseline_b, target, manifest,
-                                  identity, reference, app, elf,
-                                  diagnostic_profile, expected_audit)
-    receipt.update(status='private-raw-diagnostic-constructed-offline',
-                   target_bytes=len(target), binary_emitted=False,
-                   directory_sector=raw.APP_BASE,
-                   installation_order='application data sectors before directory sector',
-                   distribution='private stock-derived target; never commit or publish',
-                   hardware_approval=False)
-    return target, receipt
+    return target
 
 
 def _save(path, data):
@@ -71,8 +77,13 @@ def emit(directory, target, receipt):
     A failed/interrupted write leaves an incomplete directory for inspection.
     Never overwrite it or present a target-only directory as completed.
     """
+    return _emit_private(directory, target, receipt, 'private-raw-diagnostic-constructed-offline')
+
+
+def _emit_private(directory, target, receipt, expected_status):
+    """Publish a receipt last; only reviewed runtime-specific emitters call this."""
     if (not isinstance(target, bytes) or len(target) != raw.FLASH_BYTES
-            or receipt.get('status') != 'private-raw-diagnostic-constructed-offline'
+            or receipt.get('status') != expected_status
             or receipt.get('target_sha256') != raw.digest(target)
             or receipt.get('binary_emitted') is not False
             or receipt.get('hardware_approval') is not False):

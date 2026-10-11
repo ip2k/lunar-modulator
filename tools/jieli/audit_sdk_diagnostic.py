@@ -5,7 +5,7 @@ import hashlib
 import json
 import struct
 from pathlib import Path
-from audit_link import Elf, SHT_NOBITS
+from audit_link import Elf, SHT_NOBITS, EM_PI32V2, ET_EXEC
 
 LAYOUT = ((".text", "text_begin"), (".data", "data_lma"),
           (".dynamic_data", "dynamic_data_lma"), (".ram0_data", "_ram0_data_lma"),
@@ -174,8 +174,8 @@ def instruction_contract(elf):
 def audit(elf_data, app):
     elf = Elf(elf_data)
     entry, = struct.unpack_from("<I", elf_data, 24)
-    if elf.e_type != 2 or entry != 0x02000120:
-        raise ValueError("Expected executable with stock app entry 0x02000120")
+    if elf.e_type != ET_EXEC or elf.e_machine != EM_PI32V2 or entry != 0x02000120:
+        raise ValueError("Expected pi32v2 executable with stock app entry 0x02000120")
     rebuilt, rows = reconstruct(elf)
     if app != rebuilt:
         raise ValueError("Flat image differs from SDK section/LMA reconstruction")
