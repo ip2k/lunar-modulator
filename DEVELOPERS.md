@@ -2121,6 +2121,10 @@ document. By topic:
   risks, [docs/09](docs/09-first-session-checklist.md) the first bench
   session, [docs/10](docs/10-usb-key-dongle.md) the `USB_KEY` dongle,
   [docs/17](docs/17-recovery.md) interruption handling and recovery procedures.
+  The [native startup contract](notes/2026-10-11-native-startup-contract.md)
+  records the remaining core, exception and stack premises for the first
+  diagnostic image; the [UBOOT reset receipt](notes/2026-10-11-fm1-core-reset-bench.md)
+  records the separately tested return to the stock application.
 - **What the firmware can be:** [docs/05](docs/05-open-source-feasibility.md)
   how open, [docs/06](docs/06-movy-and-schwung.md) Movy and Schwung,
   [docs/11](docs/11-plugin-platform.md) the engine platform,

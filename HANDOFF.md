@@ -60,8 +60,8 @@ restriction below is historical and superseded. Independent review conditionally
 supports one exact 700-byte no-flash RAM probe with fresh unit/port binding,
 no retries, and a durable receipt. Post-jump enumeration alone cannot prove
 that P33 executed. Latest verified pushed recovery checkpoint:
-`b397ca90864aac504f3e120cddff959e53d32e7e` before the subsequent bench/result
-documentation checkpoint.
+`b2e0ed3c571f6962ee0b21994f5b75a2f1f670ed`, including the actual reset bench
+receipt and independent review.
 
 Recovery development now adds a persistent whole-flash protocol model, durable
 transaction artifacts and a resumable fixed scratch-sector restore mode. The
@@ -87,7 +87,13 @@ exact recorded geometry, actual app/ELF/audit inputs, protected bytes and derive
 changed sectors. It emits JSON evidence only; no physical writer is opened.
 The [final stock SPL contract review](notes/2026-10-11-stock-spl-final-contract.md)
 resolves the ordinary XIP entry and conditional callback, but does not prove
-core, exception or complete RAM ownership. Stock watchdog setup/feed instructions are documented in ignored
+core, exception or complete RAM ownership. The
+[native startup contract](notes/2026-10-11-native-startup-contract.md) preserves
+the independent core/exception reviews: no finite secondary-core hold
+acknowledgment, masked exception-delivery specification or safe SSP transition
+was established. A separate no-stack entry prerequisite and integration fault
+checks are being developed offline; they do not enable board output.
+Stock watchdog setup/feed instructions are documented in ignored
 `build/watchdog-contract-review.md`; this does not establish inherited SPL
 state or safe cross-core P33 ownership. Startup/core/exception ownership,
 calibrated timer/clock, watchdog, PA2 and
