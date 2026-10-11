@@ -206,30 +206,37 @@ def build_packet():
                 tail=scene==4;hinge=scene==2
                 if t==0:
                     steps=([0,11] if bar%2==0 else [3]) if scene in (1,3) else [0] if scene==0 and bar in (4,6) else []
+                    if scene==3 and bar in (4,7):steps=[11] if bar==4 else []
                     if tail and bar==0:steps=[0]
                     for step in steps:add(bar,step,36,18,90,nudge=0 if step==0 else 3)
                 elif t==1:
                     if not hinge and (not tail or bar==0):
                         pitch=[40,40,45,47][bar%4] if scene==3 else 40
-                        add(bar,0 if bar%2==0 else 3,pitch,190 if bar%2==0 else 150,83)
+                        step=6 if scene==3 and bar==5 else 0 if bar%2==0 else 3
+                        add(bar,step,pitch,190 if bar%2==0 else 150,83)
                 elif t==2:
                     phrase=calls[bar%4]
                     if hinge:phrase=[(6,66,150)] if bar in (0,3) else []
                     if scene==0 and bar<4:phrase=phrase[:1]
+                    if scene==3 and bar in (5,9):phrase=[(5,73,60),(9,74,48),(13,78,48)]  # C-sharp Dorian color
+                    if scene==3 and bar==7:phrase=[(3,81,48),(10,78,72)]
                     if scene==3 and bar>=8:phrase=[(step,pitch-12,gate) for step,pitch,gate in phrase]
                     if tail:phrase=[(2,76,150)] if bar==0 else [(7,71,150)] if bar==2 else []
                     for step,pitch,gate in phrase:add(bar,step,pitch,gate,84,nudge=3)
                 elif t==3:
-                    if scene in (1,3) and bar%4 in (1,2):add(bar,10 if bar%4==1 else 5,37 if bar%4==1 else 43,18,55,nudge=-3)
+                    if scene==3 and bar==7:add(bar,13,47,18,45,nudge=-3)
+                    if scene in (1,3) and bar%4 in (1,2) and not (scene==3 and bar==6):add(bar,10 if bar%4==1 else 5,37 if bar%4==1 else 43,18,55,nudge=-3)
                 elif t==4:
                     if scene in (1,3):
-                        for step in ([2,10,15] if bar%2==0 else [6,13]):add(bar,step,42,12,42,nudge=4)
+                        steps=[2,10,15] if bar%2==0 else [6,13]
+                        if scene==3 and 4<=bar<8:steps=[1,7,12] if bar in (4,6) else [5,14]
+                        for step in steps:add(bar,step,42,12,42,nudge=4)
                 elif t==5:
                     # Low modal answering voice on separate pitches, sparse.
-                    if scene==3 and bar%4==2:add(bar,7,62,126,65,nudge=6)
+                    if scene==3 and bar%4==2:add(bar,7,61 if bar==6 else 62,126,65,nudge=6)
                     if scene==1 and bar in (3,7):add(bar,1,57,170,62)
                 elif t==6:
-                    if scene in (1,3):add(bar,8,38,18,74,nudge=6)
+                    if scene in (1,3) and not (scene==3 and bar in (4,7)):add(bar,8,38,18,74,nudge=6)
                     if scene==1 and bar==9:add(bar,14,44,18,48,nudge=-4)
                 elif t==7:
                     if scene==0 and bar in (2,6):add(bar,12,40,18,46)

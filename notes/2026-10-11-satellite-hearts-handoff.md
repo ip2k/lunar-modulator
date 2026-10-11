@@ -47,3 +47,10 @@ and altered answers; developed four-bar Window countermelody and B→C return;
 phrase-end drum stops/pickups. Generator also asserts the verified 512-note
 per-clip cap. Assets regenerated; source invariants pass. Packet independent
 source review is requested. Exact runtime still blocked on aeon connectivity.
+
+## Packet critique revision
+
+Bloom now has a distinct middle-four-bar percussion/bass relationship and
+C-sharp modal answers, addressing repetition and the missing defining Dorian
+sixth. Sophie Tune parameters are authored, not perceptually verified tuning.
+Source checks pass; runtime/owner listening pending.

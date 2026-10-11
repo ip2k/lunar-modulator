@@ -35,3 +35,16 @@ No infrastructure changes were attempted. Native/Wasm load/save admission,
 full finite renders, browser file flow and owner listening remain pending.
 Root owns the generic harness/catalog integration. No merge or hardware test
 has occurred.
+
+## Independent source critique response
+
+Bloom's middle four bars now transform the percussion relationship: a delayed
+kick-only gesture at bar 5, missing backbeats at bars 5/8, shifted hats, a bass
+pickup delayed to step 6, and a quiet Sophie answer after the second rest.
+The modal call develops a C-sharp→D→F-sharp answer in Bloom, including its
+lower-octave return; a low C-sharp answer in the silent call bar establishes
+the defining Dorian sixth rather than relying on a scale metadata label.
+Sophie pads have authored Tune parameters, but their perceived pitches and
+musical tuning are not verified by those numbers. Auditioning the actual pad
+timbres is still required. Source checks continue to pass; no listening pass
+or runtime acceptance is implied.
