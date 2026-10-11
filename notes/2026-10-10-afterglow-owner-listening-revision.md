@@ -65,12 +65,12 @@ source and browser files matched the frozen parent commit byte-for-byte:
 | Neon Transit | `e19152d0747d6d2a69cc61eaabeed6d083f89fbecdfa7e1d85ba7f9911f6e251` |
 
 The first Shapes candidate failed the actual Wasm memory gate above. The
-current Macro variant has passed generator checks, but native/Wasm playback,
-fresh browser load/save and owner re-listening remain pending. The local
-`pytest` command is unavailable (`No module named pytest`), and checked-in
-example metadata is not a matching full engine registry. A bounded
-native/Wasm/browser receipt against the actual combined build is the next
-gate. There is no hardware or device claim here.
+current Macro variant passed bounded four-song native/Wasm playback and
+Chromium preload/play/Save/fresh-Open checks; the exact receipt and artifact
+identities are in
+[`2026-10-10-afterglow-runtime-acceptance.md`](2026-10-10-afterglow-runtime-acceptance.md).
+The local `pytest` command is unavailable (`No module named pytest`). Owner
+re-listening is still needed; there is no hardware or device claim here.
 
 The requested Rarefaction/Serena practical evaluation was limited by shared
 project selection: Rarefaction reported the primary checkout rather than this
