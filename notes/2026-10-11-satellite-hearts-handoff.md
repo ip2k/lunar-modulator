@@ -63,3 +63,8 @@ and verified against origin. Satellite SHA-256:
 Packet replacement SHA-256:
 `d66291ba86df901ea3f8f3897aeeb25ca6c643d29d6841f5bf1d98bd520dab4c`.
 Independent critic has these exact hashes for returned-asset source recheck.
+
+Returned source recheck matched both canonical generators/assets/mirrors and
+closed the arrangement findings. Its Window Ab/E listening focal point was
+corrected in source to E/G/B over Em, then A/G/F over F; assets regenerated.
+Runtime/browser/owner listening are still pending.

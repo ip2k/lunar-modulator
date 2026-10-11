@@ -102,3 +102,10 @@ phrase breaks remove clap/hat endpoints rather than using generic rolls.
 The F-minor borrowing is an established verse color, not falsely described as
 first revealed in Window. Source invariants still pass; listening remains
 pending, and aeon runtime remains blocked by `Host is down`.
+
+Returned-asset source recheck confirmed both generated projects and mirrors
+match at `aa487f85`, and the requested arrangement developments are present.
+It identified an Ab/E rub in Window's second cycle: that bar now answers
+E/G/B over Em, followed by A/G/F over F. The first-cycle borrowed-minor line
+remains, while the second cycle resolves toward the written B-to-C return.
+This is an intentional authored harmonic correction, not a listening verdict.

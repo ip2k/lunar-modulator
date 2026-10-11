@@ -113,6 +113,8 @@ def build_satellite():
                                 [(0,64,96),(7,67,60),(12,72,60)],
                                 [(2,71,72),(9,67,96)]]
                         phrase=middle[bar%4]
+                        if bar==4: phrase=[(1,64,60),(5,67,48),(10,71,72)]
+                        if bar==5: phrase=[(3,69,72),(8,67,60),(13,65,36)]
                         if bar==7: phrase=[(2,67,72),(9,71,96)]
                     if final: phrase=[(step,pitch-12,gate) for step,pitch,gate in phrase]
                     if end: phrase=[(0,72,132)]
