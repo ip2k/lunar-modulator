@@ -472,3 +472,9 @@ has the hash-pinned toolchain and build image locally. Three parallel target
 builds pass audit and reproduce aeon's images/SPI object byte for byte. See
 `notes/2026-10-11-installable-firmware.md` for exact paths and receipts. Endpoint
 is confirmed as diagnostic bring-up first; no package or device write has occurred.
+
+Installable diagnostic checkpoint: fixed loader configuration and directory-last
+transactions passed 156 focused Hera checks in 16 chunks (no skips). Native
+loader review is in `notes/2026-10-11-loader-native-review.md`; exact test pins
+are in `notes/2026-10-11-diagnostic-directory-last.md`. SDK recovery/native review,
+fresh physical backups, installation/restore and panel acceptance remain pending.

@@ -77,6 +77,33 @@ def checked_ranges(ranges):
     return result
 
 
+def sector_order(ranges, commit_sector=None):
+    """Validate the optional directory/commit sector and put it last."""
+    sectors = [address for start, end in checked_ranges(ranges)
+               for address in range(start, end, SECTOR_BYTES)]
+    if commit_sector is not None:
+        if (type(commit_sector) is not int or commit_sector % SECTOR_BYTES
+                or commit_sector not in sectors):
+            raise ValueError('Commit sector must be an aligned authorized sector')
+        sectors.remove(commit_sector)
+        sectors.append(commit_sector)
+    return sectors
+
+
+def checked_plan_order(plan):
+    # Schema-1 historical scratch transactions had neither field and retain
+    # ascending order. New plans seal both, including an explicit null default.
+    if 'commit_sector' not in plan and 'sector_order' not in plan:
+        return sector_order(plan['writable_ranges'])
+    if 'commit_sector' not in plan or 'sector_order' not in plan:
+        raise ValueError('Commit sector and sector order must be sealed together')
+    order = sector_order(plan['writable_ranges'], plan['commit_sector'])
+    if (not isinstance(plan['sector_order'], list) or plan['sector_order'] != order
+            or any(type(x) is not int for x in plan['sector_order'])):
+        raise ValueError('Sealed sector order differs from authorized commit ordering')
+    return order
+
+
 def check_outside(current, baseline, ranges):
     previous = 0
     for start, end in ranges:
@@ -99,20 +126,22 @@ def checked_identity(identity):
 
 
 def create_transaction(directory, baseline_a, baseline_b, target, identity,
-                       writable_ranges, scope):
+                       writable_ranges, scope, *, commit_sector=None):
     """Prepare immutable artifacts before any destructive device operation."""
     directory = Path(directory)
     if (any(not isinstance(x, bytes) or len(x) != FLASH_SIZE
             for x in (baseline_a, baseline_b, target)) or baseline_a != baseline_b):
         raise ValueError('Two matching complete backups and a complete target required')
     ranges = checked_ranges(writable_ranges)
+    order = sector_order(ranges, commit_sector)
     check_outside(target, baseline_a, ranges)
     identity = checked_identity(identity)
     if not isinstance(scope, str) or not scope:
         raise ValueError('A concrete experiment scope is required')
     plan = {'schema': 1, 'identity': identity, 'scope': scope,
             'writable_ranges': ranges, 'baseline_sha256': digest(baseline_a),
-            'target_sha256': digest(target)}
+            'target_sha256': digest(target), 'commit_sector': commit_sector,
+            'sector_order': order}
     mkdir_durable(directory)
     for name, data in (('backupA.bin', baseline_a), ('backupB.bin', baseline_b),
                        ('target.bin', target), ('plan.json', encoded(plan))):
@@ -120,7 +149,8 @@ def create_transaction(directory, baseline_a, baseline_b, target, identity,
     sync_directory(directory)
     sync_directory(directory.parent)
     save_journal(directory, {'schema': 1, 'plan_sha256': digest(encoded(plan)),
-                             'state': 'prepared', 'direction': None, 'intent': None})
+                             'state': 'prepared', 'direction': None, 'intent': None,
+                             'sector_order': order})
     return plan
 
 
@@ -139,7 +169,9 @@ def load_transaction(directory):
             journal.get('direction') not in (None, 'install', 'restore')):
         raise ValueError('Invalid or mismatched transaction journal/plan')
     checked_identity(plan['identity'])
-    checked_ranges(plan['writable_ranges'])
+    order = checked_plan_order(plan)
+    if ('sector_order' in plan and journal.get('sector_order') != order):
+        raise ValueError('Journal sector order differs from sealed transaction plan')
     a = (directory / 'backupA.bin').read_bytes()
     b = (directory / 'backupB.bin').read_bytes()
     target = (directory / 'target.bin').read_bytes()
@@ -201,28 +233,27 @@ def run_transaction(directory, session, direction='install', checkpoint=None):
             if journal['state'] == 'prepared' and current != baseline:
                 raise ValueError('Fresh flash differs from the two backups; no write')
             sectors_written = 0
-            for start, end in plan['writable_ranges']:
-                for address in range(start, end, SECTOR_BYTES):
-                    sector = desired[address:address + SECTOR_BYTES]
-                    actual = read(address, SECTOR_BYTES)
-                    if actual == sector:
-                        continue
-                    # A verified blank sector needs no erase. Otherwise rebuild
-                    # the whole sector; never interpret a torn page as a cursor.
-                    if actual != b'\xff' * SECTOR_BYTES:
-                        mutate('erase', address)
-                    if read(address, SECTOR_BYTES) != b'\xff' * SECTOR_BYTES:
-                        raise ValueError('Erase readback mismatch')
-                    for offset in range(0, SECTOR_BYTES, CHUNK):
-                        page = sector[offset:offset + CHUNK]
-                        if page != b'\xff' * CHUNK:
-                            mutate('program', address + offset, page)
-                    if read(address, SECTOR_BYTES) != sector:
-                        raise ValueError('Program readback mismatch')
-                    sectors_written += 1
-                    journal.update(intent=None)
-                    save_journal(directory, journal)
-                    checkpoint_event('sector_verified', address=address)
+            for address in checked_plan_order(plan):
+                sector = desired[address:address + SECTOR_BYTES]
+                actual = read(address, SECTOR_BYTES)
+                if actual == sector:
+                    continue
+                # A verified blank sector needs no erase. Otherwise rebuild
+                # the whole sector; never interpret a torn page as a cursor.
+                if actual != b'\xff' * SECTOR_BYTES:
+                    mutate('erase', address)
+                if read(address, SECTOR_BYTES) != b'\xff' * SECTOR_BYTES:
+                    raise ValueError('Erase readback mismatch')
+                for offset in range(0, SECTOR_BYTES, CHUNK):
+                    page = sector[offset:offset + CHUNK]
+                    if page != b'\xff' * CHUNK:
+                        mutate('program', address + offset, page)
+                if read(address, SECTOR_BYTES) != sector:
+                    raise ValueError('Program readback mismatch')
+                sectors_written += 1
+                journal.update(intent=None)
+                save_journal(directory, journal)
+                checkpoint_event('sector_verified', address=address)
             final = read(0, FLASH_SIZE)
             if final != desired:
                 raise ValueError('Full-flash final verification mismatch')
@@ -231,7 +262,9 @@ def run_transaction(directory, session, direction='install', checkpoint=None):
             save_journal(directory, journal)
             return {'scope': plan['scope'], 'direction': direction,
                     'verified_sha256': digest(final), 'sectors_written': sectors_written,
-                    'simulated': plan['identity']['simulated']}
+                    'simulated': plan['identity']['simulated'],
+                    'commit_sector': plan.get('commit_sector'),
+                    'sector_order': checked_plan_order(plan)}
         except BaseException as exc:
             # A failed preflight does not grant permission to treat unrelated
             # pre-existing changes as our interrupted write on the next run.

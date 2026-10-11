@@ -14,7 +14,8 @@ from pathlib import Path
 import sys
 import time
 
-from fm1_flash_transaction import load_transaction, run_transaction, encoded, digest
+from fm1_flash_transaction import (create_transaction, load_transaction, run_transaction,
+                                   encoded, digest)
 from fm1_uboot_read import request, CHUNK, FLASH_SIZE, LOADER_SHA
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'jieli'))
@@ -30,6 +31,16 @@ def _identity(identity, baseline):
             or any(not isinstance(identity.get(key), str) or not identity[key].strip()
                    for key in ('unit_id', 'usb_port', 'usb_topology'))):
         raise ValueError('Diagnostic identity requires explicit unit/topology/content binding')
+
+
+def prepare_transaction(directory, baseline_a, baseline_b, target, identity, writable_ranges):
+    """Seal the diagnostic directory sector last for both install and restore.
+
+    This creates offline artifacts only. load_policy still recomputes actual
+    raw-image/reference/native audit checks before accepting any transport.
+    """
+    return create_transaction(directory, baseline_a, baseline_b, target, identity,
+                              writable_ranges, SCOPE, commit_sector=raw.APP_BASE)
 
 
 @dataclass(frozen=True)
@@ -67,6 +78,8 @@ def load_policy(directory, *, direction, manifest_path, identity_path, reference
         raise ValueError('Explicit install or restore direction required')
     directory = Path(directory).resolve()
     plan, _, baseline, target = load_transaction(directory)
+    if plan.get('commit_sector') != raw.APP_BASE:
+        raise ValueError('Diagnostic transaction must seal the application directory sector last')
     if plan['scope'] != SCOPE:
         raise ValueError('Only explicit bound diagnostic scope is permitted')
     identity = json.loads(Path(identity_path).read_bytes())
@@ -82,6 +95,7 @@ def load_policy(directory, *, direction, manifest_path, identity_path, reference
         raise ValueError('Plan ranges must exactly equal derived changed sectors')
     result.update(transaction_plan_sha256=digest(encoded(plan)),
                   command_direction=direction, command_scope=SCOPE,
+                  commit_sector=raw.APP_BASE, sector_order=plan['sector_order'],
                   protocol_mock_only=True,
                   physical_binding='Injected assertions; physical loader/recovery binding unproven')
     return _Policy(directory, direction, encoded(plan), baseline, target,

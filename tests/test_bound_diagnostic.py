@@ -52,8 +52,8 @@ def prepared(sample, tmp_path):
                     page_size=256, jedec=0x856014, usb_port='mock-1-2',
                     usb_topology='/mock/controller/1-2', baseline_sha256=digest(s['baseline']))
     directory = tmp_path / 'transaction'
-    create_transaction(directory, s['baseline'], s['baseline'], s['target'], identity,
-                       ((0x4000, 0x5000),), bound.SCOPE)
+    bound.prepare_transaction(directory, s['baseline'], s['baseline'], s['target'], identity,
+                              ((0x4000, 0x5000),))
     manifest, identity_file, app, elf = (tmp_path / name for name in ('manifest.json', 'identity.json', 'app', 'elf'))
     manifest.write_text(json.dumps(s['manifest']))
     identity_file.write_text(json.dumps(identity))
@@ -95,6 +95,8 @@ def test_install_restore_completed_readback(prepared):
     receipt = installed.run()
     assert p['device'].flash == p['sample']['target'] and t.closed
     assert receipt['verified_sha256'] == digest(p['sample']['target'])
+    assert receipt['commit_sector'] == bound.raw.APP_BASE
+    assert receipt['sector_order'][-1] == bound.raw.APP_BASE
     assert receipt['protocol_mock_only'] and not receipt['hardware_validated']
     assert not receipt['physical_loader_recovery_binding_proven']
     checked, t2 = session(p)
@@ -357,3 +359,21 @@ def test_keepalive_and_wire_read_shapes(prepared, monkeypatch):
     assert [int.from_bytes(c[:2], 'big') for c, _, _ in t.calls] == [0xFC0A, 0xFD05, 0xFC0A, 0xFD05]
     for cdb, payload, size in t.calls:
         assert len(cdb) == 16 and not payload and size in (16, 256)
+
+
+@pytest.mark.parametrize('kind', ['missing', 'null', 'wrong', 'order'])
+def test_diagnostic_requires_sealed_directory_last_before_transport(prepared, kind):
+    p = prepared
+    def change(plan):
+        if kind == 'missing':
+            plan.pop('commit_sector')
+        elif kind == 'null':
+            plan['commit_sector'] = None
+        elif kind == 'wrong':
+            plan['commit_sector'] = 0x5000
+        else:
+            plan['sector_order'] = []
+    rewrite_plan(p, change)
+    with pytest.raises(ValueError):
+        policy(p)
+    assert not any(e.get('operation') in ('erase', 'program') for e in p['device'].events)
