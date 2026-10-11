@@ -62,23 +62,28 @@ SONGS = [
     {
         "slug": "event-horizon", "title": "Event Horizon", "name": "EVENT HORIZON",
         "genre": "Future bass", "bpm": 144, "root": "F", "midi_root": 53, "key_index": 5,
-        "bars": 116, "swing": 50, "chords": [(53, "Fm9"), (49, "Dbmaj7"), (56, "major"), (51, "major")],
+        "bars": 116, "swing": 50,
+        "chords": [(53, "Fm9"), (49, "Dbmaj7"), (56, "Abmaj7"), (51, "Eb6")],
         "scenes": [("Intro", 8), ("Verse", 8), ("Build", 4), ("Drop", 8),
                    ("Break", 4), ("Vrs2", 8), ("Drop2", 8), ("Outro", 4)],
         "chain": [0, 1, 1, 2, 3, 3, 3, 3, 4, 5, 5, 6, 6, 6, 6, 7], "style": "future",
-        "motif": [(0, 7, 0, 4), (3, 5, 0, 4), (6, 4, 0, 6), (8, 2, 0, 4),
-                  (11, 4, 0, 4), (14, 1, 1, 6)],
-        "about": "A half-time future-bass arc: a compact rising pickup, wide chord voicings and a four-pass drop whose kick and bass lock around the backbeat. All parts are original MIDI patterns; no samples are used.",
-        "peak2_chords": [2, 1, 3, 0],
-        "peak2_degrees": [0, 6, 4, 5, 3, 1],
-        "peak2_steps": [0, 2, 6, 8, 11, 14],
-        "peak1_chords": [0, 2, 1, 3], "peak1_degrees": [7, 5, 3, 2, 4, 1],
-        "peak1_steps": [0, 3, 6, 9, 12, 14],
+        # The drop hook follows each chord's own tones while keeping one
+        # recognizable six-attack rhythm. These are original notes, not a
+        # transcription of any reference track.
+        "motif": [(0, 0, 1, 2), (2, 2, 1, 2), (5, 4, 1, 3),
+                  (8, 6, 1, 2), (10, 4, 1, 2), (14, 3, 1, 4)],
+        "about": "A half-time F-minor instrumental built around a six-note saw hook, a per-note filter-opening Trio lead, square-wave Acid bass and an electric-piano chord bed. The eight-bar opening states the hook before the first verse; the four-bar build pulls back before each drop. All patterns are original and use no samples.",
+        "peak2_chords": [2, 3, 1, 0],
+        "peak2_degrees": [0, 4, 2, 6, 4, 0],
+        "peak2_steps": [0, 2, 5, 8, 11, 14],
+        "peak1_chords": [2, 0, 1, 3], "peak1_degrees": [0, 2, 4, 6, 4, 2],
+        "peak1_steps": [0, 2, 5, 8, 10, 14],
         "reply_degrees": [4, 2, 0, 5, 3, 1, 4, 2], "reply_octave": 1,
-        "sound": {"bass_model": "VA+Filter", "bass_cutoff": 1100, "bass_decay": .3,
-                  "chord_model": "VA Pair", "arp": False, "bass_timbre": .62, "lead_brightness": .68,
-                  "echo_mix": .24, "hall": .57, "hall_size": .72,
-                  "fx_color": "crush", "lead_fx": "echo"},
+        "sound": {"bass_model": "Acid Bass Square", "bass_cutoff": 650, "bass_decay": 920,
+                  "chord_model": "Six-Op E.PIANO 1", "arp": False,
+                  "bass_timbre": .46, "lead_brightness": .48,
+                  "echo_mix": 0, "hall": .42, "hall_size": .55, "hall_mix": .05,
+                  "fx_color": "none", "lead_fx": "none"},
     },
     {
         "slug": "packet-bloom", "title": "Packet Bloom", "name": "PACKET BLOOM",
@@ -201,7 +206,7 @@ def _bar_chord_tones(song: dict, bar: int, scene: int) -> list[int]:
     intervals = chord_intervals(song, label)
     if scene == 6 and len(intervals) >= 4:
         intervals = intervals[1:] + (intervals[0] + 12,)
-    octave = 0 if song["style"] == "chill" else 12
+    octave = 0 if song["style"] in ("chill", "future") else 12
     return [root + octave + interval for interval in intervals]
 
 
@@ -276,9 +281,14 @@ def drum_bar(style: str, role: str, bar: int, scene: int) -> tuple[list[str], li
         snare_steps = [4, 12] if role in ("peak", "verse") else [12]
         hat_steps = [2, 6, 10, 14] if role != "edge" else [6, 14]
     elif style == "future":
-        kick_steps = [0, 6, 10] if role in ("peak", "build") else [0, 8]
+        # Half-time foundation with a different syncopated pickup each bar.
+        # The kick remains low and centered; snare and hats make the motion.
+        kick_steps = ([0, 7, 10] if bar % 4 == 1 else
+                      [0, 6, 10] if bar % 4 == 2 else
+                      [0, 10] if bar % 4 == 3 else [0, 8]) if role in ("peak", "build") else [0, 8]
         snare_steps = [8] if role != "edge" else [12]
-        hat_steps = list(range(0, 16, 2)) if role == "peak" else [2, 6, 10, 14]
+        hat_steps = ([2, 6, 10, 14, 15] if role == "peak" else
+                     [2, 6, 10] if role == "build" else [2, 10])
     elif style == "vapor":
         kick_steps = [0, 5, 10] if role in ("peak", "verse") else [0, 10]
         snare_steps = [4, 12] if role != "edge" else [12]
@@ -305,7 +315,7 @@ def drum_bar(style: str, role: str, bar: int, scene: int) -> tuple[list[str], li
         else:
             kick_steps = []
             snare_steps = [8] if bar == 2 else []
-            hat_steps = [2, 14] if bar in (1, 3) else []
+            hat_steps = [6, 14] if bar in (1, 3) else []
     if scene == 7 and style == "electro":
         kick_steps = ([0] if bar == 0 else [8] if bar == 1 else
                       [0] if bar == 2 else [8] if bar == 3 else [])
@@ -320,7 +330,14 @@ def drum_bar(style: str, role: str, bar: int, scene: int) -> tuple[list[str], li
         hat_steps = ([6, 14] if bar == 0 else [14] if bar == 1 else [])
     # Builds tighten the subdivision, then clear the final eighth before the
     # next scene arrives.
-    if role == "build" and style in ("future", "electro"):
+    if role == "build" and style == "future":
+        if bar >= 2:
+            hat_steps = [2, 6, 10, 14]
+        if bar == 3:
+            kick_steps = [0, 6]
+    elif role == "build" and style == "electro":
+        # Keep Neon Transit's established build while Event Horizon gets its
+        # own shorter final kick pattern.
         if bar >= 2:
             hat_steps = list(range(0, 16, 2))
         if bar == 3:
@@ -337,15 +354,21 @@ def drum_bar(style: str, role: str, bar: int, scene: int) -> tuple[list[str], li
     for i, step in enumerate(kick_steps):
         velocity = 112 if i == 0 else 94
         tick_nudge = 0
+        if style == "future":
+            velocity = 108 if i == 0 else (74, 82, 68)[(bar + i) % 3]
+            tick_nudge = 0 if step == 0 else (-1 if step % 2 else 1)
         if chill_groove and i:
             velocity = {7: 72, 8: 88, 11: 60}.get(step, 78)
             tick_nudge = -1 if step == 7 else 1 if step == 11 else 0
         kick.append(nudge_event(ev(step, 7, 36, velocity), tick_nudge))
     for step in snare_steps:
         velocity = 101 if step == 12 else 92
+        tick_nudge = 0
+        if style == "future":
+            velocity = (92, 98, 88, 103)[bar % 4]
+            tick_nudge = 2 if step == 8 and role in ("peak", "verse") else 0
         if chill_groove and step == 12:
             velocity = (96, 88, 100, 104)[bar % 4]
-        tick_nudge = 0
         if chill_groove:
             tick_nudge = (3 if step == 12 and bar % 4 == 3 else
                           2 if step == 12 else 1)
@@ -355,6 +378,9 @@ def drum_bar(style: str, role: str, bar: int, scene: int) -> tuple[list[str], li
     for i, step in enumerate(hat_steps):
         velocity = 72 if i % 2 == 0 else 53
         tick_nudge = 0
+        if style == "future":
+            velocity = (38, 25, 33, 22, 29)[(i + bar) % 5]
+            tick_nudge = (-1, 1, 0, -1, 1)[(i + bar) % 5]
         if chill_groove:
             velocity = (65, 43, 58, 39)[i % 4]
             # Tiny ±1 tick displacements add a humanized pocket without
@@ -384,9 +410,12 @@ def bass_bar(song: dict, role: str, bar: int, scene: int = 1) -> list[str]:
         if role in ("edge", "contrast"):
             steps = [(0, 0, 12, 83), (8, 7, 8, 65)]
     elif style == "future":
-        steps = [(0, 0, 72, 104), (3, 0, 5, 72), (8, 7, 72, 92), (11, third, 5, 77), (14, 7, 5, 72)]
-        if role in ("edge", "contrast"):
-            steps = [(0, 0, 12, 82), (10, third, 8, 60)]
+        steps = [(0, 0, 168, 92), (8, 7, 156, 77)]
+        if role == "build":
+            steps = [(0, 0, 192, 78), (12, third, 48, 61)]
+        elif role in ("edge", "contrast"):
+            steps = [(0, 0, 168 if role == "edge" else 120, 76),
+                     (10, 7, 48, 54)] if bar % 2 else [(0, 0, 192, 72)]
     elif style == "vapor":
         steps = [(0, 0, 72, 84), (5, 7, 5, 65), (9, third, 6, 72), (13, 7, 4, 59)]
         if role in ("edge", "contrast"):
@@ -405,7 +434,7 @@ def bass_bar(song: dict, role: str, bar: int, scene: int = 1) -> list[str]:
         if style == "chill":
             steps = [(0, 0, 96, 88), (5, 7, 6, 58), (10, third, 48, 66)]
         elif style == "future":
-            steps = [(0, 0, 84, 98), (4, 7, 6, 65), (9, third, 48, 70), (13, 7, 5, 64)]
+            steps = [(0, 0, 168, 94), (8, 7, 144, 73)]
         elif style == "vapor":
             steps = [(0, 0, 84, 82), (6, 7, 5, 63), (11, third, 48, 67)]
         else:
@@ -698,9 +727,80 @@ def afterglow_lead_bar(song: dict, role: str, bar: int, scene: int, track: int) 
             for step, degree, gate, velocity in phrase]
 
 
+def future_lead_bar(song: dict, role: str, bar: int, scene: int) -> list[str]:
+    """An original F-minor hook, voiced from each bar's written chord tones."""
+    root, label = chord_for(song, bar, scene)
+    tones = tuple(root + 12 + interval for interval in chord_intervals(song, label))
+    if role == "peak":
+        steps = (0, 2, 5, 8, 11, 14)
+        gates = (30, 24, 42, 24, 30, 48)
+        contour = (0, 1, 2, 3, 2, 1)
+        if scene == 6 or (scene == 3 and bar >= 4):
+            # A distinct second sentence: begin on the fifth, rise through the
+            # chord, then answer down rather than replaying the first contour.
+            contour = (2, 1, 0, 1, 3, 2)
+            steps = (0, 3, 5, 8, 11, 14)
+            if bar >= 4:
+                gates = (42, 24, 30, 24, 42, 60)
+        velocity = 76
+    elif role == "build":
+        contour = (0, 1, 2, 3)
+        steps = (0, 4, 8, 12)
+        gates = (36, 30, 24, 24)
+        velocity = 64
+        if bar >= 2:
+            contour, steps = (1, 2, 3, 2), (0, 3, 7, 11)
+    elif role == "contrast":
+        # Leave a quiet, two-note phrase in the break; no full-drop grid.
+        if bar not in (0, 2):
+            return []
+        contour = (2, 1) if bar == 0 else (0, 2)
+        steps, gates, velocity = (0, 10), (72, 60), 48
+    elif scene == 0:
+        # State the hook in the first bar, then progressively make room for
+        # the bass and chords across the eight-bar opening.
+        if bar == 0:
+            contour, steps, gates, velocity = (0, 1, 2, 3, 2, 1), (0, 2, 5, 8, 11, 14), (30, 24, 42, 24, 30, 48), 68
+        elif bar in (1, 3, 5, 7):
+            contour = (0, 2, 1) if bar < 4 else (2, 3, 2)
+            steps, gates, velocity = (0, 6, 12), (36, 30, 42), 54
+        else:
+            return []
+    elif scene == 7:
+        if bar == 0:
+            return [ev(0, 48, midi(2, 1, song["midi_root"]), 48)]
+        if bar == 1:
+            return [ev(8, 60, midi(1, 1, song["midi_root"]), 44)]
+        if bar == 2:
+            return [ev(0, 48, midi(2, 0, song["midi_root"]), 41),
+                    ev(8, 72, midi(4, 0, song["midi_root"]), 46)]
+        else:
+            return [ev(0, 384, song["midi_root"], 48)]
+    elif role == "edge":
+        if scene == 0:
+            return []
+        if bar in (0, 2):
+            contour, steps, gates, velocity = (2, 1), (0, 10), (72, 54), 47
+        else:
+            return []
+    else:  # verse
+        if scene == 5:
+            # B-side shifts the accents and gives the phrase a higher answer.
+            contour, steps, gates, velocity = (0, 2, 3, 1), (0, 3, 9, 13), (36, 24, 36, 30), 60
+        else:
+            contour, steps, gates, velocity = (0, 2, 1, 0), (0, 5, 8, 13), (48, 24, 36, 30), 59
+        if bar % 4 == 3:
+            contour, steps = (0, 1, 3, 2), (0, 4, 9, 14)
+    return [ev(step, gate, tones[index % len(tones)],
+               min(104, velocity + (3 if i in (0, len(steps) - 1) else 0)))
+            for i, (step, gate, index) in enumerate(zip(steps, gates, contour))]
+
+
 def lead_bar(song: dict, role: str, bar: int, scene: int, track: int) -> list[str]:
     root = song["midi_root"]
     motif = song["motif"]
+    if song["style"] == "future" and track == 3:
+        return future_lead_bar(song, role, bar, scene)
     # Track 7 carries a written call/answer contour. Targets are pulled to
     # current chord tones below, rather than transposing a source note by a
     # chromatic perfect fifth.
@@ -900,6 +1000,23 @@ def lock_curve(song: dict, scene_index: int, parameter: str, bar: int = 0) -> tu
         base = max(0, min(127, base))
         return base, [max(0, min(127, base + step))
                       for step in (-2, 0, 2, -1)]
+    if song["style"] == "future":
+        # Each lock addresses the parameter actually exposed by that routed
+        # engine: Acid Bass filter, electric-piano brightness, or Trio filter.
+        levels = {
+            "Cutoff": {"edge": 38, "verse": 47, "build": 63, "peak": 57, "contrast": 34},
+            "Brightness": {"edge": 49, "verse": 54, "build": 68, "peak": 61, "contrast": 42},
+        }
+        base = levels[parameter][role]
+        if role == "build":
+            base += (0, 9, 18, -16)[min(bar, 3)]
+        elif role == "peak" and scene_index == 6 and bar >= 4:
+            base += 7
+        elif role == "contrast":
+            base += (-5, -2, 0, 4)[bar % 4]
+        base = max(0, min(120, base))
+        return base, [max(0, min(127, base + step))
+                      for step in (-4, 0, 5, -2)]
     bases = {"edge": 34, "verse": 48, "build": 73, "peak": 91, "contrast": 58}
     offsets = {"Timbre": 4 if song["style"] in ("future", "electro") else -3,
                "Brightness": 8 if song["style"] in ("future", "electro") else -7}
@@ -937,18 +1054,29 @@ def arrangement(song: dict) -> list[str]:
         lines.append(f"tk {track} {active} 0")
     bass_base = round(song["sound"]["bass_timbre"] * 127)
     lead_base = round(song["sound"]["lead_brightness"] * 127)
-    lines.extend([f"au 1 0 {bass_base} synth:Timbre",
-                  f"au 3 0 {lead_base} synth:Brightness"])
+    if song["style"] == "future":
+        lines.extend(["au 1 0 47 synth:Cutoff",
+                      "au 2 0 61 synth:Brightness",
+                      "au 3 0 57 synth:Cutoff"])
+    else:
+        lines.extend([f"au 1 0 {bass_base} synth:Timbre",
+                      f"au 3 0 {lead_base} synth:Brightness"])
     if song["style"] == "chill":
         lines.append(f"au 2 0 {round(.30 * 127)} synth:Timbre")
     # Three fixed drum roles, four pitched roles and one upper response all
     # route through the project's four sound slots.
-    for track, slot in [(0, 0), (1, 1), (2, 2), (3, 3), (4, 0), (5, 2), (6, 0), (7, 3)]:
+    if song["style"] == "future":
+        routes = [(0, 0), (1, 3), (2, 1), (3, 2),
+                  (4, 0), (5, 1), (6, 0), (7, 2)]
+    else:
+        routes = [(0, 0), (1, 1), (2, 2), (3, 3),
+                  (4, 0), (5, 2), (6, 0), (7, 3)]
+    for track, slot in routes:
         lines.append(f"rt {track} 1 {slot}")
     for scene_index, (scene_name, bars) in enumerate(song["scenes"]):
         role = scene_role(scene_index, song["scenes"])
         steps = bars * 16
-        preserve_anchor = song["style"] == "chill"
+        preserve_anchor = song["style"] in ("chill", "future")
         all_events: dict[int, list[str]] = {t: [] for t in range(8)}
         for bar in range(bars):
             kicks, hats, perc = drum_bar(song["style"], role, bar, scene_index)
@@ -1008,9 +1136,13 @@ def arrangement(song: dict) -> list[str]:
             events = ";".join(sorted(all_events[track], key=lambda item: int(item.split(":", 1)[0])))
             lines.append(f"cl {track} {scene_index} {steps} 0 {events}")
             lines.append(f"cp {track} {scene_index} 1 1 0 0")
-            lock_tracks = (1, 2, 3) if song["style"] == "chill" else (1, 3)
+            lock_tracks = ((1, 2, 3) if song["style"] in ("chill", "future")
+                           else (1, 3))
             if track in lock_tracks:
-                parameter = "Brightness" if track == 3 else "Timbre"
+                if song["style"] == "future":
+                    parameter = ("Cutoff" if track in (1, 3) else "Brightness")
+                else:
+                    parameter = "Brightness" if track == 3 else "Timbre"
                 locks = ";".join(
                     f"0:{bar_index * 16 + step}:{value}"
                     for bar_index in range(bars)
@@ -1033,18 +1165,51 @@ def build(song: dict) -> dict:
     doc["session"]["current"] = 2
     doc["session"]["key"] = {"root": song["root"], "scale": "minor"}
     sounds = doc["sounds"]
-    sounds[0]["params"]["Kit"] = "Punch"
-    sounds[0]["params"]["Accent"] = .56 if song["style"] == "vapor" else .68
-    sounds[0]["params"]["Kit Decay"] = .42
-    sounds[1]["params"]["Model"] = song["sound"]["bass_model"]
-    sounds[1]["params"]["Timbre"] = song["sound"]["bass_timbre"]
-    sounds[1]["params"]["Decay"] = song["sound"]["bass_decay"]
-    sounds[1]["inserts"][0]["params"]["Cutoff"] = song["sound"]["bass_cutoff"]
-    if song["sound"]["fx_color"] == "crush":
-        sounds[1]["inserts"][1] = {"engine": "crush", "params": {
-            "Bits": 11, "Rate": .48, "Jitter": .06, "Mix": .22,
-            "Tone": .72, "Level": 1,
-        }}
+    sounds[0]["params"]["Kit"] = "Deep" if song["style"] == "future" else "Punch"
+    sounds[0]["params"]["Accent"] = .56 if song["style"] == "vapor" else .58 if song["style"] == "future" else .68
+    sounds[0]["params"]["Kit Decay"] = .36 if song["style"] == "future" else .42
+    if song["style"] == "future":
+        # Slot 2 is the chord bed, slot 3 the per-note Trio lead, and slot 4
+        # the monophonic square Acid bass. This is a genuinely different
+        # palette from the earlier Macro/VA/DX7 set.
+        sounds[0]["level"] = 56  # approximately 60% of the former level 90
+        sounds[1].update({
+            "engine": "sixop", "level": 68, "params": {
+                "Patch": "2 E.PIANO 1", "Brightness": .49,
+                "Envelope": .43, "Volume": .68, "Glide": 100,
+                "Voice Mode": "Poly", "Glide Mode": "Off", "Time Mode": "Time",
+            }, "inserts": [None, None], "midi_fx": [],
+        })
+        sounds[2].update({
+            "engine": "trio", "level": 70, "params": {
+                "Wave": "Saw x3", "Int 2": 0, "Int 3": 0, "Detune": 3,
+                "Mode": "Low-pass", "Cutoff": 620, "Resonance": 17,
+                "PW": 50, "Env Amt": 38, "Attack": 5, "Decay": 240,
+                "Sustain": 22, "Release": 110, "Volume": .62,
+            }, "inserts": [None, None], "midi_fx": [],
+        })
+        sounds[3].update({
+            "engine": "acid-bass", "level": 72, "params": {
+                "Cutoff": 690, "Resonance": 28, "Env Mod": 48,
+                "Decay": 880, "Accent": 39, "Wave": "Square", "Tune": 0,
+                "Volume": .68, "Drive": 4, "Drive Type": "Soft",
+                "Slide": 58, "Acc Decay": 500,
+            }, "inserts": [None, None], "midi_fx": [],
+        })
+        # The template cables target the old Macro/DX7 pair. Trio's own
+        # per-voice ADSR retriggers on each note and is the intended filter
+        # envelope, so discard those unrelated connections.
+        doc["mod"]["cables"] = []
+    else:
+        sounds[1]["params"]["Model"] = song["sound"]["bass_model"]
+        sounds[1]["params"]["Timbre"] = song["sound"]["bass_timbre"]
+        sounds[1]["params"]["Decay"] = song["sound"]["bass_decay"]
+        sounds[1]["inserts"][0]["params"]["Cutoff"] = song["sound"]["bass_cutoff"]
+        if song["sound"]["fx_color"] == "crush":
+            sounds[1]["inserts"][1] = {"engine": "crush", "params": {
+                "Bits": 11, "Rate": .48, "Jitter": .06, "Mix": .22,
+                "Tone": .72, "Level": 1,
+            }}
     if song["style"] == "chill":
         # The FM6 User 1 patch remains the foreground voice. A compact
         # Macro VA+Filter chord layer supplies short, warm attacks underneath
@@ -1066,7 +1231,7 @@ def build(song: dict) -> dict:
             if (cable["to"].get("unit") == "snd3"
                     and cable["to"].get("param") == "Timbre"):
                 cable["amount"] = 6
-    else:
+    elif song["style"] != "future":
         sounds[2]["params"]["Model"] = song["sound"]["chord_model"]
         sounds[2]["params"]["Timbre"] = .54
         sounds[2]["params"]["Decay"] = .52 if song["style"] in ("future", "electro") else .68
@@ -1075,15 +1240,16 @@ def build(song: dict) -> dict:
         # The Future bass chord slot stays un-arpeggiated so each full voicing
         # swells together; the stored Gate is inert while the effect is off.
         sounds[2]["midi_fx"][0]["params"]["Gate"] = 52
-    sounds[3]["params"]["Brightness"] = song["sound"]["lead_brightness"]
-    sounds[3]["params"]["Env Time"] = .46 if song["style"] == "chill" else .42
-    if song["sound"]["lead_fx"] == "warble":
-        sounds[3]["inserts"][0] = {"engine": "warble", "params": {
-            "Wow": song["warble"][0], "Flutter": song["warble"][1],
-            "Mix": song["warble"][2],
-        }}
-    else:
-        sounds[3]["inserts"][0]["params"]["Mix"] = song["sound"]["echo_mix"]
+    if song["style"] != "future":
+        sounds[3]["params"]["Brightness"] = song["sound"]["lead_brightness"]
+        sounds[3]["params"]["Env Time"] = .46 if song["style"] == "chill" else .42
+        if song["sound"]["lead_fx"] == "warble":
+            sounds[3]["inserts"][0] = {"engine": "warble", "params": {
+                "Wow": song["warble"][0], "Flutter": song["warble"][1],
+                "Mix": song["warble"][2],
+            }}
+        else:
+            sounds[3]["inserts"][0]["params"]["Mix"] = song["sound"]["echo_mix"]
     doc["master"][0]["params"]["Decay"] = song["sound"]["hall"]
     doc["master"][0]["params"]["Size"] = song["sound"]["hall_size"]
     doc["master"][0]["params"]["Mix"] = song["sound"].get("hall_mix", .2)
@@ -1098,6 +1264,16 @@ def build(song: dict) -> dict:
                         "Tone": .28, "Snap": .38, "Sweep": .48})
         pads[6].update({"Tune": 2, "Decay": .32, "Level": .59,
                         "Tone": .34, "Snap": .35, "Sweep": .48})
+    elif song["style"] == "future":
+        # Drum one-shots ignore MIDI note-off: shorten their pad tails and
+        # lower the hats directly rather than relying on gate length.
+        pads = sounds[0]["pads"]
+        pads[0].update({"Tune": -2, "Decay": .32, "Level": .84,
+                        "Tone": .38, "Snap": .55, "Sweep": .52})
+        pads[2].update({"Tune": -1, "Decay": .40, "Level": .62,
+                        "Tone": .30, "Snap": .42, "Sweep": .45})
+        pads[6].update({"Tune": -3, "Decay": .22, "Level": .25,
+                        "Tone": .27, "Snap": .32, "Sweep": .40})
     return doc
 
 
@@ -1119,16 +1295,30 @@ def outputs() -> dict[Path, bytes]:
 
 def check(files: dict[Path, bytes]) -> list[str]:
     errors = []
-    # Keep sparse future-bass edge bars in the same chord quality as the
-    # main pattern. Fm9 must use Ab, not the natural A from a fixed +4.
+    # Keep the future-bass tonic/fifth edge figure aligned with its new
+    # monophonic Acid Bass role.
     future = next(song for song in SONGS if song["style"] == "future")
     future_edge = bass_bar(future, "edge", 0, 0)
-    if future_edge != [ev(0, 12, future["chords"][0][0] - 12, 82),
-                       ev(10, 8, future["chords"][0][0] - 9, 60)]:
-        errors.append("future-bass edge third does not match its minor chord quality")
+    if future_edge != [ev(0, 192, future["chords"][0][0] - 12, 72)]:
+        errors.append("Event Horizon opening bass must hold its square-wave tonic")
     future_doc = build(future)
-    if future_doc["sounds"][2]["midi_fx"][0]["on"]:
-        errors.append("future-bass chord slot must keep its arp off for simultaneous swells")
+    expected_event_engines = ["drums", "sixop", "trio", "acid-bass"]
+    if [sound["engine"] for sound in future_doc["sounds"]] != expected_event_engines:
+        errors.append("Event Horizon must use the distinct Drum/SixOp/Trio/Acid palette")
+    if future_doc["sounds"][0]["level"] != 56:
+        errors.append("Event Horizon drum slot must be reduced to about sixty percent")
+    if (future_doc["sounds"][1]["params"].get("Patch") != "2 E.PIANO 1"
+            or future_doc["sounds"][2]["params"].get("Wave") != "Saw x3"
+            or future_doc["sounds"][2]["params"].get("Env Amt", 0) <= 0
+            or future_doc["sounds"][3]["params"].get("Wave") != "Square"):
+        errors.append("Event Horizon piano, per-note Trio filter and Square Acid roles are incomplete")
+    if future_doc["mod"]["cables"]:
+        errors.append("Event Horizon must not retain modulation cables for removed template engines")
+    if future_doc["master"][0]["params"].get("Mix") != .05:
+        errors.append("Event Horizon must retain the dry Hall mix")
+    if any(future_doc["sounds"][0]["pads"][6].get(key) != value
+           for key, value in {"Level": .25, "Decay": .22}.items()):
+        errors.append("Event Horizon closed hats must be quieter and shorter than the template")
     afterglow = next(song for song in SONGS if song["style"] == "chill")
     afterglow_doc = build(afterglow)
     lead = afterglow_doc["sounds"][3]
@@ -1296,12 +1486,14 @@ def check(files: dict[Path, bytes]) -> list[str]:
                         errors.append(f"{song['title']}: peak {scene} loses every common chord tone at bar {bar}")
         if song["style"] != "chill":
             verse_slots = song["motif"][1:5:2]
+        if song["style"] in ("vapor", "electro"):
+            verse_slots = song["motif"][1:5:2]
             expected_reverse = [
-                ev(verse_slots[i][0], verse_slots[-1 - i][3] * 2,
-                   midi(verse_slots[-1 - i][1], verse_slots[-1 - i][2] + 1,
-                        song["midi_root"]), 59)
-                for i in range(len(verse_slots))
-            ]
+                    ev(verse_slots[i][0], verse_slots[-1 - i][3] * 2,
+                       midi(verse_slots[-1 - i][1], verse_slots[-1 - i][2] + 1,
+                            song["midi_root"]), 59)
+                    for i in range(len(verse_slots))
+                ]
             if lead_bar(song, "verse", 0, 5, 3) != expected_reverse:
                 errors.append(f"{song['title']}: second verse does not remap reversed payload to ascending onsets")
             later_peak = [tuple(map(int, event.split(":")))

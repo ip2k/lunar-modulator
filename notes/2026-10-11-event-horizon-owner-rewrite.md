@@ -1,7 +1,7 @@
 # Event Horizon owner-directed rewrite
 
-Status: composition in progress; this note records the owner's direct listening
-feedback and implementation constraints before changing the generated project.
+Status: rewritten source and generated state are checkpoint-ready for review;
+runtime and owner-listening acceptance have not been run for this revision.
 
 ## Owner direction
 
@@ -39,6 +39,33 @@ recordings, lyrics, MIDI, or presets.
   part of a shareable SDK-linked binary.
 - Hall and per-sound sends will be reduced for clarity; settings will be
   checked in the emitted `.lunar`, not inferred from generator intent.
+
+## Rewrite checkpoint
+
+The current generator keeps the original 144 BPM, 116-bar eight-scene chain
+and rewrites the arrangement, engine palette and emitted clips. It uses Deep
+drums, Six-Op E.PIANO 1 for the chord bed, Trio Saw x3 for the lead, and Acid
+Bass Square for the bass. The progression is Fm9–Dbmaj7–Abmaj7–Eb6. A new
+six-attack hook is stated in the opening and developed in the drops; the bass
+uses long held roots/fifths; the drums use a half-time backbeat, varied pickup
+kicks, quieter hats and restrained deterministic timing/velocity variation.
+The four-bar build and break thin the texture before the drop. Hall mix is
+0.05; echo and insert FX are disabled.
+
+The source description calls this an original arrangement informed by the
+owner-supplied tracks; it does not claim to reproduce them. The four URLs and
+artist/title metadata are recorded above. No source was listened to in this
+work session, so genre resemblance is unverified. The remaining three song
+files and their browser copies were SHA-identical before and after generation.
+The regenerated native and browser Event Horizon project files are byte-equal.
+
+Checks run: `python3 tools/demo_songs.py --check` (nine generated files,
+four project chains current), `python3 -m py_compile tools/demo_songs.py`,
+`git diff --check`, and standard-library canonical parse/serialize of the
+Event Horizon project. The configured system Python has neither `pytest` nor
+`jsonschema`, so `tests/test_state_schema.py` could not run here. This is not a
+substitute for the full project/schema tests, native or Wasm render, memory
+admission, browser Save/Open, or owner listening. No hardware was used.
 
 ## Source navigation and validation boundaries
 
