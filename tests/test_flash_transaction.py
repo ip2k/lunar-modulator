@@ -151,3 +151,20 @@ def test_exact_physical_scratch_plan_is_accepted(tmp_path):
     create_transaction(directory, baseline, baseline, target, identity,
                        ((SECTOR, SECTOR+SECTOR_BYTES),), SCOPE)
     assert checked_scratch_transaction(directory)[2] == baseline
+
+
+def test_new_backup_ancestors_are_synced_before_transaction(tmp_path, monkeypatch):
+    import fm1_flash_transaction as module
+    synced=[]
+    original=module.sync_directory
+    def sync(path):
+        synced.append(Path(path))
+        original(path)
+    monkeypatch.setattr(module,'sync_directory',sync)
+    before=b'\xff'*FLASH_SIZE
+    directory=tmp_path/'new-session'/'private'/'transaction'
+    create_transaction(directory,before,before,before,IDENTITY,((4096,8192),),'fixture')
+    for path in (tmp_path,directory.parent.parent,directory.parent,directory):
+        assert path in synced
+    assert all(path.stat().st_mode & 0o777 == 0o700
+               for path in (directory.parent.parent,directory.parent,directory))

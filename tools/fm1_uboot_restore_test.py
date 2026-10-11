@@ -15,7 +15,7 @@ from pathlib import Path
 import time
 
 from fm1_uboot_read import Reader, request, CHUNK, FLASH_SIZE, LOADER_SHA
-from fm1_flash_transaction import create_transaction, load_transaction, run_transaction
+from fm1_flash_transaction import create_transaction, load_transaction, run_transaction, mkdir_durable
 
 SECTOR = 0xD8000
 SECTOR_BYTES = 4096
@@ -57,8 +57,14 @@ class RestoreReader(Reader):
         if (address % CHUNK or size % CHUNK or size <= 0 or
                 not 0 <= address <= FLASH_SIZE-size):
             raise ValueError('Aligned bounded flash reads only')
-        return b''.join(self.cmd(0xFD05, address=a)
-                        for a in range(address, address+size, CHUNK))
+        chunks = []
+        last_alive = time.monotonic()
+        for a in range(address, address+size, CHUNK):
+            if time.monotonic() - last_alive >= 0.5:
+                self.online()
+                last_alive = time.monotonic()
+            chunks.append(self.cmd(0xFD05, address=a))
+        return b''.join(chunks)
 
     def erase(self, address):
         self.cmd(0xFB01, address=address)
@@ -131,7 +137,7 @@ def main():
         _, _, saved, _ = checked_scratch_transaction(args.transaction)
         if saved[:SECTOR+SECTOR_BYTES] != old[:SECTOR+SECTOR_BYTES]:
             raise SystemExit('Transaction differs from the checked owner backup')
-    args.out.mkdir(mode=0o700,parents=True,exist_ok=False)
+    mkdir_durable(args.out)
     with (args.out/'commands.jsonl').open('x') as fp:
         def log(event,**fields):
             fp.write(json.dumps({'time':time.time(),'event':event,**fields})+'\n'); fp.flush(); os.fsync(fp.fileno())

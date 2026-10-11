@@ -346,3 +346,58 @@ ROM-only probe is conditionally supported under fresh identity, same-port
 enumeration, exclusive device access and no retry. Neither a jump response nor
 a new UBOOT enumeration alone proves marker/P33 execution: ROM watchdog reset
 and retained marker are confounders. No new device traffic at this checkpoint.
+
+## Reviewed interruption campaign
+
+This section supersedes the earlier pending-campaign status. [verified: Hera]
+All 497 catalogued interruption/corruption cases passed with no failures;
+32 focused campaign tests also passed. Cases cover persisted erase/page intent,
+torn NOR mutations, lost acknowledgements, stale handles, disconnects,
+read corruption and damaged artifacts across installation and restoration.
+Each interrupted persisted image is checked before a fresh restore.
+The simulator models the protocol, NOR bytes and bootability oracle; it does
+not execute pi32v2 instructions or prove physical broken-app recovery.
+
+The exact aggregate receipt SHA-256 is
+`dfe5962baa811d7034e8c47b304cc393e595f8f7a754b91479498b80fcf5e0d0`.
+Private model receipts and source pins are retained in ignored
+`build/recovery-campaign-evidence/`, copied from Hera's
+`/tmp/lunar-recovery-campaign-20261011-reviewed/`; all five copied files
+matched the remote hashes. Core/read/restore/transport review corrections
+(durable ancestor creation, periodic loader keepalive and a meaningful
+changed-sector negative test) have a separate 41-test Hera pass.
+
+A single exact RAM-only probe subsequently ran; its observations and limits
+are in [the bench result](2026-10-11-fm1-ram-probe.md). The current unit is in
+UBOOT and no further device commands are planned before owner cold-cycle
+acceptance. This is not a completed installable diagnostic or full restore.
+
+## Full Python suite in sixteen Hera containers
+
+[verified: collection and JUnit receipts] A frozen tracked-source snapshot
+including the reviewed transaction fixes collected 5,443 unique nodes in
+124 modules. Whole modules were assigned to 16 chunks of 340 or 341 tests,
+with separate source copies and four CPU/four GiB limits per container.
+Aggregating JUnit class/function/parameter identities proves every collected
+node ran exactly once: 5,402 passed, 37 skipped, four failures, zero errors.
+The four failures are committed-SVG freshness comparisons for arpeggiator,
+effect-chain, modulation and per-voice, differing by 0.01 coordinates.
+They remain under investigation; the complete suite is not green.
+
+Ignored `build/recovery-python-shards/` retains collection, plan, runner,
+all sixteen logs/JUnit/exit receipts and `aggregate.json`. Plan SHA-256:
+`5bead882f5df462fcb7f2abf8cb23858456c578f93217776759ad362f96ec545`.
+Hera source snapshot: `/home/claude/mvave-fm1/recovery-full-20261011/src`;
+evidence: `/home/claude/mvave-fm1/recovery-shards-20261011/evidence`.
+The reused dependency image is
+`sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d`.
+An initial single-container run was deliberately replaced by these chunks;
+it is not counted as a completed test result. Later profile changes have
+separate focused evidence: 77 passed, three optional private-input skips.
+
+Latest verified pushed checkpoint before this continuation is
+`62ef114d1b1b261d2f39e64a0a8847fa51b07869` on
+`feature/2026-10-11@installable-firmware`. Root owns integration and backup.
+Next: resolve SVG determinism, independently review profile selection, validate
+FM-1_092 raw NOR mappings offline, and resolve the actual SPL handoff contracts
+before wiring a visible stock-preserving diagnostic candidate.

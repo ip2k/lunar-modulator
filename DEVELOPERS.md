@@ -2119,7 +2119,8 @@ document. By topic:
   [docs/03](docs/03-update-protocol.md) update protocol.
 - **Safety and recovery:** [docs/07](docs/07-recovery-and-risk.md) rules and
   risks, [docs/09](docs/09-first-session-checklist.md) the first bench
-  session, [docs/10](docs/10-usb-key-dongle.md) the `USB_KEY` dongle.
+  session, [docs/10](docs/10-usb-key-dongle.md) the `USB_KEY` dongle,
+  [docs/17](docs/17-recovery.md) interruption handling and recovery procedures.
 - **What the firmware can be:** [docs/05](docs/05-open-source-feasibility.md)
   how open, [docs/06](docs/06-movy-and-schwung.md) Movy and Schwung,
   [docs/11](docs/11-plugin-platform.md) the engine platform,

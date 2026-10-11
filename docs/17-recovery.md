@@ -30,6 +30,15 @@ away-from-bench restriction in the earlier runbook draft; it does not authorize
 an arbitrary physical write. Do not assume a software reboot or VBUS switch
 electrically resets this battery-powered device.
 
+[verified: 2026-10-11 single RAM-only probe] After fresh FM-1_092 identity and
+soft-key entry, two exact RAM uploads succeeded. One jump caused immediate
+USB disconnection and a new UBOOT enumeration on the same port. No flash
+command was sent or found in the capture. This does not establish P33 execution,
+application-origin reset, unchanged flash, or recovery from a damaged app.
+Linux sent ordinary storage probes during the observation. The unit remains
+in UBOOT awaiting a later owner cold power cycle; no second attempt is planned.
+See [the bounded result](../notes/2026-10-11-fm1-ram-probe.md).
+
 ## Triage hierarchy
 
 | Observed condition | Route | Limit |
@@ -43,14 +52,15 @@ electrically resets this battery-powered device.
 An interrupted stock update transfer is different from a bad installed app.
 Reports of transfer resumption while the updater loader remains available do
 not establish recovery of an app that cannot boot. See [docs/07](07-recovery-and-risk.md)
-and [docs/03](03-stock-update-protocol.md).
+and [docs/03](03-update-protocol.md).
 
 ## Fixed physical scratch-sector transaction
 
 The durable transaction engine (`tools/fm1_flash_transaction.py`) is
 transport-independent. It stores two identical full backups, a full target,
 an immutable plan, and an atomically replaced journal with its own SHA-256
-record checksum. It validates artifact hashes and exact unit/flash geometry,
+record checksum. New private directories and their parent entries are synced
+before mutation. It validates artifact hashes and exact unit/flash geometry,
 reads the whole actual flash before mutation, rejects changes outside the
 authorized ranges, records durable intent before each erase/program, verifies
 each sector, and verifies the complete final image. It does not trust a saved
@@ -161,6 +171,15 @@ not evidence that the physical USB_KEY dongle reaches ROM, that a damaged app
 can enter ROM, that the FM-1 executes the synthetic app image, or that any
 physical full-image write/recovery works. Wider app-sector write permissions
 and USB_KEY recovery are model assumptions only.
+
+[verified: Hera, 2026-10-11] The final reviewed source passed all **497**
+catalogued cases across four bounded containers, with zero failures and exact
+index coverage `0..496`. The focused campaign suite passed 32 tests. Each
+receipt explicitly reports `model_only=true` and `hardware_validated=false`.
+This tests deterministic torn-prefix writes and process termination; it does
+not reproduce every electrical NOR failure or an actual host filesystem power
+loss. Source and receipt hashes are in
+[the continuation note](../notes/2026-10-11-installable-firmware.md#reviewed-interruption-campaign).
 
 ## Future installable image and deferred work
 

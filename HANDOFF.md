@@ -6,7 +6,7 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 
 Written 2026-09-06 at the end of the research session that created this
 repository, so a fresh Claude project (or a human) can continue without the
-original conversation; last updated 2026-10-10. Read this first, then
+original conversation; last updated 2026-10-11. Read this first, then
 `DEVELOPERS.md` (the README is the product page), then `docs/`.
 
 ## Installable firmware image resumed — 2026-10-11
@@ -18,40 +18,55 @@ component checkpoint as completion. Active branch:
 `/Users/likwid/.codex/worktrees/installable-firmware/mvave-fm1-firmware`,
 from main `b335dc2c450473dc375163aec7fa679e1b099cc3`.
 
-[reported: owner] Power-cycle returns to the normal screen. [verified: read-only
-inventory] Bench01 enumerates `4c4a:c755` with MIDI. The earlier UBOOT wait is
-closed. No new device protocol traffic or flash write has occurred.
+[reported: owner] The earlier power cycle returned to the normal screen.
+[verified: 2026-10-11 receipt] A subsequent single, reviewed RAM-only probe
+started from fresh FM-1_092 identity and same-port soft-key entry, uploaded
+exactly two fixed blocks and jumped once. USB disconnected immediately and
+the same port re-enumerated UBOOT. This does not independently prove marker
+or P33 execution. No flash command was sent; no flash reread was performed.
+Device commands stopped; owner cold-cycle/normal-operation acceptance remains
+pending. See [the bench result](notes/2026-10-11-fm1-ram-probe.md).
 
 **Build on Hera (`claude@192.168.1.48`); aeon is under owner maintenance.**
 Use local `/home/claude/mvave-fm1` assets; avoid NFS paths. Three parallel target
 profiles reproduce previous binaries and pass SDK-free audits. Prospective
 SPI and fixed recovery-request components compile separately with no named
 unresolved helpers, but remain excluded from boot images. Host fault checks
-exercise both components. No installable package or custom device execution.
+exercise both components. No installable diagnostic package or confirmed
+custom application execution.
 
 TIMER4 and recovery have 36 passing Hera host checks, including the stock
 40 MHz oscillator alternative. An offline 700-byte
 RAM recovery probe now has a concrete plan in `firmware/ram-recovery/README.md`;
-its separate exact-image transport is tested and has no CLI/device execution.
+its separate exact-image transport is tested and has no CLI.
 The owner deferred Cynthion and subsequently authorized leaving the device in
 UBOOT or hung until a later physical power cycle. The immediate power-cycle
 restriction below is historical and superseded. Independent review conditionally
 supports one exact 700-byte no-flash RAM probe with fresh unit/port binding,
 no retries, and a durable receipt. Post-jump enumeration alone cannot prove
-that P33 executed. Latest verified pushed checkpoint before recovery changes:
-`c45c3963c4ff9f21648373c9be1cc489c2ed9fab`.
+that P33 executed. Latest verified pushed recovery checkpoint:
+`62ef114d1b1b261d2f39e64a0a8847fa51b07869`.
 
 Recovery development now adds a persistent whole-flash protocol model, durable
 transaction artifacts and a resumable fixed scratch-sector restore mode. The
 physical adapter retains its exact existing sector/payload allowlist; wider
-application writes and USB_KEY recovery are model-only. Root transaction/read/
-restore checks pass 28 tests on Hera; model-focused checks pass 58. Independent
-review and the full interruption campaign remain pending; this checkpoint is
-WIP and must not be merged yet. See [the recovery runbook](docs/17-recovery.md)
-for procedures and physical acceptance limits.
+application writes and USB_KEY recovery are model-only. Reviewed transaction/
+read/restore/transport checks pass 41 tests on Hera; all 497 interruption and
+corruption cases pass, with 32 campaign checks. The full Python suite was split
+into 16 isolated Hera containers: all 5,443 unique collected nodes ran exactly
+once; 5,402 passed, 37 skipped and four failed committed manual-SVG freshness
+checks. The 0.01 coordinate discrepancies are under investigation; do not
+call that run green. Explicit diagnostic-profile propagation has a separate
+77-pass/3-optional-skip result and independent review is pending. This stream
+remains WIP; do not merge an unfinished or failing checkpoint. See
+[the recovery runbook](docs/17-recovery.md) for procedures and physical limits.
 
 
-Startup/core/exception ownership, calibrated timer/clock, watchdog, PA2 and
+Offline raw flash profile/target validation and diagnostic-profile review are
+active. Stock watchdog setup/feed instructions are documented in ignored
+`build/watchdog-contract-review.md`; this does not establish inherited SPL
+state or safe cross-core P33 ownership. Startup/core/exception ownership,
+calibrated timer/clock, watchdog, PA2 and
 recovery from the actual application context still need resolution. See
 [the session note](notes/2026-10-11-installable-firmware.md) for artifact hashes,
 checks, source-navigation limitations and exact next steps. Recovery code and

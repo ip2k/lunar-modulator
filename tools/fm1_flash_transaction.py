@@ -39,6 +39,16 @@ def save_new(path, data):
         os.fsync(fp.fileno())
 
 
+def mkdir_durable(directory):
+    """Create private ancestors and persist every new directory entry."""
+    directory = Path(directory)
+    if not directory.parent.exists():
+        mkdir_durable(directory.parent)
+    directory.mkdir(mode=0o700, exist_ok=False)
+    sync_directory(directory)
+    sync_directory(directory.parent)
+
+
 def save_journal(directory, journal):
     """Publish a complete synced record; an old record remains valid on crash."""
     journal['record_sha256'] = digest(encoded(
@@ -103,7 +113,7 @@ def create_transaction(directory, baseline_a, baseline_b, target, identity,
     plan = {'schema': 1, 'identity': identity, 'scope': scope,
             'writable_ranges': ranges, 'baseline_sha256': digest(baseline_a),
             'target_sha256': digest(target)}
-    directory.mkdir(mode=0o700, parents=True, exist_ok=False)
+    mkdir_durable(directory)
     for name, data in (('backupA.bin', baseline_a), ('backupB.bin', baseline_b),
                        ('target.bin', target), ('plan.json', encoded(plan))):
         save_new(directory / name, data)

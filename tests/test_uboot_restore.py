@@ -37,9 +37,14 @@ def test_nonblank_baseline_prevents_all_writes():
     r.cmd.assert_not_called()
 
 
-def test_changed_sector_prevents_all_writes():
+def test_changed_sector_prevents_all_writes(tmp_path):
     r=Mock(); r.sector.return_value=b'\x00'*SECTOR_BYTES
-    with pytest.raises(ValueError): exercise_sector(r,b'\xff'*FLASH_SIZE)
+    baseline=b'\xff'*FLASH_SIZE
+    transaction=tmp_path/'transaction'
+    with pytest.raises(ValueError, match='Scratch sector changed'):
+        exercise_sector(r,baseline,transaction,baseline)
+    r.sector.assert_called_once()
+    assert not transaction.exists()
     r.cmd.assert_not_called()
 
 
@@ -48,3 +53,23 @@ def test_missing_durable_backup_prevents_program_or_cleanup():
     with pytest.raises(ValueError, match='Durable transaction'):
         exercise_sector(r,b'\xff'*FLASH_SIZE)
     r.cmd.assert_not_called()
+
+
+def test_transaction_reads_keep_loader_alive(monkeypatch):
+    import fm1_uboot_restore_test as module
+    reader=module.RestoreReader.__new__(module.RestoreReader)
+    clock=[0.0]
+    events=[]
+    monkeypatch.setattr(module.time,'monotonic',lambda:clock[0])
+    def command(op, *, address=0):
+        events.append((op,address,clock[0]))
+        clock[0]+=0.3
+        return b'\x42'*256
+    reader.cmd=command
+    reader.online=lambda:events.append(('online',clock[0]))
+    assert reader.read(0,256*6)==b'\x42'*(256*6)
+    assert [e[0] for e in events]==[0xFD05,0xFD05,'online',0xFD05,
+                                   0xFD05,'online',0xFD05,0xFD05]
+    for address,size in ((1,256),(0,1),(0,0),(FLASH_SIZE,256)):
+        with pytest.raises(ValueError):
+            reader.read(address,size)
