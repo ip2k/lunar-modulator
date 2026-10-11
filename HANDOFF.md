@@ -29,6 +29,12 @@ SPI and fixed recovery-request components compile separately with no named
 unresolved helpers, but remain excluded from boot images. Host fault checks
 exercise both components. No installable package or custom device execution.
 
+TIMER4 and recovery have 32 passing Hera host checks. An offline 700-byte
+RAM recovery probe now has a concrete plan in `firmware/ram-recovery/README.md`;
+it has no upload entry point and has not executed. Next prepare/test its exact
+ROM-only allowlist, then record distinct USB reset/enumeration. Cynthion capture
+and VBUS control may help, but battery-powered CPU reset must be verified.
+
 Startup/core/exception ownership, calibrated timer/clock, watchdog, PA2 and
 recovery from the actual application context still need resolution. See
 [the session note](notes/2026-10-11-installable-firmware.md) for artifact hashes,

@@ -234,3 +234,25 @@ by `0x02000120` for flash call targets; RAM-relocated code needs its own mapping
 Do not infer startup state from a decoded address alone. Next: finish the
 clock/timer, watchdog, core/exception, PA2 and mailbox-protection contracts,
 then link an observable diagnostic with a reviewed recovery/packaging plan.
+
+## Bounded timing and RAM recovery proposal
+
+[verified: Hera] TIMER4's 18 host checks and recovery's 14 checks pass together
+(32 checks, warnings as errors, pytest cache disabled). Target panel-protocol
+link/audit still passes without activating either component. Timer object hash
+and source limits are in `firmware/timing/README.md`.
+
+[verified: Hera offline build] A 700-byte nonreturning RAM recovery probe links
+without named unresolved helpers. Vendor disassembly shows own stacks, bounded
+BSS, incoming r0 capture and core-zero refusal, with fixed native P33/marker
+accesses. Image hash, reserved ranges and the concrete experiment/recovery plan
+are in `firmware/ram-recovery/README.md`. It has not executed; the backup
+reader allowlist has not changed. Next implement/test the exact-image ROM-only
+upload guard and observe a distinct reset/re-enumeration. This does not close
+startup/clock/PA2 or produce an installable diagnostic image.
+
+The owner offered Cynthion instrumentation. Upstream Packetry 0.5.0 supports
+analyzer VBUS control; installed bench support and whether VBUS cycling causes
+an FM-1 reset remain unverified. Its battery prevents treating USB power-off as
+CPU power-off. Proposed wiring and sources are recorded with the RAM probe.
+All builds continue on Hera. No new device protocol traffic or power switching.

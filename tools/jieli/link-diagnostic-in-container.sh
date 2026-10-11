@@ -23,7 +23,7 @@ for source in "${SOURCES[@]}"; do
         "$SRC/firmware/$FOLDER/$source" -o "$OUT/$source.o"
 done
 # Compile prospective hardware components independently, never link/activate.
-for component in display/spi1_transport recovery/request; do
+for component in display/spi1_transport recovery/request timing/timer4; do
     name=${component##*/}
     "$CC" "${FLAGS[@]}" -DLUNAR_PI32V2 -c "$SRC/firmware/$component.c" -o "$OUT/$name.o"
     "$TC/pi32v2/bin/objdump" -d -mcpu=r3 -mattr=+fprev1 "$OUT/$name.o" > "$OUT/$name.disasm.txt"
