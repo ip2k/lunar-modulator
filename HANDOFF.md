@@ -9,6 +9,32 @@ repository, so a fresh Claude project (or a human) can continue without the
 original conversation; last updated 2026-10-10. Read this first, then
 `DEVELOPERS.md` (the README is the product page), then `docs/`.
 
+## Installable firmware image resumed — 2026-10-11
+
+The active owner goal is an installable Lunar firmware image, with the exact
+first acceptance milestone awaiting clarification (diagnostic boot/display
+with recovery versus playable controls/MIDI/audio). Do not treat a transport
+checkpoint as completion. Work continues on
+`feature/2026-10-11@installable-firmware`, managed worktree
+`/Users/likwid/.codex/worktrees/installable-firmware/mvave-fm1-firmware`,
+from main `b335dc2c450473dc375163aec7fa679e1b099cc3`.
+
+[verified] Bench SSH succeeds as `claude@bench01.local`; USB inventory still
+shows `4c4a:8057` UBOOT, device 18. No device protocol traffic or flash writes
+were sent this session. The prior callback-read session still needs the
+owner's power-cycle/normal-screen confirmation before more traffic; its full
+record remains in the live-bringup worktree at
+`notes/2026-10-10-fm1-live-bringup.md` (branch
+`chore/2026-10-10@fm1-live-bringup`). Do not run unreviewed transport paths.
+
+[verified: source/host simulation] A prospective bounded SPI1 transport now
+exists in `firmware/display/`, with independent compile output wired into the
+existing diagnostic build. It is not linked or activated. Full pixel stream,
+timeouts, stale completion and CS cleanup checks pass; target compile and
+hardware behavior remain pending. See
+[the session note](notes/2026-10-11-installable-firmware.md) for exact checks,
+external blockers, source navigation limits and next steps.
+
 ## Active work — 2026-10-10
 
 Live `origin/main` is `bdba4476570b0a77d13c76a38dfb3bcfd364277b`. The combined

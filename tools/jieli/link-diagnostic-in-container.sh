@@ -22,6 +22,11 @@ for source in "${SOURCES[@]}"; do
     "$CC" "${FLAGS[@]}" -I"$SRC/firmware/diagnostic" -c \
         "$SRC/firmware/$FOLDER/$source" -o "$OUT/$source.o"
 done
+# Compile the prospective SPI backend independently; deliberately do not link
+# or activate it in any diagnostic. Object/disassembly are offline evidence.
+"$CC" "${FLAGS[@]}" -c "$SRC/firmware/display/spi1_transport.c" -o "$OUT/spi1_transport.o"
+"$TC/pi32v2/bin/objdump" -d -mcpu=r3 -mattr=+fprev1 "$OUT/spi1_transport.o" \
+    > "$OUT/spi1_transport.disasm.txt"
 OBJECTS=("$OUT/startup.S.o" "$OUT/memory.c.o" "$OUT/runtime.c.o")
 if [[ $FOLDER == handover ]]; then
     "$CC" "${FLAGS[@]}" -I"$SRC/firmware/diagnostic" -c \
