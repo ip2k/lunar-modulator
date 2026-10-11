@@ -59,9 +59,11 @@ UBOOT or hung until a later physical power cycle. The immediate power-cycle
 restriction below is historical and superseded. Independent review conditionally
 supports one exact 700-byte no-flash RAM probe with fresh unit/port binding,
 no retries, and a durable receipt. Post-jump enumeration alone cannot prove
-that P33 executed. Latest verified pushed recovery checkpoint:
-`ed8dca4cb26c5e530a9f20793d9650bfe5b62b24`, including the actual reset bench
-receipt, independent review and native startup ownership contract.
+that P33 executed. Latest verified pushed source checkpoint:
+`38a7d53cd101c03bd5319c0f202b8f4dfc5bbc57`, including the actual reset bench
+receipt, native startup ownership contract, audited entry guard and offline
+display/recovery composition. The agreed installable-image milestone remains
+unfinished.
 
 Recovery development now adds a persistent whole-flash protocol model, durable
 transaction artifacts and a resumable fixed scratch-sector restore mode. The
@@ -69,15 +71,19 @@ physical adapter retains its exact existing sector/payload allowlist; wider
 application writes and USB_KEY recovery remain physically unproven. Reviewed transaction/
 read/restore/transport checks pass 41 tests on Hera; all 497 interruption and
 corruption cases pass, with 32 campaign checks. The full Python suite was split
-into 16 isolated Hera containers on exact source `b397ca90`: all 5,693 unique
-collected nodes ran exactly once; 5,655 passed, 38 skipped, zero failures/errors.
+into 16 isolated Hera containers on exact source `38a7d53c`: all 5,851 unique
+collected nodes across 131 modules ran exactly once; 5,813 passed, 36 skipped
+and two were expected failures, with zero failures/errors or unexpected passes.
+Root and independent receipt review verified the frozen source, every shard,
+resource limits and successful removal of all sixteen containers. The 38
+JUnit skipped/expected-failure nodes and reasons match the preceding run.
 The earlier four manual-SVG discrepancies were fixed by stable summation;
 standard full collection also exposed and resolved two peer-test imports.
 Explicit diagnostic-profile propagation and raw FM-1_092 target validation
 passed independent review. A separate injected-transport diagnostic adapter
 passed independent review and 115 combined checks (two optional skips); the
-fresh green full run includes that adapter and the reset guard. It has no
-physical opener or CLI.
+fresh green full run includes that adapter, reset guard, entry audit and
+display/recovery composition. The adapter has no physical opener or CLI.
 This stream remains WIP; do not merge an unfinished checkpoint. See
 [the recovery runbook](docs/17-recovery.md) for procedures and physical limits.
 

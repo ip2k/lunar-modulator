@@ -97,6 +97,54 @@ their essential implementation, findings and acceptance limits are preserved
 here so Git backup does not depend on ignored artifacts. All heavy execution
 used Hera, bounded containers and cached tools; aeon was untouched.
 
+## Combined sixteen-container regression
+
+[verified: frozen archive, Hera execution and root receipt review] Exact source
+`38a7d53cd101c03bd5319c0f202b8f4dfc5bbc57` collected 5,851 unique Python
+nodes across 131 modules. The sixteen concurrent chunks contained 365–367
+tests. JUnit aggregation reconciles every collected ID exactly once, with
+5,813 passes, 36 skips and two expected failures, with zero failures/errors or
+unexpected passes. JUnit groups the 38 skips/expected failures together; those
+nodes and reasons are identical to the preceding `b397ca90` run. Each container
+exited 0 without OOM; elapsed shard times were 30.778–128.526 seconds.
+
+All containers used the pinned Python3.11.2 image
+`sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d`,
+four CPUs, 4GiB, `docker-batch.slice`, no network and fresh isolated source
+copies. Root verified 152 evidence-manifest entries, matched all 1,598 remote
+source files to the frozen Git archive, and reproduced the exact aggregate.
+All sixteen container IDs were removed; the final live task-label query
+returned none. Independent read-only review recomputed the allocation,
+collection identities, archive/source hashes, per-shard XML/log/receipt agreement,
+all Docker resource/exit/removal records and the 152-entry manifest; no blocking
+finding remained. The later CI snapshot and root handoff are separate additions
+covered by a supplemental manifest, preserving the original Hera manifest.
+Final read-only documentation review independently parsed all sixteen XML
+files, confirmed the two sequencer-oracle undo expected failures and checked
+the source/profile pins and unfinished milestone boundaries; it found no
+blocking documentation issue. Root owns the final live CI snapshot.
+These are host/Linux regression results, separate from target code generation,
+cross-platform CI and physical execution.
+
+Local receipts are ignored `build/recovery-python-shards-entry-bringup/`;
+remote receipts are
+`/home/claude/mvave-fm1/recovery-python-shards-entry-bringup-20261011-38a7d53c/`.
+
+| Combined regression evidence | SHA-256 |
+| --- | --- |
+| Source archive | `4486853d7f06495d7480ac8c6bf62a48409546b4cd5352f5bba8270914f0e271` |
+| plan.json | `c87afed22a5d019bedc0e106c0bfbcdee68f174762ff215d639559da75c33db1` |
+| aggregate.json | `4ff89ed2b3d2d0606329a387321ddbae73cd44bf6cdf6e9ca3c725c35955bb20` |
+| runtime.json | `0eb40ea59fd28b4d74947d7a16aacbae0dbd12a36bd7d7d1a492ee4fc2f0b771` |
+| evidence-sha256.txt | `b27ce2dba1820a18fa65e6c31bd2c043b089b77f80e08c6c55331f7c74a41dfd` |
+| Receipt archive | `b06c597727dcbd8be26ad033ebe413d7fc8ab35ef7d502150b27f855eb1ccd08` |
+| build/shard-entry-bringup-independent-review.md | `9eed9029fa7d830330e3cf12c938e715e4d9057c349a954af38bd5f7e065c445` |
+| build/final-receipt-doc-review.md | `e1b4d504b779b5427d051ccec062974cd8aa3a31e4ce7792502d3a96e661beaf` |
+
+Exact-source [CI run38179739714](https://github.com/ip2k/lunar-modulator/actions/runs/38179739714)
+was dispatched and remains in progress at this receipt checkpoint. No PR or
+merge was performed; the agreed installable-image milestone remains unfinished.
+
 ## Remaining endpoint and source-navigation limits
 
 The [native startup contract](2026-10-11-native-startup-contract.md) still gates

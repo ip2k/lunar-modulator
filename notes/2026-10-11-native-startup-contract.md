@@ -107,13 +107,16 @@ do not establish executable visibility after copying.
 
 ## Concrete continuation
 
-1. Implement and audit a separate instruction-only entry prerequisite,
-   preserving r0 and checking cnum before stack/RAM use. Both accepted and
-   rejected paths terminate without board output. Keep hardware_ready false
-   and keep this profile out of package/raw-target staging.
-2. Exercise the actual display, timer and recovery components together on
-   Hera, including timeout and marker/P33 failures. A transmitted request
-   remains distinct from observed USB recovery.
+1. Completed offline in source `38a7d53c`: the separate instruction-only entry
+   prerequisite preserves r0 and checks cnum before stack/RAM use. Both paths
+   terminate without board output. Strict vendor-artifact auditing and final
+   independent review pass; hardware_ready remains false and package/raw-target
+   staging excludes this profile.
+2. Completed offline in the same source: the actual display, timer and recovery
+   components compose through a one-attempt controller. Hera integration checks
+   include timeout and marker/P33 failures; native relocatable linkage resolves
+   their dependencies. A transmitted request remains distinct from observed
+   USB recovery. See [the saved component evidence](2026-10-11-offline-entry-and-bringup.md).
 3. Obtain a primary AC791/pi32v2 entry/ROM specification or narrowly reviewed
    observation that establishes the missing ownership and dispatch premises.
    Stable register snapshots and source names cannot close those gates.
