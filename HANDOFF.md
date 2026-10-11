@@ -87,6 +87,17 @@ display/recovery composition. The adapter has no physical opener or CLI.
 This stream remains WIP; do not merge an unfinished checkpoint. See
 [the recovery runbook](docs/17-recovery.md) for procedures and physical limits.
 
+[verified: final live GitHub run and saved JSON] Exact-source
+[CI run 38179739714](https://github.com/ip2k/lunar-modulator/actions/runs/38179739714)
+completed successfully at 2026-10-11 22:37:17 UTC: all thirteen expected jobs
+passed on `38a7d53cd101c03bd5319c0f202b8f4dfc5bbc57`. Later documentation
+commits are not that CI head. The final snapshot and root handoff are in ignored
+`build/recovery-python-shards-entry-bringup/`, covered by the refreshed
+`root-supplemental-sha256.txt`; the original 152-entry Hera manifest stays pinned
+unchanged. This is a software checkpoint, with no new PR, merge, installable
+package or physical acceptance. Startup/core/exception premises remain the
+next dependency, as detailed in the native startup contract below.
+
 
 Offline raw flash profile/target validation now checks both complete backups,
 exact recorded geometry, actual app/ELF/audit inputs, protected bytes and derived

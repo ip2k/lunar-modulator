@@ -122,7 +122,7 @@ covered by a supplemental manifest, preserving the original Hera manifest.
 Final read-only documentation review independently parsed all sixteen XML
 files, confirmed the two sequencer-oracle undo expected failures and checked
 the source/profile pins and unfinished milestone boundaries; it found no
-blocking documentation issue. Root owns the final live CI snapshot.
+blocking documentation issue. The final live CI snapshot is recorded below.
 These are host/Linux regression results, separate from target code generation,
 cross-platform CI and physical execution.
 
@@ -140,10 +140,20 @@ remote receipts are
 | Receipt archive | `b06c597727dcbd8be26ad033ebe413d7fc8ab35ef7d502150b27f855eb1ccd08` |
 | build/shard-entry-bringup-independent-review.md | `9eed9029fa7d830330e3cf12c938e715e4d9057c349a954af38bd5f7e065c445` |
 | build/final-receipt-doc-review.md | `e1b4d504b779b5427d051ccec062974cd8aa3a31e4ce7792502d3a96e661beaf` |
+| Final ci-status.json | `c9c62f38ec3d31d8700d512574893c848d39aee6dd26519721bb06964eefdc29` |
 
-Exact-source [CI run38179739714](https://github.com/ip2k/lunar-modulator/actions/runs/38179739714)
-was dispatched and remains in progress at this receipt checkpoint. No PR or
-merge was performed; the agreed installable-image milestone remains unfinished.
+[verified: final live GitHub run and saved JSON] Exact-source
+[CI run 38179739714](https://github.com/ip2k/lunar-modulator/actions/runs/38179739714)
+completed successfully at 2026-10-11 22:37:17 UTC on
+`38a7d53cd101c03bd5319c0f202b8f4dfc5bbc57`. All thirteen expected jobs
+completed successfully: macOS/Ubuntu tests, 32-bit and ASan/UBSan engines,
+MIT/BSD and both GPL-switch module lists, Chromium/Firefox/WebKit editor tests,
+both AL-255 fork-branch checks, and RP2040 dongle firmware. The saved complete
+`ci-status.json` binds those conclusions to that source SHA. Later documentation
+commits are not this CI head. The final root handoff and CI snapshot are covered
+by the refreshed supplemental manifest; the original 152-entry Hera manifest
+and its pinned digest remain unchanged. No PR or merge was performed; the
+agreed installable-image milestone remains unfinished.
 
 ## Remaining endpoint and source-navigation limits
 
