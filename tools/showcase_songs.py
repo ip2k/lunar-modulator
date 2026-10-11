@@ -262,6 +262,137 @@ def build_packet():
     return doc
 
 
+
+def build_relay_or_event(style):
+    from tools import demo_songs
+    config=next(x for x in demo_songs.SONGS if x['style']==style)
+    # Retain the required engine/patch work, replace every legacy clip/chain.
+    doc=demo_songs.build(config)
+    arp=copy.deepcopy(state_canon.loads((ROOT/'engines/state/examples/first-orbit.lunar').read_text())['sounds'][2]['midi_fx'][0]);arp['on']=False
+    for snd in doc['sounds']:snd['midi_fx']=[copy.deepcopy(arp)]
+    doc['mod']['cables']=[]
+    future=style=='future'
+    if future:
+        form=[('Air',8),('Call',12),('Rise',4),('Impact',16),('Suspense',8),('OpenSky',16),('Land',4)]
+        routes=[0,3,1,2,0,1,0,2]
+        prog=[(41,48,53,56),(37,44,49,53),(44,51,56,60),(39,46,51,55)]
+        melody=[[(1,77,48),(5,80,60),(11,84,72)],[(0,82,96),(8,80,48),(13,77,48)],[(2,75,60),(7,77,96)],[(0,80,72),(6,77,72),(12,75,60)]]
+        doc['about']='Original future bass: seven asymmetric sections, per-note Trio Saw x3 filter-envelope hook, EP replies and long held Acid Square bass. Deep drums use half-time and displaced accents. Acid post-note release capability remains unchanged.'
+    else:
+        form=[('Porch',8),('Relay',16),('Drift',12),('Home',8)]
+        routes=[0,1,2,3,0,2,0,3]
+        prog=[(45,52,57,60),(41,48,53,57),(38,45,50,53),(40,47,56,59)]
+        melody=[[(1,76,96),(7,79,72),(12,76,60)],[(3,74,96),(10,72,96)],[(0,69,120),(8,72,48),(12,74,72)],[(2,76,144),(11,72,96)]]
+        doc['about']='Original chillwave: a foreground FM6 LUNAR LEAD melody with warm short chords, soft Punch drums and uneven delayed hats. Four long contrasting sections, major-color drift and a written minor-home ending. Owner listening pending.'
+        doc['sounds'][0]['level']=60
+        doc['master'][0]['params']['Mix']=.08
+    lines=['movy1',f"bpm {15000 if future else 10400}",'swing 50','link 0',f"key {5 if future else 9} 1",'sg '+' '.join(map(str,range(len(form)))),'se 2']
+    for scene,(name,_) in enumerate(form):lines.append(f'sn {scene} {name}')
+    all_events={}
+    for t,slot in enumerate(routes):
+        lines += [f'tk {t} 0 0',f'rt {t} 1 {slot}']
+        for scene,(_,bars) in enumerate(form):
+            events=[]
+            def add(bar,step,pitch,gate=24,vel=84,nudge=0):
+                tick=(bar*16+step)*24+nudge
+                assert 0<=tick and tick+gate<=bars*384
+                events.append((tick,gate,pitch,vel,bar*16+step))
+            for bar in range(bars):
+                p=prog[bar%4]
+                last=scene==len(form)-1 and bar==bars-1
+                if future:
+                    drop=scene in (3,5);empty=scene==4
+                    if t==0:
+                        steps=[0,6,14] if drop and bar%2==0 else [0,10] if drop else [0] if scene==1 else []
+                        if drop and bar%8==7:steps=[0]
+                        if scene==5 and bar>=8 and bar%4==2:steps=[2,12]
+                        if last:steps=[0]
+                        for st in steps:add(bar,st,36,18,99)
+                    elif t==1:
+                        if scene not in (0,2,4):
+                            if last:add(bar,0,41,264,94)
+                            else:
+                                add(bar,0,p[0],252,94)
+                                if bar%4!=3:add(bar,12,p[0],72,86)
+                    elif t==2:
+                        if scene in (0,1,4,6):
+                            for pitch in p[1:]:add(bar,2,pitch+12,132 if not empty else 240,68)
+                    elif t==3:
+                        phrase=melody[bar%4] if drop else melody[bar%4][:1] if scene==1 and bar%4>1 else []
+                        if scene==2:phrase=[(4,77,48),(10,80,72)] if bar<3 else [(0,84,72)]
+                        if scene==5 and bar>=8:
+                            phrase=[(st,note+12 if bar%4==0 else note,gate)for st,note,gate in phrase]
+                            if bar%4==1:phrase=[(3,82,72),(11,77,60)]
+                            if bar%4==2:phrase=[]  # EP/Trio answer owns this bar
+                        if drop and bar%8==7:phrase=[(2,80,72),(10,77,72)]
+                        if last:phrase=[(0,77,240)]
+                        for st,note,gate in phrase:add(bar,st,note,gate,104)
+                    elif t==4:
+                        if drop or scene==1:
+                            for st in ([3,7,11,15] if bar%2==0 else [5,13]):add(bar,st,42,12,38)
+                    elif t==5:
+                        if drop and bar%4==2:
+                            for pitch in p[1:]:add(bar,1,pitch,96,64)
+                        if empty and bar in (1,5):add(bar,9,72,96,61)
+                    elif t==6:
+                        if drop or scene==1:
+                            if not(scene==5 and bar>=8 and bar%4==2):add(bar,8,38,18,84)
+                            else:add(bar,10,38,18,78)
+                        if scene==2 and bar>=2:
+                            for st in (4,10,13):add(bar,st,38,18,56+bar*4)
+                        if last:add(bar,8,39,18,70)
+                    elif t==7:
+                        # Answer belongs after main releases and on a different
+                        # pitch, not duplicated retriggers on a second track.
+                        if scene==5 and bar%4==2:
+                            if bar>=8:
+                                for st,note,gate in [(1,72,72),(6,75,72),(12,77,72)]:add(bar,st,note,gate,82)
+                            else:add(bar,13,72,48,78)
+                else:
+                    main=scene in (1,3);drift=scene==2
+                    if drift:p=[(48,55,60,64),(43,50,55,59),(41,48,53,57),(38,45,50,53)][bar%4]
+                    if scene==3 and bar>=6:p=prog[0]
+                    if t==0:
+                        steps=[0,7,10] if main and bar%2==0 else [0,9] if main else [0] if scene==0 and bar>=4 else []
+                        if drift and bar>=8:steps=[0,10]
+                        if last:steps=[0]
+                        for st in steps:add(bar,st,36,18,86,nudge=0 if st==0 else 4)
+                    elif t==1:
+                        if scene!=0 or bar>=2:add(bar,0,p[0],240,80,nudge=2)
+                    elif t==2:
+                        if scene!=0 or bar>=2:
+                            for st in ([2,10] if main else [1]):
+                                for pitch in p[1:]:add(bar,st,pitch,72 if main else 156,65,nudge=3)
+                    elif t==3:
+                        phrase=melody[bar%4] if main else [(3,79,120),(11,76,96)] if drift and bar%4==1 else []
+                        if scene==0 and bar==7:phrase=[(10,72,96)]
+                        if scene==1 and bar in (7,11):phrase=[]
+                        if scene==3 and bar>=4:phrase=[(st,note-12,gate)for st,note,gate in phrase]
+                        if last:phrase=[(1,69,240)]
+                        for st,note,gate in phrase:add(bar,st,note,gate,96,nudge=-2)
+                    elif t==4:
+                        if main:
+                            for st,vel in ([(2,37),(6,44),(13,34)] if bar%2==0 else [(5,39),(11,33)]):add(bar,st,42,12,vel,nudge=6)
+                    elif t==5:
+                        if drift and bar%4==3:add(bar,9,64,120,57,nudge=5)
+                    elif t==6:
+                        if main:add(bar,4,38,18,73,nudge=4);add(bar,12,38,18,67,nudge=5)
+                        if drift and bar in (3,7,11):add(bar,12,37,18,54,nudge=4)
+                    elif t==7:
+                        if drift and bar%4==2:add(bar,6,71,132,79,nudge=2)
+            events.sort();assert len(events)<=512;all_events[t,scene]=events
+            lines += [f'cl {t} {scene} {bars*16} 0 '+';'.join(':'.join(map(str,e))for e in events),f'cp {t} {scene} 1 1 0 0']
+    for scene in range(len(form)):
+        for slot in range(1,4):
+            ends={}
+            for tick,gate,pitch,*_ in sorted(e for (t,s),ev in all_events.items() if s==scene and routes[t]==slot for e in ev):
+                assert tick>=ends.get(pitch,0),(style,scene,slot,pitch,tick)
+                ends[pitch]=tick+gate
+    doc['set']=lines
+    assert len(doc['about'])<=240
+    return doc
+
+
 def main():
     doc=build_satellite()
     content=state_canon.dumps(doc)
@@ -275,5 +406,10 @@ def main():
         (ROOT/relative).write_text(packet)
     (ROOT/'sim/web/test/packet-bloom-showcase.json').write_text(json.dumps([{'file':'../../../engines/state/examples/packet-bloom-showcase.lunar','title':'Packet Bloom','bpm':82,'bars':40,'scenes':5}],indent=2)+'\n')
     print('Packet Bloom: 40 bars, five distinct chained scenes, 82 BPM; source invariants passed')
+    for style,slug,bpm,bars,scenes,title in [('chill','afterglow-relay-showcase',104,44,4,'Afterglow Relay'),('future','event-horizon-showcase',150,68,7,'Event Horizon')]:
+        content=state_canon.dumps(build_relay_or_event(style))
+        for relative in [f'engines/state/examples/{slug}.lunar',f'sim/web/www/examples/{slug}.lunar']:(ROOT/relative).write_text(content)
+        (ROOT/f'sim/web/test/{slug}.json').write_text(json.dumps([{'file':f'../../../engines/state/examples/{slug}.lunar','title':title,'bpm':bpm,'bars':bars,'scenes':scenes}],indent=2)+'\n')
+        print(f'{title}: {bars} bars, {scenes} distinct scenes, {bpm} BPM; source invariants passed')
 
 if __name__=='__main__': main()

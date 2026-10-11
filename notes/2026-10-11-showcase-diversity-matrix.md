@@ -112,3 +112,7 @@ percussion contrast; exact returned-asset source recheck remains pending.
 Native/Wasm admission and full renders are blocked because bounded aeon SSH
 returned `Host is down`; browser integration and owner listening remain open.
 No merge, reference audition or hardware test has been performed.
+
+## Four new source assets checkpoint
+
+Afterglow now 104 BPM, Porch8 / Relay16 / Drift12 / Home8 (44 bars), FM6 LUNAR LEAD foreground, Macro VA+Filter chord/bass voices and restrained Punch. Event now150 BPM, Air8 / Call12 / Rise4 / Impact16 / Suspense8 / OpenSky16 / Land4 (68 bars), Deep/SixOp EP/TrioSawx3/AcidSquare. OpenSky final half withdraws the main hook for a three-note answer, shifts kick and backbeat, then returns to a composed F landing. Both preserve required patch work while replacing all prior clips/chain. Source guards pass; exact runtime and independent source review pending. Satellite/Packet native/Wasm pair now passed at f09319bf; stale earlier connectivity-blocked statuses are superseded. Owner listening remains pending for every new song.
