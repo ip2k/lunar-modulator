@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import copy
 import itertools
+import math
 import shutil
 import subprocess
 import sys
@@ -329,7 +330,7 @@ def simplify(points):
 def measure(d: Diagram) -> None:
     for n in d.nodes.values():
         text_w = max((ln.width for ln in n.lines), default=0.0)
-        text_h = sum(lh(ln.size) for ln in n.lines)
+        text_h = math.fsum(lh(ln.size) for ln in n.lines)
         if n.shape == "start":
             n.w = n.h = 12.0
             continue
@@ -367,18 +368,20 @@ class Grid:
     def gap_y(self, j: int) -> float:
         return self.pad_t[j] + self.band_y[j] + self.pad_b[j]
 
+    # The SVGs are checked byte-for-byte; float sum's accumulation changed in
+    # Python 3.12, so use fsum anywhere a float total feeds the layout.
     def col_x(self, c: int) -> float:
-        return sum(self.gap_x(i) for i in range(c + 1)) + sum(self.cw[:c])
+        return math.fsum(self.gap_x(i) for i in range(c + 1)) + math.fsum(self.cw[:c])
 
     def row_y(self, r: int) -> float:
-        return sum(self.gap_y(j) for j in range(r + 1)) + sum(self.rh[:r])
+        return math.fsum(self.gap_y(j) for j in range(r + 1)) + math.fsum(self.rh[:r])
 
     def band_xs(self, i: int) -> tuple[float, float]:
-        x0 = sum(self.gap_x(k) for k in range(i)) + sum(self.cw[:i]) + self.pad_l[i]
+        x0 = math.fsum(self.gap_x(k) for k in range(i)) + math.fsum(self.cw[:i]) + self.pad_l[i]
         return x0, x0 + self.band_x[i]
 
     def band_ys(self, j: int) -> tuple[float, float]:
-        y0 = sum(self.gap_y(k) for k in range(j)) + sum(self.rh[:j]) + self.pad_t[j]
+        y0 = math.fsum(self.gap_y(k) for k in range(j)) + math.fsum(self.rh[:j]) + self.pad_t[j]
         return y0, y0 + self.band_y[j]
 
 
@@ -458,7 +461,7 @@ def place(d: Diagram, grid: Grid) -> Placed:
         y1 = grid.row_y(g.r1) + grid.rh[g.r1] + GPAD + bottom
         rects[g.id] = Rect(x0, y0, x1 - x0, y1 - y0)
         words = max((ln.width for ln in g.label), default=0.0)
-        height = sum(lh(ln.size) for ln in g.label)
+        height = math.fsum(lh(ln.size) for ln in g.label)
         ty = y0 + 4.0 if g.title_at == "top" else y1 - 4.0 - height
         titles[g.id] = Rect(x0 + 8.0, ty, words, height)
     return Placed(rects, titles, grid)
@@ -592,9 +595,9 @@ class Router:
         pa, pb = side_point(ra, route.sa, ta), side_point(rb, route.sb, tb)
         track = None
         if route.shape == "HVH":
-            track = sum(self.p.grid.band_xs(route.gap)) / 2
+            track = math.fsum(self.p.grid.band_xs(route.gap)) / 2
         elif route.shape == "VHV":
-            track = sum(self.p.grid.band_ys(route.gap)) / 2
+            track = math.fsum(self.p.grid.band_ys(route.gap)) / 2
         return simplify(realise(route, pa, pb, track))
 
     def cost(self, edge: Edge, route: Route, pts) -> float | None:
@@ -610,7 +613,7 @@ class Router:
             for r in self.obstacles(edge):
                 if seg_hits_rect(a, b, r):
                     return None
-        length = sum(abs(a[0] - b[0]) + abs(a[1] - b[1]) for a, b in segments(pts))
+        length = math.fsum(abs(a[0] - b[0]) + abs(a[1] - b[1]) for a, b in segments(pts))
         bends = len(pts) - 2
         c = length + 28.0 * bends
         if route.gap is not None and len(pts) == 2:
@@ -854,7 +857,7 @@ class Placement:
 
 
 def label_size(lines) -> tuple[float, float]:
-    return max(ln.width for ln in lines), sum(lh(ln.size) for ln in lines)
+    return max(ln.width for ln in lines), math.fsum(lh(ln.size) for ln in lines)
 
 
 def label_spots(pts, w: float, h: float):
@@ -1218,7 +1221,7 @@ def render(lay: Layout) -> str:
         body.append(f"<rect data-kind='node' data-id='{n.id}'{grp} x='{_f(r.x)}' y='{_f(r.y)}' "
                     f"width='{_f(r.w)}' height='{_f(r.h)}' rx='{_f(rx)}' fill='{role.fill}' "
                     f"stroke='{role.stroke}' stroke-width='1.3'{dash}/>")
-        text_h = sum(lh(ln.size) for ln in n.lines)
+        text_h = math.fsum(lh(ln.size) for ln in n.lines)
         cells_h = (5.0 if n.lines else 0.0) + CELL_H if n.shape == "cells" else 0.0
         top = r.y + (r.h - text_h - cells_h) / 2
         for ln, base in zip(n.lines, block(n.lines, top)):
