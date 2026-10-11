@@ -364,3 +364,14 @@ still enumerates UBOOT; owner normal-screen confirmation and endpoint choice
 remain pending. See `notes/2026-10-11-installable-firmware.md` for artifact hashes,
 remaining platform/recovery contracts and remote build paths. Active branch:
 `feature/2026-10-11@installable-firmware`; no package/install/PR/main merge.
+
+
+### Current build host: Hera — 2026-10-11 owner instruction
+
+[reported: owner] FM-1 power-cycle returns to the normal screen. [verified]
+Bench01 sees `4c4a:c755` plus MIDI. Prior UBOOT power-cycle wait is closed.
+Use `claude@192.168.1.48` for builds; aeon is under owner maintenance. Hera
+has the hash-pinned toolchain and build image locally. Three parallel target
+builds pass audit and reproduce aeon's images/SPI object byte for byte. See
+`notes/2026-10-11-installable-firmware.md` for exact paths and receipts. Endpoint
+choice remains pending; no installable package or device write has occurred.

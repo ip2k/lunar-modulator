@@ -28,8 +28,8 @@ upload, erase or program was sent this session.
 
 [reported: prior live-bringup note] The prior eight-byte loader callback read
 completed and left the unit in UBOOT awaiting owner power-cycle/normal-screen
-confirmation. This confirmation remains requested before further device
-traffic. The source note is in the attached live-bringup checkout, branch
+confirmation. The owner subsequently confirmed normal boot after a power-cycle (see the
+Hera migration receipt below); this historical wait is closed. The source note is in the attached live-bringup checkout, branch
 `chore/2026-10-10@fm1-live-bringup`, at
 `notes/2026-10-10-fm1-live-bringup.md`. Its audited reader/wrapper tools and
 private result paths must be recovered from that stream before use, not
@@ -102,7 +102,8 @@ completeness unproven. Neither tool validates device ABI/MMIO.
 
 ## Next dependent work
 
-1. Receive the owner's endpoint clarification and normal-boot confirmation.
+1. Receive the owner's endpoint clarification. Normal-boot confirmation is
+   complete; use Hera for every further build while aeon is under maintenance.
 2. Target build access and initial object review are now complete (see resumed
    verification below); continue the independent platform-contract work.
 3. Establish independent clock/timer, watchdog, core/exception and PA2 contracts;
@@ -161,3 +162,50 @@ clarification remain pending. No device protocol command or flash mutation was
 sent. The installable-image objective remains unfinished; restored build access
 does not close startup, calibrated delay/clock, watchdog, core/exception, PA2,
 or recovery-route contracts.
+
+## Hera build migration and normal boot — owner steering, October 11
+
+[reported: owner] Power-cycle restored the normal FM-1 screen. [verified:
+read-only USB inventory] Bench01 now enumerates `4c4a:c755` FM-1 on bus 3,
+device 19, with `/dev/snd/midiC2D0`. The prior post-callback power-cycle gate
+is closed. No identity query, soft key, loader command or flash write was sent.
+
+Owner requires builds on Hera while aeon is under maintenance, and authorizes
+many parallel containers when useful. No builds were launched on aeon during
+this migration. A read-only asset inventory attempt on aeon timed out; two
+stalled Hera NFS-path inventory SSH sessions were cancelled without modifying
+NFS, Docker or other services. All new build assets use Hera's local `/home`.
+
+[verified] Downloaded the repository-pinned archive directly from the vendor:
+`https://jl-update.oss-cn-shenzhen.aliyuncs.com/jieli-linux-toolchains-20250805.1.tar.xz`.
+SHA-256 `f686586bcfb45e0f0bb27fd2b39c7a7f313cb4f0e88a66a14da621ffa8225958`
+matches `tools/jieli/compile-check.sh`. Despite the archive's filename, its
+internal directory is `jieli-linux-toolchains-20250324.1` and clang reports
+4.0.1. Never infer the compiler revision from the archive name. The vendor's
+latest short link currently redirects to 20260730.1; that archive was not used.
+
+[verified] Created the existing repository-defined Debian bookworm build image
+on Hera; its image ID is
+`sha256:0fcc80c729c795f96758e301a86df8c42b466cc0b40cb9dfbaf8db693589eefc`.
+Hera toolchain path is `/home/claude/mvave-fm1/sdk-v1213/toolchain/current`.
+Three independent containers (each 4 CPUs, 4 GiB, in `docker-batch.slice`)
+built inert, handover and panel-protocol variants concurrently. All links and
+SDK-free audits pass. Every `diagnostic.bin` matches the aeon SHA-256 receipt
+above; every SPI object matches
+`2ff0a511e6820a8391f7c97714bd8ba6ff4f6ce41fc65eac200be4c05f64ac1c`.
+The ignored comparison receipt is `build/hera-migration/aeon-hashes.json`.
+The current local `build/jieli-*` artifacts were retrieved from Hera.
+
+For each profile `inert`, `handover` or `panel-protocol`, use:
+
+```sh
+bash tools/jieli/link-diagnostic.sh claude@192.168.1.48 \
+  /home/claude/mvave-fm1/sdk-v1213/toolchain/current \
+  /home/claude/mvave-fm1/installable-PROFILE-20261011 PROFILE
+```
+
+Replace both `PROFILE` occurrences with that profile. These separate remote
+work directories avoid concurrent-output races. No installable package or
+hardware diagnostic execution is implied by the successful builds. The owner
+endpoint question is pending; all remaining startup/recovery contracts above
+still apply. Do not fall back to aeon builds while its maintenance is active.
