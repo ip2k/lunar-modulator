@@ -20,14 +20,15 @@ A/B retest remain pending. Earlier failed traces are preserved.
 
 Integration worktree:
 `/Users/likwid/.codex/worktrees/completed-work-integration/mvave-fm1-firmware`,
-branch `chore/2026-10-10@demo-song-acceptance`, pushed through `26a34b3c`.
+branch `chore/2026-10-10@demo-song-acceptance`, integrated through `c0ced9ca`.
 It contains the merged startup fix, final Round-5 song assets, README controls,
 complete-song acceptance harnesses and all five independent critic reports.
 
 Four eight-scene songs are frozen at
 `3e6eaa5fea7a38822b60a2a742af4b932856b8cc`: Afterglow Relay, Event Horizon,
 Packet Bloom and Neon Transit. Generator/state checks pass; exact final
-native/Wasm and browser preload/play/Save/fresh-Open acceptance is underway.
+native/Wasm and browser preload/play/Save/fresh-Open acceptance passed for all
+four exact Round-5 assets (receipt: `notes/2026-10-10-demo-song-round-5-runtime.md`).
 Do not promote earlier Round-1/2/3 runtime passes to final assets. Round 4
 has source/state checks only. Five critique rounds are complete: none of the
 32 scenes passed every category strictly above 8; 190/192 final scores are
@@ -38,9 +39,19 @@ acceptance is claimed. The critic analyzed actual decoded projects, every
 scene/occurrence, browser state and available render receipts.
 
 Writer worktree: `/Users/likwid/.codex/worktrees/demo-songs/mvave-fm1-firmware`,
-branch `feature/2026-10-10@demo-songs`. Final runtime acceptance has resumed
-there. Critic worktree: `/Users/likwid/.codex/worktrees/demo-music-critic/mvave-fm1-firmware`,
-branch `chore/2026-10-10@demo-music-critic`, final report checkpoint `0a2ccc17`.
+branch `feature/2026-10-10@demo-songs`, runtime receipt checkpoint `53cd518c`.
+The owner listened to Afterglow and requested a replacement chord instrument,
+less reverb and a less mechanical drum groove; Hall Mix 0.05 improved clarity
+in the owner's live audition [reported]. A focused revision is underway in
+`/Users/likwid/.codex/worktrees/afterglow-listening-revision/mvave-fm1-firmware`,
+branch `feature/2026-10-10@afterglow-listening-revision`. Preserve the other
+three songs; run fresh acceptance on the changed asset and reload the listening
+UI after source review. Baseline audition copy is ignored at
+`sim/web/www/scratch/afterglow-before.lunar` in the integration worktree.
+Critic worktree: `/Users/likwid/.codex/worktrees/demo-music-critic/mvave-fm1-firmware`,
+branch `chore/2026-10-10@demo-music-critic`, checkpoint `af90462a`.
+The focused source diagnosis is `notes/2026-10-10-afterglow-listening-followup-critic.md`;
+this owner-requested follow-up is not a sixth scored round.
 
 No full-DSP Lunar application has run on or been installed on the FM-1.
 Full-image restoration, broken-app recovery and hardware audio remain unverified.
