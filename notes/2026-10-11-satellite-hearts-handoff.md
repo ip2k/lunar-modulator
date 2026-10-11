@@ -68,3 +68,9 @@ Returned source recheck matched both canonical generators/assets/mirrors and
 closed the arrangement findings. Its Window Ab/E listening focal point was
 corrected in source to E/G/B over Em, then A/G/F over F; assets regenerated.
 Runtime/browser/owner listening are still pending.
+
+## Four-source checkpoint and runtime recovery
+
+New Afterglow and Event now emitted on distinct -showcase paths; original four legacy projects remain untouched. Tempos104/150 match frozen contrast. Four/scenes44bars and seven/scenes68bars respectively. Required FM6 lead and Trio per-note envelope/long Acid gates retained; no new Acid amplitude-release capability claimed. Event final chorus has a separate answer-only bar and displaced percussion. Samepitch same-slot overlap/end bounds/cap guards passed. Critic to review exact checkpoint; new runtime remains pending.
+
+Aeon recovered: full native/Wasm exact f093 Satellite/Packet harness passed; receipt notes/2026-10-11-replacement-pair-runtime-f09319bf/aeon-runtime.json. Parent integrated their catalog and optional harness count. Hera initial independent container failed output permission (UID1000 vs actual1001); retry with actual1001 running, parent independent Packet run already passed. No infrastructure changes. Next: critic new emitted assets, exact native/Wasm Afterglow/Event, browser all four through actual catalog, integrate reviewed changes via parent.
