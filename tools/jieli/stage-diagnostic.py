@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""MIT. Stage inert application bytes with guarded stock components, no package.
+"""MIT. Stage diagnostic bytes with guarded stock components, no package.
 
 This does not pack, upload or flash firmware. The diagnostic's handover and
 observation prerequisites are unfinished; a staged tree is not installable.
@@ -13,18 +13,19 @@ import tempfile
 from pathlib import Path
 
 from audit_link import Elf, audit
-from diagnostic_report import report
+from diagnostic_report import report, layout_profile, PROFILE_LAYOUTS
 from package_guard import check_package, SPL_PATH, IDENTICAL_TO_STOCK
 
 
-def stage(stock, elf_path, app_path, destination):
+def stage(stock, elf_path, app_path, destination, profile="inert"):
+    selected_layout = layout_profile(profile)
     stock, destination = Path(stock), Path(destination)
     if destination.exists():
         raise ValueError("destination already exists; choose a new staging directory")
     elf_bytes, app_bytes = Path(elf_path).read_bytes(), Path(app_path).read_bytes()
     link = audit([(str(elf_path), Elf(elf_bytes))], [(str(app_path), app_bytes)],
                  True, runtime="sdk-free")
-    layout = report(elf_bytes, app_bytes, link)
+    layout = report(elf_bytes, app_bytes, link, profile=selected_layout)
     stock_check = check_package(stock, stock)
     if not stock_check["passed"]:
         raise ValueError("stock reference failed package_guard; no staging performed")
@@ -42,7 +43,7 @@ def stage(stock, elf_path, app_path, destination):
         hashes = {relative: hashlib.sha256((staged / relative).read_bytes()).hexdigest()
                   for relative in (SPL_PATH,) + IDENTICAL_TO_STOCK + ("files/app.bin",)}
         manifest = dict(status="staged-only-not-installable", device_execution="unverified",
-                        package_created=False, layout=layout, sha256=hashes,
+                        package_created=False, profile=profile, layout=layout, sha256=hashes,
                         elf_sha256=hashlib.sha256(elf_bytes).hexdigest(),
                         link_audit=link, package_guard=guard,
                         next_gate="establish stock SPL handover and observable diagnostic before a device experiment")
@@ -58,9 +59,11 @@ def main():
     parser.add_argument("--elf", required=True)
     parser.add_argument("--app", required=True)
     parser.add_argument("--out", required=True, help="new local staging directory")
+    parser.add_argument("--profile", choices=PROFILE_LAYOUTS, default="inert",
+                        help="explicit diagnostic profile; panel-protocol uses handover SP/SSP guards")
     args = parser.parse_args()
     try:
-        result = stage(args.stock, args.elf, args.app, args.out)
+        result = stage(args.stock, args.elf, args.app, args.out, profile=args.profile)
     except (OSError, ValueError) as exc:
         print(f"stage-diagnostic: {exc}", file=sys.stderr)
         return 1

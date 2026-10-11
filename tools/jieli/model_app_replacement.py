@@ -12,7 +12,7 @@ import struct
 from pathlib import Path
 
 from audit_link import Elf, audit
-from diagnostic_report import report
+from diagnostic_report import report, layout_profile, PROFILE_LAYOUTS
 from inspect_fwsc import crc16, header_decode, inspect, sfc_decode
 from inspect_stock_flash import APP_BASE, inspect_nested, _inspect_app_replacement
 
@@ -156,12 +156,13 @@ def verify_replacement(raw, modeled, stock, app):
                             'reviewed device range/candidate and fresh backups; full-image/broken-app recovery unproven'])
 
 
-def model(raw, stock, elf, app):
+def model(raw, stock, elf, app, profile="inert"):
+    selected_layout = layout_profile(profile)
     link = audit([('diagnostic.elf', Elf(elf))], [('diagnostic.bin', app)], True, runtime='sdk-free')
-    layout = report(elf, app, link)
+    layout = report(elf, app, link, profile=selected_layout)
     modeled = _build(raw, stock, app)
     result = verify_replacement(raw, modeled, stock, app)
-    result.update(link_audit=link, diagnostic_layout=layout)
+    result.update(profile=profile, link_audit=link, diagnostic_layout=layout)
     return result
 
 
@@ -172,9 +173,12 @@ def main():
     parser.add_argument('--elf', type=Path, required=True)
     parser.add_argument('--app', type=Path, required=True)
     parser.add_argument('--json', type=Path, required=True, help='new report; refuses overwrite')
+    parser.add_argument('--profile', choices=PROFILE_LAYOUTS, default='inert',
+                        help='explicit diagnostic profile; panel-protocol uses handover SP/SSP guards')
     args = parser.parse_args()
     try:
-        result = model(args.fwsc.read_bytes(), args.stock, args.elf.read_bytes(), args.app.read_bytes())
+        result = model(args.fwsc.read_bytes(), args.stock, args.elf.read_bytes(), args.app.read_bytes(),
+                       profile=args.profile)
         with args.json.open('x') as output:
             json.dump(result, output, indent=2)
             output.write('\n')

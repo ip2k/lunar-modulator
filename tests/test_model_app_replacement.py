@@ -183,7 +183,7 @@ def test_cli_has_no_binary_output_and_refuses_report_overwrite(tmp_path, monkeyp
     args = ['model_app_replacement', str(tmp_path / 'fwsc'), '--stock', str(tmp_path),
             '--elf', str(tmp_path / 'elf'), '--app', str(tmp_path / 'app'),
             '--json', str(report_path)]
-    monkeypatch.setattr(model, 'model', lambda *args: {'identity': 'FM-1_015'})
+    monkeypatch.setattr(model, 'model', lambda *args, **kwargs: {'identity': 'FM-1_015'})
     monkeypatch.setattr(sys, 'argv', args)
     with pytest.raises(SystemExit) as error:
         model.main()

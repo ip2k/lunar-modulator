@@ -15,6 +15,14 @@ FLASH = 0x02000120
 RAM = 0x01C02000
 BUDGET = 16 * 1024
 SHT_PROGBITS = 1
+PROFILE_LAYOUTS = {"inert": "inert", "handover": "handover", "panel-protocol": "handover"}
+
+
+def layout_profile(profile):
+    """Select an existing layout; panel capture shares handover's SP/SSP contract."""
+    if profile not in PROFILE_LAYOUTS:
+        raise ValueError("unknown diagnostic profile")
+    return PROFILE_LAYOUTS[profile]
 
 
 def report(elf_bytes, app, audit, profile="inert"):

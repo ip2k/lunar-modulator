@@ -78,7 +78,12 @@ See [the linked result and remaining gates](../../notes/2026-10-09-linked-diagno
 
 The separate [handover preparation variant](../handover/README.md) reserves
 its own supervisor stack and captures six boot words in RAM. It requires an
-explicit build/report profile and remains outside this inert staging path.
+explicit build/report profile. Staging and the JSON-only app replacement model
+also accept `--profile handover` or `--profile panel-protocol`; both use the
+strict handover SP/SSP layout validator. The selected profile is recorded
+separately from that layout. Defaults remain inert, and panel-protocol records
+only a RAM transcript: neither choice activates native peripherals or creates
+an installable package.
 
 `tools/jieli/handover_layout.py --elf <linked ELF> --app <flat binary>
 --spl <decoded stock top/uboot.boot> --profile inert` compares the audited
