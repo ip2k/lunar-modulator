@@ -123,9 +123,20 @@ def test_zero_invalid_and_reentrant_requests_have_no_io(lib):
     assert not timer.trace
 
 
-@pytest.mark.parametrize('hz,limit', [(0, 4), (999999, 4), (32001000, 4),
+@pytest.mark.parametrize('hz,limit', [(0, 4), (999999, 4), (40001000, 4),
                                      (24000001, 4), (24000000, 0), (24000000, 65537)])
 def test_binding_rejects_unrepresentable_rates_and_unbounded_polling(lib, hz, limit):
     timer = Timer(lib)
     assert not lib.lunar_timer_bind(c.byref(timer.state), c.byref(timer.io), hz, limit)
     assert not timer.trace
+
+
+@pytest.mark.parametrize('hz', [1000000, 24000000, 32000000, 40000000])
+def test_verified_oscillator_rates_produce_complete_panel_sleep_out_wait(lib, hz):
+    timer = Timer(lib)
+    assert lib.lunar_timer_bind(c.byref(timer.state), c.byref(timer.io), hz, 4)
+    assert not timer.trace
+    assert timer.delay(120)
+    assert timer.periods == [hz // 1000] * 120
+    assert timer.polls == [4] * 120
+    assert not timer.con and not timer.state.failed

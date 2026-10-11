@@ -29,13 +29,18 @@ SPI and fixed recovery-request components compile separately with no named
 unresolved helpers, but remain excluded from boot images. Host fault checks
 exercise both components. No installable package or custom device execution.
 
-TIMER4 and recovery have 32 passing Hera host checks. An offline 700-byte
+TIMER4 and recovery have 36 passing Hera host checks, including the stock
+40 MHz oscillator alternative. An offline 700-byte
 RAM recovery probe now has a concrete plan in `firmware/ram-recovery/README.md`;
 its separate exact-image transport is tested and has no CLI/device execution.
-Next confirm capture wiring and manual power-cycle fallback, then record a
-distinct USB reset/enumeration. Last verified pushed component checkpoint:
-`2ce33e91a33873cc89c79b4d946387f0174084a4`. Cynthion capture
-and VBUS control may help, but battery-powered CPU reset must be verified.
+The owner is away from the desk and explicitly deferred Cynthion. Continue
+without it; do not execute the custom RAM probe or a flash experiment while
+manual power-cycle fallback is unavailable. The wiring/power limitations are
+saved in `firmware/ram-recovery/README.md`. Next supervised bench step is the
+exact-image recovery probe and distinct USB reset/enumeration, followed by
+normal boot. Latest prior verified pushed component checkpoint:
+`a70d539be027b48ca055ae90006068b488c7222c`.
+
 
 Startup/core/exception ownership, calibrated timer/clock, watchdog, PA2 and
 recovery from the actual application context still need resolution. See

@@ -21,7 +21,7 @@ int lunar_timer_bind(struct lunar_timer *s, const struct lunar_timer_io *io,
                      unsigned hz, unsigned limit)
 {
     if (!s || !io || !io->read || !io->write || !io->sync ||
-        hz < 1000000u || hz > 32000000u || hz % 1000u ||
+        hz < 1000000u || hz > 40000000u || hz % 1000u ||
         !limit || limit > 65536u) return 0;
     s->io.context = io->context;
     s->io.read = io->read;
@@ -35,7 +35,7 @@ int lunar_timer_bind(struct lunar_timer *s, const struct lunar_timer_io *io,
 int lunar_timer_delay(struct lunar_timer *s, unsigned ms)
 {
     unsigned i;
-    if (!s || !s->ticks_per_ms || s->ticks_per_ms > 32000u ||
+    if (!s || !s->ticks_per_ms || s->ticks_per_ms > 40000u ||
         !s->poll_limit || s->poll_limit > 65536u || !s->io.read ||
         !s->io.write || !s->io.sync || s->failed || s->active || ms > 1000u)
         return 0;

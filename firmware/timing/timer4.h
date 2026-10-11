@@ -14,7 +14,7 @@ struct lunar_timer {
 };
 /* Software only. Caller must establish OSC rate, exclusive TIMER4 ownership,
  * current-core/IRQ policy and a disabled timer. No guessed default clock.
- * Supported integral-kHz OSC rate 1..32 MHz. Short periods <=32,000 ticks. */
+ * Supported integral-kHz OSC rate 1..40 MHz. Short periods <=40,000 ticks. */
 int lunar_timer_bind(struct lunar_timer *, const struct lunar_timer_io *,
                      unsigned oscillator_hz, unsigned poll_limit);
 /* Finite one-shot millisecond periods; no IRQ enable/routing. Zero is a no-op.

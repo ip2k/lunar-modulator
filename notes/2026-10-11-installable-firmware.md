@@ -277,3 +277,46 @@ verification. No probe execution, soft key, power switching or flash mutation.
 Component checkpoint `2ce33e91a33873cc89c79b4d946387f0174084a4` was pushed
 and verified against the remote. Current goal remains the installable diagnostic
 image, with hardware startup and recovery acceptance still outstanding.
+
+## Owner away, Cynthion deferred; oscillator-bound correction
+
+[reported: owner] Continue without Cynthion for now; the owner is away from
+the desk. The proposed wiring and power-control limitations remain in
+`firmware/ram-recovery/README.md` for later. Do not execute the custom RAM probe
+or flash while manual power-cycle fallback is unavailable. No new USB protocol
+traffic, power switching or device writes occurred. Builds remain on Hera.
+Transport checkpoint `a70d539be027b48ca055ae90006068b488c7222c` was pushed and
+verified before this continuation.
+
+[verified: fresh Hera evidence] Stock V15 disassembly byte coverage is complete:
+581,564 of 581,564 bytes, 207,724 records, zero mismatch/overlap/uncovered bytes.
+There are 8,318 unknown-instruction records, including data decoded as code;
+byte correspondence is not semantic validity or proof of executing paths.
+Dump SHA-256 `59381ae18823d396fe7f033a589d5a9de7617be5fcbe7d3cc4b7831e232c3fd0`.
+Receipt: ignored `build/jieli-runtime-evidence/byte-coverage.json`, mirrored on
+Hera under `/home/claude/mvave-fm1/runtime-evidence/byte-coverage.json`.
+
+[verified: binary] At raw `0x1b6a`, `r13 = 0x10008 + 6552 = 0x119a0`;
+`0x1b70` loads that register, `0x1b8c` masks `0x0c000000`, and
+`0x1b94..0x1b9e` selects 40,000,000 when the field is 2, 24,000,000 otherwise.
+These are oscillator candidates in stock initialization, not measured rates
+or a complete inherited-clock contract. TIMER4 now accepts a caller-verified
+integral-kHz rate up to 40 MHz, keeping each period below 65,536 ticks. No
+clock probing/programming or default was added. The original 32 MHz bound
+would have rejected stock's 40 MHz alternative.
+
+[verified: Hera] 22 timer checks plus 14 recovery checks pass with warnings as
+errors and cache disabled, including a complete 120-period panel sleep-out
+wait at 1/24/32/40 MHz. Fresh panel-protocol target link/audit passes with zero
+failures/pending checks and unchanged binary SHA-256
+`ebbe370cf135d0e1dd2ad16a04b47cf67bcdfbfaa4c837b960d946a5fc86cbcb`.
+Separate timer object SHA-256
+`c7a5a9f58888cd01cd42ad498aee0d2169c0d3924fb2ba93f04f7dedc1d8099e`;
+vendor dump retains native accesses/barriers and no named unresolved helper.
+Neither timer nor recovery is activated by that diagnostic image, and the
+700-byte exact recovery probe is unchanged.
+
+Next: supervised RAM recovery experiment when power-cycle fallback is available;
+then establish actual SPL-to-application clock/core/exception/watchdog and
+PA2/power contracts before activating the display. The installable diagnostic
+milestone remains unfinished; this is an offline component/evidence checkpoint.

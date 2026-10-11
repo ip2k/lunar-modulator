@@ -67,3 +67,8 @@ to bench01. Its existing `/home/claude/cynthcap-test/cynthcap` can list it. This
 capture tool explicitly preserves power-control bits and cannot switch VBUS.
 Current Cynthion and FM-1 connections both appear on USB bus 003; check the
 new wiring against the different-hub requirement before capture.
+
+[reported: owner, 2026-10-11] Cynthion is deferred; continue development without
+it while the owner is away from the desk. Do not execute this probe until a
+manual power-cycle fallback is available. Cynthion wiring and USB power control
+are a later experiment, not prerequisites for the offline image work.
