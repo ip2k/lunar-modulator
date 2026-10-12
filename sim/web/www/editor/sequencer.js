@@ -155,7 +155,7 @@ export function makeSequencer(ctx) {
   const finishPointer = () => { clearTimeout(pointerRelease); pointerRelease = 0; pointerActive = false; if (resizePending || refreshPending) scheduleResize(); };
   const releasePointer = e => {
     if (!pointerActive) return;
-    if (!root.contains(e.target)) { finishPointer(); return; }
+    if (!(e.target instanceof Node) || !root.contains(e.target)) { finishPointer(); return; }
     // Firefox can paint between pointerup and click. Keep the target connected
     // until click dispatch; a drag/release without a click must also settle.
     pointerRelease = setTimeout(finishPointer, 250);

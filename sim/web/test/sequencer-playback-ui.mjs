@@ -63,6 +63,7 @@ try {
  check(await page.locator('[data-automation-playhead]').first().evaluate(e=>Math.abs(e.getBoundingClientRect().left-e.parentElement.getBoundingClientRect().left-(140+(e.parentElement.clientWidth-140)*12/Number(e.closest('.sq-automation-rows').style.getPropertyValue('--automation-steps'))))<1),'Automation playhead ignored absolute local step');
  await cell(2,9).click({position:{x:20,y:18}});await page.waitForFunction(()=>window.model().tracks[0].clips[0].locks.some(l=>l.lane===1&&l.step===8));
  let value=await page.evaluate(()=>window.model().tracks[0].clips[0].locks.find(l=>l.lane===1&&l.step===8).value);check(value>90&&value<=127,'Pointer lane height did not set native lock');
+ await page.waitForFunction(v=>document.querySelector('.sq').getAttribute('aria-busy')==='false'&&document.querySelector('[aria-label="Lane 2, step 9 automation"]')?.getAttribute('aria-description')===`lock ${v}`,value);
  await cell(2,9).press('ArrowDown');await page.waitForFunction(v=>window.model().tracks[0].clips[0].locks.find(l=>l.lane===1&&l.step===8).value===v,value-1);value--;
  check(await cell(2,9).evaluate(e=>e===document.activeElement),'Keyboard edit lost visual step focus');
  await cell(2,9).press('Shift+ArrowUp');await page.waitForFunction(v=>window.model().tracks[0].clips[0].locks.find(l=>l.lane===1&&l.step===8).value===v,Math.min(127,value+8));
