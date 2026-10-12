@@ -3,6 +3,7 @@
 import { parseSet, writeSet, validateSet, arrangementEntries } from './sequence-model.js';
 import { parseMidi, planMidiImport, applyMidiImport, checkMidiFiles, checkMidiParts } from './midi-import.js';
 import { toPos } from './model.js';
+import { clipPlayback, automationSteps } from './sequence-playback.js';
 
 const clone = (x) => structuredClone(x);
 const pitchName = (p) => `${['C','C♯','D','E♭','E','F','F♯','G','A♭','A','B♭','B'][p % 12]}${Math.floor(p / 12) - 1}`;
@@ -417,8 +418,9 @@ export function makeSequencer(ctx) {
         const cell = btn(c ? `${noteCount} ${noteCount === 1 ? 'note' : 'notes'} · ${barCount} ${barCount === 1 ? 'bar' : 'bars'}` : '＋ Empty clip', () => { state.song = i; selectClip(t, e.scene, true); }, {
           class: `sq-button sq-clip ${group} ${t === state.track && e.scene === state.scene ? 'is-selected' : ''}`,
           'aria-label': `Track ${t + 1}, ${sceneName(e.scene)}, ${c ? `${noteCount} ${noteCount === 1 ? 'note' : 'notes'}, ${barCount} ${barCount === 1 ? 'bar' : 'bars'}` : 'empty clip'}`, 'data-track': t, 'data-scene': e.scene,
+          'data-preview-track': t, 'data-preview-scene': e.scene, 'data-entry-start': e.songIndex ?? -1, 'data-entry-end': (e.songIndex ?? -1) + e.presses,
         });
-        if (c?.notes.length) cell.append(clipPreview(c));
+        if (c) cell.append(clipPreview(c));
         timeline.append(cell);
       });
     });
@@ -467,9 +469,11 @@ export function makeSequencer(ctx) {
         const editButton = btn('', () => selectClip(t, scene, true), {
           class: 'sq-button sq-scene-edit', 'aria-label': `Edit track ${t + 1} scene ${scene + 1}`,
           'aria-pressed': String(state.track === t && state.scene === scene),
+          'data-progress-track': t, 'data-progress-scene': scene,
         });
+        editButton.append(el('span', 'sq-clip-progress', { 'aria-hidden': 'true', hidden: true }));
         editButton.append(el('span', 'sq-scene-summary', { text: summary }));
-        if (c?.notes.length) editButton.append(clipPreview(c));
+        if (c) editButton.append(clipPreview(c));
         grid.append(el('div', `sq-matrix-cell ${group}`, { 'data-live-track': t, 'data-live-scene': scene }, [editButton,
           ctx.playClip ? btn(c ? '▶ Launch clip' : '■ Stop track', () => action(() => ctx.playClip(t, scene)), {
             'aria-label': `${c ? 'Launch clip' : 'Stop track'} ${t + 1} scene ${scene + 1}`,
@@ -494,6 +498,7 @@ export function makeSequencer(ctx) {
       if (x < 0 || x >= 160) continue;
       svg.append(svgNode('rect', { x, y: 27 - (n.pitch - lo) / (hi - lo) * 24, width: Math.min(160 - x, Math.max(2, n.gate / 24 / c.length * 160)), height: 3, opacity: .35 + n.vel / 127 * .65 }));
     }
+    svg.append(svgNode('line', { x1: 0, x2: 0, y1: 0, y2: 32, class: 'sq-preview-playhead', 'data-preview-playhead': true, visibility: 'hidden' }));
     return svg;
   }
   function sceneTools() {
@@ -684,25 +689,59 @@ export function makeSequencer(ctx) {
       points.append(el('label', 'sq-lock', {}, [el('span', '', { text: step + 1 }), input]));
     }
     return el('section', 'sq-section', {}, [el('h3', '', { text: 'Parameter locks' }), controls,
-      el('div', 'sq-scroll', { 'data-scroll': 'locks' }, [assigned ? lockPlot(c, lane, assigned.base, start, end) : '', points]),
-      el('p', 'sq-caption', { text: 'Locks use a 0–127 scale across the target’s parameter range. Blank steps use the last value. Inserts and level follow this track’s sound route; master-effect lanes control the shared master effects.' })]);
+      el('div', 'sq-scroll', { 'data-scroll': 'locks' }, [automationRows(c, start, end), points]),
+      el('p', 'sq-caption', { text: 'Locks use a 0–127 scale across the target’s parameter range. Blank steps carry the last value; a note without a lock resets to the lane base. Click a lane’s steps to set locks, use ↑/↓ to adjust, and Delete to clear. Inserts and level follow this track’s sound route; master-effect lanes control the shared master effects.' })]);
   }
-  function lockPlot(c, lane, base, start, end) {
-    const width = Math.max(1, end - start) * 55 + 12;
-    const svg = svgNode('svg', { viewBox: `0 0 ${width} 80`, width, height: 80, class: 'sq-lock-plot', role: 'img', 'aria-label': 'Held automation values; changes occur at step boundaries' });
-    const locks = c.locks.filter(l => l.lane === lane).sort((a,b) => a.step - b.step);
-    let value = base;
-    for (const l of locks) if (l.step < start) value = l.value;
-    const y = v => 72 - v / 127 * 64;
-    let path = `M 8 ${y(value)}`;
-    for (let step = start; step < end; step++) {
-      const point = locks.find(l => l.step === step), x = 8 + (step - start) * 55;
-      if (point) { value = point.value; path += ` H ${x} V ${y(value)}`; }
-      path += ` H ${x + 55}`;
-      svg.append(svgNode('path', {d:`M ${x} 8 V 72`,class:'sq-lock-guide'}));
-    }
-    svg.append(svgNode('path', { d:path, class:'sq-lock-line' }));
-    return svg;
+  function setVisualLock(lane, step, value) {
+    edit(value === null ? 'Remove parameter lock' : 'Edit parameter lock', m => {
+      const c = clip(m); c.locks = c.locks.filter(l => l.lane !== lane || l.step !== step);
+      if (value !== null) c.locks.push({ lane, step, value });
+    });
+  }
+  function automationRows(c, start, end) {
+    const track = state.model.tracks[state.track];
+    const rows = el('div', 'sq-automation-rows', { 'aria-label': 'Native parameter lock lanes' });
+    const ruler = el('div', 'sq-automation-row sq-automation-ruler', {}, [el('span', 'sq-automation-label', { text: 'LANE · 0–127' })]);
+    for (let step = start; step < end; step++) ruler.append(el('span', '', { text: step + 1 }));
+    rows.append(ruler);
+    track.lanes.forEach((assigned, lane) => {
+      if (!assigned) return;
+      const row = el('div', `sq-automation-row ${lane === state.lane ? 'is-selected' : ''}`, { 'data-automation-lane': lane });
+      row.append(btn(`Lane ${lane + 1} · ${assigned.label}`, () => { state.lane = lane; draw(); }, {
+        class: 'sq-button sq-automation-label', 'aria-label': `Select lock lane ${lane + 1}: ${assigned.label}`,
+        'aria-pressed': String(lane === state.lane), title: `${assigned.label} · base ${assigned.base}`,
+      }));
+      for (const point of automationSteps(c, lane, assigned.base, start, end)) {
+        const kind = point.lock !== undefined ? `lock ${point.lock}` : point.reset ? `note resets to base ${point.value}` : `held value ${point.value}`;
+        const button = btn('', e => {
+          // Keyboard activation uses the held value. Pointer clicks map the
+          // lane height to its native 0–127 value; no host-only envelopes.
+          const r = e.currentTarget.getBoundingClientRect();
+          const value = e.detail ? Math.max(0, Math.min(127, Math.round((r.bottom - 8 - e.clientY) / (r.height - 16) * 127))) : point.value;
+          setVisualLock(lane, point.step, value);
+        }, { class: `sq-button sq-automation-step ${point.lock !== undefined ? 'has-lock' : ''} ${point.reset ? 'is-reset' : ''}`,
+          'aria-label': `Lane ${lane + 1}, step ${point.step + 1} automation`, 'aria-description': kind,
+          'data-automation-step': point.step, disabled: !point.inLoop,
+          title: `${kind}. Click to set; ↑/↓ changes by 1 (Shift: 8); Delete clears.`,
+          onkeydown: e => {
+            if (['Delete', 'Backspace'].includes(e.key)) { e.preventDefault(); setVisualLock(lane, point.step, null); }
+            else if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
+              e.preventDefault(); const delta = (e.shiftKey ? 8 : 1) * (e.key === 'ArrowUp' ? 1 : -1);
+              setVisualLock(lane, point.step, Math.max(0, Math.min(127, (point.lock ?? point.value) + delta)));
+            }
+          },
+        });
+        button.style.setProperty('--lock-height', `${point.value / 127 * 100}%`);
+        button.append(el('span', 'sq-automation-block', { 'aria-hidden': 'true' }),
+          el('span', 'sq-automation-value', { text: point.lock ?? '', 'aria-hidden': 'true' }));
+        row.append(button);
+      }
+      row.append(el('span', 'sq-automation-playhead', { 'data-automation-playhead': true, hidden: true, 'aria-hidden': 'true' }));
+      rows.append(row);
+    });
+    if (!track.lanes.some(Boolean)) rows.append(el('p', 'sq-caption', { text: 'Assign a parameter to create a visual lock lane.' }));
+    rows.style.setProperty('--automation-steps', Math.max(0, end - start));
+    return rows;
   }
   function clipView() {
     const c = clip();
@@ -801,6 +840,7 @@ export function makeSequencer(ctx) {
     else if (state.view === 'Clip') body = clipView();
     else if (state.view === 'Automation') {
       const c = clip();
+      if (c) state.page = Math.min(state.page, Math.floor((c.loopStart + c.length - 1) / 32));
       body = c ? el('div', '', {}, [el('div', 'sq-toolbar', {}, [
         btn('◀ 2 bars', () => { state.page--; draw(); }, { disabled: state.page === 0 }),
         el('span', 'sq-caption', { text: `Steps ${state.page * 32 + 1}–${Math.min((state.page + 1) * 32, c.loopStart + c.length)}` }),
@@ -855,6 +895,33 @@ export function makeSequencer(ctx) {
     if (playhead) { playhead.hidden = !transport?.playing || liveScene !== state.scene || liveStep < state.page * 32 || liveStep >= (state.page + 1) * 32; playhead.style.left = `${60 + (liveStep - state.page * 32) * 28}px`; }
     for (const e of root.querySelectorAll('[data-step]')) e.classList.toggle('is-playing', !!transport?.playing && liveScene === state.scene && Number(e.dataset.step) === liveStep);
     for (const e of root.querySelectorAll('[data-mixer-track]')) e.classList.toggle('is-playing', !!transport?.playing && transport.tracks?.[Number(e.dataset.mixerTrack)]?.playing >= 0);
+    updatePlayback(transport);
+  }
+  function updatePlayback(transport) {
+    if (!state.model) return;
+    for (const e of root.querySelectorAll('[data-progress-track], [data-preview-track]')) {
+      const t = Number(e.dataset.progressTrack ?? e.dataset.previewTrack);
+      const scene = Number(e.dataset.progressScene ?? e.dataset.previewScene);
+      const phase = clipPlayback(clip(state.model, t, scene), transport?.tracks?.[t], transport?.playing, scene);
+      const inEntry = e.dataset.entryStart === undefined || (transport?.songIndex >= Number(e.dataset.entryStart) && transport?.songIndex < Number(e.dataset.entryEnd));
+      const active = phase && inEntry;
+      const fill = e.querySelector('.sq-clip-progress');
+      if (fill) { fill.hidden = !active; fill.style.width = `${active ? phase.fraction * 100 : 0}%`; }
+      const line = e.querySelector('[data-preview-playhead]');
+      if (line) {
+        line.setAttribute('visibility', active ? 'visible' : 'hidden');
+        line.setAttribute('x1', active ? phase.fraction * 160 : 0); line.setAttribute('x2', active ? phase.fraction * 160 : 0);
+      }
+      if (e.dataset.previewTrack !== undefined) e.classList.toggle('is-playing', !!active);
+    }
+    const c = clip(), track = transport?.tracks?.[state.track];
+    const phase = clipPlayback(c, track, transport?.playing, state.scene);
+    const start = state.page * 32, end = Math.min(start + 32, (c?.loopStart || 0) + (c?.length || 0));
+    const visible = phase && phase.step >= start && phase.step < end;
+    for (const head of root.querySelectorAll('[data-automation-playhead]')) {
+      head.hidden = !visible; head.style.left = `${180 + (visible ? phase.step - start : 0) * 55}px`;
+    }
+    for (const cell of root.querySelectorAll('[data-automation-step]')) cell.classList.toggle('is-playing', !!visible && Number(cell.dataset.automationStep) === Math.floor(phase.step));
   }
   root.addEventListener('keydown', e => {
     if ((deviceDialog.open && e.key === 'Escape') || e.target.closest('input, select, textarea')) e.stopPropagation();

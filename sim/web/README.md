@@ -710,7 +710,11 @@ and cancellation; this does not upload the project or audio.
 `test/sequencer-ui.mjs` covers editing, pointer movement/resizing, queued-scene
 playhead, MIDI preview/refusal, focus retention and desktop/mobile containment,
 including real Satellite Hearts Verse clip navigation and offset-loop notes.
-It is separate from real-Wasm integration and audio-render tests; no physical
+`test/sequence-playback.test.mjs` checks native clip-tick projections and cyclic
+lock precedence. `test/sequencer-playback-ui.mjs` checks independent scene sweeps,
+playing arrangement-entry previews, eight visual native lock lanes, note resets,
+pointer/keyboard editing, clear/refusal/focus behavior and off-page playheads.
+These are separate from real-Wasm integration and audio-render tests; no physical
 FM-1, USB or BLE acceptance follows from these browser checks.
 
 ## The advanced editor (stage ED2: shell, flow and sound)
