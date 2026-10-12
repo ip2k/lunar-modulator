@@ -183,6 +183,7 @@ export async function startEditor(env) {
   const seqVerb = (text) => { if (sim.node) sim.node.port.postMessage({ type: 'seq-line', bytes: new TextEncoder().encode(text) }); };
   const sequencer = makeSequencer({ ...seqHost, metadata: meta, say,
     editSound: (key) => select(key, { view: 'sound' }),
+    claimKeys: () => setKeys('edit'),
     inspector: (key) => key === MIX_KEY ? chains.mixInspector() : blockOf(key) ? inspector(key, { compactTools: true, level: /^s[1-4]$/.test(key) ? Number(key[1]) - 1 : undefined }) : emptyInspector(key),
     watchTrack: (t) => seqVerb(`watch ${t}`), playScene: (scene) => seqVerb(`scene ${scene}`),
     playClip: (track, scene) => seqVerb(`launch ${track} ${scene}`),
@@ -220,7 +221,11 @@ export async function startEditor(env) {
     device.addEventListener('focusin', () => setKeys('play'));
   }
   window.addEventListener('keydown', (e) => {
-    if (st.layout === 'panel') return;
+    if (st.layout !== 'panel' && st.view === 'sequencer' &&
+        (sequencer.contains(e.target) || st.keys === 'edit')) sequencer.onKey(e);
+  }, true);
+  window.addEventListener('keydown', (e) => {
+    if (e.defaultPrevented || st.layout === 'panel') return;
     const mod = isMac ? e.metaKey : e.ctrlKey;
     if (mod && !e.altKey && e.key.toLowerCase() === 'e') {
       e.preventDefault();
