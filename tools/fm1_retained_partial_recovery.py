@@ -27,6 +27,7 @@ KERNEL_SHA = '89cd7cd68ec9151357fa5622aa1956c0157e549d1a486ddac4c8f3f73831f781'
 RESET_WIRE_SHA = '9c81a30a7f8741a606961315d0689341d3ce2e29775d395e05e81d5dbdedfd92'
 PREFIX_SHA = '37794ff6caf9992fb6809cdd179a858d1b500b18aa26187e4cb8888b1479f056'  # Separate new cursor review precedes its literal binding.
 INSTALL_CAPTURE_SHA = '7d2cec8584bc274c534046d490f3c319bd7e0c13dec6d1f654323e9c9aa8dd8b'  # Reviewed install wrapper, never a caller-chosen source.
+INSTALL_CAPTURE_SUCCESSOR_SHA = '59b8e8c23f494f0ac6c89585786f72a9b408d5692e2a5fbf66c2c0376945c52d'  # Separately reviewed lifecycle successor; historical receipts remain distinct.
 RESTORE_SHA = '683275d73a846dd4c3d5edbb6695fe853832c4c7e4f7921ac9504293a8531e4e'  # Accepted admitted stock restore successor.
 BACKUP_SHA = '7e9dbf156c92e7cdcc2dcd01fbbdd19ad8e06eef9fcd8772f72870afaebf738f'   # That successor's actual canonical completed-backup helper.
 RESTORE_CAPTURE_SHA = 'aa640c486bd22fdf10076f6e3edfb607b3b4dbf83a93358bdbc540c5977886a8'
@@ -130,6 +131,16 @@ class Lineage:
         self.frozen.check(deep)
 
 
+def install_capture_pin(f, inputs):
+    """Select only exact reviewed bytes; never a caller-supplied hash/version."""
+    if type(inputs) is not dict or set(inputs)!={'wrapper_path','packet_path','run'}:
+        raise ValueError('Exact owned capture paths required')
+    actual=digest(f.freeze(inputs['wrapper_path'],limit=2*FLASH))
+    if actual not in (INSTALL_CAPTURE_SHA,INSTALL_CAPTURE_SUCCESSOR_SHA):
+        raise ValueError('Unreviewed install capture source')
+    return actual
+
+
 def capture(f, inputs, *, pin, kind, campaign_sha, adapter_sha, usb, times, exit_status):
     """Immutable owned terminal envelope. Setup/cleanup failures grant nothing."""
     if type(inputs) is not dict or set(inputs)!={'wrapper_path','packet_path','run'}:
@@ -215,7 +226,7 @@ def validate_stopped(path):
         if original.get('adapter_sha256')!=adapter or original.get('policy_sha256')!=POLICY_SHA or original.get('kind')!='fm1-exact-sdk-recovery-trace-install': raise ValueError('Exact trace install campaign required')
         inputs=original['policy_inputs'];mapping=original['sg_binding'];parent=Path(inputs['manifest_path']).parent
         receipt=Path(original['receipt_path']);marker=parent/'.sdk-rehearsal.consumed'
-        capture_pin,kind=INSTALL_CAPTURE_SHA,'fm1-sdk-trace-install-one-shot'
+        capture_pin,kind=install_capture_pin(f,c['capture']),'fm1-sdk-trace-install-one-shot'
         first=dict(event='trace_install_prepared',campaign_sha256=c['original_campaign_sha256'],adapter_sha256=adapter,
             policy_sha256=POLICY_SHA,rehearsal_sha256=REHEARSAL_SHA,source_sha256=r.SOURCES,target_sha256=TARGET_SHA,
             trace_nonce=p.TRACE_NONCE,sg_binding=mapping,kernel_exclusivity=False,boot_observed=False,physical_recovery_verified=False,stock_restore_preflighted=True)

@@ -1150,3 +1150,21 @@ Packetry window/click was obtained and no further unlock request is needed.
 Root owns integration, backup pushes and physical activation. Active
 installable diagnostic firmware goal is unfinished; continue through its
 physical acceptance and required review/CI/merge gates.
+
+### Install capture allowlist checkpoint — 2026-10-12
+
+[verified: focused models] Production adapter068fd now preserves historical7d2
+and accepts exact59b8 source bytes through bounded Frozen selection. Same24
+cases passed on Hera, all25 isolated containers removed; root replayed378
+retained regular hashes. Historical source and exact focused test are saved
+under `tools/bench_capture/lifecycle-v1/` and explicitly run by Linux CI.
+Genuine fixture4d89f253 is a narrow source successor, with exact1770-file
+archive verified; its two expensive interruption cases remain pending.
+V6c actual policy preparation passed with no transport after correcting
+container-only workdir/absolute-path mounts; failed V6/V6b receipts remain
+preserved. V6 owned-restore heavy proposal and V4 file-only stager models are
+being prepared on Hera. No new hardware command or Packetry window/click.
+See the latest section of `notes/2026-10-12-owned-capture-lifecycle.md`.
+Next: genuine model gates, exact final recovery-plan/campaign reseal, then
+fresh physical backup/install/boot/trace/stock recovery and display acceptance.
+The overall goal remains active; this source checkpoint is not completion.

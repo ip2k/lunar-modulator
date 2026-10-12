@@ -69,7 +69,9 @@ def genuine_partial_recovery(actual,tmp_path,monkeypatch,fault):
     install_wrapper=Path(os.environ['LUNAR_PARTIAL_INSTALL_CAPTURE'])
     acquire_wrapper=Path(os.environ['LUNAR_PARTIAL_ACQUIRE_CAPTURE'])
     assert partial.PREFIX_SHA==partial.digest(prefix_path.read_bytes()), 'Reviewed prefix literal must be bound, never patched'
-    assert partial.INSTALL_CAPTURE_SHA==partial.digest(install_wrapper.read_bytes())
+    assert partial.digest(Path(partial.__file__).read_bytes())=='068fd62cf80666b39ee3e1ca041df8ddd4271d512ab8ff4b5374a3fd0894f32e', 'Exact reviewed successor source required, never patched'
+    assert partial.INSTALL_CAPTURE_SHA=='7d2cec8584bc274c534046d490f3c319bd7e0c13dec6d1f654323e9c9aa8dd8b', 'Historical capture literal remains unchanged'
+    assert partial.INSTALL_CAPTURE_SUCCESSOR_SHA=='59b8e8c23f494f0ac6c89585786f72a9b408d5692e2a5fbf66c2c0376945c52d'==partial.digest(install_wrapper.read_bytes()), 'Exact reviewed successor wrapper bytes required'
     assert partial.ACQUIRE_CAPTURE_SHA==partial.digest(acquire_wrapper.read_bytes())
     native=Path(os.environ['LUNAR_TRACE_NATIVE']);target=Path(os.environ['LUNAR_TRACE_TARGET']).read_bytes()
     policy=install.policy_module();policy.require_candidate_pins()

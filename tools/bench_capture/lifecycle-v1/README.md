@@ -28,3 +28,12 @@ launch its children as supplied.
 
 Retained Hera evidence and the independent replay are described in
 `notes/2026-10-12-owned-capture-lifecycle.md`.
+
+The historical `historical-install-7d2.py` source is retained solely to verify
+old capture receipts against their actual program bytes. The recovery adapter
+accepts that hash and the reviewed successor hash; it rejects caller-selected
+hashes and any change after selecting a version. `test_install_capture_allowlist.py`
+contains the 24 focused Hera cases, with modeled lifecycle receipts and no
+factory authority. CI supplies the exact adapter and both source paths through
+its three `LUNAR_PARTIAL_*` environment variables. This source gate does not
+prove the complete interrupted-write recovery or a physical recovery.

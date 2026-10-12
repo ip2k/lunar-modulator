@@ -32,6 +32,13 @@ jobs:
           python -m pytest -v
           tools/bench_capture/lifecycle-v1/test_outer_lifecycle.py
           tools/bench_capture/lifecycle-v1/test_sequence_cli_failure.py
+      - name: Reviewed install capture allowlist
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          LUNAR_PARTIAL_CAPTURE_CANDIDATE: tools/fm1_retained_partial_recovery.py
+          LUNAR_PARTIAL_INSTALL_CAPTURE: tools/bench_capture/lifecycle-v1/historical-install-7d2.py
+          LUNAR_PARTIAL_INSTALL_CAPTURE_SUCCESSOR: tools/bench_capture/lifecycle-v1/owned-install-boot-once.py
+        run: python -m pytest -v tools/bench_capture/lifecycle-v1/test_install_capture_allowlist.py
 
   engines-mit:
     # The GPL switch off (FM1_GPL_MODS=0, engines/Makefile; CLAUDE.md, "The GPL

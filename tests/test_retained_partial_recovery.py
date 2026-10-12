@@ -37,6 +37,9 @@ def test_reviewed_dependency_literals_and_actual_source_bytes():
         assert getattr(recovery, name) == pin
         assert hashlib.sha256(Path(recovery.__file__).with_name(file).read_bytes()).hexdigest() == pin
     assert recovery.INSTALL_CAPTURE_SHA == '7d2cec8584bc274c534046d490f3c319bd7e0c13dec6d1f654323e9c9aa8dd8b'
+    assert recovery.INSTALL_CAPTURE_SUCCESSOR_SHA == '59b8e8c23f494f0ac6c89585786f72a9b408d5692e2a5fbf66c2c0376945c52d'
+    successor = Path(__file__).resolve().parents[1] / 'tools/bench_capture/lifecycle-v1/owned-install-boot-once.py'
+    assert hashlib.sha256(successor.read_bytes()).hexdigest() == recovery.INSTALL_CAPTURE_SUCCESSOR_SHA
     assert recovery.ACQUIRE_CAPTURE_SHA == '9d69134b11552f63a245c0a6870230e47bda4e6d80006b0bd61a47b938b22c34'
     assert recovery.RESTORE_CAPTURE_SHA == 'aa640c486bd22fdf10076f6e3edfb607b3b4dbf83a93358bdbc540c5977886a8'
 

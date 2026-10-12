@@ -53,3 +53,49 @@ whole-checkout policy dependency gate, reseal the new physical campaign and
 run fresh entry/dual backup, install, one boot, original RAM trace reads and
 full stock restoration. The diagnostic image still needs physical display,
 boot and recovery acceptance, required CI/review and final integration.
+
+### Exact install capture selection checkpoint
+
+[verified: source and bounded model scope] The adapter successor
+`068fd62cf80666b39ee3e1ca041df8ddd4271d512ab8ff4b5374a3fd0894f32e`
+selects a capture hash from the actual bounded regular file bytes. Its only
+accepted INSTALL programs are historical7d2 and successor59b8; the historical
+literal and receipt grammar remain unchanged. Frozen checks reject late
+changes, including switching to the other reviewed version. The historical
+source and unchanged focused test e23c0d2f are now retained beside the capture
+sources, with an explicit Linux CI step supplying their paths.
+
+[verified: Hera models] The focused gate passed24 unique cases in24 one-case
+chunks plus collection. All25 containers used image7e32,2 CPUs/2GiB memory/
+4GiB combined swap, no network/devices/privilege and read-only source inputs.
+The independent check bf64f442 verifies378 indexed regular files,24 XML cases,
+inspection/removal records and fresh empty cleanup. Root replayed all378
+regular hashes and the four-file source map. Nonregular negative fixture
+records were inspected as metadata, never followed. Retained archive
+`aeb85beeb58090645529e10003021cb0edd8b032e1fa91a59e89f8a90613770c`
+and full evidence are under
+`build/partial-stock-recovery-production/install-capture-allowlist-successor-v1/hera-focused-v1/`.
+This gate grants no factory authority and models process/capture receipts.
+
+[verified: source-only scope] The genuine INSTALL fixture successor4d89f253
+adds exact adapter068fd and actual wrapper59b8 assertions while retaining the
+historical7d2 literal. Root verified all1770 safe regular archive members and
+their snapshot hashes;1768 files retain the accepted predecessor bytes.
+Its erase/program runtime is pending. Copying that fixture does not establish
+genuine or physical interruption recovery. Neither historical archive nor
+old stopped envelope was relabeled.
+
+[verified: no-transport preflight] The full-tree V6 bundle preserves1774 HEAD
+paths and52 reviewed overlays, including the native manifest's11 source and
+three audit files. V6 and V6b setup failures are retained. V6c mounted the same
+private backup read-only at its original absolute path and passed the single
+actual prepare/install-and-restore policy preflight without opening transport.
+The owned-restore heavy runtime remains pending. No device command followed
+the recorded passive observation.
+
+[verified: tool limits] Rarefaction remained selected on the primary checkout
+and Serena on that same checkout with C++ coverage. Both adapter queries
+reported the new worktree-only file absent. Neither shared server was
+retargeted; source, AST and exact-file checks provided this checkpoint's
+adapter coverage. Packetry name/path discovery still returned Invalid app and
+native discovery falsely reported a locked Mac. No window or click is claimed.
