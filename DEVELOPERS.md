@@ -266,8 +266,11 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   a 64-frame block. The clock cause and guard implementation are documented in
   `sim/web/www/editor/render.worker.js`; saved-transport Wasm regressions passed
   for a 20-BPM one-bar song and four full-arrangement demos, including an FM6,
-  effects, arpeggiator/modulation and stem-isolation case. Combined-source
-  Wasm parity and browser download validation remain separate checks. MIDI
+  effects, arpeggiator/modulation and stem-isolation case. The later native
+  browser acceptance snapshot passed the real offline render and six WAV
+  downloads in Chromium, Firefox and WebKit; details and limits are in
+  [the browser receipt](notes/2026-10-12-editor-native-browser-acceptance.md).
+  MIDI
   Learn overlays registered editor and simulator controls, binds an incoming
   note or CC, and shows a clearable assignment badge. Project JSON
   and binary formats preserve these mappings; binary save and quiet autosave
@@ -291,8 +294,9 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   Master (M1 and M2), then sounds S1–S4; the detail view also lists total in use
   and free memory. `sim/web/test/editor-resources.mjs` checks the timing labels,
   unavailable/off states, RAM ordering and responsive layout. Combined-source
-  Wasm 108 parity and the Chromium resource-meter check passed; WAV download
-  validation remains a separate gate.
+  Wasm 108 parity and the Chromium resource-meter check passed. The later
+  Chromium, Firefox and WebKit native browser receipts also verified six WAV
+  downloads per browser [details](notes/2026-10-12-editor-native-browser-acceptance.md).
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free
