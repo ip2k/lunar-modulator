@@ -640,6 +640,8 @@ export function initFiles(env) {
       setTitle(d.title);
       f.pid = o.pid || (o.same ? pidBefore : newProjectId());      // the same project put back, or another one
       sim.editor?.projectLoaded?.();
+    } else if (kind === 'set') {
+      sim.editor?.projectLoaded?.({ sequence: true });
     }
     touched();
     if (o.ui) {
