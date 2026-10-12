@@ -64,3 +64,5 @@ Next: accept actual test receipts and independent source/evidence review, then
 bind the independently reviewed RAM reader to this exact boot source. Only the
 root agent may perform the concrete fresh-backup/install/boot/read hardware
 campaign. The current normal FM-1 identity marker has already been consumed.
+
+[verified: retained modeled gate] Root accepted final-v4: 105 exact unique cases in30 Hera chunks plus actual production singleton; all32 inspected containers exited0, no OOM, isolated without device/network access, removed and fresh exact-label cleanup empty. Reviewcee0fdd9/check89f37f60 preserve16 original hashes and separate post-restore journal. Superseded report32a5db4a had a report-only mixed-metadata verdict error; all15 boolean checks passed. No physical boot/read/restore or non-root container UID is established. Reader now literal-binds boot49fdd29b; reader activation gate pending, native opener stays closed.

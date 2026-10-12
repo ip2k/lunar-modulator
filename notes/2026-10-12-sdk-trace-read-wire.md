@@ -124,3 +124,12 @@ V5 independent narrow addendum is pending. The three new matcher files remain
 for root's checkpoint/push; current verified parent checkpoint is `4c9120ef...`.
 The next distinct admission source must remain closed until canonical boot,
 reader/native and owned capture/wire lineage are independently accepted.
+
+Final independent V5 addendum accepted the narrow 96-case successor in
+`build/sdk-trace-read-wire-hera/independent-v5-review.md`, SHA256
+`04ee153dc833e44e8eb08067b5a289fa662647244b3aa2e3382041c183f6e54f`.
+Independent replay SHA256:
+`7baad7ca25ada2f59a716af33d71b339a3470c8043f9df9107c19b99db778479`.
+The source-emitted constructor regressions require no grammar widening.
+The source/tests are unchanged from final V5; this note-only acceptance append
+is outside the sealed test archive. Root owns checkpoint, push and hardware.

@@ -188,7 +188,8 @@ def test_snapshot_rejects_stale_replay_foreign_lineage_and_binding(fault):
     with pytest.raises(ValueError):p.verify_snapshot(p.canonical(s),l,now)
 
 
-def test_real_factory_stays_closed_without_reviewed_boot_successor(tmp_path):
+def test_real_factory_stays_closed_without_reviewed_boot_successor(tmp_path, monkeypatch):
+    monkeypatch.setattr(p, 'BOOT_POLICY_SHA', None)
     with pytest.raises(ValueError,match='successor not accepted'):
         p.prepare(None,tmp_path/'snapshot',None,tmp_path/'receipt')
 

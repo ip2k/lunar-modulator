@@ -811,3 +811,7 @@ receipts stay frozen. See `notes/2026-10-12-sdk-trace-installation.md` for concr
 dependencies. Physical display observation, RAM retention, fresh matching full
 stock backups on the next binding, new install/readback/reset/recovery packets,
 production partial-NOR recovery, exact final CI/review/integration remain open.
+
+### Canonical read-chain integration — 2026-10-12 UTC
+
+Boot49fdd29b final-v4 accepted by root after full retained report/check review:105 unique/30 chunks plus production singleton,16 originals preserved and later restore journal separate; no hardware. Reportcee0fdd9/check89f37f60. Matcher68abb2e V5 accepted96/30 plus constructor regressions; report04ee153d/check7baad7ca. Reader literal BOOT binding is now49fdd29b; successor Hera gate pending, native READ binding remains None. New canonical helper/test are saved f764c4cb/07097eed. New returned admission bd58664d is still closed by four None pins;45/30 kernel gate passed, independent review pending, genuine factory absent. All prior physical packets remain consumed; no device command after Cynthion identity. Computer reset/retry still gives native lock error despite owner unlocked confirmation and enabled locked-access setting.

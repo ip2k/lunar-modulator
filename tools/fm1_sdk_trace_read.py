@@ -27,9 +27,9 @@ NONCE = bytes.fromhex('6b5482dbb66b5f45ed73e2f26c4a4657')
 INQUIRY = bytes.fromhex('120000002400')
 MAX_AGE = 120
 LIVE_SECONDS = 10
-# Separate reviewed boot successor is not implemented/accepted yet. Never use
-# an old image reset receipt or an arbitrary injected verifier in its place.
-BOOT_POLICY_SHA = None
+# Literal reviewed boot successor: exact canonical lineage is still required.
+# An old image reset receipt or an injected verifier cannot replace it.
+BOOT_POLICY_SHA = '49fdd29b11b1ba2a8dd2bade4f12c266843929da6cc7fff8ab217f3824d5ffe2'
 _PLANS = WeakSet()
 _PREPARED = WeakSet()
 _STARTED = WeakSet()
