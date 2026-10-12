@@ -201,14 +201,18 @@ int fm1w_mod_text(unsigned len) {
 /* A snapshot of the transport for the page's status line, refreshed by each
  * call: eight 32-bit words, [0] playing, [1] tempo in hundredths of a BPM,
  * [2] recording, [3] the watched track, [4] counting in, [5] following an
- * external clock, [6] and [7] the master tick's low and high halves. */
-static uint32_t g_seq_info[8];
+ * external clock, [6] and [7] the master tick's low and high halves.
+ * The first eight words retain their ABI. Song workspace additions:
+ * [8] scene, [9] raw song position, [10] pass, [11] pass bar,
+ * [12] song follow, [13] parked, [14] ending, [15] entry; then eight
+ * tracks of active slot, playing slot, position tick, cycle and mute. */
+static uint32_t g_seq_info[56];
 
 const uint32_t *fm1w_seq_info(void) {
   fm1_seq_info_t i;
   const fm1_seq_t *s = fm1_app_seq(&g_app);
   if (!s) {
-    for (int k = 0; k < 8; ++k) g_seq_info[k] = 0;
+    for (int k = 0; k < 56; ++k) g_seq_info[k] = 0;
     return g_seq_info;
   }
   fm1_seq_get_info(s, &i);
@@ -220,6 +224,27 @@ const uint32_t *fm1w_seq_info(void) {
   g_seq_info[5] = i.following;
   g_seq_info[6] = (uint32_t)i.master_tick;
   g_seq_info[7] = (uint32_t)(i.master_tick >> 32);
+  g_seq_info[8] = FM1_SEQ_NONE;
+  g_seq_info[9] = i.song_pos;
+  g_seq_info[10] = i.song_pass;
+  g_seq_info[11] = i.song_pass_bar;
+  g_seq_info[12] = i.song_follow;
+  g_seq_info[13] = i.song_parked;
+  g_seq_info[14] = i.song_end;
+  g_seq_info[15] = i.song_entry;
+  for (unsigned t = 0; t < 8; ++t) {
+    fm1_seq_track_info_t ti;
+    const unsigned at = 16 + t * 5;
+    memset(&ti, 0, sizeof ti);
+    ti.active = ti.playing = FM1_SEQ_NONE;
+    fm1_seq_get_track(s, (uint8_t)t, &ti);
+    g_seq_info[at] = ti.active;
+    g_seq_info[at + 1] = ti.playing;
+    g_seq_info[at + 2] = ti.pos_tick;
+    g_seq_info[at + 3] = ti.cycle;
+    g_seq_info[at + 4] = ti.muted;
+    if (t == i.watch_track) g_seq_info[8] = ti.active;
+  }
   return g_seq_info;
 }
 

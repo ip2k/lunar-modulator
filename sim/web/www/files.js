@@ -229,7 +229,8 @@ export function parseSel(text) {
 function readHints(params) {
   const h = {};
   if (params.has('into')) h.into = params.get('into');
-  if (params.get('view') === 'edit') h.edit = true;           // the editor, not a panel view
+  if (params.get('view') === 'sequencer') { h.edit = true; h.sequencer = true; }
+  else if (params.get('view') === 'edit') h.edit = true;           // the editor, not a panel view
   else if (params.has('view')) h.view = params.get('view');
   if (params.has('sel')) h.sel = params.get('sel');
   if (params.has('hl')) h.hl = params.get('hl').split(',').map((s) => s.trim().toUpperCase()).filter(Boolean).slice(0, 16);
@@ -1084,7 +1085,7 @@ export function initFiles(env) {
     if (!h.edit && h.sel === undefined) return;
     const sel = h.sel === undefined ? null : parseSel(h.sel);
     if (h.sel !== undefined && !sel) notice('refused', 'The link\'s selection was not applied: it names no block of the editor.');
-    f.editorLink = { edit: true, sel };
+    f.editorLink = { edit: true, sel, sequencer: !!h.sequencer };
     setTimeout(() => window.dispatchEvent(new CustomEvent('lunar-editor-link', { detail: f.editorLink })), 0);
     clearLinkFromAddress();              // applied once, as W1's hints are
   }

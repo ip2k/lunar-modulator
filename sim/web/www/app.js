@@ -459,6 +459,7 @@ function onWorklet(m, node) {
       break;
     case 'seq':
       sim.seq = m;
+      if (sim.seqListeners) for (const f of sim.seqListeners) f(m);
       showStatus();
       break;
     case 'state':

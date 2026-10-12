@@ -1,0 +1,11 @@
+.sq-export { color: var(--text, #eeeaf7); background: #27243a; border: 1px solid #68617e; border-radius: 12px; padding: 24px; width: min(600px, calc(100vw - 48px)); max-height: calc(100dvh - 48px); overflow: auto; }
+.sq-export::backdrop { background: #100e20bb; }
+.sq-export h2 { margin-top: 0; }
+.sq-export p { line-height: 1.5; }
+.sq-export label { display: flex; align-items: center; gap: 12px; margin: 14px 0; }
+.sq-export input[type=number] { width: 5em; padding: 6px; }
+.sq-export button { color: inherit; background: #4c4162; border: 1px solid #817095; border-radius: 6px; min-height: 44px; padding: 8px 16px; }
+.sq-export-actions { display: flex; gap: 12px; justify-content: flex-end; }
+.sq-export progress { width: 100%; }
+.sq-export li { margin: 12px 0; overflow-wrap: anywhere; }
+.sq-export a { color: #e2baff; }
