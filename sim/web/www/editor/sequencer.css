@@ -315,3 +315,13 @@
 .sq-metronome { display: inline-flex; align-items: center; justify-content: center; }
 
 .sq-arrangement { border: 0; padding: 0; }
+
+.sq-transport-mount.is-external { position: static; }
+
+.sq-automation-assign { margin-bottom: 8px; }
+.sq-automation-assign > summary { width: fit-content; padding: 8px 12px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: .8rem; }
+.sq-automation-assign > .sq-toolbar { padding-top: 8px; }
+
+.sq-track-select { cursor: pointer; padding-bottom: 32px; }
+.sq-track-select[aria-current="true"] { box-shadow: inset 0 0 0 1px var(--select); }
+.sq-track-select:focus-visible { outline: 2px solid var(--select); outline-offset: -3px; }
