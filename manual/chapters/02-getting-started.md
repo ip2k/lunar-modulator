@@ -151,7 +151,9 @@ same simulator the panel plays: turn a knob on the panel and its row lights
 in the editor; move a slider in the editor and the panel opens that page.
 It also draws the signal flow, the modulation rack and its cables (as a table
 or as a patch bay), and says what each choice would cost in memory before you
-make it. [Chapter 15](15-the-advanced-editor.md) describes it.
+make it. Its **Song** workspace imports MIDI files, edits clips and scenes,
+arranges songs, mixes the four shared sounds and exports WAV masters or stems.
+[Chapter 15](15-the-advanced-editor.md) describes it.
 
 ### Running the simulator from your own copy
 

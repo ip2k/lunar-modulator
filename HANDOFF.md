@@ -16,8 +16,14 @@ branched from `b335dc2`. Its endpoint is native clip/scene/song editing, MIDI
 batch import, lock automation, project/set exchange and actual-Wasm stereo,
 stem and multichannel export, tested and reviewed through CI, merge and Pages.
 Native telemetry/faders and compact mixer controls are saved at `1141e12b`,
-verified pushed. Final module SHA-256 starts `f163c1b5`; final browser checks,
-independent critic review, CI, merge and Pages remain required.
+verified pushed; `d4e0b640` integrates current main. Final module SHA-256 starts
+`f163c1b5`. Exact native acceptance and three-browser mixer checks passed;
+the density refinement and independent source review remain in progress.
+CI at `d4e0b640` caught an outdated metadata schema/example and a removed
+browser-test selector. The schema/example repair and user manual are saved
+in the next checkpoint; final browser/source review, new-head CI, merge and
+Pages verification remain required. The runtime interrupted a turn without
+reporting a cause; this is not evidence that compaction stopped execution.
 The current checkpoint and outstanding gates are in
 [the implementation note](notes/2026-10-11-midi-song-workspace.md).
 The model is shared with Lunar's C sequencer; desktop-only song structures

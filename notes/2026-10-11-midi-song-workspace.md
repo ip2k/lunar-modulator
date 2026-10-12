@@ -109,3 +109,36 @@ Skill source paths and license checks are saved in ignored
 critic's evidence is in managed `scratch/daw-design-critic/`; browser test
 receipts are in `scratch/mixer-ui-refinement/`. Root owns integration and the
 shared feature branch; agent completion is not overall acceptance.
+
+## Final native/browser acceptance checkpoint — 2026-10-11 [verified]
+
+The final module has SHA-256
+`f163c1b5799bb6109718993600df4c3f7884ffca055a2e4df558cc8007e65219`,
+metadata `fbd3d320`. The rebuild passed all 108 native/Wasm parity scenarios
+and a 30-second edit storm: zero late quanta, p99 0.148251 ms, maximum
+1.116497 ms. Final parser/model checks pass 27/27. Exact-module WAV and
+meter checks pass, including sample equality with subscriptions on/off,
+post-fader and MASTER scaling, silent unused sound rows, empty-effect identity,
+and 8-channel interleaving. See [the tracked native receipt](2026-10-11-final-native-acceptance/README.md).
+
+All four showcase assets from merged main `621490b9` load without repairs,
+drops or omissions. The chain meter excludes edit-layer telemetry state;
+an explicit additional 60-byte debit for the new meters leaves the smallest
+chain headroom at 26,604 bytes. This checks the native chain bound, not a
+complete physical firmware SRAM layout.
+
+Chromium, Firefox and WebKit each pass 31 mock UI checks and 12 native
+workflows, with six valid WAV exports and no page errors. Firefox uses the
+documented isolated PulseAudio null sink. Browser receipts and captures are
+in ignored `scratch/mixer-ui-refinement/routing-fx-final-20261011e/`.
+
+Independent rendered design review found no remaining P0/P1 in the tested
+native browser runtime. Scores /10: clarity 8, spacing 7, DAW familiarity 8,
+tested interaction/accessibility 8, mobile usability 6, identity 7. Its
+remaining P2 concerns are Scene rows, selected-note controls and inspector
+density. A bounded frontend refinement and independent re-review are in
+progress; previous captures and scores remain historical evidence.
+
+These checks do not establish physical phone touch, VoiceOver, owner
+listening or FM-1 acceptance. PR #146 still requires final source review,
+exact-head CI, merge and deployed Pages deep-link proof.

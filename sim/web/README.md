@@ -547,7 +547,7 @@ ED2's (next section).
   arpeggiator's log, select, level, current, the effect swap, and a scan of
   the modulation runtime after every modulation edit, whoever made it. A
   reader more than a ring behind is told to resync and takes a snapshot.
-- **Telemetry** fills `engines/include/fm1_tele.h`'s block (version 2, 1,454 floats)
+- **Telemetry** fills `engines/include/fm1_tele.h`'s block (version 3, 1,464 floats)
   for the subscribed rows only, at most 30 blocks a second of audio:
   meters (peak and RMS) at every point of the chain, gain reduction (Comp,
   Limiter, Squash and the output limiter; stage ED5a filled the last three
@@ -555,6 +555,10 @@ ED2's (next section).
   extremes over the block, per-voice outputs, and each running cable's
   destination as sent, and for a per-voice cable each voice's own value
   (`voice_dests`, ED5a).
+  The append-only `levels` section adds five peak/RMS rows after the four sound
+  faders and final MASTER gain; previous offsets remain unchanged. Peak and
+  stereo-aggregate RMS accumulate across audio blocks until their subscribed
+  rows are read. Empty effect slots meter the actual unchanged signal.
   The taps on the render path only read: the audio with every row
   subscribed is the audio without the layer, bit for bit.
 - **The view** (`fm1_edit_view`): the panel's mode, sound, page and slot,
@@ -612,16 +616,20 @@ timed" there].
 
 Power on, open the editor and choose **Song**. Switch between **Scenes**,
 **Arrangement**, **Clip**, **Automation** and **Mixer** to focus on one task.
-Transport, file controls and the selected track/scene stay available across
-views. On a small phone, rotate to landscape; portrait displays a rotate prompt
+Transport and a **Files & export** menu stay available across views. Clip and
+Automation expose track/scene selection; scene headings and timeline entries
+select their respective scenes directly. On a small phone, rotate to landscape;
+portrait displays a rotate prompt
 without changing playback. In short landscape windows, the device-screen preview
 is hidden to leave room for editing.
 
 **Scenes** exposes all 64 native clip slots and separate scene/clip launch
 controls. Clicking a clip opens **Clip** for note and loop editing.
 **Arrangement** edits the song chain and repeats. **Automation** edits stepped
-parameter-lock lanes. **Mixer** contains the four shared sound levels,
-instrument/insert controls, output level and master effects. Track routing remains
+parameter-lock lanes. **Mixer** contains four shared sound strips and Master,
+vertical faders with dB readouts, measured peak/RMS levels and insert/master-effect
+input/output meters. **Routing & FX** initially collapses on short landscape
+screens; expand it for routing and device controls. Track routing is also
 available in Scenes and Arrangement: choose a sound or a MIDI channel. MIDI routes
 can be stored, but the browser does not send MIDI out. The views share the same
 eight sequencer tracks and four sounds; switching views does not change the project.
@@ -655,7 +663,9 @@ unbounded DAW tracks.
   value until the next lock. Multiple tracks routed to one sound share that
   sound's parameters and level.
 - Sound-card Mute and Solo operate on the tracks routed to that sound. Instrument,
-  insert and master buttons open the existing editable inspectors. **Output level**
+  insert and master buttons open native modal inspectors; Close or Escape returns
+  focus to the triggering button. Fader drags form one undo action; keyboard arrows
+  edit incrementally. **Output level**
   is the page's master-volume preference and is not saved in the project.
 
 **Import MIDI…** accepts several `.mid`/`.midi` files together; dropping MIDI

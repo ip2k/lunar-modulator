@@ -246,6 +246,14 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   `m2:Param` and `mix:Level` (0–127 maps to 0–100% sound level). Insert and mix
   targets follow the track's routed sound; masters are global. The plot shows
   held step values, not interpolated curves [verified: editor source].
+  The Mixer uses native incremental sound-level edits, coalesced drag history
+  and the browser's MASTER preference. Four sound strips share their engine,
+  inserts and level with their routed tracks. Native modal inspectors preserve
+  focus and close with Escape. Subscribed audio taps provide actual insert and
+  master-effect input/output, post-fader and final-output peak/RMS meters;
+  append-only telemetry version 3 preserves all older offsets, with 1464 floats
+  and 124 subscription bits. Stereo RMS combines both channels; this is not a
+  physical FM-1 performance measurement [verified: source and native checks].
   `audio-export.js` and `render.worker.js` render a project offline in a separate
   native Wasm instance, with cancellable stereo mix, sound stems, track stems
   and eight-channel sound export. Shared voices, modulation and nonlinear bus
