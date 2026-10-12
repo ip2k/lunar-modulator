@@ -48,6 +48,12 @@
 .sq-arrangement-tools > .sq-caption { margin: 8px 0; }
 .sq-page-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0; min-width: 0; }
 .sq-page-nav .sq-caption { margin: 0; font-variant-numeric: tabular-nums; }
+.sq-section-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; min-width: 0; }
+.sq-section-heading h3 { flex: none; }
+.sq-page-nav.is-compact { flex-wrap: nowrap; gap: 6px; margin: 0; }
+.sq-page-nav.is-compact .sq-caption { white-space: nowrap; font-size: .78rem; }
+.sq-page-nav.is-compact .sq-button { display: grid; place-items: center; width: 30px; min-height: 30px; padding: 5px; flex: none; }
+.sq-page-nav.is-compact svg { width: 16px; height: 16px; }
 .sq-clip { border-radius: 0; border-left: 4px solid var(--snd, var(--muted)); text-align: left; align-self: stretch; background: color-mix(in srgb, var(--snd, var(--select)) 14%, var(--bg)); }
 .sq .is-playing { box-shadow: inset 0 -3px var(--live, #9ccfd8); }
 .sq-roll { position: relative; width: 100%; min-width: 0; background: var(--bg); }
@@ -155,7 +161,9 @@
 /* One native workspace at a time; keep navigation independent of project state. */
 .sq-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0; }
 .sq-tabs [aria-selected="true"] { background: var(--select); color: var(--accent-text); border-color: var(--select); }
-.sq-selection { padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.sq-selection { padding: 4px 0; gap: 6px 10px; }
+.sq-selection .sq-field { flex-direction: row; align-items: center; gap: 5px; font-size: .72rem; }
+.sq-selection .sq-field select { min-height: 30px; padding: 4px 6px; }
 .sq-view-panel { min-width: 0; }
 .sq-view-panel > .sq-section { margin-top: 2px; }
 .sq-scroll[data-scroll="piano"] { max-height: 360px; }
@@ -199,11 +207,13 @@
 .sq-matrix-cell > .sq-button { min-height: 32px; padding: 5px 7px; }
 .sq-matrix-cell[aria-pressed="true"], .sq-matrix-cell .sq-button[aria-pressed="true"] { outline: 1px solid var(--select); outline-offset: -2px; }
 .sq-matrix-cell.is-playing { box-shadow: inset 0 0 0 2px var(--live, #9ccfd8), inset 0 -5px var(--live, #9ccfd8); }
-.sq-scene-tools { margin: 6px 0; }
+.sq-scene-tools { margin: 0; position: relative; }
 .sq-scene-tools > summary { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; cursor: pointer; list-style: none; }
+.sq-clip-heading .sq-scene-tools > summary { width: 30px; min-height: 30px; padding: 5px; justify-content: center; box-sizing: border-box; }
+.sq-scene-tools[open] .sq-scene-tool-fields { position: absolute; z-index: 8; width: min(520px, calc(100vw - 64px)); box-sizing: border-box; border: 1px solid var(--border); border-radius: 5px; background: var(--surface); box-shadow: 0 8px 24px #0005; }
 .sq-scene-tools > summary::-webkit-details-marker { display: none; }
 .sq-scene-tools > summary::before { content: '+'; width: 1em; text-align: center; font-weight: 700; }
-.sq-scene-tools[open] > summary::before { content: '−'; }
+.sq-scene-tools[open] > summary::before { content: '\2212'; }
 .sq-scene-tool-fields { margin: 6px 0; padding: 8px; border-left: 2px solid var(--select); background: color-mix(in srgb, var(--surface) 75%, transparent); }
 .sq-compact-fields { align-items: center; gap: 6px 10px; }
 .sq-compact-fields .sq-field { flex-direction: row; align-items: center; gap: 5px; min-height: 32px; white-space: nowrap; font-size: .72rem; }
@@ -213,6 +223,16 @@
 .sq-compact-fields .sq-field input[type="text"] { width: 7ch; }
 .sq-scene-tool-fields .sq-field select { max-width: 150px; }
 .sq-clip-controls { min-width: 0; }
+.sq-clip-heading { position: relative; align-items: center; gap: 6px 10px; margin: 0 0 4px; }
+.sq-clip-heading .sq-scene-tools { position: static; }
+.sq-clip-heading .sq-scene-tools[open] .sq-scene-tool-fields { left: 0; top: 100%; width: min(520px, 100%); }
+.sq-clip-heading .sq-caption { margin: 0; font-variant-numeric: tabular-nums; }
+.sq-clip-heading > .sq-button { min-height: 30px; padding: 4px 7px; }
+.sq-clip-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; }
+.sq-clip-controls .sq-toolbar { margin: 2px 0 4px; }
+.sq-octaves { display: flex; height: 26px; align-items: center; justify-content: center; gap: 2px; }
+.sq-octaves .sq-button { width: 27px; height: 26px; min-height: 26px; padding: 2px; }
+.sq-octaves svg { width: 20px; height: 22px; }
 .sq-clip-params { margin: 6px 0; }
 .sq-clip-params h3 { margin-right: auto; white-space: nowrap; }
 .sq-clip-actions { margin: 4px 0 8px; gap: 5px; }
