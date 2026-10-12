@@ -11,6 +11,16 @@ original conversation; last updated 2026-10-11. Read this first, then
 
 ## Installable firmware image resumed — 2026-10-11
 
+[verified: current recovery checkpoint] Returned-stock reset v2 passed 56 unique
+injected cases plus one modeled smoke in sixteen Hera chunks; independent
+review accepted report `46da05e5…`. Its completed-restore production pin is
+still unset. Returned-ROM backup/restore source checkpoints include retained
+absence and historical provenance checks, but remain closed WIP pending the
+genuine private composed factory gate. The whole-suite receipt is independently
+accepted at its sealed older snapshot. Passive bench sysfs at 2026-10-12
+02:12:06 UTC still showed ROM bus 3/device 25, `4c4a:8057`, `sg0`; no target
+reset, diagnostic execution, display or post-boot recovery is claimed.
+
 [verified: physical rehearsal and independent review] Exact SDK diagnostic
 installation and stock restoration both passed full 1 MiB readbacks, matching
 target `df6c963e…` and stock `96006a51…`. Wrapper/child exited 0, owned capture
@@ -75,10 +85,17 @@ The returned-ROM stock-restore scaffold and tests passed an initial 53-case
 injected WIP gate on Hera. Its factory remains closed until the separate
 returned-backup source and evidence helper freeze; this is not a hardware-ready
 recovery adapter. See [the design](notes/2026-10-11-returned-rom-recovery-design.md).
-The new returned-stock reset scaffold passed 44 injected authority/syscall cases
-in 16 Hera chunks plus one smoke. Its factory also remains closed until the
+The new returned-stock reset scaffold passed 56 injected authority/syscall cases
+in 16 Hera chunks plus one smoke, including required-absence drift. Its factory also remains closed until the
 genuine completed-restore validator freezes and is independently accepted; see
 [the WIP reset gate](notes/2026-10-11-returned-stock-reset.md).
+Returned-ROM backup/restore provenance WIP was checkpointed and remote-SHA
+verified at `b8b2f257114aac2d76a86d8eef585664a665942e`. Shared historical
+successful/detached/failed-probe helpers and genuine private lineage gates are
+still in progress. GitHub run 38192936943 on `6b8ed4b2…` passed twelve jobs and
+failed macOS Python because the native SG syscall mocks retained Darwin's
+platform value. The production Linux guard correctly rejected those mocks;
+a test-only platform repair and fresh focused gate are underway.
 
 The following entries are historical checkpoints, superseded where the physical
 result above supplies later evidence.

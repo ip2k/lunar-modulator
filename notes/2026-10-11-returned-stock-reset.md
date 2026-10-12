@@ -1,7 +1,7 @@
 # Returned stock-reset scaffold — 2026-10-11
 
 [verified: source and retained Hera evidence] `tools/fm1_returned_stock_reset.py`
-SHA `0ed8c82f1725d8f1231ed26f1ab71898904dd6674bea9b3f89b922b3fa4fbc0f`
+SHA `06c36d96f29486ac2f3c69b5921445d8c52d1ffdb93944c4493aaf64d3e04578`
 is an explicitly closed WIP factory: `RESTORE_SOURCE_SHA` is `None`. It cannot
 admit a production campaign until the separate completed-restore evidence helper
 freezes and passes its own genuine receipt gate and independent review.
@@ -39,9 +39,30 @@ Docker inspections: four CPUs, 4 GiB, no network, devices or privilege, pinned
 image `7e32dd6d…`, exit zero and no OOM. Containers were removed and a fresh
 session-label lookup was empty; the structured lookup receipt is retained.
 Independent review accepted this injected mechanics boundary in
-`build/returned-stock-reset-independent-review.md` (initial report SHA
-`5d198ac98c8397cf1a2c044993699d705eefae6c953df6737c1cdebad93708b1`).
+`build/returned-stock-reset-independent-review.md` (final initial-gate report SHA
+`731a40a3aadf5f949c40182d0bee39f45fd3e9f87c5a51a2470bd3f9ab000e9a`).
 Genuine restoration provenance and physical acceptance remain pending.
+
+[verified: later focused gate] The completed helper's `_absent_paths` must be
+an immutable tuple of absolute Path instances. Prepared authority retains it
+and checks `os.path.lexists` on every existing evidence check, including binding
+checks after durable reset intent. This detects a new file, directory or broken
+symlink where the historical recovery proof required absence.
+Tests `e099e019cefcd1afb1546996d9e78b412853cdeddc91cf154db81d881815c8e9`
+passed 56 unique cases exactly once in sixteen Hera chunks plus the separate
+one-case smoke, zero failures/errors/skips. The restore helper is still injected
+and its production pin remains unset. Independent final evidence review accepted
+this injected boundary in `build/returned-stock-reset-independent-review.md`,
+report SHA `46da05e5e1e0843fb3699d46f9a36677811f9ac1df64928debd0ce262172489d`.
+Private evidence is `build/returned-stock-reset-hera-v2/`; source archive
+`6ddb785af16175c98af8e6f28eaebd781b21855eb4896eba80c60b2deee09e2a`
+contains the exact previous 1,666-file snapshot with only this adapter and test
+updated. Evidence archive is
+`2c1af0eb5b9a843fd5d857e908a1203dcc1632e5812b23da58add1d9fba01079`.
+All eighteen saved collect/smoke/chunk inspections have four CPUs/four GiB,
+network none, no devices or privilege, no OOM and exit zero. Fresh exact-label
+lookup was empty; receipt SHA
+`71fba4c6cd9a6e3e177261bea3e4be284cd233fe37ca16e11e4f79238396ca34`.
 
 [verified: tooling limit] Bounded Rarefaction worktree orientation was rejected
 as outside its primary workspace; Serena did not find the worktree Python file.

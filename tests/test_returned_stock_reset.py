@@ -29,7 +29,7 @@ def campaign(tmp_path, monkeypatch):
         sg_binding=dict(node='/dev/sgMOCK', sg='sgMOCK', node_identity=[1, 2, 3], usb_identity=[4, 5, 6]),
         returned_backup_receipt_path=str(parent), returned_backup_manifest_sha256='a' * 64,
         baseline_sha256=r.BASELINE_SHA, target_sha256=r.TARGET_SHA, sectors_written=30,
-        sector_order=list(range(0x5000, 0x22000, 4096)) + [0x4000])
+        sector_order=list(range(0x5000, 0x22000, 4096)) + [0x4000], _absent_paths=())
     config = dict(schema=1, kind='fm1-returned-fixed-loader-stock-reset',
         adapter_sha256=r.digest(Path(r.__file__).read_bytes()), restore_campaign_path=str(evidence),
         restore_campaign_sha256=r.digest(evidence.read_bytes()), restore_commands_sha256='b' * 64,
@@ -176,6 +176,50 @@ def test_frozen_restore_evidence_changes_before_run(campaign, monkeypatch):
     with pytest.raises(ValueError, match='evidence changed'):
         r.run_campaign(prepared)
     assert state.discoveries == 0 and not state.calls
+
+
+@pytest.mark.parametrize('paths', [[], ('relative',), (Path('relative'),)])
+def test_absent_evidence_contract_rejects_invalid_paths(campaign, paths):
+    campaign[2]['_absent_paths'] = paths
+    with pytest.raises(ValueError, match='absolute absent evidence'):
+        r.prepare_campaign(campaign[0])
+
+
+@pytest.mark.parametrize('kind', ['file', 'directory', 'broken_symlink'])
+@pytest.mark.parametrize('when', ['factory', 'run', 'binding'])
+def test_absent_evidence_remains_absent_before_reset(campaign, monkeypatch, kind, when):
+    path = campaign[0].parent / 'must-remain-absent'
+    campaign[2]['_absent_paths'] = (path,)
+
+    def appear():
+        if kind == 'file':
+            path.write_text('later evidence')
+        elif kind == 'directory':
+            path.mkdir()
+        else:
+            path.symlink_to(path.with_name('missing-target'))
+
+    if when == 'factory':
+        appear()
+        with pytest.raises(ValueError, match='absent.*appeared'):
+            r.prepare_campaign(campaign[0])
+        return
+    prepared = r.prepare_campaign(campaign[0])
+    state = syscalls(prepared, monkeypatch)
+    if when == 'run':
+        appear()
+    else:
+        discover = prepared.bridge.discover_sg
+        def changed(usb):
+            mapping = discover(usb)
+            appear()
+            return mapping
+        monkeypatch.setattr(prepared.bridge, 'discover_sg', changed)
+    with pytest.raises(ValueError, match='absent.*appeared'):
+        r.run_campaign(prepared)
+    assert not state.calls
+    assert state.discoveries == (0 if when == 'run' else 1)
+    assert state.closed == ([] if when == 'run' else [888])
 
 
 @pytest.mark.parametrize('fault', ['status', 'masked', 'msg', 'host', 'driver', 'resid', 'info', 'sense_len', 'echo', 'ioctl'])

@@ -1,9 +1,9 @@
 # Returned-ROM recovery after the exact diagnostic install
 
-Personal, non-commercial. This is a read-only design, requested by root while
+Personal, non-commercial. This began as a read-only design, requested by root while
 source regression gates run. No hardware traffic, new transport activation,
-old-source edits, commit or push was performed by this lane. Root owns review,
-implementation authorization, physical staging, commits and verified pushes.
+old-source edits, commit or push was performed by this lane. Root has authorized the separate implementation and owns independent review,
+physical staging, commits and verified pushes.
 
 The bounded next milestone is: after the exact SDK target has been installed,
 reset requested and a new mask-ROM device observed, admit that new connection,
@@ -291,3 +291,58 @@ remain required. No hardware operation was made by this lane.
 saved to disk and root-owned for checkpoint/push. Next dependencies: shared
 returned-state helper freeze, exact optional wrapper pin, actual modeled
 backup/restore factory smoke, sixteen-chunk gate and startup independent review.
+
+## Historical admission and current connection separation
+
+[verified: source inspection; focused runtime gate pending] New backup schema
+now pins `probe_admission_path`/`probe_admission_sha256` and
+`connection_witness_path`/`connection_witness_sha256`. No attempted probe requires
+null admission fields. Completed probe admission comes from the original first
+prepared log event; stopped probe admission comes from its exact native
+preflight path, independently checked by the owned-capture helper. The original
+ROM snapshot is never rewritten. Shared proof evaluates the original120-second
+admission age historically; it does not reapply that age after lengthy reads.
+
+A separately frozen passive connection witness has exact schema1, kind
+`fm1-passive-returned-rom-backup-connection`, observed_at, USB/SG binding,
+original ROM snapshot SHA and quiet_state
+`returned-rom-after-read-only-probe-no-loader-upload`. It must match the original
+connection exactly and be at most120seconds old at factory admission and open.
+The first operation remains bounded to ten seconds after opening; the entire
+backup remains bounded to900seconds. Every operation checks actual descriptor
+and discovered USB/sysfs identity. A new enumeration cannot reuse this witness.
+Witness timestamps are actual passive observations owned by the root bench
+wrapper; source tests cannot establish their physical truth.
+
+[verified: source inspection] Successful and detached failed-probe wrappers
+require separate literal pins in `PROBE_WRAPPER_SHAS`. Both currently remain
+None pending independent acceptance; the shared provenance source also remains
+None. No current production backup/restore factory can activate. Source checks
+precede hardware discovery. Shared negative evidence is propagated as
+`_absent_paths`, tuple of exact absolute Path instances, through completed
+backup and restore; the restore policy checks lexists before every operation.
+The distinct root reset retains and rechecks that same tuple at open/intent
+binding boundaries. This preserves no-probe marker/destination absence, and
+failed-probe missing result/ambiguity/missing-log absence without opener authority.
+
+[verified] Preliminary WIP3 Hera run:111passed/one fixture-only failure,
+23.83seconds. The manually injected test authority omitted newly required
+manifest fields; fixture is repaired. Archive553files
+`c04378a9ddd348d79048728c7aa1a45ec2bb4a30823975d196fd47b3715d801d`,
+logs/XML/container receipt under `build/returned-recovery-wip3-hera/`.
+One four-CPU/four-GiB/no-device/network-none container removed, noOOM.
+A wrong optional loader mount pointed at an absent path that Docker created
+as an empty directory; that exact empty directory was removed. This gate used
+synthetic module fixtures and makes no actual-private source-factory claim.
+Next run uses the already verified fixed-loader-directory original fixture.
+
+`tests/test_returned_rom_actual.py` is saved as a pending complete private
+factory/model smoke: actual SDK/ELF/stock/source checks, install-only target,
+new returned ROM binding,8757modeledbackup requests, actual restore worker with
+initial full target comparison,30directory-last sectors and final full stock,
+then evidence-only completed restore using preserved original install journal.
+Only syscalls/NOR/reset/enumeration/fixed experiment campaign literal are
+modeled; no source-hash bypass is permitted. It cannot execute successfully
+until new literal source pins freeze. Final sixteen-chunk and independent
+review gates remain pending. Latest root-reported verified checkpoint is
+`b8b2f257114aac2d76a86d8eef585664a665942e`; subsequent edits are saved WIP.

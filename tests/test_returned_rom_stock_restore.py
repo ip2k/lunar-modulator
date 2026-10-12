@@ -203,3 +203,15 @@ def test_restore_receipt_rejects_corrupt_or_incomplete_evidence(restore_transcri
     elif fault=='partial-target':restore_transcript=(*restore_transcript[:5],target[:-1],*restore_transcript[6:])
     elif fault=='partial-stock':restore_transcript=(*restore_transcript[:4],baseline[:-1],*restore_transcript[5:])
     with pytest.raises(ValueError):check_transcript(restore_transcript,monkeypatch,rows,result)
+
+@pytest.mark.parametrize('kind',['file','dangling_symlink'])
+def test_absence_drift_blocks_restore_before_any_ioctl(prepared,monkeypatch,tmp_path,kind):
+    p,_=prepared;absent=tmp_path/'must-stay-absent'
+    policy=p.policies[0]
+    object.__setattr__(policy,'absent_paths',(absent,))  # Explicit model-only authority.
+    policy.check_files()
+    if kind=='file':absent.write_text('new evidence')
+    else:absent.symlink_to(tmp_path/'missing')
+    state=mock_sg(monkeypatch)
+    with pytest.raises(ValueError,match='absent evidence'):r.transport_type(p)
+    assert not state.calls and not state.closed

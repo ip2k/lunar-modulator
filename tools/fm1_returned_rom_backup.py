@@ -32,7 +32,7 @@ MAX_SNAPSHOT_AGE = 120
 LIVE_SECONDS = 10
 BACKUP_SOURCE_SHA = '79bbe99ce923daaf8af2c701a65ec39a015191313de79676e36622cb8db00afb'
 PROVENANCE_SOURCE_SHA = None  # Separate returned-state helper must freeze.
-PROBE_WRAPPER_SHA = None  # Failed-probe branch requires independently reviewed wrapper.
+PROBE_WRAPPER_SHAS = {'successful': None, 'detached': None}  # Failed-probe branch requires independently reviewed wrapper.
 _AUTHORIZED = WeakSet()
 
 
@@ -120,6 +120,7 @@ class Prepared:
     original_manifest_sha256: str
     parent: Path
     provenance: object = None
+    connection_witness: bytes = None
 
     def check(self):
         require_prepared(self, check=False)
@@ -226,6 +227,55 @@ def validate_read_receipt(raw, manifest, config, operations, dump_a, dump_b):
         raise ValueError('Durable complete dump records differ')
     return times[0], times[-1]
 
+def historical_probe_admission(config, state, freeze, backup_admission):
+    """Use the validated original probe boundary, never restamp its snapshot."""
+    path, expected = config['probe_admission_path'], config['probe_admission_sha256']
+    if config['optional_stage_probe'] is None:
+        if path is not None or expected is not None or config['probe_capture_path'] is not None:
+            raise ValueError('No-probe admission cannot invent historical evidence')
+        return backup_admission
+    if config['optional_stage_probe'] != config['returned_state_campaign_path']:
+        raise ValueError('Exact original probe campaign required')
+    if config['probe_capture_path'] is not None:
+        envelope = json.loads(freeze(config['probe_capture_path'], limit=65536))
+        native_path = Path(envelope['native_campaign_path'])
+        native = json.loads(freeze(native_path, envelope['native_campaign_sha256'], 65536))
+        if native.get('probe_campaign_path') != config['optional_stage_probe']:
+            raise ValueError('Original stopped native probe identity differs')
+        wanted = native_path.parent / 'preflight.json'
+        raw = freeze(path, expected, 65536)
+        admission = json.loads(raw)['time']
+    else:
+        wanted = Path(state['receipt_path']) / 'commands.jsonl'
+        raw = freeze(path, expected, 1048576)
+        first = json.loads(raw.splitlines()[0])
+        if first.get('event') != 'stage_probe_prepared':
+            raise ValueError('Original completed probe admission event required')
+        admission = first['time']
+    if (Path(path) != wanted or not finite_time(admission) or
+            not admission <= backup_admission <= time.time()):
+        raise ValueError('Exact historical original probe admission required')
+    # The shared helper independently validates all bytes, original120s age,
+    # completion or owned stopped-capture evidence and the consumed marker.
+    return admission
+
+
+def validate_connection_witness(witness, snapshot, snapshot_sha256, evaluated_at):
+    """Fresh passive observation of the unchanged original ROM connection."""
+    keys = {'schema','kind','observed_at','usb_binding','sg_binding',
+        'rom_snapshot_sha256','quiet_state'}
+    if (set(witness) != keys or type(witness['schema']) is not int or witness['schema'] != 1 or
+            witness['kind'] != 'fm1-passive-returned-rom-backup-connection' or
+            witness['quiet_state'] != 'returned-rom-after-read-only-probe-no-loader-upload' or
+            witness['rom_snapshot_sha256'] != snapshot_sha256 or
+            not finite_time(witness['observed_at']) or not finite_time(evaluated_at) or
+            not snapshot['observed_at'] <= witness['observed_at'] <= evaluated_at or
+            not 0 <= evaluated_at - witness['observed_at'] <= MAX_SNAPSHOT_AGE or
+            canonical(witness['usb_binding']) != canonical(snapshot['usb_binding']) or
+            canonical(witness['sg_binding']) != canonical(snapshot['sg_binding'])):
+        raise ValueError('Fresh passive unchanged ROM connection witness required')
+
+
 def _validate_campaign(path, *, evaluated_at, completed=False, install_journal_path=None):
     """Shared file proof; returned Prepared is not registered as authority."""
     if not finite_time(evaluated_at) or evaluated_at > time.time():
@@ -246,7 +296,8 @@ def _validate_campaign(path, *, evaluated_at, completed=False, install_journal_p
         'target_boot_campaign_sha256', 'target_boot_commands_sha256', 'target_boot_exit_status',
         'loader_path', 'profile_path', 'profile_source_path', 'optional_stage_probe',
         'rom_snapshot_path', 'rom_snapshot_sha256', 'active_session_state', 'receipt_path',
-        'returned_state_campaign_path', 'returned_state_campaign_sha256', 'provenance_mode', 'probe_capture_path'}
+        'returned_state_campaign_path', 'returned_state_campaign_sha256', 'provenance_mode', 'probe_capture_path', 'connection_witness_path',
+        'connection_witness_sha256', 'probe_admission_path', 'probe_admission_sha256'}
     if (set(c) != keys or type(c['schema']) is not int or c['schema'] != 1 or
             c['kind'] != 'fm1-exact-target-returned-rom-backup' or
             type(c['target_boot_exit_status']) is not int or c['target_boot_exit_status'] != (1 if c.get('provenance_mode') == 'detached' else 0) or
@@ -267,10 +318,11 @@ def _validate_campaign(path, *, evaluated_at, completed=False, install_journal_p
             raise ValueError('Exact returned-state envelope identity differs')
     if install_journal_path is not None and not completed:
         raise ValueError('Historical journal cannot grant fresh opener authority')
-    proof = helper.validate_returned_state(c['returned_state_campaign_path'], evaluated_at=evaluated_at,
+    admission_time = historical_probe_admission(c, state, freeze, evaluated_at)
+    proof = helper.validate_returned_state(c['returned_state_campaign_path'], evaluated_at=admission_time,
         completed_probe=c['optional_stage_probe'], probe_capture=c['probe_capture_path'],
         provenance_mode=c['provenance_mode'], install_journal_path=install_journal_path,
-        probe_wrapper_sha256=PROBE_WRAPPER_SHA)
+        probe_wrapper_sha256=PROBE_WRAPPER_SHAS[c['provenance_mode']] if c['probe_capture_path'] is not None else None)
     for item in proof.evidence:
         freeze(item[0],digest(item[1]),item[2])
     policies = proof.policies
@@ -288,6 +340,9 @@ def _validate_campaign(path, *, evaluated_at, completed=False, install_journal_p
         raise ValueError('Returned-state passive binding differs')
     parent = Path(proof.private_parent)
     mapping = snapshot['sg_binding']
+    witness_raw = freeze(c['connection_witness_path'], c['connection_witness_sha256'], 65536)
+    witness = json.loads(witness_raw)
+    validate_connection_witness(witness, snapshot, c['rom_snapshot_sha256'], evaluated_at)
     rehearsal_path = root / 'fm1_sdk_rehearsal.py'
     freeze(rehearsal_path, REHEARSAL_SHA)
     rehearsal = load_source(rehearsal_path,REHEARSAL_SHA,'_fm1_returned_state_rehearsal')
@@ -313,7 +368,7 @@ def _validate_campaign(path, *, evaluated_at, completed=False, install_journal_p
     operations = inventory(bridge,modules['fm1_uboot_read'],loader,profile)
     p = Prepared(canonical(c),digest(raw),canonical(snapshot),tuple(evidence),policies,
         bridge,modules['fm1_uboot_read'].SGHeader,operations,bridge.inventory_digest(operations),
-        proof.manifest_sha256,parent,proof)
+        proof.manifest_sha256,parent,proof,canonical(witness))
     if C.sizeof(p.header_type) != 88:
         raise ValueError('Reviewed Linux SG layout required')
     lineage = dict(original_rehearsal_campaign_sha256=proof.original_rehearsal_campaign_sha256,
@@ -352,7 +407,9 @@ def validate_completed_backup(path, *, campaign_sha256, manifest_sha256,
         rom_snapshot_sha256=c['rom_snapshot_sha256'],optional_stage_probe=c['optional_stage_probe'],
         returned_state_campaign_sha256=c['returned_state_campaign_sha256'],
         provenance_mode=c['provenance_mode'],provenance_source_sha256=PROVENANCE_SOURCE_SHA,
-        probe_capture_path=c['probe_capture_path'],probe_wrapper_sha256=PROBE_WRAPPER_SHA,
+        probe_capture_path=c['probe_capture_path'],probe_wrapper_sha256=PROBE_WRAPPER_SHAS[c['provenance_mode']] if c['probe_capture_path'] is not None else None,
+        connection_witness_sha256=c['connection_witness_sha256'],
+        probe_admission_sha256=c['probe_admission_sha256'],
         original_manifest_sha256=p.original_manifest_sha256,
         loader_sha256=p.bridge.LOADER_SHA,original_loader_sha256=p.bridge.ORIGINAL_SHA,
         loader_profile_sha256=p.bridge.PROFILE_SHA,profile_source_sha256=p.bridge.PROFILE_SOURCE_SHA,
@@ -375,7 +432,7 @@ def validate_completed_backup(path, *, campaign_sha256, manifest_sha256,
     p.provenance.check()
     return dict(**lineage,usb_binding=snapshot['usb_binding'],sg_binding=snapshot['sg_binding'],
         request_inventory_sha256=p.request_inventory_sha256,loader_sha256=p.bridge.LOADER_SHA,
-        receipt_path=str(receipt),completed_at=ended)
+        receipt_path=str(receipt),completed_at=ended,_absent_paths=tuple(p.provenance.absent))
 
 
 class FixedSG:
@@ -389,7 +446,10 @@ class FixedSG:
         snapshot=json.loads(prepared.snapshot)
         self.usb=snapshot['usb_binding']
         try:
-            if not 0 <= time.time()-snapshot['observed_at'] <= MAX_SNAPSHOT_AGE:
+            if prepared.connection_witness is not None:
+                validate_connection_witness(json.loads(prepared.connection_witness), snapshot,
+                    json.loads(prepared.campaign)['rom_snapshot_sha256'], time.time())
+            elif not 0 <= time.time()-snapshot['observed_at'] <= MAX_SNAPSHOT_AGE:
                 raise ValueError('Returned-ROM snapshot stale before open')
             self.mapping=prepared.bridge.discover_sg(self.usb)
             if canonical(self.mapping)!=canonical(snapshot['sg_binding']):
@@ -538,7 +598,9 @@ def run_campaign(prepared):
                 rom_snapshot_sha256=c['rom_snapshot_sha256'],optional_stage_probe=c['optional_stage_probe'],
         returned_state_campaign_sha256=c['returned_state_campaign_sha256'],
         provenance_mode=c['provenance_mode'],provenance_source_sha256=PROVENANCE_SOURCE_SHA,
-        probe_capture_path=c['probe_capture_path'],probe_wrapper_sha256=PROBE_WRAPPER_SHA,
+        probe_capture_path=c['probe_capture_path'],probe_wrapper_sha256=PROBE_WRAPPER_SHAS[c['provenance_mode']] if c['probe_capture_path'] is not None else None,
+        connection_witness_sha256=c['connection_witness_sha256'],
+        probe_admission_sha256=c['probe_admission_sha256'],
                 original_manifest_sha256=prepared.original_manifest_sha256,
                 loader_sha256=prepared.bridge.LOADER_SHA,original_loader_sha256=prepared.bridge.ORIGINAL_SHA,
                 loader_profile_sha256=prepared.bridge.PROFILE_SHA,

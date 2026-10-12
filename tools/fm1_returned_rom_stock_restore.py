@@ -72,6 +72,7 @@ class Policy:
     binding_bytes: bytes
     evidence: tuple
     session_type: type
+    absent_paths: tuple = ()
 
     @property
     def directory(self): return self.original.directory
@@ -92,6 +93,8 @@ class Policy:
         if self not in _POLICIES:
             raise ValueError('Exact independently validated restore policy required')
         journal = self.original.check_files()
+        if any(os.path.lexists(path) for path in self.absent_paths):
+            raise ValueError('Returned provenance absent evidence appeared')
         for path, data, limit in self.evidence:
             if read_file(path, limit) != data:
                 raise ValueError('Frozen returned-loader evidence changed')
@@ -210,7 +213,7 @@ def prepare_campaign(path):
             if not self._transport.initial_verified:
                 raise ValueError('Initial full target NOR has not been verified')
             return data
-    policy = Policy(old, canonical(binding), evidence, RestoreSession)
+    policy = Policy(old, canonical(binding), evidence, RestoreSession, proof['_absent_paths'])
     _POLICIES.add(policy)
     receipt = Path(c['receipt_path'])
     parent = Path(proof['receipt_path'])
@@ -373,7 +376,7 @@ def validate_completed_restore(path, *, campaign_sha256, commands_sha256,
         returned_backup_receipt_path=str(parent),
         returned_backup_manifest_sha256=c['returned_backup_manifest_sha256'],
         baseline_sha256=BASELINE_SHA,target_sha256=TARGET_SHA,sectors_written=30,
-        sector_order=plan['sector_order'])
+        sector_order=plan['sector_order'],_absent_paths=tuple(proof['_absent_paths']))
 
 
 def run_campaign(prepared):

@@ -72,18 +72,24 @@ skips; public CI behavior passed 244 with 43 explicit private-fixture skips.
 Later source checkpoints require fresh CI. The original 6,389-case complete
 Python snapshot finished all 16 chunks: 6,352 passed, 35 skipped and two expected
 failures, zero failures/errors. It does not include the newer probe or returned-ROM
-sources. The new stock-reset scaffold separately passed 44 injected cases plus
+sources. The new stock-reset scaffold separately passed 56 injected cases plus
 one smoke; its production factory remains closed pending a genuine reviewed
 completed-restore helper.
 
 Current remote-SHA-verified checkpoint:
-`6b8ed4b277783fb447a5eb03712b8134b93fcd1d` on the feature branch below.
+`b8b2f257114aac2d76a86d8eef585664a665942e` on the feature branch below.
 The returned-ROM backup/restore/reset checkpoints remain unaccepted WIP;
 their complete shared provenance and genuine private-factory gates are pending.
 Do not activate them. See [the boot trial](2026-10-11-diagnostic-boot-trial.md),
 [stage probe](2026-10-11-diagnostic-stage-probe.md), and
 [returned-ROM design](2026-10-11-returned-rom-recovery-design.md) for exact pins,
 limits and next dependencies. This remains an active unfinished goal.
+
+[verified: latest CI] Run 38192936943 at `6b8ed4b2…` finished with twelve jobs
+passing and macOS Python failing in sixty Linux SG syscall mocks that retained
+Darwin's platform. Production transport correctly rejected them. A test-only
+mock-platform repair, focused Hera gate and fresh CI are pending; no production
+guard is weakened or hardware gate upgraded by that repair.
 
 ## Active dependency plan
 

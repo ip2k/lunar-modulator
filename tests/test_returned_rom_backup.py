@@ -19,7 +19,9 @@ def prepared(campaign):
     old=b.prepare_campaign(campaign[0])
     parent=campaign[0].parent
     c=dict(receipt_path=str(parent/'returned'),adapter_sha256=r.digest(Path(r.__file__).read_bytes()),
-        target_boot_campaign_sha256='a'*64,rom_snapshot_sha256='b'*64)
+        target_boot_campaign_sha256='a'*64,rom_snapshot_sha256='b'*64,
+        optional_stage_probe=None,returned_state_campaign_sha256='c'*64,provenance_mode='successful',
+        probe_capture_path=None,connection_witness_sha256='d'*64,probe_admission_sha256=None)
     snapshot=dict(observed_at=time.time(),usb_binding=USB,
         sg_binding=dict(node='/dev/sgMOCK',node_identity=[1,2,3],usb_identity=[4,5,6]))
     p=r.Prepared(r.canonical(c),'model-campaign',r.canonical(snapshot),(),(),b,reader.SGHeader,
@@ -209,3 +211,68 @@ def test_independent_read_replay_rejects_edited_receipts(read_receipt,fault):
     elif fault=='future':rows[-1]['time']=time.time()+1000
     elif fault=='partial_dump':manifest['dumps'][1]['bytes']=1048320
     with pytest.raises(ValueError):replay_receipt(read_receipt)
+
+@pytest.fixture
+def connection_witness():
+    snapshot=dict(observed_at=100,usb_binding=USB,sg_binding=dict(node='/dev/sgMOCK'))
+    witness=dict(schema=1,kind='fm1-passive-returned-rom-backup-connection',observed_at=300,
+        usb_binding=USB,sg_binding=snapshot['sg_binding'],rom_snapshot_sha256='a'*64,
+        quiet_state='returned-rom-after-read-only-probe-no-loader-upload')
+    return snapshot,witness
+
+
+def test_old_admission_can_have_fresh_unchanged_connection(connection_witness):
+    snapshot,witness=connection_witness
+    r.validate_connection_witness(witness,snapshot,'a'*64,305)
+
+
+@pytest.mark.parametrize('fault',['age','future','before_original','usb','sg','pin','kind','bool','extra'])
+def test_passive_connection_witness_fails_closed(connection_witness,fault):
+    snapshot,witness=connection_witness
+    if fault=='age':witness['observed_at']=184
+    elif fault=='future':witness['observed_at']=306
+    elif fault=='before_original':witness['observed_at']=99
+    elif fault=='usb':witness['usb_binding']=dict(USB,devnum='999')
+    elif fault=='sg':witness['sg_binding']=dict(node='/dev/sgOTHER')
+    elif fault=='pin':witness['rom_snapshot_sha256']='b'*64
+    elif fault=='kind':witness['kind']='fm1-passive-post-target-boot-rom'
+    elif fault=='bool':witness['schema']=True
+    else:witness['unreviewed']=True
+    with pytest.raises(ValueError):r.validate_connection_witness(witness,snapshot,'a'*64,305)
+
+
+def test_completed_probe_uses_preserved_original_admission(tmp_path):
+    path=tmp_path/'probe.json';commands=tmp_path/'receipt'/'commands.jsonl'
+    commands.parent.mkdir();commands.write_bytes(r.canonical(dict(time=100,event='stage_probe_prepared')))
+    config=dict(optional_stage_probe=str(path),returned_state_campaign_path=str(path),probe_capture_path=None,
+        probe_admission_path=str(commands),probe_admission_sha256=r.digest(commands.read_bytes()))
+    def freeze(p,expected=None,limit=1048576):
+        data=r.read_file(p,limit)
+        if expected is not None and r.digest(data)!=expected:raise ValueError('pin')
+        return data
+    assert r.historical_probe_admission(config,dict(receipt_path=str(commands.parent)),freeze,300)==100
+    commands.write_bytes(r.canonical(dict(time=299,event='stage_probe_prepared')))
+    with pytest.raises(ValueError):r.historical_probe_admission(config,dict(receipt_path=str(commands.parent)),freeze,300)
+
+
+def test_stopped_probe_original_preflight_is_exact_native_path(tmp_path):
+    path=tmp_path/'probe.json';native=tmp_path/'native.json';preflight=tmp_path/'preflight.json'
+    native.write_bytes(r.canonical(dict(probe_campaign_path=str(path))))
+    preflight.write_bytes(r.canonical(dict(time=100)))
+    capture=tmp_path/'capture.json';capture.write_bytes(r.canonical(dict(native_campaign_path=str(native),
+        native_campaign_sha256=r.digest(native.read_bytes()))))
+    config=dict(optional_stage_probe=str(path),returned_state_campaign_path=str(path),probe_capture_path=str(capture),
+        probe_admission_path=str(preflight),probe_admission_sha256=r.digest(preflight.read_bytes()))
+    def freeze(p,expected=None,limit=1048576):
+        data=r.read_file(p,limit)
+        if expected is not None and r.digest(data)!=expected:raise ValueError('pin')
+        return data
+    assert r.historical_probe_admission(config,{},freeze,300)==100
+    other=tmp_path/'invented.json';other.write_bytes(preflight.read_bytes())
+    config['probe_admission_path']=str(other)
+    with pytest.raises(ValueError):r.historical_probe_admission(config,{},freeze,300)
+
+
+def test_no_probe_cannot_invent_historical_admission():
+    config=dict(optional_stage_probe=None,probe_capture_path=None,probe_admission_path='invented',probe_admission_sha256='a'*64)
+    with pytest.raises(ValueError):r.historical_probe_admission(config,{},lambda *a,**k:pytest.fail('read'),300)

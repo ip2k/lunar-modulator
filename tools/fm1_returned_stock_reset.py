@@ -81,12 +81,16 @@ class Prepared:
     header_type: type
     reset: object
     evidence: tuple
+    absent_paths: tuple
 
     def check(self):
         require_prepared(self, check=False)
         for path, data, limit in self.evidence:
             if read_file(path, limit) != data:
                 raise ValueError('Frozen returned-stock reset evidence changed')
+        for path in self.absent_paths:
+            if os.path.lexists(path):
+                raise ValueError('Required absent returned-stock reset evidence appeared')
 
 
 def require_prepared(prepared, *, check=True):
@@ -136,6 +140,10 @@ def prepare_campaign(path):
         campaign_sha256=c['restore_campaign_sha256'],
         commands_sha256=c['restore_commands_sha256'], result_sha256=c['restore_result_sha256'],
         journal_sha256=c['restore_journal_sha256'], freeze=freeze)
+    absent_paths = proof['_absent_paths']
+    if (type(absent_paths) is not tuple or
+            any(not isinstance(p, Path) or not p.is_absolute() for p in absent_paths)):
+        raise ValueError('Exact absolute absent evidence paths required')
     if (proof['baseline_sha256'] != BASELINE_SHA or proof['target_sha256'] != TARGET_SHA or
             type(proof['sectors_written']) is not int or proof['sectors_written'] != 30 or
             proof['sector_order'] != list(range(0x5000, 0x22000, 4096)) + [0x4000]):
@@ -153,7 +161,7 @@ def prepare_campaign(path):
         raise ValueError('New private receipt and unused returned-stock origin required')
     obj = Prepared(canonical(c), digest(raw), proof['returned_backup_manifest_sha256'],
         canonical(proof['usb_binding']), canonical(proof['sg_binding']), bridge,
-        reader.SGHeader, reset, tuple(evidence))
+        reader.SGHeader, reset, tuple(evidence), absent_paths)
     _AUTHORIZED.add(obj)
     obj.check()
     return obj
