@@ -9,6 +9,9 @@ history.
 ## [Unreleased]
 
 ### Fixed
+- Song edits now refresh from native sequencer content changes; Undo and Redo
+  refuse stale edits after an intervening panel change. MIDI import preflight
+  enforces 16 files, 16 MiB per file, 32 MiB and 64 parts per batch.
 - README installation status now distinguishes the linked inert diagnostic
   from the running instrument, which remains untested on the FM-1.
 - Target compile checks include shared state codecs and metadata, with each
@@ -29,6 +32,10 @@ history.
   experiments; full-image recovery and Lunar installation remain untested.
 
 ### Added
+- **Song workspace refinement:** compact scene rows, always-visible selected
+  note essentials with advanced controls disclosed, and primary parameters
+  first in the Song device inspector. Device modal focus returns to its
+  opening control.
 - **Song workspace in the Advanced editor:** native clip/scene matrix and song
   arrangement, piano-roll and step editing, loop controls, parameter-lock lanes,
   four sound-group mixers and instrument/insert/master inspectors. Standard

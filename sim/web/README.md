@@ -26,6 +26,17 @@ the "Power on" button, as browsers require a gesture.
 
 ## What works
 
+### Song workspace
+
+The Advanced editor's Song workspace edits native scenes, arrangements,
+clips, automation and mixer settings, and imports standard MIDI files with a
+preview and capacity check. Import batches are limited to 16 files, 16 MiB
+per file, 32 MiB total and 64 parts total. Native sequencer content-generation
+changes refresh the visible workspace after panel edits and invalidate a
+hidden view for refresh on return; Undo and Redo refuse a stale edit after an
+intervening panel change. This browser feature is not firmware running on an
+FM-1.
+
 | | |
 | --- | --- |
 | Engines | Every registered sound engine and effect (engines/README.md): Macro, Shapes, Macro Heavy, Six-Op FM, Sophie, Drums, Acid Bass, Comet Kit, Crater Kit, Drawbar, Trio and Phase Bend (with the GPL switch on), Test Sine; Plate, Ensemble, Diffuse, PSX Verb, Crush, Fold, Drive, Echo, Warble, Filter, Comb, Comp, Limiter, DJ Filter, Tilt, Master Sat, Isolator, EQ, Room, Hall, Gate, Test Gain, Test Ext. Up to four sounds with two inserts and a level each, mixed into two effect slots as the master bus, then the host's bus limiter, as `fm1-render --slots` runs them; one sound with no insert at full level renders as `fm1-render`'s one engine does, to the bit (below, "Multi-sound") |

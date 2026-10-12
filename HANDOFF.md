@@ -16,21 +16,24 @@ branched from `b335dc2`. Its endpoint is native clip/scene/song editing, MIDI
 batch import, lock automation, project/set exchange and actual-Wasm stereo,
 stem and multichannel export, tested and reviewed through CI, merge and Pages.
 Native telemetry/faders and compact mixer controls are saved at `1141e12b`;
-`d4e0b640` integrates current main. Checkpoint `a095501d` is verified pushed.
-The following checkpoint saves compact Scenes/Clip/inspector layouts, bounded
-MIDI preview (16 files, 32 MiB per batch, 64 parts), and guarded undo/redo that
-refuses to overwrite intervening panel edits. The fresh Wasm SHA-256 is
-`2a2ad121431f6e7fac5aa186d00eb0b75848187441ffe0d4ec4222451ed65cc3`;
-all 108 parity scenarios and the edit storm pass. MIDI helpers pass 30 tests,
-host synchronization passes 8, and the fresh native Chromium synchronization
-test passes. Independent design review finds no blocking UI defect in its
-bounded Chromium execution, with landscape first-screen scrolling a P2.
-The old CI browser failure was the removed launch-scene test selector; its
-replacement is saved. Fresh three-browser acceptance and independent source
-review, exact-head CI, merge and Pages verification remain required.
-Earlier isolated Firefox transport timeouts could not be reproduced with
-either tested audio sink configuration; preserve the assertion in the fresh
-acceptance run and collect diagnostics if it fails.
+`d4e0b640` integrates main and checkpoint `6958d641` is verified pushed.
+The final candidate includes compact Scenes/Clip/inspector layouts, bounded
+MIDI preview (16 files, 16 MiB each, 32 MiB per batch, 64 parts), and guarded
+undo/redo that refuses to overwrite intervening panel edits. Its Wasm SHA-256
+is `2a2ad121431f6e7fac5aa186d00eb0b75848187441ffe0d4ec4222451ed65cc3`.
+All 108 parity scenarios and the edit storm pass. MIDI helpers pass 30 tests,
+host synchronization passes 8, and native synchronization passes in Chromium,
+Firefox and WebKit. Fresh mock and native Song workflows pass in all three
+browsers, including actual transport and six WAV downloads per browser.
+Independent source review found and resolved stale history, panel refresh and
+MIDI-preview capacity issues. Independent design review scores clarity,
+spacing, DAW familiarity and tested interaction/accessibility at 8/10, mobile
+usability and identity at 7/10; first-screen landscape scrolling remains a P2.
+The final candidate's exact-head CI, PR #146 merge and deployed Pages proof
+are the remaining release gates at this documentation checkpoint. Inspect
+[PR #146](https://github.com/ip2k/lunar-modulator/pull/146) for current gate
+status. Earlier isolated Firefox transport timeouts were not reproduced in
+the fresh acceptance run; the real transport assertion remains intact.
 The runtime interrupted a turn without
 reporting a cause; this is not evidence that compaction stopped execution.
 The current checkpoint and outstanding gates are in

@@ -16,8 +16,11 @@ enter steps, edit and lock them, record, step record and capture, and work
 with eight tracks, their mute, their routing to the four sounds
 ([chapter 5](05-sound-engines.md#four-sounds-at-once)) and their pages.
 Launching clips and scenes, songs, the loop view, copying, undo and drum
-tracks are in the desktop tools only so far; this chapter says so where
-they come up.
+tracks are in the desktop tools. The browser's Advanced editor also has a Song
+workspace for native scenes, arrangements, clips, automation, mixing and MIDI
+file import ([chapter 15](15-the-advanced-editor.md#songs-midi-files-and-the-mixer)).
+These editor features do not mean Lunar runs on the FM-1; device firmware is
+still planned.
 
 !!! note "Reading this chapter"
     - In SEQ mode the black keys take on sequencer jobs, which the screen

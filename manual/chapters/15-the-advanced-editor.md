@@ -211,19 +211,21 @@ Choose **Song** in the outline. Its five tabs show one task at a time:
 and **Files & export** stay available while you switch views. On a phone,
 rotate to landscape; the portrait prompt leaves playback running.
 
-**Scenes** contains eight tracks and eight scene columns. Editing a slot
-opens its piano roll; a separate launch action plays that clip at the native
-bar boundary. Launching a scene plays its column, and empty slots stop their
-tracks. Scene headings select the scene for editing. **Arrangement** builds
+**Scenes** contains eight tracks and eight scene columns, with compact rows
+that keep more of the matrix in view. Editing a slot opens its piano roll; a
+separate launch action plays that clip at the native bar boundary. Launching a
+scene plays its column, and empty slots stop their tracks. Scene headings
+select the scene for editing. **Arrangement** builds
 a song from those same scenes: append, copy, move or remove an entry, set its
 repeats, and choose Loop, Park or Stop at the end. Repeats share their clips;
 copy a scene before editing a different variation.
 
-**Clip** edits the loop window, quantize and transpose, then its notes. Click
-an empty cell or use **Add note**. Drag a note to move it, or its right edge to
-change its gate; numeric controls also edit pitch, step, gate and velocity.
-Microtiming uses ticks, with 24 ticks per sixteenth step. Probability belongs
-to the note's trigger. Scene tools rename, copy or clear a scene.
+**Clip** keeps Pitch, Step, Gate and Velocity visible for the selected note;
+loop window, quantize and transpose remain clip controls. Click an empty cell
+or use **Add note**. Drag a note to move it, or its right edge to change its
+gate. Open **Advanced** for Microtiming and Probability. Microtiming uses
+ticks, with 24 ticks per sixteenth step. Probability belongs to the note's
+trigger. Scene tools rename, copy or clear a scene.
 
 **Automation** shows eight native parameter-lock lanes per track. Choose an
 instrument, sound insert, sound level or master-effect parameter, then enter
@@ -240,6 +242,12 @@ track routes and device racks; it starts collapsed in short landscape windows.
 Mute and Solo act on tracks routed to that sound. Saved sound levels belong to
 the project; Master output level is the browser's volume preference.
 
+The Song workspace's device inspectors put primary parameters first, with
+less frequent settings and actions behind a disclosure. They open as modal
+dialogs; focus moves to Close when a dialog opens, Escape closes it, and focus
+returns to the control that opened it. **Files & export** remains available
+from the Song workspace.
+
 ### Importing MIDI
 
 Use **Files & export → Import MIDI…** to select one or several standard
@@ -250,6 +258,12 @@ Choose **New song chain on mapped tracks** to divide a longer part across
 scene columns, and set **Bars per scene** to choose each section's length.
 A warning explains unsupported data, and
 an import that cannot fit is refused before changing the project.
+
+An import batch accepts at most 16 files, 16 MiB per file, 32 MiB total and
+64 parts total. Native sequencer content-generation changes refresh the visible
+Song workspace after panel edits and invalidate a hidden view for refresh when
+you return to it. Undo and Redo refuse a stale edit if another panel change
+has changed the project in the meantime.
 
 Lunar's limits remain eight tracks, eight scenes, a 256-step clip window,
 64 scene presses in a song and 96 ticks per quarter note. It does not add

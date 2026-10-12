@@ -142,3 +142,66 @@ progress; previous captures and scores remain historical evidence.
 These checks do not establish physical phone touch, VoiceOver, owner
 listening or FM-1 acceptance. PR #146 still requires final source review,
 exact-head CI, merge and deployed Pages deep-link proof.
+
+## Documentation and evidence checkpoint — 2026-10-11
+
+The preserved independent design review is tracked in
+[`2026-10-11-daw-design-review/`](2026-10-11-daw-design-review/README.md),
+including the original reports, rendered assets and audit data. Its report and
+audit refer to Wasm SHA-256
+`f163c1b5799bb6109718993600df4c3f7884ffca055a2e4df558cc8007e65219`. The
+later sequencer bridge module SHA-256
+`2a2ad121431f6e7fac5aa186d00eb0b75848187441ffe0d4ec4222451ed65cc3` is
+separate evidence and was not reviewed by that report.
+
+Current editor behavior is documented in the Advanced editor manual and
+simulator README: compact Scenes rows; selected-note Pitch, Step, Gate and
+Velocity always visible, with Microtiming and Probability under **Advanced**;
+primary parameters first in Song workspace device inspectors; and modal focus
+on Close, Escape handling and trigger-focus restoration. MIDI import is bounded
+to 16 files, 16 MiB per file, 32 MiB and 64 parts per batch. Native sequencer
+content-generation changes refresh the visible Song view after panel edits and
+invalidate a hidden view for refresh on return; Undo and Redo refuse a stale
+change after an intervening panel edit.
+
+Focused helper checks are 30/30 for MIDI import and 8/8 for the sequencer
+host. Fresh native checks for the latest changes are still ongoing. The
+separate design review does not establish physical phone touch, owner
+listening or FM-1 hardware acceptance.
+
+## Current final candidate acceptance — 2026-10-11 [verified]
+
+This checkpoint supersedes the earlier pending-work descriptions above;
+the older receipts remain historical evidence. The current Wasm SHA-256 is
+`2a2ad121431f6e7fac5aa186d00eb0b75848187441ffe0d4ec4222451ed65cc3`.
+The bounded Hera build passed 108 native/Wasm parity scenarios and the
+30-second edit storm with zero late quanta (p99 0.139144 ms, maximum
+0.307414 ms). The build record includes the actual Alpine and Emscripten
+image digests and matches the current source hashes. Its timestamp was
+regenerated after synchronizing noncompiled example/schema inputs; the
+successfully tested binary did not change.
+
+Fresh mock and actual-Wasm Song workflows pass in Chromium 153, Firefox 155
+and WebKit 26.6. Each native run passed the real clip-launch transport and
+playhead assertion and exported all six WAV files with the expected channel
+layouts; no page errors occurred. See
+[the three-browser receipt](2026-10-11-final-native-acceptance/browser-results.json)
+and [its provenance](2026-10-11-final-native-acceptance/provenance.md).
+The separate panel/editor synchronization suite passes all four checks in
+all three browsers. MIDI helpers pass 30/30 and host helpers pass 8/8.
+The [fresh bridge receipt](2026-10-11-final-native-acceptance/bridge.md)
+also verifies exact-module offline rendering, metadata equality, measured
+peak/RMS taps and bit-identical audio with metering enabled or disabled.
+
+[Independent source review](2026-10-11-daw-sync-review.md) found stale Undo,
+missing native panel invalidation and unbounded aggregate import preview.
+All three findings were resolved and rechecked. The
+[final rendered design review](2026-10-11-daw-design-review/report.md) scores
+clarity, spacing, DAW familiarity and tested interaction/accessibility at 8/10,
+mobile usability and identity at 7/10. It found no remaining P0/P1 in its
+bounded browser execution. Landscape first-screen chrome remains a P2:
+the working panel is accessible but needs scrolling on an 844×390 viewport.
+
+At this dated checkpoint, PR #146 still requires exact-head GitHub CI, merge
+and deployed Pages verification. Physical phone touch, VoiceOver, owner
+listening and FM-1 hardware acceptance are separate, unclaimed gates.
