@@ -61,6 +61,33 @@ await page.waitForFunction(() => window.fm1.editor.state.mirror && window.fm1.ed
   window.fm1.editor.state.mirror.blocks.size > 6, null, { timeout: 20000 });
 await page.waitForTimeout(400);
 
+// The editor owns menu placement; the simulator still owns these exact nodes.
+const editor = page.locator('.ed');
+const menu = label => editor.locator('.ed-footer-menu').filter({ has: page.locator(`summary:text-is("${label}")`) });
+check('Panel footer is removed from the editor page', await page.locator('main > .controls, main > .files').count() === 0);
+check('Simulator control IDs remain unique', await page.evaluate(() => ['midi','dx7-load','dx7-file','zoom','power-off','open','open-file','save','save-kind','copy-link'].every(id => document.querySelectorAll(`#${id}`).length === 1)));
+await menu('Files').locator(':scope > summary').click();
+check('Files menu retains open/save/link controls', await menu('Files').locator('#open').isVisible() && await menu('Files').locator('#save').isVisible() && await menu('Files').locator('#copy-link').isVisible());
+await menu('Simulator').locator(':scope > summary').click();
+check('Opening one menu closes the other', !(await menu('Files').evaluate(e => e.open)));
+check('Simulator menu retains controls and state', await menu('Simulator').locator('#sel-sound').isVisible() && await menu('Simulator').locator('#zoom').isVisible() && await menu('Simulator').locator('#power-off').isEnabled() && await menu('Simulator').locator('#dx7-file').count() === 1);
+await menu('Simulator').locator(':scope > summary').press('Escape');
+check('Escape dismisses and returns menu focus', !(await menu('Simulator').evaluate(e => e.open)) && await menu('Simulator').locator(':scope > summary').evaluate(e => e === document.activeElement));
+check('Changes history starts hidden', !(await editor.getByRole('region', { name: 'Changes, both ways', exact: true }).isVisible()));
+await menu('Changes').locator(':scope > summary').click();
+check('Changes popover exposes shared history', await editor.locator('.ed-hist').isVisible());
+await editor.getByRole('button', { name: 'Hide sidebar', exact: true }).click();
+check('Sidebar hides and preference persists', await editor.locator('.ed-outline').isHidden() && await page.evaluate(() => localStorage.getItem('lunar.sim.editor.sidebar-hidden') === '1'));
+await page.setViewportSize({ width: 844, height: 390 });
+check('Landscape can restore a hidden sidebar', await editor.getByRole('button', { name: 'Show sidebar', exact: true }).isVisible());
+await editor.getByRole('button', { name: 'Show sidebar', exact: true }).click();
+check('Sidebar can be restored', await editor.locator('.ed-outline').isVisible());
+await page.setViewportSize({ width: 1440, height: 1000 });
+await page.click('[data-layout="panel"]');
+check('Panel restores original footer sections', await page.locator('main > .controls #midi').isVisible() && await page.locator('main > .files #open').isVisible());
+await page.click('[data-layout="workbench"]');
+check('Editor restores menus after layout roundtrip', await menu('Simulator').locator('#power-off').count() === 1 && await menu('Files').locator('#open').count() === 1);
+
 // The helpers the checks share: the project's hash through the shadow
 // Worker, and a count of what the page sends the worklet.
 await page.evaluate(() => {

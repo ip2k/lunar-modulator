@@ -129,18 +129,17 @@ export async function startEditor(env) {
     updateSidebar();
   } });
   const appbar = el('div', 'ed-appbar', { role: 'toolbar', 'aria-label': 'Editor' }, [
-    el('div', 'ed-appbar-start', {}, [title, sidebarBtn]),
+    el('div', 'ed-appbar-start', {}, [title]),
     el('div', 'ed-appbar-mid', {}, [keysChip,
       el('label', 'ed-toggle', { for: followPanelBox.id }, [followPanelBox, el('span', null, { text: 'Follow the panel' })]),
       el('label', 'ed-toggle', { for: followEditorBox.id }, [followEditorBox, el('span', null, { text: 'Open on the panel' })])]),
-    el('div', 'ed-appbar-end', {}, [fileMenu, simulatorMenu, changesMenu, undoBtn, redoBtn, el('div', 'ed-ram-wrap', {}, [ramBtn, ramList])]),
+    el('div', 'ed-appbar-end', {}, [sidebarBtn, fileMenu, simulatorMenu, changesMenu, undoBtn, redoBtn, el('div', 'ed-ram-wrap', {}, [ramBtn, ramList])]),
   ]);
 
   const outline = el('nav', 'ed-outline', { id: 'ed-sidebar', 'aria-label': 'Outline' });
   const screen = el('canvas', 'ed-screen', { width: 240, height: 240, 'aria-label': 'The FM-1 screen, as on the panel' });
   const screenCap = el('p', 'ed-screen-cap');
   const card = el('section', 'ed-card', { 'aria-label': 'On the FM-1' }, [el('p', 'ed-card-title', { text: 'On the FM-1' }), screen, screenCap]);
-  const context = el('p', 'ed-context');
   const fromPanel = el('p', 'ed-from', { hidden: true });
   const view = el('div', 'ed-view');
   const histList = el('ol', 'ed-hist-list');
@@ -148,7 +147,7 @@ export async function startEditor(env) {
     el('div', 'ed-sec-head', {}, [el('h3', 'ed-sec', { text: 'Changes, both ways' }), el('span', 'ed-note', { text: 'newest first' })]),
     histList]);
   changesMenu.querySelector('.ed-footer-menu-body').append(hist);
-  const main = el('div', 'ed-main', {}, [el('div', 'ed-heads', {}, [context, fromPanel]), view]);
+  const main = el('div', 'ed-main', {}, [el('div', 'ed-heads', {}, [fromPanel]), view]);
   const detail = el('div', 'ed-detail', { 'aria-label': 'The selected parameter' });
   const live = el('div', 'ed-sr', { 'aria-live': 'polite', role: 'status' });
   const off = el('div', 'ed-off', {}, [
@@ -450,8 +449,6 @@ export async function startEditor(env) {
     st.panelView = v;
     const words = viewWords(v);
     screenCap.textContent = `${words}: the page the panel shows now`;
-    context.innerHTML = '';
-    context.append(el('span', 'ed-ctx-k', { text: 'On the panel now: ' }), words);
     markKnobs();
     markPanelBlock();
     const moved = !was || was.mode !== v.mode || was.sound !== v.sound || was.page !== v.page || was.slot !== v.slot || was.arp !== v.arp;

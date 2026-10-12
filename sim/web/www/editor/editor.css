@@ -50,6 +50,7 @@
 .ed-icon { min-width: 54px; }
 .ed-footer-menu { position: relative; }
 .ed-footer-menu > summary { cursor: pointer; }
+.ed-footer-menu:not([open]) > .ed-footer-menu-body { display: none; }
 .ed-footer-menu-body {
   position: absolute; right: 0; top: calc(100% + 6px); z-index: 25;
   display: flex; flex-direction: column; gap: 8px; padding: 12px;
@@ -156,7 +157,7 @@
 /* ---- heads: where the panel is, what it just did --------------------------- */
 .ed-heads { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; min-height: 1.35em; }
 .ed-context, .ed-from { margin: 0; }
-.ed-context { color: var(--context); }
+.ed-heads:not(:has(.ed-from:not([hidden]))) { display: none; }
 .ed-ctx-k { color: var(--muted); }
 .ed-from { color: var(--text); }
 .ed-from > b:first-child { color: var(--context); }

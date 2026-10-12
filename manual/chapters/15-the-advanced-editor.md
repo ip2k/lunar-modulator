@@ -26,6 +26,11 @@ work. Power the simulator on first; until then the editor says so.
 
 Along the top of the editor:
 
+- **Files**, **Simulator** and **Changes** keep the page's file bar, simulator
+  controls and edit history in menus while the editor is open. In **Panel**
+  layout, the controls and file bar return to the page.
+- **Hide sidebar** gives the editor more room; **Show sidebar** brings the
+  outline and screen card back. This choice is remembered by the browser.
 - **Keys PLAY** or **Keys EDIT** says what the computer keyboard does. In PLAY
   the keys play the instrument, as they do on the panel. Click in the editor,
   or press <kbd>Ctrl</kbd>+<kbd>E</kbd> (<kbd>⌘</kbd>+<kbd>E</kbd> on a Mac), and
@@ -35,7 +40,8 @@ Along the top of the editor:
   the panel** does the reverse: choosing a block or a parameter in the editor
   opens its page on the panel.
 - **Undo** and **Redo** cover what you do in the editor and what you turn on
-  the panel, alike.
+  the panel, alike. Open **Changes** to see the recent history beside those
+  buttons.
 - **RAM** is how much of the FM-1's memory the project uses, as a percentage.
   Click it for the share of each part. Nothing the editor lets you do can go
   past 100 %.
@@ -215,17 +221,34 @@ rotate to landscape; the portrait prompt leaves playback running.
 that keep more of the matrix in view. Editing a slot opens its piano roll; a
 separate launch action plays that clip at the native bar boundary. Launching a
 scene plays its column, and empty slots stop their tracks. Scene headings
-select the scene for editing. **Arrangement** builds
-a song from those same scenes: append, copy, move or remove an entry, set its
-repeats, and choose Loop, Park or Stop at the end. Repeats share their clips;
-copy a scene before editing a different variation.
+select the scene for editing. Its range control tracks horizontal scrolling,
+and the arrow buttons move the visible window through the matrix.
+
+Double-click a scene or track name to edit it; focus a name and press
+<kbd>Enter</kbd> or <kbd>F2</kbd> to start editing with the keyboard. Press
+<kbd>Enter</kbd> or leave the field to save, or <kbd>Esc</kbd> to cancel. A
+pencil button also starts editing, including on touch. Scene names allow up
+to six printable characters without spaces, and the same scene name appears
+wherever that scene is used, including repeated arrangement sections. Track names use
+the native track-name field: up to 16 printable ASCII characters, including
+spaces.
+
+**Arrangement** builds a song from those same scenes. **＋ Add section** opens
+a chooser that appends the selected scene without changing which section is
+selected. **Section tools** starts collapsed and holds copy, move, remove and
+repeat controls for the selected section. Choose Loop, Park or Stop at the end
+under **Song ending**. Its range tracks horizontal scrolling, and the arrow
+buttons move the visible window through the arrangement. Repeats share their
+scene clips; copy a scene before editing a different variation.
 
 **Clip** keeps Pitch, Step, Gate and Velocity visible for the selected note;
 loop window, quantize and transpose remain clip controls. Click an empty cell
 or use **Add note**. Drag a note to move it, or its right edge to change its
 gate. Open **Advanced** for Microtiming and Probability. Microtiming uses
 ticks, with 24 ticks per sixteenth step. Probability belongs to the note's
-trigger. Scene tools rename, copy or clear a scene.
+trigger. Opening a clip frames its first sounding note inside the loop and
+scrolls that note into view; an empty clip opens at its loop start. You can
+still scroll the piano roll by hand. Scene tools rename, copy or clear a scene.
 
 **Automation** shows eight native parameter-lock lanes per track. Choose an
 instrument, sound insert, sound level or master-effect parameter, then enter

@@ -667,7 +667,9 @@ unbounded DAW tracks.
 - Click the piano roll or step row to enter/select notes. Drag a note to change
   its step and pitch; drag its right edge for gate length. Numeric controls offer
   the same edits, plus velocity, probability and microtiming. Page through longer
-  clips and set their loop start, length, quantization and transpose.
+  clips and set their loop start, length, quantization and transpose. Opening a
+  clip finds its first sounding note's page and scrolls that note into the piano
+  roll; an empty clip opens at its loop start. Edits retain manual scrolling.
 - Assign one of eight parameter-lock lanes per track to an instrument parameter,
   either insert, either master effect, or the routed sound's mix level. Edit the
   lane base and per-step values; an empty box removes a lock. The plot holds each
@@ -706,7 +708,8 @@ and cancellation; this does not upload the project or audio.
 
 [verified: current editor modules]. The bounded Chromium mock-host regression
 `test/sequencer-ui.mjs` covers editing, pointer movement/resizing, queued-scene
-playhead, MIDI preview/refusal, focus retention and desktop/mobile containment.
+playhead, MIDI preview/refusal, focus retention and desktop/mobile containment,
+including real Satellite Hearts Verse clip navigation and offset-loop notes.
 It is separate from real-Wasm integration and audio-render tests; no physical
 FM-1, USB or BLE acceptance follows from these browser checks.
 
@@ -729,11 +732,13 @@ it loaded before (`notes/2026-10-06-web-editor.md` §4, §23):
   side from 1,400 px (the panel keeps the 800 px its smallest targets need)
   and stacked below; *Editor*, the panel folded to its screen, which the
   editor's outline draws from the same frame (`sim.screenListeners`), in the
-  head below 1,180 px.
-- **The app bar:** the keys chip (PLAY or EDIT), *Follow the panel* and *Open
-  on the panel*, Undo and Redo, and RAM by part: one bar in the sound
-  colours with the whole as a percentage, and a list of the four sounds,
-  the master slots, what they share and what is free, each in percent
+  head below 1,180 px. Outside Panel, the page's controls and file bar are
+  available from the app bar's **Simulator** and **Files** menus.
+- **The app bar:** a remembered hide/show control for the sidebar; the keys
+  chip (PLAY or EDIT), *Follow the panel* and *Open on the panel*, Undo and
+  Redo, and the **Changes** history popover. The RAM meter shows one bar in
+  the sound colours with the whole as a percentage, and a list of the four
+  sounds, the master slots, what they share and what is free, each in percent
   (`fm1w_ram_part`, posted by the worklet as `ram` when a figure moves).
 - **The Flow** (the editor's home): four strips (the MIDI effect, the
   engine, In1, In2, the level with its meter) into the Mix and M1, M2 and

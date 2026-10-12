@@ -32,6 +32,16 @@ history.
   experiments; full-image recovery and Lunar installation remain untested.
 
 ### Added
+- **Advanced editor shell and song navigation:** outside Panel layout, the
+  page controls and file bar move into the app bar's Simulator and Files
+  menus; the sidebar visibility is remembered, and Changes opens the recent
+  undo history. Scenes and tracks can be renamed inline (scenes: six
+  printable characters without spaces; tracks: 16 printable ASCII characters,
+  spaces allowed). Each of the Scenes and Arrangement timelines has a
+  horizontal range that tracks scrolling and arrow controls. Arrangement
+  section creation has its own scene chooser, with copy, move, remove and
+  repeat actions under collapsed Section tools. Opening a clip frames and
+  scrolls to its first sounding note within the loop.
 - **Song workspace refinement:** compact scene rows, always-visible selected
   note essentials with advanced controls disclosed, and primary parameters
   first in the Song device inspector. Device modal focus returns to its
