@@ -183,3 +183,72 @@ USB/reset/capture and NOR operations remain modeled in these gates.
 `4391433161f6fe61d30d54a8b79b53c67362177b`. These later source/document changes
 require a new exact-head CI run. No target reset/probe, returned-ROM physical
 backup or returned-stock reset has executed at this checkpoint.
+
+### Stock-return source staging and first-boot prerequisites
+
+[verified: files only] Six additional reviewed files were staged once on
+bench01 at timestamp `1791775304.3124843`, without a device import, child,
+USB/SG open or command. Four closed templates occupy the distinct static
+`returned-stock-reset-source-v1` directory; the reset adapter `7af061b0…`
+and identity decoder `684342b0…` are fresh files under `tools/`. The future
+execution directory `returned-stock-reset-v1` remains absent. All eight
+wrapper activation placeholders and all four actual completed-restore pins
+remain unset. The original 35-member packet, completed install journal,
+45 existing sources and eight existing templates were checked before writing;
+the prospective source inventory contains exactly 47 files.
+
+The source-only archive is
+`ea0d669e3a5cb715357384170551c9ef2b07552b1e6077505639ada2d7d2d062`.
+Retained private evidence in `build/returned-stock-reset-source-staging-v1/`
+includes script `a76d1b4a…` and actual durable receipt
+`e60e3f8b10a858216131165fd1a724680d894dafdef940f186cf4e807e7175e6`.
+Independent source review `813e676f…` permits only this staging; it does not
+authorize preparation or execution from incomplete restore evidence.
+
+[verified: offline] The corrected closed wrapper/preparer gate has 60 passing
+unique cases, no failures/errors/skips, with explicit mixed provenance: one
+unchanged genuine V3 composed smoke and 59 V4 cases in 16 Hera chunks.
+Aggregate `af33d115…`, checker `5be5e700…`, cleanup `6ea796f3…`;
+independent retained-evidence acceptance remains pending at this entry.
+The incorrect V3 inner runner and earlier actual fixture's `speed` field
+failure are retained separately. Production sources are unchanged by those
+harness repairs. GitHub run 38199299324 is checking exact pushed checkpoint
+`20284ce7ed0543038c5861e935f345e7b4257a2c`; it is not yet accepted as green.
+Passive sysfs at timestamp `1791775290.8227494` still reported port `3-2`,
+bus 3/device 25, `4c4a:8057`, `WL80UBOOT1.00`. At this entry, target reset,
+diagnostic execution/display and the new physical recovery path remain pending.
+
+### First physical target reset and guarded probe stop
+
+[verified: physical wire/sysfs, stage not yet read] The reviewed target reset
+wrapper `ce7129a4…` ran once. Owned USBmon capture opened at
+`1791775830.3765495`, remained alive after the child and stopped with owned
+SIGTERM at `1791775855.3926494`. The command log records one exact FC0C argument
+1 intent at `1791775833.548683`; post-ioctl binding discovery failed while the
+USB device detached. Child status is 1, not completed-reset status. Passive
+sysfs found a new same-port ROM device 26, replacing 25, and recorded its original
+snapshot at `1791775855.3214695`. No reset was retried.
+
+The immediate chooser consumed its own marker and selected the detached route.
+Historical capture replay then rejected a new-ROM standard CDB
+`1e0000000100` (PREVENT/ALLOW MEDIUM REMOVAL) outside its existing allowlist.
+The chooser stopped at `1791775865.1165452` before launching either probe
+wrapper or opening SG. Independent wire/host-origin review and a distinct
+admission are required; the consumed chooser and original snapshot cannot be
+reused or refreshed. The approximately 20-second return timing is consistent
+with the diagnostic design [inferred], but does not prove diagnostic stage,
+display pixels or the cause of the ROM return.
+
+Private retained evidence is `build/target-boot-physical-v1/`: four staged
+wrapper directories in archive
+`78706bab00684047f2b812832ee697ce5e6611e7cbc62134ebda32e36f25835e`,
+reset log `1cf360bd8871e141613ed191a621e0bbd1e5906a7c0fe6b648283945ca665fc7`,
+capture `c5223ee8795534695d4471500c11ebc5be4787e116bdfdd2e7b2878d9d9b264d`,
+original ROM snapshot `e79dcad1…`. No recovery-loader upload, NOR operation or
+RAM stage probe followed this reset.
+
+[verified: offline/source-only] Independent review accepted the corrected
+60-case wrapper gate as `715e4236…` and actual six-source staging receipt as
+`ad6ad938…`. The new closed interrupted-restore evidence kernel passed 55
+cases in 16 Hera chunks and independent review `e0401d94…`; it does not yet
+admit a genuine stopped campaign or provide an opener.

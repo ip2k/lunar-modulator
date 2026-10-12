@@ -15,11 +15,15 @@ original conversation; last updated 2026-10-11. Read this first, then
 owner's FM-1. Full 1 MiB readback matches target `df6c963e…`; the exact physical
 installation and independent replay are recorded in
 [the boot-trial note](notes/2026-10-11-diagnostic-boot-trial.md).
-The device remains on ROM USB bus 3/device 25, port `3-2`, `4c4a:8057`, `sg0`
-(last passive sysfs observation 2026-10-12 02:44:59 UTC). No command has been sent
-after installation. Target boot, display, delayed return to ROM and recovery
-after diagnostic execution remain unverified. No camera was identified in the
-bench's passive video-device inventory.
+One reviewed target reset transmitted at timestamp `1791775833.548683`;
+its reply detached and the post-request binding check failed. Passive sysfs
+then found new same-port ROM bus 3/device 26 at `1791775855.3214695`.
+The immediate one-use chooser stopped before opening SG or probing RAM because
+the capture includes a new-ROM standard CDB `1e0000000100` absent from its
+allowlist. Exact wire/host-origin review is underway. Preserve the consumed
+reset and chooser; no retry or original snapshot refresh. Diagnostic stage,
+display and recovery after diagnostic execution remain unaccepted. No camera
+was identified in the bench's passive video-device inventory.
 
 [verified: recovery preparation] The returned-ROM backup source `afeefe7b…`,
 restore source `f5835237…`, and shared provenance helper `8fb33694…` are frozen.
@@ -28,16 +32,19 @@ cases in 16 Hera chunks plus three unchanged passing V2 actual cases, with
 explicit source-version provenance. Independent review accepted aggregate
 `87848de7…`; failed fixture runs remain preserved. Root's returned-stock reset
 source `7af061b0…` now pins the accepted restore verifier `f5835237…`; its focused
-58-case successor gate passed in 16 Hera chunks; independent retained-evidence
-review accepted `f7e508a6…`. The closed private stock
-return capture wrapper and pure-file preparer have separate source/runtime gates. See
+58-case successor gate passed in 16 Hera chunks; final independent retained-evidence
+review accepted `99643fd4…`. The closed private stock return capture wrapper
+and pure-file preparer passed 60 unique mixed-version cases; independent review
+accepted `715e4236…`. Six additional closed sources were staged without hardware
+access, actual receipt `e60e3f8b…`, independent acceptance `ad6ad938…`. See
 [the recovery design](notes/2026-10-11-returned-rom-recovery-design.md).
 
 [verified: staged files only] Probe helper/native `8fb33694…`/`8ad32e42…` passed
 101 unique cases plus one actual-private modeled smoke; independent review
 accepted `cd990cc8…`. The chooser passed 26 unique cases plus its modeled smoke;
 review accepted `70954552…`. Successful and detached reset probe wrappers and
-the chooser are staged without execution. Source-only staging V2 wrote 31
+the chooser have now been consumed as described above. Neither stage-probe
+wrapper was launched. Source-only staging V2 wrote 31
 exactly pinned files, checked the original 35-member packet and all 45 required
 sources, and retained the completed install journal separately. The recovery
 executor remains closed. Receipt `7ea7bfbd…` and independent review `2bbe8c01…`
@@ -59,16 +66,18 @@ passed 287 cases without skips. Native SG test portability repair passed 79
 cases plus its smoke. Later recovery additions have the separate gates above.
 GitHub run 38197006075 on exact checkpoint `4391433161f6fe61d30d54a8b79b53c67362177b`
 passed all thirteen jobs; later changes need their own exact-head CI run. The feature branch is `feature/2026-10-11@installable-firmware`,
-with `43914331…` committed and remote-SHA verified. No PR or merge has occurred.
+with parent checkpoint `20284ce7…` committed and remote-SHA verified. Exact-head
+run 38199299324 remains in progress. No PR or merge has occurred.
 
-Next: accept the genuine recovery and stock-return wrapper gates; bind the final
-restore dependency and obtain concrete review; execute target reset once and
-the chooser promptly within the original ROM snapshot's 120-second window,
-before any recovery-loader upload. Preserve ambiguous statuses without retry.
-Then capture fresh matching target backups, restore stock under the new binding,
-and verify normal identity. A separate interrupted-restore resume envelope is
-still required; the underlying transaction worker already rebuilds from fresh
-actual flash and has independent interruption/corruption model coverage.
+Next: independently review the actual reset/host-enumeration capture and a
+distinct admission route before reading diagnostic RAM; preserve the original
+timestamp and consumed markers. Then capture fresh matching target backups,
+restore stock under the new binding and verify normal identity. The new closed
+interrupted-restore evidence kernel `cef2d0ea…` passed 55 cases in 16 Hera chunks;
+independent review `e0401d94…` accepted only its prefix/dual-dump scope. Genuine
+stopped-lineage/current journal/capture and distinct partial-NOR acquisition
+admission remain required; execution is unconditionally closed. Native write
+completion is not NOR success: uncertainty clears only on matching FD05 readback.
 The active goal remains a working physical diagnostic with verified recovery,
 documented procedures and completed required review/CI/integration gates.
 
