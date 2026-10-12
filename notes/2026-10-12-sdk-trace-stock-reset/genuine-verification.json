@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "counts": {
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "hardware_access": false,
+  "source_pins_unchanged": true,
+  "proof_factories_unchanged": true,
+  "archive_sha256": "6d9aef894982fec6ba549cb819f0a12897223fb26178002606fbf8ba11087c01",
+  "duration_seconds": 408.1483986377716,
+  "container_cleanup_verified": true
+}

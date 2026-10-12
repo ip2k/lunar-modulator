@@ -1,3 +1,25 @@
+## Physical V7 launch in progress, 2026-10-12
+
+Exact staged source a8dca15e CI 38307343562 passed all 13 jobs. Root reviewed
+launch receipt and recovery plan are staged; all 209 files were rechecked,
+original closed sequence/closure preserved, four literal pins accepted. Activated
+sequence SHA 1eaaa51f446b920cc0560f9146f3adc53cb4d19d48cf65ae32ed3b26990b02ed.
+One-use physical chain actually running on bench01. Entry identified FM-1_092,
+sent one vetted soft key, observed UBOOT bus1/device9, took dual stock backup
+and passed initial wire/baseline replay/install preparation. Install worker is
+running at this checkpoint. DO NOT retry the consumed chain or kill its capture
+parent. Inspect /home/claude/fm1-sdk-trace-entry-20261012-v7/automatic-trace-chain-v7
+and /home/claude/v7-physical-activation-20261012/sequence.stdout. Root launcher
+PID recorded in fresh-launch-process.json. Fresh inputs and all descendants are
+owned by the one-use sequence. Cynthion capture blocked by exclusive interface;
+Pi owned usbmon captures are active. No physical power cycle needed at entry.
+Physical boot/display/recovery still unverified. Recovery plan and actual paths
+are in notes/2026-10-12-fresh-bench-v7/launch-review.md and private root plan.
+New reset adapter genuine factory admission/refusal integration passed on Hera,
+1 pass/zero skips, retained isolation and successful container cleanup verified;
+see notes/2026-10-12-sdk-trace-stock-reset/genuine-verification.json. It is not
+part of the V7 physical sequence. Current c856 checkpoint CI 38310099991 pending.
+
 ## Latest continuation: SDK-trace stock reset, 2026-10-12
 
 Goal remains active. Fresh normal FM-1 enumeration is bus1/device8; no physical

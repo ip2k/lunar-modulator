@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "accepted_staged_source": "a8dca15e60d8c18ac84f46572c246f08f45b6e09",
+  "ci_run": 38307343562,
+  "ci_conclusion": "success",
+  "ci_jobs": 13,
+  "activation_pins": {
+    "CLOSURE_SHA": "9be533acf24a7916dd2f1d56ff76bf2eab4970e475bab695120e7a671149be21",
+    "RECOVERY_PLAN_SHA": "6df2f01ec5268f7b1bf3acddeb941f865b652ff1c9e307598331de7c0589eed6",
+    "ROOT_ACCEPTANCE_SHA": "0b57406a700eb7d4081bbd1436da525da80ceff5a0fdd852f44f8bb634a64415",
+    "WIRE_SHA": "b9b98cfb5f89bb95cef301ff2ec630c43db75613da2c0a74f9e1ed1d66dacf0e",
+    "activated_sequence_sha256": "1eaaa51f446b920cc0560f9146f3adc53cb4d19d48cf65ae32ed3b26990b02ed"
+  },
+  "files_checked": 209,
+  "original_sources_preserved": true,
+  "sequence_started": true,
+  "physical_identity": "FM-1_092",
+  "soft_key_sent_once": true,
+  "uboot_observed": true,
+  "normal_usb_devnum": "8",
+  "rom_usb_devnum": "9",
+  "capture": "Pi owned usbmon; Cynthion exclusive claim unavailable",
+  "stock_dual_backup_completed": true,
+  "install_worker_running_at_checkpoint": true,
+  "physical_boot_verified": false,
+  "physical_recovery_verified": false
+}

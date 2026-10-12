@@ -18,12 +18,12 @@ factory provenance. Retained evidence is private under
 Two collection setup failures were corrected (preexisting image work directory,
 then missing test-module PYTHONPATH), without weakening assertions.
 
-The separate genuine-factory integration test is running on Hera at
+[verified: modeled integration] The separate genuine-factory test passed on Hera at
 `/home/claude/mvave-fm1/sdk-trace-stock-reset-actual-20261012`. It preserves
 source pins, completed-proof factories and registries and models the device
 only. Its acceptance gate is completed restore admission followed by refusal
 when conflicting evidence appears after durable reset intent, with no reset
-ioctl and a consumed attempt. Pending; do not treat launch as a pass.
+ioctl and a consumed attempt. One pass, zero failures/errors/skips in 407.97 seconds; terminal isolation and cleanup verified. Private retained archive hash is recorded in genuine-verification.json.
 
 [verified: tooling limitation] Rarefaction and Serena still select the primary
 checkout rather than this managed worktree. Bounded queries could not find
