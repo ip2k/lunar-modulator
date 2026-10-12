@@ -27,6 +27,25 @@ Private reset evidence is `build/post-rehearsal-reset-physical/`. Next: fresh
 backup/session binding, install-only diagnostic boot, display and recovery;
 corrupted/interrupted-write acceptance remains outstanding.
 
+The install-only adapter `25412082…` passed 37 unique tests in 16 Hera chunks
+plus a complete actual-input modeled install, and independent review accepted
+the frozen source/evidence. It is committed and verified pushed at
+`3cc74bfd5891b58b31730ee572ec34323957611a`.
+A fresh entry reached ROM device 25; its first backup stopped before SG node
+creation and sent no adapter commands. The independently reviewed one-use
+pre-transport continuation succeeded: both fresh 1 MiB dumps match stock
+`96006a51…`, all 8,757 requests passed independent transcript/capture replay,
+and the original failed attempt/marker remain intact. A new install-only
+packet passed actual staged-file preflight; its concrete wrapper review is
+pending, with no installation or target reset yet in this new session.
+The distinct target reset guard passed 107 Hera tests in 16 chunks plus its
+actual-input model and independent review, and was committed and remote-SHA
+verified at `45e21964d37fde86330eab65fa4c2866b1951ca6`.
+The full Python suite is running on Hera in 16 chunks. A separate ROM probe
+is being developed to read the diagnostic's 32-byte stage block before a
+recovery loader overwrites it. Evidence and next dependencies are in
+[the boot trial note](notes/2026-10-11-diagnostic-boot-trial.md).
+
 The following entries are historical checkpoints, superseded where the physical
 result above supplies later evidence.
 
