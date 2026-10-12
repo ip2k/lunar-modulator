@@ -221,10 +221,10 @@ try {
  for(const [width,height] of [[1440,1100],[844,390],[667,375]]){
   await page.setViewportSize({width,height});await page.waitForTimeout(60);
   const overlaps=await page.locator('.sq-matrix-cell').evaluateAll(cells=>cells.flatMap(cell=>{
-   const pencil=cell.querySelector('.sq-scene-edit')?.getBoundingClientRect(),body=cell.querySelector('[data-scene-launch]')?.getBoundingClientRect();if(!pencil||!body)return[];
+   const pencil=cell.querySelector('.sq-scene-edit')?.getBoundingClientRect(),body=cell.querySelector('[data-scene-launch]')?.getBoundingClientRect(),cellBox=cell.getBoundingClientRect();if(!pencil||!body)return[];
    const intersects=r=>r.width&&r.height&&r.left<pencil.right-1&&r.right>pencil.left+1&&r.top<pencil.bottom-1&&r.bottom>pencil.top+1;
    const content=[...cell.querySelectorAll('.sq-scene-summary,.sq-clip-preview')].filter(item=>intersects(item.getBoundingClientRect())).map(item=>item.className);
-   return intersects(body)?[...content,'launch target']:content;
+   return cellBox.height<54||cellBox.height>64?[...content,`cell height ${cellBox.height}`]:intersects(body)?[...content,'launch target']:content;
   }));
   if(overlaps.length)throw Error(`Clip content overlaps the pencil at ${width}px: ${overlaps.join(', ')}`);
  }
