@@ -33,3 +33,23 @@ checkout rather than this isolated worktree. Shared selection remains unchanged;
 source and actual browsers were used here. Native/Wasm sources are unchanged.
 Checks do not establish final-head CI, deployed reload, listening or hardware
 acceptance. Next dependency: parent popup repair SHA, then focused validation.
+
+## Actual application measurements [verified]
+
+The actual powered browser app was checked with the default project, using
+PulseAudio null sink, in all three browsers. The 1440 by 900 Workbench has an
+actual 498 px sequencer region. Its Add popup fits: x1193.7–1373.7,
+y258.7–590.9. Section tools remains inline and contained (Firefox/WebKit
+x913–1303.9, y303.6–357.4). At editor844 by390 Add spans y218.7–550.9;
+at667 by375 it spans y210.6–542.8. Both landscape Add menus overflow the
+vertical viewport. Inline Section tools fits at both (approximately
+y263.6–316.5 and255.5–308.4). Representative actual Workbench498 and landscape
+667 Section tools screenshots were inspected; no horizontal clipping was seen.
+One Chromium Workbench tools measurement occurred during layout settling at
+1102 px; the matching498 px Firefox/WebKit measurements are the width receipt.
+
+Actual screenshots and bounds are under `results/{browser}/actual/`. The
+initial supplemental actual-app script incorrectly combined explicit Power on
+with auto-loading and later used an ambiguous layout locator; those probe errors
+were corrected (default project and button-only locator). Product source and
+existing suites were not changed.
