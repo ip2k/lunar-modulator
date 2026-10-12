@@ -930,9 +930,10 @@ export function makeSequencer(ctx) {
     }
     const watched = transport?.tracks?.[state.track];
     const liveScene = (transport?.playing ? watched?.playing : watched?.active) ?? transport?.scene;
-    const liveStep = watched ? Math.floor(watched.posTick / 24) : transport?.step;
+    const livePosition = watched ? watched.posTick / 24 : transport?.step;
+    const liveStep = Math.floor(livePosition);
     const playhead = root.querySelector('[data-roll-playhead]');
-    if (playhead) { playhead.hidden = !transport?.playing || liveScene !== state.scene || liveStep < state.page * 32 || liveStep >= (state.page + 1) * 32; playhead.style.left = `${60 + (liveStep - state.page * 32) * 28}px`; }
+    if (playhead) { playhead.hidden = !transport?.playing || liveScene !== state.scene || livePosition < state.page * 32 || livePosition >= (state.page + 1) * 32; playhead.style.left = `${60 + (livePosition - state.page * 32) * 28}px`; }
     for (const e of root.querySelectorAll('[data-step]')) e.classList.toggle('is-playing', !!transport?.playing && liveScene === state.scene && Number(e.dataset.step) === liveStep);
     for (const e of root.querySelectorAll('[data-mixer-track]')) e.classList.toggle('is-playing', !!transport?.playing && transport.tracks?.[Number(e.dataset.mixerTrack)]?.playing >= 0);
     updatePlayback(transport);

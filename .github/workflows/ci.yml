@@ -214,7 +214,7 @@ jobs:
       - name: Panel-follow and scheduling helper tests (node)
         timeout-minutes: 5
         run: |
-          node --test sim/web/test/panel-follow.test.mjs sim/web/test/startup-ready.test.mjs sim/web/test/scheduling-capture.test.mjs sim/web/test/playback-timeline.test.mjs sim/web/test/sequencer-host.test.mjs sim/web/test/sequence-model.test.mjs sim/web/test/sequence-playback.test.mjs
+          node --test sim/web/test/panel-follow.test.mjs sim/web/test/startup-ready.test.mjs sim/web/test/scheduling-capture.test.mjs sim/web/test/playback-timeline.test.mjs sim/web/test/sequencer-host.test.mjs sim/web/test/sequence-model.test.mjs sim/web/test/sequence-playback.test.mjs sim/web/test/sequence-transport.test.mjs sim/web/test/song-shortcuts.test.mjs
       - name: The editor's data and history against the module (node)
         timeout-minutes: 5
         run: node sim/web/test/editor-unit.mjs sim/web/www
@@ -241,7 +241,7 @@ jobs:
         run: |
           mkdir -p "$SHOTS"
           status=0
-          for t in editor-ui editor-reach editor-map editor-v1 info-dialogs sequencer-ui sequencer-playback-ui sequencer-native sequencer-sync; do
+          for t in layout-probe-ui editor-ui editor-reach editor-map editor-v1 info-dialogs sequencer-ui sequencer-playback-ui song-shortcuts-ui sequencer-native sequencer-sync; do
             echo "::group::$t ($BROWSER)"
             node "sim/web/test/$t.mjs" sim/web/www "$SHOTS" || status=1
             echo "::endgroup::"
