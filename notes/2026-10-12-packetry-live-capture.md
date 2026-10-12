@@ -303,3 +303,37 @@ remain present. No physical FM-1 power cycle is currently required. Fresh CUA
 access still reports a locked Mac and failed automatic unlock, so Packetry UI
 control is pending owner unlock. No device command, power toggle or NOR operation
 was performed during this checkpoint.
+
+
+### Current-reader verification successor and corrected mechanics coverage
+
+[verified: passive USB] FM-1 remains normal 4c4a:c755 bus1/device8 and MIDI C2D0;
+no physical cycle requested. CUA getApp again reports locked Mac/failed automatic
+unlock. No device commands, resets, USB power changes or NOR writes were sent.
+
+[verified: model] V6g heavy completed: two cases passed, zero skips; genuine
+capture failure/replay rejection/stock restore case passed in 1375.11 seconds.
+The restore journal verifies stock SHA 96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4,
+30 sectors with 0x4000 committed last. Retained archive
+c17013d753e692a4257376bddce70971eb96776cb5fd278605c78635d207ed03:
+317 regular temporary files checked, private inputs unchanged, no authority
+overrides, isolated containers and exact-owned cleanup verified. Not hardware proof.
+
+[verified: model coverage correction] V6i passed 235 current-checkout mechanics
+nodes but omitted tools/ nodes because its selection filter accepted tests/ only.
+The filter is corrected; V6j separately passed all 63 omitted outer lifecycle
+nodes in 16 chunks. Local archive, node-union, exits, no-skip logs, isolation and
+read-only mounts verified; both session labels empty. Retained archives:
+V6i 96ca6d3d23ba40764dabe105bba172dd73166a4cf03e415403f865b0c3d25229;
+V6j 755944beb42a4e702cf659257b6d22d41b99bb48e0afbd169a4ce28f23b64893.
+
+[verified: source-only proposal] V6 recovery assembly has 80 files under two
+fresh proposed roots. It explicitly records historical 6c9ed932 reader versus
+current 411d8018; all activation gates remain closed. V6k model proposal uses
+the current reader, strict private fixture and current install capture, recomputes
+20 literal dependency changes over 9 iterations, and verifies source inventories.
+Its archive SHA is 5c4ae2e772e26ec8c5b33d47848c350eca93b702268dec74b02889dc5d43c584;
+1,787 regular source files. Heavy verification launched on Hera in exclusive
+owned-restore-v6k-resumed-20261012 roots. Source delta and assembler are tracked;
+private source/fixture archives stay ignored. No physical execution authorized
+by this proposal. CI 38301026217 still in progress on 292f1d8a at checkpoint.

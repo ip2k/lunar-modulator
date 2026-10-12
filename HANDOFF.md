@@ -16,33 +16,44 @@ Physical diagnostic boot/display and full-stock recovery remain unverified.
 Read `notes/2026-10-12-packetry-live-capture.md` for current evidence; the restart
 checkpoint and boundaries below are historical unless explicitly refreshed.
 
-Latest backed-up head before this note: 9a4e8b23d21fcd37f2d1528e5de4d65f82494a3f,
+Latest verified backed-up head before this checkpoint: 292f1d8a1f9f0d39b32c8404ed7ff81aecc3430d,
 branch `feature/2026-10-11@installable-firmware`, managed worktree
-`installable-firmware/mvave-fm1-firmware`. Current source-only pin integration
-matches modeled adapter fa0899f5 and admission 6eb30cfd; checkpoint pending below.
-No hardware gate is active; do not run historical V5 packets or reuse markers.
+`installable-firmware/mvave-fm1-firmware`. No hardware gate is active;
+do not run historical V5 packets or reuse consumed markers.
 
 [verified: passive observation] Bench01 still enumerates normal FM-1 4c4a:c755,
 bus1/device8, with /dev/snd/midiC2D0. No physical power cycle is presently needed.
-Packetry retained a fresh private Cynthion capture before this resume. Current
-Computer Use reports a locked Mac and failed automatic unlock; owner unlock is
-needed for UI control. This is not a known FM-1 failure.
+Computer Use still reports a locked Mac and failed automatic unlock. Owner
+unlock was requested; this does not block device-free Hera verification.
 
-[verified: modeled checks] V6h mechanics passed all 235 nodes in 16 parallel Hera
-containers; archive 2198398c verified locally including exact-owned cleanup.
-V6e/f heavy failures are retained; V6f archive 55a1307f includes 229 verified
-regular temporary files. V6g heavy fixes model import isolation and is active:
-actual capture-failure/replay rejection passed, successful modeled restore is
-running. V6g/h heavy uses historical install capture; current optional private
-fixture requires exact successor 59b8e8c2. Fresh V6i current-checkout mechanics
-and outer-sequencer tests run in 16 Hera chunks, source archive 73710725.
-All checks are device-free models; physical recovery remains unverified.
+[verified: modeled checks] V6g heavy passed both genuine-helper/owned-wrapper
+cases, including capture failure, consumed-attempt replay rejection and stock
+restore (30 sectors, commit sector last). Its 317 regular temporary files,
+unchanged private inputs, isolation and exact successful-container cleanup were
+verified locally; retained archive c17013d753e692a4257376bddce70971eb96776cb5fd278605c78635d207ed03.
+V6i current-checkout mechanics passed 235 tests in 16 chunks. Its node filter
+omitted tools/ tests; fixed separately, V6j passed all 63 outer lifecycle cases
+in 16 fresh chunks. Both retained archives were locally verified; both exact
+session labels are empty. These are model results, not physical recovery.
 
-Required CI run 38294796000 passed all 13 jobs on e967af9808d61bbaf91d32dd49929a5ff56a1235.
-That earlier head does not cover this WIP. Next: retain/verify V6g and V6i
-terminal results, finish original-stage binding review and a fresh source closure,
-then exact-head review/CI before the staged hardware sequence. Use Hera for heavy
-work and exactly 16 chunks for parallelizable tests; leave aeon alone.
+[verified: source boundary] The passing V6g closure used historical RAM reader
+6c9ed932; the checkout uses 411d8018, which accepts diagnostic panel error codes.
+The private V6 source-only assembly explicitly retains this distinction and is
+not execution authority. V6k closes the current reader, stricter private fixture
+and current install capture through 20 transitive source changes, in 9 iterations.
+Its 1,787-file private archive is 5c4ae2e772e26ec8c5b33d47848c350eca93b702268dec74b02889dc5d43c584;
+runner dd97bf2360be778cbf750dfc89f321b62622738521fe67d963e57cbfc18a7418.
+The heavy model is launched on Hera at
+/home/claude/mvave-fm1/owned-restore-v6k-resumed-20261012/heavy-model-proposal-v6k.
+Read notes/2026-10-12-recovery-stage-successor-v6k/source-delta.json.
+No new source pins have been integrated into production tools from V6k yet.
+
+CI run 38301026217 on exact 292f1d8a is in progress at this checkpoint; earlier
+13-job green runs do not cover this work. Next: retain V6k results, resolve
+current-reader/source closure review, complete fresh root/recovery-plan review
+and exact-head CI before staged hardware work. Physical diagnostic boot/display,
+full-stock restore and whole-code audit remain pending. Use Hera for heavy work,
+16 chunks for parallelizable tests, and leave aeon alone.
 
 ## Historical restart checkpoint — 2026-10-12
 

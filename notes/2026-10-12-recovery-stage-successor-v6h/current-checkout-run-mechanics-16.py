@@ -39,7 +39,7 @@ assert subprocess.check_output(['docker','image','inspect',IMAGE,'--format={{.Id
 assert not subprocess.check_output(['docker','ps','-aq','--filter','label=lan.session='+SESSION],text=True).strip()
 status,output=run('collect',['--collect-only',*FILES])
 if status:raise SystemExit(status)
-nodes=[line for line in output.decode().splitlines() if line.startswith('tests/') and '::' in line]
+nodes=[line for line in output.decode().splitlines() if line.startswith(('tests/','tools/')) and '::' in line]
 assert len(nodes)==len(set(nodes)) and len(nodes)>=16
 chunks=[nodes[i::16] for i in range(16)]
 save(OUT/'shards.json',dict(nodes=nodes,chunks=chunks,source_archive_sha256='73710725916dcb687306336b8e907bd00c9079cebf2f8dbf043ed6f8cafc4061',hardware_access=False))
