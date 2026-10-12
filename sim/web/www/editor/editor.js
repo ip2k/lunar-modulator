@@ -248,6 +248,9 @@ export async function startEditor(env) {
   }, true);
   window.addEventListener('keydown', (e) => {
     if (e.defaultPrevented || st.layout === 'panel') return;
+    // Let the browser dismiss the top-layer popover before Escape gives the
+    // keys back to the instrument. Cancelling this event keeps it open.
+    if (e.key === 'Escape' && root.querySelector('[popover="auto"]:popover-open')) return;
     const mod = isMac ? e.metaKey : e.ctrlKey;
     if (mod && !e.altKey && e.key.toLowerCase() === 'e') {
       e.preventDefault();

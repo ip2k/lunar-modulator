@@ -17,7 +17,7 @@ try {
     m.tracks[0].clips[0].notes=[{step:0,tick:0,pitch:60,gate:24,vel:90}];
     window.doc={set:writeSet(m),sounds:[{engine:'Test',level:70,inserts:[]}]};window.calls=[];window.nativeKeys=0;window.refuse=false;window.pending=false;
     window.seq=makeSequencer({fetchProject:async()=>structuredClone(window.doc),applyProject:async(d,label)=>{if(window.pending)await new Promise(r=>window.release=r);if(window.refuse)throw Error('native refusal');window.doc=d;calls.push(label)},
-      play:()=>calls.push('button play'),playPause:()=>calls.push('transport'),restart:()=>calls.push('restart'),toggleSidebar:()=>calls.push('sidebar'),
+      playPause:()=>calls.push('transport'),restart:()=>calls.push('restart'),toggleSidebar:()=>calls.push('sidebar'),
       claimKeys:()=>calls.push('claim'),getTransport:()=>({playing:false}),inspector:key=>{const p=document.createElement('p');p.textContent=key;return p}});
     document.querySelector('main').append(seq.render());await seq.refresh();window.model=()=>parseSet(doc.set);
     // Same capture ordering used by the full editor, ahead of app.js's synth keys.
@@ -60,8 +60,8 @@ try {
   await page.keyboard.press('Tab');assert.equal(await root.getAttribute('data-song-view'),'Clip');
   const transports=await page.evaluate(()=>calls.filter(x=>x==='transport').length);
   await page.getByRole('button',{name:'Play',exact:true}).focus();await page.keyboard.press('Space');await settled();
-  assert.equal(await page.evaluate(()=>calls.filter(x=>x==='button play').length),1,'focused button keeps native Space activation');
-  assert.equal(await page.evaluate(()=>calls.filter(x=>x==='transport').length),transports);
+  assert.equal(await page.evaluate(()=>calls.filter(x=>x==='transport').length),transports+1,
+    'focused Play/Pause button activates once through native Space, without a second Song shortcut');
   await canvas('a');assert.equal(await root.getAttribute('data-song-view'),'Automation');
   await canvas('e');await page.evaluate(()=>window.refuse=true);await canvas('Delete');
   assert.equal(await page.evaluate(()=>model().tracks[0].clips[0].notes.length),2);
