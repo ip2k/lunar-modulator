@@ -29,11 +29,24 @@ journal `5a684c7d63ba88dfb33469822c452d0f606fb8bee9ab6e9da716c3f35cfd00f6`.
 Independent report `build/sdk-rehearsal-review.md` has SHA
 `fc5b58e5425d04546852fd2621a4982e68648def47499c473df3f647da4d66b0`.
 
-[verified: actual-file preflight; no reset sent] The separate stock-return
-campaign `f2a9f740…` accepted these completed physical receipts without opening
-hardware. Its reset is a distinct one-shot operation; the earlier baseline-only
-reset helper is invalid after this rehearsal. No application has been booted by
-this campaign yet.
+[verified: physical reset transmission and restored stock response] The separate
+stock-return campaign `f2a9f740…` accepted these completed physical receipts,
+then sent exactly one `FC0C` argument-1 CDB. The capture records its complete
+31-byte CBW, followed by USB detach during the 16-byte input transfer. The old
+SG binding disappeared, so the helper and wrapper exited 1 and retained an
+ambiguous-request receipt. No successful SG completion or retry is claimed.
+The new same-port device 24 enumerated as `4c4a:c755`, with audio/MIDI interfaces,
+and answered one read-only identity request with the exact known `FM-1_092`
+frame. Combined with the prior complete NOR readback, this verifies restored
+stock application response after the remote reset without a physical power
+cycle. Audio output, the panel and internal reset domains were not observed.
+
+Private reset mirror `build/post-rehearsal-reset-physical/physical-private.tar.gz`
+has SHA `1fe0d5b489eb5d1195bc28d3b534906153d052b52e6513a691a0e45b2d7c6590`;
+reset log `492791a1189ed1f2abe9ca4fd09284d0d437dc3249a0446076e98768b87d21bc`;
+capture `e0d24e4d0f0c89a8e19cafb5d2e11b64e975125a9f8f82ad185faabd5daa82a2`.
+Independent reset/identity report `build/fixed-rehearsal-reset-review.md` has
+SHA `6ecd3616e6322b0f4e5bbbbdc69770322a12c415b03be6fa27c5f56a41f32cb1`.
 
 The new `tools/fm1_sdk_rehearsal.py` accepts one exact target
 `df6c963ecd37b334f393c5bc92c2780b6094181308822a03c8190b016a4e97db`
@@ -65,9 +78,8 @@ authority for this changed source. Parent must stage a new exact packet and
 repeat its file-only checks before hardware. No source or mock pass claims
 physical installation, boot, display or recovery.
 
-Next: the separate reviewed post-rehearsal reset policy and observation of stock
-operation; baseline-only no-later-commands reset is invalid after rehearsal.
-Diagnostic boot/display/recovery and interrupted-write
+Next: fresh backup/session binding, install-only diagnostic boot/display/recovery
+and interrupted-write
 physical acceptance remain later goal dependencies. All private SDK/vendor
 artifacts remain ignored and undistributed.
 

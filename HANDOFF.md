@@ -19,10 +19,13 @@ replayed. Evidence is private under `build/sdk-rehearsal-physical/`; details and
 limits are in [the rehearsal note](notes/2026-10-11-sdk-rehearsal.md).
 The distinct post-rehearsal stock reset `743ac876…` passed 107 cases in 16 Hera
 chunks plus its actual-input modeled smoke and independent review. Its actual
-physical-receipt campaign `f2a9f740…` passed file-only preflight without opening
-hardware. No reset or application boot has run yet. Next: separately reviewed
-one-shot reset, stock USB/identity observation, then install-only diagnostic boot,
-display and recovery; corrupted/interrupted-write acceptance remains outstanding.
+physical-receipt campaign `f2a9f740…` sent one exact FC0C argument-1 CBW, then
+lost its binding during USB reset and exited 1 without retry or claimed SG
+completion. Normal same-port USB device 24 and the exact `FM-1_092` identity
+response verify restored stock operation without a physical power cycle.
+Private reset evidence is `build/post-rehearsal-reset-physical/`. Next: fresh
+backup/session binding, install-only diagnostic boot, display and recovery;
+corrupted/interrupted-write acceptance remains outstanding.
 
 The following entries are historical checkpoints, superseded where the physical
 result above supplies later evidence.
