@@ -121,7 +121,7 @@ export function makeSequencer(ctx) {
   let releaseFader = null;
   const meterHold = new Map();
   // Capacity follows the stable workspace, never a grid being replaced by draw().
-  let layout = gridLayout(0), resizeFrame = 0, resizePending = false, pointerActive = false;
+  let layout = gridLayout(0), resizeFrame = 0, resizePending = false, pointerActive = false, pointerRelease = 0, refreshPending = false;
   state.scenesPage = 0; state.songPage = 0;
   function gridLayout(width) {
     const available = Math.max(240, width - 28);
@@ -136,6 +136,7 @@ export function makeSequencer(ctx) {
   }
   function resizeGrids() {
     resizeFrame = 0;
+    if (refreshPending && !pointerActive) { refreshPending = false; draw(); }
     if (disposed || !root.isConnected) return;
     const next = gridLayout(content.getBoundingClientRect().width);
     if (JSON.stringify(next) === JSON.stringify(layout)) { resizePending = false; return; }
@@ -150,9 +151,17 @@ export function makeSequencer(ctx) {
   }
   function scheduleResize() { if (!resizeFrame) resizeFrame = requestAnimationFrame(resizeGrids); }
   const gridObserver = new ResizeObserver(scheduleResize); gridObserver.observe(root);
-  root.addEventListener('pointerdown', () => { pointerActive = true; }, { capture: true });
-  const finishPointer = () => { pointerActive = false; if (resizePending) scheduleResize(); };
-  window.addEventListener('pointerup', finishPointer); window.addEventListener('pointercancel', finishPointer);
+  root.addEventListener('pointerdown', () => { clearTimeout(pointerRelease); pointerActive = true; }, { capture: true });
+  const finishPointer = () => { clearTimeout(pointerRelease); pointerRelease = 0; pointerActive = false; if (resizePending || refreshPending) scheduleResize(); };
+  const releasePointer = e => {
+    if (!pointerActive) return;
+    if (!root.contains(e.target)) { finishPointer(); return; }
+    // Firefox can paint between pointerup and click. Keep the target connected
+    // until click dispatch; a drag/release without a click must also settle.
+    pointerRelease = setTimeout(finishPointer, 250);
+  };
+  window.addEventListener('pointerup', releasePointer); window.addEventListener('pointercancel', finishPointer);
+  window.addEventListener('click', finishPointer);
   const finishEdit = () => { if (resizePending) scheduleResize(); };
   root.addEventListener('focusout', finishEdit);
   if (ctx.transportHost) transportMount.addEventListener('focusout', finishEdit);
@@ -240,7 +249,7 @@ export function makeSequencer(ctx) {
           const model = parseSet(doc.set || ['movy1']);
           state.doc = doc; state.model = model; readText = text; state.dirty = false;
           if (selected) state.note = (clip()?.notes || []).findIndex(n => n.tick === selected.tick && n.pitch === selected.pitch);
-          draw();
+          if (pointerActive) refreshPending = true; else draw();
           return;
         }
       } catch (e) { announce(`Cannot read the sequence: ${e.message}`, true); readError = true; }
@@ -1214,5 +1223,5 @@ export function makeSequencer(ctx) {
 return { render() { if (state.dirty && !state.busy) refresh(); return root; }, refresh, update, onTelemetry, syncLevels, onKey, contains,
     toggleTransport: () => action(ctx.playPause), restartTransport: () => action(ctx.restart),
     wantRows() { return (ctx.metadata?.doc?.telemetry?.sections || []).filter(s => ['meters', 'levels'].includes(s.name)).flatMap(s => s.rows.flatMap((row, r) => state.view === 'Mixer' || row === 'out.post_master' ? [s.mask + r] : [])); },
-    invalidate() { state.dirty = true; readRevision++; }, destroy() { gridObserver.disconnect(); cancelAnimationFrame(resizeFrame); if (ctx.transportHost) transportMount.removeEventListener('focusout', finishEdit); window.removeEventListener('pointerup', finishPointer); window.removeEventListener('pointercancel', finishPointer); releaseFader?.(); closeInspector(); disposed = true; cancelDrag?.(); window.removeEventListener('resize', syncMixerAfterResize); compactMixerMedia.removeEventListener('change', syncMixerDisclosure); if (ctx.transportHost) transportMount.replaceChildren(); root.remove(); } };
+    invalidate() { state.dirty = true; readRevision++; }, destroy() { gridObserver.disconnect(); cancelAnimationFrame(resizeFrame); if (ctx.transportHost) transportMount.removeEventListener('focusout', finishEdit); clearTimeout(pointerRelease); window.removeEventListener('pointerup', releasePointer); window.removeEventListener('pointercancel', finishPointer); window.removeEventListener('click', finishPointer); releaseFader?.(); closeInspector(); disposed = true; cancelDrag?.(); window.removeEventListener('resize', syncMixerAfterResize); compactMixerMedia.removeEventListener('change', syncMixerDisclosure); if (ctx.transportHost) transportMount.replaceChildren(); root.remove(); } };
 }

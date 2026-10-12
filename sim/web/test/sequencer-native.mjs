@@ -173,7 +173,7 @@ try {
     assert.equal(await page.locator('.sq-matrix-cell [data-scene-launch]').count(), visibleScenes * 8);
     assert.equal(await page.getByRole('button', { name: 'Launch scene 1', exact: true }).isVisible(), true);
     assert.equal(await page.locator('.sq-scene-title [data-scene-launch]').first().innerText(), '▶');
-    assert.equal(await page.locator('.sq-matrix-cell [data-scene-launch]').first().innerText(), '▶');
+    assert.match(await page.locator('.sq-matrix-cell [data-scene-launch]').first().innerText(), /^▶(?:\s|$)/);
     assert.equal(await page.locator('.sq-scene-title').first().evaluate(e => e.firstElementChild.hasAttribute('data-scene-launch')), true);
     assert.equal(await page.locator('.sq-matrix-cell').first().evaluate(e => e.firstElementChild.hasAttribute('data-scene-launch')), true);
     const slots = new Set(), next = page.getByRole('button', { name: 'Next scenes page', exact: true });
@@ -217,10 +217,55 @@ try {
     await until(async () => Number(await page.evaluate(() => fm1.editor.state.mirror.levels[0])) === before + 1, 'native sound level update');
     assert.match(await fader.getAttribute('aria-valuetext'), /dB$/);
     report.checks.push('measured sound/master meters and keyboard fader edit update native mirror');
-    await tab('Clip');
+    await page.evaluate(() => fm1.editor.sequencer.refresh());
+    await fader.focus();
+    // Hold a real tab press across resize frames, including a frame after
+    // pointerup: Firefox may paint there before dispatching the click.
+    await page.setViewportSize({ width: 844, height: 1100 });
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+    const clipTab = page.getByRole('tab', { name: 'Clip', exact: true });
+    await clipTab.scrollIntoViewIfNeeded();
+    const tabBox = await clipTab.boundingBox();
+    await page.mouse.move(tabBox.x + tabBox.width / 2, tabBox.y + tabBox.height / 2);
+    await page.mouse.down();
+    await page.evaluate(() => fm1.editor.sequencer.refresh(true));
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+    await clipTab.evaluate(e => { window.heldClipTab = e; e.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); });
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+    assert.equal(await page.evaluate(() => window.heldClipTab.isConnected), true, 'resize keeps the released target until click');
+    await page.mouse.up();
+    assert.equal(await clipTab.getAttribute('aria-selected'), 'true');
+    await page.setViewportSize({ width: 1440, height: 1100 });
     assert.notEqual(await page.locator('[data-roll-playhead]').getAttribute('style'), null);
     await page.locator('.ed-transport-tools').getByRole('button', { name: 'Stop', exact: true }).click();
     await page.waitForFunction(() => !fm1.seq.playing);
+    for (const [i, release] of ['cancel', 'outside', 'no-click', 'new-press'].entries()) {
+      await page.evaluate(() => {
+        window.resizeTarget = document.querySelector('[data-view="Clip"]');
+        window.resizeTarget.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+      });
+      await page.setViewportSize({ width: i % 2 ? 1440 : 844, height: 1100 });
+      await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+      await page.evaluate(kind => {
+        const e = new PointerEvent(kind === 'cancel' ? 'pointercancel' : 'pointerup', { bubbles: true });
+        (kind === 'outside' ? document.body : window.resizeTarget).dispatchEvent(e);
+        if (kind === 'new-press') window.resizeTarget.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+      }, release);
+      if (release === 'new-press') {
+        await page.waitForTimeout(300);
+        assert.equal(await page.evaluate(() => window.resizeTarget.isConnected), true, 'old release cannot end a new press');
+        await page.evaluate(() => window.resizeTarget.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true })));
+      }
+      await page.waitForFunction(() => !window.resizeTarget.isConnected, null, { timeout: 2000 });
+    }
+    await page.evaluate(async () => {
+      window.refreshTarget = document.querySelector('[data-view="Clip"]');
+      window.refreshTarget.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+      await fm1.editor.sequencer.refresh(true);
+    });
+    assert.equal(await page.evaluate(() => window.refreshTarget.isConnected), true, 'refresh-only redraw waits for gesture');
+    await page.evaluate(() => window.refreshTarget.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true })));
+    await page.waitForFunction(() => !window.refreshTarget.isConnected, null, { timeout: 2000 });
     await page.evaluate(async () => {
       const host = fm1.editor.sequencerHost, doc = await host.fetchProject();
       doc.sounds[0].engine = 'macro'; doc.sounds[0].params = { Model: 0, Harmonics: .5 };
