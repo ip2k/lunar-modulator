@@ -272,7 +272,11 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   [the browser receipt](notes/2026-10-12-editor-native-browser-acceptance.md).
   MIDI
   Learn overlays registered editor and simulator controls, binds an incoming
-  note or CC, and shows a clearable assignment badge. Project JSON
+  note or CC, and shows a clearable assignment badge. Its piano-key button is
+  beside MIDI connection in Panel and before Cheat Sheet in Editor/Workbench.
+  Stable transport IDs survive redraws; the old semantic Play target resolves
+  to Play/Pause, while ambiguous legacy ordinal Pause/Stop entries stay saved
+  but unavailable until remapped. Project JSON
   and binary formats preserve these mappings; binary save and quiet autosave
   wait for the AudioWorklet mapping acknowledgement, and project load restores
   the saved map. Live USB/BLE project transfer is not implemented. The native

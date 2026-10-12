@@ -245,9 +245,12 @@ clips, edit notes in a piano roll, launch scenes and arrange their repeats
 into a song. Import one or more MIDI files with a track-and-sound mapping preview,
 edit step locks for instruments and effects, and save a `.lunar` project or
 `.movy1` sequencer set. Projects with song content open in Song automatically;
-an explicit workspace choice is kept. MIDI Learn assigns an incoming note or
-control change to a clicked control. The workspace adapts its grids to the
-available width and pages longer scenes, arrangements, clips and automation
+an explicit workspace choice is kept. Open the piano-key MIDI Learn icon
+(beside MIDI connection in Panel, or before Cheat Sheet in Editor and
+Workbench), connect a MIDI device, click a highlighted control, then play a
+note or send a control change. Assignment badges show the binding and let you
+clear it. The workspace adapts its grids to the available width and pages
+longer scenes, arrangements, clips and automation
 rows. Its pinned transport shows position, elapsed and available remaining time,
 and navigation for bars, clips and scenes. The mixer has
 vertical sound and Master faders, live peak/RMS meters and editable instrument,

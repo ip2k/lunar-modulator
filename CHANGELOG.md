@@ -56,7 +56,10 @@ history.
   scrolls to its first sounding note within the loop.
 - **MIDI Learn and song transport:** the piano control overlays eligible
   simulator and editor controls; click a control, then play a MIDI note or send
-  a control change to bind it. The assignment badge can clear the mapping.
+  a control change to bind it. Teal highlights show eligible controls, and
+  assignment badges show and clear bindings. Legacy semantic Play assignments
+  continue to resolve to Play/Pause; ambiguous older ordinal Pause/Stop
+  assignments remain saved as unavailable until remapped.
   Project JSON and binary files preserve browser mappings, and saves wait for
   the AudioWorklet's mapping acknowledgement. Native preflight includes the
   reserved mapping storage and automation queues. The pinned transport shows
