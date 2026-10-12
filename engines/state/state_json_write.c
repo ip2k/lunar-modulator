@@ -65,6 +65,7 @@ struct fm1_state_writer {
   uint32_t level[4];
   uint32_t seed;
   fm1_rec_t session, view;
+  fm1_midi_map_t midi_map;
   uint16_t info_n[FM1_INFO_KEYS];
   uint8_t info_has[FM1_INFO_KEYS];
   char info[FM1_INFO_KEYS][W_INFO];
@@ -276,6 +277,15 @@ int fm1_state_write(void *wv, const fm1_rec_t *r) {
       w->set_bool[r->u.setting.key] = r->u.setting.is_bool;
       w->set_val[r->u.setting.key] = r->u.setting.value;
       return 1;
+    case FM1_REC_MIDI_MAP:
+      if (w->kind != FM1_STATE_PROJECT || r->u.map_version != FM1_MIDI_MAP_VERSION || w->midi_map.version)
+        return werr(w, FM1_STATE_BAD, "invalid or duplicate MIDI map");
+      w->midi_map.version = r->u.map_version; return 1;
+    case FM1_REC_MIDI_BINDING: {
+      const unsigned code = fm1_midi_map_add(&w->midi_map, r->u.binding.target, r->u.binding.source,
+        r->u.binding.channel, r->u.binding.kind, r->u.binding.number);
+      return code == FM1_STATE_OK ? 1 : werr(w, code, "invalid or oversized MIDI map");
+    }
     case FM1_REC_END:
       return write_doc(w);
     default:
@@ -1033,6 +1043,24 @@ static int write_doc(fm1_state_writer_t *w) {
       }
     }
     close_c(w, '}');
+  }
+  if (w->midi_map.version) {
+    const fm1_midi_map_t *m = &w->midi_map;
+    key(w, "browser"); open_c(w, '{', 0);
+    key(w, "midiMap"); open_c(w, '{', 0);
+    key(w, "version"); jint(w, m->version);
+    key(w, "bindings"); open_c(w, '[', 0);
+    for (i = 0; i < m->count; ++i) {
+      const fm1_midi_binding_t *b = &m->binding[i];
+      sep(w); open_c(w, '{', 0);
+      key(w, "target"); jstrz(w, m->text + b->target);
+      key(w, "source"); jstrz(w, m->text + b->source);
+      key(w, "channel"); jint(w, b->channel);
+      key(w, "kind"); jstrz(w, b->kind ? "cc" : "note");
+      key(w, "number"); jint(w, b->number);
+      close_c(w, '}');
+    }
+    close_c(w, ']'); close_c(w, '}'); close_c(w, '}');
   }
   close_c(w, '}');
   if (!w->compact) raw(w, "\n", 1);

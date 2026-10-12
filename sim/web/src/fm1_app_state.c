@@ -474,6 +474,15 @@ static int collect(fm1_app_t *a, unsigned kind, int arg, fm1_rec_sink_t sink, vo
       mod_out(&c, a, MOD_ALL, 0, NULL);
       if (set_text(a)) lines_out(&c, g_set, g_set_n, FM1_LINES_SET);
       if (!g_no_view) view_out(&c, a);
+      if (a->midi_map.version) {
+        fm1_rec_t r = blank(FM1_REC_MIDI_MAP); r.u.map_version = a->midi_map.version; out(&c, &r);
+        for (unsigned i = 0; i < a->midi_map.count; ++i) {
+          const fm1_midi_binding_t *b = &a->midi_map.binding[i];
+          r = blank(FM1_REC_MIDI_BINDING);
+          r.u.binding.target = a->midi_map.text + b->target; r.u.binding.source = a->midi_map.text + b->source;
+          r.u.binding.channel = b->channel; r.u.binding.kind = b->kind; r.u.binding.number = b->number; out(&c, &r);
+        }
+      }
       break;
     }
     case FM1_STATE_SOUND: {
@@ -724,6 +733,7 @@ typedef struct plan {
   /* Lines, the session, the view, settings, words. */
   uint8_t has_set, has_clip, has_session, has_view;
   fm1_rec_t session, view;
+  fm1_midi_map_t midi_map;
   uint8_t setting_has[FM1_SET_KEYS];
   int32_t setting[FM1_SET_KEYS];
   char name[33];
@@ -876,6 +886,15 @@ static int plan_pass1(plan_t *p, const fm1_rec_t *r) {
     case FM1_REC_INFO:
       info_take(p, r);
       break;
+    case FM1_REC_MIDI_MAP:
+      if (p->midi_map.version || r->u.map_version != FM1_MIDI_MAP_VERSION) { rep->code = FM1_STATE_BAD; return 0; }
+      p->midi_map.version = r->u.map_version; break;
+    case FM1_REC_MIDI_BINDING: {
+      unsigned code = fm1_midi_map_add(&p->midi_map, r->u.binding.target, r->u.binding.source,
+        r->u.binding.channel, r->u.binding.kind, r->u.binding.number);
+      if (code != FM1_STATE_OK) { rep->code = (uint8_t)code; snprintf(rep->what, sizeof rep->what, "invalid or oversized MIDI map"); return 0; }
+      break;
+    }
     case FM1_REC_SESSION:
       p->has_session = 1;
       p->session = *r;
@@ -1097,7 +1116,7 @@ static int plan_finish(plan_t *p) {
   const fm1_engine_t *mfx_res[FM1_APP_SOUNDS];
   uint8_t mfx_on[FM1_APP_SOUNDS];
   const unsigned flags = p->o->flags;
-  size_t ram = 0, mfx = 0;
+  size_t ram = sizeof(fm1_midi_map_t), mfx = 0;
   int sounds = 0;
   rep->r.kind = (uint8_t)p->kind;
   if (p->o->kind && p->o->kind != p->kind) {
@@ -1645,6 +1664,7 @@ static void apply_view(fm1_app_t *a, const fm1_rec_t *v) {
 
 static void apply_finish(plan_t *p) {
   fm1_app_t *a = p->a;
+  if (p->kind == FM1_STATE_PROJECT) a->midi_map = p->midi_map;
   /* A pad kit's focus last, and its per-pad knobs read back for the pad
    * it shows. */
   for (int u = 0; u < FM1_APP_UNITS; ++u) {
@@ -1867,5 +1887,31 @@ int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t tot
   if (!(o->flags & FM1_APP_LOAD_QUIET)) {
     fm1_app_say(a, FM1_APP_TONE_SAY, "LOADED", p->name[0] ? p->name : kind_word(p->kind), rep->screen[1]);
   }
+  return 1;
+}
+
+static int midi_only_sink(void *ctx, const fm1_rec_t *r) {
+  fm1_state_report_t *rep = ctx;
+  unsigned code = FM1_STATE_OK;
+  if (r->type == FM1_REC_HEAD) { if (r->u.head.kind != FM1_STATE_PROJECT) code = FM1_STATE_BAD; }
+  else if (r->type == FM1_REC_MIDI_MAP) {
+    if (g_plan.midi_map.version || r->u.map_version != FM1_MIDI_MAP_VERSION) code = FM1_STATE_BAD;
+    else g_plan.midi_map.version = r->u.map_version;
+  } else if (r->type == FM1_REC_MIDI_BINDING) {
+    code = fm1_midi_map_add(&g_plan.midi_map, r->u.binding.target, r->u.binding.source,
+      r->u.binding.channel, r->u.binding.kind, r->u.binding.number);
+  } else if (r->type != FM1_REC_END) code = FM1_STATE_BAD;
+  if (code != FM1_STATE_OK) { rep->code = (uint8_t)code; snprintf(rep->what, sizeof rep->what, "invalid MIDI map update"); return 0; }
+  return 1;
+}
+int fm1_app_midi_map_set(fm1_app_t *a, const uint8_t *bytes, size_t len, fm1_state_report_t *rep) {
+  fm1_state_json_reader_t reader;
+  memset(&g_plan.midi_map, 0, sizeof g_plan.midi_map);
+  fm1_state_json_begin(&reader, names(), midi_only_sink, rep, rep);
+  reader.maps_only = 1;
+  if (len > FM1_STATE_CAP_PROJECT) { rep->code = FM1_STATE_TOO_BIG; return 0; }
+  if (!fm1_state_json_feed(&reader, bytes, len) || !fm1_state_json_end(&reader) ||
+      !g_plan.midi_map.version) return 0;
+  a->midi_map = g_plan.midi_map;
   return 1;
 }

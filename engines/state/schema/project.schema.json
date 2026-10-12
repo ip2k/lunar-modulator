@@ -4,19 +4,60 @@
   "title": "Lunar Modulator project",
   "description": "Everything a user makes, but device settings and MASTER: the session, four sounds with their inserts and MIDI effects, the master slots, the FM6 user voices in use, the modulation rack and matrix, the set, and where the panel opens. A load replaces everything, from init. Suggested file name: first-orbit.lunar.",
   "type": "object",
-  "allOf": [{"$ref": "common.schema.json#/$defs/head"}],
-  "required": ["lunar", "kind", "sounds"],
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/head"
+    }
+  ],
+  "required": [
+    "lunar",
+    "kind",
+    "sounds"
+  ],
   "properties": {
-    "kind": {"const": "project"},
-    "session": {"$ref": "common.schema.json#/$defs/session"},
+    "kind": {
+      "const": "project"
+    },
+    "session": {
+      "$ref": "common.schema.json#/$defs/session"
+    },
     "sounds": {
       "description": "Sound units 1-4; Sound 1 is never empty.",
       "type": "array",
       "prefixItems": [
-        {"$ref": "common.schema.json#/$defs/sound"},
-        {"anyOf": [{"$ref": "common.schema.json#/$defs/sound"}, {"type": "null"}]},
-        {"anyOf": [{"$ref": "common.schema.json#/$defs/sound"}, {"type": "null"}]},
-        {"anyOf": [{"$ref": "common.schema.json#/$defs/sound"}, {"type": "null"}]}
+        {
+          "$ref": "common.schema.json#/$defs/sound"
+        },
+        {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/sound"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/sound"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/sound"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
       ],
       "minItems": 4,
       "maxItems": 4,
@@ -27,16 +68,98 @@
       "type": "array",
       "minItems": 2,
       "maxItems": 2,
-      "items": {"$ref": "common.schema.json#/$defs/effectOrNone"},
-      "default": [null, null]
+      "items": {
+        "$ref": "common.schema.json#/$defs/effectOrNone"
+      },
+      "default": [
+        null,
+        null
+      ]
     },
-    "dx7": {"$ref": "common.schema.json#/$defs/dx7Voices"},
+    "dx7": {
+      "$ref": "common.schema.json#/$defs/dx7Voices"
+    },
     "mod": {
-      "allOf": [{"$ref": "common.schema.json#/$defs/mod"}],
-      "required": ["seed"]
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/$defs/mod"
+        }
+      ],
+      "required": [
+        "seed"
+      ]
     },
-    "set": {"$ref": "common.schema.json#/$defs/movy1"},
-    "view": {"$ref": "common.schema.json#/$defs/view"}
+    "set": {
+      "$ref": "common.schema.json#/$defs/movy1"
+    },
+    "view": {
+      "$ref": "common.schema.json#/$defs/view"
+    },
+    "browser": {
+      "description": "Project preferences preserved by native JSON and binary saves. MIDI IDs share a 4096-byte UTF-8 pool including NUL terminators; at most 64 bindings. Targets use printable ASCII semantic IDs, sources use exact WebMIDI input IDs. Native storage does not route MIDI.",
+      "type": "object",
+      "properties": {
+        "midiMap": {
+          "type": "object",
+          "required": [
+            "version",
+            "bindings"
+          ],
+          "properties": {
+            "version": {
+              "const": 1
+            },
+            "bindings": {
+              "type": "array",
+              "maxItems": 64,
+              "items": {
+                "type": "object",
+                "required": [
+                  "target",
+                  "source",
+                  "channel",
+                  "kind",
+                  "number"
+                ],
+                "properties": {
+                  "target": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 192,
+                    "pattern": "^[!-~]+$"
+                  },
+                  "source": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]*$",
+                    "description": "Native cap is 128 UTF-8 bytes, which can be fewer than 128 Unicode characters."
+                  },
+                  "channel": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 15
+                  },
+                  "kind": {
+                    "enum": [
+                      "note",
+                      "cc"
+                    ]
+                  },
+                  "number": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 127
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
   },
   "unevaluatedProperties": false
 }

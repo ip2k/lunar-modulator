@@ -378,6 +378,11 @@ int fm1w_state_load(int kind, int into, int slot, unsigned flags, unsigned len) 
   return fm1_app_state_load(&g_app, fm1_app_state_mem_read, &m, len, &o, &g_state_rep);
 }
 
+int fm1w_midi_map_set(unsigned len) {
+  if (len > sizeof g_text) return 0;
+  return fm1_app_midi_map_set(&g_app, (const uint8_t *)g_text, len, &g_state_rep.r);
+}
+
 int fm1w_state_pack(unsigned len) {
   /* The file is read whole before a byte of the result is put. */
   fm1_app_state_mem_t m = { (const uint8_t *)g_text, len };

@@ -19,7 +19,7 @@
 enum {
   C_NONE = 0, C_DOC, C_MADE, C_SESSION, C_KEYOBJ, C_SOUNDS, C_UNIT, C_PARAMS, C_PADS, C_PAD,
   C_INSERTS, C_MFXS, C_MASTER, C_CHAIN, C_DX7S, C_DX7, C_OPS, C_OP, C_GLOBALS, C_MOD, C_RACK,
-  C_MODULE, C_MPARAMS, C_MDATA, C_CABLES, C_CABLE, C_REF, C_TARGET, C_LINES, C_VIEW, C_SETTINGS
+  C_MODULE, C_MPARAMS, C_MDATA, C_CABLES, C_CABLE, C_REF, C_TARGET, C_LINES, C_VIEW, C_SETTINGS, C_BROWSER, C_MIDI_MAP, C_MIDI_BINDINGS, C_MIDI_BINDING
 };
 
 enum {
@@ -35,6 +35,7 @@ enum {
   M_SOURCE, M_MODULE, M_PORT, M_UNIT, M_PARAM, M_GATE,
   M_MODE, M_VSOUND, M_PAGE, M_VUNIT, M_TRACK, M_BAR, M_PANEL, M_VPOS, M_VSLOT, M_ENTRY,
   M_METRONOME, M_COUNT_IN_CLICK, M_FULL_VELOCITY, M_MIDI_IN_CHANNEL,
+  M_BROWSER, M_MIDI_MAP, M_BINDINGS, M_TARGET_ID, M_CHANNEL, M_NUMBER,
   M_UNKNOWN,
   M_PNAME,          /* a resolved parameter key (C_PARAMS, C_PAD, C_MPARAMS) */
   M_COUNT
@@ -53,13 +54,14 @@ static const char *const kMember[M_COUNT] = {
   "source", "module", "port", "unit", "param", "gate",
   "mode", "sound", "page", "unit", "track", "bar", "panel", "pos", "slot", "entry",
   "metronome", "count_in_click", "full_velocity", "midi_in_channel",
+  "browser", "midiMap", "bindings", "target", "channel", "number",
   "?", "?"
 };
 
 /* The members of each object context, in canonical order (the schemas'). */
 static const uint8_t kDoc[] = { M_SCHEMA, M_LUNAR, M_KIND, M_MADE, M_NAME, M_TITLE, M_ABOUT,
   M_AUTHOR, M_LICENCE, M_SESSION, M_SOUNDS, M_SOUND, M_MASTER, M_CHAIN, M_DX7, M_MOD, M_SET,
-  M_CLIP, M_SETTINGS, M_VIEW, 0 };
+  M_CLIP, M_SETTINGS, M_VIEW, M_BROWSER, 0 };
 static const uint8_t kMade[] = { M_BY, M_VERSION, M_COMMIT, 0 };
 static const uint8_t kSession[] = { M_CURRENT, M_OCTAVE, M_TRANSPOSE, M_KEY, 0 };
 static const uint8_t kKey[] = { M_ROOT, M_SCALE, 0 };
@@ -77,6 +79,10 @@ static const uint8_t kView[] = { M_MODE, M_VSOUND, M_PAGE, M_VUNIT, M_TRACK, M_B
 static const uint8_t kSettings[] = { M_METRONOME, M_COUNT_IN_CLICK, M_FULL_VELOCITY,
   M_MIDI_IN_CHANNEL, 0 };
 
+static const uint8_t kBrowser[] = { M_MIDI_MAP, 0 };
+static const uint8_t kMidiMap[] = { M_VERSION, M_BINDINGS, 0 };
+static const uint8_t kMidiBinding[] = { M_TARGET_ID, M_SOURCE, M_CHANNEL, M_KIND, M_NUMBER, 0 };
+
 static const uint8_t *members_of(unsigned ctx) {
   switch (ctx) {
     case C_DOC: return kDoc;
@@ -93,6 +99,9 @@ static const uint8_t *members_of(unsigned ctx) {
     case C_TARGET: return kTarget;
     case C_VIEW: return kView;
     case C_SETTINGS: return kSettings;
+    case C_BROWSER: return kBrowser;
+    case C_MIDI_MAP: return kMidiMap;
+    case C_MIDI_BINDING: return kMidiBinding;
     default: return NULL;
   }
 }
@@ -100,7 +109,7 @@ static const uint8_t *members_of(unsigned ctx) {
 static int is_array_ctx(unsigned ctx) {
   switch (ctx) {
     case C_SOUNDS: case C_PADS: case C_INSERTS: case C_MFXS: case C_MASTER: case C_CHAIN:
-    case C_DX7S: case C_OPS: case C_OP: case C_GLOBALS: case C_RACK: case C_CABLES: case C_LINES:
+    case C_MIDI_BINDINGS: case C_DX7S: case C_OPS: case C_OP: case C_GLOBALS: case C_RACK: case C_CABLES: case C_LINES:
       return 1;
     default:
       return 0;
@@ -113,7 +122,7 @@ static int doc_member_ok(unsigned m, unsigned kind) {
                  MO = 1u << FM1_STATE_MODS, CL = 1u << FM1_STATE_CLIP, SE = 1u << FM1_STATE_SETTINGS;
   unsigned ok;
   switch (m) {
-    case M_SESSION: case M_SOUNDS: case M_MASTER: case M_SET: ok = P; break;
+    case M_BROWSER: case M_SESSION: case M_SOUNDS: case M_MASTER: case M_SET: ok = P; break;
     case M_SOUND: ok = S; break;
     case M_CHAIN: ok = F; break;
     case M_DX7: ok = P | S; break;
@@ -889,6 +898,8 @@ static int doc_value(fm1_state_json_reader_t *r, const fm1_json_ev_t *ev) {
       if (!want_arr(r, ev)) return 0;
       r->lines = 0;
       return push(r, C_LINES, 0, 0, 0, r->member == M_SET ? FM1_LINES_SET : FM1_LINES_CLIP, NULL);
+    case M_BROWSER:
+      return want_obj(r, ev) && push(r, C_BROWSER, 0, 0, 0, 0, NULL);
     case M_SETTINGS:
       return want_obj(r, ev) && push(r, C_SETTINGS, 0, 0, 0, 0, NULL);
     case M_VIEW:
@@ -1314,6 +1325,41 @@ static int object_value(fm1_state_json_reader_t *r, fm1_state_frame_t *f, const 
       return ref_value(r, ev);
     case C_TARGET:
       return target_value(r, ev);
+    case C_BROWSER:
+      return want_obj(r, ev) && push(r, C_MIDI_MAP, 0, 0, 0, 0, NULL);
+    case C_MIDI_MAP:
+      if (r->member == M_VERSION) {
+        if (ev->type != FM1_JSON_NUM || fm1_num_int(ev->s, ev->n, 0, 255, &v) != FM1_NUM_OK)
+          return bad(r, "mapping version is an integer");
+        if (v != FM1_MIDI_MAP_VERSION) return refuse(r, v > 1 ? FM1_STATE_TOO_NEW : FM1_STATE_BAD, "unsupported MIDI mapping version");
+        f->flags = 1;
+        rec_init(&rec, FM1_REC_MIDI_MAP); rec.u.map_version = (uint8_t)v;
+        return emit(r, &rec);
+      }
+      if (!f->flags) return bad(r, "context first: mapping version precedes bindings");
+      return want_arr(r, ev) && push(r, C_MIDI_BINDINGS, 0, 0, 0, 0, NULL);
+    case C_MIDI_BINDING:
+      if (r->member == M_TARGET_ID || r->member == M_SOURCE) {
+        char *dst = r->member == M_TARGET_ID ? r->midi_target : r->midi_source;
+        const unsigned cap = r->member == M_TARGET_ID ? FM1_MIDI_MAP_TARGET : FM1_MIDI_MAP_SOURCE;
+        if (ev->type != FM1_JSON_STR) return bad(r, "mapping identifiers are strings");
+        if (ev->first) r->midi_n = 0;
+        if (r->midi_n + ev->n > cap) return refuse(r, FM1_STATE_TOO_BIG, "mapping identifier past its byte cap");
+        if (memchr(ev->s, 0, ev->n)) return bad(r, "NUL in a mapping identifier");
+        memcpy(dst + r->midi_n, ev->s, ev->n); r->midi_n += (uint16_t)ev->n; dst[r->midi_n] = 0;
+        return 1;
+      }
+      if (r->member == M_KIND) {
+        if (ev->type != FM1_JSON_STR) return bad(r, "mapping kind is note or cc");
+        if (!gather(r, ev)) return 1;
+        if (!sbuf_is(r, "note") && !sbuf_is(r, "cc")) return bad(r, "mapping kind is note or cc");
+        r->acc.u.binding.kind = (uint8_t)sbuf_is(r, "cc"); return 1;
+      }
+      if (ev->type != FM1_JSON_NUM || fm1_num_int(ev->s, ev->n, 0, r->member == M_CHANNEL ? 15 : 127, &v) != FM1_NUM_OK)
+        return bad(r, "mapping MIDI value out of range");
+      if (r->member == M_CHANNEL) r->acc.u.binding.channel = (uint8_t)v;
+      else r->acc.u.binding.number = (uint8_t)v;
+      return 1;
     case C_VIEW:
       return view_value(r, ev);
     case C_SETTINGS: {
@@ -1359,6 +1405,12 @@ static int array_item(fm1_state_json_reader_t *r, fm1_state_frame_t *f, const fm
                       unsigned index) {
   int64_t v;
   switch (f->ctx) {
+    case C_MIDI_BINDINGS:
+      if (index >= FM1_MIDI_MAP_BINDINGS) return refuse(r, FM1_STATE_TOO_BIG, "too many MIDI bindings");
+      if (!want_obj(r, ev)) return 0;
+      rec_init(&r->acc, FM1_REC_MIDI_BINDING);
+      r->midi_target[0] = r->midi_source[0] = 0;
+      return push(r, C_MIDI_BINDING, index, 0, 0, 0, NULL);
     case C_SOUNDS:
       if (index >= 4u) return bad(r, "a project has four sound units");
       return unit_item(r, ev, index, FM1_ROLE_SOUND, index, 0);
@@ -1554,6 +1606,14 @@ static int on_close(fm1_state_json_reader_t *r, const fm1_json_ev_t *ev) {
   if (r->depth == 0) return bad(r, "unexpected end");
   f = top(r);
   switch (f->ctx) {
+    case C_MIDI_MAP:
+      if (f->seen != 3u) return bad(r, "midiMap needs version and bindings");
+      break;
+    case C_MIDI_BINDING:
+      if (f->seen != 31u) return bad(r, "a MIDI binding needs target, source, channel, kind and number");
+      r->acc.u.binding.target = r->midi_target; r->acc.u.binding.source = r->midi_source;
+      if (!emit(r, &r->acc)) return 0;
+      break;
     case C_SESSION:
       if (!emit(r, &r->acc)) return 0;
       break;
@@ -1693,7 +1753,7 @@ int fm1_state_json_end(fm1_state_json_reader_t *r) {
     const uint64_t s = r->frame[0].seen;   /* frames are popped; seen bits stay */
     unsigned need = 0, i;
     switch (r->kind) {
-      case FM1_STATE_PROJECT: need = M_SOUNDS; break;
+      case FM1_STATE_PROJECT: need = r->maps_only ? M_BROWSER : M_SOUNDS; break;
       case FM1_STATE_SOUND: need = M_SOUND; break;
       case FM1_STATE_FX: need = M_CHAIN; break;
       case FM1_STATE_MODS: need = M_MOD; break;
