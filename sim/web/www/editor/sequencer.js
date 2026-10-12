@@ -553,6 +553,23 @@ export function makeSequencer(ctx) {
         btn(sceneName(scene), () => { add.open = false; edit('Append scene to song', m => { m.song.push(scene); }); },
           { 'aria-label': `Append scene ${scene + 1}: ${sceneName(scene)}`, disabled: state.model.song.length >= 64 }))),
     ]);
+    add.addEventListener('toggle', () => {
+      if (!add.open) return;
+      const menu = add.querySelector('.sq-add-menu'), anchor = add.querySelector('summary').getBoundingClientRect();
+      const viewport = window.visualViewport;
+      const left = (viewport?.offsetLeft || 0) + 8, top = (viewport?.offsetTop || 0) + 8;
+      const right = left + (viewport?.width || window.innerWidth) - 16;
+      const bottom = top + (viewport?.height || window.innerHeight) - 16;
+      const below = bottom - anchor.bottom - 6, above = anchor.top - top - 6;
+      const upward = below < 100 && above > below;
+      menu.style.top = upward ? 'auto' : 'calc(100% + 6px)';
+      menu.style.bottom = upward ? 'calc(100% + 6px)' : 'auto';
+      menu.style.maxHeight = `${Math.max(0, upward ? above : below)}px`;
+      menu.style.maxWidth = `${right - left}px`;
+      menu.style.left = '0';
+      const bounds = menu.getBoundingClientRect();
+      menu.style.left = `${Math.max(left - bounds.left, Math.min(0, right - bounds.right))}px`;
+    });
     const tools = el('details', 'sq-section-tools', {}, [el('summary', 'sq-button', { text: 'Section tools' }), el('div', 'sq-toolbar', {}, [
       btn('Copy entry', () => alter('Copy song entry', es => { if (es[state.song]) es.splice(state.song + 1, 0, clone(es[state.song])); }), { disabled: !selected }),
       btn('Move ←', () => alter('Move song entry earlier', es => { if (state.song > 0) { const e = es.splice(state.song, 1)[0]; es.splice(--state.song, 0, e); } }), { disabled: !selected || !state.song }),
