@@ -72,6 +72,7 @@ try {
  await page.getByLabel('New note pitch',{exact:true}).fill('60');await page.getByLabel('New note pitch',{exact:true}).dispatchEvent('change');
  await page.getByRole('button',{name:'Add note',exact:true}).click();
  await page.waitForFunction(()=>window.model().tracks[0].clips[0].notes.length===2);
+ await page.getByLabel('MIDI pitch',{exact:true}).waitFor({state:'visible'});
  for(const label of ['MIDI pitch','Step','Gate · ticks','Velocity'])if(!await page.getByLabel(label,{exact:true}).isVisible())throw Error(`Essential note field hidden: ${label}`);
  const advanced=page.locator('.sq-note-details details.sq-note-advanced');
  if(await advanced.evaluate(e=>e.open)||await page.getByLabel('Probability %',{exact:true}).isVisible())throw Error('Advanced note controls should start collapsed');
@@ -89,6 +90,7 @@ try {
  const nb=await page.locator('[data-note="1"]').boundingBox();
  await page.mouse.move(nb.x+12,nb.y+8);await page.mouse.down();const stepWidth=await page.locator('.sq-note-lane').first().evaluate(e=>e.clientWidth/Number(e.closest('.sq-roll').style.getPropertyValue('--steps')));await page.mouse.move(nb.x+12+stepWidth*2,nb.y-15,{steps:4});await page.mouse.up();
  await page.waitForFunction(()=>window.model().tracks[0].clips[0].notes.some(n=>n.pitch===61&&n.step===2));
+ await page.waitForFunction(()=>document.querySelector('.sq').getAttribute('aria-busy')==='false'&&document.querySelector('[data-note="1"]')?.getAttribute('aria-label')?.includes('step 3, gate 48 ticks'));
  const handle=await page.locator('[data-resize-note="1"]').boundingBox();
  await page.mouse.move(handle.x+3,handle.y+8);await page.mouse.down();await page.mouse.move(handle.x+3+stepWidth,handle.y+8,{steps:4});await page.mouse.up();
  await page.waitForFunction(()=>window.model().tracks[0].clips[0].notes.some(n=>n.pitch===61&&n.gate===72));
