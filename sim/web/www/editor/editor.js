@@ -88,8 +88,10 @@ export async function startEditor(env) {
   followEditorBox.checked = st.followEditor;
   followPanelBox.addEventListener('change', () => { st.followPanel = followPanelBox.checked; pref('follow-panel', st.followPanel ? 1 : 0); });
   followEditorBox.addEventListener('change', () => { st.followEditor = followEditorBox.checked; pref('follow-editor', st.followEditor ? 1 : 0); });
-  const undoBtn = el('button', 'ed-icon', { type: 'button', title: `Undo (${MOD}Z)`, text: 'Undo', onclick: () => undo() });
-  const redoBtn = el('button', 'ed-icon', { type: 'button', title: `Redo (${isMac ? '⇧⌘Z' : 'Ctrl+Y'})`, text: 'Redo', onclick: () => redo() });
+  const undoBtn = el('button', 'ed-icon ed-history-button', { type: 'button', title: `Undo (${MOD}Z)`, 'aria-label': 'Undo', onclick: () => undo() },
+    [el('span', '', { 'aria-hidden': 'true', text: '↶' })]);
+  const redoBtn = el('button', 'ed-icon ed-history-button', { type: 'button', title: `Redo (${isMac ? '⇧⌘Z' : 'Ctrl+Y'})`, 'aria-label': 'Redo', onclick: () => redo() },
+    [el('span', '', { 'aria-hidden': 'true', text: '↷' })]);
   const ramBar = el('span', 'ed-ram-bar', { 'aria-hidden': 'true' });
   const ramText = el('span', 'ed-ram-text', { text: 'RAM –' });
   const ramList = el('ul', 'ed-ram-list', { id: nextId('ram') });
@@ -137,7 +139,7 @@ export async function startEditor(env) {
   const appbar = el('div', 'ed-appbar', { role: 'toolbar', 'aria-label': 'Editor' }, [
     el('div', 'ed-appbar-start', {}, [sidebarBtn, title]),
     el('div', 'ed-appbar-mid', {}, [keysChip]),
-    el('div', 'ed-appbar-end', {}, [fileMenu, simulatorMenu, changesMenu, songFileTools, undoBtn, redoBtn, cpuBtn, el('div', 'ed-ram-wrap', {}, [ramBtn, ramList])]),
+    el('div', 'ed-appbar-end', {}, [simulatorMenu, changesMenu, fileMenu, songFileTools, undoBtn, redoBtn, cpuBtn, el('div', 'ed-ram-wrap', {}, [ramBtn, ramList])]),
   ]);
   const transportTools = el('div', 'ed-transport-tools sq-transport-mount', { hidden: true });
   const topbars = el('div', 'ed-topbars', {}, [appbar, transportTools]);
@@ -219,17 +221,18 @@ export async function startEditor(env) {
     sim.keysToEditor = mode === 'edit';
     if (mode === 'edit' && sim.releaseKeys) sim.releaseKeys();
     root.dataset.keys = mode;
-    keysChip.innerHTML = '';
-    keysChip.append('Keys ', el('b', null, { text: mode === 'play' ? 'PLAY' : 'EDIT' }),
-      el('span', 'ed-hint', { text: mode === 'play' ? ` · ${MOD}E edits` : ' · Esc plays' }));
-    // The name starts with what is written on the chip (WCAG 2.5.3), then says what it does.
-    keysChip.setAttribute('aria-label', `${keysChip.textContent.replace(/\s+/g, ' ').trim()}. ${mode === 'play'
-      ? `Keys play the FM-1; ${MOD}E gives them to the editor.` : 'Keys edit; Escape gives them back to the FM-1.'}`);
+    keysChip.innerHTML = mode === 'edit'
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 20 4.5-1 10-10-3.5-3.5-10 10L4 20Z M13.5 7l3.5 3.5 M15 5l1.5-1.5a1.4 1.4 0 0 1 2 0l2 2a1.4 1.4 0 0 1 0 2L19 9"/></svg>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M5 9h1m3 0h1m3 0h1m3 0h1M5 12h1m3 0h1m3 0h1m3 0h1M7 16h10"/></svg>';
+    const label = mode === 'play' ? 'Keys play the FM-1; activate to edit' : 'Keys edit; activate to play the FM-1';
+    keysChip.setAttribute('aria-label', label);
+    keysChip.title = `${label}. ${mode === 'play' ? `${MOD}E edits.` : 'Escape plays.'}`;
+    keysChip.setAttribute('aria-pressed', String(mode === 'edit'));
   }
   st.keys = '';
   setKeys('play');
-  root.addEventListener('focusin', (e) => { if (!layoutSwitch.contains(e.target)) setKeys('edit'); });
-  root.addEventListener('pointerdown', (e) => { if (!layoutSwitch.contains(e.target)) setKeys('edit'); });
+  root.addEventListener('focusin', (e) => { if (!layoutSwitch.contains(e.target) && !keysChip.contains(e.target)) setKeys('edit'); });
+  root.addEventListener('pointerdown', (e) => { if (!layoutSwitch.contains(e.target) && !keysChip.contains(e.target)) setKeys('edit'); });
   const device = document.querySelector('.device-wrap');
   if (device) {
     device.addEventListener('pointerdown', () => setKeys('play'));

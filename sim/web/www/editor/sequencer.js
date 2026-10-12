@@ -4,7 +4,7 @@ import { parseSet, writeSet, validateSet, arrangementEntries } from './sequence-
 import { parseMidi, planMidiImport, applyMidiImport, checkMidiFiles, checkMidiParts } from './midi-import.js';
 import { toPos } from './model.js';
 import { clipPlayback, automationSteps } from './sequence-playback.js';
-import { positionText, timeText, barLimit, transportNavigation } from './sequence-transport.js';
+import { positionText, timeText, songDuration, barLimit, transportNavigation } from './sequence-transport.js';
 import { makeSongShortcuts, noteNudge, duplicateNote } from './song-shortcuts.js';
 
 const clone = (x) => structuredClone(x);
@@ -320,27 +320,36 @@ export function makeSequencer(ctx) {
       'data-slot-kind': kind, 'data-slot-direction': direction,
     });
     return el('fieldset', 'sq-toolbar sq-transport', { disabled: state.busy, 'aria-label': 'Song transport' }, [
-      btn('▶', () => action(ctx.play), { 'data-testid': 'seq-play', 'aria-label': 'Play', title: 'Play / resume', 'data-transport-play': true }),
-      btn('Ⅱ', () => action(ctx.pause), { 'aria-label': 'Pause', title: 'Pause', 'data-transport-pause': true }),
+      btn('▶', () => action(ctx.playPause), { 'data-testid': 'seq-play', 'aria-label': 'Play', title: 'Play', 'data-transport-play-pause': true }),
       btn('■', () => action(ctx.stop), { 'aria-label': 'Stop', title: 'Stop and return to 0:0:0' }),
       el('div', 'sq-transport-readouts', {}, [
-        el('output', 'sq-position', { text: '0:0:0', 'data-play-position': true, 'aria-label': 'Position in bars, beats and ticks (zero based)' }),
-        el('output', 'sq-time', { text: '0:00.000', 'data-play-time': true, 'aria-label': 'Native playback time' }),
-        el('span', 'sq-transport-state', { text: 'Stopped', 'data-play-state': true }),
+        el('span', 'sq-readout', { title: 'Current position in zero-based bars:beats:ticks' }, [
+          el('span', 'sq-readout-icon', { text: '▶', 'aria-hidden': 'true' }),
+          el('output', 'sq-position', { text: '0:0:0', 'data-play-position': true, 'aria-label': 'Current position in zero-based bars, beats and ticks' })]),
+        el('span', 'sq-readout', { title: 'Total arrangement length in bars:beats:ticks' }, [
+          el('span', 'sq-readout-icon', { text: '◼', 'aria-hidden': 'true' }),
+          el('output', 'sq-position', { text: songDuration(m).position, 'data-play-total-position': true, 'aria-label': 'Total arrangement length in bars, beats and ticks' })]),
+        el('span', 'sq-readout', { title: 'Native elapsed playback time' }, [
+          el('span', 'sq-readout-icon', { text: '◷', 'aria-hidden': 'true' }),
+          el('output', 'sq-time', { text: '0:00.000', 'data-play-time': true, 'aria-label': 'Elapsed playback time' })]),
+        el('span', 'sq-readout', { title: 'Estimated remaining time when the song ends with Stop; unavailable while looping, parked, or externally clocked' }, [
+          el('span', 'sq-readout-icon', { text: '⌛', 'aria-hidden': 'true' }),
+          el('output', 'sq-time', { text: '—', 'data-play-remaining': true, 'aria-label': 'Estimated remaining song time' })]),
+        el('span', 'sq-transport-state sq-sr', { text: 'Stopped', 'data-play-state': true, role: 'status' }),
       ]),
-      field('BPM', m.bpmX100 / 100, v => edit('Change tempo', m => { m.bpmX100 = Math.round(v * 100); }), { min: 20, max: 300, step: .01 }),
-      el('div', 'sq-transport-master', {}, [el('span', '', { text: 'Master' }), signalMeter('out.post_master', 'Master output', true)]),
-      metronomeButton(),
-      choose('Song end', m.songEnd, [[0, 'Loop'], [1, 'Park'], [2, 'Stop']], v => edit('Set song ending', m => { m.songEnd = Number(v); })),
       ...['bar', 'clip', 'scene'].map(kind => el('div', 'sq-transport-nav', {}, [
         kind === 'bar' ? btn('‹', () => locateBar(-1), { 'aria-label': 'Previous bar', 'data-bar-nav': -1 }) : nav(kind, -1),
         el('span', 'sq-nav-label', {}, [el('span', '', { text: kind }),
           el('output', 'sq-nav-count', { text: '0/0', 'data-nav-count': kind, 'aria-label': `Current ${kind} and total` })]),
         kind === 'bar' ? btn('›', () => locateBar(1), { 'aria-label': 'Next bar', 'data-bar-nav': 1 }) : nav(kind, 1),
       ])),
+      field('BPM', m.bpmX100 / 100, v => edit('Change tempo', m => { m.bpmX100 = Math.round(v * 100); }), { min: 20, max: 300, step: .01 }),
+      metronomeButton(),
+      choose('Song end', m.songEnd, [[0, 'Loop'], [1, 'Park'], [2, 'Stop']], v => edit('Set song ending', m => { m.songEnd = Number(v); })),
       state.view === 'Mixer' ? btn('Routing & FX', () => { state.mixDetails = !(state.mixDetails ?? !matchMedia('(max-height: 500px) and (orientation: landscape)').matches); draw(); },
         { 'aria-label': 'Routing & FX', 'aria-expanded': String(state.mixDetails ?? !matchMedia('(max-height: 500px) and (orientation: landscape)').matches), 'aria-controls': 'sq-mixer-board' }) : null,
       ctx.fileToolsHost ? null : files,
+      el('div', 'sq-transport-master', {}, [el('span', '', { text: 'Master' }), signalMeter('out.post_master', 'Master output', true)]),
     ]);
   }
   function metronomeButton() {
@@ -363,11 +372,21 @@ export function makeSequencer(ctx) {
     if (position) position.textContent = positionText(transport.master_tick);
     const time = transportMount.querySelector('[data-play-time]');
     if (time) time.textContent = timeText(transport.playbackFrames, transport.sampleRate);
+    const duration = songDuration(state.model, transport);
+    const total = transportMount.querySelector('[data-play-total-position]');
+    if (total) total.textContent = duration.position;
+    const remaining = transportMount.querySelector('[data-play-remaining]');
+    if (remaining) remaining.textContent = duration.remaining;
     const status = transportMount.querySelector('[data-play-state]');
     if (status) status.textContent = transport.playing ? 'Playing' : transport.paused ? 'Paused' : 'Stopped';
-    const play = transportMount.querySelector('[data-transport-play]'), pause = transportMount.querySelector('[data-transport-pause]');
-    if (play) play.disabled = state.busy || !!transport.playing;
-    if (pause) pause.disabled = state.busy || !transport.playing;
+    const playPause = transportMount.querySelector('[data-transport-play-pause]');
+    if (playPause) {
+      const label = transport.playing ? 'Pause' : transport.paused ? 'Resume' : 'Play';
+      playPause.textContent = transport.playing ? 'Ⅱ' : '▶';
+      playPause.setAttribute('aria-label', label);
+      playPause.title = label;
+      playPause.disabled = state.busy;
+    }
     const counters = transportNavigation(state.model, transport, state.track);
     for (const [kind, counter] of Object.entries(counters)) {
       const output = transportMount.querySelector(`[data-nav-count="${kind}"]`);

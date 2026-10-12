@@ -9,6 +9,20 @@ export const timeText = (frames, rate) => {
   const ms = Math.floor(Math.max(0, frames) * 1000 / rate);
   return `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}.${String(ms % 1000).padStart(3, '0')}`;
 };
+// A song's arrangement is finite even when playback loops; remaining time is
+// only meaningful when the native ending is Stop and the clock is internal.
+export function songDuration(model, transport = {}) {
+  const bars = model.song.length ? arrangementEntries(model).reduce((total, entry) => total + entry.bars, 0) : 0;
+  const bpm = (transport.bpm_x100 || model.bpmX100) / 100;
+  const finite = bars > 0 && (transport.songFollow ?? true) && (transport.songEnd ?? model.songEnd) === 2 && !transport.following;
+  return {
+    position: bars ? positionText(bars * 384) : '—',
+    total: bars && bpm > 0 ? timeText(bars * 4 * 60 / bpm * 1000, 1000) : '—',
+    remaining: finite && bpm > 0 && Number.isFinite(transport.master_tick)
+      ? timeText(Math.max(0, bars * 384 - transport.master_tick) * 60 / (bpm * 96) * 1000, 1000) : '—',
+    finite,
+  };
+}
 export function barLimit(model, transport = {}) {
   if (model.song.length && transport.songFollow !== false) {
     const entries = arrangementEntries(model), last = entries.at(-1);

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { emptySet, emptyClip, parseSet, writeSet } from '../www/editor/sequence-model.js';
-import { positionText, timeText, barLimit, neighboringSlot, transportNavigation } from '../www/editor/sequence-transport.js';
+import { positionText, timeText, songDuration, barLimit, neighboringSlot, transportNavigation } from '../www/editor/sequence-transport.js';
 test('zero-based native PPQN position and native frame time', () => {
   assert.equal(positionText(0), '0:0:0'); assert.equal(positionText(479), '1:0:95'); assert.equal(positionText(383), '0:3:95');
   assert.equal(timeText(44118 * 65.25, 44118), '1:05.250'); assert.equal(timeText(null, 44118), '—');
@@ -11,6 +11,17 @@ test('bar bounds respect arrangement repeats and selected native clips', () => {
   assert.equal(barLimit(m, {songFollow:true}), 6);
   assert.equal(barLimit(m, {songFollow:false, tracks:[{active:2}]}), 2);
   assert.equal(barLimit(emptySet()), 0);
+});
+test('arrangement duration and remaining time honor repeats and finite native ending', () => {
+  const m = emptySet(); m.song = [0, 0, 1]; m.songEnd = 2; m.bpmX100 = 12000;
+  m.tracks[0].clips[0] = emptyClip(32); m.tracks[0].clips[1] = emptyClip(16);
+  const t = { songFollow: true, master_tick: 384 * 2 };
+  assert.deepEqual(songDuration(m, t), { position: '5:0:0', total: '0:10.000', remaining: '0:06.000', finite: true });
+  assert.equal(songDuration(m, { ...t, songEnd: 0 }).remaining, '—');
+  assert.equal(songDuration(m, { ...t, songEnd: 1 }).remaining, '—');
+  assert.equal(songDuration(m, { ...t, songFollow: false }).remaining, '—');
+  assert.equal(songDuration(m, { ...t, following: true }).remaining, '—');
+  assert.equal(songDuration(emptySet(), t).position, '—');
 });
 test('slot navigation skips empty slots and never wraps', () => {
   assert.equal(neighboringSlot([0, 3, 7], 3, -1), 0); assert.equal(neighboringSlot([0, 3, 7], 3, 1), 7);
