@@ -181,6 +181,8 @@ void fm1_script_log_event(FILE *f, uint64_t block, uint64_t block_start, const f
 static const char *const kVerbName[FM1_SEQ_V_COUNT] = {
   [FM1_SEQ_V_UNKNOWN] = "?",
   [FM1_SEQ_V_PLAY] = "play", [FM1_SEQ_V_STOP] = "stop", [FM1_SEQ_V_LINK] = "link",
+  [FM1_SEQ_V_PAUSE] = "pause", [FM1_SEQ_V_RESUME] = "resume",
+  [FM1_SEQ_V_REWIND] = "rewind", [FM1_SEQ_V_SEEKBAR] = "seekbar",
   [FM1_SEQ_V_MINJECT] = "minject", [FM1_SEQ_V_BPM] = "bpm", [FM1_SEQ_V_SWING] = "swing",
   [FM1_SEQ_V_WATCH] = "watch", [FM1_SEQ_V_WLANE] = "wlane", [FM1_SEQ_V_TDRUM] = "tdrum",
   [FM1_SEQ_V_MUTE] = "mute", [FM1_SEQ_V_PMUTE] = "pmute", [FM1_SEQ_V_PSOLO] = "psolo",

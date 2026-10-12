@@ -27,7 +27,7 @@ int main(void) {
   size = fm1_seq_size(&lim);
   /* 16 bytes per track added: the NUL uses existing tail alignment padding.
    * The instance plus the host's fixed event/pending/UI/click allocations. */
-  assert(sizeof(sq_track_t) == 256u && size == 32072u);
+  assert(sizeof(sq_track_t) == 256u && size == 32080u);
   assert(size <= 32768u);
   assert(size + 272u * sizeof(fm1_seq_ev_t) + sizeof(fm1_seq_cmd_t) + 1024u + 20u <= 36864u);
   arena[32768u / 8u] = UINT64_C(0x123456789abcdef0);

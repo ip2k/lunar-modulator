@@ -152,10 +152,11 @@ def test_the_arp_on_another_sound(tools):
 def test_the_ram_meter_refuses_an_arp_that_would_not_fit(tools):
     """A chain at the budget's edge: the arp's tap is refused with a popup
     that says what the chain would need (a percentage past 100, never
-    bytes), and the arp stays off. Room + Limiter and a Diffuse insert keep
+    bytes), and the arp stays off. Room + Ensemble and a Diffuse insert keep
     Macro + Shapes just inside the unchanged budget, including the native
-    sequencer automation queues; allocating the arp crosses the bound."""
-    chain = ["--engine", "macro", "--sound", "1:shapes", "--fx", "room", "--fx", "limit",
+    sequencer automation queues and the MIDI-learn map; allocating the arp
+    crosses the bound."""
+    chain = ["--engine", "macro", "--sound", "1:shapes", "--fx", "room", "--fx", "ensemble",
              "--insert", "0:diffuse"]
     before = sim(tools, *chain, seconds=0.1)
     z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,

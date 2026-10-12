@@ -20,4 +20,4 @@ def test_native_track_names(tmp_path):
                     *[f'engines/seq/{s}' for s in sources], '-lm', '-o', str(exe)],
                    cwd=ROOT, check=True)
     result = subprocess.run([str(exe)], check=True, capture_output=True, text=True)
-    assert 'budget 36620/36864 B' in result.stdout
+    assert 'budget 36628/36864 B' in result.stdout

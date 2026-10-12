@@ -30,6 +30,9 @@ def test_the_ci_job_runs_every_editor_page_test():
     for name in ("editor-unit", "editor-ui", "editor-reach", "editor-map", "editor-v1", "editor.mjs", "screenshot", "files", "audio-analysis-check", "audio-loopback"):
         assert name in job, name
     tests = {p.stem for p in (ROOT / "sim" / "web" / "test").glob("editor*.mjs")}
-    # editor-shots makes the manual's pictures and is not a check.
-    assert tests - {"editor-shots"} <= {"editor", "editor-unit", "editor-ui", "editor-reach", "editor-map", "editor-v1"}
-    assert "chromium, firefox, webkit" in job
+    # Extract the workflow's actual shell loop and direct node invocations;
+    # new page tests must be wired into CI, not copied into a test allowlist.
+    loop = re.search(r"for t in ([^;]+); do", job).group(1).split()
+    direct = re.findall(r"node sim/web/test/([\w-]+)\.mjs", job)
+    assert tests - {"editor-shots"} <= set(loop + direct)
+    assert "browser: [chromium, firefox, webkit]" in job
