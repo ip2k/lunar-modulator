@@ -3,6 +3,7 @@
 import { parseSet, writeSet, validateSet, arrangementEntries } from './sequence-model.js';
 import { parseMidi, planMidiImport, applyMidiImport, checkMidiFiles, checkMidiParts } from './midi-import.js';
 import { toPos } from './model.js';
+import { positionText, timeText, barLimit, neighboringSlot } from './sequence-transport.js';
 
 const clone = (x) => structuredClone(x);
 const pitchName = (p) => `${['C','C♯','D','E♭','E','F','F♯','G','A♭','A','B♭','B'][p % 12]}${Math.floor(p / 12) - 1}`;
@@ -72,7 +73,8 @@ export function makeSequencer(ctx) {
     el('p', '', { text: 'Song editing needs landscape on a small phone. Rotate to use scenes, clips and the mixer. Playback keeps its current state.' }),
   ]);
   const deviceDialog = el('dialog', 'sq-device-dialog', { id: 'sq-device-controls', 'aria-label': 'Device controls' });
-  root.append(status, rotate, content, deviceDialog);
+  const transportMount = el('div', 'sq-transport-mount');
+  root.append(transportMount, status, rotate, content, deviceDialog);
   const state = { doc: null, model: null, busy: false, loading: null, dirty: true, track: 0, scene: 0,
     note: -1, page: 0, pitch: 60, low: 48, song: 0, lane: 0, inspector: null, midi: null, solo: null, mixDetails: null,
     noteAdvancedOpen: false, view: 'Scenes' };
@@ -181,9 +183,6 @@ export function makeSequencer(ctx) {
   function closeInspector() {
     const key = state.inspector;
     state.inspector = null;
-    const files = deviceDialog.querySelector('.sq-file-tools');
-    const toolbar = content.querySelector('.sq-transport');
-    if (files && toolbar) toolbar.append(files);
     if (deviceDialog.open) deviceDialog.close();
     const trigger = root.querySelector(`[data-inspector="${key}"]`);
     trigger?.setAttribute('aria-expanded', 'false');
@@ -205,16 +204,59 @@ export function makeSequencer(ctx) {
       btn('Export WAV…', () => action(ctx.exportAudio)), btn('Import MIDI…', () => file.click()), file,
       btn('Refresh', () => refresh()),
     ])]);
-    return el('div', 'sq-toolbar sq-transport', {}, [
-      btn('Play', () => action(ctx.play), { 'data-testid': 'seq-play' }), btn('Stop', () => action(ctx.stop)),
-      el('output', 'sq-position', { text: 'Stopped', 'data-play-position': true, 'aria-label': 'Transport position' }),
-      state.view !== 'Mixer' ? field('BPM', m.bpmX100 / 100, v => edit('Change tempo', m => { m.bpmX100 = Math.round(v * 100); }), { min: 20, max: 300, step: .01 }) : null,
-      state.view !== 'Mixer' ? field('Swing %', m.swing, v => edit('Change swing', m => { m.swing = v; }), { min: 50, max: 80, step: 1 }) : null,
+    if (ctx.fileToolsHost) ctx.fileToolsHost.replaceChildren(files);
+    const slots = kind => kind === 'clip' ? m.tracks[state.track].clips.flatMap((c, s) => c ? [s] : [])
+      : m.sceneNames.flatMap((_, s) => m.tracks.some(t => t.clips[s]) ? [s] : []);
+    const jump = (kind, direction) => {
+      const next = neighboringSlot(slots(kind), state.scene, direction);
+      if (next === null) return;
+      selectClip(state.track, next);
+      action(() => kind === 'clip' ? ctx.playClip?.(state.track, next) : ctx.playScene?.(next));
+    };
+    const nav = (kind, direction) => btn(direction < 0 ? '‹' : '›', () => jump(kind, direction), {
+      'aria-label': `${direction < 0 ? 'Previous' : 'Next'} ${kind}`, title: `${direction < 0 ? 'Previous' : 'Next'} ${kind}`,
+      disabled: neighboringSlot(slots(kind), state.scene, direction) === null,
+    });
+    return el('fieldset', 'sq-toolbar sq-transport', { disabled: state.busy, 'aria-label': 'Song transport' }, [
+      btn('▶', () => action(ctx.play), { 'data-testid': 'seq-play', 'aria-label': 'Play', title: 'Play / resume', 'data-transport-play': true }),
+      btn('Ⅱ', () => action(ctx.pause), { 'aria-label': 'Pause', title: 'Pause', 'data-transport-pause': true }),
+      btn('■', () => action(ctx.stop), { 'aria-label': 'Stop', title: 'Stop and return to 0:0:0' }),
+      el('div', 'sq-transport-readouts', {}, [
+        el('output', 'sq-position', { text: '0:0:0', 'data-play-position': true, 'aria-label': 'Position in bars, beats and ticks (zero based)' }),
+        el('output', 'sq-time', { text: '0:00.000', 'data-play-time': true, 'aria-label': 'Native playback time' }),
+        el('span', 'sq-transport-state', { text: 'Stopped', 'data-play-state': true }),
+      ]),
+      field('BPM', m.bpmX100 / 100, v => edit('Change tempo', m => { m.bpmX100 = Math.round(v * 100); }), { min: 20, max: 300, step: .01 }),
+      el('div', 'sq-transport-master', {}, [el('span', '', { text: 'Master' }), signalMeter('out.post_master', 'Master output', true)]),
+      btn('Metro', () => edit('Toggle metronome', (_m, doc) => { doc.settings ||= {}; doc.settings.metronome = doc.settings.metronome ? 0 : 1; }),
+        { 'aria-label': 'Metronome', 'aria-pressed': String(!!state.doc.settings?.metronome) }),
+      choose('Song end', m.songEnd, [[0, 'Loop'], [1, 'Park'], [2, 'Stop']], v => edit('Set song ending', m => { m.songEnd = Number(v); })),
+      ...['bar', 'clip', 'scene'].map(kind => el('div', 'sq-transport-nav', {}, [
+        kind === 'bar' ? btn('‹', () => locateBar(-1), { 'aria-label': 'Previous bar', 'data-bar-nav': -1 }) : nav(kind, -1),
+        el('span', '', { text: kind }),
+        kind === 'bar' ? btn('›', () => locateBar(1), { 'aria-label': 'Next bar', 'data-bar-nav': 1 }) : nav(kind, 1),
+      ])),
       state.view === 'Mixer' ? btn('Routing & FX', () => { state.mixDetails = !(state.mixDetails ?? !matchMedia('(max-height: 500px) and (orientation: landscape)').matches); draw(); },
         { 'aria-label': 'Routing & FX', 'aria-expanded': String(state.mixDetails ?? !matchMedia('(max-height: 500px) and (orientation: landscape)').matches), 'aria-controls': 'sq-mixer-board' }) : null,
-      files,
+      ctx.fileToolsHost ? null : files,
     ]);
   }
+  function locateBar(direction) {
+    const transport = ctx.getTransport?.() || {};
+    if (transport.following) return;
+    action(() => ctx.seekBar?.(Math.max(0, Math.min(barLimit(state.model, transport), Math.floor((transport.master_tick || 0) / 384) + direction))));
+  }
+  function updateTransport(transport) {
+    if (!transport) return;
+    root.querySelector('[data-play-position]').textContent = positionText(transport.master_tick);
+    root.querySelector('[data-play-time]').textContent = timeText(transport.playbackFrames, transport.sampleRate);
+    root.querySelector('[data-play-state]').textContent = transport.playing ? 'Playing' : transport.paused ? 'Paused' : 'Stopped';
+    root.querySelector('[data-transport-play]').disabled = state.busy || !!transport.playing;
+    root.querySelector('[data-transport-pause]').disabled = state.busy || !transport.playing;
+    const bar = Math.floor((transport.master_tick || 0) / 384), max = barLimit(state.model, transport);
+    for (const button of root.querySelectorAll('[data-bar-nav]')) button.disabled = state.busy || !!transport.following || (Number(button.dataset.barNav) < 0 ? bar <= 0 : bar >= max);
+  }
+
   function syncMixerDisclosure() {
     const button = root.querySelector('[aria-controls="sq-mixer-board"]');
     if (button) button.setAttribute('aria-expanded', String(state.mixDetails ?? !matchMedia('(max-height: 500px) and (orientation: landscape)').matches));
@@ -313,7 +355,6 @@ export function makeSequencer(ctx) {
     }
   }
   function onTelemetry(floats) {
-    if (state.view !== 'Mixer') return;
     const sections = ctx.metadata?.doc?.telemetry?.sections || [], now = performance.now();
     for (const meter of root.querySelectorAll('[data-sq-meter]')) {
       const row = meter.dataset.sqMeter;
@@ -768,14 +809,13 @@ export function makeSequencer(ctx) {
     } else body = mixer();
     root.dataset.songView = state.view;
     if (state.mixDetails !== null) root.dataset.mixerDetails = String(state.mixDetails);
-    content.replaceChildren(toolbar(), navigation, ['Clip', 'Automation'].includes(state.view) ? selection : '', midiView() || '',
-      el('div', 'sq-view-panel', {id:'sq-view-panel',role:'tabpanel','aria-labelledby':`sq-tab-${state.view}`}, [body]));
+    transportMount.replaceChildren(toolbar());
+    content.replaceChildren(['Clip', 'Automation'].includes(state.view) ? selection : '', midiView() || '',
+      el('div', 'sq-view-panel', {id:'sq-view-panel',role:'tabpanel','aria-labelledby':`sq-tab-${state.view}`}, [body]), navigation);
     if (state.inspector && ctx.inspector) {
       const body = ctx.inspector(state.inspector);
       if (body) {
         const footer = el('footer', 'sq-device-dialog-footer', {}, []);
-        const files = content.querySelector('.sq-file-tools');
-        if (files) footer.append(files);
         deviceDialog.replaceChildren(el('div', 'sq-device-dialog-header', {}, [el('h3', '', { text: 'Device controls' }), btn('Close inspector', closeInspector)]), body, footer);
         if (!deviceDialog.open && deviceDialog.isConnected) deviceDialog.showModal();
       } else closeInspector();
@@ -800,7 +840,7 @@ export function makeSequencer(ctx) {
     ctx.onMeterSubscription?.();
   }
   function update(transport = ctx.getTransport?.()) {
-    const pos = root.querySelector('[data-play-position]');
+    updateTransport(transport);
     for (const e of root.querySelectorAll('[data-song-entry]')) e.classList.toggle('is-playing', !!transport?.playing && Number(e.dataset.songEntry) === transport.songIndex);
     for (const e of root.querySelectorAll('[data-live-track]')) {
       const t = transport?.tracks?.[Number(e.dataset.liveTrack)], scene = Number(e.dataset.liveScene);
@@ -809,7 +849,6 @@ export function makeSequencer(ctx) {
     const watched = transport?.tracks?.[state.track];
     const liveScene = (transport?.playing ? watched?.playing : watched?.active) ?? transport?.scene;
     const liveStep = watched ? Math.floor(watched.posTick / 24) : transport?.step;
-    if (pos && transport) pos.textContent = transport.playing ? `Playing · Scene ${(liveScene ?? 0) + 1} · Step ${(liveStep ?? 0) + 1}` : 'Stopped';
     const playhead = root.querySelector('[data-roll-playhead]');
     if (playhead) { playhead.hidden = !transport?.playing || liveScene !== state.scene || liveStep < state.page * 32 || liveStep >= (state.page + 1) * 32; playhead.style.left = `${60 + (liveStep - state.page * 32) * 28}px`; }
     for (const e of root.querySelectorAll('[data-step]')) e.classList.toggle('is-playing', !!transport?.playing && liveScene === state.scene && Number(e.dataset.step) === liveStep);
@@ -827,6 +866,7 @@ export function makeSequencer(ctx) {
     e.preventDefault(); e.stopPropagation(); e.lunarInto = true; importFiles(files);
   });
   return { render() { if (state.dirty && !state.busy) refresh(); return root; }, refresh, update, onTelemetry, syncLevels,
-    wantRows() { return state.view === 'Mixer' ? (ctx.metadata?.doc?.telemetry?.sections || []).filter(s => ['meters', 'levels'].includes(s.name)).flatMap(s => s.rows.map((_, r) => s.mask + r)) : []; },
+    toggleTransport: () => action(ctx.playPause), restartTransport: () => action(ctx.restart),
+    wantRows() { return (ctx.metadata?.doc?.telemetry?.sections || []).filter(s => ['meters', 'levels'].includes(s.name)).flatMap(s => s.rows.flatMap((row, r) => state.view === 'Mixer' || row === 'out.post_master' ? [s.mask + r] : [])); },
     invalidate() { state.dirty = true; readRevision++; }, destroy() { timelineObservers.splice(0).forEach(observer => observer.disconnect()); releaseFader?.(); closeInspector(); disposed = true; cancelDrag?.(); window.removeEventListener('resize', syncMixerAfterResize); compactMixerMedia.removeEventListener('change', syncMixerDisclosure); root.remove(); } };
 }

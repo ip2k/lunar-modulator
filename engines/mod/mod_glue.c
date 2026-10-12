@@ -30,6 +30,7 @@ static void glue_event(void *ctx, uint32_t frame, const fm1_seq_ev_t *e, int to_
       break;
     }
     case FM1_SEQ_EV_CLOCK: fm1_mod_seq_clock(g->mod, frame, e->tick); break;
+    case FM1_SEQ_EV_CONTINUE:
     case FM1_SEQ_EV_START: fm1_mod_seq_run(g->mod, frame, 1); break;
     case FM1_SEQ_EV_STOP: fm1_mod_seq_run(g->mod, frame, 0); break;
     default: break;

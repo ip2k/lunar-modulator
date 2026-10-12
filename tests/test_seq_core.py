@@ -873,11 +873,11 @@ def test_memory_figures_for_four_and_eight_tracks(seq_tools):
     song's end mode, follow flag, jump target, a scene launch's landing bar
     and eight scene names added 64 bytes (stage E1, 2026-10-06)."""
     z = sizes(seq_tools)
-    assert z["tracks"]["4"] == 18120
-    assert z["tracks"]["8"] == 31944
+    assert z["tracks"]["4"] == 18128
+    assert z["tracks"]["8"] == 31952
     assert z["tracks"]["8"] <= HALF_BUDGET
-    assert z["no_capture"]["4"] == 15048
-    assert z["no_capture"]["8"] == 28872
+    assert z["no_capture"]["4"] == 15056
+    assert z["no_capture"]["8"] == 28880
     for t in range(1, 17):
         assert z["tracks"][str(t)] - z["no_capture"][str(t)] == 256 * 12, \
             "Capture: 256 events of 12 bytes"

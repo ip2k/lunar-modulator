@@ -253,20 +253,20 @@ ring of 256 events per instance (the owner's choice of 2026-10-01, docs/13
 
 | Tracks | Bytes | Of the half budget (36,864 B) | Of the stock gap (387,924 B) |
 | --- | --- | --- | --- |
-| 4 | 18,120 | 49 % | 4.7 % |
-| 8 | 31,944 | 87 % | 8.2 % |
-| 8, Capture off | 28,872 | 78 % | 7.4 % |
-| 16 (docs/13 §5's pools) | 59,592 | | 15.4 % |
+| 4 | 18,128 | 49 % | 4.7 % |
+| 8 | 31,952 | 87 % | 8.2 % |
+| 8, Capture off | 28,880 | 78 % | 7.4 % |
+| 16 (docs/13 §5's pools) | 59,600 | | 15.4 % |
 
 Each track adds 3,456 bytes: 2,304 of notes, 576 of locks, 160 of trig rows,
 160 of clip headers, 240 of track state and 16 of pad mutes. The fixed part
-is 1,224 bytes (1,160 before the song's 64 of stage E1: its end mode,
+is 1,232 bytes (1,160 before the song's 64 of stage E1: its end mode,
 follow flag and jump target, a scene launch's landing bar and eight
-seven-byte scene names), and Capture 3,072: 256 events of 12 bytes, about 128 notes
+seven-byte scene names), plus eight bytes for native elapsed playback frames (2026-10-11), and Capture 3,072: 256 events of 12 bytes, about 128 notes
 over Movy's 8-bar window (at 20 bytes an event, as first built, it was
 5,120), plus about 1.3 KB of stack while a stopped capture searches its
 tempo. Docs/13 §5 estimated 73,320 bytes for 16 tracks with the same pools;
-the measured 59,592 leaves out its undo ring (12,288) and packs locks and
+the measured 59,600 leaves out its undo ring (12,288) and packs locks and
 trig rows tighter (3,584 bytes less), while 23-byte lane labels make each
 track larger.
 

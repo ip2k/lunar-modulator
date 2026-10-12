@@ -107,3 +107,15 @@ test('worklet posts content-only changes immediately and keeps old-module transp
   seq[1] = 12500; worker.postSeq({ seq }); assert.equal(messages.length, 3);
   assert.equal(messages[2].bpm_x100, 12500); assert.equal('contentGen' in messages[2], false);
 });
+test('toolbar and keyboard actions issue native pause, resume, rewind and locate verbs', () => {
+  const h = harness(before), sent = []; h.sim.node.port = { postMessage: m => sent.push(new TextDecoder().decode(m.bytes)) };
+  h.host.play(); h.host.pause(); h.host.stop(); h.host.seekBar(4);
+  h.sim.seq = {playing:true}; h.host.playPause(); h.sim.seq = {paused:true}; h.host.playPause(); h.host.restart();
+  assert.deepEqual(sent, ['resume', 'pause', 'rewind', 'seekbar 4', 'pause', 'resume', 'rewind', 'resume']);
+});
+test('project transactions preserve native metronome settings', async () => {
+  const doc = project(); doc.settings = {metronome:1}; const h = harness(doc);
+  const next = structuredClone(doc); const model = parseSet(next.set); model.bpmX100 = 13742; model.songEnd = 2; next.set = writeSet(model);
+  await h.host.applyProject(next, 'Transport settings');
+  assert.equal(h.current.settings.metronome, 1); assert.equal(parseSet(h.current.set).songEnd, 2);
+});

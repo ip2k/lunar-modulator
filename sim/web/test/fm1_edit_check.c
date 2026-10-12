@@ -694,6 +694,27 @@ static void check_transport(void) {
   render(200);
   fm1_seq_get_info(fm1_app_seq(&g_a), &after);
   CHECK(after.playing == 1 && after.master_tick > before.master_tick + 20);
+  /* Pause, native elapsed frames and persistent transport settings survive an edit load. */
+  {
+    const char *ops = "pause; bpm 13700; metro 1; sgend 2";
+    CHECK(fm1_app_seq_line(&g_a, ops, strlen(ops)) == strlen(ops));
+    fm1_seq_get_info(fm1_app_seq(&g_a), &before);
+    CHECK(before.paused && !before.playing && before.metronome && before.song_end == 2);
+    len = 0;
+    CHECK(fm1_app_state_save(&g_a, FM1_STATE_PROJECT, 0, 1, fm1_edit_check_put, &len, &r));
+    CHECK(len <= sizeof buf);
+    memcpy(buf, fm1_edit_check_buf(), len); mem.n = len;
+    CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep) == 1);
+    render(200);
+    fm1_seq_get_info(fm1_app_seq(&g_a), &after);
+    CHECK(after.paused && !after.playing && after.master_tick == before.master_tick);
+    CHECK(after.playback_frames == before.playback_frames && after.bpm_x100 == 13700);
+    CHECK(after.metronome == 1 && after.song_end == 2);
+    CHECK(fm1_app_seq_line(&g_a, "resume", 6) == 6);
+    render(200);
+    fm1_seq_get_info(fm1_app_seq(&g_a), &after);
+    CHECK(after.playing && !after.paused && after.playback_frames > before.playback_frames);
+  }
   /* Without it a project load leaves the sequencer stopped, as before. */
   o.flags = FM1_APP_LOAD_QUIET;
   CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep) == 1);

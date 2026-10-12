@@ -551,6 +551,8 @@ static void start_transport(fm1_seq_t *s) {
   }
   clock_reset(s);
   s->master_tick = 0;
+  s->playback_frames = 0;
+  s->paused = 0;
   s->bar_tick = 0;
   s->playing = 1;
 }
@@ -660,7 +662,9 @@ void fm1_seq_transport_take(const fm1_seq_t *s, fm1_seq_transport_t *o) {
   unsigned t;
   memset(o, 0, sizeof(*o));
   o->playing = s->playing;
-  if (!s->playing) return;
+  o->paused = s->paused;
+  if (!s->playing && !s->paused) return;
+  o->playback_frames = s->playback_frames;
   o->master_tick = s->master_tick;
   o->clock_tick = s->clock_tick;
   o->accum = s->accum;
@@ -689,10 +693,13 @@ void fm1_seq_transport_put(fm1_seq_t *s, const fm1_seq_transport_t *in) {
   /* The same song list: its place goes on. */
   const int same_song = in->song_len > 0 && in->song_len == s->song_len && in->song_hash == song_hash(s) &&
                         in->song_pos < s->song_len;
-  if (!in->playing || !s->playing) return;
+  if ((!in->playing && !in->paused) || !s->playing) return;
   /* A different song starts at its top, as the Play left it: the clock and playheads stay at the top too,
    * since they only mean something together. */
+  s->playing = in->playing;
+  s->paused = in->paused;
   if (s->song_len > 0 && !same_song) return;
+  s->playback_frames = in->playback_frames;
   s->master_tick = in->master_tick;
   s->bar_tick = (uint16_t)(in->master_tick % FM1_SEQ_TICKS_PER_BAR);
   s->clock_tick = in->clock_tick;
@@ -1515,6 +1522,7 @@ void sq_live_note_off(fm1_seq_t *s, unsigned t, uint8_t pitch, uint64_t frame) {
 void sq_stop(fm1_seq_t *s, sq_out_t *o) {
   unsigned t, lane;
   s->playing = 0;
+  s->paused = 0;
   s->recording = 0;
   s->count_in_left = 0;
   s->pending_rec = 0;
@@ -1535,6 +1543,106 @@ void sq_stop(fm1_seq_t *s, sq_out_t *o) {
     tr->last_auto_step = -1;
     memset(tr->auto_cur, 0xFF, sizeof(tr->auto_cur));
   }
+}
+
+/* Pause silences held notes and returns automation to its base, while carrying
+ * the fractional clock, selected clips and song position. Recording ends. */
+void sq_pause(fm1_seq_t *s, sq_out_t *o) {
+  unsigned t, lane;
+  if (!s->playing) return;
+  s->playing = 0;
+  s->paused = 1;
+  s->recording = s->pending_rec = 0;
+  s->count_in_left = 0;
+  pending_to_tail(s);
+  commit_rec_tail(s);
+  sq_capture_clear(s);
+  flush_gates(s, o);
+  for (t = 0; t < s->n_tracks; ++t) {
+    for (lane = 0; lane < FM1_SEQ_LANES; ++lane) revert_lane(s, t, lane, o);
+    sq_tracks(s)[t].last_auto_step = -1;
+    memset(sq_tracks(s)[t].auto_cur, 0xFF, sizeof(sq_tracks(s)[t].auto_cur));
+  }
+  if (s->emitting_clock && sq_emit(o, FM1_SEQ_EV_STOP, SQ_NONE, 0, 0)) s->emitting_clock = 0;
+}
+
+void sq_resume(fm1_seq_t *s, sq_out_t *o) {
+  if (!s->paused) { if (!s->playing) sq_play(s); return; }
+  s->paused = 0;
+  s->playing = 1;
+  if (!s->ext_running && sq_emit(o, FM1_SEQ_EV_CONTINUE, SQ_NONE, 0, 0)) s->emitting_clock = 1;
+}
+
+void sq_rewind(fm1_seq_t *s, sq_out_t *o) {
+  sq_stop(s, o);
+  if (s->emitting_clock && sq_emit(o, FM1_SEQ_EV_STOP, SQ_NONE, 0, 0)) s->emitting_clock = 0;
+  sq_play(s);
+  s->playing = 0;
+}
+
+/* A native locate: no skipped notes/locks are rendered. Selected clips loop
+ * at their own rates; a followed arrangement locates its corresponding entry.
+ * External clock owns position, so locating while following it is refused. */
+void sq_seek_bar(fm1_seq_t *s, int64_t requested, sq_out_t *o) {
+  uint64_t bar = requested < 0 ? 0 : (uint64_t)requested, start = 0, local;
+  unsigned t, scene = SQ_NONE, reps = 0, at = 0;
+  uint32_t bars = 1;
+  const int running = s->playing;
+  if (s->playing && s->ext_running) return;
+  if (s->song_len && s->song_follow) {
+    bars = fm1_seq_song_bars(s);
+    if (bar >= bars) bar = bars ? bars - 1u : 0;
+    while (song_entry_at(s, at, &scene, &reps)) {
+      const uint64_t span = (uint64_t)scene_bars(s, scene) * reps;
+      if (bar < start + span) break;
+      start += span; at += reps;
+    }
+  } else {
+    for (t = 0; t < s->n_tracks; ++t) {
+      const unsigned slot = sq_tracks(s)[t].active;
+      const sq_clip_t *c = sq_clip(s, t, slot);
+      const uint32_t span = sq_exists(c) ? (c->length_steps + 15u) / 16u : 1u;
+      if (span > bars) bars = span;
+    }
+    if (bar >= bars) bar = bars - 1u;
+  }
+  if (running) sq_pause(s, o);
+  if (!s->paused) { sq_play(s); s->playing = 0; s->paused = 1; }
+  s->master_tick = bar * SQ_TPB;
+  s->bar_tick = 0;
+  s->clock_tick = s->master_tick;
+  s->accum = 0;
+  s->playback_frames = s->master_tick * s->threshold / ((uint64_t)s->bpm_x100 * FM1_SEQ_PPQN);
+  s->song_armed = 0;
+  s->song_armed_launch = SQ_NONE;
+  s->song_jump = SQ_NONE;
+  s->scene_land_slot = SQ_NONE;
+  if (scene < FM1_SEQ_SLOTS) {
+    s->song_pos = (uint16_t)at;
+    s->song_start_bar = start;
+    s->song_has_start = 1;
+  }
+  local = (bar - start) * SQ_TPB;
+  for (t = 0; t < s->n_tracks; ++t) {
+    sq_track_t *tr = &sq_tracks(s)[t];
+    const unsigned slot = scene < FM1_SEQ_SLOTS ? scene : tr->active;
+    const sq_clip_t *c = sq_clip(s, t, slot);
+    const uint32_t num = c->scale_num ? c->scale_num : 1u, den = c->scale_den ? c->scale_den : 1u;
+    const uint64_t ticks = local * num / den;
+    const uint32_t length = sq_len_ticks(c);
+    tr->active = (uint8_t)slot;
+    tr->playing = sq_exists(c) ? (uint8_t)slot : SQ_NONE;
+    tr->queued = SQ_NONE;
+    tr->pending_stop = 0;
+    tr->pending_select = SQ_NONE;
+    tr->pos_tick = (uint16_t)(sq_start_ticks(c) + (length ? ticks % length : 0));
+    tr->cycle = (uint32_t)(1u + (length ? ticks / length : 0));
+    tr->scale_acc = (uint16_t)(local * num % den);
+    tr->last_auto_step = -1;
+    memset(tr->auto_cur, 0xFF, sizeof(tr->auto_cur));
+    sq_clip_release_pass(s, sq_clip_no(t, slot));
+  }
+  if (running) sq_resume(s, o);
 }
 
 /* ---- The scheduler (R2-R8) --------------------------------------------------- */
@@ -1805,6 +1913,13 @@ void sq_external_realtime(fm1_seq_t *s, uint8_t status, uint64_t frame, sq_out_t
     }
     break;
   case 0xFB:
+    if (!s->lim.compat && s->link_enabled && s->paused) {
+      s->ext_running = 1;
+      s->ext_ticks = s->ext_base + s->master_tick / 4u;
+      s->ext_base_set = 1;
+      s->ext_last_frame = frame;
+      sq_resume(s, o);
+    }
     s->ext_running = 1;
     break;
   case 0xFC:
@@ -1874,6 +1989,7 @@ uint32_t fm1_seq_advance(fm1_seq_t *s, uint32_t frames, fm1_seq_ev_t *out, uint3
   int following;
   out_init(&o, s, out, cap);
   s->frame_now += frames;
+  if (s->paused) return o.n; /* pause freezes the fractional musical clock */
 
   if (s->ext_running && s->ext_last_frame > 0 && s->frame_now > s->ext_last_frame &&
       s->frame_now - s->ext_last_frame > (uint64_t)s->sample_rate / 2u) {
@@ -1956,6 +2072,7 @@ uint32_t fm1_seq_advance(fm1_seq_t *s, uint32_t frames, fm1_seq_ev_t *out, uint3
     }
     service_tick(s, &o);
   }
+  s->playback_frames += s->playing ? frames : o.frame;
   return o.n;
 }
 
@@ -1979,6 +2096,9 @@ void fm1_seq_note_in(fm1_seq_t *s, uint16_t frame, uint8_t track, uint8_t pitch,
 void fm1_seq_get_info(const fm1_seq_t *s, fm1_seq_info_t *i) {
   memset(i, 0, sizeof(*i));
   i->master_tick = s->master_tick;
+  i->playback_frames = s->playback_frames;
+  i->sample_rate = s->sample_rate;
+  i->paused = s->paused;
   i->bpm_x100 = s->bpm_x100;
   i->swing_pct = (uint16_t)s->swing_pct;
   i->playing = s->playing;

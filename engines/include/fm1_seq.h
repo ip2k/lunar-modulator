@@ -100,7 +100,8 @@ enum {
   FM1_SEQ_EV_CLICK = 4,     /* metronome; a = 1 on the downbeat */
   FM1_SEQ_EV_START = 5,     /* MIDI realtime FA */
   FM1_SEQ_EV_STOP = 6,      /* FC */
-  FM1_SEQ_EV_CLOCK = 7      /* F8, 24 PPQN */
+  FM1_SEQ_EV_CLOCK = 7,     /* F8, 24 PPQN */
+  FM1_SEQ_EV_CONTINUE = 8   /* FB: resume without restarting the musical clock */
 };
 
 typedef struct fm1_seq_ev {
@@ -152,6 +153,8 @@ enum {
                                scene playing or queued, with no relaunch */
   FM1_SEQ_V_SGNAME,         /* sgname <slot> <k>: scene name k of fm1_seq_scene_name_pick
                                (1..FM1_SEQ_SCENE_PICKS), 0 for none */
+  FM1_SEQ_V_PAUSE, FM1_SEQ_V_RESUME, FM1_SEQ_V_REWIND,
+  FM1_SEQ_V_SEEKBAR,        /* seekbar <zero-based bar>; clamped to the native song/scene */
   FM1_SEQ_V_COUNT
 };
 
@@ -281,6 +284,9 @@ int fm1_seq_import_end(fm1_seq_import_t *im);
 
 typedef struct fm1_seq_info {
   uint64_t master_tick;
+  uint64_t playback_frames; /* rendered transport time; freezes while paused */
+  uint32_t sample_rate;
+  uint8_t paused;
   uint32_t bpm_x100;
   uint16_t swing_pct;
   uint8_t playing, recording, counting_in, metronome;
@@ -405,13 +411,14 @@ void fm1_seq_get_clock(const fm1_seq_t *s, fm1_seq_clock_t *out);
  * started and was not playing before comes in on the next bar, as a launch
  * does, so every playhead keeps the bar's grid; the song's place, when the
  * new song is the same list (a different song starts at its top, with the
- * clock, as Play left it). Nothing else is carried: recording, a count-in
+ * clock, as Play left it). Paused state and native playback frames are carried.
+ * Nothing else is carried: recording, a count-in
  * and Capture end. */
 typedef struct fm1_seq_transport {
-  uint8_t playing, n_tracks;
+  uint8_t playing, n_tracks, paused;
   uint8_t song_len, song_pos, song_has_start, song_armed, song_armed_launch, song_follow;
   uint32_t song_hash;           /* of the first song_len entries */
-  uint64_t master_tick, clock_tick, accum, song_start_bar;
+  uint64_t master_tick, clock_tick, accum, song_start_bar, playback_frames;
   struct {
     uint8_t active, playing, queued;
     uint16_t pos_tick;
