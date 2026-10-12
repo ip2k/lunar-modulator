@@ -1,8 +1,13 @@
 """Pure receipt tampering checks; synthetic transcripts confer no authority."""
 import copy
 import json
+from pathlib import Path
+import sys
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import fm1_prepare_stop_trace_receipt as v
 import fm1_sdk_trace_read as reader
