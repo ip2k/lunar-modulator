@@ -36,3 +36,20 @@ canonical MIDI gates do not substitute that matrix. Browser automation is not
 listening, hardware, deployment or GitHub CI acceptance. Next dependency:
 coordinate source/contract repairs, obtain a new frozen source SHA and rerun
 changed gates plus native navigation regression before final integration.
+
+## Render settlement checkpoint
+
+[verified] Repair `4e178cc1b48f292b838804ce71d880d0741f92e4` is pushed and
+remote SHA verified on `fix/2026-10-12@browser-render-settlement`.
+The release guard now handles a non-Node Window target. UI contracts wait for
+MIDI pitch visibility, rendered note step/gate plus idle before measuring the
+next drag handle, and rendered automation lock value plus idle before keyboard
+editing. Canonical assertions remain unchanged. No pre-blur, fixed delay or
+navigation settlement was added to the native race regression.
+
+[verified] Candidate native, fit-grid, playback and three MIDI harnesses passed
+all three browsers (18 gates). UI passed the former edit failures, then all
+three reached the compact-cell assertion and failed107/107/111px. These are
+retained in `results-settlement`; final21 acceptance awaits the layout owner's
+CSS correction and an exact combined-source rerun. The Wasm binary hash and
+both source hashes exactly match its metadata record.
