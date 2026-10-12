@@ -142,3 +142,44 @@ require fresh CI.
 Next: separately review/execute the installed target's one-shot reset; establish actual
 boot/display/recovery evidence; restore and verify stock with a fresh recovery
 binding. No diagnostic application behavior has been accepted yet.
+
+
+## Returned-ROM preparation checkpoint
+
+[verified: files only] Source staging V2 completed with exit zero on bench01,
+without importing a device opener, opening USB/SG, or issuing a command. It wrote
+31 pinned source/template files, rechecked the original 35-member install packet
+and all 45 required source dependencies, and preserved completed install journal
+`0d797332…` in a separate input evidence file. The recovery executor still has
+`EXECUTION_POLICY_SHA = None`; its preparer's own journal snapshot remains absent
+until actual preparation. The first staging attempt stopped before mutation
+because build-support dependencies were absent; its failure is retained.
+
+Private evidence is `build/returned-recovery-source-staging-v2/`: script
+`cab94dbc4a3db25be10e5763da47c7bcb4f2d262521db8800a7a935bc30ea997`,
+durable receipt `7ea7bfbdb364bd1d323d7ce3eacbcacd1168578617bca336c9753197480f8745`,
+and two-member evidence archive
+`bb34cb34cbe598b5a732c240ab5ac80d63c612b50e228018abe06150a5428df4`.
+Independent retained receipt review accepted
+`2bbe8c016462398ec7f455691379053a68d4129f677b75b9b674608a60fcc8d7`.
+These checks prove file staging and receipt consistency, not target execution
+or recovery. The final genuine composed runtime gate and concrete activation
+policies remain pending. No target reset or diagnostic-stage probe has run.
+
+### Accepted returned-recovery and reset source checkpoint
+
+[verified: offline] The genuine composed recovery gate accepted 182 unique
+cases with explicit mixed-version provenance: 179 V3 cases in 16 Hera chunks
+and three unchanged passing V2 actual cases. Aggregate `87848de7…`, independent
+review `4d3076dc…`; fixture failures remain preserved. The root stock-return
+reset source now pins restore verifier `f5835237…` and has SHA-256
+`7af061b09ce90fe94c8698d591102147cf997570bf21266ad6a6d8b27ea59343`.
+Its focused gate passed 58 unique cases in 16 Hera chunks plus a separate modeled
+smoke, with 18 isolated containers removed, no failures/errors/skips/OOM;
+aggregate `18f544dd…`, independent review `f7e508a6…`. Actual device syscalls,
+USB/reset/capture and NOR operations remain modeled in these gates.
+
+[verified] GitHub run 38197006075 passed all thirteen jobs at checkpoint
+`4391433161f6fe61d30d54a8b79b53c67362177b`. These later source/document changes
+require a new exact-head CI run. No target reset/probe, returned-ROM physical
+backup or returned-stock reset has executed at this checkpoint.

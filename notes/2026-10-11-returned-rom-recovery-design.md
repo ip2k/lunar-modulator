@@ -413,11 +413,11 @@ remains closed with `EXECUTION_POLICY_SHA=None`; root alone stages/activates
 following actual file/source/capture review. No physical request occurred in
 this lane. Boot, display, stock return and physical recovery remain false.
 
-Latest root-reported verified pushed checkpoint is
-`f45a2b016d5629fc76dbb85b5a4bcfba7145c023`; current candidate/test/template/note
-edits are saved and await root checkpoint. Final V2/16/XML/container/removal
-and independent review remain required dependencies, followed by root's actual
-packet gates. Semantic tool worktree Python coverage remains unavailable;
+At this historical setup boundary, root's verified pushed checkpoint was
+`f45a2b016d5629fc76dbb85b5a4bcfba7145c023`. Root subsequently checkpointed the
+production candidate/tests/note at verified pushed
+`4391433161f6fe61d30d54a8b79b53c67362177b`. The final mixed runtime and independent
+review remain required dependencies, followed by root's actual packet gates. Semantic tool worktree Python coverage remains unavailable;
 file inspection is used without changing another session's MCP selection.
 
 ## V2 archive freeze and reviewed source boundary
@@ -440,7 +440,8 @@ test-only experiment-literal adaptation when root loads the genuine restore
 module. Production file hash gates remain unmodified. V2 collected182 unique
 nodes; chunks12 cases in six shards and11 in ten, with each expensive actual
 case in a distinct shard. One successful/no-probe smoke precedes16 chunks.
-Runtime acceptance is pending; frozen source bytes must not change during it.
+This historical V2 run has completed; its passing and failed receipt boundaries
+are recorded below. Production source bytes remain unchanged.
 
 [verified: syntax/source inspection only] Closed template repairs retain the
 None activation policy. Journal fdopen failure closes its descriptor. Restore
@@ -451,3 +452,121 @@ envelope only as the distinct unconsumed no-probe branch. The production factory
 still requires original snapshot120-second freshness for this branch; no
 historical time override or snapshot refresh is permitted. A stale chooser-only
 state needs a distinct reviewed provenance gate before it can progress.
+
+## V2 failures and reviewed V3 fixture repair
+
+[verified: Hera XML/container receipts] V2 completed all182 unique planned nodes:
+179 passed and3 fixture failures. The standalone successful/no-probe actual
+smoke passed in386.65seconds. Actual successful-none/failed/zero shards6/7/8
+passed in610/620/620seconds concurrently. Detached-failed and detached-zero
+failed before returned-backup SG opening because the disposable fixture named
+its snapshot original-rom.json instead of the detached helper's required
+rom-snapshot.json. Successful-intent-drift reached its intended zero-ioctl,
+one-close rejection after durable intent, then asserted the consumed marker in
+the wrong parent directory. All18 collect/smoke/shard containers had noOOM, no
+device mounts, network none and no privilege, and were removed; a fresh label
+lookup was empty. Failed XML/logs remain under evidence-v2 and are not a passing
+gate.
+
+[verified: source diff/independent review] Only two fixture lines changed:
+choose rom-snapshot.json for detached mode, preserving the exact successful
+mode path; assert the restore consumed marker in rr rather than parent. Final
+fixture SHA
+`5f7fd57650e551ac6de3575f46ee48432d58bf5b5f74f7d3ab63027697f2a858`.
+V3 archive602 files SHA
+`99a28aeccfe432feabb89967212c3d1346eeaf020e14cae4ec97ccf7f19bb43f`,
+snapshot SHA
+`cbe8cede9b530986ddde49f3d2c74f19ecb0e0e9e2168e3920a82bad3a498e27`.
+All601 other files are byte-identical to V2. Startup-resolution independently
+accepted retaining the three passing V2 successful actual branches as unchanged
+and rerunning every other179 case across16 V3 chunks, including all affected
+actual cases. The final aggregate must map each of182 exact unique nodes to its
+V2 or V3 archive and fixture hash; this is a mixed gate, not an all-V3 run. The
+V2 singleton actual smoke is retained separately. V3 execution completed as recorded below; no hardware/native/boot/display/recovery
+acceptance follows from this modeled gate.
+
+## Final mixed runtime receipt
+
+[verified: XML/archive/container receipts] The explicit mixed gate passed182
+unique ordered cases with zero failures, errors or skips:179 rerun V3 cases
+in16 chunks plus the independently reviewed three unchanged passing V2 actual
+successful branches. The separate V2 singleton successful-none factory smoke
+is retained. This is not an all-V3 run. Aggregate
+`build/returned-recovery-final-hera/aggregate-mixed.json` SHA
+`87848de7d3b2760da34c1af1f6ac3ff2cc8146afee5ca0c183b446f598def365`
+maps every exact planned node to its V2/V3 archive, actual fixture hash and XML
+hash; failed V2 nodes and the equivalence premise remain explicit.
+
+V3 plan SHA
+`f7247f998998b00abe7fa187f8724f9fe424d1a40584c56ef9acb585b92e2a64`
+collected182 and executed179: three chunks of12 and13 chunks of11. Repaired
+actual detached-failed/zero were chunks6/7, each passed11 cases in589.81/590.02
+seconds; post-intent restore drift chunk8 passed11 in295.29seconds. V3 wall
+time592.62seconds; summed V2+V3 container runtime4708.84seconds. Pinned image
+`sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d`
+was used throughout. All35 V2+V3 collect/smoke/shard containers were checked:
+2CPU,2GiB memory and swap, network none, no privilege/devices, noOOM, exact
+exit status matching XML/run receipts, named removal receipts and fresh empty
+label lookup. V1's separate two failed-setup containers remain historical.
+
+[verified: pinned actual-input model assertions] All six genuine private-input
+composed cases executed the complete source factories. Five full restore cases
+required8757 returned fixed-loader commands,10653 restore commands, identical
+full target df6c… dumps, initial full target comparison, all30 directory-last
+stock restoration sectors and final full stock96006… readback. The completed
+restore helper froze138–165 positive files according to provenance mode, plus
+propagated exact absent paths.
+The sixth case validated late absence after the real restore intent sync:
+zero ioctl, one close, consumed marker preserved and no retry. Successful-none
+also ran the genuine root17b reset factory with test-only restore literal, then
+late absence after the real reset intent sync: zero reset ioctl, one close,
+consumed/no retry. At the sealed runtime snapshot, production root17b reset restore literal and
+execution template policy remained None. Root's separately reviewed7af successor
+binds f583 and has its own58-case runtime gate; it is outside this archive. SDK/ELF/stock/target/source guards were unmodified; only
+USB/reset/capture/syscalls/NOR and fixed experiment campaign literal were
+modeled. Boot, display and physical recovery remain false.
+
+Independent preserved V2 evidence check
+`build/returned-recovery-final-hera/startup-resolution-preserved-v2-check.json`
+SHA `274b2ee9c7f24a49fe8cb6ed4d1f248891b6dac521ad90841fc1201888a7f960`
+confirmed the three exact retained green node IDs, expected three old fixture
+failures and601 identical files. Final independent mixed runtime acceptance is recorded below. Root's feature branch and remote were independently checked at
+`4391433161f6fe61d30d54a8b79b53c67362177b`; current602 sealed source files match.
+The two-line fixture repair and this final note await root checkpoint/push.
+
+The next dependency is root's concrete physical packet factory/source/owned-
+capture gates and separately reviewed literal production integration. The earliest file-only preparation preserves the actual completed
+install journal in a distinct staging file; it must leave the exclusive
+RUN/original-install-journal.json destination absent. Only after actual reset,
+original ROM snapshot and terminal probe review may preparation issue the
+fresh current connection witness, while retaining original admission/snapshot
+times unchanged. The no-attempt branch's120-second original-snapshot gate
+remains explicit; consumed stopped/completed probe provenance uses verified
+historical admission plus separately fresh current binding. Interrupted restore
+resume is a distinct pending follow-on, not granted by this one-shot adapter.
+
+
+## Independent final acceptance and checkpoint freeze
+
+[verified: independent offline review] Startup-resolution accepted the exact
+mixed182 source/runtime gate in
+`build/returned-recovery-independent-review.md` SHA
+`4d3076dcb65e07d3c1ed3d58e45fe350815d64f25e91c009f7c45abb187b8db2`.
+Its independent structured check
+`build/returned-recovery-final-hera/startup-resolution-mixed-independent-check.json`
+SHA `cd5a2d92d71204952a003ef261452dd5c153051c93d83765b6606271e97da6c5`
+verified all602 archive/current pins, the601-file equivalence, exact182 ordered
+XML records, six composed summaries and35 resource/removal receipts. Fresh
+structured cleanup receipt
+`build/returned-recovery-final-hera/evidence-v3/removal-lookup-structured.json`
+SHA `1ef2e4c93ae24f62891c00fa93d22578da886d1bc2163c4ae338115dd06e8268`
+records the exact Docker label lookup, times, exit0, empty container_ids and
+empty stderr. Acceptance is offline only: physical NOR, loader quiescence,
+reset, boot, display and recovery require their separate actual observations.
+
+Final source remains backup afeefe7b…, restore f5835237… and actual fixture
+5f7fd576…; production files were unchanged by the two-line fixture repair.
+This note and the fixture are frozen for root checkpoint/push. The distinct
+interrupted-restore design is saved in
+`notes/2026-10-11-returned-stock-resume-design.md`; its new implementation is
+authorised behind closed execution, preserving every accepted source and marker.

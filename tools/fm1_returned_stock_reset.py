@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """MIT. One fixed-loader FC0C arg1 after the genuine returned-ROM stock restore.
 
-WIP: RESTORE_SOURCE_SHA remains None until the completed-restore evidence helper
-freezes and passes independent review. No upload, flash operation, read probe,
+The completed-restore verifier is pinned separately from physical activation.
+No upload, flash operation, read probe,
 retry or assertion that a transmitted request caused a hardware reset.
 Python instance registries are not a hostile-code security boundary.
 """
@@ -20,7 +20,7 @@ import time
 import types
 from weakref import WeakSet
 
-RESTORE_SOURCE_SHA = None
+RESTORE_SOURCE_SHA = 'f583523740bb709dde0cf8bc2e07677e2ab26063d511dcb3ba84a6b232e9af33'
 RESET_SOURCE_SHA = 'dbbe363104aa339b63430ff0a99f817aba27afa233a266d449f45e048cd09116'
 BRIDGE_SOURCE_SHA = '79bbe99ce923daaf8af2c701a65ec39a015191313de79676e36622cb8db00afb'
 READER_SOURCE_SHA = '28317ee56a489e0bb38de981fe0d0c4260384be570349795741fdb9a98d6ae57'

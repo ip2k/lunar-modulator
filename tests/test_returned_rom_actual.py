@@ -85,7 +85,7 @@ def test_actual_private_returned_backup_restore_and_completed_helper(actual,monk
     reset_exited=time.time()
     usb=dict(bc['usb_binding'],devnum=str(int(bc['usb_binding']['devnum'])+1))
     mapping=copy.deepcopy(bc['sg_binding']);mapping['usb_identity'][1]+=1;mapping['node_identity'][1]+=1
-    sp=boot_run/'original-rom.json';sp.write_bytes(backup.canonical(snapshot(boot_sha,usb,mapping)))
+    sp=boot_run/('rom-snapshot.json' if mode=='detached' else 'original-rom.json');sp.write_bytes(backup.canonical(snapshot(boot_sha,usb,mapping)))
     state=dict(schema=1,kind='fm1-exact-diagnostic-stage-probe',adapter_sha256=proof_module.SUCCESSFUL_PROBE_SHA,
         target_boot_campaign_path=str(bp),target_boot_campaign_sha256=boot_sha,
         target_boot_commands_sha256=backup.digest(commands.read_bytes()),target_boot_exit_status=0,
@@ -195,7 +195,7 @@ def test_actual_private_returned_backup_restore_and_completed_helper(actual,monk
         with pytest.raises(ValueError,match='absent evidence'):restore.run_campaign(restored)
         assert appeared==[absent] and len(model.calls)==before
         assert model.closed[closed_before:]==[model.FD]
-        assert (parent/'.returned-stock-restore.consumed').exists()
+        assert (rr/'.returned-stock-restore.consumed').exists()
         assert not (restore_receipt/'result.json').exists()
         rows=[json.loads(x) for x in (restore_receipt/'commands.jsonl').read_bytes().splitlines()]
         assert sum(x['event']=='sg_submit_intent' for x in rows)==1

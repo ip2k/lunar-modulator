@@ -7,8 +7,11 @@ describes the original rationale, not a current ban on boot-mode probes.
 The original single most important fact about this project: **a non-stock
 write can leave the FM-1 unable to boot, and the stock updater cannot rescue a
 nonbooting application.** The owner has since authorized and completed the
-bounded experiments in §4. A full-image restore and recovery from a broken
-application remain untested. This document records the risks and staged
+bounded experiments in §4. On 2026-10-11 the diagnostic install/restore
+rehearsal reproduced both complete 1 MiB images and a separate reset returned
+the owner's `FM-1_092` to normal USB and its known identity [verified:
+`notes/2026-10-11-diagnostic-boot-trial.md`]. Diagnostic execution and rescue
+after an interrupted physical write remain unverified. This document records the risks and staged
 safeguards; it is not a general authorization for device writes.
 
 ## 1. Why recovery is hard on this device
@@ -148,11 +151,14 @@ to enter `UBOOT1.00` are now known (`notes/2026-10-05-community-repos.md`
 §3.6):
 - **The stock "soft key"** `F0 22 24 35 7D F7`: stock V15 left the bus
   21 ms later and came back as `UBOOT1.00` [reported: FM-1-transporter; it
-  fails with another full-speed device on the hub]. FM-1_092 is unchecked.
+  fails with another full-speed device on the hub]. The same key entered ROM
+  on the owner's `FM-1_092` [verified:
+  `notes/2026-10-07-fm1-softkey-bench.md`], and was exercised again during the
+  2026-10-11 diagnostic campaign [verified:
+  `notes/2026-10-11-diagnostic-boot-trial.md`].
   It is one byte from the upgrade command `F0 22 24 35 7F F7`, and it is
-  **forbidden before the gate** (rule 1, CLAUDE.md trap 9): the gate must
-  prove the path that works when no app runs. Before any later use, find
-  the `7D` handler in FM-1_092's `app.bin` at the desk.
+  permitted only as a staged, recorded experiment under §4 rule 1. It needs a
+  running application; success does not prove recovery from a hung application.
 - **`go_mask_usb_updata()`** in the SDK (`apps/common/usb/device/msd_upgrade.c`,
   identical at V1.1.9): from RAM, IRQs off, `nvram_set_boot_state(2)`, then a
   core reset through `PWR_CON` bit 4 [verified: SDK source; reported
@@ -164,6 +170,33 @@ to enter `UBOOT1.00` are now known (`notes/2026-10-05-community-repos.md`
 
 Read the fail-open keys before USB starts: Felucca's key combination works
 only once its main loop runs [verified: Felucca source].
+
+### 2.3.1 Diagnostic recovery procedure and current evidence boundary
+
+This is the owner's private diagnostic campaign, not a public firmware release
+or a generic unbrick command. Preserve the exact stock backup, image hashes,
+command logs, transaction journal and owned USB capture before acting. A failed
+or timed-out operation consumes its attempt; do not rerun the same command or
+edit a receipt to make it look successful [verified: the transaction and
+one-shot adapters in `tools/`; campaign details in the boot-trial note].
+
+| Observed state | Next step | What it establishes |
+| --- | --- | --- |
+| Normal `4c4a:c755`, known `FM-1_092` identity | Use the reviewed identity/soft-key entry once, observe same-port ROM enumeration, then take fresh matching complete backups before a write. | A running application can enter ROM [verified on this unit]. |
+| ROM `4c4a:8057` after the diagnostic reset | Capture the diagnostic RAM stage before uploading a loader; use the returned-ROM evidence factory, fresh matching target backups and a separately admitted stock restore. | Retained stage data can support execution evidence; ROM enumeration alone proves neither boot nor recovery cause [inferred until the physical probe]. |
+| Stock restore completed with full `96006a51…` readback | Admit the distinct stock-return reset from the completed restore receipt; send its single reviewed `FC0C` request and passively observe normal USB, then read the known identity. | The earlier rehearsal verified this return without an owner power cycle; the new returned-ROM path still needs its own physical receipts. |
+| Interrupted or corrupt application-sector write, ROM reachable | Preserve the partial journal and failed attempt. Re-enter under a new binding, read actual flash afresh, verify all protected bytes, and use a separately reviewed resume envelope. Rebuild whole affected sectors, write the application directory last, and verify the complete stock image. | Transaction-model interruption/corruption tests exercise these rules; the returned-ROM resume envelope and physical interrupted-write rescue remain pending. |
+| Application hangs and neither normal USB nor ROM is present | Preserve evidence and wait for an actual recovery entry: watchdog/reset if implemented and verified, or `USB_KEY` at power-on under docs/10. | No host command can be promised to recover an unreachable device. The dongle remains untried on this owner's unit. |
+
+The private flasher accepts only the pinned fixed RAM loader and the owner's
+exact stock/diagnostic pair. It confines writes to the derived 30 application
+sectors, keeps the stock SPL/OTA/configuration and partition bytes intact,
+records intent before each operation, and checks the full final image
+[verified: the physical install/restore rehearsal and transaction model].
+Never substitute the SDK download loader, use eFuse commands, erase the whole
+flash, or infer a safe resume from a success string. See
+[the returned-ROM design](../notes/2026-10-11-returned-rom-recovery-design.md)
+for the composed provenance gates and their modeled versus physical limits.
 
 ### 2.4 `UART_KEY` / ISP / debug TAP over soldered wires
 

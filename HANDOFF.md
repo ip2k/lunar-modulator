@@ -11,104 +11,66 @@ original conversation; last updated 2026-10-11. Read this first, then
 
 ## Installable firmware image resumed — 2026-10-11
 
-[verified: later source checkpoint] Detached/shared provenance source
-`8fb33694…`, native `8ad32e42…` and test snapshot `e4930491…` are saved
-with their final 101-case cross-mode Hera gate passed; independent final
-source/runtime review accepted `cd990cc8…`. Both exact
-probe wrappers are staged file-only (review `dbda7dee…`) without execution.
-The test-only native Linux mock repair passed 79 unique cases plus one private
-modeled smoke; independent final receipt review accepted `0fb814d9…`.
-Fresh CI remains pending.
+[verified: current physical state] The diagnostic image is installed on the
+owner's FM-1. Full 1 MiB readback matches target `df6c963e…`; the exact physical
+installation and independent replay are recorded in
+[the boot-trial note](notes/2026-10-11-diagnostic-boot-trial.md).
+The device remains on ROM USB bus 3/device 25, port `3-2`, `4c4a:8057`, `sg0`
+(last passive sysfs observation 2026-10-12 02:44:59 UTC). No command has been sent
+after installation. Target boot, display, delayed return to ROM and recovery
+after diagnostic execution remain unverified. No camera was identified in the
+bench's passive video-device inventory.
 
-[verified: current recovery checkpoint] Returned-stock reset v2 passed 56 unique
-injected cases plus one modeled smoke in sixteen Hera chunks; independent
-review accepted report `46da05e5…`. Its completed-restore production pin is
-still unset. The composed private fixture exposed an SG mapping mismatch;
-the corrected reset source `17b9f005…` uses the actual resolved class path and
-direct node name, with complete live identity comparison retained. Independent
-source review accepted `fe38253d…`; its 58-case and genuine composed runtime
-gate are pending. Returned-ROM backup/restore source checkpoints include retained
-absence and historical provenance checks, but remain closed WIP pending the
-genuine private composed factory gate. The whole-suite receipt is independently
-accepted at its sealed older snapshot. Passive bench sysfs at 2026-10-12
-02:12:06 UTC still showed ROM bus 3/device 25, `4c4a:8057`, `sg0`; no target
-reset, diagnostic execution, display or post-boot recovery is claimed.
+[verified: recovery preparation] The returned-ROM backup source `afeefe7b…`,
+restore source `f5835237…`, and shared provenance helper `8fb33694…` are frozen.
+The private genuine composed gate passed 182 unique cases: 179 repaired V3
+cases in 16 Hera chunks plus three unchanged passing V2 actual cases, with
+explicit source-version provenance. Independent review accepted aggregate
+`87848de7…`; failed fixture runs remain preserved. Root's returned-stock reset
+source `7af061b0…` now pins the accepted restore verifier `f5835237…`; its focused
+58-case successor gate passed in 16 Hera chunks; independent retained-evidence
+review accepted `f7e508a6…`. The closed private stock
+return capture wrapper and pure-file preparer have separate source/runtime gates. See
+[the recovery design](notes/2026-10-11-returned-rom-recovery-design.md).
 
-[verified: physical rehearsal and independent review] Exact SDK diagnostic
-installation and stock restoration both passed full 1 MiB readbacks, matching
-target `df6c963e…` and stock `96006a51…`. Wrapper/child exited 0, owned capture
-stopped cleanly, all 45,100 events and 21,498 vendor commands were independently
-replayed. Evidence is private under `build/sdk-rehearsal-physical/`; details and
-limits are in [the rehearsal note](notes/2026-10-11-sdk-rehearsal.md).
-The distinct post-rehearsal stock reset `743ac876…` passed 107 cases in 16 Hera
-chunks plus its actual-input modeled smoke and independent review. Its actual
-physical-receipt campaign `f2a9f740…` sent one exact FC0C argument-1 CBW, then
-lost its binding during USB reset and exited 1 without retry or claimed SG
-completion. Normal same-port USB device 24 and the exact `FM-1_092` identity
-response verify restored stock operation without a physical power cycle.
-Private reset evidence is `build/post-rehearsal-reset-physical/`. The later fresh
-backups and diagnostic install below supersede that checkpoint. Next: target
-boot, display and post-boot recovery; corrupted/interrupted-write acceptance
-remains outstanding.
+[verified: staged files only] Probe helper/native `8fb33694…`/`8ad32e42…` passed
+101 unique cases plus one actual-private modeled smoke; independent review
+accepted `cd990cc8…`. The chooser passed 26 unique cases plus its modeled smoke;
+review accepted `70954552…`. Successful and detached reset probe wrappers and
+the chooser are staged without execution. Source-only staging V2 wrote 31
+exactly pinned files, checked the original 35-member packet and all 45 required
+sources, and retained the completed install journal separately. The recovery
+executor remains closed. Receipt `7ea7bfbd…` and independent review `2bbe8c01…`
+prove file staging only; no device command, factory admission or activation.
 
-The install-only adapter `25412082…` passed 37 unique tests in 16 Hera chunks
-plus a complete actual-input modeled install, and independent review accepted
-the frozen source/evidence. It is committed and verified pushed at
-`3cc74bfd5891b58b31730ee572ec34323957611a`.
-A fresh entry reached ROM device 25; its first backup stopped before SG node
-creation and sent no adapter commands. The independently reviewed one-use
-pre-transport continuation succeeded: both fresh 1 MiB dumps match stock
-`96006a51…`, all 8,757 requests passed independent transcript/capture replay,
-and the original failed attempt/marker remain intact. A new install-only
-packet passed actual staged-file preflight and independent concrete review.
-Its one-shot physical install then passed full target readback, with outer and
-child exits zero. Independent replay accepted all 22,546 events and 10,747
-vendor requests, 30 changed sectors (directory last), and the final 4,096
-target pages. Private evidence is `build/sdk-install-physical/`. The FM-1
-remains in the fixed recovery loader; target reset, diagnostic execution,
-display and fresh recovery remain pending.
-The distinct target reset guard passed 107 Hera tests in 16 chunks plus its
-actual-input model and independent review, and was committed and remote-SHA
-verified at `45e21964d37fde86330eab65fa4c2866b1951ca6`.
-The complete saved Python snapshot finished all 16 Hera chunks: 6,352 passed,
-35 skipped and two expected failures across 6,389 collected cases, with zero
-failures/errors. Later recovery sources have separate gates; see
-[the complete-suite receipt](notes/2026-10-11-full-python-target-gate.md). Public CI's missing
-private fixture failure has a test-only selector repair: absent paths may
-skip, while `LUNAR_REQUIRE_PRIVATE_FIXTURES=1`, partial or empty paths fail.
-Its strict-private follow-up passed all 287 cases in 16 Hera chunks with no
-skips. The same public lane passed 244 and explicitly skipped 43 optional
-private-fixture cases. Independent review accepted both lanes' exact coverage,
-source pins and container cleanup.
-GitHub run 38191069382 on exact checkpoint `22cae292…` passed all thirteen jobs.
-Later source additions require their own fresh CI. A distinct injected ROM
-probe `ff593853…` passed 126 cases in 16 Hera chunks plus its actual-private
-modeled smoke, and independent review accepted its evidence. Its three-file
-checkpoint is committed and remote-SHA verified at
-`1a5e0831e1d4a85bc339311db82ac84a216d523c`.
-The separate native SG transport passed its 79-case Hera gate and actual-private
-modeled smoke; independent retained-evidence review accepted both. The successful-only
-static packet is staged on bench01 without execution; no target reset or
-post-install device command has occurred. A distinct, separately reviewed
-transmitted-but-detached reset policy is still needed before activation.
-The diagnostic's 32-byte stage block must be captured before a recovery loader
-overwrites it. Evidence and next dependencies are in
-[the boot trial note](notes/2026-10-11-diagnostic-boot-trial.md).
-The returned-ROM stock-restore scaffold and tests passed an initial 53-case
-injected WIP gate on Hera. Its factory remains closed until the separate
-returned-backup source and evidence helper freeze; this is not a hardware-ready
-recovery adapter. See [the design](notes/2026-10-11-returned-rom-recovery-design.md).
-The new returned-stock reset scaffold passed 56 injected authority/syscall cases
-in 16 Hera chunks plus one smoke, including required-absence drift. Its factory also remains closed until the
-genuine completed-restore validator freezes and is independently accepted; see
-[the WIP reset gate](notes/2026-10-11-returned-stock-reset.md).
-Returned-ROM backup/restore provenance WIP was checkpointed and remote-SHA
-verified at `def16afc863d4c24b979fbe3f7699033b05c2fc0`. Shared historical
-successful/detached/failed-probe helpers and genuine private lineage gates are
-still in progress. GitHub run 38192936943 on `6b8ed4b2…` passed twelve jobs and
-failed macOS Python because the native SG syscall mocks retained Darwin's
-platform value. The production Linux guard correctly rejected those mocks;
-a test-only platform repair and fresh focused gate are underway.
+[verified: earlier physical recovery boundary] A complete diagnostic install
+and stock restore rehearsal passed both full 1 MiB readbacks, target `df6c963e…`
+and stock `96006a51…`. A separate one-shot reset then produced normal same-port
+USB and the exact known `FM-1_092` identity without an owner power cycle. The
+later fresh matching stock backups and current diagnostic install preserve
+all earlier consumed markers and receipts. These results prove restoration
+and stock operation from the loader; they do not prove diagnostic boot or
+rescue from an interrupted application write.
+
+[verified: verification and backup state] The sealed older whole-suite gate
+completed 6,389 collected cases in 16 Hera chunks: 6,352 passed, 35 skipped,
+two expected failures, zero failures/errors. The strict private selector gate
+passed 287 cases without skips. Native SG test portability repair passed 79
+cases plus its smoke. Later recovery additions have the separate gates above.
+GitHub run 38197006075 on exact checkpoint `4391433161f6fe61d30d54a8b79b53c67362177b`
+passed all thirteen jobs; later changes need their own exact-head CI run. The feature branch is `feature/2026-10-11@installable-firmware`,
+with `43914331…` committed and remote-SHA verified. No PR or merge has occurred.
+
+Next: accept the genuine recovery and stock-return wrapper gates; bind the final
+restore dependency and obtain concrete review; execute target reset once and
+the chooser promptly within the original ROM snapshot's 120-second window,
+before any recovery-loader upload. Preserve ambiguous statuses without retry.
+Then capture fresh matching target backups, restore stock under the new binding,
+and verify normal identity. A separate interrupted-restore resume envelope is
+still required; the underlying transaction worker already rebuilds from fresh
+actual flash and has independent interruption/corruption model coverage.
+The active goal remains a working physical diagnostic with verified recovery,
+documented procedures and completed required review/CI/integration gates.
 
 The following entries are historical checkpoints, superseded where the physical
 result above supplies later evidence.
