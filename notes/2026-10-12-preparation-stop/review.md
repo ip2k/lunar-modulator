@@ -1,0 +1,9 @@
+# Actual native-preparation-stop evidence
+
+[verified] The evidence-only factory replays the canonical completed diagnostic installation and captured boot attempt, then checks the original preparer source, exact failure output, terminal chronology, consumed sequence marker and exact 16-file partial packet. No native worker receipt is admitted. Positive bytes, absent publications and packet/chain inventories remain checked by the registered proof; later files or symlink directories invalidate it.
+
+[verified] An isolated file-only invocation on bench01 accepted the genuine V7 artifacts, including 25 preparation-stop evidence files. It opened no device and issued no commands. The original ROM snapshot remains historical and unchanged. The initial invocation used the copied partial-packet lineage path; it correctly refused because the original intent names boot-lineage.json. The corrected invocation used that original path and passed.
+
+[verified] Sixteen contract cases passed in 16 Hera containers with no failures/errors/skips; source hashes remained unchanged and all containers were removed. Cases cover chronology, failed exit, source/output pins, recovery/stock assumptions, later chain children, missing/extra packet files and symlink directories. This is evidence-validation acceptance, not physical recovery acceptance. The Mac interpreter lacks pytest; tests ran on Hera using the existing pinned test image.
+
+Next: a distinct fixed-loader backup adapter must bind this preparation stop to a separate fresh unchanged ROM witness, take two complete target dumps, and feed a bounded stock-restore adapter. Existing five-read returned-admission factories cannot be used as though those reads occurred. No hardware work has run since V7 stopped. Latest passive USB check still finds bus1/device10 UBOOT; no power cycle needed.
