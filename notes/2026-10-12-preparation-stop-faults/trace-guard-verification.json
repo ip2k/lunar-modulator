@@ -1,0 +1,124 @@
+{
+  "chunks": 16,
+  "passed": 16,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "hardware_access": false,
+  "adapter_sha256": "51a946eeb781866842abe08d2f88455addf84f69804046ec9773837c5befa14e",
+  "corrected_test_only": true,
+  "reports": [
+    {
+      "chunk": 0,
+      "run": "v3",
+      "name": "test_actual_v7_preparation_stop_backup_restore[none]",
+      "seconds": "569.447",
+      "xml_sha256": "a5f9cccf485e8f3133a045a4f37b129fbe9cdacf93f05814b8a8d8b2fe896166"
+    },
+    {
+      "chunk": 1,
+      "run": "v3",
+      "name": "test_actual_v7_preparation_stop_backup_restore[interrupted_program]",
+      "seconds": "425.965",
+      "xml_sha256": "17220e8c59956d71b4f89682b9fd66518672b18fe1c4059c0fcc88eb5e694d75"
+    },
+    {
+      "chunk": 2,
+      "run": "v3",
+      "name": "test_actual_v7_preparation_stop_backup_restore[corrupted_readback]",
+      "seconds": "411.415",
+      "xml_sha256": "a0582c6edf5f86d66dfa3bbf024f8fd7c26790376bc858c23d8035e54296b375"
+    },
+    {
+      "chunk": 3,
+      "run": "v3",
+      "name": "test_actual_v7_preparation_stop_backup_restore[later_chain_before_erase]",
+      "seconds": "301.196",
+      "xml_sha256": "423c842ee0957d7e705736a0877f44f0e0151c78ccc72373481ad3a4f792ba07"
+    },
+    {
+      "chunk": 4,
+      "run": "v3",
+      "name": "test_actual_v7_preparation_stop_backup_restore[trace_before_backup]",
+      "seconds": "3.908",
+      "xml_sha256": "15f294d7d001963f0fd9de155d9761d8eeb24a909c7e4a9363b261282ca67612"
+    },
+    {
+      "chunk": 5,
+      "run": "v4",
+      "name": "test_actual_v7_preparation_stop_backup_restore[trace_during_backup]",
+      "seconds": "4.373",
+      "xml_sha256": "0b95093afbab4442fdc4c7ce57ddc89ca828ca05722129376868d10bd875bd19"
+    },
+    {
+      "chunk": 6,
+      "run": "v3",
+      "name": "test_preparation_stop_adapter_boundary[valid]",
+      "seconds": "0.145",
+      "xml_sha256": "a8f90694320ab1e693a98c814415cca04e6c521182b8cfee36131d202e1fcebb"
+    },
+    {
+      "chunk": 7,
+      "run": "v3",
+      "name": "test_preparation_stop_adapter_boundary[expired]",
+      "seconds": "0.040",
+      "xml_sha256": "9aaa5066c58a995a42c52a64dd95913e62934e9107c5085121f36a49cdfebc1a"
+    },
+    {
+      "chunk": 8,
+      "run": "v3",
+      "name": "test_preparation_stop_adapter_boundary[future]",
+      "seconds": "0.088",
+      "xml_sha256": "4f698b088d0b31ae973577561a36201fc2e3bf0a390476bcd562481d5a00cf85"
+    },
+    {
+      "chunk": 9,
+      "run": "v3",
+      "name": "test_preparation_stop_adapter_boundary[nan]",
+      "seconds": "0.009",
+      "xml_sha256": "4a9243db0879f7d9d569f40280e8ba3c8430f4aaea5cc82b7ba0a05e68cdcdaf"
+    },
+    {
+      "chunk": 10,
+      "run": "v3",
+      "name": "test_preparation_stop_adapter_boundary[boolean]",
+      "seconds": "0.119",
+      "xml_sha256": "3fddba72ea20a6e72e1aed56dc5e2d14aecdf4a6ec04aa6ecc69efb9349b0db3"
+    },
+    {
+      "chunk": 11,
+      "run": "v3",
+      "name": "test_preparation_stop_adapter_boundary[snapshot_pin]",
+      "seconds": "0.014",
+      "xml_sha256": "4f89f05f4f487ad80bbb3d92bcfc336df67f9747b92f14577d6d24302e4af92f"
+    },
+    {
+      "chunk": 12,
+      "run": "v3",
+      "name": "test_preparation_stop_adapter_boundary[usb_changed]",
+      "seconds": "0.011",
+      "xml_sha256": "47e412e0f18ae834e0cec764425a58a12bc778b9c9b28cda43b81e3543faf108"
+    },
+    {
+      "chunk": 13,
+      "run": "v3",
+      "name": "test_preparation_stop_adapter_boundary[sg_changed]",
+      "seconds": "0.014",
+      "xml_sha256": "2642d2e822fbb54a59619256cb9e3bdce1df5d9832966f4f6c01c12db03817fd"
+    },
+    {
+      "chunk": 14,
+      "run": "v3",
+      "name": "test_preparation_stop_adapter_boundary[state_changed]",
+      "seconds": "0.010",
+      "xml_sha256": "9f506edd254500a4abb7f0c3157603fc7843aca100ffbaa8200d59084847e572"
+    },
+    {
+      "chunk": 15,
+      "run": "v3",
+      "name": "test_preparation_stop_adapter_boundary[kind_changed]",
+      "seconds": "0.008",
+      "xml_sha256": "1dfe97cab7833760d06697c27f0f4e099f70675d41d63be6e042e6cc7c255f21"
+    }
+  ]
+}

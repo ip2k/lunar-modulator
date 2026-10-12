@@ -17,7 +17,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 
-@pytest.mark.parametrize('fault', ('none', 'interrupted_program', 'corrupted_readback', 'later_chain_before_erase'))
+@pytest.mark.parametrize('fault', ('none', 'interrupted_program', 'corrupted_readback',
+                                 'later_chain_before_erase', 'trace_before_backup',
+                                 'trace_during_backup'))
 def test_actual_v7_preparation_stop_backup_restore(monkeypatch, tmp_path, fault):
     if os.environ.get('LUNAR_PREPARATION_STOP_DISPOSABLE') != '1':
         pytest.skip('Requires retained private V7 files in a disposable container')
@@ -70,10 +72,36 @@ def test_actual_v7_preparation_stop_backup_restore(monkeypatch, tmp_path, fault)
     for key in ('loader_path', 'profile_path', 'profile_source_path'):
         bc[key] = rehearsal_config[key]
     bp.write_bytes(backup.canonical(bc))
+    trace_marker = accepted.lineage.parent / ('.sdk-preparation-stop-trace-' +
+        accepted.lineage.read_binding()['boot_campaign_sha256'] + '.consumed')
+    if fault == 'trace_before_backup':
+        trace_marker.write_text('bounded reader consumed')
+        with pytest.raises(ValueError, match='successor admission'):
+            backup.prepare_campaign(bp)
+        assert not Path(bc['receipt_path']).exists()
+        return
     p = backup.prepare_campaign(bp)
     target = Path(policy_inputs['directory']) / 'target.bin'
     model = ReturnedSGModel(monkeypatch, snapshot['sg_binding'], target.read_bytes())
     monkeypatch.setattr(p.bridge, 'discover_sg', model.discover)
+    if fault == 'trace_during_backup':
+        # ReturnedSGModel's NOR hook starts only after loader upload. Intercept
+        # every modeled syscall here so publication follows the initial inquiry.
+        def backup_ioctl(fd, code, header):
+            result = model.ioctl(fd, code, header)
+            trace_marker.write_text('bounded reader consumed')
+            return result
+        monkeypatch.setattr(backup.fcntl, 'ioctl', backup_ioctl)
+        with pytest.raises(ValueError, match='successor admission'):
+            backup.run_campaign(p)
+        assert len(model.calls) == 1
+        assert model.calls[0]['op'] not in (0xFB01, 0xFB04, 0xFC0C)
+        assert not (Path(bc['receipt_path']) / 'manifest.json').exists()
+        after_stop = len(model.calls)
+        with pytest.raises((ValueError, FileExistsError)):
+            backup.run_campaign(p)
+        assert len(model.calls) == after_stop
+        return
     result = backup.run_campaign(p)
     assert len(model.calls) == 8757
     assert not any(c['op'] in (0xFB01, 0xFB04, 0xFC0C) for c in model.calls)

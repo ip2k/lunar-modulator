@@ -114,6 +114,20 @@ def test_actual_preparation_stop_trace(monkeypatch, tmp_path, case):
     assert Path(original_snapshot).read_bytes() == historical
     assert all(op in n.OPERATIONS for op in state.calls)
     assert len(state.calls) <= 5
+    if case != 'source_changed':
+        from fm1_prepare_stop_trace_receipt import verify_receipt
+        receipt = prepared.receipt
+        result_path = receipt / 'result.json'
+        pending = receipt / '.result.json.pending'
+        replay = verify_receipt((receipt / 'commands.jsonl').read_bytes(),
+            (receipt / 'native.jsonl').read_bytes(), prepared.seal,
+            {p.name.removesuffix('.raw.bin'): p.read_bytes() for p in receipt.glob('*.raw.bin')},
+            snapshot['sg_binding'], interpret=prepared.module.interpret_repeated,
+            evaluated_at=time.time(),
+            result_raw=result_path.read_bytes() if result_path.exists() else None,
+            pending_raw=pending.read_bytes() if pending.exists() else None)
+        assert replay['outcome'] == ('completed' if case in ('valid', 'marker_reuse') else 'stopped-ambiguous')
+        assert replay['recovery_authorized'] is replay['physical_boot_verified'] is False
 
 
 def test_stop_trace_closed_without_device(tmp_path):

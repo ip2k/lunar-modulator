@@ -74,6 +74,13 @@ def marker_path(parent, proof):
     return parent / ('.sdk-preparation-stop-loader-' + boot_sha + '.consumed')
 
 
+def require_no_trace_read(parent, proof):
+    boot_sha = proof.lineage.read_binding()['boot_campaign_sha256']
+    for prefix in ('.sdk-preparation-stop-trace-', '.sdk-trace-read-'):
+        if os.path.lexists(parent / (prefix + boot_sha + '.consumed')):
+            raise ValueError('Later trace read requires explicit successor admission')
+
+
 def validate_connection_witness(witness, snapshot, snapshot_sha256, evaluated_at):
     keys = {'schema', 'kind', 'observed_at', 'usb_binding', 'sg_binding',
             'original_rom_snapshot_sha256', 'preparation_stop_sha256', 'quiet_state'}
@@ -126,6 +133,7 @@ def check_evidence(prepared):
     for policy in prepared.policies:
         policy.check_files()
     prepared.provenance.check()
+    require_no_trace_read(prepared.parent, prepared.provenance)
     if prepared.request_inventory_sha256 != prepared.bridge.inventory_digest(prepared.operations):
         raise ValueError('Frozen exact backup inventory changed')
 
@@ -204,6 +212,7 @@ def _validate_campaign(path, *, evaluated_at, completed=False, install_journal_p
     if len(operations) != 8757:
         raise ValueError('Exact reviewed dual-read command inventory required')
     parent = Path(proof.lineage.parent); destination = Path(c['receipt_path'])
+    require_no_trace_read(parent, proof)
     marker = marker_path(parent, proof)
     if (not destination.is_absolute() or destination.parent != parent or
             not stat.S_ISDIR(parent.lstat().st_mode) or stat.S_IMODE(parent.stat().st_mode) != 0o700):
@@ -270,6 +279,7 @@ def FixedSG(prepared, log):
         def binding(self):
             require_prepared(self.prepared, check=False)
             self.prepared.provenance.check_pending()
+            require_no_trace_read(self.prepared.parent, self.prepared.provenance)
             super().binding()
             root = Path(__file__).absolute().parent
             for name, pin in (('fm1_returned_rom_backup.py', BASE_SOURCE_SHA),
