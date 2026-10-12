@@ -48,6 +48,27 @@
 .ed-keys b { color: var(--accent-text); background: var(--select); border-radius: 4px; padding: 0 5px; margin-left: 4px; }
 .ed-hint { color: var(--muted); }
 .ed-icon { min-width: 54px; }
+.ed-footer-menu { position: relative; }
+.ed-footer-menu > summary { cursor: pointer; }
+.ed-footer-menu-body {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 25;
+  display: flex; flex-direction: column; gap: 8px; padding: 12px;
+  width: min(340px, calc(100vw - 48px)); box-sizing: border-box;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / .35);
+}
+.ed-footer-menu-body > button { width: 100%; text-align: left; }
+.ed-footer-menu .files { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.ed-footer-menu .files .buttons { display: flex; gap: 8px; }
+.ed-footer-menu .files .save-group { display: flex; gap: 8px; }
+.ed-footer-menu .files .save-group select { min-width: 0; flex: 1; }
+.ed-footer-menu .controls { margin: 0; display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+.ed-footer-menu .controls .buttons { display: flex; flex-direction: column; gap: 8px; }
+.ed-footer-menu .controls .field select { width: 100%; }
+.ed-footer-menu .controls button { width: 100%; text-align: left; }
+.ed-footer-menu > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.ed-footer-menu:has(.ed-hist) .ed-footer-menu-body { width: min(480px, calc(100vw - 48px)); max-height: min(360px, 60vh); overflow: auto; }
+.ed-footer-menu .ed-hist { margin: 0; border: 0; padding: 0; }
 .ed-toggle { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); cursor: pointer; min-height: 28px; }
 .ed-toggle input { accent-color: var(--select); width: 16px; height: 16px; margin: 0; }
 .ed-ram-wrap { position: relative; }
@@ -312,6 +333,7 @@
   display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; padding: 8px var(--ed-pad);
   border-top: 1px solid var(--border); background: var(--surface); border-radius: 0 0 12px 12px; min-height: 38px;
 }
+.ed-detail[hidden] { display: none; }
 .ed-path-t { color: var(--context); font-weight: 600; }
 .ed-d-val { font-variant-numeric: tabular-nums; }
 .ed-d { color: var(--muted); }
@@ -853,3 +875,6 @@
 .ed-tools-summary { display: inline-flex; align-items: center; min-height: 32px; cursor: pointer; }
 .ed-inspector-more > .ed-credits { margin: 4px 0 8px; }
 .ed-inspector-more .ed-tools { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Hide the complete left rail, including its screen card, at every breakpoint. */
+.ed.is-sidebar-hidden .ed-body { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main"; }
+.ed.is-sidebar-hidden .ed-outline, .ed.is-sidebar-hidden .ed-card { display: none; }

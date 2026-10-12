@@ -31,6 +31,25 @@
 .sq-track-head .sq-field > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .sq-track-head select { width: 100%; font-size: .75rem; }
 .sq-entry { border-radius: 0; text-align: left; white-space: normal; min-height: 56px; font-weight: 600; }
+.sq-entry > .sq-button { width: 100%; text-align: left; border: 0; border-radius: 0; }
+.sq-name { box-sizing: border-box; width: 100%; min-width: 0; min-height: 32px; padding: 5px 8px; border: 1px solid var(--select); border-radius: 4px; background: var(--bg); color: var(--text); font: inherit; }
+.sq-name[readonly] { border-color: transparent; background: transparent; cursor: text; font-weight: 600; }
+.sq-name:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.sq-name-header { display: flex; align-items: center; min-width: 0; gap: 4px; }
+.sq-name-header .sq-name { flex: 1; width: 0; }
+.sq-name-header > .sq-button { flex: none; width: 30px; padding: 3px; }
+.sq-add-section { position: relative; }
+.sq-add-menu { position: absolute; z-index: 5; top: calc(100% + 6px); left: 0; display: grid; gap: 5px; min-width: 180px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); box-shadow: 0 8px 24px #0006; }
+.sq-add-menu > .sq-button { text-align: left; }
+.sq-section-tools > .sq-toolbar { padding: 8px; margin: 6px 0 0; border: 1px solid var(--border); border-radius: 5px; }
+.sq-section-tools > .sq-field { margin-top: 8px; }
+.sq-arrangement-tools { align-items: start; }
+.sq-arrangement-tools > .sq-caption { margin: 8px 0; }
+.sq-timeline-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.sq-timeline-range { min-width: 60px; flex: 1; accent-color: var(--select); cursor: ew-resize; }
+.sq-timeline-position { min-width: 170px; color: var(--muted); font-size: .72rem; }
+.sq-timeline-nav > .sq-button { min-width: 34px; padding: 5px; }
+@media (max-width: 900px) { .sq-timeline-position { min-width: 0; max-width: 140px; } }
 .sq-clip { border-radius: 0; border-left: 4px solid var(--snd, var(--muted)); text-align: left; align-self: stretch; background: color-mix(in srgb, var(--snd, var(--select)) 14%, var(--bg)); }
 .sq .is-playing { box-shadow: inset 0 -3px var(--live, #9ccfd8); }
 .sq-roll { position: relative; width: calc(60px + var(--steps) * 28px); min-width: 0; background: var(--bg); }

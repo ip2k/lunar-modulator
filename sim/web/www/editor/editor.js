@@ -73,6 +73,7 @@ export async function startEditor(env) {
     ram: null, typing: false, dragKey: null, tag: 0, tags: new Map(), snapId: 0, snapWait: new Map(),
     lastViewSent: '', announceAt: 0, flash: null, teleOn: false, tele: null, lastPanelLine: '',
     live: null, picker: null, selCable: null, verdictDirty: false, teleSig: '',
+    sidebarHidden: pref('sidebar-hidden') === '1',
   };
   const history = new History();
   const rows = new Map();         // `${key}:${uid}` -> row
@@ -96,15 +97,46 @@ export async function startEditor(env) {
   [el('span', 'ed-ram-label', { text: 'RAM' }), ' ', ramBar, ' ', ramText]);
   ramList.hidden = true;
   const title = el('span', 'ed-title', {}, [el('span', 'ed-brand', { text: 'Advanced editor' }), el('span', 'ed-project')]);
+  // Reuse the panel's controls so their handlers and live enabled state have
+  // one owner. Anchors return them to exactly the same place in Panel view.
+  const simulatorControls = document.querySelector('main > .controls');
+  const fileBar = document.querySelector('main > .files');
+  const footerHomes = [simulatorControls, fileBar].filter(Boolean).map(node => {
+    const anchor = document.createComment('Panel control');
+    node.before(anchor);
+    return { node, anchor };
+  });
+  function footerMenu(label) {
+    return el('details', 'ed-footer-menu', {}, [el('summary', 'ed-icon', { text: label }), el('div', 'ed-footer-menu-body')]);
+  }
+  const fileMenu = footerMenu('Files');
+  const simulatorMenu = footerMenu('Simulator');
+  const changesMenu = footerMenu('Changes');
+  const menus = [fileMenu, simulatorMenu, changesMenu];
+  for (const menu of menus) {
+    menu.addEventListener('click', e => { if (e.target.closest('button')) menu.open = false; });
+    menu.addEventListener('keydown', e => { if (e.key === 'Escape') { menu.open = false; menu.querySelector('summary').focus(); e.stopPropagation(); } });
+    menu.addEventListener('toggle', () => {
+      if (menu.open) for (const other of menus) if (other !== menu) other.open = false;
+    });
+  }
+  document.addEventListener('pointerdown', e => {
+    for (const menu of menus) if (!menu.contains(e.target)) menu.open = false;
+  });
+  const sidebarBtn = el('button', 'ed-icon', { type: 'button', 'aria-controls': 'ed-sidebar', onclick: () => {
+    st.sidebarHidden = !st.sidebarHidden;
+    pref('sidebar-hidden', st.sidebarHidden ? 1 : 0);
+    updateSidebar();
+  } });
   const appbar = el('div', 'ed-appbar', { role: 'toolbar', 'aria-label': 'Editor' }, [
-    el('div', 'ed-appbar-start', {}, [title]),
+    el('div', 'ed-appbar-start', {}, [title, sidebarBtn]),
     el('div', 'ed-appbar-mid', {}, [keysChip,
       el('label', 'ed-toggle', { for: followPanelBox.id }, [followPanelBox, el('span', null, { text: 'Follow the panel' })]),
       el('label', 'ed-toggle', { for: followEditorBox.id }, [followEditorBox, el('span', null, { text: 'Open on the panel' })])]),
-    el('div', 'ed-appbar-end', {}, [undoBtn, redoBtn, el('div', 'ed-ram-wrap', {}, [ramBtn, ramList])]),
+    el('div', 'ed-appbar-end', {}, [fileMenu, simulatorMenu, changesMenu, undoBtn, redoBtn, el('div', 'ed-ram-wrap', {}, [ramBtn, ramList])]),
   ]);
 
-  const outline = el('nav', 'ed-outline', { 'aria-label': 'Outline' });
+  const outline = el('nav', 'ed-outline', { id: 'ed-sidebar', 'aria-label': 'Outline' });
   const screen = el('canvas', 'ed-screen', { width: 240, height: 240, 'aria-label': 'The FM-1 screen, as on the panel' });
   const screenCap = el('p', 'ed-screen-cap');
   const card = el('section', 'ed-card', { 'aria-label': 'On the FM-1' }, [el('p', 'ed-card-title', { text: 'On the FM-1' }), screen, screenCap]);
@@ -115,7 +147,8 @@ export async function startEditor(env) {
   const hist = el('section', 'ed-hist', { 'aria-label': 'Changes, both ways' }, [
     el('div', 'ed-sec-head', {}, [el('h3', 'ed-sec', { text: 'Changes, both ways' }), el('span', 'ed-note', { text: 'newest first' })]),
     histList]);
-  const main = el('div', 'ed-main', {}, [el('div', 'ed-heads', {}, [context, fromPanel]), view, hist]);
+  changesMenu.querySelector('.ed-footer-menu-body').append(hist);
+  const main = el('div', 'ed-main', {}, [el('div', 'ed-heads', {}, [context, fromPanel]), view]);
   const detail = el('div', 'ed-detail', { 'aria-label': 'The selected parameter' });
   const live = el('div', 'ed-sr', { 'aria-live': 'polite', role: 'status' });
   const off = el('div', 'ed-off', {}, [
@@ -124,6 +157,13 @@ export async function startEditor(env) {
   const body = el('div', 'ed-body', {}, [outline, card, main]);
   const root = el('section', 'ed', { 'aria-label': 'Advanced editor', 'data-keys': 'play' }, [appbar, off, body, detail, live]);
   host.append(root);
+  function updateSidebar() {
+    root.classList.toggle('is-sidebar-hidden', st.sidebarHidden);
+    outline.hidden = st.sidebarHidden;
+    sidebarBtn.textContent = st.sidebarHidden ? 'Show sidebar' : 'Hide sidebar';
+    sidebarBtn.setAttribute('aria-expanded', String(!st.sidebarHidden));
+  }
+  updateSidebar();
   const chains = makeChains({
     st, meta, mm, el, history, files, root, nextId, sendOps, say, showRefusal, select, render, blockOf, engineName,
     inspector, sliderControl, rowShell, segControl, levelRow, renderHistory, snapshotSoon, setValue, openOnPanel,
@@ -212,11 +252,15 @@ export async function startEditor(env) {
     st.layout = name;
     root.dataset.layout = name;
     if (name === 'panel') {
+      for (const menu of menus) menu.open = false;
+      for (const { node, anchor } of footerHomes) anchor.after(node);
       header.append(layoutSwitch);
       setKeys('play');
       subscribe();
       return;
     }
+    if (fileBar) fileMenu.querySelector('.ed-footer-menu-body').append(fileBar);
+    if (simulatorControls) simulatorMenu.querySelector('.ed-footer-menu-body').append(simulatorControls);
     appbar.querySelector('.ed-appbar-start').prepend(layoutSwitch);
     render();
     subscribe();
@@ -1306,6 +1350,7 @@ export async function startEditor(env) {
   }
   function renderDetail() {
     detail.innerHTML = '';
+    detail.hidden = false;
     const rf = st.refusal;
     if (rf && performance.now() < rf.until && rf.row === st.selRow) {
       detail.append(el('span', 'ed-refused', { text: rf.text }));
@@ -1314,7 +1359,7 @@ export async function startEditor(env) {
     st.refusal = null;
     const sel = st.selRow ? rows.get(st.selRow) : null;
     if (!sel || !st.mirror) {
-      detail.append(el('span', 'ed-note', { text: 'Select a parameter: its range, default, flags and keys show here.' }));
+      detail.hidden = true;
       return;
     }
     const p = sel.p;

@@ -35,6 +35,30 @@ function choose(label, value, options, change) {
   select.addEventListener('change', () => change(select.value));
   return el('label', 'sq-field', {}, [el('span', '', { text: label }), select]);
 }
+function editableName(label, value, commit, attrs = {}) {
+  const input = el('input', 'sq-name', { type: 'text', 'aria-label': label,
+    title: 'Double-click to rename; Enter or F2 also edits. Enter or leaving the field saves; Escape cancels.',
+    'aria-description': 'Double-click, Enter or F2 edits this name. Enter or leaving the field saves; Escape cancels.', ...attrs });
+  input.value = value; input.readOnly = true;
+  let editing = false;
+  function begin() { editing = true; input.readOnly = false; input.focus(); input.select(); }
+  function finish(cancel = false) {
+    if (!editing) return;
+    editing = false; input.readOnly = true;
+    if (cancel) input.value = value;
+    else if (!input.checkValidity()) { input.readOnly = false; editing = true; input.reportValidity(); }
+    else if (input.value !== value) commit(input.value);
+  }
+  input.addEventListener('dblclick', begin);
+  input.addEventListener('keydown', e => {
+    if (!editing && ['Enter', 'F2'].includes(e.key)) { e.preventDefault(); begin(); }
+    else if (editing && e.key === 'Enter') { e.preventDefault(); finish(); }
+    else if (editing && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); finish(true); }
+  });
+  input.addEventListener('blur', () => finish());
+  input.beginNameEdit = begin;
+  return input;
+}
 
 export function makeSequencer(ctx) {
   if (!document.querySelector('link[data-sequencer-style]')) document.head.append(el('link', '', {
@@ -53,9 +77,11 @@ export function makeSequencer(ctx) {
     note: -1, page: 0, pitch: 60, low: 48, song: 0, lane: 0, inspector: null, midi: null, solo: null, mixDetails: null,
     noteAdvancedOpen: false, view: 'Scenes' };
   let disposed = false, pendingFocus = null, suppressNoteClick = false, cancelDrag = null, readError = false;
+  let pendingRollNote = -1;
   let readRevision = 0, readText = null;
   let releaseFader = null;
   const meterHold = new Map();
+  const timelineObservers = [];
   const sceneName = (s) => state.model?.sceneNames[s] || `Scene ${s + 1}`;
   const clip = (m = state.model, t = state.track, s = state.scene) => m.tracks[t].clips[s];
   const ensureClip = (m, t, s) => m.tracks[t].clips[s] ||= freshClip();
@@ -124,11 +150,26 @@ export function makeSequencer(ctx) {
   }
   function selectClip(t, s, open = false) {
     if (open) state.view = 'Clip';
-    state.track = t; state.scene = s; ctx.watchTrack?.(t); state.note = -1; state.page = 0;
-    const notes = clip()?.notes || [];
-    if (notes.length) { state.pitch = notes[0].pitch; state.low = Math.max(0, Math.min(104, state.pitch - 12)); }
+    state.track = t; state.scene = s; ctx.watchTrack?.(t); state.note = -1;
+    frameClipNotes();
     draw();
     if (open) root.querySelector('[data-view="Clip"]')?.focus({ preventScroll: true });
+  }
+  function frameClipNotes() {
+    const c = clip();
+    state.page = Math.floor((c?.loopStart || 0) / 32);
+    pendingRollNote = -1;
+    // A clip can start with silence, or have a loop starting after bar one.
+    // Open the first sounding note's page rather than an empty first page.
+    c?.notes.forEach((n, i) => {
+      if (n.tick >= (c.loopStart + c.length) * 24 || n.tick + n.gate <= c.loopStart * 24) return;
+      if (pendingRollNote < 0 || n.tick < c.notes[pendingRollNote].tick) pendingRollNote = i;
+    });
+    const n = c?.notes[pendingRollNote];
+    if (n) {
+      state.page = Math.floor(Math.max(c.loopStart, n.tick / 24) / 32);
+      state.pitch = n.pitch; state.low = Math.max(0, Math.min(104, n.pitch - 12));
+    }
   }
   function soundName(i) { const s = state.doc.sounds?.[i]; return `S${i + 1} · ${s?.engine || 'Empty'}`; }
   const routeOptions = () => [...Array.from({ length: 4 }, (_, i) => [`s${i}`, soundName(i)]),
@@ -295,24 +336,37 @@ export function makeSequencer(ctx) {
   }
   function songView() {
     const entries = arrangementEntries(state.model), selected = entries[state.song];
-    const select = choose('Add scene', state.scene, state.model.sceneNames.map((_, s) => [s, sceneName(s)]), v => { state.scene = Number(v); draw(); });
     function alter(label, fn) { edit(label, m => { const es = arrangementEntries(m); fn(es); m.song = es.flatMap(e => Array(e.presses).fill(e.scene)); }); }
-    const controls = el('div', 'sq-toolbar', {}, [select,
-      btn('Append', () => edit('Append scene to song', m => { m.song.push(state.scene); })),
+    const add = el('details', 'sq-add-section', {}, [
+      el('summary', 'sq-button', { text: '＋ Add section' }),
+      el('div', 'sq-add-menu', {}, state.model.sceneNames.map((_, scene) =>
+        btn(sceneName(scene), () => { add.open = false; edit('Append scene to song', m => { m.song.push(scene); }); },
+          { 'aria-label': `Append scene ${scene + 1}: ${sceneName(scene)}`, disabled: state.model.song.length >= 64 }))),
+    ]);
+    const tools = el('details', 'sq-section-tools', {}, [el('summary', 'sq-button', { text: 'Section tools' }), el('div', 'sq-toolbar', {}, [
       btn('Copy entry', () => alter('Copy song entry', es => { if (es[state.song]) es.splice(state.song + 1, 0, clone(es[state.song])); }), { disabled: !selected }),
       btn('Move ←', () => alter('Move song entry earlier', es => { if (state.song > 0) { const e = es.splice(state.song, 1)[0]; es.splice(--state.song, 0, e); } }), { disabled: !selected || !state.song }),
       btn('Move →', () => alter('Move song entry later', es => { if (state.song < es.length - 1) { const e = es.splice(state.song, 1)[0]; es.splice(++state.song, 0, e); } }), { disabled: !selected || state.song === entries.length - 1 }),
       btn('Remove entry', () => alter('Remove song entry', es => { es.splice(state.song, 1); state.song = Math.max(0, state.song - 1); }), { disabled: !selected }),
       selected ? field('Repeats', selected.presses, v => alter('Change scene repeats', es => { es[state.song].presses = v; }), { min: 1, max: 64, step: 1 }) : null,
-      choose('Song end', state.model.songEnd, [[0, 'Loop song'], [1, 'Park tracks; keep clock running'], [2, 'Stop']], v => edit('Set song ending', m => { m.songEnd = Number(v); })),
+    ])]);
+    const controls = el('div', 'sq-toolbar sq-arrangement-tools', {}, [add, tools,
+      el('span', 'sq-caption', { text: selected ? `Selected: ${sceneName(selected.scene)} · section ${state.song + 1}` : 'Choose a scene to start your song' }),
+      el('details', 'sq-section-tools', {}, [el('summary', 'sq-button', { text: 'Song ending' }),
+        choose('Song end', state.model.songEnd, [[0, 'Loop song'], [1, 'Park tracks; keep clock running'], [2, 'Stop']], v => edit('Set song ending', m => { m.songEnd = Number(v); }))]),
     ]);
     const timeline = el('div', 'sq-song-grid', { 'aria-label': 'Song timeline' });
     const columns = entries.length ? entries : [{ scene: state.scene, presses: 1, startBar: 0, bars: Math.max(1, ...state.model.tracks.map(t => Math.ceil((t.clips[state.scene]?.length || 0) / 16))) }];
     timeline.style.gridTemplateColumns = `170px ${columns.map(e => `${Math.max(100, Math.min(340, e.bars * 22))}px`).join(' ')}`;
     timeline.append(el('div', 'sq-track-head', { text: entries.length ? 'SONG · bars' : 'SCENE · not in song' }));
-    columns.forEach((e, i) => timeline.append(btn(`${sceneName(e.scene)} ×${e.presses} · ${e.bars} ${e.bars === 1 ? 'bar' : 'bars'}`, () => { state.song = i; selectClip(state.track, e.scene); }, {
-      class: `sq-button sq-entry ${state.song === i ? 'is-selected' : ''}`, 'data-song-entry': e.songIndex ?? i, title: `Starts at bar ${e.startBar + 1}`, 'aria-pressed': String(state.song === i),
-    })));
+    columns.forEach((e, i) => {
+      const name = editableName(`Scene ${e.scene + 1} name in song entry ${i + 1}`, state.model.sceneNames[e.scene] || '', v => edit('Rename scene', m => { m.sceneNames[e.scene] = v; }), { maxlength: 6, pattern: '[!-~]{0,6}', placeholder: sceneName(e.scene) });
+      timeline.append(el('div', `sq-entry ${state.song === i ? 'is-selected' : ''}`, { 'data-song-entry': e.songIndex ?? i }, [
+      el('div', 'sq-name-header', {}, [name, btn('✎', () => name.beginNameEdit(), { 'aria-label': `Rename scene ${e.scene + 1} in song entry ${i + 1}` })]),
+      btn(`×${e.presses} · ${e.bars} ${e.bars === 1 ? 'bar' : 'bars'}`, () => { state.song = i; selectClip(state.track, e.scene); }, {
+        title: `Starts at bar ${e.startBar + 1}`, 'aria-label': `Select song entry ${i + 1}: ${sceneName(e.scene)}`, 'aria-pressed': String(state.song === i),
+      }),
+    ])); });
     state.model.tracks.forEach((track, t) => {
       const route = track.route, group = route.kind === 1 ? `ed-s${route.index + 1}` : '';
       timeline.append(el('div', `sq-track-head ${group}`, {}, [btn(`Track ${t + 1}`, () => selectClip(t, state.scene)),
@@ -329,16 +383,39 @@ export function makeSequencer(ctx) {
       });
     });
     return el('section', 'sq-section', {}, [el('h3', '', { text: 'Arrangement' }), controls,
-      el('div', 'sq-scroll', { 'data-scroll': 'song' }, [timeline]), el('p', 'sq-caption', { text: 'Columns follow the native scene chain. Repeats share their scene clips; edit a copied scene for a different variation.' })]);
+      timelineScroll(timeline, 'song'), el('p', 'sq-caption', { text: 'Select a section using its repeat/bar header. Double-click a name to rename it. Repeats share their scene clips; copy a scene for a different variation.' })]);
+  }
+  function timelineScroll(grid, key) {
+    const scroll = el('div', 'sq-scroll', { 'data-scroll': key, tabindex: 0, 'aria-label': `${key === 'song' ? 'Arrangement' : 'Scenes'} timeline; scroll horizontally to see more sections` }, [grid]);
+    const range = el('input', 'sq-timeline-range', { type: 'range', min: 0, max: 100, step: .1, value: 0, 'aria-label': `${key === 'song' ? 'Arrangement' : 'Scenes'} horizontal position` });
+    const position = el('output', 'sq-timeline-position');
+    const earlier = btn('←', () => scroll.scrollBy({ left: -Math.max(100, scroll.clientWidth - 170), behavior: 'smooth' }), { 'aria-label': 'Earlier sections' });
+    const later = btn('→', () => scroll.scrollBy({ left: Math.max(100, scroll.clientWidth - 170), behavior: 'smooth' }), { 'aria-label': 'Later sections' });
+    function sync() {
+      const max = scroll.scrollWidth - scroll.clientWidth;
+      range.disabled = max <= 1; range.value = max > 0 ? String(scroll.scrollLeft / max * 100) : '0';
+      earlier.disabled = scroll.scrollLeft <= 1; later.disabled = scroll.scrollLeft >= max - 1;
+      position.textContent = max > 1 ? `${Math.round(Number(range.value))}% · scroll for more →` : 'All sections visible';
+      range.setAttribute('aria-valuetext', max > 1 ? `${Math.round(Number(range.value))}% through timeline` : 'All sections visible');
+    }
+    range.addEventListener('input', () => { scroll.scrollLeft = Number(range.value) / 100 * (scroll.scrollWidth - scroll.clientWidth); sync(); });
+    scroll.addEventListener('scroll', sync, { passive: true });
+    const observer = new ResizeObserver(sync); observer.observe(scroll);
+    timelineObservers.push(observer);
+    requestAnimationFrame(sync);
+    return el('div', 'sq-timeline', {}, [el('div', 'sq-timeline-nav', {}, [earlier, range, later, position]), scroll]);
   }
   function sceneMatrix() {
     const grid = el('div', 'sq-song-grid sq-scene-grid', { 'aria-label': 'Scene matrix', 'data-testid': 'scene-matrix' });
     grid.style.gridTemplateColumns = '170px repeat(8, 170px)';
     grid.append(el('div', 'sq-track-head', { text: 'SCENES · performance' }));
-    for (let scene = 0; scene < 8; scene++) grid.append(el('div', 'sq-scene-head', {}, [
-      btn(sceneName(scene), () => selectClip(state.track, scene), { 'aria-label': `Edit scene ${scene + 1}`, 'aria-pressed': String(state.scene === scene) }),
+    for (let scene = 0; scene < 8; scene++) {
+      const name = editableName(`Scene ${scene + 1} name`, state.model.sceneNames[scene] || '', v => edit('Rename scene', m => { m.sceneNames[scene] = v; }), { maxlength: 6, pattern: '[!-~]{0,6}', placeholder: sceneName(scene) });
+      grid.append(el('div', 'sq-scene-head', {}, [
+      el('div', 'sq-name-header', {}, [name, btn('✎', () => name.beginNameEdit(), { 'aria-label': `Rename scene ${scene + 1}` })]),
+      btn('Select', () => selectClip(state.track, scene), { 'aria-label': `Edit scene ${scene + 1}`, 'aria-pressed': String(state.scene === scene) }),
       ctx.playScene ? btn('▶ Launch scene', () => action(() => ctx.playScene(scene)), { 'aria-label': `Launch scene ${scene + 1}` }) : null,
-    ]));
+    ])); }
     state.model.tracks.forEach((track, t) => {
       const route = track.route, group = route.kind === 1 ? `ed-s${route.index + 1}` : '';
       grid.append(el('div', `sq-track-head ${group}`, {}, [btn(`Track ${t + 1}`, () => selectClip(t, state.scene)),
@@ -362,7 +439,7 @@ export function makeSequencer(ctx) {
     });
     return el('section', 'sq-section', {}, [el('h3', '', { text: 'Scenes' }),
       el('p', 'sq-caption sq-scene-caption', { text: 'Edit a slot or launch a clip. Launch a scene to start its column; empty slots stop those tracks.' }),
-      el('div', 'sq-scroll', { 'data-scroll': 'scenes' }, [grid])]);
+      timelineScroll(grid, 'scenes')]);
   }
   function svgNode(tag, attrs = {}) {
     const n = document.createElementNS('http://www.w3.org/2000/svg', tag);
@@ -652,6 +729,7 @@ export function makeSequencer(ctx) {
     ]);
   }
   function draw() {
+    timelineObservers.splice(0).forEach(observer => observer.disconnect());
     if (!state.model || disposed) return;
     releaseFader?.();
     const active = root.contains(document.activeElement) ? document.activeElement : null;
@@ -659,6 +737,7 @@ export function makeSequencer(ctx) {
     const scrolls = new Map([...content.querySelectorAll('[data-scroll]')].map(e => [e.dataset.scroll, [e.scrollLeft, e.scrollTop]]));
     const views = ['Scenes', 'Arrangement', 'Clip', 'Automation', 'Mixer'];
     const navigation = el('div', 'sq-tabs', { role: 'tablist', 'aria-label': 'Song workspace views' }, views.map(name => btn(name, () => {
+      if (name === 'Clip' && state.view !== name) frameClipNotes();
       state.view = name; state.inspector = null; draw(); root.querySelector(`[data-view="${name}"]`)?.focus({preventScroll:true});
     }, { role: 'tab', id: `sq-tab-${name}`, 'data-view': name, 'aria-selected': String(state.view === name),
       'aria-controls': 'sq-view-panel', tabindex: state.view === name ? 0 : -1,
@@ -666,6 +745,7 @@ export function makeSequencer(ctx) {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
         e.preventDefault(); e.stopPropagation();
         const i = views.indexOf(name), next = e.key === 'Home' ? 0 : e.key === 'End' ? 4 : (i + (e.key === 'ArrowRight' ? 1 : 4)) % 5;
+        if (views[next] === 'Clip' && state.view !== 'Clip') frameClipNotes();
         state.view = views[next]; state.inspector = null; draw(); root.querySelector(`[data-view="${state.view}"]`)?.focus({preventScroll:true});
       },
     })));
@@ -701,6 +781,16 @@ export function makeSequencer(ctx) {
       } else closeInspector();
     } else if (deviceDialog.open) deviceDialog.close();
     for (const e of content.querySelectorAll('[data-scroll]')) { const p = scrolls.get(e.dataset.scroll); if (p) { e.scrollLeft = p[0]; e.scrollTop = p[1]; } }
+    const roll = content.querySelector('[data-scroll="piano"]');
+    if (roll && pendingRollNote >= 0) {
+      const note = roll.querySelector(`[data-note="${pendingRollNote}"]`);
+      if (note) {
+        const r = roll.getBoundingClientRect(), n = note.getBoundingClientRect();
+        roll.scrollTop += n.top - r.top - (roll.clientHeight - n.height) / 2;
+        roll.scrollLeft += n.left - r.left - (roll.clientWidth - Math.min(n.width, roll.clientWidth)) / 2;
+      }
+      pendingRollNote = -1;
+    }
     content.disabled = state.busy;
     if (focus?.label) {
       const next = [...root.querySelectorAll('[aria-label]')].find(e => e.tagName === focus.tag && e.getAttribute('aria-label') === focus.label);
@@ -738,5 +828,5 @@ export function makeSequencer(ctx) {
   });
   return { render() { if (state.dirty && !state.busy) refresh(); return root; }, refresh, update, onTelemetry, syncLevels,
     wantRows() { return state.view === 'Mixer' ? (ctx.metadata?.doc?.telemetry?.sections || []).filter(s => ['meters', 'levels'].includes(s.name)).flatMap(s => s.rows.map((_, r) => s.mask + r)) : []; },
-    invalidate() { state.dirty = true; readRevision++; }, destroy() { releaseFader?.(); closeInspector(); disposed = true; cancelDrag?.(); window.removeEventListener('resize', syncMixerAfterResize); compactMixerMedia.removeEventListener('change', syncMixerDisclosure); root.remove(); } };
+    invalidate() { state.dirty = true; readRevision++; }, destroy() { timelineObservers.splice(0).forEach(observer => observer.disconnect()); releaseFader?.(); closeInspector(); disposed = true; cancelDrag?.(); window.removeEventListener('resize', syncMixerAfterResize); compactMixerMedia.removeEventListener('change', syncMixerDisclosure); root.remove(); } };
 }

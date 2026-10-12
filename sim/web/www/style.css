@@ -537,3 +537,9 @@ body[data-layout="editor"] .top, body[data-layout="editor"] main { max-width: 17
  * The power overlay goes with it; the editor has its own Power on. */
 body[data-layout="editor"] .stage > .device-wrap,
 body[data-layout="editor"] .stage > .narrow-hint { display: none; }
+/* These are the Panel's controls. The editor keeps file and simulator
+ * commands in its app bar rather than adding a second footer. */
+body[data-layout="workbench"] main > .controls,
+body[data-layout="editor"] main > .controls,
+body[data-layout="workbench"] main > .files,
+body[data-layout="editor"] main > .files { display: none; }
