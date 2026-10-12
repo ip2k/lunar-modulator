@@ -262,7 +262,7 @@ Each track adds 3,472 bytes: 2,304 of notes, 576 of locks, 160 of trig rows,
 160 of clip headers, 256 of track state and 16 of pad mutes. The fixed part
 is 1,232 bytes (1,160 before the song's 64 of stage E1: its end mode,
 follow flag and jump target, a scene launch's landing bar and eight
-seven-byte scene names), plus eight bytes for native elapsed playback frames (2026-10-11), and Capture 3,072: 256 events of 12 bytes, about 128 notes
+seven-byte scene names; native elapsed playback frames added eight bytes in 2026-10-11), and Capture 3,072: 256 events of 12 bytes, about 128 notes
 over Movy's 8-bar window (at 20 bytes an event, as first built, it was
 5,120), plus about 1.3 KB of stack while a stopped capture searches its
 tempo. Docs/13 §5 estimated 73,320 bytes for 16 tracks with the same pools;
@@ -273,7 +273,18 @@ track larger.
 Not instance memory: one `fm1_seq_cmd_t` is 240 bytes and one event 12. An
 entry edit (`sgins`, `sgdel`, `sgset`, `sgmov`) unfolds the song on the
 stack, 516 bytes at most. The instance lays out alike on x86-64, i386 and
-armv7 (clang; the struct is 352 bytes on all three) [verified 2026-10-06].
+armv7 (clang; the struct was 352 bytes on all three) [verified 2026-10-06].
+
+The editor uses native `pause`, `resume`, `rewind` and `seekbar N` verbs
+[verified: `tests/test_seq_transport.py`]. Pause freezes the fractional clock,
+master tick, clip playheads and elapsed audio-frame count; it closes held gates,
+returns automation to its base and ends recording. Resume carries that phase
+with MIDI Continue. Rewind resets musical position and elapsed frames while
+stopped. Bar locate clamps to the followed arrangement or selected clips,
+updates their native phases and never renders skipped notes. Locate is refused
+while running under external clock. A running locate can emit Stop and Continue,
+so the host command reservation covers two transport events; its existing
+272-event buffer and RAM bound remain sufficient.
 
 ## CPU [verified on the desktop only: Apple M1 Max, -O2; pi32v2 is stage B]
 
@@ -696,9 +707,9 @@ changes no output: of 1,458 renders before and after the change, only the
 
 **Event room.** Commands, live input and advance share one buffer per
 block. One command can cause up to `fm1_seq_cmd_max_events(&limits)` = gates
-+ 8 × tracks + 1 events: every gate's note-off, a D6 base revert on every
-lane of every track, and a Start or Stop (`play` while playing sends a
-Stop, D12). That is 129 at 8 tracks and 64 gates. A stop at full load sends
++ 8 × tracks + 2 events: every gate's note-off, a D6 base revert on every
+lane of every track, and Stop plus Continue when locating during playback.
+That is 130 at 8 tracks and 64 gates. A stop at full load sends
 128 (64 note-offs, 64 base reverts), and the block's advance adds the
 transport's Stop, so that block holds 129 [verified: tests/test_seq_render.py;
 the 128 counted on the core directly, 2026-10-02]. Advance needs

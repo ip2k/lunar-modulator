@@ -176,7 +176,7 @@ static fm1_seq_ev_t *tail(const fm1_seq_host_t *h) {
 }
 
 uint32_t fm1_seq_cmd_max_events(const fm1_seq_limits_t *lim) {
-  return (uint32_t)lim->gates + 8u * (uint32_t)lim->tracks + 1u;
+  return (uint32_t)lim->gates + 8u * (uint32_t)lim->tracks + 2u;
 }
 
 /* Whether a line may label a lane: it holds "alabel" anywhere. Rare (lane

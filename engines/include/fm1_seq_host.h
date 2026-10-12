@@ -223,7 +223,7 @@ uint32_t fm1_seq_host_room(const fm1_seq_host_t *h);
 uint8_t fm1_seq_host_dest(const fm1_seq_host_t *h, uint32_t k);
 
 /* The most events one command can cause: every gate's note-off, a base
- * revert per lane of every track (D6), and a Start or Stop. 129 at 8 tracks
+ * revert per lane of every track (D6), and Stop plus Continue for locate. 130 at 8 tracks
  * and 64 gates. */
 uint32_t fm1_seq_cmd_max_events(const fm1_seq_limits_t *lim);
 

@@ -363,8 +363,8 @@ def test_an_app_sized_event_buffer_takes_a_full_stop(seq_tools, tmp_path):
     """272 events per block, the size the virtual FM-1 uses (256 until stage
     S6, docs/15): a stop at
     full load sends 64 note-offs and 64 base reverts (D6) at once, and the
-    block's advance adds the transport's Stop: 129 events, which is
-    fm1_seq_cmd_max_events at 8 tracks and 64 gates. Nothing is dropped and
+    block's advance adds the transport's Stop: 129 events, within the
+    130-event command bound at 8 tracks and 64 gates. Nothing is dropped and
     every note closes. A 100-event buffer does drop, and says so."""
     script = full_stop_script()
     s, _, ev, _ = render(tmp_path, script, extra=["--events", "272"], name="app")
