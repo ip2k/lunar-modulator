@@ -1,0 +1,90 @@
+{
+  "chunks": 16,
+  "passed": 16,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "hardware_access": false,
+  "reports": [
+    {
+      "node": "tests/test_sdk_prepare_stop_actual.py::test_actual_v7_preparation_stop_backup_restore[none]",
+      "case": "test_actual_v7_preparation_stop_backup_restore[none]",
+      "seconds": "289.150"
+    },
+    {
+      "node": "tests/test_sdk_prepare_stop_actual.py::test_actual_v7_preparation_stop_backup_restore[interrupted_program]",
+      "case": "test_actual_v7_preparation_stop_backup_restore[interrupted_program]",
+      "seconds": "115.935"
+    },
+    {
+      "node": "tests/test_sdk_prepare_stop_actual.py::test_actual_v7_preparation_stop_backup_restore[corrupted_readback]",
+      "case": "test_actual_v7_preparation_stop_backup_restore[corrupted_readback]",
+      "seconds": "120.177"
+    },
+    {
+      "node": "tests/test_sdk_prepare_stop_actual.py::test_actual_v7_preparation_stop_backup_restore[later_chain_before_erase]",
+      "case": "test_actual_v7_preparation_stop_backup_restore[later_chain_before_erase]",
+      "seconds": "24.599"
+    },
+    {
+      "node": "tests/test_sdk_prepare_stop_adapters.py::test_preparation_stop_adapter_boundary[valid]",
+      "case": "test_preparation_stop_adapter_boundary[valid]",
+      "seconds": "0.011"
+    },
+    {
+      "node": "tests/test_sdk_prepare_stop_adapters.py::test_preparation_stop_adapter_boundary[expired]",
+      "case": "test_preparation_stop_adapter_boundary[expired]",
+      "seconds": "0.009"
+    },
+    {
+      "node": "tests/test_sdk_prepare_stop_adapters.py::test_preparation_stop_adapter_boundary[future]",
+      "case": "test_preparation_stop_adapter_boundary[future]",
+      "seconds": "0.125"
+    },
+    {
+      "node": "tests/test_sdk_prepare_stop_adapters.py::test_preparation_stop_adapter_boundary[nan]",
+      "case": "test_preparation_stop_adapter_boundary[nan]",
+      "seconds": "0.064"
+    },
+    {
+      "node": "tests/test_sdk_prepare_stop_adapters.py::test_preparation_stop_adapter_boundary[boolean]",
+      "case": "test_preparation_stop_adapter_boundary[boolean]",
+      "seconds": "0.010"
+    },
+    {
+      "node": "tests/test_sdk_prepare_stop_adapters.py::test_preparation_stop_adapter_boundary[snapshot_pin]",
+      "case": "test_preparation_stop_adapter_boundary[snapshot_pin]",
+      "seconds": "0.013"
+    },
+    {
+      "node": "tests/test_sdk_prepare_stop_adapters.py::test_preparation_stop_adapter_boundary[usb_changed]",
+      "case": "test_preparation_stop_adapter_boundary[usb_changed]",
+      "seconds": "0.027"
+    },
+    {
+      "node": "tests/test_sdk_prepare_stop_adapters.py::test_preparation_stop_adapter_boundary[sg_changed]",
+      "case": "test_preparation_stop_adapter_boundary[sg_changed]",
+      "seconds": "0.011"
+    },
+    {
+      "node": "tests/test_sdk_prepare_stop_adapters.py::test_preparation_stop_adapter_boundary[state_changed]",
+      "case": "test_preparation_stop_adapter_boundary[state_changed]",
+      "seconds": "0.109"
+    },
+    {
+      "node": "tests/test_sdk_prepare_stop_adapters.py::test_preparation_stop_adapter_boundary[kind_changed]",
+      "case": "test_preparation_stop_adapter_boundary[kind_changed]",
+      "seconds": "0.023"
+    },
+    {
+      "node": "tests/test_sdk_prepare_stop_adapters.py::test_preparation_stop_adapter_boundary[closed_backup]",
+      "case": "test_preparation_stop_adapter_boundary[closed_backup]",
+      "seconds": "0.012"
+    },
+    {
+      "node": "tests/test_sdk_prepare_stop_adapters.py::test_preparation_stop_adapter_boundary[closed_restore]",
+      "case": "test_preparation_stop_adapter_boundary[closed_restore]",
+      "seconds": "0.014"
+    }
+  ]
+}

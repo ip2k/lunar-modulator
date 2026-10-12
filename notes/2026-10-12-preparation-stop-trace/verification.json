@@ -1,0 +1,206 @@
+{
+  "schema": 1,
+  "run": "preparation-stop-trace-v3-20261012",
+  "containers": 16,
+  "passed": 48,
+  "failed": 0,
+  "errors": 0,
+  "skipped": 0,
+  "hardware_access": false,
+  "source_manifest_sha256": "fd03e21d882010312b39e2157ccb64807d4d94bb58466b6fc7cd2b6985711859",
+  "adapter_sha256": "efb1902a442602fa6097730f4e8a4ebce46e9b02e24b3f2ec1bda834e9e5ca2e",
+  "cases": [
+    {
+      "name": "test_stop_trace_closed_without_device",
+      "seconds": 0.018
+    },
+    {
+      "name": "test_native_sg_mechanics_unchanged",
+      "seconds": 0.0
+    },
+    {
+      "name": "test_stop_trace_closed_without_device",
+      "seconds": 0.09
+    },
+    {
+      "name": "test_native_sg_mechanics_unchanged",
+      "seconds": 0.0
+    },
+    {
+      "name": "test_stop_trace_closed_without_device",
+      "seconds": 0.107
+    },
+    {
+      "name": "test_native_sg_mechanics_unchanged",
+      "seconds": 0.0
+    },
+    {
+      "name": "test_stop_trace_closed_without_device",
+      "seconds": 0.117
+    },
+    {
+      "name": "test_native_sg_mechanics_unchanged",
+      "seconds": 0.0
+    },
+    {
+      "name": "test_stop_trace_closed_without_device",
+      "seconds": 0.028
+    },
+    {
+      "name": "test_native_sg_mechanics_unchanged",
+      "seconds": 0.0
+    },
+    {
+      "name": "test_stop_trace_closed_without_device",
+      "seconds": 0.019
+    },
+    {
+      "name": "test_native_sg_mechanics_unchanged",
+      "seconds": 0.0
+    },
+    {
+      "name": "test_stop_trace_closed_without_device",
+      "seconds": 0.092
+    },
+    {
+      "name": "test_native_sg_mechanics_unchanged",
+      "seconds": 0.001
+    },
+    {
+      "name": "test_stop_trace_closed_without_device",
+      "seconds": 0.027
+    },
+    {
+      "name": "test_native_sg_mechanics_unchanged",
+      "seconds": 0.001
+    },
+    {
+      "name": "test_stop_trace_closed_without_device",
+      "seconds": 0.122
+    },
+    {
+      "name": "test_native_sg_mechanics_unchanged",
+      "seconds": 0.001
+    },
+    {
+      "name": "test_stop_trace_closed_without_device",
+      "seconds": 0.017
+    },
+    {
+      "name": "test_native_sg_mechanics_unchanged",
+      "seconds": 0.0
+    },
+    {
+      "name": "test_stop_trace_closed_without_device",
+      "seconds": 0.023
+    },
+    {
+      "name": "test_native_sg_mechanics_unchanged",
+      "seconds": 0.001
+    },
+    {
+      "name": "test_stop_trace_closed_without_device",
+      "seconds": 0.018
+    },
+    {
+      "name": "test_native_sg_mechanics_unchanged",
+      "seconds": 0.0
+    },
+    {
+      "name": "test_stop_trace_closed_without_device",
+      "seconds": 0.032
+    },
+    {
+      "name": "test_native_sg_mechanics_unchanged",
+      "seconds": 0.0
+    },
+    {
+      "name": "test_stop_trace_closed_without_device",
+      "seconds": 0.018
+    },
+    {
+      "name": "test_native_sg_mechanics_unchanged",
+      "seconds": 0.0
+    },
+    {
+      "name": "test_stop_trace_closed_without_device",
+      "seconds": 0.017
+    },
+    {
+      "name": "test_native_sg_mechanics_unchanged",
+      "seconds": 0.0
+    },
+    {
+      "name": "test_stop_trace_closed_without_device",
+      "seconds": 0.022
+    },
+    {
+      "name": "test_native_sg_mechanics_unchanged",
+      "seconds": 0.0
+    },
+    {
+      "name": "test_actual_preparation_stop_trace[valid]",
+      "seconds": 4.537
+    },
+    {
+      "name": "test_actual_preparation_stop_trace[expired]",
+      "seconds": 3.759
+    },
+    {
+      "name": "test_actual_preparation_stop_trace[future]",
+      "seconds": 3.793
+    },
+    {
+      "name": "test_actual_preparation_stop_trace[usb_changed]",
+      "seconds": 3.765
+    },
+    {
+      "name": "test_actual_preparation_stop_trace[sg_changed]",
+      "seconds": 3.824
+    },
+    {
+      "name": "test_actual_preparation_stop_trace[status]",
+      "seconds": 4.072
+    },
+    {
+      "name": "test_actual_preparation_stop_trace[ioctl]",
+      "seconds": 3.973
+    },
+    {
+      "name": "test_actual_preparation_stop_trace[changed]",
+      "seconds": 4.417
+    },
+    {
+      "name": "test_actual_preparation_stop_trace[postmap]",
+      "seconds": 4.096
+    },
+    {
+      "name": "test_actual_preparation_stop_trace[initialmap]",
+      "seconds": 3.904
+    },
+    {
+      "name": "test_actual_preparation_stop_trace[lock]",
+      "seconds": 3.95
+    },
+    {
+      "name": "test_actual_preparation_stop_trace[close]",
+      "seconds": 4.473
+    },
+    {
+      "name": "test_actual_preparation_stop_trace[late_intent]",
+      "seconds": 4.016
+    },
+    {
+      "name": "test_actual_preparation_stop_trace[marker_reuse]",
+      "seconds": 6.095
+    },
+    {
+      "name": "test_actual_preparation_stop_trace[elf_changed]",
+      "seconds": 1.898
+    },
+    {
+      "name": "test_actual_preparation_stop_trace[source_changed]",
+      "seconds": 3.795
+    }
+  ]
+}
