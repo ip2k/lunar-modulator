@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """MIT. Separate restore-only authority for a newly bound returned-ROM loader.
 
-WIP: the returned-backup source/evidence helper must freeze before prepare can
-succeed. No original policy, marker or provenance is rewritten. One restore,
+Reviewed source pins remain separate from physical activation approval.
+No original policy, marker or provenance is rewritten. One restore,
 initial exact full target NOR, directory last, final full stock readback; no
 upload, reset, retry or boot/recovery claim. Python is not a hostile-code sandbox.
 """
@@ -19,7 +19,7 @@ import time
 import types
 from weakref import WeakSet
 
-BACKUP_SOURCE_SHA = None  # Fail closed until separate backup/helper freeze.
+BACKUP_SOURCE_SHA = 'afeefe7bd7e9044cb34106081766d6104cda7ab0196d0de903c35a5c1a52b4be'
 REHEARSAL_SOURCE_SHA = 'f696484511754b91d4faf449aa2e4cab3ca910daf05a9acd66daa966bae7d6c4'
 BASELINE_SHA = '96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4'
 TARGET_SHA = 'df6c963ecd37b334f393c5bc92c2780b6094181308822a03c8190b016a4e97db'
@@ -234,6 +234,10 @@ def transport_type(prepared):
         def __init__(self, policy, log):
             self.initial_pages, self.initial_verified = 0, False
             super().__init__(prepared, policy, log)
+        def binding(self):
+            if any(os.path.lexists(path) for path in self.policy.absent_paths):
+                raise ValueError('Returned provenance absent evidence appeared')
+            return super().binding()
         def validate_wire(self, cdb, payload, in_size):
             super().validate_wire(cdb, payload, in_size)
             op = int.from_bytes(cdb[:2], 'big')

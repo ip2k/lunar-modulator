@@ -31,8 +31,11 @@ TARGET_SHA = 'df6c963ecd37b334f393c5bc92c2780b6094181308822a03c8190b016a4e97db'
 MAX_SNAPSHOT_AGE = 120
 LIVE_SECONDS = 10
 BACKUP_SOURCE_SHA = '79bbe99ce923daaf8af2c701a65ec39a015191313de79676e36622cb8db00afb'
-PROVENANCE_SOURCE_SHA = None  # Separate returned-state helper must freeze.
-PROBE_WRAPPER_SHAS = {'successful': None, 'detached': None}  # Failed-probe branch requires independently reviewed wrapper.
+PROVENANCE_SOURCE_SHA = '8fb33694f3daa26e3a824f33f1b9fa8d646dc5e9295795ea8fff6ea3a983b733'
+PROBE_WRAPPER_SHAS = {
+    'successful': 'b3b8186eb5bf11f359b09ff54a0f5f63a1ca317ad7341a6db5bd2f321573eaee',
+    'detached': 'f88c09edcc0466005c5d6739546697b9ea6ea24555f58bddcf31910629736528',
+}
 _AUTHORIZED = WeakSet()
 
 
@@ -478,6 +481,9 @@ class FixedSG:
         require_prepared(self.prepared,check=False)
         if self.failed or self.fd is None or not 0<=time.monotonic()-self.started<=900:
             raise ValueError('Closed, failed or stale returned-loader connection')
+        if (self.prepared.provenance is not None and
+                any(os.path.lexists(path) for path in self.prepared.provenance.absent)):
+            raise ValueError('Returned provenance absent evidence appeared')
         opened=os.fstat(self.fd)
         if ((opened.st_dev,opened.st_ino,opened.st_rdev)!=self.fd_identity or
                 not stat.S_ISCHR(opened.st_mode) or

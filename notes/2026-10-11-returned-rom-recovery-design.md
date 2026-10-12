@@ -346,3 +346,108 @@ modeled; no source-hash bypass is permitted. It cannot execute successfully
 until new literal source pins freeze. Final sixteen-chunk and independent
 review gates remain pending. Latest root-reported verified checkpoint is
 `b8b2f257114aac2d76a86d8eef585664a665942e`; subsequent edits are saved WIP.
+
+## Final candidate and composed gate (in progress)
+
+[verified: source/file checks] The subsequent literal candidate opens only the
+new returned-ROM schema: backup source
+`afeefe7bd7e9044cb34106081766d6104cda7ab0196d0de903c35a5c1a52b4be`,
+restore source
+`f583523740bb709dde0cf8bc2e07677e2ab26063d511dcb3ba84a6b232e9af33`.
+The shared evidence helper is `8fb33694…`; the successful stopped wrapper is
+`b3b8186e…`, detached stopped wrapper `f88c09ed…`. Their source-only independent
+acceptance is distinct from final runtime and physical acceptance. The earlier
+None-pin descriptions above are historical WIP states. Existing source guards,
+original backups and consumed markers remain unchanged.
+
+[verified: source inspection] Backup and restore binding now recheck propagated
+negative evidence with `lexists` after the durable intent callback and before
+ioctl, including loader read commands. A late file or dangling symlink closes
+and consumes the attempt. Positive multi-MiB evidence remains checked by the
+factory and required mutation/publication boundaries; readonly binding checks
+source/descriptor/sysfs and negative evidence. Completed evidence helpers freeze
+all positive files and carry exact absolute Path tuples into the distinct reset.
+
+[verified] WIP4 synthetic Hera gate passed112 cases in25.10seconds with the real
+original loader fixture. Archive602 files SHA
+`5fa1ce66e7026ac0479cb9b8807db57126a4a60b9f95d3565daa0b17f62f4de2`;
+`build/returned-recovery-wip4-hera/evidence/` retains XML/log/run/inspect/removal.
+The four-CPU/four-GiB pinned-image container had no device mounts, no network,
+no privilege and noOOM, and was removed. This was not the genuine private
+composed factory gate.
+
+[verified] Final V1 archive602 files SHA
+`4ce1dab8d91b231efbfc53aa69e401b9ebb26a08e986f75282144aa33865ef53`
+collected124 nodes with sixteen planned chunks. Its one actual-private smoke
+stopped after187.49seconds at a test fixture's nonexistent profile-source path;
+production source guards rejected it before new backup transport. The fixture
+now names `tools/jieli/loader_config_profile.py`. Both collect/smoke containers
+were removed with noOOM. Evidence remains under
+`build/returned-recovery-final-hera/evidence-v1/`; this failed attempt is not a
+passing gate. Root owns a separate genuine-map repair in the returned stock
+reset scaffold before V2. No source-hash gate is bypassed.
+
+The composed model cases cover successful reset/no probe, successful and
+detached reset/stopped read-only probe, definite zero-command stops, and genuine
+backup-to-restore post-durable-intent absence drift. Successful/no-probe also
+runs the distinct root reset's genuine completed-restore factory, with an
+explicit test-only reviewed restore literal while production stays None, then
+introduces absence drift after actual intent fsync/directory sync. Required
+result: zero reset ioctl, consumed marker preserved, exactly one close and no
+retry. The fixed experiment campaign literal and syscall/reset/enumeration/
+capture evidence are explicitly modeled in disposable Hera containers. All
+private SDK/ELF/stock/target and production source checks execute unchanged.
+The six expensive cases are planned in separate round-robin chunks; smoke
+selects only successful/no-probe.
+
+[verified: syntax only] Concrete closed private templates are saved at
+`build/returned-rom-recovery-bench-template/`, archive
+`d3d0ec5d9bf212899ebae1b81b0a71512c40e6026e28ec11955e66fa6389054f`
+(current closed template; original archive fccf9e9c… is historical).
+Preparation preserves original completed install journal and passive current
+connection witness without rewriting the original ROM snapshot or probe
+admission. Exact old packet/plan/stock/target/dependencies and mode-specific
+wrappers are pinned. Backup and restore require separate actual sealed campaign
+execution policies, owned capture cleanup and no retry. `execute-once.py`
+remains closed with `EXECUTION_POLICY_SHA=None`; root alone stages/activates
+following actual file/source/capture review. No physical request occurred in
+this lane. Boot, display, stock return and physical recovery remain false.
+
+Latest root-reported verified pushed checkpoint is
+`f45a2b016d5629fc76dbb85b5a4bcfba7145c023`; current candidate/test/template/note
+edits are saved and await root checkpoint. Final V2/16/XML/container/removal
+and independent review remain required dependencies, followed by root's actual
+packet gates. Semantic tool worktree Python coverage remains unavailable;
+file inspection is used without changing another session's MCP selection.
+
+## V2 archive freeze and reviewed source boundary
+
+[verified: files/source review] Backup afeefe7b… and restore f5835237… are
+independently source accepted in `build/returned-recovery-independent-review.md`
+SHA `2926f969b8d68fc0064a9ec78b0070ef1d76044056795916539f9692affaf0ed`.
+Shared helper/native/mode wrappers now have independent source/runtime acceptance
+`build/diagnostic-detached-independent-review.md` SHA
+`cd990cc891dfd99e06dfd477583c2d0b257599eeaa341b67eaffdfbd5d26d915`:101
+unique cases across16 chunks plus real-private factory smoke, all modeled hardware.
+
+[verified: preparation/collection] V2 archive602 files SHA
+`f57cb52630113773fa489c7341dcd04c1bc8c6eccd9b0322f8b0702088d9bf5c`,
+snapshot SHA `8ed528c58a48e6c925f7255bfab475a198a9a0134829d5f1f84fabdf5eb9fc32`,
+includes root stock-reset17b9f005…/tests71f01093… and actual fixture
+`c544732e1bc602346f20d0b17cda6d1b77ef1b4bcee8be7de020763bb190e8b0`.
+The fixture repair includes the correct jieli profile-source path and recursive
+test-only experiment-literal adaptation when root loads the genuine restore
+module. Production file hash gates remain unmodified. V2 collected182 unique
+nodes; chunks12 cases in six shards and11 in ten, with each expensive actual
+case in a distinct shard. One successful/no-probe smoke precedes16 chunks.
+Runtime acceptance is pending; frozen source bytes must not change during it.
+
+[verified: syntax/source inspection only] Closed template repairs retain the
+None activation policy. Journal fdopen failure closes its descriptor. Restore
+preparation binds owned capture PID/process group, exact SIGTERM returncode-15
+and finite ordered attempt/open/exit/stop times. If a probe wrapper stops before
+creating its campaign, the template may consume the genuine chooser selection
+envelope only as the distinct unconsumed no-probe branch. The production factory
+still requires original snapshot120-second freshness for this branch; no
+historical time override or snapshot refresh is permitted. A stale chooser-only
+state needs a distinct reviewed provenance gate before it can progress.

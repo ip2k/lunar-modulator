@@ -276,3 +276,20 @@ def test_stopped_probe_original_preflight_is_exact_native_path(tmp_path):
 def test_no_probe_cannot_invent_historical_admission():
     config=dict(optional_stage_probe=None,probe_capture_path=None,probe_admission_path='invented',probe_admission_sha256='a'*64)
     with pytest.raises(ValueError):r.historical_probe_admission(config,{},lambda *a,**k:pytest.fail('read'),300)
+
+@pytest.mark.parametrize('phase',['rom','loader-read'])
+@pytest.mark.parametrize('kind',['file','dangling_symlink'])
+def test_absence_appears_after_intent_before_ioctl(prepared,monkeypatch,tmp_path,phase,kind):
+    absent=tmp_path/'expected-absent'
+    object.__setattr__(prepared,'provenance',SimpleNamespace(absent=(absent,),check=lambda:None))
+    state=mock_sg(monkeypatch)
+    def log(event,**fields):
+        if event=='sg_submit_intent':
+            if kind=='file':absent.write_text('appeared')
+            else:absent.symlink_to(tmp_path/'missing')
+    sg=r.FixedSG(prepared,log)
+    if phase=='loader-read':sg.phase='loader';sg.next=52  # Explicit syscall model: first FD05, no real upload.
+    with pytest.raises(ValueError,match='absent evidence'):sg.exchange_next()
+    assert not state.calls and state.closed==[888] and sg.failed and sg.fd is None
+    with pytest.raises(ValueError):sg.exchange_next()
+    assert state.closed==[888]

@@ -215,3 +215,19 @@ def test_absence_drift_blocks_restore_before_any_ioctl(prepared,monkeypatch,tmp_
     state=mock_sg(monkeypatch)
     with pytest.raises(ValueError,match='absent evidence'):r.transport_type(p)
     assert not state.calls and not state.closed
+
+@pytest.mark.parametrize('kind',['file','dangling_symlink'])
+def test_absence_appears_after_restore_intent_before_ioctl(prepared,monkeypatch,tmp_path,kind):
+    p,_=prepared;absent=tmp_path/'must-stay-absent'
+    object.__setattr__(p.policies[0],'absent_paths',(absent,))
+    state=mock_sg(monkeypatch)
+    def log(event,**fields):
+        if event=='sg_submit_intent':
+            if kind=='file':absent.write_text('appeared')
+            else:absent.symlink_to(tmp_path/'missing')
+    sg=r.transport_type(p)(p.policies[0],log)
+    cdb,_,size=reader.request(0xFD05,'loader',address=0)
+    with pytest.raises(ValueError,match='absent evidence'):sg.exchange(cdb,in_size=size)
+    assert not state.calls and state.closed==[888] and sg.failed and sg.fd is None
+    with pytest.raises(ValueError):sg.exchange(cdb,in_size=size)
+    assert state.closed==[888]
