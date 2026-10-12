@@ -1,3 +1,11 @@
+## V7 stopped after verified install; recovery continuation, 2026-10-12
+
+Goal active; diagnostic image programmed, physical boot/display/stock recovery NOT verified. Current FM-1 is ROM 4c4a:8057 bus1/device10 on bench01; passive lsusb rechecked. No physical cycle needed; preserve power/wiring. V7 one-use chain consumed: 30 sectors installed, directory0x4000 last, full 1MB readback matched target5dbada65; original dual stock backups96006a51. One FC0C arg1 boot request transmitted, USB detached/re-enumerated ROM; boot child exited1, reset completion unattested. Native file-only preparation then failed missing dependency BEFORE any native read worker. Original ROM snapshot expired; no timestamp refresh/retry authorized.
+
+New tools/fm1_prepare_native_read_packet.py retains original canonical pins and adds transitive imports plus firmware/build audit sources. 16 isolated updated checks passed on Hera, zero skips, containers removed. Actual retained evidence offline check accepts completed install and boot lineage, then refuses expired snapshot before hardware opener. Original Pi stages unchanged. See notes/2026-10-12-native-packet-dependencies/review.md. Private stopped archive build/v7-physical-activation-20261012/stopped-evidence/physical-evidence.tar.gz SHA bd0737a73cfb6db511bfa7037455a45c6a7cd4ba8b0aa1dd47fd52c19ba55e53; matching stock backups also retained locally. Exact physical paths remain /home/claude/fm1-sdk-trace-entry-20261012-v7 and /home/claude/fm1-sdk-trace-campaign-20261012-v7. Consumed sequence must not run again. New file-only probes are separate /home/claude/fm1-native-packet-offline-check[-v2,-v3]-20261012; none ran a device worker.
+
+Next: separately admit native-preparation-stop recovery with preserved boot evidence and fresh unchanged ROM witness; test genuine factories, then reviewed fixed-loader dual target backup and bounded stock restoration. Existing SDK-return recovery requires a genuine five-read proof not present here; do not substitute. Computer Use still reports Mac locked. No Cynthion capture currently verified. Historical running entries below are superseded.
+
 ## Physical V7 launch in progress, 2026-10-12
 
 Exact staged source a8dca15e CI 38307343562 passed all 13 jobs. Root reviewed

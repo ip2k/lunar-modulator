@@ -1,0 +1,19 @@
+{
+  "actual_evidence_check": "completed install and boot lineage accepted; expired original ROM snapshot refused; no device opener or commands",
+  "actual_evidence_stdout_sha256": "bbf9da2f37fc78084a3813c0fdae7ac69b34a2a4a8f467e4e7f6c2831d7ad37f",
+  "cleanup": {
+    "remaining": 0,
+    "removed": 16
+  },
+  "containers": 16,
+  "errors": 0,
+  "failures": 0,
+  "hardware_devices": false,
+  "image_sha256": "7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d",
+  "network": "none",
+  "passes": 16,
+  "privileged": false,
+  "skips": 0,
+  "source_archive_sha256": "0d629fbea19a588fd66daa8c36d894e6476c0b53eee7461d337c40cafc76e48f",
+  "source_unchanged": true
+}

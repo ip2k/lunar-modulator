@@ -1,0 +1,11 @@
+# Native read packet dependency correction
+
+[verified] V7 programmed 30 diagnostic sectors with directory sector last and verified the full 1 MB target readback. Original stock backups match SHA256 `96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4`; installed target is `5dbada6531e0ad68b1902b4f0d97cc6f78d7fa338b1360c194f98c1475ad7a3d`.
+
+[verified] The single boot request was transmitted and USB re-enumerated in ROM. The child exited 1; reset completion, application boot, display and stock recovery are not attested. The subsequent file-only native preparer failed on an absent dependency, before a native read worker ran. The original ROM snapshot has expired and cannot be refreshed or reused.
+
+[verified] The new tracked preparer packages 28 pinned Python dependencies and 14 build/source inputs (two overlapping tools). A separate private file-only invocation against actual retained Pi evidence accepted the complete-install and boot-lineage factories and stopped at the original reader freshness check. No device was opened, no commands sent, and no receipt created. An earlier offline invocation used the wrong app basename and stopped at input-file lookup; the corrected invocation used the original launch intent path. Neither altered the consumed physical stage.
+
+[verified] All 16 updated isolated dependency checks passed in 16 Hera containers, zero failures/errors/skips. Each missing dependency ran in a separate interpreter. Source mounts were read-only; networking disabled, no hardware devices or privileged containers. Exact source hashes were unchanged; all 16 containers were removed. This proves packet dependency closure and rejection, not physical boot/recovery. Hash-only evidence is in verification.json; full artifacts are private under build/native-packet-dependencies-16-v2-20261012 and on Hera.
+
+Next: develop and verify a separate recovery admission for the actual native-preparation stop, a fresh unchanged ROM connection, dual current-target backup, and bounded stock restoration. Do not replay V7 or manufacture a five-read proof. Current Pi bus1/device10 remains UBOOT; no physical cycle needed at this checkpoint. Computer Use reports Mac locked and Packetry capture remains unverified.
