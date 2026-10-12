@@ -53,3 +53,56 @@ initial supplemental actual-app script incorrectly combined explicit Power on
 with auto-loading and later used an ambiguous layout locator; those probe errors
 were corrected (default project and button-only locator). Product source and
 existing suites were not changed.
+
+## Final source gates [verified]
+
+Final source under test: `a3ce09864b48ff8911befaca3ecde438caa2a9dc`.
+Fresh detached checkout: `/Users/likwid/.codex/worktrees/arrangement-popup-validation`.
+Fresh Hera stage: `/home/claude/mvave-fm1/arrangement-final-review-20261012`.
+Chromium, Firefox and WebKit each passed `sequencer-fit-grid.mjs`,
+`sequencer-ui.mjs`, and all 14 `sequencer-native.mjs` checks, including
+real AudioWorklet/Wasm, native edits and responsive scene launch controls.
+Local receipts: `scratch/arrangement-review/final/results/{browser}/`.
+
+The supplemental powered probe had errors separate from product gates: raw
+Movy snapshot data needed `parseSet`; a snapshot read during an open menu
+could redraw it; an idle predicate expected literal aria-busy false instead
+of its removal. It now reads snapshots before opening, waits the existing
+native suite idle predicate, and uses current data-scene-launch selectors.
+Earlier stages and failed attempts are not final-source acceptance.
+
+Section tools is in flow, rather than a popup. With a populated entry,
+Firefox/WebKit Workbench498 measures approximately507px toolbar width,
+inside the outer panel/viewport. Parent accepts that extension when readable
+and scroll-reachable; no redesign is requested. Native sources and Wasm
+binary are unchanged. These gates do not prove final CI, deployment reload,
+listening, or hardware acceptance. Parent retains those final dependencies.
+
+## Powered final acceptance [verified]
+
+Corrected supplemental probe passes all three actual browsers on final source
+`a3ce0986`, at1440x900 Workbench498,844x390 Editor and667x375 Editor.
+Add popup bottom is382 at844 and367 at667 (8px viewport inset), with
+internal scroll height330–331 and visible height154–162. Scene8 is reached
+by Playwright's real scroll/click and appended to native song state at each
+size; the direct Song ending selection also reaches native Stop state.
+Scene/clip launch icons precede names and clip controls without overlap.
+Existing fit-grid confirms heading/pager alignment and horizontal containment.
+Section tools controls are readable and scroll-reachable inside outer panel
+and viewport; parent explicitly accepts their ~9px extension beyond the
+498px inner grid. No product source was edited in this validation stream.
+
+Chromium's supplemental screenshot could allow a pending redraw to close Add;
+the final probe rechecks the disclosure and reopens it before clicking when
+needed. Its successful native append is recorded separately from earlier
+locator timeouts. Firefox/WebKit do not need that recovery in their receipts.
+Representative screenshots actually inspected: WebKit1440 Workbench populated
+Section tools and Scenes, WebKit667 Add, Firefox844 Scenes; latest final
+Chromium667 screenshot also retained. Final JSON/logs and probe are saved in
+`scratch/arrangement-review/final/`. Wav/download copies are excluded from
+local artifact copy; original native gate artifacts remain on Hera.
+
+Next step: parent integrates this note, performs final exact-head review/CI
+and deployed reload after its documentation checkpoint. This receipt covers
+only the source SHA above, not later source changes or perceptual/hardware
+acceptance.
