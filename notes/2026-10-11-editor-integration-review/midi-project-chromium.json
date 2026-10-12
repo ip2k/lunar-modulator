@@ -1,0 +1,5 @@
+{
+  "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+  "checks": "metadata-only setter; stale cached Song refusal; learned map preserved by native Song edit/save; caption ID native acknowledgement; JSON+binary canonical roundtrip; old-project clear; native slider and undo; binary autosave",
+  "errors": []
+}

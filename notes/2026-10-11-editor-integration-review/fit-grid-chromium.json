@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "checks": [
+    "viewport fit 1440 1024 844 667",
+    "all 64 scene slots and arrangement entries",
+    "all 256 note and lock steps",
+    "external transport telemetry and lifecycle",
+    "icon metronome",
+    "first-note framing",
+    "native follow last-step loop-wrap manual-off edit-defer pointer-defer",
+    "responsive resize preserves unsaved input",
+    "multiple independent lane values and page playheads",
+    "track header whitespace and keyboard select without launch/name edit"
+  ],
+  "errors": []
+}
