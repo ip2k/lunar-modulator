@@ -26,10 +26,32 @@ def completion(index,response,status=0):
     return dict(event='sg_completion',index=index,direction='install',status=status,masked=0,msg=0,host=0,driver=0,resid=0,info=0,sense_len=0,sense_hex='',retry=False,response_sha256=prefix.digest(response)if response else None)
 
 
-def test_closure_before_io(tmp_path):
-    missing=tmp_path/'missing.json'
-    for fn in (recovery.validate_stopped,recovery.prepare_acquisition,recovery.prepare_restore):
-        with pytest.raises(ValueError,match='closed|binding'):fn(missing)
+def test_reviewed_dependency_literals_and_actual_source_bytes():
+    # Public source contract only; exact owned wrappers are separately sealed.
+    pins = {
+        'PREFIX_SHA': ('fm1_partial_nor_prefix.py', '37794ff6caf9992fb6809cdd179a858d1b500b18aa26187e4cb8888b1479f056'),
+        'RESTORE_SHA': ('fm1_sdk_trace_admitted_stock_restore.py', '683275d73a846dd4c3d5edbb6695fe853832c4c7e4f7921ac9504293a8531e4e'),
+        'BACKUP_SHA': ('fm1_sdk_trace_admitted_backup.py', '7e9dbf156c92e7cdcc2dcd01fbbdd19ad8e06eef9fcd8772f72870afaebf738f'),
+    }
+    for name, (file, pin) in pins.items():
+        assert getattr(recovery, name) == pin
+        assert hashlib.sha256(Path(recovery.__file__).with_name(file).read_bytes()).hexdigest() == pin
+    assert recovery.INSTALL_CAPTURE_SHA == '7d2cec8584bc274c534046d490f3c319bd7e0c13dec6d1f654323e9c9aa8dd8b'
+    assert recovery.ACQUIRE_CAPTURE_SHA == '9d69134b11552f63a245c0a6870230e47bda4e6d80006b0bd61a47b938b22c34'
+    assert recovery.RESTORE_CAPTURE_SHA == 'aa640c486bd22fdf10076f6e3edfb607b3b4dbf83a93358bdbc540c5977886a8'
+
+
+@pytest.mark.parametrize('factory,pin', [
+    ('validate_stopped', 'PREFIX_SHA'),
+    ('prepare_acquisition', 'PREFIX_SHA'),
+    ('prepare_restore', 'ACQUIRE_CAPTURE_SHA'),
+])
+def test_missing_dependency_closes_before_io(tmp_path, monkeypatch, factory, pin):
+    # Deactivation-only negative test. This never constructs or grants authority.
+    monkeypatch.setattr(recovery, pin, None)
+    monkeypatch.setattr(recovery, 'read_file', lambda *a, **k: pytest.fail('closed factory attempted evidence IO'))
+    with pytest.raises(ValueError, match='closed|binding'):
+        getattr(recovery, factory)(tmp_path/'missing.json')
 
 
 def test_read_inventory_exact_no_upload_or_write():

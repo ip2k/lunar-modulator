@@ -25,12 +25,12 @@ POLICY_SHA = '54bd9a2990d0055b1d102bc8481a71d883d586649aa2d79d62a185a415296835'
 REHEARSAL_SHA = 'f696484511754b91d4faf449aa2e4cab3ca910daf05a9acd66daa966bae7d6c4'
 KERNEL_SHA = '89cd7cd68ec9151357fa5622aa1956c0157e549d1a486ddac4c8f3f73831f781'
 RESET_WIRE_SHA = '9c81a30a7f8741a606961315d0689341d3ce2e29775d395e05e81d5dbdedfd92'
-PREFIX_SHA = None  # Separate new cursor review precedes its literal binding.
-INSTALL_CAPTURE_SHA = None  # Reviewed install wrapper, never a caller-chosen source.
-RESTORE_SHA = None  # Accepted admitted stock restore successor.
-BACKUP_SHA = None   # That successor's actual canonical completed-backup helper.
-RESTORE_CAPTURE_SHA = None
-ACQUIRE_CAPTURE_SHA = None
+PREFIX_SHA = '37794ff6caf9992fb6809cdd179a858d1b500b18aa26187e4cb8888b1479f056'  # Separate new cursor review precedes its literal binding.
+INSTALL_CAPTURE_SHA = '7d2cec8584bc274c534046d490f3c319bd7e0c13dec6d1f654323e9c9aa8dd8b'  # Reviewed install wrapper, never a caller-chosen source.
+RESTORE_SHA = '683275d73a846dd4c3d5edbb6695fe853832c4c7e4f7921ac9504293a8531e4e'  # Accepted admitted stock restore successor.
+BACKUP_SHA = '7e9dbf156c92e7cdcc2dcd01fbbdd19ad8e06eef9fcd8772f72870afaebf738f'   # That successor's actual canonical completed-backup helper.
+RESTORE_CAPTURE_SHA = 'aa640c486bd22fdf10076f6e3edfb607b3b4dbf83a93358bdbc540c5977886a8'
+ACQUIRE_CAPTURE_SHA = '9d69134b11552f63a245c0a6870230e47bda4e6d80006b0bd61a47b938b22c34'
 STOCK_SHA = '96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4'
 TARGET_SHA = '5dbada6531e0ad68b1902b4f0d97cc6f78d7fa338b1360c194f98c1475ad7a3d'
 FLASH = 1048576
@@ -236,7 +236,7 @@ def validate_stopped(path):
         proof=backup.validate_completed_backup(original['returned_backup_campaign_path'],campaign_sha256=original['returned_backup_campaign_sha256'],
             manifest_sha256=original['returned_backup_manifest_sha256'],commands_sha256=original['returned_backup_commands_sha256'],freeze=f.freeze,install_journal_path=saved)
         for absent in proof['_absent_paths']: f.missing(absent)
-        inputs=proof['policy_inputs'];mapping=proof['sg_binding'];parent=Path(proof['receipt_path'])
+        inputs=proof['policy_inputs'];mapping=proof['sg_binding'];usb=proof['usb_binding'];parent=Path(proof['receipt_path'])
         if original.get('adapter_sha256')!=adapter or original.get('kind')!='fm1-sdk-trace-admitted-stock-restore-only' or original.get('original_install_campaign_sha256')!=proof['original_install_campaign_sha256']:
             raise ValueError('Exact admitted restore original lineage required')
         f.freeze(original['original_install_campaign_path'],proof['original_install_campaign_sha256'],65536)
@@ -262,8 +262,10 @@ def validate_stopped(path):
     plan,journal,stock,target=modules['fm1_flash_transaction'].load_transaction(directory)
     if digest(stock)!=STOCK_SHA or digest(target)!=TARGET_SHA or plan['sector_order']!=list(ORDER) or plan['writable_ranges']!=[[a,a+4096] for a in sorted(ORDER)]:
         raise ValueError('Exact stock/trace 30-sector immutable geometry required')
-    manifest=json.loads(f.freeze(inputs['manifest_path'],limit=65536));usb=manifest['usb_binding']
-    if canonical(manifest['sg_binding'])!=canonical(mapping): raise ValueError('Original complete backup connection differs')
+    manifest=json.loads(f.freeze(inputs['manifest_path'],limit=65536))
+    if c['direction']=='install':
+        usb=manifest['usb_binding']
+        if canonical(manifest['sg_binding'])!=canonical(mapping): raise ValueError('Original complete backup connection differs')
     base_campaign=json.loads(f.freeze(inputs['campaign_path'],limit=65536))
     base_log=f.freeze(inputs['backup_log_path'],limit=16*FLASH)
     modules['fm1_fixed_loader_reset'].validate_commands(base_log,manifest,dict(base_campaign,entry_log_path=inputs['entry_log_path']),modules['fm1_fixed_loader_backup'])

@@ -106,6 +106,49 @@ def genuine_caught_restore(actual, tmp_path, monkeypatch, fault):
         tmp=tmp_path, fault=fault)
 
 
+def assert_actual_returned_connection_negatives(q):
+    """Real admission/prepare factories reject old actual USB/SG lineage.
+
+    Challenge only caller evidence. No proof, registry, source pin, factory,
+    passive discovery or transport is replaced by these negative checks.
+    """
+    p, model = q.partial, q.model
+    current_usb = json.loads(q.lineage.usb)
+    current_sg = json.loads(q.lineage.mapping)
+    old = json.loads(Path(q.inputs['manifest_path']).read_bytes())
+    assert old['usb_binding'] != current_usb and old['sg_binding'] != current_sg
+    epoch = q.g.q.f.clock.value
+    checks=[]
+    for field in ('usb_binding','sg_binding'):
+        value=dict(schema=1,kind='fm1-current-retained-fixed-loader',
+            observed_at=epoch,usb_binding=current_usb,sg_binding=current_sg,
+            original_campaign_sha256=q.lineage.campaign_sha256,
+            quiet_state='same-original-fixed-loader-no-later-commands')
+        value[field]=old[field]  # Actual original stock backup, not invented IDs.
+        witness=_write(q.tmp/('rejected-'+field+'-witness.json'),value)
+        receipt=q.r.backup_receipt/('rejected-'+field+'-acquire')
+        campaign=_write(q.tmp/('rejected-'+field+'-acquire.json'),dict(schema=1,
+            kind='fm1-retained-partial-dual-read',
+            adapter_sha256=p.digest(Path(p.__file__).read_bytes()),
+            stopped_path=str(q.stopped),stopped_sha256=p.digest(q.stopped.read_bytes()),
+            witness_path=str(witness),witness_sha256=p.digest(witness.read_bytes()),
+            receipt_path=str(receipt)))
+        counts=len(model.calls),len(model.opened),len(model.closed)
+        with pytest.raises(ValueError,match='Fresh unchanged retained fixed-loader witness required'):
+            p.prepare_acquisition(campaign)
+        assert counts==(len(model.calls),len(model.opened),len(model.closed))
+        assert not receipt.exists()
+        marker=q.r.backup_receipt/('.retained-partial-'+q.lineage.campaign_sha256+'.acquire.consumed')
+        assert not os.path.lexists(marker)
+        checks.append(dict(field=field,rejected=True,new_commands=0,new_handles=0,
+            new_receipt_absent=True,new_marker_absent=True,
+            campaign_sha256=p.digest(campaign.read_bytes()),
+            witness_sha256=p.digest(witness.read_bytes())))
+    _write(q.tmp/'actual-returned-connection-negative-checks.json',dict(schema=1,
+        actual_factories=True,authority_overrides=False,checks=checks))
+    return checks
+
+
 def acquire_and_prepare_stock(q, monkeypatch):
     p, lineage, model = q.partial, q.lineage, q.model
     epoch = q.g.q.f.clock.value
@@ -150,6 +193,7 @@ def acquire_and_prepare_stock(q, monkeypatch):
 
 def run_genuine_restore_recovery(actual, tmp_path, monkeypatch, fault, nested=False):
     q = genuine_caught_restore(actual, tmp_path, monkeypatch, fault)
+    negatives = assert_actual_returned_connection_negatives(q)
     s = acquire_and_prepare_stock(q, monkeypatch)
     before = len(q.model.calls)
     original_journal = Path(q.inputs['directory'])/'journal.json'
@@ -198,6 +242,7 @@ def run_genuine_restore_recovery(actual, tmp_path, monkeypatch, fault, nested=Fa
         acquired_commands=len(s.calls), stock_restore_commands=len(q.model.calls)-before,
         uncertain_ranges=[list(x) for x in q.lineage.prefix.uncertainty],
         partial_sha256=q.partial.digest(q.partial_bytes), closed_handles=4,
-        original_stopped_journal_preserved=True, original_completed_install_journal_preserved=True)
+        original_stopped_journal_preserved=True, original_completed_install_journal_preserved=True,
+        actual_returned_connection_negatives=len(negatives))
     _write(tmp_path/'genuine-retained-restore-summary.json', summary)
     return SimpleNamespace(q=q, s=s, summary=summary)

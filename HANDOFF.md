@@ -27,11 +27,13 @@ of the already-tested minimal RAM reset path.
 [verified, source/model scope] Decoder panel errors 1–3 are now recognized
 alongside worker errors -4–-1 and success 0. The 76 focused checks passed;
 display and physical recovery proof remain false. Existing frozen hardware
-decoder pins are unchanged. Genuine interrupted-RESTORE V3 is running once on
-Hera: two cheap cases passed, and all three heavy cases reached the intended
-interrupted mutation. Their full-stock/nested-stop verdicts and independent
-retained-evidence acceptance are pending. Partial recovery remains closed.
-Last verified pushed checkpoint before this update: 8b5e65fb24d849ffb522bc9a407f9bbd806d10fb.
+decoder pins are unchanged. Genuine interrupted-RESTORE V3 passed five exact cases/six isolated Hera
+containers and independent replay; root accepted the modeled runtime and exact
+source integration. Production0d936 binds the reviewed retained-loader branch;
+physical interrupted-write recovery remains unproven. The focused public
+post-copy mechanics gate passed 90 unique cases/30 Hera chunks plus smoke1,
+zero failures/errors/skips, with all32 constrained receipts and cleanup replayed.
+Last verified pushed checkpoint before this update: ea56c0c3e1f2687c07deba53ad8468145b39638e.
 
 [verified] Stock full-image readback96006 and the historical identity-only reply
 FM-1_092 are accepted. Native reviewcf706b9c accepts app76382f53/ELFe9d54172
@@ -1052,3 +1054,22 @@ unlock request is needed. Next: accept entry/backup capture successor, stage
 prospective inputs, fresh dual stock backup, trace install/boot and five original
 RAM reads before loader upload, then full stock recovery. Physical boot/display
 and required review/CI/integration remain open; root owns commits/push/USB.
+
+### Retained partial recovery exact integration — 2026-10-12
+
+[verified: source/model scope] Root accepted V3 runtime archive d866ca6f,
+independent check cfb6e658 and the minimal source delta. Exact production0d936,
+fixture6b71/testbec9 and mechanics8db609 are copied from the accepted proposal.
+RESTORE uses genuine completed returned-backup USB/SG lineage; stock manifest
+remains stock provenance and INSTALL guard is unchanged. V3 erase/program
+branches acquired dual matching partial images and restored full stock96006
+with all30 dirty sectors/0x4000last. Nested failure refused unsupported new
+admission/retry. Prior703c closed30 gate and V1/V2 failures remain historical.
+Device/process/clock/passive conditions were modeled: no physical interrupted
+write or disconnected/new-ROM/crash/nested-admission proof follows. Focused
+public mechanics passed 90 unique cases/30 Hera chunks plus smoke1, zero
+failures/errors/skips; all32 constrained container receipts and fresh empty
+cleanup independently replayed. Evidence/checks are retained under
+build/partial-stock-recovery-production/public-integration-v1 (runtime2c4a7375,
+source92dc0c23); no unchanged expensive genuine composition was rerun. Root
+alone reviews/commits/pushes/activates; CI and physical proof remain separate.
