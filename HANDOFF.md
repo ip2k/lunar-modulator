@@ -13,16 +13,21 @@ original conversation; last updated 2026-10-11. Read this first, then
 
 [verified: later source checkpoint] Detached/shared provenance source
 `8fb33694…`, native `8ad32e42…` and test snapshot `e4930491…` are saved
-while their final 101-case cross-mode Hera gate runs; independent source
-review accepted `52b1fa6a…`, runtime acceptance remains pending. Both exact
+with their final 101-case cross-mode Hera gate passed; independent final
+source/runtime review accepted `cd990cc8…`. Both exact
 probe wrappers are staged file-only (review `dbda7dee…`) without execution.
 The test-only native Linux mock repair passed 79 unique cases plus one private
-modeled smoke; fresh CI and independent final receipt review remain pending.
+modeled smoke; independent final receipt review accepted `0fb814d9…`.
+Fresh CI remains pending.
 
 [verified: current recovery checkpoint] Returned-stock reset v2 passed 56 unique
 injected cases plus one modeled smoke in sixteen Hera chunks; independent
 review accepted report `46da05e5…`. Its completed-restore production pin is
-still unset. Returned-ROM backup/restore source checkpoints include retained
+still unset. The composed private fixture exposed an SG mapping mismatch;
+the corrected reset source `17b9f005…` uses the actual resolved class path and
+direct node name, with complete live identity comparison retained. Independent
+source review accepted `fe38253d…`; its 58-case and genuine composed runtime
+gate are pending. Returned-ROM backup/restore source checkpoints include retained
 absence and historical provenance checks, but remain closed WIP pending the
 genuine private composed factory gate. The whole-suite receipt is independently
 accepted at its sealed older snapshot. Passive bench sysfs at 2026-10-12

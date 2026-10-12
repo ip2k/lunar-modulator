@@ -149,7 +149,9 @@ def prepare_campaign(path):
             proof['sector_order'] != list(range(0x5000, 0x22000, 4096)) + [0x4000]):
         raise ValueError('Exact full stock restoration and directory-last plan required')
     bridge.validate_usb(proof['usb_binding'])
-    if (proof['sg_binding']['node'] != '/dev/' + proof['sg_binding']['sg'] or
+    sg_class = Path(proof['sg_binding']['class'])
+    if (not sg_class.is_absolute() or not sg_class.name.startswith('sg') or
+            proof['sg_binding']['node'] != '/dev/' + sg_class.name or
             C.sizeof(reader.SGHeader) != 88 or C.sizeof(C.c_void_p) != 8):
         raise ValueError('Reviewed new SG binding and 64-bit layout required')
     parent = Path(proof['returned_backup_receipt_path'])

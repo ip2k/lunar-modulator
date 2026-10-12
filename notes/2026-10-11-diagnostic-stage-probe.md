@@ -127,7 +127,8 @@ plan `553326e47907c13494c00a855ce49a5e0e7f5f29f67aaa505a20539138bec1c4`.
 Root replayed exact XML identities, all eighteen pinned-image inspections
 (four CPUs/four GiB, no network/devices/privilege, exit zero, no OOM), and
 a fresh empty session-label lookup. Private receipts are in
-`build/diagnostic-stage-sg-portability/`; independent final review is pending.
+`build/diagnostic-stage-sg-portability/`; independent final review accepted
+report `0fb814d9be424bbc10d6a774492536b81fdd62793880fdc54ffb354981ce059d`.
 All reset, enumeration, SG and SRAM observations in this gate are modeled.
 
 [verified: source-only bench staging] Separate successful wrapper v2
@@ -136,6 +137,8 @@ are staged in exclusive private directories. The staging receipt checks
 all 35 original installation members and six source/wrapper pins; no device
 was opened or request submitted. Independent review accepted this file-only
 boundary, report `dbda7dee34a1e64298851dee7849ee6d71afcb971889a08cbab2d8f0262c199b`.
-Cross-mode runtime acceptance and returned-ROM recovery remain required before
+Cross-mode runtime acceptance subsequently passed 101 cases plus the strict
+private smoke, independently accepted in report `cd990cc8…`. Returned-ROM
+recovery remains required before
 the actual target reset and immediate stage capture. The old staged
 successful-only wrapper remains preserved and unused.

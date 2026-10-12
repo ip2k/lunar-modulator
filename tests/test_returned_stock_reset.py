@@ -26,7 +26,8 @@ def campaign(tmp_path, monkeypatch):
     evidence = tmp_path / 'completed-restore.json'
     evidence.write_text('{"modeled":true}')
     proof = dict(usb_binding=USB,
-        sg_binding=dict(node='/dev/sgMOCK', sg='sgMOCK', node_identity=[1, 2, 3], usb_identity=[4, 5, 6]),
+        sg_binding=dict(node='/dev/sgMOCK', **{'class': '/sys/devices/mock/scsi_generic/sgMOCK'},
+            node_identity=[1, 2, 3], usb_identity=[4, 5, 6]),
         returned_backup_receipt_path=str(parent), returned_backup_manifest_sha256='a' * 64,
         baseline_sha256=r.BASELINE_SHA, target_sha256=r.TARGET_SHA, sectors_written=30,
         sector_order=list(range(0x5000, 0x22000, 4096)) + [0x4000], _absent_paths=())
@@ -65,7 +66,7 @@ def save(campaign):
 def syscalls(prepared, monkeypatch, **kwargs):
     state = mock_sg(monkeypatch, **kwargs)
     monkeypatch.setattr(prepared.bridge, 'discover_sg',
-        lambda usb: {**bridge.discover_sg(usb), 'sg': 'sgMOCK'})
+        lambda usb: {**bridge.discover_sg(usb), 'class': '/sys/devices/mock/scsi_generic/sgMOCK'})
     monkeypatch.setattr(r.sys, 'platform', 'linux')
     return state
 
@@ -112,7 +113,7 @@ def test_wrong_restore_plan_rejects_without_device_discovery(campaign, monkeypat
         r.prepare_campaign(campaign[0])
 
 
-@pytest.mark.parametrize('fault', ['parent_mode', 'parent_symlink', 'receipt_exists', 'marker_exists', 'outside_parent', 'relative_receipt', 'sg_node'])
+@pytest.mark.parametrize('fault', ['parent_mode', 'parent_symlink', 'receipt_exists', 'marker_exists', 'outside_parent', 'relative_receipt', 'sg_node', 'sg_class_relative', 'sg_class_name'])
 def test_receipt_and_binding_constraints(campaign, fault):
     parent = Path(campaign[2]['returned_backup_receipt_path'])
     if fault == 'parent_mode':
@@ -131,6 +132,10 @@ def test_receipt_and_binding_constraints(campaign, fault):
         campaign[1]['receipt_path'] = 'relative'
     elif fault == 'sg_node':
         campaign[2]['sg_binding']['node'] = '/dev/other'
+    elif fault == 'sg_class_relative':
+        campaign[2]['sg_binding']['class'] = 'scsi_generic/sgMOCK'
+    elif fault == 'sg_class_name':
+        campaign[2]['sg_binding']['class'] = '/sys/devices/mock/scsi_generic/other'
     save(campaign)
     with pytest.raises(ValueError):
         r.prepare_campaign(campaign[0])

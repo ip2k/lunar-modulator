@@ -73,11 +73,15 @@ Later source checkpoints require fresh CI. The original 6,389-case complete
 Python snapshot finished all 16 chunks: 6,352 passed, 35 skipped and two expected
 failures, zero failures/errors. It does not include the newer probe or returned-ROM
 sources. The new stock-reset scaffold separately passed 56 injected cases plus
-one smoke; its production factory remains closed pending a genuine reviewed
-completed-restore helper.
+one smoke. The composed fixture then exposed a mismatch with the actual SG
+identity schema; the source correction and expanded 58-case gate are pending
+composed runtime acceptance. Its production factory remains closed pending a
+genuine reviewed completed-restore helper. The final shared successful/detached
+probe gate passed 101 unique cases in sixteen Hera chunks plus one strict
+actual-private modeled smoke; independent review accepted report `cd990cc8…`.
 
 Current remote-SHA-verified checkpoint:
-`def16afc863d4c24b979fbe3f7699033b05c2fc0` on the feature branch below.
+`f45a2b016d5629fc76dbb85b5a4bcfba7145c023` on the feature branch below.
 The returned-ROM backup/restore/reset checkpoints remain unaccepted WIP;
 their complete shared provenance and genuine private-factory gates are pending.
 Do not activate them. See [the boot trial](2026-10-11-diagnostic-boot-trial.md),
@@ -89,7 +93,8 @@ limits and next dependencies. This remains an active unfinished goal.
 passing and macOS Python failing in sixty Linux SG syscall mocks that retained
 Darwin's platform. Production transport correctly rejected them. The test-only
 mock-platform repair passed its focused 79-case Hera gate plus actual-private
-modeled smoke; independent final evidence review and fresh CI are pending. No production
+modeled smoke; independent final evidence review accepted `0fb814d9…`.
+Fresh CI is pending. No production
 guard is weakened or hardware gate upgraded by that repair.
 
 ## Active dependency plan

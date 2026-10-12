@@ -69,6 +69,21 @@ as outside its primary workspace; Serena did not find the worktree Python file.
 Shared server project selection was preserved. Direct file inspection was used;
 neither semantic tool established the device ABI or this source's behavior.
 
+[verified: composed-fixture source correction] The genuine backup bridge's SG
+record contains `node` and the resolved `class` path, with no `sg` field. The
+older injected fixture supplied that extra field and masked the reset guard's
+schema mismatch. Current closed source
+`17b9f005f3d3740d85b77b05fc12b116c25fb11d6cb1d794ae1efc634f0db205`
+requires an absolute class path with an SG basename and the exact direct
+`/dev/<basename>` node. Complete canonical live mapping equality and all
+absence checks remain unchanged. Tests
+`71f01093e96dbe6c8ca98f86956743876d14e4c33171260ed83b2dc1e5c67738`
+remove the invented field and add relative/invalid class-path rejection,
+for 58 cases. Independent bounded source review accepted report
+`fe38253d0afdd9960df636340799f55eeaa2afab920bbff93ebae25de5015d1a`.
+The new runtime gate and genuine post-durable-intent drift case are pending;
+the accepted 56-case receipt above applies only to its historical source.
+
 Next: freeze and independently accept the genuine restore helper, bind its
 literal source pin, add an actual-private modeled full lineage gate, rerun the
 focused 16 chunks, then review a concrete one-shot bench packet. This scaffold
