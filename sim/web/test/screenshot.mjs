@@ -770,7 +770,7 @@ try {
   // Dragging the case below the keys pans the panel to its right half.
   const at = await phone.evaluate(() => {
     const r = document.getElementById('panel').getBoundingClientRect();
-    return { x: r.left + (60 + 3) / 167.5 * r.width, y: r.top + (92 + 8) / 107 * r.height };
+    return { x: r.left + (60 + 3) / 167.5 * r.width, y: r.top + (92 + 3) / 102 * r.height };
   });
   await phone.mouse.move(at.x, at.y);
   await phone.mouse.down();

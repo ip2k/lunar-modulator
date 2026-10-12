@@ -87,6 +87,26 @@ await page.click('[data-layout="panel"]');
 check('Panel restores original footer sections', await page.locator('main > .controls #midi').isVisible() && await page.locator('main > .files #open').isVisible());
 await page.click('[data-layout="workbench"]');
 check('Editor restores menus after layout roundtrip', await menu('Simulator').locator('#power-off').count() === 1 && await menu('Files').locator('#open').count() === 1);
+await page.click('[data-layout="editor"]');
+const screenCard = editor.getByRole('region', { name: 'Panel display and following', exact: true });
+check('Panel following checkboxes sit below the screen without redundant captions',
+  await screenCard.getByRole('checkbox', { name: 'Follow Panel', exact: true }).isVisible() &&
+  await screenCard.getByRole('checkbox', { name: 'Open on panel', exact: true }).isVisible() &&
+  await editor.locator('.ed-screen-cap, .ed-card-title, .ed-context').count() === 0 &&
+  await screenCard.locator('.ed-screen-options').evaluate(e => e.getBoundingClientRect().top >= e.previousElementSibling.getBoundingClientRect().bottom));
+const about = editor.locator('.ed-info').first();
+await about.click();
+const info = editor.locator('.ed-info-body:popover-open');
+check('Engine information opens next to its name and retains credits', await info.isVisible() &&
+  !!(await info.locator('.ed-credits').textContent()) && await about.getAttribute('aria-expanded') === 'true');
+check('Information popover fits the viewport', await info.evaluate(e => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight; }));
+await page.keyboard.press('Escape');
+check('Escape closes the engine information popover', await info.count() === 0 && await about.getAttribute('aria-expanded') === 'false');
+await about.click();
+await editor.getByRole('button', { name: 'Hide sidebar', exact: true }).click();
+check('Clicking away dismisses engine information', await info.count() === 0);
+await editor.getByRole('button', { name: 'Show sidebar', exact: true }).click();
+await page.click('[data-layout="workbench"]');
 
 // The helpers the checks share: the project's hash through the shadow
 // Worker, and a count of what the page sends the worklet.

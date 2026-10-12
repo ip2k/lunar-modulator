@@ -19,7 +19,7 @@
 import {
   Meta, MIX_KEY, ROLE, T, SRC_EDITOR, SRC_PANEL, SOURCES, SOUNDS, INSERTS, MASTERS, POSITIONS, LEVEL_MAX,
   packParam, packLevel, packOn, packView, decodeChanges, decodeView, applyToMirror, mirrorFromProject,
-  blockKey, parseBlockKey, blockTag, viewFor, blockOfView, viewWords, controlKind, isBipolar, isLog, hasFlag,
+  blockKey, parseBlockKey, blockTag, viewFor, blockOfView, controlKind, isBipolar, isLog, hasFlag,
   toPos, fromPos, zeroPos, stepValue, rawText, unitText, spokenText, flagWords, ramWords, ramPercent, toF32,
   ModMeta, T as REC_T, parseModKey,
 } from './model.js';
@@ -128,18 +128,19 @@ export async function startEditor(env) {
     pref('sidebar-hidden', st.sidebarHidden ? 1 : 0);
     updateSidebar();
   } });
+  const songFileTools = el('span', 'ed-song-file-tools', { hidden: true });
   const appbar = el('div', 'ed-appbar', { role: 'toolbar', 'aria-label': 'Editor' }, [
     el('div', 'ed-appbar-start', {}, [title]),
-    el('div', 'ed-appbar-mid', {}, [keysChip,
-      el('label', 'ed-toggle', { for: followPanelBox.id }, [followPanelBox, el('span', null, { text: 'Follow the panel' })]),
-      el('label', 'ed-toggle', { for: followEditorBox.id }, [followEditorBox, el('span', null, { text: 'Open on the panel' })])]),
-    el('div', 'ed-appbar-end', {}, [sidebarBtn, fileMenu, simulatorMenu, changesMenu, undoBtn, redoBtn, el('div', 'ed-ram-wrap', {}, [ramBtn, ramList])]),
+    el('div', 'ed-appbar-mid', {}, [keysChip]),
+    el('div', 'ed-appbar-end', {}, [sidebarBtn, fileMenu, simulatorMenu, changesMenu, songFileTools, undoBtn, redoBtn, el('div', 'ed-ram-wrap', {}, [ramBtn, ramList])]),
   ]);
 
   const outline = el('nav', 'ed-outline', { id: 'ed-sidebar', 'aria-label': 'Outline' });
   const screen = el('canvas', 'ed-screen', { width: 240, height: 240, 'aria-label': 'The FM-1 screen, as on the panel' });
-  const screenCap = el('p', 'ed-screen-cap');
-  const card = el('section', 'ed-card', { 'aria-label': 'On the FM-1' }, [el('p', 'ed-card-title', { text: 'On the FM-1' }), screen, screenCap]);
+  const card = el('section', 'ed-card', { 'aria-label': 'Panel display and following' }, [screen,
+    el('div', 'ed-screen-options', {}, [
+      el('label', 'ed-toggle', { for: followPanelBox.id }, [followPanelBox, el('span', null, { text: 'Follow Panel' })]),
+      el('label', 'ed-toggle', { for: followEditorBox.id }, [followEditorBox, el('span', null, { text: 'Open on panel' })])])]);
   const fromPanel = el('p', 'ed-from', { hidden: true });
   const view = el('div', 'ed-view');
   const histList = el('ol', 'ed-hist-list');
@@ -182,6 +183,8 @@ export async function startEditor(env) {
   } });
   const seqVerb = (text) => { if (sim.node) sim.node.port.postMessage({ type: 'seq-line', bytes: new TextEncoder().encode(text) }); };
   const sequencer = makeSequencer({ ...seqHost, metadata: meta, say,
+    fileToolsHost: songFileTools,
+    toggleSidebar: () => sidebarBtn.click(),
     editSound: (key) => select(key, { view: 'sound' }),
     inspector: (key) => key === MIX_KEY ? chains.mixInspector() : blockOf(key) ? inspector(key, { compactTools: true, level: /^s[1-4]$/.test(key) ? Number(key[1]) - 1 : undefined }) : emptyInspector(key),
     watchTrack: (t) => seqVerb(`watch ${t}`), playScene: (scene) => seqVerb(`scene ${scene}`),
@@ -447,8 +450,6 @@ export async function startEditor(env) {
   function onView(v) {
     const was = st.panelView;
     st.panelView = v;
-    const words = viewWords(v);
-    screenCap.textContent = `${words}: the page the panel shows now`;
     markKnobs();
     markPanelBlock();
     const moved = !was || was.mode !== v.mode || was.sound !== v.sound || was.page !== v.page || was.slot !== v.slot || was.arp !== v.arp;
@@ -785,6 +786,8 @@ export async function startEditor(env) {
     chains.closePicker();
     root.classList.toggle('is-off', !st.port || !st.mirror);
     off.hidden = !!st.port;
+    songFileTools.hidden = st.view !== 'sequencer' || !st.port || !st.mirror;
+    fileMenu.hidden = !songFileTools.hidden;
     title.querySelector('.ed-project').textContent = files.title ? `· ${files.title}` : '';
     renderOutline();
     rows.clear();
@@ -984,6 +987,25 @@ export async function startEditor(env) {
   }
 
   // ---- the inspector: controls from metadata (§6, §11, §13) ----------------------------------
+  function engineInfo(e) {
+    if (!e?.credits) return null;
+    const id = nextId('engine-info');
+    const button = el('button', 'ed-info', { type: 'button', text: 'ⓘ',
+      'aria-label': `About ${e.name}`, 'aria-expanded': 'false', 'aria-controls': id, popovertarget: id });
+    const body = el('div', 'ed-info-body', { id, popover: 'auto', role: 'region', 'aria-label': `${e.name} information` }, [
+      el('strong', '', { text: e.name }),
+      el('p', 'ed-credits', { text: e.credits }),
+      el('p', 'ed-info-meta', { text: [e.group && meta.groupName(e.group), e.licence && `Licence: ${e.licence}`].filter(Boolean).join(' · ') })]);
+    body.addEventListener('toggle', () => {
+      const open = body.matches(':popover-open');
+      button.setAttribute('aria-expanded', String(open));
+      if (!open) return;
+      const a = button.getBoundingClientRect(), b = body.getBoundingClientRect();
+      body.style.left = `${Math.max(12, Math.min(a.left, innerWidth - b.width - 12))}px`;
+      body.style.top = `${Math.max(12, Math.min(a.bottom + 8, innerHeight - b.height - 12))}px`;
+    });
+    return [button, body];
+  }
   function inspector(key, opt = {}) {
     const b = blockOf(key);
     const e = meta.engine(b.engine);
@@ -994,13 +1016,12 @@ export async function startEditor(env) {
     const head = el('header', 'ed-insp-head', {}, [
       el('span', `ed-tag${bk.role === ROLE.SOUND ? ` ed-s${bk.sound + 1}` : ''}`, { text: tagText }),
       el('h3', 'ed-insp-name', { text: e ? e.name : b.engine }),
+      ...(engineInfo(e) || []),
       e && e.gpl ? el('span', 'ed-gpl', { text: 'GPL', title: `Licence: ${e.licence}` }) : null,
       el('span', 'ed-insp-ram', { text: e && st.ram ? `RAM ${ramWords(e.ram, st.ram.budget)}` : '' })]);
     box.append(head);
     const tools = st.mirror && st.mirror.cables && !opt.bare ? [...chains.headTools(key), ...project.headTools(key)] : [];
     if (!opt.compactTools && tools.length) head.append(el('span', 'ed-tools', {}, tools));
-    const credits = e && e.credits ? `${e.credits}${e.group ? ` · ${meta.groupName(e.group)}` : ''}` : '';
-    if (credits && !opt.compactTools) box.append(el('p', 'ed-credits', { text: credits }));
     if (!e) { box.append(el('p', 'ed-note', { text: `${b.engine} is not in this build's metadata.` })); return box; }
     const mt = opt.bare ? null : chains.meters(key);
     if (mt) box.append(mt);
@@ -1031,11 +1052,10 @@ export async function startEditor(env) {
       for (const p of pg.params) if (p !== fp) page.append(paramRow(key, p, pg));
       box.append(page);
     });
-    if (opt.compactTools && (credits || tools.length)) {
-      const summary = el('summary', 'ed-tools-summary', { text: 'Device credits and tools', 'aria-label': 'Device credits and tools' });
+    if (opt.compactTools && tools.length) {
+      const summary = el('summary', 'ed-tools-summary', { text: 'Device tools', 'aria-label': 'Device tools' });
       const more = el('details', 'ed-inspector-more', {}, [summary]);
-      if (credits) more.append(el('p', 'ed-credits', { text: credits }));
-      if (tools.length) more.append(el('div', 'ed-tools', {}, tools));
+      more.append(el('div', 'ed-tools', {}, tools));
       box.append(more);
     }
     const into = opt.bare || !st.mirror.cables ? null : chains.cablesInto(key);

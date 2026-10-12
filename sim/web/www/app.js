@@ -76,7 +76,7 @@ function drawPanel() {
   el('rect', { class: 'case-inner', x: 1.2, y: 1.2, width: CASE.w - 2.4, height: CASE.h - 2.4, rx: CASE.r - 1 }, panel);
 
   for (const p of REAR) {
-    el('text', { class: 'print small rear', x: p.x, y: -3.2 }, panel, p.label);
+    el('text', { class: 'print small rear', x: p.x, y: 3.4 }, panel, p.label);
     if (p.kind === 'power') {
       powerEl = el('g', { class: 'power', role: 'button', tabindex: 0, 'aria-label': 'Power switch' }, panel);
       el('rect', { class: 'port', x: p.x - p.w / 2, y: -1.5, width: p.w, height: 2.2, rx: 0.6 }, powerEl);

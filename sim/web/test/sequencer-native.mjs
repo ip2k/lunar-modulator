@@ -178,12 +178,16 @@ try {
     assert.equal(await dialog.locator('.ed-page').count() > 0, true);
     const compactTools = dialog.locator('.ed-inspector-more');
     assert.equal(await compactTools.count(), 1);
-    assert.equal(await compactTools.locator('.ed-credits').isVisible(), false);
+    assert.equal(await dialog.locator('.ed-info-body').isVisible(), false);
+    await dialog.getByRole('button', { name: 'About Macro', exact: true }).click();
+    assert.equal(await dialog.locator('.ed-info-body').isVisible(), true);
+    await page.keyboard.press('Escape');
+    assert.equal(await dialog.locator('.ed-info-body').isVisible(), false);
     assert.equal(await dialog.locator('.ed-page').first().evaluate((p, more) => !!(p.compareDocumentPosition(more) & Node.DOCUMENT_POSITION_FOLLOWING), await compactTools.elementHandle()), true);
     assert.equal(await dialog.locator('.sq-device-dialog-footer .sq-file-tools').count(), 1);
     const moreSummary = compactTools.locator(':scope > summary');
     await moreSummary.focus(); await moreSummary.press('Enter');
-    assert.equal(await compactTools.locator('.ed-credits').isVisible(), true);
+    assert.equal(await compactTools.locator('.ed-tools').isVisible(), true);
     const fileSummary = dialog.locator('.sq-device-dialog-footer .sq-file-tools > summary');
     await fileSummary.focus(); await fileSummary.press('Enter');
     assert.equal(await dialog.getByRole('button', { name: 'Open…', exact: true }).isVisible(), true);

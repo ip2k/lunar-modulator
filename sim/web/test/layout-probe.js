@@ -11,11 +11,13 @@
 //   - two pieces of text, or a control and a piece of text, whose boxes
 //     overlap by more than 2 px each way (not inside one another's parent,
 //     not a popup or dialog laid over the page on purpose).
-// Text in `.ed-sr` (the screen-reader-only class), in a hidden or aria-hidden
-// element, or invisible is left out. MIT licence, like the rest of this
-// repository.
+// Text in `.ed-sr` / `.visually-hidden` (screen-reader-only classes), content
+// hidden by a closed <details>, in a hidden or aria-hidden element, or
+// invisible is left out. Intentional popovers may overlap the page, but their
+// contents are still checked against one another. MIT licence, like the rest
+// of this repository.
 (function () {
-  const POPUP = '.ed-search, .ed-ram-list, [role="dialog"], .ed-toast, .ed-drag, .ed-pick';
+  const POPUP = '.ed-search, .ed-ram-list, .ed-footer-menu-body, .ed-info-body, [role="dialog"], .ed-toast, .ed-drag, .ed-pick';
   function intersects(a, b) {
     const w = Math.min(a.right, b.right) - Math.max(a.left, b.left);
     const h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
@@ -32,18 +34,27 @@
       const cs = getComputedStyle(el);
       return cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) !== 0;
     };
+    const hiddenByClosedDetails = (el) => {
+      for (let a = el; a; a = a.parentElement) {
+        if (a.tagName !== 'DETAILS' || a.open) continue;
+        const summary = [...a.children].find((child) => child.tagName === 'SUMMARY');
+        if (!summary || !summary.contains(el)) return true;
+      }
+      return false;
+    };
+    const excluded = (el) => el.closest('.ed-sr, .visually-hidden, [hidden], [aria-hidden="true"], script, style, canvas, option, noscript') || hiddenByClosedDetails(el);
     const range = document.createRange();
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {
       const text = n.nodeValue.trim();
       const el = n.parentElement;
-      if (!text || !el || el.closest('.ed-sr, [hidden], [aria-hidden="true"], script, style, canvas, option, noscript') || !visible(el)) continue;
+      if (!text || !el || excluded(el) || !visible(el)) continue;
       range.selectNodeContents(n);
       const rects = [...range.getClientRects()].filter((r) => r.width > 1 && r.height > 1);
       if (rects.length) items.push({ el, text: text.slice(0, 28), rects, kind: 'text' });
     }
     for (const el of root.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]), select, textarea')) {
-      if (!visible(el) || el.closest('[hidden], .ed-sr')) continue;
+      if (!visible(el) || excluded(el)) continue;
       const r = el.getBoundingClientRect();
       if (r.width > 1 && r.height > 1) items.push({ el, text: el.getAttribute('aria-label') || el.name || el.tagName.toLowerCase(), rects: [r], kind: 'control' });
     }
