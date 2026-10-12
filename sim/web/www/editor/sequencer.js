@@ -356,17 +356,22 @@ export function makeSequencer(ctx) {
     action(() => ctx.seekBar?.(Math.max(0, Math.min(barLimit(state.model, transport), Math.floor((transport.master_tick || 0) / 384) + direction))));
   }
   function updateTransport(transport) {
-    if (!transport) return;
-    transportMount.querySelector('[data-play-position]').textContent = positionText(transport.master_tick);
-    transportMount.querySelector('[data-play-time]').textContent = timeText(transport.playbackFrames, transport.sampleRate);
-    transportMount.querySelector('[data-play-state]').textContent = transport.playing ? 'Playing' : transport.paused ? 'Paused' : 'Stopped';
-    transportMount.querySelector('[data-transport-play]').disabled = state.busy || !!transport.playing;
-    transportMount.querySelector('[data-transport-pause]').disabled = state.busy || !transport.playing;
+    if (disposed || !transport) return;
+    // A queued native update can arrive while the external host is empty
+    // during an editor remount. Each control is optional until draw finishes.
+    const position = transportMount.querySelector('[data-play-position]');
+    if (position) position.textContent = positionText(transport.master_tick);
+    const time = transportMount.querySelector('[data-play-time]');
+    if (time) time.textContent = timeText(transport.playbackFrames, transport.sampleRate);
+    const status = transportMount.querySelector('[data-play-state]');
+    if (status) status.textContent = transport.playing ? 'Playing' : transport.paused ? 'Paused' : 'Stopped';
+    const play = transportMount.querySelector('[data-transport-play]'), pause = transportMount.querySelector('[data-transport-pause]');
+    if (play) play.disabled = state.busy || !!transport.playing;
+    if (pause) pause.disabled = state.busy || !transport.playing;
     const counters = transportNavigation(state.model, transport, state.track);
     for (const [kind, counter] of Object.entries(counters)) {
       const output = transportMount.querySelector(`[data-nav-count="${kind}"]`);
-      output.textContent = `${counter.current}/${counter.total}`;
-      output.title = counter.description;
+      if (output) { output.textContent = `${counter.current}/${counter.total}`; output.title = counter.description; }
     }
     for (const button of transportMount.querySelectorAll('[data-slot-kind]')) {
       const counter = counters[button.dataset.slotKind];
@@ -464,6 +469,7 @@ export function makeSequencer(ctx) {
       null]);
   }
   function syncLevels() {
+    if (disposed) return;
     for (const input of workspaceAll('[data-sound-fader]')) {
       if (input.dataset.dragging === 'true') continue;
       const master = input.dataset.soundFader === 'master', sound = Number(input.dataset.soundFader);
@@ -475,6 +481,7 @@ export function makeSequencer(ctx) {
     }
   }
   function onTelemetry(floats) {
+    if (disposed) return;
     const sections = ctx.metadata?.doc?.telemetry?.sections || [], now = performance.now();
     for (const meter of workspaceAll('[data-sq-meter]')) {
       const row = meter.dataset.sqMeter;
@@ -995,6 +1002,7 @@ export function makeSequencer(ctx) {
     ctx.onMeterSubscription?.();
   }
   function update(transport = ctx.getTransport?.()) {
+    if (disposed) return;
     updateTransport(transport);
     for (const e of root.querySelectorAll('[data-song-entry]')) e.classList.toggle('is-playing', !!transport?.playing && transport.songIndex >= Number(e.dataset.songEntry) && transport.songIndex < Number(e.dataset.songEntryEnd));
     for (const e of root.querySelectorAll('[data-live-track]')) {
@@ -1016,6 +1024,7 @@ export function makeSequencer(ctx) {
     updatePlayback(transport);
   }
   function updatePlayback(transport) {
+    if (disposed) return;
     if (!state.model) return;
     for (const e of root.querySelectorAll('[data-progress-track], [data-preview-track]')) {
       const t = Number(e.dataset.progressTrack ?? e.dataset.previewTrack);
