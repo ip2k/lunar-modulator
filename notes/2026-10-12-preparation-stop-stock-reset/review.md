@@ -1,0 +1,7 @@
+# Preparation-stop stock-reset successor
+
+[verified] New distinct tools/fm1_sdk_prepare_stop_stock_reset.py derives from the reviewed SDK-trace one-request adapter. It requires the new genuine completed preparation-stop stock-restore proof, a distinct kind/state/consumed marker and the preserved original chain's pending-evidence check before every command, including after durable reset intent. The completed-restore dependency remains None: physical activation is closed. The previously reviewed fixed-loader reset mechanics and USB/SG bridge are unchanged.
+
+[verified: modeled syscall tests] 64 cases passed in 16 isolated Hera containers, no failures/errors/skips; containers removed. These cases inject the completed-proof contract and explicitly do not establish genuine provenance. A separate actual-V7 completed-receipt admission/refusal runner is in progress in lunar-preparation-stop-reset-genuine-20261012. It proposes only the closed restore literal in a disposable copy, preserves canonical factory checks and models only OS SG operations. No host /dev, privileged flag or network.
+
+Private evidence: build/preparation-stop-reset-20261012 and /home/claude/mvave-fm1/preparation-stop-reset-20261012. Preserve terminal genuine-runner receipt before activation. No physical reset, flash or loader command performed during this work. Diagnostic boot/display/full stock recovery remain unverified. Cynthion claim and desktop access remain blocked; no physical FM1 cycle needed.

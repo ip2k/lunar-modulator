@@ -96,3 +96,23 @@ def test_actual_v7_preparation_stop_backup_restore(monkeypatch, tmp_path):
     erases = [c['address'] for c in model.calls if c['op'] == 0xFB01]
     assert erases == list(range(0x5000, 0x22000, 4096)) + [0x4000]
     assert restored['boot_observed'] is restored['physical_recovery_verified'] is False
+    def freeze(path, expected=None, limit=2 * 1048576):
+        raw = restore.read_file(path, limit)
+        if expected is not None:
+            assert hashlib.sha256(raw).hexdigest() == expected
+        return raw
+    restore_receipt = Path(rc['receipt_path'])
+    journal = Path(policy_inputs['directory']) / 'journal.json'
+    calls_before = len(model.calls)
+    completed = restore.validate_completed_restore(rp, campaign_sha256=sha(rp),
+        commands_sha256=sha(restore_receipt / 'commands.jsonl'),
+        result_sha256=sha(restore_receipt / 'result.json'), journal_sha256=sha(journal), freeze=freeze)
+    assert completed['baseline_sha256'] == restore.BASELINE_SHA
+    assert len(model.calls) == calls_before  # Evidence replay opens no SG device.
+    completed['_proof'].check_pending()
+    late = entry / 'automatic-trace-chain-v7/09-unexpected.intent.json'
+    late.write_text('{}')
+    with pytest.raises(ValueError, match='Later automatic-chain'):
+        completed['_proof'].check_pending()
+    late.unlink()
+    completed['_proof'].check_pending()
