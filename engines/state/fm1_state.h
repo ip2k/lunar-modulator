@@ -66,6 +66,7 @@
 #include "fm1_known.h"
 #include "fm1_mod.h"
 #include "fm1_state_caps.h"
+#include "fm1_state_midi.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -153,7 +154,9 @@ enum {
   FM1_REC_LINE,               /* a movy1 line of the set or of a clip (a piece of it) */
   FM1_REC_VIEW,
   FM1_REC_SETTING,
-  FM1_REC_END                 /* always last */
+  FM1_REC_END,                /* always last; preserve existing record codes */
+  FM1_REC_MIDI_MAP,           /* browser.midiMap begins, version in u.map_version */
+  FM1_REC_MIDI_BINDING
 };
 
 /* INFO keys, in canonical order. */
@@ -220,6 +223,8 @@ typedef struct fm1_rec {
     struct { uint8_t which; uint32_t n; const char *s; } line;
     struct { uint8_t mode; uint16_t has; uint8_t v[FM1_VIEW_KEYS]; } view;
     struct { uint8_t key, is_bool; int32_t value; } setting;
+    uint8_t map_version;
+    struct { const char *target, *source; uint8_t channel, kind, number; } binding;
   } u;
 } fm1_rec_t;
 
@@ -391,6 +396,9 @@ typedef struct fm1_state_json_reader {
   int16_t ref_source;
   uint16_t tgt_module, tgt_unit, tgt_gate_idx;
   char key[FM1_STATE_KEY];    /* the current member's key */
+  uint16_t midi_n;
+  uint8_t maps_only; /* narrow setter: require browser instead of sound units */
+  char midi_target[FM1_MIDI_MAP_TARGET + 1], midi_source[FM1_MIDI_MAP_SOURCE + 1];
   char sbuf[64];              /* a short string value */
   char ref_port[16];          /* a port or gate by name */
   char tgt_param[32];         /* a target's parameter by name */

@@ -53,6 +53,9 @@
 extern "C" {
 #endif
 
+/* Atomic mapping-only update; minimal project envelope with browser.midiMap. */
+int fm1_app_midi_map_set(fm1_app_t *a, const uint8_t *bytes, size_t len, fm1_state_report_t *rep);
+
 /* Load flags. */
 #define FM1_APP_LOAD_WITHOUT 0x01u   /* "Load without ...": an engine or kind this build
                                         lacks leaves its unit empty (Sound 1 takes the

@@ -201,6 +201,14 @@ int fm1_state_print(void *pv, const fm1_rec_t *r) {
       if (r->u.setting.is_bool) out(p, r->u.setting.value ? ",\"bool\":true" : ",\"bool\":false");
       else { out(p, ",\"int\":"); num(p, r->u.setting.value); }
       break;
+    case FM1_REC_MIDI_MAP:
+      out(p, "{\"rec\":\"midi_map\",\"version\":"); num(p, r->u.map_version); break;
+    case FM1_REC_MIDI_BINDING:
+      out(p, "{\"rec\":\"midi_binding\",\"target\":"); str(p, r->u.binding.target);
+      out(p, ",\"source\":"); str(p, r->u.binding.source);
+      out(p, ",\"channel\":"); num(p, r->u.binding.channel);
+      out(p, ",\"kind\":"); str(p, r->u.binding.kind ? "cc" : "note");
+      out(p, ",\"number\":"); num(p, r->u.binding.number); break;
     case FM1_REC_END:
       out(p, "{\"rec\":\"end\"");
       break;

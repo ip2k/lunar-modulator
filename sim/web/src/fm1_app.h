@@ -147,6 +147,7 @@
 
 #include "fm1_dx7.h"
 #include "fm1_engine.h"
+#include "fm1_state_midi.h"
 #include "fm1_mfx_host.h"
 #include "fm1_mix_limiter.h"
 #include "fm1_mod.h"
@@ -532,6 +533,7 @@ typedef struct fm1_app {
    * settings file, never in a project); SAVE's requests and the host's
    * store. */
   fm1_app_info_t info;
+  fm1_midi_map_t midi_map;
   fm1_app_settings_t settings;
   uint32_t save_gen;             /* bumped by each SAVE press */
   int store_ready;               /* a host store answers SAVE (fm1_app_saved) */
