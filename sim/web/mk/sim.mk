@@ -70,12 +70,12 @@ WASM_EXPORTS := fm1w_init fm1w_default_chain fm1w_catalog fm1w_select fm1w_unit_
   fm1w_pitch_bend fm1w_all_notes_off fm1w_key fm1w_button fm1w_encoder fm1w_master fm1w_export_sound_mask \
   fm1w_render fm1w_draw fm1w_screen fm1w_leds fm1w_leds_changed fm1w_mode \
   fm1w_text_buf fm1w_text_cap fm1w_seq_text fm1w_seq_reset fm1w_seq_dropped fm1w_seq_gen \
-  fm1w_seq_info fm1w_sound_unit fm1w_insert_unit fm1w_unit_current \
+  fm1w_seq_info fm1w_seq_words fm1w_sound_unit fm1w_insert_unit fm1w_unit_current \
   fm1w_unit_set_current fm1w_unit_level fm1w_unit_set_level fm1w_unit_note_on \
   fm1w_unit_note_off fm1w_unit_route fm1w_ram_budget fm1w_mod_reset fm1w_mod_text \
   fm1w_arp_on fm1w_arp_set_on fm1w_arp_set_param fm1w_arp_get_param fm1w_mfx_select \
   fm1w_dx7_load fm1w_dx7_result fm1w_dx7_name fm1w_meta_id fm1w_meta_read \
-  fm1w_state_save fm1w_state_check fm1w_state_load fm1w_state_pack fm1w_state_report \
+  fm1w_midi_map_set fm1w_state_save fm1w_state_check fm1w_state_load fm1w_state_pack fm1w_state_report \
   fm1w_save_gen fm1w_store_ready fm1w_saved \
   fm1w_edit_buf fm1w_edit_codes fm1w_edit fm1w_edit_verb fm1w_edit_text fm1w_edit_gen \
   fm1w_changes_buf fm1w_changes fm1w_tele_mask fm1w_subscribe fm1w_tele_buf fm1w_telemetry \

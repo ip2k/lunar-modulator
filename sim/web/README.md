@@ -625,17 +625,25 @@ timed" there].
 
 ## Song workspace: clips, scenes, MIDI and audio files
 
-Power on, open the editor and choose **Song**. Switch between **Scenes**,
+Power on and open the editor. Projects with an arrangement entry or a defined
+clip open in **Song** automatically; an explicitly selected workspace stays
+selected, and a loaded `.movy1` set uses the same rule. Switch between **Scenes**,
 **Arrangement**, **Clip**, **Automation** and **Mixer** to focus on one task.
-Transport and a **Files & export** menu stay available across views. Clip and
-Automation expose track/scene selection; scene headings and timeline entries
-select their respective scenes directly. On a small phone, rotate to landscape;
+The pinned transport stays available across views and shows current and total
+bars:beats:ticks, elapsed and available estimated remaining time, plus
+previous/next bar, clip and scene navigation. Play/pause, stop, tempo and
+metronome controls stay
+with it. The file menu stays available across views. Click empty space in a
+track or scene header to select that track or scene; those header targets can
+also receive MIDI Learn assignments. On a small phone, rotate to landscape;
 portrait displays a rotate prompt
 without changing playback. In short landscape windows, the device-screen preview
 is hidden to leave room for editing.
 
-**Scenes** exposes all 64 native clip slots and separate scene/clip launch
-controls. Clicking a clip opens **Clip** for note and loop editing.
+**Scenes** exposes all 64 native clip slots. Click a populated clip body to
+launch it through the native transport; click its lower-right pencil to open
+**Clip** for note and loop editing. The play icon beside each scene title
+continues to launch the whole scene, and an empty slot stops its track.
 **Arrangement** edits the song chain and repeats. **Automation** edits stepped
 parameter-lock lanes. **Mixer** contains four shared sound strips and Master,
 vertical faders with dB readouts, measured peak/RMS levels and insert/master-effect
@@ -645,12 +653,14 @@ available in Scenes and Arrangement: choose a sound or a MIDI channel. MIDI rout
 can be stored, but the browser does not send MIDI out. The views share the same
 eight sequencer tracks and four sounds; switching views does not change the project.
 
-Select a clip cell to edit its notes, or use **Edit scene** to reach any of the
-eight scene slots. **Launch scene** triggers that scene through native transport;
+Use the lower-right clip pencil to edit its notes, or use **Edit scene** to reach
+any of the eight scene slots. The leading play icon beside a scene title
+triggers that scene through native transport;
 while a launch is queued, the position display follows the clip still playing.
 **Scenes** shows all 64 clip slots, including scenes absent from the song.
-Its edit buttons select a clip; separate launch buttons perform clips or whole
-scenes. An empty slot offers **Stop track**. Manual launches leave song following
+Each populated clip body launches its clip, and its lower-right pencil opens the
+editor; compact play icons beside scene titles launch whole scenes. An empty
+slot shows a stop square. Manual launches leave song following
 while retaining the saved chain. Switch back to **Arrangement** for the timeline,
 which shows the native song chain, with real scene lengths and repeat counts. Repeated
 occurrences share the same scene clips: copy a scene first when a later occurrence
@@ -667,7 +677,12 @@ unbounded DAW tracks.
 - Click the piano roll or step row to enter/select notes. Drag a note to change
   its step and pitch; drag its right edge for gate length. Numeric controls offer
   the same edits, plus velocity, probability and microtiming. Page through longer
-  clips and set their loop start, length, quantization and transpose.
+  clips and set their loop start, length, quantization and transpose. Clip Follow
+  is on by default: as playback reaches a new page, it advances automatically
+  and wraps with the clip loop. Manual paging turns Follow off; enable it again
+  to resume. Opening a clip finds its first sounding note's page and scrolls that
+  note into the piano roll; an empty clip opens at its loop start. Edits retain
+  manual scrolling.
 - Assign one of eight parameter-lock lanes per track to an instrument parameter,
   either insert, either master effect, or the routed sound's mix level. Edit the
   lane base and per-step values; an empty box removes a lock. The plot holds each
@@ -706,8 +721,13 @@ and cancellation; this does not upload the project or audio.
 
 [verified: current editor modules]. The bounded Chromium mock-host regression
 `test/sequencer-ui.mjs` covers editing, pointer movement/resizing, queued-scene
-playhead, MIDI preview/refusal, focus retention and desktop/mobile containment.
-It is separate from real-Wasm integration and audio-render tests; no physical
+playhead, MIDI preview/refusal, focus retention and desktop/mobile containment,
+including real Satellite Hearts Verse clip navigation and offset-loop notes.
+`test/sequence-playback.test.mjs` checks native clip-tick projections and cyclic
+lock precedence. `test/sequencer-playback-ui.mjs` checks independent scene sweeps,
+playing arrangement-entry previews, eight visual native lock lanes, note resets,
+pointer/keyboard editing, clear/refusal/focus behavior and off-page playheads.
+These are separate from real-Wasm integration and audio-render tests; no physical
 FM-1, USB or BLE acceptance follows from these browser checks.
 
 ## The advanced editor (stage ED2: shell, flow and sound)
@@ -729,11 +749,13 @@ it loaded before (`notes/2026-10-06-web-editor.md` §4, §23):
   side from 1,400 px (the panel keeps the 800 px its smallest targets need)
   and stacked below; *Editor*, the panel folded to its screen, which the
   editor's outline draws from the same frame (`sim.screenListeners`), in the
-  head below 1,180 px.
-- **The app bar:** the keys chip (PLAY or EDIT), *Follow the panel* and *Open
-  on the panel*, Undo and Redo, and RAM by part: one bar in the sound
-  colours with the whole as a percentage, and a list of the four sounds,
-  the master slots, what they share and what is free, each in percent
+  head below 1,180 px. Outside Panel, the page's controls and file bar are
+  available from the app bar's **Simulator** and **Files** menus.
+- **The app bar:** a remembered hide/show control for the sidebar; the keys
+  chip (PLAY or EDIT), *Follow the panel* and *Open on the panel*, Undo and
+  Redo, and the **Changes** history popover. The RAM meter shows one bar in
+  the sound colours with the whole as a percentage, and a list of the four
+  sounds, the master slots, what they share and what is free, each in percent
   (`fm1w_ram_part`, posted by the worklet as `ram` when a figure moves).
 - **The Flow** (the editor's home): four strips (the MIDI effect, the
   engine, In1, In2, the level with its meter) into the Mix and M1, M2 and

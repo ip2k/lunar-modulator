@@ -1,5 +1,6 @@
 // The browser's lossless editable movy1 model. Native bounds: fm1_seq.h and
 // seq_persist.c. Unknown extension lines survive saving and are reported.
+export const TRACK_NAME_MAX = 16;
 export const SEQ_LIMITS = Object.freeze({ tracks: 8, slots: 8, steps: 256, notes: 1536, locks: 1536,
   trigs: 256, clipNotes: 512, clipLocks: 1024, clipTrigs: 1024, song: 64, gates: 64 });
 export const cloneSet = (m) => JSON.parse(JSON.stringify(m));
@@ -9,7 +10,7 @@ export function emptyClip(length = 16) {
 export function emptySet() {
   return { bpmX100: 12000, swing: 50, link: 0, key: [0, 0], defaultQuant: 0, song: [], songEnd: 0,
     sceneNames: Array(8).fill(''), unknown: [], tracks: Array.from({ length: 8 }, (_, t) => ({
-      active: 0, muted: 0, padMutes: [], padSolo: null, lanes: Array(8).fill(null), route: { kind: 0, index: t + 1 }, clips: Array(8).fill(null) })) };
+      name: '', active: 0, muted: 0, padMutes: [], padSolo: null, lanes: Array(8).fill(null), route: { kind: 0, index: t + 1 }, clips: Array(8).fill(null) })) };
 }
 const int = (x, lo, hi) => Number.isSafeInteger(x) && x >= lo && x <= hi;
 const token = (s, max) => typeof s === 'string' && new TextEncoder().encode(s).length <= max && !/[\s\x00-\x1f\x7f]/u.test(s);
@@ -23,11 +24,12 @@ export function validateSet(m) {
   ck(Array.isArray(m.song) && m.song.length <= 64 && m.song.every(s => int(s, 0, 7)), 'Song exceeds 64 presses or has an invalid scene.');
   usage.song = m.song?.length || 0;
   ck(Array.isArray(m.sceneNames) && m.sceneNames.length === 8 && m.sceneNames.every(s => token(s, 6) && /^[\x21-\x7e]*$/.test(s)), 'Scene names must be up to six printable non-space ASCII characters.');
-  ck(Array.isArray(m.unknown) && m.unknown.every(s => typeof s === 'string' && !/[\r\n\x00]/.test(s) && !/^(?:movy1|bpm|swing|link|dq|se|key|sg|sn|tk|rt|pm|ps|au|cl|cp|lk|tg)(?:\s|$)/.test(s.trim())), 'Invalid extension lines.');
+  ck(Array.isArray(m.unknown) && m.unknown.every(s => typeof s === 'string' && !/[\r\n\x00]/.test(s) && !/^(?:movy1|bpm|swing|link|dq|se|key|sg|sn|tk|tn|rt|pm|ps|au|cl|cp|lk|tg)(?:\s|$)/.test(s.trim())), 'Invalid extension lines.');
   if (m.unknown?.length) warnings.push(`${m.unknown.length} unknown extension lines are preserved; the native sequencer ignores them.`);
   m.tracks.forEach((tr, t) => {
     const prefix = `Track ${t + 1}`;
     if (!tr || !Array.isArray(tr.clips) || tr.clips.length !== 8) { errors.push(`${prefix}: expected eight clip slots.`); return; }
+    ck(typeof tr.name === 'string' && tr.name.length <= TRACK_NAME_MAX && /^[\x20-\x7e]*$/.test(tr.name), `${prefix}: name must be up to 16 printable ASCII characters, including spaces.`);
     ck(int(tr.active, 0, 7) && int(tr.muted, 0, 1), `${prefix}: invalid active clip or mute.`);
     ck(Array.isArray(tr.padMutes) && tr.padMutes.length <= 16 && tr.padMutes.every(p => int(p, 0, 127)) && new Set(tr.padMutes).size === tr.padMutes.length, `${prefix}: invalid pad mutes.`);
     ck(tr.padSolo === null || int(tr.padSolo, 0, 127), `${prefix}: invalid pad solo.`);
@@ -79,6 +81,12 @@ export function parseSet(input) {
       case 'sg': m.song = nums(); break;
       case 'sn': exact(2); if (!int(num(w[0]), 0, 7)) fail('Invalid scene.'); m.sceneNames[num(w[0])] = w[1]; break;
       case 'tk': exact(3); { const tr = track(); tr.active = num(w[1]); tr.muted = num(w[2]); } break;
+      case 'tn': exact(2); {
+        if (!/^(?:[0-9a-fA-F]{2}){1,16}$/.test(w[1])) fail('Track name requires 1–16 bytes of hex ASCII.');
+        const name = w[1].match(/../g).map(h => String.fromCharCode(parseInt(h, 16))).join('');
+        if (!/^[\x20-\x7e]+$/.test(name)) fail('Track name requires printable ASCII.');
+        track().name = name;
+      } break;
       case 'rt': exact(3); track().route = { kind: num(w[1]), index: num(w[2]) }; break;
       case 'pm': exact(2); track().padMutes.push(num(w[1])); break;
       case 'ps': exact(2); track().padSolo = num(w[1]); break;
@@ -98,7 +106,9 @@ export function writeSet(m) {
   if (m.song.length) out.push(`sg ${m.song.join(' ')}`); if (m.songEnd) out.push(`se ${m.songEnd}`);
   m.sceneNames.forEach((n, s) => { if (n) out.push(`sn ${s} ${n}`); });
   m.tracks.forEach((tr, t) => {
-    out.push(`tk ${t} ${tr.active} ${tr.muted}`); tr.padMutes.forEach(p => out.push(`pm ${t} ${p}`)); if (tr.padSolo !== null) out.push(`ps ${t} ${tr.padSolo}`);
+    out.push(`tk ${t} ${tr.active} ${tr.muted}`);
+    if (tr.name) out.push(`tn ${t} ${[...tr.name].map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('')}`);
+    tr.padMutes.forEach(p => out.push(`pm ${t} ${p}`)); if (tr.padSolo !== null) out.push(`ps ${t} ${tr.padSolo}`);
     tr.lanes.forEach((l, i) => { if (l) out.push(`au ${t} ${i} ${l.base} ${l.label}`); });
     if (tr.route.kind !== 0 || tr.route.index !== t + 1) out.push(`rt ${t} ${tr.route.kind} ${tr.route.index}`);
     tr.clips.forEach((c, s) => { if (!c) return;

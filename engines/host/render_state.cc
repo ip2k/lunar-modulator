@@ -18,7 +18,8 @@ namespace {
 // A record with its pieces joined and its text owned.
 struct Rec {
   fm1_rec_t r;
-  std::string text;          // INFO, LINE, DATA
+  std::string text;          // INFO, LINE, DATA, MIDI target
+  std::string source;        // MIDI source
 };
 
 int Hold(void *ctx, const fm1_rec_t *r) {
@@ -37,6 +38,7 @@ int Hold(void *ctx, const fm1_rec_t *r) {
   if (r->type == FM1_REC_INFO) x.text.assign(r->u.info.s, r->u.info.n);
   else if (r->type == FM1_REC_LINE) x.text.assign(r->u.line.s, r->u.line.n);
   else if (r->type == FM1_REC_DATA) x.text.assign(reinterpret_cast<const char *>(r->u.data.b), r->u.data.n);
+  else if (r->type == FM1_REC_MIDI_BINDING) { x.text = r->u.binding.target; x.source = r->u.binding.source; }
   v->push_back(x);
   return 1;
 }
@@ -51,6 +53,7 @@ bool Feed(const std::vector<Rec> &v, fm1_rec_sink_t sink, void *ctx) {
       else if (r.type == FM1_REC_LINE) { r.u.line.s = v[i].text.data(); r.u.line.n = static_cast<uint32_t>(v[i].text.size()); }
       else { r.u.data.b = reinterpret_cast<const uint8_t *>(v[i].text.data()); r.u.data.n = static_cast<uint16_t>(v[i].text.size()); }
     }
+    if (r.type == FM1_REC_MIDI_BINDING) { r.u.binding.target = v[i].text.c_str(); r.u.binding.source = v[i].source.c_str(); }
     if (!sink(ctx, &r)) return false;
   }
   return true;
@@ -199,7 +202,19 @@ bool Load(const std::string &spec, bool without, Loaded *into, std::string *err)
     *err = path + ": a clip loads into a track and a slot: --load tT.S:" + path;
     return false;
   }
-  size_t ram = 0;
+  fm1_midi_map_t midi_map = {};
+  for (size_t i = 0; i < recs.size(); ++i) {
+    const fm1_rec_t &r = recs[i].r;
+    if (r.type == FM1_REC_MIDI_MAP) {
+      if (midi_map.version) { *err = "BAD: duplicate MIDI map"; return false; }
+      midi_map.version = r.u.map_version;
+    } else if (r.type == FM1_REC_MIDI_BINDING) {
+      unsigned code = fm1_midi_map_add(&midi_map, recs[i].text.c_str(), recs[i].source.c_str(),
+          r.u.binding.channel, r.u.binding.kind, r.u.binding.number);
+      if (code != FM1_STATE_OK) { *err = std::string(fm1_state_code_name(code)) + ": invalid MIDI map"; return false; }
+    }
+  }
+  size_t ram = sizeof midi_map;
   bool has_mod = false;
   for (size_t i = 0; i < recs.size(); ++i) {
     const fm1_rec_t &r = recs[i].r;
@@ -217,6 +232,7 @@ bool Load(const std::string &spec, bool without, Loaded *into, std::string *err)
   }
   // Pass 2: into the renderer's places.
   into->kind = kind;
+  if (kind == FM1_STATE_PROJECT) into->midi_map = midi_map;
   std::string skipped;
   std::vector<int> mod_from;     // where this file's modules go
   int pos_map[8];
@@ -745,6 +761,15 @@ bool Save(const std::string &spec, const Have &h, std::string *err) {
       r.u.line.which = FM1_LINES_SET;
       Add(&v, r, s.substr(start, i - start));
       start = i + 1;
+    }
+  }
+  if (kind == "project" && h.midi_map && h.midi_map->version) {
+    fm1_rec_t r = Blank(FM1_REC_MIDI_MAP); r.u.map_version = h.midi_map->version; Add(&v, r);
+    for (unsigned i = 0; i < h.midi_map->count; ++i) {
+      const fm1_midi_binding_t &b = h.midi_map->binding[i];
+      Rec x; x.r = Blank(FM1_REC_MIDI_BINDING); x.text = h.midi_map->text + b.target; x.source = h.midi_map->text + b.source;
+      x.r.u.binding.channel = b.channel; x.r.u.binding.kind = b.kind; x.r.u.binding.number = b.number;
+      v.push_back(x);
     }
   }
   Add(&v, Blank(FM1_REC_END));

@@ -253,27 +253,38 @@ ring of 256 events per instance (the owner's choice of 2026-10-01, docs/13
 
 | Tracks | Bytes | Of the half budget (36,864 B) | Of the stock gap (387,924 B) |
 | --- | --- | --- | --- |
-| 4 | 18,120 | 49 % | 4.7 % |
-| 8 | 31,944 | 87 % | 8.2 % |
-| 8, Capture off | 28,872 | 78 % | 7.4 % |
-| 16 (docs/13 §5's pools) | 59,592 | | 15.4 % |
+| 4 | 18,192 | 49 % | 4.7 % |
+| 8 | 32,080 | 87 % | 8.2 % |
+| 8, Capture off | 29,008 | 78 % | 7.4 % |
+| 16 (docs/13 §5's pools) | 59,856 | | 15.4 % |
 
-Each track adds 3,456 bytes: 2,304 of notes, 576 of locks, 160 of trig rows,
-160 of clip headers, 240 of track state and 16 of pad mutes. The fixed part
-is 1,224 bytes (1,160 before the song's 64 of stage E1: its end mode,
+Each track adds 3,472 bytes: 2,304 of notes, 576 of locks, 160 of trig rows,
+160 of clip headers, 256 of track state and 16 of pad mutes. The fixed part
+is 1,232 bytes (1,160 before the song's 64 of stage E1: its end mode,
 follow flag and jump target, a scene launch's landing bar and eight
-seven-byte scene names), and Capture 3,072: 256 events of 12 bytes, about 128 notes
+seven-byte scene names; native elapsed playback frames added eight bytes in 2026-10-11), and Capture 3,072: 256 events of 12 bytes, about 128 notes
 over Movy's 8-bar window (at 20 bytes an event, as first built, it was
 5,120), plus about 1.3 KB of stack while a stopped capture searches its
 tempo. Docs/13 §5 estimated 73,320 bytes for 16 tracks with the same pools;
-the measured 59,592 leaves out its undo ring (12,288) and packs locks and
+the measured 59,856 leaves out its undo ring (12,288) and packs locks and
 trig rows tighter (3,584 bytes less), while 23-byte lane labels make each
 track larger.
 
 Not instance memory: one `fm1_seq_cmd_t` is 240 bytes and one event 12. An
 entry edit (`sgins`, `sgdel`, `sgset`, `sgmov`) unfolds the song on the
 stack, 516 bytes at most. The instance lays out alike on x86-64, i386 and
-armv7 (clang; the struct is 352 bytes on all three) [verified 2026-10-06].
+armv7 (clang; the struct was 352 bytes on all three) [verified 2026-10-06].
+
+The editor uses native `pause`, `resume`, `rewind` and `seekbar N` verbs
+[verified: `tests/test_seq_transport.py`]. Pause freezes the fractional clock,
+master tick, clip playheads and elapsed audio-frame count; it closes held gates,
+returns automation to its base and ends recording. Resume carries that phase
+with MIDI Continue. Rewind resets musical position and elapsed frames while
+stopped. Bar locate clamps to the followed arrangement or selected clips,
+updates their native phases and never renders skipped notes. Locate is refused
+while running under external clock. A running locate can emit Stop and Continue,
+so the host command reservation covers two transport events; its existing
+272-event buffer and RAM bound remain sufficient.
 
 ## CPU [verified on the desktop only: Apple M1 Max, -O2; pi32v2 is stage B]
 
@@ -392,6 +403,38 @@ sets, on all of them; the default mode identical on 1,241, different only by
 the export's new `dq` line on 351, and different in play on 242, every one
 of which comes back to the earlier output when D15–D18 are switched back to
 Movy's.
+
+## Track names [verified 2026-10-11, desktop C and browser model tests]
+
+Native tracks carry an optional title independently of scene names and lane labels.
+`fm1_seq_track_name` returns a NUL-terminated title (empty for the numbered
+fallback); `fm1_seq_set_track_name(seq, track, text, len)` accepts 0–16 bytes
+of printable ASCII, including significant leading/trailing spaces. A zero
+length clears the title. Invalid track, length or character refuses the edit
+without changing it; compatibility mode refuses edits and ignores names.
+
+The optional `movy1` extension is `tn <zero-based track> <hex ASCII>` after
+that track's `tk` line. For example, `tn 0 426173732031` names track 1
+"Bass 1". Export uses lowercase hex; import accepts either case and requires
+exactly two hex digits per byte, 1–16 printable bytes and exactly three words.
+An invalid line increments `stats.refused` without replacing an earlier valid
+title. Loading a set without `tn` clears custom titles. Clearing a title omits
+its line, keeping legacy untitled exports byte-identical. `.lunar` retains the
+set line; the binary Movy codec uses its existing raw-item fallback for `tn`,
+so no new binary schema is needed. Movy's pinned `persist.rs` at `9190e79`
+ignores unknown verbs (`_ => {}`); it opens the same musical set and drops
+these Lunar titles [verified against the local upstream source].
+
+The 17-byte field increases each aligned track by 16 bytes (240 → 256);
+eight tracks add 128 bytes. The streaming importer increases 160 → 184 bytes.
+`fm1-seq --sizes` measures the eight-track instance at 32,080 bytes, below the
+unchanged 32,768-byte arena. Including the host's 3,264-byte event buffer,
+240-byte pending command, 1,024-byte UI and 20-byte click state gives
+**36,620 of 36,864 bytes**, with 244 bytes spare. The focused regression
+`tests/test_seq_track_names.py` asserts both limits, guards the arena with a
+canary, and tests stream boundaries and binary codec roundtrips. These are
+host layout measurements; they do not verify JieLi code generation or device
+runtime acceptance.
 
 ## Routing (docs/13 §10, answer 2)
 
@@ -664,9 +707,9 @@ changes no output: of 1,458 renders before and after the change, only the
 
 **Event room.** Commands, live input and advance share one buffer per
 block. One command can cause up to `fm1_seq_cmd_max_events(&limits)` = gates
-+ 8 × tracks + 1 events: every gate's note-off, a D6 base revert on every
-lane of every track, and a Start or Stop (`play` while playing sends a
-Stop, D12). That is 129 at 8 tracks and 64 gates. A stop at full load sends
++ 8 × tracks + 2 events: every gate's note-off, a D6 base revert on every
+lane of every track, and Stop plus Continue when locating during playback.
+That is 130 at 8 tracks and 64 gates. A stop at full load sends
 128 (64 note-offs, 64 base reverts), and the block's advance adds the
 transport's Stop, so that block holds 129 [verified: tests/test_seq_render.py;
 the 128 counted on the core directly, 2026-10-02]. Advance needs

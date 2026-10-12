@@ -47,8 +47,8 @@ Open **<https://ip2k.github.io/lunar-modulator/>** and press **Power on**
 It needs a current browser with WebAssembly and AudioWorklet. Automated page
 tests run in Chromium, Firefox and WebKit. Native Safari passed the filtered
 patch-list check; Sound A/B playback is being retested after a crackling
-report. Real touch screens and MIDI
-hardware have not been tested. The page loads its own files and does not
+report. Real touch screens and the latest controller-mapping changes still
+need hands-on validation. The page loads its own files and does not
 upload your projects or send MIDI out; MIDI input is available in supported
 browsers ([test record](notes/2026-10-07-editor-audio.md)).
 
@@ -244,13 +244,25 @@ focused Scenes, Arrangement, Clip, Automation and Mixer views let you select
 clips, edit notes in a piano roll, launch scenes and arrange their repeats
 into a song. Import one or more MIDI files with a track-and-sound mapping preview,
 edit step locks for instruments and effects, and save a `.lunar` project or
-`.movy1` sequencer set. The mixer has vertical sound and Master faders, live
-peak/RMS meters and editable instrument, insert and master effects. On phones,
-use landscape; Routing & FX can be collapsed to keep the faders close at hand.
-WAV export offers a stereo master, separate sound or track stems, and a single
-multichannel file. Shared instruments and effects mean stems may not sum back
-to the master. This is a browser workflow; direct project transfer to an FM-1
-over USB or Bluetooth is future work.
+`.movy1` sequencer set. Projects with song content open in Song automatically;
+an explicit workspace choice is kept. Open the piano-key MIDI Learn icon
+(beside MIDI connection in Panel, or before Cheat Sheet in Editor and
+Workbench), connect a MIDI device, click a highlighted control, then play a
+note or send a control change. Assignment badges show the binding and let you
+clear it. Custom mappings are saved with `.lunar` projects. The workspace
+adapts its grids to the available width and pages
+longer scenes, arrangements, clips and automation
+rows. Its pinned transport shows position, elapsed and available remaining time,
+and navigation for bars, clips and scenes. The mixer has
+vertical sound and Master faders, live peak/RMS meters and editable instrument,
+insert and master effects. The editor shows a browser DSP estimate and a
+memory breakdown by shared, master and sound sections; FM-1 CPU use is not
+measured. On phones, use landscape; Routing & FX can be
+collapsed to keep the faders close at hand. WAV export offers a stereo master,
+separate sound or track stems, and a single multichannel file, with a download
+for each completed render. Shared instruments and effects mean stems may not
+sum back to the master. This is a browser workflow; direct project transfer to
+an FM-1 over USB or Bluetooth is future work.
 
 <img src="assets/screenshots/screen-seq.png" width="240" alt="SEQ mode while the demo pattern plays: 120 BPM, the eight tracks and PLAY on the status line, the bar's 16 steps with the playhead, the knob strip, and the sound's model, VA Pair">
 

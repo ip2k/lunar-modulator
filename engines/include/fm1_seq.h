@@ -100,7 +100,8 @@ enum {
   FM1_SEQ_EV_CLICK = 4,     /* metronome; a = 1 on the downbeat */
   FM1_SEQ_EV_START = 5,     /* MIDI realtime FA */
   FM1_SEQ_EV_STOP = 6,      /* FC */
-  FM1_SEQ_EV_CLOCK = 7      /* F8, 24 PPQN */
+  FM1_SEQ_EV_CLOCK = 7,     /* F8, 24 PPQN */
+  FM1_SEQ_EV_CONTINUE = 8   /* FB: resume without restarting the musical clock */
 };
 
 typedef struct fm1_seq_ev {
@@ -152,6 +153,8 @@ enum {
                                scene playing or queued, with no relaunch */
   FM1_SEQ_V_SGNAME,         /* sgname <slot> <k>: scene name k of fm1_seq_scene_name_pick
                                (1..FM1_SEQ_SCENE_PICKS), 0 for none */
+  FM1_SEQ_V_PAUSE, FM1_SEQ_V_RESUME, FM1_SEQ_V_REWIND,
+  FM1_SEQ_V_SEEKBAR,        /* seekbar <zero-based bar>; clamped to the native song/scene */
   FM1_SEQ_V_COUNT
 };
 
@@ -163,6 +166,7 @@ enum {
 };
 
 #define FM1_SEQ_SCENES FM1_SEQ_SLOTS    /* a scene is a column of slots */
+#define FM1_SEQ_TRACK_NAME_MAX 16u /* printable ASCII, including spaces; excluding NUL */
 #define FM1_SEQ_SCENE_NAME_MAX 6u       /* characters of a scene name (SG6) */
 #define FM1_SEQ_SCENE_PICKS 10u         /* names the panel picks from */
 
@@ -240,7 +244,7 @@ size_t fm1_seq_export_movy1(const fm1_seq_t *s, char *buf, size_t cap);
 
 /* Replaces the set from `movy1` text, as Movy's persist::load. Returns 1 if
  * the format tag matched, 0 otherwise (nothing changed). Outside compat
- * mode it also reads the FM-1 lines dq, se and sn and reseeds the RNG
+ * mode it also reads the FM-1 lines dq, se, sn and tn and reseeds the RNG
  * (ST11); seq_persist.c has the format. It is fm1_seq_import_begin, one
  * _feed and _end. */
 int fm1_seq_import_movy1(fm1_seq_t *s, const char *txt, size_t len);
@@ -270,7 +274,7 @@ typedef struct fm1_seq_import {
   uint8_t words, wi, keylen, nf, n_tk, text_n;
   uint16_t clip;
   char keybuf[8];
-  char text[8];               /* a scene name's first characters */
+  char text[FM1_SEQ_TRACK_NAME_MAX * 2u]; /* bounded hex track name or scene name */
 } fm1_seq_import_t;
 
 void fm1_seq_import_begin(fm1_seq_import_t *im, fm1_seq_t *s);
@@ -281,6 +285,9 @@ int fm1_seq_import_end(fm1_seq_import_t *im);
 
 typedef struct fm1_seq_info {
   uint64_t master_tick;
+  uint64_t playback_frames; /* rendered transport time; freezes while paused */
+  uint32_t sample_rate;
+  uint8_t paused;
   uint32_t bpm_x100;
   uint16_t swing_pct;
   uint8_t playing, recording, counting_in, metronome;
@@ -367,6 +374,11 @@ int fm1_seq_song_entry(const fm1_seq_t *s, uint8_t e, fm1_seq_song_entry_t *out)
  * total: at 116 BPM, 116 bars are 4:00). */
 uint32_t fm1_seq_song_bars(const fm1_seq_t *s);
 
+/* Empty names use the caller's numbered fallback. Native only: the setter
+ * rejects invalid track, compat mode, length or ASCII without changing the
+ * old name. len == 0 clears; spaces are significant. */
+const char *fm1_seq_track_name(const fm1_seq_t *s, uint8_t track);
+int fm1_seq_set_track_name(fm1_seq_t *s, uint8_t track, const char *name, size_t len);
 /* A scene's name (SG6; the `movy1` line `sn`): up to
  * FM1_SEQ_SCENE_NAME_MAX printable ASCII characters, "" for none. */
 const char *fm1_seq_scene_name(const fm1_seq_t *s, uint8_t scene);
@@ -381,8 +393,9 @@ const char *fm1_seq_scene_name_pick(unsigned k);
  * accum + (f + 1) x inc reaches the next multiple of threshold: master tick
  * T is serviced at the first frame where master_tick + (accum + (f + 1) x
  * inc) / threshold > T, the frame advance gives its events. inc is 0 when
- * ticks are not on this grid (following an external clock, or Movy's
- * compat mode, which puts every event at the block's start). */
+ * the clock is frozen by pause or ticks are not on this grid (following an
+ * external clock, or Movy's compat mode, which puts every event at the
+ * block's start). */
 typedef struct fm1_seq_clock {
   uint64_t master_tick;     /* ticks serviced since Start */
   uint64_t accum;           /* below threshold between blocks */
@@ -405,13 +418,14 @@ void fm1_seq_get_clock(const fm1_seq_t *s, fm1_seq_clock_t *out);
  * started and was not playing before comes in on the next bar, as a launch
  * does, so every playhead keeps the bar's grid; the song's place, when the
  * new song is the same list (a different song starts at its top, with the
- * clock, as Play left it). Nothing else is carried: recording, a count-in
+ * clock, as Play left it). Paused state and native playback frames are carried.
+ * Nothing else is carried: recording, a count-in
  * and Capture end. */
 typedef struct fm1_seq_transport {
-  uint8_t playing, n_tracks;
+  uint8_t playing, n_tracks, paused;
   uint8_t song_len, song_pos, song_has_start, song_armed, song_armed_launch, song_follow;
   uint32_t song_hash;           /* of the first song_len entries */
-  uint64_t master_tick, clock_tick, accum, song_start_bar;
+  uint64_t master_tick, clock_tick, accum, song_start_bar, playback_frames;
   struct {
     uint8_t active, playing, queued;
     uint16_t pos_tick;

@@ -22,6 +22,8 @@
 
 import { ROLE, MIX_KEY, SOUNDS, INSERTS, MASTERS, blockKey, parseBlockKey, parseModKey, blockTag, ramPercent, ramWords, cableEmpty, pctOfQ14, VOICE, isModuleSource, sourcePosition, packParam, packCable, emptyCable, SLOT_ON, hasFlag } from './model.js';
 
+import { RAM_ORDER, cpuPresentation } from './resource-meter.js';
+
 const ITEM_TYPE = 'application/x-lunar-item';
 const FILE_CAP = 262144;              // the module's text buffer (files.js TEXT_CAP)
 const PREVIEW_RECORDS = 64;          // fm1_edit_preview record limit, independent of source ids
@@ -29,7 +31,7 @@ const SNAP_CAP = 4 * 1024 * 1024;     // §8: 4 MB of snapshots at most
 const AB_KEY = 'x';
 
 export function makeProject(ctx) {
-  const { st, meta, el, files, root, view, nextId, say, select, render, blockOf, engineName, rows, selectRow,
+  const { st, meta, el, files, root, view, nextId, say, select, chooseView, render, blockOf, engineName, rows, selectRow,
     snapshotSoon, history, undo, redo, setKeys, post, chains, mm } = ctx;
   const encoder = new TextEncoder();
   st.ab = { scope: 'project', A: null, B: null, playing: null, diff: null, busy: false, picks: new Map() };
@@ -323,6 +325,8 @@ export function makeProject(ctx) {
     const wrap = el('div', 'ed-mem');
     wrap.append(el('div', 'ed-sec-head', {}, [el('h2', 'ed-sec ed-sec-big', { text: 'Memory' }),
       el('span', 'ed-note', { text: "in percent of the FM-1's budget, as C counts it at 44,118 Hz" })]));
+    const cpu = cpuPresentation(st.cpu, !!st.node);
+    wrap.append(el('h3', 'ed-sec', { text: 'CPU · browser DSP estimate' }), el('p', 'ed-cpu-detail', { text: cpu.detail }));
     if (!r) { wrap.append(el('p', 'ed-note', { text: 'Waiting for the module’s figures.' })); return wrap; }
     const names = [];
     for (let k = 0; k < SOUNDS; ++k) {
@@ -335,7 +339,7 @@ export function makeProject(ctx) {
       el('span', 'ed-mem-tag', { role: 'cell', text: tag }), el('span', 'ed-mem-name', { role: 'cell', text: name }),
       el('span', 'ed-mem-bar', { role: 'cell', 'aria-hidden': 'true' }, [el('span', 'ed-mem-fill', { style: `width:${Math.min(100, 100 * bytes / r.budget).toFixed(2)}%` })]),
       el('b', 'ed-mem-pc', { role: 'cell', text: words })]);
-    r.parts.forEach((bytes, i) => { if (names[i]) tbl.append(row(names[i][2], names[i][0], names[i][1], bytes, ramWords(bytes, r.budget))); });
+    RAM_ORDER.forEach((i) => { const bytes = r.parts[i] || 0; if (names[i]) tbl.append(row(names[i][2], names[i][0], names[i][1], bytes, ramWords(bytes, r.budget))); });
     const over = r.total > r.budget;
     tbl.append(row('ed-mem-total', 'All', 'In use', r.total, over ? `${ramPercent(r.total - r.budget, r.budget)} % over` : ramWords(r.total, r.budget)));
     // What is left, rounded down (what is used rounds up), so the two add to 100 at most.
@@ -350,6 +354,11 @@ export function makeProject(ctx) {
       document.createTextNode(list.length ? `${list.length} would fit, the largest ${list.slice(0, 4).map((e) => `${e.name} (${ramWords(e.ram, r.budget)})`).join(', ')}` : 'none would fit')]);
     wrap.append(el('h3', 'ed-sec', { text: 'What would fit' }), line('Sounds', fits('sound')), line('Effects', fits('audio_fx')));
     return wrap;
+  }
+
+  function updateCpu() {
+    const detail = view.querySelector('.ed-cpu-detail');
+    if (detail) detail.textContent = cpuPresentation(st.cpu, !!st.node).detail;
   }
 
   // ---- A/B (§9: A is kept, B is now; C loads either) -------------------------------------
@@ -743,12 +752,12 @@ export function makeProject(ctx) {
           run: () => { st.selCable = `c${i + 1}`; select(`c${i + 1}`, { view: 'mod' }); } });
       });
     }
-    cmd('Flow and effects', () => { st.view = 'flow'; render(); });
-    cmd('Modulation', () => { st.view = 'mod'; render(); });
+    cmd('Flow and effects', () => { chooseView('flow'); render(); });
+    cmd('Modulation', () => { chooseView('mod'); render(); });
     for (let k = 0; k < SOUNDS; ++k) if (blockOf(blockKey(ROLE.SOUND, k))) cmd(`Sound ${k + 1}`, () => select(blockKey(ROLE.SOUND, k), { view: 'sound' }));
-    cmd('Library', () => { st.view = 'library'; render(); });
-    cmd('Memory', () => { st.view = 'memory'; render(); });
-    cmd('Compare A/B', () => { st.view = 'ab'; render(); });
+    cmd('Library', () => { chooseView('library'); render(); });
+    cmd('Memory', () => { chooseView('memory'); render(); });
+    cmd('Compare A/B', () => { chooseView('ab'); render(); });
     cmd('Keep as A', () => keepA());
     if (st.ab.A) cmd('Switch A/B', () => switchAB());
     cmd('Undo', () => undo());
@@ -942,7 +951,7 @@ export function makeProject(ctx) {
   }
 
   return {
-    headTools, wireDrop, arrivalCard, libraryView, memoryView, compareView, applyLink, applyPendingSel,
+    headTools, wireDrop, arrivalCard, libraryView, memoryView, updateCpu, compareView, applyLink, applyPendingSel,
     openSearch, closeSearch, onStruct, checkUndo, staleSoon, onKey, keepA, switchAB, makeFromPicks, redoPicks, restoreAB, wireStripDrag, targetOf, onLoaded,
     get searchOpen() { return !sBox.hidden; },
   };

@@ -212,17 +212,26 @@ int fm1w_mod_text(unsigned len) {
  * The first eight words retain their ABI. Song workspace additions:
  * [8] scene, [9] raw song position, [10] pass, [11] pass bar,
  * [12] song follow, [13] parked, [14] ending, [15] entry; then eight
- * tracks of active slot, playing slot, position tick, cycle and mute. */
-static uint32_t g_seq_info[56];
+ * tracks of active slot, playing slot, position tick, cycle and mute.
+ * [56] paused, [57..58] native playback frames, [59] sample rate, [60] metronome.
+ * fm1w_seq_words reports the available size for version-compatible readers. */
+static uint32_t g_seq_info[61];
+
+uint32_t fm1w_seq_words(void) { return 61; }
 
 const uint32_t *fm1w_seq_info(void) {
   fm1_seq_info_t i;
   const fm1_seq_t *s = fm1_app_seq(&g_app);
   if (!s) {
-    for (int k = 0; k < 56; ++k) g_seq_info[k] = 0;
+    for (int k = 0; k < 61; ++k) g_seq_info[k] = 0;
     return g_seq_info;
   }
   fm1_seq_get_info(s, &i);
+  g_seq_info[56] = i.paused;
+  g_seq_info[57] = (uint32_t)i.playback_frames;
+  g_seq_info[58] = (uint32_t)(i.playback_frames >> 32);
+  g_seq_info[59] = i.sample_rate;
+  g_seq_info[60] = i.metronome;
   g_seq_info[0] = i.playing;
   g_seq_info[1] = i.bpm_x100;
   g_seq_info[2] = i.recording;
@@ -367,6 +376,11 @@ int fm1w_state_load(int kind, int into, int slot, unsigned flags, unsigned len) 
   if (len > sizeof g_text) return 0;
   opts_of(&o, kind, into, slot, flags);
   return fm1_app_state_load(&g_app, fm1_app_state_mem_read, &m, len, &o, &g_state_rep);
+}
+
+int fm1w_midi_map_set(unsigned len) {
+  if (len > sizeof g_text) return 0;
+  return fm1_app_midi_map_set(&g_app, (const uint8_t *)g_text, len, &g_state_rep.r);
 }
 
 int fm1w_state_pack(unsigned len) {

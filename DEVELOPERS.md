@@ -260,9 +260,58 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   processing mean stems need not sum to the master mix. Output gain is a page
   preference, not a saved project parameter. See the
   [workflow and limits](sim/web/README.md#song-workspace-clips-scenes-midi-and-audio-files).
-  The mock-host UI regression is `sim/web/test/sequencer-ui.mjs`; native browser
-  integration and DSP tests are separate gates. File exchange does not implement
-  a device runtime or a USB/BLE project-transfer protocol.
+  Each completed WAV starts a browser download and remains available as a link
+  in the render results. The render guard now derives the stop bound from the
+  native clock: `(bars × 384 + 1)` ticks, converted to frames and rounded up to
+  a 64-frame block. The clock cause and guard implementation are documented in
+  `sim/web/www/editor/render.worker.js`; saved-transport Wasm regressions passed
+  for a 20-BPM one-bar song and four full-arrangement demos, including an FM6,
+  effects, arpeggiator/modulation and stem-isolation case. The later native
+  browser acceptance snapshot passed the real offline render and six WAV
+  downloads in Chromium, Firefox and WebKit; details and limits are in
+  [the browser receipt](notes/2026-10-12-editor-native-browser-acceptance.md).
+  MIDI
+  Learn overlays registered editor and simulator controls, binds an incoming
+  note or CC, and shows a clearable assignment badge. Its piano-key button is
+  beside MIDI connection in Panel and before Cheat Sheet in Editor/Workbench.
+  Stable transport IDs survive redraws; the old semantic Play target resolves
+  to Play/Pause, while ambiguous legacy ordinal Pause/Stop entries stay saved
+  but unavailable until remapped. Project JSON
+  and binary formats preserve these mappings; binary save and quiet autosave
+  wait for the AudioWorklet mapping acknowledgement, and project load restores
+  the saved map. Live USB/BLE project transfer is not implemented. The native
+  map arena reserves 4,612 B, and preflight now counts existing automation
+  queues/cache separately [verified: `tests/test_midi_map_state.py` and
+  `notes/2026-10-11-midi-map-project-state-handoff.md`]. The mock-host UI
+  regression is `sim/web/test/sequencer-ui.mjs`;
+  native browser integration and DSP tests are separate gates. File exchange
+  does not implement a device runtime or a USB/BLE project-transfer protocol.
+- **Song navigation and initial view:** `initial-view.js` selects Song when a
+  project's native set contains an arrangement entry or a defined clip; an
+  empty set defaults to Flow. It settles once per project identity, lets explicit
+  workspace choices win, and applies the same content rule after a `.movy1` set
+  load. The pinned transport reports current and total bars:beats:ticks,
+  elapsed time and available estimated remaining time, and provides bar, clip
+  and scene navigation. The selection surface on track and scene headers is also a
+  registered MIDI target; child controls retain their own actions. Clip Follow
+  starts enabled and advances across pages as its playhead moves; manual page
+  changes pause it until re-enabled. `sequencer.js` keeps longer scenes,
+  arrangement entries, clips and automation rows within responsive pages.
+- **Editor CPU and RAM indicators:** the top bar shows a CPU load percentage
+  and meter; selecting it opens the Memory page, which shows used and available
+  browser DSP budget. The AudioWorklet averages measured busy time over at least
+  one second of audio time. Busy time includes rendering, control-message work
+  and editor changes. It uses `performance.now()` when available and labels a
+  `Date.now()` fallback as coarse; audio-off and unavailable timing show a dash.
+  This measures the browser simulator only, not FM-1 CPU usage. The RAM meter
+  reports the simulator's C-counted memory against the FM-1 budget at 44,118 Hz.
+  Its segments and detail rows order Shared (mix, sequencer and modulation),
+  Master (M1 and M2), then sounds S1–S4; the detail view also lists total in use
+  and free memory. `sim/web/test/editor-resources.mjs` checks the timing labels,
+  unavailable/off states, RAM ordering and responsive layout. Combined-source
+  Wasm 108 parity and the Chromium resource-meter check passed. The later
+  Chromium, Firefox and WebKit native browser receipts also verified six WAV
+  downloads per browser [details](notes/2026-10-12-editor-native-browser-acceptance.md).
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free

@@ -282,6 +282,40 @@ def unit_index(role, sound, slot):
     return None
 
 
+def _midi_valid(binding):
+    target, source = binding["target"], binding["source"]
+    if not isinstance(target, str) or not isinstance(source, str) or not target or \
+            not re.fullmatch(r"[ -~]+", target) or not source or "\0" in source or \
+            binding["kind"] not in ("note", "cc") or not 0 <= binding["channel"] <= 15 or \
+            not 0 <= binding["number"] <= 127:
+        raise Refused("BAD", "invalid MIDI binding")
+    if len(target.encode("utf-8")) > 192 or len(source.encode("utf-8")) > 128:
+        raise Refused("TOO_BIG", "mapping identifier past its byte cap")
+
+
+def _midi_body(bindings):
+    if len(bindings) > 64:
+        raise Refused("TOO_BIG", "more than 64 MIDI bindings")
+    pool, offsets, entries = bytearray(), {}, bytearray()
+    targets, addresses = set(), set()
+    for b in bindings:
+        _midi_valid(b)
+        address = (b["source"], b["channel"], b["kind"], b["number"])
+        if b["target"] in targets or address in addresses:
+            raise Refused("BAD", "duplicate MIDI binding target or address")
+        targets.add(b["target"]); addresses.add(address)
+        for key in ("target", "source"):
+            text = b[key].encode("utf-8")
+            if text not in offsets:
+                offsets[text] = len(pool)
+                pool += text + b"\0"
+        entries += struct.pack("<HHBBBB", offsets[b["target"].encode()], offsets[b["source"].encode()],
+                               b["channel"], 1 if b["kind"] == "cc" else 0, b["number"], 0)
+    if len(pool) > 4096:
+        raise Refused("TOO_BIG", "MIDI map string pool past its cap")
+    return struct.pack("<BBH", 1, len(bindings), len(pool)) + entries + pool
+
+
 # ---- Reading JSON --------------------------------------------------------------------------------
 class Obj(list):
     """A JSON object as its (key, value) pairs, in order."""
@@ -289,7 +323,10 @@ class Obj(list):
 
 MEMBERS = {
     "doc": ["$schema", "lunar", "kind", "made", "name", "title", "about", "author", "licence", "session",
-            "sounds", "sound", "master", "chain", "dx7", "mod", "set", "clip", "settings", "view"],
+            "sounds", "sound", "master", "chain", "dx7", "mod", "set", "clip", "settings", "view", "browser"],
+    "browser": ["midiMap"],
+    "midiMap": ["version", "bindings"],
+    "binding": ["target", "source", "channel", "kind", "number"],
     "made": ["by", "version", "commit"],
     "session": ["current", "octave", "transpose", "key"],
     "key": ["root", "scale"],
@@ -307,7 +344,7 @@ MEMBERS = {
 DOC_KINDS = {"session": {"project"}, "sounds": {"project"}, "master": {"project"}, "set": {"project"},
              "sound": {"sound"}, "chain": {"fx"}, "dx7": {"project", "sound"},
              "mod": {"project", "sound", "fx", "mods"}, "clip": {"clip"}, "settings": {"settings"},
-             "view": {"project", "sound", "fx", "mods", "clip"}}
+             "view": {"project", "sound", "fx", "mods", "clip"}, "browser": {"project"}}
 NEEDS = {"project": "sounds", "sound": "sound", "fx": "chain", "mods": "mod", "clip": "clip",
          "settings": "settings"}
 
@@ -568,6 +605,8 @@ class JsonReader:
                 self.settings(v)
             elif k == "view":
                 self.view(v)
+            elif k == "browser":
+                self.browser(v)
         self.path = []
         if top < 2:
             raise Refused("NOT_LUNAR", "a Lunar Modulator file opens with lunar and kind", "/")
@@ -581,6 +620,59 @@ class JsonReader:
             self.bad("an object was expected")
         if t is list and (not isinstance(v, list) or isinstance(v, Obj)):
             self.bad("an array was expected")
+
+    def browser(self, v):
+        self.want(v, Obj)
+        for k, value, known in self.members(v, "browser"):
+            if not known:
+                self.skip("a member this build does not know")
+                continue
+            self.want(value, Obj)
+            have_version = False
+            have_bindings = False
+            for mk, mv, mknown in self.members(value, "midiMap"):
+                if not mknown:
+                    self.skip("a member this build does not know")
+                    continue
+                if mk == "version":
+                    if not isinstance(mv, Num) or not INT_RE.fullmatch(mv) or int(mv) < 1:
+                        self.bad("invalid MIDI mapping version")
+                    if int(mv) > 1:
+                        raise Refused("TOO_NEW", "unsupported MIDI mapping version")
+                    have_version = True
+                    self.emit({"rec": "midi_map", "version": 1})
+                elif mk == "bindings":
+                    if not have_version:
+                        self.bad("midiMap opens with version")
+                    self.want(mv, list)
+                    if len(mv) > 64:
+                        raise Refused("TOO_BIG", "more than 64 MIDI bindings")
+                    have_bindings = True
+                    # Storage accounting is on exact unique UTF-8 bytes including NUL.
+                    pool = set()
+                    for binding in mv:
+                        self.want(binding, Obj)
+                        fields = {}
+                        for bk, bv, bknown in self.members(binding, "binding"):
+                            if not bknown:
+                                self.skip("a member this build does not know")
+                            else:
+                                fields[bk] = bv
+                        if len(fields) != 5:
+                            self.bad("a MIDI binding needs every member")
+                        for bk in ("channel", "number"):
+                            bv = fields[bk]
+                            if not isinstance(bv, Num) or not INT_RE.fullmatch(bv):
+                                self.bad("mapping MIDI value out of range")
+                            fields[bk] = int(bv)
+                        _midi_valid(fields)
+                        pool.update((fields["target"].encode(), fields["source"].encode()))
+                        if sum(len(x) + 1 for x in pool) > 4096:
+                            raise Refused("TOO_BIG", "MIDI map string pool past its cap")
+                        self.emit({"rec": "midi_binding", **{bk: fields[bk] for bk in MEMBERS["binding"]}})
+                    _midi_body([r for r in self.out if r["rec"] == "midi_binding"])
+            if not have_version or not have_bindings:
+                self.bad("midiMap needs version and bindings")
 
     def session(self, v):
         self.want(v, Obj)
@@ -1249,6 +1341,7 @@ class _Doc:
         self.lines = []
         self.view = None
         self.settings = {}
+        self.midi_map = None
 
 
 def _collect(records):
@@ -1286,6 +1379,14 @@ def _collect(records):
             d.cables[r["slot"]] = r
         elif t == "line":
             d.lines.append(r["text"])
+        elif t == "midi_map":
+            if d.midi_map is not None or r["version"] != 1:
+                raise Refused("BAD", "invalid or duplicate MIDI map")
+            d.midi_map = {"version": 1, "bindings": []}
+        elif t == "midi_binding":
+            if d.midi_map is None:
+                raise Refused("BAD", "binding before MIDI map")
+            d.midi_map["bindings"].append({k: r[k] for k in MEMBERS["binding"]})
         elif t == "view":
             d.view = r
         elif t == "setting":
@@ -1526,6 +1627,11 @@ class JsonWriter:
                     v[k] = (code_name("project", x) or "host") if k == "unit" else \
                         (PANELS[x & 3] if k == "panel" else x)
             out["view"] = v
+        if d.midi_map is not None:
+            if kind != "project":
+                raise Refused("BAD", "MIDI mappings are project metadata")
+            _midi_body(d.midi_map["bindings"])
+            out["browser"] = {"midiMap": d.midi_map}
         return out
 
 
@@ -1538,12 +1644,12 @@ def write_json(records, names, compact=False):
 # ---- The binary container -----------------------------------------------------------------------
 MAGIC = b"\x89Lunar\r\n"
 TAGS = {b"info": 1, b"PROJ": 2, b"UNIT": 3, b"DX7V": 4, b"MODR": 5, b"SEQS": 6, b"CLIP": 7, b"view": 8,
-        b"SETG": 9}
+        b"SETG": 9, b"BROW": 10}
 TAG_NAMES = {v: k for k, v in TAGS.items()}
-CAP = {1: 2048, 2: 2048, 3: 6144, 4: 5200, 5: 12288, 6: 49152, 7: 16384, 8: 2048, 9: 2048}
+CAP = {1: 2048, 2: 2048, 3: 6144, 4: 5200, 5: 12288, 6: 49152, 7: 16384, 8: 2048, 9: 2048, 10: 4612}
 CHUNK_KINDS = {1: set(KINDS[1:8]), 2: {"project"}, 3: {"project", "sound", "fx"}, 4: {"project", "sound"},
                5: {"project", "sound", "fx", "mods"}, 6: {"project", "set"}, 7: {"clip"},
-               8: {"project", "sound", "fx", "mods", "clip"}, 9: {"settings"}}
+               8: {"project", "sound", "fx", "mods", "clip"}, 9: {"settings"}, 10: {"project"}}
 KV_U32, KV_I32, KV_F32, KV_STR, KV_BYTES, KV_BOOL = 1, 2, 3, 4, 5, 6
 CHUNKS_MAX, BIN_MAX = 64, 98304
 
@@ -1879,6 +1985,8 @@ def write_bin(records, deflate_chunks=True, writer=3, version=(0, 1, 0)):
             body = bytearray(_kv(cur[2]["kv"]))
         elif tag == 4:
             body[0] = cur[2]["count"]
+        elif tag == 10:
+            body = bytearray(_midi_body(cur[2]["bindings"]))
         if len(body) > CAP[tag]:
             raise Refused("TOO_BIG", "a chunk past its cap")
         chunks.append((tag, bytes(body)))
@@ -1981,6 +2089,15 @@ def write_bin(records, deflate_chunks=True, writer=3, version=(0, 1, 0)):
                     kv.append((2 + i, KV_U32, struct.pack("<I", r[k])))
             cur[2]["kv"] = kv
             close()
+        elif t == "midi_map":
+            if r["version"] != 1 or any(tag == 10 for tag, _ in chunks) or (cur is not None and cur[0] == 10):
+                raise Refused("BAD", "invalid or duplicate MIDI map")
+            open_(10)
+            cur[2]["bindings"] = []
+        elif t == "midi_binding":
+            if cur is None or cur[0] != 10:
+                raise Refused("BAD", "binding before MIDI map")
+            cur[2]["bindings"].append({k: r[k] for k in MEMBERS["binding"]})
         elif t == "setting":
             open_(9, keep=True)
             key = SETTINGS.index(r["key"])
@@ -2181,6 +2298,7 @@ def read_bin(data):
     out = [{"rec": "head", "kind": kname, "major": MAJOR, "minor": minor}]
     units, dx7_seen, cable_seen, pos_seen, mod_seen, data_total = set(), 0, 0, 0, False, 0
     lines_seen = False
+    midi_seen = False
     for tag, version, flags, off, ln in entries:
         if not tag:
             rep.skipped += 1
@@ -2423,6 +2541,41 @@ def read_bin(data):
                 if k in keys:
                     rec[k] = keys[k]
             out.append(rec)
+        elif tag == 10:
+            if version != 1:
+                raise Refused("TOO_NEW", "unsupported browser chunk version")
+            if midi_seen:
+                raise Refused("BAD", "two browser mapping chunks")
+            midi_seen = True
+            version_, count_, used = struct.unpack("<BBH", c.take(4))
+            if version_ != 1:
+                raise Refused("TOO_NEW" if version_ > 1 else "BAD", "unsupported MIDI mapping version")
+            if count_ > 64 or used > 4096:
+                raise Refused("TOO_BIG", "MIDI map past its cap")
+            entries_ = c.take(count_ * 8)
+            pool = c.take(used)
+            out.append({"rec": "midi_map", "version": 1})
+            bindings_ = []
+            for i in range(count_):
+                target_, source_, channel_, kind_, number_, reserved_ = struct.unpack_from("<HHBBBB", entries_, i * 8)
+                fields = []
+                for offset in (target_, source_):
+                    if offset >= used or (offset and pool[offset - 1]):
+                        raise Refused("BAD", "invalid MIDI map string offset")
+                    end = pool.find(b"\0", offset)
+                    if end < 0:
+                        raise Refused("BAD", "unterminated MIDI map identifier")
+                    try:
+                        fields.append(pool[offset:end].decode("utf-8"))
+                    except UnicodeDecodeError:
+                        raise Refused("BAD", "invalid MIDI map identifier") from None
+                if reserved_ or kind_ > 1:
+                    raise Refused("BAD", "invalid MIDI binding")
+                binding = dict(zip(MEMBERS["binding"], (*fields, channel_, "cc" if kind_ else "note", number_)))
+                _midi_valid(binding)
+                bindings_.append(binding)
+                out.append({"rec": "midi_binding", **binding})
+            _midi_body(bindings_)
         elif tag == 9:
             for k, typ, val in c.kv():
                 if not 1 <= k <= 4 or typ not in (KV_BOOL, KV_I32) or len(val) != 4:

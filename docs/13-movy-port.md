@@ -420,9 +420,9 @@ docs/15 plans M4 in the virtual FM-1 as stages S1–S10, with M2's engine API v2
    adjustable later. The 8-track instance was then 31,880 B, 86 % of the
    half budget, and the 4-track one 18,056 B. The earlier estimate of about
    3 KB was low for the 20-byte events first built, and right for the
-   packed ones. Since stage E1 (2026-10-06) they are 31,944 B (87 %) and
-   18,120 B: the song's end mode, follow flag and jump target, a scene
-   launch's landing bar and eight scene names took 64 B [verified:
+   packed ones. After stage E1 (2026-10-06) and the native elapsed frame counter (2026-10-11), they are 31,952 B (87 %) and
+   18,128 B: the song's end mode, follow flag and jump target, a scene
+   launch's landing bar and eight scene names took 64 B; elapsed frames added 8 B [verified:
    `fm1-seq --sizes`, tests/test_seq_core.py]. The table below is as
    measured for the choice.
 

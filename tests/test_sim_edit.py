@@ -119,7 +119,7 @@ def test_the_editor_port_and_the_shadow_name_no_module():
     ids = {e["id"] for e in listed} | {"lfo", "env", "chance", "arp", "macro", "comp", "echo"}
     shadow = (WWW / "shadow.worker.js").read_text()
     worklet = (WWW / "worklet.js").read_text()
-    editor_part = worklet[worklet.index("onEditor(m)"):worklet.index("async onMessage(m)")]
+    editor_part = worklet[worklet.index("onEditor(m)"):worklet.index("  onMessage(m)")]
     for name, code in (("shadow.worker.js", shadow), ("the worklet's editor code", editor_part)):
         quoted = set(re.findall(r"'([a-z0-9_-]+)'", code)) | set(re.findall(r'"([a-z0-9_-]+)"', code))
         assert not (quoted & ids), (name, quoted & ids)

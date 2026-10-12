@@ -19,15 +19,18 @@
 import {
   Meta, MIX_KEY, ROLE, T, SRC_EDITOR, SRC_PANEL, SOURCES, SOUNDS, INSERTS, MASTERS, POSITIONS, LEVEL_MAX,
   packParam, packLevel, packOn, packView, decodeChanges, decodeView, applyToMirror, mirrorFromProject,
-  blockKey, parseBlockKey, blockTag, viewFor, blockOfView, viewWords, controlKind, isBipolar, isLog, hasFlag,
+  blockKey, parseBlockKey, blockTag, viewFor, blockOfView, controlKind, isBipolar, isLog, hasFlag,
   toPos, fromPos, zeroPos, stepValue, rawText, unitText, spokenText, flagWords, ramWords, ramPercent, toF32,
   ModMeta, T as REC_T, parseModKey,
 } from './model.js';
+import { RAM_ORDER, cpuPresentation } from './resource-meter.js';
 import { History } from './history.js';
 import { makeChains, cableIndex } from './chains.js';
 import { makeProject } from './project.js';
 import { makeSequencer } from './sequencer.js';
 import { makeSequencerHost } from './sequencer-host.js';
+import { makeInitialView } from './initial-view.js';
+import { createKeyboardShortcutsGuide } from './keyboard-shortcuts.js';
 
 const PREF = 'lunar.sim.editor.';
 function pref(key, value) {
@@ -70,24 +73,29 @@ export async function startEditor(env) {
     layout: 'panel', view: 'flow', sound: 0, selected: 's1', keys: 'play',
     followPanel: pref('follow-panel') !== '0', followEditor: pref('follow-editor') !== '0',
     port: null, node: null, mirror: null, gen: 0, loading: false, pendingChanges: [], panelView: null,
-    ram: null, typing: false, dragKey: null, tag: 0, tags: new Map(), snapId: 0, snapWait: new Map(),
+    ram: null, cpu: null, typing: false, dragKey: null, tag: 0, tags: new Map(), snapId: 0, snapWait: new Map(),
     lastViewSent: '', announceAt: 0, flash: null, teleOn: false, tele: null, lastPanelLine: '',
     live: null, picker: null, selCable: null, verdictDirty: false, teleSig: '',
+    sidebarHidden: pref('sidebar-hidden') === '1',
   };
+  const initialView = makeInitialView(files.pid);
   const history = new History();
   const rows = new Map();         // `${key}:${uid}` -> row
   const fmtCache = new Map();
 
   // ---- the shell ----------------------------------------------------------
   const keysChip = el('button', 'ed-chip ed-keys', { type: 'button', onclick: () => setKeys(st.keys === 'play' ? 'edit' : 'play') });
+  const shortcutsBtn = createKeyboardShortcutsGuide(isMac);
   const followPanelBox = el('input', null, { type: 'checkbox', id: nextId('fp') });
   const followEditorBox = el('input', null, { type: 'checkbox', id: nextId('fe') });
   followPanelBox.checked = st.followPanel;
   followEditorBox.checked = st.followEditor;
   followPanelBox.addEventListener('change', () => { st.followPanel = followPanelBox.checked; pref('follow-panel', st.followPanel ? 1 : 0); });
   followEditorBox.addEventListener('change', () => { st.followEditor = followEditorBox.checked; pref('follow-editor', st.followEditor ? 1 : 0); });
-  const undoBtn = el('button', 'ed-icon', { type: 'button', title: `Undo (${MOD}Z)`, text: 'Undo', onclick: () => undo() });
-  const redoBtn = el('button', 'ed-icon', { type: 'button', title: `Redo (${isMac ? '⇧⌘Z' : 'Ctrl+Y'})`, text: 'Redo', onclick: () => redo() });
+  const undoBtn = el('button', 'ed-icon ed-history-button', { type: 'button', title: `Undo (${MOD}Z)`, 'aria-label': 'Undo', onclick: () => undo() },
+    [el('span', '', { 'aria-hidden': 'true', text: '↶' })]);
+  const redoBtn = el('button', 'ed-icon ed-history-button', { type: 'button', title: `Redo (${isMac ? '⇧⌘Z' : 'Ctrl+Y'})`, 'aria-label': 'Redo', onclick: () => redo() },
+    [el('span', '', { 'aria-hidden': 'true', text: '↷' })]);
   const ramBar = el('span', 'ed-ram-bar', { 'aria-hidden': 'true' });
   const ramText = el('span', 'ed-ram-text', { text: 'RAM –' });
   const ramList = el('ul', 'ed-ram-list', { id: nextId('ram') });
@@ -95,37 +103,85 @@ export async function startEditor(env) {
     onclick: () => { const open = ramList.hidden; ramList.hidden = !open; ramBtn.setAttribute('aria-expanded', String(open)); } },
   [el('span', 'ed-ram-label', { text: 'RAM' }), ' ', ramBar, ' ', ramText]);
   ramList.hidden = true;
+  const cpuFill = el('span', 'ed-cpu-fill');
+  const cpuText = el('span', 'ed-cpu-text', { text: '–' });
+  const cpuBtn = el('button', 'ed-cpu ed-icon', { type: 'button', onclick: () => { chooseView('memory'); render(); } },
+    [el('span', 'ed-ram-label', { text: 'CPU ' }), el('span', 'ed-cpu-bar', { 'aria-hidden': 'true' }, [cpuFill]), cpuText]);
   const title = el('span', 'ed-title', {}, [el('span', 'ed-brand', { text: 'Advanced editor' }), el('span', 'ed-project')]);
+  // Reuse the panel's controls so their handlers and live enabled state have
+  // one owner. Anchors return them to exactly the same place in Panel view.
+  const simulatorControls = document.querySelector('main > .controls');
+  const fileBar = document.querySelector('main > .files');
+  const footerHomes = [simulatorControls, fileBar].filter(Boolean).map(node => {
+    const anchor = document.createComment('Panel control');
+    node.before(anchor);
+    return { node, anchor };
+  });
+  function footerMenu(label) {
+    return el('details', 'ed-footer-menu', { 'data-menu': label.toLowerCase() }, [el('summary', 'ed-icon', { text: label }), el('div', 'ed-footer-menu-body')]);
+  }
+  const fileMenu = footerMenu('Files');
+  const simulatorMenu = footerMenu('Simulator');
+  const changesMenu = footerMenu('Changes');
+  const menus = [fileMenu, simulatorMenu, changesMenu];
+  for (const menu of menus) {
+    menu.addEventListener('click', e => { if (e.target.closest('button')) menu.open = false; });
+    menu.addEventListener('keydown', e => { if (e.key === 'Escape') { menu.open = false; menu.querySelector('summary').focus(); e.stopPropagation(); } });
+    menu.addEventListener('toggle', () => {
+      if (menu.open) for (const other of menus) if (other !== menu) other.open = false;
+    });
+  }
+  document.addEventListener('pointerdown', e => {
+    for (const menu of menus) if (!menu.contains(e.target)) menu.open = false;
+  });
+  const sidebarBtn = el('button', 'ed-icon ed-sidebar-toggle', { type: 'button', 'aria-controls': 'ed-sidebar', onclick: () => {
+    st.sidebarHidden = !st.sidebarHidden;
+    pref('sidebar-hidden', st.sidebarHidden ? 1 : 0);
+    updateSidebar();
+  } });
+  const songFileTools = el('span', 'ed-song-file-tools', { hidden: true });
   const appbar = el('div', 'ed-appbar', { role: 'toolbar', 'aria-label': 'Editor' }, [
-    el('div', 'ed-appbar-start', {}, [title]),
-    el('div', 'ed-appbar-mid', {}, [keysChip,
-      el('label', 'ed-toggle', { for: followPanelBox.id }, [followPanelBox, el('span', null, { text: 'Follow the panel' })]),
-      el('label', 'ed-toggle', { for: followEditorBox.id }, [followEditorBox, el('span', null, { text: 'Open on the panel' })])]),
-    el('div', 'ed-appbar-end', {}, [undoBtn, redoBtn, el('div', 'ed-ram-wrap', {}, [ramBtn, ramList])]),
+    el('div', 'ed-appbar-start', {}, [sidebarBtn, title]),
+    el('div', 'ed-appbar-mid', {}, [keysChip, shortcutsBtn]),
+    el('div', 'ed-appbar-end', {}, [simulatorMenu, fileMenu, songFileTools, changesMenu, undoBtn, redoBtn, cpuBtn, el('div', 'ed-ram-wrap', {}, [ramBtn, ramList])]),
   ]);
+  const transportTools = el('div', 'ed-transport-tools sq-transport-mount', { hidden: true });
+  const topbars = el('div', 'ed-topbars', {}, [appbar, transportTools]);
 
-  const outline = el('nav', 'ed-outline', { 'aria-label': 'Outline' });
+  const outline = el('nav', 'ed-outline', { id: 'ed-sidebar', 'aria-label': 'Outline' });
   const screen = el('canvas', 'ed-screen', { width: 240, height: 240, 'aria-label': 'The FM-1 screen, as on the panel' });
-  const screenCap = el('p', 'ed-screen-cap');
-  const card = el('section', 'ed-card', { 'aria-label': 'On the FM-1' }, [el('p', 'ed-card-title', { text: 'On the FM-1' }), screen, screenCap]);
-  const context = el('p', 'ed-context');
+  const card = el('section', 'ed-card', { 'aria-label': 'Panel display and following' }, [screen,
+    el('div', 'ed-screen-options', {}, [
+      el('label', 'ed-toggle', { for: followPanelBox.id }, [followPanelBox, el('span', null, { text: 'Follow Panel' })]),
+      el('label', 'ed-toggle', { for: followEditorBox.id }, [followEditorBox, el('span', null, { text: 'Open on panel' })])])]);
   const fromPanel = el('p', 'ed-from', { hidden: true });
   const view = el('div', 'ed-view');
   const histList = el('ol', 'ed-hist-list');
   const hist = el('section', 'ed-hist', { 'aria-label': 'Changes, both ways' }, [
     el('div', 'ed-sec-head', {}, [el('h3', 'ed-sec', { text: 'Changes, both ways' }), el('span', 'ed-note', { text: 'newest first' })]),
     histList]);
-  const main = el('div', 'ed-main', {}, [el('div', 'ed-heads', {}, [context, fromPanel]), view, hist]);
+  changesMenu.querySelector('.ed-footer-menu-body').append(hist);
+  const main = el('div', 'ed-main', {}, [el('div', 'ed-heads', {}, [fromPanel]), view]);
   const detail = el('div', 'ed-detail', { 'aria-label': 'The selected parameter' });
   const live = el('div', 'ed-sr', { 'aria-live': 'polite', role: 'status' });
   const off = el('div', 'ed-off', {}, [
     el('p', null, { text: 'The editor edits the running FM-1. Power it on to start.' }),
     el('button', 'ed-power', { type: 'button', text: 'Power on', onclick: () => powerOn() })]);
   const body = el('div', 'ed-body', {}, [outline, card, main]);
-  const root = el('section', 'ed', { 'aria-label': 'Advanced editor', 'data-keys': 'play' }, [appbar, off, body, detail, live]);
+  const root = el('section', 'ed', { 'aria-label': 'Advanced editor', 'data-keys': 'play' }, [topbars, off, body, detail, live]);
   host.append(root);
+  function updateSidebar() {
+    root.classList.toggle('is-sidebar-hidden', st.sidebarHidden);
+    outline.hidden = st.sidebarHidden;
+    const label = st.sidebarHidden ? 'Show sidebar' : 'Hide sidebar';
+    sidebarBtn.setAttribute('aria-label', label);
+    sidebarBtn.title = label;
+    sidebarBtn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 4h12v16H8"/><path d="M12 4v16"/><path d="${st.sidebarHidden ? 'M2 8l4 4-4 4' : 'M6 8l-4 4 4 4'}"/></svg>`;
+    sidebarBtn.setAttribute('aria-expanded', String(!st.sidebarHidden));
+  }
+  updateSidebar();
   const chains = makeChains({
-    st, meta, mm, el, history, files, root, nextId, sendOps, say, showRefusal, select, render, blockOf, engineName,
+    st, meta, mm, el, history, files, sim, root, nextId, sendOps, say, showRefusal, select, render, blockOf, engineName,
     inspector, sliderControl, rowShell, segControl, levelRow, renderHistory, snapshotSoon, setValue, openOnPanel,
     onStruct: (e) => project.onStruct(e),
     projectTools: (k) => project.headTools(k),
@@ -133,7 +189,7 @@ export async function startEditor(env) {
   // Stage ED4: drop targets, export, the library, links, search, A/B, Memory
   // and undo's snapshot fallback.
   const project = makeProject({
-    st, meta, el, files, root, view, nextId, say, select, render, blockOf, engineName, rows, selectRow: (r) => selectRow(r),
+    st, meta, el, files, root, view, nextId, say, select, chooseView, render, blockOf, engineName, rows, selectRow: (r) => selectRow(r),
     snapshotSoon, history, undo: () => undo(), redo: () => redo(), setKeys: (m) => setKeys(m), post, chains, mm,
   });
   const seqHost = makeSequencerHost({ sim, files, st, history, snapshot, say, onSettled: () => {
@@ -143,7 +199,11 @@ export async function startEditor(env) {
   } });
   const seqVerb = (text) => { if (sim.node) sim.node.port.postMessage({ type: 'seq-line', bytes: new TextEncoder().encode(text) }); };
   const sequencer = makeSequencer({ ...seqHost, metadata: meta, say,
+    fileToolsHost: songFileTools,
+    transportHost: transportTools,
+    toggleSidebar: () => sidebarBtn.click(),
     editSound: (key) => select(key, { view: 'sound' }),
+    claimKeys: () => setKeys('edit'),
     inspector: (key) => key === MIX_KEY ? chains.mixInspector() : blockOf(key) ? inspector(key, { compactTools: true, level: /^s[1-4]$/.test(key) ? Number(key[1]) - 1 : undefined }) : emptyInspector(key),
     watchTrack: (t) => seqVerb(`watch ${t}`), playScene: (scene) => seqVerb(`scene ${scene}`),
     playClip: (track, scene) => seqVerb(`launch ${track} ${scene}`),
@@ -160,28 +220,37 @@ export async function startEditor(env) {
   // ---- PLAY and EDIT (§13) ---------------------------------------------------
   function setKeys(mode) {
     if (mode === st.keys) return;
+    sim.midiLearn?.release();
     st.keys = mode;
     sim.keysToEditor = mode === 'edit';
     if (mode === 'edit' && sim.releaseKeys) sim.releaseKeys();
     root.dataset.keys = mode;
-    keysChip.innerHTML = '';
-    keysChip.append('Keys ', el('b', null, { text: mode === 'play' ? 'PLAY' : 'EDIT' }),
-      el('span', 'ed-hint', { text: mode === 'play' ? ` · ${MOD}E edits` : ' · Esc plays' }));
-    // The name starts with what is written on the chip (WCAG 2.5.3), then says what it does.
-    keysChip.setAttribute('aria-label', `${keysChip.textContent.replace(/\s+/g, ' ').trim()}. ${mode === 'play'
-      ? `Keys play the FM-1; ${MOD}E gives them to the editor.` : 'Keys edit; Escape gives them back to the FM-1.'}`);
+    keysChip.innerHTML = mode === 'edit'
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 20 4.5-1 10-10-3.5-3.5-10 10L4 20Z M13.5 7l3.5 3.5 M15 5l1.5-1.5a1.4 1.4 0 0 1 2 0l2 2a1.4 1.4 0 0 1 0 2L19 9"/></svg>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M5 9h1m3 0h1m3 0h1m3 0h1M5 12h1m3 0h1m3 0h1m3 0h1M7 16h10"/></svg>';
+    const label = mode === 'play' ? 'Keys play the FM-1; activate to edit' : 'Keys edit; activate to play the FM-1';
+    keysChip.setAttribute('aria-label', label);
+    keysChip.title = `${label}. ${mode === 'play' ? `${MOD}E edits.` : 'Escape plays.'}`;
+    keysChip.setAttribute('aria-pressed', String(mode === 'edit'));
   }
   st.keys = '';
   setKeys('play');
-  root.addEventListener('focusin', (e) => { if (!layoutSwitch.contains(e.target)) setKeys('edit'); });
-  root.addEventListener('pointerdown', (e) => { if (!layoutSwitch.contains(e.target)) setKeys('edit'); });
+  root.addEventListener('focusin', (e) => { if (!layoutSwitch.contains(e.target) && !keysChip.contains(e.target) && !shortcutsBtn.contains(e.target)) setKeys('edit'); });
+  root.addEventListener('pointerdown', (e) => { if (!layoutSwitch.contains(e.target) && !keysChip.contains(e.target) && !shortcutsBtn.contains(e.target)) setKeys('edit'); });
   const device = document.querySelector('.device-wrap');
   if (device) {
     device.addEventListener('pointerdown', () => setKeys('play'));
     device.addEventListener('focusin', () => setKeys('play'));
   }
   window.addEventListener('keydown', (e) => {
-    if (st.layout === 'panel') return;
+    if (st.layout !== 'panel' && st.view === 'sequencer' &&
+        (sequencer.contains(e.target) || st.keys === 'edit')) sequencer.onKey(e);
+  }, true);
+  window.addEventListener('keydown', (e) => {
+    if (e.defaultPrevented || st.layout === 'panel') return;
+    // Let the browser dismiss the top-layer popover before Escape gives the
+    // keys back to the instrument. Cancelling this event keeps it open.
+    if (e.key === 'Escape' && root.querySelector('[popover="auto"]:popover-open')) return;
     const mod = isMac ? e.metaKey : e.ctrlKey;
     if (mod && !e.altKey && e.key.toLowerCase() === 'e') {
       e.preventDefault();
@@ -212,11 +281,15 @@ export async function startEditor(env) {
     st.layout = name;
     root.dataset.layout = name;
     if (name === 'panel') {
+      for (const menu of menus) menu.open = false;
+      for (const { node, anchor } of footerHomes) anchor.after(node);
       header.append(layoutSwitch);
       setKeys('play');
       subscribe();
       return;
     }
+    if (fileBar) fileMenu.querySelector('.ed-footer-menu-body').append(fileBar);
+    if (simulatorControls) simulatorMenu.querySelector('.ed-footer-menu-body').append(simulatorControls);
     appbar.querySelector('.ed-appbar-start').prepend(layoutSwitch);
     render();
     subscribe();
@@ -226,6 +299,8 @@ export async function startEditor(env) {
   function attach() {
     if (!sim.node || st.node === sim.node) return;
     st.node = sim.node;
+    st.cpu = null;
+    renderCpu();
     st.teleSig = '';
     const ch = new MessageChannel();
     st.port = ch.port1;
@@ -244,7 +319,7 @@ export async function startEditor(env) {
   }
   function detach() {
     if (st.port) st.port.close();
-    Object.assign(st, { port: null, node: null, mirror: null, ram: null, panelView: null });
+    Object.assign(st, { port: null, node: null, mirror: null, ram: null, cpu: null, panelView: null });
     render();
   }
 
@@ -266,22 +341,27 @@ export async function startEditor(env) {
   }
 
   async function snapshot() {
+    await files.midiSettled?.();
     if (!st.port) return;
     st.loading = true;
+    const projectId = files.pid;
     const id = ++st.snapId;
     const reply = await new Promise((resolve) => {
       st.snapWait.set(id, resolve);
       post({ type: 'snapshot', id, kind: 1 });
     });
-    if (id !== st.snapId) return;        // a newer one is on its way
+    if (id !== st.snapId || projectId !== files.pid) return;        // a newer one is on its way
     // Refused while the module is still starting: asked again shortly.
     if (!reply.ok) { if (st.port) setTimeout(() => { if (id === st.snapId) snapshot(); }, 250); return; }
     st.live = reply.bytes.slice(0);
     st.liveGen = reply.gen >>> 0;
     const r = await files.shadow('save', { kind: 1, live: reply.bytes, mod: true });
-    if (id !== st.snapId) return;
+    if (id !== st.snapId || projectId !== files.pid) return;
     if (!r || !r.text) { if (st.port) setTimeout(() => { if (id === st.snapId) snapshot(); }, 250); return; }
-    st.mirror = mirrorFromProject(meta, JSON.parse(r.text), r.mod);
+    const doc = JSON.parse(r.text);
+    st.mirror = mirrorFromProject(meta, doc, r.mod);
+    const firstView = initialView.fromProject(projectId, doc);
+    if (firstView) st.view = firstView;
     sequencer.invalidate();
     st.gen = reply.gen >>> 0;
     st.loading = false;
@@ -309,6 +389,7 @@ export async function startEditor(env) {
       case 'edited': onEdited(m.tag, m.codes); break;
       case 'view': onView(decodeView(m.bytes)); break;
       case 'ram': onRam(m); break;
+      case 'stats': st.cpu = m; renderCpu(); break;
       case 'telemetry':
         onTelemetry(new Float32Array(m.buffer));
         post({ type: 'telemetry-buffer', buffer: m.buffer }, [m.buffer]);
@@ -404,14 +485,10 @@ export async function startEditor(env) {
   function onView(v) {
     const was = st.panelView;
     st.panelView = v;
-    const words = viewWords(v);
-    screenCap.textContent = `${words}: the page the panel shows now`;
-    context.innerHTML = '';
-    context.append(el('span', 'ed-ctx-k', { text: 'On the panel now: ' }), words);
     markKnobs();
     markPanelBlock();
     const moved = !was || was.mode !== v.mode || was.sound !== v.sound || was.page !== v.page || was.slot !== v.slot || was.arp !== v.arp;
-    if (!moved || st.layout !== 'workbench' || !st.followPanel || st.typing || st.dragKey || st.picker) return;
+    if (!was || initialView.pending || st.loading || !moved || st.layout !== 'workbench' || !st.followPanel || st.typing || st.dragKey || st.picker) return;
     if (st.keys === 'edit' && view.contains(document.activeElement)) return;     // a hand is in the editor
     const at = blockOfView(v);
     if (!at) return;
@@ -485,6 +562,7 @@ export async function startEditor(env) {
   function onRam(m) {
     st.ram = { total: m.total, budget: m.budget, parts: Array.from(m.parts) };
     renderRam();
+    renderCpu();
   }
   function renderRam() {
     const r = st.ram;
@@ -501,7 +579,8 @@ export async function startEditor(env) {
     }
     names.push(['Master', 'M1 and M2', 'ed-part-master'], ['Shared', 'Mix, sequencer, modulation', 'ed-part-rest']);
     const scale = Math.max(r.budget, r.total);
-    r.parts.forEach((bytes, i) => {
+    RAM_ORDER.forEach((i) => {
+      const bytes = r.parts[i] || 0;
       if (bytes > 0) ramBar.append(el('span', `ed-ram-seg ${names[i][2]}`, { style: `width:${(100 * bytes / scale).toFixed(2)}%` }));
       ramList.append(el('li', null, {}, [el('span', `ed-sw ${names[i][2]}`, { 'aria-hidden': 'true' }),
         el('span', 'ed-ram-name', { text: `${names[i][0]} ${names[i][1]}` }), el('b', null, { text: ramWords(bytes, r.budget) })]));
@@ -511,18 +590,33 @@ export async function startEditor(env) {
     ramBtn.setAttribute('aria-label', `RAM ${ramText.textContent} of the FM-1's memory. Show it by part.`);
   }
 
+  function renderCpu() {
+    const cpu = cpuPresentation(st.cpu, !!st.node);
+    cpuText.textContent = cpu.text;
+    cpuFill.style.width = `${cpu.percent}%`;
+    cpuBtn.classList.toggle('is-over', cpu.over);
+    cpuBtn.title = cpu.detail;
+    cpuBtn.setAttribute('aria-label', `CPU ${cpu.text}. ${cpu.detail} Show resource details.`);
+    project.updateCpu?.();
+  }
+
   // ---- telemetry: the Flow's meters, only while they are seen (§12) ----------------------
   // Only what the view shows, only while it is seen (§12): the meters and
   // gain reduction for the Flow and a sound, module outputs and each
   // cable's destination for Modulation.
-  let flowSeen = false;
+  let flowSeen = false, transportSeen = false;
   const seen = new IntersectionObserver((list) => {
-    flowSeen = list.some((x) => x.isIntersecting);
+    for (const x of list) {
+      if (x.target === view) flowSeen = x.isIntersecting;
+      if (x.target === transportTools) transportSeen = x.isIntersecting;
+    }
     subscribe();
   });
   seen.observe(view);
+  seen.observe(transportTools);
   function subscribe() {
-    const want = !!st.port && st.layout !== 'panel' && flowSeen && document.visibilityState === 'visible' && !!st.mirror;
+    const visible = flowSeen || (st.view === 'sequencer' && !transportTools.hidden && transportSeen);
+    const want = !!st.port && st.layout !== 'panel' && visible && document.visibilityState === 'visible' && !!st.mirror;
     const rowsOn = want ? st.view === 'sequencer' ? sequencer.wantRows() : chains.wantRows(st.view) : [];
     const sig = rowsOn.join(',');
     st.teleOn = want && rowsOn.length > 0;
@@ -715,8 +809,10 @@ export async function startEditor(env) {
   }
 
   // ---- selection and the views (§10) -------------------------------------------------
+  function chooseView(name) { initialView.choose(); st.view = name; }
   function select(key, opt = {}) {
     if (key !== MIX_KEY && !parseBlockKey(key) && cableIndex(key) < 0) return;
+    initialView.choose();
     if (cableIndex(key) >= 0) st.selCable = key;
     const same = key === st.selected && (!opt.view || opt.view === st.view) && view.firstChild;
     if (same && opt.quiet) {             // following the panel to where it already is
@@ -744,6 +840,9 @@ export async function startEditor(env) {
     chains.closePicker();
     root.classList.toggle('is-off', !st.port || !st.mirror);
     off.hidden = !!st.port;
+    songFileTools.hidden = st.view !== 'sequencer' || !st.port || !st.mirror;
+    transportTools.hidden = songFileTools.hidden;
+    fileMenu.hidden = !songFileTools.hidden;
     title.querySelector('.ed-project').textContent = files.title ? `· ${files.title}` : '';
     renderOutline();
     rows.clear();
@@ -770,6 +869,7 @@ export async function startEditor(env) {
     markPanelBlock();
     renderHistory();
     renderRam();
+    renderCpu();
     renderDetail();
     subscribe();
   }
@@ -787,17 +887,17 @@ export async function startEditor(env) {
         () => select(blockKey(ROLE.SOUND, k), { view: 'sound' }), st.view === 'sound' && st.sound === k));
     }
     outline.append(el('p', 'ed-out-h', { text: 'Signal' }));
-    outline.append(mk('Flow and effects', 'FX', 'ed-out-fx', () => { st.view = 'flow'; render(); }, st.view === 'flow'));
+    outline.append(mk('Flow and effects', 'FX', 'ed-out-fx', () => { chooseView('flow'); render(); }, st.view === 'flow'));
     const nMods = st.mirror ? st.mirror.rack.filter(Boolean).length : 0;
     const nCables = st.mirror ? st.mirror.cables.filter((c) => c.flags & 1).length : 0;
-    outline.append(mk('Modulation', 'MOD', 'ed-out-mod', () => { st.view = 'mod'; render(); }, st.view === 'mod',
+    outline.append(mk('Modulation', 'MOD', 'ed-out-mod', () => { chooseView('mod'); render(); }, st.view === 'mod',
       st.mirror ? `${nMods}·${nCables}` : null));
     outline.append(el('p', 'ed-out-h', { text: 'Project' }));
-    outline.append(mk('Song / MIDI', 'SEQ', 'ed-out-seq', () => { st.view = 'sequencer'; render(); sequencer.refresh(); }, st.view === 'sequencer'));
-    outline.append(mk('Library', 'LIB', 'ed-out-lib', () => { st.view = 'library'; render(); }, st.view === 'library'));
-    outline.append(mk('Compare A/B', 'A/B', 'ed-out-ab', () => { st.view = 'ab'; render(); }, st.view === 'ab',
+    outline.append(mk('Song / MIDI', 'SEQ', 'ed-out-seq', () => { chooseView('sequencer'); render(); sequencer.refresh(); }, st.view === 'sequencer'));
+    outline.append(mk('Library', 'LIB', 'ed-out-lib', () => { chooseView('library'); render(); }, st.view === 'library'));
+    outline.append(mk('Compare A/B', 'A/B', 'ed-out-ab', () => { chooseView('ab'); render(); }, st.view === 'ab',
       st.ab && st.ab.A ? st.ab.playing : null));
-    outline.append(mk('Memory', 'RAM', 'ed-out-mem', () => { st.view = 'memory'; render(); }, st.view === 'memory'));
+    outline.append(mk('Memory', 'RAM', 'ed-out-mem', () => { chooseView('memory'); render(); }, st.view === 'memory'));
     outline.append(el('button', 'ed-out ed-out-search', { type: 'button', onclick: () => project.openSearch(), title: `Search (${MOD}K)` }, [
       el('span', 'ed-out-tag', { text: MOD === '⌘' ? '⌘K' : '^K' }), el('span', 'ed-out-name', { text: 'Search' })]));
   }
@@ -943,6 +1043,25 @@ export async function startEditor(env) {
   }
 
   // ---- the inspector: controls from metadata (§6, §11, §13) ----------------------------------
+  function engineInfo(e) {
+    if (!e?.credits) return null;
+    const id = nextId('engine-info');
+    const button = el('button', 'ed-info', { type: 'button', text: 'ⓘ',
+      'aria-label': `About ${e.name}`, 'aria-expanded': 'false', 'aria-controls': id, popovertarget: id });
+    const body = el('div', 'ed-info-body', { id, popover: 'auto', role: 'region', 'aria-label': `${e.name} information` }, [
+      el('strong', '', { text: e.name }),
+      el('p', 'ed-credits', { text: e.credits }),
+      el('p', 'ed-info-meta', { text: [e.group && meta.groupName(e.group), e.licence && `Licence: ${e.licence}`].filter(Boolean).join(' · ') })]);
+    body.addEventListener('toggle', () => {
+      const open = body.matches(':popover-open');
+      button.setAttribute('aria-expanded', String(open));
+      if (!open) return;
+      const a = button.getBoundingClientRect(), b = body.getBoundingClientRect();
+      body.style.left = `${Math.max(12, Math.min(a.left, innerWidth - b.width - 12))}px`;
+      body.style.top = `${Math.max(12, Math.min(a.bottom + 8, innerHeight - b.height - 12))}px`;
+    });
+    return [button, body];
+  }
   function inspector(key, opt = {}) {
     const b = blockOf(key);
     const e = meta.engine(b.engine);
@@ -953,13 +1072,12 @@ export async function startEditor(env) {
     const head = el('header', 'ed-insp-head', {}, [
       el('span', `ed-tag${bk.role === ROLE.SOUND ? ` ed-s${bk.sound + 1}` : ''}`, { text: tagText }),
       el('h3', 'ed-insp-name', { text: e ? e.name : b.engine }),
+      ...(engineInfo(e) || []),
       e && e.gpl ? el('span', 'ed-gpl', { text: 'GPL', title: `Licence: ${e.licence}` }) : null,
       el('span', 'ed-insp-ram', { text: e && st.ram ? `RAM ${ramWords(e.ram, st.ram.budget)}` : '' })]);
     box.append(head);
     const tools = st.mirror && st.mirror.cables && !opt.bare ? [...chains.headTools(key), ...project.headTools(key)] : [];
     if (!opt.compactTools && tools.length) head.append(el('span', 'ed-tools', {}, tools));
-    const credits = e && e.credits ? `${e.credits}${e.group ? ` · ${meta.groupName(e.group)}` : ''}` : '';
-    if (credits && !opt.compactTools) box.append(el('p', 'ed-credits', { text: credits }));
     if (!e) { box.append(el('p', 'ed-note', { text: `${b.engine} is not in this build's metadata.` })); return box; }
     const mt = opt.bare ? null : chains.meters(key);
     if (mt) box.append(mt);
@@ -990,11 +1108,10 @@ export async function startEditor(env) {
       for (const p of pg.params) if (p !== fp) page.append(paramRow(key, p, pg));
       box.append(page);
     });
-    if (opt.compactTools && (credits || tools.length)) {
-      const summary = el('summary', 'ed-tools-summary', { text: 'Device credits and tools', 'aria-label': 'Device credits and tools' });
+    if (opt.compactTools && tools.length) {
+      const summary = el('summary', 'ed-tools-summary', { text: 'Device tools', 'aria-label': 'Device tools' });
       const more = el('details', 'ed-inspector-more', {}, [summary]);
-      if (credits) more.append(el('p', 'ed-credits', { text: credits }));
-      if (tools.length) more.append(el('div', 'ed-tools', {}, tools));
+      more.append(el('div', 'ed-tools', {}, tools));
       box.append(more);
     }
     const into = opt.bare || !st.mirror.cables ? null : chains.cablesInto(key);
@@ -1004,7 +1121,7 @@ export async function startEditor(env) {
 
   function rowShell(key, uid, labelText, cls) {
     const id = nextId('l');
-    const r = { key, uid, el: el('div', `ed-row ${cls || ''}`, { 'data-uid': String(uid) }), id };
+    const r = { key, uid, el: el('div', `ed-row ${cls || ''}`, { 'data-uid': String(uid), 'data-midi-context': key }), id };
     r.k = el('span', 'ed-k', { hidden: true });
     r.label = el('span', 'ed-label', { id, text: labelText });
     r.el.append(r.k, r.label);
@@ -1180,6 +1297,15 @@ export async function startEditor(env) {
     };
     r.update = () => draw(dragV !== null ? dragV : get());
     const commit = (v, how) => setValue(r.key, r.uid, v, how);
+    const midiAdapter = { kind: 'value',
+      available: () => s.isConnected && !s.closest('[hidden]') && !!st.mirror,
+      value: (u) => {
+        let v = fromPos(p, u);
+        if (!isLog(p) && p.step > 0) v = p.min + Math.round((v - p.min) / p.step) * p.step;
+        commit(Math.max(p.min, Math.min(p.max, v)), 'key');
+      } };
+    sim.midiLearn?.register(s, `editor:param:${r.key}:${r.uid}`, midiAdapter);
+    sim.midiLearn?.register(field, `editor:param:${r.key}:${r.uid}`, midiAdapter);
     const atX = (x) => {
       const rect = s.getBoundingClientRect();
       let v = fromPos(p, (x - rect.left) / Math.max(1, rect.width));
@@ -1306,6 +1432,7 @@ export async function startEditor(env) {
   }
   function renderDetail() {
     detail.innerHTML = '';
+    detail.hidden = false;
     const rf = st.refusal;
     if (rf && performance.now() < rf.until && rf.row === st.selRow) {
       detail.append(el('span', 'ed-refused', { text: rf.text }));
@@ -1314,7 +1441,7 @@ export async function startEditor(env) {
     st.refusal = null;
     const sel = st.selRow ? rows.get(st.selRow) : null;
     if (!sel || !st.mirror) {
-      detail.append(el('span', 'ed-note', { text: 'Select a parameter: its range, default, flags and keys show here.' }));
+      detail.hidden = true;
       return;
     }
     const p = sel.p;
@@ -1377,8 +1504,20 @@ export async function startEditor(env) {
   render();
   const api = {
     setLayout, state: st, history, meta, mm, chains, rows, select, undo, redo, setKeys, project, say,
-    applyLink: (l) => { if (l?.sequencer) { st.view = 'sequencer'; render(); sequencer.refresh(); } else project.applyLink(l); },
+    applyLink: (l) => {
+      if (l?.sequencer || l?.sel) initialView.choose();
+      if (l?.sequencer) { st.view = 'sequencer'; render(); sequencer.refresh(); } else project.applyLink(l);
+    },
+    projectLoaded(options) {
+      if (initialView.project(files.pid, options)) snapshot();
+    },
     sequencer, sequencerHost: seqHost,
+    midiMapChanged() {
+      // Maps change the canonical project hash without changing engine or
+      // sequencer content generations. Refresh cached Song documents on ACK.
+      sequencer.invalidate();
+      if (st.view === 'sequencer') sequencer.refresh();
+    },
     // The page test's hooks: an inspector for any module, drawn from the
     // metadata with its defaults, and the mirror as it stands.
     inspectorFor(id) {

@@ -3,6 +3,9 @@
 import { parseSet, writeSet, validateSet, arrangementEntries } from './sequence-model.js';
 import { parseMidi, planMidiImport, applyMidiImport, checkMidiFiles, checkMidiParts } from './midi-import.js';
 import { toPos } from './model.js';
+import { clipPlayback, automationSteps } from './sequence-playback.js';
+import { positionText, timeText, songDuration, barLimit, transportNavigation } from './sequence-transport.js';
+import { makeSongShortcuts, noteNudge, duplicateNote } from './song-shortcuts.js';
 
 const clone = (x) => structuredClone(x);
 const pitchName = (p) => `${['C','C♯','D','E♭','E','F','F♯','G','A♭','A','B♭','B'][p % 12]}${Math.floor(p / 12) - 1}`;
@@ -35,12 +38,66 @@ function choose(label, value, options, change) {
   select.addEventListener('change', () => change(select.value));
   return el('label', 'sq-field', {}, [el('span', '', { text: label }), select]);
 }
+function editableName(label, value, commit, attrs = {}) {
+  const input = el('input', 'sq-name', { type: 'text', 'aria-label': label,
+    title: 'Double-click to rename; Enter or F2 also edits. Enter or leaving the field saves; Escape cancels.',
+    'aria-description': 'Double-click, Enter or F2 edits this name. Enter or leaving the field saves; Escape cancels.', ...attrs });
+  input.value = value; input.readOnly = true;
+  let editing = false, pointerDown = false, pendingBlur = false, blurTimer = null;
+  function cleanup() {
+    document.removeEventListener('pointerdown', pointerStart, true);
+    document.removeEventListener('mousedown', pointerStart, true);
+    document.removeEventListener('mouseup', pointerEnd, true);
+    document.removeEventListener('pointerup', pointerEnd, true);
+    document.removeEventListener('pointercancel', pointerEnd, true);
+    document.removeEventListener('click', pointerClick, true);
+    clearTimeout(blurTimer); blurTimer = null; pointerDown = pendingBlur = false;
+  }
+  function pointerStart() { pointerDown = true; }
+  function pointerEnd(e) {
+    pointerDown = false;
+    if (e.type === 'pointercancel' && pendingBlur) pointerClick();
+  }
+  function pointerClick() {
+    // Wait for the destination's click, including touch's compatibility click,
+    // before a native commit disables/redraws the workspace. Keyboard focus
+    // changes have no pointer and save directly.
+    if (pendingBlur) { pendingBlur = false; blurTimer = setTimeout(() => finish(), 0); }
+  }
+  function begin() {
+    cleanup(); editing = true; input.readOnly = false;
+    document.addEventListener('pointerdown', pointerStart, true);
+    // Touch focus may happen in compatibility mousedown after pointerup.
+    document.addEventListener('mousedown', pointerStart, true);
+    document.addEventListener('mouseup', pointerEnd, true);
+    document.addEventListener('pointerup', pointerEnd, true);
+    document.addEventListener('pointercancel', pointerEnd, true);
+    document.addEventListener('click', pointerClick, true);
+    input.focus(); input.select();
+  }
+  function finish(cancel = false) {
+    if (!editing) return;
+    if (!cancel && !input.checkValidity()) { input.reportValidity(); return; }
+    cleanup(); editing = false; input.readOnly = true;
+    if (cancel) input.value = value;
+    else if (input.value !== value) commit(input.value);
+  }
+  input.addEventListener('dblclick', begin);
+  input.addEventListener('keydown', e => {
+    if (!editing && ['Enter', 'F2'].includes(e.key)) { e.preventDefault(); begin(); }
+    else if (editing && e.key === 'Enter') { e.preventDefault(); finish(); }
+    else if (editing && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); finish(true); }
+  });
+  input.addEventListener('blur', () => { if (pointerDown) pendingBlur = true; else finish(); });
+  input.beginNameEdit = begin;
+  return input;
+}
 
 export function makeSequencer(ctx) {
   if (!document.querySelector('link[data-sequencer-style]')) document.head.append(el('link', '', {
     rel: 'stylesheet', href: new URL('sequencer.css', import.meta.url).href, 'data-sequencer-style': true,
   }));
-  const root = el('section', 'sq', { 'aria-label': 'Sequencer workspace', 'data-testid': 'sequencer' });
+  const root = el('section', 'sq', { 'aria-label': 'Sequencer workspace', 'data-testid': 'sequencer', tabindex: 0, 'aria-description': 'Song shortcuts: Space play or pause; Shift+Space restart; E Clip; A Automation; D device; I sidebar; Tab Arrangement or Mixer when the canvas has focus. F2 rename; 0 mute selected track.' });
   const status = el('p', 'sq-status', { role: 'status', 'aria-live': 'polite' });
   const content = el('fieldset', 'sq-content');
   const rotate = el('section', 'sq-rotate', { 'data-testid': 'song-rotate-prompt', 'aria-label': 'Rotate phone' }, [
@@ -48,25 +105,133 @@ export function makeSequencer(ctx) {
     el('p', '', { text: 'Song editing needs landscape on a small phone. Rotate to use scenes, clips and the mixer. Playback keeps its current state.' }),
   ]);
   const deviceDialog = el('dialog', 'sq-device-dialog', { id: 'sq-device-controls', 'aria-label': 'Device controls' });
+  const transportMount = ctx.transportHost || el('div', 'sq-transport-mount');
+  transportMount.classList.add('sq-transport-mount');
+  transportMount.classList.toggle('is-external', !!ctx.transportHost);
+  if (!ctx.transportHost) root.append(transportMount);
   root.append(status, rotate, content, deviceDialog);
+  const contains = target => root.contains(target) || transportMount.contains(target);
+  const workspaceAll = selector => [...root.querySelectorAll(selector), ...(ctx.transportHost ? transportMount.querySelectorAll(selector) : [])];
   const state = { doc: null, model: null, busy: false, loading: null, dirty: true, track: 0, scene: 0,
     note: -1, page: 0, pitch: 60, low: 48, song: 0, lane: 0, inspector: null, midi: null, solo: null, mixDetails: null,
-    noteAdvancedOpen: false, view: 'Scenes' };
+    noteAdvancedOpen: false, automationAssignOpen: false, follow: true, view: 'Scenes' };
   let disposed = false, pendingFocus = null, suppressNoteClick = false, cancelDrag = null, readError = false;
+  let pendingRollNote = -1;
   let readRevision = 0, readText = null;
   let releaseFader = null;
   const meterHold = new Map();
+  // Capacity follows the stable workspace, never a grid being replaced by draw().
+  let layout = gridLayout(0), resizeFrame = 0, resizePending = false, pointerActive = false, pointerRelease = 0, refreshPending = false;
+  state.scenesPage = 0; state.songPage = 0;
+  function gridLayout(width) {
+    const available = Math.max(240, width - 28);
+    const steps = (label, cell) => Math.max(1, Math.min(32, Math.floor((available - label - 18) / cell)));
+    return { columns: Math.max(1, Math.floor((available - 140) / 150)), clip: steps(60, 32), automation: steps(140, 55) };
+  }
+  const pageSize = () => state.view === 'Automation' ? layout.automation : layout.clip;
+  const pageStart = () => state.page * pageSize();
+  function changeView(name) {
+    const anchor = pageStart(); state.view = name;
+    state.page = Math.floor(anchor / pageSize());
+  }
+  function resizeGrids() {
+    resizeFrame = 0;
+    if (refreshPending && !pointerActive) { refreshPending = false; draw(); }
+    if (disposed || !root.isConnected) return;
+    const next = gridLayout(content.getBoundingClientRect().width);
+    if (JSON.stringify(next) === JSON.stringify(layout)) { resizePending = false; return; }
+    // Do not replace a held pointer target or an unsaved field during a resize.
+    if (pointerActive || cancelDrag || releaseFader || state.busy || contains(document.activeElement) && document.activeElement.matches('input:not([readonly]), textarea')) {
+      resizePending = true; return;
+    }
+    const anchor = pageStart(), scene = state.scenesPage * layout.columns, song = state.songPage * layout.columns;
+    layout = next; state.page = Math.floor(anchor / pageSize());
+    state.scenesPage = Math.floor(scene / layout.columns); state.songPage = Math.floor(song / layout.columns);
+    resizePending = false; draw();
+  }
+  function scheduleResize() { if (!resizeFrame) resizeFrame = requestAnimationFrame(resizeGrids); }
+  const gridObserver = new ResizeObserver(scheduleResize); gridObserver.observe(root);
+  root.addEventListener('pointerdown', () => { clearTimeout(pointerRelease); pointerActive = true; }, { capture: true });
+  const finishPointer = () => { clearTimeout(pointerRelease); pointerRelease = 0; pointerActive = false; if (resizePending || refreshPending) scheduleResize(); };
+  const releasePointer = e => {
+    if (!pointerActive) return;
+    if (!(e.target instanceof Node) || !root.contains(e.target)) { finishPointer(); return; }
+    // Firefox can paint between pointerup and click. Keep the target connected
+    // until click dispatch; a drag/release without a click must also settle.
+    pointerRelease = setTimeout(finishPointer, 250);
+  };
+  window.addEventListener('pointerup', releasePointer); window.addEventListener('pointercancel', finishPointer);
+  // Observe completed clicks even when a note control stops bubbling. The
+  // scheduled animation frame still runs after target click handlers finish.
+  window.addEventListener('click', finishPointer, true);
+  const finishEdit = () => { if (resizePending) scheduleResize(); };
+  root.addEventListener('focusout', finishEdit);
+  if (ctx.transportHost) transportMount.addEventListener('focusout', finishEdit);
+  function pageControls(key, total, size, noun, change) {
+    const index = key === 'steps' ? state.page : state[key], pages = Math.max(1, Math.ceil(total / size));
+    const range = `${noun} ${index * size + 1}–${Math.min(total, (index + 1) * size)}`;
+    function arrow(previous) {
+      const label = `${previous ? 'Previous' : 'Next'} ${noun.toLowerCase()} page`;
+      const button = btn('', () => change(index + (previous ? -1 : 1)), {
+        disabled: previous ? index <= 0 : index >= pages - 1, 'aria-label': label, title: label,
+      });
+      const icon = svgNode('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true', focusable: 'false' });
+      icon.append(svgNode('path', { d: previous ? 'M10 3 5 8l5 5' : 'm6 3 5 5-5 5', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+      button.append(icon);
+      return button;
+    }
+    return el('div', 'sq-page-nav is-compact', { 'aria-label': `${noun} pages` }, [
+      arrow(true),
+      el('span', 'sq-caption', { text: `${range} / ${total}`, 'aria-live': 'polite', 'aria-atomic': 'true' }),
+      arrow(false),
+    ]);
+  }
+  function stepPages(c) { return pageControls('steps', c.loopStart + c.length, pageSize(), 'Steps', index => { state.follow = false; state.page = index; draw(); }); }
+  const trackName = (t) => state.model?.tracks[t].name || `Track ${t + 1}`;
   const sceneName = (s) => state.model?.sceneNames[s] || `Scene ${s + 1}`;
   const clip = (m = state.model, t = state.track, s = state.scene) => m.tracks[t].clips[s];
   const ensureClip = (m, t, s) => m.tracks[t].clips[s] ||= freshClip();
+  function trackTitle(t) {
+    const name = state.model.tracks[t].name;
+    const input = editableName(`Track ${t + 1} name`, name,
+      name => edit(`Rename track ${t + 1}`, m => { m.tracks[t].name = name; }),
+      { placeholder: `Track ${t + 1}`, pattern: '[\\x20-\\x7e]{0,16}', title: `${name || `Track ${t + 1}`}. Double-click, Enter or F2 to rename; up to 16 printable ASCII characters. Clear for the numbered name.` });
+    return el('div', 'sq-track-title', {}, [input]);
+  }
+  function trackHeader(track, t, group) {
+    const route = track.route;
+    const routeValue = `${route.kind === 1 ? 's' : 'm'}${route.index}`;
+    const routeField = choose(`Track ${t + 1} output`, routeValue, routeOptions(), v => edit(`Route track ${t + 1}`, m => { m.tracks[t].route = { kind: v[0] === 's' ? 1 : 0, index: Number(v.slice(1)) }; }));
+    const routeSelect = routeField.querySelector('select');
+    routeSelect.title = routeOptions().find(([id]) => id === routeValue)?.[1] || `Track ${t + 1} output`;
+    const header = el('div', `sq-track-head sq-track-select ${group}`, { role: 'button', tabindex: 0,
+      'aria-label': `Track ${t + 1}`, 'aria-current': t === state.track ? 'true' : 'false', 'aria-pressed': String(t === state.track),
+      'data-midi-id': `seq:select-track:${t}`,
+      'aria-description': 'Click empty space or press Enter or Space to select this track. Double-click its name to rename.',
+      'data-track-header': t, title: 'Click empty space or press Enter or Space to select track; double-click name to rename.' }, [trackTitle(t), routeField]);
+    wireHeaderSelection(header, () => selectClip(t, state.scene));
+    return header;
+  }
+  function wireHeaderSelection(header, select) {
+    // The parent selection surface is a distinct MIDI target. Child controls
+    // keep their own clicks, keyboard actions and MIDI assignments.
+    header.addEventListener('click', e => {
+      const control = e.target.closest('button, input, select, textarea, label, summary, a, [role=button]');
+      if (!state.busy && (!control || control === header)) select();
+    });
+    header.addEventListener('keydown', e => {
+      if (e.target === header && ['Enter', ' '].includes(e.key)) { e.preventDefault(); if (!state.busy) select(); }
+    });
+  }
   function announce(text, error = false) {
     readError = false;
     status.textContent = text; status.classList.toggle('is-error', error); ctx.say?.(text);
   }
   function lock(on) {
-    if (on && content.contains(document.activeElement)) { const a = document.activeElement; pendingFocus = a.getAttribute('aria-label'); }
-    state.busy = on; content.disabled = on; root.setAttribute('aria-busy', String(on));
-    if (!on && pendingFocus) { const e = [...content.querySelectorAll('[aria-label]')].find(e => e.getAttribute('aria-label') === pendingFocus); e?.focus({ preventScroll: true }); pendingFocus = null; }
+    if (on && contains(document.activeElement)) { const a = document.activeElement; pendingFocus = a.getAttribute('aria-label'); }
+    state.busy = on; content.disabled = on; const transport = transportMount.querySelector('fieldset'); if (transport) transport.disabled = on; root.setAttribute('aria-busy', String(on));
+    if (!on && resizePending) scheduleResize();
+    if (!on && pendingFocus) { const e = workspaceAll('[aria-label]').find(e => e.getAttribute('aria-label') === pendingFocus); e?.focus({ preventScroll: true }); pendingFocus = null; }
   }
   async function refresh(force = false) {
     if (state.busy && !force) { state.dirty = true; return; }
@@ -90,7 +255,7 @@ export function makeSequencer(ctx) {
           const model = parseSet(doc.set || ['movy1']);
           state.doc = doc; state.model = model; readText = text; state.dirty = false;
           if (selected) state.note = (clip()?.notes || []).findIndex(n => n.tick === selected.tick && n.pitch === selected.pitch);
-          draw();
+          if (pointerActive) refreshPending = true; else draw();
           return;
         }
       } catch (e) { announce(`Cannot read the sequence: ${e.message}`, true); readError = true; }
@@ -123,12 +288,27 @@ export function makeSequencer(ctx) {
     try { await fn(); } catch (e) { announce(e.message, true); } finally { lock(false); }
   }
   function selectClip(t, s, open = false) {
-    if (open) state.view = 'Clip';
-    state.track = t; state.scene = s; ctx.watchTrack?.(t); state.note = -1; state.page = 0;
-    const notes = clip()?.notes || [];
-    if (notes.length) { state.pitch = notes[0].pitch; state.low = Math.max(0, Math.min(104, state.pitch - 12)); }
+    if (open) changeView('Clip');
+    state.track = t; state.scene = s; state.scenesPage = Math.floor(s / layout.columns); ctx.watchTrack?.(t); state.note = -1;
+    frameClipNotes();
     draw();
     if (open) root.querySelector('[data-view="Clip"]')?.focus({ preventScroll: true });
+  }
+  function frameClipNotes() {
+    const c = clip();
+    state.page = Math.floor((c?.loopStart || 0) / pageSize());
+    pendingRollNote = -1;
+    // A clip can start with silence, or have a loop starting after bar one.
+    // Open the first sounding note's page rather than an empty first page.
+    c?.notes.forEach((n, i) => {
+      if (n.tick >= (c.loopStart + c.length) * 24 || n.tick + n.gate <= c.loopStart * 24) return;
+      if (pendingRollNote < 0 || n.tick < c.notes[pendingRollNote].tick) pendingRollNote = i;
+    });
+    const n = c?.notes[pendingRollNote];
+    if (n) {
+      state.page = Math.floor(Math.max(c.loopStart, n.tick / 24) / pageSize());
+      state.pitch = n.pitch; state.low = Math.max(0, Math.min(104, n.pitch - 12));
+    }
   }
   function soundName(i) { const s = state.doc.sounds?.[i]; return `S${i + 1} · ${s?.engine || 'Empty'}`; }
   const routeOptions = () => [...Array.from({ length: 4 }, (_, i) => [`s${i}`, soundName(i)]),
@@ -140,10 +320,9 @@ export function makeSequencer(ctx) {
   function closeInspector() {
     const key = state.inspector;
     state.inspector = null;
-    const files = deviceDialog.querySelector('.sq-file-tools');
-    const toolbar = content.querySelector('.sq-transport');
-    if (files && toolbar) toolbar.append(files);
     if (deviceDialog.open) deviceDialog.close();
+    if (!ctx.fileToolsHost) { const files = deviceDialog.querySelector('.sq-file-tools'); if (files) transportMount.querySelector('.sq-transport')?.append(files); }
+    deviceDialog.replaceChildren();
     const trigger = root.querySelector(`[data-inspector="${key}"]`);
     trigger?.setAttribute('aria-expanded', 'false');
     trigger?.focus({ preventScroll: true });
@@ -164,18 +343,103 @@ export function makeSequencer(ctx) {
       btn('Export WAV…', () => action(ctx.exportAudio)), btn('Import MIDI…', () => file.click()), file,
       btn('Refresh', () => refresh()),
     ])]);
-    return el('div', 'sq-toolbar sq-transport', {}, [
-      btn('Play', () => action(ctx.play), { 'data-testid': 'seq-play' }), btn('Stop', () => action(ctx.stop)),
-      el('output', 'sq-position', { text: 'Stopped', 'data-play-position': true, 'aria-label': 'Transport position' }),
-      state.view !== 'Mixer' ? field('BPM', m.bpmX100 / 100, v => edit('Change tempo', m => { m.bpmX100 = Math.round(v * 100); }), { min: 20, max: 300, step: .01 }) : null,
-      state.view !== 'Mixer' ? field('Swing %', m.swing, v => edit('Change swing', m => { m.swing = v; }), { min: 50, max: 80, step: 1 }) : null,
+    if (ctx.fileToolsHost) ctx.fileToolsHost.replaceChildren(files);
+    const jump = (kind, direction) => {
+      const counter = transportNavigation(state.model, ctx.getTransport?.() || {}, state.track)[kind];
+      const next = counter[direction < 0 ? 'previous' : 'next'];
+      if (next === null) return;
+      selectClip(state.track, next.scene);
+      action(() => kind === 'clip' ? ctx.playClip?.(state.track, next.scene)
+        : next.bar !== undefined ? ctx.seekBar?.(next.bar) : ctx.playScene?.(next.scene));
+    };
+    const nav = (kind, direction) => btn(direction < 0 ? '‹' : '›', () => jump(kind, direction), {
+      'aria-label': `${direction < 0 ? 'Previous' : 'Next'} ${kind}`, title: `${direction < 0 ? 'Previous' : 'Next'} ${kind}`,
+      'data-slot-kind': kind, 'data-slot-direction': direction,
+      'data-midi-id': `seq:transport:${direction < 0 ? 'previous' : 'next'}-${kind}`,
+    });
+    return el('fieldset', 'sq-toolbar sq-transport', { disabled: state.busy, 'aria-label': 'Song transport' }, [
+      btn('▶', () => action(ctx.playPause), { 'data-midi-id': 'seq:transport:play-pause', 'data-testid': 'seq-play', 'aria-label': 'Play', title: 'Play', 'data-transport-play-pause': true }),
+      btn('■', () => action(ctx.stop), { 'data-midi-id': 'seq:transport:stop', 'aria-label': 'Stop', title: 'Stop and return to 0:0:0' }),
+      el('div', 'sq-transport-readouts', {}, [
+        el('span', 'sq-readout', { title: 'Current position in zero-based bars:beats:ticks' }, [
+          el('span', 'sq-readout-icon', { text: '▶', 'aria-hidden': 'true' }),
+          el('output', 'sq-position', { text: '0:0:0', 'data-play-position': true, 'aria-label': 'Current position in zero-based bars, beats and ticks' })]),
+        el('span', 'sq-readout', { title: 'Total arrangement length in bars:beats:ticks' }, [
+          el('span', 'sq-readout-icon', { text: '◼', 'aria-hidden': 'true' }),
+          el('output', 'sq-position', { text: songDuration(m).position, 'data-play-total-position': true, 'aria-label': 'Total arrangement length in bars, beats and ticks' })]),
+        el('span', 'sq-readout', { title: 'Native elapsed playback time' }, [
+          el('span', 'sq-readout-icon', { text: '◷', 'aria-hidden': 'true' }),
+          el('output', 'sq-time', { text: '0:00.000', 'data-play-time': true, 'aria-label': 'Elapsed playback time' })]),
+        el('span', 'sq-readout', { title: 'Estimated remaining time when the song ends with Stop; unavailable while looping, parked, or externally clocked' }, [
+          el('span', 'sq-readout-icon', { text: '⌛', 'aria-hidden': 'true' }),
+          el('output', 'sq-time', { text: '—', 'data-play-remaining': true, 'aria-label': 'Estimated remaining song time' })]),
+        el('span', 'sq-transport-state sq-sr', { text: 'Stopped', 'data-play-state': true, role: 'status' }),
+      ]),
+      ...['bar', 'clip', 'scene'].map(kind => el('div', 'sq-transport-nav', {}, [
+        kind === 'bar' ? btn('‹', () => locateBar(-1), { 'data-midi-id': 'seq:transport:previous-bar', 'aria-label': 'Previous bar', 'data-bar-nav': -1 }) : nav(kind, -1),
+        el('span', 'sq-nav-label', {}, [el('span', '', { text: kind }),
+          el('output', 'sq-nav-count', { text: '0/0', 'data-nav-count': kind, 'aria-label': `Current ${kind} and total` })]),
+        kind === 'bar' ? btn('›', () => locateBar(1), { 'data-midi-id': 'seq:transport:next-bar', 'aria-label': 'Next bar', 'data-bar-nav': 1 }) : nav(kind, 1),
+      ])),
+      field('BPM', m.bpmX100 / 100, v => edit('Change tempo', m => { m.bpmX100 = Math.round(v * 100); }), { min: 20, max: 300, step: .01 }),
+      metronomeButton(),
+      choose('Song end', m.songEnd, [[0, 'Loop'], [1, 'Park'], [2, 'Stop']], v => edit('Set song ending', m => { m.songEnd = Number(v); })),
       state.view === 'Mixer' ? btn('Routing & FX', () => { state.mixDetails = !(state.mixDetails ?? !matchMedia('(max-height: 500px) and (orientation: landscape)').matches); draw(); },
         { 'aria-label': 'Routing & FX', 'aria-expanded': String(state.mixDetails ?? !matchMedia('(max-height: 500px) and (orientation: landscape)').matches), 'aria-controls': 'sq-mixer-board' }) : null,
-      files,
+      ctx.fileToolsHost ? null : files,
+      el('div', 'sq-transport-master', {}, [el('span', '', { text: 'Master' }), signalMeter('out.post_master', 'Master output', true)]),
     ]);
   }
+  function metronomeButton() {
+    const button = btn('', () => edit('Toggle metronome', (_m, doc) => { doc.settings ||= {}; doc.settings.metronome = doc.settings.metronome ? 0 : 1; }),
+      { 'data-midi-id': 'seq:transport:metronome', 'aria-label': 'Metronome', title: 'Metronome', 'aria-pressed': String(!!state.doc.settings?.metronome), class: 'sq-button sq-metronome' });
+    const icon = svgNode('svg', { viewBox: '0 0 24 24', width: 20, height: 20, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' });
+    icon.append(svgNode('path', { d: 'M9 3h6l4 17H5L9 3Z M8 16h8 M12 16l6-11' }), svgNode('circle', { cx: 18, cy: 5, r: 1.5, fill: 'currentColor' }));
+    button.append(icon); return button;
+  }
+  function locateBar(direction) {
+    const transport = ctx.getTransport?.() || {};
+    if (transport.following) return;
+    action(() => ctx.seekBar?.(Math.max(0, Math.min(barLimit(state.model, transport), Math.floor((transport.master_tick || 0) / 384) + direction))));
+  }
+  function updateTransport(transport) {
+    if (disposed || !transport || !state.model) return;
+    // A queued native update can arrive while the external host is empty
+    // during an editor remount. Each control is optional until draw finishes.
+    const position = transportMount.querySelector('[data-play-position]');
+    if (position) position.textContent = positionText(transport.master_tick);
+    const time = transportMount.querySelector('[data-play-time]');
+    if (time) time.textContent = timeText(transport.playbackFrames, transport.sampleRate);
+    const duration = songDuration(state.model, transport);
+    const total = transportMount.querySelector('[data-play-total-position]');
+    if (total) total.textContent = duration.position;
+    const remaining = transportMount.querySelector('[data-play-remaining]');
+    if (remaining) remaining.textContent = duration.remaining;
+    const status = transportMount.querySelector('[data-play-state]');
+    if (status) status.textContent = transport.playing ? 'Playing' : transport.paused ? 'Paused' : 'Stopped';
+    const playPause = transportMount.querySelector('[data-transport-play-pause]');
+    if (playPause) {
+      const label = transport.playing ? 'Pause' : transport.paused ? 'Resume' : 'Play';
+      playPause.textContent = transport.playing ? 'Ⅱ' : '▶';
+      playPause.setAttribute('aria-label', label);
+      playPause.title = label;
+      playPause.disabled = state.busy;
+    }
+    const counters = transportNavigation(state.model, transport, state.track);
+    for (const [kind, counter] of Object.entries(counters)) {
+      const output = transportMount.querySelector(`[data-nav-count="${kind}"]`);
+      if (output) { output.textContent = `${counter.current}/${counter.total}`; output.title = counter.description; }
+    }
+    for (const button of transportMount.querySelectorAll('[data-slot-kind]')) {
+      const counter = counters[button.dataset.slotKind];
+      button.disabled = state.busy || counter[Number(button.dataset.slotDirection) < 0 ? 'previous' : 'next'] === null;
+    }
+    const bar = Math.floor((transport.master_tick || 0) / 384), max = barLimit(state.model, transport);
+    for (const button of transportMount.querySelectorAll('[data-bar-nav]')) button.disabled = state.busy || !!transport.following || (Number(button.dataset.barNav) < 0 ? bar <= 0 : bar >= max);
+  }
+
   function syncMixerDisclosure() {
-    const button = root.querySelector('[aria-controls="sq-mixer-board"]');
+    const button = transportMount.querySelector('[aria-controls="sq-mixer-board"]');
     if (button) button.setAttribute('aria-expanded', String(state.mixDetails ?? !matchMedia('(max-height: 500px) and (orientation: landscape)').matches));
   }
   const compactMixerMedia = matchMedia('(max-height: 500px) and (orientation: landscape)');
@@ -253,15 +517,17 @@ export function makeSequencer(ctx) {
       el('div', 'sq-channel-level', {}, [levelFader(null), signalMeter('out.post_master', 'Final master output level')]),
     ]));
     const routes = state.model.tracks.map((track, t) => el('div', `sq-mixer-track ${track.route.kind === 1 ? `ed-s${track.route.index + 1}` : ''}`, { 'data-mixer-track': t }, [
-      btn(`T${t + 1}`, () => edit(`Toggle track ${t + 1} mute`, m => { m.tracks[t].muted ^= 1; }), { 'aria-label': `Track ${t + 1} mute`, 'aria-pressed': String(!!track.muted), title: `Track ${t + 1}: ${track.muted ? 'muted' : 'playing when launched'}` }),
+      trackTitle(t),
+      btn('Mute', () => edit(`Toggle track ${t + 1} mute`, m => { m.tracks[t].muted ^= 1; }), { 'aria-label': `Track ${t + 1} mute`, 'aria-pressed': String(!!track.muted), title: `Track ${t + 1}: ${track.muted ? 'muted' : 'playing when launched'}` }),
       choose(`Track ${t + 1} mixer output`, `${track.route.kind === 1 ? 's' : 'm'}${track.route.index}`, routeOptions(), v => edit(`Route track ${t + 1}`, m => { m.tracks[t].route = { kind: v[0] === 's' ? 1 : 0, index: Number(v.slice(1)) }; })),
     ]));
     return el('section', 'sq-mixer-workspace', {}, [el('div', 'sq-track-routing', { 'aria-label': 'Sequencer track routing and mute' }, routes),
       el('div', 'sq-mixer', { id: 'sq-mixer-board', 'aria-label': 'Four shared sound channels and master' }, strips),
-      el('p', 'sq-caption', { text: 'Tracks routed to one sound share its instrument, inserts and level. Meters show measured peak and RMS; click a device to edit it.' })]);
+      null]);
   }
   function syncLevels() {
-    for (const input of root.querySelectorAll('[data-sound-fader]')) {
+    if (disposed) return;
+    for (const input of workspaceAll('[data-sound-fader]')) {
       if (input.dataset.dragging === 'true') continue;
       const master = input.dataset.soundFader === 'master', sound = Number(input.dataset.soundFader);
       const v = master ? (ctx.getMaster?.() ?? 1) * 100 : ctx.getSoundLevel?.(sound);
@@ -272,9 +538,9 @@ export function makeSequencer(ctx) {
     }
   }
   function onTelemetry(floats) {
-    if (state.view !== 'Mixer') return;
+    if (disposed) return;
     const sections = ctx.metadata?.doc?.telemetry?.sections || [], now = performance.now();
-    for (const meter of root.querySelectorAll('[data-sq-meter]')) {
+    for (const meter of workspaceAll('[data-sq-meter]')) {
       const row = meter.dataset.sqMeter;
       const sec = sections.find(s => ['meters', 'levels'].includes(s.name) && s.rows.includes(row));
       if (!sec) continue;
@@ -295,74 +561,146 @@ export function makeSequencer(ctx) {
   }
   function songView() {
     const entries = arrangementEntries(state.model), selected = entries[state.song];
-    const select = choose('Add scene', state.scene, state.model.sceneNames.map((_, s) => [s, sceneName(s)]), v => { state.scene = Number(v); draw(); });
     function alter(label, fn) { edit(label, m => { const es = arrangementEntries(m); fn(es); m.song = es.flatMap(e => Array(e.presses).fill(e.scene)); }); }
-    const controls = el('div', 'sq-toolbar', {}, [select,
-      btn('Append', () => edit('Append scene to song', m => { m.song.push(state.scene); })),
+    const add = el('details', 'sq-add-section', {}, [
+      el('summary', 'sq-button', { text: '＋ Add section' }),
+      el('div', 'sq-add-menu', {}, state.model.sceneNames.map((_, scene) =>
+        btn(sceneName(scene), () => { add.open = false; edit('Append scene to song', m => { m.song.push(scene); }); },
+          { 'aria-label': `Append scene ${scene + 1}: ${sceneName(scene)}`, disabled: state.model.song.length >= 64 }))),
+    ]);
+    add.addEventListener('toggle', () => {
+      if (!add.open) return;
+      const menu = add.querySelector('.sq-add-menu'), anchor = add.querySelector('summary').getBoundingClientRect();
+      const viewport = window.visualViewport;
+      const left = (viewport?.offsetLeft || 0) + 8, top = (viewport?.offsetTop || 0) + 8;
+      const right = left + (viewport?.width || window.innerWidth) - 16;
+      const bottom = top + (viewport?.height || window.innerHeight) - 16;
+      const below = bottom - anchor.bottom - 6, above = anchor.top - top - 6;
+      const upward = below < 100 && above > below;
+      menu.style.top = upward ? 'auto' : 'calc(100% + 6px)';
+      menu.style.bottom = upward ? 'calc(100% + 6px)' : 'auto';
+      menu.style.maxHeight = `${Math.max(0, upward ? above : below)}px`;
+      menu.style.maxWidth = `${right - left}px`;
+      menu.style.left = '0';
+      const bounds = menu.getBoundingClientRect();
+      menu.style.left = `${Math.max(left - bounds.left, Math.min(0, right - bounds.right))}px`;
+    });
+    const tools = el('details', 'sq-section-tools', {}, [el('summary', 'sq-button', { text: 'Section tools' }), el('div', 'sq-toolbar', {}, [
       btn('Copy entry', () => alter('Copy song entry', es => { if (es[state.song]) es.splice(state.song + 1, 0, clone(es[state.song])); }), { disabled: !selected }),
       btn('Move ←', () => alter('Move song entry earlier', es => { if (state.song > 0) { const e = es.splice(state.song, 1)[0]; es.splice(--state.song, 0, e); } }), { disabled: !selected || !state.song }),
       btn('Move →', () => alter('Move song entry later', es => { if (state.song < es.length - 1) { const e = es.splice(state.song, 1)[0]; es.splice(++state.song, 0, e); } }), { disabled: !selected || state.song === entries.length - 1 }),
       btn('Remove entry', () => alter('Remove song entry', es => { es.splice(state.song, 1); state.song = Math.max(0, state.song - 1); }), { disabled: !selected }),
       selected ? field('Repeats', selected.presses, v => alter('Change scene repeats', es => { es[state.song].presses = v; }), { min: 1, max: 64, step: 1 }) : null,
-      choose('Song end', state.model.songEnd, [[0, 'Loop song'], [1, 'Park tracks; keep clock running'], [2, 'Stop']], v => edit('Set song ending', m => { m.songEnd = Number(v); })),
-    ]);
+    ])]);
+    const ending = choose('Song ending', state.model.songEnd, [[0, 'Loop song'], [1, 'Park tracks'], [2, 'Stop']],
+      v => edit('Set song ending', m => { m.songEnd = Number(v); }));
+    ending.title = 'At the song end: loop, park tracks while the clock keeps running, or stop.';
     const timeline = el('div', 'sq-song-grid', { 'aria-label': 'Song timeline' });
-    const columns = entries.length ? entries : [{ scene: state.scene, presses: 1, startBar: 0, bars: Math.max(1, ...state.model.tracks.map(t => Math.ceil((t.clips[state.scene]?.length || 0) / 16))) }];
-    timeline.style.gridTemplateColumns = `170px ${columns.map(e => `${Math.max(100, Math.min(340, e.bars * 22))}px`).join(' ')}`;
+    const allColumns = entries.length ? entries : [{ scene: state.scene, presses: 1, startBar: 0, bars: Math.max(1, ...state.model.tracks.map(t => Math.ceil((t.clips[state.scene]?.length || 0) / 16))) }];
+    state.songPage = Math.min(state.songPage, Math.floor((allColumns.length - 1) / layout.columns));
+    const first = state.songPage * layout.columns, columns = allColumns.slice(first, first + layout.columns);
+    timeline.style.gridTemplateColumns = `140px repeat(${columns.length}, minmax(0, 1fr))`;
     timeline.append(el('div', 'sq-track-head', { text: entries.length ? 'SONG · bars' : 'SCENE · not in song' }));
-    columns.forEach((e, i) => timeline.append(btn(`${sceneName(e.scene)} ×${e.presses} · ${e.bars} ${e.bars === 1 ? 'bar' : 'bars'}`, () => { state.song = i; selectClip(state.track, e.scene); }, {
-      class: `sq-button sq-entry ${state.song === i ? 'is-selected' : ''}`, 'data-song-entry': e.songIndex ?? i, title: `Starts at bar ${e.startBar + 1}`, 'aria-pressed': String(state.song === i),
-    })));
+    columns.forEach((e, offset) => {
+      const i = first + offset;
+      const name = editableName(`Scene ${e.scene + 1} name in song entry ${i + 1}`, state.model.sceneNames[e.scene] || '', v => edit('Rename scene', m => { m.sceneNames[e.scene] = v; }), { maxlength: 6, pattern: '[!-~]{0,6}', placeholder: sceneName(e.scene) });
+      timeline.append(el('div', `sq-entry ${state.song === i ? 'is-selected' : ''}`, { 'data-song-entry': e.songIndex ?? i, 'data-song-entry-end': (e.songIndex ?? i) + e.presses }, [
+      el('div', 'sq-name-header', {}, [name]),
+      btn(`×${e.presses} · ${e.bars} ${e.bars === 1 ? 'bar' : 'bars'}`, () => { state.song = i; selectClip(state.track, e.scene); }, {
+        title: `Starts at bar ${e.startBar + 1}. Select this section; repeats share its scene clips.`, 'aria-label': `Select song entry ${i + 1}: ${sceneName(e.scene)}`, 'aria-pressed': String(state.song === i),
+      }),
+    ])); });
     state.model.tracks.forEach((track, t) => {
       const route = track.route, group = route.kind === 1 ? `ed-s${route.index + 1}` : '';
-      timeline.append(el('div', `sq-track-head ${group}`, {}, [btn(`Track ${t + 1}`, () => selectClip(t, state.scene)),
-        choose(`Track ${t + 1} output`, `${route.kind === 1 ? 's' : 'm'}${route.index}`, routeOptions(), v => edit(`Route track ${t + 1}`, m => { m.tracks[t].route = { kind: v[0] === 's' ? 1 : 0, index: Number(v.slice(1)) }; }))]));
-      columns.forEach((e, i) => {
+      timeline.append(trackHeader(track, t, group));
+      columns.forEach((e, offset) => {
+      const i = first + offset;
         const c = track.clips[e.scene];
         const noteCount = c?.notes.length || 0, barCount = c ? c.length / 16 : 0;
         const cell = btn(c ? `${noteCount} ${noteCount === 1 ? 'note' : 'notes'} · ${barCount} ${barCount === 1 ? 'bar' : 'bars'}` : '＋ Empty clip', () => { state.song = i; selectClip(t, e.scene, true); }, {
           class: `sq-button sq-clip ${group} ${t === state.track && e.scene === state.scene ? 'is-selected' : ''}`,
           'aria-label': `Track ${t + 1}, ${sceneName(e.scene)}, ${c ? `${noteCount} ${noteCount === 1 ? 'note' : 'notes'}, ${barCount} ${barCount === 1 ? 'bar' : 'bars'}` : 'empty clip'}`, 'data-track': t, 'data-scene': e.scene,
+          'data-preview-track': t, 'data-preview-scene': e.scene, 'data-entry-start': e.songIndex ?? -1, 'data-entry-end': (e.songIndex ?? -1) + e.presses,
         });
-        if (c?.notes.length) cell.append(clipPreview(c));
+        if (c) cell.append(clipPreview(c));
         timeline.append(cell);
       });
     });
-    return el('section', 'sq-section', {}, [el('h3', '', { text: 'Arrangement' }), controls,
-      el('div', 'sq-scroll', { 'data-scroll': 'song' }, [timeline]), el('p', 'sq-caption', { text: 'Columns follow the native scene chain. Repeats share their scene clips; edit a copied scene for a different variation.' })]);
+    return el('section', 'sq-section sq-arrangement', { 'aria-description': 'Select a section using its repeat and bar header. Repeats share scene clips; copy a scene for a different variation.' }, [timelineHeading('Arrangement', 'songPage', allColumns.length, [add, tools, ending]),
+      timelinePage(timeline, 'songPage')]);
+  }
+  function timelineHeading(title, key, total, controls = []) {
+    const noun = key === 'songPage' ? 'Sections' : 'Scenes';
+    return el('div', `sq-section-heading${controls.length ? ' sq-arrangement-tools' : ''}`, {}, [el('h3', '', { text: title }),
+      pageControls(key, total, layout.columns, noun, index => { state[key] = index; draw(); }), controls]);
+  }
+  function timelinePage(grid, key) {
+    const label = key === 'songPage' ? 'Sections' : 'Scenes';
+    return el('div', 'sq-timeline', {}, [
+      el('div', 'sq-scroll', { 'data-scroll': key === 'songPage' ? 'song' : 'scenes', tabindex: 0, 'aria-label': `${label} grid` }, [grid]),
+    ]);
   }
   function sceneMatrix() {
     const grid = el('div', 'sq-song-grid sq-scene-grid', { 'aria-label': 'Scene matrix', 'data-testid': 'scene-matrix' });
-    grid.style.gridTemplateColumns = '170px repeat(8, 170px)';
+    state.scenesPage = Math.min(state.scenesPage, Math.floor(7 / layout.columns));
+    const first = state.scenesPage * layout.columns, last = Math.min(8, first + layout.columns);
+    grid.style.gridTemplateColumns = `140px repeat(${last - first}, minmax(0, 1fr))`;
     grid.append(el('div', 'sq-track-head', { text: 'SCENES · performance' }));
-    for (let scene = 0; scene < 8; scene++) grid.append(el('div', 'sq-scene-head', {}, [
-      btn(sceneName(scene), () => selectClip(state.track, scene), { 'aria-label': `Edit scene ${scene + 1}`, 'aria-pressed': String(state.scene === scene) }),
-      ctx.playScene ? btn('▶ Launch scene', () => action(() => ctx.playScene(scene)), { 'aria-label': `Launch scene ${scene + 1}` }) : null,
-    ]));
+    for (let scene = first; scene < last; scene++) {
+      const name = editableName(`Scene ${scene + 1} name`, state.model.sceneNames[scene] || '', v => edit('Rename scene', m => { m.sceneNames[scene] = v; }), { maxlength: 6, pattern: '[!-~]{0,6}', placeholder: sceneName(scene) });
+      const header = el('div', 'sq-scene-head sq-scene-select', { role: 'button', tabindex: 0,
+        'data-scene-header': scene, 'data-midi-id': `seq:select-scene:${scene}`,
+        'aria-label': `Scene ${scene + 1}`, 'aria-pressed': String(state.scene === scene),
+        'aria-description': 'Click empty space or press Enter or Space to select this scene. Double-click its name to rename.',
+        title: 'Click empty space to select scene; double-click name to rename.' }, [
+        el('div', 'sq-scene-title', {}, [
+          ctx.playScene ? btn('▶', () => action(() => ctx.playScene(scene)), {
+            'data-scene-launch': true, 'aria-label': `Launch scene ${scene + 1}`, title: `Launch scene ${scene + 1}`,
+          }) : null,
+          el('div', 'sq-name-header', {}, [name]),
+        ]),
+      ]);
+      wireHeaderSelection(header, () => selectClip(state.track, scene));
+      grid.append(header);
+    }
     state.model.tracks.forEach((track, t) => {
       const route = track.route, group = route.kind === 1 ? `ed-s${route.index + 1}` : '';
-      grid.append(el('div', `sq-track-head ${group}`, {}, [btn(`Track ${t + 1}`, () => selectClip(t, state.scene)),
-        choose(`Track ${t + 1} output`, `${route.kind === 1 ? 's' : 'm'}${route.index}`, routeOptions(), v => edit(`Route track ${t + 1}`, m => { m.tracks[t].route = { kind: v[0] === 's' ? 1 : 0, index: Number(v.slice(1)) }; }))]));
-      for (let scene = 0; scene < 8; scene++) {
+      grid.append(trackHeader(track, t, group));
+      for (let scene = first; scene < last; scene++) {
         const c = track.clips[scene];
         const notes = c?.notes.length || 0, bars = c ? c.length / 16 : 0;
         const summary = c ? `${notes} ${notes === 1 ? 'note' : 'notes'} · ${bars} ${bars === 1 ? 'bar' : 'bars'}` : '＋ Empty clip';
         const editButton = btn('', () => selectClip(t, scene, true), {
           class: 'sq-button sq-scene-edit', 'aria-label': `Edit track ${t + 1} scene ${scene + 1}`,
+          title: 'Edit this clip',
           'aria-pressed': String(state.track === t && state.scene === scene),
+          'data-progress-track': t, 'data-progress-scene': scene,
         });
-        editButton.append(el('span', 'sq-scene-summary', { text: summary }));
-        if (c?.notes.length) editButton.append(clipPreview(c));
-        grid.append(el('div', `sq-matrix-cell ${group}`, { 'data-live-track': t, 'data-live-scene': scene }, [editButton,
-          ctx.playClip ? btn(c ? '▶ Launch clip' : '■ Stop track', () => action(() => ctx.playClip(t, scene)), {
-            'aria-label': `${c ? 'Launch clip' : 'Stop track'} ${t + 1} scene ${scene + 1}`,
-            title: c ? 'Launch this clip at the native bar boundary' : 'Launch the empty slot to stop this track at the native bar boundary',
-          }) : null]));
+        const pencil = svgNode('svg', { class: 'sq-scene-edit-icon', viewBox: '0 0 16 16', 'aria-hidden': 'true', focusable: 'false' });
+        pencil.append(svgNode('path', { d: 'M11.9 1.5l2.6 2.6-8.8 8.8-3.5.9.9-3.5zM10.7 2.7l2.6 2.6' }));
+        const launchButton = ctx.playClip ? btn('', () => action(() => ctx.playClip(t, scene)), {
+          'data-scene-launch': true,
+          'aria-label': `${c ? 'Launch clip' : 'Stop track'} ${t + 1} scene ${scene + 1}`,
+          title: c ? `Launch this clip at the native bar boundary · ${summary}` : 'Launch the empty slot to stop this track at the native bar boundary',
+          ...(c ? { 'aria-description': summary } : {}),
+        }) : null;
+        if (launchButton) {
+          launchButton.append(el('span', 'sq-scene-launch-icon', { text: c ? '▶' : '■', 'aria-hidden': 'true' }));
+          launchButton.append(el('span', 'sq-scene-summary', { text: summary }));
+          if (c) launchButton.append(clipPreview(c));
+        } else {
+          editButton.append(el('span', 'sq-scene-summary', { text: summary }));
+          if (c) editButton.append(clipPreview(c));
+        }
+        editButton.append(pencil);
+        grid.append(el('div', `sq-matrix-cell ${group}`, { 'data-live-track': t, 'data-live-scene': scene }, [
+          launchButton, editButton,
+          el('span', 'sq-clip-progress', { 'aria-hidden': 'true', hidden: true }),
+        ]));
       }
     });
-    return el('section', 'sq-section', {}, [el('h3', '', { text: 'Scenes' }),
-      el('p', 'sq-caption sq-scene-caption', { text: 'Edit a slot or launch a clip. Launch a scene to start its column; empty slots stop those tracks.' }),
-      el('div', 'sq-scroll', { 'data-scroll': 'scenes' }, [grid])]);
+    return el('section', 'sq-section', {}, [timelineHeading('Scenes', 'scenesPage', 8),
+      timelinePage(grid, 'scenesPage')]);
   }
   function svgNode(tag, attrs = {}) {
     const n = document.createElementNS('http://www.w3.org/2000/svg', tag);
@@ -377,12 +715,13 @@ export function makeSequencer(ctx) {
       if (x < 0 || x >= 160) continue;
       svg.append(svgNode('rect', { x, y: 27 - (n.pitch - lo) / (hi - lo) * 24, width: Math.min(160 - x, Math.max(2, n.gate / 24 / c.length * 160)), height: 3, opacity: .35 + n.vel / 127 * .65 }));
     }
+    svg.append(svgNode('line', { x1: 0, x2: 0, y1: 0, y2: 32, class: 'sq-preview-playhead', 'data-preview-playhead': true, visibility: 'hidden' }));
     return svg;
   }
   function sceneTools() {
     let target = (state.scene + 1) % 8, track = state.track;
     return el('details', 'sq-scene-tools', {}, [
-      el('summary', 'sq-button', { text: 'Scene and clip tools' }),
+      el('summary', 'sq-button', { 'aria-label': 'Scene and clip tools', title: 'Scene and clip tools: rename, copy, move or swap' }),
       el('div', 'sq-toolbar sq-compact-fields sq-scene-tool-fields', {}, [
         field('Scene name', state.model.sceneNames[state.scene] || '', v => edit('Rename scene', m => { m.sceneNames[state.scene] = v; }), { type: 'text', maxlength: 6, pattern: '[!-~]{0,6}', title: 'Up to six characters, without spaces' }),
         choose('Copy to scene', target, state.model.sceneNames.map((_, s) => [s, sceneName(s)]), v => { target = Number(v); }),
@@ -412,7 +751,7 @@ export function makeSequencer(ctx) {
   }
   function noteEdit(patch, label = 'Edit note') {
     const original = clone(clip().notes[state.note]), t = state.track, s = state.scene;
-    edit(label, m => {
+    return edit(label, m => {
       const c = clip(m, t, s), n = c?.notes.find(n => JSON.stringify(n) === JSON.stringify(original));
       if (!n) throw new Error('This note changed elsewhere. Select it again.');
       const previous = { step: n.step, pitch: n.pitch };
@@ -422,10 +761,20 @@ export function makeSequencer(ctx) {
     });
   }
   function pianoRoll(c) {
-    const start = state.page * 32, end = Math.min(start + 32, c.loopStart + c.length), count = Math.max(1, end - start);
-    const canvas = el('div', 'sq-roll', { 'aria-label': 'Piano roll', 'data-testid': 'piano-roll' });
+    const start = pageStart(), end = Math.min(start + pageSize(), c.loopStart + c.length), count = Math.max(1, end - start);
+    const canvas = el('div', 'sq-roll', { 'aria-label': 'Piano roll', 'data-testid': 'piano-roll', 'aria-description': 'Click an empty cell to add a note; select a note to edit its properties.' });
     canvas.style.setProperty('--steps', count);
-    const ruler = el('div', 'sq-ruler', {}, [el('span', '', { text: 'Pitch' })]);
+    const octaves = el('div', 'sq-octaves', { 'aria-label': 'Pitch range' });
+    for (const up of [false, true]) {
+      const button = btn('', () => { state.low = Math.max(0, Math.min(104, state.low + (up ? 12 : -12))); draw(); }, {
+        disabled: up ? state.low === 104 : state.low === 0, 'aria-label': up ? 'Octave ↑' : 'Octave ↓', title: up ? 'Raise pitch range one octave' : 'Lower pitch range one octave',
+      });
+      const icon = svgNode('svg', { viewBox: '0 0 24 30', 'aria-hidden': 'true', focusable: 'false' });
+      icon.append(svgNode('path', { d: up ? 'M13 26C6 28 4 20 9 17c7-4 12 3 7 7-5 4-12 0-12-6 0-8 13-11 12-18-1-5-7 3-6 8l5 19c1 4-5 5-6 1' : 'M5 11c0-7 12-7 12 0 0 7-6 10-12 12', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+      if (!up) { icon.append(svgNode('circle', { cx: 21, cy: 8, r: 1.2, fill: 'currentColor' }), svgNode('circle', { cx: 21, cy: 14, r: 1.2, fill: 'currentColor' })); }
+      button.append(icon); octaves.append(button);
+    }
+    const ruler = el('div', 'sq-ruler', {}, [octaves]);
     for (let step = start; step < end; ++step) ruler.append(el('span', '', { text: step % 4 === 0 ? `${Math.floor(step / 16) + 1}.${step % 16 / 4 + 1}` : '·' }));
     canvas.append(ruler, el('div', 'sq-playhead', { 'aria-hidden': 'true', 'data-roll-playhead': true }));
     for (let pitch = state.low + 23; pitch >= state.low; --pitch) {
@@ -433,7 +782,7 @@ export function makeSequencer(ctx) {
       row.append(btn(pitchName(pitch), () => { state.pitch = pitch; draw(); }, { 'aria-label': `Use ${pitchName(pitch)} for new notes` }));
       const lane = el('div', 'sq-note-lane', { onclick: e => {
         if (e.target !== lane || state.busy) return;
-        const step = start + Math.min(count - 1, Math.floor((e.clientX - lane.getBoundingClientRect().left) / 28));
+        const step = start + Math.min(count - 1, Math.floor((e.clientX - lane.getBoundingClientRect().left) / (lane.getBoundingClientRect().width / count)));
         if (step >= c.loopStart) addNote(step, pitch);
       } });
       c.notes.forEach((n, i) => {
@@ -443,7 +792,7 @@ export function makeSequencer(ctx) {
           class: `sq-note ${state.note === i ? 'is-selected' : ''}`, 'aria-label': `${pitchName(pitch)}, step ${n.step + 1}, gate ${n.gate} ticks, velocity ${n.vel}`,
           'data-note': i, title: `${pitchName(pitch)} · velocity ${n.vel} · gate ${n.gate}`,
         });
-        b.style.left = `${left * 28}px`; b.style.width = `${Math.max(8, (right - left) * 28 - 2)}px`;
+        b.style.left = `${left / count * 100}%`; b.style.width = `calc(${(right - left) / count * 100}% - 2px)`;
         b.addEventListener('pointerdown', e => beginNoteDrag(e, n, i, c, false));
         b.append(el('span', 'sq-note-resize', { 'aria-hidden': 'true', 'data-resize-note': i, title: 'Drag to resize gate', onpointerdown: e => { e.stopPropagation(); beginNoteDrag(e, n, i, c, true); } }));
         lane.append(b);
@@ -451,6 +800,7 @@ export function makeSequencer(ctx) {
       row.append(lane); canvas.append(row);
     }
     const steps = el('div', 'sq-step-grid', { 'aria-label': `Step editor for ${pitchName(state.pitch)}` });
+    steps.style.setProperty('--steps', count);
     for (let s = start; s < end; ++s) {
       const index = c.notes.findIndex(n => n.step === s && n.pitch === state.pitch);
       steps.append(btn(String(s + 1), () => { if (index < 0) addNote(s, state.pitch); else { state.note = index; draw(); } }, {
@@ -464,13 +814,15 @@ export function makeSequencer(ctx) {
     const x = e.clientX, y = e.clientY, node = e.currentTarget.closest('.sq-note');
     let moved = false, dx = 0, dy = 0;
     const originalLeft = node.style.left, originalWidth = node.style.width;
+    const stepWidth = node.parentElement.getBoundingClientRect().width / Number(node.closest('.sq-roll').style.getPropertyValue('--steps'));
+    const pixelWidth = node.getBoundingClientRect().width;
     const abort = new AbortController(); cancelDrag?.(); cancelDrag = () => { abort.abort(); node.style.left = originalLeft; node.style.width = originalWidth; node.style.transform = ''; };
     window.addEventListener('pointermove', ev => {
-      dx = Math.round((ev.clientX - x) / 28); dy = Math.round((y - ev.clientY) / 28);
+      dx = Math.round((ev.clientX - x) / stepWidth); dy = Math.round((y - ev.clientY) / 28);
       if (Math.abs(ev.clientX - x) + Math.abs(ev.clientY - y) < 5) return;
       moved = true; ev.preventDefault();
-      if (resize) node.style.width = `${Math.max(8, parseFloat(originalWidth) + dx * 28)}px`;
-      else node.style.transform = `translate(${dx * 28}px, ${-dy * 28}px)`;
+      if (resize) node.style.width = `${Math.max(8, pixelWidth + dx * stepWidth)}px`;
+      else node.style.transform = `translate(${dx * stepWidth}px, ${-dy * 28}px)`;
     }, { signal: abort.signal, passive: false });
     window.addEventListener('pointerup', () => {
       cancelDrag?.(); cancelDrag = null;
@@ -493,7 +845,7 @@ export function makeSequencer(ctx) {
   }
   function noteDetails(c) {
     const n = c.notes[state.note];
-    if (!n) return el('p', 'sq-caption', { text: 'Click an empty piano-roll cell or step to add a note. Select a note to edit its gate, velocity, probability and microtiming.' });
+    if (!n) return null;
     const trig = c.trigs.find(t => t.step === n.step && t.lane === n.pitch);
     return el('div', 'sq-note-details', { 'aria-label': 'Selected note' }, [
       el('div', 'sq-toolbar sq-compact-fields sq-note-essential', {}, [
@@ -547,15 +899,18 @@ export function makeSequencer(ctx) {
       const param = targets.flatMap(t => t.params).find(p => p.label === label);
       m.tracks[state.track].lanes[lane] = { label, base: assigned?.label === label ? assigned.base : param?.base ?? 64 };
     });
-    const start = state.page * 32, end = Math.min(start + 32, c.loopStart + c.length);
-    const controls = el('div', 'sq-toolbar', {}, [
+    const start = pageStart(), end = Math.min(start + pageSize(), c.loopStart + c.length);
+    const controls = el('details', 'sq-automation-assign', { open: state.automationAssignOpen, ontoggle: e => { state.automationAssignOpen = e.currentTarget.open; } }, [
+      el('summary', '', { text: 'Add automation', 'aria-label': 'Add automation', title: 'Assign one of eight native lock lanes to an instrument, insert, sound level or master effect parameter.' }),
+      el('div', 'sq-toolbar', {}, [
       choose('Lock lane', lane, Array.from({ length: 8 }, (_, i) => [i, `Lane ${i + 1}${track.lanes[i] ? ' · ' + track.lanes[i].label : ''}`]), v => { state.lane = Number(v); draw(); }),
       targets.some(t => t.params.length) ? choose('Automation target', targetId, targets.filter(t => t.params.length || t.id === targetId).map(t => [t.id,t.name]), v => { const p = targets.find(t => t.id === v)?.params[0]; if (p) assign(p.label); }) : null,
       params.length ? choose('Parameter', assigned?.label || params[0].label, params.map(p => [p.label,p.name]), assign) : null,
       !assigned && params.length ? btn('Assign parameter', () => assign(params[0].label)) : null,
       assigned ? field('Base · 0–127', assigned.base, v => edit('Set lane base', m => { m.tracks[state.track].lanes[lane].base = v; }), { min: 0, max: 127, step: 1 }) : null,
-    ]);
+    ])]);
     const points = el('div', 'sq-lock-grid');
+    points.style.setProperty('--automation-steps', end - start);
     if (assigned) for (let step = start; step < end; step++) {
       const found = c.locks.find(l => l.lane === lane && l.step === step);
       const input = el('input', '', { type: 'number', min: 0, max: 127, step: 1, placeholder: '—', 'aria-label': `Lane ${lane + 1}, step ${step + 1} lock`, title: 'Clear the field to remove this lock' });
@@ -566,51 +921,89 @@ export function makeSequencer(ctx) {
       }); });
       points.append(el('label', 'sq-lock', {}, [el('span', '', { text: step + 1 }), input]));
     }
-    return el('section', 'sq-section', {}, [el('h3', '', { text: 'Parameter locks' }), controls,
-      el('div', 'sq-scroll', { 'data-scroll': 'locks' }, [assigned ? lockPlot(c, lane, assigned.base, start, end) : '', points]),
-      el('p', 'sq-caption', { text: 'Locks use a 0–127 scale across the target’s parameter range. Blank steps use the last value. Inserts and level follow this track’s sound route; master-effect lanes control the shared master effects.' })]);
+    return el('section', 'sq-section', {}, [controls,
+      el('div', 'sq-scroll', { 'data-scroll': 'locks' }, [automationRows(c, start, end), points]),
+      null]);
   }
-  function lockPlot(c, lane, base, start, end) {
-    const width = Math.max(1, end - start) * 55 + 12;
-    const svg = svgNode('svg', { viewBox: `0 0 ${width} 80`, width, height: 80, class: 'sq-lock-plot', role: 'img', 'aria-label': 'Held automation values; changes occur at step boundaries' });
-    const locks = c.locks.filter(l => l.lane === lane).sort((a,b) => a.step - b.step);
-    let value = base;
-    for (const l of locks) if (l.step < start) value = l.value;
-    const y = v => 72 - v / 127 * 64;
-    let path = `M 8 ${y(value)}`;
-    for (let step = start; step < end; step++) {
-      const point = locks.find(l => l.step === step), x = 8 + (step - start) * 55;
-      if (point) { value = point.value; path += ` H ${x} V ${y(value)}`; }
-      path += ` H ${x + 55}`;
-      svg.append(svgNode('path', {d:`M ${x} 8 V 72`,class:'sq-lock-guide'}));
-    }
-    svg.append(svgNode('path', { d:path, class:'sq-lock-line' }));
-    return svg;
+  function setVisualLock(lane, step, value) {
+    edit(value === null ? 'Remove parameter lock' : 'Edit parameter lock', m => {
+      const c = clip(m); c.locks = c.locks.filter(l => l.lane !== lane || l.step !== step);
+      if (value !== null) c.locks.push({ lane, step, value });
+    });
   }
-  function clipView() {
+  function automationRows(c, start, end) {
+    const track = state.model.tracks[state.track];
+    const rows = el('div', 'sq-automation-rows', { 'aria-label': 'Native parameter lock lanes', 'aria-description': 'Locks use 0–127. Blank steps carry the last value; a note without a lock resets to base. Click a step to set, use up/down to adjust, Delete to clear.' });
+    const ruler = el('div', 'sq-automation-row sq-automation-ruler', {}, [el('span', 'sq-automation-label', { text: 'LANE · 0–127' })]);
+    for (let step = start; step < end; step++) ruler.append(el('span', '', { text: step + 1 }));
+    rows.append(ruler);
+    track.lanes.forEach((assigned, lane) => {
+      if (!assigned) return;
+      const row = el('div', `sq-automation-row ${lane === state.lane ? 'is-selected' : ''}`, { 'data-automation-lane': lane });
+      row.append(btn(`Lane ${lane + 1} · ${assigned.label}`, () => { state.lane = lane; draw(); }, {
+        class: 'sq-button sq-automation-label', 'aria-label': `Select lock lane ${lane + 1}: ${assigned.label}`,
+        'aria-pressed': String(lane === state.lane), title: `${assigned.label} · base ${assigned.base}`,
+      }));
+      for (const point of automationSteps(c, lane, assigned.base, start, end)) {
+        const kind = point.lock !== undefined ? `lock ${point.lock}` : point.reset ? `note resets to base ${point.value}` : `held value ${point.value}`;
+        const button = btn('', e => {
+          // Keyboard activation uses the held value. Pointer clicks map the
+          // lane height to its native 0–127 value; no host-only envelopes.
+          const r = e.currentTarget.getBoundingClientRect();
+          const value = e.detail ? Math.max(0, Math.min(127, Math.round((r.bottom - 8 - e.clientY) / (r.height - 16) * 127))) : point.value;
+          setVisualLock(lane, point.step, value);
+        }, { class: `sq-button sq-automation-step ${point.lock !== undefined ? 'has-lock' : ''} ${point.reset ? 'is-reset' : ''}`,
+          'aria-label': `Lane ${lane + 1}, step ${point.step + 1} automation`, 'aria-description': kind,
+          'data-automation-step': point.step, disabled: !point.inLoop,
+          title: `${kind}. Click to set; ↑/↓ changes by 1 (Shift: 8); Delete clears.`,
+          onkeydown: e => {
+            if (['Delete', 'Backspace'].includes(e.key)) { e.preventDefault(); setVisualLock(lane, point.step, null); }
+            else if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
+              e.preventDefault(); const delta = (e.shiftKey ? 8 : 1) * (e.key === 'ArrowUp' ? 1 : -1);
+              setVisualLock(lane, point.step, Math.max(0, Math.min(127, (point.lock ?? point.value) + delta)));
+            }
+          },
+        });
+        button.style.setProperty('--lock-height', `${point.value / 127 * 100}%`);
+        button.append(el('span', 'sq-automation-block', { 'aria-hidden': 'true' }),
+          el('span', 'sq-automation-value', { text: point.lock ?? '', 'aria-hidden': 'true' }));
+        row.append(button);
+      }
+      row.append(el('span', 'sq-automation-playhead', { 'data-automation-playhead': true, hidden: true, 'aria-hidden': 'true' }));
+      rows.append(row);
+    });
+    if (!track.lanes.some(Boolean)) rows.append(el('p', 'sq-caption', { text: 'Assign a parameter to create a visual lock lane.' }));
+    rows.style.setProperty('--automation-steps', Math.max(0, end - start));
+    return rows;
+  }
+  function clipView(selection) {
     const c = clip();
-    if (!c) return el('section', 'sq-section', {}, [sceneTools(), btn('Create clip', () => edit('Create clip', m => { ensureClip(m, state.track, state.scene); }))]);
-    state.page = Math.min(state.page, Math.floor((c.loopStart + c.length - 1) / 32));
+    if (!c) return el('section', 'sq-section', {}, [sceneTools(), btn('Create clip', () => edit('Create clip', m => { ensureClip(m, state.track, state.scene); })), selection]);
+    state.page = Math.min(state.page, Math.floor((c.loopStart + c.length - 1) / pageSize()));
+    function compactField(label, visible, value, change, attrs) {
+      const control = field(label, value, change, attrs);
+      control.firstChild.textContent = visible;
+      control.title = label;
+      return control;
+    }
     const controls = el('div', 'sq-clip-controls', {}, [
       el('div', 'sq-toolbar sq-compact-fields sq-clip-params', {}, [
-      el('h3', '', { text: `Track ${state.track + 1} · ${sceneName(state.scene)}` }),
-      field('Loop start · step', c.loopStart + 1, v => edit('Set clip loop start', m => { clip(m).loopStart = v - 1; }), { min: 1, max: 256, step: 1 }),
-      field('Loop length · steps', c.length, v => edit('Set clip loop length', m => { clip(m).length = v; }), { min: 1, max: 256 - c.loopStart, step: 1 }),
-      field('Quantize %', c.quant, v => edit('Set clip quantize', m => { clip(m).quant = v; }), { min: 0, max: 100, step: 1 }),
+      compactField('Loop start · step', 'Start', c.loopStart + 1, v => edit('Set clip loop start', m => { clip(m).loopStart = v - 1; }), { min: 1, max: 256, step: 1 }),
+      compactField('Loop length · steps', 'Length', c.length, v => edit('Set clip loop length', m => { clip(m).length = v; }), { min: 1, max: 256 - c.loopStart, step: 1 }),
+      compactField('Quantize %', 'Quantize', c.quant, v => edit('Set clip quantize', m => { clip(m).quant = v; }), { min: 0, max: 100, step: 1 }),
       field('Transpose', c.transpose, v => edit('Transpose clip', m => { clip(m).transpose = v; }), { min: -36, max: 36, step: 1 }),
       ]),
-      el('div', 'sq-toolbar sq-clip-actions', {}, [
-      btn('Add note', () => addNote(Math.max(c.loopStart, state.page * 32), state.pitch)),
-      field('New note pitch', state.pitch, v => { state.pitch = v; state.low = Math.max(0, Math.min(104, v - 12)); draw(); }, { min: 0, max: 127, step: 1 }),
+      el('div', 'sq-toolbar sq-compact-fields sq-clip-actions', {}, [
+      btn('Add note', () => addNote(Math.max(c.loopStart, pageStart()), state.pitch)),
+      compactField('New note pitch', 'Pitch', state.pitch, v => { state.pitch = v; state.low = Math.max(0, Math.min(104, v - 12)); draw(); }, { min: 0, max: 127, step: 1 }),
       btn('Delete clip', () => edit('Delete clip', m => { m.tracks[state.track].clips[state.scene] = null; state.note = -1; })),
-      btn('◀ 2 bars', () => { state.page--; draw(); }, { disabled: state.page === 0 }),
-      el('span', 'sq-caption', { text: `Steps ${state.page * 32 + 1}–${Math.min((state.page + 1) * 32, c.loopStart + c.length)}` }),
-      btn('2 bars ▶', () => { state.page++; draw(); }, { disabled: (state.page + 1) * 32 >= c.loopStart + c.length }),
-      btn('Octave ↓', () => { state.low = Math.max(0, state.low - 12); draw(); }, { disabled: state.low === 0 }),
-      btn('Octave ↑', () => { state.low = Math.min(104, state.low + 12); draw(); }, { disabled: state.low === 104 }),
       ]),
     ]);
-    return el('section', 'sq-section', {}, [sceneTools(), controls, noteDetails(c), pianoRoll(c)]);
+    return el('section', 'sq-section sq-clip-workspace', {}, [el('div', 'sq-toolbar sq-clip-heading', {}, [
+      el('h3', '', { text: `${trackName(state.track)} · ${sceneName(state.scene)}` }), sceneTools(), stepPages(c),
+      btn('Follow playhead', () => { state.follow = !state.follow; draw(); }, { 'aria-label': 'Follow playhead', 'aria-pressed': String(state.follow) }),
+      el('span', 'sq-caption sq-clip-length', { text: `Clip ${c.length} steps · ${c.length / 16} bars · loop ${c.loopStart + 1}–${c.loopStart + c.length}` }),
+    ]), controls, pianoRoll(c), selection, noteDetails(c)]);
   }
   async function importFiles(files) {
     if (state.busy || !files.length) return;
@@ -636,7 +1029,7 @@ export function makeSequencer(ctx) {
     const rows = m.mapping.map((r, i) => {
       const part = m.partIndex[r.fileIndex].get(r.partId);
       return el('div', 'sq-midi-row', {}, [el('span', '', { text: `${m.files[r.fileIndex].name} · ${part.name || 'Part'} · Ch ${part.channel}${part.drums ? ' · Drums' : ''} · ${part.notes.length} notes` }),
-        choose(`Part ${i + 1} target track`, r.track, [[-1, 'Skip'], ...Array.from({ length: 8 }, (_, t) => [t, `Track ${t + 1}`])], v => { r.track = Number(v); draw(); }),
+        choose(`Part ${i + 1} target track`, r.track, [[-1, 'Skip'], ...Array.from({ length: 8 }, (_, t) => [t, trackName(t)])], v => { r.track = Number(v); draw(); }),
         choose(`Part ${i + 1} sound`, r.sound, Array.from({ length: 4 }, (_, s) => [s, soundName(s)]), v => { r.sound = Number(v); draw(); })]);
     });
     return el('section', 'sq-section sq-import', { 'aria-label': 'MIDI import preview', 'data-testid': 'midi-import-preview' }, [
@@ -651,81 +1044,202 @@ export function makeSequencer(ctx) {
       }), { disabled: !plan.valid || !mapping.length, 'data-testid': 'apply-midi-import' }), btn('Cancel import', () => { state.midi = null; draw(); })]),
     ]);
   }
-  function draw() {
+  function draw(transport) {
     if (!state.model || disposed) return;
     releaseFader?.();
-    const active = root.contains(document.activeElement) ? document.activeElement : null;
+    const active = contains(document.activeElement) ? document.activeElement : null;
     const focus = active && { label: active.getAttribute('aria-label'), tag: active.tagName, value: active.value, start: active.selectionStart, end: active.selectionEnd };
     const scrolls = new Map([...content.querySelectorAll('[data-scroll]')].map(e => [e.dataset.scroll, [e.scrollLeft, e.scrollTop]]));
     const views = ['Scenes', 'Arrangement', 'Clip', 'Automation', 'Mixer'];
     const navigation = el('div', 'sq-tabs', { role: 'tablist', 'aria-label': 'Song workspace views' }, views.map(name => btn(name, () => {
-      state.view = name; state.inspector = null; draw(); root.querySelector(`[data-view="${name}"]`)?.focus({preventScroll:true});
+      const frame = name === 'Clip' && state.view !== name;
+      changeView(name); if (frame) frameClipNotes(); state.inspector = null; draw(); root.querySelector(`[data-view="${name}"]`)?.focus({preventScroll:true});
     }, { role: 'tab', id: `sq-tab-${name}`, 'data-view': name, 'aria-selected': String(state.view === name),
       'aria-controls': 'sq-view-panel', tabindex: state.view === name ? 0 : -1,
       onkeydown: e => {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
         e.preventDefault(); e.stopPropagation();
         const i = views.indexOf(name), next = e.key === 'Home' ? 0 : e.key === 'End' ? 4 : (i + (e.key === 'ArrowRight' ? 1 : 4)) % 5;
-        state.view = views[next]; state.inspector = null; draw(); root.querySelector(`[data-view="${state.view}"]`)?.focus({preventScroll:true});
+        const frame = views[next] === 'Clip' && state.view !== 'Clip';
+        changeView(views[next]); if (frame) frameClipNotes(); state.inspector = null; draw(); root.querySelector(`[data-view="${state.view}"]`)?.focus({preventScroll:true});
       },
     })));
     const selection = el('div', 'sq-toolbar sq-selection', {}, [
-      choose('Edit track', state.track, Array.from({length:8}, (_, t) => [t, `Track ${t + 1}`]), v => selectClip(Number(v), state.scene)),
+      choose('Edit track', state.track, Array.from({length:8}, (_, t) => [t, trackName(t)]), v => selectClip(Number(v), state.scene)),
+      trackTitle(state.track),
       choose('Edit scene', state.scene, state.model.sceneNames.map((_, s) => [s, sceneName(s)]), v => selectClip(state.track, Number(v))),
       ctx.playScene ? btn('Launch scene', () => action(() => ctx.playScene(state.scene)), { 'data-testid': 'launch-scene' }) : null,
     ]);
     let body;
     if (state.view === 'Scenes') body = sceneMatrix();
     else if (state.view === 'Arrangement') body = songView();
-    else if (state.view === 'Clip') body = clipView();
+    else if (state.view === 'Clip') body = clipView(selection);
     else if (state.view === 'Automation') {
       const c = clip();
-      body = c ? el('div', '', {}, [el('div', 'sq-toolbar', {}, [
-        btn('◀ 2 bars', () => { state.page--; draw(); }, { disabled: state.page === 0 }),
-        el('span', 'sq-caption', { text: `Steps ${state.page * 32 + 1}–${Math.min((state.page + 1) * 32, c.loopStart + c.length)}` }),
-        btn('2 bars ▶', () => { state.page++; draw(); }, { disabled: (state.page + 1) * 32 >= c.loopStart + c.length }),
-      ]), locksView(c)]) : el('p', 'sq-caption', { text: 'Create a clip in Clip view before editing automation.' });
+      if (c) state.page = Math.min(state.page, Math.floor((c.loopStart + c.length - 1) / pageSize()));
+      body = c ? el('div', '', {}, [el('div', 'sq-toolbar sq-clip-heading', {}, [
+        el('h3', '', { text: `${trackName(state.track)} · ${sceneName(state.scene)}` }), sceneTools(), stepPages(c),
+      ]), locksView(c), selection]) : el('div', '', {}, [el('p', 'sq-caption', { text: 'Create a clip in Clip view before editing automation.' }), selection]);
     } else body = mixer();
     root.dataset.songView = state.view;
     if (state.mixDetails !== null) root.dataset.mixerDetails = String(state.mixDetails);
-    content.replaceChildren(toolbar(), navigation, ['Clip', 'Automation'].includes(state.view) ? selection : '', midiView() || '',
-      el('div', 'sq-view-panel', {id:'sq-view-panel',role:'tabpanel','aria-labelledby':`sq-tab-${state.view}`}, [body]));
+    transportMount.replaceChildren(toolbar());
+    content.replaceChildren(midiView() || '',
+      el('div', 'sq-view-panel', {id:'sq-view-panel',role:'tabpanel','aria-labelledby':`sq-tab-${state.view}`}, [body]), navigation);
     if (state.inspector && ctx.inspector) {
       const body = ctx.inspector(state.inspector);
       if (body) {
         const footer = el('footer', 'sq-device-dialog-footer', {}, []);
-        const files = content.querySelector('.sq-file-tools');
-        if (files) footer.append(files);
+        if (!ctx.fileToolsHost) { const files = transportMount.querySelector('.sq-file-tools'); if (files) footer.append(files); }
         deviceDialog.replaceChildren(el('div', 'sq-device-dialog-header', {}, [el('h3', '', { text: 'Device controls' }), btn('Close inspector', closeInspector)]), body, footer);
         if (!deviceDialog.open && deviceDialog.isConnected) deviceDialog.showModal();
       } else closeInspector();
-    } else if (deviceDialog.open) deviceDialog.close();
+    } else { if (deviceDialog.open) deviceDialog.close(); deviceDialog.replaceChildren(); }
     for (const e of content.querySelectorAll('[data-scroll]')) { const p = scrolls.get(e.dataset.scroll); if (p) { e.scrollLeft = p[0]; e.scrollTop = p[1]; } }
+    const roll = content.querySelector('[data-scroll="piano"]');
+    if (roll && pendingRollNote >= 0) {
+      const note = roll.querySelector(`[data-note="${pendingRollNote}"]`);
+      if (note) {
+        const r = roll.getBoundingClientRect(), n = note.getBoundingClientRect();
+        roll.scrollTop += n.top - r.top - (roll.clientHeight - n.height) / 2;
+
+      }
+      pendingRollNote = -1;
+    }
     content.disabled = state.busy;
     if (focus?.label) {
-      const next = [...root.querySelectorAll('[aria-label]')].find(e => e.tagName === focus.tag && e.getAttribute('aria-label') === focus.label);
+      const next = workspaceAll('[aria-label]').find(e => e.tagName === focus.tag && e.getAttribute('aria-label') === focus.label);
       if (next && !state.busy) { next.focus({ preventScroll: true }); if (focus.start != null && next.setSelectionRange) { next.value = focus.value; next.setSelectionRange(focus.start, focus.end); } }
     }
-    update();
+    update(transport);
     ctx.onMeterSubscription?.();
   }
   function update(transport = ctx.getTransport?.()) {
-    const pos = root.querySelector('[data-play-position]');
-    for (const e of root.querySelectorAll('[data-song-entry]')) e.classList.toggle('is-playing', !!transport?.playing && Number(e.dataset.songEntry) === transport.songIndex);
+    if (disposed) return;
+    updateTransport(transport);
+    for (const e of root.querySelectorAll('[data-song-entry]')) e.classList.toggle('is-playing', !!transport?.playing && transport.songIndex >= Number(e.dataset.songEntry) && transport.songIndex < Number(e.dataset.songEntryEnd));
     for (const e of root.querySelectorAll('[data-live-track]')) {
       const t = transport?.tracks?.[Number(e.dataset.liveTrack)], scene = Number(e.dataset.liveScene);
       e.classList.toggle('is-playing', !!transport?.playing && t?.playing === scene);
     }
     const watched = transport?.tracks?.[state.track];
-    const liveScene = (transport?.playing ? watched?.playing : watched?.active) ?? transport?.scene;
-    const liveStep = watched ? Math.floor(watched.posTick / 24) : transport?.step;
-    if (pos && transport) pos.textContent = transport.playing ? `Playing · Scene ${(liveScene ?? 0) + 1} · Step ${(liveStep ?? 0) + 1}` : 'Stopped';
+    const phase = state.model && clipPlayback(clip(), watched, transport?.playing, state.scene);
+    const liveScene = phase ? state.scene : -1;
+    const livePosition = phase?.step, liveStep = Math.floor(livePosition);
+    const nextPage = phase && Math.floor(phase.step / pageSize());
+    if (state.view === 'Clip' && state.follow && phase && nextPage !== state.page && !pointerActive && !cancelDrag && !releaseFader && !state.busy && !(contains(document.activeElement) && document.activeElement.matches('input:not([readonly]), textarea'))) {
+      state.page = nextPage; draw(transport); return;
+    }
     const playhead = root.querySelector('[data-roll-playhead]');
-    if (playhead) { playhead.hidden = !transport?.playing || liveScene !== state.scene || liveStep < state.page * 32 || liveStep >= (state.page + 1) * 32; playhead.style.left = `${60 + (liveStep - state.page * 32) * 28}px`; }
+    if (playhead) { playhead.hidden = !transport?.playing || liveScene !== state.scene || livePosition < pageStart() || livePosition >= pageStart() + pageSize(); const count = Number(playhead.parentElement.style.getPropertyValue('--steps')); playhead.style.left = `calc(60px + (100% - 60px) * ${(livePosition - pageStart()) / count})`; }
     for (const e of root.querySelectorAll('[data-step]')) e.classList.toggle('is-playing', !!transport?.playing && liveScene === state.scene && Number(e.dataset.step) === liveStep);
     for (const e of root.querySelectorAll('[data-mixer-track]')) e.classList.toggle('is-playing', !!transport?.playing && transport.tracks?.[Number(e.dataset.mixerTrack)]?.playing >= 0);
+    updatePlayback(transport);
   }
+  function updatePlayback(transport) {
+    if (disposed) return;
+    if (!state.model) return;
+    for (const e of root.querySelectorAll('[data-progress-track], [data-preview-track]')) {
+      const t = Number(e.dataset.progressTrack ?? e.dataset.previewTrack);
+      const scene = Number(e.dataset.progressScene ?? e.dataset.previewScene);
+      const phase = clipPlayback(clip(state.model, t, scene), transport?.tracks?.[t], transport?.playing, scene);
+      const inEntry = e.dataset.entryStart === undefined || (transport?.songIndex >= Number(e.dataset.entryStart) && transport?.songIndex < Number(e.dataset.entryEnd));
+      const active = phase && inEntry;
+      const fill = e.querySelector('.sq-clip-progress');
+      if (fill) { fill.hidden = !active; fill.style.width = `${active ? phase.fraction * 100 : 0}%`; }
+      const line = e.querySelector('[data-preview-playhead]');
+      if (line) {
+        line.setAttribute('visibility', active ? 'visible' : 'hidden');
+        line.setAttribute('x1', active ? phase.fraction * 160 : 0); line.setAttribute('x2', active ? phase.fraction * 160 : 0);
+      }
+      if (e.dataset.previewTrack !== undefined) e.classList.toggle('is-playing', !!active);
+    }
+    for (const cell of root.querySelectorAll('.sq-matrix-cell[data-live-track]')) {
+      const t = Number(cell.dataset.liveTrack), scene = Number(cell.dataset.liveScene);
+      const phase = clipPlayback(clip(state.model, t, scene), transport?.tracks?.[t], transport?.playing, scene);
+      const fill = cell.querySelector('.sq-clip-progress');
+      if (fill) { fill.hidden = !phase; fill.style.width = `${phase ? phase.fraction * 100 : 0}%`; }
+      const line = cell.querySelector('[data-preview-playhead]');
+      if (line) {
+        line.setAttribute('visibility', phase ? 'visible' : 'hidden');
+        line.setAttribute('x1', phase ? phase.fraction * 160 : 0); line.setAttribute('x2', phase ? phase.fraction * 160 : 0);
+      }
+    }
+    const c = clip(), track = transport?.tracks?.[state.track];
+    const phase = clipPlayback(c, track, transport?.playing, state.scene);
+    const start = pageStart(), end = Math.min(start + pageSize(), (c?.loopStart || 0) + (c?.length || 0));
+    const visible = phase && phase.step >= start && phase.step < end;
+    for (const head of root.querySelectorAll('[data-automation-playhead]')) {
+      head.hidden = !visible; head.style.left = `calc(140px + (100% - 140px) * ${(visible ? phase.step - start : 0) / Math.max(1, end - start)})`;
+    }
+    for (const cell of root.querySelectorAll('[data-automation-step]')) cell.classList.toggle('is-playing', !!visible && Number(cell.dataset.automationStep) === Math.floor(phase.step));
+  }
+  function shortcutEdit(fn) {
+    // A note redraw may remove its focused button. Keep subsequent keys in Song.
+    Promise.resolve(fn()).finally(() => { if (root.isConnected && !deviceDialog.open) root.focus({ preventScroll: true }); });
+  }
+  function shortcut(command) {
+    // Keep Song ownership while a native transaction is pending, without queuing edits.
+    if (state.busy) return true;
+    const c = clip(), n = c?.notes[state.note];
+    const views = { clip: 'Clip', automation: 'Automation', arrangeMix: state.view === 'Mixer' ? 'Arrangement' : 'Mixer' };
+    if (views[command]) {
+      const frame = views[command] === 'Clip' && state.view !== 'Clip';
+      changeView(views[command]); if (frame) frameClipNotes(); state.inspector = null; draw(); root.focus({ preventScroll: true }); return true;
+    }
+    if (command === 'transport' || command === 'restart') {
+      const fn = command === 'transport' ? ctx.playPause : ctx.restart;
+      if (!fn) return false;
+      action(fn); return true;
+    }
+    if (command === 'device') {
+      const route = state.model.tracks[state.track].route;
+      if (route.kind !== 1) { announce('This track sends MIDI; select a sound-routed track to open its instrument.'); return true; }
+      openInspector(`s${route.index + 1}`); return true;
+    }
+    if (command === 'sidebar') {
+      if (!ctx.toggleSidebar) return false;
+      ctx.toggleSidebar(); return true;
+    }
+    if (command === 'mute') {
+      shortcutEdit(() => edit(`Toggle track ${state.track + 1} mute`, m => { m.tracks[state.track].muted ^= 1; })); return true;
+    }
+    if (command === 'rename') {
+      const entry = state.view === 'Arrangement' ? root.querySelector('.sq-entry.is-selected') : null;
+      const input = entry?.querySelector('.sq-name') || root.querySelector(`[aria-label="Track ${state.track + 1} name"]`);
+      if (!input?.beginNameEdit) return false;
+      input.beginNameEdit(); return true;
+    }
+    if (state.view === 'Clip' && n) {
+      if (command === 'duplicate') { const original = clone(n); shortcutEdit(() => edit('Duplicate note', m => { state.note = duplicateNote(clip(m), original); })); return true; }
+      if (command === 'delete') {
+        const original = clone(n);
+        shortcutEdit(() => edit('Delete note', m => {
+          const c = clip(m), i = c?.notes.findIndex(x => JSON.stringify(x) === JSON.stringify(original));
+          if (i == null || i < 0) throw new Error('This note changed elsewhere. Select it again.');
+          c.notes.splice(i, 1); c.trigs = c.trigs.filter(t => t.step !== original.step || t.lane !== original.pitch); state.note = -1;
+        })); return true;
+      }
+      const delta = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, 1], arrowdown: [0, -1] }[command];
+      if (delta) { shortcutEdit(() => noteEdit(noteNudge(c, n, ...delta), 'Nudge note')); return true; }
+    }
+    if (state.view === 'Arrangement' && ['duplicate', 'delete'].includes(command)) {
+      const original = [...state.model.song], index = state.song;
+      if (!arrangementEntries(state.model)[index]) return false;
+      shortcutEdit(() => edit(command === 'duplicate' ? 'Copy song entry' : 'Remove song entry', m => {
+        if (JSON.stringify(m.song) !== JSON.stringify(original)) throw new Error('The arrangement changed elsewhere. Select the section again.');
+        const entries = arrangementEntries(m);
+        if (command === 'duplicate') entries.splice(index + 1, 0, clone(entries[index]));
+        else { entries.splice(index, 1); state.song = Math.max(0, index - 1); }
+        m.song = entries.flatMap(e => Array(e.presses).fill(e.scene));
+      })); return true;
+    }
+    return false;
+  }
+  const onKey = makeSongShortcuts(root, { ready: () => !!state.model && !disposed,
+    run: shortcut, claimKeys: ctx.claimKeys });
   root.addEventListener('keydown', e => {
+    if (onKey(e)) return;
     if ((deviceDialog.open && e.key === 'Escape') || e.target.closest('input, select, textarea')) e.stopPropagation();
   });
   window.addEventListener('resize', syncMixerAfterResize);
@@ -736,7 +1250,8 @@ export function makeSequencer(ctx) {
     if (!files.length || !files.every(f => /\.midi?$/i.test(f.name))) return;
     e.preventDefault(); e.stopPropagation(); e.lunarInto = true; importFiles(files);
   });
-  return { render() { if (state.dirty && !state.busy) refresh(); return root; }, refresh, update, onTelemetry, syncLevels,
-    wantRows() { return state.view === 'Mixer' ? (ctx.metadata?.doc?.telemetry?.sections || []).filter(s => ['meters', 'levels'].includes(s.name)).flatMap(s => s.rows.map((_, r) => s.mask + r)) : []; },
-    invalidate() { state.dirty = true; readRevision++; }, destroy() { releaseFader?.(); closeInspector(); disposed = true; cancelDrag?.(); window.removeEventListener('resize', syncMixerAfterResize); compactMixerMedia.removeEventListener('change', syncMixerDisclosure); root.remove(); } };
+return { render() { if (state.dirty && !state.busy) refresh(); return root; }, refresh, update, onTelemetry, syncLevels, onKey, contains,
+    toggleTransport: () => action(ctx.playPause), restartTransport: () => action(ctx.restart),
+    wantRows() { return (ctx.metadata?.doc?.telemetry?.sections || []).filter(s => ['meters', 'levels'].includes(s.name)).flatMap(s => s.rows.flatMap((row, r) => state.view === 'Mixer' || row === 'out.post_master' ? [s.mask + r] : [])); },
+    invalidate() { state.dirty = true; readRevision++; }, destroy() { gridObserver.disconnect(); cancelAnimationFrame(resizeFrame); if (ctx.transportHost) transportMount.removeEventListener('focusout', finishEdit); clearTimeout(pointerRelease); window.removeEventListener('pointerup', releasePointer); window.removeEventListener('pointercancel', finishPointer); window.removeEventListener('click', finishPointer, true); releaseFader?.(); closeInspector(); disposed = true; cancelDrag?.(); window.removeEventListener('resize', syncMixerAfterResize); compactMixerMedia.removeEventListener('change', syncMixerDisclosure); if (ctx.transportHost) transportMount.replaceChildren(); root.remove(); } };
 }

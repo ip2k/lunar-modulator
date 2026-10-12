@@ -74,3 +74,30 @@ test('exception restores the page handlers before propagating', async () => {
     await assert.rejects(observePanelFollow(), /send failed/);
   }, () => {});
 });
+test('a render replacing the row is observed through the current registry', async () => {
+  await fixture(async () => {
+    const r = await observePanelFollow();
+    assert.equal(r.frames, 3);
+    assert.equal(r.trace.frames[2].rowConnected, false);
+    assert.equal(r.trace.frames[2].currentRowConnected, true);
+    assert.equal(r.trace.frames[2].currentRowValue, '0.33');
+  }, ({ frame, sim }) => {
+    if (frame !== 3) return;
+    sim.editor.rows.get('s2:2').el.isConnected = false;
+    sim.editor.rows.set('s2:2', { el: { isConnected: true,
+      querySelector: () => ({ value: '0.33' }), classList: { contains: () => true } } });
+  });
+});
+
+test('a temporarily absent row does not count as an encoder value update', async () => {
+  await fixture(async () => {
+    const r = await observePanelFollow();
+    assert.equal(r.frames, 4);
+    assert.equal(r.trace.frames[0].currentRowConnected, false);
+    assert.equal(r.trace.frames[0].currentRowValue, null);
+  }, ({ frame, sim }) => {
+    if (frame === 1) sim.editor.rows.delete('s2:2');
+    if (frame === 4) sim.editor.rows.set('s2:2', { el: { isConnected: true,
+      querySelector: () => ({ value: '0.33' }), classList: { contains: () => true } } });
+  });
+});

@@ -104,6 +104,8 @@ async function filesChecks() {
   await page.click('#target-ok');
   await waitNotice(page, /^Loaded sound/);
   r.sound_loaded = (await notice(page)).text;
+  await page.waitForFunction(() => document.getElementById('file-notice').hidden, null, {timeout: 12000});
+  r.info_auto_dismissed = !(await notice(page)).shown;
   // Open…: the example project, through the file chooser.
   const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('#open')]);
   await chooser.setFiles(example('first-orbit.lunar'));
@@ -120,6 +122,8 @@ async function filesChecks() {
   await page.click('#target-ok');
   await waitNotice(page, /was not loaded/);
   r.refusal = await notice(page);
+  await wait(page, 11000);
+  r.refusal_stays_visible = (await notice(page)).shown;
   r.refuse_colour = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--rp-love').trim());
   r.unchanged = (await project(page)) === before && (await recentCount()) === recentBefore;
   await page.screenshot({ path: join(out, 'files-02-refused.png') });
@@ -230,8 +234,8 @@ async function filesChecks() {
   // The next visit restores the autosave.
   const again = await open(ctx);
   await powerOn(again);
-  await waitNotice(again, /^Restored “First orbit”/);
   r.restored = (await project(again)) === edited;
+  r.restore_silent = !(await notice(again)).shown;
   // A link over that work: Before …, then Undo load.
   const [ch2] = await Promise.all([again.waitForEvent('filechooser'), again.click('#open')]);
   await ch2.setFiles(example('space-verbs.fx.lunar'));
@@ -263,6 +267,7 @@ async function filesChecks() {
     /^Loaded sound “Deep space bass” into Sound 2/.test(r.sound_loaded) &&
     /^Loaded “First orbit”: 4 sounds, .*It takes \d+% of the FM-1's RAM\.$/.test(r.project_loaded) && r.title === 'First orbit' &&
     /refused/.test(r.refusal.tone) && /Needs \d+% of the FM-1's RAM\./.test(r.refusal.text) &&
+    r.info_auto_dismissed && r.refusal_stays_visible && r.restore_silent &&
     !/bytes|KB/.test(r.refusal.text) && r.refusal.color === 'rgb(235, 111, 146)' && r.unchanged &&
     r.worklet_loads.length >= 2 && r.worklet_loads.every((l) => l.binary) && r.shadow_calls > 0 &&
     r.json_to_worklet.ok === false && r.json_to_worklet.binary === false &&
@@ -471,7 +476,10 @@ async function layoutChecks() {
     r[name] = await page.evaluate(() => ({
       scroll_width: document.documentElement.scrollWidth,
       smallest: Math.min(...[...document.querySelectorAll('.files button, .files select, #file-notice button, .library summary, .lib-actions button')]
-        .map((e) => { const b = e.getBoundingClientRect(); return Math.min(b.width, b.height); })),
+        // A timed notice may have expired while opening the library. Hidden
+        // controls have no hit target; notifications-ui checks live actions.
+        .map((e) => e.getBoundingClientRect()).filter((b) => b.width > 0 && b.height > 0)
+        .map((b) => Math.min(b.width, b.height))),
     }));
     await ctx.close();
   }

@@ -22,7 +22,11 @@ export async function renderOffline(options, source, hooks = {}) {
   const bars = arrangementEntries(model).reduce((sum, e) => sum + e.bars, 0);
   const seconds = bars * 4 * 60 * 100 / model.bpmX100;
   if (!Number.isFinite(seconds) || seconds + tail > MAX_SECONDS) throw new RangeError('Export is limited to twenty minutes including the tail.');
-  const tailFrames = Math.round(tail * sampleRate), songBound = Math.ceil(seconds * sampleRate) + 256;
+  // Native advance services tick zero after the first PPQN interval; Stop
+  // is checked on the tick after the last bar. Polling happens in 64-frame
+  // render blocks, so include that interval and round to the block boundary.
+  const stopFrames = Math.ceil((bars * 4 * 96 + 1) * sampleRate * 6000 / (model.bpmX100 * 96));
+  const tailFrames = Math.round(tail * sampleRate), songBound = Math.ceil(stopFrames / 64) * 64;
   const capacity = songBound + tailFrames;
   const warnings = [];
   if (model.tracks.some(t => t.route.kind === 0 && t.clips.some(c => c?.notes.length))) warnings.push('External MIDI tracks do not produce audio in an offline export.');

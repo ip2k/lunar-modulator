@@ -113,10 +113,12 @@ static void dump_state(FILE *f, const fm1_seq_t *s, const char *kind, const char
           (unsigned long)in.capture_gen, in.capture_pending, in.capture_mode, in.capture_sel);
   for (i = 0; i < in.capture_n && i < 3; ++i) fprintf(f, i ? ",%u" : "%u", in.capture_cands[i]);
   fprintf(f, "]},\"stats\":{\"refused\":%lu,\"dropped_events\":%lu,\"gates_evicted\":%lu,"
-          "\"movy_faults\":%lu,\"notes_used\":%u,\"locks_used\":%u,\"trigs_used\":%u},\"tracks\":[",
+          "\"movy_faults\":%lu,\"notes_used\":%u,\"locks_used\":%u,\"trigs_used\":%u},",
           (unsigned long)st.refused, (unsigned long)st.dropped_events,
           (unsigned long)st.gates_evicted, (unsigned long)st.movy_faults, st.notes_used,
           st.locks_used, st.trigs_used);
+  fprintf(f, "\"paused\":%u,\"playback_frames\":%llu,\"sample_rate\":%lu,\"tracks\":[", in.paused,
+          (unsigned long long)in.playback_frames, (unsigned long)in.sample_rate);
   for (t = 0; t < in.tracks; ++t) {
     fm1_seq_track_info_t ti;
     int first_clip = 1;

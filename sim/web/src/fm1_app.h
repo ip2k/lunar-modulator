@@ -147,6 +147,7 @@
 
 #include "fm1_dx7.h"
 #include "fm1_engine.h"
+#include "fm1_state_midi.h"
 #include "fm1_mfx_host.h"
 #include "fm1_mix_limiter.h"
 #include "fm1_mod.h"
@@ -242,11 +243,11 @@ enum {
 
 /* The sequencer (docs/15 §2.5 and §2.6). Its instance takes the FM-1's
  * default limits (fm1_seq_limits_default) for FM1_APP_SEQ_TRACKS tracks:
- * 31,880 B at 8 tracks, Capture included, the same on 32- and 64-bit
+ * 32,072 B at 8 tracks, Capture included, the same on 32- and 64-bit
  * builds. Every block's commands and events share one buffer of
  * FM1_APP_SEQ_EVENTS (3,264 B). With the pending command record (240 B),
  * the UI state (fm1_seq_ui_t, at most 1,024 B) and the metronome's click
- * voice (20 B) that is 36,428 B of the sequencer's 36,864 B budget, half of
+ * voice (20 B) that is 36,620 B of the sequencer's 36,864 B budget, half of
  * docs/13 §5's 72 KiB. The track count is the owner's decision O3 (docs/15
  * §8, answered 2026-10-02): 8, the count the firmware will use (4 would
  * have left room for docs/13's undo ring). The buffer was 256 events until
@@ -532,6 +533,7 @@ typedef struct fm1_app {
    * settings file, never in a project); SAVE's requests and the host's
    * store. */
   fm1_app_info_t info;
+  fm1_midi_map_t midi_map;
   fm1_app_settings_t settings;
   uint32_t save_gen;             /* bumped by each SAVE press */
   int store_ready;               /* a host store answers SAVE (fm1_app_saved) */

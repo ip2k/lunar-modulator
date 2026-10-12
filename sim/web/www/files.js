@@ -16,6 +16,8 @@
 // on, fetch a URL outside the allowlist, or change a setting.
 // MIT licence, like the rest of this repository.
 
+import { fileNotifications } from './notifications.js';
+
 const KIND = { project: 1, sound: 2, fx: 3, mods: 4, clip: 5, settings: 6, set: 7 };
 const KIND_NAME = Object.fromEntries(Object.entries(KIND).map(([k, v]) => [v, k]));
 const KIND_WORD = { project: 'project', sound: 'sound', fx: 'effects', mods: 'mod rack', clip: 'clip',
@@ -433,19 +435,48 @@ export function initFiles(env) {
     if (!sim.node) return Promise.resolve({ ok: false, off: true });
     const id = nextId++;
     return new Promise((resolve) => {
-      waiting.set(id, resolve);
+      // A missing metadata acknowledgement must refuse saving, not leave the
+      // browser-only assignment looking like a successfully saved project.
+      const timer = msg.type === 'midi-map' ? setTimeout(() => {
+        waiting.delete(id);
+        resolve({ ok: false, error: 'MIDI assignments were not acknowledged. Reconnect or relearn before saving.' });
+      }, 5000) : 0;
+      waiting.set(id, (r) => { clearTimeout(timer); resolve(r); });
       sim.node.port.postMessage({ ...msg, id }, transfer);
     });
   }
   // The project as the binary container. `plain` skips deflate, which the
   // audio thread pays for: the autosave's (owner, 2026-10-06); files, Recent
   // and links stay compressed.
+  let midiQueue = Promise.resolve(), midiError = '';
+  function midiChanged(dirty = true) {
+    if (!sim.midiLearn) return midiQueue;
+    if (dirty) touched();
+    const node = sim.node;
+    const bytes = new TextEncoder().encode(JSON.stringify({ lunar: '1.0', kind: 'project',
+      browser: { midiMap: sim.midiLearn.map.export() } }));
+    midiQueue = midiQueue.then(async () => {
+      if (!node || sim.node !== node) return;
+      const r = await worklet({ type: 'midi-map', bytes });
+      if (sim.node !== node) return; // Late ACK/timeout from a previous power session.
+      midiError = r.ok ? '' : (r.error || 'MIDI assignments could not be stored in this project.');
+      if (midiError) notice('refused', midiError);
+      else sim.editor?.midiMapChanged?.();
+    });
+    return midiQueue;
+  }
+  async function midiReady() {
+    await midiQueue;
+    if (midiError) throw new Error(midiError);
+  }
   async function liveBin(plain = false) {
+    await midiReady();
     const r = await worklet({ type: 'state-save', kind: 1, arg: 0, plain });
     if (!r.ok) throw new Error(r.off ? 'Power is off.' : 'The project could not be saved.');
     return r.bytes;
   }
   async function projectSnapshot() {
+    await midiReady();
     const r = await worklet({ type: 'state-save', kind: 1, arg: 0, hash: true });
     if (!r.ok) throw new Error(r.off ? 'Power is off.' : 'The project could not be saved.');
     return { text: await saveText('project', 0, r.bytes), hash: r.hash };
@@ -455,7 +486,10 @@ export function initFiles(env) {
 
   // ---- the notice over the status line ----
   const noticeEl = $('file-notice');
+  const notifications = fileNotifications(noticeEl);
+  const dismissNotice = notifications.dismiss;
   function notice(tone, text, sub = '', actions = []) {
+    dismissNotice();
     f.lastNotice = { tone, text, sub };
     noticeEl.hidden = false;
     noticeEl.className = `file-notice ${tone}`;
@@ -472,7 +506,7 @@ export function initFiles(env) {
     }
     const row = document.createElement('div');
     row.className = 'notice-actions';
-    for (const a of [...actions, { label: 'Dismiss', fn: () => { noticeEl.hidden = true; } }]) {
+    for (const a of [...actions, { label: 'Dismiss', fn: dismissNotice }]) {
       const b = document.createElement('button');
       b.type = 'button';
       b.textContent = a.label;
@@ -480,6 +514,7 @@ export function initFiles(env) {
       row.append(b);
     }
     noticeEl.append(row);
+    notifications.show(tone === 'info' || tone === 'loaded');
   }
 
   // The module's report, in words. A refusal is the module's own sentence.
@@ -576,6 +611,14 @@ export function initFiles(env) {
       if (o.ui) refused(rep, bytes, { ...o, d, target });
       return { ok: false, report: rep };
     }
+    // Read the checked binary through the canonical writer before transferring
+    // its buffer. Native records preserve mappings for JSON and binary loads.
+    let midiMap = null;
+    if (kind === 'project') {
+      const canonical = await shadow('save', { kind: 1, arg: 0, live: c.bin });
+      if (!canonical.ok) return { ok: false, report: report(canonical) };
+      midiMap = JSON.parse(canonical.text).browser?.midiMap || null;
+    }
     const l = await worklet({ type: 'state-load', bytes: c.bin, kind: 0, into: target.into, slot: target.slot,
       expectedHash: o.expectedHash,
       flags: flags | (o.quiet ? FLAG_QUIET : 0) | (o.same ? FLAG_KEEP_TRANSPORT : 0) }, [c.bin.buffer]);
@@ -592,8 +635,13 @@ export function initFiles(env) {
       f.undo = { bin: live, title: d.title, pid: pidBefore };
     }
     if (kind === 'project') {
+      sim.midiLearn?.map.import(midiMap);
+      midiError = '';
       setTitle(d.title);
       f.pid = o.pid || (o.same ? pidBefore : newProjectId());      // the same project put back, or another one
+      sim.editor?.projectLoaded?.();
+    } else if (kind === 'set') {
+      sim.editor?.projectLoaded?.({ sequence: true });
     }
     touched();
     if (o.ui) {
@@ -933,6 +981,8 @@ export function initFiles(env) {
   // After POWER: the shadow Worker, the store's answer for SAVE, then the
   // arrivals, or else the autosave.
   async function afterPowerOn() {
+    midiQueue = Promise.resolve(); midiError = '';
+    await midiChanged(false);
     const ok = await store.available();
     sim.node.port.postMessage({ type: 'store-ready', on: true });
     if (!ok) f.memoryOnly = true;
@@ -944,9 +994,9 @@ export function initFiles(env) {
       // A link over the user's work (ST14): the work comes back first, so a
       // project from the link leaves it in Recent as "Before …" and a
       // refused link leaves it playing, unchanged.
-      if (saved) await restore(saved, true);
+      if (saved) await restore(saved);
     } else if (saved) {
-      await restore(saved, false);
+      await restore(saved);
     }
     f.powered = true;
     f.pending = pending.concat(f.pending);
@@ -955,30 +1005,16 @@ export function initFiles(env) {
     renderLibrary();
     if (embed) post({ event: 'power', on: true });
   }
-  async function restore(saved, quietly) {
+  async function restore(saved) {
     const r = await load(saved.bin, { d: { enc: 1, kind: 'project', title: saved.name }, before: false, quiet: true, pid: saved.pid });
     if (r.ok) {
       setTitle(saved.name);
       f.dirty = false;
       lastBytes = saved.bin;
       lastPid = f.pid;
-      if (!quietly) {
-        notice('info', `Restored “${saved.name}”, autosaved in this browser ${when(saved.modified)}.`, '',
-          [{ label: 'Start fresh', fn: startFresh }]);
-      }
     } else {
       await addRecent(`Autosave not restored (${saved.name})`, saved.bin);
       notice('refused', `Your autosaved project was not restored: ${r.report.message} It is kept in Recent.`);
-    }
-  }
-  async function startFresh() {
-    const s = await shadow('start');
-    if (!s.ok) return;
-    const r = await load(s.bin, { d: { enc: 1, kind: 'project', title: 'a fresh start' }, quiet: true });
-    if (r.ok) {
-      setTitle('Untitled');
-      notice('info', 'A fresh start: the start chain and its demo pattern. Your work is in Recent.', '',
-        [{ label: 'Undo', fn: undoLoad }]);
     }
   }
   async function beforePowerOff() {
@@ -1250,7 +1286,7 @@ export function initFiles(env) {
     if (s.blocked && !s.open) {
       storageWaiting = true;
       f.memoryOnly = true;
-      notice('info', 'Another tab of this page is open on an older version and holds this browser\'s storage.',
+      notice('refused', 'Another tab of this page is open on an older version and holds this browser\'s storage.',
         'Close or reload that tab. Recent and A/B are kept for this visit only; autosave stays unsaved until browser storage is free.');
     } else if (s.open && storageWaiting) {
       storageWaiting = false;
@@ -1263,14 +1299,14 @@ export function initFiles(env) {
   // window.fm1.files: this state and these calls, for the console and the
   // headless page check.
   return Object.assign(f, {
-    openFiles, afterPowerOn, beforePowerOff, touched, fillSaveKinds, renderLibrary, autosave, copyLink, highlight,
-    saveText, projectSnapshot, fileName, undoLoad, store,
+    openFiles, afterPowerOn, beforePowerOff, touched, midiChanged, fillSaveKinds, renderLibrary, autosave, copyLink, highlight,
+    saveText, projectSnapshot, fileName, undoLoad, store, midiSettled: () => midiQueue,
     shadow,                    // the shadow Worker, for the editor (format, parse, save)
     // stage ED4, for the editor: a load with W1's checks and notices, the
     // verdict before a drop, per-block export and the library.
     load, loadItem, verdict, saveAs, saveToLibrary, notice, describe,
     onWorklet(m) {
-      if (m.type === 'state-saved' || m.type === 'state-loaded') {
+      if (m.type === 'state-saved' || m.type === 'state-loaded' || m.type === 'midi-map-set') {
         const w = waiting.get(m.id);
         if (w) { waiting.delete(m.id); w(m); }
         return true;

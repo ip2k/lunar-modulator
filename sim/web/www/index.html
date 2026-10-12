@@ -7,7 +7,9 @@
 <meta name="theme-color" content="#232136">
 <title>Lunar Modulator</title>
 <meta name="description" content="Lunar Modulator, an open firmware for the M-VAVE FM-1: its sound engines and effects running in the browser behind a to-scale FM-1 front panel, with the firmware's own 240 x 240 screen.">
+<link rel="stylesheet" href="vendor/sweetalert2/sweetalert2.min.css">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="midi-map.css">
 </head>
 <body>
 <header class="top">
@@ -24,7 +26,7 @@
   <div class="device-wrap">
     <div class="device-scroll" id="device-scroll">
       <div class="device" id="device">
-        <svg id="panel" viewBox="-3 -8 167.5 107" role="group" aria-label="FM-1 front panel"></svg>
+        <svg id="panel" viewBox="-3 -3 167.5 102" role="group" aria-label="FM-1 front panel"></svg>
         <canvas id="tft" width="240" height="240" aria-label="FM-1 screen"></canvas>
       </div>
     </div>
@@ -255,6 +257,8 @@
           Astigmatic (SIL Open Font License 1.1, <a href="fonts/audiowide/OFL.txt">licence</a>); on the screen, beside
           the project's own 5&times;9, Spleen by Frederic Cambus (BSD 2-Clause, <a href="fonts/spleen/LICENSE">licence</a>).
           M-VAVE and FM-1 are their owners' names for their synthesizer; this project is not affiliated with them.</p>
+        <p>Browser notifications use SweetAlert2 (MIT,
+          <a href="vendor/sweetalert2/LICENSE">licence</a>).</p>
         <p class="licence-note" id="licence-note" hidden></p>
       </div>
     </div>

@@ -35,6 +35,31 @@ function harness(initial) {
 const before = project(), after = project([note(60)]);
 const entry = { label: 'Add note', info: { beforeText: JSON.stringify(before), afterText: JSON.stringify(after) } };
 
+test('initial load generation change retries the read and returns the current project', async () => {
+  const h = harness(before), read = h.files.projectSnapshot;
+  let reads = 0;
+  h.files.projectSnapshot = async () => {
+    const snap = await read();
+    if (++reads === 1) { h.replace(after); h.st.gen++; }
+    return snap;
+  };
+  assert.deepEqual(await h.host.fetchProject(), after);
+  assert.equal(reads, 2); assert.equal(h.loads, 0); assert.equal(h.checks, 0);
+});
+test('continuous generation changes bound read retries without any writes', async () => {
+  const h = harness(before), read = h.files.projectSnapshot;
+  let reads = 0;
+  h.files.projectSnapshot = async () => { reads++; h.st.gen++; return read(); };
+  await assert.rejects(h.host.fetchProject(), /kept changing while reading/);
+  assert.equal(reads, 3); assert.equal(h.loads, 0); assert.equal(h.checks, 0);
+});
+test('a power restart during a read refuses the old audio node snapshot', async () => {
+  const h = harness(before), read = h.files.projectSnapshot;
+  h.files.projectSnapshot = async () => { const snap = await read(); h.sim.node = {}; return snap; };
+  await assert.rejects(h.host.fetchProject(), /restarted while reading/);
+  assert.equal(h.loads, 0); assert.equal(h.checks, 0);
+});
+
 test('matching native state permits undo then redo, preserving the atomic hash fence', async () => {
   const h = harness(after);
   assert.equal(await h.host.restoreHistory(entry, false), true);
@@ -106,4 +131,23 @@ test('worklet posts content-only changes immediately and keeps old-module transp
   delete worker.fm1.exports.fm1w_seq_gen;
   seq[1] = 12500; worker.postSeq({ seq }); assert.equal(messages.length, 3);
   assert.equal(messages[2].bpm_x100, 12500); assert.equal('contentGen' in messages[2], false);
+  assert.equal(messages[2].playbackFrames, null); // no fabricated browser elapsed time
+  const extended = new Uint32Array(61); extended.set(seq);
+  extended[56] = 1; extended[57] = 12345; extended[58] = 2; extended[59] = 44118; extended[60] = 1;
+  worker.seqLast = new Uint32Array(61); worker.postSeq({seq:extended});
+  const native = messages.at(-1);
+  assert.equal(native.paused, true); assert.equal(native.playbackFrames, 2 * 4294967296 + 12345);
+  assert.equal(native.sampleRate, 44118); assert.equal(native.metronome, true);
+});
+test('toolbar and keyboard actions issue native pause, resume, rewind and locate verbs', () => {
+  const h = harness(before), sent = []; h.sim.node.port = { postMessage: m => sent.push(new TextDecoder().decode(m.bytes)) };
+  h.host.play(); h.host.pause(); h.host.stop(); h.host.seekBar(4);
+  h.sim.seq = {playing:true}; h.host.playPause(); h.sim.seq = {paused:true}; h.host.playPause(); h.host.restart();
+  assert.deepEqual(sent, ['resume', 'pause', 'rewind', 'seekbar 4', 'pause', 'resume', 'rewind', 'resume']);
+});
+test('project transactions preserve native metronome settings', async () => {
+  const doc = project(); doc.settings = {metronome:1}; const h = harness(doc);
+  const next = structuredClone(doc); const model = parseSet(next.set); model.bpmX100 = 13742; model.songEnd = 2; next.set = writeSet(model);
+  await h.host.applyProject(next, 'Transport settings');
+  assert.equal(h.current.settings.metronome, 1); assert.equal(parseSet(h.current.set).songEnd, 2);
 });

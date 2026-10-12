@@ -147,7 +147,7 @@ h2 { font: 400 1.1rem/1.3 var(--display); letter-spacing: 0.03em; margin: 0 0 12
 .device {
   position: relative;
   width: 100%;
-  aspect-ratio: 167.5 / 107;
+  aspect-ratio: 167.5 / 102;
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
@@ -168,13 +168,13 @@ h2 { font: 400 1.1rem/1.3 var(--display); letter-spacing: 0.03em; margin: 0 0 12
 #panel { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 
 /* The TFT's active area: 27.72 mm square at (48.96, 10.89) mm in a viewBox
- * that starts at (-3, -8) and spans 167.5 x 107 mm. */
+ * that starts at (-3, -3) and spans 167.5 x 102 mm. */
 #tft {
   position: absolute;
   left: calc((48.96 + 3) / 167.5 * 100%);
-  top: calc((10.89 + 8) / 107 * 100%);
+  top: calc((10.89 + 3) / 102 * 100%);
   width: calc(27.72 / 167.5 * 100%);
-  height: calc(27.72 / 107 * 100%);
+  height: calc(27.72 / 102 * 100%);
   image-rendering: pixelated;
   background: var(--screen);
 }
@@ -183,7 +183,7 @@ h2 { font: 400 1.1rem/1.3 var(--display); letter-spacing: 0.03em; margin: 0 0 12
 .case-inner { fill: none; stroke: var(--case-inner); stroke-width: 0.35; }
 .print { fill: var(--print); font-family: var(--small); font-weight: 600; font-size: 2.15px; text-anchor: middle; letter-spacing: 0.08px; }
 .print.small { font-size: 1.7px; }
-.print.rear { fill: var(--print-rear); }
+.print.rear { fill: var(--rp-text); }
 .frame { fill: none; stroke: var(--frame); stroke-width: 0.45; }
 .bezel { fill: var(--bezel); stroke: var(--frame); stroke-width: 0.4; }
 .port { fill: var(--port); }
@@ -336,6 +336,13 @@ button[aria-pressed="true"] { background: var(--accent); color: var(--accent-tex
 .file-notice p { margin: 0; }
 .file-notice .notice-sub { margin-top: 4px; font-size: 0.88rem; color: var(--muted-on-surface); }
 .notice-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.swal2-popup.lunar-toast {
+  width: min(32rem, calc(100vw - 2rem)); padding: 0;
+  background: var(--surface); color: var(--text); font: inherit;
+  border-radius: 10px;
+}
+.lunar-toast .lunar-toast-content { margin: 0; padding: 0; text-align: left; }
+.lunar-toast .file-notice { margin: 0; max-width: none; }
 .link-out { display: block; width: 100%; margin-top: 8px; font: 0.85rem ui-monospace, Menlo, Consolas, monospace;
   color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; }
 
@@ -537,3 +544,9 @@ body[data-layout="editor"] .top, body[data-layout="editor"] main { max-width: 17
  * The power overlay goes with it; the editor has its own Power on. */
 body[data-layout="editor"] .stage > .device-wrap,
 body[data-layout="editor"] .stage > .narrow-hint { display: none; }
+/* These are the Panel's controls. The editor keeps file and simulator
+ * commands in its app bar rather than adding a second footer. */
+body[data-layout="workbench"] main > .controls,
+body[data-layout="editor"] main > .controls,
+body[data-layout="workbench"] main > .files,
+body[data-layout="editor"] main > .files { display: none; }

@@ -40,13 +40,20 @@ export function makeSequencerHost({ sim, files, st, history, snapshot, say, onSe
   });
 
   async function fetchProject() {
-    if (!sim.node) throw new Error('Power on the simulator first.');
-    const gen = st.gen;
-    const snap = await files.projectSnapshot();
-    if (st.gen !== gen) throw new Error('The project changed while reading. Retry the edit.');
-    const doc = JSON.parse(snap.text);
-    versions.set(doc, { gen, hash: snap.hash });
-    return doc;
+    // Initial load notifications can invalidate a snapshot that is already
+    // in flight. Retrying a read is safe; write transactions never retry.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const node = sim.node;
+      if (!node) throw new Error('Power on the simulator first.');
+      const gen = st.gen;
+      const snap = await files.projectSnapshot();
+      if (sim.node !== node) throw new Error('The simulator restarted while reading. Open the Song view again.');
+      if (st.gen !== gen) continue;
+      const doc = JSON.parse(snap.text);
+      versions.set(doc, { gen, hash: snap.hash });
+      return doc;
+    }
+    throw new Error('The project kept changing while reading. Retry the edit.');
   }
 
   async function loadChecked(doc, options = {}, expectedCurrent) {
@@ -206,10 +213,11 @@ export function makeSequencerHost({ sim, files, st, history, snapshot, say, onSe
               retainedBytes += file.blob.size;
               const li = document.createElement('li'); const a = document.createElement('a'); const url = URL.createObjectURL(file.blob); urls.add(url);
               a.href = url; a.download = file.name; a.textContent = `${file.name} · ${file.channels} channels`; li.append(a); results.append(li);
+              a.click();
             } });
           if (result.warnings?.length) { const li = document.createElement('li'); li.textContent = result.warnings.join(' '); results.append(li); }
         }
-        progress.value = 1; status.textContent = 'WAVs ready. Download the files below.';
+        progress.value = 1; status.textContent = 'WAV downloads started. If your browser blocks multiple downloads, allow them or use the file links below.';
       } catch (err) { status.textContent = controller.signal.aborted ? 'Render cancelled.' : err.message; }
       finally { controller = null; start.disabled = false; cancel.textContent = 'Close'; for (const c of choices) c.disabled = false; tail.disabled = false; }
     };
@@ -219,5 +227,5 @@ export function makeSequencerHost({ sim, files, st, history, snapshot, say, onSe
 
   const verb = (text) => { if (sim.node) sim.node.port.postMessage({ type: 'seq-line', bytes: encoder.encode(text) }); };
   return { fetchProject, applyProject, restoreHistory, openFile, exportFile, exportAudio,
-    getTransport: () => sim.seq || {}, play: () => verb('play'), stop: () => verb('stop'), get busy() { return busy; } };
+    getTransport: () => sim.seq || {}, playPause: () => verb(sim.seq?.playing ? 'pause' : 'resume'), restart: () => { verb('rewind'); verb('resume'); }, play: () => verb('resume'), pause: () => verb('pause'), stop: () => verb('rewind'), seekBar: bar => verb(`seekbar ${bar}`), get busy() { return busy; } };
 }

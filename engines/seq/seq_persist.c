@@ -18,6 +18,7 @@
  *   dq <percent>                   the default quantize of new clips (after key)
  *   se <1 park|2 stop>             what the song does after its last entry (after sg)
  *   sn <scene> <name>              a scene's name, 1-6 printable characters (after se)
+ *   tn <track> <hex ASCII>        1-16 printable ASCII bytes, spaces included (after tk)
  *   rt <track> <0 midi|1 engine> <channel|slot>   a track's routing (after its au lines)
  * Movy ignores unknown lines, so such a set still loads there. Every
  * import reads `rt` and `key` (a set read without a `key` line is in C
@@ -114,6 +115,15 @@ size_t fm1_seq_export_movy1(const fm1_seq_t *s, char *buf, size_t cap) {
     puts_(&k, " "); putu(&k, tr->active);
     puts_(&k, " "); putu(&k, tr->muted ? 1u : 0u);
     puts_(&k, "\n");
+    if (!s->lim.compat && tr->name[0]) {
+      static const char hex[] = "0123456789abcdef";
+      puts_(&k, "tn "); putu(&k, t); puts_(&k, " ");
+      for (i = 0; tr->name[i]; ++i) {
+        const unsigned char ch = (unsigned char)tr->name[i];
+        put(&k, &hex[ch >> 4], 1); put(&k, &hex[ch & 15u], 1);
+      }
+      puts_(&k, "\n");
+    }
     for (i = 0; i < tr->n_pad_mutes; ++i) {
       puts_(&k, "pm "); putu(&k, t); puts_(&k, " "); putu(&k, pm[i]); puts_(&k, "\n");
     }
@@ -219,7 +229,7 @@ static int is_ws(char c) {
 enum { IM_TAG = 0, IM_BODY, IM_REFUSED };
 enum {
   K_NONE = 0, K_OTHER, K_BPM, K_SWING, K_LINK, K_SG, K_TK, K_PM, K_PS, K_CL, K_CP, K_AU, K_LK, K_TG,
-  K_RT, K_KEY, K_DQ, K_SE, K_SN
+  K_RT, K_KEY, K_DQ, K_SE, K_SN, K_TN
 };
 
 static void num_init(fm1_seq_num_t *x) { memset(x, 0, sizeof(*x)); }
@@ -279,6 +289,7 @@ static void import_reset(fm1_seq_t *s) {
     tr->lanes_assigned = 0;
     memset(tr->base, 0, sizeof(tr->base));
     memset(tr->label, 0, sizeof(tr->label));
+    memset(tr->name, 0, sizeof(tr->name));
     tr->route_kind = FM1_SEQ_ROUTE_MIDI;
     tr->route_index = (uint8_t)(t % 16u + 1u);
   }
@@ -298,7 +309,7 @@ static unsigned key_of(const fm1_seq_import_t *im) {
   static const struct { const char *name; uint8_t key; } kKeys[] = {
     { "bpm", K_BPM }, { "swing", K_SWING }, { "link", K_LINK }, { "sg", K_SG }, { "tk", K_TK },
     { "pm", K_PM }, { "ps", K_PS }, { "cl", K_CL }, { "cp", K_CP }, { "au", K_AU }, { "lk", K_LK },
-    { "tg", K_TG }, { "rt", K_RT }, { "key", K_KEY }, { "dq", K_DQ }, { "se", K_SE }, { "sn", K_SN },
+    { "tg", K_TG }, { "rt", K_RT }, { "key", K_KEY }, { "dq", K_DQ }, { "se", K_SE }, { "sn", K_SN }, { "tn", K_TN },
   };
   size_t i;
   if (im->keylen > sizeof(im->keybuf)) return K_OTHER;
@@ -414,6 +425,13 @@ static void word_char(fm1_seq_import_t *im, char c) {
           tr->label[im->lv[1]][im->text_n++] = c;
           tr->label[im->lv[1]][im->text_n] = '\0';
         }
+        return;
+      }
+      break;
+    case K_TN:
+      if (im->wi == 2) {
+        if (im->text_n < sizeof im->text) im->text[im->text_n] = c;
+        if (im->text_n < 255u) ++im->text_n;
         return;
       }
       break;
@@ -561,6 +579,9 @@ static void word_end(fm1_seq_import_t *im) {
     case K_SE:
       if (wi == 1 && num_u(&im->num, U8_MAX_, &a) && a <= FM1_SEQ_SONG_STOP) s->song_end = (uint8_t)a;
       break;
+    case K_TN:
+      if (wi == 1) word_u(im, 0, USIZE_MAX_);
+      break;
     case K_SN:
       if (wi == 1) {
         if (!word_u(im, 0, U8_MAX_) || im->lv[0] >= FM1_SEQ_SCENES) im->dead = 1;
@@ -574,8 +595,31 @@ static void word_end(fm1_seq_import_t *im) {
   }
 }
 
+static int hex_digit(char c) {
+  if (c >= '0' && c <= '9') return c - '0';
+  if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+  if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+  return -1;
+}
+
+/* Commit only complete, valid tn lines. Extra fields, oversized or odd hex,
+ * and invalid ASCII never replace a preceding valid name or get truncated. */
+static int track_name_line(fm1_seq_import_t *im) {
+  char name[FM1_SEQ_TRACK_NAME_MAX];
+  unsigned i;
+  if (im->dead || im->words != 3u || im->lv[0] >= im->s->n_tracks ||
+      !im->text_n || im->text_n > sizeof im->text || (im->text_n & 1u)) return 0;
+  for (i = 0; i < im->text_n / 2u; ++i) {
+    const int a = hex_digit(im->text[i * 2u]), b = hex_digit(im->text[i * 2u + 1u]);
+    if (a < 0 || b < 0) return 0;
+    name[i] = (char)((a << 4) | b);
+  }
+  return fm1_seq_set_track_name(im->s, (uint8_t)im->lv[0], name, im->text_n / 2u);
+}
+
 static void line_end(fm1_seq_import_t *im) {
   fm1_seq_t *s = im->s;
+  if (im->key == K_TN && !track_name_line(im)) ++s->stats.refused;
   if (!im->dead) {
     if (im->key == K_TK) {
       if (im->n_tk == 3u && im->lv[0] < s->n_tracks) {

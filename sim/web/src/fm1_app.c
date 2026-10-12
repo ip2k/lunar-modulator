@@ -1416,7 +1416,7 @@ static size_t mfx_ram(const fm1_app_t *a, int with_on) {
 /* The RAM figure with unit `unit` holding `bytes` (`loaded` or empty), or
  * the chain as it is for unit -1. Instances count at FM1_APP_RAM_RATE. */
 static size_t ram_of(const fm1_app_t *a, int unit, size_t bytes, int loaded) {
-  size_t total = 0;
+  size_t total = sizeof a->midi_map;
   int sounds = 0;
   for (int u = 0; u < FM1_APP_UNITS; ++u) {
     const int on = u == unit ? loaded : a->unit[u].e != NULL;

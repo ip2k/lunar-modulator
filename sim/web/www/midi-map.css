@@ -1,0 +1,19 @@
+.midi-learn-toggle { display:flex; align-items:center; justify-content:center; padding:7px; }
+.midi-learn-toggle svg { width:24px; height:24px; }
+.midi-learn-toggle[aria-pressed=true] { color:#102c28; background:#55cdb1; box-shadow:0 0 0 2px #55cdb1; }
+.midi-learn-overlay { position:fixed; inset:0; z-index:1000; background:rgba(30,109,94,.16); pointer-events:none; }
+.midi-learn-overlay[hidden] { display:none; }
+.midi-learn-help { position:absolute; z-index:2; top:62px; right:14px; width:min(330px,calc(100vw - 28px)); max-height:45vh; overflow:auto; box-sizing:border-box; padding:12px; border:1px solid #55cdb1; border-radius:8px; background:#232136; color:#f0edf5; pointer-events:auto; font:13px/1.5 system-ui,sans-serif; }
+.midi-learn-help p { margin:0 0 10px; }
+.midi-learn-help button { margin-right:8px; }
+.midi-learn-help details { margin-top:12px; }
+.midi-learn-assignment { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:8px 0; overflow-wrap:anywhere; }
+.midi-learn-assignment button { flex:none; }
+.midi-learn-target { position:absolute; border:1px solid #55cdb1; border-radius:4px; box-sizing:border-box; background:rgba(85,205,177,.2); }
+.midi-learn-target.is-selected { border:2px solid #c5ffee; background:rgba(85,205,177,.45); }
+/* Mappings intentionally cover the assigned control while learning. Two short
+   rows keep CC/channel/clear readable even on the compact transport buttons. */
+.midi-learn-badge { position:absolute; inset:1px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0; border-radius:3px; background:rgba(85,205,177,.94); color:#102c28; font:10px/12px system-ui,sans-serif; white-space:nowrap; pointer-events:auto; }
+.midi-learn-badge-detail { display:flex; align-items:center; justify-content:center; gap:2px; font-size:9px; }
+.midi-learn-badge button { display:inline-flex; align-items:center; justify-content:center; margin:0; padding:0; width:12px; height:12px; min-width:0; min-height:12px; border:0; border-radius:2px; background:#102c2820; color:inherit; font:12px/12px system-ui,sans-serif; }
+.midi-learn-badge button:hover, .midi-learn-badge button:focus-visible { background:#102c2840; outline:1px solid currentColor; }

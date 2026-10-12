@@ -28,8 +28,9 @@
 // Worker (shadow.worker.js) turns it into JSON, checks files against it
 // (pass 1) and packs them, and `state-load` takes the packed file and runs
 // fm1w_state_load (pass 1 again, then pass 2). Anything that is not the
-// binary container is refused here, so JSON is never parsed on this thread
-// (the editor's ED3 and ED13). Reports go back as the module's JSON text,
+// binary container is refused for project loads (the editor's ED3 and ED13).
+// MIDI learn uses a separate bounded metadata-only setter: its small JSON
+// envelope cannot reload a project or alter transport, sounds or sessions. Reports go back as the module's JSON text,
 // unparsed. SAVE on the panel is fm1w_save_gen counting up, posted as
 // `save-pressed`; the page's store answers with `saved`. Nothing here
 // reaches a device.
@@ -56,9 +57,12 @@
 //                                 buffers transferred and handed back
 //        stats {...}              once a second: quanta, the late ones (a
 //                                 quantum that took longer than it plays) and
-//                                 the slowest, where the clock is available
+//                                 the slowest, where high-resolution timing exists;
+//                                 loadPercent/busyMs/windowMs use >=1 s of audio
+//                                 with explicit timingSource (possibly coarse).
 // MIT licence, like the rest of this repository.
 
+import { AudioBudget, elapsedMs } from './audio-budget.js';
 import { instantiateFm1, BLOCK, SCREEN, KEYS, BUTTONS } from './fm1-wasm.mjs';
 
 const SCREEN_EVERY = 4;          // quanta between screen checks (~12 ms)
@@ -66,15 +70,17 @@ const LIVE_FRAMES = 1470;        // a live scope redraws at most every ~33 ms
 const SCREEN_BUFFERS = 2;
 const LEDS = KEYS + BUTTONS.length;
 const SEQ_WATCHED = 6;           // fm1w_seq_info's words compared each quantum
-const SEQ_WORDS = 56;            // legacy transport plus song and clip playheads
+const SEQ_WORDS = 61;            // legacy transport plus song and clip playheads
 const REC = 24;                  // a packed record (fm1_edit.h)
 const CHANGE = 32;               // a change-ring entry
 const EDITS_PER_QUANTUM = 64;
 const CHANGES_EVERY = 6;         // quanta between change batches (~17 ms)
 const TELE_BUFFERS = 2;
 const RESYNC = 0xffffffff;
-const clock = globalThis.performance && typeof globalThis.performance.now === 'function'
-  ? () => globalThis.performance.now() : null;
+const timingSource = globalThis.performance && typeof globalThis.performance.now === 'function'
+  ? 'performance' : typeof globalThis.Date?.now === 'function' ? 'date-now' : 'unavailable';
+const clock = timingSource === 'performance' ? () => globalThis.performance.now()
+  : timingSource === 'date-now' ? () => Date.now() : () => null;
 
 class FM1Processor extends AudioWorkletProcessor {
   constructor() {
@@ -99,12 +105,17 @@ class FM1Processor extends AudioWorkletProcessor {
     this.viewLast = new Uint8Array(40);
     this.ramLast = new Uint32Array(7);
     this.ramSent = false;
-    this.stats = { quanta: 0, late: 0, maxMs: 0, editMs: 0, timed: clock !== null };
+    this.stats = new AudioBudget(sampleRate, timingSource);
+    this.controlMs = 0;
   }
 
   // The editor's messages: kept until the module is ready, applied in
   // process() between quanta. Anything malformed is dropped here.
   onEditor(m) {
+    const t0 = clock();
+    try { return this.handleEditor(m); } finally { this.measureControl(t0); }
+  }
+  handleEditor(m) {
     if (!m || typeof m !== 'object') return;
     switch (m.type) {
       case 'edit':
@@ -215,7 +226,16 @@ class FM1Processor extends AudioWorkletProcessor {
     this.editor.postMessage({ type: 'ram', total: now[0], budget: ex.fm1w_ram_budget() >>> 0, parts }, [parts.buffer]);
   }
 
-  async onMessage(m) {
+  onMessage(m) {
+    const t0 = clock();
+    try { return this.handleMessage(m); } finally { this.measureControl(t0); }
+  }
+  measureControl(t0) {
+    if (!this.fm1 || !this.editor) return;
+    const ms = elapsedMs(t0, clock());
+    this.controlMs = ms === null || this.controlMs === null ? null : this.controlMs + ms;
+  }
+  async handleMessage(m) {
     if (m.type === 'screen-buffer') {
       this.free.push(new Uint16Array(m.buffer));
       return;
@@ -269,6 +289,7 @@ class FM1Processor extends AudioWorkletProcessor {
       case 'dx7-load': this.loadDx7(m); break;
       case 'state-save': this.stateSave(m); break;
       case 'state-load': this.stateLoad(m); break;
+      case 'midi-map': this.setMidiMap(m); break;
       case 'seq-line': this.seqLine(m.bytes); break;
       case 'store-ready': ex.fm1w_store_ready(m.on ? 1 : 0); break;
       case 'saved': {
@@ -333,6 +354,17 @@ class FM1Processor extends AudioWorkletProcessor {
     }, bytes ? [bytes.buffer] : []);
   }
 
+  // Atomic browser-controller metadata update; no transport or engine reload.
+  setMidiMap(m) {
+    const ex = this.fm1.exports, b = m.bytes;
+    const supported = typeof ex.fm1w_midi_map_set === 'function';
+    const ok = supported && b instanceof Uint8Array && b.length <= ex.fm1w_text_cap() &&
+      (this.text().set(b), ex.fm1w_midi_map_set(b.length) === 1);
+    this.port.postMessage({ type: 'midi-map-set', id: m.id, ok: !!ok,
+      error: supported ? (ok ? null : 'MIDI assignments exceed this project’s mapping limits.') :
+        'Reload the updated Lunar module to save MIDI assignments in projects.' });
+  }
+
   // A packed file: binary only (the shadow Worker packed it and ran pass 1).
   stateLoad(m) {
     const ex = this.fm1.exports;
@@ -392,7 +424,7 @@ class FM1Processor extends AudioWorkletProcessor {
       out: new Float32Array(mem, outPtr, 2 * BLOCK),
       leds: new Uint8Array(mem, ex.fm1w_leds(), LEDS),
       screen: new Uint16Array(mem, ex.fm1w_screen(), SCREEN * SCREEN),
-      seq: new Uint32Array(mem, ex.fm1w_seq_info(), SEQ_WORDS),
+      seq: new Uint32Array(mem, ex.fm1w_seq_info(), ex.fm1w_seq_words?.() || 56),
     };
     return this.views;
   }
@@ -406,9 +438,9 @@ class FM1Processor extends AudioWorkletProcessor {
     const hasContentGen = typeof this.fm1.exports.fm1w_seq_gen === 'function';
     let changed = hasContentGen && contentGen !== this.seqContentGen;
     let immediate = changed;
-    for (let i = 0; i < SEQ_WORDS; ++i) if (s[i] !== last[i]) {
+    for (let i = 0; i < s.length; ++i) if (s[i] !== last[i]) {
       changed = true;
-      if (i < SEQ_WATCHED || (i >= 8 && i < 16)) immediate = true;
+      if (i < SEQ_WATCHED || (i >= 8 && i < 16) || i === 56 || i === 60) immediate = true;
     }
     // Native ticks run at PPQN, faster than a visual playhead needs. Limit
     // position-only updates to about 30 Hz; transport transitions are immediate.
@@ -422,7 +454,8 @@ class FM1Processor extends AudioWorkletProcessor {
       tracks.push({ active: s[at], playing: s[at + 1], posTick: s[at + 2], cycle: s[at + 3], muted: !!s[at + 4] });
     }
     this.port.postMessage({
-      type: 'seq', ...(hasContentGen ? { contentGen } : {}), playing: s[0] !== 0, bpm_x100: s[1], recording: s[2] !== 0, watch_track: s[3],
+      type: 'seq', paused: !!s[56], playbackFrames: s.length >= 61 ? s[57] + s[58] * 4294967296 : null,
+      sampleRate: s[59] || sampleRate, metronome: !!s[60], ...(hasContentGen ? { contentGen } : {}), playing: s[0] !== 0, bpm_x100: s[1], recording: s[2] !== 0, watch_track: s[3],
       counting_in: s[4] !== 0, following: s[5] !== 0, master_tick: s[6] + s[7] * 4294967296,
       scene: s[8], songIndex: s[9], songPass: s[10], songPassBar: s[11], songFollow: !!s[12],
       songParked: !!s[13], songEnd: s[14], songEntry: s[15], step: Math.floor(tracks[s[3]]?.posTick / 24) || 0, tracks,
@@ -439,10 +472,10 @@ class FM1Processor extends AudioWorkletProcessor {
       return true;
     }
     const ex = this.fm1.exports;
-    const t0 = clock ? clock() : 0;
+    const t0 = clock();
     let v = null;
     if (this.editor && this.edits.length) this.applyEdits();
-    const t1 = clock ? clock() : 0;
+    const t1 = clock();
     for (let off = 0; off < left.length; off += BLOCK) {
       const n = Math.min(BLOCK, left.length - off);
       v = this.getViews(ex.fm1w_render(n));   // always the app's one buffer
@@ -475,9 +508,9 @@ class FM1Processor extends AudioWorkletProcessor {
       this.port.postMessage({ type: 'screen', px }, [px.buffer]);
     }
     if (this.editor) {
-      const t2 = clock ? clock() : 0;
+      const t2 = clock();
       this.postEditor();
-      this.measure(t0, t2 - t1, left.length);
+      this.measure(t0, elapsedMs(t1, t2), left.length);
     }
     return true;
   }
@@ -485,20 +518,12 @@ class FM1Processor extends AudioWorkletProcessor {
   // The underrun counter (ED1, §12): a quantum that took longer than it
   // plays is late; the edit layer's own share is counted apart.
   measure(t0, renderMs, frames) {
-    const s = this.stats;
-    s.quanta += 1;
-    if (clock) {
-      const ms = clock() - t0;
-      s.editMs += ms - renderMs;
-      if (ms > s.maxMs) s.maxMs = ms;
-      if (ms > (1000 * frames) / sampleRate) s.late += 1;
-    }
-    if (s.quanta % 345 === 0) {           // about once a second
-      this.editor.postMessage({
-        type: 'stats', quanta: s.quanta, timed: s.timed,
-        late: s.timed ? s.late : null, maxMs: s.timed ? s.maxMs : null, editMs: s.timed ? s.editMs : null,
-      });
-    }
+    const ms = elapsedMs(t0, clock());
+    const control = this.controlMs;
+    this.controlMs = 0;
+    const busy = ms === null || control === null ? null : ms + control;
+    const edit = ms === null || renderMs === null ? 0 : Math.max(0, ms - renderMs);
+    if (this.stats.record(frames, busy, edit, ms)) this.editor.postMessage(this.stats.snapshot());
   }
 }
 

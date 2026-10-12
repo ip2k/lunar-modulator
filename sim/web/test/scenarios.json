@@ -464,7 +464,7 @@
                      "0.8:2:Freeze=0", "0.9:2:Decay=0.4", "1.0:2:Pre-delay=90", "1.1:2:Diffusion=0.3",
                      "1.2:2:Mod=0", "1.3:2:Width=0.3", "1.4:2:Low Cut=0.7", "1.5:2:Size=1"],
      "seconds": 1.8},
-    {"name": "plate-freeze-into-room", "engine": "shapes", "params": ["Shape=28", "Release=0.4"],
+    {"name": "plate-freeze-into-room", "engine": "macro", "params": ["Model=4"],
      "notes": ["0:57:110:0.2", "0:64:100:0.2", "0.45:69:120:0.15", "0.95:60:100:0.15"],
      "fx": [["plate", ["Mix=0.5", "Decay=0.8"]], ["room", ["Mix=0.25", "Decay=0.4", "Blur=0.3"]]],
      "fx_param_at": ["0.25:1:Freeze=1", "0.5:1:Decay=0.2", "0.6:1:Mix=0.8", "0.7:2:Decay=0.8",

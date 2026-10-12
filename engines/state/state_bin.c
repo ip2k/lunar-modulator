@@ -56,16 +56,17 @@
 #define CH_CLIP 7
 #define CH_VIEW 8
 #define CH_SETG 9
-#define CH_COUNT 10
+#define CH_BROW 10
+#define CH_COUNT 11
 
 static const char kTag[CH_COUNT][5] = { "", "info", "PROJ", "UNIT", "DX7V", "MODR", "SEQS", "CLIP",
-                                        "view", "SETG" };
-static const uint32_t kCap[CH_COUNT] = { 0, 2048, 2048, 6144, 5200, 12288, 49152, 16384, 2048, 2048 };
+                                        "view", "SETG", "BROW" };
+static const uint32_t kCap[CH_COUNT] = { 0, 2048, 2048, 6144, 5200, 12288, 49152, 16384, 2048, 2048, 4612 };
 /* Kinds that may hold each chunk (bit FM1_STATE_*). */
 static const uint16_t kKinds[CH_COUNT] = {
   0, 0x7E | 0x80, 1u << 1, (1u << 1) | (1u << 2) | (1u << 3), (1u << 1) | (1u << 2),
   (1u << 1) | (1u << 2) | (1u << 3) | (1u << 4), (1u << 1) | (1u << 7), 1u << 5,
-  (1u << 1) | (1u << 2) | (1u << 3) | (1u << 4) | (1u << 5), 1u << 6
+  (1u << 1) | (1u << 2) | (1u << 3) | (1u << 4) | (1u << 5), 1u << 6, 1u << 1
 };
 
 static const uint8_t kMagic[8] = { 0x89, 'L', 'u', 'n', 'a', 'r', 0x0D, 0x0A };
@@ -109,6 +110,7 @@ typedef struct bin_writer {
   int err;
   bdir_t dir[FM1_STATE_CHUNKS];
   unsigned n_chunks;
+  fm1_midi_map_t midi_map;
   uint8_t cur;                /* the open chunk: CH_*, 0 none */
   uint8_t u_role, u_sound, u_slot;
   uint8_t level_has;
@@ -204,6 +206,15 @@ static int close_chunk(bin_writer_t *w) {
         put32(b, w->level);
         if (!cput16(w, 1) || !cput8(w, KV_F32) || !cput8(w, 0) || !cput16(w, 4) || !cput(w, b, 4)) return 0;
       }
+      break;
+    case CH_BROW:
+      if (!cput8(w, w->midi_map.version) || !cput8(w, w->midi_map.count) || !cput16(w, w->midi_map.used)) return 0;
+      for (unsigned i = 0; i < w->midi_map.count; ++i) {
+        const fm1_midi_binding_t *b = &w->midi_map.binding[i];
+        if (!cput16(w, b->target) || !cput16(w, b->source) || !cput8(w, b->channel) ||
+            !cput8(w, b->kind) || !cput8(w, b->number) || !cput8(w, 0)) return 0;
+      }
+      if (!cput(w, w->midi_map.text, w->midi_map.used)) return 0;
       break;
     case CH_DX7V:
       w->chunk[0] = (uint8_t)w->count;
@@ -451,6 +462,18 @@ int fm1_state_bin_write(void *wv, const fm1_rec_t *r) {
       if (!open_chunk(w, CH_SETG)) return 0;
       return kv32(w, r->u.setting.key, r->u.setting.is_bool ? KV_BOOL : KV_I32,
                   (uint32_t)r->u.setting.value);
+    case FM1_REC_MIDI_MAP:
+      if (w->midi_map.version || r->u.map_version != FM1_MIDI_MAP_VERSION)
+        return berr(w, FM1_STATE_BAD, "invalid or duplicate MIDI map");
+      w->midi_map.version = r->u.map_version;
+      return open_chunk(w, CH_BROW);
+    case FM1_REC_MIDI_BINDING: {
+      unsigned code;
+      if (w->cur != CH_BROW) return berr(w, FM1_STATE_BAD, "mapping binding without its map");
+      code = fm1_midi_map_add(&w->midi_map, r->u.binding.target, r->u.binding.source,
+        r->u.binding.channel, r->u.binding.kind, r->u.binding.number);
+      return code == FM1_STATE_OK ? 1 : berr(w, code, "invalid or oversized MIDI map");
+    }
     case FM1_REC_END:
       if (!close_chunk(w)) return 0;
       if (w->n_chunks == 0 && (!open_chunk(w, CH_INFO) || !close_chunk(w))) return 0;   /* a file has a chunk */
@@ -482,7 +505,7 @@ typedef struct {
   int stop;
   uint8_t kind;
   uint8_t mod_pos_seen;
-  uint8_t mod_seen;
+  uint8_t mod_seen, midi_seen;
   uint8_t pad_;
   uint32_t units_seen[2];     /* 40 unit places */
   uint32_t dx7_seen, cable_seen;
@@ -558,6 +581,45 @@ static int cs_skip(cs_t *c, uint32_t n) {
     const uint32_t m = n < sizeof(t) ? n : (uint32_t)sizeof(t);
     if (!cs_get(c, t, m)) return 0;
     n -= m;
+  }
+  return 1;
+}
+
+static int read_browser(br_t *b, cs_t *c) {
+  uint8_t hdr[4], entries[FM1_MIDI_MAP_BINDINGS * 8];
+  char pool[FM1_MIDI_MAP_TEXT];
+  unsigned count, used;
+  fm1_rec_t r;
+  if (b->midi_seen++) return bbad(b, "two browser mapping chunks");
+  if (!cs_get(c, hdr, 4)) return short_chunk(b);
+  if (hdr[0] != FM1_MIDI_MAP_VERSION) return brefuse(b, hdr[0] > 1 ? FM1_STATE_TOO_NEW : FM1_STATE_BAD, "unsupported MIDI mapping version");
+  count = hdr[1]; used = get16(hdr + 2);
+  if (count > FM1_MIDI_MAP_BINDINGS || used > sizeof pool) return brefuse(b, FM1_STATE_TOO_BIG, "MIDI map past its cap");
+  if (!cs_get(c, entries, count * 8) || !cs_get(c, (uint8_t *)pool, used)) return short_chunk(b);
+  memset(&r, 0, sizeof r); r.type = FM1_REC_MIDI_MAP; r.u.map_version = hdr[0];
+  if (!bemit(b, &r)) return 0;
+  for (unsigned i = 0; i < count; ++i) {
+    const uint8_t *e = entries + i * 8;
+    unsigned t = get16(e), s = get16(e + 2);
+    const char *te, *se;
+    if (t >= used || s >= used || (t && pool[t - 1]) || (s && pool[s - 1]) || e[7]) return bbad(b, "invalid MIDI map string offset or reserved byte");
+    te = memchr(pool + t, 0, used - t); se = memchr(pool + s, 0, used - s);
+    if (!te || !se) return bbad(b, "unterminated MIDI map identifier");
+    if (te - (pool + t) > FM1_MIDI_MAP_TARGET || se - (pool + s) > FM1_MIDI_MAP_SOURCE)
+      return brefuse(b, FM1_STATE_TOO_BIG, "mapping identifier past its byte cap");
+    memset(&r, 0, sizeof r); r.type = FM1_REC_MIDI_BINDING;
+    r.u.binding.target = pool + t; r.u.binding.source = pool + s;
+    r.u.binding.channel = e[4]; r.u.binding.kind = e[5]; r.u.binding.number = e[6];
+    if (fm1_midi_binding_valid(pool + t, pool + s, e[4], e[5], e[6]) != FM1_STATE_OK)
+      return bbad(b, "invalid MIDI binding");
+    for (unsigned j = 0; j < i; ++j) {
+      const uint8_t *old = entries + j * 8;
+      if (!strcmp(pool + get16(old), pool + t) ||
+          (old[4] == e[4] && old[5] == e[5] && old[6] == e[6] &&
+           !strcmp(pool + get16(old + 2), pool + s)))
+        return bbad(b, "duplicate MIDI binding target or address");
+    }
+    if (!bemit(b, &r)) return 0;
   }
   return 1;
 }
@@ -1320,6 +1382,9 @@ int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_si
         if (ok && !a.has) ok = bbad(&b, "a view needs its mode");
         if (ok) ok = bemit(&b, &a.r);
         break;
+      case CH_BROW:
+        if (get16(e + 4) != 1) return brefuse(&b, FM1_STATE_TOO_NEW, "unsupported browser chunk version");
+        ok = read_browser(&b, &c); break;
       case CH_SETG: ok = kv_each(&b, &c, setg_kv, NULL); break;
       default: ok = 0; break;
     }

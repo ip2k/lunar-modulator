@@ -18,27 +18,46 @@ the editor, and a slider moved in the editor opens that page on the panel.
 
 The switch at the top of the page has three positions. **Panel** is the
 panel alone. **Workbench** puts the panel and the editor together. **Editor**
-gives the editor the whole page and shows the FM-1's screen in a small card
-beside it, headed *On the FM-1*, so you can see what the panel shows while you
-work. Power the simulator on first; until then the editor says so.
+gives the editor the whole page and shows the FM-1's screen at its native
+resolution in a small card beside it. Power the simulator on first; until
+then the editor says so. A loaded project with a sequence opens **Song** the
+first time you enter Workbench or Editor; your later view choices stay yours.
 
 {{page editor-flow The editor on the example project First orbit: the outline on the left, the Flow in the middle with four sounds into the mix and the two master effects, and the FM-1’s screen in its card.}}
 
 Along the top of the editor:
 
-- **Keys PLAY** or **Keys EDIT** says what the computer keyboard does. In PLAY
-  the keys play the instrument, as they do on the panel. Click in the editor,
+- **Files**, **Simulator** and **Changes** keep the page's file bar, simulator
+  controls and edit history in menus while the editor is open. In **Panel**
+  layout, the controls and file bar return to the page.
+- The sidebar icon beside **Advanced editor** hides or brings back the
+  outline and screen card. This choice is remembered by the browser.
+- The keyboard/pen icon switches what the computer keyboard does. The
+  keyboard means PLAY: keys play the instrument as on the panel. Click in the editor,
   or press <kbd>Ctrl</kbd>+<kbd>E</kbd> (<kbd>⌘</kbd>+<kbd>E</kbd> on a Mac), and
-  it reads EDIT: the keys edit and play nothing, so a stray letter never
-  changes a view while you mean to play. <kbd>Esc</kbd> gives the keys back.
-- **Follow the panel** moves the editor to whatever the panel shows. **Open on
-  the panel** does the reverse: choosing a block or a parameter in the editor
-  opens its page on the panel.
+  the pen means EDIT: the keys edit and play nothing. <kbd>Esc</kbd> gives the
+  keys back after any open popover or editor has closed. The shortcuts icon
+  at the right opens the **Keyboard Shortcuts** guide.
 - **Undo** and **Redo** cover what you do in the editor and what you turn on
-  the panel, alike.
+  the panel, alike. Open **Changes** to see the recent history in a popover
+  beside those buttons.
 - **RAM** is how much of the FM-1's memory the project uses, as a percentage.
   Click it for the share of each part. Nothing the editor lets you do can go
   past 100 %.
+- **CPU** measures browser audio rendering time against its block deadline.
+  Click it for the measurement and its limits. It is not a measured estimate
+  of CPU usage on the FM-1.
+
+Below the screen, **Follow Panel** moves the editor to whatever the panel
+shows. **Open on panel** does the reverse: choosing a block or parameter in
+the editor opens its page on the panel.
+
+The piano-keys icon beside **Cheat Sheet** opens MIDI learn. In Panel view it
+sits beside the MIDI connection control. Highlighted controls turn teal;
+click one, then press a controller key or move a CC to assign it. Its badge
+shows the channel and note/CC, with an × to clear that assignment. Toggle the
+icon again to use the controls. MIDI input is silent while learning. Custom
+assignments are saved in the `.lunar` project and in this browser.
 
 ## The outline, the Flow and the sounds
 
@@ -196,6 +215,9 @@ the cable. Edit an existing cable’s endpoints in the table or slot inspector.
 keys walk within it, and every jack has a name. Screen readers should use the
 table, which lists every cable in words.
 
+An engine's information button opens a popover with its credits, group and
+licence when those details are available.
+
 ### Room
 
 The Map needs a window about 620 pixels wide for the editor. Below that, as on a
@@ -207,32 +229,69 @@ a small card.
 {{status sim}}
 
 Choose **Song** in the outline. Its five tabs show one task at a time:
-**Scenes**, **Arrangement**, **Clip**, **Automation** and **Mixer**. Transport
-and **Files & export** stay available while you switch views. On a phone,
-rotate to landscape; the portrait prompt leaves playback running.
+**Scenes**, **Arrangement**, **Clip**, **Automation** and **Mixer**. The native
+transport stays above the selected view as you switch tabs. **Files & export**
+appears in the editor bar before Undo and Redo, with Open, Save `.lunar`,
+Export `.movy1`, Export WAV, Import MIDI and Refresh. The five view tabs sit
+below the active work area. On a phone, rotate to landscape; the portrait
+prompt leaves playback running.
+
+The pinned transport shows the native zero-based bar:beat:tick position and
+total arrangement length, plus elapsed and estimated remaining time. Hover
+over the icons for their meanings; remaining time is unavailable while
+looping, parked or externally clocked. The play button becomes Pause during
+playback and Resume while paused. Stop returns to `0:0:0`. Bar, clip and
+scene navigation shows current/total counts and skips empty clips and scenes.
+Tempo, metronome and the Song end choice (Loop, Park or Stop) are saved with
+the `.lunar` project. The master meter at the right shows measured output level.
 
 **Scenes** contains eight tracks and eight scene columns, with compact rows
-that keep more of the matrix in view. Editing a slot opens its piano roll; a
-separate launch action plays that clip at the native bar boundary. Launching a
-scene plays its column, and empty slots stop their tracks. Scene headings
-select the scene for editing. **Arrangement** builds
-a song from those same scenes: append, copy, move or remove an entry, set its
-repeats, and choose Loop, Park or Stop at the end. Repeats share their clips;
-copy a scene before editing a different variation.
+that keep more of the matrix in view. Click a clip's body to launch it at the
+native bar boundary. Use the small pencil in its lower-right corner to open
+that clip's piano roll. The play icon to the left of a scene title launches
+its column; empty slots have a stop icon for their tracks. Click the blank
+area of a track or scene header to select it; these headers are MIDI
+mappable too. A translucent fill shows each playing clip's loop progress.
+The arrows beside **Scenes** page through columns that fit the window, with
+the visible scene range and total shown beside them.
+
+Double-click a scene or track name to edit it; focus a name and press
+<kbd>Enter</kbd> or <kbd>F2</kbd> to start editing with the keyboard. Press
+<kbd>Enter</kbd> or leave the field to save, or <kbd>Esc</kbd> to cancel. Scene names allow up
+to six printable characters without spaces, and the same scene name appears
+wherever that scene is used, including repeated arrangement sections. Track names use
+the native track-name field: up to 16 printable ASCII characters, including
+spaces.
+
+**Arrangement** builds a song from those same scenes. Its heading groups the
+section pager, **＋ Add section**, **Section tools** and **Song ending**.
+**＋ Add section** opens a chooser that appends the chosen scene without
+changing which section is selected. **Section tools** starts collapsed and
+holds copy, move, remove and repeat controls for the selected section.
+Choose Loop, Park or Stop directly in the **Song ending** dropdown.
+The arrows beside **Arrangement** page through the
+sections that fit the window; condensed note previews show playback progress.
+Repeats share their scene clips; copy a scene before editing a different variation.
 
 **Clip** keeps Pitch, Step, Gate and Velocity visible for the selected note;
 loop window, quantize and transpose remain clip controls. Click an empty cell
 or use **Add note**. Drag a note to move it, or its right edge to change its
 gate. Open **Advanced** for Microtiming and Probability. Microtiming uses
 ticks, with 24 ticks per sixteenth step. Probability belongs to the note's
-trigger. Scene tools rename, copy or clear a scene.
+trigger. Opening a clip frames its first sounding note inside the loop and
+scrolls that note into view; an empty clip opens at its loop start. The compact
+step pager shows the visible range within longer clips. **Follow playhead**
+turns pages automatically during playback; pitch navigation remains manual.
+The clef icons move the pitch range by an octave. The ＋ menu copies or clears
+scenes and clips; track and scene selectors sit below the grid.
 
-**Automation** shows eight native parameter-lock lanes per track. Choose an
-instrument, sound insert, sound level or master-effect parameter, then enter
-step values from 0 to 127 across that parameter's range. Clear a value to
-remove its lock. A lane holds its last value until the next lock; the plot
-shows those stepped changes. Several tracks routed to one sound share that
-sound's parameters, inserts and level.
+**Automation** shows each assigned parameter-lock lane as a horizontal row,
+up to eight native lanes per track. **Add automation** chooses an instrument,
+sound insert, sound level or master-effect parameter. Enter step values from
+0 to 127 across that parameter's range, or clear one to remove its lock. A lane
+holds its last value until the next lock; the blocks show those stepped
+changes and the native playhead follows playback. Several tracks routed to
+one sound share that sound's parameters, inserts and level.
 
 **Mixer** has four sound strips and Master, with vertical faders, dB readouts
 and live peak/RMS meters. Instrument, insert and master-effect buttons open
@@ -247,6 +306,20 @@ less frequent settings and actions behind a disclosure. They open as modal
 dialogs; focus moves to Close when a dialog opens, Escape closes it, and focus
 returns to the control that opened it. **Files & export** remains available
 from the Song workspace.
+
+When the Song workspace owns the keyboard, its canvas shortcuts are
+context-sensitive. <kbd>Space</kbd> plays or pauses and <kbd>Shift</kbd>+<kbd>Space</kbd>
+restarts from the beginning and plays. <kbd>Tab</kbd> switches Arrangement and
+Mixer; <kbd>E</kbd> and <kbd>A</kbd> open Clip and Automation. <kbd>D</kbd>
+opens the selected track's routed instrument inspector, <kbd>I</kbd> toggles
+the sidebar, and <kbd>0</kbd> or <kbd>Alt</kbd>+<kbd>A</kbd> toggles the
+selected track's mute. <kbd>Enter</kbd> or <kbd>F2</kbd> renames a selected
+track or Arrangement section. <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>D</kbd>
+duplicates a selected note or Arrangement section; <kbd>Delete</kbd> or
+<kbd>Backspace</kbd> removes it. Arrow keys move a selected note by one step
+or semitone. Text fields, form controls, dialogs, Files & export and MIDI
+preview keep their normal keys; ordinary Tab traversal and button activation
+remain available. The editor continues to own Undo and Redo.
 
 ### Importing MIDI
 
@@ -281,7 +354,8 @@ is future work; the FM-1 does not run Lunar yet.
 Choose a stereo master, four stereo sound stems, one eight-channel WAV with
 those sound pairs, or separate sequencer-track stems. The files use 24-bit PCM
 at 44,118 Hz. Set a tail for effects; progress and Cancel remain available
-during rendering. Shared voices, modulation and nonlinear bus effects mean isolated
+during rendering. Completed files download automatically, and download links
+remain if the browser blocks multiple downloads. Shared voices, modulation and nonlinear bus effects mean isolated
 stems may not sum back to the master. Master effects are applied to the
 stereo master; the export choices explain the other outputs.
 
@@ -331,9 +405,10 @@ step you can undo, after the instrument has said whether it fits. A and B are
 kept in this browser, so they are still there after a reload.
 
 **Memory** shows how much each part takes, as a percentage of what the FM-1 has:
-each sound with its inserts, the two master effects, and what is shared (the
-mix, the sequencer and the modulation), then what is in use, what is left, and
-which sounds and effects would still fit in it.
+shared mix, sequencer and modulation first, then the two master effects, then
+each sound with its inserts. It shows what is in use, what is left, and which
+sounds and effects would still fit. The CPU section shows browser rendering
+cost and its deadline budget; hardware CPU usage remains unmeasured.
 
 {{page editor-memory The Memory page: the share of the FM-1’s memory by part, what is free, and what would still fit.}}
 

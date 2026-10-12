@@ -1,0 +1,34 @@
+{
+  "checks": {
+    "off is unavailable": true,
+    "actual timing metadata": true,
+    "actual load availability": true,
+    "native RAM segment order": true,
+    "RAM list order": true,
+    "Memory RAM order": true,
+    "stats preserve view and meter nodes": true,
+    "explicit browser/device distinction": true,
+    "no horizontal overflow 1440": true,
+    "no horizontal overflow 1024": true,
+    "no horizontal overflow 844": true,
+    "no horizontal overflow 667": true,
+    "over-budget details": true,
+    "unavailable is not zero": true,
+    "power off clears stale usage": true,
+    "no page errors": true
+  },
+  "metadata": {
+    "type": "stats",
+    "quanta": 345,
+    "timed": false,
+    "late": null,
+    "maxMs": null,
+    "editMs": null,
+    "timingSource": "date-now",
+    "windowMs": 1001.3605442176923,
+    "busyMs": 29,
+    "loadPercent": 2.8960597826086802,
+    "availablePercent": 97.10394021739133
+  },
+  "errors": []
+}

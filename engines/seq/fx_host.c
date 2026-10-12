@@ -77,7 +77,7 @@ static uint8_t transport_at(const fm1_fx_block_t *b, uint32_t f, uint32_t to, ui
     uint32_t at;
     if (e->kind != FM1_SEQ_EV_START && e->kind != FM1_SEQ_EV_STOP) continue;
     at = e->frame < b->frames ? e->frame : b->frames;
-    if (at == f) ev |= e->kind == FM1_SEQ_EV_START ? FM1_FX_EV_START : FM1_FX_EV_STOP;
+    if (at == f) ev |= e->kind == FM1_SEQ_EV_STOP ? FM1_FX_EV_STOP : FM1_FX_EV_START;
     else if (at > f && at < *next) *next = at;
   }
   (void)to;

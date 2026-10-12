@@ -656,6 +656,45 @@ static void check_sound_restore_audio(void) {
   }
 }
 
+static void check_midi_map(void) {
+  static const char good[] = "{\"lunar\":\"1.0\",\"kind\":\"project\",\"browser\":{\"midiMap\":{\"version\":1,\"bindings\":[{\"target\":\"panel:key:0\",\"source\":\"device\",\"channel\":3,\"kind\":\"note\",\"number\":60}]}}}";
+  static const char clear[] = "{\"lunar\":\"1.0\",\"kind\":\"project\",\"browser\":{\"midiMap\":{\"version\":1,\"bindings\":[]}}}";
+  static const char *bad[] = {
+    "{\"lunar\":\"1.0\",\"kind\":\"project\",\"browser\":{}}",
+    "{\"lunar\":\"1.0\",\"kind\":\"project\",\"session\":{\"current\":1},\"browser\":{\"midiMap\":{\"version\":1,\"bindings\":[]}}}",
+    "{\"lunar\":\"1.0\",\"kind\":\"project\",\"browser\":{\"midiMap\":{\"version\":2,\"bindings\":[]}}}",
+    "{\"lunar\":\"1.0\",\"kind\":\"project\",\"browser\":{\"midiMap\":{\"version\":1,\"bindings\":[{\"target\":\"panel:key:0\",\"source\":\"device\",\"channel\":16,\"kind\":\"note\",\"number\":60}]}}}"
+  };
+  fm1_state_report_t rep;
+  fm1_seq_info_t before, after;
+  fm1_seq_t *seq;
+  uint32_t hash, gen;
+  fresh(44118.0f);
+  render(4);
+  fm1_app_button(&g_a, FM1_BTN_PLAY, 1); fm1_app_button(&g_a, FM1_BTN_PLAY, 0);
+  render(100);
+  seq = fm1_app_seq(&g_a); fm1_seq_get_info(seq, &before);
+  hash = fm1_edit_state_hash(&g_a); gen = fm1_edit_gen(&g_a);
+  CHECK(fm1_app_midi_map_set(&g_a, (const uint8_t *)good, sizeof good - 1, &rep) == 1);
+  CHECK(rep.code == FM1_STATE_OK && fm1_app_seq(&g_a) == seq && fm1_edit_gen(&g_a) == gen);
+  fm1_seq_get_info(seq, &after);
+  CHECK(after.playing == before.playing && after.master_tick == before.master_tick && after.playback_frames == before.playback_frames);
+  CHECK(g_a.midi_map.version == 1 && g_a.midi_map.count == 1 && g_a.midi_map.binding[0].number == 60);
+  CHECK(strcmp(g_a.midi_map.text + g_a.midi_map.binding[0].target, "panel:key:0") == 0);
+  CHECK(fm1_edit_state_hash(&g_a) != hash);
+  hash = fm1_edit_state_hash(&g_a);
+  for (unsigned i = 0; i < sizeof bad / sizeof bad[0]; ++i) {
+    CHECK(!fm1_app_midi_map_set(&g_a, (const uint8_t *)bad[i], strlen(bad[i]), &rep));
+    CHECK(rep.code != FM1_STATE_OK && fm1_edit_state_hash(&g_a) == hash && fm1_edit_gen(&g_a) == gen);
+  }
+  CHECK(fm1_app_seq_line(&g_a, "pause", 5) == 5);
+  fm1_seq_get_info(seq, &before);
+  CHECK(fm1_app_midi_map_set(&g_a, (const uint8_t *)clear, sizeof clear - 1, &rep) == 1);
+  render(20); fm1_seq_get_info(seq, &after);
+  CHECK(after.paused && before.paused && after.master_tick == before.master_tick && after.playback_frames == before.playback_frames);
+  CHECK(g_a.midi_map.version == 1 && g_a.midi_map.count == 0 && g_a.midi_map.used == 0);
+}
+
 static void check_transport(void) {
   static uint8_t buf[FM1_STATE_BIN_MAX];
   uint32_t len = 0;
@@ -694,6 +733,27 @@ static void check_transport(void) {
   render(200);
   fm1_seq_get_info(fm1_app_seq(&g_a), &after);
   CHECK(after.playing == 1 && after.master_tick > before.master_tick + 20);
+  /* Pause, native elapsed frames and persistent transport settings survive an edit load. */
+  {
+    const char *ops = "pause; bpm 13700; metro 1; sgend 2";
+    CHECK(fm1_app_seq_line(&g_a, ops, strlen(ops)) == strlen(ops));
+    fm1_seq_get_info(fm1_app_seq(&g_a), &before);
+    CHECK(before.paused && !before.playing && before.metronome && before.song_end == 2);
+    len = 0;
+    CHECK(fm1_app_state_save(&g_a, FM1_STATE_PROJECT, 0, 1, fm1_edit_check_put, &len, &r));
+    CHECK(len <= sizeof buf);
+    memcpy(buf, fm1_edit_check_buf(), len); mem.n = len;
+    CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep) == 1);
+    render(200);
+    fm1_seq_get_info(fm1_app_seq(&g_a), &after);
+    CHECK(after.paused && !after.playing && after.master_tick == before.master_tick);
+    CHECK(after.playback_frames == before.playback_frames && after.bpm_x100 == 13700);
+    CHECK(after.metronome == 1 && after.song_end == 2);
+    CHECK(fm1_app_seq_line(&g_a, "resume", 6) == 6);
+    render(200);
+    fm1_seq_get_info(fm1_app_seq(&g_a), &after);
+    CHECK(after.playing && !after.paused && after.playback_frames > before.playback_frames);
+  }
   /* Without it a project load leaves the sequencer stopped, as before. */
   o.flags = FM1_APP_LOAD_QUIET;
   CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep) == 1);
@@ -1100,6 +1160,7 @@ int fm1_edit_check(void) {
   for (g_sweep_seed = 0; g_sweep_seed < 40; ++g_sweep_seed, ++g_sweeps) hands(g_sweep);
   check_locks();
   check_transport();
+  check_midi_map();
   check_sound_restore();
   check_sound_restore_audio();
   check_verbs();

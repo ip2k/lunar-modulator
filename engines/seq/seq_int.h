@@ -92,6 +92,7 @@ typedef struct {
   uint8_t pad_solo, n_pad_mutes, route_kind, route_index;
   fm1_seq_val_t base[FM1_SEQ_LANES];
   char label[FM1_SEQ_LANES][FM1_SEQ_LABEL_MAX];
+  char name[FM1_SEQ_TRACK_NAME_MAX + 1u];
 } sq_track_t;
 
 typedef struct {
@@ -140,7 +141,7 @@ struct fm1_seq {
   uint64_t clock_tick;
   uint64_t master_tick;
   uint64_t rng;
-  uint64_t frame_now;
+  uint64_t frame_now, playback_frames;
   uint64_t ext_ticks, ext_last_frame, ext_base;
   uint64_t song_start_bar;
 
@@ -174,7 +175,7 @@ struct fm1_seq {
   /* 1-byte fields */
   fm1_seq_limits_t lim;         /* 20 bytes, alignment 2 */
   uint8_t n_tracks, n_clips;    /* clips: tracks * 8 + the two clipboards */
-  uint8_t playing, recording, rec_track, rec_empty_start, pending_rec, metronome;
+  uint8_t playing, recording, rec_track, rec_empty_start, pending_rec, metronome, paused;
   uint8_t default_quant, emitting_clock, watch_track, clip_clipboard;
   uint8_t song_len, song_has_start, song_armed, song_armed_launch;
   uint8_t ext_running, ext_awaiting_first, ext_base_set, was_following;
@@ -329,6 +330,10 @@ void sq_set_bpm(fm1_seq_t *s, uint32_t bpm_x100);
 void sq_play(fm1_seq_t *s);
 void sq_play_selected(fm1_seq_t *s);   /* Play as with no song: each track's selected clip */
 void sq_stop(fm1_seq_t *s, sq_out_t *o);
+void sq_pause(fm1_seq_t *s, sq_out_t *o);
+void sq_resume(fm1_seq_t *s, sq_out_t *o);
+void sq_rewind(fm1_seq_t *s, sq_out_t *o);
+void sq_seek_bar(fm1_seq_t *s, int64_t bar, sq_out_t *o);
 void sq_ensure_selected_playing(fm1_seq_t *s, unsigned t);
 void sq_launch_clip(fm1_seq_t *s, unsigned t, unsigned slot);
 void sq_launch_scene(fm1_seq_t *s, unsigned slot);

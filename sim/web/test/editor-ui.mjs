@@ -61,6 +61,77 @@ await page.waitForFunction(() => window.fm1.editor.state.mirror && window.fm1.ed
   window.fm1.editor.state.mirror.blocks.size > 6, null, { timeout: 20000 });
 await page.waitForTimeout(400);
 
+// Projects with a song now open Song / MIDI, whose unified Files menu has its
+// own integration gate. Select Flow before checking the module editor's menus.
+await page.locator('.ed-out-fx').click();
+await page.waitForFunction(() => window.fm1.editor.state.view === 'flow');
+
+// The editor owns menu placement; the simulator still owns these exact nodes.
+const editor = page.locator('.ed');
+const menu = label => editor.locator('.ed-footer-menu').filter({ has: page.locator(`summary:text-is("${label}")`) });
+check('Panel footer is removed from the editor page', await page.locator('main > .controls, main > .files').count() === 0);
+check('Simulator control IDs remain unique', await page.evaluate(() => ['midi','dx7-load','dx7-file','zoom','power-off','open','open-file','save','save-kind','copy-link'].every(id => document.querySelectorAll(`#${id}`).length === 1)));
+await menu('Files').locator(':scope > summary').click();
+check('Files menu retains open/save/link controls', await menu('Files').locator('#open').isVisible() && await menu('Files').locator('#save').isVisible() && await menu('Files').locator('#copy-link').isVisible());
+check('Files menu is a single aligned vertical list', await menu('Files').evaluate(e => {
+  const rows = ['#open','#save-kind','#save','#copy-link'].map(s => e.querySelector(s).getBoundingClientRect());
+  return rows.every((r,i) => Math.abs(r.left-rows[0].left)<1 && Math.abs(r.width-rows[0].width)<1 && (!i || r.top>=rows[i-1].bottom));
+}));
+await menu('Simulator').locator(':scope > summary').click();
+check('Opening one menu closes the other', !(await menu('Files').evaluate(e => e.open)));
+check('Simulator menu retains controls and state', await menu('Simulator').locator('#sel-sound').isVisible() && await menu('Simulator').locator('#zoom').isVisible() && await menu('Simulator').locator('#power-off').isEnabled() && await menu('Simulator').locator('#dx7-file').count() === 1);
+await menu('Simulator').locator(':scope > summary').press('Escape');
+check('Escape dismisses and returns menu focus', !(await menu('Simulator').evaluate(e => e.open)) &&
+  await menu('Simulator').locator(':scope > summary').evaluate(e => e === document.activeElement) &&
+  await page.evaluate(() => window.fm1.editor.state.keys === 'edit'));
+check('Changes history starts hidden', !(await editor.getByRole('region', { name: 'Changes, both ways', exact: true }).isVisible()));
+await menu('Changes').locator(':scope > summary').click();
+check('Changes popover exposes shared history', await editor.locator('.ed-hist').isVisible());
+check('Sidebar toggle is an accessible icon without textual button clutter', await editor.getByRole('button', { name: 'Hide sidebar', exact: true }).evaluate(e => e.querySelector('svg') && !e.textContent.trim()));
+check('Sidebar icon is between the layout switch and Advanced editor title', await editor.locator('.ed-appbar-start').evaluate(e => {
+  const children = [...e.children];
+  return children[0].matches('.layout-switch') && children[1].matches('.ed-sidebar-toggle') && children[2].matches('.ed-title');
+}));
+await editor.getByRole('button', { name: 'Hide sidebar', exact: true }).click();
+check('Sidebar hides and preference persists', await editor.locator('.ed-outline').isHidden() && await page.evaluate(() => localStorage.getItem('lunar.sim.editor.sidebar-hidden') === '1'));
+await page.setViewportSize({ width: 844, height: 390 });
+check('Landscape can restore a hidden sidebar', await editor.getByRole('button', { name: 'Show sidebar', exact: true }).isVisible());
+await editor.getByRole('button', { name: 'Show sidebar', exact: true }).click();
+check('Sidebar can be restored', await editor.locator('.ed-outline').isVisible());
+await page.setViewportSize({ width: 1440, height: 1000 });
+await page.click('[data-layout="panel"]');
+check('Panel restores original footer sections', await page.locator('main > .controls #midi').isVisible() && await page.locator('main > .files #open').isVisible());
+await page.click('[data-layout="workbench"]');
+check('Editor restores menus after layout roundtrip', await menu('Simulator').locator('#power-off').count() === 1 && await menu('Files').locator('#open').count() === 1);
+await page.click('[data-layout="editor"]');
+const screenCard = editor.getByRole('region', { name: 'Panel display and following', exact: true });
+check('Panel following checkboxes sit below the screen without redundant captions',
+  await screenCard.getByRole('checkbox', { name: 'Follow Panel', exact: true }).isVisible() &&
+  await screenCard.getByRole('checkbox', { name: 'Open on panel', exact: true }).isVisible() &&
+  await editor.locator('.ed-screen-cap, .ed-card-title, .ed-context').count() === 0 &&
+  await screenCard.locator('.ed-screen-options').evaluate(e => e.getBoundingClientRect().top >= e.previousElementSibling.getBoundingClientRect().bottom));
+const about = editor.locator('.ed-info').first();
+await about.click();
+const info = editor.locator('.ed-info-body:popover-open');
+// Native popover toggle events update the trigger and placement asynchronously.
+await page.waitForFunction(() => document.querySelector('.ed-info')?.getAttribute('aria-expanded') === 'true');
+check('Engine information opens next to its name and retains credits', await info.isVisible() &&
+  !!(await info.locator('.ed-credits').textContent()) && await about.getAttribute('aria-expanded') === 'true');
+check('Information popover fits the viewport', await info.evaluate(e => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight; }));
+await page.keyboard.press('Escape');
+await page.waitForFunction(() => !document.querySelector('.ed-info-body:popover-open') &&
+  document.querySelector('.ed-info')?.getAttribute('aria-expanded') === 'false');
+check('Escape closes the engine information popover', await info.count() === 0 && await about.getAttribute('aria-expanded') === 'false');
+check('Popover dismissal keeps the editor keys', await page.evaluate(() => window.fm1.editor.state.keys === 'edit'));
+await page.keyboard.press('Escape');
+check('Escape with no popover returns keys to the instrument', await page.evaluate(() => window.fm1.editor.state.keys === 'play'));
+await about.click();
+await editor.getByRole('button', { name: 'Hide sidebar', exact: true }).click();
+await info.waitFor({ state: 'hidden' });
+check('Clicking away dismisses engine information', await info.count() === 0);
+await editor.getByRole('button', { name: 'Show sidebar', exact: true }).click();
+await page.click('[data-layout="workbench"]');
+
 // The helpers the checks share: the project's hash through the shadow
 // Worker, and a count of what the page sends the worklet.
 await page.evaluate(() => {
@@ -84,6 +155,18 @@ await page.evaluate(() => {
 });
 
 // ---- follow, panel to editor, and K1-K4 ----------------------------------------
+// Menu/popover navigation may leave a different sound's inspector selected.
+// Establish the panel's current knob row before timing live encoder delivery.
+await page.evaluate(() => {
+  const knob = window.fm1.editor.state.panelView.knobs[1];
+  if (knob.role !== 1) throw new Error('panel follow fixture requires a sound knob');
+  document.querySelector(`.ed-outline .ed-s${knob.sound + 1}`).click();
+});
+await page.waitForFunction(() => {
+  const ed = window.fm1.editor, knob = ed.state.panelView.knobs[1];
+  return ed.rows.get(`s${knob.sound + 1}:${knob.uid}`)?.el.isConnected &&
+    !ed.state.loading && !ed.state.inflight && !ed.state.pendingChanges.length;
+}, null, { timeout: 5000 });
 const follow = await page.evaluate(observePanelFollow);
 report.follow_panel = follow;
 check('a panel knob reaches the editor\'s row within a few frames', follow.frames <= 12, follow);

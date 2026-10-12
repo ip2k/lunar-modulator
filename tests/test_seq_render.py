@@ -59,7 +59,7 @@ def test_track_zero_plays_the_engine_by_default(seq_tools, tmp_path):
     s, left, ev, _ = render(tmp_path, TWO_TRACKS)
     assert s["seq_notes_to_engine"] == len(ons(ev, 0)) > 0
     assert len(ons(ev, 1)) > 0, "track 1 goes to USB-MIDI: logged, not played"
-    assert s["seq_bytes"] == 18120 and s["seq_refused"] == 0 and s["seq_locks_refused"] == 0
+    assert s["seq_bytes"] == 18192 and s["seq_refused"] == 0 and s["seq_locks_refused"] == 0
     assert rms(left) > 100
 
 
@@ -363,8 +363,8 @@ def test_an_app_sized_event_buffer_takes_a_full_stop(seq_tools, tmp_path):
     """272 events per block, the size the virtual FM-1 uses (256 until stage
     S6, docs/15): a stop at
     full load sends 64 note-offs and 64 base reverts (D6) at once, and the
-    block's advance adds the transport's Stop: 129 events, which is
-    fm1_seq_cmd_max_events at 8 tracks and 64 gates. Nothing is dropped and
+    block's advance adds the transport's Stop: 129 events, within the
+    130-event command bound at 8 tracks and 64 gates. Nothing is dropped and
     every note closes. A 100-event buffer does drop, and says so."""
     script = full_stop_script()
     s, _, ev, _ = render(tmp_path, script, extra=["--events", "272"], name="app")

@@ -30,6 +30,7 @@ struct UnitIn {
 
 // What a file gives the renderer.
 struct Loaded {
+  fm1_midi_map_t midi_map = {};
   int kind = 0;
   bool any_slot = false;    // sounds 2-4, inserts, levels or MIDI effects: --slots
   UnitIn sound[4];
@@ -75,6 +76,7 @@ struct Have {
   const fm1_mod_t *mod = NULL;
   uint32_t seed = 0;
   const fm1_seq_t *seq = NULL;
+  const fm1_midi_map_t *midi_map = NULL;
 };
 
 // --save KIND:FILE: project, sound[K] (sound unit K, 1-4), fx (the --fx

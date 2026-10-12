@@ -9,9 +9,15 @@ history.
 ## [Unreleased]
 
 ### Fixed
+- Live keyboard arpeggios keep their tempo while the song is paused, without
+  advancing the song position. MIDI Learn highlights respect the viewport,
+  closed menus and pinned toolbar. Escape dismisses native popovers before
+  changing keyboard mode.
 - Song edits now refresh from native sequencer content changes; Undo and Redo
   refuse stale edits after an intervening panel change. MIDI import preflight
   enforces 16 files, 16 MiB per file, 32 MiB and 64 parts per batch.
+- The Song view retries an invalidated initial project snapshot up to three
+  times, and refuses the result if the simulator restarts during the read.
 - README installation status now distinguishes the linked inert diagnostic
   from the running instrument, which remains untested on the FM-1.
 - Target compile checks include shared state codecs and metadata, with each
@@ -32,6 +38,50 @@ history.
   experiments; full-image recovery and Lunar installation remain untested.
 
 ### Added
+- **Advanced editor shell and song navigation:** outside Panel layout, the
+  page controls and file bar move into the app bar's Simulator and Files
+  menus; those controls return to the page footer in Panel layout. Song Files
+  controls appear before Undo and Redo, Changes opens recent undo history, the
+  sidebar toggle sits before the Editor title, and engine info popovers show
+  available credit and licence details. Help stays in contextual tooltips,
+  engine info popovers and the Panel footer/silkscreen. Scenes and tracks
+  rename inline by double-clicking their titles, then pressing Enter or leaving
+  the field; there are no Rename buttons. Scene names accept six printable
+  characters without spaces; tracks accept up to 16 printable ASCII characters,
+  spaces allowed.
+  Responsive paging keeps scenes, arrangements, long clips and automation
+  within the available width. Clip follow is on by default, advances through
+  pages and wraps with the clip loop; manual clip paging pauses follow until it
+  is enabled again. All assigned parameter-lock rows remain visible, with lane
+  assignment under Add automation. Clicking empty track-header space selects
+  the track. Arrangement section creation has its own scene chooser, with copy,
+  move, remove and repeat actions under collapsed Section tools. Adding a
+  section leaves the current selection in place. Opening a clip frames and
+  scrolls to its first sounding note within the loop.
+- **MIDI Learn and song transport:** the piano control overlays eligible
+  simulator and editor controls; click a control, then play a MIDI note or send
+  a control change to bind it. Teal highlights show eligible controls, and
+  assignment badges show and clear bindings. Legacy semantic Play assignments
+  continue to resolve to Play/Pause; ambiguous older ordinal Pause/Stop
+  assignments remain saved as unavailable until remapped.
+  Project JSON and binary files preserve browser mappings, and saves wait for
+  the AudioWorklet's mapping acknowledgement. Native preflight includes the
+  reserved mapping storage and automation queues. The pinned transport shows
+  its clock, song position, bar/clip/scene counts and metronome control; Space
+  plays or pauses, and Shift+Space returns to the beginning. Informational
+  notices fade after ten seconds; autosave and restoration stay quiet, while
+  errors and refusals remain visible. Completed WAV files download automatically
+  and remain available through result links.
+  The offline render guard follows the native sequencer stop tick and rounds
+  its frame bound to 64-frame blocks. Saved-transport Wasm regressions passed
+  for a 20-BPM one-bar song and four full-arrangement demos, including an FM6,
+  effects, arpeggiator/modulation and stem-isolation case. Combined-source Wasm
+  108 parity and the Chromium resource-meter check passed. Native browser
+  workflows verified six WAV downloads in Chromium, Firefox and WebKit.
+- **Browser resource indicators:** the top bar shows an average browser DSP load
+  percentage and meter. The Memory page shows used and available estimates and
+  RAM sections in Shared, Master, S1–S4 order. `Date.now()` timing is labeled
+  coarse; the estimate measures the browser simulator only, not FM-1 CPU use.
 - **Song workspace refinement:** compact scene rows, always-visible selected
   note essentials with advanced controls disclosed, and primary parameters
   first in the Song device inspector. Device modal focus returns to its
@@ -44,6 +94,18 @@ history.
   Wasm renders produce stereo masters, sound/track stems and eight-channel WAVs.
   Insert, master-effect and sound-level locks now run in the shared native app
   at their sample frames. Direct USB-MIDI/BLE project access remains future work.
+- **Song transport and keyboard:** the transport reports native position,
+  elapsed time, state and master output level. The five workspace tabs follow
+  the active view below its content. Playback progress appears on scene clips
+  and automation lanes.
+  Context-aware Song shortcuts cover transport, view selection, mute, rename,
+  and selected note or arrangement-section edits.
+- Song projects with an arrangement entry or defined clip now open in Song by
+  default; explicit workspace choices take precedence, including when a `.movy1`
+  set is loaded. The pinned transport condenses current and total position,
+  elapsed and available remaining time, bar/clip/scene navigation, tempo and
+  metronome controls. Empty track and scene header areas select those targets
+  and can receive MIDI Learn assignments.
 - External browser audio checks: an isolated PulseAudio monitor records a
   sustained simulator tone during edit storms and musical A/B playback in
   Chromium, Firefox and WebKit. CI runs the detector and captures; native

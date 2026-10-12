@@ -322,7 +322,7 @@ try {
   const clip = await page.evaluate(() => {
     const r = document.getElementById('panel').getBoundingClientRect();
     const mm = r.width / 167.5;
-    const x = (v) => r.left + (v + 3) * mm, y = (v) => r.top + (v + 8) * mm;
+    const x = (v) => r.left + (v + 3) * mm, y = (v) => r.top + (v + 3) * mm;
     return { x: x(41), y: y(3), width: (159.5 - 41) * mm, height: (48.5 - 3) * mm };
   });
   await page.screenshot({ path: join(out, 'panel-params.png'), clip });

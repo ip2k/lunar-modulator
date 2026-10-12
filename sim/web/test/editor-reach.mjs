@@ -9,8 +9,8 @@
 // Checks:
 //  - Playwright's accessibility snapshot of the editor in every view (the
 //    Flow, a sound, the Modulation view, the library, Memory, A/B): no
-//    control without a name, every slider with a value in words, one polite
-//    live region and nothing else that announces;
+//    control without a name, every slider with a value in words, polite editor
+//    feedback and transport state with no unrelated announcements;
 //  - the keyboard: Tab lands in the editor and gives it the keys; every
 //    visible control is reachable by Tab (or sits in a group the arrows
 //    walk), nothing clickable is out of the tab order; each of the first 40
@@ -120,10 +120,16 @@ const spoken = await page.evaluate(() => {
   return { n, bad: bad.slice(0, 5), units: [...units].sort() };
 });
 check('no slider speaks a unit symbol (st, Hz, ms, dB, %): each is a word, semitones included', spoken.n > 100 && spoken.bad.length === 0 && spoken.units.includes('semitone') && spoken.units.includes('hertz') && spoken.units.includes('decibel'), spoken);
-// The status region, and the search box's result count (announced as you type).
+// Editor feedback, Song transport state, and search results have separate purposes.
 const liveRegions = await page.evaluate(() => [...document.querySelectorAll('.ed [aria-live], .ed [role="status"], .ed [role="alert"]')]
-  .filter((e) => !e.classList.contains('ed-search-n')).map((e) => `${e.className} ${e.getAttribute('aria-live')} ${e.getAttribute('role')}`));
-check('one polite live region in the editor (and the search count), and nothing else announces', liveRegions.length === 1 && /polite/.test(liveRegions[0]), liveRegions);
+  .filter((e) => !e.classList.contains('ed-search-n')).map((e) => ({
+    editor: e.classList.contains('ed-sr'), transport: e.classList.contains('sq-transport-state'),
+    role: e.getAttribute('role'), live: e.getAttribute('aria-live'), text: e.textContent.trim(),
+  })));
+check('only polite editor feedback and Song transport state announce (plus search results)',
+  liveRegions.length === 2 && liveRegions.filter((e) => e.editor && e.role === 'status' && e.live === 'polite').length === 1 &&
+  liveRegions.filter((e) => e.transport && e.role === 'status' && [null, 'polite'].includes(e.live) &&
+    ['Stopped', 'Playing', 'Paused'].includes(e.text)).length === 1, liveRegions);
 
 // ---- the keyboard -------------------------------------------------------------------------
 const FOCUSABLE = 'button, input:not([type="hidden"]), select, textarea, [role="slider"], [tabindex], summary, a[href]';
@@ -209,13 +215,13 @@ for (const width of [320, 375, 640, 641, 768, 1179, 1180, 1440]) {
   const bounds = await page.evaluate(() => {
     const screen = document.querySelector('.ed-screen');
     const card = document.querySelector('.ed-card');
-    const caption = document.querySelector('.ed-screen-cap');
+    const options = document.querySelector('.ed-screen-options');
     const rect = (e) => { const r = e.getBoundingClientRect(); return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height }; };
-    const s = rect(screen), c = rect(card), p = rect(caption), css = getComputedStyle(screen);
+    const s = rect(screen), c = rect(card), p = rect(options), css = getComputedStyle(screen);
     const contains = (outer, inner) => inner.left >= outer.left - 1 && inner.right <= outer.right + 1 &&
       inner.top >= outer.top - 1 && inner.bottom <= outer.bottom + 1;
     const clipped = [];
-    for (const el of [screen, caption]) {
+    for (const el of [screen, options]) {
       const r = rect(el);
       for (let a = el.parentElement; a; a = a.parentElement) {
         const cs = getComputedStyle(a), ar = rect(a);
@@ -224,7 +230,7 @@ for (const width of [320, 375, 640, 641, 768, 1179, 1180, 1440]) {
       }
     }
     return { framebuffer: [screen.width, screen.height], content: [parseFloat(css.width), parseFloat(css.height)],
-      screen: s, card: c, caption: p, captionText: caption.textContent, clipped,
+      screen: s, card: c, options: p, optionsText: options.textContent, clipped,
       contained: contains(c, s) && contains(c, p),
       separated: s.right <= p.left || p.right <= s.left || s.bottom <= p.top || p.bottom <= s.top,
       sw: document.documentElement.scrollWidth, vw: document.documentElement.clientWidth };
@@ -233,8 +239,8 @@ for (const width of [320, 375, 640, 641, 768, 1179, 1180, 1440]) {
   check(`preview at ${width} px preserves native framebuffer and CSS content pixels`,
     bounds.framebuffer.every((n) => n === 240) && bounds.content.every((n) => n === 240) &&
     bounds.screen.width === 242 && bounds.screen.height === 242, bounds);
-  check(`preview at ${width} px contains an unclipped screen and separate caption`, bounds.contained && bounds.separated &&
-    bounds.captionText.length > 0 && bounds.caption.width > 0 && bounds.caption.height > 0 &&
+  check(`preview at ${width} px contains an unclipped screen and separate following controls`, bounds.contained && bounds.separated &&
+    bounds.optionsText.length > 0 && bounds.options.width > 0 && bounds.options.height > 0 &&
     bounds.clipped.length === 0 && bounds.sw <= bounds.vw + 1 && bounds.screen.left >= 0 && bounds.screen.right <= bounds.vw, bounds);
   if ([320, 768, 1440].includes(width)) await page.locator('.ed-card').screenshot({ path: join(out, `ed-preview-${width}.png`) });
 }
