@@ -177,3 +177,54 @@ not authorize an old loader session. The successor factory checks the actual
 RAM receipt, a distinct current witness, new backup receipt and its own marker.
 Physical corrupted-app SPL fallback, USB_KEY entry and recovery without a power
 cycle remain unproven; this lane neither injected a fault nor opened hardware.
+
+## Actual backup acceptance and restore preparation — 2026-10-12 UTC
+
+[verified: independent physical receipt review] The new backup002 is accepted
+by report `ea31127fa0a7617c9ff210e0b0791a7bea8d3aa4e483ebef82a743af29968972`.
+Both full dumps match target `df6c963e…`. Native review found all8757 requested
+operations in order, plus18 ordinary TUR/sense pairs. Owned capture remained
+alive through exit0 and stopped cleanly. The unchanged genuine completed helper
+accepted the actual files on Hera. Usbmon retains32-byte transfer prefixes;
+complete payload equality comes from host page hashes and full dumps.
+
+[verified: actual file-only preparation] Authorized preparer
+`8f76222da8c7e7094009fbc80d274b00a765650a577c8d5d5a9cb8b2733a18e2`
+completed once, exit0, against those physical receipts. Real restore26f factory
+and check passed in5.14 seconds without opening SG. New campaign
+`72fc53fa79ebc5606146660974ddb3b3fea019c65391041bb2031d11d28b88be`
+binds backup8942/manifest75e0/commands3402 and original journal0d797.
+Preflight `3f5d4fa9e27703c96aef53494a07c092acb486bc883ea989f8bd5369a473f75b`
+retains false hardware access and the full-target/30sector/directory-last gates.
+Private policy51023b47 and wrapper7256ad87 were staged exclusively; their
+source-only real factory recheck passed. Concrete independent review and actual
+NOR execution remain pending. No restore or reset followed backup002 yet.
+Files and exact pins are preserved under ignored
+`build/stopped-choice-stock-restore-bench-v1/`; root alone activates hardware.
+
+## Actual stock restoration accepted — 2026-10-12 UTC
+
+[verified] Concrete independent review4c7299f3 accepted the actual campaign,
+policy51023b47 and wrapper7256ad87 before root's single execution. The child
+exited0 at1791782235.1092288 with its capture alive; owned group3334020
+stopped with SIGTERM/-15 at1791782235.1415875. stdout/stderr are empty and
+no ambiguity envelope exists. No reset or later device command has followed.
+
+[verified] Initial full target readback passed; exactly30 sectors/480 pages
+were restored with directory0x4000 last. Final full1MiB readback matches stock
+`96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4`.
+Result SHA74494900, commands SHA c801e07a and native capture SHA5503a8c5 are
+saved in the safe21-member completed export9ea895fd. Current complete/restore
+journal hashes c43fab54; preserved original journal0d797332 remains unchanged.
+
+[verified] Independent actual review
+`e8e0fa8c6a0a8ab2828d8428465f48ba33912e1f3e812e6fe86f2c4199a89922`
+accepts10,759 requested inventory operations,10,947 BOT commands/65,494 paired
+bulk records and94 ordinary TUR/sense pairs only. It recomputed full host page
+hashes, CRCs and captured32-byte prefixes; USBmon does not retain full256-byte
+payloads. The unchanged genuine26f completed helper accepted the actual files
+on Hera in3.112s, preserving264 files and32 absent paths without device access,
+source/time/hash substitutions or mocked transport. Failed initial mount-only
+harness evidence and final isolation/removal receipts remain saved. This
+acceptance does not establish stock boot or pixels. A distinct reviewed reset
+and fresh normal USB/read-only identity verification are the next dependency.

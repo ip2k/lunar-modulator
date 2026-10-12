@@ -11,8 +11,16 @@ original conversation; last updated 2026-10-11. Read this first, then
 
 ## Installable firmware image resumed — 2026-10-11
 
-[verified: current physical state] The diagnostic image is installed on the
-owner's FM-1. Full 1 MiB readback matches target `df6c963e…`; the exact physical
+[verified: current physical receipt, 2026-10-12 UTC] The stock restore completed
+once through policy51023b47/wrapper7256ad87, campaign72fc53fa and restore26f.
+Exit0 and the full stock readback96006a51 are independently accepted by review
+e8e0fa8c, including the native capture, owned lifecycle and genuine completed
+helper. Current journal is complete/restore, SHA c43fab54; the original journal
+0d797332 and consumed marker remain preserved. Do not replay this campaign.
+Backup002 is independently acceptedea31127f, with two full target-matching
+dumps. The device remains in the fixed loader; no reset follows automatically.
+The diagnostic image was installed on the owner's FM-1. Full 1 MiB readback
+matched target `df6c963e…`; the exact physical
 installation and independent replay are recorded in
 [the boot-trial note](notes/2026-10-11-diagnostic-boot-trial.md).
 One reviewed target reset transmitted at timestamp `1791775833.548683`;
@@ -29,7 +37,8 @@ reviewed successor subsequently completed exactly INQUIRY36 and FD07 IN32 at
 `1791778274.585474`, returning coherent stage6/result0/elapsed20000/heartbeat1976
 and the native write pointer. Independent physical review `99d3c4da…` and
 native/source interpretation `2f6090d4…` accept conditional diagnostic execution.
-Stage6 precedes P33 lock acquisition; visible pixels and recovery cause remain
+Stage6 precedes P33 lock acquisition and can survive an intended nonreturning
+reset. It does not demonstrate a lock stall; visible pixels and recovery cause remain
 unproved. Preserve its own consumed
 marker and all owned capture evidence. See
 [the first RAM-read note](notes/2026-10-11-diagnostic-first-ram-read.md).
@@ -77,9 +86,9 @@ cases plus its smoke. Later recovery additions have the separate gates above.
 GitHub run38201658769 on exact checkpoint `a6bce57abcef99ec8c1f5b1a33a83e1273840f68`
 passed all thirteen jobs. The feature branch is
 `feature/2026-10-11@installable-firmware`, with checkpoint
-`5710299a…` committed and remote-SHA verified. Earlier exact-head
-adcfdfbd run38204451977 passed all thirteen jobs; latest recovery changes
-require a new exact-head CI run. Earlier
+`ad28c4db…` committed and remote-SHA verified. Earlier exact-head
+adcfdfbd run38204451977 and exact ad28c4db run38206413551 each passed all
+thirteen jobs. Later changes require a new exact-head CI run. Earlier
 c29726c4 run38203747490 was cancelled before jobs; aca0e686 remains a
 separate CI snapshot. New final restore
 binding and its composed fixture are being checkpointed separately. No PR or
@@ -91,7 +100,7 @@ The distinct backup c1b0 passed independent review of 76 cases in sixteen Hera
 chunks plus genuine private-file factory and modeled8757 requests. Its genuine
 pure-file preparer also passed independently. The distinct fresh v2 packet has
 now completed physical backup8757 with two full target-matching reads and owned
-capture; native/completed-helper independent review is pending. The first v1
+capture; native/completed-helper independent reviewea31127f accepted it. The first v1
 packet expired unexecuted and was preserved; no observation timestamp was edited. Final restore26f passed19 cases in sixteen Hera chunks plus
 genuine private preflight and full backup/restore/helper model; independent
 review61b1a10d accepted that final restore gate. Final reset9f6b binds26f

@@ -157,3 +157,21 @@ and an owned capture stopped cleanly. Private24-member export5dce3f5a is saved
 off-host. Independent native capture/completed-helper review remains pending
 before preparing any stock restore. See the bench-template note for exact
 hashes and chronology. No restore/reset followed this backup at this checkpoint.
+
+## Later physical restore milestone — 2026-10-12 UTC
+
+[verified] Superseding the preceding pending-backup status: backup002 is
+independently acceptedea31127f. Real file-only restore preparation and concrete
+review4c7299f3 passed; root's single stock restore then exited0 and verified the
+complete stock image96006a51. Actual native/lifecycle/genuine-helper review
+e8e0fa8c accepts this milestone. Current journal is complete/restorec43fab54;
+the original journal0d797332 and all consumed markers remain preserved. No
+later device command has been issued; distinct reset/normal USB/identity
+verification remains pending. Exact ad28c4db CI run38206413551 passed all
+thirteen jobs.
+
+[verified: native interpretation] Retained stage6 is compatible with an intended
+nonreturning P33 reset and does not prove a lock stall. The saved read-only
+cause note proposes trial-bound phase evidence without changing reset bytes,
+clocks or rails. Physical diagnostic display, interrupted-write recovery and
+the overall goal remain unaccepted; restoration is an intermediate milestone.
