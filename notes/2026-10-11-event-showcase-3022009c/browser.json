@@ -1,0 +1,15 @@
+{
+  "browser": "153.0.8010.12",
+  "songs": [
+    {
+      "title": "Event Horizon",
+      "file": "event-horizon-showcase.lunar",
+      "listed": true,
+      "playbackStarted": true,
+      "download": true,
+      "reopened": true
+    }
+  ],
+  "errors": [],
+  "pass": true
+}

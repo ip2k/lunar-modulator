@@ -1,0 +1,30 @@
+[
+  {
+    "file": "../../../engines/state/examples/afterglow-relay-showcase.lunar",
+    "title": "Afterglow Relay",
+    "bpm": 104,
+    "bars": 44,
+    "scenes": 4
+  },
+  {
+    "file": "../../../engines/state/examples/event-horizon-showcase.lunar",
+    "title": "Event Horizon",
+    "bpm": 150,
+    "bars": 68,
+    "scenes": 7
+  },
+  {
+    "file": "../../../engines/state/examples/packet-bloom-showcase.lunar",
+    "title": "Packet Bloom",
+    "bpm": 82,
+    "bars": 40,
+    "scenes": 5
+  },
+  {
+    "file": "../../../engines/state/examples/satellite-hearts.lunar",
+    "title": "Satellite Hearts",
+    "bpm": 124,
+    "bars": 60,
+    "scenes": 6
+  }
+]

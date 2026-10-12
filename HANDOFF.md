@@ -6,40 +6,95 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 
 Written 2026-09-06 at the end of the research session that created this
 repository, so a fresh Claude project (or a human) can continue without the
-original conversation; last updated 2026-10-10. Read this first, then
+original conversation; last updated 2026-10-11. Read this first, then
 `DEVELOPERS.md` (the README is the product page), then `docs/`.
+
+## Four-showcase replacement integration — 2026-10-11
+
+The owner rejected the original four demos as showcases; they remain unchanged
+in the permanent catalog as example sequences. Four new full-song candidates
+are integrated on `chore/2026-10-10@demo-song-acceptance` in the integration
+worktree below: Afterglow Relay (104 BPM, 44 bars, four scenes), Event Horizon
+(150 BPM, 68 bars, seven scenes), Packet Bloom (82 BPM, 40 bars, five scenes),
+and Satellite Hearts (124 BPM, 60 bars, six scenes). The current catalog and CI
+use `sim/web/test/showcase-songs.json`; the legacy manifest remains available.
+
+The composition source reviews are resolved through critic `fa6bbeb3`.
+Exact integration source `0085f2f2` passed native/Wasm acceptance on aeon,
+an independent four-song Wasm Docker run on Hera, and Chromium permanent
+catalog playback/download/reopen checks. See
+[the exact receipts](notes/2026-10-11-four-showcase-integration-0085f2f2/README.md)
+and [integration handoff](notes/2026-10-11-four-showcase-integration.md).
+Generation checks pass for both the legacy and new generators. The new
+palette fixtures preserve reviewed asset hashes independently of legacy
+palette changes. Parent review and required GitHub CI remain prerequisites
+for merge; verify the branch's latest workflow run before integrating.
+
+The owner is auditioning Satellite Hearts; all musical acceptance remains
+pending. No reference audio listening is claimed. Longer Acid note gates are
+present in the new Event candidate, but the separate requested amplitude
+sustain/release engine capability remains unimplemented. The owner's live
+HTTP audition server and playing Satellite asset were left untouched.
+
+The section below describes the earlier demos and is historical.
 
 ## Active work — 2026-10-10
 
-Live `origin/main` is `bdba4476570b0a77d13c76a38dfb3bcfd364277b`. The combined
-Warble/Repeat/PSX candidate is open as [PR #140](https://github.com/ip2k/lunar-modulator/pull/140)
-on its separate branch and is not merged to `main`. Its actual regenerated
-source checkpoint `3519c3857d9bddb8007e14de7ef84525ef8df96a` built 108/108
-simulator scenarios, with 24 non-test audio effects; the committed Wasm/build
-record and both source hashes match. Expanded native checks pass 271 tests,
-and the corrected Repeat pins/enums and metadata contract pass 22 focused
-checks. The reviewed documentation bundle and PR132 CI configuration are
-already integrated. Fresh exact-head CI and normal reviewed merge remain
-required; earlier strict-browser failures remain recorded and are not waived
-by candidate checks.
+Live `origin/main` is `b335dc2c450473dc375163aec7fa679e1b099cc3` after
+[PR #144](https://github.com/ip2k/lunar-modulator/pull/144) merged on 2026-10-10.
+Exact head `5805ea9c` passed all 14 checks. Suspended worklet initialization
+fixes the demonstrated startup scheduling hazard; strict Chromium zero-underrun
+and all three browser loopback gates passed. Native Safari and owner by-ear
+A/B retest remain pending. Earlier failed traces are preserved.
 
-Merged PR #104 links an inert offline diagnostic variant, but no full-DSP
-Lunar application has run on or been installed on the FM-1. The offline
-diagnostic is not a physical runtime test. Full-image restoration,
-broken-app recovery and hardware audio remain unverified; no device traffic
-occurred in the work summarized here. The owner's reported Sound 2 A/B
-crackles remain unresolved and require a by-ear retest; automated Safari/UI
-and audio-capture evidence does not replace that judgment.
+Integration worktree:
+`/Users/likwid/.codex/worktrees/completed-work-integration/mvave-fm1-firmware`,
+branch `chore/2026-10-10@demo-song-acceptance`, integrated through `c0ced9ca`.
+It contains the merged startup fix, final Round-5 song assets, README controls,
+complete-song acceptance harnesses and all five independent critic reports.
 
-Four complete demo songs, full-chain renders, browser project workflows and
-owner listening reviews are not complete. See the current
-[demo prerequisite review](notes/2026-10-09-demo-prerequisite-review.md).
+Four eight-scene songs are frozen at
+`3e6eaa5fea7a38822b60a2a742af4b932856b8cc`: Afterglow Relay, Event Horizon,
+Packet Bloom and Neon Transit. Generator/state checks pass; exact final
+native/Wasm and browser preload/play/Save/fresh-Open acceptance passed for all
+four exact Round-5 assets (receipt: `notes/2026-10-10-demo-song-round-5-runtime.md`).
+Do not promote earlier Round-1/2/3 runtime passes to final assets. Round 4
+has source/state checks only. Five critique rounds are complete: none of the
+32 scenes passed every category strictly above 8; 190/192 final scores are
+at most 8. Reports preserve concrete residuals: expressive articulation,
+short verse cells, shared build/contrast vocabulary and individual song identity.
+No sixth round is authorized by the five-round request. No musical or by-ear
+acceptance is claimed. The critic analyzed actual decoded projects, every
+scene/occurrence, browser state and available render receipts.
+
+Writer worktree: `/Users/likwid/.codex/worktrees/demo-songs/mvave-fm1-firmware`,
+branch `feature/2026-10-10@demo-songs`, runtime receipt checkpoint `53cd518c`.
+The owner listened to Afterglow and requested a replacement chord instrument,
+less reverb and a less mechanical drum groove; Hall Mix 0.05 improved clarity
+in the owner's live audition [reported]. A focused revision is underway in
+`/Users/likwid/.codex/worktrees/afterglow-listening-revision/mvave-fm1-firmware`,
+branch `feature/2026-10-10@afterglow-listening-revision`. Preserve the other
+three songs; run fresh acceptance on the changed asset and reload the listening
+UI after source review. Baseline audition copy is ignored at
+`sim/web/www/scratch/afterglow-before.lunar` in the integration worktree.
+Critic worktree: `/Users/likwid/.codex/worktrees/demo-music-critic/mvave-fm1-firmware`,
+branch `chore/2026-10-10@demo-music-critic`, checkpoint `af90462a`.
+The focused source diagnosis is `notes/2026-10-10-afterglow-listening-followup-critic.md`;
+this owner-requested follow-up is not a sixth scored round.
+
+No full-DSP Lunar application has run on or been installed on the FM-1.
+Full-image restoration, broken-app recovery and hardware audio remain unverified.
+The fixed eight-byte callback observation completed once: 52 audited SCSI
+commands, one FD07 read, no flash writes or custom code execution. Returned
+words 0x01e008e4 and 0x01e0089a have unproven memory-region meaning. Receipts
+are pushed on `chore/2026-10-10@fm1-live-bringup` at `65e9f639`. Owner
+power-cycle confirmation is pending; no further device operations before it.
+
 The whole-code audit is not blanket-closed: findings are classified by demo
-impact in the audit/remediation ledger, while developer-tool, unused-module,
-and hardware-readiness items remain tracked without being treated as automatic
-song blockers. Re-read the dated reconciliation sections below as history,
-not as current branch/PR status, and check live remote refs/checks before
-continuing integration.
+impact in the audit/remediation ledger; developer-tool, unused-module and
+hardware-readiness items remain separately tracked. Dated sections below are
+history, not current branch/PR status. Recheck remote refs and exact-head CI
+before integration.
 
 ## Audit remediation — 2026-10-08
 

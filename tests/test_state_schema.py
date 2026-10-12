@@ -1,8 +1,8 @@
 """The JSON file kinds' schemas and example files (engines/state/schema/,
 engines/state/examples/; notes/2026-10-06-state-files.md §7).
 
-Nothing reads or writes these files yet (stages E2, E3 and P1). These tests
-hold the design steady until then: every schema is a valid draft 2020-12
+The native and browser state readers use these files. These tests
+keep their interchange format steady: every schema is a valid draft 2020-12
 schema; every example validates and is in the canonical layout and member
 order (tests/state_canon.py); every name in an example resolves in today's
 build and every value of every unit is written; the sets and clips are the
@@ -148,7 +148,10 @@ def test_example_validates_and_is_canonical(path):
         kind = doc["kind"]
         assert kind != "metadata"
         middle = path.name.split(".")[-2]
-        assert middle == {"project": "first-orbit", "settings": "settings"}.get(kind, kind)
+        if kind == "project":
+            assert path.stem and "." not in path.stem
+        else:
+            assert middle == {"settings": "settings"}.get(kind, kind)
     else:
         assert doc["kind"] == "metadata"
     errors = sorted(validator(doc["kind"]).iter_errors(doc), key=lambda e: list(e.path))
