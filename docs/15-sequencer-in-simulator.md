@@ -2,12 +2,21 @@
 
 > **Current browser status (2026-10-11):** the Advanced editor now includes a
 > native Song workspace for scenes, arrangements, clips, automation, mixing,
-> MIDI import and project/set exchange. The manual is in
+> MIDI import, MIDI Learn and project/set exchange. Responsive grids page longer
+> scenes, arrangements, clips and automation rows without horizontal page
+> scrolling. The manual is in
 > [chapter 15](../manual/chapters/15-the-advanced-editor.md#songs-midi-files-and-the-mixer);
 > browser behavior and current import bounds are in the
 > [simulator README](../sim/web/README.md#song-workspace). The FM-1 does not
-> run Lunar firmware, and this browser work is not device acceptance. The
-> 2026-10-11 design review is preserved in
+> run Lunar firmware, and this browser work is not device acceptance. WAV files
+> download as each render completes. The export guard derives its stop bound
+> from the native tick-zero and stop timing, then rounds to a 64-frame render
+> block. Native JSON and binary project formats preserve MIDI maps, and
+> preflight counts the reserved map and automation storage. Saved-transport
+> Wasm regressions passed for a 20-BPM one-bar song and four full-arrangement
+> demos, including FM6, effects, arpeggiator/modulation and stem isolation.
+> Combined-source parity and browser download validation remain separate checks.
+> The 2026-10-11 design review is preserved in
 > [notes/2026-10-11-daw-design-review](../notes/2026-10-11-daw-design-review/README.md).
 
 The plan and dated stage records below preserve the implementation history;
@@ -2531,9 +2540,10 @@ landed):
 
 Double-click a track's title in Arrangement, Scenes or Mixer to edit it; a
 focused title also accepts Enter or F2. Enter or leaving the field saves;
-Escape cancels. The adjacent **Rename** button works by touch. The Clip and
-Automation track selectors display the same title. Clear a title to restore
-**Track 1**, **Track 2**, and so on.
+Escape cancels. There is no separate Rename button. The Clip and Automation
+track selectors display the same title. Clear a title to restore **Track 1**,
+**Track 2**, and so on. Scene titles use the same double-click, Enter and
+blur-to-save interaction.
 
 Titles accept up to 16 printable ASCII characters, including spaces. Invalid
 names are refused without shortening them. They are stored in the native set
