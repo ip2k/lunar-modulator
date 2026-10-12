@@ -39,16 +39,41 @@ The source archive contains 1,750 regular tracked files, SHA-256
 runner `f914e714be189add166174f520b553a4d428799fddfbadd0acfbb8759fb9b4a0`.
 Local receipts: `build/sdk-trace-native-composed-hera/`. Hera execution root:
 `/home/claude/mvave-fm1/sdk-trace-native-composed-v1-20261012`.
-At this checkpoint the full runtime result and independent acceptance are
-pending. Any failure must be preserved before a fresh successor attempt.
+[verified] The full gate passed 138 unique cases with zero failures, errors or
+skips, plus the separate ELF smoke. All 32 containers exited successfully and
+were removed; the fresh labeled cleanup query was empty. Retained archive
+`a44050f0bb1dbf72c72d41bd113fbfb0f6a893e750d19f57ca3bd5b36e0f42ad`
+and 224-file index
+`ddd4ad503caace71277aaa5f8d35c048d4d65e49a0dce6b9121b39cc5ae25bf4`
+were checked locally and independently. Root read the complete independent
+runtime report
+`c3cc2a64763fad155a033bc15183cf39c10a61e73cd0a96af3479180ecf01abe`
+and check
+`92b799d8c12e9352d3200d52861b79e6b0cfae536a3820e9ab8e74d4b61e3a02`
+and accepted the modeled host scope. The canonical factories produced 10,653
+install requests, one reset and five fixed reads; the original journal and 27
+retained artifact hashes agreed. No physical acceptance follows.
 
 [verified] The separate closed returned-admission gate passed 45 unique cases
 in 30 chunks plus smoke. Independent reviewc0389251/check55cdbdba was accepted
-by root only for the closed scope. Its four production literals remain None.
-New genuine return composition tests are saved but have not run; the five
+by root only for the closed scope. After native runtime acceptance, root changed
+only four admission literals to the accepted boot49fdd/reader6c9/nativeac63/
+wire68abb files. Admission successor SHA-256 is
+`5ca132fc2f2595400bc9ccb231c3e5cd44ecc9886cd830e201272b33a677b34a`.
+Executable bodies remain unchanged. New genuine return composition tests are
+saved but have not run; the five
 heavy branches model completed, ioctl-exception, native-status, missing-log
 and empty-log paths. They require accepted exact native/admission successors
 and retain actual worker logs with explicitly modeled capture lifecycle files.
+The next runner combines 45 admission checks with 30 composed cases in 30
+parallel chunks. Its failure path preserves pytest temporary evidence, owned
+stage files and the disposable backup-attempt tree before container removal.
+Source-only fixture V1 incorrectly described native AST equivalence as a
+reader-literal-only change. V1 metadata is preserved. Corrected V2 report
+`c4e51e7b1e1f03fe89d7c7027d0e7dc12a0f8f6ea35b25da301d1cc55dd7c583`
+and check
+`da10dad4d6b283e7a91c1cc208922627f38a0e0fb24c07eb6499cf3c05ecb539`
+were fully read: the module docstring also changes; no other AST body differs.
 
 No new FM-1 command has been sent after the Cynthion stock identity. The owner
 confirmed the Mac is unlocked and locked-access is enabled; the Computer

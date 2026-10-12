@@ -815,3 +815,43 @@ production partial-NOR recovery, exact final CI/review/integration remain open.
 ### Canonical read-chain integration — 2026-10-12 UTC
 
 Boot49fdd29b final-v4 accepted by root after full retained report/check review:105 unique/30 chunks plus production singleton,16 originals preserved and later restore journal separate; no hardware. Reportcee0fdd9/check89f37f60. Matcher68abb2e V5 accepted96/30 plus constructor regressions; report04ee153d/check7baad7ca. Reader6c9ed932 activated V2 accepted by root:113 unique/30 chunks plus native ELF smoke, reportf3746c7c/check80170f4f; V1 collection failure retained separately. Nativeac63fed2 now binds that exact reader, with independent bounded source review8d75c21a/checkb7e8920d; the new138/30 native+wire+canonical composition runtime gate is running on Hera at `/home/claude/mvave-fm1/sdk-trace-native-composed-v1-20261012`. Canonical helper/test f764c4cb/07097eed also passed source-only reviewf0003e85/check5724847f. Returned admission bd58664d remains closed by four None pins;45/30 closed kernel gate and independent reviewc0389251/check55cdbdba are accepted, genuine factory runtime remains pending. New genuine return fixture06837413/test2593d542/note are WIP and require separately accepted native/admission literals before execution. All prior physical packets remain consumed; no device command after Cynthion identity. Computer reset/retry still gives native lock error despite owner unlocked confirmation and enabled locked-access setting; treat that as a Computer connection failure, not evidence that the Mac is locked. Overall firmware goal remains open.
+
+### Native composition accepted; returned-state successor — 2026-10-12 UTC
+
+[verified] Native ac63 + wire68abb + canonical composition passed all 138 exact
+cases in 30 Hera chunks, with one separate ELF smoke and 32 successful inspected,
+removed containers. Root fully read and accepted report c3cc2a64/check92b799d8
+for modeled host scope only. Retained 224-file index ddd4ad50 and archivea44050f0
+are in `build/sdk-trace-native-composed-hera/verified-v1/` and its parent.
+Original install journal remained unchanged. No hardware command was sent.
+
+Root bound only four returned-admission literals to boot49fdd, reader6c9,
+nativeac63 and wire68abb; successor hash5ca132fc. Source review and the 75-case
+Hera gate (45 admission + 30 composition, 30 chunks) are pending at this
+checkpoint. The five heavy cases cover completed/ioctl-exception/native-status/
+missing-log/empty-log; actual worker records accompany modeled capture lifecycle.
+Runner failures preserve temporary files, owned stage and backup-attempt trees.
+New admitted backup/stock-restore tools and tests are WIP with activation pins
+still None; their closed mechanics gate is running separately on Hera. Its V1
+collection import failure is retained, V2 fixes the runner path only. Old
+physical recovery sources remain unchanged. No genuine recovery claim follows.
+
+Latest Computer app inventory retry again returned its native lock error despite
+the owner's unlocked confirmation and enabled locked-access setting. No inventory,
+window or click was available. Treat it as a Computer connection fault; do not
+ask for another unlock or infer the Mac's lock state. Packetry UI remains
+unverified. The owner's active firmware goal is unfinished. Continue on Hera;
+the latest parallel gate size is 30 chunks. Root branch remains
+`feature/2026-10-11@installable-firmware`; preceding verified pushed commit is
+ee6d5a1314bfcee06ea8e8b2bc79b5d99a45401a. Next: review literal successor, execute
+and independently accept composed receipts, then fresh witnessed backup/restore
+successors and a distinct physical campaign with fresh binding and dual backups.
+
+Checkpoint follow-up: root read and accepted the four-literal/runner source-only
+launch review1a40a316/checka87e31a0; runtime75 remains pending. New recovery closed
+V2 collected56 cases:55 passed and one source-contract test failed because the
+generated backup privately loaded admission instead of using the canonical module.
+Its None pin still prevented execution. Retain V1/V2 failures; after this WIP
+checkpoint release only the backup source for the canonical import/path/hash
+correction, review the exact successor, then rerun the full56/30 gate. Original
+source reviewf9b16328/check8bab259b missed this contract and is not accepted.
