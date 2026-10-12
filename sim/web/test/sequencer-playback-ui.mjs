@@ -32,9 +32,13 @@ try {
  check(await page.locator('[data-nav-count="bar"]').textContent()==='2/13','Current/total song bar incorrect');
  check(await page.locator('[data-nav-count="scene"]').textContent()==='1/3','Grouped repeated scene counter incorrect');
  check(await page.locator('[data-nav-count="clip"]').textContent()==='1/2','Playing clip counter incorrect');
- const phase=async(t)=>page.locator(`[data-live-track="${t}"][data-live-scene="0"] > .sq-clip-progress`).evaluate(e=>({hidden:e.hidden,width:e.style.width}));
- check(JSON.stringify(await phase(0))===JSON.stringify({hidden:false,width:'50%'}),'Fast/offset clip phase incorrect');
- check(JSON.stringify(await phase(1))===JSON.stringify({hidden:false,width:'12.5%'}),'Slow/long clip phase incorrectly uses master tick');
+ const phase=async(t)=>page.locator(`[data-live-track="${t}"][data-live-scene="0"] > .sq-clip-progress`).evaluate(e=>{
+  const cell=e.parentElement,fill=e.getBoundingClientRect(),box=cell.getBoundingClientRect(),style=getComputedStyle(e);
+  return {hidden:e.hidden,width:e.style.width,fillHeight:fill.height,cellHeight:box.height,fillWidth:fill.width,cellWidth:box.width,opacity:Number(style.opacity),zIndex:style.zIndex,position:style.position};
+ });
+ const fast=await phase(0),slow=await phase(1);
+ check(!fast.hidden&&fast.width==='50%'&&Math.abs(fast.fillHeight-fast.cellHeight)<2&&Math.abs(fast.fillWidth-fast.cellWidth*.5)<2&&fast.opacity>0&&fast.opacity<1&&fast.position==='absolute'&&fast.zIndex==='0','Fast/offset clip phase is not a translucent full-height half-cell fill');
+ check(!slow.hidden&&slow.width==='12.5%'&&Math.abs(slow.fillHeight-slow.cellHeight)<2&&Math.abs(slow.fillWidth-slow.cellWidth*.125)<2,'Slow/long clip phase incorrectly uses master tick or lost full-height fill');
  await page.screenshot({path:`${out}/scenes-independent.png`,fullPage:true});
  await page.evaluate(()=>{window.transport.tracks[0].posTick=96;window.seq.update(window.transport)});
  check((await phase(0)).width==='0%'&&(await phase(1)).width==='12.5%','One loop did not wrap independently');

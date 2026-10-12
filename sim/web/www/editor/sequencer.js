@@ -663,7 +663,6 @@ export function makeSequencer(ctx) {
         });
         const pencil = svgNode('svg', { class: 'sq-scene-edit-icon', viewBox: '0 0 16 16', 'aria-hidden': 'true', focusable: 'false' });
         pencil.append(svgNode('path', { d: 'M11.9 1.5l2.6 2.6-8.8 8.8-3.5.9.9-3.5zM10.7 2.7l2.6 2.6' }));
-        editButton.append(pencil);
         const launchButton = ctx.playClip ? btn('', () => action(() => ctx.playClip(t, scene)), {
           'data-scene-launch': true,
           'aria-label': `${c ? 'Launch clip' : 'Stop track'} ${t + 1} scene ${scene + 1}`,
@@ -673,7 +672,11 @@ export function makeSequencer(ctx) {
           launchButton.append(el('span', 'sq-scene-launch-icon', { text: c ? '▶' : '■', 'aria-hidden': 'true' }));
           launchButton.append(el('span', 'sq-scene-summary', { text: summary }));
           if (c) launchButton.append(clipPreview(c));
+        } else {
+          editButton.append(el('span', 'sq-scene-summary', { text: summary }));
+          if (c) editButton.append(clipPreview(c));
         }
+        editButton.append(pencil);
         grid.append(el('div', `sq-matrix-cell ${group}`, { 'data-live-track': t, 'data-live-scene': scene }, [
           launchButton, editButton,
           el('span', 'sq-clip-progress', { 'aria-hidden': 'true', hidden: true }),
