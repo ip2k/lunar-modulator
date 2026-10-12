@@ -57,9 +57,12 @@
 //                                 buffers transferred and handed back
 //        stats {...}              once a second: quanta, the late ones (a
 //                                 quantum that took longer than it plays) and
-//                                 the slowest, where the clock is available
+//                                 the slowest, where high-resolution timing exists;
+//                                 loadPercent/busyMs/windowMs use >=1 s of audio
+//                                 with explicit timingSource (possibly coarse).
 // MIT licence, like the rest of this repository.
 
+import { AudioBudget, elapsedMs } from './audio-budget.js';
 import { instantiateFm1, BLOCK, SCREEN, KEYS, BUTTONS } from './fm1-wasm.mjs';
 
 const SCREEN_EVERY = 4;          // quanta between screen checks (~12 ms)
@@ -74,8 +77,10 @@ const EDITS_PER_QUANTUM = 64;
 const CHANGES_EVERY = 6;         // quanta between change batches (~17 ms)
 const TELE_BUFFERS = 2;
 const RESYNC = 0xffffffff;
-const clock = globalThis.performance && typeof globalThis.performance.now === 'function'
-  ? () => globalThis.performance.now() : null;
+const timingSource = globalThis.performance && typeof globalThis.performance.now === 'function'
+  ? 'performance' : typeof globalThis.Date?.now === 'function' ? 'date-now' : 'unavailable';
+const clock = timingSource === 'performance' ? () => globalThis.performance.now()
+  : timingSource === 'date-now' ? () => Date.now() : () => null;
 
 class FM1Processor extends AudioWorkletProcessor {
   constructor() {
@@ -100,12 +105,17 @@ class FM1Processor extends AudioWorkletProcessor {
     this.viewLast = new Uint8Array(40);
     this.ramLast = new Uint32Array(7);
     this.ramSent = false;
-    this.stats = { quanta: 0, late: 0, maxMs: 0, editMs: 0, timed: clock !== null };
+    this.stats = new AudioBudget(sampleRate, timingSource);
+    this.controlMs = 0;
   }
 
   // The editor's messages: kept until the module is ready, applied in
   // process() between quanta. Anything malformed is dropped here.
   onEditor(m) {
+    const t0 = clock();
+    try { return this.handleEditor(m); } finally { this.measureControl(t0); }
+  }
+  handleEditor(m) {
     if (!m || typeof m !== 'object') return;
     switch (m.type) {
       case 'edit':
@@ -216,7 +226,16 @@ class FM1Processor extends AudioWorkletProcessor {
     this.editor.postMessage({ type: 'ram', total: now[0], budget: ex.fm1w_ram_budget() >>> 0, parts }, [parts.buffer]);
   }
 
-  async onMessage(m) {
+  onMessage(m) {
+    const t0 = clock();
+    try { return this.handleMessage(m); } finally { this.measureControl(t0); }
+  }
+  measureControl(t0) {
+    if (!this.fm1 || !this.editor) return;
+    const ms = elapsedMs(t0, clock());
+    this.controlMs = ms === null || this.controlMs === null ? null : this.controlMs + ms;
+  }
+  async handleMessage(m) {
     if (m.type === 'screen-buffer') {
       this.free.push(new Uint16Array(m.buffer));
       return;
@@ -453,10 +472,10 @@ class FM1Processor extends AudioWorkletProcessor {
       return true;
     }
     const ex = this.fm1.exports;
-    const t0 = clock ? clock() : 0;
+    const t0 = clock();
     let v = null;
     if (this.editor && this.edits.length) this.applyEdits();
-    const t1 = clock ? clock() : 0;
+    const t1 = clock();
     for (let off = 0; off < left.length; off += BLOCK) {
       const n = Math.min(BLOCK, left.length - off);
       v = this.getViews(ex.fm1w_render(n));   // always the app's one buffer
@@ -489,9 +508,9 @@ class FM1Processor extends AudioWorkletProcessor {
       this.port.postMessage({ type: 'screen', px }, [px.buffer]);
     }
     if (this.editor) {
-      const t2 = clock ? clock() : 0;
+      const t2 = clock();
       this.postEditor();
-      this.measure(t0, t2 - t1, left.length);
+      this.measure(t0, elapsedMs(t1, t2), left.length);
     }
     return true;
   }
@@ -499,20 +518,12 @@ class FM1Processor extends AudioWorkletProcessor {
   // The underrun counter (ED1, §12): a quantum that took longer than it
   // plays is late; the edit layer's own share is counted apart.
   measure(t0, renderMs, frames) {
-    const s = this.stats;
-    s.quanta += 1;
-    if (clock) {
-      const ms = clock() - t0;
-      s.editMs += ms - renderMs;
-      if (ms > s.maxMs) s.maxMs = ms;
-      if (ms > (1000 * frames) / sampleRate) s.late += 1;
-    }
-    if (s.quanta % 345 === 0) {           // about once a second
-      this.editor.postMessage({
-        type: 'stats', quanta: s.quanta, timed: s.timed,
-        late: s.timed ? s.late : null, maxMs: s.timed ? s.maxMs : null, editMs: s.timed ? s.editMs : null,
-      });
-    }
+    const ms = elapsedMs(t0, clock());
+    const control = this.controlMs;
+    this.controlMs = 0;
+    const busy = ms === null || control === null ? null : ms + control;
+    const edit = ms === null || renderMs === null ? 0 : Math.max(0, ms - renderMs);
+    if (this.stats.record(frames, busy, edit, ms)) this.editor.postMessage(this.stats.snapshot());
   }
 }
 

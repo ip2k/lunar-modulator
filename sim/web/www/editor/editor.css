@@ -894,3 +894,12 @@
 /* Hide the complete left rail, including its screen card, at every breakpoint. */
 .ed.is-sidebar-hidden .ed-body { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main"; }
 .ed.is-sidebar-hidden .ed-outline, .ed.is-sidebar-hidden .ed-card { display: none; }
+
+/* Fixed resource meter dimensions keep periodic stats from shifting controls. */
+.ed-cpu { display: inline-flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; flex: none; }
+.ed-cpu-bar { display: block; width: 64px; height: 8px; border-radius: 4px; overflow: hidden; background: var(--rp-highlight-med); }
+.ed-cpu-fill { display: block; width: 0; height: 100%; background: var(--select); }
+.ed-cpu-text { width: 5em; text-align: right; font-weight: 600; white-space: nowrap; }
+.ed-cpu.is-over .ed-cpu-fill { background: var(--refuse); }
+.ed-cpu.is-over .ed-cpu-text { color: var(--refuse); }
+.ed-cpu-detail { color: var(--muted); line-height: 1.5; max-width: 70ch; }
