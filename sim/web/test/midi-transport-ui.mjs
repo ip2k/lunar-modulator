@@ -57,6 +57,31 @@ try {
     });
     assert.ok(Object.values(result).every(Boolean), JSON.stringify(result));
   });
+  await check('scrolled body highlights stop at the pinned toolbar; covered controls have no ghost targets', async () => {
+    const geometry = await page.evaluate(async () => {
+      const { targetId } = await import('./midi-map.js');
+      const pager = document.querySelector('[aria-label="Next scenes page"]');
+      const bar = document.querySelector('.ed-topbars');
+      window.scrollBy(0, Math.max(0, pager.getBoundingClientRect().top - bar.getBoundingClientRect().bottom + 15));
+      const bottom = bar.getBoundingClientRect().bottom;
+      const controls = [...document.querySelectorAll('.ed-body button, .ed-body [role=button], .ed-body input, .ed-body select, .ed-body summary')];
+      return { bodyIds: controls.map(targetId), covered: controls
+        .filter(control => control.getClientRects().length && control.getBoundingClientRect().bottom <= bottom)
+        .map(targetId) };
+    });
+    assert.ok(geometry.covered.length, 'fixture has body controls covered by the pinned toolbar');
+    await page.waitForFunction(({covered, bodyIds}) => {
+      const bottom = document.querySelector('.ed-topbars').getBoundingClientRect().bottom;
+      const marks = [...document.querySelectorAll('.midi-learn-target')];
+      return covered.every(id => !marks.some(mark => mark.dataset.target === id)) &&
+        marks.filter(mark => bodyIds.includes(mark.dataset.target)).every(mark => {
+          const r = mark.getBoundingClientRect();
+          return r.bottom <= document.querySelector('.ed-topbars').getBoundingClientRect().top + .1 || r.top >= bottom - .1;
+        });
+    }, geometry);
+    assert.ok(await page.locator('.midi-learn-target[data-target="seq:transport:play-pause"]').count(),
+      'toolbar transport remains highlighted');
+  });
   await check('teal CC29/CC30 badges remain on the actual controls with individual clear actions', async () => {
     await page.waitForFunction(() => !!document.querySelector('.midi-learn-target[data-target="seq:transport:play-pause"] .midi-learn-badge'));
     const geometry = await page.evaluate(() => ['seq:transport:play-pause', 'seq:transport:stop'].map(id => {

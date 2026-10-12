@@ -9,6 +9,10 @@ history.
 ## [Unreleased]
 
 ### Fixed
+- Live keyboard arpeggios keep their tempo while the song is paused, without
+  advancing the song position. MIDI Learn highlights respect the viewport,
+  closed menus and pinned toolbar. Escape dismisses native popovers before
+  changing keyboard mode.
 - Song edits now refresh from native sequencer content changes; Undo and Redo
   refuse stale edits after an intervening panel change. MIDI import preflight
   enforces 16 files, 16 MiB per file, 32 MiB and 64 parts per batch.
@@ -72,8 +76,8 @@ history.
   its frame bound to 64-frame blocks. Saved-transport Wasm regressions passed
   for a 20-BPM one-bar song and four full-arrangement demos, including an FM6,
   effects, arpeggiator/modulation and stem-isolation case. Combined-source Wasm
-  108 parity and the Chromium resource-meter check passed; browser WAV download
-  validation remains a separate gate.
+  108 parity and the Chromium resource-meter check passed. Native browser
+  workflows verified six WAV downloads in Chromium, Firefox and WebKit.
 - **Browser resource indicators:** the top bar shows an average browser DSP load
   percentage and meter. The Memory page shows used and available estimates and
   RAM sections in Shared, Master, S1–S4 order. `Date.now()` timing is labeled

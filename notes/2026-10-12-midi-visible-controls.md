@@ -26,3 +26,18 @@ Receipts: `scratch/midi-closed-menus/<browser>/`; isolated Hera stage
 subsequent app-bar action reorder. Final combined CI and the rebuilt module
 remain separate gates. No physical controller, device firmware, native
 Safari or by-ear acceptance is claimed by these automated checks.
+
+## Pinned toolbar follow-up
+
+Independent review identified a Scenes pager highlight hidden beneath the
+pinned toolbar. Highlights in that editor's body now intersect the toolbar's
+bottom edge; header controls keep their own highlights [verified]. One toolbar
+rectangle is read per editor per update, without per-control hit testing.
+
+The rebuilt module SHA-256 is
+`761b18d3e9a676494a02e2d87867aa0eeab45bad6ab82062fad385a2f8bc2ebc`
+(1,584,573 bytes). Chromium, Firefox and WebKit each passed ten native MIDI
+checks with this module and zero page errors [verified]. The added check
+scrolls body controls beneath the toolbar, requires covered controls to have
+no highlight, and retains the mapped transport badges. Receipts are in
+`scratch/combined-gate-20261012/sticky-matrix/`.

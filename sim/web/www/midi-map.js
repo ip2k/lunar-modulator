@@ -132,7 +132,7 @@ function visible(e) {
   }
   return getComputedStyle(e).visibility === 'visible';
 }
-function visibleRect(e) {
+function visibleRect(e, toolbarBounds) {
   if (!visible(e)) return null;
   const r = e.getBoundingClientRect();
   let left = Math.max(0, r.left), top = Math.max(0, r.top), right = Math.min(innerWidth, r.right), bottom = Math.min(innerHeight, r.bottom);
@@ -145,6 +145,8 @@ function visibleRect(e) {
       top = Math.max(top, b.top + p.clientTop); bottom = Math.min(bottom, b.top + p.clientTop + p.clientHeight);
     }
   }
+  const editor = e.closest('.ed-body')?.closest('.ed'), bar = toolbarBounds.get(editor);
+  if (bar && left < bar.right && right > bar.left) top = Math.max(top, bar.bottom);
   return right > left && bottom > top ? { left, top, width: right - left, height: bottom - top } : null;
 }
 const label = (e) => e.getAttribute('aria-label') || e.title ||
@@ -257,7 +259,11 @@ export function createMidiLearn({ header, storage = { getItem: (key) => window.l
     // Telemetry changes text every frame. Keep clear buttons mounted unless
     // their geometry/content changes, so a pointer gesture can finish.
     const bindingFor = new Map([...map.bindings.values()].map((b) => [resolvedTargetId(b.target), b]));
-    const targetRects = new Map([...elements].map(([id, e]) => [id, visibleRect(e)]).filter(([, r]) => r));
+    // Body controls can scroll beneath the pinned app bar. Read each toolbar
+    // once, and clip those highlights without clipping the toolbar's controls.
+    const toolbarBounds = new Map([...document.querySelectorAll('.ed')].map(editor =>
+      [editor, editor.querySelector('.ed-topbars')?.getBoundingClientRect()]));
+    const targetRects = new Map([...elements].map(([id, e]) => [id, visibleRect(e, toolbarBounds)]).filter(([, r]) => r));
     const visibleTargets = [...targetRects].map(([id, r]) => {
       const e = elements.get(id), b = bindingFor.get(id);
       return [id, r.left, r.top, r.width, r.height, b || null, b ? label(e) : null];

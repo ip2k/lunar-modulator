@@ -47,8 +47,8 @@ Open **<https://ip2k.github.io/lunar-modulator/>** and press **Power on**
 It needs a current browser with WebAssembly and AudioWorklet. Automated page
 tests run in Chromium, Firefox and WebKit. Native Safari passed the filtered
 patch-list check; Sound A/B playback is being retested after a crackling
-report. Real touch screens and MIDI
-hardware have not been tested. The page loads its own files and does not
+report. Real touch screens and the latest controller-mapping changes still
+need hands-on validation. The page loads its own files and does not
 upload your projects or send MIDI out; MIDI input is available in supported
 browsers ([test record](notes/2026-10-07-editor-audio.md)).
 
@@ -249,7 +249,8 @@ an explicit workspace choice is kept. Open the piano-key MIDI Learn icon
 (beside MIDI connection in Panel, or before Cheat Sheet in Editor and
 Workbench), connect a MIDI device, click a highlighted control, then play a
 note or send a control change. Assignment badges show the binding and let you
-clear it. The workspace adapts its grids to the available width and pages
+clear it. Custom mappings are saved with `.lunar` projects. The workspace
+adapts its grids to the available width and pages
 longer scenes, arrangements, clips and automation
 rows. Its pinned transport shows position, elapsed and available remaining time,
 and navigation for bars, clips and scenes. The mixer has
