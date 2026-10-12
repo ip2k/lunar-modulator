@@ -70,3 +70,15 @@ This is a generated raw target; physical-writer readiness and hardware approval
 remain false. It is not a stock MIDI-updater package, nor a live-backup permit.
 Private target and receipt are mirrored in ignored `build/sdk-raw-final-hera/`;
 no vendor or stock-derived binary is committed or published.
+
+## Fresh-baseline emission
+
+[verified: private Hera construction] The fresh physical fixed-loader dumps
+produced the same complete target hash `df6c963ecd37b334f393c5bc92c2780b6094181308822a03c8190b016a4e97db`
+in Hera `/home/claude/mvave-fm1/sdk-raw-fresh-20261011/target-fresh-offline/`.
+The private 10,542-byte construction receipt is
+`71af81e827b96fbc385bf2efe4459b1ad12e151648657073645f74cca5c3456d`.
+The target and receipt were copied locally to ignored
+`build/sdk-raw-fresh-hera/target-fresh-offline/` and their hashes rechecked.
+This verifies reproducible construction against today's physical backup; it
+does not establish installation, boot, display or physical recovery.

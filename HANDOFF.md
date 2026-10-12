@@ -11,6 +11,17 @@ original conversation; last updated 2026-10-11. Read this first, then
 
 ## Installable firmware image resumed — 2026-10-11
 
+[verified: reviewed policy checkpoint] The SDK install/restore policy passed 61
+checks plus an actual-ELF smoke, and the baseline-only fixed-loader reset passed
+185 checks, each in 16 Hera chunks. Independent reviews are saved in
+[SDK policy review](notes/2026-10-11-bound-sdk-diagnostic-review.md) and
+[reset review](notes/2026-10-11-fixed-loader-baseline-reset-review.md). Both
+actual-file SDK factories accepted today's backup/campaign evidence without
+opening hardware. Today's backups reproduce target `df6c963e…`. The physical
+install/readback/restore adapter is under separate review; no flash mutation has
+run. After any rehearsal, the baseline reset's no-later-commands assertion is
+invalid and requires a separately reviewed reset provenance path.
+
 [verified: physical fixed-loader backups] One fresh FM-1_092 identity and soft
 key took USB 3-2 device 22 to same-port ROM device 23. The fixed loader reader
 exited 0 after 8,757 successful operations; both new 1 MiB dumps match each other
