@@ -68,6 +68,10 @@ check('Panel footer is removed from the editor page', await page.locator('main >
 check('Simulator control IDs remain unique', await page.evaluate(() => ['midi','dx7-load','dx7-file','zoom','power-off','open','open-file','save','save-kind','copy-link'].every(id => document.querySelectorAll(`#${id}`).length === 1)));
 await menu('Files').locator(':scope > summary').click();
 check('Files menu retains open/save/link controls', await menu('Files').locator('#open').isVisible() && await menu('Files').locator('#save').isVisible() && await menu('Files').locator('#copy-link').isVisible());
+check('Files menu is a single aligned vertical list', await menu('Files').evaluate(e => {
+  const rows = ['#open','#save-kind','#save','#copy-link'].map(s => e.querySelector(s).getBoundingClientRect());
+  return rows.every((r,i) => Math.abs(r.left-rows[0].left)<1 && Math.abs(r.width-rows[0].width)<1 && (!i || r.top>=rows[i-1].bottom));
+}));
 await menu('Simulator').locator(':scope > summary').click();
 check('Opening one menu closes the other', !(await menu('Files').evaluate(e => e.open)));
 check('Simulator menu retains controls and state', await menu('Simulator').locator('#sel-sound').isVisible() && await menu('Simulator').locator('#zoom').isVisible() && await menu('Simulator').locator('#power-off').isEnabled() && await menu('Simulator').locator('#dx7-file').count() === 1);
@@ -76,6 +80,7 @@ check('Escape dismisses and returns menu focus', !(await menu('Simulator').evalu
 check('Changes history starts hidden', !(await editor.getByRole('region', { name: 'Changes, both ways', exact: true }).isVisible()));
 await menu('Changes').locator(':scope > summary').click();
 check('Changes popover exposes shared history', await editor.locator('.ed-hist').isVisible());
+check('Sidebar toggle is an accessible icon without textual button clutter', await editor.getByRole('button', { name: 'Hide sidebar', exact: true }).evaluate(e => e.querySelector('svg') && !e.textContent.trim()));
 await editor.getByRole('button', { name: 'Hide sidebar', exact: true }).click();
 check('Sidebar hides and preference persists', await editor.locator('.ed-outline').isHidden() && await page.evaluate(() => localStorage.getItem('lunar.sim.editor.sidebar-hidden') === '1'));
 await page.setViewportSize({ width: 844, height: 390 });

@@ -4,7 +4,7 @@ import { parseSet, writeSet, validateSet, arrangementEntries } from './sequence-
 import { parseMidi, planMidiImport, applyMidiImport, checkMidiFiles, checkMidiParts } from './midi-import.js';
 import { toPos } from './model.js';
 import { clipPlayback, automationSteps } from './sequence-playback.js';
-import { positionText, timeText, barLimit, neighboringSlot } from './sequence-transport.js';
+import { positionText, timeText, barLimit, transportNavigation } from './sequence-transport.js';
 import { makeSongShortcuts, noteNudge, duplicateNote } from './song-shortcuts.js';
 
 const clone = (x) => structuredClone(x);
@@ -124,9 +124,7 @@ export function makeSequencer(ctx) {
     const input = editableName(`Track ${t + 1} name`, state.model.tracks[t].name,
       name => edit(`Rename track ${t + 1}`, m => { m.tracks[t].name = name; }),
       { placeholder: `Track ${t + 1}`, pattern: '[\\x20-\\x7e]{0,16}', title: 'Double-click, Enter or F2 to rename. Up to 16 printable ASCII characters; spaces allowed. Clear for the numbered name.' });
-    return el('div', 'sq-track-title', {}, [input, btn('Rename', () => {
-      input.beginNameEdit();
-    }, { 'aria-label': `Rename track ${t + 1}` })]);
+    return el('div', 'sq-track-title', {}, [input]);
   }
   function announce(text, error = false) {
     readError = false;
@@ -246,17 +244,17 @@ export function makeSequencer(ctx) {
       btn('Refresh', () => refresh()),
     ])]);
     if (ctx.fileToolsHost) ctx.fileToolsHost.replaceChildren(files);
-    const slots = kind => kind === 'clip' ? m.tracks[state.track].clips.flatMap((c, s) => c ? [s] : [])
-      : m.sceneNames.flatMap((_, s) => m.tracks.some(t => t.clips[s]) ? [s] : []);
     const jump = (kind, direction) => {
-      const next = neighboringSlot(slots(kind), state.scene, direction);
+      const counter = transportNavigation(state.model, ctx.getTransport?.() || {}, state.track)[kind];
+      const next = counter[direction < 0 ? 'previous' : 'next'];
       if (next === null) return;
-      selectClip(state.track, next);
-      action(() => kind === 'clip' ? ctx.playClip?.(state.track, next) : ctx.playScene?.(next));
+      selectClip(state.track, next.scene);
+      action(() => kind === 'clip' ? ctx.playClip?.(state.track, next.scene)
+        : next.bar !== undefined ? ctx.seekBar?.(next.bar) : ctx.playScene?.(next.scene));
     };
     const nav = (kind, direction) => btn(direction < 0 ? '‹' : '›', () => jump(kind, direction), {
       'aria-label': `${direction < 0 ? 'Previous' : 'Next'} ${kind}`, title: `${direction < 0 ? 'Previous' : 'Next'} ${kind}`,
-      disabled: neighboringSlot(slots(kind), state.scene, direction) === null,
+      'data-slot-kind': kind, 'data-slot-direction': direction,
     });
     return el('fieldset', 'sq-toolbar sq-transport', { disabled: state.busy, 'aria-label': 'Song transport' }, [
       btn('▶', () => action(ctx.play), { 'data-testid': 'seq-play', 'aria-label': 'Play', title: 'Play / resume', 'data-transport-play': true }),
@@ -274,7 +272,8 @@ export function makeSequencer(ctx) {
       choose('Song end', m.songEnd, [[0, 'Loop'], [1, 'Park'], [2, 'Stop']], v => edit('Set song ending', m => { m.songEnd = Number(v); })),
       ...['bar', 'clip', 'scene'].map(kind => el('div', 'sq-transport-nav', {}, [
         kind === 'bar' ? btn('‹', () => locateBar(-1), { 'aria-label': 'Previous bar', 'data-bar-nav': -1 }) : nav(kind, -1),
-        el('span', '', { text: kind }),
+        el('span', 'sq-nav-label', {}, [el('span', '', { text: kind }),
+          el('output', 'sq-nav-count', { text: '0/0', 'data-nav-count': kind, 'aria-label': `Current ${kind} and total` })]),
         kind === 'bar' ? btn('›', () => locateBar(1), { 'aria-label': 'Next bar', 'data-bar-nav': 1 }) : nav(kind, 1),
       ])),
       state.view === 'Mixer' ? btn('Routing & FX', () => { state.mixDetails = !(state.mixDetails ?? !matchMedia('(max-height: 500px) and (orientation: landscape)').matches); draw(); },
@@ -294,6 +293,16 @@ export function makeSequencer(ctx) {
     root.querySelector('[data-play-state]').textContent = transport.playing ? 'Playing' : transport.paused ? 'Paused' : 'Stopped';
     root.querySelector('[data-transport-play]').disabled = state.busy || !!transport.playing;
     root.querySelector('[data-transport-pause]').disabled = state.busy || !transport.playing;
+    const counters = transportNavigation(state.model, transport, state.track);
+    for (const [kind, counter] of Object.entries(counters)) {
+      const output = root.querySelector(`[data-nav-count="${kind}"]`);
+      output.textContent = `${counter.current}/${counter.total}`;
+      output.title = counter.description;
+    }
+    for (const button of root.querySelectorAll('[data-slot-kind]')) {
+      const counter = counters[button.dataset.slotKind];
+      button.disabled = state.busy || counter[Number(button.dataset.slotDirection) < 0 ? 'previous' : 'next'] === null;
+    }
     const bar = Math.floor((transport.master_tick || 0) / 384), max = barLimit(state.model, transport);
     for (const button of root.querySelectorAll('[data-bar-nav]')) button.disabled = state.busy || !!transport.following || (Number(button.dataset.barNav) < 0 ? bar <= 0 : bar >= max);
   }
@@ -444,8 +453,8 @@ export function makeSequencer(ctx) {
     timeline.append(el('div', 'sq-track-head', { text: entries.length ? 'SONG · bars' : 'SCENE · not in song' }));
     columns.forEach((e, i) => {
       const name = editableName(`Scene ${e.scene + 1} name in song entry ${i + 1}`, state.model.sceneNames[e.scene] || '', v => edit('Rename scene', m => { m.sceneNames[e.scene] = v; }), { maxlength: 6, pattern: '[!-~]{0,6}', placeholder: sceneName(e.scene) });
-      timeline.append(el('div', `sq-entry ${state.song === i ? 'is-selected' : ''}`, { 'data-song-entry': e.songIndex ?? i }, [
-      el('div', 'sq-name-header', {}, [name, btn('✎', () => name.beginNameEdit(), { 'aria-label': `Rename scene ${e.scene + 1} in song entry ${i + 1}` })]),
+      timeline.append(el('div', `sq-entry ${state.song === i ? 'is-selected' : ''}`, { 'data-song-entry': e.songIndex ?? i, 'data-song-entry-end': (e.songIndex ?? i) + e.presses }, [
+      el('div', 'sq-name-header', {}, [name]),
       btn(`×${e.presses} · ${e.bars} ${e.bars === 1 ? 'bar' : 'bars'}`, () => { state.song = i; selectClip(state.track, e.scene); }, {
         title: `Starts at bar ${e.startBar + 1}`, 'aria-label': `Select song entry ${i + 1}: ${sceneName(e.scene)}`, 'aria-pressed': String(state.song === i),
       }),
@@ -496,7 +505,7 @@ export function makeSequencer(ctx) {
     for (let scene = 0; scene < 8; scene++) {
       const name = editableName(`Scene ${scene + 1} name`, state.model.sceneNames[scene] || '', v => edit('Rename scene', m => { m.sceneNames[scene] = v; }), { maxlength: 6, pattern: '[!-~]{0,6}', placeholder: sceneName(scene) });
       grid.append(el('div', 'sq-scene-head', {}, [
-      el('div', 'sq-name-header', {}, [name, btn('✎', () => name.beginNameEdit(), { 'aria-label': `Rename scene ${scene + 1}` })]),
+      el('div', 'sq-name-header', {}, [name]),
       btn('Select', () => selectClip(state.track, scene), { 'aria-label': `Edit scene ${scene + 1}`, 'aria-pressed': String(state.scene === scene) }),
       ctx.playScene ? btn('▶ Launch scene', () => action(() => ctx.playScene(scene)), { 'aria-label': `Launch scene ${scene + 1}` }) : null,
     ])); }
@@ -923,7 +932,7 @@ export function makeSequencer(ctx) {
   }
   function update(transport = ctx.getTransport?.()) {
     updateTransport(transport);
-    for (const e of root.querySelectorAll('[data-song-entry]')) e.classList.toggle('is-playing', !!transport?.playing && Number(e.dataset.songEntry) === transport.songIndex);
+    for (const e of root.querySelectorAll('[data-song-entry]')) e.classList.toggle('is-playing', !!transport?.playing && transport.songIndex >= Number(e.dataset.songEntry) && transport.songIndex < Number(e.dataset.songEntryEnd));
     for (const e of root.querySelectorAll('[data-live-track]')) {
       const t = transport?.tracks?.[Number(e.dataset.liveTrack)], scene = Number(e.dataset.liveScene);
       e.classList.toggle('is-playing', !!transport?.playing && t?.playing === scene);

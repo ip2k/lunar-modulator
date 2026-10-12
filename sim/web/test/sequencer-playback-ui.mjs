@@ -24,6 +24,14 @@ try {
   document.querySelector('main').append(window.seq.render());await window.seq.refresh();window.model=()=>parseSet(window.doc.set);
  });
  const before=await page.evaluate(()=>JSON.stringify(window.doc));
+ check(await page.getByRole('button',{name:/Rename/}).count()===0,'Visible Rename buttons remain');
+ const tempoLeft=()=>page.getByRole('spinbutton',{name:'BPM',exact:true}).evaluate(e=>e.getBoundingClientRect().left);
+ const fixedLeft=await tempoLeft();
+ await page.evaluate(()=>{Object.assign(window.transport,{master_tick:384,playbackFrames:44118*3605.25,sampleRate:44118,songFollow:true});window.seq.update(window.transport)});
+ check(Math.abs(await tempoLeft()-fixedLeft)<.1,'Running clock moved neighboring controls');
+ check(await page.locator('[data-nav-count="bar"]').textContent()==='2/10','Current/total song bar incorrect');
+ check(await page.locator('[data-nav-count="scene"]').textContent()==='1/3','Grouped repeated scene counter incorrect');
+ check(await page.locator('[data-nav-count="clip"]').textContent()==='1/2','Playing clip counter incorrect');
  const phase=async(t)=>page.locator(`[data-progress-track="${t}"][data-progress-scene="0"] .sq-clip-progress`).evaluate(e=>({hidden:e.hidden,width:e.style.width}));
  check(JSON.stringify(await phase(0))===JSON.stringify({hidden:false,width:'50%'}),'Fast/offset clip phase incorrect');
  check(JSON.stringify(await phase(1))===JSON.stringify({hidden:false,width:'12.5%'}),'Slow/long clip phase incorrectly uses master tick');
@@ -33,6 +41,7 @@ try {
  await page.evaluate(()=>{window.transport.playing=false;window.seq.update(window.transport)});check((await phase(0)).hidden&&(await phase(1)).hidden,'Stopped scene overlays remain');
  await page.evaluate(()=>{window.transport.playing=true;window.transport.tracks[0].posTick=288;window.seq.update(window.transport)});
  await tab('Arrangement');
+ check(await page.locator('[data-song-entry="0"]').evaluate(e=>e.classList.contains('is-playing')),'Repeated press does not highlight grouped arrangement header');
  const live=page.locator('[data-preview-track="0"].is-playing');check(await live.count()===1,'Repeated scene highlights multiple arrangement entries');
  check(await live.getAttribute('data-entry-start')==='0','Second repeated press did not resolve grouped entry');
  check(await live.locator('[data-preview-playhead]').getAttribute('x1')==='80','Arrangement preview phase incorrect');

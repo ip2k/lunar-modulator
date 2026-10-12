@@ -123,7 +123,7 @@ export async function startEditor(env) {
   document.addEventListener('pointerdown', e => {
     for (const menu of menus) if (!menu.contains(e.target)) menu.open = false;
   });
-  const sidebarBtn = el('button', 'ed-icon', { type: 'button', 'aria-controls': 'ed-sidebar', onclick: () => {
+  const sidebarBtn = el('button', 'ed-icon ed-sidebar-toggle', { type: 'button', 'aria-controls': 'ed-sidebar', onclick: () => {
     st.sidebarHidden = !st.sidebarHidden;
     pref('sidebar-hidden', st.sidebarHidden ? 1 : 0);
     updateSidebar();
@@ -160,7 +160,10 @@ export async function startEditor(env) {
   function updateSidebar() {
     root.classList.toggle('is-sidebar-hidden', st.sidebarHidden);
     outline.hidden = st.sidebarHidden;
-    sidebarBtn.textContent = st.sidebarHidden ? 'Show sidebar' : 'Hide sidebar';
+    const label = st.sidebarHidden ? 'Show sidebar' : 'Hide sidebar';
+    sidebarBtn.setAttribute('aria-label', label);
+    sidebarBtn.title = label;
+    sidebarBtn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 4h12v16H8"/><path d="M12 4v16"/><path d="${st.sidebarHidden ? 'M2 8l4 4-4 4' : 'M6 8l-4 4 4 4'}"/></svg>`;
     sidebarBtn.setAttribute('aria-expanded', String(!st.sidebarHidden));
   }
   updateSidebar();
