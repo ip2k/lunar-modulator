@@ -1,10 +1,12 @@
 # FM-1 recovery runbook
 
-This runbook separates three things: routes observed on the owner's FM-1_092,
-the fixed physical scratch-sector procedure, and a synthetic failure model for
-future app-sector recovery. The transaction core is durable software, but its
-physical writer remains limited to one known-unused sector. Model success does
-not prove mask-ROM entry, CPU reset, USB_KEY timing, or firmware boot on hardware.
+This runbook separates routes observed on the owner's FM-1_092, the fixed
+physical scratch-sector procedure, the exact SDK diagnostic install/restore
+procedure, and a synthetic failure model. The diagnostic's 30 changed sectors
+have been installed and restored with complete readback verification. Diagnostic
+boot, display, recovery after boot, and physical interrupted-write recovery
+remain separate acceptance gates. Model success does not prove mask-ROM entry,
+CPU reset, USB_KEY timing, or firmware boot on hardware.
 
 ## Proven hardware facts and current boundary
 
@@ -17,11 +19,11 @@ that one 4 KiB sector to its original all-`FF` value, and read the full flash
 again. The final hash matched the pre-test backups; the owner later power
 cycled and confirmed a normal boot. See [the bench note](../notes/2026-10-07-fm1-softkey-bench.md).
 
-That proves entry from a running FM-1_092 app, full-flash reads and restoration
-of that fixed scratch sector. It does not prove a full-image rewrite, recovery
-from a corrupt app or SPL, Lunar installation, or recovery of another unit.
-There is no physical full-image writer. The physical write adapter still
-permits only the fixed scratch address and exact test pattern.
+That historical test proves entry from a running FM-1_092 app, full-flash reads
+and restoration of that fixed scratch sector. It does not prove a full-image
+rewrite, recovery from a corrupt app or SPL, or recovery of another unit.
+The original scratch adapter still permits only its fixed address and pattern;
+the separate diagnostic adapter below has its own exact-image authorization.
 
 The owner has authorized continued software and simulated recovery work without
 requiring the FM-1 to be returned to normal mode first. The unit may remain in
@@ -46,8 +48,11 @@ so this is not proof that a normal boot or USB reconnection will follow.
 Loader startup itself can parse configuration left in RAM beyond the uploaded
 image and set the NOR quad-enable status bit. Loading a RAM image therefore
 does not by itself establish absence of flash effects. The fixed reset guard
-is restricted to explicitly simulated bindings while this startup gate remains
-unresolved. A separate 14-byte reset stub and its fixed three-command guard
+was initially restricted to simulated bindings until the retained-configuration
+startup path was reviewed. The later fixed-loader configuration and reset
+adapters are separately bound to actual private backup/install evidence; see
+the diagnostic procedure below. A separate 14-byte reset stub and its fixed
+three-command guard
 pass offline native build, static review and 170 combined Hera checks. Its
 separately reviewed private physical adapter has since been attempted once.
 The stub leaves the recovery marker untouched. See
@@ -64,15 +69,28 @@ witness or general broken-app recovery proof. No flash command was sent and
 no flash reread was made. The consumed private adapter cannot be reused for
 a different enumeration. See [the actual bench receipt](../notes/2026-10-11-fm1-core-reset-bench.md).
 
+[verified: owner's FM-1_092, 2026-10-11] A separately reviewed fixed-loader
+rehearsal installed the exact diagnostic target, verified all 1 MiB, restored
+the exact stock baseline, and verified all 1 MiB again. Each direction changed
+30 authorized sectors and committed directory sector `0x4000` last. A distinct
+one-shot loader reset lost its SG completion during detach; a new normal USB
+enumeration and the exact `FM-1_092` identity response then verified restored
+stock operation without a physical power cycle. No successful reset reply or
+diagnostic application boot is inferred from that result. After new matching
+dual backups, a separate install-only campaign again verified the complete
+diagnostic target. The unit remains in the recovery loader pending its first
+diagnostic boot. See [the rehearsal](../notes/2026-10-11-sdk-rehearsal.md) and
+[the current boot trial](../notes/2026-10-11-diagnostic-boot-trial.md).
+
 ## Triage hierarchy
 
 | Observed condition | Route | Limit |
 | --- | --- | --- |
 | App boots and stock update service runs | Install a known-good package through the stock update path. Preserve stock `uboot.boot`, `ota.bin`, `cfg`, `isd_config.ini`, and partition layout. | Requires a running app and its update service; cannot rescue a non-booting app. |
-| App runs and accepts the vetted soft key | Send the exact `7D` soft key once, observe ROM enumeration, then use the audited loader and read-only backup path. The fixed scratch proof is the only physical write currently implemented. | Proven on the owner's FM-1_092 only. `7F` is a different update command. |
+| App runs and accepts the vetted soft key | Send the exact `7D` soft key once, observe ROM enumeration, then use the reviewed fixed-loader backup path. Any write needs its separate exact-image campaign and matching dual backups. | Entry and exact diagnostic install/stock restore are proven on the owner's FM-1_092. `7F` is a different update command. |
 | UBOOT session needs to return to the installed app | A separately reviewed exact 14-byte RAM reset stub returned this owner's session to normal USB and a responsive FM-1_092 app once. | Bare-UBOOT reset opcode is unverified; do not replay a consumed adapter or assume every warm reset reconnects. Retain a real power-cycle fallback. |
 | App hangs or is corrupted | First observe whether the device enumerates normally. If the app is unusable, a USB_KEY-at-power-up route is a candidate; use only after its hardware procedure is independently reviewed and observed. Capture the ROM enumeration before loading the audited loader. | The USB_KEY dongle is simulated, not tried on the owner's FM-1. A ROM failed-boot route and successful entry from a broken app are not physically proven. The app soft key cannot help if the app does not run. |
-| SPL, boot metadata, or flash contents damaged | If mask ROM still enumerates, preserve the actual image and transaction evidence; recovery needs an exact owner-matched baseline and a separately reviewed bounded writer. | No complete physical restore exists. Never overwrite the SPL or metadata as an experiment. |
+| SPL, protected boot metadata, or arbitrary flash contents damaged | If mask ROM still enumerates, preserve the actual image and transaction evidence; recovery needs an exact owner-matched baseline and a separately reviewed bounded writer. | The exact diagnostic's application-sector restore is verified; arbitrary full-flash/SPL recovery is unproven. Never overwrite the SPL or protected metadata as an experiment. |
 | ROM does not enumerate, or SoC, power, USB, or flash hardware failed | Diagnose the electrical path and component. Consider an external programmer only after identifying the actual flash device and interface. | Software cannot repair a failed ROM, SoC, power path, or inaccessible flash. Do not infer the flash is discrete from a photo. |
 
 An interrupted stock update transfer is different from a bad installed app.
@@ -146,6 +164,50 @@ known FM-1_092 checksum exception are documented in [the historical bench
 note](../notes/2026-10-07-fm1-softkey-bench.md); stale `/dev` paths are never
 reusable evidence.
 
+## Exact physical SDK diagnostic procedure
+
+The C-only private SDK diagnostic uses the pinned V1.2.13 application libraries
+and preserves the owner's stock SPL, OTA, configuration and partition layout.
+Its raw target is
+`df6c963ecd37b334f393c5bc92c2780b6094181308822a03c8190b016a4e97db`;
+the matching stock baseline is
+`96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4`.
+These hashes identify this owner's private artifacts, not a general firmware
+download or permission to install on another unit. Vendor/SDK files remain
+ignored and undistributed.
+
+`tools/fm1_sdk_rehearsal.py` binds the actual dual-backup receipts, reviewed
+fixed loader, actual app/ELF/audit, immutable transaction and exact derived
+erase/program geometry. Its Linux transport holds an advisory flock on the
+direct SG descriptor and verifies that descriptor and USB/sysfs ancestry before
+and after every request. The one-use
+marker precedes opening hardware; durable intent precedes each write. It
+permits only the fixed INQUIRY/FC0A status and geometry queries, aligned reads, derived sector erases
+and direction-bound page programs. Each direction requires full readback
+before mutation, per-sector verification and a complete final readback. The
+directory sector is last. `tools/fm1_sdk_install.py` is a distinct install-only
+adapter sharing the original consumption boundary; it does not silently reboot
+or restore after installing.
+
+[verified: physical rehearsal and independent replay] The complete install and
+stock-restore transcript passed independent review. Subsequent stock USB/MIDI
+identity response verified restored application operation. The later
+install-only transcript also passed independent review, with the exact target
+read back. This verifies application-sector installation and stock restoration
+within the observed loader sessions. It does not verify an arbitrary full-flash
+rewrite, diagnostic execution, visible pixels or recovery from a corrupted or
+interrupted physical write.
+
+For a new campaign, first establish fresh reviewed entry and take two matching
+complete backups. Freeze the concrete campaign, source hashes and recovery
+plan, then run file-only preflight and independent review before the one-shot
+hardware wrapper. Preserve capture, command transcript, result, transaction
+journal and consumed markers. After a device reset, the old SG/USB binding is
+invalid: a new enumeration needs its own reviewed provenance and backup/recovery
+adapter. Do not change an old manifest or remove a consumed marker to reuse it.
+The SDK diagnostic does not provide the stock OTA service; its intended route
+back is the separately verified ROM/loader recovery procedure.
+
 ## Interruption and recovery rules
 
 Treat a lost acknowledgement, process exit, host crash, or power loss during a
@@ -153,14 +215,21 @@ write as an unknown live sector state. Do not repeat the last command by hand
 or assume a journal intent means the command did or did not reach flash. Keep
 the original transaction directory, logs, partial reads, backups and hashes.
 In a new session, establish and observe a fresh loader, validate the original
-transaction and backup, and read the actual full flash. Resume only through
-`--recover-unused-sector` above. Its transaction core rebuilds a differing
+transaction and backup, and read the actual full flash. For the fixed scratch
+transaction, resume only through `--recover-unused-sector` above. Its core rebuilds a differing
 authorized sector from durable baseline bytes after checking the rest of flash;
 it refuses corrupt artifacts, a different unit, unexpected outside-range
 changes, or a completed journal whose full readback does not match. It does
 not run a `finally` erase on the stale session. If fresh entry, identity,
 geometry, or full reads cannot be established, stop with the flash state
 unknown and retain all evidence.
+
+The SDK diagnostic's interrupted-write and post-reset physical recovery adapter
+is still a separate development gate. Its original successful rehearsal cannot
+be replayed after an ambiguous request or a new enumeration. Preserve the
+original intent and actual bytes; use the modeled recovery campaign to test
+policy changes before a new exact physical adapter is reviewed. Do not widen
+the scratch CLI or invoke a manual erase/program sequence.
 
 The original scratch-sector bench test predates this transaction engine. Its
 post-test hash and owner-confirmed normal boot remain historical physical
@@ -195,8 +264,9 @@ transaction core, representative reopened failures, and simulated USB_KEY
 recovery; the recorded device-model test receipt is 58 passing tests. That is
 not evidence that the physical USB_KEY dongle reaches ROM, that a damaged app
 can enter ROM, that the FM-1 executes the synthetic app image, or that any
-physical full-image write/recovery works. Wider app-sector write permissions
-and USB_KEY recovery are model assumptions only.
+physical interrupted-write recovery works. This synthetic fixture's wider
+permissions and USB_KEY route are model assumptions; the separate exact SDK
+diagnostic's successful application-sector rehearsal is physical evidence.
 
 [verified: Hera, 2026-10-11] The final reviewed source passed all **497**
 catalogued cases across four bounded containers, with zero failures and exact
@@ -225,8 +295,10 @@ injected assertions, not hardware attestation. Python caller code and
 cooperative file locks are not a security sandbox; a future real transport must
 own and validate its exclusive handle across re-enumeration. The 51 new model
 cases passed, with 115 passing combined raw/stock/report checks and two optional
-private-fixture skips. Physical loader/recovery binding and an actual candidate
-remain separate gates. Receipts explicitly mark hardware validation false.
+private-fixture skips. Its receipts explicitly mark hardware validation false.
+The distinct SDK policy and native adapters described above add actual
+candidate/session binding; that later physical evidence does not change this
+injected adapter's scope.
 
 ## Future installable image and deferred work
 
