@@ -657,18 +657,27 @@ export function makeSequencer(ctx) {
         const summary = c ? `${notes} ${notes === 1 ? 'note' : 'notes'} · ${bars} ${bars === 1 ? 'bar' : 'bars'}` : '＋ Empty clip';
         const editButton = btn('', () => selectClip(t, scene, true), {
           class: 'sq-button sq-scene-edit', 'aria-label': `Edit track ${t + 1} scene ${scene + 1}`,
+          title: 'Edit this clip',
           'aria-pressed': String(state.track === t && state.scene === scene),
           'data-progress-track': t, 'data-progress-scene': scene,
         });
-        editButton.append(el('span', 'sq-clip-progress', { 'aria-hidden': 'true', hidden: true }));
-        editButton.append(el('span', 'sq-scene-summary', { text: summary }));
-        if (c) editButton.append(clipPreview(c));
+        const pencil = svgNode('svg', { class: 'sq-scene-edit-icon', viewBox: '0 0 16 16', 'aria-hidden': 'true', focusable: 'false' });
+        pencil.append(svgNode('path', { d: 'M11.9 1.5l2.6 2.6-8.8 8.8-3.5.9.9-3.5zM10.7 2.7l2.6 2.6' }));
+        editButton.append(pencil);
+        const launchButton = ctx.playClip ? btn('', () => action(() => ctx.playClip(t, scene)), {
+          'data-scene-launch': true,
+          'aria-label': `${c ? 'Launch clip' : 'Stop track'} ${t + 1} scene ${scene + 1}`,
+          title: c ? 'Launch this clip at the native bar boundary' : 'Launch the empty slot to stop this track at the native bar boundary',
+        }) : null;
+        if (launchButton) {
+          launchButton.append(el('span', 'sq-scene-launch-icon', { text: c ? '▶' : '■', 'aria-hidden': 'true' }));
+          launchButton.append(el('span', 'sq-scene-summary', { text: summary }));
+          if (c) launchButton.append(clipPreview(c));
+        }
         grid.append(el('div', `sq-matrix-cell ${group}`, { 'data-live-track': t, 'data-live-scene': scene }, [
-          ctx.playClip ? btn(c ? '▶' : '■', () => action(() => ctx.playClip(t, scene)), {
-            'data-scene-launch': true,
-            'aria-label': `${c ? 'Launch clip' : 'Stop track'} ${t + 1} scene ${scene + 1}`,
-            title: c ? 'Launch this clip at the native bar boundary' : 'Launch the empty slot to stop this track at the native bar boundary',
-          }) : null, editButton]));
+          launchButton, editButton,
+          el('span', 'sq-clip-progress', { 'aria-hidden': 'true', hidden: true }),
+        ]));
       }
     });
     return el('section', 'sq-section', {}, [timelineHeading('Scenes', 'scenesPage', 8),
@@ -1125,6 +1134,17 @@ export function makeSequencer(ctx) {
         line.setAttribute('x1', active ? phase.fraction * 160 : 0); line.setAttribute('x2', active ? phase.fraction * 160 : 0);
       }
       if (e.dataset.previewTrack !== undefined) e.classList.toggle('is-playing', !!active);
+    }
+    for (const cell of root.querySelectorAll('.sq-matrix-cell[data-live-track]')) {
+      const t = Number(cell.dataset.liveTrack), scene = Number(cell.dataset.liveScene);
+      const phase = clipPlayback(clip(state.model, t, scene), transport?.tracks?.[t], transport?.playing, scene);
+      const fill = cell.querySelector('.sq-clip-progress');
+      if (fill) { fill.hidden = !phase; fill.style.width = `${phase ? phase.fraction * 100 : 0}%`; }
+      const line = cell.querySelector('[data-preview-playhead]');
+      if (line) {
+        line.setAttribute('visibility', phase ? 'visible' : 'hidden');
+        line.setAttribute('x1', phase ? phase.fraction * 160 : 0); line.setAttribute('x2', phase ? phase.fraction * 160 : 0);
+      }
     }
     const c = clip(), track = transport?.tracks?.[state.track];
     const phase = clipPlayback(c, track, transport?.playing, state.scene);

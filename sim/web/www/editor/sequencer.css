@@ -158,7 +158,6 @@
 .sq-scene-head, .sq-matrix-cell { display: flex; flex-direction: column; gap: 6px; padding: 7px; background: var(--surface); min-width: 0; }
 .sq-matrix-cell { border-left: 3px solid var(--snd, var(--border)); background: color-mix(in srgb, var(--snd, var(--select)) 12%, var(--bg)); }
 .sq-matrix-cell > .sq-button { text-align: left; white-space: normal; }
-.sq-matrix-cell > .sq-scene-edit { flex: 1; min-width: 0; }
 
 /* One native workspace at a time; keep navigation independent of project state. */
 .sq-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0; }
@@ -256,15 +255,24 @@
   .sq-clip-actions .sq-button { min-height: 34px; padding: 5px 7px; }
 }
 
-/* Compact Song controls while keeping each edit and launch target distinct. */
-.sq-matrix-cell { flex-direction: row; align-items: center; }
-.sq-matrix-cell > [data-scene-launch] { flex: 0 0 28px; width: 28px; min-height: 28px; padding: 3px; text-align: center; }
-.sq-matrix-cell > .sq-scene-edit {
-  display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; gap: 5px;
-  min-height: 42px; text-align: left; white-space: normal; line-height: 1.2;
+/* The clip body launches; the separate corner pencil opens its editor. */
+.sq-matrix-cell { display: grid; grid-template-columns: minmax(0, 1fr) 28px; grid-template-rows: auto 28px; gap: 2px 4px; min-height: 82px; padding: 4px; box-sizing: border-box; }
+.sq-matrix-cell > [data-scene-launch] {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 3px;
+  grid-column: 1 / -1; grid-row: 1; width: 100%; min-height: 60px; padding: 5px 7px; box-sizing: border-box;
+  text-align: left; white-space: normal; line-height: 1.2;
 }
-.sq-scene-summary { min-width: 0; }
-.sq-matrix-cell .sq-clip-preview { width: 42px; height: 24px; margin: 0; }
+.sq-scene-launch-icon { color: var(--live, #9ccfd8); font-size: .78rem; line-height: 1; }
+.sq-scene-summary { min-width: 0; overflow-wrap: anywhere; }
+.sq-matrix-cell .sq-clip-preview { width: 100%; height: 22px; margin: 0; }
+.sq-matrix-cell > .sq-scene-edit {
+  grid-column: 2; grid-row: 2; display: grid; place-items: center;
+  width: 28px; min-width: 28px; height: 28px; min-height: 28px; padding: 5px; box-sizing: border-box;
+  border-radius: 5px; text-align: center; line-height: 1;
+}
+.sq-scene-edit-icon { display: block; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.35; stroke-linecap: round; stroke-linejoin: round; }
+.sq-matrix-cell > .sq-clip-progress { grid-column: 1; grid-row: 2; align-self: center; width: 100%; height: 3px; border-radius: 2px; background: var(--live, #9ccfd8); pointer-events: none; }
+.sq-matrix-cell > .sq-clip-progress[hidden] { display: none; }
 .sq-note-details { display: flex; flex-wrap: wrap; align-items: start; gap: 3px 10px; }
 .sq-note-essential { margin: 0; }
 .sq-note-advanced { min-width: 0; }
