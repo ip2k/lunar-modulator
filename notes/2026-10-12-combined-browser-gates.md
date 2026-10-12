@@ -132,3 +132,58 @@ physical touch or FM-1 hardware proof, GitHub CI, merge, deployment or deployed
 reload acceptance. Independent identity review and final GitHub CI remain root
 integration gates. Integrate the fixture repair and this receipt, compare exact
 source/test hashes, then continue those gates before merge/deployment.
+
+## Stopped-click redraw repair after final CI
+
+[verified] GitHub run38235257608, WebKit job114764553559, failed
+`song-shortcuts-ui.mjs:50`: canonical pitch61 instead of expected62. The exact
+9348 product reproduced on Hera. Native number events were immediate (keydown,
+input and change); this was not delayed WebKit change behavior. Instrumented
+input was60 before ArrowUp, then61, while earlier keyboard edits had already
+made the canonical duplicated note61 at step3. The rendered selected note and
+pitch field still described the original C4/step1.
+
+[verified] Root cause: the actual note click stops propagation. The redraw guard
+observed clicks only on window's bubble listener, so pointerActive remained set
+until its250ms no-click fallback. Rapid keyboard edits updated the model while
+refresh redraws stayed deferred, allowing stale fields to overwrite those edits.
+Repair8d107796bf4defaa29a855b1d9fdf23cc2c925e4 observes click completion in
+capture and removes that listener with the same capture flag during destroy.
+It only clears the guard and schedules an animation frame; target click handlers
+still finish before that frame. Pointerup still preserves the target through
+click, and cancellation/outside/no-click/new-pointer cleanup remains covered.
+
+[verified] Strict Song shortcut acceptance passes all three browsers with the
+original unslept rapid interaction and unchanged expected62. A new assertion
+requires the rendered pitch61 immediately after the preceding rapid nudge.
+Native regression forces pending refresh, then a click whose target capture
+handler stops propagation and prevents tab activation from redrawing itself.
+Correctionb1cb47a7cf20bec8f24df900f29891015f20d134 makes that stopper capture
+explicit. Old9348 source fails this exact assertion after two animation frames:
+target remains connected; repaired source flushes the refresh without relying
+on the250ms fallback. All14 native cases pass in all three browsers, including
+held-target resize/refresh and pointer cleanup regressions (no page errors).
+
+[verified] Full21 canonical browser gates pass on the capture product candidate;
+the corrected native regression was subsequently rerun in all three browsers.
+Firefox supplemental60 fresh keyboard fader edits across alternating844/1440
+resizes and natural one-click Clip navigation also pass, without pre-blur or
+pre-navigation frame waits. Its containing native14 suite finishes successfully.
+No assertions were weakened and no browser gate was skipped.
+
+[verified] All108 local repository www/test manifest entries match the isolated
+Hera stage for b1cb47. Manifest SHA256:
+`7e3e9f5056d035b92e93baf1925b91f73f205b84d4a48040b6586694d4cdd5ad`.
+Native source and Wasm inputs are unchanged. Historical CI/timeline/old-source
+negative receipts are retained in `scratch/combined-browser-gates`; final
+capture results are in `results-capture`, including corrected native reports
+and Firefox `navigation-capture60/navigation-trials.json`. Remote old-source
+negative stage is `/home/claude/mvave-fm1/editor-stopped-click-red-20261012`;
+positive stage remains `/home/claude/mvave-fm1/editor-combined-final-20261012`.
+
+Source and regression checkpoints8d107796 and b1cb47a7 are pushed with exact
+remote SHA verification on `fix/2026-10-12@browser-render-settlement`.
+Next dependency: root integrates those commits, compares final source/test
+manifest, obtains independent final review and reruns required GitHub CI before
+merge/deployment/reload. Runtime evidence remains distinct from physical touch,
+owner listening and FM-1 hardware acceptance.
