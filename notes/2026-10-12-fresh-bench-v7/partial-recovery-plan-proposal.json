@@ -1,0 +1,79 @@
+{
+  "acquire_capture_run": "/home/claude/fm1-sdk-trace-entry-20261012-v7/partial-acquire-capture-v7",
+  "acquire_stage": "/home/claude/fm1-sdk-trace-partial-acquire-20261012-v7",
+  "entry_root": "/home/claude/fm1-sdk-trace-entry-20261012-v7",
+  "failure_inputs": {
+    "install": {
+      "acquisition_receipt": "/home/claude/fm1-sdk-trace-entry-20261012-v7/stock-backup-001/retained-partial-acquire-001",
+      "capture": {
+        "packet_path": "/home/claude/fm1-sdk-trace-campaign-20261012-v7/install.packet.json",
+        "run": "/home/claude/fm1-sdk-trace-campaign-20261012-v7/install-run",
+        "wrapper_path": "/home/claude/fm1-sdk-trace-campaign-20261012-v7/build/sdk-trace-fresh-entry-bench-v1/next-campaign/owned-campaign-once-v2.py"
+      },
+      "commands": "/home/claude/fm1-sdk-trace-entry-20261012-v7/stock-backup-001/sdk-trace-install-001/commands.jsonl",
+      "current_journal": "/home/claude/fm1-sdk-trace-campaign-20261012-v7/transaction/journal.json",
+      "original_campaign": "/home/claude/fm1-sdk-trace-campaign-20261012-v7/install-campaign.json",
+      "partial_restore_receipt": "/home/claude/fm1-sdk-trace-entry-20261012-v7/stock-backup-001/retained-partial-acquire-001/partial-stock-restore-001",
+      "receipt": "/home/claude/fm1-sdk-trace-entry-20261012-v7/stock-backup-001/sdk-trace-install-001"
+    },
+    "restore": {
+      "acquisition_receipt": "/home/claude/fm1-sdk-trace-entry-20261012-v7/stock-backup-001/returned-target-backup-001/retained-partial-acquire-001",
+      "capture": {
+        "packet_path": "/home/claude/fm1-sdk-trace-campaign-20261012-v7/returned-restore.packet.json",
+        "run": "/home/claude/fm1-sdk-trace-campaign-20261012-v7/returned-restore-run",
+        "wrapper_path": "/home/claude/fm1-sdk-trace-campaign-20261012-v7/build/sdk-trace-fresh-entry-bench-v1/next-campaign/owned-admitted-backup-restore-once-v1.py"
+      },
+      "commands": "/home/claude/fm1-sdk-trace-entry-20261012-v7/stock-backup-001/returned-target-backup-001/stock-restore-001/commands.jsonl",
+      "completed_target_backup_receipt": "/home/claude/fm1-sdk-trace-entry-20261012-v7/stock-backup-001/returned-target-backup-001",
+      "current_journal": "/home/claude/fm1-sdk-trace-campaign-20261012-v7/transaction/journal.json",
+      "original_campaign": "/home/claude/fm1-sdk-trace-campaign-20261012-v7/returned-restore-campaign.json",
+      "partial_restore_receipt": "/home/claude/fm1-sdk-trace-entry-20261012-v7/stock-backup-001/returned-target-backup-001/retained-partial-acquire-001/partial-stock-restore-001",
+      "preserved_original_install_journal": "/home/claude/fm1-sdk-trace-entry-20261012-v7/stock-backup-001/returned-target-backup-001/stock-restore-001/journal-before-restore.json",
+      "receipt": "/home/claude/fm1-sdk-trace-entry-20261012-v7/stock-backup-001/returned-target-backup-001/stock-restore-001"
+    }
+  },
+  "hardware_execution_authorized_by_this_file": false,
+  "kind": "fm1-v7-concrete-partial-write-recovery-plan",
+  "physical_constraints": [
+    "Cynthion target VBUS switching does not power-cycle the battery-powered FM-1 CPU.",
+    "If the unit cannot return to an admissible USB state, retain all evidence and wait for an owner physical reset or separately reviewed recovery-entry procedure.",
+    "No blanket erase, eFuse command, replacement SPL/OTA/cfg, unreviewed loader or arbitrary vendor command is authorized."
+  ],
+  "physical_diagnostic_boot_verified": false,
+  "physical_interrupted_write_recovery_verified": false,
+  "procedure": [
+    "On a stopped chain, preserve exclusive marker, every child intent/exit, stdout, capture, original campaign, commands and journal. Never retry the consumed chain.",
+    "Inspect actual descendant and capture termination. Classify the actual failure direction as INSTALL or admitted stock RESTORE. Hash actual evidence without altering original timestamps.",
+    "Only a caught child failure with complete owned terminal capture and the retained same fixed-loader USB/SG connection is admissible. Obtain a fresh passive same-binding witness; run the pinned file-only helper on actual evidence before any opener.",
+    "Use a new exclusive acquisition receipt at the direction-specific path and the pinned no-upload capture wrapper. Acquire two full matching partial dumps using exactly 8707 FC0A/FD05 exchanges. No loader upload, reset, erase or program occurs in acquisition.",
+    "Validate all bytes outside authenticated uncertain spans and all protected stock regions. Require completed acquisition provenance and a new fresh same-loader witness before preparing the distinct stock_restore transaction.",
+    "Use a new direct restore receipt under completed acquisition and the pinned owned restore wrapper. Restore exact original stock within the original 30-sector whitelist, with directory sector 0x4000 last if dirty. Preserve the failed original journal.",
+    "Require successful native SG completions, page readback, zero unresolved write uncertainty and complete final stock readback. Separately verify stock boot; a full-stock hash alone does not prove boot or display."
+  ],
+  "recovery_source_archive_sha256": "83cb64143b8130f4764e953f7ef15eaca1b12c8803e922555aad12c6af2bce13",
+  "refuse_automatic_recovery_on": [
+    "Disconnected or newly enumerated ROM connection",
+    "Crash or missing terminal owned capture",
+    "Unexpected command, changed source, ambiguous journal or protected-byte corruption",
+    "Failure during this partial acquisition or partial restore; nested readmission unsupported"
+  ],
+  "required_acceptance_before_launch": [
+    "Terminal V6r heavy model evidence retained and verified",
+    "Exact accepted source integration and required exact-head CI",
+    "Concrete launch/source closure review and all four literal authority pins",
+    "Fresh real normal-mode USB binding and unused root-owned run directories"
+  ],
+  "restore_capture_run": "/home/claude/fm1-sdk-trace-entry-20261012-v7/partial-restore-capture-v7",
+  "restore_stage": "/home/claude/fm1-sdk-trace-partial-restore-20261012-v7",
+  "schema": 1,
+  "source_archive_sha256": "9b7d1b80fc1fef6e7114515397e3dcc08354c88e9634ecdfb563fe0d8e2e5607",
+  "source_pins": {
+    "acquisition_capture": "9d69134b11552f63a245c0a6870230e47bda4e6d80006b0bd61a47b938b22c34",
+    "file_only_helper": "d39ee727c961cd0b6613589808c3eb221b1e99128d8ccea44a928e63797f0101",
+    "partial_adapter": "40918ea61c2c59a13a792a801b978bb93892982459f778855cc4cc01a4174034",
+    "partial_restore_capture": "417577993a9fe6b5537a78031371eff3a65c1b8c9503f6caf4f9edef3942115d",
+    "source_inventory": "317e29330b23d4c1a68b1d28b2284cbec36ad776a334e3300e200988cbfd57b6"
+  },
+  "stage_root": "/home/claude/fm1-sdk-trace-campaign-20261012-v7",
+  "status": "review-proposal-only"
+}

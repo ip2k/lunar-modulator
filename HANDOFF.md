@@ -8,6 +8,8 @@ V6k is rejected even though its heavy model passed: global SHA substitution eras
 
 Fresh passive check: bench01 normal FM-1 4c4a:c755 bus1/device8, no 8057, no power cycle needed. No reset/softkey/write during correction. Packetry CUA still reports Mac locked; manual-unlock question pending. Fresh V7 main/recovery source packages are staged on bench01. A separate passive poststage audit verified all 209 files, root ownership/modes, empty run directories, absent dynamic evidence and all four gates still None. All 16 staging guard scenarios passed on Hera; terminal isolation evidence retained. Historical V5 packages must not execute. See notes/2026-10-12-fresh-bench-v7/verification.md. V6r terminal model acceptance remains pending before activation.
 
+V6r terminal evidence is now retained and verified: two passes, no failures/errors/skips, unchanged private inputs, three isolated containers cleaned up. Archive 015f77111265a53a02ee205ae03c372e65fc84181f25957580d9d4b426ed1d27. Twelve tracked hash-only successor files are integrated from exact tested bytes; notes/2026-10-12-recovery-stage-successor-v6r/integration-review.json retains before/after hashes. Concrete recovery plan draft is notes/2026-10-12-fresh-bench-v7/partial-recovery-plan-proposal.json. Physical gates remain closed, exact-head CI/launch review pending. No physical cycle needed at latest normal enumeration.
+
 Historical entries below may report superseded running states; this correction takes precedence.
 
 # Hand-off package — Lunar Modulator

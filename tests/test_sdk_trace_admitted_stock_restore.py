@@ -108,7 +108,7 @@ def test_separate_schema_marker_replay_and_preserved_proof_contract():
     assignments={n.targets[0].id:ast.literal_eval(n.value) for n in tree.body
         if isinstance(n,ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Name)
         and isinstance(n.value,ast.Constant)}
-    assert assignments['BACKUP_SOURCE_SHA']=='1694733ce448a6f368938f251c4d5b4f639a37004dd6623035379953de9b775b'
+    assert assignments['BACKUP_SOURCE_SHA']=='420288e39757d417f65778d0cb9e802035242466a5ac0a4b1c41b2014ff16b14'
     assert assignments['POLICY_SOURCE_SHA']=='54bd9a2990d0055b1d102bc8481a71d883d586649aa2d79d62a185a415296835'
     assert r.digest((Path(r.__file__).parent/'fm1_sdk_trace_admitted_backup.py').read_bytes())==assignments['BACKUP_SOURCE_SHA']
     assert r.digest((Path(r.__file__).parent/'fm1_bound_sdk_trace.py').read_bytes())==assignments['POLICY_SOURCE_SHA']

@@ -20,7 +20,7 @@ import types
 from weakref import WeakSet
 
 # Exact reader accepted by the independent activated V2 Hera review.
-READ_POLICY_SHA = '6c9ed93284def1a95f60a42491b92acda0b116d26c224e2138643bd234fc5a43'
+READ_POLICY_SHA = '411d80186d47dc3786fe2ad48eca5b8fbf7295523c417931b89e75a64cf62051'
 BRIDGE_SHA = '79bbe99ce923daaf8af2c701a65ec39a015191313de79676e36622cb8db00afb'
 HEADER_SHA = '28317ee56a489e0bb38de981fe0d0c4260384be570349795741fdb9a98d6ae57'
 AUDIT_SHA = '673daa193891462147e1aab1082e62f339508e801e14de80a4cfabcca9828252'
