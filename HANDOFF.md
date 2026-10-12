@@ -16,7 +16,7 @@ Physical diagnostic boot/display and full-stock recovery remain unverified.
 Read `notes/2026-10-12-packetry-live-capture.md` for current evidence; the restart
 checkpoint and boundaries below are historical unless explicitly refreshed.
 
-Latest verified backed-up head before this checkpoint: 292f1d8a1f9f0d39b32c8404ed7ff81aecc3430d,
+Latest verified backed-up head before this checkpoint: 8a75bc300c91ba768729d21215b9e934221fb018,
 branch `feature/2026-10-11@installable-firmware`, managed worktree
 `installable-firmware/mvave-fm1-firmware`. No hardware gate is active;
 do not run historical V5 packets or reuse consumed markers.
@@ -47,6 +47,27 @@ The heavy model is launched on Hera at
 /home/claude/mvave-fm1/owned-restore-v6k-resumed-20261012/heavy-model-proposal-v6k.
 Read notes/2026-10-12-recovery-stage-successor-v6k/source-delta.json.
 No new source pins have been integrated into production tools from V6k yet.
+
+[verified: successor model coverage] V6k mechanics collection failed before any
+chunk ran because the archived closure lacks the outer lifecycle test files.
+That failed collector is retained. Corrected V6l collected 417 cases: 346 passed,
+71 optional-native cases skipped, across 16 containers. V6m ran exactly those
+71 cases with the private native fixture required, across 16 fresh containers:
+71 passed, zero skips. Inputs stayed unchanged; isolation, node union and logs
+were checked locally. Retained archives: 836faa04e5ca2b00dc0943baca093d7711d0966d17f59a2ffcc72a3653655616
+(V6l plus failed collector), dc36e89460639e699712716d445bab162fa20acbd41eb54d7f74a5d111938590
+(V6m). Both successful session labels are empty. Outer lifecycle's 63 cases
+remain separately covered by V6j, not by the archived V6k closure.
+The V6k heavy model is still running; no physical inference follows.
+
+[verified: bounded root inspection] Of 20 V6k changes, 17 alter SHA literals
+only. Three substantive inputs match the current reader, current capture
+wrapper and normalized strict fixture. Read source-change-review.json in the
+V6k notes directory. Five startup/display/recovery C files were read completely;
+their ledger and findings are in notes/2026-10-12-diagnostic-startup-review.*.
+The recovery README's obsolete integration claim is corrected. P33 lock and
+scheduler dependence remain explicit; this is not independent acceptance or
+completion of the overdue whole-repository audit.
 
 CI run 38301026217 on exact 292f1d8a is in progress at this checkpoint; earlier
 13-job green runs do not cover this work. Next: retain V6k results, resolve

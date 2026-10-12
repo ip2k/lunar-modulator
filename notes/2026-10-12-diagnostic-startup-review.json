@@ -1,0 +1,34 @@
+{
+  "independent_acceptance": false,
+  "physical_acceptance": false,
+  "schema": 1,
+  "scope": "Five complete source-file reads during resumed diagnostic startup/recovery review",
+  "sources": {
+    "firmware/display/panel_probe.c": {
+      "physical_lines": 63,
+      "read_complete": true,
+      "sha256": "ba622076f9134080139b56e7a549769e2baa0f1e4039d55e87095cfae2d94643"
+    },
+    "firmware/display/spi1_transport.c": {
+      "physical_lines": 149,
+      "read_complete": true,
+      "sha256": "eaade38b9d835174174e2756ce8a32fcc6808dc11c88a44d3693ae37915933fd"
+    },
+    "firmware/recovery/request.c": {
+      "physical_lines": 136,
+      "read_complete": true,
+      "sha256": "f032ea0f93e2f25b3bf98f3cdcad8b2cc23087a8825ca102fa7fb311194e7c21"
+    },
+    "firmware/sdk-diagnostic/app_main.c": {
+      "physical_lines": 129,
+      "read_complete": true,
+      "sha256": "6a6d9682edc435811cef27573d3ddbc7ee5da3f1acc533b91401aa8b78c6f62c"
+    },
+    "firmware/sdk-diagnostic/recovery_trace.c": {
+      "physical_lines": 87,
+      "read_complete": true,
+      "sha256": "f538f3d16de0f1132648c7ee565760dcf8e4a42275f48895205a26ca15c8b7fb"
+    }
+  },
+  "whole_repository_audit_complete": false
+}

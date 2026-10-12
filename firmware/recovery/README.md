@@ -1,8 +1,11 @@
 # Bounded recovery request component
 
-Independent MIT implementation; no vendor or GPL HAL is linked. This component
-is compiled separately by `tools/jieli/link-diagnostic.sh`; it is **not linked
-or called by any boot image**. It does not make a diagnostic installable.
+Independent MIT implementation; the component uses no vendor or GPL HAL.
+The SDK-free diagnostic build compiles it separately and excludes it from
+the boot image. The private SDK diagnostic built by
+`tools/jieli/build-sdk-diagnostic.py` links it and calls it once from its
+worker [verified: source]. That integration does not establish physical
+recovery or make the image hardware-qualified.
 
 ## Contract and provenance
 
@@ -37,7 +40,9 @@ release, write-guard change or arbitrary reset register is exposed.
 [verified: Hera target compile] The pinned pi32v2 compiler builds `request.o`
 without named unresolved symbols. Vendor disassembly confirms word MMIO,
 byte mailbox access and `csync`. The diagnostic link/audit still passes, with
-its binary unchanged because this object is deliberately excluded.
+its binary unchanged because this object is deliberately excluded from that
+SDK-free profile. See [the private SDK profile](../sdk-diagnostic/README.md)
+for the later integration and its separate native audits.
 
 Host fault simulation covers exact marker/byte order, readiness on the last
 allowed poll, timeout at each byte, held start-strobe cleanup, preexisting bus
@@ -45,8 +50,14 @@ ownership, mailbox corruption, invalid binding and no implicit retries.
 Run `python3 -m pytest tests/test_recovery_request.py` in the bounded Hera test
 container; the C shim uses the container's native compiler, not a device.
 
-Before linking/calling: establish exclusive P33 ownership and current-core/IRQ
-policy, retained mailbox writability/protection, inherited clock/power state,
+The private SDK worker uses the vendor cross-core P33 lock and nested IRQ
+masking. The lock can wait indefinitely if the other core stops while holding
+it; finite transfer polling does not bound lock acquisition or scheduler
+delays. The contract requires a healthy SDK runtime. Display failure still
+reaches the one recovery attempt [verified: source], but a CPU/scheduler hang
+has no proven rescue through this component.
+
+Establish retained mailbox writability/protection, inherited clock/power state,
 and reset behavior from the actual entry context. Observe UBOOT on the bench
 and verify the reviewed restore route before treating this as recovery.
 Source/target tests do not close those gates. Exact artifacts and continuation

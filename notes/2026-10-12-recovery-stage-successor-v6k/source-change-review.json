@@ -1,0 +1,31 @@
+{
+  "current_input_comparisons_verified": true,
+  "hardware_access": false,
+  "independent_acceptance": false,
+  "mechanical_sha_literal_only_changes": [
+    "capture-pins/owned-admitted-backup-restore-once-v1.py",
+    "prepare-file-only.py",
+    "source-inventory.json",
+    "tests/owned-partial-stock-restore-once-v3.py",
+    "tests/prepare-file-only.py",
+    "tests/source-inventory.json",
+    "tests/test_genuine_file_only.py",
+    "tests/test_genuine_owned_restore_wrapper.py",
+    "tests/test_retained_partial_recovery.py",
+    "tests/test_sdk_trace_admitted_backup.py",
+    "tests/test_sdk_trace_admitted_stock_restore.py",
+    "tests/test_sdk_trace_read_wire.py",
+    "tools/fm1_retained_partial_recovery.py",
+    "tools/fm1_sdk_trace_admitted_backup.py",
+    "tools/fm1_sdk_trace_admitted_stock_restore.py",
+    "tools/fm1_sdk_trace_return_admission.py",
+    "tools/fm1_sdk_trace_sg.py"
+  ],
+  "model_result_pending": true,
+  "schema": 1,
+  "substantive_inputs": [
+    "capture-pins/owned-install-boot-once.py",
+    "tests/retained_partial_fixture.py",
+    "tools/fm1_sdk_trace_read.py"
+  ]
+}
