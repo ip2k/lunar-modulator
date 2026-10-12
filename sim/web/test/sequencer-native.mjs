@@ -167,6 +167,11 @@ try {
   });
   await check('native clip matrix launch advances real transport and playhead', async () => {
     await tab('Scenes');
+    assert.equal(await page.locator('.sq-scene-title .sq-scene-launch').count(), 8);
+    assert.equal(await page.locator('.sq-matrix-cell .sq-scene-launch').count(), 8);
+    assert.equal(await page.getByRole('button', { name: 'Launch scene 1', exact: true }).isVisible(), true);
+    assert.equal(await page.locator('.sq-scene-title .sq-scene-launch').first().innerText(), '▶');
+    assert.equal(await page.locator('.sq-matrix-cell .sq-scene-launch').first().innerText(), '▶');
     const slots = new Set(), next = page.getByRole('button', { name: 'Next scenes page', exact: true });
     for (let pageIndex = 0; pageIndex < 8; pageIndex++) {
       const visible = await page.locator('[data-live-track]').evaluateAll(cells => cells.map(c => `${c.dataset.liveTrack}:${c.dataset.liveScene}`));

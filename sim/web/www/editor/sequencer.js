@@ -638,8 +638,12 @@ export function makeSequencer(ctx) {
         'aria-label': `Scene ${scene + 1}`, 'aria-pressed': String(state.scene === scene),
         'aria-description': 'Click empty space or press Enter or Space to select this scene. Double-click its name to rename.',
         title: 'Click empty space to select scene; double-click name to rename.' }, [
-        el('div', 'sq-name-header', {}, [name]),
-        ctx.playScene ? btn('▶ Launch scene', () => action(() => ctx.playScene(scene)), { 'aria-label': `Launch scene ${scene + 1}` }) : null,
+        el('div', 'sq-scene-title', {}, [
+          ctx.playScene ? btn('▶', () => action(() => ctx.playScene(scene)), {
+            class: 'sq-button sq-scene-launch', 'aria-label': `Launch scene ${scene + 1}`, title: `Launch scene ${scene + 1}`,
+          }) : null,
+          el('div', 'sq-name-header', {}, [name]),
+        ]),
       ]);
       wireHeaderSelection(header, () => selectClip(state.track, scene));
       grid.append(header);
@@ -659,11 +663,12 @@ export function makeSequencer(ctx) {
         editButton.append(el('span', 'sq-clip-progress', { 'aria-hidden': 'true', hidden: true }));
         editButton.append(el('span', 'sq-scene-summary', { text: summary }));
         if (c) editButton.append(clipPreview(c));
-        grid.append(el('div', `sq-matrix-cell ${group}`, { 'data-live-track': t, 'data-live-scene': scene }, [editButton,
-          ctx.playClip ? btn(c ? '▶ Launch clip' : '■ Stop track', () => action(() => ctx.playClip(t, scene)), {
+        grid.append(el('div', `sq-matrix-cell ${group}`, { 'data-live-track': t, 'data-live-scene': scene }, [
+          ctx.playClip ? btn(c ? '▶' : '■', () => action(() => ctx.playClip(t, scene)), {
+            class: 'sq-button sq-scene-launch',
             'aria-label': `${c ? 'Launch clip' : 'Stop track'} ${t + 1} scene ${scene + 1}`,
             title: c ? 'Launch this clip at the native bar boundary' : 'Launch the empty slot to stop this track at the native bar boundary',
-          }) : null]));
+          }) : null, editButton]));
       }
     });
     return el('section', 'sq-section', {}, [timelineHeading('Scenes', 'scenesPage', 8),
