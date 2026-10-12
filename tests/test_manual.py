@@ -53,6 +53,63 @@ def test_palette_is_rose_pine_dawn():
     assert css_tokens() == DAWN
 
 
+@pytest.mark.parametrize("help_first", [False, True])
+def test_manual_links_preserve_dialog_markup_in_either_order(tmp_path, help_first):
+    """The Cheat Sheet may precede the Copyright Info lede in the page."""
+    pytest.importorskip("markdown")
+    import build
+    import xml.etree.ElementTree as ET
+    from types import SimpleNamespace
+
+    help_list = '<dl><div><dt>Keys</dt><dd>Play notes.</dd></div></dl>'
+    dialog = ('<dialog><header><form><button aria-label="Close Copyright Info">'
+              '\u00d7</button></form></header><section><p class="lede">Lunar in your browser.</p>'
+              '<p>Keep this copyright text.</p></section></dialog>')
+    parts = [help_list, dialog] if help_first else [dialog, help_list]
+    page = tmp_path / "index.html"
+    page.write_text('<main>' + ''.join(parts) + '</main>')
+    b = SimpleNamespace(cfg={"pdf_name": "lunar-modulator-manual.pdf"}, warnings=[])
+
+    build.link_simulator_to_manual(b, page)
+
+    root = ET.fromstring(page.read_text())
+    assert not b.warnings
+    assert root.find('dialog/header/form/button').text == '\u00d7'
+    assert root.find('dialog/section/p[2]').text == 'Keep this copyright text.'
+    lede = root.find('dialog/section/p')
+    assert lede.text == 'Lunar in your browser. Read the '
+    assert lede.find('a').attrib == {"href": "manual/"}
+    assert lede.find('a').text == 'user manual'
+    rows = root.findall('dl/div')
+    assert rows[0].find('dd').text == 'Play notes.'
+    assert rows[1].find('dt').text == 'Manual'
+    assert [a.attrib['href'] for a in rows[1].findall('dd/a')] == [
+        'manual/', 'manual/lunar-modulator-manual.pdf',
+    ]
+
+
+def test_manual_links_preserve_actual_copyright_dialog_header(tmp_path):
+    pytest.importorskip("markdown")
+    import build
+    from types import SimpleNamespace
+
+    original = (ROOT / 'sim/web/www/index.html').read_text()
+    page = tmp_path / 'index.html'
+    page.write_text(original)
+    b = SimpleNamespace(cfg={"pdf_name": "lunar-modulator-manual.pdf"}, warnings=[])
+    build.link_simulator_to_manual(b, page)
+    published = page.read_text()
+    header = r'<dialog\b[^>]*\bid="copyright-info".*?<div class="dialog-content">'
+    original_header = re.search(header, original, re.S)
+    published_header = re.search(header, published, re.S)
+    assert original_header is not None
+    assert published_header is not None
+    assert published_header.group() == original_header.group()
+    assert not b.warnings
+    assert published.count('<dialog ') == original.count('<dialog ')
+    assert published.count('</dialog>') == original.count('</dialog>')
+
+
 def test_text_colours_meet_wcag_aa():
     """Words are set only in text and pine; both reach 4.5:1 on every
     background the theme uses."""

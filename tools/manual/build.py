@@ -628,9 +628,13 @@ def link_simulator_to_manual(b: Build, page: Path) -> None:
     pdf = html.escape(b.cfg["pdf_name"])
     row = (f'      <div><dt>Manual</dt><dd>The <a href="manual/">user manual</a> describes every control, '
            f'engine and effect; also as a <a href="manual/{pdf}">PDF</a>.</dd></div>\n    ')
-    text = text[:help_dl] + row + text[help_dl:]
-    text = (text[:lede.start()] + lede.group(1).rstrip()
-            + ' Read the <a href="manual/">user manual</a>.' + lede.group(2) + text[lede.end():])
+    linked_lede = (lede.group(1).rstrip()
+                   + ' Read the <a href="manual/">user manual</a>.' + lede.group(2))
+    # Apply edits from the end so their original offsets stay valid whether
+    # the Cheat Sheet list precedes or follows the Copyright Info lede.
+    edits = [(help_dl, help_dl, row), (lede.start(), lede.end(), linked_lede)]
+    for start, end, replacement in sorted(edits, key=lambda edit: edit[0], reverse=True):
+        text = text[:start] + replacement + text[end:]
     page.write_text(text)
 
 
