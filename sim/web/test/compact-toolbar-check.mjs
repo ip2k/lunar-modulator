@@ -31,7 +31,7 @@ try {
   await page.waitForFunction(() => document.querySelector('[data-transport-play-pause]')?.getAttribute('aria-label') === 'Pause');
   await page.getByRole('button', { name: 'Stop', exact: true }).click();
   await page.waitForFunction(() => document.querySelector('[data-transport-play-pause]')?.getAttribute('aria-label') === 'Play');
-  for (const [width, height] of [[1440, 900], [1024, 768], [844, 390], [667, 375], [390, 844], [375, 812]]) {
+  for (const [width, height] of [[1440, 900], [1024, 768], [844, 390], [667, 375], [390, 844], [375, 812], [320, 812]]) {
     for (const layout of width <= 640 ? ['editor'] : ['editor', 'workbench']) {
       await page.locator(`button[data-layout="${layout}"]`).click();
       // Module Files adds a third menu; exercise the fuller toolbar as well as
@@ -72,6 +72,7 @@ try {
         report.push({ layout, view, width, height, geometry });
         await writeFile(`${out}/report.json`, JSON.stringify({ report, errors }, null, 2));
         assert.equal(geometry.scrollWidth, width, `horizontal scroll at ${width}x${height}`);
+        assert.ok(geometry.tools.every(t => t.w >= 24 && t.h >= 24), `toolbar targets below 24 px at ${width}x${height}`);
         assert.ok(geometry.tools.every(t => Math.abs(t.y - geometry.tools[0].y) < 11), `tools row wrapped at ${width}x${height}`);
         assert.ok(geometry.tools.every(t => t.x >= geometry.appbar.x - 1 && t.right <= geometry.appbar.right + 1),
           `toolbar control escapes header at ${layout} ${width}x${height}: ${JSON.stringify(geometry.tools)}`);
