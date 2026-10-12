@@ -237,3 +237,13 @@
 .sq-clip-actions .sq-field input[type="number"] { width: 58px; }
 .sq-device-dialog-footer { border-top: 1px solid var(--border); margin-top: 10px; padding-top: 8px; }
 .sq-device-dialog-footer .sq-file-tools { margin: 0; }
+
+.sq-track-title { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.sq-track-title .sq-name { width: 100%; min-width: 0; padding: 5px; color: var(--text); font: inherit; font-weight: bold; }
+.sq-track-title .sq-name[readonly] { background: transparent; border-color: transparent; cursor: text; text-overflow: ellipsis; }
+.sq-track-title .sq-name::placeholder { color: inherit; opacity: 1; }
+.sq-track-head .sq-track-title .sq-button { width: auto; flex: none; font-size: .7rem; }
+.sq-track-title .sq-button { flex: none; padding: 4px; font-size: .7rem; }
+.sq-selection .sq-track-title { width: 230px; }
+.sq-mixer-track .sq-track-title { flex-wrap: wrap; }
+.sq-mixer-track .sq-track-title .sq-name { flex-basis: 100%; }

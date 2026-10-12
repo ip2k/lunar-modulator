@@ -214,7 +214,7 @@ jobs:
       - name: Panel-follow and scheduling helper tests (node)
         timeout-minutes: 5
         run: |
-          node --test sim/web/test/panel-follow.test.mjs sim/web/test/startup-ready.test.mjs sim/web/test/scheduling-capture.test.mjs sim/web/test/playback-timeline.test.mjs sim/web/test/sequencer-host.test.mjs
+          node --test sim/web/test/panel-follow.test.mjs sim/web/test/startup-ready.test.mjs sim/web/test/scheduling-capture.test.mjs sim/web/test/playback-timeline.test.mjs sim/web/test/sequencer-host.test.mjs sim/web/test/sequence-model.test.mjs
       - name: The editor's data and history against the module (node)
         timeout-minutes: 5
         run: node sim/web/test/editor-unit.mjs sim/web/www

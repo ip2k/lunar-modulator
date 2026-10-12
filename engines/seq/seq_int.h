@@ -92,6 +92,7 @@ typedef struct {
   uint8_t pad_solo, n_pad_mutes, route_kind, route_index;
   fm1_seq_val_t base[FM1_SEQ_LANES];
   char label[FM1_SEQ_LANES][FM1_SEQ_LABEL_MAX];
+  char name[FM1_SEQ_TRACK_NAME_MAX + 1u];
 } sq_track_t;
 
 typedef struct {

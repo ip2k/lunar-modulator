@@ -39,6 +39,7 @@ async function reset() {
     doc.title = 'Native sequencer integration'; doc.master = [null, null]; doc.mod = { seed: 1, rack: [], cables: [] };
     doc.sounds = Array.from({ length: 4 }, () => ({ engine: 'test-sine', params: { Volume: .2 }, level: 50, inserts: [null, null], midi_fx: [] }));
     const set = emptySet(); set.bpmX100 = 30000; set.song = [0]; set.songEnd = 0;
+    set.tracks[0].name = 'Native Bass';
     set.tracks[0].route = { kind: 1, index: 0 }; set.tracks[0].clips[0] = emptyClip(16);
     set.tracks[0].clips[0].notes = [{ tick: 0, gate: 96, pitch: 60, vel: 100, step: 0 }];
     doc.set = writeSet(set); await fm1.editor.sequencerHost.applyProject(doc, 'Native test fixture');
@@ -64,6 +65,19 @@ try {
       canonical: async () => JSON.stringify(api.writeSet(api.parseSet(JSON.parse((await fm1.files.projectSnapshot()).text).set))) };
   });
   await check('native fixture loads without discarded sequencer fields', async () => { await reset(); assert.equal((await model()).tracks[0].clips[0].notes[0].gate, 96); });
+  await check('track header names survive native commit and project undo/redo', async () => {
+    await tab('Scenes');
+    const name = page.getByLabel('Track 1 name', { exact: true });
+    await name.dblclick(); await name.fill(' Bass 1 '); await name.press('Enter'); await idle();
+    assert.equal((await model()).tracks[0].name, ' Bass 1 ');
+    const doc = await page.evaluate(async () => JSON.parse((await fm1.files.projectSnapshot()).text));
+    assert(doc.set.includes('tn 0 2042617373203120'));
+    await page.evaluate(() => fm1.editor.undo());
+    await until(async () => (await model()).tracks[0].name === 'Native Bass', 'undo track name');
+    await page.evaluate(() => fm1.editor.redo());
+    await until(async () => (await model()).tracks[0].name === ' Bass 1 ', 'redo track name');
+    await reset();
+  });
   await check('assigned bases preserve linear, logarithmic and enum parameter positions', async () => {
     await tab('Automation');
     await page.getByRole('button', { name: 'Assign parameter', exact: true }).click(); await idle();

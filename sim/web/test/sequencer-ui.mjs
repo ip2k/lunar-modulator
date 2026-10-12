@@ -6,7 +6,7 @@ const out = process.argv[3] || 'scratch/sequencer-ui';
 await mkdir(out, {recursive:true});
 const {server,url}=await serve(process.argv[2] || 'sim/web/www',18873);
 const {browser}=await launch();
-const page=await browser.newPage({viewport:{width:1440,height:1100}});
+const page=await browser.newPage({viewport:{width:1440,height:1100},hasTouch:true});
 const errors=[];page.on('pageerror',e=>errors.push(e.message));
 async function tab(name){await page.getByRole('tab',{name,exact:true}).click()}
 try {
@@ -23,7 +23,49 @@ try {
   window.seq=makeSequencer({fetchProject:async()=>structuredClone(window.doc),applyProject:async(d,label)=>{if(window.reject)throw Error('test refusal');window.doc=d;window.calls.push(label)},getMaster:()=>window.output,setMaster:v=>{window.output=v},getSoundLevel:s=>window.soundLevels[s],setSoundLevel:(s,v,mode)=>{window.soundLevels[s]=v;window.levelGestures.push({sound:s,value:v,mode})},beginLevelDrag:s=>window.levelGestures.push({begin:s}),endLevelDrag:()=>window.levelGestures.push({end:true}),getTransport:()=>({playing:false}),metadata:{doc:{telemetry},engine:name=>name?({params:[{name:'Cutoff',type:'float',min:0,max:1,def:.5,flags:[]},{name:'Voices',flags:['nolock']}]}):null},watchTrack:t=>window.calls.push('watch '+t),playScene:s=>window.calls.push('scene '+s),playClip:(t,s)=>window.calls.push('clip '+t+' '+s),inspector:key=>{const e=document.createElement('p');e.textContent='Inspector '+key;return e}});
   document.querySelector('main').append(window.seq.render());await window.seq.refresh();window.model=()=>parseSet(window.doc.set);
  });
+ // Names edit independently of track selection, using the native set field.
+ const name=page.getByLabel('Track 1 name',{exact:true});
+ await name.dblclick();await name.fill(' Bass 1 ');await name.press('Enter');
+ await page.waitForFunction(()=>window.model().tracks[0].name===' Bass 1 ');
+ if(!await page.evaluate(()=>window.doc.set.includes('tn 0 2042617373203120'))||await page.evaluate(()=>window.model().sceneNames[0])!=='INTRO')throw Error('Track rename did not persist natively or changed scene name');
+ if(await name.inputValue()!==' Bass 1 '||await name.evaluate(e=>!e.readOnly))throw Error('Track title did not settle readonly');
+ await name.press('F2');await name.fill('Cancel');await name.press('Escape');
+ if(await name.inputValue()!==' Bass 1 '||await page.evaluate(()=>window.model().tracks[0].name)!==' Bass 1 ')throw Error('Escape did not cancel rename');
+ await page.getByRole('button',{name:'Rename track 1',exact:true}).click();await name.fill('Bass 2');
+ await page.getByRole('button',{name:'Select track 1',exact:true}).focus();
+ await page.waitForFunction(()=>window.model().tracks[0].name==='Bass 2');
+ // Hold the destination pointer down: blur must not lock it before click.
+ await name.press('Enter');await name.fill('Click Bass');
+ const destination=page.getByRole('button',{name:'Select track 2',exact:true});
+ const destBox=await destination.boundingBox();await page.mouse.move(destBox.x+10,destBox.y+10);await page.mouse.down();
+ await page.waitForTimeout(120);await page.mouse.up();
+ await page.waitForFunction(()=>window.model().tracks[0].name==='Click Bass');
+ if(!await page.evaluate(()=>window.calls.includes('watch 1')))throw Error('Blur save swallowed destination click');
+ await page.getByRole('button',{name:'Select track 1',exact:true}).click();
+ await page.getByRole('button',{name:'Rename track 1',exact:true}).click();await name.fill('Bass 2');
+ const tapBox=await destination.boundingBox();await page.touchscreen.tap(tapBox.x+10,tapBox.y+10);
+ await page.waitForFunction(()=>window.model().tracks[0].name==='Bass 2');
+ if(await page.locator('.sq-scene-edit[aria-pressed="true"]').first().getAttribute('aria-label')!=='Edit track 2 scene 1')throw Error('Blur save swallowed destination touch tap');
+ await page.getByRole('button',{name:'Select track 1',exact:true}).click();
+ await name.press('Enter');await name.fill('12345678901234567');await name.press('Enter');
+ if(await page.evaluate(()=>window.model().tracks[0].name)!=='Bass 2'||await name.evaluate(e=>e.readOnly))throw Error('Invalid rename was truncated or saved');
+ await name.press('Escape');
+ await page.evaluate(()=>window.reject=true);await name.press('Enter');await name.fill('Refused');await name.press('Enter');
+ await page.waitForFunction(()=>document.querySelector('.sq-status').textContent.includes('test refusal'));
+ if(await page.evaluate(()=>window.model().tracks[0].name)!=='Bass 2'||await name.inputValue()!=='Bass 2')throw Error('Refused rename did not restore canonical name');
+ await page.evaluate(()=>window.reject=false);
+ await page.screenshot({path:`${out}/track-names-scenes.png`,fullPage:true});
+ await tab('Arrangement');if(await name.inputValue()!=='Bass 2')throw Error('Arrangement title lost track name');
+ await tab('Mixer');if(await name.inputValue()!=='Bass 2')throw Error('Mixer title lost track name');
+ await page.screenshot({path:`${out}/track-names-mixer.png`,fullPage:true});
  await tab('Clip');
+ if(await page.getByLabel('Edit track',{exact:true}).locator('option').first().textContent()!=='Bass 2'||!await page.getByRole('heading',{name:'Bass 2 · INTRO',exact:true}).isVisible())throw Error('Clip label or selector lost track name');
+ await page.getByRole('button',{name:'Rename track 1',exact:true}).click();await name.fill('');await name.press('Enter');
+ await page.waitForFunction(()=>window.model().tracks[0].name==='');
+ if(await name.getAttribute('placeholder')!=='Track 1'||await page.evaluate(()=>window.doc.set.some(l=>l.startsWith('tn '))))throw Error('Clear rename did not restore numbered fallback');
+ await tab('Clip');
+ // Selecting another track uses its current pitch; restore this test fixture.
+ await page.getByLabel('New note pitch',{exact:true}).fill('60');await page.getByLabel('New note pitch',{exact:true}).dispatchEvent('change');
  const clipActions=page.locator('.sq-clip-actions');
  if(!await clipActions.getByRole('button',{name:'Add note',exact:true}).isVisible()||!await clipActions.getByLabel('New note pitch',{exact:true}).isVisible())throw Error('New note pitch must sit beside Add note');
  await page.getByRole('button',{name:'Add note',exact:true}).click();
@@ -166,6 +208,6 @@ try {
  await page.getByRole('tab',{name:'Scenes',exact:true}).press('ArrowRight');
  if(await page.getByRole('tab',{name:'Arrangement',exact:true}).getAttribute('aria-selected')!=='true')throw Error('Tab arrow navigation');
  if(errors.length)throw Error(errors.join('\n'));
- await writeFile(`${out}/results.json`,JSON.stringify({passed:true,errors,note,checks:['note fields','probability','locks','routing','song repeats','scene launch','refusal rollback','playhead while next scene queued','mobile overflow','input focus','multi-file MIDI mapping','note drag','gate resize','insert/master/mix targets','sound/master fader values and dB display','incremental keyboard level edit','pointer fader drag lifecycle','meter and level telemetry subscription','synthetic sound/master meter updates','device inspector focus and restoration','Files & export disclosure import','desktop routing and FX expanded by default','mobile Routing & FX disclosure toggle','scene selection from scene headings','note row containment','64-slot scene matrix','clip and empty-slot stop callbacks','portrait rotate prompt','844x390 landscape editing','single focused panel','keyboard tab navigation']},null,2));
+ await writeFile(`${out}/results.json`,JSON.stringify({passed:true,errors,note,checks:['native track names across views','rename Enter/blur/Escape and touch button','invalid/refused rename canonical rollback','held mouse and touch blur preserve destination selection','note fields','probability','locks','routing','song repeats','scene launch','refusal rollback','playhead while next scene queued','mobile overflow','input focus','multi-file MIDI mapping','note drag','gate resize','insert/master/mix targets','sound/master fader values and dB display','incremental keyboard level edit','pointer fader drag lifecycle','meter and level telemetry subscription','synthetic sound/master meter updates','device inspector focus and restoration','Files & export disclosure import','desktop routing and FX expanded by default','mobile Routing & FX disclosure toggle','scene selection from scene headings','note row containment','64-slot scene matrix','clip and empty-slot stop callbacks','portrait rotate prompt','844x390 landscape editing','single focused panel','keyboard tab navigation']},null,2));
  console.log('PASS sequencer mock-host desktop/mobile checks');
 } catch(error) {await page.screenshot({path:`${out}/failure.png`,fullPage:true});console.error({errors});throw error} finally {await browser.close();await new Promise(r=>server.close(r))}

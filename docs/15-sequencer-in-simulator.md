@@ -64,7 +64,7 @@ describe the gestures.
 | In what order? | **S1:** one shared, heap-free C99 host bridge, extracted from `fm1-render` with no change in behaviour. **S2:** the app hosts the sequencer with no UI and proves parity. **S3–S10:** the UI, one PR per stage. S7 (engine API v2) is split into a silent stage, S7a, which lands before the lock UI (S8), and an audio-changing one, S7b, best merged before S8 too. |
 | When is it playable? | In S3, PLAY/STOP plays a demo pattern and SEQ shows the grid. In S4, patterns can be made on the panel. |
 | How is it checked? | **Parity:** the module equals `fm1-render` built to JavaScript and against musl exactly, and against glibc within 1 LSB. **Oracle:** every oracle script played through the app equals `fm1-render`. **Gestures:** panel traces replay through `fm1-render` byte for byte. **Layout:** every new screen passes the layout check. **Staleness:** CI's gate covers the new inputs (§6). |
-| What does it cost in RAM? | At 8 tracks, at most 36,428 B of the 36,864 B half budget since S6 (272 events and the click), leaving 436 B. At 4 tracks, at most 22,604 B (§2.6). |
+| What does it cost in RAM? | At 8 tracks, at most 36,620 B of the 36,864 B half budget since S6 (272 events and the click), leaving 244 B. At 4 tracks, at most 22,732 B (§2.6). |
 | What does the owner decide? | 24 decisions (§8). S1 needs none. S2 needs one constant. |
 | What is left out? | Compat mode in the app, undo (until M4/D14, or O16), MIDI out (O18), and anything on an FM-1. Several sound units, first left out (O10), are in since 2026-10-02 (§3.16). |
 
@@ -258,17 +258,17 @@ half of docs/13 §5's 72 KiB, 36,864 B (docs/13 §10).
 
 | Item | 4 tracks | 8 tracks | Note |
 | --- | --- | --- | --- |
-| Sequencer instance, Capture 256 × 12 B included | 18,120 | 31,944 | [verified: `fm1-seq --sizes`, 2026-10-06; 18,056 and 31,880 before stage E1's song fields took 64 B] |
+| Sequencer instance, Capture 256 × 12 B included | 18,184 | 32,072 | [verified: `fm1-seq --sizes`, 2026-10-11; native track names add 16 B per track to the 18,120 / 31,944 B E1 layout] |
 | Event buffer, 272 × 12 B (256 until S6) | 3,264 | 3,264 | The minimum is 72 events (864 B). The measured worst is 193 events (2,316 B) in seq_bench's burst, and at most 7 per 64-frame block over the 34 oracle scripts [verified 2026-10-01]. Beside the 64 gates' note-offs the core keeps room for, that burst needs 257, one more than 256; S6 raised the buffer to 272, which holds it [verified 2026-10-02: `fm1-render --events`, tests/test_seq_render.py] |
 | Pending command record | 240 | 240 | One `fm1_seq_cmd_t` [verified 2026-10-01: sizeof]. It stands in for the FM-1's command ring, whose compact record is still to be designed |
 | UI state | ≤ 1,024 | ≤ 1,024 | asserted; 552 B at S6 |
 | Metronome click voice (S6, O11) | 20 | 20 | `fm1_seq_click_t`, asserted |
-| **Total** | **≤ 22,668 (61.5 %)** | **≤ 36,492 (99.0 %)** | |
-| Spare | 14,196 | 372 | docs/13 §5's 12,288 B undo ring fits only at 4 tracks |
+| **Total** | **≤ 22,732 (61.7 %)** | **≤ 36,620 (99.3 %)** | |
+| Spare | 14,132 | 244 | docs/13 §5's 12,288 B undo ring fits only at 4 tracks |
 | Stack during a stopped Capture's tempo search | about 1.55 KB | about 1.55 KB | transient [verified: engines/seq.md 286] |
 
-Without Capture the instance is 15,048 B at 4 tracks and 28,872 B at 8
-[verified: `fm1-seq --sizes`, 2026-10-06]. The instance holds no pointers, so its size is the
+Without Capture the instance is 15,112 B at 4 tracks and 29,000 B at 8
+[verified: `fm1-seq --sizes`, 2026-10-11]. The instance holds no pointers, so its size is the
 same in 32-bit and 64-bit builds.
 
 **Simulator only, not FM-1 RAM:**
@@ -2526,3 +2526,19 @@ landed):
   exactly as Movy does; the proposed clamp is not made.
 - **Also:** notes played on the keys are logged, so gesture traces that
   press keys replay byte for byte (S3's open issue).
+
+### Track titles
+
+Double-click a track's title in Arrangement, Scenes or Mixer to edit it; a
+focused title also accepts Enter or F2. Enter or leaving the field saves;
+Escape cancels. The adjacent **Rename** button works by touch. The Clip and
+Automation track selectors display the same title. Clear a title to restore
+**Track 1**, **Track 2**, and so on.
+
+Titles accept up to 16 printable ASCII characters, including spaces. Invalid
+names are refused without shortening them. They are stored in the native set
+inside `.lunar`, `.lunarb` and `.movy1` files, alongside notes, routing and
+scenes; project undo/redo includes title edits. Older untitled files retain
+the numbered defaults. Movy ignores Lunar's optional titles and plays the set
+without them. Native format and measured memory limits are in
+[engines/seq.md](../engines/seq.md#track-names-verified-2026-10-11-desktop-c-and-browser-model-tests).
