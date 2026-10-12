@@ -31,7 +31,7 @@ try {
  if(await name.inputValue()!==' Bass 1 '||await name.evaluate(e=>!e.readOnly))throw Error('Track title did not settle readonly');
  await name.press('F2');await name.fill('Cancel');await name.press('Escape');
  if(await name.inputValue()!==' Bass 1 '||await page.evaluate(()=>window.model().tracks[0].name)!==' Bass 1 ')throw Error('Escape did not cancel rename');
- await page.getByRole('button',{name:'Rename track 1',exact:true}).click();await name.fill('Bass 2');
+ await name.dblclick();await name.fill('Bass 2');
  await page.getByRole('button',{name:'Select track 1',exact:true}).focus();
  await page.waitForFunction(()=>window.model().tracks[0].name==='Bass 2');
  // Hold the destination pointer down: blur must not lock it before click.
@@ -42,7 +42,7 @@ try {
  await page.waitForFunction(()=>window.model().tracks[0].name==='Click Bass');
  if(!await page.evaluate(()=>window.calls.includes('watch 1')))throw Error('Blur save swallowed destination click');
  await page.getByRole('button',{name:'Select track 1',exact:true}).click();
- await page.getByRole('button',{name:'Rename track 1',exact:true}).click();await name.fill('Bass 2');
+ await name.dblclick();await name.fill('Bass 2');
  const tapBox=await destination.boundingBox();await page.touchscreen.tap(tapBox.x+10,tapBox.y+10);
  await page.waitForFunction(()=>window.model().tracks[0].name==='Bass 2');
  if(await page.locator('.sq-scene-edit[aria-pressed="true"]').first().getAttribute('aria-label')!=='Edit track 2 scene 1')throw Error('Blur save swallowed destination touch tap');
@@ -60,7 +60,7 @@ try {
  await page.screenshot({path:`${out}/track-names-mixer.png`,fullPage:true});
  await tab('Clip');
  if(await page.getByLabel('Edit track',{exact:true}).locator('option').first().textContent()!=='Bass 2'||!await page.getByRole('heading',{name:'Bass 2 · INTRO',exact:true}).isVisible())throw Error('Clip label or selector lost track name');
- await page.getByRole('button',{name:'Rename track 1',exact:true}).click();await name.fill('');await name.press('Enter');
+ await name.dblclick();await name.fill('');await name.press('Enter');
  await page.waitForFunction(()=>window.model().tracks[0].name==='');
  if(await name.getAttribute('placeholder')!=='Track 1'||await page.evaluate(()=>window.doc.set.some(l=>l.startsWith('tn '))))throw Error('Clear rename did not restore numbered fallback');
  await tab('Clip');
@@ -163,7 +163,7 @@ try {
  await page.setViewportSize({width:1440,height:1100});
  await page.evaluate(async()=>{const m=window.model();m.song=window.savedSong;window.doc.set=(await import('/editor/sequence-model.js')).writeSet(m);window.seq.invalidate();await window.seq.refresh()});
  await tab('Scenes');
- await page.getByRole('button',{name:'Rename scene 1',exact:true}).click();await page.getByLabel('Scene 1 name',{exact:true}).fill('HELLO');await page.getByLabel('Scene 1 name',{exact:true}).press('Enter');
+ await page.getByLabel('Scene 1 name',{exact:true}).dblclick();await page.getByLabel('Scene 1 name',{exact:true}).fill('HELLO');await page.getByLabel('Scene 1 name',{exact:true}).press('Enter');
  await page.waitForFunction(()=>window.model().sceneNames[0]==='HELLO');
  await page.getByLabel('Scene 1 name',{exact:true}).press('F2');await page.getByLabel('Scene 1 name',{exact:true}).fill('INTRO');await page.getByRole('button',{name:'Edit scene 2',exact:true}).focus();
  await page.waitForFunction(()=>window.model().sceneNames[0]==='INTRO');

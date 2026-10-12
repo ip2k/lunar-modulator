@@ -293,13 +293,15 @@
 .sq-transport .sq-field { gap: 2px; }
 .sq-transport .sq-field input { width: 76px; }
 .sq-transport .sq-field select { width: 78px; }
-.sq-transport-readouts { display: grid; grid-template-columns: auto auto; column-gap: 8px; align-items: center; }
+.sq-transport-readouts { display: grid; grid-template-columns: 10ch 11ch; column-gap: 8px; align-items: center; flex: 0 0 auto; font-variant-numeric: tabular-nums; }
 .sq-transport .sq-position { padding: 0 4px; min-height: 24px; }
-.sq-time { font-variant-numeric: tabular-nums; font-size: .78rem; }
+.sq-time { font-variant-numeric: tabular-nums; font-size: .78rem; text-align: right; white-space: nowrap; }
 .sq-transport-state { grid-column: 1 / -1; color: var(--muted); font-size: .65rem; }
 .sq-transport-master { display: flex; align-items: center; gap: 6px; font-size: .7rem; }
 .sq-transport-master .sq-signal-meter.is-mini { width: 48px; height: 12px; }
 .sq-transport-nav { display: flex; align-items: center; gap: 4px; font-size: .7rem; }
+.sq-nav-label { display: grid; justify-items: center; min-width: 6ch; gap: 2px; }
+.sq-nav-count { font-variant-numeric: tabular-nums; }
 .sq-transport-nav .sq-button { padding: 3px 7px; }
 @media (max-height: 500px) and (orientation: landscape) {
   .sq-transport { gap: 4px; }

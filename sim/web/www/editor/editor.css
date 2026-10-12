@@ -48,6 +48,9 @@
 .ed-keys b { color: var(--accent-text); background: var(--select); border-radius: 4px; padding: 0 5px; margin-left: 4px; }
 .ed-hint { color: var(--muted); }
 .ed-icon { min-width: 54px; }
+.ed-sidebar-toggle { min-width: 32px; width: 32px; padding: 4px; display: inline-grid; place-items: center; }
+.ed-sidebar-toggle svg { width: 22px; height: 22px; }
+@media (pointer: coarse) { .ed-sidebar-toggle { min-width: 44px; width: 44px; min-height: 44px; } }
 .ed-footer-menu { position: relative; }
 .ed-song-file-tools { display: inline-flex; }
 .ed-song-file-tools[hidden] { display: none; }
@@ -62,10 +65,10 @@
   box-shadow: 0 8px 24px rgb(0 0 0 / .35);
 }
 .ed-footer-menu-body > button { width: 100%; text-align: left; }
-.ed-footer-menu .files { margin: 0; display: flex; flex-direction: column; gap: 8px; }
-.ed-footer-menu .files .buttons { display: flex; gap: 8px; }
-.ed-footer-menu .files .save-group { display: flex; gap: 8px; }
-.ed-footer-menu .files .save-group select { min-width: 0; flex: 1; }
+.ed-footer-menu .files { margin: 0; display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+.ed-footer-menu .files .buttons, .ed-footer-menu .files .save-group { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+.ed-footer-menu .files button { width: 100%; text-align: left; }
+.ed-footer-menu .files .save-group select { min-width: 0; width: 100%; }
 .ed-footer-menu .controls { margin: 0; display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
 .ed-footer-menu .controls .buttons { display: flex; flex-direction: column; gap: 8px; }
 .ed-footer-menu .controls .field select { width: 100%; }
