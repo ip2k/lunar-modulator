@@ -115,7 +115,12 @@ private image/ELF/backup inputs are mounted read-only, then copied to each
 disposable container; SG operations are mocked. The initial harness collection
 failure from bare sibling-test imports is retained under evidence-v1; the v2
 harness supplies the test/tools PYTHONPATH without changing frozen source.
-All final checks and independent acceptance are pending. Parent owns commit/push and hardware activation.
-Branch `feature/2026-10-11@installable-firmware`; inherited checkpoint
-`a64c0b381285222ed68969779619ee5ffc3b4671`. This lane creates no commit and makes
-no pushed claim for its uncommitted new files.
+The independent reviewer accepted the frozen source after the intent-boundary
+repair, with no remaining material source blocker. Final Hera XML/container
+and actual modeled factory evidence remain pending. Parent owns commit/push
+and hardware activation. Branch
+`feature/2026-10-11@installable-firmware`; parent checkpoint
+`6188d8fc7c7920f9948d5103e25aa37510461b13` includes the frozen source/tests and
+was pushed with remote SHA verified by the parent. This lane creates no commit.
+Physical rehearsal evidence does not yet exist; this gate cannot be activated
+until the exact successful physical install/restore receipt is accepted.

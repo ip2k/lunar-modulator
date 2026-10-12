@@ -11,14 +11,22 @@ original conversation; last updated 2026-10-11. Read this first, then
 
 ## Installable firmware image resumed — 2026-10-11
 
-[verified: WIP verification checkpoint] Rehearsal tests `95879aa0…` and
-the distinct post-rehearsal stock reset `743ac876…` / tests `2ebf29e6…`
-are saved. Exact private-input modeled rehearsal smoke passed; final 125-case
-rehearsal and 107-case post-reset campaigns are running in 16 Hera chunks each.
+[verified: verification checkpoint] Rehearsal tests `95879aa0…` passed all
+125 cases in 16 Hera chunks plus the separate actual-input modeled smoke,
+zero failures/errors/skips/OOM and all containers removed. Independent retained
+evidence review is pending. The distinct post-rehearsal stock reset `743ac876…`
+/ tests `2ebf29e6…` passed its actual-input modeled smoke; final 107-case
+campaign is running in 16 Hera chunks.
 Bench packet v2 passes actual file-only preflight (`f6964845…`); private wrapper
 `173a9705…` is independently reviewed and staged. No physical erase/program or
 reset has run. Final test/review evidence gates one install/readback/restore
 rehearsal, then separate stock reset and diagnostic boot/recovery work.
+
+[verified: CI collection repair] Checkpoint `6188d8fc…` was pushed and remote
+SHA verified. GitHub run 38187580322 failed both Python collection jobs because
+bare sibling fixture imports require `tests` on Python's path. Pytest now sets
+that path, matching Hera, and the repository interpreter collects all 107 reset
+cases. Frozen device sources/tests are unchanged. Fresh CI is still required.
 
 [verified: WIP transport checkpoint] Exact SDK rehearsal source
 `f6964845…` is saved with its [work note](notes/2026-10-11-sdk-rehearsal.md).

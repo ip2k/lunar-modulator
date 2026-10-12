@@ -58,8 +58,21 @@ ambiguity receipts, complete adapter result/log and independent capture review.
 Text usbmon records only 32 payload bytes; it cannot prove full page payloads.
 The source's input-response hashes and transaction readback are separate gates.
 
-[verified: device-free smoke] Tests `95879aa0905fff810f8a31eba3ac7e1134a609ea1c3c5d9bf8c4182c33b32605`
-collected 125 unique cases. Actual factory/native/raw gates and modeled complete
-install/readback/restore smoke passed against the actual private files. The final
-16 chunks are still running. The model uses a controlled monotonic clock; it
-does not establish physical throughput within the 900-second live lease.
+[verified: device-free tests] Tests `95879aa0905fff810f8a31eba3ac7e1134a609ea1c3c5d9bf8c4182c33b32605`
+passed all 125 unique cases across 16 Hera chunks, plus the separate actual-input
+smoke. There were zero failures, errors, skips or OOM events; all containers were
+removed. Actual factory/native/raw gates and modeled complete
+install/readback/restore passed against the actual private files. The model uses
+a controlled monotonic clock; it does not establish physical throughput within
+the 900-second live lease. Retained evidence is in `build/sdk-rehearsal-test/`:
+archive `f2d7afa151368ee8125a72e5a4b5cf0f916b1f3be3d212f128b1065981b0dca6`,
+plan `c7e5cbaf793ff34c81eefc2d51d2ac17b94e40afdb739bc6cd659250476f5d8f`,
+aggregate `1915a26ea7208e8922b2858f74d384fa11902a32b40bddb38c82243434b34bcb`.
+
+[verified: CI collection repair] GitHub run 38187580322 on checkpoint 6188d8fc
+failed collection on both Linux and macOS because the reset tests import sibling
+fixture modules by filename. Pytest now explicitly includes `tests` in its
+configured Python path, matching the focused Hera harness. The repository
+interpreter collected all 107 cases in those two modules after this change.
+All pinned device tools and focused test files remain byte-identical. A fresh
+CI run is required; collection alone is not a complete test pass.
