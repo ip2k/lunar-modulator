@@ -703,3 +703,32 @@ admission and physical interrupted-app/SPL fallback remain unproved.
 The expanded audit has findings and exact coverage in ignored
 `build/installable-stream-audit/`; whole-repository renewal is incomplete and
 the audit mark has not advanced. No installable-image completion is claimed.
+
+### Stock responding; Cynthion setup — 2026-10-12 UTC
+
+[verified] Actual reset review298df1f6 and distinct identity source review4ef6fbe5
+are accepted. One identity-only successor07c35b09 ran once on normalbus3/dev27/
+path3-2, returned exact known FM-1_092, exited0 and cleanly stopped its owned
+capture. Actual identity review127e353b accepted the host reply and all18 native
+USBmon records within their capture-prefix limits. No new reset/loader/flash
+command was sent. The stock application now responds after accepted full
+stock96006 readback; reset cause/completion remain unproven. Both attempts are
+consumed. Preserve all private evidence in the stock-identity-v1/reset-bench-v1
+build directories; never replay either packet.
+
+[verified] Interrupted NOR model V4 passed16 Hera shards plus smoke, independently
+accepted review231ff380, and was checkpointed/pushed at
+`a6164e5369e9cfb940ad1f456b52b3b7786b668d`. It supplies modeled ROM/loader entry;
+production partial-NOR admission and real corrupted-app recovery are still
+pending. New diagnostic trace sources/build/tests are being finalized and
+reviewed separately; original hardware image/policies stay frozen.
+
+[reported: owner] Owner is available for Cynthion wiring and display observation.
+Requested CONTROL to Mac, TARGET C to bench Pi, TARGET A initially unplugged
+until full-speed capture starts. Connection status is pending. Establish fresh
+USB bindings before any later identity/soft-key/loader/backup/install campaign.
+Current active goal remains verified installable diagnostic firmware, recovery,
+appropriate checks/review/docs, exact-head CI and integration. Hera remains the
+only build host; sixteen chunks for parallel checks. Next dependencies are
+Cynthion capture readiness, finalized trace artifact and distinct reviewed
+trace-image admission/readback/installation adapters.

@@ -80,3 +80,36 @@ and actual passive preflight; no identity query has been sent by it.
 the direct connection until the current stock identity observation completes;
 then establish the new topology before any later device campaign. Physical
 display observation remains required for the diagnostic milestone.
+
+## Accepted stock identity successor — 2026-10-12 UTC
+
+[verified] Independent actual reset review298df1f6 accepted the single FC0C
+transmission, detach and fresh normal enumeration within its stated limits.
+The distinct identity-only source07c35b09 then passed source review4ef6fbe5,
+exclusive root700/source600 staging and passive check-only on the unchanged
+bus3/dev27/path3-2 connection. Its own one-use attempt sent exactly one ten-byte
+identity query at1791792092.8740723 and received the exact known41-byte
+FM-1_092 reply. The decoder's checksum exception applies only to those exact
+previously verified bytes. The wrapper exited0 and stopped its owned capture
+group3356290 cleanly with SIGTERM/-15. No reset, loader or flash command was
+submitted by this successor; the original consumed reset evidence is unchanged.
+
+[verified] Eight-member private export
+`build/stopped-choice-stock-identity-v1/physical-identity.tar` hashes
+`ba34aff4fca9ce9a3a0c05a6e025f5fbe1d81e8133c7d64c802cf3bfde0d3a55`.
+The adjacent index retains every member hash. Independent actual review
+`actual-identity-independent-review.md` hashes
+`127e353b4e27bf6ad3277b2fcc212609dd679939fa6ce5e338af3c4ed4c24be2`.
+It replayed all18 USBmon records: one complete OUT query, a capped matching IN
+prefix, all paired URBs completed, and no additional query/vendor/reset traffic.
+The complete host reply independently decodes to FM-1_092. This closes normal
+application identity after the verified stock restore. SG reset completion,
+reset cause, visible diagnostic pixels and corrupted-app warm recovery remain
+separate acceptance gates.
+
+[reported: owner] Cynthion may now be inserted. The selected documented wiring
+is CONTROL to the Mac running Packetry, TARGET C to the bench Pi, and TARGET A
+to FM-1. Start full-speed capture before attaching TARGET A. Any new connection
+requires fresh topology/session binding; neither this consumed identity attempt
+nor the original reset packet may be replayed. No VBUS control is required for
+this passive capture setup.
