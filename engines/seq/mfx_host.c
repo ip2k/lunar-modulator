@@ -274,9 +274,20 @@ static void block_ticks(fm1_mfx_t *m, const fm1_seq_host_t *h, uint32_t frames,
     ctx->tick_pos = c->playing ? c->master_tick : 0u;
     fm1_seq_get_key(h->seq, &m->key_root, &m->key_scale);   /* the set's key */
     fm1_mfx_set_swing(m, fm1_seq_get_swing(h->seq));          /* and its swing */
-    if (c->inc > 0u && c->threshold > 0u) {
+    if (!c->playing) {
+      /* A paused sequencer freezes its fraction. Live keys still need a
+       * tempo clock, carried separately so neither stalls nor repeats the
+       * frozen fraction's ticks every block. */
+      const uint64_t inc = (uint64_t)c->bpm_x100 * FM1_MIDI_FX_PPQN;
+      const uint64_t threshold = (uint64_t)m->rate * TPS_DIV;
+      m->n_ticks = grid_ticks(m->ticks, FM1_MFX_TICKS, m->accum, inc, threshold, frames);
+      m->accum = (m->accum + (uint64_t)frames * inc) % threshold;
+    } else if (c->inc > 0u && c->threshold > 0u) {
       m->n_ticks = grid_ticks(m->ticks, FM1_MFX_TICKS, c->accum % c->threshold, c->inc,
                               c->threshold, frames);
+      /* Keep the live clock's endpoint ready for a pause/stop next block.
+       * While playing, the sequencer remains the authoritative grid. */
+      m->accum = (c->accum + (uint64_t)frames * c->inc) % c->threshold;
     } else {
       /* Off the grid: the ticks the block serviced, at its first frame. */
       fm1_seq_clock_t now;
@@ -285,6 +296,9 @@ static void block_ticks(fm1_mfx_t *m, const fm1_seq_host_t *h, uint32_t frames,
       k = c->playing && now.master_tick > c->master_tick ? now.master_tick - c->master_tick : 0u;
       if (k > FM1_MFX_TICKS) k = FM1_MFX_TICKS;
       for (m->n_ticks = 0; m->n_ticks < (uint32_t)k; ++m->n_ticks) m->ticks[m->n_ticks] = 0;
+      /* External/compat playback also carries a live tempo-clock phase. */
+      m->accum = (m->accum + (uint64_t)frames * c->bpm_x100 * FM1_MIDI_FX_PPQN) %
+                   ((uint64_t)m->rate * TPS_DIV);
     }
   } else {
     const uint64_t inc = (uint64_t)m->bpm_x100 * FM1_MIDI_FX_PPQN;

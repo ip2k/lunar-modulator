@@ -2216,7 +2216,7 @@ void fm1_seq_get_clock(const fm1_seq_t *s, fm1_seq_clock_t *o) {
   o->threshold = s->threshold;
   /* advance's own increment; its ticks fall on this grid unless they follow
    * an external clock or are Movy's, all at the block's start */
-  o->inc = follow_active(s) || s->lim.compat == FM1_SEQ_COMPAT_MOVY
+  o->inc = s->paused || follow_active(s) || s->lim.compat == FM1_SEQ_COMPAT_MOVY
                ? 0u : (uint64_t)s->bpm_x100 * FM1_SEQ_PPQN;
   o->bpm_x100 = s->bpm_x100;
   o->playing = s->playing;

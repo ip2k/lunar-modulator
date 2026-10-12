@@ -52,3 +52,11 @@ RENDER_EXTRA_OBJ += $(SEQ_OBJ) $(SEQ_HOST_OBJ)
 
 -include $(SEQ_OBJ:.o=.d) $(SEQ_CHECK_OBJ:.o=.d) $(SEQ_HOST_OBJ:.o=.d) $(SEQ_TOOL_OBJ:.o=.d) \
   $(SEQ_BRIDGE_TEST_OBJ:.o=.d)
+
+# Actual MIDI effect clock across pause/resume, including live keys.
+$(BUILD)/c/test/mfx_pause_test.o: SEQ_CFLAGS += -Imidi_fx
+$(BUILD)/fm1-mfx-pause-test: $(BUILD)/c/test/mfx_pause_test.o $(SEQ_OBJ) \
+  $(BUILD)/midi_fx/fm1_arp.o $(BUILD)/midi_fx/arp_rhythm.o $(BUILD)/midi_fx/arp_engine.o
+	$(CC) $(OPT) $(EXTRA) -o $@ $^ -lm
+
+-include $(BUILD)/c/test/mfx_pause_test.d

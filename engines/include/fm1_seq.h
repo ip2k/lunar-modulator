@@ -393,8 +393,9 @@ const char *fm1_seq_scene_name_pick(unsigned k);
  * accum + (f + 1) x inc reaches the next multiple of threshold: master tick
  * T is serviced at the first frame where master_tick + (accum + (f + 1) x
  * inc) / threshold > T, the frame advance gives its events. inc is 0 when
- * ticks are not on this grid (following an external clock, or Movy's
- * compat mode, which puts every event at the block's start). */
+ * the clock is frozen by pause or ticks are not on this grid (following an
+ * external clock, or Movy's compat mode, which puts every event at the
+ * block's start). */
 typedef struct fm1_seq_clock {
   uint64_t master_tick;     /* ticks serviced since Start */
   uint64_t accum;           /* below threshold between blocks */
