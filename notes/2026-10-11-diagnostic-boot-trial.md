@@ -82,12 +82,21 @@ separately. Capture prefixes are limited to 32 bytes. The accepted report is
 `build/sdk-install-independent-review.md`, SHA
 `7cce401033cb21dd3546308523c3a7fd3be65ae96c6f2ed1394fd1d0af96d1a3`.
 
-A separate target reset packet is prepared for independent concrete review.
+A separate target reset packet passed independent concrete review and actual
+staged-file preflight, without opening hardware. Archive SHA
+`8da6e1dbf7c74a58608d9f4435a052e6db2202b1a6b483a7818c8ed8ed291058`;
+campaign `6d7bf62825b117dd21537499bc4dfd41d397c98d804f59c205863d3d6d862778`;
+wrapper `ce7129a4ab980f8f41915b865993f42e83c26d5e5cb56a21b728d281c2f54e85`.
+The final review is `build/fixed-target-reset-review.md`, SHA
+`fe53152557514d7d38fc4e2005ace7153c9d279f5fa2dbb4a7b5eb5309ec82f8`.
 It binds this exact completed install and retains the original one-use
 markers. Its wrapper records passive USB/SG sysfs re-enumeration after one
 reset request; it sends no further device command, even when reset completion
 is ambiguous. Target reboot and the pre-upload diagnostic RAM witness remain
-pending, separately from the accepted NOR installation.
+pending, separately from the accepted NOR installation. Activation awaits the
+separate fixed two-request native ROM probe's testing and concrete packet
+review, so a fresh short-lived ROM snapshot can be used promptly. No device
+command has been sent after the verified install.
 
 [verified: public/private CI boundary, runtime gate pending] GitHub run
 38188020648 passed its browser and C/C++ jobs but failed both Python jobs
