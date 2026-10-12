@@ -22,11 +22,11 @@ TRACE_NONCE = '6b5482dbb66b5f45ed73e2f26c4a4657'
 TRACE_ADDRESS = 0x01c02880
 TRACE_BYTES = 64
 SCOPE = 'FM-1_092 exact private SDK recovery-trace application'
-# Reviewed candidate bytes are known; native/allocation and complete raw target
-# acceptance are independent gates. No campaign can open through these None pins.
-TARGET_SHA = None
-BUILD_MANIFEST_SHA = None
-TRACE_REVIEW_SHA = None
+# Literal successor of the saved closed gate: independently accepted raw target,
+# build manifest and native/allocation report. Physical admission stays separate.
+TARGET_SHA = '5dbada6531e0ad68b1902b4f0d97cc6f78d7fa338b1360c194f98c1475ad7a3d'
+BUILD_MANIFEST_SHA = 'b58c49fed04efb4fc29eaf2602605a8e4ec197048bcd418c86a53276198cf86e'
+TRACE_REVIEW_SHA = 'cf706b9c95ea0635a9d4521b04d3d42730b80b0dfd97070931892ae163c5d690'
 _AUTHORIZED = WeakSet()
 
 

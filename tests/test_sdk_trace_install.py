@@ -169,7 +169,7 @@ def test_durable_submit_marker_drift_prevents_ioctl(trace_unit,monkeypatch):
     assert trace_unit.prepared.marker.exists()
 
 
-def test_actual_private_trace_factory_full_install_and_post_intent_guard(actual,tmp_path,monkeypatch):
+def test_actual_private_trace_factory_full_install(actual,tmp_path,monkeypatch):
     """Exact trace bytes; historical stock evidence, mocked wall-clock/live SG only."""
     native=Path(os.environ['LUNAR_TRACE_NATIVE'])
     target_path=Path(os.environ['LUNAR_TRACE_TARGET'])
@@ -195,6 +195,14 @@ def test_actual_private_trace_factory_full_install_and_post_intent_guard(actual,
     assert [q.direction for q in prepared.policies]==['install','restore']
     assert prepared.policy_module.APP_SHA==policy.APP_SHA and prepared.policy_module.ELF_SHA==policy.ELF_SHA
     assert prepared.runtime.TARGET_SHA!=p.TARGET_SHA  # frozen old constant stays unchanged
+    for current in prepared.policies:
+        with pytest.raises(ValueError,match='instance required'):
+            copy.copy(current).check_files()
+    original=inputs['identity_path'].read_bytes()
+    inputs['identity_path'].write_bytes(original+b' ')
+    with pytest.raises(ValueError): prepared.check()
+    inputs['identity_path'].write_bytes(original)
+    prepared.check()
     model=SGModel(monkeypatch,config['sg_binding'],actual.baseline)
     monkeypatch.setattr(prepared.bridge,'discover_sg',model.discover)
     result=install.run_campaign(prepared)
@@ -215,3 +223,37 @@ def test_actual_private_trace_factory_full_install_and_post_intent_guard(actual,
             'adapter':install.digest(Path(install.__file__).read_bytes())}),indent=2)+'\n')
     shutil.copyfile(prepared.receipt/'commands.jsonl',out/'actual-trace-commands.jsonl')
     shutil.copyfile(prepared.receipt/'result.json',out/'actual-trace-result.json')
+
+
+@pytest.mark.parametrize('defect', ['nonce','app','elf','size','sdk','flashable',
+    'device_operations','startup_reason','symbol_address','symbol_size',
+    'undefined_symbol','duplicate_symbol','section_name','section_flags',
+    'section_extent','overlapping_section'])
+def test_trace_manifest_and_allocated_record_reject_incoherence(monkeypatch,defect):
+    import hashlib
+    manifest=dict(application_sha256=policy.APP_SHA,elf_sha256=policy.ELF_SHA,
+        application_bytes=120688,sdk_commit='e30b1ee375d1f2993fc23bf92c8b99006a6e5f9d',
+        device_operations_performed=False,flashable=False,recovery_trace=dict(enabled=True,
+        schema=1,nonce_hex=policy.TRACE_NONCE,record_bytes=64,startup_reason='unavailable_sentinel'))
+    symbol=dict(name='lunar_sdk_recovery_trace_record',value=policy.TRACE_ADDRESS,size=64,shndx=1)
+    section=dict(name='.ram0_bss',flags=2,addr=policy.TRACE_ADDRESS,size=64)
+    symbols=[symbol];sections=[section]
+    if defect=='nonce':manifest['recovery_trace']['nonce_hex']='0'*32
+    elif defect=='app':manifest['application_sha256']='a'*64
+    elif defect=='elf':manifest['elf_sha256']='a'*64
+    elif defect=='size':manifest['application_bytes']+=1
+    elif defect=='sdk':manifest['sdk_commit']='a'*40
+    elif defect=='flashable':manifest['flashable']=True
+    elif defect=='device_operations':manifest['device_operations_performed']=True
+    elif defect=='startup_reason':manifest['recovery_trace']['startup_reason']='invented'
+    elif defect=='symbol_address':symbol['value']+=4
+    elif defect=='symbol_size':symbol['size']-=4
+    elif defect=='undefined_symbol':symbol['shndx']=0
+    elif defect=='duplicate_symbol':symbols.append(dict(symbol))
+    elif defect=='section_name':section['name']='.text'
+    elif defect=='section_flags':section['flags']=0
+    elif defect=='section_extent':section['size']-=4
+    elif defect=='overlapping_section':sections.append(dict(section))
+    data=json.dumps(manifest).encode();monkeypatch.setattr(policy,'BUILD_MANIFEST_SHA',hashlib.sha256(data).hexdigest())
+    modules={'audit_link':SimpleNamespace(Elf=lambda _:SimpleNamespace(symbols=symbols,sections=sections))}
+    with pytest.raises(ValueError):policy.check_trace_manifest(data,b'modeled ELF',modules)

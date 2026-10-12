@@ -19,7 +19,7 @@ import time
 import types
 from weakref import WeakSet
 
-POLICY_SHA = None
+POLICY_SHA = '54bd9a2990d0055b1d102bc8481a71d883d586649aa2d79d62a185a415296835'
 BACKUP_ADMISSION_SECONDS = 120
 _AUTHORIZED = WeakSet()
 _CONSUMED = WeakSet()

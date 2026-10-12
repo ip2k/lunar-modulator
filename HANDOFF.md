@@ -15,10 +15,15 @@ original conversation; last updated 2026-10-11. Read this first, then
 FM-1_092 are accepted. Reset and identity campaigns are consumed; no device
 command has followed the accepted identity. Native trace reviewcf706b9c accepts
 the new app76382f53/ELFe9d54172 and linked RAM allocation within offline scope.
-Parent checkpoint41fc898d is pushed/remote verified. New trace policy/install
-sources are a closed WIP checkpoint: activation literals remain None; AST checks
-only, sixteen Hera chunks and genuine candidate admission pending. Exact raw
-target5dbada65 was emitted on Hera; independent preservation review is running.
+Checkpoint8f687392 is pushed/remote verified. Exact raw target5dbada65 passed
+independent preservation reviewb903322e; stock SPL/OTA/cfg and protected bytes
+remain identical. New trace policy/install candidate pins are present; 54 unique
+Hera tests across sixteen chunks plus the genuine full-write smoke passed.
+Independent installer review remains pending. The new injected trace reader
+passed 113 unique Hera tests; its boot activation remains closed. The separate
+one-reset boot successor passed 43 unique tests across sixteen Hera chunks and
+one smoke; install/wire activation remains closed and returned-ROM lineage is
+not yet implemented. These are source/model checks, with no new device command.
 
 Owner is at the desk. Requested CONTROL→Mac, TARGET C→bench Pi, FM-1 detached
 from TARGET A until Full Speed capture starts. Mac computer-use currently reports
