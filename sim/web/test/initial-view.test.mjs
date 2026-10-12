@@ -27,3 +27,10 @@ test('explicit selection during initial read beats the delayed default', () => {
   view.project('two'); view.choose();
   assert.equal(view.fromProject('two', doc()), null);
 });
+test('an explicitly loaded set resets the default within the same project', () => {
+  const view = makeInitialView('one'), song = doc(m => m.song = [0]);
+  assert.equal(view.fromProject('one', doc()), 'flow'); view.choose();
+  assert.equal(view.project('one', { sequence: true }), true);
+  assert.equal(view.fromProject('one', song), 'sequencer');
+  assert.equal(view.project('one'), false, 'clip edits and same-project refresh do not reset');
+});

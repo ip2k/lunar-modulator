@@ -1503,8 +1503,8 @@ export async function startEditor(env) {
       if (l?.sequencer || l?.sel) initialView.choose();
       if (l?.sequencer) { st.view = 'sequencer'; render(); sequencer.refresh(); } else project.applyLink(l);
     },
-    projectLoaded() {
-      if (initialView.project(files.pid)) snapshot();
+    projectLoaded(options) {
+      if (initialView.project(files.pid, options)) snapshot();
     },
     sequencer, sequencerHost: seqHost,
     midiMapChanged() {

@@ -12,8 +12,8 @@ export function hasSequenceContent(doc) {
 export function makeInitialView(projectId) {
   let id = projectId, settled = false, chosen = false;
   return {
-    project(next) {
-      if (next === id) return false;
+    project(next, { sequence = false } = {}) {
+      if (next === id && !sequence) return false;
       id = next; settled = chosen = false;
       return true;
     },
