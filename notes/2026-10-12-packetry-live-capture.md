@@ -140,3 +140,87 @@ model work. No firmware write, soft key, reset or target-power action occurred.
 Active branch: `feature/2026-10-11@installable-firmware`; prior verified pushed
 checkpoint `b0446d58d05996275b08c0d51792514dcea1372c`. The next checkpoint is WIP:
 source pin acceptance and model verification remain outstanding.
+
+
+### V6e mechanics results and current-adapter V6f rehearsal
+
+[verified: modeled tests] All 235 collected mechanics tests passed across exactly
+16 parallel Hera containers. Each container used the sealed V6e source inventory,
+network isolation, no devices, no private fixtures and an independent source copy.
+The first collector failed because its temporary destination already existed in
+the image; it did not run tests. That failure remains retained. The corrected
+runner uses `/shard-work` and a fresh `mechanics-16b` output directory and session.
+Exact corrected runner is tracked in the V6e notes directory. All sixteen final
+exit codes are zero. This exercises admission, backup, restore, capture templates,
+partial restore and historical retained-recovery mechanics, not physical hardware.
+
+[verified: launched, pending] The V6e genuine helper/owned-wrapper heavy rehearsal
+is still running. V6f was independently assembled and launched with the current
+tracked retained-recovery adapter (068fd62c baseline) and its current mechanics
+tests, then a transitive source-pin successor closure. It still uses historical
+install-capture fixtures; a pass will not establish the newer V5 capture lifecycle.
+V6f archive SHA-256:
+`6eb76d47069466b5d2cd3c7ac3b350e3277e1e2f387f9e1ce974607a737d5812`.
+Runner SHA-256:
+`b3d062fdfb43573c1aadcadd869cbe36877d1ddbae88fa13512f5b06a3af5f07`.
+Remote root: `/home/claude/mvave-fm1/owned-restore-v6f-resumed-20261012`.
+Both rehearsals use read-only private inputs, modeled transport/time/capture,
+no physical device mounts and no runtime source-pin/factory/registry override.
+Source assembly and hash delta are tracked under the V6f notes directory.
+
+[verified: fresh UI/bench observation] Packetry was inspected with computer use
+and a fresh passive Cynthion capture started successfully. Target Power remained
+on; no power/reset/soft-key/flash operation was performed. The Pi still enumerates
+normal FM-1 `4c4a:c755`, bus1/device8, with `/dev/snd/midiC2D0`. The owner was told
+no physical cycle is presently needed before leaving. Passive bus traffic alone
+does not prove CPU reset, recovery entry or diagnostic firmware boot.
+
+Current verified pushed checkpoint before this update:
+`7561db37caa5de7edb464f6e1c1eb038c9e66f04` on
+`feature/2026-10-11@installable-firmware`. Source acceptance and hardware gates
+remain pending. Next: retain terminal heavy results, test the current-adapter
+mechanics, review the original-stage binding, then prepare a fresh closure for
+hardware acceptance. Do not activate the historical V5 gates or reuse consumed
+entry/backup markers.
+
+
+### V6e retained import-boundary failure, V6g model isolation
+
+[verified: modeled execution] V6e passed the corrected original capture-stage
+admission and genuine file-only preparation, then failed after 537.32 seconds
+before the owned restore marker. Its launcher imported the entire outer-tree
+`test_sdk_rehearsal` module, caching `fm1_uboot_read.py` outside the staged closure.
+The real staged recovery factory correctly rejected that ambient implementation.
+Private fixture inputs were unchanged; failed container is retained. Archive:
+`3ac2c345e7c2a60d1aa2dc092cfc050656e0c70602ca1ed48e955e6bf4ee8a36`.
+All 229 temporary-inventory regular-file hashes replayed locally.
+
+[inferred: test harness repair] A V6g successor loads only the source's exact
+`wire` and `SGModel` definitions into a model namespace, and imports the actual
+staged rehearsal module with a direct-path check. It does not replace factories,
+registries or source hashes at runtime, or relax production import validation.
+Its sealed transitive literal-pin closure and assembly script are tracked in the
+V6g notes directory. A fresh Hera rehearsal is launched and pending:
+`/home/claude/mvave-fm1/owned-restore-v6g-resumed-20261012`.
+Archive SHA-256:
+`8935647033aa4fd03ef90f0f6c4a0744f0a694c23c785e048e66e6799f0a5ac3`.
+Runner SHA-256:
+`2803354b244933518db6c0edd810dcfd4a3126e8d37d5cd6292ef6d21d880ee8`.
+V6f is still pending and has the original launcher, so the same failure may recur.
+Current-adapter 16-shard mechanics are also pending on Hera.
+
+[verified: passive capture only] Fresh Packetry capture stopped and saved to
+`build/packetry-live-capture-20261012-resume/cynthion-passive-resume.pcapng`.
+23,162,388 bytes; SHA-256:
+`84c290427c82712915cd9a7cb521550d777e520f27c6e5e107f59d2a71da8d25`.
+PCAPNG uses big-endian blocks; all block lengths, alignment and trailing lengths
+validate: 83,236 packet blocks and 630,658 analyzer event blocks. Packetry showed
+713,894 total transactions and zero decoded devices/endpoints, as expected for a
+capture without a fresh enumeration. No target power toggle or FM-1 command.
+It proves fresh capture works, not recovery or firmware boot. Capture remains
+private and ignored; it is not uploaded to the public firmware repository.
+
+Next dependency: inspect V6f mechanics and V6g heavy terminal results, preserve
+failure evidence, then complete original-stage adversarial review and a new bench
+source closure. Physical diagnostic boot/full stock restore remain unverified;
+no installable-image acceptance or hardware activation is claimed.
