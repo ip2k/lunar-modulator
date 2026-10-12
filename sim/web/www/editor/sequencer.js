@@ -158,10 +158,21 @@ export function makeSequencer(ctx) {
   if (ctx.transportHost) transportMount.addEventListener('focusout', finishEdit);
   function pageControls(key, total, size, noun, change) {
     const index = key === 'steps' ? state.page : state[key], pages = Math.max(1, Math.ceil(total / size));
-    return el('div', 'sq-page-nav', { 'aria-label': `${noun} pages` }, [
-      btn('Previous page', () => change(index - 1), { disabled: index <= 0, 'aria-label': `Previous ${noun.toLowerCase()} page` }),
-      el('span', 'sq-caption', { text: `${noun} ${index * size + 1}–${Math.min(total, (index + 1) * size)} · page ${index + 1} of ${pages}` }),
-      btn('Next page', () => change(index + 1), { disabled: index >= pages - 1, 'aria-label': `Next ${noun.toLowerCase()} page` }),
+    const range = `${noun} ${index * size + 1}–${Math.min(total, (index + 1) * size)}`;
+    function arrow(previous) {
+      const label = `${previous ? 'Previous' : 'Next'} ${noun.toLowerCase()} page`;
+      const button = btn('', () => change(index + (previous ? -1 : 1)), {
+        disabled: previous ? index <= 0 : index >= pages - 1, 'aria-label': label, title: label,
+      });
+      const icon = svgNode('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true', focusable: 'false' });
+      icon.append(svgNode('path', { d: previous ? 'M10 3 5 8l5 5' : 'm6 3 5 5-5 5', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+      button.append(icon);
+      return button;
+    }
+    return el('div', 'sq-page-nav is-compact', { 'aria-label': `${noun} pages` }, [
+      arrow(true),
+      el('span', 'sq-caption', { text: `${range} / ${total}`, 'aria-live': 'polite', 'aria-atomic': 'true' }),
+      arrow(false),
     ]);
   }
   function stepPages(c) { return pageControls('steps', c.loopStart + c.length, pageSize(), 'Steps', index => { state.follow = false; state.page = index; draw(); }); }
@@ -554,13 +565,17 @@ export function makeSequencer(ctx) {
         timeline.append(cell);
       });
     });
-    return el('section', 'sq-section sq-arrangement', { 'aria-description': 'Select a section using its repeat and bar header. Repeats share scene clips; copy a scene for a different variation.' }, [el('h3', '', { text: 'Arrangement' }), controls,
-      timelinePage(timeline, 'songPage', allColumns.length)]);
+    return el('section', 'sq-section sq-arrangement', { 'aria-description': 'Select a section using its repeat and bar header. Repeats share scene clips; copy a scene for a different variation.' }, [timelineHeading('Arrangement', 'songPage', allColumns.length), controls,
+      timelinePage(timeline, 'songPage')]);
   }
-  function timelinePage(grid, key, total) {
+  function timelineHeading(title, key, total) {
+    const noun = key === 'songPage' ? 'Sections' : 'Scenes';
+    return el('div', 'sq-section-heading', {}, [el('h3', '', { text: title }),
+      pageControls(key, total, layout.columns, noun, index => { state[key] = index; draw(); })]);
+  }
+  function timelinePage(grid, key) {
     const label = key === 'songPage' ? 'Sections' : 'Scenes';
     return el('div', 'sq-timeline', {}, [
-      pageControls(key, total, layout.columns, label, index => { state[key] = index; draw(); }),
       el('div', 'sq-scroll', { 'data-scroll': key === 'songPage' ? 'song' : 'scenes', tabindex: 0, 'aria-label': `${label} grid` }, [grid]),
     ]);
   }
@@ -599,9 +614,8 @@ export function makeSequencer(ctx) {
           }) : null]));
       }
     });
-    return el('section', 'sq-section', {}, [el('h3', '', { text: 'Scenes' }),
-
-      timelinePage(grid, 'scenesPage', 8)]);
+    return el('section', 'sq-section', {}, [timelineHeading('Scenes', 'scenesPage', 8),
+      timelinePage(grid, 'scenesPage')]);
   }
   function svgNode(tag, attrs = {}) {
     const n = document.createElementNS('http://www.w3.org/2000/svg', tag);
@@ -622,7 +636,7 @@ export function makeSequencer(ctx) {
   function sceneTools() {
     let target = (state.scene + 1) % 8, track = state.track;
     return el('details', 'sq-scene-tools', {}, [
-      el('summary', 'sq-button', { text: 'Scene and clip tools' }),
+      el('summary', 'sq-button', { 'aria-label': 'Scene and clip tools', title: 'Scene and clip tools: rename, copy, move or swap' }),
       el('div', 'sq-toolbar sq-compact-fields sq-scene-tool-fields', {}, [
         field('Scene name', state.model.sceneNames[state.scene] || '', v => edit('Rename scene', m => { m.sceneNames[state.scene] = v; }), { type: 'text', maxlength: 6, pattern: '[!-~]{0,6}', title: 'Up to six characters, without spaces' }),
         choose('Copy to scene', target, state.model.sceneNames.map((_, s) => [s, sceneName(s)]), v => { target = Number(v); }),
@@ -665,7 +679,17 @@ export function makeSequencer(ctx) {
     const start = pageStart(), end = Math.min(start + pageSize(), c.loopStart + c.length), count = Math.max(1, end - start);
     const canvas = el('div', 'sq-roll', { 'aria-label': 'Piano roll', 'data-testid': 'piano-roll', 'aria-description': 'Click an empty cell to add a note; select a note to edit its properties.' });
     canvas.style.setProperty('--steps', count);
-    const ruler = el('div', 'sq-ruler', {}, [el('span', '', { text: 'Pitch' })]);
+    const octaves = el('div', 'sq-octaves', { 'aria-label': 'Pitch range' });
+    for (const up of [false, true]) {
+      const button = btn('', () => { state.low = Math.max(0, Math.min(104, state.low + (up ? 12 : -12))); draw(); }, {
+        disabled: up ? state.low === 104 : state.low === 0, 'aria-label': up ? 'Octave ↑' : 'Octave ↓', title: up ? 'Raise pitch range one octave' : 'Lower pitch range one octave',
+      });
+      const icon = svgNode('svg', { viewBox: '0 0 24 30', 'aria-hidden': 'true', focusable: 'false' });
+      icon.append(svgNode('path', { d: up ? 'M13 26C6 28 4 20 9 17c7-4 12 3 7 7-5 4-12 0-12-6 0-8 13-11 12-18-1-5-7 3-6 8l5 19c1 4-5 5-6 1' : 'M5 11c0-7 12-7 12 0 0 7-6 10-12 12', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+      if (!up) { icon.append(svgNode('circle', { cx: 21, cy: 8, r: 1.2, fill: 'currentColor' }), svgNode('circle', { cx: 21, cy: 14, r: 1.2, fill: 'currentColor' })); }
+      button.append(icon); octaves.append(button);
+    }
+    const ruler = el('div', 'sq-ruler', {}, [octaves]);
     for (let step = start; step < end; ++step) ruler.append(el('span', '', { text: step % 4 === 0 ? `${Math.floor(step / 16) + 1}.${step % 16 / 4 + 1}` : '·' }));
     canvas.append(ruler, el('div', 'sq-playhead', { 'aria-hidden': 'true', 'data-roll-playhead': true }));
     for (let pitch = state.low + 23; pitch >= state.low; --pitch) {
@@ -867,30 +891,34 @@ export function makeSequencer(ctx) {
     rows.style.setProperty('--automation-steps', Math.max(0, end - start));
     return rows;
   }
-  function clipView() {
+  function clipView(selection) {
     const c = clip();
-    if (!c) return el('section', 'sq-section', {}, [sceneTools(), btn('Create clip', () => edit('Create clip', m => { ensureClip(m, state.track, state.scene); }))]);
+    if (!c) return el('section', 'sq-section', {}, [sceneTools(), btn('Create clip', () => edit('Create clip', m => { ensureClip(m, state.track, state.scene); })), selection]);
     state.page = Math.min(state.page, Math.floor((c.loopStart + c.length - 1) / pageSize()));
+    function compactField(label, visible, value, change, attrs) {
+      const control = field(label, value, change, attrs);
+      control.firstChild.textContent = visible;
+      control.title = label;
+      return control;
+    }
     const controls = el('div', 'sq-clip-controls', {}, [
       el('div', 'sq-toolbar sq-compact-fields sq-clip-params', {}, [
-      el('h3', '', { text: `${trackName(state.track)} · ${sceneName(state.scene)}` }),
-      field('Loop start · step', c.loopStart + 1, v => edit('Set clip loop start', m => { clip(m).loopStart = v - 1; }), { min: 1, max: 256, step: 1 }),
-      field('Loop length · steps', c.length, v => edit('Set clip loop length', m => { clip(m).length = v; }), { min: 1, max: 256 - c.loopStart, step: 1 }),
-      field('Quantize %', c.quant, v => edit('Set clip quantize', m => { clip(m).quant = v; }), { min: 0, max: 100, step: 1 }),
+      compactField('Loop start · step', 'Start', c.loopStart + 1, v => edit('Set clip loop start', m => { clip(m).loopStart = v - 1; }), { min: 1, max: 256, step: 1 }),
+      compactField('Loop length · steps', 'Length', c.length, v => edit('Set clip loop length', m => { clip(m).length = v; }), { min: 1, max: 256 - c.loopStart, step: 1 }),
+      compactField('Quantize %', 'Quantize', c.quant, v => edit('Set clip quantize', m => { clip(m).quant = v; }), { min: 0, max: 100, step: 1 }),
       field('Transpose', c.transpose, v => edit('Transpose clip', m => { clip(m).transpose = v; }), { min: -36, max: 36, step: 1 }),
       ]),
-      el('div', 'sq-toolbar sq-clip-actions', {}, [
+      el('div', 'sq-toolbar sq-compact-fields sq-clip-actions', {}, [
       btn('Add note', () => addNote(Math.max(c.loopStart, pageStart()), state.pitch)),
-      field('New note pitch', state.pitch, v => { state.pitch = v; state.low = Math.max(0, Math.min(104, v - 12)); draw(); }, { min: 0, max: 127, step: 1 }),
+      compactField('New note pitch', 'Pitch', state.pitch, v => { state.pitch = v; state.low = Math.max(0, Math.min(104, v - 12)); draw(); }, { min: 0, max: 127, step: 1 }),
       btn('Delete clip', () => edit('Delete clip', m => { m.tracks[state.track].clips[state.scene] = null; state.note = -1; })),
-      stepPages(c),
-      btn('Follow playhead', () => { state.follow = !state.follow; draw(); }, { 'aria-label': 'Follow playhead', 'aria-pressed': String(state.follow) }),
-      el('span', 'sq-caption sq-clip-length', { text: `Clip ${c.length} steps · ${c.length / 16} bars · loop ${c.loopStart + 1}–${c.loopStart + c.length}` }),
-      btn('Octave ↓', () => { state.low = Math.max(0, state.low - 12); draw(); }, { disabled: state.low === 0 }),
-      btn('Octave ↑', () => { state.low = Math.min(104, state.low + 12); draw(); }, { disabled: state.low === 104 }),
       ]),
     ]);
-    return el('section', 'sq-section', {}, [sceneTools(), controls, noteDetails(c), pianoRoll(c)]);
+    return el('section', 'sq-section sq-clip-workspace', {}, [el('div', 'sq-toolbar sq-clip-heading', {}, [
+      el('h3', '', { text: `${trackName(state.track)} · ${sceneName(state.scene)}` }), sceneTools(), stepPages(c),
+      btn('Follow playhead', () => { state.follow = !state.follow; draw(); }, { 'aria-label': 'Follow playhead', 'aria-pressed': String(state.follow) }),
+      el('span', 'sq-caption sq-clip-length', { text: `Clip ${c.length} steps · ${c.length / 16} bars · loop ${c.loopStart + 1}–${c.loopStart + c.length}` }),
+    ]), controls, pianoRoll(c), selection, noteDetails(c)]);
   }
   async function importFiles(files) {
     if (state.busy || !files.length) return;
@@ -960,18 +988,18 @@ export function makeSequencer(ctx) {
     let body;
     if (state.view === 'Scenes') body = sceneMatrix();
     else if (state.view === 'Arrangement') body = songView();
-    else if (state.view === 'Clip') body = clipView();
+    else if (state.view === 'Clip') body = clipView(selection);
     else if (state.view === 'Automation') {
       const c = clip();
       if (c) state.page = Math.min(state.page, Math.floor((c.loopStart + c.length - 1) / pageSize()));
-      body = c ? el('div', '', {}, [el('div', 'sq-toolbar', {}, [
-        stepPages(c),
-      ]), locksView(c)]) : el('p', 'sq-caption', { text: 'Create a clip in Clip view before editing automation.' });
+      body = c ? el('div', '', {}, [el('div', 'sq-toolbar sq-clip-heading', {}, [
+        el('h3', '', { text: `${trackName(state.track)} · ${sceneName(state.scene)}` }), sceneTools(), stepPages(c),
+      ]), locksView(c), selection]) : el('div', '', {}, [el('p', 'sq-caption', { text: 'Create a clip in Clip view before editing automation.' }), selection]);
     } else body = mixer();
     root.dataset.songView = state.view;
     if (state.mixDetails !== null) root.dataset.mixerDetails = String(state.mixDetails);
     transportMount.replaceChildren(toolbar());
-    content.replaceChildren(['Clip', 'Automation'].includes(state.view) ? selection : '', midiView() || '',
+    content.replaceChildren(midiView() || '',
       el('div', 'sq-view-panel', {id:'sq-view-panel',role:'tabpanel','aria-labelledby':`sq-tab-${state.view}`}, [body]), navigation);
     if (state.inspector && ctx.inspector) {
       const body = ctx.inspector(state.inspector);
