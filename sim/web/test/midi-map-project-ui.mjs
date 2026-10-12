@@ -21,11 +21,17 @@ try {
   await page.click('[data-layout="workbench"]'); await page.waitForFunction(() => window.fm1?.editor);
   await page.click('#power-on');
   await page.waitForFunction(() => window.fm1.editor.state.mirror?.blocks.size > 6 && window.fm1.files.powered, null, { timeout: 30000 });
-  await page.click('#midi');
+  // Workbench moves panel connection controls into the Simulator disclosure.
+  const simulator = page.locator('.ed-footer-menu summary').filter({ hasText: /^Simulator$/ });
+  async function simulatorControl(selector) {
+    if (!await page.locator(selector).isVisible()) await simulator.click();
+    await page.click(selector); // A control activation closes its disclosure.
+  }
+  await simulatorControl('#midi');
   const before = await page.evaluate(() => window.fm1.files.saveText('project'));
   await page.evaluate(async () => { window.cachedSongBeforeLearn = await window.fm1.editor.sequencerHost.fetchProject(); });
-  await page.click('#midi-learn'); await page.click('[data-key="0"]');
-  await page.evaluate(() => window.emitMidi([0x90, 60, 100])); await page.click('#midi-learn');
+  await simulatorControl('#midi-learn'); await page.click('[data-key="0"]');
+  await page.evaluate(() => window.emitMidi([0x90, 60, 100])); await simulatorControl('#midi-learn');
   const mapped = await page.evaluate(() => window.fm1.files.projectSnapshot());
   const bindings = JSON.parse(mapped.text).browser.midiMap.bindings;
   assert.deepEqual(bindings, [{ target: 'panel:key:0', source: 'native-test-controller', channel: 0, kind: 'note', number: 60 }]);
@@ -64,10 +70,13 @@ try {
 
   // Derived caption IDs include whitespace; the native policy must match JS.
   const caption = await page.evaluate(async () => {
-    const button = document.createElement('button'); button.textContent = 'Next bar / Song'; document.body.append(button);
+    // An isolated scope keeps the workbench's semantic layout attributes from
+    // replacing this deliberately caption-derived ID with an ordinal ID.
+    const scope = document.createElement('main'); scope.id = 'mapping-caption-test';
+    const button = document.createElement('button'); button.textContent = 'Next bar / Song'; scope.append(button); document.body.append(scope);
     const ui = window.fm1.midiLearn; ui.refresh(); const { targetId } = await import('./midi-map.js');
     const id = targetId(button); ui.map.learn(true); ui.map.select(id); window.emitMidi([0x90, 61, 100]); ui.map.learn(false);
-    const text = (await window.fm1.files.projectSnapshot()).text; button.remove(); return { id, bindings: JSON.parse(text).browser.midiMap.bindings };
+    const text = (await window.fm1.files.projectSnapshot()).text; scope.remove(); return { id, bindings: JSON.parse(text).browser.midiMap.bindings };
   });
   assert.ok(caption.id.includes('Next bar / Song'));
   assert.ok(caption.bindings.some((b) => b.target === caption.id));
