@@ -31,7 +31,9 @@
  *   dests        per matrix slot: the effective value of what it reaches,
  *                in that parameter's unit, after every cable into it;
  *   voice_dests  per matrix slot: each voice's effective value, for a
- *                per-voice cable.
+ *                per-voice cable;
+ *   levels       each sound after its effective fader, then the final
+ *                output after MASTER gain: peak and stereo RMS, linear.
  *
  * Every count comes from the runtime's constants (fm1_mod.h) and the
  * virtual FM-1's four sounds, two inserts each and two master slots. The
@@ -53,14 +55,22 @@
 extern "C" {
 #endif
 
-#define FM1_TELE_VERSION 2u
+#define FM1_TELE_VERSION 3u
 #define FM1_TELE_HZ 30u                 /* blocks a second, at most */
 #define FM1_TELE_SOUNDS 4u
 #define FM1_TELE_INSERTS 2u             /* per sound */
 #define FM1_TELE_MASTERS 2u             /* master slots */
-/* Meter points: each sound's engine and inserts, then the Mix, the master
- * slots and the output. */
+/* Legacy meters: sndN is In1 input, sndN.fx1 is In1 output/In2 input,
+ * sndN.fx2 is In2 output; mix is M1 input, fx1 is M1 output/M2 input,
+ * fx2 is M2 output, out is after the limiter, before MASTER gain. Empty
+ * effect slots pass through. Each row is peak and stereo aggregate RMS,
+ * in linear full-scale units, over blocks since its last telemetry read.
+ * Appended levels: sndN.post_fader is after effective sound Level, before
+ * the export contribution mask; out.post_master is final rendered output.
+ * Eight sequencer tracks share these four sound paths. */
 #define FM1_TELE_POINTS (FM1_TELE_SOUNDS * (1u + FM1_TELE_INSERTS) + 1u + FM1_TELE_MASTERS + 1u)
+#define FM1_TELE_LEVEL_POINTS (FM1_TELE_SOUNDS + 1u)
+#define FM1_TELE_ALL_POINTS (FM1_TELE_POINTS + FM1_TELE_LEVEL_POINTS)
 /* Effect slots with a reduction meter, and the output limiter. */
 #define FM1_TELE_REDUCERS (FM1_TELE_SOUNDS * FM1_TELE_INSERTS + FM1_TELE_MASTERS + 1u)
 
@@ -72,6 +82,7 @@ enum {
   FM1_TELE_VOICE_OUTS,
   FM1_TELE_DESTS,
   FM1_TELE_VOICE_DESTS,
+  FM1_TELE_LEVELS,                /* appended: old float offsets and mask bits stay fixed */
   FM1_TELE_SECTIONS
 };
 

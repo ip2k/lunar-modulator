@@ -147,6 +147,11 @@ export async function startEditor(env) {
     watchTrack: (t) => seqVerb(`watch ${t}`), playScene: (scene) => seqVerb(`scene ${scene}`),
     playClip: (track, scene) => seqVerb(`launch ${track} ${scene}`),
     getMaster: () => sim.master, setMaster: (v) => sim.setMaster(v),
+    getSoundLevel: (sound) => st.mirror?.levels[sound],
+    setSoundLevel: (sound, value, how) => setValue(blockKey(ROLE.SOUND, sound), 'level', value, how),
+    beginLevelDrag: (sound) => { st.dragKey = `${blockKey(ROLE.SOUND, sound)}:level`; history.beginDrag(st.dragKey); },
+    endLevelDrag: () => { history.endDrag(); st.dragKey = null; if (st.verdictDirty) { st.verdictDirty = false; snapshotSoon(); } },
+    onMeterSubscription: () => subscribe(),
   });
   sim.seqListeners = sim.seqListeners || new Set();
   sim.seqListeners.add((transport) => { if (st.view === 'sequencer') sequencer.update(transport); });
@@ -517,7 +522,7 @@ export async function startEditor(env) {
   seen.observe(view);
   function subscribe() {
     const want = !!st.port && st.layout !== 'panel' && flowSeen && document.visibilityState === 'visible' && !!st.mirror;
-    const rowsOn = want ? chains.wantRows(st.view) : [];
+    const rowsOn = want ? st.view === 'sequencer' ? sequencer.wantRows() : chains.wantRows(st.view) : [];
     const sig = rowsOn.join(',');
     st.teleOn = want && rowsOn.length > 0;
     if (!st.port || sig === st.teleSig) return;
@@ -544,6 +549,7 @@ export async function startEditor(env) {
       m.style.setProperty('--lvl', `${Math.max(0, Math.min(1, (db + 60) / 60)).toFixed(3)}`);
     }
     chains.onTelemetry(f);
+    if (st.view === 'sequencer') sequencer.onTelemetry(f);
   }
 
   // ---- names and text ----------------------------------------------------------------
@@ -1266,6 +1272,7 @@ export async function startEditor(env) {
       }
     }
     if (st.selRow === `${key}:${uid}`) renderDetail();
+    if (st.view === 'sequencer' && uid === 'level') sequencer.syncLevels();
   }
   function isSummary(key, uid) {
     const pg = meta.pages(blockOf(key).engine)[0];

@@ -37,7 +37,7 @@ scrolling is deliberate. This is browser automation, not physical touch testing.
 Native insert/master/mixer automation and its focused test are implemented.
 Correct RAM accounting exposed an existing near-budget modulation fixture;
 Room replaces Plate in that fixture while keeping its routing coverage and the
-strict budget. The final rebuilt module has SHA-256
+strict budget. The preceding rebuilt module has SHA-256
 `b98e8e3295dba072a65d2d49bd5e1b3d57afc63ce2b2aa33027202e1d7c8c258`.
 It passes 108 parity scenarios (all identical to JavaScript and musl), plus the
 30-second edit storm: zero late blocks, p99 0.1402 ms, maximum 0.3050 ms.
@@ -62,3 +62,50 @@ Design references: [Ableton Arrangement](https://www.ableton.com/en/manual/arran
 [Bitwig arranger clips](https://www.bitwig.com/userguide/latest/arranger_clips_and_the_browser_panel/),
 [Standard MIDI Files](https://midi.org/standard-midi-files).
 The UI and importer are original MIT code; these references inform the workflow.
+
+## Mixer and design iteration — 2026-10-11
+
+The owner requested a critique using all adopted interface-design guidance.
+An independent critic is inspecting the actual desktop, phone-landscape and
+portrait interfaces, all five views, focus behavior and accessibility. Its
+initial findings exposed excessive header height and device controls appearing
+below the viewport. Those are being addressed before the final review.
+
+Saved implementation, pending final browser verification: four shared sound
+strips plus Master, vertical native faders with dB readouts, per-insert and
+master-effect input/output meters, post-fader sound meters and final output
+meter. Eight track routing/mute controls explicitly show that tracks share a
+sound's engine, inserts and level. Native parameter edits drive faders without
+reloading the project; the physical MASTER preference is distinct from the
+saved sound levels. Device controls open in a native modal dialog with a Close
+action, Escape handling and focus returned to their trigger. File actions are
+in a disclosure; Scenes and Clip controls have compact spacing. Short landscape
+screens initially collapse Routing & FX to prioritize mixer faders.
+
+The append-only telemetry `levels` section starts at float 1454 and mask bit
+119, with five peak/RMS rows. Version 3 has 1464 floats and 124 mask bits; all
+older offsets are preserved. Stereo-aggregate RMS and peak are measured on
+actual audio only for subscribed rows. Native metering and metadata checks
+pass; final browser checks, independent critique, CI, merge and Pages proof
+remain required. These checks do not establish physical FM-1 or by-ear
+acceptance.
+
+Applied design sources (instruction/reference only, no product code copied):
+
+- Local Apple HIG skill and cached September 13 guidance for layout, labels,
+  accessible controls and color cues; the cached guidance was not resynced.
+- Anthropic `frontend-design`, commit `dbd4588f9e1033efb41dad4bef2f7947c8993d44`.
+- Vercel `web-design-guidelines`, commit `063bee94c3f4df8453406c830b0a7df0f2860278`,
+  and separately MIT-licensed interface checklist at
+  `434b7f91364665f2f733b310ec54809bf8f37937`.
+- UI/UX Pro Max, commit `67803eac81607188194aea9842a723b89326d90d`.
+- Bencium `design-audit`, commit `5de46a39b4640fa419560cd0b67e4c4b50dac802`.
+- [Bitwig Mix View](https://www.bitwig.com/userguide/latest/the_mix_view/):
+  vertical strips, device access, fader/peak/RMS presentation and clear Master
+  placement, adapted to Lunar's native capabilities.
+
+Skill source paths and license checks are saved in ignored
+`scratch/design-skills/HANDOFF.md` in the primary checkout. The independent
+critic's evidence is in managed `scratch/daw-design-critic/`; browser test
+receipts are in `scratch/mixer-ui-refinement/`. Root owns integration and the
+shared feature branch; agent completion is not overall acceptance.

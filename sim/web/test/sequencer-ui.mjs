@@ -18,8 +18,9 @@ try {
   const m=emptySet();m.sceneNames[0]='INTRO';m.sceneNames[1]='CHORUS';m.song=[0,0,1];
   m.tracks.forEach((t,i)=>{t.route={kind:1,index:i%4};t.clips[0]=emptyClip(32);t.clips[1]=emptyClip(64)});
   m.tracks[0].clips[0].notes=[{tick:0,gate:36,pitch:57,vel:96,step:0}];
-  window.doc={set:writeSet(m),sounds:['Punch','Acid','Trio','FM6'].map(engine=>({engine,level:75,inserts:[null,null]}))};window.doc.master=[{engine:'Hall'},{engine:'Limit'}];window.doc.sounds[0].inserts[0]={engine:'Echo'};window.calls=[];window.reject=false;window.output=.8;
-  window.seq=makeSequencer({fetchProject:async()=>structuredClone(window.doc),applyProject:async(d,label)=>{if(window.reject)throw Error('test refusal');window.doc=d;window.calls.push(label)},getMaster:()=>window.output,setMaster:v=>{window.output=v},getTransport:()=>({playing:false}),metadata:{engine:name=>name?({params:[{name:'Cutoff',type:'float',min:0,max:1,def:.5,flags:[]},{name:'Voices',flags:['nolock']}]}):null},watchTrack:t=>window.calls.push('watch '+t),playScene:s=>window.calls.push('scene '+s),playClip:(t,s)=>window.calls.push('clip '+t+' '+s),inspector:key=>{const e=document.createElement('p');e.textContent='Inspector '+key;return e}});
+  window.doc={set:writeSet(m),sounds:['Punch','Acid','Trio','FM6'].map(engine=>({engine,level:75,inserts:[null,null]}))};window.doc.master=[{engine:'Hall'},{engine:'Limit'}];window.doc.sounds[0].inserts[0]={engine:'Echo'};window.calls=[];window.reject=false;window.output=.8;window.soundLevels=[75,75,75,75];window.levelGestures=[];
+  const telemetry={sections:[{name:'meters',offset:0,mask:0,rows:['snd1.post_fader','out.post_master'],fields:['peak','rms']},{name:'levels',offset:4,mask:8,rows:['s1.level','master.level'],fields:['peak','rms']}]};
+  window.seq=makeSequencer({fetchProject:async()=>structuredClone(window.doc),applyProject:async(d,label)=>{if(window.reject)throw Error('test refusal');window.doc=d;window.calls.push(label)},getMaster:()=>window.output,setMaster:v=>{window.output=v},getSoundLevel:s=>window.soundLevels[s],setSoundLevel:(s,v,mode)=>{window.soundLevels[s]=v;window.levelGestures.push({sound:s,value:v,mode})},beginLevelDrag:s=>window.levelGestures.push({begin:s}),endLevelDrag:()=>window.levelGestures.push({end:true}),getTransport:()=>({playing:false}),metadata:{doc:{telemetry},engine:name=>name?({params:[{name:'Cutoff',type:'float',min:0,max:1,def:.5,flags:[]},{name:'Voices',flags:['nolock']}]}):null},watchTrack:t=>window.calls.push('watch '+t),playScene:s=>window.calls.push('scene '+s),playClip:(t,s)=>window.calls.push('clip '+t+' '+s),inspector:key=>{const e=document.createElement('p');e.textContent='Inspector '+key;return e}});
   document.querySelector('main').append(window.seq.render());await window.seq.refresh();window.model=()=>parseSet(window.doc.set);
  });
  await tab('Clip');
@@ -43,7 +44,28 @@ try {
  await page.getByLabel('Automation target',{exact:true}).selectOption('in1');await page.waitForFunction(()=>window.model().tracks[0].lanes[0]?.label==='in1:Cutoff');
  await page.getByLabel('Automation target',{exact:true}).selectOption('m1');await page.waitForFunction(()=>window.model().tracks[0].lanes[0]?.label==='m1:Cutoff');
  await page.getByLabel('Automation target',{exact:true}).selectOption('mix');await page.waitForFunction(()=>window.model().tracks[0].lanes[0]?.label==='mix:Level');
- await tab('Mixer');await set('Output level %',45);if(await page.evaluate(()=>window.output)!==.45)throw Error('Output preference');await tab('Automation');
+ await tab('Mixer');
+ const fader=page.getByRole('slider',{name:'S1 level',exact:true});
+ if(await fader.inputValue()!=='75'||await fader.getAttribute('aria-valuetext')!=='-2.5 dB')throw Error('Sound fader initial value/dB');
+ await fader.focus();await fader.press('ArrowDown');await page.waitForFunction(()=>window.soundLevels[0]===74);
+ if(!(await page.locator('.sq-fader-value').first().textContent()).includes('-2.6 dB'))throw Error('Sound fader dB display');
+ if(!await page.evaluate(()=>window.levelGestures.some(x=>x.sound===0&&x.value===74&&x.mode==='key')))throw Error('Keyboard fader edit was not incremental');
+ await fader.dispatchEvent('pointerdown',{pointerId:1,pointerType:'mouse',button:0});await fader.evaluate(e=>{e.value='61';e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}))});await fader.dispatchEvent('pointerup',{pointerId:1,pointerType:'mouse',button:0});
+ await page.waitForFunction(()=>window.soundLevels[0]===61);
+ if(!await page.evaluate(()=>window.levelGestures.some(x=>x.begin===0)&&window.levelGestures.some(x=>x.sound===0&&x.value===61&&x.mode==='drag')&&window.levelGestures.some(x=>x.end)))throw Error('Sound fader drag lifecycle');
+ const master=page.getByRole('slider',{name:'Master output level',exact:true});await master.evaluate(e=>{e.value='45';e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}))});
+ if(await page.evaluate(()=>window.output)!==.45||await master.getAttribute('aria-valuetext')!=='-13.9 dB')throw Error('Master output preference or dB display');
+ const wanted=await page.evaluate(()=>window.seq.wantRows());if(wanted.length!==4)throw Error('Mixer telemetry did not subscribe to meter and level rows');
+ await page.evaluate(()=>window.seq.onTelemetry(new Float32Array([.5,.25,1,.5,.25,.125,.75,.25])));
+ const meter=page.locator('[data-sq-meter="snd1.post_fader"]');
+ if(await meter.getAttribute('aria-valuenow')!=='-6.0'||!await meter.getAttribute('aria-valuetext').then(t=>t.includes('Peak -6.0 dB'))||await meter.evaluate(e=>parseFloat(e.style.getPropertyValue('--peak'))<=0))throw Error('Sound telemetry meter did not update');
+ const masterMeter=page.locator('[data-sq-meter="out.post_master"]');if(await masterMeter.getAttribute('aria-valuenow')!=='0.0'||!await masterMeter.evaluate(e=>e.classList.contains('is-clipping')))throw Error('Master telemetry meter did not update/clipping');
+ const insert=page.getByRole('button',{name:'S1 insert 1',exact:true});await insert.click();
+ const inspector=page.getByRole('dialog',{name:'Device controls',exact:true});await inspector.waitFor({state:'visible'});
+ if(!await inspector.getByText('Inspector s1.in1',{exact:true}).isVisible()||await inspector.getByRole('button',{name:'Close inspector',exact:true}).evaluate(e=>e!==document.activeElement))throw Error('Device inspector did not open with focus');
+ await inspector.getByRole('button',{name:'Close inspector',exact:true}).click();
+ if(await insert.getAttribute('aria-expanded')!=='false'||await page.evaluate(()=>document.activeElement.getAttribute('aria-label'))!=='S1 insert 1')throw Error('Device inspector did not return focus to its trigger');
+ await tab('Automation');
  await set('Lane 1, step 1 lock',91);if(await page.evaluate(()=>window.model().tracks[0].clips[0].locks[0].value)!==91)throw Error('lock');
  await tab('Arrangement');
  await page.getByLabel('Track 8 output',{exact:true}).selectOption('m16');await page.waitForFunction(()=>window.model().tracks[7].route.index===16);
@@ -57,6 +79,7 @@ try {
  if(await page.locator('[data-roll-playhead]').isHidden())throw Error('playhead hidden for playing clip while another clip queued');
  if(!await page.locator('[data-play-position]').textContent().then(t=>t.includes('Scene 1 · Step 5')))throw Error('Queued scene shown as playing');
  const midi = Buffer.from([77,84,104,100,0,0,0,6,0,0,0,1,0,96,77,84,114,107,0,0,0,12,0,144,67,100,96,128,67,0,0,255,47,0]);
+ await page.locator('.sq-file-tools > summary').click();
  await page.getByLabel('Import MIDI files',{exact:true}).setInputFiles([{name:'Lead.mid',mimeType:'audio/midi',buffer:midi},{name:'Bass.mid',mimeType:'audio/midi',buffer:midi}]);
  await page.getByTestId('midi-import-preview').waitFor();
  await page.getByLabel('Existing clips',{exact:true}).selectOption('replace');
@@ -105,6 +128,6 @@ try {
  await page.getByRole('tab',{name:'Scenes',exact:true}).press('ArrowRight');
  if(await page.getByRole('tab',{name:'Arrangement',exact:true}).getAttribute('aria-selected')!=='true')throw Error('Tab arrow navigation');
  if(errors.length)throw Error(errors.join('\n'));
- await writeFile(`${out}/results.json`,JSON.stringify({passed:true,errors,note,checks:['note fields','probability','locks','routing','song repeats','scene launch','refusal rollback','playhead while next scene queued','mobile overflow','input focus','multi-file MIDI mapping','note drag','gate resize','insert/master/mix targets','output preference','note row containment','64-slot scene matrix','clip and empty-slot stop callbacks','portrait rotate prompt','844x390 landscape editing','single focused panel','keyboard tab navigation']},null,2));
+ await writeFile(`${out}/results.json`,JSON.stringify({passed:true,errors,note,checks:['note fields','probability','locks','routing','song repeats','scene launch','refusal rollback','playhead while next scene queued','mobile overflow','input focus','multi-file MIDI mapping','note drag','gate resize','insert/master/mix targets','sound/master fader values and dB display','incremental keyboard level edit','pointer fader drag lifecycle','meter and level telemetry subscription','synthetic sound/master meter updates','device inspector focus and restoration','Files & export disclosure import','note row containment','64-slot scene matrix','clip and empty-slot stop callbacks','portrait rotate prompt','844x390 landscape editing','single focused panel','keyboard tab navigation']},null,2));
  console.log('PASS sequencer mock-host desktop/mobile checks');
 } catch(error) {await page.screenshot({path:`${out}/failure.png`,fullPage:true});console.error({errors});throw error} finally {await browser.close();await new Promise(r=>server.close(r))}

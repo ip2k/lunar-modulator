@@ -165,3 +165,79 @@ previous b98e8e32 module predates this panel follow-up. Next: checkpoint these
 files and note, rebuild, run full parity/storm and browser panel/export checks,
 then finish CI. Meter telemetry scope is proposed separately and awaiting
 interface alignment; no meter implementation is included here.
+
+## Native mixer meter extension [verified, 2026-10-11]
+
+The separately authorized extension is now implemented in `fm1_tele.h`,
+`editor_meta.cc`, `fm1_edit.c/.h` and the app's actual render path. Telemetry
+version 3 appends `levels` at float offset 1454, subscription bit 119: rows
+`snd1.post_fader` through `snd4.post_fader`, then `out.post_master`, each
+`peak`, `rms` in linear full-scale units. Total 1464 floats / 124 bits fits
+the existing 1536-float Wasm buffer and four mask words. All previous section
+names, offsets, fields and mask bits are preserved; no project format changes.
+
+Exact effect mapping, including empty identity slots:
+
+| Signal | Existing telemetry row |
+| --- | --- |
+| Sound N In1 input | `meters.sndN` |
+| Sound N In1 output / In2 input | `meters.sndN.fx1` |
+| Sound N In2 output | `meters.sndN.fx2` |
+| M1 input | `meters.mix` |
+| M1 output / M2 input | `meters.fx1` |
+| M2 output | `meters.fx2` |
+| After limiter, before MASTER gain | `meters.out` |
+
+`levels.sndN.post_fader` measures the effective sound fader after inserts,
+including sample-frame `mix:Level` locks, before the offline export contribution
+mask. `levels.out.post_master` measures the actual returned audio, after host
+amplitude modulation, click, limiter and MASTER gain. Eight sequencer tracks
+share four sound engines, voices, inserts and faders; their individual audio
+cannot be truthfully separated into eight VU meters by this render path.
+Track UI should identify its shared Sound N meter and use independent note
+activity indicators when wanted. Empty sounds report silence even when their
+old mix buffer contains nonzero samples. Empty effects meter pass-through.
+
+Only subscribed rows scan samples. Disabled subscriptions collect no counters.
+Peak and stereo aggregate RMS accumulate across blocks until telemetry reads
+and resets that row; silent frames count in RMS. Five bounded counter rows add
+60 bytes of payload, no heap/queue, with native64 `sizeof(fm1_edit_t)` 10,432 B.
+
+Hera emsdk6.0.10, isolated staging, 2CPU/2GiB:
+
+- Final GPL native automation / edit / append-only metadata / strict ARP edge:
+  **13 passed**. Same final MIT profile: **13 passed**.
+- Deterministic acceptance renders verify every insert/master/fader/output tap
+  against known audio levels; MASTER zero, empty sounds/slots, frame-47 mixer
+  automation RMS, asymmetric stereo plus silent-block RMS and read reset,
+  individual-row subscriptions and untouched output buffer cells.
+- Enabled/disabled audio is bit-identical in the focused probe and the existing
+  real-engine 690-block edit/modulation acceptance run now includes the added
+  rows through the all-subscriptions mask.
+- Complete existing engine metadata module: **17 passed**, with version-3
+  layout expectations; pinned version-2 fixture stays unchanged to guard
+  append-only compatibility.
+- `git diff --check`: clean. Native32/device ABI and hardware performance remain
+  separate CI / bench gates; no device writes were made.
+
+Three 30,000-block, 64-frame native benchmark runs report median CPU time:
+detached layer 2.8605 µs/block; attached unsubscribed 2.8989; final output row
+only 3.0199; all 21 meter rows 4.7045. Thus final-only scanning costs about
+0.1210 µs/block and all meters 1.8056 µs/block above unsubscribed in this
+deterministic lightweight test-engine workload. This measures native container
+overhead, not pi32v2 performance or a full real-engine DSP budget. No timing
+threshold was weakened or asserted from these host-dependent measurements.
+
+Logs: `/home/claude/mvave-fm1/midi-automation-20261011/meters-final.log`,
+`meters-mit.log`, `meters-engine-meta.log`, `meters-bench-final.log`.
+Staging-only build hiccups were fixed by cleaning generated native objects
+after mount-path changes and copying the README needed by the metadata test.
+
+Parent owns commit/push/CI/merge and browser rendering. This subagent made no
+commits; source starts from parent checkpoint
+`e0380633b7169edb45ec1c3b2e0ef8e80fec0d09` on
+`feature/2026-10-11@midi-sequencer-workspace` (no independent pushed-SHA claim).
+Next: parent checkpoint this native extension and note, rebuild Wasm/meta from
+the saved sources, verify parity/storm, wire metadata-named rows to UI, then
+run browser meter/audio/export checks and final CI. The earlier b98e8e32 module
+does not contain the panel parity or meter extensions.

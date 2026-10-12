@@ -47,10 +47,13 @@ export function makeSequencer(ctx) {
     el('h3', '', { text: 'Turn your phone sideways' }),
     el('p', '', { text: 'Song editing needs landscape on a small phone. Rotate to use scenes, clips and the mixer. Playback keeps its current state.' }),
   ]);
-  root.append(status, rotate, content);
+  const deviceDialog = el('dialog', 'sq-device-dialog', { id: 'sq-device-controls', 'aria-label': 'Device controls' });
+  root.append(status, rotate, content, deviceDialog);
   const state = { doc: null, model: null, busy: false, loading: null, dirty: true, track: 0, scene: 0,
-    note: -1, page: 0, pitch: 60, low: 48, song: 0, lane: 0, inspector: null, midi: null, solo: null, view: 'Scenes' };
+    note: -1, page: 0, pitch: 60, low: 48, song: 0, lane: 0, inspector: null, midi: null, solo: null, mixDetails: null, view: 'Scenes' };
   let disposed = false, pendingFocus = null, suppressNoteClick = false, cancelDrag = null, readError = false;
+  let releaseFader = null;
+  const meterHold = new Map();
   const sceneName = (s) => state.model?.sceneNames[s] || `Scene ${s + 1}`;
   const clip = (m = state.model, t = state.track, s = state.scene) => m.tracks[t].clips[s];
   const ensureClip = (m, t, s) => m.tracks[t].clips[s] ||= freshClip();
@@ -118,37 +121,152 @@ export function makeSequencer(ctx) {
     if (ctx.inspector) { state.inspector = state.inspector === key ? null : key; draw(); }
     else ctx.editSound?.(key);
   }
+  function closeInspector() {
+    const key = state.inspector;
+    state.inspector = null;
+    if (deviceDialog.open) deviceDialog.close();
+    const trigger = root.querySelector(`[data-inspector="${key}"]`);
+    trigger?.setAttribute('aria-expanded', 'false');
+    trigger?.focus({ preventScroll: true });
+  }
+  deviceDialog.addEventListener('cancel', e => { e.preventDefault(); closeInspector(); });
+  deviceDialog.addEventListener('click', e => {
+    if (e.target !== deviceDialog) return;
+    const r = deviceDialog.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) closeInspector();
+  });
   function toolbar() {
     const m = state.model;
     const file = el('input', 'sq-file', { type: 'file', accept: '.mid,.midi', multiple: true, 'aria-label': 'Import MIDI files' });
     file.addEventListener('change', () => importFiles([...file.files]));
-    return el('div', 'sq-toolbar', {}, [
-      btn('Play', () => action(ctx.play), { 'data-testid': 'seq-play' }), btn('Stop', () => action(ctx.stop)),
-      el('output', 'sq-position', { text: 'Stopped', 'data-play-position': true, 'aria-label': 'Transport position' }),
-      field('BPM', m.bpmX100 / 100, v => edit('Change tempo', m => { m.bpmX100 = Math.round(v * 100); }), { min: 20, max: 300, step: .01 }),
-      field('Swing %', m.swing, v => edit('Change swing', m => { m.swing = v; }), { min: 50, max: 80, step: 1 }),
+    const files = el('details', 'sq-file-tools', {}, [el('summary', '', { text: 'Files & export' }), el('div', 'sq-file-menu', {}, [
       btn('Open…', () => action(ctx.openFile)), btn('Save .lunar', () => action(() => ctx.exportFile?.('lunar'))),
       btn('Export .movy1', () => action(() => ctx.exportFile?.('movy1'))),
       btn('Export WAV…', () => action(ctx.exportAudio)), btn('Import MIDI…', () => file.click()), file,
       btn('Refresh', () => refresh()),
+    ])]);
+    return el('div', 'sq-toolbar sq-transport', {}, [
+      btn('Play', () => action(ctx.play), { 'data-testid': 'seq-play' }), btn('Stop', () => action(ctx.stop)),
+      el('output', 'sq-position', { text: 'Stopped', 'data-play-position': true, 'aria-label': 'Transport position' }),
+      state.view !== 'Mixer' ? field('BPM', m.bpmX100 / 100, v => edit('Change tempo', m => { m.bpmX100 = Math.round(v * 100); }), { min: 20, max: 300, step: .01 }) : null,
+      state.view !== 'Mixer' ? field('Swing %', m.swing, v => edit('Change swing', m => { m.swing = v; }), { min: 50, max: 80, step: 1 }) : null,
+      state.view === 'Mixer' ? btn('Routing & FX', () => { state.mixDetails = !(state.mixDetails ?? !matchMedia('(max-height: 500px) and (orientation: landscape)').matches); draw(); },
+        { 'aria-expanded': String(state.mixDetails ?? !matchMedia('(max-height: 500px) and (orientation: landscape)').matches), 'aria-controls': 'sq-mixer-board' }) : null,
+      files,
     ]);
   }
+  const dbText = gain => gain > 0 ? `${(20 * Math.log10(gain)).toFixed(1)} dB` : '−∞ dB';
+  function levelFader(sound) {
+    const master = sound === null, label = master ? 'Master output level' : `S${sound + 1} level`;
+    const get = () => master ? (ctx.getMaster?.() ?? 1) * 100 : (ctx.getSoundLevel?.(sound) ?? state.doc.sounds?.[sound]?.level ?? 100);
+    const range = el('input', 'sq-fader', { type: 'range', min: 0, max: 100, step: 1, orient: 'vertical',
+      'aria-label': label, 'aria-orientation': 'vertical', 'data-sound-fader': master ? 'master' : sound });
+    const value = el('output', 'sq-fader-value', { 'aria-hidden': 'true' });
+    let frame = 0, pending = null, dragging = false;
+    const paint = v => { range.value = v; value.textContent = dbText(master ? (v / 100) ** 2 : v / 100); range.setAttribute('aria-valuetext', value.textContent); };
+    const send = () => {
+      if (frame) cancelAnimationFrame(frame); frame = 0;
+      if (pending === null) return;
+      const v = pending; pending = null;
+      if (master) ctx.setMaster?.(v / 100);
+      else if (ctx.setSoundLevel) ctx.setSoundLevel(sound, v, dragging ? 'drag' : 'key');
+    };
+    const end = () => { send(); if (dragging) ctx.endLevelDrag?.(); dragging = false; range.dataset.dragging = 'false'; if (releaseFader === end) releaseFader = null; };
+    range.addEventListener('pointerdown', () => { releaseFader?.(); dragging = true; range.dataset.dragging = 'true'; if (!master) ctx.beginLevelDrag?.(sound); releaseFader = end; });
+    range.addEventListener('input', () => {
+      pending = Number(range.value); paint(pending);
+      if (!frame) frame = requestAnimationFrame(send);
+    });
+    range.addEventListener('change', () => {
+      const v = Number(range.value); pending = v; send(); end();
+      if (!master && !ctx.setSoundLevel) edit(`Set S${sound + 1} level`, (_m, d) => { d.sounds[sound].level = v; });
+    });
+    range.addEventListener('pointerup', end); range.addEventListener('pointercancel', end); range.addEventListener('blur', end);
+    range.addEventListener('dblclick', () => { paint(100); pending = 100; send(); });
+    paint(get());
+    return el('div', 'sq-fader-column', {}, [value, range, el('span', 'sq-fader-label', { text: master ? 'Output' : 'Level' })]);
+  }
+  function signalMeter(row, label, small = false) {
+    return el('div', `sq-signal-meter ${small ? 'is-mini' : ''}`, { role: 'meter', 'aria-label': label,
+      'aria-valuemin': -60, 'aria-valuemax': 6, 'aria-valuenow': -60, 'aria-valuetext': 'Silent', 'data-sq-meter': row }, [
+      el('span', 'sq-meter-rms', { 'aria-hidden': 'true' }), el('span', 'sq-meter-peak', { 'aria-hidden': 'true' }),
+      small ? null : el('span', 'sq-meter-scale', { 'aria-hidden': 'true' }, [0, -12, -24, -48].map(db =>
+        el('span', '', { text: String(db).replace('-', '−'), style: `bottom:${(db + 60) / 66 * 100}%` }))),
+    ]);
+  }
+  function deviceSlot(key, title, fx, input, output) {
+    return el('div', 'sq-device', {}, [btn(fx?.engine || 'Empty', () => openInspector(key), { 'aria-label': title, 'data-inspector': key,
+      'aria-haspopup': 'dialog', 'aria-controls': deviceDialog.id, 'aria-expanded': String(state.inspector === key), title: `${title}: ${fx?.engine || 'Empty'}` }),
+      el('div', 'sq-device-meters', {}, [el('span', '', { text: 'In', 'aria-hidden': 'true' }), signalMeter(input, `${title} input`, true),
+        el('span', '', { text: 'Out', 'aria-hidden': 'true' }), signalMeter(output, `${title} output`, true)])]);
+  }
   function mixer() {
-    return el('div', 'sq-mixer', { 'aria-label': 'Four sound groups' }, Array.from({ length: 4 }, (_, i) => {
+    const strips = Array.from({ length: 4 }, (_, i) => {
       const tracks = state.model.tracks.map((t, n) => t.route.kind === 1 && t.route.index === i ? n : -1).filter(n => n >= 0);
       const muted = tracks.length > 0 && tracks.every(n => state.model.tracks[n].muted);
-      return el('section', `sq-sound ed-s${i + 1}`, {}, [
-        el('h3', '', { text: soundName(i) }), el('p', 'sq-caption', { text: tracks.length ? `Tracks ${tracks.map(n => n + 1).join(', ')}` : 'No sequencer tracks routed here' }),
-        field(`S${i + 1} level %`, state.doc.sounds?.[i]?.level ?? 100, v => edit(`Set S${i + 1} level`, (_m, d) => { d.sounds[i].level = v; }), { min: 0, max: 100, step: 1 }),
-        el('div', 'sq-actions', {}, [btn('Mute', () => edit(`Toggle S${i + 1} track mute`, m => { for (const t of tracks) m.tracks[t].muted = muted ? 0 : 1; }), { 'aria-pressed': String(muted), disabled: !tracks.length }),
+      const prefix = `snd${i + 1}`, inserts = state.doc.sounds?.[i]?.inserts || [];
+      return el('section', `sq-sound sq-channel ed-s${i + 1}`, { 'aria-label': `Sound ${i + 1} channel` }, [
+        el('h3', '', { text: `Sound ${i + 1}` }),
+        btn(state.doc.sounds?.[i]?.engine || 'Empty instrument', () => openInspector(`s${i + 1}`), { class: 'sq-button sq-instrument', 'aria-label': `S${i + 1} instrument`, 'data-inspector': `s${i + 1}`,
+          'aria-haspopup': 'dialog', 'aria-controls': deviceDialog.id, 'aria-expanded': String(state.inspector === `s${i + 1}`) }),
+        el('p', 'sq-channel-routes', { text: tracks.length ? `Tracks ${tracks.map(n => n + 1).join(', ')}` : 'No routed tracks' }),
+        el('div', 'sq-device-rack', {}, [deviceSlot(`s${i + 1}.in1`, `S${i + 1} insert 1`, inserts[0], prefix, `${prefix}.fx1`),
+          deviceSlot(`s${i + 1}.in2`, `S${i + 1} insert 2`, inserts[1], `${prefix}.fx1`, `${prefix}.fx2`)]),
+        el('div', 'sq-channel-controls', {}, [btn('Mute', () => edit(`Toggle S${i + 1} track mute`, m => { for (const t of tracks) m.tracks[t].muted = muted ? 0 : 1; }), { 'aria-label': `S${i + 1} mute routed tracks`, 'aria-pressed': String(muted), disabled: !tracks.length }),
           btn('Solo', () => edit(`Solo S${i + 1}`, m => {
             if (state.solo?.sound === i) { m.tracks.forEach((t, n) => { t.muted = state.solo.mutes[n]; }); state.solo = null; }
             else { const mutes = state.solo?.mutes || m.tracks.map(t => t.muted); state.solo = { sound: i, mutes }; m.tracks.forEach((t, n) => { t.muted = tracks.includes(n) ? 0 : 1; }); }
-          }), { 'aria-pressed': String(state.solo?.sound === i), disabled: !tracks.length }),
-          btn('Instrument', () => openInspector(`s${i + 1}`)),
-          ...(state.doc.sounds?.[i]?.inserts || []).map((fx, slot) => btn(`Insert ${slot + 1}${fx?.engine ? ' · ' + fx.engine : ' · Empty'}`, () => openInspector(`s${i + 1}.in${slot + 1}`)))]),
+          }), { 'aria-label': `S${i + 1} solo routed tracks`, 'aria-pressed': String(state.solo?.sound === i), disabled: !tracks.length })]),
+        el('div', 'sq-channel-level', {}, [levelFader(i), signalMeter(`${prefix}.post_fader`, `S${i + 1} post-fader level`)]),
       ]);
-    }));
+    });
+    strips.push(el('section', 'sq-sound sq-channel sq-master', { 'aria-label': 'Master channel' }, [
+      el('h3', '', { text: 'Master' }), el('p', 'sq-master-title', { text: 'Stereo output' }), el('p', 'sq-channel-routes', { text: 'All four sounds' }),
+      el('div', 'sq-device-rack', {}, [deviceSlot('m1', 'Master FX 1', state.doc.master?.[0], 'mix', 'fx1'),
+        deviceSlot('m2', 'Master FX 2', state.doc.master?.[1], 'fx1', 'fx2')]),
+      el('p', 'sq-output-note', { text: 'Playback level', title: 'Output preference; not saved in the project. Sound levels and effects are saved.' }),
+      el('div', 'sq-channel-level', {}, [levelFader(null), signalMeter('out.post_master', 'Final master output level')]),
+    ]));
+    const routes = state.model.tracks.map((track, t) => el('div', `sq-mixer-track ${track.route.kind === 1 ? `ed-s${track.route.index + 1}` : ''}`, { 'data-mixer-track': t }, [
+      btn(`T${t + 1}`, () => edit(`Toggle track ${t + 1} mute`, m => { m.tracks[t].muted ^= 1; }), { 'aria-label': `Track ${t + 1} mute`, 'aria-pressed': String(!!track.muted), title: `Track ${t + 1}: ${track.muted ? 'muted' : 'playing when launched'}` }),
+      choose(`Track ${t + 1} mixer output`, `${track.route.kind === 1 ? 's' : 'm'}${track.route.index}`, routeOptions(), v => edit(`Route track ${t + 1}`, m => { m.tracks[t].route = { kind: v[0] === 's' ? 1 : 0, index: Number(v.slice(1)) }; })),
+    ]));
+    return el('section', 'sq-mixer-workspace', {}, [el('div', 'sq-track-routing', { 'aria-label': 'Sequencer track routing and mute' }, routes),
+      el('div', 'sq-mixer', { id: 'sq-mixer-board', 'aria-label': 'Four shared sound channels and master' }, strips),
+      el('p', 'sq-caption', { text: 'Tracks routed to one sound share its instrument, inserts and level. Meters show measured peak and RMS; click a device to edit it.' })]);
+  }
+  function syncLevels() {
+    for (const input of root.querySelectorAll('[data-sound-fader]')) {
+      if (input.dataset.dragging === 'true') continue;
+      const master = input.dataset.soundFader === 'master', sound = Number(input.dataset.soundFader);
+      const v = master ? (ctx.getMaster?.() ?? 1) * 100 : ctx.getSoundLevel?.(sound);
+      if (!Number.isFinite(v)) continue;
+      input.value = v;
+      const text = dbText(master ? (v / 100) ** 2 : v / 100);
+      input.previousElementSibling.textContent = text; input.setAttribute('aria-valuetext', text);
+    }
+  }
+  function onTelemetry(floats) {
+    if (state.view !== 'Mixer') return;
+    const sections = ctx.metadata?.doc?.telemetry?.sections || [], now = performance.now();
+    for (const meter of root.querySelectorAll('[data-sq-meter]')) {
+      const row = meter.dataset.sqMeter;
+      const sec = sections.find(s => ['meters', 'levels'].includes(s.name) && s.rows.includes(row));
+      if (!sec) continue;
+      const offset = sec.offset + sec.rows.indexOf(row) * sec.fields.length;
+      const peak = floats[offset], rms = floats[offset + 1];
+      if (!Number.isFinite(peak) || !Number.isFinite(rms)) continue;
+      const db = peak > 0 ? 20 * Math.log10(peak) : -60;
+      let hold = meterHold.get(row);
+      if (!hold || peak >= hold.peak || now - hold.at > 1400) { hold = { peak, at: now }; meterHold.set(row, hold); }
+      const position = gain => Math.max(0, Math.min(1, ((gain > 0 ? 20 * Math.log10(gain) : -60) + 60) / 66));
+      meter.style.setProperty('--rms', position(rms).toFixed(4)); meter.style.setProperty('--peak', position(hold.peak).toFixed(4));
+      meter.classList.toggle('is-clipping', peak >= 1);
+      meter.setAttribute('aria-valuenow', String(Math.max(-60, Math.min(6, db)).toFixed(1)));
+      meter.setAttribute('aria-valuetext', peak > 0 ? `Peak ${dbText(peak)}, RMS ${dbText(rms)}` : 'Silent');
+      meter.title = meter.getAttribute('aria-valuetext');
+    }
+    syncLevels();
   }
   function songView() {
     const entries = arrangementEntries(state.model), selected = entries[state.song];
@@ -213,7 +331,7 @@ export function makeSequencer(ctx) {
       }
     });
     return el('section', 'sq-section', {}, [el('h3', '', { text: 'Scenes' }),
-      el('p', 'sq-caption', { text: 'Edit a clip or launch it separately. Launch a whole column for a scene; empty slots stop those tracks. Manual launches leave song following and keep the saved chain.' }),
+      el('p', 'sq-caption sq-scene-caption', { text: 'Edit a slot or launch a clip. Launch a scene to start its column; empty slots stop those tracks.' }),
       el('div', 'sq-scroll', { 'data-scroll': 'scenes' }, [grid])]);
   }
   function svgNode(tag, attrs = {}) {
@@ -233,19 +351,22 @@ export function makeSequencer(ctx) {
   }
   function sceneTools() {
     let target = (state.scene + 1) % 8, track = state.track;
-    return el('div', 'sq-toolbar', {}, [
-      field('Scene name', state.model.sceneNames[state.scene] || '', v => edit('Rename scene', m => { m.sceneNames[state.scene] = v; }), { type: 'text', maxlength: 6, pattern: '[!-~]{0,6}', title: 'Up to six characters, without spaces' }),
-      choose('Copy to scene', target, state.model.sceneNames.map((_, s) => [s, sceneName(s)]), v => { target = Number(v); }),
-      choose('Copy to track', track, Array.from({ length: 8 }, (_, i) => [i, `Track ${i + 1}`]), v => { track = Number(v); }),
-      btn('Copy clip', () => transferClip(track, target, false)),
-      btn('Move clip', () => transferClip(track, target, true)),
-      btn('Copy scene', () => edit('Copy scene', m => { if (target === state.scene) throw new Error('Choose a different destination scene.'); m.tracks.forEach(t => { t.clips[target] = clone(t.clips[state.scene]); }); m.sceneNames[target] = m.sceneNames[state.scene]; })),
-      btn('Swap scenes', () => edit('Swap scenes', m => {
-        if (target === state.scene) throw new Error('Choose a different destination scene.');
-        m.tracks.forEach(t => { [t.clips[target], t.clips[state.scene]] = [t.clips[state.scene], t.clips[target]]; if (t.active === target) t.active = state.scene; else if (t.active === state.scene) t.active = target; });
-        [m.sceneNames[target], m.sceneNames[state.scene]] = [m.sceneNames[state.scene], m.sceneNames[target]];
-        m.song = m.song.map(s => s === target ? state.scene : s === state.scene ? target : s);
-      })),
+    return el('details', 'sq-scene-tools', {}, [
+      el('summary', 'sq-button', { text: 'Scene and clip tools' }),
+      el('div', 'sq-toolbar sq-compact-fields sq-scene-tool-fields', {}, [
+        field('Scene name', state.model.sceneNames[state.scene] || '', v => edit('Rename scene', m => { m.sceneNames[state.scene] = v; }), { type: 'text', maxlength: 6, pattern: '[!-~]{0,6}', title: 'Up to six characters, without spaces' }),
+        choose('Copy to scene', target, state.model.sceneNames.map((_, s) => [s, sceneName(s)]), v => { target = Number(v); }),
+        choose('Copy to track', track, Array.from({ length: 8 }, (_, i) => [i, `Track ${i + 1}`]), v => { track = Number(v); }),
+        btn('Copy clip', () => transferClip(track, target, false)),
+        btn('Move clip', () => transferClip(track, target, true)),
+        btn('Copy scene', () => edit('Copy scene', m => { if (target === state.scene) throw new Error('Choose a different destination scene.'); m.tracks.forEach(t => { t.clips[target] = clone(t.clips[state.scene]); }); m.sceneNames[target] = m.sceneNames[state.scene]; })),
+        btn('Swap scenes', () => edit('Swap scenes', m => {
+          if (target === state.scene) throw new Error('Choose a different destination scene.');
+          m.tracks.forEach(t => { [t.clips[target], t.clips[state.scene]] = [t.clips[state.scene], t.clips[target]]; if (t.active === target) t.active = state.scene; else if (t.active === state.scene) t.active = target; });
+          [m.sceneNames[target], m.sceneNames[state.scene]] = [m.sceneNames[state.scene], m.sceneNames[target]];
+          m.song = m.song.map(s => s === target ? state.scene : s === state.scene ? target : s);
+        })),
+      ]),
     ]);
   }
   function transferClip(track, scene, move) {
@@ -344,7 +465,7 @@ export function makeSequencer(ctx) {
     const n = c.notes[state.note];
     if (!n) return el('p', 'sq-caption', { text: 'Click an empty piano-roll cell or step to add a note. Select a note to edit its gate, velocity, probability and microtiming.' });
     const trig = c.trigs.find(t => t.step === n.step && t.lane === n.pitch);
-    return el('div', 'sq-toolbar sq-note-details', { 'aria-label': 'Selected note' }, [
+    return el('div', 'sq-toolbar sq-compact-fields sq-note-details', { 'aria-label': 'Selected note' }, [
       field('MIDI pitch', n.pitch, v => noteEdit({ pitch: v }), { min: 0, max: 127, step: 1 }),
       field('Step', n.step + 1, v => noteEdit({ step: v - 1, tick: (v - 1) * 24 + n.tick - n.step * 24 }), { min: c.loopStart + 1, max: c.loopStart + c.length, step: 1 }),
       field('Gate · ticks', n.gate, v => noteEdit({ gate: v }), { min: 1, max: 65535, step: 1 }),
@@ -435,13 +556,16 @@ export function makeSequencer(ctx) {
     const c = clip();
     if (!c) return el('section', 'sq-section', {}, [sceneTools(), btn('Create clip', () => edit('Create clip', m => { ensureClip(m, state.track, state.scene); }))]);
     state.page = Math.min(state.page, Math.floor((c.loopStart + c.length - 1) / 32));
-    const controls = el('div', 'sq-toolbar', {}, [
+    const controls = el('div', 'sq-clip-controls', {}, [
+      el('div', 'sq-toolbar sq-compact-fields sq-clip-params', {}, [
       el('h3', '', { text: `Track ${state.track + 1} · ${sceneName(state.scene)}` }),
       field('Loop start · step', c.loopStart + 1, v => edit('Set clip loop start', m => { clip(m).loopStart = v - 1; }), { min: 1, max: 256, step: 1 }),
       field('Loop length · steps', c.length, v => edit('Set clip loop length', m => { clip(m).length = v; }), { min: 1, max: 256 - c.loopStart, step: 1 }),
       field('Quantize %', c.quant, v => edit('Set clip quantize', m => { clip(m).quant = v; }), { min: 0, max: 100, step: 1 }),
       field('Transpose', c.transpose, v => edit('Transpose clip', m => { clip(m).transpose = v; }), { min: -36, max: 36, step: 1 }),
       field('New note pitch', state.pitch, v => { state.pitch = v; state.low = Math.max(0, Math.min(104, v - 12)); draw(); }, { min: 0, max: 127, step: 1 }),
+      ]),
+      el('div', 'sq-toolbar sq-clip-actions', {}, [
       btn('Add note', () => addNote(Math.max(c.loopStart, state.page * 32), state.pitch)),
       btn('Delete clip', () => edit('Delete clip', m => { m.tracks[state.track].clips[state.scene] = null; state.note = -1; })),
       btn('◀ 2 bars', () => { state.page--; draw(); }, { disabled: state.page === 0 }),
@@ -449,6 +573,7 @@ export function makeSequencer(ctx) {
       btn('2 bars ▶', () => { state.page++; draw(); }, { disabled: (state.page + 1) * 32 >= c.loopStart + c.length }),
       btn('Octave ↓', () => { state.low = Math.max(0, state.low - 12); draw(); }, { disabled: state.low === 0 }),
       btn('Octave ↑', () => { state.low = Math.min(104, state.low + 12); draw(); }, { disabled: state.low === 104 }),
+      ]),
     ]);
     return el('section', 'sq-section', {}, [sceneTools(), controls, noteDetails(c), pianoRoll(c)]);
   }
@@ -488,7 +613,8 @@ export function makeSequencer(ctx) {
   }
   function draw() {
     if (!state.model || disposed) return;
-    const active = content.contains(document.activeElement) ? document.activeElement : null;
+    releaseFader?.();
+    const active = root.contains(document.activeElement) ? document.activeElement : null;
     const focus = active && { label: active.getAttribute('aria-label'), tag: active.tagName, value: active.value, start: active.selectionStart, end: active.selectionEnd };
     const scrolls = new Map([...content.querySelectorAll('[data-scroll]')].map(e => [e.dataset.scroll, [e.scrollLeft, e.scrollTop]]));
     const views = ['Scenes', 'Arrangement', 'Clip', 'Automation', 'Mixer'];
@@ -519,22 +645,26 @@ export function makeSequencer(ctx) {
         el('span', 'sq-caption', { text: `Steps ${state.page * 32 + 1}–${Math.min((state.page + 1) * 32, c.loopStart + c.length)}` }),
         btn('2 bars ▶', () => { state.page++; draw(); }, { disabled: (state.page + 1) * 32 >= c.loopStart + c.length }),
       ]), locksView(c)]) : el('p', 'sq-caption', { text: 'Create a clip in Clip view before editing automation.' });
-    } else body = el('div', '', {}, [mixer(), el('div', 'sq-toolbar', {}, [
-      ctx.getMaster && ctx.setMaster ? field('Output level %', Math.round(ctx.getMaster() * 100), v => action(() => ctx.setMaster(v / 100)), { min:0, max:100, step:1, title:'Playback preference; not saved in the project' }) : null,
-      btn('Master FX 1', () => openInspector('m1')), btn('Master FX 2', () => openInspector('m2'))])]);
-    content.replaceChildren(toolbar(), navigation, selection, midiView() || '',
+    } else body = mixer();
+    root.dataset.songView = state.view;
+    if (state.mixDetails !== null) root.dataset.mixerDetails = String(state.mixDetails);
+    content.replaceChildren(toolbar(), navigation, ['Clip', 'Automation'].includes(state.view) ? selection : '', midiView() || '',
       el('div', 'sq-view-panel', {id:'sq-view-panel',role:'tabpanel','aria-labelledby':`sq-tab-${state.view}`}, [body]));
     if (state.inspector && ctx.inspector) {
       const body = ctx.inspector(state.inspector);
-      if (body) content.append(el('section', 'sq-inspector', {}, [btn('Close inspector', () => { state.inspector = null; draw(); }), body]));
-    }
+      if (body) {
+        deviceDialog.replaceChildren(el('div', 'sq-device-dialog-header', {}, [el('h3', '', { text: 'Device controls' }), btn('Close inspector', closeInspector)]), body);
+        if (!deviceDialog.open && deviceDialog.isConnected) deviceDialog.showModal();
+      } else closeInspector();
+    } else if (deviceDialog.open) deviceDialog.close();
     for (const e of content.querySelectorAll('[data-scroll]')) { const p = scrolls.get(e.dataset.scroll); if (p) { e.scrollLeft = p[0]; e.scrollTop = p[1]; } }
     content.disabled = state.busy;
     if (focus?.label) {
-      const next = [...content.querySelectorAll('[aria-label]')].find(e => e.tagName === focus.tag && e.getAttribute('aria-label') === focus.label);
+      const next = [...root.querySelectorAll('[aria-label]')].find(e => e.tagName === focus.tag && e.getAttribute('aria-label') === focus.label);
       if (next && !state.busy) { next.focus({ preventScroll: true }); if (focus.start != null && next.setSelectionRange) { next.value = focus.value; next.setSelectionRange(focus.start, focus.end); } }
     }
     update();
+    ctx.onMeterSubscription?.();
   }
   function update(transport = ctx.getTransport?.()) {
     const pos = root.querySelector('[data-play-position]');
@@ -550,14 +680,18 @@ export function makeSequencer(ctx) {
     const playhead = root.querySelector('[data-roll-playhead]');
     if (playhead) { playhead.hidden = !transport?.playing || liveScene !== state.scene || liveStep < state.page * 32 || liveStep >= (state.page + 1) * 32; playhead.style.left = `${60 + (liveStep - state.page * 32) * 28}px`; }
     for (const e of root.querySelectorAll('[data-step]')) e.classList.toggle('is-playing', !!transport?.playing && liveScene === state.scene && Number(e.dataset.step) === liveStep);
+    for (const e of root.querySelectorAll('[data-mixer-track]')) e.classList.toggle('is-playing', !!transport?.playing && transport.tracks?.[Number(e.dataset.mixerTrack)]?.playing >= 0);
   }
-  root.addEventListener('keydown', e => { if (e.target.closest('input, select, textarea')) e.stopPropagation(); });
+  root.addEventListener('keydown', e => {
+    if ((deviceDialog.open && e.key === 'Escape') || e.target.closest('input, select, textarea')) e.stopPropagation();
+  });
   root.addEventListener('dragover', e => { if ([...(e.dataTransfer?.types || [])].includes('Files')) { e.preventDefault(); e.stopPropagation(); } });
   root.addEventListener('drop', e => {
     const files = [...(e.dataTransfer?.files || [])];
     if (!files.length || !files.every(f => /\.midi?$/i.test(f.name))) return;
     e.preventDefault(); e.stopPropagation(); e.lunarInto = true; importFiles(files);
   });
-  return { render() { if (state.dirty && !state.busy) refresh(); return root; }, refresh, update,
-    invalidate() { state.dirty = true; }, destroy() { disposed = true; cancelDrag?.(); root.remove(); } };
+  return { render() { if (state.dirty && !state.busy) refresh(); return root; }, refresh, update, onTelemetry, syncLevels,
+    wantRows() { return state.view === 'Mixer' ? (ctx.metadata?.doc?.telemetry?.sections || []).filter(s => ['meters', 'levels'].includes(s.name)).flatMap(s => s.rows.map((_, r) => s.mask + r)) : []; },
+    invalidate() { state.dirty = true; }, destroy() { releaseFader?.(); closeInspector(); disposed = true; cancelDrag?.(); root.remove(); } };
 }

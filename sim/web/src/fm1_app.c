@@ -3532,16 +3532,26 @@ static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {
   }
   for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
     float *b = a->mix[k];
-    if (!slot[k].sink) { apply_mix_level(a, (unsigned)k, b, n); continue; }
+    if (!slot[k].sink) {
+      apply_mix_level(a, (unsigned)k, b, n);
+      if (a->edit) {
+        for (unsigned j = 0; j <= FM1_APP_INSERTS; ++j) fm1_edit_meter(a, 3u * (unsigned)k + j, NULL, n);
+        fm1_edit_meter(a, FM1_TELE_POINTS + (unsigned)k, NULL, n);
+      }
+      continue;
+    }
     if (a->edit) fm1_edit_meter(a, 3u * (unsigned)k, b, n);   /* telemetry, read only */
     for (int j = 0; j < FM1_APP_INSERTS; ++j) {
       const int iu = fm1_app_insert_unit(k, j);
       if (a->unit[iu].e) {
         render_fx(a, iu, b, n);
-        if (a->edit) fm1_edit_meter(a, 3u * (unsigned)k + 1u + (unsigned)j, b, n);
       }
+      /* Empty slots pass the input through, so the preceding point is
+       * always this slot's input and this point is always its output. */
+      if (a->edit) fm1_edit_meter(a, 3u * (unsigned)k + 1u + (unsigned)j, b, n);
     }
     apply_mix_level(a, (unsigned)k, b, n);
+    if (a->edit) fm1_edit_meter(a, FM1_TELE_POINTS + (unsigned)k, b, n);
     if (!(a->export_sound_mask & (1u << k))) continue;
     if (first) memcpy(out, b, 2u * n * sizeof *out);
     else for (uint32_t i = 0; i < 2 * n; ++i) out[i] += b[i];
@@ -3566,8 +3576,8 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
   for (int u = 1; u <= FM1_APP_FX_SLOTS; ++u) {   /* the master bus, after the mix */
     if (a->unit[u].e) {
       render_fx(a, u, out, n);
-      if (a->edit) fm1_edit_meter(a, 3u * FM1_APP_SOUNDS + (unsigned)u, out, n);
     }
+    if (a->edit) fm1_edit_meter(a, 3u * FM1_APP_SOUNDS + (unsigned)u, out, n);
   }
   if (a->mod) apply_amp(a, out, n);
   /* The metronome's click (O11), from the block's events, as fm1-render
@@ -3585,6 +3595,7 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
   if (a->gain != 1.0f) {
     for (uint32_t i = 0; i < 2 * n; ++i) out[i] *= a->gain;
   }
+  if (a->edit) fm1_edit_meter(a, FM1_TELE_POINTS + FM1_APP_SOUNDS, out, n);
   a->frames += n;
   if (a->edit) {                         /* ARP held: Latch, for the next block: the panel's */
     const uint8_t src = a->edit->src;

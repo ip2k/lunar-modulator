@@ -3,6 +3,7 @@
  * private render path as fm1_app_render, with deterministic test engines. */
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include "../src/fm1_app.c"
 
 static fm1_app_t app;
@@ -241,8 +242,114 @@ static int panel_targets(void) {
   CHECK(fx_take_value(&app,6,0,.75f) == .75f);
   return 0;
 }
-int main(void) {
-  if(timing() || stop_reset() || routes_types_mask() || release_and_legacy() || modulation() || panel_targets()) return 1;
+static fm1_edit_t meter_edit;
+static float meter_out[2048];
+static void meter_subscribe(int mode) {
+  uint32_t mask[FM1_TELE_MASK_WORDS] = {0};
+  fm1_edit_attach(&app, &meter_edit, 0);
+  if (mode == 1) {
+    const fm1_tele_section_t *sec = fm1_tele_section(FM1_TELE_LEVELS);
+    mask[(sec->mask + 4) / 32] |= 1u << ((sec->mask + 4) % 32);
+  } else if (mode == 2) {
+    for (unsigned s = 0; s < FM1_TELE_SECTIONS; ++s) {
+      if (s != FM1_TELE_METERS && s != FM1_TELE_LEVELS) continue;
+      const fm1_tele_section_t *sec = fm1_tele_section(s);
+      for (unsigned r = 0; r < sec->rows; ++r) mask[(sec->mask+r)/32] |= 1u << ((sec->mask+r)%32);
+    }
+  }
+  fm1_edit_subscribe(&app, mask);
+}
+static int meter_pair(unsigned section, unsigned row, float peak, float rms) {
+  const fm1_tele_section_t *sec = fm1_tele_section(section);
+  const float *v = meter_out + sec->offset + row * sec->fields;
+  CHECK(NEAR(v[0],peak) && NEAR(v[1],rms));
+  return 0;
+}
+static int meter_read(void) {
+  meter_edit.tele_at = ~(uint64_t)0;
+  CHECK(fm1_edit_telemetry(&app,meter_out,2048) == 1464);
+  return 0;
+}
+static int meters(void) {
+  char name[32];
+  const fm1_tele_section_t *sec = fm1_tele_section(FM1_TELE_LEVELS);
+  CHECK(sec->offset==1454 && sec->mask==119 && sec->rows==5 && sec->fields==2);
+  CHECK(fm1_tele_mask_bits()==124 && FM1_TELE_VERSION==3);
+  CHECK(!strcmp(fm1_tele_row_name(FM1_TELE_LEVELS,0,name,sizeof name),"snd1.post_fader"));
+  CHECK(!strcmp(fm1_tele_row_name(FM1_TELE_LEVELS,4,name,sizeof name),"out.post_master"));
+  setup(); meter_subscribe(2);
+  probes[6].value[0]=.5f; probes[7].value[0]=.25f;
+  probes[1].value[0]=.5f; probes[2].value[0]=.25f;
+  app.seq_level[0]=40; app.gain=.5f;
+  fm1_app_render(&app,64);
+  CHECK(!meter_read());
+  CHECK(!meter_pair(FM1_TELE_METERS,0,.125f,.125f));
+  CHECK(!meter_pair(FM1_TELE_METERS,1,.0625f,.0625f));
+  CHECK(!meter_pair(FM1_TELE_METERS,2,.015625f,.015625f));
+  CHECK(!meter_pair(FM1_TELE_LEVELS,0,.00625f,.00625f));
+  CHECK(!meter_pair(FM1_TELE_METERS,12,.00625f,.00625f));
+  CHECK(!meter_pair(FM1_TELE_METERS,13,.003125f,.003125f));
+  CHECK(!meter_pair(FM1_TELE_METERS,14,.00078125f,.00078125f));
+  CHECK(!meter_pair(FM1_TELE_METERS,15,.00078125f,.00078125f));
+  CHECK(!meter_pair(FM1_TELE_LEVELS,4,.000390625f,.000390625f));
+  CHECK(app.level[0]==100); /* effective fader tap, not configured value */
+  /* All empty effect slots are identity paths, not stale or zero meters. */
+  setup(); meter_subscribe(2);
+  app.unit[6].e=app.unit[7].e=app.unit[1].e=app.unit[2].e=NULL;
+  app.unit[3].e=NULL; /* Sound2's stale mix buffer must not leak into meters. */
+  for (unsigned i=0;i<128;++i) app.mix[1][i]=100;
+  app.gain=0;
+  fm1_app_render(&app,64); CHECK(!meter_read());
+  for (unsigned r=0;r<3;++r) CHECK(!meter_pair(FM1_TELE_METERS,r,.125f,.125f));
+  for (unsigned r=3;r<6;++r) CHECK(!meter_pair(FM1_TELE_METERS,r,0,0));
+  for (unsigned r=12;r<16;++r) CHECK(!meter_pair(FM1_TELE_METERS,r,.125f,.125f));
+  CHECK(!meter_pair(FM1_TELE_LEVELS,0,.125f,.125f));
+  CHECK(!meter_pair(FM1_TELE_LEVELS,1,0,0));
+  CHECK(!meter_pair(FM1_TELE_LEVELS,4,0,0));
+  /* Actual sample-frame mixer automation is reflected in block RMS. */
+  setup(); meter_subscribe(2);
+  CHECK(line("route 0 1 0;clen 0 16;alabel 0 0 mix:Level;abaseq 0 0 127;aset 0 0 1 0 1;play"));
+  fm1_app_render(&app,64); CHECK(!meter_read());
+  CHECK(!meter_pair(FM1_TELE_LEVELS,0,.125f,.125f*sqrtf(47.0f/64.0f)));
+  CHECK(app.level[0]==100);
+  /* Only subscribed points collect; disabled telemetry touches no samples. */
+  float audio[128];
+  setup(); meter_subscribe(0);
+  memcpy(audio,fm1_app_render(&app,64),sizeof audio);
+  for (unsigned p=0;p<FM1_TELE_ALL_POINTS;++p) CHECK(meter_edit.n[p]==0 && meter_edit.sq[p]==0);
+  setup(); meter_subscribe(1);
+  CHECK(!memcmp(audio,fm1_app_render(&app,64),sizeof audio));
+  for (unsigned p=0;p<FM1_TELE_ALL_POINTS;++p) CHECK(meter_edit.n[p]==(p==20 ? 128u : 0u));
+  for (unsigned i=0;i<2048;++i) meter_out[i]=12345;
+  CHECK(!meter_read());
+  for (unsigned i=0;i<1464;++i) CHECK(i>=1462 || meter_out[i]==12345);
+  /* Stereo RMS includes both channels and all blocks in the read window;
+   * one nonzero left sample and three silent stereo frames average to 1/8. */
+  meter_subscribe(1);
+  const float asymmetric[4] = {1,0,0,0};
+  fm1_edit_meter(&app,20,asymmetric,2);
+  fm1_edit_meter(&app,20,NULL,2);
+  CHECK(!meter_read());
+  CHECK(!meter_pair(FM1_TELE_LEVELS,4,1,sqrtf(1.0f/8.0f)));
+  CHECK(!meter_read());
+  CHECK(!meter_pair(FM1_TELE_LEVELS,4,0,0));
+  return 0;
+}
+static int meter_bench(void) {
+  const unsigned blocks=30000;
+  printf("meter-state-bytes=%zu extra-counters=%u blocks=%u frames=64\n",sizeof(fm1_edit_t),12u*FM1_TELE_LEVEL_POINTS,blocks);
+  for (int mode=-1;mode<3;++mode) {
+    setup(); if (mode>=0) meter_subscribe(mode);
+    const clock_t start=clock();
+    for (unsigned b=0;b<blocks;++b) fm1_app_render(&app,64);
+    const double us=(double)(clock()-start)*1000000.0/CLOCKS_PER_SEC/blocks;
+    printf("meter-mode=%d cpu-us-per-block=%.4f\n",mode,us);
+  }
+  return 0;
+}
+int main(int argc, char **argv) {
+  if(argc>1 && !strcmp(argv[1],"--meter-bench")) return meter_bench();
+  if(timing() || stop_reset() || routes_types_mask() || release_and_legacy() || modulation() || panel_targets() || meters()) return 1;
   puts("PASS sample frames, isolation, inserts/master/mix, D6, knob bases, reset, routes, enum/log, NOLOCK/PER_FOCUS, masks and modulation precedence");
   return 0;
 }

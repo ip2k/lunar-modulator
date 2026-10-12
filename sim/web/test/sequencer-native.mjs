@@ -28,6 +28,10 @@ async function field(label, value) {
   await idle(); const input = page.getByLabel(label, { exact: true });
   await input.fill(String(value)); await input.dispatchEvent('change'); await idle();
 }
+async function expandFiles() {
+  const menu = page.locator('.sq-file-tools');
+  if (!await menu.evaluate(e => e.open)) await menu.locator(':scope > summary').click();
+}
 async function reset() {
   await page.evaluate(async () => {
     const { emptySet, emptyClip, writeSet } = window.nativeTest.api;
@@ -43,6 +47,7 @@ async function reset() {
 }
 async function openFile(file) {
   const chooser = page.waitForEvent('filechooser');
+  await expandFiles();
   await page.locator('.sq').getByRole('button', { name: 'Open…', exact: true }).click();
   await (await chooser).setFiles(file);
   await until(async () => (await page.locator('.ed-sr').allTextContents()).join(' ').includes(`Opened ${file.name}`) ||
@@ -104,6 +109,20 @@ try {
     await page.getByRole('button', { name: 'Launch clip 1 scene 1', exact: true }).click();
     await page.waitForFunction(() => fm1.seq?.playing && fm1.seq.tracks[0].playing === 0 && fm1.seq.tracks[0].posTick > 0);
     await page.screenshot({ path: join(out, 'native-matrix.png'), fullPage: true });
+    await tab('Mixer');
+    await until(async () => {
+      const sound = Number(await page.getByRole('meter', { name: 'S1 post-fader level', exact: true }).getAttribute('aria-valuenow'));
+      const master = Number(await page.getByRole('meter', { name: 'Final master output level', exact: true }).getAttribute('aria-valuenow'));
+      return sound > -60 && master > -60;
+    }, 'measured sound and master output meters');
+    await page.screenshot({ path: join(out, 'native-mixer-meter.png'), fullPage: true });
+    const fader = page.getByRole('slider', { name: 'S1 level', exact: true });
+    const before = Number(await fader.inputValue());
+    await fader.focus(); await fader.press('ArrowUp');
+    await until(async () => Number(await fader.inputValue()) === before + 1, 'keyboard fader value and native mirror update');
+    await until(async () => Number(await page.evaluate(() => fm1.editor.state.mirror.levels[0])) === before + 1, 'native sound level update');
+    assert.match(await fader.getAttribute('aria-valuetext'), /dB$/);
+    report.checks.push('measured sound/master meters and keyboard fader edit update native mirror');
     await tab('Clip');
     assert.notEqual(await page.locator('[data-roll-playhead]').getAttribute('style'), null);
     await page.locator('.sq').getByRole('button', { name: 'Stop', exact: true }).click();
@@ -124,6 +143,7 @@ try {
   });
   await check('two MIDI files preview, occupied-clip refusal and explicit replacement import', async () => {
     const midi = Buffer.from([77,84,104,100,0,0,0,6,0,0,0,1,0,96,77,84,114,107,0,0,0,12,0,144,67,100,96,128,67,0,0,255,47,0]);
+    await expandFiles();
     await page.getByLabel('Import MIDI files', { exact: true }).setInputFiles(['Lead.mid', 'Bass.mid'].map(name => ({ name, mimeType: 'audio/midi', buffer: midi })));
     await page.getByTestId('midi-import-preview').waitFor();
     const before = await page.evaluate(() => nativeTest.canonical());
@@ -138,6 +158,7 @@ try {
   await check('download and reopen text project, Movy set and binary project retain native set', async () => {
     const canonical = await page.evaluate(() => nativeTest.canonical());
     for (const [button, fileName] of [['Save .lunar', 'roundtrip.lunar'], ['Export .movy1', 'roundtrip.movy1']]) {
+      await expandFiles();
       const pending = page.waitForEvent('download');
       await page.locator('.sq').getByRole('button', { name: button, exact: true }).click();
       const download = await pending; const path = join(out, fileName); await download.saveAs(path);
@@ -150,6 +171,7 @@ try {
   });
   await reset();
   await check('actual offline worker produces six downloadable WAVs with exact channel counts', async () => {
+    await expandFiles();
     await page.locator('.sq').getByRole('button', { name: 'Export WAV…', exact: true }).click();
     await page.getByLabel('Effect tail (seconds)').fill('0'); await page.getByTestId('audio-export-start').click();
     await page.waitForFunction(() => document.querySelector('[data-testid="audio-export-status"]').textContent.includes('WAVs ready'), null, { timeout: 120000 });
