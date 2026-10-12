@@ -55,63 +55,73 @@ passed; a separate reset returned restored stock operation and the exact
 `FM-1_092` identity without a physical power cycle. Fresh matching stock backups
 then preceded a separate diagnostic install, whose full 1 MiB readback matches
 the target. Protected bytes and directory-last sector order passed independent
-replay. The current installed target remains on the original device-25 recovery
-loader connection; target reboot, diagnostic execution, visible display and
-post-boot recovery are still pending.
+replay. One subsequent target reset was transmitted on the device-25 loader
+connection and lost its reply on detach. About 22 seconds later, the same port
+enumerated as device 26 in ROM. The original reset capture contains no later
+vendor command. The immediate stage chooser stopped before launching its
+probe, because its historical capture guard rejected one ordinary SCSI
+media-lock command. This is a boot attempt, not accepted diagnostic execution,
+visible display or post-boot recovery evidence. The retained diagnostic RAM
+record has not been read; do not upload a loader before the separately reviewed
+read-only successor retrieves it. Do not replay the consumed reset or chooser,
+or refresh the original ROM snapshot.
 
-[verified: software gates] Exact injected ROM stage probe passed 126 tests in
-16 Hera chunks plus an actual-private modeled smoke and independent review.
-Its separate native SG transport passed 79 tests and its actual-private modeled
-smoke; independent retained-evidence review accepted both. The static successful-only probe
-packet is staged without execution. A separately reviewed transmitted-but-
-detached reset policy, fresh binding and returned-ROM stock-restoration adapter
-are being developed; old guards and consumed markers remain intact.
-GitHub CI passed all thirteen jobs at selector checkpoint `22cae292…`.
-The strict-private selector gate passed 287 tests in 16 Hera chunks, with no
-skips; public CI behavior passed 244 with 43 explicit private-fixture skips.
-Later source checkpoints require fresh CI. The original 6,389-case complete
-Python snapshot finished all 16 chunks: 6,352 passed, 35 skipped and two expected
-failures, zero failures/errors. It does not include the newer probe or returned-ROM
-sources. The new stock-reset scaffold separately passed 56 injected cases plus
-one smoke. The composed fixture then exposed a mismatch with the actual SG
-identity schema; the source correction and expanded 58-case gate are pending
-composed runtime acceptance. Its production factory remains closed pending a
-genuine reviewed completed-restore helper. The final shared successful/detached
-probe gate passed 101 unique cases in sixteen Hera chunks plus one strict
-actual-private modeled smoke; independent review accepted report `cd990cc8…`.
+[verified: independently accepted software receipts] The final shared
+successful/detached stage probe passed 101 unique cases in sixteen Hera chunks
+plus one strict actual-private modeled smoke. The returned-ROM backup/restore
+gate passed 182 unique cases with three genuine private-factory models; its
+bound stock-reset gate passed 58 cases plus the genuine composed smoke. The
+closed stock-reset bench template passed 60 unique cases, including one
+genuine composed preparer/wrapper model. These are source/private-input and
+modeled transport checks, not additional physical operations. The old returned
+backup route inherits the historical guard that rejected the actual media lock;
+its accepted software receipts do not authorize bypassing that stop. A distinct
+returned-proof successor is needed after the retained RAM read.
+
+The closed interrupted-restore replay kernel separately passed 55 cases in
+sixteen Hera chunks. It tracks the union of attempted-write uncertainty until
+matching readback resolves it; erase/program syscall return alone is not flash
+success. It has no hardware opener, and its campaign factory always refuses
+execution. Its separate original-lineage evidence helper passed 33 unique cases
+in sixteen Hera chunks, including one genuine private-input interrupted program
+model; final independent review accepted only its closed evidence scope. Owned
+terminal capture, live partial-flash acquisition and executable recovery remain
+separate work. The original 6,389-case complete Python snapshot finished all
+16 chunks: 6,352 passed, 35 skipped and two expected failures, zero failures or
+errors. It does not include the newer probe or returned-ROM sources.
 
 Current remote-SHA-verified checkpoint:
-`f45a2b016d5629fc76dbb85b5a4bcfba7145c023` on the feature branch below.
-The returned-ROM backup/restore/reset checkpoints remain unaccepted WIP;
-their complete shared provenance and genuine private-factory gates are pending.
-Do not activate them. See [the boot trial](2026-10-11-diagnostic-boot-trial.md),
+`8c4b5cf0fec6c872b15c77a50dc2d24a5405362d` on the feature branch below.
+The source-only stock-return template is staged with its execution policy still
+closed. Its future concrete binding must follow actual fresh backup and
+completed restore evidence. See [the boot trial](2026-10-11-diagnostic-boot-trial.md),
 [stage probe](2026-10-11-diagnostic-stage-probe.md), and
 [returned-ROM design](2026-10-11-returned-rom-recovery-design.md) for exact pins,
 limits and next dependencies. This remains an active unfinished goal.
 
-[verified: latest CI] Run 38192936943 at `6b8ed4b2…` finished with twelve jobs
-passing and macOS Python failing in sixty Linux SG syscall mocks that retained
-Darwin's platform. Production transport correctly rejected them. The test-only
-mock-platform repair passed its focused 79-case Hera gate plus actual-private
-modeled smoke; independent final evidence review accepted `0fb814d9…`.
-Fresh CI is pending. No production
-guard is weakened or hardware gate upgraded by that repair.
+[verified: current GitHub query] All thirteen jobs passed in run 38199299324
+at exact checkpoint `20284ce7ed0543038c5861e935f345e7b4257a2c`.
+Run 38200263950 at exact `8c4b5cf0…` is still in progress. Uncommitted new
+successor sources are outside those CI snapshots. No CI or model result
+upgrades the physical boot, display or interrupted-write acceptance gates.
 
 ## Active dependency plan
 
-1. Build a private, C-only diagnostic with the pinned V1.2.13 SDK's matching
-   dual-core runtime and the Apache boot-info bridge, with GPL engines off.
-   [inferred: source reviews] This closes more startup dependencies than a new
-   custom entry contract; native startup/exception and P33 recovery audits
-   remain required. The independently permissive runtime remains a later path.
-2. Close the RAM loader's retained-configuration/NOR-status initialization
-   boundary before fresh physical backups. Keep the historical scratch-sector
-   writer allowlist intact; wider writes require a separate exact manifest.
-3. Build the concrete diagnostic on Hera, construct and independently validate
-   an offline raw target against the actual FM-1_092 geometry, and review the
-   bounded installation/restoration campaign before device mutation.
-4. Run the hardware campaign and record execution, panel and recovery evidence;
-   continue fault verification and finish integration only after acceptance.
+1. Preserve the completed private C-only diagnostic build, its pinned V1.2.13
+   libraries, Apache boot-info bridge, single-core configuration and GPL-off
+   profile. The raw target and exact protected geometry are verified; the
+   independently permissive runtime remains a later path.
+2. Complete independent source, sixteen-chunk Hera and concrete-packet review
+   of the distinct read-only stopped-chooser successor. Read retained RAM before
+   any loader upload; review the actual receipt and capture separately.
+3. Bind a distinct returned-ROM backup/restore route to that accepted actual
+   proof and the current connection. Take fresh matching complete dumps, restore
+   exact stock, verify all flash, and verify responsive stock operation through
+   a separately bound reset and identity query.
+4. Complete original-lineage interrupted-write evidence, fresh partial-flash
+   acquisition and recovery verification. Record diagnostic execution, visible
+   panel and recovery evidence; finish integration only after required physical
+   acceptance, independent review and exact-head CI.
 
 Worktree: `/Users/likwid/.codex/worktrees/installable-firmware/mvave-fm1-firmware`.
 Branch: `feature/2026-10-11@installable-firmware`. Main-thread ownership covers

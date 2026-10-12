@@ -233,9 +233,12 @@ The immediate chooser consumed its own marker and selected the detached route.
 Historical capture replay then rejected a new-ROM standard CDB
 `1e0000000100` (PREVENT/ALLOW MEDIUM REMOVAL) outside its existing allowlist.
 The chooser stopped at `1791775865.1165452` before launching either probe
-wrapper or opening SG. Independent wire/host-origin review and a distinct
-admission are required; the consumed chooser and original snapshot cannot be
-reused or refreshed. The approximately 20-second return timing is consistent
+wrapper or opening SG. Independent wire review `a514eff1…` accepted the paired
+transfers and failed media-lock/illegal-field sense as Linux-compatible;
+the issuing process and ROM internals remain unproved. A distinct admission
+is required. The consumed chooser cannot be reused, and the original snapshot
+cannot be reused as fresh transport authority or refreshed; it remains historical
+evidence alongside a distinct current witness. The approximately 20-second return timing is consistent
 with the diagnostic design [inferred], but does not prove diagnostic stage,
 display pixels or the cause of the ROM return.
 
@@ -246,6 +249,13 @@ reset log `1cf360bd8871e141613ed191a621e0bbd1e5906a7c0fe6b648283945ca665fc7`,
 capture `c5223ee8795534695d4471500c11ebc5be4787e116bdfdd2e7b2878d9d9b264d`,
 original ROM snapshot `e79dcad1…`. No recovery-loader upload, NOR operation or
 RAM stage probe followed this reset.
+
+[verified: private files only] A read-only export of the complete original bench
+tree is retained at `build/target-boot-physical-v1/private-bench-tree/`;
+archive SHA `bc6e21ed13f235fb00c96c887e71915dddadfb88799ea2600ed898340c2dc00e`.
+It preserves all original reset/chooser markers, source files, journals and
+captures for the successor's actual-file factory check. The separate marker
+and negative-absence receipt records no hardware access and no snapshot change.
 
 [verified: offline/source-only] Independent review accepted the corrected
 60-case wrapper gate as `715e4236…` and actual six-source staging receipt as

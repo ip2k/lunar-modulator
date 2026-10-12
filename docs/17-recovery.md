@@ -78,8 +78,14 @@ enumeration and the exact `FM-1_092` identity response then verified restored
 stock operation without a physical power cycle. No successful reset reply or
 diagnostic application boot is inferred from that result. After new matching
 dual backups, a separate install-only campaign again verified the complete
-diagnostic target. The unit remains in the recovery loader pending its first
-diagnostic boot. See [the rehearsal](../notes/2026-10-11-sdk-rehearsal.md) and
+diagnostic target. One later target reset was transmitted and lost its reply on
+detach; the same port returned to ROM about 22 seconds later. The immediate
+stage chooser stopped before reading RAM because its capture guard rejected
+one SCSI media-lock command. That return alone does not establish diagnostic
+execution or recovery. Preserve the original snapshot, reset capture and
+consumed markers; a separately reviewed read-only successor must retrieve the
+retained diagnostic record before any recovery-loader upload. See
+[the rehearsal](../notes/2026-10-11-sdk-rehearsal.md) and
 [the current boot trial](../notes/2026-10-11-diagnostic-boot-trial.md).
 
 ## Triage hierarchy
@@ -224,12 +230,16 @@ not run a `finally` erase on the stale session. If fresh entry, identity,
 geometry, or full reads cannot be established, stop with the flash state
 unknown and retain all evidence.
 
-The SDK diagnostic's interrupted-write and post-reset physical recovery adapter
-is still a separate development gate. Its original successful rehearsal cannot
-be replayed after an ambiguous request or a new enumeration. Preserve the
-original intent and actual bytes; use the modeled recovery campaign to test
-policy changes before a new exact physical adapter is reviewed. Do not widen
-the scratch CLI or invoke a manual erase/program sequence.
+The SDK diagnostic's returned-ROM backup/restore software and composed private
+models have passed independent review. Its closed interrupted-restore replay
+kernel also passes its separate sixteen-chunk gate, but provides no hardware
+opener. Original-lineage evidence, fresh partial-flash acquisition and physical
+interrupted-write recovery remain separate development gates. The original
+successful rehearsal cannot be replayed after an ambiguous request or a new
+enumeration. Preserve the original intent and actual bytes; bind each new exact
+physical adapter to accepted actual evidence before execution. The current
+historical capture stop also needs its own reviewed successor; do not bypass
+it, widen the scratch CLI or invoke a manual erase/program sequence.
 
 The original scratch-sector bench test predates this transaction engine. Its
 post-test hash and owner-confirmed normal boot remain historical physical

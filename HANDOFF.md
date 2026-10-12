@@ -20,7 +20,9 @@ its reply detached and the post-request binding check failed. Passive sysfs
 then found new same-port ROM bus 3/device 26 at `1791775855.3214695`.
 The immediate one-use chooser stopped before opening SG or probing RAM because
 the capture includes a new-ROM standard CDB `1e0000000100` absent from its
-allowlist. Exact wire/host-origin review is underway. Preserve the consumed
+allowlist. Independent capture review `a514eff1…` accepted exact paired
+transfers, failed media-lock CSW and illegal-field sense as Linux-compatible;
+it does not prove the process origin or ROM internals. Preserve the consumed
 reset and chooser; no retry or original snapshot refresh. Diagnostic stage,
 display and recovery after diagnostic execution remain unaccepted. No camera
 was identified in the bench's passive video-device inventory.
@@ -42,8 +44,8 @@ access, actual receipt `e60e3f8b…`, independent acceptance `ad6ad938…`. See
 [verified: staged files only] Probe helper/native `8fb33694…`/`8ad32e42…` passed
 101 unique cases plus one actual-private modeled smoke; independent review
 accepted `cd990cc8…`. The chooser passed 26 unique cases plus its modeled smoke;
-review accepted `70954552…`. Successful and detached reset probe wrappers and
-the chooser have now been consumed as described above. Neither stage-probe
+review accepted `70954552…`. The target-reset wrapper and chooser have now
+been consumed as described above. Neither stage-probe
 wrapper was launched. Source-only staging V2 wrote 31
 exactly pinned files, checked the original 35-member packet and all 45 required
 sources, and retained the completed install journal separately. The recovery
@@ -64,13 +66,16 @@ completed 6,389 collected cases in 16 Hera chunks: 6,352 passed, 35 skipped,
 two expected failures, zero failures/errors. The strict private selector gate
 passed 287 cases without skips. Native SG test portability repair passed 79
 cases plus its smoke. Later recovery additions have the separate gates above.
-GitHub run 38197006075 on exact checkpoint `4391433161f6fe61d30d54a8b79b53c67362177b`
-passed all thirteen jobs; later changes need their own exact-head CI run. The feature branch is `feature/2026-10-11@installable-firmware`,
-with parent checkpoint `20284ce7…` committed and remote-SHA verified. Exact-head
-run 38199299324 remains in progress. No PR or merge has occurred.
+GitHub run 38199299324 on exact checkpoint `20284ce7ed0543038c5861e935f345e7b4257a2c`
+passed all thirteen jobs. The feature branch is
+`feature/2026-10-11@installable-firmware`, with parent checkpoint
+`8c4b5cf0…` committed and remote-SHA verified. Exact-head run 38200263950 remains
+in progress; new uncommitted successors are outside that snapshot. No PR or
+merge has occurred.
 
-Next: independently review the actual reset/host-enumeration capture and a
-distinct admission route before reading diagnostic RAM; preserve the original
+Next: independently review the distinct stopped-chooser admission route,
+its exact sixteen-chunk Hera gate and concrete two-read wrapper before reading
+diagnostic RAM; preserve the original
 timestamp and consumed markers. Then capture fresh matching target backups,
 restore stock under the new binding and verify normal identity. The new closed
 interrupted-restore evidence kernel `cef2d0ea…` passed 55 cases in 16 Hera chunks;
@@ -78,6 +83,13 @@ independent review `e0401d94…` accepted only its prefix/dual-dump scope. Genui
 stopped-lineage/current journal/capture and distinct partial-NOR acquisition
 admission remain required; execution is unconditionally closed. Native write
 completion is not NOR success: uncertainty clears only on matching FD05 readback.
+The separate original-lineage evidence helper `dbe4191c…` passed all 33 unique
+cases in sixteen Hera chunks, including one genuine private-input interrupted
+program model. Final independent review `82e9b1a7…` accepted its closed evidence
+scope and exact source/runtime receipts.
+It preserves the genuine completed-backup/SDK/consumed-marker/current-journal
+chain and deliberately leaves terminal capture, live acquisition and execution
+unverified. It cannot open hardware or prepare an executable campaign.
 The active goal remains a working physical diagnostic with verified recovery,
 documented procedures and completed required review/CI/integration gates.
 
