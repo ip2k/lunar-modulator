@@ -23,6 +23,7 @@ import {
   toPos, fromPos, zeroPos, stepValue, rawText, unitText, spokenText, flagWords, ramWords, ramPercent, toF32,
   ModMeta, T as REC_T, parseModKey,
 } from './model.js';
+import { RAM_ORDER, cpuPresentation } from './resource-meter.js';
 import { History } from './history.js';
 import { makeChains, cableIndex } from './chains.js';
 import { makeProject } from './project.js';
@@ -70,7 +71,7 @@ export async function startEditor(env) {
     layout: 'panel', view: 'flow', sound: 0, selected: 's1', keys: 'play',
     followPanel: pref('follow-panel') !== '0', followEditor: pref('follow-editor') !== '0',
     port: null, node: null, mirror: null, gen: 0, loading: false, pendingChanges: [], panelView: null,
-    ram: null, typing: false, dragKey: null, tag: 0, tags: new Map(), snapId: 0, snapWait: new Map(),
+    ram: null, cpu: null, typing: false, dragKey: null, tag: 0, tags: new Map(), snapId: 0, snapWait: new Map(),
     lastViewSent: '', announceAt: 0, flash: null, teleOn: false, tele: null, lastPanelLine: '',
     live: null, picker: null, selCable: null, verdictDirty: false, teleSig: '',
     sidebarHidden: pref('sidebar-hidden') === '1',
@@ -96,6 +97,10 @@ export async function startEditor(env) {
     onclick: () => { const open = ramList.hidden; ramList.hidden = !open; ramBtn.setAttribute('aria-expanded', String(open)); } },
   [el('span', 'ed-ram-label', { text: 'RAM' }), ' ', ramBar, ' ', ramText]);
   ramList.hidden = true;
+  const cpuFill = el('span', 'ed-cpu-fill');
+  const cpuText = el('span', 'ed-cpu-text', { text: '–' });
+  const cpuBtn = el('button', 'ed-cpu ed-icon', { type: 'button', onclick: () => { st.view = 'memory'; render(); } },
+    [el('span', 'ed-ram-label', { text: 'CPU' }), el('span', 'ed-cpu-bar', { 'aria-hidden': 'true' }, [cpuFill]), cpuText]);
   const title = el('span', 'ed-title', {}, [el('span', 'ed-brand', { text: 'Advanced editor' }), el('span', 'ed-project')]);
   // Reuse the panel's controls so their handlers and live enabled state have
   // one owner. Anchors return them to exactly the same place in Panel view.
@@ -132,7 +137,7 @@ export async function startEditor(env) {
   const appbar = el('div', 'ed-appbar', { role: 'toolbar', 'aria-label': 'Editor' }, [
     el('div', 'ed-appbar-start', {}, [sidebarBtn, title]),
     el('div', 'ed-appbar-mid', {}, [keysChip]),
-    el('div', 'ed-appbar-end', {}, [fileMenu, simulatorMenu, changesMenu, songFileTools, undoBtn, redoBtn, el('div', 'ed-ram-wrap', {}, [ramBtn, ramList])]),
+    el('div', 'ed-appbar-end', {}, [fileMenu, simulatorMenu, changesMenu, songFileTools, undoBtn, redoBtn, cpuBtn, el('div', 'ed-ram-wrap', {}, [ramBtn, ramList])]),
   ]);
   const transportTools = el('div', 'ed-transport-tools sq-transport-mount', { hidden: true });
   const topbars = el('div', 'ed-topbars', {}, [appbar, transportTools]);
@@ -284,6 +289,8 @@ export async function startEditor(env) {
   function attach() {
     if (!sim.node || st.node === sim.node) return;
     st.node = sim.node;
+    st.cpu = null;
+    renderCpu();
     st.teleSig = '';
     const ch = new MessageChannel();
     st.port = ch.port1;
@@ -302,7 +309,7 @@ export async function startEditor(env) {
   }
   function detach() {
     if (st.port) st.port.close();
-    Object.assign(st, { port: null, node: null, mirror: null, ram: null, panelView: null });
+    Object.assign(st, { port: null, node: null, mirror: null, ram: null, cpu: null, panelView: null });
     render();
   }
 
@@ -368,6 +375,7 @@ export async function startEditor(env) {
       case 'edited': onEdited(m.tag, m.codes); break;
       case 'view': onView(decodeView(m.bytes)); break;
       case 'ram': onRam(m); break;
+      case 'stats': st.cpu = m; renderCpu(); break;
       case 'telemetry':
         onTelemetry(new Float32Array(m.buffer));
         post({ type: 'telemetry-buffer', buffer: m.buffer }, [m.buffer]);
@@ -540,6 +548,7 @@ export async function startEditor(env) {
   function onRam(m) {
     st.ram = { total: m.total, budget: m.budget, parts: Array.from(m.parts) };
     renderRam();
+    renderCpu();
   }
   function renderRam() {
     const r = st.ram;
@@ -556,7 +565,8 @@ export async function startEditor(env) {
     }
     names.push(['Master', 'M1 and M2', 'ed-part-master'], ['Shared', 'Mix, sequencer, modulation', 'ed-part-rest']);
     const scale = Math.max(r.budget, r.total);
-    r.parts.forEach((bytes, i) => {
+    RAM_ORDER.forEach((i) => {
+      const bytes = r.parts[i] || 0;
       if (bytes > 0) ramBar.append(el('span', `ed-ram-seg ${names[i][2]}`, { style: `width:${(100 * bytes / scale).toFixed(2)}%` }));
       ramList.append(el('li', null, {}, [el('span', `ed-sw ${names[i][2]}`, { 'aria-hidden': 'true' }),
         el('span', 'ed-ram-name', { text: `${names[i][0]} ${names[i][1]}` }), el('b', null, { text: ramWords(bytes, r.budget) })]));
@@ -564,6 +574,16 @@ export async function startEditor(env) {
     ramList.append(el('li', 'ed-ram-free', {}, [el('span', 'ed-sw', { 'aria-hidden': 'true' }), el('span', 'ed-ram-name', { text: 'Free' }),
       el('b', null, { text: over ? 'none' : ramWords(r.budget - r.total, r.budget) })]));
     ramBtn.setAttribute('aria-label', `RAM ${ramText.textContent} of the FM-1's memory. Show it by part.`);
+  }
+
+  function renderCpu() {
+    const cpu = cpuPresentation(st.cpu, !!st.node);
+    cpuText.textContent = cpu.text;
+    cpuFill.style.width = `${cpu.percent}%`;
+    cpuBtn.classList.toggle('is-over', cpu.over);
+    cpuBtn.title = cpu.detail;
+    cpuBtn.setAttribute('aria-label', `CPU ${cpu.text}. ${cpu.detail} Show resource details.`);
+    project.updateCpu?.();
   }
 
   // ---- telemetry: the Flow's meters, only while they are seen (§12) ----------------------
@@ -833,6 +853,7 @@ export async function startEditor(env) {
     markPanelBlock();
     renderHistory();
     renderRam();
+    renderCpu();
     renderDetail();
     subscribe();
   }
