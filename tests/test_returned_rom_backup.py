@@ -66,6 +66,12 @@ def test_complete_exact_target_backup_and_marker(prepared,monkeypatch):
             address=int.from_bytes(op.cdb[2:6],'big')
             assert e['response_sha256']==r.digest(target[address:address+256])
     assert state.closed==[888] and len(state.calls)==8757
+    assert r.validate_read_receipt((receipt/'commands.jsonl').read_bytes(),result,c,
+        prepared.operations,target,target)[1]>=events[0]['time']
+    page_event=next(e for e in events if e['event']=='sg_completion' and e['index']==52)
+    page_event['response_sha256']='f'*64
+    with pytest.raises(ValueError):r.validate_read_receipt(
+        ('\n'.join(json.dumps(e) for e in events)).encode(),result,c,prepared.operations,target,target)
     c['receipt_path']+='-other'
     other=r.Prepared(r.canonical(c),'model-two',prepared.snapshot,(),(),b,reader.SGHeader,
         prepared.operations,prepared.request_inventory_sha256,'model',prepared.parent)
@@ -130,3 +136,76 @@ def test_nonregular_or_unbounded_inputs_refused(tmp_path,kind):
     elif kind=='symlink':p.symlink_to(__file__)
     else:p.write_bytes(b'x'*(2*1048576+1))
     with pytest.raises((OSError,ValueError)):r.read_file(p)
+
+
+@pytest.fixture
+def read_receipt(prepared,monkeypatch):
+    """Pure transcript model: no SG, disk fsync or opener registration."""
+    target=b''.join(bytes([i%256])*256 for i in range(4096))
+    monkeypatch.setattr(r,'TARGET_SHA',r.digest(target))
+    c=json.loads(prepared.campaign);now=time.time()-1
+    manifest=dict(campaign_sha256=prepared.campaign_sha256,
+        original_manifest_sha256=prepared.original_manifest_sha256,usb_binding=USB,
+        request_inventory_sha256=prepared.request_inventory_sha256,loader_sha256=b.LOADER_SHA,
+        loader_profile_sha256=b.PROFILE_SHA,current_flash_sha256=r.TARGET_SHA,
+        identical=True,command_completions=True,commands=8757,flash_bytes=1048576,
+        flash_readback_only=True,historical_unit_identity='FM-1_092',
+        physical_recovery_verified=False,boot_observed=False,display_observed=False,kernel_exclusivity=False,
+        dumps=[dict(file=name,bytes=1048576,sha256=r.TARGET_SHA,complete=True)
+            for name in ('dumpA.bin','dumpB.bin')])
+    rows=[dict(time=now,event='returned_backup_prepared',campaign_sha256=prepared.campaign_sha256,
+        adapter_sha256=c['adapter_sha256'],target_boot_campaign_sha256=c['target_boot_campaign_sha256'],
+        rom_snapshot_sha256=c['rom_snapshot_sha256'],original_manifest_sha256=prepared.original_manifest_sha256,
+        usb_binding=USB,commands=8757,request_inventory_sha256=prepared.request_inventory_sha256,
+        loader_sha256=b.LOADER_SHA,profile_sha256=b.PROFILE_SHA,
+        kernel_exclusivity=False,physical_recovery_verified=False)]
+    for i,op in enumerate(prepared.operations):
+        response='0'*64 if op.read_size else None
+        if op.label in ('dumpA.bin','dumpB.bin'):
+            address=int.from_bytes(op.cdb[2:6],'big');response=r.digest(target[address:address+256])
+        rows.extend([dict(time=now,event='sg_submit_intent',index=i,phase=op.phase,label=op.label,
+            cdb=op.cdb.hex(),payload_sha256=r.digest(op.payload) if op.payload else None,
+            out_len=len(op.payload),in_len=op.read_size,retry=False),
+            dict(time=now,event='sg_completion',index=i,status=0,masked=0,msg=0,host=0,
+                driver=0,resid=0,info=0,sense_len=0,sense_hex='',response_sha256=response,retry=False)])
+    rows.append(dict(time=now,event='returned_backup_completed',identical=True,bytes_per_dump=1048576,
+        target_sha256=r.TARGET_SHA,physical_recovery_verified=False,retry=False))
+    return prepared,c,manifest,rows,target
+
+
+def replay_receipt(fixture):
+    p,c,manifest,rows,target=fixture
+    return r.validate_read_receipt(b'\n'.join(r.canonical(e) for e in rows),
+        manifest,c,p.operations,target,target)
+
+
+def test_read_replay_is_evidence_only_and_complete(read_receipt,monkeypatch):
+    monkeypatch.setattr(b,'discover_sg',lambda _:pytest.fail('evidence opened hardware'))
+    assert replay_receipt(read_receipt)[0]==read_receipt[3][0]['time']
+
+
+@pytest.mark.parametrize('fault',['missing','extra','reordered','wrong_phase','wrong_cdb',
+    'wrong_payload','wrong_length','wrong_index','first_page_hash','last_page_hash',
+    'status','sense','residue','retry','flag','stopped','nonfinite','future','partial_dump'])
+def test_independent_read_replay_rejects_edited_receipts(read_receipt,fault):
+    p,c,manifest,rows,target=read_receipt
+    if fault=='missing':rows.pop(106)
+    elif fault=='extra':rows.insert(106,dict(rows[106]))
+    elif fault=='reordered':rows[105],rows[107]=rows[107],rows[105]
+    elif fault=='wrong_phase':rows[105]['phase']='rom'
+    elif fault=='wrong_cdb':rows[105]['cdb']='fc12'+'ff'*14
+    elif fault=='wrong_payload':rows[3]['payload_sha256']='f'*64
+    elif fault=='wrong_length':rows[105]['in_len']=512
+    elif fault=='wrong_index':rows[106]['index']=53
+    elif fault=='first_page_hash':rows[106]['response_sha256']='f'*64
+    elif fault=='last_page_hash':rows[-4]['response_sha256']='f'*64
+    elif fault=='status':rows[106]['status']=2
+    elif fault=='sense':rows[106]['sense_len']=1;rows[106]['sense_hex']='00'
+    elif fault=='residue':rows[106]['resid']=1
+    elif fault=='retry':rows[105]['retry']=True
+    elif fault=='flag':manifest['physical_recovery_verified']=True
+    elif fault=='stopped':rows[-1]['event']='returned_backup_stopped_ambiguous'
+    elif fault=='nonfinite':rows[0]['time']=float('inf')
+    elif fault=='future':rows[-1]['time']=time.time()+1000
+    elif fault=='partial_dump':manifest['dumps'][1]['bytes']=1048320
+    with pytest.raises(ValueError):replay_receipt(read_receipt)

@@ -100,3 +100,106 @@ def test_initial_full_target_gate_then_exact_restore_wire(prepared,monkeypatch):
     sg.exchange(cdb,payload,0)
     assert len(state.calls)==4098
     sg.close()
+
+
+@pytest.fixture(scope='module')
+def restore_transcript():
+    """Independent modeled durable wire transcript, with no SG/open/syscalls."""
+    import fm1_fixed_target_reset as replay
+    baseline=b'\xa5'*1048576
+    target=bytearray(baseline)
+    order=list(range(0x5000,0x22000,4096))+[0x4000]
+    for address in order:target[address:address+4096]=b'\x5a'*4096
+    target=bytes(target);rows=[];index=0
+    c=dict(adapter_sha256='adapter',returned_backup_campaign_sha256='backup',
+        returned_backup_manifest_sha256='manifest',install_journal_sha256='journal')
+    mapping=dict(node='/dev/sgMODELED')
+    def event(name,**fields):rows.append(dict(time=1+len(rows)*0.001,event=name,**fields))
+    def command(op,address=0,payload=b'',response=None):
+        nonlocal index
+        cdb,payload,size=replay.wire(op,address,payload)
+        event('sg_submit_intent',index=index,direction='restore',cdb=cdb.hex(),
+            out_len=len(payload),in_len=size,payload_sha256=r.digest(payload) if payload else None,retry=False)
+        event('sg_completion',index=index,direction='restore',status=0,masked=0,msg=0,
+            host=0,driver=0,resid=0,info=0,sense_len=0,sense_hex='',retry=False,
+            response_sha256=r.digest(response if response is not None else b'\x00'*size) if size else None)
+        index+=1
+    def read(image,address,size):
+        for page in range(address,address+size,256):command(0xFD05,page,response=image[page:page+256])
+    event('returned_restore_prepared',campaign_sha256='campaign',**c,sg_binding=mapping,
+        initial_journal_sha256=c['install_journal_sha256'],target_sha256=r.digest(target),
+        baseline_sha256=r.digest(baseline),direction='restore',boot_observed=False,
+        physical_recovery_verified=False,kernel_exclusivity=False)
+    # Prepared header names the journal only once under its emitted field.
+    rows[0].pop('install_journal_sha256')
+    command(0xFC0A);read(target,0,1048576);current=target
+    for address in order:
+        read(current,address,4096)
+        event('durable_intent',operation='erase',address=address)
+        command(0xFC0A);command(0xFB01,address)
+        event('operation_returned',operation='erase',address=address)
+        blank=current[:address]+b'\xff'*4096+current[address+4096:]
+        read(blank,address,4096)
+        for page in range(address,address+4096,256):
+            event('durable_intent',operation='program',address=page)
+            command(0xFC0A);command(0xFB04,page,baseline[page:page+256])
+            event('operation_returned',operation='program',address=page)
+        current=current[:address]+baseline[address:address+4096]+current[address+4096:]
+        read(current,address,4096);event('sector_verified',address=address)
+    read(baseline,0,1048576)
+    result=dict(campaign_sha256='campaign',direction='restore',initial_full_target_readback_verified=True,
+        verified_sha256=r.digest(baseline),full_flash_readback_verified=True,sectors_written=30,
+        stock_baseline_restored=True,boot_observed=False,physical_recovery_verified=False,kernel_exclusivity=False)
+    event('returned_restore_completed',**result)
+    return rows,result,c,mapping,baseline,target,order,replay.Replay
+
+
+def check_transcript(fixture,monkeypatch,rows=None,result=None):
+    original,expected,c,mapping,baseline,target,order,replay=fixture
+    monkeypatch.setattr(r,'BASELINE_SHA',r.digest(baseline));monkeypatch.setattr(r,'TARGET_SHA',r.digest(target))
+    raw=b'\n'.join(r.canonical(row) for row in (original if rows is None else rows))+b'\n'
+    return r.verify_restore_receipt(raw,expected if result is None else result,c,'campaign',mapping,
+        baseline,target,order,replay)
+
+
+def test_complete_restore_receipt_proves_initial_target_and_final_stock(restore_transcript,monkeypatch):
+    start,end=check_transcript(restore_transcript,monkeypatch)
+    assert start==1 and end>start
+
+
+@pytest.mark.parametrize('fault',['missing','extra','reorder','initial-page','final-page','status',
+    'sense','residue','retry','erase-address','program-payload','program-crc','intent-address',
+    'sector-order','direction','index','future','nonfinite','stopped','boot-claim','result-only',
+    'partial-target','partial-stock'])
+def test_restore_receipt_rejects_corrupt_or_incomplete_evidence(restore_transcript,monkeypatch,fault):
+    import copy,time
+    rows,result,c,mapping,baseline,target,order,replay=restore_transcript
+    rows=copy.deepcopy(rows);result=copy.deepcopy(result)
+    intents=[i for i,e in enumerate(rows) if e['event']=='sg_submit_intent']
+    reads=[i for i in intents if rows[i]['cdb'].startswith('fd05')]
+    erase=next(i for i in intents if rows[i]['cdb'].startswith('fb01'))
+    program=next(i for i in intents if rows[i]['cdb'].startswith('fb04'))
+    durable=next(i for i,e in enumerate(rows) if e['event']=='durable_intent')
+    if fault=='missing':rows.pop(3)
+    elif fault=='extra':rows.insert(4,copy.deepcopy(rows[3]))
+    elif fault=='reorder':rows[3],rows[4]=rows[4],rows[3]
+    elif fault=='initial-page':rows[reads[0]+1]['response_sha256']='0'*64
+    elif fault=='final-page':rows[reads[-1]+1]['response_sha256']='0'*64
+    elif fault in ('status','sense','residue'):
+        rows[3+1][dict(status='status',sense='sense_len',residue='resid')[fault]]=1
+    elif fault=='retry':rows[erase]['retry']=True
+    elif fault=='erase-address':rows[erase]['cdb']=(b'\xfb\x01'+b'\x00'*4+b'\xff'*10).hex()
+    elif fault=='program-payload':rows[program]['payload_sha256']='0'*64
+    elif fault=='program-crc':rows[program]['cdb']=rows[program]['cdb'][:18]+'0000'+rows[program]['cdb'][22:]
+    elif fault=='intent-address':rows[durable]['address']=0
+    elif fault=='sector-order':next(e for e in rows if e['event']=='sector_verified')['address']=0x4000
+    elif fault=='direction':rows[erase]['direction']='install'
+    elif fault=='index':rows[program]['index']+=1
+    elif fault=='future':rows[-1]['time']=time.time()+1
+    elif fault=='nonfinite':rows[0]['time']=float('nan')
+    elif fault=='stopped':rows.append(dict(time=rows[-1]['time'],event='returned_restore_stopped_ambiguous'))
+    elif fault=='boot-claim':rows[-1]['boot_observed']=True
+    elif fault=='result-only':result['stock_baseline_restored']=False
+    elif fault=='partial-target':restore_transcript=(*restore_transcript[:5],target[:-1],*restore_transcript[6:])
+    elif fault=='partial-stock':restore_transcript=(*restore_transcript[:4],baseline[:-1],*restore_transcript[5:])
+    with pytest.raises(ValueError):check_transcript(restore_transcript,monkeypatch,rows,result)

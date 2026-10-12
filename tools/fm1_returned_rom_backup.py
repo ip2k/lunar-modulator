@@ -23,6 +23,7 @@ import time
 import types
 from weakref import WeakSet
 
+REHEARSAL_SHA = 'f696484511754b91d4faf449aa2e4cab3ca910daf05a9acd66daa966bae7d6c4'
 TARGET_RESET_SHA = 'b846b574fe1e5b7597001f6f833044a07143540f2c0b3676e93bac807869833a'
 APP_SHA = '991b569df7d131320e42ef34c1b619de586d2a7ba6236c0ea1c089731eb61fa9'
 ELF_SHA = '8832aa4677a7da3aa7871da58a092e5c3e69d766b31d5e67744301ce437979e2'
@@ -30,6 +31,8 @@ TARGET_SHA = 'df6c963ecd37b334f393c5bc92c2780b6094181308822a03c8190b016a4e97db'
 MAX_SNAPSHOT_AGE = 120
 LIVE_SECONDS = 10
 BACKUP_SOURCE_SHA = '79bbe99ce923daaf8af2c701a65ec39a015191313de79676e36622cb8db00afb'
+PROVENANCE_SOURCE_SHA = None  # Separate returned-state helper must freeze.
+PROBE_WRAPPER_SHA = None  # Failed-probe branch requires independently reviewed wrapper.
 _AUTHORIZED = WeakSet()
 
 
@@ -116,6 +119,7 @@ class Prepared:
     request_inventory_sha256: str
     original_manifest_sha256: str
     parent: Path
+    provenance: object = None
 
     def check(self):
         require_prepared(self, check=False)
@@ -124,6 +128,8 @@ class Prepared:
                 raise ValueError('Frozen returned-ROM evidence changed')
         for policy in self.policies:
             policy.check_files()
+        if self.provenance is not None:
+            self.provenance.check()
         if self.request_inventory_sha256 != self.bridge.inventory_digest(self.operations):
             raise ValueError('Frozen command inventory changed')
 
@@ -160,8 +166,70 @@ def inventory(bridge,reader,loader,profile):
     return tuple(operations)
 
 
-def prepare_campaign(path):
-    """Offline file validation only. No discovery, SG open, or injected call."""
+
+def validate_read_receipt(raw, manifest, config, operations, dump_a, dump_b):
+    """Replay all completed reads; evidence only, never an opener capability.
+
+    Source/provenance/marker validation belongs to the completed-backup factory.
+    This independently checks command framing, chronology, SG status and every
+    returned target page hash against the two actual complete dump files.
+    """
+    rows = [json.loads(line) for line in raw.decode('utf8').splitlines()]
+    times = [row.get('time') for row in rows]
+    if (len(operations) != 8757 or len(rows) != 17516 or
+            not all(finite_time(t) for t in times) or times != sorted(times) or times[-1] > time.time() or
+            len(dump_a) != 1048576 or dump_a != dump_b or digest(dump_a) != TARGET_SHA or
+            manifest.get('current_flash_sha256') != TARGET_SHA or manifest.get('identical') is not True or
+            manifest.get('command_completions') is not True or manifest.get('commands') != 8757 or
+            manifest.get('flash_bytes') != 1048576 or manifest.get('flash_readback_only') is not True or
+            manifest.get('historical_unit_identity') != 'FM-1_092'):
+        raise ValueError('Complete chronological exact dual-target read receipt required')
+    first = dict(event='returned_backup_prepared', campaign_sha256=manifest['campaign_sha256'],
+        adapter_sha256=config['adapter_sha256'],
+        target_boot_campaign_sha256=config['target_boot_campaign_sha256'],
+        rom_snapshot_sha256=config['rom_snapshot_sha256'],
+        original_manifest_sha256=manifest['original_manifest_sha256'],
+        usb_binding=manifest['usb_binding'], commands=8757,
+        request_inventory_sha256=manifest['request_inventory_sha256'],
+        loader_sha256=manifest['loader_sha256'], profile_sha256=manifest['loader_profile_sha256'],
+        kernel_exclusivity=False, physical_recovery_verified=False)
+    last = dict(event='returned_backup_completed', identical=True, bytes_per_dump=1048576,
+        target_sha256=TARGET_SHA, physical_recovery_verified=False, retry=False)
+    def same(row, expected):
+        return canonical({k:v for k,v in row.items() if k != 'time'}) == canonical(expected)
+    if (not same(rows[0], first) or not same(rows[-1], last) or
+            any(manifest.get(k) is not False for k in ('physical_recovery_verified',
+                'boot_observed','display_observed','kernel_exclusivity'))):
+        raise ValueError('Returned-backup envelope or acceptance flags differ')
+    for index, op in enumerate(operations):
+        intent, completed = rows[1+index*2:3+index*2]
+        wanted = dict(event='sg_submit_intent', index=index, phase=op.phase, label=op.label,
+            cdb=op.cdb.hex(), payload_sha256=digest(op.payload) if op.payload else None,
+            out_len=len(op.payload), in_len=op.read_size, retry=False)
+        response = completed.get('response_sha256')
+        if op.label in ('dumpA.bin','dumpB.bin'):
+            address = int.from_bytes(op.cdb[2:6], 'big')
+            expected_response = digest(dump_a[address:address+256])
+        elif not op.read_size:
+            expected_response = None
+        else:
+            if not isinstance(response,str) or len(response) != 64 or any(c not in '0123456789abcdef' for c in response):
+                raise ValueError('Bounded protocol reply digest missing')
+            expected_response = response  # Flags/JEDEC/echo are guarded at execution; bytes unavailable here.
+        status = dict(event='sg_completion',index=index,status=0,masked=0,msg=0,host=0,
+            driver=0,resid=0,info=0,sense_len=0,sense_hex='',response_sha256=expected_response,retry=False)
+        if not same(intent,wanted) or not same(completed,status):
+            raise ValueError('Exact returned read command/completion/page hash differs')
+    dumps = [dict(file=name,bytes=1048576,sha256=TARGET_SHA,complete=True)
+             for name in ('dumpA.bin','dumpB.bin')]
+    if canonical(manifest.get('dumps')) != canonical(dumps):
+        raise ValueError('Durable complete dump records differ')
+    return times[0], times[-1]
+
+def _validate_campaign(path, *, evaluated_at, completed=False, install_journal_path=None):
+    """Shared file proof; returned Prepared is not registered as authority."""
+    if not finite_time(evaluated_at) or evaluated_at > time.time():
+        raise ValueError('Finite historical admission time required')
     evidence = []
 
     def freeze(path, expected=None, limit=2 * 1048576):
@@ -177,130 +245,66 @@ def prepare_campaign(path):
     keys = {'schema', 'kind', 'adapter_sha256', 'target_boot_campaign_path',
         'target_boot_campaign_sha256', 'target_boot_commands_sha256', 'target_boot_exit_status',
         'loader_path', 'profile_path', 'profile_source_path', 'optional_stage_probe',
-        'rom_snapshot_path', 'rom_snapshot_sha256', 'active_session_state', 'receipt_path'}
+        'rom_snapshot_path', 'rom_snapshot_sha256', 'active_session_state', 'receipt_path',
+        'returned_state_campaign_path', 'returned_state_campaign_sha256', 'provenance_mode', 'probe_capture_path'}
     if (set(c) != keys or type(c['schema']) is not int or c['schema'] != 1 or
             c['kind'] != 'fm1-exact-target-returned-rom-backup' or
-            type(c['target_boot_exit_status']) is not int or c['target_boot_exit_status'] != 0 or
+            type(c['target_boot_exit_status']) is not int or c['target_boot_exit_status'] != (1 if c.get('provenance_mode') == 'detached' else 0) or
             c['active_session_state'] != 'returned-rom-no-later-commands-no-loader-upload'):
         raise ValueError('Exact returned-ROM backup policy required')
-    if c['optional_stage_probe'] is not None:
-        raise ValueError('Optional probe requires its separately frozen receipt gate')
+    if c['provenance_mode'] not in ('successful','detached'):
+        raise ValueError('Exact returned reset provenance mode required')
     root = Path(__file__).absolute().parent
     freeze(Path(__file__).absolute(), c['adapter_sha256'])
-    reset_path = root / 'fm1_fixed_target_reset.py'
-    freeze(reset_path, TARGET_RESET_SHA)
-    r = load_source(reset_path, TARGET_RESET_SHA, '_fm1_stage_verified_target_reset')
-    freeze(root / 'fm1_fixed_loader_reset.py', r.RESET_SOURCE_SHA)
-    freeze(root / 'fm1_sdk_install.py', r.INSTALL_SOURCE_SHA)
-    rehearsal_path = root / 'fm1_sdk_rehearsal.py'
-    freeze(rehearsal_path, r.REHEARSAL_SOURCE_SHA)
-    rehearsal = load_source(rehearsal_path, r.REHEARSAL_SOURCE_SHA, '_fm1_stage_verified_rehearsal')
-    for name, sha in rehearsal.SOURCES.items():
-        freeze(root / name, sha)
-    modules = rehearsal.imports()
-    boot_raw = freeze(c['target_boot_campaign_path'], c['target_boot_campaign_sha256'], 65536)
-    boot = json.loads(boot_raw)
-    keys = {'schema', 'kind', 'adapter_sha256', 'install_adapter_path',
-        'install_campaign_path', 'install_campaign_sha256', 'install_commands_sha256',
-        'install_result_sha256', 'install_exit_status', 'journal_sha256',
-        'active_session_state', 'usb_binding', 'sg_binding', 'receipt_path',
-        'target_sha256', 'target_boot_authorization'}
-    if (set(boot) != keys or type(boot['schema']) is not int or boot['schema'] != 1 or
-            boot['kind'] != 'fm1-fixed-loader-sdk-target-reset' or boot['adapter_sha256'] != TARGET_RESET_SHA or
-            Path(boot['install_adapter_path']) != root / 'fm1_sdk_install.py' or
-            type(boot['install_exit_status']) is not int or boot['install_exit_status'] != 0 or
-            boot['active_session_state'] != 'same-fixed-loader-installed-target-no-later-commands' or
-            boot['target_sha256'] != TARGET_SHA or boot['target_boot_authorization'] != 'exact-sdk-display-diagnostic'):
-        raise ValueError('Exact target-boot campaign required')
-    install = json.loads(freeze(boot['install_campaign_path'], boot['install_campaign_sha256'], 65536))
-    if (set(install) != {'schema','kind','adapter_sha256','rehearsal_campaign_path','rehearsal_campaign_sha256','receipt_path'} or
-            type(install['schema']) is not int or install['schema'] != 1 or
-            install['kind'] != 'fm1-exact-sdk-install-only' or install['adapter_sha256'] != r.INSTALL_SOURCE_SHA):
-        raise ValueError('Exact install-only envelope required')
-    campaign = json.loads(freeze(install['rehearsal_campaign_path'], install['rehearsal_campaign_sha256'], 65536))
-    if (set(campaign) != {'schema','kind','adapter_sha256','policy_inputs','backup_exit_status',
-            'backup_commands_sha256','active_session_state','sg_binding','receipt_path'} or
-            type(campaign['schema']) is not int or campaign['schema'] != 1 or
-            campaign['kind'] != 'fm1-exact-sdk-install-restore-rehearsal' or
-            campaign['adapter_sha256'] != r.REHEARSAL_SOURCE_SHA or
-            type(campaign['backup_exit_status']) is not int or campaign['backup_exit_status'] != 0 or
-            campaign['active_session_state'] != 'matching-backup-no-later-commands' or
-            canonical(campaign['sg_binding']) != canonical(boot['sg_binding'])):
-        raise ValueError('Exact backing rehearsal envelope required')
-    inputs = campaign['policy_inputs']
-    policies = tuple(modules['fm1_bound_sdk_diagnostic'].load_policy(**inputs,
-        direction=d, baseline_profile='fixed-loader') for d in ('install','restore'))
-    plan, journal, baseline, target = modules['fm1_flash_transaction'].load_transaction(inputs['directory'])
-    freeze(Path(inputs['directory']) / 'journal.json', boot['journal_sha256'], 65536)
-    if (digest(baseline) != rehearsal.BASELINE_SHA or digest(target) != TARGET_SHA or
-            journal['state'] != 'complete' or journal['direction'] != 'install' or
-            journal['intent'] is not None or journal['verified_sha256'] != TARGET_SHA or
-            plan['writable_ranges'] != [[a,a+4096] for a in range(0x4000,0x22000,4096)] or
-            plan['commit_sector'] != 0x4000 or plan['sector_order'] != list(range(0x5000,0x22000,4096))+[0x4000]):
-        raise ValueError('Exact completed target transaction required')
-    # The pinned SDK policy checks the actual APP/ELF, not only manifest assertions.
-    if digest(read_file(inputs['app_path'])) != APP_SHA or digest(read_file(inputs['elf_path'])) != ELF_SHA:
-        raise ValueError('Exact current diagnostic native bytes required')
-    manifest_raw = freeze(inputs['manifest_path'], limit=65536)
-    manifest = json.loads(manifest_raw)
-    bridge = modules['fm1_fixed_loader_backup']
-    bridge.validate_usb(boot['usb_binding'])
-    if (canonical(manifest['usb_binding']) != canonical(boot['usb_binding']) or
-            canonical(manifest['sg_binding']) != canonical(boot['sg_binding'])):
-        raise ValueError('Original install connection differs')
-    backup = json.loads(freeze(inputs['campaign_path'], limit=65536))
-    backup_raw = freeze(inputs['backup_log_path'], campaign['backup_commands_sha256'], 8*1048576)
-    backup_done = r.reset.validate_commands(backup_raw, manifest,
-        dict(backup, entry_log_path=inputs['entry_log_path']), bridge)
-    parent = Path(inputs['manifest_path']).parent
-    install_receipt, boot_receipt = Path(install['receipt_path']), Path(boot['receipt_path'])
-    if (install['receipt_path'] != campaign['receipt_path'] or
-            install_receipt.parent != parent or boot_receipt.parent != parent or
-            not stat.S_ISDIR(install_receipt.lstat().st_mode) or not stat.S_ISDIR(boot_receipt.lstat().st_mode)):
-        raise ValueError('Original direct receipts required')
-    result = json.loads(freeze(install_receipt/'result.json', boot['install_result_sha256'],65536))
-    commands = freeze(install_receipt/'commands.jsonl', boot['install_commands_sha256'],32*1048576)
-    if not finite_time(json.loads(commands.splitlines()[0]).get('time')) or json.loads(commands.splitlines()[0])['time'] < backup_done:
-        raise ValueError('Install chronology differs')
-    install_done = r.verify_install(commands,result,install,boot['install_campaign_sha256'],
-        campaign,rehearsal.SOURCES,baseline,target,plan['sector_order'])
-    if freeze(parent/'.sdk-rehearsal.consumed',limit=256) != boot['install_campaign_sha256'].encode('ascii'):
-        raise ValueError('Original consumed install required')
-    if freeze(parent/'.target-core-reset.consumed',limit=256) != c['target_boot_campaign_sha256'].encode('ascii'):
-        raise ValueError('Original consumed target boot required')
-    boot_done = verify_boot(freeze(boot_receipt/'commands.jsonl',c['target_boot_commands_sha256'],65536),
-        boot,c['target_boot_campaign_sha256'],digest(manifest_raw),install_done)
+    helper_path = root / 'fm1_diagnostic_detached_probe.py'
+    freeze(helper_path, PROVENANCE_SOURCE_SHA)
+    helper = load_source(helper_path, PROVENANCE_SOURCE_SHA, '_fm1_returned_state_proof')
+    state_raw = freeze(c['returned_state_campaign_path'], c['returned_state_campaign_sha256'], 65536)
+    state = json.loads(state_raw)
+    for field in ('target_boot_campaign_path','target_boot_campaign_sha256',
+            'target_boot_commands_sha256','target_boot_exit_status','rom_snapshot_path','rom_snapshot_sha256'):
+        if state.get(field) != c[field]:
+            raise ValueError('Exact returned-state envelope identity differs')
+    if install_journal_path is not None and not completed:
+        raise ValueError('Historical journal cannot grant fresh opener authority')
+    proof = helper.validate_returned_state(c['returned_state_campaign_path'], evaluated_at=evaluated_at,
+        completed_probe=c['optional_stage_probe'], probe_capture=c['probe_capture_path'],
+        provenance_mode=c['provenance_mode'], install_journal_path=install_journal_path,
+        probe_wrapper_sha256=PROBE_WRAPPER_SHA)
+    for item in proof.evidence:
+        freeze(item[0],digest(item[1]),item[2])
+    policies = proof.policies
+    for policy in policies:
+        for item in policy.evidence:
+            freeze(item[0],digest(item[1]),item[2])
+        for name in ('plan.json','backupA.bin','backupB.bin','target.bin'):
+            freeze(policy.directory/name)
+        policy.check_files()
+    # Mutable transaction journal is excluded by the evidence-only proof, while
+    # genuine SDK policy checks retain all immutable plan/image/artifact gates.
     snapshot_raw = freeze(c['rom_snapshot_path'],c['rom_snapshot_sha256'],65536)
     snapshot = json.loads(snapshot_raw)
-    if (set(snapshot) != {'schema','kind','observed_at','usb_binding','sg_binding',
-            'target_boot_campaign_sha256','quiet_state'} or
-            type(snapshot['schema']) is not int or snapshot['schema'] != 1 or
-            snapshot['kind'] != 'fm1-passive-post-target-boot-rom' or
-            snapshot['target_boot_campaign_sha256'] != c['target_boot_campaign_sha256'] or
-            snapshot['quiet_state'] != 'initial-rom-no-later-commands-no-loader-upload' or
-            not finite_time(snapshot['observed_at']) or snapshot['observed_at'] < boot_done or
-            not 0 <= time.time()-snapshot['observed_at'] <= MAX_SNAPSHOT_AGE):
-        raise ValueError('Fresh passive initial-ROM snapshot required')
-    bridge.validate_usb(snapshot['usb_binding'])
-    usb, previous = snapshot['usb_binding'], boot['usb_binding']
-    if (any(usb[k] != previous[k] for k in ('path','busnum','vid','pid')) or
-            usb['devnum'] == previous['devnum'] or
-            canonical(snapshot['sg_binding']) == canonical(boot['sg_binding'])):
-        raise ValueError('Fresh ROM enumeration on original port required')
-    mapping=snapshot['sg_binding']
-    if (set(mapping) != {'node','class','device','usb','node_identity','class_identity','device_identity','usb_identity'} or
-            not all(type(mapping[k]) is str and Path(mapping[k]).is_absolute() for k in ('node','class','device','usb')) or
-            not all(type(mapping[k]) is list and len(mapping[k])==3 and
-                all(type(v) is int and v>=0 for v in mapping[k]) for k in
-                ('node_identity','class_identity','device_identity','usb_identity')) or
-            mapping['usb_identity']==boot['sg_binding']['usb_identity']):
-        raise ValueError('Complete fresh passive SG/sysfs mapping required')
+    if canonical(snapshot) != proof.snapshot:
+        raise ValueError('Returned-state passive binding differs')
+    parent = Path(proof.private_parent)
+    mapping = snapshot['sg_binding']
+    rehearsal_path = root / 'fm1_sdk_rehearsal.py'
+    freeze(rehearsal_path, REHEARSAL_SHA)
+    rehearsal = load_source(rehearsal_path,REHEARSAL_SHA,'_fm1_returned_state_rehearsal')
+    for name,sha in rehearsal.SOURCES.items():freeze(root/name,sha)
+    modules = rehearsal.imports()
+    bridge = modules['fm1_fixed_loader_backup']
     destination = Path(c['receipt_path'])
     marker = parent/('.returned-rom-'+c['target_boot_campaign_sha256']+'.consumed')
-    if (not destination.is_absolute() or destination.parent != parent or destination.exists() or
-            marker.exists() or not stat.S_ISDIR(parent.lstat().st_mode) or
+    if (not destination.is_absolute() or destination.parent != parent or
+            (not completed and (destination.exists() or marker.exists())) or
+            not stat.S_ISDIR(parent.lstat().st_mode) or
             stat.S_IMODE(parent.stat().st_mode) != 0o700):
         raise ValueError('New private returned-ROM receipt and unconsumed origin required')
+    if completed and (not stat.S_ISDIR(destination.lstat().st_mode) or
+            stat.S_IMODE(destination.stat().st_mode) != 0o700 or
+            freeze(marker,limit=256) != digest(raw).encode('ascii')):
+        raise ValueError('Exact consumed returned-ROM receipt required')
     loader = freeze(c['loader_path'], bridge.LOADER_SHA)
     profile = json.loads(freeze(c['profile_path'],bridge.PROFILE_SHA))
     if len(loader) != bridge.LOADER_SIZE:
@@ -309,11 +313,69 @@ def prepare_campaign(path):
     operations = inventory(bridge,modules['fm1_uboot_read'],loader,profile)
     p = Prepared(canonical(c),digest(raw),canonical(snapshot),tuple(evidence),policies,
         bridge,modules['fm1_uboot_read'].SGHeader,operations,bridge.inventory_digest(operations),
-        digest(manifest_raw),parent)
+        proof.manifest_sha256,parent,proof)
     if C.sizeof(p.header_type) != 88:
         raise ValueError('Reviewed Linux SG layout required')
-    _AUTHORIZED.add(p); p.check()
+    lineage = dict(original_rehearsal_campaign_sha256=proof.original_rehearsal_campaign_sha256,
+        policy_inputs=json.loads(proof.original_inputs), install_journal_sha256=proof.install_journal_sha256)
+    return p, lineage
+
+
+def prepare_campaign(path):
+    """Offline fresh admission; only this factory grants opener authority."""
+    p, _ = _validate_campaign(path,evaluated_at=time.time())
+    _AUTHORIZED.add(p);p.check()
     return p
+
+
+def validate_completed_backup(path, *, campaign_sha256, manifest_sha256,
+        commands_sha256, freeze, install_journal_path=None):
+    """Evidence-only replay at recorded admission, never register or open SG.
+
+    Full dual dumps and all request/completion/page hashes are checked. A trusted
+    caller still attests exit zero and no later commands; files do not establish
+    current topology or exclusive kernel ownership. No old marker is rewritten.
+    """
+    raw=freeze(Path(path),campaign_sha256,65536)
+    c=json.loads(raw)
+    receipt=Path(c['receipt_path'])
+    manifest=json.loads(freeze(receipt/'manifest.json',manifest_sha256,65536))
+    commands=freeze(receipt/'commands.jsonl',commands_sha256,8*1048576)
+    first=json.loads(commands.splitlines()[0])
+    p,lineage=_validate_campaign(path,evaluated_at=first.get('time'),completed=True,
+        install_journal_path=install_journal_path)
+    snapshot=json.loads(p.snapshot)
+    dumps=[freeze(receipt/name,TARGET_SHA,1048576) for name in ('dumpA.bin','dumpB.bin')]
+    expected=dict(schema=1,kind='fm1-returned-rom-fixed-loader-target-backup',
+        campaign_sha256=p.campaign_sha256,adapter_sha256=c['adapter_sha256'],
+        target_boot_campaign_sha256=c['target_boot_campaign_sha256'],
+        rom_snapshot_sha256=c['rom_snapshot_sha256'],optional_stage_probe=c['optional_stage_probe'],
+        returned_state_campaign_sha256=c['returned_state_campaign_sha256'],
+        provenance_mode=c['provenance_mode'],provenance_source_sha256=PROVENANCE_SOURCE_SHA,
+        probe_capture_path=c['probe_capture_path'],probe_wrapper_sha256=PROBE_WRAPPER_SHA,
+        original_manifest_sha256=p.original_manifest_sha256,
+        loader_sha256=p.bridge.LOADER_SHA,original_loader_sha256=p.bridge.ORIGINAL_SHA,
+        loader_profile_sha256=p.bridge.PROFILE_SHA,profile_source_sha256=p.bridge.PROFILE_SOURCE_SHA,
+        dependency_sha256=dict(fixed_loader_backup=BACKUP_SOURCE_SHA,reader=p.bridge.READER_SHA),
+        request_inventory_sha256=p.request_inventory_sha256,
+        usb_binding=snapshot['usb_binding'],sg_binding=snapshot['sg_binding'],
+        flash_bytes=1048576,dumps=[dict(file=name,bytes=1048576,sha256=TARGET_SHA,complete=True)
+            for name in ('dumpA.bin','dumpB.bin')],identical=True,command_completions=True,commands=8757,
+        flash_readback_only=True,historical_unit_identity='FM-1_092',current_flash_sha256=TARGET_SHA,
+        physical_recovery_verified=False,boot_observed=False,display_observed=False,kernel_exclusivity=False)
+    if canonical(manifest)!=canonical(expected):
+        raise ValueError('Exact completed returned-backup manifest required')
+    started,ended=validate_read_receipt(commands,manifest,c,p.operations,*dumps)
+    if not snapshot['observed_at']<=started<=ended or ended-started>900:
+        raise ValueError('Returned-backup admission/whole-campaign chronology differs')
+    for evidence_path,data,limit in p.evidence:
+        if freeze(evidence_path,digest(data),limit)!=data:
+            raise ValueError('Completed provenance changed during validation')
+    for policy in p.policies:policy.check_files()
+    p.provenance.check()
+    return dict(**lineage,usb_binding=snapshot['usb_binding'],sg_binding=snapshot['sg_binding'],
+        request_inventory_sha256=p.request_inventory_sha256,loader_sha256=p.bridge.LOADER_SHA,
+        receipt_path=str(receipt),completed_at=ended)
 
 
 class FixedSG:
@@ -473,7 +535,10 @@ def run_campaign(prepared):
             result=dict(schema=1,kind='fm1-returned-rom-fixed-loader-target-backup',
                 campaign_sha256=prepared.campaign_sha256,adapter_sha256=c['adapter_sha256'],
                 target_boot_campaign_sha256=c['target_boot_campaign_sha256'],
-                rom_snapshot_sha256=c['rom_snapshot_sha256'],optional_stage_probe=None,
+                rom_snapshot_sha256=c['rom_snapshot_sha256'],optional_stage_probe=c['optional_stage_probe'],
+        returned_state_campaign_sha256=c['returned_state_campaign_sha256'],
+        provenance_mode=c['provenance_mode'],provenance_source_sha256=PROVENANCE_SOURCE_SHA,
+        probe_capture_path=c['probe_capture_path'],probe_wrapper_sha256=PROBE_WRAPPER_SHA,
                 original_manifest_sha256=prepared.original_manifest_sha256,
                 loader_sha256=prepared.bridge.LOADER_SHA,original_loader_sha256=prepared.bridge.ORIGINAL_SHA,
                 loader_profile_sha256=prepared.bridge.PROFILE_SHA,

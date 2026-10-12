@@ -10,6 +10,7 @@ import argparse
 from dataclasses import dataclass
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import stat
@@ -22,6 +23,7 @@ BACKUP_SOURCE_SHA = None  # Fail closed until separate backup/helper freeze.
 REHEARSAL_SOURCE_SHA = 'f696484511754b91d4faf449aa2e4cab3ca910daf05a9acd66daa966bae7d6c4'
 BASELINE_SHA = '96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4'
 TARGET_SHA = 'df6c963ecd37b334f393c5bc92c2780b6094181308822a03c8190b016a4e97db'
+REPLAY_SOURCE_SHA = 'b846b574fe1e5b7597001f6f833044a07143540f2c0b3676e93bac807869833a'
 _AUTHORIZED = WeakSet()
 _POLICIES = WeakSet()
 
@@ -252,6 +254,128 @@ def transport_type(prepared):
     return RestoreSG
 
 
+def verify_restore_receipt(raw, result, c, campaign_sha, mapping, baseline, target,
+        order, replay_type):
+    """Strict one-restore replay, including initial target and final stock pages."""
+    events=[json.loads(line) for line in raw.decode('utf8').splitlines()]
+    times=[e.get('time') for e in events]
+    if (not events or len(events)>100000 or
+            not all(type(t) in (int,float) and math.isfinite(t) for t in times) or
+            times!=sorted(times) or times[-1]>time.time() or
+            digest(baseline)!=BASELINE_SHA or digest(target)!=TARGET_SHA or
+            order!=list(range(0x5000,0x22000,4096))+[0x4000]):
+        raise ValueError('Exact chronological returned-stock restore required')
+    cursor=replay_type(events)
+    cursor.event('returned_restore_prepared',campaign_sha256=campaign_sha,
+        adapter_sha256=c['adapter_sha256'],returned_backup_campaign_sha256=c['returned_backup_campaign_sha256'],
+        returned_backup_manifest_sha256=c['returned_backup_manifest_sha256'],sg_binding=mapping,
+        initial_journal_sha256=c['install_journal_sha256'],target_sha256=TARGET_SHA,
+        baseline_sha256=BASELINE_SHA,direction='restore',boot_observed=False,
+        physical_recovery_verified=False,kernel_exclusivity=False)
+    cursor.direction,cursor.index='restore',0
+    cursor.command(0xFC0A);cursor.read(target,0,1048576)
+    current,changed=target,0
+    for address in order:
+        sector,actual=baseline[address:address+4096],current[address:address+4096]
+        cursor.read(current,address,4096)
+        if actual==sector:continue
+        if actual!=b'\xff'*4096:
+            cursor.event('durable_intent',operation='erase',address=address)
+            cursor.command(0xFC0A);cursor.command(0xFB01,address)
+            cursor.event('operation_returned',operation='erase',address=address)
+        blank=current[:address]+b'\xff'*4096+current[address+4096:]
+        cursor.read(blank,address,4096)
+        for page in range(address,address+4096,256):
+            payload=baseline[page:page+256]
+            if payload!=b'\xff'*256:
+                cursor.event('durable_intent',operation='program',address=page)
+                cursor.command(0xFC0A);cursor.command(0xFB04,page,payload)
+                cursor.event('operation_returned',operation='program',address=page)
+        current=current[:address]+sector+current[address+4096:]
+        cursor.read(current,address,4096)
+        cursor.event('sector_verified',address=address);changed+=1
+    cursor.read(baseline,0,1048576)
+    expected=dict(campaign_sha256=campaign_sha,direction='restore',
+        initial_full_target_readback_verified=True,verified_sha256=BASELINE_SHA,
+        full_flash_readback_verified=True,sectors_written=changed,stock_baseline_restored=True,
+        boot_observed=False,physical_recovery_verified=False,kernel_exclusivity=False)
+    cursor.event('returned_restore_completed',**expected)
+    if changed!=30 or cursor.position!=len(events) or canonical(result)!=canonical(expected):
+        raise ValueError('Exact 30-sector terminal restore result required')
+    return times[0],times[-1]
+
+
+def validate_completed_restore(path, *, campaign_sha256, commands_sha256,
+        result_sha256, journal_sha256, freeze):
+    """Evidence only: no live factory, marker absence, discovery or SG opener.
+
+    Historical install is reconstructed from the preserved pre-restore journal;
+    the current journal independently proves complete/restore. Exit zero and no
+    later commands remain explicit trusted operator premises at the caller.
+    """
+    raw=freeze(Path(path),campaign_sha256,65536);c=json.loads(raw)
+    keys={'schema','kind','adapter_sha256','returned_backup_campaign_path',
+        'returned_backup_campaign_sha256','returned_backup_manifest_sha256',
+        'returned_backup_commands_sha256','returned_backup_exit_status',
+        'original_rehearsal_campaign_path','original_rehearsal_campaign_sha256',
+        'install_journal_sha256','active_session_state','receipt_path'}
+    if (set(c)!=keys or type(c['schema']) is not int or c['schema']!=1 or
+            c['kind']!='fm1-returned-rom-stock-restore-only' or
+            type(c['returned_backup_exit_status']) is not int or c['returned_backup_exit_status']!=0 or
+            c['active_session_state']!='returned-fixed-loader-dual-target-backup-no-later-commands'):
+        raise ValueError('Exact completed restore campaign required')
+    root=Path(__file__).absolute().parent
+    freeze(Path(__file__).absolute(),c['adapter_sha256'])
+    backup_path=root/'fm1_returned_rom_backup.py';freeze(backup_path,BACKUP_SOURCE_SHA)
+    backup=load_source(backup_path,BACKUP_SOURCE_SHA,'_returned_completed_backup')
+    receipt=Path(c['receipt_path'])
+    initial_path=receipt/'journal-before-restore.json'
+    freeze(initial_path,c['install_journal_sha256'],65536)
+    proof=backup.validate_completed_backup(c['returned_backup_campaign_path'],
+        campaign_sha256=c['returned_backup_campaign_sha256'],
+        manifest_sha256=c['returned_backup_manifest_sha256'],
+        commands_sha256=c['returned_backup_commands_sha256'],freeze=freeze,
+        install_journal_path=initial_path)
+    parent=Path(proof['receipt_path'])
+    if (not receipt.is_absolute() or receipt.parent!=parent or
+            not stat.S_ISDIR(receipt.lstat().st_mode) or receipt.stat().st_mode&0o777!=0o700 or
+            freeze(parent/'.returned-stock-restore.consumed',limit=256)!=campaign_sha256.encode('ascii') or
+            c['original_rehearsal_campaign_sha256']!=proof['original_rehearsal_campaign_sha256'] or
+            c['install_journal_sha256']!=proof['install_journal_sha256']):
+        raise ValueError('Genuine direct consumed restore lineage required')
+    original=json.loads(freeze(c['original_rehearsal_campaign_path'],
+        c['original_rehearsal_campaign_sha256'],65536))
+    if canonical(original['policy_inputs'])!=canonical(proof['policy_inputs']):
+        raise ValueError('Original restore SDK inputs differ')
+    rehearsal_path=root/'fm1_sdk_rehearsal.py';freeze(rehearsal_path,REHEARSAL_SOURCE_SHA)
+    rehearsal=load_source(rehearsal_path,REHEARSAL_SOURCE_SHA,'_returned_completed_rehearsal')
+    for name,sha in rehearsal.SOURCES.items():freeze(root/name,sha)
+    modules=rehearsal.imports()
+    policy=modules['fm1_bound_sdk_diagnostic'].load_policy(**original['policy_inputs'],
+        direction='restore',baseline_profile='fixed-loader')
+    plan,journal,baseline,target=modules['fm1_flash_transaction'].load_transaction(policy.directory)
+    frozen_journal=freeze(policy.directory/'journal.json',journal_sha256,65536)
+    if canonical(json.loads(frozen_journal))!=canonical(journal):
+        raise ValueError('Current restore journal changed during validation')
+    if (journal['state']!='complete' or journal['direction']!='restore' or journal['intent'] is not None or
+            journal['verified_sha256']!=BASELINE_SHA or journal['sector_order']!=plan['sector_order']):
+        raise ValueError('Current actual complete stock-restore journal required')
+    replay_path=root/'fm1_fixed_target_reset.py';freeze(replay_path,REPLAY_SOURCE_SHA)
+    replay=load_source(replay_path,REPLAY_SOURCE_SHA,'_returned_completed_replay')
+    result=json.loads(freeze(receipt/'result.json',result_sha256,65536))
+    commands=freeze(receipt/'commands.jsonl',commands_sha256,32*1048576)
+    started,_=verify_restore_receipt(commands,result,c,campaign_sha256,proof['sg_binding'],
+        baseline,target,plan['sector_order'],replay.Replay)
+    if started<proof['completed_at']:
+        raise ValueError('Restore preceded completed target backups')
+    policy.check_files()
+    return dict(usb_binding=proof['usb_binding'],sg_binding=proof['sg_binding'],
+        returned_backup_receipt_path=str(parent),
+        returned_backup_manifest_sha256=c['returned_backup_manifest_sha256'],
+        baseline_sha256=BASELINE_SHA,target_sha256=TARGET_SHA,sectors_written=30,
+        sector_order=plan['sector_order'])
+
+
 def run_campaign(prepared):
     require_prepared(prepared)
     c = json.loads(prepared.config); bridge = prepared.bridge
@@ -280,7 +404,8 @@ def run_campaign(prepared):
             try: result = policy.bind(transport).run(checkpoint=log)
             finally: transport.close()
             prepared.check()
-            if result['verified_sha256'] != BASELINE_SHA or not transport.initial_verified:
+            if (result['verified_sha256'] != BASELINE_SHA or result['sectors_written']!=30 or
+                    not transport.initial_verified):
                 raise ValueError('Final full stock baseline verification differs')
             result = dict(campaign_sha256=prepared.campaign_sha256, direction='restore',
                 initial_full_target_readback_verified=True, verified_sha256=BASELINE_SHA,

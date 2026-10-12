@@ -239,3 +239,55 @@ is preserved rather than hidden. It made no SG calls.
 the factory deliberately rejects until the new backup literal source pin and
 completed evidence helper freeze. This is not a complete actual-private factory
 validation, independent review or the required focused 16-chunk gate.
+
+## Evidence-only helpers and current integration
+
+[verified] The older successful-only copied provenance is now replaced in the
+backup factory by the separate returned-state evidence helper. Its literal
+source pin remains `None` until that helper's successful/detached and consumed
+failed-probe paths finish their own review. The failed-probe wrapper literal
+pin also remains `None`. Therefore this WIP cannot open physical SG through
+its production factory. Shared helper authority is evidence only; this backup
+factory creates its own exact-instance registry and new consumed marker.
+The proof's immutable check is retained throughout SG operations, including
+absent probe evidence. Historical admission age is distinct from current live
+binding and the 900-second dual-read campaign; current opener still rejects
+an original passive ROM snapshot older than 120 seconds. A longer stopped-probe
+recovery needs explicitly reviewed historical admission/current witness handling.
+
+`validate_completed_backup` strictly replays all 8,757 intents/completions,
+including 8,192 actual 256-byte response hashes against both private 1 MiB
+target files. It reconstructs the exact manifest and verifies consumed new
+marker, chronology and all false boot/display/recovery flags. Actual protocol
+reply digests for inquiry/online/buffer are shape checked; their original bytes
+are unavailable to this offline helper, so it retains the reviewed execution
+semantic-check premise. All source, provenance, optional capture and actual SDK
+policy evidence/plan/backup/target files enter the caller's immutable freeze.
+
+`validate_completed_restore` does not call an opener factory. It reconstructs
+the original completed install using the exact privately saved
+`journal-before-restore.json`, validates the current complete/restore journal
+independently, and strictly replays the initial 4,096 target pages, all derived
+30 sector erases/programs/durable intents/readbacks with `0x4000` last, and all
+final 4,096 stock pages. It requires exact terminal result/event, rejects later
+stop/extra events, and checks restore starts after completed target backups.
+Exit zero and no later commands remain explicit trusted operator assertions;
+file presence alone establishes neither. The original source policies and
+consumed markers remain unchanged. Root owns a distinct stock-return reset
+scaffold whose literal restore pin stays `None` until this helper freezes.
+
+[verified] A new preliminary Hera WIP run completed 96 tests and found one
+fixture-only AttributeError in the added erase-address adversarial test
+(the fixture supplied Replay class, while the test called module wire).
+The test now constructs the corrupt CDB directly. This failed run is retained
+in `build/returned-recovery-wip2-hera/`; it is not an accepted final gate.
+Source syntax compilation passes. Focused sixteen-chunk and actual private
+factory/model checks, independent source/evidence review and literal pins
+remain required. No hardware operation was made by this lane.
+
+[verified] Last freshly compared local/remote checkpoint is
+`6b8ed4b277783fb447a5eb03712b8134b93fcd1d` on
+`feature/2026-10-11@installable-firmware`; current helper edits are WIP,
+saved to disk and root-owned for checkpoint/push. Next dependencies: shared
+returned-state helper freeze, exact optional wrapper pin, actual modeled
+backup/restore factory smoke, sixteen-chunk gate and startup independent review.
