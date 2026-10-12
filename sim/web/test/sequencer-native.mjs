@@ -58,6 +58,25 @@ try {
       canonical: async () => JSON.stringify(api.writeSet(api.parseSet(JSON.parse((await fm1.files.projectSnapshot()).text).set))) };
   });
   await check('native fixture loads without discarded sequencer fields', async () => { await reset(); assert.equal((await model()).tracks[0].clips[0].notes[0].gate, 96); });
+  await check('assigned bases preserve linear, logarithmic and enum parameter positions', async () => {
+    await page.getByRole('button', { name: 'Assign parameter', exact: true }).click(); await idle();
+    assert.equal((await model()).tracks[0].lanes[0].base, 25); // Volume .2 on 0..1, rounded to seven bits.
+    await page.evaluate(async () => {
+      const host = fm1.editor.sequencerHost, doc = await host.fetchProject();
+      doc.sounds[0].inserts[0] = { engine: 'filter', params: { Type: 'Sallen-Key', Cutoff: 600 } };
+      await host.applyProject(doc, 'Parameter law fixture'); await fm1.editor.sequencer.refresh();
+    }); await idle();
+    await page.getByLabel('Automation target', { exact: true }).selectOption('in1'); await idle();
+    let lane = (await model()).tracks[0].lanes[0];
+    assert.equal(lane.label, 'in1:Type'); assert.equal(lane.base, 64); // enum index3 of6: floor(64*6/128)=3.
+    await page.getByLabel('Parameter', { exact: true }).selectOption('in1:Cutoff'); await idle();
+    lane = (await model()).tracks[0].lanes[0];
+    assert.equal(lane.label, 'in1:Cutoff'); assert.equal(lane.base, 64); // sqrt(20*18000)=600, midpoint in log space.
+    await field('Base · 0–127', 73);
+    await page.getByLabel('Parameter', { exact: true }).selectOption('in1:Cutoff'); await idle();
+    assert.equal((await model()).tracks[0].lanes[0].base, 73); // Selecting the same assignment keeps the authored base.
+    await reset();
+  });
   await check('UI note articulation, probability and mix lock survive native load', async () => {
     await page.locator('.sq-note').first().click();
     await field('Velocity', 72); await field('Gate · ticks', 48); await field('Microtiming · ticks', 3); await field('Probability %', 70);
@@ -65,7 +84,7 @@ try {
     await field('Lane 1, step 1 lock', 91);
     const m = await model(), c = m.tracks[0].clips[0];
     assert.deepEqual(c.notes[0], { tick: 3, gate: 48, pitch: 60, vel: 72, step: 0 });
-    assert.equal(c.trigs[0].prob, 70); assert.equal(m.tracks[0].lanes[0].label, 'mix:Level'); assert.equal(c.locks[0].value, 91);
+    assert.equal(c.trigs[0].prob, 70); assert.equal(m.tracks[0].lanes[0].label, 'mix:Level'); assert.equal(m.tracks[0].lanes[0].base, 64); assert.equal(c.locks[0].value, 91);
   });
   await check('routing, native chain repeats and project undo/redo', async () => {
     await page.getByLabel('Track 8 output', { exact: true }).selectOption('m16'); await idle();

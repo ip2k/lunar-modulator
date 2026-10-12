@@ -37,9 +37,15 @@ scrolling is deliberate. This is browser automation, not physical touch testing.
 Native insert/master/mixer automation and its focused test are implemented.
 Correct RAM accounting exposed an existing near-budget modulation fixture;
 Room replaces Plate in that fixture while keeping its routing coverage and the
-strict budget. Outstanding: final rebuilt module/parity and focused RAM tests,
-Firefox/WebKit integration, final independent review and required CI, merge,
-deployed deep-link proof. Current source checkpoints are not deployment proof.
+strict budget. The final rebuilt module has SHA-256
+`b98e8e3295dba072a65d2d49bd5e1b3d57afc63ce2b2aa33027202e1d7c8c258`.
+It passes 108 parity scenarios (all identical to JavaScript and musl), plus the
+30-second edit storm: zero late blocks, p99 0.1402 ms, maximum 0.3050 ms.
+Native web/mod/multi/automation regression: 281 passed, with two staging-only
+asset/staleness checks excluded and covered separately by the complete rebuild.
+Chromium, Firefox and WebKit real-module workflows pass; exact final-module
+browser reruns, independent review, required CI, merge and deployed deep-link
+proof remain outstanding. Current source checkpoints are not deployment proof.
 
 Device boundary: `.lunar` and `.movy1` remain the same portable native formats.
 The owner's FM-1_092 does not run Lunar; direct device project exchange requires
