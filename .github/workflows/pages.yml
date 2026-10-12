@@ -15,6 +15,7 @@ on:
     paths:
       - "manual/**"
       - "tools/manual/**"
+      - "tests/test_manual.py"
       - "engines/**"
       - "sim/web/**"
       - "assets/**"
@@ -23,6 +24,7 @@ on:
     paths:
       - "manual/**"
       - "tools/manual/**"
+      - "tests/test_manual.py"
       - "engines/**"
       - "sim/web/**"
       - "assets/**"
@@ -56,7 +58,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0 fonts-ibm-plex
-      - run: pip install -r manual/requirements.txt
+      - run: pip install -r manual/requirements.txt pytest
+      - name: Simulator manual links preserve dialog markup
+        run: python -m pytest -q tests/test_manual.py -k manual_links_preserve
       - name: Build the engines (the reference tables come from them)
         run: make -C engines -j4
       - name: Build the site, the manual and its PDF
