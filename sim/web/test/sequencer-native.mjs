@@ -32,6 +32,10 @@ async function expandFiles() {
   const menu = page.locator('.sq-file-tools');
   if (!await menu.evaluate(e => e.open)) await menu.locator(':scope > summary').click();
 }
+async function expandAutomation() {
+  const controls = page.locator('.sq-automation-assign');
+  if (!await controls.evaluate(e => e.open)) await controls.locator(':scope > summary').click();
+}
 async function reset() {
   await page.evaluate(async () => {
     const { emptySet, emptyClip, writeSet } = window.nativeTest.api;
@@ -103,6 +107,7 @@ try {
   });
   await check('assigned bases preserve linear, logarithmic and enum parameter positions', async () => {
     await tab('Automation');
+    await expandAutomation();
     await page.getByRole('button', { name: 'Assign parameter', exact: true }).click(); await idle();
     assert.equal((await model()).tracks[0].lanes[0].base, 25); // Volume .2 on 0..1, rounded to seven bits.
     await page.evaluate(async () => {
@@ -138,6 +143,7 @@ try {
     assert.equal(await advanced.evaluate(e => e.open), true);
     assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), 'Probability %');
     await tab('Automation');
+    await expandAutomation();
     await page.getByLabel('Automation target', { exact: true }).selectOption('mix'); await idle();
     await field('Lane 1, step 1 lock', 91);
     const m = await model(), c = m.tracks[0].clips[0];

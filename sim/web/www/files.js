@@ -517,7 +517,7 @@ export function initFiles(env) {
       row.append(b);
     }
     noticeEl.append(row);
-    if (tone === 'info') noticeTimer = setTimeout(dismissNotice, 10000);
+    if (tone === 'info' || tone === 'loaded') noticeTimer = setTimeout(dismissNotice, 10000);
   }
 
   // The module's report, in words. A refusal is the module's own sentence.
