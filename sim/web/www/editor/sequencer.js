@@ -670,7 +670,8 @@ export function makeSequencer(ctx) {
         const launchButton = ctx.playClip ? btn('', () => action(() => ctx.playClip(t, scene)), {
           'data-scene-launch': true,
           'aria-label': `${c ? 'Launch clip' : 'Stop track'} ${t + 1} scene ${scene + 1}`,
-          title: c ? 'Launch this clip at the native bar boundary' : 'Launch the empty slot to stop this track at the native bar boundary',
+          title: c ? `Launch this clip at the native bar boundary · ${summary}` : 'Launch the empty slot to stop this track at the native bar boundary',
+          ...(c ? { 'aria-description': summary } : {}),
         }) : null;
         if (launchButton) {
           launchButton.append(el('span', 'sq-scene-launch-icon', { text: c ? '▶' : '■', 'aria-hidden': 'true' }));

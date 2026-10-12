@@ -208,6 +208,8 @@ try {
  const selectedEditBeforeLaunch=await page.locator('.sq-scene-edit[aria-pressed="true"]').getAttribute('aria-label');
  const populatedBody=page.getByRole('button',{name:'Launch clip 2 scene 2',exact:true});
  if(!await populatedBody.locator('.sq-scene-summary').isVisible()||!await populatedBody.locator('.sq-clip-preview').isVisible())throw Error('Clip launch body must contain its summary and note preview');
+ const fullClipSummary=await populatedBody.locator('.sq-scene-summary').innerText();
+ if(await populatedBody.getAttribute('aria-label')!=='Launch clip 2 scene 2'||await populatedBody.getAttribute('aria-description')!==fullClipSummary||!await populatedBody.getAttribute('title').then(title=>title.endsWith(` · ${fullClipSummary}`)))throw Error('Clip launch body must preserve its accessible identity and expose the full summary beyond the ellipsis');
  await populatedBody.click();await page.waitForFunction(()=>window.calls.includes('clip 1 1'));
  if(await page.locator('.sq-scene-edit[aria-pressed="true"]').getAttribute('aria-label')!==selectedEditBeforeLaunch||await page.getByRole('tab',{name:'Scenes',exact:true}).getAttribute('aria-selected')!=='true')throw Error('Launching a clip body changed selection or opened the editor');
  await page.getByRole('button',{name:'Launch clip 1 scene 1',exact:true}).click();
