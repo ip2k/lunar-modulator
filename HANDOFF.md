@@ -17,12 +17,19 @@ within offline scope. Raw target5dbada65 preservation reviewb903322e accepts
 identical stock SPL/OTA/cfg and protected bytes. Installer review5ca89303 accepts
 54 unique Hera cases and the genuine full-write smoke. Reader reviewb436f454
 accepts113 unique cases; SG reviewa8589cfa accepts41 unique cases in30 chunks.
-Their boot/reader activation remains closed. Reset-wire55-case review is being
-replayed by root. The boot successor's historical43-case check remains valid;
-its newly saved offline read-lineage and preserved-journal support are WIP,
-untested and closed. New returned-recovery46-case/30-chunk kernels and partial
-restoration kernels remain closed pending concrete acquisition and review.
-Last verified pushed checkpoint before this update: abc8135a48ea02e4228b83858481f6c0add7a1a0.
+[verified] Reset-wire reviewd1ab2179 accepts55 unique cases/16 chunks and both
+historical traces, with the historical container's individual removal receipt
+missing but the final empty label query retained. Root pins the accepted
+install6be77170/policy54bd9a29/wire9c81a30a sources in boot successorce8fa0c5.
+Its new original-file lineage, preserved journal and genuine install/reset
+composition are WIP: 105 unique cases collected, smoke and30 Hera chunks
+running under sdk-trace-boot-final-20261012. Do not execute that boot source on
+hardware until the gate and independent review finish. Reader/SG activation
+remains closed. Recovery V2 has133 unique passing cases/30 chunks plus smoke;
+partial restore has55 passing cases/30 chunks. Both are closed models pending
+independent review and concrete acquisition. See
+notes/2026-10-12-sdk-trace-boot-lineage.md.
+Last verified pushed checkpoint before this update: 3191c1a18b99133945a2ab622f6b13bf534bb94e.
 
 [verified: 2026-10-12 UTC] Owner connected CONTROL→Mac, TARGET C→bench Pi,
 TARGET A→FM-1 and started Packetry Full Speed capture. The screenshot decodes
@@ -33,7 +40,9 @@ capture stop accepted by review39aabe79. Archiveaa0857d4 is ignored under
 build/sdk-trace-fresh-entry-bench-v1/. Its marker is consumed; no device command
 has followed it. All previous receipts remain untouched. Packetry is absent
 from Computer plugin inventory; name and executable selection return Invalid
-app, so native clicks are unavailable. Owner capture stays running.
+app. Latest live Computer inventory attempt reports the Mac locked and automatic
+unlock failed; the owner unlock request is pending. Packetry capture was seen
+running in the supplied screenshot; its current GUI state is unverified.
 
 Read the native trace before fixed-loader upload, which overwrites its BSS.
 Distinct fresh entry/dual backups, trace install/boot/read/recovery, physical

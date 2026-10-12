@@ -145,3 +145,91 @@ def test_direct_evidence_reader_rejects_symlink_and_fifo(tmp_path,module):
     fifo=tmp_path/'fifo';os.mkfifo(fifo)
     for path in (link,fifo,tmp_path,Path('relative')):
         with pytest.raises((ValueError,OSError)):module.read_file(path)
+
+
+@pytest.mark.parametrize('bad_digest',[None,True,'g'*64,'A'*64,'0'*63])
+def test_bad_final_digest_never_classifies_five_good_completions(receipt,bad_digest):
+    data,rows,_=receipt
+    rows[10]['response_sha256']=bad_digest
+    data=dict(data,result_raw=None,raw_files={})
+    outcome=verify(data,rows[:11]+[stopped()])
+    assert outcome['outcome']=='stopped-ambiguous'
+    assert outcome['successful_completions']==0
+    data['raw_files']={'stage-b':b'b'*4}
+    with pytest.raises(ValueError,match='before five good'):
+        verify(data,rows[:11]+[stopped()])
+
+
+@pytest.fixture
+def capture_lifecycle():
+    files={name:b'' for name in e._CAPTURE_FILES}
+    files.update({'execute-once.py':b'unit closed wrapper','execute-child.py':b'unit closed child',
+        'preflight.json':b'{"factory_only":true}','usbmon.txt':b'unit wire not verified'})
+    expected=dict(wrapper_sha256=e.digest(files['execute-once.py']),child_sha256=e.digest(files['execute-child.py']),
+        native_campaign_path='/private/stage/read/campaign.json',native_campaign_sha256='1'*64,
+        boot_lineage_path='/private/stage/read/lineage.json',boot_lineage_sha256='2'*64,
+        native_sha256='3'*64,reader_sha256='4'*64,boot_sha256='5'*64,
+        usb_binding={'usb_path':'3-2','busnum':'3','devnum':'26'})
+    attempt=dict(time=10,campaign_sha256='1'*64,lineage_sha256='2'*64,native_sha256='3'*64,
+        reader_sha256='4'*64,boot_sha256='5'*64,usb_binding=expected['usb_binding'],retry=False,
+        commands=5,upload_operations=0,reset_operations=0,flash_operations=0)
+    records={'wrapper-attempt.json':attempt,
+        'capture-open.json':dict(time=11,timeout_pid=100,cat_pid=101,process_group=100,open_capture_fd=True),
+        'capture-stop.json':dict(time=15,process_group=100,returncode=-15,owned_processes_only=True),
+        'execution-exit.json':dict(time=14,exit_status=0,campaign_sha256='1'*64,
+            capture_alive_after_child=True,retry=False,read_completion_attested=False,recovery_proven=False,boot_cause_proven=False)}
+    def publish():
+        for name,value in records.items():files[name]=json.dumps(value,sort_keys=True,separators=(',',':')).encode()
+        return e.canonical(dict(schema=1,kind='fm1-owned-sdk-trace-read-capture',
+            native_campaign_path=expected['native_campaign_path'],native_campaign_sha256='1'*64,
+            boot_lineage_path=expected['boot_lineage_path'],boot_lineage_sha256='2'*64,
+            wrapper_files_sha256={name:e.digest(value) for name,value in files.items()}))
+    return files,expected,records,publish
+
+
+@pytest.mark.parametrize('outcome',['completed','stopped-ambiguous','consumed-pretransport-zero-cbw'])
+def test_capture_lifecycle_keeps_exit_and_value_checks_separate_from_authority(capture_lifecycle,outcome):
+    files,expected,records,publish=capture_lifecycle
+    if outcome!='completed':records['execution-exit.json']['exit_status']=1
+    times={} if outcome=='consumed-pretransport-zero-cbw' else dict(read_started=12,read_terminal=13)
+    proof=e.verify_capture_lifecycle(publish(),files,expected,read_outcome=outcome,**times)
+    assert proof['exit_status']==(0 if outcome=='completed' else 1)
+    assert proof['wire_inventory_verified'] is False and proof['returned_proof_granted'] is False
+
+
+@pytest.mark.parametrize('name,field,value',[
+    ('wrapper-attempt.json','retry',True),('wrapper-attempt.json','commands',6),
+    ('wrapper-attempt.json','flash_operations',1),('wrapper-attempt.json','native_sha256','6'*64),
+    ('capture-open.json','timeout_pid',True),('capture-open.json','cat_pid',100),
+    ('capture-open.json','process_group',101),('capture-open.json','open_capture_fd',False),
+    ('capture-stop.json','process_group',101),('capture-stop.json','returncode',0),
+    ('capture-stop.json','owned_processes_only',False),('capture-stop.json','time',10),
+    ('execution-exit.json','exit_status',True),('execution-exit.json','exit_status',1),
+    ('execution-exit.json','capture_alive_after_child',False),('execution-exit.json','retry',True),
+    ('execution-exit.json','read_completion_attested',True),('execution-exit.json','recovery_proven',True),
+    ('execution-exit.json','boot_cause_proven',True),('execution-exit.json','time',float('inf'))])
+def test_capture_lifecycle_exact_records_reject_resealed_contradictions(capture_lifecycle,name,field,value):
+    files,expected,records,publish=capture_lifecycle;records[name][field]=value
+    envelope=publish()
+    with pytest.raises(ValueError):e.verify_capture_lifecycle(envelope,files,expected,read_outcome='completed',read_started=12,read_terminal=13)
+
+
+@pytest.mark.parametrize('fault',['extra','missing','wrapper','child','stderr','envelope-kind','envelope-hash','relative-path',
+    'invalid-source-pin','reader-before-capture','reader-after-capture','invent-zero-time','zero-child-with-stopped'])
+def test_capture_envelope_and_chronology_cannot_grant_forged_admission(capture_lifecycle,fault):
+    files,expected,records,publish=capture_lifecycle;outcome='completed';times=dict(read_started=12,read_terminal=13)
+    if fault=='extra':files['unexplained']=b''
+    elif fault=='missing':files.pop('preflight.json')
+    elif fault=='wrapper':files['execute-once.py']=b'other'
+    elif fault=='child':files['execute-child.py']=b'other'
+    elif fault=='stderr':files['usbmon.stderr']=b'warning'
+    elif fault=='relative-path':expected['native_campaign_path']='relative'
+    elif fault=='invalid-source-pin':expected['native_sha256']='A'*64
+    elif fault=='reader-before-capture':times['read_started']=10
+    elif fault=='reader-after-capture':times['read_terminal']=15
+    elif fault=='invent-zero-time':outcome='consumed-pretransport-zero-cbw';records['execution-exit.json']['exit_status']=1
+    elif fault=='zero-child-with-stopped':outcome='stopped-ambiguous'
+    envelope=publish()
+    if fault=='envelope-kind':v=json.loads(envelope);v['kind']='other';envelope=e.canonical(v)
+    if fault=='envelope-hash':v=json.loads(envelope);v['wrapper_files_sha256']['usbmon.txt']='0'*64;envelope=e.canonical(v)
+    with pytest.raises(ValueError):e.verify_capture_lifecycle(envelope,files,expected,read_outcome=outcome,**times)

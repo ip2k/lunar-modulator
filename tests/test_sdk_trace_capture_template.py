@@ -1,7 +1,7 @@
-"""MIT. Optional ignored closed template: injected lifecycle, never device proof.
+"""MIT. Tracked closed capture: injected lifecycle, never device proof.
 
-Hera supplies the exact template files and requires this fixture explicitly.
-Ordinary CI may lack private ignored bench templates; that is a recorded skip.
+Default tests require tracked source files. An explicit private template directory
+may be supplied for an exact rendered derivative; absent inputs always fail.
 """
 import importlib.util
 import json
@@ -17,15 +17,15 @@ import pytest
 @pytest.fixture
 def template():
     selected = os.environ.get('LUNAR_TRACE_CAPTURE_TEMPLATE_DIR')
-    root = (Path(selected) if selected is not None else
-            Path(__file__).resolve().parents[1] / 'build/sdk-trace-read-bench-template')
-    if not (root / 'execute-once.py').is_file() or not (root / 'execute-child.py').is_file():
-        if os.environ.get('LUNAR_REQUIRE_TRACE_CAPTURE_TEMPLATE') == '1' or selected is not None:
-            pytest.fail('Required exact trace capture template absent')
-        pytest.skip('Private ignored trace capture template unavailable')
+    project = Path(__file__).resolve().parents[1]
+    paths = ([Path(selected) / name for name in ('execute-once.py', 'execute-child.py')]
+             if selected is not None else
+             [project / 'tools' / name for name in ('fm1_sdk_trace_capture.py', 'fm1_sdk_trace_capture_child.py')])
+    if any(not path.is_file() for path in paths):
+        pytest.fail('Required tracked exact trace capture sources absent')
     modules = []
-    for index, name in enumerate(('execute-once.py', 'execute-child.py')):
-        spec = importlib.util.spec_from_file_location('_trace_capture_template_' + str(index), root / name)
+    for index, path in enumerate(paths):
+        spec = importlib.util.spec_from_file_location('_trace_capture_template_' + str(index), path)
         module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
         modules.append(module)
     return modules

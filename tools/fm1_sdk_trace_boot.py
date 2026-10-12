@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """MIT. One trace-target FC0C request, plus separate evidence-only read lineage.
 
-The new install and wire-verifier pins remain closed until independent review.
+The install and wire-verifier sources are pinned to their independent reviews.
 This module never uploads a loader or reads/writes NOR. A reset request or its
 completion does not establish a boot, display result, or physical recovery.
 """
@@ -21,9 +21,9 @@ import time
 import types
 from weakref import WeakSet
 
-INSTALL_SHA = None
-POLICY_SHA = None
-WIRE_VERIFIER_SHA = None
+INSTALL_SHA = '6be77170f28fff7d7ca9c794ac44592a9c4bd4bae2cc2affd22a1cebf0936720'
+POLICY_SHA = '54bd9a2990d0055b1d102bc8481a71d883d586649aa2d79d62a185a415296835'
+WIRE_VERIFIER_SHA = '9c81a30a7f8741a606961315d0689341d3ce2e29775d395e05e81d5dbdedfd92'
 LEGACY_SHA = 'b846b574fe1e5b7597001f6f833044a07143540f2c0b3676e93bac807869833a'
 TARGET_SHA = '5dbada6531e0ad68b1902b4f0d97cc6f78d7fa338b1360c194f98c1475ad7a3d'
 BASELINE_SHA = '96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4'

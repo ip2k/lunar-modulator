@@ -78,6 +78,7 @@ def verify_read_receipt(raw, seal, plan, operations, raw_files, *, interpret,
     event(dict(event='read_prepared', campaign_sha256=digest(seal), plan_sha256=digest(plan),
                commands=5, upload_operations=0, reset_operations=0, flash_operations=0))
     completed = []
+    good_completions = []
     for index, (cdb, out, count) in enumerate(operations):
         if position == len(rows) or rows[position].get('event') != 'submit_intent':
             break
@@ -100,13 +101,10 @@ def verify_read_receipt(raw, seal, plan, operations, raw_files, *, interpret,
                 and isinstance(row['response_sha256'],str) and len(row['response_sha256']) == 64
                 and all(c in '0123456789abcdef' for c in row['response_sha256']))
         completed.append(row)
+        good_completions.append(good)
         if not good:
             break
-    all_good = len(completed) == 5 and all(
-        all(type(row[k]) is int and row[k] == 0 for k in
-            ('status','masked','msg','host','driver','resid','info','sense_len','actual_sense_bytes'))
-        and row['sense_hex'] == '' and row['actual_response_bytes'] == operations[i][2]
-        for i,row in enumerate(completed))
+    all_good = len(completed) == 5 and all(good_completions)
     if raw_files and not all_good:
         raise ValueError('Raw publication before five good completions')
     for index,name in enumerate(_NAMES):
@@ -146,6 +144,95 @@ def verify_read_receipt(raw, seal, plan, operations, raw_files, *, interpret,
         raise ValueError('Later commands or transcript rows prohibited')
     return dict(outcome=outcome, started_at=times[0], terminal_at=times[-1],
                 successful_completions=5 if all_good else 0, result=expected)
+
+
+_CAPTURE_FILES = ('execute-once.py', 'execute-child.py', 'preflight.json',
+    'wrapper-attempt.json', 'capture-open.json', 'capture-stop.json',
+    'execution.stdout', 'execution-exit.json', 'usbmon.txt', 'usbmon.stderr')
+
+
+def verify_capture_lifecycle(envelope_raw, files, expected, *, read_outcome,
+                             read_started=None, read_terminal=None):
+    """Pure exact owned lifecycle shape/hash check; no wire or opener proof.
+
+    A future factory must freeze these actual files, their absent ambiguity
+    artifacts and exact source/packet inputs, then independently replay native
+    commands and the USBmon CBW prefix. Bare JSON and this value check do not
+    grant returned proof membership or refresh historical snapshot timestamps.
+    """
+    keys = {'wrapper_sha256', 'child_sha256', 'native_campaign_path',
+        'native_campaign_sha256', 'boot_lineage_path', 'boot_lineage_sha256',
+        'native_sha256', 'reader_sha256', 'boot_sha256', 'usb_binding'}
+    if type(expected) is not dict or set(expected) != keys or set(files) != set(_CAPTURE_FILES):
+        raise ValueError('Exact owned capture input inventory required')
+    for name, pin in expected.items():
+        if name.endswith('sha256') and (type(pin) is not str or len(pin) != 64
+                or any(c not in '0123456789abcdef' for c in pin)):
+            raise ValueError('Exact accepted source/input digest required')
+    for name in ('native_campaign_path', 'boot_lineage_path'):
+        if type(expected[name]) is not str or not Path(expected[name]).is_absolute():
+            raise ValueError('Original absolute capture input required')
+    if any(type(v) is not bytes for v in files.values()):
+        raise ValueError('Exact captured bytes required')
+    envelope = json.loads(envelope_raw)
+    wanted = dict(schema=1, kind='fm1-owned-sdk-trace-read-capture',
+        native_campaign_path=expected['native_campaign_path'],
+        native_campaign_sha256=expected['native_campaign_sha256'],
+        boot_lineage_path=expected['boot_lineage_path'],
+        boot_lineage_sha256=expected['boot_lineage_sha256'],
+        wrapper_files_sha256={name:digest(value) for name,value in files.items()})
+    if (canonical(envelope) != canonical(wanted)
+            or digest(files['execute-once.py']) != expected['wrapper_sha256']
+            or digest(files['execute-child.py']) != expected['child_sha256']
+            or files['usbmon.stderr']):
+        raise ValueError('Exact owned capture envelope/source/hash required')
+    attempt, opened, stopped, exited = [json.loads(files[name]) for name in
+        ('wrapper-attempt.json', 'capture-open.json', 'capture-stop.json', 'execution-exit.json')]
+    if any(type(record) is not dict for record in (attempt,opened,stopped,exited)):
+        raise ValueError('Owned capture records must be objects')
+    attempt_expected = dict(campaign_sha256=expected['native_campaign_sha256'],
+        lineage_sha256=expected['boot_lineage_sha256'], native_sha256=expected['native_sha256'],
+        reader_sha256=expected['reader_sha256'], boot_sha256=expected['boot_sha256'],
+        usb_binding=expected['usb_binding'], retry=False, commands=5,
+        upload_operations=0, reset_operations=0, flash_operations=0)
+    if canonical({k:v for k,v in attempt.items() if k!='time'}) != canonical(attempt_expected):
+        raise ValueError('Exact original wrapper attempt required')
+    if (set(opened) != {'time','timeout_pid','cat_pid','process_group','open_capture_fd'}
+            or set(stopped) != {'time','process_group','returncode','owned_processes_only'}
+            or set(exited) != {'time','exit_status','campaign_sha256','capture_alive_after_child',
+                'retry','read_completion_attested','recovery_proven','boot_cause_proven'}):
+        raise ValueError('Exact owned capture/exit receipt shape required')
+    if (any(type(opened[k]) is not int or opened[k] <= 0 for k in ('timeout_pid','cat_pid','process_group'))
+            or opened['timeout_pid'] != opened['process_group'] or opened['cat_pid'] == opened['timeout_pid']
+            or opened['open_capture_fd'] is not True or type(stopped['process_group']) is not int
+            or stopped['process_group'] != opened['process_group'] or type(stopped['returncode']) is not int
+            or stopped['returncode'] != -15 or stopped['owned_processes_only'] is not True
+            or type(exited['exit_status']) is not int or not -64 <= exited['exit_status'] <= 255
+            or exited['campaign_sha256'] != expected['native_campaign_sha256']
+            or exited['capture_alive_after_child'] is not True
+            or any(exited[k] is not False for k in ('retry','read_completion_attested','recovery_proven','boot_cause_proven'))):
+        raise ValueError('Exact owned process/terminal identity required')
+    times = [r.get('time') for r in (attempt, opened, exited, stopped)]
+    if (any(type(t) not in (int,float) or not math.isfinite(t) for t in times)
+            or times != sorted(times)):
+        raise ValueError('Original finite capture chronology required')
+    if read_outcome not in ('completed','stopped-ambiguous','consumed-pretransport-zero-cbw'):
+        raise ValueError('Exact read outcome classification required')
+    if (read_outcome == 'completed' and exited['exit_status'] != 0
+            or read_outcome != 'completed' and exited['exit_status'] == 0):
+        raise ValueError('Read outcome and preserved child exit differ')
+    if read_started is None or read_terminal is None:
+        if (read_outcome != 'consumed-pretransport-zero-cbw'
+                or read_started is not None or read_terminal is not None):
+            raise ValueError('Zero-CBW branch cannot invent reader timestamps')
+    elif read_outcome == 'consumed-pretransport-zero-cbw':
+        raise ValueError('Zero-CBW branch cannot invent reader timestamps')
+    elif (any(type(t) not in (int,float) or not math.isfinite(t) for t in (read_started,read_terminal))
+            or not opened['time'] <= read_started <= read_terminal <= exited['time']):
+        raise ValueError('Reader must be within original owned live capture')
+    return dict(exit_status=exited['exit_status'], started_at=times[0], terminal_at=times[-1],
+                envelope_sha256=digest(envelope_raw), wire_inventory_verified=False,
+                returned_proof_granted=False)
 
 
 @dataclass(frozen=True, eq=False)
