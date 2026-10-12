@@ -873,11 +873,11 @@ def test_memory_figures_for_four_and_eight_tracks(seq_tools):
     song's end mode, follow flag, jump target, a scene launch's landing bar
     and eight scene names added 64 bytes (stage E1, 2026-10-06)."""
     z = sizes(seq_tools)
-    assert z["tracks"]["4"] == 18120
-    assert z["tracks"]["8"] == 31944
-    assert z["tracks"]["8"] <= HALF_BUDGET
-    assert z["no_capture"]["4"] == 15048
-    assert z["no_capture"]["8"] == 28872
+    assert z["tracks"]["4"] == 18184
+    assert z["tracks"]["8"] == 32072
+    assert z["tracks"]["8"] + 272 * z["event_bytes"] + z["cmd_bytes"] + 1024 + 20 <= HALF_BUDGET
+    assert z["no_capture"]["4"] == 15112
+    assert z["no_capture"]["8"] == 29000
     for t in range(1, 17):
         assert z["tracks"][str(t)] - z["no_capture"][str(t)] == 256 * 12, \
             "Capture: 256 events of 12 bytes"
@@ -891,8 +891,8 @@ def test_size_is_linear_in_tracks(seq_tools):
     per = z["2"] - z["1"]
     assert all(z[str(t)] - z[str(t - 1)] == per for t in range(2, 17))
     # 192 notes x 12 + 192 locks x 3 + 32 trig rows x 5 + 8 clips x 20, the
-    # track's 240 bytes and its 16 pad mutes
-    assert per == 3456
+    # track's 256 bytes (including title) and its 16 pad mutes
+    assert per == 3472
 
 
 # ---- No heap ---------------------------------------------------------------------------

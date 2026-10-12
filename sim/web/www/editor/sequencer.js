@@ -40,13 +40,43 @@ function editableName(label, value, commit, attrs = {}) {
     title: 'Double-click to rename; Enter or F2 also edits. Enter or leaving the field saves; Escape cancels.',
     'aria-description': 'Double-click, Enter or F2 edits this name. Enter or leaving the field saves; Escape cancels.', ...attrs });
   input.value = value; input.readOnly = true;
-  let editing = false;
-  function begin() { editing = true; input.readOnly = false; input.focus(); input.select(); }
+  let editing = false, pointerDown = false, pendingBlur = false, blurTimer = null;
+  function cleanup() {
+    document.removeEventListener('pointerdown', pointerStart, true);
+    document.removeEventListener('mousedown', pointerStart, true);
+    document.removeEventListener('mouseup', pointerEnd, true);
+    document.removeEventListener('pointerup', pointerEnd, true);
+    document.removeEventListener('pointercancel', pointerEnd, true);
+    document.removeEventListener('click', pointerClick, true);
+    clearTimeout(blurTimer); blurTimer = null; pointerDown = pendingBlur = false;
+  }
+  function pointerStart() { pointerDown = true; }
+  function pointerEnd(e) {
+    pointerDown = false;
+    if (e.type === 'pointercancel' && pendingBlur) pointerClick();
+  }
+  function pointerClick() {
+    // Wait for the destination's click, including touch's compatibility click,
+    // before a native commit disables/redraws the workspace. Keyboard focus
+    // changes have no pointer and save directly.
+    if (pendingBlur) { pendingBlur = false; blurTimer = setTimeout(() => finish(), 0); }
+  }
+  function begin() {
+    cleanup(); editing = true; input.readOnly = false;
+    document.addEventListener('pointerdown', pointerStart, true);
+    // Touch focus may happen in compatibility mousedown after pointerup.
+    document.addEventListener('mousedown', pointerStart, true);
+    document.addEventListener('mouseup', pointerEnd, true);
+    document.addEventListener('pointerup', pointerEnd, true);
+    document.addEventListener('pointercancel', pointerEnd, true);
+    document.addEventListener('click', pointerClick, true);
+    input.focus(); input.select();
+  }
   function finish(cancel = false) {
     if (!editing) return;
-    editing = false; input.readOnly = true;
+    if (!cancel && !input.checkValidity()) { input.reportValidity(); return; }
+    cleanup(); editing = false; input.readOnly = true;
     if (cancel) input.value = value;
-    else if (!input.checkValidity()) { input.readOnly = false; editing = true; input.reportValidity(); }
     else if (input.value !== value) commit(input.value);
   }
   input.addEventListener('dblclick', begin);
@@ -55,7 +85,7 @@ function editableName(label, value, commit, attrs = {}) {
     else if (editing && e.key === 'Enter') { e.preventDefault(); finish(); }
     else if (editing && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); finish(true); }
   });
-  input.addEventListener('blur', () => finish());
+  input.addEventListener('blur', () => { if (pointerDown) pendingBlur = true; else finish(); });
   input.beginNameEdit = begin;
   return input;
 }
@@ -82,9 +112,18 @@ export function makeSequencer(ctx) {
   let releaseFader = null;
   const meterHold = new Map();
   const timelineObservers = [];
+  const trackName = (t) => state.model?.tracks[t].name || `Track ${t + 1}`;
   const sceneName = (s) => state.model?.sceneNames[s] || `Scene ${s + 1}`;
   const clip = (m = state.model, t = state.track, s = state.scene) => m.tracks[t].clips[s];
   const ensureClip = (m, t, s) => m.tracks[t].clips[s] ||= freshClip();
+  function trackTitle(t) {
+    const input = editableName(`Track ${t + 1} name`, state.model.tracks[t].name,
+      name => edit(`Rename track ${t + 1}`, m => { m.tracks[t].name = name; }),
+      { placeholder: `Track ${t + 1}`, pattern: '[\\x20-\\x7e]{0,16}', title: 'Double-click, Enter or F2 to rename. Up to 16 printable ASCII characters; spaces allowed. Clear for the numbered name.' });
+    return el('div', 'sq-track-title', {}, [input, btn('Rename', () => {
+      input.beginNameEdit();
+    }, { 'aria-label': `Rename track ${t + 1}` })]);
+  }
   function announce(text, error = false) {
     readError = false;
     status.textContent = text; status.classList.toggle('is-error', error); ctx.say?.(text);
@@ -294,7 +333,8 @@ export function makeSequencer(ctx) {
       el('div', 'sq-channel-level', {}, [levelFader(null), signalMeter('out.post_master', 'Final master output level')]),
     ]));
     const routes = state.model.tracks.map((track, t) => el('div', `sq-mixer-track ${track.route.kind === 1 ? `ed-s${track.route.index + 1}` : ''}`, { 'data-mixer-track': t }, [
-      btn(`T${t + 1}`, () => edit(`Toggle track ${t + 1} mute`, m => { m.tracks[t].muted ^= 1; }), { 'aria-label': `Track ${t + 1} mute`, 'aria-pressed': String(!!track.muted), title: `Track ${t + 1}: ${track.muted ? 'muted' : 'playing when launched'}` }),
+      trackTitle(t),
+      btn('Mute', () => edit(`Toggle track ${t + 1} mute`, m => { m.tracks[t].muted ^= 1; }), { 'aria-label': `Track ${t + 1} mute`, 'aria-pressed': String(!!track.muted), title: `Track ${t + 1}: ${track.muted ? 'muted' : 'playing when launched'}` }),
       choose(`Track ${t + 1} mixer output`, `${track.route.kind === 1 ? 's' : 'm'}${track.route.index}`, routeOptions(), v => edit(`Route track ${t + 1}`, m => { m.tracks[t].route = { kind: v[0] === 's' ? 1 : 0, index: Number(v.slice(1)) }; })),
     ]));
     return el('section', 'sq-mixer-workspace', {}, [el('div', 'sq-track-routing', { 'aria-label': 'Sequencer track routing and mute' }, routes),
@@ -369,7 +409,7 @@ export function makeSequencer(ctx) {
     ])); });
     state.model.tracks.forEach((track, t) => {
       const route = track.route, group = route.kind === 1 ? `ed-s${route.index + 1}` : '';
-      timeline.append(el('div', `sq-track-head ${group}`, {}, [btn(`Track ${t + 1}`, () => selectClip(t, state.scene)),
+      timeline.append(el('div', `sq-track-head ${group}`, {}, [trackTitle(t), btn('Select track', () => selectClip(t, state.scene), { 'aria-label': `Select track ${t + 1}` }),
         choose(`Track ${t + 1} output`, `${route.kind === 1 ? 's' : 'm'}${route.index}`, routeOptions(), v => edit(`Route track ${t + 1}`, m => { m.tracks[t].route = { kind: v[0] === 's' ? 1 : 0, index: Number(v.slice(1)) }; }))]));
       columns.forEach((e, i) => {
         const c = track.clips[e.scene];
@@ -418,7 +458,7 @@ export function makeSequencer(ctx) {
     ])); }
     state.model.tracks.forEach((track, t) => {
       const route = track.route, group = route.kind === 1 ? `ed-s${route.index + 1}` : '';
-      grid.append(el('div', `sq-track-head ${group}`, {}, [btn(`Track ${t + 1}`, () => selectClip(t, state.scene)),
+      grid.append(el('div', `sq-track-head ${group}`, {}, [trackTitle(t), btn('Select track', () => selectClip(t, state.scene), { 'aria-label': `Select track ${t + 1}` }),
         choose(`Track ${t + 1} output`, `${route.kind === 1 ? 's' : 'm'}${route.index}`, routeOptions(), v => edit(`Route track ${t + 1}`, m => { m.tracks[t].route = { kind: v[0] === 's' ? 1 : 0, index: Number(v.slice(1)) }; }))]));
       for (let scene = 0; scene < 8; scene++) {
         const c = track.clips[scene];
@@ -670,7 +710,7 @@ export function makeSequencer(ctx) {
     state.page = Math.min(state.page, Math.floor((c.loopStart + c.length - 1) / 32));
     const controls = el('div', 'sq-clip-controls', {}, [
       el('div', 'sq-toolbar sq-compact-fields sq-clip-params', {}, [
-      el('h3', '', { text: `Track ${state.track + 1} · ${sceneName(state.scene)}` }),
+      el('h3', '', { text: `${trackName(state.track)} · ${sceneName(state.scene)}` }),
       field('Loop start · step', c.loopStart + 1, v => edit('Set clip loop start', m => { clip(m).loopStart = v - 1; }), { min: 1, max: 256, step: 1 }),
       field('Loop length · steps', c.length, v => edit('Set clip loop length', m => { clip(m).length = v; }), { min: 1, max: 256 - c.loopStart, step: 1 }),
       field('Quantize %', c.quant, v => edit('Set clip quantize', m => { clip(m).quant = v; }), { min: 0, max: 100, step: 1 }),
@@ -713,7 +753,7 @@ export function makeSequencer(ctx) {
     const rows = m.mapping.map((r, i) => {
       const part = m.partIndex[r.fileIndex].get(r.partId);
       return el('div', 'sq-midi-row', {}, [el('span', '', { text: `${m.files[r.fileIndex].name} · ${part.name || 'Part'} · Ch ${part.channel}${part.drums ? ' · Drums' : ''} · ${part.notes.length} notes` }),
-        choose(`Part ${i + 1} target track`, r.track, [[-1, 'Skip'], ...Array.from({ length: 8 }, (_, t) => [t, `Track ${t + 1}`])], v => { r.track = Number(v); draw(); }),
+        choose(`Part ${i + 1} target track`, r.track, [[-1, 'Skip'], ...Array.from({ length: 8 }, (_, t) => [t, trackName(t)])], v => { r.track = Number(v); draw(); }),
         choose(`Part ${i + 1} sound`, r.sound, Array.from({ length: 4 }, (_, s) => [s, soundName(s)]), v => { r.sound = Number(v); draw(); })]);
     });
     return el('section', 'sq-section sq-import', { 'aria-label': 'MIDI import preview', 'data-testid': 'midi-import-preview' }, [
@@ -750,7 +790,8 @@ export function makeSequencer(ctx) {
       },
     })));
     const selection = el('div', 'sq-toolbar sq-selection', {}, [
-      choose('Edit track', state.track, Array.from({length:8}, (_, t) => [t, `Track ${t + 1}`]), v => selectClip(Number(v), state.scene)),
+      choose('Edit track', state.track, Array.from({length:8}, (_, t) => [t, trackName(t)]), v => selectClip(Number(v), state.scene)),
+      trackTitle(state.track),
       choose('Edit scene', state.scene, state.model.sceneNames.map((_, s) => [s, sceneName(s)]), v => selectClip(state.track, Number(v))),
       ctx.playScene ? btn('Launch scene', () => action(() => ctx.playScene(state.scene)), { 'data-testid': 'launch-scene' }) : null,
     ]);

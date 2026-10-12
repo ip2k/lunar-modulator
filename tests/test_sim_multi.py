@@ -23,7 +23,7 @@ from tests.engine_helpers import GPL_MODS
 from tests.test_sim_web import SCENARIOS, left_channel, run, scenario_args, tools  # noqa: F401
 
 BUDGET = 387924
-SEQ_FIXED = 31944 + 3264          # the sequencer's instance (8 tracks) and event buffer (272 events),
+SEQ_FIXED = 32072 + 3264          # the sequencer's instance (8 tracks) and event buffer (272 events),
 SEQ_MORE = 240 + 1024 + 20        # its pending record, the UI bound and the click,
 MOD_BYTES = 26848                 # and the modulation runtime (fm1_mod_size(), docs/16 MG3; MG9 voices; glide; its modes)
 SIM_32BIT = "-m32" in shlex.split(os.environ.get("FM1_SIM_EXTRA", "")) or struct.calcsize("P") == 4

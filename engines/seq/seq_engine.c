@@ -2058,6 +2058,24 @@ uint32_t fm1_seq_song_bars(const fm1_seq_t *s) {
   return bars;
 }
 
+const char *fm1_seq_track_name(const fm1_seq_t *s, uint8_t track) {
+  return s && track < s->n_tracks ? sq_ctracks(s)[track].name : "";
+}
+
+int fm1_seq_set_track_name(fm1_seq_t *s, uint8_t track, const char *name, size_t len) {
+  size_t i;
+  sq_track_t *tr;
+  if (!s || s->lim.compat || track >= s->n_tracks || len > FM1_SEQ_TRACK_NAME_MAX || (!name && len)) return 0;
+  for (i = 0; i < len; ++i) {
+    const unsigned char ch = (unsigned char)name[i];
+    if (ch < 0x20u || ch > 0x7eu) return 0;
+  }
+  tr = &sq_tracks(s)[track];
+  if (len) memmove(tr->name, name, len);
+  memset(tr->name + len, 0, sizeof tr->name - len);
+  return 1;
+}
+
 const char *fm1_seq_scene_name(const fm1_seq_t *s, uint8_t scene) {
   return scene < FM1_SEQ_SCENES ? s->scene_name[scene] : "";
 }

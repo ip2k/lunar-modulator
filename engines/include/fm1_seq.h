@@ -163,6 +163,7 @@ enum {
 };
 
 #define FM1_SEQ_SCENES FM1_SEQ_SLOTS    /* a scene is a column of slots */
+#define FM1_SEQ_TRACK_NAME_MAX 16u /* printable ASCII, including spaces; excluding NUL */
 #define FM1_SEQ_SCENE_NAME_MAX 6u       /* characters of a scene name (SG6) */
 #define FM1_SEQ_SCENE_PICKS 10u         /* names the panel picks from */
 
@@ -270,7 +271,7 @@ typedef struct fm1_seq_import {
   uint8_t words, wi, keylen, nf, n_tk, text_n;
   uint16_t clip;
   char keybuf[8];
-  char text[8];               /* a scene name's first characters */
+  char text[FM1_SEQ_TRACK_NAME_MAX * 2u]; /* bounded hex track name or scene name */
 } fm1_seq_import_t;
 
 void fm1_seq_import_begin(fm1_seq_import_t *im, fm1_seq_t *s);
@@ -367,6 +368,11 @@ int fm1_seq_song_entry(const fm1_seq_t *s, uint8_t e, fm1_seq_song_entry_t *out)
  * total: at 116 BPM, 116 bars are 4:00). */
 uint32_t fm1_seq_song_bars(const fm1_seq_t *s);
 
+/* Empty names use the caller's numbered fallback. Native only: the setter
+ * rejects invalid track, compat mode, length or ASCII without changing the
+ * old name. len == 0 clears; spaces are significant. */
+const char *fm1_seq_track_name(const fm1_seq_t *s, uint8_t track);
+int fm1_seq_set_track_name(fm1_seq_t *s, uint8_t track, const char *name, size_t len);
 /* A scene's name (SG6; the `movy1` line `sn`): up to
  * FM1_SEQ_SCENE_NAME_MAX printable ASCII characters, "" for none. */
 const char *fm1_seq_scene_name(const fm1_seq_t *s, uint8_t scene);
