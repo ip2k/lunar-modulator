@@ -1128,3 +1128,25 @@ cleanup independently replayed. Evidence/checks are retained under
 build/partial-stock-recovery-production/public-integration-v1 (runtime2c4a7375,
 source92dc0c23); no unchanged expensive genuine composition was rerun. Root
 alone reviews/commits/pushes/activates; CI and physical proof remain separate.
+
+### Owned capture lifecycle source checkpoint — 2026-10-12
+
+[verified: bounded models] The exact successor capture59b8/orchestrator11fb
+passed 61 unique cases across30 Hera chunks; all31 containers were inspected
+and removed. Root retained-only replay matched result16f18707. Exact frozen
+sources/tests/pins are backed up under `tools/bench_capture/lifecycle-v1/`;
+the Linux CI step explicitly runs those model tests. Canonical factory
+prelude, physical cleanup/install/CPU/display remain separate acceptance
+gates. See `notes/2026-10-12-owned-capture-lifecycle.md` for evidence/limits.
+
+The original partial adapter0d936 remains unchanged while a two-exact-source
+allowlist candidate068fd is tested on Hera. Whole-checkout V6 fixes prior
+model bundle dependency omissions before another genuine composition gate;
+the earlier V5 failed on missing firmware board.c before wrapper execution.
+New automatic closure V4 is source-only with four closed activation hashes.
+No hardware command followed the passive normal1/7C755 sysfs observation.
+Computer-use still falsely reports locked Mac after session reset; no
+Packetry window/click was obtained and no further unlock request is needed.
+Root owns integration, backup pushes and physical activation. Active
+installable diagnostic firmware goal is unfinished; continue through its
+physical acceptance and required review/CI/merge gates.
