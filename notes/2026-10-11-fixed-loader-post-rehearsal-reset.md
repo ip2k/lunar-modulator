@@ -105,22 +105,93 @@ rechecks all file evidence inside each binding check, including after the
 intent callback, and a negative test requires a consumed, closed attempt with
 zero SG_IO submissions on evidence drift.
 
-Hera frozen-source verification is running in
-`/home/claude/mvave-fm1/fixed-post-reset-20261011`; local recovery artifacts are
+[verified] Hera frozen-source verification completed in
+`/home/claude/mvave-fm1/fixed-post-reset-20261011`. Recovery artifacts, runner,
+XML/logs and Docker inspections are saved locally in
 `build/fixed-post-reset-hera/`. Archive SHA is
-`7b353c798b4c78950743ecd3016ad5e2f5d26a96d4a2455b079c5ddf636c9307`.
-Collection found 107 unique nodes: 59 new post-rehearsal tests and 48 unchanged
-baseline-reset tests, with 16 chunks (eleven of seven and five of six). Actual
-private image/ELF/backup inputs are mounted read-only, then copied to each
-disposable container; SG operations are mocked. The initial harness collection
-failure from bare sibling-test imports is retained under evidence-v1; the v2
-harness supplies the test/tools PYTHONPATH without changing frozen source.
-The independent reviewer accepted the frozen source after the intent-boundary
-repair, with no remaining material source blocker. Final Hera XML/container
-and actual modeled factory evidence remain pending. Parent owns commit/push
-and hardware activation. Branch
-`feature/2026-10-11@installable-firmware`; parent checkpoint
-`6188d8fc7c7920f9948d5103e25aa37510461b13` includes the frozen source/tests and
-was pushed with remote SHA verified by the parent. This lane creates no commit.
-Physical rehearsal evidence does not yet exist; this gate cannot be activated
-until the exact successful physical install/restore receipt is accepted.
+`7b353c798b4c78950743ecd3016ad5e2f5d26a96d4a2455b079c5ddf636c9307`;
+snapshot SHA is
+`5ed7c9619e63b2c0776971ad033285b9a2b7cfb72955a322e0cfc0a1ffee6622`.
+The archive contains 535 source/test/configuration files. Every archived file
+was checked against the snapshot inventory before collection; the independent
+reviewer also verified that inventory.
+
+Collection and independently parsed XML match all **107 unique nodes**, with
+zero duplicates, failures, errors or skips: 59 new post-rehearsal tests and 48
+unchanged baseline-reset tests. Sixteen parallel chunks contain eleven groups
+of seven and five groups of six. A preceding actual-private-fixture smoke test
+also passed; the same scenario passed again in its assigned shard. It loads
+the actual private ELF/app/backup/profile/audit inputs, performs a modeled
+install plus restore with the production rehearsal adapter, accepts the full
+receipt through the new production reset factory, and rejects a re-hashed
+forged success result. Each test container copies its read-only private inputs
+to a disposable model directory. All SG operations are mocked: this establishes
+software/evidence acceptance, not physical flash, loader, reset or boot behavior.
+
+The fixed image is
+`sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d`
+(`lunar-recovery-pytest:20261011`, Python 3.11.2). Collection, smoke and sixteen
+shards all exited 0 and reported OOMKilled=false. Each container had 2 CPUs,
+2 GiB memory/equal swap, docker-batch.slice, network=none, no devices and no
+privilege. All eighteen containers were removed; an independent final
+`docker ps -a` campaign-label check found none remaining. The first harness's
+bare sibling-test import collection failure (exit 2, no OOM) is retained under
+`evidence-v1/`; its container was removed. The v2 harness supplied the
+`tests/tools` PYTHONPATH without changing frozen source. The parent's later
+pytest configuration fix in `52b4802193fe808dc326b586eaa96a65bd7d51a8` provides
+the sibling-test path for ordinary collection; that configuration change is
+outside the frozen archive, while the adapter/tests and all literal runtime
+policy dependencies remain byte-identical.
+
+Evidence pins relative to `build/fixed-post-reset-hera/`:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `plan-v2.json` | `b85deceec7cbd794ca6b4c634f40b194788c20a3c70de97d7064b32167d199bc` |
+| `aggregate-v2.json` | `75175e2beface18e821e8d7b4766c8a8463fbab396336a97c121bda47d215fde` |
+| `independent-evidence-check.json` | `28d0e18f838541ba6e0c0cc04bf46d9306643e8d03d7cbc2d091c36f877f0519` |
+| `container-removal-check.json` | `25a9f96bd0a757af2b390c1a4bfd99ccc6a29ba9da7205d2ef5a3fe4945a68d7` |
+| `run.py` | `f400d0d4ebaed1643bfce913b259f953597307dae705886a48f99d8bfcccd1d8` |
+| `verify_evidence.py` | `baceb53b7fe94adfa6acf4564c07171409e3ab4706cb1c99c5ad40ca06cc2208` |
+| `evidence-v2/5/post-reset-factory-accepted.json` | `113910be3bdde7d08e7cfb9290360d7b07e1c960473a0aa76379cda6cff54308` |
+
+[verified] The independent reviewer accepted source `743ac876…` and tests
+`2ebf29e6…` after the intent-boundary repair, with no remaining material source
+blocker. Final independent source/test/evidence acceptance is saved in
+`build/fixed-rehearsal-reset-review.md`, SHA
+`c978a80195893ce65ff568c80eedf77f8add134d716d1758ebfc5c025462e8e9`.
+The conditional native FC0C assurance and explicit operator/exclusivity
+boundary above remain unchanged.
+
+Parent owns commit/push and hardware activation. Branch
+`feature/2026-10-11@installable-firmware`; source/tests entered parent checkpoint
+`6188d8fc7c7920f9948d5103e25aa37510461b13`, pushed with remote SHA verified by
+the parent. The latest inherited pushed checkpoint is
+`52b4802193fe808dc326b586eaa96a65bd7d51a8`; this final note update is pending
+parent commit/push. This lane creates no commit and sent no hardware traffic.
+
+[reported: parent and independent reviewer; saved reports inspected here]
+The physical SDK rehearsal subsequently completed. Independent review of
+`build/sdk-rehearsal-physical/` accepted all 45,100 events through the exact
+frozen replay, both full image readbacks, the completed restore journal and
+21,498 ordered vendor commands in bounded usbmon capture. Parent observed the
+outer wrapper process exit 0. This lane sent no device traffic and does not
+claim its own physical observation. The capture proves bounded framing and
+prefixes, while full page content is established by the separately logged
+readback hashes. The diagnostic application was never booted in this rehearsal.
+Actual log SHA is
+`20a28322c032858d01da0b9c5ca8b4d45023fecebe8dcd49c948061aa4f8caac`;
+result SHA is
+`229894c81b9207d50c6fe9bebebdbc385d745bf1595704aa841f6ad64c9aa4fc`;
+completed journal SHA is
+`5a684c7d63ba88dfb33469822c452d0f606fb8bee9ab6e9da716c3f35cfd00f6`.
+See the independent scope/limitations in `build/sdk-rehearsal-review.md`.
+
+**Next dependency:** root creates the fourteen-field stock-return campaign
+from the accepted actual physical log/result/journal and original USB/SG
+objects, attests no later command in the same fixed-loader session, and runs
+the actual-file factory preflight. Recheck the original live FD/sysfs binding
+and pass the parent's concrete physical gate before the single reset request.
+Actual reset, normal enumeration/identity and owner-visible stock boot remain
+unobserved by this lane. A separate diagnostic boot trial still requires its
+own target-state gate.

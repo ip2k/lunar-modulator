@@ -1,6 +1,39 @@
 # Exact private diagnostic install/readback/restore rehearsal
 
-Work in progress, 2026-10-11. No physical erase/program has run.
+Physical install/readback/restore rehearsal completed, 2026-10-11. Diagnostic
+application boot, display and interrupted-write recovery remain outstanding.
+
+## Physical result
+
+[verified: physical SG transcript and independent readback/capture review]
+The exact staged wrapper `173a9705…` exited 0, its child exited 0, and its owned
+capture stopped without ambiguity receipts. The adapter recorded 45,100 durable
+events and 21,498 vendor commands. Both directions wrote the same 30 permitted
+sectors with `0x4000` committed last. Full 1 MiB readback matched the diagnostic
+target `df6c963e…`, then the restored stock baseline `96006a51…`. The completed
+journal has direction `restore`, no outstanding intent and the baseline hash.
+
+The independent reviewer replayed every event and full-page response hash,
+verified the exact source/input pins and independently checked every captured
+vendor CDB, bulk stage and CSW. The 32-byte usbmon payload prefixes corroborate
+the transfer framing; they do not prove full-page payload bytes on the wire.
+The capture also contains 98 kernel TEST UNIT READY and 98 REQUEST SENSE CBWs,
+whose command statuses were not part of that vendor-command acceptance.
+
+Private evidence is retained under `build/sdk-rehearsal-physical/`: mirror
+archive `da323d36ced26117f2fa64793ed64a74920118436fbe84b06c074036b9904f6e`,
+actual command log `20a28322c032858d01da0b9c5ca8b4d45023fecebe8dcd49c948061aa4f8caac`,
+capture `75b249a522174e133b51162626615ac79f1aa838ff2e9f6f79986cf19a03c8ea`,
+result `229894c81b9207d50c6fe9bebebdbc385d745bf1595704aa841f6ad64c9aa4fc`,
+journal `5a684c7d63ba88dfb33469822c452d0f606fb8bee9ab6e9da716c3f35cfd00f6`.
+Independent report `build/sdk-rehearsal-review.md` has SHA
+`fc5b58e5425d04546852fd2621a4982e68648def47499c473df3f647da4d66b0`.
+
+[verified: actual-file preflight; no reset sent] The separate stock-return
+campaign `f2a9f740…` accepted these completed physical receipts without opening
+hardware. Its reset is a distinct one-shot operation; the earlier baseline-only
+reset helper is invalid after this rehearsal. No application has been booted by
+this campaign yet.
 
 The new `tools/fm1_sdk_rehearsal.py` accepts one exact target
 `df6c963ecd37b334f393c5bc92c2780b6094181308822a03c8190b016a4e97db`
@@ -9,7 +42,7 @@ It binds both SDK policy directions, replays the actual fixed-loader backup
 commands, pins its complete helper snapshot, and permits only FC0A geometry
 query, aligned FD05 reads, exact derived-sector FB01 erase and exact
 direction-bound FB04 program. The durable one-use marker precedes device open.
-[verified: source inspection; independent review and tests pending final freeze]
+[verified: frozen source, focused tests and independent review]
 
 Full NOR readback is required before and after each direction, with erase and
 sector readback and the application-directory sector committed last. Each SG
@@ -17,7 +50,7 @@ intent/completion is fsynced; completion includes input-response hashes for an
 independent later verifier. Bad status, sense, residue, changed FD/sysfs binding,
 log failures and close exceptions stop without retry. Sticky BaseException
 close state prevents inherited cleanup from hiding failed closure.
-[verified: source; no physical acceptance]
+[verified: source and completed physical rehearsal]
 
 The accepted source's physical meaning still depends on the separately reviewed
 [native NOR paths](2026-10-11-fixed-loader-nor-write-review.md). FB04 has no
@@ -25,17 +58,16 @@ visible native CRC check and does not return ordinary input data. Correct host
 framing alone cannot establish a successful write; actual readback gates it.
 
 Current adapter freeze: `f696484511754b91d4faf449aa2e4cab3ca910daf05a9acd66daa966bae7d6c4`.
-Focused tests and independent review are running against that freeze in 16
+Focused tests and independent review passed against that freeze in 16
 Hera chunks. A previous file-only bench preflight of source38527d0e accepted
 campaign7846820f without constructing transport; that earlier packet is not
 authority for this changed source. Parent must stage a new exact packet and
 repeat its file-only checks before hardware. No source or mock pass claims
 physical installation, boot, display or recovery.
 
-Next: accepted final test/review evidence, new frozen bench packet, one bounded
-install/full-readback/restore/full-readback rehearsal. Then a separate reviewed
-post-rehearsal reset policy; baseline-only no-later-commands reset is invalid
-after rehearsal. Diagnostic boot/display/recovery and interrupted-write
+Next: the separate reviewed post-rehearsal reset policy and observation of stock
+operation; baseline-only no-later-commands reset is invalid after rehearsal.
+Diagnostic boot/display/recovery and interrupted-write
 physical acceptance remain later goal dependencies. All private SDK/vendor
 artifacts remain ignored and undistributed.
 
@@ -50,7 +82,7 @@ Every staged inventory member was checked, then the production factory accepted
 actual files without constructing transport or opening hardware. USB 3-2 remains
 ROM device 23 and the rehearsal marker is absent. The earlier packet is parked.
 
-[verified: independent source review; tests pending] Private wrapper SHA
+[verified: independent source review and completed execution] Private wrapper SHA
 `173a9705476223ee2047d89e2dc37d7d0747e1c1be62bc4e98b3bfe0607dbd6e`
 owns one passive usbmon reader and one exact isolated Python child. Acceptance
 requires actual wrapper exit 0, child exit 0, capture-stop receipt, no wrapper

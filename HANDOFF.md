@@ -11,6 +11,22 @@ original conversation; last updated 2026-10-11. Read this first, then
 
 ## Installable firmware image resumed — 2026-10-11
 
+[verified: physical rehearsal and independent review] Exact SDK diagnostic
+installation and stock restoration both passed full 1 MiB readbacks, matching
+target `df6c963e…` and stock `96006a51…`. Wrapper/child exited 0, owned capture
+stopped cleanly, all 45,100 events and 21,498 vendor commands were independently
+replayed. Evidence is private under `build/sdk-rehearsal-physical/`; details and
+limits are in [the rehearsal note](notes/2026-10-11-sdk-rehearsal.md).
+The distinct post-rehearsal stock reset `743ac876…` passed 107 cases in 16 Hera
+chunks plus its actual-input modeled smoke and independent review. Its actual
+physical-receipt campaign `f2a9f740…` passed file-only preflight without opening
+hardware. No reset or application boot has run yet. Next: separately reviewed
+one-shot reset, stock USB/identity observation, then install-only diagnostic boot,
+display and recovery; corrupted/interrupted-write acceptance remains outstanding.
+
+The following entries are historical checkpoints, superseded where the physical
+result above supplies later evidence.
+
 [verified: verification checkpoint] Rehearsal tests `95879aa0…` passed all
 125 cases in 16 Hera chunks plus the separate actual-input modeled smoke,
 zero failures/errors/skips/OOM and all containers removed. Independent retained
