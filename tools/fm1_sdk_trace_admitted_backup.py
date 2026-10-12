@@ -153,7 +153,10 @@ def _validate_campaign(path, *, evaluated_at, completed=False, install_journal_p
     base_path = root / 'fm1_returned_rom_backup.py'; freeze(base_path, BASE_SOURCE_SHA)
     base = load_source(base_path, BASE_SOURCE_SHA, '_trace_admitted_backup_native')
     proof_path = root / 'fm1_sdk_trace_return_admission.py'; freeze(proof_path, PROOF_SOURCE_SHA)
-    proof_module = load_source(proof_path, PROOF_SOURCE_SHA, '_trace_admitted_backup_proof')
+    proof_module = importlib.import_module('fm1_sdk_trace_return_admission')
+    if (Path(proof_module.__file__).absolute() != proof_path or
+            digest(read_file(proof_path)) != PROOF_SOURCE_SHA):
+        raise ValueError('Exact canonical returned admission module required')
     freeze(c['returned_admission_path'], c['returned_admission_sha256'], 65536)
     proof = proof_module.validate_returned_state(c['returned_admission_path'],
         install_journal_path=install_journal_path)

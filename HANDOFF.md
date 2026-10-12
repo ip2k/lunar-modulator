@@ -855,3 +855,39 @@ Its None pin still prevented execution. Retain V1/V2 failures; after this WIP
 checkpoint release only the backup source for the canonical import/path/hash
 correction, review the exact successor, then rerun the full56/30 gate. Original
 source reviewf9b16328/check8bab259b missed this contract and is not accepted.
+
+### Canonical recovery correction and composed gates — 2026-10-12 UTC
+
+[verified] The closed backup now imports the canonical admission module and
+checks its exact path and bytes; source6f50c4d8 was independently reviewed in
+report42c67ff1/checkdbee7b41. Closed recovery V3 passed all56 unique cases in30
+Hera chunks plus one smoke, with all32 container inspections/removals and202
+artifact hashes verified. Root fully read report52d2d979/check4e488459 and saved
+`build/sdk-trace-admitted-recovery-hera/root-runtime-acceptance-v3.json`.
+V1 collection and V2 source-contract failures remain retained. This accepts
+closed mechanics only; backup/restore activation pins remain None.
+
+[verified] The returned-admission5ca132fc gate completed75 unique cases in30
+Hera chunks plus smoke with no failures/errors/skips. Author/verifier report
+0c662929 describes five genuine production-factory branches,32 containers and
+443 regular artifact hashes. A separate independent retained-evidence audit is
+pending; root has not yet accepted this runtime dependency. The removal guard
+a55dd1eb was reviewed by root after launch, and that timing is explicitly kept
+in the receipts. Device and capture lifecycle were modeled; no hardware claim.
+
+New canonical backup-to-restore fixture497ae65a/tested818164 and its note are
+saved. Root fully read them and the independent source reviewbb9b6a3a/check8fccb187.
+The separate candidates backup7e9dbf15/restore683275d7 change exactly three pin
+literals in total. Execution remains held until the75-case audit is accepted
+and the explicit54 mechanics plus2 genuine recovery cases are sealed on Hera.
+The two heavy branches cover complete stock restore and conflicting provenance
+appearing immediately after durable intent, requiring zero erase/program calls.
+
+The Computer inventory retry still returns a false lock response despite owner
+confirmation; no Packetry window or click was available. Passive bench sysfs
+refresh confirms the normal FM-1 on1-1/bus1/device3 through Cynthion. That refresh
+sent no USB command and grants no fresh ROM authority. Root is preparing the next
+physical trace-image campaign; retained RAM must be read before a loader upload
+overwrites0x01c02880/0x01c03418. Physical boot/display/recovery and final CI,
+review/integration remain open. Last verified pushed checkpoint before this
+entry is81a91f1f0da9cef74d598edfbba975eaaac61296 on the installable-firmware branch.
