@@ -56,6 +56,31 @@ try {
     assert.equal(await page.evaluate(() => document.body.dataset.layout), 'panel');
     await page.locator('button[data-layout="workbench"]').focus(); await page.keyboard.press('Enter'); await waitView('sequencer');
   });
+  await check('a newly loaded Movy set defaults to Song within the same project', async () => {
+    await page.locator('.ed-out-lib').click(); await waitView('library');
+    const before = await page.evaluate(() => fm1.files.pid);
+    await page.evaluate(async () => {
+      const { emptySet, emptyClip, writeSet } = await import('/lunar-modulator/editor/sequence-model.js');
+      const set = emptySet(); set.tracks[0].clips[0] = emptyClip(); set.song = [0];
+      const r = await fm1.files.load(new TextEncoder().encode(writeSet(set).join('\n') + '\n'), {
+        d: { enc: 3, kind: 'set', title: 'Loaded Movy set' }, quiet: true,
+      });
+      if (!r.ok) throw Error(JSON.stringify(r));
+    });
+    assert.equal(await page.evaluate(() => fm1.files.pid), before);
+    await waitView('sequencer');
+  });
+  await check('loading one clip preserves the explicit workspace', async () => {
+    await page.locator('.ed-out-lib').click(); await waitView('library');
+    await page.evaluate(async () => {
+      const bytes = new Uint8Array(await (await fetch('examples/bass-a.clip.lunar')).arrayBuffer());
+      const r = await fm1.files.load(bytes, {
+        d: { enc: 2, kind: 'clip', title: 'Bass A clip' }, target: { into: 1, slot: 1 }, quiet: true,
+      });
+      if (!r.ok) throw Error(JSON.stringify(r));
+    });
+    await waitView('library');
+  });
   await check('explicit selection link wins over an in-flight project snapshot', async () => {
     await page.evaluate(() => {
       const shadow = fm1.files.shadow;
