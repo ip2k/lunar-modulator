@@ -35,7 +35,12 @@ isolation and cleanup receipts. [verified: independent retained-evidence review]
 
 These are fixture-selection/native transport models; no hardware opener,
 CPU emulation or physical acceptance is claimed. Required whole-repository
-CI must still pass on the new exact pushed head before integration.
+CI run [38272943785](https://github.com/ip2k/lunar-modulator/actions/runs/38272943785)
+passed all 13 jobs on exact pushed head
+48629ff7fa774c8b97f9c8a970c487e42bc6c106. This includes both Python jobs,
+engine build/sanitizer/licence profiles, three editor browser jobs, fork tests
+and RP2040 firmware. Root refreshed the run through `gh run view` after it
+completed. [verified: completed run, job conclusions and exact head]
 
 Semantic tools remain selected on the shared primary checkout, where this
 worktree's fixture is absent. Bounded queries could not find it; file

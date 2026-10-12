@@ -29,8 +29,9 @@ required, empty, missing and invalid configurations fail. Hera ran 182 exact
 native cases in 30 chunks with zero skips/failures/errors, plus one smoke test. The
 clean run skipped exactly the 71 original CI error nodes, with 111 passes and
 no errors. All 33 container isolation/removal receipts are retained under
-build/native-fixture-ci-v1. Required whole-repository CI still needs the new
-exact pushed head. Independent review 7491dbe8/check 6d5ebecf accepted the
+build/native-fixture-ci-v1. Required CI run 38272943785 passed all 13 jobs on
+exact pushed head 48629ff7fa774c8b97f9c8a970c487e42bc6c106.
+Independent review 7491dbe8/check 6d5ebecf accepted the
 fixture-selection change and retained evidence. Semantic servers select the primary checkout, which lacks
 this worktree's fixture; file inspection was used without changing another
 session's project selection.
@@ -38,11 +39,29 @@ session's project selection.
 [verified: review scope] BOT validator V3 b9b98cfb checks ordered CBW/data/CSW
 lifecycles and FD05 captured prefixes against the retained complete stock
 dump. Its 34 mutation cases passed on Hera. This is supporting evidence,
-not canonical factory admission. The new timed entry sequence remains closed:
-independent review found a stale entry-source pin and an install identity
-schema mismatch. Repair and genuine complete-chain rehearsal precede fresh
-entry; no new install/NOR command has run. Physical display, interrupted-write
-recovery and the overall installable-image goal remain open.
+not canonical factory admission. The timed entry sequence remains closed.
+V3 repaired the stale entry-source pin and identity/geometry inputs; one genuine
+composed factory/helper case and 30 phase cases passed on Hera. Root and an
+independent reviewer replayed the retained checker: 1,801 source pins, 31
+isolated containers, unchanged inputs, preserved original install journal and
+completed stock readback. USB/SG, clocks and capture observations were modeled;
+the outer sequencer and capture supervisor were not executed. Their lifecycle
+verification and the separate partial recovery wrapper test are active launch
+dependencies. No new install/NOR command has run. Physical display,
+interrupted-write recovery and the overall installable-image goal remain open.
+See notes/2026-10-12-sdk-trace-chain-model.md.
+
+[verified: source review] The distinct partial-to-stock capture wrapper V2
+lost its direct CLI entrypoint while cleanup was revised; V3 restores that
+entrypoint and keeps durable stdout plus owned leader/reader cleanup checks.
+Source review accepts V3 c3c456a6 for a device-free model only. Its genuine
+helper/worker, capture-setup failure and retry-rejection model is pending.
+Do not infer hardware acceptance from this source review.
+
+[verified: maintenance boundary] Growth since the d7111a9 audit baseline
+exceeds the roughly 10,000-line trigger. The next full audit is due. The
+candidate delta inventory is a mechanical estimate, not a completed review;
+preserve the existing file-level audit method and confidence boundaries.
 
 [verified: latest bench evidence] The consumed RAM-only reset had an ambiguous
 final USB reply; a separate passive observation then saw normal FM-1 USB without
