@@ -656,7 +656,8 @@ eight scene slots. **Launch scene** triggers that scene through native transport
 while a launch is queued, the position display follows the clip still playing.
 **Scenes** shows all 64 clip slots, including scenes absent from the song.
 Its edit buttons select a clip; separate launch buttons perform clips or whole
-scenes. An empty slot offers **Stop track**. Manual launches leave song following
+scenes. Compact play icons sit beside scene titles and clips; an empty slot
+shows a stop square. Manual launches leave song following
 while retaining the saved chain. Switch back to **Arrangement** for the timeline,
 which shows the native song chain, with real scene lengths and repeat counts. Repeated
 occurrences share the same scene clips: copy a scene first when a later occurrence

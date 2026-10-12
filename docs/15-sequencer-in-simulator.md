@@ -2557,6 +2557,12 @@ the section pager. **Song ending** is a direct dropdown: loop the song, park
 tracks while the clock keeps running, or stop. The selected section is
 highlighted in the timeline.
 
+In Scenes, the compact play icon to the left of a scene title launches the
+scene; the icon beside a clip launches that clip. Empty slots show a stop
+square. Click the clip body to edit it, or header whitespace to select a
+scene without launching it. Launch controls keep descriptive tooltips and
+accessible names for keyboard and MIDI mapping use.
+
 Double-click a track's title in Arrangement, Scenes or Mixer to edit it; a
 focused title also accepts Enter or F2. Enter or leaving the field saves;
 Escape cancels. There is no separate Rename button. The Clip and Automation
