@@ -1,6 +1,6 @@
 # 15 — The sequencer in the virtual FM-1: plan
 
-> **Current browser status (2026-10-11):** the Advanced editor now includes a
+> **Current browser status (2026-10-12):** the Advanced editor now includes a
 > native Song workspace for scenes, arrangements, clips, automation, mixing,
 > MIDI import, MIDI Learn and project/set exchange. Responsive grids page longer
 > scenes, arrangements, clips and automation rows without horizontal page
@@ -18,8 +18,11 @@
 > The top-bar DSP estimate uses browser timing and marks `Date.now()` fallback
 > as coarse; the Memory page shows used/available estimates and RAM by Shared,
 > Master and S1–S4. FM-1 CPU usage is not measured. Combined-source Wasm 108
-> parity and the Chromium resource-meter check passed; browser WAV download
-> validation remains a separate check.
+> parity and the Chromium resource-meter check passed. Native editor and sync
+> suites also passed in Chromium, Firefox and WebKit against Wasm SHA-256
+> `34389dab09a86ed845ca2efc4b71bb3250e77ddf1e0529b4a011c94b6245b8c8`; each
+> browser produced six WAV downloads. Scope and acceptance limits are recorded
+> in [the browser receipt](../notes/2026-10-12-editor-native-browser-acceptance.md).
 > The 2026-10-11 design review is preserved in
 > [notes/2026-10-11-daw-design-review](../notes/2026-10-11-daw-design-review/README.md).
 
