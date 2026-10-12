@@ -24,8 +24,13 @@ def genuine_caught_restore(actual, tmp_path, monkeypatch, fault):
         raise ValueError('Bounded admitted restore fault required')
     wrappers = {name: Path(os.environ['LUNAR_PARTIAL_'+name+'_CAPTURE'])
                 for name in ('INSTALL', 'RESTORE', 'ACQUIRE')}
+    # Both independently reviewed install captures remain valid evidence.
+    assert partial.INSTALL_CAPTURE_SHA == '7d2cec8584bc274c534046d490f3c319bd7e0c13dec6d1f654323e9c9aa8dd8b'
+    assert partial.INSTALL_CAPTURE_SUCCESSOR_SHA == '59b8e8c23f494f0ac6c89585786f72a9b408d5692e2a5fbf66c2c0376945c52d'
     for name, path in wrappers.items():
-        assert getattr(partial, name+'_CAPTURE_SHA') == partial.digest(path.read_bytes())
+        expected = ((partial.INSTALL_CAPTURE_SHA, partial.INSTALL_CAPTURE_SUCCESSOR_SHA)
+                    if name == 'INSTALL' else (getattr(partial, name+'_CAPTURE_SHA'),))
+        assert partial.digest(path.read_bytes()) in expected
     assert partial.PREFIX_SHA == partial.digest(Path(partial.__file__).with_name('fm1_partial_nor_prefix.py').read_bytes())
     g = genuine_recovery_ready(actual, tmp_path, monkeypatch)
     r = genuine_restore_ready(g)

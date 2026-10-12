@@ -1,6 +1,14 @@
 ## Active correction, 2026-10-12
 
-V6k is rejected: global SHA substitution erased the historical install-capture identity, including its fixture assertion. See notes/2026-10-12-recovery-stage-successor-v6n/README.md. Corrected V6n and expanded 16O/16P verification are running on Hera. Do not integrate V6k despite passing modeled checks. FM-1 freshly observed normal 4c4a:c755 on bench01, no power cycle needed; no reset/softkey/write this correction. Packetry CUA still reports Mac locked; manual-unlock question pending. Goal remains physically verified installable diagnostic firmware, not complete.
+Goal remains physically verified installable diagnostic firmware; not complete. Worktree installable-firmware/mvave-fm1-firmware, branch feature/2026-10-11@installable-firmware. Last verified pushed head before this checkpoint e76e19f733d35c72fd07aab28a6958553b4d574b.
+
+V6k is rejected even though its heavy model passed: global SHA substitution erased the historical install-capture identity and its fixture assertion. V6n correctly preserves both identities, but its heavy model failed before mutation because the restore fixture accepted only the historical install wrapper. The tracked fixture now explicitly asserts both independent hashes and accepts only their allowlist. V6r closes that correction and includes the outer lifecycle source-pins manifest. Its heavy model is running on Hera (unified session 80130), remote /home/claude/mvave-fm1/owned-restore-v6r-resumed-20261012/heavy-model-proposal-v6r. Archive c5ba02fd379516f4bc63614fd93adccc870aa617fabe5c2fa16d3a737d321fef; runner 431b291b4ce33ede32480e7177b72ba5232f03c106bc2656e358d2d9a38aec24. Do not integrate pins until terminal evidence is reviewed.
+
+16O collection failed because the outer manifest was omitted; V6q adds that explicit manifest. V6q has completed all 16 shards successfully, 504 collected cases; native optional skips must be counted and evidence retained/locally verified. V6p required all 71 native cases and passed all 16 chunks with zero skips; evidence retention remains. Q remote /home/claude/mvave-fm1/mechanics-v6q-20261012/mechanics-16q; P remote under owned-restore-v6n-resumed-20261012/heavy-model-proposal-v6n/native-16p. No hardware access in these runs.
+
+Fresh passive check: bench01 normal FM-1 4c4a:c755 bus1/device8, no 8057, no power cycle needed. No reset/softkey/write during correction. Packetry CUA still reports Mac locked; manual-unlock question pending. Preparing fresh source package only; historical V5 source packages are staged but must not execute. New staging must include exact native firmware provenance and verified current recovery closure, with execution gates closed until a concrete fresh plan is reviewed.
+
+Historical entries below may report superseded running states; this correction takes precedence.
 
 # Hand-off package — Lunar Modulator
 

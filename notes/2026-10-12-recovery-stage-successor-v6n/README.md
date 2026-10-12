@@ -9,3 +9,9 @@ Runner SHA256: `ebfc57e4a95960de98535c4bcfd4d7d1d3e2817d2f048c7cd7678d0a373e25bb
 Private outputs remain under ignored `build/`; source-delta.json records the exact closure. Production policy still preserves both hashes and has not been replaced with the proposed closure.
 
 Next: verify complete 16O/16P and heavy terminal evidence, inspect semantic changes, integrate corrected pins, run exact-head CI, and prepare a fresh physical campaign retaining stock SPL/OTA/cfg and dual-backup safeguards. A model pass does not prove physical boot, display, USB reset, or recovery.
+
+## Subsequent terminal results and correction
+
+V6n heavy failed before mutation: retained_partial_restore_fixture.py still accepted only the historical install wrapper. Its corrected production policy exposed this fixture error. V6r explicitly fixes the fixture allowlist while asserting both independent identities; includes all outer Python and JSON sources, and corrects the added-source ledger. See ../2026-10-12-recovery-stage-successor-v6r/source-delta.json. V6r heavy is running and has not been accepted.
+
+16O failed during collection because source-pins.json was omitted. V6q adds that explicit manifest and completed all 16 shards successfully with 504 collected cases. V6p passed the 71 required native cases in 16 chunks without skips. Complete evidence retention/local verification remains pending; no physical inference follows.

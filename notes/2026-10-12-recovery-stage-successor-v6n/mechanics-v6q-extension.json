@@ -1,0 +1,8 @@
+{
+  "added_sources": {
+    "tools/bench_capture/lifecycle-v1/source-pins.json": "7c0ed318ebb8084c501d3b7ee4c6ac402bde4feb2a181e063167a071ce9f7e97"
+  },
+  "archive_sha256": "273ec54e1f2710ddd721b07b3bbe6333f546b68485cb05791c33f480f1d5f42d",
+  "base_archive_sha256": "4592dc9faeedc28915d8ac7c1e8330ff7c03f388750de446018514d6365c3e85",
+  "hardware_access": false
+}
