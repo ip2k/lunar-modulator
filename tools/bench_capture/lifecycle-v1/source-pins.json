@@ -1,7 +1,7 @@
 {
   "owned-install-boot-once.py": "59b8e8c23f494f0ac6c89585786f72a9b408d5692e2a5fbf66c2c0376945c52d",
   "orchestrate-entry-backup.py": "11fb56e84472f064d15e6c24eebcb768e78f1f349569658c17aa4a699f7108c1",
-  "test_outer_lifecycle.py": "36f48c3bf67b73e465b719f5785e6271319af4b7db025d502c9f5797bc0f3023",
-  "test_sequence_cli_failure.py": "8a9fbd6239a22e2f60bc2a040febfc06cbcb0f22e9ee64836b9d7615c6271595",
+  "test_outer_lifecycle.py": "ffae1afeca5460ec1f47dddd93bc2dce0aecb0ae06129e37098ba3653849f2b7",
+  "test_sequence_cli_failure.py": "daacc2f7ba69e4ad15e0c207d56422586f86bed047f5f5fbee1cd44dc1a933f4",
   "sequence-once.py": "2ffa1f194f29e0b92aa3f6900f95960cae8822e2439d1e6e9cb6af64eeb7aaff"
 }

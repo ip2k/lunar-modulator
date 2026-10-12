@@ -6,8 +6,24 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 
 Written 2026-09-06 at the end of the research session that created this
 repository, so a fresh Claude project (or a human) can continue without the
-original conversation; last updated 2026-10-11. Read this first, then
+original conversation; last updated 2026-10-12. Read this first, then
 `DEVELOPERS.md` (the README is the product page), then `docs/`.
+
+## Restart checkpoint — 2026-10-12
+
+The owner requested a safe checkpoint before a desktop/macOS restart to repair
+Computer Use. Read `notes/2026-10-12-desktop-restart-checkpoint.md` first when
+resuming: it records current bench state, exact local/Hera artifacts, accepted
+model results, consumed historical packets, closed V5 gates and next steps.
+The installable diagnostic image goal is paused for that restart; physical
+trace-image/display/boot/recovery acceptance and final review/CI/merge remain
+unfinished. No new hardware session was started for this checkpoint.
+The final passive stopping check found normal FM-1 USB/MIDI and no known
+firmware/capture process. All delegates finished and Hera FM-1 containers
+were absent. The 63-case nonroot lifecycle model and two genuine modeled
+install-interruption cases passed. Private V5 proposal material is verified
+off-Mac on Hera; its flashing gates remain closed. Read the restart note
+before the older boundaries below, and check exact checkpoint CI on resume.
 
 ## Current installable-image boundary — 2026-10-12
 

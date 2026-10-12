@@ -129,9 +129,23 @@ def test_actual_stop_requires_matching_owned_group_absent(tmp_path,monkeypatch,o
     assert p.cap.waits==([] if outcome in ('identity_changed','leader_exit') else [8])
 
 
+def model_temporary_root(m,monkeypatch,directories=()):
+    """Model UID/ownership only for exact disposable dirs; actual guards execute."""
+    monkeypatch.setattr(m.os,'geteuid',lambda:0)
+    if directories:
+        owned=set(directories);real_lstat=Path.lstat
+        def lstat(path,*args,**kwargs):
+            info=real_lstat(path,*args,**kwargs)
+            if path in owned:
+                values=list(info);values[4]=0 # st_uid in os.stat_result
+                return os.stat_result(values)
+            return info
+        monkeypatch.setattr(Path,'lstat',lstat)
+
 def temporary_orchestrator(m,tmp,monkeypatch,branch):
     """Bind real preflight to exact temporary sources, never a production factory."""
     root=tmp/'entry';root.mkdir(mode=0o700);er=root/'entry-once';er.mkdir(mode=0o700)
+    model_temporary_root(m,monkeypatch,(root,))
     for attr,rel in [('ROOT','.'),('RUN','initial-entry-backup-v3-2'),('ENTRY_SOURCE','entry-once/entry.py'),('PREPARE_SOURCE','prepare.py'),('BACKUP_SOURCE','backup.py'),('READER_SOURCE','reader.py')]:monkeypatch.setattr(m,attr,root/rel)
     cap=Capture();calls=[];clock=Clock();monkeypatch.setattr(m,'time',clock)
     # Only failure/adoption emitters, deliberately no normal/ROM/device operations.
@@ -291,3 +305,14 @@ def test_successor_source_capture_suffix_durability_and_exact_cleanup(tmp_path,m
         no_signal=outcome in ('swapped_reader','group_unexpected','leader_early_exit')
         assert len(p.signals)==(0 if no_signal else 1)
         assert cap.waits==([] if no_signal else [5])
+
+
+def test_actual_orchestrator_rejects_nonroot_before_activity(tmp_path,monkeypatch):
+    m=load('orchestrate-entry-backup.py')
+    monkeypatch.setattr(m.os,'geteuid',lambda:1001)
+    def forbidden(*args,**kwargs):raise AssertionError('No child before root admission')
+    monkeypatch.setattr(m.subprocess,'Popen',forbidden)
+    monkeypatch.setattr(m.subprocess,'run',forbidden)
+    with pytest.raises(ValueError,match='Linux root required'):
+        m.verify_stage(m.sha_bytes(Path(m.__file__).read_bytes()))
+    assert list(tmp_path.iterdir())==[]

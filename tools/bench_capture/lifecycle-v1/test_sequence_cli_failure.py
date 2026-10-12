@@ -2,12 +2,13 @@
 import hashlib,json,os,sys
 from pathlib import Path
 import pytest
-from test_outer_lifecycle import load,put,j
+from test_outer_lifecycle import load,put,j,model_temporary_root
 
 def test_actual_sequence_main_consumes_and_stops_after_first_real_child(tmp_path,monkeypatch):
     m=load('sequence-once.py');stage=tmp_path/'stage';entry=tmp_path/'entry';stage.mkdir(mode=0o700);entry.mkdir(mode=0o700);run=entry/'run';run.mkdir(mode=0o700)
     for key,value in [('STAGE',stage),('ENTRY',entry),('RUN',run)]:monkeypatch.setattr(m,key,value)
     for name in ('install-run','boot-run','returned-backup-run','returned-restore-run'):(stage/name).mkdir(mode=0o700)
+    model_temporary_root(m,monkeypatch,[stage,entry,run,*(stage/name for name in ('install-run','boot-run','returned-backup-run','returned-restore-run'))])
     # These deliberately harmless exact-bound source files are not hardware wrappers.
     child=entry/'orchestrate-entry-backup-v3.py';child.write_text("print('first-child-stopped',flush=True)\nraise SystemExit(23)\n")
     for name in ('wire.py','root-launch-acceptance.json','partial-recovery-plan.json'):(entry/name).write_text('{}\n')
@@ -25,3 +26,16 @@ def test_actual_sequence_main_consumes_and_stops_after_first_real_child(tmp_path
     assert not (run/'chain-completed.json').exists()
     with pytest.raises(ValueError,match='run must be empty'):m.main()
     assert len(list(run.glob('*.intent.json')))==1 and len(list(run.glob('*.exit.json')))==1
+
+
+def test_actual_sequence_rejects_nonroot_before_activity(tmp_path,monkeypatch):
+    m=load('sequence-once.py')
+    # Pure source-model gates reach the actual UID guard; no factory is installed.
+    for key in ('WIRE_SHA','CLOSURE_SHA','ROOT_ACCEPTANCE_SHA','RECOVERY_PLAN_SHA'):
+        monkeypatch.setattr(m,key,'a'*64)
+    monkeypatch.setattr(m.os,'geteuid',lambda:1001)
+    monkeypatch.setattr(sys,'argv',[str(m.__file__),'--reviewed-self-sha256',m.digest(Path(m.__file__).read_bytes())])
+    def forbidden(*args,**kwargs):raise AssertionError('No child before root admission')
+    monkeypatch.setattr(m.subprocess,'run',forbidden)
+    with pytest.raises(ValueError,match='Linux root required'):m.main()
+    assert list(tmp_path.iterdir())==[]
