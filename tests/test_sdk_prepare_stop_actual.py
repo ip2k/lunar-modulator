@@ -17,7 +17,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 
-def test_actual_v7_preparation_stop_backup_restore(monkeypatch, tmp_path):
+@pytest.mark.parametrize('fault', ('none', 'interrupted_program', 'corrupted_readback', 'later_chain_before_erase'))
+def test_actual_v7_preparation_stop_backup_restore(monkeypatch, tmp_path, fault):
     if os.environ.get('LUNAR_PREPARATION_STOP_DISPOSABLE') != '1':
         pytest.skip('Requires retained private V7 files in a disposable container')
     assert Path('/tmp/packet-work') == Path(__file__).resolve().parents[1]
@@ -89,6 +90,45 @@ def test_actual_v7_preparation_stop_backup_restore(monkeypatch, tmp_path):
         receipt_path=str(receipt / 'stock-restore'))
     rp = tmp_path / 'restore.json'; rp.write_bytes(restore.canonical(rc))
     prepared = restore.prepare_campaign(rp)
+    if fault != 'none':
+        calls_at_start = len(model.calls)
+        injected = []
+        late = entry / 'automatic-trace-chain-v7/09-unexpected.intent.json'
+        def after_ioctl():
+            command = model.calls[-1]
+            if fault == 'interrupted_program' and command['op'] == 0xFB04 and not injected:
+                injected.append(True)
+                raise OSError('Modeled disconnect after flash accepted a program block')
+            if fault == 'corrupted_readback' and command['op'] == 0xFB04 and not injected:
+                injected.append(True)
+                model.flash[command['address']] ^= 1
+            if fault == 'later_chain_before_erase' and command['op'] == 0xFD05 and not injected:
+                injected.append(True)
+                late.write_text('{}')
+        model.after_ioctl = after_ioctl
+        with pytest.raises((ValueError, OSError)):
+            restore.run_campaign(prepared)
+        assert injected
+        fault_calls = model.calls[calls_at_start:]
+        assert not any(c['op'] == 0xFC0C for c in fault_calls)
+        if fault == 'later_chain_before_erase':
+            assert not any(c['op'] in (0xFB01, 0xFB04) for c in fault_calls)
+            assert bytes(model.flash) == target.read_bytes()
+        else:
+            assert any(c['op'] == 0xFB01 for c in fault_calls)
+            assert bytes(model.flash) != target.read_bytes()
+            assert hashlib.sha256(model.flash).hexdigest() != restore.BASELINE_SHA
+        assert (receipt / '.sdk-preparation-stop-stock-restore.consumed').exists()
+        assert not (Path(rc['receipt_path']) / 'result.json').exists()
+        after_stop = len(model.calls)
+        with pytest.raises((ValueError, FileExistsError)):
+            restore.run_campaign(prepared)
+        with pytest.raises(ValueError):
+            restore.prepare_campaign(rp)
+        assert len(model.calls) == after_stop
+        journal = json.loads((Path(policy_inputs['directory']) / 'journal.json').read_bytes())
+        assert journal['state'] != 'complete' or journal['verified_sha256'] != restore.BASELINE_SHA
+        return
     restored = restore.run_campaign(prepared)
     assert hashlib.sha256(model.flash).hexdigest() == restore.BASELINE_SHA
     assert restored['full_flash_readback_verified'] is True
