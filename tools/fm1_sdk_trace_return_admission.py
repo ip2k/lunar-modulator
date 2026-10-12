@@ -221,7 +221,11 @@ def validate_returned_state(path, *, install_journal_path=None):
         raise ValueError('Original boot-observed ROM snapshot path required')
     snapshot_raw = f.freeze(inputs['snapshot_path'], limit=65536)
     snapshot = json.loads(snapshot_raw)
-    stage = private_directory(root.parent); run = private_directory(Path(c['native_campaign_path']).parent)
+    run = private_directory(Path(c['native_campaign_path']).parent)
+    # Recovery replays admission from its own source closure. The original
+    # capture stage belongs to the frozen campaign, not this verifier's location;
+    # packet hashes and exact wrapper/child derivatives below bind that stage.
+    stage = private_directory(run.parent)
     parent = private_directory(lineage.read_receipt_parent())
     receipt = private_directory(native['receipt_path'])
     if (run.parent != stage or Path(c['native_campaign_path']) != run / 'campaign.json'

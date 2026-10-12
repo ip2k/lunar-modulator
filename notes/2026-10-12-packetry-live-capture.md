@@ -103,3 +103,40 @@ Archive SHA-256:
 `f0ffe4884eed0ed34b32106c05b519fc82abc9d7c8e07f0193f09009a0895349`.
 The original V5 staging receipts remain intact. This source-only supplement must
 be included in root acceptance before any sequence activation.
+
+
+### V6d terminal failure and V6e successor proposal
+
+[verified: modeled execution] V6d passed the missing provenance-input boundary,
+then failed after 253 seconds at the admission verifier's stage/run relationship.
+It derives the original capture stage from the recovery verifier's own location,
+although the recovery helper runs in its separate source directory. The failed
+container remains stopped and retained on Hera. Private inputs were unchanged.
+Retained archive SHA-256:
+`cf588f07a0937bd4c6af87a6c93db0e64897697a1057824e9fbaae8b7eaa27af`.
+166 regular files and all 144 temporary-inventory hashes replayed locally.
+
+[inferred: WIP repair] Admission now derives the original stage from the frozen
+native campaign's run directory. Its original wrapper/child AST derivatives,
+packet hashes, private-directory checks and receipt relationships remain checked.
+This source change is not accepted for hardware: tracked dependent pins still
+reference the old verifier. A separately sealed V6e model successor updates the
+transitive literal source-pin closure offline; no runtime pin, factory or registry
+overrides are introduced. The assembly script and before/after hash delta are
+tracked in `notes/2026-10-12-recovery-stage-successor-v6e/`.
+V6e archive SHA-256:
+`015c7eb055422c8b6c5a935f64889770e7d689824dcec3be40e57911ad5c07fd`.
+Runner SHA-256:
+`80c93dda16bb875882424db073c47f76a42d4e47a3b67e433846874534f81a5e`.
+Remote root: `/home/claude/mvave-fm1/owned-restore-v6e-resumed-20261012`.
+This proposal inherits older pre-V5 helper/wrapper behavior; passing it cannot
+accept the newer staged V5 hardware pins. Next: inspect terminal results, retain
+all evidence, review adversarial original-stage/path cases and replay the current
+V5 successor closure before any bench gate activation.
+
+[verified] Latest passive bench enumeration remains normal `4c4a:c755`,
+bus1/device8 and `/dev/snd/midiC2D0`. No physical cycle is needed to continue this
+model work. No firmware write, soft key, reset or target-power action occurred.
+Active branch: `feature/2026-10-11@installable-firmware`; prior verified pushed
+checkpoint `b0446d58d05996275b08c0d51792514dcea1372c`. The next checkpoint is WIP:
+source pin acceptance and model verification remain outstanding.

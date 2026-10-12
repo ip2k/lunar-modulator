@@ -1,0 +1,67 @@
+{
+  "bench_activation": false,
+  "changes": {
+    "capture-pins/owned-admitted-backup-restore-once-v1.py": {
+      "after": "b1e8e3ca0d50daa438df9715208095f67b2a1babc8efe24d1535fd3eb2071ed5",
+      "before": "aa640c486bd22fdf10076f6e3edfb607b3b4dbf83a93358bdbc540c5977886a8"
+    },
+    "prepare-file-only.py": {
+      "after": "80dd8dc920e3349f8a567b6f76c56d9757bd63cad39f82a841312640eeb64df6",
+      "before": "a1ecbd7cfb25f8ccbf5326b1242ad0dc5762a6c16e54be8e657df68c7360e015"
+    },
+    "source-inventory.json": {
+      "after": "1e5c54b48a33ca5fc7bee4a6f9186c449bef36c73d233c45d81ba1cda2c42f27",
+      "before": "906c2c6b5685b199e995e9732177d76d4be7940da51f8c0b980b0593440f32e6"
+    },
+    "tests/owned-partial-stock-restore-once-v3.py": {
+      "after": "2ce577cc57f572022ffb88be8eb9a48acfc05f8ffed82d84df2dd5dd48f09c17",
+      "before": "c3c456a60793df36454b6437a463d947ec529841072654c3656d2d46d3548fb5"
+    },
+    "tests/prepare-file-only.py": {
+      "after": "80dd8dc920e3349f8a567b6f76c56d9757bd63cad39f82a841312640eeb64df6",
+      "before": "a1ecbd7cfb25f8ccbf5326b1242ad0dc5762a6c16e54be8e657df68c7360e015"
+    },
+    "tests/source-inventory.json": {
+      "after": "1e5c54b48a33ca5fc7bee4a6f9186c449bef36c73d233c45d81ba1cda2c42f27",
+      "before": "906c2c6b5685b199e995e9732177d76d4be7940da51f8c0b980b0593440f32e6"
+    },
+    "tests/test_genuine_file_only.py": {
+      "after": "34c313aaf14a0f7b845e94aeb760b5353bdfe4c12e3c057a262d290bd24f3f91",
+      "before": "dec08917f51131bcc8024fd72f6e060091161136bc13ca0619af31a220d4ae83"
+    },
+    "tests/test_genuine_owned_restore_wrapper.py": {
+      "after": "414baf7bf81caf0fa932cda1881a7fdc3b00e87006b86fa76f8957ab416c0565",
+      "before": "1506a2e52ebcfb336d72266e1c0b2d158d2601371796058807c82c4ac6d5927a"
+    },
+    "tests/test_retained_partial_recovery.py": {
+      "after": "4c524b7e467ca142dc1aa19b7773fd189db4b50a95afdd55957abb73ec0a5d37",
+      "before": "8db609701be2d5411cfb0f94d348db2e8ba4e9ab5c97cc24f7f4fd094c74dbd7"
+    },
+    "tests/test_sdk_trace_admitted_backup.py": {
+      "after": "cd27b7d4fe01c466b1089b6c87cba225f3f7427b6e272d416648926787cc5c16",
+      "before": "a5c1bccf7b4cf0e277eb4c641aeb0c8ca47f320cbca6938e979d2a7ac3133897"
+    },
+    "tests/test_sdk_trace_admitted_stock_restore.py": {
+      "after": "572fb5feabb0281f28681c713360b6af0f680bd621d413ac7c189adb7e572109",
+      "before": "9005b5b375ab66cdc9c15c8f970341fedc991784f450152e74418ad365aa134d"
+    },
+    "tools/fm1_retained_partial_recovery.py": {
+      "after": "e03d316b1263177349c3d33ab3d992c11340f5fb88db7fbbe1d811a3cb3454ef",
+      "before": "0d936830b9c97e817086dcf3533b5a7a6e800390246721c9f72374bcaa7018e7"
+    },
+    "tools/fm1_sdk_trace_admitted_backup.py": {
+      "after": "1694733ce448a6f368938f251c4d5b4f639a37004dd6623035379953de9b775b",
+      "before": "7e9dbf156c92e7cdcc2dcd01fbbdd19ad8e06eef9fcd8772f72870afaebf738f"
+    },
+    "tools/fm1_sdk_trace_admitted_stock_restore.py": {
+      "after": "7d84f0d8699deded1990fc9758bc9580dcca771918c79a19d8ac31208f6c7a59",
+      "before": "683275d73a846dd4c3d5edbb6695fe853832c4c7e4f7921ac9504293a8531e4e"
+    },
+    "tools/fm1_sdk_trace_return_admission.py": {
+      "after": "6eb30cfd770a596c838b454bd2e79a4a39f4929274477aed193da24a036dd60e",
+      "before": "5ca132fc2f2595400bc9ccb231c3e5cd44ecc9886cd830e201272b33a677b34a"
+    }
+  },
+  "hardware_access": false,
+  "iterations": 7
+}
