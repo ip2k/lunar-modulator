@@ -112,6 +112,12 @@ class PreparationStopProof:
         for path, raw, limit in self.evidence:
             if boot.read_file(path, limit) != raw:
                 raise ValueError('Frozen preparation-stop evidence changed')
+        self.check_pending()
+
+    def check_pending(self):
+        """Cheap negative-evidence checks before each native command."""
+        if self not in _PROOFS:
+            raise ValueError('Canonical preparation-stop factory instance required')
         require_absent(self.absent)
         packet_inventory(self.packet)
         if chain_inventory(self.chain) != self.chain_names:
