@@ -20,16 +20,25 @@ accepts113 unique cases; SG reviewa8589cfa accepts41 unique cases in30 chunks.
 [verified] Reset-wire reviewd1ab2179 accepts55 unique cases/16 chunks and both
 historical traces, with the historical container's individual removal receipt
 missing but the final empty label query retained. Root pins the accepted
-install6be77170/policy54bd9a29/wire9c81a30a sources in boot successorce8fa0c5.
+install6be77170/policy54bd9a29/wire9c81a30a sources in boot successor49fdd29b.
 Its new original-file lineage, preserved journal and genuine install/reset
-composition are WIP: 105 unique cases collected, smoke and30 Hera chunks
-running under sdk-trace-boot-final-20261012. Do not execute that boot source on
+composition are WIP: final-v2 collected105 cases but its genuine smoke failed
+on the production reset phase label before any parallel chunk ran. The trace
+adapter alone is corrected from installed-fixed-loader to active-fixed-loader;
+the strict accepted wire verifier is unchanged. The final-v3 smoke and105 unique
+cases passed, but its successful test overwrote one original journal evidence
+copy. The test now retains all original files/hashes and a distinct post-restore
+journal; final-v4 (same boot49fdd29b, test9d5a941f) is running on Hera. Do not execute that boot source on
 hardware until the gate and independent review finish. Reader/SG activation
 remains closed. Recovery V2 has133 unique passing cases/30 chunks plus smoke;
-partial restore has55 passing cases/30 chunks. Both are closed models pending
-independent review and concrete acquisition. See
+partial restore has55 passing cases/30 chunks. Both closed-model reviews are
+accepted, with partial review's same-author limit separately checked by root.
+Pure five-read wire matcher68abb2e3 has91 independently accepted cases;
+test-only V5 adds five actual-source constructor regressions,96/30 passing,
+pending narrow review. Concrete returned-state and partial-NOR acquisition
+remain unimplemented. See
 notes/2026-10-12-sdk-trace-boot-lineage.md.
-Last verified pushed checkpoint before this update: 3191c1a18b99133945a2ab622f6b13bf534bb94e.
+Last verified pushed checkpoint before this update: 4c9120efcfb57bf6391ca0b9e8b83a8d4c7f7842.
 
 [verified: 2026-10-12 UTC] Owner connected CONTROL→Mac, TARGET C→bench Pi,
 TARGET A→FM-1 and started Packetry Full Speed capture. The screenshot decodes
@@ -40,8 +49,10 @@ capture stop accepted by review39aabe79. Archiveaa0857d4 is ignored under
 build/sdk-trace-fresh-entry-bench-v1/. Its marker is consumed; no device command
 has followed it. All previous receipts remain untouched. Packetry is absent
 from Computer plugin inventory; name and executable selection return Invalid
-app. Latest live Computer inventory attempt reports the Mac locked and automatic
-unlock failed; the owner unlock request is pending. Packetry capture was seen
+app. Owner confirms the Mac is unlocked and use-while-locked is enabled. Root
+reset the Computer connection; fresh native inventory is still empty with the
+same lock error, while Chrome inventory works. Treat this as an unresolved native
+integration failure, not a verified Mac lock. Packetry capture was seen
 running in the supplied screenshot; its current GUI state is unverified.
 
 Read the native trace before fixed-loader upload, which overwrites its BSS.

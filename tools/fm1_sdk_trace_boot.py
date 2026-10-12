@@ -363,7 +363,7 @@ class ResetSG(legacy.reset.ResetSG):
             raise ValueError('Open only after durable one-use trace boot marker')
         self.prepared, self.log = prepared, log
         self.fd, self.consumed, self.failed, self.ioctl_attempts = None, False, False, 0
-        self.phase, self.started = 'installed-fixed-loader', time.monotonic()
+        self.phase, self.started = 'active-fixed-loader', time.monotonic()
         self.usb = json.loads(prepared.campaign)['usb_binding']
         try:
             self.mapping = prepared.bridge.discover_sg(self.usb)

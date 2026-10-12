@@ -294,6 +294,23 @@ def test_genuine_install_reset_and_historical_read_lineage(actual, tmp_path, mon
     lineage_path=parent/'genuine-lineage.json'; lineage_path.write_bytes(boot.canonical(lineage))
     preserved=parent/'preserved-install-journal.json'
     preserved.write_bytes(g.journal.read_bytes()); preserved.chmod(0o600)
+    saved=dict(install_campaign=g.campaign,install_commands=g.commands,
+        install_result=g.result_path,install_marker=g.marker,
+        install_journal=preserved,current_restore_journal=g.journal,
+        sealed_plan=g.journal.parent/'plan.json',boot_campaign=campaign,
+        boot_commands=prepared.receipt/'commands.jsonl',boot_marker=prepared.marker,
+        lineage_campaign=lineage_path,**{n:Path(lineage[n+'_path']) for n in originals})
+    saved_sha256={n:boot.digest(p.read_bytes()) for n,p in saved.items()}
+    out=None
+    if os.environ.get('LUNAR_REHEARSAL_EVIDENCE'):
+        out=Path(os.environ['LUNAR_REHEARSAL_EVIDENCE'])/'genuine-boot-model'
+        out.mkdir(mode=0o700)
+        for name,path in saved.items():
+            destination=out/(name+'.bin'); shutil.copyfile(path,destination); destination.chmod(0o600)
+        (out/'pre-lineage.json').write_bytes(boot.canonical(dict(
+            schema=1,stage='before-production-read-lineage-validation',hardware_access=False,
+            clock_sg_usbmon_and_passive_snapshot_modeled=True,
+            saved_sha256=saved_sha256)))
     monkeypatch.setattr(boot.time,'time',lambda:clock+1)
     first=boot.prepare_read_lineage(lineage_path)
     assert first.read_binding()['boot_campaign_sha256']==prepared.campaign_sha256
@@ -308,15 +325,10 @@ def test_genuine_install_reset_and_historical_read_lineage(actual, tmp_path, mon
     assert historical.read_binding()==json.loads(first.binding)
     assert len(reset_calls)==1 and len(g.model.opened)==len(g.model.closed)==2
     with pytest.raises(ValueError): replace(historical).check()
-    if os.environ.get('LUNAR_REHEARSAL_EVIDENCE'):
-        out=Path(os.environ['LUNAR_REHEARSAL_EVIDENCE'])/'genuine-boot-model'; out.mkdir()
-        saved=dict(install_campaign=g.campaign,install_commands=g.commands,
-            install_result=g.result_path,install_marker=g.marker,
-            install_journal=preserved,current_restore_journal=g.journal,
-            sealed_plan=g.journal.parent/'plan.json',boot_campaign=campaign,
-            boot_commands=prepared.receipt/'commands.jsonl',boot_marker=prepared.marker,
-            lineage_campaign=lineage_path,**{n:Path(lineage[n+'_path']) for n in originals})
-        for name,path in saved.items(): shutil.copyfile(path,out/(name+'.bin'))
+    if out is not None:
+        assert {n:boot.digest((out/(n+'.bin')).read_bytes()) for n in saved}==saved_sha256
+        restored=out/'post-restore-journal.json'
+        shutil.copyfile(g.journal,restored); restored.chmod(0o600)
         summary=dict(schema=1,production_install_prepare_and_worker=True,
             production_boot_prepare_and_worker=True,production_read_lineage_factory=True,
             historical_read_lineage_after_current_restore=True,
@@ -328,5 +340,6 @@ def test_genuine_install_reset_and_historical_read_lineage(actual, tmp_path, mon
             wire_source_sha256=boot.WIRE_VERIFIER_SHA,
             boot_campaign_sha256=prepared.campaign_sha256,
             read_binding=historical.read_binding(),
-            saved_sha256={n:boot.digest(p.read_bytes()) for n,p in saved.items()})
+            saved_sha256=saved_sha256,
+            post_restore_journal_sha256=boot.digest(restored.read_bytes()))
         (out/'summary.json').write_bytes(boot.canonical(summary))

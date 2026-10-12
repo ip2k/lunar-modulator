@@ -16,3 +16,18 @@ Semantic backends remain on the primary checkout and were not retargeted; direct
 The distinct V2 completed133exactunique cases across30Hera chunks plus1malformedfinaldigest smoke, no failures/errors/skips. Counts:13chunks of5 and17of4. All1740regular archivepins replayed; all32containers exact7e32,2CPU/2GiB,4GiB MemorySwap allowance,sourceRO/networknone/devicenone/nonprivileged,exit0/noOOM and removed. Fresh structured label lookup is empty. Archive7b7a0e793258bd2ed3abe5edeaab862cc110785828da908b964c2b0e9cb1c20b; plan149fa95aaee1c938f224ff0b4e07cd8ee5d00b5283c5f74f17bdf7c6d717143b; aggregate71b5c6b3c029c0025e6c06cab8bf4786e1904a219e3c355f1441fdf88c89f077; cleanup5758afb6aff4dbe7010456b9e5c9eb06886c029371f04f010d7620a057fce010. Files retained at build/sdk-trace-recovery-v2-hera/{source-v2.tar.gz,snapshot-v2.json,plan-v2.json,aggregate-v2.json,author-check-v2.json,cleanup-v2.json,evidence-v2,supervisor-v2.log}, remote /home/claude/mvave-fm1/sdk-trace-recovery-v2-20261012. Authorcheck 15539e97a817c900fb4c3ff356fb382abc8787af639d0ae87824eadd746d6e32. Independent review pending.
 
 This is pure closed phase/lifecycle and mocked process/syscall regression evidence, including5digestrepairs,36exactcapture contradictions and46tracked wrapper cases. No genuine original-path boot/read/capture factory or physical returned-backup/stock-restore has executed. All activation pins remain None, actual admission always raises, and old installer/rehearsal/physical receipts remain frozen. [verified: archive/XML/source/isolation replay; no hardware claim]
+
+Independent final closed V2 source/runtime acceptance [verified]:
+`build/sdk-trace-recovery-v2-hera/independent-review.md` SHA256
+`73d5e5561e0835e579f29689a03d20292c965fca364771c8fff93499578cf39f`;
+independent check `df4e9e48ef82de6751298944faa5b46418727b2229081818c7fc6eeabdd63fb9`.
+Reviewer independently verified all 1,740 archive pins, five supplied evidence
+pins, original seven freeze entries, 133 unique exact XML cases in 30 chunks
+plus smoke1, and 32 isolated container/exit/no-OOM/removal receipts with structured
+empty-label cleanup. Memory was 2 GiB with 4 GiB combined memory/swap allowance.
+This accepts only the closed phase/lifecycle scope: `wire_inventory_verified`
+and `returned_proof_granted` remain false; actual boot/read/capture admission
+and physical recovery remain unproved. Original seven freeze hashes are retained
+unchanged in `build/sdk-trace-recovery-v2-hera/freeze-v2.json`.
+Parent verified checkpoint `4c9120efcfb57bf6391ca0b9e8b83a8d4c7f7842` pushed;
+this note-only addendum needs its next parent checkpoint and push verification.

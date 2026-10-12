@@ -9,3 +9,13 @@ The injected worker reuses exact pinned transaction source `d0527efb...`, with i
 Focused tests use explicitly synthetic images, stock pin override and injected transport registration. These tests do not authenticate a physical acquisition, characterize SG_IO statuses or prove ROM availability, NOR behavior, boot or recovery. Future physical admission requires reviewed fixed-loader provenance, whole matching dual dump command/page replay, owned capture and current exact binding, original consumed-campaign whitelist, preserved authentic stock/protected bytes, immutable sources and absent ambiguity artifacts. A future native adapter must validate real SG completion fields and preserve ambiguity. Python private registries do not defend against arbitrary trusted Python code.
 
 Source and test candidate pins are recorded in `build/partial-stock-restore-hera/snapshot.json`. Hera 30-chunk focused gate passed 55 unique cases exactly once in 289.334 seconds against pinned image `7e32dd6d...`, source read only, network none, no devices, nonprivileged, 2 CPU/2 GiB per container. No hardware operations or source commits were performed by this agent. The author replayed all six archived/current source pins, exact ordered XML cases (zero failures/errors/skips), 31 collect/chunk Docker inspections and named removals, plus fresh explicit exact-label exit0/empty cleanup. This is an author check; independent source review remains pending. `build/partial-stock-restore-hera/retained-check.json` and the evidence index retain the checks. Parent owns checkpoint/push and independent review.
+
+[verified: closed source and retained model evidence] The retained review
+`build/partial-stock-restore-hera/independent-review.md` SHA4a41c405 and check
+de4dc5b6 reconstruct all55 exact cases, six archived source pins and194 indexed
+artifacts, plus31 isolated container/removal receipts and an empty label query.
+The reviewer disclosed that it previously authored this kernel. Root separately
+read the complete kernel/tests and the retained report, confirmed the exact
+source89cd7cd6/testc35c77cd pins and accepts only the closed injected model scope.
+The production factory still rejects even with an acquisition pin; no native
+opener, actual partial-flash acquisition or physical recovery is accepted.
