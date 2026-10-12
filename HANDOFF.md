@@ -1,3 +1,19 @@
+## Latest continuation: SDK-trace stock reset, 2026-10-12
+
+Goal remains active. Fresh normal FM-1 enumeration is bus1/device8; no physical
+cycle needed and no hardware command sent during this continuation. Eleven
+jobs of source CI 38307343562 passed, sanitizer and macOS still running at
+checkpoint. New separate one-shot SDK-trace completed-stock reset adapter has
+63 modeled syscall/admission passes in 16 Hera containers, verified and cleaned
+up. Proof is injected for that suite. Genuine completed-proof admission/refusal
+case is actually running in Hera container lunar-trace-stock-reset-actual-20261012,
+remote /home/claude/mvave-fm1/sdk-trace-stock-reset-actual-20261012. Inspect terminal
+result and retain evidence before claiming acceptance. See
+notes/2026-10-12-sdk-trace-stock-reset/review.md. V7 physical gates still closed.
+Packetry Computer Use still reports locked Mac; independent Pi USB capture is
+available. Next: review integration result and source CI, then concrete reviewed
+V7 activation receipt/fresh binding and one-use captured hardware sequence.
+
 ## Active correction, 2026-10-12
 
 Goal remains physically verified installable diagnostic firmware; not complete. Worktree installable-firmware/mvave-fm1-firmware, branch feature/2026-10-11@installable-firmware. Last verified pushed source head a8dca15e60d8c18ac84f46572c246f08f45b6e09.

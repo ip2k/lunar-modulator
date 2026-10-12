@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "counts": {
+    "tests": 63,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "containers": 16,
+  "hardware_access": false,
+  "source_unchanged": true,
+  "inspection_sha256": "6f5419e6d42d792275cbc913bc90a335d97a805643d4689fb3289e6b87656cce",
+  "source_archive_sha256": "07e2495a810e6ba4df290bd9ea47e229ddd3d038f6b03e2002c197cec750c177",
+  "adapter_sha256": "dd85dd588536bebc6960879a8a094f55f4cdd4ebc6362070de2f2640ed5b8e18",
+  "unit_test_sha256": "2b285edbfdd06a9eb5447873212406f4208d13b959e766d9a277515fb08cdc13",
+  "receipt_proof_injected": true,
+  "physical_recovery_verified": false,
+  "cleanup_verified": true
+}
