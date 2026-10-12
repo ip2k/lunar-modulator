@@ -86,10 +86,10 @@ try {
  if(!note.notes.some(n=>n.vel===72&&n.gate===48&&n.tick===3)||note.trigs[0].prob!==70)throw Error('Note properties did not persist');
  await page.locator('[data-note="1"]').scrollIntoViewIfNeeded();
  const nb=await page.locator('[data-note="1"]').boundingBox();
- await page.mouse.move(nb.x+12,nb.y+8);await page.mouse.down();await page.mouse.move(nb.x+68,nb.y-15,{steps:4});await page.mouse.up();
+ await page.mouse.move(nb.x+12,nb.y+8);await page.mouse.down();const stepWidth=await page.locator('.sq-note-lane').first().evaluate(e=>e.clientWidth/Number(e.closest('.sq-roll').style.getPropertyValue('--steps')));await page.mouse.move(nb.x+12+stepWidth*2,nb.y-15,{steps:4});await page.mouse.up();
  await page.waitForFunction(()=>window.model().tracks[0].clips[0].notes.some(n=>n.pitch===61&&n.step===2));
  const handle=await page.locator('[data-resize-note="1"]').boundingBox();
- await page.mouse.move(handle.x+3,handle.y+8);await page.mouse.down();await page.mouse.move(handle.x+31,handle.y+8,{steps:4});await page.mouse.up();
+ await page.mouse.move(handle.x+3,handle.y+8);await page.mouse.down();await page.mouse.move(handle.x+3+stepWidth,handle.y+8,{steps:4});await page.mouse.up();
  await page.waitForFunction(()=>window.model().tracks[0].clips[0].notes.some(n=>n.pitch===61&&n.gate===72));
  await tab('Automation');
  await page.getByRole('button',{name:'Assign parameter',exact:true}).click();await page.waitForFunction(()=>!!window.model().tracks[0].lanes[0]);
@@ -119,7 +119,7 @@ try {
  await page.evaluate(()=>window.seq.onTelemetry(new Float32Array([.5,.25,1,.5,.25,.125,.75,.25])));
  const meter=page.locator('[data-sq-meter="snd1.post_fader"]');
  if(await meter.getAttribute('aria-valuenow')!=='-6.0'||!await meter.getAttribute('aria-valuetext').then(t=>t.includes('Peak -6.0 dB'))||await meter.evaluate(e=>parseFloat(e.style.getPropertyValue('--peak'))<=0))throw Error('Sound telemetry meter did not update');
- const masterMeter=page.locator('[data-sq-meter="out.post_master"]');if(await masterMeter.getAttribute('aria-valuenow')!=='0.0'||!await masterMeter.evaluate(e=>e.classList.contains('is-clipping')))throw Error('Master telemetry meter did not update/clipping');
+ const masterMeter=page.getByRole('meter',{name:'Final master output level',exact:true});if(await masterMeter.getAttribute('aria-valuenow')!=='0.0'||!await masterMeter.evaluate(e=>e.classList.contains('is-clipping')))throw Error('Master telemetry meter did not update/clipping');
  const insert=page.getByRole('button',{name:'S1 insert 1',exact:true});await insert.click();
  const inspector=page.getByRole('dialog',{name:'Device controls',exact:true});await inspector.waitFor({state:'visible'});
  if(!await inspector.getByText('Inspector s1.in1',{exact:true}).isVisible()||await inspector.getByRole('button',{name:'Close inspector',exact:true}).evaluate(e=>e!==document.activeElement))throw Error('Device inspector did not open with focus');
@@ -151,15 +151,14 @@ try {
  await addSection.locator('summary').click();await page.getByRole('button',{name:'Append scene 2: CHORUS',exact:true}).click();
  await page.waitForFunction(()=>window.model().song.length===5);
  if(await page.evaluate(()=>window.model().song[4])!==1)throw Error('Insertion chooser did not append chosen scene');
- // Visible navigation remains available when native scrollbars are hidden.
- await page.evaluate(async()=>{const m=window.model();window.savedSong=m.song;m.song=Array.from({length:12},(_,i)=>i%2);window.doc.set=(await import('/editor/sequence-model.js')).writeSet(m);window.seq.invalidate();await window.seq.refresh()});
+ // Sections page at readable widths with no horizontal scroll surface.
+ await page.evaluate(async()=>{const m=window.model();window.savedSong=m.song;m.song=Array.from({length:64},(_,i)=>i%2);window.doc.set=(await import('/editor/sequence-model.js')).writeSet(m);window.seq.invalidate();await window.seq.refresh()});
  await page.setViewportSize({width:844,height:390});
- const timelineRange=page.getByRole('slider',{name:'Arrangement horizontal position',exact:true});
- if(!await timelineRange.isVisible()||await timelineRange.isDisabled())throw Error('Overflowing timeline has no usable navigation');
- await timelineRange.fill('100');await timelineRange.dispatchEvent('input');
- if(await page.locator('[data-scroll="song"]').evaluate(e=>e.scrollLeft<e.scrollWidth-e.clientWidth-2))throw Error('Timeline navigator did not reach final section');
- await page.locator('[data-scroll="song"]').evaluate(e=>{e.scrollLeft=0;e.dispatchEvent(new Event('scroll'))});
- if(Number(await timelineRange.inputValue())>1)throw Error('Timeline navigator did not follow manual scroll');
+ await page.waitForTimeout(100);
+ let sections=0;
+ do {sections+=await page.locator('.sq-entry').count();if(await page.getByRole('button',{name:'Next sections page',exact:true}).isDisabled())break;await page.getByRole('button',{name:'Next sections page',exact:true}).click();}while(true);
+ if(sections!==64||await page.locator('[data-scroll="song"]').evaluate(e=>e.scrollWidth>e.clientWidth+1))throw Error('Paged arrangement lost native entries or overflows');
+ if(await page.getByRole('slider',{name:/horizontal position/}).count())throw Error('Horizontal slider remains');
  await page.setViewportSize({width:1440,height:1100});
  await page.evaluate(async()=>{const m=window.model();m.song=window.savedSong;window.doc.set=(await import('/editor/sequence-model.js')).writeSet(m);window.seq.invalidate();await window.seq.refresh()});
  await tab('Scenes');
@@ -197,10 +196,13 @@ try {
  await tab('Clip');
  if(await page.locator('.sq-note').first().evaluate(e=>e.getBoundingClientRect().height>24))throw Error('Note exceeds piano row');
  await tab('Scenes');
- if(await page.locator('[data-live-track]').count()!==64)throw Error('Scene matrix must expose 64 native slots');
+ let slots=0;do{slots+=await page.locator('[data-live-track]').count();if(await page.getByRole('button',{name:'Next scenes page',exact:true}).isDisabled())break;await page.getByRole('button',{name:'Next scenes page',exact:true}).click();}while(true);if(slots!==64)throw Error('Scene paging lost native slots');
+ while(!await page.getByRole('button',{name:'Previous scenes page',exact:true}).isDisabled())await page.getByRole('button',{name:'Previous scenes page',exact:true}).click();
  await page.getByRole('button',{name:'Launch clip 1 scene 1',exact:true}).click();
  await page.getByRole('button',{name:'Launch scene 2',exact:true}).click();
+ while(!await page.getByRole('button',{name:'Next scenes page',exact:true}).isDisabled())await page.getByRole('button',{name:'Next scenes page',exact:true}).click();
  await page.getByRole('button',{name:'Stop track 8 scene 8',exact:true}).click();
+ while(!await page.getByRole('button',{name:'Previous scenes page',exact:true}).isDisabled())await page.getByRole('button',{name:'Previous scenes page',exact:true}).click();
  if(!await page.evaluate(()=>window.calls.includes('clip 0 0')&&window.calls.includes('scene 1')&&window.calls.includes('clip 7 7')))throw Error('Native scene/clip callbacks');
  const sceneEdit=page.getByRole('button',{name:'Edit track 2 scene 2',exact:true});await sceneEdit.focus();await sceneEdit.press('Enter');
  if(await page.getByLabel('Edit scene',{exact:true}).inputValue()!=='1')throw Error('Matrix edit did not select scene');
@@ -253,7 +255,7 @@ try {
   await page.setViewportSize(size);await tab('Arrangement');
   await page.getByRole('button',{name:'Track 4, Verse, 12 notes, 12 bars',exact:true}).click();
   if(await page.getByLabel('Edit track',{exact:true}).inputValue()!=='3'||await page.getByLabel('Edit scene',{exact:true}).inputValue()!=='1')throw Error('Verse lead selection');
-  if(!await page.locator('.sq-clip-actions .sq-caption').textContent().then(t=>t==='Steps 33–64')||!await noteInRoll())throw Error(`Verse notes not framed at ${size.width}px`);
+  if(!await page.locator('[data-note="0"]').count()||!await noteInRoll())throw Error(`Verse notes not framed at ${size.width}px`);
   await page.screenshot({path:`${out}/verse-notes-${size.width}.png`,fullPage:true});
   // Scene-matrix keyboard opening follows the same navigation path.
   await tab('Scenes');await page.getByRole('button',{name:'Edit track 4 scene 2',exact:true}).press('Enter');
@@ -278,12 +280,12 @@ try {
    window.doc.set=writeSet(m);window.seq.invalidate();await window.seq.refresh();
   },pitch);
   await tab('Scenes');await page.getByRole('button',{name:'Edit track 8 scene 2',exact:true}).click();
-  if(!await page.locator('.sq-clip-actions .sq-caption').textContent().then(t=>t==='Steps 65–96'))throw Error('Offset loop opened before its sounding notes');
+  if(!await page.locator('.sq-page-nav .sq-caption').textContent().then(t=>{const r=t.match(/Steps (\d+)–(\d+)/);return +r[1]<=65&&+r[2]>=65}))throw Error('Offset loop opened before its sounding notes');
   if(!await page.locator('[data-note="1"]').evaluate(e=>{const n=e.getBoundingClientRect(),r=e.closest('[data-scroll="piano"]').getBoundingClientRect();return n.top>=r.top&&n.bottom<=r.bottom}))throw Error('Extreme pitch sustain not revealed');
  }
  await page.evaluate(async()=>{const m=window.model();m.tracks[7].clips[1].notes=[];window.doc.set=(await import('/editor/sequence-model.js')).writeSet(m);window.seq.invalidate();await window.seq.refresh()});
  await tab('Scenes');await page.getByRole('button',{name:'Edit track 8 scene 2',exact:true}).click();
- if(await page.locator('.sq-note').count()||!await page.locator('.sq-clip-actions .sq-caption').textContent().then(t=>t==='Steps 65–96'))throw Error('Empty offset loop navigation');
+ if(await page.locator('.sq-note').count()||!await page.locator('.sq-page-nav .sq-caption').textContent().then(t=>{const r=t.match(/Steps (\d+)–(\d+)/);return +r[1]<=65&&+r[2]>=65}))throw Error('Empty offset loop navigation');
  if(errors.length)throw Error(errors.join('\n'));
  await writeFile(`${out}/results.json`,JSON.stringify({passed:true,errors,note,checks:['native track names across views','rename Enter/blur/Escape and touch button','invalid/refused rename canonical rollback','held mouse and touch blur preserve destination selection','note fields','probability','locks','routing','song repeats','scene launch','refusal rollback','playhead while next scene queued','mobile overflow','input focus','multi-file MIDI mapping','note drag','gate resize','insert/master/mix targets','sound/master fader values and dB display','incremental keyboard level edit','pointer fader drag lifecycle','meter and level telemetry subscription','synthetic sound/master meter updates','device inspector focus and restoration','Files & export disclosure import','desktop routing and FX expanded by default','mobile Routing & FX disclosure toggle','scene selection from scene headings','note row containment','64-slot scene matrix','clip and empty-slot stop callbacks','portrait rotate prompt','844x390 landscape editing','single focused panel','keyboard tab navigation','real Satellite Hearts Verse notes visible at desktop and landscape widths','scene keyboard and Clip tab note framing','manual scroll preserved after note selection and native refresh','navigation leaves project data intact','offset loops with unordered notes, sustaining gates and extreme pitches','empty offset loop navigation']},null,2));
  console.log('PASS sequencer mock-host desktop/mobile checks, real Verse note visibility and offset-loop navigation');
