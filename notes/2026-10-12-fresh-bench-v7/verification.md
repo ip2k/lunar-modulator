@@ -1,0 +1,13 @@
+# Fresh V7 bench preparation
+
+[verified] Source-only V7 staging succeeded on bench01. Passive poststage verification checked all 209 files against the two inventories, direct regular files, root ownership and 0600/0700 modes; required dynamic evidence remains absent and run directories empty. No FM-1 command was issued. All four sequencer activation pins remain null. Normal USB remains 4c4a:c755 bus 1/device 8; no physical power cycle currently needed.
+
+[verified: model] Hera ran 16 independent staging guard scenarios: valid staging and rejection of archive/inventory corruption, wrong helper pin, reused roots, changed preserved/staged sources, missing firmware, and archive/inventory/firmware symlinks. All 16 passed. First test setup failed because two historical capture fixture files were seeded from the successor archive; corrected the test fixture to independently verified historical bytes before any stager execution. Production stagers were unchanged by that fixture correction. Container inspection confirms read-only input, no network, no devices or privilege. Exact successful containers were removed.
+
+Private retained evidence: build/recovery-successor-evidence-20261012/staging-v7b-16.tar, SHA256 f39a1ad99d50a5581d38b13c34c7d366228e0dc88118afeb0cc915c1f9f738d4; bench-v7-poststage-verified.json contains real Pi receipts. Failed fixture evidence is retained separately. Private binaries and archives remain ignored.
+
+Main source archive: 9b7d1b80fc1fef6e7114515397e3dcc08354c88e9634ecdfb563fe0d8e2e5607. Recovery source archive: 83cb64143b8130f4764e953f7ef15eaca1b12c8803e922555aad12c6af2bce13. Main helper: 92c764b44c203b5d60909ccd08070bc4559a35f4183730bc7f9d80835c0a1701. Recovery helper: 19b97008cb3a19d9f11307b8de5949182ec8fe4350bb9e39ee440cd00daf9b96.
+
+[verified: model] V6q 504 cases: 433 passed, 71 optional-native skipped, across 16 shards. V6p ran exactly 71 required native cases: all passed with zero skips across 16 shards. Terminal logs/node union/exit status/isolation and cleanup locally checked. Retained Q archive b7d3e41ff99a6ab20985e33140a53ea4883f3254f74ff866e28886619cc60902; P plus rejected N/O archive fb7fbce4c5192c4e9467cb469c0a2935daa1bd01f4f734b89d9b7d6dbc1a33a0. P verification is scoped to its regular native evidence; the rejected N archive also contains a temporary-directory symlink, never extracted.
+
+Remaining: review V6r heavy model terminal evidence, integrate the accepted source pins, review the concrete partial-write recovery plan and exact launch receipt, obtain a fresh USB binding, then execute the one-use captured physical sequence. Diagnostic boot/display and current image recovery remain unverified; this checkpoint does not grant hardware execution authority by itself.
