@@ -68,7 +68,8 @@ read before mutation, binding/wire authority checks, negative evidence appearanc
 before the first command and exact direct regular dependency reads. The historical closed gate is retained below; no local heavy tests ran.
 
 The final exact candidate runtime passed as recorded below. Independent final
-source/runtime review and the root-owned concrete campaign/hardware gate remain
+source/runtime review accepted the artifacts below. The root-owned concrete
+campaign/hardware gate remains
 separate acceptance boundaries. Source pinning alone does not authorize physical
 execution.
 Semantic servers still select primary checkout, not this worktree; their
@@ -160,7 +161,13 @@ OOM. Inspection and named removal receipts are retained. A fresh structured
 label lookup exited0 with empty container_ids and empty stderr; receipt
 `evidence-v7/removal-lookup.json` SHA
 2633b5bf075a1569995a965a19ecbba8c30281196f9bb11f3bdb7832ebe569ad.
-Final independent review was requested with these exact artifacts and is pending.
+Final independent offline source/runtime review accepted these exact artifacts:
+`build/stopped-choice-stock-restore-independent-review.md` SHA
+61b1a10d927b57389719b90e68680866cd96ddbe95f1427b534ce873b840216c;
+independent replay check f66d1640393695975dc704cde8e6224143a740d12127051ee4b66c4697d66fd7.
+The reviewer checked all 1691 regular archive entries, exact 19-node/16-chunk
+coverage plus smoke1, all 18 isolated exit0/noOOM containers and fresh removal
+lookup. Acceptance is offline source/model scope; physical claims remain false.
 Root alone commits and pushes; preceding checkpoint
 adcfdfbddc6c17e706d2dda03bd8d2b2971f84fa was reported pushed with exact remote
 SHA verified. Source/tests remain frozen through the next root checkpoint.

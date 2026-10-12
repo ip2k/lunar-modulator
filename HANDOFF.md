@@ -77,8 +77,9 @@ cases plus its smoke. Later recovery additions have the separate gates above.
 GitHub run38201658769 on exact checkpoint `a6bce57abcef99ec8c1f5b1a33a83e1273840f68`
 passed all thirteen jobs. The feature branch is
 `feature/2026-10-11@installable-firmware`, with checkpoint
-`adcfdfbd…` committed and remote-SHA verified. Its exact-head run38204451977
-is running (two successful jobs, eleven running at the latest query). Earlier
+`5710299a…` committed and remote-SHA verified. Earlier exact-head
+adcfdfbd run38204451977 passed all thirteen jobs; latest recovery changes
+require a new exact-head CI run. Earlier
 c29726c4 run38203747490 was cancelled before jobs; aca0e686 remains a
 separate CI snapshot. New final restore
 binding and its composed fixture are being checkpointed separately. No PR or
@@ -88,12 +89,14 @@ The distinct stopped-chooser recovery evidence admission and its exact95-case
 sixteen-chunk Hera gate plus actual-file replay are committed at c29726c4.
 The distinct backup c1b0 passed independent review of 76 cases in sixteen Hera
 chunks plus genuine private-file factory and modeled8757 requests. Its genuine
-pure-file preparer also passed independently; no physical backup has run through
-this successor yet. Final restore26f passed19 cases in sixteen Hera chunks plus
+pure-file preparer also passed independently. The distinct fresh v2 packet has
+now completed physical backup8757 with two full target-matching reads and owned
+capture; native/completed-helper independent review is pending. The first v1
+packet expired unexecuted and was preserved; no observation timestamp was edited. Final restore26f passed19 cases in sixteen Hera chunks plus
 genuine private preflight and full backup/restore/helper model; independent
-review remains pending. Closed resetc0a passed62 cases in sixteen chunks plus
-closure smoke and independent review; final literal binding and genuine completed
-restore composition remain pending. Fresh backup, restore and distinct reset
+review61b1a10d accepted that final restore gate. Final reset9f6b binds26f
+and passed62 cases in sixteen chunks plus the genuine completed-backup/restore/
+helper/reset model; independent review1a1327f8 accepted this software gate. Fresh backup, restore and distinct reset
 helpers and private capture/preparation templates are in progress. See
 notes/2026-10-11-stopped-choice-recovery-bench-templates.md and
 notes/2026-10-11-stopped-choice-stock-reset.md for their closure and pending gates.

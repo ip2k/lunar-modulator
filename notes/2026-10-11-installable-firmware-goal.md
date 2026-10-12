@@ -139,3 +139,21 @@ Branch: `feature/2026-10-11@installable-firmware`. Main-thread ownership covers
 hardware traffic, concrete manifests and integration. Independent investigations
 save their reports in ignored `build/`; important conclusions and artifact pins
 are promoted to tracked notes at each coherent checkpoint.
+
+## Latest recovery checkpoint
+
+[verified: current saved receipts, 2026-10-12 UTC] Checkpoint5710299a was pushed
+and origin SHA matched. Exact earlier adcfdfbd CI run38204451977 passed all
+thirteen jobs. Final restore26f composed gate is independently accepted61b1a10d.
+Literal reset9f6b passed62 tests in16 chunks plus one real composed modeled
+backup/restore/helper/reset; independent acceptance1a1327f8. These software
+gates retain false physical boot/display/recovery fields.
+
+The first post-read backup observation expired before execution. A distinct
+source-only/pure-passive successor preserved its thirteen files, produced a
+fresh witness and was independently reviewed. Root then ran exactly one8757
+physical backup child; both full1MiB dumps match targetdf6c963e, with exit0
+and an owned capture stopped cleanly. Private24-member export5dce3f5a is saved
+off-host. Independent native capture/completed-helper review remains pending
+before preparing any stock restore. See the bench-template note for exact
+hashes and chronology. No restore/reset followed this backup at this checkpoint.

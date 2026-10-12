@@ -66,3 +66,39 @@ or physical backup assertion. The concrete witness/execution policy remains sepa
 [verified: independent source-only review] New closed restore preparerd913 passed
 source review0b322e1ae1948146e54eb250b6a9d185d22900fff7f43fbc3e13e743bbdee2ec.
 Its later genuine composition and admitted exact copy remain pending.
+
+## Actual source staging, expired observation and physical backup successor
+
+[verified: source-only bench receipts] Independently accepted stager44649 ran
+once, installed admission8875/backupc1b and three closed preparation sources,
+and preserved every historical packet/source/journal. Authorized pure preparer
+0e21 then passed the real file factory without SG access. Its first witness43b2
+expired before any wrapper attempt; the reviewed78a3/938e packet remains
+unexecuted and all thirteen files remain byte-identical. No timestamp was edited.
+
+[verified: separately reviewed successor] Source-only stageraafd5 preserves
+all thirteen expired artifacts and verifies no old attempt, receipt or consumed
+backup marker. It staged distinct RUNv2: common0a62 changes only RUNv1→v2,
+preparer74658 changes only receipt001→002, closed wrapperaada is unchanged.
+Mechanical independent report77d1aa95 accepted the source-only successor.
+The actual pure/passive preparation passed in3.49885s,8757 planned commands,
+no SG access and original ROM snapshote79 unchanged. Fresh witness2450 observed
+1791781136.3706164; exact campaign8942c637, policy33701b75 and wrapper18feaa95
+were independently admitted before their120s freshness deadline. Concrete report
+d2f94a3c8593f456e7dfc88a9dfd5384375292aa78dbb66c04d369d9058da750
+is retained privately with every packet artifact.
+
+[verified: physical wrapper and dump hashes; independent native review pending]
+Root executed that one backup-only packet once. Child exit0 at1791781244.467267,
+owned capture remained alive; only its process group3331730 was stopped,
+returncode−15 at1791781244.4997272. No ambiguous receipts or capture stderr.
+Two full1MiB reads both match installed target
+df6c963ecd37b334f393c5bc92c2780b6094181308822a03c8190b016a4e97db.
+Manifest75e0d22c and command log3402d08c are saved with native capture
+d10373d7. Bounded24-member private export
+5dce3f5a88b685227e13f3b7e9f8d0308ffdb8b49b725b6f354f75cab29f1649
+is retained off the bench at
+`build/stopped-choice-backup-source-staging-v2/completed.tar`.
+No later device command has run. This does not establish panel output or
+diagnostic recovery cause. Independent completed-helper/native replay precedes
+any NOR operation; the restore/reset packets remain separate.

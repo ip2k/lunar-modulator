@@ -1,7 +1,9 @@
 """Distinct stopped-choice stock-reset authority/syscall models; no physical access.
 
-The completed-restore validator is injected until its separate provenance gate
-freezes. The exact previously reviewed reset/backup/SG dependencies are loaded.
+The production completed-restore source is pinned to the independently accepted
+26f successor. These cheap cases inject only its verifier response; a separate
+genuine composed factory test retains actual private lineage. Closure regressions
+explicitly inject None. Reviewed reset/backup/SG dependencies remain exact.
 """
 import ctypes as C
 from dataclasses import replace
