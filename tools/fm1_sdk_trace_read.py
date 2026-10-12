@@ -197,7 +197,9 @@ def interpret(trace, stage):
     if phase == 1:
         if any(fields[n] != 0 for n in ('panel_result', 'elapsed_ms', 'heartbeat', 'sys_hz', 'lsb_hz')):
             raise ValueError('Initialized trace contains an unrecorded cache')
-    elif (panel not in (-4, -3, -2, -1, 0) or (not clock_ok and panel != -1) or
+    # Worker setup failures are negative; panel_probe's own errors are 1..3.
+    # Accepting either records progress only, never successful panel output.
+    elif (panel not in (-4, -3, -2, -1, 0, 1, 2, 3) or (not clock_ok and panel != -1) or
           (panel == 0 and fields['elapsed_ms'] < 20000) or
           (panel == -4 and (fields['elapsed_ms'] >= 20000 or fields['heartbeat'] < 2000))):
         raise ValueError('Cached diagnostic fields contradict native control flow')

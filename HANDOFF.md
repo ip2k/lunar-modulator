@@ -11,6 +11,28 @@ original conversation; last updated 2026-10-11. Read this first, then
 
 ## Current installable-image boundary — 2026-10-12
 
+[verified: latest bench attempt] The fresh initial-entry V2 sent the vetted soft
+key once at 1791813156.294717 and observed same-port UBOOT at
+1791813157.0415945 (port 1-1, bus 1/device 4). The file/sysfs-only preparer then
+stopped because Linux had not created the SG node. No loader, SG or flash
+command ran, no backup was created, and the owned capture was stopped. The
+later passive observation found /dev/sg0. The proposed continuation was never
+staged or invoked: its original 600-second entry window expired during review.
+Stock flash is unchanged; a fresh-entry successor must wait boundedly for SG
+readiness and use a distinct root. See
+notes/2026-10-12-fresh-entry-sg-readiness.md. The owner power-cycle question is
+pending; software-only return to stock requires a separately reviewed successor
+of the already-tested minimal RAM reset path.
+
+[verified, source/model scope] Decoder panel errors 1–3 are now recognized
+alongside worker errors -4–-1 and success 0. The 76 focused checks passed;
+display and physical recovery proof remain false. Existing frozen hardware
+decoder pins are unchanged. Genuine interrupted-RESTORE V3 is running once on
+Hera: two cheap cases passed, and all three heavy cases reached the intended
+interrupted mutation. Their full-stock/nested-stop verdicts and independent
+retained-evidence acceptance are pending. Partial recovery remains closed.
+Last verified pushed checkpoint before this update: 8b5e65fb24d849ffb522bc9a407f9bbd806d10fb.
+
 [verified] Stock full-image readback96006 and the historical identity-only reply
 FM-1_092 are accepted. Native reviewcf706b9c accepts app76382f53/ELFe9d54172
 within offline scope. Raw target5dbada65 preservation reviewb903322e accepts

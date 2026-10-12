@@ -49,7 +49,7 @@ def test_native_progress_and_stage_store_gap(phase,seq,mailbox,st):
 
 @pytest.mark.parametrize('offset,fmt,value', [(0,'I',0), (4,'H',2), (6,'H',63),
     (8,'I',0), (24,'I',0), (24,'I',8), (28,'I',5), (32,'I',0), (32,'I',2),
-    (36,'i',1), (36,'i',-5), (40,'I',19999), (48,'I',0), (52,'I',0),
+    (36,'i',4), (36,'i',-5), (40,'I',19999), (48,'I',0), (52,'I',0),
     (56,'I',60000001), (60,'I',0), (60,'I',9), (60,'I',12)])
 def test_stale_torn_unknown_and_contradictory_trace_rejected(offset,fmt,value):
     raw = bytearray(trace())
@@ -74,6 +74,43 @@ def test_initialization_cache_must_be_zero(field):
 def test_native_failed_probe_and_zero_heartbeat_are_not_fabricated_success(panel,elapsed,heartbeat,sys,lsb):
     result = p.interpret(trace(panel=panel,elapsed=elapsed,heartbeat=heartbeat,sys=sys,lsb=lsb),stage())
     assert result['fields']['panel_result']==panel
+
+
+@pytest.mark.parametrize('panel', [0, 1, 2, 3])
+@pytest.mark.parametrize('phase,st', [(2, 6), (5, 6), (6, 7), (7, 8)])
+def test_source_panel_results_preserve_request_progress_without_display_proof(panel,phase,st):
+    # These are the actual protocol emitter's outcomes, independently of the
+    # worker's negative setup failures and the recovery request return value.
+    header = (Path(__file__).resolve().parents[1] /
+              'firmware/display/panel_probe.h').read_text()
+    name = ('LUNAR_PANEL_OK', 'LUNAR_PANEL_INVALID',
+            'LUNAR_PANEL_TRANSFER_FAILED', 'LUNAR_PANEL_DELAY_FAILED')[panel]
+    assert f'{name} = {panel}' in header
+    result = p.interpret(trace(phase, panel=panel), stage(st))
+    assert result['fields']['panel_result'] == panel
+    assert result['progress'] == {2: 'before-sdk-lock', 5: 'final-start-intent',
+        6: 'request-returned-success', 7: 'request-returned-failure'}[phase]
+    assert result['classification'] == 'conditional-coherent-trace-publication'
+    assert not result['display_observed'] and not result['physical_recovery_verified']
+    assert not result['recovery_cause_verified']
+
+
+@pytest.mark.parametrize('panel', [1, 2, 3])
+def test_positive_panel_errors_require_repeat_consistency_and_valid_clocks(panel):
+    a, b = p.decode_transfer(trace(panel=panel), 64), p.decode_transfer(stage(), 4)
+    result = p.interpret_repeated(a, b, a, b)
+    assert result['fields']['panel_result'] == panel and not result['display_observed']
+    with pytest.raises(ValueError, match='Repeated trace or stage changed'):
+        p.interpret_repeated(a, b, p.decode_transfer(trace(panel=0), 64), b)
+    for changes in (dict(sys=0), dict(lsb=0), dict(lsb=60000001)):
+        with pytest.raises(ValueError, match='Cached diagnostic fields'):
+            p.interpret(trace(panel=panel, **changes), stage())
+
+
+@pytest.mark.parametrize('panel', [-2147483648, -5, 4, 2147483647])
+def test_unknown_panel_result_remains_rejected(panel):
+    with pytest.raises(ValueError, match='Cached diagnostic fields'):
+        p.interpret(trace(panel=panel), stage())
 
 
 @pytest.mark.parametrize('changes', [dict(panel=-4,elapsed=20000,heartbeat=2000),
