@@ -995,3 +995,5 @@ run. Next: stage closed source/assets, fresh dual stock backup, diagnostic
 install/one boot/five original-RAM reads before loader upload, then stock
 restore. Physical boot/display acceptance and required review/CI/merge remain
 open. Last verified pushed checkpoint isdb662630; root owns commits/push/USB.
+
+2026-10-12 continuation: genuine RESTORE interruption source proposal checkpointed; five exact Hera nodes (three heavy, six containers including collection) authorized once, runtime pending. Canonical helper V3 also authorized once after fixture-only journal assertion correction; runtime pending. Computer connector still falsely reports locked Mac despite owner confirmation, so Packetry remains inaccessible. Physical source/assets closure and one-shot packet builder are being staged before any new entry/installation. Active diagnostic firmware goal remains unfinished.
