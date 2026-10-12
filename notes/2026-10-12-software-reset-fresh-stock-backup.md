@@ -67,3 +67,42 @@ five original RAM reads before any later loader upload, admitted dual
 backup and full stock restoration. All canonical freshness, source,
 connection, protected-sector, consumption and owned-capture checks remain.
 Display, physical interrupted-write recovery and goal acceptance are open.
+
+## Canonical baseline reset V2, actual receipt
+
+The separately reviewed canonical fixed-loader reset adapter dbbe3631 and
+owned wrapper2729750a were staged through the file-only canonical factory
+check. The one-use wrapper submitted exactly
+`fc0c00000001ffffffffffffffffffff`, IN16/OUT0, at1791818571.0076723. The
+full31-byte CBW completed on wire; the IN transfer terminated with -108/0
+on disconnect. No CSW or successful SG completion exists. The adapter
+stopped ambiguously because its pinned SG binding disappeared; it was not
+retried. No loader upload, NOR command or soft key ran. [verified]
+
+The wrapper passively observed normal USB4c4a:c755, same port1-1,
+bus1/device7, at1791818572.555184. Its immediate MIDI discovery then found
+a cardinality other than one and stopped before opening MIDI or sending
+the identity query. Do not infer the cardinality was zero. Later passive
+inspection found raw MIDI C2D0 at the matching same-port sound interface.
+Normal enumeration does not prove the final reset-command completion,
+firmware identity or boot cause. Future wrappers should wait boundedly for
+the matching ALSA endpoint after normal USB discovery. [verified]
+
+Capture leader/PG3414645 and reader3414646 remained owned by the wrapper;
+the stop receipt records -15 and both absent. The reset campaign and
+consumed marker remain unchanged. The private archive is
+`build/sdk-trace-fresh-entry-bench-v1/next-campaign/current-loader-baseline-reset-v2/actual-reset.tar`,
+SHA256 `1f854999442a65c9cdfc1fb08eba5a4aa39035884162a24274027397d8708048`.
+Independent reviewa4c9db07/check5f233857 verifies all16 regular members,
+the single transmitted command, ambiguity and cleanup. The export's
+zero-device-command claim describes collection only, not reset execution.
+[verified: retained receipt and independent replay]
+
+The new timed sequence remains unactivated. Independent full-source
+review caught a stale preparer pin to the predecessor entry wrapper and
+an identity schema mismatch at the real installation factory. Both stop
+before NOR writes, but neither is an acceptable execution-ready sequence.
+Preserve predecessor drafts; repair and rehearse the real composed chain
+on Hera before a fresh entry. The corrected BOT validator V3b9b98cfb
+passed34 Hera mutations and corroborates the older V3.1 backup; it is not
+evidence of a new backup or an installation authorization. [verified]

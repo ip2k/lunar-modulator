@@ -137,9 +137,32 @@ def test_codec_rejects_arbitrary_range_lengths(count):
 
 @pytest.fixture
 def native():
-    root = Path(os.environ['LUNAR_TRACE_NATIVE'])
+    required = os.environ.get('LUNAR_REQUIRE_PRIVATE_FIXTURES', '0')
+    assert required in ('0', '1'), 'LUNAR_REQUIRE_PRIVATE_FIXTURES must be 0 or 1'
+    if required == '0' and 'LUNAR_TRACE_NATIVE' not in os.environ:
+        pytest.skip('Exact native trace build unavailable; set LUNAR_REQUIRE_PRIVATE_FIXTURES=1 to require it')
+    value = os.environ['LUNAR_TRACE_NATIVE']
+    assert value, 'LUNAR_TRACE_NATIVE must not be empty'
+    root = Path(value)
     return tuple((root/n).read_bytes() for n in
         ('lunar-sdk-diagnostic.elf','lunar-sdk-diagnostic.app.bin','build-manifest.json'))
+
+
+@pytest.mark.parametrize('mode', ['public', 'required', 'empty', 'missing', 'invalid'])
+def test_native_fixture_selection(monkeypatch, tmp_path, mode):
+    monkeypatch.delenv('LUNAR_TRACE_NATIVE', raising=False)
+    monkeypatch.delenv('LUNAR_REQUIRE_PRIVATE_FIXTURES', raising=False)
+    if mode == 'required':
+        monkeypatch.setenv('LUNAR_REQUIRE_PRIVATE_FIXTURES', '1')
+    elif mode in ('empty', 'missing'):
+        monkeypatch.setenv('LUNAR_TRACE_NATIVE', '' if mode == 'empty' else str(tmp_path / 'missing'))
+    elif mode == 'invalid':
+        monkeypatch.setenv('LUNAR_REQUIRE_PRIVATE_FIXTURES', 'yes')
+    expected = {'public': pytest.skip.Exception, 'required': KeyError,
+                'empty': AssertionError, 'missing': FileNotFoundError,
+                'invalid': AssertionError}[mode]
+    with pytest.raises(expected):
+        native.__wrapped__()
 
 
 def test_actual_native_elf_derived_exact_plan(native):

@@ -11,6 +11,39 @@ original conversation; last updated 2026-10-11. Read this first, then
 
 ## Current installable-image boundary — 2026-10-12
 
+[verified: latest actual reset receipt] The separately reviewed canonical
+baseline-reset V2 transmitted one FC0C arg1 request at 1791818571.0076723.
+Its reply disconnected; no CSW or successful SG completion is proven. Same
+port 1-1 enumerated normal USB bus 1/device 7 at 1791818572.555184, but the
+wrapper's immediate MIDI discovery failed before any identity query. A later
+passive observation found C2D0. Owned capture stopped with both processes
+absent; the marker remains consumed. Do not retry this reset. Independent
+actual review a4c9db07/check 5f233857 accepts these limited claims. Packetry
+control remains unavailable because of the Computer Use connection error,
+despite the owner's unlocked Mac and enabled locked-use setting.
+
+[verified: source/model scope] Required CI run 38266651469 on eb79d339 failed
+both Python jobs with 71 missing LUNAR_TRACE_NATIVE errors; its other 11 jobs
+passed. The fixture now skips only an omitted optional private native build;
+required, empty, missing and invalid configurations fail. Hera ran 182 exact
+native cases in 30 chunks with zero skips/failures/errors, plus one smoke test. The
+clean run skipped exactly the 71 original CI error nodes, with 111 passes and
+no errors. All 33 container isolation/removal receipts are retained under
+build/native-fixture-ci-v1. Required whole-repository CI still needs the new
+exact pushed head. Independent review 7491dbe8/check 6d5ebecf accepted the
+fixture-selection change and retained evidence. Semantic servers select the primary checkout, which lacks
+this worktree's fixture; file inspection was used without changing another
+session's project selection.
+
+[verified: review scope] BOT validator V3 b9b98cfb checks ordered CBW/data/CSW
+lifecycles and FD05 captured prefixes against the retained complete stock
+dump. Its 34 mutation cases passed on Hera. This is supporting evidence,
+not canonical factory admission. The new timed entry sequence remains closed:
+independent review found a stale entry-source pin and an install identity
+schema mismatch. Repair and genuine complete-chain rehearsal precede fresh
+entry; no new install/NOR command has run. Physical display, interrupted-write
+recovery and the overall installable-image goal remain open.
+
 [verified: latest bench evidence] The consumed RAM-only reset had an ambiguous
 final USB reply; a separate passive observation then saw normal FM-1 USB without
 an owner power cycle. Fresh entry V3.1 queried identity FM-1_092, sent the vetted
