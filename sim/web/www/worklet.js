@@ -66,7 +66,7 @@ const LIVE_FRAMES = 1470;        // a live scope redraws at most every ~33 ms
 const SCREEN_BUFFERS = 2;
 const LEDS = KEYS + BUTTONS.length;
 const SEQ_WATCHED = 6;           // fm1w_seq_info's words compared each quantum
-const SEQ_WORDS = 56;            // legacy transport plus song and clip playheads
+const SEQ_WORDS = 61;            // legacy transport plus song and clip playheads
 const REC = 24;                  // a packed record (fm1_edit.h)
 const CHANGE = 32;               // a change-ring entry
 const EDITS_PER_QUANTUM = 64;
@@ -392,7 +392,7 @@ class FM1Processor extends AudioWorkletProcessor {
       out: new Float32Array(mem, outPtr, 2 * BLOCK),
       leds: new Uint8Array(mem, ex.fm1w_leds(), LEDS),
       screen: new Uint16Array(mem, ex.fm1w_screen(), SCREEN * SCREEN),
-      seq: new Uint32Array(mem, ex.fm1w_seq_info(), SEQ_WORDS),
+      seq: new Uint32Array(mem, ex.fm1w_seq_info(), ex.fm1w_seq_words?.() || 56),
     };
     return this.views;
   }
@@ -406,9 +406,9 @@ class FM1Processor extends AudioWorkletProcessor {
     const hasContentGen = typeof this.fm1.exports.fm1w_seq_gen === 'function';
     let changed = hasContentGen && contentGen !== this.seqContentGen;
     let immediate = changed;
-    for (let i = 0; i < SEQ_WORDS; ++i) if (s[i] !== last[i]) {
+    for (let i = 0; i < s.length; ++i) if (s[i] !== last[i]) {
       changed = true;
-      if (i < SEQ_WATCHED || (i >= 8 && i < 16)) immediate = true;
+      if (i < SEQ_WATCHED || (i >= 8 && i < 16) || i === 56 || i === 60) immediate = true;
     }
     // Native ticks run at PPQN, faster than a visual playhead needs. Limit
     // position-only updates to about 30 Hz; transport transitions are immediate.
@@ -422,7 +422,8 @@ class FM1Processor extends AudioWorkletProcessor {
       tracks.push({ active: s[at], playing: s[at + 1], posTick: s[at + 2], cycle: s[at + 3], muted: !!s[at + 4] });
     }
     this.port.postMessage({
-      type: 'seq', ...(hasContentGen ? { contentGen } : {}), playing: s[0] !== 0, bpm_x100: s[1], recording: s[2] !== 0, watch_track: s[3],
+      type: 'seq', paused: !!s[56], playbackFrames: s.length >= 61 ? s[57] + s[58] * 4294967296 : null,
+      sampleRate: s[59] || sampleRate, metronome: !!s[60], ...(hasContentGen ? { contentGen } : {}), playing: s[0] !== 0, bpm_x100: s[1], recording: s[2] !== 0, watch_track: s[3],
       counting_in: s[4] !== 0, following: s[5] !== 0, master_tick: s[6] + s[7] * 4294967296,
       scene: s[8], songIndex: s[9], songPass: s[10], songPassBar: s[11], songFollow: !!s[12],
       songParked: !!s[13], songEnd: s[14], songEntry: s[15], step: Math.floor(tracks[s[3]]?.posTick / 24) || 0, tracks,

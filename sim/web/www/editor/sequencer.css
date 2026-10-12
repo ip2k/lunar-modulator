@@ -287,3 +287,23 @@
 .sq-automation-playhead[hidden] { display: none; }
 
 .sq-automation-rows + .sq-lock-grid { margin-left: 180px; }
+/* The transport stays above every workspace tool window. */
+.sq-transport-mount { position: sticky; top: 0; z-index: 6; background: var(--bg); padding: 3px 0; }
+.sq-transport { border: 0; padding: 0; min-width: 0; margin: 0; align-items: center; gap: 6px; }
+.sq-transport .sq-field { gap: 2px; }
+.sq-transport .sq-field input { width: 76px; }
+.sq-transport .sq-field select { width: 78px; }
+.sq-transport-readouts { display: grid; grid-template-columns: auto auto; column-gap: 8px; align-items: center; }
+.sq-transport .sq-position { padding: 0 4px; min-height: 24px; }
+.sq-time { font-variant-numeric: tabular-nums; font-size: .78rem; }
+.sq-transport-state { grid-column: 1 / -1; color: var(--muted); font-size: .65rem; }
+.sq-transport-master { display: flex; align-items: center; gap: 6px; font-size: .7rem; }
+.sq-transport-master .sq-signal-meter.is-mini { width: 48px; height: 12px; }
+.sq-transport-nav { display: flex; align-items: center; gap: 4px; font-size: .7rem; }
+.sq-transport-nav .sq-button { padding: 3px 7px; }
+@media (max-height: 500px) and (orientation: landscape) {
+  .sq-transport { gap: 4px; }
+  .sq-transport .sq-button { min-height: 30px; padding: 4px 7px; }
+  .sq-transport .sq-field { font-size: .65rem; }
+  .sq-transport .sq-field input, .sq-transport .sq-field select { min-height: 28px; padding: 3px 5px; }
+}

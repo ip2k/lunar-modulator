@@ -253,20 +253,20 @@ ring of 256 events per instance (the owner's choice of 2026-10-01, docs/13
 
 | Tracks | Bytes | Of the half budget (36,864 B) | Of the stock gap (387,924 B) |
 | --- | --- | --- | --- |
-| 4 | 18,184 | 49 % | 4.7 % |
-| 8 | 32,072 | 87 % | 8.2 % |
-| 8, Capture off | 29,000 | 78 % | 7.4 % |
-| 16 (docs/13 §5's pools) | 59,848 | | 15.4 % |
+| 4 | 18,192 | 49 % | 4.7 % |
+| 8 | 32,080 | 87 % | 8.2 % |
+| 8, Capture off | 29,008 | 78 % | 7.4 % |
+| 16 (docs/13 §5's pools) | 59,856 | | 15.4 % |
 
 Each track adds 3,472 bytes: 2,304 of notes, 576 of locks, 160 of trig rows,
 160 of clip headers, 256 of track state and 16 of pad mutes. The fixed part
-is 1,224 bytes (1,160 before the song's 64 of stage E1: its end mode,
+is 1,232 bytes (1,160 before the song's 64 of stage E1: its end mode,
 follow flag and jump target, a scene launch's landing bar and eight
-seven-byte scene names), and Capture 3,072: 256 events of 12 bytes, about 128 notes
+seven-byte scene names), plus eight bytes for native elapsed playback frames (2026-10-11), and Capture 3,072: 256 events of 12 bytes, about 128 notes
 over Movy's 8-bar window (at 20 bytes an event, as first built, it was
 5,120), plus about 1.3 KB of stack while a stopped capture searches its
 tempo. Docs/13 §5 estimated 73,320 bytes for 16 tracks with the same pools;
-the measured 59,848 leaves out its undo ring (12,288) and packs locks and
+the measured 59,856 leaves out its undo ring (12,288) and packs locks and
 trig rows tighter (3,584 bytes less), while 23-byte lane labels make each
 track larger.
 
@@ -416,7 +416,7 @@ these Lunar titles [verified against the local upstream source].
 
 The 17-byte field increases each aligned track by 16 bytes (240 → 256);
 eight tracks add 128 bytes. The streaming importer increases 160 → 184 bytes.
-`fm1-seq --sizes` measures the eight-track instance at 32,072 bytes, below the
+`fm1-seq --sizes` measures the eight-track instance at 32,080 bytes, below the
 unchanged 32,768-byte arena. Including the host's 3,264-byte event buffer,
 240-byte pending command, 1,024-byte UI and 20-byte click state gives
 **36,620 of 36,864 bytes**, with 244 bytes spare. The focused regression

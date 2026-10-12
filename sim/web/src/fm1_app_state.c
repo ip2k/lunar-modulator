@@ -1846,7 +1846,7 @@ int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t tot
     else fm1_state_json_read(names(), rd, rctx, plan_sink, p, &r2);
     apply_finish(p);
   }
-  if (carry.playing && a->seq) {
+  if ((carry.playing || carry.paused) && a->seq) {
     /* A Play (the new set's clips launch, or its song starts), then the old clock and playheads over it. */
     fm1_seq_cmd_t c;
     fm1_seq_cmd_make(&c, FM1_SEQ_V_PLAY, 0, NULL);

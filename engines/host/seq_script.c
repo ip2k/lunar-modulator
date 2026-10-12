@@ -148,8 +148,8 @@ void fm1_script_free(fm1_script_t *s) {
 }
 
 void fm1_script_log_event(FILE *f, uint64_t block, uint64_t block_start, const fm1_seq_ev_t *e) {
-  static const char *const kKind[] = { "?", "on", "off", "cc", "click", "start", "stop", "clock" };
-  const char *kind = e->kind < 8 ? kKind[e->kind] : "?";
+  static const char *const kKind[] = { "?", "on", "off", "cc", "click", "start", "stop", "clock", "continue" };
+  const char *kind = e->kind < 9 ? kKind[e->kind] : "?";
   fprintf(f, "{\"block\":%llu,\"frame\":%llu,\"tick\":%lu,\"kind\":\"%s\",\"track\":",
           (unsigned long long)block, (unsigned long long)(block_start + e->frame),
           (unsigned long)e->tick, kind);

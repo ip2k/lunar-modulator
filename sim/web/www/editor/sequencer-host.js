@@ -226,5 +226,5 @@ export function makeSequencerHost({ sim, files, st, history, snapshot, say, onSe
 
   const verb = (text) => { if (sim.node) sim.node.port.postMessage({ type: 'seq-line', bytes: encoder.encode(text) }); };
   return { fetchProject, applyProject, restoreHistory, openFile, exportFile, exportAudio,
-    getTransport: () => sim.seq || {}, play: () => verb('play'), stop: () => verb('stop'), get busy() { return busy; } };
+    getTransport: () => sim.seq || {}, playPause: () => verb(sim.seq?.playing ? 'pause' : 'resume'), restart: () => { verb('rewind'); verb('resume'); }, play: () => verb('resume'), pause: () => verb('pause'), stop: () => verb('rewind'), seekBar: bar => verb(`seekbar ${bar}`), get busy() { return busy; } };
 }

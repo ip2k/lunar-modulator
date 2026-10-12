@@ -24,6 +24,8 @@ typedef struct {
 } verb_name_t;
 
 static const verb_name_t kVerbs[] = {
+  { "pause", FM1_SEQ_V_PAUSE }, { "resume", FM1_SEQ_V_RESUME },
+  { "rewind", FM1_SEQ_V_REWIND }, { "seekbar", FM1_SEQ_V_SEEKBAR },
   { "play", FM1_SEQ_V_PLAY }, { "stop", FM1_SEQ_V_STOP }, { "link", FM1_SEQ_V_LINK },
   { "minject", FM1_SEQ_V_MINJECT }, { "bpm", FM1_SEQ_V_BPM }, { "swing", FM1_SEQ_V_SWING },
   { "watch", FM1_SEQ_V_WATCH }, { "wlane", FM1_SEQ_V_WLANE }, { "tdrum", FM1_SEQ_V_TDRUM },
@@ -218,6 +220,10 @@ static void apply_op(fm1_seq_t *s, const fm1_seq_cmd_t *c, sq_out_t *o) {
   case FM1_SEQ_V_STOP:
     sq_stop(s, o);
     break;
+  case FM1_SEQ_V_PAUSE: if (!s->lim.compat) sq_pause(s, o); break;
+  case FM1_SEQ_V_RESUME: if (!s->lim.compat) sq_resume(s, o); break;
+  case FM1_SEQ_V_REWIND: if (!s->lim.compat) sq_rewind(s, o); break;
+  case FM1_SEQ_V_SEEKBAR: if (!s->lim.compat && next(&a, &v)) sq_seek_bar(s, v, o); break;
   case FM1_SEQ_V_LINK:
     if (next(&a, &v)) s->link_enabled = v != 0;
     break;
