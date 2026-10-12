@@ -891,3 +891,47 @@ physical trace-image campaign; retained RAM must be read before a loader upload
 overwrites0x01c02880/0x01c03418. Physical boot/display/recovery and final CI,
 review/integration remain open. Last verified pushed checkpoint before this
 entry is81a91f1f0da9cef74d598edfbba975eaaac61296 on the installable-firmware branch.
+
+### Latest continuation: 2026-10-12, canonical recovery and physical glue
+
+This entry supersedes the pending-admission/execution statements immediately
+above. The active goal remains a verified installable diagnostic image on the
+owner's FM-1, with verified recovery, documentation and required integration.
+
+[verified] Root fully read the independent returned-admission runtime review
+and retained-evidence addendum c5ce2510/check8df16552. The 75 unique cases in
+30 Hera chunks plus smoke passed; all 32 containers have matching removal
+receipts. Acceptance is saved at
+`build/sdk-trace-return-composed-hera/root-runtime-acceptance-v1.json`
+(428021b1). This is device/process modeling, not physical acceptance.
+
+[verified] Root accepted the exact literal-only backup7e9dbf15/restore683275d7
+candidate and runner/guard before launch (cd292bbf). Archive92efd4ab contains
+the 1762 tracked files from pushed checkpointf1c56d19 and only the two reviewed
+source overlays. Hera V1 passed 54 mechanics plus smoke; both genuine heavy
+branches stopped at a test-owned global flock leak after the 8757-command
+backup and before any restore NOR operation. Failed receipts are retained.
+Production activation pins remain None. A bounded admitted-fixture correction
+was authorized for source review; rerun acceptance is still outstanding.
+
+[verified] Root reviewed the physical install/boot glue and corrected actual
+Prepared-field, USB-binding and exact boot-lifecycle schema mismatches. The
+ignored successors are `next-campaign/prepare-packets-v2.py` (b14130c3) and
+`next-campaign/owned-install-boot-once.py` (7d2cec85), under
+`build/sdk-trace-fresh-entry-bench-v1/`. Syntax compilation passed only; no
+campaign, USB request or hardware write has been executed by this glue.
+Post-read admitted-backup/restore preparation and concrete retained-loader
+interrupted-NOR recovery are still being completed and reviewed.
+
+[verified] Computer again returned an empty native-app list and a false lock
+error despite the owner's unlocked-Mac/settings confirmation. Packetry could
+not be selected. Do not ask the owner to unlock it again or claim a GUI capture.
+Rarefaction and Serena currently select the primary checkout; bounded queries
+did not resolve this worktree's new Python symbols. File/AST inspection is used
+without changing another session's shared semantic project selection.
+
+Next: accept corrected genuine recovery runtime; finish/review/test the new
+retained-loader partial-write path; stage fresh exclusive physical packets;
+fresh stock dual backup, trace install, boot and original RAM read before any
+loader upload, then full stock recovery. Physical display/boot remains open.
+Root owns source activation, checkpoint commits/pushes and hardware execution.

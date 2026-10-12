@@ -3,6 +3,7 @@
 Dependency closure is checked before an expensive install. No activation source,
 factory, registry or Prepared authority is replaced by this fixture.
 """
+import fcntl
 import importlib
 import json
 from pathlib import Path
@@ -37,6 +38,7 @@ def recovery_dependencies():
 
 
 def genuine_recovery_ready(actual, tmp_path, monkeypatch):
+    file_flock = fcntl.flock  # Ordinary file locks before the native fd-only model.
     deps = recovery_dependencies()  # No hardware or factory authority override.
     q = genuine_return_ready(actual, tmp_path, monkeypatch, 'completed')
     state, read_result, caught = run_genuine_read(q, monkeypatch)
@@ -67,6 +69,8 @@ def genuine_recovery_ready(actual, tmp_path, monkeypatch):
     backup_path = private_write(q.run/'backup-campaign.json', deps.backup.canonical(envelope))
     prepared = deps.backup.prepare_campaign(backup_path)
     assert prepared.provenance.lineage.installed.campaign_sha256 == q.f.installed.campaign_sha256
+    # Native worker is closed; its fd-only flock must not handle journal files.
+    monkeypatch.setattr(fcntl, 'flock', file_flock)
     model = ReturnedSGModel(monkeypatch, snapshot['sg_binding'], prepared.policies[0].target)
     monkeypatch.setattr(prepared.bridge, 'discover_sg', model.discover)
     return SimpleNamespace(deps=deps, q=q, proof=proof, admission_path=admission_path,
