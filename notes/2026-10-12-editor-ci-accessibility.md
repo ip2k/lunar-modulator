@@ -69,3 +69,11 @@ Acceptance limits: these receipts cover this branch, not the eventual combined
 CI head, deployed page, owner listening or physical FM-1 operation. Next step:
 parent cherry-picks this commit, integrates sibling fixtures, reviews combined
 changes and waits for required CI before merge and deployed reload validation.
+
+Final fixture receipt: after adding the explicit 24 px target assertion,
+Chromium and WebKit passed 22 cases directly. Two Firefox attempts without
+PulseAudio timed out waiting for Resume during the transport precheck, before
+geometry. The final Firefox run with the CI-style PulseAudio null sink passed
+all 22 cases, including the 24 px assertion. Both unsuccessful logs are retained;
+no wait, assertion or acceptance threshold was relaxed. The authoritative Firefox
+receipt is `compact-final-firefox-audio.log`.
