@@ -1327,3 +1327,7 @@ See the latest section of `notes/2026-10-12-owned-capture-lifecycle.md`.
 Next: genuine model gates, exact final recovery-plan/campaign reseal, then
 fresh physical backup/install/boot/trace/stock recovery and display acceptance.
 The overall goal remains active; this source checkpoint is not completion.
+
+### Preparation-stop trace receipt checkpoint — 2026-10-12
+
+[verified: modeled SG] Pure receipt replay passed 64 checks: 48 in v1 and 16 tampering cases in v3, each dispatched as 16 isolated Hera chunks. v2 collection errors are retained; only test import paths changed between successful runs. See notes/2026-10-12-preparation-stop-trace-receipt/{review.md,verification.json}. Reader/recovery gates remain closed pending exact capture/source admission and CI. No current physical boot/display proof or stock restore. Pi remains bus1/dev10 UBOOT; preserve power and read RAM before overlapping loader upload. Cynthion detected but Packetry holds its interface; computer use reports Mac locked. Owner unlock/normal Packetry quit requested; no physical cycle requested. Test-only fix verified pushed at 7e03dffa9574db425f883d4a6a42c57fd0414c04; active goal unfinished.

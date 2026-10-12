@@ -1,0 +1,220 @@
+{
+  "tests": 64,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "chunks_per_run": 16,
+  "scope": "modeled SG; no physical command",
+  "runs": [
+    {
+      "run": "preparation-stop-trace-receipt-v1-20261012",
+      "tests": 48,
+      "reports": [
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/closed-00.xml",
+          "sha256": "b7caf007af2452431564d67d2169edaa342565d87cd064020adae0eb6bcc9feb"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/closed-01.xml",
+          "sha256": "25123fa0a3659fceecffacafb5c5bd30707e661da0349691c563df2dba4c5d6e"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/closed-02.xml",
+          "sha256": "e31d26e2514d951d91a539f53c486f54cb0cbed8f617a963bec04875718b950f"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/closed-03.xml",
+          "sha256": "9e786bd469181f727fd6ddcffb05315adf0bdb964a91b3ac044b9a085821c243"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/closed-04.xml",
+          "sha256": "b88c30700b0eda9afb56453366cd60c631d3b0673f947e2bbcb8c8e20dca717b"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/closed-05.xml",
+          "sha256": "3c237dd2618eb01e4ff89e160239d5224960f31852282ad1ac12743596f570d2"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/closed-06.xml",
+          "sha256": "f2d0cc2c41c822c68a49db450753c23df6da3fbfb323bac5258d133fd2d6ef52"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/closed-07.xml",
+          "sha256": "22d465dfd70e226accc0997f921aa1f03522d38c6bae4cd74c16e06d11887d71"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/closed-08.xml",
+          "sha256": "9738a7056668110876000a902cecb7709eec55ebe414f98d2fda12d5ab552db4"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/closed-09.xml",
+          "sha256": "ded2c7a2687ba229f87f896dd616b668959dfb08120014f11a60cc24530fb9d2"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/closed-10.xml",
+          "sha256": "e6e13c13a9f54e4e44e0b2d7fe662d24c0c30c50ead50ee21a00b665e6b55efc"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/closed-11.xml",
+          "sha256": "a8f88e46551f34952aecd6a73bf537b7ef4c20aca9480f85cf01ad4b11b5afcc"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/closed-12.xml",
+          "sha256": "5aea025ffee8ae6e47156c52158677adc4c79c77dbb040f9ef0ebe7d18172c11"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/closed-13.xml",
+          "sha256": "bdb1564792374cf9334999608a459592c1bb6a201c787d81baf9769708ca3426"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/closed-14.xml",
+          "sha256": "c858e5cf4ca4706151dbd23876c9573d5215613ed72b5b613d58faf3bc6bde36"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/closed-15.xml",
+          "sha256": "0c5372c4ae3ec3c98e64e2fd6b87eca9d0123c3024ba6656022af52a475dc51e"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/shard-00.xml",
+          "sha256": "204b392a2bec58f2eba6ffc722a79849c2689ef4f62266a48e1d9a28e0832074"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/shard-01.xml",
+          "sha256": "f4b28c7e6f8917a37a042ea05a2e5b84f8124e0f0ff4785e341122f7e97e52b8"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/shard-02.xml",
+          "sha256": "dad9c5a32666c394b8ccc22f14e158485a7f47f9c3ff2441592b9a0cac5d18d1"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/shard-03.xml",
+          "sha256": "bdf6dc830487eb0aad169bef4e76657e1807c111c320651088c2b4150794a9bc"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/shard-04.xml",
+          "sha256": "8b9f004e12f87c585f7dd41d919fcebd0c20de8909e1a35b23358a581f37b0c4"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/shard-05.xml",
+          "sha256": "f00bd8ac72bf01b1058449a4b444b47ee5ee1d67b0b1cd8948fa775d9555aefc"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/shard-06.xml",
+          "sha256": "414edb1e69676935a66c5ec3eb7392239f6f9a553710a4ed57ecc9785bfa0946"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/shard-07.xml",
+          "sha256": "1a967d18e75c3c84a9b79f985cb2d924b192cf366c677023f0d4bd11b11c82b2"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/shard-08.xml",
+          "sha256": "5c92dca26f28cfe0813bf993851001bfc77377659ba7d581fdbdb44740f44904"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/shard-09.xml",
+          "sha256": "a338d837155855dd5677c2bbe3d3f76032839dd4405130ef75ed9ba2698c293e"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/shard-10.xml",
+          "sha256": "2923f749c7dd7fb87f3472c494177b5a812ee3c9c43004c307e54dc8054834dc"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/shard-11.xml",
+          "sha256": "ebbea801ab7e694a865d06be5d23439dd421fe9a414e758453aec6bdd848ea1c"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/shard-12.xml",
+          "sha256": "0871a1c14f7ed78f2ffe7e7c3d10551c6b866cb0f6d175151e120a9baef6fae7"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/shard-13.xml",
+          "sha256": "e49f609898fc2cc08b6a8262af6d5219df2a4181786cb68fade5e802fe382dae"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/shard-14.xml",
+          "sha256": "1fb4dab77c2ffbf3840972cb90961c1c9f0e20a5294ef514541a7a00fd01397c"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v1-20261012/evidence/shard-15.xml",
+          "sha256": "6fa0ad9f647a6f12026d48bcf21c8824ad5278826b1d0e113330e68a921e48d1"
+        }
+      ]
+    },
+    {
+      "run": "preparation-stop-trace-receipt-v3-20261012",
+      "tests": 16,
+      "reports": [
+        {
+          "file": "build/preparation-stop-trace-receipt-v3-20261012/evidence/shard-00.xml",
+          "sha256": "300777e2a81415064b7fd3c707ed37f1eed2dea7defd2f71ddf949ab259a6b93"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v3-20261012/evidence/shard-01.xml",
+          "sha256": "7a02900fac18ee33747d7aeb10e096da96d243d46d2abc954372a14de773fcb9"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v3-20261012/evidence/shard-02.xml",
+          "sha256": "0b800175342f6224bb00f81951428b80779a6866cf386e44a31dbcba30296b97"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v3-20261012/evidence/shard-03.xml",
+          "sha256": "b5d1e31e8cb0a65d574c6534f50c5e723fc10b981b1ba547b4eb58f3845c5cb2"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v3-20261012/evidence/shard-04.xml",
+          "sha256": "b66bfed1a9d148a75a5f01f6a4d6b8b093ba8435b21072079a4772d0889a5cc5"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v3-20261012/evidence/shard-05.xml",
+          "sha256": "70eb61666ea3b46f176e9f2726ebbde1825ad976e70634e3f2a5182a382a1904"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v3-20261012/evidence/shard-06.xml",
+          "sha256": "24a6e6dc9e54112d4edfb07c99efce4246a39dcd5a88e027023d96224e4807fd"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v3-20261012/evidence/shard-07.xml",
+          "sha256": "6baf0d17ada7e4e2cdfc65abf00f03f8e4c178aaa9c056bd743047604b31fd88"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v3-20261012/evidence/shard-08.xml",
+          "sha256": "14e47d0e6eb6080e87c21c74c952cace80e0e9ca8df70df454f0b571ad3487ac"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v3-20261012/evidence/shard-09.xml",
+          "sha256": "94a6817401f125de26cce80b63ec27edb0afddb20725d7c4cf02fe55308ca085"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v3-20261012/evidence/shard-10.xml",
+          "sha256": "8b7480b63ecd5ae90d46d5493cbb15aa860a67c155c07a0358bba4f4c0e5a9d2"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v3-20261012/evidence/shard-11.xml",
+          "sha256": "8a0057ec5f539016f022d10e7ae43de54e2f7140236de4cd1772ff75195115f1"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v3-20261012/evidence/shard-12.xml",
+          "sha256": "e81bfa1d1ec701a04c5c5d74f5c5f18cf81474f5b4a9685d2451b41934aa8f15"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v3-20261012/evidence/shard-13.xml",
+          "sha256": "de7952f32626e4ac258ce6156d1d9af2834bf101e50e45c5d6f7af41a679b517"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v3-20261012/evidence/shard-14.xml",
+          "sha256": "c70df2761b3a96a325daad53a363a85f643a2deb3db73628bd2026fe28bbd502"
+        },
+        {
+          "file": "build/preparation-stop-trace-receipt-v3-20261012/evidence/shard-15.xml",
+          "sha256": "89517ce4eab59bf00dd2d617af131b10f45c54c9bbe37a9f5403b7fec7329fba"
+        }
+      ]
+    }
+  ],
+  "changed_between_runs": [
+    "tests/test_prepare_stop_trace_receipt.py"
+  ],
+  "v2": "all 16 collection errors; test import path corrected in v3",
+  "successor_admission": false,
+  "physical_boot_verified": false
+}
