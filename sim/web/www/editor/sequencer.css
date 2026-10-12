@@ -146,9 +146,6 @@
 .sq-playhead { position: absolute; top: 26px; bottom: 0; width: 2px; background: var(--live, #9ccfd8); pointer-events: none; z-index: 3; }
 .sq-playhead[hidden] { display: none; }
 .sq-clip-preview { display: block; width: 100%; height: 32px; margin-top: 8px; overflow: hidden; fill: var(--snd, var(--select)); }
-.sq-lock-plot { display: block; }
-.sq-lock-guide { fill: none; stroke: var(--border); stroke-width: 1; }
-.sq-lock-line { fill: none; stroke: var(--select); stroke-width: 2; }
 .sq-note { touch-action: none; }
 .sq-note-resize { position: absolute; right: 0; top: 0; width: 6px; height: 100%; border-left: 1px solid #16142155; cursor: ew-resize; }
 
@@ -266,3 +263,27 @@
 .sq-selection .sq-track-title { width: 230px; }
 .sq-mixer-track .sq-track-title { flex-wrap: wrap; }
 .sq-mixer-track .sq-track-title .sq-name { flex-basis: 100%; }
+
+/* Clip-local native progress; overlays never intercept editing or launch. */
+.sq-scene-edit { position: relative; overflow: hidden; isolation: isolate; }
+.sq-clip-progress { position: absolute; inset: 0 auto 0 0; background: var(--live, #9ccfd8); opacity: .18; pointer-events: none; z-index: -1; }
+.sq-clip-progress[hidden] { display: none; }
+.sq-preview-playhead { stroke: var(--live, #9ccfd8); stroke-width: 2; vector-effect: non-scaling-stroke; pointer-events: none; }
+/* Eight native lock lanes, with numeric editing retained for the selected lane. */
+.sq-automation-rows { width: max-content; min-width: 100%; padding: 8px 8px 0; box-sizing: border-box; }
+.sq-automation-row { position: relative; display: grid; grid-template-columns: 180px repeat(var(--automation-steps),55px); align-items: stretch; margin-bottom: 6px; }
+.sq-automation-label { position: sticky; left: 0; z-index: 4; text-align: left; white-space: normal; overflow-wrap: anywhere; padding: 8px 12px; margin-right: 8px; background: var(--surface); }
+.sq-automation-ruler { color: var(--muted); font-size: .68rem; align-items: center; text-align: center; }
+.sq-automation-ruler .sq-automation-label { font-size: .7rem; }
+.sq-automation-step { position: relative; min-height: 86px; border-radius: 0; border-color: var(--border); padding: 8px 0; background: var(--bg); overflow: hidden; }
+.sq-automation-step.has-lock { border-top-color: var(--select); }
+.sq-automation-block { position: absolute; inset: 8px 0; pointer-events: none; }
+.sq-automation-block::after { content: ''; position: absolute; inset: auto 0 0; height: var(--lock-height); min-height: 2px; background: color-mix(in srgb, var(--select) 25%, transparent); border-top: 2px solid var(--select); }
+.sq-automation-step.has-lock .sq-automation-block::after { background: color-mix(in srgb, var(--select) 45%, transparent); }
+.sq-automation-step.is-reset .sq-automation-block::after { border-top-style: dashed; }
+.sq-automation-value { position: relative; z-index: 1; display: inline-block; border-radius: 3px; background: var(--bg); color: var(--text); padding: 3px 5px; font-size: .7rem; font-variant-numeric: tabular-nums; }
+.sq-automation-value:empty { display: none; }
+.sq-automation-playhead { position: absolute; top: 0; bottom: 0; width: 2px; z-index: 3; background: var(--live, #9ccfd8); pointer-events: none; }
+.sq-automation-playhead[hidden] { display: none; }
+
+.sq-automation-rows + .sq-lock-grid { margin-left: 180px; }
