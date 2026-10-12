@@ -70,13 +70,17 @@ GitHub CI passed all thirteen jobs at selector checkpoint `22cae292…`.
 The strict-private selector gate passed 287 tests in 16 Hera chunks, with no
 skips; public CI behavior passed 244 with 43 explicit private-fixture skips.
 Later source checkpoints require fresh CI. The original 6,389-case complete
-Python snapshot is finishing its last Hera chunk and does not include the new
-probe or returned-ROM sources.
+Python snapshot finished all 16 chunks: 6,352 passed, 35 skipped and two expected
+failures, zero failures/errors. It does not include the newer probe or returned-ROM
+sources. The new stock-reset scaffold separately passed 44 injected cases plus
+one smoke; its production factory remains closed pending a genuine reviewed
+completed-restore helper.
 
 Current remote-SHA-verified checkpoint:
-`c4ee1c82d941dc6dab81a3595b7b21386825327e` on the feature branch below.
-The returned-ROM backup checkpoint is explicitly unaccepted WIP with syntax-only
-verification; do not activate it. See [the boot trial](2026-10-11-diagnostic-boot-trial.md),
+`6b8ed4b277783fb447a5eb03712b8134b93fcd1d` on the feature branch below.
+The returned-ROM backup/restore/reset checkpoints remain unaccepted WIP;
+their complete shared provenance and genuine private-factory gates are pending.
+Do not activate them. See [the boot trial](2026-10-11-diagnostic-boot-trial.md),
 [stage probe](2026-10-11-diagnostic-stage-probe.md), and
 [returned-ROM design](2026-10-11-returned-rom-recovery-design.md) for exact pins,
 limits and next dependencies. This remains an active unfinished goal.

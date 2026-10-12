@@ -23,9 +23,10 @@ physical-receipt campaign `f2a9f740…` sent one exact FC0C argument-1 CBW, then
 lost its binding during USB reset and exited 1 without retry or claimed SG
 completion. Normal same-port USB device 24 and the exact `FM-1_092` identity
 response verify restored stock operation without a physical power cycle.
-Private reset evidence is `build/post-rehearsal-reset-physical/`. Next: fresh
-backup/session binding, install-only diagnostic boot, display and recovery;
-corrupted/interrupted-write acceptance remains outstanding.
+Private reset evidence is `build/post-rehearsal-reset-physical/`. The later fresh
+backups and diagnostic install below supersede that checkpoint. Next: target
+boot, display and post-boot recovery; corrupted/interrupted-write acceptance
+remains outstanding.
 
 The install-only adapter `25412082…` passed 37 unique tests in 16 Hera chunks
 plus a complete actual-input modeled install, and independent review accepted
@@ -46,7 +47,10 @@ display and fresh recovery remain pending.
 The distinct target reset guard passed 107 Hera tests in 16 chunks plus its
 actual-input model and independent review, and was committed and remote-SHA
 verified at `45e21964d37fde86330eab65fa4c2866b1951ca6`.
-The full Python suite is running on Hera in 16 chunks. Public CI's missing
+The complete saved Python snapshot finished all 16 Hera chunks: 6,352 passed,
+35 skipped and two expected failures across 6,389 collected cases, with zero
+failures/errors. Later recovery sources have separate gates; see
+[the complete-suite receipt](notes/2026-10-11-full-python-target-gate.md). Public CI's missing
 private fixture failure has a test-only selector repair: absent paths may
 skip, while `LUNAR_REQUIRE_PRIVATE_FIXTURES=1`, partial or empty paths fail.
 Its strict-private follow-up passed all 287 cases in 16 Hera chunks with no
@@ -71,6 +75,10 @@ The returned-ROM stock-restore scaffold and tests passed an initial 53-case
 injected WIP gate on Hera. Its factory remains closed until the separate
 returned-backup source and evidence helper freeze; this is not a hardware-ready
 recovery adapter. See [the design](notes/2026-10-11-returned-rom-recovery-design.md).
+The new returned-stock reset scaffold passed 44 injected authority/syscall cases
+in 16 Hera chunks plus one smoke. Its factory also remains closed until the
+genuine completed-restore validator freezes and is independently accepted; see
+[the WIP reset gate](notes/2026-10-11-returned-stock-reset.md).
 
 The following entries are historical checkpoints, superseded where the physical
 result above supplies later evidence.
