@@ -140,8 +140,8 @@ typedef struct fm1_edit {
   uint32_t mask[FM1_TELE_MASK_WORDS];
   uint8_t meters_on, outs_on;
   uint64_t tele_at;             /* a->frames at the last block filled; ~0 none yet */
-  float peak[FM1_TELE_POINTS], sq[FM1_TELE_POINTS];
-  uint32_t n[FM1_TELE_POINTS];
+  float peak[FM1_TELE_ALL_POINTS], sq[FM1_TELE_ALL_POINTS];
+  uint32_t n[FM1_TELE_ALL_POINTS];
   float omin[FM1_MOD_POSITIONS][8], omax[FM1_MOD_POSITIONS][8];
   uint8_t out_seen;
   uint32_t gen_rendered;        /* gen at the last block's end: an edit since may
@@ -231,7 +231,8 @@ void fm1_edit_note_current(fm1_app_t *a);
 void fm1_edit_note_swap(fm1_app_t *a, int ua, int ub);
 void fm1_edit_note_loaded(fm1_app_t *a);
 void fm1_edit_mod_scan(fm1_app_t *a);
-/* Telemetry taps on the render path: a meter point's stereo block, and the
+/* Telemetry taps on the render path: a meter point's stereo block (NULL
+ * counts silent frames for an empty sound), and the
  * block's end (module outputs). Read only: the audio is not touched. */
 void fm1_edit_meter(fm1_app_t *a, unsigned point, const float *lr, uint32_t n);
 void fm1_edit_block_end(fm1_app_t *a);

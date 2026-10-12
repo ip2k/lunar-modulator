@@ -201,7 +201,8 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
     stays inside the sequencer's 36,864 B, half of docs/13 §5's 72 KiB.
     fm1_app_t grew by about 36 KB for the sequencer, to 4.9 MB for
     multi-sound's arenas, and by the modulation runtime's memory, a block's
-    writes to the effects and the pages' state (docs/16 MG3)."""
+    writes to the effects and the pages' state (docs/16 MG3). The effect/mixer
+    automation queues/cache count separately against the whole app RAM budget."""
     z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,
                                   text=True).stdout)
     print(f"sizeof(fm1_app_t) = {z['app_bytes']} B")
@@ -227,7 +228,7 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
         assert s["seq_bytes"] == size
         r, _, _ = sim_run(tools, tmp_path, script, "--tracks", str(tracks), name=f"t{tracks}",
                           tool="render")
-        fixed = z["seq_pending_bytes"] + z["seq_ui_bytes"] + z["seq_click_bytes"] + z["mod_bytes"]
+        fixed = z["seq_pending_bytes"] + z["seq_ui_bytes"] + z["seq_click_bytes"] + z["mod_bytes"] + z["seq_automation_bytes"]
         assert s["ram"] == r["instance_bytes"] + size + 3264 + fixed, "the RAM figure counts the sequencer"
 
 

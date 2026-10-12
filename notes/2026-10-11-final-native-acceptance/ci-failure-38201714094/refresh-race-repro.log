@@ -1,0 +1,8 @@
+
+added 2 packages in 1s
+npm notice
+npm notice New major version of npm available! 11.19.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
+{"browser":"Chromium 153.0.8010.12 (Playwright, headless)","tabAfterRefreshBetweenPointerDownUp":"Scenes","velocityAfterRefreshBetweenSelectAllAndType":"10072","valid":false,"reproduced":true}

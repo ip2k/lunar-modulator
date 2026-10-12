@@ -45,7 +45,7 @@ Along the top of the editor:
 {{status sim}}
 
 The outline on the left lists the four sounds, **Flow and effects**,
-**Modulation**, and under *Project* the **Library**, **Compare A/B**,
+**Modulation**, **Song**, and under *Project* the **Library**, **Compare A/B**,
 **Memory** and **Search**. Click one to open it.
 
 **Flow and effects** draws the signal path: each sound's engine into its two
@@ -201,6 +201,89 @@ table, which lists every cable in words.
 The Map needs a window about 620 pixels wide for the editor. Below that, as on a
 phone, the switch is not shown and Modulation stays a table, with each cable as
 a small card.
+
+## Songs, MIDI files and the mixer
+
+{{status sim}}
+
+Choose **Song** in the outline. Its five tabs show one task at a time:
+**Scenes**, **Arrangement**, **Clip**, **Automation** and **Mixer**. Transport
+and **Files & export** stay available while you switch views. On a phone,
+rotate to landscape; the portrait prompt leaves playback running.
+
+**Scenes** contains eight tracks and eight scene columns, with compact rows
+that keep more of the matrix in view. Editing a slot opens its piano roll; a
+separate launch action plays that clip at the native bar boundary. Launching a
+scene plays its column, and empty slots stop their tracks. Scene headings
+select the scene for editing. **Arrangement** builds
+a song from those same scenes: append, copy, move or remove an entry, set its
+repeats, and choose Loop, Park or Stop at the end. Repeats share their clips;
+copy a scene before editing a different variation.
+
+**Clip** keeps Pitch, Step, Gate and Velocity visible for the selected note;
+loop window, quantize and transpose remain clip controls. Click an empty cell
+or use **Add note**. Drag a note to move it, or its right edge to change its
+gate. Open **Advanced** for Microtiming and Probability. Microtiming uses
+ticks, with 24 ticks per sixteenth step. Probability belongs to the note's
+trigger. Scene tools rename, copy or clear a scene.
+
+**Automation** shows eight native parameter-lock lanes per track. Choose an
+instrument, sound insert, sound level or master-effect parameter, then enter
+step values from 0 to 127 across that parameter's range. Clear a value to
+remove its lock. A lane holds its last value until the next lock; the plot
+shows those stepped changes. Several tracks routed to one sound share that
+sound's parameters, inserts and level.
+
+**Mixer** has four sound strips and Master, with vertical faders, dB readouts
+and live peak/RMS meters. Instrument, insert and master-effect buttons open
+their controls; Close or <kbd>Esc</kbd> returns to the button you used. Each
+insert and master effect has input/output meters. **Routing & FX** opens the
+track routes and device racks; it starts collapsed in short landscape windows.
+Mute and Solo act on tracks routed to that sound. Saved sound levels belong to
+the project; Master output level is the browser's volume preference.
+
+The Song workspace's device inspectors put primary parameters first, with
+less frequent settings and actions behind a disclosure. They open as modal
+dialogs; focus moves to Close when a dialog opens, Escape closes it, and focus
+returns to the control that opened it. **Files & export** remains available
+from the Song workspace.
+
+### Importing MIDI
+
+Use **Files & export → Import MIDI…** to select one or several standard
+`.mid` or `.midi` files. Type 0 and type 1 files are supported. The preview
+lists their parts and lets you map each one to a native track and sound before
+applying it. **Selected scene** puts one section into the scene you are editing.
+Choose **New song chain on mapped tracks** to divide a longer part across
+scene columns, and set **Bars per scene** to choose each section's length.
+A warning explains unsupported data, and
+an import that cannot fit is refused before changing the project.
+
+An import batch accepts at most 16 files, 16 MiB per file, 32 MiB total and
+64 parts total. Native sequencer content-generation changes refresh the visible
+Song workspace after panel edits and invalidate a hidden view for refresh when
+you return to it. Undo and Redo refuse a stale edit if another panel change
+has changed the project in the meantime.
+
+Lunar's limits remain eight tracks, eight scenes, a 256-step clip window,
+64 scene presses in a song and 96 ticks per quarter note. It does not add
+unbounded desktop-only tracks or audio clips. Instruments are chosen from
+Lunar's sound engines; a MIDI file does not contain their audio.
+
+### Saving projects and exporting audio
+
+The same menu opens and saves `.lunar` projects and exports `.movy1`
+sequencer sets. These are Lunar's native formats, shared with its panel and
+sequencer core. Direct project access to hardware over USB-MIDI or Bluetooth
+is future work; the FM-1 does not run Lunar yet.
+
+**Export WAV…** renders the actual Wasm instrument in a separate worker.
+Choose a stereo master, four stereo sound stems, one eight-channel WAV with
+those sound pairs, or separate sequencer-track stems. The files use 24-bit PCM
+at 44,118 Hz. Set a tail for effects; progress and Cancel remain available
+during rendering. Shared voices, modulation and nonlinear bus effects mean isolated
+stems may not sum back to the master. Master effects are applied to the
+stereo master; the export choices explain the other outputs.
 
 ## Files, the library and links
 

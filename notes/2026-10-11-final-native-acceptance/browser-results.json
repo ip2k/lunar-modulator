@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-11",
+  "moduleSha256": "2a2ad121431f6e7fac5aa186d00eb0b75848187441ffe0d4ec4222451ed65cc3",
+  "environment": {
+    "host": "hera",
+    "container": "mcr.microsoft.com/playwright:v1.63.0-noble",
+    "resources": "2 CPUs, 2 GiB",
+    "audio": "PulseAudio null sink lunar, 48000 Hz stereo, no-rewinds; Unix protocol at /tmp/pa.sock; PULSE_SOURCE=lunar.monitor"
+  },
+  "matrix": [
+    {"suite":"mock","browser":"chromium","version":"Chromium 153.0.8010.12","passed":true,"errors":[]},
+    {"suite":"native","browser":"chromium","version":"Chromium 153.0.8010.12","passed":true,"transportAssertion":"native clip matrix launch advances real transport and playhead","wavExports":6,"errors":[]},
+    {"suite":"mock","browser":"firefox","version":"Firefox 155.0","passed":true,"errors":[]},
+    {"suite":"native","browser":"firefox","version":"Firefox 155.0","passed":true,"transportAssertion":"native clip matrix launch advances real transport and playhead","wavExports":6,"errors":[]},
+    {"suite":"mock","browser":"webkit","version":"Webkit 26.6","passed":true,"errors":[]},
+    {"suite":"native","browser":"webkit","version":"Webkit 26.6","passed":true,"transportAssertion":"native clip matrix launch advances real transport and playhead","wavExports":6,"errors":[]}
+  ],
+  "note": "Native tests exercised real browser AudioWorklet and Wasm. Firefox transport did not stall on this snapshot. Physical hardware and listening acceptance are outside this run."
+}

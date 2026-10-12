@@ -1,0 +1,32 @@
+debconf: delaying package configuration, since apt-utils is not installed
+W: [pulseaudio] main.c: Running in system mode, but --disallow-module-loading not set.
+N: [pulseaudio] main.c: Running in system mode, forcibly disabling SHM mode.
+PASS unchanged native refresh preserves pointer clicks and number-input selection
+PASS native invalidation during an older snapshot read refreshes the latest notes
+PASS clean sequencer undo and redo preserve native project state
+PASS native panel-path edit refreshes the visible clip and rejects stale undo
+PASS hidden sequencer invalidates without project reads and refreshes on reopen
+PASS native edit after undo rejects stale redo and preserves its history cursor
+PASS unchanged native refresh preserves pointer clicks and number-input selection
+PASS native invalidation during an older snapshot read refreshes the latest notes
+PASS clean sequencer undo and redo preserve native project state
+PASS native panel-path edit refreshes the visible clip and rejects stale undo
+PASS hidden sequencer invalidates without project reads and refreshes on reopen
+PASS native edit after undo rejects stale redo and preserves its history cursor
+PASS unchanged native refresh preserves pointer clicks and number-input selection
+PASS native invalidation during an older snapshot read refreshes the latest notes
+PASS clean sequencer undo and redo preserve native project state
+PASS native panel-path edit refreshes the visible clip and rejects stale undo
+PASS hidden sequencer invalidates without project reads and refreshes on reopen
+PASS native edit after undo rejects stale redo and preserves its history cursor
+PASS native fixture loads without discarded sequencer fields
+PASS assigned bases preserve linear, logarithmic and enum parameter positions
+PASS UI note articulation, probability and mix lock survive native load
+PASS routing, native chain repeats and project undo/redo
+PASS native clip matrix launch advances real transport and playhead
+PASS stale host documents and atomic worklet expectedHash preserve newer native edits
+PASS two MIDI files preview, occupied-clip refusal and explicit replacement import
+PASS download and reopen text project, Movy set and binary project retain native set
+PASS actual offline worker produces six downloadable WAVs with exact channel counts
+PASS repeated render clears downloads and cancellation releases dialog
+PASS focused views, phone rotate prompt and landscape native editing

@@ -26,6 +26,8 @@ import {
 import { History } from './history.js';
 import { makeChains, cableIndex } from './chains.js';
 import { makeProject } from './project.js';
+import { makeSequencer } from './sequencer.js';
+import { makeSequencerHost } from './sequencer-host.js';
 
 const PREF = 'lunar.sim.editor.';
 function pref(key, value) {
@@ -134,6 +136,26 @@ export async function startEditor(env) {
     st, meta, el, files, root, view, nextId, say, select, render, blockOf, engineName, rows, selectRow: (r) => selectRow(r),
     snapshotSoon, history, undo: () => undo(), redo: () => redo(), setKeys: (m) => setKeys(m), post, chains, mm,
   });
+  const seqHost = makeSequencerHost({ sim, files, st, history, snapshot, say, onSettled: () => {
+    renderHistory();
+    sequencer.invalidate();
+    if (st.view === 'sequencer') sequencer.refresh();
+  } });
+  const seqVerb = (text) => { if (sim.node) sim.node.port.postMessage({ type: 'seq-line', bytes: new TextEncoder().encode(text) }); };
+  const sequencer = makeSequencer({ ...seqHost, metadata: meta, say,
+    editSound: (key) => select(key, { view: 'sound' }),
+    inspector: (key) => key === MIX_KEY ? chains.mixInspector() : blockOf(key) ? inspector(key, { compactTools: true, level: /^s[1-4]$/.test(key) ? Number(key[1]) - 1 : undefined }) : emptyInspector(key),
+    watchTrack: (t) => seqVerb(`watch ${t}`), playScene: (scene) => seqVerb(`scene ${scene}`),
+    playClip: (track, scene) => seqVerb(`launch ${track} ${scene}`),
+    getMaster: () => sim.master, setMaster: (v) => sim.setMaster(v),
+    getSoundLevel: (sound) => st.mirror?.levels[sound],
+    setSoundLevel: (sound, value, how) => setValue(blockKey(ROLE.SOUND, sound), 'level', value, how),
+    beginLevelDrag: (sound) => { st.dragKey = `${blockKey(ROLE.SOUND, sound)}:level`; history.beginDrag(st.dragKey); },
+    endLevelDrag: () => { history.endDrag(); st.dragKey = null; if (st.verdictDirty) { st.verdictDirty = false; snapshotSoon(); } },
+    onMeterSubscription: () => subscribe(),
+  });
+  sim.seqListeners = sim.seqListeners || new Set();
+  sim.seqListeners.add((transport) => { if (st.view === 'sequencer') sequencer.update(transport); });
 
   // ---- PLAY and EDIT (§13) ---------------------------------------------------
   function setKeys(mode) {
@@ -166,7 +188,7 @@ export async function startEditor(env) {
       if (st.keys === 'play') { setKeys('edit'); focusSelection(); } else toPlay();
       return;
     }
-    const inText = e.target.closest && e.target.closest('input[type=text], input[type=search], select');
+    const inText = e.target.closest && e.target.closest('input, textarea, select, [contenteditable=true]');
     if (project.onKey(e, mod, inText)) return;
     if (st.keys !== 'edit') return;
     if (e.key === 'Escape' && !st.typing) { e.preventDefault(); toPlay(); return; }
@@ -236,6 +258,7 @@ export async function startEditor(env) {
   }
   function sendOps(bytes, info) {
     if (!st.port) return 0;
+    if (st.sequenceBusy) { say('Finish the sequencer edit first.'); return 0; }
     const tag = newTag(info);
     st.inflight += 1;
     post({ type: 'edit', tag, bytes }, [bytes.buffer]);
@@ -259,6 +282,7 @@ export async function startEditor(env) {
     if (id !== st.snapId) return;
     if (!r || !r.text) { if (st.port) setTimeout(() => { if (id === st.snapId) snapshot(); }, 250); return; }
     st.mirror = mirrorFromProject(meta, JSON.parse(r.text), r.mod);
+    sequencer.invalidate();
     st.gen = reply.gen >>> 0;
     st.loading = false;
     const waiting = st.pendingChanges;
@@ -499,7 +523,7 @@ export async function startEditor(env) {
   seen.observe(view);
   function subscribe() {
     const want = !!st.port && st.layout !== 'panel' && flowSeen && document.visibilityState === 'visible' && !!st.mirror;
-    const rowsOn = want ? chains.wantRows(st.view) : [];
+    const rowsOn = want ? st.view === 'sequencer' ? sequencer.wantRows() : chains.wantRows(st.view) : [];
     const sig = rowsOn.join(',');
     st.teleOn = want && rowsOn.length > 0;
     if (!st.port || sig === st.teleSig) return;
@@ -526,6 +550,7 @@ export async function startEditor(env) {
       m.style.setProperty('--lvl', `${Math.max(0, Math.min(1, (db + 60) / 60)).toFixed(3)}`);
     }
     chains.onTelemetry(f);
+    if (st.view === 'sequencer') sequencer.onTelemetry(f);
   }
 
   // ---- names and text ----------------------------------------------------------------
@@ -586,6 +611,7 @@ export async function startEditor(env) {
   // ---- edits ------------------------------------------------------------------------
   // A value from the editor: into the mirror and the history, then to C.
   function setValue(key, uid, v, how) {
+    if (st.sequenceBusy) { say('Finish the sequencer edit first.'); return; }
     if (!st.mirror) return;
     const before = valueOf(key, uid);
     if (cableIndex(key) >= 0 && (uid === 'on' || uid === 'voice')) v = !!v;
@@ -639,7 +665,12 @@ export async function startEditor(env) {
     return true;
   }
   function undo() {
+    if (st.sequenceBusy) return;
     const e = history.undo();
+    if (e?.info?.sequencer) {
+      seqHost.restoreHistory(e, false).then((ok) => { if (!ok) history.redo(); renderHistory(); sequencer.invalidate(); if (st.view === 'sequencer') sequencer.refresh(); });
+      return;
+    }
     if (e && e.info && e.info.struct) {
       // §8: checked by hash once C has applied it (onEdited); with nothing to send, now.
       if (!chains.undoStruct(e, false)) project.checkUndo(e);
@@ -652,7 +683,12 @@ export async function startEditor(env) {
     renderHistory();
   }
   function redo() {
+    if (st.sequenceBusy) return;
     const e = history.redo();
+    if (e?.info?.sequencer) {
+      seqHost.restoreHistory(e, true).then((ok) => { if (!ok) history.undo(); renderHistory(); sequencer.invalidate(); if (st.view === 'sequencer') sequencer.refresh(); });
+      return;
+    }
     if (e && e.info && e.info.reload) { project.redoPicks(e); renderHistory(); return; }      // A/B's picks: the file they made
     if (e && e.info && e.info.struct) { chains.undoStruct(e, true); renderHistory(); return; }
     if (!e || stale(e, 'redone')) return;
@@ -715,7 +751,8 @@ export async function startEditor(env) {
     if (st.port && st.mirror) {
       const card = project.arrivalCard();
       if (card) view.append(card);
-      if (st.view === 'flow') view.append(flowView());
+      if (st.view === 'sequencer') view.append(sequencer.render());
+      else if (st.view === 'flow') view.append(flowView());
       else if (st.view === 'mod') view.append(chains.modView());
       else if (st.view === 'memory') view.append(project.memoryView());
       else if (st.view === 'ab') view.append(project.compareView());
@@ -756,6 +793,7 @@ export async function startEditor(env) {
     outline.append(mk('Modulation', 'MOD', 'ed-out-mod', () => { st.view = 'mod'; render(); }, st.view === 'mod',
       st.mirror ? `${nMods}·${nCables}` : null));
     outline.append(el('p', 'ed-out-h', { text: 'Project' }));
+    outline.append(mk('Song / MIDI', 'SEQ', 'ed-out-seq', () => { st.view = 'sequencer'; render(); sequencer.refresh(); }, st.view === 'sequencer'));
     outline.append(mk('Library', 'LIB', 'ed-out-lib', () => { st.view = 'library'; render(); }, st.view === 'library'));
     outline.append(mk('Compare A/B', 'A/B', 'ed-out-ab', () => { st.view = 'ab'; render(); }, st.view === 'ab',
       st.ab && st.ab.A ? st.ab.playing : null));
@@ -918,8 +956,10 @@ export async function startEditor(env) {
       e && e.gpl ? el('span', 'ed-gpl', { text: 'GPL', title: `Licence: ${e.licence}` }) : null,
       el('span', 'ed-insp-ram', { text: e && st.ram ? `RAM ${ramWords(e.ram, st.ram.budget)}` : '' })]);
     box.append(head);
-    if (st.mirror && st.mirror.cables && !opt.bare) head.append(el('span', 'ed-tools', {}, [...chains.headTools(key), ...project.headTools(key)]));
-    if (e && e.credits) box.append(el('p', 'ed-credits', { text: `${e.credits}${e.group ? ` · ${meta.groupName(e.group)}` : ''}` }));
+    const tools = st.mirror && st.mirror.cables && !opt.bare ? [...chains.headTools(key), ...project.headTools(key)] : [];
+    if (!opt.compactTools && tools.length) head.append(el('span', 'ed-tools', {}, tools));
+    const credits = e && e.credits ? `${e.credits}${e.group ? ` · ${meta.groupName(e.group)}` : ''}` : '';
+    if (credits && !opt.compactTools) box.append(el('p', 'ed-credits', { text: credits }));
     if (!e) { box.append(el('p', 'ed-note', { text: `${b.engine} is not in this build's metadata.` })); return box; }
     const mt = opt.bare ? null : chains.meters(key);
     if (mt) box.append(mt);
@@ -950,6 +990,13 @@ export async function startEditor(env) {
       for (const p of pg.params) if (p !== fp) page.append(paramRow(key, p, pg));
       box.append(page);
     });
+    if (opt.compactTools && (credits || tools.length)) {
+      const summary = el('summary', 'ed-tools-summary', { text: 'Device credits and tools', 'aria-label': 'Device credits and tools' });
+      const more = el('details', 'ed-inspector-more', {}, [summary]);
+      if (credits) more.append(el('p', 'ed-credits', { text: credits }));
+      if (tools.length) more.append(el('div', 'ed-tools', {}, tools));
+      box.append(more);
+    }
     const into = opt.bare || !st.mirror.cables ? null : chains.cablesInto(key);
     if (into) box.append(into);
     return box;
@@ -1235,6 +1282,7 @@ export async function startEditor(env) {
       }
     }
     if (st.selRow === `${key}:${uid}`) renderDetail();
+    if (st.view === 'sequencer' && uid === 'level') sequencer.syncLevels();
   }
   function isSummary(key, uid) {
     const pg = meta.pages(blockOf(key).engine)[0];
@@ -1297,8 +1345,8 @@ export async function startEditor(env) {
 
   // ---- the history list (§8) -------------------------------------------------------------
   function renderHistory() {
-    undoBtn.disabled = !history.canUndo;
-    redoBtn.disabled = !history.canRedo;
+    undoBtn.disabled = !history.canUndo || st.sequenceBusy;
+    redoBtn.disabled = !history.canRedo || st.sequenceBusy;
     const u = history.canUndo ? history.entries[history.at - 1] : null;
     undoBtn.title = u ? `Undo ${u.label} (${MOD}Z)` : 'Nothing to undo';
     histList.innerHTML = '';
@@ -1329,7 +1377,8 @@ export async function startEditor(env) {
   render();
   const api = {
     setLayout, state: st, history, meta, mm, chains, rows, select, undo, redo, setKeys, project, say,
-    applyLink: (l) => project.applyLink(l),
+    applyLink: (l) => { if (l?.sequencer) { st.view = 'sequencer'; render(); sequencer.refresh(); } else project.applyLink(l); },
+    sequencer, sequencerHost: seqHost,
     // The page test's hooks: an inspector for any module, drawn from the
     // metadata with its defaults, and the mirror as it stands.
     inspectorFor(id) {

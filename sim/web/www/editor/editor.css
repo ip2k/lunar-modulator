@@ -105,7 +105,7 @@
   flex: none; min-width: 30px; text-align: center; padding: 2px 4px; border-radius: 5px;
   font: 700 0.72rem/1.3 var(--small); background: var(--snd, var(--rp-highlight-high)); color: var(--rp-base);
 }
-.ed-out-fx .ed-out-tag { background: var(--rp-highlight-high); color: var(--text); }
+.ed-out-fx .ed-out-tag, .ed-out-seq .ed-out-tag { background: var(--rp-highlight-high); color: var(--text); }
 .ed-out-name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 /* The rail (Workbench, and narrower than 1,180 px): tags only. */
 .ed-outline .ed-out-name, .ed-outline .ed-out-h, .ed-outline .ed-out-x { display: none; }
@@ -847,3 +847,9 @@
 .ed-batch-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 12px 0; }
 .ed-search-batch { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; }
 .ed-batch-value { min-height: 32px; max-width: 100%; }
+
+/* Song's modal inspector keeps metadata and project tools after the controls. */
+.ed-inspector-more { border-top: 1px solid var(--border); margin-top: 10px; padding-top: 6px; }
+.ed-tools-summary { display: inline-flex; align-items: center; min-height: 32px; cursor: pointer; }
+.ed-inspector-more > .ed-credits { margin: 4px 0 8px; }
+.ed-inspector-more .ed-tools { display: flex; flex-wrap: wrap; gap: 6px; }

@@ -1,0 +1,6202 @@
+{
+  "scope": "Actual native Wasm/AudioWorklet UI; headless Chromium; no listening, physical touch, Safari or screen reader acceptance",
+  "errors": [],
+  "views": [
+    {
+      "size": "desktop",
+      "view": "Scenes",
+      "panelTop": 293.265625,
+      "panelHeight": 680.359375,
+      "viewport": 1100,
+      "documentOverflow": false,
+      "controls": [
+        {
+          "name": "Edit scene 1",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch scene 1",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit scene 2",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch scene 2",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit scene 3",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch scene 3",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit scene 4",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch scene 4",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit scene 5",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch scene 5",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit scene 6",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch scene 6",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit scene 7",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch scene 7",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit scene 8",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch scene 8",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 1",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 1 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 1 scene 1",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 1 scene 1",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 1 scene 2",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 1 scene 2",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 1 scene 3",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 1 scene 3",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 1 scene 4",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 1 scene 4",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 1 scene 5",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 1 scene 5",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 1 scene 6",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 1 scene 6",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 1 scene 7",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 1 scene 7",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 1 scene 8",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 1 scene 8",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 2",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 2 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 2 scene 1",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 2 scene 1",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 2 scene 2",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 2 scene 2",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 2 scene 3",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 2 scene 3",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 2 scene 4",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 2 scene 4",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 2 scene 5",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 2 scene 5",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 2 scene 6",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 2 scene 6",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 2 scene 7",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 2 scene 7",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 2 scene 8",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 2 scene 8",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 3",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 3 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 3 scene 1",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 3 scene 1",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 3 scene 2",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 3 scene 2",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 3 scene 3",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 3 scene 3",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 3 scene 4",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 3 scene 4",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 3 scene 5",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 3 scene 5",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 3 scene 6",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 3 scene 6",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 3 scene 7",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 3 scene 7",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 3 scene 8",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 3 scene 8",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 4",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 4 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 4 scene 1",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 4 scene 1",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 4 scene 2",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 4 scene 2",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 4 scene 3",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 4 scene 3",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 4 scene 4",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 4 scene 4",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 4 scene 5",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 4 scene 5",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 4 scene 6",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 4 scene 6",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 4 scene 7",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 4 scene 7",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 4 scene 8",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 4 scene 8",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 5",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 5 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 5 scene 1",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 5 scene 1",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 5 scene 2",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 5 scene 2",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 5 scene 3",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 5 scene 3",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 5 scene 4",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 5 scene 4",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 5 scene 5",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 5 scene 5",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 5 scene 6",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 5 scene 6",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 5 scene 7",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 5 scene 7",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 5 scene 8",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 5 scene 8",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 6",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 6 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 6 scene 1",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 6 scene 1",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 6 scene 2",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 6 scene 2",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 6 scene 3",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 6 scene 3",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 6 scene 4",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 6 scene 4",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 6 scene 5",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 6 scene 5",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 6 scene 6",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 6 scene 6",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 6 scene 7",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 6 scene 7",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 6 scene 8",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 6 scene 8",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 7",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 7 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 7 scene 1",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 7 scene 1",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 7 scene 2",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 7 scene 2",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 7 scene 3",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 7 scene 3",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 7 scene 4",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 7 scene 4",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 7 scene 5",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 7 scene 5",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 7 scene 6",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 7 scene 6",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 7 scene 7",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 7 scene 7",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 7 scene 8",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 7 scene 8",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 8",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 8 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 8 scene 1",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 8 scene 1",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 8 scene 2",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 8 scene 2",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 8 scene 3",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 8 scene 3",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 8 scene 4",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 8 scene 4",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 8 scene 5",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 8 scene 5",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 8 scene 6",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 8 scene 6",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 8 scene 7",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 8 scene 7",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 8 scene 8",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 8 scene 8",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        }
+      ]
+    },
+    {
+      "size": "desktop",
+      "view": "Arrangement",
+      "panelTop": 293.265625,
+      "panelHeight": 760.078125,
+      "viewport": 1100,
+      "documentOverflow": false,
+      "controls": [
+        {
+          "name": "Add scene",
+          "width": 83,
+          "height": 32,
+          "font": "12.48px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Append",
+          "width": 71,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Copy entry",
+          "width": 90,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Move ←",
+          "width": 74,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Move →",
+          "width": 74,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Remove entry",
+          "width": 111,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Repeats",
+          "width": 108,
+          "height": 32,
+          "font": "12.48px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Song end",
+          "width": 212,
+          "height": 32,
+          "font": "12.48px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Scene 1 ×1 · 1 bars",
+          "width": 100,
+          "height": 56,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Scene 2 ×1 · 1 bars",
+          "width": 100,
+          "height": 56,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Scene 1 ×1 · 1 bars",
+          "width": 100,
+          "height": 56,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 1",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 1 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 1, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 1, Scene 2, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 1, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 2",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 2 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 2, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 2, Scene 2, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 2, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 3",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 3 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 3, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 3, Scene 2, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 3, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 4",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 4 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 4, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 4, Scene 2, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 4, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 5",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 5 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 5, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 5, Scene 2, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 5, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 6",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 6 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 6, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 6, Scene 2, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 6, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 7",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 7 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 7, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 7, Scene 2, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 7, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 8",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 8 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 8, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 8, Scene 2, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 8, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        }
+      ]
+    },
+    {
+      "size": "desktop",
+      "view": "Clip",
+      "panelTop": 368.109375,
+      "panelHeight": 622.734375,
+      "viewport": 1100,
+      "documentOverflow": false,
+      "controls": [
+        {
+          "name": "Scene and clip tools",
+          "width": 169,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Scene name",
+          "width": 49,
+          "height": 30,
+          "font": "11.52px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Copy to scene",
+          "width": 75,
+          "height": 30,
+          "font": "11.52px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Copy to track",
+          "width": 73,
+          "height": 30,
+          "font": "11.52px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Copy clip",
+          "width": 78,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Move clip",
+          "width": 82,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Copy scene",
+          "width": 94,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Swap scenes",
+          "width": 106,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Loop start · step",
+          "width": 64,
+          "height": 30,
+          "font": "11.52px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Loop length · steps",
+          "width": 64,
+          "height": 30,
+          "font": "11.52px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Quantize %",
+          "width": 64,
+          "height": 30,
+          "font": "11.52px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Transpose",
+          "width": 64,
+          "height": 30,
+          "font": "11.52px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Add note",
+          "width": 79,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "New note pitch",
+          "width": 58,
+          "height": 32,
+          "font": "12.48px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Delete clip",
+          "width": 89,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "◀ 2 bars",
+          "width": 79,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "2 bars ▶",
+          "width": 79,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Octave ↓",
+          "width": 83,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Octave ↑",
+          "width": 83,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "MIDI pitch",
+          "width": 58,
+          "height": 30,
+          "font": "11.52px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step",
+          "width": 58,
+          "height": 30,
+          "font": "11.52px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Gate · ticks",
+          "width": 58,
+          "height": 30,
+          "font": "11.52px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Velocity",
+          "width": 58,
+          "height": 30,
+          "font": "11.52px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Advanced note controls",
+          "width": 151,
+          "height": 32,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Microtiming · ticks",
+          "width": 55,
+          "height": 30,
+          "font": "11.52px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Probability %",
+          "width": 58,
+          "height": 30,
+          "font": "11.52px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Delete note",
+          "width": 92,
+          "height": 30.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use B4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use B♭4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use A4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use A♭4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use G4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use F♯4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use F4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use E4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use E♭4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use D4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use C♯4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use C4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "C4, step 1, gate 384 ticks, velocity 100",
+          "width": 446,
+          "height": 24,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use B3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use B♭3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use A3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use A♭3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use G3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use F♯3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use F3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use E3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use E♭3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use D3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use C♯3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use C3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 1, C4, select note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 2, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 3, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 4, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 5, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 6, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 7, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 8, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 9, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 10, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 11, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 12, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 13, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 14, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 15, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 16, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        }
+      ]
+    },
+    {
+      "size": "desktop",
+      "view": "Automation",
+      "panelTop": 368.109375,
+      "panelHeight": 369.796875,
+      "viewport": 1100,
+      "documentOverflow": false,
+      "controls": [
+        {
+          "name": "◀ 2 bars",
+          "width": 79,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "2 bars ▶",
+          "width": 79,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lock lane",
+          "width": 161,
+          "height": 32,
+          "font": "12.48px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Automation target",
+          "width": 126,
+          "height": 32,
+          "font": "12.48px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Parameter",
+          "width": 82,
+          "height": 32,
+          "font": "12.48px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Base · 0–127",
+          "width": 108,
+          "height": 32,
+          "font": "12.48px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 1 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 2 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 3 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 4 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 5 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 6 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 7 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 8 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 9 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 10 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 11 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 12 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 13 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 14 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 15 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 16 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        }
+      ]
+    },
+    {
+      "size": "desktop",
+      "view": "Mixer",
+      "panelTop": 285.265625,
+      "panelHeight": 677.078125,
+      "viewport": 1100,
+      "documentOverflow": false,
+      "controls": [
+        {
+          "name": "Track 1 mute",
+          "width": 132.5,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 1 mixer output",
+          "width": 132.5,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 2 mute",
+          "width": 132.5,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 2 mixer output",
+          "width": 132.5,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 3 mute",
+          "width": 132.5,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 3 mixer output",
+          "width": 132.5,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 4 mute",
+          "width": 132.5,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 4 mixer output",
+          "width": 132.5,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 5 mute",
+          "width": 132.5,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 5 mixer output",
+          "width": 132.5,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 6 mute",
+          "width": 132.5,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 6 mixer output",
+          "width": 132.5,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 7 mute",
+          "width": 132.5,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 7 mixer output",
+          "width": 132.5,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 8 mute",
+          "width": 132.5,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 8 mixer output",
+          "width": 132.5,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S1 instrument",
+          "width": 192,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S1 insert 1",
+          "width": 182,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S1 insert 2",
+          "width": 182,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S1 mute routed tracks",
+          "width": 93,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S1 solo routed tracks",
+          "width": 93,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S1 level",
+          "width": 44,
+          "height": 192,
+          "font": "14px",
+          "role": null,
+          "orientation": "vertical"
+        },
+        {
+          "name": "S2 instrument",
+          "width": 192,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S2 insert 1",
+          "width": 182,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S2 insert 2",
+          "width": 182,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S2 mute routed tracks",
+          "width": 93,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S2 solo routed tracks",
+          "width": 93,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S2 level",
+          "width": 44,
+          "height": 192,
+          "font": "14px",
+          "role": null,
+          "orientation": "vertical"
+        },
+        {
+          "name": "S3 instrument",
+          "width": 192,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S3 insert 1",
+          "width": 182,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S3 insert 2",
+          "width": 182,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S3 mute routed tracks",
+          "width": 93,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S3 solo routed tracks",
+          "width": 93,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S3 level",
+          "width": 44,
+          "height": 192,
+          "font": "14px",
+          "role": null,
+          "orientation": "vertical"
+        },
+        {
+          "name": "S4 instrument",
+          "width": 192,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S4 insert 1",
+          "width": 182,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S4 insert 2",
+          "width": 182,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S4 mute routed tracks",
+          "width": 93,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S4 solo routed tracks",
+          "width": 93,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S4 level",
+          "width": 44,
+          "height": 192,
+          "font": "14px",
+          "role": null,
+          "orientation": "vertical"
+        },
+        {
+          "name": "Master FX 1",
+          "width": 182,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Master FX 2",
+          "width": 182,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Master output level",
+          "width": 44,
+          "height": 192,
+          "font": "14px",
+          "role": null,
+          "orientation": "vertical"
+        }
+      ]
+    },
+    {
+      "size": "landscape",
+      "view": "Scenes",
+      "panelTop": 226.375,
+      "panelHeight": 335.359375,
+      "viewport": 390,
+      "documentOverflow": false,
+      "controls": [
+        {
+          "name": "Edit scene 1",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch scene 1",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit scene 2",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch scene 2",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit scene 3",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch scene 3",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit scene 4",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch scene 4",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit scene 5",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch scene 5",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit scene 6",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch scene 6",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit scene 7",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch scene 7",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit scene 8",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch scene 8",
+          "width": 160,
+          "height": 30,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 1",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 1 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 1 scene 1",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 1 scene 1",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 1 scene 2",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 1 scene 2",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 1 scene 3",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 1 scene 3",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 1 scene 4",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 1 scene 4",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 1 scene 5",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 1 scene 5",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 1 scene 6",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 1 scene 6",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 1 scene 7",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 1 scene 7",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 1 scene 8",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 1 scene 8",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 2",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 2 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 2 scene 1",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 2 scene 1",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 2 scene 2",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 2 scene 2",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 2 scene 3",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 2 scene 3",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 2 scene 4",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 2 scene 4",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 2 scene 5",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 2 scene 5",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 2 scene 6",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 2 scene 6",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 2 scene 7",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 2 scene 7",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 2 scene 8",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 2 scene 8",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 3",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 3 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 3 scene 1",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 3 scene 1",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 3 scene 2",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 3 scene 2",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 3 scene 3",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 3 scene 3",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 3 scene 4",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 3 scene 4",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 3 scene 5",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 3 scene 5",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 3 scene 6",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 3 scene 6",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 3 scene 7",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 3 scene 7",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 3 scene 8",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 3 scene 8",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 4",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 4 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 4 scene 1",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 4 scene 1",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 4 scene 2",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 4 scene 2",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 4 scene 3",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 4 scene 3",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 4 scene 4",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 4 scene 4",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 4 scene 5",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 4 scene 5",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 4 scene 6",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 4 scene 6",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 4 scene 7",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 4 scene 7",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 4 scene 8",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 4 scene 8",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 5",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 5 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 5 scene 1",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 5 scene 1",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 5 scene 2",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 5 scene 2",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 5 scene 3",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 5 scene 3",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 5 scene 4",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 5 scene 4",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 5 scene 5",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 5 scene 5",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 5 scene 6",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 5 scene 6",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 5 scene 7",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 5 scene 7",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 5 scene 8",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 5 scene 8",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 6",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 6 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 6 scene 1",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 6 scene 1",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 6 scene 2",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 6 scene 2",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 6 scene 3",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 6 scene 3",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 6 scene 4",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 6 scene 4",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 6 scene 5",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 6 scene 5",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 6 scene 6",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 6 scene 6",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 6 scene 7",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 6 scene 7",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 6 scene 8",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 6 scene 8",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 7",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 7 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 7 scene 1",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 7 scene 1",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 7 scene 2",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 7 scene 2",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 7 scene 3",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 7 scene 3",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 7 scene 4",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 7 scene 4",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 7 scene 5",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 7 scene 5",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 7 scene 6",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 7 scene 6",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 7 scene 7",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 7 scene 7",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 7 scene 8",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 7 scene 8",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 8",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 8 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 8 scene 1",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 8 scene 1",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 8 scene 2",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Launch clip 8 scene 2",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 8 scene 3",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 8 scene 3",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 8 scene 4",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 8 scene 4",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 8 scene 5",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 8 scene 5",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 8 scene 6",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 8 scene 6",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 8 scene 7",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 8 scene 7",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Edit track 8 scene 8",
+          "width": 159,
+          "height": 42,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Stop track 8 scene 8",
+          "width": 159,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        }
+      ]
+    },
+    {
+      "size": "landscape",
+      "view": "Arrangement",
+      "panelTop": 226.375,
+      "panelHeight": 468.921875,
+      "viewport": 390,
+      "documentOverflow": false,
+      "controls": [
+        {
+          "name": "Add scene",
+          "width": 83,
+          "height": 32,
+          "font": "12.48px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Append",
+          "width": 71,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Copy entry",
+          "width": 90,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Move ←",
+          "width": 74,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Move →",
+          "width": 74,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Remove entry",
+          "width": 111,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Repeats",
+          "width": 108,
+          "height": 32,
+          "font": "12.48px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Song end",
+          "width": 212,
+          "height": 32,
+          "font": "12.48px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Scene 1 ×1 · 1 bars",
+          "width": 100,
+          "height": 56,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Scene 2 ×1 · 1 bars",
+          "width": 100,
+          "height": 56,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Scene 1 ×1 · 1 bars",
+          "width": 100,
+          "height": 56,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 1",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 1 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 1, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 1, Scene 2, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 1, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 2",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 2 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 2, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 2, Scene 2, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 2, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 3",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 3 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 3, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 3, Scene 2, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 3, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 4",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 4 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 4, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 4, Scene 2, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 4, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 5",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 5 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 5, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 5, Scene 2, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 5, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 6",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 6 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 6, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 6, Scene 2, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 6, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 7",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 7 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 7, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 7, Scene 2, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 7, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 8",
+          "width": 153,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 8 output",
+          "width": 153,
+          "height": 32,
+          "font": "12px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 8, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 8, Scene 2, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Track 8, Scene 1, 1 note, 1 bar",
+          "width": 100,
+          "height": 93.78125,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        }
+      ]
+    },
+    {
+      "size": "landscape",
+      "view": "Clip",
+      "panelTop": 295.21875,
+      "panelHeight": 496.625,
+      "viewport": 390,
+      "documentOverflow": false,
+      "controls": [
+        {
+          "name": "Scene and clip tools",
+          "width": 169,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Scene name",
+          "width": 49,
+          "height": 30,
+          "font": "10.88px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Copy to scene",
+          "width": 72,
+          "height": 30,
+          "font": "10.88px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Copy to track",
+          "width": 69,
+          "height": 30,
+          "font": "10.88px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Copy clip",
+          "width": 78,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Move clip",
+          "width": 82,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Copy scene",
+          "width": 94,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Swap scenes",
+          "width": 106,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Loop start · step",
+          "width": 64,
+          "height": 30,
+          "font": "10.88px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Loop length · steps",
+          "width": 64,
+          "height": 30,
+          "font": "10.88px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Quantize %",
+          "width": 64,
+          "height": 30,
+          "font": "10.88px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Transpose",
+          "width": 64,
+          "height": 30,
+          "font": "10.88px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Add note",
+          "width": 73,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "New note pitch",
+          "width": 58,
+          "height": 32,
+          "font": "12.48px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Delete clip",
+          "width": 83,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "◀ 2 bars",
+          "width": 73,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "2 bars ▶",
+          "width": 73,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Octave ↓",
+          "width": 77,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Octave ↑",
+          "width": 77,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "MIDI pitch",
+          "width": 58,
+          "height": 30,
+          "font": "10.88px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step",
+          "width": 58,
+          "height": 30,
+          "font": "10.88px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Gate · ticks",
+          "width": 58,
+          "height": 30,
+          "font": "10.88px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Velocity",
+          "width": 58,
+          "height": 30,
+          "font": "10.88px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Advanced note controls",
+          "width": 151,
+          "height": 32,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Microtiming · ticks",
+          "width": 54,
+          "height": 30,
+          "font": "10.88px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Probability %",
+          "width": 58,
+          "height": 30,
+          "font": "10.88px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Delete note",
+          "width": 92,
+          "height": 30.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use B4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use B♭4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use A4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use A♭4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use G4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use F♯4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use F4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use E4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use E♭4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use D4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use C♯4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use C4 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "C4, step 1, gate 384 ticks, velocity 100",
+          "width": 446,
+          "height": 24,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use B3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use B♭3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use A3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use A♭3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use G3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use F♯3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use F3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use E3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use E♭3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use D3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use C♯3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Use C3 for new notes",
+          "width": 60,
+          "height": 28,
+          "font": "10px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 1, C4, select note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 2, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 3, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 4, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 5, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 6, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 7, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 8, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 9, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 10, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 11, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 12, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 13, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 14, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 15, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Step 16, C4, add note",
+          "width": 28,
+          "height": 34,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        }
+      ]
+    },
+    {
+      "size": "landscape",
+      "view": "Automation",
+      "panelTop": 293.21875,
+      "panelHeight": 361.796875,
+      "viewport": 390,
+      "documentOverflow": false,
+      "controls": [
+        {
+          "name": "◀ 2 bars",
+          "width": 79,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "2 bars ▶",
+          "width": 79,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lock lane",
+          "width": 161,
+          "height": 32,
+          "font": "12.48px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Automation target",
+          "width": 126,
+          "height": 32,
+          "font": "12.48px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Parameter",
+          "width": 82,
+          "height": 32,
+          "font": "12.48px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Base · 0–127",
+          "width": 108,
+          "height": 32,
+          "font": "12.48px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 1 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 2 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 3 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 4 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 5 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 6 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 7 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 8 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 9 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 10 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 11 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 12 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 13 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 14 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 15 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "Lane 1, step 16 lock",
+          "width": 51,
+          "height": 32,
+          "font": "11.2px",
+          "role": null,
+          "orientation": null
+        }
+      ]
+    },
+    {
+      "size": "landscape",
+      "view": "Mixer",
+      "panelTop": 218.375,
+      "panelHeight": 365.703125,
+      "viewport": 390,
+      "documentOverflow": false,
+      "controls": [
+        {
+          "name": "S1 instrument",
+          "width": 120,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S1 mute routed tracks",
+          "width": 57,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S1 solo routed tracks",
+          "width": 57,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S1 level",
+          "width": 44,
+          "height": 140,
+          "font": "14px",
+          "role": null,
+          "orientation": "vertical"
+        },
+        {
+          "name": "S2 instrument",
+          "width": 120,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S2 mute routed tracks",
+          "width": 57,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S2 solo routed tracks",
+          "width": 57,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S2 level",
+          "width": 44,
+          "height": 140,
+          "font": "14px",
+          "role": null,
+          "orientation": "vertical"
+        },
+        {
+          "name": "S3 instrument",
+          "width": 120,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S3 mute routed tracks",
+          "width": 57,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S3 solo routed tracks",
+          "width": 57,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S3 level",
+          "width": 44,
+          "height": 140,
+          "font": "14px",
+          "role": null,
+          "orientation": "vertical"
+        },
+        {
+          "name": "S4 instrument",
+          "width": 120,
+          "height": 34.890625,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S4 mute routed tracks",
+          "width": 57,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S4 solo routed tracks",
+          "width": 57,
+          "height": 34,
+          "font": "14px",
+          "role": null,
+          "orientation": null
+        },
+        {
+          "name": "S4 level",
+          "width": 44,
+          "height": 140,
+          "font": "14px",
+          "role": null,
+          "orientation": "vertical"
+        },
+        {
+          "name": "Master output level",
+          "width": 44,
+          "height": 140,
+          "font": "14px",
+          "role": null,
+          "orientation": "vertical"
+        }
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "sceneEdit": {
+        "view": "Clip",
+        "playing": false,
+        "focus": "Clip"
+      }
+    },
+    {
+      "mixerResponsiveState": {
+        "expanded": "false",
+        "rackVisible": false
+      }
+    },
+    {
+      "noteEssentials": {
+        "essential": [
+          {
+            "label": "MIDI pitch",
+            "visible": true
+          },
+          {
+            "label": "Step",
+            "visible": true
+          },
+          {
+            "label": "Gate · ticks",
+            "visible": true
+          },
+          {
+            "label": "Velocity",
+            "visible": true
+          }
+        ],
+        "advancedOpen": false,
+        "probabilityVisible": false
+      }
+    },
+    {
+      "advancedAfterEdit": {
+        "open": true,
+        "focus": "Probability %",
+        "probability": "55"
+      }
+    },
+    {
+      "portraitRotate": true
+    },
+    {
+      "faderArrowUp": {
+        "before": "50",
+        "after": "51",
+        "text": "-5.8 dB",
+        "savedLevel": 51
+      }
+    },
+    {
+      "faderHome": {
+        "value": "0",
+        "text": "−∞ dB",
+        "savedLevel": 0
+      }
+    },
+    {
+      "faderEnd": {
+        "value": "100",
+        "text": "0.0 dB"
+      }
+    },
+    {
+      "masterHome": "0"
+    },
+    {
+      "masterEnd": "100"
+    },
+    {
+      "inspector": "desktop",
+      "beforeScroll": 0,
+      "afterScroll": 0,
+      "top": 220.65625,
+      "height": 658.671875,
+      "bottom": 879.328125,
+      "visibleWithinViewport": true,
+      "overflowY": "auto",
+      "focus": "Close inspector",
+      "triggerExpanded": "true",
+      "inspectorContent": [
+        {
+          "class": "ed-insp-head",
+          "top": 300.546875,
+          "visible": true,
+          "text": "IN1FilterRAM under 1 %"
+        },
+        {
+          "class": "ed-meters",
+          "top": 328.296875,
+          "visible": true,
+          "text": "In-28.2 dBOut-29.8 dBGate open"
+        },
+        {
+          "class": "ed-page",
+          "top": 398.421875,
+          "visible": true,
+          "text": "Page 1KNOB1–4TypeSVFLadderDiodeSallen-KeySK MixedFormantCutoffResonanceDrive"
+        },
+        {
+          "class": "ed-page",
+          "top": 604.875,
+          "visible": true,
+          "text": "Page 2KNOB1–4ModeMorphMixLevel"
+        },
+        {
+          "class": "ed-inspector-more",
+          "top": 760.4375,
+          "visible": true,
+          "text": "Device credits and toolsThis repository (MIT): zero-delay-feedback filters after"
+        }
+      ]
+    },
+    {
+      "inspectorEscape": "desktop",
+      "dialogClosed": true,
+      "focusReturned": true,
+      "triggerExpandedAfterClose": "false",
+      "toolbarFilesRestored": true
+    },
+    {
+      "mixerDisclosure": "landscape",
+      "expanded": "true",
+      "deviceVisible": true,
+      "focus": "Routing & FX"
+    },
+    {
+      "inspector": "landscape",
+      "beforeScroll": 222,
+      "afterScroll": 222,
+      "top": 16,
+      "height": 358,
+      "bottom": 374,
+      "visibleWithinViewport": true,
+      "overflowY": "auto",
+      "focus": "Close inspector",
+      "triggerExpanded": "true",
+      "inspectorContent": [
+        {
+          "class": "ed-insp-head",
+          "top": 95.890625,
+          "visible": true,
+          "text": "IN1FilterRAM under 1 %"
+        },
+        {
+          "class": "ed-meters",
+          "top": 123.640625,
+          "visible": true,
+          "text": "In-28.2 dBOut-29.8 dBGate open"
+        },
+        {
+          "class": "ed-page",
+          "top": 193.765625,
+          "visible": true,
+          "text": "Page 1KNOB1–4TypeSVFLadderDiodeSallen-KeySK MixedFormantCutoffResonanceDrive"
+        },
+        {
+          "class": "ed-page",
+          "top": 400.21875,
+          "visible": true,
+          "text": "Page 2KNOB1–4ModeMorphMixLevel"
+        },
+        {
+          "class": "ed-inspector-more",
+          "top": 555.78125,
+          "visible": true,
+          "text": "Device credits and toolsThis repository (MIT): zero-delay-feedback filters after"
+        }
+      ]
+    },
+    {
+      "inspectorEscape": "landscape",
+      "dialogClosed": true,
+      "focusReturned": true,
+      "triggerExpandedAfterClose": "false",
+      "toolbarFilesRestored": true
+    },
+    {
+      "keyboardTabEnd": "true"
+    }
+  ],
+  "liveMeterA": [
+    {
+      "key": "snd1",
+      "value": "-22.2",
+      "text": "Peak -22.2 dB, RMS -28.8 dB",
+      "style": "--rms: 0.4728; --peak: 0.5725;"
+    },
+    {
+      "key": "snd1.fx1",
+      "value": "-23.8",
+      "text": "Peak -23.8 dB, RMS -30.4 dB",
+      "style": "--rms: 0.4491; --peak: 0.5486;"
+    },
+    {
+      "key": "snd1.fx1",
+      "value": "-23.8",
+      "text": "Peak -23.8 dB, RMS -30.4 dB",
+      "style": "--rms: 0.4491; --peak: 0.5486;"
+    },
+    {
+      "key": "snd1.fx2",
+      "value": "-25.4",
+      "text": "Peak -25.4 dB, RMS -31.9 dB",
+      "style": "--rms: 0.4255; --peak: 0.5247;"
+    },
+    {
+      "key": "snd1.post_fader",
+      "value": "-31.4",
+      "text": "Peak -31.4 dB, RMS -37.9 dB",
+      "style": "--rms: 0.3343; --peak: 0.4335;"
+    },
+    {
+      "key": "snd2",
+      "value": "-22.1",
+      "text": "Peak -22.1 dB, RMS -28.1 dB",
+      "style": "--rms: 0.4832; --peak: 0.5746;"
+    },
+    {
+      "key": "snd2.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -29.8 dB",
+      "style": "--rms: 0.4580; --peak: 0.5509;"
+    },
+    {
+      "key": "snd2.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -29.8 dB",
+      "style": "--rms: 0.4580; --peak: 0.5509;"
+    },
+    {
+      "key": "snd2.fx2",
+      "value": "-25.2",
+      "text": "Peak -25.2 dB, RMS -31.4 dB",
+      "style": "--rms: 0.4327; --peak: 0.5271;"
+    },
+    {
+      "key": "snd2.post_fader",
+      "value": "-31.2",
+      "text": "Peak -31.2 dB, RMS -37.5 dB",
+      "style": "--rms: 0.3415; --peak: 0.4359;"
+    },
+    {
+      "key": "snd3",
+      "value": "-22.1",
+      "text": "Peak -22.1 dB, RMS -27.7 dB",
+      "style": "--rms: 0.4900; --peak: 0.5746;"
+    },
+    {
+      "key": "snd3.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -29.2 dB",
+      "style": "--rms: 0.4664; --peak: 0.5510;"
+    },
+    {
+      "key": "snd3.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -29.2 dB",
+      "style": "--rms: 0.4664; --peak: 0.5510;"
+    },
+    {
+      "key": "snd3.fx2",
+      "value": "-25.2",
+      "text": "Peak -25.2 dB, RMS -30.8 dB",
+      "style": "--rms: 0.4428; --peak: 0.5275;"
+    },
+    {
+      "key": "snd3.post_fader",
+      "value": "-31.2",
+      "text": "Peak -31.2 dB, RMS -36.8 dB",
+      "style": "--rms: 0.3516; --peak: 0.4363;"
+    },
+    {
+      "key": "snd4",
+      "value": "-22.1",
+      "text": "Peak -22.1 dB, RMS -28.5 dB",
+      "style": "--rms: 0.4776; --peak: 0.5746;"
+    },
+    {
+      "key": "snd4.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -30.0 dB",
+      "style": "--rms: 0.4551; --peak: 0.5512;"
+    },
+    {
+      "key": "snd4.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -30.0 dB",
+      "style": "--rms: 0.4551; --peak: 0.5512;"
+    },
+    {
+      "key": "snd4.fx2",
+      "value": "-25.2",
+      "text": "Peak -25.2 dB, RMS -31.4 dB",
+      "style": "--rms: 0.4333; --peak: 0.5279;"
+    },
+    {
+      "key": "snd4.post_fader",
+      "value": "-31.2",
+      "text": "Peak -31.2 dB, RMS -37.4 dB",
+      "style": "--rms: 0.3421; --peak: 0.4366;"
+    },
+    {
+      "key": "mix",
+      "value": "-24.0",
+      "text": "Peak -24.0 dB, RMS -31.4 dB",
+      "style": "--rms: 0.4335; --peak: 0.5728;"
+    },
+    {
+      "key": "fx1",
+      "value": "-25.6",
+      "text": "Peak -25.6 dB, RMS -33.0 dB",
+      "style": "--rms: 0.4096; --peak: 0.5492;"
+    },
+    {
+      "key": "fx1",
+      "value": "-25.6",
+      "text": "Peak -25.6 dB, RMS -33.0 dB",
+      "style": "--rms: 0.4096; --peak: 0.5492;"
+    },
+    {
+      "key": "fx2",
+      "value": "-27.2",
+      "text": "Peak -27.2 dB, RMS -34.5 dB",
+      "style": "--rms: 0.3859; --peak: 0.5255;"
+    },
+    {
+      "key": "out.post_master",
+      "value": "-32.2",
+      "text": "Peak -32.2 dB, RMS -39.5 dB",
+      "style": "--rms: 0.3102; --peak: 0.4498;"
+    }
+  ],
+  "liveMeterB": [
+    {
+      "key": "snd1",
+      "value": "-22.2",
+      "text": "Peak -22.2 dB, RMS -28.4 dB",
+      "style": "--rms: 0.4793; --peak: 0.5725;"
+    },
+    {
+      "key": "snd1.fx1",
+      "value": "-23.8",
+      "text": "Peak -23.8 dB, RMS -30.0 dB",
+      "style": "--rms: 0.4541; --peak: 0.5486;"
+    },
+    {
+      "key": "snd1.fx1",
+      "value": "-23.8",
+      "text": "Peak -23.8 dB, RMS -30.0 dB",
+      "style": "--rms: 0.4541; --peak: 0.5486;"
+    },
+    {
+      "key": "snd1.fx2",
+      "value": "-25.4",
+      "text": "Peak -25.4 dB, RMS -31.7 dB",
+      "style": "--rms: 0.4294; --peak: 0.5247;"
+    },
+    {
+      "key": "snd1.post_fader",
+      "value": "-31.4",
+      "text": "Peak -31.4 dB, RMS -37.7 dB",
+      "style": "--rms: 0.3382; --peak: 0.4335;"
+    },
+    {
+      "key": "snd2",
+      "value": "-22.1",
+      "text": "Peak -22.1 dB, RMS -27.8 dB",
+      "style": "--rms: 0.4882; --peak: 0.5746;"
+    },
+    {
+      "key": "snd2.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -29.3 dB",
+      "style": "--rms: 0.4644; --peak: 0.5509;"
+    },
+    {
+      "key": "snd2.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -29.3 dB",
+      "style": "--rms: 0.4644; --peak: 0.5509;"
+    },
+    {
+      "key": "snd2.fx2",
+      "value": "-25.2",
+      "text": "Peak -25.2 dB, RMS -30.9 dB",
+      "style": "--rms: 0.4406; --peak: 0.5271;"
+    },
+    {
+      "key": "snd2.post_fader",
+      "value": "-31.2",
+      "text": "Peak -31.2 dB, RMS -36.9 dB",
+      "style": "--rms: 0.3494; --peak: 0.4359;"
+    },
+    {
+      "key": "snd3",
+      "value": "-22.1",
+      "text": "Peak -22.1 dB, RMS -28.2 dB",
+      "style": "--rms: 0.4825; --peak: 0.5746;"
+    },
+    {
+      "key": "snd3.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -29.7 dB",
+      "style": "--rms: 0.4596; --peak: 0.5510;"
+    },
+    {
+      "key": "snd3.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -29.7 dB",
+      "style": "--rms: 0.4596; --peak: 0.5510;"
+    },
+    {
+      "key": "snd3.fx2",
+      "value": "-25.2",
+      "text": "Peak -25.2 dB, RMS -31.1 dB",
+      "style": "--rms: 0.4373; --peak: 0.5275;"
+    },
+    {
+      "key": "snd3.post_fader",
+      "value": "-31.2",
+      "text": "Peak -31.2 dB, RMS -37.2 dB",
+      "style": "--rms: 0.3461; --peak: 0.4363;"
+    },
+    {
+      "key": "snd4",
+      "value": "-22.1",
+      "text": "Peak -22.1 dB, RMS -27.9 dB",
+      "style": "--rms: 0.4866; --peak: 0.5746;"
+    },
+    {
+      "key": "snd4.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -29.4 dB",
+      "style": "--rms: 0.4632; --peak: 0.5512;"
+    },
+    {
+      "key": "snd4.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -29.4 dB",
+      "style": "--rms: 0.4632; --peak: 0.5512;"
+    },
+    {
+      "key": "snd4.fx2",
+      "value": "-25.2",
+      "text": "Peak -25.2 dB, RMS -31.0 dB",
+      "style": "--rms: 0.4398; --peak: 0.5279;"
+    },
+    {
+      "key": "snd4.post_fader",
+      "value": "-31.2",
+      "text": "Peak -31.2 dB, RMS -37.0 dB",
+      "style": "--rms: 0.3485; --peak: 0.4366;"
+    },
+    {
+      "key": "mix",
+      "value": "-22.0",
+      "text": "Peak -22.0 dB, RMS -30.0 dB",
+      "style": "--rms: 0.4548; --peak: 0.5938;"
+    },
+    {
+      "key": "fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -31.5 dB",
+      "style": "--rms: 0.4313; --peak: 0.5701;"
+    },
+    {
+      "key": "fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -31.5 dB",
+      "style": "--rms: 0.4313; --peak: 0.5701;"
+    },
+    {
+      "key": "fx2",
+      "value": "-25.2",
+      "text": "Peak -25.2 dB, RMS -33.1 dB",
+      "style": "--rms: 0.4079; --peak: 0.5465;"
+    },
+    {
+      "key": "out.post_master",
+      "value": "-30.2",
+      "text": "Peak -30.2 dB, RMS -38.1 dB",
+      "style": "--rms: 0.3321; --peak: 0.4708;"
+    }
+  ],
+  "metersAfterS1Zero": [
+    {
+      "key": "snd1",
+      "value": "-22.2",
+      "text": "Peak -22.2 dB, RMS -28.6 dB",
+      "style": "--rms: 0.4751; --peak: 0.5725;"
+    },
+    {
+      "key": "snd1.fx1",
+      "value": "-23.8",
+      "text": "Peak -23.8 dB, RMS -30.2 dB",
+      "style": "--rms: 0.4511; --peak: 0.5486;"
+    },
+    {
+      "key": "snd1.fx1",
+      "value": "-23.8",
+      "text": "Peak -23.8 dB, RMS -30.2 dB",
+      "style": "--rms: 0.4511; --peak: 0.5486;"
+    },
+    {
+      "key": "snd1.fx2",
+      "value": "-25.4",
+      "text": "Peak -25.4 dB, RMS -31.8 dB",
+      "style": "--rms: 0.4267; --peak: 0.5247;"
+    },
+    {
+      "key": "snd1.post_fader",
+      "value": "-60.0",
+      "text": "Silent",
+      "style": "--rms: 0.0000; --peak: 0.4361;"
+    },
+    {
+      "key": "snd2",
+      "value": "-22.1",
+      "text": "Peak -22.1 dB, RMS -27.6 dB",
+      "style": "--rms: 0.4912; --peak: 0.5746;"
+    },
+    {
+      "key": "snd2.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -29.1 dB",
+      "style": "--rms: 0.4678; --peak: 0.5509;"
+    },
+    {
+      "key": "snd2.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -29.1 dB",
+      "style": "--rms: 0.4678; --peak: 0.5509;"
+    },
+    {
+      "key": "snd2.fx2",
+      "value": "-25.2",
+      "text": "Peak -25.2 dB, RMS -30.7 dB",
+      "style": "--rms: 0.4442; --peak: 0.5271;"
+    },
+    {
+      "key": "snd2.post_fader",
+      "value": "-31.2",
+      "text": "Peak -31.2 dB, RMS -36.7 dB",
+      "style": "--rms: 0.3530; --peak: 0.4359;"
+    },
+    {
+      "key": "snd3",
+      "value": "-22.1",
+      "text": "Peak -22.1 dB, RMS -27.9 dB",
+      "style": "--rms: 0.4858; --peak: 0.5746;"
+    },
+    {
+      "key": "snd3.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -29.5 dB",
+      "style": "--rms: 0.4615; --peak: 0.5510;"
+    },
+    {
+      "key": "snd3.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -29.5 dB",
+      "style": "--rms: 0.4615; --peak: 0.5510;"
+    },
+    {
+      "key": "snd3.fx2",
+      "value": "-25.2",
+      "text": "Peak -25.2 dB, RMS -31.2 dB",
+      "style": "--rms: 0.4367; --peak: 0.5275;"
+    },
+    {
+      "key": "snd3.post_fader",
+      "value": "-31.2",
+      "text": "Peak -31.2 dB, RMS -37.2 dB",
+      "style": "--rms: 0.3454; --peak: 0.4363;"
+    },
+    {
+      "key": "snd4",
+      "value": "-22.1",
+      "text": "Peak -22.1 dB, RMS -27.8 dB",
+      "style": "--rms: 0.4873; --peak: 0.5746;"
+    },
+    {
+      "key": "snd4.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -29.4 dB",
+      "style": "--rms: 0.4640; --peak: 0.5512;"
+    },
+    {
+      "key": "snd4.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -29.4 dB",
+      "style": "--rms: 0.4640; --peak: 0.5512;"
+    },
+    {
+      "key": "snd4.fx2",
+      "value": "-25.2",
+      "text": "Peak -25.2 dB, RMS -30.9 dB",
+      "style": "--rms: 0.4404; --peak: 0.5279;"
+    },
+    {
+      "key": "snd4.post_fader",
+      "value": "-31.2",
+      "text": "Peak -31.2 dB, RMS -37.0 dB",
+      "style": "--rms: 0.3492; --peak: 0.4367;"
+    },
+    {
+      "key": "mix",
+      "value": "-24.2",
+      "text": "Peak -24.2 dB, RMS -31.4 dB",
+      "style": "--rms: 0.4337; --peak: 0.5938;"
+    },
+    {
+      "key": "fx1",
+      "value": "-25.7",
+      "text": "Peak -25.7 dB, RMS -33.0 dB",
+      "style": "--rms: 0.4097; --peak: 0.5701;"
+    },
+    {
+      "key": "fx1",
+      "value": "-25.7",
+      "text": "Peak -25.7 dB, RMS -33.0 dB",
+      "style": "--rms: 0.4097; --peak: 0.5701;"
+    },
+    {
+      "key": "fx2",
+      "value": "-27.3",
+      "text": "Peak -27.3 dB, RMS -34.5 dB",
+      "style": "--rms: 0.3860; --peak: 0.5465;"
+    },
+    {
+      "key": "out.post_master",
+      "value": "-32.3",
+      "text": "Peak -32.3 dB, RMS -39.5 dB",
+      "style": "--rms: 0.3102; --peak: 0.4708;"
+    }
+  ],
+  "metersAfterMasterZero": [
+    {
+      "key": "snd1",
+      "value": "-22.2",
+      "text": "Peak -22.2 dB, RMS -27.9 dB",
+      "style": "--rms: 0.4870; --peak: 0.5725;"
+    },
+    {
+      "key": "snd1.fx1",
+      "value": "-23.8",
+      "text": "Peak -23.8 dB, RMS -29.4 dB",
+      "style": "--rms: 0.4631; --peak: 0.5486;"
+    },
+    {
+      "key": "snd1.fx1",
+      "value": "-23.8",
+      "text": "Peak -23.8 dB, RMS -29.4 dB",
+      "style": "--rms: 0.4631; --peak: 0.5486;"
+    },
+    {
+      "key": "snd1.fx2",
+      "value": "-25.4",
+      "text": "Peak -25.4 dB, RMS -31.0 dB",
+      "style": "--rms: 0.4397; --peak: 0.5247;"
+    },
+    {
+      "key": "snd1.post_fader",
+      "value": "-25.4",
+      "text": "Peak -25.4 dB, RMS -31.0 dB",
+      "style": "--rms: 0.4397; --peak: 0.5247;"
+    },
+    {
+      "key": "snd2",
+      "value": "-22.1",
+      "text": "Peak -22.1 dB, RMS -28.6 dB",
+      "style": "--rms: 0.4762; --peak: 0.5746;"
+    },
+    {
+      "key": "snd2.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -30.2 dB",
+      "style": "--rms: 0.4514; --peak: 0.5508;"
+    },
+    {
+      "key": "snd2.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -30.2 dB",
+      "style": "--rms: 0.4514; --peak: 0.5508;"
+    },
+    {
+      "key": "snd2.fx2",
+      "value": "-25.2",
+      "text": "Peak -25.2 dB, RMS -31.8 dB",
+      "style": "--rms: 0.4271; --peak: 0.5271;"
+    },
+    {
+      "key": "snd2.post_fader",
+      "value": "-31.2",
+      "text": "Peak -31.2 dB, RMS -37.8 dB",
+      "style": "--rms: 0.3359; --peak: 0.4359;"
+    },
+    {
+      "key": "snd3",
+      "value": "-22.1",
+      "text": "Peak -22.1 dB, RMS -28.1 dB",
+      "style": "--rms: 0.4827; --peak: 0.5746;"
+    },
+    {
+      "key": "snd3.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -29.7 dB",
+      "style": "--rms: 0.4585; --peak: 0.5510;"
+    },
+    {
+      "key": "snd3.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -29.7 dB",
+      "style": "--rms: 0.4585; --peak: 0.5510;"
+    },
+    {
+      "key": "snd3.fx2",
+      "value": "-25.2",
+      "text": "Peak -25.2 dB, RMS -31.4 dB",
+      "style": "--rms: 0.4338; --peak: 0.5275;"
+    },
+    {
+      "key": "snd3.post_fader",
+      "value": "-31.2",
+      "text": "Peak -31.2 dB, RMS -37.4 dB",
+      "style": "--rms: 0.3426; --peak: 0.4363;"
+    },
+    {
+      "key": "snd4",
+      "value": "-22.1",
+      "text": "Peak -22.1 dB, RMS -28.3 dB",
+      "style": "--rms: 0.4806; --peak: 0.5746;"
+    },
+    {
+      "key": "snd4.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -29.8 dB",
+      "style": "--rms: 0.4576; --peak: 0.5512;"
+    },
+    {
+      "key": "snd4.fx1",
+      "value": "-23.6",
+      "text": "Peak -23.6 dB, RMS -29.8 dB",
+      "style": "--rms: 0.4576; --peak: 0.5512;"
+    },
+    {
+      "key": "snd4.fx2",
+      "value": "-25.2",
+      "text": "Peak -25.2 dB, RMS -31.3 dB",
+      "style": "--rms: 0.4354; --peak: 0.5279;"
+    },
+    {
+      "key": "snd4.post_fader",
+      "value": "-31.2",
+      "text": "Peak -31.2 dB, RMS -37.3 dB",
+      "style": "--rms: 0.3441; --peak: 0.4367;"
+    },
+    {
+      "key": "mix",
+      "value": "-22.4",
+      "text": "Peak -22.4 dB, RMS -28.4 dB",
+      "style": "--rms: 0.4784; --peak: 0.6163;"
+    },
+    {
+      "key": "fx1",
+      "value": "-24.0",
+      "text": "Peak -24.0 dB, RMS -30.0 dB",
+      "style": "--rms: 0.4549; --peak: 0.5926;"
+    },
+    {
+      "key": "fx1",
+      "value": "-24.0",
+      "text": "Peak -24.0 dB, RMS -30.0 dB",
+      "style": "--rms: 0.4549; --peak: 0.5926;"
+    },
+    {
+      "key": "fx2",
+      "value": "-25.5",
+      "text": "Peak -25.5 dB, RMS -31.5 dB",
+      "style": "--rms: 0.4314; --peak: 0.5690;"
+    },
+    {
+      "key": "out.post_master",
+      "value": "-60.0",
+      "text": "Silent",
+      "style": "--rms: 0.0000; --peak: 0.4840;"
+    }
+  ],
+  "palette": {
+    "foreground": "color(srgb 0.643137 0.629412 0.739216)",
+    "background": "rgb(42, 39, 63)",
+    "font": "12.48px"
+  }
+}

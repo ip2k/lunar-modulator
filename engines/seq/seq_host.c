@@ -38,6 +38,27 @@ static const char *label_name(const char *label) {
   return name;
 }
 
+int fm1_seq_lane_target(const char *label, const char **name) {
+  static const char *const prefixes[] = { "in1", "in2", "m1", "m2", "mix" };
+  const char *colon;
+  unsigned k;
+  if (!label || !label[0]) return -1;
+  colon = strchr(label, ':');
+  if (name) *name = label_name(label);
+  for (k = 0; colon && k < sizeof prefixes / sizeof prefixes[0]; ++k) {
+    const size_t n = strlen(prefixes[k]);
+    size_t j;
+    if ((size_t)(colon - label) != n) continue;
+    for (j = 0; j < n && lower(label[j]) == prefixes[k][j]; ++j) {}
+    if (j != n) continue;
+    if (!colon[1] || strchr(colon + 1, ':')) return -1;
+    if (name) *name = colon + 1;
+    if (k == 4u && !same_name("Level", colon + 1)) return -1;
+    return (int)k + FM1_SEQ_TARGET_INSERT1;
+  }
+  return FM1_SEQ_TARGET_SOUND;
+}
+
 void fm1_seq_host_init(fm1_seq_host_t *h, fm1_seq_t *seq, fm1_seq_ev_t *ev, uint32_t cap) {
   h->seq = seq;
   h->ev = ev;
@@ -96,7 +117,7 @@ static uint16_t lane_uid_on(const fm1_seq_host_t *h, const fm1_engine_t *e, uint
   /* A lane the core has released since (aclr, a deleted clip...) is
    * unlabelled now. */
   label = fm1_seq_lane_label(h->seq, track, lane);
-  if (!label[0]) return 0;
+  if (fm1_seq_lane_target(label, NULL) != FM1_SEQ_TARGET_SOUND) return 0;
   /* The stored uid, while its parameter still has the name the label gives:
    * every `alabel` and import through the bridge keeps it so. A label set on
    * the core directly, past the bridge, resolves afresh here instead, so its
@@ -671,7 +692,7 @@ int fm1_seq_lane_param(const fm1_engine_t *e, const char *label) {
   const char *name;
   uint16_t q;
   if (!e || !label) return -1;
-  name = label_name(label);
+  if (fm1_seq_lane_target(label, &name) != FM1_SEQ_TARGET_SOUND) return -1;
   for (q = 0; q < e->n_params; ++q) {
     if (same_name(e->params[q].name, name)) return q;
   }

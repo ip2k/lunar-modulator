@@ -239,6 +239,19 @@ A step sequencer whose design follows Movy by megadake
 It starts with a one-bar demo pattern: press PLAY/STOP, or Space. Projects and
 sequencer sets can be opened and saved from the browser.
 
+The editor's **Song** workspace puts all eight tracks and four sounds together:
+focused Scenes, Arrangement, Clip, Automation and Mixer views let you select
+clips, edit notes in a piano roll, launch scenes and arrange their repeats
+into a song. Import one or more MIDI files with a track-and-sound mapping preview,
+edit step locks for instruments and effects, and save a `.lunar` project or
+`.movy1` sequencer set. The mixer has vertical sound and Master faders, live
+peak/RMS meters and editable instrument, insert and master effects. On phones,
+use landscape; Routing & FX can be collapsed to keep the faders close at hand.
+WAV export offers a stereo master, separate sound or track stems, and a single
+multichannel file. Shared instruments and effects mean stems may not sum back
+to the master. This is a browser workflow; direct project transfer to an FM-1
+over USB or Bluetooth is future work.
+
 <img src="assets/screenshots/screen-seq.png" width="240" alt="SEQ mode while the demo pattern plays: 120 BPM, the eight tracks and PLAY on the status line, the bar's 16 steps with the playhead, the knob strip, and the sound's model, VA Pair">
 
 ### Arpeggiator

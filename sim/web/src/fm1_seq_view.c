@@ -276,7 +276,8 @@ static void draw_track(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_s
   } else if (snd->e && u->hint == FM1_SEQ_HINT_KNOB && u->knob >= 0 && u->knob < snd->n) {
     const fm1_param_t *p = &snd->e->params[snd->idx[u->knob]];
     char v[24];
-    if (u->take_param == snd->idx[u->knob] && snd->lock_current) {   /* a live take (S8) */
+    if (u->take_param == snd->idx[u->knob] && snd->lock_current && snd->seq &&
+        fm1_seq_lane_target(fm1_seq_lane_label(snd->seq, u->track, u->take_lane), NULL) == FM1_SEQ_TARGET_SOUND) {
       fm1_look_value(p, fm1_seq_lock_value(p, u->take_v), v, sizeof v);
       fm1_look_row(t, HINT_Y, p->name, v, C_HELD);
     } else {
@@ -437,13 +438,13 @@ static void lock_row(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_sou
   int lane, locked = 0;
   float base, value;
   fm1_seq_track_info_t tr;
-  if (!fm1_param_lockable(p) && one) {      /* NOLOCK: named, with nothing to turn */
+  if (!fm1_seq_ui_target_lockable(&snd->lock_target, param) && one) {
     fm1_look_row(t, y, p->name, "no lock", C_LABEL);
     return;
   }
   memset(&tr, 0, sizeof tr);
   if (snd->seq) fm1_seq_get_track(snd->seq, u->track, &tr);
-  lane = fm1_seq_ui_lane_of(snd->seq, u->track, snd->lock_e, param);
+  lane = fm1_seq_ui_target_lane(snd->seq, u->track, &snd->lock_target, param);
   base = lane >= 0 ? fm1_seq_lock_value(p, tr.base[lane]) : snd->lock_value[param];
   if (!one) {                               /* several steps held: the sound itself */
     fm1_look_value(p, snd->lock_value[param], v, sizeof v);
@@ -472,27 +473,34 @@ static void draw_lock(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_so
   char line[32], tag[16] = "";
   const char *hint = NULL;
   int idx[4], n;
-  const int page = u->step_page - FM1_SEQ_UI_STEP_PAGES;
+  const int page = snd->lock_target.page;
   const fm1_seq_ui_hold_t *h = &u->hold;
   if (u->clear_held) {                      /* CLEAR + a knob clears its lane (aclr): a hint */
     hint = "Knob: clear lane";
   } else if (u->shift && u->held_n == 1) {  /* SHIFT + a knob clears its lock (aclrs) */
     hint = "Knob: clear lock";
   } else if (u->held_n > 1) {
-    snprintf(line, sizeof line, "Step %u +%u sound", (unsigned)h->step + 1u, (unsigned)u->held_n - 1u);
+    static const char *const targets[] = { "sound", "In1", "In2", "M1", "M2", "Mix" };
+    snprintf(line, sizeof line, "Step %u +%u %s", (unsigned)h->step + 1u,
+             (unsigned)u->held_n - 1u, targets[snd->lock_target.kind]);
   } else {
     snprintf(line, sizeof line, "Lock step %u", (unsigned)h->step + 1u);
     /* Another sound's: its "S<n>" on the right, in its colour (the
      * number for who cannot tell the colours apart). */
-    if (!snd->lock_current && snd->lock_sound >= 0) snprintf(tag, sizeof tag, "S%d", snd->lock_sound + 1);
+    if (snd->lock_target.kind != FM1_SEQ_TARGET_SOUND) {
+      static const char *const tags[] = { "", "In1", "In2", "M1", "M2", "Mix" };
+      if (!snd->lock_current && snd->lock_sound >= 0)
+        snprintf(tag, sizeof tag, "S%d %s", snd->lock_sound + 1, tags[snd->lock_target.kind]);
+      else snprintf(tag, sizeof tag, "%s", tags[snd->lock_target.kind]);
+    } else if (!snd->lock_current && snd->lock_sound >= 0) snprintf(tag, sizeof tag, "S%d", snd->lock_sound + 1);
   }
   if (hint) {
     hint_line(t, hint);
   } else {
     fm1_look_context(t, CONTEXT_Y, line, NULL);
     if (tag[0]) {
-      fm1_tft_font_text(t, RIGHT - fm1_tft_font_width(tag, 4, FM1_TFT_MID), CONTEXT_Y, tag, 4,
-                        FM1_TFT_MID, fm1_sound_colour(snd->lock_sound));
+      fm1_tft_font_text(t, RIGHT - fm1_tft_font_width(tag, sizeof tag - 1, FM1_TFT_MID), CONTEXT_Y, tag, sizeof tag - 1,
+                        FM1_TFT_MID, snd->lock_sound >= 0 ? fm1_sound_colour(snd->lock_sound) : C_TEXT);
     }
   }
   n = snd->lock_e ? fm1_seq_ui_page_params(snd->lock_e, page, idx) : 0;
@@ -542,6 +550,7 @@ static void draw_clip(fm1_tft_t *t, const fm1_seq_ui_t *u) {
 
 /* A label's name: the text after its last ':', as the bridge resolves it. */
 static const char *lane_name(const char *label) {
+  if (fm1_seq_lane_target(label, NULL) > FM1_SEQ_TARGET_SOUND) return label;
   const char *name = label;
   for (const char *p = label; *p; ++p) {
     if (*p == ':') name = p + 1;
@@ -950,8 +959,10 @@ void fm1_seq_view_draw(fm1_tft_t *t, const fm1_seq_ui_t *u, const fm1_seq_view_s
 void fm1_seq_view_bottom(const fm1_seq_ui_t *u, const fm1_seq_view_sound_t *snd, char *buf,
                          size_t size) {
   if (u->view == FM1_SEQ_VIEW_STEP && u->held_n && u->step_page >= FM1_SEQ_UI_STEP_PAGES) {
-    snprintf(buf, size, "%d/%d Lock T%u", u->step_page - FM1_SEQ_UI_STEP_PAGES + 1,
-             (int)u->lock_pages, (unsigned)u->track + 1u);
+    /* All six targets can exceed nine pages; leave the meter its space.
+     * Track identity is already in the header. */
+    snprintf(buf, size, "Lock %d/%d", u->step_page - FM1_SEQ_UI_STEP_PAGES + 1,
+             (int)u->lock_pages);
   } else if (u->view == FM1_SEQ_VIEW_STEP && u->held_n) {
     snprintf(buf, size, "%d/%d Step T%u", u->step_page + 1, FM1_SEQ_UI_STEP_PAGES,
              (unsigned)u->track + 1u);

@@ -949,7 +949,7 @@ static void check_telemetry(void) {
   uint32_t all[FM1_TELE_MASK_WORDS], one[FM1_TELE_MASK_WORDS];
   const fm1_tele_section_t *met = fm1_tele_section(FM1_TELE_METERS);
   const int blocks = 690;                       /* 1.0 s at 44,118 Hz */
-  CHECK(fm1_tele_floats() == 1454 && fm1_tele_mask_bits() == 119);
+  CHECK(fm1_tele_floats() == 1464 && fm1_tele_mask_bits() == 124);
   memset(all, 0, sizeof all);
   for (unsigned b = 0; b < fm1_tele_mask_bits(); ++b) all[b / 32] |= 1u << (b % 32);
   /* The audio with everything subscribed is the audio without the layer. */

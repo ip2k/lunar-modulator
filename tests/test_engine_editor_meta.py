@@ -288,12 +288,14 @@ def test_the_telemetry_layout_adds_up(meta):
     positions, slots, voices, outs = (_define(mod_h, n) for n in (
         "FM1_MOD_POSITIONS", "FM1_MOD_SLOTS", "FM1_MOD_VOICES", "FM1_MOD_MAX_OUTS"))
     rows = {s["name"]: s for s in t["sections"]}
-    assert list(rows) == ["meters", "reduction", "voices", "outs", "voice_outs", "dests", "voice_dests"]
+    assert list(rows) == ["meters", "reduction", "voices", "outs", "voice_outs", "dests", "voice_dests", "levels"]
     assert len(rows["meters"]["rows"]) == 4 * 3 + 4 and rows["meters"]["fields"] == ["peak", "rms"]
     assert rows["meters"]["rows"][:3] == ["snd1", "snd1.fx1", "snd1.fx2"]
     assert rows["meters"]["rows"][-4:] == ["mix", "fx1", "fx2", "out"]
     assert rows["reduction"]["rows"][-3:] == ["fx1", "fx2", "limiter"]
-    assert t["version"] == 2 and rows["reduction"]["fields"] == ["db", "gate"]
+    assert t["version"] == 3 and rows["reduction"]["fields"] == ["db", "gate"]
+    assert rows["levels"]["rows"] == [f"snd{k}.post_fader" for k in range(1, 5)] + ["out.post_master"]
+    assert rows["levels"]["fields"] == ["peak", "rms"]
     assert len(rows["voices"]["rows"]) == voices
     assert len(rows["outs"]["rows"]) == positions and len(rows["outs"]["items"]) == outs
     assert len(rows["voice_outs"]["fields"]) == voices

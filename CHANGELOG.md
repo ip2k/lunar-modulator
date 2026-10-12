@@ -9,6 +9,9 @@ history.
 ## [Unreleased]
 
 ### Fixed
+- Song edits now refresh from native sequencer content changes; Undo and Redo
+  refuse stale edits after an intervening panel change. MIDI import preflight
+  enforces 16 files, 16 MiB per file, 32 MiB and 64 parts per batch.
 - README installation status now distinguishes the linked inert diagnostic
   from the running instrument, which remains untested on the FM-1.
 - Target compile checks include shared state codecs and metadata, with each
@@ -29,6 +32,18 @@ history.
   experiments; full-image recovery and Lunar installation remain untested.
 
 ### Added
+- **Song workspace refinement:** compact scene rows, always-visible selected
+  note essentials with advanced controls disclosed, and primary parameters
+  first in the Song device inspector. Device modal focus returns to its
+  opening control.
+- **Song workspace in the Advanced editor:** native clip/scene matrix and song
+  arrangement, piano-roll and step editing, loop controls, parameter-lock lanes,
+  four sound-group mixers and instrument/insert/master inspectors. Standard
+  MIDI files can be imported together with mapping and capacity preflight.
+  Projects and sets round-trip through `.lunar` and `.movy1`; offline native
+  Wasm renders produce stereo masters, sound/track stems and eight-channel WAVs.
+  Insert, master-effect and sound-level locks now run in the shared native app
+  at their sample frames. Direct USB-MIDI/BLE project access remains future work.
 - External browser audio checks: an isolated PulseAudio monitor records a
   sustained simulator tone during edit storms and musical A/B playback in
   Chromium, Firefox and WebKit. CI runs the detector and captures; native

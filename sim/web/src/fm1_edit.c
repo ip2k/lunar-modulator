@@ -742,18 +742,21 @@ void fm1_edit_subscribe(fm1_app_t *a, const uint32_t *mask) {
   if (!e) return;
   for (unsigned k = 0; k < FM1_TELE_MASK_WORDS; ++k) e->mask[k] = mask ? mask[k] : 0u;
   if (fm1_tele_mask_bits() % 32u) e->mask[fm1_tele_mask_bits() / 32u] &= (1u << (fm1_tele_mask_bits() % 32u)) - 1u;
-  e->meters_on = (uint8_t)section_on(e->mask, FM1_TELE_METERS);
+  e->meters_on = (uint8_t)(section_on(e->mask, FM1_TELE_METERS) || section_on(e->mask, FM1_TELE_LEVELS));
   e->outs_on = (uint8_t)section_on(e->mask, FM1_TELE_OUTS);
-  for (unsigned p = 0; p < FM1_TELE_POINTS; ++p) e->peak[p] = e->sq[p] = 0.0f, e->n[p] = 0;
+  for (unsigned p = 0; p < FM1_TELE_ALL_POINTS; ++p) e->peak[p] = e->sq[p] = 0.0f, e->n[p] = 0;
   e->out_seen = 0;
 }
 
 void fm1_edit_meter(fm1_app_t *a, unsigned point, const float *lr, uint32_t n) {
   fm1_edit_t *e = a->edit;
   float peak, sq = 0.0f;
-  if (!e || !e->meters_on || point >= FM1_TELE_POINTS) return;
+  if (!e || !e->meters_on || point >= FM1_TELE_ALL_POINTS) return;
+  const fm1_tele_section_t *sec = fm1_tele_section(point < FM1_TELE_POINTS ? FM1_TELE_METERS : FM1_TELE_LEVELS);
+  const unsigned row = point < FM1_TELE_POINTS ? point : point - FM1_TELE_POINTS;
+  if (!bit(e->mask, sec->mask + row)) return;
   peak = e->peak[point];
-  for (uint32_t i = 0; i < 2u * n; ++i) {
+  for (uint32_t i = 0; lr && i < 2u * n; ++i) {
     const float x = fabsf(lr[i]);
     if (x > peak) peak = x;
     sq += lr[i] * lr[i];
@@ -848,11 +851,14 @@ static void fill_row(fm1_app_t *a, unsigned s, unsigned r, float *o) {
   const unsigned items = sec->items, fields = sec->fields;
   switch (s) {
     case FM1_TELE_METERS:
-      o[0] = e->peak[r];
-      o[1] = e->n[r] ? sqrtf(e->sq[r] / (float)e->n[r]) : 0.0f;
-      e->peak[r] = e->sq[r] = 0.0f;
-      e->n[r] = 0;
+    case FM1_TELE_LEVELS: {
+      const unsigned p = s == FM1_TELE_METERS ? r : FM1_TELE_POINTS + r;
+      o[0] = e->peak[p];
+      o[1] = e->n[p] ? sqrtf(e->sq[p] / (float)e->n[p]) : 0.0f;
+      e->peak[p] = e->sq[p] = 0.0f;
+      e->n[p] = 0;
       break;
+    }
     case FM1_TELE_REDUCTION: {
       o[0] = reduction(a, r);
       o[1] = NAN;

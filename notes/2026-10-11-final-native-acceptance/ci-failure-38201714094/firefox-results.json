@@ -1,0 +1,11 @@
+{
+  "browser": "Firefox 155.0 (Playwright, headless)",
+  "scope": "Real browser AudioWorklet, native Wasm state and offline worker; no hardware or listening acceptance.",
+  "checks": [
+    "native fixture loads without discarded sequencer fields"
+  ],
+  "errors": [],
+  "wavs": [],
+  "passed": false,
+  "failure": "locator.click: Timeout 20000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: 'Assign parameter', exact: true })\n\n    at /__w/lunar-modulator/lunar-modulator/sim/web/test/sequencer-native.mjs:69:79\n    at async check (/__w/lunar-modulator/lunar-modulator/sim/web/test/sequencer-native.mjs:18:35)\n    at async file:///__w/lunar-modulator/lunar-modulator/sim/web/test/sequencer-native.mjs:67:3"
+}

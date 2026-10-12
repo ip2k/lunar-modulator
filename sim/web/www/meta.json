@@ -11717,9 +11717,9 @@
     }
   ],
   "telemetry": {
-    "version": 2,
+    "version": 3,
     "hz": 30,
-    "floats": 1454,
+    "floats": 1464,
     "mask_words": 4,
     "sections": [
       {
@@ -11969,8 +11969,26 @@
           "v11",
           "v12"
         ]
+      },
+      {
+        "name": "levels",
+        "unit": "none",
+        "offset": 1454,
+        "mask": 119,
+        "rows": [
+          "snd1.post_fader",
+          "snd2.post_fader",
+          "snd3.post_fader",
+          "snd4.post_fader",
+          "out.post_master"
+        ],
+        "items": [],
+        "fields": [
+          "peak",
+          "rms"
+        ]
       }
     ]
   },
-  "meta_id": "5d726997"
+  "meta_id": "fbd3d320"
 }

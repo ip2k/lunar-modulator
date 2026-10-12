@@ -1,0 +1,29 @@
+{
+  "checked_at": "2026-10-12T04:09:36.683783+00:00",
+  "source_head": "069333cddd3dde8fbe0b73797f97add8a0a28ae4",
+  "wasm_sha256": "2a2ad121431f6e7fac5aa186d00eb0b75848187441ffe0d4ec4222451ed65cc3",
+  "environment": "Native Safari on owner Mac; isolated localhost:8767 tab",
+  "checks": [
+    "Song view loaded after power on",
+    "Track 1 output dropdown opens; MIDI channel 1 selection applied",
+    "Undo restores S1 macro routing",
+    "Vertical S1 fader pointer/keyboard interaction writes 50 percent and -6.0 dB",
+    "Playback position advances",
+    "Actual S1, insert and master peak/RMS meters become non-silent",
+    "Master FX inspector opens",
+    "Escape closes inspector and returns focus to Master FX 1",
+    "Temporary Safari tab closed; original Ableton reference tab restored"
+  ],
+  "observed_levels_db": {
+    "s1_insert_input_peak": -15.9,
+    "s1_postfader_peak": -21.9,
+    "master_fx_output_peak": -23.1,
+    "final_master_output_peak": -28.1
+  },
+  "limits": [
+    "Bounded UI check, not complete browser suite",
+    "No owner by-ear acceptance",
+    "No hardware or physical phone validation",
+    "AX setValue alone did not dispatch a fader edit; actual pointer/keyboard edit did"
+  ]
+}

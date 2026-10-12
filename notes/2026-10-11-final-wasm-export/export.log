@@ -1,0 +1,3 @@
+WAV encoding, bounds, stream backpressure and cancellation: PASS
+Actual FM6, inserts, MIDI arp, modulation and separate master effect processing: PASS
+Actual Wasm deterministic finite song, silent unused stems, track isolation, 8-channel interleave, cancellation: PASS (37598 frames)

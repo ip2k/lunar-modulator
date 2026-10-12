@@ -9,6 +9,45 @@ repository, so a fresh Claude project (or a human) can continue without the
 original conversation; last updated 2026-10-11. Read this first, then
 `DEVELOPERS.md` (the README is the product page), then `docs/`.
 
+## Active work — 2026-10-11
+
+The Song/MIDI workspace is on `feature/2026-10-11@midi-sequencer-workspace`,
+branched from `b335dc2`. Its endpoint is native clip/scene/song editing, MIDI
+batch import, lock automation, project/set exchange and actual-Wasm stereo,
+stem and multichannel export, tested and reviewed through CI, merge and Pages.
+Native telemetry/faders and compact mixer controls are saved at `1141e12b`;
+`d4e0b640` integrates main and checkpoint `6958d641` is verified pushed.
+The final candidate includes compact Scenes/Clip/inspector layouts, bounded
+MIDI preview (16 files, 16 MiB each, 32 MiB per batch, 64 parts), and guarded
+undo/redo that refuses to overwrite intervening panel edits. Its Wasm SHA-256
+is `2a2ad121431f6e7fac5aa186d00eb0b75848187441ffe0d4ec4222451ed65cc3`.
+All 108 parity scenarios and the edit storm pass. MIDI helpers pass 30 tests,
+host synchronization passes 8, and native synchronization passes in Chromium,
+Firefox and WebKit. Fresh mock and native Song workflows pass in all three
+browsers, including actual transport and six WAV downloads per browser.
+Independent source review found and resolved stale history, panel refresh and
+MIDI-preview capacity issues. Independent design review scores clarity,
+spacing, DAW familiarity and tested interaction/accessibility at 8/10, mobile
+usability and identity at 7/10; first-screen landscape scrolling remains a P2.
+The final candidate's exact-head CI, PR #146 merge and deployed Pages proof
+are the remaining release gates at this documentation checkpoint. Inspect
+[PR #146](https://github.com/ip2k/lunar-modulator/pull/146) for current gate
+status. Earlier isolated Firefox transport timeouts were not reproduced in
+the fresh acceptance run; the real transport assertion remains intact.
+The runtime interrupted a turn without
+reporting a cause; this is not evidence that compaction stopped execution.
+The current checkpoint and outstanding gates are in
+[the implementation note](notes/2026-10-11-midi-song-workspace.md).
+The model is shared with Lunar's C sequencer; desktop-only song structures
+must not enter this workspace. The owner's FM-1 still runs FM-1_092, so physical
+Lunar file exchange is untested. USB-MIDI and eventual BLE direct project
+access are future capabilities outside this editor scope.
+
+The separately completed demo/example stream merged as PR #145, merge commit
+`621490b9553b17f23add077f8dd79c01b5c15db8`, after all required checks passed.
+Owner listening remains a distinct acceptance gate. That main baseline is now
+integrated into the Song branch before final review and CI.
+
 ## Four-showcase replacement integration — 2026-10-11
 
 The owner rejected the original four demos as showcases; they remain unchanged
@@ -27,8 +66,8 @@ catalog playback/download/reopen checks. See
 and [integration handoff](notes/2026-10-11-four-showcase-integration.md).
 Generation checks pass for both the legacy and new generators. The new
 palette fixtures preserve reviewed asset hashes independently of legacy
-palette changes. Parent review and required GitHub CI remain prerequisites
-for merge; verify the branch's latest workflow run before integrating.
+palette changes. Parent review and all 13 required GitHub checks passed; PR #145 merged at
+`621490b9`. Verify current refs when continuing.
 
 The owner is auditioning Satellite Hearts; all musical acceptance remains
 pending. No reference audio listening is claimed. Longer Acid note gates are
@@ -38,7 +77,7 @@ HTTP audition server and playing Satellite asset were left untouched.
 
 The section below describes the earlier demos and is historical.
 
-## Active work — 2026-10-10
+## Prior checkpoint — 2026-10-10 (historical)
 
 Live `origin/main` is `b335dc2c450473dc375163aec7fa679e1b099cc3` after
 [PR #144](https://github.com/ip2k/lunar-modulator/pull/144) merged on 2026-10-10.

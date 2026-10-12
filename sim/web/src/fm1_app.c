@@ -394,19 +394,75 @@ static fm1_seq_ui_emit_t ui_out(fm1_app_t *a) {
  * whose parameters its lanes lock, and whether it is the current sound.
  * Returns its index, or -1 (a MIDI route, an empty sound, no sequencer),
  * with snd's engine NULL. */
-static int lock_sound(fm1_app_t *a, fm1_seq_ui_sound_t *snd) {
+static const fm1_param_t mix_lock_param = {
+  "Level", FM1_PARAM_FLOAT, 0, FM1_APP_LEVEL_MAX, 100, NULL, 0, 0, 0, 0, "Level"
+};
+static const fm1_engine_t mix_lock_engine = {
+  .params = &mix_lock_param, .n_params = 1, .name = "Mix"
+};
+
+static int lock_target_context(fm1_app_t *a, int kind, fm1_seq_ui_sound_t *snd) {
   const int k = a->seq ? fm1_app_unit_of_track(a, a->ui.track) : -1;
-  const fm1_app_unit_t *u = k >= 0 ? sound_of(a, k) : NULL;
-  snd->e = u ? u->e : NULL;
-  snd->value = u ? u->value : NULL;
-  snd->current = k == a->sound;
-  return u && u->e ? k : -1;
+  int unit = -1;
+  memset(snd, 0, sizeof *snd);
+  snd->kind = kind;
+  if (kind == FM1_SEQ_TARGET_MASTER1 || kind == FM1_SEQ_TARGET_MASTER2) unit = kind - FM1_SEQ_TARGET_MASTER1 + 1;
+  else if (k >= 0) {
+    if (kind == FM1_SEQ_TARGET_SOUND) unit = fm1_app_sound_unit(k);
+    else if (kind == FM1_SEQ_TARGET_MIX) unit = FM1_APP_UNITS + k;
+    else unit = fm1_app_insert_unit(k, kind - FM1_SEQ_TARGET_INSERT1);
+  }
+  snd->unit = unit;
+  snd->current = kind >= FM1_SEQ_TARGET_MASTER1 && kind <= FM1_SEQ_TARGET_MASTER2 ? 1 : k == a->sound;
+  if (unit >= FM1_APP_UNITS) {
+    snd->e = &mix_lock_engine;
+    snd->value = &a->level[k];
+  } else if (unit >= 0) {
+    snd->e = a->unit[unit].e;
+    snd->value = a->unit[unit].value;
+  }
+  return k;
+}
+
+/* Held SELECT walks synth, inserts, global masters and the routed level.
+ * Contexts are stack-only; no persistent model or RAM budget grows. */
+static int lock_sound(fm1_app_t *a, fm1_seq_ui_sound_t *snd) {
+  int total = 0, chosen = 0;
+  const int wanted = a->ui.step_page >= FM1_SEQ_UI_STEP_PAGES ? a->ui.step_page - FM1_SEQ_UI_STEP_PAGES : 0;
+  const int k = lock_target_context(a, FM1_SEQ_TARGET_SOUND, snd);
+  for (int kind = FM1_SEQ_TARGET_SOUND; kind <= FM1_SEQ_TARGET_MIX; ++kind) {
+    fm1_seq_ui_sound_t next;
+    lock_target_context(a, kind, &next);
+    const int pages = fm1_seq_ui_pages(next.e);
+    if (wanted >= total && wanted < total + pages) {
+      *snd = next;
+      snd->page = wanted - total;
+      chosen = 1;
+    }
+    total += pages;
+  }
+  if (!chosen) snd->page = 0;
+  snd->pages = total;
+  return k;
+}
+
+/* Outside held-step pages the FX knobs name the visible slot, or the
+ * routed level on Mix. Relative targets require the focused routed sound. */
+static void knob_lock_context(fm1_app_t *a, fm1_seq_ui_sound_t *snd) {
+  if (a->mode == FM1_MODE_FX && !a->ui.held_n) {
+    const int unit = fx_unit_at(a, a->fx_slot);
+    const int kind = unit < 0 ? FM1_SEQ_TARGET_MIX : unit <= FM1_APP_FX_SLOTS ?
+      FM1_SEQ_TARGET_MASTER1 + unit - 1 : FM1_SEQ_TARGET_INSERT1 + (unit - fm1_app_insert_unit(a->sound, 0));
+    lock_target_context(a, kind, snd);
+  } else if (a->ui.held_n) lock_sound(a, snd);
+  else lock_target_context(a, FM1_SEQ_TARGET_SOUND, snd);
 }
 
 /* A parameter name of the lock sound for a toast. */
 static const char *lock_param_name(fm1_app_t *a, int param) {
   fm1_seq_ui_sound_t snd;
-  return lock_sound(a, &snd) >= 0 && param < snd.e->n_params ? snd.e->params[param].name : "?";
+  knob_lock_context(a, &snd);
+  return snd.e && param >= 0 && param < snd.e->n_params ? snd.e->params[param].name : "?";
 }
 
 /* The UI made a lane on a parameter of the lock sound: the knob goes onto
@@ -415,12 +471,15 @@ static const char *lock_param_name(fm1_app_t *a, int param) {
 static void ui_snap(fm1_app_t *a) {
   fm1_seq_ui_sound_t snd;
   const int param = a->ui.snap;
-  const int k = lock_sound(a, &snd);
+  knob_lock_context(a, &snd);
   a->ui.snap = -1;
-  if (k >= 0 && param >= 0 && param < snd.e->n_params) {
+  if (snd.e && param >= 0 && param < snd.e->n_params) {
     const fm1_param_t *p = &snd.e->params[param];
     const float v = fm1_seq_lock_value(p, fm1_seq_value7(p, snd.value[param]));
-    if (v != snd.value[param]) fm1_app_set_param(a, fm1_app_sound_unit(k), param, v);
+    if (v != snd.value[param]) {
+      if (snd.kind == FM1_SEQ_TARGET_MIX) fm1_app_unit_set_level(a, snd.unit - FM1_APP_UNITS, v);
+      else fm1_app_set_param(a, snd.unit, param, v);
+    }
   }
 }
 
@@ -638,7 +697,7 @@ static void app_init(fm1_app_t *a, float sample_rate) {
   for (int k = 0; k < FM1_APP_SOUNDS; ++k) {         /* each sound unit its own arena */
     a->unit[fm1_app_sound_unit(k)].mem = a->sound_mem[k];
     a->unit[fm1_app_sound_unit(k)].cap = FM1_APP_SOUND_BYTES;
-    a->level[k] = FM1_APP_LEVEL_MAX;
+    a->level[k] = a->seq_level[k] = FM1_APP_LEVEL_MAX;
     a->sink_ctx[k].a = a;
     a->sink_ctx[k].sound = k;
     for (int j = 0; j < FM1_APP_INSERTS; ++j) {
@@ -648,6 +707,7 @@ static void app_init(fm1_app_t *a, float sample_rate) {
   for (int k = 0; k < FM1_APP_FX_SLOTS; ++k) a->unit[1 + k].mem = a->fx_mem[k];
   fm1_mix_limiter_init(&a->limiter, sample_rate);
   a->master = 1.0f;
+  a->export_sound_mask = (1u << FM1_APP_SOUNDS) - 1u;
   a->gain = 1.0f;
   a->popup_mark = -1;
   a->mode = FM1_MODE_HOME;
@@ -730,7 +790,162 @@ static void mod_write(void *ctx, uint32_t frame, const fm1_mod_write_t *w) {
     a->mod_wr[a->mod_nwr].frame = frame;
     a->mod_wr[a->mod_nwr].w = *w;
     ++a->mod_nwr;
+  } else ++a->seq_auto_dropped;
+}
+
+/* Resolve only reserved effect/mixer labels. A sound label is handled by
+ * the bridge, and never by this second path. Master slots are global;
+ * inserts and levels require a valid engine route, even for an empty sound. */
+static int seq_auto_target(fm1_app_t *a, unsigned track, unsigned lane,
+                            fm1_app_seq_target_t *target) {
+  fm1_seq_track_info_t ti;
+  const char *name;
+  int kind, unit, index;
+  if (!a->seq || track >= FM1_APP_SEQ_TRACKS || lane >= FM1_SEQ_LANES ||
+      !fm1_seq_get_track(a->seq, (uint8_t)track, &ti)) return 0;
+  kind = fm1_seq_lane_target(fm1_seq_lane_label(a->seq, (uint8_t)track, (uint8_t)lane), &name);
+  if (kind <= FM1_SEQ_TARGET_SOUND) return 0;
+  if (kind == FM1_SEQ_TARGET_MASTER1 || kind == FM1_SEQ_TARGET_MASTER2) {
+    unit = kind - FM1_SEQ_TARGET_MASTER1 + 1;
+  } else {
+    if (ti.route_kind != FM1_SEQ_ROUTE_ENGINE || ti.route_index >= FM1_APP_SOUNDS) return 0;
+    unit = kind == FM1_SEQ_TARGET_MIX ? FM1_APP_UNITS + ti.route_index :
+           fm1_app_insert_unit(ti.route_index, kind - FM1_SEQ_TARGET_INSERT1);
   }
+  memset(target, 0, sizeof *target);
+  target->unit = (uint8_t)unit;
+  target->base = ti.base[lane];
+  if (kind == FM1_SEQ_TARGET_MIX) return 1;
+  target->engine = a->unit[unit].e;
+  index = fm1_seq_lane_param(target->engine, name);
+  if (index < 0 || index >= FM1_APP_MAX_PARAMS ||
+      (target->engine->params[index].flags & (FM1_PARAM_NOLOCK | FM1_PARAM_PER_FOCUS))) return 0;
+  target->index = (uint8_t)index;
+  return 1;
+}
+
+static void seq_auto_write(fm1_app_t *a, uint32_t frame,
+                            const fm1_app_seq_target_t *target, unsigned v7) {
+  if (target->unit >= FM1_APP_UNITS) {
+    const unsigned sound = target->unit - FM1_APP_UNITS;
+    if (sound < FM1_APP_SOUNDS && a->seq_nmix < sizeof a->seq_mix / sizeof a->seq_mix[0]) {
+      fm1_app_mix_write_t *w = &a->seq_mix[a->seq_nmix++];
+      w->frame = (uint16_t)frame;
+      w->sound = (uint8_t)sound;
+      w->level = FM1_APP_LEVEL_MAX * (float)v7 / (float)FM1_SEQ_VAL_MAX;
+    } else ++a->seq_auto_dropped;
+  } else {
+    fm1_mod_write_t w;
+    const fm1_app_unit_t *u = &a->unit[target->unit];
+    if (!u->e || u->e != target->engine) return; /* a replaced instance is gone */
+    memset(&w, 0, sizeof w);
+    w.unit = (uint8_t)fm1_app_mod_unit(target->unit);
+    w.index = target->index;
+    w.value = fm1_seq_lock_value(&u->e->params[target->index], v7);
+    if (a->mod) w.value = fm1_mod_set_base(a->mod, w.unit, w.index, w.value);
+    mod_write(a, frame, &w);
+  }
+  ++a->seq_auto_writes;
+}
+
+/* At a block boundary a relabelled/released/rerouted lane restores its old
+ * target, even when the core already erased the label that named it. */
+static uint32_t seq_auto_begin(void *ctx, uint32_t frames, const fm1_engine_t *engine,
+                                uint32_t bpm, int playing) {
+  fm1_app_t *a = (fm1_app_t *)ctx;
+  for (unsigned t = 0; t < FM1_APP_SEQ_TRACKS; ++t) {
+    for (unsigned l = 0; l < FM1_SEQ_LANES; ++l) {
+      fm1_app_seq_target_t next, *old = &a->seq_target[t][l];
+      if (!old->active) continue;
+      if (!seq_auto_target(a, t, l, &next) || next.unit != old->unit ||
+          next.index != old->index || next.engine != old->engine) {
+        seq_auto_write(a, 0, old, old->base);
+        old->active = 0;
+      } else old->base = next.base;
+    }
+  }
+  return a->mod ? a->mod_glue.hook.begin(a->mod_glue.hook.ctx, frames, engine, bpm, playing) : frames;
+}
+
+static void seq_auto_event(void *ctx, uint32_t frame, const fm1_seq_ev_t *e, int to_engine) {
+  fm1_app_t *a = (fm1_app_t *)ctx;
+  if (a->mod) a->mod_glue.hook.event(a->mod_glue.hook.ctx, frame, e, to_engine);
+  if (e->kind == FM1_SEQ_EV_LOCK && e->track < FM1_APP_SEQ_TRACKS && e->a < FM1_SEQ_LANES) {
+    fm1_app_seq_target_t target;
+    const int kind = fm1_seq_lane_target(fm1_seq_lane_label(a->seq, e->track, e->a), NULL);
+    if (kind == FM1_SEQ_TARGET_SOUND) return;
+    if (!seq_auto_target(a, e->track, e->a, &target)) {
+      if (kind >= 0) ++a->seq_auto_refused;
+      return;
+    }
+    seq_auto_write(a, frame, &target, e->b);
+    target.active = e->b != target.base;
+    a->seq_target[e->track][e->a] = target;
+  }
+}
+
+static float seq_auto_lock(void *ctx, uint16_t index, float value) {
+  fm1_app_t *a = (fm1_app_t *)ctx;
+  return a->mod ? a->mod_glue.hook.lock(a->mod_glue.hook.ctx, index, value) : value;
+}
+
+static float seq_auto_lock_slot(void *ctx, unsigned slot, uint16_t index, float value) {
+  fm1_app_t *a = (fm1_app_t *)ctx;
+  return a->mod ? a->mod_glue.hook.lock_slot(a->mod_glue.hook.ctx, slot, index, value) : value;
+}
+
+static uint32_t seq_auto_tick(void *ctx, uint32_t frame, const fm1_seq_hook_write_t **w,
+                               uint32_t *next) {
+  fm1_app_t *a = (fm1_app_t *)ctx;
+  if (!a->mod) { *w = NULL; *next = frame + FM1_MOD_TICK; return 0; }
+  return a->mod_glue.hook.tick(a->mod_glue.hook.ctx, frame, w, next);
+}
+
+static uint32_t seq_auto_note_on(void *ctx, uint32_t frame, unsigned slot, uint8_t key,
+                                  const fm1_seq_hook_write_t **w) {
+  fm1_app_t *a = (fm1_app_t *)ctx;
+  if (a->mod) return a->mod_glue.hook.note_on(a->mod_glue.hook.ctx, frame, slot, key, w);
+  *w = NULL;
+  return 0;
+}
+
+/* Knob edits become the D6 base of every matching effect/mixer lane, as
+ * sound knobs already do. ABASEQ updates the base without emitting a lock. */
+static void seq_auto_base(fm1_app_t *a, unsigned unit, unsigned index, unsigned v7) {
+  if (!a->seq) return;
+  for (unsigned t = 0; t < FM1_APP_SEQ_TRACKS; ++t) {
+    for (unsigned l = 0; l < FM1_SEQ_LANES; ++l) {
+      fm1_app_seq_target_t target;
+      if (seq_auto_target(a, t, l, &target) && target.unit == unit && target.index == index &&
+          target.base != v7) {
+        fm1_seq_cmd_t cmd;
+        const int64_t arg[3] = { t, l, v7 };
+        fm1_seq_cmd_make(&cmd, FM1_SEQ_V_ABASEQ, 3u, arg);
+        fm1_app_seq_cmd(a, &cmd);
+      }
+    }
+  }
+}
+
+/* Discarding the set restores configured knobs, rather than retaining any
+ * transient lock base from that set. Called before reset/import. */
+static void seq_auto_release(fm1_app_t *a) {
+  for (unsigned t = 0; t < FM1_APP_SEQ_TRACKS; ++t) {
+    for (unsigned l = 0; l < FM1_SEQ_LANES; ++l) {
+      fm1_app_seq_target_t *x = &a->seq_target[t][l];
+      if (!x->engine || x->unit >= FM1_APP_UNITS) continue;
+      const fm1_app_unit_t *u = &a->unit[x->unit];
+      if (u->e && u->e == x->engine) {
+        float value = u->value[x->index];
+        if (a->mod) value = fm1_mod_set_base(a->mod, (unsigned)fm1_app_mod_unit(x->unit), x->index, value);
+        u->e->set_param(u->self, x->index, value);
+      }
+    }
+  }
+  memset(a->seq_target, 0, sizeof a->seq_target);
+  for (unsigned k = 0; k < FM1_APP_SOUNDS; ++k) a->seq_level[k] = a->level[k];
+  a->seq_nmix = 0;
+  a->mod_nwr = 0;
 }
 
 /* Binds a unit's engine (or none) as the runtime's sink for it, its knobs'
@@ -1171,6 +1386,10 @@ void fm1_app_set_param(fm1_app_t *a, int unit, int index, float value) {
     value = fm1_mod_set_base(a->mod, (unsigned)fm1_app_mod_unit(unit), (unsigned)index, value);
   }
   u->e->set_param(u->self, (uint16_t)index, value);   /* the engine clamps too */
+  if (unit_sound(unit) < 0) {
+    seq_auto_base(a, (unsigned)unit, (unsigned)index,
+                  fm1_seq_value7(&u->e->params[index], u->value[index]));
+  }
   a->dirty = 1;
 }
 
@@ -1206,7 +1425,9 @@ static size_t ram_of(const fm1_app_t *a, int unit, size_t bytes, int loaded) {
   }
   if (a->seq) {
     total += fm1_seq_size(&a->seq_lim) + sizeof a->seq_ev + sizeof a->seq_pend +
-             FM1_APP_SEQ_UI_BYTES + sizeof a->click;
+             FM1_APP_SEQ_UI_BYTES + sizeof a->click + sizeof a->seq_target +
+             sizeof a->seq_mix + sizeof a->seq_level +
+             (FM1_APP_SEQ_EVENTS + FM1_APP_SEQ_TRACKS * FM1_SEQ_LANES) * sizeof a->mod_wr[0];
   }
   if (sounds > 1) total += (size_t)(sounds - 1) * FM1_APP_MIX_BLOCK_BYTES;
   if (a->mod) total += fm1_mod_size();
@@ -1288,8 +1509,15 @@ void fm1_app_unit_set_level(fm1_app_t *a, int sound, float percent) {
   if (sound < 0 || sound >= FM1_APP_SOUNDS || !(percent == percent)) return;
   const float was = a->level[sound];
   a->level[sound] = percent < 0.0f ? 0.0f : (percent > FM1_APP_LEVEL_MAX ? FM1_APP_LEVEL_MAX : percent);
+  a->seq_level[sound] = a->level[sound];
+  seq_auto_base(a, FM1_APP_UNITS + (unsigned)sound, 0,
+                (unsigned)(a->level[sound] * (float)FM1_SEQ_VAL_MAX / FM1_APP_LEVEL_MAX + 0.5f));
   a->dirty = 1;
   if (was != a->level[sound]) fm1_edit_note_level(a, sound);
+}
+
+void fm1_app_export_sound_mask(fm1_app_t *a, unsigned mask) {
+  a->export_sound_mask = (uint8_t)(mask & ((1u << FM1_APP_SOUNDS) - 1u));
 }
 
 /* A typed `route t 1 sound`, as the panel's commands go in (the event-room
@@ -2810,6 +3038,15 @@ static void encoder_in(fm1_app_t *a, int encoder, int delta) {
         break;
       }
       if (a->mode == FM1_MODE_FX && unit < 0) {   /* the Mix page: KNOBn is sound n's level */
+        if (a->seq) {
+          const fm1_seq_ui_emit_t out = ui_out(a);
+          knob_lock_context(a, &snd);
+          snd.current = snd.current && snd.unit == FM1_APP_UNITS + knob;
+          if (fm1_seq_ui_sound_knob(&a->ui, a->seq, &snd, 0, delta, a->frames, &out)) {
+            ui_after(a);
+            break;
+          }
+        }
         fm1_app_unit_set_level(a, knob, a->level[knob] + (float)delta);
         break;
       }
@@ -2817,18 +3054,22 @@ static void encoder_in(fm1_app_t *a, int encoder, int delta) {
           a->ui.view == FM1_SEQ_VIEW_STEP && a->ui.step_page >= FM1_SEQ_UI_STEP_PAGES) {
         /* Several steps held on a lock page (S8): the lock sound's page
          * edits the sound, with no lock. */
-        sound = lock_sound(a, &snd);
-        if (sound < 0) break;
-        unit = fm1_app_sound_unit(sound);
-        page = a->ui.step_page - FM1_SEQ_UI_STEP_PAGES;
+        lock_sound(a, &snd);
+        unit = snd.unit;
+        sound = snd.kind == FM1_SEQ_TARGET_SOUND ? unit_sound(unit) : -1;
+        page = snd.page;
+        if (snd.kind == FM1_SEQ_TARGET_MIX) {
+          if (knob == 0) fm1_app_unit_set_level(a, unit - FM1_APP_UNITS, snd.value[0] + (float)delta);
+          break;
+        }
         several = 1;
       }
       if (unit < 0 || !a->unit[unit].e) break;
       if (knob < page_params(a->unit[unit].e, page, idx)) {
-        if (a->seq && sound >= 0 && !several) {
+        if (a->seq && !several) {
           /* CLEAR + knob, or a live take of the focused track (S8). */
           const fm1_seq_ui_emit_t out = ui_out(a);
-          lock_sound(a, &snd);
+          knob_lock_context(a, &snd);
           if (fm1_seq_ui_sound_knob(&a->ui, a->seq, &snd, idx[knob], delta, a->frames, &out)) {
             ui_after(a);
             if (a->mode == FM1_MODE_SEQ) {
@@ -3176,14 +3417,23 @@ static void sink_set_param_note(void *ctx, uint8_t key, uint16_t index, float of
  * gives an effect with engine API v3's extension the sequencer's tempo,
  * beats, Start and Stop (fm1_fx_host.h; no key yet). First, as RenderFx,
  * FM1_PARAM_DRIVEN when it changed: 1 while a cable reaches the effect, so
- * one with an idle path never idles under it (owner, 2026-10-06; the
- * sequencer's lanes cannot lock an effect yet). */
+ * one with an idle path never idles under it. Active sequencer locks and
+ * frame-tagged lock/base writes also keep the effect driven. */
 static void render_fx(fm1_app_t *a, int unit, float *out, uint32_t n) {
   fm1_app_unit_t *u = &a->unit[unit];
   const int code = fm1_app_mod_unit(unit);
-  const int driven = a->mod && code >= 0 ? fm1_mod_unit_routed(a->mod, (unsigned)code) : 0;
+  int driven = a->mod && code >= 0 ? fm1_mod_unit_routed(a->mod, (unsigned)code) : 0;
   fm1_fx_block_t b;
   uint32_t cur = 0;
+  for (unsigned t = 0; !driven && t < FM1_APP_SEQ_TRACKS; ++t) {
+    for (unsigned l = 0; l < FM1_SEQ_LANES; ++l) {
+      const fm1_app_seq_target_t *x = &a->seq_target[t][l];
+      if (x->active && x->unit == unit && x->engine == u->e) driven = 1;
+    }
+  }
+  for (uint32_t k = 0; !driven && k < a->mod_nwr; ++k) {
+    if (a->mod_wr[k].w.unit == code) driven = 1;
+  }
   if (driven != u->driven) {
     u->e->set_param(u->self, FM1_PARAM_DRIVEN, (float)driven);
     u->driven = driven;
@@ -3204,6 +3454,26 @@ static void render_fx(fm1_app_t *a, int unit, float *out, uint32_t n) {
     if (w->index < u->e->n_params) u->e->set_param(u->self, w->index, w->value);
   }
   if (cur < n) fm1_fx_render(u->e, u->self, out, cur, n, &b);
+}
+
+/* Mixer gain is piecewise constant on the lock's sample frames. The
+ * configured level remains in level[]; the final effective gain carries
+ * across blocks until the next lock/base or a knob edit. */
+static void apply_mix_level(fm1_app_t *a, unsigned sound, float *out, uint32_t n) {
+  float level = a->seq_level[sound];
+  uint32_t cur = 0;
+  for (uint32_t k = 0; k <= a->seq_nmix; ++k) {
+    const fm1_app_mix_write_t *w = k < a->seq_nmix ? &a->seq_mix[k] : NULL;
+    if (w && w->sound != sound) continue;
+    const uint32_t f = w && w->frame < n ? w->frame : n;
+    if (level != FM1_APP_LEVEL_MAX) {
+      const float g = level / FM1_APP_LEVEL_MAX;
+      for (uint32_t i = 2u * cur; i < 2u * f; ++i) out[i] *= g;
+    }
+    cur = f;
+    if (w) level = w->level;
+  }
+  a->seq_level[sound] = level;
 }
 
 /* HOST AMP's gain before the click and the limiter, ramped over each tick
@@ -3250,8 +3520,11 @@ static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {
      * own frames, each sound unit split where a tick writes to it. */
     seq_flush(a);
     a->seq_last_n = fm1_seq_host_advance(&a->seq_host, n);
-    fm1_seq_host_dispatch_slots_ticks(&a->seq_host, n, slot, FM1_APP_SOUNDS,
-                                      a->mod ? &a->mod_glue.hook : NULL);
+    /* The event hook also applies insert/master/mixer locks without a mod
+     * runtime. With modulation it forwards every existing hook operation. */
+    const fm1_seq_hook_t hook = { a, seq_auto_begin, seq_auto_event, seq_auto_lock,
+                                 seq_auto_tick, seq_auto_lock_slot, seq_auto_note_on };
+    fm1_seq_host_dispatch_slots_ticks(&a->seq_host, n, slot, FM1_APP_SOUNDS, &hook);
   } else {
     for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
       if (slot[k].sink) sound_of(a, k)->e->render(sound_of(a, k)->self, a->mix[k], n);
@@ -3259,19 +3532,27 @@ static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {
   }
   for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
     float *b = a->mix[k];
-    if (!slot[k].sink) continue;
+    if (!slot[k].sink) {
+      apply_mix_level(a, (unsigned)k, b, n);
+      if (a->edit) {
+        for (unsigned j = 0; j <= FM1_APP_INSERTS; ++j) fm1_edit_meter(a, 3u * (unsigned)k + j, NULL, n);
+        fm1_edit_meter(a, FM1_TELE_POINTS + (unsigned)k, NULL, n);
+      }
+      continue;
+    }
     if (a->edit) fm1_edit_meter(a, 3u * (unsigned)k, b, n);   /* telemetry, read only */
     for (int j = 0; j < FM1_APP_INSERTS; ++j) {
       const int iu = fm1_app_insert_unit(k, j);
       if (a->unit[iu].e) {
         render_fx(a, iu, b, n);
-        if (a->edit) fm1_edit_meter(a, 3u * (unsigned)k + 1u + (unsigned)j, b, n);
       }
+      /* Empty slots pass the input through, so the preceding point is
+       * always this slot's input and this point is always its output. */
+      if (a->edit) fm1_edit_meter(a, 3u * (unsigned)k + 1u + (unsigned)j, b, n);
     }
-    if (a->level[k] != FM1_APP_LEVEL_MAX) {
-      const float g = a->level[k] / 100.0f;
-      for (uint32_t i = 0; i < 2 * n; ++i) b[i] *= g;
-    }
+    apply_mix_level(a, (unsigned)k, b, n);
+    if (a->edit) fm1_edit_meter(a, FM1_TELE_POINTS + (unsigned)k, b, n);
+    if (!(a->export_sound_mask & (1u << k))) continue;
     if (first) memcpy(out, b, 2u * n * sizeof *out);
     else for (uint32_t i = 0; i < 2 * n; ++i) out[i] += b[i];
     first = 0;
@@ -3285,6 +3566,7 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
   uint32_t n = frames > FM1_APP_MAX_FRAMES ? FM1_APP_MAX_FRAMES : frames;
   float *out = a->out;
   a->mod_nwr = 0;
+  a->seq_nmix = 0;
   /* docs/15 §2.4, steps 2-6: what was held, the block's own events, then
    * every sound unit split at each one it takes, its inserts and its level;
    * the runtime's ticks run inside the block at their own frames
@@ -3294,8 +3576,8 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
   for (int u = 1; u <= FM1_APP_FX_SLOTS; ++u) {   /* the master bus, after the mix */
     if (a->unit[u].e) {
       render_fx(a, u, out, n);
-      if (a->edit) fm1_edit_meter(a, 3u * FM1_APP_SOUNDS + (unsigned)u, out, n);
     }
+    if (a->edit) fm1_edit_meter(a, 3u * FM1_APP_SOUNDS + (unsigned)u, out, n);
   }
   if (a->mod) apply_amp(a, out, n);
   /* The metronome's click (O11), from the block's events, as fm1-render
@@ -3313,6 +3595,7 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
   if (a->gain != 1.0f) {
     for (uint32_t i = 0; i < 2 * n; ++i) out[i] *= a->gain;
   }
+  if (a->edit) fm1_edit_meter(a, FM1_TELE_POINTS + FM1_APP_SOUNDS, out, n);
   a->frames += n;
   if (a->edit) {                         /* ARP held: Latch, for the next block: the panel's */
     const uint8_t src = a->edit->src;
@@ -3340,7 +3623,7 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
     const uint8_t page_was = a->ui.step_page;
     const int changed = fm1_seq_ui_sync(&a->ui, a->seq, a->seq_gen, a->frames);
     lock_sound(a, &snd);
-    fm1_seq_ui_lock_pages(&a->ui, fm1_seq_ui_pages(snd.e));   /* the lock pages there are now */
+    fm1_seq_ui_lock_pages(&a->ui, snd.pages);   /* the lock pages there are now */
     if (a->ui.step_page != page_was && a->mode == FM1_MODE_SEQ) a->dirty = 1;
     if (((changed & FM1_SEQ_UI_SYNC_SEQ) && a->mode == FM1_MODE_SEQ) ||
         (changed & FM1_SEQ_UI_SYNC_OVERLAY)) {
@@ -3450,6 +3733,7 @@ void fm1_app_seq_note_in(fm1_app_t *a, int track, int pitch, int velocity) {
 static void seq_drop(fm1_app_t *a) {
   const fm1_mfx_sink_t sink = mfx_sink(a);
   ++a->seq_gen;
+  seq_auto_release(a);
   /* The arps forget what they hold: the keys the sequencer gave them will
    * get no note-off from the new instance. */
   for (int k = 0; k < FM1_APP_SOUNDS; ++k) fm1_mfx_flush(&a->mfx, (unsigned)k, 1, &sink);
@@ -3551,6 +3835,16 @@ void fm1_look_fill(fm1_tft_t *t, int x, int y, int w, int h, const fm1_param_t *
   }
 }
 
+static float fx_take_value(fm1_app_t *a, int unit, int param, float base) {
+  fm1_seq_ui_sound_t target;
+  if (a->mode != FM1_MODE_FX || a->ui.take_param != param || !a->seq) return base;
+  knob_lock_context(a, &target);
+  if (target.e && param >= 0 && param < target.e->n_params && target.unit == unit &&
+      fm1_seq_ui_target_lane(a->seq, a->ui.track, &target, param) == a->ui.take_lane)
+    return fm1_seq_lock_value(&target.e->params[param], a->ui.take_v);
+  return base;
+}
+
 static void draw_params(fm1_app_t *a, int unit, int page, int y0) {
   const fm1_app_unit_t *u = &a->unit[unit];
   int idx[4];
@@ -3567,7 +3861,7 @@ static void draw_params(fm1_app_t *a, int unit, int page, int y0) {
                            ? fm1_mod_ui_routes(a->mod, a->mui.plan.refused, (unsigned)code, p->uid, 0,
                                                &depth)
                            : 0;
-    fm1_mod_view_row(&a->tft, y, p, u->value[idx[s]], NULL, routes, depth,
+    fm1_mod_view_row(&a->tft, y, p, fx_take_value(a, unit, idx[s], u->value[idx[s]]), NULL, routes, depth,
                      routes ? fm1_mod_sent(a->mod, (unsigned)code, (unsigned)idx[s]) : 0.0f);
   }
 }
@@ -4055,15 +4349,16 @@ static void draw_fx(fm1_app_t *a, char *bottom, size_t size, int *tag_at) {
     for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
       const fm1_app_unit_t *u = sound_of(a, k);
       char label[8];
+      const float level = fx_take_value(a, FM1_APP_UNITS + k, 0, a->level[k]);
       const int y = FX_ROWS_Y + k * ROW_PITCH;
       snprintf(label, sizeof label, "S%d", k + 1);
       snprintf(buf, sizeof buf, "%s %d%%", u->e ? u->e->name : "Empty",
-               (int)floorf(a->level[k] + 0.5f));
+               (int)floorf(level + 0.5f));
       fm1_tft_text(t, MARGIN, y, label, 2, SCALE, fm1_sound_colour(k));
       fm1_tft_text(t, RIGHT - fm1_tft_text_width(buf, LINE_CHARS - 3, SCALE), y, buf, LINE_CHARS - 3,
                    SCALE, u->e ? C_TEXT : C_LABEL);
       if (u->e) {
-        fm1_look_bar(t, MARGIN, y + BAR_DY, FM1_TFT_W - 2 * MARGIN, BAR_H, &kLevel, a->level[k],
+        fm1_look_bar(t, MARGIN, y + BAR_DY, FM1_TFT_W - 2 * MARGIN, BAR_H, &kLevel, level,
                      fm1_sound_colour(k));
       } else {                           /* L3: no full grey bar for a sound with nothing in it */
         fm1_tft_graphic(t, MARGIN, y + BAR_DY, FM1_TFT_W - 2 * MARGIN, BAR_H);
@@ -4235,6 +4530,7 @@ static void draw(fm1_app_t *a) {
       snd.lock_e = ls.e;
       snd.lock_value = ls.value;
       snd.lock_current = ls.current;
+      snd.lock_target = ls;
     }
     fm1_seq_view_draw(t, &a->ui, &snd);
     fm1_seq_view_bottom(&a->ui, &snd, buf, sizeof buf);

@@ -1,0 +1,15 @@
+{
+  "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+  "wasmSha256": "2a2ad121431f6e7fac5aa186d00eb0b75848187441ffe0d4ec4222451ed65cc3",
+  "scope": "Real AudioWorklet/Wasm and browser history. Native seq-line exercises the panel command path; no physical controls or hardware acceptance.",
+  "checks": [
+    "unchanged native refresh preserves pointer clicks and number-input selection",
+    "native invalidation during an older snapshot read refreshes the latest notes",
+    "clean sequencer undo and redo preserve native project state",
+    "native panel-path edit refreshes the visible clip and rejects stale undo",
+    "hidden sequencer invalidates without project reads and refreshes on reopen",
+    "native edit after undo rejects stale redo and preserves its history cursor"
+  ],
+  "errors": [],
+  "ok": true
+}

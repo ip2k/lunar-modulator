@@ -164,9 +164,10 @@ enum : unsigned {
   kN5 = kSlots,                         // dests
   kN6 = kSlots * kVoices,               // voice_dests
   kO1 = kN0, kO2 = kO1 + kN1, kO3 = kO2 + kN2, kO4 = kO3 + kN3, kO5 = kO4 + kN4, kO6 = kO5 + kN5,
-  kFloats = kO6 + kN6,
+  kO7 = kO6 + kN6, kFloats = kO7 + FM1_TELE_LEVEL_POINTS * 2u,
   kB1 = FM1_TELE_POINTS, kB2 = kB1 + FM1_TELE_REDUCERS, kB3 = kB2 + kVoices, kB4 = kB3 + kPos,
-  kB5 = kB4 + kPos, kB6 = kB5 + kSlots, kBits = kB6 + kSlots,
+  kB5 = kB4 + kPos, kB6 = kB5 + kSlots, kB7 = kB6 + kSlots,
+  kBits = kB7 + FM1_TELE_LEVEL_POINTS,
 };
 typedef char tele_mask_fits[kBits <= 32u * FM1_TELE_MASK_WORDS ? 1 : -1];
 typedef char tele_offsets_fit[kFloats <= 0xFFFFu ? 1 : -1];
@@ -179,6 +180,7 @@ const fm1_tele_section_t kSections[FM1_TELE_SECTIONS] = {
   { "voice_outs", "port", kO4, kPos, kOuts, kVoices, kB4 },
   { "dests", "param", kO5, kSlots, 1, 1, kB5 },
   { "voice_dests", "param", kO6, kSlots, 1, kVoices, kB6 },
+  { "levels", "none", kO7, FM1_TELE_LEVEL_POINTS, 1, 2, kB7 },
 };
 
 // "prefix" then n (1-based) into buf.
@@ -249,6 +251,15 @@ const char *fm1_tele_row_name(unsigned s, unsigned r, char *buf, size_t n) {
   switch (s) {
     case FM1_TELE_METERS:
     case FM1_TELE_REDUCTION: return point_name(s, r, buf, n);
+    case FM1_TELE_LEVELS:
+      if (r == FM1_TELE_SOUNDS) return copy("out.post_master", buf, n);
+      {
+        char tmp[32];
+        numbered("snd", r + 1u, tmp, sizeof(tmp));
+        const size_t len = strlen(tmp);
+        memcpy(tmp + len, ".post_fader", sizeof(".post_fader"));
+        return copy(tmp, buf, n);
+      }
     case FM1_TELE_VOICES: return numbered("v", r + 1u, buf, n);
     case FM1_TELE_OUTS:
     case FM1_TELE_VOICE_OUTS: return numbered("pos", r + 1u, buf, n);
@@ -269,7 +280,8 @@ const char *fm1_tele_field_name(unsigned s, unsigned f, char *buf, size_t n) {
   const fm1_tele_section_t *sec = fm1_tele_section(s);
   if (!sec || f >= sec->fields) return copy("", buf, n);
   switch (s) {
-    case FM1_TELE_METERS: return copy(kMeter[f], buf, n);
+    case FM1_TELE_METERS:
+    case FM1_TELE_LEVELS: return copy(kMeter[f], buf, n);
     case FM1_TELE_REDUCTION: return copy(f == 0 ? "db" : "gate", buf, n);
     case FM1_TELE_VOICES: return copy(kVoice[f], buf, n);
     case FM1_TELE_OUTS: return copy(kOut[f], buf, n);

@@ -829,6 +829,24 @@ int fm1_seq_ui_lane_of(const fm1_seq_t *s, unsigned track, const fm1_engine_t *e
   return -1;
 }
 
+int fm1_seq_ui_target_lane(const fm1_seq_t *s, unsigned track,
+                           const fm1_seq_ui_sound_t *target, int param) {
+  if (!target || !target->e) return -1;
+  if (target->kind == FM1_SEQ_TARGET_SOUND) return fm1_seq_ui_lane_of(s, track, target->e, param);
+  for (unsigned lane = 0; s && lane < FM1_SEQ_LANES; ++lane) {
+    const char *name = NULL;
+    if (fm1_seq_lane_target(fm1_seq_lane_label(s, (uint8_t)track, (uint8_t)lane), &name) == target->kind &&
+        fm1_seq_lane_param(target->e, name) == param) return (int)lane;
+  }
+  return -1;
+}
+
+int fm1_seq_ui_target_lockable(const fm1_seq_ui_sound_t *target, int param) {
+  return target && target->e && param >= 0 && param < target->e->n_params &&
+    fm1_param_lockable(&target->e->params[param]) &&
+    (target->kind == FM1_SEQ_TARGET_SOUND || !(target->e->params[param].flags & FM1_PARAM_PER_FOCUS));
+}
+
 void fm1_seq_ui_lock_pages(fm1_seq_ui_t *u, int pages) {
   const int last = FM1_SEQ_UI_STEP_PAGES - 1 + (pages > 0 ? pages : 0);
   u->lock_pages = (uint8_t)(pages > 0 ? (pages < 255 ? pages : 255) : 0);
@@ -890,7 +908,7 @@ static int lane_for(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_sound_
   fm1_seq_track_info_t tr;
   const fm1_param_t *p = &snd->e->params[param];
   char label[FM1_SEQ_LABEL_MAX];
-  int lane = fm1_seq_ui_lane_of(s, u->track, snd->e, param);
+  int lane = fm1_seq_ui_target_lane(s, u->track, snd, param);
   if (lane >= 0) return lane;
   memset(&tr, 0, sizeof tr);
   fm1_seq_get_track(s, u->track, &tr);
@@ -899,7 +917,17 @@ static int lane_for(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_sound_
     toast(u, FM1_SEQ_TOAST_LANES_FULL, 0);
     return -1;
   }
-  fm1_seq_lane_label_for(p, label, sizeof label);
+  {
+    static const char *const prefix[] = { "synth", "in1", "in2", "m1", "m2", "mix" };
+    const size_t n = strlen(prefix[snd->kind]), m = strlen(p->name);
+    if (n + 1u + m >= sizeof label) {
+      toast(u, FM1_SEQ_TOAST_NOLOCK, param);
+      return -1;
+    }
+    memcpy(label, prefix[snd->kind], n);
+    label[n] = ':';
+    for (size_t i = 0; i <= m; ++i) label[n + 1u + i] = p->name[i] == ' ' ? '_' : p->name[i];
+  }
   emit_label(out, u->track, (unsigned)lane, label);
   {
     const int64_t arg[3] = { u->track, lane, fm1_seq_value7(p, snd->value[param]) };
@@ -915,7 +943,7 @@ static int lane_for(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_sound_
  * the gesture is CLEAR's whether or not there was a lane. */
 static void clear_lane(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_sound_t *snd,
                        int param, const fm1_seq_ui_emit_t *out) {
-  const int lane = snd && snd->e ? fm1_seq_ui_lane_of(s, u->track, snd->e, param) : -1;
+  const int lane = fm1_seq_ui_target_lane(s, u->track, snd, param);
   u->clear_gestured = 1;                     /* CLEAR's release then asks nothing */
   if (lane >= 0) {
     const int64_t arg[2] = { u->track, lane };
@@ -938,7 +966,7 @@ static void lock_knob(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_soun
   unsigned seed = 0;
   gesture(u);
   if (!snd || !snd->e ||
-      knob >= fm1_seq_ui_page_params(snd->e, u->step_page - FM1_SEQ_UI_STEP_PAGES, idx)) {
+      knob >= fm1_seq_ui_page_params(snd->e, snd->pages ? snd->page : u->step_page - FM1_SEQ_UI_STEP_PAGES, idx)) {
     return;
   }
   param = idx[knob];
@@ -946,7 +974,7 @@ static void lock_knob(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_soun
     clear_lane(u, s, snd, param, out);
     return;
   }
-  lane = fm1_seq_ui_lane_of(s, u->track, snd->e, param);
+  lane = fm1_seq_ui_target_lane(s, u->track, snd, param);
   if (u->shift) {
     if (step_lock(u, s, step, lane, &seed)) {
       const int64_t arg[3] = { u->track, lane, step };
@@ -956,7 +984,7 @@ static void lock_knob(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_soun
     }
     return;
   }
-  if (!fm1_param_lockable(&snd->e->params[param])) {
+  if (!fm1_seq_ui_target_lockable(snd, param)) {
     toast(u, FM1_SEQ_TOAST_NOLOCK, param);
     return;
   }
@@ -985,7 +1013,7 @@ int fm1_seq_ui_sound_knob(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_
     return 1;
   }
   if (lock_sound && u->playing && u->recording && u->rec_track == u->track && u->clip_playing &&
-      fm1_param_lockable(&snd->e->params[param])) {
+      fm1_seq_ui_target_lockable(snd, param)) {
     /* A live take (Movy's live record): a lock at the playing step, heard,
      * from the knob's value at the take's first detent on. */
     const fm1_param_t *p = &snd->e->params[param];
@@ -1936,7 +1964,7 @@ int fm1_seq_ui_encoder(fm1_seq_ui_t *u, const fm1_seq_t *s, int encoder, int del
                        const fm1_seq_ui_emit_t *out) {
   (void)frame;
   u->shift_clean = 0;
-  fm1_seq_ui_lock_pages(u, snd ? fm1_seq_ui_pages(snd->e) : 0);
+  fm1_seq_ui_lock_pages(u, snd ? (snd->pages ? snd->pages : fm1_seq_ui_pages(snd->e)) : 0);
   if (u->capture_mode && delta) {
     /* SELECT and KNOB1 are the overlay's own control, Movy's jog: in the
      * picker they take the next tempo, heard at once, and over the fitted

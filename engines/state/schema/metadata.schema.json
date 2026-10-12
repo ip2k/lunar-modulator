@@ -242,7 +242,7 @@
             "type": "object",
             "required": ["name", "unit", "offset", "mask", "rows", "items", "fields"],
             "properties": {
-              "name": {"enum": ["meters", "reduction", "voices", "outs", "voice_outs", "dests", "voice_dests"]},
+              "name": {"enum": ["meters", "reduction", "voices", "outs", "voice_outs", "dests", "voice_dests", "levels"]},
               "unit": {"description": "The fields' unit: a parameter unit's name, `port` (each output's own range) or `param` (the destination's unit).", "enum": ["none", "semi", "ms", "hz", "pct", "deg", "db", "port", "param"]},
               "offset": {"type": "integer", "minimum": 0},
               "mask": {"type": "integer", "minimum": 0},
@@ -436,6 +436,6 @@
       "minItems": 1,
       "items": {"anyOf": [{"type": "string", "pattern": "^[ -~]{1,12}$"}, {"type": "null"}]}
     },
-    "teleName": {"type": "string", "pattern": "^[a-z][a-z0-9.]{0,15}$"}
+    "teleName": {"type": "string", "pattern": "^[a-z][a-z0-9._]{0,15}$"}
   }
 }

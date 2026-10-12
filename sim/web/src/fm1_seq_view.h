@@ -89,6 +89,7 @@ typedef struct fm1_seq_view_sound {
   const float *lock_value;     /* its values: the knobs' */
   int lock_sound;              /* its index, 0-based, or -1 */
   int lock_current;            /* it is the current sound (the title's) */
+  fm1_seq_ui_sound_t lock_target; /* selected held-step target and its local page */
 } fm1_seq_view_sound_t;
 
 /* SEQ mode's content, from CONTENT_Y down to the bottom bar: the Track view

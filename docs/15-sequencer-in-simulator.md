@@ -1,5 +1,19 @@
 # 15 — The sequencer in the virtual FM-1: plan
 
+> **Current browser status (2026-10-11):** the Advanced editor now includes a
+> native Song workspace for scenes, arrangements, clips, automation, mixing,
+> MIDI import and project/set exchange. The manual is in
+> [chapter 15](../manual/chapters/15-the-advanced-editor.md#songs-midi-files-and-the-mixer);
+> browser behavior and current import bounds are in the
+> [simulator README](../sim/web/README.md#song-workspace). The FM-1 does not
+> run Lunar firmware, and this browser work is not device acceptance. The
+> 2026-10-11 design review is preserved in
+> [notes/2026-10-11-daw-design-review](../notes/2026-10-11-daw-design-review/README.md).
+
+The plan and dated stage records below preserve the implementation history;
+the current Song workspace status above supersedes older statements that
+browser song editing was still only planned.
+
 This plan puts the sequencer core, `fm1_seq` ([docs/13](13-movy-port.md),
 [engines/seq.md](../engines/seq.md)), into the virtual FM-1
 ([sim/web](../sim/web/README.md)), so that it can be played from the panel in

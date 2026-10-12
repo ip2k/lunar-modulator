@@ -109,9 +109,9 @@
  *
  * S8 adds parameter locks from KNOB1-4 (docs/15 §5 S8, owner decision O14:
  * one 7-bit step a detent, the bins for a list; locked values in the
- * parameter's own units; effect slots not lockable yet). A lock targets the
- * sound unit the focused track routes to (the "lock sound", which the app
- * resolves, fm1_seq_ui_sound_t):
+ * parameter's own units). Held-step pages cover the routed synth and inserts,
+ * global masters and the routed mixer level (fm1_seq_ui_sound_t). FX/Mix
+ * knobs also record live takes; new effect targets refuse PER_FOCUS:
  *
  *   lock pages     with one step held, SELECT walks on past Step 2/2 to the
  *                  lock sound's pages. The first turn of a parameter
@@ -269,7 +269,15 @@ typedef struct fm1_seq_ui_sound {
                                        lanes' bases follow */
   int current;                      /* it is the current sound: HOME's and the Track
                                        view's knobs turn it */
+  int kind;                         /* FM1_SEQ_TARGET_*, zero preserves synth callers */
+  int page, pages;                  /* local page and total held-step target pages */
+  int unit;                         /* app unit; mixer levels use FM1_APP_UNITS + sound */
 } fm1_seq_ui_sound_t;
+
+/* Target-aware matching never resolves an effect label against a synth. */
+int fm1_seq_ui_target_lane(const fm1_seq_t *s, unsigned track,
+                           const fm1_seq_ui_sound_t *target, int param);
+int fm1_seq_ui_target_lockable(const fm1_seq_ui_sound_t *target, int param);
 
 /* A sound's knob pages, and the parameters of one: the first four with that
  * page, in index order (the app's own rule). */

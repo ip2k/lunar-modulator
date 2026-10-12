@@ -63,6 +63,22 @@ def test_the_panels_pages_are_the_exports(build_meta, labels):
                                   for i in named)
 
 
+def test_mixer_meter_layout_preserves_the_existing_bridge(build_meta):
+    telemetry = json.loads(build_meta)["telemetry"]
+    pinned = json.loads((SIM.parent.parent / "tests/fixtures/editor-meta.json").read_text())["telemetry"]
+    for old, current in zip(pinned["sections"], telemetry["sections"]):
+        assert current["name"] == old["name"] and current["offset"] == old["offset"]
+        assert current["rows"][:len(old["rows"])] == old["rows"]
+    added = telemetry["sections"][-1]
+    assert added == {
+        "name": "levels", "unit": "none", "offset": 1454, "mask": 119,
+        "rows": [f"snd{k}.post_fader" for k in range(1, 5)] + ["out.post_master"],
+        "items": [], "fields": ["peak", "rms"],
+    }
+    assert telemetry["version"] == 3 and telemetry["floats"] == 1464
+    assert telemetry["mask_words"] == 4 and telemetry["floats"] <= 1536
+
+
 def test_meta_json_is_the_simulators_export():
     path = WWW / "meta.json"
     text = path.read_text(encoding="utf-8")

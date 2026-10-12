@@ -1,0 +1,274 @@
+{
+  "scope": "Exact fresh bridge Wasm offline acceptance; no rebuild or device writes. Earlier f163 receipt remains separate.",
+  "collected_utc": "2026-10-12T03:54:57.156523+00:00",
+  "checkout": "/Users/likwid/.codex/worktrees/midi-sequencer-workspace/mvave-fm1-firmware",
+  "branch": "feature/2026-10-11@midi-sequencer-workspace",
+  "head": "6958d6415dfe99b4c2edeb54350085e4dbf515a7",
+  "verified_remote_head": "6958d6415dfe99b4c2edeb54350085e4dbf515a7",
+  "module_sha256": "2a2ad121431f6e7fac5aa186d00eb0b75848187441ffe0d4ec4222451ed65cc3",
+  "environment": {
+    "host": "claude@192.168.1.48",
+    "stage": "/home/claude/mvave-fm1/final-native-acceptance-bridge-2a2ad",
+    "image": "node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392",
+    "cpus": 2,
+    "memory_bytes": 2147483648,
+    "cgroup_parent": "docker-batch.slice",
+    "node_flag": "--experimental-default-type=module"
+  },
+  "staged_sha256": {
+    "www/fm1.wasm": "2a2ad121431f6e7fac5aa186d00eb0b75848187441ffe0d4ec4222451ed65cc3",
+    "www/fm1.wasm.json": "8a209d7f3fe1340a94bf7435aed7e8454c655a3abcb332c348efed70268894fe",
+    "www/meta.json": "73fdc3e2189e5bbe16c357f7e25be8c5b57062a864cf9ed4db43a6059f32a948",
+    "www/fm1-wasm.mjs": "ecb2697436098ebf2e7cbffbc416f694d292d2905c9e6e507455fe813a481bb4",
+    "www/editor/wav.js": "9a69f63289571fd9a6b3cd68e1d40cfb670f83fec949977276a2ddb2bf3fbef5",
+    "www/editor/render.worker.js": "1078b0765f80d69672f3070e096b697c939508030e369a7400a9ba6d69893131",
+    "www/editor/audio-export.js": "4e960c4fe5c1a8187dcf6dfab6910cc6d31c5b325401e968d9bf3382371a55de",
+    "www/editor/sequence-model.js": "227649638b3b12a70bc89440504b1b92d0ffedd4f83d81b57daa10b9bdda3e97",
+    "www/editor/midi-import.js": "d020aa65139bdbd6c5bc83ea76e27adb88de1fb7bb2ed8ad0b6ae5a19b856761",
+    "www/editor/sequencer-host.js": "b96abb011c124262f1df9e102aff12a884e9301f9d73234cede21cc7293d59a7",
+    "www/editor/sequencer.js": "58ee6c7a039b4c00ceb128669dbe7273dc482c73f78eef1bd17d651b3672e2f7",
+    "www/editor/editor.js": "71f0294c0c2ce121c4a828c2fe32eee91e8a5ac0dac96af0a69f4a383a2f624a",
+    "www/worklet.js": "bb106094956798ebf2e70fd99d0f1015adb0f0b580a50d6d9d959472b600880e",
+    "test/audio-export.mjs": "6d1815a2bf97a455c1e8d00ce370b7d86c251e09b5104a19d9a745fb3cd2e486",
+    "test/meta.mjs": "60d352351737861bbc9ddaf3378c1c3582aba37c46b8f20d3dc91f6aaf97e52a",
+    "test/midi-import.mjs": "10f66a8594b857b75d037a2cb5fd719bfea80d314994ae9c19134441bfa796e3",
+    "test/sequencer-host.test.mjs": "5b39eb831bc76be9a1ab321029a455ebb82a6e6dc272b5019e99441c739a0e30",
+    "meter-check.mjs": "729d39e8317f71ac96838f0d6924ee978f51a510c9b29ce03d0000ea111c1f0b",
+    "parity.json": "a4fc7b7dad860281b0104ca68aceb6ca55aac5abb69a573ec2e2365041724cbe",
+    "edit-check.json": "3efaf2c278e37fcb8be917801bd5298b17f0fcc213a4c502d33eb6c5584ad68e",
+    "meta-native.json": "ec9c954d995501dd9b0edd1181eb81c57941e4f84adb9d593b2710a6755e4646",
+    "module-meta.json": "73fdc3e2189e5bbe16c357f7e25be8c5b57062a864cf9ed4db43a6059f32a948"
+  },
+  "staged_managed_files_match_checkout": true,
+  "provenance_snapshot": {
+    "sha256": "8a209d7f3fe1340a94bf7435aed7e8454c655a3abcb332c348efed70268894fe",
+    "built": "2026-10-12T03:50:01Z",
+    "sources_sha256": {
+      "engines": "b6c6a546f91f071d0ef3494128e11a6d4a8ad6edf28e7fedc865df53cafa01e5",
+      "sim": "626e98a7f06fb7fba0b6cf2b67602b4c909c793e6ceab86b90552db2e2ae8a15"
+    },
+    "images": [
+      "alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8",
+      "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65"
+    ],
+    "note": "Provenance refreshed by root without module recompilation; this snapshot was copied into the offline stage."
+  },
+  "fresh_checks": {
+    "audio_export": {
+      "passed": true,
+      "song_frames": 37598,
+      "checks": [
+        "PCM16/24 and extensible 8-channel WAV encoding, size and sample bounds",
+        "real FM6, sound inserts, MIDI arp, modulation and global master processing",
+        "deterministic finite song and MASTER volume",
+        "four sound stems, unused silent stems, unrelated mix automation cannot leak",
+        "track stem routing and unequal clip lengths",
+        "every 8-channel PCM sample matches four stereo stems",
+        "stream ACK backpressure, sink failure and cancellation",
+        "saved MIDI-follow mode uses offline clock; external routes warn and remain silent",
+        "large export duration refused"
+      ]
+    },
+    "metadata": {
+      "meta_id": "fbd3d320",
+      "module_meta_id": "fbd3d320",
+      "bytes": 255480,
+      "lunar": "1.3",
+      "native_meta_id": "7b8200b9",
+      "ram_differ_at_64_bits": 9,
+      "passed": true,
+      "static_file_byte_identical": true,
+      "static_sha256": "73fdc3e2189e5bbe16c357f7e25be8c5b57062a864cf9ed4db43a6059f32a948",
+      "generated_sha256": "73fdc3e2189e5bbe16c357f7e25be8c5b57062a864cf9ed4db43a6059f32a948"
+    },
+    "meters": {
+      "passed": true,
+      "frames": 2048,
+      "peak": 0.0049212598241865635,
+      "rms": 0.003367569730532959,
+      "telemetryFloats": 1464,
+      "postFaderPeak": 0.019685039296746254,
+      "outputPeak": 0.0049212598241865635,
+      "audioBitIdentical": true,
+      "unplayedSilent": true,
+      "emptySlotsIdentity": true
+    },
+    "midi_import": {
+      "passed": 30,
+      "failed": 0,
+      "suite": "sim/web/test/midi-import.mjs"
+    },
+    "host": {
+      "passed": 8,
+      "failed": 0,
+      "suite": "sim/web/test/sequencer-host.test.mjs"
+    }
+  },
+  "fresh_build_record_not_rerun": {
+    "source_stage": "/home/claude/mvave-fm1/midi-workspace-20261011g/src",
+    "parity": {
+      "passed": 108,
+      "failed": 0,
+      "identical_to_js": 108,
+      "identical_to_musl": 108,
+      "identical_to_glibc": 105,
+      "max_lsb_vs_glibc_exact_scenarios": 1,
+      "imports": []
+    },
+    "incremental_edit": {
+      "parity": "ok",
+      "audio_max_lsb": 0,
+      "storm": {
+        "seconds": 30,
+        "quanta": 10341,
+        "deadline_ms": 2.9013101228523506,
+        "late": 0,
+        "applied": 82728,
+        "resyncs": 0,
+        "telemetry_blocks": 862,
+        "p50_ms": 0.09692400000005819,
+        "p99_ms": 0.1391439999999875,
+        "max_ms": 0.3074140000000014,
+        "edit_us_per_quantum": 13.931013635044705
+      },
+      "check": {
+        "params": 474,
+        "steps": 34893,
+        "text_bad": 0,
+        "codes": [
+          "UNKNOWN",
+          "RATE",
+          "RAM",
+          "NO_ROOM",
+          "BAD",
+          "NO_SOURCE",
+          "NO_DEST",
+          "NOLOCK",
+          "ENUM_NO_MOD",
+          "VOICE_TO_MONO",
+          "VOICE_TO_EFFECT",
+          "UNIT_RESERVED",
+          "VOICE_FULL"
+        ],
+        "hands": 47,
+        "sweeps": 40,
+        "lock_blocks": 900,
+        "tele_fills": 30,
+        "failed": 0
+      }
+    },
+    "edit_check_record": {
+      "params": 474,
+      "steps": 34893,
+      "text_same": 1044,
+      "text_bad": 0,
+      "text_first_bad": "",
+      "codes": [
+        "UNKNOWN",
+        "RATE",
+        "RAM",
+        "NO_ROOM",
+        "BAD",
+        "NO_SOURCE",
+        "NO_DEST",
+        "NOLOCK",
+        "ENUM_NO_MOD",
+        "VOICE_TO_MONO",
+        "VOICE_TO_EFFECT",
+        "UNIT_RESERVED",
+        "VOICE_FULL"
+      ],
+      "hands": 47,
+      "sweeps": 40,
+      "lock_blocks": 900,
+      "tele_fills": 30,
+      "fuzz": 12774,
+      "failed": 0,
+      "why": ""
+    }
+  },
+  "synchronization_browser_checks": [
+    {
+      "receipt": "scratch/final-native-acceptance/sync-browser/sequencer-sync-chromium.json",
+      "receipt_sha256": "0baf04896565ac12864b337f1737274163f857a76e64208205a78c7eb14acbf4",
+      "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+      "wasmSha256": "2a2ad121431f6e7fac5aa186d00eb0b75848187441ffe0d4ec4222451ed65cc3",
+      "scope": "Real AudioWorklet/Wasm and browser history. Native seq-line exercises the panel command path; no physical controls or hardware acceptance.",
+      "checks": [
+        "clean sequencer undo and redo preserve native project state",
+        "native panel-path edit refreshes the visible clip and rejects stale undo",
+        "hidden sequencer invalidates without project reads and refreshes on reopen",
+        "native edit after undo rejects stale redo and preserves its history cursor"
+      ],
+      "errors": [],
+      "ok": true
+    },
+    {
+      "receipt": "scratch/final-native-acceptance/sync-browser/sequencer-sync-firefox.json",
+      "receipt_sha256": "04107d4b6049985fb702c0665bb51fc09f4318e2434cb5377758a04905a7d9bb",
+      "browser": "Firefox 155.0 (Playwright, headless)",
+      "wasmSha256": "2a2ad121431f6e7fac5aa186d00eb0b75848187441ffe0d4ec4222451ed65cc3",
+      "scope": "Real AudioWorklet/Wasm and browser history. Native seq-line exercises the panel command path; no physical controls or hardware acceptance.",
+      "checks": [
+        "clean sequencer undo and redo preserve native project state",
+        "native panel-path edit refreshes the visible clip and rejects stale undo",
+        "hidden sequencer invalidates without project reads and refreshes on reopen",
+        "native edit after undo rejects stale redo and preserves its history cursor"
+      ],
+      "errors": [],
+      "ok": true
+    },
+    {
+      "receipt": "scratch/final-native-acceptance/sync-browser/sequencer-sync-webkit.json",
+      "receipt_sha256": "567e1eca12f788461975de397c076d580779bfb58888f5f85edc1fffbc8e5474",
+      "browser": "Webkit 26.6 (Playwright, headless)",
+      "wasmSha256": "2a2ad121431f6e7fac5aa186d00eb0b75848187441ffe0d4ec4222451ed65cc3",
+      "scope": "Real AudioWorklet/Wasm and browser history. Native seq-line exercises the panel command path; no physical controls or hardware acceptance.",
+      "checks": [
+        "clean sequencer undo and redo preserve native project state",
+        "native panel-path edit refreshes the visible clip and rejects stale undo",
+        "hidden sequencer invalidates without project reads and refreshes on reopen",
+        "native edit after undo rejects stale redo and preserves its history cursor"
+      ],
+      "errors": [],
+      "ok": true
+    }
+  ],
+  "logs": {
+    "bridge-export.log": {
+      "sha256": "b0816bb018d1747e875e5b84c4024e5dd4ed011a18ba93057cb382a795ed166b",
+      "path": "scratch/final-native-acceptance/bridge-stage/bridge-export.log"
+    },
+    "bridge-host.log": {
+      "sha256": "fd64d6b1a74e78f1c49bf111c66b05d60e630abf06edd545c0aab93732f1e1dd",
+      "path": "scratch/final-native-acceptance/bridge-stage/bridge-host.log"
+    },
+    "bridge-meta.log": {
+      "sha256": "8f0a6bf01b5df1d567123fcaa1eb326cb77c8388c038f60e80bc8e94c9a911df",
+      "path": "scratch/final-native-acceptance/bridge-stage/bridge-meta.log"
+    },
+    "bridge-meter.log": {
+      "sha256": "0ba89839417502b88fc9c4274af3ec65442be0011ad08a6a955607abaeb0e5ed",
+      "path": "scratch/final-native-acceptance/bridge-stage/bridge-meter.log"
+    },
+    "bridge-midi.log": {
+      "sha256": "b7f187629266d51adb351168ac94976a008cedcb93eef4e4368d624e08ac8767",
+      "path": "scratch/final-native-acceptance/bridge-stage/bridge-midi.log"
+    }
+  },
+  "related_tracked_evidence": [
+    "notes/2026-10-11-daw-sync-review.md",
+    "notes/2026-10-11-final-native-acceptance/browser-results.json",
+    "notes/2026-10-11-final-native-acceptance/provenance.md"
+  ],
+  "limits": [
+    "Headless Linux Node/browser runtime acceptance only; no listening or physical FM-1 acceptance.",
+    "No full native build or 108-case parity rerun; fresh g build records inspected and hashed.",
+    "Four demo RAM budgets retain the separate previous exact-module receipt; native generation getter does not add instance state.",
+    "CI and merge remain root responsibilities; these newly saved notes are not committed by this subagent."
+  ],
+  "native_bridge_source_sha256": {
+    "sim/web/src/fm1_web.c": "6a87e8628a0b4b5ca3821f298295a4fa284c3e5267ddea9292b63eebc94df9dd",
+    "sim/web/mk/sim.mk": "49e5dc4f144d430d4532e85c23970b2bf14871d058afcf6916211c581b1f900a"
+  }
+}

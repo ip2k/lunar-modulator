@@ -222,6 +222,47 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   `sounds`, `inserts`, `masters`), stored A and B belong to a project's
   identity and not its title, and the IndexedDB upgrade no longer leaves a
   tab without storage.
+- **Song workspace (2026-10-11):** `sim/web/www/editor/sequencer.js` edits the
+  native eight-track/eight-scene set, with four shared sound groups. It uses
+  focused Scenes, Arrangement, Clip, Automation and Mixer views; selection is
+  temporary UI state and adds no browser-only song structure. Small phones use
+  landscape, with a portrait rotate prompt that leaves transport running. It uses
+  `sequence-model.js` for bounded `movy1` parsing, validation and serialization;
+  `midi-import.js` plans Standard MIDI File imports before mutation. Tracks can
+  address a sound or a MIDI channel, but the browser does not transmit MIDI.
+  Song columns are native scene-chain entries with consecutive repeated scene
+  numbers combined; duration comes from the scene's longest clip, rounded up
+  to a bar. This is not an independent audio-region timeline [verified: these
+  modules and `engines/seq/seq_engine.c`].
+  `sequencer-host.js` fetches canonical project JSON, checks a candidate in the
+  shadow native runtime, compares every reserialized sequencer field, rejects
+  stale project generations and records successful mutations in editor history.
+  The AudioWorklet also checks the saved native state hash immediately before
+  replacing live state, so an intervening panel edit cannot be overwritten.
+  Unknown extension lines are preserved by the JavaScript parser but editing
+  refuses them because native reload would discard them. Note timings are
+  native 96 PPQN (24 ticks per sixteenth); gates and microtiming remain ticks.
+  Lock labels address `synth:Param`, `in1:Param`, `in2:Param`, `m1:Param`,
+  `m2:Param` and `mix:Level` (0–127 maps to 0–100% sound level). Insert and mix
+  targets follow the track's routed sound; masters are global. The plot shows
+  held step values, not interpolated curves [verified: editor source].
+  The Mixer uses native incremental sound-level edits, coalesced drag history
+  and the browser's MASTER preference. Four sound strips share their engine,
+  inserts and level with their routed tracks. Native modal inspectors preserve
+  focus and close with Escape. Subscribed audio taps provide actual insert and
+  master-effect input/output, post-fader and final-output peak/RMS meters;
+  append-only telemetry version 3 preserves all older offsets, with 1464 floats
+  and 124 subscription bits. Stereo RMS combines both channels; this is not a
+  physical FM-1 performance measurement [verified: source and native checks].
+  `audio-export.js` and `render.worker.js` render a project offline in a separate
+  native Wasm instance, with cancellable stereo mix, sound stems, track stems
+  and eight-channel sound export. Shared voices, modulation and nonlinear bus
+  processing mean stems need not sum to the master mix. Output gain is a page
+  preference, not a saved project parameter. See the
+  [workflow and limits](sim/web/README.md#song-workspace-clips-scenes-midi-and-audio-files).
+  The mock-host UI regression is `sim/web/test/sequencer-ui.mjs`; native browser
+  integration and DSP tests are separate gates. File exchange does not implement
+  a device runtime or a USB/BLE project-transfer protocol.
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free
@@ -440,8 +481,8 @@ Register's pattern data, a set with its song) reloads and renders the same
 WAV byte for byte, from either encoding [verified:
 `tests/test_state_whole.py`, 2026-10-06]. The song list's editing, its end
 modes and scene names are in the sequencer core (stage E1, `engines/seq.md`,
-"The song"); their Session and Song pages come later. The simulator's Open,
-Save and launch links are the next stages
+"The song"); the browser Song workspace now edits this same model. The
+simulator also provides Open, Save and launch links
 ([`engines/state/README.md`](engines/state/README.md); the design and its
 decisions: [`notes/2026-10-06-state-files.md`](notes/2026-10-06-state-files.md),
 [`notes/2026-10-06-song-and-scenes.md`](notes/2026-10-06-song-and-scenes.md)).

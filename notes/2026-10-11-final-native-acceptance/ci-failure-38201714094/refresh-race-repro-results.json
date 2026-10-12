@@ -1,0 +1,7 @@
+{
+  "browser": "Chromium 153.0.8010.12 (Playwright, headless)",
+  "tabAfterRefreshBetweenPointerDownUp": "Scenes",
+  "velocityAfterRefreshBetweenSelectAllAndType": "10072",
+  "valid": false,
+  "reproduced": true
+}

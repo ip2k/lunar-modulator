@@ -326,6 +326,18 @@ void fm1_seq_click_mix(fm1_seq_click_t *c, const fm1_seq_t *s, const fm1_seq_ev_
  * script or a set, docs/15 S8). -1 if none. */
 int fm1_seq_lane_param(const fm1_engine_t *e, const char *label);
 
+/* Reserved app targets. Insert and mixer targets follow the track's sound
+ * route; master targets are global. Values are always the core's 0..127.
+ * Unknown prefixes retain the legacy sound-name resolution rule. `name`
+ * receives the parameter portion; MIX accepts only "Level". */
+enum {
+  FM1_SEQ_TARGET_SOUND = 0,
+  FM1_SEQ_TARGET_INSERT1, FM1_SEQ_TARGET_INSERT2,
+  FM1_SEQ_TARGET_MASTER1, FM1_SEQ_TARGET_MASTER2,
+  FM1_SEQ_TARGET_MIX
+};
+int fm1_seq_lane_target(const char *label, const char **name);
+
 /* The label a lock UI gives a lane for parameter p: "synth:" and p's name,
  * each space written as '_', so fm1_seq_lane_param reads it back as p. At
  * most size - 1 bytes and a NUL (FM1_SEQ_LABEL_MAX holds every name of 12
