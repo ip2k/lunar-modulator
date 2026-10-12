@@ -23,6 +23,9 @@ try {
   window.seq=makeSequencer({fetchProject:async()=>structuredClone(window.doc),applyProject:async(d,label)=>{if(window.reject)throw Error('test refusal');window.doc=d;window.calls.push(label)},getTransport:()=>window.transport,metadata:{engine:name=>name?({params:[{name:'Cutoff',type:'float',min:0,max:1,def:.5,flags:[]}]}):null},watchTrack:()=>{},playScene:()=>{},playClip:()=>{}});
   document.querySelector('main').append(window.seq.render());await window.seq.refresh();window.model=()=>parseSet(window.doc.set);
  });
+ // makeSequencer injects its stylesheet after navigation; measure the styled fixture.
+ await page.waitForFunction(()=>document.querySelector('[data-sequencer-style]')?.sheet);
+ await page.evaluate(async()=>{await document.fonts.ready;await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))});
  const before=await page.evaluate(()=>JSON.stringify(window.doc));
  check(await page.getByRole('button',{name:/Rename/}).count()===0,'Visible Rename buttons remain');
  const tempoLeft=()=>page.getByRole('spinbutton',{name:'BPM',exact:true}).evaluate(e=>e.getBoundingClientRect().left);
