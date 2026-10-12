@@ -25,9 +25,21 @@ and WAV header/PCM/bounds checks. The complete existing container build passes
 108 Wasm/native parity scenarios and the 30-second edit storm with zero late
 quanta. These checks do not establish browser UI or owner listening acceptance.
 
-Outstanding: integrated Chromium/Firefox/WebKit/mobile interactions and visual
-inspection; browser Worker downloads; native effect/master automation; docs and
-CI wiring; independent review, required CI, merge, deployed deep-link proof.
+Further evidence [verified]: real Chromium/Wasm integration passes native
+note/gate/microtiming/probability edits, lock serialization, routing/repeat
+undo/redo, clip-matrix transport, MIDI batch preview/refusal/replacement, text
+and binary project reopen, set reopen, stale-document/atomic-hash refusals and
+six real Worker WAV downloads. Five stereo files and one eight-channel file
+have matching 44,118 Hz, 24-bit headers and one-pass frame counts. Desktop and
+390-pixel mobile screenshots have been inspected; internal matrix/piano-roll
+scrolling is deliberate. This is browser automation, not physical touch testing.
+
+Native insert/master/mixer automation and its focused test are implemented.
+Correct RAM accounting exposed an existing near-budget modulation fixture;
+Room replaces Plate in that fixture while keeping its routing coverage and the
+strict budget. Outstanding: final rebuilt module/parity and focused RAM tests,
+Firefox/WebKit integration, final independent review and required CI, merge,
+deployed deep-link proof. Current source checkpoints are not deployment proof.
 
 Device boundary: `.lunar` and `.movy1` remain the same portable native formats.
 The owner's FM-1_092 does not run Lunar; direct device project exchange requires

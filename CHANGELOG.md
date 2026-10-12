@@ -29,6 +29,14 @@ history.
   experiments; full-image recovery and Lunar installation remain untested.
 
 ### Added
+- **Song workspace in the Advanced editor:** native clip/scene matrix and song
+  arrangement, piano-roll and step editing, loop controls, parameter-lock lanes,
+  four sound-group mixers and instrument/insert/master inspectors. Standard
+  MIDI files can be imported together with mapping and capacity preflight.
+  Projects and sets round-trip through `.lunar` and `.movy1`; offline native
+  Wasm renders produce stereo masters, sound/track stems and eight-channel WAVs.
+  Insert, master-effect and sound-level locks now run in the shared native app
+  at their sample frames. Direct USB-MIDI/BLE project access remains future work.
 - External browser audio checks: an isolated PulseAudio monitor records a
   sustained simulator tone during edit storms and musical A/B playback in
   Chromium, Firefox and WebKit. CI runs the detector and captures; native

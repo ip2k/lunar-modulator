@@ -3916,13 +3916,15 @@ static int print_sizes(void) {
   printf("\"seq_arena\":%u,\"seq_tracks\":%d,\"seq_bytes_8\":%zu,"
          "\"seq_bytes_4\":%zu,\"seq_event_bytes\":%zu,\"seq_pending_bytes\":%zu,"
          "\"seq_ui_bytes\":%u,\"seq_ui_size\":%zu,\"seq_budget\":%u,\"seq_need\":%u,"
-         "\"seq_events\":%u,\"seq_click_bytes\":%zu}\n",
+         "\"seq_events\":%u,\"seq_click_bytes\":%zu,\"seq_automation_bytes\":%zu}\n",
          FM1_APP_SEQ_BYTES, FM1_APP_SEQ_TRACKS, fm1_seq_size(&lim8),
          fm1_seq_size(&lim4), sizeof g_app.seq_ev, sizeof g_app.seq_pend, FM1_APP_SEQ_UI_BYTES,
          sizeof(fm1_seq_ui_t),
          FM1_APP_SEQ_BUDGET,
          (unsigned)(fm1_seq_cmd_max_events(&lim8) + fm1_seq_min_events(&lim8)),
-         FM1_APP_SEQ_EVENTS, sizeof g_app.click);
+         FM1_APP_SEQ_EVENTS, sizeof g_app.click,
+         sizeof g_app.seq_target + sizeof g_app.seq_mix + sizeof g_app.seq_level +
+         (FM1_APP_SEQ_EVENTS + FM1_APP_SEQ_TRACKS * FM1_SEQ_LANES) * sizeof g_app.mod_wr[0]);
   return 0;
 }
 

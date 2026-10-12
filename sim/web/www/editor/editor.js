@@ -136,12 +136,17 @@ export async function startEditor(env) {
     st, meta, el, files, root, view, nextId, say, select, render, blockOf, engineName, rows, selectRow: (r) => selectRow(r),
     snapshotSoon, history, undo: () => undo(), redo: () => redo(), setKeys: (m) => setKeys(m), post, chains, mm,
   });
-  const seqHost = makeSequencerHost({ sim, files, st, history, snapshot, say });
+  const seqHost = makeSequencerHost({ sim, files, st, history, snapshot, say, onSettled: () => {
+    renderHistory();
+    if (st.view === 'sequencer') { sequencer.invalidate(); sequencer.refresh(); }
+  } });
   const seqVerb = (text) => { if (sim.node) sim.node.port.postMessage({ type: 'seq-line', bytes: new TextEncoder().encode(text) }); };
   const sequencer = makeSequencer({ ...seqHost, metadata: meta, say,
     editSound: (key) => select(key, { view: 'sound' }),
     inspector: (key) => key === MIX_KEY ? chains.mixInspector() : blockOf(key) ? inspector(key, { level: /^s[1-4]$/.test(key) ? Number(key[1]) - 1 : undefined }) : emptyInspector(key),
     watchTrack: (t) => seqVerb(`watch ${t}`), playScene: (scene) => seqVerb(`scene ${scene}`),
+    playClip: (track, scene) => seqVerb(`launch ${track} ${scene}`),
+    getMaster: () => sim.master, setMaster: (v) => sim.setMaster(v),
   });
   sim.seqListeners = sim.seqListeners || new Set();
   sim.seqListeners.add((transport) => { if (st.view === 'sequencer') sequencer.update(transport); });
@@ -247,6 +252,7 @@ export async function startEditor(env) {
   }
   function sendOps(bytes, info) {
     if (!st.port) return 0;
+    if (st.sequenceBusy) { say('Finish the sequencer edit first.'); return 0; }
     const tag = newTag(info);
     st.inflight += 1;
     post({ type: 'edit', tag, bytes }, [bytes.buffer]);
@@ -598,6 +604,7 @@ export async function startEditor(env) {
   // ---- edits ------------------------------------------------------------------------
   // A value from the editor: into the mirror and the history, then to C.
   function setValue(key, uid, v, how) {
+    if (st.sequenceBusy) { say('Finish the sequencer edit first.'); return; }
     if (!st.mirror) return;
     const before = valueOf(key, uid);
     if (cableIndex(key) >= 0 && (uid === 'on' || uid === 'voice')) v = !!v;
@@ -654,7 +661,7 @@ export async function startEditor(env) {
     if (st.sequenceBusy) return;
     const e = history.undo();
     if (e?.info?.sequencer) {
-      seqHost.restoreHistory(e, false).then((ok) => { if (!ok) history.redo(); renderHistory(); sequencer.invalidate(); });
+      seqHost.restoreHistory(e, false).then((ok) => { if (!ok) history.redo(); renderHistory(); sequencer.invalidate(); if (st.view === 'sequencer') sequencer.refresh(); });
       return;
     }
     if (e && e.info && e.info.struct) {
@@ -672,7 +679,7 @@ export async function startEditor(env) {
     if (st.sequenceBusy) return;
     const e = history.redo();
     if (e?.info?.sequencer) {
-      seqHost.restoreHistory(e, true).then((ok) => { if (!ok) history.undo(); renderHistory(); sequencer.invalidate(); });
+      seqHost.restoreHistory(e, true).then((ok) => { if (!ok) history.undo(); renderHistory(); sequencer.invalidate(); if (st.view === 'sequencer') sequencer.refresh(); });
       return;
     }
     if (e && e.info && e.info.reload) { project.redoPicks(e); renderHistory(); return; }      // A/B's picks: the file they made

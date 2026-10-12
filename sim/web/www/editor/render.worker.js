@@ -29,7 +29,7 @@ export async function renderOffline(options, source, hooks = {}) {
   if (mode !== 'mix') warnings.push('Stems bypass master effects but retain master volume, host amp modulation and the safety limiter. Shared modulation and nonlinear processing mean stems may not sum exactly to the master mix.');
   if (mode === 'track-stems') warnings.push('Track isolation mutes other sequencer tracks. Shared sound voices and note-triggered modulation can differ from the full mix.');
   const passes = mode === 'mix' ? [{name: 'master'}] : mode === 'track-stems'
-    ? model.tracks.flatMap((t, i) => t.route.kind === 1 && t.clips.some(Boolean) ? [{name: `track-${i + 1}`, track: i}] : [])
+    ? model.tracks.flatMap((t, i) => t.route.kind === 1 && t.clips.some(Boolean) ? [{name: `track-${i + 1}`, track: i, sound: t.route.index}] : [])
     : Array.from({length: 4}, (_, sound) => ({name: `sound-${sound + 1}`, sound}));
   if (!passes.length) throw new Error('No internal sound tracks to export.');
   // Without an onFile sink all separate WAVs remain resident in the caller.
@@ -45,7 +45,6 @@ export async function renderOffline(options, source, hooks = {}) {
     if (pass.track !== undefined) set.tracks.forEach((t, i) => { if (i !== pass.track) t.muted = 1; });
     project.set = writeSet(set);
     if (mode !== 'mix') project.master = [null, null];
-    if (pass.sound !== undefined) project.sounds.forEach((sound, i) => { if (sound && i !== pass.sound) sound.level = 0; });
     const fm1 = await instantiateFm1(module), ex = fm1.exports;
     ex.fm1w_init(sampleRate); ex.fm1w_default_chain();
     const put = text => {
@@ -54,6 +53,12 @@ export async function renderOffline(options, source, hooks = {}) {
       new Uint8Array(ex.memory.buffer, ex.fm1w_text_buf(), bytes.length).set(bytes); return bytes.length;
     };
     if (ex.fm1w_state_load(1, 0, 0, 4, put(JSON.stringify(project))) !== 1) throw new Error(`Project could not be loaded: ${fm1.string(ex.fm1w_state_report())}`);
+    if (pass.sound !== undefined) {
+      if (typeof ex.fm1w_export_sound_mask !== 'function') throw new Error('This Wasm build needs the offline sound isolation gate for safe stem export.');
+      // A contribution gate survives mix:Level automation. Do not mute tracks
+      // or change sound levels: their engines and SEQ modulation keep running.
+      ex.fm1w_export_sound_mask(1 << pass.sound);
+    }
     ex.fm1w_master(masterVolume, 0);
     const commands = 'sgend 2;sgjump 0;play';
     if (ex.fm1w_seq_text(put(commands)) !== commands.length) throw new Error('Could not start offline song transport.');

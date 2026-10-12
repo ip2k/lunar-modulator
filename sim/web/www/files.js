@@ -437,6 +437,11 @@ export function initFiles(env) {
     if (!r.ok) throw new Error(r.off ? 'Power is off.' : 'The project could not be saved.');
     return r.bytes;
   }
+  async function projectSnapshot() {
+    const r = await worklet({ type: 'state-save', kind: 1, arg: 0, hash: true });
+    if (!r.ok) throw new Error(r.off ? 'Power is off.' : 'The project could not be saved.');
+    return { text: await saveText('project', 0, r.bytes), hash: r.hash };
+  }
   const report = (r, fallback) => (r && r.report && typeof r.report === 'object' ? r.report
     : { code: 'BAD', message: (r && r.error) || fallback || 'Something went wrong.' });
 
@@ -564,6 +569,7 @@ export function initFiles(env) {
       return { ok: false, report: rep };
     }
     const l = await worklet({ type: 'state-load', bytes: c.bin, kind: 0, into: target.into, slot: target.slot,
+      expectedHash: o.expectedHash,
       flags: flags | (o.quiet ? FLAG_QUIET : 0) | (o.same ? FLAG_KEEP_TRANSPORT : 0) }, [c.bin.buffer]);
     f.workletLoads.push({ binary: l.binary === true, ok: l.ok === true });
     const rep = l.report ? JSON.parse(l.report) : { code: 'BAD', message: 'The audio thread takes the binary container only.' };
@@ -1250,7 +1256,7 @@ export function initFiles(env) {
   // headless page check.
   return Object.assign(f, {
     openFiles, afterPowerOn, beforePowerOff, touched, fillSaveKinds, renderLibrary, autosave, copyLink, highlight,
-    saveText, fileName, undoLoad, store,
+    saveText, projectSnapshot, fileName, undoLoad, store,
     shadow,                    // the shadow Worker, for the editor (format, parse, save)
     // stage ED4, for the editor: a load with W1's checks and notices, the
     // verdict before a drop, per-block export and the library.

@@ -6,10 +6,9 @@ const encoder = new TextEncoder();
 const stableSet = (set) => JSON.stringify(writeSet(parseSet(set)));
 const message = (r) => r?.report?.message || r?.error || 'The native sequencer refused this project.';
 
-export function makeSequencerHost({ sim, files, st, history, snapshot, say }) {
+export function makeSequencerHost({ sim, files, st, history, snapshot, say, onSettled }) {
   let busy = false;
   const versions = new WeakMap();
-  const urls = new Set();
   const css = document.createElement('link');
   css.rel = 'stylesheet'; css.href = new URL('sequencer-host.css', import.meta.url).href;
   document.head.append(css);
@@ -17,15 +16,24 @@ export function makeSequencerHost({ sim, files, st, history, snapshot, say }) {
   async function fetchProject() {
     if (!sim.node) throw new Error('Power on the simulator first.');
     const gen = st.gen;
-    const doc = JSON.parse(await files.saveText('project'));
-    versions.set(doc, gen);
+    const snap = await files.projectSnapshot();
+    if (st.gen !== gen) throw new Error('The project changed while reading. Retry the edit.');
+    const doc = JSON.parse(snap.text);
+    versions.set(doc, { gen, hash: snap.hash });
     return doc;
   }
 
-  async function loadChecked(doc) {
-    validateSet(parseSet(doc.set));
-    const before = await files.saveText('project');
+  async function loadChecked(doc, options = {}) {
+    const model = parseSet(doc.set);
+    const verdict = validateSet(model);
+    if (!verdict.valid) throw new Error(verdict.errors.join('; '));
+    if (model.unknown.length) throw new Error('This set contains extensions the native editor cannot preserve. Export a backup before editing it.');
     const gen = st.gen;
+    const snap = await files.projectSnapshot();
+    if (st.gen !== gen || (versions.has(doc) && versions.get(doc).hash !== snap.hash)) {
+      throw new Error('The project changed while checking. Retry the edit.');
+    }
+    const before = snap.text;
     const old = await files.shadow('pack', { text: before });
     if (!old.ok) throw new Error(message(old));
     const bytes = encoder.encode(JSON.stringify(doc));
@@ -41,7 +49,7 @@ export function makeSequencerHost({ sim, files, st, history, snapshot, say }) {
     }
     if (st.gen !== gen) throw new Error('The project changed while checking. Retry the edit.');
     st.ab.quietUntil = performance.now() + 1500;
-    const result = await files.load(bytes, { name: files.fileName('project'), ask: false, before: false, quiet: true, same: true });
+    const result = await files.load(bytes, { name: files.fileName('project'), ask: false, before: false, quiet: true, same: true, ...options, expectedHash: snap.hash });
     if (!result.ok) throw new Error(message(result));
     await snapshot();
     return { before, after: await files.saveText('project') };
@@ -49,7 +57,7 @@ export function makeSequencerHost({ sim, files, st, history, snapshot, say }) {
 
   async function applyProject(doc, label = 'Edit sequencer') {
     if (busy) throw new Error('Finish the current sequencer edit first.');
-    if (versions.has(doc) && versions.get(doc) !== st.gen) throw new Error('The project changed. Retry with its latest state.');
+    if (versions.has(doc) && versions.get(doc).gen !== st.gen) throw new Error('The project changed. Retry with its latest state.');
     busy = st.sequenceBusy = true;
     try {
       const { before, after } = await loadChecked(doc);
@@ -57,7 +65,7 @@ export function makeSequencerHost({ sim, files, st, history, snapshot, say }) {
         info: { struct: true, sequencer: true, beforeText: before, afterText: after } });
       say(label);
       return JSON.parse(after);
-    } finally { busy = st.sequenceBusy = false; }
+    } finally { busy = st.sequenceBusy = false; onSettled?.(); }
   }
 
   async function restoreHistory(entry, redo) {
@@ -68,7 +76,7 @@ export function makeSequencerHost({ sim, files, st, history, snapshot, say }) {
       say(`${redo ? 'Redone' : 'Undone'}: ${entry.label}`);
       return true;
     } catch (err) { say(err.message, true); return false; }
-    finally { busy = st.sequenceBusy = false; }
+    finally { busy = st.sequenceBusy = false; onSettled?.(); }
   }
 
   function download(blob, name) {
@@ -86,21 +94,44 @@ export function makeSequencerHost({ sim, files, st, history, snapshot, say }) {
     const input = document.createElement('input'); input.type = 'file'; input.accept = '.lunar,.movy1';
     input.addEventListener('change', async () => {
       const file = input.files?.[0]; if (!file) return;
+      let owned = false;
       try {
         if (file.size > 256 * 1024) throw new Error('The project exceeds Lunar’s text-file limit.');
         const bytes = new Uint8Array(await file.arrayBuffer());
         const d = files.describe(bytes, file.name);
-        if (!['project', 'set'].includes(d.kind)) throw new Error('Open a .lunar project or .movy1 sequencer set here.');
-        const result = await files.load(bytes, { name: file.name, ask: false, ui: true });
-        if (!result.ok) throw new Error(message(result));
-        history.clear(); await snapshot();
+        if (d.enc !== 1 && !['project', 'set'].includes(d.kind)) throw new Error('Open a .lunar project or .movy1 sequencer set here.');
+        if (busy) throw new Error('Finish the current sequencer edit first.');
+        busy = st.sequenceBusy = owned = true;
+        let doc;
+        if (d.enc === 1) {
+          const snap = await files.projectSnapshot();
+          const live = await files.shadow('pack', { text: snap.text });
+          if (!live.ok) throw new Error(message(live));
+          const checked = await files.shadow('check', { bytes, kind: 0, into: 0, slot: 0, flags: 0, live: live.bin });
+          if (!checked.ok) throw new Error(message(checked));
+          if (checked.report?.kind !== 'project') throw new Error('Open a complete .lunar project or .movy1 sequencer set here.');
+          const saved = await files.shadow('save', { kind: 1, arg: 0, live: checked.bin });
+          if (!saved.ok) throw new Error(message(saved));
+          doc = JSON.parse(saved.text);
+        } else {
+          const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+          doc = d.kind === 'project' ? JSON.parse(text) : await fetchProject();
+          if (d.kind === 'set') doc.set = text.split(/\r?\n/).filter(Boolean);
+        }
+        await loadChecked(doc, { name: file.name, ui: true, same: false, before: true });
+        history.clear();
+        say(`Opened ${file.name}`);
       } catch (err) { say(err.message, true); }
-      finally { input.remove(); }
+      finally { if (owned) { busy = st.sequenceBusy = false; onSettled?.(); } input.remove(); }
     });
     input.click();
   }
 
   function exportAudio() {
+    const existing = document.querySelector('dialog.sq-export');
+    if (existing) { existing.focus(); return existing; }
+    const urls = new Set();
+    let retainedBytes = 0;
     const dialog = document.createElement('dialog'); dialog.className = 'sq-export';
     dialog.setAttribute('aria-label', 'Export audio');
     const heading = document.createElement('h2'); heading.textContent = 'Export audio';
@@ -123,7 +154,8 @@ export function makeSequencerHost({ sim, files, st, history, snapshot, say }) {
     const actions = document.createElement('div'); actions.className = 'sq-export-actions'; actions.append(start, cancel);
     form.append(status, progress, results, actions); dialog.append(heading, note, form); document.body.append(dialog);
     let controller = null;
-    const dispose = () => { for (const url of urls) URL.revokeObjectURL(url); urls.clear(); dialog.remove(); };
+    const clearResults = () => { for (const url of urls) URL.revokeObjectURL(url); urls.clear(); retainedBytes = 0; results.replaceChildren(); };
+    const dispose = () => { clearResults(); dialog.remove(); };
     dialog.addEventListener('close', dispose);
     dialog.addEventListener('cancel', (e) => { if (controller) { e.preventDefault(); controller.abort(); } });
     cancel.onclick = () => { if (controller) controller.abort(); else dialog.close(); };
@@ -131,6 +163,7 @@ export function makeSequencerHost({ sim, files, st, history, snapshot, say }) {
       const modes = choices.filter((c) => c.checked).map((c) => c.dataset.mode);
       const tailSeconds = Number(tail.value);
       if (!modes.length || !Number.isFinite(tailSeconds) || tailSeconds < 0 || tailSeconds > 30) { status.textContent = 'Choose a format and a tail between 0 and 30 seconds.'; return; }
+      clearResults();
       controller = new AbortController(); start.disabled = true; cancel.textContent = 'Cancel render';
       for (const c of choices) c.disabled = true; tail.disabled = true;
       try {
@@ -139,6 +172,8 @@ export function makeSequencerHost({ sim, files, st, history, snapshot, say }) {
           const result = await renderAudio({ project, mode: modes[i], tail: tailSeconds, sampleRate: 44118, masterVolume: sim.master,
             signal: controller.signal, onProgress: (p) => { progress.value = (i + (typeof p === 'number' ? p : p.fraction || 0)) / modes.length; status.textContent = `Rendering ${modes[i]}…`; },
             onFile: (file) => {
+              if (retainedBytes + file.blob.size > 256 * 1024 * 1024) throw new Error('Downloads exceed the 256 MiB memory limit. Download these files, then render the remaining formats separately.');
+              retainedBytes += file.blob.size;
               const li = document.createElement('li'); const a = document.createElement('a'); const url = URL.createObjectURL(file.blob); urls.add(url);
               a.href = url; a.download = file.name; a.textContent = `${file.name} · ${file.channels} channels`; li.append(a); results.append(li);
             } });

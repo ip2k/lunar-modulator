@@ -328,6 +328,7 @@ class FM1Processor extends AudioWorkletProcessor {
     const bytes = n > 0 ? this.text().slice(0, n) : null;
     this.port.postMessage({
       type: 'state-saved', id: m.id, ok: n > 0, bytes,
+      hash: m.hash ? ex.fm1w_state_hash() >>> 0 : undefined,
       report: n > 0 ? null : this.fm1.string(ex.fm1w_state_report()),
     }, bytes ? [bytes.buffer] : []);
   }
@@ -337,6 +338,14 @@ class FM1Processor extends AudioWorkletProcessor {
     const ex = this.fm1.exports;
     const b = m.bytes;
     const binary = b instanceof Uint8Array && b.length >= 6 && b[0] === 0x89 && b[1] === 0x4c;
+    // Check on the audio thread, after every asynchronous shadow check. A
+    // pending editor batch must finish before a whole-project replacement.
+    if (m.expectedHash !== undefined && (this.edits.length ||
+        (ex.fm1w_state_hash() >>> 0) !== (m.expectedHash >>> 0))) {
+      this.port.postMessage({ type: 'state-loaded', id: m.id, ok: false, binary,
+        report: JSON.stringify({ code: 'CHANGED', message: 'The project changed while checking. Retry the edit.' }) });
+      return;
+    }
     if (!binary || b.length > ex.fm1w_text_cap()) {
       this.port.postMessage({ type: 'state-loaded', id: m.id, ok: false, binary, report: null });
       return;

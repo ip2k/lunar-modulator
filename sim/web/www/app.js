@@ -844,6 +844,7 @@ function setMaster(pos) {
   masterEl.setAttribute('aria-valuenow', String(Math.round(sim.master * 100)));
   send({ type: 'master', position: sim.master, show: true });
 }
+sim.setMaster = setMaster;
 
 // ---- keyboard ---------------------------------------------------------------------
 // Each held computer key remembers what it pressed, so its release reaches

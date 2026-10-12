@@ -608,6 +608,76 @@ underrun [verified 2026-10-06: 58,016 records, 0 underruns, Chromium 153;
 its worklet scope has no clock, so the worklet's own late count reads "not
 timed" there].
 
+## Song workspace: clips, scenes, MIDI and audio files
+
+Power on, open the editor and choose **Song**. The four sound cards control the
+shared instruments and levels; the arrangement below exposes all eight sequencer
+tracks. Route each track to a sound or a MIDI channel. MIDI routes can be stored,
+but the browser does not send MIDI out.
+
+Select a clip cell to edit its notes, or use **Edit scene** to reach any of the
+eight scene slots. **Launch scene** triggers that scene through native transport;
+while a launch is queued, the position display follows the clip still playing.
+**Scene matrix** shows all 64 clip slots, including scenes absent from the song.
+Its edit buttons select a clip; separate launch buttons perform clips or whole
+scenes. An empty slot offers **Stop track**. Manual launches leave song following
+while retaining the saved chain. Switch back to **Arrangement** for the timeline,
+which shows the native song chain, with real scene lengths and repeat counts. Repeated
+occurrences share the same scene clips: copy a scene first when a later occurrence
+needs a different variation. This view has no independent audio regions or
+unbounded DAW tracks.
+
+- Use **Create clip**, **Copy clip**, **Move clip** and **Delete clip** for a track's
+  selected scene. **Copy scene** duplicates all tracks into the destination;
+  **Swap scenes** also updates the song references. Existing destination clips
+  are replaced. Undo restores a successful edit.
+- Append a scene to the chain, change its repeats, or copy, reorder and remove
+  entries. Choose Loop, Park or Stop for the song ending. Each scene lasts as
+  long as its longest clip, rounded up to a bar.
+- Click the piano roll or step row to enter/select notes. Drag a note to change
+  its step and pitch; drag its right edge for gate length. Numeric controls offer
+  the same edits, plus velocity, probability and microtiming. Page through longer
+  clips and set their loop start, length, quantization and transpose.
+- Assign one of eight parameter-lock lanes per track to an instrument parameter,
+  either insert, either master effect, or the routed sound's mix level. Edit the
+  lane base and per-step values; an empty box removes a lock. The plot holds each
+  value until the next lock. Multiple tracks routed to one sound share that
+  sound's parameters and level.
+- Sound-card Mute and Solo operate on the tracks routed to that sound. Instrument,
+  insert and master buttons open the existing editable inspectors. **Output level**
+  is the page's master-volume preference and is not saved in the project.
+
+**Import MIDI…** accepts several `.mid`/`.midi` files together; dropping MIDI
+files into the workspace opens the same preview. Choose a target track and sound
+for each source part, then import one selected scene or a new song chain on those
+tracks. Choose empty targets or explicitly replace mapped clips. The preview
+reports excluded parts, unsupported controller/expression events, timing rounding
+and notes split at scene boundaries. Tempo changes require an explicit policy;
+Lunar's set has one tempo. Imports that exceed native pools, fail native round-trip
+preservation, or conflict with a longer unmapped scene clip are refused before
+loading. This imports note performance, not another synthesizer's sound patches.
+
+**Open…** reads `.lunar` projects and `.movy1` sequencer sets. **Save .lunar**
+includes sounds, effects and the set; **Export .movy1** writes the set only, so keep
+the project when the sound design matters. Both formats can be reopened for
+further editing. These are local file workflows using the native state codec;
+Lunar's FM-1 device runtime and direct USB-MIDI project open/save are not yet
+implemented. BLE project exchange also requires the future device stack.
+
+**Export WAV…** renders offline without recording the live browser output. Choose
+stereo master, four stereo sound stems, eight sequencer-track stems, or one
+eight-channel file containing the four stereo sounds. Sound stems bypass master
+effects; shared instruments and modulation can make isolated track stems differ
+from their role in the mix. Nonlinear processing means stems are not guaranteed
+to sum back to the master. The dialog exposes format and tail settings, progress
+and cancellation; this does not upload the project or audio.
+
+[verified: current editor modules]. The bounded Chromium mock-host regression
+`test/sequencer-ui.mjs` covers editing, pointer movement/resizing, queued-scene
+playhead, MIDI preview/refusal, focus retention and desktop/mobile containment.
+It is separate from real-Wasm integration and audio-render tests; no physical
+FM-1, USB or BLE acceptance follows from these browser checks.
+
 ## The advanced editor (stage ED2: shell, flow and sound)
 
 `www/editor/` holds the editor's plain ES modules, loaded with `import()` the

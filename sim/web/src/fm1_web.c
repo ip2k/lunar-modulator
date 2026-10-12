@@ -93,6 +93,10 @@ void fm1w_button(int button, int down) { fm1_app_button(&g_app, button, down); }
 void fm1w_encoder(int encoder, int delta) { fm1_app_encoder(&g_app, encoder, delta); }
 void fm1w_master(float position, int show) { fm1_app_master(&g_app, position, show); }
 
+/* Offline stems suppress bus contributions while all engines, inserts and
+ * sequencer-driven modulation keep running. Normal playback uses mask 15. */
+void fm1w_export_sound_mask(unsigned mask) { fm1_app_export_sound_mask(&g_app, mask); }
+
 /* Render into the app's buffer and return its address (stereo interleaved
  * float, `frames` <= 64). */
 const float *fm1w_render(unsigned frames) { return fm1_app_render(&g_app, frames); }

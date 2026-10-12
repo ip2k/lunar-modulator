@@ -263,10 +263,12 @@ enum {
  * on 32- and 64-bit builds, the 8 KB arena included) and the room for a
  * block's writes to the effects and AMP (every effect parameter and AMP
  * twice: two ticks a 64-frame block). The runtime counts in the RAM figure
- * while it runs. */
+ * while it runs. The queue also reserves one complete sequencer event
+ * block and one boundary restoration per lane for effect automation. */
 #define FM1_APP_MOD_BYTES 26880u
 #define FM1_APP_MOD_WRITES \
-  ((FM1_APP_MAX_FRAMES / FM1_MOD_TICK) * (FM1_APP_EFFECTS * FM1_MOD_UNIT_PARAMS + FM1_MOD_HOST_PARAMS))
+  ((FM1_APP_MAX_FRAMES / FM1_MOD_TICK) * (FM1_APP_EFFECTS * FM1_MOD_UNIT_PARAMS + FM1_MOD_HOST_PARAMS) + \
+   FM1_APP_SEQ_EVENTS + FM1_APP_SEQ_TRACKS * FM1_SEQ_LANES)
 #define FM1_APP_MOD_SEED 1u           /* fm1_app_init's runtime; a log records it */
 
 /* The arpeggiator (MIDI effects, engine API v3). One per sound unit, in the
@@ -347,6 +349,19 @@ typedef struct fm1_app_mod_write {
   fm1_mod_write_t w;
 } fm1_app_mod_write_t;
 
+/* Effect/mixer lane ownership, for a route/label release's base restoration.
+ * unit >= FM1_APP_UNITS denotes mixer sound unit (unit - FM1_APP_UNITS). */
+typedef struct fm1_app_seq_target {
+  const fm1_engine_t *engine;
+  uint8_t unit, index, base, active;
+} fm1_app_seq_target_t;
+
+typedef struct fm1_app_mix_write {
+  uint16_t frame;
+  uint8_t sound;
+  float level;
+} fm1_app_mix_write_t;
+
 struct fm1_app;
 
 /* A project's words (the `name`, `title`, `about`, `author` and `licence`
@@ -402,6 +417,12 @@ typedef struct fm1_app {
    * mix (percent), and their render blocks and sequencer sinks. */
   int sound;
   float level[FM1_APP_SOUNDS];
+  float seq_level[FM1_APP_SOUNDS]; /* effective percent; never saved as a knob */
+  uint8_t export_sound_mask;      /* final contribution gate, default all four */
+  uint32_t seq_nmix;
+  fm1_app_mix_write_t seq_mix[FM1_APP_SEQ_EVENTS + FM1_APP_SEQ_TRACKS * FM1_SEQ_LANES];
+  fm1_app_seq_target_t seq_target[FM1_APP_SEQ_TRACKS][FM1_SEQ_LANES];
+  uint64_t seq_auto_writes, seq_auto_refused, seq_auto_dropped;
   size_t ram_over;               /* the last RAM refusal: bytes past the budget (its
                                     popup shows budget + this as a percentage) */
   float mix[FM1_APP_SOUNDS][2 * FM1_APP_MAX_FRAMES];
@@ -848,6 +869,9 @@ int fm1_app_unit_insert(fm1_app_t *a, int sound, int slot, int index);
 /* A sound unit's level into the mix, in percent (0..100, default 100). */
 float fm1_app_unit_level(const fm1_app_t *a, int sound);
 void fm1_app_unit_set_level(fm1_app_t *a, int sound, float percent);
+/* Offline stems: gate contributions after inserts/gain, preserving events,
+ * voices and modulation. This transient mask is excluded from saved state. */
+void fm1_app_export_sound_mask(fm1_app_t *a, unsigned mask);
 
 /* A note on a given sound unit, whatever the current sound. */
 void fm1_app_unit_note_on(fm1_app_t *a, int sound, int note, int velocity);

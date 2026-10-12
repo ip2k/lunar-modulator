@@ -1,4 +1,11 @@
 // node sim/web/test/audio-export.mjs [--wasm /absolute/path/fm1.wasm]
+// 2026-10-11 receipt: Hera node:22-bookworm-slim, Docker CPU=2/memory=2GiB,
+// docker-batch.slice; Wasm SHA256 a8e3893389e16c630eb95a2a257034b905e3c15168881d49a83abc3d33c7126c.
+// All actual-Wasm assertions passed, including the native isolation gate.
+// Regressions cover automation leakage, MIDI-follow mode and unequal clip lengths.
+// Parent owns the shared branch checkpoint/push and browser download integration.
+// Isolated receipt: /home/claude/mvave-fm1/audio-export-20261011/test-gate.log.
+// Browser download integration and owner listening remain separate acceptance gates.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createWav} from '../www/editor/wav.js';
@@ -61,9 +68,21 @@ if (wasmArg >= 0) {
   const a = await renderOffline(request, wasm), b = await renderOffline(request, wasm);
   assert.deepEqual(a.files[0].buffer, b.files[0].buffer); assert(a.files[0].peak > 0.001);
   assert(a.files[0].samples > 0.8*44118 && a.files[0].samples < 0.86*44118);
+  const quiet = await renderOffline({...request,masterVolume:0.5},wasm);
+  assert(Math.abs(quiet.files[0].peak/a.files[0].peak-0.25)<0.001);
   const stems = await renderOffline({...request,mode:'sound-stems'},wasm);
   assert.equal(stems.files.length,4); assert(stems.files[0].peak > 0); assert(stems.files[1].peak > 0);
   assert.equal(stems.files[2].peak,0); assert.equal(stems.files[3].peak,0);
+  const automated = structuredClone(project), automationSet = structuredClone(set);
+  automationSet.tracks[1].lanes[0]={base:50,label:'mix:Level'};
+  automationSet.tracks[1].clips[0].locks=[{lane:0,step:0,value:0},{lane:0,step:4,value:127}];
+  automated.set=writeSet(automationSet);
+  const lockedStems=await renderOffline({...request,project:automated,mode:'sound-stems'},wasm);
+  assert.deepEqual(lockedStems.files[0].buffer,stems.files[0].buffer,'Unrelated mix automation leaked into the selected sound stem.');
+  assert.notDeepEqual(lockedStems.files[1].buffer,stems.files[1].buffer,'mix:Level lock did not affect its selected stem.');
+  let streamedCount=0;
+  const streamResult=await renderOffline({...request,mode:'sound-stems'},wasm,{onFile:async file=>{assert(file.buffer instanceof ArrayBuffer); ++streamedCount;}});
+  assert.equal(streamedCount,4); assert.equal(streamResult.files.length,0);
   const channels = await renderOffline({...request,mode:'multichannel'},wasm);
   const packed = new DataView(channels.files[0].buffer);
   for (let s=0;s<4;++s) {
@@ -73,6 +92,20 @@ if (wasmArg >= 0) {
   }
   const tracks = await renderOffline({...request,mode:'track-stems'},wasm); assert.equal(tracks.files.length,2);
   assert.deepEqual(tracks.files[0].buffer,stems.files[0].buffer); assert.deepEqual(tracks.files[1].buffer,stems.files[1].buffer);
+  const linkedProject=structuredClone(project), linkedSet=structuredClone(set); linkedSet.link=1;
+  linkedProject.set=writeSet(linkedSet);
+  assert.deepEqual((await renderOffline({...request,project:linkedProject},wasm)).files[0].buffer,a.files[0].buffer,'Saved MIDI-follow preference stalled the internal offline clock.');
+  const unevenProject=structuredClone(project), unevenSet=structuredClone(set);
+  unevenSet.tracks[1].clips[0]=emptyClip(32); unevenSet.tracks[1].clips[0].notes=[{tick:0,gate:192,pitch:67,vel:100,step:0}];
+  unevenProject.set=writeSet(unevenSet);
+  const unevenMix=await renderOffline({...request,project:unevenProject},wasm);
+  const unevenTracks=await renderOffline({...request,project:unevenProject,mode:'track-stems'},wasm);
+  assert(unevenMix.files[0].samples>a.files[0].samples);
+  assert(unevenTracks.files.every(f=>f.samples===unevenMix.files[0].samples),'Track isolation changed the arrangement duration.');
+  const midiOnly = structuredClone(project); const midiSet = structuredClone(set);
+  midiSet.tracks.forEach((t,i)=>{t.route={kind:0,index:i+1};}); midiOnly.set=writeSet(midiSet);
+  const external = await renderOffline({...request,project:midiOnly},wasm);
+  assert.equal(external.files[0].peak,0); assert(external.warnings.some(w=>w.includes('External MIDI')));
   let cancel = false;
   await assert.rejects(renderOffline(request,wasm,{isCancelled:()=>cancel,onProgress:()=>{cancel=true;}}),{name:'AbortError'});
   const long = structuredClone(project); const longSet = emptySet(); longSet.bpmX100=2000; longSet.song=Array(64).fill(0); longSet.tracks[0].clips[0]=emptyClip(256); long.set=writeSet(longSet);

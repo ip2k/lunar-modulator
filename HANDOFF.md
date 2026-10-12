@@ -6,10 +6,26 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 
 Written 2026-09-06 at the end of the research session that created this
 repository, so a fresh Claude project (or a human) can continue without the
-original conversation; last updated 2026-10-10. Read this first, then
+original conversation; last updated 2026-10-11. Read this first, then
 `DEVELOPERS.md` (the README is the product page), then `docs/`.
 
-## Active work — 2026-10-10
+## Active work — 2026-10-11
+
+The Song/MIDI workspace is on `feature/2026-10-11@midi-sequencer-workspace`,
+branched from `b335dc2`. Its endpoint is native clip/scene/song editing, MIDI
+batch import, lock automation, project/set exchange and actual-Wasm stereo,
+stem and multichannel export, tested and reviewed through CI, merge and Pages.
+The current checkpoint and outstanding gates are in
+[the implementation note](notes/2026-10-11-midi-song-workspace.md).
+The model is shared with Lunar's C sequencer; desktop-only song structures
+must not enter this workspace. The owner's FM-1 still runs FM-1_092, so physical
+Lunar file exchange is untested. USB-MIDI and eventual BLE direct project
+access are future capabilities outside this editor scope.
+
+The separately completed demo/example stream is under PR #145; owner listening
+remains a distinct acceptance gate. Check its live status before continuing.
+
+## Prior checkpoint — 2026-10-10 (historical)
 
 Live `origin/main` is `bdba4476570b0a77d13c76a38dfb3bcfd364277b`. The combined
 Warble/Repeat/PSX candidate is open as [PR #140](https://github.com/ip2k/lunar-modulator/pull/140)

@@ -131,7 +131,7 @@ jobs:
           FM1_SIM_CC: gcc
           FM1_SIM_CXX: g++
           FM1_SIM_EXTRA: -m32 -msse2 -mfpmath=sse
-        run: python -m pytest -v tests/test_sim_web.py tests/test_sim_seq.py tests/test_seq_ui.py tests/test_sim_multi.py tests/test_sim_mod.py tests/test_sim_lists.py
+        run: python -m pytest -v tests/test_sim_web.py tests/test_sim_seq.py tests/test_seq_ui.py tests/test_sim_multi.py tests/test_sim_mod.py tests/test_sim_lists.py tests/test_sim_automation.py
 
   engines-sanitizers:
     # ASan + UBSan over every engine test. Vendored files with documented
@@ -161,7 +161,7 @@ jobs:
           FM1_SIM_OPT: -O1
           FM1_SIM_EXTRA: -fsanitize=address,undefined -fno-omit-frame-pointer -g -fsanitize-ignorelist=sanitizers/ignorelist.txt
           UBSAN_OPTIONS: suppressions=${{ github.workspace }}/engines/sanitizers/ubsan.supp:halt_on_error=1:print_stacktrace=1
-        run: python -m pytest -v tests/test_sim_web.py tests/test_sim_seq.py tests/test_seq_ui.py tests/test_sim_multi.py tests/test_sim_mod.py tests/test_sim_lists.py tests/test_sim_edit.py
+        run: python -m pytest -v tests/test_sim_web.py tests/test_sim_seq.py tests/test_seq_ui.py tests/test_sim_multi.py tests/test_sim_mod.py tests/test_sim_lists.py tests/test_sim_edit.py tests/test_sim_automation.py
 
   editor-page-tests:
     # The Advanced editor's page tests (sim/web/test/editor-*.mjs, notes/2026-10-06-web-editor.md §17),
@@ -214,6 +214,11 @@ jobs:
       - name: The editor's data and history against the module (node)
         timeout-minutes: 5
         run: node sim/web/test/editor-unit.mjs sim/web/www
+      - name: MIDI model round trips and native offline audio export
+        timeout-minutes: 5
+        run: |
+          node sim/web/test/midi-import.mjs sim/web/www
+          node sim/web/test/audio-export.mjs --wasm sim/web/www/fm1.wasm
       - name: Worklet startup and restart ordering
         timeout-minutes: 5
         run: node sim/web/test/startup-smoke.mjs sim/web/www "$SHOTS/startup"
@@ -225,7 +230,7 @@ jobs:
         run: |
           mkdir -p "$SHOTS"
           status=0
-          for t in editor-ui editor-reach editor-map editor-v1 info-dialogs; do
+          for t in editor-ui editor-reach editor-map editor-v1 info-dialogs sequencer-ui sequencer-native; do
             echo "::group::$t ($BROWSER)"
             node "sim/web/test/$t.mjs" sim/web/www "$SHOTS" || status=1
             echo "::endgroup::"

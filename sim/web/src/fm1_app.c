@@ -638,7 +638,7 @@ static void app_init(fm1_app_t *a, float sample_rate) {
   for (int k = 0; k < FM1_APP_SOUNDS; ++k) {         /* each sound unit its own arena */
     a->unit[fm1_app_sound_unit(k)].mem = a->sound_mem[k];
     a->unit[fm1_app_sound_unit(k)].cap = FM1_APP_SOUND_BYTES;
-    a->level[k] = FM1_APP_LEVEL_MAX;
+    a->level[k] = a->seq_level[k] = FM1_APP_LEVEL_MAX;
     a->sink_ctx[k].a = a;
     a->sink_ctx[k].sound = k;
     for (int j = 0; j < FM1_APP_INSERTS; ++j) {
@@ -648,6 +648,7 @@ static void app_init(fm1_app_t *a, float sample_rate) {
   for (int k = 0; k < FM1_APP_FX_SLOTS; ++k) a->unit[1 + k].mem = a->fx_mem[k];
   fm1_mix_limiter_init(&a->limiter, sample_rate);
   a->master = 1.0f;
+  a->export_sound_mask = (1u << FM1_APP_SOUNDS) - 1u;
   a->gain = 1.0f;
   a->popup_mark = -1;
   a->mode = FM1_MODE_HOME;
@@ -730,7 +731,162 @@ static void mod_write(void *ctx, uint32_t frame, const fm1_mod_write_t *w) {
     a->mod_wr[a->mod_nwr].frame = frame;
     a->mod_wr[a->mod_nwr].w = *w;
     ++a->mod_nwr;
+  } else ++a->seq_auto_dropped;
+}
+
+/* Resolve only reserved effect/mixer labels. A sound label is handled by
+ * the bridge, and never by this second path. Master slots are global;
+ * inserts and levels require a valid engine route, even for an empty sound. */
+static int seq_auto_target(fm1_app_t *a, unsigned track, unsigned lane,
+                            fm1_app_seq_target_t *target) {
+  fm1_seq_track_info_t ti;
+  const char *name;
+  int kind, unit, index;
+  if (!a->seq || track >= FM1_APP_SEQ_TRACKS || lane >= FM1_SEQ_LANES ||
+      !fm1_seq_get_track(a->seq, (uint8_t)track, &ti)) return 0;
+  kind = fm1_seq_lane_target(fm1_seq_lane_label(a->seq, (uint8_t)track, (uint8_t)lane), &name);
+  if (kind <= FM1_SEQ_TARGET_SOUND) return 0;
+  if (kind == FM1_SEQ_TARGET_MASTER1 || kind == FM1_SEQ_TARGET_MASTER2) {
+    unit = kind - FM1_SEQ_TARGET_MASTER1 + 1;
+  } else {
+    if (ti.route_kind != FM1_SEQ_ROUTE_ENGINE || ti.route_index >= FM1_APP_SOUNDS) return 0;
+    unit = kind == FM1_SEQ_TARGET_MIX ? FM1_APP_UNITS + ti.route_index :
+           fm1_app_insert_unit(ti.route_index, kind - FM1_SEQ_TARGET_INSERT1);
   }
+  memset(target, 0, sizeof *target);
+  target->unit = (uint8_t)unit;
+  target->base = ti.base[lane];
+  if (kind == FM1_SEQ_TARGET_MIX) return 1;
+  target->engine = a->unit[unit].e;
+  index = fm1_seq_lane_param(target->engine, name);
+  if (index < 0 || index >= FM1_APP_MAX_PARAMS ||
+      (target->engine->params[index].flags & (FM1_PARAM_NOLOCK | FM1_PARAM_PER_FOCUS))) return 0;
+  target->index = (uint8_t)index;
+  return 1;
+}
+
+static void seq_auto_write(fm1_app_t *a, uint32_t frame,
+                            const fm1_app_seq_target_t *target, unsigned v7) {
+  if (target->unit >= FM1_APP_UNITS) {
+    const unsigned sound = target->unit - FM1_APP_UNITS;
+    if (sound < FM1_APP_SOUNDS && a->seq_nmix < sizeof a->seq_mix / sizeof a->seq_mix[0]) {
+      fm1_app_mix_write_t *w = &a->seq_mix[a->seq_nmix++];
+      w->frame = (uint16_t)frame;
+      w->sound = (uint8_t)sound;
+      w->level = FM1_APP_LEVEL_MAX * (float)v7 / (float)FM1_SEQ_VAL_MAX;
+    } else ++a->seq_auto_dropped;
+  } else {
+    fm1_mod_write_t w;
+    const fm1_app_unit_t *u = &a->unit[target->unit];
+    if (!u->e || u->e != target->engine) return; /* a replaced instance is gone */
+    memset(&w, 0, sizeof w);
+    w.unit = (uint8_t)fm1_app_mod_unit(target->unit);
+    w.index = target->index;
+    w.value = fm1_seq_lock_value(&u->e->params[target->index], v7);
+    if (a->mod) w.value = fm1_mod_set_base(a->mod, w.unit, w.index, w.value);
+    mod_write(a, frame, &w);
+  }
+  ++a->seq_auto_writes;
+}
+
+/* At a block boundary a relabelled/released/rerouted lane restores its old
+ * target, even when the core already erased the label that named it. */
+static uint32_t seq_auto_begin(void *ctx, uint32_t frames, const fm1_engine_t *engine,
+                                uint32_t bpm, int playing) {
+  fm1_app_t *a = (fm1_app_t *)ctx;
+  for (unsigned t = 0; t < FM1_APP_SEQ_TRACKS; ++t) {
+    for (unsigned l = 0; l < FM1_SEQ_LANES; ++l) {
+      fm1_app_seq_target_t next, *old = &a->seq_target[t][l];
+      if (!old->active) continue;
+      if (!seq_auto_target(a, t, l, &next) || next.unit != old->unit ||
+          next.index != old->index || next.engine != old->engine) {
+        seq_auto_write(a, 0, old, old->base);
+        old->active = 0;
+      } else old->base = next.base;
+    }
+  }
+  return a->mod ? a->mod_glue.hook.begin(a->mod_glue.hook.ctx, frames, engine, bpm, playing) : frames;
+}
+
+static void seq_auto_event(void *ctx, uint32_t frame, const fm1_seq_ev_t *e, int to_engine) {
+  fm1_app_t *a = (fm1_app_t *)ctx;
+  if (a->mod) a->mod_glue.hook.event(a->mod_glue.hook.ctx, frame, e, to_engine);
+  if (e->kind == FM1_SEQ_EV_LOCK && e->track < FM1_APP_SEQ_TRACKS && e->a < FM1_SEQ_LANES) {
+    fm1_app_seq_target_t target;
+    const int kind = fm1_seq_lane_target(fm1_seq_lane_label(a->seq, e->track, e->a), NULL);
+    if (kind == FM1_SEQ_TARGET_SOUND) return;
+    if (!seq_auto_target(a, e->track, e->a, &target)) {
+      if (kind >= 0) ++a->seq_auto_refused;
+      return;
+    }
+    seq_auto_write(a, frame, &target, e->b);
+    target.active = e->b != target.base;
+    a->seq_target[e->track][e->a] = target;
+  }
+}
+
+static float seq_auto_lock(void *ctx, uint16_t index, float value) {
+  fm1_app_t *a = (fm1_app_t *)ctx;
+  return a->mod ? a->mod_glue.hook.lock(a->mod_glue.hook.ctx, index, value) : value;
+}
+
+static float seq_auto_lock_slot(void *ctx, unsigned slot, uint16_t index, float value) {
+  fm1_app_t *a = (fm1_app_t *)ctx;
+  return a->mod ? a->mod_glue.hook.lock_slot(a->mod_glue.hook.ctx, slot, index, value) : value;
+}
+
+static uint32_t seq_auto_tick(void *ctx, uint32_t frame, const fm1_seq_hook_write_t **w,
+                               uint32_t *next) {
+  fm1_app_t *a = (fm1_app_t *)ctx;
+  if (!a->mod) { *w = NULL; *next = frame + FM1_MOD_TICK; return 0; }
+  return a->mod_glue.hook.tick(a->mod_glue.hook.ctx, frame, w, next);
+}
+
+static uint32_t seq_auto_note_on(void *ctx, uint32_t frame, unsigned slot, uint8_t key,
+                                  const fm1_seq_hook_write_t **w) {
+  fm1_app_t *a = (fm1_app_t *)ctx;
+  if (a->mod) return a->mod_glue.hook.note_on(a->mod_glue.hook.ctx, frame, slot, key, w);
+  *w = NULL;
+  return 0;
+}
+
+/* Knob edits become the D6 base of every matching effect/mixer lane, as
+ * sound knobs already do. ABASEQ updates the base without emitting a lock. */
+static void seq_auto_base(fm1_app_t *a, unsigned unit, unsigned index, unsigned v7) {
+  if (!a->seq) return;
+  for (unsigned t = 0; t < FM1_APP_SEQ_TRACKS; ++t) {
+    for (unsigned l = 0; l < FM1_SEQ_LANES; ++l) {
+      fm1_app_seq_target_t target;
+      if (seq_auto_target(a, t, l, &target) && target.unit == unit && target.index == index &&
+          target.base != v7) {
+        fm1_seq_cmd_t cmd;
+        const int64_t arg[3] = { t, l, v7 };
+        fm1_seq_cmd_make(&cmd, FM1_SEQ_V_ABASEQ, 3u, arg);
+        fm1_app_seq_cmd(a, &cmd);
+      }
+    }
+  }
+}
+
+/* Discarding the set restores configured knobs, rather than retaining any
+ * transient lock base from that set. Called before reset/import. */
+static void seq_auto_release(fm1_app_t *a) {
+  for (unsigned t = 0; t < FM1_APP_SEQ_TRACKS; ++t) {
+    for (unsigned l = 0; l < FM1_SEQ_LANES; ++l) {
+      fm1_app_seq_target_t *x = &a->seq_target[t][l];
+      if (!x->engine || x->unit >= FM1_APP_UNITS) continue;
+      const fm1_app_unit_t *u = &a->unit[x->unit];
+      if (u->e && u->e == x->engine) {
+        float value = u->value[x->index];
+        if (a->mod) value = fm1_mod_set_base(a->mod, (unsigned)fm1_app_mod_unit(x->unit), x->index, value);
+        u->e->set_param(u->self, x->index, value);
+      }
+    }
+  }
+  memset(a->seq_target, 0, sizeof a->seq_target);
+  for (unsigned k = 0; k < FM1_APP_SOUNDS; ++k) a->seq_level[k] = a->level[k];
+  a->seq_nmix = 0;
+  a->mod_nwr = 0;
 }
 
 /* Binds a unit's engine (or none) as the runtime's sink for it, its knobs'
@@ -1171,6 +1327,10 @@ void fm1_app_set_param(fm1_app_t *a, int unit, int index, float value) {
     value = fm1_mod_set_base(a->mod, (unsigned)fm1_app_mod_unit(unit), (unsigned)index, value);
   }
   u->e->set_param(u->self, (uint16_t)index, value);   /* the engine clamps too */
+  if (unit_sound(unit) < 0) {
+    seq_auto_base(a, (unsigned)unit, (unsigned)index,
+                  fm1_seq_value7(&u->e->params[index], u->value[index]));
+  }
   a->dirty = 1;
 }
 
@@ -1206,7 +1366,9 @@ static size_t ram_of(const fm1_app_t *a, int unit, size_t bytes, int loaded) {
   }
   if (a->seq) {
     total += fm1_seq_size(&a->seq_lim) + sizeof a->seq_ev + sizeof a->seq_pend +
-             FM1_APP_SEQ_UI_BYTES + sizeof a->click;
+             FM1_APP_SEQ_UI_BYTES + sizeof a->click + sizeof a->seq_target +
+             sizeof a->seq_mix + sizeof a->seq_level +
+             (FM1_APP_SEQ_EVENTS + FM1_APP_SEQ_TRACKS * FM1_SEQ_LANES) * sizeof a->mod_wr[0];
   }
   if (sounds > 1) total += (size_t)(sounds - 1) * FM1_APP_MIX_BLOCK_BYTES;
   if (a->mod) total += fm1_mod_size();
@@ -1288,8 +1450,15 @@ void fm1_app_unit_set_level(fm1_app_t *a, int sound, float percent) {
   if (sound < 0 || sound >= FM1_APP_SOUNDS || !(percent == percent)) return;
   const float was = a->level[sound];
   a->level[sound] = percent < 0.0f ? 0.0f : (percent > FM1_APP_LEVEL_MAX ? FM1_APP_LEVEL_MAX : percent);
+  a->seq_level[sound] = a->level[sound];
+  seq_auto_base(a, FM1_APP_UNITS + (unsigned)sound, 0,
+                (unsigned)(a->level[sound] * (float)FM1_SEQ_VAL_MAX / FM1_APP_LEVEL_MAX + 0.5f));
   a->dirty = 1;
   if (was != a->level[sound]) fm1_edit_note_level(a, sound);
+}
+
+void fm1_app_export_sound_mask(fm1_app_t *a, unsigned mask) {
+  a->export_sound_mask = (uint8_t)(mask & ((1u << FM1_APP_SOUNDS) - 1u));
 }
 
 /* A typed `route t 1 sound`, as the panel's commands go in (the event-room
@@ -3176,14 +3345,23 @@ static void sink_set_param_note(void *ctx, uint8_t key, uint16_t index, float of
  * gives an effect with engine API v3's extension the sequencer's tempo,
  * beats, Start and Stop (fm1_fx_host.h; no key yet). First, as RenderFx,
  * FM1_PARAM_DRIVEN when it changed: 1 while a cable reaches the effect, so
- * one with an idle path never idles under it (owner, 2026-10-06; the
- * sequencer's lanes cannot lock an effect yet). */
+ * one with an idle path never idles under it. Active sequencer locks and
+ * frame-tagged lock/base writes also keep the effect driven. */
 static void render_fx(fm1_app_t *a, int unit, float *out, uint32_t n) {
   fm1_app_unit_t *u = &a->unit[unit];
   const int code = fm1_app_mod_unit(unit);
-  const int driven = a->mod && code >= 0 ? fm1_mod_unit_routed(a->mod, (unsigned)code) : 0;
+  int driven = a->mod && code >= 0 ? fm1_mod_unit_routed(a->mod, (unsigned)code) : 0;
   fm1_fx_block_t b;
   uint32_t cur = 0;
+  for (unsigned t = 0; !driven && t < FM1_APP_SEQ_TRACKS; ++t) {
+    for (unsigned l = 0; l < FM1_SEQ_LANES; ++l) {
+      const fm1_app_seq_target_t *x = &a->seq_target[t][l];
+      if (x->active && x->unit == unit && x->engine == u->e) driven = 1;
+    }
+  }
+  for (uint32_t k = 0; !driven && k < a->mod_nwr; ++k) {
+    if (a->mod_wr[k].w.unit == code) driven = 1;
+  }
   if (driven != u->driven) {
     u->e->set_param(u->self, FM1_PARAM_DRIVEN, (float)driven);
     u->driven = driven;
@@ -3204,6 +3382,26 @@ static void render_fx(fm1_app_t *a, int unit, float *out, uint32_t n) {
     if (w->index < u->e->n_params) u->e->set_param(u->self, w->index, w->value);
   }
   if (cur < n) fm1_fx_render(u->e, u->self, out, cur, n, &b);
+}
+
+/* Mixer gain is piecewise constant on the lock's sample frames. The
+ * configured level remains in level[]; the final effective gain carries
+ * across blocks until the next lock/base or a knob edit. */
+static void apply_mix_level(fm1_app_t *a, unsigned sound, float *out, uint32_t n) {
+  float level = a->seq_level[sound];
+  uint32_t cur = 0;
+  for (uint32_t k = 0; k <= a->seq_nmix; ++k) {
+    const fm1_app_mix_write_t *w = k < a->seq_nmix ? &a->seq_mix[k] : NULL;
+    if (w && w->sound != sound) continue;
+    const uint32_t f = w && w->frame < n ? w->frame : n;
+    if (level != FM1_APP_LEVEL_MAX) {
+      const float g = level / FM1_APP_LEVEL_MAX;
+      for (uint32_t i = 2u * cur; i < 2u * f; ++i) out[i] *= g;
+    }
+    cur = f;
+    if (w) level = w->level;
+  }
+  a->seq_level[sound] = level;
 }
 
 /* HOST AMP's gain before the click and the limiter, ramped over each tick
@@ -3250,8 +3448,11 @@ static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {
      * own frames, each sound unit split where a tick writes to it. */
     seq_flush(a);
     a->seq_last_n = fm1_seq_host_advance(&a->seq_host, n);
-    fm1_seq_host_dispatch_slots_ticks(&a->seq_host, n, slot, FM1_APP_SOUNDS,
-                                      a->mod ? &a->mod_glue.hook : NULL);
+    /* The event hook also applies insert/master/mixer locks without a mod
+     * runtime. With modulation it forwards every existing hook operation. */
+    const fm1_seq_hook_t hook = { a, seq_auto_begin, seq_auto_event, seq_auto_lock,
+                                 seq_auto_tick, seq_auto_lock_slot, seq_auto_note_on };
+    fm1_seq_host_dispatch_slots_ticks(&a->seq_host, n, slot, FM1_APP_SOUNDS, &hook);
   } else {
     for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
       if (slot[k].sink) sound_of(a, k)->e->render(sound_of(a, k)->self, a->mix[k], n);
@@ -3259,7 +3460,7 @@ static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {
   }
   for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
     float *b = a->mix[k];
-    if (!slot[k].sink) continue;
+    if (!slot[k].sink) { apply_mix_level(a, (unsigned)k, b, n); continue; }
     if (a->edit) fm1_edit_meter(a, 3u * (unsigned)k, b, n);   /* telemetry, read only */
     for (int j = 0; j < FM1_APP_INSERTS; ++j) {
       const int iu = fm1_app_insert_unit(k, j);
@@ -3268,10 +3469,8 @@ static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {
         if (a->edit) fm1_edit_meter(a, 3u * (unsigned)k + 1u + (unsigned)j, b, n);
       }
     }
-    if (a->level[k] != FM1_APP_LEVEL_MAX) {
-      const float g = a->level[k] / 100.0f;
-      for (uint32_t i = 0; i < 2 * n; ++i) b[i] *= g;
-    }
+    apply_mix_level(a, (unsigned)k, b, n);
+    if (!(a->export_sound_mask & (1u << k))) continue;
     if (first) memcpy(out, b, 2u * n * sizeof *out);
     else for (uint32_t i = 0; i < 2 * n; ++i) out[i] += b[i];
     first = 0;
@@ -3285,6 +3484,7 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
   uint32_t n = frames > FM1_APP_MAX_FRAMES ? FM1_APP_MAX_FRAMES : frames;
   float *out = a->out;
   a->mod_nwr = 0;
+  a->seq_nmix = 0;
   /* docs/15 §2.4, steps 2-6: what was held, the block's own events, then
    * every sound unit split at each one it takes, its inserts and its level;
    * the runtime's ticks run inside the block at their own frames
@@ -3450,6 +3650,7 @@ void fm1_app_seq_note_in(fm1_app_t *a, int track, int pitch, int velocity) {
 static void seq_drop(fm1_app_t *a) {
   const fm1_mfx_sink_t sink = mfx_sink(a);
   ++a->seq_gen;
+  seq_auto_release(a);
   /* The arps forget what they hold: the keys the sequencer gave them will
    * get no note-off from the new instance. */
   for (int k = 0; k < FM1_APP_SOUNDS; ++k) fm1_mfx_flush(&a->mfx, (unsigned)k, 1, &sink);

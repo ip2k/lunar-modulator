@@ -2,6 +2,7 @@
 // optimistically in the audio engine. MIT licence, like the rest of Lunar.
 import { parseSet, writeSet, validateSet, arrangementEntries } from './sequence-model.js';
 import { parseMidi, planMidiImport, applyMidiImport } from './midi-import.js';
+import { toPos } from './model.js';
 
 const clone = (x) => structuredClone(x);
 const pitchName = (p) => `${['C','C♯','D','E♭','E','F','F♯','G','A♭','A','B♭','B'][p % 12]}${Math.floor(p / 12) - 1}`;
@@ -44,12 +45,13 @@ export function makeSequencer(ctx) {
   const content = el('fieldset', 'sq-content');
   root.append(status, content);
   const state = { doc: null, model: null, busy: false, loading: null, dirty: true, track: 0, scene: 0,
-    note: -1, page: 0, pitch: 60, low: 48, song: 0, lane: 0, inspector: null, midi: null, solo: null };
-  let disposed = false, pendingFocus = null;
+    note: -1, page: 0, pitch: 60, low: 48, song: 0, lane: 0, inspector: null, midi: null, solo: null, arrangement: true };
+  let disposed = false, pendingFocus = null, suppressNoteClick = false, cancelDrag = null, readError = false;
   const sceneName = (s) => state.model?.sceneNames[s] || `Scene ${s + 1}`;
   const clip = (m = state.model, t = state.track, s = state.scene) => m.tracks[t].clips[s];
   const ensureClip = (m, t, s) => m.tracks[t].clips[s] ||= freshClip();
   function announce(text, error = false) {
+    readError = false;
     status.textContent = text; status.classList.toggle('is-error', error); ctx.say?.(text);
   }
   function lock(on) {
@@ -67,8 +69,9 @@ export function makeSequencer(ctx) {
         const selected = state.model && state.note >= 0 ? clip()?.notes[state.note] : null;
         state.doc = doc; state.model = parseSet(doc.set || ['movy1']); state.dirty = false;
         if (selected) state.note = (clip()?.notes || []).findIndex(n => n.tick === selected.tick && n.pitch === selected.pitch);
+        if (readError) announce('');
         draw();
-      } catch (e) { announce(`Cannot read the sequence: ${e.message}`, true); }
+      } catch (e) { announce(`Cannot read the sequence: ${e.message}`, true); readError = true; }
       finally { state.loading = null; }
     })();
     return state.loading;
@@ -168,14 +171,60 @@ export function makeSequencer(ctx) {
         choose(`Track ${t + 1} output`, `${route.kind === 1 ? 's' : 'm'}${route.index}`, routeOptions(), v => edit(`Route track ${t + 1}`, m => { m.tracks[t].route = { kind: v[0] === 's' ? 1 : 0, index: Number(v.slice(1)) }; }))]));
       columns.forEach((e, i) => {
         const c = track.clips[e.scene];
-        timeline.append(btn(c ? `${c.notes.length} notes · ${c.length / 16} bars` : '＋ Empty clip', () => { state.song = i; selectClip(t, e.scene); }, {
+        const cell = btn(c ? `${c.notes.length} notes · ${c.length / 16} bars` : '＋ Empty clip', () => { state.song = i; selectClip(t, e.scene); }, {
           class: `sq-button sq-clip ${group} ${t === state.track && e.scene === state.scene ? 'is-selected' : ''}`,
           'aria-label': `Track ${t + 1}, ${sceneName(e.scene)}, ${c ? c.notes.length + ' notes' : 'empty clip'}`, 'data-track': t, 'data-scene': e.scene,
-        }));
+        });
+        if (c?.notes.length) cell.append(clipPreview(c));
+        timeline.append(cell);
       });
     });
     return el('section', 'sq-section', {}, [el('h3', '', { text: 'Arrangement' }), controls,
       el('div', 'sq-scroll', { 'data-scroll': 'song' }, [timeline]), el('p', 'sq-caption', { text: 'Columns follow the native scene chain. Repeats share their scene clips; edit a copied scene for a different variation.' })]);
+  }
+  function sceneMatrix() {
+    const grid = el('div', 'sq-song-grid sq-scene-grid', { 'aria-label': 'Scene matrix', 'data-testid': 'scene-matrix' });
+    grid.style.gridTemplateColumns = '170px repeat(8, 170px)';
+    grid.append(el('div', 'sq-track-head', { text: 'SCENES · performance' }));
+    for (let scene = 0; scene < 8; scene++) grid.append(el('div', 'sq-scene-head', {}, [
+      btn(sceneName(scene), () => selectClip(state.track, scene), { 'aria-label': `Edit scene ${scene + 1}`, 'aria-pressed': String(state.scene === scene) }),
+      ctx.playScene ? btn('▶ Launch scene', () => action(() => ctx.playScene(scene)), { 'aria-label': `Launch scene ${scene + 1}` }) : null,
+    ]));
+    state.model.tracks.forEach((track, t) => {
+      const route = track.route, group = route.kind === 1 ? `ed-s${route.index + 1}` : '';
+      grid.append(el('div', `sq-track-head ${group}`, {}, [btn(`Track ${t + 1}`, () => selectClip(t, state.scene)),
+        choose(`Track ${t + 1} output`, `${route.kind === 1 ? 's' : 'm'}${route.index}`, routeOptions(), v => edit(`Route track ${t + 1}`, m => { m.tracks[t].route = { kind: v[0] === 's' ? 1 : 0, index: Number(v.slice(1)) }; }))]));
+      for (let scene = 0; scene < 8; scene++) {
+        const c = track.clips[scene];
+        const editButton = btn(c ? `${c.notes.length} notes · ${c.length / 16} bars` : '＋ Empty clip', () => selectClip(t, scene), {
+          'aria-label': `Edit track ${t + 1} scene ${scene + 1}`, 'aria-pressed': String(state.track === t && state.scene === scene),
+        });
+        if (c?.notes.length) editButton.append(clipPreview(c));
+        grid.append(el('div', `sq-matrix-cell ${group}`, { 'data-live-track': t, 'data-live-scene': scene }, [editButton,
+          ctx.playClip ? btn(c ? '▶ Launch clip' : '■ Stop track', () => action(() => ctx.playClip(t, scene)), {
+            'aria-label': `${c ? 'Launch clip' : 'Stop track'} ${t + 1} scene ${scene + 1}`,
+            title: c ? 'Launch this clip at the native bar boundary' : 'Launch the empty slot to stop this track at the native bar boundary',
+          }) : null]));
+      }
+    });
+    return el('section', 'sq-section', {}, [el('h3', '', { text: 'Scenes' }),
+      el('p', 'sq-caption', { text: 'Edit a clip or launch it separately. Launch a whole column for a scene; empty slots stop those tracks. Manual launches leave song following and keep the saved chain.' }),
+      el('div', 'sq-scroll', { 'data-scroll': 'scenes' }, [grid])]);
+  }
+  function svgNode(tag, attrs = {}) {
+    const n = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (const [key, value] of Object.entries(attrs)) n.setAttribute(key, value);
+    return n;
+  }
+  function clipPreview(c) {
+    const svg = svgNode('svg', { viewBox: '0 0 160 32', preserveAspectRatio: 'none', class: 'sq-clip-preview', 'aria-hidden': 'true' });
+    const pitches = c.notes.map(n => n.pitch), lo = Math.min(...pitches), hi = Math.max(lo + 1, ...pitches);
+    for (const n of c.notes) {
+      const x = (n.tick / 24 - c.loopStart) / c.length * 160;
+      if (x < 0 || x >= 160) continue;
+      svg.append(svgNode('rect', { x, y: 27 - (n.pitch - lo) / (hi - lo) * 24, width: Math.min(160 - x, Math.max(2, n.gate / 24 / c.length * 160)), height: 3, opacity: .35 + n.vel / 127 * .65 }));
+    }
+    return svg;
   }
   function sceneTools() {
     let target = (state.scene + 1) % 8, track = state.track;
@@ -236,11 +285,14 @@ export function makeSequencer(ctx) {
       c.notes.forEach((n, i) => {
         if (n.pitch !== pitch || n.tick / 24 >= end || (n.tick + n.gate) / 24 <= start) return;
         const left = Math.max(0, n.tick / 24 - start), right = Math.min(count, (n.tick + n.gate) / 24 - start);
-        const b = btn(`${n.vel}`, e => { e.stopPropagation(); state.note = i; state.pitch = n.pitch; draw(); }, {
+        const b = btn(`${n.vel}`, e => { e.stopPropagation(); if (suppressNoteClick) { suppressNoteClick = false; return; } state.note = i; state.pitch = n.pitch; draw(); }, {
           class: `sq-note ${state.note === i ? 'is-selected' : ''}`, 'aria-label': `${pitchName(pitch)}, step ${n.step + 1}, gate ${n.gate} ticks, velocity ${n.vel}`,
           'data-note': i, title: `${pitchName(pitch)} · velocity ${n.vel} · gate ${n.gate}`,
         });
-        b.style.left = `${left * 28}px`; b.style.width = `${Math.max(8, (right - left) * 28 - 2)}px`; lane.append(b);
+        b.style.left = `${left * 28}px`; b.style.width = `${Math.max(8, (right - left) * 28 - 2)}px`;
+        b.addEventListener('pointerdown', e => beginNoteDrag(e, n, i, c, false));
+        b.append(el('span', 'sq-note-resize', { 'aria-hidden': 'true', 'data-resize-note': i, title: 'Drag to resize gate', onpointerdown: e => { e.stopPropagation(); beginNoteDrag(e, n, i, c, true); } }));
+        lane.append(b);
       });
       row.append(lane); canvas.append(row);
     }
@@ -252,6 +304,34 @@ export function makeSequencer(ctx) {
       }));
     }
     return el('div', '', {}, [el('div', 'sq-scroll', { 'data-scroll': 'piano' }, [canvas]), el('div', 'sq-scroll', { 'data-scroll': 'steps' }, [steps])]);
+  }
+  function beginNoteDrag(e, note, index, c, resize) {
+    if (state.busy || e.button !== 0) return;
+    const x = e.clientX, y = e.clientY, node = e.currentTarget.closest('.sq-note');
+    let moved = false, dx = 0, dy = 0;
+    const originalLeft = node.style.left, originalWidth = node.style.width;
+    const abort = new AbortController(); cancelDrag?.(); cancelDrag = () => { abort.abort(); node.style.left = originalLeft; node.style.width = originalWidth; node.style.transform = ''; };
+    window.addEventListener('pointermove', ev => {
+      dx = Math.round((ev.clientX - x) / 28); dy = Math.round((y - ev.clientY) / 28);
+      if (Math.abs(ev.clientX - x) + Math.abs(ev.clientY - y) < 5) return;
+      moved = true; ev.preventDefault();
+      if (resize) node.style.width = `${Math.max(8, parseFloat(originalWidth) + dx * 28)}px`;
+      else node.style.transform = `translate(${dx * 28}px, ${-dy * 28}px)`;
+    }, { signal: abort.signal, passive: false });
+    window.addEventListener('pointerup', () => {
+      cancelDrag?.(); cancelDrag = null;
+      if (!moved) return;
+      if (JSON.stringify(clip()?.notes[index]) !== JSON.stringify(note)) { announce('This note changed during the drag. Select it again.', true); return; }
+      suppressNoteClick = true; state.note = index;
+      // Keep explicit native step anchoring and existing microtiming when moving.
+      if (resize) noteEdit({ gate: Math.max(1, Math.min(65535, note.gate + dx * 24)) }, 'Resize note gate');
+      else {
+        const step = Math.max(c.loopStart, Math.min(c.loopStart + c.length - 1, note.step + dx));
+        noteEdit({ step, tick: Math.max(0, step * 24 + note.tick - note.step * 24), pitch: Math.max(0, Math.min(127, note.pitch + dy)) }, 'Move note');
+      }
+      setTimeout(() => { suppressNoteClick = false; }, 0);
+    }, { signal: abort.signal, once: true });
+    window.addEventListener('pointercancel', () => { cancelDrag?.(); cancelDrag = null; }, {signal:abort.signal,once:true});
   }
   function addNote(step, pitch) {
     const t = state.track, s = state.scene;
@@ -280,13 +360,40 @@ export function makeSequencer(ctx) {
     const track = state.model.tracks[state.track], lane = state.lane;
     const assigned = track.lanes[lane], sound = track.route.kind === 1 ? state.doc.sounds[track.route.index] : null;
     const meta = ctx.getMetadata?.() || ctx.metadata;
-    const params = sound && meta?.engine?.(sound.engine)?.params?.filter(p => !(p.flags || []).includes('nolock')) || [];
-    const names = [...new Set([...(assigned ? [assigned.label.replace(/^synth:/, '').replaceAll('_', ' ')] : []), ...params.map(p => p.name)])];
+    const parameterOptions = (block, prefix) => (meta?.engine?.(block?.engine)?.params || [])
+      .filter(p => !(p.flags || []).some(f => ['nolock', 'per_focus', 'focus'].includes(f)))
+      .map(p => {
+        const raw = block.params?.[p.name] ?? p.def;
+        const entry = p.type === 'enum' ? (p.entries || []).indexOf(String(raw)) : -1;
+        const value = entry >= 0 ? entry : Number.isFinite(Number(raw)) ? Number(raw) : p.def;
+        const base = p.type === 'enum'
+          ? Math.ceil(Math.max(0, Math.min(p.max - p.min, Math.round(value - p.min))) * 128 / (p.max - p.min + 1))
+          : Math.round(toPos(p, value) * 127);
+        return { label: `${prefix}:${p.name.replaceAll(' ', '_')}`, name: p.name, base: Math.min(127, base) };
+      })
+      .filter(p => /^[!-~]{1,23}$/.test(p.label));
+    const targets = [];
+    if (sound) {
+      targets.push({ id: 'synth', name: 'Instrument', params: parameterOptions(sound, 'synth') });
+      (sound.inserts || []).forEach((fx, i) => targets.push({ id: `in${i + 1}`, name: `Sound insert ${i + 1}`, params: parameterOptions(fx, `in${i + 1}`) }));
+      targets.push({ id: 'mix', name: 'Sound level', params: [{label:'mix:Level',name:'Level',base:Math.round((sound.level ?? 100) * 127 / 100)}] });
+    }
+    (state.doc.master || []).forEach((fx, i) => targets.push({ id: `m${i + 1}`, name: `Master effect ${i + 1}`, params: parameterOptions(fx, `m${i + 1}`) }));
+    const targetId = assigned ? (assigned.label.includes(':') ? assigned.label.split(':')[0] : 'synth') : targets.find(t => t.params.length)?.id;
+    if (assigned && !targets.some(t => t.id === targetId)) targets.push({id:targetId,name:`Existing ${targetId}`,params:[]});
+    const target = targets.find(t => t.id === targetId);
+    const params = [...(target?.params || [])];
+    if (assigned && !params.some(p => p.label === assigned.label)) params.unshift({label:assigned.label,name:`Existing · ${assigned.label}`});
+    const assign = label => edit('Assign lock parameter', m => {
+      const param = targets.flatMap(t => t.params).find(p => p.label === label);
+      m.tracks[state.track].lanes[lane] = { label, base: assigned?.label === label ? assigned.base : param?.base ?? 64 };
+    });
     const start = state.page * 32, end = Math.min(start + 32, c.loopStart + c.length);
     const controls = el('div', 'sq-toolbar', {}, [
       choose('Lock lane', lane, Array.from({ length: 8 }, (_, i) => [i, `Lane ${i + 1}${track.lanes[i] ? ' · ' + track.lanes[i].label : ''}`]), v => { state.lane = Number(v); draw(); }),
-      names.length ? choose('Parameter', assigned?.label.replace(/^synth:/, '').replaceAll('_', ' ') || names[0], names.map(n => [n, n]), v => edit('Assign lock parameter', m => { m.tracks[state.track].lanes[lane] = { label: `synth:${v.replaceAll(' ', '_')}`, base: 64 }; })) : null,
-      !assigned && names.length ? btn('Assign parameter', () => edit('Assign lock parameter', m => { m.tracks[state.track].lanes[lane] = { label: `synth:${names[0].replaceAll(' ', '_')}`, base: 64 }; })) : null,
+      targets.some(t => t.params.length) ? choose('Automation target', targetId, targets.filter(t => t.params.length || t.id === targetId).map(t => [t.id,t.name]), v => { const p = targets.find(t => t.id === v)?.params[0]; if (p) assign(p.label); }) : null,
+      params.length ? choose('Parameter', assigned?.label || params[0].label, params.map(p => [p.label,p.name]), assign) : null,
+      !assigned && params.length ? btn('Assign parameter', () => assign(params[0].label)) : null,
       assigned ? field('Base · 0–127', assigned.base, v => edit('Set lane base', m => { m.tracks[state.track].lanes[lane].base = v; }), { min: 0, max: 127, step: 1 }) : null,
     ]);
     const points = el('div', 'sq-lock-grid');
@@ -301,8 +408,25 @@ export function makeSequencer(ctx) {
       points.append(el('label', 'sq-lock', {}, [el('span', '', { text: step + 1 }), input]));
     }
     return el('section', 'sq-section', {}, [el('h3', '', { text: 'Parameter locks' }), controls,
-      el('div', 'sq-scroll', { 'data-scroll': 'locks' }, [points]),
-      el('p', 'sq-caption', { text: 'Locks use the engine’s 0–127 parameter scale. Blank steps use the last value. Instrument locks are sequenced here; insert and master controls are in the FX inspector.' })]);
+      el('div', 'sq-scroll', { 'data-scroll': 'locks' }, [assigned ? lockPlot(c, lane, assigned.base, start, end) : '', points]),
+      el('p', 'sq-caption', { text: 'Locks use a 0–127 scale across the target’s parameter range. Blank steps use the last value. Inserts and level follow this track’s sound route; master-effect lanes control the shared master effects.' })]);
+  }
+  function lockPlot(c, lane, base, start, end) {
+    const width = Math.max(1, end - start) * 55 + 12;
+    const svg = svgNode('svg', { viewBox: `0 0 ${width} 80`, width, height: 80, class: 'sq-lock-plot', role: 'img', 'aria-label': 'Held automation values; changes occur at step boundaries' });
+    const locks = c.locks.filter(l => l.lane === lane).sort((a,b) => a.step - b.step);
+    let value = base;
+    for (const l of locks) if (l.step < start) value = l.value;
+    const y = v => 72 - v / 127 * 64;
+    let path = `M 8 ${y(value)}`;
+    for (let step = start; step < end; step++) {
+      const point = locks.find(l => l.step === step), x = 8 + (step - start) * 55;
+      if (point) { value = point.value; path += ` H ${x} V ${y(value)}`; }
+      path += ` H ${x + 55}`;
+      svg.append(svgNode('path', {d:`M ${x} 8 V 72`,class:'sq-lock-guide'}));
+    }
+    svg.append(svgNode('path', { d:path, class:'sq-lock-line' }));
+    return svg;
   }
   function clipView() {
     const c = clip();
@@ -364,8 +488,11 @@ export function makeSequencer(ctx) {
     const active = content.contains(document.activeElement) ? document.activeElement : null;
     const focus = active && { label: active.getAttribute('aria-label'), tag: active.tagName, value: active.value, start: active.selectionStart, end: active.selectionEnd };
     const scrolls = new Map([...content.querySelectorAll('[data-scroll]')].map(e => [e.dataset.scroll, [e.scrollLeft, e.scrollTop]]));
-    content.replaceChildren(toolbar(), mixer(), midiView() || '', songView(), clipView(),
-      el('div', 'sq-actions', {}, [btn('Master FX 1', () => openInspector('m1')), btn('Master FX 2', () => openInspector('m2'))]));
+    content.replaceChildren(toolbar(), mixer(), midiView() || '',
+      el('div', 'sq-toolbar', { 'aria-label': 'Sequence view' }, [btn('Arrangement', () => { state.arrangement = true; draw(); }, { 'aria-pressed': String(state.arrangement) }),
+        btn('Scene matrix', () => { state.arrangement = false; draw(); }, { 'aria-pressed': String(!state.arrangement) })]),
+      state.arrangement ? songView() : sceneMatrix(), clipView(),
+      el('div', 'sq-actions', {}, [ctx.getMaster && ctx.setMaster ? field('Output level %', Math.round(ctx.getMaster() * 100), v => action(() => ctx.setMaster(v / 100)), { min:0, max:100, step:1, title:'Playback preference; not saved in the project' }) : null, btn('Master FX 1', () => openInspector('m1')), btn('Master FX 2', () => openInspector('m2'))]));
     if (state.inspector && ctx.inspector) {
       const body = ctx.inspector(state.inspector);
       if (body) content.append(el('section', 'sq-inspector', {}, [btn('Close inspector', () => { state.inspector = null; draw(); }), body]));
@@ -380,11 +507,15 @@ export function makeSequencer(ctx) {
   }
   function update(transport = ctx.getTransport?.()) {
     const pos = root.querySelector('[data-play-position]');
-    if (pos && transport) pos.textContent = transport.playing ? `Playing · Scene ${(transport.scene ?? 0) + 1} · Step ${(transport.step ?? 0) + 1}` : 'Stopped';
     for (const e of root.querySelectorAll('[data-song-entry]')) e.classList.toggle('is-playing', !!transport?.playing && Number(e.dataset.songEntry) === transport.songIndex);
+    for (const e of root.querySelectorAll('[data-live-track]')) {
+      const t = transport?.tracks?.[Number(e.dataset.liveTrack)], scene = Number(e.dataset.liveScene);
+      e.classList.toggle('is-playing', !!transport?.playing && t?.playing === scene);
+    }
     const watched = transport?.tracks?.[state.track];
-    const liveScene = watched?.active ?? transport?.scene;
+    const liveScene = (transport?.playing ? watched?.playing : watched?.active) ?? transport?.scene;
     const liveStep = watched ? Math.floor(watched.posTick / 24) : transport?.step;
+    if (pos && transport) pos.textContent = transport.playing ? `Playing · Scene ${(liveScene ?? 0) + 1} · Step ${(liveStep ?? 0) + 1}` : 'Stopped';
     const playhead = root.querySelector('[data-roll-playhead]');
     if (playhead) { playhead.hidden = !transport?.playing || liveScene !== state.scene || liveStep < state.page * 32 || liveStep >= (state.page + 1) * 32; playhead.style.left = `${60 + (liveStep - state.page * 32) * 28}px`; }
     for (const e of root.querySelectorAll('[data-step]')) e.classList.toggle('is-playing', !!transport?.playing && liveScene === state.scene && Number(e.dataset.step) === liveStep);
@@ -397,5 +528,5 @@ export function makeSequencer(ctx) {
     e.preventDefault(); e.stopPropagation(); e.lunarInto = true; importFiles(files);
   });
   return { render() { if (state.dirty && !state.busy) refresh(); return root; }, refresh, update,
-    invalidate() { state.dirty = true; }, destroy() { disposed = true; root.remove(); } };
+    invalidate() { state.dirty = true; }, destroy() { disposed = true; cancelDrag?.(); root.remove(); } };
 }

@@ -446,6 +446,38 @@ NOLOCK parameter (Macro's Model) is refused and counted. MIDI-routed tracks
 are only logged. Output is byte-identical at host blocks of 1, 7 and 64 frames for
 Test Sine, Macro and Six-Op [verified: tests/test_seq_render.py].
 
+The app host also accepts effect and mixer labels (23 bytes maximum,
+including the prefix): `in1:Param` / `in2:Param` address the inserts of the
+track's routed sound, `m1:Param` / `m2:Param` address the global master
+slots, and `mix:Level` addresses the routed sound's mixer level. Insert and
+mixer targets require an engine route to sound 0..3; master targets remain
+global on MIDI-routed tracks. `mix:Level` scales 0..127 linearly to 0..100 %.
+Effect parameters use the same FLOAT, LOG and ENUM conversions as sound
+parameters; NOLOCK and PER_FOCUS effect targets are refused. Existing sound
+focus locks retain their previous behavior. Reserved effect/mixer labels
+never resolve to a same-named sound parameter. The standalone sound-engine
+bridge ignores these app targets; the native app harness and browser app
+implement them [verified: `tests/test_seq_automation.py`].
+
+The app queues effect writes and mixer gain changes on each lock's sample
+frame, including when no modulation runtime exists. Effect locks move the
+modulation base, and active cables add their current value above that base.
+Stop and lane release restore D6 bases; effect/mixer knob edits update those
+bases with `abaseq`. Reset/import restores configured knob values. Mixer
+locks alter a separate effective level, leaving the saved level unchanged.
+Rerouting or relabeling restores the old active target at the next block
+boundary. Fixed queues hold a full event block plus every lane's boundary
+restoration; overflow is counted in `seq_auto_dropped`, and unsupported app
+targets in `seq_auto_refused` [verified: focused native probe].
+
+Offline stems use `fm1_app_export_sound_mask` (browser export
+`fm1w_export_sound_mask`): mask bits 0..3 gate sound contributions after
+inserts and effective gain, before summing the master bus. The default is
+15; this transient mask is excluded from saved state. Voices, sequencer
+events and modulation still run for masked sounds, so mixer automation
+cannot unmute another sound into an isolated stem [verified: focused native
+probe; browser export tests cover the rebuilt module separately].
+
 ## Host contract (`include/fm1_seq_host.h`)
 
 Every host of the core runs the same per-block code, `seq/seq_host.c`:
