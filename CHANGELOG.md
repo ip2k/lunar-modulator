@@ -36,18 +36,40 @@ history.
 ### Added
 - **Advanced editor shell and song navigation:** outside Panel layout, the
   page controls and file bar move into the app bar's Simulator and Files
-  menus; those controls return to the page footer in Panel layout. The Song
-  **Files & export** menu appears before Undo and Redo, Changes opens the
-  recent undo history, sidebar visibility is remembered, and engine info
-  popovers show available credit and licence details. Scenes and tracks can
-  be renamed inline (scenes: six
-  printable characters without spaces; tracks: 16 printable ASCII characters,
-  spaces allowed). Each of the Scenes and Arrangement timelines has a
-  horizontal range that tracks scrolling and arrow controls. Arrangement
-  section creation has its own scene chooser, with copy, move, remove and
-  repeat actions under collapsed Section tools. Adding a section leaves the
-  current selection in place. Opening a clip frames and scrolls to its first
-  sounding note within the loop.
+  menus; those controls return to the page footer in Panel layout. Song Files
+  controls appear before Undo and Redo, Changes opens recent undo history, the
+  sidebar toggle sits before the Editor title, and engine info popovers show
+  available credit and licence details. Help stays in contextual tooltips,
+  engine info popovers and the Panel footer/silkscreen. Scenes and tracks
+  rename inline by double-clicking their titles, then pressing Enter or leaving
+  the field; there are no Rename buttons. Scene names accept six printable
+  characters without spaces; tracks accept up to 16 printable ASCII characters,
+  spaces allowed.
+  Responsive paging keeps scenes, arrangements, long clips and automation
+  within the available width. Clip follow is on by default, advances through
+  pages and wraps with the clip loop; manual clip paging pauses follow until it
+  is enabled again. All assigned parameter-lock rows remain visible, with lane
+  assignment under Add automation. Clicking empty track-header space selects
+  the track. Arrangement section creation has its own scene chooser, with copy,
+  move, remove and repeat actions under collapsed Section tools. Adding a
+  section leaves the current selection in place. Opening a clip frames and
+  scrolls to its first sounding note within the loop.
+- **MIDI Learn and song transport:** the piano control overlays eligible
+  simulator and editor controls; click a control, then play a MIDI note or send
+  a control change to bind it. The assignment badge can clear the mapping.
+  Project JSON and binary files preserve browser mappings, and saves wait for
+  the AudioWorklet's mapping acknowledgement. Native preflight includes the
+  reserved mapping storage and automation queues. The pinned transport shows
+  its clock, song position, bar/clip/scene counts and metronome control; Space
+  plays or pauses, and Shift+Space returns to the beginning. Informational
+  notices fade after ten seconds; autosave and restoration stay quiet, while
+  errors and refusals remain visible. Completed WAV files download automatically
+  and remain available through result links.
+  The offline render guard follows the native sequencer stop tick and rounds
+  its frame bound to 64-frame blocks. Saved-transport Wasm regressions passed
+  for a 20-BPM one-bar song and four full-arrangement demos, including an FM6,
+  effects, arpeggiator/modulation and stem-isolation case. Combined-source Wasm
+  parity and browser download checks remain validation gates.
 - **Song workspace refinement:** compact scene rows, always-visible selected
   note essentials with advanced controls disclosed, and primary parameters
   first in the Song device inspector. Device modal focus returns to its
