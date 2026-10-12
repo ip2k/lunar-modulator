@@ -63,10 +63,43 @@ install campaign
 `59bf948503e6084f1672b485a497a20d18ad5179a6e132b7e16ce65fb02b6067`;
 one-use capture wrapper
 `f59b80714a2abf9b636911ad4270bdfd3560ff97b3327ae5a478d52ce4ea4629`.
-Its final concrete independent review is pending; no install/reset has run in
-this session yet.
+Independent concrete review accepted the packet and its copied actual
+staged-file preflight receipt. The wrapper then ran exactly once and both it
+and the install child exited zero. The final full 1 MiB readback matches
+`df6c963ecd37b334f393c5bc92c2780b6094181308822a03c8190b016a4e97db`.
+Thirty sectors were erased/programmed, with directory sector `0x4000` last.
+The owned USB capture remained alive through child exit and was stopped and
+fsynced. No reset or diagnostic application execution has occurred yet.
 
-Next: independently accept that exact install-only packet; install and verify
-the full target; separately review/execute its one-shot reset; establish actual
+[verified: independent physical install replay] The complete private archive
+`build/sdk-install-physical.tar.gz` has SHA
+`b25de51ad107d60cd67e4e13765985ed3130837686486fe325b93ebda7789b6f`.
+Independent review accepted all 22,546 transcript events, 10,747 vendor
+requests, 30 erases, 480 programs and final 4,096 full-image page hashes;
+the journal/result and outer receipt chronology agree. One hundred standard
+kernel requests (50 TEST UNIT READY and 50 REQUEST SENSE) were counted
+separately. Capture prefixes are limited to 32 bytes. The accepted report is
+`build/sdk-install-independent-review.md`, SHA
+`7cce401033cb21dd3546308523c3a7fd3be65ae96c6f2ed1394fd1d0af96d1a3`.
+
+A separate target reset packet is prepared for independent concrete review.
+It binds this exact completed install and retains the original one-use
+markers. Its wrapper records passive USB/SG sysfs re-enumeration after one
+reset request; it sends no further device command, even when reset completion
+is ambiguous. Target reboot and the pre-upload diagnostic RAM witness remain
+pending, separately from the accepted NOR installation.
+
+[verified: public/private CI boundary, runtime gate pending] GitHub run
+38188020648 passed its browser and C/C++ jobs but failed both Python jobs
+because the exact private rehearsal fixture required files unavailable in
+public CI. The fixture now skips only when all three private path environment
+variables are absent and strict mode is disabled. Set
+`LUNAR_REQUIRE_PRIVATE_FIXTURES=1` for required private verification; partial,
+empty or invalid configuration still fails. Production sources and their
+reviewed hashes are unchanged. Seven selector boundary tests and the four
+importing test modules are being checked separately on Hera in 16 chunks,
+including strict private and default public lanes; fresh GitHub CI is required.
+
+Next: separately review/execute the installed target's one-shot reset; establish actual
 boot/display/recovery evidence; restore and verify stock with a fresh recovery
 binding. No diagnostic application behavior has been accepted yet.

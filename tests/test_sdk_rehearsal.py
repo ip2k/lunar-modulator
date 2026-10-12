@@ -420,13 +420,51 @@ def env_path(name):
     return Path(os.environ[name])
 
 
+PRIVATE_REHEARSAL_PATHS = (
+    'LUNAR_REHEARSAL_FRESH', 'LUNAR_REHEARSAL_BACKUP', 'LUNAR_REHEARSAL_RAW_FINAL',
+)
+
+
+def private_rehearsal_paths():
+    """Public CI can omit private files; a requested private gate cannot."""
+    required = os.environ.get('LUNAR_REQUIRE_PRIVATE_FIXTURES', '0')
+    assert required in ('0', '1'), 'LUNAR_REQUIRE_PRIVATE_FIXTURES must be 0 or 1'
+    if required == '0' and not any(name in os.environ for name in PRIVATE_REHEARSAL_PATHS):
+        pytest.skip('Exact private rehearsal fixtures unavailable; set LUNAR_REQUIRE_PRIVATE_FIXTURES=1 to require them')
+    return tuple(env_path(name) for name in PRIVATE_REHEARSAL_PATHS)
+
+
+@pytest.mark.parametrize('mode', ['public', 'required', 'partial', 'empty', 'all_empty', 'complete', 'invalid'])
+def test_private_rehearsal_fixture_selection(monkeypatch, tmp_path, mode):
+    for name in (*PRIVATE_REHEARSAL_PATHS, 'LUNAR_REQUIRE_PRIVATE_FIXTURES'):
+        monkeypatch.delenv(name, raising=False)
+    if mode in ('required', 'partial'):
+        monkeypatch.setenv('LUNAR_REQUIRE_PRIVATE_FIXTURES', '1' if mode == 'required' else '0')
+    if mode in ('partial', 'complete'):
+        names = PRIVATE_REHEARSAL_PATHS[:1] if mode == 'partial' else PRIVATE_REHEARSAL_PATHS
+        for name in names:
+            monkeypatch.setenv(name, str(tmp_path / name))
+    if mode == 'invalid':
+        monkeypatch.setenv('LUNAR_REQUIRE_PRIVATE_FIXTURES', 'yes')
+    if mode in ('empty', 'all_empty'):
+        names = PRIVATE_REHEARSAL_PATHS[:1] if mode == 'empty' else PRIVATE_REHEARSAL_PATHS
+        for name in names:
+            monkeypatch.setenv(name, '')
+    if mode == 'public':
+        with pytest.raises(pytest.skip.Exception, match='Exact private rehearsal fixtures unavailable'):
+            private_rehearsal_paths()
+    elif mode in ('required', 'partial', 'empty', 'all_empty', 'invalid'):
+        with pytest.raises(AssertionError):
+            private_rehearsal_paths()
+    else:
+        assert private_rehearsal_paths() == tuple(tmp_path / name for name in PRIVATE_REHEARSAL_PATHS)
+
+
 @pytest.fixture
 def actual(tmp_path):
     """Pinned actual files; no synthetic manifests, inventory, ELF or image."""
     import fm1_bound_sdk_diagnostic as bound
-    fresh=env_path('LUNAR_REHEARSAL_FRESH')
-    backup=env_path('LUNAR_REHEARSAL_BACKUP')
-    final=env_path('LUNAR_REHEARSAL_RAW_FINAL')
+    fresh, backup, final = private_rehearsal_paths()
     campaign=json.loads((backup/'campaign.json').read_bytes())
     receipt_parent=backup/'attempt-001'
     assert receipt_parent == Path(campaign['receipt_path'])

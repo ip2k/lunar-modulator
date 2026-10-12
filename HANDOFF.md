@@ -36,12 +36,21 @@ creation and sent no adapter commands. The independently reviewed one-use
 pre-transport continuation succeeded: both fresh 1 MiB dumps match stock
 `96006a51…`, all 8,757 requests passed independent transcript/capture replay,
 and the original failed attempt/marker remain intact. A new install-only
-packet passed actual staged-file preflight; its concrete wrapper review is
-pending, with no installation or target reset yet in this new session.
+packet passed actual staged-file preflight and independent concrete review.
+Its one-shot physical install then passed full target readback, with outer and
+child exits zero. Independent replay accepted all 22,546 events and 10,747
+vendor requests, 30 changed sectors (directory last), and the final 4,096
+target pages. Private evidence is `build/sdk-install-physical/`. The FM-1
+remains in the fixed recovery loader; target reset, diagnostic execution,
+display and fresh recovery remain pending.
 The distinct target reset guard passed 107 Hera tests in 16 chunks plus its
 actual-input model and independent review, and was committed and remote-SHA
 verified at `45e21964d37fde86330eab65fa4c2866b1951ca6`.
-The full Python suite is running on Hera in 16 chunks. A separate ROM probe
+The full Python suite is running on Hera in 16 chunks. Public CI's missing
+private fixture failure has a test-only selector repair: absent paths may
+skip, while `LUNAR_REQUIRE_PRIVATE_FIXTURES=1`, partial or empty paths fail.
+Its strict-private/public follow-up gate runs separately in 16 Hera chunks;
+fresh GitHub CI is still required. A separate ROM probe
 is being developed to read the diagnostic's 32-byte stage block before a
 recovery loader overwrites it. Evidence and next dependencies are in
 [the boot trial note](notes/2026-10-11-diagnostic-boot-trial.md).
