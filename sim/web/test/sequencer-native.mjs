@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import { serve } from './serve.mjs';
 import { launch } from './launch.mjs';
 
@@ -11,10 +12,10 @@ const [www = 'sim/web/www', out = 'scratch/sequencer-native'] = process.argv.sli
 await mkdir(out, { recursive: true });
 const { server, url } = await serve(www, 18874, { prefix: '/lunar-modulator/' });
 const { browser, name } = await launch();
-const report = { browser: name, scope: 'Real browser AudioWorklet, native Wasm state and offline worker; no hardware or listening acceptance.', checks: [], errors: [], wavs: [] };
+const report = { browser: name, wasmSha256: createHash('sha256').update(await readFile(join(www, 'fm1.wasm'))).digest('hex'), scope: 'Real browser AudioWorklet, native Wasm state and offline worker; no hardware or listening acceptance.', checks: [], errors: [], wavs: [] };
 const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, acceptDownloads: true });
 page.setDefaultTimeout(20000);
-page.on('pageerror', e => report.errors.push(e.message));
+page.on('pageerror', e => { report.errors.push(e.message); (report.errorStacks ??= []).push(e.stack); });
 async function check(label, fn) { await fn(); report.checks.push(label); console.log(`PASS ${label}`); }
 async function tab(name) { await page.getByRole('tab', {name, exact:true}).click(); }
 async function model() { return page.evaluate(async () => window.nativeTest.model()); }
@@ -155,13 +156,25 @@ try {
     assert.equal(await page.getByRole('button', { name: /Track 1, Scene 1, 1 note, 1 bar/ }).isVisible(), true);
     await page.getByLabel('Track 8 output', { exact: true }).selectOption('m16'); await idle();
     assert.deepEqual((await model()).tracks[7].route, { kind: 0, index: 16 });
+    await page.locator('.sq-section-tools > summary').filter({ hasText: /^Section tools$/ }).click();
     await field('Repeats', 3); assert.equal((await model()).song.length, 3);
     await page.evaluate(() => fm1.editor.undo()); await until(async () => (await model()).song.length === 1, 'undo repeats');
     await page.evaluate(() => fm1.editor.redo()); await until(async () => (await model()).song.length === 3, 'redo repeats');
   });
   await check('native clip matrix launch advances real transport and playhead', async () => {
     await tab('Scenes');
-    assert.equal(await page.locator('[data-live-track]').count(), 64);
+    const slots = new Set(), next = page.getByRole('button', { name: 'Next scenes page', exact: true });
+    for (let pageIndex = 0; pageIndex < 8; pageIndex++) {
+      const visible = await page.locator('[data-live-track]').evaluateAll(cells => cells.map(c => `${c.dataset.liveTrack}:${c.dataset.liveScene}`));
+      assert.ok(visible.length >= 8 && visible.length <= 64 && visible.length % 8 === 0);
+      visible.forEach(slot => slots.add(slot));
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      if (await next.isDisabled()) break;
+      await next.click();
+    }
+    assert.deepEqual([...slots].sort(), Array.from({length: 8}, (_, t) => Array.from({length: 8}, (_, s) => `${t}:${s}`)).flat().sort());
+    const previous = page.getByRole('button', { name: 'Previous scenes page', exact: true });
+    while (!await previous.isDisabled()) await previous.click();
     await page.getByRole('button', { name: 'Launch clip 1 scene 1', exact: true }).click();
     await page.waitForFunction(() => fm1.seq?.playing && fm1.seq.tracks[0].playing === 0 && fm1.seq.tracks[0].posTick > 0);
     await page.screenshot({ path: join(out, 'native-matrix.png'), fullPage: true });
@@ -213,14 +226,12 @@ try {
     await page.keyboard.press('Escape');
     assert.equal(await dialog.locator('.ed-info-body').isVisible(), false);
     assert.equal(await dialog.locator('.ed-page').first().evaluate((p, more) => !!(p.compareDocumentPosition(more) & Node.DOCUMENT_POSITION_FOLLOWING), await compactTools.elementHandle()), true);
-    assert.equal(await dialog.locator('.sq-device-dialog-footer .sq-file-tools').count(), 1);
+    assert.equal(await dialog.locator('.sq-device-dialog-footer .sq-file-tools').count(), 0);
+    assert.equal(await page.locator('.ed-song-file-tools > .sq-file-tools').count(), 1);
     const moreSummary = compactTools.locator(':scope > summary');
     await moreSummary.focus(); await moreSummary.press('Enter');
     assert.equal(await compactTools.locator('.ed-tools').isVisible(), true);
-    const fileSummary = dialog.locator('.sq-device-dialog-footer .sq-file-tools > summary');
-    await fileSummary.focus(); await fileSummary.press('Enter');
-    assert.equal(await dialog.getByRole('button', { name: 'Open…', exact: true }).isVisible(), true);
-    await fileSummary.press('Escape');
+    await moreSummary.press('Escape');
     assert.equal(await instrument.getAttribute('aria-expanded'), 'false');
     assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), 'S1 instrument');
     assert.equal(await page.locator('.ed-song-file-tools > .sq-file-tools').count(), 1);
@@ -259,7 +270,7 @@ try {
     for (const [button, fileName] of [['Save .lunar', 'roundtrip.lunar'], ['Export .movy1', 'roundtrip.movy1']]) {
       await expandFiles();
       const pending = page.waitForEvent('download');
-      await page.locator('.sq').getByRole('button', { name: button, exact: true }).click();
+      await page.locator('.ed-song-file-tools').getByRole('button', { name: button, exact: true }).click();
       const download = await pending; const path = join(out, fileName); await download.saveAs(path);
       await reset(); await openFile({ name: fileName, mimeType: 'application/octet-stream', buffer: await readFile(path) });
       assert.equal(await page.evaluate(() => nativeTest.canonical()), canonical);
@@ -339,7 +350,8 @@ try {
     }
     await page.setViewportSize({width:1440,height:1100});
     assert.equal(await page.locator('.ed-card').isVisible(), true);
-    assert.equal(await page.locator('.ed-heads').isVisible(), true);
+    // Empty panel-following status stays quiet; a real status must remain visible.
+    assert.equal(await page.locator('.ed-heads').isVisible(), await page.locator('.ed-from:not([hidden])').count() > 0);
     for (const view of ['Clip','Automation','Mixer','Arrangement','Scenes']) {
       await tab(view);
       await page.screenshot({path:join(out,`native-desktop-${view.toLowerCase()}.png`),fullPage:true});
