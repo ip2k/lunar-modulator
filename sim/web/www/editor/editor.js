@@ -130,10 +130,12 @@ export async function startEditor(env) {
   } });
   const songFileTools = el('span', 'ed-song-file-tools', { hidden: true });
   const appbar = el('div', 'ed-appbar', { role: 'toolbar', 'aria-label': 'Editor' }, [
-    el('div', 'ed-appbar-start', {}, [title]),
+    el('div', 'ed-appbar-start', {}, [sidebarBtn, title]),
     el('div', 'ed-appbar-mid', {}, [keysChip]),
-    el('div', 'ed-appbar-end', {}, [sidebarBtn, fileMenu, simulatorMenu, changesMenu, songFileTools, undoBtn, redoBtn, el('div', 'ed-ram-wrap', {}, [ramBtn, ramList])]),
+    el('div', 'ed-appbar-end', {}, [fileMenu, simulatorMenu, changesMenu, songFileTools, undoBtn, redoBtn, el('div', 'ed-ram-wrap', {}, [ramBtn, ramList])]),
   ]);
+  const transportTools = el('div', 'ed-transport-tools sq-transport-mount', { hidden: true });
+  const topbars = el('div', 'ed-topbars', {}, [appbar, transportTools]);
 
   const outline = el('nav', 'ed-outline', { id: 'ed-sidebar', 'aria-label': 'Outline' });
   const screen = el('canvas', 'ed-screen', { width: 240, height: 240, 'aria-label': 'The FM-1 screen, as on the panel' });
@@ -155,7 +157,7 @@ export async function startEditor(env) {
     el('p', null, { text: 'The editor edits the running FM-1. Power it on to start.' }),
     el('button', 'ed-power', { type: 'button', text: 'Power on', onclick: () => powerOn() })]);
   const body = el('div', 'ed-body', {}, [outline, card, main]);
-  const root = el('section', 'ed', { 'aria-label': 'Advanced editor', 'data-keys': 'play' }, [appbar, off, body, detail, live]);
+  const root = el('section', 'ed', { 'aria-label': 'Advanced editor', 'data-keys': 'play' }, [topbars, off, body, detail, live]);
   host.append(root);
   function updateSidebar() {
     root.classList.toggle('is-sidebar-hidden', st.sidebarHidden);
@@ -187,6 +189,7 @@ export async function startEditor(env) {
   const seqVerb = (text) => { if (sim.node) sim.node.port.postMessage({ type: 'seq-line', bytes: new TextEncoder().encode(text) }); };
   const sequencer = makeSequencer({ ...seqHost, metadata: meta, say,
     fileToolsHost: songFileTools,
+    transportHost: transportTools,
     toggleSidebar: () => sidebarBtn.click(),
     editSound: (key) => select(key, { view: 'sound' }),
     claimKeys: () => setKeys('edit'),
@@ -565,14 +568,19 @@ export async function startEditor(env) {
   // Only what the view shows, only while it is seen (§12): the meters and
   // gain reduction for the Flow and a sound, module outputs and each
   // cable's destination for Modulation.
-  let flowSeen = false;
+  let flowSeen = false, transportSeen = false;
   const seen = new IntersectionObserver((list) => {
-    flowSeen = list.some((x) => x.isIntersecting);
+    for (const x of list) {
+      if (x.target === view) flowSeen = x.isIntersecting;
+      if (x.target === transportTools) transportSeen = x.isIntersecting;
+    }
     subscribe();
   });
   seen.observe(view);
+  seen.observe(transportTools);
   function subscribe() {
-    const want = !!st.port && st.layout !== 'panel' && flowSeen && document.visibilityState === 'visible' && !!st.mirror;
+    const visible = flowSeen || (st.view === 'sequencer' && !transportTools.hidden && transportSeen);
+    const want = !!st.port && st.layout !== 'panel' && visible && document.visibilityState === 'visible' && !!st.mirror;
     const rowsOn = want ? st.view === 'sequencer' ? sequencer.wantRows() : chains.wantRows(st.view) : [];
     const sig = rowsOn.join(',');
     st.teleOn = want && rowsOn.length > 0;
@@ -795,6 +803,7 @@ export async function startEditor(env) {
     root.classList.toggle('is-off', !st.port || !st.mirror);
     off.hidden = !!st.port;
     songFileTools.hidden = st.view !== 'sequencer' || !st.port || !st.mirror;
+    transportTools.hidden = songFileTools.hidden;
     fileMenu.hidden = !songFileTools.hidden;
     title.querySelector('.ed-project').textContent = files.title ? `· ${files.title}` : '';
     renderOutline();

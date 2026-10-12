@@ -81,6 +81,10 @@ check('Changes history starts hidden', !(await editor.getByRole('region', { name
 await menu('Changes').locator(':scope > summary').click();
 check('Changes popover exposes shared history', await editor.locator('.ed-hist').isVisible());
 check('Sidebar toggle is an accessible icon without textual button clutter', await editor.getByRole('button', { name: 'Hide sidebar', exact: true }).evaluate(e => e.querySelector('svg') && !e.textContent.trim()));
+check('Sidebar icon is between the layout switch and Advanced editor title', await editor.locator('.ed-appbar-start').evaluate(e => {
+  const children = [...e.children];
+  return children[0].matches('.layout-switch') && children[1].matches('.ed-sidebar-toggle') && children[2].matches('.ed-title');
+}));
 await editor.getByRole('button', { name: 'Hide sidebar', exact: true }).click();
 check('Sidebar hides and preference persists', await editor.locator('.ed-outline').isHidden() && await page.evaluate(() => localStorage.getItem('lunar.sim.editor.sidebar-hidden') === '1'));
 await page.setViewportSize({ width: 844, height: 390 });

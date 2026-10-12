@@ -49,7 +49,7 @@ async function reset() {
 async function openFile(file) {
   const chooser = page.waitForEvent('filechooser');
   await expandFiles();
-  await page.locator('.sq').getByRole('button', { name: 'Open…', exact: true }).click();
+  await page.locator('.ed-song-file-tools').getByRole('button', { name: 'Open…', exact: true }).click();
   await (await chooser).setFiles(file);
   await until(async () => (await page.locator('.ed-sr').allTextContents()).join(' ').includes(`Opened ${file.name}`) ||
     await page.evaluate(name => fm1.editor.state.projectName === name, file.name), `open ${file.name}`);
@@ -65,6 +65,29 @@ try {
       canonical: async () => JSON.stringify(api.writeSet(api.parseSet(JSON.parse((await fm1.files.projectSnapshot()).text).set))) };
   });
   await check('native fixture loads without discarded sequencer fields', async () => { await reset(); assert.equal((await model()).tracks[0].clips[0].notes[0].gate, 96); });
+  await check('sidebar and native transport occupy their own pinned app-bar rows', async () => {
+    const geometry = await page.evaluate(() => {
+      const top = document.querySelector('.ed-topbars'), bar = top.querySelector('.ed-appbar');
+      const host = top.querySelector('.ed-transport-tools'), transport = host.querySelector('.sq-transport');
+      const children = [...bar.querySelector('.ed-appbar-start').children];
+      const a = bar.getBoundingClientRect(), b = host.getBoundingClientRect();
+      return { order: children.slice(0, 3).map(e => e.className), sticky: getComputedStyle(top).position,
+        outsideWorkspace: !!transport && !transport.closest('.sq'), gap: b.top-a.bottom,
+        aligned: Math.abs(a.left-b.left)<1 && Math.abs(a.width-b.width)<1 };
+    });
+    assert.deepEqual(geometry.order, ['layout-switch', 'ed-icon ed-sidebar-toggle', 'ed-title']);
+    assert.equal(geometry.sticky, 'sticky'); assert.equal(geometry.outsideWorkspace, true);
+    assert.ok(Math.abs(geometry.gap)<1 && geometry.aligned, JSON.stringify(geometry));
+    for (const view of ['Arrangement', 'Clip', 'Automation', 'Mixer']) {
+      await tab(view);
+      assert.equal(await page.locator('.ed-transport-tools .sq-transport').count(), 1);
+    }
+    await page.evaluate(() => fm1.editor.select('s1', { view: 'sound' }));
+    assert.equal(await page.locator('.ed-transport-tools').isHidden(), true);
+    await page.evaluate(() => fm1.editor.select('s1', { view: 'sequencer' }));
+    await idle();
+    assert.equal(await page.locator('.ed-transport-tools').isVisible(), true);
+  });
   await check('track header names survive native commit and project undo/redo', async () => {
     await tab('Scenes');
     const name = page.getByLabel('Track 1 name', { exact: true });
@@ -164,7 +187,7 @@ try {
     report.checks.push('measured sound/master meters and keyboard fader edit update native mirror');
     await tab('Clip');
     assert.notEqual(await page.locator('[data-roll-playhead]').getAttribute('style'), null);
-    await page.locator('.sq').getByRole('button', { name: 'Stop', exact: true }).click();
+    await page.locator('.ed-transport-tools').getByRole('button', { name: 'Stop', exact: true }).click();
     await page.waitForFunction(() => !fm1.seq.playing);
     await page.evaluate(async () => {
       const host = fm1.editor.sequencerHost, doc = await host.fetchProject();
@@ -194,7 +217,7 @@ try {
     await fileSummary.press('Escape');
     assert.equal(await instrument.getAttribute('aria-expanded'), 'false');
     assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), 'S1 instrument');
-    assert.equal(await page.locator('.sq-transport > .sq-file-tools').count(), 1);
+    assert.equal(await page.locator('.ed-song-file-tools > .sq-file-tools').count(), 1);
     assert.equal(await dialog.locator('.sq-device-dialog-footer .sq-file-tools').count(), 0);
     await reset();
     await tab('Arrangement');
@@ -242,7 +265,7 @@ try {
   await reset();
   await check('actual offline worker produces six downloadable WAVs with exact channel counts', async () => {
     await expandFiles();
-    await page.locator('.sq').getByRole('button', { name: 'Export WAV…', exact: true }).click();
+    await page.locator('.ed-song-file-tools').getByRole('button', { name: 'Export WAV…', exact: true }).click();
     await page.getByLabel('Effect tail (seconds)').fill('0'); await page.getByTestId('audio-export-start').click();
     await page.waitForFunction(() => document.querySelector('[data-testid="audio-export-status"]').textContent.includes('WAVs ready'), null, { timeout: 120000 });
     const links = page.getByTestId('audio-export-files').locator('a'); assert.equal(await links.count(), 6);
