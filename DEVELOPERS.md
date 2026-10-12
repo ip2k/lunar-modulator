@@ -260,9 +260,25 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   processing mean stems need not sum to the master mix. Output gain is a page
   preference, not a saved project parameter. See the
   [workflow and limits](sim/web/README.md#song-workspace-clips-scenes-midi-and-audio-files).
-  The mock-host UI regression is `sim/web/test/sequencer-ui.mjs`; native browser
-  integration and DSP tests are separate gates. File exchange does not implement
-  a device runtime or a USB/BLE project-transfer protocol.
+  Each completed WAV starts a browser download and remains available as a link
+  in the render results. The render guard now derives the stop bound from the
+  native clock: `(bars × 384 + 1)` ticks, converted to frames and rounded up to
+  a 64-frame block. The clock cause and guard implementation are documented in
+  `sim/web/www/editor/render.worker.js`; saved-transport Wasm regressions passed
+  for a 20-BPM one-bar song and four full-arrangement demos, including an FM6,
+  effects, arpeggiator/modulation and stem-isolation case. Combined-source
+  Wasm parity and browser download validation remain separate checks. MIDI
+  Learn overlays registered editor and simulator controls, binds an incoming
+  note or CC, and shows a clearable assignment badge. Project JSON
+  and binary formats preserve these mappings; binary save and quiet autosave
+  wait for the AudioWorklet mapping acknowledgement, and project load restores
+  the saved map. Live USB/BLE project transfer is not implemented. The native
+  map arena reserves 4,612 B, and preflight now counts existing automation
+  queues/cache separately [verified: `tests/test_midi_map_state.py` and
+  `notes/2026-10-11-midi-map-project-state-handoff.md`]. The mock-host UI
+  regression is `sim/web/test/sequencer-ui.mjs`;
+  native browser integration and DSP tests are separate gates. File exchange
+  does not implement a device runtime or a USB/BLE project-transfer protocol.
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free
