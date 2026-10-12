@@ -62,9 +62,14 @@ vendor command. The immediate stage chooser stopped before launching its
 probe, because its historical capture guard rejected one ordinary SCSI
 media-lock command. This is a boot attempt, not accepted diagnostic execution,
 visible display or post-boot recovery evidence. The retained diagnostic RAM
-record has not been read; do not upload a loader before the separately reviewed
-read-only successor retrieves it. Do not replay the consumed reset or chooser,
-or refresh the original ROM snapshot.
+record was subsequently retrieved by a distinct reviewed successor: exactly two
+native successful reads, coherent stage6/result0/elapsed20000/heartbeat1976 and
+the native pointer. This supports diagnostic execution conditionally; visible
+pixels, retention and recovery cause remain unproved. See
+[the actual RAM read](2026-10-11-diagnostic-first-ram-read.md). A distinct recovery
+admission for that terminal capture is required before loader upload or NOR
+mutation. Do not replay the consumed reset, chooser or RAM read, or refresh
+the original ROM snapshot.
 
 [verified: independently accepted software receipts] The final shared
 successful/detached stage probe passed 101 unique cases in sixteen Hera chunks

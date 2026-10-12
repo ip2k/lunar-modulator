@@ -70,7 +70,9 @@ def test_every_caught_read_prefix_is_inconclusive(receipt_case, cut):
     events = copy.deepcopy(receipt_case.events[:cut]); events.append(stop_event(receipt_case.stamp+10))
     absent = []; proof = receipt_case.verify(events, absent)
     assert proof['outcome'] == 'stopped-read-only-inconclusive'
-    assert absent == [Path(receipt_case.campaign['receipt_path'])/'result.json']
+    parent = Path(receipt_case.campaign['receipt_path'])
+    assert parent/'result.json' in absent and parent/'.result.json.pending' in absent
+    if cut < 6: assert parent/'raw.bin' in absent and parent/'decoded.bin' in absent
 
 
 @pytest.mark.parametrize('field', ['status','masked','msg','host','driver','resid','info','sense_len'])
@@ -177,6 +179,7 @@ def test_owned_capture_ambiguities_rejected(capture_case,fault):
 
 
 def test_closed_factory_opens_no_file_or_device(monkeypatch):
+    monkeypatch.setattr(evidence,'WRAPPER_SOURCE_SHA',None)
     monkeypatch.setattr(evidence,'read_file',lambda *args,**kwargs:pytest.fail('Closed factory read'))
     with pytest.raises(ValueError,match='Closed'): evidence.validate_returned_state('/nonexistent')
     with pytest.raises(ValueError,match='Evidence only'): evidence.prepare_campaign('/nonexistent')
@@ -210,3 +213,75 @@ def test_single_bounded_nofollow_reader_rejects_bad_evidence(tmp_path,kind):
     elif kind=='oversize':path.write_bytes(b'01234')
     elif kind=='relative':path=Path('relative')
     with pytest.raises((ValueError,OSError)):evidence.read_file(path,4)
+
+
+@pytest.mark.parametrize('name', ['raw.bin','decoded.bin','.result.json.pending'])
+@pytest.mark.parametrize('cut', [1,2,3,4])
+def test_early_stopped_prefix_rejects_later_publication_artifacts(receipt_case,name,cut):
+    path=Path(receipt_case.campaign['receipt_path'])/name;path.write_bytes(b'x')
+    events=copy.deepcopy(receipt_case.events[:cut])+[stop_event(receipt_case.stamp+10)]
+    with pytest.raises(ValueError):receipt_case.verify(events)
+
+
+@pytest.mark.parametrize('name', ['raw.bin','decoded.bin','.result.json.pending'])
+def test_late_artifact_appearance_is_retained_as_negative_evidence(receipt_case,name):
+    absent=[];receipt_case.verify(receipt_case.events[:3]+[stop_event(receipt_case.stamp+10)],absent)
+    proof=evidence.ReturnedProof(SimpleNamespace(check=lambda:None),(),tuple(absent),'stopped',1)
+    evidence._PROOFS.add(proof);proof.check()
+    (Path(receipt_case.campaign['receipt_path'])/name).write_bytes(b'x')
+    with pytest.raises(ValueError,match='negative'):proof.check()
+
+
+def test_two_completed_reads_can_leave_exact_unpublished_raw_and_decoded(receipt_case):
+    parent=Path(receipt_case.campaign['receipt_path'])
+    for name in ('raw.bin','decoded.bin'):(parent/name).write_bytes(receipt_case.files[name])
+    proof=receipt_case.verify(receipt_case.events[:5]+[stop_event(receipt_case.stamp+10)])
+    assert proof['result'] is None and proof['outcome']=='stopped-read-only-inconclusive'
+
+
+@pytest.mark.parametrize('fault',['wrong','partial','without-raw','pending'])
+def test_two_read_prepublication_artifacts_fail_closed(receipt_case,fault):
+    parent=Path(receipt_case.campaign['receipt_path'])
+    for name in ('raw.bin','decoded.bin'):(parent/name).write_bytes(receipt_case.files[name])
+    if fault=='wrong':receipt_case.files['raw.bin']=b'x'*32
+    elif fault=='partial':receipt_case.files['raw.bin']=b'x'
+    elif fault=='without-raw':(parent/'raw.bin').unlink()
+    else:(parent/'.result.json.pending').write_bytes(receipt_case.files['result.json'])
+    with pytest.raises(ValueError):receipt_case.verify(receipt_case.events[:5]+[stop_event(receipt_case.stamp+10)])
+
+
+def test_post_completed_event_pending_result_is_exact_or_absent(receipt_case):
+    parent=Path(receipt_case.campaign['receipt_path']);pending=parent/'.result.json.pending'
+    pending.write_bytes(receipt_case.files['result.json']);receipt_case.files[pending.name]=receipt_case.files['result.json']
+    assert receipt_case.verify(receipt_case.events+[stop_event(receipt_case.stamp+10)])['result']
+    receipt_case.files[pending.name]=b'{}'
+    with pytest.raises(ValueError):receipt_case.verify(receipt_case.events+[stop_event(receipt_case.stamp+10)])
+
+
+def test_successful_result_requires_no_pending_publication(receipt_case):
+    parent=Path(receipt_case.campaign['receipt_path']);(parent/'.result.json.pending').write_bytes(b'x')
+    with pytest.raises(ValueError):receipt_case.verify()
+
+
+def test_consumed_pre_log_stop_keeps_publication_absent(tmp_path):
+    absent=[];proof=evidence.verify_zero_receipt(tmp_path,lambda *args:pytest.fail('read'),absent)
+    assert proof['started'] is None and proof['intents']==0
+    assert set(absent)=={tmp_path/n for n in ('raw.bin','decoded.bin','result.json','.result.json.pending')}
+
+
+@pytest.mark.parametrize('name',['raw.bin','decoded.bin','result.json','.result.json.pending'])
+def test_consumed_pre_log_stop_rejects_later_artifact(tmp_path,name):
+    (tmp_path/name).write_bytes(b'x')
+    with pytest.raises(ValueError):evidence.verify_zero_receipt(tmp_path,lambda *args:pytest.fail('read'),[])
+
+
+def test_consumed_zero_request_capture_rejects_any_outbound_command(capture_case):
+    case=capture_case;case.envelope['exit_status']=1;case.records['execution-exit.json']['exit_status']=1
+    files={n:evidence.canonical(v) for n,v in case.records.items()}
+    files.update({'usbmon3.stderr':b'','usbmon3.txt':b'','execution.stdout':b''})
+    receipt=dict(outcome='consumed-pre-log-zero-request-stop',intents=0,started=None,ended=None,result=None)
+    usb=dict(busnum='3',devnum='26')
+    args=(case.envelope,files,dict(witness_sha256='1'*64),'2'*64,'4'*64,case.witness,receipt,helper,usb)
+    evidence.verify_capture(*args)
+    files['usbmon3.txt']=b'1 1 S Bo:3:026:1 -115 31 = '+b'00'*31+b'\n'
+    with pytest.raises(ValueError):evidence.verify_capture(*args)

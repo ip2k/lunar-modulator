@@ -17,8 +17,8 @@ import time
 import types
 from weakref import WeakSet
 
-STAGE_SOURCE_SHA = None  # Final independent source/runtime freeze is required.
-WRAPPER_SOURCE_SHA = None  # Exact bound owned-capture wrapper, never a template.
+STAGE_SOURCE_SHA = '70d57d7a3294794ebc84647666bd22f195822027a0c96c22a3ed8495fbe53279'
+WRAPPER_SOURCE_SHA = '77098101427ac6c5a5c4ae64e7730a081ffa22eebb14a1cc1816e85147b264dd'
 _PROOFS = WeakSet()
 
 
@@ -64,6 +64,15 @@ def direct_private(path):
 
 def without_time(event):
     result = dict(event); result.pop('time', None); return result
+
+
+def verify_zero_receipt(receipt, freeze, absent):
+    """Consumed pre-log failure with no invented prepared/request events."""
+    for name in ('raw.bin','decoded.bin','result.json','.result.json.pending'):
+        artifact = receipt / name
+        if os.path.lexists(artifact): raise ValueError('Pre-log stop contains later publication artifact')
+        absent.append(artifact)
+    return dict(outcome='consumed-pre-log-zero-request-stop', intents=0, started=None, ended=None, result=None)
 
 
 def verify_receipt(raw, campaign, campaign_sha, stage, helper, freeze, absent):
@@ -140,6 +149,28 @@ def verify_receipt(raw, campaign, campaign_sha, stage, helper, freeze, absent):
         position += 1
     if position != len(body) or (not stopped and result is None):
         raise ValueError('Complete two-read receipt or bounded caught stop required')
+    # Publication order follows source70d; late artifacts stay positive or negative evidence.
+    completed_reads = position >= 4 and len(hashes) == 2 and good
+    if stopped and result is None:
+        for name in ('raw.bin', 'decoded.bin'):
+            artifact = receipt / name
+            if not os.path.lexists(artifact):
+                absent.append(artifact); continue
+            if not completed_reads: raise ValueError('Early stop contains later RAM artifact')
+            data = freeze(artifact, limit=32)
+            if len(data) != 32: raise ValueError('Stopped RAM artifact incomplete')
+            if name == 'raw.bin' and digest(data) != hashes[1]:
+                raise ValueError('Stopped RAM artifact response differs')
+            if name == 'decoded.bin':
+                raw_path = receipt / 'raw.bin'
+                if not os.path.lexists(raw_path) or helper.decode_stage(freeze(raw_path, limit=32)) != data:
+                    raise ValueError('Stopped decoded artifact differs')
+    pending = receipt / '.result.json.pending'
+    if os.path.lexists(pending):
+        if not stopped or result is None or freeze(pending, limit=65536) != canonical(result):
+            raise ValueError('Unexplained pending result artifact')
+    else:
+        absent.append(pending)
     if not stopped and canonical(json.loads(freeze(receipt / 'result.json', limit=65536))) != canonical(result):
         raise ValueError('Durable completed read result differs')
     return dict(outcome='stopped-read-only-inconclusive' if stopped else 'completed-two-read',
@@ -296,8 +327,15 @@ def validate_returned_state(path, *, install_journal_path=None):
         direct_private(receipt)
         if freeze(marker, limit=256) != c['stage_campaign_sha256'].encode('ascii'):
             raise ValueError('Exact consumed read marker required')
-        read = verify_receipt(freeze(receipt / 'commands.jsonl', limit=65536), campaign,
-            c['stage_campaign_sha256'], stage, helper, freeze, absent)
+        log_path = receipt / 'commands.jsonl'
+        if os.path.lexists(log_path):
+            log_raw = freeze(log_path, limit=65536)
+        else:
+            absent.append(log_path); log_raw = b''
+        if log_raw:
+            read = verify_receipt(log_raw, campaign, c['stage_campaign_sha256'], stage, helper, freeze, absent)
+        else:
+            read = verify_zero_receipt(receipt, freeze, absent)
     else:
         absent.extend((receipt, marker))
         read = dict(outcome='pre-open-zero-request-stop', intents=0, started=None, ended=None, result=None)

@@ -1,10 +1,10 @@
 # Recovery after the actual stopped chooser and distinct RAM read
 
-Design only, 2026-10-11. This dependency does not delay the separately authorized
+Design and evidence admission, 2026-10-11. This dependency does not delay the separately authorized
 two-read RAM milestone. No hardware was opened, no command was sent, and no old
 source or marker was changed. Root owns activation, commits and verified pushes.
 The branch is feature/2026-10-11@installable-firmware; the last parent-confirmed
-backed-up checkpoint is 8c4b5cf0fec6c872b15c77a50dc2d24a5405362d. The new closed
+backed-up checkpoint is aca0e686d60e2224993ee4450919a14b0702f079. The new closed
 stopped-restore lineage helper's independent 33-case gate is accepted separately.
 
 Insight before implementation: a historical kernel-generated failed PREVENT
@@ -25,7 +25,7 @@ remain distinguishable from the subsequent fixed-loader backup and restore.
 - tools/fm1_sdk_rehearsal.py:
   f696484511754b91d4faf449aa2e4cab3ca910daf05a9acd66daa966bae7d6c4.
 
-[verified: inspected candidate, not final acceptance] Root's distinct
+[verified: independently accepted source/runtime and actual two-read receipt] Root's distinct
 tools/fm1_diagnostic_stage_resume.py currently hashes
 70d57d7a3294794ebc84647666bd22f195822027a0c96c22a3ed8495fbe53279.
 It privately loads exact 8fb and 8ad native transport, replaces only the
@@ -35,10 +35,12 @@ are INQUIRY 36 bytes and FD07 32 bytes. The historical single failed 1e prevent1
 and immediately matching 05/24/00 REQUEST SENSE are never live operations.
 The old adapters continue to reject this actual lineage.
 
-The current source-only review is
-build/diagnostic-stage-resume-independent-review.md; final stage source, tests,
-wrapper and physical completed/stopped receipt remain separate dependencies.
-No new production literal may be frozen against this draft source yet.
+The final stage source/runtime review is
+build/diagnostic-stage-resume-independent-review.md, SHA
+9d5805f909dc816df4919e7c1a9e11d6a60b2ba696667ee562581a7855a2ede7.
+Root separately executed exactly two successful reads and retained the actual
+receipt and owned capture. The new admission literal pins the accepted stage70d
+and actual bound wrapper770; it grants no opener authority.
 
 Semantic tools still select the primary checkout, not this worktree. Rarefaction
 Python readiness there and Serena's cpp-only coverage do not provide semantic
@@ -164,14 +166,14 @@ a new-ROM repair requires independently observed ROM lineage. The pure NOR
 model and full byte restore checks cannot establish CPU/SPL recovery availability.
 No flash fault injection is part of this lane.
 
-## Closed scaffold checkpoint
+## Historical closed scaffold checkpoint
 
 The new `tools/fm1_stopped_choice_recovery_evidence.py` and focused test module
-are saved. Stage and exact bound wrapper pins remain `None`; factory admission
-therefore rejects before reading any evidence. The pure receipt/capture kernels
+are saved. At that V1 checkpoint stage and exact bound wrapper pins were `None`; factory
+admission therefore rejected before reading any evidence. The pure receipt/capture kernels
 check exact two-read prefixes, durable completion, raw/decoded bytes, child stdout,
 owned capture chronology and unchanged historical/current witness identities.
-A cheap 16-chunk Hera gate is being prepared. Genuine private-input composition,
+The first cheap 16-chunk Hera gate was prepared. Genuine private-input composition,
 final stage66 acceptance, exact bound wrapper pin and independent source/runtime
 review remain required before removing those closures. No hardware was accessed.
 
@@ -181,3 +183,72 @@ This is modeled receipt evidence only. Independent review found missing negative
 artifact checks for stopped prefixes and pending result publication. Source
 repair, a second gate and genuine private-input composition remain necessary;
 the activation pins stay closed. Root retains this as a WIP checkpoint.
+
+## Final admission candidate and exact Hera gates
+
+[verified: source files] The evidence-only source is
+`tools/fm1_stopped_choice_recovery_evidence.py`, SHA
+8875f0f0ab625d437d8596d1eb28a157f9bab931d6ffeffc74fb28e16fe27340.
+Pure tests SHA54ca49d86e0cd816edafa8dfcac9f0d855a43fa5e3433400e9abf6d02b13f668;
+`tests/test_stopped_choice_recovery_actual.py` SHA
+3c7be4df61d8174ea4837b68faa6a3ee6e7b0ecaf3bded628737271266d2f9c8.
+The repair retains positive or negative raw/decoded/pending evidence according
+to the exact publication phase. Consumed missing/empty logs are a distinct
+pretransport zero-CBW branch requiring exact owned capture, nonzero child and
+all success artifacts absent. Nonempty malformed prefixes remain rejected.
+
+[verified: Hera containers] V2 passed90 unique pure cases in16 chunks, no
+failures/errors/skips,2.67s; it retains the repaired pre-literal source separately.
+V3 passed95 unique cases in16 chunks plus one exact actual-file factory smoke,
+no failures/errors/skips,5.97s. All1688 archived files were hash-checked;18 exact
+image containers used2CPU/2GiB, network none, no devices, nonprivileged, exited0
+and had no OOM. Named removal receipts and a structured fresh empty label lookup
+are saved. Source and original historical timestamps were not refreshed.
+
+Artifacts are `build/stopped-choice-recovery-evidence-hera/` with the source
+archive, snapshot, plan,16 XML/log/run receipts, smoke,18 inspections/removals,
+aggregate and own coverage checks for each version. V3 archive
+102d8fc5dfb1ae2c3ad15f3f28447b533c19efd0130156443c1e279f3db15c5a; snapshot
+ad20302e2905ffdbf1db306f265a672d4b3451c8a0183a09e5bd16ebb157f0a9; aggregate
+d86371304df520e37a2f1892ef99ae9acc78d2de562853762df90275baeeb564; cleanup
+8fc63c66b70a6e4f8140111b5e238342319fb42b899a6f8e901b7393f9abec1c.
+Image sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d.
+
+The physical-file smoke consumed the exact root-exportedb266 RAM evidence and
+unchanged literalstage70d/wrapper770 factory, froze113 positive files and32
+absent paths, and preserved originale79 snapshot,1791775862.0725162 admission
+and0d797 install journal. This smoke only reads private files. The four composed
+completed/stopped/consumed-empty/consumed-missing variants use injected transport
+and disposable wrapper substitutions; their captured wire is modeled. These
+checks grant no upload, NOR, reset, boot/display or recovery acceptance.
+Independent final evidence review is pending; no new backup/restore literal
+authority is granted by a passing admission test.
+
+Insight after implementation: a caught stop can occur after both read completions
+but during file publication. Recovery must preserve exact surviving bytes and
+missing artifacts at that phase; syscall or file presence alone cannot be promoted
+to successful publication. This distinction also lets a consumed pretransport
+read attempt remain recoverable without rewriting its marker or history.
+
+## Dependent ownership after RAM admission
+
+Diagnostic lane owns `tools/fm1_stopped_choice_backup.py` and focused tests.
+This lane owns `tools/fm1_stopped_choice_stock_restore.py` and focused tests.
+New backup uses the proof above, separate fresh passive same-ROM witness and
+its own marker. New restore will pin the completed-backup helper, reuse exact
+privatef583 transport/policy/replay kernels through an independently registered
+new factory, and own the restore schema/marker/worker. The new completed helper
+must preserve the original journal-before-restore for any subsequent reset.
+Existingafeefe/f583/8fb sources and consumed markers remain frozen.
+
+## Independent admission acceptance
+
+[verified: independent archive/XML/resource replay] Final source 8875, pure tests
+54ca and actual tests 3c7 are accepted for evidence-only admission. Review
+`build/stopped-choice-recovery-evidence-independent-review.md` SHA
+6ce3437fb744d7778eb0c36201720456c1eaf9fa4b55692b7d0c7e5e5e622a9b
+and independent evidence check 3b7ae96b confirm all 1688 archive pins, 95 unique
+XML cases across 16 chunks plus the actual-file smoke, 18 isolated no-OOM
+containers/removals and the structured fresh empty lookup. This supersedes the
+pending final-review sentence above. No device was opened by either test lane;
+new backup and restore authority remains a separate reviewed dependency.

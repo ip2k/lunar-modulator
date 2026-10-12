@@ -23,9 +23,17 @@ the capture includes a new-ROM standard CDB `1e0000000100` absent from its
 allowlist. Independent capture review `a514eff1…` accepted exact paired
 transfers, failed media-lock CSW and illegal-field sense as Linux-compatible;
 it does not prove the process origin or ROM internals. Preserve the consumed
-reset and chooser; no retry or original snapshot refresh. Diagnostic stage,
-display and recovery after diagnostic execution remain unaccepted. No camera
-was identified in the bench's passive video-device inventory.
+reset and chooser; no retry or original snapshot refresh. At that chooser stop,
+diagnostic execution, display and recovery remained unaccepted. A distinct
+reviewed successor subsequently completed exactly INQUIRY36 and FD07 IN32 at
+`1791778274.585474`, returning coherent stage6/result0/elapsed20000/heartbeat1976
+and the native write pointer. Independent physical review `99d3c4da…` and
+native/source interpretation `2f6090d4…` accept conditional diagnostic execution.
+Stage6 precedes P33 lock acquisition; visible pixels and recovery cause remain
+unproved. Preserve its own consumed
+marker and all owned capture evidence. See
+[the first RAM-read note](notes/2026-10-11-diagnostic-first-ram-read.md).
+No camera was identified in the bench's passive video-device inventory.
 
 [verified: recovery preparation] The returned-ROM backup source `afeefe7b…`,
 restore source `f5835237…`, and shared provenance helper `8fb33694…` are frozen.
@@ -66,17 +74,17 @@ completed 6,389 collected cases in 16 Hera chunks: 6,352 passed, 35 skipped,
 two expected failures, zero failures/errors. The strict private selector gate
 passed 287 cases without skips. Native SG test portability repair passed 79
 cases plus its smoke. Later recovery additions have the separate gates above.
-GitHub run 38199299324 on exact checkpoint `20284ce7ed0543038c5861e935f345e7b4257a2c`
+GitHub run38201658769 on exact checkpoint `a6bce57abcef99ec8c1f5b1a33a83e1273840f68`
 passed all thirteen jobs. The feature branch is
-`feature/2026-10-11@installable-firmware`, with parent checkpoint
-`8c4b5cf0…` committed and remote-SHA verified. Exact-head run 38200263950 remains
-in progress; new uncommitted successors are outside that snapshot. No PR or
+`feature/2026-10-11@installable-firmware`, with checkpoint
+`aca0e686…` committed and remote-SHA verified. Its exact-head run38202646517
+remains in progress; later uncommitted successors are outside that snapshot. No PR or
 merge has occurred.
 
-Next: independently review the distinct stopped-chooser admission route,
-its exact sixteen-chunk Hera gate and concrete two-read wrapper before reading
-diagnostic RAM; preserve the original
-timestamp and consumed markers. Then capture fresh matching target backups,
+Next: integrate the distinct stopped-chooser recovery evidence admission,
+its exact95-case sixteen-chunk Hera gate and actual-file replay, then review
+separate backup and restore successors for the completed RAM-read lineage.
+Preserve the original timestamp and consumed markers. Capture fresh matching target backups,
 restore stock under the new binding and verify normal identity. The new closed
 interrupted-restore evidence kernel `cef2d0ea…` passed 55 cases in 16 Hera chunks;
 independent review `e0401d94…` accepted only its prefix/dual-dump scope. Genuine

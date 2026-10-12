@@ -4,7 +4,8 @@ This runbook separates routes observed on the owner's FM-1_092, the fixed
 physical scratch-sector procedure, the exact SDK diagnostic install/restore
 procedure, and a synthetic failure model. The diagnostic's 30 changed sectors
 have been installed and restored with complete readback verification. Diagnostic
-boot, display, recovery after boot, and physical interrupted-write recovery
+execution is supported conditionally by a retained RAM record; visible display,
+recovery after diagnostic execution, and physical interrupted-write recovery
 remain separate acceptance gates. Model success does not prove mask-ROM entry,
 CPU reset, USB_KEY timing, or firmware boot on hardware.
 
@@ -82,9 +83,16 @@ diagnostic target. One later target reset was transmitted and lost its reply on
 detach; the same port returned to ROM about 22 seconds later. The immediate
 stage chooser stopped before reading RAM because its capture guard rejected
 one SCSI media-lock command. That return alone does not establish diagnostic
-execution or recovery. Preserve the original snapshot, reset capture and
-consumed markers; a separately reviewed read-only successor must retrieve the
-retained diagnostic record before any recovery-loader upload. See
+execution or recovery. A distinct reviewed successor later completed exactly
+INQUIRY36 and FD07 IN32, returning coherent stage6/result0/elapsed20000/heartbeat1976
+and the native write pointer. Independent review accepts conditional diagnostic
+execution evidence. Stage6 precedes the P33 lock; the record does not prove
+visible pixels, RAM-retention semantics or recovery cause. Preserve the original
+snapshot, reset capture and every consumed marker. Before any loader upload,
+a distinct recovery adapter must admit this completed read lineage and take
+fresh matching full target backups. The retained record would be overwritten
+by the fixed loader upload. See
+[the first RAM read](../notes/2026-10-11-diagnostic-first-ram-read.md),
 [the rehearsal](../notes/2026-10-11-sdk-rehearsal.md) and
 [the current boot trial](../notes/2026-10-11-diagnostic-boot-trial.md).
 
@@ -201,8 +209,9 @@ identity response verified restored application operation. The later
 install-only transcript also passed independent review, with the exact target
 read back. This verifies application-sector installation and stock restoration
 within the observed loader sessions. It does not verify an arbitrary full-flash
-rewrite, diagnostic execution, visible pixels or recovery from a corrupted or
-interrupted physical write.
+rewrite, visible pixels or recovery from a corrupted or interrupted physical
+write. The separate later retained RAM read supports diagnostic execution only
+conditionally, with the record and native-code limits above.
 
 For a new campaign, first establish fresh reviewed entry and take two matching
 complete backups. Freeze the concrete campaign, source hashes and recovery
