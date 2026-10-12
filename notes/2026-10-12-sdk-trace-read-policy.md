@@ -125,3 +125,15 @@ Actual native ELF derivation produced the exact five operations above [verified]
 No real transport, boot lineage factory, ROM retention or new-range device
 acceptance was exercised. Parent owns integration, commit/push and any later
 hardware opener and physical acceptance. Independent reader review is pending.
+
+Independent V3 reader review is accepted in the offline/injected scope
+[verified: retained report and checker]. Reviewer confirmed frozen f4dc/2f898
+source, all 273 indexed hashes, 113 exact unique planned cases, 17 isolated
+container inspections and fresh cleanup. Report:
+`build/sdk-trace-read-hera/independent-review.md`
+SHA256 `b436f454cbdfeb2c614923c6d48591d8066af18b0abcb000292faf26b1ab09f0`;
+checker `independent-check-v3.json`
+SHA256 `68047665cd16bd10a24cb42669e43620b1627ebf7022cfd975b730b611c0ef75`.
+The boot pin remains closed; actual range ABI/retention and native publication
+packet interpretation limits remain. The distinct SG successor is also closed
+pending its own independent review and accepted canonical boot lineage.

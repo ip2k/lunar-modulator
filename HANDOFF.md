@@ -11,28 +11,36 @@ original conversation; last updated 2026-10-11. Read this first, then
 
 ## Current installable-image boundary — 2026-10-12
 
-[verified] Stock full-image readback96006 and the distinct identity-only reply
-FM-1_092 are accepted. Reset and identity campaigns are consumed; no device
-command has followed the accepted identity. Native trace reviewcf706b9c accepts
-the new app76382f53/ELFe9d54172 and linked RAM allocation within offline scope.
-Checkpoint8f687392 is pushed/remote verified. Exact raw target5dbada65 passed
-independent preservation reviewb903322e; stock SPL/OTA/cfg and protected bytes
-remain identical. New trace policy/install candidate pins are present; 54 unique
-Hera tests across sixteen chunks plus the genuine full-write smoke passed.
-Independent installer review remains pending. The new injected trace reader
-passed 113 unique Hera tests; its boot activation remains closed. The separate
-one-reset boot successor passed 43 unique tests across sixteen Hera chunks and
-one smoke; install/wire activation remains closed and returned-ROM lineage is
-not yet implemented. These are source/model checks, with no new device command.
+[verified] Stock full-image readback96006 and the historical identity-only reply
+FM-1_092 are accepted. Native reviewcf706b9c accepts app76382f53/ELFe9d54172
+within offline scope. Raw target5dbada65 preservation reviewb903322e accepts
+identical stock SPL/OTA/cfg and protected bytes. Installer review5ca89303 accepts
+54 unique Hera cases and the genuine full-write smoke. Reader reviewb436f454
+accepts113 unique cases; SG reviewa8589cfa accepts41 unique cases in30 chunks.
+Their boot/reader activation remains closed. Reset-wire55-case review is being
+replayed by root. The boot successor's historical43-case check remains valid;
+its newly saved offline read-lineage and preserved-journal support are WIP,
+untested and closed. New returned-recovery46-case/30-chunk kernels and partial
+restoration kernels remain closed pending concrete acquisition and review.
+Last verified pushed checkpoint before this update: abc8135a48ea02e4228b83858481f6c0add7a1a0.
 
-Owner is at the desk. Requested CONTROL→Mac, TARGET C→bench Pi, FM-1 detached
-from TARGET A until Full Speed capture starts. Mac computer-use currently reports
-locked; owner unlock/Packetry launch and cable status are pending. Do not assume
-an old USB/SG binding survives rewiring. Read the native trace before any fixed
-loader upload, which overwrites its BSS. Distinct boot/reader and partial-NOR
-recovery successors, physical display/recovery, exact final CI/review/integration
-remain required. Final CI must use workflow_dispatch on the exact branch head:
-feature-branch pushes alone do not trigger this repository's workflow.
+[verified: 2026-10-12 UTC] Owner connected CONTROL→Mac, TARGET C→bench Pi,
+TARGET A→FM-1 and started Packetry Full Speed capture. The screenshot decodes
+the normal FM-1 descriptors. Fresh passive artifact7a062e09 identifies port1-1,
+bus1/device3,4c4a:c755,speed12. Root alone ran a distinct one-query identity
+campaign at1791796140.650997: exit0, exact known41-byte FM-1_092 reply and owned
+capture stop accepted by review39aabe79. Archiveaa0857d4 is ignored under
+build/sdk-trace-fresh-entry-bench-v1/. Its marker is consumed; no device command
+has followed it. All previous receipts remain untouched. Packetry is absent
+from Computer plugin inventory; name and executable selection return Invalid
+app, so native clicks are unavailable. Owner capture stays running.
+
+Read the native trace before fixed-loader upload, which overwrites its BSS.
+Distinct fresh entry/dual backups, trace install/boot/read/recovery, physical
+visible display, partial-NOR recovery, final CI/review/integration remain.
+Final CI uses workflow_dispatch on the exact branch head: feature-branch pushes
+alone do not trigger this repository's workflow. Root owns hardware and commits;
+heavy work and new parallel checks use Hera,30 chunks when divisible.
 
 ## Installable firmware image resumed — 2026-10-11
 

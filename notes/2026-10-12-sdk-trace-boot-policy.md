@@ -16,12 +16,13 @@ request methods, never an old factory. Every ambiguous attempt closes the
 handle, retains its marker and forbids retry. Neither command completion nor a
 disconnect proves a CPU reset, application boot, display or recovery.
 
-The returned-ROM read-lineage factory is still a closed stub. Its next dependency
-is the separately reviewed pure actual-wire verifier, plus capture ownership,
-terminal evidence and the original fresh passive ROM snapshot. The loader must
-not be uploaded before the trace is read: it overwrites both trace and stage BSS.
-An optional preserved historical installation-journal path is needed for later
-recovery replay; this must not be accepted by the live reset campaign factory.
+The returned-ROM read-lineage factory has a saved WIP implementation behind
+closed pins. It binds the original completed installation, single-reset wire
+traffic, capture lifecycle, terminal child exit and passive ROM snapshot. New
+tests and independent factory review remain required. An optional preserved
+historical installation journal is exposed only by offline replay; the live
+reset factory always uses the current journal. The loader must not be uploaded
+before the trace is read: it overwrites both trace and stage BSS.
 
 [verified: Hera unit run] The initial source SHA is
 `5a836753a488edcd7d954482aa95be8c23b10f4884d43e10cfc4b133f45226c1`;

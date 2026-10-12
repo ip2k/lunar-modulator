@@ -280,3 +280,20 @@ archive/XML/isolation/cleanup inventory. Complete receipts are in
 and supervisor files beside it. Independent new-source/runtime acceptance is
 pending; physical sessions and every future recovery/boot/read gate remain
 separate.
+
+## Final independent offline acceptance
+
+[verified offline] Startup resolution independently accepted frozen policy
+`54bd9a2990d0055b1d102bc8481a71d883d586649aa2d79d62a185a415296835`,
+installer `6be77170f28fff7d7ca9c794ac44592a9c4bd4bae2cc2affd22a1cebf0936720`
+and tests `526f5bb719e8f00ca88046910cdb2cacf127ee68b96f1e538afbf0435da4a27e`.
+The final report is `build/sdk-trace-install-hera/independent-install-review.md`,
+SHA `5ca89303605ed0cdf3ec81c4b6c0a3dd0c3a9e8b84b64e5933ea6c9981c28d95`;
+its replay check is `8d05c1de559e429277b47a3e2c40cd2a11d6ea2824e39f4ac830c6b38c29cea0`.
+It independently verifies 1714 archive pins, all 54 exact XML cases in16 chunks
+plus actual-private modeled smoke, 18 isolation/cleanup receipts, 10,653 modeled
+command pairs, full stock/target response hashes,480 payloads and30 directory-last
+erases. This supersedes the preceding pending-review status. Ordinary inherited
+transaction file reads retain the reviewed private-owned exact-directory premise.
+No physical installation, CPU/SPL recovery, boot or display acceptance follows.
+Root owns source commits/push and future hardware activation.

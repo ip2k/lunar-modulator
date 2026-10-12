@@ -14,6 +14,7 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 import stat
 import sys
 import time
@@ -174,8 +175,12 @@ class CompletedInstall:
 
 
 def validate_completed_install(path, *, campaign_sha256, commands_sha256,
-                               result_sha256, journal_sha256):
-    """Offline actual-file replay; grants no physical open or new install."""
+                               result_sha256, journal_sha256, journal_path=None):
+    """Offline actual-file replay; grants no physical open or new install.
+
+    A preserved original journal permits historical proof after a later stock
+    restoration. The executable reset factory always uses the current journal.
+    """
     pin(INSTALL_SHA); pin(POLICY_SHA)
     evidence = []
     def freeze(path, expected=None, limit=2 * 1048576):
@@ -211,8 +216,18 @@ def validate_completed_install(path, *, campaign_sha256, commands_sha256,
     inputs = config['policy_inputs']
     policies = tuple(policy.load_policy(**inputs, direction=d, baseline_profile='fixed-loader')
                      for d in ('install', 'restore'))
-    plan, journal, baseline, target = modules['fm1_flash_transaction'].load_transaction(inputs['directory'])
-    freeze(Path(inputs['directory']) / 'journal.json', journal_sha256, 65536)
+    transaction = modules['fm1_flash_transaction']
+    plan, journal, baseline, target = transaction.load_transaction(inputs['directory'])
+    original_journal = (Path(inputs['directory']) / 'journal.json'
+                        if journal_path is None else Path(journal_path))
+    if journal_path is not None:
+        if (not original_journal.is_absolute()
+                or not stat.S_ISDIR(original_journal.parent.lstat().st_mode)
+                or stat.S_IMODE(original_journal.parent.stat().st_mode) != 0o700
+                or stat.S_IMODE(original_journal.lstat().st_mode) != 0o600):
+            raise ValueError('Direct private preserved install journal required')
+    journal = json.loads(freeze(original_journal, journal_sha256, 65536))
+    verify_install_journal(journal, plan, transaction)
     order = list(range(0x5000, 0x22000, 4096)) + [0x4000]
     if (digest(baseline) != BASELINE_SHA or digest(target) != TARGET_SHA
             or journal['state'] != 'complete' or journal['direction'] != 'install'
@@ -254,6 +269,19 @@ def validate_completed_install(path, *, campaign_sha256, commands_sha256,
     _INSTALLS.add(obj); obj.check(); return obj
 
 
+def verify_install_journal(journal, plan, transaction):
+    """Validate the original journal against the still sealed transaction plan."""
+    if (type(journal) is not dict or type(journal.get('schema')) is not int
+            or journal['schema'] != 1
+            or journal.get('record_sha256') != digest(transaction.encoded(
+                {k: v for k, v in journal.items() if k != 'record_sha256'}))
+            or journal.get('plan_sha256') != digest(transaction.encoded(plan))
+            or journal.get('sector_order') != plan['sector_order']
+            or journal.get('state') != 'complete' or journal.get('direction') != 'install'
+            or journal.get('intent') is not None or journal.get('verified_sha256') != TARGET_SHA):
+        raise ValueError('Exact original completed install journal required')
+
+
 @dataclass(frozen=True, eq=False)
 class Prepared:
     campaign: bytes
@@ -283,8 +311,8 @@ class Prepared:
             raise ValueError('Trace boot session already consumed')
 
 
-def prepare_campaign(path):
-    path = Path(path).absolute(); raw = read_file(path, 65536); c = json.loads(raw)
+def boot_config(raw):
+    c = json.loads(raw)
     required = {'schema', 'kind', 'adapter_sha256', 'install_campaign_path',
         'install_campaign_sha256', 'install_commands_sha256', 'install_result_sha256',
         'install_exit_status', 'journal_sha256', 'active_session_state', 'usb_binding',
@@ -298,6 +326,11 @@ def prepare_campaign(path):
             or c['target_sha256'] != TARGET_SHA
             or c['target_boot_authorization'] != 'exact-sdk-recovery-trace-diagnostic'):
         raise ValueError('Exact completed trace target boot campaign required')
+    return c
+
+
+def prepare_campaign(path):
+    path = Path(path).absolute(); raw = read_file(path, 65536); c = boot_config(raw)
     installed = validate_completed_install(c['install_campaign_path'],
         campaign_sha256=c['install_campaign_sha256'], commands_sha256=c['install_commands_sha256'],
         result_sha256=c['install_result_sha256'], journal_sha256=c['journal_sha256'])
@@ -418,10 +451,134 @@ def require_read_lineage(obj):
     obj.check()
 
 
-def prepare_read_lineage(path):
-    """Closed until a reviewed actual-wire verifier exists; no caller proof flags."""
-    pin(WIRE_VERIFIER_SHA)
-    raise ValueError('Actual wire/terminal boot lineage successor not yet implemented')
+def verify_capture_lifecycle(opened, stopped, exited, times, snapshot, campaign_sha):
+    """Bind the child attempt to its owned, open USBmon capture process group."""
+    if (type(opened) is not dict or set(opened) !=
+            {'time', 'timeout_pid', 'cat_pid', 'process_group', 'open_capture_fd'}
+            or type(stopped) is not dict or set(stopped) !=
+            {'time', 'process_group', 'returncode', 'owned_processes_only'}
+            or type(exited) is not dict or set(exited) !=
+            {'time', 'campaign_sha256', 'exit_status', 'capture_alive_after_child',
+             'retry', 'reset_completed_attested', 'boot_cause_proven'}
+            or any(type(opened[k]) is not int or opened[k] <= 0
+                   for k in ('timeout_pid', 'cat_pid', 'process_group'))
+            or opened['timeout_pid'] != opened['process_group']
+            or opened['cat_pid'] == opened['process_group']
+            or type(stopped['process_group']) is not int
+            or stopped['process_group'] != opened['process_group']
+            or type(stopped['returncode']) is not int or stopped['returncode'] != -15
+            or opened['open_capture_fd'] is not True or stopped['owned_processes_only'] is not True
+            or exited['capture_alive_after_child'] is not True
+            or exited['campaign_sha256'] != campaign_sha
+            or type(exited['exit_status']) is not int or exited['exit_status'] not in (0, 1)
+            or any(exited[k] is not False for k in
+                   ('retry', 'reset_completed_attested', 'boot_cause_proven'))):
+        raise ValueError('Exact owned capture and child-exit lifecycle required')
+    sequence = [opened['time'], times[0], times[1], times[-1], exited['time'],
+                snapshot['observed_at'], stopped['time']]
+    if (any(type(t) not in (int, float) or not math.isfinite(t) or t < 0 for t in sequence)
+            or sequence != sorted(sequence) or stopped['time'] > time.time()
+            or opened['time'] == times[0] or times[-1] == exited['time']):
+        raise ValueError('Capture must bracket the actual reset and returned-ROM observation')
+
+
+def verify_rom_snapshot(snapshot, binding):
+    """Check historical passive mapping; the live reader enforces freshness anew."""
+    if (type(snapshot) is not dict or set(snapshot) !=
+            {'schema', 'kind', 'observed_at', 'usb_binding', 'sg_binding',
+             'target_boot_campaign_sha256', 'quiet_state'}
+            or type(snapshot['schema']) is not int or snapshot['schema'] != 1
+            or snapshot['kind'] != 'fm1-passive-post-trace-boot-rom'
+            or snapshot['quiet_state'] != 'initial-rom-no-later-commands-no-loader-upload'
+            or snapshot['target_boot_campaign_sha256'] != binding['boot_campaign_sha256']
+            or type(snapshot['observed_at']) not in (int, float)
+            or not math.isfinite(snapshot['observed_at'])
+            or not binding['boot_completed_at'] <= snapshot['observed_at'] <= time.time()):
+        raise ValueError('Original passive post-trace-boot ROM snapshot required')
+    usb, old = snapshot['usb_binding'], binding['usb_binding']
+    if (type(usb) is not dict or set(usb) != {'path', 'busnum', 'devnum', 'vid', 'pid'}
+            or type(usb['path']) is not str
+            or not re.fullmatch(r'[1-9][0-9]*-[1-9][0-9]*(?:\.[1-9][0-9]*)*', usb['path'])
+            or any(type(usb[n]) is not str or not re.fullmatch('[1-9][0-9]*', usb[n])
+                   for n in ('busnum', 'devnum'))
+            or usb['path'].split('-')[0] != usb['busnum']
+            or usb['vid'] != '4c4a' or usb['pid'] != '8057'
+            or any(usb[n] != old[n] for n in ('path', 'busnum', 'vid', 'pid'))
+            or usb['devnum'] == old['devnum']):
+        raise ValueError('Original port and changed ROM USB address required')
+    sg, old_sg = snapshot['sg_binding'], binding['sg_binding']
+    paths = ('node', 'class', 'device', 'usb')
+    identities = ('node_identity', 'class_identity', 'device_identity', 'usb_identity')
+    if (type(sg) is not dict or set(sg) != set(paths + identities)
+            or any(type(sg[n]) is not str or not Path(sg[n]).is_absolute() for n in paths)
+            or any(type(sg[n]) is not list or len(sg[n]) != 3
+                   or any(type(v) is not int or v < 0 for v in sg[n]) for n in identities)
+            or Path(sg['usb']).name != usb['path']
+            or sg['usb_identity'] == old_sg['usb_identity']
+            or sg['node_identity'] == old_sg['node_identity']):
+        raise ValueError('Changed full passive SG/sysfs mapping required')
+
+
+def prepare_read_lineage(path, *, install_journal_path=None):
+    """Replay original files and wire traffic; grants no device opener itself."""
+    pin(WIRE_VERIFIER_SHA); pin(INSTALL_SHA); pin(POLICY_SHA)
+    evidence = []
+    def freeze(path, expected=None, limit=65536):
+        path = Path(path); raw = read_file(path, limit)
+        if expected is not None and digest(raw) != pin(expected):
+            raise ValueError('Pinned trace boot lineage evidence differs')
+        evidence.append((path, raw, limit)); return raw
+    own = Path(__file__).absolute(); root = own.parent
+    freeze(own, IMPORTED_SOURCE_SHA256, 2 * 1048576)
+    freeze(root / 'fm1_reset_wire.py', WIRE_VERIFIER_SHA, 2 * 1048576)
+    wire = load_source(root / 'fm1_reset_wire.py', WIRE_VERIFIER_SHA, '_trace_boot_wire')
+    raw = freeze(path); c = json.loads(raw)
+    pairs = ('capture', 'capture_open', 'capture_stop', 'boot_exit', 'rom_snapshot')
+    required = {'schema', 'kind', 'adapter_sha256', 'boot_campaign_path',
+                'boot_campaign_sha256', 'boot_commands_sha256', 'wire_verifier_sha256'}
+    required.update(key for name in pairs for key in (name + '_path', name + '_sha256'))
+    if (type(c) is not dict or set(c) != required
+            or type(c['schema']) is not int or c['schema'] != 1
+            or c['kind'] != 'fm1-exact-sdk-trace-boot-read-lineage'
+            or c['adapter_sha256'] != IMPORTED_SOURCE_SHA256
+            or c['wire_verifier_sha256'] != WIRE_VERIFIER_SHA):
+        raise ValueError('Exact trace boot/read lineage campaign required')
+    boot_raw = freeze(c['boot_campaign_path'], c['boot_campaign_sha256'])
+    boot = boot_config(boot_raw)
+    installed = validate_completed_install(boot['install_campaign_path'],
+        campaign_sha256=boot['install_campaign_sha256'], commands_sha256=boot['install_commands_sha256'],
+        result_sha256=boot['install_result_sha256'], journal_sha256=boot['journal_sha256'],
+        journal_path=install_journal_path)
+    if canonical(boot['usb_binding']) != installed.usb or canonical(boot['sg_binding']) != installed.mapping:
+        raise ValueError('Original completed trace installation connection required')
+    receipt = Path(boot['receipt_path'])
+    if (not receipt.is_absolute() or receipt.parent != installed.parent
+            or not stat.S_ISDIR(receipt.lstat().st_mode)
+            or stat.S_IMODE(receipt.stat().st_mode) != 0o700):
+        raise ValueError('Original direct private trace boot receipt required')
+    if freeze(installed.parent / '.target-core-reset.consumed', limit=64) != c['boot_campaign_sha256'].encode('ascii'):
+        raise ValueError('Original consumed trace boot marker required')
+    commands = freeze(receipt / 'commands.jsonl', c['boot_commands_sha256'])
+    events, times = events_from(commands)
+    if (times[0] < installed.completed_at or events[0].get('trace_nonce') != NONCE
+            or events[0].get('backup_manifest_sha256') != installed.manifest_sha256):
+        raise ValueError('Trace reset must follow exact verified installation')
+    originals = {name: freeze(c[name + '_path'], c[name + '_sha256'],
+                             16 * 1048576 if name == 'capture' else 65536) for name in pairs}
+    snapshot = json.loads(originals['rom_snapshot'])
+    binding = dict(boot_campaign_sha256=c['boot_campaign_sha256'], boot_completed_at=times[-1],
+                   usb_binding=boot['usb_binding'], sg_binding=boot['sg_binding'],
+                   app_sha256=APP_SHA, elf_sha256=ELF_SHA, nonce_hex=NONCE)
+    verify_rom_snapshot(snapshot, binding)
+    wire.validate(originals['capture'], commands, boot_raw, boot['usb_binding'], snapshot, times[-1])
+    exited = json.loads(originals['boot_exit'])
+    verify_capture_lifecycle(json.loads(originals['capture_open']), json.loads(originals['capture_stop']),
+                             exited, times, snapshot, c['boot_campaign_sha256'])
+    expected_exit = 0 if events[-1]['event'] == 'reset_request_completed' else 1
+    if exited['exit_status'] != expected_exit:
+        raise ValueError('Original child exit disagrees with terminal reset event')
+    obj = ReadLineage(canonical(binding), installed.parent, installed, tuple(evidence))
+    _LINEAGES.add(obj); obj.check(); return obj
 
 
 def main():
