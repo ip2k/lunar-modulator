@@ -161,7 +161,9 @@ export function makeSequencer(ctx) {
     pointerRelease = setTimeout(finishPointer, 250);
   };
   window.addEventListener('pointerup', releasePointer); window.addEventListener('pointercancel', finishPointer);
-  window.addEventListener('click', finishPointer);
+  // Observe completed clicks even when a note control stops bubbling. The
+  // scheduled animation frame still runs after target click handlers finish.
+  window.addEventListener('click', finishPointer, true);
   const finishEdit = () => { if (resizePending) scheduleResize(); };
   root.addEventListener('focusout', finishEdit);
   if (ctx.transportHost) transportMount.addEventListener('focusout', finishEdit);
@@ -1251,5 +1253,5 @@ export function makeSequencer(ctx) {
 return { render() { if (state.dirty && !state.busy) refresh(); return root; }, refresh, update, onTelemetry, syncLevels, onKey, contains,
     toggleTransport: () => action(ctx.playPause), restartTransport: () => action(ctx.restart),
     wantRows() { return (ctx.metadata?.doc?.telemetry?.sections || []).filter(s => ['meters', 'levels'].includes(s.name)).flatMap(s => s.rows.flatMap((row, r) => state.view === 'Mixer' || row === 'out.post_master' ? [s.mask + r] : [])); },
-    invalidate() { state.dirty = true; readRevision++; }, destroy() { gridObserver.disconnect(); cancelAnimationFrame(resizeFrame); if (ctx.transportHost) transportMount.removeEventListener('focusout', finishEdit); clearTimeout(pointerRelease); window.removeEventListener('pointerup', releasePointer); window.removeEventListener('pointercancel', finishPointer); window.removeEventListener('click', finishPointer); releaseFader?.(); closeInspector(); disposed = true; cancelDrag?.(); window.removeEventListener('resize', syncMixerAfterResize); compactMixerMedia.removeEventListener('change', syncMixerDisclosure); if (ctx.transportHost) transportMount.replaceChildren(); root.remove(); } };
+    invalidate() { state.dirty = true; readRevision++; }, destroy() { gridObserver.disconnect(); cancelAnimationFrame(resizeFrame); if (ctx.transportHost) transportMount.removeEventListener('focusout', finishEdit); clearTimeout(pointerRelease); window.removeEventListener('pointerup', releasePointer); window.removeEventListener('pointercancel', finishPointer); window.removeEventListener('click', finishPointer, true); releaseFader?.(); closeInspector(); disposed = true; cancelDrag?.(); window.removeEventListener('resize', syncMixerAfterResize); compactMixerMedia.removeEventListener('change', syncMixerDisclosure); if (ctx.transportHost) transportMount.replaceChildren(); root.remove(); } };
 }
