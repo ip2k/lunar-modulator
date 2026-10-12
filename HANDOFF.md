@@ -1397,3 +1397,23 @@ sys.path leakage;49 ordered regression tests passed. CI38319820698 failed before
 this fix; rerun at checkpoint required. Old backup rejection stays intact.
 No physical command in this verification. Next distinct post-read loader admission
 and fresh dual backups, then stock restore and diagnostic boot/display. Goal active.
+
+## 2026-10-12 completed-trace recovery adapter checkpoint
+
+[verified] Distinct closed backup and restore adapters preserve consumed old
+trace authority and fixed stock safeguards. Sixteen actual-evidence backup
+model cases passed and all containers inspected/removed; 18 default-closed
+boundary checks passed on Hera. No physical operation; passive lsusb confirms
+001/010 4c4a:8057 UBOOT. No owner power cycle needed for current work.
+
+Sixteen restore model cases running at private Hera job
+/home/claude/completed-stop-trace-restore-16-20261012; launch PTY handle77930.
+Rejection and interrupted-program/corrupt-readback cases passed. Successful
+restore/replay still running with advancing durable command logs; do not
+restart merely for an observation timeout. First collection failure was
+preserved under evidence-collection-failure before the corrected run. Inspect
+all terminal XML/container states, preserve evidence, remove containers, update
+notes/2026-10-12-completed-stop-trace-recovery/review.md, then complete source/pin
+review before preparing any fresh physical backup/restore packet. Both canonical
+source dependency pins remain None. Physical stock boot/recovery and diagnostic
+display acceptance remain required. Goal stays active, this turn made progress.
