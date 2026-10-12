@@ -930,6 +930,11 @@
   .ed-appbar-end .ed-cpu-text { width: auto; min-width: 2.8em; }
 }
 
+/* Narrow landscape keeps meter values inside their controls before the phone layout. */
+@media (min-width: 641px) and (max-width: 720px) {
+  .ed-appbar-end .ed-ram, .ed-appbar-end .ed-cpu { padding-inline: 4px; }
+}
+
 /* Native dialog stays in the top layer above the pinned editor and Song bars. */
 .ed-shortcuts-dialog {
   box-sizing: border-box; width: min(760px, calc(100vw - 24px)); max-width: none;
