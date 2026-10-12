@@ -567,19 +567,27 @@ for (let i = 0; i < 4; ++i) await page.keyboard.press('ArrowRight');
 await wait(700);
 await page.evaluate(async () => { await window.fm1.editor.project.switchAB(); });
 await wait(900);
-const probeViews = [['sound', () => sel('s2.in1', 'sound')], ['flow', () => sel('s2', 'flow')],
-  ['mod-table', async () => { await sel('p1', 'mod'); await page.evaluate(() => { const t = [...document.querySelectorAll('.ed-mapsw [role=radio]')].find((b) => b.textContent === 'Table'); if (t) t.click(); }); await wait(400); }],
-  ['mod-map', async () => { await sel('p1', 'mod'); await page.evaluate(() => { const t = [...document.querySelectorAll('.ed-mapsw [role=radio]')].find((b) => b.textContent === 'Map'); if (t) t.click(); }); await wait(600); }],
-  ['slot', async () => { await sel('c2', 'mod'); await wait(300); }],
-  ['compare', () => sel('s2', 'ab')]];
+// Layout snapshots start at the top. Selection normally smooth-scrolls its page
+// under the sticky app bar; that interaction is covered by the MIDI toolbar test.
+const probeSelect = (key, view) => page.evaluate(async ([key, view]) => {
+  window.fm1.editor.select(key, { view, noScroll: true });
+  window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  await new Promise(resolve => setTimeout(resolve, 450));
+}, [key, view]);
+const probeViews = [['sound', () => probeSelect('s2.in1', 'sound')], ['flow', () => probeSelect('s2', 'flow')],
+  ['mod-table', async () => { await probeSelect('p1', 'mod'); await page.evaluate(() => { const t = [...document.querySelectorAll('.ed-mapsw [role=radio]')].find((b) => b.textContent === 'Table'); if (t) t.click(); }); await wait(400); }],
+  ['mod-map', async () => { await probeSelect('p1', 'mod'); await page.evaluate(() => { const t = [...document.querySelectorAll('.ed-mapsw [role=radio]')].find((b) => b.textContent === 'Map'); if (t) t.click(); }); await wait(600); }],
+  ['slot', async () => { await probeSelect('c2', 'mod'); await wait(300); }],
+  ['compare', () => probeSelect('s2', 'ab')]];
 const faults = {};
 for (const w of [1440, 1024, 768, 375]) {
   await page.setViewportSize({ width: w, height: 1000 });
+  await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
   await wait(700);
   for (const [name, go] of probeViews) { await go(); await wait(300); faults[`${w}-${name}`] = await page.evaluate(() => window.lunarLayoutProbe()); if ((w === 375 && ['sound', 'mod-table', 'compare'].includes(name)) || (w === 1024 && name === 'sound')) await page.screenshot({ path: join(out, `v1-${w}-${name}.png`), fullPage: false }); }
   if (w === 375) {
-    await page.evaluate(() => { document.querySelector('.ed-flow') || window.fm1.editor.select('s2', { view: 'flow' }); });
-    await sel('s2', 'flow');
+    await page.evaluate(() => { document.querySelector('.ed-flow') || window.fm1.editor.select('s2', { view: 'flow', noScroll: true }); });
+    await probeSelect('s2', 'flow');
     await page.evaluate(() => document.querySelector('.ed-flow .ed-block[data-block="s2.in1"]').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })));
     await wait(300);
     faults['375-menu-open'] = await page.evaluate(() => window.lunarLayoutProbe());
@@ -606,13 +614,14 @@ async function axe(label) {
   });
   return r;
 }
-const axeViews = [['flow', () => sel('s2', 'flow')], ['sound', () => sel('s2', 'sound')], ['mod-table', async () => { await sel('p1', 'mod'); await page.evaluate(() => { const t = [...document.querySelectorAll('.ed-mapsw [role=radio]')].find((b) => b.textContent === 'Table'); if (t) t.click(); }); await wait(400); }],
-  ['mod-map', async () => { await sel('p1', 'mod'); await page.evaluate(() => { const t = [...document.querySelectorAll('.ed-mapsw [role=radio]')].find((b) => b.textContent === 'Map'); if (t) t.click(); }); await wait(500); }],
-  ['library', () => sel('s2', 'library')], ['memory', () => sel('s2', 'memory')], ['compare', () => sel('s2', 'ab')]];
+const axeViews = [['flow', () => probeSelect('s2', 'flow')], ['sound', () => probeSelect('s2', 'sound')], ['mod-table', async () => { await probeSelect('p1', 'mod'); await page.evaluate(() => { const t = [...document.querySelectorAll('.ed-mapsw [role=radio]')].find((b) => b.textContent === 'Table'); if (t) t.click(); }); await wait(400); }],
+  ['mod-map', async () => { await probeSelect('p1', 'mod'); await page.evaluate(() => { const t = [...document.querySelectorAll('.ed-mapsw [role=radio]')].find((b) => b.textContent === 'Map'); if (t) t.click(); }); await wait(500); }],
+  ['library', () => probeSelect('s2', 'library')], ['memory', () => probeSelect('s2', 'memory')], ['compare', () => probeSelect('s2', 'ab')]];
 const axeAll = {};
 if (axeOk) {
   for (const w of [1440, 1024]) {
     await page.setViewportSize({ width: w, height: 1000 });
+    await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
     await wait(600);
     for (const [name, go] of axeViews) { await go(); await wait(300); axeAll[`${w}-${name}`] = await axe(name); }
   }

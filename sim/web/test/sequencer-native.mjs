@@ -102,8 +102,12 @@ try {
     assert(doc.set.includes('tn 0 2042617373203120'));
     await page.evaluate(() => fm1.editor.undo());
     await until(async () => (await model()).tracks[0].name === 'Native Bass', 'undo track name');
+    // Native state is visible before restoreHistory finishes saving its snapshot.
+    // Wait for the enabled-control contract before issuing the next command.
+    await idle();
     await page.evaluate(() => fm1.editor.redo());
     await until(async () => (await model()).tracks[0].name === ' Bass 1 ', 'redo track name');
+    await idle();
     await reset();
   });
   await check('assigned bases preserve linear, logarithmic and enum parameter positions', async () => {
@@ -158,8 +162,8 @@ try {
     assert.deepEqual((await model()).tracks[7].route, { kind: 0, index: 16 });
     await page.locator('.sq-section-tools > summary').filter({ hasText: /^Section tools$/ }).click();
     await field('Repeats', 3); assert.equal((await model()).song.length, 3);
-    await page.evaluate(() => fm1.editor.undo()); await until(async () => (await model()).song.length === 1, 'undo repeats');
-    await page.evaluate(() => fm1.editor.redo()); await until(async () => (await model()).song.length === 3, 'redo repeats');
+    await page.evaluate(() => fm1.editor.undo()); await until(async () => (await model()).song.length === 1, 'undo repeats'); await idle();
+    await page.evaluate(() => fm1.editor.redo()); await until(async () => (await model()).song.length === 3, 'redo repeats'); await idle();
   });
   await check('native clip matrix launch advances real transport and playhead', async () => {
     await tab('Scenes');
