@@ -53,6 +53,7 @@ export function makeSequencer(ctx) {
     note: -1, page: 0, pitch: 60, low: 48, song: 0, lane: 0, inspector: null, midi: null, solo: null, mixDetails: null,
     noteAdvancedOpen: false, view: 'Scenes' };
   let disposed = false, pendingFocus = null, suppressNoteClick = false, cancelDrag = null, readError = false;
+  let pendingRollNote = -1;
   let readRevision = 0, readText = null;
   let releaseFader = null;
   const meterHold = new Map();
@@ -124,11 +125,26 @@ export function makeSequencer(ctx) {
   }
   function selectClip(t, s, open = false) {
     if (open) state.view = 'Clip';
-    state.track = t; state.scene = s; ctx.watchTrack?.(t); state.note = -1; state.page = 0;
-    const notes = clip()?.notes || [];
-    if (notes.length) { state.pitch = notes[0].pitch; state.low = Math.max(0, Math.min(104, state.pitch - 12)); }
+    state.track = t; state.scene = s; ctx.watchTrack?.(t); state.note = -1;
+    frameClipNotes();
     draw();
     if (open) root.querySelector('[data-view="Clip"]')?.focus({ preventScroll: true });
+  }
+  function frameClipNotes() {
+    const c = clip();
+    state.page = Math.floor((c?.loopStart || 0) / 32);
+    pendingRollNote = -1;
+    // A clip can start with silence, or have a loop starting after bar one.
+    // Open the first sounding note's page rather than an empty first page.
+    c?.notes.forEach((n, i) => {
+      if (n.tick >= (c.loopStart + c.length) * 24 || n.tick + n.gate <= c.loopStart * 24) return;
+      if (pendingRollNote < 0 || n.tick < c.notes[pendingRollNote].tick) pendingRollNote = i;
+    });
+    const n = c?.notes[pendingRollNote];
+    if (n) {
+      state.page = Math.floor(Math.max(c.loopStart, n.tick / 24) / 32);
+      state.pitch = n.pitch; state.low = Math.max(0, Math.min(104, n.pitch - 12));
+    }
   }
   function soundName(i) { const s = state.doc.sounds?.[i]; return `S${i + 1} · ${s?.engine || 'Empty'}`; }
   const routeOptions = () => [...Array.from({ length: 4 }, (_, i) => [`s${i}`, soundName(i)]),
@@ -659,6 +675,7 @@ export function makeSequencer(ctx) {
     const scrolls = new Map([...content.querySelectorAll('[data-scroll]')].map(e => [e.dataset.scroll, [e.scrollLeft, e.scrollTop]]));
     const views = ['Scenes', 'Arrangement', 'Clip', 'Automation', 'Mixer'];
     const navigation = el('div', 'sq-tabs', { role: 'tablist', 'aria-label': 'Song workspace views' }, views.map(name => btn(name, () => {
+      if (name === 'Clip' && state.view !== name) frameClipNotes();
       state.view = name; state.inspector = null; draw(); root.querySelector(`[data-view="${name}"]`)?.focus({preventScroll:true});
     }, { role: 'tab', id: `sq-tab-${name}`, 'data-view': name, 'aria-selected': String(state.view === name),
       'aria-controls': 'sq-view-panel', tabindex: state.view === name ? 0 : -1,
@@ -666,6 +683,7 @@ export function makeSequencer(ctx) {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
         e.preventDefault(); e.stopPropagation();
         const i = views.indexOf(name), next = e.key === 'Home' ? 0 : e.key === 'End' ? 4 : (i + (e.key === 'ArrowRight' ? 1 : 4)) % 5;
+        if (views[next] === 'Clip' && state.view !== 'Clip') frameClipNotes();
         state.view = views[next]; state.inspector = null; draw(); root.querySelector(`[data-view="${state.view}"]`)?.focus({preventScroll:true});
       },
     })));
@@ -701,6 +719,16 @@ export function makeSequencer(ctx) {
       } else closeInspector();
     } else if (deviceDialog.open) deviceDialog.close();
     for (const e of content.querySelectorAll('[data-scroll]')) { const p = scrolls.get(e.dataset.scroll); if (p) { e.scrollLeft = p[0]; e.scrollTop = p[1]; } }
+    const roll = content.querySelector('[data-scroll="piano"]');
+    if (roll && pendingRollNote >= 0) {
+      const note = roll.querySelector(`[data-note="${pendingRollNote}"]`);
+      if (note) {
+        const r = roll.getBoundingClientRect(), n = note.getBoundingClientRect();
+        roll.scrollTop += n.top - r.top - (roll.clientHeight - n.height) / 2;
+        roll.scrollLeft += n.left - r.left - (roll.clientWidth - Math.min(n.width, roll.clientWidth)) / 2;
+      }
+      pendingRollNote = -1;
+    }
     content.disabled = state.busy;
     if (focus?.label) {
       const next = [...root.querySelectorAll('[aria-label]')].find(e => e.tagName === focus.tag && e.getAttribute('aria-label') === focus.label);

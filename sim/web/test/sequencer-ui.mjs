@@ -26,6 +26,7 @@ try {
  await tab('Clip');
  const clipActions=page.locator('.sq-clip-actions');
  if(!await clipActions.getByRole('button',{name:'Add note',exact:true}).isVisible()||!await clipActions.getByLabel('New note pitch',{exact:true}).isVisible())throw Error('New note pitch must sit beside Add note');
+ await page.getByLabel('New note pitch',{exact:true}).fill('60');await page.getByLabel('New note pitch',{exact:true}).dispatchEvent('change');
  await page.getByRole('button',{name:'Add note',exact:true}).click();
  await page.waitForFunction(()=>window.model().tracks[0].clips[0].notes.length===2);
  for(const label of ['MIDI pitch','Step','Gate · ticks','Velocity'])if(!await page.getByLabel(label,{exact:true}).isVisible())throw Error(`Essential note field hidden: ${label}`);
@@ -165,7 +166,50 @@ try {
  if(await page.getByRole('tab',{name:'Scenes',exact:true}).getAttribute('aria-selected')!=='true')throw Error('Tab Home navigation');
  await page.getByRole('tab',{name:'Scenes',exact:true}).press('ArrowRight');
  if(await page.getByRole('tab',{name:'Arrangement',exact:true}).getAttribute('aria-selected')!=='true')throw Error('Tab arrow navigation');
+ // The real Verse lead begins at step 33. Opening it must find its notes,
+ // including in the shorter landscape roll, without changing project data.
+ await page.evaluate(async()=>{window.doc=await (await fetch('/examples/satellite-hearts.lunar')).json();window.seq.invalidate();await window.seq.refresh()});
+ const songBefore=await page.evaluate(()=>JSON.stringify(window.doc));
+ async function noteInRoll(){return page.locator('[data-note="0"]').evaluate(e=>{
+  const n=e.getBoundingClientRect(),r=e.closest('[data-scroll="piano"]'),b=r.getBoundingClientRect();
+  return n.top>=b.top+r.clientTop&&n.bottom<=b.top+r.clientTop+r.clientHeight&&n.left>=b.left+r.clientLeft&&n.right<=b.left+r.clientLeft+r.clientWidth;
+ })}
+ for(const size of [{width:1440,height:1100},{width:844,height:390}]){
+  await page.setViewportSize(size);await tab('Arrangement');
+  await page.getByRole('button',{name:'Track 4, Verse, 12 notes, 12 bars',exact:true}).click();
+  if(await page.getByLabel('Edit track',{exact:true}).inputValue()!=='3'||await page.getByLabel('Edit scene',{exact:true}).inputValue()!=='1')throw Error('Verse lead selection');
+  if(!await page.locator('.sq-clip-actions .sq-caption').textContent().then(t=>t==='Steps 33–64')||!await noteInRoll())throw Error(`Verse notes not framed at ${size.width}px`);
+  await page.screenshot({path:`${out}/verse-notes-${size.width}.png`,fullPage:true});
+  // Scene-matrix keyboard opening follows the same navigation path.
+  await tab('Scenes');await page.getByRole('button',{name:'Edit track 4 scene 2',exact:true}).press('Enter');
+  if(!await noteInRoll())throw Error('Matrix keyboard opening did not reveal notes');
+  // A subsequent note selection and native refresh preserve manual scrolling.
+  await page.locator('[data-scroll="piano"]').evaluate(e=>{e.scrollTop=240;e.scrollLeft=50});
+  const scroll=await page.locator('[data-scroll="piano"]').evaluate(e=>[e.scrollLeft,e.scrollTop]);
+  await page.locator('[data-note="0"]').dispatchEvent('click');
+  await page.evaluate(async()=>{await window.seq.refresh(true)});
+  if(JSON.stringify(await page.locator('[data-scroll="piano"]').evaluate(e=>[e.scrollLeft,e.scrollTop]))!==JSON.stringify(scroll))throw Error('Note selection/refresh reset manual scroll');
+  await tab('Arrangement');await tab('Clip');
+  if(!await noteInRoll())throw Error('Clip tab entry did not reveal existing notes');
+ }
+ if(await page.evaluate(()=>JSON.stringify(window.doc))!==songBefore)throw Error('Clip navigation mutated the song');
+ // Empty offset loops open inside the loop; a late high/low note is framed
+ // even when notes are stored out of time order or sustain into the loop.
+ for(const pitch of [0,127]){
+  await page.evaluate(async pitch=>{
+   const {emptyClip,writeSet}=await import('/editor/sequence-model.js');const m=window.model();
+   m.tracks[7].clips[1]=emptyClip(32);m.tracks[7].clips[1].loopStart=64;
+   m.tracks[7].clips[1].notes=[{tick:72*24,gate:24,pitch,vel:90,step:72},{tick:63*24,gate:48,pitch,vel:80,step:63}];
+   window.doc.set=writeSet(m);window.seq.invalidate();await window.seq.refresh();
+  },pitch);
+  await tab('Scenes');await page.getByRole('button',{name:'Edit track 8 scene 2',exact:true}).click();
+  if(!await page.locator('.sq-clip-actions .sq-caption').textContent().then(t=>t==='Steps 65–96'))throw Error('Offset loop opened before its sounding notes');
+  if(!await page.locator('[data-note="1"]').evaluate(e=>{const n=e.getBoundingClientRect(),r=e.closest('[data-scroll="piano"]').getBoundingClientRect();return n.top>=r.top&&n.bottom<=r.bottom}))throw Error('Extreme pitch sustain not revealed');
+ }
+ await page.evaluate(async()=>{const m=window.model();m.tracks[7].clips[1].notes=[];window.doc.set=(await import('/editor/sequence-model.js')).writeSet(m);window.seq.invalidate();await window.seq.refresh()});
+ await tab('Scenes');await page.getByRole('button',{name:'Edit track 8 scene 2',exact:true}).click();
+ if(await page.locator('.sq-note').count()||!await page.locator('.sq-clip-actions .sq-caption').textContent().then(t=>t==='Steps 65–96'))throw Error('Empty offset loop navigation');
  if(errors.length)throw Error(errors.join('\n'));
- await writeFile(`${out}/results.json`,JSON.stringify({passed:true,errors,note,checks:['note fields','probability','locks','routing','song repeats','scene launch','refusal rollback','playhead while next scene queued','mobile overflow','input focus','multi-file MIDI mapping','note drag','gate resize','insert/master/mix targets','sound/master fader values and dB display','incremental keyboard level edit','pointer fader drag lifecycle','meter and level telemetry subscription','synthetic sound/master meter updates','device inspector focus and restoration','Files & export disclosure import','desktop routing and FX expanded by default','mobile Routing & FX disclosure toggle','scene selection from scene headings','note row containment','64-slot scene matrix','clip and empty-slot stop callbacks','portrait rotate prompt','844x390 landscape editing','single focused panel','keyboard tab navigation']},null,2));
- console.log('PASS sequencer mock-host desktop/mobile checks');
+ await writeFile(`${out}/results.json`,JSON.stringify({passed:true,errors,note,checks:['note fields','probability','locks','routing','song repeats','scene launch','refusal rollback','playhead while next scene queued','mobile overflow','input focus','multi-file MIDI mapping','note drag','gate resize','insert/master/mix targets','sound/master fader values and dB display','incremental keyboard level edit','pointer fader drag lifecycle','meter and level telemetry subscription','synthetic sound/master meter updates','device inspector focus and restoration','Files & export disclosure import','desktop routing and FX expanded by default','mobile Routing & FX disclosure toggle','scene selection from scene headings','note row containment','64-slot scene matrix','clip and empty-slot stop callbacks','portrait rotate prompt','844x390 landscape editing','single focused panel','keyboard tab navigation','real Satellite Hearts Verse notes visible at desktop and landscape widths','scene keyboard and Clip tab note framing','manual scroll preserved after note selection and native refresh','navigation leaves project data intact','offset loops with unordered notes, sustaining gates and extreme pitches','empty offset loop navigation']},null,2));
+ console.log('PASS sequencer mock-host desktop/mobile checks, real Verse note visibility and offset-loop navigation');
 } catch(error) {await page.screenshot({path:`${out}/failure.png`,fullPage:true});console.error({errors});throw error} finally {await browser.close();await new Promise(r=>server.close(r))}

@@ -667,7 +667,9 @@ unbounded DAW tracks.
 - Click the piano roll or step row to enter/select notes. Drag a note to change
   its step and pitch; drag its right edge for gate length. Numeric controls offer
   the same edits, plus velocity, probability and microtiming. Page through longer
-  clips and set their loop start, length, quantization and transpose.
+  clips and set their loop start, length, quantization and transpose. Opening a
+  clip finds its first sounding note's page and scrolls that note into the piano
+  roll; an empty clip opens at its loop start. Edits retain manual scrolling.
 - Assign one of eight parameter-lock lanes per track to an instrument parameter,
   either insert, either master effect, or the routed sound's mix level. Edit the
   lane base and per-step values; an empty box removes a lock. The plot holds each
@@ -706,7 +708,8 @@ and cancellation; this does not upload the project or audio.
 
 [verified: current editor modules]. The bounded Chromium mock-host regression
 `test/sequencer-ui.mjs` covers editing, pointer movement/resizing, queued-scene
-playhead, MIDI preview/refusal, focus retention and desktop/mobile containment.
+playhead, MIDI preview/refusal, focus retention and desktop/mobile containment,
+including real Satellite Hearts Verse clip navigation and offset-loop notes.
 It is separate from real-Wasm integration and audio-render tests; no physical
 FM-1, USB or BLE acceptance follows from these browser checks.
 
