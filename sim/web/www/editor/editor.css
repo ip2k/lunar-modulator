@@ -36,7 +36,7 @@
 .ed-transport-tools[hidden] { display: none; }
 .ed-transport-tools .sq-transport { margin: 0; }
 .ed-appbar {
-  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 6px 12px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 12px;
   padding: 6px var(--ed-pad); border-bottom: 1px solid var(--border); background: var(--surface);
   border-radius: 12px 12px 0 0;
 }
@@ -637,7 +637,7 @@
   .ed-appbar-end .ed-ram-label { font-size: .7rem; }
   .ed-appbar-end .ed-ram, .ed-appbar-end .ed-cpu { gap: 3px; padding: 3px; }
   .ed-appbar-end .ed-cpu-text { width: auto; min-width: 2.8em; }
-  .ed-appbar-end .ed-ram-text { min-width: 2.8em; }
+  .ed-appbar-end .ed-ram-text { min-width: 2.8em; font-size: .7rem; }
   .ed-footer-menu-body, .ed-footer-menu:has(.ed-hist) .ed-footer-menu-body { width: min(280px, calc(100vw - 110px)); }
   .ed-ram-list { right: 0; left: auto; min-width: 0; width: min(280px, calc(100vw - 2 * var(--ed-pad))); }
   .ed-hint-move { display: none; }
@@ -924,3 +924,6 @@
 .ed-cpu.is-over .ed-cpu-fill { background: var(--refuse); }
 .ed-cpu.is-over .ed-cpu-text { color: var(--refuse); }
 .ed-cpu-detail { color: var(--muted); line-height: 1.5; max-width: 70ch; }
+@media (max-width: 900px) {
+  .ed-appbar-end .ed-cpu-text { width: auto; min-width: 2.8em; }
+}

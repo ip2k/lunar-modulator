@@ -44,7 +44,10 @@ try {
       return {
         appbar:rect(bar), tools:visible.map(e => ({name:e.className, ...rect(e)})),
         meters:meter.map(rect), sidebar:rect(bar.querySelector('.ed-sidebar-toggle')),
-        title:rect(bar.querySelector('.ed-title')), transport:rect(document.querySelector('.ed-transport-tools')),
+        meterContents:[...bar.querySelectorAll('.ed-cpu-text, .ed-cpu-bar, .ed-ram-text, .ed-ram-bar')]
+          .map(e => ({name:e.className, child:rect(e), parent:rect(e.closest('.ed-cpu, .ed-ram'))})),
+        title:rect(bar.querySelector('.ed-title')), keys:rect(bar.querySelector('.ed-keys')),
+        transport:rect(document.querySelector('.ed-transport-tools')),
         scene:scene ? rect(scene) : null, top:rect(top), scrollWidth:document.documentElement.scrollWidth,
         width:innerWidth, menuText:[...tools.querySelectorAll('summary')].map(e=>e.textContent.trim()),
         playPause:document.querySelector('[data-transport-play-pause]')?.getAttribute('aria-label'),
@@ -53,7 +56,10 @@ try {
     report.push({ width, height, geometry });
     assert.equal(geometry.scrollWidth, width, `horizontal scroll at ${width}x${height}`);
     assert.ok(geometry.tools.every(t => Math.abs(t.y - geometry.tools[0].y) < 11), `tools row wrapped at ${width}x${height}`);
+    assert.ok(geometry.meterContents.every(({child,parent}) => child.x >= parent.x - 1 && child.right <= parent.right + 1),
+      `meter content spills outside its control at ${width}x${height}: ${JSON.stringify(geometry.meterContents)}`);
     assert.ok(geometry.sidebar.right <= geometry.title.x, `sidebar order at ${width}x${height}`);
+    assert.ok(geometry.title.right <= geometry.keys.x, `title overlaps Keys at ${width}x${height}`);
     assert.ok(geometry.transport.y >= geometry.appbar.bottom, `transport should be below header at ${width}x${height}`);
     await page.screenshot({ path: `${out}/toolbar-${width}x${height}.png`, fullPage: false });
     for (const menu of await page.locator('.ed-appbar-end details').all()) {
