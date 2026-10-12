@@ -98,7 +98,19 @@ separate fixed two-request native ROM probe's testing and concrete packet
 review, so a fresh short-lived ROM snapshot can be used promptly. No device
 command has been sent after the verified install.
 
-[verified: public/private CI boundary, runtime gate pending] GitHub run
+[verified: source-only staging] The successful-reset-only ROM probe template
+archive `e10b4184c55d2433c0b3a3066ed16204f7631110e7efbf346c7a1ec17c2a1864`
+contains five regular files with checked hashes. Root staged only injected
+probe `ff593853…`, native adapter `13d7c647…`, and one-use wrapper `47952f07…`
+under the existing private install stage, preserving all original packet files.
+No factory or native child was run, and no device was opened. The independently
+checked staging receipt is retained under
+`build/diagnostic-stage-bench-template/staged-source-receipt.json`.
+This wrapper requires a successful reset receipt. A detached, ambiguous reset
+must use a distinct reviewed policy and preserve its original status; neither
+policy may refresh away the initial ROM snapshot or upload before stage capture.
+
+[verified: public/private CI boundary] GitHub run
 38188020648 passed its browser and C/C++ jobs but failed both Python jobs
 because the exact private rehearsal fixture required files unavailable in
 public CI. The fixture now skips only when all three private path environment
@@ -106,8 +118,14 @@ variables are absent and strict mode is disabled. Set
 `LUNAR_REQUIRE_PRIVATE_FIXTURES=1` for required private verification; partial,
 empty or invalid configuration still fails. Production sources and their
 reviewed hashes are unchanged. Seven selector boundary tests and the four
-importing test modules are being checked separately on Hera in 16 chunks,
-including strict private and default public lanes; fresh GitHub CI is required.
+importing test modules passed their strict-private Hera gate: 287 cases in
+16 chunks, no skips. The same public lane passed 244 and explicitly skipped
+43 optional private-fixture cases. Independent retained-evidence review accepted
+both lanes; report `build/sdk-ci-private-fixture-review.md`, SHA
+`ccfbba14400af1b8b12a8443b75efe7311639291455ce56ce39a6edbc60da1f1`.
+Fresh GitHub run 38191069382 passed all thirteen jobs on exact selector
+checkpoint `22cae292f2b689e08e67cdc425bc2005df17e680`; later source checkpoints
+require fresh CI.
 
 Next: separately review/execute the installed target's one-shot reset; establish actual
 boot/display/recovery evidence; restore and verify stock with a fresh recovery

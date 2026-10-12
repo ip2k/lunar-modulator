@@ -49,10 +49,23 @@ verified at `45e21964d37fde86330eab65fa4c2866b1951ca6`.
 The full Python suite is running on Hera in 16 chunks. Public CI's missing
 private fixture failure has a test-only selector repair: absent paths may
 skip, while `LUNAR_REQUIRE_PRIVATE_FIXTURES=1`, partial or empty paths fail.
-Its strict-private/public follow-up gate runs separately in 16 Hera chunks;
-fresh GitHub CI is still required. A separate ROM probe
-is being developed to read the diagnostic's 32-byte stage block before a
-recovery loader overwrites it. Evidence and next dependencies are in
+Its strict-private follow-up passed all 287 cases in 16 Hera chunks with no
+skips. The same public lane passed 244 and explicitly skipped 43 optional
+private-fixture cases. Independent review accepted both lanes' exact coverage,
+source pins and container cleanup.
+GitHub run 38191069382 on exact checkpoint `22cae292…` passed all thirteen jobs.
+Later source additions require their own fresh CI. A distinct injected ROM
+probe `ff593853…` passed 126 cases in 16 Hera chunks plus its actual-private
+modeled smoke, and independent review accepted its evidence. Its three-file
+checkpoint is committed and remote-SHA verified at
+`1a5e0831e1d4a85bc339311db82ac84a216d523c`.
+The separate native SG transport passed its 79-case Hera gate and actual-private
+modeled smoke; independent retained-evidence review is pending. The successful-only
+static packet is staged on bench01 without execution; no target reset or
+post-install device command has occurred. A distinct, separately reviewed
+transmitted-but-detached reset policy is still needed before activation.
+The diagnostic's 32-byte stage block must be captured before a recovery loader
+overwrites it. Evidence and next dependencies are in
 [the boot trial note](notes/2026-10-11-diagnostic-boot-trial.md).
 
 The following entries are historical checkpoints, superseded where the physical
