@@ -40,8 +40,8 @@ Along the top of the editor:
   the panel** does the reverse: choosing a block or a parameter in the editor
   opens its page on the panel.
 - **Undo** and **Redo** cover what you do in the editor and what you turn on
-  the panel, alike. Open **Changes** to see the recent history beside those
-  buttons.
+  the panel, alike. Open **Changes** to see the recent history in a popover
+  beside those buttons.
 - **RAM** is how much of the FM-1's memory the project uses, as a percentage.
   Click it for the share of each part. Nothing the editor lets you do can go
   past 100 %.
@@ -202,6 +202,9 @@ the cable. Edit an existing cable’s endpoints in the table or slot inspector.
 keys walk within it, and every jack has a name. Screen readers should use the
 table, which lists every cable in words.
 
+An engine's information button opens a popover with its credits, group and
+licence when those details are available.
+
 ### Room
 
 The Map needs a window about 620 pixels wide for the editor. Below that, as on a
@@ -213,9 +216,19 @@ a small card.
 {{status sim}}
 
 Choose **Song** in the outline. Its five tabs show one task at a time:
-**Scenes**, **Arrangement**, **Clip**, **Automation** and **Mixer**. Transport
-and **Files & export** stay available while you switch views. On a phone,
-rotate to landscape; the portrait prompt leaves playback running.
+**Scenes**, **Arrangement**, **Clip**, **Automation** and **Mixer**. The native
+transport stays above the selected view as you switch tabs. **Files & export**
+appears in the editor bar before Undo and Redo, with Open, Save `.lunar`,
+Export `.movy1`, Export WAV, Import MIDI and Refresh. The five view tabs sit
+below the active work area. On a phone, rotate to landscape; the portrait
+prompt leaves playback running.
+
+The transport shows the native zero-based bar:beat:tick position, elapsed
+playback time, and Playing, Paused or Stopped state. Play, Pause and Stop
+control the native sequencer. Stop returns to `0:0:0`; bar, clip and scene
+navigation use the active song or clip, and clip/scene navigation skips empty
+slots. Tempo, metronome and the Song end choice (Loop, Park or Stop) are saved
+with the `.lunar` project. The master readout shows measured output level.
 
 **Scenes** contains eight tracks and eight scene columns, with compact rows
 that keep more of the matrix in view. Editing a slot opens its piano roll; a
@@ -254,8 +267,8 @@ still scroll the piano roll by hand. Scene tools rename, copy or clear a scene.
 instrument, sound insert, sound level or master-effect parameter, then enter
 step values from 0 to 127 across that parameter's range. Clear a value to
 remove its lock. A lane holds its last value until the next lock; the plot
-shows those stepped changes. Several tracks routed to one sound share that
-sound's parameters, inserts and level.
+shows those stepped changes and the native playhead follows playback. Several
+tracks routed to one sound share that sound's parameters, inserts and level.
 
 **Mixer** has four sound strips and Master, with vertical faders, dB readouts
 and live peak/RMS meters. Instrument, insert and master-effect buttons open
@@ -270,6 +283,20 @@ less frequent settings and actions behind a disclosure. They open as modal
 dialogs; focus moves to Close when a dialog opens, Escape closes it, and focus
 returns to the control that opened it. **Files & export** remains available
 from the Song workspace.
+
+When the Song workspace owns the keyboard, its canvas shortcuts are
+context-sensitive. <kbd>Space</kbd> plays or pauses and <kbd>Shift</kbd>+<kbd>Space</kbd>
+restarts from the beginning and plays. <kbd>Tab</kbd> switches Arrangement and
+Mixer; <kbd>E</kbd> and <kbd>A</kbd> open Clip and Automation. <kbd>D</kbd>
+opens the selected track's routed instrument inspector, <kbd>I</kbd> toggles
+the sidebar, and <kbd>0</kbd> or <kbd>Alt</kbd>+<kbd>A</kbd> toggles the
+selected track's mute. <kbd>Enter</kbd> or <kbd>F2</kbd> renames a selected
+track or Arrangement section. <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>D</kbd>
+duplicates a selected note or Arrangement section; <kbd>Delete</kbd> or
+<kbd>Backspace</kbd> removes it. Arrow keys move a selected note by one step
+or semitone. Text fields, form controls, dialogs, Files & export and MIDI
+preview keep their normal keys; ordinary Tab traversal and button activation
+remain available. The editor continues to own Undo and Redo.
 
 ### Importing MIDI
 

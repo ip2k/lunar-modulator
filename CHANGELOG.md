@@ -12,6 +12,8 @@ history.
 - Song edits now refresh from native sequencer content changes; Undo and Redo
   refuse stale edits after an intervening panel change. MIDI import preflight
   enforces 16 files, 16 MiB per file, 32 MiB and 64 parts per batch.
+- The Song view retries an invalidated initial project snapshot up to three
+  times, and refuses the result if the simulator restarts during the read.
 - README installation status now distinguishes the linked inert diagnostic
   from the running instrument, which remains untested on the FM-1.
 - Target compile checks include shared state codecs and metadata, with each
@@ -34,14 +36,18 @@ history.
 ### Added
 - **Advanced editor shell and song navigation:** outside Panel layout, the
   page controls and file bar move into the app bar's Simulator and Files
-  menus; the sidebar visibility is remembered, and Changes opens the recent
-  undo history. Scenes and tracks can be renamed inline (scenes: six
+  menus; those controls return to the page footer in Panel layout. The Song
+  **Files & export** menu appears before Undo and Redo, Changes opens the
+  recent undo history, sidebar visibility is remembered, and engine info
+  popovers show available credit and licence details. Scenes and tracks can
+  be renamed inline (scenes: six
   printable characters without spaces; tracks: 16 printable ASCII characters,
   spaces allowed). Each of the Scenes and Arrangement timelines has a
   horizontal range that tracks scrolling and arrow controls. Arrangement
   section creation has its own scene chooser, with copy, move, remove and
-  repeat actions under collapsed Section tools. Opening a clip frames and
-  scrolls to its first sounding note within the loop.
+  repeat actions under collapsed Section tools. Adding a section leaves the
+  current selection in place. Opening a clip frames and scrolls to its first
+  sounding note within the loop.
 - **Song workspace refinement:** compact scene rows, always-visible selected
   note essentials with advanced controls disclosed, and primary parameters
   first in the Song device inspector. Device modal focus returns to its
@@ -54,6 +60,12 @@ history.
   Wasm renders produce stereo masters, sound/track stems and eight-channel WAVs.
   Insert, master-effect and sound-level locks now run in the shared native app
   at their sample frames. Direct USB-MIDI/BLE project access remains future work.
+- **Song transport and keyboard:** the transport reports native position,
+  elapsed time, state and master output level. The five workspace tabs follow
+  the active view below its content. Playback progress appears on scene clips
+  and automation lanes.
+  Context-aware Song shortcuts cover transport, view selection, mute, rename,
+  and selected note or arrangement-section edits.
 - External browser audio checks: an isolated PulseAudio monitor records a
   sustained simulator tone during edit storms and musical A/B playback in
   Chromium, Firefox and WebKit. CI runs the detector and captures; native
