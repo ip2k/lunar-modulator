@@ -1,3 +1,7 @@
+## Active correction, 2026-10-12
+
+V6k is rejected: global SHA substitution erased the historical install-capture identity, including its fixture assertion. See notes/2026-10-12-recovery-stage-successor-v6n/README.md. Corrected V6n and expanded 16O/16P verification are running on Hera. Do not integrate V6k despite passing modeled checks. FM-1 freshly observed normal 4c4a:c755 on bench01, no power cycle needed; no reset/softkey/write this correction. Packetry CUA still reports Mac locked; manual-unlock question pending. Goal remains physically verified installable diagnostic firmware, not complete.
+
 # Hand-off package — Lunar Modulator
 
 **INTERGALACTIC MODULATION STATION.** Lunar Modulator is open firmware for
