@@ -1,0 +1,19 @@
+{
+  "tests": 16,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "containers": 16,
+  "all_exit_zero": true,
+  "no_oom": true,
+  "network": "none",
+  "physical_recovery_verified": false,
+  "source_sha256": {
+    "tests/test_completed_stop_trace_actual.py": "d3ca15c6f7fdc7337a660bf7ef2509ca6ba7efabd809e19f2546c9944e8c564b",
+    "tests/test_completed_stop_trace_backup.py": "0c85503bb8a6836c6f4e94596e731ad71bfc3c4d226eac18a5b8e7ecd5bb23b9",
+    "tests/test_completed_stop_trace_backup_actual.py": "ceb888533eba6d21f26111ad8275a857dd16c903244373b8073e5eb8e3b780a4",
+    "tests/test_completed_stop_trace_restore_actual.py": "8fb06afa727f84a07e47f3e2cc3d3536238cd041142f849417d4f57e4d67bff5",
+    "tools/fm1_completed_stop_trace_backup.py": "5752c50354c388bc08817d36e6298cb76c64cd2c83ea536af6491714a9654d1a",
+    "tools/fm1_completed_stop_trace_restore.py": "57ef5f4ca38156710f1ce8de808688e93d69ed5cb24f08b79b454672162f0770"
+  }
+}

@@ -20,12 +20,12 @@ removed after inspection. Eighteen combined backup/restore closed-authority
 boundary tests passed on Hera. Python compilation and diff whitespace checks
 passed. Private artifacts are under completed-stop-trace-backup-16-20261012.
 
-Restore composition: sixteen chunks currently running in
+[verified: inspected Hera results] Restore composition: sixteen chunks passed in
 completed-stop-trace-restore-16-20261012. First attempt failed at pytest
 collection because the helper import was unavailable under importlib mode;
 logs were preserved as evidence-collection-failure, and the helper is now
 loaded by its exact file path. No modeled or physical operation occurred in
-that failed attempt. Final results must be inspected before acceptance.
+that failed attempt. All16 XML suites contain exactly one test and zero skips/errors/failures. All16 containers exited zero without OOM and with network disabled; inspected and removed. Successful cases restored the exact full baseline hash and replayed completed evidence without further model commands. Interrupted/corrupt writes halted with no success publication/reset/retry. This includes runtime model acceptance, not physical acceptance.
 
 These models do not establish physical stock boot, recovery, visible display,
 or USB transport acceptance. No physical FM1 command was issued in this work.

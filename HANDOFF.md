@@ -1417,3 +1417,11 @@ notes/2026-10-12-completed-stop-trace-recovery/review.md, then complete source/p
 review before preparing any fresh physical backup/restore packet. Both canonical
 source dependency pins remain None. Physical stock boot/recovery and diagnostic
 display acceptance remain required. Goal stays active, this turn made progress.
+
+[verified final restore gate] All16 corrected restore chunks passed, one test
+per XML suite, zero failures/errors/skips; all containers exited zero, no OOM,
+network disabled, inspected/removed. Backup16 + restore16 + boundary18 passed.
+Evidence summary notes/2026-10-12-completed-stop-trace-recovery/verification.json.
+Launch77930 is terminal success; do not restart. Checkpoint a00e2e6e was pushed
+and remote SHA verified. Next source/pin review and fresh physical backup packet;
+physical boot/display/recovery remain unverified.
