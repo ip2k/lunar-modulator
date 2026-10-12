@@ -207,7 +207,7 @@
 .sq-scene-head > .sq-button { min-height: 30px; padding: 4px 7px; }
 .sq-scene-title { display: flex; align-items: center; gap: 5px; min-width: 0; }
 .sq-scene-title .sq-name-header { flex: 1; }
-.sq-scene-title > .sq-scene-launch { flex: none; width: 28px; min-height: 28px; padding: 3px; text-align: center; }
+.sq-scene-title > [data-scene-launch] { flex: none; width: 28px; min-height: 28px; padding: 3px; text-align: center; }
 .sq-matrix-cell { padding: 4px; gap: 4px; }
 .sq-matrix-cell > .sq-button { min-height: 32px; padding: 5px 7px; }
 .sq-matrix-cell[aria-pressed="true"], .sq-matrix-cell .sq-button[aria-pressed="true"] { outline: 1px solid var(--select); outline-offset: -2px; }
@@ -258,7 +258,7 @@
 
 /* Compact Song controls while keeping each edit and launch target distinct. */
 .sq-matrix-cell { flex-direction: row; align-items: center; }
-.sq-matrix-cell > .sq-scene-launch { flex: 0 0 28px; width: 28px; min-height: 28px; padding: 3px; text-align: center; }
+.sq-matrix-cell > [data-scene-launch] { flex: 0 0 28px; width: 28px; min-height: 28px; padding: 3px; text-align: center; }
 .sq-matrix-cell > .sq-scene-edit {
   display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; gap: 5px;
   min-height: 42px; text-align: left; white-space: normal; line-height: 1.2;

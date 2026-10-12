@@ -169,13 +169,13 @@ try {
     await tab('Scenes');
     const visibleScenes = await page.locator('.sq-scene-head').count();
     assert.ok(visibleScenes > 0 && visibleScenes <= 8);
-    assert.equal(await page.locator('.sq-scene-title .sq-scene-launch').count(), visibleScenes);
-    assert.equal(await page.locator('.sq-matrix-cell .sq-scene-launch').count(), visibleScenes * 8);
+    assert.equal(await page.locator('.sq-scene-title [data-scene-launch]').count(), visibleScenes);
+    assert.equal(await page.locator('.sq-matrix-cell [data-scene-launch]').count(), visibleScenes * 8);
     assert.equal(await page.getByRole('button', { name: 'Launch scene 1', exact: true }).isVisible(), true);
-    assert.equal(await page.locator('.sq-scene-title .sq-scene-launch').first().innerText(), '▶');
-    assert.equal(await page.locator('.sq-matrix-cell .sq-scene-launch').first().innerText(), '▶');
-    assert.equal(await page.locator('.sq-scene-title').first().evaluate(e => e.firstElementChild.classList.contains('sq-scene-launch')), true);
-    assert.equal(await page.locator('.sq-matrix-cell').first().evaluate(e => e.firstElementChild.classList.contains('sq-scene-launch')), true);
+    assert.equal(await page.locator('.sq-scene-title [data-scene-launch]').first().innerText(), '▶');
+    assert.equal(await page.locator('.sq-matrix-cell [data-scene-launch]').first().innerText(), '▶');
+    assert.equal(await page.locator('.sq-scene-title').first().evaluate(e => e.firstElementChild.hasAttribute('data-scene-launch')), true);
+    assert.equal(await page.locator('.sq-matrix-cell').first().evaluate(e => e.firstElementChild.hasAttribute('data-scene-launch')), true);
     const slots = new Set(), next = page.getByRole('button', { name: 'Next scenes page', exact: true });
     for (let pageIndex = 0; pageIndex < 8; pageIndex++) {
       const visible = await page.locator('[data-live-track]').evaluateAll(cells => cells.map(c => `${c.dataset.liveTrack}:${c.dataset.liveScene}`));

@@ -640,7 +640,7 @@ export function makeSequencer(ctx) {
         title: 'Click empty space to select scene; double-click name to rename.' }, [
         el('div', 'sq-scene-title', {}, [
           ctx.playScene ? btn('▶', () => action(() => ctx.playScene(scene)), {
-            class: 'sq-button sq-scene-launch', 'aria-label': `Launch scene ${scene + 1}`, title: `Launch scene ${scene + 1}`,
+            'data-scene-launch': true, 'aria-label': `Launch scene ${scene + 1}`, title: `Launch scene ${scene + 1}`,
           }) : null,
           el('div', 'sq-name-header', {}, [name]),
         ]),
@@ -665,7 +665,7 @@ export function makeSequencer(ctx) {
         if (c) editButton.append(clipPreview(c));
         grid.append(el('div', `sq-matrix-cell ${group}`, { 'data-live-track': t, 'data-live-scene': scene }, [
           ctx.playClip ? btn(c ? '▶' : '■', () => action(() => ctx.playClip(t, scene)), {
-            class: 'sq-button sq-scene-launch',
+            'data-scene-launch': true,
             'aria-label': `${c ? 'Launch clip' : 'Stop track'} ${t + 1} scene ${scene + 1}`,
             title: c ? 'Launch this clip at the native bar boundary' : 'Launch the empty slot to stop this track at the native bar boundary',
           }) : null, editButton]));
