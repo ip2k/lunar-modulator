@@ -28,7 +28,8 @@ SEQ_MORE = 240 + 1024 + 20        # its pending record, the UI bound and the cli
 MOD_BYTES = 26848                 # and the modulation runtime (fm1_mod_size(), docs/16 MG3; MG9 voices; glide; its modes)
 SIM_32BIT = "-m32" in shlex.split(os.environ.get("FM1_SIM_EXTRA", "")) or struct.calcsize("P") == 4
 SEQ_AUTOMATION = 7248 if SIM_32BIT else 7760  # bounded queue/cache bytes (32/64-bit target)
-FIXED = SEQ_FIXED + SEQ_MORE + MOD_BYTES + SEQ_AUTOMATION
+MIDI_MAP_BYTES = 4612             # bounded native MIDI-learn map, included even when empty
+FIXED = SEQ_FIXED + SEQ_MORE + MOD_BYTES + SEQ_AUTOMATION + MIDI_MAP_BYTES
 MIX_BLOCK = 512
 
 

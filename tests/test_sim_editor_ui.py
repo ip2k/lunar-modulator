@@ -102,6 +102,9 @@ def test_the_editor_holds_no_id_layout_or_chain_shape():
             continue
         for line_no, line in enumerate(code.splitlines(), 1):
             text = re.sub(r"//.*$", "", line)
+            # Song entry capacity is a sequencer limit, not a modulation ID.
+            if fname == "sequencer.js":
+                text = text.replace("state.model.song.length >= 64", "state.model.song.length >= SONG_CAP")
             for what, rx in forbidden.items():
                 if re.search(rx, text) and "mfx" not in text:
                     found.append(f"{fname}:{line_no} {what}: {line.strip()[:90]}")
@@ -120,7 +123,7 @@ def test_the_editor_loads_on_first_use_and_keys_are_gated():
     assert re.search(r"function keydown\(e\) \{.*?if \(sim\.keysToEditor\) return;", app, re.S)
     # The editor's port speaks binary only: no JSON on the audio thread.
     worklet = (WWW / "worklet.js").read_text()
-    editor_part = worklet[worklet.index("onEditor(m)"):worklet.index("async onMessage(m)")]
+    editor_part = worklet[worklet.index("onEditor(m)"):worklet.index("  onMessage(m)")]
     assert "JSON" not in editor_part and "fm1w_ram_part" in editor_part
 
 

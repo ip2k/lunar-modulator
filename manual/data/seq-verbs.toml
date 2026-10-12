@@ -390,3 +390,20 @@ does = "Movy's link to the Move's own transport. Here, while it is 1, an incomin
 group = "Movy on the Move only"
 args = "<0|1>"
 does = "Movy's note injection on the Move. Stored; no effect in Lunar Modulator."
+
+[verb.pause]
+group = "Transport and tempo"
+does = "Pause at the current position, releasing held notes and ending recording. Resume continues from that position."
+
+[verb.resume]
+group = "Transport and tempo"
+does = "Continue from the paused position; start normally if stopped."
+
+[verb.rewind]
+group = "Transport and tempo"
+does = "Stop, release held notes and reset playback to the start."
+
+[verb.seekbar]
+group = "Transport and tempo"
+args = "<bar>"
+does = "Locate a zero-based bar without rendering skipped notes or locks. Clamp to the clip or followed arrangement span and preserve the playing state. Refused while playing under external clock."
