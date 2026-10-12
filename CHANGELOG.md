@@ -93,6 +93,12 @@ history.
   and automation lanes.
   Context-aware Song shortcuts cover transport, view selection, mute, rename,
   and selected note or arrangement-section edits.
+- Song projects with an arrangement entry or defined clip now open in Song by
+  default; explicit workspace choices take precedence, including when a `.movy1`
+  set is loaded. The pinned transport condenses current and total position,
+  elapsed and available remaining time, bar/clip/scene navigation, tempo and
+  metronome controls. Empty track and scene header areas select those targets
+  and can receive MIDI Learn assignments.
 - External browser audio checks: an isolated PulseAudio monitor records a
   sustained simulator tone during edit storms and musical A/B playback in
   Chromium, Firefox and WebKit. CI runs the detector and captures; native

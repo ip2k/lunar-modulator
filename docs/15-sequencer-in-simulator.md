@@ -2,9 +2,14 @@
 
 > **Current browser status (2026-10-12):** the Advanced editor now includes a
 > native Song workspace for scenes, arrangements, clips, automation, mixing,
-> MIDI import, MIDI Learn and project/set exchange. Responsive grids page longer
+> MIDI import, MIDI Learn and project/set exchange. Projects with an arrangement
+> entry or defined clip open in Song by default; explicit workspace choices are
+> preserved, including on `.movy1` set loads. Its pinned transport shows current
+> and total bars:beats:ticks, elapsed and available estimated remaining time,
+> and compact bar/clip/scene navigation. Track and scene header whitespace selects the
+> corresponding item and is a MIDI Learn target. Responsive grids page longer
 > scenes, arrangements, clips and automation rows without horizontal page
-> scrolling. The manual is in
+> scrolling; Clip Follow starts on and advances with playback. The manual is in
 > [chapter 15](../manual/chapters/15-the-advanced-editor.md#songs-midi-files-and-the-mixer);
 > browser behavior and current import bounds are in the
 > [simulator README](../sim/web/README.md#song-workspace). The FM-1 does not
@@ -21,8 +26,10 @@
 > parity and the Chromium resource-meter check passed. Native editor and sync
 > suites also passed in Chromium, Firefox and WebKit against Wasm SHA-256
 > `34389dab09a86ed845ca2efc4b71bb3250e77ddf1e0529b4a011c94b6245b8c8`; each
-> browser produced six WAV downloads. Scope and acceptance limits are recorded
-> in [the browser receipt](../notes/2026-10-12-editor-native-browser-acceptance.md).
+> browser produced six WAV downloads. Those receipts apply to that tested
+> snapshot; the later integrated editor changes still need the combined final
+> run. Scope and limits are recorded in
+> [the browser receipt](../notes/2026-10-12-editor-native-browser-acceptance.md).
 > The 2026-10-11 design review is preserved in
 > [notes/2026-10-11-daw-design-review](../notes/2026-10-11-daw-design-review/README.md).
 

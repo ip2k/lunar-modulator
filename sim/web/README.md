@@ -625,11 +625,17 @@ timed" there].
 
 ## Song workspace: clips, scenes, MIDI and audio files
 
-Power on, open the editor and choose **Song**. Switch between **Scenes**,
+Power on and open the editor. Projects with an arrangement entry or a defined
+clip open in **Song** automatically; an explicitly selected workspace stays
+selected, and a loaded `.movy1` set uses the same rule. Switch between **Scenes**,
 **Arrangement**, **Clip**, **Automation** and **Mixer** to focus on one task.
-Transport and a **Files & export** menu stay available across views. Clip and
-Automation expose track/scene selection; scene headings and timeline entries
-select their respective scenes directly. On a small phone, rotate to landscape;
+The pinned transport stays available across views and shows current and total
+bars:beats:ticks, elapsed and available estimated remaining time, plus
+previous/next bar, clip and scene navigation. Play/pause, stop, tempo and
+metronome controls stay
+with it. The file menu stays available across views. Click empty space in a
+track or scene header to select that track or scene; those header targets can
+also receive MIDI Learn assignments. On a small phone, rotate to landscape;
 portrait displays a rotate prompt
 without changing playback. In short landscape windows, the device-screen preview
 is hidden to leave room for editing.
@@ -667,9 +673,12 @@ unbounded DAW tracks.
 - Click the piano roll or step row to enter/select notes. Drag a note to change
   its step and pitch; drag its right edge for gate length. Numeric controls offer
   the same edits, plus velocity, probability and microtiming. Page through longer
-  clips and set their loop start, length, quantization and transpose. Opening a
-  clip finds its first sounding note's page and scrolls that note into the piano
-  roll; an empty clip opens at its loop start. Edits retain manual scrolling.
+  clips and set their loop start, length, quantization and transpose. Clip Follow
+  is on by default: as playback reaches a new page, it advances automatically
+  and wraps with the clip loop. Manual paging turns Follow off; enable it again
+  to resume. Opening a clip finds its first sounding note's page and scrolls that
+  note into the piano roll; an empty clip opens at its loop start. Edits retain
+  manual scrolling.
 - Assign one of eight parameter-lock lanes per track to an instrument parameter,
   either insert, either master effect, or the routed sound's mix level. Edit the
   lane base and per-step values; an empty box removes a lock. The plot holds each
