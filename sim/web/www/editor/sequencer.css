@@ -23,8 +23,8 @@
 .sq-sound .sq-actions { margin-top: 10px; }
 .sq-caption { color: var(--muted); font-size: .78rem; line-height: 1.5; margin: 8px 0; overflow-wrap: anywhere; }
 .sq-section { border: 1px solid var(--border); padding: 12px; border-radius: 7px; margin-top: 12px; min-width: 0; }
-.sq-scroll { max-width: 100%; overflow: auto; overscroll-behavior-x: contain; border: 1px solid var(--border); border-radius: 4px; }
-.sq-song-grid { display: grid; width: max-content; gap: 1px; background: var(--border); }
+.sq-scroll { max-width: 100%; overflow-x: hidden; overflow-y: auto; border: 1px solid var(--border); border-radius: 4px; }
+.sq-song-grid { display: grid; width: 100%; gap: 1px; background: var(--border); }
 .sq-track-head { position: sticky; left: 0; z-index: 2; background: var(--surface); padding: 7px; border-left: 3px solid var(--snd, transparent); min-width: 0; }
 .sq-track-head .sq-button { width: 100%; text-align: left; padding: 3px 5px; }
 .sq-track-head .sq-field { margin-top: 4px; }
@@ -45,29 +45,26 @@
 .sq-section-tools > .sq-field { margin-top: 8px; }
 .sq-arrangement-tools { align-items: start; }
 .sq-arrangement-tools > .sq-caption { margin: 8px 0; }
-.sq-timeline-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.sq-timeline-range { min-width: 60px; flex: 1; accent-color: var(--select); cursor: ew-resize; }
-.sq-timeline-position { min-width: 170px; color: var(--muted); font-size: .72rem; }
-.sq-timeline-nav > .sq-button { min-width: 34px; padding: 5px; }
-@media (max-width: 900px) { .sq-timeline-position { min-width: 0; max-width: 140px; } }
+.sq-page-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0; min-width: 0; }
+.sq-page-nav .sq-caption { margin: 0; font-variant-numeric: tabular-nums; }
 .sq-clip { border-radius: 0; border-left: 4px solid var(--snd, var(--muted)); text-align: left; align-self: stretch; background: color-mix(in srgb, var(--snd, var(--select)) 14%, var(--bg)); }
 .sq .is-playing { box-shadow: inset 0 -3px var(--live, #9ccfd8); }
-.sq-roll { position: relative; width: calc(60px + var(--steps) * 28px); min-width: 0; background: var(--bg); }
-.sq-ruler { display: grid; grid-template-columns: 60px repeat(var(--steps),28px); min-height: 26px; color: var(--muted); font-size: 10px; align-items: center; }
+.sq-roll { position: relative; width: 100%; min-width: 0; background: var(--bg); }
+.sq-ruler { display: grid; grid-template-columns: 60px repeat(var(--steps),minmax(0,1fr)); min-height: 26px; color: var(--muted); font-size: 10px; align-items: center; }
 .sq-ruler > span { padding-left: 4px; }
 .sq-pitch-row { display: grid; grid-template-columns: 60px 1fr; height: 28px; }
 .sq-pitch-row > button { min-height: 28px; height: 28px; border: 0; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); background: var(--surface); color: var(--text); text-align: right; padding: 2px 8px; font-size: 10px; }
 .sq-pitch-row.is-black { background: #0003; }
-.sq-note-lane { position: relative; border-bottom: 1px solid var(--border); background-image: repeating-linear-gradient(to right, transparent 0, transparent 27px, var(--border) 27px, var(--border) 28px); cursor: crosshair; }
+.sq-note-lane { position: relative; border-bottom: 1px solid var(--border); background-image: repeating-linear-gradient(to right, transparent 0, transparent calc(100% / var(--steps) - 1px), var(--border) calc(100% / var(--steps) - 1px), var(--border) calc(100% / var(--steps))); cursor: crosshair; }
 .sq-note { position: absolute; top: 2px; height: 24px; min-height: 24px; border: 1px solid var(--sq-note); background: var(--sq-note); color: #161421; border-radius: 3px; font-size: 10px !important; padding: 0 2px; overflow: hidden; cursor: pointer; }
 .sq-note.is-selected { background: var(--select); color: var(--accent-text); }
-.sq-step-grid { display: flex; gap: 3px; width: max-content; padding: 8px; }
-.sq-step { min-width: 28px; padding: 4px; font-size: .7rem !important; }
+.sq-step-grid { display: grid; grid-template-columns: repeat(var(--steps),minmax(0,1fr)); gap: 1px; width: 100%; box-sizing: border-box; padding: 8px 0 8px 60px; }
+.sq-step { min-width: 0; padding: 4px; font-size: .7rem !important; }
 .sq-step:nth-child(4n+1) { border-left: 2px solid var(--muted); }
 .sq-step.is-filled { background: var(--select); color: var(--accent-text); }
-.sq-lock-grid { display: flex; width: max-content; gap: 4px; padding: 8px; }
-.sq-lock { width: 51px; display: flex; flex-direction: column; gap: 4px; text-align: center; font-size: .7rem; color: var(--muted); }
-.sq-lock input { width: 51px; padding: 3px; }
+.sq-lock-grid { display: grid; grid-template-columns: repeat(var(--automation-steps),minmax(0,1fr)); width: 100%; box-sizing: border-box; gap: 0; padding: 8px 8px 8px 148px; }
+.sq-lock { min-width: 0; display: flex; flex-direction: column; gap: 4px; text-align: center; font-size: .7rem; color: var(--muted); }
+.sq-lock input { width: 100%; min-width: 0; padding: 3px; }
 .sq-midi-row { display: grid; grid-template-columns: minmax(140px,1fr) minmax(120px,180px) minmax(120px,180px); gap: 12px; align-items: end; border-top: 1px solid var(--border); padding: 10px 0; }
 .sq-midi-row > span { overflow-wrap: anywhere; }
 .sq-import { border-color: var(--select); }
@@ -155,7 +152,7 @@
 .sq-matrix-cell > .sq-button:first-child { flex: 1; }
 
 /* One native workspace at a time; keep navigation independent of project state. */
-.sq-tabs { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--border); padding: 8px 0; }
+.sq-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0; }
 .sq-tabs [aria-selected="true"] { background: var(--select); color: var(--accent-text); border-color: var(--select); }
 .sq-selection { padding-bottom: 8px; border-bottom: 1px solid var(--border); }
 .sq-view-panel { min-width: 0; }
@@ -270,8 +267,8 @@
 .sq-clip-progress[hidden] { display: none; }
 .sq-preview-playhead { stroke: var(--live, #9ccfd8); stroke-width: 2; vector-effect: non-scaling-stroke; pointer-events: none; }
 /* Eight native lock lanes, with numeric editing retained for the selected lane. */
-.sq-automation-rows { width: max-content; min-width: 100%; padding: 8px 8px 0; box-sizing: border-box; }
-.sq-automation-row { position: relative; display: grid; grid-template-columns: 180px repeat(var(--automation-steps),55px); align-items: stretch; margin-bottom: 6px; }
+.sq-automation-rows { width: 100%; min-width: 0; padding: 8px 8px 0; box-sizing: border-box; }
+.sq-automation-row { position: relative; display: grid; grid-template-columns: 140px repeat(var(--automation-steps),minmax(0,1fr)); align-items: stretch; margin-bottom: 6px; }
 .sq-automation-label { position: sticky; left: 0; z-index: 4; text-align: left; white-space: normal; overflow-wrap: anywhere; padding: 8px 12px; margin-right: 8px; background: var(--surface); }
 .sq-automation-ruler { color: var(--muted); font-size: .68rem; align-items: center; text-align: center; }
 .sq-automation-ruler .sq-automation-label { font-size: .7rem; }
@@ -286,7 +283,7 @@
 .sq-automation-playhead { position: absolute; top: 0; bottom: 0; width: 2px; z-index: 3; background: var(--live, #9ccfd8); pointer-events: none; }
 .sq-automation-playhead[hidden] { display: none; }
 
-.sq-automation-rows + .sq-lock-grid { margin-left: 180px; }
+
 /* The transport stays above every workspace tool window. */
 .sq-transport-mount { position: sticky; top: 0; z-index: 6; background: var(--bg); padding: 3px 0; }
 .sq-transport { border: 0; padding: 0; min-width: 0; margin: 0; align-items: center; gap: 6px; }
@@ -309,3 +306,12 @@
   .sq-transport .sq-field { font-size: .65rem; }
   .sq-transport .sq-field input, .sq-transport .sq-field select { min-height: 28px; padding: 3px 5px; }
 }
+
+.sq-transport-mount button:hover { border-color: var(--select); }
+.sq-transport-mount button:focus-visible, .sq-transport-mount input:focus-visible, .sq-transport-mount select:focus-visible { outline: 2px solid var(--select); outline-offset: 2px; }
+.sq-transport-mount button:disabled { opacity: .45; cursor: default; }
+.sq-transport-mount [aria-pressed="true"] { border-color: var(--select); box-shadow: inset 0 0 0 1px var(--select); }
+
+.sq-metronome { display: inline-flex; align-items: center; justify-content: center; }
+
+.sq-arrangement { border: 0; padding: 0; }
