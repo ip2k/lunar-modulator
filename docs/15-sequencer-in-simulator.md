@@ -15,7 +15,11 @@
 > preflight counts the reserved map and automation storage. Saved-transport
 > Wasm regressions passed for a 20-BPM one-bar song and four full-arrangement
 > demos, including FM6, effects, arpeggiator/modulation and stem isolation.
-> Combined-source parity and browser download validation remain separate checks.
+> The top-bar DSP estimate uses browser timing and marks `Date.now()` fallback
+> as coarse; the Memory page shows used/available estimates and RAM by Shared,
+> Master and S1–S4. FM-1 CPU usage is not measured. Combined-source Wasm 108
+> parity and the Chromium resource-meter check passed; browser WAV download
+> validation remains a separate check.
 > The 2026-10-11 design review is preserved in
 > [notes/2026-10-11-daw-design-review](../notes/2026-10-11-daw-design-review/README.md).
 
