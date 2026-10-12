@@ -264,3 +264,42 @@ Existing mechanics exercise changed derivative paths/body, duplicate/missing
 assignments, source drift, symlink and private-file bounds. Full composed original
 stage replay remains a heavy-model acceptance dependency. Do not treat this
 inspection alone as authorization to flash or as independent review.
+
+
+### Resumed verification and current checkout pin integration
+
+[verified: retained model evidence] V6h mechanics passed all 235 unique nodes in
+16 parallel Hera containers, all exit0, no skips or failures. Retained private
+archive SHA256 2198398caf70052d3141bd1e42eb438f112d977d5b778452710e5dda0004bda2;
+all shard logs, exact container inspections, nonprivileged/device-free/network-none
+read-only mount checks and exact-owned cleanup were checked locally. V6f heavy
+failed before the restore marker; archive SHA256
+55a1307f03823bf1228116f224048a6184178593a1875c6a28cc2a6ed409ba01 contains
+229 regular temporary files, all replayed against the retained inventory.
+
+[verified: source-only integration] The tracked admission-dependent source pins
+now name verifier 6eb30cfd, backup 1694733c, restore 7d84f0d8 and capture
+wrapper b1e8e3ca. Current recovery adapter fa0899f5 exactly matches the V6g/h
+model snapshot. The current optional private native fixture retains its stricter
+59b8e8c2 install-capture successor requirement, whereas the V6g/h heavy fixture
+uses historical install capture. These are distinct verification boundaries.
+The current sequencer updated only its completed-restore source literal and
+corresponding self pin. See current-checkout-pin-delta.json in the V6h note
+directory for complete before/after hashes. No hardware gate or historical
+packet was activated or overwritten.
+
+[verified: active work] Fresh current-checkout V6i runs eight focused mechanics
+and outer-sequencer test files in exactly 16 parallel Hera chunks. Source archive
+SHA256 73710725916dcb687306336b8e907bd00c9079cebf2f8dbf043ed6f8cafc4061
+contains 1,800 tracked regular files; its exact source manifest is checked before
+launch. Remote root /home/claude/mvave-fm1/recovery-current-checkout-v6i;
+runner retained as current-checkout-run-mechanics-16.py in the V6h note directory.
+V6g heavy remains active, including actual capture-failure and consumed-attempt
+replay rejection before a successful modeled stock restore attempt. No terminal
+heavy result or physical stock recovery is claimed.
+
+[verified: passive bench check] Normal 4c4a:c755 bus1/device8 and MIDI C2D0
+remain present. No physical FM-1 power cycle is currently required. Fresh CUA
+access still reports a locked Mac and failed automatic unlock, so Packetry UI
+control is pending owner unlock. No device command, power toggle or NOR operation
+was performed during this checkpoint.

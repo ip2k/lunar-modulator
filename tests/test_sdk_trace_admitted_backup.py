@@ -121,7 +121,7 @@ def test_closed_source_uses_canonical_new_proof_and_exact_original_kernels():
     constants={n.targets[0].id:ast.literal_eval(n.value) for n in tree.body
         if isinstance(n,ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Name)
         and isinstance(n.value,ast.Constant)}
-    assert constants['PROOF_SOURCE_SHA']=='5ca132fc2f2595400bc9ccb231c3e5cd44ecc9886cd830e201272b33a677b34a'
+    assert constants['PROOF_SOURCE_SHA']=='6eb30cfd770a596c838b454bd2e79a4a39f4929274477aed193da24a036dd60e'
     assert b.digest((Path(b.__file__).parent/'fm1_sdk_trace_return_admission.py').read_bytes())==constants['PROOF_SOURCE_SHA']
     assert constants['BASE_SOURCE_SHA']=='afeefe7bd7e9044cb34106081766d6104cda7ab0196d0de903c35a5c1a52b4be'
     assert constants['REHEARSAL_SHA']=='f696484511754b91d4faf449aa2e4cab3ca910daf05a9acd66daa966bae7d6c4'

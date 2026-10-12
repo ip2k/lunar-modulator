@@ -198,7 +198,7 @@ def completed_restore_check(restore,journal):
     # Final real completed helper replay is still necessary. Its returned
     # registered proof is evidence-only, never an implicit stock reset opener.
     raw=read(STAGE/'tools/fm1_sdk_trace_admitted_stock_restore.py')
-    expected='683275d73a846dd4c3d5edbb6695fe853832c4c7e4f7921ac9504293a8531e4e'
+    expected='7d84f0d8699deded1990fc9758bc9580dcca771918c79a19d8ac31208f6c7a59'
     if digest(raw)!=expected:raise ValueError('Completed restore source differs')
     sys.path.insert(0,str(STAGE/'tools'))
     import fm1_sdk_trace_admitted_stock_restore as restored

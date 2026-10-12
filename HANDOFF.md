@@ -16,34 +16,33 @@ Physical diagnostic boot/display and full-stock recovery remain unverified.
 Read `notes/2026-10-12-packetry-live-capture.md` for current evidence; the restart
 checkpoint and boundaries below are historical unless explicitly refreshed.
 
-Latest backed-up head before this note: 2543c9f951ee64a4121e4c13776691ab4d4b5f41,
-branch `feature/2026-10-11@installable-firmware`, in the managed
-`installable-firmware/mvave-fm1-firmware` worktree. The corrected return-admission
-source is WIP: dependent tracked pins still name the previous source. No hardware
-gate has been activated; do not run historical V5 packets or reuse markers.
+Latest backed-up head before this note: 9a4e8b23d21fcd37f2d1528e5de4d65f82494a3f,
+branch `feature/2026-10-11@installable-firmware`, managed worktree
+`installable-firmware/mvave-fm1-firmware`. Current source-only pin integration
+matches modeled adapter fa0899f5 and admission 6eb30cfd; checkpoint pending below.
+No hardware gate is active; do not run historical V5 packets or reuse markers.
 
 [verified: passive observation] Bench01 still enumerates normal FM-1 4c4a:c755,
 bus1/device8, with /dev/snd/midiC2D0. No physical power cycle is presently needed.
-Packetry computer use worked before this resume and retained a fresh private
-Cynthion capture; the latest access attempt reports a locked Mac and failed
-automatic unlock. This is a UI-access limit, not a known FM-1 failure.
+Packetry retained a fresh private Cynthion capture before this resume. Current
+Computer Use reports a locked Mac and failed automatic unlock; owner unlock is
+needed for UI control. This is not a known FM-1 failure.
 
-[verified: modeled checks] V6e mechanics passed 235 nodes in 16 parallel Hera
-containers. V6e heavy replay failed on an ambient outer-tree production import
-before the restore marker; its evidence is retained. V6f uses the current recovery
-adapter: 15 mechanics shards passed, one failed because the historical full-tree
-snapshot omitted the exact newer capture wrapper required by its test. A fresh
-V6h snapshot adds that pinned file and its 16-shard rerun is active on Hera.
-V6g heavy replay repairs model import isolation without relaxing the production
-factory; it is active. V6f heavy replay has failed the same marker assertion as
-V6e and is still retaining output. All are device-free models with private
-fixtures read-only, not hardware recovery acceptance.
+[verified: modeled checks] V6h mechanics passed all 235 nodes in 16 parallel Hera
+containers; archive 2198398c verified locally including exact-owned cleanup.
+V6e/f heavy failures are retained; V6f archive 55a1307f includes 229 verified
+regular temporary files. V6g heavy fixes model import isolation and is active:
+actual capture-failure/replay rejection passed, successful modeled restore is
+running. V6g/h heavy uses historical install capture; current optional private
+fixture requires exact successor 59b8e8c2. Fresh V6i current-checkout mechanics
+and outer-sequencer tests run in 16 Hera chunks, source archive 73710725.
+All checks are device-free models; physical recovery remains unverified.
 
 Required CI run 38294796000 passed all 13 jobs on e967af9808d61bbaf91d32dd49929a5ff56a1235.
-That earlier head does not cover the current verifier WIP. Next: retain and verify
+That earlier head does not cover this WIP. Next: retain/verify V6g and V6i
 terminal results, finish original-stage binding review and a fresh source closure,
-then obtain exact-head review/CI before the staged hardware sequence. Use Hera
-for heavy work and exactly 16 chunks for parallelizable tests; leave aeon alone.
+then exact-head review/CI before the staged hardware sequence. Use Hera for heavy
+work and exactly 16 chunks for parallelizable tests; leave aeon alone.
 
 ## Historical restart checkpoint — 2026-10-12
 

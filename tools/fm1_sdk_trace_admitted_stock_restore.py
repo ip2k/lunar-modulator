@@ -19,7 +19,7 @@ import types
 from weakref import WeakSet
 
 KERNEL_SOURCE_SHA = 'f583523740bb709dde0cf8bc2e07677e2ab26063d511dcb3ba84a6b232e9af33'
-BACKUP_SOURCE_SHA = '7e9dbf156c92e7cdcc2dcd01fbbdd19ad8e06eef9fcd8772f72870afaebf738f'  # New returned trace backup independently accepted first.
+BACKUP_SOURCE_SHA = '1694733ce448a6f368938f251c4d5b4f639a37004dd6623035379953de9b775b'  # New returned trace backup independently accepted first.
 POLICY_SOURCE_SHA = '54bd9a2990d0055b1d102bc8481a71d883d586649aa2d79d62a185a415296835'  # New trace policy independently accepted first.
 REHEARSAL_SOURCE_SHA = 'f696484511754b91d4faf449aa2e4cab3ca910daf05a9acd66daa966bae7d6c4'
 BASELINE_SHA = '96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4'

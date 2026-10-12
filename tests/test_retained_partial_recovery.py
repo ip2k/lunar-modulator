@@ -30,8 +30,8 @@ def test_reviewed_dependency_literals_and_actual_source_bytes():
     # Public source contract only; exact owned wrappers are separately sealed.
     pins = {
         'PREFIX_SHA': ('fm1_partial_nor_prefix.py', '37794ff6caf9992fb6809cdd179a858d1b500b18aa26187e4cb8888b1479f056'),
-        'RESTORE_SHA': ('fm1_sdk_trace_admitted_stock_restore.py', '683275d73a846dd4c3d5edbb6695fe853832c4c7e4f7921ac9504293a8531e4e'),
-        'BACKUP_SHA': ('fm1_sdk_trace_admitted_backup.py', '7e9dbf156c92e7cdcc2dcd01fbbdd19ad8e06eef9fcd8772f72870afaebf738f'),
+        'RESTORE_SHA': ('fm1_sdk_trace_admitted_stock_restore.py', '7d84f0d8699deded1990fc9758bc9580dcca771918c79a19d8ac31208f6c7a59'),
+        'BACKUP_SHA': ('fm1_sdk_trace_admitted_backup.py', '1694733ce448a6f368938f251c4d5b4f639a37004dd6623035379953de9b775b'),
     }
     for name, (file, pin) in pins.items():
         assert getattr(recovery, name) == pin
@@ -41,7 +41,7 @@ def test_reviewed_dependency_literals_and_actual_source_bytes():
     successor = Path(__file__).resolve().parents[1] / 'tools/bench_capture/lifecycle-v1/owned-install-boot-once.py'
     assert hashlib.sha256(successor.read_bytes()).hexdigest() == recovery.INSTALL_CAPTURE_SUCCESSOR_SHA
     assert recovery.ACQUIRE_CAPTURE_SHA == '9d69134b11552f63a245c0a6870230e47bda4e6d80006b0bd61a47b938b22c34'
-    assert recovery.RESTORE_CAPTURE_SHA == 'aa640c486bd22fdf10076f6e3edfb607b3b4dbf83a93358bdbc540c5977886a8'
+    assert recovery.RESTORE_CAPTURE_SHA == 'b1e8e3ca0d50daa438df9715208095f67b2a1babc8efe24d1535fd3eb2071ed5'
 
 
 @pytest.mark.parametrize('factory,pin', [

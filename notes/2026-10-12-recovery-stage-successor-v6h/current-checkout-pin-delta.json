@@ -1,0 +1,51 @@
+{
+  "kind": "current-checkout-source-pin-successor",
+  "reviewed_restore_capture_sha256": "b1e8e3ca0d50daa438df9715208095f67b2a1babc8efe24d1535fd3eb2071ed5",
+  "changed_files": [
+    {
+      "path": "tests/retained_partial_fixture.py",
+      "before": "4d89f2533a06a335f3f10105ca14b1aeb19bdc809b819ce9c74210499084e1f5",
+      "after": "7676afa4e2479c8cda75192ffa5aa47aec615619343fb6790a7bbb4c76e60833"
+    },
+    {
+      "path": "tests/test_retained_partial_recovery.py",
+      "before": "3ff5aed4a5076f34beb4a9acec1ee97748c970f8b6cf1f0a2404cdaa16ae8435",
+      "after": "d882557bacc5ca829230313895553fa67913fa5377022f3e017c8b998f9c88ea"
+    },
+    {
+      "path": "tests/test_sdk_trace_admitted_backup.py",
+      "before": "a5c1bccf7b4cf0e277eb4c641aeb0c8ca47f320cbca6938e979d2a7ac3133897",
+      "after": "cd27b7d4fe01c466b1089b6c87cba225f3f7427b6e272d416648926787cc5c16"
+    },
+    {
+      "path": "tests/test_sdk_trace_admitted_stock_restore.py",
+      "before": "9005b5b375ab66cdc9c15c8f970341fedc991784f450152e74418ad365aa134d",
+      "after": "572fb5feabb0281f28681c713360b6af0f680bd621d413ac7c189adb7e572109"
+    },
+    {
+      "path": "tools/bench_capture/lifecycle-v1/sequence-once.py",
+      "before": "2ffa1f194f29e0b92aa3f6900f95960cae8822e2439d1e6e9cb6af64eeb7aaff",
+      "after": "102f72e380393bcf3efa314810cf437dfaee1a3a957c603e2500c5b02ca3b5e5"
+    },
+    {
+      "path": "tools/bench_capture/lifecycle-v1/source-pins.json",
+      "before": "e88a4a66cc3c5d2eeb70fc65df73b689749e5002945ee4eaf61b1f9352768adb",
+      "after": "7556c867e9cc83c69b05ac0a04bb76e5b0f2527611719efa9fd8bfbf2af4a3a1"
+    },
+    {
+      "path": "tools/fm1_retained_partial_recovery.py",
+      "before": "068fd62cf80666b39ee3e1ca041df8ddd4271d512ab8ff4b5374a3fd0894f32e",
+      "after": "fa0899f5a918a641515a494da99cf62985c33a2f18c2d06f1944ca7346bba3e6"
+    },
+    {
+      "path": "tools/fm1_sdk_trace_admitted_backup.py",
+      "before": "7e9dbf156c92e7cdcc2dcd01fbbdd19ad8e06eef9fcd8772f72870afaebf738f",
+      "after": "1694733ce448a6f368938f251c4d5b4f639a37004dd6623035379953de9b775b"
+    },
+    {
+      "path": "tools/fm1_sdk_trace_admitted_stock_restore.py",
+      "before": "683275d73a846dd4c3d5edbb6695fe853832c4c7e4f7921ac9504293a8531e4e",
+      "after": "7d84f0d8699deded1990fc9758bc9580dcca771918c79a19d8ac31208f6c7a59"
+    }
+  ]
+}
