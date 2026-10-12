@@ -847,3 +847,9 @@
 .ed-batch-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 12px 0; }
 .ed-search-batch { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; }
 .ed-batch-value { min-height: 32px; max-width: 100%; }
+
+/* Song's modal inspector keeps metadata and project tools after the controls. */
+.ed-inspector-more { border-top: 1px solid var(--border); margin-top: 10px; padding-top: 6px; }
+.ed-tools-summary { display: inline-flex; align-items: center; min-height: 32px; cursor: pointer; }
+.ed-inspector-more > .ed-credits { margin: 4px 0 8px; }
+.ed-inspector-more .ed-tools { display: flex; flex-wrap: wrap; gap: 6px; }

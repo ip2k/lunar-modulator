@@ -4,14 +4,40 @@ import { exportAudio as renderAudio } from './audio-export.js';
 
 const encoder = new TextEncoder();
 const stableSet = (set) => JSON.stringify(writeSet(parseSet(set)));
+const stableValue = (v) => Array.isArray(v) ? v.map(stableValue) : v && typeof v === 'object'
+  ? Object.fromEntries(Object.keys(v).sort().map(k => [k, stableValue(v[k])])) : v;
+const projectState = (text) => {
+  const doc = JSON.parse(text);
+  doc.set = writeSet(parseSet(doc.set));
+  return JSON.stringify(stableValue(doc));
+};
 const message = (r) => r?.report?.message || r?.error || 'The native sequencer refused this project.';
 
 export function makeSequencerHost({ sim, files, st, history, snapshot, say, onSettled }) {
   let busy = false;
+  let observedGen = sim.seq?.contentGen, panelTimer = 0;
   const versions = new WeakMap();
   const css = document.createElement('link');
   css.rel = 'stylesheet'; css.href = new URL('sequencer-host.css', import.meta.url).href;
   document.head.append(css);
+
+  // Native sequencer edits have their own generation, separate from parameter
+  // history and playback ticks. Coalesce recording/knob bursts without polling
+  // or serializing a project during unchanged playback. The callback also
+  // invalidates a hidden workspace so it refreshes when reopened.
+  sim.seqListeners ||= new Set();
+  sim.seqListeners.add(transport => {
+    const gen = transport.contentGen;
+    if (!Number.isInteger(gen) || gen < 0 || gen > 0xffffffff) return;
+    const changed = observedGen !== undefined && observedGen !== gen;
+    observedGen = gen;
+    if (!changed || panelTimer) return;
+    panelTimer = setTimeout(() => {
+      panelTimer = 0;
+      // An in-flight host transaction already refreshes on settlement.
+      if (sim.node && !busy) onSettled?.();
+    }, 100);
+  });
 
   async function fetchProject() {
     if (!sim.node) throw new Error('Power on the simulator first.');
@@ -23,7 +49,7 @@ export function makeSequencerHost({ sim, files, st, history, snapshot, say, onSe
     return doc;
   }
 
-  async function loadChecked(doc, options = {}) {
+  async function loadChecked(doc, options = {}, expectedCurrent) {
     const model = parseSet(doc.set);
     const verdict = validateSet(model);
     if (!verdict.valid) throw new Error(verdict.errors.join('; '));
@@ -32,6 +58,9 @@ export function makeSequencerHost({ sim, files, st, history, snapshot, say, onSe
     const snap = await files.projectSnapshot();
     if (st.gen !== gen || (versions.has(doc) && versions.get(doc).hash !== snap.hash)) {
       throw new Error('The project changed while checking. Retry the edit.');
+    }
+    if (expectedCurrent !== undefined && projectState(snap.text) !== projectState(expectedCurrent)) {
+      throw new Error('The project changed after this sequencer edit. Undo or redo would overwrite later changes.');
     }
     const before = snap.text;
     const old = await files.shadow('pack', { text: before });
@@ -72,7 +101,8 @@ export function makeSequencerHost({ sim, files, st, history, snapshot, say, onSe
     if (busy) return false;
     busy = st.sequenceBusy = true;
     try {
-      await loadChecked(JSON.parse(redo ? entry.info.afterText : entry.info.beforeText));
+      await loadChecked(JSON.parse(redo ? entry.info.afterText : entry.info.beforeText), {},
+        redo ? entry.info.beforeText : entry.info.afterText);
       say(`${redo ? 'Redone' : 'Undone'}: ${entry.label}`);
       return true;
     } catch (err) { say(err.message, true); return false; }

@@ -15,14 +15,23 @@ The Song/MIDI workspace is on `feature/2026-10-11@midi-sequencer-workspace`,
 branched from `b335dc2`. Its endpoint is native clip/scene/song editing, MIDI
 batch import, lock automation, project/set exchange and actual-Wasm stereo,
 stem and multichannel export, tested and reviewed through CI, merge and Pages.
-Native telemetry/faders and compact mixer controls are saved at `1141e12b`,
-verified pushed; `d4e0b640` integrates current main. Final module SHA-256 starts
-`f163c1b5`. Exact native acceptance and three-browser mixer checks passed;
-the density refinement and independent source review remain in progress.
-CI at `d4e0b640` caught an outdated metadata schema/example and a removed
-browser-test selector. The schema/example repair and user manual are saved
-in the next checkpoint; final browser/source review, new-head CI, merge and
-Pages verification remain required. The runtime interrupted a turn without
+Native telemetry/faders and compact mixer controls are saved at `1141e12b`;
+`d4e0b640` integrates current main. Checkpoint `a095501d` is verified pushed.
+The following checkpoint saves compact Scenes/Clip/inspector layouts, bounded
+MIDI preview (16 files, 32 MiB per batch, 64 parts), and guarded undo/redo that
+refuses to overwrite intervening panel edits. The fresh Wasm SHA-256 is
+`2a2ad121431f6e7fac5aa186d00eb0b75848187441ffe0d4ec4222451ed65cc3`;
+all 108 parity scenarios and the edit storm pass. MIDI helpers pass 30 tests,
+host synchronization passes 8, and the fresh native Chromium synchronization
+test passes. Independent design review finds no blocking UI defect in its
+bounded Chromium execution, with landscape first-screen scrolling a P2.
+The old CI browser failure was the removed launch-scene test selector; its
+replacement is saved. Fresh three-browser acceptance and independent source
+review, exact-head CI, merge and Pages verification remain required.
+Earlier isolated Firefox transport timeouts could not be reproduced with
+either tested audio sink configuration; preserve the assertion in the fresh
+acceptance run and collect diagnostics if it fails.
+The runtime interrupted a turn without
 reporting a cause; this is not evidence that compaction stopped execution.
 The current checkpoint and outstanding gates are in
 [the implementation note](notes/2026-10-11-midi-song-workspace.md).

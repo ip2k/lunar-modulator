@@ -1,7 +1,7 @@
 // Sequencer workspace. Canonical projects are loaded by the host, never patched
 // optimistically in the audio engine. MIT licence, like the rest of Lunar.
 import { parseSet, writeSet, validateSet, arrangementEntries } from './sequence-model.js';
-import { parseMidi, planMidiImport, applyMidiImport } from './midi-import.js';
+import { parseMidi, planMidiImport, applyMidiImport, checkMidiFiles, checkMidiParts } from './midi-import.js';
 import { toPos } from './model.js';
 
 const clone = (x) => structuredClone(x);
@@ -50,7 +50,8 @@ export function makeSequencer(ctx) {
   const deviceDialog = el('dialog', 'sq-device-dialog', { id: 'sq-device-controls', 'aria-label': 'Device controls' });
   root.append(status, rotate, content, deviceDialog);
   const state = { doc: null, model: null, busy: false, loading: null, dirty: true, track: 0, scene: 0,
-    note: -1, page: 0, pitch: 60, low: 48, song: 0, lane: 0, inspector: null, midi: null, solo: null, mixDetails: null, view: 'Scenes' };
+    note: -1, page: 0, pitch: 60, low: 48, song: 0, lane: 0, inspector: null, midi: null, solo: null, mixDetails: null,
+    noteAdvancedOpen: false, view: 'Scenes' };
   let disposed = false, pendingFocus = null, suppressNoteClick = false, cancelDrag = null, readError = false;
   let releaseFader = null;
   const meterHold = new Map();
@@ -113,6 +114,7 @@ export function makeSequencer(ctx) {
     const notes = clip()?.notes || [];
     if (notes.length) { state.pitch = notes[0].pitch; state.low = Math.max(0, Math.min(104, state.pitch - 12)); }
     draw();
+    if (open) root.querySelector('[data-view="Clip"]')?.focus({ preventScroll: true });
   }
   function soundName(i) { const s = state.doc.sounds?.[i]; return `S${i + 1} · ${s?.engine || 'Empty'}`; }
   const routeOptions = () => [...Array.from({ length: 4 }, (_, i) => [`s${i}`, soundName(i)]),
@@ -124,6 +126,9 @@ export function makeSequencer(ctx) {
   function closeInspector() {
     const key = state.inspector;
     state.inspector = null;
+    const files = deviceDialog.querySelector('.sq-file-tools');
+    const toolbar = content.querySelector('.sq-transport');
+    if (files && toolbar) toolbar.append(files);
     if (deviceDialog.open) deviceDialog.close();
     const trigger = root.querySelector(`[data-inspector="${key}"]`);
     trigger?.setAttribute('aria-expanded', 'false');
@@ -139,7 +144,7 @@ export function makeSequencer(ctx) {
     const m = state.model;
     const file = el('input', 'sq-file', { type: 'file', accept: '.mid,.midi', multiple: true, 'aria-label': 'Import MIDI files' });
     file.addEventListener('change', () => importFiles([...file.files]));
-    const files = el('details', 'sq-file-tools', {}, [el('summary', '', { text: 'Files & export' }), el('div', 'sq-file-menu', {}, [
+    const files = el('details', 'sq-file-tools', {}, [el('summary', '', { text: 'Files & export', 'aria-label': 'Files & export' }), el('div', 'sq-file-menu', {}, [
       btn('Open…', () => action(ctx.openFile)), btn('Save .lunar', () => action(() => ctx.exportFile?.('lunar'))),
       btn('Export .movy1', () => action(() => ctx.exportFile?.('movy1'))),
       btn('Export WAV…', () => action(ctx.exportAudio)), btn('Import MIDI…', () => file.click()), file,
@@ -151,10 +156,16 @@ export function makeSequencer(ctx) {
       state.view !== 'Mixer' ? field('BPM', m.bpmX100 / 100, v => edit('Change tempo', m => { m.bpmX100 = Math.round(v * 100); }), { min: 20, max: 300, step: .01 }) : null,
       state.view !== 'Mixer' ? field('Swing %', m.swing, v => edit('Change swing', m => { m.swing = v; }), { min: 50, max: 80, step: 1 }) : null,
       state.view === 'Mixer' ? btn('Routing & FX', () => { state.mixDetails = !(state.mixDetails ?? !matchMedia('(max-height: 500px) and (orientation: landscape)').matches); draw(); },
-        { 'aria-expanded': String(state.mixDetails ?? !matchMedia('(max-height: 500px) and (orientation: landscape)').matches), 'aria-controls': 'sq-mixer-board' }) : null,
+        { 'aria-label': 'Routing & FX', 'aria-expanded': String(state.mixDetails ?? !matchMedia('(max-height: 500px) and (orientation: landscape)').matches), 'aria-controls': 'sq-mixer-board' }) : null,
       files,
     ]);
   }
+  function syncMixerDisclosure() {
+    const button = root.querySelector('[aria-controls="sq-mixer-board"]');
+    if (button) button.setAttribute('aria-expanded', String(state.mixDetails ?? !matchMedia('(max-height: 500px) and (orientation: landscape)').matches));
+  }
+  const compactMixerMedia = matchMedia('(max-height: 500px) and (orientation: landscape)');
+  const syncMixerAfterResize = () => { syncMixerDisclosure(); requestAnimationFrame(syncMixerDisclosure); };
   const dbText = gain => gain > 0 ? `${(20 * Math.log10(gain)).toFixed(1)} dB` : '−∞ dB';
   function levelFader(sound) {
     const master = sound === null, label = master ? 'Master output level' : `S${sound + 1} level`;
@@ -285,7 +296,7 @@ export function makeSequencer(ctx) {
     const columns = entries.length ? entries : [{ scene: state.scene, presses: 1, startBar: 0, bars: Math.max(1, ...state.model.tracks.map(t => Math.ceil((t.clips[state.scene]?.length || 0) / 16))) }];
     timeline.style.gridTemplateColumns = `170px ${columns.map(e => `${Math.max(100, Math.min(340, e.bars * 22))}px`).join(' ')}`;
     timeline.append(el('div', 'sq-track-head', { text: entries.length ? 'SONG · bars' : 'SCENE · not in song' }));
-    columns.forEach((e, i) => timeline.append(btn(`${sceneName(e.scene)} ×${e.presses} · ${e.bars} bars`, () => { state.song = i; selectClip(state.track, e.scene); }, {
+    columns.forEach((e, i) => timeline.append(btn(`${sceneName(e.scene)} ×${e.presses} · ${e.bars} ${e.bars === 1 ? 'bar' : 'bars'}`, () => { state.song = i; selectClip(state.track, e.scene); }, {
       class: `sq-button sq-entry ${state.song === i ? 'is-selected' : ''}`, 'data-song-entry': e.songIndex ?? i, title: `Starts at bar ${e.startBar + 1}`, 'aria-pressed': String(state.song === i),
     })));
     state.model.tracks.forEach((track, t) => {
@@ -294,9 +305,10 @@ export function makeSequencer(ctx) {
         choose(`Track ${t + 1} output`, `${route.kind === 1 ? 's' : 'm'}${route.index}`, routeOptions(), v => edit(`Route track ${t + 1}`, m => { m.tracks[t].route = { kind: v[0] === 's' ? 1 : 0, index: Number(v.slice(1)) }; }))]));
       columns.forEach((e, i) => {
         const c = track.clips[e.scene];
-        const cell = btn(c ? `${c.notes.length} notes · ${c.length / 16} bars` : '＋ Empty clip', () => { state.song = i; selectClip(t, e.scene, true); }, {
+        const noteCount = c?.notes.length || 0, barCount = c ? c.length / 16 : 0;
+        const cell = btn(c ? `${noteCount} ${noteCount === 1 ? 'note' : 'notes'} · ${barCount} ${barCount === 1 ? 'bar' : 'bars'}` : '＋ Empty clip', () => { state.song = i; selectClip(t, e.scene, true); }, {
           class: `sq-button sq-clip ${group} ${t === state.track && e.scene === state.scene ? 'is-selected' : ''}`,
-          'aria-label': `Track ${t + 1}, ${sceneName(e.scene)}, ${c ? c.notes.length + ' notes' : 'empty clip'}`, 'data-track': t, 'data-scene': e.scene,
+          'aria-label': `Track ${t + 1}, ${sceneName(e.scene)}, ${c ? `${noteCount} ${noteCount === 1 ? 'note' : 'notes'}, ${barCount} ${barCount === 1 ? 'bar' : 'bars'}` : 'empty clip'}`, 'data-track': t, 'data-scene': e.scene,
         });
         if (c?.notes.length) cell.append(clipPreview(c));
         timeline.append(cell);
@@ -319,9 +331,13 @@ export function makeSequencer(ctx) {
         choose(`Track ${t + 1} output`, `${route.kind === 1 ? 's' : 'm'}${route.index}`, routeOptions(), v => edit(`Route track ${t + 1}`, m => { m.tracks[t].route = { kind: v[0] === 's' ? 1 : 0, index: Number(v.slice(1)) }; }))]));
       for (let scene = 0; scene < 8; scene++) {
         const c = track.clips[scene];
-        const editButton = btn(c ? `${c.notes.length} notes · ${c.length / 16} bars` : '＋ Empty clip', () => selectClip(t, scene, true), {
-          'aria-label': `Edit track ${t + 1} scene ${scene + 1}`, 'aria-pressed': String(state.track === t && state.scene === scene),
+        const notes = c?.notes.length || 0, bars = c ? c.length / 16 : 0;
+        const summary = c ? `${notes} ${notes === 1 ? 'note' : 'notes'} · ${bars} ${bars === 1 ? 'bar' : 'bars'}` : '＋ Empty clip';
+        const editButton = btn('', () => selectClip(t, scene, true), {
+          class: 'sq-button sq-scene-edit', 'aria-label': `Edit track ${t + 1} scene ${scene + 1}`,
+          'aria-pressed': String(state.track === t && state.scene === scene),
         });
+        editButton.append(el('span', 'sq-scene-summary', { text: summary }));
         if (c?.notes.length) editButton.append(clipPreview(c));
         grid.append(el('div', `sq-matrix-cell ${group}`, { 'data-live-track': t, 'data-live-scene': scene }, [editButton,
           ctx.playClip ? btn(c ? '▶ Launch clip' : '■ Stop track', () => action(() => ctx.playClip(t, scene)), {
@@ -465,11 +481,15 @@ export function makeSequencer(ctx) {
     const n = c.notes[state.note];
     if (!n) return el('p', 'sq-caption', { text: 'Click an empty piano-roll cell or step to add a note. Select a note to edit its gate, velocity, probability and microtiming.' });
     const trig = c.trigs.find(t => t.step === n.step && t.lane === n.pitch);
-    return el('div', 'sq-toolbar sq-compact-fields sq-note-details', { 'aria-label': 'Selected note' }, [
+    return el('div', 'sq-note-details', { 'aria-label': 'Selected note' }, [
+      el('div', 'sq-toolbar sq-compact-fields sq-note-essential', {}, [
       field('MIDI pitch', n.pitch, v => noteEdit({ pitch: v }), { min: 0, max: 127, step: 1 }),
       field('Step', n.step + 1, v => noteEdit({ step: v - 1, tick: (v - 1) * 24 + n.tick - n.step * 24 }), { min: c.loopStart + 1, max: c.loopStart + c.length, step: 1 }),
       field('Gate · ticks', n.gate, v => noteEdit({ gate: v }), { min: 1, max: 65535, step: 1 }),
       field('Velocity', n.vel, v => noteEdit({ vel: v }), { min: 1, max: 127, step: 1 }),
+      ]),
+      el('details', 'sq-note-advanced', { open: state.noteAdvancedOpen, ontoggle: e => { state.noteAdvancedOpen = e.currentTarget.open; } }, [el('summary', '', { text: 'Advanced note controls', 'aria-label': 'Advanced note controls' }),
+        el('div', 'sq-toolbar sq-compact-fields sq-note-advanced-fields', {}, [
       field('Microtiming · ticks', n.tick - n.step * 24, v => noteEdit({ tick: n.step * 24 + v }), { min: Math.max(-23, -n.step * 24), max: 23, step: 1 }),
       field('Probability %', trig?.prob ?? 100, v => edit('Set note probability', m => {
         const c = clip(m);
@@ -477,6 +497,7 @@ export function makeSequencer(ctx) {
         let t = c.trigs.find(t => t.step === n.step && t.lane === n.pitch);
         if (!t) { t = { step: n.step, lane: n.pitch, prob: v, a: 1, b: 1, invert: 0 }; c.trigs.push(t); } else t.prob = v;
       }), { min: 0, max: 100, step: 1 }),
+        ])]),
       btn('Delete note', () => edit('Delete note', m => { const c = clip(m), i = c.notes.findIndex(x => JSON.stringify(x) === JSON.stringify(n)); if (i < 0) throw new Error('Note changed elsewhere.'); c.notes.splice(i, 1); c.trigs = c.trigs.filter(t => t.step !== n.step || t.lane !== n.pitch); state.note = -1; })),
     ]);
   }
@@ -563,10 +584,10 @@ export function makeSequencer(ctx) {
       field('Loop length · steps', c.length, v => edit('Set clip loop length', m => { clip(m).length = v; }), { min: 1, max: 256 - c.loopStart, step: 1 }),
       field('Quantize %', c.quant, v => edit('Set clip quantize', m => { clip(m).quant = v; }), { min: 0, max: 100, step: 1 }),
       field('Transpose', c.transpose, v => edit('Transpose clip', m => { clip(m).transpose = v; }), { min: -36, max: 36, step: 1 }),
-      field('New note pitch', state.pitch, v => { state.pitch = v; state.low = Math.max(0, Math.min(104, v - 12)); draw(); }, { min: 0, max: 127, step: 1 }),
       ]),
       el('div', 'sq-toolbar sq-clip-actions', {}, [
       btn('Add note', () => addNote(Math.max(c.loopStart, state.page * 32), state.pitch)),
+      field('New note pitch', state.pitch, v => { state.pitch = v; state.low = Math.max(0, Math.min(104, v - 12)); draw(); }, { min: 0, max: 127, step: 1 }),
       btn('Delete clip', () => edit('Delete clip', m => { m.tracks[state.track].clips[state.scene] = null; state.note = -1; })),
       btn('◀ 2 bars', () => { state.page--; draw(); }, { disabled: state.page === 0 }),
       el('span', 'sq-caption', { text: `Steps ${state.page * 32 + 1}–${Math.min((state.page + 1) * 32, c.loopStart + c.length)}` }),
@@ -580,9 +601,14 @@ export function makeSequencer(ctx) {
   async function importFiles(files) {
     if (state.busy || !files.length) return;
     await action(async () => {
+      checkMidiFiles(files);
       const parsed = [];
-      for (const f of files) { if (!/\.midi?$/i.test(f.name)) throw new Error('Choose .mid or .midi files.'); if (f.size > 8 * 1024 * 1024) throw new Error('MIDI file exceeds 8 MB.'); parsed.push(parseMidi(new Uint8Array(await f.arrayBuffer()), f.name)); }
-      state.midi = { files: parsed, mode: 'scene', bars: 4, tempoPolicy: 'reject', onlyEmpty: true, mapping: parsed.flatMap((f, fileIndex) => f.parts.map(p => ({ fileIndex, partId: p.id, track: 0, sound: 0 }))) };
+      for (const f of files) {
+        parsed.push(parseMidi(new Uint8Array(await f.arrayBuffer()), f.name));
+        checkMidiParts(parsed);
+      }
+      state.midi = { files: parsed, partIndex: parsed.map(f => new Map(f.parts.map(p => [p.id, p]))),
+        mode: 'scene', bars: 4, tempoPolicy: 'reject', onlyEmpty: true, mapping: parsed.flatMap((f, fileIndex) => f.parts.map(p => ({ fileIndex, partId: p.id, track: 0, sound: 0 }))) };
       state.midi.mapping.forEach((m, i) => { m.track = i < 8 ? i : -1; m.sound = i % 4; }); draw();
     });
   }
@@ -594,7 +620,7 @@ export function makeSequencer(ctx) {
     try { plan = planMidiImport(m.files, { barsPerScene: m.bars, mode: m.mode, scene: state.scene, tempoPolicy: m.tempoPolicy, mapping }); }
     catch (e) { plan = { valid: false, errors: [e.message], warnings: [] }; }
     const rows = m.mapping.map((r, i) => {
-      const part = m.files[r.fileIndex].parts.find(p => p.id === r.partId);
+      const part = m.partIndex[r.fileIndex].get(r.partId);
       return el('div', 'sq-midi-row', {}, [el('span', '', { text: `${m.files[r.fileIndex].name} · ${part.name || 'Part'} · Ch ${part.channel}${part.drums ? ' · Drums' : ''} · ${part.notes.length} notes` }),
         choose(`Part ${i + 1} target track`, r.track, [[-1, 'Skip'], ...Array.from({ length: 8 }, (_, t) => [t, `Track ${t + 1}`])], v => { r.track = Number(v); draw(); }),
         choose(`Part ${i + 1} sound`, r.sound, Array.from({ length: 4 }, (_, s) => [s, soundName(s)]), v => { r.sound = Number(v); draw(); })]);
@@ -653,7 +679,10 @@ export function makeSequencer(ctx) {
     if (state.inspector && ctx.inspector) {
       const body = ctx.inspector(state.inspector);
       if (body) {
-        deviceDialog.replaceChildren(el('div', 'sq-device-dialog-header', {}, [el('h3', '', { text: 'Device controls' }), btn('Close inspector', closeInspector)]), body);
+        const footer = el('footer', 'sq-device-dialog-footer', {}, []);
+        const files = content.querySelector('.sq-file-tools');
+        if (files) footer.append(files);
+        deviceDialog.replaceChildren(el('div', 'sq-device-dialog-header', {}, [el('h3', '', { text: 'Device controls' }), btn('Close inspector', closeInspector)]), body, footer);
         if (!deviceDialog.open && deviceDialog.isConnected) deviceDialog.showModal();
       } else closeInspector();
     } else if (deviceDialog.open) deviceDialog.close();
@@ -685,6 +714,8 @@ export function makeSequencer(ctx) {
   root.addEventListener('keydown', e => {
     if ((deviceDialog.open && e.key === 'Escape') || e.target.closest('input, select, textarea')) e.stopPropagation();
   });
+  window.addEventListener('resize', syncMixerAfterResize);
+  compactMixerMedia.addEventListener('change', syncMixerDisclosure);
   root.addEventListener('dragover', e => { if ([...(e.dataTransfer?.types || [])].includes('Files')) { e.preventDefault(); e.stopPropagation(); } });
   root.addEventListener('drop', e => {
     const files = [...(e.dataTransfer?.files || [])];
@@ -693,5 +724,5 @@ export function makeSequencer(ctx) {
   });
   return { render() { if (state.dirty && !state.busy) refresh(); return root; }, refresh, update, onTelemetry, syncLevels,
     wantRows() { return state.view === 'Mixer' ? (ctx.metadata?.doc?.telemetry?.sections || []).filter(s => ['meters', 'levels'].includes(s.name)).flatMap(s => s.rows.map((_, r) => s.mask + r)) : []; },
-    invalidate() { state.dirty = true; }, destroy() { releaseFader?.(); closeInspector(); disposed = true; cancelDrag?.(); root.remove(); } };
+    invalidate() { state.dirty = true; }, destroy() { releaseFader?.(); closeInspector(); disposed = true; cancelDrag?.(); window.removeEventListener('resize', syncMixerAfterResize); compactMixerMedia.removeEventListener('change', syncMixerDisclosure); root.remove(); } };
 }

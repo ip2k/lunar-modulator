@@ -24,12 +24,21 @@ try {
   document.querySelector('main').append(window.seq.render());await window.seq.refresh();window.model=()=>parseSet(window.doc.set);
  });
  await tab('Clip');
+ const clipActions=page.locator('.sq-clip-actions');
+ if(!await clipActions.getByRole('button',{name:'Add note',exact:true}).isVisible()||!await clipActions.getByLabel('New note pitch',{exact:true}).isVisible())throw Error('New note pitch must sit beside Add note');
  await page.getByRole('button',{name:'Add note',exact:true}).click();
  await page.waitForFunction(()=>window.model().tracks[0].clips[0].notes.length===2);
+ for(const label of ['MIDI pitch','Step','Gate · ticks','Velocity'])if(!await page.getByLabel(label,{exact:true}).isVisible())throw Error(`Essential note field hidden: ${label}`);
+ const advanced=page.locator('.sq-note-details details.sq-note-advanced');
+ if(await advanced.evaluate(e=>e.open)||await page.getByLabel('Probability %',{exact:true}).isVisible())throw Error('Advanced note controls should start collapsed');
+ const advancedSummary=advanced.locator(':scope > summary');
+ await advancedSummary.focus();await advancedSummary.press('Enter');
+ if(!await advanced.evaluate(e=>e.open)||!await page.getByLabel('Probability %',{exact:true}).isVisible())throw Error('Keyboard did not open Advanced note controls');
  async function set(label,value){await page.getByLabel(label,{exact:true}).fill(String(value));await page.getByLabel(label,{exact:true}).dispatchEvent('change');await page.waitForFunction(()=>document.querySelector('.sq').getAttribute('aria-busy')==='false')}
  await set('Velocity',72);
  if(await page.evaluate(()=>document.activeElement.getAttribute('aria-label'))!=='Velocity')throw Error('Focus lost on edit');
  await set('Gate · ticks',48);await set('Microtiming · ticks',3);await set('Probability %',70);
+ if(!await advanced.evaluate(e=>e.open)||await page.evaluate(()=>document.activeElement.getAttribute('aria-label'))!=='Probability %')throw Error('Advanced disclosure state or field focus lost on edit');
  const note=await page.evaluate(()=>window.model().tracks[0].clips[0]);
  if(!note.notes.some(n=>n.vel===72&&n.gate===48&&n.tick===3)||note.trigs[0].prob!==70)throw Error('Note properties did not persist');
  await page.locator('[data-note="1"]').scrollIntoViewIfNeeded();
@@ -45,6 +54,14 @@ try {
  await page.getByLabel('Automation target',{exact:true}).selectOption('m1');await page.waitForFunction(()=>window.model().tracks[0].lanes[0]?.label==='m1:Cutoff');
  await page.getByLabel('Automation target',{exact:true}).selectOption('mix');await page.waitForFunction(()=>window.model().tracks[0].lanes[0]?.label==='mix:Level');
  await tab('Mixer');
+ const routingFx=page.getByRole('button',{name:'Routing & FX',exact:true});
+ if(await routingFx.getAttribute('aria-expanded')!=='true'||!await page.locator('.sq-track-routing').isVisible()||!await page.locator('.sq-device-rack').first().isVisible())throw Error('Desktop mixer routing and effects should be expanded by default');
+ await page.setViewportSize({width:844,height:390});
+ await page.waitForFunction(()=>document.querySelector('[aria-controls="sq-mixer-board"]')?.getAttribute('aria-expanded')==='false');
+ if(await routingFx.getAttribute('aria-expanded')!=='false'||await page.locator('.sq-track-routing').isVisible())throw Error(`Mixer disclosure accessibility state did not follow landscape resize: expanded=${await routingFx.getAttribute('aria-expanded')} details=${await page.locator('.sq').getAttribute('data-mixer-details')} visible=${await page.locator('.sq-track-routing').isVisible()} narrow=${await page.evaluate(()=>matchMedia('(max-height: 500px) and (orientation: landscape)').matches)}`);
+ await page.setViewportSize({width:1440,height:1100});
+ await page.waitForFunction(()=>document.querySelector('[aria-controls="sq-mixer-board"]')?.getAttribute('aria-expanded')==='true');
+ if(await routingFx.getAttribute('aria-expanded')!=='true'||!await page.locator('.sq-track-routing').isVisible())throw Error(`Mixer disclosure accessibility state did not follow desktop resize: expanded=${await routingFx.getAttribute('aria-expanded')} details=${await page.locator('.sq').getAttribute('data-mixer-details')} visible=${await page.locator('.sq-track-routing').isVisible()}`);
  const fader=page.getByRole('slider',{name:'S1 level',exact:true});
  if(await fader.inputValue()!=='75'||await fader.getAttribute('aria-valuetext')!=='-2.5 dB')throw Error('Sound fader initial value/dB');
  await fader.focus();await fader.press('ArrowDown');await page.waitForFunction(()=>window.soundLevels[0]===74);
@@ -63,14 +80,18 @@ try {
  const insert=page.getByRole('button',{name:'S1 insert 1',exact:true});await insert.click();
  const inspector=page.getByRole('dialog',{name:'Device controls',exact:true});await inspector.waitFor({state:'visible'});
  if(!await inspector.getByText('Inspector s1.in1',{exact:true}).isVisible()||await inspector.getByRole('button',{name:'Close inspector',exact:true}).evaluate(e=>e!==document.activeElement))throw Error('Device inspector did not open with focus');
+ const inspectorFiles=inspector.locator('.sq-device-dialog-footer .sq-file-tools');
+ if(await inspectorFiles.count()!==1||await inspector.locator('.sq-transport > .sq-file-tools').count())throw Error('Files & export should move into the device inspector footer');
  await inspector.getByRole('button',{name:'Close inspector',exact:true}).click();
  if(await insert.getAttribute('aria-expanded')!=='false'||await page.evaluate(()=>document.activeElement.getAttribute('aria-label'))!=='S1 insert 1')throw Error('Device inspector did not return focus to its trigger');
  await tab('Automation');
  await set('Lane 1, step 1 lock',91);if(await page.evaluate(()=>window.model().tracks[0].clips[0].locks[0].value)!==91)throw Error('lock');
  await tab('Arrangement');
+ if(!await page.getByRole('button',{name:/Track 1, INTRO, 2 notes, 2 bars/}).isVisible())throw Error('Arrangement note/bar plural summary');
  await page.getByLabel('Track 8 output',{exact:true}).selectOption('m16');await page.waitForFunction(()=>window.model().tracks[7].route.index===16);
  await set('Repeats',3);if(await page.evaluate(()=>window.model().song.length)!==4)throw Error('repeat');
- await page.getByTestId('launch-scene').click();
+ await tab('Scenes');
+ await page.getByRole('button',{name:'Launch scene 1',exact:true}).click();
  await page.evaluate(()=>{window.reject=true});await set('BPM',130);
  if(!await page.locator('.sq-status').textContent().then(t=>t.includes('test refusal')))throw Error('refusal not visible');
  if(await page.evaluate(()=>window.model().bpmX100)!==12000)throw Error('refusal mutated model');
@@ -80,17 +101,24 @@ try {
  if(!await page.locator('[data-play-position]').textContent().then(t=>t.includes('Scene 1 · Step 5')))throw Error('Queued scene shown as playing');
  const midi = Buffer.from([77,84,104,100,0,0,0,6,0,0,0,1,0,96,77,84,114,107,0,0,0,12,0,144,67,100,96,128,67,0,0,255,47,0]);
  await page.locator('.sq-file-tools > summary').click();
+ const beforeBatch = await page.evaluate(() => ({ doc: JSON.stringify(window.doc), calls: window.calls.length }));
+ await page.getByLabel('Import MIDI files',{exact:true}).setInputFiles(Array.from({length:17},(_,i)=>({name:`Part${i}.mid`,mimeType:'audio/midi',buffer:midi})));
+ await page.waitForFunction(()=>document.querySelector('.sq-status').textContent.includes('at most 16 MIDI files'));
+ if(await page.getByTestId('midi-import-preview').count()||await page.evaluate(()=>JSON.stringify(window.doc))!==beforeBatch.doc||await page.evaluate(()=>window.calls.length)!==beforeBatch.calls)throw Error('Oversized MIDI batch changed the preview or native project');
  await page.getByLabel('Import MIDI files',{exact:true}).setInputFiles([{name:'Lead.mid',mimeType:'audio/midi',buffer:midi},{name:'Bass.mid',mimeType:'audio/midi',buffer:midi}]);
  await page.getByTestId('midi-import-preview').waitFor();
  await page.getByLabel('Existing clips',{exact:true}).selectOption('replace');
  await page.getByTestId('apply-midi-import').click();
  await page.waitForFunction(()=>document.querySelector('.sq').getAttribute('aria-busy')==='false');
  if(!await page.locator('.sq-status').textContent().then(t=>t.includes('unmapped longer clip')))throw Error('Unsafe import was not refused');
- await page.getByLabel('Edit scene',{exact:true}).selectOption('2');
+ await tab('Scenes');
+ await page.getByRole('button',{name:'Edit scene 3',exact:true}).click();
  await page.getByTestId('apply-midi-import').click();
  await page.waitForFunction(()=>window.model().tracks[1].clips[2]?.notes.length===1);
  if(await page.evaluate(()=>window.model().tracks[1].clips[2].notes[0].pitch)!==67)throw Error('MIDI mapping');
- await page.getByLabel('Edit scene',{exact:true}).selectOption('0');
+ await tab('Scenes');
+ await page.getByRole('button',{name:'Edit scene 1',exact:true}).click();
+ await tab('Clip');
  if(await page.locator('.sq-note').first().evaluate(e=>e.getBoundingClientRect().height>24))throw Error('Note exceeds piano row');
  await tab('Scenes');
  if(await page.locator('[data-live-track]').count()!==64)throw Error('Scene matrix must expose 64 native slots');
@@ -98,9 +126,10 @@ try {
  await page.getByRole('button',{name:'Launch scene 2',exact:true}).click();
  await page.getByRole('button',{name:'Stop track 8 scene 8',exact:true}).click();
  if(!await page.evaluate(()=>window.calls.includes('clip 0 0')&&window.calls.includes('scene 1')&&window.calls.includes('clip 7 7')))throw Error('Native scene/clip callbacks');
- await page.getByRole('button',{name:'Edit track 2 scene 2',exact:true}).click();
+ const sceneEdit=page.getByRole('button',{name:'Edit track 2 scene 2',exact:true});await sceneEdit.focus();await sceneEdit.press('Enter');
  if(await page.getByLabel('Edit scene',{exact:true}).inputValue()!=='1')throw Error('Matrix edit did not select scene');
  if(await page.getByRole('tab',{name:'Clip',exact:true}).getAttribute('aria-selected')!=='true')throw Error('Clip click must open editor');
+ if(await page.evaluate(()=>document.activeElement.getAttribute('data-view'))!=='Clip')throw Error('Keyboard scene edit did not focus the Clip tab');
  await tab('Scenes');
  await page.screenshot({path:`${out}/matrix-desktop.png`,fullPage:true});
  await page.setViewportSize({width:390,height:844});
@@ -111,6 +140,15 @@ try {
  if(await page.getByTestId('song-rotate-prompt').isVisible())throw Error('Landscape blocked');
  for(const view of ['Scenes','Arrangement','Clip','Automation','Mixer']){
   await tab(view);
+  if(['Scenes','Arrangement','Mixer'].includes(view)&&(await page.getByRole('combobox',{name:'Edit scene',exact:true}).count()||await page.getByRole('combobox',{name:'Edit track',exact:true}).count()))throw Error(`${view} view retained redundant edit selectors`);
+  if(view==='Mixer'){
+   const toggle=page.getByRole('button',{name:'Routing & FX',exact:true});
+   if(await toggle.getAttribute('aria-expanded')!=='false'||await page.locator('.sq-track-routing').isVisible()||await page.locator('.sq-device-rack').first().isVisible())throw Error('Landscape mixer routing and effects should start collapsed');
+   await toggle.click();
+   if(await toggle.getAttribute('aria-expanded')!=='true'||!await page.locator('.sq-track-routing').isVisible()||!await page.locator('.sq-device-rack').first().isVisible())throw Error('Landscape Routing & FX disclosure did not restore mixer controls');
+   if(await page.evaluate(()=>document.activeElement.getAttribute('aria-label'))!=='Routing & FX')throw Error('Routing & FX focus was lost when the disclosure redrew');
+   await toggle.click();
+  }
   if(await page.getByRole('tabpanel').count()!==1)throw Error('Stacked workspace views');
   if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth))throw Error('Landscape document overflow');
   await page.screenshot({path:`${out}/landscape-${view.toLowerCase()}.png`,fullPage:true});
@@ -128,6 +166,6 @@ try {
  await page.getByRole('tab',{name:'Scenes',exact:true}).press('ArrowRight');
  if(await page.getByRole('tab',{name:'Arrangement',exact:true}).getAttribute('aria-selected')!=='true')throw Error('Tab arrow navigation');
  if(errors.length)throw Error(errors.join('\n'));
- await writeFile(`${out}/results.json`,JSON.stringify({passed:true,errors,note,checks:['note fields','probability','locks','routing','song repeats','scene launch','refusal rollback','playhead while next scene queued','mobile overflow','input focus','multi-file MIDI mapping','note drag','gate resize','insert/master/mix targets','sound/master fader values and dB display','incremental keyboard level edit','pointer fader drag lifecycle','meter and level telemetry subscription','synthetic sound/master meter updates','device inspector focus and restoration','Files & export disclosure import','note row containment','64-slot scene matrix','clip and empty-slot stop callbacks','portrait rotate prompt','844x390 landscape editing','single focused panel','keyboard tab navigation']},null,2));
+ await writeFile(`${out}/results.json`,JSON.stringify({passed:true,errors,note,checks:['note fields','probability','locks','routing','song repeats','scene launch','refusal rollback','playhead while next scene queued','mobile overflow','input focus','multi-file MIDI mapping','note drag','gate resize','insert/master/mix targets','sound/master fader values and dB display','incremental keyboard level edit','pointer fader drag lifecycle','meter and level telemetry subscription','synthetic sound/master meter updates','device inspector focus and restoration','Files & export disclosure import','desktop routing and FX expanded by default','mobile Routing & FX disclosure toggle','scene selection from scene headings','note row containment','64-slot scene matrix','clip and empty-slot stop callbacks','portrait rotate prompt','844x390 landscape editing','single focused panel','keyboard tab navigation']},null,2));
  console.log('PASS sequencer mock-host desktop/mobile checks');
 } catch(error) {await page.screenshot({path:`${out}/failure.png`,fullPage:true});console.error({errors});throw error} finally {await browser.close();await new Promise(r=>server.close(r))}

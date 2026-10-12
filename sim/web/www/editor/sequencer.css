@@ -216,3 +216,24 @@
   .sq-scene-tool-fields { gap: 6px; }
   .sq-clip-actions .sq-button { min-height: 34px; padding: 5px 7px; }
 }
+
+/* Compact Song controls while keeping each edit and launch target distinct. */
+.sq-matrix-cell { align-items: stretch; }
+.sq-matrix-cell > .sq-scene-edit {
+  display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; gap: 5px;
+  min-height: 42px; text-align: left; white-space: normal; line-height: 1.2;
+}
+.sq-scene-summary { min-width: 0; }
+.sq-matrix-cell .sq-clip-preview { width: 42px; height: 24px; margin: 0; }
+.sq-matrix-cell > .sq-button[aria-label^="Launch clip"],
+.sq-matrix-cell > .sq-button[aria-label^="Stop track"] { min-height: 34px; flex: 0 0 auto; }
+.sq-note-details { display: flex; flex-wrap: wrap; align-items: start; gap: 3px 10px; }
+.sq-note-essential { margin: 0; }
+.sq-note-advanced { min-width: 0; }
+.sq-note-advanced > summary { display: inline-flex; align-items: center; min-height: 32px; cursor: pointer; }
+.sq-note-advanced-fields { padding: 4px 8px; border-left: 2px solid var(--select); }
+.sq-note-details > .sq-button { align-self: center; }
+.sq-clip-actions .sq-field { min-height: 34px; }
+.sq-clip-actions .sq-field input[type="number"] { width: 58px; }
+.sq-device-dialog-footer { border-top: 1px solid var(--border); margin-top: 10px; padding-top: 8px; }
+.sq-device-dialog-footer .sq-file-tools { margin: 0; }

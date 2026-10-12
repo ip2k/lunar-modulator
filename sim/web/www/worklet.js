@@ -401,7 +401,11 @@ class FM1Processor extends AudioWorkletProcessor {
   postSeq(v) {
     this.fm1.exports.fm1w_seq_info();       // refreshes v.seq
     const s = v.seq, last = this.seqLast;
-    let changed = false, immediate = false;
+    // Optional for old modules; content generation never follows PPQN ticks.
+    const contentGen = this.fm1.exports.fm1w_seq_gen?.() >>> 0;
+    const hasContentGen = typeof this.fm1.exports.fm1w_seq_gen === 'function';
+    let changed = hasContentGen && contentGen !== this.seqContentGen;
+    let immediate = changed;
     for (let i = 0; i < SEQ_WORDS; ++i) if (s[i] !== last[i]) {
       changed = true;
       if (i < SEQ_WATCHED || (i >= 8 && i < 16)) immediate = true;
@@ -411,13 +415,14 @@ class FM1Processor extends AudioWorkletProcessor {
     if (!changed || (!immediate && ++this.seqAge < Math.max(1, Math.round(sampleRate / 128 / 30)))) return;
     this.seqAge = 0;
     last.set(s);
+    if (hasContentGen) this.seqContentGen = contentGen;
     const tracks = [];
     for (let t = 0; t < 8; ++t) {
       const at = 16 + t * 5;
       tracks.push({ active: s[at], playing: s[at + 1], posTick: s[at + 2], cycle: s[at + 3], muted: !!s[at + 4] });
     }
     this.port.postMessage({
-      type: 'seq', playing: s[0] !== 0, bpm_x100: s[1], recording: s[2] !== 0, watch_track: s[3],
+      type: 'seq', ...(hasContentGen ? { contentGen } : {}), playing: s[0] !== 0, bpm_x100: s[1], recording: s[2] !== 0, watch_track: s[3],
       counting_in: s[4] !== 0, following: s[5] !== 0, master_tick: s[6] + s[7] * 4294967296,
       scene: s[8], songIndex: s[9], songPass: s[10], songPassBar: s[11], songFollow: !!s[12],
       songParked: !!s[13], songEnd: s[14], songEntry: s[15], step: Math.floor(tracks[s[3]]?.posTick / 24) || 0, tracks,

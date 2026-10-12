@@ -138,12 +138,13 @@ export async function startEditor(env) {
   });
   const seqHost = makeSequencerHost({ sim, files, st, history, snapshot, say, onSettled: () => {
     renderHistory();
-    if (st.view === 'sequencer') { sequencer.invalidate(); sequencer.refresh(); }
+    sequencer.invalidate();
+    if (st.view === 'sequencer') sequencer.refresh();
   } });
   const seqVerb = (text) => { if (sim.node) sim.node.port.postMessage({ type: 'seq-line', bytes: new TextEncoder().encode(text) }); };
   const sequencer = makeSequencer({ ...seqHost, metadata: meta, say,
     editSound: (key) => select(key, { view: 'sound' }),
-    inspector: (key) => key === MIX_KEY ? chains.mixInspector() : blockOf(key) ? inspector(key, { level: /^s[1-4]$/.test(key) ? Number(key[1]) - 1 : undefined }) : emptyInspector(key),
+    inspector: (key) => key === MIX_KEY ? chains.mixInspector() : blockOf(key) ? inspector(key, { compactTools: true, level: /^s[1-4]$/.test(key) ? Number(key[1]) - 1 : undefined }) : emptyInspector(key),
     watchTrack: (t) => seqVerb(`watch ${t}`), playScene: (scene) => seqVerb(`scene ${scene}`),
     playClip: (track, scene) => seqVerb(`launch ${track} ${scene}`),
     getMaster: () => sim.master, setMaster: (v) => sim.setMaster(v),
@@ -955,8 +956,10 @@ export async function startEditor(env) {
       e && e.gpl ? el('span', 'ed-gpl', { text: 'GPL', title: `Licence: ${e.licence}` }) : null,
       el('span', 'ed-insp-ram', { text: e && st.ram ? `RAM ${ramWords(e.ram, st.ram.budget)}` : '' })]);
     box.append(head);
-    if (st.mirror && st.mirror.cables && !opt.bare) head.append(el('span', 'ed-tools', {}, [...chains.headTools(key), ...project.headTools(key)]));
-    if (e && e.credits) box.append(el('p', 'ed-credits', { text: `${e.credits}${e.group ? ` · ${meta.groupName(e.group)}` : ''}` }));
+    const tools = st.mirror && st.mirror.cables && !opt.bare ? [...chains.headTools(key), ...project.headTools(key)] : [];
+    if (!opt.compactTools && tools.length) head.append(el('span', 'ed-tools', {}, tools));
+    const credits = e && e.credits ? `${e.credits}${e.group ? ` · ${meta.groupName(e.group)}` : ''}` : '';
+    if (credits && !opt.compactTools) box.append(el('p', 'ed-credits', { text: credits }));
     if (!e) { box.append(el('p', 'ed-note', { text: `${b.engine} is not in this build's metadata.` })); return box; }
     const mt = opt.bare ? null : chains.meters(key);
     if (mt) box.append(mt);
@@ -987,6 +990,13 @@ export async function startEditor(env) {
       for (const p of pg.params) if (p !== fp) page.append(paramRow(key, p, pg));
       box.append(page);
     });
+    if (opt.compactTools && (credits || tools.length)) {
+      const summary = el('summary', 'ed-tools-summary', { text: 'Device credits and tools', 'aria-label': 'Device credits and tools' });
+      const more = el('details', 'ed-inspector-more', {}, [summary]);
+      if (credits) more.append(el('p', 'ed-credits', { text: credits }));
+      if (tools.length) more.append(el('div', 'ed-tools', {}, tools));
+      box.append(more);
+    }
     const into = opt.bare || !st.mirror.cables ? null : chains.cablesInto(key);
     if (into) box.append(into);
     return box;

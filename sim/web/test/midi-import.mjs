@@ -23,6 +23,28 @@ const basic = (ppqn = 96) => midi([[
 ]], ppqn);
 function plan(bytes, options) { return I.planMidiImport(I.parseMidi(bytes, 'Test.mid'), options); }
 
+test('MIDI batch preflight bounds files, bytes and extensions before reading', () => {
+  const file = size => ({ name: 'Lead.mid', size });
+  assert.doesNotThrow(() => I.checkMidiFiles(Array.from({ length: 16 }, () => file(2 * 1024 * 1024))));
+  assert.throws(() => I.checkMidiFiles(Array.from({ length: 17 }, () => file(1))), /at most 16/);
+  assert.throws(() => I.checkMidiFiles([file(16 * 1024 * 1024 + 1)]), /16 MiB/);
+  assert.throws(() => I.checkMidiFiles([file(16 * 1024 * 1024), file(16 * 1024 * 1024), file(1)]), /32 MiB/);
+  assert.throws(() => I.checkMidiFiles([{ name: 'Lead.wav', size: 10 }]), /\.mid or \.midi/);
+});
+test('program and bank churn is refused before an unbounded instrument preview', () => {
+  const events = [];
+  for (let i = 0; i < 65; i++) events.push(ev(0, 0xc0, i), ev(0, 0x90, 60, 80), ev(1, 0x80, 60, 0));
+  assert.throws(() => I.parseMidi(midi([[...events, end(0)]])), /exceeds 64 instrument parts/);
+  const exact = I.parseMidi(midi([[...events.slice(0, 64 * 3), end(0)]]));
+  assert.equal(exact.parts.length, 64);
+});
+test('combined MIDI parts are bounded before plan construction', () => {
+  const part = I.parseMidi(basic());
+  const many = { ...part, parts: Array.from({ length: 40 }, (_, i) => ({ ...part.parts[0], id: String(i) })) };
+  assert.doesNotThrow(() => I.checkMidiParts([many]));
+  assert.throws(() => I.planMidiImport([many, many]), /batch exceeds 64 instrument parts/);
+});
+
 test('type 0 preserves program, track name, velocity, gate and quarter-note timing', () => {
   const f = I.parseMidi(basic(480), 'Piano.mid'); assert.equal(f.format, 0); assert.equal(f.ppqn, 480);
   assert.equal(f.parts[0].program, 4); assert.equal(f.parts[0].name, 'Piano');

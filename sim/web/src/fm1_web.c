@@ -138,6 +138,9 @@ int fm1w_seq_reset(int tracks) {
 /* Events dropped since init (0 unless a note may have hung). */
 unsigned fm1w_seq_dropped(void) { return (unsigned)fm1_app_seq_dropped(&g_app); }
 
+/* Sequencer content changes, independent of the playback position. */
+unsigned fm1w_seq_gen(void) { return g_app.seq_gen; }
+
 /* FM6's user bank (fm1_app.h, fm1_app_dx7_*): the page's "Load DX7
  * patches" (www/app.js). JavaScript writes a .syx file's bytes into the text
  * buffer, so a file of up to its 64 KiB (FM1_APP_DX7_FILE_MAX), and passes

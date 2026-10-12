@@ -1,8 +1,25 @@
 // Standard MIDI File 0/1 importer. Reference: MIDI Association SMF specification
 // https://midi.org/standard-midi-files. Bounded reader; no device/vendor commands.
 import { emptySet, emptyClip, cloneSet, validateSet, sceneBars } from './sequence-model.js';
-const MAX_BYTES = 16 * 1024 * 1024, MAX_EVENTS = 250000, MAX_NOTES = 100000;
+export const MIDI_IMPORT_LIMITS = Object.freeze({ files: 16, fileBytes: 16 * 1024 * 1024,
+  batchBytes: 32 * 1024 * 1024, parts: 64 });
+const MAX_BYTES = MIDI_IMPORT_LIMITS.fileBytes, MAX_EVENTS = 250000, MAX_NOTES = 100000;
 const integer = (n, lo, hi) => Number.isSafeInteger(n) && n >= lo && n <= hi;
+export function checkMidiFiles(files) {
+  if (files.length > MIDI_IMPORT_LIMITS.files) throw new Error('Import at most 16 MIDI files at once; split this batch.');
+  let bytes = 0;
+  for (const file of files) {
+    if (!/\.midi?$/i.test(file.name)) throw new Error('Choose .mid or .midi files.');
+    if (!integer(file.size, 0, MAX_BYTES)) throw new Error('Each MIDI file must be at most 16 MiB.');
+    bytes += file.size;
+    if (bytes > MIDI_IMPORT_LIMITS.batchBytes) throw new Error('MIDI batch exceeds 32 MiB; split this batch.');
+  }
+}
+export function checkMidiParts(files) {
+  if (files.length > MIDI_IMPORT_LIMITS.files) throw new Error('Import at most 16 MIDI files at once; split this batch.');
+  if (files.reduce((n, file) => n + file.parts.length, 0) > MIDI_IMPORT_LIMITS.parts)
+    throw new Error('MIDI batch exceeds 64 instrument parts; export fewer instruments or split this batch.');
+}
 class Reader {
   constructor(bytes, start = 0, end = bytes.length) { this.b = bytes; this.p = start; this.end = end; }
   need(n) { if (!integer(n, 0, MAX_BYTES) || n > this.end - this.p) throw new Error(`Truncated MIDI data at byte ${this.p}.`); }
@@ -65,7 +82,9 @@ export function parseMidi(input, name = 'Untitled MIDI') {
   const parts = [], byId = new Map(), controllerCounts = new Map(); let noteCount = 0, unmatched = 0, sustained = 0, unfinished = 0, expression = 0;
   const getPart = e => {
     const s = state[e.channel], id = `${e.track}:${e.channel}:${s.program}:${s.bank[0]}:${s.bank[1]}`;
-    if (!byId.has(id)) { const p = { id, track: e.track, channel: e.channel + 1, program: s.program, bank: [...s.bank], drums: e.channel === 9,
+    if (!byId.has(id)) {
+      if (parts.length >= MIDI_IMPORT_LIMITS.parts) throw new Error('MIDI file exceeds 64 instrument parts; export fewer instruments or split this file.');
+      const p = { id, track: e.track, channel: e.channel + 1, program: s.program, bank: [...s.bank], drums: e.channel === 9,
       name: tracks[e.track].instrument || tracks[e.track].name || `Track ${e.track + 1}`, notes: [] }; byId.set(id, p); parts.push(p); }
     return byId.get(id);
   };
@@ -103,7 +122,9 @@ export function parseMidi(input, name = 'Untitled MIDI') {
 }
 export function planMidiImport(input, options = {}) {
   const files = Array.isArray(input) ? input : [input], errors = [], warnings = [], set = emptySet();
+  checkMidiParts(files);
   const parts = files.flatMap((f, fileIndex) => f.parts.map(p => ({ ...p, fileIndex, fileName: f.name })));
+  const partIndex = new Map(parts.map(part => [`${part.fileIndex}/${part.id}`, part]));
   const barsPerScene = options.barsPerScene ?? 4, mode = options.mode ?? 'song', targetScene = options.scene ?? 0;
   if (!integer(barsPerScene, 1, 16)) errors.push('Section length must be 1–16 bars.');
   if (!['song', 'scene'].includes(mode)) errors.push('Import mode must be song or scene.');
@@ -113,7 +134,7 @@ export function planMidiImport(input, options = {}) {
   if (!Array.isArray(mapping)) mapping = [];
   const selected = [], seen = new Set(), usedTracks = new Set();
   mapping.forEach(row => {
-    const fileIndex = row.fileIndex ?? 0, part = parts.find(p => p.fileIndex === fileIndex && p.id === row.partId);
+    const fileIndex = row.fileIndex ?? 0, part = partIndex.get(`${fileIndex}/${row.partId}`);
     if (!part) { errors.push('Mapping refers to a missing MIDI part.'); return; }
     const id = `${fileIndex}/${part.id}`;
     if (seen.has(id)) errors.push(`Part ${part.name} is mapped more than once.`); seen.add(id);

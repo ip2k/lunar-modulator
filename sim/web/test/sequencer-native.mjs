@@ -86,8 +86,20 @@ try {
   });
   await check('UI note articulation, probability and mix lock survive native load', async () => {
     await tab('Clip');
+    const actions = page.locator('.sq-clip-actions');
+    assert.equal(await actions.getByRole('button', { name: 'Add note', exact: true }).isVisible(), true);
+    assert.equal(await actions.getByLabel('New note pitch', { exact: true }).isVisible(), true);
     await page.locator('.sq-note').first().click();
+    for (const label of ['MIDI pitch', 'Step', 'Gate · ticks', 'Velocity']) assert.equal(await page.getByLabel(label, { exact: true }).isVisible(), true);
+    const advanced = page.locator('.sq-note-details details.sq-note-advanced');
+    assert.equal(await advanced.evaluate(e => e.open), false);
+    assert.equal(await page.getByLabel('Probability %', { exact: true }).isVisible(), false);
+    const summary = page.locator('.sq-note-advanced > summary');
+    await summary.focus(); await summary.press('Enter');
+    assert.equal(await advanced.evaluate(e => e.open), true);
     await field('Velocity', 72); await field('Gate · ticks', 48); await field('Microtiming · ticks', 3); await field('Probability %', 70);
+    assert.equal(await advanced.evaluate(e => e.open), true);
+    assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), 'Probability %');
     await tab('Automation');
     await page.getByLabel('Automation target', { exact: true }).selectOption('mix'); await idle();
     await field('Lane 1, step 1 lock', 91);
@@ -97,6 +109,7 @@ try {
   });
   await check('routing, native chain repeats and project undo/redo', async () => {
     await tab('Arrangement');
+    assert.equal(await page.getByRole('button', { name: /Track 1, Scene 1, 1 note, 1 bar/ }).isVisible(), true);
     await page.getByLabel('Track 8 output', { exact: true }).selectOption('m16'); await idle();
     assert.deepEqual((await model()).tracks[7].route, { kind: 0, index: 16 });
     await field('Repeats', 3); assert.equal((await model()).song.length, 3);
@@ -116,6 +129,18 @@ try {
       return sound > -60 && master > -60;
     }, 'measured sound and master output meters');
     await page.screenshot({ path: join(out, 'native-mixer-meter.png'), fullPage: true });
+    const routingFx = page.getByRole('button', { name: 'Routing & FX', exact: true });
+    assert.equal(await routingFx.getAttribute('aria-expanded'), 'true');
+    assert.equal(await page.locator('.sq-track-routing').isVisible(), true);
+    assert.equal(await page.locator('.sq-device-rack').first().isVisible(), true);
+    await page.setViewportSize({ width: 844, height: 390 });
+    await until(async () => await routingFx.getAttribute('aria-expanded') === 'false', 'landscape routing disclosure aria state');
+    assert.equal(await routingFx.getAttribute('aria-expanded'), 'false');
+    assert.equal(await page.locator('.sq-track-routing').isVisible(), false);
+    await page.setViewportSize({ width: 1440, height: 1100 });
+    await until(async () => await routingFx.getAttribute('aria-expanded') === 'true', 'desktop routing disclosure aria state');
+    assert.equal(await routingFx.getAttribute('aria-expanded'), 'true');
+    assert.equal(await page.locator('.sq-track-routing').isVisible(), true);
     const fader = page.getByRole('slider', { name: 'S1 level', exact: true });
     const before = Number(await fader.inputValue());
     await fader.focus(); await fader.press('ArrowUp');
@@ -127,6 +152,33 @@ try {
     assert.notEqual(await page.locator('[data-roll-playhead]').getAttribute('style'), null);
     await page.locator('.sq').getByRole('button', { name: 'Stop', exact: true }).click();
     await page.waitForFunction(() => !fm1.seq.playing);
+    await page.evaluate(async () => {
+      const host = fm1.editor.sequencerHost, doc = await host.fetchProject();
+      doc.sounds[0].engine = 'macro'; doc.sounds[0].params = { Model: 0, Harmonics: .5 };
+      await host.applyProject(doc, 'Compact inspector fixture'); await fm1.editor.sequencer.refresh();
+    }); await idle(); await tab('Mixer');
+    const instrument = page.getByRole('button', { name: 'S1 instrument', exact: true });
+    await instrument.click();
+    const dialog = page.getByRole('dialog', { name: 'Device controls', exact: true });
+    await dialog.waitFor({ state: 'visible' });
+    assert.equal(await dialog.locator('.ed-page').count() > 0, true);
+    const compactTools = dialog.locator('.ed-inspector-more');
+    assert.equal(await compactTools.count(), 1);
+    assert.equal(await compactTools.locator('.ed-credits').isVisible(), false);
+    assert.equal(await dialog.locator('.ed-page').first().evaluate((p, more) => !!(p.compareDocumentPosition(more) & Node.DOCUMENT_POSITION_FOLLOWING), await compactTools.elementHandle()), true);
+    assert.equal(await dialog.locator('.sq-device-dialog-footer .sq-file-tools').count(), 1);
+    const moreSummary = compactTools.locator(':scope > summary');
+    await moreSummary.focus(); await moreSummary.press('Enter');
+    assert.equal(await compactTools.locator('.ed-credits').isVisible(), true);
+    const fileSummary = dialog.locator('.sq-device-dialog-footer .sq-file-tools > summary');
+    await fileSummary.focus(); await fileSummary.press('Enter');
+    assert.equal(await dialog.getByRole('button', { name: 'Open…', exact: true }).isVisible(), true);
+    await fileSummary.press('Escape');
+    assert.equal(await instrument.getAttribute('aria-expanded'), 'false');
+    assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), 'S1 instrument');
+    assert.equal(await page.locator('.sq-transport > .sq-file-tools').count(), 1);
+    assert.equal(await dialog.locator('.sq-device-dialog-footer .sq-file-tools').count(), 0);
+    await reset();
     await tab('Arrangement');
   });
   await check('stale host documents and atomic worklet expectedHash preserve newer native edits', async () => {
@@ -217,6 +269,18 @@ try {
     for (const view of ['Clip','Automation','Mixer','Arrangement','Scenes']) {
       await tab(view);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth > innerWidth),false);
+      if (view === 'Mixer') {
+        const toggle = page.getByRole('button', { name: 'Routing & FX', exact: true });
+        assert.equal(await toggle.getAttribute('aria-expanded'), 'false');
+        assert.equal(await page.locator('.sq-track-routing').isVisible(), false);
+        assert.equal(await page.locator('.sq-device-rack').first().isVisible(), false);
+        await toggle.focus(); await toggle.press('Enter');
+        assert.equal(await toggle.getAttribute('aria-expanded'), 'true');
+        assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), 'Routing & FX');
+        assert.equal(await page.locator('.sq-track-routing').isVisible(), true);
+        assert.equal(await page.locator('.sq-device-rack').first().isVisible(), true);
+        await toggle.click();
+      }
       await page.screenshot({path:join(out,`native-landscape-${view.toLowerCase()}.png`),fullPage:true});
     }
     await page.setViewportSize({width:1440,height:1100});
