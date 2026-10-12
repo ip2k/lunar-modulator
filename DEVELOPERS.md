@@ -282,6 +282,17 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   regression is `sim/web/test/sequencer-ui.mjs`;
   native browser integration and DSP tests are separate gates. File exchange
   does not implement a device runtime or a USB/BLE project-transfer protocol.
+- **Song navigation and initial view:** `initial-view.js` selects Song when a
+  project's native set contains an arrangement entry or a defined clip; an
+  empty set defaults to Flow. It settles once per project identity, lets explicit
+  workspace choices win, and applies the same content rule after a `.movy1` set
+  load. The pinned transport reports current and total bars:beats:ticks,
+  elapsed time and available estimated remaining time, and provides bar, clip
+  and scene navigation. The selection surface on track and scene headers is also a
+  registered MIDI target; child controls retain their own actions. Clip Follow
+  starts enabled and advances across pages as its playhead moves; manual page
+  changes pause it until re-enabled. `sequencer.js` keeps longer scenes,
+  arrangement entries, clips and automation rows within responsive pages.
 - **Editor CPU and RAM indicators:** the top bar shows a CPU load percentage
   and meter; selecting it opens the Memory page, which shows used and available
   browser DSP budget. The AudioWorklet averages measured busy time over at least
