@@ -116,6 +116,7 @@
 .sq-file-tools summary { min-height: 34px; box-sizing: border-box; padding: 7px 10px; border: 1px solid var(--border); border-radius: 5px; cursor: pointer; color: var(--text); }
 .sq-file-tools summary:focus-visible { outline: 2px solid var(--select); outline-offset: 2px; }
 .sq-file-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 10; display: grid; min-width: 175px; gap: 6px; padding: 8px; border: 1px solid var(--border); background: var(--surface); box-shadow: 0 8px 24px #0005; }
+.sq-file-tools:not([open]) > .sq-file-menu { display: none; }
 .sq-transport .sq-field { flex-direction: row; align-items: center; gap: 6px; }
 .sq-transport .sq-field input { width: 72px; }
 .sq button, .sq summary { touch-action: manipulation; }

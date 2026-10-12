@@ -121,8 +121,32 @@ const SELECTOR = 'button, select, input[type=range], input[type=number], input[t
 const CONTEXT = ['data-block', 'data-uid', 'data-midi-context', 'data-mixer-track', 'data-track', 'data-scene',
   'data-song-entry', 'data-note', 'data-step', 'data-automation-lane', 'data-automation-step', 'data-live-track', 'data-live-scene',
   'data-preview-track', 'data-preview-scene', 'data-progress-track', 'data-progress-scene', 'data-sound-fader', 'data-inspector', 'data-layout', 'data-view', 'data-testid'];
-const visible = (e) => e.isConnected && !e.matches(':disabled') && !e.readOnly && e.getAttribute('aria-disabled') !== 'true' &&
-  !e.closest('[hidden], [inert]') && e.getClientRects().length > 0;
+function visible(e) {
+  if (!e.isConnected || e.matches(':disabled') || e.readOnly || e.getAttribute('aria-disabled') === 'true' ||
+      e.closest('[hidden], [inert]') || !e.getClientRects().length) return false;
+  for (let p = e.parentElement; p; p = p.parentElement) {
+    if (p.tagName === 'DETAILS' && !p.open) {
+      const summary = p.querySelector(':scope > summary');
+      if (!summary?.contains(e)) return false;
+    }
+  }
+  return getComputedStyle(e).visibility === 'visible';
+}
+function visibleRect(e) {
+  if (!visible(e)) return null;
+  const r = e.getBoundingClientRect();
+  let left = Math.max(0, r.left), top = Math.max(0, r.top), right = Math.min(innerWidth, r.right), bottom = Math.min(innerHeight, r.bottom);
+  for (let p = e.parentElement; p; p = p.parentElement) {
+    const s = getComputedStyle(p), b = p.getBoundingClientRect();
+    if (/^(auto|scroll|hidden|clip)$/.test(s.overflowX)) {
+      left = Math.max(left, b.left + p.clientLeft); right = Math.min(right, b.left + p.clientLeft + p.clientWidth);
+    }
+    if (/^(auto|scroll|hidden|clip)$/.test(s.overflowY)) {
+      top = Math.max(top, b.top + p.clientTop); bottom = Math.min(bottom, b.top + p.clientTop + p.clientHeight);
+    }
+  }
+  return right > left && bottom > top ? { left, top, width: right - left, height: bottom - top } : null;
+}
 const label = (e) => e.getAttribute('aria-label') || e.title ||
   (e.getAttribute('aria-labelledby') || '').split(' ').map((id) => document.getElementById(id)?.textContent || '').join(' ').trim() ||
   e.labels?.[0]?.textContent || e.textContent.trim().slice(0, 80) || e.id || 'Control';
@@ -233,8 +257,9 @@ export function createMidiLearn({ header, storage = { getItem: (key) => window.l
     // Telemetry changes text every frame. Keep clear buttons mounted unless
     // their geometry/content changes, so a pointer gesture can finish.
     const bindingFor = new Map([...map.bindings.values()].map((b) => [resolvedTargetId(b.target), b]));
-    const visibleTargets = [...elements].filter(([, e]) => visible(e)).map(([id, e]) => {
-      const r = e.getBoundingClientRect(), b = bindingFor.get(id);
+    const targetRects = new Map([...elements].map(([id, e]) => [id, visibleRect(e)]).filter(([, r]) => r));
+    const visibleTargets = [...targetRects].map(([id, r]) => {
+      const e = elements.get(id), b = bindingFor.get(id);
       return [id, r.left, r.top, r.width, r.height, b || null, b ? label(e) : null];
     });
     const layout = document.getElementById('layout-switch');
@@ -251,8 +276,7 @@ export function createMidiLearn({ header, storage = { getItem: (key) => window.l
     connectButton.disabled = !navigator.requestMIDIAccess;
     list.replaceChildren();
     for (const [id, e] of elements) {
-      if (!visible(e)) continue;
-      const r = e.getBoundingClientRect();
+      const r = targetRects.get(id); if (!r) continue;
       const mark = document.createElement('div'); mark.className = `midi-learn-target${id === map.selected ? ' is-selected' : ''}`;
       mark.dataset.target = id;
       Object.assign(mark.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` });

@@ -41,6 +41,22 @@ try {
   await page.click('#midi-learn');
   await page.getByRole('button', { name: 'Connect MIDI', exact: true }).click();
   await learn('[data-testid=seq-play]', 29); await learn('[data-midi-id="seq:transport:stop"]', 30);
+  await check('closed Files menu is concealed and its controls cannot learn or dispatch MIDI', async () => {
+    const result = await page.evaluate(async () => {
+      const { nativeTarget, targetId } = await import('./midi-map.js');
+      const tools = document.querySelector('.sq-file-tools'), summary = tools.querySelector('summary');
+      const menu = tools.querySelector('.sq-file-menu'), controls = [...menu.querySelectorAll('button')];
+      // Availability must respect disclosure state even if custom CSS leaves geometry.
+      const oldDisplay = menu.style.display; menu.style.display = 'grid';
+      const unavailable = controls.every(control => !nativeTarget(control).available());
+      const summaryAvailable = nativeTarget(summary).available(); menu.style.display = oldDisplay;
+      const hidden = getComputedStyle(menu).display === 'none';
+      const unmarked = controls.every(control => ![...document.querySelectorAll('.midi-learn-target')]
+        .some(mark => mark.dataset.target === targetId(control)));
+      return { closed: !tools.open, hidden, unavailable, summaryAvailable, unmarked };
+    });
+    assert.ok(Object.values(result).every(Boolean), JSON.stringify(result));
+  });
   await check('teal CC29/CC30 badges remain on the actual controls with individual clear actions', async () => {
     await page.waitForFunction(() => !!document.querySelector('.midi-learn-target[data-target="seq:transport:play-pause"] .midi-learn-badge'));
     const geometry = await page.evaluate(() => ['seq:transport:play-pause', 'seq:transport:stop'].map(id => {
@@ -55,6 +71,22 @@ try {
     assert.ok(geometry.every(g => g.inside && g.clearInside), JSON.stringify(geometry));
     assert.ok(geometry.every(g => g.color.includes('85, 205, 177')));
     assert.ok(geometry[0].text.includes('CC29') && geometry[1].text.includes('CC30'));
+    const clipping = await page.evaluate(() => [...document.querySelectorAll('.midi-learn-target')].map(mark => {
+      const r = mark.getBoundingClientRect();
+      return r.left >= -.1 && r.top >= -.1 && r.right <= innerWidth + .1 && r.bottom <= innerHeight + .1;
+    }));
+    assert.ok(clipping.every(Boolean), 'learn highlights stay inside the viewport');
+    const gridClipping = await page.evaluate(async () => {
+      const { targetId } = await import('./midi-map.js');
+      const grid = document.querySelector('[data-scroll="scenes"]'), bounds = grid.getBoundingClientRect();
+      return [...grid.querySelectorAll('button')].flatMap(control => {
+        const mark = [...document.querySelectorAll('.midi-learn-target')].find(mark => mark.dataset.target === targetId(control));
+        if (!mark) return [];
+        const r = mark.getBoundingClientRect();
+        return [r.top >= bounds.top + grid.clientTop - .1 && r.bottom <= bounds.top + grid.clientTop + grid.clientHeight + .1];
+      });
+    });
+    assert.ok(gridClipping.length > 0 && gridClipping.every(Boolean), 'learn highlights respect the clipped Scenes grid');
     await page.screenshot({ path: `${out}/editor-teal-mappings.png` });
   });
   await page.click('#midi-learn');

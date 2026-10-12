@@ -118,7 +118,7 @@ export async function startEditor(env) {
     return { node, anchor };
   });
   function footerMenu(label) {
-    return el('details', 'ed-footer-menu', {}, [el('summary', 'ed-icon', { text: label }), el('div', 'ed-footer-menu-body')]);
+    return el('details', 'ed-footer-menu', { 'data-menu': label.toLowerCase() }, [el('summary', 'ed-icon', { text: label }), el('div', 'ed-footer-menu-body')]);
   }
   const fileMenu = footerMenu('Files');
   const simulatorMenu = footerMenu('Simulator');
@@ -143,7 +143,7 @@ export async function startEditor(env) {
   const appbar = el('div', 'ed-appbar', { role: 'toolbar', 'aria-label': 'Editor' }, [
     el('div', 'ed-appbar-start', {}, [sidebarBtn, title]),
     el('div', 'ed-appbar-mid', {}, [keysChip, shortcutsBtn]),
-    el('div', 'ed-appbar-end', {}, [simulatorMenu, changesMenu, fileMenu, songFileTools, undoBtn, redoBtn, cpuBtn, el('div', 'ed-ram-wrap', {}, [ramBtn, ramList])]),
+    el('div', 'ed-appbar-end', {}, [simulatorMenu, fileMenu, songFileTools, changesMenu, undoBtn, redoBtn, cpuBtn, el('div', 'ed-ram-wrap', {}, [ramBtn, ramList])]),
   ]);
   const transportTools = el('div', 'ed-transport-tools sq-transport-mount', { hidden: true });
   const topbars = el('div', 'ed-topbars', {}, [appbar, transportTools]);
