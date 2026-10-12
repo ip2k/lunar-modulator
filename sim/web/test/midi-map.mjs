@@ -75,3 +75,16 @@ test('mode-changing CC buttons retain their triggering edge after synchronous re
   for (const v of [64, 70, 100, 127, 0, 100]) m.handle('A', [0xb0, 10, v]);
   assert.equal(clicks, 2);
 });
+
+test('semantic legacy Play resolves without rewriting metadata; ambiguous toolbar ordinals stay inert', () => {
+  let presses = 0; const m = new MidiMap();
+  m.register('seq:transport:play-pause', { press: () => presses++ });
+  m.register('seq:transport:stop', { press: () => { throw Error('ambiguous old ordinal dispatched'); } });
+  const oldPlay = 'ed/layout=editor/testid=seq-play/BUTTON.sq-button:0';
+  const old = saved([b(oldPlay, 'A', 0, 'cc', 29), b('ed/layout=editor/BUTTON.sq-button:7', 'A', 0, 'cc', 30)]);
+  m.import(old); m.handle('A', [0xb0, 29, 127]); m.handle('A', [0xb0, 30, 127]);
+  assert.equal(presses, 1); assert.deepEqual(m.export(), old);
+  learn(m, 'seq:transport:play-pause', 'A', [0xb0, 29, 127]);
+  assert.equal(m.export().bindings.length, 2, 'relearning replaces the old logical Play binding');
+  m.clear(oldPlay); assert.equal(m.export().bindings.length, 1);
+});

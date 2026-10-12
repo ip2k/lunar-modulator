@@ -30,8 +30,8 @@ try {
   await simulatorControl('#midi');
   const before = await page.evaluate(() => window.fm1.files.saveText('project'));
   await page.evaluate(async () => { window.cachedSongBeforeLearn = await window.fm1.editor.sequencerHost.fetchProject(); });
-  await simulatorControl('#midi-learn'); await page.click('[data-key="0"]');
-  await page.evaluate(() => window.emitMidi([0x90, 60, 100])); await simulatorControl('#midi-learn');
+  await page.click('#midi-learn'); await page.click('[data-key="0"]');
+  await page.evaluate(() => window.emitMidi([0x90, 60, 100])); await page.click('#midi-learn');
   const mapped = await page.evaluate(() => window.fm1.files.projectSnapshot());
   const bindings = JSON.parse(mapped.text).browser.midiMap.bindings;
   assert.deepEqual(bindings, [{ target: 'panel:key:0', source: 'native-test-controller', channel: 0, kind: 'note', number: 60 }]);

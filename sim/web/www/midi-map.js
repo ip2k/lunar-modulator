@@ -13,6 +13,11 @@ export function midiMessage(source, data) {
     value, down: type === 0xb0 ? value >= 64 : type === 0x90 && value > 0 };
 }
 const address = (m) => JSON.stringify([m.source, m.channel, m.kind, m.number]);
+// Play had a semantic test ID before transport IDs were made explicit. Other
+// old toolbar ordinals are ambiguous (Pause and Stop occupied the same ordinal
+// in different builds), so retain their saved data and require remapping.
+export const resolvedTargetId = (id) => /^ed\/layout=(editor|workbench)\/testid=seq-play\/BUTTON\.sq-button:0$/.test(id)
+  ? 'seq:transport:play-pause' : id;
 const valid = (b) => b && typeof b.target === 'string' && b.target.length > 0 && bytes(b.target) <= 192 && !b.target.includes('\0') &&
   /^[\x20-\x7e]+$/.test(b.target) &&
   typeof b.source === 'string' && b.source.length > 0 && bytes(b.source) <= 128 && !b.source.includes('\0') && Number.isInteger(b.channel) && b.channel >= 0 && b.channel < 16 &&
@@ -51,7 +56,7 @@ export class MidiMap {
   select(id) { if (this.targets.has(id)) { this.selected = id; this.changed(); } }
   clear(id, edited = true) {
     this.release();
-    for (const [key, b] of this.bindings) if (b.target === id) this.bindings.delete(key);
+    for (const [key, b] of this.bindings) if (resolvedTargetId(b.target) === resolvedTargetId(id)) this.bindings.delete(key);
     this.save(); if (edited) this.edited();
   }
   export() { return { version: 1, bindings: [...this.bindings.values()].map((b) => ({ ...b })) }; }
@@ -75,7 +80,7 @@ export class MidiMap {
     if (this.learning) {
       if (m && (m.kind === 'cc' || m.down) && this.selected) {
         const binding = { source: m.source, channel: m.channel, kind: m.kind, number: m.number, target: this.selected };
-        const bindings = [...this.bindings.values()].filter((b) => b.target !== this.selected && address(b) !== address(m)).concat(binding);
+        const bindings = [...this.bindings.values()].filter((b) => resolvedTargetId(b.target) !== this.selected && address(b) !== address(m)).concat(binding);
         if (!validMidiMap({ version: 1, bindings })) {
           this.error = `Assignments allow ${MAX_BINDINGS} controls and 4 KiB of unique IDs (target 192 bytes, input 128 bytes).`; this.changed(); return true;
         }
@@ -92,7 +97,7 @@ export class MidiMap {
     if (!b) return false;
     const held = this.held.get(key);
     if (!m.down && held) { this.held.delete(key); held.release(); }
-    const t = this.targets.get(b.target);
+    const t = this.targets.get(resolvedTargetId(b.target));
     const previous = this.edges.get(key);
     this.edges.set(key, { source: m.source, value: m.value, down: m.down });
     if (!t || this.blocked() || t.available?.() === false) { if (held && m.down) { this.held.delete(key); held.release(); } return true; }
@@ -116,7 +121,7 @@ const SELECTOR = 'button, select, input[type=range], input[type=number], input[t
 const CONTEXT = ['data-block', 'data-uid', 'data-midi-context', 'data-mixer-track', 'data-track', 'data-scene',
   'data-song-entry', 'data-note', 'data-step', 'data-automation-lane', 'data-automation-step', 'data-live-track', 'data-live-scene',
   'data-preview-track', 'data-preview-scene', 'data-progress-track', 'data-progress-scene', 'data-sound-fader', 'data-inspector', 'data-layout', 'data-view', 'data-testid'];
-const visible = (e) => e.isConnected && !e.disabled && !e.readOnly && e.getAttribute('aria-disabled') !== 'true' &&
+const visible = (e) => e.isConnected && !e.matches(':disabled') && !e.readOnly && e.getAttribute('aria-disabled') !== 'true' &&
   !e.closest('[hidden], [inert]') && e.getClientRects().length > 0;
 const label = (e) => e.getAttribute('aria-label') || e.title ||
   (e.getAttribute('aria-labelledby') || '').split(' ').map((id) => document.getElementById(id)?.textContent || '').join(' ').trim() ||
@@ -146,8 +151,13 @@ export function targetId(e) {
   const cls = [...e.classList].filter((c) => !/^(is-|has-|down$|active$)/.test(c)).join('.');
   const peers = [...anchor.querySelectorAll(SELECTOR)].filter((p) => p.tagName === e.tagName &&
     [...p.classList].filter((c) => !/^(is-|has-|down$|active$)/.test(c)).join('.') === cls);
+  // A layout alone is not a semantic row. Bare ordinal IDs could silently
+  // address a different button when a toolbar changes; use its caption instead.
+  if (parts.length === 1 && /^layout=(editor|workbench)$/.test(parts[0]) && !e.hasAttribute('data-layout')) parts.length = 0;
+  const caption = e.getAttribute('aria-label') || e.textContent.trim().slice(0, 100);
+  const namesakes = peers.filter(p => (p.getAttribute('aria-label') || p.textContent.trim().slice(0, 100)) === caption);
   const semantic = parts.length ? `${e.tagName}.${cls}:${Math.max(0, peers.indexOf(e))}` :
-    `${e.tagName}:${e.getAttribute('aria-label') || e.textContent.trim().slice(0, 100)}:${Math.max(0, peers.indexOf(e))}`;
+    `${e.tagName}:${caption}:${Math.max(0, namesakes.indexOf(e))}`;
   return boundedId(`${scope.id || scope.classList[0] || 'page'}/${parts.join('/')}/${semantic}`);
 }
 
@@ -197,7 +207,13 @@ export function createMidiLearn({ header, storage = { getItem: (key) => window.l
   const map = new MidiMap({ storage, changed: schedule, edited, modeChanged, blocked: () => !!document.querySelector('dialog[open]') ||
     !!document.activeElement?.matches('textarea, input:not([type=range]):not([type=checkbox]):not([type=radio]), [contenteditable]:not([contenteditable=false])') });
   function register(e, id, adapter) { e.dataset.midiId = id; explicit.set(e, adapter); schedule(); }
+  function placeButton() {
+    const next = document.body.dataset.layout === 'panel' || !document.body.dataset.layout
+      ? document.getElementById('midi') : document.getElementById('open-cheat-sheet');
+    if (next && (button.parentElement !== next.parentElement || button.nextElementSibling !== next)) next.before(button);
+  }
   function refresh() {
+    placeButton();
     map.targets.clear(); elements.clear();
     for (const e of document.querySelectorAll(SELECTOR)) {
       if (overlay.contains(e) || e === button) continue;
@@ -219,38 +235,43 @@ export function createMidiLearn({ header, storage = { getItem: (key) => window.l
       selected ? `${label(selected)}: press a controller note or move a CC.` : 'Choose a highlighted control, then press a note or move a CC. MIDI is silent while learning.');
     connectButton.disabled = !navigator.requestMIDIAccess;
     list.replaceChildren();
-    const occupied = [help.getBoundingClientRect(), ...[...elements.values()].filter(visible).map((e) => e.getBoundingClientRect())];
-    const bindingFor = new Map([...map.bindings.values()].map((b) => [b.target, b]));
+    const bindingFor = new Map([...map.bindings.values()].map((b) => [resolvedTargetId(b.target), b]));
     for (const [id, e] of elements) {
       if (!visible(e)) continue;
       const r = e.getBoundingClientRect();
       const mark = document.createElement('div'); mark.className = `midi-learn-target${id === map.selected ? ' is-selected' : ''}`;
+      mark.dataset.target = id;
       Object.assign(mark.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` });
       overlay.append(mark);
       const b = bindingFor.get(id);
       if (!b) continue;
       const badge = document.createElement('span'); badge.className = 'midi-learn-badge';
-      const name = `${b.kind === 'cc' ? 'CC' : 'N'}${b.number} · ch${b.channel + 1}`;
-      badge.append(document.createTextNode(name));
+      badge.onclick = event => { if (!event.target.closest('button')) map.select(id); };
+      badge.title = `${b.kind.toUpperCase()} ${b.number}, channel ${b.channel + 1}, input ${b.source}`;
+      const number = document.createElement('span'); number.textContent = `${b.kind === 'cc' ? 'CC' : 'N'}${b.number}`;
+      const detail = document.createElement('span'); detail.className = 'midi-learn-badge-detail'; detail.append(document.createTextNode(`ch${b.channel + 1}`));
       const clear = document.createElement('button'); clear.type = 'button'; clear.textContent = '×'; clear.setAttribute('aria-label', `Clear MIDI assignment for ${label(e)}`);
-      clear.onclick = () => map.clear(id); badge.append(clear); overlay.append(badge);
-      // Collision-free badges are placed beside the control, with breathing room.
-      const size = badge.getBoundingClientRect(); const x = Math.max(6, Math.min(innerWidth - size.width - 6, r.right + 6));
-      let y = Math.max(6, Math.min(innerHeight - size.height - 6, r.top));
-      for (let n = 0; n < 100 && occupied.some((o) => x < o.right + 4 && x + size.width + 4 > o.left && y < o.bottom + 4 && y + size.height + 4 > o.top); n++) y += size.height + 6;
-      if (y + size.height > innerHeight - 6) { badge.remove(); continue; } // Still available in Saved assignments.
-      Object.assign(badge.style, { left: `${x}px`, top: `${y}px` }); occupied.push({ left: x, right: x + size.width, top: y, bottom: y + size.height });
+      clear.onclick = () => map.clear(id); detail.append(clear); badge.append(number, detail); mark.append(badge);
     }
     for (const b of map.bindings.values()) {
       const row = document.createElement('div'); row.className = 'midi-learn-assignment';
-      const e = elements.get(b.target);
-      row.append(document.createTextNode(`${e ? label(e) : b.target}: ${b.kind.toUpperCase()} ${b.number}, channel ${b.channel + 1}, input ${b.source}`));
+      const e = elements.get(resolvedTargetId(b.target));
+      row.append(document.createTextNode(`${e ? label(e) : `Unavailable control (remap): ${b.target}`}: ${b.kind.toUpperCase()} ${b.number}, channel ${b.channel + 1}, input ${b.source}`));
       const clear = document.createElement('button'); clear.type = 'button'; clear.textContent = '×'; clear.setAttribute('aria-label', `Clear ${b.target}`); clear.onclick = () => map.clear(b.target); row.append(clear); list.append(row);
     }
   }
   button.onclick = () => { map.learn(!map.learning); };
+  // Transport and grid controls are replaced during a view change. Refresh
+  // their closures before consuming the controller's next rising edge, even
+  // if the DOM mutation and MIDI event occur in the same JavaScript turn.
+  function flush() {
+    const dirty = observer.takeRecords().some((r) => !overlay.contains(r.target));
+    if (!frame && !dirty) return;
+    cancelAnimationFrame(frame); frame = 0; refresh();
+  }
   const capture = (event) => {
     if (!map.learning || event.target.closest('.midi-learn-overlay, #midi-learn')) return;
+    flush();
     const e = event.target.closest(SELECTOR);
     if (!e || !visible(e) || !map.targets.has(targetId(e))) return;
     event.preventDefault(); event.stopImmediatePropagation();
@@ -270,8 +291,9 @@ export function createMidiLearn({ header, storage = { getItem: (key) => window.l
   window.addEventListener('fm1-power', () => map.release());
   window.addEventListener('fm1-midi-release', () => map.release());
   for (const type of ['resize', 'scroll']) window.addEventListener(type, schedule, true);
-  new MutationObserver((records) => { if (records.some((r) => !overlay.contains(r.target))) schedule(); }).observe(document.body,
+  const observer = new MutationObserver((records) => { if (records.some((r) => !overlay.contains(r.target))) schedule(); });
+  observer.observe(document.body,
     { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'disabled', 'aria-disabled', 'data-layout'] });
   refresh();
-  return { map, register, refresh, handle: (source, data) => map.handle(source, data), release: (source) => map.release(source) };
+  return { map, register, refresh, handle: (source, data) => { flush(); return map.handle(source, data); }, release: (source) => map.release(source) };
 }

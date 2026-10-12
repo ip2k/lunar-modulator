@@ -340,10 +340,11 @@ export function makeSequencer(ctx) {
     const nav = (kind, direction) => btn(direction < 0 ? '‹' : '›', () => jump(kind, direction), {
       'aria-label': `${direction < 0 ? 'Previous' : 'Next'} ${kind}`, title: `${direction < 0 ? 'Previous' : 'Next'} ${kind}`,
       'data-slot-kind': kind, 'data-slot-direction': direction,
+      'data-midi-id': `seq:transport:${direction < 0 ? 'previous' : 'next'}-${kind}`,
     });
     return el('fieldset', 'sq-toolbar sq-transport', { disabled: state.busy, 'aria-label': 'Song transport' }, [
-      btn('▶', () => action(ctx.playPause), { 'data-testid': 'seq-play', 'aria-label': 'Play', title: 'Play', 'data-transport-play-pause': true }),
-      btn('■', () => action(ctx.stop), { 'aria-label': 'Stop', title: 'Stop and return to 0:0:0' }),
+      btn('▶', () => action(ctx.playPause), { 'data-midi-id': 'seq:transport:play-pause', 'data-testid': 'seq-play', 'aria-label': 'Play', title: 'Play', 'data-transport-play-pause': true }),
+      btn('■', () => action(ctx.stop), { 'data-midi-id': 'seq:transport:stop', 'aria-label': 'Stop', title: 'Stop and return to 0:0:0' }),
       el('div', 'sq-transport-readouts', {}, [
         el('span', 'sq-readout', { title: 'Current position in zero-based bars:beats:ticks' }, [
           el('span', 'sq-readout-icon', { text: '▶', 'aria-hidden': 'true' }),
@@ -360,10 +361,10 @@ export function makeSequencer(ctx) {
         el('span', 'sq-transport-state sq-sr', { text: 'Stopped', 'data-play-state': true, role: 'status' }),
       ]),
       ...['bar', 'clip', 'scene'].map(kind => el('div', 'sq-transport-nav', {}, [
-        kind === 'bar' ? btn('‹', () => locateBar(-1), { 'aria-label': 'Previous bar', 'data-bar-nav': -1 }) : nav(kind, -1),
+        kind === 'bar' ? btn('‹', () => locateBar(-1), { 'data-midi-id': 'seq:transport:previous-bar', 'aria-label': 'Previous bar', 'data-bar-nav': -1 }) : nav(kind, -1),
         el('span', 'sq-nav-label', {}, [el('span', '', { text: kind }),
           el('output', 'sq-nav-count', { text: '0/0', 'data-nav-count': kind, 'aria-label': `Current ${kind} and total` })]),
-        kind === 'bar' ? btn('›', () => locateBar(1), { 'aria-label': 'Next bar', 'data-bar-nav': 1 }) : nav(kind, 1),
+        kind === 'bar' ? btn('›', () => locateBar(1), { 'data-midi-id': 'seq:transport:next-bar', 'aria-label': 'Next bar', 'data-bar-nav': 1 }) : nav(kind, 1),
       ])),
       field('BPM', m.bpmX100 / 100, v => edit('Change tempo', m => { m.bpmX100 = Math.round(v * 100); }), { min: 20, max: 300, step: .01 }),
       metronomeButton(),
@@ -376,7 +377,7 @@ export function makeSequencer(ctx) {
   }
   function metronomeButton() {
     const button = btn('', () => edit('Toggle metronome', (_m, doc) => { doc.settings ||= {}; doc.settings.metronome = doc.settings.metronome ? 0 : 1; }),
-      { 'aria-label': 'Metronome', title: 'Metronome', 'aria-pressed': String(!!state.doc.settings?.metronome), class: 'sq-button sq-metronome' });
+      { 'data-midi-id': 'seq:transport:metronome', 'aria-label': 'Metronome', title: 'Metronome', 'aria-pressed': String(!!state.doc.settings?.metronome), class: 'sq-button sq-metronome' });
     const icon = svgNode('svg', { viewBox: '0 0 24 24', width: 20, height: 20, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' });
     icon.append(svgNode('path', { d: 'M9 3h6l4 17H5L9 3Z M8 16h8 M12 16l6-11' }), svgNode('circle', { cx: 18, cy: 5, r: 1.5, fill: 'currentColor' }));
     button.append(icon); return button;
