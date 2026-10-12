@@ -15,7 +15,7 @@ const report = { browser: name, wasmSha256: createHash('sha256').update(await re
   scope: 'Real AudioWorklet/Wasm and browser history. Native seq-line exercises the panel command path; no physical controls or hardware acceptance.', checks: [], errors: [] };
 const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
 page.setDefaultTimeout(20000);
-page.on('pageerror', e => report.errors.push(e.message));
+page.on('pageerror', e => { report.errors.push(e.message); (report.errorStacks ??= []).push(e.stack); });
 async function until(fn, label) {
   const deadline = Date.now() + 20000;
   while (Date.now() < deadline) { if (await fn()) return; await page.waitForTimeout(60); }
