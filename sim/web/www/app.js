@@ -1000,6 +1000,11 @@ async function connectMidi() {
   }
   try {
     const access = await navigator.requestMIDIAccess();
+    midiLearn.release();
+    if (sim.midi) {
+      sim.midi.onstatechange = null;
+      for (const input of sim.midi.inputs.values()) input.onmidimessage = null;
+    }
     const attached = new Map();
     const attach = () => {
       const names = [];

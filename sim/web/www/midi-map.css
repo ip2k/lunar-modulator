@@ -1,9 +1,9 @@
 .midi-learn-toggle { display:flex; align-items:center; justify-content:center; padding:7px; margin-left:8px; }
 .midi-learn-toggle svg { width:24px; height:24px; }
-.midi-learn-toggle[aria-pressed=true] { color:#bd9eff; box-shadow:0 0 0 2px #bd9eff; }
+.midi-learn-toggle[aria-pressed=true] { color:#21172e; background:#cfb7ff; box-shadow:0 0 0 2px #bd9eff; }
 .midi-learn-overlay { position:fixed; inset:0; z-index:1000; background:rgba(35,22,57,.22); pointer-events:none; }
 .midi-learn-overlay[hidden] { display:none; }
-.midi-learn-help { position:absolute; top:62px; right:14px; width:min(330px,calc(100vw - 28px)); max-height:45vh; overflow:auto; box-sizing:border-box; padding:12px; border:1px solid #b79ce8; border-radius:8px; background:#232136f2; color:#f0edf5; pointer-events:auto; font:13px/1.5 system-ui,sans-serif; }
+.midi-learn-help { position:absolute; z-index:2; top:62px; right:14px; width:min(330px,calc(100vw - 28px)); max-height:45vh; overflow:auto; box-sizing:border-box; padding:12px; border:1px solid #b79ce8; border-radius:8px; background:#232136; color:#f0edf5; pointer-events:auto; font:13px/1.5 system-ui,sans-serif; }
 .midi-learn-help p { margin:0 0 10px; }
 .midi-learn-help button { margin-right:8px; }
 .midi-learn-help details { margin-top:12px; }

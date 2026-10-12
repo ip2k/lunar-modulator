@@ -7,7 +7,7 @@ export function midiMessage(source, data) {
   const [status, number, value = 0] = data;
   const type = status & 0xf0;
   if (!Number.isInteger(status) || status < 0x80 || status >= 0xf0 ||
-      !Number.isInteger(number) || number < 0 || number > 127 || value < 0 || value > 127) return null;
+      !Number.isInteger(number) || number < 0 || number > 127 || !Number.isInteger(value) || value < 0 || value > 127) return null;
   if (![0x80, 0x90, 0xb0].includes(type)) return null;
   return { source: String(source), channel: status & 15, kind: type === 0xb0 ? 'cc' : 'note', number,
     value, down: type === 0xb0 ? value >= 64 : type === 0x90 && value > 0 };
@@ -103,6 +103,9 @@ export class MidiMap {
       if (m.kind === 'cc' || m.down) t.value(m.value / 127);
     } else if (m.down && !previous?.down) {
       const release = t.press(m.value);
+      // A layout/mode button can release other held actions synchronously.
+      // Keep its own edge so a stream of high CC packets still clicks once.
+      this.edges.set(key, { source: m.source, value: m.value, down: m.down });
       if (typeof release === 'function') this.held.set(key, { source: m.source, release });
     }
     return true;
@@ -112,7 +115,7 @@ export class MidiMap {
 const SELECTOR = 'button, select, input[type=range], input[type=number], input[type=checkbox], input[type=radio], summary, [role=slider], [role=button], [data-midi-id], [data-key], [data-button], [data-encoder], [data-master], .power';
 const CONTEXT = ['data-block', 'data-uid', 'data-midi-context', 'data-mixer-track', 'data-track', 'data-scene',
   'data-song-entry', 'data-note', 'data-step', 'data-automation-lane', 'data-automation-step', 'data-live-track', 'data-live-scene',
-  'data-preview-track', 'data-preview-scene', 'data-progress-track', 'data-progress-scene', 'data-sound-fader', 'data-inspector', 'data-layout', 'data-view'];
+  'data-preview-track', 'data-preview-scene', 'data-progress-track', 'data-progress-scene', 'data-sound-fader', 'data-inspector', 'data-layout', 'data-view', 'data-testid'];
 const visible = (e) => e.isConnected && !e.disabled && !e.readOnly && e.getAttribute('aria-disabled') !== 'true' &&
   !e.closest('[hidden], [inert]') && e.getClientRects().length > 0;
 const label = (e) => e.getAttribute('aria-label') || e.title ||
@@ -122,10 +125,17 @@ const label = (e) => e.getAttribute('aria-label') || e.title ||
 // Semantic attributes identify controls across redraws; generated ed-* IDs are
 // intentionally ignored. Within a semantic row, class + ordinal distinguishes
 // the individual segment/tool buttons, independent of their changing caption.
+function boundedId(raw) {
+  const id = raw.replace(/[^\x20-\x7e]/gu, (char) => encodeURIComponent(char));
+  if (bytes(id) <= 192) return id;
+  let hash = 2166136261;
+  for (const char of id) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619) >>> 0;
+  return `${id.slice(0, 70)}:h${hash.toString(16)}`;
+}
 export function targetId(e) {
-  if (e.dataset.midiId) return e.dataset.midiId;
-  if (e.dataset.fk) return `editor:control:${e.dataset.fk}`;
-  if (e.id && !/^ed-.*-\d+$/.test(e.id)) return `ui:${e.id}`;
+  if (e.dataset.midiId) return boundedId(e.dataset.midiId);
+  if (e.dataset.fk) return boundedId(`editor:control:${e.dataset.fk}`);
+  if (e.id && !/^ed-.*-\d+$/.test(e.id)) return boundedId(`ui:${e.id}`);
   const parts = [], scope = e.closest('.ed, #panel, main, header') || document.body;
   for (let p = e; p && p !== scope.parentElement; p = p.parentElement) {
     const attrs = CONTEXT.filter((a) => p.hasAttribute(a)).map((a) => `${a.slice(5)}=${p.getAttribute(a)}`);
@@ -138,11 +148,7 @@ export function targetId(e) {
     [...p.classList].filter((c) => !/^(is-|has-|down$|active$)/.test(c)).join('.') === cls);
   const semantic = parts.length ? `${e.tagName}.${cls}:${Math.max(0, peers.indexOf(e))}` :
     `${e.tagName}:${e.getAttribute('aria-label') || e.textContent.trim().slice(0, 100)}:${Math.max(0, peers.indexOf(e))}`;
-  const id = `${scope.id || scope.classList[0] || 'page'}/${parts.join('/')}/${semantic}`.replace(/[^\x20-\x7e]/g, (char) => encodeURIComponent(char));
-  if (bytes(id) <= 192) return id;
-  let hash = 2166136261;
-  for (const char of id) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619) >>> 0;
-  return `${id.slice(0, 70)}:h${hash.toString(16)}`;
+  return boundedId(`${scope.id || scope.classList[0] || 'page'}/${parts.join('/')}/${semantic}`);
 }
 
 export function nativeTarget(e) {
@@ -206,12 +212,14 @@ export function createMidiLearn({ header, storage = { getItem: (key) => window.l
     document.body.classList.toggle('midi-learning', map.learning);
     for (const e of overlay.querySelectorAll('.midi-learn-target, .midi-learn-badge')) e.remove();
     if (!map.learning) return;
+    const layout = document.getElementById('layout-switch');
+    help.style.top = `${Math.max(12, header.getBoundingClientRect().bottom + 12, (layout?.getBoundingClientRect().bottom || 0) + 12)}px`;
     const selected = elements.get(map.selected);
     message.textContent = map.error || (!navigator.requestMIDIAccess ? 'Web MIDI is unavailable in this browser. You can inspect or clear saved assignments.' :
       selected ? `${label(selected)}: press a controller note or move a CC.` : 'Choose a highlighted control, then press a note or move a CC. MIDI is silent while learning.');
     connectButton.disabled = !navigator.requestMIDIAccess;
     list.replaceChildren();
-    const occupied = [help.getBoundingClientRect()];
+    const occupied = [help.getBoundingClientRect(), ...[...elements.values()].filter(visible).map((e) => e.getBoundingClientRect())];
     const bindingFor = new Map([...map.bindings.values()].map((b) => [b.target, b]));
     for (const [id, e] of elements) {
       if (!visible(e)) continue;
