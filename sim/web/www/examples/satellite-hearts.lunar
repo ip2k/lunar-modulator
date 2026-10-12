@@ -22,43 +22,6 @@
         "Volume": 0.63,
         "Kit": "Classic"
       },
-      "level": 65,
-      "inserts": [
-        null,
-        null
-      ],
-      "midi_fx": [
-        {
-          "engine": "arp",
-          "on": false,
-          "params": {
-            "Mode": "Up-Down",
-            "Order": "Pitch",
-            "Octaves": "2",
-            "Oct Mode": "Span",
-            "Rate": "1/16",
-            "Gate": 50,
-            "Pattern": "All",
-            "Length": 0,
-            "Fill": 0,
-            "Rotate": 0,
-            "Latch": "Off",
-            "Join": "Now",
-            "Sync": "Key",
-            "Repeat": "1",
-            "Ratchet": "1",
-            "Ratchet %": 100,
-            "Chance": 100,
-            "Chord %": 0,
-            "Oct Jump": 0,
-            "Velocity": 0,
-            "Vel Spread": 0,
-            "Gate Sprd": 0,
-            "Loop": 0,
-            "Seed": 0
-          }
-        }
-      ],
       "pads": [
         {
           "Tune": 0.5,
@@ -219,6 +182,43 @@
           "Sweep": 0,
           "Drive": 0,
           "Drive Type": "Diode"
+        }
+      ],
+      "level": 65,
+      "inserts": [
+        null,
+        null
+      ],
+      "midi_fx": [
+        {
+          "engine": "arp",
+          "on": false,
+          "params": {
+            "Mode": "Up-Down",
+            "Order": "Pitch",
+            "Octaves": "2",
+            "Oct Mode": "Span",
+            "Rate": "1/16",
+            "Gate": 50,
+            "Pattern": "All",
+            "Length": 0,
+            "Fill": 0,
+            "Rotate": 0,
+            "Latch": "Off",
+            "Join": "Now",
+            "Sync": "Key",
+            "Repeat": "1",
+            "Ratchet": "1",
+            "Ratchet %": 100,
+            "Chance": 100,
+            "Chord %": 0,
+            "Oct Jump": 0,
+            "Velocity": 0,
+            "Vel Spread": 0,
+            "Gate Sprd": 0,
+            "Loop": 0,
+            "Seed": 0
+          }
         }
       ]
     },
@@ -414,7 +414,6 @@
       }
     }
   ],
-  "dx7": [],
   "mod": {
     "seed": 1,
     "rack": [

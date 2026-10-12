@@ -9,3 +9,5 @@ Local exact generation checks passed for both generators; node syntax checks pas
 Exact integration native/Wasm/browser checks passed in isolated LAN stages; receipts are in notes/2026-10-11-four-showcase-integration-0085f2f2/. GitHub CI dispatched for source HEAD0085f2f2 (run38161344693); required CI and parent review remain before merge. OwnerSatellite audition active, all musicalacceptance pending. Acid longgates implemented, newamp sustain/release capability unresolved.
 
 CI monitoring: source run38161344693 was superseded and canceled; receipt-head run38161392041 targets54246b65. A final docs-only handoff checkpoint follows; use `gh run list --branch chore/2026-10-10@demo-song-acceptance` and verify the exact head before merge. Parent owns final review/merge. All remote stages are isolated and complete; no active LAN job remains.
+
+CI follow-up: run38161552601 failed six state/schema/link checks on each Python OS job. Canonical serialization repaired without musical changes;37 targeted Hera checks and both generators pass. New hash/receipt details: notes/2026-10-11-showcase-ci-canonical-repair/. Parent must confirm new-head CI and review before merging.

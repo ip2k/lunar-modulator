@@ -404,7 +404,16 @@ def outputs():
     files = {}
     manifest = []
     for slug, title, bpm, bars, scenes, doc in songs:
-        for snd in doc['sounds']:
+        if not doc.get('dx7'):
+            doc.pop('dx7', None)  # The canonical codec omits an empty voice bank.
+        sound_order = json.loads((ROOT / 'engines/state/schema/common.schema.json').read_text())['$defs']['sound']['properties']
+        for index, snd in enumerate(doc['sounds']):
+            # Metadata presentation order differs from the codec's stable UID order.
+            params = sorted(META[snd['engine']]['params'], key=lambda p: p['uid'])
+            snd['params'] = {p['name']: snd['params'][p['name']] for p in params if 'per_focus' not in p['flags']}
+            if 'pads' in snd:
+                snd['pads'] = [{p['name']: pad[p['name']] for p in params if 'per_focus' in p['flags']} for pad in snd['pads']]
+            doc['sounds'][index] = {key: snd[key] for key in sound_order if key in snd}
             for param in META[snd['engine']]['params']:
                 records = snd.get('pads', []) if 'per_focus' in param['flags'] else [snd['params']]
                 for record in records:

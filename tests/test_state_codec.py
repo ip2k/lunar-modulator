@@ -703,7 +703,8 @@ def test_launch_links_round_trip(names):
     for path in sorted(EXAMPLES.glob("*.lunar")):
         recs, _ = ls.read_json(path.read_bytes(), names)
         frag = ls.link_fragment(recs, names)
-        assert frag.startswith("#lunar=") and len(frag) < 8000
+        # Full-song examples may exceed the guide's small example sizes.
+        assert frag.startswith("#lunar=") and len(frag) - len("#lunar=") <= ls.LINK_CAP
         assert ls.read_link(frag, names)[0] == recs
     bomb = zlib.compressobj(9, zlib.DEFLATED, -15)
     data = bomb.compress(b'{"lunar": "1.0", "kind": "settings", "settings": {}, "x": "' + b"a" * 400000) + bomb.flush()

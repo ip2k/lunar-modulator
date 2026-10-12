@@ -21,43 +21,6 @@
         "Choke": "Closed>Open",
         "Volume": 0.57
       },
-      "level": 57,
-      "inserts": [
-        null,
-        null
-      ],
-      "midi_fx": [
-        {
-          "engine": "arp",
-          "on": false,
-          "params": {
-            "Mode": "Up-Down",
-            "Order": "Pitch",
-            "Octaves": "2",
-            "Oct Mode": "Span",
-            "Rate": "1/16",
-            "Gate": 50,
-            "Pattern": "All",
-            "Length": 0,
-            "Fill": 0,
-            "Rotate": 0,
-            "Latch": "Off",
-            "Join": "Now",
-            "Sync": "Key",
-            "Repeat": "1",
-            "Ratchet": "1",
-            "Ratchet %": 100,
-            "Chance": 100,
-            "Chord %": 0,
-            "Oct Jump": 0,
-            "Velocity": 0,
-            "Vel Spread": 0,
-            "Gate Sprd": 0,
-            "Loop": 0,
-            "Seed": 0
-          }
-        }
-      ],
       "pads": [
         {
           "Tune": 0,
@@ -203,6 +166,43 @@
           "Drive": 0,
           "Dist": "Diode"
         }
+      ],
+      "level": 57,
+      "inserts": [
+        null,
+        null
+      ],
+      "midi_fx": [
+        {
+          "engine": "arp",
+          "on": false,
+          "params": {
+            "Mode": "Up-Down",
+            "Order": "Pitch",
+            "Octaves": "2",
+            "Oct Mode": "Span",
+            "Rate": "1/16",
+            "Gate": 50,
+            "Pattern": "All",
+            "Length": 0,
+            "Fill": 0,
+            "Rotate": 0,
+            "Latch": "Off",
+            "Join": "Now",
+            "Sync": "Key",
+            "Repeat": "1",
+            "Ratchet": "1",
+            "Ratchet %": 100,
+            "Chance": 100,
+            "Chord %": 0,
+            "Oct Jump": 0,
+            "Velocity": 0,
+            "Vel Spread": 0,
+            "Gate Sprd": 0,
+            "Loop": 0,
+            "Seed": 0
+          }
+        }
       ]
     },
     {
@@ -273,11 +273,11 @@
         "Decay": 0.48,
         "Colour": 0.27,
         "Volume": 0.5,
-        "Word Speed": 0,
         "Env Pitch": 0,
         "Env Timbre": 0,
         "Env Morph": 0,
         "LPG": "Ping",
+        "Word Speed": 0,
         "Glide": 100,
         "Voice Mode": "Poly",
         "Glide Mode": "Off",
@@ -326,6 +326,152 @@
       "params": {
         "Pad": "1 Kick"
       },
+      "pads": [
+        {
+          "Sweep": 55,
+          "Decay": 0.28,
+          "Tune": -5,
+          "Color": 24,
+          "Model": "Fuse",
+          "Feedback": 6,
+          "Metal": 8
+        },
+        {
+          "Sweep": 0,
+          "Decay": 0.19,
+          "Tune": -12,
+          "Color": 16,
+          "Model": "Fuse",
+          "Feedback": 3,
+          "Metal": 12
+        },
+        {
+          "Sweep": 55,
+          "Decay": 0.28,
+          "Tune": -5,
+          "Color": 24,
+          "Model": "Fuse",
+          "Feedback": 6,
+          "Metal": 8
+        },
+        {
+          "Sweep": 55,
+          "Decay": 0.28,
+          "Tune": -5,
+          "Color": 24,
+          "Model": "Fuse",
+          "Feedback": 6,
+          "Metal": 8
+        },
+        {
+          "Sweep": 0,
+          "Decay": 0.19,
+          "Tune": -5,
+          "Color": 16,
+          "Model": "Fuse",
+          "Feedback": 3,
+          "Metal": 12
+        },
+        {
+          "Sweep": 55,
+          "Decay": 0.28,
+          "Tune": -5,
+          "Color": 24,
+          "Model": "Fuse",
+          "Feedback": 6,
+          "Metal": 8
+        },
+        {
+          "Sweep": 55,
+          "Decay": 0.28,
+          "Tune": -5,
+          "Color": 24,
+          "Model": "Fuse",
+          "Feedback": 6,
+          "Metal": 8
+        },
+        {
+          "Sweep": 0,
+          "Decay": 0.19,
+          "Tune": 2,
+          "Color": 16,
+          "Model": "Fuse",
+          "Feedback": 3,
+          "Metal": 12
+        },
+        {
+          "Sweep": 55,
+          "Decay": 0.28,
+          "Tune": -5,
+          "Color": 24,
+          "Model": "Fuse",
+          "Feedback": 6,
+          "Metal": 8
+        },
+        {
+          "Sweep": 55,
+          "Decay": 0.28,
+          "Tune": -5,
+          "Color": 24,
+          "Model": "Fuse",
+          "Feedback": 6,
+          "Metal": 8
+        },
+        {
+          "Sweep": 55,
+          "Decay": 0.28,
+          "Tune": -5,
+          "Color": 24,
+          "Model": "Fuse",
+          "Feedback": 6,
+          "Metal": 8
+        },
+        {
+          "Sweep": 0,
+          "Decay": 0.19,
+          "Tune": 7,
+          "Color": 16,
+          "Model": "Fuse",
+          "Feedback": 3,
+          "Metal": 12
+        },
+        {
+          "Sweep": 55,
+          "Decay": 0.28,
+          "Tune": -5,
+          "Color": 24,
+          "Model": "Fuse",
+          "Feedback": 6,
+          "Metal": 8
+        },
+        {
+          "Sweep": 55,
+          "Decay": 0.28,
+          "Tune": -5,
+          "Color": 24,
+          "Model": "Fuse",
+          "Feedback": 6,
+          "Metal": 8
+        },
+        {
+          "Sweep": 55,
+          "Decay": 0.28,
+          "Tune": -5,
+          "Color": 24,
+          "Model": "Fuse",
+          "Feedback": 6,
+          "Metal": 8
+        },
+        {
+          "Sweep": 55,
+          "Decay": 0.28,
+          "Tune": -5,
+          "Color": 24,
+          "Model": "Fuse",
+          "Feedback": 6,
+          "Metal": 8
+        }
+      ],
       "level": 43,
       "inserts": [
         null,
@@ -362,152 +508,6 @@
             "Seed": 0
           }
         }
-      ],
-      "pads": [
-        {
-          "Tune": -5,
-          "Decay": 0.28,
-          "Model": "Fuse",
-          "Color": 24,
-          "Metal": 8,
-          "Feedback": 6,
-          "Sweep": 55
-        },
-        {
-          "Tune": -12,
-          "Decay": 0.19,
-          "Model": "Fuse",
-          "Color": 16,
-          "Metal": 12,
-          "Feedback": 3,
-          "Sweep": 0
-        },
-        {
-          "Tune": -5,
-          "Decay": 0.28,
-          "Model": "Fuse",
-          "Color": 24,
-          "Metal": 8,
-          "Feedback": 6,
-          "Sweep": 55
-        },
-        {
-          "Tune": -5,
-          "Decay": 0.28,
-          "Model": "Fuse",
-          "Color": 24,
-          "Metal": 8,
-          "Feedback": 6,
-          "Sweep": 55
-        },
-        {
-          "Tune": -5,
-          "Decay": 0.19,
-          "Model": "Fuse",
-          "Color": 16,
-          "Metal": 12,
-          "Feedback": 3,
-          "Sweep": 0
-        },
-        {
-          "Tune": -5,
-          "Decay": 0.28,
-          "Model": "Fuse",
-          "Color": 24,
-          "Metal": 8,
-          "Feedback": 6,
-          "Sweep": 55
-        },
-        {
-          "Tune": -5,
-          "Decay": 0.28,
-          "Model": "Fuse",
-          "Color": 24,
-          "Metal": 8,
-          "Feedback": 6,
-          "Sweep": 55
-        },
-        {
-          "Tune": 2,
-          "Decay": 0.19,
-          "Model": "Fuse",
-          "Color": 16,
-          "Metal": 12,
-          "Feedback": 3,
-          "Sweep": 0
-        },
-        {
-          "Tune": -5,
-          "Decay": 0.28,
-          "Model": "Fuse",
-          "Color": 24,
-          "Metal": 8,
-          "Feedback": 6,
-          "Sweep": 55
-        },
-        {
-          "Tune": -5,
-          "Decay": 0.28,
-          "Model": "Fuse",
-          "Color": 24,
-          "Metal": 8,
-          "Feedback": 6,
-          "Sweep": 55
-        },
-        {
-          "Tune": -5,
-          "Decay": 0.28,
-          "Model": "Fuse",
-          "Color": 24,
-          "Metal": 8,
-          "Feedback": 6,
-          "Sweep": 55
-        },
-        {
-          "Tune": 7,
-          "Decay": 0.19,
-          "Model": "Fuse",
-          "Color": 16,
-          "Metal": 12,
-          "Feedback": 3,
-          "Sweep": 0
-        },
-        {
-          "Tune": -5,
-          "Decay": 0.28,
-          "Model": "Fuse",
-          "Color": 24,
-          "Metal": 8,
-          "Feedback": 6,
-          "Sweep": 55
-        },
-        {
-          "Tune": -5,
-          "Decay": 0.28,
-          "Model": "Fuse",
-          "Color": 24,
-          "Metal": 8,
-          "Feedback": 6,
-          "Sweep": 55
-        },
-        {
-          "Tune": -5,
-          "Decay": 0.28,
-          "Model": "Fuse",
-          "Color": 24,
-          "Metal": 8,
-          "Feedback": 6,
-          "Sweep": 55
-        },
-        {
-          "Tune": -5,
-          "Decay": 0.28,
-          "Model": "Fuse",
-          "Color": 24,
-          "Metal": 8,
-          "Feedback": 6,
-          "Sweep": 55
-        }
       ]
     }
   ],
@@ -540,7 +540,6 @@
       }
     }
   ],
-  "dx7": [],
   "mod": {
     "seed": 1,
     "rack": [
