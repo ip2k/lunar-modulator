@@ -38,6 +38,8 @@ try {
   await page.locator('[data-note="0"]').click();await canvas('Control+d');
   assert.equal(await page.evaluate(()=>model().tracks[0].clips[0].notes.length),2);
   await canvas('ArrowUp');assert.equal(await page.evaluate(()=>model().tracks[0].clips[0].notes[1].pitch),61);
+  assert.equal(await page.getByLabel('MIDI pitch',{exact:true}).inputValue(),'61',
+    'stopped-propagation note click releases redraw before rapid keyboard edits');
   await canvas('ArrowRight');assert.equal(await page.evaluate(()=>model().tracks[0].clips[0].notes[1].tick),48);
   await canvas('0');assert.equal(await page.evaluate(()=>model().tracks[0].muted),1);
   await canvas('Alt+a');assert.equal(await page.evaluate(()=>model().tracks[0].muted),0);

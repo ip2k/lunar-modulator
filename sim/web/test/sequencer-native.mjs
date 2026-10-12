@@ -267,6 +267,17 @@ try {
     await page.evaluate(() => window.refreshTarget.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true })));
     await page.waitForFunction(() => !window.refreshTarget.isConnected, null, { timeout: 2000 });
     await page.evaluate(async () => {
+      window.stoppedClickTarget = document.querySelector('[data-view="Clip"]');
+      window.stoppedClickTarget.addEventListener('click', e => e.stopImmediatePropagation(), { once: true });
+      window.stoppedClickTarget.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+      await fm1.editor.sequencer.refresh(true);
+      window.stoppedClickTarget.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+      window.stoppedClickTarget.click();
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    });
+    assert.equal(await page.evaluate(() => window.stoppedClickTarget.isConnected), false,
+      'stopped-propagation click flushes pending refresh without the no-click timeout');
+    await page.evaluate(async () => {
       const host = fm1.editor.sequencerHost, doc = await host.fetchProject();
       doc.sounds[0].engine = 'macro'; doc.sounds[0].params = { Model: 0, Harmonics: .5 };
       await host.applyProject(doc, 'Compact inspector fixture'); await fm1.editor.sequencer.refresh();
