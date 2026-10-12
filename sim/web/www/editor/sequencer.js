@@ -107,13 +107,14 @@ export function makeSequencer(ctx) {
   const deviceDialog = el('dialog', 'sq-device-dialog', { id: 'sq-device-controls', 'aria-label': 'Device controls' });
   const transportMount = ctx.transportHost || el('div', 'sq-transport-mount');
   transportMount.classList.add('sq-transport-mount');
+  transportMount.classList.toggle('is-external', !!ctx.transportHost);
   if (!ctx.transportHost) root.append(transportMount);
   root.append(status, rotate, content, deviceDialog);
   const contains = target => root.contains(target) || transportMount.contains(target);
   const workspaceAll = selector => [...root.querySelectorAll(selector), ...(ctx.transportHost ? transportMount.querySelectorAll(selector) : [])];
   const state = { doc: null, model: null, busy: false, loading: null, dirty: true, track: 0, scene: 0,
     note: -1, page: 0, pitch: 60, low: 48, song: 0, lane: 0, inspector: null, midi: null, solo: null, mixDetails: null,
-    noteAdvancedOpen: false, follow: true, view: 'Scenes' };
+    noteAdvancedOpen: false, automationAssignOpen: false, follow: true, view: 'Scenes' };
   let disposed = false, pendingFocus = null, suppressNoteClick = false, cancelDrag = null, readError = false;
   let pendingRollNote = -1;
   let readRevision = 0, readText = null;
@@ -152,7 +153,9 @@ export function makeSequencer(ctx) {
   root.addEventListener('pointerdown', () => { pointerActive = true; }, { capture: true });
   const finishPointer = () => { pointerActive = false; if (resizePending) scheduleResize(); };
   window.addEventListener('pointerup', finishPointer); window.addEventListener('pointercancel', finishPointer);
-  root.addEventListener('focusout', () => { if (resizePending) scheduleResize(); });
+  const finishEdit = () => { if (resizePending) scheduleResize(); };
+  root.addEventListener('focusout', finishEdit);
+  if (ctx.transportHost) transportMount.addEventListener('focusout', finishEdit);
   function pageControls(key, total, size, noun, change) {
     const index = key === 'steps' ? state.page : state[key], pages = Math.max(1, Math.ceil(total / size));
     return el('div', 'sq-page-nav', { 'aria-label': `${noun} pages` }, [
@@ -172,15 +175,26 @@ export function makeSequencer(ctx) {
       { placeholder: `Track ${t + 1}`, pattern: '[\\x20-\\x7e]{0,16}', title: 'Double-click, Enter or F2 to rename. Up to 16 printable ASCII characters; spaces allowed. Clear for the numbered name.' });
     return el('div', 'sq-track-title', {}, [input]);
   }
+  function trackHeader(track, t, group) {
+    const route = track.route;
+    const header = el('div', `sq-track-head sq-track-select ${group}`, { role: 'group', tabindex: 0,
+      'aria-label': `Track ${t + 1} header`, 'aria-current': t === state.track ? 'true' : 'false',
+      'aria-description': 'Click empty space or press Enter or Space to select this track. Double-click its name to rename.',
+      'data-track-header': t, title: 'Click empty space to select track; double-click name to rename.' }, [trackTitle(t),
+      choose(`Track ${t + 1} output`, `${route.kind === 1 ? 's' : 'm'}${route.index}`, routeOptions(), v => edit(`Route track ${t + 1}`, m => { m.tracks[t].route = { kind: v[0] === 's' ? 1 : 0, index: Number(v.slice(1)) }; }))]);
+    header.addEventListener('click', e => { if (!e.target.closest('button, input, select, textarea, label, summary, a')) selectClip(t, state.scene); });
+    header.addEventListener('keydown', e => { if (e.target === header && ['Enter', ' '].includes(e.key)) { e.preventDefault(); selectClip(t, state.scene); } });
+    return header;
+  }
   function announce(text, error = false) {
     readError = false;
     status.textContent = text; status.classList.toggle('is-error', error); ctx.say?.(text);
   }
   function lock(on) {
-    if (on && content.contains(document.activeElement)) { const a = document.activeElement; pendingFocus = a.getAttribute('aria-label'); }
-    state.busy = on; content.disabled = on; root.setAttribute('aria-busy', String(on));
+    if (on && contains(document.activeElement)) { const a = document.activeElement; pendingFocus = a.getAttribute('aria-label'); }
+    state.busy = on; content.disabled = on; const transport = transportMount.querySelector('fieldset'); if (transport) transport.disabled = on; root.setAttribute('aria-busy', String(on));
     if (!on && resizePending) scheduleResize();
-    if (!on && pendingFocus) { const e = [...content.querySelectorAll('[aria-label]')].find(e => e.getAttribute('aria-label') === pendingFocus); e?.focus({ preventScroll: true }); pendingFocus = null; }
+    if (!on && pendingFocus) { const e = workspaceAll('[aria-label]').find(e => e.getAttribute('aria-label') === pendingFocus); e?.focus({ preventScroll: true }); pendingFocus = null; }
   }
   async function refresh(force = false) {
     if (state.busy && !force) { state.dirty = true; return; }
@@ -270,6 +284,8 @@ export function makeSequencer(ctx) {
     const key = state.inspector;
     state.inspector = null;
     if (deviceDialog.open) deviceDialog.close();
+    if (!ctx.fileToolsHost) { const files = deviceDialog.querySelector('.sq-file-tools'); if (files) transportMount.querySelector('.sq-transport')?.append(files); }
+    deviceDialog.replaceChildren();
     const trigger = root.querySelector(`[data-inspector="${key}"]`);
     trigger?.setAttribute('aria-expanded', 'false');
     trigger?.focus({ preventScroll: true });
@@ -517,8 +533,7 @@ export function makeSequencer(ctx) {
     ])); });
     state.model.tracks.forEach((track, t) => {
       const route = track.route, group = route.kind === 1 ? `ed-s${route.index + 1}` : '';
-      timeline.append(el('div', `sq-track-head ${group}`, {}, [trackTitle(t), btn('Select track', () => selectClip(t, state.scene), { 'aria-label': `Select track ${t + 1}` }),
-        choose(`Track ${t + 1} output`, `${route.kind === 1 ? 's' : 'm'}${route.index}`, routeOptions(), v => edit(`Route track ${t + 1}`, m => { m.tracks[t].route = { kind: v[0] === 's' ? 1 : 0, index: Number(v.slice(1)) }; }))]));
+      timeline.append(trackHeader(track, t, group));
       columns.forEach((e, offset) => {
       const i = first + offset;
         const c = track.clips[e.scene];
@@ -557,8 +572,7 @@ export function makeSequencer(ctx) {
     ])); }
     state.model.tracks.forEach((track, t) => {
       const route = track.route, group = route.kind === 1 ? `ed-s${route.index + 1}` : '';
-      grid.append(el('div', `sq-track-head ${group}`, {}, [trackTitle(t), btn('Select track', () => selectClip(t, state.scene), { 'aria-label': `Select track ${t + 1}` }),
-        choose(`Track ${t + 1} output`, `${route.kind === 1 ? 's' : 'm'}${route.index}`, routeOptions(), v => edit(`Route track ${t + 1}`, m => { m.tracks[t].route = { kind: v[0] === 's' ? 1 : 0, index: Number(v.slice(1)) }; }))]));
+      grid.append(trackHeader(track, t, group));
       for (let scene = first; scene < last; scene++) {
         const c = track.clips[scene];
         const notes = c?.notes.length || 0, bars = c ? c.length / 16 : 0;
@@ -770,13 +784,15 @@ export function makeSequencer(ctx) {
       m.tracks[state.track].lanes[lane] = { label, base: assigned?.label === label ? assigned.base : param?.base ?? 64 };
     });
     const start = pageStart(), end = Math.min(start + pageSize(), c.loopStart + c.length);
-    const controls = el('div', 'sq-toolbar', {}, [
+    const controls = el('details', 'sq-automation-assign', { open: state.automationAssignOpen, ontoggle: e => { state.automationAssignOpen = e.currentTarget.open; } }, [
+      el('summary', '', { text: 'Add automation', 'aria-label': 'Add automation', title: 'Assign one of eight native lock lanes to an instrument, insert, sound level or master effect parameter.' }),
+      el('div', 'sq-toolbar', {}, [
       choose('Lock lane', lane, Array.from({ length: 8 }, (_, i) => [i, `Lane ${i + 1}${track.lanes[i] ? ' · ' + track.lanes[i].label : ''}`]), v => { state.lane = Number(v); draw(); }),
       targets.some(t => t.params.length) ? choose('Automation target', targetId, targets.filter(t => t.params.length || t.id === targetId).map(t => [t.id,t.name]), v => { const p = targets.find(t => t.id === v)?.params[0]; if (p) assign(p.label); }) : null,
       params.length ? choose('Parameter', assigned?.label || params[0].label, params.map(p => [p.label,p.name]), assign) : null,
       !assigned && params.length ? btn('Assign parameter', () => assign(params[0].label)) : null,
       assigned ? field('Base · 0–127', assigned.base, v => edit('Set lane base', m => { m.tracks[state.track].lanes[lane].base = v; }), { min: 0, max: 127, step: 1 }) : null,
-    ]);
+    ])]);
     const points = el('div', 'sq-lock-grid');
     points.style.setProperty('--automation-steps', end - start);
     if (assigned) for (let step = start; step < end; step++) {
@@ -789,7 +805,7 @@ export function makeSequencer(ctx) {
       }); });
       points.append(el('label', 'sq-lock', {}, [el('span', '', { text: step + 1 }), input]));
     }
-    return el('section', 'sq-section', {}, [el('h3', '', { text: 'Parameter locks' }), controls,
+    return el('section', 'sq-section', {}, [controls,
       el('div', 'sq-scroll', { 'data-scroll': 'locks' }, [automationRows(c, start, end), points]),
       null]);
   }
@@ -954,10 +970,11 @@ export function makeSequencer(ctx) {
       const body = ctx.inspector(state.inspector);
       if (body) {
         const footer = el('footer', 'sq-device-dialog-footer', {}, []);
+        if (!ctx.fileToolsHost) { const files = transportMount.querySelector('.sq-file-tools'); if (files) footer.append(files); }
         deviceDialog.replaceChildren(el('div', 'sq-device-dialog-header', {}, [el('h3', '', { text: 'Device controls' }), btn('Close inspector', closeInspector)]), body, footer);
         if (!deviceDialog.open && deviceDialog.isConnected) deviceDialog.showModal();
       } else closeInspector();
-    } else if (deviceDialog.open) deviceDialog.close();
+    } else { if (deviceDialog.open) deviceDialog.close(); deviceDialog.replaceChildren(); }
     for (const e of content.querySelectorAll('[data-scroll]')) { const p = scrolls.get(e.dataset.scroll); if (p) { e.scrollLeft = p[0]; e.scrollTop = p[1]; } }
     const roll = content.querySelector('[data-scroll="piano"]');
     if (roll && pendingRollNote >= 0) {
@@ -1103,5 +1120,5 @@ export function makeSequencer(ctx) {
 return { render() { if (state.dirty && !state.busy) refresh(); return root; }, refresh, update, onTelemetry, syncLevels, onKey, contains,
     toggleTransport: () => action(ctx.playPause), restartTransport: () => action(ctx.restart),
     wantRows() { return (ctx.metadata?.doc?.telemetry?.sections || []).filter(s => ['meters', 'levels'].includes(s.name)).flatMap(s => s.rows.flatMap((row, r) => state.view === 'Mixer' || row === 'out.post_master' ? [s.mask + r] : [])); },
-    invalidate() { state.dirty = true; readRevision++; }, destroy() { gridObserver.disconnect(); cancelAnimationFrame(resizeFrame); window.removeEventListener('pointerup', finishPointer); window.removeEventListener('pointercancel', finishPointer); releaseFader?.(); closeInspector(); disposed = true; cancelDrag?.(); window.removeEventListener('resize', syncMixerAfterResize); compactMixerMedia.removeEventListener('change', syncMixerDisclosure); if (ctx.transportHost) transportMount.replaceChildren(); root.remove(); } };
+    invalidate() { state.dirty = true; readRevision++; }, destroy() { gridObserver.disconnect(); cancelAnimationFrame(resizeFrame); if (ctx.transportHost) transportMount.removeEventListener('focusout', finishEdit); window.removeEventListener('pointerup', finishPointer); window.removeEventListener('pointercancel', finishPointer); releaseFader?.(); closeInspector(); disposed = true; cancelDrag?.(); window.removeEventListener('resize', syncMixerAfterResize); compactMixerMedia.removeEventListener('change', syncMixerDisclosure); if (ctx.transportHost) transportMount.replaceChildren(); root.remove(); } };
 }

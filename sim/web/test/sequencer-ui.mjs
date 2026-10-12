@@ -32,21 +32,21 @@ try {
  await name.press('F2');await name.fill('Cancel');await name.press('Escape');
  if(await name.inputValue()!==' Bass 1 '||await page.evaluate(()=>window.model().tracks[0].name)!==' Bass 1 ')throw Error('Escape did not cancel rename');
  await name.dblclick();await name.fill('Bass 2');
- await page.getByRole('button',{name:'Select track 1',exact:true}).focus();
+ await page.getByRole('group',{name:'Track 1 header',exact:true}).focus();
  await page.waitForFunction(()=>window.model().tracks[0].name==='Bass 2');
  // Hold the destination pointer down: blur must not lock it before click.
  await name.press('Enter');await name.fill('Click Bass');
- const destination=page.getByRole('button',{name:'Select track 2',exact:true});
- const destBox=await destination.boundingBox();await page.mouse.move(destBox.x+10,destBox.y+10);await page.mouse.down();
+ const destination=page.getByRole('group',{name:'Track 2 header',exact:true});
+ const destBox=await destination.boundingBox();await page.mouse.move(destBox.x+4,destBox.y+4);await page.mouse.down();
  await page.waitForTimeout(120);await page.mouse.up();
  await page.waitForFunction(()=>window.model().tracks[0].name==='Click Bass');
  if(!await page.evaluate(()=>window.calls.includes('watch 1')))throw Error('Blur save swallowed destination click');
- await page.getByRole('button',{name:'Select track 1',exact:true}).click();
+ await page.getByRole('group',{name:'Track 1 header',exact:true}).click({position:{x:4,y:4}});
  await name.dblclick();await name.fill('Bass 2');
- const tapBox=await destination.boundingBox();await page.touchscreen.tap(tapBox.x+10,tapBox.y+10);
+ const tapBox=await destination.boundingBox();await page.touchscreen.tap(tapBox.x+tapBox.width/2,tapBox.y+tapBox.height-16);
  await page.waitForFunction(()=>window.model().tracks[0].name==='Bass 2');
  if(await page.locator('.sq-scene-edit[aria-pressed="true"]').first().getAttribute('aria-label')!=='Edit track 2 scene 1')throw Error('Blur save swallowed destination touch tap');
- await page.getByRole('button',{name:'Select track 1',exact:true}).click();
+ await page.getByRole('group',{name:'Track 1 header',exact:true}).click({position:{x:4,y:4}});
  await name.press('Enter');await name.fill('12345678901234567');await name.press('Enter');
  if(await page.evaluate(()=>window.model().tracks[0].name)!=='Bass 2'||await name.evaluate(e=>e.readOnly))throw Error('Invalid rename was truncated or saved');
  await name.press('Escape');
@@ -92,7 +92,7 @@ try {
  await page.mouse.move(handle.x+3,handle.y+8);await page.mouse.down();await page.mouse.move(handle.x+3+stepWidth,handle.y+8,{steps:4});await page.mouse.up();
  await page.waitForFunction(()=>window.model().tracks[0].clips[0].notes.some(n=>n.pitch===61&&n.gate===72));
  await tab('Automation');
- await page.getByRole('button',{name:'Assign parameter',exact:true}).click();await page.waitForFunction(()=>!!window.model().tracks[0].lanes[0]);
+ await page.getByLabel('Add automation',{exact:true}).click();await page.getByRole('button',{name:'Assign parameter',exact:true}).click();await page.waitForFunction(()=>!!window.model().tracks[0].lanes[0]);
  await page.getByLabel('Automation target',{exact:true}).selectOption('in1');await page.waitForFunction(()=>window.model().tracks[0].lanes[0]?.label==='in1:Cutoff');
  await page.getByLabel('Automation target',{exact:true}).selectOption('m1');await page.waitForFunction(()=>window.model().tracks[0].lanes[0]?.label==='m1:Cutoff');
  await page.getByLabel('Automation target',{exact:true}).selectOption('mix');await page.waitForFunction(()=>window.model().tracks[0].lanes[0]?.label==='mix:Level');
@@ -171,9 +171,9 @@ try {
  if(!await page.locator('.sq-status').textContent().then(t=>t.includes('test refusal')))throw Error('refusal not visible');
  if(await page.evaluate(()=>window.model().bpmX100)!==12000)throw Error('refusal mutated model');
  await tab('Clip');
- await page.evaluate(()=>{window.reject=false;window.seq.update({playing:true,scene:0,step:4,songIndex:0,tracks:[{active:1,playing:0,posTick:96}]})});
+ await page.evaluate(()=>{window.reject=false;window.seq.update({playing:true,scene:0,step:4,master_tick:96,songIndex:0,tracks:[{active:1,playing:0,posTick:96}]})});
  if(await page.locator('[data-roll-playhead]').isHidden())throw Error('playhead hidden for playing clip while another clip queued');
- if(!await page.locator('[data-play-position]').textContent().then(t=>t.includes('Scene 1 · Step 5')))throw Error('Queued scene shown as playing');
+ if(!await page.locator('[data-play-position]').textContent().then(t=>t==='0:1:0'))throw Error('Queued scene shown as playing');
  const midi = Buffer.from([77,84,104,100,0,0,0,6,0,0,0,1,0,96,77,84,114,107,0,0,0,12,0,144,67,100,96,128,67,0,0,255,47,0]);
  await page.locator('.sq-file-tools > summary').click();
  const beforeBatch = await page.evaluate(() => ({ doc: JSON.stringify(window.doc), calls: window.calls.length }));

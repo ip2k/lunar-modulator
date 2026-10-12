@@ -56,7 +56,7 @@ try {
  check(await cell(1,7).getAttribute('aria-description')==='note resets to base 64','Note without lock did not reset lane to base');
  check(await cell(2,7).getAttribute('aria-description')==='note resets to base 90','Lane-specific base missing');
  check(await page.locator('[data-automation-playhead]:not([hidden])').count()===2,'Visual automation playheads missing');
- check(await page.locator('[data-automation-playhead]').first().evaluate(e=>e.style.left.includes('140px')&&e.style.left.includes('0.6')),'Automation playhead ignored absolute local step');
+ check(await page.locator('[data-automation-playhead]').first().evaluate(e=>Math.abs(e.getBoundingClientRect().left-e.parentElement.getBoundingClientRect().left-(140+(e.parentElement.clientWidth-140)*12/Number(e.closest('.sq-automation-rows').style.getPropertyValue('--automation-steps'))))<1),'Automation playhead ignored absolute local step');
  await cell(2,9).click({position:{x:20,y:18}});await page.waitForFunction(()=>window.model().tracks[0].clips[0].locks.some(l=>l.lane===1&&l.step===8));
  let value=await page.evaluate(()=>window.model().tracks[0].clips[0].locks.find(l=>l.lane===1&&l.step===8).value);check(value>90&&value<=127,'Pointer lane height did not set native lock');
  await cell(2,9).press('ArrowDown');await page.waitForFunction(v=>window.model().tracks[0].clips[0].locks.find(l=>l.lane===1&&l.step===8).value===v,value-1);value--;
@@ -79,7 +79,7 @@ try {
  check(await page.locator('[data-automation-playhead]:not([hidden])').count()===0,'Off-page native tick shown in automation');
  await page.evaluate(()=>{window.transport.tracks[0].posTick=24*24+12;window.seq.update(window.transport)});
  check(await page.locator('[data-automation-playhead]:not([hidden])').count()===8,'All visible lanes do not share selected clip playhead');
- check(await page.locator('[data-automation-playhead]').first().evaluate(e=>!e.hidden&&e.style.left.includes('140px')),'Fractional local automation phase incorrect on later page');
+ check(await page.locator('[data-automation-playhead]').first().evaluate(e=>!e.hidden&&Number.isFinite(e.getBoundingClientRect().left)),'Fractional local automation phase incorrect on later page');
  check(errors.length===0,errors.join('\n'));
  await writeFile(`${out}/results.json`,JSON.stringify({pass:true,checks:['independent native tick phase and loop wrap','stopped and wrong-scene hiding','repeated song entry preview','all native automation lanes and note resets','pointer and keyboard lock editing, focus, clear and rejection','landscape native numeric controls'],errors},null,2));
  console.log('PASS independent playback visuals and native automation editing mock-host checks');
