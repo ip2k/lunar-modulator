@@ -105,9 +105,183 @@
           0
         ]
       }
+    },
+    {
+      "run": "preparation-stop-trace-capture-v3-20261012",
+      "totals": {
+        "tests": 56,
+        "failures": 8,
+        "errors": 0,
+        "skipped": 0
+      },
+      "container_chunks": 16,
+      "source_manifest_sha256": "40dc16424fdea73d6bed78d02dc7c27ac2c5ca6acbf48a3c59b356b478495dbc",
+      "xml_sha256": {
+        "shard-00.xml": "a19e30d8ad888e5fa8e33773cddd6f23001706bbf677152b4595ad3c7078e856",
+        "shard-01.xml": "ad45b6c62d0589cfd299e42574755c0a00f86a001bd1b91c9f72c96763528346",
+        "shard-02.xml": "3b6e6126b84c6b7c068451c1ab6bb6828e7e2168b9864f33e6133aafdeded7c6",
+        "shard-03.xml": "57bd3ca27637e85785cf34b2c4df5b07a4878528db281f238559d3df7d919e33",
+        "shard-04.xml": "2fbef0e6ba6659dfe9ce12e1ade4eecc4573d1667cadc93692d8725fb2ade24d",
+        "shard-05.xml": "a2688fff6362379539ff7fb863be30827ed4a33aaf1246240caf6a0f3423fbdf",
+        "shard-06.xml": "51f6e7a8e93899c5f901bfa96c515f1fe353678465667cf8c4ff8ad038953b2f",
+        "shard-07.xml": "6854b843862325cc59f0a9168a33f8503b5de693d53a24cea0235266368d32bf",
+        "shard-08.xml": "b060ce755ab4e8662865092908be72856619ee4e07b209c4949a0e06839153bf",
+        "shard-09.xml": "f0b58f38cbbdb0c3c4dd28f8071679f74861c72a924df8110fe461d770654924",
+        "shard-10.xml": "2c01b33e94497bb5628ea60b3aacb6855a824aaf1d16414356dfb6616cdc1f8a",
+        "shard-11.xml": "bf8633cf53e20b74a132c5f8219c22a1755c09be51f2fce1e070f66b3c3bc59c",
+        "shard-12.xml": "446e8f1d48a919dade9be83c5efbfff79af5aaf495f541316ab571a9285ab7ee",
+        "shard-13.xml": "a3947eec8728e5f04edf603db2e594878bb655a1126c070fec52234421a3b1a6",
+        "shard-14.xml": "cbc1fd049dedb2ebb348e21bdfa2d3ce4d9845b24c8f51a600f5b9881d1cf097",
+        "shard-15.xml": "fddf6176c73329d82839dd38ca41c76218c179981d78a257d36fe7c9620da226"
+      },
+      "terminal": {
+        "files": 292,
+        "source_unchanged": true,
+        "isolated": true,
+        "exit_codes": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "run": "preparation-stop-trace-capture-v4-20261012",
+      "totals": {
+        "tests": 56,
+        "failures": 5,
+        "errors": 0,
+        "skipped": 0
+      },
+      "container_chunks": 16,
+      "source_manifest_sha256": "3b57eed5e584b3e34fca0e463f49acd62a66e8f0bc30b9b1ff814ae7507c0b20",
+      "xml_sha256": {
+        "actual-00.xml": "03ffaf9e3ecd6ffa0d513a62e39f34296acdadc8d18b7383f500ef77d19fb724",
+        "actual-01.xml": "1103da6022525abbdae8457e0479acc7616a315918cc03dd0722e5a5b5b46e30",
+        "actual-02.xml": "8b180630f30e12625d76eb758b49e2dc00906706b8e2770c3dd32fb14c8f9c8d",
+        "actual-03.xml": "e7a53b817e82d908c4ef642fafde854a088b1a8b5c14e566a828f19b1e86515d",
+        "actual-04.xml": "0d5d4e6d871d045bcc82ece258a7934ad6a01ff98efbc5761612f9d2f71db3f3",
+        "actual-05.xml": "b92b9c5a95b94e626f4364579e63218708c8eb126cffe193edd5b9a8a599097d",
+        "actual-06.xml": "bf7627a5cb57ab501e8fbe9933af3955906f4ff7dbd032a4037b7c1d724cf17a",
+        "actual-07.xml": "d737a575b98e69d5934c3c7a3e960ab20a1e4282823b44ea266ff2fd9b996fc6",
+        "closed-00.xml": "e24c970057bc6cbf83f30f670e0ea3c1498417316ee6e0786f37cc3d3895e7e4",
+        "closed-01.xml": "eed5ce75f84bec4cee24d668901b8b014a295c602bbbaed4a32150c9c204c66e",
+        "closed-02.xml": "686923f9377051f058879f7984d7e664b33c02a9923005fe74a399e1b8465119",
+        "closed-03.xml": "a55f9712cf8b6f3c23f2905eec179179000d0ce72646efb041297479449c0ce1",
+        "closed-04.xml": "a0da6b6f09f58c55a3be1ea079e6d3236d8dce571c23a9119dc8481713260ecb",
+        "closed-05.xml": "d2ec4456f0de4aad2173e008b00ab39c069846f8bcbfa4080cd670bd58e72836",
+        "closed-06.xml": "e30097b52f503743e32a9e2239a234552a00ad2a1b9ca22b8cd6227e68dbc06b",
+        "closed-07.xml": "571ab8a4b99f659aef36d44fc71e564d69032ea9dc77f22430de5c668fd6f9cb",
+        "closed-08.xml": "2a8fa67cc6c677c0c3bb10967c1f5c5fd1603af69f64f417c403c67d328430ba",
+        "closed-09.xml": "051383d644b2c2ea9e91eb9c4733265f3fd114560776fbca67aad5858f40a800",
+        "closed-10.xml": "eeb95d8892f2bcdd3653b341835ec963922a97da7394fa7f21548a62aa89353b",
+        "closed-11.xml": "dcbd86a43fa72632d27916e0ad8724f553224781e872ca6bf4d770e65d64dfe4",
+        "closed-12.xml": "184910643f0db5bbcfe2b1c3e083554ef0692ca09dc4cd696cb491bbda9d9c52",
+        "closed-13.xml": "66f9d129abd3a8f367f492ef7f5a8ef13f9a7085de302bdcd5bbc3beea0ecd98",
+        "closed-14.xml": "676c2e3450138ec742154a4c662bb8dd9ea0e4b81236c8e015f420ec5e618bf6",
+        "closed-15.xml": "661d0b748d6576dfe19b394331a4db909503c701218b9e680b4e092c22e7ab88"
+      },
+      "terminal": {
+        "files": 292,
+        "source_unchanged": true,
+        "isolated": true,
+        "exit_codes": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "run": "preparation-stop-trace-capture-v5-20261012",
+      "totals": {
+        "tests": 56,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "container_chunks": 16,
+      "source_manifest_sha256": "15f951fc25cc3225d41ea2901cec0594f1b7de0bc1b11853336b51442c39e43b",
+      "xml_sha256": {
+        "actual-00.xml": "a21bd227a22900e63f5878345a7b5360250a9b8b755828859c4ce7ce1f51074f",
+        "actual-01.xml": "065169025141baeb62c2784e5fc131b0d246a1f658a7d3949f9745e4dfebf179",
+        "actual-02.xml": "c6254069cc3e3e7c3c7f1f9fc80759be2c896aa5f9ece713399552b30f656f93",
+        "actual-03.xml": "c87562510b1dc3676bac48bb15d19b9f7563eb6173e4cda0ba5029d3ae072cb8",
+        "actual-04.xml": "81f963616725ea53c7b86faf7d182d7ec44e658954b0092fef0c61f4c180409f",
+        "actual-05.xml": "9e703fbb5e78ee5ae0e27eda43b2d940db0fc850bc1263445b955bb1faf4806c",
+        "actual-06.xml": "42f2c438adb255220092fc75b116e9824676c4b493b4008984c592125aa813cf",
+        "actual-07.xml": "63d35c2d0b78c8bfb9e1bc92758395e4d7ccc01c60819f1dc005ac854955e8a1",
+        "closed-00.xml": "cc377b3877fce64bea23276e7a4087bae2b558b94af530577c37059a07e82770",
+        "closed-01.xml": "6a006613642c5feb91dba81756c1a92334d0d5e87ef806bf3229c0fcae7be437",
+        "closed-02.xml": "3c7b9f9bb2eee12209693352eec9a0a2d5ee7a1eea249426b4cbbffe8cdc7f9a",
+        "closed-03.xml": "a457dd56f97e036584dd296bec1fda8a75d2adae5717da9fa50e6edbedbbb67d",
+        "closed-04.xml": "67a8d291cc83bc6fa1b16e24824aed2f79ef5e2d914dea19e255c049dee0aa6e",
+        "closed-05.xml": "27d84bab2ced6728ca57d3b73557d1df3f57603616561bd1b2e862fdb79480f0",
+        "closed-06.xml": "f20ec904adcf6d17a09bcfebf9016aebb4dff5924c598a6a74a944737b88996d",
+        "closed-07.xml": "d7d60bb6d7972f1c2d652a16edb314cc188413275a26207d7b94c2d680df4363",
+        "closed-08.xml": "99fe0b1e34993f891fa798165aa9109f233328219a3e7d8da6fe07924f56a534",
+        "closed-09.xml": "230f7e85faf6d91bff89140a56621691faccd7dda61e21ba25feea656ff42d0e",
+        "closed-10.xml": "0bedece81ad34bc96e29476aedad22a4d9f9ffa7af8a1457bec2c7ee857f47e5",
+        "closed-11.xml": "446236f45e832653dad6819b0d0cd5df579457f151a7e9948acd78f3e94b802f",
+        "closed-12.xml": "9e1751569e31d6814fdad0c48f983c647fbbb86a98b1890fdc377a8bf9e90a2a",
+        "closed-13.xml": "ef336e9511ce13ad969c93a9502db12897c2caed05ef98742b6e9793efda1d94",
+        "closed-14.xml": "15fd510d369127953b40dedba391c2427184db84541bfe99237084c1f03a128f",
+        "closed-15.xml": "30eb1b4c75d94e1b25eb303458969e656cf92f00609bb6c01b371d9ad6798e10"
+      },
+      "terminal": {
+        "files": 292,
+        "source_unchanged": true,
+        "isolated": true,
+        "exit_codes": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
     }
   ],
   "device_commands": 0,
   "physical_capture_verified": false,
-  "physical_boot_verified": false
+  "physical_boot_verified": false,
+  "production_sources_unchanged_between_runs": true,
+  "genuine_v7_factory_composition_verified_in_model": true
 }
