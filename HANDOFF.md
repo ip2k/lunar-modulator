@@ -16,7 +16,7 @@ Physical diagnostic boot/display and full-stock recovery remain unverified.
 Read `notes/2026-10-12-packetry-live-capture.md` for current evidence; the restart
 checkpoint and boundaries below are historical unless explicitly refreshed.
 
-Latest verified backed-up head before this checkpoint: 8a75bc300c91ba768729d21215b9e934221fb018,
+Latest verified backed-up head before this checkpoint: 4a8577d18aad7e4f3b5c7ff049f58aed8bcce818,
 branch `feature/2026-10-11@installable-firmware`, managed worktree
 `installable-firmware/mvave-fm1-firmware`. No hardware gate is active;
 do not run historical V5 packets or reuse consumed markers.
@@ -69,8 +69,10 @@ The recovery README's obsolete integration claim is corrected. P33 lock and
 scheduler dependence remain explicit; this is not independent acceptance or
 completion of the overdue whole-repository audit.
 
-CI run 38301026217 on exact 292f1d8a is in progress at this checkpoint; earlier
-13-job green runs do not cover this work. Next: retain V6k results, resolve
+CI run 38301026217 passed all 13 jobs on exact 292f1d8a. This does not cover
+later checkpoint commits. The closed 242-line sequencer was read completely;
+notes/2026-10-12-sequencer-source-review.md records its scope and remaining gates.
+Next: retain V6k results, resolve
 current-reader/source closure review, complete fresh root/recovery-plan review
 and exact-head CI before staged hardware work. Physical diagnostic boot/display,
 full-stock restore and whole-code audit remain pending. Use Hera for heavy work,
