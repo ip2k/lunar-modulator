@@ -1337,3 +1337,13 @@ The overall goal remains active; this source checkpoint is not completion.
 Goal remains active. New closed owned-capture wrapper/child retained with 48 process-model checks passing across 16 Hera containers (v1 46 and v2 48, no skips). No new device operation. See notes/2026-10-12-preparation-stop-trace-capture/. Earlier reader fef31ad all 13 CI jobs passed; new adapter awaits CI and genuine V7 capture composition. Preserve powered FM-1 RAM; no physical cycle needed. Mac locked to computer-use; Cynthion interface held by Packetry; pending owner unlock/normal quit. Next genuine factory composition, exact physical capture packet, one bounded trace read, explicit successor backup/restore admission, interrupted-write recovery and physical boot/display acceptance. Branch feature/2026-10-11@installable-firmware; preceding verified pushed commit 38e9cb167a77750228c256f92d485ac113a4c1c0.
 
 Genuine capture composition v5 now passed 56 checks in 16 isolated Hera chunks, zero failures/errors/skips; production sources unchanged through retained failed v3/v4 harness runs. Exact child transport gets modeled SG syscalls while canonical source/permit checks remain. See capture review/verification. Capture adapter backed up at 7ecdb8f7cd84bc10672f0f403d3a0c959721ae9f; CI38319511427 pending. Mac locked/exclusive Cynthion claim error still live, no physical cycle requested. Next concrete physical packet and capture access, one trace read, then explicit recovery successor. Do not confuse modeled final-start bytes with actual RAM.
+
+Physical file-only preparation now passed genuine V7 proof, passive unchanged
+USB/SG mapping, canonical five-read preparation and 297-member capture packet
+checks. Zero commands; no RAM reply or boot proof. See capture/physical-preparation.md
+for exact pins and retained script. The packet expired at1791846397.3010914;
+do not execute or rewrite its witness. Latest source08f43679 CI38319820698 is
+pending behind38e9cb16. FM1 remains1/10 UBOOT, Cynthion still exclusive-access
+blocked, computer-use reports locked. No cycle needed. Next distinct fresh
+packet once source/capture gates are ready, one bounded trace preservation,
+explicit post-read recovery admission and physical install/boot/display gates.
