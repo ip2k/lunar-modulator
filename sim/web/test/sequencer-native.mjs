@@ -268,7 +268,7 @@ try {
     await page.waitForFunction(() => !window.refreshTarget.isConnected, null, { timeout: 2000 });
     await page.evaluate(async () => {
       window.stoppedClickTarget = document.querySelector('[data-view="Clip"]');
-      window.stoppedClickTarget.addEventListener('click', e => e.stopImmediatePropagation(), { once: true });
+      window.stoppedClickTarget.addEventListener('click', e => e.stopImmediatePropagation(), { capture: true, once: true });
       window.stoppedClickTarget.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
       await fm1.editor.sequencer.refresh(true);
       window.stoppedClickTarget.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
