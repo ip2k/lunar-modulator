@@ -106,6 +106,13 @@ test('worklet posts content-only changes immediately and keeps old-module transp
   delete worker.fm1.exports.fm1w_seq_gen;
   seq[1] = 12500; worker.postSeq({ seq }); assert.equal(messages.length, 3);
   assert.equal(messages[2].bpm_x100, 12500); assert.equal('contentGen' in messages[2], false);
+  assert.equal(messages[2].playbackFrames, null); // no fabricated browser elapsed time
+  const extended = new Uint32Array(61); extended.set(seq);
+  extended[56] = 1; extended[57] = 12345; extended[58] = 2; extended[59] = 44118; extended[60] = 1;
+  worker.seqLast = new Uint32Array(61); worker.postSeq({seq:extended});
+  const native = messages.at(-1);
+  assert.equal(native.paused, true); assert.equal(native.playbackFrames, 2 * 4294967296 + 12345);
+  assert.equal(native.sampleRate, 44118); assert.equal(native.metronome, true);
 });
 test('toolbar and keyboard actions issue native pause, resume, rewind and locate verbs', () => {
   const h = harness(before), sent = []; h.sim.node.port = { postMessage: m => sent.push(new TextDecoder().decode(m.bytes)) };

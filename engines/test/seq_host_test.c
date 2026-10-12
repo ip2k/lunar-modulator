@@ -316,9 +316,9 @@ static void inputs_and_dispatch(uint64_t *n_events, uint64_t *n_calls, uint64_t 
 static void parsers_and_figures(void) {
   fm1_seq_limits_t lim;
   fm1_seq_limits_default(&lim, 8);
-  CHECK(fm1_seq_cmd_max_events(&lim) == 129u);       /* 64 gates + 8 x 8 lanes + Stop */
+  CHECK(fm1_seq_cmd_max_events(&lim) == 130u);       /* 64 gates + 8 x 8 lanes + Stop + Continue */
   fm1_seq_limits_default(&lim, 4);
-  CHECK(fm1_seq_cmd_max_events(&lim) == 97u);
+  CHECK(fm1_seq_cmd_max_events(&lim) == 98u);
   CHECK(fm1_seq_realtime_status("rt FA", 5) == 0xFAu);
   CHECK(fm1_seq_realtime_status("rt\t f8 \t", 8) == 0xF8u);
   CHECK(fm1_seq_realtime_status("rt FBxx", 5) == 0xFBu);   /* only len bytes count */

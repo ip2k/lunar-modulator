@@ -36,3 +36,21 @@ def test_seek_bounds_and_arrangement_entry(seq_tools, tmp_path):
     assert r.state('high')['tracks'][0]['playing'] == 1
     assert r.state('low')['master_tick'] == 0
     assert r.state('low')['paused'] == 1
+
+
+def test_pause_keeps_fractional_clock_phase(seq_tools, tmp_path):
+    uninterrupted = Script(tracks=8).play().blocks(403).snap('end').run(seq_tools, tmp_path, compat=False, name='straight')
+    paused = Script(tracks=8).play().blocks(301).cmd('pause').blocks(997).cmd('resume').blocks(102).snap('end')
+    carried = paused.run(seq_tools, tmp_path, compat=False, name='carried')
+    assert carried.state('end')['master_tick'] == uninterrupted.state('end')['master_tick']
+    assert carried.state('end')['playback_frames'] == uninterrupted.state('end')['playback_frames']
+    assert carried.state('end')['tracks'][0]['pos'] == uninterrupted.state('end')['tracks'][0]['pos']
+
+
+def test_external_continue_carries_pause_and_external_locate_is_refused(seq_tools, tmp_path):
+    s = Script(tracks=8).cmd('link 1; loop 0 0 64').play().blocks(103).snap('before')
+    s.cmd('pause').blocks(501).cmd('rt FB').snap('continued').cmd('seekbar 2').snap('refused')
+    r = s.run(seq_tools, tmp_path, compat=False)
+    assert r.state('continued')['playing'] == 1 and r.state('continued')['paused'] == 0
+    assert r.state('continued')['master_tick'] == r.state('before')['master_tick']
+    assert r.state('refused')['master_tick'] == r.state('continued')['master_tick']
