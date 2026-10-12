@@ -640,8 +640,10 @@ portrait displays a rotate prompt
 without changing playback. In short landscape windows, the device-screen preview
 is hidden to leave room for editing.
 
-**Scenes** exposes all 64 native clip slots and separate scene/clip launch
-controls. Clicking a clip opens **Clip** for note and loop editing.
+**Scenes** exposes all 64 native clip slots. Click a populated clip body to
+launch it through the native transport; click its lower-right pencil to open
+**Clip** for note and loop editing. The play icon beside each scene title
+continues to launch the whole scene, and an empty slot stops its track.
 **Arrangement** edits the song chain and repeats. **Automation** edits stepped
 parameter-lock lanes. **Mixer** contains four shared sound strips and Master,
 vertical faders with dB readouts, measured peak/RMS levels and insert/master-effect
@@ -651,13 +653,14 @@ available in Scenes and Arrangement: choose a sound or a MIDI channel. MIDI rout
 can be stored, but the browser does not send MIDI out. The views share the same
 eight sequencer tracks and four sounds; switching views does not change the project.
 
-Select a clip cell to edit its notes, or use **Edit scene** to reach any of the
-eight scene slots. **Launch scene** triggers that scene through native transport;
+Use the lower-right clip pencil to edit its notes, or use **Edit scene** to reach
+any of the eight scene slots. The leading play icon beside a scene title
+triggers that scene through native transport;
 while a launch is queued, the position display follows the clip still playing.
 **Scenes** shows all 64 clip slots, including scenes absent from the song.
-Its edit buttons select a clip; separate launch buttons perform clips or whole
-scenes. Compact play icons sit beside scene titles and clips; an empty slot
-shows a stop square. Manual launches leave song following
+Each populated clip body launches its clip, and its lower-right pencil opens the
+editor; compact play icons beside scene titles launch whole scenes. An empty
+slot shows a stop square. Manual launches leave song following
 while retaining the saved chain. Switch back to **Arrangement** for the timeline,
 which shows the native song chain, with real scene lengths and repeat counts. Repeated
 occurrences share the same scene clips: copy a scene first when a later occurrence
