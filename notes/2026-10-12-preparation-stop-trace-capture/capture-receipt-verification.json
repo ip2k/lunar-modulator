@@ -1,0 +1,157 @@
+{
+  "chunks": 16,
+  "cleanup": {
+    "inspected": 16,
+    "remaining": 0,
+    "removed": 16
+  },
+  "errors": 0,
+  "failed": 0,
+  "passed": 16,
+  "receipt_hashes": {
+    "chunks.json": "de73047d694fc78e8d2e9012a959559ec051632fd6298fd892e98ea1121f9530",
+    "cleanup.json": "ede8a1e50489b6c567d8dc141dfc0c65fb67c670114c2ffa115173cc7bde31d1",
+    "container-inspect.json": "2163411cd37a09ec44ea8e5170dc44c66dd924190cdcb8014bffccd91e31b50e",
+    "evidence/chunk-00.log": "4bcefcc9f6c645923b9993ccf73ad92e6b400ca25458ea14e095857fc2131342",
+    "evidence/chunk-00.xml": "1d6cf8a69ba0f800a05b92642fc831463e3a0725c78d7782d366e498f077c86c",
+    "evidence/chunk-01.log": "4bcefcc9f6c645923b9993ccf73ad92e6b400ca25458ea14e095857fc2131342",
+    "evidence/chunk-01.xml": "970b1dc93b71eca25f5e034e78586ba396cd533f6e56c5da288e8aa51176e37b",
+    "evidence/chunk-02.log": "4bcefcc9f6c645923b9993ccf73ad92e6b400ca25458ea14e095857fc2131342",
+    "evidence/chunk-02.xml": "3ec26d9d820f6a0e1fe144f02eefe88ef351e65ae390b4e74b81487913c0896c",
+    "evidence/chunk-03.log": "4bcefcc9f6c645923b9993ccf73ad92e6b400ca25458ea14e095857fc2131342",
+    "evidence/chunk-03.xml": "a59af35b9ca8a78379c8fb12fad2dba79c1d3809b6200f623c2a723e699b7061",
+    "evidence/chunk-04.log": "4bcefcc9f6c645923b9993ccf73ad92e6b400ca25458ea14e095857fc2131342",
+    "evidence/chunk-04.xml": "ee64015c8843f016cd79a817e909f9a244cbf0dc0b9c1a89e5993185b4fb2207",
+    "evidence/chunk-05.log": "4bcefcc9f6c645923b9993ccf73ad92e6b400ca25458ea14e095857fc2131342",
+    "evidence/chunk-05.xml": "5ad491f1bf4caf0f28258253a77884775b760e268e036ddbddd6bf1c5fb42c1e",
+    "evidence/chunk-06.log": "4bcefcc9f6c645923b9993ccf73ad92e6b400ca25458ea14e095857fc2131342",
+    "evidence/chunk-06.xml": "a5f0cfb6044f94ef8fc965b4f09a6ae47016d6c733f78ad6926e4dfa552ebdb0",
+    "evidence/chunk-07.log": "4bcefcc9f6c645923b9993ccf73ad92e6b400ca25458ea14e095857fc2131342",
+    "evidence/chunk-07.xml": "c12433c12df2b1fd0c8fafebe8610cbc8fca6e2d88756e1fc869c09f7e926e98",
+    "evidence/chunk-08.log": "4bcefcc9f6c645923b9993ccf73ad92e6b400ca25458ea14e095857fc2131342",
+    "evidence/chunk-08.xml": "0f9210d944acafbf795a337ccb6793c8e1edd408f1c5de9e63d85efa41bfb2fe",
+    "evidence/chunk-09.log": "4bcefcc9f6c645923b9993ccf73ad92e6b400ca25458ea14e095857fc2131342",
+    "evidence/chunk-09.xml": "7a02f7f2492f1670c5d0f6facf4b5b4dc848cdc947db46cc95062cf3300647f6",
+    "evidence/chunk-10.log": "4bcefcc9f6c645923b9993ccf73ad92e6b400ca25458ea14e095857fc2131342",
+    "evidence/chunk-10.xml": "a0435cb8f2ef28236b65db0b6adafabbba84da8e16d71f928d6e9f828182a827",
+    "evidence/chunk-11.log": "4bcefcc9f6c645923b9993ccf73ad92e6b400ca25458ea14e095857fc2131342",
+    "evidence/chunk-11.xml": "15386c841709ac483c5ed8b5a309ebba37460332f40ea7bec743ea0805f240d6",
+    "evidence/chunk-12.log": "4bcefcc9f6c645923b9993ccf73ad92e6b400ca25458ea14e095857fc2131342",
+    "evidence/chunk-12.xml": "1be965fc6c3c2013e026ce4ada6b683b8eb63c286d5ebde53d8efe106bbc1f9a",
+    "evidence/chunk-13.log": "4bcefcc9f6c645923b9993ccf73ad92e6b400ca25458ea14e095857fc2131342",
+    "evidence/chunk-13.xml": "ea1e6aa3d6748273974a96faeda4a1956296d23a5a4a6ab15b1b2d7b9e89f603",
+    "evidence/chunk-14.log": "4bcefcc9f6c645923b9993ccf73ad92e6b400ca25458ea14e095857fc2131342",
+    "evidence/chunk-14.xml": "ff95b43bc88e2a0286735d558ef72b7dd670d2ae904f41b1643c2efb77d0aad0",
+    "evidence/chunk-15.log": "4bcefcc9f6c645923b9993ccf73ad92e6b400ca25458ea14e095857fc2131342",
+    "evidence/chunk-15.xml": "222858841ff7e44b29a4b112c6887d4dd3b4f21f72d4a3739d0b1dfd57cd45a2",
+    "evidence/container-00.log": "1341caa5bb5becae900e433f83c3da159d05500f926772705718f0ec16c1f4bb",
+    "evidence/container-01.log": "1341caa5bb5becae900e433f83c3da159d05500f926772705718f0ec16c1f4bb",
+    "evidence/container-02.log": "1341caa5bb5becae900e433f83c3da159d05500f926772705718f0ec16c1f4bb",
+    "evidence/container-03.log": "1341caa5bb5becae900e433f83c3da159d05500f926772705718f0ec16c1f4bb",
+    "evidence/container-04.log": "1341caa5bb5becae900e433f83c3da159d05500f926772705718f0ec16c1f4bb",
+    "evidence/container-05.log": "1341caa5bb5becae900e433f83c3da159d05500f926772705718f0ec16c1f4bb",
+    "evidence/container-06.log": "1341caa5bb5becae900e433f83c3da159d05500f926772705718f0ec16c1f4bb",
+    "evidence/container-07.log": "1341caa5bb5becae900e433f83c3da159d05500f926772705718f0ec16c1f4bb",
+    "evidence/container-08.log": "1341caa5bb5becae900e433f83c3da159d05500f926772705718f0ec16c1f4bb",
+    "evidence/container-09.log": "1341caa5bb5becae900e433f83c3da159d05500f926772705718f0ec16c1f4bb",
+    "evidence/container-10.log": "1341caa5bb5becae900e433f83c3da159d05500f926772705718f0ec16c1f4bb",
+    "evidence/container-11.log": "1341caa5bb5becae900e433f83c3da159d05500f926772705718f0ec16c1f4bb",
+    "evidence/container-12.log": "1341caa5bb5becae900e433f83c3da159d05500f926772705718f0ec16c1f4bb",
+    "evidence/container-13.log": "1341caa5bb5becae900e433f83c3da159d05500f926772705718f0ec16c1f4bb",
+    "evidence/container-14.log": "1341caa5bb5becae900e433f83c3da159d05500f926772705718f0ec16c1f4bb",
+    "evidence/container-15.log": "1341caa5bb5becae900e433f83c3da159d05500f926772705718f0ec16c1f4bb",
+    "exits.json": "90b44c0fdcab6576b5416c15221b023b5e8676bb04e237325e2cb1ef179e9dda",
+    "launch.py": "a3100a1234a499503dcd8fc199306ff24bb9526551ab3c3002dc27b1535c7642",
+    "runner.py": "74c1ec7a2a8d35ea75455eded5888a329c4119798e01e385d6986a43216ad7e6",
+    "source-sha256.json": "e8e5ca8886a1d10c025c2049a595036286361500f95c1dce4f84039b269593ae"
+  },
+  "schema": 1,
+  "scope": "pure lifecycle models on Hera, no device simulation or recovery authority",
+  "skipped": 0,
+  "sources": {
+    "tests/test_prepare_stop_capture_receipt.py": "49090267b27debf014b64db10994c139923bcde567dcc5a85b5ced23adc1b2f3",
+    "tools/fm1_prepare_stop_capture_receipt.py": "acf09db048ba3f690680c832046ac9886e35a3491510104c28366e6f38bd6b05"
+  },
+  "tests": [
+    {
+      "classname": "tests.test_prepare_stop_capture_receipt",
+      "name": "test_capture_lifecycle[valid]",
+      "time": "0.001"
+    },
+    {
+      "classname": "tests.test_prepare_stop_capture_receipt",
+      "name": "test_capture_lifecycle[missing-file]",
+      "time": "0.000"
+    },
+    {
+      "classname": "tests.test_prepare_stop_capture_receipt",
+      "name": "test_capture_lifecycle[altered-wrapper]",
+      "time": "0.001"
+    },
+    {
+      "classname": "tests.test_prepare_stop_capture_receipt",
+      "name": "test_capture_lifecycle[wrong-stop]",
+      "time": "0.001"
+    },
+    {
+      "classname": "tests.test_prepare_stop_capture_receipt",
+      "name": "test_capture_lifecycle[extra-attempt]",
+      "time": "0.001"
+    },
+    {
+      "classname": "tests.test_prepare_stop_capture_receipt",
+      "name": "test_capture_lifecycle[retry]",
+      "time": "0.001"
+    },
+    {
+      "classname": "tests.test_prepare_stop_capture_receipt",
+      "name": "test_capture_lifecycle[upload]",
+      "time": "0.001"
+    },
+    {
+      "classname": "tests.test_prepare_stop_capture_receipt",
+      "name": "test_capture_lifecycle[wrong-group]",
+      "time": "0.001"
+    },
+    {
+      "classname": "tests.test_prepare_stop_capture_receipt",
+      "name": "test_capture_lifecycle[same-pids]",
+      "time": "0.001"
+    },
+    {
+      "classname": "tests.test_prepare_stop_capture_receipt",
+      "name": "test_capture_lifecycle[closed-fd]",
+      "time": "0.001"
+    },
+    {
+      "classname": "tests.test_prepare_stop_capture_receipt",
+      "name": "test_capture_lifecycle[not-alive]",
+      "time": "0.001"
+    },
+    {
+      "classname": "tests.test_prepare_stop_capture_receipt",
+      "name": "test_capture_lifecycle[failed-exit]",
+      "time": "0.001"
+    },
+    {
+      "classname": "tests.test_prepare_stop_capture_receipt",
+      "name": "test_capture_lifecycle[invented-recovery]",
+      "time": "0.001"
+    },
+    {
+      "classname": "tests.test_prepare_stop_capture_receipt",
+      "name": "test_capture_lifecycle[bad-cleanup]",
+      "time": "0.001"
+    },
+    {
+      "classname": "tests.test_prepare_stop_capture_receipt",
+      "name": "test_capture_lifecycle[outside-capture]",
+      "time": "0.001"
+    },
+    {
+      "classname": "tests.test_prepare_stop_capture_receipt",
+      "name": "test_capture_lifecycle[bool-exit]",
+      "time": "0.001"
+    }
+  ]
+}

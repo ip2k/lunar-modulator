@@ -1,0 +1,90 @@
+{
+  "capture": {
+    "envelope_sha256": "43799e1c5ed77eed0bec0784ba1151fbf7a09f39204185f0199801862e2b6f37",
+    "exit_status": 0,
+    "physical_boot_verified": false,
+    "process_origin_verified": false,
+    "recovery_authorized": false,
+    "returned_proof_granted": false,
+    "started_at": 1791847030.606521,
+    "terminal_at": 1791847034.6706986,
+    "wire_inventory_verified": false
+  },
+  "cynthion": {
+    "blocks": 34061,
+    "byte_order": ">",
+    "enhanced_packet_blocks": 34056,
+    "sha256": "dad6373338d77f4522ff5954b235aacc3118484c6bbfbe5ea95ad18445f90b2d",
+    "size": 1228552,
+    "ui_packet_count": 34058
+  },
+  "display_observed": false,
+  "owned_file_hashes_checked": 10,
+  "physical_boot_verified": false,
+  "receipt": {
+    "native": {
+      "ioctl_intents": 5,
+      "native_completion_proven": false,
+      "native_failure_recorded": false,
+      "opened": true
+    },
+    "outcome": "completed",
+    "physical_boot_verified": false,
+    "recovery_authorized": false,
+    "result": {
+      "campaign_sha256": "a91fe230df0c00418ac269cd46285d83026eb42290e5568d21466e3b81ed7dac",
+      "classification": "conditional-coherent-trace-publication",
+      "device_mutation_free_verified": false,
+      "display_observed": false,
+      "fields": {
+        "elapsed_ms": 20000,
+        "heartbeat": 1976,
+        "lsb_hz": 60000000,
+        "mailbox_verified": 1,
+        "panel_result": 0,
+        "phase": 5,
+        "phase_complement": 4294967290,
+        "sequence": 10,
+        "startup_reason": 4294967295,
+        "sys_hz": 360000000
+      },
+      "native_packet_operand_semantics_verified": false,
+      "new_ranges_hardware_verified": false,
+      "nonce_identifies_boot": false,
+      "physical_recovery_verified": false,
+      "preparation_outcome": "failed-before-original-native-worker",
+      "progress": "final-start-intent",
+      "raw_sha256": [
+        "75472b978118518f7bc58d819885e3d2322e6bd3c03e7b466974461e50d5541d",
+        "dccc8010774e5c3bb51f0b06985e987bef474cb81394abaaeedeeccdc1a4c887",
+        "5af9fbb3594e9e29636e7cf953d8db3c80311f97e35befb84df901e8e2aff0c5",
+        "dccc8010774e5c3bb51f0b06985e987bef474cb81394abaaeedeeccdc1a4c887",
+        "5af9fbb3594e9e29636e7cf953d8db3c80311f97e35befb84df901e8e2aff0c5"
+      ],
+      "recovery_cause_verified": false,
+      "retention_verified": false,
+      "rom_handler_verified": false,
+      "stage": 6,
+      "stage_update_pending": false,
+      "startup_reason": "unavailable"
+    },
+    "retained_replies": 5,
+    "started_at": 1791847034.1318064,
+    "terminal_at": 1791847034.5883102
+  },
+  "recovery_authorized": false,
+  "schema": 1,
+  "scope": "offline actual physical receipt and capture replay",
+  "wire": {
+    "capture_sha256": "64cd5253b165381716567f88e7a0d664cf05db28e9b3ca31ee8e294e7c5f3027",
+    "captured_bulk_records": 50,
+    "cpu_boot_observed": false,
+    "fd07_requests": 4,
+    "full_trace_bytes_verified": false,
+    "process_origin_verified": false,
+    "reset_cause_proven": false,
+    "returned_proof_granted": false,
+    "standard_commands": 5,
+    "terminal_transfer_ambiguous": false
+  }
+}

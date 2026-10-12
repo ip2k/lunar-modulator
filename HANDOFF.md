@@ -1364,3 +1364,25 @@ analyser ownership, complete receipt composition and distinct fresh read packet.
 OpenAI Computer Use documentation confirms Locked use temporarily unlocks only
 for trusted active turns, covers displays, and pauses automatic unlock on local
 keyboard/pointer input. Earlier unlock failure cause remains undiagnosed.
+
+## 2026-10-12 physical trace preserved; post-read recovery pending
+
+[verified: actual receipts] Distinct V2 read completed all five IN requests on
+the existing UBOOT connection, without upload/reset/NOR/retry. Replies and
+owned USBmon/Cynthion captures are retained privately. Both trace/stage pairs
+agree; decoded phase5/stage6 reports20s, panel_result0 and360MHz system clock.
+This is conditional trace publication, not visible display or proven fresh
+boot/reset cause. See notes/2026-10-12-preparation-stop-trace-capture/physical-v2.md
+and physical-v2-replay.json for exact evidence and acceptance limits.
+
+New pure lifecycle replay passed the actual capture and16 semantic-corruption
+models in16 concurrent Hera containers; all inspected/removed, no failures.
+The existing closed backup correctly denies the consumed trace marker. Keep
+that gate: next implement explicit post-read recovery admission, then fresh
+dual backup/stock restore and physical diagnostic/display acceptance. Do not
+replay/delete markers or upload the overlapping loader before admission.
+CI38319820698 has10 successful jobs and3 still running at the last live check.
+The OpenAI bug report is separately saved/pushed as a draft, not submitted.
+Root owns physical operations and integration. Goal remains active. The
+preceding goal turn made progress by preserving/replaying actual physical
+evidence; no genuine three-turn external blocker exists.
