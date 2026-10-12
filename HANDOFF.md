@@ -935,3 +935,31 @@ retained-loader partial-write path; stage fresh exclusive physical packets;
 fresh stock dual backup, trace install, boot and original RAM read before any
 loader upload, then full stock recovery. Physical display/boot remains open.
 Root owns source activation, checkpoint commits/pushes and hardware execution.
+
+
+### Latest continuation: modeled recovery accepted, 2026-10-12
+
+[verified] Root accepted independent retained V2 runtime review8244bc97/check8e45
+and saved acceptance60961da2. The gate is54 V1 mechanics plus2 V2 genuine cases
+and separate smoke; original V1 failures remain. Production backup7e9dbf15 and
+restore683275d7 are now exact reviewed three-literal successors. Their two source
+contract tests now assert actual dependency hashes; Hera successor check pending.
+No physical recovery/boot/reset-cause claim follows from modeled SG/capture.
+
+Separate closed interrupted-NOR mechanics are running in30 Hera chunks with
+archive85e1863c/runnera6ee876e, all1768 paths independently verified by root.
+The six candidate files remain unactivated; genuine partial-write tests still
+need the reviewed dependency binding and runtime. One additional frozen-helper
+case is running on Hera with archive7926d20f/runnerbc137b9c/helper43c0d72f;
+root verified all1764 source entries and saved launch acceptance4f2c1391.
+
+[verified] Independent static reviewa73c1637 found no concrete schema defect in
+physical preparerb14130c3 and owned install/boot wrapper7d2cec85. They have not
+run. Entry74126658/fresh dualstockbackup and the next concrete campaign remain
+unexecuted. Computer connection was reset again and still falsely reports locked
+Mac; owner has confirmed unlocked and allowed access. No Packetry click occurred.
+
+Next: retain closed mechanics results, bind/test genuine partial-write recovery,
+accept helper runtime, prepare exact fresh physical packets, then fresh dualstock
+backup/install/boot/original RAM read and stock restoration. Physical display and
+boot and required CI/review/merge remain open. Root owns source/commits/push/USB.

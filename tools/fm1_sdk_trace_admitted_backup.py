@@ -23,7 +23,7 @@ import types
 from weakref import WeakSet
 
 BASE_SOURCE_SHA = 'afeefe7bd7e9044cb34106081766d6104cda7ab0196d0de903c35a5c1a52b4be'
-PROOF_SOURCE_SHA = None  # Exact boot/read evidence successor pending independent review.
+PROOF_SOURCE_SHA = '5ca132fc2f2595400bc9ccb231c3e5cd44ecc9886cd830e201272b33a677b34a'  # Exact boot/read evidence successor pending independent review.
 REHEARSAL_SHA = 'f696484511754b91d4faf449aa2e4cab3ca910daf05a9acd66daa966bae7d6c4'
 TARGET_SHA = '5dbada6531e0ad68b1902b4f0d97cc6f78d7fa338b1360c194f98c1475ad7a3d'
 KIND = 'fm1-sdk-trace-admitted-fixed-loader-target-backup'
