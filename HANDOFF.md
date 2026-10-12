@@ -9,21 +9,47 @@ repository, so a fresh Claude project (or a human) can continue without the
 original conversation; last updated 2026-10-12. Read this first, then
 `DEVELOPERS.md` (the README is the product page), then `docs/`.
 
-## Restart checkpoint — 2026-10-12
+## Active resumed goal — 2026-10-12
 
-The owner requested a safe checkpoint before a desktop/macOS restart to repair
-Computer Use. Read `notes/2026-10-12-desktop-restart-checkpoint.md` first when
-resuming: it records current bench state, exact local/Hera artifacts, accepted
-model results, consumed historical packets, closed V5 gates and next steps.
-The installable diagnostic image goal is paused for that restart; physical
-trace-image/display/boot/recovery acceptance and final review/CI/merge remain
-unfinished. No new hardware session was started for this checkpoint.
-The final passive stopping check found normal FM-1 USB/MIDI and no known
-firmware/capture process. All delegates finished and Hera FM-1 containers
-were absent. The 63-case nonroot lifecycle model and two genuine modeled
-install-interruption cases passed. Private V5 proposal material is verified
-off-Mac on Hera; its flashing gates remain closed. Read the restart note
-before the older boundaries below, and check exact checkpoint CI on resume.
+The installable diagnostic firmware goal is active after the desktop restart.
+Physical diagnostic boot/display and full-stock recovery remain unverified.
+Read `notes/2026-10-12-packetry-live-capture.md` for current evidence; the restart
+checkpoint and boundaries below are historical unless explicitly refreshed.
+
+Latest backed-up head before this note: 2543c9f951ee64a4121e4c13776691ab4d4b5f41,
+branch `feature/2026-10-11@installable-firmware`, in the managed
+`installable-firmware/mvave-fm1-firmware` worktree. The corrected return-admission
+source is WIP: dependent tracked pins still name the previous source. No hardware
+gate has been activated; do not run historical V5 packets or reuse markers.
+
+[verified: passive observation] Bench01 still enumerates normal FM-1 4c4a:c755,
+bus1/device8, with /dev/snd/midiC2D0. No physical power cycle is presently needed.
+Packetry computer use worked before this resume and retained a fresh private
+Cynthion capture; the latest access attempt reports a locked Mac and failed
+automatic unlock. This is a UI-access limit, not a known FM-1 failure.
+
+[verified: modeled checks] V6e mechanics passed 235 nodes in 16 parallel Hera
+containers. V6e heavy replay failed on an ambient outer-tree production import
+before the restore marker; its evidence is retained. V6f uses the current recovery
+adapter: 15 mechanics shards passed, one failed because the historical full-tree
+snapshot omitted the exact newer capture wrapper required by its test. A fresh
+V6h snapshot adds that pinned file and its 16-shard rerun is active on Hera.
+V6g heavy replay repairs model import isolation without relaxing the production
+factory; it is active. V6f heavy replay has failed the same marker assertion as
+V6e and is still retaining output. All are device-free models with private
+fixtures read-only, not hardware recovery acceptance.
+
+Required CI run 38294796000 passed all 13 jobs on e967af9808d61bbaf91d32dd49929a5ff56a1235.
+That earlier head does not cover the current verifier WIP. Next: retain and verify
+terminal results, finish original-stage binding review and a fresh source closure,
+then obtain exact-head review/CI before the staged hardware sequence. Use Hera
+for heavy work and exactly 16 chunks for parallelizable tests; leave aeon alone.
+
+## Historical restart checkpoint — 2026-10-12
+
+`notes/2026-10-12-desktop-restart-checkpoint.md` preserves the original safe
+stopping point before restarting macOS. Its paused state and unavailable Packetry
+claim have been superseded by the active resumed status above.
 
 ## Current installable-image boundary — 2026-10-12
 

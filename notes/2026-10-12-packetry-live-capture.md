@@ -224,3 +224,43 @@ Next dependency: inspect V6f mechanics and V6g heavy terminal results, preserve
 failure evidence, then complete original-stage adversarial review and a new bench
 source closure. Physical diagnostic boot/full stock restore remain unverified;
 no installable-image acceptance or hardware activation is claimed.
+
+
+### Resume checkpoint and exact current-adapter snapshot completion
+
+[verified: passive live check] Bench01 still reports 4c4a:c755 bus1/device8 and
+/dev/snd/midiC2D0. No device command, reset, power toggle or NOR operation.
+Computer Use now reports the Mac is locked and automatic unlock failed; owner
+was asked to unlock if still at the desk, explicitly with no FM-1 power cycle.
+
+[verified: model packaging failure] V6f mechanics completed 235 nodes across 16
+chunks: 15 shards exit0, shard5 exit1 (14 passes, one failure). The failure is
+FileNotFoundError for tools/bench_capture/lifecycle-v1/owned-install-boot-once.py,
+the current adapter's exact successor capture wrapper. Test assertion retained.
+Archive cb9e2db67553f9b0c5c320b65834ffa23995d6232b39cc2385b4e24c1c723836 is
+retained privately both locally and on Hera; all shard receipts/logs are included.
+
+[verified: source-only packaging] Fresh V6h includes that exact source hash
+59b8e8c23f494f0ac6c89585786f72a9b408d5692e2a5fbf66c2c0376945c52d, plus V6g's
+model-isolation repair, without changing existing stages or runtime acceptance.
+All 1,787 source hashes replayed on Hera before a fresh 16-shard rerun.
+Archive 9a627e9e2797a21ba76c0e992c50e237170ff071dee26c566484cad0f6deabb9;
+runner 36a05af45aa8c2ff4a9e4cc9c10f78eed831d4bd52cd520044e5c043a58691d6.
+Remote root /home/claude/mvave-fm1/owned-restore-v6h-resumed-20261012.
+V6h does not yet prove the newer capture lifecycle ran. V6g heavy replay remains
+active; V6f pytest failed at the absent-marker assertion after 600.90 seconds and
+its runner is retaining failure output. No overall/hardware acceptance.
+
+
+[verified: bounded source inspection, not independent acceptance] Original stage
+binding now derives stage from the frozen native campaign's run parent, allowing
+replay from a distinct recovery source closure. Exact campaign/lineage/capture
+filenames must share that run; native snapshot matches boot-observed lineage;
+reader receipt stays under the installed lineage's receipt parent. Stage packet
+paths reject parent traversal and their bytes are hash-frozen; actual wrapper and
+child must be exact source derivatives with that stage/run and packet binding.
+`run.parent != stage` is now redundant, not an independent authority check.
+Existing mechanics exercise changed derivative paths/body, duplicate/missing
+assignments, source drift, symlink and private-file bounds. Full composed original
+stage replay remains a heavy-model acceptance dependency. Do not treat this
+inspection alone as authorization to flash or as independent review.
