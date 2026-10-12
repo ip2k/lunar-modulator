@@ -963,3 +963,35 @@ Next: retain closed mechanics results, bind/test genuine partial-write recovery,
 accept helper runtime, prepare exact fresh physical packets, then fresh dualstock
 backup/install/boot/original RAM read and stock restoration. Physical display and
 boot and required CI/review/merge remain open. Root owns source/commits/push/USB.
+
+### Latest continuation: retained partial INSTALL accepted, 2026-10-12
+
+[verified] Root accepted closed 30-case mechanics (c8c5404d) and independently
+checked the retained genuine INSTALL erase/program composition. Four unique
+JUnit cases passed; all five containers exited without OOM, with no network,
+devices or privilege. All 173 indexed regular artifacts were rehashed and
+independent cleanup was empty. Evidence and root acceptance are under
+`build/partial-stock-recovery-production/genuine-proposal-v2/`. Both actual
+factory branches produced fresh paired partial dumps and full stock96006a51
+readback. Device/process/capture behavior was modeled; production703c stays
+closed. The tracked partial-recovery note now records those limits.
+
+[verified] Frozen helper V2 completed modeled canonical backup and restore,
+then failed its assertion that the live journal still contained INSTALL bytes.
+Preserved original copies remained exact; the live journal correctly records
+complete RESTORE. Failure artifacts are retained. Fixture-only61ea9d11
+corrects that assertion; its sealed one-case successor is pending root review.
+
+[verified] The owner confirms the Mac is unlocked and locked-use permission
+enabled. Computer inventory still falsely reports locked and exposes no native
+apps. No Packetry GUI action occurred. A passive bench sysfs read still reports
+normal4c4a:c755 on bus1/device3 at12Mbps. Do not request another unlock.
+
+Root corrected the physical installer preparer's reference-directory mistake:
+53248cc5 now reads the two fresh backup paths separately for the actual factory.
+The physical asset bundle is being completed, including recovery source closure
+and actual independent native reviewcf706b9c. No fresh entry/install/boot has
+run. Next: stage closed source/assets, fresh dual stock backup, diagnostic
+install/one boot/five original-RAM reads before loader upload, then stock
+restore. Physical boot/display acceptance and required review/CI/merge remain
+open. Last verified pushed checkpoint isdb662630; root owns commits/push/USB.
