@@ -106,7 +106,7 @@ export async function startEditor(env) {
   const cpuFill = el('span', 'ed-cpu-fill');
   const cpuText = el('span', 'ed-cpu-text', { text: '–' });
   const cpuBtn = el('button', 'ed-cpu ed-icon', { type: 'button', onclick: () => { chooseView('memory'); render(); } },
-    [el('span', 'ed-ram-label', { text: 'CPU' }), el('span', 'ed-cpu-bar', { 'aria-hidden': 'true' }, [cpuFill]), cpuText]);
+    [el('span', 'ed-ram-label', { text: 'CPU ' }), el('span', 'ed-cpu-bar', { 'aria-hidden': 'true' }, [cpuFill]), cpuText]);
   const title = el('span', 'ed-title', {}, [el('span', 'ed-brand', { text: 'Advanced editor' }), el('span', 'ed-project')]);
   // Reuse the panel's controls so their handlers and live enabled state have
   // one owner. Anchors return them to exactly the same place in Panel view.

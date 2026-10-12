@@ -971,3 +971,14 @@
   .ed-appbar-end .ed-ram, .ed-appbar-end .ed-cpu { padding-inline: 2px; }
   .ed-appbar-end .ed-ram-text { min-width: 2.6em; }
 }
+
+/* Keep the complete action row usable on 320 px phones. */
+@container (max-width: 320px) {
+  .ed-appbar-end .ed-footer-menu > summary,
+  .ed-appbar-end .ed-song-file-tools summary,
+  .ed-appbar-end .ed-history-button {
+    width: 24px; min-width: 24px; padding-inline: 1px;
+  }
+  .ed-appbar-end .ed-ram, .ed-appbar-end .ed-cpu { gap: 2px; }
+  .ed-appbar-end .ed-cpu-bar, .ed-appbar-end .ed-ram-bar { flex-basis: 6px; min-width: 6px; }
+}

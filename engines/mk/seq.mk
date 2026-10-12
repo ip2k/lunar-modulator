@@ -30,7 +30,7 @@ $(BUILD)/c-check/%.o: %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(SEQ_CFLAGS) -DSQ_CHECK_INDEX -c $< -o $@
 
-all: $(BUILD)/fm1-seq $(BUILD)/fm1-seq-check $(BUILD)/fm1-seq-host-test
+all: $(BUILD)/fm1-seq $(BUILD)/fm1-seq-check $(BUILD)/fm1-seq-host-test $(BUILD)/fm1-mfx-pause-test
 
 $(BUILD)/fm1-seq: $(SEQ_TOOL_OBJ) $(SEQ_HOST_OBJ) $(SEQ_OBJ)
 	$(CC) $(OPT) $(EXTRA) -o $@ $^ -lm

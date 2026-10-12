@@ -9,8 +9,8 @@
 // Checks:
 //  - Playwright's accessibility snapshot of the editor in every view (the
 //    Flow, a sound, the Modulation view, the library, Memory, A/B): no
-//    control without a name, every slider with a value in words, one polite
-//    live region and nothing else that announces;
+//    control without a name, every slider with a value in words, polite editor
+//    feedback and transport state with no unrelated announcements;
 //  - the keyboard: Tab lands in the editor and gives it the keys; every
 //    visible control is reachable by Tab (or sits in a group the arrows
 //    walk), nothing clickable is out of the tab order; each of the first 40
@@ -120,10 +120,16 @@ const spoken = await page.evaluate(() => {
   return { n, bad: bad.slice(0, 5), units: [...units].sort() };
 });
 check('no slider speaks a unit symbol (st, Hz, ms, dB, %): each is a word, semitones included', spoken.n > 100 && spoken.bad.length === 0 && spoken.units.includes('semitone') && spoken.units.includes('hertz') && spoken.units.includes('decibel'), spoken);
-// The status region, and the search box's result count (announced as you type).
+// Editor feedback, Song transport state, and search results have separate purposes.
 const liveRegions = await page.evaluate(() => [...document.querySelectorAll('.ed [aria-live], .ed [role="status"], .ed [role="alert"]')]
-  .filter((e) => !e.classList.contains('ed-search-n')).map((e) => `${e.className} ${e.getAttribute('aria-live')} ${e.getAttribute('role')}`));
-check('one polite live region in the editor (and the search count), and nothing else announces', liveRegions.length === 1 && /polite/.test(liveRegions[0]), liveRegions);
+  .filter((e) => !e.classList.contains('ed-search-n')).map((e) => ({
+    editor: e.classList.contains('ed-sr'), transport: e.classList.contains('sq-transport-state'),
+    role: e.getAttribute('role'), live: e.getAttribute('aria-live'), text: e.textContent.trim(),
+  })));
+check('only polite editor feedback and Song transport state announce (plus search results)',
+  liveRegions.length === 2 && liveRegions.filter((e) => e.editor && e.role === 'status' && e.live === 'polite').length === 1 &&
+  liveRegions.filter((e) => e.transport && e.role === 'status' && [null, 'polite'].includes(e.live) &&
+    ['Stopped', 'Playing', 'Paused'].includes(e.text)).length === 1, liveRegions);
 
 // ---- the keyboard -------------------------------------------------------------------------
 const FOCUSABLE = 'button, input:not([type="hidden"]), select, textarea, [role="slider"], [tabindex], summary, a[href]';
