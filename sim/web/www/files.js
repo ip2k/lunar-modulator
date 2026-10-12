@@ -639,6 +639,7 @@ export function initFiles(env) {
       midiError = '';
       setTitle(d.title);
       f.pid = o.pid || (o.same ? pidBefore : newProjectId());      // the same project put back, or another one
+      sim.editor?.projectLoaded?.();
     }
     touched();
     if (o.ui) {
