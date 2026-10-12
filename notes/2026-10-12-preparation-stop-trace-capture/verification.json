@@ -1,0 +1,113 @@
+{
+  "schema": 1,
+  "kind": "fm1-preparation-stop-owned-capture-model-checks",
+  "runs": [
+    {
+      "run": "preparation-stop-trace-capture-v1-20261012",
+      "totals": {
+        "tests": 46,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "container_chunks": 16,
+      "source_manifest_sha256": "fe48934ef4b8152b516f0d7a283add4c69f7228c0c9743d3ec05268e0581a558",
+      "xml_sha256": {
+        "shard-00.xml": "aa8b1401a8bc609959d1896051988c640e71b81d75d70fca127024cc54bb1a8c",
+        "shard-01.xml": "7ac6d9830a0bdd4df9352a8220bd59256131d13b5305bf9ffd33fa6af96916f3",
+        "shard-02.xml": "846a5b68f3c299571db654ccd1406380474b03142a2b6432a22f5ecc1471dc44",
+        "shard-03.xml": "9a58244be7c267e651f91cb01be19534e1d802d9a0454a88b181ff20b1d66a4d",
+        "shard-04.xml": "2d67bcb0199beee1c6c8f5b79ed3cd7a72dec1a0fef39979487afcb6d6a9131f",
+        "shard-05.xml": "a99d38fd20693d397120585a16d13cf76b299a887ee31618ddfa262055051e1b",
+        "shard-06.xml": "52f275605a99125156410e129b46025085ae317edc0632c06e14ee3d7b1e2322",
+        "shard-07.xml": "e19174464e96d317791e7a67f6d77cade9b4b573cfbb4e4eede2a11c6f5a033c",
+        "shard-08.xml": "19e4541a546c5bc0df03ed6038e33cbf467e5a6d5fde562266ba4c87eaa7bb50",
+        "shard-09.xml": "1dce1574015bc15f9584be6e90ced525400f484545ad84d8aefb93e028118f15",
+        "shard-10.xml": "ee58396b186b58f09c368fc6793ed475d57b18bad33c9d6c76fe59202da938a7",
+        "shard-11.xml": "5aae55afb260b496573a253f68e32712c073247d856e7ba0f4076db0154d5d46",
+        "shard-12.xml": "f250a066670425fc83cacfcff04ccdca7368c3f946a431e681f6c285aaeb2371",
+        "shard-13.xml": "0616cb4c7ff8752282acc853e156159343e6b6cdbb7113c16f75a044f85b25f9",
+        "shard-14.xml": "a122d52b17189a4afa78a2274d255f6e6c05bdd9807d9bac6bb88fd2f7003238",
+        "shard-15.xml": "c60a1a0623e4b8949c8add2fd59586788bc62bcdb21ce1de1dac062134bb71cb"
+      },
+      "terminal": {
+        "files": 291,
+        "source_unchanged": true,
+        "isolated": true,
+        "exit_codes": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "run": "preparation-stop-trace-capture-v2-20261012",
+      "totals": {
+        "tests": 48,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "container_chunks": 16,
+      "source_manifest_sha256": "46489c8b4c7eece46f5c14baddf83bd90a193db5722da71c0d28f15869631a6c",
+      "xml_sha256": {
+        "shard-00.xml": "cdd34e38566f60bc214ca1140a45d3d2fa2d1c68bb274c33aefa5342c1b8bdf6",
+        "shard-01.xml": "f16b2feaa0bf3af5c5f6225df6916f0277478f18803c5351f018dac5e2e48de6",
+        "shard-02.xml": "a8925c39ea60811f4f2738429647c63f65cee1d23e33f91d8a0611c6e5c00125",
+        "shard-03.xml": "85cf6a388be740c9adbe6290ec85c09f0db36590510f800f4b4dd96092ecc3da",
+        "shard-04.xml": "471a6151ec8d6dcb3c422be06c3fe33c228fcbdcdb2566f091e9ec73227003b8",
+        "shard-05.xml": "94c8575f70962086be84ae93fcefea6009e0dd9f52c39e324f82c33bf27113b1",
+        "shard-06.xml": "fc607d4f643eaf849ecddd83fba6a0f51e9d9ebf3634244b3ba866a46be8f47a",
+        "shard-07.xml": "83b96d0d80ef0b5d438508d2e8836835869817ebe177861838e002faf0091b2b",
+        "shard-08.xml": "301aab4f25dedb35403356b1282194f79f4ad2093700865ff5f3c0cc4426b100",
+        "shard-09.xml": "af4f627200d4defb0e738c1e0ee09f25123203640edb7cb5980d82d5afae9b05",
+        "shard-10.xml": "ca2041670b1cfb9376e02a23b2c5c5c408707adca2430db54a79f5c5a5b5b06b",
+        "shard-11.xml": "7a6cf403bf8cd85f64ecb479948717b641d0cf92ce622dbb031221209efd7c86",
+        "shard-12.xml": "584ad05ab8b3411a2ae62687c18a8266e3d78979006e4fa1a6db001aab78a4ba",
+        "shard-13.xml": "ad0881f1f0cf48d004f86160586e70abda13a00fb5ab1c81d0e4f1c7c68b8a6f",
+        "shard-14.xml": "130a4a24ac3806531ade49f292130c052768acf2d7d97401ed0c0ac1f3a2ebfe",
+        "shard-15.xml": "6d80543fbedb66b94770193038abb8c18ae13e236284d073d2b8c9464be4acf6"
+      },
+      "terminal": {
+        "files": 291,
+        "source_unchanged": true,
+        "isolated": true,
+        "exit_codes": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  ],
+  "device_commands": 0,
+  "physical_capture_verified": false,
+  "physical_boot_verified": false
+}
