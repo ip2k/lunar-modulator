@@ -181,19 +181,23 @@ export function makeSequencer(ctx) {
   const clip = (m = state.model, t = state.track, s = state.scene) => m.tracks[t].clips[s];
   const ensureClip = (m, t, s) => m.tracks[t].clips[s] ||= freshClip();
   function trackTitle(t) {
-    const input = editableName(`Track ${t + 1} name`, state.model.tracks[t].name,
+    const name = state.model.tracks[t].name;
+    const input = editableName(`Track ${t + 1} name`, name,
       name => edit(`Rename track ${t + 1}`, m => { m.tracks[t].name = name; }),
-      { placeholder: `Track ${t + 1}`, pattern: '[\\x20-\\x7e]{0,16}', title: 'Double-click, Enter or F2 to rename. Up to 16 printable ASCII characters; spaces allowed. Clear for the numbered name.' });
+      { placeholder: `Track ${t + 1}`, pattern: '[\\x20-\\x7e]{0,16}', title: `${name || `Track ${t + 1}`}. Double-click, Enter or F2 to rename; up to 16 printable ASCII characters. Clear for the numbered name.` });
     return el('div', 'sq-track-title', {}, [input]);
   }
   function trackHeader(track, t, group) {
     const route = track.route;
+    const routeValue = `${route.kind === 1 ? 's' : 'm'}${route.index}`;
+    const routeField = choose(`Track ${t + 1} output`, routeValue, routeOptions(), v => edit(`Route track ${t + 1}`, m => { m.tracks[t].route = { kind: v[0] === 's' ? 1 : 0, index: Number(v.slice(1)) }; }));
+    const routeSelect = routeField.querySelector('select');
+    routeSelect.title = routeOptions().find(([id]) => id === routeValue)?.[1] || `Track ${t + 1} output`;
     const header = el('div', `sq-track-head sq-track-select ${group}`, { role: 'button', tabindex: 0,
       'aria-label': `Track ${t + 1}`, 'aria-current': t === state.track ? 'true' : 'false', 'aria-pressed': String(t === state.track),
       'data-midi-id': `seq:select-track:${t}`,
       'aria-description': 'Click empty space or press Enter or Space to select this track. Double-click its name to rename.',
-      'data-track-header': t, title: 'Click empty space to select track; double-click name to rename.' }, [trackTitle(t),
-      choose(`Track ${t + 1} output`, `${route.kind === 1 ? 's' : 'm'}${route.index}`, routeOptions(), v => edit(`Route track ${t + 1}`, m => { m.tracks[t].route = { kind: v[0] === 's' ? 1 : 0, index: Number(v.slice(1)) }; }))]);
+      'data-track-header': t, title: 'Click empty space or press Enter or Space to select track; double-click name to rename.' }, [trackTitle(t), routeField]);
     wireHeaderSelection(header, () => selectClip(t, state.scene));
     return header;
   }

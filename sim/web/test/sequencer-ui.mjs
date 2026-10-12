@@ -35,6 +35,11 @@ try {
  await name.dblclick();await name.fill('Bass 2');
  await page.getByRole('button',{name:'Track 1',exact:true}).focus();
  await page.waitForFunction(()=>window.model().tracks[0].name==='Bass 2');
+ await name.press('Enter');await name.fill('1234567890123456');await name.press('Enter');
+ await page.waitForFunction(()=>window.model().tracks[0].name==='1234567890123456');
+ if(!(await name.getAttribute('title')).startsWith('1234567890123456.'))throw Error('Compact track title does not expose its full 16-character name');
+ await name.press('Enter');await name.fill('Bass 2');await name.press('Enter');
+ await page.waitForFunction(()=>window.model().tracks[0].name==='Bass 2');
  // Hold the destination pointer down: blur must not lock it before click.
  await name.press('Enter');await name.fill('Click Bass');
  const destination=page.getByRole('button',{name:'Track 2',exact:true});
@@ -44,7 +49,7 @@ try {
  if(!await page.evaluate(()=>window.calls.includes('watch 1')))throw Error('Blur save swallowed destination click');
  await page.getByRole('button',{name:'Track 1',exact:true}).click({position:{x:4,y:4}});
  await name.dblclick();await name.fill('Bass 2');
- const tapBox=await destination.boundingBox();await page.touchscreen.tap(tapBox.x+tapBox.width/2,tapBox.y+tapBox.height-16);
+ const tapBox=await destination.boundingBox();await page.touchscreen.tap(tapBox.x+4,tapBox.y+4);
  await page.waitForFunction(()=>window.model().tracks[0].name==='Bass 2');
  if(await page.locator('.sq-scene-edit[aria-pressed="true"]').first().getAttribute('aria-label')!=='Edit track 2 scene 1')throw Error('Blur save swallowed destination touch tap');
  await page.getByRole('button',{name:'Track 1',exact:true}).click({position:{x:4,y:4}});
@@ -133,6 +138,7 @@ try {
  await tab('Arrangement');
  if(!await page.getByRole('button',{name:/Track 1, INTRO, 2 notes, 2 bars/}).isVisible())throw Error('Arrangement note/bar plural summary');
  await page.getByLabel('Track 8 output',{exact:true}).selectOption('m16');await page.waitForFunction(()=>window.model().tracks[7].route.index===16);
+ if(await page.getByLabel('Track 8 output',{exact:true}).getAttribute('title')!=='MIDI channel 16')throw Error('Compact route selector does not expose its full current destination');
  await page.locator('.sq-section-tools > summary').filter({hasText:'Section tools'}).click();
  await set('Repeats',3);if(await page.evaluate(()=>window.model().song.length)!==4)throw Error('repeat');
  // Native shared-scene names edit inline, with a single commit per gesture.
@@ -218,8 +224,16 @@ try {
  if(await page.evaluate(()=>document.activeElement.getAttribute('data-view'))!=='Clip')throw Error('Keyboard scene edit did not focus the Clip tab');
  if(!await page.getByRole('heading',{name:'Track 2 · CHORUS',exact:true}).isVisible()||!await page.getByRole('button',{name:/E4, step 1/}).isVisible())throw Error('Pencil keyboard edit did not open the selected native clip with its note');
  await tab('Scenes');
+ const matrixGeometry=[];
  for(const [width,height] of [[1440,1100],[844,390],[667,375]]){
   await page.setViewportSize({width,height});await page.waitForTimeout(60);
+  const geometry=await page.locator('.sq-matrix-cell').first().evaluate(cell=>{
+   const rect=selector=>{const r=cell.querySelector(selector)?.getBoundingClientRect();return r?{x:r.x,y:r.y,width:r.width,height:r.height}:null};
+   const header=cell.closest('.sq-scene-grid')?.querySelector('[data-track-header="0"]')?.getBoundingClientRect();
+   return {width:innerWidth,cell:cell.getBoundingClientRect().height,header:header?.height,body:rect('[data-scene-launch]'),pencil:rect('.sq-scene-edit'),preview:rect('.sq-clip-preview')};
+  });
+  matrixGeometry.push(geometry);
+  if(geometry.cell<54||geometry.cell>64)throw Error(`Scene matrix cell is not compact at ${width}px: ${geometry.cell}px`);
   const overlaps=await page.locator('.sq-matrix-cell').evaluateAll(cells=>cells.flatMap(cell=>{
    const pencil=cell.querySelector('.sq-scene-edit')?.getBoundingClientRect(),body=cell.querySelector('[data-scene-launch]')?.getBoundingClientRect(),cellBox=cell.getBoundingClientRect();if(!pencil||!body)return[];
    const intersects=r=>r.width&&r.height&&r.left<pencil.right-1&&r.right>pencil.left+1&&r.top<pencil.bottom-1&&r.bottom>pencil.top+1;
@@ -307,6 +321,6 @@ try {
  await tab('Scenes');await page.getByRole('button',{name:'Edit track 8 scene 2',exact:true}).click();
  if(await page.locator('.sq-note').count()||!await page.locator('.sq-page-nav .sq-caption').textContent().then(t=>{const r=t.match(/Steps (\d+)–(\d+)/);return +r[1]<=65&&+r[2]>=65}))throw Error('Empty offset loop navigation');
  if(errors.length)throw Error(errors.join('\n'));
- await writeFile(`${out}/results.json`,JSON.stringify({passed:true,errors,note,checks:['native track names across views','rename Enter/blur/Escape and touch button','invalid/refused rename canonical rollback','held mouse and touch blur preserve destination selection','note fields','probability','locks','routing','song repeats','scene launch','refusal rollback','playhead while next scene queued','mobile overflow','input focus','multi-file MIDI mapping','note drag','gate resize','insert/master/mix targets','sound/master fader values and dB display','incremental keyboard level edit','pointer fader drag lifecycle','meter and level telemetry subscription','synthetic sound/master meter updates','device inspector focus and restoration','Files & export disclosure import','desktop routing and FX expanded by default','mobile Routing & FX disclosure toggle','scene selection from scene headings','note row containment','64-slot scene matrix','clip and empty-slot stop callbacks','portrait rotate prompt','844x390 landscape editing','single focused panel','keyboard tab navigation','real Satellite Hearts Verse notes visible at desktop and landscape widths','scene keyboard and Clip tab note framing','manual scroll preserved after note selection and native refresh','navigation leaves project data intact','offset loops with unordered notes, sustaining gates and extreme pitches','empty offset loop navigation']},null,2));
+ await writeFile(`${out}/results.json`,JSON.stringify({passed:true,errors,note,matrixGeometry,checks:['native track names across views','rename Enter/blur/Escape and touch button','invalid/refused rename canonical rollback','held mouse and touch blur preserve destination selection','note fields','probability','locks','routing','song repeats','scene launch','refusal rollback','playhead while next scene queued','mobile overflow','input focus','multi-file MIDI mapping','note drag','gate resize','insert/master/mix targets','sound/master fader values and dB display','incremental keyboard level edit','pointer fader drag lifecycle','meter and level telemetry subscription','synthetic sound/master meter updates','device inspector focus and restoration','Files & export disclosure import','desktop routing and FX expanded by default','mobile Routing & FX disclosure toggle','scene selection from scene headings','note row containment','64-slot scene matrix','clip and empty-slot stop callbacks','portrait rotate prompt','844x390 landscape editing','single focused panel','keyboard tab navigation','real Satellite Hearts Verse notes visible at desktop and landscape widths','scene keyboard and Clip tab note framing','manual scroll preserved after note selection and native refresh','navigation leaves project data intact','offset loops with unordered notes, sustaining gates and extreme pitches','empty offset loop navigation']},null,2));
  console.log('PASS sequencer mock-host desktop/mobile checks, real Verse note visibility and offset-loop navigation');
 } catch(error) {await page.screenshot({path:`${out}/failure.png`,fullPage:true});console.error({errors});throw error} finally {await browser.close();await new Promise(r=>server.close(r))}
