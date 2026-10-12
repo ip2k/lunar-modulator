@@ -1,0 +1,13 @@
+{
+  "browser": "Firefox 155.0 (Playwright, headless)",
+  "checks": [
+    "sequence loaded in Panel opens Song on first Workbench entry",
+    "explicit sound selection survives delayed snapshots and layout changes",
+    "new sound-only project defaults to Flow; next sequence project defaults to Song",
+    "explicit selection link wins over an in-flight project snapshot",
+    "command palette selection wins over an in-flight project snapshot",
+    "editor opened before native project loading uses the loaded sequence",
+    "URL selection survives native load and later canonical refresh"
+  ],
+  "errors": []
+}

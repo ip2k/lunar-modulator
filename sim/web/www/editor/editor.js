@@ -29,6 +29,7 @@ import { makeChains, cableIndex } from './chains.js';
 import { makeProject } from './project.js';
 import { makeSequencer } from './sequencer.js';
 import { makeSequencerHost } from './sequencer-host.js';
+import { makeInitialView } from './initial-view.js';
 
 const PREF = 'lunar.sim.editor.';
 function pref(key, value) {
@@ -76,6 +77,7 @@ export async function startEditor(env) {
     live: null, picker: null, selCable: null, verdictDirty: false, teleSig: '',
     sidebarHidden: pref('sidebar-hidden') === '1',
   };
+  const initialView = makeInitialView(files.pid);
   const history = new History();
   const rows = new Map();         // `${key}:${uid}` -> row
   const fmtCache = new Map();
@@ -101,7 +103,7 @@ export async function startEditor(env) {
   ramList.hidden = true;
   const cpuFill = el('span', 'ed-cpu-fill');
   const cpuText = el('span', 'ed-cpu-text', { text: '–' });
-  const cpuBtn = el('button', 'ed-cpu ed-icon', { type: 'button', onclick: () => { st.view = 'memory'; render(); } },
+  const cpuBtn = el('button', 'ed-cpu ed-icon', { type: 'button', onclick: () => { chooseView('memory'); render(); } },
     [el('span', 'ed-ram-label', { text: 'CPU' }), el('span', 'ed-cpu-bar', { 'aria-hidden': 'true' }, [cpuFill]), cpuText]);
   const title = el('span', 'ed-title', {}, [el('span', 'ed-brand', { text: 'Advanced editor' }), el('span', 'ed-project')]);
   // Reuse the panel's controls so their handlers and live enabled state have
@@ -185,7 +187,7 @@ export async function startEditor(env) {
   // Stage ED4: drop targets, export, the library, links, search, A/B, Memory
   // and undo's snapshot fallback.
   const project = makeProject({
-    st, meta, el, files, root, view, nextId, say, select, render, blockOf, engineName, rows, selectRow: (r) => selectRow(r),
+    st, meta, el, files, root, view, nextId, say, select, chooseView, render, blockOf, engineName, rows, selectRow: (r) => selectRow(r),
     snapshotSoon, history, undo: () => undo(), redo: () => redo(), setKeys: (m) => setKeys(m), post, chains, mm,
   });
   const seqHost = makeSequencerHost({ sim, files, st, history, snapshot, say, onSettled: () => {
@@ -337,20 +339,24 @@ export async function startEditor(env) {
     await files.midiSettled?.();
     if (!st.port) return;
     st.loading = true;
+    const projectId = files.pid;
     const id = ++st.snapId;
     const reply = await new Promise((resolve) => {
       st.snapWait.set(id, resolve);
       post({ type: 'snapshot', id, kind: 1 });
     });
-    if (id !== st.snapId) return;        // a newer one is on its way
+    if (id !== st.snapId || projectId !== files.pid) return;        // a newer one is on its way
     // Refused while the module is still starting: asked again shortly.
     if (!reply.ok) { if (st.port) setTimeout(() => { if (id === st.snapId) snapshot(); }, 250); return; }
     st.live = reply.bytes.slice(0);
     st.liveGen = reply.gen >>> 0;
     const r = await files.shadow('save', { kind: 1, live: reply.bytes, mod: true });
-    if (id !== st.snapId) return;
+    if (id !== st.snapId || projectId !== files.pid) return;
     if (!r || !r.text) { if (st.port) setTimeout(() => { if (id === st.snapId) snapshot(); }, 250); return; }
-    st.mirror = mirrorFromProject(meta, JSON.parse(r.text), r.mod);
+    const doc = JSON.parse(r.text);
+    st.mirror = mirrorFromProject(meta, doc, r.mod);
+    const firstView = initialView.fromProject(projectId, doc);
+    if (firstView) st.view = firstView;
     sequencer.invalidate();
     st.gen = reply.gen >>> 0;
     st.loading = false;
@@ -477,7 +483,7 @@ export async function startEditor(env) {
     markKnobs();
     markPanelBlock();
     const moved = !was || was.mode !== v.mode || was.sound !== v.sound || was.page !== v.page || was.slot !== v.slot || was.arp !== v.arp;
-    if (!moved || st.layout !== 'workbench' || !st.followPanel || st.typing || st.dragKey || st.picker) return;
+    if (!was || initialView.pending || st.loading || !moved || st.layout !== 'workbench' || !st.followPanel || st.typing || st.dragKey || st.picker) return;
     if (st.keys === 'edit' && view.contains(document.activeElement)) return;     // a hand is in the editor
     const at = blockOfView(v);
     if (!at) return;
@@ -798,8 +804,10 @@ export async function startEditor(env) {
   }
 
   // ---- selection and the views (§10) -------------------------------------------------
+  function chooseView(name) { initialView.choose(); st.view = name; }
   function select(key, opt = {}) {
     if (key !== MIX_KEY && !parseBlockKey(key) && cableIndex(key) < 0) return;
+    initialView.choose();
     if (cableIndex(key) >= 0) st.selCable = key;
     const same = key === st.selected && (!opt.view || opt.view === st.view) && view.firstChild;
     if (same && opt.quiet) {             // following the panel to where it already is
@@ -874,17 +882,17 @@ export async function startEditor(env) {
         () => select(blockKey(ROLE.SOUND, k), { view: 'sound' }), st.view === 'sound' && st.sound === k));
     }
     outline.append(el('p', 'ed-out-h', { text: 'Signal' }));
-    outline.append(mk('Flow and effects', 'FX', 'ed-out-fx', () => { st.view = 'flow'; render(); }, st.view === 'flow'));
+    outline.append(mk('Flow and effects', 'FX', 'ed-out-fx', () => { chooseView('flow'); render(); }, st.view === 'flow'));
     const nMods = st.mirror ? st.mirror.rack.filter(Boolean).length : 0;
     const nCables = st.mirror ? st.mirror.cables.filter((c) => c.flags & 1).length : 0;
-    outline.append(mk('Modulation', 'MOD', 'ed-out-mod', () => { st.view = 'mod'; render(); }, st.view === 'mod',
+    outline.append(mk('Modulation', 'MOD', 'ed-out-mod', () => { chooseView('mod'); render(); }, st.view === 'mod',
       st.mirror ? `${nMods}·${nCables}` : null));
     outline.append(el('p', 'ed-out-h', { text: 'Project' }));
-    outline.append(mk('Song / MIDI', 'SEQ', 'ed-out-seq', () => { st.view = 'sequencer'; render(); sequencer.refresh(); }, st.view === 'sequencer'));
-    outline.append(mk('Library', 'LIB', 'ed-out-lib', () => { st.view = 'library'; render(); }, st.view === 'library'));
-    outline.append(mk('Compare A/B', 'A/B', 'ed-out-ab', () => { st.view = 'ab'; render(); }, st.view === 'ab',
+    outline.append(mk('Song / MIDI', 'SEQ', 'ed-out-seq', () => { chooseView('sequencer'); render(); sequencer.refresh(); }, st.view === 'sequencer'));
+    outline.append(mk('Library', 'LIB', 'ed-out-lib', () => { chooseView('library'); render(); }, st.view === 'library'));
+    outline.append(mk('Compare A/B', 'A/B', 'ed-out-ab', () => { chooseView('ab'); render(); }, st.view === 'ab',
       st.ab && st.ab.A ? st.ab.playing : null));
-    outline.append(mk('Memory', 'RAM', 'ed-out-mem', () => { st.view = 'memory'; render(); }, st.view === 'memory'));
+    outline.append(mk('Memory', 'RAM', 'ed-out-mem', () => { chooseView('memory'); render(); }, st.view === 'memory'));
     outline.append(el('button', 'ed-out ed-out-search', { type: 'button', onclick: () => project.openSearch(), title: `Search (${MOD}K)` }, [
       el('span', 'ed-out-tag', { text: MOD === '⌘' ? '⌘K' : '^K' }), el('span', 'ed-out-name', { text: 'Search' })]));
   }
@@ -1491,7 +1499,13 @@ export async function startEditor(env) {
   render();
   const api = {
     setLayout, state: st, history, meta, mm, chains, rows, select, undo, redo, setKeys, project, say,
-    applyLink: (l) => { if (l?.sequencer) { st.view = 'sequencer'; render(); sequencer.refresh(); } else project.applyLink(l); },
+    applyLink: (l) => {
+      if (l?.sequencer || l?.sel) initialView.choose();
+      if (l?.sequencer) { st.view = 'sequencer'; render(); sequencer.refresh(); } else project.applyLink(l);
+    },
+    projectLoaded() {
+      if (initialView.project(files.pid)) snapshot();
+    },
     sequencer, sequencerHost: seqHost,
     midiMapChanged() {
       // Maps change the canonical project hash without changing engine or
