@@ -9,6 +9,9 @@
 #include "asm/p33.h"
 #include "request.h"
 #include "spi1_transport.h"
+#ifdef LUNAR_SDK_RECOVERY_TRACE
+#include "recovery_trace.h"
+#endif
 
 const struct irq_info irq_info_table[] = {{-1,-1,-1}};
 const struct task_info task_info_table[] = {
@@ -96,15 +99,29 @@ done:
     lunar_recovery_native_io(&recovery_io);
     if (lunar_recovery_bind(&recovery, &recovery_io, 4096u)) {
         lunar_sdk_stage = 6;
+#ifdef LUNAR_SDK_RECOVERY_TRACE
+        lunar_sdk_recovery_trace_before_lock(lunar_sdk_result, lunar_sdk_elapsed_ms,
+            lunar_sdk_heartbeat, (unsigned)lunar_sdk_sys_hz, (unsigned)lunar_sdk_lsb_hz);
+#endif
         p33_lock();
+#ifdef LUNAR_SDK_RECOVERY_TRACE
+        lunar_sdk_recovery_trace_phase(LUNAR_TRACE_ACQUIRED);
+#endif
         lunar_sdk_recovery_result = lunar_recovery_request(&recovery);
         p33_unlock();
+#ifdef LUNAR_SDK_RECOVERY_TRACE
+        lunar_sdk_recovery_trace_phase(lunar_sdk_recovery_result ?
+            LUNAR_TRACE_RETURNED_SUCCESS : LUNAR_TRACE_RETURNED_FAILURE);
+#endif
         lunar_sdk_stage = lunar_sdk_recovery_result ? 7u : 8u;
     } else { lunar_sdk_stage = 8; }
     /* A transmitted reset is not proof that reset or UBOOT happened. */
     for (;;) { ++lunar_sdk_heartbeat; os_time_dly(100); }
 }
 void app_main(void) {
+#ifdef LUNAR_SDK_RECOVERY_TRACE
+    lunar_sdk_recovery_trace_init();
+#endif
     lunar_sdk_stage = 1;
     lunar_sdk_result = task_create(diagnostic_worker, NULL, "lunar_diag");
     if (lunar_sdk_result) lunar_sdk_stage = 0xffu;

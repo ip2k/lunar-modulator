@@ -732,3 +732,29 @@ appropriate checks/review/docs, exact-head CI and integration. Hera remains the
 only build host; sixteen chunks for parallel checks. Next dependencies are
 Cynthion capture readiness, finalized trace artifact and distinct reviewed
 trace-image admission/readback/installation adapters.
+### 2026-10-12 recovery phase trace checkpoint
+
+Active goal remains physical boot/display/recovery acceptance of an installable
+diagnostic Lunar image. Stock FM-1_092 identity is accepted after full restore;
+the previous reset and identity attempts are consumed. Owner is at the desk;
+Cynthion CONTROL-to-Mac/TARGET-C-to-bench connection status is pending. Leave
+TARGET-A/FM-1 detached until passive capture starts. Packetry 0.5.0 is installed,
+but computer-use cannot launch its Homebrew executable; owner launch requested.
+No new device command has been sent after the accepted stock identity.
+
+Frozen trace sources and 70 passing Hera cases are described in
+`notes/2026-10-12-sdk-recovery-phase-implementation.md`. Enabled app
+`76382f531491b63a9cb75258ae9299185219b55f201e5110a74eb03ab328bf44`, ELF
+`e9d54172bda7dd085fbd1a46ef35c353210f75ec5f621a3e352a075d7f2a6035`, nonce
+`6b5482dbb66b5f45ed73e2f26c4a4657`; repeated native build matches both bytes.
+Macro-off app matches the preceding diagnostic. Trace record is ordinary BSS
+at 0x01c02880/64 bytes; stage is 0x01c03418/4 bytes. Fixed recovery-loader upload
+overwrites this area, so any new direct ROM read must precede that upload.
+
+Native independent review is pending; no trace package or new hardware admission
+is accepted. Distinct exact-image admission/install successors and ELF-derived
+bounded RAM policy/decoder are being prepared. Older physical sources and
+receipts stay frozen. See `notes/2026-10-12-sdk-trace-installation.md` for concrete
+dependencies. Physical display observation, RAM retention, fresh matching full
+stock backups on the next binding, new install/readback/reset/recovery packets,
+production partial-NOR recovery, exact final CI/review/integration remain open.

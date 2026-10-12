@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import secrets
 import subprocess
 import sys
 
@@ -46,7 +47,14 @@ def main():
     parser.add_argument("--toolchain", type=Path, required=True, help="20250324.1 pi32v2/bin")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--source-commit", help="Recorded source SHA when using an isolated rsync source stage")
+    parser.add_argument("--recovery-trace", action="store_true", help="Enable diagnostic-only owned RAM recovery phases")
+    parser.add_argument("--recovery-trace-nonce", help="Explicit 128-bit hex nonce for reproducible comparison; otherwise freshly generated")
     args = parser.parse_args()
+    if args.recovery_trace_nonce is not None and not args.recovery_trace:
+        parser.error("--recovery-trace-nonce requires --recovery-trace")
+    if args.recovery_trace_nonce is not None and not re.fullmatch(r"[0-9a-fA-F]{32}", args.recovery_trace_nonce):
+        parser.error("Recovery trace nonce must be exactly 32 hexadecimal digits")
+    nonce = (args.recovery_trace_nonce or secrets.token_hex(16)).lower() if args.recovery_trace else None
     sdk, tc, out = (p.resolve() for p in (args.sdk, args.toolchain, args.out))
     if sdk == out or sdk in out.parents or ROOT == out or out == tc or tc in out.parents:
         parser.error("Output must be separate from SDK, source root and toolchain")
@@ -69,8 +77,16 @@ def main():
         text = make.read_text()
         flags = make_list(text, "CFLAGS")
         defines = make_list(text, "DEFINES") + ["-D__SHELL__", "-DLUNAR_PI32V2"]
+        if args.recovery_trace:
+            defines.append("-DLUNAR_SDK_RECOVERY_TRACE")
+            nonce_header = out / "recovery_trace_nonce.h"
+            raw_nonce = bytes.fromhex(nonce)
+            nonce_header.write_text("/* Generated private image nonce, little-endian words. */\n" +
+                "".join(f"#define LUNAR_SDK_RECOVERY_NONCE_{i} 0x{int.from_bytes(raw_nonce[i*4:i*4+4], 'little'):08x}u\n" for i in range(4)))
         owned = ROOT / "firmware/sdk-diagnostic"
         includes = ["-I" + str(p) for p in (owned, owned / "third_party/fm1-nes", ROOT / "firmware/display", ROOT / "firmware/recovery")]
+        if args.recovery_trace:
+            includes.append("-I" + str(out))
         includes += ["-I" + str((make.parent / p[2:]).resolve()) for p in make_list(text, "INCLUDES")]
         sources = [(make.parent / p).resolve() for n in ("c_SRC_FILES", "S_SRC_FILES") for p in make_list(text, n)]
         sources = [p for p in sources if p.name not in ("app_main.c", "board.c", "cpp_run_init.c")]
@@ -78,6 +94,8 @@ def main():
                     ROOT / "firmware/third_party/fm1-nes/boot_compat.c",
                     ROOT / "firmware/display/panel_probe.c", ROOT / "firmware/display/spi1_transport.c",
                     ROOT / "firmware/recovery/request.c"]
+        if args.recovery_trace:
+            sources.append(owned / "recovery_trace.c")
         libs = [sdk / "include_lib/newlib/pi32v2-lib" / n for n in ("libm.a", "libc.a", "libcompiler_rt.a")]
         libs += [sdk / "cpu/wl82/liba" / n for n in ("cpu.a", "event.a", "system.a", "cfg_tool.a", "fs.a", "common_lib.a", "update.a")]
         for p in sources + libs:
@@ -87,6 +105,10 @@ def main():
             run([tc / "clang", *flags, *defines, *includes, "-D__LD__", "-E", "-P", source, "-o", out / name])
         used = out / "sdk.used"
         used.write_text(used.read_text() + "\napp_main\nlunar_panel_probe\ndiagnostic_worker\np33_lock\np33_unlock\nsys_local_irq_disable\nsys_local_irq_enable\n")
+        if args.recovery_trace:
+            used.write_text(used.read_text() + "\nlunar_sdk_recovery_trace_record\nlunar_sdk_recovery_trace_init\n"
+                "lunar_sdk_recovery_trace_before_lock\nlunar_sdk_recovery_trace_phase\n"
+                "lunar_sdk_recovery_trace_mailbox_verified\nlunar_sdk_recovery_trace_final_start_intent\n")
         ld = (out / "sdk.ld").read_text()
         for old, new in (("*(.data)", "*(.data .data.*)"), ("*(.bss)", "*(.bss .bss.*)"),
                          ("*(.syscfg.1.ops)", "/* excluded persistent cfg repair */"),
@@ -127,6 +149,9 @@ def main():
                   "application_bytes": app.stat().st_size,
                   "application_sha256": sha(app), "elf_sha256": sha(elf),
                   "device_operations_performed": False, "recovery_integrated": True,
+                  "recovery_trace": {"enabled": args.recovery_trace, "schema": 1 if args.recovery_trace else None,
+                                     "nonce_hex": nonce, "record_bytes": 64 if args.recovery_trace else None,
+                                     "startup_reason": "unavailable_sentinel" if args.recovery_trace else None},
                   "source_sha256": {str(p): sha(p) for p in sources + list(owned.rglob("*.h"))},
                   "build_audit_sha256": {str(p.relative_to(ROOT)): sha(p) for p in
                       (Path(__file__).resolve(), ROOT / "tools/jieli/audit_sdk_diagnostic.py",

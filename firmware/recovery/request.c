@@ -2,6 +2,9 @@
  * Independent bounded implementation of the stock V15 recovery contract.
  * Provenance/limits: notes/2026-10-05-softkey-efuse.md and recovery/README.md. */
 #include "request.h"
+#ifdef LUNAR_SDK_RECOVERY_TRACE
+#include "../sdk-diagnostic/recovery_trace.h"
+#endif
 
 static const unsigned char marker[16] = "usb_update_mode";
 #define SELECT 1u
@@ -23,11 +26,18 @@ static void select_bus(struct lunar_recovery *s, unsigned selected)
     s->io.write(s->io.context, LUNAR_P33_CON, (con & ~(SELECT | START)) | selected);
     s->io.sync(s->io.context);
 }
-static int send(struct lunar_recovery *s, unsigned byte)
+static int send(struct lunar_recovery *s, unsigned byte
+#ifdef LUNAR_SDK_RECOVERY_TRACE
+                , unsigned final_start
+#endif
+                )
 {
     unsigned con;
     s->io.write(s->io.context, LUNAR_P33_DAT, byte);
     con = s->io.read(s->io.context, LUNAR_P33_CON);
+#ifdef LUNAR_SDK_RECOVERY_TRACE
+    if (final_start) lunar_sdk_recovery_trace_final_start_intent();
+#endif
     s->io.write(s->io.context, LUNAR_P33_CON, con | START);
     s->io.sync(s->io.context);
     return idle(s);
@@ -63,10 +73,17 @@ int lunar_recovery_request(struct lunar_recovery *s)
     s->io.sync(s->io.context);
     for (i = 0; i < sizeof marker; ++i)
         if (s->io.mailbox_read(s->io.context, i) != marker[i]) goto failure;
+#ifdef LUNAR_SDK_RECOVERY_TRACE
+    lunar_sdk_recovery_trace_mailbox_verified();
+#endif
     /* P33 OR opcode 0x20, P3_PR_PWR address 0xa0, chip-reset bit 4.
      * Only this operation is exposed; no generic address/value API. */
     select_bus(s, SELECT);
+#ifdef LUNAR_SDK_RECOVERY_TRACE
+    if (!send(s, 0x20u, 0u) || !send(s, 0xa0u, 0u) || !send(s, 0x10u, 1u)) {
+#else
     if (!send(s, 0x20u) || !send(s, 0xa0u) || !send(s, 0x10u)) {
+#endif
         select_bus(s, 0);
         goto failure;
     }
