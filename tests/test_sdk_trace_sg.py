@@ -210,6 +210,7 @@ def test_native_journal_fdopen_failure_closes_raw_fd_without_opening_device(prep
 
 
 def test_factory_activation_closed_before_any_discovery_or_open(monkeypatch,tmp_path):
+    monkeypatch.setattr(n,'READ_POLICY_SHA',None)
     monkeypatch.setattr(n.os,'open',lambda *a,**k:pytest.fail('opened while closed'))
     with pytest.raises(ValueError,match='activation closed'):n.prepare_campaign(tmp_path/'campaign',None)
 

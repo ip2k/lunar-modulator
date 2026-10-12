@@ -200,7 +200,7 @@ def test_actual_native_constructor_durable_failure_grammar(tmp_path,monkeypatch,
     from types import SimpleNamespace
     from tools import fm1_sdk_trace_sg as n
     assert hashlib.sha256(Path(n.__file__).read_bytes()).hexdigest()==\
-        '2b7872d7cb375a8e8dcc62245de9eba42c197890e7ab96774593ec6e457b136a'
+        'ac63fed2919f97649a508a5c3ae14760b330841451b2f78b5714daf1be92b9c6'
     mapping=dict(node='/dev/sg-test-only',node_identity=[1,2,3])
     read=SimpleNamespace(snapshot=json.dumps(dict(usb_binding=USB,sg_binding=mapping)).encode(),
         receipt=tmp_path,plan=SimpleNamespace(operations=n.OPERATIONS),check=lambda:None)

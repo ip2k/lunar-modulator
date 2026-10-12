@@ -1,4 +1,4 @@
-"""MIT. Closed exact SDK trace SG successor; no upload, reset, NOR or retry.
+"""MIT. Exact SDK trace SG successor; no upload, reset, NOR or retry.
 
 Only the runner can grant a single-use open permit, after durable consumption.
 Old reviewed MIT source supplies SGHeader and full mapping, not its factories.
@@ -19,8 +19,8 @@ import time
 import types
 from weakref import WeakSet
 
-# Activation awaits independent reader, boot-lineage and transport acceptance.
-READ_POLICY_SHA = None
+# Exact reader accepted by the independent activated V2 Hera review.
+READ_POLICY_SHA = '6c9ed93284def1a95f60a42491b92acda0b116d26c224e2138643bd234fc5a43'
 BRIDGE_SHA = '79bbe99ce923daaf8af2c701a65ec39a015191313de79676e36622cb8db00afb'
 HEADER_SHA = '28317ee56a489e0bb38de981fe0d0c4260384be570349795741fdb9a98d6ae57'
 AUDIT_SHA = '673daa193891462147e1aab1082e62f339508e801e14de80a4cfabcca9828252'
