@@ -2552,6 +2552,11 @@ landed):
 
 ### Track titles
 
+The Arrangement header places **Add section** and **Section tools** beside
+the section pager. **Song ending** is a direct dropdown: loop the song, park
+tracks while the clock keeps running, or stop. The selected section is
+highlighted in the timeline.
+
 Double-click a track's title in Arrangement, Scenes or Mixer to edit it; a
 focused title also accepts Enter or F2. Enter or leaving the field saves;
 Escape cancels. There is no separate Rename button. The Clip and Automation

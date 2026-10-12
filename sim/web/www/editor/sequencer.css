@@ -43,9 +43,10 @@
 .sq-add-menu { position: absolute; z-index: 5; top: calc(100% + 6px); left: 0; display: grid; gap: 5px; min-width: 180px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); box-shadow: 0 8px 24px #0006; }
 .sq-add-menu > .sq-button { text-align: left; }
 .sq-section-tools > .sq-toolbar { padding: 8px; margin: 6px 0 0; border: 1px solid var(--border); border-radius: 5px; }
-.sq-section-tools > .sq-field { margin-top: 8px; }
-.sq-arrangement-tools { align-items: start; }
-.sq-arrangement-tools > .sq-caption { margin: 8px 0; }
+.sq-arrangement-tools { flex-wrap: wrap; align-items: center; }
+.sq-arrangement-tools > details { flex: none; }
+.sq-arrangement-tools > .sq-field { flex-direction: row; align-items: center; margin-left: auto; }
+.sq-arrangement-tools > .sq-field select { width: auto; }
 .sq-page-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0; min-width: 0; }
 .sq-page-nav .sq-caption { margin: 0; font-variant-numeric: tabular-nums; }
 .sq-section-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; min-width: 0; }

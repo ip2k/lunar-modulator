@@ -560,11 +560,9 @@ export function makeSequencer(ctx) {
       btn('Remove entry', () => alter('Remove song entry', es => { es.splice(state.song, 1); state.song = Math.max(0, state.song - 1); }), { disabled: !selected }),
       selected ? field('Repeats', selected.presses, v => alter('Change scene repeats', es => { es[state.song].presses = v; }), { min: 1, max: 64, step: 1 }) : null,
     ])]);
-    const controls = el('div', 'sq-toolbar sq-arrangement-tools', {}, [add, tools,
-      el('span', 'sq-caption', { text: selected ? `Selected: ${sceneName(selected.scene)} · section ${state.song + 1}` : 'Choose a scene to start your song' }),
-      el('details', 'sq-section-tools', {}, [el('summary', 'sq-button', { text: 'Song ending' }),
-        choose('Song end', state.model.songEnd, [[0, 'Loop song'], [1, 'Park tracks; keep clock running'], [2, 'Stop']], v => edit('Set song ending', m => { m.songEnd = Number(v); }))]),
-    ]);
+    const ending = choose('Song ending', state.model.songEnd, [[0, 'Loop song'], [1, 'Park tracks'], [2, 'Stop']],
+      v => edit('Set song ending', m => { m.songEnd = Number(v); }));
+    ending.title = 'At the song end: loop, park tracks while the clock keeps running, or stop.';
     const timeline = el('div', 'sq-song-grid', { 'aria-label': 'Song timeline' });
     const allColumns = entries.length ? entries : [{ scene: state.scene, presses: 1, startBar: 0, bars: Math.max(1, ...state.model.tracks.map(t => Math.ceil((t.clips[state.scene]?.length || 0) / 16))) }];
     state.songPage = Math.min(state.songPage, Math.floor((allColumns.length - 1) / layout.columns));
@@ -596,13 +594,13 @@ export function makeSequencer(ctx) {
         timeline.append(cell);
       });
     });
-    return el('section', 'sq-section sq-arrangement', { 'aria-description': 'Select a section using its repeat and bar header. Repeats share scene clips; copy a scene for a different variation.' }, [timelineHeading('Arrangement', 'songPage', allColumns.length), controls,
+    return el('section', 'sq-section sq-arrangement', { 'aria-description': 'Select a section using its repeat and bar header. Repeats share scene clips; copy a scene for a different variation.' }, [timelineHeading('Arrangement', 'songPage', allColumns.length, [add, tools, ending]),
       timelinePage(timeline, 'songPage')]);
   }
-  function timelineHeading(title, key, total) {
+  function timelineHeading(title, key, total, controls = []) {
     const noun = key === 'songPage' ? 'Sections' : 'Scenes';
-    return el('div', 'sq-section-heading', {}, [el('h3', '', { text: title }),
-      pageControls(key, total, layout.columns, noun, index => { state[key] = index; draw(); })]);
+    return el('div', `sq-section-heading${controls.length ? ' sq-arrangement-tools' : ''}`, {}, [el('h3', '', { text: title }),
+      pageControls(key, total, layout.columns, noun, index => { state[key] = index; draw(); }), controls]);
   }
   function timelinePage(grid, key) {
     const label = key === 'songPage' ? 'Sections' : 'Scenes';
