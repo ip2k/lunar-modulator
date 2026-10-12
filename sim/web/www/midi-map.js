@@ -202,7 +202,7 @@ export function createMidiLearn({ header, storage = { getItem: (key) => window.l
   const list = document.createElement('div'); assignments.append(list);
   help.append(message, connectButton, done, assignments); overlay.append(help); document.body.append(overlay);
   const explicit = new WeakMap(), elements = new Map();
-  let frame = 0;
+  let frame = 0, overlaySignature = '';
   const schedule = () => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; refresh(); }); };
   const map = new MidiMap({ storage, changed: schedule, edited, modeChanged, blocked: () => !!document.querySelector('dialog[open]') ||
     !!document.activeElement?.matches('textarea, input:not([type=range]):not([type=checkbox]):not([type=radio]), [contenteditable]:not([contenteditable=false])') });
@@ -226,16 +226,30 @@ export function createMidiLearn({ header, storage = { getItem: (key) => window.l
     }
     button.setAttribute('aria-pressed', String(map.learning)); overlay.hidden = !map.learning;
     document.body.classList.toggle('midi-learning', map.learning);
-    for (const e of overlay.querySelectorAll('.midi-learn-target, .midi-learn-badge')) e.remove();
-    if (!map.learning) return;
+    if (!map.learning) {
+      if (overlaySignature !== 'off') for (const e of overlay.querySelectorAll('.midi-learn-target, .midi-learn-badge')) e.remove();
+      overlaySignature = 'off'; return;
+    }
+    // Telemetry changes text every frame. Keep clear buttons mounted unless
+    // their geometry/content changes, so a pointer gesture can finish.
+    const bindingFor = new Map([...map.bindings.values()].map((b) => [resolvedTargetId(b.target), b]));
+    const visibleTargets = [...elements].filter(([, e]) => visible(e)).map(([id, e]) => {
+      const r = e.getBoundingClientRect(), b = bindingFor.get(id);
+      return [id, r.left, r.top, r.width, r.height, b || null, b ? label(e) : null];
+    });
     const layout = document.getElementById('layout-switch');
-    help.style.top = `${Math.max(12, header.getBoundingClientRect().bottom + 12, (layout?.getBoundingClientRect().bottom || 0) + 12)}px`;
+    const helpTop = Math.max(12, header.getBoundingClientRect().bottom + 12, (layout?.getBoundingClientRect().bottom || 0) + 12);
+    const signature = JSON.stringify([map.learning, map.selected, map.error, !!navigator.requestMIDIAccess,
+      helpTop, selectedLabel(), visibleTargets, [...map.bindings.values()].map(b => [b, elements.get(resolvedTargetId(b.target)) ? label(elements.get(resolvedTargetId(b.target))) : null])]);
+    if (signature === overlaySignature) return;
+    overlaySignature = signature;
+    for (const e of overlay.querySelectorAll('.midi-learn-target, .midi-learn-badge')) e.remove();
+    help.style.top = `${helpTop}px`;
     const selected = elements.get(map.selected);
     message.textContent = map.error || (!navigator.requestMIDIAccess ? 'Web MIDI is unavailable in this browser. You can inspect or clear saved assignments.' :
       selected ? `${label(selected)}: press a controller note or move a CC.` : 'Choose a highlighted control, then press a note or move a CC. MIDI is silent while learning.');
     connectButton.disabled = !navigator.requestMIDIAccess;
     list.replaceChildren();
-    const bindingFor = new Map([...map.bindings.values()].map((b) => [resolvedTargetId(b.target), b]));
     for (const [id, e] of elements) {
       if (!visible(e)) continue;
       const r = e.getBoundingClientRect();
@@ -260,6 +274,7 @@ export function createMidiLearn({ header, storage = { getItem: (key) => window.l
       const clear = document.createElement('button'); clear.type = 'button'; clear.textContent = '×'; clear.setAttribute('aria-label', `Clear ${b.target}`); clear.onclick = () => map.clear(b.target); row.append(clear); list.append(row);
     }
   }
+  function selectedLabel() { const selected = elements.get(map.selected); return selected ? label(selected) : null; }
   button.onclick = () => { map.learn(!map.learning); };
   // Transport and grid controls are replaced during a view change. Refresh
   // their closures before consuming the controller's next rising edge, even
