@@ -11,7 +11,7 @@ import {readFile} from 'node:fs/promises';
 import {createWav} from '../www/editor/wav.js';
 import {renderOffline} from '../www/editor/render.worker.js';
 import {exportAudio} from '../www/editor/audio-export.js';
-import {emptySet, emptyClip, writeSet} from '../www/editor/sequence-model.js';
+import {emptySet, emptyClip, writeSet, parseSet, arrangementEntries} from '../www/editor/sequence-model.js';
 
 for (const bits of [16, 24]) {
   const wav = createWav({frames: 2, channels: 2, sampleRate: 44118, bits});
@@ -102,6 +102,21 @@ if (wasmArg >= 0) {
   const unevenTracks=await renderOffline({...request,project:unevenProject,mode:'track-stems'},wasm);
   assert(unevenMix.files[0].samples>a.files[0].samples);
   assert(unevenTracks.files.every(f=>f.samples===unevenMix.files[0].samples),'Track isolation changed the arrangement duration.');
+  // Full demo arrangements exposed a fixed 256-frame guard that expired
+  // before native Stop at slower tempos. Keep their actual lengths, clip
+  // speeds, repeats and locks, using inexpensive voices to isolate timing.
+  for (const name of ['satellite-hearts', 'afterglow-relay', 'event-horizon', 'packet-bloom']) {
+    const song = JSON.parse(await readFile(new URL(`../www/examples/${name}.lunar`, import.meta.url), 'utf8'));
+    song.master = [null, null]; song.mod = {seed:1,rack:[],cables:[]}; song.sounds = structuredClone(project.sounds);
+    const model = parseSet(song.set), bars = arrangementEntries(model).reduce((sum, entry) => sum + entry.bars, 0);
+    const expected = Math.ceil(Math.ceil((bars * 384 + 1) * 44118 * 6000 / (model.bpmX100 * 96)) / 64) * 64;
+    const rendered = await renderOffline({project:song, tail:0, bits:16}, wasm);
+    assert.equal(rendered.files[0].samples, expected, `${name}: full native arrangement must stop at its clock-derived block boundary`);
+  }
+  const slow = structuredClone(project), slowSet = structuredClone(set); slowSet.bpmX100 = 2000; slow.set = writeSet(slowSet);
+  const slowFrames = Math.ceil(Math.ceil(385 * 44118 * 6000 / (2000 * 96)) / 64) * 64;
+  assert.equal((await renderOffline({project:slow, tail:0, bits:16}, wasm)).files[0].samples, slowFrames);
+  console.log('Full demo arrangements and minimum-tempo native Stop boundary: PASS');
   const midiOnly = structuredClone(project); const midiSet = structuredClone(set);
   midiSet.tracks.forEach((t,i)=>{t.route={kind:0,index:i+1};}); midiOnly.set=writeSet(midiSet);
   const external = await renderOffline({...request,project:midiOnly},wasm);
