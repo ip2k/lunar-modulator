@@ -356,7 +356,7 @@ export function makeSequencer(ctx) {
     action(() => ctx.seekBar?.(Math.max(0, Math.min(barLimit(state.model, transport), Math.floor((transport.master_tick || 0) / 384) + direction))));
   }
   function updateTransport(transport) {
-    if (disposed || !transport) return;
+    if (disposed || !transport || !state.model) return;
     // A queued native update can arrive while the external host is empty
     // during an editor remount. Each control is optional until draw finishes.
     const position = transportMount.querySelector('[data-play-position]');
