@@ -10,8 +10,13 @@ nonbooting application.** The owner has since authorized and completed the
 bounded experiments in §4. On 2026-10-11 the diagnostic install/restore
 rehearsal reproduced both complete 1 MiB images and a separate reset returned
 the owner's `FM-1_092` to normal USB and its known identity [verified:
-`notes/2026-10-11-diagnostic-boot-trial.md`]. Diagnostic execution and rescue
-after an interrupted physical write remain unverified. This document records the risks and staged
+`notes/2026-10-11-diagnostic-boot-trial.md`]. A later pre-loader RAM read supports
+conditional diagnostic execution, including a successful display-probe return;
+visible pixels remain unobserved. Full stock restoration and a fresh known
+identity were independently accepted on 2026-10-12 [verified:
+`notes/2026-10-11-diagnostic-first-ram-read.md`,
+`notes/2026-10-11-stopped-choice-stock-reset-packet.md`]. Rescue after an
+interrupted physical write remains unverified. This document records the risks and staged
 safeguards; it is not a general authorization for device writes.
 
 ## 1. Why recovery is hard on this device
@@ -183,16 +188,21 @@ one-shot adapters in `tools/`; campaign details in the boot-trial note].
 | Observed state | Next step | What it establishes |
 | --- | --- | --- |
 | Normal `4c4a:c755`, known `FM-1_092` identity | Use the reviewed identity/soft-key entry once, observe same-port ROM enumeration, then take fresh matching complete backups before a write. | A running application can enter ROM [verified on this unit]. |
-| ROM `4c4a:8057` after the diagnostic reset | Capture the diagnostic RAM stage before uploading a loader; use the returned-ROM evidence factory, fresh matching target backups and a separately admitted stock restore. | Retained stage data can support execution evidence; ROM enumeration alone proves neither boot nor recovery cause [inferred until the physical probe]. |
-| Stock restore completed with full `96006a51…` readback | Admit the distinct stock-return reset from the completed restore receipt; send its single reviewed `FC0C` request and passively observe normal USB, then read the known identity. | The earlier rehearsal verified this return without an owner power cycle; the new returned-ROM path still needs its own physical receipts. |
-| Interrupted or corrupt application-sector write, ROM reachable | Preserve the partial journal and failed attempt. Re-enter under a new binding, read actual flash afresh, verify all protected bytes, and use a separately reviewed resume envelope. Rebuild whole affected sectors, write the application directory last, and verify the complete stock image. | Transaction-model interruption/corruption tests exercise these rules; the returned-ROM resume envelope and physical interrupted-write rescue remain pending. |
+| ROM `4c4a:8057` after the diagnostic reset | Read the exact admitted RAM ranges before uploading a loader; then take fresh matching target backups and use a separately admitted stock restore. | The original stage read supported conditional execution [verified]. New trace-image ranges and RAM retention need their own physical receipt; enumeration alone proves neither boot nor recovery cause. |
+| Stock restore completed with full `96006a51…` readback | Use a distinct stock-return reset admitted from that completed restore, followed by passive enumeration and a distinct identity query. Never replay a consumed attempt. | The returned-ROM campaign restored stock, transmitted one reviewed `FC0C`, returned normal USB and answered `FM-1_092` without an owner power cycle [verified]. Reset completion and cause remain unproven. |
+| Interrupted or corrupt application-sector write, ROM reachable | Preserve the partial journal and failed attempt. Re-enter under a new binding, take two complete matching reads of actual flash, verify protected bytes against authenticated stock, and use a separately reviewed recovery envelope. Rebuild whole affected sectors, write the application directory last, and verify the complete stock image. | The interrupted-recovery model passed in sixteen Hera chunks [verified: `notes/2026-10-12-stopped-choice-interrupted-recovery-model.md`]. Its ROM entry is supplied by the model; the production partial-image envelope and physical interrupted-write rescue remain pending. |
 | Application hangs and neither normal USB nor ROM is present | Preserve evidence and wait for an actual recovery entry: watchdog/reset if implemented and verified, or `USB_KEY` at power-on under docs/10. | No host command can be promised to recover an unreachable device. The dongle remains untried on this owner's unit. |
 
-The private flasher accepts only the pinned fixed RAM loader and the owner's
-exact stock/diagnostic pair. It confines writes to the derived 30 application
+The physically exercised private flasher accepts only the pinned fixed RAM loader
+and the owner's original exact stock/diagnostic pair. It confines writes to the derived 30 application
 sectors, keeps the stock SPL/OTA/configuration and partition bytes intact,
 records intent before each operation, and checks the full final image
 [verified: the physical install/restore rehearsal and transaction model].
+The new phase-trace image has passed independent source/native/allocation review
+and reproducible Hera builds; its separate image admission, installation and
+pre-loader RAM reader remain under review [verified:
+`notes/2026-10-12-sdk-recovery-phase-implementation.md`]. Older consumed receipts
+do not admit that new image.
 Never substitute the SDK download loader, use eFuse commands, erase the whole
 flash, or infer a safe resume from a success string. See
 [the returned-ROM design](../notes/2026-10-11-returned-rom-recovery-design.md)
@@ -222,7 +232,7 @@ programmer become the simplest recovery path of all; read it on the bench
 
 | Risk | Likelihood | Impact | Mitigation |
 | --- | --- | --- | --- |
-| Custom package bricks the only device | high if attempted without a retained recovery path | total loss of the unit | Follow §4 rule 1 before any flash erase/program. The verified bounded sector restore does not prove full-image recovery or rescue from a nonbooting application; rehearse firmware on the AC791N dev board when available. The board is **JL-AC79-DevKit V1.0**: base board, core board JL-AC79-WIFI V1.0 with an **AC7916** (same dual pi32v2 at up to 320 MHz, 578 KB SRAM), LCD board and cameras. The AC7916 may carry in-package SDRAM the FM-1 lacks; keep benchmark state in internal SRAM. It is also where to rehearse `USB_KEY` and the JieLi USB updater before the FM-1 |
+| Custom package bricks the only device | high if attempted without a retained recovery path | total loss of the unit | Follow §4 rule 1 before any flash erase/program. Complete stock restoration is now verified in the diagnostic campaign; rescue after an interrupted physical write or from an unreachable application remains unproven. Rehearse firmware on the AC791N dev board when available. The board is **JL-AC79-DevKit V1.0**: base board, core board JL-AC79-WIFI V1.0 with an **AC7916** (same dual pi32v2 at up to 320 MHz, 578 KB SRAM), LCD board and cameras. The AC7916 may carry in-package SDRAM the FM-1 lacks; keep benchmark state in internal SRAM. It is also where to rehearse `USB_KEY` and the JieLi USB updater before the FM-1 |
 | `USB_KEY` does not work on AC791N through the connector | low (reported working on FM-1s through the USB-C port with czietz's dongle and with FM-1-transporter, docs/10 §1.1) | forces soldering (2.4) | D+ clock first, then the other polarity; quiet bus; dev-board rehearsal |
 | Wrong loader / wrong chip family in tooling | medium | corrupt flash | jl-uboot-tool marks WL82 "unknown", but `adb3f18`'s `wl82loader.bin` works on FM-1s with 256-byte I/O [reported: fm1-nes guard patch]. Read-only operations first, compare the dump with the stock package before any write, and finish dump, compare and write in one session: if the host drops the device, the chip boots flash [reported: FM-1-transporter] |
 | Interrupted write (power loss, USB drop) | medium | unbootable app | battery charged, no hubs during writes, dump before every write. Through the stock path, a loader left waiting after step 1 can be resumed [reported: Baud Girl] |

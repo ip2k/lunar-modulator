@@ -9,6 +9,26 @@ repository, so a fresh Claude project (or a human) can continue without the
 original conversation; last updated 2026-10-11. Read this first, then
 `DEVELOPERS.md` (the README is the product page), then `docs/`.
 
+## Current installable-image boundary — 2026-10-12
+
+[verified] Stock full-image readback96006 and the distinct identity-only reply
+FM-1_092 are accepted. Reset and identity campaigns are consumed; no device
+command has followed the accepted identity. Native trace reviewcf706b9c accepts
+the new app76382f53/ELFe9d54172 and linked RAM allocation within offline scope.
+Parent checkpoint41fc898d is pushed/remote verified. New trace policy/install
+sources are a closed WIP checkpoint: activation literals remain None; AST checks
+only, sixteen Hera chunks and genuine candidate admission pending. Exact raw
+target5dbada65 was emitted on Hera; independent preservation review is running.
+
+Owner is at the desk. Requested CONTROL→Mac, TARGET C→bench Pi, FM-1 detached
+from TARGET A until Full Speed capture starts. Mac computer-use currently reports
+locked; owner unlock/Packetry launch and cable status are pending. Do not assume
+an old USB/SG binding survives rewiring. Read the native trace before any fixed
+loader upload, which overwrites its BSS. Distinct boot/reader and partial-NOR
+recovery successors, physical display/recovery, exact final CI/review/integration
+remain required. Final CI must use workflow_dispatch on the exact branch head:
+feature-branch pushes alone do not trigger this repository's workflow.
+
 ## Installable firmware image resumed — 2026-10-11
 
 [verified: current physical receipt, 2026-10-12 UTC] The stock restore completed
@@ -751,8 +771,8 @@ Macro-off app matches the preceding diagnostic. Trace record is ordinary BSS
 at 0x01c02880/64 bytes; stage is 0x01c03418/4 bytes. Fixed recovery-loader upload
 overwrites this area, so any new direct ROM read must precede that upload.
 
-Native independent review is pending; no trace package or new hardware admission
-is accepted. Distinct exact-image admission/install successors and ELF-derived
+Native independent reviewcf706b9c is accepted within offline scope; no trace
+package or new hardware admission is accepted. Distinct exact-image admission/install successors and ELF-derived
 bounded RAM policy/decoder are being prepared. Older physical sources and
 receipts stay frozen. See `notes/2026-10-12-sdk-trace-installation.md` for concrete
 dependencies. Physical display observation, RAM retention, fresh matching full

@@ -50,6 +50,23 @@ Update 2026-10-09 [verified: [bench note](../notes/2026-10-07-fm1-softkey-bench.
   Lunar application execution has been demonstrated. The physical dongle
   implementation described here has not run on the owner's unit.
 
+Update 2026-10-12 [verified:
+[RAM read](../notes/2026-10-11-diagnostic-first-ram-read.md),
+[stock return](../notes/2026-10-11-stopped-choice-stock-reset-packet.md)]:
+
+- The original SDK diagnostic was installed and its complete 1 MiB target
+  readback verified. A pre-loader RAM read supports conditional application
+  execution and a successful display-probe return; visible pixels remain
+  unobserved.
+- Complete stock restoration now verifies SHA256 `96006a51…`. A distinct
+  one-shot reset returned normal USB, and a separate query answered the exact
+  known `FM-1_092` identity without an owner power cycle. Reset cause and
+  completion remain unproven; both attempts are consumed.
+- Interrupted-write recovery passed host models in sixteen Hera chunks, but
+  these models supply ROM entry. Physical broken-app entry and this project's
+  dongle remain untested. Cynthion capture does not establish a CPU power cycle
+  for the battery-powered FM-1.
+
 ## 1. What the mask ROM does [reported: kagaimiq]
 
 Sources: `jielie/isp/usb/usb-key.md` and
@@ -163,8 +180,9 @@ What it tells us about the FM-1:
    - It suggests that jl-uboot-tool's `wl82loader.bin`, which the tool lists
      as "unknown", works [inferred].
    - The original blanket prerequisite was replaced by owner-authorized
-     staged experiments on 2026-10-07 (docs/07 §4); full-image restore
-     remains untested despite successful bounded sector restoration.
+     staged experiments on 2026-10-07 (docs/07 §4). Complete stock restoration
+     subsequently passed in the diagnostic campaign (2026-10-12 update above);
+     this dongle's physical entry and interrupted-write rescue remain untested.
 3. **A square wave probably works as SOF** [inferred].
    - The loop supplies 1 ms falling edges as a 50 % square wave, and the chip
      reached `UBOOT1.00` [reported].

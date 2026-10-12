@@ -5,9 +5,9 @@
 physical adapter, vendor source/library change, package creation or PR. Root owns
 checkpoint/push, independent review acceptance and all hardware. Source branch
 `feature/2026-10-11@installable-firmware`; native snapshot base `580b098`.
-Root's latest reported checkpoint before this note is
-`a6164e5369e9cfb940ad1f456b52b3b7786b668d` (pushed/remote verified by root);
-trace source and this note await root's checkpoint.
+Root checkpoint `41fc898d2d887c615406869ea969a239702d65f7` contains the frozen
+trace source/tests and this note [verified: explicit branch push and matching
+remote SHA]. Independent review was subsequently accepted within offline scope.
 
 Insight before code: old stage6 could indicate waiting for the SDK lock or a
 nonreturning final reset transfer. The new trace publishes evidence before each
@@ -81,7 +81,7 @@ ELF by any new reader; they are not permission to extend an old RAM adapter.
 Native LTO internalizes trace functions as local `t` symbols; no weak definition.
 Source/link-failure gate establishes required hooks.
 
-Native instruction landmarks [verified: vendor objdump; independent review pending]:
+Native instruction landmarks [verified: vendor objdump; independent review accepted]:
 worker snapshot call `0x02002c14`, lock `0x02002c18`, acquired `0x02002c20`;
 all-marker-match hook `0x02002cce`; final send CON read `0x02002a32`, intent hook
 `0x02002a38`, original OR `0x02002a3a`, CON write callback `0x02002a44`.
@@ -151,10 +151,18 @@ no isolated semantic coverage or substitute clangd ABI proof is claimed.
 
 ## Remaining acceptance and handoff
 
-Independent source/native/allocation review remains required. New exact-image
-install/package admission must pin these actual files, not reuse old pass
-receipts. Next reader dependency is a distinct sealed ELF-derived64-byte trace
-plus4-byte stage policy, two bounded FD07 reads and a decoder covering stale
+Independent source/native/allocation review is accepted with no actionable
+defect found. Private report `build/sdk-recovery-trace-hera/independent-review.md`
+SHA256 `cf706b9c95ea0635a9d4521b04d3d42730b80b0dfd97070931892ae163c5d690`
+and checker result `e4cbdbba2121b99da170550b92e783cadf91ff889901b11dbac02755ed6185ad`
+replay the 280 indexed pins, both source archives, all 70 passing cases, native
+allocations/listing and 21 passing runtime inspections. Native parallel-packet
+operand timing remains inferred; a strict decoder must reject inconsistent
+phase/complement/sequence evidence. Review grants no hardware operation.
+
+New exact-image install/package admission must pin these actual files, not reuse
+old pass receipts. Next reader dependency is a distinct sealed ELF-derived64-byte
+trace plus4-byte stage policy, four bounded FD07 reads (both ranges twice) and a decoder covering stale
 nonce, magic/version/length, unknown phase, complement/sequence, flag agreement,
 truncation and inconsistent repeated reads. Old adapters/windows stay frozen.
 RAM retention must be measured under the reviewed ROM/loader path. Root alone
