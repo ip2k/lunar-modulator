@@ -1,0 +1,144 @@
+{
+  "schema": 1,
+  "scope": "offline replay of retained physical V7/V2 evidence; no device access",
+  "cases": 16,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "containers": [
+    {
+      "name": "/lunar-completed-stop-trace-20261012-00",
+      "exit": 0,
+      "oom": false,
+      "memory": 536870912,
+      "network": "none",
+      "cgroup": "docker-batch.slice"
+    },
+    {
+      "name": "/lunar-completed-stop-trace-20261012-01",
+      "exit": 0,
+      "oom": false,
+      "memory": 536870912,
+      "network": "none",
+      "cgroup": "docker-batch.slice"
+    },
+    {
+      "name": "/lunar-completed-stop-trace-20261012-02",
+      "exit": 0,
+      "oom": false,
+      "memory": 536870912,
+      "network": "none",
+      "cgroup": "docker-batch.slice"
+    },
+    {
+      "name": "/lunar-completed-stop-trace-20261012-03",
+      "exit": 0,
+      "oom": false,
+      "memory": 536870912,
+      "network": "none",
+      "cgroup": "docker-batch.slice"
+    },
+    {
+      "name": "/lunar-completed-stop-trace-20261012-04",
+      "exit": 0,
+      "oom": false,
+      "memory": 536870912,
+      "network": "none",
+      "cgroup": "docker-batch.slice"
+    },
+    {
+      "name": "/lunar-completed-stop-trace-20261012-05",
+      "exit": 0,
+      "oom": false,
+      "memory": 536870912,
+      "network": "none",
+      "cgroup": "docker-batch.slice"
+    },
+    {
+      "name": "/lunar-completed-stop-trace-20261012-06",
+      "exit": 0,
+      "oom": false,
+      "memory": 536870912,
+      "network": "none",
+      "cgroup": "docker-batch.slice"
+    },
+    {
+      "name": "/lunar-completed-stop-trace-20261012-07",
+      "exit": 0,
+      "oom": false,
+      "memory": 536870912,
+      "network": "none",
+      "cgroup": "docker-batch.slice"
+    },
+    {
+      "name": "/lunar-completed-stop-trace-20261012-08",
+      "exit": 0,
+      "oom": false,
+      "memory": 536870912,
+      "network": "none",
+      "cgroup": "docker-batch.slice"
+    },
+    {
+      "name": "/lunar-completed-stop-trace-20261012-09",
+      "exit": 0,
+      "oom": false,
+      "memory": 536870912,
+      "network": "none",
+      "cgroup": "docker-batch.slice"
+    },
+    {
+      "name": "/lunar-completed-stop-trace-20261012-10",
+      "exit": 0,
+      "oom": false,
+      "memory": 536870912,
+      "network": "none",
+      "cgroup": "docker-batch.slice"
+    },
+    {
+      "name": "/lunar-completed-stop-trace-20261012-11",
+      "exit": 0,
+      "oom": false,
+      "memory": 536870912,
+      "network": "none",
+      "cgroup": "docker-batch.slice"
+    },
+    {
+      "name": "/lunar-completed-stop-trace-20261012-12",
+      "exit": 0,
+      "oom": false,
+      "memory": 536870912,
+      "network": "none",
+      "cgroup": "docker-batch.slice"
+    },
+    {
+      "name": "/lunar-completed-stop-trace-20261012-13",
+      "exit": 0,
+      "oom": false,
+      "memory": 536870912,
+      "network": "none",
+      "cgroup": "docker-batch.slice"
+    },
+    {
+      "name": "/lunar-completed-stop-trace-20261012-14",
+      "exit": 0,
+      "oom": false,
+      "memory": 536870912,
+      "network": "none",
+      "cgroup": "docker-batch.slice"
+    },
+    {
+      "name": "/lunar-completed-stop-trace-20261012-15",
+      "exit": 0,
+      "oom": false,
+      "memory": 536870912,
+      "network": "none",
+      "cgroup": "docker-batch.slice"
+    }
+  ],
+  "fixture_regression_tests": 49,
+  "source_sha256": {
+    "tools/fm1_prepare_stop_trace_return_admission.py": "3e5fd76c2a15334b9848a2b5eac972422f1997a0b26ce71deeaf3c167a3f5ceb",
+    "tests/test_completed_stop_trace_actual.py": "d3ca15c6f7fdc7337a660bf7ef2509ca6ba7efabd809e19f2546c9944e8c564b",
+    "tests/test_prepare_stop_trace_capture_template.py": "6c83f12fbbe614981d2a593b0a878fbdde778ed0689129a006749ec6650e2e28"
+  }
+}

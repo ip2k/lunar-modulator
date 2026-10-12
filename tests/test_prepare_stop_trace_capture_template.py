@@ -33,6 +33,9 @@ def template():
 
 @pytest.fixture
 def bound(template, tmp_path, monkeypatch):
+    # The wrapper prepends its staged tools directory during admission. Keep
+    # synthetic readers from leaking into imports performed by later tests.
+    monkeypatch.setattr(sys, 'path', list(sys.path))
     w, child = template
     stage = tmp_path / 'stage'; stage.mkdir(mode=0o700)
     run = stage / 'read'; run.mkdir(mode=0o700)

@@ -1386,3 +1386,14 @@ The OpenAI bug report is separately saved/pushed as a draft, not submitted.
 Root owns physical operations and integration. Goal remains active. The
 preceding goal turn made progress by preserving/replaying actual physical
 evidence; no genuine three-turn external blocker exists.
+
+## 2026-10-12 completed physical-trace proof and CI isolation
+
+[verified] New evidence-only completed-stop-trace factory and retained-actual
+replay passed16 distinct cases in16 Hera containers, zero skips/errors/failures;
+all inspected and removed. Verification notes: notes/2026-10-12-completed-stop-trace/.
+Private evidence: build/completed-stop-trace-16-20261012. Fixed capture fixture
+sys.path leakage;49 ordered regression tests passed. CI38319820698 failed before
+this fix; rerun at checkpoint required. Old backup rejection stays intact.
+No physical command in this verification. Next distinct post-read loader admission
+and fresh dual backups, then stock restore and diagnostic boot/display. Goal active.
