@@ -61,6 +61,11 @@ await page.waitForFunction(() => window.fm1.editor.state.mirror && window.fm1.ed
   window.fm1.editor.state.mirror.blocks.size > 6, null, { timeout: 20000 });
 await page.waitForTimeout(400);
 
+// Projects with a song now open Song / MIDI, whose unified Files menu has its
+// own integration gate. Select Flow before checking the module editor's menus.
+await page.locator('.ed-out-fx').click();
+await page.waitForFunction(() => window.fm1.editor.state.view === 'flow');
+
 // The editor owns menu placement; the simulator still owns these exact nodes.
 const editor = page.locator('.ed');
 const menu = label => editor.locator('.ed-footer-menu').filter({ has: page.locator(`summary:text-is("${label}")`) });
@@ -76,7 +81,9 @@ await menu('Simulator').locator(':scope > summary').click();
 check('Opening one menu closes the other', !(await menu('Files').evaluate(e => e.open)));
 check('Simulator menu retains controls and state', await menu('Simulator').locator('#sel-sound').isVisible() && await menu('Simulator').locator('#zoom').isVisible() && await menu('Simulator').locator('#power-off').isEnabled() && await menu('Simulator').locator('#dx7-file').count() === 1);
 await menu('Simulator').locator(':scope > summary').press('Escape');
-check('Escape dismisses and returns menu focus', !(await menu('Simulator').evaluate(e => e.open)) && await menu('Simulator').locator(':scope > summary').evaluate(e => e === document.activeElement));
+check('Escape dismisses and returns menu focus', !(await menu('Simulator').evaluate(e => e.open)) &&
+  await menu('Simulator').locator(':scope > summary').evaluate(e => e === document.activeElement) &&
+  await page.evaluate(() => window.fm1.editor.state.keys === 'edit'));
 check('Changes history starts hidden', !(await editor.getByRole('region', { name: 'Changes, both ways', exact: true }).isVisible()));
 await menu('Changes').locator(':scope > summary').click();
 check('Changes popover exposes shared history', await editor.locator('.ed-hist').isVisible());
@@ -106,13 +113,21 @@ check('Panel following checkboxes sit below the screen without redundant caption
 const about = editor.locator('.ed-info').first();
 await about.click();
 const info = editor.locator('.ed-info-body:popover-open');
+// Native popover toggle events update the trigger and placement asynchronously.
+await page.waitForFunction(() => document.querySelector('.ed-info')?.getAttribute('aria-expanded') === 'true');
 check('Engine information opens next to its name and retains credits', await info.isVisible() &&
   !!(await info.locator('.ed-credits').textContent()) && await about.getAttribute('aria-expanded') === 'true');
 check('Information popover fits the viewport', await info.evaluate(e => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight; }));
 await page.keyboard.press('Escape');
+await page.waitForFunction(() => !document.querySelector('.ed-info-body:popover-open') &&
+  document.querySelector('.ed-info')?.getAttribute('aria-expanded') === 'false');
 check('Escape closes the engine information popover', await info.count() === 0 && await about.getAttribute('aria-expanded') === 'false');
+check('Popover dismissal keeps the editor keys', await page.evaluate(() => window.fm1.editor.state.keys === 'edit'));
+await page.keyboard.press('Escape');
+check('Escape with no popover returns keys to the instrument', await page.evaluate(() => window.fm1.editor.state.keys === 'play'));
 await about.click();
 await editor.getByRole('button', { name: 'Hide sidebar', exact: true }).click();
+await info.waitFor({ state: 'hidden' });
 check('Clicking away dismisses engine information', await info.count() === 0);
 await editor.getByRole('button', { name: 'Show sidebar', exact: true }).click();
 await page.click('[data-layout="workbench"]');
