@@ -45,3 +45,38 @@ for byte. The eleven-file private export is
 the adjacent index preserves every member hash. Its distinct concrete review
 and physical reset remain pending. Current physical state is still the fixed
 loader with accepted stock NOR; there have been no later device commands.
+
+## Physical reset and normal enumeration — 2026-10-12 UTC
+
+[verified] Independent concrete review24d40f5d accepted wrapperd380 and
+campaign6c04 before one execution. The durable intent at1791783492.5266688
+submitted only CDB `fc0c00000001ffffffffffffffffffff`, IN16/OUT0. The device
+detached; the adapter recorded an ambiguous topology error and child exit1.
+No reset completion or boot cause is asserted. The consumed marker remains
+preserved and this packet must not be replayed.
+
+[verified] Passive same-port USB snapshot at1791783494.153837 found fresh
+normal `4c4a:c755`, bus3/dev27/path3-2. The wrapper then stopped in `midi_for`
+before opening MIDI, creating an identity receipt or submitting an identity
+query. Its error proves the matching endpoint count was not exactly one; no
+candidate inventory was retained to distinguish zero from multiple endpoints.
+Owned capture group3337605 stopped after the child and observations, with
+SIGTERM/-15 at1791783494.1874993. Complete seventeen-member export
+`build/stopped-choice-stock-reset-bench-v1/physical-reset.tar` hashes
+`bf7aa9ce50c07010f0600b142305cbfc24500d54ef8598afb531fb83f7d0f23a`;
+the adjacent index retains all member hashes. Independent native/lifecycle
+review is in progress; reset acknowledgement and stock identity remain pending.
+
+[verified: later passive inspection] At1791791518.301676 the same USB binding
+remained present with one direct character endpoint `/dev/snd/midiC2D0`, whose
+strict sysfs device ancestry contains the selected USB device. A separate
+identity-only successor is prepared privately from eight unchanged reviewed
+wrapper functions. It binds actual preserved reset/restore receipts, uses a
+distinct attempt directory and retains exactly one identity query with no
+reset, loader, flash or fallback path. Source07c35b09 awaits independent review
+and actual passive preflight; no identity query has been sent by it.
+
+[reported: owner] The owner is now at the desk and can connect Cynthion. Keep
+the direct connection until the current stock identity observation completes;
+then establish the new topology before any later device campaign. Physical
+display observation remains required for the diagnostic milestone.

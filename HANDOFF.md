@@ -674,3 +674,32 @@ unverified. The healthy-runtime recovery attempt does not cover a stalled
 P33 lock owner or failure to create the worker. Root is implementing the distinct
 raw SDK gate; a reviewed fixed-loader reader and fresh dual backups are still
 required before installation. Last prior verified backup: fa11706831a9f74347c6d4966276c11ef88b7c36.
+
+### Current physical state and active milestone — 2026-10-12 UTC
+
+Active owner goal remains a verified installable diagnostic image with physical
+display observation and recovery, hardened interrupted/corrupt-write handling,
+documentation, review, exact-head CI and integration. Heavy work uses Hera;
+parallel tests use sixteen chunks. Root worktree is
+`~/.codex/worktrees/installable-firmware/mvave-fm1-firmware`, branch
+`feature/2026-10-11@installable-firmware`, preceding verified pushed SHA
+`580b098efacf373a2fd1e5b383586dd557ae92ac`.
+
+[verified] The original private SDK diagnostic candidate was programmed and
+read back; retained RAM proves worker/display-routine execution within the
+limits in the boot/read notes, not visible pixels. Stock full-flash restore
+was independently accepted with final SHA96006a51. One reviewed stock reset
+then detached without acknowledgement and produced fresh normal USB bus3/dev27
+on path3-2. The packet is consumed. Its wrapper stopped before MIDI identity;
+do not replay the reset. Native review and a distinct identity-only successor
+are pending. Exact evidence is recorded in the stock-reset-packet note.
+
+[reported: owner] Owner is at the desk and can connect Cynthion after the
+current direct-connection identity observation. New diagnostic-only phase
+trace implementation is underway; existing hardware sources/receipts remain
+frozen. Interrupted NOR fault-model results already exist on Hera and are
+being independently collected/verified; production partial-NOR recovery
+admission and physical interrupted-app/SPL fallback remain unproved.
+The expanded audit has findings and exact coverage in ignored
+`build/installable-stream-audit/`; whole-repository renewal is incomplete and
+the audit mark has not advanced. No installable-image completion is claimed.
