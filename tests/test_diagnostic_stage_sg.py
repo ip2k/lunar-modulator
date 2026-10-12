@@ -33,6 +33,7 @@ def prepared(probe_prepared):
 
 
 def mock_sg(prepared,monkeypatch,*,fault=None,binding_fault=None,close_error=None):
+    monkeypatch.setattr(n.sys,'platform','linux')
     mapping=json.loads(prepared.probe.snapshot)['sg_binding']
     usb=json.loads(prepared.probe.snapshot)['usb_binding']
     state=SimpleNamespace(calls=[],closed=[],discoveries=0,opens=[],locks=[],fstats=0)

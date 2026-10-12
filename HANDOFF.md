@@ -11,6 +11,14 @@ original conversation; last updated 2026-10-11. Read this first, then
 
 ## Installable firmware image resumed — 2026-10-11
 
+[verified: later source checkpoint] Detached/shared provenance source
+`8fb33694…`, native `8ad32e42…` and test snapshot `e4930491…` are saved
+while their final 101-case cross-mode Hera gate runs; independent source
+review accepted `52b1fa6a…`, runtime acceptance remains pending. Both exact
+probe wrappers are staged file-only (review `dbda7dee…`) without execution.
+The test-only native Linux mock repair passed 79 unique cases plus one private
+modeled smoke; fresh CI and independent final receipt review remain pending.
+
 [verified: current recovery checkpoint] Returned-stock reset v2 passed 56 unique
 injected cases plus one modeled smoke in sixteen Hera chunks; independent
 review accepted report `46da05e5…`. Its completed-restore production pin is
@@ -90,7 +98,7 @@ in 16 Hera chunks plus one smoke, including required-absence drift. Its factory 
 genuine completed-restore validator freezes and is independently accepted; see
 [the WIP reset gate](notes/2026-10-11-returned-stock-reset.md).
 Returned-ROM backup/restore provenance WIP was checkpointed and remote-SHA
-verified at `b8b2f257114aac2d76a86d8eef585664a665942e`. Shared historical
+verified at `def16afc863d4c24b979fbe3f7699033b05c2fc0`. Shared historical
 successful/detached/failed-probe helpers and genuine private lineage gates are
 still in progress. GitHub run 38192936943 on `6b8ed4b2…` passed twelve jobs and
 failed macOS Python because the native SG syscall mocks retained Darwin's

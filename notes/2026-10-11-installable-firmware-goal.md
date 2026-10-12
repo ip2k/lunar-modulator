@@ -77,7 +77,7 @@ one smoke; its production factory remains closed pending a genuine reviewed
 completed-restore helper.
 
 Current remote-SHA-verified checkpoint:
-`b8b2f257114aac2d76a86d8eef585664a665942e` on the feature branch below.
+`def16afc863d4c24b979fbe3f7699033b05c2fc0` on the feature branch below.
 The returned-ROM backup/restore/reset checkpoints remain unaccepted WIP;
 their complete shared provenance and genuine private-factory gates are pending.
 Do not activate them. See [the boot trial](2026-10-11-diagnostic-boot-trial.md),
@@ -87,8 +87,9 @@ limits and next dependencies. This remains an active unfinished goal.
 
 [verified: latest CI] Run 38192936943 at `6b8ed4b2…` finished with twelve jobs
 passing and macOS Python failing in sixty Linux SG syscall mocks that retained
-Darwin's platform. Production transport correctly rejected them. A test-only
-mock-platform repair, focused Hera gate and fresh CI are pending; no production
+Darwin's platform. Production transport correctly rejected them. The test-only
+mock-platform repair passed its focused 79-case Hera gate plus actual-private
+modeled smoke; independent final evidence review and fresh CI are pending. No production
 guard is weakened or hardware gate upgraded by that repair.
 
 ## Active dependency plan

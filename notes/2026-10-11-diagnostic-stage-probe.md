@@ -106,3 +106,36 @@ this lane. The parent must review a concrete campaign and activation packet
 before execution. A factory duration is retained separately from the long
 modeled flash-install test; the short passive ROM snapshot must be fresh at actual
 preflight and both exchanges.
+
+## Separate modeled Linux portability gate
+
+[verified: source and retained Hera receipts] Test-only platform repair
+`tests/test_diagnostic_stage_sg.py` SHA
+`0f0cb664a3d374731ae6bab98b30904ad47b6fa28b69b4f91d6112c5d46d374a`
+adds Linux platform selection within the modeled SG helper. Production
+`13d7c647…` remains byte-identical; the explicit Darwin refusal case remains.
+This repairs the sixty macOS CI mock failures in run 38192936943 without
+weakening the production guard. A new CI result is still required.
+
+All 79 unique tests passed exactly once in sixteen Hera chunks, plus one
+actual-private modeled smoke; no failures, errors or skips. The native factory
+took 1.6667 seconds in the smoke. The retained 543-file source archive is
+`e5615467ec4eda51d79e7c8aeb8f377d9fa0f94d588732df9f12c4ccb535b374`;
+evidence archive is
+`bcdca6de3362ae59debd11e50a122b4385490c69a72ea173ac8b95c86b75167d`,
+plan `553326e47907c13494c00a855ce49a5e0e7f5f29f67aaa505a20539138bec1c4`.
+Root replayed exact XML identities, all eighteen pinned-image inspections
+(four CPUs/four GiB, no network/devices/privilege, exit zero, no OOM), and
+a fresh empty session-label lookup. Private receipts are in
+`build/diagnostic-stage-sg-portability/`; independent final review is pending.
+All reset, enumeration, SG and SRAM observations in this gate are modeled.
+
+[verified: source-only bench staging] Separate successful wrapper v2
+`b3b8186e…` and detached wrapper `f88c09ed…` plus their frozen probe sources
+are staged in exclusive private directories. The staging receipt checks
+all 35 original installation members and six source/wrapper pins; no device
+was opened or request submitted. Independent review accepted this file-only
+boundary, report `dbda7dee34a1e64298851dee7849ee6d71afcb971889a08cbab2d8f0262c199b`.
+Cross-mode runtime acceptance and returned-ROM recovery remain required before
+the actual target reset and immediate stage capture. The old staged
+successful-only wrapper remains preserved and unused.
