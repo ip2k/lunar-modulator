@@ -15,7 +15,7 @@ export async function observePanelFollow() {
   const state = () => ({ ms: performance.now() - t0, audioTime: sim.ctx ? sim.ctx.currentTime : null,
     audioState: sim.ctx ? sim.ctx.state : null, loading: ed.state.loading, gen: ed.state.gen,
     pendingChanges: ed.state.pendingChanges.length, inflight: ed.state.inflight,
-    rowConnected: row ? row.el.isConnected : false, value: value(row), currentRowValue: value(ed.rows.get(key)) });
+    rowConnected: row ? row.el.isConnected : false, value: value(row), currentRowConnected: !!ed.rows.get(key)?.el.isConnected, currentRowValue: value(ed.rows.get(key)) });
   const record = (phase, message) => {
     if (trace.events.length >= 128) { ++trace.droppedEvents; return; }
     trace.events.push({ phase, type: message.type, bytes: message.bytes ? message.bytes.byteLength : null, ...state() });
@@ -37,13 +37,14 @@ export async function observePanelFollow() {
       await new Promise((r) => requestAnimationFrame(r));
       ++frames;
       trace.frames.push({ frame: frames, ...state() });
-      if (value(row) !== before) break;
+      const current = ed.rows.get(key);
+      if (current?.el.isConnected && value(current) !== before) break;
     }
     const ms = performance.now() - t0;
     const h = ed.history.entries[ed.history.entries.length - 1];
     return { key, frames, ms, chips, knobs: v.knobs.filter((k) => k.kind).length,
       entry: h ? { origin: h.origin, how: h.how, label: h.label } : null,
-      from: document.querySelector('.ed-from').textContent, flashed: row && row.el.classList.contains('is-flash'), trace };
+      from: document.querySelector('.ed-from').textContent, flashed: ed.rows.get(key)?.el.classList.contains('is-flash'), trace };
   } finally {
     sim.node.port.removeEventListener('message', onMain);
     port.onmessage = onEditor;

@@ -155,6 +155,18 @@ await page.evaluate(() => {
 });
 
 // ---- follow, panel to editor, and K1-K4 ----------------------------------------
+// Menu/popover navigation may leave a different sound's inspector selected.
+// Establish the panel's current knob row before timing live encoder delivery.
+await page.evaluate(() => {
+  const knob = window.fm1.editor.state.panelView.knobs[1];
+  if (knob.role !== 1) throw new Error('panel follow fixture requires a sound knob');
+  document.querySelector(`.ed-outline .ed-s${knob.sound + 1}`).click();
+});
+await page.waitForFunction(() => {
+  const ed = window.fm1.editor, knob = ed.state.panelView.knobs[1];
+  return ed.rows.get(`s${knob.sound + 1}:${knob.uid}`)?.el.isConnected &&
+    !ed.state.loading && !ed.state.inflight && !ed.state.pendingChanges.length;
+}, null, { timeout: 5000 });
 const follow = await page.evaluate(observePanelFollow);
 report.follow_panel = follow;
 check('a panel knob reaches the editor\'s row within a few frames', follow.frames <= 12, follow);
