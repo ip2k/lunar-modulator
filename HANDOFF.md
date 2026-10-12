@@ -1347,3 +1347,20 @@ pending behind38e9cb16. FM1 remains1/10 UBOOT, Cynthion still exclusive-access
 blocked, computer-use reports locked. No cycle needed. Next distinct fresh
 packet once source/capture gates are ready, one bounded trace preservation,
 explicit post-read recovery admission and physical install/boot/display gates.
+
+## 2026-10-12 Packetry computer-use access restored
+
+[verified: live UI] Following the owner's Locked use screenshot, computer use
+successfully selected Packetry.app and captured its window. Clicked the square
+Stop control; subsequent screenshot shows a play triangle in its place and
+enabled configuration controls. Target Power remains on. Open capture is
+cynthion-passive-resume.pcapng, 713,894 transactions/packets, zero decoded devices.
+This is capture-stop evidence, not FM1 enumeration or diagnostic execution proof.
+CLI cynthcap list still reports exclusive analyser claim error 0xe00002c5 after
+the stop; stopping capture alone has not released the interface for CLI use.
+No FM1 command, reset or power cycle was performed. The prior expired physical
+packet remains unusable. Goal remains active; next preserve capture, arrange
+analyser ownership, complete receipt composition and distinct fresh read packet.
+OpenAI Computer Use documentation confirms Locked use temporarily unlocks only
+for trusted active turns, covers displays, and pauses automatic unlock on local
+keyboard/pointer input. Earlier unlock failure cause remains undiagnosed.
