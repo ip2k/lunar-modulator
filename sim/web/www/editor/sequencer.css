@@ -158,7 +158,7 @@
 .sq-scene-head, .sq-matrix-cell { display: flex; flex-direction: column; gap: 6px; padding: 7px; background: var(--surface); min-width: 0; }
 .sq-matrix-cell { border-left: 3px solid var(--snd, var(--border)); background: color-mix(in srgb, var(--snd, var(--select)) 12%, var(--bg)); }
 .sq-matrix-cell > .sq-button { text-align: left; white-space: normal; }
-.sq-matrix-cell > .sq-button:first-child { flex: 1; }
+.sq-matrix-cell > .sq-scene-edit { flex: 1; min-width: 0; }
 
 /* One native workspace at a time; keep navigation independent of project state. */
 .sq-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0; }
@@ -205,6 +205,9 @@
 .sq-scene-caption { margin: 4px 0 8px; line-height: 1.35; }
 .sq-scene-head { border-top: 2px solid var(--select); padding: 5px; gap: 4px; }
 .sq-scene-head > .sq-button { min-height: 30px; padding: 4px 7px; }
+.sq-scene-title { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.sq-scene-title .sq-name-header { flex: 1; }
+.sq-scene-title > .sq-scene-launch { flex: none; width: 28px; min-height: 28px; padding: 3px; text-align: center; }
 .sq-matrix-cell { padding: 4px; gap: 4px; }
 .sq-matrix-cell > .sq-button { min-height: 32px; padding: 5px 7px; }
 .sq-matrix-cell[aria-pressed="true"], .sq-matrix-cell .sq-button[aria-pressed="true"] { outline: 1px solid var(--select); outline-offset: -2px; }
@@ -254,15 +257,14 @@
 }
 
 /* Compact Song controls while keeping each edit and launch target distinct. */
-.sq-matrix-cell { align-items: stretch; }
+.sq-matrix-cell { flex-direction: row; align-items: center; }
+.sq-matrix-cell > .sq-scene-launch { flex: 0 0 28px; width: 28px; min-height: 28px; padding: 3px; text-align: center; }
 .sq-matrix-cell > .sq-scene-edit {
   display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; gap: 5px;
   min-height: 42px; text-align: left; white-space: normal; line-height: 1.2;
 }
 .sq-scene-summary { min-width: 0; }
 .sq-matrix-cell .sq-clip-preview { width: 42px; height: 24px; margin: 0; }
-.sq-matrix-cell > .sq-button[aria-label^="Launch clip"],
-.sq-matrix-cell > .sq-button[aria-label^="Stop track"] { min-height: 34px; flex: 0 0 auto; }
 .sq-note-details { display: flex; flex-wrap: wrap; align-items: start; gap: 3px 10px; }
 .sq-note-essential { margin: 0; }
 .sq-note-advanced { min-width: 0; }
