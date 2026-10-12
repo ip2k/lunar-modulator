@@ -7,6 +7,7 @@
 import { BUTTONS, ENCODERS, KEYS } from './fm1-wasm.mjs';
 import { initFiles, pref } from './files.js';
 import { connectOnReady, wakeWhenReady } from './startup-ready.mjs';
+import { createMidiLearn } from './midi-map.js';
 
 // ---- panel geometry, millimetres --------------------------------------------
 // Case 161.5 x 96.5 mm (M-VAVE manual, specifications). Control centres
@@ -463,6 +464,7 @@ function onWorklet(m, node) {
       showStatus();
       break;
     case 'state':
+      if (sim.state && sim.state.mode !== m.mode) midiLearn.release();
       sim.state = m;
       selects.forEach((s, u) => { s.value = String(m.units[u]); });
       // Multi-sound: the menu is the current sound's; Sound 1 is never empty.
@@ -869,6 +871,7 @@ function releaseKeys() {
 // buttons and pointers, or the firmware keeps them down (a held OCT button
 // turns ALGORITHM into transpose; a held FX swallows the next press).
 function releaseEverything() {
+  midiLearn.release();
   releaseKeys();
   const releases = [...active.values()];
   active.clear();
@@ -997,11 +1000,17 @@ async function connectMidi() {
   }
   try {
     const access = await navigator.requestMIDIAccess();
+    const attached = new Map();
     const attach = () => {
       const names = [];
       for (const input of access.inputs.values()) {
-        input.onmidimessage = onMidi;
+        if (input.state === 'disconnected') { midiLearn.release(input.id); input.onmidimessage = null; continue; }
+        input.onmidimessage = (e) => onMidi(e, input.id);
+        attached.set(input.id, input);
         names.push(input.name);
+      }
+      for (const [id, input] of attached) if (!access.inputs.has(id) || input.state === 'disconnected') {
+        midiLearn.release(id); input.onmidimessage = null; attached.delete(id);
       }
       btn.textContent = names.length ? `MIDI: ${names.join(', ')}` : 'MIDI: no inputs';
     };
@@ -1013,7 +1022,8 @@ async function connectMidi() {
   }
 }
 
-function onMidi(e) {
+function onMidi(e, source) {
+  if (midiLearn.handle(source, e.data)) return;
   const [status, a = 0, b = 0] = e.data;
   const type = status & 0xf0;
   if (type === 0x90 && b > 0) send({ type: 'note-on', note: a, velocity: b });
@@ -1049,6 +1059,22 @@ function controlEl(name) {
   if (pref('master') !== null && saved >= 0 && saved <= 1) sim.master = saved;
 }
 drawPanel();
+const midiLearn = createMidiLearn({ header: document.querySelector('.top'), connect: connectMidi,
+  modeChanged: releaseEverything, edited: () => files?.midiChanged?.() });
+sim.midiLearn = midiLearn;
+const panelAvailable = () => !!sim.node;
+for (const [key, element] of keyEls.entries()) midiLearn.register(element, `panel:key:${key}`, { kind: 'button', available: panelAvailable, press: (velocity) => {
+  send({ type: 'key', key, down: true, velocity });
+  return () => send({ type: 'key', key, down: false });
+} });
+for (const [button, element] of buttonEls.entries()) midiLearn.register(element, `panel:button:${BUTTONS[button]}`, { kind: 'button', available: panelAvailable, press: () => {
+  element.classList.add('down'); send({ type: 'button', button, down: true });
+  return () => { element.classList.remove('down'); send({ type: 'button', button, down: false }); };
+} });
+for (const [name, element] of Object.entries(encoderEls)) midiLearn.register(element, `panel:encoder:${name}`, { kind: 'relative', available: panelAvailable, turn: (delta) => turn(element, delta) });
+midiLearn.register(masterEl, 'panel:master', { kind: 'value', value: (u) => setMaster(u) });
+midiLearn.register(powerEl, 'panel:power', { kind: 'button', press: () => { if (sim.ctx) powerOff(); else powerOn(); } });
+midiLearn.refresh();
 files = initFiles({ sim, powerOn, loadDx7Files, controlEl });
 sim.releaseKeys = releaseKeys;
 
@@ -1065,6 +1091,7 @@ const layoutSwitch = document.getElementById('layout-switch');
 let editor = null;
 let editorLoading = null;
 async function setLayout(name, save = true) {
+  midiLearn.release();
   if (!LAYOUTS.includes(name)) name = 'panel';
   if (phone.matches && name === 'workbench') name = 'editor';
   for (const b of layoutSwitch.querySelectorAll('[data-layout]')) {
