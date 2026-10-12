@@ -248,7 +248,9 @@ edit step locks for instruments and effects, and save a `.lunar` project or
 a clicked control. The workspace adapts its grids to the available width and
 pages longer scenes, arrangements, clips and automation rows. The mixer has
 vertical sound and Master faders, live peak/RMS meters and editable instrument,
-insert and master effects. On phones, use landscape; Routing & FX can be
+insert and master effects. The editor shows a browser DSP estimate and a
+memory breakdown by shared, master and sound sections; FM-1 CPU use is not
+measured. On phones, use landscape; Routing & FX can be
 collapsed to keep the faders close at hand. WAV export offers a stereo master,
 separate sound or track stems, and a single multichannel file, with a download
 for each completed render. Shared instruments and effects mean stems may not

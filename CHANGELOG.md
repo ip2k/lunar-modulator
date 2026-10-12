@@ -69,7 +69,12 @@ history.
   its frame bound to 64-frame blocks. Saved-transport Wasm regressions passed
   for a 20-BPM one-bar song and four full-arrangement demos, including an FM6,
   effects, arpeggiator/modulation and stem-isolation case. Combined-source Wasm
-  parity and browser download checks remain validation gates.
+  108 parity and the Chromium resource-meter check passed; browser WAV download
+  validation remains a separate gate.
+- **Browser resource indicators:** the top bar shows an average browser DSP load
+  percentage and meter. The Memory page shows used and available estimates and
+  RAM sections in Shared, Master, S1–S4 order. `Date.now()` timing is labeled
+  coarse; the estimate measures the browser simulator only, not FM-1 CPU use.
 - **Song workspace refinement:** compact scene rows, always-visible selected
   note essentials with advanced controls disclosed, and primary parameters
   first in the Song device inspector. Device modal focus returns to its

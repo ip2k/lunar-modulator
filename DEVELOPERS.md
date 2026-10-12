@@ -279,6 +279,20 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   regression is `sim/web/test/sequencer-ui.mjs`;
   native browser integration and DSP tests are separate gates. File exchange
   does not implement a device runtime or a USB/BLE project-transfer protocol.
+- **Editor CPU and RAM indicators:** the top bar shows a CPU load percentage
+  and meter; selecting it opens the Memory page, which shows used and available
+  browser DSP budget. The AudioWorklet averages measured busy time over at least
+  one second of audio time. Busy time includes rendering, control-message work
+  and editor changes. It uses `performance.now()` when available and labels a
+  `Date.now()` fallback as coarse; audio-off and unavailable timing show a dash.
+  This measures the browser simulator only, not FM-1 CPU usage. The RAM meter
+  reports the simulator's C-counted memory against the FM-1 budget at 44,118 Hz.
+  Its segments and detail rows order Shared (mix, sequencer and modulation),
+  Master (M1 and M2), then sounds S1–S4; the detail view also lists total in use
+  and free memory. `sim/web/test/editor-resources.mjs` checks the timing labels,
+  unavailable/off states, RAM ordering and responsive layout. Combined-source
+  Wasm 108 parity and the Chromium resource-meter check passed; WAV download
+  validation remains a separate gate.
 - **Memory:** no heap. The host supplies each instance's memory and makes no
   promise about its contents [verified: `fm1_engine.h`].
 - **Parameters:** typed, and shown four to a page for the FM-1's four free
