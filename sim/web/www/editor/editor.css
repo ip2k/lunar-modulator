@@ -36,6 +36,7 @@
 .ed-transport-tools[hidden] { display: none; }
 .ed-transport-tools .sq-transport { margin: 0; }
 .ed-appbar {
+  container-type: inline-size;
   display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 12px;
   padding: 6px var(--ed-pad); border-bottom: 1px solid var(--border); background: var(--surface);
   border-radius: 12px 12px 0 0;
@@ -90,7 +91,7 @@
 .ed-footer-menu .ed-hist { margin: 0; border: 0; padding: 0; }
 .ed-toggle { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); cursor: pointer; min-height: 28px; }
 .ed-toggle input { accent-color: var(--select); width: 16px; height: 16px; margin: 0; }
-.ed-ram-wrap { position: relative; flex: 1 1 120px; min-width: 0; }
+.ed-ram-wrap { position: relative; flex: 1 1 120px; min-width: min-content; }
 .ed-ram { display: inline-flex; align-items: center; gap: 6px; width: 100%; min-width: 0; font-variant-numeric: tabular-nums; }
 .ed-ram-label { color: var(--muted); }
 .ed-ram-bar {
@@ -99,7 +100,7 @@
 }
 .ed-ram-seg { display: block; height: 100%; }
 .ed-ram-seg + .ed-ram-seg { box-shadow: inset 1px 0 0 var(--bg); }
-.ed-ram-text { min-width: 3.4em; text-align: right; font-weight: 600; }
+.ed-ram-text { min-width: 3.4em; flex: none; white-space: nowrap; text-align: right; font-weight: 600; }
 .ed-ram.is-over .ed-ram-text { color: var(--refuse); }
 .ed-s1.ed-ram-seg, .ed-s1.ed-sw { background: var(--sound-1); }
 .ed-s2.ed-ram-seg, .ed-s2.ed-sw { background: var(--sound-2); }
@@ -626,20 +627,7 @@
   }
   .ed-outline .ed-out { flex: none; width: auto; min-width: 44px; min-height: 36px; justify-content: center; padding: 4px 6px; }
   .ed-card { grid-template-columns: minmax(0, 1fr); gap: 4px 12px; padding-top: 10px; }
-  .ed-appbar { padding: 5px var(--ed-pad); gap: 4px 8px; }
-  .ed-appbar-end { gap: 3px !important; }
-  .ed-appbar-end .ed-footer-menu > summary, .ed-appbar-end .ed-song-file-tools summary {
-    width: 32px; min-width: 32px; padding: 3px; text-align: center; font-size: 0;
-  }
-  .ed-appbar-end .ed-footer-menu > summary::before, .ed-appbar-end .ed-song-file-tools summary::before { font-size: 1rem; }
-  .ed-appbar-end .ed-footer-menu:nth-child(1) > summary::before { content: '⚙'; }
-  .ed-appbar-end .ed-footer-menu:nth-child(2) > summary::before { content: '↺'; }
-  .ed-appbar-end .ed-footer-menu:nth-child(3) > summary::before { content: '▤'; }
-  .ed-appbar-end .ed-song-file-tools summary::before { content: '▤'; }
-  .ed-appbar-end .ed-ram-label { font-size: .7rem; }
-  .ed-appbar-end .ed-ram, .ed-appbar-end .ed-cpu { gap: 3px; padding: 3px; }
-  .ed-appbar-end .ed-cpu-text { width: auto; min-width: 2.8em; }
-  .ed-appbar-end .ed-ram-text { min-width: 2.8em; font-size: .7rem; }
+  .ed-appbar { padding: 5px; gap: 4px 8px; }
   .ed-footer-menu-body, .ed-footer-menu:has(.ed-hist) .ed-footer-menu-body { width: min(280px, calc(100vw - 110px)); }
   .ed-ram-list { right: 0; left: auto; min-width: 0; width: min(280px, calc(100vw - 2 * var(--ed-pad))); }
   .ed-hint-move { display: none; }
@@ -919,10 +907,10 @@
 .ed.is-sidebar-hidden .ed-outline, .ed.is-sidebar-hidden .ed-card { display: none; }
 
 /* Meter tracks absorb remaining space while tabular numbers stay steady. */
-.ed-cpu { display: inline-flex; align-items: center; gap: 6px; min-width: 0; flex: 1 1 120px; font-variant-numeric: tabular-nums; }
+.ed-cpu { display: inline-flex; align-items: center; gap: 6px; min-width: min-content; flex: 1 1 120px; font-variant-numeric: tabular-nums; }
 .ed-cpu-bar { display: block; flex: 1 1 10px; min-width: 10px; height: 8px; border-radius: 4px; overflow: hidden; background: var(--rp-highlight-med); }
 .ed-cpu-fill { display: block; width: 0; height: 100%; background: var(--select); }
-.ed-cpu-text { width: 5em; flex: none; text-align: right; font-weight: 600; white-space: nowrap; }
+.ed-cpu-text { width: 3.4em; flex: none; text-align: right; font-weight: 600; white-space: nowrap; }
 .ed-cpu.is-over .ed-cpu-fill { background: var(--refuse); }
 .ed-cpu.is-over .ed-cpu-text { color: var(--refuse); }
 .ed-cpu-detail { color: var(--muted); line-height: 1.5; max-width: 70ch; }
@@ -959,4 +947,27 @@
 @media (max-width: 640px) {
   .ed-shortcuts-content { grid-template-columns: minmax(0, 1fr); gap: 15px; padding: 12px; }
   .ed-shortcuts-row { grid-template-columns: minmax(104px, 34%) minmax(0, 1fr); }
+}
+
+/* Workbench columns need compact controls even on a desktop viewport. */
+@container (max-width: 640px) {
+  .ed-appbar-end { gap: 3px !important; }
+  .ed-appbar-end .ed-footer-menu > summary, .ed-appbar-end .ed-song-file-tools summary {
+    width: 32px; min-width: 32px; padding: 3px; text-align: center; font-size: 0;
+  }
+  .ed-appbar-end .ed-footer-menu > summary::before, .ed-appbar-end .ed-song-file-tools summary::before { font-size: 1rem; }
+  .ed-appbar-end .ed-footer-menu[data-menu="simulator"] > summary::before { content: '⚙'; }
+  .ed-appbar-end .ed-footer-menu[data-menu="changes"] > summary::before { content: '↺'; }
+  .ed-appbar-end .ed-footer-menu[data-menu="files"] > summary::before { content: '▤'; }
+  .ed-appbar-end .ed-song-file-tools summary::before { content: '▤'; }
+  .ed-appbar-end .ed-ram-label { font-size: .7rem; }
+  .ed-appbar-end .ed-ram, .ed-appbar-end .ed-cpu { gap: 3px; padding: 3px; }
+  .ed-appbar-end .ed-cpu-text { width: auto; min-width: 2.8em; }
+  .ed-appbar-end .ed-ram-text, .ed-appbar-end .ed-cpu-text { min-width: 2.8em; font-size: .7rem; }
+}
+
+@container (max-width: 360px) {
+  .ed-appbar-end { gap: 2px !important; }
+  .ed-appbar-end .ed-ram, .ed-appbar-end .ed-cpu { padding-inline: 2px; }
+  .ed-appbar-end .ed-ram-text { min-width: 2.6em; }
 }

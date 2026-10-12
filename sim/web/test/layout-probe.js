@@ -50,7 +50,20 @@
       const el = n.parentElement;
       if (!text || !el || excluded(el) || !visible(el)) continue;
       range.selectNodeContents(n);
-      const rects = [...range.getClientRects()].filter((r) => r.width > 1 && r.height > 1);
+      const cs = getComputedStyle(el);
+      // Range rectangles include text replaced by an ellipsis. Measure the
+      // rendered horizontal extent, but still check vertical and ancestor
+      // clipping; an oversized ellipsis element is not exempt from containment.
+      const ellipsis = cs.textOverflow === 'ellipsis' && cs.whiteSpace === 'nowrap' &&
+        (cs.overflowX === 'hidden' || cs.overflowX === 'clip');
+      const box = ellipsis && el.getBoundingClientRect();
+      const rects = [...range.getClientRects()].map((r) => ellipsis ? {
+        left: Math.max(r.left, box.left + el.clientLeft),
+        right: Math.min(r.right, box.left + el.clientLeft + el.clientWidth),
+        top: r.top, bottom: r.bottom,
+        width: Math.min(r.right, box.left + el.clientLeft + el.clientWidth) - Math.max(r.left, box.left + el.clientLeft),
+        height: r.height,
+      } : r).filter((r) => r.width > 1 && r.height > 1);
       if (rects.length) items.push({ el, text: text.slice(0, 28), rects, kind: 'text' });
     }
     for (const el of root.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]), select, textarea')) {
@@ -60,7 +73,6 @@
     }
     // Outside the page, or clipped by an ancestor that hides what is past it.
     for (const it of items) {
-      const cs0 = getComputedStyle(it.el);
       for (const r of it.rects) {
         let scrollsX = false, scrollsY = false;
         for (let a = it.el; a && a !== document.body; a = a.parentElement) {
@@ -69,7 +81,7 @@
           const hideY = cs.overflowY === 'hidden' || cs.overflowY === 'clip';
           if (cs.overflowX === 'auto' || cs.overflowX === 'scroll') scrollsX = true;
           if (cs.overflowY === 'auto' || cs.overflowY === 'scroll') scrollsY = true;
-          if ((hideX || hideY) && !(a === it.el && cs0.textOverflow === 'ellipsis')) {
+          if (hideX || hideY) {
             const ar = a.getBoundingClientRect();
             if ((hideX && (r.left < ar.left - 1 || r.right > ar.right + 1)) || (hideY && (r.top < ar.top - 1 || r.bottom > ar.bottom + 1))) {
               bad.push(`"${it.text}" is clipped by ${a.tagName.toLowerCase()}.${String(a.className).split(' ')[0]}`);
