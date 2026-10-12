@@ -38,3 +38,28 @@ post-rehearsal reset policy; baseline-only no-later-commands reset is invalid
 after rehearsal. Diagnostic boot/display/recovery and interrupted-write
 physical acceptance remain later goal dependencies. All private SDK/vendor
 artifacts remain ignored and undistributed.
+
+## Frozen bench packet v2
+
+[verified: file-only preflight] The final f696 adapter packet was exclusively
+staged at `/home/claude/fm1-fixed-backups-20261011/attempt-001/rehearsal-stage-v2`.
+Archive SHA is `12983d60194dba22b6716319549d126e24f002ee753db9040e7581f9a4539b46`;
+packet inventory SHA is `682dcf487fd3217cc6f5a057f0859a9e015f70f5c72dc99355c033b0db46cdd9`;
+campaign SHA is `7ff0f504d4ea12953532caf20223173925131d1541d4f5e5103a7b4f95076de4`.
+Every staged inventory member was checked, then the production factory accepted
+actual files without constructing transport or opening hardware. USB 3-2 remains
+ROM device 23 and the rehearsal marker is absent. The earlier packet is parked.
+
+[verified: independent source review; tests pending] Private wrapper SHA
+`173a9705476223ee2047d89e2dc37d7d0747e1c1be62bc4e98b3bfe0607dbd6e`
+owns one passive usbmon reader and one exact isolated Python child. Acceptance
+requires actual wrapper exit 0, child exit 0, capture-stop receipt, no wrapper
+ambiguity receipts, complete adapter result/log and independent capture review.
+Text usbmon records only 32 payload bytes; it cannot prove full page payloads.
+The source's input-response hashes and transaction readback are separate gates.
+
+[verified: device-free smoke] Tests `95879aa0905fff810f8a31eba3ac7e1134a609ea1c3c5d9bf8c4182c33b32605`
+collected 125 unique cases. Actual factory/native/raw gates and modeled complete
+install/readback/restore smoke passed against the actual private files. The final
+16 chunks are still running. The model uses a controlled monotonic clock; it
+does not establish physical throughput within the 900-second live lease.
