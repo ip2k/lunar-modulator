@@ -5,6 +5,7 @@ import { parseMidi, planMidiImport, applyMidiImport, checkMidiFiles, checkMidiPa
 import { toPos } from './model.js';
 import { clipPlayback, automationSteps } from './sequence-playback.js';
 import { positionText, timeText, barLimit, neighboringSlot } from './sequence-transport.js';
+import { makeSongShortcuts, noteNudge, duplicateNote } from './song-shortcuts.js';
 
 const clone = (x) => structuredClone(x);
 const pitchName = (p) => `${['C','C♯','D','E♭','E','F','F♯','G','A♭','A','B♭','B'][p % 12]}${Math.floor(p / 12) - 1}`;
@@ -96,7 +97,7 @@ export function makeSequencer(ctx) {
   if (!document.querySelector('link[data-sequencer-style]')) document.head.append(el('link', '', {
     rel: 'stylesheet', href: new URL('sequencer.css', import.meta.url).href, 'data-sequencer-style': true,
   }));
-  const root = el('section', 'sq', { 'aria-label': 'Sequencer workspace', 'data-testid': 'sequencer' });
+  const root = el('section', 'sq', { 'aria-label': 'Sequencer workspace', 'data-testid': 'sequencer', tabindex: 0, 'aria-description': 'Song shortcuts: Space play or pause; Shift+Space restart; E Clip; A Automation; D device; I sidebar; Tab Arrangement or Mixer when the canvas has focus. F2 rename; 0 mute selected track.' });
   const status = el('p', 'sq-status', { role: 'status', 'aria-live': 'polite' });
   const content = el('fieldset', 'sq-content');
   const rotate = el('section', 'sq-rotate', { 'data-testid': 'song-rotate-prompt', 'aria-label': 'Rotate phone' }, [
@@ -575,7 +576,7 @@ export function makeSequencer(ctx) {
   }
   function noteEdit(patch, label = 'Edit note') {
     const original = clone(clip().notes[state.note]), t = state.track, s = state.scene;
-    edit(label, m => {
+    return edit(label, m => {
       const c = clip(m, t, s), n = c?.notes.find(n => JSON.stringify(n) === JSON.stringify(original));
       if (!n) throw new Error('This note changed elsewhere. Select it again.');
       const previous = { step: n.step, pitch: n.pitch };
@@ -962,7 +963,72 @@ export function makeSequencer(ctx) {
     }
     for (const cell of root.querySelectorAll('[data-automation-step]')) cell.classList.toggle('is-playing', !!visible && Number(cell.dataset.automationStep) === Math.floor(phase.step));
   }
+  function shortcutEdit(fn) {
+    // A note redraw may remove its focused button. Keep subsequent keys in Song.
+    Promise.resolve(fn()).finally(() => { if (root.isConnected && !deviceDialog.open) root.focus({ preventScroll: true }); });
+  }
+  function shortcut(command) {
+    // Keep Song ownership while a native transaction is pending, without queuing edits.
+    if (state.busy) return true;
+    const c = clip(), n = c?.notes[state.note];
+    const views = { clip: 'Clip', automation: 'Automation', arrangeMix: state.view === 'Mixer' ? 'Arrangement' : 'Mixer' };
+    if (views[command]) {
+      if (views[command] === 'Clip' && state.view !== 'Clip') frameClipNotes();
+      state.view = views[command]; state.inspector = null; draw(); root.focus({ preventScroll: true }); return true;
+    }
+    if (command === 'transport' || command === 'restart') {
+      const fn = command === 'transport' ? ctx.playPause : ctx.restart;
+      if (!fn) return false;
+      action(fn); return true;
+    }
+    if (command === 'device') {
+      const route = state.model.tracks[state.track].route;
+      if (route.kind !== 1) { announce('This track sends MIDI; select a sound-routed track to open its instrument.'); return true; }
+      openInspector(`s${route.index + 1}`); return true;
+    }
+    if (command === 'sidebar') {
+      if (!ctx.toggleSidebar) return false;
+      ctx.toggleSidebar(); return true;
+    }
+    if (command === 'mute') {
+      shortcutEdit(() => edit(`Toggle track ${state.track + 1} mute`, m => { m.tracks[state.track].muted ^= 1; })); return true;
+    }
+    if (command === 'rename') {
+      const entry = state.view === 'Arrangement' ? root.querySelectorAll('.sq-entry')[state.song] : null;
+      const input = entry?.querySelector('.sq-name') || root.querySelector(`[aria-label="Track ${state.track + 1} name"]`);
+      if (!input?.beginNameEdit) return false;
+      input.beginNameEdit(); return true;
+    }
+    if (state.view === 'Clip' && n) {
+      if (command === 'duplicate') { const original = clone(n); shortcutEdit(() => edit('Duplicate note', m => { state.note = duplicateNote(clip(m), original); })); return true; }
+      if (command === 'delete') {
+        const original = clone(n);
+        shortcutEdit(() => edit('Delete note', m => {
+          const c = clip(m), i = c?.notes.findIndex(x => JSON.stringify(x) === JSON.stringify(original));
+          if (i == null || i < 0) throw new Error('This note changed elsewhere. Select it again.');
+          c.notes.splice(i, 1); c.trigs = c.trigs.filter(t => t.step !== original.step || t.lane !== original.pitch); state.note = -1;
+        })); return true;
+      }
+      const delta = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, 1], arrowdown: [0, -1] }[command];
+      if (delta) { shortcutEdit(() => noteEdit(noteNudge(c, n, ...delta), 'Nudge note')); return true; }
+    }
+    if (state.view === 'Arrangement' && ['duplicate', 'delete'].includes(command)) {
+      const original = [...state.model.song], index = state.song;
+      if (!arrangementEntries(state.model)[index]) return false;
+      shortcutEdit(() => edit(command === 'duplicate' ? 'Copy song entry' : 'Remove song entry', m => {
+        if (JSON.stringify(m.song) !== JSON.stringify(original)) throw new Error('The arrangement changed elsewhere. Select the section again.');
+        const entries = arrangementEntries(m);
+        if (command === 'duplicate') entries.splice(index + 1, 0, clone(entries[index]));
+        else { entries.splice(index, 1); state.song = Math.max(0, index - 1); }
+        m.song = entries.flatMap(e => Array(e.presses).fill(e.scene));
+      })); return true;
+    }
+    return false;
+  }
+  const onKey = makeSongShortcuts(root, { ready: () => !!state.model && !disposed,
+    run: shortcut, claimKeys: ctx.claimKeys });
   root.addEventListener('keydown', e => {
+    if (onKey(e)) return;
     if ((deviceDialog.open && e.key === 'Escape') || e.target.closest('input, select, textarea')) e.stopPropagation();
   });
   window.addEventListener('resize', syncMixerAfterResize);
@@ -973,7 +1039,7 @@ export function makeSequencer(ctx) {
     if (!files.length || !files.every(f => /\.midi?$/i.test(f.name))) return;
     e.preventDefault(); e.stopPropagation(); e.lunarInto = true; importFiles(files);
   });
-  return { render() { if (state.dirty && !state.busy) refresh(); return root; }, refresh, update, onTelemetry, syncLevels,
+return { render() { if (state.dirty && !state.busy) refresh(); return root; }, refresh, update, onTelemetry, syncLevels, onKey, contains: target => root.contains(target),
     toggleTransport: () => action(ctx.playPause), restartTransport: () => action(ctx.restart),
     wantRows() { return (ctx.metadata?.doc?.telemetry?.sections || []).filter(s => ['meters', 'levels'].includes(s.name)).flatMap(s => s.rows.flatMap((row, r) => state.view === 'Mixer' || row === 'out.post_master' ? [s.mask + r] : [])); },
     invalidate() { state.dirty = true; readRevision++; }, destroy() { timelineObservers.splice(0).forEach(observer => observer.disconnect()); releaseFader?.(); closeInspector(); disposed = true; cancelDrag?.(); window.removeEventListener('resize', syncMixerAfterResize); compactMixerMedia.removeEventListener('change', syncMixerDisclosure); root.remove(); } };
