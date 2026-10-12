@@ -242,7 +242,7 @@ jobs:
         run: |
           mkdir -p "$SHOTS"
           status=0
-          for t in layout-probe-ui editor-ui editor-reach editor-map editor-v1 info-dialogs sequencer-ui sequencer-fit-grid sequencer-playback-ui song-shortcuts-ui sequencer-native sequencer-sync midi-map-ui midi-map-project-ui editor-resources; do
+          for t in layout-probe-ui editor-ui editor-reach editor-map editor-v1 info-dialogs notifications-ui sequencer-ui sequencer-fit-grid sequencer-playback-ui song-shortcuts-ui sequencer-native sequencer-sync midi-map-ui midi-map-project-ui editor-resources; do
             echo "::group::$t ($BROWSER)"
             node "sim/web/test/$t.mjs" sim/web/www "$SHOTS" || status=1
             echo "::endgroup::"

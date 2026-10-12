@@ -336,6 +336,13 @@ button[aria-pressed="true"] { background: var(--accent); color: var(--accent-tex
 .file-notice p { margin: 0; }
 .file-notice .notice-sub { margin-top: 4px; font-size: 0.88rem; color: var(--muted-on-surface); }
 .notice-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.swal2-popup.lunar-toast {
+  width: min(32rem, calc(100vw - 2rem)); padding: 0;
+  background: var(--surface); color: var(--text); font: inherit;
+  border-radius: 10px;
+}
+.lunar-toast .lunar-toast-content { margin: 0; padding: 0; text-align: left; }
+.lunar-toast .file-notice { margin: 0; max-width: none; }
 .link-out { display: block; width: 100%; margin-top: 8px; font: 0.85rem ui-monospace, Menlo, Consolas, monospace;
   color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; }
 

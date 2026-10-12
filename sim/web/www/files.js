@@ -16,6 +16,8 @@
 // on, fetch a URL outside the allowlist, or change a setting.
 // MIT licence, like the rest of this repository.
 
+import { fileNotifications } from './notifications.js';
+
 const KIND = { project: 1, sound: 2, fx: 3, mods: 4, clip: 5, settings: 6, set: 7 };
 const KIND_NAME = Object.fromEntries(Object.entries(KIND).map(([k, v]) => [v, k]));
 const KIND_WORD = { project: 'project', sound: 'sound', fx: 'effects', mods: 'mod rack', clip: 'clip',
@@ -484,15 +486,10 @@ export function initFiles(env) {
 
   // ---- the notice over the status line ----
   const noticeEl = $('file-notice');
-  let noticeTimer = null;
-  function dismissNotice() {
-    clearTimeout(noticeTimer);
-    noticeTimer = null;
-    noticeEl.hidden = true;
-  }
+  const notifications = fileNotifications(noticeEl);
+  const dismissNotice = notifications.dismiss;
   function notice(tone, text, sub = '', actions = []) {
-    clearTimeout(noticeTimer);
-    noticeTimer = null;
+    dismissNotice();
     f.lastNotice = { tone, text, sub };
     noticeEl.hidden = false;
     noticeEl.className = `file-notice ${tone}`;
@@ -517,7 +514,7 @@ export function initFiles(env) {
       row.append(b);
     }
     noticeEl.append(row);
-    if (tone === 'info' || tone === 'loaded') noticeTimer = setTimeout(dismissNotice, 10000);
+    notifications.show(tone === 'info' || tone === 'loaded');
   }
 
   // The module's report, in words. A refusal is the module's own sentence.

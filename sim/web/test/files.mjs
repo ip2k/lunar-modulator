@@ -476,7 +476,10 @@ async function layoutChecks() {
     r[name] = await page.evaluate(() => ({
       scroll_width: document.documentElement.scrollWidth,
       smallest: Math.min(...[...document.querySelectorAll('.files button, .files select, #file-notice button, .library summary, .lib-actions button')]
-        .map((e) => { const b = e.getBoundingClientRect(); return Math.min(b.width, b.height); })),
+        // A timed notice may have expired while opening the library. Hidden
+        // controls have no hit target; notifications-ui checks live actions.
+        .map((e) => e.getBoundingClientRect()).filter((b) => b.width > 0 && b.height > 0)
+        .map((b) => Math.min(b.width, b.height))),
     }));
     await ctx.close();
   }
