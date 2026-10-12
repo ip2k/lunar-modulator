@@ -188,3 +188,41 @@ and the U+0000 rule refuse, and the `i_` outcomes are listed there.
   desktop's stand-in for the rest, and the simulator's sequencer bridge
   resolves its lanes after `fm1_seq_import_end` as `fm1_seq_host_import`
   does.
+
+### Project MIDI mapping preferences
+
+Projects may include `browser.midiMap` with `version: 1` and `bindings`.
+A binding has a semantic `target`, exact WebMIDI input `source`, zero-based
+`channel` (0–15), `kind` (`note` or `cc`), and `number` (0–127). The native
+app preserves these preferences without applying browser MIDI actions.
+The native app, host renderer, C codecs and Python codec preserve them in
+both `.lunar` and `.lunarb`; legacy projects without this member clear it.
+An explicit version-one empty list preserves the clear preference.
+
+Targets are nonempty printable ASCII (spaces allowed); sources are nonempty
+UTF-8 input IDs. Each target and exact source/channel/kind/number address
+can appear once. Bounds are 64 bindings, 192 target bytes, 128 source UTF-8 bytes and a
+4,096-byte pool of unique strings, including each NUL terminator. Native
+storage costs 4,612 bytes outside the sequencer allocation; app RAM
+accounting and load preflight include this fixed storage. Malformed data
+is refused before changing the app. JSON mapping version must precede
+bindings, as with other records whose context precedes their contents.
+The reserve applies even when a project has no mappings. With the default
+sequencer and modulation rack, Shapes plus Plate and Room now requires
+390,504 bytes, 2,580 past the unchanged 387,924-byte app budget, and is
+refused. Its original direct-render DSP fixture remains covered; the app
+parity fixture uses Macro with the same effect automation within budget.
+
+Binary projects use critical `BROW`, chunk version 1: a four-byte header
+(map version byte, count byte, little-endian 16-bit pool size), then eight
+bytes per binding (little-endian 16-bit target/source offsets, channel,
+kind 0=note/1=cc, number, reserved zero), then the string pool. Offsets must
+start a complete NUL-terminated string. Newer chunk/map versions refuse
+`TOO_NEW`; older readers refuse the unknown critical chunk instead of
+losing mappings on save.
+
+`fm1_app_midi_map_set` and Wasm `fm1w_midi_map_set(len)` accept a maps-only
+minimal project envelope in the shared text buffer. Success is 1. The
+setter refuses other project records, updates atomically and leaves the
+transport, audio graph and edit generation intact. The project state hash
+includes mappings; browser saves must await the setter acknowledgement.

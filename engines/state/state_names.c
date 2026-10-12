@@ -271,7 +271,7 @@ static int midi_id_valid(const char *s, int ascii) {
   const unsigned char *p = (const unsigned char *)s;
   while (*p) {
     unsigned c = *p++, need = 0, min = 0;
-    if (c < 0x80) { if (c < (ascii ? 0x21u : 0x20u) || c == 0x7f) return 0; continue; }
+    if (c < 0x80) { if (ascii && (c < 0x20u || c == 0x7f)) return 0; continue; }
     if (ascii) return 0;
     if (c >= 0xc2 && c <= 0xdf) { c &= 31; need = 1; min = 0x80; }
     else if (c >= 0xe0 && c <= 0xef) { c &= 15; need = 2; min = 0x800; }
@@ -287,16 +287,28 @@ static unsigned midi_offset(const fm1_midi_map_t *m, const char *s) {
   while (off < m->used) { if (!strcmp(m->text + off, s)) return off; off += (unsigned)strlen(m->text + off) + 1; }
   return m->used;
 }
+unsigned fm1_midi_binding_valid(const char *target, const char *source,
+                              unsigned channel, unsigned kind, unsigned number) {
+  if (!target || !source || !target[0] || !source[0] || channel > 15 || kind > FM1_MIDI_MAP_CC || number > 127 ||
+      !midi_id_valid(target, 1) || !midi_id_valid(source, 0)) return FM1_STATE_BAD;
+  if (strlen(target) > FM1_MIDI_MAP_TARGET || strlen(source) > FM1_MIDI_MAP_SOURCE) return FM1_STATE_TOO_BIG;
+  return FM1_STATE_OK;
+}
 unsigned fm1_midi_map_add(fm1_midi_map_t *m, const char *target, const char *source,
                          unsigned channel, unsigned kind, unsigned number) {
   unsigned t, s, tn, sn, extra;
   fm1_midi_binding_t *b;
-  if (!target || !source || !target[0] || m->version != FM1_MIDI_MAP_VERSION ||
-      channel > 15 || kind > FM1_MIDI_MAP_CC || number > 127 ||
-      !midi_id_valid(target, 1) || !midi_id_valid(source, 0)) return FM1_STATE_BAD;
+  unsigned code = fm1_midi_binding_valid(target, source, channel, kind, number);
+  if (code != FM1_STATE_OK) return code;
+  if (m->version != FM1_MIDI_MAP_VERSION) return FM1_STATE_BAD;
   tn = (unsigned)strlen(target) + 1; sn = (unsigned)strlen(source) + 1;
-  if (tn > FM1_MIDI_MAP_TARGET + 1 || sn > FM1_MIDI_MAP_SOURCE + 1 || m->count >= FM1_MIDI_MAP_BINDINGS)
-    return FM1_STATE_TOO_BIG;
+  if (m->count >= FM1_MIDI_MAP_BINDINGS) return FM1_STATE_TOO_BIG;
+  for (unsigned i = 0; i < m->count; ++i) {
+    const fm1_midi_binding_t *old = &m->binding[i];
+    if (!strcmp(m->text + old->target, target) ||
+        (old->channel == channel && old->kind == kind && old->number == number &&
+         !strcmp(m->text + old->source, source))) return FM1_STATE_BAD;
+  }
   t = midi_offset(m, target); s = midi_offset(m, source);
   extra = (t == m->used ? tn : 0) + (s == m->used && strcmp(target, source) ? sn : 0);
   if (m->used + extra > FM1_MIDI_MAP_TEXT) return FM1_STATE_TOO_BIG;

@@ -1612,6 +1612,9 @@ static int on_close(fm1_state_json_reader_t *r, const fm1_json_ev_t *ev) {
     case C_MIDI_BINDING:
       if (f->seen != 31u) return bad(r, "a MIDI binding needs target, source, channel, kind and number");
       r->acc.u.binding.target = r->midi_target; r->acc.u.binding.source = r->midi_source;
+      if (fm1_midi_binding_valid(r->midi_target, r->midi_source, r->acc.u.binding.channel,
+          r->acc.u.binding.kind, r->acc.u.binding.number) != FM1_STATE_OK)
+        return bad(r, "invalid MIDI binding identifier");
       if (!emit(r, &r->acc)) return 0;
       break;
     case C_SESSION:

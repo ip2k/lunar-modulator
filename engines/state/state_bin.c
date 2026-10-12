@@ -505,7 +505,7 @@ typedef struct {
   int stop;
   uint8_t kind;
   uint8_t mod_pos_seen;
-  uint8_t mod_seen;
+  uint8_t mod_seen, midi_seen;
   uint8_t pad_;
   uint32_t units_seen[2];     /* 40 unit places */
   uint32_t dx7_seen, cable_seen;
@@ -590,6 +590,7 @@ static int read_browser(br_t *b, cs_t *c) {
   char pool[FM1_MIDI_MAP_TEXT];
   unsigned count, used;
   fm1_rec_t r;
+  if (b->midi_seen++) return bbad(b, "two browser mapping chunks");
   if (!cs_get(c, hdr, 4)) return short_chunk(b);
   if (hdr[0] != FM1_MIDI_MAP_VERSION) return brefuse(b, hdr[0] > 1 ? FM1_STATE_TOO_NEW : FM1_STATE_BAD, "unsupported MIDI mapping version");
   count = hdr[1]; used = get16(hdr + 2);
@@ -609,7 +610,15 @@ static int read_browser(br_t *b, cs_t *c) {
     memset(&r, 0, sizeof r); r.type = FM1_REC_MIDI_BINDING;
     r.u.binding.target = pool + t; r.u.binding.source = pool + s;
     r.u.binding.channel = e[4]; r.u.binding.kind = e[5]; r.u.binding.number = e[6];
-    if (e[4] > 15 || e[5] > 1 || e[6] > 127 || !pool[t]) return bbad(b, "invalid MIDI binding");
+    if (fm1_midi_binding_valid(pool + t, pool + s, e[4], e[5], e[6]) != FM1_STATE_OK)
+      return bbad(b, "invalid MIDI binding");
+    for (unsigned j = 0; j < i; ++j) {
+      const uint8_t *old = entries + j * 8;
+      if (!strcmp(pool + get16(old), pool + t) ||
+          (old[4] == e[4] && old[5] == e[5] && old[6] == e[6] &&
+           !strcmp(pool + get16(old + 2), pool + s)))
+        return bbad(b, "duplicate MIDI binding target or address");
+    }
     if (!bemit(b, &r)) return 0;
   }
   return 1;
@@ -1373,7 +1382,9 @@ int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_si
         if (ok && !a.has) ok = bbad(&b, "a view needs its mode");
         if (ok) ok = bemit(&b, &a.r);
         break;
-      case CH_BROW: ok = read_browser(&b, &c); break;
+      case CH_BROW:
+        if (get16(e + 4) != 1) return brefuse(&b, FM1_STATE_TOO_NEW, "unsupported browser chunk version");
+        ok = read_browser(&b, &c); break;
       case CH_SETG: ok = kv_each(&b, &c, setg_kv, NULL); break;
       default: ok = 0; break;
     }

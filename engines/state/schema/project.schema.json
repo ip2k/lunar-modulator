@@ -126,13 +126,14 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 192,
-                    "pattern": "^[!-~]+$"
+                    "pattern": "^[ -~]+$"
                   },
                   "source": {
                     "type": "string",
                     "maxLength": 128,
-                    "pattern": "^[^\\u0000-\\u001f\\u007f]*$",
-                    "description": "Native cap is 128 UTF-8 bytes, which can be fewer than 128 Unicode characters."
+                    "pattern": "^[^\\u0000]*$",
+                    "description": "Native cap is 128 UTF-8 bytes, which can be fewer than 128 Unicode characters.",
+                    "minLength": 1
                   },
                   "channel": {
                     "type": "integer",
