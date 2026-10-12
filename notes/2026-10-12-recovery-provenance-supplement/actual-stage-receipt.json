@@ -1,0 +1,14 @@
+{
+  "archive_sha256": "f0ffe4884eed0ed34b32106c05b519fc82abc9d7c8e07f0193f09009a0895349",
+  "check_only": false,
+  "factory_invoked": false,
+  "file_count": 22,
+  "hardware_opened": false,
+  "helper_sha256": "aa3863ab2563d48b97e322c1c23e283e756c5296197e37e29541391dd37c1d51",
+  "inventory_sha256": "6fc8eeb4e0e18c29db0a972d6b3a4c4bc455f4a71c3199e115aa9ffbcb67d3fc",
+  "kind": "fm1-v5-native-provenance-source-supplement",
+  "manifest_sha256": "b58c49fed04efb4fc29eaf2602605a8e4ec197048bcd418c86a53276198cf86e",
+  "retry": false,
+  "schema": 1,
+  "source_execution": false
+}

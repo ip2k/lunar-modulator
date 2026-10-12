@@ -87,3 +87,19 @@ V5, so even a pass must not be claimed as acceptance of the newer V5 pins.
 when checked. Latest passive bench check again found normal FM-1 `4c4a:c755`
 at bus1/device8 and its MIDI port; no physical power cycle was needed. No firmware
 write, reboot, soft key or target-power operation accompanied these checks.
+
+[verified: source staging only] The missing provenance files were subsequently
+added to both bench recovery roots after a successful check-only invocation.
+The stager uses the previously reviewed no-follow/private-file helpers, validates
+all existing tool hashes, requires absent firmware trees and recovery attempt
+files, and exclusively creates the 22 exact manifest-pinned source copies.
+No source factory, hardware opener, entry command or activation gate is invoked.
+A partial staging failure would be preserved without automatic retry.
+Stager source, sealed inventory and actual receipt are tracked under
+`notes/2026-10-12-recovery-provenance-supplement/`; private source archive remains
+in the build evidence directory. Stager SHA-256:
+`aa3863ab2563d48b97e322c1c23e283e756c5296197e37e29541391dd37c1d51`.
+Archive SHA-256:
+`f0ffe4884eed0ed34b32106c05b519fc82abc9d7c8e07f0193f09009a0895349`.
+The original V5 staging receipts remain intact. This source-only supplement must
+be included in root acceptance before any sequence activation.

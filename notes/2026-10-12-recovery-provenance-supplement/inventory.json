@@ -1,0 +1,98 @@
+{
+  "archive_sha256": "f0ffe4884eed0ed34b32106c05b519fc82abc9d7c8e07f0193f09009a0895349",
+  "execution_authorized": false,
+  "files": {
+    "acquire/firmware/display/panel_probe.c": {
+      "sha256": "ba622076f9134080139b56e7a549769e2baa0f1e4039d55e87095cfae2d94643",
+      "size": 2666
+    },
+    "acquire/firmware/display/spi1_transport.c": {
+      "sha256": "eaade38b9d835174174e2756ce8a32fcc6808dc11c88a44d3693ae37915933fd",
+      "size": 5372
+    },
+    "acquire/firmware/recovery/request.c": {
+      "sha256": "f032ea0f93e2f25b3bf98f3cdcad8b2cc23087a8825ca102fa7fb311194e7c21",
+      "size": 4666
+    },
+    "acquire/firmware/sdk-diagnostic/app_config.h": {
+      "sha256": "cb90015a63c2768bbacd7fdc021eed2222f58c7ce9ed98ffc1edc5e9a10cc695",
+      "size": 409
+    },
+    "acquire/firmware/sdk-diagnostic/app_main.c": {
+      "sha256": "6a6d9682edc435811cef27573d3ddbc7ee5da3f1acc533b91401aa8b78c6f62c",
+      "size": 5418
+    },
+    "acquire/firmware/sdk-diagnostic/board.c": {
+      "sha256": "c96147a5d1bd97d914ffd77f05e49cb0afd9b02771c76877d5dd41af272ffe71",
+      "size": 364
+    },
+    "acquire/firmware/sdk-diagnostic/recovery_trace.c": {
+      "sha256": "f538f3d16de0f1132648c7ee565760dcf8e4a42275f48895205a26ca15c8b7fb",
+      "size": 3711
+    },
+    "acquire/firmware/sdk-diagnostic/recovery_trace.h": {
+      "sha256": "fa969a75033663150f2782d57e2f51f8b96f5b78b41e79e561b4d8bd40ca809d",
+      "size": 1559
+    },
+    "acquire/firmware/sdk-diagnostic/third_party/fm1-nes/board_power.c": {
+      "sha256": "14169a95059831c890a5aa19b20fd30dba9d1148db9a05ea0549afe8522bb1fb",
+      "size": 2572
+    },
+    "acquire/firmware/sdk-diagnostic/third_party/fm1-nes/board_power.h": {
+      "sha256": "722383cd779ed38ed481101e558edb7f2478de4a975f9b67cc37b52f33727248",
+      "size": 294
+    },
+    "acquire/firmware/third_party/fm1-nes/boot_compat.c": {
+      "sha256": "22869d006494c3b3b5a6ac3f54fa41e3814a1af10709ec571adbc813b03c3287",
+      "size": 3488
+    },
+    "restore/firmware/display/panel_probe.c": {
+      "sha256": "ba622076f9134080139b56e7a549769e2baa0f1e4039d55e87095cfae2d94643",
+      "size": 2666
+    },
+    "restore/firmware/display/spi1_transport.c": {
+      "sha256": "eaade38b9d835174174e2756ce8a32fcc6808dc11c88a44d3693ae37915933fd",
+      "size": 5372
+    },
+    "restore/firmware/recovery/request.c": {
+      "sha256": "f032ea0f93e2f25b3bf98f3cdcad8b2cc23087a8825ca102fa7fb311194e7c21",
+      "size": 4666
+    },
+    "restore/firmware/sdk-diagnostic/app_config.h": {
+      "sha256": "cb90015a63c2768bbacd7fdc021eed2222f58c7ce9ed98ffc1edc5e9a10cc695",
+      "size": 409
+    },
+    "restore/firmware/sdk-diagnostic/app_main.c": {
+      "sha256": "6a6d9682edc435811cef27573d3ddbc7ee5da3f1acc533b91401aa8b78c6f62c",
+      "size": 5418
+    },
+    "restore/firmware/sdk-diagnostic/board.c": {
+      "sha256": "c96147a5d1bd97d914ffd77f05e49cb0afd9b02771c76877d5dd41af272ffe71",
+      "size": 364
+    },
+    "restore/firmware/sdk-diagnostic/recovery_trace.c": {
+      "sha256": "f538f3d16de0f1132648c7ee565760dcf8e4a42275f48895205a26ca15c8b7fb",
+      "size": 3711
+    },
+    "restore/firmware/sdk-diagnostic/recovery_trace.h": {
+      "sha256": "fa969a75033663150f2782d57e2f51f8b96f5b78b41e79e561b4d8bd40ca809d",
+      "size": 1559
+    },
+    "restore/firmware/sdk-diagnostic/third_party/fm1-nes/board_power.c": {
+      "sha256": "14169a95059831c890a5aa19b20fd30dba9d1148db9a05ea0549afe8522bb1fb",
+      "size": 2572
+    },
+    "restore/firmware/sdk-diagnostic/third_party/fm1-nes/board_power.h": {
+      "sha256": "722383cd779ed38ed481101e558edb7f2478de4a975f9b67cc37b52f33727248",
+      "size": 294
+    },
+    "restore/firmware/third_party/fm1-nes/boot_compat.c": {
+      "sha256": "22869d006494c3b3b5a6ac3f54fa41e3814a1af10709ec571adbc813b03c3287",
+      "size": 3488
+    }
+  },
+  "hardware_access": false,
+  "kind": "fm1-v5-recovery-native-provenance-supplement",
+  "manifest_sha256": "b58c49fed04efb4fc29eaf2602605a8e4ec197048bcd418c86a53276198cf86e",
+  "schema": 1
+}
