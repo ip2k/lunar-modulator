@@ -31,7 +31,7 @@ const SNAP_CAP = 4 * 1024 * 1024;     // §8: 4 MB of snapshots at most
 const AB_KEY = 'x';
 
 export function makeProject(ctx) {
-  const { st, meta, el, files, root, view, nextId, say, select, render, blockOf, engineName, rows, selectRow,
+  const { st, meta, el, files, root, view, nextId, say, select, chooseView, render, blockOf, engineName, rows, selectRow,
     snapshotSoon, history, undo, redo, setKeys, post, chains, mm } = ctx;
   const encoder = new TextEncoder();
   st.ab = { scope: 'project', A: null, B: null, playing: null, diff: null, busy: false, picks: new Map() };
@@ -752,12 +752,12 @@ export function makeProject(ctx) {
           run: () => { st.selCable = `c${i + 1}`; select(`c${i + 1}`, { view: 'mod' }); } });
       });
     }
-    cmd('Flow and effects', () => { st.view = 'flow'; render(); });
-    cmd('Modulation', () => { st.view = 'mod'; render(); });
+    cmd('Flow and effects', () => { chooseView('flow'); render(); });
+    cmd('Modulation', () => { chooseView('mod'); render(); });
     for (let k = 0; k < SOUNDS; ++k) if (blockOf(blockKey(ROLE.SOUND, k))) cmd(`Sound ${k + 1}`, () => select(blockKey(ROLE.SOUND, k), { view: 'sound' }));
-    cmd('Library', () => { st.view = 'library'; render(); });
-    cmd('Memory', () => { st.view = 'memory'; render(); });
-    cmd('Compare A/B', () => { st.view = 'ab'; render(); });
+    cmd('Library', () => { chooseView('library'); render(); });
+    cmd('Memory', () => { chooseView('memory'); render(); });
+    cmd('Compare A/B', () => { chooseView('ab'); render(); });
     cmd('Keep as A', () => keepA());
     if (st.ab.A) cmd('Switch A/B', () => switchAB());
     cmd('Undo', () => undo());
