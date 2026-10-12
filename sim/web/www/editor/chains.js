@@ -25,7 +25,7 @@ export const cableIndex = (key) => { const m = /^c([0-9]+)$/.exec(key || ''); re
 const toQ = (pct) => Math.max(-Q14, Math.min(Q14, Math.round((pct * Q14) / 100)));
 
 export function makeChains(ctx) {
-  const { st, meta, mm, el, history, files } = ctx;
+  const { st, meta, mm, el, history, files, sim } = ctx;
   const budget = () => (st.ram && st.ram.budget) || meta.budget;
 
   // ---- words ------------------------------------------------------------------
@@ -832,6 +832,9 @@ export function makeChains(ctx) {
     const to = selectOf(dl, toValue(s), `Cable ${i + 1} to`, `${key}:to`, (x) => ctx.setValue(key, 'to', x, 'set'));
     const amt = el('input', 'ed-val ed-amt', { type: 'text', inputmode: 'numeric', 'aria-label': `Cable ${i + 1} amount, percent`, 'data-fk': `${key}:amt`,
       value: String(pctOfQ14(s.amount)) });
+    sim?.midiLearn?.register(amt, `editor:param:${key}:amount`, { kind: 'value',
+      available: () => amt.isConnected && !amt.closest('[hidden]'),
+      value: (u) => { const n = Math.round(u * 200 - 100); ctx.setValue(key, 'amount', n, 'key'); amt.value = String(n); } });
     amt.addEventListener('focus', () => { st.typing = true; amt.select(); });
     amt.addEventListener('blur', () => {
       st.typing = false;

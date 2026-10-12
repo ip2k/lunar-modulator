@@ -170,7 +170,7 @@ export async function startEditor(env) {
   }
   updateSidebar();
   const chains = makeChains({
-    st, meta, mm, el, history, files, root, nextId, sendOps, say, showRefusal, select, render, blockOf, engineName,
+    st, meta, mm, el, history, files, sim, root, nextId, sendOps, say, showRefusal, select, render, blockOf, engineName,
     inspector, sliderControl, rowShell, segControl, levelRow, renderHistory, snapshotSoon, setValue, openOnPanel,
     onStruct: (e) => project.onStruct(e),
     projectTools: (k) => project.headTools(k),
@@ -324,6 +324,7 @@ export async function startEditor(env) {
   }
 
   async function snapshot() {
+    await files.midiSettled?.();
     if (!st.port) return;
     st.loading = true;
     const id = ++st.snapId;
@@ -1468,6 +1469,12 @@ export async function startEditor(env) {
     setLayout, state: st, history, meta, mm, chains, rows, select, undo, redo, setKeys, project, say,
     applyLink: (l) => { if (l?.sequencer) { st.view = 'sequencer'; render(); sequencer.refresh(); } else project.applyLink(l); },
     sequencer, sequencerHost: seqHost,
+    midiMapChanged() {
+      // Maps change the canonical project hash without changing engine or
+      // sequencer content generations. Refresh cached Song documents on ACK.
+      sequencer.invalidate();
+      if (st.view === 'sequencer') sequencer.refresh();
+    },
     // The page test's hooks: an inspector for any module, drawn from the
     // metadata with its defaults, and the mirror as it stands.
     inspectorFor(id) {

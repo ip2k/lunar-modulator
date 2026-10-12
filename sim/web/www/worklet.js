@@ -28,8 +28,9 @@
 // Worker (shadow.worker.js) turns it into JSON, checks files against it
 // (pass 1) and packs them, and `state-load` takes the packed file and runs
 // fm1w_state_load (pass 1 again, then pass 2). Anything that is not the
-// binary container is refused here, so JSON is never parsed on this thread
-// (the editor's ED3 and ED13). Reports go back as the module's JSON text,
+// binary container is refused for project loads (the editor's ED3 and ED13).
+// MIDI learn uses a separate bounded metadata-only setter: its small JSON
+// envelope cannot reload a project or alter transport, sounds or sessions. Reports go back as the module's JSON text,
 // unparsed. SAVE on the panel is fm1w_save_gen counting up, posted as
 // `save-pressed`; the page's store answers with `saved`. Nothing here
 // reaches a device.
@@ -269,6 +270,7 @@ class FM1Processor extends AudioWorkletProcessor {
       case 'dx7-load': this.loadDx7(m); break;
       case 'state-save': this.stateSave(m); break;
       case 'state-load': this.stateLoad(m); break;
+      case 'midi-map': this.setMidiMap(m); break;
       case 'seq-line': this.seqLine(m.bytes); break;
       case 'store-ready': ex.fm1w_store_ready(m.on ? 1 : 0); break;
       case 'saved': {
@@ -331,6 +333,17 @@ class FM1Processor extends AudioWorkletProcessor {
       hash: m.hash ? ex.fm1w_state_hash() >>> 0 : undefined,
       report: n > 0 ? null : this.fm1.string(ex.fm1w_state_report()),
     }, bytes ? [bytes.buffer] : []);
+  }
+
+  // Atomic browser-controller metadata update; no transport or engine reload.
+  setMidiMap(m) {
+    const ex = this.fm1.exports, b = m.bytes;
+    const supported = typeof ex.fm1w_midi_map_set === 'function';
+    const ok = supported && b instanceof Uint8Array && b.length <= ex.fm1w_text_cap() &&
+      (this.text().set(b), ex.fm1w_midi_map_set(b.length) === 1);
+    this.port.postMessage({ type: 'midi-map-set', id: m.id, ok: !!ok,
+      error: supported ? (ok ? null : 'MIDI assignments exceed this project’s mapping limits.') :
+        'Reload the updated Lunar module to save MIDI assignments in projects.' });
   }
 
   // A packed file: binary only (the shadow Worker packed it and ran pass 1).
