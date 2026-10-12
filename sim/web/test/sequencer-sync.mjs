@@ -59,6 +59,66 @@ try {
     const api = await import('/lunar-modulator/editor/sequence-model.js');
     window.syncTest = { api, model: async () => api.parseSet(JSON.parse((await fm1.files.projectSnapshot()).text).set) };
   });
+  await check('unchanged native refresh preserves pointer clicks and number-input selection', async () => {
+    await reset(); await page.getByRole('tab', { name: 'Scenes', exact: true }).click();
+    const target = page.getByRole('tab', { name: 'Automation', exact: true }), box = await target.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down();
+    await page.evaluate(async () => await fm1.editor.sequencer.refresh());
+    await page.mouse.up();
+    assert.equal(await target.getAttribute('aria-selected'), 'true');
+    await page.getByRole('tab', { name: 'Clip', exact: true }).click(); await page.locator('.sq-note').first().click();
+    const field = page.getByLabel('Velocity', { exact: true });
+    await field.focus(); await page.keyboard.press('ControlOrMeta+A');
+    await page.evaluate(async () => await fm1.editor.sequencer.refresh());
+    await page.keyboard.type('72');
+    assert.equal(await field.inputValue(), '72'); assert.equal(await field.evaluate(e => e.checkValidity()), true);
+    await field.dispatchEvent('change');
+    await until(async () => (await model()).tracks[0].clips[0].notes[0].vel === 72, 'selection-preserving native acknowledgement'); await idle();
+  });
+  await check('native invalidation during an older snapshot read refreshes the latest notes', async () => {
+    await reset();
+    await page.evaluate(async () => {
+      await fm1.editor.sequencer.refresh();
+      const original = fm1.files.projectSnapshot; window.syncTest.originalSnapshot = original;
+      window.syncTest.readCaptured = false; window.syncTest.readCount = 0;
+      fm1.files.projectSnapshot = async (...args) => {
+        const read = ++window.syncTest.readCount;
+        const snap = await original(...args);
+        if (read === 1) {
+          await new Promise(resolve => { window.syncTest.releaseRead = resolve; window.syncTest.readCaptured = true; });
+        }
+        return snap;
+      };
+      window.syncTest.pendingRead = fm1.editor.sequencer.refresh();
+    });
+    await page.waitForFunction(() => window.syncTest.readCaptured);
+    await nativeNote(71);
+    await page.evaluate(async () => {
+      fm1.editor.sequencer.invalidate(); window.syncTest.releaseRead(); await window.syncTest.pendingRead;
+      fm1.files.projectSnapshot = window.syncTest.originalSnapshot;
+    });
+    assert.equal(await page.locator('.sq-note').count(), 2);
+    assert.equal(await page.locator('.sq-note').filter({ hasText: '96' }).count(), 1);
+    // A failed parse must leave the view dirty so rendering can retry once
+    // the read path recovers, even without another content-generation event.
+    await page.evaluate(async () => {
+      const original = fm1.files.projectSnapshot;
+      fm1.files.projectSnapshot = async (...args) => {
+        const snap = await original(...args), doc = JSON.parse(snap.text);
+        doc.set = ['invalid']; doc.sounds[0].engine = 'invalid-instrument';
+        return { ...snap, text: JSON.stringify(doc) };
+      };
+      fm1.editor.sequencer.invalidate(); await fm1.editor.sequencer.refresh();
+      fm1.files.projectSnapshot = original;
+    });
+    assert.equal(await page.locator('.sq-status.is-error').count(), 1);
+    await page.evaluate(() => { fm1.editor.sequencer.render(); });
+    await until(async () => await page.locator('.sq-status.is-error').count() === 0, 'read-error recovery');
+    assert.equal(await page.locator('.sq-note').count(), 2);
+    await page.getByRole('tab', { name: 'Mixer', exact: true }).click();
+    assert.equal(await page.getByLabel('S1 instrument', { exact: true }).textContent(), 'test-sine');
+    await page.getByRole('tab', { name: 'Clip', exact: true }).click();
+  });
   await check('clean sequencer undo and redo preserve native project state', async () => {
     await reset(); await velocity(72);
     await page.getByRole('button', { name: 'Undo', exact: true }).click();

@@ -32,3 +32,27 @@ node --experimental-default-type=module test/meta.mjs --wasm www/fm1.wasm --nati
 node --experimental-default-type=module budget.mjs
 node --experimental-default-type=module meter-check.mjs
 ```
+
+## Follow-on evidence: CI failure and native Safari — 2026-10-12 UTC
+
+The earlier six passing Hera suites in the separate browser provenance record
+remain unchanged. GitHub Actions run
+[38201714094](https://github.com/ip2k/lunar-modulator/actions/runs/38201714094)
+tested HEAD `069333cddd3dde8fbe0b73797f97add8a0a28ae4` with Wasm SHA-256
+`2a2ad121431f6e7fac5aa186d00eb0b75848187441ffe0d4ec4222451ed65cc3`.
+WebKit passed; Chromium and Firefox failed browser tests. The retained reports,
+screenshots and diagnosis are in
+[ci-failure-38201714094/](ci-failure-38201714094/). A focused reproduction
+confirmed that an asynchronous redraw between pointer-down and pointer-up can
+leave a tab unchanged, and a redraw between selection and typing can rebuild a
+numeric field and turn `72` into invalid `10072`. This supports a refresh-timing
+race diagnosis; the CI run remains failed evidence. The production fix and
+deterministic regression are owned by `midi_model`, and exact-head CI must be
+rerun after that change.
+
+The separate [native Safari receipt](native-safari.json) records a bounded
+owner-Mac check at `2026-10-12T04:09:36Z`, on the same HEAD and Wasm hash. It
+covers Song loading, MIDI output selection, Undo, an actual pointer/keyboard
+fader edit, transport, measured non-silent meters, inspector opening, Escape
+focus restoration and tab cleanup. It is not a full browser suite, owner
+listening acceptance, physical-phone validation or FM-1 hardware acceptance.

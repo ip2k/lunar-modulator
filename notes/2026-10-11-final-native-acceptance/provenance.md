@@ -31,3 +31,31 @@ Raw logs, per-browser results, and selected desktop/landscape screenshots are at
 ## Limits
 
 This verifies browser runtime behavior in a headless Linux environment. It does not establish physical FM-1 behavior or listening/perceptual acceptance. Browser test success also does not replace CI's full build and integration gates.
+
+## Follow-on evidence — 2026-10-12 UTC
+
+The six passing Hera suites above remain preserved for their original
+snapshot. A later GitHub Actions run,
+[38201714094](https://github.com/ip2k/lunar-modulator/actions/runs/38201714094),
+tested HEAD `069333cddd3dde8fbe0b73797f97add8a0a28ae4` and the same Wasm
+SHA-256 `2a2ad121431f6e7fac5aa186d00eb0b75848187441ffe0d4ec4222451ed65cc3`.
+WebKit passed; Chromium's sequencer-sync suite timed out awaiting native
+velocity acknowledgement, and Firefox's native and sync suites failed during
+Automation-tab and fixture-note setup. Per-suite JSON, workflow summaries and
+screenshots are retained in [ci-failure-38201714094/](ci-failure-38201714094/);
+the full downloaded artifacts remain in ignored
+`scratch/ci-failure-run38201714094/`.
+
+The diagnostic in `scratch/CI_FAILURE_HANDOFF.md` and the focused reproducer in
+`scratch/ci-sync-review/` identify refresh timing as the common cause: an
+asynchronous redraw can replace the numeric field between select-all and
+typing, or redraw the tab between pointer-down and pointer-up. The failed CI
+reports remain failed evidence. The production fix and deterministic regression
+are owned by `midi_model`; exact-head CI has not yet passed after that change.
+
+Separately, Codex performed a bounded native Safari check on the owner’s Mac, using
+this HEAD and module; its unmodified receipt is [native-safari.json](native-safari.json).
+The check recorded actual pointer/keyboard fader input and measured non-silent
+meters in addition to Song, MIDI routing, Undo, transport and inspector focus
+behavior. It does not establish a complete browser suite, owner by-ear
+acceptance, physical-phone behavior or FM-1 hardware acceptance.

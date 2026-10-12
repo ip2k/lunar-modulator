@@ -53,6 +53,7 @@ export function makeSequencer(ctx) {
     note: -1, page: 0, pitch: 60, low: 48, song: 0, lane: 0, inspector: null, midi: null, solo: null, mixDetails: null,
     noteAdvancedOpen: false, view: 'Scenes' };
   let disposed = false, pendingFocus = null, suppressNoteClick = false, cancelDrag = null, readError = false;
+  let readRevision = 0, readText = null;
   let releaseFader = null;
   const meterHold = new Map();
   const sceneName = (s) => state.model?.sceneNames[s] || `Scene ${s + 1}`;
@@ -72,13 +73,26 @@ export function makeSequencer(ctx) {
     if (state.loading) return state.loading;
     state.loading = (async () => {
       try {
-        const doc = await ctx.fetchProject();
-        if (disposed) return;
-        const selected = state.model && state.note >= 0 ? clip()?.notes[state.note] : null;
-        state.doc = doc; state.model = parseSet(doc.set || ['movy1']); state.dirty = false;
-        if (selected) state.note = (clip()?.notes || []).findIndex(n => n.tick === selected.tick && n.pitch === selected.pitch);
-        if (readError) announce('');
-        draw();
+        for (;;) {
+          const revision = readRevision;
+          const doc = await ctx.fetchProject();
+          if (disposed) return;
+          // A native edit can invalidate an older snapshot while it is being
+          // read. Consume that invalidation before clearing the dirty flag.
+          if (revision !== readRevision) continue;
+          const text = JSON.stringify(doc);
+          if (readError) announce('');
+          // Settlement and content-generation notifications can both request
+          // the same snapshot. Replacing unchanged controls loses pointer
+          // clicks and number-input selection in the middle of a gesture.
+          if (!force && text === readText) { state.dirty = false; return; }
+          const selected = state.model && state.note >= 0 ? clip()?.notes[state.note] : null;
+          const model = parseSet(doc.set || ['movy1']);
+          state.doc = doc; state.model = model; readText = text; state.dirty = false;
+          if (selected) state.note = (clip()?.notes || []).findIndex(n => n.tick === selected.tick && n.pitch === selected.pitch);
+          draw();
+          return;
+        }
       } catch (e) { announce(`Cannot read the sequence: ${e.message}`, true); readError = true; }
       finally { state.loading = null; }
     })();
@@ -724,5 +738,5 @@ export function makeSequencer(ctx) {
   });
   return { render() { if (state.dirty && !state.busy) refresh(); return root; }, refresh, update, onTelemetry, syncLevels,
     wantRows() { return state.view === 'Mixer' ? (ctx.metadata?.doc?.telemetry?.sections || []).filter(s => ['meters', 'levels'].includes(s.name)).flatMap(s => s.rows.map((_, r) => s.mask + r)) : []; },
-    invalidate() { state.dirty = true; }, destroy() { releaseFader?.(); closeInspector(); disposed = true; cancelDrag?.(); window.removeEventListener('resize', syncMixerAfterResize); compactMixerMedia.removeEventListener('change', syncMixerDisclosure); root.remove(); } };
+    invalidate() { state.dirty = true; readRevision++; }, destroy() { releaseFader?.(); closeInspector(); disposed = true; cancelDrag?.(); window.removeEventListener('resize', syncMixerAfterResize); compactMixerMedia.removeEventListener('change', syncMixerDisclosure); root.remove(); } };
 }

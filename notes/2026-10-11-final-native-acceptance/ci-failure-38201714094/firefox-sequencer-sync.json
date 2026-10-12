@@ -1,0 +1,9 @@
+{
+  "browser": "Firefox 155.0 (Playwright, headless)",
+  "wasmSha256": "2a2ad121431f6e7fac5aa186d00eb0b75848187441ffe0d4ec4222451ed65cc3",
+  "scope": "Real AudioWorklet/Wasm and browser history. Native seq-line exercises the panel command path; no physical controls or hardware acceptance.",
+  "checks": [],
+  "errors": [],
+  "ok": false,
+  "failure": "Error: Timed out: fixture note\n    at until (file:///__w/lunar-modulator/lunar-modulator/sim/web/test/sequencer-sync.mjs:22:9)\n    at async reset (file:///__w/lunar-modulator/lunar-modulator/sim/web/test/sequencer-sync.mjs:44:3)\n    at async file:///__w/lunar-modulator/lunar-modulator/sim/web/test/sequencer-sync.mjs:63:5\n    at async check (file:///__w/lunar-modulator/lunar-modulator/sim/web/test/sequencer-sync.mjs:24:35)\n    at async file:///__w/lunar-modulator/lunar-modulator/sim/web/test/sequencer-sync.mjs:62:3"
+}

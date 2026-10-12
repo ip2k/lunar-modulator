@@ -1,0 +1,64 @@
+{
+  "browser": "Firefox 155.0 (Playwright, headless)",
+  "scope": "Real browser AudioWorklet, native Wasm state and offline worker; no hardware or listening acceptance.",
+  "checks": [
+    "native fixture loads without discarded sequencer fields",
+    "assigned bases preserve linear, logarithmic and enum parameter positions",
+    "UI note articulation, probability and mix lock survive native load",
+    "routing, native chain repeats and project undo/redo",
+    "measured sound/master meters and keyboard fader edit update native mirror",
+    "native clip matrix launch advances real transport and playhead",
+    "stale host documents and atomic worklet expectedHash preserve newer native edits",
+    "two MIDI files preview, occupied-clip refusal and explicit replacement import",
+    "download and reopen text project, Movy set and binary project retain native set",
+    "actual offline worker produces six downloadable WAVs with exact channel counts",
+    "repeated render clears downloads and cancellation releases dialog",
+    "focused views, phone rotate prompt and landscape native editing"
+  ],
+  "errors": [],
+  "wavs": [
+    {
+      "file": "Native sequencer integration-master.wav",
+      "channels": 2,
+      "bits": 24,
+      "rate": 44118,
+      "frames": 35392
+    },
+    {
+      "file": "Native sequencer integration-sound-1.wav",
+      "channels": 2,
+      "bits": 24,
+      "rate": 44118,
+      "frames": 35392
+    },
+    {
+      "file": "Native sequencer integration-sound-2.wav",
+      "channels": 2,
+      "bits": 24,
+      "rate": 44118,
+      "frames": 35392
+    },
+    {
+      "file": "Native sequencer integration-sound-3.wav",
+      "channels": 2,
+      "bits": 24,
+      "rate": 44118,
+      "frames": 35392
+    },
+    {
+      "file": "Native sequencer integration-sound-4.wav",
+      "channels": 2,
+      "bits": 24,
+      "rate": 44118,
+      "frames": 35392
+    },
+    {
+      "file": "Native sequencer integration-sound-stems-8ch.wav",
+      "channels": 8,
+      "bits": 24,
+      "rate": 44118,
+      "frames": 35392
+    }
+  ],
+  "passed": true
+}

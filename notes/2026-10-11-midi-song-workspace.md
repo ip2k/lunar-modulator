@@ -205,3 +205,23 @@ the working panel is accessible but needs scrolling on an 844×390 viewport.
 At this dated checkpoint, PR #146 still requires exact-head GitHub CI, merge
 and deployed Pages verification. Physical phone touch, VoiceOver, owner
 listening and FM-1 hardware acceptance are separate, unclaimed gates.
+
+## Follow-on browser evidence — 2026-10-12 UTC
+
+Codex completed a bounded native Safari check on the owner’s Mac, on HEAD
+`069333cddd3dde8fbe0b73797f97add8a0a28ae4`, with Wasm SHA-256
+`2a2ad121431f6e7fac5aa186d00eb0b75848187441ffe0d4ec4222451ed65cc3`.
+The receipt includes Song loading, MIDI output selection, Undo, an actual
+fader edit, advancing transport, measured non-silent meters and inspector
+focus restoration: [native Safari receipt](2026-10-11-final-native-acceptance/native-safari.json).
+
+GitHub Actions run
+[38201714094](https://github.com/ip2k/lunar-modulator/actions/runs/38201714094)
+on that same HEAD passed WebKit but failed Chromium and Firefox browser checks.
+The saved diagnostic deterministically reproduced refresh timing that can
+interrupt a tab click or rebuild a numeric field during typing; see the
+[failure reports and screenshots](2026-10-11-final-native-acceptance/ci-failure-38201714094/).
+The run remains a failure alongside the earlier passing browser receipts and
+the separate Safari check. `midi_model` owns the production race fix and
+regression; required exact-head CI needs a fresh pass after that change. No
+by-ear, physical-phone or FM-1 acceptance is established by this browser evidence.
