@@ -345,3 +345,7 @@
 .sq-track-select { cursor: pointer; padding-bottom: 32px; }
 .sq-track-select[aria-current="true"] { box-shadow: inset 0 0 0 1px var(--select); }
 .sq-track-select:focus-visible { outline: 2px solid var(--select); outline-offset: -3px; }
+
+.sq-scene-select { cursor: pointer; }
+.sq-scene-select[aria-pressed="true"] { box-shadow: inset 0 0 0 1px var(--select); }
+.sq-scene-select:focus-visible { outline: 2px solid var(--select); outline-offset: -3px; }

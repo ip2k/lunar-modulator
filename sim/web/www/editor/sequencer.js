@@ -188,14 +188,25 @@ export function makeSequencer(ctx) {
   }
   function trackHeader(track, t, group) {
     const route = track.route;
-    const header = el('div', `sq-track-head sq-track-select ${group}`, { role: 'group', tabindex: 0,
-      'aria-label': `Track ${t + 1} header`, 'aria-current': t === state.track ? 'true' : 'false',
+    const header = el('div', `sq-track-head sq-track-select ${group}`, { role: 'button', tabindex: 0,
+      'aria-label': `Track ${t + 1}`, 'aria-current': t === state.track ? 'true' : 'false', 'aria-pressed': String(t === state.track),
+      'data-midi-id': `seq:select-track:${t}`,
       'aria-description': 'Click empty space or press Enter or Space to select this track. Double-click its name to rename.',
       'data-track-header': t, title: 'Click empty space to select track; double-click name to rename.' }, [trackTitle(t),
       choose(`Track ${t + 1} output`, `${route.kind === 1 ? 's' : 'm'}${route.index}`, routeOptions(), v => edit(`Route track ${t + 1}`, m => { m.tracks[t].route = { kind: v[0] === 's' ? 1 : 0, index: Number(v.slice(1)) }; }))]);
-    header.addEventListener('click', e => { if (!e.target.closest('button, input, select, textarea, label, summary, a')) selectClip(t, state.scene); });
-    header.addEventListener('keydown', e => { if (e.target === header && ['Enter', ' '].includes(e.key)) { e.preventDefault(); selectClip(t, state.scene); } });
+    wireHeaderSelection(header, () => selectClip(t, state.scene));
     return header;
+  }
+  function wireHeaderSelection(header, select) {
+    // The parent selection surface is a distinct MIDI target. Child controls
+    // keep their own clicks, keyboard actions and MIDI assignments.
+    header.addEventListener('click', e => {
+      const control = e.target.closest('button, input, select, textarea, label, summary, a, [role=button]');
+      if (!state.busy && (!control || control === header)) select();
+    });
+    header.addEventListener('keydown', e => {
+      if (e.target === header && ['Enter', ' '].includes(e.key)) { e.preventDefault(); if (!state.busy) select(); }
+    });
   }
   function announce(text, error = false) {
     readError = false;
@@ -587,11 +598,17 @@ export function makeSequencer(ctx) {
     grid.append(el('div', 'sq-track-head', { text: 'SCENES · performance' }));
     for (let scene = first; scene < last; scene++) {
       const name = editableName(`Scene ${scene + 1} name`, state.model.sceneNames[scene] || '', v => edit('Rename scene', m => { m.sceneNames[scene] = v; }), { maxlength: 6, pattern: '[!-~]{0,6}', placeholder: sceneName(scene) });
-      grid.append(el('div', 'sq-scene-head', {}, [
-      el('div', 'sq-name-header', {}, [name]),
-      btn('Select', () => selectClip(state.track, scene), { 'aria-label': `Edit scene ${scene + 1}`, 'aria-pressed': String(state.scene === scene) }),
-      ctx.playScene ? btn('▶ Launch scene', () => action(() => ctx.playScene(scene)), { 'aria-label': `Launch scene ${scene + 1}` }) : null,
-    ])); }
+      const header = el('div', 'sq-scene-head sq-scene-select', { role: 'button', tabindex: 0,
+        'data-scene-header': scene, 'data-midi-id': `seq:select-scene:${scene}`,
+        'aria-label': `Scene ${scene + 1}`, 'aria-pressed': String(state.scene === scene),
+        'aria-description': 'Click empty space or press Enter or Space to select this scene. Double-click its name to rename.',
+        title: 'Click empty space to select scene; double-click name to rename.' }, [
+        el('div', 'sq-name-header', {}, [name]),
+        ctx.playScene ? btn('▶ Launch scene', () => action(() => ctx.playScene(scene)), { 'aria-label': `Launch scene ${scene + 1}` }) : null,
+      ]);
+      wireHeaderSelection(header, () => selectClip(state.track, scene));
+      grid.append(header);
+    }
     state.model.tracks.forEach((track, t) => {
       const route = track.route, group = route.kind === 1 ? `ed-s${route.index + 1}` : '';
       grid.append(trackHeader(track, t, group));
