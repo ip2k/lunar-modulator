@@ -11,6 +11,12 @@ original conversation; last updated 2026-10-11. Read this first, then
 
 ## Installable firmware image resumed — 2026-10-11
 
+[verified: WIP transport checkpoint] Exact SDK rehearsal source
+`f6964845…` is saved with its [work note](notes/2026-10-11-sdk-rehearsal.md).
+Focused Hera16 tests and independent review are pending final freeze; no
+physical erase/program has run. Complete install+restore, then separately
+reviewed reset and diagnostic boot/display/recovery remain outstanding.
+
 [verified: reviewed policy checkpoint] The SDK install/restore policy passed 61
 checks plus an actual-ELF smoke, and the baseline-only fixed-loader reset passed
 185 checks, each in 16 Hera chunks. Independent reviews are saved in
