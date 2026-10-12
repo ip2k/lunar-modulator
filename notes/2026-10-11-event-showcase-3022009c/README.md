@@ -1,0 +1,5 @@
+# Revised Event exact acceptance receipt
+
+Event asset SHA2560d5d871bd31db1e628efbf291fd306671b81c93bef254a950291bf95f5413d1c, source3022009cdeab8fbce7198d2cb63e1fb6dc5cdfde. Native/Wasm and Chromium153 browser file-flow assertions passed again after the source critique revisions: final F minor chord and C6max saw flourish. runtime.json records exact hashes/load/roundtrip/finite audio/zero drops/fullstop/native checks. browser.json records actual preload/play/Save download/Open fresh equality and zero exceptions.
+
+Isolated aeon stage /home/claude/mvave-fm1/showcase-3022009c, same pinned renderer/module as four-song18a30185 receipt. Parent generic346d416a harness used expected-count1; catalog copied9adec4f5 plus newAfterglow/Event assetpaths, engineUI unchanged. Browser pinned Playwright1.63/Chromium153 image,2CPU/2GiB. No product assertion waived. Unchanged Afterglow/Packet/Satellite retain their exact18a30185 passing receipts. Musical owner acceptance remains pending; no reference audio claimed heard.

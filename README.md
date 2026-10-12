@@ -96,6 +96,26 @@ Under the panel:
 - **Load DX7 patches…** imports `.syx` voices into FM6's user slots.
 - **Screen ×2** shows the screen enlarged.
 
+### Workbench and advanced editor
+
+Use **Panel**, **Workbench** or **Editor** above the simulator to choose your
+workspace. The Editor brings the sounds, effect chains and modulation controls
+into one view, with undo and redo and **Compare A/B** for comparing edits.
+
+- Open **Search** with `⌘K` or `Ctrl+K`. Use the arrow keys to highlight a
+  match and `Enter` to open it. `Shift+Enter` selects all matches; compatible
+  parameters or cables can then be edited together as one undo step.
+- In the modulation **Map**, start a cable from either an output or an input
+  and drag to its other end. Select an existing cable to move either end.
+  Keyboard users can connect with `Enter`, arrow keys and `Enter`.
+- Envelopes have delay, attack, decay, sustain and release, with linear,
+  exponential, logarithmic, quartic and smoothstep curves. Their graph shows
+  the envelope's progress while notes play, with the waveform behind it.
+
+The **Cheat Sheet** button at the bottom of the page opens the playing and
+editing instructions. **Copyright Info** opens the source credits and licence
+information, leaving the simulator controls at the top of the page.
+
 ## What it does
 
 Everything below runs today in the browser simulator, and the pictures are

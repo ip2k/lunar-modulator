@@ -25,6 +25,10 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements-dev.txt
+      - name: Demo project generation is current
+        run: |
+          python tools/demo_songs.py --check
+          python tools/showcase_songs.py --check
       - run: python -m pytest -v
 
   engines-mit:
@@ -219,6 +223,13 @@ jobs:
         run: |
           node sim/web/test/midi-import.mjs sim/web/www
           node sim/web/test/audio-export.mjs --wasm sim/web/www/fm1.wasm
+      - name: Complete demo arrangements against the shipped module
+        if: matrix.browser == 'chromium'
+        timeout-minutes: 10
+        run: |
+          mkdir -p "$SHOTS/demo-songs"
+          node sim/web/test/demo-songs.mjs --manifest sim/web/test/showcase-songs.json \
+            --wasm sim/web/www/fm1.wasm --out "$SHOTS/demo-songs/render.json"
       - name: Worklet startup and restart ordering
         timeout-minutes: 5
         run: node sim/web/test/startup-smoke.mjs sim/web/www "$SHOTS/startup"
@@ -249,6 +260,10 @@ jobs:
             echo "::endgroup::"
           done
           exit $status
+      - name: Preloaded demo projects, downloads and fresh-context reopen
+        if: matrix.browser == 'chromium'
+        timeout-minutes: 5
+        run: node sim/web/test/demo-files.mjs sim/web/www sim/web/test/showcase-songs.json "$SHOTS/demo-files"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
