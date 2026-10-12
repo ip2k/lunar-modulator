@@ -110,3 +110,58 @@ Root final rebuild [verified]: module SHA-256
 Complete build passes 108 parity scenarios, metadata consistency, DX7 assets,
 and 30-second edit storm with zero late blocks. This supersedes the stale-module
 warning and pending rebuild above; browser/export reruns and CI remain separate.
+
+## Native panel parity follow-up [verified, 2026-10-11]
+
+Saved target-aware held-step pages and actual FX/Mix live-record gestures in
+`fm1_app.c`, `fm1_seq_ui.c/.h`, and `fm1_seq_view.c/.h`. Stack-only target
+contexts flatten routed synth/inserts, global masters, then routed Mix Level;
+empty slots add no pages and MIDI routes retain global masters. Assign, value,
+SHIFT step-clear, CLEAR lane-clear, quiet single-step edits and multiheld base
+edits all address the selected target. Reserved labels retain their prefix.
+New effects refuse NOLOCK/PER_FOCUS and labels over 23 bytes. Legacy synth
+PER_FOCUS behavior remains. Effect removal during a live take now safely
+returns the configured display value rather than dereferencing a missing engine.
+No persistent UI state or sequencer format was added.
+
+The focused native probe uses real app encoders, tests all six target classes,
+same-name isolation, imported lock editing/clearing, live FX and routed Mix
+recording, unrelated Mix knob behavior, effect removal, multiheld base changes,
+and MIDI-route master pages. The layout harness saves routed Sound 2 insert,
+master and Mix pages and reserved lane names. A footer collision beyond nine
+lock pages was found and fixed with `Lock N/total`; the track already appears
+in the header. Noncurrent target tags retain the full `S2 In1` / `S2 Mix` text.
+
+Native Hera emsdk6.0.10, 2CPU/2GiB:
+
+- Expanded simulator/UI/automation/arp suite: **452 passed, 6 skipped,
+  2 deselected**. DX7 generated-assets and module staleness checks were excluded
+  because the root owns the final module rebuild.
+- Final saved source: automation probe + complete layout check + RAM edge:
+  **3 passed**. Layout: **4,713 screens, zero faults**. Selected 240×240 rendered
+  insert/master/Mix/lane screens were visually inspected, with no overlapping
+  labels or clipped values.
+- Separate MIT profile: automation and strict RAM edge **2 passed**.
+- `git diff --check`: clean.
+
+Logs are in `/home/claude/mvave-fm1/midi-automation-20261011/`:
+`panel-final.log`, `panel-last.log`, `panel-mit.log`, `panel-visual.log`.
+The ARP refusal fixture now uses Macro + Shapes + Room + Limiter + a Diffuse
+insert: 384,140 bytes native64 fit the unchanged 387,924-byte budget; the
+8,792-byte ARP plus MIDI stage is refused. The former Plate fixture exceeded
+the base budget after legitimate fixed automation storage accounting.
+The isolated image lacks multilib startup/libgcc; actual 32-bit verification
+remains the root's CI gate. No firmware/device ABI or physical acceptance claim.
+
+Bounded Rarefaction navigation could not find the panel UI symbol with its
+incomplete root/index; Serena found the symbol in the primary checkout.
+Shared MCP selections were not retargeted. Actual worktree source, known tests,
+and the native compiler supplied the implementation evidence.
+
+Parent owns checkpoints/push/CI/merge on
+`feature/2026-10-11@midi-sequencer-workspace`; this subagent made no commits.
+Root was notified that final saved C is ready for its new Wasm rebuild; the
+previous b98e8e32 module predates this panel follow-up. Next: checkpoint these
+files and note, rebuild, run full parity/storm and browser panel/export checks,
+then finish CI. Meter telemetry scope is proposed separately and awaiting
+interface alignment; no meter implementation is included here.

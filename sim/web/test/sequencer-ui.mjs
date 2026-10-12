@@ -8,6 +8,7 @@ const {server,url}=await serve(process.argv[2] || 'sim/web/www',18873);
 const {browser}=await launch();
 const page=await browser.newPage({viewport:{width:1440,height:1100}});
 const errors=[];page.on('pageerror',e=>errors.push(e.message));
+async function tab(name){await page.getByRole('tab',{name,exact:true}).click()}
 try {
  await page.route('**/harness.html',r=>r.fulfill({contentType:'text/html',body:'<!doctype html><html><head><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/editor/editor.css"><style>body{display:block;margin:24px;padding:0}main{max-width:1300px;margin:auto}</style></head><body><main class="ed"></main></body></html>'}));
  await page.goto(url.replace('index.html','harness.html'));
@@ -18,9 +19,10 @@ try {
   m.tracks.forEach((t,i)=>{t.route={kind:1,index:i%4};t.clips[0]=emptyClip(32);t.clips[1]=emptyClip(64)});
   m.tracks[0].clips[0].notes=[{tick:0,gate:36,pitch:57,vel:96,step:0}];
   window.doc={set:writeSet(m),sounds:['Punch','Acid','Trio','FM6'].map(engine=>({engine,level:75,inserts:[null,null]}))};window.doc.master=[{engine:'Hall'},{engine:'Limit'}];window.doc.sounds[0].inserts[0]={engine:'Echo'};window.calls=[];window.reject=false;window.output=.8;
-  window.seq=makeSequencer({fetchProject:async()=>structuredClone(window.doc),applyProject:async(d,label)=>{if(window.reject)throw Error('test refusal');window.doc=d;window.calls.push(label)},getMaster:()=>window.output,setMaster:v=>{window.output=v},getTransport:()=>({playing:false}),metadata:{engine:()=>({params:[{name:'Cutoff',flags:[]},{name:'Voices',flags:['nolock']}]})},watchTrack:t=>window.calls.push('watch '+t),playScene:s=>window.calls.push('scene '+s),playClip:(t,s)=>window.calls.push('clip '+t+' '+s),inspector:key=>{const e=document.createElement('p');e.textContent='Inspector '+key;return e}});
+  window.seq=makeSequencer({fetchProject:async()=>structuredClone(window.doc),applyProject:async(d,label)=>{if(window.reject)throw Error('test refusal');window.doc=d;window.calls.push(label)},getMaster:()=>window.output,setMaster:v=>{window.output=v},getTransport:()=>({playing:false}),metadata:{engine:name=>name?({params:[{name:'Cutoff',type:'float',min:0,max:1,def:.5,flags:[]},{name:'Voices',flags:['nolock']}]}):null},watchTrack:t=>window.calls.push('watch '+t),playScene:s=>window.calls.push('scene '+s),playClip:(t,s)=>window.calls.push('clip '+t+' '+s),inspector:key=>{const e=document.createElement('p');e.textContent='Inspector '+key;return e}});
   document.querySelector('main').append(window.seq.render());await window.seq.refresh();window.model=()=>parseSet(window.doc.set);
  });
+ await tab('Clip');
  await page.getByRole('button',{name:'Add note',exact:true}).click();
  await page.waitForFunction(()=>window.model().tracks[0].clips[0].notes.length===2);
  async function set(label,value){await page.getByLabel(label,{exact:true}).fill(String(value));await page.getByLabel(label,{exact:true}).dispatchEvent('change');await page.waitForFunction(()=>document.querySelector('.sq').getAttribute('aria-busy')==='false')}
@@ -29,24 +31,28 @@ try {
  await set('Gate · ticks',48);await set('Microtiming · ticks',3);await set('Probability %',70);
  const note=await page.evaluate(()=>window.model().tracks[0].clips[0]);
  if(!note.notes.some(n=>n.vel===72&&n.gate===48&&n.tick===3)||note.trigs[0].prob!==70)throw Error('Note properties did not persist');
+ await page.locator('[data-note="1"]').scrollIntoViewIfNeeded();
  const nb=await page.locator('[data-note="1"]').boundingBox();
  await page.mouse.move(nb.x+12,nb.y+8);await page.mouse.down();await page.mouse.move(nb.x+68,nb.y-15,{steps:4});await page.mouse.up();
  await page.waitForFunction(()=>window.model().tracks[0].clips[0].notes.some(n=>n.pitch===61&&n.step===2));
  const handle=await page.locator('[data-resize-note="1"]').boundingBox();
  await page.mouse.move(handle.x+3,handle.y+8);await page.mouse.down();await page.mouse.move(handle.x+31,handle.y+8,{steps:4});await page.mouse.up();
  await page.waitForFunction(()=>window.model().tracks[0].clips[0].notes.some(n=>n.pitch===61&&n.gate===72));
+ await tab('Automation');
  await page.getByRole('button',{name:'Assign parameter',exact:true}).click();await page.waitForFunction(()=>!!window.model().tracks[0].lanes[0]);
  await page.getByLabel('Automation target',{exact:true}).selectOption('in1');await page.waitForFunction(()=>window.model().tracks[0].lanes[0]?.label==='in1:Cutoff');
  await page.getByLabel('Automation target',{exact:true}).selectOption('m1');await page.waitForFunction(()=>window.model().tracks[0].lanes[0]?.label==='m1:Cutoff');
  await page.getByLabel('Automation target',{exact:true}).selectOption('mix');await page.waitForFunction(()=>window.model().tracks[0].lanes[0]?.label==='mix:Level');
- await set('Output level %',45);if(await page.evaluate(()=>window.output)!==.45)throw Error('Output preference');
+ await tab('Mixer');await set('Output level %',45);if(await page.evaluate(()=>window.output)!==.45)throw Error('Output preference');await tab('Automation');
  await set('Lane 1, step 1 lock',91);if(await page.evaluate(()=>window.model().tracks[0].clips[0].locks[0].value)!==91)throw Error('lock');
+ await tab('Arrangement');
  await page.getByLabel('Track 8 output',{exact:true}).selectOption('m16');await page.waitForFunction(()=>window.model().tracks[7].route.index===16);
  await set('Repeats',3);if(await page.evaluate(()=>window.model().song.length)!==4)throw Error('repeat');
  await page.getByTestId('launch-scene').click();
  await page.evaluate(()=>{window.reject=true});await set('BPM',130);
  if(!await page.locator('.sq-status').textContent().then(t=>t.includes('test refusal')))throw Error('refusal not visible');
  if(await page.evaluate(()=>window.model().bpmX100)!==12000)throw Error('refusal mutated model');
+ await tab('Clip');
  await page.evaluate(()=>{window.reject=false;window.seq.update({playing:true,scene:0,step:4,songIndex:0,tracks:[{active:1,playing:0,posTick:96}]})});
  if(await page.locator('[data-roll-playhead]').isHidden())throw Error('playhead hidden for playing clip while another clip queued');
  if(!await page.locator('[data-play-position]').textContent().then(t=>t.includes('Scene 1 · Step 5')))throw Error('Queued scene shown as playing');
@@ -63,7 +69,7 @@ try {
  if(await page.evaluate(()=>window.model().tracks[1].clips[2].notes[0].pitch)!==67)throw Error('MIDI mapping');
  await page.getByLabel('Edit scene',{exact:true}).selectOption('0');
  if(await page.locator('.sq-note').first().evaluate(e=>e.getBoundingClientRect().height>24))throw Error('Note exceeds piano row');
- await page.getByRole('button',{name:'Scene matrix',exact:true}).click();
+ await tab('Scenes');
  if(await page.locator('[data-live-track]').count()!==64)throw Error('Scene matrix must expose 64 native slots');
  await page.getByRole('button',{name:'Launch clip 1 scene 1',exact:true}).click();
  await page.getByRole('button',{name:'Launch scene 2',exact:true}).click();
@@ -71,15 +77,34 @@ try {
  if(!await page.evaluate(()=>window.calls.includes('clip 0 0')&&window.calls.includes('scene 1')&&window.calls.includes('clip 7 7')))throw Error('Native scene/clip callbacks');
  await page.getByRole('button',{name:'Edit track 2 scene 2',exact:true}).click();
  if(await page.getByLabel('Edit scene',{exact:true}).inputValue()!=='1')throw Error('Matrix edit did not select scene');
+ if(await page.getByRole('tab',{name:'Clip',exact:true}).getAttribute('aria-selected')!=='true')throw Error('Clip click must open editor');
+ await tab('Scenes');
  await page.screenshot({path:`${out}/matrix-desktop.png`,fullPage:true});
- await page.setViewportSize({width:390,height:844});await page.screenshot({path:`${out}/matrix-mobile.png`,fullPage:true});
- if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth))throw Error('Mobile scene matrix document overflow');
+ await page.setViewportSize({width:390,height:844});
+ if(!await page.getByTestId('song-rotate-prompt').isVisible())throw Error('Missing rotate prompt');
+ if(await page.getByRole('tab',{name:'Scenes',exact:true}).isVisible())throw Error('Portrait workspace visible');
+ await page.screenshot({path:`${out}/portrait.png`,fullPage:true});
+ await page.setViewportSize({width:844,height:390});
+ if(await page.getByTestId('song-rotate-prompt').isVisible())throw Error('Landscape blocked');
+ for(const view of ['Scenes','Arrangement','Clip','Automation','Mixer']){
+  await tab(view);
+  if(await page.getByRole('tabpanel').count()!==1)throw Error('Stacked workspace views');
+  if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth))throw Error('Landscape document overflow');
+  await page.screenshot({path:`${out}/landscape-${view.toLowerCase()}.png`,fullPage:true});
+ }
+ await tab('Clip');await page.getByRole('button',{name:'Add note',exact:true}).click();
+ await page.waitForFunction(()=>document.querySelector('.sq').getAttribute('aria-busy')==='false');
+ await set('Velocity',63);
+ if(!await page.evaluate(()=>window.model().tracks[1].clips[1].notes.some(n=>n.vel===63)))throw Error('Landscape editing');
  await page.setViewportSize({width:1440,height:1100});
- await page.getByRole('button',{name:'Arrangement',exact:true}).click();
- await page.screenshot({path:`${out}/desktop.png`,fullPage:true});
- await page.setViewportSize({width:390,height:844});await page.screenshot({path:`${out}/mobile.png`,fullPage:true});
- const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);if(overflow)throw Error('mobile document overflow');
+ for(const view of ['Scenes','Arrangement','Clip','Automation','Mixer']){
+  await tab(view);await page.screenshot({path:`${out}/desktop-${view.toLowerCase()}.png`,fullPage:true});
+ }
+ await page.getByRole('tab',{name:'Mixer',exact:true}).press('Home');
+ if(await page.getByRole('tab',{name:'Scenes',exact:true}).getAttribute('aria-selected')!=='true')throw Error('Tab Home navigation');
+ await page.getByRole('tab',{name:'Scenes',exact:true}).press('ArrowRight');
+ if(await page.getByRole('tab',{name:'Arrangement',exact:true}).getAttribute('aria-selected')!=='true')throw Error('Tab arrow navigation');
  if(errors.length)throw Error(errors.join('\n'));
- await writeFile(`${out}/results.json`,JSON.stringify({passed:true,errors,note,checks:['note fields','probability','locks','routing','song repeats','scene launch','refusal rollback','playhead while next scene queued','mobile overflow','input focus','multi-file MIDI mapping','note drag','gate resize','insert/master/mix targets','output preference','note row containment','64-slot scene matrix','clip and empty-slot stop callbacks','matrix mobile containment']},null,2));
+ await writeFile(`${out}/results.json`,JSON.stringify({passed:true,errors,note,checks:['note fields','probability','locks','routing','song repeats','scene launch','refusal rollback','playhead while next scene queued','mobile overflow','input focus','multi-file MIDI mapping','note drag','gate resize','insert/master/mix targets','output preference','note row containment','64-slot scene matrix','clip and empty-slot stop callbacks','portrait rotate prompt','844x390 landscape editing','single focused panel','keyboard tab navigation']},null,2));
  console.log('PASS sequencer mock-host desktop/mobile checks');
-} finally {await browser.close();await new Promise(r=>server.close(r))}
+} catch(error) {await page.screenshot({path:`${out}/failure.png`,fullPage:true});console.error({errors});throw error} finally {await browser.close();await new Promise(r=>server.close(r))}

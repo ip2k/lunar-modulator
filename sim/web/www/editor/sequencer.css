@@ -77,3 +77,24 @@
 .sq-matrix-cell { border-left: 3px solid var(--snd, var(--border)); background: color-mix(in srgb, var(--snd, var(--select)) 12%, var(--bg)); }
 .sq-matrix-cell > .sq-button { text-align: left; white-space: normal; }
 .sq-matrix-cell > .sq-button:first-child { flex: 1; }
+
+/* One native workspace at a time; keep navigation independent of project state. */
+.sq-tabs { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--border); padding: 8px 0; }
+.sq-tabs [aria-selected="true"] { background: var(--select); color: var(--accent-text); border-color: var(--select); }
+.sq-selection { padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.sq-view-panel { min-width: 0; }
+.sq-view-panel > .sq-section { margin-top: 8px; }
+.sq-scroll[data-scroll="piano"] { max-height: 360px; }
+.sq-scroll[data-scroll="scenes"], .sq-scroll[data-scroll="song"] { max-height: 55vh; }
+.sq-rotate { display: none; border: 1px solid var(--border); border-radius: 8px; padding: 24px; line-height: 1.6; }
+@media (max-width: 600px) and (orientation: portrait) {
+  .sq-rotate { display: block; }
+  .sq-content, .sq-status { display: none; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .ed-body:has(.sq) { grid-template-columns: 64px minmax(0,1fr); grid-template-areas: "nav main"; grid-template-rows: 1fr; }
+  .ed-body:has(.sq) > .ed-card, .ed-main:has(.sq) > .ed-heads { display: none; }
+  .sq-scroll[data-scroll="piano"] { max-height: 200px; }
+  .sq-scroll[data-scroll="scenes"], .sq-scroll[data-scroll="song"] { max-height: 260px; }
+  .sq-toolbar { margin: 6px 0; }
+}

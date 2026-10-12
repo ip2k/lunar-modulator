@@ -457,7 +457,24 @@ parameters; NOLOCK and PER_FOCUS effect targets are refused. Existing sound
 focus locks retain their previous behavior. Reserved effect/mixer labels
 never resolve to a same-named sound parameter. The standalone sound-engine
 bridge ignores these app targets; the native app harness and browser app
-implement them [verified: `tests/test_seq_automation.py`].
+implement them [verified: `tests/test_sim_automation.py`].
+
+On the native panel, hold a step and turn SELECT past the step pages to
+reach the routed sound's synth, Insert 1, Insert 2, the two global master
+effects, and Mix Level. Empty slots contribute no pages. KNOB1..4 assign
+or change the corresponding lock; SHIFT + knob clears that step's lock,
+and CLEAR + knob clears the lane. Target tags keep inserts and masters
+distinct, including when the track uses another sound. MIDI-routed tracks
+offer the global master pages. New effect targets refuse NOLOCK,
+PER_FOCUS and names that cannot fit the 23-byte lane label.
+
+While recording the playing clip, turning an insert/master knob in FX
+mode records that target's lock. The Mix knob for the track's routed sound
+records `mix:Level`; other sounds' Mix knobs still change their configured
+levels. One held step edits quietly; several held steps retain the base
+knob edit gesture and update the target's D6 base. Legacy synth gestures
+and labels are preserved [verified: focused native automation probe,
+`tests/test_seq_ui.py` and the native layout harness].
 
 The app queues effect writes and mixer gain changes on each lock's sample
 frame, including when no modulation runtime exists. Effect locks move the

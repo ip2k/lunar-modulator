@@ -43,9 +43,13 @@ export function makeSequencer(ctx) {
   const root = el('section', 'sq', { 'aria-label': 'Sequencer workspace', 'data-testid': 'sequencer' });
   const status = el('p', 'sq-status', { role: 'status', 'aria-live': 'polite' });
   const content = el('fieldset', 'sq-content');
-  root.append(status, content);
+  const rotate = el('section', 'sq-rotate', { 'data-testid': 'song-rotate-prompt', 'aria-label': 'Rotate phone' }, [
+    el('h3', '', { text: 'Turn your phone sideways' }),
+    el('p', '', { text: 'Song editing needs landscape on a small phone. Rotate to use scenes, clips and the mixer. Playback keeps its current state.' }),
+  ]);
+  root.append(status, rotate, content);
   const state = { doc: null, model: null, busy: false, loading: null, dirty: true, track: 0, scene: 0,
-    note: -1, page: 0, pitch: 60, low: 48, song: 0, lane: 0, inspector: null, midi: null, solo: null, arrangement: true };
+    note: -1, page: 0, pitch: 60, low: 48, song: 0, lane: 0, inspector: null, midi: null, solo: null, view: 'Scenes' };
   let disposed = false, pendingFocus = null, suppressNoteClick = false, cancelDrag = null, readError = false;
   const sceneName = (s) => state.model?.sceneNames[s] || `Scene ${s + 1}`;
   const clip = (m = state.model, t = state.track, s = state.scene) => m.tracks[t].clips[s];
@@ -100,7 +104,8 @@ export function makeSequencer(ctx) {
     lock(true);
     try { await fn(); } catch (e) { announce(e.message, true); } finally { lock(false); }
   }
-  function selectClip(t, s) {
+  function selectClip(t, s, open = false) {
+    if (open) state.view = 'Clip';
     state.track = t; state.scene = s; ctx.watchTrack?.(t); state.note = -1; state.page = 0;
     const notes = clip()?.notes || [];
     if (notes.length) { state.pitch = notes[0].pitch; state.low = Math.max(0, Math.min(104, state.pitch - 12)); }
@@ -171,7 +176,7 @@ export function makeSequencer(ctx) {
         choose(`Track ${t + 1} output`, `${route.kind === 1 ? 's' : 'm'}${route.index}`, routeOptions(), v => edit(`Route track ${t + 1}`, m => { m.tracks[t].route = { kind: v[0] === 's' ? 1 : 0, index: Number(v.slice(1)) }; }))]));
       columns.forEach((e, i) => {
         const c = track.clips[e.scene];
-        const cell = btn(c ? `${c.notes.length} notes · ${c.length / 16} bars` : '＋ Empty clip', () => { state.song = i; selectClip(t, e.scene); }, {
+        const cell = btn(c ? `${c.notes.length} notes · ${c.length / 16} bars` : '＋ Empty clip', () => { state.song = i; selectClip(t, e.scene, true); }, {
           class: `sq-button sq-clip ${group} ${t === state.track && e.scene === state.scene ? 'is-selected' : ''}`,
           'aria-label': `Track ${t + 1}, ${sceneName(e.scene)}, ${c ? c.notes.length + ' notes' : 'empty clip'}`, 'data-track': t, 'data-scene': e.scene,
         });
@@ -196,7 +201,7 @@ export function makeSequencer(ctx) {
         choose(`Track ${t + 1} output`, `${route.kind === 1 ? 's' : 'm'}${route.index}`, routeOptions(), v => edit(`Route track ${t + 1}`, m => { m.tracks[t].route = { kind: v[0] === 's' ? 1 : 0, index: Number(v.slice(1)) }; }))]));
       for (let scene = 0; scene < 8; scene++) {
         const c = track.clips[scene];
-        const editButton = btn(c ? `${c.notes.length} notes · ${c.length / 16} bars` : '＋ Empty clip', () => selectClip(t, scene), {
+        const editButton = btn(c ? `${c.notes.length} notes · ${c.length / 16} bars` : '＋ Empty clip', () => selectClip(t, scene, true), {
           'aria-label': `Edit track ${t + 1} scene ${scene + 1}`, 'aria-pressed': String(state.track === t && state.scene === scene),
         });
         if (c?.notes.length) editButton.append(clipPreview(c));
@@ -229,8 +234,6 @@ export function makeSequencer(ctx) {
   function sceneTools() {
     let target = (state.scene + 1) % 8, track = state.track;
     return el('div', 'sq-toolbar', {}, [
-      choose('Edit scene', state.scene, state.model.sceneNames.map((_, s) => [s, sceneName(s)]), v => selectClip(state.track, Number(v))),
-      ctx.playScene ? btn('Launch scene', () => action(() => ctx.playScene(state.scene)), { 'data-testid': 'launch-scene' }) : null,
       field('Scene name', state.model.sceneNames[state.scene] || '', v => edit('Rename scene', m => { m.sceneNames[state.scene] = v; }), { type: 'text', maxlength: 6, pattern: '[!-~]{0,6}', title: 'Up to six characters, without spaces' }),
       choose('Copy to scene', target, state.model.sceneNames.map((_, s) => [s, sceneName(s)]), v => { target = Number(v); }),
       choose('Copy to track', track, Array.from({ length: 8 }, (_, i) => [i, `Track ${i + 1}`]), v => { track = Number(v); }),
@@ -447,7 +450,7 @@ export function makeSequencer(ctx) {
       btn('Octave ↓', () => { state.low = Math.max(0, state.low - 12); draw(); }, { disabled: state.low === 0 }),
       btn('Octave ↑', () => { state.low = Math.min(104, state.low + 12); draw(); }, { disabled: state.low === 104 }),
     ]);
-    return el('section', 'sq-section', {}, [sceneTools(), controls, pianoRoll(c), noteDetails(c), locksView(c)]);
+    return el('section', 'sq-section', {}, [sceneTools(), controls, noteDetails(c), pianoRoll(c)]);
   }
   async function importFiles(files) {
     if (state.busy || !files.length) return;
@@ -488,11 +491,39 @@ export function makeSequencer(ctx) {
     const active = content.contains(document.activeElement) ? document.activeElement : null;
     const focus = active && { label: active.getAttribute('aria-label'), tag: active.tagName, value: active.value, start: active.selectionStart, end: active.selectionEnd };
     const scrolls = new Map([...content.querySelectorAll('[data-scroll]')].map(e => [e.dataset.scroll, [e.scrollLeft, e.scrollTop]]));
-    content.replaceChildren(toolbar(), mixer(), midiView() || '',
-      el('div', 'sq-toolbar', { 'aria-label': 'Sequence view' }, [btn('Arrangement', () => { state.arrangement = true; draw(); }, { 'aria-pressed': String(state.arrangement) }),
-        btn('Scene matrix', () => { state.arrangement = false; draw(); }, { 'aria-pressed': String(!state.arrangement) })]),
-      state.arrangement ? songView() : sceneMatrix(), clipView(),
-      el('div', 'sq-actions', {}, [ctx.getMaster && ctx.setMaster ? field('Output level %', Math.round(ctx.getMaster() * 100), v => action(() => ctx.setMaster(v / 100)), { min:0, max:100, step:1, title:'Playback preference; not saved in the project' }) : null, btn('Master FX 1', () => openInspector('m1')), btn('Master FX 2', () => openInspector('m2'))]));
+    const views = ['Scenes', 'Arrangement', 'Clip', 'Automation', 'Mixer'];
+    const navigation = el('div', 'sq-tabs', { role: 'tablist', 'aria-label': 'Song workspace views' }, views.map(name => btn(name, () => {
+      state.view = name; state.inspector = null; draw(); root.querySelector(`[data-view="${name}"]`)?.focus({preventScroll:true});
+    }, { role: 'tab', id: `sq-tab-${name}`, 'data-view': name, 'aria-selected': String(state.view === name),
+      'aria-controls': 'sq-view-panel', tabindex: state.view === name ? 0 : -1,
+      onkeydown: e => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+        e.preventDefault(); e.stopPropagation();
+        const i = views.indexOf(name), next = e.key === 'Home' ? 0 : e.key === 'End' ? 4 : (i + (e.key === 'ArrowRight' ? 1 : 4)) % 5;
+        state.view = views[next]; state.inspector = null; draw(); root.querySelector(`[data-view="${state.view}"]`)?.focus({preventScroll:true});
+      },
+    })));
+    const selection = el('div', 'sq-toolbar sq-selection', {}, [
+      choose('Edit track', state.track, Array.from({length:8}, (_, t) => [t, `Track ${t + 1}`]), v => selectClip(Number(v), state.scene)),
+      choose('Edit scene', state.scene, state.model.sceneNames.map((_, s) => [s, sceneName(s)]), v => selectClip(state.track, Number(v))),
+      ctx.playScene ? btn('Launch scene', () => action(() => ctx.playScene(state.scene)), { 'data-testid': 'launch-scene' }) : null,
+    ]);
+    let body;
+    if (state.view === 'Scenes') body = sceneMatrix();
+    else if (state.view === 'Arrangement') body = songView();
+    else if (state.view === 'Clip') body = clipView();
+    else if (state.view === 'Automation') {
+      const c = clip();
+      body = c ? el('div', '', {}, [el('div', 'sq-toolbar', {}, [
+        btn('◀ 2 bars', () => { state.page--; draw(); }, { disabled: state.page === 0 }),
+        el('span', 'sq-caption', { text: `Steps ${state.page * 32 + 1}–${Math.min((state.page + 1) * 32, c.loopStart + c.length)}` }),
+        btn('2 bars ▶', () => { state.page++; draw(); }, { disabled: (state.page + 1) * 32 >= c.loopStart + c.length }),
+      ]), locksView(c)]) : el('p', 'sq-caption', { text: 'Create a clip in Clip view before editing automation.' });
+    } else body = el('div', '', {}, [mixer(), el('div', 'sq-toolbar', {}, [
+      ctx.getMaster && ctx.setMaster ? field('Output level %', Math.round(ctx.getMaster() * 100), v => action(() => ctx.setMaster(v / 100)), { min:0, max:100, step:1, title:'Playback preference; not saved in the project' }) : null,
+      btn('Master FX 1', () => openInspector('m1')), btn('Master FX 2', () => openInspector('m2'))])]);
+    content.replaceChildren(toolbar(), navigation, selection, midiView() || '',
+      el('div', 'sq-view-panel', {id:'sq-view-panel',role:'tabpanel','aria-labelledby':`sq-tab-${state.view}`}, [body]));
     if (state.inspector && ctx.inspector) {
       const body = ctx.inspector(state.inspector);
       if (body) content.append(el('section', 'sq-inspector', {}, [btn('Close inspector', () => { state.inspector = null; draw(); }), body]));

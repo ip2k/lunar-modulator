@@ -224,6 +224,9 @@ in a desktop renderer, in a browser and, later, on the FM-1.
   tab without storage.
 - **Song workspace (2026-10-11):** `sim/web/www/editor/sequencer.js` edits the
   native eight-track/eight-scene set, with four shared sound groups. It uses
+  focused Scenes, Arrangement, Clip, Automation and Mixer views; selection is
+  temporary UI state and adds no browser-only song structure. Small phones use
+  landscape, with a portrait rotate prompt that leaves transport running. It uses
   `sequence-model.js` for bounded `movy1` parsing, validation and serialization;
   `midi-import.js` plans Standard MIDI File imports before mutation. Tracks can
   address a sound or a MIDI channel, but the browser does not transmit MIDI.

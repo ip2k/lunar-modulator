@@ -168,8 +168,81 @@ static int modulation(void) {
   CHECK(app.seq_auto_dropped==0);
   return 0;
 }
+static int panel_targets(void) {
+  setup();
+  CHECK(line("route 0 1 0;clen 0 16;alabel 0 0 in1:Mix;abaseq 0 0 64;aset 0 0 4 32 1"));
+  app.mode = FM1_MODE_SEQ;
+  app.ui.view = FM1_SEQ_VIEW_STEP;
+  app.ui.held_n = 1; app.ui.held[0].step = 4;
+  app.ui.step_page = FM1_SEQ_UI_STEP_PAGES + 1; /* probe has one page per engine */
+  fm1_app_encoder(&app, FM1_ENC_KNOB1, 1);
+  fm1_seq_step_info_t step;
+  CHECK(fm1_seq_get_page(app.seq,0,0,4,1,&step));
+  CHECK(step.lock[0] == 33 && step.lock_mask == 1);
+  CHECK(!strcmp(fm1_seq_lane_label(app.seq,0,0),"in1:Mix"));
+  app.ui.shift = 1;
+  fm1_app_encoder(&app, FM1_ENC_KNOB1, 1);
+  CHECK(fm1_seq_get_page(app.seq,0,0,4,1,&step) && !step.lock_mask);
+  app.ui.shift = 0; app.ui.clear_held = 1;
+  fm1_app_encoder(&app, FM1_ENC_KNOB1, 1);
+  CHECK(!fm1_seq_lane_label(app.seq,0,0)[0]);
+  app.ui.clear_held = 0;
+  /* Refused effect controls assign nothing; synth PER_FOCUS remains valid. */
+  fm1_seq_ui_sound_t context;
+  lock_target_context(&app,FM1_SEQ_TARGET_INSERT1,&context);
+  CHECK(!fm1_seq_ui_target_lockable(&context,3) && !fm1_seq_ui_target_lockable(&context,4));
+  lock_target_context(&app,FM1_SEQ_TARGET_SOUND,&context);
+  CHECK(fm1_seq_ui_target_lockable(&context,4));
+  fm1_app_encoder(&app,FM1_ENC_KNOB4,1);
+  CHECK(!fm1_seq_lane_label(app.seq,0,0)[0]);
+  /* Each target independently assigns the correct prefix through app encoders. */
+  static const char *const labels[] = {"synth:Mix","in1:Mix","in2:Mix","m1:Mix","m2:Mix","mix:Level"};
+  for (unsigned k=0;k<6;++k) {
+    app.ui.step_page = FM1_SEQ_UI_STEP_PAGES + k;
+    fm1_app_encoder(&app,FM1_ENC_KNOB1,-1);
+    CHECK(!strcmp(fm1_seq_lane_label(app.seq,0,k),labels[k]));
+    CHECK(fm1_seq_get_page(app.seq,0,0,4,1,&step) && step.lock[k] == 126);
+  }
+  CHECK(app.ui.lock_pages == 6);
+  CHECK(probes[0].calls[0] == 0); /* quiet held FX edits never touch synth */
+  /* Several held steps retain the base-knob gesture on each target. */
+  app.ui.held_n=2; app.ui.held[1].step=6;
+  app.ui.step_page=FM1_SEQ_UI_STEP_PAGES+1;
+  fm1_app_encoder(&app,FM1_ENC_KNOB1,-2);
+  CHECK(app.unit[6].value[0] < 1 && app.unit[0].value[0] == 1);
+  app.ui.step_page=FM1_SEQ_UI_STEP_PAGES+5;
+  fm1_app_encoder(&app,FM1_ENC_KNOB1,-5);
+  CHECK(app.level[0] == 95);
+  fm1_seq_track_info_t track;
+  CHECK(fm1_seq_get_track(app.seq,0,&track) && track.base[5] == fm1_seq_value7(&mix_lock_param,95));
+  app.ui.held_n=1;
+  /* Masters remain assignable on MIDI tracks; relative targets disappear. */
+  CHECK(line("route 1 0 2;clen 1 16")); app.ui.track = 1;
+  app.ui.step_page = FM1_SEQ_UI_STEP_PAGES;
+  fm1_app_encoder(&app,FM1_ENC_KNOB1,-1);
+  CHECK(!strcmp(fm1_seq_lane_label(app.seq,1,0),"m1:Mix") && app.ui.lock_pages == 2);
+  /* Actual visible FX and Mix knobs record into the focused route. */
+  app.ui.track=0; app.ui.held_n=0; app.ui.view=FM1_SEQ_VIEW_TRACK;
+  app.ui.playing=app.ui.recording=app.ui.clip_playing=1; app.ui.rec_track=0; app.ui.step=5;
+  app.ui.take_param=-1; app.mode=FM1_MODE_FX; app.fx_slot=FX_IN1; app.fx_page=0;
+  app.unit[6].value[0]=1; app.level[0]=100;
+  fm1_app_encoder(&app,FM1_ENC_KNOB1,-2);
+  CHECK(fm1_seq_get_page(app.seq,0,0,5,1,&step) && step.lock[1] == 125);
+  app.fx_slot=FX_MIX;
+  fm1_app_encoder(&app,FM1_ENC_KNOB1,-3);
+  CHECK(fm1_seq_get_page(app.seq,0,0,5,1,&step) && step.lock[5] == 124);
+  CHECK(app.level[0] == 100); /* live lock leaves configured level intact */
+  const unsigned oldmask = step.lock_mask;
+  fm1_app_encoder(&app,FM1_ENC_KNOB2,-4); /* unrelated sound: ordinary mixer knob */
+  CHECK(app.level[1] == 96);
+  CHECK(fm1_seq_get_page(app.seq,0,0,5,1,&step) && step.lock_mask == oldmask);
+  app.fx_slot=FX_IN1; app.ui.take_param=0; app.ui.take_lane=1;
+  app.unit[6].e=NULL; /* a live take survives the effect's removal */
+  CHECK(fx_take_value(&app,6,0,.75f) == .75f);
+  return 0;
+}
 int main(void) {
-  if(timing() || stop_reset() || routes_types_mask() || release_and_legacy() || modulation()) return 1;
+  if(timing() || stop_reset() || routes_types_mask() || release_and_legacy() || modulation() || panel_targets()) return 1;
   puts("PASS sample frames, isolation, inserts/master/mix, D6, knob bases, reset, routes, enum/log, NOLOCK/PER_FOCUS, masks and modulation precedence");
   return 0;
 }

@@ -394,19 +394,75 @@ static fm1_seq_ui_emit_t ui_out(fm1_app_t *a) {
  * whose parameters its lanes lock, and whether it is the current sound.
  * Returns its index, or -1 (a MIDI route, an empty sound, no sequencer),
  * with snd's engine NULL. */
-static int lock_sound(fm1_app_t *a, fm1_seq_ui_sound_t *snd) {
+static const fm1_param_t mix_lock_param = {
+  "Level", FM1_PARAM_FLOAT, 0, FM1_APP_LEVEL_MAX, 100, NULL, 0, 0, 0, 0, "Level"
+};
+static const fm1_engine_t mix_lock_engine = {
+  .params = &mix_lock_param, .n_params = 1, .name = "Mix"
+};
+
+static int lock_target_context(fm1_app_t *a, int kind, fm1_seq_ui_sound_t *snd) {
   const int k = a->seq ? fm1_app_unit_of_track(a, a->ui.track) : -1;
-  const fm1_app_unit_t *u = k >= 0 ? sound_of(a, k) : NULL;
-  snd->e = u ? u->e : NULL;
-  snd->value = u ? u->value : NULL;
-  snd->current = k == a->sound;
-  return u && u->e ? k : -1;
+  int unit = -1;
+  memset(snd, 0, sizeof *snd);
+  snd->kind = kind;
+  if (kind == FM1_SEQ_TARGET_MASTER1 || kind == FM1_SEQ_TARGET_MASTER2) unit = kind - FM1_SEQ_TARGET_MASTER1 + 1;
+  else if (k >= 0) {
+    if (kind == FM1_SEQ_TARGET_SOUND) unit = fm1_app_sound_unit(k);
+    else if (kind == FM1_SEQ_TARGET_MIX) unit = FM1_APP_UNITS + k;
+    else unit = fm1_app_insert_unit(k, kind - FM1_SEQ_TARGET_INSERT1);
+  }
+  snd->unit = unit;
+  snd->current = kind >= FM1_SEQ_TARGET_MASTER1 && kind <= FM1_SEQ_TARGET_MASTER2 ? 1 : k == a->sound;
+  if (unit >= FM1_APP_UNITS) {
+    snd->e = &mix_lock_engine;
+    snd->value = &a->level[k];
+  } else if (unit >= 0) {
+    snd->e = a->unit[unit].e;
+    snd->value = a->unit[unit].value;
+  }
+  return k;
+}
+
+/* Held SELECT walks synth, inserts, global masters and the routed level.
+ * Contexts are stack-only; no persistent model or RAM budget grows. */
+static int lock_sound(fm1_app_t *a, fm1_seq_ui_sound_t *snd) {
+  int total = 0, chosen = 0;
+  const int wanted = a->ui.step_page >= FM1_SEQ_UI_STEP_PAGES ? a->ui.step_page - FM1_SEQ_UI_STEP_PAGES : 0;
+  const int k = lock_target_context(a, FM1_SEQ_TARGET_SOUND, snd);
+  for (int kind = FM1_SEQ_TARGET_SOUND; kind <= FM1_SEQ_TARGET_MIX; ++kind) {
+    fm1_seq_ui_sound_t next;
+    lock_target_context(a, kind, &next);
+    const int pages = fm1_seq_ui_pages(next.e);
+    if (wanted >= total && wanted < total + pages) {
+      *snd = next;
+      snd->page = wanted - total;
+      chosen = 1;
+    }
+    total += pages;
+  }
+  if (!chosen) snd->page = 0;
+  snd->pages = total;
+  return k;
+}
+
+/* Outside held-step pages the FX knobs name the visible slot, or the
+ * routed level on Mix. Relative targets require the focused routed sound. */
+static void knob_lock_context(fm1_app_t *a, fm1_seq_ui_sound_t *snd) {
+  if (a->mode == FM1_MODE_FX && !a->ui.held_n) {
+    const int unit = fx_unit_at(a, a->fx_slot);
+    const int kind = unit < 0 ? FM1_SEQ_TARGET_MIX : unit <= FM1_APP_FX_SLOTS ?
+      FM1_SEQ_TARGET_MASTER1 + unit - 1 : FM1_SEQ_TARGET_INSERT1 + (unit - fm1_app_insert_unit(a->sound, 0));
+    lock_target_context(a, kind, snd);
+  } else if (a->ui.held_n) lock_sound(a, snd);
+  else lock_target_context(a, FM1_SEQ_TARGET_SOUND, snd);
 }
 
 /* A parameter name of the lock sound for a toast. */
 static const char *lock_param_name(fm1_app_t *a, int param) {
   fm1_seq_ui_sound_t snd;
-  return lock_sound(a, &snd) >= 0 && param < snd.e->n_params ? snd.e->params[param].name : "?";
+  knob_lock_context(a, &snd);
+  return snd.e && param >= 0 && param < snd.e->n_params ? snd.e->params[param].name : "?";
 }
 
 /* The UI made a lane on a parameter of the lock sound: the knob goes onto
@@ -415,12 +471,15 @@ static const char *lock_param_name(fm1_app_t *a, int param) {
 static void ui_snap(fm1_app_t *a) {
   fm1_seq_ui_sound_t snd;
   const int param = a->ui.snap;
-  const int k = lock_sound(a, &snd);
+  knob_lock_context(a, &snd);
   a->ui.snap = -1;
-  if (k >= 0 && param >= 0 && param < snd.e->n_params) {
+  if (snd.e && param >= 0 && param < snd.e->n_params) {
     const fm1_param_t *p = &snd.e->params[param];
     const float v = fm1_seq_lock_value(p, fm1_seq_value7(p, snd.value[param]));
-    if (v != snd.value[param]) fm1_app_set_param(a, fm1_app_sound_unit(k), param, v);
+    if (v != snd.value[param]) {
+      if (snd.kind == FM1_SEQ_TARGET_MIX) fm1_app_unit_set_level(a, snd.unit - FM1_APP_UNITS, v);
+      else fm1_app_set_param(a, snd.unit, param, v);
+    }
   }
 }
 
@@ -2979,6 +3038,15 @@ static void encoder_in(fm1_app_t *a, int encoder, int delta) {
         break;
       }
       if (a->mode == FM1_MODE_FX && unit < 0) {   /* the Mix page: KNOBn is sound n's level */
+        if (a->seq) {
+          const fm1_seq_ui_emit_t out = ui_out(a);
+          knob_lock_context(a, &snd);
+          snd.current = snd.current && snd.unit == FM1_APP_UNITS + knob;
+          if (fm1_seq_ui_sound_knob(&a->ui, a->seq, &snd, 0, delta, a->frames, &out)) {
+            ui_after(a);
+            break;
+          }
+        }
         fm1_app_unit_set_level(a, knob, a->level[knob] + (float)delta);
         break;
       }
@@ -2986,18 +3054,22 @@ static void encoder_in(fm1_app_t *a, int encoder, int delta) {
           a->ui.view == FM1_SEQ_VIEW_STEP && a->ui.step_page >= FM1_SEQ_UI_STEP_PAGES) {
         /* Several steps held on a lock page (S8): the lock sound's page
          * edits the sound, with no lock. */
-        sound = lock_sound(a, &snd);
-        if (sound < 0) break;
-        unit = fm1_app_sound_unit(sound);
-        page = a->ui.step_page - FM1_SEQ_UI_STEP_PAGES;
+        lock_sound(a, &snd);
+        unit = snd.unit;
+        sound = snd.kind == FM1_SEQ_TARGET_SOUND ? unit_sound(unit) : -1;
+        page = snd.page;
+        if (snd.kind == FM1_SEQ_TARGET_MIX) {
+          if (knob == 0) fm1_app_unit_set_level(a, unit - FM1_APP_UNITS, snd.value[0] + (float)delta);
+          break;
+        }
         several = 1;
       }
       if (unit < 0 || !a->unit[unit].e) break;
       if (knob < page_params(a->unit[unit].e, page, idx)) {
-        if (a->seq && sound >= 0 && !several) {
+        if (a->seq && !several) {
           /* CLEAR + knob, or a live take of the focused track (S8). */
           const fm1_seq_ui_emit_t out = ui_out(a);
-          lock_sound(a, &snd);
+          knob_lock_context(a, &snd);
           if (fm1_seq_ui_sound_knob(&a->ui, a->seq, &snd, idx[knob], delta, a->frames, &out)) {
             ui_after(a);
             if (a->mode == FM1_MODE_SEQ) {
@@ -3540,7 +3612,7 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
     const uint8_t page_was = a->ui.step_page;
     const int changed = fm1_seq_ui_sync(&a->ui, a->seq, a->seq_gen, a->frames);
     lock_sound(a, &snd);
-    fm1_seq_ui_lock_pages(&a->ui, fm1_seq_ui_pages(snd.e));   /* the lock pages there are now */
+    fm1_seq_ui_lock_pages(&a->ui, snd.pages);   /* the lock pages there are now */
     if (a->ui.step_page != page_was && a->mode == FM1_MODE_SEQ) a->dirty = 1;
     if (((changed & FM1_SEQ_UI_SYNC_SEQ) && a->mode == FM1_MODE_SEQ) ||
         (changed & FM1_SEQ_UI_SYNC_OVERLAY)) {
@@ -3752,6 +3824,16 @@ void fm1_look_fill(fm1_tft_t *t, int x, int y, int w, int h, const fm1_param_t *
   }
 }
 
+static float fx_take_value(fm1_app_t *a, int unit, int param, float base) {
+  fm1_seq_ui_sound_t target;
+  if (a->mode != FM1_MODE_FX || a->ui.take_param != param || !a->seq) return base;
+  knob_lock_context(a, &target);
+  if (target.e && param >= 0 && param < target.e->n_params && target.unit == unit &&
+      fm1_seq_ui_target_lane(a->seq, a->ui.track, &target, param) == a->ui.take_lane)
+    return fm1_seq_lock_value(&target.e->params[param], a->ui.take_v);
+  return base;
+}
+
 static void draw_params(fm1_app_t *a, int unit, int page, int y0) {
   const fm1_app_unit_t *u = &a->unit[unit];
   int idx[4];
@@ -3768,7 +3850,7 @@ static void draw_params(fm1_app_t *a, int unit, int page, int y0) {
                            ? fm1_mod_ui_routes(a->mod, a->mui.plan.refused, (unsigned)code, p->uid, 0,
                                                &depth)
                            : 0;
-    fm1_mod_view_row(&a->tft, y, p, u->value[idx[s]], NULL, routes, depth,
+    fm1_mod_view_row(&a->tft, y, p, fx_take_value(a, unit, idx[s], u->value[idx[s]]), NULL, routes, depth,
                      routes ? fm1_mod_sent(a->mod, (unsigned)code, (unsigned)idx[s]) : 0.0f);
   }
 }
@@ -4256,15 +4338,16 @@ static void draw_fx(fm1_app_t *a, char *bottom, size_t size, int *tag_at) {
     for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
       const fm1_app_unit_t *u = sound_of(a, k);
       char label[8];
+      const float level = fx_take_value(a, FM1_APP_UNITS + k, 0, a->level[k]);
       const int y = FX_ROWS_Y + k * ROW_PITCH;
       snprintf(label, sizeof label, "S%d", k + 1);
       snprintf(buf, sizeof buf, "%s %d%%", u->e ? u->e->name : "Empty",
-               (int)floorf(a->level[k] + 0.5f));
+               (int)floorf(level + 0.5f));
       fm1_tft_text(t, MARGIN, y, label, 2, SCALE, fm1_sound_colour(k));
       fm1_tft_text(t, RIGHT - fm1_tft_text_width(buf, LINE_CHARS - 3, SCALE), y, buf, LINE_CHARS - 3,
                    SCALE, u->e ? C_TEXT : C_LABEL);
       if (u->e) {
-        fm1_look_bar(t, MARGIN, y + BAR_DY, FM1_TFT_W - 2 * MARGIN, BAR_H, &kLevel, a->level[k],
+        fm1_look_bar(t, MARGIN, y + BAR_DY, FM1_TFT_W - 2 * MARGIN, BAR_H, &kLevel, level,
                      fm1_sound_colour(k));
       } else {                           /* L3: no full grey bar for a sound with nothing in it */
         fm1_tft_graphic(t, MARGIN, y + BAR_DY, FM1_TFT_W - 2 * MARGIN, BAR_H);
@@ -4436,6 +4519,7 @@ static void draw(fm1_app_t *a) {
       snd.lock_e = ls.e;
       snd.lock_value = ls.value;
       snd.lock_current = ls.current;
+      snd.lock_target = ls;
     }
     fm1_seq_view_draw(t, &a->ui, &snd);
     fm1_seq_view_bottom(&a->ui, &snd, buf, sizeof buf);

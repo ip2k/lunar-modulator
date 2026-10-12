@@ -220,7 +220,8 @@ It starts with a one-bar demo pattern: press PLAY/STOP, or Space. Projects and
 sequencer sets can be opened and saved from the browser.
 
 The editor's **Song** workspace puts all eight tracks and four sounds together:
-select clips, edit notes in a piano roll, launch scenes and arrange their repeats
+focused Scenes, Arrangement, Clip, Automation and Mixer views let you select
+clips, edit notes in a piano roll, launch scenes and arrange their repeats
 into a song. Import one or more MIDI files with a track-and-sound mapping preview,
 edit step locks for instruments and effects, and save a `.lunar` project or
 `.movy1` sequencer set. WAV export offers the mix or separate parts. This is a

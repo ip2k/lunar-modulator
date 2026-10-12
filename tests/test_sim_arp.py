@@ -152,10 +152,11 @@ def test_the_arp_on_another_sound(tools):
 def test_the_ram_meter_refuses_an_arp_that_would_not_fit(tools):
     """A chain at the budget's edge: the arp's tap is refused with a popup
     that says what the chain would need (a percentage past 100, never
-    bytes), and the arp stays off. (The second master
-    effect is Limiter since glide: with Diffuse, Macro and Shapes no longer
-    fit together once both carried glide's state.)"""
-    chain = ["--engine", "macro", "--sound", "1:shapes", "--fx", "plate", "--fx", "limit"]
+    bytes), and the arp stays off. Room + Limiter and a Diffuse insert keep
+    Macro + Shapes just inside the unchanged budget, including the native
+    sequencer automation queues; allocating the arp crosses the bound."""
+    chain = ["--engine", "macro", "--sound", "1:shapes", "--fx", "room", "--fx", "limit",
+             "--insert", "0:diffuse"]
     before = sim(tools, *chain, seconds=0.1)
     z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,
                                   text=True).stdout)

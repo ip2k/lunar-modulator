@@ -610,15 +610,26 @@ timed" there].
 
 ## Song workspace: clips, scenes, MIDI and audio files
 
-Power on, open the editor and choose **Song**. The four sound cards control the
-shared instruments and levels; the arrangement below exposes all eight sequencer
-tracks. Route each track to a sound or a MIDI channel. MIDI routes can be stored,
-but the browser does not send MIDI out.
+Power on, open the editor and choose **Song**. Switch between **Scenes**,
+**Arrangement**, **Clip**, **Automation** and **Mixer** to focus on one task.
+Transport, file controls and the selected track/scene stay available across
+views. On a small phone, rotate to landscape; portrait displays a rotate prompt
+without changing playback. In short landscape windows, the device-screen preview
+is hidden to leave room for editing.
+
+**Scenes** exposes all 64 native clip slots and separate scene/clip launch
+controls. Clicking a clip opens **Clip** for note and loop editing.
+**Arrangement** edits the song chain and repeats. **Automation** edits stepped
+parameter-lock lanes. **Mixer** contains the four shared sound levels,
+instrument/insert controls, output level and master effects. Track routing remains
+available in Scenes and Arrangement: choose a sound or a MIDI channel. MIDI routes
+can be stored, but the browser does not send MIDI out. The views share the same
+eight sequencer tracks and four sounds; switching views does not change the project.
 
 Select a clip cell to edit its notes, or use **Edit scene** to reach any of the
 eight scene slots. **Launch scene** triggers that scene through native transport;
 while a launch is queued, the position display follows the clip still playing.
-**Scene matrix** shows all 64 clip slots, including scenes absent from the song.
+**Scenes** shows all 64 clip slots, including scenes absent from the song.
 Its edit buttons select a clip; separate launch buttons perform clips or whole
 scenes. An empty slot offers **Stop track**. Manual launches leave song following
 while retaining the saved chain. Switch back to **Arrangement** for the timeline,

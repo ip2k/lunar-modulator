@@ -2224,8 +2224,8 @@ static void seq_lock_screens(const char *dir, float rate) {
   blocks(hold);
   turn(FM1_ENC_SELECT, 1);
   turn(FM1_ENC_SELECT, 1);
-  expect(g_app.ui.step_page == FM1_SEQ_UI_STEP_PAGES && g_app.ui.lock_pages == 4,
-         "SELECT past Step 2/2 is not Macro's first lock page");   /* 4: Glide's */
+  expect(g_app.ui.step_page == FM1_SEQ_UI_STEP_PAGES && g_app.ui.lock_pages == 5,
+         "SELECT past Step 2/2 is not Macro's first lock page");   /* 4 synth + Mix */
   step_check("seq-lock-no-lanes", dir, 1);
   turn(FM1_ENC_KNOB1, 1);                            /* Model: NOLOCK */
   expect(g_app.popup_lines == 2 && strcmp(g_app.popup[1], "cannot be locked") == 0,
@@ -2353,11 +2353,33 @@ static void seq_lock_screens(const char *dir, float rate) {
   key_edge(fm1_white_key(2), 1);
   blocks(hold);
   while (g_app.ui.step_page < FM1_SEQ_UI_STEP_PAGES) turn(FM1_ENC_SELECT, 1);
+  while (g_app.ui.step_page > FM1_SEQ_UI_STEP_PAGES) turn(FM1_ENC_SELECT, -1);
   turn(FM1_ENC_KNOB2, 3);
   expect(fm1_seq_ui_lane_of(g_app.seq, 0, fm1_app_unit_engine(&g_app, 1), 1) >= 0,
          "the lock did not go to Sound 2's Timbre");
   step_check("seq-lock-other-sound", dir, 1);
   key_edge(fm1_white_key(2), 0);
+  /* Reserved targets keep their names and fit the same held-step layout,
+   * including noncurrent inserts, masters and mixer levels. */
+  expect(fm1_app_unit_insert(&g_app, 1, 0, fm1_app_find("drive")) == 0, "lock screen In1 load");
+  expect(fm1_app_unit_insert(&g_app, 1, 1, fm1_app_find("drive")) == 0, "lock screen In2 load");
+  expect(fm1_app_select(&g_app, 1, fm1_app_find("drive")) == 0, "lock screen M1 load");
+  expect(fm1_app_select(&g_app, 2, fm1_app_find("drive")) == 0, "lock screen M2 load");
+  seq_line("aclr 0 0;aclr 0 1;alabel 0 0 in1:Drive;abaseq 0 0 64;aset 0 0 2 127 1;"
+           "alabel 0 1 mix:Level;abaseq 0 1 127;aset 0 1 2 0 1");
+  blocks(1);
+  key_edge(fm1_white_key(2), 1);
+  blocks(hold);
+  while (g_app.ui.step_page > FM1_SEQ_UI_STEP_PAGES) turn(FM1_ENC_SELECT, -1);
+  for (int page = 0; page < g_app.ui.lock_pages; ++page) {
+    snprintf(name, sizeof name, "seq-lock-target-p%d", page + 1);
+    step_check(name, dir, 1);
+    if (page + 1 < g_app.ui.lock_pages) turn(FM1_ENC_SELECT, 1);
+  }
+  key_edge(fm1_white_key(2), 0);
+  shift_key(1);
+  if (g_app.ui.track_page != 1) turn(FM1_ENC_SELECT, 1);
+  step_check("seq-lock-reserved-lanes", dir, 1);
   destroy_units();
 }
 

@@ -22,8 +22,10 @@ must not enter this workspace. The owner's FM-1 still runs FM-1_092, so physical
 Lunar file exchange is untested. USB-MIDI and eventual BLE direct project
 access are future capabilities outside this editor scope.
 
-The separately completed demo/example stream is under PR #145; owner listening
-remains a distinct acceptance gate. Check its live status before continuing.
+The separately completed demo/example stream merged as PR #145, merge commit
+`621490b9553b17f23add077f8dd79c01b5c15db8`, after all required checks passed.
+Owner listening remains a distinct acceptance gate. Integrate that main baseline
+into the Song branch before final review and CI.
 
 ## Prior checkpoint — 2026-10-10 (historical)
 

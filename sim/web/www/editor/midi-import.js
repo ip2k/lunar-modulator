@@ -191,6 +191,87 @@ export function planMidiImport(input, options = {}) {
   return { valid: errors.length === 0, errors: [...new Set(errors)], warnings: [...new Set(warnings)], parts, mapping, mode, targetScene, barsPerScene, scenes, set, usage: validation.usage,
     metadata: files.map(f => ({ name: f.name, format: f.format, ppqn: f.ppqn, tracks: f.tracks, channelEvents: f.channelEvents, tempoMap: f.tempoMap, timeSignatures: f.timeSignatures, metadata: f.metadata, unsupported: f.unsupported })) };
 }
+// Capacity, not synthesizer voice count. All probability/condition outcomes are
+// treated as firing: this may conservatively refuse a safe probabilistic set.
+// Import sets swing to 50. Mirror native note_fire (C truncates toward zero),
+// pad filtering after transpose, and gate lifetimes measured in *track ticks*.
+function importGateCheck(model, scenes) {
+  const fail = () => { throw new Error('Combined import may exceed the native 64 sounding-note gate pool and end held notes early. This conservative check assumes every probability/condition fires; shorten gates, reduce overlapping notes, or clear retained clips. Engine voice limits are separate.'); };
+  const clips = model.tracks.map(track => track.clips.map(c => {
+    if (!c) return null;
+    const start = c.loopStart * 24, span = c.length * 24, end = start + span, fires = new Map();
+    if (!track.muted) for (const n of c.notes) {
+      if (n.step < c.loopStart || n.step >= c.loopStart + c.length) continue;
+      const pitch = Math.max(0, Math.min(127, n.pitch + c.transpose));
+      if (track.padSolo !== null ? pitch !== track.padSolo : track.padMutes.includes(pitch)) continue;
+      const dev = n.tick - n.step * 24;
+      let fire = Math.max(start, n.step * 24 + dev - Math.trunc((dev * c.quant + (dev >= 0 ? 50 : -50)) / 100));
+      if (fire >= end) fire -= span; // Native folds only once, not modulo.
+      if (fire < start || fire >= end) continue;
+      if (!fires.has(fire)) fires.set(fire, []);
+      fires.get(fire).push(n.gate);
+    }
+    return { start, span, end, fires, num: c.scaleNum, den: c.scaleDen };
+  }));
+  // Each selected scene can be launched and loop forever. Sum independent track
+  // maxima: speed changes phase, not overlap within a track's own tick clock.
+  for (const slot of scenes) {
+    let total = 0;
+    for (const track of clips) {
+      const c = track[slot]; if (!c) continue;
+      let base = 0; const events = new Map([[0, 0]]);
+      const add = (tick, delta) => events.set(tick, (events.get(tick) || 0) + delta);
+      for (const [fire, gates] of c.fires) for (const gate of gates) {
+        base += Math.floor(gate / c.span);
+        const remainder = gate % c.span, at = fire - c.start;
+        if (!remainder) continue;
+        add(at, 1); const off = at + remainder;
+        if (off >= c.span) { ++base; add(off - c.span, -1); } else add(off, -1);
+      }
+      let peak = base, live = base;
+      for (const [, delta] of [...events].sort((a, b) => a[0] - b[0])) { live += delta; peak = Math.max(peak, live); }
+      total += peak;
+    }
+    if (total > 64) fail();
+  }
+  // Song boundaries retain held gates, even when the next clip changes speed.
+  // Follow native track order: that track's offs precede its ons, while later
+  // tracks' old gates still occupy the pool. Equal adjacent presses do not reset.
+  if (!model.song.length) return;
+  const states = clips.map(() => ({ pos: 0, acc: 0, clock: 0, gates: [] }));
+  const seen = new Set(); let count = 0, ticks = 0, previous = -1;
+  for (;;) {
+    const key = JSON.stringify([previous, states.map(s => [s.pos, s.acc, s.gates.map(g => g - s.clock)])]);
+    if (seen.has(key)) return; seen.add(key);
+    for (const slot of model.song) {
+      if (slot !== previous) states.forEach((s, t) => {
+        const c = clips[t][slot]; s.pos = c?.start ?? 0;
+        if (!c) { count -= s.gates.length; s.gates = []; }
+      });
+      previous = slot;
+      const duration = sceneBars(model, slot) * 384;
+      for (let tick = 0; tick < duration; ++tick) {
+        if (++ticks > 1000000) throw new Error('Cannot conservatively prove the merged song fits the 64-gate pool within the bounded import check. Simplify clip speeds or sustained gates before importing.');
+        states.forEach((s, t) => {
+          const c = clips[t][slot]; if (!c) return;
+          s.acc += c.num;
+          while (s.acc >= c.den) {
+            s.acc -= c.den; ++s.clock;
+            while (s.gates.length && s.gates[0] <= s.clock) { s.gates.shift(); --count; }
+            for (const gate of c.fires.get(s.pos) || []) {
+              if (++count > 64) fail();
+              const expiry = s.clock + gate; let i = s.gates.length;
+              while (i && s.gates[i - 1] > expiry) --i;
+              s.gates.splice(i, 0, expiry);
+            }
+            if (++s.pos >= c.end) s.pos = c.start;
+          }
+        });
+      }
+    }
+    if (model.songEnd !== 0) return; // Park and Stop both release every gate.
+  }
+}
 export function applyMidiImport(model, plan, options = {}) {
   if (!plan?.valid) throw new Error(plan?.errors?.join('\n') || 'Invalid MIDI import plan.');
   if (model?.unknown?.length) throw new Error('This set has unknown extension tags; native reload would discard them. Preserve the source before importing.');
@@ -209,5 +290,6 @@ export function applyMidiImport(model, plan, options = {}) {
   if (plan.mode === 'song') { out.song = [...plan.set.song]; out.songEnd = plan.set.songEnd; }
   for (const scene of plan.scenes) if (sceneBars(out, scene.slot) !== scene.bars) throw new Error(`Scene ${scene.slot + 1} contains an unmapped longer clip; its duration would change imported timing. Choose empty targets or clear/resize the existing clip.`);
   const validation = validateSet(out); if (!validation.valid) throw new Error(validation.errors.join('\n'));
+  importGateCheck(out, plan.scenes.map(s => s.slot));
   return out;
 }

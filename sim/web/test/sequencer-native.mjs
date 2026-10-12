@@ -16,6 +16,7 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, ac
 page.setDefaultTimeout(20000);
 page.on('pageerror', e => report.errors.push(e.message));
 async function check(label, fn) { await fn(); report.checks.push(label); console.log(`PASS ${label}`); }
+async function tab(name) { await page.getByRole('tab', {name, exact:true}).click(); }
 async function model() { return page.evaluate(async () => window.nativeTest.model()); }
 async function until(fn, label) {
   const deadline = Date.now() + 20000;
@@ -59,6 +60,7 @@ try {
   });
   await check('native fixture loads without discarded sequencer fields', async () => { await reset(); assert.equal((await model()).tracks[0].clips[0].notes[0].gate, 96); });
   await check('assigned bases preserve linear, logarithmic and enum parameter positions', async () => {
+    await tab('Automation');
     await page.getByRole('button', { name: 'Assign parameter', exact: true }).click(); await idle();
     assert.equal((await model()).tracks[0].lanes[0].base, 25); // Volume .2 on 0..1, rounded to seven bits.
     await page.evaluate(async () => {
@@ -78,8 +80,10 @@ try {
     await reset();
   });
   await check('UI note articulation, probability and mix lock survive native load', async () => {
+    await tab('Clip');
     await page.locator('.sq-note').first().click();
     await field('Velocity', 72); await field('Gate · ticks', 48); await field('Microtiming · ticks', 3); await field('Probability %', 70);
+    await tab('Automation');
     await page.getByLabel('Automation target', { exact: true }).selectOption('mix'); await idle();
     await field('Lane 1, step 1 lock', 91);
     const m = await model(), c = m.tracks[0].clips[0];
@@ -87,6 +91,7 @@ try {
     assert.equal(c.trigs[0].prob, 70); assert.equal(m.tracks[0].lanes[0].label, 'mix:Level'); assert.equal(m.tracks[0].lanes[0].base, 64); assert.equal(c.locks[0].value, 91);
   });
   await check('routing, native chain repeats and project undo/redo', async () => {
+    await tab('Arrangement');
     await page.getByLabel('Track 8 output', { exact: true }).selectOption('m16'); await idle();
     assert.deepEqual((await model()).tracks[7].route, { kind: 0, index: 16 });
     await field('Repeats', 3); assert.equal((await model()).song.length, 3);
@@ -94,15 +99,16 @@ try {
     await page.evaluate(() => fm1.editor.redo()); await until(async () => (await model()).song.length === 3, 'redo repeats');
   });
   await check('native clip matrix launch advances real transport and playhead', async () => {
-    await page.getByRole('button', { name: 'Scene matrix', exact: true }).click();
+    await tab('Scenes');
     assert.equal(await page.locator('[data-live-track]').count(), 64);
     await page.getByRole('button', { name: 'Launch clip 1 scene 1', exact: true }).click();
     await page.waitForFunction(() => fm1.seq?.playing && fm1.seq.tracks[0].playing === 0 && fm1.seq.tracks[0].posTick > 0);
-    assert.notEqual(await page.locator('[data-roll-playhead]').getAttribute('style'), null);
     await page.screenshot({ path: join(out, 'native-matrix.png'), fullPage: true });
+    await tab('Clip');
+    assert.notEqual(await page.locator('[data-roll-playhead]').getAttribute('style'), null);
     await page.locator('.sq').getByRole('button', { name: 'Stop', exact: true }).click();
     await page.waitForFunction(() => !fm1.seq.playing);
-    await page.getByRole('button', { name: 'Arrangement', exact: true }).click();
+    await tab('Arrangement');
   });
   await check('stale host documents and atomic worklet expectedHash preserve newer native edits', async () => {
     const r = await page.evaluate(async () => {
@@ -169,6 +175,35 @@ try {
     assert.equal(await page.getByTestId('audio-export-start').isEnabled(), true);
     await page.getByRole('button', { name: 'Close', exact: true }).click();
     await page.locator('dialog.sq-export').waitFor({ state: 'detached' });
+  });
+  await check('focused views, phone rotate prompt and landscape native editing', async () => {
+    await tab('Scenes');
+    await page.getByRole('button', {name:'Edit track 1 scene 1',exact:true}).click();
+    assert.equal(await page.getByRole('tab', {name:'Clip',exact:true}).getAttribute('aria-selected'), 'true');
+    assert.equal(await page.getByRole('tabpanel').count(), 1);
+    assert.equal(await page.getByTestId('scene-matrix').count(), 0);
+    await page.setViewportSize({width:390,height:844});
+    assert.equal(await page.getByTestId('song-rotate-prompt').isVisible(), true);
+    assert.equal(await page.getByRole('tab', {name:'Clip',exact:true}).isVisible(), false);
+    await page.screenshot({path:join(out,'native-portrait.png'),fullPage:true});
+    await page.setViewportSize({width:844,height:390});
+    assert.equal(await page.getByTestId('song-rotate-prompt').isVisible(), false);
+    assert.equal(await page.locator('.ed-card').isVisible(), false);
+    assert.equal(await page.locator('.ed-heads').isVisible(), false);
+    await page.locator('.sq-note').first().click(); await field('Velocity', 69);
+    assert.equal((await model()).tracks[0].clips[0].notes[0].vel,69);
+    for (const view of ['Clip','Automation','Mixer','Arrangement','Scenes']) {
+      await tab(view);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth > innerWidth),false);
+      await page.screenshot({path:join(out,`native-landscape-${view.toLowerCase()}.png`),fullPage:true});
+    }
+    await page.setViewportSize({width:1440,height:1100});
+    assert.equal(await page.locator('.ed-card').isVisible(), true);
+    assert.equal(await page.locator('.ed-heads').isVisible(), true);
+    for (const view of ['Clip','Automation','Mixer','Arrangement','Scenes']) {
+      await tab(view);
+      await page.screenshot({path:join(out,`native-desktop-${view.toLowerCase()}.png`),fullPage:true});
+    }
   });
   await page.screenshot({ path: join(out, 'native-final.png'), fullPage: true });
   assert.deepEqual(report.errors, []); report.passed = true;

@@ -39,15 +39,28 @@ def test_the_editor_names_no_module():
     ids = {e["id"] for e in meta["engines"]}
     ids |= {k["id"] for k in meta["mod"]["kinds"]}
     ids |= {s["name"] for s in meta["mod"]["sources"] if len(s["name"]) > 3}
-    code = "\n".join(p.read_text() for p in sorted(EDITOR.glob("*.js")))
+    files = {p.name: p.read_text() for p in sorted(EDITOR.glob("*.js"))}
     # Telemetry field names are data keys, not module choices. A field can
     # share a name with an effect ("gate"); exempt only metadata-known names
     # in a fields.indexOf lookup, leaving every other quoted id checked.
     fields = {f for section in meta["telemetry"]["sections"] for f in section["fields"]}
-    code = re.sub(r"\.fields\.indexOf\(([\"'])([a-z0-9_.-]+)\1\)",
-                  lambda m: ".fields.indexOf('')" if m[2] in fields else m[0], code)
-    quoted = set(re.findall(r"'([a-z0-9_.-]+)'", code)) | set(re.findall(r'"([a-z0-9_.-]+)"', code))
-    found = sorted(quoted & ids)
+    # The native note schema's gate field and render/automation's mix target
+    # are protocol names, not hard-coded engine choices. Limit these
+    # exemptions to the modules that implement those protocols.
+    protocol_names = {
+        "sequence-model.js": {"gate"},
+        "sequencer.js": {"mix"},
+        "sequencer-host.js": {"mix"},
+        "audio-export.js": {"mix"},
+        "render.worker.js": {"mix"},
+    }
+    found = []
+    for fname, code in files.items():
+        code = re.sub(r"\.fields\.indexOf\(([\"'])([a-z0-9_.-]+)\1\)",
+                      lambda m: ".fields.indexOf('')" if m[2] in fields else m[0], code)
+        code = re.sub(r"typeof\s+[\w.]+\s*(?:===|!==)\s*([\"'])function\1", "typeof value", code)
+        quoted = set(re.findall(r"'([a-z0-9_.-]+)'", code)) | set(re.findall(r'"([a-z0-9_.-]+)"', code))
+        found.extend(f"{fname}: {name}" for name in sorted((quoted & ids) - protocol_names.get(fname, set())))
     assert not found, f"editor/*.js names {found}"
 
 
@@ -82,6 +95,11 @@ def test_the_editor_holds_no_id_layout_or_chain_shape():
     }
     found = []
     for fname, code in files.items():
+        # SMF uses controller 64 for sustain. The native Movy codec uses a
+        # 64-entry song/gate bound. These are not modulation source IDs;
+        # their format/capacity checks run in midi-import.mjs against Wasm.
+        if fname in {"midi-import.js", "sequence-model.js"}:
+            continue
         for line_no, line in enumerate(code.splitlines(), 1):
             text = re.sub(r"//.*$", "", line)
             for what, rx in forbidden.items():
@@ -108,7 +126,10 @@ def test_the_editor_loads_on_first_use_and_keys_are_gated():
 
 def test_the_editor_shows_memory_only_as_a_percentage():
     """§11, §19: a user sees memory only as a percentage of the budget."""
-    code = "\n".join(p.read_text() for p in sorted(EDITOR.glob("*.js")))
+    # File-format diagnostics describe byte lengths and bounded input files,
+    # not the FM-1's RAM meter. Keep the percentage rule on the editor UI.
+    formats = {"midi-import.js", "sequence-model.js", "sequencer-host.js", "wav.js", "render.worker.js"}
+    code = "\n".join(p.read_text() for p in sorted(EDITOR.glob("*.js")) if p.name not in formats)
     # The words a page can show (template expressions left out): no KB,
     # no bytes.
     texts = ["".join(t) for t in re.findall(r"'([^'\n]*)'|`([^`\n]*)`", code)]

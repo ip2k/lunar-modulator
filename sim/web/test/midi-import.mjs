@@ -180,6 +180,45 @@ test('apply refuses changes that exceed combined pools or alter imported scene d
   assert.equal(M.validateSet(dense).valid, true); assert.throws(() => I.applyMidiImport(dense, p), /1536/);
   const extension = M.parseSet(['movy1', 'future 123']); assert.throws(() => I.applyMidiImport(extension, p), /unknown extension/);
 });
+test('combined native gates include retained notes and preserve the source on refusal', () => {
+  const p = plan(midi([[...Array.from({ length: 32 }, (_, i) => ev(0, 0x90, 40 + i, 100)), ...Array.from({ length: 32 }, (_, i) => ev(i ? 0 : 96, 0x80, 40 + i, 0)), end(0)]]), { barsPerScene: 1 });
+  assert.equal(p.valid, true);
+  const m = M.emptySet(), c = m.tracks[1].clips[0] = M.emptyClip(16);
+  c.notes = Array.from({ length: 40 }, (_, i) => ({ tick: 0, gate: 96, pitch: 30 + i, vel: 100, step: 0 }));
+  const before = structuredClone(m);
+  assert.throws(() => I.applyMidiImport(m, p), /64 sounding-note gate pool/);
+  assert.deepEqual(m, before);
+  c.notes.length = 32; assert.doesNotThrow(() => I.applyMidiImport(m, p));
+});
+test('capacity accounts for gates surviving loop wraps, clip speed and transposed pad filters', () => {
+  const p = plan(basic(), { barsPerScene: 1 }), m = M.emptySet(), track = m.tracks[1], c = track.clips[0] = M.emptyClip(1);
+  c.notes = [{ tick: 0, gate: 24 * 64, pitch: 60, vel: 100, step: 0 }];
+  c.scaleNum = 1; c.scaleDen = 8; c.transpose = 12;
+  assert.throws(() => I.applyMidiImport(m, p), /64 sounding-note gate pool/);
+  track.padMutes = [60]; assert.throws(() => I.applyMidiImport(m, p), /64 sounding-note gate pool/);
+  track.padMutes = [72]; assert.doesNotThrow(() => I.applyMidiImport(m, p));
+  track.padMutes = []; c.notes[0].gate = 24 * 63;
+  assert.doesNotThrow(() => I.applyMidiImport(m, p));
+  c.scaleNum = 4; c.scaleDen = 1;
+  assert.doesNotThrow(() => I.applyMidiImport(m, p));
+});
+test('capacity preserves quantization and loop anchors without summing sequential notes', () => {
+  const p = plan(basic(), { barsPerScene: 1 }), m = M.emptySet(), c = m.tracks[1].clips[0] = M.emptyClip(16);
+  c.notes = Array.from({ length: 100 }, (_, tick) => ({ tick, gate: 1, pitch: 60, vel: 100, step: 0 }));
+  assert.doesNotThrow(() => I.applyMidiImport(m, p));
+  c.quant = 100; assert.throws(() => I.applyMidiImport(m, p), /64 sounding-note gate pool/);
+  c.loopStart = 1; assert.doesNotThrow(() => I.applyMidiImport(m, p));
+});
+test('capacity includes held gates at scene transitions and native track processing order', () => {
+  const p = plan(basic(), { barsPerScene: 1, mode: 'scene', scene: 1 }), m = M.emptySet();
+  m.song = [0, 1]; m.songEnd = 2;
+  const old = m.tracks[1].clips[0] = M.emptyClip(16);
+  old.notes = Array.from({ length: 64 }, (_, i) => ({ tick: 360, gate: 96, pitch: 30 + i, vel: 100, step: 15 }));
+  m.tracks[1].clips[1] = M.emptyClip(16);
+  assert.throws(() => I.applyMidiImport(m, p), /64 sounding-note gate pool/);
+  // Missing next clip flushes that track before any new notes are scanned.
+  m.tracks[1].clips[1] = null; assert.doesNotThrow(() => I.applyMidiImport(m, p));
+});
 test('native wasm imports and exports every supported model field without musical loss', async () => {
   const { instantiateFm1 } = await import(pathToFileURL(resolve(www, 'fm1-wasm.mjs')));
   const fm1 = await instantiateFm1(readFileSync(resolve(www, 'fm1.wasm'))), ex = fm1.exports;
