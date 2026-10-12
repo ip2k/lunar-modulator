@@ -246,9 +246,10 @@ Tempo, metronome and the Song end choice (Loop, Park or Stop) are saved with
 the `.lunar` project. The master meter at the right shows measured output level.
 
 **Scenes** contains eight tracks and eight scene columns, with compact rows
-that keep more of the matrix in view. Editing a slot opens its piano roll; a
-separate launch action plays that clip at the native bar boundary. Launching a
-scene plays its column, and empty slots stop their tracks. Click the blank
+that keep more of the matrix in view. Click a clip's body to open its piano
+roll. The small play icon to its left launches that clip at the native bar
+boundary. The play icon to the left of a scene title launches its column;
+empty slots have a stop icon for their tracks. Click the blank
 area of a track or scene header to select it; these headers are MIDI
 mappable too. A translucent fill shows each playing clip's loop progress.
 The arrows beside **Scenes** page through columns that fit the window, with
@@ -262,11 +263,13 @@ wherever that scene is used, including repeated arrangement sections. Track name
 the native track-name field: up to 16 printable ASCII characters, including
 spaces.
 
-**Arrangement** builds a song from those same scenes. **＋ Add section** opens
-a chooser that appends the selected scene without changing which section is
-selected. **Section tools** starts collapsed and holds copy, move, remove and
-repeat controls for the selected section. Choose Loop, Park or Stop at the end
-under **Song ending**. The arrows beside **Arrangement** page through the
+**Arrangement** builds a song from those same scenes. Its heading groups the
+section pager, **＋ Add section**, **Section tools** and **Song ending**.
+**＋ Add section** opens a chooser that appends the chosen scene without
+changing which section is selected. **Section tools** starts collapsed and
+holds copy, move, remove and repeat controls for the selected section.
+Choose Loop, Park or Stop directly in the **Song ending** dropdown.
+The arrows beside **Arrangement** page through the
 sections that fit the window; condensed note previews show playback progress.
 Repeats share their scene clips; copy a scene before editing a different variation.
 
