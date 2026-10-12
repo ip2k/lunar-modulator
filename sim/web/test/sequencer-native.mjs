@@ -264,13 +264,18 @@ try {
   });
   await reset();
   await check('actual offline worker produces six downloadable WAVs with exact channel counts', async () => {
+    const automatic = [];
+    const collectDownload = download => automatic.push(download);
+    page.on('download', collectDownload);
     await expandFiles();
     await page.locator('.ed-song-file-tools').getByRole('button', { name: 'Export WAV…', exact: true }).click();
     await page.getByLabel('Effect tail (seconds)').fill('0'); await page.getByTestId('audio-export-start').click();
-    await page.waitForFunction(() => document.querySelector('[data-testid="audio-export-status"]').textContent.includes('WAVs ready'), null, { timeout: 120000 });
+    await page.waitForFunction(() => document.querySelector('[data-testid="audio-export-status"]').textContent.includes('WAV downloads started'), null, { timeout: 120000 });
+    await until(() => automatic.length === 6, 'six automatic WAV downloads');
+    page.off('download', collectDownload);
     const links = page.getByTestId('audio-export-files').locator('a'); assert.equal(await links.count(), 6);
     for (let i = 0; i < 6; i++) {
-      const pending = page.waitForEvent('download'); await links.nth(i).click(); const download = await pending;
+      const download = automatic[i];
       const path = join(out, download.suggestedFilename()); await download.saveAs(path); const wav = await readFile(path);
       assert.equal(wav.toString('ascii', 0, 4), 'RIFF'); assert.equal(wav.toString('ascii', 8, 12), 'WAVE');
       const channels = wav.readUInt16LE(22), bits = wav.readUInt16LE(34), rate = wav.readUInt32LE(24);
@@ -280,6 +285,8 @@ try {
       report.wavs.push({ file: download.suggestedFilename(), channels, bits, rate, frames: data / (channels * 3) });
     }
     assert.deepEqual(report.wavs.map(w => w.channels).sort(), [2,2,2,2,2,8]);
+    const retry = page.waitForEvent('download'); await links.first().click();
+    assert.equal((await retry).suggestedFilename(), automatic[0].suggestedFilename());
   });
   await check('repeated render clears downloads and cancellation releases dialog', async () => {
     await page.getByLabel('Effect tail (seconds)').fill('30');

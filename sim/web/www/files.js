@@ -455,7 +455,15 @@ export function initFiles(env) {
 
   // ---- the notice over the status line ----
   const noticeEl = $('file-notice');
+  let noticeTimer = null;
+  function dismissNotice() {
+    clearTimeout(noticeTimer);
+    noticeTimer = null;
+    noticeEl.hidden = true;
+  }
   function notice(tone, text, sub = '', actions = []) {
+    clearTimeout(noticeTimer);
+    noticeTimer = null;
     f.lastNotice = { tone, text, sub };
     noticeEl.hidden = false;
     noticeEl.className = `file-notice ${tone}`;
@@ -472,7 +480,7 @@ export function initFiles(env) {
     }
     const row = document.createElement('div');
     row.className = 'notice-actions';
-    for (const a of [...actions, { label: 'Dismiss', fn: () => { noticeEl.hidden = true; } }]) {
+    for (const a of [...actions, { label: 'Dismiss', fn: dismissNotice }]) {
       const b = document.createElement('button');
       b.type = 'button';
       b.textContent = a.label;
@@ -480,6 +488,7 @@ export function initFiles(env) {
       row.append(b);
     }
     noticeEl.append(row);
+    if (tone === 'info') noticeTimer = setTimeout(dismissNotice, 10000);
   }
 
   // The module's report, in words. A refusal is the module's own sentence.
@@ -944,9 +953,9 @@ export function initFiles(env) {
       // A link over the user's work (ST14): the work comes back first, so a
       // project from the link leaves it in Recent as "Before …" and a
       // refused link leaves it playing, unchanged.
-      if (saved) await restore(saved, true);
+      if (saved) await restore(saved);
     } else if (saved) {
-      await restore(saved, false);
+      await restore(saved);
     }
     f.powered = true;
     f.pending = pending.concat(f.pending);
@@ -955,30 +964,16 @@ export function initFiles(env) {
     renderLibrary();
     if (embed) post({ event: 'power', on: true });
   }
-  async function restore(saved, quietly) {
+  async function restore(saved) {
     const r = await load(saved.bin, { d: { enc: 1, kind: 'project', title: saved.name }, before: false, quiet: true, pid: saved.pid });
     if (r.ok) {
       setTitle(saved.name);
       f.dirty = false;
       lastBytes = saved.bin;
       lastPid = f.pid;
-      if (!quietly) {
-        notice('info', `Restored “${saved.name}”, autosaved in this browser ${when(saved.modified)}.`, '',
-          [{ label: 'Start fresh', fn: startFresh }]);
-      }
     } else {
       await addRecent(`Autosave not restored (${saved.name})`, saved.bin);
       notice('refused', `Your autosaved project was not restored: ${r.report.message} It is kept in Recent.`);
-    }
-  }
-  async function startFresh() {
-    const s = await shadow('start');
-    if (!s.ok) return;
-    const r = await load(s.bin, { d: { enc: 1, kind: 'project', title: 'a fresh start' }, quiet: true });
-    if (r.ok) {
-      setTitle('Untitled');
-      notice('info', 'A fresh start: the start chain and its demo pattern. Your work is in Recent.', '',
-        [{ label: 'Undo', fn: undoLoad }]);
     }
   }
   async function beforePowerOff() {
@@ -1250,7 +1245,7 @@ export function initFiles(env) {
     if (s.blocked && !s.open) {
       storageWaiting = true;
       f.memoryOnly = true;
-      notice('info', 'Another tab of this page is open on an older version and holds this browser\'s storage.',
+      notice('refused', 'Another tab of this page is open on an older version and holds this browser\'s storage.',
         'Close or reload that tab. Recent and A/B are kept for this visit only; autosave stays unsaved until browser storage is free.');
     } else if (s.open && storageWaiting) {
       storageWaiting = false;

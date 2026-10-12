@@ -213,10 +213,11 @@ export function makeSequencerHost({ sim, files, st, history, snapshot, say, onSe
               retainedBytes += file.blob.size;
               const li = document.createElement('li'); const a = document.createElement('a'); const url = URL.createObjectURL(file.blob); urls.add(url);
               a.href = url; a.download = file.name; a.textContent = `${file.name} · ${file.channels} channels`; li.append(a); results.append(li);
+              a.click();
             } });
           if (result.warnings?.length) { const li = document.createElement('li'); li.textContent = result.warnings.join(' '); results.append(li); }
         }
-        progress.value = 1; status.textContent = 'WAVs ready. Download the files below.';
+        progress.value = 1; status.textContent = 'WAV downloads started. If your browser blocks multiple downloads, allow them or use the file links below.';
       } catch (err) { status.textContent = controller.signal.aborted ? 'Render cancelled.' : err.message; }
       finally { controller = null; start.disabled = false; cancel.textContent = 'Close'; for (const c of choices) c.disabled = false; tail.disabled = false; }
     };
