@@ -997,3 +997,36 @@ restore. Physical boot/display acceptance and required review/CI/merge remain
 open. Last verified pushed checkpoint isdb662630; root owns commits/push/USB.
 
 2026-10-12 continuation: genuine RESTORE interruption source proposal checkpointed; five exact Hera nodes (three heavy, six containers including collection) authorized once, runtime pending. Canonical helper V3 also authorized once after fixture-only journal assertion correction; runtime pending. Computer connector still falsely reports locked Mac despite owner confirmation, so Packetry remains inaccessible. Physical source/assets closure and one-shot packet builder are being staged before any new entry/installation. Active diagnostic firmware goal remains unfinished.
+
+### Latest continuation: helper accepted and bench files staged, 2026-10-12
+
+[verified, modeled] Frozen helper V3 passed its sole genuine factory case.
+Root verified archive/index/source, sole XML result, isolation/cleanup and input
+invariants; separate stdlib replay passed152 checks. Root integrity b1922cf7,
+independent receipt1cb98855 and evidence2f92b148 are retained under
+`build/sdk-trace-admitted-helper-composed-hera/v3-envelope/`. Physical proof
+does not follow. Failed helper V1/V2 evidence remains retained.
+
+[verified] Genuine RESTORE V1 failed before RESTORE SG due to a fixture flock
+dispatcher replacement. Corrected tracked fixture5fd657d4 now retains the
+device-aware model handler and original prefault traceback. Sealed V2 archive
+b30945fa/snapshotf959613c/runner30216d5d ran once on Hera; root launch acceptance
+1b748054. The agent reports2 source contracts passed and3 heavy cases failed
+after the intended fault at a genuine returned-backup connection mismatch.
+Agent startup_resolution is sealing failed evidence and a minimal RESTORE-only
+lineage successor for review; no rerun is authorized. Production703c stays closed.
+
+[verified] Sealed V3 source/assets are staged at
+`/home/claude/fm1-sdk-trace-campaign-20261012-v3` on bench01:74 regular files
+match local hashes, all root-owned600 with private700 directories. Receipt
+88b9430a records file-only staging; no USB command was sent. Concrete V3 path
+templates are retained in next-campaign/bench-path-spec-v3. Initial entry/backup
+capture wrapper526924 was rejected for exception cleanup and deadline bounds;
+a minimal successor is being reviewed before entry. No trace install occurred.
+
+Computer still falsely reports a locked Mac and exposes no native apps despite
+owner confirmation. No Packetry GUI capture/click is claimed and no further
+unlock request is needed. Next: accept entry/backup capture successor, stage
+prospective inputs, fresh dual stock backup, trace install/boot and five original
+RAM reads before loader upload, then full stock recovery. Physical boot/display
+and required review/CI/integration remain open; root owns commits/push/USB.

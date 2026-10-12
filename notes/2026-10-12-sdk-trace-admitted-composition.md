@@ -144,3 +144,23 @@ receipt4f2c1391 records that scope. This is one additional modeled case, with
 no repetition of prior passing cases and no physical access. Runtime acceptance
 is pending. The interrupted-NOR adapter remains closed pending its separate
 30-chunk mechanics and genuine factory runs.
+
+## Frozen preparation-helper composition accepted
+
+[verified, modeled] The separate V3 helper case passed once on Hera in 494.87 s.
+It used the actual frozen preparation helper followed by canonical backup and
+restore: 8,757 backup exchanges, matching full 1 MiB target dumps, 10,653 restore
+exchanges, 30 directory-last erases, 480 programs and complete stock readback.
+The original install journal and ROM snapshot remained exact; the live journal
+correctly became complete RESTORE. Earlier V1/V2 failures remain retained.
+
+Root rehashed all 116 indexed artifacts and 117 regular archive members and
+checked the sole JUnit result, pinned isolated container, unchanged 1,823 mounted
+regular inputs and empty cleanup. A separate stdlib retained-evidence checker
+passed 152 checks, including full command reconstruction, payload CRCs, page
+hashes and journal boundaries. Receipts are under
+`build/sdk-trace-admitted-helper-composed-hera/v3-envelope/`: evidence archive
+`2f92b148`, root integrity `b1922cf7`, independent receipt `1cb98855`.
+The independent checker is a separate implementation by the same delegated
+agent; root owns acceptance. SG, USB and capture lifecycle were modeled. No
+physical boot, display, reset cause or corrupt-application recovery is proved.

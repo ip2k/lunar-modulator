@@ -27,13 +27,14 @@ def genuine_caught_restore(actual, tmp_path, monkeypatch, fault):
     for name, path in wrappers.items():
         assert getattr(partial, name+'_CAPTURE_SHA') == partial.digest(path.read_bytes())
     assert partial.PREFIX_SHA == partial.digest(Path(partial.__file__).with_name('fm1_partial_nor_prefix.py').read_bytes())
-    ordinary_flock = fcntl.flock
     g = genuine_recovery_ready(actual, tmp_path, monkeypatch)
     r = genuine_restore_ready(g)
     restore, model = g.deps.restore, g.model
     assert partial.RESTORE_SHA == partial.digest(Path(restore.__file__).read_bytes())
     assert partial.BACKUP_SHA == partial.digest(Path(g.deps.backup.__file__).read_bytes())
-    monkeypatch.setattr(fcntl, 'flock', ordinary_flock)
+    # Keep the device-aware dispatcher: ordinary journal FDs delegate through
+    # model.real_flock, while the modeled SG fd must never reach real flock.
+    monkeypatch.setattr(fcntl, 'flock', model.flock)
     monkeypatch.setattr(r.prepared.bridge, 'discover_sg', model.discover)
     state = SimpleNamespace(op=0xFB01 if fault == 'erase' else 0xFB04, faulted=False, enabled=True)
     base_ioctl = model.ioctl
@@ -53,8 +54,12 @@ def genuine_caught_restore(actual, tmp_path, monkeypatch, fault):
     start = len(model.calls)
     try:
         restore.run_campaign(r.prepared)
-    except OSError:
-        pass
+    except OSError as exc:
+        _write(tmp_path/'caught-original-restore-error.json', dict(schema=1,
+            error=type(exc).__name__, errno=exc.errno, detail=str(exc),
+            intended_fault_reached=state.faulted, commands_since_restore_start=len(model.calls)-start))
+        if not state.faulted:
+            raise  # Preserve an unexpected pre-mutation failure and traceback.
     else:
         raise AssertionError('Actual admitted restore must catch mutation stop')
     assert state.faulted

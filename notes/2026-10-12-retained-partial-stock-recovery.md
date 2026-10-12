@@ -20,4 +20,18 @@ Clock, device syscalls, passive discovery and owned capture lifecycle were model
 
 ## Genuine admitted RESTORE interruption proposal checkpoint
 
-Two new disposable test files exercise the actual completed INSTALL, boot, native read, admission and target-backup factories before catching admitted stock RESTORE erase/program failures. A third case catches a new partial-stock-worker program failure and checks unsupported nested admission and consumed retry refusal before an opener. Root full-read and independent 1770-member archive/source-map verification passed; candidate differs from the accepted INSTALL candidate only by three RESTORE source literals. AST checks passed. Exactly one restricted Hera run is authorized under `build/partial-stock-recovery-production/restore-genuine-proposal-v1/root-launch-acceptance.json` (SHA `66a699fef492a4c6e15a6ad25133363276e86cde149a3bf6279c2800f1217200`). Runtime is pending; production remains closed, and no physical recovery, boot or display acceptance is claimed.
+Two new disposable test files exercise the actual completed INSTALL, boot, native read, admission and target-backup factories before catching admitted stock RESTORE erase/program failures. A third case catches a new partial-stock-worker program failure and checks unsupported nested admission and consumed retry refusal before an opener. Root full-read and independent 1770-member archive/source-map verification passed; candidate differs from the accepted INSTALL candidate only by three RESTORE source literals. AST checks passed. Exactly one restricted Hera run was authorized under `build/partial-stock-recovery-production/restore-genuine-proposal-v1/root-launch-acceptance.json` (SHA `66a699fef492a4c6e15a6ad25133363276e86cde149a3bf6279c2800f1217200`).
+
+[verified] V1 passed both source contracts but failed all three heavy cases
+before any RESTORE SG request: the fixture replaced the modeled device's flock
+dispatcher with ordinary flock. Its discarded OSError prevents claiming an
+observed errno. The failed archive `6df1bec0` and review `366166a2` remain
+retained. Fixture-only successor `5fd657d4` preserves the model dispatcher,
+records error details and re-raises unexpected errors before the intended
+fault. The sealed V2 run is authorized once on Hera (root acceptance `1b748054`)
+completed with both source contracts passing and all three heavy cases failing
+after the intended mutation fault [reported: delegated Hera runner]. The next
+failure is a candidate RESTORE provenance defect: it compares the original
+pre-install connection against the genuine returned backup's new USB/SG binding.
+Full failed evidence and a minimal successor are being retained for root review.
+Production stays closed; no physical recovery, boot or display acceptance follows.
