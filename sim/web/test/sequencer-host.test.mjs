@@ -35,6 +35,31 @@ function harness(initial) {
 const before = project(), after = project([note(60)]);
 const entry = { label: 'Add note', info: { beforeText: JSON.stringify(before), afterText: JSON.stringify(after) } };
 
+test('initial load generation change retries the read and returns the current project', async () => {
+  const h = harness(before), read = h.files.projectSnapshot;
+  let reads = 0;
+  h.files.projectSnapshot = async () => {
+    const snap = await read();
+    if (++reads === 1) { h.replace(after); h.st.gen++; }
+    return snap;
+  };
+  assert.deepEqual(await h.host.fetchProject(), after);
+  assert.equal(reads, 2); assert.equal(h.loads, 0); assert.equal(h.checks, 0);
+});
+test('continuous generation changes bound read retries without any writes', async () => {
+  const h = harness(before), read = h.files.projectSnapshot;
+  let reads = 0;
+  h.files.projectSnapshot = async () => { reads++; h.st.gen++; return read(); };
+  await assert.rejects(h.host.fetchProject(), /kept changing while reading/);
+  assert.equal(reads, 3); assert.equal(h.loads, 0); assert.equal(h.checks, 0);
+});
+test('a power restart during a read refuses the old audio node snapshot', async () => {
+  const h = harness(before), read = h.files.projectSnapshot;
+  h.files.projectSnapshot = async () => { const snap = await read(); h.sim.node = {}; return snap; };
+  await assert.rejects(h.host.fetchProject(), /restarted while reading/);
+  assert.equal(h.loads, 0); assert.equal(h.checks, 0);
+});
+
 test('matching native state permits undo then redo, preserving the atomic hash fence', async () => {
   const h = harness(after);
   assert.equal(await h.host.restoreHistory(entry, false), true);

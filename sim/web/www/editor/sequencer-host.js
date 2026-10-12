@@ -40,13 +40,20 @@ export function makeSequencerHost({ sim, files, st, history, snapshot, say, onSe
   });
 
   async function fetchProject() {
-    if (!sim.node) throw new Error('Power on the simulator first.');
-    const gen = st.gen;
-    const snap = await files.projectSnapshot();
-    if (st.gen !== gen) throw new Error('The project changed while reading. Retry the edit.');
-    const doc = JSON.parse(snap.text);
-    versions.set(doc, { gen, hash: snap.hash });
-    return doc;
+    // Initial load notifications can invalidate a snapshot that is already
+    // in flight. Retrying a read is safe; write transactions never retry.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const node = sim.node;
+      if (!node) throw new Error('Power on the simulator first.');
+      const gen = st.gen;
+      const snap = await files.projectSnapshot();
+      if (sim.node !== node) throw new Error('The simulator restarted while reading. Open the Song view again.');
+      if (st.gen !== gen) continue;
+      const doc = JSON.parse(snap.text);
+      versions.set(doc, { gen, hash: snap.hash });
+      return doc;
+    }
+    throw new Error('The project kept changing while reading. Retry the edit.');
   }
 
   async function loadChecked(doc, options = {}, expectedCurrent) {
