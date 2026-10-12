@@ -11,18 +11,21 @@ original conversation; last updated 2026-10-11. Read this first, then
 
 ## Current installable-image boundary — 2026-10-12
 
-[verified: latest bench attempt] The fresh initial-entry V2 sent the vetted soft
-key once at 1791813156.294717 and observed same-port UBOOT at
-1791813157.0415945 (port 1-1, bus 1/device 4). The file/sysfs-only preparer then
-stopped because Linux had not created the SG node. No loader, SG or flash
-command ran, no backup was created, and the owned capture was stopped. The
-later passive observation found /dev/sg0. The proposed continuation was never
-staged or invoked: its original 600-second entry window expired during review.
-Stock flash is unchanged; a fresh-entry successor must wait boundedly for SG
-readiness and use a distinct root. See
-notes/2026-10-12-fresh-entry-sg-readiness.md. The owner power-cycle question is
-pending; software-only return to stock requires a separately reviewed successor
-of the already-tested minimal RAM reset path.
+[verified: latest bench evidence] The consumed RAM-only reset had an ambiguous
+final USB reply; a separate passive observation then saw normal FM-1 USB without
+an owner power cycle. Fresh entry V3.1 queried identity FM-1_092, sent the vetted
+soft key once and observed same-port UBOOT bus1/device6, then waited for SG0.
+Its 8,757 commands completed and produced two identical 1 MiB stock96006 dumps.
+Independent receipt/wire review passed with limits: 41 ordinary unlogged SCSI
+queries interleaved, identity checksum false and truncated capture payloads.
+No erase/program ran. The installer120s backup admission expired before the
+resumed audit; no install was prepared or run from this receipt. Next: prepare
+the full timed sequence, use the reviewed canonical one-FC0C baseline reset,
+then new entry/backup/install/boot/native reads and canonical stock restore.
+Keep all old receipts and timestamps unchanged. See
+notes/2026-10-12-software-reset-fresh-stock-backup.md and the historical SG race
+note. Computer Use still reports locked/no native apps despite the owner's
+unlocked Mac; bench usbmon permits progress without Packetry control.
 
 [verified, source/model scope] Decoder panel errors 1–3 are now recognized
 alongside worker errors -4–-1 and success 0. The 76 focused checks passed;
@@ -33,7 +36,7 @@ source integration. Production0d936 binds the reviewed retained-loader branch;
 physical interrupted-write recovery remains unproven. The focused public
 post-copy mechanics gate passed 90 unique cases/30 Hera chunks plus smoke1,
 zero failures/errors/skips, with all32 constrained receipts and cleanup replayed.
-Last verified pushed checkpoint before this update: ea56c0c3e1f2687c07deba53ad8468145b39638e.
+Last verified pushed checkpoint before this update: eb79d33982423f392d5b394d6ad5b1be998a1943.
 
 [verified] Stock full-image readback96006 and the historical identity-only reply
 FM-1_092 are accepted. Native reviewcf706b9c accepts app76382f53/ELFe9d54172
