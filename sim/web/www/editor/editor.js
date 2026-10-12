@@ -209,6 +209,7 @@ export async function startEditor(env) {
   // ---- PLAY and EDIT (§13) ---------------------------------------------------
   function setKeys(mode) {
     if (mode === st.keys) return;
+    sim.midiLearn?.release();
     st.keys = mode;
     sim.keysToEditor = mode === 'edit';
     if (mode === 'edit' && sim.releaseKeys) sim.releaseKeys();
@@ -1082,7 +1083,7 @@ export async function startEditor(env) {
 
   function rowShell(key, uid, labelText, cls) {
     const id = nextId('l');
-    const r = { key, uid, el: el('div', `ed-row ${cls || ''}`, { 'data-uid': String(uid) }), id };
+    const r = { key, uid, el: el('div', `ed-row ${cls || ''}`, { 'data-uid': String(uid), 'data-midi-context': key }), id };
     r.k = el('span', 'ed-k', { hidden: true });
     r.label = el('span', 'ed-label', { id, text: labelText });
     r.el.append(r.k, r.label);
@@ -1258,6 +1259,15 @@ export async function startEditor(env) {
     };
     r.update = () => draw(dragV !== null ? dragV : get());
     const commit = (v, how) => setValue(r.key, r.uid, v, how);
+    const midiAdapter = { kind: 'value',
+      available: () => s.isConnected && !s.closest('[hidden]') && !!st.mirror,
+      value: (u) => {
+        let v = fromPos(p, u);
+        if (!isLog(p) && p.step > 0) v = p.min + Math.round((v - p.min) / p.step) * p.step;
+        commit(Math.max(p.min, Math.min(p.max, v)), 'key');
+      } };
+    sim.midiLearn?.register(s, `editor:param:${r.key}:${r.uid}`, midiAdapter);
+    sim.midiLearn?.register(field, `editor:param:${r.key}:${r.uid}`, midiAdapter);
     const atX = (x) => {
       const rect = s.getBoundingClientRect();
       let v = fromPos(p, (x - rect.left) / Math.max(1, rect.width));
