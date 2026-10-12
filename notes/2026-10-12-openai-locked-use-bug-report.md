@@ -39,3 +39,30 @@ This case interrupted an unattended hardware-debugging workflow and repeatedly r
 Please investigate lock-state detection, trusted-turn eligibility, local-input suppression, authorization-plugin interaction and post-unlock verification. The generic error does not distinguish these paths. No SecurityAgentHelper/authd logs were collected for the failing attempt, so this report does not assert a specific root cause or a sudo/GTK incompatibility.
 
 Related report: https://github.com/openai/codex/issues/32396. This report was drafted with AI assistance from the actual tool responses; identifying local paths and hardware serial numbers have been omitted.
+
+## Recorded time and token overhead
+
+[verified] Local session telemetry was examined for this report. The cutoff is 2026-10-12T23:14:17.297Z. Subsequent editing, verification, commit/push and this reply are excluded; an exact self-inclusive final cost cannot be known before the final response finishes.
+
+### Time impact
+
+- 61 completed Computer Use calls returned the automatic-unlock failure. The first was 2026-10-12T08:22:15.425Z; the last was 2026-10-12T23:06:06.993Z. Packetry app access first succeeded at 2026-10-12T23:09:29.076Z. The observed failure-to-success window was **14 h 47 min 13.651 s**.
+- The final explicit request for manual unlocking was sent at 2026-10-12T23:06:11.235Z. The user replied with the settings screenshot at 23:09:17.737Z: **3 min 6.502 s awaiting that reply**, and **3 min 17.841 s from the request until app access succeeded**. Stop was verified at 23:09:38.989Z.
+- These are elapsed windows, not measured owner labor or continuous assistant idleness. Other firmware work continued during the wider window; the logs do not support attributing all elapsed time or all tokens to this bug. They also do not prove that the user manually unlocked the Mac before the successful retry.
+
+### Token accounting
+
+| Scope | Input tokens | Cached input (subset) | Uncached input | Output tokens | Total input + output |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Entire recorded session through cutoff | 312,839,791 | 302,731,776 | 10,108,015 | 1,445,873 | 314,285,664 |
+| Original report interval | 1,073,834 | 1,008,000 | 65,834 | 2,694 | 1,076,528 |
+| Accounting follow-up through cutoff | 323,442 | 311,552 | 11,890 | 1,461 | 324,903 |
+| Report and accounting combined | 1,397,276 | 1,319,552 | 77,724 | 4,155 | 1,401,431 |
+
+The original-report interval uses cumulative snapshots at 2026-10-12T23:10:27.580Z and 2026-10-12T23:13:34.766Z. The accounting interval runs from the latter snapshot to the cutoff; it includes calculating costs and preparing this accounting update. These interval totals may include concurrent continuation work and are interval-level measurements, not isolated per-document billing.
+
+Input totals count context processed repeatedly on successive model requests; cached input is already included in input and must not be added again. Reasoning output is a subset of reported output and is not added separately. These totals are telemetry, not the amount of unique text written.
+
+The separate goal counter reported **38,019,043 tokens** and **71,108 seconds** at the initial accounting query. Its scope/aggregation differs from the cumulative session telemetry; the values must not be summed or treated as equivalent billing counters.
+
+**Monetary cost: unavailable.** This signed-in desktop session does not expose invoice amounts, an effective per-token rate, or a defensible bug-only dollar charge. Applying public API list prices to these subscription-session counters would invent a cost. OpenAI should correlate the recorded timestamps with server-side usage/billing and separate the 61 failed unlock attempts and resulting retry/context overhead.
