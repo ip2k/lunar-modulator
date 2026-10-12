@@ -96,7 +96,7 @@ separate work. The original 6,389-case complete Python snapshot finished all
 errors. It does not include the newer probe or returned-ROM sources.
 
 Current remote-SHA-verified checkpoint:
-`8c4b5cf0fec6c872b15c77a50dc2d24a5405362d` on the feature branch below.
+`c29726c4d39a07df6b262b51845788fad5ebe8ea` on the feature branch below.
 The source-only stock-return template is staged with its execution policy still
 closed. Its future concrete binding must follow actual fresh backup and
 completed restore evidence. See [the boot trial](2026-10-11-diagnostic-boot-trial.md),
@@ -106,8 +106,10 @@ limits and next dependencies. This remains an active unfinished goal.
 
 [verified: current GitHub query] All thirteen jobs passed in run 38199299324
 at exact checkpoint `20284ce7ed0543038c5861e935f345e7b4257a2c`.
-Run 38200263950 at exact `8c4b5cf0…` is still in progress. Uncommitted new
-successor sources are outside those CI snapshots. No CI or model result
+All thirteen jobs also passed at exact a6bce57a in run38201658769.
+Run38202646517 at aca0e686 has ten successful jobs and three running;
+run38203747490 at c29726c4 is pending. New successor sources are outside
+those CI snapshots. No CI or model result
 upgrades the physical boot, display or interrupted-write acceptance gates.
 
 ## Active dependency plan
@@ -116,9 +118,12 @@ upgrades the physical boot, display or interrupted-write acceptance gates.
    libraries, Apache boot-info bridge, single-core configuration and GPL-off
    profile. The raw target and exact protected geometry are verified; the
    independently permissive runtime remains a later path.
-2. Complete independent source, sixteen-chunk Hera and concrete-packet review
-   of the distinct read-only stopped-chooser successor. Read retained RAM before
-   any loader upload; review the actual receipt and capture separately.
+2. Completed: the distinct read-only stopped-chooser successor passed source,
+   sixteen-chunk Hera and concrete-packet review, then exactly two physical
+   reads. Its actual receipt/capture and bounded native interpretation were
+   independently accepted. The post-read admission passed95 unique cases
+   in16 Hera chunks plus genuine actual-file smoke; visible pixels, retention
+   and reset cause remain separate observations.
 3. Bind a distinct returned-ROM backup/restore route to that accepted actual
    proof and the current connection. Take fresh matching complete dumps, restore
    exact stock, verify all flash, and verify responsive stock operation through

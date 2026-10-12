@@ -77,13 +77,18 @@ cases plus its smoke. Later recovery additions have the separate gates above.
 GitHub run38201658769 on exact checkpoint `a6bce57abcef99ec8c1f5b1a33a83e1273840f68`
 passed all thirteen jobs. The feature branch is
 `feature/2026-10-11@installable-firmware`, with checkpoint
-`aca0e686…` committed and remote-SHA verified. Its exact-head run38202646517
-remains in progress; later uncommitted successors are outside that snapshot. No PR or
+`c29726c4…` committed and remote-SHA verified. Its exact-head run38203747490
+is pending; parent aca0e686 run38202646517 has ten green jobs and three running.
+Later uncommitted successors are outside those snapshots. No PR or
 merge has occurred.
 
-Next: integrate the distinct stopped-chooser recovery evidence admission,
-its exact95-case sixteen-chunk Hera gate and actual-file replay, then review
-separate backup and restore successors for the completed RAM-read lineage.
+The distinct stopped-chooser recovery evidence admission and its exact95-case
+sixteen-chunk Hera gate plus actual-file replay are committed at c29726c4.
+Next: independently accept separate backup and restore successors for that
+completed RAM-read lineage; fresh backup, restore and distinct reset helpers
+and closed private capture/preparation templates are in progress. See
+notes/2026-10-11-stopped-choice-recovery-bench-templates.md and
+notes/2026-10-11-stopped-choice-stock-reset.md for their closure and pending gates.
 Preserve the original timestamp and consumed markers. Capture fresh matching target backups,
 restore stock under the new binding and verify normal identity. The new closed
 interrupted-restore evidence kernel `cef2d0ea…` passed 55 cases in 16 Hera chunks;
