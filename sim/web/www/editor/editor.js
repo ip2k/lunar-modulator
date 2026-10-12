@@ -29,6 +29,7 @@ import { makeChains, cableIndex } from './chains.js';
 import { makeProject } from './project.js';
 import { makeSequencer } from './sequencer.js';
 import { makeSequencerHost } from './sequencer-host.js';
+import { createKeyboardShortcutsGuide } from './keyboard-shortcuts.js';
 
 const PREF = 'lunar.sim.editor.';
 function pref(key, value) {
@@ -82,6 +83,7 @@ export async function startEditor(env) {
 
   // ---- the shell ----------------------------------------------------------
   const keysChip = el('button', 'ed-chip ed-keys', { type: 'button', onclick: () => setKeys(st.keys === 'play' ? 'edit' : 'play') });
+  const shortcutsBtn = createKeyboardShortcutsGuide(isMac);
   const followPanelBox = el('input', null, { type: 'checkbox', id: nextId('fp') });
   const followEditorBox = el('input', null, { type: 'checkbox', id: nextId('fe') });
   followPanelBox.checked = st.followPanel;
@@ -138,7 +140,7 @@ export async function startEditor(env) {
   const songFileTools = el('span', 'ed-song-file-tools', { hidden: true });
   const appbar = el('div', 'ed-appbar', { role: 'toolbar', 'aria-label': 'Editor' }, [
     el('div', 'ed-appbar-start', {}, [sidebarBtn, title]),
-    el('div', 'ed-appbar-mid', {}, [keysChip]),
+    el('div', 'ed-appbar-mid', {}, [keysChip, shortcutsBtn]),
     el('div', 'ed-appbar-end', {}, [simulatorMenu, changesMenu, fileMenu, songFileTools, undoBtn, redoBtn, cpuBtn, el('div', 'ed-ram-wrap', {}, [ramBtn, ramList])]),
   ]);
   const transportTools = el('div', 'ed-transport-tools sq-transport-mount', { hidden: true });
@@ -231,8 +233,8 @@ export async function startEditor(env) {
   }
   st.keys = '';
   setKeys('play');
-  root.addEventListener('focusin', (e) => { if (!layoutSwitch.contains(e.target) && !keysChip.contains(e.target)) setKeys('edit'); });
-  root.addEventListener('pointerdown', (e) => { if (!layoutSwitch.contains(e.target) && !keysChip.contains(e.target)) setKeys('edit'); });
+  root.addEventListener('focusin', (e) => { if (!layoutSwitch.contains(e.target) && !keysChip.contains(e.target) && !shortcutsBtn.contains(e.target)) setKeys('edit'); });
+  root.addEventListener('pointerdown', (e) => { if (!layoutSwitch.contains(e.target) && !keysChip.contains(e.target) && !shortcutsBtn.contains(e.target)) setKeys('edit'); });
   const device = document.querySelector('.device-wrap');
   if (device) {
     device.addEventListener('pointerdown', () => setKeys('play'));
