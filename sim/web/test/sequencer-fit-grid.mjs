@@ -30,7 +30,39 @@ try {
   await page.setViewportSize(size);await page.waitForTimeout(80);
   for(const name of ['Scenes','Arrangement','Clip','Automation']){
    await tab(name);await noOverflow();
-   if(name==='Scenes'||name==='Arrangement'){check(await page.getByRole('button',{name:/Select track/}).count()===0,'Visible Select track remains');const header=page.getByRole('group',{name:'Track 2 header',exact:true});await page.evaluate(()=>window.calls=[]);await header.click({position:{x:4,y:4}});check(await header.getAttribute('aria-current')==='true'&&await page.evaluate(()=>window.calls.every(c=>c[0]==='watch')),'Whitespace did not select only the track');check(await page.getByLabel('Track 2 name',{exact:true}).evaluate(e=>e.readOnly),'Header selected name edit');await page.getByRole('group',{name:'Track 1 header',exact:true}).press('Enter');check(await page.getByRole('group',{name:'Track 1 header',exact:true}).getAttribute('aria-current')==='true','Keyboard header selection failed')}
+   if(name==='Scenes'||name==='Arrangement'){check(await page.getByRole('button',{name:/Select track/}).count()===0,'Visible Select track remains');const header=page.getByRole('button',{name:'Track 2',exact:true});await page.evaluate(()=>window.calls=[]);await header.click({position:{x:4,y:4}});check(await header.getAttribute('aria-current')==='true'&&await page.evaluate(()=>window.calls.every(c=>c[0]==='watch')),'Whitespace did not select only the track');check(await page.getByLabel('Track 2 name',{exact:true}).evaluate(e=>e.readOnly),'Header selected name edit');await page.getByRole('button',{name:'Track 1',exact:true}).press('Enter');check(await page.getByRole('button',{name:'Track 1',exact:true}).getAttribute('aria-current')==='true','Keyboard header selection failed')}
+   if(name==='Scenes'){
+    check(await page.getByRole('button',{name:/^Edit scene \d+$/}).count()===0,'Visible Select scene remains');
+    while(!await page.getByRole('button',{name:'Previous scenes page',exact:true}).isDisabled())await page.getByRole('button',{name:'Previous scenes page',exact:true}).click();
+    await page.evaluate(()=>window.calls=[]);await page.getByRole('button',{name:'Scene 2',exact:true}).click({position:{x:4,y:4}});
+    check(await page.getByRole('button',{name:'Scene 2',exact:true}).getAttribute('aria-pressed')==='true'&&await page.evaluate(()=>window.calls.every(c=>c[0]==='watch')),'Scene whitespace launched instead of selecting');
+    check(await page.getByLabel('Scene 2 name',{exact:true}).evaluate(e=>e.readOnly),'Scene whitespace entered name edit');
+    await page.getByRole('button',{name:'Scene 1',exact:true}).press(' ');
+    check(await page.getByRole('button',{name:'Scene 1',exact:true}).getAttribute('aria-pressed')==='true','Scene Space selection failed');
+    if(size.width===1440){
+     await page.evaluate(async()=>{const {createMidiLearn}=await import('/midi-map.js');window.learn=createMidiLearn({header:document.querySelector('#transport'),storage:{getItem:()=>null,setItem:()=>{}}});window.learn.map.learn(true);window.calls=[]});
+     await page.getByRole('button',{name:'Track 2',exact:true}).click({position:{x:4,y:4}});
+     check(await page.evaluate(()=>window.learn.map.selected==='seq:select-track:1'&&window.calls.length===0),'Learn did not capture track whitespace independently');
+     await page.evaluate(()=>{window.learn.handle('test',[0x90,60,127]);window.learn.map.learn(false);window.learn.handle('test',[0x90,60,127])});
+     check(await page.getByRole('button',{name:'Track 2',exact:true}).getAttribute('aria-pressed')==='true'&&await page.evaluate(()=>window.calls.every(c=>c[0]==='watch')),'Mapped track header did not select');
+     await page.evaluate(()=>{window.learn.refresh();window.learn.map.learn(true);window.calls=[]});
+     await page.getByRole('button',{name:'Scene 2',exact:true}).click({position:{x:4,y:4}});
+     check(await page.evaluate(()=>window.learn.map.selected==='seq:select-scene:1'&&window.calls.length===0),'Learn did not capture scene whitespace independently');
+     await page.evaluate(()=>{window.learn.handle('test',[0x90,61,127]);window.learn.map.learn(false);window.learn.handle('test',[0x90,61,127])});
+     check(await page.getByRole('button',{name:'Scene 2',exact:true}).getAttribute('aria-pressed')==='true'&&await page.evaluate(()=>window.calls.every(c=>c[0]==='watch')),'Mapped scene header did not select');
+     await page.getByRole('button',{name:'Scene 1',exact:true}).press('Enter');
+     await page.evaluate(()=>{window.learn.refresh();window.learn.map.learn(true);window.calls=[]});
+     await page.getByRole('button',{name:'Launch scene 2',exact:true}).click();
+     check(await page.evaluate(()=>window.learn.map.selected!=='seq:select-scene:1'&&window.calls.length===0),'Child launch mapping was masked by header');
+     await page.evaluate(()=>{window.learn.handle('test',[0x90,62,127]);window.learn.map.learn(false);window.learn.handle('test',[0x90,62,127])});
+     await page.waitForFunction(()=>document.querySelector('.sq').getAttribute('aria-busy')==='false');
+     check(await page.getByRole('button',{name:'Scene 1',exact:true}).getAttribute('aria-pressed')==='true'&&await page.evaluate(()=>window.calls.length===1&&window.calls[0][0]==='scene'&&window.calls[0][1]===1),'Mapped child launch changed scene selection');
+     await page.getByRole('button',{name:'Track 1',exact:true}).press(' ');
+     await page.evaluate(()=>{window.learn.refresh();window.learn.handle('test',[0x80,60,0]);window.learn.handle('test',[0x90,60,127])});
+     check(await page.getByRole('button',{name:'Track 2',exact:true}).getAttribute('aria-pressed')==='true','Track MIDI ID did not survive redraw');
+     await page.getByRole('button',{name:'Track 1',exact:true}).press('Enter');
+    }
+   }
    if(name==='Scenes'||name==='Arrangement'){
     const noun=name==='Scenes'?'scenes':'sections',selector=name==='Scenes'?'[data-live-track]':'.sq-entry';let count=0;
     const pager=page.locator('.sq-section-heading .sq-page-nav.is-compact');
@@ -76,5 +108,5 @@ try {
  await page.getByLabel('Loop length · steps',{exact:true}).blur();await page.waitForFunction(()=>!window.heldField.isConnected,{},{timeout:2000});await noOverflow();
  await page.evaluate(async()=>{document.querySelector('#transport').replaceChildren();window.seq.update({playing:false});await window.seq.refresh(true);document.querySelector('main').append(window.seq.render())});check(await page.locator('#transport [data-play-position]').count()===1,'Transport remount did not recover');
  check(errors.length===0,errors.join('\n'));await page.evaluate(()=>{window.seq.destroy();document.querySelector('#transport').innerHTML='<span data-play-position>Replacement</span><span data-sq-meter="out.post_master" aria-valuenow="-60"></span>';window.seq.update(window.transport);window.seq.onTelemetry(new Float32Array([.5,.25]));window.seq.syncLevels()});check(await page.locator('#transport [data-play-position]').textContent()==='Replacement'&&await page.locator('#transport [data-sq-meter]').getAttribute('aria-valuenow')==='-60','Disposed instance mutated replacement transport');
- await writeFile(`${out}/results.json`,JSON.stringify({passed:true,checks:['viewport fit 1440 1024 844 667','compact icon pagers beside headings with every visible range and total','all 64 scene slots and arrangement entries','all 256 note and lock steps','external transport telemetry and lifecycle','icon metronome','first-note framing','native follow last-step loop-wrap manual-off edit-defer pointer-defer','responsive resize preserves unsaved input','multiple independent lane values and page playheads','track header whitespace and keyboard select without launch/name edit'],errors},null,2));console.log('PASS viewport grids and native Follow playhead');
+ await writeFile(`${out}/results.json`,JSON.stringify({passed:true,checks:['viewport fit 1440 1024 844 667','compact icon pagers beside headings with every visible range and total','all 64 scene slots and arrangement entries','all 256 note and lock steps','external transport telemetry and lifecycle','icon metronome','first-note framing','native follow last-step loop-wrap manual-off edit-defer pointer-defer','responsive resize preserves unsaved input','multiple independent lane values and page playheads','track and scene whitespace keyboard selection and actual MIDI learn dispatch across redraw without child launch masking'],errors},null,2));console.log('PASS viewport grids and native Follow playhead');
 }catch(e){await page.screenshot({path:`${out}/failure.png`,fullPage:true});throw e}finally{await browser.close();server.close()}
