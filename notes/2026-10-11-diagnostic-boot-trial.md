@@ -110,6 +110,18 @@ This wrapper requires a successful reset receipt. A detached, ambiguous reset
 must use a distinct reviewed policy and preserve its original status; neither
 policy may refresh away the initial ROM snapshot or upload before stage capture.
 
+[verified: native transport evidence] Independent review accepted source
+`13d7c647…`, tests `4c6fddea…`, all 79 exact planned Hera cases and a separate
+actual-private modeled factory smoke, without failures, errors or skips. All
+18 containers exited zero without OOM and were removed; evidence proves modeled
+transport behavior and input validation, not physical ROM command semantics.
+The modeled factory took 1.603 seconds. Report
+`build/diagnostic-stage-sg-independent-review.md`, SHA
+`53285fdfb31e41899f6e362bb87464850a3975a95d4ebc2662c95370185578a4`.
+The successful-only wrapper's finalized independent review is
+`build/diagnostic-stage-wrapper-independent-review.md`, SHA
+`118a6374d2df847e5efbf1458eb67ea32d650cb621f871056df7ef61d30da238`.
+
 [verified: public/private CI boundary] GitHub run
 38188020648 passed its browser and C/C++ jobs but failed both Python jobs
 because the exact private rehearsal fixture required files unavailable in

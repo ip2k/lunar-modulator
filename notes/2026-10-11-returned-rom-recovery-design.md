@@ -225,3 +225,17 @@ probe markers. A separate restore-only policy will then bind the new dual-target
 backup to genuine original stock/SDK/install evidence. Old source pins remain
 unchanged. Focused Hera tests and startup_resolution independent review remain
 required before freezing either physical adapter. Root owns checkpoint/push.
+
+[verified] Initial injected WIP regression on Hera passed 53 cases in 9.88 s
+using the pinned recovery image, four CPU/four GiB, network none and no devices.
+This tests the separate backup authority/latch/inventory and restore ordered
+4,096-page target gate before writes, copied-instance rejection and source
+freeze closure. Evidence is `build/returned-recovery-wip-hera/`; both containers
+were removed, successful v2 exited zero without OOM. The first bootstrap used
+unvenved Python without pytest and exited one before collection; that receipt
+is preserved rather than hidden. It made no SG calls.
+
+`tools/fm1_returned_rom_stock_restore.py` and its focused tests are now saved;
+the factory deliberately rejects until the new backup literal source pin and
+completed evidence helper freeze. This is not a complete actual-private factory
+validation, independent review or the required focused 16-chunk gate.

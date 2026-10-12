@@ -53,5 +53,11 @@ runner log: `build/private-selector-hera/runner.log`.
 
 Root-owned checkpoint `1a5e0831e1d4a85bc339311db82ac84a216d523c` is local at this
 handoff; root reports immediate verified push. This lane made no commits or
-hardware operations. Independent review is next. GitHub CI and physical
+hardware operations. [verified] startup_resolution independently accepted the final source/runtime gate;
+report `build/sdk-ci-private-fixture-review.md` SHA-256
+`ccfbba14400af1b8b12a8443b75efe7311639291455ce56ce39a6edbc60da1f1`,
+independent checker SHA-256
+`2c43923512ab9e5009e317f53411fa825a455ab02c0bb396afb065eca1620a76`.
+Only authorized root documentation drift lies outside the frozen source gate.
+GitHub CI and physical
 boot/display/recovery remain separate.

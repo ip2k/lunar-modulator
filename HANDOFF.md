@@ -60,13 +60,17 @@ modeled smoke, and independent review accepted its evidence. Its three-file
 checkpoint is committed and remote-SHA verified at
 `1a5e0831e1d4a85bc339311db82ac84a216d523c`.
 The separate native SG transport passed its 79-case Hera gate and actual-private
-modeled smoke; independent retained-evidence review is pending. The successful-only
+modeled smoke; independent retained-evidence review accepted both. The successful-only
 static packet is staged on bench01 without execution; no target reset or
 post-install device command has occurred. A distinct, separately reviewed
 transmitted-but-detached reset policy is still needed before activation.
 The diagnostic's 32-byte stage block must be captured before a recovery loader
 overwrites it. Evidence and next dependencies are in
 [the boot trial note](notes/2026-10-11-diagnostic-boot-trial.md).
+The returned-ROM stock-restore scaffold and tests passed an initial 53-case
+injected WIP gate on Hera. Its factory remains closed until the separate
+returned-backup source and evidence helper freeze; this is not a hardware-ready
+recovery adapter. See [the design](notes/2026-10-11-returned-rom-recovery-design.md).
 
 The following entries are historical checkpoints, superseded where the physical
 result above supplies later evidence.

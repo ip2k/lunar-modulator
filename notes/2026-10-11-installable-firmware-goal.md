@@ -32,7 +32,7 @@ in [the recovery runbook](../docs/17-recovery.md). The owner is away from the
 desk and authorizes leaving the FM-1 in UBOOT or hung while useful independent
 work continues.
 
-[verified: live read-only bench SSH/lsusb, 2026-10-11] The FM-1 remains on
+[verified: goal-creation bench SSH/lsusb snapshot, 2026-10-11] The FM-1 was on
 bench01 as `4c4a:c755`, bus 003 device 022. The earlier single reviewed RAM
 core-reset experiment restored normal USB and a fresh `FM-1_092` identity
 without an owner power cycle; see [the receipt](2026-10-11-fm1-core-reset-bench.md).
@@ -43,7 +43,43 @@ corrupted application.
 Hera shards and all thirteen required CI jobs; see [the entry and bring-up
 receipt](2026-10-11-offline-entry-and-bringup.md). Documentation head at goal
 creation was `fc8e3414bef97041611bbf7463f0b277d4141185`, verified on origin.
-No diagnostic package or physical Lunar application acceptance exists yet.
+No diagnostic package or physical Lunar application acceptance existed at goal
+creation. Later evidence below supersedes this historical device snapshot.
+
+## Current verification boundary
+
+[verified: independent physical receipt review] The private C-only SDK
+diagnostic app `991b569d…`, ELF `8832aa46…`, and reproducible raw NOR target
+`df6c963e…` exist. A complete install/readback/stock-restore/readback rehearsal
+passed; a separate reset returned restored stock operation and the exact
+`FM-1_092` identity without a physical power cycle. Fresh matching stock backups
+then preceded a separate diagnostic install, whose full 1 MiB readback matches
+the target. Protected bytes and directory-last sector order passed independent
+replay. The current installed target remains on the original device-25 recovery
+loader connection; target reboot, diagnostic execution, visible display and
+post-boot recovery are still pending.
+
+[verified: software gates] Exact injected ROM stage probe passed 126 tests in
+16 Hera chunks plus an actual-private modeled smoke and independent review.
+Its separate native SG transport passed 79 tests and its actual-private modeled
+smoke; independent retained-evidence review accepted both. The static successful-only probe
+packet is staged without execution. A separately reviewed transmitted-but-
+detached reset policy, fresh binding and returned-ROM stock-restoration adapter
+are being developed; old guards and consumed markers remain intact.
+GitHub CI passed all thirteen jobs at selector checkpoint `22cae292…`.
+The strict-private selector gate passed 287 tests in 16 Hera chunks, with no
+skips; public CI behavior passed 244 with 43 explicit private-fixture skips.
+Later source checkpoints require fresh CI. The original 6,389-case complete
+Python snapshot is finishing its last Hera chunk and does not include the new
+probe or returned-ROM sources.
+
+Current remote-SHA-verified checkpoint:
+`c4ee1c82d941dc6dab81a3595b7b21386825327e` on the feature branch below.
+The returned-ROM backup checkpoint is explicitly unaccepted WIP with syntax-only
+verification; do not activate it. See [the boot trial](2026-10-11-diagnostic-boot-trial.md),
+[stage probe](2026-10-11-diagnostic-stage-probe.md), and
+[returned-ROM design](2026-10-11-returned-rom-recovery-design.md) for exact pins,
+limits and next dependencies. This remains an active unfinished goal.
 
 ## Active dependency plan
 
