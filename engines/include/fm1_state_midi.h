@@ -23,6 +23,8 @@ typedef struct fm1_midi_map {
 #ifdef __cplusplus
 extern "C" {
 #endif
+unsigned fm1_midi_binding_valid(const char *target, const char *source,
+                              unsigned channel, unsigned kind, unsigned number);
 unsigned fm1_midi_map_add(fm1_midi_map_t *map, const char *target, const char *source,
                          unsigned channel, unsigned kind, unsigned number);
 #ifdef __cplusplus

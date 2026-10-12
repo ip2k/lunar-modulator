@@ -3922,10 +3922,10 @@ static int print_sizes(void) {
   fm1_seq_limits_default(&lim4, 4);
   printf("{\"app_bytes\":%zu,\"sounds\":%d,\"inserts\":%d,\"master_slots\":%d,"
          "\"units\":%d,\"sound_arena\":%u,\"fx_arena\":%u,\"arena_bytes\":%zu,"
-         "\"ram_budget\":%u,\"mix_block_bytes\":%u,",
+         "\"ram_budget\":%u,\"mix_block_bytes\":%u,\"midi_map_bytes\":%zu,",
          sizeof(fm1_app_t), FM1_APP_SOUNDS, FM1_APP_INSERTS, FM1_APP_FX_SLOTS, FM1_APP_UNITS,
          FM1_APP_SOUND_BYTES, FM1_APP_FX_BYTES, sizeof g_app.sound_mem + sizeof g_app.fx_mem,
-         FM1_APP_RAM_BUDGET, FM1_APP_MIX_BLOCK_BYTES);
+         FM1_APP_RAM_BUDGET, FM1_APP_MIX_BLOCK_BYTES, sizeof g_app.midi_map);
   printf("\"mod_bytes\":%zu,\"mod_arena\":%u,\"mod_ui_bytes\":%zu,\"mod_writes_bytes\":%zu,",
          fm1_mod_size(), FM1_APP_MOD_BYTES, sizeof(fm1_mod_ui_t), sizeof g_app.mod_wr);
   {

@@ -176,6 +176,21 @@ def test_app_renders_what_fm1_render_renders(tools, tmp_path, s):
 
 # ---- The sequencer in the app (docs/15 S2) --------------------------------------------------
 
+def test_shapes_plate_room_original_dsp_fixture(tools, tmp_path):
+    # Retain the original Shapes + Plate + Room DSP workload. Its combined
+    # app footprint exceeds the strict budget after fixed MIDI-map storage;
+    # the browser parity scenario uses Macro, while the direct host still
+    # exercises Shapes with the same notes, freeze and timed effect changes.
+    scenario = dict(next(s for s in SCENARIOS if s["name"] == "plate-freeze-into-room"))
+    scenario.update(engine="shapes", params=["Shape=28", "Release=0.4"])
+    args = scenario_args(scenario)
+    a, b = tmp_path / "zero.wav", tmp_path / "filled.wav"
+    first = run(tools["render"], args + ["--out", str(a), "--fill", "0"])
+    second = run(tools["render"], args + ["--out", str(b), "--fill", "0xa5"])
+    assert a.read_bytes() == b.read_bytes()
+    assert first["peak"] > 0.01 and first["nonfinite"] == second["nonfinite"] == 0
+    assert first["notes_hung"] == second["notes_hung"] == 0
+
 RATE = 44118
 FIXTURES = ROOT / "tests" / "fixtures" / "movy"
 
@@ -207,28 +222,29 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
                                   text=True).stdout)
     print(f"sizeof(fm1_app_t) = {z['app_bytes']} B")
     assert z["seq_tracks"] == 8                                   # owner decision O3 (2026-10-02)
-    assert (z["seq_bytes_8"], z["seq_bytes_4"]) == (32072, 18184)
+    assert (z["seq_bytes_8"], z["seq_bytes_4"]) == (32080, 18192)
     assert z["seq_bytes_8"] <= z["seq_arena"] == 32768
     assert (z["seq_event_bytes"], z["seq_pending_bytes"], z["seq_click_bytes"]) == (3264, 240, 20)
     total = (z["seq_bytes_8"] + z["seq_event_bytes"] + z["seq_pending_bytes"] + z["seq_ui_bytes"]
              + z["seq_click_bytes"])
-    assert total == 36620 <= z["seq_budget"] == 36864
+    assert total == 36628 <= z["seq_budget"] == 36864
     # Multi-sound (docs/15 §3.16): four 512 KiB sound arenas and ten 256 KiB
     # effect arenas (two master slots, two inserts per sound), 4.5 MiB of the
     # module's fixed 8 MiB; fm1_app_t is 4,939,984 B natively (clang, 64-bit).
     assert (z["sounds"], z["inserts"], z["master_slots"], z["units"]) == (4, 2, 2, 14)
     assert z["arena_bytes"] == 4 * 512 * 1024 + 10 * 256 * 1024
     assert z["app_bytes"] <= 4_960_000
+    assert z["midi_map_bytes"] == 4612  # bounded project preferences outside sequencer arena
     assert z["mod_bytes"] <= z["mod_arena"]
     assert z["seq_need"] == 201 <= z["seq_events"] == 272
     assert z["seq_ui_size"] <= z["seq_ui_bytes"]
     script = f"#! rate={RATE} block=64 tracks=8 end=6400\n@0 tog 0 0 60 100\n@0 play\n"
-    for tracks, size in ((8, 32072), (4, 18184)):
+    for tracks, size in ((8, 32080), (4, 18192)):
         s, _, _ = sim_run(tools, tmp_path, script, "--tracks", str(tracks), name=f"t{tracks}")
         assert s["seq_bytes"] == size
         r, _, _ = sim_run(tools, tmp_path, script, "--tracks", str(tracks), name=f"t{tracks}",
                           tool="render")
-        fixed = z["seq_pending_bytes"] + z["seq_ui_bytes"] + z["seq_click_bytes"] + z["mod_bytes"] + z["seq_automation_bytes"]
+        fixed = z["seq_pending_bytes"] + z["seq_ui_bytes"] + z["seq_click_bytes"] + z["mod_bytes"] + z["seq_automation_bytes"] + z["midi_map_bytes"]
         assert s["ram"] == r["instance_bytes"] + size + 3264 + fixed, "the RAM figure counts the sequencer"
 
 

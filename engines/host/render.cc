@@ -1730,6 +1730,7 @@ int main(int argc, char **argv) {
     have.mod = md.m;
     have.seed = mod_seed;
     have.seq = use_seq ? sq.seq : NULL;
+    have.midi_map = &loaded.midi_map;
     for (size_t i = 0; i < save_specs.size(); ++i) {
       std::string err;
       if (!render_state::Save(save_specs[i], have, &err)) {

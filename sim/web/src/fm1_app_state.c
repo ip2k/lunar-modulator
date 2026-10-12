@@ -1096,7 +1096,8 @@ static int reader_refusal(plan_t *p) {
 
 static int seq_fixed(const fm1_app_t *a) {
   return a->seq ? (int)(fm1_seq_size(&a->seq_lim) + sizeof a->seq_ev + sizeof a->seq_pend + FM1_APP_SEQ_UI_BYTES +
-                        sizeof a->click)
+                        sizeof a->click + sizeof a->seq_target + sizeof a->seq_mix + sizeof a->seq_level +
+                        (FM1_APP_SEQ_EVENTS + FM1_APP_SEQ_TRACKS * FM1_SEQ_LANES) * sizeof a->mod_wr[0])
                 : 0;
 }
 
@@ -1906,12 +1907,13 @@ static int midi_only_sink(void *ctx, const fm1_rec_t *r) {
 }
 int fm1_app_midi_map_set(fm1_app_t *a, const uint8_t *bytes, size_t len, fm1_state_report_t *rep) {
   fm1_state_json_reader_t reader;
+  fm1_state_report_init(rep);
   memset(&g_plan.midi_map, 0, sizeof g_plan.midi_map);
   fm1_state_json_begin(&reader, names(), midi_only_sink, rep, rep);
   reader.maps_only = 1;
   if (len > FM1_STATE_CAP_PROJECT) { rep->code = FM1_STATE_TOO_BIG; return 0; }
-  if (!fm1_state_json_feed(&reader, bytes, len) || !fm1_state_json_end(&reader) ||
-      !g_plan.midi_map.version) return 0;
+  if (!fm1_state_json_feed(&reader, bytes, len) || !fm1_state_json_end(&reader)) return 0;
+  if (!g_plan.midi_map.version) { rep->code = FM1_STATE_BAD; snprintf(rep->what, sizeof rep->what, "a MIDI map update needs midiMap"); return 0; }
   a->midi_map = g_plan.midi_map;
   return 1;
 }

@@ -402,6 +402,7 @@ typedef struct {
   int mod;
   int refused;
   const fm1_engine_t *mfx[4][4];
+  fm1_midi_map_t midi_map;
 } check_t;
 
 static size_t at44(const fm1_engine_t *e) {
@@ -414,6 +415,15 @@ static size_t at44(const fm1_engine_t *e) {
  * fixed costs (the sequencer, the mix blocks) are A1's to add. */
 static int check_sink(void *ctx, const fm1_rec_t *r) {
   check_t *c = (check_t *)ctx;
+  if (r->type == FM1_REC_MIDI_MAP) {
+    if (c->midi_map.version) { c->rep->code = FM1_STATE_BAD; return 0; }
+    c->midi_map.version = r->u.map_version;
+  }
+  if (r->type == FM1_REC_MIDI_BINDING) {
+    unsigned code = fm1_midi_map_add(&c->midi_map, r->u.binding.target, r->u.binding.source,
+                                    r->u.binding.channel, r->u.binding.kind, r->u.binding.number);
+    if (code != FM1_STATE_OK) { c->rep->code = code; return 0; }
+  }
   if (r->type == FM1_REC_MOD) c->mod = 1;
   if (r->type == FM1_REC_ON && r->role == FM1_ROLE_MFX && r->sound < 4 && r->slot < 4 && r->u.on &&
       c->mfx[r->sound][r->slot]) {
