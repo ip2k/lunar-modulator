@@ -32,7 +32,7 @@ try {
  check(await page.locator('[data-nav-count="bar"]').textContent()==='2/13','Current/total song bar incorrect');
  check(await page.locator('[data-nav-count="scene"]').textContent()==='1/3','Grouped repeated scene counter incorrect');
  check(await page.locator('[data-nav-count="clip"]').textContent()==='1/2','Playing clip counter incorrect');
- const phase=async(t)=>page.locator(`[data-progress-track="${t}"][data-progress-scene="0"] .sq-clip-progress`).evaluate(e=>({hidden:e.hidden,width:e.style.width}));
+ const phase=async(t)=>page.locator(`[data-live-track="${t}"][data-live-scene="0"] > .sq-clip-progress`).evaluate(e=>({hidden:e.hidden,width:e.style.width}));
  check(JSON.stringify(await phase(0))===JSON.stringify({hidden:false,width:'50%'}),'Fast/offset clip phase incorrect');
  check(JSON.stringify(await phase(1))===JSON.stringify({hidden:false,width:'12.5%'}),'Slow/long clip phase incorrectly uses master tick');
  await page.screenshot({path:`${out}/scenes-independent.png`,fullPage:true});

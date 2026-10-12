@@ -18,6 +18,7 @@ try {
   const m=emptySet();m.sceneNames[0]='INTRO';m.sceneNames[1]='CHORUS';m.song=[0,0,1];
   m.tracks.forEach((t,i)=>{t.route={kind:1,index:i%4};t.clips[0]=emptyClip(32);t.clips[1]=emptyClip(64)});
   m.tracks[0].clips[0].notes=[{tick:0,gate:36,pitch:57,vel:96,step:0}];
+  m.tracks[1].clips[1].notes=[{tick:0,gate:48,pitch:64,vel:88,step:0}];
   window.doc={set:writeSet(m),sounds:['Punch','Acid','Trio','FM6'].map(engine=>({engine,level:75,inserts:[null,null]}))};window.doc.master=[{engine:'Hall'},{engine:'Limit'}];window.doc.sounds[0].inserts[0]={engine:'Echo'};window.calls=[];window.reject=false;window.output=.8;window.soundLevels=[75,75,75,75];window.levelGestures=[];
   const telemetry={sections:[{name:'meters',offset:0,mask:0,rows:['snd1.post_fader','out.post_master'],fields:['peak','rms']},{name:'levels',offset:4,mask:8,rows:['s1.level','master.level'],fields:['peak','rms']}]};
   window.seq=makeSequencer({fetchProject:async()=>structuredClone(window.doc),applyProject:async(d,label)=>{if(window.reject)throw Error('test refusal');window.doc=d;window.calls.push(label)},getMaster:()=>window.output,setMaster:v=>{window.output=v},getSoundLevel:s=>window.soundLevels[s],setSoundLevel:(s,v,mode)=>{window.soundLevels[s]=v;window.levelGestures.push({sound:s,value:v,mode})},beginLevelDrag:s=>window.levelGestures.push({begin:s}),endLevelDrag:()=>window.levelGestures.push({end:true}),getTransport:()=>({playing:false}),metadata:{doc:{telemetry},engine:name=>name?({params:[{name:'Cutoff',type:'float',min:0,max:1,def:.5,flags:[]},{name:'Voices',flags:['nolock']}]}):null},watchTrack:t=>window.calls.push('watch '+t),playScene:s=>window.calls.push('scene '+s),playClip:(t,s)=>window.calls.push('clip '+t+' '+s),inspector:key=>{const e=document.createElement('p');e.textContent='Inspector '+key;return e}});
@@ -198,17 +199,36 @@ try {
  await tab('Scenes');
  let slots=0;do{slots+=await page.locator('[data-live-track]').count();if(await page.getByRole('button',{name:'Next scenes page',exact:true}).isDisabled())break;await page.getByRole('button',{name:'Next scenes page',exact:true}).click();}while(true);if(slots!==64)throw Error('Scene paging lost native slots');
  while(!await page.getByRole('button',{name:'Previous scenes page',exact:true}).isDisabled())await page.getByRole('button',{name:'Previous scenes page',exact:true}).click();
+ const selectedEditBeforeLaunch=await page.locator('.sq-scene-edit[aria-pressed="true"]').getAttribute('aria-label');
+ const populatedBody=page.getByRole('button',{name:'Launch clip 2 scene 2',exact:true});
+ if(!await populatedBody.locator('.sq-scene-summary').isVisible()||!await populatedBody.locator('.sq-clip-preview').isVisible())throw Error('Clip launch body must contain its summary and note preview');
+ await populatedBody.click();await page.waitForFunction(()=>window.calls.includes('clip 1 1'));
+ if(await page.locator('.sq-scene-edit[aria-pressed="true"]').getAttribute('aria-label')!==selectedEditBeforeLaunch||await page.getByRole('tab',{name:'Scenes',exact:true}).getAttribute('aria-selected')!=='true')throw Error('Launching a clip body changed selection or opened the editor');
  await page.getByRole('button',{name:'Launch clip 1 scene 1',exact:true}).click();
  await page.getByRole('button',{name:'Launch scene 2',exact:true}).click();
  while(!await page.getByRole('button',{name:'Next scenes page',exact:true}).isDisabled())await page.getByRole('button',{name:'Next scenes page',exact:true}).click();
  await page.getByRole('button',{name:'Stop track 8 scene 8',exact:true}).click();
  while(!await page.getByRole('button',{name:'Previous scenes page',exact:true}).isDisabled())await page.getByRole('button',{name:'Previous scenes page',exact:true}).click();
  if(!await page.evaluate(()=>window.calls.includes('clip 0 0')&&window.calls.includes('scene 1')&&window.calls.includes('clip 7 7')))throw Error('Native scene/clip callbacks');
- const sceneEdit=page.getByRole('button',{name:'Edit track 2 scene 2',exact:true});await sceneEdit.focus();await sceneEdit.press('Enter');
+ const sceneEdit=page.getByRole('button',{name:'Edit track 2 scene 2',exact:true});
+ if(await sceneEdit.locator('.sq-scene-edit-icon').count()!==1||await sceneEdit.getAttribute('title')!=='Edit this clip')throw Error('Clip editor should be a labeled pencil control');
+ await sceneEdit.focus();await sceneEdit.press('Enter');
  if(await page.getByLabel('Edit scene',{exact:true}).inputValue()!=='1')throw Error('Matrix edit did not select scene');
  if(await page.getByRole('tab',{name:'Clip',exact:true}).getAttribute('aria-selected')!=='true')throw Error('Clip click must open editor');
  if(await page.evaluate(()=>document.activeElement.getAttribute('data-view'))!=='Clip')throw Error('Keyboard scene edit did not focus the Clip tab');
+ if(!await page.getByRole('heading',{name:'Track 2 · CHORUS',exact:true}).isVisible()||!await page.getByRole('button',{name:/E4, step 1/}).isVisible())throw Error('Pencil keyboard edit did not open the selected native clip with its note');
  await tab('Scenes');
+ for(const [width,height] of [[1440,1100],[844,390],[667,375]]){
+  await page.setViewportSize({width,height});await page.waitForTimeout(60);
+  const overlaps=await page.locator('.sq-matrix-cell').evaluateAll(cells=>cells.flatMap(cell=>{
+   const pencil=cell.querySelector('.sq-scene-edit')?.getBoundingClientRect(),body=cell.querySelector('[data-scene-launch]')?.getBoundingClientRect();if(!pencil||!body)return[];
+   const intersects=r=>r.width&&r.height&&r.left<pencil.right-1&&r.right>pencil.left+1&&r.top<pencil.bottom-1&&r.bottom>pencil.top+1;
+   const content=[...cell.querySelectorAll('.sq-scene-summary,.sq-clip-preview')].filter(item=>intersects(item.getBoundingClientRect())).map(item=>item.className);
+   return intersects(body)?[...content,'launch target']:content;
+  }));
+  if(overlaps.length)throw Error(`Clip content overlaps the pencil at ${width}px: ${overlaps.join(', ')}`);
+ }
+ await page.setViewportSize({width:1440,height:1100});
  await page.screenshot({path:`${out}/matrix-desktop.png`,fullPage:true});
  await page.setViewportSize({width:390,height:844});
  if(!await page.getByTestId('song-rotate-prompt').isVisible())throw Error('Missing rotate prompt');

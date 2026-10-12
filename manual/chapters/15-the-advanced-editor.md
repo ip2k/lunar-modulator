@@ -246,10 +246,10 @@ Tempo, metronome and the Song end choice (Loop, Park or Stop) are saved with
 the `.lunar` project. The master meter at the right shows measured output level.
 
 **Scenes** contains eight tracks and eight scene columns, with compact rows
-that keep more of the matrix in view. Click a clip's body to open its piano
-roll. The small play icon to its left launches that clip at the native bar
-boundary. The play icon to the left of a scene title launches its column;
-empty slots have a stop icon for their tracks. Click the blank
+that keep more of the matrix in view. Click a clip's body to launch it at the
+native bar boundary. Use the small pencil in its lower-right corner to open
+that clip's piano roll. The play icon to the left of a scene title launches
+its column; empty slots have a stop icon for their tracks. Click the blank
 area of a track or scene header to select it; these headers are MIDI
 mappable too. A translucent fill shows each playing clip's loop progress.
 The arrows beside **Scenes** page through columns that fit the window, with
