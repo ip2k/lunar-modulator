@@ -2,8 +2,8 @@
 """MIT. Distinct one-shot stock restore after actual stopped-choice RAM admission.
 
 Pinned private f583 policy/transport/replay kernels; own envelope, registry,
-receipt and marker. No upload/reset/retry. New backup source is intentionally
-closed until independent review. Private-host operator premises apply.
+receipt and marker. No upload/reset/retry. New backup source is independently pinned
+after source/runtime review. Private-host operator premises apply.
 """
 import argparse
 from dataclasses import dataclass
@@ -19,7 +19,7 @@ import types
 from weakref import WeakSet
 
 KERNEL_SOURCE_SHA = 'f583523740bb709dde0cf8bc2e07677e2ab26063d511dcb3ba84a6b232e9af33'
-BACKUP_SOURCE_SHA = None
+BACKUP_SOURCE_SHA = 'c1b0f5539f2f47eb70300ba8ba19e35ec9e3b822dc00a792070cd34a31406798'
 REHEARSAL_SOURCE_SHA = 'f696484511754b91d4faf449aa2e4cab3ca910daf05a9acd66daa966bae7d6c4'
 BASELINE_SHA = '96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4'
 TARGET_SHA = 'df6c963ecd37b334f393c5bc92c2780b6094181308822a03c8190b016a4e97db'

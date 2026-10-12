@@ -19,6 +19,7 @@ def prepared(legacy_prepared):
 
 @pytest.mark.parametrize('entry',['prepare','completed'])
 def test_unfrozen_backup_fails_before_any_evidence_open(monkeypatch,entry):
+    monkeypatch.setattr(r,'BACKUP_SOURCE_SHA',None)
     monkeypatch.setattr(r,'read_file',lambda *a:pytest.fail('evidence opened'))
     with pytest.raises(ValueError,match='not frozen'):
         if entry=='prepare':r.prepare_campaign(Path('/absent'))

@@ -96,7 +96,7 @@ separate work. The original 6,389-case complete Python snapshot finished all
 errors. It does not include the newer probe or returned-ROM sources.
 
 Current remote-SHA-verified checkpoint:
-`c29726c4d39a07df6b262b51845788fad5ebe8ea` on the feature branch below.
+`adcfdfbddc6c17e706d2dda03bd8d2b2971f84fa` on the feature branch below.
 The source-only stock-return template is staged with its execution policy still
 closed. Its future concrete binding must follow actual fresh backup and
 completed restore evidence. See [the boot trial](2026-10-11-diagnostic-boot-trial.md),
@@ -108,8 +108,9 @@ limits and next dependencies. This remains an active unfinished goal.
 at exact checkpoint `20284ce7ed0543038c5861e935f345e7b4257a2c`.
 All thirteen jobs also passed at exact a6bce57a in run38201658769.
 Run38202646517 at aca0e686 has ten successful jobs and three running;
-run38203747490 at c29726c4 is pending. New successor sources are outside
-those CI snapshots. No CI or model result
+run38203747490 at c29726c4 was cancelled before any jobs were created.
+Current adcfdfbd run38204451977 is running (two successful jobs, eleven
+running at its latest query). New successor sources are outside those CI snapshots. No CI or model result
 upgrades the physical boot, display or interrupted-write acceptance gates.
 
 ## Active dependency plan

@@ -77,16 +77,24 @@ cases plus its smoke. Later recovery additions have the separate gates above.
 GitHub run38201658769 on exact checkpoint `a6bce57abcef99ec8c1f5b1a33a83e1273840f68`
 passed all thirteen jobs. The feature branch is
 `feature/2026-10-11@installable-firmware`, with checkpoint
-`c29726c4…` committed and remote-SHA verified. Its exact-head run38203747490
-is pending; parent aca0e686 run38202646517 has ten green jobs and three running.
-Later uncommitted successors are outside those snapshots. No PR or
+`adcfdfbd…` committed and remote-SHA verified. Its exact-head run38204451977
+is running (two successful jobs, eleven running at the latest query). Earlier
+c29726c4 run38203747490 was cancelled before jobs; aca0e686 remains a
+separate CI snapshot. New final restore
+binding and its composed fixture are being checkpointed separately. No PR or
 merge has occurred.
 
 The distinct stopped-chooser recovery evidence admission and its exact95-case
 sixteen-chunk Hera gate plus actual-file replay are committed at c29726c4.
-Next: independently accept separate backup and restore successors for that
-completed RAM-read lineage; fresh backup, restore and distinct reset helpers
-and closed private capture/preparation templates are in progress. See
+The distinct backup c1b0 passed independent review of 76 cases in sixteen Hera
+chunks plus genuine private-file factory and modeled8757 requests. Its genuine
+pure-file preparer also passed independently; no physical backup has run through
+this successor yet. Final restore26f passed19 cases in sixteen Hera chunks plus
+genuine private preflight and full backup/restore/helper model; independent
+review remains pending. Closed resetc0a passed62 cases in sixteen chunks plus
+closure smoke and independent review; final literal binding and genuine completed
+restore composition remain pending. Fresh backup, restore and distinct reset
+helpers and private capture/preparation templates are in progress. See
 notes/2026-10-11-stopped-choice-recovery-bench-templates.md and
 notes/2026-10-11-stopped-choice-stock-reset.md for their closure and pending gates.
 Preserve the original timestamp and consumed markers. Capture fresh matching target backups,

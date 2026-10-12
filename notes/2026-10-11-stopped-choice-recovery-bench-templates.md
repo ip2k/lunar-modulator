@@ -37,3 +37,32 @@ genuine completed new backup and original install journal preservation. It
 prepares an initial-full-target/30sector/directory-last/full-stock campaign.
 Its own source/runtime and genuine composition reviews are pending. All source
 activation and concrete packet review remain separate from these modeled gates.
+
+
+## Distinct source-only staging and preparer successor
+
+[verified: source and live read-only file checks] New private commonfd065 differs
+from d7d only by the independently accepted backupc1b0 operation literal; restore
+remains None. The actual bench did not yet contain admission8875. Original
+stager0465 would reject that absence before creating its run; it was never run.
+Distinct stager44649 explicitly installs exact8875 and c1b0 with O_EXCL, preserves
+all historical packet/source checks, and runs the full common guard after copying.
+Its source/runtime independent review is pending. Source-only input archive
+9551e984c61bb551a36bc724a964339605a853943d660f65764aff467c927a9f
+contains nine regular source/pin files, was privately copied and bounded-extracted
+on the bench; stager and preparer execution remain unperformed at this checkpoint.
+
+[verified: independent genuine-file smoke] Authorized preparer
+0e21c29b14ba64aaac9b6974d681ea9c522914ffa33c9ad3c0a4afb165174088
+differs from c4b only in PREPARATION_AUTHORIZATION. It passed the real guard,
+admission8875 and backupc1b0 factory against actual completed RAM evidence;
+passive sysfs and umask were modeled, no SG opener/transport used. Report
+13d6682b295d001714b8c2feb511a4351bf484ed5ff0a714ff64597fd10b83cb,
+independent check2ffbdff6;1700 source pins, one smoke and two exact-image isolated
+2CPU/2GiB containers exited0/noOOM/removed and fresh lookup empty. Harness/mount
+failures were retained. This is preparation acceptance, not a current connection
+or physical backup assertion. The concrete witness/execution policy remains separate.
+
+[verified: independent source-only review] New closed restore preparerd913 passed
+source review0b322e1ae1948146e54eb250b6a9d185d22900fff7f43fbc3e13e743bbdee2ec.
+Its later genuine composition and admitted exact copy remain pending.
