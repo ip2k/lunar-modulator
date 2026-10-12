@@ -241,7 +241,7 @@ size_t fm1_seq_export_movy1(const fm1_seq_t *s, char *buf, size_t cap);
 
 /* Replaces the set from `movy1` text, as Movy's persist::load. Returns 1 if
  * the format tag matched, 0 otherwise (nothing changed). Outside compat
- * mode it also reads the FM-1 lines dq, se and sn and reseeds the RNG
+ * mode it also reads the FM-1 lines dq, se, sn and tn and reseeds the RNG
  * (ST11); seq_persist.c has the format. It is fm1_seq_import_begin, one
  * _feed and _end. */
 int fm1_seq_import_movy1(fm1_seq_t *s, const char *txt, size_t len);
