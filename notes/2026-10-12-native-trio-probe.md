@@ -397,3 +397,29 @@ Next: prepare a distinct one-use native FC0C arg1 boot adapter bound to this
 completed installation and current loader connection. Await observer readiness
 for the first native screen/audio/recovery trial. Native restore first returns
 V8; only after complete V8 readback can the separate stock plan be used.
+
+## One-request native boot adapter ready [verified; boot pending]
+
+`tools/native/controls_boot.py` uses independent native authority and the pinned
+incumbent literal FC0C arg1 method. It verifies the exact completed physical
+install through the offline proof, freezes evidence and sources, checks the
+fresh same-device mapping, and creates a durable one-use marker before opening
+SG. No upload, flash command or retry is available. Ambiguous completion is
+terminal; request success alone is not boot/display/recovery evidence.
+
+All 16 parallel Hera boot admission/mock-request chunks passed (exit zero,
+no OOM). They cover schema/source/time/state/USB/output/marker faults, changed
+frozen evidence, copied authority and one exact request with repeat refusal.
+A simulated open failure also consumes the durable marker. Evidence:
+`build/native-controls-boot-16-20261012/hera-verification.json`.
+
+The exact adapter/proof were copied to the private bench source tree. Actual
+preflight on bus1 device27 succeeded, with zero device requests. Campaign:
+`/home/claude/fm1-fresh-rom-20261012-source/native-boot-campaign.json`.
+Its passive observation expires after 120 seconds; refresh the observation and
+re-preflight before an actual attempt. Original loader has received no commands
+since install. No boot marker exists. Await the pending observer readiness
+answer, then issue exactly one native boot while watching for Lunar Trio UI and
+its approximately 20-second return to recovery. Physical early-startup recovery
+remains unproven and could require a power cycle. Full functional firmware and
+web installation remain the active goal; this is a bring-up candidate.
