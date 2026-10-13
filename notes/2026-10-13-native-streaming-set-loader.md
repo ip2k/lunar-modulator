@@ -112,3 +112,40 @@ option retains the new activation entry point, but the timed probe does not
 call it. There is no new device write, physical acceptance, demonstrated staging
 RAM margin, parser call-chain stack bound, strict content capacity admission,
 project engine/effect application or installable release claim.
+
+## Staged activation verification [verified]
+
+Sixteen Os/Oz host cases passed on Hera under ASan/UBSan with the actual shared
+app, sequencer, binary codecs and modulation runtime. Valid SET activation
+releases old sequenced notes, clears pending commands, advances the host
+generation and resolves imported lane labels to parameter UIDs. Invalid
+containers leave both the live app and arena byte-identical. Cases reject
+identity, unaligned sources, mismatched sample rates/limits and playing staging
+instances. The historical importer still ignores unknown lines and truncates
+out-of-capacity content; these cases preserve that behavior, not strict admission.
+
+The fresh native catalogue v3 rebuilt all 167 objects in sixteen Hera chunks.
+The content-loader-link-v6 campaign passed sixteen guarded native links with
+68 audit/artifact regressions per container, no OOMs, matching frozen content
+bytes and descriptors, and retained standalone-load/activation entry points.
+Private evidence receipt SHA256:
+`26c75dc2d29e54f54629cdf07bd62f88c19dc933e15d9f3302a68145ec0210d5`.
+It includes ELF/app hashes, complete key audits and dependency receipt hashes.
+The v5 links passed safety audits but the test harness then incorrectly required
+a separate internal `fm1_app_seq_activate` symbol that LTO inlined. The failed
+receipt is retained; v6 removes only that assertion, retaining both public API
+symbol checks and all safety checks. All campaign containers were removed.
+
+The timed probe still does not invoke activation. Startup staging might borrow
+the instance pool before any sound allocation, but this is only a candidate:
+its ownership, exact limits and bounded stack must be verified before integration.
+The Shapes twelve-voice instance leaves too little pool space for a full staging
+sequencer during ordinary playback. Runtime hot-loading needs separate admission.
+No hardware operation, installable release, sequence completeness, project
+application or real-time playback acceptance is claimed.
+
+Semantic navigation limits: Rarefaction and Serena remain selected on the primary
+checkout, not this worktree. The bounded sequencer/app queries returned stale
+line locations or incomplete caller information; Rarefaction had no native
+compilation database. Actual worktree source and target builds are authoritative.
+Shared semantic servers were not retargeted.

@@ -1,31 +1,30 @@
 # Native release continuation — 2026-10-13
 
-The active owner requirement is a default Lunar image with all thirteen
-production sound engines, plus a selectable image builder for engines, effects
-and songs/sets. Prior physical acceptance covers the timed Trio probe's display,
-keys, encoders and audible notes; it does not cover a release image.
+Active owner scope: default image with all thirteen production sound engines,
+plus a selectable builder for engines, effects and songs/sets. Timed native
+Trio was physically accepted for display, keys, encoders and audible notes;
+that does not establish release acceptance.
 
-Latest checkpoint `35e860740b2cf00a37ee54b6de71626004db96a6` on
-`feature/2026-10-11@installable-firmware` was pushed and its remote SHA verified.
-The standalone packed-set loader is retained in guarded native links. Sixteen
-Hera containers passed each of 68 audit/artifact regressions and all sixteen
-five-engine link variants, including Plate and embedded text/binary content.
-The safety audit narrowly proves a call-tail/register-move boundary pattern;
-independent flattening verifies the exact eight instruction bytes. See
-`notes/2026-10-13-native-streaming-set-loader.md` for evidence and limits.
+Branch `feature/2026-10-11@installable-firmware`; preceding verified pushed
+checkpoint `6138b0956a5f3a95fe6f6d87af0240815a14be9b`. This checkpoint adds
+stronger activation rejection/UID tests and records sixteen passing Os/Oz
+ASan/UBSan cases, fresh sixteen-chunk catalogue v3, and sixteen passing native
+loader/activation links (v6), each with 68 safety regressions. Evidence SHA:
+`26c75dc2d29e54f54629cdf07bd62f88c19dc933e15d9f3302a68145ec0210d5`.
+All containers removed. Failed v5 harness-symbol assertion is retained; LTO
+inlined the internal app helper, while public API roots remain verified.
 
-No release image or hardware operation resulted. Set activation, sequence
-capacity/dependency admission, complete stack margin, multitrack RAM/timing,
-MIDI ownership, persistence, web builder/installer and physical release/recovery
-acceptance remain open. The timed probe is still deliberately not a release.
-The all-thirteen/default-twelve-voice image exceeds the current protected app
-extent by 144,216 bytes before effects. Owner approval of the reviewable larger
-layout proposal remains pending; do not infer it from the catalogue requirement
-or relax guards by silence. See
-`notes/2026-10-13-native-expanded-layout-proposal.md`. Keep old consumed/ambiguous
-hardware operations retired, and require fresh device admission and matching
-backups before writes. Builds stay on Hera; no containers remain running from
-this checkpoint.
+Next: verify bounded startup staging before sound allocation, strict content
+capacity/dependency admission, parser call-chain stack margin, project state
+application, multitrack RAM/timing, MIDI ownership, persistence and the web
+builder/installer. No device operation occurred at this checkpoint. Current
+probe does not invoke activation. See native streaming-set-loader note.
+
+The all-thirteen/twelve-voice image exceeds the protected app by 144216 bytes
+before effects. Expanded-layout approval remains pending; do not infer it from
+the catalogue requirement or relax guards. See expanded-layout-proposal note.
+Fresh identity and matching backups precede any write; consumed/ambiguous
+operations remain retired. Builds stay on Hera. Goal remains active.
 
 # Active continuation 2026-10-12: receipt replay checkpoint
 

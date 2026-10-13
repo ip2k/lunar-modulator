@@ -13,7 +13,8 @@ HARNESS = r'''
 #include <string.h>
 static unsigned offs;
 static void note_off(void *self, uint8_t key) { (void)self; if (key == 60) ++offs; }
-static const fm1_engine_t engine = { .note_off = note_off };
+static const fm1_param_t params[] = { { .name = "Decay", .uid = 12 } };
+static const fm1_engine_t engine = { .params = params, .n_params = 1, .note_off = note_off };
 static unsigned char *file(const char *name, size_t *size) {
     FILE *f = fopen(name, "rb"); unsigned char *p;
     if (!f || fseek(f, 0, SEEK_END)) exit(10);
@@ -55,10 +56,15 @@ int main(int argc, char **argv) {
       fm1_seq_create(b, &other, 44118);
       if (fm1_seq_replace(sa, sb)) return 27;
       fm1_seq_create(b, &lim, 44118); }
+    { fm1_seq_ev_t events[72];
+      fm1_seq_apply_text(sb, "play", 4, events, 72);
+      if (fm1_seq_replace(sa, sb)) return 31;
+      fm1_seq_create(b, &lim, 44118); }
+    if (fm1_seq_can_replace((const fm1_seq_t *)((char *)a + 1), sb)) return 32;
     ok = lunar_content_activate_set(app, bin, (uint32_t)nb, sa, &report);
     if (atoi(argv[3])) {
         if (!ok || offs != 2 || app->seq_note_count[0][60] || app->seq_pending ||
-            app->seq_gen != 8 || app->seq_host.lane_uid[0][0] == 999 ||
+            app->seq_gen != 8 || app->seq_host.lane_uid[0][0] != 12 ||
             memcmp(live, sa, bytes)) return 28;
     } else if (ok || offs || memcmp(snapshot, live, bytes) ||
                memcmp(app_before, app, sizeof(*app))) return 29;

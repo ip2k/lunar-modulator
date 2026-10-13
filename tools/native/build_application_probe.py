@@ -330,7 +330,7 @@ def main():
             packed_sha256=[hashlib.sha256(p).hexdigest() for p in content_inputs.packed_content],
             sequence_semantics_verified=False, native_playback_verified=False)
     if args.link_set_loader:
-        report['set_loader'] = dict(native_link_verified=True, activated=False,
+        report['set_loader'] = dict(native_link_verified=True, activation_api_link_verified=True, activated=False,
                                    stack_margin_verified=False, hardware_tested=False,
                                    sequence_semantics_verified=False)
     (out / 'verification.json').write_text(json.dumps(report, indent=2) + '\n')
