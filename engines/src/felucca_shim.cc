@@ -88,8 +88,11 @@
 
 #include "felucca_bridge.h"
 
-#include <cstring>
+#if defined(FM1_FREESTANDING)
+#include "fm1_placement_new.h"
+#else
 #include <new>
+#endif
 
 namespace fm1 {
 namespace felucca {

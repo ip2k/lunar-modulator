@@ -17,6 +17,17 @@ int main(int argc, char **argv)
     shard = (unsigned)strtoul(argv[1], NULL, 10);
     if (shard >= 16) return 2;
     if (lunar_engine_init(32000)) return 3; /* engine must reject unsupported rate */
+    {
+        int32_t guarded[130];
+        for (i = 0; i < 130; i++) guarded[i] = 0x12345;
+        lunar_engine_render(guarded, 64); /* rejected init must not render */
+        lunar_engine_note_on(60, 100);
+        lunar_engine_all_notes_off();
+        if (!lunar_engine_init(44100)) return 4;
+        lunar_engine_render(guarded, 65); /* oversized blocks must not write */
+        lunar_engine_render(guarded, 0);
+        for (i = 0; i < 130; i++) if (guarded[i] != 0x12345) return 9;
+    }
     for (trial = shard; trial < 128; trial += 16) {
         unsigned note = 24 + trial % 80, velocity = 1 + trial % 127;
         void *ref;
@@ -32,6 +43,10 @@ int main(int argc, char **argv)
             float expected[128];
             for (i = 0; i < 130; i++) actual[i] = 0x12345;
             if (block == 32) { lunar_engine_note_off(note); engine->note_off(ref, note); }
+            if (block == 64) {
+                lunar_engine_all_notes_off();
+                for (i = 0; i < 128; i++) engine->note_off(ref, (uint8_t)i);
+            }
             lunar_engine_render(actual + 1, frames);
             engine->render(ref, expected, frames);
             if (actual[0] != 0x12345 || actual[frames * 2 + 1] != 0x12345) return 7;

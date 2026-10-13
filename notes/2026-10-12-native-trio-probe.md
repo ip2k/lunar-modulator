@@ -38,9 +38,26 @@ platform copy. Exactly two checked adaptations skip boot OTA cleanup and
 make the flash-write allowlist empty. Upstream files remain unmodified.
 There is no firmware packaging or flash admission in this builder.
 
-The build still uses SDK source standard headers; no SDK archives are linked.
-Independent header provenance, stock flash layout and entry/recovery review,
-queue overflow recovery, and physical audio/timing checks remain required.
+Follow-up build [verified]: no SDK source header directory was mounted. Using
+the toolchain's C headers and a bounded C++11 placement-construction declaration
+produced the same ELF hash above. The wrapper's unused `<cstring>` include was
+removed. Full libc++ was evaluated against its official LLVM 4.0 source; it
+would import exception and allocation declarations and transitive headers for
+a single caller-owned construction operation. The small native-only header
+implements that operation, without an allocator or a C++ library runtime.
+Primary comparison: [LLVM libc++ new](https://github.com/llvm/llvm-project/blob/llvmorg-4.0.0/libcxx/include/new).
+
+The subsequent guarded probe adds bounded event consumption and releases all
+notes after queue overflow. Rendering rejects uninitialized, null, zero-length
+and oversized requests. All 16 host shards passed again, with added unsupported
+initialization, block-size boundary and all-notes-off checks. Target ELF SHA256
+is `bfc32413e1bd9f0aff1c56c4285628fc7033e02d3f913a58e589c301546b3084`.
+It links with no SDK archives or SDK source headers and no named undefined
+symbols. These assertions do not establish real-time performance or full
+toolchain source/licence reproducibility.
+
+Stock flash layout and entry/recovery review, queue overflow hardware timing,
+and physical audio checks remain required.
 The application is a single-engine diagnostic, without the complete Lunar
 interface, sequencer, effects or web installer acceptance.
 

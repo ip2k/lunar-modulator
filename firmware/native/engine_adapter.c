@@ -16,12 +16,18 @@ int lunar_engine_init(uint32_t sample_rate)
     return instance != NULL;
 }
 void lunar_engine_note_on(uint8_t key, uint8_t velocity)
-{ engine->note_on(instance, key, velocity); }
+{ if (instance) engine->note_on(instance, key, velocity); }
 void lunar_engine_note_off(uint8_t key)
-{ engine->note_off(instance, key); }
+{ if (instance) engine->note_off(instance, key); }
+void lunar_engine_all_notes_off(void)
+{
+    uint32_t key;
+    for (key = 0; key < 128u; key++) lunar_engine_note_off((uint8_t)key);
+}
 void lunar_engine_render(int32_t *out, uint32_t frames)
 {
     uint32_t i;
+    if (!instance || !out || frames > 64u || frames == 0u) return;
     engine->render(instance, render_lr, frames);
     for (i = 0; i < frames * 2u; i++) {
         float x = render_lr[i];

@@ -21,11 +21,9 @@ def check_pins(directory):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--toolchain', type=Path, required=True)
-    parser.add_argument('--headers', type=Path, required=True,
-                        help='Temporary SDK source standard-header root; no archives used')
     parser.add_argument('--build', type=Path, required=True)
     args = parser.parse_args()
-    tc, headers, out = args.toolchain.resolve(), args.headers.resolve(), args.build.resolve()
+    tc, out = args.toolchain.resolve(), args.build.resolve()
     platform = ROOT / 'firmware/third_party/dinghy'
     check_pins(platform)
     check_pins(ROOT / 'firmware/third_party/compiler-rt')
@@ -43,11 +41,8 @@ def main():
              '-fno-builtin', '-ffunction-sections', '-fdata-sections']
     includes = [out, ROOT / 'firmware/native', platform / 'hal', platform / 'src',
                 platform / 'gen', ROOT / 'engines/include',
-                headers / 'include_lib/newlib/include', tc / 'pi32v2/include']
-    extra = flags + ['-D_GNU_SOURCE', '-D_XOPEN_SOURCE=700', '-D_LIBCPP_CONFIG_SITE',
-                     '-D_LIBCPP_HAS_NO_THREADS',
-                     '-I' + str(headers / 'include_lib/c++/include'),
-                     '-I' + str(headers / 'include_lib/newlib/include'),
+                tc / 'pi32v2/include']
+    extra = flags + ['-D_GNU_SOURCE', '-D_XOPEN_SOURCE=700', '-DFM1_FREESTANDING=1',
                      '-I' + str(tc / 'pi32v2/include')]
     engine_build = out / 'engines'
     engine_objects = [engine_build / 'our/src/felucca_shim.o',
@@ -89,7 +84,8 @@ def main():
     (out / 'sections.txt').write_text(sections)
     report = {'sdk_archives': [], 'undefined_symbols': missing,
               'flash_write_range': 'empty', 'boot_ota_cleanup': False,
-              'standard_headers': str(headers), 'installable': False,
+              'standard_headers': str(tc / 'pi32v2/include'), 'sdk_source_headers': [],
+              'installable': False,
               'hardware_tested': False, 'elf_sha256': hashlib.sha256(elf.read_bytes()).hexdigest()}
     (out / 'verification.json').write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report, indent=2))

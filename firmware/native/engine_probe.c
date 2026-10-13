@@ -21,11 +21,20 @@ static void enqueue(uint8_t status, uint8_t note, uint8_t velocity)
 }
 static void app_audio(int32_t *out, uint32_t n)
 {
-    uint32_t start, offset, r;
+    static uint32_t overflow_seen;
+    uint32_t start, offset, r, end, overflow;
     if (!engine_ready) return;
     start = fm1_ticks();
     r = event_read;
-    while (r != event_write) {
+    end = event_write;
+    overflow = event_overflow;
+    if (overflow != overflow_seen) {
+        /* A lost note-off must not leave a voice held. Discard this burst. */
+        lunar_engine_all_notes_off();
+        r = end;
+        overflow_seen = overflow;
+    }
+    while (r != end) {
         uint32_t e = events[r & 63u];
         uint8_t st = e & 0xf0u, key = (e >> 8) & 127u, vel = (e >> 16) & 127u;
         if (st == 0x90u && vel) lunar_engine_note_on(key, vel);
