@@ -351,7 +351,8 @@ static void item_end(fm1_seq_import_t *im) {
       im->loss_flags |= FM1_SEQ_IMPORT_SYNTAX;
     if (nf < 4u || !ok[0] || !ok[1] || !ok[2] || !ok[3]) return;
     step = nf >= 5u && ok[4] ? v[4] : (uint16_t)((v[0] + SQ_TPS / 2u) / SQ_TPS);
-    if (step >= SQ_MAX_STEPS || v[0] > U16_MAX_ || v[1] > U16_MAX_)
+    if (step >= SQ_MAX_STEPS || v[0] > U16_MAX_ || v[1] > U16_MAX_ ||
+        v[1] < 1u || v[2] > 127u || v[3] < 1u || v[3] > 127u)
       im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
     sq_clip_add_raw(s, im->clip, (uint16_t)step, (uint32_t)v[0], v[1] < 1 ? 1u : (uint32_t)v[1],
                     (uint8_t)(v[2] > 127 ? 127 : v[2]), (uint8_t)(v[3] < 1 ? 1 : (v[3] > 127 ? 127 : v[3])));
@@ -361,7 +362,8 @@ static void item_end(fm1_seq_import_t *im) {
     if (nf != 3u || !ok[0] || !ok[1] || !ok[2]) {
       im->loss_flags |= FM1_SEQ_IMPORT_SYNTAX; return;
     }
-    if (v[1] >= SQ_MAX_STEPS || v[0] >= 8u) im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
+    if (v[1] >= SQ_MAX_STEPS || v[0] >= 8u || v[2] > FM1_SEQ_VAL_MAX)
+      im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
     sq_clip_set_lock(s, im->clip, (uint8_t)(v[0] & 7), (uint16_t)v[1],
                      (fm1_seq_val_t)(v[2] > FM1_SEQ_VAL_MAX ? FM1_SEQ_VAL_MAX : v[2]));
   } else {
@@ -370,7 +372,8 @@ static void item_end(fm1_seq_import_t *im) {
     if (nf != 6u || !ok[0] || !ok[1] || !ok[2] || !ok[3] || !ok[4] || !ok[5]) {
       im->loss_flags |= FM1_SEQ_IMPORT_SYNTAX; return;
     }
-    if (v[0] >= SQ_MAX_STEPS || (lane != -1 && (lane < 0 || lane >= 128)))
+    if (v[0] >= SQ_MAX_STEPS || (lane != -1 && (lane < 0 || lane >= 128)) ||
+        v[2] > 100u || v[3] < 1u || v[4] < 1u || v[5] > 1u)
       im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
     l = lane >= 0 && lane < 128 ? (uint8_t)lane : SQ_NONE;
     sq_clip_edit_trig(s, im->clip, (uint16_t)v[0], (uint16_t)v[0], l, SQ_TRIG_PROB,

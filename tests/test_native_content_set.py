@@ -186,7 +186,7 @@ def native_set_probe(tmp_path_factory):
     return build
 
 
-@pytest.mark.parametrize('case', range(64))
+@pytest.mark.parametrize('case', range(80))
 @pytest.mark.parametrize('opt', ['-Os', '-Oz'])
 def test_native_packed_set(tmp_path, case, opt, native_set_probe):
     text = (ROOT / 'tests/fixtures/state/1.0/orbit.set.movy1').read_bytes()
@@ -241,7 +241,28 @@ def test_native_packed_set(tmp_path, case, opt, native_set_probe):
             b'cl 0 0 0 0', b'cl 0 0 1 256',
             b'cp 0 0 0 1 0 0', b'cp 0 0 1 1 37 101',
         )[case - 48] + b'\n'
+    elif 64 <= case < 80:
+        text += (
+            b'cl 2 0 16 0 0:0:60:100:0',
+            b'cl 2 0 16 0 0:12:128:100:0',
+            b'cl 2 0 16 0 0:12:60:0:0',
+            b'cl 2 0 16 0 0:12:60:128:0',
+            b'lk 2 0 0:0:128',
+            b'tg 2 0 0:-1:101:1:1:0',
+            b'tg 2 0 0:-1:50:0:1:0',
+            b'tg 2 0 0:-1:50:1:0:0',
+            b'tg 2 0 0:-1:50:1:1:2',
+            b'cl 2 0 16 0 0:1:127:127:0',
+            b'lk 2 0 0:0:127',
+            b'tg 2 0 0:-1:100:1:1:0',
+            b'tg 2 0 0:127:0:255:255:1',
+            b'cl 2 0 16 0 0:12:0:1:0',
+            b'lk 2 0 7:255:0',
+            b'tg 2 0 255:-1:50:1:1:1',
+        )[case - 64] + b'\n'
     loss = {2: 4, 3: 1, 8: 8, 9: 2, 10: 1, 11: 1, 12: 8, 13: 8, 14: 9, 15: 8}.get(case, 1 if case >= 48 else (16 if case >= 16 else 0))
+    if case >= 73:
+        loss = 0  # Valid boundary controls must remain admitted.
     valid = case not in (4, 5, 6, 7)
     movy = tmp_path / 'set.movy1'
     movy.write_bytes(text)

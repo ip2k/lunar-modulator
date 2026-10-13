@@ -1,3 +1,17 @@
+# Native continuation — event normalization, 2026-10-13
+
+Branch `feature/2026-10-11@installable-firmware`; preceding verified pushed SHA
+`e68d7b7d693378c39dcad71d052249fe96b5972c`.
+Loss diagnostics now cover clamped note/lock/trigger values.160 sanitizer checks
+and466 compatibility checks passed (two expected failures); fresh cataloguev8
+and16 content-linkv16 variants passed77checks each, no OOM; containers removed.
+Initial stale compatibility snapshot excluded and corrected. Evidence/limits:
+`notes/2026-10-13-native-streaming-set-loader.md`. No hardware operation.
+Goal ACTIVE; all-thirteen default and selectable builder unchanged. Expanded
+layout approval pending; no installable release. Next bounded project adapter,
+binding admission, multitrack timing/MIDI/persistence, web builder/installer,
+required review/CI and physical installation/recovery. Preserve all guards.
+
 # Native continuation — allocator admission, 2026-10-13
 
 Branch `feature/2026-10-11@installable-firmware`; preceding verified pushed SHA

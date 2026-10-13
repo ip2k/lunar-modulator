@@ -341,3 +341,20 @@ shards this reduces harness compilations from 128 to 32 without removing any
 of the 128 runtime checks. No cross-session cache or source-freshness shortcut
 is used. The v3 campaign passed all 128 cases, with no OOM; containers removed.
 Private receipt `set-normalization-v3-verification.json`, SHA256 `3e67f287205abcf231314154dfbc1a5e778bee336ad9b44a3c4584bee025661f`.
+
+## Event-value normalization diagnostics
+
+The importer now marks range loss when notes clamp a zero gate, pitch above127
+or velocity outside1..127, locks clamp values above127, or trigger rows clamp
+probability above100, zero condition fields or inversion above1. No imported
+state or importer return behavior changed; the checked native loader refuses
+the diagnostic before activation. Binding checks remain outstanding.
+
+Hera verification:160 packed-set sanitizer cases across Os/Oz, including seven
+valid boundary controls, passed in sixteen chunks. Compatibility:466 passed,
+two existing expected failures, zero errors. The first compatibility campaign
+used a stale source snapshot and is excluded; the corrected v4 snapshot was
+updated and prebuilt before read-only test shards. Fresh v8 catalogue and all
+sixteen v16 content links/77 audit-option checks each passed, no OOM; all owned
+containers removed. This is offline acceptance, not playback or installation.
+Private evidence `event-normalization-evidence.json` SHA256 `b512a27ca76069322878ddaf9d7e8b91cd5f17e6a7835a57f3bcd584b697e75c`.
