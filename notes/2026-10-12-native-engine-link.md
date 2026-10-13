@@ -331,3 +331,45 @@ external-arena campaign.
 OTA installation or web release is implied. Both semantic MCPs cannot locate
 the new external-arena API in their primary-checkout indexes; the worktree
 source and actual target compile are used instead.
+
+[verified] Added the timed shared-application entry firmware/native/app_probe.c
+and reproducible tools/native/build_application_probe.py. The adapter renders
+only in core-0 main context, dequeues Q15 blocks in the audio ISR, bounds render
+refills and MIDI polling, maps panel controls explicitly, and copies byte-swapped
+16-row display strips into a dedicated DMA canvas. HAL gain remains unity while
+the shared application owns the master control. Four 24-KiB sound arenas and ten
+8-KiB effect arenas are provisional: larger effects cannot load. MIDI sustain,
+channel filtering, MIDI output, persistence and release scheduling remain work.
+No perceptual or hardware acceptance is claimed for this adapter.
+
+[verified] The checked eleven-engine profile excludes Comet, Shapes and
+MacroHeavy. It compiles current app/registry/adapter and rebuilds pinned musl,
+compiler-rt and printf sources; every cached catalogue object's hash is checked
+against all sixteen shard receipts. Source freshness of those cached objects is
+explicitly not established, so the receipt refuses hardware-candidate status.
+The owner selected maximum engine coverage before release; this profile is only
+an integration probe, not a reduced release decision.
+
+[verified] The strict artifact verifier caught an implicit ELF-header PT_LOAD
+in reserved stack space after combining the RAM regions. Explicit PHDRS in the
+native linker map eliminate that segment. The new explicit combined-RAM verifier
+profile retains the entry/core/pointer bytes, stack guards, section types and
+permissions, startup symbols, overlapping-range rejection and contiguous flash
+loads; legacy validation remains the default. The ELF linked and passed the
+SDK-free audit with zero failed/pending checks and no calls in .ram_text.
+
+[verified] Final checked-app-probe-04: app 574,116 bytes, flash headroom 7,448;
+.pool ends 0x01C70870, leaving 14,224 bytes before guard0. ELF SHA256
+bb22e86a08ab01408965d49071e9e3c3c0bede3212ac6bfa7d549c892a029cf2;
+flattened app SHA256
+ce769b5c461ed7ae1b21b83e9ee7ee25ea82958edb25a65f1873f5ada8d45b7f.
+Initial builder attempts exposed missing printf include/alias configuration,
+then the obsolete pool verifier contract, then the implicit header segment;
+all failed artifacts remain private and were not used on hardware.
+
+[verified] Sixteen concurrent Hera contract chunks passed, each with its own
+actual-pi32v2 exact-fill/overflow case and synthetic ELF fault, plus shared
+entry/combined-layout checks. No container failed or was OOM-killed. Private
+receipts: checked-app-probe-04.log, checked-app-artifact.json and app-contract.log
+under build/native-external-arenas-16-20261012; Hera out/checked-app-probe-04 and
+out/app-contract-verification.json. No device command was sent for these checks.

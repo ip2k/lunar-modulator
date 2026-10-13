@@ -9,19 +9,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools/native'))
 from probe_artifact import FLASH, ENTRY_GUARD, flatten
 
 
-def fixture():
+def fixture(pool=0x01C20000, pool_size=16):
     text = ENTRY_GUARD + bytes(0x4A - len(ENTRY_GUARD)) + bytes.fromhex('f79f')
     rows = [('.text', FLASH, text, len(text), 1, 6, FLASH),
             ('.ram_text', 0x01C00000, b'RAM!', 4, 1, 6, FLASH + len(text)),
             ('.data', 0x01C08000, b'DATA', 4, 1, 3, FLASH + len(text) + 4),
             ('.bss', 0x01C08004, b'', 16, 8, 3, 0),
-            ('.pool', 0x01C20000, b'', 16, 8, 3, 0),
+            ('.pool', pool, b'', pool_size, 8, 3, 0),
             ('.noinit', 0x01C7C000, b'', 16, 8, 3, 0)]
     values = dict(_start=FLASH, _etext=FLASH + len(text), lunar_entry_rejected=FLASH + 0x4A,
                   _rt_start=0x01C00000, _rt_end=0x01C00004, _rt_load=FLASH + len(text),
                   _data_start=0x01C08000, _data_end=0x01C08004, _data_load=FLASH + len(text) + 4,
                   _bss_start=0x01C08004, _bss_end=0x01C08014,
-                  _pool_start=0x01C20000, _pool_end=0x01C20010,
+                  _pool_start=pool, _pool_end=pool + pool_size,
                   _guard0=0x01C74000, _ustack_lo=0x01C74100, _ustack_top=0x01C7A000,
                   _guard1=0x01C7A000, _sstack_lo=0x01C7A100, _sstack_top=0x01C7C000)
     names, strings = {}, b'\0'
@@ -75,6 +75,23 @@ def damaged_contract(fault):
 
 
 class ArtifactTests(unittest.TestCase):
+    def test_combined_exact_fill(self):
+        data = fixture(0x01C08020, 0x01C74000 - 0x01C08020)
+        flatten(data, 'combined')
+        with self.assertRaises(ValueError):
+            flatten(data)  # The legacy contract stays narrow.
+
+    def test_combined_guards(self):
+        for pool, size in ((0x01C08020, 0x01C74000 - 0x01C08020 + 16),
+                           (0x01C08021, 16), (0x01C08010, 16),
+                           (0x01C06000, 16)):
+            with self.assertRaises(ValueError):
+                flatten(fixture(pool, size), 'combined')
+
+    def test_unknown_layout(self):
+        with self.assertRaises(ValueError):
+            flatten(fixture(), 'unknown')
+
     def test_valid(self):
         valid_layout()
 

@@ -23,7 +23,14 @@ REGIONS = {
 }
 
 
-def flatten(data):
+def flatten(data, layout='legacy'):
+    if layout not in ('legacy', 'combined'):
+        raise ValueError('Unknown RAM layout')
+    regions = dict(REGIONS)
+    if layout == 'combined':
+        for name in ('.data', '.bss', '.pool'):
+            lo, _, kind, flags = regions[name]
+            regions[name] = (0x01C08000, 0x01C74000, kind, flags)
     image = Elf(data)
     if (image.e_type, image.e_machine) != (ET_EXEC, EM_PI32V2):
         raise ValueError('Requires linked pi32v2 executable')
@@ -50,10 +57,10 @@ def flatten(data):
         if not section['flags'] & 2 or not section['size']:
             continue
         name, address, size = section['name'], section['addr'], section['size']
-        if name not in REGIONS or name in seen:
+        if name not in regions or name in seen:
             raise ValueError('Unexpected allocated section: ' + name)
         seen.add(name)
-        lo, hi, kind, flags = REGIONS[name]
+        lo, hi, kind, flags = regions[name]
         if not lo <= address < address + size <= hi or (section['type'], section['flags']) != (kind, flags):
             raise ValueError('Invalid section bounds/type/permissions: ' + name)
         if name == '.text' and address != FLASH:
@@ -85,8 +92,12 @@ def flatten(data):
         if p[5] < p[4] or p[6] != (6 if name == '.data' else 5):
             raise ValueError('Invalid load segment permissions/size')
         loads.append((load, load + size, data[offset:offset + size]))
-    if seen != set(REGIONS):
+    if seen != set(regions):
         raise ValueError('Missing required sections')
+    if layout == 'combined':
+        pool = image.symbol_value('_pool_start')
+        if pool & 15 or pool < image.symbol_value('_bss_end'):
+            raise ValueError('Combined pool alignment/order is invalid')
     if used_segments != {i for i, p in enumerate(segments) if p[0] == 1 and p[4]}:
         raise ValueError('Unaccounted file-backed load segment')
     for ranges in (ram, [(lo, hi) for lo, hi, _ in loads]):
@@ -107,9 +118,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--elf', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--layout', choices=('legacy', 'combined'), default='legacy')
     args = parser.parse_args()
     data = args.elf.read_bytes()
-    image, app = flatten(data)
+    image, app = flatten(data, args.layout)
     root = Path(__file__).resolve().parents[2]
     receipt = audit([('native-probe.elf', image)], [('app.bin', app)], True,
                     sources=collect_sources([root / 'firmware/native']), runtime='sdk-free')
@@ -119,7 +131,7 @@ def main():
     (args.out / 'app.bin').write_bytes(app)
     report = {'elf_sha256': hashlib.sha256(data).hexdigest(),
               'app_sha256': hashlib.sha256(app).hexdigest(), 'app_bytes': len(app),
-              'layout_passed': True, 'key_audit': receipt,
+              'layout_passed': True, 'ram_layout': args.layout, 'key_audit': receipt,
               'hardware_admitted': False, 'hardware_tested': False,
               'installable': False}
     (args.out / 'artifact.json').write_text(json.dumps(report, indent=2) + '\n')

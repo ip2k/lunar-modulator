@@ -1,0 +1,160 @@
+/* SPDX-License-Identifier: GPL-3.0-only */
+/* Timed shared-application integration probe, NOT a release entry point.
+ * Requires the reviewed generated platform: no NOR writes, 16-row canvas,
+ * no OTA cleanup and unity HAL master gain. Arena sizes are provisional;
+ * large effects cannot load here. Device admission is a separate operation. */
+#if !defined(LUNAR_APP_PROBE) || !FM1_APP_EXTERNAL_ARENAS
+#error "Use the checked external-arena probe build"
+#endif
+#include <stdint.h>
+#include <string.h>
+#define APP_NAME "LUNAR MODULATOR"
+#define APP_VER "APP PROBE"
+#define FM1_BTN_OCT_DOWN DINGHY_BTN_OCT_DOWN
+#define FM1_BTN_OCT_UP DINGHY_BTN_OCT_UP
+static int32_t lunar_master_raw = 512;
+#include "platform.c"
+#undef FM1_BTN_OCT_DOWN
+#undef FM1_BTN_OCT_UP
+#include "fm1_app.h"
+#include "audio_queue.h"
+
+typedef char lunar_probe_canvas_bound[(CV_MAX == 240u * 16u) ? 1 : -1];
+static fm1_app_t app __attribute__((section(".pool"), aligned(16)));
+static uint8_t sound_arena[FM1_APP_SOUNDS][24576]
+    __attribute__((section(".pool"), aligned(16)));
+static uint8_t fx_arena[FM1_APP_EFFECTS][8192]
+    __attribute__((section(".pool"), aligned(16)));
+static lunar_audio_queue_t audio_queue;
+static volatile uint32_t render_ticks_max, draw_ticks_max;
+static volatile uint32_t arena_bind_failures, initial_engine_result;
+
+static void app_audio(int32_t *out, uint32_t n)
+{
+    /* The platform calls with 256 frames. Each dequeue is exactly 64. */
+    if (n % LUNAR_AUDIO_BLOCK_FRAMES) {
+        memset(out, 0, n * 2u * sizeof *out);
+        return;
+    }
+    for (uint32_t i = 0; i < n; i += LUNAR_AUDIO_BLOCK_FRAMES)
+        lunar_audio_pop(&audio_queue, out + i * 2u);
+}
+
+static void refill_audio(void)
+{
+    /* A slow engine must still yield to USB, watchdog and timed recovery. */
+    for (unsigned blocks = 0;
+         blocks < LUNAR_AUDIO_QUEUE_BLOCKS &&
+         audio_queue.written - audio_queue.read < LUNAR_AUDIO_QUEUE_BLOCKS;
+         ++blocks) {
+        uint32_t start = fm1_ticks();
+        const float *p = fm1_app_render(&app, LUNAR_AUDIO_BLOCK_FRAMES);
+        uint32_t elapsed = fm1_ticks() - start;
+        if (elapsed > render_ticks_max) render_ticks_max = elapsed;
+        lunar_audio_push(&audio_queue, p);
+    }
+}
+
+static void display_strip(uint32_t *row)
+{
+    if (lcd_busy) {
+        if (!(FM1_LCD_SPI_CON & 0x8000u)) return;
+        lcd_sync();
+    }
+    /* DMA reads cv_px, never the framebuffer that the app can redraw. */
+    for (uint32_t i = 0; i < 240u * 16u; ++i)
+        cv_px[i] = swap16(app.tft.px[*row * 240u + i]);
+    lcd_blit(0, *row, 240, 16, cv_px);
+    *row = (*row + 16u) % 240u;
+}
+
+static void incoming_midi(void)
+{
+    uint8_t st, a, b;
+    /* Bound each poll so a sustained USB stream cannot starve rendering. */
+    for (unsigned i = 0; i < 32u && midi_get(&st, &a, &b); ++i) {
+        switch (st & 0xf0u) {
+        case 0x90:
+            if (b) fm1_app_note_on(&app, a, b);
+            else fm1_app_note_off(&app, a);
+            break;
+        case 0x80: fm1_app_note_off(&app, a); break;
+        case 0xe0:
+            fm1_app_pitch_bend(&app, ((int)a + ((int)b << 7) - 8192) / 4096.0f);
+            break;
+        case 0xb0:
+            if (a == 120u || a == 123u) fm1_app_all_notes_off(&app);
+            break;
+        }
+    }
+}
+
+static void app_main(void)
+{
+    /* HAL: SELECT, ALGORITHM, KNOB1..4, PRESETS. Shared app differs. */
+    static const uint8_t encoders[7] = {
+        FM1_ENC_SELECT, FM1_ENC_ALGORITHM, FM1_ENC_KNOB1,
+        FM1_ENC_KNOB2, FM1_ENC_KNOB3, FM1_ENC_KNOB4, FM1_ENC_PRESETS
+    };
+    uint32_t previous_keys = 0, row = 0, last_draw = 0;
+    uint32_t start = fm1_ticks();
+    int previous_master = -1;
+    unsigned effect = 0;
+    fm1_app_init(&app, 44118.0f);
+    for (int unit = 0; unit < FM1_APP_UNITS; ++unit) {
+        int sound = -1;
+        for (int s = 0; s < FM1_APP_SOUNDS; ++s)
+            if (fm1_app_sound_unit(s) == unit) sound = s;
+        int rc = sound >= 0
+            ? fm1_app_bind_arena(&app, unit, sound_arena[sound], sizeof sound_arena[0])
+            : fm1_app_bind_arena(&app, unit, fx_arena[effect++], sizeof fx_arena[0]);
+        if (rc) arena_bind_failures++;
+    }
+    initial_engine_result = (uint32_t)fm1_app_select(&app, 0, fm1_app_find("trio"));
+    refill_audio();
+    for (;;) {
+        if ((uint32_t)(fm1_ticks() - start) >= 20u * 1000000u * FM1_TICKS_PER_US) {
+            fm1_audio_stop();
+            usb_detach();
+            fm1_delay_ms(30);
+            bootguard_clear(&bootguard);
+            fm1_enter_uboot();
+        }
+        refill_audio();
+        platform_poll();
+        uint32_t keys = fm1_in.notes, changed = keys ^ previous_keys;
+        previous_keys = keys;
+        for (unsigned k = 0; k < 27u; ++k) {
+            if ((changed >> k) & 1u) fm1_app_key(&app, k, (keys >> k) & 1u, 100);
+            fm1_led_key(KEY_LED(k), (keys >> k) & 1u);
+        }
+        uint32_t released, pressed = fm1_input_edges(&released);
+        for (unsigned b = 0; b < 14u; ++b) {
+            if ((pressed >> b) & 1u) fm1_app_button(&app, b, 1);
+            if ((released >> b) & 1u) fm1_app_button(&app, b, 0);
+        }
+        for (unsigned e = 0; e < 7u; ++e) {
+            int delta = fm1_enc_take(e);
+            if (delta) fm1_app_encoder(&app, encoders[e], delta);
+        }
+        int master = lunar_master_raw;
+        if (master != previous_master) {
+            previous_master = master;
+            float position = master / 1024.0f;
+            if (position < 0.0f) position = 0.0f;
+            if (position > 1.0f) position = 1.0f;
+            fm1_app_master(&app, position, 0);
+        }
+        incoming_midi();
+        refill_audio();
+        if ((uint32_t)(fm1_ms - last_draw) >= 33u) {
+            uint32_t tick = fm1_ticks();
+            last_draw = fm1_ms;
+            fm1_app_draw(&app, 0);
+            uint32_t elapsed = fm1_ticks() - tick;
+            if (elapsed > draw_ticks_max) draw_ticks_max = elapsed;
+        }
+        refill_audio();
+        display_strip(&row);
+    }
+}

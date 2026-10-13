@@ -17,16 +17,25 @@ MEMORY
     RAM    (rwx) : ORIGIN = 0x01C08000, LENGTH = 0x6C000
     NOINIT (rw)  : ORIGIN = 0x01C7C000, LENGTH = 0x3D50
 }
+/* Do not let ld place an implicit ELF-header segment in the reserved stacks. */
+PHDRS
+{
+    xip PT_LOAD FLAGS(5);
+    ramcode PT_LOAD FLAGS(5);
+    globals PT_LOAD FLAGS(6);
+    arenas PT_LOAD FLAGS(6);
+    retained PT_LOAD FLAGS(6);
+}
 SECTIONS
 {
-    .text : { KEEP(*(.text.crt0)) *(.text*) *(.rodata*) . = ALIGN(4); _etext = .; } > XIP
-    .ram_text : { _rt_start = .; KEEP(*(.ram_text*)) . = ALIGN(4); _rt_end = .; } > RAMTEXT AT > XIP
+    .text : { KEEP(*(.text.crt0)) *(.text*) *(.rodata*) . = ALIGN(4); _etext = .; } > XIP :xip
+    .ram_text : { _rt_start = .; KEEP(*(.ram_text*)) . = ALIGN(4); _rt_end = .; } > RAMTEXT AT > XIP :ramcode
     _rt_load = LOADADDR(.ram_text);
-    .data : { . = ALIGN(4); _data_start = .; *(.data*) *(.sdata*) . = ALIGN(4); _data_end = .; } > RAM AT > XIP
+    .data : { . = ALIGN(4); _data_start = .; *(.data*) *(.sdata*) . = ALIGN(4); _data_end = .; } > RAM AT > XIP :globals
     _data_load = LOADADDR(.data);
-    .bss (NOLOAD) : { _bss_start = .; *(.bss*) *(.sbss*) *(COMMON) . = ALIGN(4); _bss_end = .; } > RAM
-    .pool (NOLOAD) : { . = ALIGN(16); _pool_start = .; *(.pool*) . = ALIGN(4); _pool_end = .; } > RAM
-    .noinit (NOLOAD) : { *(.noinit*) } > NOINIT
+    .bss (NOLOAD) : { _bss_start = .; *(.bss*) *(.sbss*) *(COMMON) . = ALIGN(4); _bss_end = .; } > RAM :globals
+    .pool (NOLOAD) : { . = ALIGN(16); _pool_start = .; *(.pool*) . = ALIGN(4); _pool_end = .; } > RAM :arenas
+    .noinit (NOLOAD) : { *(.noinit*) } > NOINIT :retained
     _guard0 = 0x01C74000; _ustack_lo = 0x01C74100; _ustack_top = 0x01C7A000;
     _guard1 = 0x01C7A000; _sstack_lo = 0x01C7A100; _sstack_top = 0x01C7C000;
     /DISCARD/ : { *(.comment) *(.note*) }
