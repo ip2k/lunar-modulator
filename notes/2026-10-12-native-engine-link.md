@@ -392,8 +392,52 @@ ce769b5c461ed7ae1b21b83e9ee7ee25ea82958edb25a65f1873f5ada8d45b7f.
 ELF SHA256 is
 62d0a7500653a561625fae5d42179a7a444512ae0b8b14f5da79daea893e8d02
 (ELF metadata differs). Receipt source-freshness is now true; hardware-candidate,
-hardware-tested and installable flags remain false. This eleven-engine timed
-probe still has provisional arenas and is not the owner-selected maximum-engine
+hardware-tested and installable flags remain false. This timed probe contains ten production engines plus the test-sine fixture,
+and still has provisional arenas and is not the owner-selected maximum-engine
 release. Private evidence: source-bound-v2.log/report.json under the catalogue
 campaign, checked-app-probe-fresh-02.log and catalogue-receipts.log under the
 external-arena campaign, and the corresponding Hera verification JSON files.
+
+
+### FM6 pitch constants and maximum-catalogue measurements [verified]
+
+The wrapper computes patch operator pitches from generated constant tables,
+leaving vendored msfa untouched. Fixed-frequency arithmetic preserves upstream
+signed 32-bit wrap behavior for out-of-range fine bytes. Sixteen independent
+Hera oracle chunks compared 245,760 settings against untouched osc_freq,
+with zero mismatches. The complete FM6 pytest suite passed 159 tests in sixteen
+containers using the freshly built shared-resampler renderer and oracle. The
+initial test launcher failed before collection because it selected the base
+Python without pytest; selecting the mounted pytest venv corrected the harness.
+No failed or OOM-killed containers remained in the rerun. Generated table
+freshness and git diff whitespace checks pass.
+
+Fresh native compilation passed all sixteen source-bound shards (167 objects).
+Sixteen complete application builds repeated the production-engine omission
+profiles. The eleven-production-engine profile excluding test-sine, Comet and
+Shapes still overflows the preserved app region by 19,080 bytes, down from
+23,224: a 4,144-byte saving. The ten-engine profile additionally excluding
+Macro Heavy produces a 558,588-byte app with 22,976 bytes of flash headroom.
+Its SDK-free and strict combined-layout audits have zero failed/pending checks;
+app SHA256 b60ec45cd927e3d951fffffbc0f5eeda507cd0abf7b53c1abc1b3002838d39ed;
+ELF SHA256 5cb5c49f0fef8a80d464c284fb3daac48551ceccdba19b90f26d5a7bb93378f4.
+These are sizing results, not a selected release or hardware admission.
+
+Target LLVM size-function inspection completed for all forty catalogue entries
+in sixteen containers. Direct constants include Macro 19,872 bytes, Shapes
+206,904 and Macro Heavy 71,392. Host structure sizes must not be substituted
+for pi32v2 sizes. Conditional sizes still require their target configuration
+and layout calculations; this inspection does not establish RAM admission.
+The provisional four 24-KiB sound and ten 8-KiB effect arenas cannot admit all
+included engines/effects. A general host make-all attempt with shared-resampler
+configuration also failed in fm1-shapes-hostile because that standalone target
+omits shared tables; targeted renderer/oracle builds and FM6 tests passed.
+
+Private evidence lives under build/native-external-arenas-16-20261012:
+pitch-verification.log, pitch-regression-verification.json,
+pitch-release-count.log and target-size-functions.json; corresponding Hera
+out receipts and catalogue out-pitch-v1 bind builds to their input sources.
+No device commands or flash writes were performed for these measurements.
+Maximum-engine release work remains active: flash/RAM fit, full native app,
+MIDI, persistence, realtime and physical acceptance, OTA/web installation and
+release recovery verification remain unfinished.

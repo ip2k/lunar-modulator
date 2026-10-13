@@ -213,6 +213,14 @@ def test_the_const_tables_are_what_the_tool_makes():
     subprocess.run([sys.executable, str(ROOT / "tools" / "msfa_tables.py"), "--check"], check=True)
 
 
+@pytest.mark.parametrize("chunk", range(16))
+def test_operator_pitch_matches_upstream(renderer, chunk):
+    result = subprocess.run([str(ORACLE), "--pitch-check", str(chunk)],
+                            check=True, capture_output=True, text=True)
+    receipt = json.loads(result.stdout)
+    assert receipt == {"chunk": chunk, "checked": 15360, "bad": 0}
+
+
 @pytest.mark.parametrize("rate", [RATE, 44100, 16385, 384000])
 def test_the_tables_equal_msfas_own_init(renderer, rate):
     """fm1-dx7-oracle links upstream's sin.cc, exp2.cc and freqlut.cc as they

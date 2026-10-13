@@ -55,6 +55,13 @@ const uint32_t kFreqLutRateHz = 44118;      // the rate kFreqLut44118 is for
 extern const int32_t kSinTab[SIN_N_SAMPLES << 1];
 extern const int32_t kExp2Tab[EXP2_N_SAMPLES << 1];
 extern const int32_t kFreqLut44118[kFreqLutSize];
+extern const int32_t kCoarsePitch[32];
+extern const int32_t kFinePitch[256];
+
+// osc_freq at key zero without libm, with the key's pitch removed in
+// ratio mode. Byte inputs cover sanitized patches and cannot index past
+// the fine table. Compared with the untouched upstream function.
+int32_t OperatorPitch(uint8_t mode, uint8_t coarse, uint8_t fine, uint8_t detune);
 
 // What Freqlut::lookup reads (freqlut.cc defines it, through the prelude's
 // macro): kFreqLut44118 at 44,118 Hz, else a table the engine keeps in its

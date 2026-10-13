@@ -134,6 +134,14 @@ namespace fm1_msfa {{
                 "Exp2::init: odd entries 2^(i / 1024) in Q30, even ones the step to the next."),
         c_array("kFreqLut44118", freq_table(FM1_RATE),
                 f"Freqlut::init({FM1_RATE}): phase increments over an octave, 2^44 / rate up."),
+        c_array("kCoarsePitch", [math.floor(float(Decimal(i if i else '0.5').ln() /
+                                                    Decimal(2).ln()) * (1 << 24) + 0.5)
+                                 for i in range(32)],
+                "osc_freq: Q24 log2 ratios (coarse 0 is one half)."),
+        c_array("kFinePitch", [math.floor(24204406.323123 *
+                                         math.log(1 + 0.01 * i) + 0.5)
+                              for i in range(256)],
+                "osc_freq: rounded fine-pitch increments for every byte value."),
     ])
     return head + body + "\n}  // namespace fm1_msfa\n"
 

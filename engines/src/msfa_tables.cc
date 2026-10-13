@@ -15,6 +15,16 @@
 
 namespace fm1_msfa {
 
+int32_t OperatorPitch(uint8_t mode, uint8_t coarse, uint8_t fine, uint8_t detune) {
+  if (!mode)
+    return kCoarsePitch[coarse & 31] + kFinePitch[fine] + 12606 * (int(detune) - 7);
+  // Match upstream's -fwrapv int32 multiplication even for unsanitized
+  // byte values; valid DX7 fine pitches (0..99) never wrap.
+  int64_t frequency = int64_t(4458616) * ((coarse & 3) * 100 + fine);
+  if (frequency > INT32_MAX) frequency -= int64_t(1) << 32;
+  return int32_t(frequency >> 3) + (detune > 7 ? 13457 * (int(detune) - 7) : 0);
+}
+
 int32_t (*fm1_sintab)[SIN_N_SAMPLES << 1] =
     const_cast<int32_t (*)[SIN_N_SAMPLES << 1]>(&kSinTab);
 int32_t (*fm1_exp2tab)[EXP2_N_SAMPLES << 1] =

@@ -252,9 +252,30 @@ int TablesVsMsfa(float rate) {
 
 }  // namespace
 
+// Sixteen independent chunks cover every sanitized DX7 operator setting.
+// Fine byte values outside the musical range are checked too, against
+// upstream compiled with its required -fwrapv semantics.
+static int PitchCheck(int chunk) {
+  if (chunk < 0 || chunk >= 16) return 2;
+  unsigned checked = 0, bad = 0;
+  for (int mode = 0; mode < 2; ++mode)
+    for (int coarse = chunk; coarse < 32; coarse += 16)
+      for (int fine = 0; fine < 256; ++fine)
+        for (int detune = 0; detune <= 14; ++detune) {
+          int32_t expected = fm1_msfa::osc_freq(0, mode, coarse, fine, detune);
+          if (!mode) expected -= fm1_msfa::midinote_to_logfreq(0);
+          bad += expected != fm1_msfa::OperatorPitch(uint8_t(mode), uint8_t(coarse),
+                                                   uint8_t(fine), uint8_t(detune));
+          ++checked;
+        }
+  printf("{\"chunk\":%d,\"checked\":%u,\"bad\":%u}\n", chunk, checked, bad);
+  return bad ? 1 : 0;
+}
+
 int main(int argc, char **argv) {
   const char *vced_path = NULL, *out_ours = NULL, *out_ref = NULL;
   int key = 60, vel = 100;
+  int pitch_chunk = -1;
   double gate_s = 0.5, seconds = 1.0;
   float rate = 44118.0f;
   bool tables = false, loop_check = false, vs_msfa = false;
@@ -265,7 +286,11 @@ int main(int argc, char **argv) {
     if (a == "--loop-check") { loop_check = true; continue; }
     if (i + 1 >= argc) { fprintf(stderr, "%s wants a value\n", a.c_str()); return 2; }
     const char *v = argv[++i];
-    if (a == "--vced") vced_path = v;
+    if (a == "--pitch-check") {
+      pitch_chunk = atoi(v);
+      if (pitch_chunk < 0 || pitch_chunk >= 16) return 2;
+    }
+    else if (a == "--vced") vced_path = v;
     else if (a == "--key") key = atoi(v);
     else if (a == "--vel") vel = atoi(v);
     else if (a == "--gate") gate_s = atof(v);
@@ -275,6 +300,7 @@ int main(int argc, char **argv) {
     else if (a == "--out-ref") out_ref = v;
     else { fprintf(stderr, "unknown option %s\n", a.c_str()); return 2; }
   }
+  if (pitch_chunk >= 0) return PitchCheck(pitch_chunk);
   if (tables) return Tables(rate);
   if (vs_msfa) return TablesVsMsfa(rate);
   if (loop_check) return LoopCheck(rate);

@@ -382,14 +382,12 @@ class Instance {
   // Each operator's pitch less the key's (msfa's osc_freq at key 0, less
   // the key's own log frequency in ratio mode), so a note-on only adds the
   // key's: osc_freq is that sum in integers, so the result is osc_freq's to
-  // the bit. Computed when the instance is made and when a slot is loaded,
-  // since osc_freq takes a log in doubles (software on pi32v2) per operator.
+  // the bit. Constant pitch tables avoid osc_freq's software double log
+  // when the instance is made and when a slot is loaded.
   static void Pitches(const uint8_t *v, int32_t out[6]) {
     for (int op = 0; op < 6; ++op) {
       const uint8_t *o = v + op * kOpBytes;
-      int32_t f = fm1_msfa::osc_freq(0, o[OP_MODE], o[OP_FC], o[OP_FF], o[OP_DET]);
-      if (!o[OP_MODE]) f -= fm1_msfa::midinote_to_logfreq(0);
-      out[op] = f;
+      out[op] = fm1_msfa::OperatorPitch(o[OP_MODE], o[OP_FC], o[OP_FF], o[OP_DET]);
     }
   }
 
