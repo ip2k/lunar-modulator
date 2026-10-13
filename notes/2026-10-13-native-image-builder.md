@@ -102,3 +102,26 @@ Evidence: private `out/image-profile-v1-verification.json` (retained failure) an
 `out/image-profile-v2-verification.json` (all sixteen pass; no OOM), under the
 Hera root recorded above. Run with `FM1_STATE_TOOL=/path/to/fm1-state` and pytest
 `tests/test_native_image_profile.py`. No device operation occurred.
+
+## Selective wave-bank allocation [verified target link]
+
+Custom selections now decode the Plaits integrated wave bank only when Macro or
+Macro Heavy is selected, and the Braids bank only for Shapes. Scalar lookup
+tables remain available through the original resource objects. The thirteen-
+engine default retains both wave banks and is unchanged.
+
+Hera `module-target-v2` repeated sixteen profile links: thirteen admitted by the
+unchanged SDK-free/layout guards and three correctly refused for the same flash
+overflows. Trio-only app size fell from 285,412 to 251,292 bytes; its instance
+pool grew from 198,400 to 249,088 bytes. Trio+Shapes app size fell from 363,012
+to 330,368 bytes and its pool grew from 165,376 to 216,064 bytes. Both-wave-bank
+Trio+Macro+Shapes remained exactly 395,884 app bytes and 165,376 pool bytes.
+The test links use the optional eight-voice catalogue; they do not verify default
+twelve-voice allocation or hardware timing. No voice count or model was changed.
+
+The combined `builder-inputs-v3` campaign passed 112 host checks in sixteen
+containers: content preparation, module/wave-bank selection and catalogue
+receipt admission. No OOM. Private receipts and per-profile artifacts are under
+the same Hera root. The expanded-layout alternative is a separate design
+proposal in `notes/2026-10-13-native-expanded-layout-proposal.md`; existing link,
+artifact and physical write guards remain unchanged pending the owner's decision.

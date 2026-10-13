@@ -13,7 +13,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
-from module_selection import resolve_modules
+from module_selection import resolve_modules, wavetable_namespaces
 import sys
 
 from build_probe import check_pins
@@ -142,7 +142,7 @@ def main():
     platform = ROOT / 'firmware/third_party/dinghy'
     for name in ('dinghy', 'compiler-rt', 'musl', 'printf', 'tlsf'):
         check_pins(ROOT / 'firmware/third_party' / name)
-    wave_namespaces = (['plaits'] + ([] if 'shapes' in args.exclude else ['braids'])
+    wave_namespaces = (wavetable_namespaces(module_selection['selected'])
                        if args.compressed_wavetables else [])
     objects, catalogue_receipts = checked_catalogue(catalogue, wave_namespaces, args.indexed_tft, args.shapes_voices)
     wave_records = []

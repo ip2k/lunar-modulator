@@ -6,7 +6,23 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools/native'))
-from module_selection import resolve_modules
+from module_selection import resolve_modules, wavetable_namespaces
+
+
+@pytest.mark.parametrize('selected,expected', [
+    ([], []), (['trio'], []), (['drums'], []), (['plate'], []),
+    (['macro'], ['plaits']), (['macro-heavy'], ['plaits']),
+    (['macro', 'macro-heavy'], ['plaits']), (['shapes'], ['braids']),
+    (['macro', 'shapes'], ['plaits', 'braids']),
+    (['macro-heavy', 'shapes'], ['plaits', 'braids']),
+    (['macro', 'macro-heavy', 'shapes'], ['plaits', 'braids']),
+    (['trio', 'drums', 'echo'], []), (['trio', 'shapes'], ['braids']),
+    (['trio', 'macro', 'drums'], ['plaits']),
+    (['shapes', 'macro', 'macro-heavy'], ['plaits', 'braids']),
+    (['lfo', 'env', 'arp'], []),
+])
+def test_wavetable_selection(selected, expected):
+    assert wavetable_namespaces(selected) == expected
 
 
 @pytest.mark.parametrize('specification', [

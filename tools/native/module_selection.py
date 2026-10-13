@@ -11,6 +11,17 @@ import re
 import subprocess
 
 
+def wavetable_namespaces(selected):
+    """Only the Macro engines and Shapes consume the compressed wave banks.
+
+    Other Plaits-derived engines use scalar lookup tables retained in their
+    resource object, not the large integrated wavetable bank.
+    """
+    selected = set(selected)
+    return (['plaits'] if selected & {'macro', 'macro-heavy'} else []) + (
+        ['braids'] if 'shapes' in selected else [])
+
+
 def resolve_modules(root: Path, build: Path, specification: str):
     if specification != 'all':
         ids = specification.split(',')
