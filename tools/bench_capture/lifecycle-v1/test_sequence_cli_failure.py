@@ -4,6 +4,33 @@ from pathlib import Path
 import pytest
 from test_outer_lifecycle import load,put,j,model_temporary_root
 
+def test_returned_admission_uses_lineage_retained_by_native_worker(tmp_path,monkeypatch):
+    """Exercise pipeline routing through native preparation; no device child runs."""
+    m=load('sequence-once.py')
+    stage=tmp_path/'stage';entry=tmp_path/'entry'
+    stage.mkdir();entry.mkdir()
+    monkeypatch.setattr(m,'STAGE',stage);monkeypatch.setattr(m,'ENTRY',entry)
+    monkeypatch.setattr(m,'canonical_baseline_check',lambda:None)
+    monkeypatch.setattr(m,'completion_time',m.time.time)
+    monkeypatch.setattr(m,'read',lambda *a,**k:b'{}')
+    monkeypatch.setattr(m,'obj',lambda *a:{'observed_at':m.time.time()})
+    retained={}
+    class AdmissionReached(Exception):pass
+    def command(label,script,args=(),**kwargs):
+        if label=='native-prepare':
+            run=Path(args[args.index('--run')+1]);run.mkdir(parents=True)
+            retained['lineage']=run/'lineage.json'
+            retained['lineage'].write_bytes(b'native-retained-lineage')
+        if label=='returned-admission':
+            lineage=Path(args[args.index('--boot-lineage')+1])
+            campaign=Path(args[args.index('--native-campaign')+1])
+            assert lineage==retained['lineage']
+            assert lineage.parent==campaign.parent
+            assert lineage.read_bytes()==b'native-retained-lineage'
+            raise AdmissionReached
+    monkeypatch.setattr(m,'command',command)
+    with pytest.raises(AdmissionReached):m.pipeline()
+
 def test_actual_sequence_main_consumes_and_stops_after_first_real_child(tmp_path,monkeypatch):
     m=load('sequence-once.py');stage=tmp_path/'stage';entry=tmp_path/'entry';stage.mkdir(mode=0o700);entry.mkdir(mode=0o700);run=entry/'run';run.mkdir(mode=0o700)
     for key,value in [('STAGE',stage),('ENTRY',entry),('RUN',run)]:monkeypatch.setattr(m,key,value)

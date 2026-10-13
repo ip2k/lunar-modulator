@@ -2,6 +2,8 @@
   "owned-install-boot-once.py": "59b8e8c23f494f0ac6c89585786f72a9b408d5692e2a5fbf66c2c0376945c52d",
   "orchestrate-entry-backup.py": "11fb56e84472f064d15e6c24eebcb768e78f1f349569658c17aa4a699f7108c1",
   "test_outer_lifecycle.py": "ffae1afeca5460ec1f47dddd93bc2dce0aecb0ae06129e37098ba3653849f2b7",
-  "test_sequence_cli_failure.py": "daacc2f7ba69e4ad15e0c207d56422586f86bed047f5f5fbee1cd44dc1a933f4",
-  "sequence-once.py": "4afba654e3f2f67b9632ad01ba9bc526b9a58e059704364f46a9d883bc20a9ad"
+  "test_sequence_cli_failure.py": "4fbe5e2bf67d1ced4a404021d4face8362883d0a441f0a608f5b61ab0c1c5f30",
+  "sequence-once.py": "a668e7834138bca176c775a45169bbf28641b48cac8faab3aeea7c748a00cd57",
+  "owned-admitted-backup-restore-once.py": "3806804f64fc390d88d2048e729c1a3adab87474c13dff787b8ab0f3237c12cb",
+  "test_admitted_passive_binding.py": "3cf20e992dac4f552750408fd9dba7f0619bf1c6495f0e0f95a010a15e204159"
 }

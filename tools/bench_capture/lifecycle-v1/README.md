@@ -29,6 +29,16 @@ launch its children as supplied.
 Retained Hera evidence and the independent replay are described in
 `notes/2026-10-12-owned-capture-lifecycle.md`.
 
+The sequence now routes returned admission to the lineage retained by the
+native-read worker. `owned-admitted-backup-restore-once.py` is a source copy of
+the admitted backup/restore wrapper with its passive SG comparison corrected
+for tuple identities serialized as JSON lists. Its historical factory pins
+remain unchanged; it must be rebound and reviewed for a new concrete campaign
+before use. No consumed deployed source or old failed receipt was changed.
+`test_admitted_passive_binding.py` covers equivalent representations and rejects
+changed stat identities, numeric types and extra fields. The three lifecycle
+test files passed 84 cases in 16 isolated Hera containers on 2026-10-12.
+
 The historical `historical-install-7d2.py` source is retained solely to verify
 old capture receipts against their actual program bytes. The recovery adapter
 accepts that hash and the reviewed successor hash; it rejects caller-selected

@@ -1590,3 +1590,21 @@ diagnostic boot with owner observation. Physicalrecovery/interruptedcorrupt/
 reviewCIintegration remain open; goalactive. No manualpowercycle needed now.
 
 [verified] Supersedes live66805: terminal57 tests pass16 chunks nofailure/error/skip/OOM; inspections/XML retained, ownedcontainersremoved. portable-wrapper-verification.json records pins.
+
+## V8 actual execution and recovery dependency (2026-10-12)
+
+[verified] V8 installed/full target readback passed, diagnostic boot ran 20
+seconds and returned ROM, native trace read completed. Visible display remains
+unconfirmed. Independent backup child succeeded with matching full target
+dumps; outer wrapper stopped on tuple/list SG comparison after child success.
+Capture cleanup succeeded; original ambiguity receipts preserved. Current
+device still contains target plus fixed RAM loader; stock restore is pending.
+Do not replay any consumed V8 sequence/worker/preparer.
+
+Source lineage routing and passive comparison fixes are regression-tested:
+84 cases passed in 16 isolated Hera containers, all inspected and removed.
+See `notes/2026-10-12-v8-recovery-regressions.md` and private
+`build/fresh-diagnostic-v8-proposal-20261012/CONTINUE.md` for actual paths.
+Next: independently admit the completed backup's exact post-child failure,
+review a distinct stock restore, verify full stock readback and normal boot.
+Then finish display acceptance, interrupted/corrupt recovery and review/CI.

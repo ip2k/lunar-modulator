@@ -175,7 +175,7 @@ def pipeline():
     admitted=STAGE/'returned-admission.json';journal=STAGE/'transaction/journal.json'
     prep=H/'prepare-admitted-recovery-v4.py'
     command('returned-admission',prep,['admission','--factory-tools',STAGE/'tools',
-        '--boot-lineage',STAGE/'boot-lineage.json','--native-campaign',nr/'campaign.json',
+        '--boot-lineage',nr/'lineage.json','--native-campaign',nr/'campaign.json',
         '--owned-capture',nr/'owned-capture.json','--install-journal',journal,'--output',admitted])
     backup=STAGE/'returned-backup-campaign.json';preserved=parent/'journal-before-admitted-backup.json'
     command('returned-backup-prepare',prep,['backup','--factory-tools',STAGE/'tools',
