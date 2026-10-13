@@ -147,3 +147,31 @@ helpers, parser/allocator/sort support and actual HAL; measure complete flash/RA
 and audio budget before choosing the maximum feasible engine catalogue. Latest
 previous exact-head CI (d6dffc5, run 38359023800) was still in progress at this
 checkpoint; these local/Hera passes are not CI or release acceptance.
+
+
+### 2026-10-13: remaining arithmetic conversions and runtime closure
+
+[verified] The compiler runtime now contains 31 pinned LLVM C units. Sixteen
+parallel target builds linked the arithmetic probe with no unresolved symbols;
+sixteen host UBSan shards compared signed/unsigned 64-bit-to-double software
+conversions against hardware casts (16,384 full-width rows per shard, rounding
+ties and exponent boundaries). These are source and target-link checks, not
+physical execution. Receipt: private `build/native-musl-evaluation-20261012/`.
+
+[verified] Combining the earlier init/draw/render catalogue reachability object
+with the selected musl runtime, formatter and compiler runtime gives 389,154
+bytes text and 407,727 bytes rodata (796,881 total). The preserved XIP region is
+581,564 bytes; HAL and other interaction roots are not included in this count.
+The relocatable link still references float sort, __fpclassifyf, atoi and
+putchar_. The earlier formatter object may retain unused routines because its
+compile did not split all functions; rebuild before treating putchar_ as a
+reachable UI requirement. This is not a firmware candidate or a complete app
+link. No device command or flash write occurred in this stage.
+
+[verified] Source runtime checkpoint 138cb6733a5dba7a44a0da61664ac1dbc9964070
+was pushed and matched its remote branch SHA. Parent d6dffc52 exact-head CI
+38359023800 remains in progress; no merge or release acceptance is claimed.
+Both semantic tools selected the primary checkout, where the worktree-only
+arithmetic probe file was absent; queries failed with file-not-found. Direct
+worktree inspection and actual target compilation were used instead, without
+changing another session's shared semantic-tool root.

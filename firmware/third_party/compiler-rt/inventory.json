@@ -50,6 +50,8 @@
     "fp_fixuint_impl.inc": "fc0d0b1b6fd1b3ec61ed3cd96e634de9f380eb76b7161fea91ddbddece71ac09",
     "int_to_fp_impl.inc": "5bb2fa67db4fc0c35038240189c23ef94f005d14676f2a5e4deab4085ad05a55",
     "int_to_fp.h": "9ac8fd0650f1560e6c910979e0004c5956ae7da6e3bded7eab0b0270c51bf400",
-    "fixunsdfdi.c": "edfc5d1bc551a6acb8d3cb4e6e5073125e8a3ef93ff539002db381fce4c6236a"
+    "fixunsdfdi.c": "edfc5d1bc551a6acb8d3cb4e6e5073125e8a3ef93ff539002db381fce4c6236a",
+    "floatdidf.c": "aa8abfb4f802a359b220b4a5edcd494aa484e7ece129c9e8036143f5913e8783",
+    "floatundidf.c": "052bbd24835e69cfa03dc9c820f5022893dd69c2f8b9d9e6fe4187bb8773d28b"
   }
 }

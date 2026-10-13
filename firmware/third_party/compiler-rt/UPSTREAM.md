@@ -11,7 +11,7 @@ archives. No modifications, architecture assembly, sanitizer runtime or SDK
 code are included. The generic `fp_mode.c` selects round-to-nearest, ties-to-even;
 it does not maintain floating-point exception flags.
 
-[verified] The integrated build now compiles 28 arithmetic units and resolves
+[verified] The integrated build now compiles 31 arithmetic units and resolves
 all compiler-generated arithmetic references in the 160-object Lunar engine
 partial link, including the selected GPL modules. Source hashes pass the pinned
 inventory check. Sixteen parallel Hera engine compilation shards passed on
@@ -20,3 +20,10 @@ not physical numerical or audio acceptance. Standard headers in that experiment
 still came from the SDK checkout; independent headers remain necessary.
 See `notes/2026-10-12-native-engine-link.md` and the earlier
 `notes/2026-10-12-native-runtime-baseline.md`.
+
+[verified: 2026-10-13] Added the unchanged signed and unsigned 64-bit-to-double
+conversions from the same pin. All 31 units and the compiler-generated probe
+linked without unresolved symbols in sixteen Hera containers. Sixteen host
+UBSan shards compared the soft-float conversion implementations with host
+hardware casts, covering full-width samples and exponent/rounding boundaries.
+This checks source behavior; it does not execute the pi32v2 code on hardware.
