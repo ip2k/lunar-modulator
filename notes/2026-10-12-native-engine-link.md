@@ -175,3 +175,42 @@ Both semantic tools selected the primary checkout, where the worktree-only
 arithmetic probe file was absent; queries failed with file-not-found. Direct
 worktree inspection and actual target compilation were used instead, without
 changing another session's shared semantic-tool root.
+
+### 2026-10-13: interactive runtime and final LTO measurement
+
+[verified] The musl subset now has 66 unchanged upstream C units: added float
+classification and ASCII digit/space predicates plus atoi. Source pins remain
+checked. All 16 target shards and 16 independent ASan/UBSan host shards passed
+on Hera; initial locale-header failures are retained in private receipts.
+The compatibility header prevents toolchain locale-table macros from replacing
+the selected predicates. Its opaque locale argument only supports the unused
+ASCII _l aliases; it does not implement a locale service. Tests now reject
+opposite signed zero rather than allowing tolerance comparison to mask it.
+
+[verified] Disabling libc++ extern template declarations makes float sort
+instantiate from the existing standard headers without a closed library or
+custom sorting implementation. All 167 catalogue objects compiled in 16
+non-LTO shards and 16 LTO shards. The non-LTO interactive closure retains
+key/button/encoder/master and note/pitch/all-notes-off roots: text 417,606 plus
+rodata 407,830 = 825,436 bytes. Its remaining putchar_ undefined table entry
+has no surviving relocation in the inspected earlier interactive closure.
+This is a reachability measurement, not a complete firmware application.
+
+[verified] A partial LTO link followed by another GC link grew to 941,421 bytes
+and introduced unused parser/heap references. Linking the original bitcode
+directly, together with the 66-unit runtime, formatter and 31-unit compiler
+runtime, against the actual preserved app.ld avoids those unresolved symbols
+but fails: XIP overflow 227,740 bytes. No enlarged partition, unresolved-symbol
+ignore option or fake implementation was used. The measurement still excludes
+the full HAL and release entry. The toolchain lto-wrapper cannot find its
+same-directory ld; directly invoking pi32v2 ld with LLVMgold.so performs LTO.
+
+[verified] Private receipts: native-musl-evaluation-20261012/out on Hera
+(c-runtime-verification.json, closure-c-runtime/result.json),
+native-external-arenas-16-20261012/out (c-runtime-pytest-verification.json,
+final-lto-layout/link.log and link.map), and native-catalogue-16-20261012
+(out-inline-sort and out-lto). Copies of key receipts are saved under local
+ignored build directories. No device operation was performed. Owner direction
+remains maximize engine count before release; no reduced release was selected.
+Next: measure largest surviving assets/code, reduce footprint, integrate the
+full HAL/application, then verify real-device installation and recovery.

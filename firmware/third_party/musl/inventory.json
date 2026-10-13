@@ -72,6 +72,10 @@
     "src/string/strlen.c": "cf9359c1bcee96df1f3a7ef0fb969339b7ed87b202d80dc7e7fcd6d1239b7484",
     "src/string/strncmp.c": "df801c43304b27dcda67f219a7a3ca34a8fb06f4e63d21e8a6bcb36b03c3c012",
     "src/string/strncpy.c": "88301f7a48004250e1833e9155c7d2fa607ffdddca3b1b1804774d93c82acb96",
-    "src/string/strstr.c": "11158e28318076b70bbaa40c04294b01d02cae475ff72385087c9b966aa14d44"
+    "src/string/strstr.c": "11158e28318076b70bbaa40c04294b01d02cae475ff72385087c9b966aa14d44",
+    "src/math/__fpclassifyf.c": "a98b8a1b78ccd98ba0cf19cfea91f6c322e8b770d523dded84556b00f1a6c9cf",
+    "src/ctype/isdigit.c": "7e224dac8298f55d05eccc1238d97a99b9811825b6ddfa1b2242576064c210da",
+    "src/ctype/isspace.c": "c1dbd26bc677fade40299d7a8383762143c4807aec3284e72a26a36c330cc539",
+    "src/stdlib/atoi.c": "76cf48cf82b18f7f5350209e453e5ad003d7a75c60a64b9c5c5d6db0f4e9db27"
   }
 }

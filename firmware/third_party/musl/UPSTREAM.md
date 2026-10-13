@@ -4,7 +4,7 @@
 https://git.musl-libc.org/git/musl, commit
 `b1efda5b91735e33635376ca11c9b497a1c66e39`.
 `inventory.json` pins every imported file. Retain COPYRIGHT and each source's
-individual Sun, FreeBSD, Arm or MIT notice. This is a 62-unit portable subset,
+individual Sun, FreeBSD, Arm or MIT notice. This is a 66-unit portable subset,
 not a port of musl's Linux libc or operating-system services.
 
 ## Decision
@@ -43,3 +43,12 @@ flag verification. The current memory test does not guard every logical source
 end against over-read. Hardware ABI, timing and full-catalogue audio acceptance
 remain necessary. Receipts: build/native-musl-evaluation-20261012 and matching
 Hera directory. No FM1 command was issued for this campaign.
+
+[verified: 2026-10-13] The subset now includes the float classifier and ASCII
+atoi/isdigit/isspace sources. Sixteen target shards and sixteen ASan/UBSan host
+shards passed after adapting locale declarations/macros. The _l ASCII predicate
+entry points ignore an opaque argument; this is not a locale service. The native
+application uses the ordinary predicates. Classifier checks span every float
+exponent, both signs and selected mantissas; atoi checks remain within the
+standard's representable result domain. Signed-zero tests now reject opposite
+signs before applying a tolerance. Individual source bytes remain unchanged.

@@ -21,6 +21,8 @@ def main():
                         help='Clang size optimization: s (-Os) or z (-Oz)')
     parser.add_argument('--shared-resampler', action='store_true',
                         help='Share the unchanged resampler coefficients')
+    parser.add_argument('--lto', action='store_true',
+                        help='Emit pinned-toolchain bitcode for cross-unit optimization')
     args = parser.parse_args()
     tc, headers, out = args.toolchain.resolve(), args.cxx_headers.resolve(), args.out.resolve()
     if not (headers / '__config').is_file():
@@ -40,8 +42,10 @@ def main():
     cc = str(tc / 'common/bin/clang') + ' -target pi32v2 -mcpu=r3 -mfprev1'
     extra = ('-ffreestanding -fno-builtin -ffunction-sections -fdata-sections '
              '-D_GNU_SOURCE -D_XOPEN_SOURCE=700 -DFM1_FREESTANDING=1 '
-             '-D_LIBCPP_HAS_NO_THREADS -isystem ' + str(configured) +
+             '-D_LIBCPP_HAS_NO_THREADS -D_LIBCPP_DISABLE_EXTERN_TEMPLATE -isystem ' + str(configured) +
              ' -isystem ' + str(tc / 'pi32v2/include'))
+    if args.lto:
+        extra += ' -flto'
     make = ['make', '-s', '-C', str(ROOT / 'engines'), '-f', 'Makefile',
             '-f', str(ROOT / 'sim/web/mk/sim.mk'), '-f', str(ROOT / 'tools/jieli/objects.mk'),
             'SIM=' + str(ROOT / 'sim/web'), 'BUILD=' + str(build),
@@ -61,12 +65,15 @@ def main():
         entry = {'index': index, 'object': name, 'exit': result.returncode}
         if result.returncode == 0:
             entry['sha256'] = hashlib.sha256(Path(obj).read_bytes()).hexdigest()
-            symbols = subprocess.check_output([str(tc / 'pi32v2/bin/nm'), '-u', obj], text=True)
+            nm = [str(tc / 'pi32v2/bin/nm')]
+            if args.lto:
+                nm += ['--plugin', str(tc / 'common/bin/LLVMgold.so')]
+            symbols = subprocess.check_output([*nm, '-u', obj], text=True)
             entry['undefined_symbols'] = symbols.splitlines()
         results.append(entry)
     report = {'shard': args.shard, 'chunks': 16, 'catalogue_objects': len(objects),
               'gpl_mods': 1, 'modules': 'all', 'closed_sdk_archives': [],
-              'optimization': '-O' + args.opt,
+              'optimization': '-O' + args.opt, 'lto': args.lto,
               'shared_resampler': args.shared_resampler,
               'cxx_standard_headers': str(headers), 'device_sdk_headers': [],
               'input_config_sha256': hashlib.sha256(config.encode()).hexdigest(),
