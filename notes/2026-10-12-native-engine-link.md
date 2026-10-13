@@ -677,3 +677,53 @@ Evidence: effect-floor-verification.json and effect-floor-00..15 on Hera and
 local ignored build mirror. Private launcher extends the builder's exclusion
 choices for this experiment; the tracked builder and release scope are unchanged.
 No device commands occurred.
+
+### Linked-code storage bound, 2026-10-13 [verified]
+
+A private oversized link was used only to measure the all-thirteen-engine
+image. Its linker script enlarged XIP; the unchanged artifact gate rejected
+its `.text` bounds. It is not an admitted image and was never sent to hardware.
+The sized, non-overlapping linked function spans total 422,828 bytes.
+Sixteen storage experiments compressed those bytes in independent blocks,
+then verified exact reconstruction with the pinned C decoder. All sixteen
+v2 containers exited zero without OOM. The first campaign failed in the
+measurement harness (incorrect Elf API field/method names); its failed receipt
+is retained separately.
+
+The best v2 variant, 65,536-byte blocks without byte-delta prediction, saves
+107,802 bytes after charging the measured 1,441-byte decoder. This is below
+the 208,116-byte all-engine/all-effect flash deficit. Function concatenation
+is a storage bound, not an executable overlay: relocation, call routing,
+execution RAM, real-time behavior and recovery are not demonstrated. No code
+compression or overlay was added to the firmware. Evidence: Hera
+out/code-storage-v2-verification.json, code-storage-v2-00..15/report.json,
+oversize-full-measure.log and private oversize-full-measure artifacts.
+
+### Current target instance extraction, 2026-10-13 [verified]
+
+All sixteen containers converted the current out-pool-v1 engine bitcode to
+LLVM IR without OOM. Forty catalogue size entry points were extracted.
+Constant returns include Shapes 206,904 bytes, Macro Heavy 71,392, Macro
+19,872, Six-Op FM 11,224, Comet 10,240, Crater 5,984, Drums 7,648 and Acid
+1,248. These are target compiler size results, not allocation or playback
+acceptance. Rate-dependent and wrapper size functions remain expressions;
+no numeric result was inferred for them. Evidence: Hera
+out/target-instance-pool-v2/{verification.json,size-functions.json} and the
+ignored local size-functions mirror.
+
+### Shared resampler host validation, 2026-10-13 [verified]
+
+The full host build with FM1_SHARED_RESAMPLER=1 initially exposed missing
+shared-table link dependencies in Shapes' hostile tool and the Plaits reference
+tool. Both explicit link lists now include resampler_tables.o when enabled.
+The corrected full host build passes, followed by 456 existing test cases in
+sixteen Hera containers, all exit zero without OOM. Coverage is Shapes hostile
+scripts and edge sweeps, resampler contracts, and Plaits upstream comparisons.
+This is host behavior evidence, not target deadline or device audio acceptance.
+Evidence: shared-resampler-host-build-v1.json retains the failed first build;
+shared-resampler-host-build-v2.json and shared-resampler-host-v2-verification.json
+retain the corrected build and sixteen test results under Hera out/.
+
+The semantic-tool readiness refresh still selects the primary checkout rather
+than this worktree. Shared project selection was left untouched; Makefile
+inspection/editing used files directly. No device operation occurred.

@@ -61,6 +61,9 @@ $(BUILD)/tp/plaits/dsp/voice.o: TP_DIALECT += -include cstdio
 
 REF_PLAITS_OBJ := $(BUILD)/our/test/ref_plaits.o \
                   $(patsubst %.cc,$(BUILD)/tp/%.o,$(REF_PLAITS_TP))
+ifeq ($(FM1_SHARED_RESAMPLER),1)
+REF_PLAITS_OBJ += $(BUILD)/our/src/resampler_tables.o
+endif
 
 all: $(BUILD)/fm1-ref-plaits
 

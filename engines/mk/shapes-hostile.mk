@@ -22,6 +22,9 @@ TP_SRC += $(filter-out $(TP_SRC),$(SHAPES_HOSTILE_TP))
 
 SHAPES_HOSTILE_OBJ := $(BUILD)/our/test/shapes_hostile.o $(BUILD)/our/src/mi_shapes.o \
                       $(patsubst %.cc,$(BUILD)/tp/%.o,$(SHAPES_HOSTILE_TP))
+ifeq ($(FM1_SHARED_RESAMPLER),1)
+SHAPES_HOSTILE_OBJ += $(BUILD)/our/src/resampler_tables.o
+endif
 
 all: $(BUILD)/fm1-shapes-hostile
 
