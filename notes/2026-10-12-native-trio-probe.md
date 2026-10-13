@@ -461,3 +461,41 @@ Exact-head CI for `36eab3f4` remains in progress in run `38351386802`.
 Semantic navigation remains limited: Serena selects the primary C++ checkout
 and rejects the ignored Python tools path; bounded Rarefaction navigation did
 not produce callable evidence. This investigation used direct source reads.
+
+## Private native controls OTA candidate emitted [verified offline]
+
+`tools/native/ota_candidate.py` now composes the exact reviewed controls app
+into the pinned V15 container, preserving its established replacement contract
+and changing only the FWSC identity markers to the app's existing normal-mode
+`FM-1_990`. The verifier parses the candidate independently, then normalizes
+only its markers back to the stock identity before invoking the existing strict
+replacement verifier. Input hashes are fixed to this particular prototype;
+this is not a general release packager or hardware authorization tool.
+
+Private output (ignored; contains stock vendor components):
+`build/native-controls-16-20261012/private-ota-candidate/lunar-native-controls.fwsc`.
+SHA-256:
+`7d4153cc766fc31c1c75e06548c6261c4bc8f8cb5b14dfcc0ebd5c5f06445d23`.
+The receipt explicitly leaves physical boot, recovery, web installation and
+release readiness false. Output creation is exclusive, directory mode 0700,
+files 0600; files are flushed and fsynced. This candidate has not been sent to
+an updater or installed through OTA. Existing physical NOR installation is
+the same app, but remains unbooted.
+
+`tests/native_ota_candidate.py` passed all 16 parallel Hera chunks (exit zero,
+no OOM). Each first verifies the actual valid candidate, then exercises a
+different fault/output case. Cases include a valid-looking wrong identity,
+noncontiguous markers, header/list/payload corruption, protected bytes with
+repaired outer CRC, metadata with valid header CRC, a different app with
+repaired nested CRCs, wrong pinned inputs, truncation/appending, file modes and
+refusal to overwrite existing output. Final evidence:
+`build/native-ota-candidate-16-v2-20261012/hera-verification.json`;
+remote `/home/claude/mvave-fm1/native-ota-candidate-16-v2-20261012/out/verification.json`.
+Owned test containers were inspected and removed. Initial run passed too,
+but its first identity test changed a padding marker; the final run corrects
+that position to exercise a syntactically valid different version.
+
+This advances private package preparation only. The probe's no-write and
+20-second policies, full Lunar implementation, first native physical trial,
+release identity selection, browser installation and interrupted OTA recovery
+are still outstanding. No FM1 commands were issued during packaging work.
