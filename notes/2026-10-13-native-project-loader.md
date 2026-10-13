@@ -245,3 +245,31 @@ needs about207KB of the216KB pool: runtime replacement cannot assume coexistence
 with staging or another instance. No hardware operation or installable release.
 Expanded-layout approval remains pending; all13 default plus selectable builder
 remain the active goal.
+
+## Owned engine candidates
+
+lunar_project_engines_stage validates the unit plan and engine constructor
+descriptors, reserves every selected instance in the actual TLSF pool before
+calling constructors, then constructs defaults. It retains original allocation
+pointers separately from returned handles. Failure destroys successful engines
+in reverse order and frees all candidate blocks; existing allocations stay live.
+Success gives caller owned candidates requiring release or explicit transfer.
+Overwriting a nonempty candidate is refused; empty cleanup is idempotent.
+
+Sixteen Hera chunks passed32 ASan/UBSan executions/256 candidate scenarios and
+Os/Oz target compiles [verified]. Controlled sound fixtures return interior
+handles and refuse chosen construction positions. Cases vary1..4 sounds/four
+allocation sizes, constructor refusal,206904B capacity pressure, fragmented pool,
+invalid descriptor/host API and occupied candidate. Live4096B bytes and pool
+accounting remain intact after cleanup. No production engine audio or timing
+proof. Receipt project-engines-v1-verification.json SHA256
+3e67f287205abcf231314154dfbc1a5e778bee336ad9b44a3c4584bee025661f.
+
+Sixteen native links retain engine staging/release plus modulation/sequence
+staging, pass SDK-free/undefined-symbol audits and content byte checks [verified].
+Receipt project-loader-link-v3-verification.json SHA256
+7d256412511bcd4faae5273acf230a1586e776a65c16e8a05157419ca1b7c24c.
+All logs inspected, no OOM, owned containers removed. No app activation, project
+parameter/base application, production constructor/CPU timing or device proof.
+Candidate pool ownership must remain exclusive; free-list order and allowed
+first-create read-only engine caches may change. No hardware operation.

@@ -1,3 +1,16 @@
+# Native continuation — owned engine candidates, 2026-10-13
+
+Branch feature/2026-10-11@installable-firmware; preceding verified pushed SHA
+b6d9fe1141153c440e52563395d30a8c54d2cdef.
+Added owned engine candidate reservation/construction and reverse cleanup.
+Sixteen Hera chunks passed32 sanitizer executions/256 scenarios/target compiles;
+16 native links retain all staging entries, pass audits and content byte checks.
+No OOM; all logs inspected; owned containers removed. No hardware operation.
+Evidence/limits notes/2026-10-13-native-project-loader.md. No installable release.
+Goal ACTIVE: all13 default and selectable builder; expanded layout approval pending.
+Next project parameter/base application and candidate adoption/rollback; then
+persistence/MIDI/timing, builder/installer, review/CI and actual install/recovery.
+
 # Native continuation — project sequences, 2026-10-13
 
 Branch feature/2026-10-11@installable-firmware; preceding verified pushed SHA
