@@ -36,7 +36,7 @@ def replace_once(text, old, new):
     return text.replace(old, new)
 
 
-def checked_catalogue(root, compressed=False):
+def checked_catalogue(root, compressed=False, indexed_tft=False):
     objects, receipts, indices = [], [], set()
     inputs = source_manifest(ROOT)
     expected = json.loads((root / 'shard-00/objects.json').read_text())
@@ -45,7 +45,7 @@ def checked_catalogue(root, compressed=False):
         report = json.loads((directory / 'report.json').read_text())
         required = dict(shard=shard, chunks=16, catalogue_objects=len(expected),
                         gpl_mods=1, modules='all', optimization='-Oz', lto=True,
-                        shared_resampler=True, closed_sdk_archives=[],
+                        shared_resampler=True, indexed_tft=indexed_tft, closed_sdk_archives=[],
                         device_sdk_headers=[])
         if any(report.get(k) != v for k, v in required.items()):
             raise SystemExit('Incompatible catalogue report: ' + str(directory))
@@ -84,6 +84,8 @@ def main():
     parser.add_argument('--catalogue', type=Path, required=True)
     parser.add_argument('--build', type=Path, required=True)
     parser.add_argument('--exclude', choices=ENGINE_IDS, action='append', default=[])
+    parser.add_argument('--indexed-tft', action='store_true',
+                        help='Require a uniformly indexed catalogue and application')
     parser.add_argument('--compressed-wavetables', action='store_true',
                         help='Startup decode fixed RAM tables; reduce instance pool accordingly')
     args = parser.parse_args()
@@ -97,7 +99,7 @@ def main():
         check_pins(ROOT / 'firmware/third_party' / name)
     wave_namespaces = (['plaits'] + ([] if 'shapes' in args.exclude else ['braids'])
                        if args.compressed_wavetables else [])
-    objects, catalogue_receipts = checked_catalogue(catalogue, wave_namespaces)
+    objects, catalogue_receipts = checked_catalogue(catalogue, wave_namespaces, args.indexed_tft)
     wave_records = []
     if args.compressed_wavetables:
         check_pins(ROOT / 'firmware/third_party/tinf')
@@ -142,7 +144,8 @@ def main():
     compiler = str(tc / 'common/bin/clang')
     flags = ['-target', 'pi32v2', '-mcpu=r3', '-mfprev1', '-Oz', '-flto',
              '-ffreestanding', '-fno-builtin', '-ffunction-sections', '-fdata-sections',
-             '-DFM1_APP_EXTERNAL_ARENAS=1', '-DLUNAR_APP_PROBE=1', '-DNDEBUG']
+             '-DFM1_APP_EXTERNAL_ARENAS=1', '-DLUNAR_APP_PROBE=1', '-DNDEBUG',
+             '-DFM1_TFT_INDEXED=' + str(int(args.indexed_tft))]
     if args.compressed_wavetables:
         flags += ['-DLUNAR_COMPRESSED_WAVETABLES=1',
                   '-DLUNAR_INSTANCE_MEMORY_BYTES=' + str(instance_pool_bytes)]
@@ -224,7 +227,7 @@ def main():
         raise SystemExit('RAM flash code contains a call')
     (out / 'sections.txt').write_text(subprocess.check_output([objdump, '-h', str(elf)], text=True))
     report = dict(excluded_engines=args.exclude, sdk_archives=[],
-                  compressed_wave_tables=wave_records,
+                  compressed_wave_tables=wave_records, indexed_tft=args.indexed_tft,
                   instance_pool_bytes=instance_pool_bytes,
                   catalogue_objects=catalogue_receipts,
                   linked_objects=[dict(path=str(p), sha256=digest(p)) for p in objects],

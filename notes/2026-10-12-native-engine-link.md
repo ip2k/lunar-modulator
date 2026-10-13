@@ -866,3 +866,29 @@ objects are now stale and must be rebuilt, not relabelled. The savings alone
 still do not fit Shapes in the existing instance pool; the full thirteen-engine
 flash overflow also remains unresolved. Maximum engine count remains the
 release requirement; no reduced catalogue has been accepted.
+
+[verified build integration] Both native compiler and application linker now
+accept explicit `--indexed-tft`. Each shard records the selected layout and the
+linker requires an exact match. Thirty-two receipt checks across sixteen Hera
+containers verify accepted catalogues in both layouts, rejected mixed layouts,
+and the existing sixteen stale/hash/incomplete-input faults. The browser face
+preserves its RGB565 pointer ABI with an indexed-only decoding buffer; native
+application links exclude that face and its buffer.
+
+[verified target] A fresh sixteen-shard indexed catalogue compiled all 167
+objects without errors or OOM. Sixteen private application links retained all
+thirteen engines in the first profile and measured single-engine omissions in
+the remaining profiles. Thirteen-engine preserved-flash overflow is 208,040
+bytes. Eleven engines (omitting Comet and Shapes) and ten (also omitting DX7)
+pass the SDK-free audit and artifact guard. The ten-engine configuration also
+omitting Macro Heavy linked but was rejected by `stub_0200012E_unused`, with
+a byte occurrence in the `seconds` symbol. It remains rejected; no audit rule
+was weakened. Consequently the campaign's aggregate assertion failed rather
+than describing every outcome as verified. Default pool sizes were retained;
+this campaign has not reassigned saved RAM to engine instances.
+
+Evidence: Hera native-catalogue-16-20261012/out-indexed-v1/{verification.json,
+shard-00..15/report.json}; native-external-arenas-16-20261012/out/
+indexed-catalogue-receipts-v2-verification.json and indexed-target-v1-
+verification.json plus indexed-target-v1-00..15. All linked artifacts remain
+private timed probes with `installable=false` and `hardware_tested=false`.

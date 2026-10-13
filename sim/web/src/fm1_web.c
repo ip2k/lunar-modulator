@@ -99,7 +99,18 @@ const float *fm1w_render(unsigned frames) { return fm1_app_render(&g_app, frames
 
 /* Screen: redraw when needed; the buffer is 240 x 240 RGB565. */
 int fm1w_draw(unsigned min_frames) { return fm1_app_draw(&g_app, min_frames); }
-const uint16_t *fm1w_screen(void) { return g_app.tft.px; }
+const uint16_t *fm1w_screen(void) {
+#if FM1_TFT_INDEXED
+  /* Preserve the browser's RGB565 ABI. Native builds exclude this face. */
+  static uint16_t decoded[FM1_TFT_W * FM1_TFT_H];
+  if (!fm1_tft_pixels_valid(&g_app.tft)) return 0;
+  for (unsigned i = 0; i < FM1_TFT_W * FM1_TFT_H; ++i)
+    decoded[i] = fm1_tft_pixel(&g_app.tft, i);
+  return decoded;
+#else
+  return g_app.tft.px;
+#endif
+}
 
 /* LEDs: 27 keys, then the 14 buttons; fm1w_leds_changed() reads and clears. */
 const uint8_t *fm1w_leds(void) { return g_app.led; }
