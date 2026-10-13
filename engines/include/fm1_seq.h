@@ -197,6 +197,18 @@ size_t fm1_seq_size(const fm1_seq_limits_t *lim);
  * 120.00 BPM, stopped, every clip empty. NULL on bad limits or alignment. */
 fm1_seq_t *fm1_seq_create(void *mem, const fm1_seq_limits_t *lim, uint32_t sample_rate);
 
+/* Staged replacement, audio-task only. Both arguments must be valid instances
+ * created by fm1_seq_create(), not serialized or untrusted memory. The source
+ * must be stopped with no pending/held recording notes or sounding gates;
+ * identical limits and sample rate are required, and arenas must not overlap.
+ * can_replace has no side effects. replace rechecks, then copies the complete
+ * offset-based arena; 1 on success, 0 with destination unchanged on rejection.
+ * The host must release the destination's sounding notes before replace and
+ * refresh parameter bindings afterwards. Neither instance may change between
+ * the preflight and replacement. */
+int fm1_seq_can_replace(const fm1_seq_t *dst, const fm1_seq_t *src);
+int fm1_seq_replace(fm1_seq_t *dst, const fm1_seq_t *src);
+
 /* The smallest event buffer that keeps every note-off, Start and Stop: one
  * slot per gate and a few more. A call's events beyond its buffer are
  * dropped and counted (fm1_seq_stats_t.dropped_events), but room is always

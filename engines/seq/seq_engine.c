@@ -128,6 +128,29 @@ fm1_seq_t *fm1_seq_create(void *mem, const fm1_seq_limits_t *lim, uint32_t sampl
   return s;
 }
 
+int fm1_seq_can_replace(const fm1_seq_t *dst, const fm1_seq_t *src) {
+  uintptr_t d, p;
+  if (!dst || !src || ((uintptr_t)dst & 7u) || ((uintptr_t)src & 7u) ||
+      dst->magic != SQ_MAGIC || src->magic != SQ_MAGIC ||
+      dst->sample_rate != src->sample_rate || src->playing || src->recording ||
+      src->pending_rec || src->n_gates || src->n_pend || src->n_tail ||
+      dst->size != fm1_seq_size(&dst->lim) || src->size != fm1_seq_size(&src->lim) ||
+      dst->size != src->size) return 0;
+#define SAME(field) if (dst->lim.field != src->lim.field) return 0
+  SAME(tracks); SAME(compat); SAME(gates); SAME(song); SAME(rec_notes);
+  SAME(pad_mutes); SAME(notes); SAME(locks); SAME(trigs); SAME(clip_notes);
+  SAME(clip_locks); SAME(clip_trigs); SAME(capture);
+#undef SAME
+  d = (uintptr_t)dst; p = (uintptr_t)src;
+  return d > p ? d - p >= src->size : p - d >= dst->size;
+}
+
+int fm1_seq_replace(fm1_seq_t *dst, const fm1_seq_t *src) {
+  if (!fm1_seq_can_replace(dst, src)) return 0;
+  memcpy(dst, src, src->size);
+  return 1;
+}
+
 void fm1_seq_rng_seed(fm1_seq_t *s, uint64_t seed) { s->rng = seed; }
 
 /* ---- Emission ------------------------------------------------------------ */

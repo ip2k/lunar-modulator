@@ -52,3 +52,19 @@ int lunar_content_load_set(const uint8_t *bytes, uint32_t size,
     }
     return 1;
 }
+
+int lunar_content_activate_set(fm1_app_t *app, const uint8_t *bytes, uint32_t size,
+                               fm1_seq_t *scratch, fm1_state_report_t *report) {
+    if (!report) return 0;
+    fm1_state_report_init(report);
+    if (!app || !fm1_seq_can_replace(app->seq, scratch)) {
+        report->code = FM1_STATE_BAD;
+        return 0;
+    }
+    if (!lunar_content_load_set(bytes, size, scratch, report)) return 0;
+    if (!fm1_app_seq_activate(app, scratch)) {
+        report->code = FM1_STATE_BAD;
+        return 0;
+    }
+    return 1;
+}

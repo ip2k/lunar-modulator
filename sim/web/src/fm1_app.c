@@ -3579,6 +3579,18 @@ int fm1_app_seq_import(fm1_app_t *a, const char *txt, size_t len) {
   return fm1_seq_host_import(&a->seq_host, txt, len);   /* resolves the lanes' uids once */
 }
 
+int fm1_app_seq_activate(fm1_app_t *a, const fm1_seq_t *scratch) {
+  fm1_seq_stats_t st;
+  if (!a || !fm1_seq_can_replace(a->seq, scratch)) return 0;
+  fm1_seq_get_stats(a->seq, &st);
+  seq_drop(a);
+  a->seq_dropped_before += st.dropped_events;
+  /* Same-task ownership keeps the successful preflight valid after seq_drop. */
+  if (!fm1_seq_replace(a->seq, scratch)) return 0;
+  fm1_seq_host_bind(&a->seq_host, a->seq_host.engine);
+  return 1;
+}
+
 int fm1_app_seq_route(fm1_app_t *a, int track, int kind, int index) {
   if (!a->seq || track < 0 || track > 255 || kind < 0 || kind > 255 || index < 0 || index > 255) {
     return 0;

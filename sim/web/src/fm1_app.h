@@ -690,6 +690,14 @@ int fm1_app_seq_reset(fm1_app_t *a, int tracks);
  * (nothing changed). */
 int fm1_app_seq_import(fm1_app_t *a, const char *txt, size_t len);
 
+/* Activates a checked, stopped staged set with the current limits/rate.
+ * scratch is a valid separately initialized sequencer, never a file image.
+ * Same task as rendering; scratch must stay immutable during this call.
+ * Rejection leaves playback and pending commands unchanged. On success old
+ * sequenced notes and pending commands are released and lane bindings refreshed.
+ * This does not apply engine/effect/project state or prove capacity admission. */
+int fm1_app_seq_activate(fm1_app_t *a, const fm1_seq_t *scratch);
+
 /* Routes a track to the sound engine (kind FM1_SEQ_ROUTE_ENGINE, index 0)
  * or a USB-MIDI channel 1..16 (logged only: the simulator has no MIDI
  * out). 1 if accepted. */

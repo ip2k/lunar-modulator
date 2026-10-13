@@ -90,3 +90,25 @@ key audit, retained privately as `content-loader-link-v4-evidence.json`, SHA256
 `6eb8c83ab553ad0e4cff0c4c174792685be27b483cdb85377c01fd4ee74fe13b`.
 This supersedes the earlier loader-link rejection; activation, complete stack
 margin, sequence admission, hardware playback and installability remain open.
+
+
+## Staged activation checkpoint (2026-10-13, validation in progress)
+
+`lunar_content_activate_set` now loads a standalone packed SET into a caller-owned
+initialized arena, then calls `fm1_app_seq_activate`. The sequencer core exposes
+`fm1_seq_can_replace`/`fm1_seq_replace` for compatible, disjoint initialized
+instances. Limits and rate must match and the staged source must be stopped,
+with no gates or pending/held recording notes. This is not a deserializer of
+arbitrary sequencer memory. Same-task ownership and immutable staging are required.
+The app releases old sequenced engine notes, clears pending commands/events and
+locks, preserves the prior dropped-event total, copies the offset-based arena,
+and rebinds parameter labels through the existing host bridge.
+
+[verified] The first `-Os` host case passed under ASan/UBSan on Hera, exercising
+the actual shared app, sequencer, binary codec and modulation runtime. The
+sixteen-case Os/Oz campaign is running; full target catalogue rebuild/link and
+remaining regression results are pending at this checkpoint. The native link
+option retains the new activation entry point, but the timed probe does not
+call it. There is no new device write, physical acceptance, demonstrated staging
+RAM margin, parser call-chain stack bound, strict content capacity admission,
+project engine/effect application or installable release claim.

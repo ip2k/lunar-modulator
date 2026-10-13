@@ -277,7 +277,7 @@ def main():
     if content_inputs:
         roots += ('lunar_content_count', 'lunar_content_catalogue')
     if args.link_set_loader:
-        roots += ('lunar_content_load_set',)
+        roots += ('lunar_content_load_set', 'lunar_content_activate_set')
     elf = out / 'lunar-app-probe.elf'
     command = [str(tc / 'pi32v2/bin/ld'), '--plugin', str(tc / 'common/bin/LLVMgold.so'),
                '--plugin-opt=mcpu=r3', '--plugin-opt=-mattr=+fprev1',
