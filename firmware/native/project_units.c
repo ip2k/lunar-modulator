@@ -35,11 +35,57 @@ static int unit_index(const fm1_rec_t *r) {
     }
 }
 
+static int parameter(unit_load_t *load, const fm1_rec_t *r) {
+    const fm1_param_t *params = NULL, *p = NULL, *focus = NULL;
+    unsigned n = 0, i;
+    float value;
+    if (r->role == FM1_ROLE_MODULE) {
+        const fm1_mod_kind_t *k = r->slot < 8u ? load->plan.module[r->slot] : NULL;
+        if (k) { params = k->params; n = k->n_params; }
+    } else {
+        int index = unit_index(r);
+        const fm1_engine_t *e = index >= 0 ? load->plan.engine[index] : NULL;
+        if (e) { params = e->params; n = e->n_params; }
+    }
+    if (!params) return refuse(load, FM1_STATE_BAD, "parameter has no selected owner");
+    for (i = 0; i < n; ++i) {
+        if (params[i].uid == r->u.param.uid) p = &params[i];
+        if (params[i].flags & FM1_PARAM_FOCUS) focus = &params[i];
+    }
+    if (!p) return refuse(load, FM1_STATE_BAD, "parameter uid absent from selected owner");
+    if (p->flags & FM1_PARAM_PER_FOCUS) {
+        if (!focus || r->u.param.focus == FM1_FOCUS_NONE ||
+            (float)r->u.param.focus > focus->max - focus->min)
+            return refuse(load, FM1_STATE_BAD, "parameter pad index out of range");
+    } else if (r->u.param.focus != FM1_FOCUS_NONE) {
+        return refuse(load, FM1_STATE_BAD, "ordinary parameter has a pad index");
+    }
+    if (r->u.param.vtype == FM1_VAL_INDEX) {
+        if (p->type != FM1_PARAM_ENUM)
+            return refuse(load, FM1_STATE_BAD, "index value for a continuous parameter");
+        value = p->min + (float)r->u.param.bits;
+    } else if (r->u.param.vtype == FM1_VAL_F32) {
+        /* Inspect the exponent before doing comparisons: NaNs compare false. */
+        if ((r->u.param.bits & 0x7f800000u) == 0x7f800000u)
+            return refuse(load, FM1_STATE_BAD, "nonfinite parameter value");
+        memcpy(&value, &r->u.param.bits, sizeof value);
+    } else return refuse(load, FM1_STATE_BAD, "unsupported parameter value type");
+    if (value < p->min || value > p->max)
+        return refuse(load, FM1_STATE_BAD, "parameter value would be clamped");
+    if (p->type == FM1_PARAM_ENUM) {
+        /* Enum descriptor values fit this integer range; check before casting. */
+        if (value < -32768.0f || value > 32767.0f || value != (float)(int)value)
+            return refuse(load, FM1_STATE_BAD, "fractional or unsupported enum value");
+    }
+    return 1;
+}
+
 static int record(void *ctx, const fm1_rec_t *r) {
     unit_load_t *load = (unit_load_t *)ctx;
     if (r->type == FM1_REC_HEAD)
         return r->u.head.kind == FM1_STATE_PROJECT ||
                refuse(load, FM1_STATE_BAD, "expected a binary project");
+    if (r->type == FM1_REC_PARAM) return parameter(load, r);
     if (r->type == FM1_REC_UNIT || r->type == FM1_REC_MODULE) {
         if (!memchr(r->u.unit.id, 0, sizeof r->u.unit.id))
             return refuse(load, FM1_STATE_BAD, "unterminated unit id");

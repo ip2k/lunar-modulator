@@ -112,3 +112,26 @@ sequencer and workspace allocations are excluded. No engine is constructed,
 capacity reserved, app changed or project activated. It is not linked/called by
 the running firmware yet; target compilation does not prove execution, whole
 firmware placement, stack or timing. Atomic replacement remains outstanding.
+
+## Selected-owner parameter admission
+
+The unit planner now also checks PARAM records against the previously selected
+engine or rack kind [verified source/tests]. Unknown UIDs, empty owners, index
+values for continuous parameters, values outside descriptor limits, fractional
+enum values, nonfinite float bits and invalid/missing pad indices refuse the
+plan before engine size callbacks run. Valid index values add the descriptor's
+minimum, as the existing state applier does. Ordinary parameters require the
+no-focus marker; per-pad parameters need an owning FOCUS descriptor and an
+index within its entry range. No parameter is applied or normalized.
+
+Sixteen Hera chunks passed64 ASan/UBSan executions at Os/Oz, with target source
+compiles and the184-byte plan size assertion [verified]. Added cases cover
+missing engine/module UIDs, an empty optional sound's parameter, low/high range
+errors, enum/index mismatch, fractional enum values, normal/per-pad focus
+errors, accepted endpoint values, accepted module parameter and valid last-pad
+value. No OOM; owned containers removed. Receipt SHA256 `3e67f287205abcf231314154dfbc1a5e778bee336ad9b44a3c4584bee025661f`.
+
+This supersedes the earlier parameter-validation exclusion for UID/type/range/
+pad metadata only. Engine-specific parameter behavior, modulation cables/data,
+sequence dependencies, actual pool admission, engine initialization, atomic
+activation and whole-firmware/hardware execution remain unproven.

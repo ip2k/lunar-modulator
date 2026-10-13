@@ -17,8 +17,9 @@ typedef struct {
 /* Main-task-only; binary codec uses >8 KiB stack. Caller guarantees immutable
  * bytes and stable registries/host for the whole call. On failure out is intact.
  * Validates CRC/container, project kind, unit/rack positions, duplicates and
- * selected catalogue availability; collects nonzero engine instance sizes.
- * Does NOT validate parameters, modulation cables/data, sequence bindings or
+ * selected catalogue availability, parameter UID/type/range/pad bindings;
+ * collects nonzero engine instance sizes. Refuses values requiring clamping.
+ * Does NOT validate modulation cables/data, sequence bindings or
  * semantics; allocate, initialize, reserve capacity, apply or activate anything.
  * Module/workspace and sequencer storage are NOT included in these sizes.
  * Success is a unit plan, never permission to install/activate a project. */

@@ -1,3 +1,16 @@
+# Native continuation — selected parameter checks, 2026-10-13
+
+Branch `feature/2026-10-11@installable-firmware`; preceding verified pushed SHA
+`ca23a0674b7020cbfb9049f7677ce27471eee86a`.
+The184-byte unit plan now validates selected-owner parameter UID/type/range/pad
+bindings without instantiating engines. Sixteen Hera chunks passed64 sanitizer
+executions and target source compiles/size assertions. No OOM; containers removed.
+Evidence/limits: `notes/2026-10-13-native-project-loader.md`.
+No hardware operation or activation. Goal ACTIVE: all13 default and selectable
+engines/effects/songs/sets. Expanded layout approval pending; no release. Next
+modulation/sequence binding checks, allocator/commit strategy and activation;
+full timing, MIDI/persistence, builder/installer, review/CI, physical recovery.
+
 # Native continuation — bounded unit plan, 2026-10-13
 
 Branch `feature/2026-10-11@installable-firmware`; preceding verified pushed SHA

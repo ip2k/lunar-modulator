@@ -17,10 +17,17 @@ static size_t sized(const fm1_host_t *host) {
     ++calls; return 1248;
 }
 static size_t zero(const fm1_host_t *host) { (void)host; return 0; }
-static fm1_engine_t sound = { .id = "trio", .kind = FM1_KIND_SOUND, .instance_size = sized };
+static const fm1_param_t params[] = {
+    { .uid = 10, .type = FM1_PARAM_FLOAT, .min = 0, .max = 1 },
+    { .uid = 11, .type = FM1_PARAM_ENUM, .min = 1, .max = 3 },
+    { .uid = 12, .type = FM1_PARAM_ENUM, .min = 0, .max = 3, .flags = FM1_PARAM_FOCUS },
+    { .uid = 13, .type = FM1_PARAM_FLOAT, .min = 0, .max = 1, .flags = FM1_PARAM_PER_FOCUS }
+};
+static fm1_engine_t sound = { .id = "trio", .kind = FM1_KIND_SOUND, .instance_size = sized,
+    .params = params, .n_params = 4 };
 static const fm1_engine_t fx = { .id = "plate", .kind = FM1_KIND_AUDIO_FX, .instance_size = sized };
 static const fm1_midi_fx_t midi = { .engine = { .id = "arp", .kind = FM1_KIND_MIDI_FX, .instance_size = sized } };
-static const fm1_mod_kind_t mod = { .id = "lfo" };
+static const fm1_mod_kind_t mod = { .id = "lfo", .params = params, .n_params = 4 };
 static const fm1_engine_t *const engines[] = { &sound, &fx };
 static const fm1_midi_fx_t *const mfx[] = { &midi };
 static const fm1_mod_kind_t *const mods[] = { &mod };
@@ -55,7 +62,7 @@ int main(int argc, char **argv) {
     void *mem = calloc(1, fm1_state_bin_writer_size());
     const uint8_t version[3] = {0, 1, 0};
     fm1_state_writer_t *w;
-    if (!mem || c < 0 || c >= 16) return 1;
+    if (!mem || c < 0 || c >= 32) return 1;
     fm1_state_report_init(&rep);
     w = fm1_state_bin_writer(mem, c == 15 ? FM1_STATE_BIN_DEFLATE : 0,
                               FM1_STATE_WRITER_DESKTOP, version, put, NULL, &rep);
@@ -86,6 +93,38 @@ int main(int argc, char **argv) {
         emit(w, FM1_ROLE_SOUND, 3, 0, "", 0); emit(w, 0, 0, 7, "lfo", 1);
         expected = 1;
     } else if (c >= 9 && c <= 14) emit(w, FM1_ROLE_SOUND, 0, 0, "trio", 0);
+    else if (c >= 16) {
+        float value = 0.5f;
+        emit(w, FM1_ROLE_SOUND, 0, 0, "trio", 0);
+        memset(&r, 0, sizeof r); r.type = FM1_REC_PARAM; r.role = FM1_ROLE_SOUND;
+        r.u.param.uid = 10; r.u.param.focus = FM1_FOCUS_NONE;
+        if (c == 16) r.u.param.uid = 99;
+        if (c == 17) value = -0.01f;
+        if (c == 18) {
+            emit(w, FM1_ROLE_SOUND, 3, 0, "", 0); r.sound = 3;
+        }
+        if (c == 19) value = 1.01f;
+        if (c == 20) { r.u.param.uid = 11; value = 4; }
+        if (c == 21) { r.u.param.uid = 11; value = 1.5f; }
+        if (c == 23) r.u.param.focus = 0;
+        if (c >= 24 && c <= 26) {
+            r.u.param.uid = 13;
+            r.u.param.focus = c == 24 ? FM1_FOCUS_NONE : c == 25 ? 4 : 3;
+        }
+        if (c == 28) value = 1;
+        if (c == 29 || c == 30) {
+            emit(w, 0, 0, 0, "lfo", 1); r.role = FM1_ROLE_MODULE;
+            if (c == 29) r.u.param.uid = 99;
+        }
+        if (c == 31) { r.u.param.uid = 11; value = 3; }
+        memcpy(&r.u.param.bits, &value, sizeof value);
+        if (c == 22 || c == 27) {
+            r.u.param.vtype = FM1_VAL_INDEX; r.u.param.bits = 2;
+            if (c == 27) r.u.param.uid = 11;
+        }
+        if (!fm1_state_bin_write(w, &r)) return 17;
+        expected = c == 26 || c == 27 || c == 28 || c == 30 || c == 31;
+    }
     r.type = FM1_REC_END;
     if (!fm1_state_bin_write(w, &r)) return 4;
     free(mem);
@@ -100,13 +139,16 @@ int main(int argc, char **argv) {
     if (ok != expected) { fprintf(stderr, "case %d ok=%d code=%u %s\n", c, ok, rep.code, rep.what); return 5; }
     if (!ok) {
         if (rep.code == FM1_STATE_OK || memcmp(&plan, &before, sizeof plan)) return 6;
-        if (c < 11 && calls) return 7;
+        if ((c < 11 || c >= 16) && calls) return 7;
     } else if (c == 8) {
         if (plan.given != ((1u << 3) | 1) || plan.modules_given != 128 || calls != 1) return 8;
         if (plan.module[7] != &mod) return 15;
         if (plan.engine[0] != &sound || plan.size[0] != 1248) return 16;
         for (unsigned i = 1; i < LUNAR_PROJECT_UNITS; ++i)
             if (plan.engine[i] || plan.size[i]) return 9;
+    } else if (c >= 16) {
+        if (plan.given != 1 || plan.engine[0] != &sound || plan.size[0] != 1248 || calls != 1) return 18;
+        if (c == 30 && plan.module[0] != &mod) return 19;
     } else {
         if (plan.given != (1u << 18) - 1 || plan.modules_given != 255 || calls != 18) return 10;
         for (unsigned i = 0; i < LUNAR_PROJECT_UNITS; ++i) {
@@ -166,7 +208,7 @@ def project_probe(tmp_path_factory):
     return build
 
 
-@pytest.mark.parametrize('case', range(16))
+@pytest.mark.parametrize('case', range(32))
 @pytest.mark.parametrize('opt', ['-Os', '-Oz'])
 def test_native_project_units(case, opt, project_probe):
     subprocess.run([str(project_probe(opt)), str(case)], check=True)
