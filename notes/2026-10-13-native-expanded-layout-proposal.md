@@ -8,8 +8,13 @@ The owner requires a default image with all thirteen production engines plus a
 selectable image builder. AGENTS.md currently requires keeping the partition
 layout byte-identical to stock in experimental packages. Existing native link
 and artifact checks enforce a 581,564-byte application extent; those gates remain
-unchanged. Thirteen engines without effects exceed it by 126,184 bytes in the
-latest canonical-module sizing probe [verified].
+unchanged. The latest default-twelve-voice Shapes probe, with original Plaits
+wavetables in flash and compressed Braids tables in RAM, exceeds it by 144,216
+bytes for thirteen engines without effects [verified target link]. The earlier
+both-banks-compressed sizing probe exceeded it by 126,184 bytes; neither fits.
+Private receipts: `module-target-v3-flash-plaits-12-verification.json` and
+`module-target-v2-verification.json` under the Hera root recorded in
+`notes/2026-10-13-native-image-builder.md`.
 
 ## Reviewable alternative
 
