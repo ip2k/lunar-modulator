@@ -499,3 +499,64 @@ This advances private package preparation only. The probe's no-write and
 20-second policies, full Lunar implementation, first native physical trial,
 release identity selection, browser installation and interrupted OTA recovery
 are still outstanding. No FM1 commands were issued during packaging work.
+
+## First native physical boot observed [verified owner observation]
+
+The owner disconnected Cynthion for another experiment, reconnected it and
+power-cycled the FM1. The owner observed the Lunar native probe with Trio
+parameters; it disappeared after approximately 20 seconds. No keys were tried
+and no audio was heard. This establishes physical startup and display for the
+installed native controls image, but leaves controls and audio unverified.
+
+A fresh passive Pi enumeration then showed bus 1 device 29, `4c4a:8057`
+`WL80UBOOT1.00`, consistent with the probe's timed return to ROM. No new boot
+command was issued by the agent. The prior device-27 fixed-loader session and
+its one-use native boot admission are stale and must not be reused. ROM
+enumeration alone does not establish a successful flash restore. Fresh loader
+admission, native-target full reads and a newly tested boot admission remain
+necessary before an agent-driven repeat trial. Full playable firmware, OTA/web
+installation and interrupted-write recovery acceptance remain outstanding.
+
+The broader native catalogue compile harness is under development. Its first
+configuration attempt used the wrong header path; the second compiled 74 of
+166 objects but found LLVM thread/math header configuration failures. The third
+stopped before compiling because copied headers retained read-only permissions.
+The private copy now grants write permission only to its generated `__config`;
+pinned source headers remain unchanged. None of these compile checks links a
+firmware or establishes physical engine coverage.
+
+### Recovery access and repeat native boot [verified transport]
+
+`tools/fm1_native_rom_backup.py` retains the incumbent 8,757-command audited
+loader/read inventory, with a separate native target hash and campaign kind.
+All 16 native admission fault chunks passed on Hera. Its actual device-29
+read completed with two matching 1 MiB dumps, both
+`770fd5f275110f017329dda30315343d766ff4a6c6beaa62f5a0060c629dc561`.
+No NOR write or reset was issued during that read. Private receipt:
+`build/native-returned-rom-16-20261012/physical/native-returned-rom-029/`.
+This verifies recovery-loader access and intact installed bytes following
+the physical native trial; a full flash restore is still unverified.
+
+`tools/native/returned_boot.py` pins this exact successful campaign, manifest,
+command transcript and both dumps, along with the reused transport sources.
+It admits only device 29 on port 1-1 and a fresh same-loader observation.
+All 16 Hera boot fault chunks passed. A single actual `FC0C` argument-1 request
+was issued. The inherited transport's post-ioctl binding check then failed
+because the loader had disappeared, so the receipt records ambiguity and
+the durable marker prevents retry. Passive USB subsequently showed bus 1
+device 30 `1209:0001`, the native probe identity. This is not a successful
+SG acknowledgement or controls/audio proof. Owner observation is pending.
+
+### Full native catalogue compile [verified compiler only]
+
+`tools/native/compile_catalogue.py` compiled all 166 existing catalogue and
+shared application objects with the actual pi32v2 toolchain, GPL modules
+enabled, across 16 Hera containers. Every container exited zero with no OOM
+and was removed. It uses LLVM standard C++ headers with a private no-thread
+configuration, target newlib headers, and no closed SDK archives or device
+SDK header directories. It records per-object hashes and unresolved symbols.
+These objects are not a linked firmware: web glue is included for coverage,
+standard runtime symbols remain dependencies, and device SRAM/flash fit
+and application integration remain gates. Evidence:
+`build/native-catalogue-16-20261012/evidence/reports.tar.gz`; remote
+`/home/claude/mvave-fm1/native-catalogue-16-20261012/out-v4/`.
