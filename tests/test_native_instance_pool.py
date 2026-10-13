@@ -8,8 +8,8 @@ import pytest
 from tests.engine_helpers import ROOT
 
 
-@pytest.fixture(scope="session")
-def instance_pool_binary(tmp_path_factory):
+@pytest.fixture(scope="session", params=[165376, 196608, 216064])
+def instance_pool_binary(tmp_path_factory, request):
     compiler = shutil.which("cc")
     if not compiler:
         pytest.skip("no host C compiler")
@@ -20,7 +20,7 @@ def instance_pool_binary(tmp_path_factory):
     module.check_pins(vendor)
     binary = tmp_path_factory.mktemp("native-instance-pool") / "check"
     subprocess.run([
-        compiler, "-std=c99", "-Wall", "-Wextra", "-Werror", "-O2",
+        compiler, "-DTEST_POOL_BYTES=" + str(request.param), "-std=c99", "-Wall", "-Wextra", "-Werror", "-O2",
         "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
         "-I" + str(ROOT / "firmware/native"), "-I" + str(vendor),
         str(ROOT / "firmware/native/instance_pool.c"), str(vendor / "tlsf.c"),

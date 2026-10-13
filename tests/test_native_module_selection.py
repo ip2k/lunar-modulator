@@ -23,6 +23,8 @@ from module_selection import resolve_modules, wavetable_namespaces
 ])
 def test_wavetable_selection(selected, expected):
     assert wavetable_namespaces(selected) == expected
+    assert wavetable_namespaces(selected, flash_plaits=True) == [
+        namespace for namespace in expected if namespace != 'plaits']
 
 
 @pytest.mark.parametrize('specification', [

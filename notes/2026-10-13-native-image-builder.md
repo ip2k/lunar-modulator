@@ -125,3 +125,38 @@ receipt admission. No OOM. Private receipts and per-profile artifacts are under
 the same Hera root. The expanded-layout alternative is a separate design
 proposal in `notes/2026-10-13-native-expanded-layout-proposal.md`; existing link,
 artifact and physical write guards remain unchanged pending the owner's decision.
+
+## Twelve-voice RAM tradeoff verification
+
+Added explicit probe option `--flash-plaits-wavetables`, requiring
+`--compressed-wavetables`; default behavior remains unchanged. It retains the
+original Plaits immutable wave bank in XIP and decodes only the selected Braids
+bank. The build receipt records the option. No engine sound data or Shapes
+voice count changes [verified source inspection].
+
+A freshly compiled twelve-voice indexed catalogue (167 objects across sixteen
+Hera containers, all successful) was used for `module-target-v3-flash-plaits-12`.
+Twelve of sixteen selected profiles pass the existing link/admission guards;
+four refuse flash overflow of 70,508, 5,140, 144,216 and 147,016 bytes. The latter
+two are thirteen engines without effects and with Plate respectively. These
+are expected guard refusals, not installable outputs [verified].
+
+A successful Trio/Macro/Shapes receipt records twelve Shapes voices, only
+33,024 decoded Braids bytes and a 216,064-byte instance pool. Keeping Plaits
+in flash recovers 50,688 pool bytes relative to decoding both banks [verified].
+All 112 module/content/cache receipt checks passed in sixteen Hera containers
+(`builder-inputs-v4`). Extended allocator tests cover pools of 165,376, 196,608
+and 216,064 bytes: 48 ASan/UBSan cases in sixteen containers pass. The largest
+pool accepts the measured 206,904-byte twelve-voice Shapes request after host
+TLSF overhead; smaller pools reject it. Fragmentation, replacement failure,
+coalescing, pointer stability and guard bytes remain checked [verified host].
+
+Receipts are private under Hera
+`/home/claude/mvave-fm1/native-external-arenas-16-20261012/out/`:
+`module-target-v3-flash-plaits-12-verification.json`,
+`builder-inputs-v4-verification.json`, and
+`instance-pool-capacities-v2-verification.json`. None reports container OOM.
+Host allocator capacity is not pi32v2 execution, multi-track/effect allocation,
+real-time acceptance or physical installation. The pending expanded-layout
+proposal remains unimplemented; no partition guard or hardware operation was
+changed.

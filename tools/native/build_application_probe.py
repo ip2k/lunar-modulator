@@ -118,7 +118,12 @@ def main():
                         help='Require a uniformly indexed catalogue and application')
     parser.add_argument('--compressed-wavetables', action='store_true',
                         help='Startup decode fixed RAM tables; reduce instance pool accordingly')
+    parser.add_argument('--flash-plaits-wavetables', action='store_true',
+                        help='With compressed tables, retain original Plaits wave bank in flash '
+                        'to recover RAM; decode Braids only when Shapes is selected')
     args = parser.parse_args()
+    if args.flash_plaits_wavetables and not args.compressed_wavetables:
+        parser.error('--flash-plaits-wavetables requires --compressed-wavetables')
     tc, catalogue, out = (p.resolve() for p in
                            (args.toolchain, args.catalogue, args.build))
     if len(set(args.exclude)) != len(args.exclude) or 'trio' in args.exclude:
@@ -142,7 +147,7 @@ def main():
     platform = ROOT / 'firmware/third_party/dinghy'
     for name in ('dinghy', 'compiler-rt', 'musl', 'printf', 'tlsf'):
         check_pins(ROOT / 'firmware/third_party' / name)
-    wave_namespaces = (wavetable_namespaces(module_selection['selected'])
+    wave_namespaces = (wavetable_namespaces(module_selection['selected'], args.flash_plaits_wavetables)
                        if args.compressed_wavetables else [])
     objects, catalogue_receipts = checked_catalogue(catalogue, wave_namespaces, args.indexed_tft, args.shapes_voices)
     wave_records = []
@@ -272,6 +277,7 @@ def main():
     (out / 'sections.txt').write_text(subprocess.check_output([objdump, '-h', str(elf)], text=True))
     report = dict(excluded_engines=args.exclude, module_selection=module_selection, sdk_archives=[],
                   compressed_wave_tables=wave_records, indexed_tft=args.indexed_tft,
+                  flash_plaits_wavetables=args.flash_plaits_wavetables,
                   shapes_voices=args.shapes_voices,
                   instance_pool_bytes=instance_pool_bytes, target_app_storage=app_storage,
                   catalogue_objects=catalogue_receipts,

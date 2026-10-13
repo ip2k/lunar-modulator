@@ -11,14 +11,15 @@ import re
 import subprocess
 
 
-def wavetable_namespaces(selected):
+def wavetable_namespaces(selected, flash_plaits=False):
     """Only the Macro engines and Shapes consume the compressed wave banks.
 
+    With flash_plaits, retain the original immutable Plaits bank in XIP.
     Other Plaits-derived engines use scalar lookup tables retained in their
     resource object, not the large integrated wavetable bank.
     """
     selected = set(selected)
-    return (['plaits'] if selected & {'macro', 'macro-heavy'} else []) + (
+    return (['plaits'] if not flash_plaits and selected & {'macro', 'macro-heavy'} else []) + (
         ['braids'] if 'shapes' in selected else [])
 
 

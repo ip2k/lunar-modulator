@@ -7,7 +7,10 @@
 
 static struct {
     unsigned char before[16];
-    unsigned char data[196608];
+    #ifndef TEST_POOL_BYTES
+#define TEST_POOL_BYTES 196608
+#endif
+    unsigned char data[TEST_POOL_BYTES];
     unsigned char after[16];
 } arena __attribute__((aligned(16)));
 
@@ -78,10 +81,20 @@ int main(int argc, char **argv)
     for (unsigned i = 0; i < 14; ++i)
         if (memory[i]) assert(lunar_instance_pool_free(&pool, memory[i]) == 0);
     assert(pool.live_allocations == 0 && pool.live_bytes == 0);
+    /* Default twelve-voice Shapes size measured with the pi32v2 compiler.
+       Host TLSF validation exercises capacity, not target execution or timing. */
+    void *shapes = lunar_instance_pool_alloc(&pool, 206904);
+    if (sizeof arena.data == 216064) {
+        assert(shapes);
+        memset(shapes, 0x42, 206904);
+        assert(lunar_instance_pool_free(&pool, shapes) == 0);
+    } else {
+        assert(!shapes);
+    }
     /* Adjacent free blocks must coalesce, rather than leaking capacity. */
-    void *large = lunar_instance_pool_alloc(&pool, 180000);
+    void *large = lunar_instance_pool_alloc(&pool, sizeof arena.data - 16384);
     assert(large);
-    memset(large, 0x5a, 180000);
+    memset(large, 0x5a, sizeof arena.data - 16384);
     assert(lunar_instance_pool_free(&pool, large) == 0);
     assert(lunar_instance_pool_free(&pool, large) == -1);
     return 0;
