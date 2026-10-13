@@ -1,3 +1,14 @@
+# Native continuation — faster sanitizer campaign, 2026-10-13
+
+Preceding verified pushed SHA `3072a0bc04ba28c7f101789e6a997be8ba619ee9`.
+Test-only session fixture reuses immutable compiler outputs per optimization,
+retaining 128 independent packed-set executions. Sixteen Hera chunks passed;
+no OOM and owned containers removed. Receipt SHA `3e67f287205abcf231314154dfbc1a5e778bee336ad9b44a3c4584bee025661f`.
+Goal ACTIVE and outstanding release/partition gates below remain unchanged.
+Next: native project planning and atomic staging within actual instance pool,
+remaining binding/normalization checks, full hardware timing and functionality,
+web builder/installer, review/CI, real installation and recovery acceptance.
+
 # Native continuation — normalization admission, 2026-10-13
 
 Goal ACTIVE: default thirteen engines plus selectable engines/effects/songs/sets.

@@ -141,9 +141,54 @@ int main(int argc, char **argv) {
 '''
 
 
+@pytest.fixture(scope='session')
+def native_set_probe(tmp_path_factory):
+    # Inputs are runtime arguments; cache only the immutable compiler outputs.
+    probes = {}
+
+    def build(opt):
+        if opt in probes:
+            return probes[opt]
+        tmp_path = tmp_path_factory.mktemp('native-set-' + opt[1:])
+        source = tmp_path / 'probe.c'
+        source.write_text(HARNESS)
+        sources = [ROOT / 'firmware/native/content_set.c', ROOT / 'firmware/native/instance_pool.c',
+                   ROOT / 'firmware/third_party/tlsf/tlsf.c', ROOT / 'sim/web/src/fm1_app.c',
+                   source]
+        sources += sorted(p for p in (ROOT / 'engines/mod').rglob('*.c')
+                          if p.name != 'mp_tool.c')
+        sources += [ROOT / 'engines/seq' / f'{name}.c' for name in
+                    ('seq_clip', 'seq_engine', 'seq_cmd', 'seq_persist', 'seq_capture', 'seq_host', 'mfx_host')]
+        sources += [ROOT / 'engines/state' / f'{name}.c' for name in
+                    ('state_bin', 'state_names', 'state_movy1', 'fm1_num', 'fm1_deflate')]
+        includes = [ROOT / 'firmware/native', ROOT / 'firmware/third_party/tlsf', ROOT / 'engines/include', ROOT / 'engines/state', ROOT / 'sim/web/src', ROOT / 'engines/mod', ROOT / 'engines/host', tmp_path / 'gen']
+        import sys
+        sys.path.insert(0, str(ROOT / 'tools/native'))
+        from module_selection import resolve_modules
+        resolve_modules(ROOT, tmp_path, 'trio')
+        inc = [arg for p in includes for arg in ('-I', str(p))]
+        executable = tmp_path / 'probe'
+        subprocess.run(['cc', '-std=c99', opt, '-Wall', '-Wextra', '-Werror',
+                        '-ffunction-sections', '-fdata-sections', '-fsanitize=address,undefined',
+                        '-fno-pie', '-no-pie', *inc, *map(str, sources),
+                        '-Wl,--gc-sections', '-lm', '-o', str(executable)],
+                       check=True)
+        tc = Path(os.environ['FM1_NATIVE_TOOLCHAIN'])
+        subprocess.run([str(tc / 'common/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
+                        '-mfprev1', '-std=c99', opt, '-Wall', '-Wextra', '-Werror',
+                        '-ffreestanding', '-fno-builtin', *inc,
+                        '-isystem', str(tc / 'pi32v2/include'), '-c',
+                        str(ROOT / 'firmware/native/content_set.c'),
+                        '-o', str(tmp_path / 'content_set.o')], check=True, capture_output=True)
+        probes[opt] = executable
+        return executable
+
+    return build
+
+
 @pytest.mark.parametrize('case', range(64))
 @pytest.mark.parametrize('opt', ['-Os', '-Oz'])
-def test_native_packed_set(tmp_path, case, opt):
+def test_native_packed_set(tmp_path, case, opt, native_set_probe):
     text = (ROOT / 'tests/fixtures/state/1.0/orbit.set.movy1').read_bytes()
     if case == 1:
         # A recognized note-list line crosses many 64-byte decoder fragments.
@@ -215,35 +260,6 @@ def test_native_packed_set(tmp_path, case, opt):
     elif case == 7:
         payload = b'not a Lunar container'
     packed.write_bytes(payload)
-    source = tmp_path / 'probe.c'
-    source.write_text(HARNESS)
-    sources = [ROOT / 'firmware/native/content_set.c', ROOT / 'firmware/native/instance_pool.c',
-               ROOT / 'firmware/third_party/tlsf/tlsf.c', ROOT / 'sim/web/src/fm1_app.c',
-               source]
-    sources += sorted(p for p in (ROOT / 'engines/mod').rglob('*.c')
-                      if p.name != 'mp_tool.c')
-    sources += [ROOT / 'engines/seq' / f'{name}.c' for name in
-                ('seq_clip', 'seq_engine', 'seq_cmd', 'seq_persist', 'seq_capture', 'seq_host', 'mfx_host')]
-    sources += [ROOT / 'engines/state' / f'{name}.c' for name in
-                ('state_bin', 'state_names', 'state_movy1', 'fm1_num', 'fm1_deflate')]
-    includes = [ROOT / 'firmware/native', ROOT / 'firmware/third_party/tlsf', ROOT / 'engines/include', ROOT / 'engines/state', ROOT / 'sim/web/src', ROOT / 'engines/mod', ROOT / 'engines/host', tmp_path / 'gen']
-    import sys
-    sys.path.insert(0, str(ROOT / 'tools/native'))
-    from module_selection import resolve_modules
-    resolve_modules(ROOT, tmp_path, 'trio')
-    inc = [arg for p in includes for arg in ('-I', str(p))]
-    executable = tmp_path / 'probe'
-    subprocess.run(['cc', '-std=c99', opt, '-Wall', '-Wextra', '-Werror',
-                    '-ffunction-sections', '-fdata-sections', '-fsanitize=address,undefined',
-                    '-fno-pie', '-no-pie', *inc, *map(str, sources),
-                    '-Wl,--gc-sections', '-lm', '-o', str(executable)],
-                   check=True)
+    executable = native_set_probe(opt)
     subprocess.run([str(executable), str(packed), str(movy), str(int(valid)), str(loss)],
                    check=True, capture_output=True)
-    tc = Path(os.environ['FM1_NATIVE_TOOLCHAIN'])
-    subprocess.run([str(tc / 'common/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
-                    '-mfprev1', '-std=c99', opt, '-Wall', '-Wextra', '-Werror',
-                    '-ffreestanding', '-fno-builtin', *inc,
-                    '-isystem', str(tc / 'pi32v2/include'), '-c',
-                    str(ROOT / 'firmware/native/content_set.c'),
-                    '-o', str(tmp_path / 'content_set.o')], check=True, capture_output=True)

@@ -330,3 +330,14 @@ The v10 stack estimate does not prove v14 stack bounds. Semantic queries for
 the native loader remained limited by stale shared primary-checkout indexes;
 source was inspected in the actual worktree. No hardware action or installable
 release is claimed. Expanded-layout approval remains pending.
+
+## Per-session harness compilation [verified host]
+
+The packed-set tests now build one ASan/UBSan executable and one pi32v2
+content-set object per optimization within each pytest session. The generated
+module header, include paths, flags and source closure are unchanged. Inputs
+remain independently packed and executed in fresh processes. Across sixteen
+shards this reduces harness compilations from 128 to 32 without removing any
+of the 128 runtime checks. No cross-session cache or source-freshness shortcut
+is used. The v3 campaign passed all 128 cases, with no OOM; containers removed.
+Private receipt `set-normalization-v3-verification.json`, SHA256 `3e67f287205abcf231314154dfbc1a5e778bee336ad9b44a3c4584bee025661f`.
