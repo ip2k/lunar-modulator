@@ -273,8 +273,10 @@ sound engines; e.g. eleven engines without Comet/Shapes/Macro Heavy, eleven
 without Comet/Shapes/DX7, and separate Shapes/Comet-containing layouts. Headroom
 ranges 1,904..79,672 bytes. Engine arenas remain unbound, so these are coverage
 measurements, not playable candidates. pack-cost-layouts.json records every
-omission and section size privately. An exhaustive 91-pair omission campaign
-is running in sixteen chunks to test whether any twelve-engine layout fits.
+omission and section size privately. The exhaustive 91-pair omission campaign completed in sixteen chunks: all
+ninety-one twelve-engine layouts overflowed. The closest omits Comet and Shapes
+and exceeds XIP by 33,244 bytes. Eleven is the maximum for this measured
+implementation and preserved region, not a global optimum after further changes.
 
 [verified] Added firmware/native/audio_queue.h as the main-loop-to-audio-ISR
 bridge for a serialized application adapter. Eight 64-frame stereo Q15 blocks
@@ -289,8 +291,8 @@ or multicore primitive. Zero initialization must precede interrupts.
 FIFO reference comparison, full/empty bursts, counters crossing UINT32_MAX,
 output/queue guards, silent underruns and Q15 edge cases. This is sequential
 interrupt-order modeling, not actual preemption or hardware timing proof. The
-queue is not yet wired into a firmware entry point. Separate target compilation
-and full adapter integration remain necessary.
+queue is not yet wired into a firmware entry point. Sixteen pi32v2 queue-wrapper compilation shards also passed with no undefined
+symbols. Full adapter integration and hardware timing remain necessary.
 
 [verified] Both semantic MCPs located fm1_app_render on the primary checkout.
 Rarefaction reports fallback flags without a root compilation database and a
@@ -298,3 +300,34 @@ truncated named scan; its empty caller list is not evidence of no callers.
 The tools remain on the primary checkout, not this installable worktree, to
 avoid disturbing another session's shared project selection. Source inspection
 and actual Hera pi32v2 builds are authoritative for the changed worktree.
+
+[verified] Added firmware/native/app.ld, a GPL-3.0-only adaptation of the
+pinned Dinghy/Felucca map. Globals and .pool now share contiguous RAM
+0x01C08000..0x01C74000 (442,368 bytes); XIP, RAM code, reserved debug space,
+stack guards/stacks, noinit and boot mailbox addresses are unchanged. Pool
+starts on a 16-byte boundary, with explicit stack/global/RAM-code/mailbox
+assertions. Startup already clears .bss and .pool by their linker symbols.
+
+[verified] The same sixteen full-HAL pi32v2 link variants completed without
+container failures/OOM. Flash outcomes and sizes are unchanged. The eleven-engine
+measurement links with .bss end/.pool start 0x01C0BAC0 and .pool end 0x01C49150,
+leaving 175,792 bytes before guard0: 83,264 more than the previous map. No engine
+arenas or queue storage are included in that capacity figure. This measurement
+still uses the earlier unsafe sizing harness and must never be flashed.
+
+[verified] Sixteen separate boundary cases passed on Hera using both GNU host
+ELF tools and the actual pi32v2 tools: eight global sizes (8..64 KiB), each with
+an exactly full pool and a pool exceeding the stack guard by 16 bytes. Exact
+fills linked with expected symbols; every overflow failed with the guard
+assertion. Initial harness attempts lacked pytest, then pointed at the wrong
+venv; using the existing external-arena campaign venv fixed execution. These
+checks establish allocation bounds, not physical memory or startup acceptance.
+Private receipts: ram-cost.log, ram-cost-15.map, ram-boundary-combined.log and
+Hera out/ram-{cost,boundary,boundary-target}-verification.json under the existing
+external-arena campaign.
+
+[verified] GitHub Actions run 38363622962 passed on exact browser checkpoint
+2fd972950483338f15d3365c721c6a3b4a225c41. No merge, full native application,
+OTA installation or web release is implied. Both semantic MCPs cannot locate
+the new external-arena API in their primary-checkout indexes; the worktree
+source and actual target compile are used instead.
