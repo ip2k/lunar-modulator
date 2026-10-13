@@ -1486,3 +1486,20 @@ entries,zero USB opens/commands; old failed001 packet/source preserved. Fresh
 canonical/private/campaign pins recorded in reset review.md. No reset issued.
 Earlier93d5 CI38324630190 success; new source still requires its own gates.
 Goal active; stock boot/display/interrupted physical recovery remain pending.
+
+
+### Completed-trace reset wrapper checkpoint (2026-10-12)
+
+Closed `tools/fm1_completed_stop_trace_reset_wrapper.py` and 51 boundary/capture/
+identity tests now pass in 16 Hera chunks; source and chunk evidence in
+`notes/2026-10-12-completed-stop-trace-stock-reset/wrapper-verification.json`.
+The inherited loader must match captured bus 1. Private activation remains pending
+actual adapter/provenance run session **54301**, stage
+`/home/claude/completed-stop-trace-reset-16-v3-20261012` (80 tests).
+Do not restart it, replay old physical packets or claim physical boot from models.
+Actual reset packet `physical-stock-reset-003` remains unused, with 721 frozen
+entries and no USB open/commands at preflight. Packetry selection again failed with
+automatic-unlock error; bench-side USBmon remains usable. Next: inspect terminal
+80-test results, bind the closed wrapper to actual receipts using exclusive files,
+then one captured reset and fresh same-port stock identity. Physical diagnostic
+boot/display and full interrupted/corrupt-write acceptance still remain required.

@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "parallel_chunks": 16,
+  "total_tests": 51,
+  "rows": [
+    {
+      "chunk": 0,
+      "tests": 4,
+      "exit": 0,
+      "oom": false,
+      "network": "none"
+    },
+    {
+      "chunk": 1,
+      "tests": 4,
+      "exit": 0,
+      "oom": false,
+      "network": "none"
+    },
+    {
+      "chunk": 2,
+      "tests": 4,
+      "exit": 0,
+      "oom": false,
+      "network": "none"
+    },
+    {
+      "chunk": 3,
+      "tests": 3,
+      "exit": 0,
+      "oom": false,
+      "network": "none"
+    },
+    {
+      "chunk": 4,
+      "tests": 3,
+      "exit": 0,
+      "oom": false,
+      "network": "none"
+    },
+    {
+      "chunk": 5,
+      "tests": 3,
+      "exit": 0,
+      "oom": false,
+      "network": "none"
+    },
+    {
+      "chunk": 6,
+      "tests": 3,
+      "exit": 0,
+      "oom": false,
+      "network": "none"
+    },
+    {
+      "chunk": 7,
+      "tests": 3,
+      "exit": 0,
+      "oom": false,
+      "network": "none"
+    },
+    {
+      "chunk": 8,
+      "tests": 3,
+      "exit": 0,
+      "oom": false,
+      "network": "none"
+    },
+    {
+      "chunk": 9,
+      "tests": 3,
+      "exit": 0,
+      "oom": false,
+      "network": "none"
+    },
+    {
+      "chunk": 10,
+      "tests": 3,
+      "exit": 0,
+      "oom": false,
+      "network": "none"
+    },
+    {
+      "chunk": 11,
+      "tests": 3,
+      "exit": 0,
+      "oom": false,
+      "network": "none"
+    },
+    {
+      "chunk": 12,
+      "tests": 3,
+      "exit": 0,
+      "oom": false,
+      "network": "none"
+    },
+    {
+      "chunk": 13,
+      "tests": 3,
+      "exit": 0,
+      "oom": false,
+      "network": "none"
+    },
+    {
+      "chunk": 14,
+      "tests": 3,
+      "exit": 0,
+      "oom": false,
+      "network": "none"
+    },
+    {
+      "chunk": 15,
+      "tests": 3,
+      "exit": 0,
+      "oom": false,
+      "network": "none"
+    }
+  ],
+  "physical_commands": 0,
+  "source_pins": {
+    "tools/fm1_completed_stop_trace_reset_wrapper.py": "8beb87f13f3334d28924ba6e1ae8e6147d5c2aa5ee04a9ab30c0f41540270353",
+    "tools/fm1_identify.py": "684342b034b1a97b0e070ff758edf9bff20714523316a968952ccf48f52c0de0",
+    "tests/test_completed_stop_trace_reset_wrapper.py": "1a48a733f21d0cb655e489d871de061adfa5a11d00045a742353b33a129ac066"
+  }
+}

@@ -53,3 +53,33 @@ No physical reset sent. Complete16-case corrected v3 verification still pending.
 
 [verified: GitHub] Earlier source93d5f2b8 CI38324630190 completed successfully.
 This does not establish CI acceptance of the new reset source or physical boot.
+
+
+## Captured execution wrapper
+
+[verified] `tools/fm1_completed_stop_trace_reset_wrapper.py` adapts the previously
+reviewed stopped-choice wrapper to this completed-trace restore. Changes are the
+actual receipt paths, independently pinned journal path, USBmon bus 1, the current
+reset adapter filename, and the tools import path needed by its real proof.
+The inherited USB binding must identify the loader on captured bus 1.
+All eight activation values remain `None`; the checked-in wrapper rejects before
+filesystem/process/device activity. This is a closed bench wrapper, not a general
+user flasher.
+
+[verified] 51 modeled wrapper/capture/identity checks passed in 16 network-isolated
+Hera containers with zero exit failures, skipped cases or OOM events. The final
+source hashes and per-chunk counts are in `wrapper-verification.json`. This covers
+changed receipts, wrong capture bus, consumed attempts, child exceptions/timeouts,
+capture ownership, missing fresh normal enumeration, one bounded read-only identity
+query and no retry/fallback. It does not establish a physical reset or display boot.
+Initial 50-case evidence remains preserved separately on Hera; the added bus check
+was tested in the final 51-case run.
+
+[verified] The actual adapter/provenance run remains live as execution session
+54301, Hera stage `/home/claude/completed-stop-trace-reset-16-v3-20261012`.
+Its 80 tests must pass with terminal container/XML evidence before using the actual
+physical reset packet. No reset was sent during wrapper verification.
+
+[verified] Computer Use again reported automatic-unlock failure when selecting
+Packetry. No power toggle or setting change was attempted. Bench USBmon remains
+available for the guarded reset; Cynthion capture is not currently asserted ready.
