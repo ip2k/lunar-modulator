@@ -1,3 +1,16 @@
+# Native continuation — project staging native links, 2026-10-13
+
+Branch feature/2026-10-11@installable-firmware; preceding verified pushed SHA
+13e367b20b1a8e8ec1be5c24ca69f8e07ab41804.
+Opt-in --link-project-loader retains modulation staging in the timed application.
+Sixteen Hera links passed SDK-free audits, no undefined symbols, retained staging
+entry and content byte checks; no OOM, owned containers removed. Tested selected
+five-sound profiles fit; all13 release still needs expanded-layout approval.
+No activation/stack/timing/device acceptance; no installable release. Goal ACTIVE.
+Next checked project sequence staging/bindings and fail-safe engine commit, full
+MIDI/persistence/timing, builder/installer, review/CI and real install/recovery.
+Evidence: notes/2026-10-13-native-project-loader.md.
+
 # Native continuation — modulation staging, 2026-10-13
 
 Branch feature/2026-10-11@installable-firmware; preceding verified pushed SHA

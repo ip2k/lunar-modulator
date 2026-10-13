@@ -194,3 +194,20 @@ whole-firmware stack/timing and device execution remain separate gates. Shared
 per-voice planning may reduce modulation voice capacity and does not establish
 advertised sound polyphony. The adapter is not called by the app. No hardware
 operation or installable release; expanded-layout approval remains pending.
+
+## Opt-in native project staging link
+
+The timed application builder accepts --link-project-loader, compiles both
+native project adapters and roots lunar_project_mod_stage against the checked
+catalogue's shared codecs/applier. Its receipt records modulation staging linked,
+with activation, stack margin, timing, sequence semantics and hardware all false.
+The timed probe does not call this entry point or allocate a staging workspace.
+
+Sixteen Hera native links passed with the SDK-free key audit, no undefined
+symbols, retained staging entry point and byte-for-byte selected content checks
+[verified]. Profiles use five sounds (Trio, drums, Shapes12, Macro, DX7), five
+effects with optional Plate, Arp and three modulation kinds, with0/1/2/4 assets
+from text/binary input. These are fit/link exercises, not the all13 release.
+No OOM; owned containers removed. Receipt project-loader-link-v1-verification.json
+SHA256 7d256412511bcd4faae5273acf230a1586e776a65c16e8a05157419ca1b7c24c.
+No device operation, runtime activation or installable release.
