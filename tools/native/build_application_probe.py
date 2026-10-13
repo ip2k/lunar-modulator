@@ -18,6 +18,7 @@ import sys
 from build_probe import check_pins
 from compile_catalogue import source_manifest
 from compact_font import compact_header, compact_gfx
+from prepare_wavetables import prepare
 
 ROOT = Path(__file__).resolve().parents[2]
 ENGINE_IDS = ('macro', 'shapes', 'macro-heavy', 'sixop', 'dx7', 'sw-sophie',
@@ -35,7 +36,7 @@ def replace_once(text, old, new):
     return text.replace(old, new)
 
 
-def checked_catalogue(root):
+def checked_catalogue(root, compressed=False):
     objects, receipts, indices = [], [], set()
     inputs = source_manifest(ROOT)
     expected = json.loads((root / 'shard-00/objects.json').read_text())
@@ -69,7 +70,8 @@ def checked_catalogue(root):
                 raise SystemExit('Catalogue object hash mismatch: ' + str(obj))
             receipts.append(dict(path=str(obj), sha256=item['sha256']))
             if item['object'] not in ('sim/src/fm1_web.o', 'sim/src/fm1_app.o',
-                                       'our/src/registry.o'):
+                                       'our/src/registry.o') and not (compressed and
+                                       item['object'] in tuple('tp/' + n + '/resources.o' for n in compressed)):
                 objects.append(obj)
     if indices != set(range(len(expected))):
         raise SystemExit('Incomplete catalogue')
@@ -82,6 +84,8 @@ def main():
     parser.add_argument('--catalogue', type=Path, required=True)
     parser.add_argument('--build', type=Path, required=True)
     parser.add_argument('--exclude', choices=ENGINE_IDS, action='append', default=[])
+    parser.add_argument('--compressed-wavetables', action='store_true',
+                        help='Startup decode fixed RAM tables; reduce instance pool accordingly')
     args = parser.parse_args()
     tc, catalogue, out = (p.resolve() for p in
                            (args.toolchain, args.catalogue, args.build))
@@ -91,7 +95,14 @@ def main():
     platform = ROOT / 'firmware/third_party/dinghy'
     for name in ('dinghy', 'compiler-rt', 'musl', 'printf', 'tlsf'):
         check_pins(ROOT / 'firmware/third_party' / name)
-    objects, catalogue_receipts = checked_catalogue(catalogue)
+    wave_namespaces = (['plaits'] + ([] if 'shapes' in args.exclude else ['braids'])
+                       if args.compressed_wavetables else [])
+    objects, catalogue_receipts = checked_catalogue(catalogue, wave_namespaces)
+    wave_records = []
+    if args.compressed_wavetables:
+        check_pins(ROOT / 'firmware/third_party/tinf')
+        wave_records = prepare(out, wave_namespaces)
+    instance_pool_bytes = 192000 - sum(r['raw_bytes'] for r in wave_records)
     # Keep crash/recovery text while eliminating redundant four-bit storage
     # for the pinned small face, whose alpha is strictly binary.
     (out / 'felucca_font.h').write_text(compact_header(
@@ -132,8 +143,12 @@ def main():
     flags = ['-target', 'pi32v2', '-mcpu=r3', '-mfprev1', '-Oz', '-flto',
              '-ffreestanding', '-fno-builtin', '-ffunction-sections', '-fdata-sections',
              '-DFM1_APP_EXTERNAL_ARENAS=1', '-DLUNAR_APP_PROBE=1', '-DNDEBUG']
+    if args.compressed_wavetables:
+        flags += ['-DLUNAR_COMPRESSED_WAVETABLES=1',
+                  '-DLUNAR_INSTANCE_MEMORY_BYTES=' + str(instance_pool_bytes)]
     for directory in (gen, ROOT / 'engines/include', ROOT / 'engines/mod',
-                      ROOT / 'firmware/native', ROOT / 'firmware/third_party/tlsf', ROOT / 'engines/host',
+                      ROOT / 'firmware/native', ROOT / 'firmware/third_party/tlsf',
+                      ROOT / 'firmware/third_party/tinf', ROOT / 'engines/third_party/mutable', ROOT / 'engines/host',
                       ROOT / 'engines/state', ROOT / 'sim/web/src', out,
                       platform / 'hal', platform / 'src', platform / 'gen'):
         flags += ['-I', str(directory)]
@@ -143,9 +158,13 @@ def main():
         subprocess.run([compiler, *[f for f in flags if f != '-flto'], '-c', str(path),
                         '-o', str(obj)], check=True)
         objects.append(obj)
-    for path in (ROOT / 'sim/web/src/fm1_app.c', ROOT / 'engines/host/mod_script.c',
+    extra_sources = ([out / ('resources_' + n + '.cc') for n in wave_namespaces] + [
+                      ROOT / 'firmware/native/wave_tables.c',
+                      ROOT / 'firmware/third_party/tinf/tinflate.c']
+                     if args.compressed_wavetables else [])
+    for path in [ROOT / 'sim/web/src/fm1_app.c', ROOT / 'engines/host/mod_script.c',
                  ROOT / 'firmware/native/app_probe.c', ROOT / 'firmware/native/instance_pool.c',
-                 ROOT / 'firmware/native/tlsf_runtime.c', ROOT / 'engines/src/registry.cc'):
+                 ROOT / 'firmware/native/tlsf_runtime.c', ROOT / 'engines/src/registry.cc', *extra_sources]:
         obj = out / (path.stem + '.o')
         cxx = (['-std=c++11', '-fno-exceptions', '-fno-rtti', '-DTEST',
                 '-I', str(ROOT / 'engines/src'), '-isystem', str(catalogue / 'shard-00/cxx'),
@@ -204,6 +223,8 @@ def main():
         raise SystemExit('RAM flash code contains a call')
     (out / 'sections.txt').write_text(subprocess.check_output([objdump, '-h', str(elf)], text=True))
     report = dict(excluded_engines=args.exclude, sdk_archives=[],
+                  compressed_wave_tables=wave_records,
+                  instance_pool_bytes=instance_pool_bytes,
                   catalogue_objects=catalogue_receipts,
                   linked_objects=[dict(path=str(p), sha256=digest(p)) for p in objects],
                   key_audit=audit, undefined_symbols=missing, flash_write_range='empty',

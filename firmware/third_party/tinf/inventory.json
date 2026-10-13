@@ -1,0 +1,9 @@
+{
+  "upstream": "https://github.com/jibsen/tinf",
+  "commit": "57ffa1f1d5e3dde19011b2127bd26d01689b694b",
+  "files": {
+    "LICENSE": "f39b507b81b9ba1edce7fe742bbd68fda4b852063ce7299274ae97991d48814b",
+    "tinflate.c": "b3240fa0c9e8ef385667680a321dd5b0bfefb9871996366c0a7d5f6a0309cb6e",
+    "tinf.h": "e5c3a9e9d54ed69c5b36c1b09c78defac1ea1f83cf97abeb4fdf16853dcd7f68"
+  }
+}

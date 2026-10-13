@@ -22,7 +22,13 @@ static int32_t lunar_master_raw = 512;
 
 typedef char lunar_probe_canvas_bound[(CV_MAX == 240u * 16u) ? 1 : -1];
 static fm1_app_t app __attribute__((section(".pool"), aligned(16)));
-static uint8_t instance_memory[192000]
+#ifndef LUNAR_INSTANCE_MEMORY_BYTES
+#define LUNAR_INSTANCE_MEMORY_BYTES 192000
+#endif
+#ifdef LUNAR_COMPRESSED_WAVETABLES
+int lunar_wave_tables_init(void);
+#endif
+static uint8_t instance_memory[LUNAR_INSTANCE_MEMORY_BYTES]
     __attribute__((section(".pool"), aligned(16)));
 static lunar_instance_pool_t instance_pool;
 static volatile uint32_t arena_bind_failures;
@@ -107,6 +113,16 @@ static void app_main(void)
     uint32_t previous_keys = 0, row = 0, last_draw = 0;
     uint32_t start = fm1_ticks();
     int previous_master = -1;
+#ifdef LUNAR_COMPRESSED_WAVETABLES
+    if (lunar_wave_tables_init()) {
+        arena_bind_failures++;
+        fm1_audio_stop();
+        usb_detach();
+        fm1_delay_ms(30);
+        bootguard_clear(&bootguard);
+        fm1_enter_uboot();
+    }
+#endif
     fm1_app_init(&app, 44118.0f);
     if (lunar_instance_pool_init(&instance_pool, instance_memory, sizeof instance_memory) ||
         fm1_app_set_storage(&app, &instance_pool, instance_alloc, instance_free))

@@ -563,3 +563,41 @@ Semantic navigation confirmed existing selection callers in the primary
 checkout, but both MCPs still select that checkout, not this feature worktree.
 Changed source was inspected directly; primary results do not verify these
 changes or the pi32v2 ABI. No hardware commands occurred.
+
+### Startup-decoded wave tables, 2026-10-13 [verified]
+
+Added an optional compressed-table path to the private timed application builder,
+using pinned unmodified tinf. Mutable defining declarations live in generated
+private resource headers; consumers retain upstream const views and addresses.
+The decoder completes before application/engine initialization, reconstructs
+modular deltas and checks the full table checksum. Tables occupy NOLOAD RAM;
+the shared instance pool shrinks by exactly their raw storage size. No render
+callback decompresses data. Host checks use actual generated resource symbols
+and the firmware decoder: all 16 Hera ASan/UBSan shards passed, including three
+complete reconstructions per shard, every truncated packed-input length, output
+guards, checksum mismatch, short destination and invalid sample width.
+
+The first assembly-backed definition hit the old target LLVM verifier; compiling
+entire resource units outside LTO linked but retained excessive resources. The
+mutable-definition adaptation restores LTO. The eleven-engine profile excludes
+Shapes, so Braids waves are already discarded: adding their compressed form
+back was a mistake in whole-image accounting. Profile-aware preparation now
+retains only Plaits for this profile (50,688 bytes of fixed RAM), leaving
+141,312 bytes of instance storage. Evaluation totals for both wave assets were
+isolated storage results, not proof both survived every final engine profile.
+
+The final 16 target attempts had no OOM. Twelve-engine profiles still overflow
+flash; the eleven-engine profile links within the protected region but FAILS
+the key/eFuse audit (0x13700 byte-pattern hit in fm1_seq_view_draw). Several
+ten-engine profiles fail similarly; only shard 15 passes all existing gates.
+This is not an audited eleven-engine artifact or hardware admission. Vendor
+disassembly of the preceding shard-13 hit shows 80 ff 00 37 01 00 is a six-byte
+relative call to __floatundisf, not an eFuse address operand. The scanner needs
+a separately tested instruction-aware distinction, without exempting real
+eFuse loads/data. No audit gate was relaxed. Startup stack/time, engine render
+parity on device and maximum catalogue acceptance remain outstanding.
+
+Private receipts: native-waves-v4-verification.json and
+compressed-release-count-v4-verification.json under the native-external-arenas
+build directory and corresponding Hera out directory. Failed/earlier v1-v3
+attempts remain recorded separately. No hardware command or flash write occurred.
