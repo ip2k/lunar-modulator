@@ -170,3 +170,42 @@ acceptance. Full Lunar application and web installation remain outstanding.
 
 Focused native/layout/diagnostic regression verification: 95 passed, 9 optional
 private-artifact checks skipped. No skip is counted as physical acceptance.
+
+
+## Fresh returned-ROM backup after the accepted display boot [verified]
+
+The owner reported white, red, green and blue bands. The previous repeat reset
+transport remains ambiguous; that report is separate physical display evidence.
+A distinct `tools/fm1_repeat_rom_backup.py` adapter preserves that transcript,
+replays the original completed backup, binds a fresh passive USB/SG snapshot,
+and admits the same fixed RAM-loader dual-read inventory. It cannot issue reset,
+NOR erase/program or eFuse commands. Its single-use marker is tied to the
+original repeat campaign rather than the new JSON formatting or receipt name.
+Original source files and their pinned historical receipts remain unchanged.
+
+On bench01, bus 1 device 14 / port 1-1 / `/dev/sg0`, the actual session completed
+8,757 operations in 29.007 seconds with 17,516 receipt events. Both fresh 1 MiB
+flash reads match the installed V8 diagnostic SHA256
+`5dbada6531e0ad68b1902b4f0d97cc6f78d7fa338b1360c194f98c1475ad7a3d`.
+No retry, reset, erase or program was issued. The device is now in the fixed
+RAM loader; no native app has run and stock has not been restored.
+
+Adapter SHA256 `9651fc1b08e30c8cf47d37b86a3f2a2557c47134ed46252e5f484381a3acf328`.
+New campaign SHA256 `3eccfb5f5a5cd97c2c648ad95d219d630d287f4651f9e6aa05e1de6230e4998b`.
+Manifest SHA256 `e97ce2151453d7cff14f6b05fca97ca848bbcfc36387bd536ad85cad5bba8460`.
+Command receipt SHA256 `b4b324cfbf65773f29fd46ae25a4115240f236647033acb634444cc889c4c51a`.
+Private local evidence: `build/repeat-return-backup-16-20261012/`.
+Private Pi receipt: `/home/claude/fm1-sdk-trace-entry-20261012-v8/stock-backup-001/returned-target-backup-001/repeat-boot-001/fresh-backup-001/`.
+Pi source stage: `/home/claude/fm1-repeat-return-backup-20261012-source/`.
+
+Twenty focused adapter tests pass; 16 fault chunks on Hera exited zero without
+OOM, and the adapter/native artifact focused regression suite passed 43 checks.
+These tests verify admission/refusal behaviour, not native hardware acceptance.
+The read worker retains its pinned `trace_admitted_backup_completed` event name;
+the new first event and manifest explicitly identify the repeat-return route.
+
+Next: bind this fresh completed backup to a distinct native install policy,
+review the concrete protected-range transaction and stock rescue plan, then
+install and observe the bounded native Trio probe. The old V8 stock restore
+admission is stale and must never be executed. Full Lunar UI, sequencer/effects,
+engine selection and web-installable packaging remain outstanding.
