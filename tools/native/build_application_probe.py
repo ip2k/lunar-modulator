@@ -89,7 +89,7 @@ def main():
         parser.error('Exclusions must be unique and retain the initial Trio engine')
     out.mkdir(parents=True, exist_ok=False)
     platform = ROOT / 'firmware/third_party/dinghy'
-    for name in ('dinghy', 'compiler-rt', 'musl', 'printf'):
+    for name in ('dinghy', 'compiler-rt', 'musl', 'printf', 'tlsf'):
         check_pins(ROOT / 'firmware/third_party' / name)
     objects, catalogue_receipts = checked_catalogue(catalogue)
     # Keep crash/recovery text while eliminating redundant four-bit storage
@@ -131,9 +131,9 @@ def main():
     compiler = str(tc / 'common/bin/clang')
     flags = ['-target', 'pi32v2', '-mcpu=r3', '-mfprev1', '-Oz', '-flto',
              '-ffreestanding', '-fno-builtin', '-ffunction-sections', '-fdata-sections',
-             '-DFM1_APP_EXTERNAL_ARENAS=1', '-DLUNAR_APP_PROBE=1']
+             '-DFM1_APP_EXTERNAL_ARENAS=1', '-DLUNAR_APP_PROBE=1', '-DNDEBUG']
     for directory in (gen, ROOT / 'engines/include', ROOT / 'engines/mod',
-                      ROOT / 'firmware/native', ROOT / 'engines/host',
+                      ROOT / 'firmware/native', ROOT / 'firmware/third_party/tlsf', ROOT / 'engines/host',
                       ROOT / 'engines/state', ROOT / 'sim/web/src', out,
                       platform / 'hal', platform / 'src', platform / 'gen'):
         flags += ['-I', str(directory)]
@@ -144,7 +144,8 @@ def main():
                         '-o', str(obj)], check=True)
         objects.append(obj)
     for path in (ROOT / 'sim/web/src/fm1_app.c', ROOT / 'engines/host/mod_script.c',
-                 ROOT / 'firmware/native/app_probe.c', ROOT / 'engines/src/registry.cc'):
+                 ROOT / 'firmware/native/app_probe.c', ROOT / 'firmware/native/instance_pool.c',
+                 ROOT / 'firmware/native/tlsf_runtime.c', ROOT / 'engines/src/registry.cc'):
         obj = out / (path.stem + '.o')
         cxx = (['-std=c++11', '-fno-exceptions', '-fno-rtti', '-DTEST',
                 '-I', str(ROOT / 'engines/src'), '-isystem', str(catalogue / 'shard-00/cxx'),

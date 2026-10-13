@@ -683,10 +683,23 @@ void fm1_app_init(fm1_app_t *a, float sample_rate) {
 }
 
 #if FM1_APP_EXTERNAL_ARENAS
+int fm1_app_set_storage(fm1_app_t *a, void *ctx,
+                        void *(*alloc)(void *, size_t),
+                        void (*free_mem)(void *, void *)) {
+  if (!a || !!alloc != !!free_mem) return -1;
+  for (int k = 0; k < FM1_APP_UNITS; ++k) {
+    const fm1_app_unit_t *u = &a->unit[k];
+    if (u->mem || u->cap || u->e || u->self || u->index != -1) return -1;
+  }
+  a->storage_ctx = ctx;
+  a->storage_alloc = alloc;
+  a->storage_free = free_mem;
+  return 0;
+}
 int fm1_app_bind_arena(fm1_app_t *a, int unit, void *mem, size_t cap) {
   uintptr_t lo = (uintptr_t)mem, hi, app_lo;
   fm1_app_unit_t *u;
-  if (!a || unit < 0 || unit >= FM1_APP_UNITS) return -1;
+  if (!a || a->storage_alloc || unit < 0 || unit >= FM1_APP_UNITS) return -1;
   u = &a->unit[unit];
   if (u->e || u->self || u->index != -1) return -1;
   if (!mem && !cap) {
@@ -949,7 +962,7 @@ static void mod_rebind(fm1_app_t *a, int unit, const fm1_engine_t *from) {
 }
 
 int fm1_app_select(fm1_app_t *a, int unit, int index) {
-  if (unit < 0 || unit >= FM1_APP_UNITS) return FM1_APP_SELECT_BAD;
+  if (!a || unit < 0 || unit >= FM1_APP_UNITS) return FM1_APP_SELECT_BAD;
   fm1_app_unit_t *u = &a->unit[unit];
   const fm1_engine_t *e = entry(index);
   const fm1_engine_t *from = u->e;
@@ -958,6 +971,13 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
   if (index == -1 && unit > 0) {
     if (snd >= 0) release_sound(a, snd);
     release(u);
+#if FM1_APP_EXTERNAL_ARENAS
+    if (a->storage_alloc && u->mem) {
+      a->storage_free(a->storage_ctx, u->mem);
+      u->mem = NULL;
+      u->cap = 0;
+    }
+#endif
     mod_rebind(a, unit, from);
     if (snd < 0 && fx_unit_at(a, a->fx_slot) == unit) a->fx_page = 0;   /* an empty slot has one page */
     if (snd == a->sound) {
@@ -983,7 +1003,8 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
     }
   }
   size_t bytes = e->instance_size(&a->host);
-  if (!u->mem || bytes > u->cap) return FM1_APP_SELECT_ARENA;
+  if ((!u->mem || bytes > u->cap) && !a->storage_alloc)
+    return FM1_APP_SELECT_ARENA;
   {
     /* The RAM meter: refuse what would take the chain past the FM-1's
      * budget, unless it does not grow (a chain already past it, after a
@@ -997,6 +1018,35 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
       return FM1_APP_SELECT_RAM;
     }
   }
+#if FM1_APP_EXTERNAL_ARENAS
+  if (a->storage_alloc && (!u->mem || bytes > u->cap)) {
+    fm1_app_unit_t candidate = *u;
+    candidate.mem = a->storage_alloc(a->storage_ctx, bytes);
+    candidate.cap = bytes;
+    if (!candidate.mem) return FM1_APP_SELECT_ARENA;
+    /* Provider contract guarantees disjoint, aligned storage. Create before
+     * releasing notes or the previous engine: refusal leaves both intact. */
+    candidate.e = NULL;
+    candidate.self = NULL;
+    candidate.index = -1;
+    if (!load(a, &candidate, index, bytes)) {
+      a->storage_free(a->storage_ctx, candidate.mem);
+      return -3;
+    }
+    if (snd >= 0) release_sound(a, snd);
+    release(u);
+    if (u->mem) a->storage_free(a->storage_ctx, u->mem);
+    *u = candidate;
+    mod_rebind(a, unit, from);
+    if (snd == a->sound) {
+      a->page = clampi(a->page, 0, page_count(e) - 1);
+      forget_knob_hint(a);
+    } else if (snd < 0) fx_unit_changed(a, unit);
+    a->dirty = 1;
+    fm1_edit_note_unit(a, unit);
+    return 0;
+  }
+#endif
   int prev = u->index;
   size_t prev_bytes = u->bytes;
   float prev_value[FM1_APP_MAX_PARAMS];

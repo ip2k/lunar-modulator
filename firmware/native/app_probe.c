@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 /* Timed shared-application integration probe, NOT a release entry point.
  * Requires the reviewed generated platform: no NOR writes, 16-row canvas,
- * no OTA cleanup and unity HAL master gain. Arena sizes are provisional;
- * large effects cannot load here. Device admission is a separate operation. */
+ * no OTA cleanup and unity HAL master gain. The shared instance pool is provisional;
+ * complete catalogue RAM and timing acceptance remain separate. Device admission is a separate operation. */
 #if !defined(LUNAR_APP_PROBE) || !FM1_APP_EXTERNAL_ARENAS
 #error "Use the checked external-arena probe build"
 #endif
@@ -18,16 +18,24 @@ static int32_t lunar_master_raw = 512;
 #undef FM1_BTN_OCT_UP
 #include "fm1_app.h"
 #include "audio_queue.h"
+#include "instance_pool.h"
 
 typedef char lunar_probe_canvas_bound[(CV_MAX == 240u * 16u) ? 1 : -1];
 static fm1_app_t app __attribute__((section(".pool"), aligned(16)));
-static uint8_t sound_arena[FM1_APP_SOUNDS][24576]
+static uint8_t instance_memory[192000]
     __attribute__((section(".pool"), aligned(16)));
-static uint8_t fx_arena[FM1_APP_EFFECTS][8192]
-    __attribute__((section(".pool"), aligned(16)));
+static lunar_instance_pool_t instance_pool;
+static volatile uint32_t arena_bind_failures;
+static void *instance_alloc(void *ctx, size_t bytes) {
+    return lunar_instance_pool_alloc((lunar_instance_pool_t *)ctx, bytes);
+}
+static void instance_free(void *ctx, void *memory) {
+    if (lunar_instance_pool_free((lunar_instance_pool_t *)ctx, memory))
+        arena_bind_failures++;
+}
 static lunar_audio_queue_t audio_queue;
 static volatile uint32_t render_ticks_max, draw_ticks_max;
-static volatile uint32_t arena_bind_failures, initial_engine_result;
+static volatile uint32_t initial_engine_result;
 
 static void app_audio(int32_t *out, uint32_t n)
 {
@@ -99,17 +107,10 @@ static void app_main(void)
     uint32_t previous_keys = 0, row = 0, last_draw = 0;
     uint32_t start = fm1_ticks();
     int previous_master = -1;
-    unsigned effect = 0;
     fm1_app_init(&app, 44118.0f);
-    for (int unit = 0; unit < FM1_APP_UNITS; ++unit) {
-        int sound = -1;
-        for (int s = 0; s < FM1_APP_SOUNDS; ++s)
-            if (fm1_app_sound_unit(s) == unit) sound = s;
-        int rc = sound >= 0
-            ? fm1_app_bind_arena(&app, unit, sound_arena[sound], sizeof sound_arena[0])
-            : fm1_app_bind_arena(&app, unit, fx_arena[effect++], sizeof fx_arena[0]);
-        if (rc) arena_bind_failures++;
-    }
+    if (lunar_instance_pool_init(&instance_pool, instance_memory, sizeof instance_memory) ||
+        fm1_app_set_storage(&app, &instance_pool, instance_alloc, instance_free))
+        arena_bind_failures++;
     initial_engine_result = (uint32_t)fm1_app_select(&app, 0, fm1_app_find("trio"));
     refill_audio();
     for (;;) {

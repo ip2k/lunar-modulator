@@ -530,3 +530,36 @@ bytes inside the supplied pool. The shared application does not yet use this
 allocator. Next: transactional application storage callbacks, native pool
 integration, compressed table access and full application sizing. Maximum
 engine count remains the release target. No hardware commands occurred.
+
+## Managed shared application storage
+
+[verified] Added optional main-loop storage callbacks to external-arena
+builds. Registering requires every unit empty and unbound; manual binding
+is refused while managed. Larger replacements are allocated and created
+before releasing the current engine or its notes. Exhaustion and host refusal
+preserve the live instance. Clearing an optional sound or effect frees its
+arena. A sufficient existing arena keeps the established in-place rollback
+behavior; reserve-before-free temporarily requires both instances to fit.
+
+[verified] All 16 Hera application shards passed in ordinary builds and
+ASan/UBSan builds. Checks include retained-instance audio after exhaustion,
+host-rate refusal, replacement ownership, cleared-slot frees and unchanged
+embedded/manual-arena behavior. The test's first run caught a C99 aligned_alloc
+compatibility mistake; corrected to POSIX aligned allocation before rerunning.
+
+[verified] Timed native probe now uses a 192,000-byte TLSF pool rather than
+180,224 bytes of fixed arenas. Recompiled all 167 catalogue objects across
+16 source-bound chunks, then linked 16 profiles. All completed without OOM;
+three ten-engine profiles fit, with empty undefined-symbol lists and zero
+failed/pending SDK-free audit checks. Eleven-engine profile (excluding
+Comet, Shapes and test-sine) overflows preserved flash by 13,392 bytes,
+1,136 more than the prior fixed-arena build. Fits are sizing evidence only: no
+hardware candidate or installable release was admitted. All thirteen engines
+remain the optimization target; these exclusions are measurements, not a
+release decision. Receipts: private app-storage{-asan,}-verification.json,
+pool-release-count-verification.json and Hera out-pool-v1/verification.json.
+
+Semantic navigation confirmed existing selection callers in the primary
+checkout, but both MCPs still select that checkout, not this feature worktree.
+Changed source was inspected directly; primary results do not verify these
+changes or the pi32v2 ABI. No hardware commands occurred.

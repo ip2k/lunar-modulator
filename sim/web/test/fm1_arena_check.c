@@ -1,4 +1,5 @@
 /* MIT. Actual shared-app arena admission and live engine checks. */
+#define _POSIX_C_SOURCE 200112L
 #include "fm1_app.h"
 #include <assert.h>
 #include <math.h>
@@ -14,9 +15,80 @@ static struct {
   unsigned char after[16];
 } arena FM1_APP_ALIGN16;
 
+#if FM1_APP_EXTERNAL_ARENAS
+static fm1_app_t managed;
+static struct { int fail; unsigned allocations, frees; } storage;
+static void *allocate(void *ctx, size_t bytes) {
+  (void)ctx;
+  if (storage.fail) return NULL;
+  void *p = NULL;
+  if (posix_memalign(&p, 16, bytes)) return NULL;
+  if (p) ++storage.allocations;
+  return p;
+}
+static void deallocate(void *ctx, void *memory) {
+  (void)ctx;
+  assert(memory);
+  ++storage.frees;
+  free(memory);
+}
+static void managed_check(int shard) {
+  fm1_app_init(&managed, 44118.0f);
+  assert(fm1_app_set_storage(NULL, NULL, allocate, deallocate) == -1);
+  assert(fm1_app_set_storage(&managed, NULL, allocate, NULL) == -1);
+  assert(fm1_app_set_storage(&managed, NULL, allocate, deallocate) == 0);
+  assert(fm1_app_bind_arena(&managed, 0, arena.data, sizeof arena.data) == -1);
+  int sine = fm1_app_find("test-sine"), trio = fm1_app_find("trio");
+  assert(sine >= 0 && trio >= 0);
+  assert(fm1_app_select(&managed, 0, sine) == 0);
+  assert(storage.allocations == 1 && !storage.frees);
+  assert(fm1_app_set_storage(&managed, NULL, NULL, NULL) == -1);
+  fm1_app_key(&managed, shard % 27, 1, 100);
+  fm1_app_unit_t previous = managed.unit[0];
+  storage.fail = 1;
+  assert(fm1_app_select(&managed, 0, trio) == FM1_APP_SELECT_ARENA);
+  assert(!memcmp(&previous, &managed.unit[0], sizeof previous));
+  double energy = 0;
+  for (int k = 0; k < 16; ++k) {
+    const float *samples = fm1_app_render(&managed, 64);
+    for (int n = 0; n < 128; ++n) {
+      assert(isfinite(samples[n]));
+      energy += samples[n] * samples[n];
+    }
+  }
+  assert(energy > 0.001);
+  storage.fail = 0;
+  managed.host.sample_rate = 48000.0f;
+  assert(fm1_app_select(&managed, 0, trio) == -3);
+  assert(!memcmp(&previous, &managed.unit[0], sizeof previous));
+  assert(storage.allocations == 2 && storage.frees == 1);
+  managed.host.sample_rate = 44118.0f;
+  assert(fm1_app_select(&managed, 0, trio) == 0);
+  assert(storage.allocations == 3 && storage.frees == 2);
+  int gain = fm1_app_find("test-gain");
+  assert(gain >= 0 && fm1_app_select(&managed, 1, gain) == 0);
+  assert(fm1_app_select(&managed, 1, -1) == 0);
+  assert(!managed.unit[1].mem && !managed.unit[1].cap);
+  int second = fm1_app_sound_unit(1);
+  assert(fm1_app_select(&managed, second, sine) == 0);
+  assert(fm1_app_select(&managed, second, -1) == 0);
+  assert(!managed.unit[second].mem && !managed.unit[second].cap);
+  fm1_app_all_notes_off(&managed);
+  managed.unit[0].e->destroy(managed.unit[0].self);
+  deallocate(NULL, managed.unit[0].mem);
+  memset(&managed.unit[0], 0, sizeof managed.unit[0]);
+  managed.unit[0].index = -1;
+  assert(storage.allocations == storage.frees);
+  assert(fm1_app_set_storage(&managed, NULL, NULL, NULL) == 0);
+}
+#endif
+
 int main(int argc, char **argv) {
   int shard = argc == 2 ? atoi(argv[1]) : -1;
   assert(shard >= 0 && shard < 16);
+#if FM1_APP_EXTERNAL_ARENAS
+  managed_check(shard);
+#endif
   memset(&arena, 0x5a, sizeof arena);
   fm1_app_init(&app, 44118.0f);
   int trio = fm1_app_find("trio");

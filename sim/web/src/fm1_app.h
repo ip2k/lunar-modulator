@@ -384,6 +384,9 @@ typedef struct fm1_app_sink_ctx {
 } fm1_app_sink_ctx_t;
 
 typedef struct fm1_app {
+  void *storage_ctx;
+  void *(*storage_alloc)(void *, size_t);
+  void (*storage_free)(void *, void *);
   fm1_host_t host;
   fm1_host_t ram_host;           /* host at FM1_APP_RAM_RATE: the RAM rule's sizes */
   fm1_app_unit_t unit[FM1_APP_UNITS];   /* by id: see FM1_APP_UNITS */
@@ -551,6 +554,14 @@ void fm1_app_init(fm1_app_t *a, float sample_rate);
  * NULL/0 unbinds an empty unit. Returns 0, or -1 without changing the binding.
  * Engine selection still enforces arena capacity and the shared RAM meter. */
 int fm1_app_bind_arena(fm1_app_t *a, int unit, void *mem, size_t cap);
+/* Install a main-loop-only storage provider after init while every unit is
+ * empty and unbound. Allocations must be stable, disjoint, 16-byte aligned,
+ * and at least the requested size; NULL means exhaustion. The provider owns
+ * storage until free. No calls may race rendering or selection. NULL/NULL
+ * removes an idle provider. Manual binding is refused while managed. */
+int fm1_app_set_storage(fm1_app_t *a, void *ctx,
+                        void *(*alloc)(void *, size_t),
+                        void (*free_mem)(void *, void *));
 #endif
 
 /* The registry index of an engine id, or -1. */
