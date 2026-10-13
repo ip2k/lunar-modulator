@@ -2,6 +2,15 @@
 
 Guidance for Claude Code working in this repo.
 
+## Default image and selectable builder — owner, 2026-10-13
+
+The release must have a default image containing all thirteen production sound
+engines, plus a selectable web image builder for engines, effects and songs/sets.
+Selectable packs do not replace the all-thirteen default image. The protected
+stock boot-component and flash-layout gates remain in force. The current timed
+probe builder is not a release installer. See
+`notes/2026-10-13-native-image-builder.md` for the backend plan and evidence.
+
 ## Native firmware direction — owner, 2026-10-12
 
 The active target is fully functional, web-installable Lunar on real FM-1s

@@ -13,6 +13,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+from module_selection import resolve_modules
 import sys
 
 from build_probe import check_pins
@@ -109,6 +110,8 @@ def main():
     parser.add_argument('--catalogue', type=Path, required=True)
     parser.add_argument('--build', type=Path, required=True)
     parser.add_argument('--exclude', choices=ENGINE_IDS, action='append', default=[])
+    parser.add_argument('--modules', help='Literal comma-separated engine/effect/MIDI/mod IDs; '
+                        'timed probe must retain trio; incompatible with --exclude')
     parser.add_argument('--shapes-voices', type=int, choices=range(1, 13), default=12,
                         help='Require the selected Shapes polyphony in the catalogue')
     parser.add_argument('--indexed-tft', action='store_true',
@@ -120,7 +123,22 @@ def main():
                            (args.toolchain, args.catalogue, args.build))
     if len(set(args.exclude)) != len(args.exclude) or 'trio' in args.exclude:
         parser.error('Exclusions must be unique and retain the initial Trio engine')
+    if args.modules is not None and args.exclude:
+        parser.error('--modules and --exclude cannot be combined')
     out.mkdir(parents=True, exist_ok=False)
+    # Generate both registry flags and omitted-module metadata together.
+    # Reuse the canonical catalogue rather than editing engine flags alone.
+    try:
+        _, all_modules = resolve_modules(ROOT, out / 'module-all', 'all')
+        specification = (args.modules if args.modules is not None else
+                         ','.join(x for x in all_modules['selected'] if x not in args.exclude)
+                         if args.exclude else 'all')
+        module_header, module_selection = resolve_modules(ROOT, out / 'module-selection', specification)
+    except ValueError as error:
+        parser.error(str(error))
+    if 'trio' not in module_selection['selected']:
+        parser.error('Timed probe must retain the initial Trio engine')
+    args.exclude = [x for x in ENGINE_IDS if x not in module_selection['selected']]
     platform = ROOT / 'firmware/third_party/dinghy'
     for name in ('dinghy', 'compiler-rt', 'musl', 'printf', 'tlsf'):
         check_pins(ROOT / 'firmware/third_party' / name)
@@ -162,11 +180,7 @@ def main():
     gen = out / 'gen'
     shutil.copytree(catalogue / 'shard-00/obj/gen', gen)
     header = gen / 'fm1_modules.h'
-    source = header.read_text()
-    for name in args.exclude:
-        source = replace_once(source, '#define FM1_WITH_' + name.upper().replace('-', '_') + ' 1',
-                              '#define FM1_WITH_' + name.upper().replace('-', '_') + ' 0')
-    header.write_text(source)
+    header.write_bytes(module_header)
     compiler = str(tc / 'common/bin/clang')
     flags = ['-target', 'pi32v2', '-mcpu=r3', '-mfprev1', '-Oz', '-flto',
              '-ffreestanding', '-fno-builtin', '-ffunction-sections', '-fdata-sections',
@@ -256,7 +270,7 @@ def main():
     if re.search(r'\bcall\b', disassembly):
         raise SystemExit('RAM flash code contains a call')
     (out / 'sections.txt').write_text(subprocess.check_output([objdump, '-h', str(elf)], text=True))
-    report = dict(excluded_engines=args.exclude, sdk_archives=[],
+    report = dict(excluded_engines=args.exclude, module_selection=module_selection, sdk_archives=[],
                   compressed_wave_tables=wave_records, indexed_tft=args.indexed_tft,
                   shapes_voices=args.shapes_voices,
                   instance_pool_bytes=instance_pool_bytes, target_app_storage=app_storage,
