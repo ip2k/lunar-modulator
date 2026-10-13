@@ -251,3 +251,31 @@ current fixed-loader session and fresh backup provenance; then bounded native
 install/boot with recovery. Never run the stale V8 restore admission. Full
 Lunar UI, engines/effects/sequencer integration, audio/controls/MIDI physical
 acceptance and stock-compatible web installation are still required.
+
+## Native injected policy and disconnected hardware [verified]
+
+`tools/native/bench_policy.py` binds only the exact recorded native/stock plans
+to an injected fixed-loader transport. It pins the planner and transaction
+sources, both matching backup dumps, their manifest and command receipt, the
+exact target image, directory-last sector order and all provenance fields.
+The inherited wire guard requires durable journal intent before a mutation.
+This module has no physical device opener and grants no hardware admission.
+
+`tests/native_bench_policy.py` passed all 16 parallel Hera chunks: invalid
+loader/provenance bindings, copied policies, changed sessions, absent journal
+intent, incorrect pages, protected erases, changed image artifacts and forbidden
+eFuse/upload/reset commands. Shard 0 additionally completed a simulated native
+install and full V8 rollback. Each receipt explicitly reports simulation and
+zero hardware operations. The first run passed 15 chunks; its session-label
+fixture used a valid nonempty label. The final run corrects that fixture to an
+empty label and retains the separate changed-after-bind refusal case.
+Private final evidence: `build/native-policy-16-20261012/hera-verification.json`;
+Hera source and outputs: `/home/claude/mvave-fm1/native-policy-16-20261012/`.
+
+Passive USB checks now show only root hubs and no SG device. The kernel records
+`Oct 12 21:39:38 bench01 kernel: usb 1-1: USB disconnect, device number 14`.
+This supersedes the earlier current-session description: device 14 admission
+is stale. No reset, upload or flash mutation was attempted in this policy work.
+The owner's power/connection state is awaiting clarification; fresh connection
+evidence is required before any further hardware operation. Neither native
+hardware acceptance nor full installable Lunar has been achieved.
