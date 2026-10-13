@@ -441,3 +441,29 @@ No device commands or flash writes were performed for these measurements.
 Maximum-engine release work remains active: flash/RAM fit, full native app,
 MIDI, persistence, realtime and physical acceptance, OTA/web installation and
 release recovery verification remain unfinished.
+
+### Lossless HAL recovery-font packing [verified]
+
+The application builder generates a private adaptation of the pinned small
+HAL font and gfx decoder. It validates that every four-bit alpha sample is
+0 or 15, that all glyphs remain 12x16, and that offsets/metrics match the
+pinned input. Binary pixels pack into one bit without changing the vendored
+sources; the large antialiased face retains its original decoder. Crash,
+UBOOT and recovery text stay present. Sixteen Hera C-renderer comparison
+chunks passed, exercising every byte character with both faces, eight RGB565
+colours and three clipping positions. A separate hostile-alpha/changed-decoder
+rejection test passed. No test container failed or was OOM-killed.
+
+Sixteen full target builds completed with either an audited fit or the expected
+flash overflow, no OOM. The eleven-production profile (omit test-sine, Comet,
+Shapes) now overflows by 12,256 bytes: 6,824 fewer than the preceding pitch-only
+build. Three ten-engine profiles fit, including the newly fitting profile
+that omits Sophie while retaining Macro Heavy and FM6. That app is 578,484
+bytes (3,080 flash headroom), app SHA256
+0e7416c1fcd04dac01ce1686699365466812d7b9663b69f0a5b1bd63c491add6;
+ELF SHA256 4973086696a350f16eaa3d4aed4a430cd276e55c56c893bf897e839a07c78609.
+Strict combined-layout and SDK-free audits pass with zero failed/pending
+checks. It remains a private sizing/timed probe, not hardware-admitted or
+installable. Owner maximum-engine acceptance remains unchanged.
+Private evidence: compact-font.log, compact-font-count.log and Hera out
+compact-font-verification.json / compact-font-count-verification.json.

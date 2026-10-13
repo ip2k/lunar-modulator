@@ -17,6 +17,7 @@ import sys
 
 from build_probe import check_pins
 from compile_catalogue import source_manifest
+from compact_font import compact_header, compact_gfx
 
 ROOT = Path(__file__).resolve().parents[2]
 ENGINE_IDS = ('macro', 'shapes', 'macro-heavy', 'sixop', 'dx7', 'sw-sophie',
@@ -91,6 +92,11 @@ def main():
     for name in ('dinghy', 'compiler-rt', 'musl', 'printf'):
         check_pins(ROOT / 'firmware/third_party' / name)
     objects, catalogue_receipts = checked_catalogue(catalogue)
+    # Keep crash/recovery text while eliminating redundant four-bit storage
+    # for the pinned small face, whose alpha is strictly binary.
+    (out / 'felucca_font.h').write_text(compact_header(
+        (platform / 'gen/felucca_font.h').read_text()))
+    (out / 'gfx.c').write_text(compact_gfx((platform / 'src/gfx.c').read_text()))
     source = (platform / 'src/platform.c').read_text()
     replacements = {
         '    ota_boot_cleanup();': '    /* Timed probe: retain OTA staging bytes. */',
