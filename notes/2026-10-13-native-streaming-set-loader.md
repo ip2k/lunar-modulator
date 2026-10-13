@@ -232,3 +232,30 @@ Runtime startup, parser call-chain stack margin, complete syntax/dependency
 admission and real playback remain unverified. No device operation occurred;
 these are private probes, not installable release packages. Existing layout
 guards remain intact; expanded-layout authorization is pending.
+
+
+## Startup stack exploration [verified ELF inventory; inferred estimate]
+
+Sixteen Hera containers inspected the v10 ELF function extents, avoiding internal
+jump-table labels that split printed function bodies. Source-scoped callback
+mappings cover the loader's fixed sink/reader and binary codec callbacks. The
+inventory reaches 99 functions, with no unresolved direct/indirect call sites
+or call-graph cycles under those mappings. Direct external goto targets are
+included. All sixteen estimates are 9,924 bytes below `load_set`; startup-enabled
+profiles add the 3,060-byte `fm1_cstart` frame and 76-byte activation frame,
+yielding 13,060 bytes versus the 24,320-byte user-stack reservation.
+
+This is an exploratory estimate, not a certified bound: it sums negative SP
+adjustments and register saves, assumes four-byte saved registers, and does not
+prove control-flow stack balance, absence of repeated stack allocation on a
+cycle, callback argument provenance in the machine code, the device ABI or
+interrupt-stack isolation/margin. Full startup, other startup/render paths,
+stack guards and real-device high-water measurements remain separate work.
+There were no simple dynamic SP assignments in the inventoried loader functions.
+No hardware admission flag was changed.
+
+Private receipt SHA256:
+`bf3d020263a2620cbe6ab73841e883da0a03c428009b004cfb2cc0a929fc053b`;
+local `build/native-external-arenas-16-20261012/startup-stack-v1-verification.json`.
+Exploratory script is retained beside it and on Hera. All containers exited
+successfully without OOM and were removed. Expanded-layout approval is pending.

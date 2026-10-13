@@ -1,3 +1,17 @@
+# Native continuation — exploratory stack inventory, 2026-10-13
+
+Preceding verified pushed checkpoint `4f3c246b90ff0f92e85fe9a4e08c1cbf6227b394`.
+Startup hook/host32/native16 checks passed. A further sixteen-container ELF
+inventory produced an inferred 13,060-byte loader+activation+main-caller estimate
+against 24,320 bytes reserved. This is NOT a complete ABI/control-flow/interrupt
+stack proof or hardware admission. Details/limits in streaming-set-loader note;
+private receipt `bf3d020263a2620cbe6ab73841e883da0a03c428009b004cfb2cc0a929fc053b`.
+All containers removed; no hardware operation. Goal remains ACTIVE and no
+installable release is claimed. Expanded-layout authorization still pending.
+Next: verify stack-balance/callback provenance and instrumentation; complete
+syntax/dependency admission, project application, engine/RAM/timing, MIDI,
+persistence and web builder/installer. Preserve all hardware and partition gates.
+
 # Native release continuation — startup set hook, 2026-10-13
 
 Goal ACTIVE: default thirteen production engines, Shapes twelve voices, plus
