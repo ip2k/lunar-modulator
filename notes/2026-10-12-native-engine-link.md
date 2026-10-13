@@ -214,3 +214,87 @@ ignored build directories. No device operation was performed. Owner direction
 remains maximize engine count before release; no reduced release was selected.
 Next: measure largest surviving assets/code, reduce footprint, integrate the
 full HAL/application, then verify real-device installation and recovery.
+
+### Complete-HAL footprint and lossless asset experiments (2026-10-13)
+
+[verified] Rebuilt the committed browser module on Hera after the external-arena
+application changes. Browser/native parity: 108 checks passed, with 108 identical
+JS and musl results; glibc had 105 identical results and at most one LSB in the
+remaining scenarios. Artifacts are committed at 2fd972950483338f15d3365c721c6a3b4a225c41.
+The preceding CI failure was the stale committed Wasm build record, not a claimed
+physical-device failure. Exact-head CI was still running when this note was written.
+
+[verified] Sixteen independent lossless block-storage experiments round-tripped
+194,261 bytes of Plaits/Braids waves and Comet sample data. Block sizes 64, 128,
+256 and 512 were tested with raw or modulo-delta preprocessing and zlib levels
+1/9; each block falls back to raw storage if compression expands it. Accounting
+includes four-byte block offsets, but excludes an unimplemented decoder. Best:
+512-byte delta blocks, level 9, 174,947 stored bytes, saving 19,314 bytes. This
+does not close the flash deficit and does not establish real-time suitability.
+No source asset was changed.
+
+[verified] Sixteen engine-removal links retained input/note roots and the full
+shared UI/runtime. Largest individual removal savings: Comet 139,064 bytes,
+Shapes 81,024, Macro Heavy 42,052, DX7 40,384. These are configuration-dependent
+link deltas, not independently additive module sizes. Removing Comet, Shapes
+and Macro Heavy allowed the engine-only link to pass; no release was selected.
+
+[verified] A second sixteen-way campaign included the pinned Dinghy HAL, actual
+crt0/vector/ISR assembly, USB/recovery, audio buffers, LCD driver and crash UI.
+Private generated copies disable OTA cleanup and NOR-write ranges, namespace
+the HAL's three memory primitives to avoid duplicate musl definitions, and
+namespace its two overlapping button enumerators. The first failed compile
+receipt is retained. The stock app.ld and boot-pointer/core entry guard remain.
+Full catalogue: link fails with XIP overflow 253,336 bytes (25,596 more than the
+engine-only baseline). The eleven-engine sizing configuration links: .text
+571,596, .ram_text 1,128, .data 44 bytes, giving 8,796 bytes flash headroom;
+.bss 14,992 bytes; .pool 251,536 bytes, leaving 92,528 bytes in the fixed pool.
+No engine arena is allocated in this measurement.
+
+These callbacks are sizing scaffolding, not a hardware candidate: rendering
+and drawing are not serialized, RGB565 display byte order is not adapted,
+physical input mapping is absent, and engine arenas are unbound. The shared
+application explicitly requires serialized calls. Real integration must resolve
+these issues and preserve audio deadlines before any device admission. Successful
+container exits are separate from link results: fifteen HAL variants have
+link_exit=1 due to overflow, and one has link_exit=0.
+
+[verified] Private scripts and logs: local ignored
+build/native-external-arenas-16-20261012/{asset-storage*,module-cost*,hal-cost*,hal-template.py},
+with matching Hera source/out directories. The successful module-cost-15 and
+hal-cost-15 maps/results/ELFs were copied locally. No device operation occurred.
+Owner direction remains maximum engine coverage. Engine-pack preference was
+asked while further sixteen-way coverage measurements continued; no answer or
+release-profile choice is assumed.
+
+[verified] Sixteen further full-HAL engine-pack layouts all linked, retaining
+the shared sequencer/modulation/effects/UI roots. Their union covers all fourteen
+sound engines; e.g. eleven engines without Comet/Shapes/Macro Heavy, eleven
+without Comet/Shapes/DX7, and separate Shapes/Comet-containing layouts. Headroom
+ranges 1,904..79,672 bytes. Engine arenas remain unbound, so these are coverage
+measurements, not playable candidates. pack-cost-layouts.json records every
+omission and section size privately. An exhaustive 91-pair omission campaign
+is running in sixteen chunks to test whether any twelve-engine layout fits.
+
+[verified] Added firmware/native/audio_queue.h as the main-loop-to-audio-ISR
+bridge for a serialized application adapter. Eight 64-frame stereo Q15 blocks
+use 4,096 bytes plus counters. Full queues refuse a push; underruns write a
+complete silent block without consuming a future block and increment a counter.
+NaNs become silence, and infinities/overflow saturate before integer conversion.
+The queue is explicitly core-0 main-loop/core-0 ISR only, using aligned 32-bit
+counter accesses and compiler publication barriers; it is not a portable thread
+or multicore primitive. Zero initialization must precede interrupts.
+
+[verified] Sixteen Hera ASan/UBSan shards passed 32,768 push/pop operations each:
+FIFO reference comparison, full/empty bursts, counters crossing UINT32_MAX,
+output/queue guards, silent underruns and Q15 edge cases. This is sequential
+interrupt-order modeling, not actual preemption or hardware timing proof. The
+queue is not yet wired into a firmware entry point. Separate target compilation
+and full adapter integration remain necessary.
+
+[verified] Both semantic MCPs located fm1_app_render on the primary checkout.
+Rarefaction reports fallback flags without a root compilation database and a
+truncated named scan; its empty caller list is not evidence of no callers.
+The tools remain on the primary checkout, not this installable worktree, to
+avoid disturbing another session's shared project selection. Source inspection
+and actual Hera pi32v2 builds are authoritative for the changed worktree.
