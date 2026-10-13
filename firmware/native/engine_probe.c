@@ -36,9 +36,7 @@ static void app_audio(int32_t *out, uint32_t n)
     }
     while (r != end) {
         uint32_t e = events[r & 63u];
-        uint8_t st = e & 0xf0u, key = (e >> 8) & 127u, vel = (e >> 16) & 127u;
-        if (st == 0x90u && vel) lunar_engine_note_on(key, vel);
-        else if (st == 0x80u || st == 0x90u) lunar_engine_note_off(key);
+        lunar_engine_event((uint8_t)e, (uint8_t)(e >> 8), (uint8_t)(e >> 16));
         r++;
     }
     RING_PUBLISH();
@@ -58,10 +56,11 @@ static void app_main(void)
     uint32_t probe_start = fm1_ticks();
     uint8_t held[27] = {0};
     int octave = 0;
+    uint32_t page = 0;
     uint32_t ready = lunar_engine_init(FS);
     lcd_fill(0, 0, 240, 240, C_BLACK);
     draw_text_box(0, 18, 240, &FONT_S, APP_NAME, C_WHITE, 1);
-    draw_text_box(0, 52, 240, &FONT_S, ready ? "TRIO ENGINE PROBE" : "ENGINE INIT FAILED", C_WHITE, 1);
+    draw_text_box(0, 52, 240, &FONT_S, ready ? "TRIO - KNOBS %" : "ENGINE INIT FAILED", C_WHITE, 1);
     RING_PUBLISH();
     engine_ready = ready;
     for (;;) {
@@ -88,16 +87,39 @@ static void app_main(void)
         buttons = fm1_input_edges(&released);
         if ((buttons & (1u << BTN_OCT_DOWN)) && octave > -2) octave--;
         if ((buttons & (1u << BTN_OCT_UP)) && octave < 2) octave++;
+        {
+            int32_t step = fm1_enc_take(ENC_SELECT);
+            int32_t pages = (lunar_engine_param_count() + 3u) / 4u;
+            int32_t next = (int32_t)page + step;
+            if (next < 0) next = 0;
+            if (next >= pages) next = pages - 1;
+            page = pages ? (uint32_t)next : 0;
+            for (k = 0; k < 4u; k++) {
+                step = fm1_enc_take(ENC_KNOB1 + k);
+                if (step > 127) step = 127;
+                if (step < -127) step = -127;
+                if (step) enqueue(1u, (uint8_t)(page * 4u + k), (uint8_t)(int8_t)step);
+            }
+        }
+        if (buttons & (1u << BTN_HOME)) enqueue(0xb0, 123, 0);
         while (midi_get(&st, &a, &b)) enqueue(st, a, b);
         if (fm1_ms - last_status >= 500u) {
             char text[16];
             last_status = fm1_ms;
+            for (k = 0; k < 4u; k++) {
+                uint16_t index = (uint16_t)(page * 4u + k);
+                draw_text_box(8, 84 + k * 24u, 140, &FONT_S, lunar_engine_param_name(index), C_WHITE, 0);
+                fmt_int(text, lunar_engine_param_position(index));
+                draw_text_box(156, 84 + k * 24u, 76, &FONT_S, text, C_WHITE, 0);
+            }
+            draw_text_box(8, 188, 140, &FONT_S, "PEAK US", C_WHITE, 0);
             fmt_int(text, (int32_t)(render_ticks_max / FM1_TICKS_PER_US));
-            draw_text_box(0, 100, 240, &FONT_S, "PEAK AUDIO US", C_WHITE, 1);
-            draw_text_box(0, 124, 240, &FONT_S, text, C_WHITE, 1);
+            draw_text_box(156, 188, 76, &FONT_S,
+                          render_ticks_max / FM1_TICKS_PER_US > 99999u ? "99999+" : text, C_WHITE, 0);
             fmt_int(text, (int32_t)render_overruns);
-            draw_text_box(0, 158, 240, &FONT_S, "OVERRUNS", C_WHITE, 1);
-            draw_text_box(0, 182, 240, &FONT_S, text, C_WHITE, 1);
+            draw_text_box(8, 216, 140, &FONT_S, "OVERRUNS", C_WHITE, 0);
+            draw_text_box(156, 216, 76, &FONT_S,
+                          render_overruns > 99999u ? "99999+" : text, C_WHITE, 0);
         }
     }
 }

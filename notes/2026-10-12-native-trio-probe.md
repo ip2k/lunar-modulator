@@ -279,3 +279,33 @@ is stale. No reset, upload or flash mutation was attempted in this policy work.
 The owner's power/connection state is awaiting clarification; fresh connection
 evidence is required before any further hardware operation. Neither native
 hardware acceptance nor full installable Lunar has been achieved.
+
+## Native controls and new ROM connection [verified]
+
+The native Trio adapter now routes panel detents, MIDI CC16-31, pitch bend,
+velocity-zero note-off and CC123 panic through the audio-task event queue.
+SELECT chooses parameter pages; four knobs edit the page. Read-only byte
+snapshots supply display percentages. Reinitialization clears a previous instance
+before rejecting unsupported settings. The display uses bounded counter strings.
+
+All 16 parallel Hera control/audio oracle chunks passed without OOM: 128 trials,
+12,288 blocks, with sample-exact comparison against the reference Trio engine.
+The final native build passed layout and SDK-free key audits with no SDK archives
+or undefined symbols. App is 49,268 bytes, SHA256
+`7471be3e9e2df50ea934f56577e1a61469e99a755ded619a67fff9999796b527`;
+ELF SHA256 `7ce4b97da6a4d77103721a8b9eef2a7a92080b61b5218a6a8a127d85c5e548fc`.
+Private receipts and final source pins: `build/native-controls-16-20261012/`.
+The actual vendored font renderer produced a 240x240 preview, visually inspected
+for clipping and overlap. This is host rendering, not physical display acceptance.
+
+After the device-14 disconnect, FM1 reappeared on bus 1 device 27, port 1-1,
+/dev/sg0, VID:PID 4c4a:8057. One read-only INQUIRY completed with vendor WL82,
+product UBOOT1.00. Before/after sysfs bindings matched. No loader upload, reset,
+NOR mutation or retry occurred. Private receipt: `current-inquiry.json` in the
+controls evidence directory. This confirms ROM rather than the old fixed-loader
+session; all old live admissions remain stale. New dual backups and a distinct
+reviewed native install/recovery admission are required before writing.
+
+The owner observed white/red/green/blue bands on the SDK diagnostic. Native Trio
+has not run on hardware. Full Lunar engine selection, effects, sequencer, physical
+audio/controls/MIDI acceptance, recovery and web installation remain outstanding.

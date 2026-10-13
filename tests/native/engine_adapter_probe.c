@@ -35,16 +35,45 @@ int main(int argc, char **argv)
         if (engine->instance_size(&host) > sizeof reference_mem) return 5;
         ref = engine->create(reference_mem, &host);
         if (!ref) return 6;
-        lunar_engine_note_on(note, velocity);
+        if (trial & 1u) lunar_engine_event(0x93, note, velocity);
+        else lunar_engine_note_on(note, velocity);
         engine->note_on(ref, note, velocity);
         for (block = 0; block < 96; block++) {
             unsigned frames = 1 + (trial + block) % 64;
             int32_t actual[130];
             float expected[128];
             for (i = 0; i < 130; i++) actual[i] = 0x12345;
-            if (block == 32) { lunar_engine_note_off(note); engine->note_off(ref, note); }
+            if (block == 8 || block == 16 || block == 24) {
+                uint16_t raw = block == 8 ? 0 : block == 16 ? 16383 : 8192;
+                lunar_engine_event(0xe5, raw & 127u, raw >> 7);
+                engine->pitch_bend(ref, block == 8 ? -2.0f : block == 16 ? 2.0f : 0.0f);
+            }
+            if (block == 12 || block == 20) {
+                uint16_t index = trial % engine->n_params;
+                const fm1_param_t *p = &engine->params[index];
+                unsigned value7 = block == 12 ? trial % 128 : 127;
+                float value = fm1_param_at(p, (float)value7 / 127.0f);
+                if (p->type == FM1_PARAM_ENUM) value = p->min + (float)(int)(value - p->min + 0.5f);
+                lunar_engine_event(0xb2, 16 + index, value7);
+                engine->set_param(ref, index, value);
+                if (lunar_engine_param_position(index) !=
+                    (uint8_t)(fm1_param_pos(p, value) * 100.0f + 0.5f)) return 10;
+            }
+            if (block == 28) {
+                uint16_t index = trial % engine->n_params;
+                const fm1_param_t *p = &engine->params[index];
+                /* Previous CC set the maximum. A negative detent must move
+                 * one enum choice or one percent along the continuous law. */
+                float value = p->type == FM1_PARAM_ENUM ? p->max - 1.0f : fm1_param_at(p, 0.99f);
+                value = fm1_param_clamp(p, value);
+                lunar_engine_event(1, index, (uint8_t)(int8_t)-1);
+                engine->set_param(ref, index, value);
+                lunar_engine_event(1, 255, 1); /* invalid index cannot touch audio */
+                lunar_engine_event(0xb0, 15, 127); /* unmapped controller */
+            }
+            if (block == 32) { lunar_engine_event(0x90, note, 0); engine->note_off(ref, note); }
             if (block == 64) {
-                lunar_engine_all_notes_off();
+                lunar_engine_event(0xbf, 123, 0);
                 for (i = 0; i < 128; i++) engine->note_off(ref, (uint8_t)i);
             }
             lunar_engine_render(actual + 1, frames);
@@ -63,6 +92,16 @@ int main(int argc, char **argv)
         }
         engine->destroy(ref);
     }
-    printf("shard %u: 8 note/velocity trials, 768 blocks passed\n", shard);
+    if (lunar_engine_param_count() != engine->n_params ||
+        strcmp(lunar_engine_param_name(0), engine->params[0].abbr) ||
+        strcmp(lunar_engine_param_name(65535), "") || lunar_engine_param_position(65535)) return 11;
+    if (lunar_engine_init(32000)) return 12;
+    {
+        int32_t out[128] = {0};
+        lunar_engine_event(0x90, 60, 127);
+        lunar_engine_render(out, 64);
+        for (i = 0; i < 128; i++) if (out[i]) return 13;
+    }
+    printf("shard %u: 8 control/note/velocity trials, 768 blocks passed\n", shard);
     return 0;
 }
