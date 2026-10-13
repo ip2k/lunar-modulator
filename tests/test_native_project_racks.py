@@ -16,8 +16,12 @@ HARNESS = r'''
 static unsigned char bytes[98304];
 static size_t length;
 static size_t sound_size(const fm1_host_t *h) { (void)h; return 16; }
+static const fm1_param_t params[] = {
+    {.name="Pad",.uid=1,.type=FM1_PARAM_ENUM,.min=1,.max=2,.def=1,.flags=FM1_PARAM_FOCUS},
+    {.name="Decay",.uid=2,.min=0,.max=1,.def=0.5f,.flags=FM1_PARAM_PER_FOCUS},
+    {.name="Gain",.uid=3,.min=0,.max=1,.def=0.5f}};
 static const fm1_engine_t sound = { .id = "trio", .kind = FM1_KIND_SOUND,
-    .instance_size = sound_size };
+    .instance_size = sound_size, .params=params, .n_params=3 };
 static const fm1_engine_t *const engines[] = { &sound };
 static void put(void *ctx, const char *s, size_t n) {
     (void)ctx; if (n > sizeof bytes - length) abort();
@@ -52,6 +56,15 @@ int main(int argc, char **argv) {
         if (!fm1_state_bin_write(w, &r)) return 5;
         memset(&r, 0, sizeof r); r.type = FM1_REC_UNIT; r.role = FM1_ROLE_SOUND;
         strcpy(r.u.unit.id, "trio"); if (!fm1_state_bin_write(w, &r)) return 6;
+        for (unsigned p=0;p<4;p++) {
+            float value=p==0?0.25f:p==1?0.75f:0.875f;
+            memset(&r,0,sizeof r);r.type=FM1_REC_PARAM;r.role=FM1_ROLE_SOUND;
+            r.u.param.uid=(uint16_t)(p<2?2:p==2?3:1);
+            r.u.param.focus=(uint8_t)(p<2?p:FM1_FOCUS_NONE);
+            r.u.param.vtype=p==3?FM1_VAL_INDEX:FM1_VAL_F32;
+            if (p==3) r.u.param.bits=k%2;else memcpy(&r.u.param.bits,&value,4);
+            if (!fm1_state_bin_write(w,&r)) return 20;
+        }
         r.type = FM1_REC_MOD; if (!fm1_state_bin_write(w, &r)) return 7;
         r.type = FM1_REC_SEED; r.u.seed = 123; if (!fm1_state_bin_write(w, &r)) return 8;
         for (unsigned pos = 0; pos < count; ++pos) {
@@ -103,7 +116,12 @@ int main(int argc, char **argv) {
                 mode, rep.code, rep.what); return 15;
         }
         if (!mod && rep.code == FM1_STATE_OK) return 19;
-        if (mod) fm1_mod_destroy(mod);
+        if (mod) {
+            if (fm1_mod_base(mod,FM1_MOD_SOUND,0)!=(float)(k%2+1) ||
+                fm1_mod_base(mod,FM1_MOD_SOUND,1)!=(k%2?0.75f:0.25f) ||
+                fm1_mod_base(mod,FM1_MOD_SOUND,2)!=0.875f) return 21;
+            fm1_mod_destroy(mod);
+        }
         if (lunar_project_mod_stage(bytes, (uint32_t)length, &names, &host,
             memory, 1, &rep) || rep.code == FM1_STATE_OK) return 16;
         free(memory); free(writer);

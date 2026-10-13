@@ -7,7 +7,7 @@
  * disjoint from immutable bytes, descriptors, host/report and live state.
  * On failure the workspace may be changed; no live runtime is touched.
  * Validates the unit plan, creates modules, applies their parameters/data and
- * cables, and refuses skipped records or enabled routes the planner refuses.
+ * cables, restores engine modulation bases for the final focused pad, and refuses skipped records or enabled routes the planner refuses.
  * Success returns a staged runtime, to be destroyed with fm1_mod_destroy.
  * Does not allocate/construct sound/effect engines, apply their parameters or
  * sequence bindings, reserve a pool, activate a project, or prove timing.

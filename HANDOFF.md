@@ -1,3 +1,20 @@
+# Native continuation — saved modulation bases, 2026-10-13
+
+Branch feature/2026-10-11@installable-firmware; preceding verified pushed SHA
+187781ed9aa4b780c25feebdac38d06b222f5341.
+Modulation staging restores saved engine bases with final pad focus.
+Hera16chunks passed32sanitizer runs/256rack scenarios/target compiles;
+16native links passed audits/content checks. All logs checked; noOOM; removed
+owned containers. Evidence notes/2026-10-13-native-project-loader.md.
+No device operation. Goal ACTIVE, no installable release. Expanded layout
+approval pending; all13default plus selectable engines/effects/songs/sets builder.
+Next app adoption/startup, remaining records, persistence/MIDI/timing, builder/
+installer, review/CI/merge and actual install/interrupted recovery.
+App hooks: sim/web/src/fm1_app.c load/mod_bind/dx7_give/arp_init must survive
+adoption; app unit indices differ from project compact indices. Staged mod
+memory cannot be shallow-copied without checking self-references. Startup can
+reclaim sequence scratch before Shapes allocation; live coexistence is limited.
+
 # Native continuation — candidate parameters, 2026-10-13
 
 Branch feature/2026-10-11@installable-firmware; preceding verified pushed SHA

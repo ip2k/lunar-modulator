@@ -5,6 +5,9 @@
 typedef struct {
     const uint8_t *bytes;
     uint32_t size, seed;
+    const lunar_project_units_t *plan;
+    float focus[LUNAR_PROJECT_UNITS];
+    fm1_mod_t *mod;
 } mod_load_t;
 
 static uint32_t read_bytes(void *ctx, uint32_t off, uint8_t *buf, uint32_t n) {
@@ -14,9 +17,23 @@ static uint32_t read_bytes(void *ctx, uint32_t off, uint8_t *buf, uint32_t n) {
     return n;
 }
 
+static float parameter_value(const fm1_rec_t *r, const fm1_param_t *p) {
+    float value;
+    if (r->u.param.vtype == FM1_VAL_INDEX) return p->min + (float)r->u.param.bits;
+    memcpy(&value, &r->u.param.bits, sizeof value);
+    return value;
+}
+
 static int seed_record(void *ctx, const fm1_rec_t *r) {
     mod_load_t *load = (mod_load_t *)ctx;
     if (r->type == FM1_REC_SEED) load->seed = r->u.seed;
+    if (r->type == FM1_REC_PARAM && r->role != FM1_ROLE_MODULE) {
+        int unit = lunar_project_unit_index(r);
+        const fm1_engine_t *e = unit >= 0 ? load->plan->engine[unit] : NULL;
+        int focus = e ? fm1_engine_focus(e) : -1;
+        if (focus >= 0 && e->params[focus].uid == r->u.param.uid)
+            load->focus[unit] = parameter_value(r, &e->params[focus]);
+    }
     return 1;
 }
 
@@ -43,6 +60,26 @@ static const fm1_engine_t *sink_engine(const lunar_project_units_t *plan, unsign
         if (offset % 4u < 2u) return plan->engine[4u + (offset / 4u) * 2u + offset % 4u];
     }
     return NULL;
+}
+
+/* The engine owns all pads; modulation exposes the final current pad only. */
+static int base_record(void *ctx, const fm1_rec_t *r) {
+    mod_load_t *load = (mod_load_t *)ctx;
+    const fm1_engine_t *e;
+    int unit, index, focus;
+    unsigned code;
+    if (r->type != FM1_REC_PARAM || r->role == FM1_ROLE_MODULE || r->role == FM1_ROLE_MFX) return 1;
+    unit = lunar_project_unit_index(r);
+    e = unit >= 0 ? load->plan->engine[unit] : NULL;
+    if (!e || (index = fm1_param_index(e, r->u.param.uid)) < 0) return 0;
+    focus = fm1_engine_focus(e);
+    if (fm1_param_per_focus(&e->params[index]) &&
+        (float)r->u.param.focus != load->focus[unit] - e->params[focus].min) return 1;
+    if (r->role == FM1_ROLE_SOUND) code = fm1_mod_sound_unit(r->sound);
+    else if (r->role == FM1_ROLE_INSERT) code = fm1_mod_insert_unit(r->sound, r->slot);
+    else code = FM1_MOD_FX1 + r->slot;
+    fm1_mod_set_base(load->mod, code, (unsigned)index, parameter_value(r, &e->params[index]));
+    return 1;
 }
 
 fm1_mod_t *lunar_project_mod_stage(const uint8_t *bytes, uint32_t size,
@@ -80,7 +117,13 @@ fm1_mod_t *lunar_project_mod_stage(const uint8_t *bytes, uint32_t size,
             return NULL;
         }
     }
-    load.bytes = bytes; load.size = size; load.seed = 0;
+    memset(&load, 0, sizeof load);
+    load.bytes = bytes; load.size = size; load.plan = &plan;
+    for (i = 0; i < LUNAR_PROJECT_UNITS; ++i) {
+        const fm1_engine_t *e = plan.engine[i];
+        int focus = e ? fm1_engine_focus(e) : -1;
+        if (focus >= 0) load.focus[i] = e->params[focus].def;
+    }
     if (!fm1_state_bin_read(read_bytes, &load, size, seed_record, &load, report, 0)) return NULL;
     mod = fm1_mod_create(workspace, host, load.seed);
     if (!mod) {
@@ -106,6 +149,8 @@ fm1_mod_t *lunar_project_mod_stage(const uint8_t *bytes, uint32_t size,
         refuse(report, FM1_STATE_BAD, "modulation records refused by runtime applier");
         goto failed;
     }
+    load.mod = mod;
+    if (!fm1_state_bin_read(read_bytes, &load, size, base_record, &load, report, 0)) goto failed;
     fm1_mod_get_plan(mod, &info);
     if (info.refused) {
         refuse(report, FM1_STATE_BAD, "enabled modulation routes refused by runtime planner");

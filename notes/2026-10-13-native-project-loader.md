@@ -295,3 +295,20 @@ Evidence: project-engines-v2, project-loader-link-v4 and
 project-parameter-regression-v1 logs/receipts in the ignored evidence directory.
 No real-engine parameter/render, activation, timing, stack margin or hardware
 acceptance is established. No device operation; no installable release.
+
+## Modulation bases follow saved focus
+
+Modulation staging now resolves final saved focus before restoring sink bases
+from engine PARAM records [verified source/tests]. Per-focus records for other
+pads remain engine-owned; MIDI-effect parameters have no modulation sink and
+are ignored by this base pass. Four sound units, inserts and master slots map
+to the production sink codes. This avoids overwriting loaded values with
+metadata defaults on the first modulation tick. No live state is accessed.
+
+Sixteen Hera chunks passed32 Os/Oz sanitizer runs/256 rack scenarios and native
+compiles, with all16 production module kinds and two-pad base checks [verified].
+Another16 native links passed audits/embedded byte checks. NoOOM; all logs
+inspected; containers removed. Receipts: project-rack-bases-v1 and
+project-loader-link-v5 in the ignored evidence directory. Sound1 bases are
+exercised; additional sink mapping, real engine readback, app adoption, runtime
+stack/timing and hardware remain unverified. No installable release.
