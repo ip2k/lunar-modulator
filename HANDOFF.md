@@ -1,3 +1,19 @@
+# Native continuation — fresh rack capacity, 2026-10-13
+
+Branch `feature/2026-10-11@installable-firmware`; preceding verified pushed SHA
+`8b53a48e847b541c10cdc9c3f26b5635b328003b`.
+Unit planner validates selected module descriptors and fresh8KiB base-rack
+allocation, matching16-byte alignment/minimum without calling constructors.
+Sixteen Hera chunks passed96 sanitizer executions, target compiles and184B
+plan assertions; no OOM, containers removed. Saved campaign logs checked.
+Evidence/limits: `notes/2026-10-13-native-project-loader.md`.
+No hardware operation; planner not yet integrated into app activation. Goal
+ACTIVE: default all13 plus selectable engines/effects/songs/sets. Expanded
+layout approval pending. Next reuse modulation planner for routing/per-voice
+capacity, validate module data/sequence bindings, implement bounded activation;
+finish timing, MIDI/persistence, web builder/installer, review/CI and physical
+install/recovery. No installable release yet.
+
 # Native continuation — selected parameter checks, 2026-10-13
 
 Branch `feature/2026-10-11@installable-firmware`; preceding verified pushed SHA

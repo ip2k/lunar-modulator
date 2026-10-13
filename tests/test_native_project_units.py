@@ -12,6 +12,17 @@ HARNESS = r'''
 #include <stdlib.h>
 #include <string.h>
 static unsigned calls;
+static size_t module_want = 128;
+static size_t module_size(const fm1_host_t *host) {
+    if (host->sample_rate != 44118) abort();
+    return module_want;
+}
+static void *module_create(void *mem, const fm1_host_t *host, uint32_t seed) {
+    (void)mem; (void)host; (void)seed; abort();
+}
+static void module_process(void *self, const fm1_mod_io_t *io) {
+    (void)self; (void)io; abort();
+}
 static size_t sized(const fm1_host_t *host) {
     if (host->sample_rate != 44118) abort();
     ++calls; return 1248;
@@ -27,7 +38,9 @@ static fm1_engine_t sound = { .id = "trio", .kind = FM1_KIND_SOUND, .instance_si
     .params = params, .n_params = 4 };
 static const fm1_engine_t fx = { .id = "plate", .kind = FM1_KIND_AUDIO_FX, .instance_size = sized };
 static const fm1_midi_fx_t midi = { .engine = { .id = "arp", .kind = FM1_KIND_MIDI_FX, .instance_size = sized } };
-static const fm1_mod_kind_t mod = { .id = "lfo", .params = params, .n_params = 4 };
+static fm1_mod_kind_t mod = { .id = "lfo", .params = params, .n_params = 4,
+    .magic = FM1_MOD_MAGIC, .api_version = FM1_MOD_API_VERSION,
+    .instance_size = module_size, .create = module_create, .process = module_process };
 static const fm1_engine_t *const engines[] = { &sound, &fx };
 static const fm1_midi_fx_t *const mfx[] = { &midi };
 static const fm1_mod_kind_t *const mods[] = { &mod };
@@ -62,7 +75,7 @@ int main(int argc, char **argv) {
     void *mem = calloc(1, fm1_state_bin_writer_size());
     const uint8_t version[3] = {0, 1, 0};
     fm1_state_writer_t *w;
-    if (!mem || c < 0 || c >= 32) return 1;
+    if (!mem || c < 0 || c >= 48) return 1;
     fm1_state_report_init(&rep);
     w = fm1_state_bin_writer(mem, c == 15 ? FM1_STATE_BIN_DEFLATE : 0,
                               FM1_STATE_WRITER_DESKTOP, version, put, NULL, &rep);
@@ -93,7 +106,12 @@ int main(int argc, char **argv) {
         emit(w, FM1_ROLE_SOUND, 3, 0, "", 0); emit(w, 0, 0, 7, "lfo", 1);
         expected = 1;
     } else if (c >= 9 && c <= 14) emit(w, FM1_ROLE_SOUND, 0, 0, "trio", 0);
-    else if (c >= 16) {
+    else if (c >= 32) {
+        emit(w, FM1_ROLE_SOUND, 0, 0, "trio", 0);
+        for (unsigned i = 0; i < ((c == 34 || c == 35) ? 8u : 1u); ++i)
+            emit(w, 0, 0, i, "lfo", 1);
+        expected = c == 32 || c == 34 || c == 36 || c == 47;
+    } else if (c >= 16) {
         float value = 0.5f;
         emit(w, FM1_ROLE_SOUND, 0, 0, "trio", 0);
         memset(&r, 0, sizeof r); r.type = FM1_REC_PARAM; r.role = FM1_ROLE_SOUND;
@@ -133,13 +151,29 @@ int main(int argc, char **argv) {
     if (c == 11) sound.instance_size = zero;
     if (c == 12) sound.instance_size = NULL;
     if (c == 13) names.n_engines = 0;
+    if (c == 32) module_want = 8192;
+    if (c == 33) module_want = 8193;
+    if (c == 34) module_want = 1024;
+    if (c == 35) module_want = 1025;
+    if (c == 36) module_want = 0;
+    if (c == 37) mod.instance_size = NULL;
+    if (c == 38) mod.magic = 0;
+    if (c == 39) mod.api_version = 0;
+    if (c == 40) mod.n_params = FM1_MOD_MAX_PARAMS + 1;
+    if (c == 41) mod.n_gate_in = FM1_MOD_MAX_GATES + 1;
+    if (c == 42) mod.n_out = FM1_MOD_MAX_OUTS + 1;
+    if (c == 43) mod.data_bytes = FM1_MOD_DATA_MAX + 1;
+    if (c == 44) mod.create = NULL;
+    if (c == 45) mod.process = NULL;
+    if (c == 46) module_want = (size_t)-1;
+    if (c == 47) module_want = 8191;
     memset(&plan, 0x73, sizeof plan); memcpy(&before, &plan, sizeof plan);
     ok = lunar_project_units_plan(c == 14 ? NULL : bytes, (uint32_t)length,
                                   &names, &host, &plan, &rep);
     if (ok != expected) { fprintf(stderr, "case %d ok=%d code=%u %s\n", c, ok, rep.code, rep.what); return 5; }
     if (!ok) {
         if (rep.code == FM1_STATE_OK || memcmp(&plan, &before, sizeof plan)) return 6;
-        if ((c < 11 || c >= 16) && calls) return 7;
+        if ((c < 11 || (c >= 16 && c <= 31) || (c >= 37 && c <= 45)) && calls) return 7;
     } else if (c == 8) {
         if (plan.given != ((1u << 3) | 1) || plan.modules_given != 128 || calls != 1) return 8;
         if (plan.module[7] != &mod) return 15;
@@ -208,7 +242,7 @@ def project_probe(tmp_path_factory):
     return build
 
 
-@pytest.mark.parametrize('case', range(32))
+@pytest.mark.parametrize('case', range(48))
 @pytest.mark.parametrize('opt', ['-Os', '-Oz'])
 def test_native_project_units(case, opt, project_probe):
     subprocess.run([str(project_probe(opt)), str(case)], check=True)

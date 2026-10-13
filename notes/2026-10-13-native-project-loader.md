@@ -135,3 +135,32 @@ This supersedes the earlier parameter-validation exclusion for UID/type/range/
 pad metadata only. Engine-specific parameter behavior, modulation cables/data,
 sequence dependencies, actual pool admission, engine initialization, atomic
 activation and whole-firmware/hardware execution remain unproven.
+
+## Fresh modulation rack capacity
+
+The unit planner now checks selected module descriptor magic/API, bounded
+parameter/port/data counts, required callbacks and parameter metadata pointers.
+After the complete binary read it calls instance_size, bounds each request
+before arithmetic, rounds each to16 bytes and gives zero-byte modules the
+runtime's16-byte minimum. The fresh base rack must fit FM1_MOD_ARENA (8192B).
+No constructors or process callbacks run; a failed call preserves output.
+The plan remains184B on pi32v2 [verified target compile assertion].
+
+Sixteen Hera chunks passed96 ASan/UBSan executions at Os/Oz and target source
+compilation [verified]. Added checks cover8192/8193-byte requests, eight1024-
+byte modules, alignment overflow with eight1025-byte modules, zero-byte
+modules, missing callbacks, invalid magic/API, excessive metadata counts,
+SIZE_MAX and8191-byte alignment. Six passing nodes per shard were checked in
+the saved logs; no OOM, owned containers removed. Receipt
+`project-units-v5-verification.json` SHA256
+`3e67f287205abcf231314154dfbc1a5e778bee336ad9b44a3c4584bee025661f`.
+The compact receipts intentionally record shard exit status, not node lists;
+this hash matches earlier campaigns with identical status vectors. Campaign
+launcher and logs identify the actual selected nodes.
+
+This proves only fresh base-rack capacity under stable descriptors. Per-voice
+module copies, modulation cable/data semantics, the enclosing26848B modulation
+runtime, actual engine pool admission and transactional replacement remain
+separate gates. The planner is still not linked/called by the native app. No
+hardware operation occurred. All-thirteen default and selectable image builder
+remain the target; expanded-layout approval remains pending.

@@ -98,7 +98,15 @@ static int record(void *ctx, const fm1_rec_t *r) {
             load->plan.modules_given |= (uint8_t)bit;
             if (!r->u.unit.id[0]) return 1;
             load->plan.module[r->slot] = fm1_state_kind(load->names, r->u.unit.id);
-            if (load->plan.module[r->slot]) return 1;
+            if (load->plan.module[r->slot]) {
+                const fm1_mod_kind_t *k = load->plan.module[r->slot];
+                if (k->magic != FM1_MOD_MAGIC || k->api_version != FM1_MOD_API_VERSION ||
+                    k->n_params > FM1_MOD_MAX_PARAMS || k->n_gate_in > FM1_MOD_MAX_GATES ||
+                    k->n_out > FM1_MOD_MAX_OUTS || k->data_bytes > FM1_MOD_DATA_MAX ||
+                    (k->n_params && !k->params) || !k->instance_size || !k->create || !k->process)
+                    return refuse(load, FM1_STATE_BAD, "invalid selected module descriptor");
+                return 1;
+            }
         } else {
             int index = unit_index(r);
             uint32_t bit;
@@ -124,6 +132,7 @@ int lunar_project_units_plan(const uint8_t *bytes, uint32_t size,
                              fm1_state_report_t *report) {
     unit_load_t load;
     unsigned i;
+    size_t module_bytes = 0;
     if (!report) return 0;
     fm1_state_report_init(report);
     if (!bytes || !names || !host || !out || size > FM1_STATE_BIN_MAX) {
@@ -141,6 +150,21 @@ int lunar_project_units_plan(const uint8_t *bytes, uint32_t size,
         if (!e) continue;
         if (!e->instance_size || !(load.plan.size[i] = e->instance_size(host)))
             return refuse(&load, FM1_STATE_RAM, "engine has no instance allocation size");
+    }
+    /* Match fresh-rack allocation in fm1_mod_set_kind: align each request,
+     * giving zero-byte modules one minimum block. No constructors run here.
+     * Per-voice copies and the enclosing runtime workspace are separate. */
+    for (i = 0; i < FM1_MOD_POSITIONS; ++i) {
+        const fm1_mod_kind_t *k = load.plan.module[i];
+        size_t want, aligned;
+        if (!k) continue;
+        want = k->instance_size(host);
+        if (want > FM1_MOD_ARENA)
+            return refuse(&load, FM1_STATE_RAM, "module exceeds rack arena");
+        aligned = want ? (want + 15u) & ~(size_t)15u : 16u;
+        if (aligned > FM1_MOD_ARENA - module_bytes)
+            return refuse(&load, FM1_STATE_RAM, "module rack exceeds arena");
+        module_bytes += aligned;
     }
     *out = load.plan;
     return 1;
