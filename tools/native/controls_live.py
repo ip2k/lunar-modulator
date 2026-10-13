@@ -94,7 +94,7 @@ def prepare(path):
     if (manifest['kind'] != 'fm1-fresh-observed-rom-fixed-loader-dual-read'
             or manifest['usb_binding'] != dict(path='1-1',busnum='1',devnum='27',vid='4c4a',pid='8057')
             or encoded(c['sg_binding']) != encoded(manifest['sg_binding'])
-            or bridge.discover_sg(manifest['usb_binding']) != c['sg_binding']
+            or encoded(bridge.discover_sg(manifest['usb_binding'])) != encoded(c['sg_binding'])
             or ctypes.sizeof(reader.SGHeader) != 88):
         raise ValueError('Completed backup/current loader/SG mapping differs')
     marker = output.parent / ('.native-'+c['variant']+'-'+c['direction']+'.consumed')

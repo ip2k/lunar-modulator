@@ -361,3 +361,10 @@ install and boot remain pending. All 16 Hera live-admission checks passed with e
 Evidence: `build/native-controls-live-16-20261012/hera-verification.json`.
 Full functional Lunar acceptance, actual boot recovery, licence and web installer
 remain outstanding.
+
+Physical preflight refused before opening SG because a direct tuple/list mapping
+comparison differed after JSON serialization, although all values matched.
+The new adapter compares canonical immutable encodings, as the existing generic
+transport does. The test fixture now returns tuple-shaped physical stat identities;
+the revised 16 Hera admission checks passed (exit zero, no OOM).
+Private final evidence: `build/native-controls-live-tuple-16-20261012/hera-verification.json`. No flash operation occurred.

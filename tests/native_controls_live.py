@@ -27,7 +27,8 @@ def campaign(inputs,shard):
                direction='install',variant='native',output=str(root/'install-001'),sg_binding=manifest['sg_binding'])
         path=root/'campaign.json'
         bridge,_,sg=live.sources()
-        with patch.object(bridge,'discover_sg',return_value=manifest['sg_binding']), patch.object(sg.os,'open', wraps=sg.os.open) as opened:
+        mapping={k:tuple(v) if k.endswith('_identity') else v for k,v in manifest['sg_binding'].items()}
+        with patch.object(bridge,'discover_sg',return_value=mapping), patch.object(sg.os,'open', wraps=sg.os.open) as opened:
             path.write_text(json.dumps(c)); p=live.prepare(path);p.check()
             assert all(str(call.args[0]) != '/dev/sg0' for call in opened.call_args_list)
             if shard < 12:
