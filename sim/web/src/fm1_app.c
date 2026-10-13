@@ -633,19 +633,27 @@ static void app_init(fm1_app_t *a, float sample_rate) {
   a->ram_host.sample_rate = FM1_APP_RAM_RATE;
   for (int u = 0; u < FM1_APP_UNITS; ++u) {
     a->unit[u].index = -1;
+#if !FM1_APP_EXTERNAL_ARENAS
     a->unit[u].cap = FM1_APP_FX_BYTES;
+#endif
   }
   for (int k = 0; k < FM1_APP_SOUNDS; ++k) {         /* each sound unit its own arena */
+#if !FM1_APP_EXTERNAL_ARENAS
     a->unit[fm1_app_sound_unit(k)].mem = a->sound_mem[k];
     a->unit[fm1_app_sound_unit(k)].cap = FM1_APP_SOUND_BYTES;
+#endif
     a->level[k] = FM1_APP_LEVEL_MAX;
     a->sink_ctx[k].a = a;
     a->sink_ctx[k].sound = k;
+#if !FM1_APP_EXTERNAL_ARENAS
     for (int j = 0; j < FM1_APP_INSERTS; ++j) {
       a->unit[fm1_app_insert_unit(k, j)].mem = a->fx_mem[FM1_APP_FX_SLOTS + FM1_APP_INSERTS * k + j];
     }
+#endif
   }
+#if !FM1_APP_EXTERNAL_ARENAS
   for (int k = 0; k < FM1_APP_FX_SLOTS; ++k) a->unit[1 + k].mem = a->fx_mem[k];
+#endif
   fm1_mix_limiter_init(&a->limiter, sample_rate);
   a->master = 1.0f;
   a->gain = 1.0f;
@@ -673,6 +681,36 @@ void fm1_app_init(fm1_app_t *a, float sample_rate) {
   arp_init(a);                         /* a bypassed arpeggiator on every sound */
   mod_start(a, FM1_APP_MOD_SEED, 1);   /* modulation from the default rack (docs/16 MG3) */
 }
+
+#if FM1_APP_EXTERNAL_ARENAS
+int fm1_app_bind_arena(fm1_app_t *a, int unit, void *mem, size_t cap) {
+  uintptr_t lo = (uintptr_t)mem, hi, app_lo;
+  fm1_app_unit_t *u;
+  if (!a || unit < 0 || unit >= FM1_APP_UNITS) return -1;
+  u = &a->unit[unit];
+  if (u->e || u->self || u->index != -1) return -1;
+  if (!mem && !cap) {
+    u->mem = NULL;
+    u->cap = 0;
+    return 0;
+  }
+  if (!mem || !cap || (lo & 15u) || cap > UINTPTR_MAX - lo) return -1;
+  hi = lo + cap;
+  app_lo = (uintptr_t)a;
+  if (app_lo > UINTPTR_MAX - sizeof *a ||
+      (lo < app_lo + sizeof *a && app_lo < hi)) return -1;
+  for (int k = 0; k < FM1_APP_UNITS; ++k) {
+    const fm1_app_unit_t *other = &a->unit[k];
+    uintptr_t start = (uintptr_t)other->mem;
+    if (k == unit || !other->cap) continue;
+    if (!other->mem || other->cap > UINTPTR_MAX - start ||
+        (lo < start + other->cap && start < hi)) return -1;
+  }
+  u->mem = (unsigned char *)mem;
+  u->cap = cap;
+  return 0;
+}
+#endif
 
 /* ---- modulation: the runtime on the bridge (docs/16 MG3) ------------------------ */
 
@@ -945,7 +983,7 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
     }
   }
   size_t bytes = e->instance_size(&a->host);
-  if (bytes > u->cap) return FM1_APP_SELECT_ARENA;
+  if (!u->mem || bytes > u->cap) return FM1_APP_SELECT_ARENA;
   {
     /* The RAM meter: refuse what would take the chain past the FM-1's
      * budget, unless it does not grow (a chain already past it, after a

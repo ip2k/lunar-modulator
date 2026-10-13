@@ -204,6 +204,15 @@ extern "C" {
 #define FM1_APP_SOUND_BYTES (512u * 1024u)
 #define FM1_APP_FX_BYTES (256u * 1024u)
 
+/* Device builds supply engine arenas after init rather than reserving the
+ * simulator's 4.5 MiB. Every translation unit using this type must agree. */
+#ifndef FM1_APP_EXTERNAL_ARENAS
+#define FM1_APP_EXTERNAL_ARENAS 0
+#endif
+#if FM1_APP_EXTERNAL_ARENAS != 0 && FM1_APP_EXTERNAL_ARENAS != 1
+#error FM1_APP_EXTERNAL_ARENAS must be 0 or 1
+#endif
+
 /* RAM the stock layout leaves free (docs/11 §2, engines/README.md; part of
  * it is stock's heap, so this is an upper bound [inferred]). The meter
  * counts what lives in RAM: instances (each engine's instance_size at the
@@ -516,8 +525,10 @@ typedef struct fm1_app {
   int store_ready;               /* a host store answers SAVE (fm1_app_saved) */
 
   fm1_tft_t tft;
+#if !FM1_APP_EXTERNAL_ARENAS
   unsigned char sound_mem[FM1_APP_SOUNDS][FM1_APP_SOUND_BYTES] FM1_APP_ALIGN16;
   unsigned char fx_mem[FM1_APP_EFFECTS][FM1_APP_FX_BYTES] FM1_APP_ALIGN16;
+#endif
   unsigned char seq_mem[FM1_APP_SEQ_BYTES] FM1_APP_ALIGN16;
   fm1_seq_ev_t seq_ev[FM1_APP_SEQ_EVENTS];
   unsigned char mod_mem[FM1_APP_MOD_BYTES] FM1_APP_ALIGN16;
@@ -532,6 +543,15 @@ typedef struct fm1_app {
  * FM1_APP_MOD_SEED and the default rack: LFO1, LFO2, ENV3, ENV4 and CHN5,
  * with RTRG cabled into both envelopes' GATE. */
 void fm1_app_init(fm1_app_t *a, float sample_rate);
+
+#if FM1_APP_EXTERNAL_ARENAS
+/* Bind storage to an empty unit after init, with audio processing stopped.
+ * Caller owns its lifetime; no allocation occurs. Requires 16-byte alignment,
+ * a non-wrapping range disjoint from the app and every other unit's arena.
+ * NULL/0 unbinds an empty unit. Returns 0, or -1 without changing the binding.
+ * Engine selection still enforces arena capacity and the shared RAM meter. */
+int fm1_app_bind_arena(fm1_app_t *a, int unit, void *mem, size_t cap);
+#endif
 
 /* The registry index of an engine id, or -1. */
 int fm1_app_find(const char *id);

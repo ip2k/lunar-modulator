@@ -585,3 +585,42 @@ compilation database). Actual pi32v2 compilation remains the target proof.
 After the one-use repeat request, passive USB later showed device 31
 `4c4a:8057`, consistent with timed ROM return. Device-29 admission is consumed;
 no new command has been issued to device 31.
+
+### Repeat boot and physical acceptance [verified]
+
+A fresh device-31 RAM-loader session read the full 1 MiB flash twice. Both
+reads matched the installed native target
+`770fd5f275110f017329dda30315343d766ff4a6c6beaa62f5a0060c629dc561`.
+The separate `returned_boot_031` adapter pins that session's actual receipts;
+all 16 Hera fixture/fault chunks passed before its one-use boot request.
+Its post-ioctl binding disappeared, so the receipt remains ambiguous and
+the request must not be retried. Passive enumeration subsequently showed
+native `1209:0001` device 32. The owner confirmed the Trio screen, working
+keys and encoders, then explicitly confirmed hearing notes. This establishes
+display, controls and audible native-engine output on this FM1. It does not
+establish full Lunar functionality, sustained operation or web installation.
+Private receipts: `build/native-returned-rom-031-20261012/`.
+
+The last passive observation was bus 1 device 36 `4c4a:8057`. All older live
+admissions are stale or consumed; obtain a fresh binding before commands.
+
+### Caller-owned shared application arenas [verified]
+
+`FM1_APP_EXTERNAL_ARENAS=1` removes inline sound/effect buffers while retaining
+the shared application, sequencer, modulation and display state. Platforms
+bind disjoint, aligned arenas to empty slots; invalid, overlapping, wrapped
+or live-slot replacements leave the binding unchanged. Selection refuses
+missing or insufficient storage. The default embedded profile is unchanged.
+
+All 16 parallel Hera sanitizer chunks passed for both profiles. Each exercises
+an arena boundary/fault case and renders actual Trio audio through the shared
+app, checking finite nonzero output and buffer canaries. Actual pi32v2 object
+compilation passed without closed SDK headers/archives; its application
+structure is 220,816 bytes. This is object compilation, not a complete native
+link, SRAM budget or device runtime proof. Engine storage, HAL state and
+stacks still need accounting against the native linker layout.
+
+Private evidence: `build/native-external-arenas-16-20261012/`; Hera campaign
+`/home/claude/mvave-fm1/native-external-arenas-16-20261012/out/` contains both
+16-shard verification files, sanitizer build logs and target layout evidence.
+The pytest wrapper also joins the ordinary, sanitizer and 32-bit CI suites.

@@ -61,6 +61,10 @@ $(BUILD)/fm1-sim-render: $(SIM_APP_OBJ) $(BUILD)/sim/test/fm1_sim_render.o $(BUI
     $(SIM_META_OBJ) $(SEQ_HOST_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
 
+$(BUILD)/fm1-arena-check: $(SIM_APP_OBJ) $(BUILD)/sim/test/fm1_arena_check.o \
+    $(SIM_ENGINE_OBJ) $(SIM_META_OBJ)
+	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
+
 # The WebAssembly module: standalone (no Emscripten JavaScript runtime), a
 # reactor with no main, fixed memory, and only the fm1w_* functions exported.
 # The page's own loader (www/fm1-wasm.mjs) stubs any import, so the module

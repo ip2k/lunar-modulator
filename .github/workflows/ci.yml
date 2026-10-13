@@ -145,7 +145,7 @@ jobs:
           FM1_SIM_CC: gcc
           FM1_SIM_CXX: g++
           FM1_SIM_EXTRA: -m32 -msse2 -mfpmath=sse
-        run: python -m pytest -v tests/test_sim_web.py tests/test_sim_seq.py tests/test_seq_ui.py tests/test_sim_multi.py tests/test_sim_mod.py tests/test_sim_lists.py
+        run: python -m pytest -v tests/test_sim_web.py tests/test_sim_seq.py tests/test_seq_ui.py tests/test_sim_multi.py tests/test_sim_mod.py tests/test_sim_lists.py tests/test_app_arenas.py
 
   engines-sanitizers:
     # ASan + UBSan over every engine test. Vendored files with documented
@@ -175,7 +175,7 @@ jobs:
           FM1_SIM_OPT: -O1
           FM1_SIM_EXTRA: -fsanitize=address,undefined -fno-omit-frame-pointer -g -fsanitize-ignorelist=sanitizers/ignorelist.txt
           UBSAN_OPTIONS: suppressions=${{ github.workspace }}/engines/sanitizers/ubsan.supp:halt_on_error=1:print_stacktrace=1
-        run: python -m pytest -v tests/test_sim_web.py tests/test_sim_seq.py tests/test_seq_ui.py tests/test_sim_multi.py tests/test_sim_mod.py tests/test_sim_lists.py tests/test_sim_edit.py
+        run: python -m pytest -v tests/test_sim_web.py tests/test_sim_seq.py tests/test_seq_ui.py tests/test_sim_multi.py tests/test_sim_mod.py tests/test_sim_lists.py tests/test_sim_edit.py tests/test_app_arenas.py
 
   editor-page-tests:
     # The Advanced editor's page tests (sim/web/test/editor-*.mjs, notes/2026-10-06-web-editor.md §17),
