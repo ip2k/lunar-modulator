@@ -1571,3 +1571,22 @@ liveinprogress and38329909211pending, do notduplicate; neither covers newcheckpo
 Pi normal bus1dev11. Physicaldisplay/recovery/corruptinterrupt +integration open.
 Prior report-only turn was no firmware progress; this turn creates checkedsource
 artifacts toward freshphysicalcampaign. Goalactive.
+
+### V8 actual file staging and display availability (2026-10-12)
+
+[verified] Main108 + recovery102 files staged exclusively at V8 entry/campaign/
+partial-acquire/partial-restore roots on bench01. Actual16Hera staging cases pass,
+terminal noOOM, owned containers removed. Separate read-only poststage verifies
+108 hashes/modes and absent fresh binding/attempts. Receipts/reproduction scripts
+notes/2026-10-12-v8-file-staging/. Private archives build/fresh-diagnostic-v8-
+proposal-20261012/rebound-v2/. FouractivationpinsNone; nohardwarecommands.
+Owner answered available to watch display. PriorCIc5029 macOS harness /proc fd
+lookup failed; portable stat identity test fix passes all57 locally. Actual16Hera
+57-test run66805 live /home/claude/completed-trace-wrapper-portable-16-20261012;
+inspect terminal results, do notrestart. ExistingCI38329476379 and38329909211
+coverolderheads; required exact-head acceptance pending. Next: finish checks,
+checkpoint/push, exactheadCI/sourceclosure review, freshidentity then guarded
+diagnostic boot with owner observation. Physicalrecovery/interruptedcorrupt/
+reviewCIintegration remain open; goalactive. No manualpowercycle needed now.
+
+[verified] Supersedes live66805: terminal57 tests pass16 chunks nofailure/error/skip/OOM; inspections/XML retained, ownedcontainersremoved. portable-wrapper-verification.json records pins.

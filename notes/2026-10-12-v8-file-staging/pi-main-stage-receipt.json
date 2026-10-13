@@ -1,0 +1,23 @@
+{
+  "all_files_verified": true,
+  "archive_sha256": "64ae3ec7d15cc3bcecec23a4dcc0ffdaa3a1958ee70c568d275caec0fa7491e3",
+  "entry_file_count": 27,
+  "entry_invoked": false,
+  "file_count": 108,
+  "four_activation_gates_closed": true,
+  "hardware_opened": false,
+  "helper_sha256": "200046ceaf76bb7a89b57b15f70549176cc96055c1463e729f4da47534c1828e",
+  "inventory_sha256": "6ddd640285a036758a005bcc8e9f1bde24de347edc96fd77e4e9050731acd019",
+  "kind": "fm1-closed-new-entry-and-trace-stage-v8-staged-files",
+  "normal_binding_present": false,
+  "old_stage_asset_files_verified": 73,
+  "partial_recovery_dependency_closed": true,
+  "preserved_original_stage": "/home/claude/fm1-sdk-trace-campaign-20261012-v3",
+  "retry": false,
+  "root": "/home/claude/fm1-sdk-trace-entry-20261012-v8",
+  "schema": 1,
+  "stage": "/home/claude/fm1-sdk-trace-campaign-20261012-v8",
+  "stage_file_count": 81,
+  "time": 1791853805.0080316,
+  "uid": 0
+}

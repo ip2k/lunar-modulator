@@ -1,0 +1,10 @@
+{
+  "archive_sha256": "64ae3ec7d15cc3bcecec23a4dcc0ffdaa3a1958ee70c568d275caec0fa7491e3",
+  "four_activation_pins_bound": false,
+  "hardware_commands": 0,
+  "main_files": 108,
+  "matching_failure_paths": true,
+  "prospective_spec_sha256": "dccfd633579c05f0b9f000d6c372276b804b244fcbe00500bfb4c080b395ace6",
+  "recovery_files": 102,
+  "source_execution": false
+}

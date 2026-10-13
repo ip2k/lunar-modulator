@@ -1,0 +1,21 @@
+{
+  "archive_sha256": "83cb64143b8130f4764e953f7ef15eaca1b12c8803e922555aad12c6af2bce13",
+  "dynamic_failure_evidence_absent": true,
+  "factory_invoked": false,
+  "file_count": 102,
+  "hardware_opened": false,
+  "helper_sha256": "0e6c7b1f70d1e33fce76b29d04d0700b2b26175c8711684d9f259b01a62059dc",
+  "inventory_sha256": "a41e0ba655bfa16681c2d78d59eff3a40f6413437011c7cf228805d5ab4539ce",
+  "kind": "fm1-v8-exclusive-recovery-source-files-staged",
+  "main_stage": "/home/claude/fm1-sdk-trace-campaign-20261012-v8",
+  "retry": false,
+  "roots": {
+    "acquire": "/home/claude/fm1-sdk-trace-partial-acquire-20261012-v8",
+    "restore": "/home/claude/fm1-sdk-trace-partial-restore-20261012-v8"
+  },
+  "schema": 1,
+  "source_execution": false,
+  "source_tools_per_root": 38,
+  "time": 1791853805.318594,
+  "uid": 0
+}

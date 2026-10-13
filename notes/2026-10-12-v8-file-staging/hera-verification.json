@@ -1,0 +1,10 @@
+{
+  "cases": 16,
+  "passed": 16,
+  "failures": 0,
+  "oom": 0,
+  "all_terminal": true,
+  "case_source_sha256": "1abf75d3b64b3f4b4eb5f46d1bac0f9af79e9700dbc510d2b0f0a460be4f4baf",
+  "hardware_access": false,
+  "physical_acceptance": false
+}

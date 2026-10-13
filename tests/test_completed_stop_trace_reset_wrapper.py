@@ -242,7 +242,9 @@ def test_midi_unique_same_port_topology(monkeypatch,fault):
 def test_stderr_cleanup_fsync_failure_invalidates_wrapper_success(model,monkeypatch):
     m=model.m;original=m.os.fsync
     def fsync(fd):
-        if m.os.readlink('/proc/self/fd/'+str(fd))==str(m.RUN/'usbmon1.stderr'):raise OSError('Modeled final stderr fsync failure')
+        target=m.RUN/'usbmon1.stderr'
+        if target.exists() and m.os.path.samestat(m.os.fstat(fd),target.stat()):
+            raise OSError('Modeled final stderr fsync failure')
         return original(fd)
     monkeypatch.setattr(m.os,'fsync',fsync)
     with pytest.raises(OSError,match='stderr fsync'):m.main()

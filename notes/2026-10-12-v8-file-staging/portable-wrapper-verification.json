@@ -1,0 +1,15 @@
+{
+  "tests": 57,
+  "chunks": 16,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "oom": 0,
+  "all_terminal": true,
+  "hardware_access": false,
+  "source_pins": {
+    "tests/test_completed_stop_trace_reset_wrapper.py": "a82ec364c23aaee7254b7d73d621501708d63d89e599258305f41b47ece79f39",
+    "tools/fm1_completed_stop_trace_reset_wrapper.py": "1f7bd2b90987498f33337121731174a434728d978c1f0e0d4f86e7d3a02a8df7",
+    "tools/fm1_identify.py": "684342b034b1a97b0e070ff758edf9bff20714523316a968952ccf48f52c0de0"
+  }
+}
