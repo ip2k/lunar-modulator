@@ -17,6 +17,10 @@ def main():
     parser.add_argument('--cxx-headers', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--shard', type=int, choices=range(16), required=True)
+    parser.add_argument('--opt', choices=('s', 'z'), default='s',
+                        help='Clang size optimization: s (-Os) or z (-Oz)')
+    parser.add_argument('--shared-resampler', action='store_true',
+                        help='Share the unchanged resampler coefficients')
     args = parser.parse_args()
     tc, headers, out = args.toolchain.resolve(), args.cxx_headers.resolve(), args.out.resolve()
     if not (headers / '__config').is_file():
@@ -41,7 +45,8 @@ def main():
     make = ['make', '-s', '-C', str(ROOT / 'engines'), '-f', 'Makefile',
             '-f', str(ROOT / 'sim/web/mk/sim.mk'), '-f', str(ROOT / 'tools/jieli/objects.mk'),
             'SIM=' + str(ROOT / 'sim/web'), 'BUILD=' + str(build),
-            'FM1_GPL_MODS=1', 'FM1_MODULES=all', 'OPT=-Os',
+            'FM1_GPL_MODS=1', 'FM1_MODULES=all', 'OPT=-O' + args.opt,
+            'FM1_SHARED_RESAMPLER=' + str(int(args.shared_resampler)),
             'CC=' + cc, 'CXX=' + cc, 'EXTRA=' + extra]
     objects = subprocess.check_output(make + ['print-objs'], text=True).splitlines()
     relative = [str(Path(obj).relative_to(build)) for obj in objects]
@@ -61,6 +66,8 @@ def main():
         results.append(entry)
     report = {'shard': args.shard, 'chunks': 16, 'catalogue_objects': len(objects),
               'gpl_mods': 1, 'modules': 'all', 'closed_sdk_archives': [],
+              'optimization': '-O' + args.opt,
+              'shared_resampler': args.shared_resampler,
               'cxx_standard_headers': str(headers), 'device_sdk_headers': [],
               'input_config_sha256': hashlib.sha256(config.encode()).hexdigest(),
               'configured_sha256': hashlib.sha256((configured / '__config').read_bytes()).hexdigest(),

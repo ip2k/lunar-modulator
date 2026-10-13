@@ -44,3 +44,62 @@ audio budget. Next: link a real engine through that boundary, measure cost on
 hardware, retain stock SPL/OTA/cfg gates, and validate controls, MIDI and recovery.
 
 No FM1 command or flash write was issued during this compilation campaign.
+
+## Full catalogue size experiment and release priority
+
+[verified: owner instruction] Maximize engine count before release. The earlier
+balanced catalogue proposal is not the release completion criterion.
+
+[verified] All 166 catalogue/application object selections compiled in sixteen
+concurrent Hera containers with -Oz. Each process and inspected container exit
+was zero, without OOM. tools/native/compile_catalogue.py now records its selected
+optimization; -Os remains the default. The -Oz evidence is in Hera
+`/home/claude/mvave-fm1/native-catalogue-16-20261012/out-oz/`.
+
+[verified] An exploratory entry retaining shared-app init, draw and render,
+with external arenas and every catalogue object, failed the preserved Dinghy
+XIP region (581,564 bytes): -Os overflowed by 269,172 bytes; -Oz by 186,684.
+The measured reduction is 82,488 bytes. Neither attempt linked SDK or standard
+archives, HAL or the complete C/C++ runtime. Undefined-symbol relocation errors
+remain, and neither output is a firmware candidate. Private scripts/receipts:
+`build/native-external-arenas-16-20261012/`, mirrored on Hera; link-audit and
+link-audit-oz subdirectories retain failures. This is a lower-bound integration
+experiment, not a measured size for a complete working application.
+
+[verified] A pinned MIT standalone formatter was imported unmodified with
+licence and per-file hashes in firmware/third_party/printf. Sixteen parallel
+ASan/UBSan format/truncation/guard comparisons and sixteen pytest wrapper cases
+passed on Hera. Actual pi32v2 compilation passed; its arithmetic helpers and
+optimizer-emitted memcpy still need runtime resolution. UPSTREAM.md records the
+candidate evaluation and scope. No device operation was performed for these
+tests. Next: inspect reachable resource costs and finish the source-based native
+runtime, then establish a real complete link and a catalogue that fits without
+changing stock partition safeguards.
+
+## Shared resampler coefficients
+
+[verified] FM1_SHARED_RESAMPLER=1 selects one copy of the unchanged kernel
+and lowpass arrays, with C linkage for C/C++ consumers. The default remains
+header-only. Use separate BUILD directories for each profile, as for other
+compiler-flag changes. Sixteen parallel Hera measurement comparisons passed:
+tables, exact pass-through, refused ratios, input window, chunking/extreme input
+at five rates and two sweeps. The first run caught early expansion of COMMON
+before the fragment changed EXTRA; both flag paths are now consistent.
+
+[verified] All 167 native catalogue/application objects in the shared -Oz
+profile compiled in sixteen Hera chunks, no OOM. A relocatable garbage-collected
+link retained init/draw/render and measured text+rodata of 761,108 bytes versus
+774,380 for header-only -Oz (13,272 bytes saved, including code differences).
+nm shows one 3,076-byte kernel and one 248-byte lowpass array instead of five
+of each. This relocatable link deliberately leaves runtime symbols unresolved;
+it does not use the device linker layout and is not executable firmware.
+
+[verified] Reachability discards the earlier C++ string/vector/file-I/O paths
+in this experiment, but allocation, math, parsing, standard formatting, memory
+functions, compiler arithmetic and libc++ float sort remain unresolved. No
+placeholder implementations were linked. Hera evidence: catalogue out-shared
+is the retained failed attempt; out-shared-v2 is the passing corrected build;
+external-arenas out/reachable-shared and shared-resampler-verification.json
+hold sizes and comparisons. Primary-root Rarefaction/Serena located the inline
+resampler; Rarefaction used fallback clangd flags and incomplete on-open callers,
+so actual worktree source and builds are the authoritative checks.
