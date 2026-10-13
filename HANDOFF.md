@@ -1,3 +1,16 @@
+# Native continuation — candidate parameters, 2026-10-13
+
+Branch feature/2026-10-11@installable-firmware; preceding verified pushed SHA
+34ec7599afbb16b07d6984f0b19ec7c4ad33fb66.
+Owned candidate PARAM apply restores per-pad values/final focus and retains bases.
+Hera16chunks:32sanitizer runs/320scenarios/target compiles,16native links,
+128unit-plan/sequence regressions passed. NoOOM; logs checked; containers removed.
+Evidence/limits notes/2026-10-13-native-project-loader.md. No hardware operation.
+Goal ACTIVE, no installable release; all13default plus selectable builder.
+Expanded layout approval pending. Next modulation base sync and candidate
+adoption/startup, remaining project records, MIDI/persistence/timing, builder/
+installer, review/CI/merge and actual install/interrupted recovery.
+
 # Native continuation — owned engine candidates, 2026-10-13
 
 Branch feature/2026-10-11@installable-firmware; preceding verified pushed SHA

@@ -301,7 +301,8 @@ def main():
         roots += ('lunar_content_load_set', 'lunar_content_activate_set')
     if args.link_project_loader:
         roots += ('lunar_project_mod_stage', 'lunar_project_seq_stage',
-                  'lunar_project_engines_stage', 'lunar_project_engines_release')
+                  'lunar_project_engines_stage', 'lunar_project_engines_release',
+                  'lunar_project_engines_apply')
     elf = out / 'lunar-app-probe.elf'
     command = [str(tc / 'pi32v2/bin/ld'), '--plugin', str(tc / 'common/bin/LLVMgold.so'),
                '--plugin-opt=mcpu=r3', '--plugin-opt=-mattr=+fprev1',
@@ -360,7 +361,7 @@ def main():
     if args.link_project_loader:
         report['project_loader'] = dict(modulation_staging_link_verified=True,
                                        sequence_staging_link_verified=True,
-                                       engine_staging_link_verified=True, activated=False, stack_margin_verified=False,
+                                       engine_staging_link_verified=True, engine_parameter_link_verified=True, activated=False, stack_margin_verified=False,
                                        timing_verified=False, hardware_tested=False,
                                        sequence_semantics_verified=False)
     if args.startup_set_index is not None:

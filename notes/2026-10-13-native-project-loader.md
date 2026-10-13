@@ -273,3 +273,25 @@ All logs inspected, no OOM, owned containers removed. No app activation, project
 parameter/base application, production constructor/CPU timing or device proof.
 Candidate pool ownership must remain exclusive; free-list order and allowed
 first-create read-only engine caches may change. No hardware operation.
+
+## Owned candidate parameter restoration
+
+`lunar_project_engines_apply` validates the complete immutable project before
+applying engine PARAM records to owned candidates. Pad parameters are restored
+with their focus indices; saved focus is deferred until all pads are loaded.
+Candidate base values retain final focused readback for later app/mod binding.
+CRC refusal precedes parameter changes; other failures require discarding the
+candidate. This does not apply remaining project records or activate the app.
+
+Sixteen Hera chunks passed32 Os/Oz sanitizer runs/320 controlled scenarios and
+pi32v2 compilation [verified]. Focused two-pad fixtures cover distinct values,
+final focus, missing readback callback, corrupt reapply, ownership, constructor
+failures and capacity pressure. The initial fixture incorrectly grouped all
+UNIT records before PARAMs; the production writer refused it. Corrected
+canonical ordering passes. Sixteen native links retain parameter apply, pass
+SDK-free audits and verify embedded content bytes. A16-chunk regression campaign
+passed128 unit-plan/sequence tests. No OOM; all logs checked; containers removed.
+Evidence: project-engines-v2, project-loader-link-v4 and
+project-parameter-regression-v1 logs/receipts in the ignored evidence directory.
+No real-engine parameter/render, activation, timing, stack margin or hardware
+acceptance is established. No device operation; no installable release.

@@ -16,6 +16,21 @@ static unsigned char binary[4096];
 static size_t length, want;
 static unsigned attempts, destroyed, fail_at;
 static void *handles[4];
+typedef struct { float focus, pad[2], ordinary; } state_t;
+static fm1_param_t params[]={
+    {.name="Pad",.uid=1,.type=FM1_PARAM_ENUM,.min=1,.max=2,.def=1,.flags=FM1_PARAM_FOCUS},
+    {.name="Decay",.uid=2,.min=0,.max=1,.def=0.5f,.flags=FM1_PARAM_PER_FOCUS},
+    {.name="Gain",.uid=3,.min=0,.max=1,.def=0.5f}};
+static void set_param(void *self,uint16_t i,float value) {
+    state_t *s=self;assert(i<3);
+    if (i==0) {assert(value==1||value==2);s->focus=value;}
+    else if (i==1) s->pad[(unsigned)s->focus-1]=value;
+    else s->ordinary=value;
+}
+static float get_param(const void *self,uint16_t i,uint8_t focus) {
+    const state_t *s=self;
+    return i==0?s->focus:i==2?s->ordinary:s->pad[focus<2?focus:(unsigned)s->focus-1];
+}
 static size_t sized(const fm1_host_t *host) { (void)host; return want; }
 static void *create(void *memory, const fm1_host_t *host) {
     unsigned i=attempts++; (void)host;
@@ -23,6 +38,7 @@ static void *create(void *memory, const fm1_host_t *host) {
     if (i==fail_at) return NULL;
     handles[i]=(unsigned char *)memory+16;
     memset(handles[i],0x72,want-16);
+    *(state_t *)handles[i]=(state_t){1,{0.5f,0.5f},0.5f};
     return handles[i];
 }
 static void destroy(void *self) {
@@ -31,7 +47,8 @@ static void destroy(void *self) {
     destroyed++;
 }
 static fm1_engine_t engine={.magic=FM1_ENGINE_MAGIC,.api_version=FM1_ENGINE_API_VERSION,
-    .id="trio",.kind=FM1_KIND_SOUND,.instance_size=sized,.create=create,.destroy=destroy};
+    .id="trio",.kind=FM1_KIND_SOUND,.instance_size=sized,.create=create,.destroy=destroy,
+    .params=params,.n_params=3,.set_param=set_param,.get_param=get_param};
 static const fm1_engine_t *const engines[]={&engine};
 static void put(void *ctx,const char *s,size_t n) {
     (void)ctx;assert(n<=sizeof binary-length);memcpy(binary+length,s,n);length+=n;
@@ -42,13 +59,13 @@ int main(int argc,char **argv) {
     unsigned count=shard%4+1;
     fm1_host_t host={.api_version=FM1_ENGINE_API_VERSION,.sample_rate=44118,.max_frames=64};
     fm1_state_names_t names={.engines=engines,.n_engines=1};
-    for (unsigned mode=0;mode<8;mode++) {
+    for (unsigned mode=0;mode<10;mode++) {
         lunar_instance_pool_t pool={0};lunar_project_engines_t candidate={0},saved;
         fm1_state_report_t report;fm1_rec_t r={0};const uint8_t version[3]={0,1,0};
         size_t requests[4];void *fill[6]={0};
         want=mode==3?206904:sizes[(shard/4)%4];
         attempts=destroyed=0;fail_at=mode==1?0:mode==2?count-1:99;
-        memset(handles,0,sizeof handles);engine.create=create;
+        memset(handles,0,sizeof handles);engine.create=create;engine.get_param=get_param;
         assert(lunar_instance_pool_init(&pool,arena,sizeof arena)==0);
         unsigned char *live=lunar_instance_pool_alloc(&pool,4096);assert(live);memset(live,0xa5,4096);
         if (mode==7) {
@@ -63,12 +80,21 @@ int main(int argc,char **argv) {
         for (unsigned i=0;i<count;i++) {
             memset(&r,0,sizeof r);r.type=FM1_REC_UNIT;r.role=FM1_ROLE_SOUND;r.sound=(uint8_t)i;
             strcpy(r.u.unit.id,"trio");assert(fm1_state_bin_write(w,&r));requests[i]=want;
+            for (unsigned p=0;p<4;p++) {
+                float value=p==0?2.0f:p==1?0.25f:p==2?0.75f:0.875f;
+                memset(&r,0,sizeof r);r.type=FM1_REC_PARAM;r.role=FM1_ROLE_SOUND;r.sound=(uint8_t)i;
+                r.u.param.uid=(uint16_t)(p==0?1:p==3?3:2);r.u.param.focus=(uint8_t)(p==1?0:p==2?1:FM1_FOCUS_NONE);
+                r.u.param.vtype=p==0?FM1_VAL_INDEX:FM1_VAL_F32;
+                if (p==0) r.u.param.bits=1; else memcpy(&r.u.param.bits,&value,4);
+                assert(fm1_state_bin_write(w,&r));
+            }
         }
         r.type=FM1_REC_END;assert(fm1_state_bin_write(w,&r));
         int fits=lunar_instance_pool_can_fit(&pool,requests,count);
         if (mode==4) engine.create=NULL;
         if (mode==6) host.api_version=0;
-        int expected=fits && mode!=1 && mode!=2 && mode!=4 && mode!=6;
+        if (mode==8) engine.get_param=NULL;
+        int expected=fits && mode!=1 && mode!=2 && mode!=4 && mode!=6 && mode!=8;
         int ok=lunar_project_engines_stage(binary,(uint32_t)length,&names,&host,&pool,&candidate,&report);
         assert(ok==expected);
         if (ok) {
@@ -80,12 +106,23 @@ int main(int argc,char **argv) {
                 assert(!lunar_project_engines_stage(binary,(uint32_t)length,&names,&host,&pool,&candidate,&report));
                 assert(!memcmp(&saved,&candidate,sizeof saved) && attempts==count);
             }
+            assert(lunar_project_engines_apply(binary,(uint32_t)length,&names,&host,&candidate,&report));
+            for (unsigned i=0;i<count;i++) {
+                const state_t *s=candidate.unit[i].self;
+                assert(s->focus==2 && s->pad[0]==0.25f && s->pad[1]==0.75f && s->ordinary==0.875f);
+                assert(candidate.unit[i].value[0]==2 && candidate.unit[i].value[1]==0.75f && candidate.unit[i].value[2]==0.875f);
+            }
+            if (mode==9) {
+                binary[length-1]^=1;
+                assert(!lunar_project_engines_apply(binary,(uint32_t)length,&names,&host,&candidate,&report));
+                for (unsigned i=0;i<count;i++) assert(((state_t *)candidate.unit[i].self)->pad[0]==0.25f);
+            }
             lunar_project_engines_release(&candidate);
             assert(destroyed==count);
         } else {
             lunar_project_engines_t empty={0};assert(!memcmp(&empty,&candidate,sizeof empty));
             assert(report.code!=FM1_STATE_OK);
-            if (!fits || mode==4 || mode==6) assert(!attempts && !destroyed);
+            if (!fits || mode==4 || mode==6 || mode==8) assert(!attempts && !destroyed);
             else assert(destroyed==attempts-1);
         }
         lunar_project_engines_release(&candidate); /* idempotent empty cleanup */

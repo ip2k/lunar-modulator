@@ -24,7 +24,8 @@ static uint32_t read_bytes(void *ctx, uint32_t off, uint8_t *buf, uint32_t n) {
     return n;
 }
 
-static int unit_index(const fm1_rec_t *r) {
+int lunar_project_unit_index(const fm1_rec_t *r) {
+    if (!r) return -1;
     if (r->sound >= 4u) return -1;
     switch (r->role) {
         case FM1_ROLE_SOUND: return r->slot == 0 ? r->sound : -1;
@@ -43,7 +44,7 @@ static int parameter(unit_load_t *load, const fm1_rec_t *r) {
         const fm1_mod_kind_t *k = r->slot < 8u ? load->plan.module[r->slot] : NULL;
         if (k) { params = k->params; n = k->n_params; }
     } else {
-        int index = unit_index(r);
+        int index = lunar_project_unit_index(r);
         const fm1_engine_t *e = index >= 0 ? load->plan.engine[index] : NULL;
         if (e) { params = e->params; n = e->n_params; }
     }
@@ -108,7 +109,7 @@ static int record(void *ctx, const fm1_rec_t *r) {
                 return 1;
             }
         } else {
-            int index = unit_index(r);
+            int index = lunar_project_unit_index(r);
             uint32_t bit;
             if (index < 0) return refuse(load, FM1_STATE_BAD, "unsupported native unit position");
             bit = 1u << (unsigned)index;

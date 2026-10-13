@@ -14,6 +14,9 @@ typedef struct {
     uint8_t modules_given;
 } lunar_project_units_t;
 
+/* Record role/sound/slot to compact plan index; -1 for unsupported positions. */
+int lunar_project_unit_index(const fm1_rec_t *record);
+
 /* Main-task-only; binary codec uses >8 KiB stack. Caller guarantees immutable
  * bytes and stable registries/host for the whole call. On failure out is intact.
  * Validates CRC/container, project kind, unit/rack positions, duplicates and

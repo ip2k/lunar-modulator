@@ -4,9 +4,13 @@
 #include "project_units.h"
 #include "instance_pool.h"
 
+#define LUNAR_PROJECT_ENGINE_PARAMS 32u
+
 typedef struct {
     const fm1_engine_t *engine;
     void *memory, *self;
+    size_t bytes;
+    float value[LUNAR_PROJECT_ENGINE_PARAMS];
 } lunar_project_instance_t;
 typedef struct {
     lunar_instance_pool_t *pool;
@@ -28,6 +32,15 @@ int lunar_project_engines_stage(const uint8_t *bytes, uint32_t size,
                                 const fm1_state_names_t *names, const fm1_host_t *host,
                                 lunar_instance_pool_t *pool,
                                 lunar_project_engines_t *out,
+                                fm1_state_report_t *report);
+/* Apply engine PARAM records to an owned candidate for the same immutable
+ * project/host/registry. Does not apply other project records. A failure may
+ * mutate candidates; discard them, never activate after failure. Focus records
+ * are deferred until all per-pad values have been applied; final base values
+ * are retained for later app/modulation binding. No live state is accessed. */
+int lunar_project_engines_apply(const uint8_t *bytes, uint32_t size,
+                                const fm1_state_names_t *names, const fm1_host_t *host,
+                                lunar_project_engines_t *candidate,
                                 fm1_state_report_t *report);
 /* Releases only an owned candidate produced by stage (or its remaining units
  * after explicit ownership transfer). Main task, no concurrent render calls. */
