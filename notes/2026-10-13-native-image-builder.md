@@ -103,6 +103,34 @@ Evidence: private `out/image-profile-v1-verification.json` (retained failure) an
 Hera root recorded above. Run with `FM1_STATE_TOOL=/path/to/fm1-state` and pytest
 `tests/test_native_image_profile.py`. No device operation occurred.
 
+## Prepared-input handoff integrity [verified host]
+
+`tools/native/verify_image_profile.py` adds a consumer boundary for prepared
+builder inputs. The trusted build controller must retain the SHA256 of
+`profile.json` immediately after successful preparation and supply that digest
+to `load_prepared_profile(directory, expected_sha256)` on the later worker.
+Computing the expected digest from received files on that worker is not an
+integrity check. This digest does not authenticate an untrusted builder service.
+
+The loader checks manifest bounds and digest, duplicate keys, generated module
+header, content snapshots, packed payload hashes/lengths and aggregate length.
+Assets use canonical local names; missing files and symlinks are refused. The
+returned header and packed-content bytes are the checked snapshots: consumers
+must use them rather than reopen the paths. No codec, subprocess or device
+command runs during verification. Firmware-admission flags and sequence semantic
+acceptance must remain false in this build-input format.
+
+Sixteen new cases cover four real-codec profiles, changed/missing artifacts,
+path substitution, symlinks, malformed digests, duplicate keys, oversized
+manifests and attempted firmware promotion. The combined 128 builder/catalogue
+checks passed in sixteen Hera containers, with no OOM. Private evidence:
+`out/builder-inputs-v5-verification.json` under the Hera root above, SHA256
+`ebac6aa014472b5eee70d6483d509e5a63742e1dfb643713c95357c902998883`.
+This verifier is available for the future build worker; the timed linker does
+not yet embed these content inputs. Native content loading, realtime budgets,
+all-thirteen flash fit, web installation and physical release acceptance remain
+open.
+
 ## Selective wave-bank allocation [verified target link]
 
 Custom selections now decode the Plaits integrated wave bank only when Macro or
