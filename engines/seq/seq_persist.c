@@ -478,15 +478,26 @@ static void word_end(fm1_seq_import_t *im) {
   }
   switch (im->key) {
     case K_BPM:
-      if (wi == 1 && num_u(&im->num, U32_MAX_, &a)) sq_set_bpm(s, (uint32_t)a);
+      if (wi == 1 && num_u(&im->num, U32_MAX_, &a)) {
+        sq_set_bpm(s, (uint32_t)a);
+        if (s->bpm_x100 != a) im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
+      }
       break;
     case K_SWING:
-      if (wi == 1 && num_u(&im->num, U32_MAX_, &a)) s->swing_pct = (uint32_t)(a < 50 ? 50 : (a > 80 ? 80 : a));
+      if (wi == 1 && num_u(&im->num, U32_MAX_, &a)) {
+        s->swing_pct = (uint32_t)(a < 50 ? 50 : (a > 80 ? 80 : a));
+        if (s->swing_pct != a) im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
+      }
       break;
     case K_LINK:
-      if (wi == 1 && num_u(&im->num, U8_MAX_, &a)) s->link_enabled = a != 0;
+      if (wi == 1 && num_u(&im->num, U8_MAX_, &a)) {
+        s->link_enabled = a != 0;
+        if (a > 1) im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
+      }
       break;
     case K_SG:
+      if (num_u(&im->num, U8_MAX_, &a) && a >= FM1_SEQ_SLOTS)
+        im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
       if (num_u(&im->num, U8_MAX_, &a) && a < FM1_SEQ_SLOTS) {
         if (s->song_len < s->lim.song) sq_song(s)[s->song_len++] = (uint8_t)a;
         else ++s->stats.refused;
@@ -581,18 +592,27 @@ static void word_end(fm1_seq_import_t *im) {
       if (wi == 1) {
         word_u(im, 0, U8_MAX_);
       } else if (wi == 2 && word_u(im, 1, U8_MAX_)) {
-        fm1_seq_set_key(s, (unsigned)im->lv[0], (unsigned)im->lv[1]);
+        if (!fm1_seq_set_key(s, (unsigned)im->lv[0], (unsigned)im->lv[1]))
+          im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
       }
       break;
     case K_DQ:
-      if (wi == 1 && num_u(&im->num, U8_MAX_, &a)) s->default_quant = (uint8_t)(a > 100 ? 100 : a);
+      if (wi == 1 && num_u(&im->num, U8_MAX_, &a)) {
+        s->default_quant = (uint8_t)(a > 100 ? 100 : a);
+        if (a > 100) im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
+      }
       break;
     case K_SE:
+      if (wi == 1 && num_u(&im->num, U8_MAX_, &a) && a > FM1_SEQ_SONG_STOP)
+        im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
       if (wi == 1 && num_u(&im->num, U8_MAX_, &a) && a <= FM1_SEQ_SONG_STOP) s->song_end = (uint8_t)a;
       break;
     case K_SN:
       if (wi == 1) {
-        if (!word_u(im, 0, U8_MAX_) || im->lv[0] >= FM1_SEQ_SCENES) im->dead = 1;
+        if (!word_u(im, 0, U8_MAX_) || im->lv[0] >= FM1_SEQ_SCENES) {
+          if (im->lv[0] >= FM1_SEQ_SCENES) im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
+          im->dead = 1;
+        }
       } else if (wi == 2) {
         sq_scene_set_name(s, (unsigned)im->lv[0], im->text,
                           im->text_n < FM1_SEQ_SCENE_NAME_MAX ? im->text_n : FM1_SEQ_SCENE_NAME_MAX);
@@ -627,6 +647,7 @@ static void line_end(fm1_seq_import_t *im) {
       im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
     if (im->key == K_TK) {
       if (im->n_tk == 3u && im->lv[0] < s->n_tracks) {
+        if (im->lv[1] >= 8u || im->lv[2] > 1u) im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
         sq_tracks(s)[im->lv[0]].active = (uint8_t)(im->lv[1] < 7 ? im->lv[1] : 7);
         sq_tracks(s)[im->lv[0]].muted = im->lv[2] != 0;
       }
@@ -638,6 +659,8 @@ static void line_end(fm1_seq_import_t *im) {
         const uint64_t max = SQ_MAX_STEPS - c->loop_start;
         c->length_steps = (uint16_t)(im->lv[2] < 1 ? 1 : (im->lv[2] > max ? max : im->lv[2]));
       }
+      if (c->loop_start != im->lv[3] || c->length_steps != im->lv[2])
+        im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
       sq_clip_invalidate(s, im->clip);
     } else if (im->key == K_CP && im->ok_list) {
       const uint64_t a = im->lv[0], b = im->lv[1], sn = im->lv[2], sd = im->lv[3];
@@ -650,6 +673,8 @@ static void line_end(fm1_seq_import_t *im) {
         sq_scale_limit(s, &cl->scale_num, &cl->scale_den);   /* D8 */
         cl->transpose = (int8_t)(tr < -36 ? -36 : (tr > 36 ? 36 : tr));
         cl->quant = (uint8_t)(q > 100 ? 100 : q);
+        if (cl->scale_num != sn || cl->scale_den != sd || cl->transpose != tr || cl->quant != q)
+          im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
         sq_clip_invalidate(s, sq_clip_no((unsigned)a, (unsigned)b));
       }
     }

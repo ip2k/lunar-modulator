@@ -304,3 +304,29 @@ combined receipt SHA `9f025258ab11921b402c8ce2106c7f408dc68d66db2c158003db09f8ab
 `build/native-external-arenas-16-20261012/syntax-v2-evidence.json`.
 The earlier stack estimate describes v10 ELFs; it is not a bound for v13.
 No hardware action or release acceptance. Expanded-layout approval is pending.
+
+## Scalar normalization diagnostics [verified host and target compilation]
+
+The importer now reports range loss when existing handlers clamp or ignore
+tempo, swing, boolean link/mute values, scene references, key, quantization,
+song-end mode, active clip, clip length/start, scale ratio or transpose. The
+legacy handler output and return semantics are unchanged. Checked native
+loading refuses the observed loss before replacing the live sequencer.
+This remains partial admission: full note/lock/trigger normalization, routed
+engine and parameter bindings, and playback acceptance remain outstanding.
+
+Hera: 128 packed-set Os/Oz ASan/UBSan cases passed in sixteen containers;
+compatibility XML reports 468 cases, 466 passed and two pre-existing expected
+failures. Fresh catalogue v7 compiled all 167 objects; sixteen v14 native
+links passed, each with 77 audit/artifact/option checks. All owned containers
+were removed; no OOM. The first sanitizer run exposed an overlapping test
+case branch and was corrected without changing assertions. The first
+compatibility setup failed on rebuilding a read-only snapshot; an isolated
+writable prebuild resolved it. Failed receipts/logs are retained privately.
+
+Combined receipt: `build/native-external-arenas-16-20261012/normalization-v2-evidence.json`;
+SHA256 `e98f0f8dc10ea1ba50cf6d6b0ded6ee21af31161ee3f760b654773cbed21d198`.
+The v10 stack estimate does not prove v14 stack bounds. Semantic queries for
+the native loader remained limited by stale shared primary-checkout indexes;
+source was inspected in the actual worktree. No hardware action or installable
+release is claimed. Expanded-layout approval remains pending.

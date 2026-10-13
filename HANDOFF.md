@@ -1,3 +1,18 @@
+# Native continuation — normalization admission, 2026-10-13
+
+Goal ACTIVE: default thirteen engines plus selectable engines/effects/songs/sets.
+Branch `feature/2026-10-11@installable-firmware`; preceding verified pushed SHA
+`ce261b81f60cad7257b34f5ee52d5177e0c6a6bb`.
+Compatibility-preserving normalization diagnostics now cover scalar/clip fields.
+Hera: 128 sanitizer cases; compatibility 466 passed/two pre-existing expected
+failures; fresh catalogue v7 and sixteen v14 target links passed with 77
+audit/option checks each. No OOM; owned containers removed. Private evidence
+SHA `e98f0f8dc10ea1ba50cf6d6b0ded6ee21af31161ee3f760b654773cbed21d198`.
+No hardware operation or release acceptance. Expanded-layout approval pending.
+Next: bounded native project plan/staging, actual pool admission, remaining
+syntax/binding validation, multitrack timing/MIDI/persistence, web builder and
+installer, review/CI and physical install/recovery acceptance. Preserve guards.
+
 # Native continuation — project-loader RAM measurement, 2026-10-13
 
 Goal ACTIVE: thirteen-engine default plus selectable engines/effects/songs/sets.
