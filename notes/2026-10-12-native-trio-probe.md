@@ -368,3 +368,32 @@ The new adapter compares canonical immutable encodings, as the existing generic
 transport does. The test fixture now returns tuple-shaped physical stat identities;
 the revised 16 Hera admission checks passed (exit zero, no OOM).
 Private final evidence: `build/native-controls-live-tuple-16-20261012/hera-verification.json`. No flash operation occurred.
+
+## Native controls physically installed, boot pending [verified]
+
+The device-27 fixed RAM loader installed the native controls candidate in
+96.932 seconds: 30 sectors, directory last, 510 erase/program operations,
+10,747 SG requests/completions, and a matching complete 1 MiB readback.
+Target SHA256 `770fd5f275110f017329dda30315343d766ff4a6c6beaa62f5a0060c629dc561`.
+There was no reset, upload or retry. Boot and physical recovery are unverified.
+Private actual evidence is saved under
+`build/native-controls-live-tuple-16-20261012/physical-install/`.
+Campaign SHA256 `4560ebeca7018029d60300a9ee12c3ee3d4f43a41e1da4891bac815f4e97f562`;
+transcript SHA256 `b02daa30a04651a6a7a53148e987ffc22cb33b817ab30f52ec20f9e3386c4d1a`.
+
+`tools/native/controls_install_proof.py` independently replays all 22,546
+saved events, exact request payloads and final page response hashes against
+matching baseline/target, pinned sources, complete journal and one-use marker.
+It opens saved files only and grants no live boot authority. All 16 parallel
+Hera chunks replayed the valid physical receipt and refused their corrupted
+receipt case (status, request, payload/response hash, chronology, missing event,
+terminal result, marker, journal, target, backup or campaign); all exited zero,
+no OOM. Private proof and fault evidence:
+`build/native-controls-live-tuple-16-20261012/independent-install-replay.json`
+and `build/native-controls-install-proof-16-20261012/hera-verification.json`.
+These are receipt checks, not simulated or physical native boot success.
+
+Next: prepare a distinct one-use native FC0C arg1 boot adapter bound to this
+completed installation and current loader connection. Await observer readiness
+for the first native screen/audio/recovery trial. Native restore first returns
+V8; only after complete V8 readback can the separate stock plan be used.
