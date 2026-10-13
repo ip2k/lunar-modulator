@@ -35,6 +35,21 @@
     "fp_trunc.h": "90626a0811dcf96be507daa5d7fe872d1efae2c388af4c48eaba45101856be23",
     "int_endianness.h": "ec5175561075845b7b16a92ad5ecdfd42a284de2736dd07e4ca7011b75c37709",
     "LICENSE.TXT": "1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d",
-    "fp_mode.c": "0f626fefe2e19854549dfe598bd168a770bae7e1cab34b459871fabec4632f25"
+    "fp_mode.c": "0f626fefe2e19854549dfe598bd168a770bae7e1cab34b459871fabec4632f25",
+    "fixdfdi.c": "5542e35a576e96c17e5c9731ffa24f72cedc7369d18079d8c29c5df6702feb94",
+    "fixdfsi.c": "7a17622bf348e1854ff5c47a3290acf7f7d85ddfd97f35e2af7d51d05964ebb2",
+    "fixunsdfsi.c": "57b6312618aedf3f0f1c13bd1de12b5ea4b7c3070d2bb549d4fc93aca33abb28",
+    "fixunssfdi.c": "19ca6247d9d5238809d07d74fe6645e585479b4c0229655afc0782e35da3a1cd",
+    "floatdisf.c": "df7893f22d36a4585d521c2af023921253d61a41c3edbabf2429fe50e1251daf",
+    "floatsidf.c": "d5141b5b7e860113c75f2d03d0cf39ca41aeea3e75390c40f73979c4ac172b51",
+    "floatundisf.c": "3e737977c6c5fb7e84f44495997ff242a708b1e0a13aff27d4e9e30d418cc58d",
+    "floatunsidf.c": "9f3593197c2584c14c86a4760051be18c788d0835cf8ffdb9f11834c2ce9bf5b",
+    "moddi3.c": "ec2261d7e4bf7b04583c17933a7fd370be4de10418c1d75929e0dc382694f820",
+    "udivdi3.c": "e250263dcb27261e969db4228a479b2f3bde2b06e59baa2f2c595ac752b17643",
+    "umoddi3.c": "d812aa1e62d6179f9013e38bc040ba69d905be128fa25e104645a9da0841d209",
+    "fp_fixuint_impl.inc": "fc0d0b1b6fd1b3ec61ed3cd96e634de9f380eb76b7161fea91ddbddece71ac09",
+    "int_to_fp_impl.inc": "5bb2fa67db4fc0c35038240189c23ef94f005d14676f2a5e4deab4085ad05a55",
+    "int_to_fp.h": "9ac8fd0650f1560e6c910979e0004c5956ae7da6e3bded7eab0b0270c51bf400",
+    "fixunsdfdi.c": "edfc5d1bc551a6acb8d3cb4e6e5073125e8a3ef93ff539002db381fce4c6236a"
   }
 }

@@ -7,7 +7,9 @@ CC := $(JIELI_TOOLCHAIN)/pi32v2/bin/clang
 LD := $(JIELI_TOOLCHAIN)/pi32v2/bin/ld
 OBJDUMP := $(JIELI_TOOLCHAIN)/common/bin/objdump
 SOURCES := adddf3 addsf3 comparedf2 comparesf2 divdf3 divdi3 divsf3 extendsfdf2 \
-           fixsfsi floatsisf fp_mode muldf3 mulsf3 subdf3 subsf3 truncdfsf2 udivmoddi4
+           fixsfsi floatsisf fp_mode muldf3 mulsf3 subdf3 subsf3 truncdfsf2 udivmoddi4 \
+           fixdfdi fixdfsi fixunsdfsi fixunssfdi floatdisf floatsidf floatundisf \
+           floatunsidf moddi3 udivdi3 umoddi3 fixunsdfdi
 OBJECTS := $(addprefix $(BUILD)/,$(addsuffix .o,$(SOURCES)))
 HEADERS := $(wildcard $(RUNTIME)/*.h $(RUNTIME)/*.inc)
 FLAGS := -target pi32v2 -Os -ffreestanding -fno-builtin -ffunction-sections

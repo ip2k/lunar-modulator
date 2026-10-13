@@ -11,8 +11,12 @@ archives. No modifications, architecture assembly, sanitizer runtime or SDK
 code are included. The generic `fp_mode.c` selects round-to-nearest, ties-to-even;
 it does not maintain floating-point exception flags.
 
-[verified] Sixteen arithmetic sources compiled in sixteen Hera containers using
-the pi32v2 toolchain on 2026-10-12. The integrated build adds `fp_mode.c` and resolves all of the probe's
-compiler-generated helper references with no named undefined symbols. This is compilation
-and linkage evidence, not physical numerical or audio acceptance. See
+[verified] The integrated build now compiles 28 arithmetic units and resolves
+all compiler-generated arithmetic references in the 160-object Lunar engine
+partial link, including the selected GPL modules. Source hashes pass the pinned
+inventory check. Sixteen parallel Hera engine compilation shards passed on
+2026-10-12; no SDK archive was linked. This is compilation and linkage evidence,
+not physical numerical or audio acceptance. Standard headers in that experiment
+still came from the SDK checkout; independent headers remain necessary.
+See `notes/2026-10-12-native-engine-link.md` and the earlier
 `notes/2026-10-12-native-runtime-baseline.md`.

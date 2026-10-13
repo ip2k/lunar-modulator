@@ -47,8 +47,8 @@ USB recovery or web installation. Integrate the engine core and open HAL next,
 resolve the actual link's remaining dependencies, preserve stock package safeguards,
 and validate the resulting application on the FM1.
 
-[reported: owner] V8 diagnostic display was dark on both observations. A repeat
-boot is requested. [verified: passive sysfs] USB remains 4c4a:8057 on bench01
-port 1-1, bus 1/device 13. No fresh FM1 command was issued during this native
-baseline work. Whether the owner physically cycled power is pending clarification;
-do not execute the previously prepared restore packet after a power cycle.
+[reported: owner; physical observation] The independently admitted repeat boot
+subsequently displayed white, red, green and blue bands. The diagnostic display
+milestone passed; this does not validate native Lunar or audio. Passive USB
+returned as 4c4a:8057, bus 1/device 14. The previous restore admission is stale.
+See `notes/2026-10-12-sdk-display-repeat.md` for receipts and recovery state.
