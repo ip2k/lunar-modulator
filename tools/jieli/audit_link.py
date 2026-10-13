@@ -363,7 +363,44 @@ def relative_call_payloads(name, elf, disassembly):
     return proofs
 
 
-def audit(elves, flat_images, linked, sources=None, runtime="sdk", call_payloads=None):
+
+def stub_call_boundary_patterns(name, elf, disassembly):
+    """Prove only the observed call-tail/register-move overlap of STUB_ADDR.
+
+    This is not a general exemption for unaligned constants. Both instructions
+    must be byte-exact vendor decodes in one sized function and executable
+    section. The direct call also needs the normal resolved-target proof.
+    """
+    proofs = {}
+    moves = {}
+    pattern = re.compile(r'^\s*([0-9a-fA-F]+):\s+02\s+15\s+'
+                         r'r3_r2\s*=\s*r1_r0\s*$', re.M)
+    for match in pattern.finditer(disassembly):
+        moves[int(match[1], 16)] = b'\x02\x15'
+    for (source, offset), call in relative_call_payloads(name, elf, disassembly).items():
+        address = call['address']
+        move = moves.get(address + 6)
+        instruction = bytes.fromhex(call['bytes'])
+        if move is None or elf.read(address + 6, 2) != move:
+            continue
+        if instruction[3:] + move[:1] != struct.pack('<I', STUB_ADDR):
+            continue
+        if not any(s['type'] == 2 and s['shndx'] and s['size'] and
+                   s['value'] <= address and address + 8 <= s['value'] + s['size']
+                   for s in elf.symbols):
+            continue
+        if not any(source == name + ':' + sec['name'] and
+                   (sec['flags'] & 6) == 6 and sec['addr'] <= address and
+                   address + 8 <= sec['addr'] + sec['size'] for sec in elf.sections):
+            continue
+        proofs[(source, offset + 1)] = dict(call=call,
+            following_address=address + 6, following_bytes=move.hex(),
+            following_instruction='r3_r2 = r1_r0')
+    return proofs
+
+
+def audit(elves, flat_images, linked, sources=None, runtime="sdk", call_payloads=None,
+          stub_boundaries=None):
     """sources: None, or [(path, line number, line)] of our C/C++ sources."""
     if runtime not in ("sdk", "sdk-free"):
         raise ValueError(f"unknown runtime: {runtime}")
@@ -463,8 +500,15 @@ def audit(elves, flat_images, linked, sources=None, runtime="sdk", call_payloads
 
     # 3. The key_check_demo stub: nothing may load or call it, SDK or ours.
     stub = imm_hits([STUB_ADDR])
+    stub_boundaries = stub_boundaries or {}
+    decoded_boundaries = [dict(location=fmt(h), instructions=stub_boundaries[(h[0], h[1])])
+                          for h in stub if linked and (h[0], h[1]) in stub_boundaries]
+    stub = [h for h in stub if not (linked and (h[0], h[1]) in stub_boundaries)]
     record("stub_0200012E_unused", "fail" if stub else "pass",
            [fmt(h) for h in stub] or f"no immediate 0x{STUB_ADDR:08X} (key_check_demo stub call/load)")
+
+    if decoded_boundaries:
+        record("stub_byte_patterns_cross_decoded_call_boundary", "pass", decoded_boundaries)
 
     # 4. The key-check mailbox: ours never; the SDK's mkey_dummy_func store is expected.
     classify("keycheck_mailbox_unwritten",
@@ -609,6 +653,7 @@ def main(argv=None):
 
     sources = collect_sources(args.sources) if args.sources else None
     call_payloads = {}
+    stub_boundaries = {}
     if args.objdump:
         if not args.elf or args.app or args.objects:
             ap.error("--objdump requires exactly one --elf input")
@@ -619,7 +664,9 @@ def main(argv=None):
             print(f"audit_link: objdump failed: {exc}", file=sys.stderr)
             return 2
         call_payloads = relative_call_payloads(elves[0][0], elves[0][1], decoded)
-    report = audit(elves, flat, linked, sources, runtime=args.runtime, call_payloads=call_payloads)
+        stub_boundaries = stub_call_boundary_patterns(elves[0][0], elves[0][1], decoded)
+    report = audit(elves, flat, linked, sources, runtime=args.runtime,
+                   call_payloads=call_payloads, stub_boundaries=stub_boundaries)
     if args.json:
         Path(args.json).write_text(json.dumps(report, indent=2))
 

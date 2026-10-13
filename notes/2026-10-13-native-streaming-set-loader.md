@@ -64,3 +64,29 @@ The first loader-link campaign duplicated codec objects already supplied by the
 catalogue and failed with duplicate definitions; its receipt is retained.
 The corrected campaign used those catalogue objects. No physical operations
 occurred, and all test containers were removed.
+
+## Audited loader-link verification [verified]
+
+The follow-up `content-loader-link-v4` campaign passed all sixteen guarded native
+links, including Plate and 0/1/2/4 content assets in text/binary source formats.
+Each container first passed 68 safety-audit and artifact-layout regressions.
+No container reported OOM. Both ELF and flattened-image audits passed with no
+pending checks, and final content descriptors/payloads matched checked inputs.
+
+`stub_call_boundary_patterns` recognizes only the observed six-byte resolved
+relative call followed immediately by the byte-exact `02 15` register-pair
+move in the same sized function and executable section. The matching LE32
+signature must cross that exact boundary. It does not exempt other unaligned
+constants, loads, literals or entire functions. Flattening carries the proof
+through the validated section load mapping and rechecks all eight bytes.
+Negative regressions cover altered decodes/bytes/targets, function bounds and
+separate address constants. Each byte of the flattened instruction pair is
+mutated separately to verify rejection. Other safety checks are unchanged.
+
+The v3 campaign passed the ELF audit but correctly failed the independent
+flattened-image audit before that proof mapping was implemented; its receipt
+is retained. The v4 evidence includes each ELF/app SHA and complete artifact
+key audit, retained privately as `content-loader-link-v4-evidence.json`, SHA256
+`6eb8c83ab553ad0e4cff0c4c174792685be27b483cdb85377c01fd4ee74fe13b`.
+This supersedes the earlier loader-link rejection; activation, complete stack
+margin, sequence admission, hardware playback and installability remain open.

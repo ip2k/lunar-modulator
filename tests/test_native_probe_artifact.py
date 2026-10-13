@@ -75,6 +75,25 @@ def test_relative_call_flat_mapping(section, load, monkeypatch):
         probe_artifact.artifact_call_payloads(image, bytes(changed), '')
 
 
+
+@pytest.mark.parametrize('section,load', [('.text', '_start'), ('.ram_text', '_rt_load')])
+def test_call_boundary_flat_mapping(section, load, monkeypatch):
+    image, app = flatten(fixture())
+    instructions = bytes.fromhex('80ff0c2e01000215')
+    offset = image.symbol_value(load) - FLASH + 3
+    app = app[:offset - 3] + instructions + app[offset + 5:]
+    proof = dict(call=dict(bytes=instructions[:6].hex()), following_bytes='0215')
+    monkeypatch.setattr(probe_artifact, 'stub_call_boundary_patterns',
+                        lambda *args: {('native-probe.elf:' + section, 3): proof})
+    proofs = probe_artifact.artifact_stub_boundaries(image, app, '')
+    assert proofs[('app.bin', offset)] == proof
+    for index in range(8):
+        changed = bytearray(app)
+        changed[offset - 3 + index] ^= 1
+        with pytest.raises(ValueError, match='does not match flattened'):
+            probe_artifact.artifact_stub_boundaries(image, bytes(changed), '')
+
+
 def damaged_contract(fault):
     data = bytearray(fixture())
     shoff = struct.unpack_from('<I', data, 32)[0]

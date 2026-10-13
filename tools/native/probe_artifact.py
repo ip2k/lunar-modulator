@@ -10,7 +10,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'jieli'))
-from audit_link import Elf, EM_PI32V2, ET_EXEC, audit, collect_sources, relative_call_payloads
+from audit_link import Elf, EM_PI32V2, ET_EXEC, audit, collect_sources, relative_call_payloads, stub_call_boundary_patterns
 
 FLASH = 0x02000120
 ENTRY_GUARD = bytes.fromhex('04818000600064e00036835fc3ff08fec70183e81a00')
@@ -131,6 +131,23 @@ def artifact_call_payloads(image, app, disassembly):
     return proofs
 
 
+
+def artifact_stub_boundaries(image, app, disassembly):
+    """Carry byte-exact two-instruction proofs through validated load mapping."""
+    proofs = stub_call_boundary_patterns('native-probe.elf', image, disassembly)
+    loads = {'.text': '_start', '.ram_text': '_rt_load'}
+    for (source, offset), proof in list(proofs.items()):
+        section = source.split(':', 1)[1]
+        if section not in loads:
+            continue
+        flat_offset = image.symbol_value(loads[section]) - FLASH + offset
+        instructions = bytes.fromhex(proof['call']['bytes'] + proof['following_bytes'])
+        if flat_offset < 3 or app[flat_offset - 3:flat_offset + 5] != instructions:
+            raise ValueError('Call-boundary proof does not match flattened image')
+        proofs[('app.bin', flat_offset)] = proof
+    return proofs
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--elf', type=Path, required=True)
@@ -142,10 +159,11 @@ def main():
     image, app = flatten(data, args.layout)
     decoded = subprocess.check_output([args.objdump, '-d', str(args.elf)], text=True) if args.objdump else ''
     proofs = artifact_call_payloads(image, app, decoded)
+    boundaries = artifact_stub_boundaries(image, app, decoded)
     root = Path(__file__).resolve().parents[2]
     receipt = audit([('native-probe.elf', image)], [('app.bin', app)], True,
                     sources=collect_sources([root / 'firmware/native']), runtime='sdk-free',
-                    call_payloads=proofs)
+                    call_payloads=proofs, stub_boundaries=boundaries)
     if not receipt['passed'] or receipt['n_pending']:
         raise ValueError('Requires complete SDK-free key audit')
     args.out.mkdir(parents=True, exist_ok=True)
