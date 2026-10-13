@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
 '''
 
 
-@pytest.mark.parametrize('case', range(16))
+@pytest.mark.parametrize('case', range(32))
 @pytest.mark.parametrize('opt', ['-Os', '-Oz'])
 def test_native_packed_set(tmp_path, case, opt):
     text = (ROOT / 'tests/fixtures/state/1.0/orbit.set.movy1').read_bytes()
@@ -170,7 +170,17 @@ def test_native_packed_set(tmp_path, case, opt):
         text += b'tg 2 0 256:-1:50:1:1:0\n'
     elif case == 15:
         text += b'rt 0 1 99\n'
-    loss = {2: 4, 3: 1, 8: 8, 9: 2, 10: 1, 11: 1, 12: 8, 13: 8, 14: 9, 15: 8}.get(case, 0)
+    elif case >= 16:
+        text += (
+            b'pm x 36', b'ps 0 nope', b'cp 0 0 1 1 nope 0',
+            b'cp 0 0 1 1 0 nope', b'au 0 nope 64 label', b'rt 0 nope 1',
+            b'key nope 0', b'sn nope Name', b'cl 2 0 16 0 0:12:nope:100:0',
+            b'cl 2 0 16 0 0:12:60', b'cl 2 0 16 0 0:12:60:100:nope',
+            b'cl 2 0 16 0 0:12:60:100:0:9', b'lk 2 0 0:nope:64',
+            b'lk 2 0 0:4', b'tg 2 0 0:-1:50:1:1',
+            b'tg 2 0 0:-1:50:1:1:nope',
+        )[case - 16] + b'\n'
+    loss = {2: 4, 3: 1, 8: 8, 9: 2, 10: 1, 11: 1, 12: 8, 13: 8, 14: 9, 15: 8}.get(case, 16 if case >= 16 else 0)
     valid = case not in (4, 5, 6, 7)
     movy = tmp_path / 'set.movy1'
     movy.write_bytes(text)

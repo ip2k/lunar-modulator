@@ -259,3 +259,30 @@ Private receipt SHA256:
 local `build/native-external-arenas-16-20261012/startup-stack-v1-verification.json`.
 Exploratory script is retained beside it and on Hera. All containers exited
 successfully without OOM and were removed. Expanded-layout approval is pending.
+
+## Malformed numeric diagnostics continuation
+
+[verified] Added `FM1_SEQ_IMPORT_SYNTAX` without changing compatibility-import
+output or return semantics. It observes failed `word_u` conversions, failed CP
+transpose/quantize conversions, invalid list fields, extra note fields and
+incomplete note/lock/trigger rows. Native checked admission rejects this flag
+before live activation. This remains partial admission: scalar fields parsed
+outside `word_u`, missing/extra line words, normalization and module/parameter
+bindings still need explicit checking. Standalone sets identify routing and
+labels rather than a complete engine/effect configuration.
+
+[verified] Sixty-four Os/Oz packed-set ASan/UBSan cases passed across sixteen
+Hera containers (32 cases including sixteen new malformed examples). Existing
+compatibility suites passed 466 cases with two pre-existing expected failures,
+468 collected nodes in sixteen chunks. No OOM; owned containers removed. The
+first compatibility attempt failed during read-only-mount rebuild setup; logs
+are retained, tools rebuilt on Hera, then v2 ran successfully. Native link v11
+correctly refused a stale catalogue after the header change; all source
+catalogue v5 shards rebuilt successfully before native link v12 was started.
+Private receipts live under `build/native-external-arenas-16-20261012/`.
+No device write or execution, new stack proof or release readiness is claimed.
+
+[verified] Native v12: all sixteen links passed after catalogue v5 rebuild,
+with 77 audit/artifact/option checks each and byte-exact linked content.
+Combined private receipt SHA `d055dfe0b84878f977c12809947dfdfb877175b7d5bf4d2c1280dc0b43a234b0`. All owned containers removed.
+Previously inferred stack estimates describe older ELFs, not these new links.

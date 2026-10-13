@@ -1,3 +1,22 @@
+# Native continuation — partial syntax diagnostics, 2026-10-13
+
+Goal ACTIVE: thirteen-engine default (Shapes twelve voices) plus selectable
+engines/effects/songs/sets builder, web install and real FM1 acceptance.
+Branch `feature/2026-10-11@installable-firmware`; preceding verified pushed SHA
+`9399cbcfc08f8364bc18da95a0ade4b4a4d42a9b`.
+Added compatibility-preserving syntax-loss diagnostics for malformed numeric
+fields and incomplete/excess list rows. Native admission rejects before live
+activation. Hera: 64 packed-set sanitizer cases passed in sixteen containers;
+compatibility 466 passed/two pre-existing expected failures; fresh catalogue v5
+and sixteen native v12 links passed with 77 audit/option checks per link.
+Failed read-only compatibility setup and stale-catalogue refusal retained.
+All owned containers removed. Private combined receipt SHA `d055dfe0b84878f977c12809947dfdfb877175b7d5bf4d2c1280dc0b43a234b0`.
+This remains partial syntax admission and no installable release is claimed.
+No hardware operation. Expanded-layout authorization remains pending.
+Next: scalar/missing-word/normalization checks, module/parameter binding,
+stack proof/instrumentation, full project application, multitrack RAM/timing,
+MIDI/persistence and web installer. Retain partition and hardware gates.
+
 # Native continuation — exploratory stack inventory, 2026-10-13
 
 Preceding verified pushed checkpoint `4f3c246b90ff0f92e85fe9a4e08c1cbf6227b394`.

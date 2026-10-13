@@ -325,7 +325,7 @@ static void field_end(fm1_seq_import_t *im) {
   static const uint64_t kTrig[6] = { U16_MAX_, 0, U8_MAX_, U8_MAX_, U8_MAX_, U8_MAX_ };
   const unsigned f = im->nf;
   if (im->nf < 255u) ++im->nf;
-  if (f >= 6u) return;
+  if (f >= 6u) { im->loss_flags |= FM1_SEQ_IMPORT_SYNTAX; return; }
   if (im->key == K_CL) {
     if (f < 5u) im->fok[f] = (uint8_t)num_u(&im->num, kNote[f], &im->fv[f]);
   } else if (im->key == K_LK) {
@@ -337,6 +337,7 @@ static void field_end(fm1_seq_import_t *im) {
   } else {
     im->fok[f] = (uint8_t)num_u(&im->num, kTrig[f], &im->fv[f]);
   }
+  if (!im->fok[f]) im->loss_flags |= FM1_SEQ_IMPORT_SYNTAX;
 }
 
 static void item_end(fm1_seq_import_t *im) {
@@ -346,6 +347,8 @@ static void item_end(fm1_seq_import_t *im) {
   const uint8_t *ok = im->fok;
   if (im->key == K_CL) {
     uint64_t step;
+    if (nf < 4u || nf > 5u || !ok[0] || !ok[1] || !ok[2] || !ok[3])
+      im->loss_flags |= FM1_SEQ_IMPORT_SYNTAX;
     if (nf < 4u || !ok[0] || !ok[1] || !ok[2] || !ok[3]) return;
     step = nf >= 5u && ok[4] ? v[4] : (uint16_t)((v[0] + SQ_TPS / 2u) / SQ_TPS);
     if (step >= SQ_MAX_STEPS || v[0] > U16_MAX_ || v[1] > U16_MAX_)
@@ -355,14 +358,18 @@ static void item_end(fm1_seq_import_t *im) {
   } else if (im->key == K_LK) {
     /* Movy parses the value as a u8 and keeps min(127): widening
      * fm1_seq_val_t needs a format of its own, not a wider bound here. */
-    if (nf != 3u || !ok[0] || !ok[1] || !ok[2]) return;
+    if (nf != 3u || !ok[0] || !ok[1] || !ok[2]) {
+      im->loss_flags |= FM1_SEQ_IMPORT_SYNTAX; return;
+    }
     if (v[1] >= SQ_MAX_STEPS || v[0] >= 8u) im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
     sq_clip_set_lock(s, im->clip, (uint8_t)(v[0] & 7), (uint16_t)v[1],
                      (fm1_seq_val_t)(v[2] > FM1_SEQ_VAL_MAX ? FM1_SEQ_VAL_MAX : v[2]));
   } else {
     const int64_t lane = (int64_t)v[1];
     uint8_t l;
-    if (nf != 6u || !ok[0] || !ok[1] || !ok[2] || !ok[3] || !ok[4] || !ok[5]) return;
+    if (nf != 6u || !ok[0] || !ok[1] || !ok[2] || !ok[3] || !ok[4] || !ok[5]) {
+      im->loss_flags |= FM1_SEQ_IMPORT_SYNTAX; return;
+    }
     if (v[0] >= SQ_MAX_STEPS || (lane != -1 && (lane < 0 || lane >= 128)))
       im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
     l = lane >= 0 && lane < 128 ? (uint8_t)lane : SQ_NONE;
@@ -442,6 +449,7 @@ static void word_char(fm1_seq_import_t *im, char c) {
  * line's handler, as a failed word_u ends Movy's. */
 static int word_u(fm1_seq_import_t *im, unsigned i, uint64_t max) {
   if (!num_u(&im->num, max, &im->lv[i])) {
+    im->loss_flags |= FM1_SEQ_IMPORT_SYNTAX;
     im->dead = 1;
     return 0;
   }
@@ -527,10 +535,13 @@ static void word_end(fm1_seq_import_t *im) {
           im->lv[4] = (uint64_t)tr;
           im->ok_list = 1;                       /* the five words cp needs are in */
         } else {
+          im->loss_flags |= FM1_SEQ_IMPORT_SYNTAX;
           im->dead = 1;
         }
       } else if (wi == 6) {
-        if (!num_u(&im->num, U8_MAX_, &im->lv[5])) im->lv[5] = 0;
+        if (!num_u(&im->num, U8_MAX_, &im->lv[5])) {
+          im->loss_flags |= FM1_SEQ_IMPORT_SYNTAX; im->lv[5] = 0;
+        }
       }
       break;
     case K_AU:

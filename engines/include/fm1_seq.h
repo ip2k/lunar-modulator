@@ -278,7 +278,8 @@ enum {
   FM1_SEQ_IMPORT_RANGE = 1u << 0,
   FM1_SEQ_IMPORT_TEXT = 1u << 1,
   FM1_SEQ_IMPORT_UNKNOWN = 1u << 2,
-  FM1_SEQ_IMPORT_CAPACITY = 1u << 3
+  FM1_SEQ_IMPORT_CAPACITY = 1u << 3,
+  FM1_SEQ_IMPORT_SYNTAX = 1u << 4
 };
 typedef struct fm1_seq_import {
   fm1_seq_t *s;
