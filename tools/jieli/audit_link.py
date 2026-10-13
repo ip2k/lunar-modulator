@@ -329,7 +329,41 @@ def _find_le32(blob, value):
     return hits
 
 
-def audit(elves, flat_images, linked, sources=None, runtime="sdk"):
+def relative_call_payloads(name, elf, disassembly):
+    """Vendor-decoded direct calls whose LE32 bytes are displacements, not SFRs.
+
+    Fail closed on missing/mismatched bytes, non-function data, unresolved or
+    external targets. This recognizes only the verified six-byte 80 ff call.
+    It never exempts a load immediate or a literal address in allocated data.
+    """
+    proofs = {}
+    if (elf.e_type, elf.e_machine) != (ET_EXEC, EM_PI32V2):
+        return proofs
+    pattern = re.compile(r'^\s*([0-9a-fA-F]+):\s+((?:[0-9a-fA-F]{2}\s+){6})'
+                         r'call\s+(-?\d+)\s+<([^<>]+)\s*:\s*([0-9a-fA-F]+)\s*>\s*$', re.M)
+    functions = [s for s in elf.symbols if s['type'] == 2 and s['shndx'] and s['size']]
+    for match in pattern.finditer(disassembly):
+        address = int(match[1], 16)
+        instruction = bytes.fromhex(match[2])
+        if instruction[:2] != b'\x80\xff' or elf.read(address, 6) != instruction:
+            continue
+        displacement = struct.unpack('<i', instruction[2:])[0]
+        target = int(match[5], 16)
+        if displacement != int(match[3]) or (address + 6 + displacement) & 0xffffffff != target:
+            continue
+        if not any(s['value'] <= address and address + 6 <= s['value'] + s['size'] for s in functions):
+            continue
+        if not any(s['value'] == target and s['name'] == match[4].strip() for s in functions):
+            continue
+        for section in elf.sections:
+            if (section['flags'] & 6) == 6 and section['addr'] <= address and \
+                    address + 6 <= section['addr'] + section['size']:
+                proofs[(name + ':' + section['name'], address + 2 - section['addr'])] = dict(
+                    address=address, bytes=instruction.hex(), target=target, symbol=match[4].strip())
+    return proofs
+
+
+def audit(elves, flat_images, linked, sources=None, runtime="sdk", call_payloads=None):
     """sources: None, or [(path, line number, line)] of our C/C++ sources."""
     if runtime not in ("sdk", "sdk-free"):
         raise ValueError(f"unknown runtime: {runtime}")
@@ -455,8 +489,14 @@ def audit(elves, flat_images, linked, sources=None, runtime="sdk"):
     # 8. eFuse controller never touched (the application never reads or writes
     #    JL_EFUSE; only the never-linked download loader does). No exceptions.
     efuse = imm_hits(range(EFUSE_SFR_LO, EFUSE_SFR_HI + 1, 4))
+    call_payloads = call_payloads or {}
+    decoded_calls = [dict(location=fmt(h), instruction=call_payloads[(h[0], h[1])])
+                     for h in efuse if linked and (h[0], h[1]) in call_payloads]
+    efuse = [h for h in efuse if not (linked and (h[0], h[1]) in call_payloads)]
     record("no_efuse_controller_access", "fail" if efuse else "pass",
            [fmt(h) for h in efuse] or f"no reference to eFuse SFRs 0x{EFUSE_SFR_LO:05X}-0x{EFUSE_SFR_HI:05X}")
+    if decoded_calls:
+        record("efuse_byte_patterns_are_relative_calls", "pass", decoded_calls)
 
     # 9. The late_initcall group is exactly [sdk_meky_check] (fm1-nes
     #    audit_boot.py:251-264): the dormant check is linked, not stubbed or
@@ -545,6 +585,7 @@ def main(argv=None):
     ap.add_argument("--sources", action="append", metavar="DIR",
                     help="our C/C++ sources, scanned for request_irq(123) (repeatable)")
     ap.add_argument("--json", help="write the full report here")
+    ap.add_argument("--objdump", help="vendor pi32v2 objdump; verify direct-call displacement collisions")
     ap.add_argument("--runtime", choices=("sdk", "sdk-free"), default="sdk",
                     help="SDK policy (default), or a linked SDK-free image with no key/initcall machinery")
     args = ap.parse_args(argv)
@@ -567,7 +608,18 @@ def main(argv=None):
             print(f"audit_link: warning: {name} machine 0x{e.e_machine:x} is not pi32v2", file=sys.stderr)
 
     sources = collect_sources(args.sources) if args.sources else None
-    report = audit(elves, flat, linked, sources, runtime=args.runtime)
+    call_payloads = {}
+    if args.objdump:
+        if not args.elf or args.app or args.objects:
+            ap.error("--objdump requires exactly one --elf input")
+        import subprocess
+        try:
+            decoded = subprocess.check_output([args.objdump, '-d', args.elf], text=True)
+        except (OSError, subprocess.CalledProcessError) as exc:
+            print(f"audit_link: objdump failed: {exc}", file=sys.stderr)
+            return 2
+        call_payloads = relative_call_payloads(elves[0][0], elves[0][1], decoded)
+    report = audit(elves, flat, linked, sources, runtime=args.runtime, call_payloads=call_payloads)
     if args.json:
         Path(args.json).write_text(json.dumps(report, indent=2))
 
@@ -576,7 +628,8 @@ def main(argv=None):
         mark = {"pass": "ok  ", "fail": "FAIL", "pending": "...."}[c["status"]]
         detail = c["detail"]
         if isinstance(detail, list):
-            detail = detail[0] + (f" (+{len(detail) - 1} more)" if len(detail) > 1 else "")
+            first = detail[0] if isinstance(detail[0], str) else json.dumps(detail[0], sort_keys=True)
+            detail = first + (f" (+{len(detail) - 1} more)" if len(detail) > 1 else "")
         print(f"  [{mark}] {c['check'].ljust(width)}  {detail}")
     tag = "PASS" if report["passed"] else "FAIL"
     print(f"audit_link: {tag} ({report['n_fail']} fail, {report['n_pending']} pending, "

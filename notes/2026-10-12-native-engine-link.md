@@ -601,3 +601,41 @@ Private receipts: native-waves-v4-verification.json and
 compressed-release-count-v4-verification.json under the native-external-arenas
 build directory and corresponding Hera out directory. Failed/earlier v1-v3
 attempts remain recorded separately. No hardware command or flash write occurred.
+
+### Instruction-backed artifact audit, 2026-10-13 [verified]
+
+Vendor disassembly confirms the 0x13700 match is the signed displacement of
+a six-byte pi32v2 direct call. The optional audit path now accepts only linked
+pi32v2 executables, exact instruction bytes inside a sized function, and a
+resolved function target with matching displacement/address arithmetic. This
+distinction applies only to eFuse address-pattern hits; real literals, malformed
+instructions, unresolved targets, other architectures and flat-only images
+remain rejected. The artifact gate independently maps each proof through its
+validated load layout, compares all six flattened instruction bytes, retains
+full disassembly and records its SHA256. Neither audit stage is skipped.
+
+All 16 Hera unit shards passed, including existing key/eFuse guards, malformed
+call evidence, architecture/type rejection and XIP/RAM-text proof mapping.
+The 16 fresh target attempts have no OOM. Eleven production engines (excluding
+Comet Kit and Shapes, plus excluded test-sine fixture) now pass SDK-free and
+strict artifact/layout audits with zero pending checks: app 578,340 bytes,
+3,224 bytes below the 581,564-byte protected app limit. Private app SHA256
+2aa75694bbcf099459f07d5497542acc1910074fd4679bf6990eb6b2c1d25bba; ELF SHA256
+518d618bb567028882af8e766cebcef053831cb32c0c5d4f8ba3ef38c47f4ae6.
+
+This is still a timed private probe, not installable or hardware admitted.
+Twelve-engine profiles overflow flash by 69,064 to 207,068 bytes. The ten-engine
+profile also excluding Macro Heavy independently fails the unchanged stub
+address scan (0x0200012E in seconds); the aggregate target launcher correctly
+exits nonzero for this unexpected gate failure. Other two ten-engine profiles
+pass. Do not present all 16 target profiles as passing. Owner requires maximizing
+engine count before release; eleven is a sizing milestone, not accepted scope.
+
+Private evidence: artifact-call-proofs-v3-verification.json,
+compressed-release-count-v7-verification.json, per-profile logs and
+compressed-release-count-v7-12/artifact/{artifact.json,disassembly.txt,app.bin}
+under Hera native-external-arenas-16-20261012/out and local ignored build mirror.
+Semantic MCP remains rooted at the primary checkout, so worktree edits were
+inspected directly rather than claiming index validation of these changes.
+No device commands occurred. Next: sample/table storage measurement, RAM and
+startup/realtime verification, then fresh hardware admission and acceptance.

@@ -306,6 +306,50 @@ def build_linked(funcs, init_ptrs=None, extra_syms=()):
     return ehdr + body + heads, addrs
 
 
+def test_relative_call_displacement_is_not_efuse_access(tmp_path, monkeypatch):
+    displacement = 0x13700
+    instruction = b'\x80\xff' + struct.pack('<i', displacement)
+    body = instruction + b'\x00' * displacement
+    binary, addresses = build_linked([('caller', body), ('target', b'\x00' * 4)])
+    # Section alignment puts target two bytes after the exact call destination;
+    # move the instruction two bytes into its sized caller.
+    instruction_address = addresses['caller'] + 2
+    binary, addresses = build_linked([('caller', b'\x00\x00' + body), ('target', b'\x00' * 4)])
+    elf = AL.Elf(binary, name='fw.elf')
+    line = f'{instruction_address:x}: 80 ff 00 37 01 00 call {displacement} <target : {addresses["target"]:x} >'
+    proofs = AL.relative_call_payloads('fw.elf', elf, line)
+    assert len(proofs) == 1
+    for field, value in [('e_type', 1), ('e_machine', 0)]:
+        original = getattr(elf, field)
+        setattr(elf, field, value)
+        assert AL.relative_call_payloads('fw.elf', elf, line) == {}
+        setattr(elf, field, original)
+    assert not AL.audit([('fw.elf', elf)], [], True, runtime='sdk-free')['passed']
+    report = AL.audit([('fw.elf', elf)], [], True, runtime='sdk-free', call_payloads=proofs)
+    assert report['passed']
+    assert any(c['check'] == 'efuse_byte_patterns_are_relative_calls' for c in report['checks'])
+    import subprocess
+    path = tmp_path / 'call.elf'
+    path.write_bytes(binary)
+    monkeypatch.setattr(subprocess, 'check_output', lambda command, text: line)
+    assert AL.main(['--elf', str(path), '--objdump', '/test/vendor-objdump',
+                    '--runtime', 'sdk-free']) == 0
+    for damaged in [line.replace('80 ff', 'c1 ff'), line.replace('call ', 'r0 = '),
+                    line.replace(str(displacement), str(displacement + 4)),
+                    line.replace('target :', 'unknown :'),
+                    line.replace(f'{instruction_address:x}:', f'{instruction_address + 2:x}:')]:
+        assert AL.relative_call_payloads('fw.elf', elf, damaged) == {}
+    # A separate literal remains forbidden even with a proven call present.
+    binary, _ = build_linked([('caller', b'\x00\x00' + body),
+                             ('target', struct.pack('<I', 0x13700))])
+    elf = AL.Elf(binary, name='fw.elf')
+    proofs = AL.relative_call_payloads('fw.elf', elf, line)
+    assert proofs
+    assert not AL.audit([('fw.elf', elf)], [], True, runtime='sdk-free', call_payloads=proofs)['passed']
+    assert not AL.audit([('fw.elf', elf)], [('flat', instruction)], True,
+                        runtime='sdk-free', call_payloads=proofs)['passed']
+
+
 def run_linked(elf_bytes, tmp_path, app=None, sources=None, runtime="sdk"):
     p = tmp_path / "fw.elf"
     p.write_bytes(elf_bytes)

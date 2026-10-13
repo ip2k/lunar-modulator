@@ -6,10 +6,11 @@ import hashlib
 import json
 from pathlib import Path
 import struct
+import subprocess
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'jieli'))
-from audit_link import Elf, EM_PI32V2, ET_EXEC, audit, collect_sources
+from audit_link import Elf, EM_PI32V2, ET_EXEC, audit, collect_sources, relative_call_payloads
 
 FLASH = 0x02000120
 ENTRY_GUARD = bytes.fromhex('04818000600064e00036835fc3ff08fec70183e81a00')
@@ -114,24 +115,47 @@ def flatten(data, layout='legacy'):
     return image, app
 
 
+def artifact_call_payloads(image, app, disassembly):
+    """Map proven ELF calls into the independently validated flattened image."""
+    proofs = relative_call_payloads('native-probe.elf', image, disassembly)
+    loads = {'.text': '_start', '.ram_text': '_rt_load', '.data': '_data_load'}
+    for (source, offset), proof in list(proofs.items()):
+        section = source.split(':', 1)[1]
+        if section not in loads:
+            continue
+        flat_offset = image.symbol_value(loads[section]) - FLASH + offset
+        instruction = bytes.fromhex(proof['bytes'])
+        if flat_offset < 2 or app[flat_offset - 2:flat_offset + 4] != instruction:
+            raise ValueError('Relative-call proof does not match flattened image')
+        proofs[('app.bin', flat_offset)] = proof
+    return proofs
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--elf', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--layout', choices=('legacy', 'combined'), default='legacy')
+    parser.add_argument('--objdump', help='vendor pi32v2 objdump for direct-call proofs')
     args = parser.parse_args()
     data = args.elf.read_bytes()
     image, app = flatten(data, args.layout)
+    decoded = subprocess.check_output([args.objdump, '-d', str(args.elf)], text=True) if args.objdump else ''
+    proofs = artifact_call_payloads(image, app, decoded)
     root = Path(__file__).resolve().parents[2]
     receipt = audit([('native-probe.elf', image)], [('app.bin', app)], True,
-                    sources=collect_sources([root / 'firmware/native']), runtime='sdk-free')
+                    sources=collect_sources([root / 'firmware/native']), runtime='sdk-free',
+                    call_payloads=proofs)
     if not receipt['passed'] or receipt['n_pending']:
         raise ValueError('Requires complete SDK-free key audit')
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / 'app.bin').write_bytes(app)
+    if args.objdump:
+        (args.out / 'disassembly.txt').write_text(decoded)
     report = {'elf_sha256': hashlib.sha256(data).hexdigest(),
               'app_sha256': hashlib.sha256(app).hexdigest(), 'app_bytes': len(app),
               'layout_passed': True, 'ram_layout': args.layout, 'key_audit': receipt,
+              'disassembly_sha256': hashlib.sha256(decoded.encode()).hexdigest() if args.objdump else None,
               'hardware_admitted': False, 'hardware_tested': False,
               'installable': False}
     (args.out / 'artifact.json').write_text(json.dumps(report, indent=2) + '\n')

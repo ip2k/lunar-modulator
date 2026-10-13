@@ -213,6 +213,7 @@ def main():
     receipt = out / 'key-audit.json'
     subprocess.run([sys.executable, str(ROOT / 'tools/jieli/audit_link.py'),
                     '--elf', str(elf), '--runtime', 'sdk-free',
+                    '--objdump', objdump,
                     '--sources', str(ROOT / 'firmware/native'), '--json', str(receipt)], check=True)
     audit = json.loads(receipt.read_text())
     if not audit['passed'] or audit['n_pending']:
@@ -235,6 +236,7 @@ def main():
     (out / 'verification.json').write_text(json.dumps(report, indent=2) + '\n')
     subprocess.run([sys.executable, str(ROOT / 'tools/native/probe_artifact.py'),
                     '--elf', str(elf), '--layout', 'combined',
+                    '--objdump', objdump,
                     '--out', str(out / 'artifact')], check=True)
     print('Audited private probe:', elf, report['elf_sha256'])
 

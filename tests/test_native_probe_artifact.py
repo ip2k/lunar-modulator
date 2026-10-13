@@ -4,9 +4,11 @@ import struct
 import sys
 
 import unittest
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools/native'))
 from probe_artifact import FLASH, ENTRY_GUARD, flatten
+import probe_artifact
 
 
 def fixture(pool=0x01C20000, pool_size=16):
@@ -54,6 +56,23 @@ def valid_layout():
     _, app = flatten(fixture())
     assert app[:len(ENTRY_GUARD)] == ENTRY_GUARD
     assert app[-8:] == b'RAM!DATA'
+
+
+@pytest.mark.parametrize('section,load', [('.text', '_start'), ('.ram_text', '_rt_load')])
+def test_relative_call_flat_mapping(section, load, monkeypatch):
+    image, app = flatten(fixture())
+    instruction = bytes.fromhex('80ff00370100')
+    offset = image.symbol_value(load) - FLASH + 2
+    app = app[:offset - 2] + instruction + app[offset + 4:]
+    proof = dict(address=0, bytes=instruction.hex(), target=0, symbol='target')
+    monkeypatch.setattr(probe_artifact, 'relative_call_payloads',
+                        lambda *args: {('native-probe.elf:' + section, 2): proof})
+    proofs = probe_artifact.artifact_call_payloads(image, app, '')
+    assert proofs[('app.bin', offset)] == proof
+    changed = bytearray(app)
+    changed[offset] ^= 1
+    with pytest.raises(ValueError, match='does not match flattened'):
+        probe_artifact.artifact_call_payloads(image, bytes(changed), '')
 
 
 def damaged_contract(fault):
