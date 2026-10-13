@@ -423,3 +423,41 @@ answer, then issue exactly one native boot while watching for Lunar Trio UI and
 its approximately 20-second return to recovery. Physical early-startup recovery
 remains unproven and could require a power cycle. Full functional firmware and
 web installation remain the active goal; this is a bring-up candidate.
+
+## Stock OTA packaging check [verified offline; no package emitted]
+
+The exact installed controls app (`7471be3e…`, 49,268 bytes) was composed in
+memory into the locally retained stock V15 container with the existing
+`model_app_replacement._build` and independently checked by
+`verify_replacement`. App allocation/entry and stock boot, configuration,
+resources, auxiliary data and trailer remained within the established
+replacement contract. No container binary was emitted or transmitted.
+Private receipt: `build/native-controls-16-20261012/stock-ota-offline-check.json`.
+
+The stock `ota.bin` SHA-256 is
+`ef1f2db89b011fa53e71df363f0122de0ea896618c53fb53e8da676322004541`.
+Its header/data CRCs (`0xebaa` / `0x5881`) and body length (19,937 bytes)
+match the official-loader recognition branch in Dinghy's `src/ota.c`.
+Both CRCs were recalculated successfully. That branch also compares the
+package's first 16 KiB with the running flash before staging the loader;
+runtime execution of this branch on Lunar is still unverified.
+
+The current probe's normal OTA identity is `FM-1_990` (the inherited
+`FELUCCA_ID` macro); the unchanged stock container identity is `FM-1_015`.
+Other app string occurrences, `FM-1_000` and `FM-1_015`, belong to recovery
+and loader metadata and are not normal-mode identity evidence. A release
+must deliberately bind the application and package identities. This model
+is not web-installable: the probe also disables all NOR writes and returns
+to recovery after about 20 seconds. Physical native boot, controls/audio,
+functional firmware, browser transport and interrupted OTA recovery remain
+acceptance gates.
+
+The retained unpack required a separate private reference copy with its OTA
+entry extracted from the verified container and its already extracted
+`eq_cfg_hw.bin` placed at the inspector's expected flat path. Initial checks
+refused those missing files; no validator was relaxed or stock input modified.
+Passive USB still showed bus1 device27 in UBOOT; no boot request was sent.
+Exact-head CI for `36eab3f4` remains in progress in run `38351386802`.
+Semantic navigation remains limited: Serena selects the primary C++ checkout
+and rejects the ignored Python tools path; bounded Rarefaction navigation did
+not produce callable evidence. This investigation used direct source reads.
