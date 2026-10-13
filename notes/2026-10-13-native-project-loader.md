@@ -164,3 +164,33 @@ runtime, actual engine pool admission and transactional replacement remain
 separate gates. The planner is still not linked/called by the native app. No
 hardware operation occurred. All-thirteen default and selectable image builder
 remain the target; expanded-layout approval remains pending.
+
+## Disposable modulation staging
+
+Added lunar_project_mod_stage: a main-task-only adapter using the selected unit
+plan, shared state modulation applier and production route/per-voice planner.
+It requires a disposable aligned fm1_mod_size() workspace, verifies selected
+module pointer identity against the compiled runtime registry before constructors,
+binds selected engine metadata, applies module parameters/data and cables, and
+refuses skipped records or enabled routes refused by the planner. Failed staging
+destroys the candidate; it does not touch a live runtime. Caller owns immutable
+input and stable descriptors and must keep workspace disjoint from live state.
+
+Sixteen Hera chunks passed32 ASan/UBSan executions at Os/Oz with all16 production
+modulation kinds and256 rack arrangements [verified]. Tests compare fresh base
+capacity planning against actual constructors; cover single, repeated-eight and
+mixed-eight racks, valid routes, unavailable source/destination, disabled invalid
+routes retained under shared runtime policy, incompatible data and undersized
+workspace. Source compiled with the pinned pi32v2 compiler at both optimizations.
+No OOM; owned containers removed; every saved shard log checked. The first v3
+run failed because a launcher rename changed sdk-v1213 to sdk-v3213; corrected
+launcher rerun passed. Status-only receipt project-racks-v3-verification.json
+SHA256 3e67f287205abcf231314154dfbc1a5e778bee336ad9b44a3c4584bee025661f.
+
+This stages modulation only. Sound engine constructors/audio are not exercised
+by these tests; they use a small sound descriptor fixture. Engine parameters,
+sequence bindings, allocator reservation, transactional project activation,
+whole-firmware stack/timing and device execution remain separate gates. Shared
+per-voice planning may reduce modulation voice capacity and does not establish
+advertised sound polyphony. The adapter is not called by the app. No hardware
+operation or installable release; expanded-layout approval remains pending.

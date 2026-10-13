@@ -1,3 +1,18 @@
+# Native continuation — modulation staging, 2026-10-13
+
+Branch feature/2026-10-11@installable-firmware; preceding verified pushed SHA
+cf936dbc1466b0ff877c3678a413e956f487e11b.
+Added disposable modulation staging using the production shared applier/planner;
+rejects skipped records and invalid enabled routes, requires compiled registry
+identity. Sixteen Hera chunks passed32 sanitizer executions/256 rack arrangements
+and target compiles. Initial launcher path error corrected; no OOM, containers
+removed. Evidence/limits: notes/2026-10-13-native-project-loader.md.
+Not yet linked/called by app; no engine activation, timing or hardware proof.
+Goal ACTIVE: default all13 plus selectable engines/effects/songs/sets. Expanded
+layout approval pending; no installable release. Next native link/stack check,
+sequence bindings and engine activation; complete MIDI/persistence, builder/
+installer, review/CI and physical install/recovery.
+
 # Native continuation — fresh rack capacity, 2026-10-13
 
 Branch `feature/2026-10-11@installable-firmware`; preceding verified pushed SHA
