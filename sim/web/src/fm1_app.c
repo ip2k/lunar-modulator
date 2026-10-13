@@ -961,6 +961,85 @@ static void mod_rebind(fm1_app_t *a, int unit, const fm1_engine_t *from) {
   }
 }
 
+#if FM1_APP_EXTERNAL_ARENAS
+int fm1_app_adopt_start_units(fm1_app_t *a, fm1_app_unit_t candidate[FM1_APP_UNITS]) {
+  size_t ram, sink_params = FM1_MOD_HOST_PARAMS;
+  unsigned sounds = 0;
+  uintptr_t app_lo, app_hi, input_lo, input_hi;
+  if (!a || !candidate || !a->storage_alloc || !a->storage_free || a->frames)
+    return FM1_APP_SELECT_BAD;
+  app_lo = (uintptr_t)a; app_hi = app_lo + sizeof *a;
+  input_lo = (uintptr_t)candidate; input_hi = input_lo + sizeof *candidate * FM1_APP_UNITS;
+  if (app_hi < app_lo || input_hi < input_lo || (input_lo < app_hi && app_lo < input_hi))
+    return FM1_APP_SELECT_BAD;
+  for (int i = 0; i < FM1_APP_UNITS; ++i) {
+    const fm1_app_unit_t *u = &a->unit[i];
+    if (u->e || u->self || u->mem || u->cap || u->index != -1)
+      return FM1_APP_SELECT_BAD;
+  }
+  ram = fm1_app_ram(a);
+  for (int i = 0; i < FM1_APP_UNITS; ++i) {
+    const fm1_app_unit_t *u = &candidate[i];
+    const fm1_engine_t *e = entry(u->index);
+    uintptr_t lo = (uintptr_t)u->mem, hi = lo + u->cap;
+    if (!u->e) {
+      if (u->self || u->mem || u->cap || u->bytes || u->ram || u->index != -1)
+        return FM1_APP_SELECT_BAD;
+      continue;
+    }
+    if (!e || u->e != e || e->magic != FM1_ENGINE_MAGIC ||
+        e->api_version != FM1_ENGINE_API_VERSION || !e->destroy || !e->instance_size ||
+        e->kind != (unit_sound(i) >= 0 ? FM1_KIND_SOUND : FM1_KIND_AUDIO_FX) ||
+        e->n_params > FM1_APP_MAX_PARAMS || (e->n_params && (!e->params || !e->set_param)))
+      return FM1_APP_SELECT_BAD;
+    if (!lo || (lo & 15u) || hi <= lo || !u->bytes || u->bytes != e->instance_size(&a->host) ||
+        u->cap < u->bytes || (uintptr_t)u->self < lo || (uintptr_t)u->self >= hi ||
+        (lo < app_hi && app_lo < hi) || (lo < input_hi && input_lo < hi))
+      return FM1_APP_SELECT_ARENA;
+    for (int j = 0; j < i; ++j) {
+      const fm1_app_unit_t *v = &candidate[j];
+      uintptr_t vl = (uintptr_t)v->mem, vh = vl + v->cap;
+      if (v->e && lo < vh && vl < hi) return FM1_APP_SELECT_ARENA;
+    }
+    size_t needed = e->instance_size(&a->ram_host);
+    if (needed > SIZE_MAX - ram) return FM1_APP_SELECT_RAM;
+    ram += needed;
+    sink_params += e->n_params;
+    if (unit_sound(i) >= 0) ++sounds;
+  }
+  if (sounds > 1) {
+    size_t mixing = (size_t)(sounds - 1) * FM1_APP_MIX_BLOCK_BYTES;
+    if (mixing > SIZE_MAX - ram) return FM1_APP_SELECT_RAM;
+    ram += mixing;
+  }
+  for (int sound = 0; sound < FM1_APP_SOUNDS; ++sound) {
+    for (int slot = 0; slot < FM1_APP_INSERTS; ++slot)
+      if (candidate[fm1_app_insert_unit(sound, slot)].e &&
+          !candidate[fm1_app_sound_unit(sound)].e) return FM1_APP_SELECT_BAD;
+  }
+  if (ram > FM1_APP_RAM_BUDGET || sink_params > FM1_MOD_SINK_PARAMS)
+    return FM1_APP_SELECT_RAM;
+  /* Every possible refusal precedes ownership transfer. */
+  for (int i = 0; i < FM1_APP_UNITS; ++i) {
+    a->unit[i] = candidate[i];
+    if (a->unit[i].e) {
+      a->unit[i].ram = a->unit[i].e->instance_size(&a->ram_host);
+      a->unit[i].driven = 0;
+      if (a->unit[i].index == a->dx7.index) {
+        a->unit[i].e = &a->dx7.engine;
+        dx7_give(a, &a->unit[i]);
+      }
+    }
+    memset(&candidate[i], 0, sizeof candidate[i]); candidate[i].index = -1;
+    mod_bind(a, i);
+    fm1_edit_note_unit(a, i);
+  }
+  a->page = 0; a->fx_page = 0;
+  forget_knob_hint(a); a->dirty = 1; a->leds_changed = 1;
+  return FM1_APP_SELECT_OK;
+}
+#endif
+
 int fm1_app_select(fm1_app_t *a, int unit, int index) {
   if (!a || unit < 0 || unit >= FM1_APP_UNITS) return FM1_APP_SELECT_BAD;
   fm1_app_unit_t *u = &a->unit[unit];

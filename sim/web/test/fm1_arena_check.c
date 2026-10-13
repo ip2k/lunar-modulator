@@ -32,6 +32,81 @@ static void deallocate(void *ctx, void *memory) {
   ++storage.frees;
   free(memory);
 }
+static void adoption_check(int shard) {
+  fm1_app_unit_t candidate[FM1_APP_UNITS], saved[FM1_APP_UNITS];
+  memset(candidate, 0, sizeof candidate);
+  for (int k = 0; k < FM1_APP_UNITS; ++k) candidate[k].index = -1;
+  fm1_app_init(&managed, 44118.0f);
+  assert(fm1_app_set_storage(&managed, NULL, allocate, deallocate) == 0);
+  size_t baseline = fm1_app_ram(&managed);
+  const int slots[] = {0, 1, 3};
+  const char *names[] = {"trio", "test-gain", "test-sine"};
+  for (int k = 0; k < 3; ++k) {
+    fm1_app_unit_t *u = &candidate[slots[k]];
+    u->index = fm1_app_find(names[k]); assert(u->index >= 0);
+    u->e = fm1_engines[u->index];
+    u->bytes = u->cap = u->e->instance_size(&managed.host);
+    u->mem = allocate(NULL, u->bytes); assert(u->mem);
+    memset(u->mem, 0, u->bytes);
+    u->self = u->e->create(u->mem, &managed.host); assert(u->self);
+    for (unsigned n = 0; n < u->e->n_params; ++n) {
+      u->value[n] = u->e->params[n].def;
+      u->e->set_param(u->self, n, u->value[n]);
+    }
+  }
+  candidate[1].value[0] = 0.5f;
+  candidate[1].e->set_param(candidate[1].self, 0, 0.5f);
+  memcpy(saved, candidate, sizeof saved);
+  unsigned allocations = storage.allocations, frees = storage.frees;
+  switch (shard % 8) {
+    case 0: candidate[0].index = -1; break;
+    case 1: candidate[0].bytes = 0; break;
+    case 2: candidate[0].mem++; break;
+    case 3: candidate[0].self = NULL; break;
+    case 4: candidate[3].mem = candidate[0].mem; candidate[3].cap = candidate[0].cap; break;
+    case 5: candidate[2].ram = 1; break;
+    case 6: candidate[1].e = candidate[0].e; break;
+    case 7: managed.frames = 1; break;
+  }
+  fm1_app_unit_t refused[FM1_APP_UNITS];
+  memcpy(refused, candidate, sizeof refused);
+  assert(fm1_app_adopt_start_units(&managed, candidate) != 0);
+  assert(!memcmp(refused, candidate, sizeof refused));
+  for (int k = 0; k < FM1_APP_UNITS; ++k) assert(!managed.unit[k].e);
+  assert(storage.allocations == allocations && storage.frees == frees);
+  managed.frames = 0;
+  memcpy(candidate, saved, sizeof saved);
+  assert(fm1_app_adopt_start_units(&managed, candidate) == 0);
+  assert(storage.allocations == allocations && storage.frees == frees);
+  size_t expected = 0;
+  for (int k = 0; k < 3; ++k) {
+    const fm1_app_unit_t *u = &managed.unit[slots[k]];
+    assert(u->self == saved[slots[k]].self && u->mem == saved[slots[k]].mem);
+    expected += fm1_app_ram_of(u->e);
+  }
+  assert(fm1_app_ram(&managed) == baseline + expected + FM1_APP_MIX_BLOCK_BYTES);
+  assert(fm1_app_get_param(&managed, 1, 0) == 0.5f);
+  assert(managed.mod && fm1_mod_base(managed.mod, (unsigned)fm1_app_mod_unit(1), 0) == 0.5f);
+  for (int k = 0; k < FM1_APP_UNITS; ++k)
+    assert(!candidate[k].e && !candidate[k].mem && candidate[k].index == -1);
+  assert(fm1_app_adopt_start_units(&managed, candidate) != 0);
+  fm1_app_key(&managed, shard % 27, 1, 100);
+  double energy = 0;
+  for (int k = 0; k < 128; ++k) {
+    const float *samples = fm1_app_render(&managed, 64);
+    for (int n = 0; n < 128; ++n) {
+      assert(isfinite(samples[n])); energy += samples[n] * samples[n];
+    }
+  }
+  assert(energy > 0.001);
+  fm1_app_all_notes_off(&managed);
+  assert(fm1_app_select(&managed, 1, -1) == 0);
+  assert(fm1_app_select(&managed, 3, -1) == 0);
+  managed.unit[0].e->destroy(managed.unit[0].self);
+  deallocate(NULL, managed.unit[0].mem);
+  memset(&managed.unit[0], 0, sizeof managed.unit[0]); managed.unit[0].index = -1;
+  assert(storage.allocations == storage.frees);
+}
 static void managed_check(int shard) {
   fm1_app_init(&managed, 44118.0f);
   assert(fm1_app_set_storage(NULL, NULL, allocate, deallocate) == -1);
@@ -88,6 +163,7 @@ int main(int argc, char **argv) {
   assert(shard >= 0 && shard < 16);
 #if FM1_APP_EXTERNAL_ARENAS
   managed_check(shard);
+  adoption_check(shard);
 #endif
   memset(&arena, 0x5a, sizeof arena);
   fm1_app_init(&app, 44118.0f);

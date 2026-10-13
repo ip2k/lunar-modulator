@@ -1,3 +1,18 @@
+# Native continuation — shared-app startup adoption, 2026-10-13
+
+Branch feature/2026-10-11@installable-firmware; preceding verified pushed SHA
+b45335a361f0cbaa3d65992bc7019edd80fe2b35.
+Cold empty app adopts prepared units without reconstructing. Hera16 chunks pass
+embedded/external -Os sanitizer tests: refusal preserves ownership, saved gain/base,
+two-sound rendering and balanced cleanup. Another16 target chunks compile actual
+app Os/Oz with adoption symbol. Logs/receipts checked, noOOM, containers removed.
+Evidence notes/2026-10-13-native-project-loader.md; ignored build evidence.
+No final link/hardware/activation/full release. Goal ACTIVE; all13 default and
+selectable builder. Expanded flash layout approval pending. Next compact-to-app
+mapping with real pool, remaining MFX/settings/view/DX7 + seq/mod adoption,
+persistence/MIDI/timing and rebuilt catalogue source hashes, installer/recovery,
+review/CI/merge/physical acceptance. No live campaign remains from this checkpoint.
+
 # Native continuation — saved modulation bases, 2026-10-13
 
 Branch feature/2026-10-11@installable-firmware; preceding verified pushed SHA

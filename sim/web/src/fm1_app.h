@@ -598,6 +598,19 @@ const char *fm1_app_dx7_name(const fm1_app_t *a, unsigned slot);
  * or _RAM (-4: the chain would pass the FM-1's RAM budget and grow; the
  * unit keeps its engine, and a popup names it and what the chain would need). */
 int fm1_app_select(fm1_app_t *a, int unit, int index);
+#if FM1_APP_EXTERNAL_ARENAS
+/* Cold-start only, before rendering/input: take an entire prepared engine chain
+ * in app unit order. App must have no engine arenas and a configured allocator.
+ * Caller owns constructed instances and original provider allocations, with
+ * stable registry metadata, valid already-applied values and disjoint aligned
+ * storage. Validate all units first;
+ * failure leaves app and candidate ownership intact. Success empties candidate,
+ * sets FM6's user-bank shim, binds modulation bases and transfers destruction/
+ * deallocation responsibility to app. No constructors run. Does not load MIDI
+ * effects, project view/settings, DX7 records or a staged sequence/mod rack. */
+int fm1_app_adopt_start_units(fm1_app_t *a, fm1_app_unit_t candidate[FM1_APP_UNITS]);
+#endif
+
 
 /* The browser's starting chain: Macro, then Plate. If Macro refuses the
  * host's rate, the first sound that loads instead, with a popup saying why.

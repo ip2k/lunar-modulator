@@ -312,3 +312,31 @@ inspected; containers removed. Receipts: project-rack-bases-v1 and
 project-loader-link-v5 in the ignored evidence directory. Sound1 bases are
 exercised; additional sink mapping, real engine readback, app adoption, runtime
 stack/timing and hardware remain unverified. No installable release.
+
+## Prepared shared-app chain adoption
+
+Added external-arena-only `fm1_app_adopt_start_units`: cold empty app accepts
+already constructed registry engines in app-unit order without constructors or
+allocator calls [verified source/tests]. Before ownership transfer it checks
+registry/API/kind/size, disjoint aligned allocations and contained handles,
+insert parents, RAM including additional sound mix buffers and modulation sink
+capacity. Success preserves app values, binds modulation bases, installs FM6's
+user-bank shim and transfers destruction/free responsibility. Failures leave
+ownership intact. Caller guarantees before-input startup and valid already-applied
+values from the same provider; no live replacement transaction is provided.
+
+Hera `app-adoption-v3`:16 chunks pass embedded/external storage at `-Os` with
+address/undefined sanitizers, eight refusal classes, two adopted sounds/master
+FX, saved gain/base, finite audible rendering and balanced allocations [verified].
+All logs inspected, no OOM; owned containers removed. `app-adoption-target-v1`:
+16 chunks compile actual app for pi32v2 at both Os/Oz and verify symbol presence.
+No final native link or device execution claimed. Earlier v1 failed missing
+clang command; v2 failed a fixture RAM expectation excluding default modulation.
+Both failures retained; corrected test includes pre-adoption RAM baseline.
+Receipts/logs downloaded to ignored build/native-external-arenas-16-20261012.
+
+Still required: compact project-to-app mapping, actual pool-backed startup,
+MIDI effects, settings/view/DX7 records, staged sequence/mod rack adoption,
+real engine budget/timing and full linked image. Catalogue source manifests
+must be rebuilt after these shared-app changes. No installable release or
+hardware operation. Expanded flash-layout approval remains pending.
