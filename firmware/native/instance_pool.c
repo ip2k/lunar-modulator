@@ -59,3 +59,27 @@ int lunar_instance_pool_free(lunar_instance_pool_t *pool, void *memory)
     tlsf_free(pool->allocator, allocation);
     return 0;
 }
+
+int lunar_instance_pool_can_fit(lunar_instance_pool_t *pool,
+                                const size_t *sizes, unsigned count)
+{
+    void *trial[LUNAR_INSTANCE_PREFLIGHT_MAX];
+    unsigned allocated = 0;
+    uintptr_t input = (uintptr_t)sizes;
+    size_t span;
+    int ok;
+    if (!pool || !pool->allocator || count > LUNAR_INSTANCE_PREFLIGHT_MAX ||
+        (count && !sizes)) return 0;
+    span = count * sizeof *sizes;
+    if (count && (input > UINTPTR_MAX - span ||
+        (input < pool->hi && pool->lo < input + span))) return 0;
+    for (; allocated < count; ++allocated) {
+        trial[allocated] = lunar_instance_pool_alloc(pool, sizes[allocated]);
+        if (!trial[allocated]) break;
+    }
+    ok = allocated == count;
+    while (allocated) {
+        if (lunar_instance_pool_free(pool, trial[--allocated])) ok = 0;
+    }
+    return ok;
+}

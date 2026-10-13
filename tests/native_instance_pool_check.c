@@ -33,6 +33,33 @@ int main(int argc, char **argv)
     assert(!lunar_instance_pool_alloc(&pool, sizeof arena.data));
     assert(lunar_instance_pool_free(&pool, arena.after) == -1);
     assert(lunar_instance_pool_free(&pool, NULL) == 0);
+    /* Project preflight must account for simultaneous staging and instances. */
+    const size_t small_project[] = {1248, 5984, 7648};
+    const size_t shapes_project[] = {206904};
+    const size_t shapes_and_staging[] = {206904, 32768};
+    const size_t partial_failure[] = {1248, SIZE_MAX};
+    const size_t zero_request[] = {1248, 0};
+    assert(!lunar_instance_pool_can_fit(NULL, small_project, 3));
+    assert(!lunar_instance_pool_can_fit(&other, small_project, 3));
+    assert(!lunar_instance_pool_can_fit(&pool, NULL, 1));
+    assert(!lunar_instance_pool_can_fit(&pool, small_project, 33));
+    assert(!lunar_instance_pool_can_fit(&pool, (const size_t *)arena.data, 1));
+    assert(lunar_instance_pool_can_fit(&pool, NULL, 0));
+    assert(lunar_instance_pool_can_fit(&pool, small_project, 3));
+    assert(lunar_instance_pool_can_fit(&pool, shapes_project, 1) ==
+           (sizeof arena.data == 216064));
+    assert(!lunar_instance_pool_can_fit(&pool, shapes_and_staging, 2));
+    assert(!lunar_instance_pool_can_fit(&pool, partial_failure, 2));
+    assert(!lunar_instance_pool_can_fit(&pool, zero_request, 2));
+    assert(!pool.live_allocations && !pool.live_bytes);
+    unsigned char *pinned = lunar_instance_pool_alloc(&pool, 32768);
+    assert(pinned);
+    memset(pinned, 0x73, 32768);
+    assert(!lunar_instance_pool_can_fit(&pool, shapes_project, 1));
+    assert(lunar_instance_pool_can_fit(&pool, small_project, 3));
+    assert(pool.live_allocations == 1 && pool.live_bytes == 32768);
+    for (unsigned i = 0; i < 32768; ++i) assert(pinned[i] == 0x73);
+    assert(lunar_instance_pool_free(&pool, pinned) == 0);
     /* Sizes from actual pi32v2 inspection, plus boundary/fragmentation cases. */
     static const size_t sizes[] = {1, 15, 16, 17, 1248, 5984, 7648, 11224,
                                   16188, 19872, 41184, 65648, 65744, 71392, 206904};
@@ -58,6 +85,12 @@ int main(int argc, char **argv)
             assert(lunar_instance_pool_free(&pool, memory[slot]) == 0);
             memory[slot] = NULL;
             bytes[slot] = 0;
+        }
+        if (!(iteration % 64)) {
+            size_t before_bytes = pool.live_bytes;
+            unsigned before_count = pool.live_allocations;
+            (void)lunar_instance_pool_can_fit(&pool, small_project, 3);
+            assert(pool.live_bytes == before_bytes && pool.live_allocations == before_count);
         }
         size_t live_bytes = 0;
         unsigned live_allocations = 0;

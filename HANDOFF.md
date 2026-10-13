@@ -1,3 +1,16 @@
+# Native continuation — allocator admission, 2026-10-13
+
+Branch `feature/2026-10-11@installable-firmware`; preceding verified pushed SHA
+`4bfb828ed738d59a911e6db6f07272dc91249302`.
+Bounded actual-TLSF preflight added; all 48 sanitizer executions in sixteen Hera
+chunks passed. Sixteen v15 native links/77 checks each also passed, no OOM; owned
+containers removed. API not yet called by firmware; no hardware operation.
+Evidence and limits: `notes/2026-10-13-native-project-loader.md`.
+Goal ACTIVE: all thirteen default engines plus selectable engines/effects/songs/
+sets builder. Expanded-layout approval remains pending. Next implement bounded
+project validation/staging and atomic activation within actual RAM; finish timing,
+MIDI/persistence, builder/installer, review/CI and physical installation/recovery.
+
 # Native continuation — faster sanitizer campaign, 2026-10-13
 
 Preceding verified pushed SHA `3072a0bc04ba28c7f101789e6a997be8ba619ee9`.

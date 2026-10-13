@@ -64,3 +64,23 @@ host memory. Neither path is admitted for native runtime use yet.
 Goal remains the thirteen-engine default plus selectable engines, effects and
 songs/sets builder. Expanded-layout approval, real installation/recovery, full
 engine timing, MIDI and persistence acceptance remain outstanding.
+
+## Actual-pool allocation preflight
+
+`lunar_instance_pool_can_fit` tries at most 32 allocations in the proposed order
+and frees its trial blocks in reverse order on either outcome. Exclusive
+main-task ownership is required. Live allocations and their data remain intact;
+free-list ordering is not guaranteed byte-identical, and this does not reserve
+capacity, initialize engines or establish atomic project activation.
+
+Sixteen Hera chunks passed 48 sanitizer executions across 165,376, 196,608 and
+216,064-byte pools, with 8,192 randomized allocation operations per execution
+[verified]. Added tests cover failed partial trials, invalid request vectors,
+empty requests, preserved live data/accounting and trials during fragmentation.
+Shapes' 206,904-byte instance fits only the largest tested pool; adding a
+32,768-byte sequencer staging allocation is refused [verified host allocator].
+All sixteen v15 native content links and their 77 audit/option checks passed,
+without OOM; owned containers were removed. The new API is not called by the
+firmware yet and may be garbage collected: links do not prove target execution.
+
+Private receipts: `instance-pool-preflight-v1-verification.json` SHA256 `2ee8ec3cde909bbfcf2a39ee2d5427d3d9449535a618127d14492207b0fb896a`. `content-loader-link-v15-verification.json` SHA256 `7d256412511bcd4faae5273acf230a1586e776a65c16e8a05157419ca1b7c24c`.
