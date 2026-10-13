@@ -1,3 +1,19 @@
+# Native continuation — project-loader RAM measurement, 2026-10-13
+
+Goal ACTIVE: thirteen-engine default plus selectable engines/effects/songs/sets.
+Branch `feature/2026-10-11@installable-firmware`; preceding verified pushed SHA
+`6c2b95afd6898741eb6bc3f3a5e1c662de44640e`.
+Sixteen corrected Hera measurements passed, no OOM; owned containers removed.
+Browser import alone retains 629,916 writable bytes; all four roots 990,365.
+These are relocatable per-translation-unit measurements, not full firmware or
+runtime proof. Tool and bounded reuse plan:
+`tools/native/measure_project_loader.py`,
+`notes/2026-10-13-native-project-loader.md`.
+No hardware operation. Expanded-layout approval remains pending.
+Next: bounded native project preflight/staging and actual pool admission, strict
+binding diagnostics, multitrack timing, MIDI/persistence, web builder/installer,
+review/CI and physical recovery/install acceptance. Retain all partition gates.
+
 # Native continuation — scalar and line arity, 2026-10-13
 
 Goal ACTIVE: thirteen-engine default (Shapes twelve voices) plus selectable
