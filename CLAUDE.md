@@ -2,6 +2,19 @@
 
 Guidance for Claude Code working in this repo.
 
+## Native firmware direction — owner, 2026-10-12
+
+The active target is fully functional, web-installable Lunar on real FM-1s
+within the owner's next 24 hours. Use an SDK-free native open runtime, following
+Felucca/SLOOP, with the existing `FM1_GPL_MODS=1` engine selection. This supersedes
+the older planned JieLi SDK application runtime and diagnostic-only endpoint.
+Preserve stock boot-component and recovery safeguards. The combined native
+firmware is intended for GPLv3 distribution with all source and component notices;
+the root license has not yet changed. See
+`notes/2026-10-12-native-gpl-firmware-direction.md` for existing-switch evidence,
+platform candidates and pending physical acceptance. Heavy builds run on Hera;
+parallelizable verification uses 16 chunks.
+
 ## Automatic integration — owner, 2026-10-09
 
 Merge completed project work automatically once review and required CI checks
