@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
     int ok;
     fm1_app_t *app = calloc(1, sizeof(*app)), *app_before = malloc(sizeof(*app));
     if (!app || !app_before) return 24;
-    if (argc != 4 || !e1 || !e2) return 12;
+    if (argc != 5 || !e1 || !e2) return 12;
     bin = file(argv[1], &nb); text = file(argv[2], &nt);
     fm1_seq_limits_default(&lim, 4); bytes = fm1_seq_size(&lim);
     a = calloc(1, bytes); b = calloc(1, bytes);
@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
       fm1_seq_create(b, &lim, 44118); }
     if (fm1_seq_can_replace((const fm1_seq_t *)((char *)a + 1), sb)) return 32;
     ok = lunar_content_activate_set(app, bin, (uint32_t)nb, sa, &report);
-    if (atoi(argv[3])) {
+    if (atoi(argv[3]) && !atoi(argv[4])) {
         if (!ok || offs != 2 || app->seq_note_count[0][60] || app->seq_pending ||
             app->seq_gen != 8 || app->seq_host.lane_uid[0][0] != 12 ||
             memcmp(live, sa, bytes)) return 28;
@@ -81,7 +81,17 @@ int main(int argc, char **argv) {
         n1 = fm1_seq_export_movy1(sa, e1, 131072);
         n2 = fm1_seq_export_movy1(sb, e2, 131072);
         if (n1 >= 131072 || n1 != n2 || memcmp(e1, e2, n1)) return 18;
+        fm1_seq_import_t diag;
+        fm1_seq_import_begin(&diag, sb);
+        for (size_t off = 0; off < nt; off += 7) {
+            size_t count = nt - off < 7 ? nt - off : 7;
+            if (!fm1_seq_import_feed(&diag, (const char *)text + off, count)) return 41;
+        }
+        if (!fm1_seq_import_end(&diag) || diag.loss_flags != (unsigned)atoi(argv[4])) return 42;
     } else if (ok || report.code == FM1_STATE_OK) return 19;
+    if (lunar_content_load_set_checked(bin, (uint32_t)nb, sa, &report) !=
+        (atoi(argv[3]) && !atoi(argv[4]))) return 43;
+    if (memcmp(snapshot, live, bytes)) return 44;
     if (lunar_content_load_set(NULL, 32, sa, &report) || report.code != FM1_STATE_BAD) return 20;
     if (lunar_content_load_set(bin, FM1_STATE_BIN_MAX + 1, sa, &report) ||
         report.code != FM1_STATE_TOO_BIG) return 21;
@@ -116,7 +126,7 @@ int main(int argc, char **argv) {
 '''
 
 
-@pytest.mark.parametrize('case', range(8))
+@pytest.mark.parametrize('case', range(16))
 @pytest.mark.parametrize('opt', ['-Os', '-Oz'])
 def test_native_packed_set(tmp_path, case, opt):
     text = (ROOT / 'tests/fixtures/state/1.0/orbit.set.movy1').read_bytes()
@@ -129,6 +139,24 @@ def test_native_packed_set(tmp_path, case, opt):
     elif case == 3:
         # Track beyond the destination's capacity retains the core's truncation semantics.
         text += b'tk 15 0 0\ncl 15 0 16 0 0:12:60:100:0\ncp 15 0 1 1 0 0\n'
+    elif case == 8:
+        text += b'sg ' + b'0 ' * 65 + b'\n'
+    elif case == 9:
+        text += b'au 0 0 64 ' + b'x' * 80 + b'\n'
+    elif case == 10:
+        text += b'cl 2 0 256 0 6144:12:60:100:256\n'
+    elif case == 11:
+        text += b'cl 2 0 16 0 0:65536:60:100:0\n'
+    elif case == 12:
+        text += b'cl 2 0 16 0 ' + b';'.join([b'0:12:60:100:0'] * 513) + b'\n'
+    elif case == 13:
+        text += b'lk 2 0 ' + b';'.join(f'{i // 256}:{i % 256}:64'.encode() for i in range(800)) + b'\n'
+    elif case == 14:
+        text += b'tg 2 0 256:-1:50:1:1:0\n'
+    elif case == 15:
+        text += b'rt 0 1 99\n'
+    loss = {2: 4, 3: 1, 8: 8, 9: 2, 10: 1, 11: 1, 12: 8, 13: 8, 14: 9, 15: 8}.get(case, 0)
+    valid = case not in (4, 5, 6, 7)
     movy = tmp_path / 'set.movy1'
     movy.write_bytes(text)
     packed = tmp_path / 'set.lunarb'
@@ -169,7 +197,7 @@ def test_native_packed_set(tmp_path, case, opt):
                     '-fno-pie', '-no-pie', *inc, *map(str, sources),
                     '-Wl,--gc-sections', '-lm', '-o', str(executable)],
                    check=True)
-    subprocess.run([str(executable), str(packed), str(movy), str(int(case < 4))],
+    subprocess.run([str(executable), str(packed), str(movy), str(int(valid)), str(loss)],
                    check=True, capture_output=True)
     tc = Path(os.environ['FM1_NATIVE_TOOLCHAIN'])
     subprocess.run([str(tc / 'common/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',

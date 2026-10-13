@@ -162,3 +162,42 @@ SHA256: `245fc48efac0bc53bda6ddadd68f392cf5fc4816e62f4a763754ebe1cd5169ba`. The 
 this host experiment does not establish the target allocator ABI, instantiate
 Shapes, invoke complete app initialization or establish parser stack margin.
 No new runtime startup hook or hardware write was introduced.
+
+## Observed-loss admission [verified host and target link]
+
+The compatibility importer now reports observed range loss, text truncation,
+unknown fields and increases in the sequencer's refusal counter. Its legacy
+return value and imported output remain unchanged. The native checked loader
+rejects these diagnostics, and activation uses that loader before releasing
+old notes or replacing live state. The refusal category includes invalid routes
+as well as exhausted pools; it is not exclusively a RAM-capacity diagnostic.
+
+Thirty-two Os/Oz ASan/UBSan cases passed in sixteen Hera containers: valid and
+long sets, unknown fields, out-of-range tracks, truncated labels, oversized
+note/trig data, exhausted song/note/lock pools, invalid routes and corrupt or
+wrong-kind containers. Rejection leaves the live application and arena
+byte-identical. These tests also preserve the compatibility loader's output.
+A fresh 167-object target catalogue (v4) compiled in sixteen chunks; sixteen
+native loader/activation links (v7) passed 68 audit/artifact regressions each,
+with matching embedded bytes/descriptors and no OOMs.
+
+Separately, the existing core, Movy, song and oracle suites ran 468 collected
+nodes in sixteen disjoint Hera chunks: 466 passed, two pre-existing expected
+failures for the unported undo ring. The shared host binaries were built once
+and mounted read-only during tests. The first launcher stopped at collection
+because inherited quiet flags produced file counts instead of nodes. The second
+completed tests but its log collector had a path-formatting error. Logs, XML
+and exited-container states were recovered without repeating the tests;
+collection failures were retained, and all sixteen containers were removed.
+
+Private combined receipt SHA256:
+`5ebcc01e1fcdf47b06370428aa3133486181a815649aa9637d0731d67c5cce60`.
+Local receipt: `build/native-external-arenas-16-20261012/content-loader-link-v7-evidence.json`;
+Hera root: `/home/claude/mvave-fm1/native-external-arenas-16-20261012/out`.
+
+Zero loss flags are not complete syntax, dependency or playback admission.
+Malformed/skipped items, scalar normalization, engine availability and complete
+project application still require work. Parser call-chain stack margin and
+startup use remain unverified. Semantic queries still resolve to the primary
+checkout with stale/incomplete navigation; the actual worktree and compiler
+results are authoritative. No device operation or installable release is claimed.

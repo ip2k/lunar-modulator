@@ -1,3 +1,25 @@
+# Native release continuation — observed-loss admission, 2026-10-13
+
+Goal ACTIVE: default all thirteen production engines (Shapes twelve voices)
+plus selectable engines/effects/songs/sets builder and real web-installable FM1
+acceptance. Previous verified pushed SHA `02ad0a29c5f2fd0008dcfe8d9f155c472afdd444`.
+This checkpoint adds compatibility-preserving importer loss diagnostics and
+checked native loading/activation. 32 Os/Oz sanitizer cases passed in sixteen
+Hera containers. Fresh target catalogue v4 and sixteen native v7 links passed,
+each with 68 safety regressions; existing sequencer suites: 466 passed,
+2 pre-existing undo expected failures across 468 nodes in sixteen chunks.
+Combined private evidence hash `5ebcc01e1fcdf47b06370428aa3133486181a815649aa9637d0731d67c5cce60`.
+All containers removed; launcher failures retained and receipts recovered from
+terminal states/XML without rerunning completed tests.
+
+Next: complete syntax/dependency admission, startup integration and parser
+call-chain stack bounds, project application, multitrack RAM/timing, MIDI
+ownership, persistence, selectable web builder/installer and real acceptance.
+Current timed probe still does not call set activation. No device operation.
+Expanded-layout approval is still pending; existing partition guards remain.
+Read the streaming-set-loader and expanded-layout-proposal notes. Builds on
+Hera, sixteen chunks. No release/installability claim.
+
 # Native release continuation — 2026-10-13
 
 Active owner scope: default image with all thirteen production sound engines,

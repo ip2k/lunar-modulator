@@ -14,6 +14,10 @@
  * This accepts standalone SET containers; project application is separate. */
 int lunar_content_load_set(const uint8_t *bytes, uint32_t size,
                            fm1_seq_t *scratch, fm1_state_report_t *report);
+/* Refuses observed range/text/unknown-field/capacity loss before activation.
+ * Zero diagnostics still do not prove all grammar/dependencies are valid. */
+int lunar_content_load_set_checked(const uint8_t *bytes, uint32_t size,
+                                   fm1_seq_t *scratch, fm1_state_report_t *report);
 /* Checked read plus shared-app activation. Same rendering task, immutable bytes,
  * separately initialized scratch with current limits/rate. A rejected container
  * leaves the live app untouched. Scratch is disposable after either outcome.

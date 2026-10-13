@@ -32,8 +32,8 @@ static int set_record(void *ctx, const fm1_rec_t *record) {
     return 1;
 }
 
-int lunar_content_load_set(const uint8_t *bytes, uint32_t size,
-                           fm1_seq_t *scratch, fm1_state_report_t *report) {
+static int load_set(const uint8_t *bytes, uint32_t size,
+                    fm1_seq_t *scratch, fm1_state_report_t *report, int reject_loss) {
     set_load_t load;
     if (!report) return 0;
     fm1_state_report_init(report);
@@ -50,7 +50,21 @@ int lunar_content_load_set(const uint8_t *bytes, uint32_t size,
         report->code = FM1_STATE_BAD;
         return 0;
     }
+    if (reject_loss && load.importer.loss_flags) {
+        report->code = FM1_STATE_BAD;
+        return 0;
+    }
     return 1;
+}
+
+int lunar_content_load_set(const uint8_t *bytes, uint32_t size,
+                           fm1_seq_t *scratch, fm1_state_report_t *report) {
+    return load_set(bytes, size, scratch, report, 0);
+}
+
+int lunar_content_load_set_checked(const uint8_t *bytes, uint32_t size,
+                                   fm1_seq_t *scratch, fm1_state_report_t *report) {
+    return load_set(bytes, size, scratch, report, 1);
 }
 
 int lunar_content_activate_set(fm1_app_t *app, const uint8_t *bytes, uint32_t size,
@@ -61,7 +75,7 @@ int lunar_content_activate_set(fm1_app_t *app, const uint8_t *bytes, uint32_t si
         report->code = FM1_STATE_BAD;
         return 0;
     }
-    if (!lunar_content_load_set(bytes, size, scratch, report)) return 0;
+    if (!lunar_content_load_set_checked(bytes, size, scratch, report)) return 0;
     if (!fm1_app_seq_activate(app, scratch)) {
         report->code = FM1_STATE_BAD;
         return 0;

@@ -348,18 +348,23 @@ static void item_end(fm1_seq_import_t *im) {
     uint64_t step;
     if (nf < 4u || !ok[0] || !ok[1] || !ok[2] || !ok[3]) return;
     step = nf >= 5u && ok[4] ? v[4] : (uint16_t)((v[0] + SQ_TPS / 2u) / SQ_TPS);
+    if (step >= SQ_MAX_STEPS || v[0] > U16_MAX_ || v[1] > U16_MAX_)
+      im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
     sq_clip_add_raw(s, im->clip, (uint16_t)step, (uint32_t)v[0], v[1] < 1 ? 1u : (uint32_t)v[1],
                     (uint8_t)(v[2] > 127 ? 127 : v[2]), (uint8_t)(v[3] < 1 ? 1 : (v[3] > 127 ? 127 : v[3])));
   } else if (im->key == K_LK) {
     /* Movy parses the value as a u8 and keeps min(127): widening
      * fm1_seq_val_t needs a format of its own, not a wider bound here. */
     if (nf != 3u || !ok[0] || !ok[1] || !ok[2]) return;
+    if (v[1] >= SQ_MAX_STEPS || v[0] >= 8u) im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
     sq_clip_set_lock(s, im->clip, (uint8_t)(v[0] & 7), (uint16_t)v[1],
                      (fm1_seq_val_t)(v[2] > FM1_SEQ_VAL_MAX ? FM1_SEQ_VAL_MAX : v[2]));
   } else {
     const int64_t lane = (int64_t)v[1];
     uint8_t l;
     if (nf != 6u || !ok[0] || !ok[1] || !ok[2] || !ok[3] || !ok[4] || !ok[5]) return;
+    if (v[0] >= SQ_MAX_STEPS || (lane != -1 && (lane < 0 || lane >= 128)))
+      im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
     l = lane >= 0 && lane < 128 ? (uint8_t)lane : SQ_NONE;
     sq_clip_edit_trig(s, im->clip, (uint16_t)v[0], (uint16_t)v[0], l, SQ_TRIG_PROB,
                       (uint8_t)(v[2] > 100 ? 100 : v[2]), 0);
@@ -413,13 +418,14 @@ static void word_char(fm1_seq_import_t *im, char c) {
           sq_track_t *tr = &sq_tracks(im->s)[im->lv[0]];
           tr->label[im->lv[1]][im->text_n++] = c;
           tr->label[im->lv[1]][im->text_n] = '\0';
-        }
+        } else if (im->ok_list) im->loss_flags |= FM1_SEQ_IMPORT_TEXT;
         return;
       }
       break;
     case K_SN:
       if (im->wi == 2) {
         if (im->text_n < FM1_SEQ_SCENE_NAME_MAX) im->text[im->text_n] = c;
+        else im->loss_flags |= FM1_SEQ_IMPORT_TEXT;
         if (im->text_n < 255u) ++im->text_n;
         return;
       }
@@ -449,6 +455,7 @@ static void word_end(fm1_seq_import_t *im) {
   im->in_word = 0;
   if (wi == 0) {
     im->key = (uint8_t)key_of(im);
+    if (im->key == K_OTHER) im->loss_flags |= FM1_SEQ_IMPORT_UNKNOWN;
     if (im->key == K_SG) s->song_len = 0;
     return;
   }
@@ -483,12 +490,14 @@ static void word_end(fm1_seq_import_t *im) {
         if (im->key == K_PM) sq_set_pad_mute(s, (unsigned)im->lv[0], (uint8_t)im->lv[1], 1);
         else sq_tracks(s)[im->lv[0]].pad_solo = (uint8_t)im->lv[1];
       }
+      if (wi == 2 && !im->dead && (im->lv[0] >= s->n_tracks || im->lv[1] >= 128))
+        im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
       break;
     case K_CL:
       if (wi <= 4) {
         static const uint64_t kMax[4] = { USIZE_MAX_, USIZE_MAX_, U16_MAX_, U16_MAX_ };
         if (!word_u(im, wi - 1u, kMax[wi - 1u]) || wi < 4) break;
-        if (im->lv[0] >= s->n_tracks || im->lv[1] >= 8) { im->dead = 1; break; }
+        if (im->lv[0] >= s->n_tracks || im->lv[1] >= 8) { im->loss_flags |= FM1_SEQ_IMPORT_RANGE; im->dead = 1; break; }
         im->clip = (uint16_t)sq_clip_no((unsigned)im->lv[0], (unsigned)im->lv[1]);
         sq_clip_reset(s, im->clip);
         im->ok_list = 1;
@@ -500,7 +509,7 @@ static void word_end(fm1_seq_import_t *im) {
     case K_LK: case K_TG:
       if (wi <= 2) {
         if (!word_u(im, wi - 1u, USIZE_MAX_) || wi < 2) break;
-        if (im->lv[0] >= s->n_tracks || im->lv[1] >= 8) { im->dead = 1; break; }
+        if (im->lv[0] >= s->n_tracks || im->lv[1] >= 8) { im->loss_flags |= FM1_SEQ_IMPORT_RANGE; im->dead = 1; break; }
         im->clip = (uint16_t)sq_clip_no((unsigned)im->lv[0], (unsigned)im->lv[1]);
         im->ok_list = 1;
       } else if (wi == 3 && im->ok_list) {
@@ -528,7 +537,7 @@ static void word_end(fm1_seq_import_t *im) {
       if (wi <= 3) {
         static const uint64_t kMax[3] = { USIZE_MAX_, USIZE_MAX_, U8_MAX_ };
         if (!word_u(im, wi - 1u, kMax[wi - 1u]) || wi < 3) break;
-        if (im->lv[0] >= s->n_tracks || im->lv[1] >= 8) { im->dead = 1; break; }
+        if (im->lv[0] >= s->n_tracks || im->lv[1] >= 8) { im->loss_flags |= FM1_SEQ_IMPORT_RANGE; im->dead = 1; break; }
         {
           sq_track_t *tr = &sq_tracks(s)[im->lv[0]];
           tr->lanes_assigned |= (uint8_t)(1u << im->lv[1]);
@@ -542,6 +551,7 @@ static void word_end(fm1_seq_import_t *im) {
       if (wi <= 3) {
         static const uint64_t kMax[3] = { USIZE_MAX_, U8_MAX_, U8_MAX_ };
         if (!word_u(im, wi - 1u, kMax[wi - 1u]) || wi < 3) break;
+        if (im->lv[0] >= s->n_tracks) im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
         if (im->lv[0] < s->n_tracks &&
             !fm1_seq_set_route(s, (uint8_t)im->lv[0], (uint8_t)im->lv[1], (uint8_t)im->lv[2])) {
           ++s->stats.refused;
@@ -577,6 +587,10 @@ static void word_end(fm1_seq_import_t *im) {
 static void line_end(fm1_seq_import_t *im) {
   fm1_seq_t *s = im->s;
   if (!im->dead) {
+    if (im->key == K_TK && im->n_tk == 3u && im->lv[0] >= s->n_tracks)
+      im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
+    if (im->key == K_CP && im->ok_list && (im->lv[0] >= s->n_tracks || im->lv[1] >= 8))
+      im->loss_flags |= FM1_SEQ_IMPORT_RANGE;
     if (im->key == K_TK) {
       if (im->n_tk == 3u && im->lv[0] < s->n_tracks) {
         sq_tracks(s)[im->lv[0]].active = (uint8_t)(im->lv[1] < 7 ? im->lv[1] : 7);
@@ -620,6 +634,7 @@ void fm1_seq_import_begin(fm1_seq_import_t *im, fm1_seq_t *s) {
   memset(im, 0, sizeof(*im));
   im->s = s;
   im->state = IM_TAG;
+  im->refused_before = s->stats.refused;
 }
 
 static void tag_char(fm1_seq_import_t *im, char c) {
@@ -688,6 +703,7 @@ int fm1_seq_import_end(fm1_seq_import_t *im) {
   }
   sq_reseed_empty_clips(s);
   sq_invalidate_all(s);
+  if (s->stats.refused != im->refused_before) im->loss_flags |= FM1_SEQ_IMPORT_CAPACITY;
   im->state = IM_REFUSED;     /* spent */
   return 1;
 }

@@ -272,8 +272,17 @@ typedef struct fm1_seq_num {
   uint8_t sign, digits, bad, over;
 } fm1_seq_num_t;
 
+/* Loss observed by the compatibility importer; diagnostics do not change its
+ * output. Zero flags are not a complete syntax/dependency/playback proof. */
+enum {
+  FM1_SEQ_IMPORT_RANGE = 1u << 0,
+  FM1_SEQ_IMPORT_TEXT = 1u << 1,
+  FM1_SEQ_IMPORT_UNKNOWN = 1u << 2,
+  FM1_SEQ_IMPORT_CAPACITY = 1u << 3
+};
 typedef struct fm1_seq_import {
   fm1_seq_t *s;
+  uint32_t loss_flags, refused_before;
   fm1_seq_num_t num;          /* the word or list field being read */
   uint64_t lv[6];             /* the line's values */
   uint64_t fv[6];             /* a list item's fields */
