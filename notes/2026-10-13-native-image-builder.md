@@ -217,3 +217,30 @@ root above, SHA256
 Embedding is not yet wired into the timed application linker or native playback.
 The thirteen-engine default, full-app flash/RAM/timing, web builder/installer,
 and physical release/recovery acceptance remain open.
+
+## Prepared profiles in the timed application link [verified target]
+
+`build_application_probe.py --prepared-profile DIR
+--expected-profile-sha256 DIGEST` now consumes the checked content snapshots and
+selects the profile's canonical modules. These options require each other and
+refuse concurrent `--modules`/`--exclude` overrides. The freshly regenerated
+module header must exactly match the prepared header. Constant content and
+catalogue/count roots are linked into the ELF and counted by the unchanged
+application flash limit. The link report retains manifest/source/payload
+hashes; native playback and sequence acceptance remain explicitly false.
+
+Sixteen Hera containers linked five-engine profiles, with and without Plate,
+text and binary sources, and zero/one/two/four assets. All SDK-free link audits,
+undefined-symbol checks and guarded artifact flattening passed. Independent
+ELF reads checked the count, twelve-byte descriptors, flash pointer bounds,
+kinds, lengths and every payload byte. The largest test content occupied
+6,116 bytes. No device commands ran. These are timed diagnostic builds, not
+installable release firmware or proof that these songs can play on the device.
+Private receipt: `out/content-link-v1-verification.json`, SHA256
+`7d256412511bcd4faae5273acf230a1586e776a65c16e8a05157419ca1b7c24c`.
+
+Five new refusal cases cover unpaired options, selection overrides and a
+self-consistently hashed but noncanonical module header. The expanded 156
+builder/catalogue checks passed in another sixteen Hera containers, no OOM.
+Receipt: `out/content-embedding-v3-verification.json`, SHA256
+`9987be700f80fc1077d7edb0a806218fa9aa940cc77532b6d289493c8a76c6ee`.

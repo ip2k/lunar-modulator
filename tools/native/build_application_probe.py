@@ -20,6 +20,8 @@ from build_probe import check_pins
 from compile_catalogue import source_manifest
 from compact_font import compact_header, compact_gfx
 from prepare_wavetables import prepare
+from embed_image_content import content_source
+from verify_image_profile import load_prepared_profile
 
 ROOT = Path(__file__).resolve().parents[2]
 ENGINE_IDS = ('macro', 'shapes', 'macro-heavy', 'sixop', 'dx7', 'sw-sophie',
@@ -112,6 +114,10 @@ def main():
     parser.add_argument('--exclude', choices=ENGINE_IDS, action='append', default=[])
     parser.add_argument('--modules', help='Literal comma-separated engine/effect/MIDI/mod IDs; '
                         'timed probe must retain trio; incompatible with --exclude')
+    parser.add_argument('--prepared-profile', type=Path,
+                        help='Checked builder input directory; replaces --modules/--exclude')
+    parser.add_argument('--expected-profile-sha256',
+                        help='Controller-retained prepared manifest digest')
     parser.add_argument('--shapes-voices', type=int, choices=range(1, 13), default=12,
                         help='Require the selected Shapes polyphony in the catalogue')
     parser.add_argument('--indexed-tft', action='store_true',
@@ -122,6 +128,19 @@ def main():
                         help='With compressed tables, retain original Plaits wave bank in flash '
                         'to recover RAM; decode Braids only when Shapes is selected')
     args = parser.parse_args()
+    if bool(args.prepared_profile) != bool(args.expected_profile_sha256):
+        parser.error('--prepared-profile and --expected-profile-sha256 require each other')
+    if args.prepared_profile and (args.modules is not None or args.exclude):
+        parser.error('--prepared-profile cannot be combined with --modules or --exclude')
+    content_inputs, generated_content = None, None
+    if args.prepared_profile:
+        try:
+            content_inputs = load_prepared_profile(args.prepared_profile,
+                                                  args.expected_profile_sha256)
+            generated_content = content_source(content_inputs)
+            args.modules = ','.join(content_inputs.report['module_selection']['selected'])
+        except (ValueError, OSError, KeyError, TypeError) as error:
+            parser.error(str(error))
     if args.flash_plaits_wavetables and not args.compressed_wavetables:
         parser.error('--flash-plaits-wavetables requires --compressed-wavetables')
     tc, catalogue, out = (p.resolve() for p in
@@ -143,6 +162,8 @@ def main():
         parser.error(str(error))
     if 'trio' not in module_selection['selected']:
         parser.error('Timed probe must retain the initial Trio engine')
+    if content_inputs and module_header != content_inputs.module_header:
+        parser.error('Prepared module header differs from current module selection')
     args.exclude = [x for x in ENGINE_IDS if x not in module_selection['selected']]
     platform = ROOT / 'firmware/third_party/dinghy'
     for name in ('dinghy', 'compiler-rt', 'musl', 'printf', 'tlsf'):
@@ -214,6 +235,10 @@ def main():
                       ROOT / 'firmware/native/wave_tables.c',
                       ROOT / 'firmware/third_party/tinf/tinflate.c']
                      if args.compressed_wavetables else [])
+    if content_inputs:
+        content_path = out / 'content_catalogue.c'
+        content_path.write_bytes(generated_content)
+        extra_sources.append(content_path)
     for path in [ROOT / 'sim/web/src/fm1_app.c', ROOT / 'engines/host/mod_script.c',
                  ROOT / 'firmware/native/app_probe.c', ROOT / 'firmware/native/instance_pool.c',
                  ROOT / 'firmware/native/tlsf_runtime.c', ROOT / 'engines/src/registry.cc', *extra_sources]:
@@ -244,6 +269,8 @@ def main():
     roots = ('_start', 'fm1_app_key', 'fm1_app_button', 'fm1_app_encoder',
              'fm1_app_master', 'fm1_app_note_on', 'fm1_app_note_off',
              'fm1_app_pitch_bend', 'fm1_app_all_notes_off')
+    if content_inputs:
+        roots += ('lunar_content_count', 'lunar_content_catalogue')
     elf = out / 'lunar-app-probe.elf'
     command = [str(tc / 'pi32v2/bin/ld'), '--plugin', str(tc / 'common/bin/LLVMgold.so'),
                '--plugin-opt=mcpu=r3', '--plugin-opt=-mattr=+fprev1',
@@ -287,6 +314,14 @@ def main():
                   probe_return_to_rom_seconds=20, hardware_candidate=False,
                   catalogue_source_freshness_verified=True,
                   installable=False, hardware_tested=False, elf_sha256=digest(elf))
+    if content_inputs:
+        report['embedded_content'] = dict(
+            prepared_sha256=args.expected_profile_sha256,
+            source_sha256=hashlib.sha256(generated_content).hexdigest(),
+            asset_count=len(content_inputs.packed_content),
+            packed_content_bytes=sum(map(len, content_inputs.packed_content)),
+            packed_sha256=[hashlib.sha256(p).hexdigest() for p in content_inputs.packed_content],
+            sequence_semantics_verified=False, native_playback_verified=False)
     (out / 'verification.json').write_text(json.dumps(report, indent=2) + '\n')
     subprocess.run([sys.executable, str(ROOT / 'tools/native/probe_artifact.py'),
                     '--elf', str(elf), '--layout', 'combined',
