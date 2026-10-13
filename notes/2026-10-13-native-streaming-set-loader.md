@@ -149,3 +149,16 @@ checkout, not this worktree. The bounded sequencer/app queries returned stale
 line locations or incomplete caller information; Rarefaction had no native
 compilation database. Actual worktree source and target builds are authoritative.
 Shared semantic servers were not retargeted.
+
+## Startup allocation-order experiment [verified host]
+
+The follow-up v3 campaign passed all sixteen Os/Oz sanitizer cases, including
+an initialized eight-track staging sequencer allocated through the actual TLSF
+pool adapter. The 216064-byte pool holds staging; both valid and rejected loads
+can release it, after which a 206904-byte Shapes budget allocation succeeds.
+Staging allocation fails while that budget is held. Allocator counters return
+to zero after reclamation; no OOMs or sanitizer findings occurred. Receipt
+SHA256: `245fc48efac0bc53bda6ddadd68f392cf5fc4816e62f4a763754ebe1cd5169ba`. The target compiler still compiles the packed-set bridge;
+this host experiment does not establish the target allocator ABI, instantiate
+Shapes, invoke complete app initialization or establish parser stack margin.
+No new runtime startup hook or hardware write was introduced.

@@ -8,6 +8,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 HARNESS = r'''
 #include "content_set.h"
+#include "instance_pool.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -86,6 +87,29 @@ int main(int argc, char **argv) {
         report.code != FM1_STATE_TOO_BIG) return 21;
     if (lunar_content_load_set(bin, (uint32_t)nb, NULL, &report)) return 22;
     if (lunar_content_load_set(bin, (uint32_t)nb, sa, NULL)) return 23;
+    /* Startup ordering: stage the real eight-track size, then reclaim it for
+     * the measured Shapes-12 allocation. This is allocator evidence, not a
+     * complete engine/project startup or target ABI footprint assertion. */
+    {
+        unsigned char *raw = malloc(216064 + 15);
+        void *pool_mem = (void *)(((uintptr_t)raw + 15u) & ~(uintptr_t)15u);
+        lunar_instance_pool_t pool;
+        fm1_seq_limits_t boot_lim;
+        if (!raw || lunar_instance_pool_init(&pool, pool_mem, 216064)) return 33;
+        fm1_seq_limits_default(&boot_lim, 8);
+        size_t boot_bytes = fm1_seq_size(&boot_lim);
+        if (boot_bytes > sizeof app->seq_mem) return 34;
+        void *staging = lunar_instance_pool_alloc(&pool, boot_bytes);
+        fm1_seq_t *boot_seq = staging ? fm1_seq_create(staging, &boot_lim, 44118) : NULL;
+        if (!boot_seq || pool.live_allocations != 1) return 35;
+        if (lunar_content_load_set(bin, (uint32_t)nb, boot_seq, &report) != atoi(argv[3])) return 36;
+        if (lunar_instance_pool_free(&pool, staging) || pool.live_allocations || pool.live_bytes) return 37;
+        void *shapes_budget = lunar_instance_pool_alloc(&pool, 206904);
+        if (!shapes_budget) return 38;
+        if (lunar_instance_pool_alloc(&pool, boot_bytes)) return 39;
+        if (lunar_instance_pool_free(&pool, shapes_budget) || pool.live_allocations || pool.live_bytes) return 40;
+        free(raw);
+    }
     free(app); free(app_before); free(bin); free(text); free(a); free(b); free(live); free(snapshot); free(e1); free(e2);
     return 0;
 }
@@ -124,7 +148,8 @@ def test_native_packed_set(tmp_path, case, opt):
     packed.write_bytes(payload)
     source = tmp_path / 'probe.c'
     source.write_text(HARNESS)
-    sources = [ROOT / 'firmware/native/content_set.c', ROOT / 'sim/web/src/fm1_app.c',
+    sources = [ROOT / 'firmware/native/content_set.c', ROOT / 'firmware/native/instance_pool.c',
+               ROOT / 'firmware/third_party/tlsf/tlsf.c', ROOT / 'sim/web/src/fm1_app.c',
                source]
     sources += sorted(p for p in (ROOT / 'engines/mod').rglob('*.c')
                       if p.name != 'mp_tool.c')
@@ -132,7 +157,7 @@ def test_native_packed_set(tmp_path, case, opt):
                 ('seq_clip', 'seq_engine', 'seq_cmd', 'seq_persist', 'seq_capture', 'seq_host', 'mfx_host')]
     sources += [ROOT / 'engines/state' / f'{name}.c' for name in
                 ('state_bin', 'state_names', 'state_movy1', 'fm1_num', 'fm1_deflate')]
-    includes = [ROOT / 'firmware/native', ROOT / 'engines/include', ROOT / 'engines/state', ROOT / 'sim/web/src', ROOT / 'engines/mod', ROOT / 'engines/host', tmp_path / 'gen']
+    includes = [ROOT / 'firmware/native', ROOT / 'firmware/third_party/tlsf', ROOT / 'engines/include', ROOT / 'engines/state', ROOT / 'sim/web/src', ROOT / 'engines/mod', ROOT / 'engines/host', tmp_path / 'gen']
     import sys
     sys.path.insert(0, str(ROOT / 'tools/native'))
     from module_selection import resolve_modules

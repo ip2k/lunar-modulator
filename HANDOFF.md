@@ -14,6 +14,11 @@ loader/activation links (v6), each with 68 safety regressions. Evidence SHA:
 All containers removed. Failed v5 harness-symbol assertion is retained; LTO
 inlined the internal app helper, while public API roots remain verified.
 
+Host allocation-order v3 passed sixteen Os/Oz sanitizer cases: eight-track
+staging fits the actual pool, frees cleanly, then the measured Shapes-12 budget
+fits. Hot staging while Shapes budget is held correctly fails. Target ABI and
+complete startup remain unverified.
+
 Next: verify bounded startup staging before sound allocation, strict content
 capacity/dependency admission, parser call-chain stack margin, project state
 application, multitrack RAM/timing, MIDI ownership, persistence and the web
