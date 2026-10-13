@@ -309,3 +309,21 @@ reviewed native install/recovery admission are required before writing.
 The owner observed white/red/green/blue bands on the SDK diagnostic. Native Trio
 has not run on hardware. Full Lunar engine selection, effects, sequencer, physical
 audio/controls/MIDI acceptance, recovery and web installation remain outstanding.
+
+## Fresh observed ROM dual-read adapter [verified; physical run pending]
+
+`tools/fm1_fresh_rom_backup.py` admits a fresh passive USB binding without
+inventing a soft-key or continuous-power history. The exact pinned existing
+ROM INQUIRY/upload/read inventory establishes WL82 UBOOT1.00 before jumping
+to the audited fixed RAM loader. There are no NOR writes, reset or retry.
+A durable enumeration-keyed marker prevents retry through a renamed receipt
+within the approved private campaign directory. Python and source directories
+are trusted, as for the existing bench adapters. This is not a security sandbox.
+
+All 16 parallel Hera admission chunks passed with zero exits and no OOM.
+They check the exact inventory hash and refuse schema/kind/time/source/profile/
+USB faults and consumed-enumeration reuse. These checks use mocked passive
+sysfs discovery; no hardware descriptor is opened. Private evidence:
+`build/fresh-rom-16-20261012/hera-verification.json`. The reviewed SG exchange
+body and existing adapter files remain unchanged. New physical receipts are
+required; a preflight/test result grants no claim of a completed physical read.
