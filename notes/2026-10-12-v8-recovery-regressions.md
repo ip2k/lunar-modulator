@@ -37,3 +37,34 @@ pending. The diagnostic target remains installed with the fixed RAM loader.
 Captured Cynthion data is saved privately; framing was checked, transaction
 decoding remains outstanding. Visible probe, interrupted/corrupt recovery,
 required review/CI and integration remain acceptance gates.
+
+## Independent retained-backup checks
+
+[verified] The unchanged canonical `validate_completed_backup` accepted the
+actual retained backup with preserved original journal. Campaign hash
+`ad11bf7e162381b7b5c29849bcb4b0bfd31aa92b923f3b53a307b0d35ff9e89f`,
+manifest `a94ffd74d85cab828c5779620c22943f943a5e30d4d73deb6ead49bf81784075`,
+commands `fd37cd4f87feb19bb1fdb8df64c867000bb7d8745abe04fd11ffe211285200bb`.
+The check performed no device I/O.
+
+[verified] `tools/fm1_admitted_backup_postchild_evidence.py` separately validates
+the exact retained failed wrapper source, successful child, live owned capture,
+ordered finite timestamps, known post-child SG comparison error, and completed
+owned cleanup. It retains all eight file hashes and explicitly reports
+`wrapper_succeeded=false`, `restore_authorized=false` and
+`current_connection_verified=false`. It cannot prepare or execute a campaign.
+Its actual live-evidence check passed without device I/O; no receipt was changed.
+
+[verified] Final classifier tests passed 37 cases across 16 isolated Hera
+containers; inspected exit/OOM/network/XML results, no skipped cases, containers
+removed. Private proof: `build/v8-postchild-evidence-16-v2-20261012/`.
+The first classifier assumed nonempty stdout; live inspection established the
+successful CLI is silent. Corrected tests allow empty stdout while rejecting an
+empty USB capture. The earlier 35-case run and failed live check are retained.
+
+Next compose a separately reviewed restore preparation using both checks and
+the unchanged canonical factory. Do not alter the original preparer's rejection
+of ambiguous wrappers or rerun the consumed backup. Then review a new wrapper
+derivative with canonical SG comparison, start a new Cynthion capture, execute
+the bounded stock restore once, verify full readback, and separately admit stock
+boot. Those operations remain pending.
