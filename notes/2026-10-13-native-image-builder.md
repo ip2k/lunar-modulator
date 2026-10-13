@@ -74,3 +74,31 @@ All-thirteen flash fit remains unresolved. Full native functionality, bounded
 content loading/persistence, web builder/installer and physical release/recovery
 acceptance remain outstanding. Passing a smaller timed probe completes none of
 those release gates.
+
+## Content preparation [verified host; not native installation]
+
+`tools/native/prepare_image_profile.py` accepts a version-1 JSON profile with
+`engines`, `effects`, `midi`, `modulation` ID lists and `content` relative paths.
+It uses the canonical Make catalogue and the supplied trusted `fm1-state`
+executable. Inputs are bounded, snapshotted and hashed; duplicate profile keys,
+wrong module groups, unknown/duplicate modules, content path escapes and missing
+project dependencies are refused. A fresh output directory is mandatory, and
+`profile.json` appears only after every input succeeds. Packed assets and the
+generated module header remain build inputs, not an installable image.
+
+The C state packer's set conversion wraps sequencer text; it does not validate
+that text's commands. Each asset therefore records
+`sequence_semantics_verified: false`; sets also record
+`dependency_scan_complete: false`. A release consumer must resolve and validate
+sets rather than interpreting an empty dependency list as approval. Link/RAM
+verification and hardware acceptance are explicitly false in these manifests.
+
+Sixteen integration cases passed in sixteen Hera containers using the existing
+host state codec: real project and set packing, combined content, no content,
+and twelve rejection cases. The first campaign found a test-fixture error
+(Chance belongs to modulation, not MIDI effects); it was corrected, and refusal
+tests now assert their specific reason to avoid masking unrelated failures.
+Evidence: private `out/image-profile-v1-verification.json` (retained failure) and
+`out/image-profile-v2-verification.json` (all sixteen pass; no OOM), under the
+Hera root recorded above. Run with `FM1_STATE_TOOL=/path/to/fm1-state` and pytest
+`tests/test_native_image_profile.py`. No device operation occurred.
