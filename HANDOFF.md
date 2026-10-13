@@ -1425,3 +1425,33 @@ Evidence summary notes/2026-10-12-completed-stop-trace-recovery/verification.jso
 Launch77930 is terminal success; do not restart. Checkpoint a00e2e6e was pushed
 and remote SHA verified. Next source/pin review and fresh physical backup packet;
 physical boot/display/recovery remain unverified.
+
+## 2026-10-12 physical full stock restore succeeded
+
+[verified: actual hardware] Completed-trace fixed-loader backup made two matching
+1 MiB reads of diagnostic target5dbada65…, 8,757 commands. Distinct stock restore
+then completed all30 fixed sectors, directory0x4000 last. All10,836 SG commands
+completed successfully; initial target and final full stock hash96006a51… verified.
+No reset/retry. Evidence-only actual restore replay passed715 frozen entries,
+zero USB opens/commands. Model16+16 results remain separate physical evidence.
+
+Packetry computer use stopped/saved both actual captures; target power untouched.
+Private artifacts build/completed-trace-physical-20261012/ contain both pcapng
+files and pi-final-evidence.tar.gz (vendor bytes: ignored, never distribute).
+Public evidence notes/2026-10-12-completed-stop-trace-recovery/{physical.md,physical-verification.json}.
+Pi stage /home/claude/fm1-completed-trace-recovery-20261012/run/physical-restore-001.
+Restore receipt is physical-completed-trace-backup-001/stock-restore under
+/home/claude/fm1-sdk-trace-entry-20261012-v7/stock-backup-001/.
+Execution12299 and strict replay38153 are terminal success; never restart them.
+All consumed markers remain intact. Canonical dependency pins stay None;
+private one-literal derivatives/pins recorded in physical.md. Source93d5f2b8…
+CI38324630190 was still running at last check.
+
+Current FM1 remains the same fixed-loader session after verified stock restore;
+stock boot and physical recovery are not yet proven. Next implement/review a
+separate completed-trace-stock reset admission using actual completed restore
+verifier and pinned one-FC0C(arg1) mechanics, then once-only capture/boot/identity.
+Do not replay older reset/restore campaigns or remove markers. Continue fresh
+UBOOT/diagnostic display acceptance and interruption/corruption recovery gates.
+The last goal turn made concrete physical progress; no user power cycle currently
+needed. Goal active; no completion claim or genuine repeated external blocker.

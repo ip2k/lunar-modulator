@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "physical_restore": {
+    "boot_observed": false,
+    "campaign_sha256": "001a97f2fcb756e0ef11fec049330ae7ba92ef9a9f132bc1782d8472debb44d6",
+    "direction": "restore",
+    "full_flash_readback_verified": true,
+    "initial_full_target_readback_verified": true,
+    "kernel_exclusivity": false,
+    "physical_recovery_verified": false,
+    "sectors_written": 30,
+    "stock_baseline_restored": true,
+    "verified_sha256": "96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4"
+  },
+  "strict_replay": {
+    "schema": 1,
+    "evidence_only": true,
+    "usb_opened": false,
+    "commands_sent": 0,
+    "frozen_evidence_count": 715,
+    "campaign_sha256": "001a97f2fcb756e0ef11fec049330ae7ba92ef9a9f132bc1782d8472debb44d6",
+    "commands_sha256": "b738011d32305179608a2d89ecbd5254b74aa668ca8741887b599c447cd4c585",
+    "result_sha256": "2ed930ddc3e29ef6e424d3481b17713d0350d4163b0a9cb93459a749e42a791a",
+    "journal_sha256": "6fbb6dedd16a74f14303a5fc56517db7d49b060e951f45803b90e3031192dc6b",
+    "baseline_sha256": "96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4",
+    "target_sha256": "5dbada6531e0ad68b1902b4f0d97cc6f78d7fa338b1360c194f98c1475ad7a3d",
+    "sectors_written": 30,
+    "sector_order": [
+      20480,
+      24576,
+      28672,
+      32768,
+      36864,
+      40960,
+      45056,
+      49152,
+      53248,
+      57344,
+      61440,
+      65536,
+      69632,
+      73728,
+      77824,
+      81920,
+      86016,
+      90112,
+      94208,
+      98304,
+      102400,
+      106496,
+      110592,
+      114688,
+      118784,
+      122880,
+      126976,
+      131072,
+      135168,
+      16384
+    ]
+  },
+  "command_count": 10836,
+  "no_reset": true,
+  "no_retry": true,
+  "all_sg_completions_success": true,
+  "execution": {
+    "returncode": 0,
+    "end": 1791850337.9054544
+  },
+  "capture_framing": {
+    "file": "cynthion-stock-restore.pcapng",
+    "bytes": 75917676,
+    "sha256": "5dc34b6ba27051e851553115010abf4515bcf335166ba3b163629b1aa6dd54ae",
+    "block_counts": {
+      "168627466": 1,
+      "1": 1,
+      "1073744813": 2,
+      "6": 2020207,
+      "5": 1
+    },
+    "complete_framing": true,
+    "wire_semantics_verified": false
+  },
+  "backup_capture_framing": {
+    "file": "cynthion-dual-backup.pcapng",
+    "bytes": 48484556,
+    "sha256": "3126196a726f7f59da850425974423e3d5782fe0ea58ae3c0ed79352928f1c81",
+    "block_counts": {
+      "168627466": 1,
+      "1": 1,
+      "1073744813": 2,
+      "6": 1276250,
+      "5": 1
+    },
+    "complete_framing": true,
+    "wire_semantics_verified": false
+  },
+  "private_archive_sha256": "42b86f46c4a1a870a9bc4ae186c08ea8bc23794743045414ca86bcbf537c998e"
+}
