@@ -103,3 +103,47 @@ external-arenas out/reachable-shared and shared-resampler-verification.json
 hold sizes and comparisons. Primary-root Rarefaction/Serena located the inline
 resampler; Rarefaction used fallback clangd flags and incomplete on-open callers,
 so actual worktree source and builds are the authoritative checks.
+
+## Source-based math and string runtime (2026-10-13 checkpoint)
+
+[verified] Imported 62 unmodified portable musl units and their required private
+headers from official commit b1efda5b91735e33635376ca11c9b497a1c66e39, with
+COPYRIGHT, individual notices, per-file SHA-256 inventory and candidate decision
+in firmware/third_party/musl/UPSTREAM.md. Picolibc's official source was examined;
+its architecture/configuration machinery made a bounded generic musl subset the
+smaller integration for this experiment. No Linux services or target assembly
+were imported. First-party libc_compat headers supply visibility, compiler-checked
+little endian, internal string declarations/aliases and math-header name
+separation. Newlib-style __fpclassifyd is supplied by the unchanged musl routine
+via a compile define. Standard declarations still come from toolchain headers;
+no standard library archive or JieLi SDK archive is linked.
+
+[verified] tools/native/build_libc.py checks all source pins and compiles a
+selected shard with pi32v2 r3/mfprev1 -Oz flags. Its 62 objects compiled across
+sixteen Hera containers, all process/inspected exits zero and no OOM. A private
+relocatable subset link leaves only fourteen compiler arithmetic helpers, not
+other libc/libm functions, unresolved. This is not a complete firmware link.
+
+[verified] tests/test_native_libc.py compiled the pinned sources, renamed object
+symbols with objcopy and independently compared them against host libc/libm.
+All sixteen concurrent Hera pytest chunks passed with ASan/UBSan enabled,
+covering 16,384 numerical rows plus floating-point edges, and copy/move/set
+alignment, overlap and write canaries. Limits and numerical tolerances are
+recorded in UPSTREAM.md. These checks do not establish target floating-point ABI,
+execution time, exception flags, or all string-function behavioural cases.
+
+[verified] Private receipts: build/native-musl-evaluation-20261012 and matching
+Hera directory. tracked-verification.json and native-libc-pytest-verification.json
+record the checked-in build/test results; host-verification.json records the
+initial sixteen numeric/memory shards. Earlier compile and host-header failures
+were retained. Missing endian/features declarations, internal helper prototypes,
+Newlib gamma symbol differences and the extracted build's missing visibility
+flag were resolved without replacing any implementation with a stub. No FM1
+command was issued. The physical device's earlier identity/admission remains
+stale; a fresh admission is required before any further operation.
+
+Next: integrate these objects with the catalogue, formatter, remaining compiler
+helpers, parser/allocator/sort support and actual HAL; measure complete flash/RAM
+and audio budget before choosing the maximum feasible engine catalogue. Latest
+previous exact-head CI (d6dffc5, run 38359023800) was still in progress at this
+checkpoint; these local/Hera passes are not CI or release acceptance.
