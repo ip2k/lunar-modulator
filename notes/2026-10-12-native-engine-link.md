@@ -727,3 +727,34 @@ retain the corrected build and sixteen test results under Hera out/.
 The semantic-tool readiness refresh still selects the primary checkout rather
 than this worktree. Shared project selection was left untouched; Makefile
 inspection/editing used files directly. No device operation occurred.
+
+### Native USB-MIDI channel admission, 2026-10-13 [verified host]
+
+The timed shared-app probe now honors settings.midi_in_channel (omni or
+1..16), rejects malformed data bytes and unsupported status families before
+calling shared note functions, and releases current notes when the input
+filter changes so previously accepted releases cannot become stranded behind
+the new filter. This deliberately resets currently sounding notes, including
+panel/sequencer notes, on a filter change. It retains the 32-message per-poll
+budget and existing pitch/panic behavior. Sustain and jack UART remain work;
+this change does not claim full MIDI acceptance.
+
+Sixteen Hera containers compiled and exercised the actual incoming_midi body
+with stub packet source and shared-app sinks. All passed without OOM: selected
+channels and omni, velocity-zero and normal releases, bend endpoints, panic,
+invalid statuses/data, filter transition, and a 64-message stream consumed in
+two bounded polls. Evidence: out/native-midi-input-v1-verification.json.
+The first native link attempt rejected stale catalogue inputs after the host
+Makefile repair; this failure is retained in midi-input-target-v1 receipts.
+All 167 catalogue objects then regenerated in sixteen containers without OOM.
+The eleven-engine measurement profile linked and passed combined layout and
+SDK-free ELF/flattened-image checks (zero failures/pending). It measures
+578,440 bytes, 100 bytes larger than the prior measurement, leaving 3,124
+bytes under the protected limit. App SHA256:
+9591667cc948fd336382ae9220c04079ef54aa604c5f8b28908481456cde9858.
+Evidence: catalogue out-pool-v2/verification.json and
+out/midi-input-target-v2-12/artifact/artifact.json. Hardware admitted/tested
+and installable flags remain false; this is not the accepted release scope.
+Semantic navigation of note_off agreed with the worktree function body but
+selected the primary checkout; the empty Rarefaction caller list missed the
+known native caller and was not treated as proof of no callers.

@@ -19,6 +19,7 @@ static int32_t lunar_master_raw = 512;
 #include "fm1_app.h"
 #include "audio_queue.h"
 #include "instance_pool.h"
+#include "midi_input.h"
 
 typedef char lunar_probe_canvas_bound[(CV_MAX == 240u * 16u) ? 1 : -1];
 static fm1_app_t app __attribute__((section(".pool"), aligned(16)));
@@ -85,8 +86,17 @@ static void display_strip(uint32_t *row)
 static void incoming_midi(void)
 {
     uint8_t st, a, b;
+    static uint8_t previous_channel = 255u;
+    uint8_t channel = app.settings.midi_in_channel;
+    if (channel != previous_channel) {
+        /* Releases must not be filtered after their note-ons were accepted.
+         * A filter change ends current notes before admitting the new stream. */
+        if (previous_channel != 255u) fm1_app_all_notes_off(&app);
+        previous_channel = channel;
+    }
     /* Bound each poll so a sustained USB stream cannot starve rendering. */
     for (unsigned i = 0; i < 32u && midi_get(&st, &a, &b); ++i) {
+        if (!lunar_midi_input_accept(st, a, b, channel)) continue;
         switch (st & 0xf0u) {
         case 0x90:
             if (b) fm1_app_note_on(&app, a, b);
