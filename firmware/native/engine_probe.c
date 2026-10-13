@@ -55,6 +55,7 @@ static void app_audio(int32_t *out, uint32_t n)
 static void app_main(void)
 {
     uint32_t previous = 0, last_status = 0;
+    uint32_t probe_start = fm1_ticks();
     uint8_t held[27] = {0};
     int octave = 0;
     uint32_t ready = lunar_engine_init(FS);
@@ -66,6 +67,14 @@ static void app_main(void)
     for (;;) {
         uint32_t k, released, buttons, keys, down, up;
         uint8_t st, a, b;
+        /* TIMER4 remains usable even if the TIMER5 millisecond IRQ stops. */
+        if ((uint32_t)(fm1_ticks() - probe_start) >= 20u * 1000000u * FM1_TICKS_PER_US) {
+            fm1_audio_stop();
+            usb_detach();
+            fm1_delay_ms(30);
+            bootguard_clear(&bootguard);
+            fm1_enter_uboot();
+        }
         platform_poll();
         keys = fm1_in.notes; down = keys & ~previous; up = previous & ~keys; previous = keys;
         for (k = 0; k < 27u; k++) {

@@ -38,6 +38,26 @@ def main():
     source = source.replace(cleanup, '    /* Probe: retain stock OTA staging bytes. */')
     source = source.replace(range_line, '#define FL_RANGE_OK(off, n) (0) /* Probe: no NOR writes. */')
     (out / 'platform.c').write_text(source)
+    recovery = (platform / 'src/recovery.c').read_text()
+    recovery_request = '    if (usb.uboot_req) {'
+    if recovery.count(recovery_request) != 1:
+        raise SystemExit('Upstream recovery adaptation no longer matches')
+    recovery = recovery.replace(recovery_request,
+                                '    if (usb.uboot_req || fm1_ms >= 20000u) {')
+    (out / 'recovery.c').write_text(recovery)
+    # Preserve the pinned source; generate a narrowly guarded entry copy.
+    entry = (platform / 'crt0.S').read_text()
+    anchor = '1:\tr1 = icfg'
+    if entry.count(anchor) != 1:
+        raise SystemExit('Upstream entry adaptation no longer matches')
+    entry = entry.replace(anchor, '''1:\tcli
+\tr3 = cnum
+\tif (r3 != 0) goto lunar_entry_rejected
+\tr3 = 0x01C7FE08
+\tif (r0 != r3) goto lunar_entry_rejected
+\tr1 = icfg''')
+    entry += '\nlunar_entry_rejected:\n\tgoto lunar_entry_rejected\n'
+    (out / 'crt0.S').write_text(entry)
     flags = ['-target', 'pi32v2', '-mcpu=r3', '-mfprev1', '-Os', '-ffreestanding',
              '-fno-builtin', '-ffunction-sections', '-fdata-sections']
     includes = [out, ROOT / 'firmware/native', platform / 'hal', platform / 'src',
@@ -58,7 +78,7 @@ def main():
     subprocess.run(['make', '-C', str(ROOT / 'tools/native'), '-j16',
                     'BUILD=' + str(runtime), 'JIELI_TOOLCHAIN=' + str(tc)], check=True)
     objects = []
-    for path in [platform / 'crt0.S', platform / 'hal/fm1_vec.S',
+    for path in [out / 'crt0.S', platform / 'hal/fm1_vec.S',
                  platform / 'hal/fm1_isr.S', ROOT / 'firmware/native/engine_probe.c',
                  ROOT / 'firmware/native/engine_adapter.c']:
         obj = out / (path.stem + '.o')
@@ -95,6 +115,9 @@ def main():
               'key_audit': key_audit,
               'flash_write_range': 'empty', 'boot_ota_cleanup': False,
               'standard_headers': str(tc / 'pi32v2/include'), 'sdk_source_headers': [],
+              'entry_core': 0, 'entry_boot_pointer': '0x01c7fe08',
+              'secondary_core_ownership_verified': False,
+              'probe_return_to_rom_seconds': 20,
               'installable': False,
               'hardware_tested': False, 'elf_sha256': hashlib.sha256(elf.read_bytes()).hexdigest()}
     (out / 'verification.json').write_text(json.dumps(report, indent=2) + '\n')

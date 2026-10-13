@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'jieli'))
 from audit_link import Elf, EM_PI32V2, ET_EXEC, audit, collect_sources
 
 FLASH = 0x02000120
+ENTRY_GUARD = bytes.fromhex('04818000600064e00036835fc3ff08fec70183e81a00')
 REGIONS = {
     '.text': (FLASH, FLASH + 0x8DFBC, 1, 6),
     '.ram_text': (0x01C00000, 0x01C06000, 1, 6),
@@ -30,6 +31,10 @@ def flatten(data):
         raise ValueError('Wrong entry address')
     if image.undefined_symbols():
         raise ValueError('Unresolved symbols')
+    if (image.read(FLASH, len(ENTRY_GUARD)) != ENTRY_GUARD
+            or image.symbol_value('lunar_entry_rejected') != FLASH + 0x4A
+            or image.read(FLASH + 0x4A, 2) != bytes.fromhex('f79f')):
+        raise ValueError('Missing exact stack-free core/pointer entry guard')
     for name, value in {'_guard0': 0x01C74000, '_ustack_lo': 0x01C74100,
                         '_ustack_top': 0x01C7A000, '_guard1': 0x01C7A000,
                         '_sstack_lo': 0x01C7A100, '_sstack_top': 0x01C7C000}.items():

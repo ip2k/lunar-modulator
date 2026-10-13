@@ -6,19 +6,20 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools/native'))
-from probe_artifact import FLASH, flatten
+from probe_artifact import FLASH, ENTRY_GUARD, flatten
 
 
 def fixture():
-    rows = [('.text', FLASH, b'TEXT', 4, 1, 6, FLASH),
-            ('.ram_text', 0x01C00000, b'RAM!', 4, 1, 6, FLASH + 4),
-            ('.data', 0x01C08000, b'DATA', 4, 1, 3, FLASH + 8),
+    text = ENTRY_GUARD + bytes(0x4A - len(ENTRY_GUARD)) + bytes.fromhex('f79f')
+    rows = [('.text', FLASH, text, len(text), 1, 6, FLASH),
+            ('.ram_text', 0x01C00000, b'RAM!', 4, 1, 6, FLASH + len(text)),
+            ('.data', 0x01C08000, b'DATA', 4, 1, 3, FLASH + len(text) + 4),
             ('.bss', 0x01C08004, b'', 16, 8, 3, 0),
             ('.pool', 0x01C20000, b'', 16, 8, 3, 0),
             ('.noinit', 0x01C7C000, b'', 16, 8, 3, 0)]
-    values = dict(_start=FLASH, _etext=FLASH + 4, _rt_start=0x01C00000,
-                  _rt_end=0x01C00004, _rt_load=FLASH + 4,
-                  _data_start=0x01C08000, _data_end=0x01C08004, _data_load=FLASH + 8,
+    values = dict(_start=FLASH, _etext=FLASH + len(text), lunar_entry_rejected=FLASH + 0x4A,
+                  _rt_start=0x01C00000, _rt_end=0x01C00004, _rt_load=FLASH + len(text),
+                  _data_start=0x01C08000, _data_end=0x01C08004, _data_load=FLASH + len(text) + 4,
                   _bss_start=0x01C08004, _bss_end=0x01C08014,
                   _pool_start=0x01C20000, _pool_end=0x01C20010,
                   _guard0=0x01C74000, _ustack_lo=0x01C74100, _ustack_top=0x01C7A000,
@@ -51,7 +52,8 @@ def fixture():
 
 def valid_layout():
     _, app = flatten(fixture())
-    assert app == b'TEXTRAM!DATA'
+    assert app[:len(ENTRY_GUARD)] == ENTRY_GUARD
+    assert app[-8:] == b'RAM!DATA'
 
 
 def damaged_contract(fault):
@@ -75,6 +77,16 @@ def damaged_contract(fault):
 class ArtifactTests(unittest.TestCase):
     def test_valid(self):
         valid_layout()
+
+    def test_guard_bytes(self):
+        original = fixture()
+        shoff = struct.unpack_from('<I', original, 32)[0]
+        offset = struct.unpack_from('<I', original, shoff + 40 + 16)[0]
+        for i in list(range(len(ENTRY_GUARD))) + [0x4A, 0x4B]:
+            changed = bytearray(original)
+            changed[offset + i] ^= 1
+            with self.assertRaisesRegex(ValueError, 'entry guard'):
+                flatten(bytes(changed))
 
 
 for _fault in range(16):

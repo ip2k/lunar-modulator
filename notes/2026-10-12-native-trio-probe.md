@@ -128,3 +128,45 @@ physical writer readiness or hardware admission in this constructor.
 The native construction and artifact suites plus previous diagnostic layout
 suite passed 41 tests locally using synthetic NOR/reference/ELF bytes. No new
 actual-device full-flash candidate has been emitted from this profile yet.
+
+## Guarded entry and bounded native probe [verified]
+
+The generated crt0 now masks interrupts, rejects a nonzero core number and
+rejects a boot pointer other than `0x01C7FE08` before its first RAM write or
+stack assignment. The artifact verifier requires the exact compiled guard
+prefix, reject symbol address and stack-free reject loop; mutation tests
+reject every changed guard byte. Captured ICFG is now after CLI. This does
+not establish ownership of the secondary core or recover a rejected entry.
+
+The normal native probe returns to UBOOT after 20 seconds using TIMER4,
+independently of TIMER5's millisecond ISR. The generated recovery source
+returns after 20 seconds as well. Both use the inherited detach/bootguard/ROM
+mechanics. Neither timeout is physically verified or protects a failure before
+its loop is reached. Imported Dinghy sources remain byte-identical to their pins.
+
+The actual Hera bounded build passes link, memory-layout, compiled guard and
+SDK-free ELF/flat audits with zero pending checks. ELF SHA256
+`0b34c276473f1d6c97ca8ce92ee268fe8b52a01656672f31b53f71bc4e01a927`;
+47,708-byte app SHA256
+`ed2b4e16ace51a7b4e43cb961a467a7e162fd45fd8c8b7d40bd36793024556eb`.
+This supersedes the unguarded 47,580-byte artifact above. Sixteen guarded
+artifact fault shards on Hera exited zero without OOM; source/receipts remain
+private in the native-engines campaign.
+
+A real private 1 MiB offline NOR candidate was constructed from the retained
+matching original stock backups through the fixed-loader provenance profile.
+Candidate SHA256
+`112667509886ddce7536c87e44a4674e5e411ef907f2c8b3d169964637ca0c42`.
+Local export agrees with the Hera app hash. Protected stock geometry passes.
+Artifact path: `build/native-engines-16-20261012/native-target-historical-offline/`.
+These historical backups grant no fresh device-write admission. The candidate
+is not an OTA/web package, has never run on hardware and must not be published.
+
+Passive bench enumeration still shows bus 1 device 14, `4c4a:8057`. No device
+command, loader upload or flash write was issued during this guarded-build work.
+Next: distinct current returned-ROM backup admission, two fresh matching dumps,
+native install/recovery review, then physical startup and Trio/audio/controls/MIDI
+acceptance. Full Lunar application and web installation remain outstanding.
+
+Focused native/layout/diagnostic regression verification: 95 passed, 9 optional
+private-artifact checks skipped. No skip is counted as physical acceptance.
