@@ -86,7 +86,7 @@ class Prepared:
 
     def check(self):
         require_prepared(self, check=False)
-        self.completed_stop_trace.check_pending()
+        self.completed_stop_trace.check()
         for path, data, limit in self.evidence:
             if read_file(path, limit) != data:
                 raise ValueError('Frozen completed-stop-trace-stock reset evidence changed')

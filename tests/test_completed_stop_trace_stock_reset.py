@@ -31,7 +31,7 @@ def campaign(tmp_path, monkeypatch):
             node_identity=[1, 2, 3], usb_identity=[4, 5, 6]),
         returned_backup_receipt_path=str(parent), returned_backup_manifest_sha256='a' * 64,
         baseline_sha256=r.BASELINE_SHA, target_sha256=r.TARGET_SHA, sectors_written=30,
-        sector_order=list(range(0x5000, 0x22000, 4096)) + [0x4000], _absent_paths=(), _proof=SimpleNamespace(check_pending=lambda: None))
+        sector_order=list(range(0x5000, 0x22000, 4096)) + [0x4000], _absent_paths=(), _proof=SimpleNamespace(check=lambda: None))
     config = dict(schema=1, kind='fm1-sdk-completed-stop-trace-fixed-loader-stock-reset',
         adapter_sha256=r.digest(Path(r.__file__).read_bytes()), restore_campaign_path=str(evidence),
         restore_campaign_sha256=r.digest(evidence.read_bytes()), restore_commands_sha256='b' * 64,
@@ -323,10 +323,10 @@ def test_historical_diagnostic_cannot_authorize_trace_reset(campaign, monkeypatc
 
 def test_pending_chain_changes_after_durable_intent_prevent_reset(campaign, monkeypatch):
     refused = []
-    def check_pending():
+    def check():
         if refused:
             raise ValueError('Later automatic-chain publication')
-    campaign[2]['_proof'] = SimpleNamespace(check_pending=check_pending)
+    campaign[2]['_proof'] = SimpleNamespace(check=check)
     prepared = r.prepare_campaign(campaign[0])
     state = syscalls(prepared, monkeypatch)
     real_sync = prepared.bridge.sync_dir

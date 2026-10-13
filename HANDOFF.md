@@ -1471,3 +1471,18 @@ Next finish model gates/source review, actual evidence-only admission, one-shot
 owned USBmon+Cynthion reset and observe stock enumeration/identity; preserve all
 markers. Then continue diagnostic display/recovery and required CI/integration.
 Goal remains active; this turn made source and live-verification progress.
+
+## 2026-10-12 actual completed proof interface checkpoint
+
+Initial reset16 run67871 terminal:11 chunks passed,4 OOM at512 MiB,chunk0 two
+known harness failures. Evidence/inspection preserved Hera initial stage; all
+containers removed. v2 run41798 superseded after actual no-USB bench preflight
+found production check_pending/check mismatch; stopping only owned v2 containers.
+Adapter now uses CompletedStopTraceProof.check(), boundary fixture mirrors API.
+Corrected source snapshot /home/claude/completed-stop-trace-reset-16-v3-20261012
+uses16 chunks,1 GiB each. Finish its tests before any physical reset.
+Actual private physical-stock-reset-003 evidence-only preflight passed721 frozen
+entries,zero USB opens/commands; old failed001 packet/source preserved. Fresh
+canonical/private/campaign pins recorded in reset review.md. No reset issued.
+Earlier93d5 CI38324630190 success; new source still requires its own gates.
+Goal active; stock boot/display/interrupted physical recovery remain pending.
