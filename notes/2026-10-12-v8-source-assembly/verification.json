@@ -1,0 +1,33 @@
+{
+  "activation_pins_bound": false,
+  "archive_sha256": "e061ccc89002723f83ea22271e771482d3f5df4f62fa1deff7fc5765a933db5b",
+  "artifact_sha256": {
+    "assemble-main-proposal.py": "5cebfaf3ca2b20b4fce1bc046e0d0d53947895d477a92f234ebb1e9c34e46683",
+    "closed-entry-stage-inventory.json": "d86cabe9cfad183238b05acad3544b3b1af068ec3685ef991c1fd71194df4c22",
+    "closed-recovery-source-inventory.json": "a41e0ba655bfa16681c2d78d59eff3a40f6413437011c7cf228805d5ab4539ce",
+    "prepare-stagers.py": "093b81a07430a7383f9c56d2a2c62a8bb34c2f2e2ae66ca19574794ce1f5f5b5",
+    "stage-closed-files-proposal.py": "10a116c557a00d0b2209158fd7c61fb23d915f9075066e4612d6531ca583694a",
+    "stage-recovery-source-files-proposal.py": "0e6c7b1f70d1e33fce76b29d04d0700b2b26175c8711684d9f259b01a62059dc"
+  },
+  "entry_root": "/home/claude/fm1-sdk-trace-entry-20261012-v8",
+  "execution_authorized": false,
+  "file_count": 108,
+  "hardware_commands": 0,
+  "historical_identity_fresh": false,
+  "pending": [
+    "separate recovery source staging closure",
+    "exact staging helper and model verification",
+    "fresh identity binding and source acceptance review"
+  ],
+  "recovery_file_count": 102,
+  "schema": 1,
+  "source_pin_rounds": 4,
+  "stage_root": "/home/claude/fm1-sdk-trace-campaign-20261012-v8",
+  "static_checks": {
+    "device_opened": false,
+    "entry_parent_pins_checked": 3,
+    "operational_python_stale_v7_paths": 0,
+    "source_closure_entries_checked": 106,
+    "source_execution": false
+  }
+}

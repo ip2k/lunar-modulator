@@ -1557,3 +1557,17 @@ turn made physical progress, this turn makes source and verification progress.
 Next assemble/review fresh V8, physical display/native recovery, interrupted/
 corrupt-write recovery, then required review/CI/integration. Owner display
 availability question remains pending; no physical-cycle request is needed now.
+
+### V8 source assembly checkpoint (2026-10-12)
+
+[verified] Closed main proposal108files assembled privately, sourceclosure106
+entries plus3entryparentpins checked; recovery102exactsourcefiles checked.
+Derived both fileonly stagers, not executed/staged. Public reproduction scripts
+and receipt notes/2026-10-12-v8-source-assembly/. FouractivationpinsNone; historical
+identity/assets unchanged, nohardware. Next: rebind prospective recovery pathspec/
+plan and closuredependencyhash, regenerate distinct sealed bundle,16Hera stager
+checks and review before freshPiidentity/dualbackup/install. ExistingCI38329476379
+liveinprogress and38329909211pending, do notduplicate; neither covers newcheckpoint.
+Pi normal bus1dev11. Physicaldisplay/recovery/corruptinterrupt +integration open.
+Prior report-only turn was no firmware progress; this turn creates checkedsource
+artifacts toward freshphysicalcampaign. Goalactive.
