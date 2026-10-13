@@ -17,8 +17,7 @@ CASES = ('valid','interrupted_program','corrupted_readback','later_chain_before_
          'state','kind','install_pin','source_pin','existing_receipt','unregistered','replay')
 
 
-@pytest.mark.parametrize('case', CASES)
-def test_completed_trace_restore_actual(monkeypatch,tmp_path,case):
+def exercise_completed_trace_restore(monkeypatch,tmp_path,case='valid'):
     ctx = exercise_completed_trace_backup(monkeypatch,tmp_path,'valid')
     backup,proof,model,sha = (ctx[n] for n in ('backup','proof','model','sha'))
     root = Path(backup.__file__).parent
@@ -101,3 +100,11 @@ def test_completed_trace_restore_actual(monkeypatch,tmp_path,case):
     with pytest.raises((ValueError,FileExistsError)):restore.run_campaign(prepared)
     with pytest.raises(ValueError):restore.prepare_campaign(cp)
     assert len(model.calls)==stopped
+
+    ctx.update(restore=restore, restore_campaign=c, restore_campaign_path=cp, restore_receipt=r, journal=journal)
+    return ctx
+
+
+@pytest.mark.parametrize('case', CASES)
+def test_completed_trace_restore_actual(monkeypatch,tmp_path,case):
+    exercise_completed_trace_restore(monkeypatch,tmp_path,case)

@@ -1455,3 +1455,19 @@ Do not replay older reset/restore campaigns or remove markers. Continue fresh
 UBOOT/diagnostic display acceptance and interruption/corruption recovery gates.
 The last goal turn made concrete physical progress; no user power cycle currently
 needed. Goal active; no completion claim or genuine repeated external blocker.
+
+## 2026-10-12 completed-trace stock reset implementation checkpoint
+
+New distinct adapter is canonical-closed, RESTORE_SOURCE_SHA None. Syscall suite
+plus16 actual composed cases saved. Restore test fixture extracted as reusable
+helper without changing existing16 scenario behavior. Hera16 execution67871 is
+confirmed live, /home/claude/completed-stop-trace-reset-16-20261012. Initial tests
+have known harness fixes now saved locally; inspect all terminal logs/container
+states then rerun corrected isolated snapshot, never restart running containers.
+Review/pending details notes/2026-10-12-completed-stop-trace-stock-reset/review.md.
+No physical reset issued; FM1 stillUBOOT samebus1dev10. Private preparation
+helper build/completed-trace-physical-20261012/prepare-stock-reset.py not executed.
+Next finish model gates/source review, actual evidence-only admission, one-shot
+owned USBmon+Cynthion reset and observe stock enumeration/identity; preserve all
+markers. Then continue diagnostic display/recovery and required CI/integration.
+Goal remains active; this turn made source and live-verification progress.
