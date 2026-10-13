@@ -639,3 +639,41 @@ Semantic MCP remains rooted at the primary checkout, so worktree edits were
 inspected directly rather than claiming index validation of these changes.
 No device commands occurred. Next: sample/table storage measurement, RAM and
 startup/realtime verification, then fresh hardware admission and acceptance.
+
+### Comet sample storage measurement, 2026-10-13 [verified]
+
+Sixteen Hera containers measured lossless raw DEFLATE of Comet's three existing
+mu-law sample arrays (110,549 bytes total), varying block size, modular byte
+prediction and compression level. All C decoder roundtrip, exact capacity and
+output guard checks passed; no container reported OOM. The best measured profile
+(one block per array, byte prediction, level 9) saves 8,976 bytes after its
+1,441-byte isolated pi32v2 decoder. Per-array packed payloads are 18,142, 41,527
+and 40,439 bytes, with eight index bytes each. Source sample-header SHA256:
+3e3d1c1661d605cf8a6b85db7601f1a2159c81d72925251d2deaf4e23dee9f9e.
+
+This cannot close the 135,824-byte flash overflow of the twelve-engine profile
+that retains Comet and omits Shapes. It was not integrated: added decoder RAM
+and startup work require justification beyond this small saving. Evidence is
+comet-storage-verification.json and comet-storage-eval-00..15 on Hera under
+native-external-arenas-16-20261012/out. This is storage evidence, not engine
+render parity or device acceptance. No hardware commands occurred.
+
+### Sound-engine / effect flash floor, 2026-10-13 [verified]
+
+Sixteen private Hera links crossed four sound catalogues (all thirteen; omit
+Comet; omit Shapes; omit both) with four audio-effect registries (all 26 including
+fixtures; none; Plate/Echo/Filter/Crush/Limit; nineteen after seven omissions).
+No OOM occurred. The all-thirteen profile exceeds the protected app limit by
+208,116 bytes with all effects and by 126,260 bytes with none. The twelve-engine
+profile omitting Comet fits with no audio effects; five representative effects
+still overflow. The twelve-engine profile omitting Shapes exceeds by 53,968
+bytes even with no audio effects. The existing eleven-engine combinations fit.
+
+These measurements do not authorize feature removal or a partition change.
+They show that removing effects alone cannot fit thirteen sound engines. Shapes'
+measured 206,904-byte instance also exceeds the compressed profile's 108,288-byte
+instance arena; a successful link does not establish allocation or playability.
+Evidence: effect-floor-verification.json and effect-floor-00..15 on Hera and
+local ignored build mirror. Private launcher extends the builder's exclusion
+choices for this experiment; the tracked builder and release scope are unchanged.
+No device commands occurred.
