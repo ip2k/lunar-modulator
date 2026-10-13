@@ -286,3 +286,21 @@ No device write or execution, new stack proof or release readiness is claimed.
 with 77 audit/artifact/option checks each and byte-exact linked content.
 Combined private receipt SHA `d055dfe0b84878f977c12809947dfdfb877175b7d5bf4d2c1280dc0b43a234b0`. All owned containers removed.
 Previously inferred stack estimates describe older ELFs, not these new links.
+
+## Scalar and line-arity diagnostics continuation
+
+[verified] Import diagnostics now observe malformed bpm/swing/link/sg/tk/dq/se
+scalar conversions and missing/excess words in supported fixed-arity records.
+Legacy handling and return semantics are unchanged; native checked admission
+refuses the syntax flag before activation. This still does not prove complete
+syntax, normalization, module/parameter binding or playback admission.
+
+[verified] Hera set-syntax-v2 passed 96 Os/Oz packed-set ASan/UBSan cases
+in sixteen containers. Compatibility v3 collected 468 nodes: 466 passed,
+two pre-existing expected failures, no errors or unexpected failures. Fresh
+catalogue v6 and all sixteen native v13 links passed, each with 77
+audit/artifact/option checks. No OOM; owned containers removed. Private
+combined receipt SHA `9f025258ab11921b402c8ce2106c7f408dc68d66db2c158003db09f8ab2c74d7` in
+`build/native-external-arenas-16-20261012/syntax-v2-evidence.json`.
+The earlier stack estimate describes v10 ELFs; it is not a bound for v13.
+No hardware action or release acceptance. Expanded-layout approval is pending.

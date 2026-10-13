@@ -468,6 +468,14 @@ static void word_end(fm1_seq_import_t *im) {
     return;
   }
   if (im->dead) return;
+  /* Observe failed scalar conversions without changing Movy's handlers. */
+  if ((wi == 1 && (im->key == K_BPM || im->key == K_SWING ||
+                   im->key == K_LINK || im->key == K_DQ || im->key == K_SE)) ||
+      im->key == K_SG || im->key == K_TK) {
+    const uint64_t max = im->key == K_TK ? USIZE_MAX_ :
+        (im->key == K_BPM || im->key == K_SWING ? U32_MAX_ : U8_MAX_);
+    if (!num_u(&im->num, max, &a)) im->loss_flags |= FM1_SEQ_IMPORT_SYNTAX;
+  }
   switch (im->key) {
     case K_BPM:
       if (wi == 1 && num_u(&im->num, U32_MAX_, &a)) sq_set_bpm(s, (uint32_t)a);
@@ -597,6 +605,21 @@ static void word_end(fm1_seq_import_t *im) {
 
 static void line_end(fm1_seq_import_t *im) {
   fm1_seq_t *s = im->s;
+  unsigned min_words = 0, max_words = 255;
+  switch (im->key) {
+    case K_BPM: case K_SWING: case K_LINK: case K_DQ: case K_SE:
+      min_words = max_words = 2; break;
+    case K_TK: case K_RT: min_words = max_words = 4; break;
+    case K_PM: case K_PS: case K_KEY: min_words = max_words = 3; break;
+    case K_CL: min_words = 5; max_words = 6; break;
+    case K_LK: case K_TG: min_words = max_words = 4; break;
+    case K_CP: min_words = 6; max_words = 7; break;
+    case K_AU: min_words = 4; max_words = 5; break;
+    case K_SN: min_words = 2; max_words = 3; break;
+    default: break;
+  }
+  if (im->words < min_words || im->words > max_words)
+    im->loss_flags |= FM1_SEQ_IMPORT_SYNTAX;
   if (!im->dead) {
     if (im->key == K_TK && im->n_tk == 3u && im->lv[0] >= s->n_tracks)
       im->loss_flags |= FM1_SEQ_IMPORT_RANGE;

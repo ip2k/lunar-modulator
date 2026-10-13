@@ -1,3 +1,22 @@
+# Native continuation — scalar and line arity, 2026-10-13
+
+Goal ACTIVE: thirteen-engine default (Shapes twelve voices) plus selectable
+engines/effects/songs/sets builder, web install and real FM1 acceptance.
+Branch `feature/2026-10-11@installable-firmware`; preceding verified pushed SHA
+`2be0a1a79610e75f8d3b2b0f33efd859e9566db4`.
+Partial syntax diagnostics now cover malformed direct scalars and missing/extra
+fixed-record words. Hera: 96 sanitizer cases; compatibility 466 passed/two
+pre-existing expected failures; fresh catalogue v6 and sixteen v13 native links
+passed with 77 audit/option checks each. All owned containers removed, no OOM.
+Private receipt SHA `9f025258ab11921b402c8ce2106c7f408dc68d66db2c158003db09f8ab2c74d7`.
+No hardware operation or installable release. Expanded-layout approval pending.
+Existing browser project loader has a 480 KiB workspace plus full set/JSON/bin
+and sequencer buffers; direct linking is unsuitable for native RAM. Next assess
+reuse through bounded scratch/streaming adapters, dependency and normalization
+admission, multitrack RAM/timing, MIDI/persistence, builder/installer and required
+review/CI. Shared Rarefaction root remains stale; Serena located browser loader,
+source verified in actual worktree. Retain partition and hardware gates.
+
 # Native continuation — partial syntax diagnostics, 2026-10-13
 
 Goal ACTIVE: thirteen-engine default (Shapes twelve voices) plus selectable
