@@ -327,3 +327,37 @@ sysfs discovery; no hardware descriptor is opened. Private evidence:
 `build/fresh-rom-16-20261012/hera-verification.json`. The reviewed SG exchange
 body and existing adapter files remain unchanged. New physical receipts are
 required; a preflight/test result grants no claim of a completed physical read.
+
+## Fresh device-27 backup completed and controls candidate [verified]
+
+The fresh-ROM adapter completed 8,757 physical commands in 19.697 seconds.
+Both complete 1 MiB reads match the accepted V8 SDK diagnostic SHA256
+`5dbada6531e0ad68b1902b4f0d97cc6f78d7fa338b1360c194f98c1475ad7a3d`.
+No NOR erase/program, reset or retry occurred. FM1 is now the fixed RAM loader
+on bus1 device27 port1-1 /dev/sg0; previous device14 admissions remain stale.
+Private receipt: `build/fresh-rom-16-20261012/physical/receipt-001/`.
+Manifest SHA256 `0c8f8e37b9bb12cdee0e608bec6cb5b5e473f5f243ffacb5f94ee7e25c0a5265`;
+commands SHA256 `d4ecaab69eff3e1d55d335d2068d133feecc176b46c46d2d079c71291ffafed3`.
+Independent replay checked request order/content/status/chronology and complete
+dump hashes; this bridge transcript does not record per-page response hashes.
+
+The new private native controls NOR image is 1 MiB, SHA256
+`770fd5f275110f017329dda30315343d766ff4a6c6beaa62f5a0060c629dc561`.
+Raw-layout and SDK-free linked-image audits pass; protected stock bytes remain
+identical. This is a private raw candidate, not a distributable web/OTA package.
+
+`tools/native/controls_transactions.py` and `controls_policy.py` pin the fresh
+receipt and candidate separately from the historical native experiment. Their
+30-sector plans commit the directory last. All 16 Hera fault/recovery chunks
+passed, each checking policy refusal and an interrupted real-image NOR rollback
+to V8 followed by stock. Faults span all 510 concrete write operations through
+16 selected positions; this is not exhaustive every-operation coverage.
+Private evidence: `build/native-controls-policy-16-20261012/hera-verification.json`.
+
+`controls_live.py` uses only the reviewed generic RehearsalSG transport, never
+the SDK campaign factory/runner. It adds fresh loader mapping, source/image/
+receipt pins, one-use direction markers and explicit no-retry logging. Physical
+install and boot remain pending. All 16 Hera live-admission checks passed with exit zero and no OOM.
+Evidence: `build/native-controls-live-16-20261012/hera-verification.json`.
+Full functional Lunar acceptance, actual boot recovery, licence and web installer
+remain outstanding.
