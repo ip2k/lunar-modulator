@@ -78,6 +78,30 @@ def checked_catalogue(root, compressed=False, indexed_tft=False):
     return objects, receipts
 
 
+
+def measure_app_storage(compiler, flags, out):
+    """Use target ABI constants, not host sizeof, for framebuffer pool credit."""
+    source = out / 'measure_app_storage.c'
+    source.write_text('#include "fm1_app.h"\n'
+                      'unsigned lunar_app_storage(void) { return sizeof(fm1_app_t); }\n')
+    sizes = []
+    common = [flag for flag in flags if not flag.startswith('-DFM1_TFT_INDEXED=')]
+    for indexed in (0, 1):
+        ir = out / ('app-storage-%d.ll' % indexed)
+        subprocess.run([compiler, *common, '-DFM1_TFT_INDEXED=' + str(indexed),
+                        '-std=c99', '-S', '-emit-llvm', str(source), '-o', str(ir)],
+                       check=True, capture_output=True, text=True)
+        match = re.search(r'define[^\n]*@lunar_app_storage\([^}]*?ret i32 (\d+)',
+                          ir.read_text(), re.S)
+        if not match:
+            raise SystemExit('Target application sizeof did not reduce to one constant')
+        sizes.append(int(match.group(1)))
+    if sizes[1] > sizes[0]:
+        raise SystemExit('Indexed application unexpectedly exceeds RGB565 storage')
+    return dict(rgb565_bytes=sizes[0], indexed_bytes=sizes[1],
+                pool_credit_bytes=(sizes[0] - sizes[1]) // 16 * 16)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--toolchain', type=Path, required=True)
@@ -104,7 +128,6 @@ def main():
     if args.compressed_wavetables:
         check_pins(ROOT / 'firmware/third_party/tinf')
         wave_records = prepare(out, wave_namespaces)
-    instance_pool_bytes = 192000 - sum(r['raw_bytes'] for r in wave_records)
     # Keep crash/recovery text while eliminating redundant four-bit storage
     # for the pinned small face, whose alpha is strictly binary.
     (out / 'felucca_font.h').write_text(compact_header(
@@ -147,8 +170,7 @@ def main():
              '-DFM1_APP_EXTERNAL_ARENAS=1', '-DLUNAR_APP_PROBE=1', '-DNDEBUG',
              '-DFM1_TFT_INDEXED=' + str(int(args.indexed_tft))]
     if args.compressed_wavetables:
-        flags += ['-DLUNAR_COMPRESSED_WAVETABLES=1',
-                  '-DLUNAR_INSTANCE_MEMORY_BYTES=' + str(instance_pool_bytes)]
+        flags += ['-DLUNAR_COMPRESSED_WAVETABLES=1']
     for directory in (gen, ROOT / 'engines/include', ROOT / 'engines/mod',
                       ROOT / 'firmware/native', ROOT / 'firmware/third_party/tlsf',
                       ROOT / 'firmware/third_party/tinf', ROOT / 'engines/third_party/mutable', ROOT / 'engines/host',
@@ -156,6 +178,11 @@ def main():
                       platform / 'hal', platform / 'src', platform / 'gen'):
         flags += ['-I', str(directory)]
     flags += ['-isystem', str(tc / 'pi32v2/include')]
+    app_storage = measure_app_storage(compiler, flags, out)
+    instance_pool_bytes = (192000 +
+                           (app_storage['pool_credit_bytes'] if args.indexed_tft else 0) -
+                           sum(r['raw_bytes'] for r in wave_records))
+    flags += ['-DLUNAR_INSTANCE_MEMORY_BYTES=' + str(instance_pool_bytes)]
     for path in (out / 'crt0.S', platform / 'hal/fm1_vec.S', platform / 'hal/fm1_isr.S'):
         obj = out / (path.stem + '.o')
         subprocess.run([compiler, *[f for f in flags if f != '-flto'], '-c', str(path),
@@ -228,7 +255,7 @@ def main():
     (out / 'sections.txt').write_text(subprocess.check_output([objdump, '-h', str(elf)], text=True))
     report = dict(excluded_engines=args.exclude, sdk_archives=[],
                   compressed_wave_tables=wave_records, indexed_tft=args.indexed_tft,
-                  instance_pool_bytes=instance_pool_bytes,
+                  instance_pool_bytes=instance_pool_bytes, target_app_storage=app_storage,
                   catalogue_objects=catalogue_receipts,
                   linked_objects=[dict(path=str(p), sha256=digest(p)) for p in objects],
                   key_audit=audit, undefined_symbols=missing, flash_write_range='empty',

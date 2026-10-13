@@ -892,3 +892,24 @@ shard-00..15/report.json}; native-external-arenas-16-20261012/out/
 indexed-catalogue-receipts-v2-verification.json and indexed-target-v1-
 verification.json plus indexed-target-v1-00..15. All linked artifacts remain
 private timed probes with `installable=false` and `hardware_tested=false`.
+
+[verified target pool integration] The application builder now asks the target
+compiler for both application structure sizes using current generated headers
+and compiler flags. It credits the aligned difference to indexed builds' engine
+pool, then subtracts startup-decoded table storage. Baseline RGB565 pool sizing
+is unchanged. The generated LLVM constants are retained in the build directory
+and the measurements are included in verification receipts.
+
+Sixteen Hera links repeated the preceding size profiles. Both successful audit
+profiles remain successful; the same ten-engine `seconds` byte-pattern finding
+remains rejected and all thirteen/twelve-engine profiles overflow flash. Full
+catalogue maps retain `_pool_end=0x01c736a0` below `_guard0=0x01c74000` and show
+both RAM-overlap assertions passing. With both decoded table sets, instance
+capacity rises from 108,288 to 165,376 bytes; with Plaits only it is 198,400.
+Shapes' measured 206,904-byte instance still cannot fit either allowance.
+Eleven-engine ELF SHA256:
+`2e80753da5c74ef5ded8db6935ea5aa2832087dd8b82c6a9a415a54a2ed1d6eb`.
+Evidence: indexed-target-v2-00..15/{app-storage-0.ll,app-storage-1.ll,
+lunar-app-probe.map}, successful profiles' verification.json, and
+indexed-target-v2-verification.json. The aggregate retains its failed status
+because of the rejected audit profile. No physical device operation occurred.
