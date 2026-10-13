@@ -467,3 +467,49 @@ checks. It remains a private sizing/timed probe, not hardware-admitted or
 installable. Owner maximum-engine acceptance remains unchanged.
 Private evidence: compact-font.log, compact-font-count.log and Hera out
 compact-font-verification.json / compact-font-count-verification.json.
+
+### Lossless wavetable storage evaluation, 2026-10-13 [verified]
+
+`tools/native/evaluate_wavetables.py` evaluates sixteen raw-DEFLATE storage
+profiles on Hera: block lengths 512, 1,024, 4,096 and whole-table, with/without
+modular sample deltas, levels 1/9. Only the retained Plaits integrated waves
+(50,688 bytes) and Braids waves (33,024 bytes) count toward savings; excluded
+Comet assets do not. Each profile invokes pinned unmodified C tinf to decode
+every compressed block, checks exact bytes, verifies output guards and rejects
+insufficient output capacity and empty input. All sixteen containers passed,
+zero failures or OOM. Pins and source/table hashes are recorded in each receipt.
+
+The isolated pi32v2 `-Oz` decoder object, after section garbage collection,
+is 1,441 bytes of text/read-only data and has no undefined dependencies. This
+is not the incremental cost in an LTO-linked full app. At level 9 with deltas,
+512-byte blocks save 18,762 bytes including four-byte block indices, or 17,321
+after that isolated decoder. Whole-table blocks save 27,024 bytes including
+indices, or 25,583 after decoder. Adapter/delta reconstruction code and RAM
+are not included. No full application fit, realtime timing, hardware admission
+or installation is claimed.
+
+Established-library comparison [reported, source inspected]:
+- [tinf](https://github.com/jibsen/tinf), revision
+  57ffa1f1d5e3dde19011b2127bd26d01689b694b, zlib licence: bounded in-memory
+  DEFLATE decoder with no allocation, two Huffman trees held on stack.
+  Upstream warns of more than 1 KiB stack; native worst-call-chain stack
+  consumption still needs measurement. Selected for this sizing evaluation,
+  with current bounds checks retained. No decoder is integrated or vendored.
+- [heatshrink](https://github.com/atomicobject/heatshrink), revision
+  7d419e1fa4830d0b919b9b6a91fe2fb786cf3280, ISC: static streaming LZSS decoder
+  is an alternative when bounded streaming/caches are required. Its compression
+  and actual target cost have not been measured here.
+- [uzlib](https://github.com/pfalcon/uzlib): streaming tinf derivative;
+  not selected because whole/block buffers already permit the measured tinf
+  API. This decision is provisional until RAM and access policy are resolved.
+
+The original engines retain direct table pointers, including stored Plaits
+wave maps and constant chord pointers. Decompressing entire tables preserves
+that access pattern but requires 83,712 bytes of RAM. A block cache requires
+explicit pointer-lifetime and bounded-render-time changes; compressed bytes
+cannot be substituted behind the existing pointers. Resolve shared instance
+allocation and this table access policy before native integration. Firmware
+goal remains active at maximum engine count. No hardware commands occurred.
+Private receipts: build/native-external-arenas-16-20261012/
+wavetable-summary.json and wavetable-verification.json, plus Hera
+out/wavetable-eval-00..15/{report.json,decoder-sections.txt}.
