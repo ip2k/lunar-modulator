@@ -373,3 +373,27 @@ entry/combined-layout checks. No container failed or was OOM-killed. Private
 receipts: checked-app-probe-04.log, checked-app-artifact.json and app-contract.log
 under build/native-external-arenas-16-20261012; Hera out/checked-app-probe-04 and
 out/app-contract-verification.json. No device command was sent for these checks.
+
+[verified] Catalogue receipts now bind every shard to a sorted SHA256 manifest
+of source/build inputs and reject inputs changing during compilation. The
+application builder requires the manifests to match its current checkout,
+in addition to the object/configuration hashes and complete sixteen-shard
+coverage. Hidden metadata and build outputs are excluded. The fresh campaign
+compiled all 167 objects in sixteen Hera containers; all 535 source entries
+match the actual worktree. Sixteen separate receipt fault cases passed in
+sixteen containers (no failures or OOM), covering stale/absent manifests,
+changed objects/configuration, missing/duplicate/reordered indices, wrong
+shards/options and SDK inputs.
+
+[verified] Source-matched checked-app-probe-fresh-02 passed the strict combined
+layout and SDK-free audits with zero failed/pending checks and no undefined
+symbols. Application bytes are unchanged: 574,116 bytes, SHA256
+ce769b5c461ed7ae1b21b83e9ee7ee25ea82958edb25a65f1873f5ada8d45b7f.
+ELF SHA256 is
+62d0a7500653a561625fae5d42179a7a444512ae0b8b14f5da79daea893e8d02
+(ELF metadata differs). Receipt source-freshness is now true; hardware-candidate,
+hardware-tested and installable flags remain false. This eleven-engine timed
+probe still has provisional arenas and is not the owner-selected maximum-engine
+release. Private evidence: source-bound-v2.log/report.json under the catalogue
+campaign, checked-app-probe-fresh-02.log and catalogue-receipts.log under the
+external-arena campaign, and the corresponding Hera verification JSON files.

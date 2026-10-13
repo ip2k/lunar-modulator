@@ -11,6 +11,24 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def source_manifest(root):
+    """Bind cached objects to source/build inputs, excluding build outputs."""
+    files = []
+    for relative in ('engines', 'sim/web/src', 'sim/web/mk'):
+        for path in (root / relative).rglob('*'):
+            parts = path.relative_to(root / relative).parts
+            if any(p.startswith(('build', '.')) or p == '__pycache__' for p in parts):
+                continue
+            if path.is_file() and (path.suffix in ('.c', '.cc', '.cpp', '.h', '.hpp',
+                                                   '.inc', '.mk', '.json', '.py',
+                                                   '.S', '.s', '.in', '.tcc', '.def')
+                                   or path.name == 'Makefile'):
+                files.append(path)
+    files += [root / 'tools/jieli/objects.mk', root / 'tools/native/compile_catalogue.py']
+    return {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in sorted(files)}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--toolchain', type=Path, required=True)
@@ -24,6 +42,7 @@ def main():
     parser.add_argument('--lto', action='store_true',
                         help='Emit pinned-toolchain bitcode for cross-unit optimization')
     args = parser.parse_args()
+    inputs = source_manifest(ROOT)
     tc, headers, out = args.toolchain.resolve(), args.cxx_headers.resolve(), args.out.resolve()
     if not (headers / '__config').is_file():
         parser.error('--cxx-headers must contain the libc++ standard headers')
@@ -71,6 +90,8 @@ def main():
             symbols = subprocess.check_output([*nm, '-u', obj], text=True)
             entry['undefined_symbols'] = symbols.splitlines()
         results.append(entry)
+    if source_manifest(ROOT) != inputs:
+        raise SystemExit('Source inputs changed during compilation')
     report = {'shard': args.shard, 'chunks': 16, 'catalogue_objects': len(objects),
               'gpl_mods': 1, 'modules': 'all', 'closed_sdk_archives': [],
               'optimization': '-O' + args.opt, 'lto': args.lto,
@@ -78,6 +99,7 @@ def main():
               'cxx_standard_headers': str(headers), 'device_sdk_headers': [],
               'input_config_sha256': hashlib.sha256(config.encode()).hexdigest(),
               'configured_sha256': hashlib.sha256((configured / '__config').read_bytes()).hexdigest(),
+              'source_manifest': inputs,
               'firmware_linked': False, 'hardware_tested': False, 'results': results}
     (out / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps({'shard': args.shard, 'objects': len(results),

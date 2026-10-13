@@ -3,8 +3,8 @@
 """Link a private timed shared-app probe; never install or access a device.
 
 Consumes the sixteen compile_catalogue.py -Oz/LTO/shared-resampler outputs.
-Cached object hashes are checked, but their source freshness must be established
-by a fresh catalogue build before admitting any artifact to the bench.
+Cached object hashes and source manifests are checked against current inputs.
+Hardware admission remains a separate operation.
 """
 import argparse
 import hashlib
@@ -16,6 +16,7 @@ import subprocess
 import sys
 
 from build_probe import check_pins
+from compile_catalogue import source_manifest
 
 ROOT = Path(__file__).resolve().parents[2]
 ENGINE_IDS = ('macro', 'shapes', 'macro-heavy', 'sixop', 'dx7', 'sw-sophie',
@@ -35,6 +36,7 @@ def replace_once(text, old, new):
 
 def checked_catalogue(root):
     objects, receipts, indices = [], [], set()
+    inputs = source_manifest(ROOT)
     expected = json.loads((root / 'shard-00/objects.json').read_text())
     for shard in range(16):
         directory = root / ('shard-%02d' % shard)
@@ -45,6 +47,8 @@ def checked_catalogue(root):
                         device_sdk_headers=[])
         if any(report.get(k) != v for k, v in required.items()):
             raise SystemExit('Incompatible catalogue report: ' + str(directory))
+        if report.get('source_manifest') != inputs:
+            raise SystemExit('Catalogue source manifest is stale or absent')
         if json.loads((directory / 'objects.json').read_text()) != expected:
             raise SystemExit('Catalogue object lists differ')
         if digest(directory / 'cxx/__config') != report['configured_sha256']:
@@ -198,7 +202,7 @@ def main():
                   key_audit=audit, undefined_symbols=missing, flash_write_range='empty',
                   boot_ota_cleanup=False, entry_core=0, entry_boot_pointer='0x01c7fe08',
                   probe_return_to_rom_seconds=20, hardware_candidate=False,
-                  catalogue_source_freshness_verified=False,
+                  catalogue_source_freshness_verified=True,
                   installable=False, hardware_tested=False, elf_sha256=digest(elf))
     (out / 'verification.json').write_text(json.dumps(report, indent=2) + '\n')
     subprocess.run([sys.executable, str(ROOT / 'tools/native/probe_artifact.py'),
