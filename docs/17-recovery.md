@@ -296,6 +296,14 @@ not reproduce every electrical NOR failure or an actual host filesystem power
 loss. Source and receipt hashes are in
 [the continuation note](../notes/2026-10-11-installable-firmware.md#reviewed-interruption-campaign).
 
+[verified: Hera model, 2026-10-13] A further 32 fault cases combine commit-last
+ordering with process reopening and volatile loader loss. Exact interrupted NOR
+prefixes, protected bytes, fresh-session resume and full-image rollback are
+checked in both directions. The combined transaction/device-model suite passes
+113 cases across sixteen containers. See [the evidence note](../notes/2026-10-13-commit-last-process-recovery.md).
+This extends software recovery coverage; physical boot and USB_KEY acceptance
+remain separate.
+
 ## Offline bound diagnostic command policy
 
 [verified: source and Hera model tests] `tools/fm1_bound_diagnostic.py` adds a
