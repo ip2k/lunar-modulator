@@ -36,7 +36,7 @@ def replace_once(text, old, new):
     return text.replace(old, new)
 
 
-def checked_catalogue(root, compressed=False, indexed_tft=False):
+def checked_catalogue(root, compressed=False, indexed_tft=False, shapes_voices=12):
     objects, receipts, indices = [], [], set()
     inputs = source_manifest(ROOT)
     expected = json.loads((root / 'shard-00/objects.json').read_text())
@@ -45,7 +45,8 @@ def checked_catalogue(root, compressed=False, indexed_tft=False):
         report = json.loads((directory / 'report.json').read_text())
         required = dict(shard=shard, chunks=16, catalogue_objects=len(expected),
                         gpl_mods=1, modules='all', optimization='-Oz', lto=True,
-                        shared_resampler=True, indexed_tft=indexed_tft, closed_sdk_archives=[],
+                        shared_resampler=True, indexed_tft=indexed_tft, shapes_voices=shapes_voices,
+                        closed_sdk_archives=[],
                         device_sdk_headers=[])
         if any(report.get(k) != v for k, v in required.items()):
             raise SystemExit('Incompatible catalogue report: ' + str(directory))
@@ -108,6 +109,8 @@ def main():
     parser.add_argument('--catalogue', type=Path, required=True)
     parser.add_argument('--build', type=Path, required=True)
     parser.add_argument('--exclude', choices=ENGINE_IDS, action='append', default=[])
+    parser.add_argument('--shapes-voices', type=int, choices=range(1, 13), default=12,
+                        help='Require the selected Shapes polyphony in the catalogue')
     parser.add_argument('--indexed-tft', action='store_true',
                         help='Require a uniformly indexed catalogue and application')
     parser.add_argument('--compressed-wavetables', action='store_true',
@@ -123,7 +126,7 @@ def main():
         check_pins(ROOT / 'firmware/third_party' / name)
     wave_namespaces = (['plaits'] + ([] if 'shapes' in args.exclude else ['braids'])
                        if args.compressed_wavetables else [])
-    objects, catalogue_receipts = checked_catalogue(catalogue, wave_namespaces, args.indexed_tft)
+    objects, catalogue_receipts = checked_catalogue(catalogue, wave_namespaces, args.indexed_tft, args.shapes_voices)
     wave_records = []
     if args.compressed_wavetables:
         check_pins(ROOT / 'firmware/third_party/tinf')
@@ -255,6 +258,7 @@ def main():
     (out / 'sections.txt').write_text(subprocess.check_output([objdump, '-h', str(elf)], text=True))
     report = dict(excluded_engines=args.exclude, sdk_archives=[],
                   compressed_wave_tables=wave_records, indexed_tft=args.indexed_tft,
+                  shapes_voices=args.shapes_voices,
                   instance_pool_bytes=instance_pool_bytes, target_app_storage=app_storage,
                   catalogue_objects=catalogue_receipts,
                   linked_objects=[dict(path=str(p), sha256=digest(p)) for p in objects],

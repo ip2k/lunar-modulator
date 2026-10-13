@@ -913,3 +913,41 @@ Evidence: indexed-target-v2-00..15/{app-storage-0.ll,app-storage-1.ll,
 lunar-app-probe.map}, successful profiles' verification.json, and
 indexed-target-v2-verification.json. The aggregate retains its failed status
 because of the rejected audit profile. No physical device operation occurred.
+
+### Optional Shapes voice capacity, 2026-10-13 [verified build/host]
+
+`FM1_SHAPES_VOICES` selects one through twelve voices; default twelve is
+unchanged. Every Shapes synthesis mode remains present. Native catalogue and
+application builders accept `--shapes-voices`, record the value and reject
+objects with a different count. This is an optional measurement profile,
+not an accepted release polyphony decision. Maximum engine count remains
+the owner's release requirement.
+
+A fresh eight-voice indexed catalogue compiled all 167 objects in sixteen Hera
+containers without OOM. Sixty-four receipt cases in sixteen containers passed
+for both framebuffer layouts and both eight/twelve voice counts, including
+mismatch and stale-input rejection. Actual target LLVM IR reports Shapes'
+instance size as 138,472 bytes, versus 206,904 at twelve voices. The former
+is below the measured 165,376-byte full-catalogue instance pool before
+allocator overhead; actual target allocation and deadlines remain untested.
+
+A fresh eight-voice host build passed 103 existing Shapes edge and hostile
+checks across sixteen containers under ASan/UBSan with the repository's
+vendored-code runtime suppressions. Ninety-four additional comparisons
+(all 47 modes at one and eight simultaneous notes) produced byte-identical
+WAVs to the preceding default twelve-voice host renderer. Those comparisons
+cover this bounded script, not arbitrary schedules or target audio.
+
+Sixteen native links reproduced the same 208,040-byte all-thirteen flash
+overflow. The eleven-engine and DX7-omitted ten-engine profiles still passed
+audits; the Macro-Heavy-omitted ten-engine profile remained rejected by
+`stub_0200012E_unused`. Aggregate status therefore remains failed. Reducing
+voices solves a RAM constraint in this profile, not the flash deficit.
+No device command, flash write, web installation or hardware acceptance
+occurred. All artifacts remain private timed probes.
+
+Evidence on Hera: native-catalogue-16-20261012/out-indexed-shapes8-v1/;
+native-external-arenas-16-20261012/out/{target-shapes8-ir/size-functions.json,
+indexed-catalogue-receipts-v3-verification.json,shapes8-host-v1-build.json,
+shapes8-host-v1-verification.json,shapes8-parity-v1-verification.json,
+indexed-target-shapes8-v1-verification.json,indexed-target-shapes8-v1-00..15/}.

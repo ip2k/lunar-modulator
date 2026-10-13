@@ -39,6 +39,8 @@ def main():
                         help='Clang size optimization: s (-Os) or z (-Oz)')
     parser.add_argument('--shared-resampler', action='store_true',
                         help='Share the unchanged resampler coefficients')
+    parser.add_argument('--shapes-voices', type=int, choices=range(1, 13), default=12,
+                        help='Shapes polyphony; retain every synthesis mode')
     parser.add_argument('--indexed-tft', action='store_true',
                         help='Use lossless indexed pixels in every app translation unit')
     parser.add_argument('--lto', action='store_true',
@@ -66,6 +68,7 @@ def main():
              '-D_LIBCPP_HAS_NO_THREADS -D_LIBCPP_DISABLE_EXTERN_TEMPLATE -isystem ' + str(configured) +
              ' -isystem ' + str(tc / 'pi32v2/include'))
     extra += ' -DFM1_TFT_INDEXED=' + str(int(args.indexed_tft))
+    extra += ' -DFM1_SHAPES_VOICES=' + str(args.shapes_voices)
     if args.lto:
         extra += ' -flto'
     make = ['make', '-s', '-C', str(ROOT / 'engines'), '-f', 'Makefile',
@@ -100,6 +103,7 @@ def main():
               'optimization': '-O' + args.opt, 'lto': args.lto,
               'shared_resampler': args.shared_resampler,
               'indexed_tft': args.indexed_tft,
+              'shapes_voices': args.shapes_voices,
               'cxx_standard_headers': str(headers), 'device_sdk_headers': [],
               'input_config_sha256': hashlib.sha256(config.encode()).hexdigest(),
               'configured_sha256': hashlib.sha256((configured / '__config').read_bytes()).hexdigest(),

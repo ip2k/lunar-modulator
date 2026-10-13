@@ -129,7 +129,13 @@ const fm1_param_t kParams[P_COUNT] = {
 // A voice's per-note offsets: Timbre .. Volume, and its pitch.
 typedef NoteOffsets<P_TIMBRE, P_GLIDE - P_TIMBRE> Offsets;
 
-const int kNumVoices = 12;
+#ifndef FM1_SHAPES_VOICES
+#define FM1_SHAPES_VOICES 12
+#endif
+#if FM1_SHAPES_VOICES < 1 || FM1_SHAPES_VOICES > 12
+#error "Shapes voice capacity must be between one and twelve"
+#endif
+const int kNumVoices = FM1_SHAPES_VOICES;
 const size_t kChunk = 24;        // Braids' internal buffers are 24 samples
 const float kNativeRate = 96000.0f;
 
