@@ -188,3 +188,32 @@ Host allocator capacity is not pi32v2 execution, multi-track/effect allocation,
 real-time acceptance or physical installation. The pending expanded-layout
 proposal remains unimplemented; no partition guard or hardware operation was
 changed.
+
+## Constant content embedding [verified host and target compilation]
+
+`tools/native/embed_image_content.py` consumes the verifier's checked snapshots
+and emits `content_catalogue.c`, its module header and a commit-last embedding
+receipt. `firmware/native/content_catalogue.h` describes constant project/set
+bytes and their lengths. Empty selections use one unused sentinel for C99.
+Each packed file retains the existing 96 KiB format bound; the aggregate is
+bounded by physical flash capacity, with the smaller application limit still
+requiring a real link. These files do not claim playback or firmware admission.
+
+Already-packed binary projects and sets are now preserved after the state
+reader validates their bounds and CRCs. Previously the preparer routed binary
+sets through the host packer's JSON conversion, which sets do not support.
+The first campaign exposed that failure; its receipt is retained. Corrupted
+binary inputs still refuse preparation without writing an accepted manifest.
+
+The corrected campaign passed 151 combined checks in sixteen Hera containers,
+with zero nonzero exits and no OOM. Thirty-two text/binary, zero/one/two/four-
+asset and `-Os`/`-Oz` combinations verified host executable output byte-for-byte
+and actual pi32v2 compilation. Target objects have no undefined symbols or
+writable data/BSS; the descriptor occupies twelve bytes per entry. Additional
+checks cover corrupt project/set input, output refusal and descriptor bounds.
+Private receipt: `out/content-embedding-v2-verification.json` under the Hera
+root above, SHA256
+`982423c2fa058170a12468701bcf506ccf297c9af1deae255216722280c4f59c`.
+Embedding is not yet wired into the timed application linker or native playback.
+The thirteen-engine default, full-app flash/RAM/timing, web builder/installer,
+and physical release/recovery acceptance remain open.

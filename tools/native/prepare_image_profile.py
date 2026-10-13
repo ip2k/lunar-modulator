@@ -89,8 +89,13 @@ def prepare(profile: Path, tool: Path, out: Path):
         source = out / f'content-{index:02d}.source'
         source.write_bytes(data)
         packed = out / f'content-{index:02d}.bin'
-        operation = 'from-movy1' if data.startswith(b'movy1\n') else 'pack'
-        command(tool, operation, source, '-o', packed)
+        if data.startswith(b'\x89Lunar\r\n'):
+            # Sets have no JSON form: retain binary inputs, then validate their
+            # bounds and CRCs through the same records reader used below.
+            packed.write_bytes(data)
+        else:
+            operation = 'from-movy1' if data.startswith(b'movy1\n') else 'pack'
+            command(tool, operation, source, '-o', packed)
         records = [json.loads(line) for line in command(tool, 'records', packed).splitlines()]
         if not records or records[0].get('rec') != 'head':
             raise ValueError('Missing packed content header')
