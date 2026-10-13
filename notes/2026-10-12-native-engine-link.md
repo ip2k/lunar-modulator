@@ -758,3 +758,35 @@ and installable flags remain false; this is not the accepted release scope.
 Semantic navigation of note_off agreed with the worktree function body but
 selected the primary checkout; the empty Rarefaction caller list missed the
 known native caller and was not treated as proof of no callers.
+
+### Native LTO size matrix, 2026-10-13 [verified measurement]
+
+Sixteen private Hera links compared the same current, manifest-checked
+all-thirteen-engine/all-effect bitcode and generated runtime objects. The
+installed LLVMgold plugin's `-help-hidden` output confirmed the tested options
+exist. The sizing-only linker script enlarged XIP; the unchanged artifact
+validator rejected the preparation image. No production linker limit changed,
+no candidate was admitted to hardware, and no new compiler setting was adopted.
+
+The current baseline is 789,780 bytes, 208,216 above the protected 581,564-byte
+app region (100 bytes above the pre-MIDI-filter baseline). None of the fifteen
+alternative combinations improved it. Inline thresholds 0, 10, 25, 50 and 75
+produced 789,796, 790,612, 799,060, 818,828 and 840,460 bytes. Negative thresholds
+with inline-hint threshold zero produced 789,972. Tail-merge thresholds 20 and
+100 produced 789,988 and 789,796; inline-zero plus tail-merge-100 produced
+789,812. Explicit target tailcall, type and parallel-pack settings reproduced
+the baseline hash; schedule type 1 reproduced it and type 3 grew to 790,420.
+These measurements do not demonstrate runtime correctness of alternative flags.
+
+All sixteen corrected v2 links exited zero without OOM. V1 retained a harness
+failure: options inserted before the plugin declaration were rejected as bad
+plugin options; only its baseline linked. V2 corrected ordering and reused the
+same prepared inputs. Evidence under Hera native-external-arenas-16-20261012/out:
+lto-size-v1-command.json, lto-size-v1-full, lto-size-v1-verification.json,
+lto-size-v2-verification.json, lto-size-v2-00..15/{report.json,link.log,measure.map}.
+The ignored local aggregate mirror and launchers preserve the same experiment.
+
+Maximum engine count remains the owner's release requirement. Eleven-engine
+fit is not an accepted release, and install-time engine packs have not been
+accepted. Full catalogue flash/RAM, target deadlines, complete native MIDI,
+persistence and real OTA/web/recovery acceptance remain open.
