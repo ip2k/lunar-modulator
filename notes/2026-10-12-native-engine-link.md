@@ -951,3 +951,35 @@ native-external-arenas-16-20261012/out/{target-shapes8-ir/size-functions.json,
 indexed-catalogue-receipts-v3-verification.json,shapes8-host-v1-build.json,
 shapes8-host-v1-verification.json,shapes8-parity-v1-verification.json,
 indexed-target-shapes8-v1-verification.json,indexed-target-shapes8-v1-00..15/}.
+
+### Stronger code-storage bound, 2026-10-13 [verified host measurement]
+
+Sixteen Hera containers tested LZMA2/XZ with CRC32 over the same private
+oversized-link function spans as the earlier DEFLATE experiment. Dictionaries
+were 4/16/64/256 KiB and independent block sizes 16/64/128 KiB/full payload.
+All sixteen v2 trials round-tripped exactly through Python liblzma without
+OOM. The v1 harness had an embedded-script string syntax error and produced
+no compression result; its failed receipts are retained.
+
+Best result: 422,828 raw function bytes to 272,916 XZ bytes, a gross saving
+of 149,912 bytes, before decoder, loader, metadata, relocation or routing
+overhead. Source ELF SHA256
+`393aba2fb937e4364765f9c48ccedb813fa4675211e202c66452ef5f9194e4db`.
+This is the preceding size-measurement ELF, not a current admitted image.
+It remains below the current full-catalogue 208,040-byte deficit even before
+overhead. Host timing is recorded only as harness evidence, never as target
+deadline proof. No decoder, compressed executable or overlay was integrated.
+
+[reported upstream] XZ Embedded is a maintained C decoder with single/multi-call
+APIs, 0BSD licensing since March 2024, documented compiled size 8–20 KiB,
+and about 30 KiB base memory in single-call mode. Single-call uses its output
+buffer as dictionary; multi-call needs dictionary storage too. No pi32v2
+compiled size or behavior was measured. Primary sources:
+https://tukaani.org/xz/embedded.html and
+https://github.com/tukaani-project/xz-embedded/blob/master/README and
+https://github.com/tukaani-project/xz-embedded/blob/master/linux/Documentation/staging/xz.rst.
+Decision: do not import or implement an overlay based on this insufficient
+full-feature flash bound. Further architecture work must account for multiple
+simultaneous engines, decoded executable RAM, relocation and real-time calls.
+Evidence: Hera out/lzma-code-storage-v2-00..15.json and
+lzma-code-storage-v2-verification.json; local private launcher and receipt mirrors.
