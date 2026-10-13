@@ -3908,7 +3908,7 @@ static uint16_t ground_of(const fm1_tft_t *t, const fm1_tft_box_t *b, int y_end)
   int cnt[8], n = 0, best = 0;
   for (int y = b->y < 0 ? 0 : b->y; y < y_end && y < FM1_TFT_H; ++y) {
     for (int x = b->x < 0 ? 0 : b->x; x < b->x + b->w && x < FM1_TFT_W; ++x) {
-      const uint16_t c = t->px[y * FM1_TFT_W + x];
+      const uint16_t c = fm1_tft_pixel(t, y * FM1_TFT_W + x);
       int k = 0;
       while (k < n && col[k] != c) ++k;
       if (k == n) {

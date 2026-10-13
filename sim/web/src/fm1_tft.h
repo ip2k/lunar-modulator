@@ -109,14 +109,49 @@ typedef struct fm1_tft_box {
   uint8_t font;               /* a text box's face (the 5 x 9 at any scale is MAIN) */
 } fm1_tft_box_t;
 
+#ifndef FM1_TFT_INDEXED
+#define FM1_TFT_INDEXED 0
+#endif
+#if FM1_TFT_INDEXED != 0 && FM1_TFT_INDEXED != 1
+#error "FM1_TFT_INDEXED must be 0 or 1"
+#endif
+
 typedef struct fm1_tft {
+#if FM1_TFT_INDEXED
+  /* Exact RGB565 colours, at most 256 distinct colours between begins.
+   * All translation units sharing this structure must use the same switch.
+   * A capacity failure invalidates the frame; do not display it. */
+  uint8_t px[FM1_TFT_W * FM1_TFT_H];
+  uint16_t palette[256];
+  uint16_t palette_count;
+  uint16_t pixel_overflow;
+#else
   uint16_t px[FM1_TFT_W * FM1_TFT_H];
+#endif
   int record;                 /* log boxes for fm1_tft_check_layout */
   int n_boxes;
   int overflow;               /* more boxes than FM1_TFT_MAX_BOXES */
   int truncated;              /* text runs cut short by max_chars */
   fm1_tft_box_t boxes[FM1_TFT_MAX_BOXES];
 } fm1_tft_t;
+
+/* Caller supplies an index in [0, W*H). Returns the exact panel colour. */
+static inline uint16_t fm1_tft_pixel(const fm1_tft_t *t, unsigned index) {
+#if FM1_TFT_INDEXED
+  return t->palette[t->px[index]];
+#else
+  return t->px[index];
+#endif
+}
+
+static inline int fm1_tft_pixels_valid(const fm1_tft_t *t) {
+#if FM1_TFT_INDEXED
+  return !t->pixel_overflow;
+#else
+  (void)t;
+  return 1;
+#endif
+}
 
 /* Start a frame: clear to `color` and forget the logged boxes. */
 void fm1_tft_begin(fm1_tft_t *t, uint16_t color);

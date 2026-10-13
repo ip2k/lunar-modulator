@@ -825,3 +825,44 @@ This parser is not linked into the firmware builder. The UART driver, jack
 reception, sustain ownership and hardware MIDI acceptance remain unfinished.
 Object code size is not a linked-image size or a realtime performance result.
 No hardware operation or installable-image claim follows from these checks.
+
+### Optional lossless indexed display storage, 2026-10-13
+
+[verified host] Added an opt-in `FM1_TFT_INDEXED` representation to the existing
+C99 renderer. Default RGB565 storage is unchanged. Indexed storage holds exact
+RGB565 palette values, supports all 256 indices, and rejects a frame on palette
+exhaustion without wrapping or quantization. Native strip conversion and scope
+fixtures use a shared pixel accessor. All translation units must use the same
+switch because it changes `fm1_tft_t` and the enclosing application layout.
+
+[verified host] 116 checks pass across sixteen Hera containers, including sixteen
+ASan/UBSan seeded raster comparisons, scope checks in both modes, and the fresh
+host renderer's font and palette checks. Raster comparisons include clipped
+fills, frames and all three text faces, with exact decoded pixels and layout
+metadata. The first campaign failed when font fixtures attempted a build on the
+read-only source mount; the final campaign uses freshly built binaries from a
+writable copy. No failure receipt was overwritten.
+
+[verified target compile] The pi32v2/r3/fprev1 compiler measures TFT structures
+at 116,368 and 59,284 bytes, and enclosing applications at 220,832 and 163,744
+bytes. Application savings are 57,088 bytes after alignment. Both renderer
+variants compile with the actual target compiler. The initial measurement
+harness had syntax/regex errors; v3 corrects them. This is not a full link,
+realtime measurement, all-page palette coverage or physical display acceptance.
+
+Established alternative considered: LVGL's documented I8 colour format uses
+8-bit palette indices, but moving this existing renderer to LVGL would require
+a broader drawing/runtime integration. The bounded representation adapter
+preserves the existing C99 drawing API and exact RGB565 strip conversion.
+Primary documentation: https://lvgl.io/docs/open/9.5/main-modules/images/color_formats.
+No LVGL code or dependency was imported.
+
+Evidence: Hera native-external-arenas-16-20261012/out/indexed-tft-v1-, v2- and
+v3-verification.json, indexed-tft-host-v1-build.json, and
+indexed-tft-target-v3/{report.json,size-0.ll,size-1.ll,tft-0.o,tft-1.o}.
+Private aggregate mirrors and launchers are retained locally. Device builders
+and catalogue flags have not enabled this representation yet. Cached catalogue
+objects are now stale and must be rebuilt, not relabelled. The savings alone
+still do not fit Shapes in the existing instance pool; the full thirteen-engine
+flash overflow also remains unresolved. Maximum engine count remains the
+release requirement; no reduced catalogue has been accepted.

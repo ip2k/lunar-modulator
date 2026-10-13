@@ -21,9 +21,10 @@ int main(int argc, char **argv) {
   }
   fm1_tft_begin(&app.tft, C_TEXT);
   draw_scope(&app, top);
+  if (!fm1_tft_pixels_valid(&app.tft)) return 4;
   printf("P6\n%d %d\n255\n", FM1_TFT_W, FM1_TFT_H);
   for (int i = 0; i < FM1_TFT_W * FM1_TFT_H; ++i) {
-    uint16_t p = app.tft.px[i];
+    uint16_t p = fm1_tft_pixel(&app.tft, i);
     unsigned char rgb[3] = {
       (unsigned char)((((p >> 11) & 31) * 255 + 15) / 31),
       (unsigned char)((((p >> 5) & 63) * 255 + 31) / 63),

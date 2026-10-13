@@ -75,7 +75,14 @@ static int touches(int ax, int ay, int aw, int ah, int bx, int by, int bw, int b
 }
 
 void fm1_tft_begin(fm1_tft_t *t, uint16_t color) {
+#if FM1_TFT_INDEXED
+  t->palette[0] = color;
+  t->palette_count = 1;
+  t->pixel_overflow = 0;
+  for (int i = 0; i < FM1_TFT_W * FM1_TFT_H; ++i) t->px[i] = 0;
+#else
   for (int i = 0; i < FM1_TFT_W * FM1_TFT_H; ++i) t->px[i] = color;
+#endif
   t->n_boxes = 0;
   t->overflow = 0;
   t->truncated = 0;
@@ -84,9 +91,28 @@ void fm1_tft_begin(fm1_tft_t *t, uint16_t color) {
 void fm1_tft_paint(fm1_tft_t *t, int x, int y, int w, int h, uint16_t color) {
   int x0 = clampi(x, 0, FM1_TFT_W), x1 = clampi(x + w, 0, FM1_TFT_W);
   int y0 = clampi(y, 0, FM1_TFT_H), y1 = clampi(y + h, 0, FM1_TFT_H);
+#if FM1_TFT_INDEXED
+  if (x0 >= x1 || y0 >= y1 || t->pixel_overflow) return;
+  unsigned palette_index = 0;
+  while (palette_index < t->palette_count && t->palette[palette_index] != color)
+    ++palette_index;
+  if (palette_index == t->palette_count) {
+    if (palette_index == 256u) {
+      t->pixel_overflow = 1;
+      return;
+    }
+    t->palette[palette_index] = color;
+    ++t->palette_count;
+  }
+#endif
   for (int yy = y0; yy < y1; ++yy) {
+#if FM1_TFT_INDEXED
+    uint8_t *row = &t->px[yy * FM1_TFT_W];
+    for (int xx = x0; xx < x1; ++xx) row[xx] = (uint8_t)palette_index;
+#else
     uint16_t *row = &t->px[yy * FM1_TFT_W];
     for (int xx = x0; xx < x1; ++xx) row[xx] = color;
+#endif
   }
 }
 

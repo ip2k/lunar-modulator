@@ -13,8 +13,8 @@ from tests.engine_helpers import ROOT
 SIM = ROOT / "sim/web"
 
 
-@pytest.fixture(scope="module")
-def scope_probe(tmp_path_factory):
+@pytest.fixture(scope="module", params=(0, 1), ids=("rgb565", "indexed"))
+def scope_probe(tmp_path_factory, request):
     cc = shutil.which("cc")
     if not cc:
         pytest.skip("no C compiler")
@@ -25,7 +25,7 @@ def scope_probe(tmp_path_factory):
     linker = "-Wl,-dead_strip" if sys.platform == "darwin" else "-Wl,--gc-sections"
     subprocess.run([
         cc, "-std=c99", "-O2", "-ffunction-sections", "-fdata-sections", linker,
-        f"-I{build}", f"-I{SIM / 'src'}", f"-I{ROOT / 'engines/include'}",
+        f"-DFM1_TFT_INDEXED={request.param}", f"-I{build}", f"-I{SIM / 'src'}", f"-I{ROOT / 'engines/include'}",
         f"-I{ROOT / 'engines/state'}", f"-I{ROOT / 'engines/host'}",
         str(SIM / "test/fm1_scope_check.c"), str(SIM / "src/fm1_tft.c"),
         "-lm", "-o", str(target),

@@ -72,13 +72,14 @@ static void refill_audio(void)
 
 static void display_strip(uint32_t *row)
 {
+    if (!fm1_tft_pixels_valid(&app.tft)) return;
     if (lcd_busy) {
         if (!(FM1_LCD_SPI_CON & 0x8000u)) return;
         lcd_sync();
     }
     /* DMA reads cv_px, never the framebuffer that the app can redraw. */
     for (uint32_t i = 0; i < 240u * 16u; ++i)
-        cv_px[i] = swap16(app.tft.px[*row * 240u + i]);
+        cv_px[i] = swap16(fm1_tft_pixel(&app.tft, *row * 240u + i));
     lcd_blit(0, *row, 240, 16, cv_px);
     *row = (*row + 16u) % 240u;
 }
