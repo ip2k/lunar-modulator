@@ -121,7 +121,7 @@ def main():
     parser.add_argument('--link-set-loader', action='store_true',
                         help='Retain the standalone streaming set loader; does not activate content')
     parser.add_argument('--link-project-loader', action='store_true',
-                        help='Retain disposable project modulation staging; does not activate a project')
+                        help='Retain disposable project modulation/sequence staging; does not activate a project')
     parser.add_argument('--startup-set-index', type=int,
                         help='Opt-in timed probe: stage this embedded SET before Trio allocation; '
                         'requires --link-set-loader and a prepared profile')
@@ -262,7 +262,8 @@ def main():
     if args.link_project_loader:
         # Shared state codecs/applier are already in the checked catalogue.
         extra_sources += [ROOT / 'firmware/native/project_units.c',
-                          ROOT / 'firmware/native/project_mod.c']
+                          ROOT / 'firmware/native/project_mod.c',
+                          ROOT / 'firmware/native/project_seq.c']
     for path in [ROOT / 'sim/web/src/fm1_app.c', ROOT / 'engines/host/mod_script.c',
                  ROOT / 'firmware/native/app_probe.c', ROOT / 'firmware/native/instance_pool.c',
                  ROOT / 'firmware/native/tlsf_runtime.c', ROOT / 'engines/src/registry.cc', *extra_sources]:
@@ -298,7 +299,7 @@ def main():
     if args.link_set_loader:
         roots += ('lunar_content_load_set', 'lunar_content_activate_set')
     if args.link_project_loader:
-        roots += ('lunar_project_mod_stage',)
+        roots += ('lunar_project_mod_stage', 'lunar_project_seq_stage')
     elf = out / 'lunar-app-probe.elf'
     command = [str(tc / 'pi32v2/bin/ld'), '--plugin', str(tc / 'common/bin/LLVMgold.so'),
                '--plugin-opt=mcpu=r3', '--plugin-opt=-mattr=+fprev1',
@@ -356,7 +357,7 @@ def main():
                                    sequence_semantics_verified=False)
     if args.link_project_loader:
         report['project_loader'] = dict(modulation_staging_link_verified=True,
-                                       activated=False, stack_margin_verified=False,
+                                       sequence_staging_link_verified=True, activated=False, stack_margin_verified=False,
                                        timing_verified=False, hardware_tested=False,
                                        sequence_semantics_verified=False)
     if args.startup_set_index is not None:

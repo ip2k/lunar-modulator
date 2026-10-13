@@ -211,3 +211,37 @@ from text/binary input. These are fit/link exercises, not the all13 release.
 No OOM; owned containers removed. Receipt project-loader-link-v1-verification.json
 SHA256 7d256412511bcd4faae5273acf230a1586e776a65c16e8a05157419ca1b7c24c.
 No device operation, runtime activation or installable release.
+
+## Disposable project sequence staging
+
+lunar_project_seq_stage validates the binary unit plan before feeding project
+SET lines to the existing streaming importer in an initialized disposable
+sequencer. It rejects observed importer loss, internal routes to omitted sounds,
+unresolved/zero-UID/non-lockable assigned lane parameters and invalid MIDI
+channels. No SET lines leaves scratch intact. Failed staging leaves has_set
+unchanged; caller must discard scratch. Caller supplies matching rate/limits
+and keeps input, descriptors, outputs and live state disjoint from scratch.
+
+Sixteen Hera chunks passed32 ASan/UBSan executions and pi32v2 source compiles
+at Os/Oz [verified]. Accepted exports match the existing importer. Cases cover
+missing sounds, labels, NOLOCK/zero UID, absent parameter metadata, malformed/
+unsupported observed-loss lines, invalid routes, case/last-colon matching, no
+SET lines and missing output pointer. Separate live storage remains unchanged.
+Receipt project-sequences-v1-verification.json SHA256
+3e67f287205abcf231314154dfbc1a5e778bee336ad9b44a3c4584bee025661f.
+
+Opt-in --link-project-loader now retains both modulation and sequence staging.
+Sixteen Hera links passed SDK-free audits, undefined-symbol checks, retained
+entry points and selected content byte checks [verified]. Same selected profiles
+as link-v1, not all13. Receipt project-loader-link-v2-verification.json SHA256
+7d256412511bcd4faae5273acf230a1586e776a65c16e8a05157419ca1b7c24c.
+All campaign logs inspected; no OOM; owned containers removed. Status-only
+receipts repeat earlier hashes; campaign launchers/logs identify executed nodes.
+
+Neither adapter is called by the native app yet. Full grammar/sequence playback,
+external MIDI delivery, engine constructor/allocation admission, parameter/base
+application, activation, stack/timing and device acceptance remain open. Shapes
+needs about207KB of the216KB pool: runtime replacement cannot assume coexistence
+with staging or another instance. No hardware operation or installable release.
+Expanded-layout approval remains pending; all13 default plus selectable builder
+remain the active goal.

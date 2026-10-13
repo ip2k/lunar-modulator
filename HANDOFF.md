@@ -1,3 +1,17 @@
+# Native continuation — project sequences, 2026-10-13
+
+Branch feature/2026-10-11@installable-firmware; preceding verified pushed SHA
+62fd0d0b4a13e8d760f088420ee678c0580a26ed.
+Added checked disposable project sequence staging with selected sound/lane
+bindings. Sixteen Hera chunks passed32 sanitizer executions/target compiles;
+16 native links retain modulation + sequence staging and verify embedded bytes.
+No OOM; campaign logs inspected; containers removed. Evidence/limits:
+notes/2026-10-13-native-project-loader.md. No app activation or device operation.
+No installable release; goal ACTIVE: all13 default plus selectable image builder.
+Expanded-layout approval pending. Next owned engine candidate staging/parameter
+application and fail-safe startup/commit; complete persistence/MIDI/timing,
+builder/installer, review/CI/integration and actual install/interrupted recovery.
+
 # Native continuation — project staging native links, 2026-10-13
 
 Branch feature/2026-10-11@installable-firmware; preceding verified pushed SHA
