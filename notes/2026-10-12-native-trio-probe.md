@@ -209,3 +209,45 @@ review the concrete protected-range transaction and stock rescue plan, then
 install and observe the bounded native Trio probe. The old V8 stock restore
 admission is stale and must never be executed. Full Lunar UI, sequencer/effects,
 engine selection and web-installable packaging remain outstanding.
+
+## Concrete native transaction and 16-way recovery campaign [verified]
+
+The latest owner reply again confirms white/red/green/blue bands on the SDK
+diagnostic. No native display or audio observation is inferred from it. Passive
+bench enumeration remains bus 1 device 14, 4c4a:8057; no device command, reset,
+loader upload or flash mutation was issued during this transaction work.
+
+`tools/native/bench_transactions.py` prepares offline plans from the exact pinned
+fresh V8 receipt/dumps, original matching stock dumps and audited native NOR
+candidate. Each plan covers 30 changed sectors, derived from current V8 bytes;
+protected boot/config/reserved bytes match. Application directory sector 0x4000
+is last. Native plan SHA256
+`fe07ac6b54006c977249595b2f4df2d68bdce93223675c77556b9f6e6412ef98`;
+stock plan SHA256
+`0eae15a6a7dd7bcb446f0617a6d7b55bf45b85d33fbafc67910c02be7a5c3baf`.
+Private physical-labelled offline plans: `build/native-bench-plans-20261012/`.
+Neither plan grants hardware admission; no opener exists in this tool.
+
+`tests/native_bench_recovery.py` ran in 16 simultaneous Hera containers with
+the actual private image bytes and simulated NOR. All final chunks exited zero
+without OOM. Interruptions span mutation indices 1 through 510, alternating
+torn erase/program and completed mutation with lost acknowledgement. Every
+case refuses a premature stock transaction, reconnects a fresh simulated
+session, restores and verifies full V8, then restores the original stock hash.
+It also refuses protected-byte corruption after a completed journal. Shard 0
+additionally completes native install and V8 rollback. Directory-last ordering
+is checked for each mutation sequence. This models transport interruption,
+not physical power-loss durability, ROM entry, real boot or real NOR behaviour.
+
+Local focused suite: 64 tests and 7 subtests passed. Private campaign and final
+source pins: `build/native-bench-recovery-16-20261012/`. Hera source/receipts:
+`/home/claude/mvave-fm1/native-bench-recovery-16-20261012/`. All containers have
+exited and were removed. Serena/Rarefaction remain selected on the primary
+checkout; queries for this branch-only transaction module fail ENOENT, so
+file inspection was used without changing another session's global selection.
+
+Next dependency: distinct reviewed live native policy/opener, bound to the
+current fixed-loader session and fresh backup provenance; then bounded native
+install/boot with recovery. Never run the stale V8 restore admission. Full
+Lunar UI, engines/effects/sequencer integration, audio/controls/MIDI physical
+acceptance and stock-compatible web installation are still required.
