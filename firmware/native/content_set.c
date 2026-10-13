@@ -82,3 +82,26 @@ int lunar_content_activate_set(fm1_app_t *app, const uint8_t *bytes, uint32_t si
     }
     return 1;
 }
+
+int lunar_content_start_set(fm1_app_t *app, lunar_instance_pool_t *pool,
+                            const uint8_t *bytes, uint32_t size, uint32_t rate,
+                            fm1_state_report_t *report) {
+    void *arena;
+    fm1_seq_t *scratch;
+    size_t arena_bytes;
+    int ok;
+    if (!report) return 0;
+    fm1_state_report_init(report);
+    report->code = FM1_STATE_BAD;
+    if (!app || !app->seq || !pool || !bytes || !rate ||
+        size > FM1_STATE_BIN_MAX) return 0;
+    arena_bytes = fm1_seq_size(&app->seq_lim);
+    if (!arena_bytes || arena_bytes > sizeof app->seq_mem) return 0;
+    arena = lunar_instance_pool_alloc(pool, arena_bytes);
+    if (!arena) return 0;
+    scratch = fm1_seq_create(arena, &app->seq_lim, rate);
+    ok = scratch && lunar_content_activate_set(app, bytes, size, scratch, report);
+    /* This is the original allocation, exclusively owned by this main task. */
+    lunar_instance_pool_free(pool, arena);
+    return ok;
+}

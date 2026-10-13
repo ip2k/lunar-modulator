@@ -124,6 +124,7 @@ def test_content_descriptor_count_mismatch():
 
 
 @pytest.mark.parametrize('options,message', [
+    (['--startup-set-index', '0'], 'requires --link-set-loader'),
     (['--prepared-profile', 'absent'], 'require each other'),
     (['--expected-profile-sha256', '0' * 64], 'require each other'),
     (['--prepared-profile', 'absent', '--expected-profile-sha256', '0' * 64,
@@ -161,3 +162,32 @@ def test_linker_rejects_inconsistent_prepared_module_header(tmp_path):
     assert result.returncode == 2 and 'differs from current module selection' in result.stderr
     assert not (output / 'verification.json').exists()
     assert not (output / 'lunar-app-probe.elf').exists()
+
+
+@pytest.mark.parametrize('index,loader,message', [
+    (-1, True, 'outside the embedded catalogue'),
+    (2, True, 'outside the embedded catalogue'),
+    (0, True, 'must identify a SET'),
+    (1, False, 'requires --link-set-loader'),
+])
+def test_startup_set_option_refusal(tmp_path, index, loader, message):
+    content = []
+    for name in ('first-orbit.lunar', 'orbit.set.movy1'):
+        shutil.copy(ROOT / 'tests/fixtures/state/1.0' / name, tmp_path / name)
+        content.append(name)
+    profile = tmp_path / 'input.json'
+    profile.write_text(json.dumps(dict(version=1,
+        engines=['trio', 'drums', 'shapes', 'macro', 'dx7'],
+        effects=['filter', 'drive', 'echo', 'hall', 'limit'], midi=['arp'],
+        modulation=['lfo', 'env', 'chance'], content=content)))
+    prepared = tmp_path / 'prepared'
+    prepare(profile, Path(os.environ['FM1_STATE_TOOL']), prepared)
+    output = tmp_path / 'linked'
+    options = ['--link-set-loader'] if loader else []
+    result = subprocess.run([sys.executable, str(ROOT / 'tools/native/build_application_probe.py'),
+        '--toolchain', 'unused', '--catalogue', 'unused', '--build', str(output),
+        '--prepared-profile', str(prepared), '--expected-profile-sha256',
+        sha((prepared / 'profile.json').read_bytes()), '--startup-set-index', str(index),
+        *options], capture_output=True, text=True)
+    assert result.returncode == 2 and message in result.stderr
+    assert not output.exists()

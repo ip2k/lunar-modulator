@@ -120,6 +120,9 @@ def main():
                         help='Controller-retained prepared manifest digest')
     parser.add_argument('--link-set-loader', action='store_true',
                         help='Retain the standalone streaming set loader; does not activate content')
+    parser.add_argument('--startup-set-index', type=int,
+                        help='Opt-in timed probe: stage this embedded SET before Trio allocation; '
+                        'requires --link-set-loader and a prepared profile')
     parser.add_argument('--shapes-voices', type=int, choices=range(1, 13), default=12,
                         help='Require the selected Shapes polyphony in the catalogue')
     parser.add_argument('--indexed-tft', action='store_true',
@@ -143,6 +146,14 @@ def main():
             args.modules = ','.join(content_inputs.report['module_selection']['selected'])
         except (ValueError, OSError, KeyError, TypeError) as error:
             parser.error(str(error))
+    if args.startup_set_index is not None:
+        if not args.link_set_loader or not content_inputs:
+            parser.error('--startup-set-index requires --link-set-loader and --prepared-profile')
+        assets = content_inputs.report['content']
+        if not 0 <= args.startup_set_index < len(assets):
+            parser.error('--startup-set-index is outside the embedded catalogue')
+        if assets[args.startup_set_index]['kind'] != 'set':
+            parser.error('--startup-set-index must identify a SET, not a project')
     if args.flash_plaits_wavetables and not args.compressed_wavetables:
         parser.error('--flash-plaits-wavetables requires --compressed-wavetables')
     tc, catalogue, out = (p.resolve() for p in
@@ -214,6 +225,8 @@ def main():
              '-ffreestanding', '-fno-builtin', '-ffunction-sections', '-fdata-sections',
              '-DFM1_APP_EXTERNAL_ARENAS=1', '-DLUNAR_APP_PROBE=1', '-DNDEBUG',
              '-DFM1_TFT_INDEXED=' + str(int(args.indexed_tft))]
+    if args.startup_set_index is not None:
+        flags += ['-DLUNAR_STARTUP_SET_INDEX=' + str(args.startup_set_index)]
     if args.compressed_wavetables:
         flags += ['-DLUNAR_COMPRESSED_WAVETABLES=1']
     for directory in (gen, ROOT / 'engines/include', ROOT / 'engines/mod',
@@ -333,6 +346,11 @@ def main():
         report['set_loader'] = dict(native_link_verified=True, activation_api_link_verified=True, activated=False,
                                    stack_margin_verified=False, hardware_tested=False,
                                    sequence_semantics_verified=False)
+    if args.startup_set_index is not None:
+        report['startup_set'] = dict(index=args.startup_set_index, runtime_hook_linked=True,
+                                    staging_reclaimed_before_engine_allocation=True,
+                                    runtime_verified=False, stack_margin_verified=False,
+                                    hardware_tested=False)
     (out / 'verification.json').write_text(json.dumps(report, indent=2) + '\n')
     subprocess.run([sys.executable, str(ROOT / 'tools/native/probe_artifact.py'),
                     '--elf', str(elf), '--layout', 'combined',

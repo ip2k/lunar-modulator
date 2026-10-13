@@ -4,6 +4,7 @@
 #include "fm1_seq.h"
 #include "fm1_state.h"
 #include "fm1_app.h"
+#include "instance_pool.h"
 
 /* Main-thread only: the binary reader needs more than 8 KiB of stack.
  * bytes must remain immutable throughout this call. scratch must be a
@@ -24,4 +25,12 @@ int lunar_content_load_set_checked(const uint8_t *bytes, uint32_t size,
  * The caller supplies the staging arena; this function allocates none. */
 int lunar_content_activate_set(fm1_app_t *app, const uint8_t *bytes, uint32_t size,
                                fm1_seq_t *scratch, fm1_state_report_t *report);
+/* Startup/main-task helper: borrow pool memory for initialized staging, activate
+ * only after checked loading, and reclaim staging before engine allocation.
+ * app/limits and pool must be initialized; rate must match the live sequencer.
+ * Failure before activation preserves the live app. No permanent arena is added.
+ * Stack/dependency/playback admission still belongs to the caller. */
+int lunar_content_start_set(fm1_app_t *app, lunar_instance_pool_t *pool,
+                            const uint8_t *bytes, uint32_t size, uint32_t rate,
+                            fm1_state_report_t *report);
 #endif

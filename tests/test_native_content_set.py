@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
     if (!a || !b || !live || !snapshot) return 13;
     sa = fm1_seq_create(a, &lim, 44118); sb = fm1_seq_create(b, &lim, 44118);
     if (!sa || !sb || !fm1_seq_create(live, &lim, 44118)) return 14;
-    app->seq = live;
+    app->seq = live; app->seq_lim = lim;
     fm1_seq_host_init(&app->seq_host, app->seq, app->seq_ev, FM1_APP_SEQ_EVENTS);
     app->unit[0].e = &engine;
     fm1_seq_host_bind(&app->seq_host, &engine);
@@ -118,6 +118,21 @@ int main(int argc, char **argv) {
         if (!shapes_budget) return 38;
         if (lunar_instance_pool_alloc(&pool, boot_bytes)) return 39;
         if (lunar_instance_pool_free(&pool, shapes_budget) || pool.live_allocations || pool.live_bytes) return 40;
+        memcpy(snapshot, live, bytes); memcpy(app_before, app, sizeof(*app));
+        if (lunar_content_start_set(app, &pool, bin, (uint32_t)nb, 44118, &report) !=
+            (atoi(argv[3]) && !atoi(argv[4]))) return 45;
+        if (pool.live_allocations || pool.live_bytes) return 46;
+        if ((!atoi(argv[3]) || atoi(argv[4])) &&
+            (memcmp(snapshot, live, bytes) || memcmp(app_before, app, sizeof(*app)))) return 47;
+        memcpy(snapshot, live, bytes); memcpy(app_before, app, sizeof(*app));
+        if (lunar_content_start_set(app, &pool, bin, (uint32_t)nb, 48000, &report) ||
+            pool.live_allocations || pool.live_bytes || memcmp(snapshot, live, bytes) ||
+            memcmp(app_before, app, sizeof(*app))) return 48;
+        shapes_budget = lunar_instance_pool_alloc(&pool, 206904);
+        if (!shapes_budget || lunar_content_start_set(app, &pool, bin, (uint32_t)nb, 44118, &report) ||
+            pool.live_allocations != 1 || memcmp(snapshot, live, bytes) ||
+            memcmp(app_before, app, sizeof(*app))) return 49;
+        if (lunar_instance_pool_free(&pool, shapes_budget) || pool.live_allocations || pool.live_bytes) return 50;
         free(raw);
     }
     free(app); free(app_before); free(bin); free(text); free(a); free(b); free(live); free(snapshot); free(e1); free(e2);

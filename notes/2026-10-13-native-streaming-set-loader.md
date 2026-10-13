@@ -201,3 +201,34 @@ project application still require work. Parser call-chain stack margin and
 startup use remain unverified. Semantic queries still resolve to the primary
 checkout with stale/incomplete navigation; the actual worktree and compiler
 results are authoritative. No device operation or installable release is claimed.
+
+
+## Opt-in startup staging [verified host and target link]
+
+The timed probe now accepts an explicit `--startup-set-index` together with
+`--link-set-loader` and a prepared profile. The builder rejects out-of-bounds
+indices and project containers. Startup borrows a sequencer-sized allocation
+from the instance pool, uses checked activation, and releases staging before
+Trio allocation. Loading does not start playback. The default probe is unchanged.
+
+Thirty-two Os/Oz ASan/UBSan cases passed in sixteen Hera containers, including
+valid/corrupt/lossy sets, sample-rate mismatch, pool exhaustion, unchanged live
+state on rejection and zero residual staging allocations. This harness manually
+initializes the application/limits; it does not execute the complete target
+startup or allocate an actual Shapes engine. Sixteen native links (v10) passed,
+each with 77 audit/artifact/option tests. They cover zero/one/two/four embedded
+assets, text/binary input and Plate enabled/disabled; startup is enabled only for
+the two/four-asset profiles. Payloads match the prepared inputs byte-for-byte.
+
+Failed v8 and v9 campaigns are retained: v8 omitted the host packer environment
+variable; v9's index-refusal test profile omitted the project fixture's required
+modules. Both stopped at tests before linking, without OOM. The corrected v10
+campaign and host startup campaign completed, and all containers were removed.
+Combined private receipt SHA256:
+`88eb3f5cad38039b05034976d4f97bcbdba8ef1d48ac2cecc7d4f36bc9a51568`,
+local `build/native-external-arenas-16-20261012/startup-v1-evidence.json`.
+
+Runtime startup, parser call-chain stack margin, complete syntax/dependency
+admission and real playback remain unverified. No device operation occurred;
+these are private probes, not installable release packages. Existing layout
+guards remain intact; expanded-layout authorization is pending.

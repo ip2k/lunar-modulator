@@ -1,3 +1,24 @@
+# Native release continuation — startup set hook, 2026-10-13
+
+Goal ACTIVE: default thirteen production engines, Shapes twelve voices, plus
+selectable engines/effects/songs/sets builder and real web-installable acceptance.
+Branch `feature/2026-10-11@installable-firmware`; preceding verified pushed SHA
+`8164a26fab085dc7fe637cda5726ee6a328a80e6`.
+
+This checkpoint adds opt-in startup set staging before Trio allocation, with
+staging reclaimed from the instance pool. 32 sanitizer cases passed in sixteen
+Hera containers; sixteen v10 native links passed with 77 safety/option tests
+each. Failed v8/v9 test setup attempts are retained. All containers removed.
+Combined private receipt SHA `88eb3f5cad38039b05034976d4f97bcbdba8ef1d48ac2cecc7d4f36bc9a51568`.
+No device operation, full startup execution or installable release is claimed.
+
+Next: parser call-chain stack bounds, full syntax/dependency admission, project
+application, multitrack RAM/timing, MIDI ownership, persistence and web builder.
+Expanded-layout approval question remains pending; do not relax current guards.
+Fresh identity/backups and concrete package/recovery gates precede hardware.
+Builds stay on Hera in sixteen chunks. See streaming-set-loader and expanded
+layout proposal notes. Shared semantic indexes remain stale/primary-root-bound.
+
 # Native release continuation — observed-loss admission, 2026-10-13
 
 Goal ACTIVE: default all thirteen production engines (Shapes twelve voices)

@@ -20,6 +20,11 @@ static int32_t lunar_master_raw = 512;
 #include "audio_queue.h"
 #include "instance_pool.h"
 #include "midi_input.h"
+#ifdef LUNAR_STARTUP_SET_INDEX
+#include "content_catalogue.h"
+#include "content_set.h"
+static volatile uint32_t startup_set_result, startup_set_report;
+#endif
 
 typedef char lunar_probe_canvas_bound[(CV_MAX == 240u * 16u) ? 1 : -1];
 static fm1_app_t app __attribute__((section(".pool"), aligned(16)));
@@ -138,6 +143,15 @@ static void app_main(void)
     if (lunar_instance_pool_init(&instance_pool, instance_memory, sizeof instance_memory) ||
         fm1_app_set_storage(&app, &instance_pool, instance_alloc, instance_free))
         arena_bind_failures++;
+#ifdef LUNAR_STARTUP_SET_INDEX
+    {
+        fm1_state_report_t report;
+        const lunar_content_asset_t *asset = &lunar_content_catalogue[LUNAR_STARTUP_SET_INDEX];
+        startup_set_result = (uint32_t)lunar_content_start_set(
+            &app, &instance_pool, asset->bytes, asset->size, 44118, &report);
+        startup_set_report = (uint32_t)report.code;
+    }
+#endif
     initial_engine_result = (uint32_t)fm1_app_select(&app, 0, fm1_app_find("trio"));
     refill_audio();
     for (;;) {
