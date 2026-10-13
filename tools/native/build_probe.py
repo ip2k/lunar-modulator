@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -76,6 +77,14 @@ def main():
     missing = re.findall(r'^.*\*UND\*[ \t]+00000000[ \t]+(\S+)[ \t]*$', symbols, re.M)
     if missing:
         raise SystemExit('Undefined symbols: ' + repr(missing))
+    key_receipt = out / 'key-audit.json'
+    subprocess.run([sys.executable, str(ROOT / 'tools/jieli/audit_link.py'),
+                    '--elf', str(elf), '--runtime', 'sdk-free',
+                    '--sources', str(ROOT / 'firmware/native'),
+                    '--json', str(key_receipt)], check=True)
+    key_audit = json.loads(key_receipt.read_text())
+    if not key_audit['passed'] or key_audit['n_pending']:
+        raise SystemExit('SDK-free key audit must pass without pending checks')
     ram_dis = subprocess.check_output([str(tc / 'common/bin/objdump'), '-d', '-j', '.ram_text', str(elf)], text=True)
     (out / 'ram-text.txt').write_text(ram_dis)
     if re.search(r'\bcall\b', ram_dis):
@@ -83,6 +92,7 @@ def main():
     sections = subprocess.check_output([str(tc / 'common/bin/objdump'), '-h', str(elf)], text=True)
     (out / 'sections.txt').write_text(sections)
     report = {'sdk_archives': [], 'undefined_symbols': missing,
+              'key_audit': key_audit,
               'flash_write_range': 'empty', 'boot_ota_cleanup': False,
               'standard_headers': str(tc / 'pi32v2/include'), 'sdk_source_headers': [],
               'installable': False,

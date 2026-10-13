@@ -56,6 +56,11 @@ It links with no SDK archives or SDK source headers and no named undefined
 symbols. These assertions do not establish real-time performance or full
 toolchain source/licence reproducibility.
 
+The existing `audit_link.py --runtime sdk-free` passed on this ELF: zero
+failures and zero pending checks for its key/eFuse/mailbox/initcall scans.
+The builder now requires that audit automatically. It does not substitute for
+the stock SPL handover or complete recovery admission review.
+
 Stock flash layout and entry/recovery review, queue overflow hardware timing,
 and physical audio checks remain required.
 The application is a single-engine diagnostic, without the complete Lunar
