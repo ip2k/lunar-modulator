@@ -14,7 +14,11 @@ recovery or make the image hardware-qualified.
 P33 register `P3_PR_PWR` (`0xa0`) bit 4. The owner's FM-1_092 handler matches.
 See [the stock analysis](../../notes/2026-10-05-softkey-efuse.md) and
 [the authorized bench receipt](../../notes/2026-10-07-fm1-softkey-bench.md).
-Those stock handlers reached UBOOT; this new component has not run on hardware.
+Those stock handlers reached UBOOT. The private SDK diagnostic's retained trace
+records this component reaching `FINAL_START_INTENT`, with all mailbox bytes
+verified, after the panel transfer and 20-second soak [verified: retained trace].
+The trace does not attest the final electrical write, reset causation, or visible
+pixels. See [the physical trace receipt](../../notes/2026-10-12-preparation-stop-trace-capture/physical-v2.md).
 The ROM's marker-consumption implementation remains inferred.
 
 [verified: primary SDK] P33 CON/DAT word addresses `0x13e08`/`0x13e0c`,

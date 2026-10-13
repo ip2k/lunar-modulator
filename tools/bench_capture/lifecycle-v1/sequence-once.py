@@ -167,7 +167,7 @@ def pipeline():
     freshness(snapshot['observed_at'],time.time(),120,'Original-ROM-to-native')
     parent=ENTRY/'stock-backup-001'
     native=STAGE/'native-read-stage';nr=native/'run'
-    command('native-prepare',H/'prepare-native-read-packet.py',['--stage',native,'--run',nr,
+    command('native-prepare',STAGE/'tools/fm1_prepare_native_read_packet.py',['--stage',native,'--run',nr,
         '--lineage',STAGE/'boot-lineage.json','--elf',STAGE/'assets/native/lunar-sdk-diagnostic.elf',
         '--app',STAGE/'assets/native/lunar-sdk-diagnostic.app.bin','--manifest',STAGE/'assets/native/build-manifest.json',
         '--receipt',parent/'sdk-trace-read-001'])

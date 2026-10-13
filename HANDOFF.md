@@ -1534,3 +1534,26 @@ then physical diagnostic boot/display, interrupted/corrupt-write recovery,
 exact-head CI/review and integration. Do not substitute stock identity for Lunar
 acceptance. Branch feature/2026-10-11@installable-firmware; preceding verified
 pushed commit d34c7e96bd79751c9995b607a07e7039810d3d9b.
+
+
+### Native preparer routing checkpoint (2026-10-12)
+
+[verified] Tracked lifecycle sequencer now calls the repaired tracked native
+preparer under STAGE/tools, with its source pin updated. Hera session98907
+terminal success: 79 unique checks in16 chunks, no failures/errors/skips/OOM;
+XML/inspections retained, all owned containers removed. Initial session60085
+failed collection because the staging snapshot omitted a JSON fixture; those
+logs/inspections retained, containers removed; no hardware access in either run.
+Evidence notes/2026-10-12-native-preparer-routing/verification.json.
+
+New closed V8 source-only proposal build/fresh-diagnostic-v8-proposal-20261012/
+uses distinct V8 roots and repaired call site, all four activation pins None.
+Not staged or launched; must include complete tracked tool/repository dependency
+closure and fresh evidence. Do not reuse any consumed V7/reset/identity packets.
+FM1 remains normal bus1/dev11; no physical operations this checkpoint.
+CI38329476379 checks preceding c5029; inspect that existing run, do not restart.
+The new checkpoint will require its own exact-head CI. Goal active; prior goal
+turn made physical progress, this turn makes source and verification progress.
+Next assemble/review fresh V8, physical display/native recovery, interrupted/
+corrupt-write recovery, then required review/CI/integration. Owner display
+availability question remains pending; no physical-cycle request is needed now.

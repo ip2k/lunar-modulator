@@ -1,0 +1,96 @@
+{
+  "kind": "native-preparer-routing-model-verification",
+  "tests": 79,
+  "chunks": [
+    {
+      "index": 0,
+      "tests": 5,
+      "xml_sha256": "c54bf24ac0d81168f038c4b42a477a88d8df12927a243585f20f8b4b06f0fff1"
+    },
+    {
+      "index": 1,
+      "tests": 5,
+      "xml_sha256": "f4db2fc4e0d49be424dc4d5cf4275d23b8925ac0b40cfd403ec09ee5c509e6c0"
+    },
+    {
+      "index": 2,
+      "tests": 5,
+      "xml_sha256": "26840e2627e2b553707965be18965a25fe2edd175df436a57be4b705e550be24"
+    },
+    {
+      "index": 3,
+      "tests": 5,
+      "xml_sha256": "872a2803f366486496feefe94b4ba7cc8279dcabea64aff50aea5cd9066c6844"
+    },
+    {
+      "index": 4,
+      "tests": 5,
+      "xml_sha256": "a6bdbd1d546a852ea3dbd5c705d85a1c098adc7bf8b03cd995bde521fbc9bf05"
+    },
+    {
+      "index": 5,
+      "tests": 5,
+      "xml_sha256": "6d0f8dd4be2b5930c1ad64cb74c70514e0089487f42a26ab7866dcf475559023"
+    },
+    {
+      "index": 6,
+      "tests": 5,
+      "xml_sha256": "d3c445ef52a622637a792afb9335d41e07816697251893c3572f55fda3a09c45"
+    },
+    {
+      "index": 7,
+      "tests": 5,
+      "xml_sha256": "a507dbce71560104d5269e6b8f33adb42b1e470859be326a13b640bccea280d9"
+    },
+    {
+      "index": 8,
+      "tests": 5,
+      "xml_sha256": "c349e159bad77c9ecc8557f3e2d59d9b146337f023021beced59dcb57fc070e2"
+    },
+    {
+      "index": 9,
+      "tests": 5,
+      "xml_sha256": "ee0fb919773d4e29b5531d109a2c86b394a674cc007274e4e07c6202d73642a8"
+    },
+    {
+      "index": 10,
+      "tests": 5,
+      "xml_sha256": "9c93740e2d1f62e05be1b1956462356d9132dafa45f9332986ed66f9b7385ba6"
+    },
+    {
+      "index": 11,
+      "tests": 5,
+      "xml_sha256": "a720466377895db3748b6f17deb131634a9e160a57c1b392862750b865baca7a"
+    },
+    {
+      "index": 12,
+      "tests": 5,
+      "xml_sha256": "db448aa0ee5e465bbefaf13a0de4b166b37e3c6ab3ff8e0484f205592b842be0"
+    },
+    {
+      "index": 13,
+      "tests": 5,
+      "xml_sha256": "bfe329570441f295f82cb2c45b16b8cb065f8dad518599ea3c6b39b44522c12f"
+    },
+    {
+      "index": 14,
+      "tests": 5,
+      "xml_sha256": "76900521320696883339acb4463db5f38eb8716ac9f52a95477a00a28c4b8c5f"
+    },
+    {
+      "index": 15,
+      "tests": 4,
+      "xml_sha256": "326665ee925dca020b53f2aa00710e1dda2be309d29c75711a84c7132eb589ed"
+    }
+  ],
+  "containers": 16,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "oom": false,
+  "hardware_access": false,
+  "source_archive_sha256": "a0cb149564669fe0fe8e79fb0adac38288a1a84a70bc9365a0b1e5613792824b",
+  "source_pins_sha256": "71fe19d8bf66a84e9d5f7edfa029fedc34264e51fb9dea804add5497b78b5cb7",
+  "runner_sha256": "ed42ce514d349942e1ea7b857807c353c46e9890018f2bd8cef6766ef57fb88e",
+  "inspection_sha256": "b853ac7b08cddfcb3cbb38248bd982ab40400ae8a4f696eb257ce88e506dc078"
+}

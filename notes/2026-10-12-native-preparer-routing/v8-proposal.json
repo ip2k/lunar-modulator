@@ -1,0 +1,20 @@
+{
+  "kind": "fm1-v8-source-only-proposal",
+  "execution_authorized": false,
+  "hardware_commands": 0,
+  "old_sequence_sha256": "31dbd0bca0b96e81b30fffc199ddbc572ee2f57644a03bb03792d22eecc5bf76",
+  "closed_sequence_sha256": "3b52b8b0cc836c2e7b0cefedc32da2174b9f6c66268f2da05436bfe00f5b9c8e",
+  "tracked_preparer_sha256": "e63cb89b7537d75abce88922e0223c0f1302d1a09729b4776084e9aa02ceb1d1",
+  "entry_root": "/home/claude/fm1-sdk-trace-entry-20261012-v8",
+  "stage_root": "/home/claude/fm1-sdk-trace-campaign-20261012-v8",
+  "old_campaign_reusable": false,
+  "activation_pins_bound": false,
+  "pending": [
+    "fresh source closure and full dependency staging",
+    "current-head CI and concrete source review",
+    "fresh entry identity and matching full-flash backups",
+    "owned capture and guarded install/read/recovery",
+    "owner display observation",
+    "interrupted/corrupt-write physical acceptance"
+  ]
+}
