@@ -1,3 +1,17 @@
+# Native continuation — bounded unit plan, 2026-10-13
+
+Branch `feature/2026-10-11@installable-firmware`; preceding verified pushed SHA
+`526a51118865deaf37e65d96f92638baf5abedd4`.
+Added184-byte target unit plan over the checked binary codec and selected
+registries. Sixteen Hera chunks passed32 sanitizer executions and target source
+compiles; fixture v1/v2 failures corrected; no OOM, owned containers removed.
+Evidence and limits: `notes/2026-10-13-native-project-loader.md`.
+No hardware operation or firmware activation; no installable release.
+Goal ACTIVE: all thirteen default plus selectable engines/effects/songs/sets.
+Expanded layout approval pending. Next parameter/cable/sequence binding checks,
+actual allocator admission and atomic engine/project activation; full timing,
+MIDI/persistence, web builder/installer, review/CI and physical install/recovery.
+
 # Native continuation — event normalization, 2026-10-13
 
 Branch `feature/2026-10-11@installable-firmware`; preceding verified pushed SHA

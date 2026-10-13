@@ -84,3 +84,31 @@ without OOM; owned containers were removed. The new API is not called by the
 firmware yet and may be garbage collected: links do not prove target execution.
 
 Private receipts: `instance-pool-preflight-v1-verification.json` SHA256 `2ee8ec3cde909bbfcf2a39ee2d5427d3d9449535a618127d14492207b0fb896a`. `content-loader-link-v15-verification.json` SHA256 `7d256412511bcd4faae5273acf230a1586e776a65c16e8a05157419ca1b7c24c`.
+
+## Bounded selected-catalogue unit plan
+
+`firmware/native/project_units.c` streams an immutable binary PROJECT through
+the existing CRC-checking codec. It collects eighteen native engine slots
+(four sounds, eight inserts, two master effects, four MIDI effects) and eight
+rack positions against caller-supplied selected registries. It rejects duplicate
+positions, unavailable IDs, unsupported slots and zero/missing engine allocation
+sizes. Size callbacks run after the complete container read; a failed call keeps
+the output plan unchanged. Empty non-primary sound/effect units retain no engine.
+The compact slot numbers are explicitly different from shared-app unit codes.
+
+The pi32v2 compiler confirmed the plan occupies184bytes [verified]. Sixteen Hera
+chunks passed32 ASan/UBSan host executions at Os/Oz and compiled the new source
+with the pinned target compiler [verified]. Complete18-unit/eight-module plans,
+compressed input, CRC damage, truncation, empty optional sound, catalogue/type
+mismatch, unsupported second MIDI slot, duplicate units/modules, invalid API
+arguments and missing/zero size callbacks were covered. Initial fixture failures
+were corrected to include a modulation seed and mandatory Sound1; v1/v2 are
+failed campaigns, not acceptance evidence. No OOM; owned containers removed.
+Receipt `project-units-v3-verification.json` SHA256 `3e67f287205abcf231314154dfbc1a5e778bee336ad9b44a3c4584bee025661f`.
+
+This is only a unit/allocation plan, not project admission: parameter values,
+modulation cables/data and sequence semantics/bindings are not validated. Module,
+sequencer and workspace allocations are excluded. No engine is constructed,
+capacity reserved, app changed or project activated. It is not linked/called by
+the running firmware yet; target compilation does not prove execution, whole
+firmware placement, stack or timing. Atomic replacement remains outstanding.
