@@ -1,0 +1,16 @@
+{
+  "revision": "2d64cc3c2ff85bbee654a7054e36c59694d8d8e4",
+  "files": {
+    "LICENSE": "a3f05f80314bfb7a9dc23e3f05aa406b16e9fbf283ed70bfdfe9013336fe862d",
+    "src/CMakeLists.txt": "a6baa5ec5e710f783cd2af05953dcbaebb63a66f523fdf7d8be17574872d84c4",
+    "src/MIDI.cpp": "9ae85f9a61f71b469db4d6e61ede222fc0c0bfee38979bc528d1fd7ac284d320",
+    "src/MIDI.h": "b6890bd1c96e2f7d45f52d597e556743ca18b30451cca54482c11becd695c6bf",
+    "src/MIDI.hpp": "0782115ff2a9c3caadc8fe54ad179ea9d237e7b47b46e7b568f39c2b57a4923c",
+    "src/midi_Defs.h": "883bf3930a67e6f41f072a0829402223228a88d618b616722d4eba2d24a29813",
+    "src/midi_Message.h": "23a5ee36ad4c15e9449bfc6cebeabf0be301814d3b4d46f0dcd51898e05997fa",
+    "src/midi_Namespace.h": "954b7ee47cb1fbcab1f12be030251067d10f937db2ec7d3e6dfb627338694e70",
+    "src/midi_Platform.h": "668211875bdad23977963555e875f87b3d19ab8863b9d449c451f42f24c8329b",
+    "src/midi_Settings.h": "4c4d8726c2748125f71156327c6efb9d7f2c1897959395e7b0bc50e2101639ca",
+    "src/serialMIDI.h": "afd9a19f8f87a24e8225279043848562a854210f819d6629a27db93e7966d69f"
+  }
+}

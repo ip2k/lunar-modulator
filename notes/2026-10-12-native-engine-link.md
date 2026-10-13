@@ -790,3 +790,38 @@ Maximum engine count remains the owner's release requirement. Eleven-engine
 fit is not an accepted release, and install-time engine packs have not been
 accepted. Full catalogue flash/RAM, target deadlines, complete native MIDI,
 persistence and real OTA/web/recovery acceptance remain open.
+
+### Native jack byte-parser groundwork, 2026-10-13
+
+[verified] Imported unmodified MIT FortySevenEffects Arduino MIDI Library at
+`2d64cc3c2ff85bbee654a7054e36c59694d8d8e4`, with LICENSE, UPSTREAM and a
+hash inventory. Its documented custom transport supports a bounded adapter
+without Arduino. Existing USB packet parsing does not handle serial running
+status; the pinned imported HAL has a UART header but its referenced MIDI UART
+implementation is absent from the local import. The library was selected over
+writing a second MIDI state machine. Primary source:
+https://github.com/FortySevenEffects/arduino_midi_library.
+
+[verified] `firmware/native/midi_stream.cpp` explicitly initializes a singleton
+receive-only parser with a 16-byte SysEx buffer, consumes one byte per call,
+preserves running status across realtime bytes and emits channel messages only.
+System messages are consumed but not dispatched. Reset is required after byte
+loss. Tests found the upstream parser can consume a replacement status as the
+missing data byte of an interrupted message; the adapter resets on new
+non-realtime status and rejects non-seven-bit data. Upstream files are unchanged.
+
+[verified host] Sixteen channel shards pass with ASan/UBSan, including running
+status, interleaved realtime bytes, long SysEx, interrupted messages, reset,
+null outputs and 100,000 hostile bytes per shard. Initial receipts preserve a
+host pointer-size assertion failure and the interrupted-message failure.
+[verified target compile] The actual pi32v2/r3/fprev1 compiler produces a
+160-byte parser instance and 1,540 bytes of object code, with only `memset`
+unresolved and no init-array section. Target harness v1 omitted the working
+native header configuration; v2 matches it and compiles successfully.
+Evidence: Hera native-external-arenas-16-20261012/out/native-midi-stream-v3-
+verification.json and midi-stream-target-v2/{compile.log,report.json,parser.ll}.
+
+This parser is not linked into the firmware builder. The UART driver, jack
+reception, sustain ownership and hardware MIDI acceptance remain unfinished.
+Object code size is not a linked-image size or a realtime performance result.
+No hardware operation or installable-image claim follows from these checks.
