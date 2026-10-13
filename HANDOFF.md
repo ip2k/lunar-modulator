@@ -1,3 +1,32 @@
+# Native release continuation — 2026-10-13
+
+The active owner requirement is a default Lunar image with all thirteen
+production sound engines, plus a selectable image builder for engines, effects
+and songs/sets. Prior physical acceptance covers the timed Trio probe's display,
+keys, encoders and audible notes; it does not cover a release image.
+
+Latest checkpoint `35e860740b2cf00a37ee54b6de71626004db96a6` on
+`feature/2026-10-11@installable-firmware` was pushed and its remote SHA verified.
+The standalone packed-set loader is retained in guarded native links. Sixteen
+Hera containers passed each of 68 audit/artifact regressions and all sixteen
+five-engine link variants, including Plate and embedded text/binary content.
+The safety audit narrowly proves a call-tail/register-move boundary pattern;
+independent flattening verifies the exact eight instruction bytes. See
+`notes/2026-10-13-native-streaming-set-loader.md` for evidence and limits.
+
+No release image or hardware operation resulted. Set activation, sequence
+capacity/dependency admission, complete stack margin, multitrack RAM/timing,
+MIDI ownership, persistence, web builder/installer and physical release/recovery
+acceptance remain open. The timed probe is still deliberately not a release.
+The all-thirteen/default-twelve-voice image exceeds the current protected app
+extent by 144,216 bytes before effects. Owner approval of the reviewable larger
+layout proposal remains pending; do not infer it from the catalogue requirement
+or relax guards by silence. See
+`notes/2026-10-13-native-expanded-layout-proposal.md`. Keep old consumed/ambiguous
+hardware operations retired, and require fresh device admission and matching
+backups before writes. Builds stay on Hera; no containers remain running from
+this checkpoint.
+
 # Active continuation 2026-10-12: receipt replay checkpoint
 
 Goal active. New pure receipt replay passes 48 checks in 16 isolated Hera containers; 16 synthetic tampering cases pending separate v2 run because initial launcher omitted their nodes (caught by XML inventory). No hardware access. New loader guard final composition passes all 16 logical cases (15 v3 plus corrected test-only v4 chunk05); original failure preserved. See notes/2026-10-12-preparation-stop-{trace-receipt,faults}. Original V7 unchanged, passive USB bus1/dev10 UBOOT, no physical cycle needed. Cynthion claim blocked by Packetry; Computer Use locked. All device-authority gates None. Need explicit capture-backed successor admission then captured physical trace before overlapping loader upload. Boot/display/current stock recovery and generic interrupted-write recovery unverified. Branch feature/2026-10-11@installable-firmware; previous verified pushed fef31ad33818f800eed63c58d549a75a22b2fa54. V2 tamper exec session inspect via latest runtime/tool result; source CI 38317015760 in progress. Do not replay consumed original packet, refresh historical snapshot or mark goal complete.
