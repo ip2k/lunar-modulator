@@ -1,0 +1,82 @@
+"""Synthetic ELF layout faults; no vendor binary or hardware is required."""
+from pathlib import Path
+import struct
+import sys
+
+import unittest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools/native'))
+from probe_artifact import FLASH, flatten
+
+
+def fixture():
+    rows = [('.text', FLASH, b'TEXT', 4, 1, 6, FLASH),
+            ('.ram_text', 0x01C00000, b'RAM!', 4, 1, 6, FLASH + 4),
+            ('.data', 0x01C08000, b'DATA', 4, 1, 3, FLASH + 8),
+            ('.bss', 0x01C08004, b'', 16, 8, 3, 0),
+            ('.pool', 0x01C20000, b'', 16, 8, 3, 0),
+            ('.noinit', 0x01C7C000, b'', 16, 8, 3, 0)]
+    values = dict(_start=FLASH, _etext=FLASH + 4, _rt_start=0x01C00000,
+                  _rt_end=0x01C00004, _rt_load=FLASH + 4,
+                  _data_start=0x01C08000, _data_end=0x01C08004, _data_load=FLASH + 8,
+                  _bss_start=0x01C08004, _bss_end=0x01C08014,
+                  _pool_start=0x01C20000, _pool_end=0x01C20010,
+                  _guard0=0x01C74000, _ustack_lo=0x01C74100, _ustack_top=0x01C7A000,
+                  _guard1=0x01C7A000, _sstack_lo=0x01C7A100, _sstack_top=0x01C7C000)
+    names, strings = {}, b'\0'
+    for name in [r[0] for r in rows] + ['.shstrtab', '.strtab', '.symtab']:
+        names[name] = len(strings)
+        strings += name.encode() + b'\0'
+    symbols, symbol_names = bytearray(16), b'\0'
+    for name, value in values.items():
+        symbols += struct.pack('<IIIBBH', len(symbol_names), value, 0, 0x10, 0, 1)
+        symbol_names += name.encode() + b'\0'
+    body, headers, programs = bytearray(52 + 3 * 32), bytearray(40), bytearray()
+    for name, address, blob, size, kind, flags, load in rows:
+        offset = len(body)
+        headers += struct.pack('<10I', names[name], kind, flags, address, offset, size, 0, 0, 4, 0)
+        body += blob
+        if kind == 1:
+            programs += struct.pack('<8I', 1, offset, address, load, size, size, 6 if name == '.data' else 5, 4)
+    for name, blob, kind, link, entsize in [('.shstrtab', strings, 3, 0, 0),
+                                          ('.strtab', symbol_names, 3, 0, 0),
+                                          ('.symtab', symbols, 2, 8, 16)]:
+        headers += struct.pack('<10I', names[name], kind, 0, 0, len(body), len(blob), link, 0, 1, entsize)
+        body += blob
+    body[:52] = b'\x7fELF' + bytes([1, 1, 1]) + bytes(9) + struct.pack(
+        '<HHIIIIIHHHHHH', 2, 0xF1, 1, FLASH, 52, len(body), 0, 52, 32, 3, 40, 10, 7)
+    body[52:148] = programs
+    return bytes(body + headers)
+
+
+def valid_layout():
+    _, app = flatten(fixture())
+    assert app == b'TEXTRAM!DATA'
+
+
+def damaged_contract(fault):
+    data = bytearray(fixture())
+    shoff = struct.unpack_from('<I', data, 32)[0]
+    # Each fault targets a separate contract: entry, architecture, load mapping,
+    # flags, memory reservation, startup symbols, completeness or contiguity.
+    mutations = [(24, FLASH + 2), (16, 0), (52 + 12, FLASH + 4),
+                 (52 + 16, 0), (52 + 24, 6),
+                 (shoff + 40 + 8, 3), (shoff + 80 + 12, 0x01C06000),
+                 (shoff + 120 + 4, 8), (shoff + 160 + 12, 0x01C7FE00),
+                 (shoff + 200 + 20, 0x60000), (shoff + 240 + 12, 0x01C7FD50),
+                 (shoff + 160 + 8, 0), (shoff + 240, 1), (52 + 32 + 12, FLASH + 8),
+                 (52 + 8, FLASH + 1), (shoff + 120 + 16, len(data) + 100)]
+    offset, value = mutations[fault]
+    struct.pack_into('<I', data, offset, value)
+    with unittest.TestCase().assertRaises((ValueError, struct.error, IndexError)):
+        flatten(bytes(data))
+
+
+class ArtifactTests(unittest.TestCase):
+    def test_valid(self):
+        valid_layout()
+
+
+for _fault in range(16):
+    setattr(ArtifactTests, 'test_fault_%02d' % _fault,
+            lambda self, fault=_fault: damaged_contract(fault))

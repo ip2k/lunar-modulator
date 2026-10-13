@@ -82,3 +82,34 @@ has not been claimed. The earlier stock restore admission is stale and must
 not be replayed. Obtain a fresh reviewed loader admission and two matching
 backups before another flash operation. Preserve stock SPL, OTA/cfg and the
 recovery route; no blanket erase or eFuse commands are authorized.
+
+## Private flat application gate [verified]
+
+`tools/native/probe_artifact.py` independently validates the linked pi32v2
+ELF entry, named stack/guard reservations, allocated section permissions and
+bounds, startup copy/zero symbols, ELF physical load addresses, contiguous
+flash payload, and absence of unaccounted file-backed load segments. Unexpected
+allocated sections, including constructor tables, fail closed. It recomputes
+the SDK-free key/eFuse audit against both ELF and exported application bytes.
+The native builder now requires this gate and writes the private artifact.
+
+The current target ELF `bfc32413e1bd9f0aff1c56c4285628fc7033e02d3f913a58e589c301546b3084`
+exports 47,580 bytes, SHA256
+`c9119985006ea031f457c95c78ba5134779ae8dabfc0484715e476d7a7775e6e`.
+Local export and the Hera builder export agree. The artifact remains explicitly
+non-installable, hardware-unadmitted and hardware-untested; this is not a
+startup execution proof, full flash candidate or public firmware package.
+
+The synthetic verifier tests and existing diagnostic layout suite passed
+36 checks locally. Sixteen concurrent Hera containers each ran the valid case
+and one distinct malformed-layout case: all exited zero without OOM. Receipts
+are private under `build/native-engines-16-20261012/`; remote campaign is
+`/home/claude/mvave-fm1/native-engines-16-20261012`. Two initial container
+attempts failed before testing because the image lacked the requested Python
+command/pytest; the final suite uses standard-library unittest and needs no
+additional dependency. All task containers were removed after inspection.
+
+Next: distinct native raw-target geometry/admission profile, startup/recovery
+review and fresh matching device backups before any physical write. The stale
+V8 stock-restore admission remains prohibited. No USB or flash command was
+sent during this artifact work.

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Build a non-installable native Trio integration probe, without SDK archives."""
+"""Build a checked private native Trio probe, without SDK archives."""
 import argparse
 import hashlib
 import json
@@ -98,6 +98,8 @@ def main():
               'installable': False,
               'hardware_tested': False, 'elf_sha256': hashlib.sha256(elf.read_bytes()).hexdigest()}
     (out / 'verification.json').write_text(json.dumps(report, indent=2) + '\n')
+    subprocess.run([sys.executable, str(ROOT / 'tools/native/probe_artifact.py'),
+                    '--elf', str(elf), '--out', str(out / 'artifact')], check=True)
     print(json.dumps(report, indent=2))
 
 
