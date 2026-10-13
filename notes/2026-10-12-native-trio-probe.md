@@ -113,3 +113,18 @@ Next: distinct native raw-target geometry/admission profile, startup/recovery
 review and fresh matching device backups before any physical write. The stale
 V8 stock-restore admission remains prohibited. No USB or flash command was
 sent during this artifact work.
+
+## Native NOR construction profile [verified]
+
+`tools/native/raw_probe.py` adds the separate `native-trio-private` offline
+profile. It reconstructs the application from ELF, rejects a mismatched flat
+image, independently recomputes the SDK-free binary audit and then uses the
+existing strict raw geometry validator. Only application payload, its length
+and directory/payload CRCs may change; the stock SPL and bytes from cfg-tool
+onward remain protected. Both original-loader and fixed-loader backup
+provenance retain their existing distinct validators. There is no USB path,
+physical writer readiness or hardware admission in this constructor.
+
+The native construction and artifact suites plus previous diagnostic layout
+suite passed 41 tests locally using synthetic NOR/reference/ELF bytes. No new
+actual-device full-flash candidate has been emitted from this profile yet.
