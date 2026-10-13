@@ -1503,3 +1503,34 @@ automatic-unlock error; bench-side USBmon remains usable. Next: inspect terminal
 80-test results, bind the closed wrapper to actual receipts using exclusive files,
 then one captured reset and fresh same-port stock identity. Physical diagnostic
 boot/display and full interrupted/corrupt-write acceptance still remain required.
+
+### Stock return verified; MIDI readiness race fixed (2026-10-12)
+
+[verified] Supersedes the pending reset checkpoint above: session54301 completed
+all80 reset/provenance checks in16 Hera containers. Bound physical-stock-reset-003
+submitted one FC0C CBW, then exited1 on post-ioctl sysfs disappearance; SG
+completion/reset causation remain unproven. Normal USB appeared on1-1 bus1/dev11
+4c4a:c755. Its MIDI endpoint appeared later. A separate identity-only successor
+physical-stock-identity-001 sent one10-byte query and verified FM-1_092. Both
+packets are consumed: do not replay or retry them. No flash operation or manual
+power-cycle request in this reset/identity step. Private evidence is saved under
+build/completed-trace-physical-20261012/stock-return-private.tar.gz and on bench01
+/home/claude/fm1-completed-trace-recovery-20261012/run/.
+
+[verified] Canonical wrapper now includes a bounded passive MIDI-readiness wait.
+Session93114 completed57 checks across16 Hera chunks, no failures/errors/skips/
+OOM; terminal container inspections retained and owned containers removed.
+Hera stage /home/claude/completed-trace-reset-wrapper-16-v3-20261012.
+Public evidence notes/2026-10-12-completed-stop-trace-stock-reset/physical-stock-return.md
+and its three new verification JSON receipts. Previous physical attempt retains
+old template8beb87f1; new template1f7bd2b9 has only model acceptance so far.
+Computer Use automatic-unlock failure recurred; no new Cynthion reset capture,
+bench USBmon used. Bug report with timestamped token/time accounting is saved
+notes/2026-10-12-openai-locked-use-bug-report.md, draft only, not submitted.
+
+Goal remains active. Next: review current diagnostic startup/recovery trace and
+clock evidence, prepare a fresh guarded diagnostic campaign from verified stock,
+then physical diagnostic boot/display, interrupted/corrupt-write recovery,
+exact-head CI/review and integration. Do not substitute stock identity for Lunar
+acceptance. Branch feature/2026-10-11@installable-firmware; preceding verified
+pushed commit d34c7e96bd79751c9995b607a07e7039810d3d9b.

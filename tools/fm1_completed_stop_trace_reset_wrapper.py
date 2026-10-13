@@ -119,6 +119,20 @@ def midi_for(usb):
     if len(hits)!=1:raise ValueError('Exactly one same-port raw MIDI endpoint required')
     return hits[0]
 
+
+def wait_for_midi(bridge,usb,capture):
+    """Bounded passive host readiness; no command submission or reset retry."""
+    deadline=time.monotonic()+10
+    while True:
+        capture_alive(capture)
+        if bridge.usb_snapshot(Path('/sys/bus/usb/devices')/usb['path'])!=usb:
+            raise ValueError('Normal USB changed while awaiting MIDI')
+        try:return midi_for(usb)
+        except (FileNotFoundError,ValueError):
+            if time.monotonic()>=deadline:
+                raise ValueError('Same-port MIDI readiness deadline expired; no identity query')
+            time.sleep(.1)
+
 def identity_once(bridge,usb,decoder,capture):
     """One fixed read-only identity write, bounded reads; never send a soft key."""
     midi=midi_for(usb)
@@ -236,6 +250,7 @@ def main():
             if normal is None:raise ValueError('Same-port fresh normal USB not observed; no identity query')
             save(RUN/'normal-snapshot.json',dict(time=time.time(),usb_binding=normal,reset_campaign_sha256=RESET_CAMPAIGN_SHA,
                 normal_enumeration_only=True,reset_completion_proven=False,boot_cause_proven=False))
+            wait_for_midi(prepared.bridge,normal,capture)
             identity_once(prepared.bridge,normal,decoder,capture)
     except BaseException as exc:
         save(RUN/'wrapper-stopped-ambiguous.json',dict(time=time.time(),error=type(exc).__name__,detail=str(exc),retry=False))

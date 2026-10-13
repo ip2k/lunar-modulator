@@ -76,6 +76,7 @@ def model(tmp_path,monkeypatch):
     monkeypatch.setattr(m.subprocess,'Popen',popen);monkeypatch.setattr(m.subprocess,'run',child)
     monkeypatch.setattr(m,'capture_alive',alive);monkeypatch.setattr(m.os,'killpg',kill)
     monkeypatch.setattr(m,'identity_once',identity)
+    monkeypatch.setattr(m,'midi_for',lambda usb:Path('/dev/snd/midiC2D0'))
     return state
 
 def test_closed_first_gate_no_activity(monkeypatch):
@@ -248,3 +249,28 @@ def test_stderr_cleanup_fsync_failure_invalidates_wrapper_success(model,monkeypa
     assert len(model.calls)==len(model.identity)==1
     assert (m.RUN/'wrapper-cleanup-ambiguous.json').exists() and not (m.RUN/'capture-stop.json').exists()
 
+
+
+@pytest.mark.parametrize('fault',['ready','late','timeout','changed','capture','duplicate'])
+def test_bounded_passive_midi_readiness(monkeypatch,fault):
+    m=module();usb=dict(path='1-1',busnum='1',devnum='11',vid='4c4a',pid='c755')
+    calls=[];ticks=iter(range(0,100,2))
+    monkeypatch.setattr(m.time,'monotonic',lambda:next(ticks))
+    monkeypatch.setattr(m.time,'sleep',lambda _:None)
+    monkeypatch.setattr(m.os,'write',lambda *a:pytest.fail('Readiness sent a device command'))
+    def alive(capture):
+        if fault=='capture':raise RuntimeError('capture ended')
+    monkeypatch.setattr(m,'capture_alive',alive)
+    bridge=SimpleNamespace(usb_snapshot=lambda _:dict(usb,devnum='12') if fault=='changed' else dict(usb))
+    def midi(binding):
+        assert binding==usb;calls.append(binding)
+        if fault in ('timeout','duplicate') or (fault=='late' and len(calls)<3):
+            raise ValueError('Endpoint absent or ambiguous')
+        return Path('/dev/snd/midiC2D0')
+    monkeypatch.setattr(m,'midi_for',midi)
+    if fault in ('ready','late'):
+        assert m.wait_for_midi(bridge,usb,object())==Path('/dev/snd/midiC2D0')
+        assert len(calls)==(1 if fault=='ready' else 3)
+    else:
+        with pytest.raises((ValueError,RuntimeError)):m.wait_for_midi(bridge,usb,object())
+        assert len(calls)<=5
