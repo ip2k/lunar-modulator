@@ -33,6 +33,34 @@ The first campaign failed at host linking because the test omitted `-lm`, needed
 by existing sequencer code. That receipt is retained; it is not passing evidence.
 The corrected `content-set-v2-verification.json` is retained privately under
 `build/native-external-arenas-16-20261012/` and on Hera's corresponding `out/`.
-No USB, RAM-loader or flash operation was performed. This component is not yet
-linked or invoked by the native application probe and is not an installable
-firmware milestone.
+No USB, RAM-loader or flash operation was performed. This component is not yet invoked by the native application probe and is not
+an installable firmware milestone.
+
+## Optional native link checkpoint [verified]
+
+`build_application_probe.py --link-set-loader` retains the decoder entry as a
+linker root, reusing freshness-checked state codec objects already in the native
+catalogue. It reports link verification separately from activation, stack margin,
+semantic acceptance and physical verification; all latter flags remain false.
+
+The 16-container `content-loader-link-v2` campaign retained the five-engine
+profile, optional Plate and 0/1/2/4 text/binary source assets. Eight profiles
+without Plate passed the full linked-image audit and protected artifact guard,
+and final ELF content was compared byte-for-byte. Eight Plate profiles linked
+but were rejected by the unchanged safety audit. No campaign-wide pass is claimed.
+
+The audit hit is `.text +0x3751d` in `fm1_app_render`. Pinned vendor disassembly
+of shard 08 shows at 0x0203763a `80 ff 0c 2e 01 00`, a relative call to
+`__umoddi3` at 0x0204a44c; at 0x02037640 `02 15`, a register-pair move.
+The scanned LE32 stub signature `2e 01 00 02` crosses those instructions
+[verified for shard 08]. This is an audit false positive, but the audit remains
+unchanged and these builds remain refused. The existing proof mechanism covers
+complete relative-call payloads for eFuse checks only. Next: extend it narrowly
+with matching ELF-byte/instruction/call-target proofs and negative regression
+cases for real loads, data constants, damaged disassembly and out-of-function
+instructions. Do not bypass the audit or whitelist a whole function.
+
+The first loader-link campaign duplicated codec objects already supplied by the
+catalogue and failed with duplicate definitions; its receipt is retained.
+The corrected campaign used those catalogue objects. No physical operations
+occurred, and all test containers were removed.

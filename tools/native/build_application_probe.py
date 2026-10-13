@@ -118,6 +118,8 @@ def main():
                         help='Checked builder input directory; replaces --modules/--exclude')
     parser.add_argument('--expected-profile-sha256',
                         help='Controller-retained prepared manifest digest')
+    parser.add_argument('--link-set-loader', action='store_true',
+                        help='Retain the standalone streaming set loader; does not activate content')
     parser.add_argument('--shapes-voices', type=int, choices=range(1, 13), default=12,
                         help='Require the selected Shapes polyphony in the catalogue')
     parser.add_argument('--indexed-tft', action='store_true',
@@ -239,6 +241,9 @@ def main():
         content_path = out / 'content_catalogue.c'
         content_path.write_bytes(generated_content)
         extra_sources.append(content_path)
+    if args.link_set_loader:
+        # The freshness-checked catalogue already contains the state codecs.
+        extra_sources.append(ROOT / 'firmware/native/content_set.c')
     for path in [ROOT / 'sim/web/src/fm1_app.c', ROOT / 'engines/host/mod_script.c',
                  ROOT / 'firmware/native/app_probe.c', ROOT / 'firmware/native/instance_pool.c',
                  ROOT / 'firmware/native/tlsf_runtime.c', ROOT / 'engines/src/registry.cc', *extra_sources]:
@@ -271,6 +276,8 @@ def main():
              'fm1_app_pitch_bend', 'fm1_app_all_notes_off')
     if content_inputs:
         roots += ('lunar_content_count', 'lunar_content_catalogue')
+    if args.link_set_loader:
+        roots += ('lunar_content_load_set',)
     elf = out / 'lunar-app-probe.elf'
     command = [str(tc / 'pi32v2/bin/ld'), '--plugin', str(tc / 'common/bin/LLVMgold.so'),
                '--plugin-opt=mcpu=r3', '--plugin-opt=-mattr=+fprev1',
@@ -322,6 +329,10 @@ def main():
             packed_content_bytes=sum(map(len, content_inputs.packed_content)),
             packed_sha256=[hashlib.sha256(p).hexdigest() for p in content_inputs.packed_content],
             sequence_semantics_verified=False, native_playback_verified=False)
+    if args.link_set_loader:
+        report['set_loader'] = dict(native_link_verified=True, activated=False,
+                                   stack_margin_verified=False, hardware_tested=False,
+                                   sequence_semantics_verified=False)
     (out / 'verification.json').write_text(json.dumps(report, indent=2) + '\n')
     subprocess.run([sys.executable, str(ROOT / 'tools/native/probe_artifact.py'),
                     '--elf', str(elf), '--layout', 'combined',
