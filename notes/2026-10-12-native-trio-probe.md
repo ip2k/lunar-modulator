@@ -560,3 +560,28 @@ standard runtime symbols remain dependencies, and device SRAM/flash fit
 and application integration remain gates. Evidence:
 `build/native-catalogue-16-20261012/evidence/reports.tar.gz`; remote
 `/home/claude/mvave-fm1/native-catalogue-16-20261012/out-v4/`.
+
+### Native application storage measurement [verified compiler]
+
+A pi32v2 `sizeof` measurement emits `app_size` of `0x4b5e90` (4,939,408
+bytes) and `app_fixed_size` of `0x35e90` (220,816 bytes) after subtracting
+the simulator's inline sound/effect arenas. Removing those 4,718,592 bytes
+is therefore necessary before a device link; the existing chain RAM meter
+does not change the C structure's allocation. This measurement includes
+shared panel/sequencer/modulation state and TFT storage, but excludes separate
+HAL buffers, ISR stacks and runtime support. Next integration should retain
+the shared application behavior while making sound/effect arenas caller-owned
+and sizing them against the actual native linker regions. Engine selection
+and chain replacement must preserve the existing resource refusal semantics;
+compiler success alone does not establish this storage contract. Private
+measurement: remote native catalogue `out-v4/layout.c`, `layout.o`, `layout.txt`.
+
+Bounded Rarefaction and Serena queries both located `fm1_app_init` and matched
+the initializer body checked directly in this worktree. Both servers select
+the primary checkout, not this isolated worktree, so this is navigation
+evidence only; Rarefaction's zero callers is incomplete (fallback flags/no
+compilation database). Actual pi32v2 compilation remains the target proof.
+
+After the one-use repeat request, passive USB later showed device 31
+`4c4a:8057`, consistent with timed ROM return. Device-29 admission is consumed;
+no new command has been issued to device 31.
