@@ -1,0 +1,9 @@
+{
+  "upstream": "https://github.com/mattconte/tlsf",
+  "commit": "deff9ab509341f264addbd3c8ada533678591905",
+  "files": {
+    "tlsf.c": "2a0f8cfc9cfe6114ccdc6cf22339059440b16f1149b5107bead4ae4c3a0d50e2",
+    "tlsf.h": "f7f73c48810ba60203095667c226e5a600a6ea0f69afba48efff6efbaa628d4f",
+    "LICENSE": "1b1c2502cdd0b824a7a6c44543e028a861c9f734cb72e2ff9b4f012925a3555f"
+  }
+}

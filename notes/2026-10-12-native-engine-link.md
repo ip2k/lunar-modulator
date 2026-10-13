@@ -513,3 +513,20 @@ goal remains active at maximum engine count. No hardware commands occurred.
 Private receipts: build/native-external-arenas-16-20261012/
 wavetable-summary.json and wavetable-verification.json, plus Hera
 out/wavetable-eval-00..15/{report.json,decoder-sections.txt}.
+
+## Shared instance pool checkpoint
+
+[verified] Imported unmodified BSD-3-Clause TLSF at
+`deff9ab509341f264addbd3c8ada533678591905`, with source hashes and licence.
+The main-loop adapter supplies stable 16-byte-aligned instances and records
+live requested bytes. Sixteen Hera sanitizer containers passed 131,072
+allocation/replacement attempts, including retained-byte checks, allocator
+consistency, exhaustion, wrong-pool refusal and final coalescing. These are
+host checks, not firmware or physical acceptance.
+
+[verified] Isolated pi32v2 compile/link retains 1,424 bytes of code and
+requires memcpy from the native runtime. Control metadata consumes 3,188
+bytes inside the supplied pool. The shared application does not yet use this
+allocator. Next: transactional application storage callbacks, native pool
+integration, compressed table access and full application sizing. Maximum
+engine count remains the release target. No hardware commands occurred.
