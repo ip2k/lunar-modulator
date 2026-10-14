@@ -2197,3 +2197,21 @@ Branch feature/2026-10-11@installable-firmware, previous pushedfad3a965.
 Full release goal remains active; next inspect v4, verify sources, production
 startup and stack/RAM/timing, then fresh physical admission and migration/rollback,
 web builder/install and exact-head review/CI/integration. No device command.
+
+## Production-content correction checkpoint (2026-10-13)
+
+[verified] Mixed v4 completed:60 tests/30 containers passed, logs/exit/noOOM and
+source hash receipts inspected. Production host v1/v2 terminal refusal identifies
+retired arp Swing UID7 in frozen 1.0 compatibility fixture, mistakenly selected by
+all13-v2 driver. Corrected all13-v3 selects current production FIRST ORBIT example;
+legacy fixture untouched, legacy native compatibility remains unverified.
+Hera immutable source mixed-project-production-source-v3; live all13 link handle
+45724, production-v3 not started until link passes. Production host reuses existing
+all13 sanitizer objects in out/mixed-project-production-v1/build (no parallel
+writer). New diagnostic reads exact packed records, correct project_boot prototype.
+Receipts/scripts/results notes/2026-10-13-mixed-project-verification/. Previous
+verified pushed6c6d07a3, branch feature/2026-10-11@installable-firmware. Full release
+goal active: production startup/resources/timing, fresh physical admission with
+matching backups/migration/rollback, web installer/builder and reviewCIintegration.
+No device command. Next inspect same link handle, run production-v3, resolve actual
+production failures without weakening strict checks.

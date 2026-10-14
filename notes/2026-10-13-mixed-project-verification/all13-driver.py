@@ -3,9 +3,9 @@ sys.path[:0]=['/src/tools/native','/src/tools/jieli']
 from prepare_image_profile import prepare
 from verify_image_profile import load_prepared_profile
 from audit_link import Elf
-root=pathlib.Path('/out/mixed-project-all13-v2');root.mkdir()
+root=pathlib.Path('/out/mixed-project-all13-v3');root.mkdir()
 shutil.copy('/src/notes/2026-10-13-mixed-project-verification/all13-profile.json',root/'input.json')
-shutil.copy('/src/tests/fixtures/state/1.0/first-orbit.lunar',root/'first-orbit.lunar')
+shutil.copy('/src/engines/state/examples/first-orbit.lunar',root/'first-orbit.lunar')
 prepared=root/'prepared';prepare(root/'input.json',pathlib.Path('/out/host-resources-shared/fm1-state'),prepared)
 expected=hashlib.sha256((prepared/'profile.json').read_bytes()).hexdigest()
 inputs=load_prepared_profile(prepared,expected)

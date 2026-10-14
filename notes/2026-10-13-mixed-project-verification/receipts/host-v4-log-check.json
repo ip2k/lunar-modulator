@@ -1,0 +1,7 @@
+{
+  "logs": 30,
+  "passed_tests": 60,
+  "all_terminal_exit_zero": true,
+  "oom": false,
+  "pytest_quiet_output_verified": true
+}
