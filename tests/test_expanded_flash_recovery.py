@@ -26,7 +26,8 @@ def test_expanded_image_process_loss_and_rollback(sample, tmp_path, direction, f
     exercise_recovery(baseline, target, sample['reference'], app, tmp_path, direction, fault)
 
 
-def exercise_recovery(baseline, target, reference, app, tmp_path, direction, fault, after_bytes=127):
+def exercise_recovery(baseline, target, reference, app, tmp_path, direction, fault, after_bytes=127,
+                      *, geometry_baseline=None):
     device = SimulatedDevice(baseline, path=tmp_path / 'device',
                              writable_ranges=(APP,), app_range=APP,
                              protected_ranges=((0, APP[0]), (APP[1], len(baseline))),
@@ -86,7 +87,8 @@ def exercise_recovery(baseline, target, reference, app, tmp_path, direction, fau
     assert receipt['sector_order'][-1] == APP[0]
     assert reopened.flash == desired
     if direction == 'install':
-        expanded.validate_geometry(baseline, reopened.flash, reference, app)
+        expanded.validate_geometry(baseline if geometry_baseline is None else geometry_baseline,
+                                   reopened.flash, reference, app)
     reopened.reset()
     assert reopened.mode == 'app'
     run_transaction(transaction, loader_session(reopened), 'restore')

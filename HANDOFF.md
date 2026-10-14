@@ -2642,3 +2642,17 @@ Next prepare offline fresh36-to-current-target installation and rollback plans,
 then reviewed live policy and bounded physical probe. No new hardware commands.
 Full owner all13 + web builder/install, settings/rollback, licensing/review/CI
 remain open. Previous verified pushed539fd08d88f6158d747d332c2a6ae2a03f98169a.
+
+## Fresh36 expanded offline transaction checkpoint
+
+Prepared exact current Trio-to-all13 and Trio-to-stock durable plans, with213
+and13 changed sectors respectively and directory sector last. Both load back
+successfully. Private plans build/native-current-candidate-20261013/device36-plans/;
+public summary notes/2026-10-13-current-expanded-candidate/device36-plan-summary.json.
+Nine boundary checks pass;32 private tests need staged Hera inputs. Current40case
+job still live exec6879. Fresh36 source/input snapshots and41case/30chunk launcher
+staged on Hera at fresh36-candidate-source-v1, out/fresh36-candidate-inputs-v1,
+launch-fresh-recovery.py; not launched yet. Next run it after current campaign,
+inspect receipts, then implement/review exact live policy (existing device27
+policy cannot admit this image). No USB mutation, goal active. Previous verified
+pushed c5d42e25b0158bbe4b36a754b0c8fd29a75148f3.
