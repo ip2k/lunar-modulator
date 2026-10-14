@@ -223,6 +223,10 @@ fl_jedec_ram:
         self.assertEqual(record['upstream_sha256'], 'ee9700389d8bf842606b7210e52e125c085a44fbb5d30301cf189d823c4d5e90')
         self.assertNotEqual(record['upstream_sha256'], record['local_sha256'])
         self.assertIn('prior interrupt-enable', record['reason'])
+        self.assertIn('caller source spans', record['reason'])
+        self.assertIn('stages each program page in aligned SRAM', record['reason'])
+        upstream = (SCRIPT.parents[2] / 'firmware/third_party/dinghy/UPSTREAM.md').read_text()
+        self.assertIn('aligned page-staging changes', upstream)
 
     def test_overlay_copies_only_git_tracked_files(self):
         with tempfile.TemporaryDirectory() as directory:
