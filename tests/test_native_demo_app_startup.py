@@ -61,7 +61,7 @@ def startup_tools(tmp_path_factory):
     harness_obj = build / "sim/test/demo_app_startup.o"
     sources = [native / name for name in (
         "project_boot.c", "project_seq.c", "project_engines.c",
-        "project_start.c", "project_mod.c", "project_units.c",
+        "project_start.c", "project_mod.c", "project_units.c", "content_set.c",
         "instance_pool.c", "../third_party/tlsf/tlsf.c",
     )]
     objects = [build / ("demo-native-" + str(i) + ".o") for i in range(len(sources))]

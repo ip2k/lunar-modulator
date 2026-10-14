@@ -7,6 +7,8 @@ import subprocess
 
 import pytest
 
+from tests.native_test_flags import native_host_link_flags
+
 ROOT = Path(__file__).resolve().parents[1]
 PROJECTS = (
     ('afterglow-relay', 76),
@@ -39,10 +41,12 @@ def native_stage_probe(tmp_path_factory):
 
     cc = 'cc'
     cxx = 'c++'
-    includes = [ROOT / 'firmware/native', ROOT / 'engines/include', ROOT / 'engines/state']
+    includes = [ROOT / 'firmware/native', ROOT / 'engines/include', ROOT / 'engines/state',
+                ROOT / 'sim/web/src']
     compile_objects = [
         ROOT / 'firmware/native/project_units.c',
         ROOT / 'firmware/native/project_seq.c',
+        ROOT / 'firmware/native/content_set.c',
         *(ROOT / 'engines/state' / (name + '.c') for name in
           ('state_bin', 'state_names', 'state_movy1', 'fm1_num', 'fm1_deflate')),
         *(ROOT / 'engines/seq' / (name + '.c') for name in
@@ -54,6 +58,7 @@ def native_stage_probe(tmp_path_factory):
         obj = build_root / ('stage-%02d.o' % index)
         subprocess.run([
             cc, '-std=c99', '-Os', '-Wall', '-Wextra', '-Werror',
+            '-ffunction-sections', '-fdata-sections',
             *(arg for path in includes for arg in ('-I', str(path))),
             '-c', str(source), '-o', str(obj),
         ], check=True)
@@ -77,7 +82,8 @@ def native_stage_probe(tmp_path_factory):
     assert any(path.name == 'state_registry.o' for path in registry_objects)
     probe = build_root / 'demo-sequence-stage'
     subprocess.run([
-        cxx, '-o', str(probe), *(str(path) for path in test_objects),
+        cxx, *native_host_link_flags(), '-o', str(probe),
+        *(str(path) for path in test_objects),
         *(str(path) for path in registry_objects), '-lm',
     ], check=True)
     return tool, probe, build
