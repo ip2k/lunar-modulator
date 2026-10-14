@@ -1,4 +1,29 @@
-# Latest continuation authority — 2026-10-14 (distinct recovery and real writer)
+# Latest continuation authority — 2026-10-14 (scatter recovery and trailer safety)
+
+Coordinator checkpoint `48680e61897f5cf8e7daef24a589eb1a10dde9c6` is pushed
+and remote SHA verified. The reviewed storage48 migration plan is integrated;
+worker `a8120d9e` is also GitHub-backed. The new test-only proposed scatter-map
+harness checks all three boundaries and sweeps partial erase/program failures
+in both replacement directions with distinct payloads. Both extent harnesses
+pass on the Mac with ASan/UBSan. Physical ownership/admission is unchanged.
+See `notes/2026-10-14-storage48-scatter-model.md`.
+
+Offline SPL/cleanup follow-up identifies trailer candidates in every proposed
+slot sector; avoiding the OTA stage alone cannot prevent loader-record
+collisions. The worker is documenting a format invariant that leaves trailer
+bytes erased. NOR buffer-residency code is under review: its metadata hash and
+actual pi32v2 stack/copy closure are pending. Trusted companion SET preloads
+are still under focused regression testing; native sequencer replacement
+preconditions must pass without weakening production validation.
+
+No new hardware command was sent. Owner observations of the prior Event120
+boot remain pending; the last fresh passive evidence is returned ROM device42.
+Event Horizon Showcase is the approved default. Older CI38622350045 remains
+eleven jobs passed/two Python jobs running, not current-head green evidence.
+The full physical/web release goal remains ACTIVE. No main merge, shipment or
+deployment. SAVE and write-capable native OTA remain disabled.
+
+# Historical continuation authority — 2026-10-14 (distinct recovery and real writer)
 
 Coordinator code checkpoint `8d103100dbecfe079a65068d5bbc4676a160b89c`
 is pushed and remote SHA verified. Recovery worker `c936e738` and real-writer
