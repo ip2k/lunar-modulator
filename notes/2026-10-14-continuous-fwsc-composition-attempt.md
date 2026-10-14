@@ -50,3 +50,25 @@ No package integrity result exists. All hardware/installability flags in the
 captured tuple remain false; no release or device claim follows from this
 attempt. After the schema/test correction is reviewed, rerun the exact in-memory
 call against the same unchanged inputs and tuple digest.
+
+
+## Strict schema correction and in-memory retry
+
+The offline schema now requires `toolchain_tree_sha256` as a tuple field,
+validates its lowercase 64-hex format, and cross-checks the value against the
+independently hashed build-provenance receipt. Tests reject a tuple with the
+field missing, an invalid digest, and provenance with the field missing or
+changed. The real positive-path fixture now uses the current continuous D7000
+tuple; the retained earlier companion diagnostic tuple predates this required
+provenance field and is intentionally no longer accepted by this tuple schema.
+
+The same externally anchored tuple and retained raw inputs were composed in
+memory. Focused package tests: 8 passed, 0 skipped. The separate in-memory
+validation returned 978,484 bytes (SHA-256
+`0ca847469d7d05e48aba6a8b526b2087029a8e07f9fb48c9c958a3ba87f89dcf`); the
+report says `package_returned_in_memory=true`, `file_written=false`, and
+`hardware_admitted`, `hardware_tested`, and `installable` are all false. It
+retains application identity `FM-1_500` and recovery identity `FM-1_000`; the
+measured nested stage slack in this model is 13,964 bytes. These are offline
+model results only, not evidence of stock-loader acceptance, device install,
+recovery, or runtime/perceptual acceptance. No package file was written.
