@@ -21,7 +21,9 @@
 static inline void *fl_far(void *p) { void *volatile q = p; return q; }
 #define FL_FAR(fn) ((__typeof__(&fn))fl_far((void *)&fn))
 
+#ifndef REG32
 #define REG32(a) (*(volatile uint32_t *)(a))
+#endif
 #define SFC_CON         REG32(0x40200u)            /* bit31 busy; [11:8] read mode */
 #define SFCENC_CON      (*(volatile uint8_t *)0x40300u)  /* b0 decrypt, b1 plain window */
 #define SFCENC_UNENC_H  REG32(0x40308u)            /* WO, XIP (CPU) address */
@@ -53,9 +55,24 @@ static inline void *fl_far(void *p) { void *volatile q = p; return q; }
 #define FL_RANGE_OK(off, n) (FL_STORE_OK(off, n) || FL_IN(off, n, FL_OTA_LO, FL_OTA_HI))
 #endif
 
-typedef struct { uint32_t sfc_con, spi_con; } fl_saved_t;
+typedef struct { uint32_t sfc_con, spi_con, iomap_con0; } fl_saved_t;
 
-RAMINL void fl_csync(void) { __asm__ volatile("csync" ::: "memory"); }
+#ifndef FL_CSYNC
+#define FL_CSYNC() __asm__ volatile("csync" ::: "memory")
+#endif
+#ifndef FL_FLUSHINV
+#define FL_FLUSHINV(a) __asm__ volatile("flushinv [%0]" :: "r"(a) : "memory")
+#endif
+#ifndef FL_SPI_WAIT
+#define FL_SPI_WAIT() fl_spi_wait()
+#endif
+#ifndef FL_IRQ_DISABLE
+#define FL_IRQ_DISABLE() __asm__ volatile("cli" ::: "memory")
+#endif
+#ifndef FL_IRQ_RESTORE_ENABLED
+#define FL_IRQ_RESTORE_ENABLED() __asm__ volatile("csync\n\tsti" ::: "memory")
+#endif
+RAMINL void fl_csync(void) { FL_CSYNC(); }
 RAMINL void fl_cache_idle(void) { while (!(CACHE_CON & 0x4000u)) ; }
 RAMINL void fl_delay(uint32_t n) { volatile uint32_t i = n; while (i--) ; }
 
@@ -74,24 +91,44 @@ RAMINL int fl_spi_wait(void)
     SPI0_CON |= 0x4000u;
     return n ? 0 : -1;
 }
-RAMINL void fl_tx(uint8_t b)
+RAMINL int fl_tx(uint8_t b)
 {
+    int rc;
     SPI0_CON |= 8u; SPI0_CON &= ~0x1000u;
-    SPI0_BUF = b; fl_spi_wait();
+    SPI0_BUF = b; rc = FL_SPI_WAIT();
     SPI0_CON &= ~8u;
+    return rc;
 }
-RAMINL uint8_t fl_rx(void)
+RAMINL int fl_rx(uint8_t *value)
 {
-    uint8_t v;
+    int rc;
     SPI0_CON |= 8u; SPI0_CON |= 0x1000u;
-    SPI0_BUF = 0xFFu; fl_spi_wait();
-    v = (uint8_t)SPI0_BUF;
+    SPI0_BUF = 0xFFu; rc = FL_SPI_WAIT();
+    if (!rc) *value = (uint8_t)SPI0_BUF;
     SPI0_CON &= ~8u;
-    return v;
+    return rc;
 }
-RAMINL void fl_addr(uint32_t a) { fl_tx((uint8_t)(a >> 16)); fl_tx((uint8_t)(a >> 8)); fl_tx((uint8_t)a); }
-RAMINL uint8_t fl_rdsr(uint8_t cmd) { uint8_t v; fl_cs(0); fl_tx(cmd); v = fl_rx(); fl_cs(1); return v; }
-RAMINL void fl_wren(void) { fl_cs(0); fl_tx(0x06); fl_cs(1); }
+RAMINL int fl_addr(uint32_t a)
+{
+    if (fl_tx((uint8_t)(a >> 16))) return -5;
+    if (fl_tx((uint8_t)(a >> 8))) return -5;
+    if (fl_tx((uint8_t)a)) return -5;
+    return 0;
+}
+RAMINL int fl_rdsr(uint8_t cmd, uint8_t *value)
+{
+    int rc;
+    fl_cs(0); rc = fl_tx(cmd);
+    if (!rc) rc = fl_rx(value);
+    fl_cs(1);
+    return rc ? -5 : 0;
+}
+RAMINL int fl_wren(void)
+{
+    int rc;
+    fl_cs(0); rc = fl_tx(0x06); fl_cs(1);
+    return rc ? -5 : 0;
+}
 
 RAMINL int fl_enter(fl_saved_t *s)
 {
@@ -99,6 +136,7 @@ RAMINL int fl_enter(fl_saved_t *s)
     fl_cache_idle();
     s->sfc_con = SFC_CON;
     s->spi_con = SPI0_CON;
+    s->iomap_con0 = IOMAP_CON0;
     mode = (s->sfc_con >> 8) & 0xFu;
     if (mode == 6u || mode == 7u)                 /* continuous-read XIP: not handled here */
         return -1;
@@ -114,7 +152,7 @@ RAMINL int fl_enter(fl_saved_t *s)
 RAMINL void fl_exit(const fl_saved_t *s)
 {
     SPI0_CON = s->spi_con;
-    IOMAP_CON0 |= 0x20u;
+    IOMAP_CON0 = (IOMAP_CON0 & ~0x20u) | (s->iomap_con0 & 0x20u);
     fl_csync();
     while ((int32_t)SFC_CON < 0) ;
     SFC_CON = s->sfc_con;                         /* XIP back on */
@@ -126,7 +164,7 @@ RAMINL void fl_inval(uint32_t off, uint32_t len)
     fl_cache_idle();
     for (; a < e; a += 32u) {
         fl_csync();
-        __asm__ volatile("flushinv [%0]" :: "r"(a) : "memory");
+        FL_FLUSHINV(a);
         fl_csync();
         fl_cache_idle();
     }
@@ -136,31 +174,45 @@ RAMINL int fl_wait_ready(uint32_t max_us, uint32_t *took_us)
     uint32_t t0 = T4_CNT, dt;
     for (;;) {
         dt = (T4_CNT - t0) / 24u;
-        if (!(fl_rdsr(0x05) & 1u)) { *took_us = dt; return 0; }
+        uint8_t status;
+        if (fl_rdsr(0x05, &status)) { *took_us = dt; return -5; }
+        if (!(status & 1u)) { *took_us = dt; return 0; }
         if (dt > max_us) { *took_us = dt; return -4; }
     }
 }
 
 /* ---- entry points: IRQs OFF, args/buffers in RAM ---- */
 
-static RAMFN uint32_t fl_jedec_ram(void)                 /* expect 0x856014 */
+static RAMFN int fl_jedec_checked_ram(uint32_t *result) /* expect 0x856014 */
 {
-    fl_saved_t s; uint32_t id;
-    if (fl_enter(&s)) return 0;
-    fl_cs(0); fl_tx(0x9F);
-    id = (uint32_t)fl_rx() << 16; id |= (uint32_t)fl_rx() << 8; id |= fl_rx();
-    fl_cs(1);
-    fl_exit(&s);
-    return id;
+    fl_saved_t s; uint32_t id = 0; uint8_t byte; int rc = 0;
+    if (fl_enter(&s)) return -2;
+    fl_cs(0);
+    if (fl_tx(0x9F) || fl_rx(&byte)) rc = -5;
+    else id = (uint32_t)byte << 16;
+    if (!rc && fl_rx(&byte)) rc = -5;
+    else if (!rc) id |= (uint32_t)byte << 8;
+    if (!rc && fl_rx(&byte)) rc = -5;
+    else if (!rc) id |= byte;
+    fl_cs(1); fl_exit(&s);
+    if (rc) return rc;
+    *result = id;
+    return 0;
 }
+/* Compatibility for existing boot checks: transport errors cannot equal the
+ * sole accepted JEDEC ID, and checked callers should use the status API. */
+static RAMFN uint32_t fl_jedec_ram(void) { uint32_t id; return fl_jedec_checked_ram(&id) ? 0xFFFFFFFFu : id; }
 
-static RAMFN uint32_t fl_status_ram(void)                /* SR1 | SR2 << 8 */
+static RAMFN int fl_status_checked_ram(uint32_t *result) /* SR1 | SR2 << 8 */
 {
-    fl_saved_t s; uint32_t v;
-    if (fl_enter(&s)) return 0xFFFFFFFFu;
-    v = fl_rdsr(0x05) | ((uint32_t)fl_rdsr(0x35) << 8);
+    fl_saved_t s; uint8_t sr1, sr2; int rc;
+    if (fl_enter(&s)) return -2;
+    rc = fl_rdsr(0x05, &sr1);
+    if (!rc) rc = fl_rdsr(0x35, &sr2);
     fl_exit(&s);
-    return v;
+    if (rc) return rc;
+    *result = (uint32_t)sr1 | ((uint32_t)sr2 << 8);
+    return 0;
 }
 
 static RAMFN int fl_erase4k_ram(uint32_t off, uint32_t *took_us)
@@ -169,10 +221,19 @@ static RAMFN int fl_erase4k_ram(uint32_t off, uint32_t *took_us)
     if (!FL_RANGE_OK(off, 0x1000u) || (off & 0xFFFu))
         return -1;
     if (fl_enter(&s)) return -2;
-    fl_wren();
-    if (!(fl_rdsr(0x05) & 2u)) rc = -3;           /* WEL did not set */
-    else {
-        fl_cs(0); fl_tx(0x20); fl_addr(off); fl_cs(1);
+    rc = fl_wren();
+    if (!rc) {
+        uint8_t status;
+        rc = fl_rdsr(0x05, &status);
+        if (!rc && !(status & 2u)) rc = -3;       /* WEL did not set */
+    }
+    if (rc && rc != -3) rc = -5;
+    if (!rc) {
+        fl_cs(0);
+        if (fl_tx(0x20) || fl_addr(off)) rc = -5;
+        fl_cs(1);
+    }
+    if (!rc) {
         fl_inval(off, 4096u);
         rc = fl_wait_ready(500000u, took_us);     /* generic NOR max 400 ms */
     }
@@ -186,12 +247,20 @@ static RAMFN int fl_prog_ram(uint32_t off, const uint8_t *src, uint32_t n, uint3
     if (!FL_RANGE_OK(off, n) ||
         n == 0 || n > 256u || ((off & 0xFFu) + n) > 256u) return -1;    /* one page, no wrap */
     if (fl_enter(&s)) return -2;
-    fl_wren();
-    if (!(fl_rdsr(0x05) & 2u)) rc = -3;
-    else {
-        fl_cs(0); fl_tx(0x02); fl_addr(off);
-        for (i = 0; i < n; i++) fl_tx(src[i]);
+    rc = fl_wren();
+    if (!rc) {
+        uint8_t status;
+        rc = fl_rdsr(0x05, &status);
+        if (!rc && !(status & 2u)) rc = -3;
+    }
+    if (rc && rc != -3) rc = -5;
+    if (!rc) {
+        fl_cs(0);
+        if (fl_tx(0x02) || fl_addr(off)) rc = -5;
+        for (i = 0; !rc && i < n; i++) if (fl_tx(src[i])) rc = -5;
         fl_cs(1);
+    }
+    if (!rc) {
         fl_inval(off, n);
         rc = fl_wait_ready(10000u, took_us);      /* generic NOR max 3 ms */
     }
@@ -201,13 +270,13 @@ static RAMFN int fl_prog_ram(uint32_t off, const uint8_t *src, uint32_t n, uint3
 
 static RAMFN int fl_read_ram(uint32_t off, uint8_t *dst, uint32_t n)   /* 0x0B fast read */
 {
-    fl_saved_t s; uint32_t i;
+    fl_saved_t s; uint32_t i; int rc = 0;
     if (fl_enter(&s)) return -2;
-    fl_cs(0); fl_tx(0x0B); fl_addr(off); fl_tx(0xFF);
-    for (i = 0; i < n; i++) dst[i] = fl_rx();
-    fl_cs(1);
-    fl_exit(&s);
-    return 0;
+    fl_cs(0);
+    if (fl_tx(0x0B) || fl_addr(off) || fl_tx(0xFF)) rc = -5;
+    for (i = 0; !rc && i < n; i++) { uint8_t byte; if (fl_rx(&byte)) rc = -5; else dst[i] = byte; }
+    fl_cs(1); fl_exit(&s);
+    return rc;
 }
 
 /* ---- XIP side (normal .text) ---- */
@@ -220,13 +289,13 @@ static void fl_plain_window_init(void)
     SFCENC_UNENC_L = FL_XIP(0x93000u);            /* 0x0208F000 */
     SFCENC_UNENC_H = 0x07FFFFFFu;
     SFCENC_CON |= 2u;
-    __asm__ volatile("cli" ::: "memory");
+    FL_IRQ_DISABLE();
     fl_inval(0x93000u, 0x100000u - 0x93000u);     /* drop any decrypted lines */
-    __asm__ volatile("csync\n\tsti" ::: "memory");
+    FL_IRQ_RESTORE_ENABLED();
 }
 
-static inline uint32_t irq_save(void) { __asm__ volatile("cli" ::: "memory"); return 0; }
-static inline void irq_restore(uint32_t f) { (void)f; __asm__ volatile("csync\n\tsti" ::: "memory"); }
+static inline uint32_t irq_save(void) { FL_IRQ_DISABLE(); return 0; }
+static inline void irq_restore(uint32_t f) { (void)f; FL_IRQ_RESTORE_ENABLED(); }
 
 static int fl_erase4k(uint32_t off, uint32_t *took_us)
 {
