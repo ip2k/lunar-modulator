@@ -7,6 +7,15 @@ the checked-out repository. The [direction note](2026-10-12-native-gpl-firmware-
 separates the reusable MIT core from the combined GPL application and requires
 component notices and complete corresponding source.
 
+## Subsequent repository change
+
+[verified: repository] Commit `4b52219e` installed the GPL-3.0-only root
+LICENSE, preserved the prior MIT grant in LICENSE-MIT, and documented reusable
+core/component boundaries in LICENSING.md. The inventory below predates that
+change; its statements that the root licence remains MIT are historical.
+The image-specific component/source bundle and physical/release gates remain
+open. See the current root licensing files for repository terms.
+
 ## Evidence boundary
 
 The retained [save-scheduler link receipt](2026-10-14-save-scheduler-verification/link-receipt.json)
