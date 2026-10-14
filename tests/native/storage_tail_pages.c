@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* Test-only packed logical slots over the documented storage48 sector map. */
+/* Fault model for the unbound packed adapter over the proposed sector map. */
 #include "project_store.h"
+#include "tail_page_io.h"
 #include <assert.h>
 #include <stdint.h>
 #include <string.h>
@@ -50,51 +51,42 @@ static int read_packed(unsigned slot,uint32_t off,uint8_t *out,uint32_t n) {
     }
     return 0;
 }
+static int backend_read(void *ctx,uint32_t off,void *out,uint32_t n) {
+    (void)ctx;
+    assert(off<=FLASH_BYTES && n<=FLASH_BYTES-off);
+    memcpy(out,flash+off,n); return 0;
+}
+static int backend_erase(void *ctx,uint32_t off) {
+    (void)ctx;
+    assert(off%PHYS_SECTOR==0u && off<FLASH_BYTES && mapped_sector(off));
+    if(programs) return -1;
+    int fail=mutate_should_fail();
+    uint32_t n=(fail&&failure_mode==1u)?PHYS_SECTOR/2u:PHYS_SECTOR;
+    memset(flash+off,0xff,n);
+    return fail?-1:0;
+}
+static int backend_program(void *ctx,uint32_t off,const void *data,uint32_t n) {
+    const uint8_t *src=data; (void)ctx;
+    assert(mapped_sector(off) && n && n<=TAIL_PAGE-off%TAIL_PAGE);
+    assert(off%PHYS_SECTOR<DATA_PER_SECTOR && n<=DATA_PER_SECTOR-off%PHYS_SECTOR);
+    programs++;
+    int fail=mutate_should_fail();
+    uint32_t write_n=(fail&&failure_mode==1u)?n/2u:n;
+    for(uint32_t i=0;i<write_n;i++) {
+        if((flash[off+i]&src[i])!=src[i]) return -1;
+        flash[off+i]=src[i];
+    }
+    return fail?-1:0;
+}
+static lunar_tail_io mapper;
 static int io_read(void *ctx,uint32_t off,void *out,uint32_t n) {
-    uint32_t in; unsigned slot; (void)ctx;
-    if(!out&&n) return -1;
-    slot=(unsigned)logical_slot(off); in=logical_in_slot(off);
-    if(slot>=2u || in>LOGICAL_SLOT || n>LOGICAL_SLOT-in) return -1;
-    return read_packed(slot,in,out,n);
+    (void)ctx; return lunar_tail_read(&mapper,off,out,n);
 }
 static int io_erase(void *ctx,uint32_t off) {
-    uint32_t end,q,first,last; unsigned slot; (void)ctx;
-    if(off%LP_SECTOR || off>=2u*LOGICAL_SLOT) return -1;
-    if(programs) return -1; /* begin() erases the inactive slot before writes. */
-    slot=(unsigned)logical_slot(off); q=logical_in_slot(off); end=q+LP_SECTOR;
-    if(slot>=2u || end>LOGICAL_SLOT) return -1;
-    first=q/DATA_PER_SECTOR; last=(end-1u)/DATA_PER_SECTOR;
-    for(uint32_t sector=first;sector<=last;sector++) {
-        uint32_t phys=slot_sector[slot][sector];
-        int fail=mutate_should_fail();
-        uint32_t n=(fail&&failure_mode==1u)?PHYS_SECTOR/2u:PHYS_SECTOR;
-        memset(flash+phys,0xff,n);
-        if(fail) return -1;
-    }
-    return 0;
+    (void)ctx; return lunar_tail_erase(&mapper,off);
 }
 static int io_program(void *ctx,uint32_t off,const void *data,uint32_t n) {
-    const uint8_t *src=data; unsigned slot; uint32_t in; (void)ctx;
-    if(!data&&n) return -1;
-    slot=(unsigned)logical_slot(off); in=logical_in_slot(off);
-    if(slot>=2u || in>LOGICAL_SLOT || n>LOGICAL_SLOT-in) return -1;
-    programs++;
-    while(n) {
-        uint32_t phys=map_byte(slot,in);
-        uint32_t chunk=DATA_PER_SECTOR-(in%DATA_PER_SECTOR);
-        uint32_t page=TAIL_PAGE-(phys%TAIL_PAGE);
-        if(chunk>page) chunk=page;
-        if(chunk>n) chunk=n;
-        int fail=mutate_should_fail();
-        uint32_t write_n=(fail&&failure_mode==1u)?chunk/2u:chunk;
-        for(uint32_t i=0;i<write_n;i++) {
-            if((flash[phys+i]&src[i])!=src[i]) return -1;
-            flash[phys+i]=src[i];
-        }
-        if(fail) return -1;
-        src+=chunk; in+=chunk; n-=chunk;
-    }
-    return 0;
+    (void)ctx; return lunar_tail_program(&mapper,off,data,n);
 }
 static int io_validate(void *ctx,uint32_t off,uint32_t n) {
     uint8_t prefix[8]; unsigned slot; uint32_t in; (void)ctx;
@@ -208,6 +200,10 @@ int main(void) {
     lunar_project_store store={0};
     int slot; uint32_t gen,len;
     uint8_t byte=0,probe[2];
+    lunar_tail_backend backend={NULL,backend_read,backend_erase,backend_program};
+    uint32_t sectors[24];
+    for(unsigned i=0;i<24;i++) sectors[i]=slot_sector[i/12u][i%12u];
+    assert(!lunar_tail_init(&mapper,&backend,sectors,24u,LOGICAL_SLOT,FLASH_BYTES));
     fill_body(old_body,old_len,"OLD_BODY",0x10293847u);
     fill_body(new_body,new_len,"NEW_BODY",0xabcdef01u);
     initialize_sentinel_flash();
@@ -243,5 +239,17 @@ int main(void) {
     }
     assert_tail_pages_and_unused_suffix(); assert_candidate_signature_gates();
     assert_outside_storage_unchanged();
+    {
+        uint32_t bad[24]; memcpy(bad,sectors,sizeof bad);
+        bad[23]=bad[0];
+        assert(lunar_tail_init(&mapper,&backend,bad,24u,LOGICAL_SLOT,FLASH_BYTES));
+        assert(!mapper.ready && io_read(NULL,0,&byte,1u));
+        assert(lunar_tail_init(&mapper,&backend,sectors,23u,LOGICAL_SLOT,FLASH_BYTES));
+        assert(lunar_tail_init(&mapper,&backend,sectors,24u,12u*LP_SECTOR,FLASH_BYTES));
+        assert(lunar_tail_init(&mapper,&backend,sectors,24u,LOGICAL_SLOT,0xf6000u));
+        bad[23]=UINT32_MAX-4095u;
+        assert(lunar_tail_init(&mapper,&backend,bad,24u,LOGICAL_SLOT,UINT32_MAX));
+        assert(mutations==0);
+    }
     return 0;
 }

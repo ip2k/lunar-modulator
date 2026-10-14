@@ -1,4 +1,33 @@
-# Latest continuation authority — 2026-10-14 (NOR page staging verified)
+# Latest continuation authority — 2026-10-14 (SET and reserved-tail integration)
+
+Coordinator checkpoint before this note: `3807f3de8d0e1d1ef9b659678a1b15607835bc5c`,
+pushed and GitHub SHA verified. SET backend worker 04526f83, full-tail fault
+worker 3d1b5051 and NOR runtime audit worker 62b68728 are integrated and
+GitHub-backed with verified SHAs. Companion SET browser UI work continues on
+Hera. Controller regression worker is fixing its missing ordered-content
+fixtures and a real firmware-identity variable shadowing bug in the receipt.
+
+The unbound `tail_page_io.h` adapter now replaces the test-only mapping in the
+full-bound storage harness. Its focused ASan/UBSan test passes on the Mac.
+The service/profile/image-catalogue/receipt/reserved-tail subset also passes
+(one skip). A broader invocation failed because FM1_STATE_TOOL was omitted;
+do not count it as a completed SET loader regression run. Hera worker reruns
+with a fresh state tool. SAVE and write-capable native OTA remain disabled.
+
+CI38628940753 is in progress at exact 0fc23e9847e448afdbbc11f50b314dcda9da9fc1;
+it excludes subsequent SET and adapter changes. Earlier CI38622350045 passed
+all thirteen jobs at eac55b1f1b684f883805f90dc80b1fac2a091ac1. Neither is proof
+of current-head CI.
+
+Owner approved Event Horizon Showcase as the default and said available to
+watch. Observations of the already-sent two-minute Event120 boot remain pending.
+Fresh passive lsusb reports ROM device42 (4c4a:8057). No new hardware command
+was sent. A new campaign needs fresh paired device-bound backups; consumed
+device40 receipts cannot be reused. Full physical/web release goal ACTIVE;
+no main merge, shipment or deployment. NOR part research identifies shared
+RDID across variants; a conservative watchdog strategy remains under review.
+
+# Historical continuation authority — 2026-10-14 (NOR page staging verified)
 
 Coordinator code checkpoint `deefe95e2478eae73696daf7763b6d5fa5415cd5` is
 pushed and GitHub SHA verified. NOR worker branch
