@@ -3297,3 +3297,36 @@ durations, dependencies and acceptance limits. Root owns integration and backup.
 Use native profile preparation, embedding and startup-project selection; packed
 content identity and exact link/RAM evidence must precede install admission.
 No physical device commands performed for this addition. Goal remains ACTIVE.
+
+## Selectable original demos and real packing — 2026-10-14 checkpoint
+
+Active objective remains the complete verified all-thirteen-engine firmware and
+web installation release, including persistence/recovery and full-song default.
+Prior pushed base e435edadad48641e9e08c0023b71b80b5692cd44 contains catalogue/staging
+and corrected collector capacity notes. Source-derived SAVE ceiling is 43,130 B,
+not the superseded 46,458 B. Actual dense collector fixture is 35,176 B; a 48 KiB
+test geometry is not an admitted physical layout or reduced generic import cap.
+
+Ordered demo controller now verifies real codec outputs and stable project IDs,
+startup choice, hashes and dependencies. Hera fresh exact-base fm1-state packs
+Afterglow 8,888 B, Event Horizon 10,136 B, Packet Bloom 9,528 B, Neon Transit
+9,624 B; combined 38,176 B. All three controller tests passed in a 43-test suite.
+Production profile uses 55 IDs excluding three developer test modules; collector
+binary itself was built with all 58. Receipts and provenance are retained under
+notes/2026-10-14-demo-packed-validation*. Neither packing nor host RAM estimates
+prove linked image fit or physical acceptance. Originals remain legacy examples.
+
+Independent matched all13 full-song -Oz/-Os fresh target builds assigned on Hera;
+stale retained object manifests cannot substitute. Native project journal worker
+adds real torn erase/program and lost-ack cases for both 100 KiB and 48 KiB slots,
+preserving legacy rejection/corruption tests and adding large payload coverage.
+Do not commit its dirty files until its expanded handoff is reviewed.
+Bank characterization/migration notes record only read-only historical evidence:
+erased bytes are not proof of ownership. No physical bank reuse admitted.
+No USB, MIDI, flash, power or reboot commands issued in this continuation.
+
+Remaining: frontend request adapter/UI/build service, exact target link/RAM and
+full-song semantics, safe owned persistent flash extent/migration/rollback,
+watched all13 boot/audio/controls/MIDI/SAVE/reload, web flash/recovery validation,
+owner full-song acceptance, review/CI/merge/source notices and public release.
+Goal ACTIVE. Mac coordinator owns device writes; Hera workers remain offline.
