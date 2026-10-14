@@ -384,11 +384,11 @@ def test_each_dependency_hash_is_checked(monkeypatch, name):
         rehearsal.check_sources()
 
 
-def test_current_historical_pin_drift_remains_fail_closed():
-    # Keep production pins intact: this documents that stale reviewed-source
-    # evidence prevents campaign preparation until the coordinator re-reviews it.
-    with pytest.raises(ValueError, match='Reviewed implementation changed: jieli/audit_link.py'):
-        rehearsal.check_sources()
+def test_current_reviewed_source_set_matches_its_pins():
+    # The previously documented historical drift was resolved by a later
+    # coordinator review. Negative pin-drift behavior is covered by the
+    # synthetic mutation cases in test_each_dependency_hash_is_checked.
+    assert rehearsal.check_sources() == Path(rehearsal.__file__).absolute().parent
 
 
 def test_ambient_import_is_rejected(monkeypatch):

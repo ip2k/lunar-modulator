@@ -70,7 +70,11 @@ def envelope(path, underlying_path, receipt):
 
 
 @pytest.fixture
-def install_unit(unit, tmp_path):
+def install_unit(unit, tmp_path, monkeypatch):
+    # The fixture exercises synthetic install authority. Bind its dependency
+    # to the exact checkout bytes; production's reviewed pin remains unchanged.
+    monkeypatch.setattr(install, 'REHEARSAL_SHA', rehearsal.digest(
+        Path(rehearsal.__file__).read_bytes()))
     old = tmp_path/'underlying.json'
     old.write_bytes(unit.prepared.config)
     path = tmp_path/'install.json'

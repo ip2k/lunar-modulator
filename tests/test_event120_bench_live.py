@@ -124,6 +124,8 @@ def test_mock_failure_consumes_marker_and_disables_retry(actual_inputs):
 
 def test_preserved_v1_stop_evidence_is_exact_and_offline():
  from tools.native.event120_bench_policy import verify_v1_stopped
+ if not live.V1_EVIDENCE_ROOT.is_dir():
+  pytest.skip('Exact retained Hera V1 evidence is not part of public CI inputs')
  proof=verify_v1_stopped(live.V1_EVIDENCE_ROOT,live.V1_CAMPAIGN_SHA)
  assert proof["events"]==["native_transaction_prepared","native_transaction_stopped"]
  assert proof["sg_commands"]==proof["reset_commands"]==proof["write_intents"]==0
@@ -131,6 +133,12 @@ def test_preserved_v1_stop_evidence_is_exact_and_offline():
   verify_v1_stopped(live.V1_EVIDENCE_ROOT,"0"*64)
  with pytest.raises(ValueError,match="Exact preserved v1"):
   verify_v1_stopped(live.V1_EVIDENCE_ROOT.parent,live.V1_CAMPAIGN_SHA)
+
+
+def test_v1_stop_verifier_rejects_missing_private_input(tmp_path):
+ from tools.native.event120_bench_policy import verify_v1_stopped
+ with pytest.raises(ValueError,match="Exact preserved v1"):
+  verify_v1_stopped(tmp_path/'missing',live.V1_CAMPAIGN_SHA)
 
 
 def test_v2_prepared_proof_is_bound_into_campaign(actual_inputs):

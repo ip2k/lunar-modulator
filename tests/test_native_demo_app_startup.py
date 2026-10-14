@@ -225,6 +225,8 @@ def compressed_startup_tools(request, tmp_path_factory):
     # symbol names preserve upstream C++ linkage while this fixture substitutes
     # only their storage definitions.
     declarations = ["#include <stddef.h>", "#include <string.h>",
+                    "#define LUNAR_WAVE_STRINGIFY_INNER(x) #x",
+                    "#define LUNAR_WAVE_STRINGIFY(x) LUNAR_WAVE_STRINGIFY_INNER(x)",
                     "int lunar_wave_tables_init(void);"]
     for relative, symbol, width, size in module.ASSETS:
         namespace = Path(relative).parent.name
@@ -235,7 +237,7 @@ def compressed_startup_tools(request, tmp_path_factory):
         mangled = f'_ZN{len(namespace)}{namespace}{len(symbol)}{symbol}E'
         declarations.append(
             f'extern unsigned char lunar_waves_{namespace}[{size}] '
-            f'__asm__("{mangled}");')
+            f'__asm__(LUNAR_WAVE_STRINGIFY(__USER_LABEL_PREFIX__) "{mangled}");')
     declarations.append(
         "static int compressed_wave_tables_match(void) { return " +
         " && ".join(f"memcmp(lunar_waves_{r['namespace']}, "
