@@ -312,3 +312,36 @@ Next prove native observer initialization and formatting gadget construction,
 then calculate complete startup/caller/IRQ stack and test target timing.
 Physical migration/rollback, installer/builder, licensing and review/CI remain
 open. Full release goal remains active; no live measurement job.
+
+### Optional-hook construction evidence
+
+[verified] inspect-printf-construction.py binds the identical all13-v3 ELF,
+r3 disassembly and address inventory. The only direct caller of
+vsnprintf_impl is vsnprintf. Console/function-output entry points and
+putchar_wrapper are absent from linked function symbols. At 0x206EA8C r4
+becomes zero; 0x206EA9E stores it in the stack gadget's first word, the
+function slot loaded at 0x206D8DC before the optional tail call at 0x206D8E6.
+The exact printf source hash is pinned. Receipt printf-construction.json
+reproduces byte-for-byte. A deliberately changed callback store was rejected
+even after updating the inventory's disassembly hash to match the altered
+text. This verifies the instruction assertion rather than merely a hash.
+
+[verified] inspect-observer-construction.py asserts native fm1_cstart's
+memset arguments and the mod_emit load: app address 0x1C0EA10, zero length
+38468, observer offset 7710*4 = 30840. The callback word is covered by the
+compiled initialization. Receipt observer-construction.json reproduces
+byte-for-byte. Both scripts compile and whitespace checks pass.
+
+[inferred] These construction facts support null optional hooks during cold
+native startup. They do not alone prove preserved pointer values through all
+formatting/state paths or exclude address-taken formatter entries. The startup
+graph therefore still retains both unresolved calls; neither an empty target
+rule nor hardware admission was added. Next review source pointer flow and
+compiled stores before changing graph coverage, then complete stack/IRQ overlap.
+
+Both semantic tools are ready on the primary checkout, not this worktree;
+shared selection was preserved. Rarefaction located fm1_app_init's three
+callees but returned no callers despite the known native caller. Serena located
+mod_emit and its conditional observer plus edit-ring scan. These navigation
+results do not prove target call completeness or ABI. No firmware/device
+command or heavy build was performed. Full release gates remain open.

@@ -1,0 +1,31 @@
+{
+  "scope": "native initialization and observer-load evidence; not full pointer-flow proof",
+  "elf_sha256": "df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e",
+  "disassembly_sha256": "46ff199b5288a37be1f7e3f155cf93bce765b9cf888d31cb8110648740de6e38",
+  "source_sha256": {
+    "firmware/native/app_probe.c": "b8cab2498d7cc585518c4558d52f5ee874aa964007b0942ea26635d6ab2ccf41",
+    "sim/web/src/fm1_app.c": "903b50f83a8611dcb764745ac9f11d5c9bc8bff2910ca6c9dd2df190e4d25189",
+    "sim/web/src/fm1_app_state.c": "24812821b1e7f4afd08ff4456dbf66ced641d7a36de08ceecdbf082f283cbbda",
+    "sim/web/src/fm1_app.h": "aa883d5b57fed102de94a897e931f315572de8d5ccb7e29728a717d730cb73c0"
+  },
+  "app_address": "0x1c0ea10",
+  "zero_start": 0,
+  "zero_bytes": 38468,
+  "observer_offset": 30840,
+  "observer_initial_value": 0,
+  "compiled_instruction_assertions": {
+    "0x205f786": "r7 = 29420048 <app : 1c0ea10 >",
+    "0x205f78c": "r2 = 38468 </src/firmware/third_party/printf/printf/printf.c+0x9644 : 9644 >",
+    "0x205f792": "r1 = 0",
+    "0x205f794": "r0 = r7",
+    "0x203a7ee": "r0 = 7710 </src/firmware/third_party/printf/printf/printf.c+0x1E1E : 1e1e >",
+    "0x203a7f2": "r5 = [r4+r0<<2]",
+    "0x203a80c": "call r5"
+  },
+  "limits": [
+    "later stores, aliasing and state-reset preservation require separate review",
+    "applies only after this native initialization, not arbitrary host applications",
+    "no stack, interrupt overlap, timing or hardware admission conclusion"
+  ],
+  "hardware_admitted": false
+}

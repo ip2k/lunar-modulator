@@ -2398,3 +2398,23 @@ Next prove native observer initialization and formatting gadget construction,
 then calculate complete startup/caller/IRQ stack and test target timing.
 Physical migration/rollback, installer/builder, licensing and review/CI remain
 open. Full release goal remains active; no live measurement job.
+
+### Optional-hook construction checkpoint
+
+[verified] New inspect-printf-construction.py and receipt bind exact all13-v3
+ELF/disassembly/inventory/source. vsnprintf is the only direct formatter entry;
+console/function-output symbols are absent. Compiled zero at0x206EA8C is stored
+to gadget.function at0x206EA9E and loaded before tail call0x206D8E6. Receipt
+reproduction passes; changing that store is rejected even with updated input
+disassembly hash. New inspect-observer-construction.py asserts native memset
+clears38468bytes of app0x1C0EA10, covering observer30840 loaded by mod_emit.
+Observer receipt reproduces. Python compilation and whitespace checks pass.
+
+Neither call has been removed from unresolved coverage: pointer preservation,
+later/aliased stores and address-taken formatter paths need review. Next finish
+those proofs, then startup/caller/IRQ stack and target timing. Physical settings
+migration/rollback, installer/builder, licensing and review/CI remain open.
+No firmware/device command, no heavy build, no live job. Shared semantic roots
+remain primary checkout; Rarefaction init caller inventory missed known native
+caller, Serena mod_emit source navigation succeeded. Prior verified pushed
+12129337e9f4c78748a30d6a8599871f9f375795. Full thirteen-engine goal active.

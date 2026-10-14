@@ -1,0 +1,53 @@
+{
+  "scope": "exact buffer constructor and direct entry coverage; source flow review required",
+  "elf_sha256": "df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e",
+  "disassembly_sha256": "46ff199b5288a37be1f7e3f155cf93bce765b9cf888d31cb8110648740de6e38",
+  "inventory_sha256": "58fbd7c36e570db6b55f413f7912f9c82841fb5b31a2d68d6664e247b4e9c48b",
+  "reviewed_source_sha256": {
+    "firmware/third_party/printf/printf/printf.c": "19acedf4294faa4961b8ae4bb4ed313497612f6f485af462674021faacaa5e00"
+  },
+  "entry": "0x206ea88",
+  "formatter": "0x206e502",
+  "formatter_direct_callers": [
+    "0x206ea88"
+  ],
+  "absent_function_entries": [
+    "printf",
+    "vprintf",
+    "sprintf",
+    "vsprintf",
+    "vfctprintf",
+    "fctprintf",
+    "printf_",
+    "vprintf_",
+    "sprintf_",
+    "vsprintf_",
+    "vfctprintf_",
+    "putchar_wrapper",
+    "function_gadget",
+    "extern_putchar_gadget"
+  ],
+  "compiled_instruction_assertions": {
+    "0x206ea8c": "r4 = 0",
+    "0x206ea9e": "[sp] = r4",
+    "0x206eaa0": "[sp+4] = r4",
+    "0x206eaa2": "[sp+8] = r0",
+    "0x206eaa4": "[sp+12] = r4",
+    "0x206eaaa": "r0 = sp + 0",
+    "0x206d8dc": "r3 = [r0+0]",
+    "0x206d8de": "if (r3 == 0) goto 8 <putchar_via_gadget+0x18 : 206d8e8 >",
+    "0x206d8e6": "goto r3"
+  },
+  "hook": {
+    "caller": "0x206d8d0",
+    "pc": "0x206d8e6",
+    "offset": 0,
+    "constructed_value": 0
+  },
+  "limits": [
+    "direct-call inventory alone does not exclude address-taken entry paths",
+    "constructor zero requires preserved gadget.function through formatting",
+    "no startup stack, interrupt overlap or hardware admission conclusion"
+  ],
+  "hardware_admitted": false
+}
