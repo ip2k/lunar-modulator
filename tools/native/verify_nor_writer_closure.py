@@ -227,6 +227,138 @@ def audit_linked_writer(ram_text, symbols, relocations, sections):
     }
 
 
+def audit_writer_callers(full_disassembly, symbols):
+    """Bind XIP wrappers' indirect handoff and page staging to target bytes."""
+    symbol_rows = {}
+    pattern = re.compile(
+        r"^\s*([0-9a-fA-F]+)\s+\S+\s+F\s+(\.\S+)\s+"
+        r"([0-9a-fA-F]+)\s+(\S+)\s*$", re.MULTILINE)
+    for match in pattern.finditer(symbols):
+        address, section, size, name = match.groups()
+        symbol_rows[name] = {"address": int(address, 16), "section": section,
+                             "size": int(size, 16)}
+
+    labels = list(re.finditer(r"^([A-Za-z_.$][A-Za-z0-9_.$@-]*):\s*$",
+                              full_disassembly, re.MULTILINE))
+    functions = {}
+    for index, label in enumerate(labels):
+        end = labels[index + 1].start() if index + 1 < len(labels) else len(full_disassembly)
+        functions[label.group(1)] = full_disassembly[label.end():end]
+
+    def require(name):
+        body = functions.get(name)
+        if body is None:
+            raise ValueError(f"missing XIP caller disassembly: {name}")
+        return body
+
+    def require_order(body, expressions, label):
+        position = 0
+        for expression in expressions:
+            match = re.search(expression, body[position:])
+            if match is None:
+                raise ValueError(f"{label} missing ordered target evidence: {expression}")
+            position += match.end()
+
+    erase = require("fl_erase4k")
+    program = require("fl_write")
+    far = require("fl_far")
+    erase_ram = symbol_rows.get("fl_erase4k_ram")
+    program_ram = symbol_rows.get("fl_prog_ram")
+    far_symbol = symbol_rows.get("fl_far")
+    if not erase_ram or erase_ram["section"] != ".ram_text":
+        raise ValueError("fl_erase4k_ram is not a linked RAM target")
+    if not program_ram or program_ram["section"] != ".ram_text":
+        raise ValueError("fl_prog_ram is not a linked RAM target")
+    if not far_symbol or far_symbol["section"] != ".text":
+        raise ValueError("fl_far is not a linked XIP helper")
+
+    def target_load(register, name, row):
+        address = row["address"]
+        return (rf"{register}\s*=\s*\d+\s*<\s*{re.escape(name)}\s*:\s*"
+                rf"0*{address:x}\s*>")
+
+    require_order(erase, [target_load("r0", "fl_erase4k_ram", erase_ram),
+                          r"call[^\n]*<\s*fl_far\s*:",
+                          r"r2\s*=\s*r0",
+                          r"r1_r0\s*=\s*r5_r4",
+                          r"call\s+r2\b"], "fl_erase4k")
+    require_order(program, [target_load("r8", "fl_prog_ram", program_ram),
+                            r"b\[r4\+r0\]\s*\(u\)",
+                            r"r2\s*=\s*sp\s*\+\s*4",
+                            r"b\[r2\+r0\]\s*=\s*r1",
+                            r"r0\s*=\s*r8",
+                            r"call[^\n]*<\s*fl_far\s*:",
+                            r"r7\s*=\s*r0",
+                            r"r1\s*=\s*sp\s*\+\s*4",
+                            r"r3\s*=\s*sp\s*\+\s*260",
+                            r"call\s+r7\b"], "fl_write")
+    if not all(re.search(expr, far) for expr in
+               (r"\[sp\]\s*=\s*r0", r"r0\s*=\s*\[sp\]", r"rts")):
+        raise ValueError("fl_far does not show the linked pointer-preserving return")
+    indirect_calls = {
+        "fl_erase4k": re.findall(r"^\s*[0-9a-fA-F]+:.*\bcall\s+(r\d+)\b",
+                                 erase, re.MULTILINE),
+        "fl_write": re.findall(r"^\s*[0-9a-fA-F]+:.*\bcall\s+(r\d+)\b",
+                                program, re.MULTILINE),
+    }
+    if indirect_calls != {"fl_erase4k": ["r2"], "fl_write": ["r7"]}:
+        raise ValueError("unexpected indirect call in NOR XIP wrappers")
+
+    direct_callers = {"fl_erase4k": [], "fl_write": []}
+    for function, body in functions.items():
+        for target_name in direct_callers:
+            if re.search(rf"\bcall\b[^\n]*<\s*{target_name}\s*:", body):
+                direct_callers[target_name].append(function)
+    for name in direct_callers:
+        direct_callers[name] = sorted(direct_callers[name])
+    expected_callers = {
+        "fl_erase4k": ["lunar_nor_closure_analysis_force_retain", "ota_erase"],
+        "fl_write": ["lunar_nor_closure_analysis_force_retain", "ota_prog"],
+    }
+    if direct_callers != expected_callers:
+        raise ValueError(f"unreviewed direct NOR wrapper caller(s): {direct_callers}")
+    ota_erase = require("ota_erase")
+    if not re.search(r"r1\s*=\s*sp\s*\+\s*0", ota_erase):
+        raise ValueError("ota_erase result pointer is not a local stack address")
+    ota_prog = require("ota_prog")
+    require_order(ota_prog, [r"r5\s*=\s*r1", r"r1\s*=\s*r5",
+                             r"call[^\n]*<\s*fl_write\s*:"], "ota_prog")
+    return {
+        "passed_linked_wrapper_checks": True,
+        "ram_targets": {"erase": erase_ram, "program": program_ram},
+        "indirect_dispatch_registers": indirect_calls,
+        "dispatch_helper": far_symbol,
+        "dispatch_helper_preserves_pointer": True,
+        "program_source_copied_to_sp_plus_4_before_dispatch": True,
+        "program_result_pointer_sp_plus_260": True,
+        "erase_result_pointer_passed_from_caller": True,
+        "ota_erase_result_pointer_is_stack_relative": True,
+        "ota_prog_source_pointer_forwarded_through_r5": True,
+        "production_callers": {name: [caller for caller in callers
+                                        if caller != "lunar_nor_closure_analysis_force_retain"]
+                               for name, callers in direct_callers.items()},
+        "ram_entry_argument_residency": {
+            "fl_erase4k_ram": {"r0": "erase address scalar", "r1": "elapsed-time output at ota_erase SP+0"},
+            "fl_prog_ram": {"r0": "program offset scalar", "r1": "page buffer at fl_write SP+4",
+                            "r2": "page byte count scalar", "r3": "elapsed-time output at fl_write SP+260"},
+        },
+        "program_page_buffer_is_staged_before_irq_mask": True,
+        "runtime_stack_address_in_sram_proven": False,
+        "unresolved_runtime_data_sources": [
+            {"source": "pi32v2 SP at fl_write entry", "used_by": "SP+4 page buffer and SP+260 elapsed output",
+             "reason": "linked listing identifies offsets but not runtime SP base/bounds"},
+            {"source": "caller stack at ota_erase entry", "used_by": "SP+0 elapsed output to fl_erase4k_ram",
+             "reason": "callsite is stack-relative but its runtime SRAM bounds are not linked here"},
+        ],
+        "limits": [
+            "the ABI stack base and actual runtime stack bounds are not established by this static link",
+            "the analysis-only force-retain root is not a production caller",
+            "indirect dispatch and pointer staging are proven only for the audited linked callsites",
+            "the caller-provided source bytes are copied before the RAM handoff; this does not prove the source caller's overall SRAM placement",
+        ],
+    }
+
+
 def validate_extents():
     assert EXTENTS == ((0xD9000, 0xE5000), (0xEA000, 0xF6000))
     assert all(lo < hi and lo % 0x1000 == 0 and hi % 0x1000 == 0
@@ -396,9 +528,11 @@ def main():
     symbols_text = (linked / 'symbols.txt').read_text()
     sections_text = (linked / 'sections.txt').read_text()
     relocations_text = (linked / 'linked-relocations.txt').read_text()
+    full_disassembly = (linked / 'full-disassembly.txt').read_text()
     try:
         writer_audit = audit_linked_writer(
             ram_text, symbols_text, relocations_text, sections_text)
+        caller_audit = audit_writer_callers(full_disassembly, symbols_text)
     except ValueError as exc:
         raise SystemExit('linked writer audit failed: ' + str(exc)) from exc
     calls = writer_audit['ram_calls']
@@ -407,6 +541,7 @@ def main():
         'analysis_only': True, 'writer_entries': ['fl_erase4k_ram', 'fl_prog_ram'],
         'writer_entry_calls': writer_calls, 'all_ram_calls': calls,
         'relocations': relocations_text, 'target_audit': writer_audit,
+        'caller_audit': caller_audit,
     }, indent=2) + '\n')
     generated = linked / 'platform.c'
     base_platform = ROOT / 'firmware/third_party/dinghy/src/platform.c'
