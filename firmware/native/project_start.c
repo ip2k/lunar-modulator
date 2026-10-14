@@ -1,6 +1,7 @@
 #include "project_start.h"
 #include <string.h>
 #include <math.h>
+#include "fm1_modules.h"
 
 #if FM1_APP_EXTERNAL_ARENAS
 typedef char parameter_capacity_match[
@@ -90,6 +91,56 @@ int lunar_project_restore_scalars(fm1_app_t *app,
         app->octave = load.octave; app->transpose = load.transpose;
         app->dirty = app->leds_changed = 1;
     }
+    return 1;
+}
+
+typedef struct {
+    scalar_load_t input;
+    lunar_project_dx7_scratch_t *scratch;
+    int available;
+} dx7_load_t;
+
+static int dx7_record(void *ctx, const fm1_rec_t *r) {
+    dx7_load_t *load = ctx;
+    if (r->type == FM1_REC_HEAD)
+        return r->u.head.kind == FM1_STATE_PROJECT ||
+               scalar_refuse(&load->input, "expected a binary project");
+    if (r->type != FM1_REC_DX7) return 1;
+    if (!load->available || r->slot >= FM1_DX7_USER_SLOTS ||
+        (load->scratch->seen & (1u << r->slot)))
+        return scalar_refuse(&load->input, "missing FM6 or invalid duplicate voice slot");
+    /* state_bin validates all 145 field ranges and ten printable name bytes
+     * before emitting this record. Keep the codec as the validation authority. */
+    memcpy(load->scratch->voice[r->slot], r->u.dx7.vced, FM1_DX7_VCED_BYTES);
+    load->scratch->seen |= 1u << r->slot;
+    return 1;
+}
+
+int lunar_project_restore_dx7(fm1_app_t *app, const uint8_t *bytes, uint32_t size,
+                              lunar_project_dx7_scratch_t *scratch,
+                              fm1_state_report_t *report) {
+    dx7_load_t load;
+    if (!report || (app && scalar_overlap(app, sizeof *app, report, sizeof *report)) ||
+        (bytes && scalar_overlap(bytes, size, report, sizeof *report)) ||
+        (scratch && scalar_overlap(scratch, sizeof *scratch, report, sizeof *report))) return 0;
+    fm1_state_report_init(report);
+    if (!app || !bytes || !scratch || app->frames || size > FM1_STATE_BIN_MAX ||
+        scalar_overlap(app, sizeof *app, bytes, size) ||
+        scalar_overlap(app, sizeof *app, scratch, sizeof *scratch) ||
+        scalar_overlap(bytes, size, scratch, sizeof *scratch) || ((uintptr_t)scratch & 3u)) {
+        report->code = size > FM1_STATE_BIN_MAX ? FM1_STATE_TOO_BIG : FM1_STATE_BAD;
+        return 0;
+    }
+    memset(&load, 0, sizeof load);
+    load.input.bytes = bytes; load.input.size = size; load.input.report = report;
+    load.scratch = scratch;
+    load.available = FM1_WITH_DX7 && app->dx7.index >= 0;
+    memset(scratch, 0, sizeof *scratch);
+    if (!fm1_state_bin_read(scalar_read, &load.input, size, dx7_record, &load, report, 0))
+        return 0;
+    for (unsigned k = 0; k < FM1_DX7_USER_SLOTS; ++k)
+        if (scratch->seen & (1u << k))
+            if (fm1_app_dx7_put(app, k, scratch->voice[k]) != 0) return 0;
     return 1;
 }
 

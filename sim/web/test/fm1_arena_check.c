@@ -20,7 +20,7 @@ static struct {
 
 #if FM1_APP_EXTERNAL_ARENAS
 static fm1_app_t managed;
-static unsigned char scalar_bytes[4096];
+static unsigned char scalar_bytes[16384];
 static size_t scalar_size;
 static void scalar_put(void *ctx, const char *p, size_t n) {
   (void)ctx;
@@ -103,6 +103,90 @@ static void scalar_check(int which) {
       assert(managed.transpose == (which & 1 ? -12 : 12));
       for (int k = 0; k < 4; ++k) assert(managed.level[k] == k * (100.0f / 3.0f));
     }
+  } else {
+    assert(!accepted);
+    assert(!memcmp(before, &managed, sizeof managed));
+  }
+  free(before);
+}
+static void *allocate(void *ctx, size_t bytes);
+static void deallocate(void *ctx, void *memory);
+static void dx7_check(int which) {
+  const int unit = fm1_app_sound_unit(1);
+  fm1_state_report_t report;
+  fm1_rec_t r;
+  lunar_project_dx7_scratch_t scratch;
+  uint8_t expected[FM1_DX7_USER_SLOTS][FM1_DX7_VCED_BYTES];
+  const uint8_t version[3] = {0, 1, 0};
+  void *memory = calloc(1, fm1_state_bin_writer_size()); assert(memory);
+  scalar_size = 0;
+  fm1_state_writer_t *writer = fm1_state_bin_writer(memory,
+      which & 1 ? FM1_STATE_BIN_DEFLATE : 0, FM1_STATE_WRITER_DESKTOP,
+      version, scalar_put, NULL, &report);
+  memset(&r, 0, sizeof r); r.type = FM1_REC_HEAD; r.u.head.major = 1;
+  r.u.head.kind = which == 23 ? FM1_STATE_SETTINGS : FM1_STATE_PROJECT;
+  assert(fm1_state_bin_write(writer, &r));
+  if (which != 23) {
+    memset(&r, 0, sizeof r); r.type = FM1_REC_UNIT;
+    r.role = FM1_ROLE_SOUND; strcpy(r.u.unit.id, "dx7");
+    assert(fm1_state_bin_write(writer, &r));
+  }
+  unsigned count = which < 16 ? (which % 4 == 0 ? 32u : 1u + which) : 2u;
+  if (which == 23) {
+    memset(&r, 0, sizeof r); r.type = FM1_REC_SETTING;
+    r.u.setting.key = FM1_SET_METRONOME; r.u.setting.is_bool = 1;
+    assert(fm1_state_bin_write(writer, &r));
+  } else for (unsigned k = 0; k < count; ++k) {
+    memset(&r, 0, sizeof r); r.type = FM1_REC_DX7;
+    r.slot = (uint8_t)((k + which) % FM1_DX7_USER_SLOTS);
+    memset(r.u.dx7.vced + 145, 'A' + k % 26, 10);
+    r.u.dx7.vced[0] = (uint8_t)k;
+    memcpy(expected[r.slot], r.u.dx7.vced, FM1_DX7_VCED_BYTES);
+    if (k == 1 && which == 16) r.u.dx7.vced[11] = 4;
+    if (k == 1 && which == 17) r.u.dx7.vced[134] = 32;
+    if (k == 1 && which == 18) r.u.dx7.vced[145] = 31;
+    if (k == 1 && which == 19) r.slot = (uint8_t)which;
+    assert(fm1_state_bin_write(writer, &r));
+  }
+  memset(&r, 0, sizeof r); r.type = FM1_REC_END;
+  assert(fm1_state_bin_write(writer, &r)); free(memory);
+  fm1_app_init(&managed, 44118.0f);
+  assert(managed.dx7.index >= 0);
+  assert(fm1_app_set_storage(&managed, NULL, allocate, deallocate) == 0);
+  if (which < 16 && !(which & 1))
+    assert(fm1_app_select(&managed, unit, managed.dx7.index) == 0);
+  if (which == 20) managed.dx7.index = -1;
+  if (which == 24) managed.frames = 1;
+  fm1_app_t *before = malloc(sizeof managed); assert(before);
+  memcpy(before, &managed, sizeof managed);
+  const uint8_t *input = scalar_bytes; uint32_t size = scalar_size;
+  lunar_project_dx7_scratch_t *workspace = &scratch;
+  fm1_state_report_t *output = &report;
+  if (which == 21) scalar_bytes[scalar_size - 1] ^= 0x80;
+  if (which == 22) --size;
+  if (which == 25) workspace = NULL;
+  if (which == 26) workspace = (lunar_project_dx7_scratch_t *)&managed;
+  if (which == 27) workspace = (lunar_project_dx7_scratch_t *)scalar_bytes;
+  if (which == 28) output = (fm1_state_report_t *)&scratch;
+  int accepted = lunar_project_restore_dx7(which == 29 ? NULL : &managed,
+                                          input, size, workspace, output);
+  if (which < 16) {
+    assert(accepted);
+    for (unsigned k = 0; k < count; ++k) {
+      unsigned slot = (k + which) % FM1_DX7_USER_SLOTS;
+      assert(managed.dx7.loaded[slot]);
+      assert(!memcmp(managed.dx7.voice[slot], expected[slot], FM1_DX7_VCED_BYTES));
+    }
+    assert(managed.frames == 0);
+    if (which & 1) assert(fm1_app_select(&managed, unit, managed.dx7.index) == 0);
+    for (unsigned k = 0; k < count; ++k) {
+      unsigned slot = (k + which) % FM1_DX7_USER_SLOTS;
+      uint8_t actual[FM1_DX7_VCED_BYTES];
+      assert(fm1_dx7_get_user_voice(managed.unit[unit].self, slot, actual));
+      assert(!memcmp(actual, expected[slot], sizeof actual));
+    }
+    assert(fm1_app_select(&managed, unit, -1) == 0);
+    assert(fm1_app_set_storage(&managed, NULL, NULL, NULL) == 0);
   } else {
     assert(!accepted);
     assert(!memcmp(before, &managed, sizeof managed));
@@ -358,6 +442,12 @@ static void managed_check(int shard) {
 
 int main(int argc, char **argv) {
 #if FM1_APP_EXTERNAL_ARENAS
+  if (argc == 3 && !strcmp(argv[1], "--dx7")) {
+    int which = atoi(argv[2]); assert(which >= 0 && which < 30);
+    dx7_check(which);
+    printf("{\"passed\":true,\"case\":%d}\n", which);
+    return 0;
+  }
   if (argc == 3 && !strcmp(argv[1], "--scalar")) {
     int which = atoi(argv[2]); assert(which >= 0 && which < 30);
     scalar_check(which);

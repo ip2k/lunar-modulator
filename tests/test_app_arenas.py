@@ -35,7 +35,7 @@ def arena_tools(tmp_path_factory):
             "make", "-C", str(ROOT / "engines"), "-f", "Makefile",
             "-f", str(ROOT / "sim/web/mk/sim.mk"), "-f", str(fragment),
             f"SIM={ROOT / 'sim/web'}", f"BUILD={out}", "FM1_GPL_MODS=1",
-            "FM1_MODULES=trio,test-sine,test-gain,arp,lfo,env",
+            "FM1_MODULES=trio,dx7,test-sine,test-gain,arp,lfo,env",
             f"CC={os.environ.get('FM1_SIM_CC', 'cc')}",
             f"CXX={os.environ.get('FM1_SIM_CXX', 'c++')}",
             f"OPT={os.environ.get('FM1_SIM_OPT', '-O2')}",
@@ -50,6 +50,13 @@ def arena_tools(tmp_path_factory):
 def test_project_scalar_startup(arena_tools, case):
     result = json.loads(subprocess.check_output(
         [str(arena_tools[1]), "--scalar", str(case)], text=True))
+    assert result == {"passed": True, "case": case}
+
+
+@pytest.mark.parametrize("case", range(30))
+def test_project_dx7_startup(arena_tools, case):
+    result = json.loads(subprocess.check_output(
+        [str(arena_tools[1]), "--dx7", str(case)], text=True))
     assert result == {"passed": True, "case": case}
 
 

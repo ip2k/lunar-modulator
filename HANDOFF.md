@@ -2115,3 +2115,23 @@ See `notes/2026-10-12-v8-recovery-regressions.md` and private
 Next: independently admit the completed backup's exact post-child failure,
 review a distinct stock restore, verify full stock readback and normal boot.
 Then finish display acceptance, interrupted/corrupt recovery and review/CI.
+
+## DX7 startup adapter checkpoint (2026-10-13)
+
+[verified] Native cold-start DX7 adapter stages bank slots in caller scratch and
+commits after full codec/CRC validation through shared bank/instance API. Host
+v3:76 tests pass30 Hera ASAN/UBSAN chunks, all logs/exit states/noOOM inspected.
+Host v1 invalid PROJECT fixtures and v2 forbidden first-slot cleanup failures
+retained privately; production validation not weakened. Link v1:30 SDK-free
+five-engine links pass DX7 rooted-entry, asset-byte and existing audit checks.
+Exercised source hashes match immutable snapshots. Evidence/reproduction:
+notes/2026-10-13-project-dx7-verification/; private logs build/dx7-verification/.
+All owned containers removed. No device command or physical acceptance here.
+
+Full all13 release, startup composition/VIEW/modulation activation, settings
+migration, final flash/RAM/timing, web builder/OTA installation and physical
+rollback remain unfinished. Next compose startup with sequence scratch reclaimed
+before engine allocation; stage modulation in its final app storage (opaque
+runtime cannot be memcpy-relocated), wire shared glue and restore VIEW last.
+Branch feature/2026-10-11@installable-firmware; previous verified pushed29f1447c.
+This checkpoint remains subject to exact-head review/CI/integration; goal active.

@@ -16,6 +16,21 @@ int lunar_project_restore_scalars(fm1_app_t *app,
                                   const uint8_t *bytes, uint32_t size,
                                   fm1_state_report_t *report);
 
+/* Caller-owned disposable scratch; not part of app or its allocation pool. */
+typedef struct {
+    uint32_t seen;
+    uint8_t voice[FM1_DX7_USER_SLOTS][FM1_DX7_VCED_BYTES];
+} lunar_project_dx7_scratch_t;
+
+/* Cold-start main task, immutable complete PROJECT. Validate CRC, unique slots
+ * and exact VCED ranges/printable names before changing the app. Missing FM6
+ * refuses voice records. Success preserves file slot numbers (PROJECT semantics)
+ * and updates installed FM6 instances through the shared API. Scratch may change
+ * on refusal; app does not. All arguments must be pairwise disjoint. */
+int lunar_project_restore_dx7(fm1_app_t *app, const uint8_t *bytes, uint32_t size,
+                              lunar_project_dx7_scratch_t *scratch,
+                              fm1_state_report_t *report);
+
 /* Cold-start only, before input/render: reconstruct the four prepared MIDI
  * effects in the app's fixed inline storage and restore their parameter values.
  * on[] comes from the same checked project's ON records (absent means bypass).
