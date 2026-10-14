@@ -1,0 +1,715 @@
+{
+  "elf_sha256": "db10552381786339a40cffaec23a562c17842542cf78b6d1c6651f46192cfba1",
+  "stack_watermark": true,
+  "stack_watermark_verification": {
+    "pattern": 2774181210,
+    "painter_begin": 33988100,
+    "painter_end": 33988146,
+    "painter_bytes": "c1ff0041c701c2ff00a0c701c3ff5aa55aa59360198482e8fc11c1ff00a1c701c2ff00c0c7019360198482e8fc11",
+    "calls": [
+      {
+        "pc": 33554788,
+        "target": 33988100,
+        "symbol": "lunar_stack_watermark_begin",
+        "opcode": "83ea4e4e"
+      },
+      {
+        "pc": 33988146,
+        "target": 33943374,
+        "symbol": "fm1_cstart",
+        "opcode": "bfea8ca8"
+      }
+    ],
+    "user_bytes": 24320,
+    "system_bytes": 7936,
+    "hardware_tested": false,
+    "worst_case_stack_bound": false
+  },
+  "installable": false,
+  "hardware_tested": false,
+  "instance_pool_bytes": 216064,
+  "module_selection": {
+    "specification": "macro,shapes,macro-heavy,sixop,dx7,sw-sophie,drums,acid-bass,comet,crater,drawbar,trio,phase-bend,plate,ensemble,diffuse,sw-psxverb,crush,fold,drive,echo,warble,filter,comb,comp,limit,djfilter,tilt,sat,isolator,eq,room,hall,gate,squash,shaper,repeat,arp,acid-gen,lfo,env,chance,function,bounce,register,coin,divide,burst,slew,quantize,compare,logic,calc,mix,resonator",
+    "selected": [
+      "macro",
+      "shapes",
+      "macro-heavy",
+      "sixop",
+      "dx7",
+      "sw-sophie",
+      "drums",
+      "acid-bass",
+      "comet",
+      "crater",
+      "drawbar",
+      "trio",
+      "phase-bend",
+      "plate",
+      "ensemble",
+      "diffuse",
+      "sw-psxverb",
+      "crush",
+      "fold",
+      "drive",
+      "echo",
+      "warble",
+      "filter",
+      "comb",
+      "comp",
+      "limit",
+      "djfilter",
+      "tilt",
+      "sat",
+      "isolator",
+      "eq",
+      "room",
+      "hall",
+      "gate",
+      "squash",
+      "shaper",
+      "repeat",
+      "arp",
+      "acid-gen",
+      "lfo",
+      "env",
+      "chance",
+      "function",
+      "bounce",
+      "register",
+      "coin",
+      "divide",
+      "burst",
+      "slew",
+      "quantize",
+      "compare",
+      "logic",
+      "calc",
+      "mix",
+      "resonator"
+    ],
+    "catalogue": [
+      {
+        "id": "macro",
+        "kind": "sound",
+        "selected": true,
+        "objects": [
+          "our/src/mi_macro.o",
+          "tp/plaits/resources.o",
+          "tp/stmlib/dsp/units.o",
+          "tp/stmlib/utils/random.o",
+          "tp/plaits/dsp/chords/chord_bank.o",
+          "tp/plaits/dsp/engine/virtual_analog_engine.o",
+          "tp/plaits/dsp/engine/waveshaping_engine.o",
+          "tp/plaits/dsp/engine/fm_engine.o",
+          "tp/plaits/dsp/engine/wavetable_engine.o",
+          "tp/plaits/dsp/engine2/virtual_analog_vcf_engine.o",
+          "tp/plaits/dsp/engine2/phase_distortion_engine.o",
+          "tp/plaits/dsp/engine2/wave_terrain_engine.o",
+          "tp/plaits/dsp/engine2/chiptune_engine.o"
+        ]
+      },
+      {
+        "id": "shapes",
+        "kind": "sound",
+        "selected": true,
+        "objects": [
+          "our/src/mi_shapes.o",
+          "tp/stmlib/utils/random.o",
+          "tp/braids/macro_oscillator.o",
+          "tp/braids/analog_oscillator.o",
+          "tp/braids/digital_oscillator.o",
+          "tp/braids/resources.o"
+        ]
+      },
+      {
+        "id": "macro-heavy",
+        "kind": "sound",
+        "selected": true,
+        "objects": [
+          "our/src/mi_macro_heavy.o",
+          "tp/plaits/resources.o",
+          "tp/stmlib/dsp/units.o",
+          "tp/stmlib/utils/random.o",
+          "tp/plaits/dsp/chords/chord_bank.o",
+          "tp/plaits/dsp/engine/additive_engine.o",
+          "tp/plaits/dsp/engine/bass_drum_engine.o",
+          "tp/plaits/dsp/engine/chord_engine.o",
+          "tp/plaits/dsp/engine/grain_engine.o",
+          "tp/plaits/dsp/engine/hi_hat_engine.o",
+          "tp/plaits/dsp/engine/modal_engine.o",
+          "tp/plaits/dsp/engine/noise_engine.o",
+          "tp/plaits/dsp/engine/particle_engine.o",
+          "tp/plaits/dsp/engine/snare_drum_engine.o",
+          "tp/plaits/dsp/engine/string_engine.o",
+          "tp/plaits/dsp/engine/swarm_engine.o",
+          "tp/plaits/dsp/engine2/string_machine_engine.o",
+          "tp/plaits/dsp/physical_modelling/modal_voice.o",
+          "tp/plaits/dsp/physical_modelling/resonator.o",
+          "tp/plaits/dsp/physical_modelling/string.o",
+          "tp/plaits/dsp/physical_modelling/string_voice.o",
+          "tp/plaits/dsp/speech/lpc_speech_synth.o",
+          "tp/plaits/dsp/speech/lpc_speech_synth_controller.o",
+          "tp/plaits/dsp/speech/lpc_speech_synth_phonemes.o",
+          "tp/plaits/dsp/speech/lpc_speech_synth_words.o",
+          "tp/plaits/dsp/speech/naive_speech_synth.o",
+          "tp/plaits/dsp/speech/sam_speech_synth.o"
+        ]
+      },
+      {
+        "id": "sixop",
+        "kind": "sound",
+        "selected": true,
+        "objects": [
+          "our/src/mi_sixop.o",
+          "tp/plaits/resources.o",
+          "tp/stmlib/dsp/units.o",
+          "tp/stmlib/utils/random.o",
+          "tp/plaits/dsp/engine2/six_op_engine.o",
+          "tp/plaits/dsp/fm/algorithms.o",
+          "tp/plaits/dsp/fm/dx_units.o"
+        ]
+      },
+      {
+        "id": "dx7",
+        "kind": "sound",
+        "selected": true,
+        "objects": [
+          "our/src/msfa_dx7.o",
+          "our/src/dx7_loop.o",
+          "our/src/msfa_tables.o",
+          "our/src/msfa_rom.o",
+          "tp/msfa/dx7note.o",
+          "tp/msfa/env.o",
+          "tp/msfa/fm_core.o",
+          "tp/msfa/fm_op_kernel.o",
+          "tp/msfa/freqlut.o",
+          "tp/msfa/lfo.o",
+          "tp/msfa/pitchenv.o"
+        ]
+      },
+      {
+        "id": "sw-sophie",
+        "kind": "sound",
+        "selected": true,
+        "objects": [
+          "our/src/sw_sophie.o",
+          "our/src/schwung_shim.o",
+          "sw/sophie/sophie.o"
+        ]
+      },
+      {
+        "id": "drums",
+        "kind": "sound",
+        "selected": true,
+        "objects": [
+          "our/src/drums.o",
+          "tp/plaits/resources.o",
+          "tp/stmlib/dsp/units.o",
+          "tp/stmlib/utils/random.o"
+        ]
+      },
+      {
+        "id": "acid-bass",
+        "kind": "sound",
+        "selected": true,
+        "objects": [
+          "our/src/acid_bass.o",
+          "gpl/fm1-x0x/dsp/bass303.o"
+        ]
+      },
+      {
+        "id": "comet",
+        "kind": "sound",
+        "selected": true,
+        "objects": [
+          "our/src/comet_kit.o",
+          "gpl/fm1-x0x/dsp/drum909.o"
+        ]
+      },
+      {
+        "id": "crater",
+        "kind": "sound",
+        "selected": true,
+        "objects": [
+          "our/src/crater_kit.o",
+          "gpl/fm1-x0x/dsp/drum808.o"
+        ]
+      },
+      {
+        "id": "drawbar",
+        "kind": "sound",
+        "selected": true,
+        "objects": [
+          "our/src/felucca_shim.o",
+          "gpl/felucca/felucca_bridge.o"
+        ]
+      },
+      {
+        "id": "trio",
+        "kind": "sound",
+        "selected": true,
+        "objects": [
+          "our/src/felucca_shim.o",
+          "gpl/felucca/felucca_bridge.o"
+        ]
+      },
+      {
+        "id": "phase-bend",
+        "kind": "sound",
+        "selected": true,
+        "objects": [
+          "our/src/felucca_shim.o",
+          "gpl/felucca/felucca_bridge.o"
+        ]
+      },
+      {
+        "id": "test-sine",
+        "kind": "sound",
+        "selected": false,
+        "objects": [
+          "our/src/test_sine.o"
+        ]
+      },
+      {
+        "id": "plate",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/mi_fx.o",
+          "tp/plaits/resources.o"
+        ]
+      },
+      {
+        "id": "ensemble",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/mi_fx.o",
+          "tp/plaits/resources.o"
+        ]
+      },
+      {
+        "id": "diffuse",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/mi_fx.o",
+          "tp/plaits/resources.o"
+        ]
+      },
+      {
+        "id": "sw-psxverb",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/sw_psxverb.o",
+          "our/src/schwung_shim.o",
+          "sw/psxverb/psxverb.o"
+        ]
+      },
+      {
+        "id": "crush",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/fx_crush.o"
+        ]
+      },
+      {
+        "id": "fold",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/fx_fold.o"
+        ]
+      },
+      {
+        "id": "drive",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/fx_drive.o"
+        ]
+      },
+      {
+        "id": "echo",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/fx_echo.o"
+        ]
+      },
+      {
+        "id": "warble",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/fx_warble.o"
+        ]
+      },
+      {
+        "id": "filter",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/fx_filter.o"
+        ]
+      },
+      {
+        "id": "comb",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/fx_comb.o"
+        ]
+      },
+      {
+        "id": "comp",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/fx_comp.o"
+        ]
+      },
+      {
+        "id": "limit",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/fx_limit.o"
+        ]
+      },
+      {
+        "id": "djfilter",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/fx_djfilter.o"
+        ]
+      },
+      {
+        "id": "tilt",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/fx_tilt.o"
+        ]
+      },
+      {
+        "id": "sat",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/fx_sat.o"
+        ]
+      },
+      {
+        "id": "isolator",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/fx_isolator.o"
+        ]
+      },
+      {
+        "id": "eq",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/fx_eq.o"
+        ]
+      },
+      {
+        "id": "room",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/fx_room.o"
+        ]
+      },
+      {
+        "id": "hall",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/fx_hall.o"
+        ]
+      },
+      {
+        "id": "gate",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/fx_gate.o"
+        ]
+      },
+      {
+        "id": "squash",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/fx_squash.o"
+        ]
+      },
+      {
+        "id": "shaper",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/fx_shaper.o"
+        ]
+      },
+      {
+        "id": "repeat",
+        "kind": "audio_fx",
+        "selected": true,
+        "objects": [
+          "our/src/fx_repeat.o"
+        ]
+      },
+      {
+        "id": "test-gain",
+        "kind": "audio_fx",
+        "selected": false,
+        "objects": [
+          "our/src/test_gain.o"
+        ]
+      },
+      {
+        "id": "test-ext",
+        "kind": "audio_fx",
+        "selected": false,
+        "objects": [
+          "our/src/test_ext.o"
+        ]
+      },
+      {
+        "id": "arp",
+        "kind": "midi_fx",
+        "selected": true,
+        "objects": [
+          "midi_fx/arp_engine.o"
+        ]
+      },
+      {
+        "id": "acid-gen",
+        "kind": "midi_fx",
+        "selected": true,
+        "objects": [
+          "midi_fx/acid_gen.o",
+          "gpl/fm1-x0x/seq/tb3po.o"
+        ]
+      },
+      {
+        "id": "lfo",
+        "kind": "mod",
+        "selected": true,
+        "objects": [
+          "mod/mod/kinds/mod_lfo.o"
+        ]
+      },
+      {
+        "id": "env",
+        "kind": "mod",
+        "selected": true,
+        "objects": [
+          "mod/mod/kinds/mod_env.o"
+        ]
+      },
+      {
+        "id": "chance",
+        "kind": "mod",
+        "selected": true,
+        "objects": [
+          "mod/mod/kinds/mod_chance.o"
+        ]
+      },
+      {
+        "id": "function",
+        "kind": "mod",
+        "selected": true,
+        "objects": [
+          "mod/mod/kinds/mod_function.o"
+        ]
+      },
+      {
+        "id": "bounce",
+        "kind": "mod",
+        "selected": true,
+        "objects": [
+          "mod/mod/kinds/mod_bounce.o"
+        ]
+      },
+      {
+        "id": "register",
+        "kind": "mod",
+        "selected": true,
+        "objects": [
+          "mod/mod/kinds/mod_register.o"
+        ]
+      },
+      {
+        "id": "coin",
+        "kind": "mod",
+        "selected": true,
+        "objects": [
+          "mod/mod/kinds/mod_coin.o"
+        ]
+      },
+      {
+        "id": "divide",
+        "kind": "mod",
+        "selected": true,
+        "objects": [
+          "mod/mod/kinds/mod_divide.o"
+        ]
+      },
+      {
+        "id": "burst",
+        "kind": "mod",
+        "selected": true,
+        "objects": [
+          "mod/mod/kinds/mod_burst.o"
+        ]
+      },
+      {
+        "id": "slew",
+        "kind": "mod",
+        "selected": true,
+        "objects": [
+          "mod/mod/kinds/mod_slew.o"
+        ]
+      },
+      {
+        "id": "quantize",
+        "kind": "mod",
+        "selected": true,
+        "objects": [
+          "mod/mod/kinds/mod_quantize.o"
+        ]
+      },
+      {
+        "id": "compare",
+        "kind": "mod",
+        "selected": true,
+        "objects": [
+          "mod/mod/kinds/mod_compare.o"
+        ]
+      },
+      {
+        "id": "logic",
+        "kind": "mod",
+        "selected": true,
+        "objects": [
+          "mod/mod/kinds/mod_logic.o"
+        ]
+      },
+      {
+        "id": "calc",
+        "kind": "mod",
+        "selected": true,
+        "objects": [
+          "mod/mod/kinds/mod_calc.o"
+        ]
+      },
+      {
+        "id": "mix",
+        "kind": "mod",
+        "selected": true,
+        "objects": [
+          "mod/mod/kinds/mod_mix.o"
+        ]
+      },
+      {
+        "id": "resonator",
+        "kind": "mod",
+        "selected": true,
+        "objects": [
+          "mod/mod/kinds/mod_resonator.o"
+        ]
+      }
+    ],
+    "header_sha256": "eef6dabe417ebdb03c5ab510f7b4a3733aed331bf656ae26e7535f87276e861e"
+  },
+  "key_audit": {
+    "passed": true,
+    "linked": true,
+    "runtime": "sdk-free",
+    "inputs": [
+      "lunar-app-probe.elf"
+    ],
+    "n_fail": 0,
+    "n_pending": 0,
+    "checks": [
+      {
+        "check": "forbidden_keycheck_symbols",
+        "status": "pass",
+        "detail": "none of mkey_check, sdk_mkey_lock, sdk_mkey_lock_v2_cfun, key_check_demo, sdk_chip_key_verify_v2 defined or referenced"
+      },
+      {
+        "check": "dormant_keycheck_absent",
+        "status": "pass",
+        "detail": "defined: []; referenced: []"
+      },
+      {
+        "check": "stub_0200012E_unused",
+        "status": "pass",
+        "detail": "no immediate 0x0200012E (key_check_demo stub call/load)"
+      },
+      {
+        "check": "keycheck_mailbox_unwritten",
+        "status": "pass",
+        "detail": "no reference to 0x01C80108-0x01C80110"
+      },
+      {
+        "check": "no_sdk_key_blob",
+        "status": "pass",
+        "detail": "no SDK JL_KEY_2020 blob bytes (FE 23 A8 B1 ...)"
+      },
+      {
+        "check": "no_key_check_demo_hash",
+        "status": "pass",
+        "detail": "no key_check_demo hash bytes (99 56 B6 46 ...)"
+      },
+      {
+        "check": "irq123_reserved",
+        "status": "pass",
+        "detail": "no reference to IRQ-123 vector 0x01C801EC"
+      },
+      {
+        "check": "irq123_unused_in_sources",
+        "status": "pass",
+        "detail": "only proven literal non-123 IRQ arguments; no IRQ-123 vector address"
+      },
+      {
+        "check": "no_efuse_controller_access",
+        "status": "pass",
+        "detail": "no reference to eFuse SFRs 0x13700-0x1371F"
+      },
+      {
+        "check": "late_initcall_group",
+        "status": "pass",
+        "detail": "SDK-free image has no initcall machinery"
+      },
+      {
+        "check": "sdk_free_linked",
+        "status": "pass",
+        "detail": "requires a linked executable; objects alone cannot establish SDK absence"
+      },
+      {
+        "check": "sdk_meky_check_scheduling",
+        "status": "pass",
+        "detail": "SDK-free runtime requires the dormant check to be absent"
+      }
+    ]
+  },
+  "startup_project": {
+    "index": 0,
+    "runtime_hook_linked": true,
+    "staging_reclaimed_before_engine_allocation": true,
+    "failure_returns_to_recovery": true,
+    "runtime_verified": false,
+    "stack_margin_verified": false,
+    "hardware_tested": false
+  }
+}

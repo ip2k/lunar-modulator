@@ -2586,3 +2586,19 @@ build service remain unimplemented; compiled callback preservation, startup
 stack/IRQ/timing, physical all13 migration/rollback and review/CI/integration
 remain open. The owner goal remains fully functional all13 plus selectable
 engines/effects/songs/sets; catalogue export does not admit any firmware image.
+
+## Stack watermark checkpoint (2026-10-13)
+
+[verified] Opt-in early assembly painter and read-only periodic scanner now
+link in the full thirteen-engine FIRST ORBIT candidate without moving the
+fixed entry guard. Thirty Hera containers passed all32 ASAN/UBSAN tests;
+existing artifact/catalogue regression container exited0 with no OOM.
+Compiled painter/call bytes are checked against ELF, including negatives.
+Evidence: notes/2026-10-13-stack-watermark-verification/RESULTS.md.
+No physical measurements or commands; no live job remains. Next implement
+bounded measurement readout, finish startup/IRQ/timing review, then fresh
+identity/paired backups and reviewed physical campaign. Full13 migration/
+rollback, browser installer/builder, GPL and review/CI/integration remain open.
+Semantic tools remain on the primary checkout; Rarefaction missed the known
+native draw caller, so worktree source/target ELF remain authoritative.
+Previous verified pushed checkpoint785fcc41df0df0484c17acb7326e5e1c0ee79afb.

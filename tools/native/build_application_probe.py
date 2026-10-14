@@ -23,6 +23,7 @@ from prepare_wavetables import prepare
 from embed_image_content import content_source
 from verify_image_profile import load_prepared_profile
 from flash_layout import FLASH_LAYOUTS, app_budget, linker_script
+from stack_watermark import instrument_entry, verify_instrumentation
 
 ROOT = Path(__file__).resolve().parents[2]
 ENGINE_IDS = ('macro', 'shapes', 'macro-heavy', 'sixop', 'dx7', 'sw-sophie',
@@ -112,6 +113,9 @@ def main():
     parser.add_argument('--toolchain', type=Path, required=True)
     parser.add_argument('--catalogue', type=Path, required=True)
     parser.add_argument('--build', type=Path, required=True)
+    parser.add_argument('--stack-watermark', action='store_true',
+                        help='Paint both reserved stacks before C entry and sample observed margins; '
+                        'diagnostic evidence only, not stack admission')
     parser.add_argument('--flash-layout', choices=FLASH_LAYOUTS, default='protected',
                         help='Explicit link budget only; does not admit packaging or installation')
     parser.add_argument('--exclude', choices=ENGINE_IDS, action='append', default=[])
@@ -233,7 +237,10 @@ def main():
     source = replace_once((platform / 'crt0.S').read_text(), '1:\tr1 = icfg',
                          '1:\tcli\n\tr3 = cnum\n\tif (r3 != 0) goto lunar_entry_rejected\n'
                          '\tr3 = 0x01C7FE08\n\tif (r0 != r3) goto lunar_entry_rejected\n\tr1 = icfg')
-    (out / 'crt0.S').write_text(source + '\nlunar_entry_rejected:\n\tgoto lunar_entry_rejected\n')
+    source += '\nlunar_entry_rejected:\n\tgoto lunar_entry_rejected\n'
+    if args.stack_watermark:
+        source = instrument_entry(source)
+    (out / 'crt0.S').write_text(source)
     gen = out / 'gen'
     shutil.copytree(catalogue / 'shard-00/obj/gen', gen)
     header = gen / 'fm1_modules.h'
@@ -245,6 +252,8 @@ def main():
              '-DFM1_TFT_INDEXED=' + str(int(args.indexed_tft))]
     if args.startup_set_index is not None:
         flags += ['-DLUNAR_STARTUP_SET_INDEX=' + str(args.startup_set_index)]
+    if args.stack_watermark:
+        flags += ['-DLUNAR_STACK_WATERMARK=1']
     if args.startup_project_index is not None:
         flags += ['-DLUNAR_STARTUP_PROJECT_INDEX=' + str(args.startup_project_index)]
     if args.compressed_wavetables:
@@ -343,6 +352,13 @@ def main():
     if result.returncode:
         raise SystemExit(result.stdout + result.stderr)
     objdump = str(tc / 'common/bin/objdump')
+    stack_receipt = None
+    if args.stack_watermark:
+        sys.path.insert(0, str(ROOT / 'tools/jieli'))
+        from audit_link import Elf
+        full_disassembly = subprocess.check_output([objdump, '-d', '-mcpu=r3', str(elf)], text=True)
+        (out / 'stack-watermark-disassembly.txt').write_text(full_disassembly)
+        stack_receipt = verify_instrumentation(Elf(elf.read_bytes()), full_disassembly)
     symbols = subprocess.check_output([objdump, '-t', str(elf)], text=True)
     (out / 'symbols.txt').write_text(symbols)
     missing = re.findall(r'^.*\*UND\*[ \t]+00000000[ \t]+(\S+)[ \t]*$', symbols, re.M)
@@ -368,6 +384,8 @@ def main():
                   flash_plaits_wavetables=args.flash_plaits_wavetables,
                   shapes_voices=args.shapes_voices,
                   printf_writeback_specifier=False,
+                  stack_watermark=args.stack_watermark,
+                  stack_watermark_verification=stack_receipt,
                   instance_pool_bytes=instance_pool_bytes, target_app_storage=app_storage,
                   catalogue_objects=catalogue_receipts,
                   linked_objects=[dict(path=str(p), sha256=digest(p)) for p in objects],

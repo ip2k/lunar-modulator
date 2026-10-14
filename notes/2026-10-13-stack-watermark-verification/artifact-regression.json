@@ -1,0 +1,21 @@
+{
+  "container": "lunar-stack-watermark-artifact-regression-v4",
+  "state": {
+    "Status": "exited",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 0,
+    "Error": "",
+    "StartedAt": "2026-10-14T04:39:30.347627439Z",
+    "FinishedAt": "2026-10-14T04:39:31.323158723Z"
+  },
+  "log_sha256": "d8b8de5aa45f370d8fca3d3554fc6f6eb91df8892674da930f787edcc91f0d95",
+  "test_files": [
+    "tests/test_native_probe_artifact.py",
+    "tests/test_native_catalogue_receipts.py"
+  ]
+}

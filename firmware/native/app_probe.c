@@ -20,6 +20,28 @@ static int32_t lunar_master_raw = 512;
 #include "audio_queue.h"
 #include "instance_pool.h"
 #include "midi_input.h"
+#ifdef LUNAR_STACK_WATERMARK
+#include "stack_watermark.h"
+extern char _ustack_top[];
+/* Retained symbols for a diagnostic debugger/readout. Minimum observed free
+ * bytes over completed samples; they include this scanner's own stack stores.
+ * No host/runtime measurement may substitute for physical values here. */
+volatile uint32_t lunar_stack_user_margin = UINT32_MAX;
+volatile uint32_t lunar_stack_system_margin = UINT32_MAX;
+volatile uint32_t lunar_stack_samples;
+static void sample_stacks(void)
+{
+    uint32_t user = (uint32_t)lunar_stack_pattern_margin(
+        (const volatile uint32_t *)(uintptr_t)_ustack_lo,
+        ((uintptr_t)_ustack_top - (uintptr_t)_ustack_lo) / 4u);
+    uint32_t system = (uint32_t)lunar_stack_pattern_margin(
+        (const volatile uint32_t *)(uintptr_t)_sstack_lo,
+        ((uintptr_t)_sstack_top - (uintptr_t)_sstack_lo) / 4u);
+    if (user < lunar_stack_user_margin) lunar_stack_user_margin = user;
+    if (system < lunar_stack_system_margin) lunar_stack_system_margin = system;
+    ++lunar_stack_samples;
+}
+#endif
 #if defined(LUNAR_STARTUP_SET_INDEX) || defined(LUNAR_STARTUP_PROJECT_INDEX)
 #include "content_catalogue.h"
 #endif
@@ -179,6 +201,10 @@ static void app_main(void)
     initial_engine_result = (uint32_t)fm1_app_select(&app, 0, fm1_app_find("trio"));
 #endif
     refill_audio();
+#ifdef LUNAR_STACK_WATERMARK
+    sample_stacks();
+    uint32_t last_stack_sample = fm1_ms;
+#endif
     for (;;) {
         if ((uint32_t)(fm1_ticks() - start) >= 20u * 1000000u * FM1_TICKS_PER_US) {
             fm1_audio_stop();
@@ -189,6 +215,12 @@ static void app_main(void)
         }
         refill_audio();
         platform_poll();
+#ifdef LUNAR_STACK_WATERMARK
+        if ((uint32_t)(fm1_ms - last_stack_sample) >= 1000u) {
+            sample_stacks();
+            last_stack_sample = fm1_ms;
+        }
+#endif
         uint32_t keys = fm1_in.notes, changed = keys ^ previous_keys;
         previous_keys = keys;
         for (unsigned k = 0; k < 27u; ++k) {
