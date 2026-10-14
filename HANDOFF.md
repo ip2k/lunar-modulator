@@ -1,3 +1,26 @@
+# Latest physical continuation — 2026-10-14
+
+Root integrated device42 adapters (28f21b95) and final linked NOR audit (c8880025).
+A boot42 verifier filename mismatch was corrected before device commands.
+Fresh paired full reads match installed Event120 SHA145c0280...aa4657;
+8,757 read/upload operations, zero flash writes. One FC0C arg1 request at
+1792010528.4383206 had ambiguous host7/resid16 completion, no retry;
+passive native USB43 1209:0001 appeared afterward. Owner screen/PLAY/audio/
+controls observation pending. Details: notes/2026-10-14-event120-device42-hardware.md.
+Private evidence: /home/claude/fm1-device42-event120-repeat-20261014 on bench01.
+Do not reuse this connection's consumed read/boot campaign.
+
+Owner supplied Pico2W and authorized programming; MicroPython identifies
+RP2350 Pico2W. GPIO recovery wiring question pending. Hera worker building
+board-specific UF2; no Pico flash or independent USB_KEY recovery proof yet.
+Final linked NOR audit establishes writer placement/order, but indirect/data/
+caller-pointer closure still needs proof. SAVE remains unbound/disarmed.
+Native companion SET access worker continues. First-format pure model WIP
+is safely checkpointed on Hera at d7f20a71 (25 focused tests); integration/
+GitHub backup pending. CI38633308608 at6a801549 is pending; superseded
+38631420007 was cancelled. Old38628940753 is still in progress.
+Goal remains active; no main merge, public firmware release or deployment.
+
 # Latest continuation authority — 2026-10-14 (checked watchdog and real SET interop)
 
 Coordinator `76bd667bf2a6755f07f548bc2e67365711cfed28` is GitHub-backed,

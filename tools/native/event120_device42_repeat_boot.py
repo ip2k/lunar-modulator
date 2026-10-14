@@ -201,7 +201,7 @@ def verify_read_bundle(manifest_path, manifest_sha, commands_sha, *, now=None):
             campaign['snapshot_sha256'] != manifest['snapshot_sha256'] or
             campaign['usb_binding'] != USB or campaign['receipt_path'] != str(receipt)):
         raise ValueError('Read campaign linkage differs')
-    adapter_path = ROOT / 'fm1_event120_rom_backup.py'
+    adapter_path = ROOT / 'fm1_event120_device42_rom_backup.py'
     adapter_raw = read_file(adapter_path, 65536)
     if (manifest['adapter_sha256'] != READ_ADAPTER_SHA or
             digest(adapter_raw) != manifest['adapter_sha256']):
