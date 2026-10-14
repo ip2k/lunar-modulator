@@ -13,6 +13,8 @@ from capture_trusted_build_tuple import (
     _catalogue_manifest,
     _linked_object_manifest,
     _source_manifest,
+    _verify_catalogue_subset,
+    _toolchain_manifest,
     canonical,
     sha,
 )
@@ -130,3 +132,34 @@ def test_linked_object_inventory_rejects_duplicate_rows_and_unknown_catalogue_ob
     wrong_prefix = {"path": "/out/attacker/link/obj.o", "sha256": sha(b"generated")}
     with pytest.raises(ValueError, match="outside the fixed mounts"):
         _linked_object_manifest(output, catalogue, {"catalogue_objects": [], "linked_objects": [wrong_prefix]})
+
+
+def test_catalogue_selected_rows_must_match_the_complete_snapshot():
+    tree = canonical({"schema": 1, "objects": [
+        {"path": "engine.o", "kind": "file", "sha256": sha(b"engine")},
+        {"path": "unused.o", "kind": "file", "sha256": sha(b"unused")},
+    ]})
+    selected = canonical({"schema": 1, "objects": [
+        {"path": "/catalogue/engine.o", "sha256": sha(b"engine")},
+    ]})
+    _verify_catalogue_subset(tree, selected)
+    changed = canonical({"schema": 1, "objects": [
+        {"path": "/catalogue/engine.o", "sha256": sha(b"other")},
+    ]})
+    with pytest.raises(ValueError, match="subset of the immutable snapshot"):
+        _verify_catalogue_subset(tree, changed)
+
+
+def test_full_tree_manifest_binds_directory_modes_and_contents(tmp_path):
+    from shutil import copytree
+    root = tmp_path / "catalogue"
+    (root / "empty").mkdir(parents=True)
+    (root / "obj.o").write_bytes(b"object")
+    copied = tmp_path / "copy"
+    copytree(root, copied, symlinks=True)
+    assert _toolchain_manifest(root) == _toolchain_manifest(copied)
+    (copied / "obj.o").write_bytes(b"changed")
+    assert _toolchain_manifest(root) != _toolchain_manifest(copied)
+    (copied / "obj.o").write_bytes(b"object")
+    (copied / "empty").chmod(0o700)
+    assert _toolchain_manifest(root) != _toolchain_manifest(copied)

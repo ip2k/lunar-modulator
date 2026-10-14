@@ -15,6 +15,7 @@ from run_trusted_continuous_build import (  # noqa: E402
     container_command,
     inspected_contract,
     require_successful_exit,
+    _catalogue_snapshot_fields,
 )
 
 
@@ -131,3 +132,100 @@ def test_invocation_source_snapshot_and_request_are_separate_readonly_mounts(tmp
     }
     assert (tmp_path / "snapshot").resolve() != (tmp_path / "output").resolve()
     assert (tmp_path / "request.json").resolve().parent != (tmp_path / "output").resolve()
+
+
+def _run_inputs(tmp_path):
+    import os, subprocess
+    root=tmp_path/"source"; root.mkdir()
+    subprocess.run(["git","init","-q",str(root)],check=True)
+    (root/"tracked.txt").write_text("source\\n")
+    worker=root/WORKER_REL
+    worker.parent.mkdir(parents=True)
+    worker.write_text("# worker fixture\\n")
+    wrapper=root/"tools/native/run_trusted_continuous_build.py"
+    wrapper.write_text("# wrapper fixture\\n")
+    subprocess.run(["git","-C",str(root),"add","tracked.txt",WORKER_REL,
+                    "tools/native/run_trusted_continuous_build.py"],check=True)
+    subprocess.run(["git","-C",str(root),"-c","user.name=Test","-c","user.email=test@example.invalid","commit","-qm","fixture"],check=True)
+    request=tmp_path/"request.json"; request.write_text("{}")
+    toolchain=tmp_path/"toolchain"; toolchain.mkdir(); (toolchain/"clang").write_bytes(b"compiler")
+    catalogue=tmp_path/"catalogue"; (catalogue/"shard").mkdir(parents=True)
+    (catalogue/"shard/a.o").write_bytes(b"linked"); (catalogue/"unused.bin").write_bytes(b"retained")
+    parent=tmp_path/"private"; parent.mkdir(mode=0o700); os.chmod(parent,0o700)
+    return root,request,toolchain,catalogue,parent/"build-output"
+
+
+def test_run_build_refuses_source_snapshot_mismatch_before_docker_create(tmp_path,monkeypatch):
+    import json, shutil, run_trusted_continuous_build as wrapper
+    root,request,toolchain,catalogue,output=_run_inputs(tmp_path)
+    calls=[]; real_copytree=shutil.copytree
+    def corrupt_copy(*args,**kwargs):
+        result=real_copytree(*args,**kwargs)
+        destination=Path(args[1])
+        if (destination/"unused.bin").exists():
+            (destination/"unused.bin").write_bytes(b"changed during copy")
+        return result
+    def fake_run(docker,args,**kwargs):
+        calls.append(args)
+        if args[0:2]==["image","inspect"] and "{{.Id}}" in args: return wrapper.PINNED_IMAGE_ID.encode()
+        if args[0:2]==["image","inspect"]: return json.dumps(wrapper.PINNED_IMAGE_ENV).encode("ascii")
+        raise AssertionError("Docker create/start must not occur")
+    monkeypatch.setattr(wrapper,"_run",fake_run)
+    monkeypatch.setattr(shutil,"copytree",corrupt_copy)
+    with pytest.raises(ValueError,match="snapshot differs from its source tree"):
+        wrapper.run_build(request_path=request,toolchain_path=toolchain,catalogue_path=catalogue,output_path=output,source_root=root)
+    assert not any(args and args[0]=="create" for args in calls)
+
+
+def test_run_build_refuses_snapshot_mutated_during_container_before_capture(tmp_path,monkeypatch):
+    import json, subprocess, run_trusted_continuous_build as wrapper
+    root,request,toolchain,catalogue,output=_run_inputs(tmp_path)
+    calls=[]; inspect_count=0; real_subprocess_run=subprocess.run
+    def fake_run(docker,args,**kwargs):
+        calls.append(args)
+        if args[0:2]==["image","inspect"] and "{{.Id}}" in args: return wrapper.PINNED_IMAGE_ID.encode()
+        if args[0:2]==["image","inspect"]: return json.dumps(wrapper.PINNED_IMAGE_ENV).encode("ascii")
+        if args[0]=="create":
+            snapshot=next(output.parent.glob(".build-output-catalogue-*"))
+            (snapshot/"unused.bin").write_bytes(b"changed while build ran")
+            return b"b"*64
+        if args[0]=="start": return b""
+        raise AssertionError("unexpected Docker operation")
+    def fake_inspect(docker,container_id): return {"fake":True}
+    def fake_contract(_inspect,_mounts,_commit,_name,_container):
+        nonlocal inspect_count
+        inspect_count+=1
+        return {"state":{"status":"created" if inspect_count==1 else "exited","running":False,"exit_code":0}}
+    def subprocess_run(args,**kwargs):
+        if args and args[0]=="docker": return subprocess.CompletedProcess(args,0,b"",b"")
+        return real_subprocess_run(args,**kwargs)
+    monkeypatch.setattr(wrapper,"_run",fake_run)
+    monkeypatch.setattr(wrapper,"_inspect",fake_inspect)
+    monkeypatch.setattr(wrapper,"inspected_contract",fake_contract)
+    monkeypatch.setattr(subprocess,"run",subprocess_run)
+    with pytest.raises(ValueError,match="snapshot changed while the container was running"):
+        wrapper.run_build(request_path=request,toolchain_path=toolchain,catalogue_path=catalogue,output_path=output,source_root=root)
+    assert any(args and args[0]=="create" for args in calls)
+    assert not (output/"build_tuple.json").exists()
+
+
+def test_snapshot_invocation_binds_paths_digests_and_all_catalogue_rows(tmp_path):
+    import shutil
+    from capture_trusted_build_tuple import _toolchain_manifest, sha
+    source = tmp_path / "source-catalogue"
+    (source / "shard").mkdir(parents=True)
+    (source / "linked.o").write_bytes(b"linked")
+    (source / "unused.o").write_bytes(b"still included")
+    snapshot = tmp_path / "private-snapshot"
+    shutil.copytree(source, snapshot)
+    source_manifest = _toolchain_manifest(source)
+    snapshot_manifest = _toolchain_manifest(snapshot)
+    fields = _catalogue_snapshot_fields(source, snapshot, source_manifest, snapshot_manifest)
+    assert fields["catalogue_source_root"] == str(source.resolve())
+    assert fields["catalogue_snapshot_root"] == str(snapshot.resolve())
+    assert fields["catalogue_source_tree_sha256"] == sha(source_manifest)
+    assert fields["catalogue_snapshot_tree_sha256"] == sha(snapshot_manifest)
+    inventory = __import__("json").loads(snapshot_manifest)["objects"]
+    assert {row["path"] for row in inventory} == {".", "shard", "linked.o", "unused.o"}
+    with pytest.raises(ValueError, match="snapshot differs from its source tree"):
+        _catalogue_snapshot_fields(source, snapshot, source_manifest, b"{}")

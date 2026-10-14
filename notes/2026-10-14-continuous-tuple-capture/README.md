@@ -27,7 +27,7 @@ not a firmware package or install approval.
 Validation at this checkpoint:
 
 - `python3 -m py_compile` on the builder, wrapper, worker, and tuple capture.
-- Pinned Hera pytest environment: 81 focused tests passed across continuous
+- Pinned Hera pytest environment: 86 focused tests passed across continuous
   tuple capture, wrapper policy, and native image controller. Policy tests
   reject added privilege/device/capabilities, namespace/runtime changes, extra
   environment/mounts, and altered worker entrypoint; provenance tests exercise

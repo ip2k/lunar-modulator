@@ -222,6 +222,18 @@ def _write_exclusive(path: Path, raw: bytes):
         os.fsync(stream.fileno())
 
 
+def _catalogue_snapshot_fields(source: Path, snapshot: Path,
+                               source_manifest: bytes, snapshot_manifest: bytes):
+    if source_manifest != snapshot_manifest:
+        raise ValueError("private catalogue snapshot differs from its source tree")
+    return {
+        "catalogue_source_root": str(source.resolve()),
+        "catalogue_snapshot_root": str(snapshot.resolve()),
+        "catalogue_source_tree_sha256": sha(source_manifest),
+        "catalogue_snapshot_tree_sha256": sha(snapshot_manifest),
+    }
+
+
 def run_build(*, request_path: Path,
               toolchain_path: Path, catalogue_path: Path, output_path: Path,
               source_root: Path = ROOT, docker_binary="docker", timeout_seconds=1200,
@@ -275,8 +287,8 @@ def run_build(*, request_path: Path,
     catalogue_source_manifest = _toolchain_manifest(catalogue)
     shutil.copytree(catalogue, catalogue_snapshot, symlinks=True, copy_function=shutil.copy2)
     catalogue_snapshot_manifest = _toolchain_manifest(catalogue_snapshot)
-    if catalogue_snapshot_manifest != catalogue_source_manifest:
-        raise ValueError("private catalogue snapshot differs from its source tree")
+    catalogue_fields = _catalogue_snapshot_fields(
+        catalogue, catalogue_snapshot, catalogue_source_manifest, catalogue_snapshot_manifest)
     subprocess.run(["git", "clone", "--quiet", "--no-hardlinks", "--no-checkout",
                     str(source), str(snapshot)], stdin=subprocess.DEVNULL,
                    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=120, check=True)
@@ -318,11 +330,6 @@ def run_build(*, request_path: Path,
             time.sleep(poll_seconds)
         contract = require_successful_exit(inspected_contract(final, mounts, commit, container_name, container_id))
 
-        build_output = output / "build"
-        worker_path = snapshot / WORKER_REL
-        worker_sha = sha(worker_path.read_bytes())
-        wrapper_sha = sha((snapshot / "tools/native/run_trusted_continuous_build.py").read_bytes())
-        worker_raw = (output / "worker-provenance.json").read_bytes()
         post_commit, post_manifest = _source_manifest(snapshot)
         if post_commit != commit:
             raise ValueError("source snapshot commit changed while the build ran")
@@ -332,6 +339,11 @@ def run_build(*, request_path: Path,
         post_catalogue_manifest = _toolchain_manifest(catalogue_snapshot)
         if post_catalogue_manifest != catalogue_snapshot_manifest:
             raise ValueError("private catalogue snapshot changed while the container was running")
+        build_output = output / "build"
+        worker_path = snapshot / WORKER_REL
+        worker_sha = sha(worker_path.read_bytes())
+        wrapper_sha = sha((snapshot / "tools/native/run_trusted_continuous_build.py").read_bytes())
+        worker_raw = (output / "worker-provenance.json").read_bytes()
         worker = _json(worker_raw, "worker provenance")
         if (worker.get("source_commit") != commit or worker.get("request_sha256") != sha(request_raw)
                 or worker.get("runtime_mode") != "continuous"
@@ -357,10 +369,7 @@ def run_build(*, request_path: Path,
             "worker_sha256": worker_sha,
             "worker_provenance_sha256": sha(worker_raw),
             "toolchain_tree_sha256": toolchain_manifest_sha,
-            "catalogue_source_root": str(catalogue.resolve()),
-            "catalogue_snapshot_root": str(catalogue_snapshot.resolve()),
-            "catalogue_source_tree_sha256": sha(catalogue_source_manifest),
-            "catalogue_snapshot_tree_sha256": sha(catalogue_snapshot_manifest),
+            **catalogue_fields,
             "state_tool_sha256": worker.get("state_tool_sha256"),
             "resources": DOCKER_POLICY,
             "exit_code": 0,
