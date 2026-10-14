@@ -10,7 +10,7 @@
     "hal/fm1_adc.h": "1917870bd802de9134d33335efbcf886b296705dff06688925fd7325589c0c1a",
     "hal/fm1_audio.h": "22351440699748546e932098e3016c618d6137dd0ae34557e08a107641d4e62e",
     "hal/fm1_cc.h": "46c533a0926ba9298ae36705f857ed609a61b95511ba7f0d1800857b4760dd73",
-    "hal/fm1_flash.h": "ee9700389d8bf842606b7210e52e125c085a44fbb5d30301cf189d823c4d5e90",
+    "hal/fm1_flash.h": "c592536796274b0ca49cfad2fc1e8e3e0350cc6f115f27120fe582c5743cbe7d",
     "hal/fm1_gpio.h": "5e3937e32a3b4b9b9ae622c5b42c8819ec8a16f2d76dbddec91654703c77a216",
     "hal/fm1_guard.h": "dda2ebdd3024aab7700f8ef00cc55de23c0b369be1d889741d2058eb5c33ce74",
     "hal/fm1_input.h": "7579aa8e061e4b23a86aee693f1d6004dc552b888457ea507f1ba3d941465241",
@@ -34,5 +34,12 @@
     "src/recovery.c": "f2c7c0c0fd1592f8390ee0066f96033843a3e2eaabbf995013ee9b0735429929",
     "src/uac_fir.h": "b4393a8efc4ce5427334692b9857d31446a36416dc6ca7941aea5bd4add4ca56",
     "src/usb.c": "68cbe458df1119a4517a384840f22f6359107453e571b3612672e01d52325857"
+  },
+  "local_modifications": {
+    "hal/fm1_flash.h": {
+      "upstream_sha256": "ee9700389d8bf842606b7210e52e125c085a44fbb5d30301cf189d823c4d5e90",
+      "local_sha256": "c592536796274b0ca49cfad2fc1e8e3e0350cc6f115f27120fe582c5743cbe7d",
+      "reason": "Preserves the prior interrupt-enable state and accounts for NOR status-poll deadlines in the FM-1 adapter. This is an intentional local change; upstream source remains identified by revision and original hash."
+    }
   }
 }

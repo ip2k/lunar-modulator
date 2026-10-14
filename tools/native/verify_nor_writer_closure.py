@@ -173,12 +173,15 @@ def patch_builder(builder_path):
         "(out / 'verification.json').write_text(json.dumps(report, indent=2) + '\\n')",
         "(out / 'analysis-only.json').write_text(json.dumps(report, indent=2) + '\\n')",
         'non-receipt output path')
-    no_call_block = """    if re.search(r'\\bcall\\b', disassembly):
-        raise SystemExit('RAM flash code contains a call')"""
-    capture_code = """    # Analysis only: retain call evidence instead of applying the normal gate.
+    audit_block = """    try:
+        ram_call_audit = audit_ram_call_allowlist(disassembly, symbols)
+    except ValueError as exc:
+        raise SystemExit('RAM call audit failed: ' + str(exc)) from exc
+    (out / 'ram-call-audit.json').write_text(json.dumps(ram_call_audit, indent=2) + '\\n')"""
+    capture_code = """    # Analysis only: retain all call evidence without applying the normal allowlist.
     ram_calls = [line for line in disassembly.splitlines() if re.search(r'\\bcall\\b', line)]
     (out / 'ram-call-audit.txt').write_text('\\n'.join(ram_calls) + '\\n')"""
-    text = replace_once(text, no_call_block, capture_code, 'analysis call audit capture')
+    text = replace_once(text, audit_block, capture_code, 'analysis call audit capture')
     artifact_block = """    subprocess.run([sys.executable, str(ROOT / 'tools/native/probe_artifact.py'),
                     '--elf', str(elf), '--layout', 'combined',
                     '--flash-layout', args.flash_layout,
