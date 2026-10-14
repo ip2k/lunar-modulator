@@ -16,6 +16,7 @@ class Element {
   }
   append(...children) { this.children.push(...children); }
   setAttribute(name, value) { this.attributes.set(name, String(value)); }
+  getAttribute(name) { return this.attributes.get(name) ?? null; }
   addEventListener(name, callback) {
     if (!this.listeners.has(name)) this.listeners.set(name, []);
     this.listeners.get(name).push(callback);
@@ -30,7 +31,8 @@ class Element {
 }
 
 class Document {
-  constructor() { this.nodes = new Map(); }
+  constructor() { this.nodes = new Map(); this.defaultView = { location: { origin: 'https://lunar.test' } }; this.serviceMarker = null; }
+  querySelector(selector) { return selector === 'meta[name="lunar-installer-build-service"]' ? this.serviceMarker : null; }
   createElement(tagName) { return new Element(tagName, this); }
   createTextNode(value) { const node = new Element('#text', this); node.textContent = value; return node; }
   getElementById(id) { return this.nodes.get(id) ?? null; }
@@ -212,5 +214,59 @@ test('uses injected build client only after explicit selection and preserves mod
   assert.equal(exportStatus.textContent, 'Diagnostic build checks passed. Application flash: 1,234 / 868,836 bytes used; 867,602 bytes free. No installable firmware file is available.');
   assert.equal(cancelButton.hidden, true);
   assert.match(serviceNotice.textContent, /does not provide installable firmware/i);
+  controller.destroy();
+});
+
+
+test('deployment marker enables only the fixed same-origin diagnostic API on explicit submit', async () => {
+  const document = new Document();
+  const marker = new Element('meta', document);
+  marker.setAttribute('content', 'enabled');
+  document.serviceMarker = marker;
+  const root = new Element('div', document);
+  const moduleRoot = new Element('div', document);
+  const loadStatus = new Element('p', document);
+  const exportStatus = new Element('p', document);
+  const serviceNotice = new Element('p', document);
+  document.nodes.set('installer-load-status', loadStatus);
+  document.nodes.set('installer-export-status', exportStatus);
+  document.nodes.set('installer-service-notice', serviceNotice);
+  document.nodes.set('installer-modules', moduleRoot);
+  const calls = [];
+  const jobId = 'a'.repeat(32);
+  const artifactSha = 'b'.repeat(64);
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url: String(url), options });
+    if (String(url) === './demo-image-catalogue.json') {
+      return { ok: true, json: async () => structuredClone(catalogue) };
+    }
+    if (options.method === 'POST') {
+      return new Response(JSON.stringify({ id: jobId, status: 'queued', status_url: '/api/v1/builds/' + jobId }), {
+        status: 202, headers: { 'content-type': 'application/json' },
+      });
+    }
+    return new Response(JSON.stringify({ id: jobId, status: 'succeeded', kind: 'private-diagnostic-build', result: {
+      status: 'linked-private-diagnostic', artifact_sha256: artifactSha, artifact_bytes: 785312,
+      app_budget_bytes: 868836, remaining_bytes: 83524, installable: false, hardware_tested: false,
+    } }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  const controller = await mountInstallerPage(root, { fetchImpl });
+  const nodes = walk(root);
+  const button = nodes.find((node) => node.tagName === 'BUTTON');
+  assert.equal(button.textContent, 'Request diagnostic build');
+  assert.equal(calls.length, 1, 'page load reads only the generated catalogue');
+  assert.match(serviceNotice.textContent, /availability is checked when you submit/i);
+  await button.dispatch('click');
+  assert.deepEqual(calls.map((call) => call.url), [
+    './demo-image-catalogue.json',
+    'https://lunar.test/api/v1/builds',
+    'https://lunar.test/api/v1/builds/' + jobId,
+  ]);
+  assert.equal(calls[1].options.credentials, 'same-origin');
+  assert.equal(calls[1].options.method, 'POST');
+  assert.deepEqual(JSON.parse(calls[1].options.body).project_ids, [ids[5]]);
+  assert.equal(calls[2].options.credentials, 'same-origin');
+  assert.match(exportStatus.textContent, /785,312 \/ 868,836 bytes used; 83,524 bytes free/);
+  assert.match(exportStatus.textContent, /No installable firmware file is available/);
   controller.destroy();
 });
