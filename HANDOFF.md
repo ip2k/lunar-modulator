@@ -3716,3 +3716,30 @@ and profile adaptation still need returned artifacts/coordinator review.
 Staging/record policies overlap protected expanded storage and cannot be reused
 unchanged. Offline fake-flash/profile adapter is in progress, with no device
 permission or staging ownership grant. Overall goal ACTIVE, no release/merge.
+
+## Private build connection and CI artifact follow-up — 2026-10-14
+
+Owner requests earlier demo projects selectable before flashing, with a full
+project selected by default. The chooser preselects Event Horizon Showcase;
+the existing current-source private link embeds its exact payload with all 13
+engines/all 55 modules, leaving 6,540 app bytes. This does not yet establish
+accepted production-default playback or public installation. A Hera worker
+owns the explicit opt-in, same-origin private page/build-service connection.
+
+Completed predecessor CI job logs are readable through the GitHub job-log API
+even while the whole run remains active. MIT/GPL-off job 115907960019 and
+32-bit job 115907960121 both fail the committed simulator source-hash check;
+the WebAssembly artifact needs a real rebuild. The replacement run remains
+pending behind the predecessor. A Hera worker is assigned a bounded, pinned
+musl/Emscripten rebuild, parity and source-record checks; no hash bypass.
+
+Felucca expanded offline loader review found and corrected a fake-NOR read
+bound that incorrectly included the OTA container offset. The 17-assertion
+source checkpoint 4c473a56c6ee336c3c7a8637f15738c1b2423db7 is backed up on
+GitHub branch codex/2026-10-14-expanded-loader-source-review with verified SHA.
+It remains unintegrated pending sanitizer/container and automated harness
+checks. It is host-only and omits target completion-record operations: staging
+ownership, target integration and persistent recovery remain unresolved.
+
+No device operation, public deployment, release or main merge occurred here.
+Goal ACTIVE. Root owns review/integration and all physical acceptance.
