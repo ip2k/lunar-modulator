@@ -113,6 +113,8 @@ def test_exact_install_target_and_device38_observation_admitted(tmp_path, fake_s
     lambda c: c["usb_binding"].update(path="1-2"),
     lambda c: c["usb_binding"].update(busnum="2"),
     lambda c: c["usb_binding"].update(pid="c755"),
+    lambda c: c["usb_binding"].update(devnum="37"),
+    lambda c: c["usb_binding"].update(devnum="39"),
     lambda c: c["usb_binding"].update(devnum="038"),
     lambda c: c.update(kind="fm1-fresh-observed-rom-fixed-loader-dual-read"),
     lambda c: c.update(adapter_sha256="0" * 64),
