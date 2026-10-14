@@ -9,9 +9,14 @@ free settings storage or prove RAM fit, hardware operation or installability.
 
 Focused browser/client tests: 17 passed locally. Includes missing capacity,
 over-capacity images, inconsistent free space, fractional and excessive limits.
-Service tests and desktop/mobile visual verification are pending on Hera at this
-checkpoint. The service fixture assertion verifies capacity and subtraction from
-the actual returned application bytes.
+Hera service tests passed: 46 passed, one optional retained-build test skipped.
+Desktop/mobile browser tests passed for the explicit two-project selection and
+the separate preselected-default flow. The coordinator inspected all four
+retained screenshots; labels are spaced and no overlap or clipping was seen.
+The service fixture assertion verifies capacity and subtraction from the actual
+returned application bytes. Browser success responses are stubbed examples,
+not new linked-image measurements or installability proof; see
+`2026-10-14-flash-usage-browser-review.md` for exact source and artifact hashes.
 
 Semantic navigation limits: Rarefaction selects the primary checkout and rejects
 the active external worktree; Serena's shared primary connection only has C++

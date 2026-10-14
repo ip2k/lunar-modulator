@@ -3553,3 +3553,32 @@ watched hardware full-song test (press PLAY promptly), persistence ownership and
 migration/rollback, interrupted-write recovery, release licence/notices, review,
 CI and deployment. All-thirteen hardware/default-song acceptance remains pending.
 Goal ACTIVE. Mac alone owns physical device operations.
+
+## Preload fit and browser review — 2026-10-14
+
+Linked flash accounting now shows validated used/budget/free application bytes.
+Focused client/page tests passed 17; Hera service tests passed 46 with one
+optional retained-build skip. Explicit selection and separate Event Horizon
+default browser reviews passed on desktop/mobile; coordinator inspected all four
+screenshots without clipping/overlap. Browser responses were stubbed; no public
+deployment or installable download is claimed. Harness and notes integrated and
+GitHub backed at 8f644c4fd7154111528ef65881feedc0e4a6745b.
+
+Target compiler size probes establish hard minimum instance-arena overflow for
+Packet Bloom Showcase (9316 bytes) and Satellite Hearts (76380 bytes). Event
+Horizon and Neon/Afterglow Showcase have about 20.6 KiB static margin, pending
+exact allocator/startup execution. Do not admit all eight chooser entries as
+working native preloads. Existing voice-cap/build options and allocator-only
+verification are being evaluated without altering musical content.
+
+The native app currently starts only the designated embedded project; a safe
+on-device selector for the remaining preloads is being designed with audio
+quiescence and cold initialization/rollback. A 120-second Event Horizon expanded
+candidate and matched receipts are prepared offline (see
+2026-10-14-event120-expanded-candidate.md); no new device write or watched test.
+
+Exact pinned stock SPL disassembly confirms conditional 80-byte recovery-record
+scanning at sector tails from 0x1f00 through 0xfef00 for this 1 MiB/4 KiB profile.
+A valid ordinary app bypasses this scan. This establishes lookup mechanics,
+not safe staging ownership; persistent WebMIDI updater layout, settings migration
+and power-loss recovery remain under investigation. Goal remains ACTIVE.
