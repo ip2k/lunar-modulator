@@ -1,3 +1,28 @@
+# Integration continuation — 2026-10-14
+
+Coordinator071cf726c71d80f4416e805a87f6108380323b8c is GitHub-backed,
+remote SHA verified, transferred to Hera coordinator-current. Native companion
+SET source a9743d99 plus standalone compatibility fix756950d7 and target
+notes813cd9a6 integrated as d34fa212/8920fc77/071cf726. Worker target link
+fits all13 engines at848160/860644B,12484B slack;82 tests passed/18 target
+compiler skips. Root selector/receipt13 tests pass. Root broader Mac attempt
+was interrupted after setup failures: unset FM1_STATE_TOOL and Darwin linker
+rejecting --gc-sections. A fresh combined-source configured Hera rerun is
+assigned; these failures are not recorded as source regression proof.
+
+First-format model branch7b1d39aa is GitHub-backed but not integrated.
+Further review found restore admission can lack inspected-current digest,
+and erase readback can be confused with an uncertain restore. Worker owns
+operation-bound replay corrections and negative tests. NOR runtime guard
+worker still owns target/auditor changes; nested RAM-callee stack maximum
+remains unproven, and SAVE remains disarmed.
+
+Pico2W runtime38 USB console replay is physically verified, reports GPIO
+FAULT; owner wiring answer pending. FM1 last passively observed ROM44;
+no FM1 command in this continuation and watched Event120 acceptance pending.
+CI38633308608 remains in progress;38636720831 pending, neither proves
+this newest combined source. Goal active, no main merge/release/deployment.
+
 # Latest physical continuation — 2026-10-14
 
 Coordinator checkpoint 8e38b31a is GitHub-backed; current-source CI38636720831
