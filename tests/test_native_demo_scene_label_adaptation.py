@@ -56,8 +56,7 @@ def test_adaptation_reverses_to_exact_fb92_bytes_and_changes_only_display_labels
     assert len(current['set']) == len(original['set'])
     scene_labels = [line[5:] for line in current['set'] if line.startswith('sn ')]
     assert all(0 < len(label) <= 6 for label in scene_labels)
-    assert len(scene_labels) == spec['bars'] // spec['bars'] * (
-        7 if 'event-horizon' in spec['file'] else 5)
+    assert len(scene_labels) == (7 if 'event-horizon' in spec['file'] else 5)
 
 
 @pytest.fixture(scope='session')

@@ -3409,3 +3409,33 @@ Remaining: fix sequence loss, target RAM/startup/full-song playback and SAVE/rel
 physical storage ownership/migration/rollback, actual installer route/build-service,
 watched all13 boot/audio/controls/MIDI, web flash/recovery, review/CI/merge and release.
 Goal ACTIVE. No hardware commands issued; Mac exclusively owns bench/device writes.
+
+## Adapted demo validation checkpoint — 2026-10-14
+
+Four replacement scene-label aliases are integrated; reversing only those aliases
+reconstructs exact original project bytes. The original composition hashes and
+alias maps remain in catalogue provenance. Source worker c5a15c17 and coordinator
+integration ddfe0e7a are verified backed up to GitHub.
+
+The refreshed pinned Hera suite passed 42 cases: eight app-startup characterizations,
+30 catalogue cases and four source-reversibility/native sequence-stage cases.
+Event Horizon Showcase now starts with six active units, no allocation failures
+and 90,912-byte host peak. Packet Bloom advances past sequence import but refuses
+engine coexistence, with zero live allocations after cleanup. Three of eight demos
+start in this host configuration; five retain allocation refusals. Max observed
+allocation size is not proof of the failed request or its module identity.
+Retained source hashes and receipt: notes/2026-10-14-demo-adapted-startup.md/.json.
+
+Actual retained all13 target instance pool is 216,064 bytes, not the host harness
+192,000-byte pool: 192,000 + 57,088 indexed-TFT credit - 33,024 decoded waves.
+Target measurement worker is checking current engine/effect sizes and aggregate
+requirements against that real budget. Another Hera worker is linking all13 with
+compressed adapted Event Horizon and diagnostics; a separate worker is verifying
+full-song host-native playback. These are active tasks, not completed acceptance.
+
+Installer connection review confirms the chooser/preparation CLI are disconnected
+from an actual web build service or flashing route. Pending work includes that
+integration, target RAM/timing, full-song SAVE/reload, physical storage ownership
+and migration/rollback, watched all13 hardware acceptance, browser flashing/recovery,
+owner listening/default acceptance and review/CI/release gates. Goal ACTIVE.
+No hardware command issued in this continuation.

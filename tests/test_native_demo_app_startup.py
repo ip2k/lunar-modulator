@@ -138,19 +138,24 @@ def test_replacement_showcase_full_app_cold_start(project_id, startup_tools, tmp
     assert metrics["seq_bytes"] <= metrics["seq_capacity"] == 32768
     assert metrics["pool_capacity"] == 192000
     assert metrics["pool_peak_live_bytes"] <= metrics["pool_capacity"]
-    expected_code = 8 if project_id in ("event-horizon-showcase", "packet-bloom-showcase") else 5
+    expected_code = 0 if project_id == "event-horizon-showcase" else 5
     assert metrics["report_code"] == expected_code
-    if expected_code in (5, 8):
+    if expected_code == 0:
+        assert result.returncode == 0, result.stderr + result.stdout
+        assert metrics["passed"]
+        assert metrics["allocation_failures"] == 0
+        assert metrics["active_units"] == 6
+        assert metrics["pool_live_allocations"] > 0
+    else:
         assert result.returncode == 1, result.stderr + result.stdout
-        assert not metrics["passed"] and metrics["report_code"] in (5, 8)
-        assert metrics["allocation_failures"] == (1 if metrics["report_code"] == 5 else 0)
-        if metrics["report_code"] == 5:
-            assert metrics["report_what"] == "candidate engines cannot coexist with live allocations"
-        else:
-            assert metrics["report_what"] == "project sequence importer refused content or observed loss"
-        expected_request = (
-            207728 if project_id == "satellite-hearts" else
-            65744 if project_id == "afterglow-relay-showcase" else 31944)
+        assert not metrics["passed"]
+        assert metrics["allocation_failures"] == 1
+        assert metrics["report_what"] == "candidate engines cannot coexist with live allocations"
+        expected_request = {
+            "satellite-hearts": 207728,
+            "afterglow-relay-showcase": 65744,
+            "packet-bloom-showcase": 79344,
+        }[project_id]
         assert metrics["largest_allocation_request"] == expected_request
         assert metrics["pool_live_bytes"] == metrics["pool_live_allocations"] == 0
         assert metrics["active_units"] == 0

@@ -56,4 +56,3 @@ Only these files are owned here:
 - `notes/2026-10-14-demo-app-startup.md`
 
 The coordinator reviewed these worker artifacts and the tightened eight-case rerun for checkpointing on the installable-firmware branch. Hera has no GitHub write credential; GitHub backup is performed and verified by the coordinator. No hardware commands were issued.
-
