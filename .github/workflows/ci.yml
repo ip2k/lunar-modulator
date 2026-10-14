@@ -274,8 +274,16 @@ jobs:
           if-no-files-found: ignore
 
   dongle-firmware:
-    name: dongle firmware (RP2040 UF2)
+    name: dongle firmware (${{ matrix.board }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - board: pico
+            artifact: usb_key_dongle-uf2
+          - board: pico2_w
+            artifact: usb_key_dongle-pico2-w-rp2350-uf2
     steps:
       - uses: actions/checkout@v4
       - name: Install ARM toolchain
@@ -291,15 +299,16 @@ jobs:
         env:
           PICO_SDK_PATH: /home/runner/pico-sdk
         run: |
-          cmake -S dongle/firmware -B dongle/firmware/build -G Ninja
-          cmake --build dongle/firmware/build
-          ls -la dongle/firmware/build/usb_key_dongle.uf2
+          cmake -S dongle/firmware -B "dongle/firmware/build-${{ matrix.board }}" -G Ninja \
+            -DPICO_BOARD=${{ matrix.board }}
+          cmake --build "dongle/firmware/build-${{ matrix.board }}"
+          ls -la "dongle/firmware/build-${{ matrix.board }}/usb_key_dongle.uf2"
       - uses: actions/upload-artifact@v4
         with:
-          name: usb_key_dongle-uf2
+          name: ${{ matrix.artifact }}
           path: |
-            dongle/firmware/build/usb_key_dongle.uf2
-            dongle/firmware/build/usb_key_dongle.elf.map
+            dongle/firmware/build-${{ matrix.board }}/usb_key_dongle.uf2
+            dongle/firmware/build-${{ matrix.board }}/usb_key_dongle.elf.map
 
   upstream-fm1-re:
     name: AL-255/FM-1-RE tests on fork branch (${{ matrix.ref }})
