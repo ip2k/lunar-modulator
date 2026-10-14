@@ -84,3 +84,21 @@ Focused tests cover the two distinct positive pins and refuse mutation of
 either byte stream or either invocation digest. The 91-test focused suite,
 Python compilation, and diff check pass. This is source/test verification only;
 capture retry remains held for coordinator review.
+
+
+After the worker source/provenance binding fix was reviewed, the capture-only
+retry passed those pins and then refused on two serialization details in the
+retained container inspection. The producer sorts inspected mounts by
+destination and Docker returns the container name with a leading slash. Capture
+now sorts only its expected mount rows for exact equality, still requiring the
+same five rows, exact paths and read-only bits, and requires the exact Docker
+name `"/" + container_name` without normalization. Focused tests accept the
+sorted producer form and refuse changed path/read-only fields, missing or
+doubled slash, and a different name. Full read-only comparison found the other
+retained inspection fields, command, resources, and receipt digests match their
+fixed contract.
+
+The 92-test focused suite, Python compilation, and diff check pass. No capture
+retry has been made after this refusal; no tuple sidecars exist. The original
+invocation and build receipts remain byte-identical. Request coordinator review
+of this commit before the next capture-only attempt.

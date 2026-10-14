@@ -268,6 +268,14 @@ def _read_pinned_worker_source(root: Path, worker_source_path: Path) -> bytes:
     return read(worker_source_path)
 
 
+def _verify_inspection_mounts(contract, expected_mounts, container_name: str):
+    if contract.get("container_name") != "/" + container_name:
+        raise ValueError("container inspection name does not match Docker's exact name")
+    normalized_expected = sorted(expected_mounts, key=lambda row: row["destination"])
+    if contract.get("mounts") != normalized_expected:
+        raise ValueError("container inspection mounts differ from the exact fixed mounts")
+
+
 def _verify_worker_bindings(invocation, worker_source: bytes, worker_provenance: bytes):
     if invocation.get("worker_sha256") != sha(worker_source):
         raise ValueError("container invocation does not bind worker source bytes")
@@ -455,6 +463,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         {"source": str(catalogue.resolve()), "destination": "/catalogue", "read_only": True},
         {"source": str(invocation_path.parent.resolve()), "destination": "/output", "read_only": False},
     ]
+    _verify_inspection_mounts(contract, expected_mounts, container_name)
     request_mount = invocation.get("request_mount_source")
     if (not isinstance(request_mount, str) or Path(request_mount).parent.resolve() != invocation_path.parent.parent.resolve()
             or Path(request_mount).is_symlink() or Path(request_mount).name in ("", ".", "..")):
@@ -503,7 +512,6 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         raise ValueError("invocation resource policy differs from fixed limits")
     host = contract.get("host")
     if (contract.get("image") != "sha256:" + PINNED_TOOLCHAIN_IMAGE
-            or contract.get("container_name") != container_name
             or contract.get("container_id") != invocation.get("container_id")
             or contract.get("config_image") != "sha256:" + PINNED_TOOLCHAIN_IMAGE
             or contract.get("command") != ["python3", "/workspace/" + "tools/native/trusted_continuous_worker.py"]
@@ -535,7 +543,6 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
                 "open_stdin": False, "stdin_once": False,
                 "attach_stdout": True, "attach_stderr": True,
             }
-            or contract.get("mounts") != expected_mounts
             or invocation.get("container_inspection_sha256") != sha(canonical(contract))):
         raise ValueError("container inspection differs from the fixed, completed build policy")
     expected_compiler_sha = "42b94f9e11140b0fcab8f807b2872ad245b8eeca03a2d792f8706c5a3a35d34c"
