@@ -76,6 +76,18 @@ static void instance_free(void *ctx, void *memory) {
         arena_bind_failures++;
 }
 static lunar_audio_queue_t audio_queue;
+#ifdef LUNAR_PROJECT_SAVE_SERVICE
+#include "save_quiesce.h"
+#include "project_save_service.h"
+static lunar_audio_pause_t save_pause;
+/* Deliberately closed until physical geometry, ownership and migration pass.
+ * A compile flag enables scheduling, never grants permission to write flash. */
+static lunar_project_save_service save_service = {
+    .pause_ctx = &save_pause,
+    .pause = lunar_save_quiesce_begin,
+    .resume = lunar_save_quiesce_end
+};
+#endif
 static volatile uint32_t render_ticks_max, draw_ticks_max;
 static volatile uint32_t initial_engine_result;
 
@@ -170,6 +182,9 @@ static void app_main(void)
     }
 #endif
     fm1_app_init(&app, 44118.0f);
+#ifdef LUNAR_PROJECT_SAVE_SERVICE
+    app.store_ready = lunar_project_save_service_ready(&save_service);
+#endif
     if (lunar_instance_pool_init(&instance_pool, instance_memory, sizeof instance_memory) ||
         fm1_app_set_storage(&app, &instance_pool, instance_alloc, instance_free))
         arena_bind_failures++;
@@ -247,6 +262,9 @@ static void app_main(void)
             fm1_app_master(&app, position, 0);
         }
         incoming_midi();
+#ifdef LUNAR_PROJECT_SAVE_SERVICE
+        (void)lunar_project_save_service_poll(&save_service, &app);
+#endif
         refill_audio();
         if ((uint32_t)(fm1_ms - last_draw) >= 33u) {
             uint32_t tick = fm1_ticks();

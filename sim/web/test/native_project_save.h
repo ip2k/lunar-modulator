@@ -3,17 +3,33 @@
 #ifndef LUNAR_NATIVE_PROJECT_SAVE_TEST_H
 #define LUNAR_NATIVE_PROJECT_SAVE_TEST_H
 #include "../../../firmware/native/project_save_app.h"
+#include "../../../firmware/native/project_save_service.h"
 #include <assert.h>
 #define TEST_PROJECT_SLOT 102400u
 typedef struct {
     uint8_t bytes[2 * TEST_PROJECT_SLOT];
     unsigned operations;
     uint32_t read_base;
+    int fail_read, defer, paused;
+    unsigned begins, ends;
+    fm1_app_t *app;
 } native_save_test;
+static int native_save_pause(void *ctx) {
+    native_save_test *s = ctx;
+    assert(!s->paused);
+    if (s->defer) { --s->defer; return 0; }
+    s->begins++; s->paused = 1; return 1;
+}
+static void native_save_resume(void *ctx) {
+    native_save_test *s = ctx;
+    assert(s->paused && fm1_tft_pixels_valid(&s->app->tft));
+    s->ends++; s->paused = 0;
+}
 static int native_save_read(void *ctx, uint32_t off, void *p, uint32_t n) {
     native_save_test *s = ctx;
     assert(off <= sizeof s->bytes && n <= sizeof s->bytes - off);
     s->operations++;
+    if (s->fail_read) return -1;
     memcpy(p, s->bytes + off, n);
     return 0;
 }
@@ -78,12 +94,36 @@ static int native_project_test_save(FILE *f, fm1_app_t *app, fm1_state_report_t 
             guards[0],guards[1],guards[2],guards[3],rep) < 0);
         assert(s->operations == 0);
     }
-    if (lunar_project_save_app(app, &io, TEST_PROJECT_SLOT, 1,1,1,1,rep)) goto done;
-    assert(!fm1_tft_pixels_valid(&app->tft));
+    s->app = app;
+    lunar_project_save_service service = {io, TEST_PROJECT_SLOT, app->save_gen,
+        0, s, native_save_pause, native_save_resume};
+    app->save_gen++;
+    assert(lunar_project_save_service_poll(&service, app) == 2);
+    assert(!s->operations && !s->begins && !s->ends);
+    assert(!lunar_project_save_service_poll(&service, app));
+    service.storage_admitted = 1;
+    assert(lunar_project_save_service_ready(&service));
+    s->defer = 1; app->save_gen++;
+    assert(lunar_project_save_service_poll(&service, app) == 1);
+    assert(service.seen_gen != app->save_gen && !s->operations && !s->begins);
+    assert(lunar_project_save_service_poll(&service, app) == 2);
+    assert(s->begins == 1 && s->ends == 1 && !s->paused);
+    assert(fm1_tft_pixels_valid(&app->tft));
     before = s->operations;
     /* Save again through recovery selection and inactive-slot replacement. */
-    if (lunar_project_save_app(app, &io, TEST_PROJECT_SLOT, 1,1,1,1,rep)) goto done;
+    app->save_gen++;
+    assert(lunar_project_save_service_poll(&service, app) == 2);
+    assert(s->begins == 2 && s->ends == 2 && !s->paused);
     assert(s->operations > before);
+    /* Read failure resumes/redraws and consumes the request exactly once.
+     * Existing committed slots survive; the scan below verifies selection. */
+    s->fail_read = 1; app->save_gen++;
+    assert(lunar_project_save_service_poll(&service, app) == 2);
+    before = s->operations;
+    assert(!lunar_project_save_service_poll(&service, app));
+    assert(s->operations == before && s->begins == 3 && s->ends == 3);
+    assert(!s->paused && fm1_tft_pixels_valid(&app->tft));
+    s->fail_read = 0;
     memset(&store, 0, sizeof store); store.io = io; store.slot_bytes = TEST_PROJECT_SLOT;
     if (lunar_project_scan(&store, &slot, &generation, &length)) goto done;
     assert(slot == 1 && generation == 1);

@@ -3088,3 +3088,23 @@ rollback, installer/builder/review/CI/release. Goal ACTIVE, installed diagnostic
 still unbooted; never replay consumed installation/RAM-loader operations.
 Branch feature/2026-10-11@installable-firmware; preceding verified pushed
 4caa21ac937ddd3b0809a561df159879fde067d6.
+
+## Native SAVE service checkpoint (2026-10-14)
+
+[verified] SAVE generation service and real ALNK/UAC/display quiescence wired
+behind explicit build flag; zero/unadmitted physical binding keeps writes closed.
+30 actual-app ASan/UBSan cases and30 standalone shards (30,000 cycles using actual
+USB packet/producer functions) pass on Hera. Deferral, zero-I/O refusal, two commits,
+redraw before resume, failed read/no implicit retry/prior generation reload checked.
+New actual app compiled/retained alongside SAVE:863380B,5456B flash budget margin,
+2320B global headroom. SDK-free/eFuse audit0pending, flatten/no unresolved symbols,
+72 fresh dependency hashes and281 baseline object hashes verified. Offline link
+reuses baseline; no fresh release/physical timing proof. Evidence
+notes/2026-10-14-save-scheduler-verification/, private build/native-save-scheduler-20261014/.
+Sessions91911/80002/72092/56795 terminal0; no live jobs and no device command.
+Installed all13 diagnostic still unbooted/pending owner watch; never replay
+consumed writers/loaders/boot commands. Goal ACTIVE: fullall13firmware plus
+selectable webbuilder/installer. Next capacity/migration/physicalIO/stackproof,
+watched all13boot androllback, licensing/reviewCI/integration/release.
+Branch feature/2026-10-11@installable-firmware; preceding verified pushed
+ a05c1677c52b85ef6f6bc7267de61a04aa75a9aa.

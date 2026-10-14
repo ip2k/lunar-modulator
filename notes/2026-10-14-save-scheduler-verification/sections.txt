@@ -1,0 +1,15 @@
+
+/out/save-scheduler-link-v1/save-retained.elf:	file format ELF32-pi32v2
+
+Sections:
+Idx Name          Size      Address          Type
+  0               00000000 0000000000000000 
+  1 .text         000d27bc 0000000002000120 TEXT DATA 
+  2 .ram_text     00000468 0000000001c00000 TEXT DATA 
+  3 .data         00000070 0000000001c08000 DATA 
+  4 .bss          00004be0 0000000001c08070 BSS
+  5 .pool         00066aa0 0000000001c0cc50 BSS
+  6 .noinit       00000018 0000000001c7c000 BSS
+  7 .shstrtab     00000044 0000000000000000 
+  8 .symtab       0000d6f0 0000000000000000 
+  9 .strtab       0001268e 0000000000000000 

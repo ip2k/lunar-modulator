@@ -1,0 +1,142 @@
+{
+  "schema": "lunar-save-quiesce-v1",
+  "image": "sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d",
+  "hardware_tested": false,
+  "runs": [
+    {
+      "name": "compile",
+      "exit": 0
+    },
+    {
+      "name": "shard-00",
+      "exit": 0
+    },
+    {
+      "name": "shard-01",
+      "exit": 0
+    },
+    {
+      "name": "shard-02",
+      "exit": 0
+    },
+    {
+      "name": "shard-03",
+      "exit": 0
+    },
+    {
+      "name": "shard-04",
+      "exit": 0
+    },
+    {
+      "name": "shard-05",
+      "exit": 0
+    },
+    {
+      "name": "shard-06",
+      "exit": 0
+    },
+    {
+      "name": "shard-07",
+      "exit": 0
+    },
+    {
+      "name": "shard-08",
+      "exit": 0
+    },
+    {
+      "name": "shard-09",
+      "exit": 0
+    },
+    {
+      "name": "shard-10",
+      "exit": 0
+    },
+    {
+      "name": "shard-11",
+      "exit": 0
+    },
+    {
+      "name": "shard-12",
+      "exit": 0
+    },
+    {
+      "name": "shard-13",
+      "exit": 0
+    },
+    {
+      "name": "shard-14",
+      "exit": 0
+    },
+    {
+      "name": "shard-15",
+      "exit": 0
+    },
+    {
+      "name": "shard-16",
+      "exit": 0
+    },
+    {
+      "name": "shard-17",
+      "exit": 0
+    },
+    {
+      "name": "shard-18",
+      "exit": 0
+    },
+    {
+      "name": "shard-19",
+      "exit": 0
+    },
+    {
+      "name": "shard-20",
+      "exit": 0
+    },
+    {
+      "name": "shard-21",
+      "exit": 0
+    },
+    {
+      "name": "shard-22",
+      "exit": 0
+    },
+    {
+      "name": "shard-23",
+      "exit": 0
+    },
+    {
+      "name": "shard-24",
+      "exit": 0
+    },
+    {
+      "name": "shard-25",
+      "exit": 0
+    },
+    {
+      "name": "shard-26",
+      "exit": 0
+    },
+    {
+      "name": "shard-27",
+      "exit": 0
+    },
+    {
+      "name": "shard-28",
+      "exit": 0
+    },
+    {
+      "name": "shard-29",
+      "exit": 0
+    }
+  ],
+  "source_hashes": {
+    "firmware/native/save_quiesce.h": "2ffcddeec3a1732ed74c54c5a2766565cf3921a37e37962625d308e2a1b19b2f",
+    "firmware/native/audio_pause.h": "81c65e475b954db302f5741755a49483b7a6a1a0cfea99ac386f0d2fea02474d",
+    "firmware/native/audio_queue.h": "95e071a351921fc976197a02f69b26aa35d58649e58c4b3791e3c0b37db421cc",
+    "tests/native/save_quiesce_test.c": "3ee1cdc16c1aee0824326ca699336f9291ca518c314bc7914bff633eabdf00d7",
+    "tests/native/verify_save_quiesce.py": "23720a3b17db8d2ac9bfa480d6ef37058bcef26c3b42067bb7f07b885f5c94df",
+    "firmware/third_party/dinghy/src/usb.c": "68cbe458df1119a4517a384840f22f6359107453e571b3612672e01d52325857",
+    "firmware/third_party/dinghy/src/uac_fir.h": "b4393a8efc4ce5427334692b9857d31446a36416dc6ca7941aea5bd4add4ca56"
+  },
+  "generated_header_sha256": "af39479a8785daf07082b3a19e566c1d66135891a0b5175afb34368c9b41e8df",
+  "success": true
+}
