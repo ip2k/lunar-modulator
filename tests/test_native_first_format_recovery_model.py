@@ -289,7 +289,7 @@ def test_interrupted_restore_can_be_reinspected_and_repeated_exactly():
          "restore_source_sha256": plan["sectors"][0]["before_sha256"],
          "archive_ref": plan["archive_refs"][1]}, rom_recovery_verified=True)
     journal = append_event(journal, plan, "restore_ack_uncertain",
-                           {"sector_index": 0})
+                           {"sector_index": 0}, rom_recovery_verified=True)
     assert journal_state(journal, plan)["status"] == "stop_and_reenter_rom_to_inspect"
     partial = "d" * 64
     journal = append_event(
@@ -327,3 +327,128 @@ def test_recomputed_hashes_do_not_admit_semantically_invalid_journal():
         append_event(bad, plan, "erase_ack_uncertain", {"sector_index": 7})
     with pytest.raises(ValueError, match="chain"):
         journal_state(bad, plan)
+
+def test_restore_requires_complete_inspection_and_blocks_erase_readback():
+    _, plan = fixture()
+    journal = start(new_journal(plan), plan, 0)
+    journal = append_event(journal, plan, "erase_ack_uncertain",
+                           {"sector_index": 0})
+    with pytest.raises(ValueError, match="inspected uncertain"):
+        append_event(
+            journal, plan, "restore_started",
+            {"sector_index": 0, "observed_current_sha256": None,
+             "restore_source_sha256": plan["sectors"][0]["before_sha256"],
+             "archive_ref": plan["archive_refs"][0]}, rom_recovery_verified=True)
+
+    # A genuine mixed erase readback can start restoration.
+    journal = append_event(
+        journal, plan, "erase_readback",
+        {"sector_index": 0, "observed_sha256": "e" * 64,
+         "observed_length": SECTOR_BYTES}, rom_recovery_verified=True)
+    journal = append_event(
+        journal, plan, "restore_started",
+        {"sector_index": 0, "observed_current_sha256": "e" * 64,
+         "restore_source_sha256": plan["sectors"][0]["before_sha256"],
+         "archive_ref": plan["archive_refs"][0]}, rom_recovery_verified=True)
+    journal = append_event(journal, plan, "restore_ack_uncertain",
+                           {"sector_index": 0}, rom_recovery_verified=True)
+    with pytest.raises(ValueError, match="No sector action"):
+        append_event(
+            journal, plan, "erase_readback",
+            {"sector_index": 0, "observed_sha256": "f" * 64,
+             "observed_length": SECTOR_BYTES}, rom_recovery_verified=True)
+    with pytest.raises(ValueError, match="inspected uncertain"):
+        append_event(
+            journal, plan, "restore_started",
+            {"sector_index": 0, "observed_current_sha256": "e" * 64,
+             "restore_source_sha256": plan["sectors"][0]["before_sha256"],
+             "archive_ref": plan["archive_refs"][0]}, rom_recovery_verified=True)
+
+    journal = append_event(
+        journal, plan, "restore_readback",
+        {"sector_index": 0, "observed_sha256": "f" * 64,
+         "observed_length": SECTOR_BYTES}, rom_recovery_verified=True)
+    with pytest.raises(ValueError, match="No sector action"):
+        append_event(
+            journal, plan, "erase_readback",
+            {"sector_index": 0, "observed_sha256": "f" * 64,
+             "observed_length": SECTOR_BYTES}, rom_recovery_verified=True)
+    journal = append_event(
+        journal, plan, "restore_started",
+        {"sector_index": 0, "observed_current_sha256": "f" * 64,
+         "restore_source_sha256": plan["sectors"][0]["before_sha256"],
+         "archive_ref": plan["archive_refs"][1]}, rom_recovery_verified=True)
+    assert journal_state(journal, plan)["status"] == "stop_and_reenter_rom_to_inspect"
+
+
+def test_plan_rejects_forged_erased_digest_and_trailer_flag():
+    from first_format_recovery_model import _canonical
+
+    _, original = fixture()
+    for mutate in (
+            lambda plan: plan["sectors"][0].update(erased_sha256="0" * 64),
+            lambda plan: plan["sectors"][0].update(trailer_before_is_ff=True)):
+        plan = copy.deepcopy(original)
+        mutate(plan)
+        body = dict(plan)
+        body.pop("plan_sha256")
+        plan["plan_sha256"] = sha256(_canonical(body))
+        with pytest.raises(ValueError, match="Erased-sector|Trailer"):
+            new_journal(plan)
+
+def test_semantic_replay_rejects_rehashed_missing_and_cross_operation_reads():
+    from first_format_recovery_model import _canonical
+
+    _, plan = fixture()
+
+    def forge(journal, event, data, *, rom=True):
+        entry = {"seq": len(journal["events"]), "event": event, "data": data,
+                 "rom_recovery_verified": rom,
+                 "previous_sha256": journal["events"][-1]["event_sha256"]}
+        entry["event_sha256"] = sha256(_canonical(entry))
+        result = copy.deepcopy(journal)
+        result["events"].append(entry)
+        return result
+
+    journal = start(new_journal(plan), plan, 0)
+    journal = append_event(journal, plan, "erase_ack_uncertain",
+                           {"sector_index": 0})
+    forged_missing_read = forge(
+        journal, "restore_started",
+        {"sector_index": 0, "observed_current_sha256": None,
+         "restore_source_sha256": plan["sectors"][0]["before_sha256"],
+         "archive_ref": plan["archive_refs"][0]})
+    with pytest.raises(ValueError, match="chain"):
+        journal_state(forged_missing_read, plan)
+
+    journal = readback(journal, plan, 0, "e" * 64)
+    journal = append_event(
+        journal, plan, "restore_started",
+        {"sector_index": 0, "observed_current_sha256": "e" * 64,
+         "restore_source_sha256": plan["sectors"][0]["before_sha256"],
+         "archive_ref": plan["archive_refs"][0]}, rom_recovery_verified=True)
+    journal = append_event(
+        journal, plan, "restore_ack_uncertain", {"sector_index": 0},
+        rom_recovery_verified=True)
+    forged_erase_read = forge(
+        journal, "erase_readback",
+        {"sector_index": 0, "observed_sha256": "f" * 64,
+         "observed_length": SECTOR_BYTES})
+    with pytest.raises(ValueError, match="chain"):
+        journal_state(forged_erase_read, plan)
+
+
+def test_plan_rejects_wrong_schema_and_non_list_sector_map():
+    from first_format_recovery_model import _canonical
+
+    _, original = fixture()
+    for mutate in (lambda plan: plan.update(schema=2),
+                   lambda plan: plan.update(schema=True),
+                   lambda plan: plan.update(sectors=None)):
+        plan = copy.deepcopy(original)
+        mutate(plan)
+        body = dict(plan)
+        body.pop("plan_sha256")
+        plan["plan_sha256"] = sha256(_canonical(body))
+        with pytest.raises(ValueError, match="Recognized|Exact reviewed"):
+            new_journal(plan)
