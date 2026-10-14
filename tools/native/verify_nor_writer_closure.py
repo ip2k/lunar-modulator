@@ -97,6 +97,127 @@ def audit_ram_calls(ram_text):
     return calls, writer_calls
 
 
+
+def audit_linked_writer(ram_text, symbols, relocations, sections):
+    """Validate real linked NOR opcodes and transfer evidence, not runtime safety."""
+    symbol_rows = {}
+    pattern = re.compile(
+        r"^\s*([0-9a-fA-F]+)\s+\S+\s+F\s+\.ram_text\s+"
+        r"([0-9a-fA-F]+)\s+(\S+)\s*$", re.MULTILINE)
+    for match in pattern.finditer(symbols):
+        address, size, name = match.groups()
+        if name in symbol_rows:
+            raise ValueError(f"duplicate linked RAM symbol: {name}")
+        symbol_rows[name] = (int(address, 16), int(size, 16))
+
+    linked_symbols = {}
+    all_symbol_pattern = re.compile(
+        r"^\s*([0-9a-fA-F]+)\s+\S+\s+F\s+(\.\S+)\s+"
+        r"([0-9a-fA-F]+)\s+(\S+)\s*$", re.MULTILINE)
+    for match in all_symbol_pattern.finditer(symbols):
+        address, section, size, name = match.groups()
+        linked_symbols[name] = {"address": int(address, 16), "section": section,
+                                "size": int(size, 16)}
+
+    required = ("fl_erase4k_ram", "fl_prog_ram", "fl_read_ram",
+                "fl_status_checked_ram", "fl_jedec_checked_ram", "fl_jedec_ram")
+    functions, current = {}, None
+    for line in ram_text.splitlines():
+        label = re.fullmatch(r"([A-Za-z_.$][A-Za-z0-9_.$@-]*):", line)
+        if label:
+            current = label.group(1)
+            functions.setdefault(current, [])
+            continue
+        ins = re.match(r"^\s*([0-9a-fA-F]+):\s+.*$", line)
+        if ins and current is not None:
+            functions[current].append((int(ins.group(1), 16), line))
+
+    for name in required:
+        if name not in symbol_rows:
+            raise ValueError(f"missing linked RAM symbol: {name}")
+        start, size = symbol_rows[name]
+        body = functions.get(name, [])
+        if size < 16 or not body:
+            raise ValueError(f"linked RAM symbol is empty or stub-sized: {name}")
+        if any(not start <= address < start + size for address, _ in body):
+            raise ValueError(f"instruction outside linked RAM symbol: {name}")
+
+    def has(name, expression):
+        return any(re.search(expression, line) for _, line in functions[name])
+
+    # Concrete pi32v2 objdump operand forms prove command paths, not just
+    # retained names. A changed disassembler/toolchain must be reviewed.
+    required_operands = {
+        "fl_erase4k_ram": (r"\[r\d+\+8\]\s*=\s*0x6\b",
+                           r"\[r\d+\+8\]\s*=\s*0x20\b",
+                           r"\[r\d+\+8\]\s*=\s*0x5\b"),
+        "fl_prog_ram": (r"\[r\d+\+8\]\s*=\s*0x6\b",
+                        r"\[r\d+\+8\]\s*=\s*0x2\b",
+                        r"\[r\d+\+8\]\s*=\s*0x5\b"),
+        "fl_status_checked_ram": (r"\[r\d+\+8\]\s*=\s*0x5\b",),
+        "fl_jedec_checked_ram": (r"\[r\d+\+8\]\s*=\s*0x9[fF]\b",),
+    }
+    for name, expressions in required_operands.items():
+        for expression in expressions:
+            if not has(name, expression):
+                raise ValueError(f"writer opcode evidence missing: {name}: {expression}")
+
+    calls, writer_calls = audit_ram_calls(ram_text)
+    if writer_calls:
+        raise ValueError("erase/program RAM entry calls out to another function")
+    for call in calls:
+        target = re.search(r"([^:]+?)\s*:\s*([0-9a-fA-F]+)$", call["target"])
+        if target is None:
+            raise ValueError(f"unresolved RAM call target: {call['target']}")
+        target_name, target_address = target.group(1).strip(), int(target.group(2), 16)
+        row = symbol_rows.get(target_name)
+        if row is None or target_address != row[0]:
+            raise ValueError(f"RAM call does not resolve to linked RAM symbol: {call['target']}")
+
+    unresolved_branches = []
+    for name in required:
+        start, size = symbol_rows[name]
+        for address, line in functions[name]:
+            if "goto" not in line:
+                continue
+            target = re.search(r"<[^<>]*:\s*([0-9a-fA-F]+)\s*>", line)
+            if target is None:
+                unresolved_branches.append({"function": name, "address": address,
+                                            "instruction": line.strip()})
+            elif not start <= int(target.group(1), 16) < start + size:
+                raise ValueError(f"direct RAM branch leaves {name}: {line.strip()}")
+
+    relocation_lines = [line for line in relocations.splitlines()
+                        if line.strip() and not line.startswith("/") and
+                        "file format" not in line]
+    has_rodata = re.search(r"^\s*\d+\s+\.rodata\s", sections, re.MULTILINE) is not None
+    return {
+        "passed_static_writer_checks": True,
+        "symbols": {name: {"address": symbol_rows[name][0],
+                           "size": symbol_rows[name][1],
+                           "instructions": len(functions[name])} for name in required},
+        "ram_calls": calls,
+        "writer_entry_calls": writer_calls,
+        "unresolved_computed_branches": unresolved_branches,
+        "static_relocations_absent": not relocation_lines,
+        "rodata_section_absent": not has_rodata,
+        "static_data_closure_complete": False,
+        "control_flow_closure_complete": not unresolved_branches,
+        "runtime_pointer_residency_proven": False,
+        "watchdog_feed_in_ram": any(
+            name.startswith("fm1_wdt") and row["section"] == ".ram_text"
+            for name, row in linked_symbols.items()),
+        "watchdog_symbols": {name: row for name, row in linked_symbols.items()
+                             if "wdt" in name.lower()},
+        "xip_wrapper_symbols": {name: linked_symbols[name]
+                                for name in ("fl_erase4k", "fl_write", "irq_save")
+                                if name in linked_symbols},
+        "limitations": [
+            "indirect/computed control flow and caller-provided pointers are not proven",
+            "no runtime XIP-off, watchdog, timing, or physical flash behavior is established"],
+    }
+
+
 def validate_extents():
     assert EXTENTS == ((0xD9000, 0xE5000), (0xEA000, 0xF6000))
     assert all(lo < hi and lo % 0x1000 == 0 and hi % 0x1000 == 0
@@ -220,16 +341,20 @@ def main():
     inventory_data = json.loads(inventory.read_text())
     expected_vendor = inventory_data['files']['hal/fm1_flash.h']
     current_vendor = sha256(vendor)
-    if current_vendor == expected_vendor:
-        raise SystemExit('expected assigned ICFG source delta, but pin is already current')
-    inventory_data['files']['hal/fm1_flash.h'] = current_vendor
-    inventory.write_text(json.dumps(inventory_data, indent=2) + '\n')
-    (build / 'inventory-overlay.json').write_text(json.dumps({
-        'analysis_only': True, 'path': 'firmware/third_party/dinghy/hal/fm1_flash.h',
-        'base_inventory_sha256': sha256(ROOT / 'firmware/third_party/dinghy/inventory.json'),
-        'base_pinned_sha256': expected_vendor, 'current_source_sha256': current_vendor,
-        'overlay_inventory_sha256': sha256(inventory),
-    }, indent=2) + '\n')
+    inventory_rebased = current_vendor != expected_vendor
+    if inventory_rebased:
+        local_record = inventory_data.get("local_modifications", {}).get("hal/fm1_flash.h", {})
+        if local_record.get("local_sha256") != current_vendor:
+            raise SystemExit("Dinghy flash source differs from inventory and local-modification pin")
+        inventory_data["files"]["hal/fm1_flash.h"] = current_vendor
+        inventory.write_text(json.dumps(inventory_data, indent=2) + "\n")
+    (build / "inventory-overlay.json").write_text(json.dumps({
+        "analysis_only": True, "path": "firmware/third_party/dinghy/hal/fm1_flash.h",
+        "base_inventory_sha256": sha256(ROOT / "firmware/third_party/dinghy/inventory.json"),
+        "base_pinned_sha256": expected_vendor, "current_source_sha256": current_vendor,
+        "inventory_rebased": inventory_rebased,
+        "overlay_inventory_sha256": sha256(inventory),
+    }, indent=2) + "\n")
     builder = overlay / 'tools/native/build_application_probe.py'
     builder_before, builder_after = patch_builder(builder)
     (build / 'builder-overlay.diff').write_text(''.join(difflib.unified_diff(
@@ -259,13 +384,20 @@ def main():
     # its containing function. The only expected call may be a separate RAM
     # compatibility wrapper; erase/program entry paths must have no outcalls.
     ram_text = (linked / 'ram-text.txt').read_text()
-    calls, writer_calls = audit_ram_calls(ram_text)
-    if writer_calls:
-        raise SystemExit('writer entry has RAM call; inspect closure audit')
+    symbols_text = (linked / 'symbols.txt').read_text()
+    sections_text = (linked / 'sections.txt').read_text()
+    relocations_text = (linked / 'linked-relocations.txt').read_text()
+    try:
+        writer_audit = audit_linked_writer(
+            ram_text, symbols_text, relocations_text, sections_text)
+    except ValueError as exc:
+        raise SystemExit('linked writer audit failed: ' + str(exc)) from exc
+    calls = writer_audit['ram_calls']
+    writer_calls = writer_audit['writer_entry_calls']
     (linked / 'ram-closure-audit.json').write_text(json.dumps({
         'analysis_only': True, 'writer_entries': ['fl_erase4k_ram', 'fl_prog_ram'],
         'writer_entry_calls': writer_calls, 'all_ram_calls': calls,
-        'relocations': (linked / 'linked-relocations.txt').read_text(),
+        'relocations': relocations_text, 'target_audit': writer_audit,
     }, indent=2) + '\n')
     generated = linked / 'platform.c'
     base_platform = ROOT / 'firmware/third_party/dinghy/src/platform.c'

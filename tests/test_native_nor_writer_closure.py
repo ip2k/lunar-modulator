@@ -84,6 +84,81 @@ fl_jedec_checked_ram:
                 with self.assertRaisesRegex(ValueError, message):
                     MODULE.audit_ram_calls(listing)
 
+    def test_linked_writer_audit_requires_real_commands_and_resolved_ram_paths(self):
+        symbols = """01c00000 l F .ram_text 00000040 fl_erase4k_ram
+01c00040 l F .ram_text 00000040 fl_prog_ram
+01c00080 l F .ram_text 00000010 fl_read_ram
+01c00090 l F .ram_text 00000010 fl_status_checked_ram
+01c000a0 l F .ram_text 00000010 fl_jedec_checked_ram
+01c000b0 l F .ram_text 00000010 fl_jedec_ram
+0204ebfc l F .text 0000000a fm1_wdt_feed
+0204e820 l F .text 00000020 fl_erase4k
+0204e840 l F .text 00000044 fl_write
+0204e808 l F .text 0000000e irq_save
+"""
+        disassembly = """fl_erase4k_ram:
+ 1c00000: [r6+8] = 0x6
+ 1c00002: [r6+8] = 0x20
+ 1c00004: [r6+8] = 0x5
+ 1c00006: goto 2 <fl_erase4k_ram+0x8 : 1c00008 >
+ 1c00008: rts
+fl_prog_ram:
+ 1c00040: [r7+8] = 0x6
+ 1c00042: [r7+8] = 0x2
+ 1c00044: [r7+8] = 0x5
+fl_read_ram:
+ 1c00080: rts
+fl_status_checked_ram:
+ 1c00090: [r5+8] = 0x5
+fl_jedec_checked_ram:
+ 1c000a0: [r5+8] = 0x9F
+fl_jedec_ram:
+ 1c000b0: call 0 <fl_jedec_checked_ram : 1c000a0 >
+"""
+        result = MODULE.audit_linked_writer(
+            disassembly, symbols, "elf: file format ELF32-pi32v2\\n", "Sections:\\n")
+        self.assertTrue(result["passed_static_writer_checks"])
+        self.assertTrue(result["static_relocations_absent"])
+        self.assertFalse(result["static_data_closure_complete"])
+        self.assertFalse(result["runtime_pointer_residency_proven"])
+        self.assertEqual(result["ram_calls"][0]["function"], "fl_jedec_ram")
+        self.assertFalse(result["watchdog_feed_in_ram"])
+        self.assertEqual(result["watchdog_symbols"]["fm1_wdt_feed"]["section"], ".text")
+        self.assertEqual(result["xip_wrapper_symbols"]["fl_erase4k"]["address"], 0x0204E820)
+        self.assertEqual(result["xip_wrapper_symbols"]["fl_write"]["section"], ".text")
+        self.assertEqual(result["xip_wrapper_symbols"]["irq_save"]["section"], ".text")
+
+    def test_linked_writer_audit_rejects_nonempty_stubs_and_xip_outcalls(self):
+        symbols = """01c00000 l F .ram_text 00000040 fl_erase4k_ram
+01c00040 l F .ram_text 00000040 fl_prog_ram
+01c00080 l F .ram_text 00000010 fl_read_ram
+01c00090 l F .ram_text 00000010 fl_status_checked_ram
+01c000a0 l F .ram_text 00000010 fl_jedec_checked_ram
+01c000b0 l F .ram_text 00000010 fl_jedec_ram
+"""
+        base = """fl_erase4k_ram:
+ 1c00000: nop
+fl_prog_ram:
+ 1c00040: nop
+fl_read_ram:
+ 1c00080: nop
+fl_status_checked_ram:
+ 1c00090: [r5+8] = 0x5
+fl_jedec_checked_ram:
+ 1c000a0: [r5+8] = 0x9f
+fl_jedec_ram:
+ 1c000b0: call 0 <fl_jedec_checked_ram : 1c000a0 >
+"""
+        with self.assertRaisesRegex(ValueError, "opcode evidence missing"):
+            MODULE.audit_linked_writer(base, symbols, "", "")
+        real_ops = base.replace("1c00000: nop", "1c00000: [r6+8] = 0x6\\n 1c00002: [r6+8] = 0x20\\n 1c00004: [r6+8] = 0x5")
+        real_ops = real_ops.replace("1c00040: nop", "1c00040: [r7+8] = 0x6\\n 1c00042: [r7+8] = 0x2\\n 1c00044: [r7+8] = 0x5")
+        xip = real_ops.replace(
+            "call 0 <fl_jedec_checked_ram : 1c000a0 >",
+            "call 0 <xip_helper : 02001000 >")
+        with self.assertRaisesRegex(ValueError, "does not resolve to linked RAM symbol"):
+            MODULE.audit_linked_writer(xip, symbols, "", "")
+
     def test_builder_allowlists_only_exact_checked_jedec_ram_call(self):
         disassembly = """Disassembly of section .ram_text:
 fl_jedec_checked_ram:
