@@ -16,6 +16,9 @@ def midi_loop(tmp_path_factory):
     source = (ROOT / "firmware/native/app_probe.c").read_text()
     match = re.search(r"static void incoming_midi\(void\)\n\{.*?\n\}", source, re.S)
     assert match, "native input entry point changed"
+    handler = re.search(
+        r"static void apply_midi_event\([^\n]+\)\n\{.*?\n\}", source, re.S)
+    assert handler, "shared MIDI event handler changed"
     directory = tmp_path_factory.mktemp("native-midi")
     harness = directory / "check.c"
     harness.write_text(r'''
@@ -24,6 +27,8 @@ def midi_loop(tmp_path_factory):
 #include "midi_input.h"
 typedef struct { struct { uint8_t midi_in_channel; } settings; } App;
 static App app;
+static volatile uint32_t lunar_midi_usb_messages, lunar_midi_accepted_noteons;
+static volatile uint32_t lunar_midi_rejected_messages;
 static unsigned on, off, panic, bends, read_at, count;
 static float bend;
 static uint8_t messages[64][3];
@@ -42,7 +47,7 @@ static void fm1_app_all_notes_off(App *a) { assert(a==&app); ++panic; }
 static void fm1_app_pitch_bend(App *a, float value) {
     assert(a==&app); bend=value; ++bends;
 }
-''' + match.group() + r'''
+''' + handler.group() + '\n' + match.group() + r'''
 static void send(uint8_t status, uint8_t a, uint8_t b) {
     read_at=0; count=1;
     messages[0][0]=status; messages[0][1]=a; messages[0][2]=b;
