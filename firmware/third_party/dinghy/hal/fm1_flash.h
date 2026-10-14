@@ -186,8 +186,12 @@ RAMINL int fl_wait_ready(uint32_t max_us, uint32_t *took_us)
      * If status cannot be read or WIP never clears, remain in this RAM loop. */
     for (;;) {
         uint8_t status;
+        int read_rc = fl_rdsr(0x05, &status);
+        /* Include the completed SPI transaction in the deadline. Unsigned
+         * subtraction handles timer rollover between successive samples. */
         dt = (T4_CNT - t0) / 24u;
-        if (fl_rdsr(0x05, &status)) {
+        if (dt > max_us) exceeded = 1;
+        if (read_rc) {
             transfer_error = 1;
             continue;
         }
@@ -195,7 +199,6 @@ RAMINL int fl_wait_ready(uint32_t max_us, uint32_t *took_us)
             *took_us = dt;
             return transfer_error ? -5 : (exceeded ? -4 : 0);
         }
-        if (dt > max_us) exceeded = 1;
     }
 }
 
