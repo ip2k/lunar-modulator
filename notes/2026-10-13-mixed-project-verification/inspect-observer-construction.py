@@ -7,8 +7,14 @@ import sys
 
 source, elf_path, dis_path, output = map(pathlib.Path, sys.argv[1:5])
 digest = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
-assert digest(elf_path) == 'df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e'
-assert digest(dis_path) == '46ff199b5288a37be1f7e3f155cf93bce765b9cf888d31cb8110648740de6e38'
+profiles = {
+    'df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e':
+        '46ff199b5288a37be1f7e3f155cf93bce765b9cf888d31cb8110648740de6e38',
+    '4b340d1aa4f67737d102441680df5d28a2740d6a2eaa83feb028ea19a9f49e2b':
+        '6bcbad133dc5bab573c7c5da744032b6c83142f64f00a7403a6c8c44485c61c9',
+}
+assert digest(elf_path) in profiles
+assert digest(dis_path) == profiles[digest(elf_path)]
 instructions = {}
 for line in dis_path.read_text().splitlines():
     match = re.match(r'\s*([0-9a-f]+):\s+(?:[0-9a-f]{2} )+\s*(.*)', line)

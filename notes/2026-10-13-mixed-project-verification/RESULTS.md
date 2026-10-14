@@ -533,3 +533,26 @@ Python compilation and diff checks pass. No new firmware build/device command.
 Next rebind observer and stack/IRQ checks, establish complete startup/timing
 evidence, then safeguarded physical verification. Migration/physical rollback,
 web builder/install, GPL and review/CI/integration remain open.
+
+## Current candidate observer and interrupt evidence (2026-10-13)
+
+[verified] Exact ELF/disassembly profile pairs added for no-writeback-v4 to
+observer-construction and startup-interrupt inspectors. Their compiled
+assertions pass: initial38468byte app zero covers observer offset30840;
+user/system reservations24320/7936bytes; wrappers save28bytes and IRQ enable
+precedes PROJECT. Handler inventory and prologue inspectors now accept only
+the exact matching v4 inventory/receipt hashes alongside historical profiles.
+Both direct ISR closures retain15/5functions,152/168explicit software bytes
+with wrappers. All20function ranges have ELF-matched instructions, contiguous
+coverage and no local branch into an allocation prefix. Nine prologue model
+tests pass. All four historical receipts reproduce byte-for-byte. Python
+compilation and diff checks pass. New receipts: observer-construction-,
+startup-interrupts-,isr-call-stacks-,isr-prologues-no-writeback.json and
+no-writeback-stack-reproduction.json.
+
+These checks do not prove optional-hook preservation, hardware entry cost,
+CPU stack selection/nesting, whole PROJECT margin or target realtime timing.
+No physical command or new build; all13 real-device acceptance, settings
+migration/physical rollback, web builder/install,GPL,review/CI/integration
+remain open. Next complete provenance/control-flow/startup bounds and timing
+without substituting historical proof for current-candidate evidence.

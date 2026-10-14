@@ -1,0 +1,10 @@
+{
+  "historical_receipts_byte_identical": [
+    "observer-construction",
+    "startup-interrupts",
+    "isr-call-stacks",
+    "isr-prologues"
+  ],
+  "new_candidate_prologue_functions": 20,
+  "hardware_admitted": false
+}

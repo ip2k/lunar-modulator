@@ -61,8 +61,15 @@ def main():
     elf = Elf(elf_path.read_bytes())
     stack = json.loads(stack_path.read_text())
     assert digest(elf_path) == stack['elf_sha256']
-    assert digest(dis_path) == '46ff199b5288a37be1f7e3f155cf93bce765b9cf888d31cb8110648740de6e38'
-    assert digest(stack_path) == 'f4ce4f05040df257e418be0b25813a082ab82524d07d049f0dcbe80fdb1e4eec'
+    profiles = {
+        'df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e':
+            ('46ff199b5288a37be1f7e3f155cf93bce765b9cf888d31cb8110648740de6e38',
+             'f4ce4f05040df257e418be0b25813a082ab82524d07d049f0dcbe80fdb1e4eec'),
+        '4b340d1aa4f67737d102441680df5d28a2740d6a2eaa83feb028ea19a9f49e2b':
+            ('6bcbad133dc5bab573c7c5da744032b6c83142f64f00a7403a6c8c44485c61c9', '1e0447f3ad3cda4a67cea74b7d840c53ce7563d613ff97296f7990f25587e531'),
+    }
+    assert digest(elf_path) in profiles
+    assert (digest(dis_path), digest(stack_path)) == profiles[digest(elf_path)]
     closure = set().union(*(handler['frames'] for handler in stack['handlers']))
     symbols = {}
     for symbol in elf.symbols:

@@ -14,7 +14,14 @@ inventory = json.loads(inventory_path.read_text())
 interrupts = json.loads(interrupts_path.read_text())
 assert inventory['elf_sha256'] == interrupts['elf_sha256']
 assert inventory['disassembly_sha256'] == interrupts['disassembly_sha256']
-assert digest(inventory_path) == '58fbd7c36e570db6b55f413f7912f9c82841fb5b31a2d68d6664e247b4e9c48b'
+profiles = {
+    'df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e':
+        '58fbd7c36e570db6b55f413f7912f9c82841fb5b31a2d68d6664e247b4e9c48b',
+    '4b340d1aa4f67737d102441680df5d28a2740d6a2eaa83feb028ea19a9f49e2b':
+        '28c016de41af3014072bca4139e8038ffb8b8f31f089cd8ac53f75a754f4fae7',
+}
+assert inventory['elf_sha256'] in profiles
+assert digest(inventory_path) == profiles[inventory['elf_sha256']]
 graph = inventory['functions']
 
 def saved_words(text):

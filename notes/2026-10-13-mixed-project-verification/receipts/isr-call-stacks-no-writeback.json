@@ -1,0 +1,115 @@
+{
+  "scope": "direct acyclic ISR graph and explicit software frame accounting",
+  "elf_sha256": "4b340d1aa4f67737d102441680df5d28a2740d6a2eaa83feb028ea19a9f49e2b",
+  "inventory_sha256": "28c016de41af3014072bca4139e8038ffb8b8f31f089cd8ac53f75a754f4fae7",
+  "interrupt_receipt_sha256": "978bdc342e82c0ba63ccd43d9752f6826fb125f6910da5fc7c61bcaa08131cba",
+  "handlers": [
+    {
+      "root": "0x204daae",
+      "name": "fm1_timer5_irq",
+      "reachable_functions": 15,
+      "explicit_c_chain_bytes": 124,
+      "wrapper_bytes": 28,
+      "explicit_chain_with_wrapper_bytes": 152,
+      "longest_candidate_path": [
+        {
+          "address": "0x204daae",
+          "names": [
+            "fm1_timer5_irq"
+          ],
+          "frame_bytes": 28
+        },
+        {
+          "address": "0x204d252",
+          "names": [
+            "usb_poll"
+          ],
+          "frame_bytes": 60
+        },
+        {
+          "address": "0x204cf60",
+          "names": [
+            "uac_service"
+          ],
+          "frame_bytes": 28
+        },
+        {
+          "address": "0x204cf10",
+          "names": [
+            "sie_rd"
+          ],
+          "frame_bytes": 8
+        }
+      ],
+      "frames": {
+        "0x204cbfe": 20,
+        "0x204cc3a": 0,
+        "0x204cc60": 16,
+        "0x204cc98": 36,
+        "0x204cd5a": 52,
+        "0x204cec8": 0,
+        "0x204cf10": 8,
+        "0x204cf60": 28,
+        "0x204d100": 12,
+        "0x204d12c": 8,
+        "0x204d168": 12,
+        "0x204d1ea": 12,
+        "0x204d226": 4,
+        "0x204d252": 60,
+        "0x204daae": 28
+      }
+    },
+    {
+      "root": "0x204de8a",
+      "name": "fm1_alnk0_irq",
+      "reachable_functions": 5,
+      "explicit_c_chain_bytes": 140,
+      "wrapper_bytes": 28,
+      "explicit_chain_with_wrapper_bytes": 168,
+      "longest_candidate_path": [
+        {
+          "address": "0x204de8a",
+          "names": [
+            "fm1_alnk0_irq"
+          ],
+          "frame_bytes": 40
+        },
+        {
+          "address": "0x204de06",
+          "names": [
+            "uac_tap"
+          ],
+          "frame_bytes": 28
+        },
+        {
+          "address": "0x204dc92",
+          "names": [
+            "uac_tap48"
+          ],
+          "frame_bytes": 72
+        },
+        {
+          "address": "0x204dc7e",
+          "names": [
+            "uac_s16"
+          ],
+          "frame_bytes": 0
+        }
+      ],
+      "frames": {
+        "0x204db8a": 20,
+        "0x204dc7e": 0,
+        "0x204dc92": 72,
+        "0x204de06": 28,
+        "0x204de8a": 40
+      }
+    }
+  ],
+  "limits": [
+    "stack allocation sites must be checked not to accumulate in loops",
+    "table branches and instruction inventory completeness remain separate gates",
+    "hardware entry overhead, CPU stack selection and nesting are excluded",
+    "no whole startup stack, timing or hardware admission conclusion"
+  ],
+  "hardware_admitted": false
+}

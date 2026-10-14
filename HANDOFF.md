@@ -1,3 +1,17 @@
+# Current candidate stack checkpoint — 2026-10-13
+
+No-writeback-v4 observer/IRQ/ISR evidence now rebound to exact artifacts.
+Initial observer zero covered; stack capacities24320/7936; software ISR costs
+152/168bytes;20allocation prefixes checked;9model tests pass. All four old
+receipts reproduce byte-identically. Full startup/hardware entry/nesting/timing
+remain unproved. Callback expansion1133/36rules/two unresolved retained.
+No hardware operation or live job. Full13 physical acceptance,migration/
+rollback,web builder/install,GPL,review/CI/integration still open. Next optional
+hook provenance and complete startup/timing before reviewed physical campaign
+with fresh identity and paired backups. Preceding verified pushed
+6eedbfba42a82f411ba474127599783d89eb9d22; branch
+feature/2026-10-11@installable-firmware.
+
 # Current callback verification — 2026-10-13
 
 Active full13 native release plus selectable builder. Latest v4 callback

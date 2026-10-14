@@ -1,0 +1,191 @@
+{
+  "scope": "no local branch reentry into ISR allocation prefixes",
+  "elf_sha256": "4b340d1aa4f67737d102441680df5d28a2740d6a2eaa83feb028ea19a9f49e2b",
+  "disassembly_sha256": "6bcbad133dc5bab573c7c5da744032b6c83142f64f00a7403a6c8c44485c61c9",
+  "stack_receipt_sha256": "1e0447f3ad3cda4a67cea74b7d840c53ce7563d613ff97296f7990f25587e531",
+  "functions": {
+    "0x204cbfe": {
+      "allocation_sites": [
+        "0x204cbfe"
+      ],
+      "allocation_prefix_end": "0x204cc00",
+      "relative_branch_count": 1,
+      "instruction_count": 17,
+      "allocation_prefix_cannot_be_reentered_by_local_branches": true
+    },
+    "0x204cc3a": {
+      "allocation_sites": [],
+      "allocation_prefix_end": "0x204cc3a",
+      "relative_branch_count": 0,
+      "instruction_count": 12,
+      "allocation_prefix_cannot_be_reentered_by_local_branches": true
+    },
+    "0x204cc60": {
+      "allocation_sites": [
+        "0x204cc60"
+      ],
+      "allocation_prefix_end": "0x204cc62",
+      "relative_branch_count": 1,
+      "instruction_count": 18,
+      "allocation_prefix_cannot_be_reentered_by_local_branches": true
+    },
+    "0x204cc98": {
+      "allocation_sites": [
+        "0x204cc98"
+      ],
+      "allocation_prefix_end": "0x204cc9a",
+      "relative_branch_count": 7,
+      "instruction_count": 61,
+      "allocation_prefix_cannot_be_reentered_by_local_branches": true
+    },
+    "0x204cd5a": {
+      "allocation_sites": [
+        "0x204cd5a"
+      ],
+      "allocation_prefix_end": "0x204cd5c",
+      "relative_branch_count": 17,
+      "instruction_count": 109,
+      "allocation_prefix_cannot_be_reentered_by_local_branches": true
+    },
+    "0x204cec8": {
+      "allocation_sites": [],
+      "allocation_prefix_end": "0x204cec8",
+      "relative_branch_count": 3,
+      "instruction_count": 26,
+      "allocation_prefix_cannot_be_reentered_by_local_branches": true
+    },
+    "0x204cf10": {
+      "allocation_sites": [
+        "0x204cf10"
+      ],
+      "allocation_prefix_end": "0x204cf12",
+      "relative_branch_count": 3,
+      "instruction_count": 30,
+      "allocation_prefix_cannot_be_reentered_by_local_branches": true
+    },
+    "0x204cf60": {
+      "allocation_sites": [
+        "0x204cf60"
+      ],
+      "allocation_prefix_end": "0x204cf62",
+      "relative_branch_count": 24,
+      "instruction_count": 133,
+      "allocation_prefix_cannot_be_reentered_by_local_branches": true
+    },
+    "0x204d100": {
+      "allocation_sites": [
+        "0x204d100"
+      ],
+      "allocation_prefix_end": "0x204d102",
+      "relative_branch_count": 1,
+      "instruction_count": 17,
+      "allocation_prefix_cannot_be_reentered_by_local_branches": true
+    },
+    "0x204d12c": {
+      "allocation_sites": [
+        "0x204d12c"
+      ],
+      "allocation_prefix_end": "0x204d12e",
+      "relative_branch_count": 1,
+      "instruction_count": 20,
+      "allocation_prefix_cannot_be_reentered_by_local_branches": true
+    },
+    "0x204d168": {
+      "allocation_sites": [
+        "0x204d168"
+      ],
+      "allocation_prefix_end": "0x204d16a",
+      "relative_branch_count": 8,
+      "instruction_count": 49,
+      "allocation_prefix_cannot_be_reentered_by_local_branches": true
+    },
+    "0x204d1ea": {
+      "allocation_sites": [
+        "0x204d1ea"
+      ],
+      "allocation_prefix_end": "0x204d1ec",
+      "relative_branch_count": 0,
+      "instruction_count": 23,
+      "allocation_prefix_cannot_be_reentered_by_local_branches": true
+    },
+    "0x204d226": {
+      "allocation_sites": [
+        "0x204d226"
+      ],
+      "allocation_prefix_end": "0x204d228",
+      "relative_branch_count": 0,
+      "instruction_count": 17,
+      "allocation_prefix_cannot_be_reentered_by_local_branches": true
+    },
+    "0x204d252": {
+      "allocation_sites": [
+        "0x204d252",
+        "0x204d254"
+      ],
+      "allocation_prefix_end": "0x204d256",
+      "relative_branch_count": 146,
+      "instruction_count": 642,
+      "allocation_prefix_cannot_be_reentered_by_local_branches": true
+    },
+    "0x204daae": {
+      "allocation_sites": [
+        "0x204daae"
+      ],
+      "allocation_prefix_end": "0x204dab0",
+      "relative_branch_count": 6,
+      "instruction_count": 71,
+      "allocation_prefix_cannot_be_reentered_by_local_branches": true
+    },
+    "0x204db8a": {
+      "allocation_sites": [
+        "0x204db8a"
+      ],
+      "allocation_prefix_end": "0x204db8c",
+      "relative_branch_count": 11,
+      "instruction_count": 77,
+      "allocation_prefix_cannot_be_reentered_by_local_branches": true
+    },
+    "0x204dc7e": {
+      "allocation_sites": [],
+      "allocation_prefix_end": "0x204dc7e",
+      "relative_branch_count": 0,
+      "instruction_count": 6,
+      "allocation_prefix_cannot_be_reentered_by_local_branches": true
+    },
+    "0x204dc92": {
+      "allocation_sites": [
+        "0x204dc92",
+        "0x204dc94"
+      ],
+      "allocation_prefix_end": "0x204dc96",
+      "relative_branch_count": 8,
+      "instruction_count": 118,
+      "allocation_prefix_cannot_be_reentered_by_local_branches": true
+    },
+    "0x204de06": {
+      "allocation_sites": [
+        "0x204de06"
+      ],
+      "allocation_prefix_end": "0x204de08",
+      "relative_branch_count": 4,
+      "instruction_count": 40,
+      "allocation_prefix_cannot_be_reentered_by_local_branches": true
+    },
+    "0x204de8a": {
+      "allocation_sites": [
+        "0x204de8a"
+      ],
+      "allocation_prefix_end": "0x204de8c",
+      "relative_branch_count": 10,
+      "instruction_count": 91,
+      "allocation_prefix_cannot_be_reentered_by_local_branches": true
+    }
+  },
+  "function_count": 20,
+  "hardware_admitted": false,
+  "limits": [
+    "conditional on vendor instruction decoding and call inventory",
+    "hardware entry, stack selection, interrupt nesting excluded",
+    "no complete startup stack or target timing admission"
+  ]
+}
