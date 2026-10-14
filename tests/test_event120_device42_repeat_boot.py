@@ -255,3 +255,60 @@ def test_prepare_rejects_live_mapping_change_before_sg_open(tmp_path, monkeypatc
     with pytest.raises(ValueError, match='Live USB/SG mapping differs'):
         module.prepare(campaign_path, now=now)
     assert device_opens == []
+
+
+def test_read_bundle_resolves_the_pinned_device42_reader(tmp_path, monkeypatch):
+    """Exercise the real reader-file dependency before any loader/device access."""
+    import json
+
+    receipt = tmp_path / 'fresh-read'
+    manifest_path = receipt / 'manifest.json'
+    snapshot_path = tmp_path / 'read-snapshot.json'
+    campaign_path = tmp_path / 'read-campaign.json'
+    campaign = {
+        'schema': 1, 'kind': module.READ_KIND,
+        'adapter_sha256': module.READ_ADAPTER_SHA,
+        'snapshot_path': str(snapshot_path), 'snapshot_sha256': 'a' * 64,
+        'loader_path': '/unused-loader', 'profile_path': '/unused-profile',
+        'profile_source_path': '/unused-profile-source',
+        'usb_binding': module.USB, 'receipt_path': str(receipt),
+    }
+    campaign_raw = json.dumps(campaign).encode()
+    campaign_path.write_bytes(campaign_raw)
+    manifest = {
+        'schema': 1, 'kind': module.READ_KIND,
+        'campaign_path': str(campaign_path),
+        'campaign_sha256': module.digest(campaign_raw),
+        'adapter_sha256': module.READ_ADAPTER_SHA,
+        'source_sha256': module.READ_SOURCES,
+        'snapshot_path': str(snapshot_path), 'snapshot_sha256': 'a' * 64,
+        'usb_binding': module.USB, 'sg_binding': {},
+        'loader_sha256': 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c',
+        'loader_profile_sha256': '3c03e413b9df29d85e4c07d886d9bfb9b3ab2fc66845d5220f82998dd44f4afe',
+        'profile_source_sha256': '9664e1329d8259362da78c047ce2d6003dfe8df2850f02703f98e8b6bf277cd8',
+        'reader_sha256': module.READ_SOURCES['fm1_uboot_read.py'],
+        'request_inventory_sha256': module.INVENTORY_SHA,
+        'commands': 8757, 'flash_bytes': 1048576,
+        'expected_current_flash_sha256': module.TARGET_SHA,
+        'current_flash_sha256': module.TARGET_SHA,
+        'commands_sha256': 'b' * 64, 'dumps': [], 'identical': True,
+        'flash_operations': 0, 'reset_operations': 0,
+        'install_history_proven': False, 'boot_observed': False,
+        'physical_recovery_verified': False, 'kernel_exclusivity': False,
+    }
+    manifest_raw = json.dumps(manifest).encode()
+
+    class ReachedSnapshot(Exception):
+        pass
+
+    def hash_pin(path, sha, limit):
+        if Path(path) == manifest_path:
+            assert sha == module.digest(manifest_raw)
+            return manifest_raw
+        assert Path(path) == snapshot_path
+        # Reaching here proves the actual on-disk reader passed its SHA pin.
+        raise ReachedSnapshot
+
+    monkeypatch.setattr(module, '_hash_pin', hash_pin)
+    with pytest.raises(ReachedSnapshot):
+        module.verify_read_bundle(manifest_path, module.digest(manifest_raw), 'b' * 64)
