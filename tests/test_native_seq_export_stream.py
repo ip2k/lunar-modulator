@@ -17,22 +17,29 @@ def stream_probe(tmp_path_factory):
         ('seq_clip', 'seq_engine', 'seq_cmd', 'seq_persist', 'seq_capture')]
     subprocess.run(['cc', '-std=c99', '-Oz', '-Wall', '-Wextra', '-Werror',
                     '-ffunction-sections', '-fdata-sections', '-fsanitize=address,undefined',
-                    '-fno-pie', '-no-pie', '-I', str(ROOT / 'engines/include'),
+                    '-fno-pie', '-no-pie', '-I', str(ROOT / 'engines/include'), '-I', str(ROOT / 'engines/state'),
                     *map(str, sources), '-Wl,--gc-sections', '-lm', '-o', str(exe)], check=True)
     tc = Path(os.environ['FM1_NATIVE_TOOLCHAIN'])
     subprocess.run([str(tc / 'pi32v2/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
                     '-mfprev1', '-Oz', '-std=c99', '-Wall', '-Wextra', '-Werror',
-                    '-ffreestanding', '-fno-builtin', '-I', str(ROOT / 'engines/include'),
+                    '-ffreestanding', '-fno-builtin', '-I', str(ROOT / 'engines/include'), '-I', str(ROOT / 'engines/state'),
                     '-isystem', str(tc / 'pi32v2/include'), '-c',
                     str(ROOT / 'engines/seq/seq_persist.c'), '-o', str(tmp / 'seq_persist.o')],
                    check=True)
+    subprocess.run([str(tc / 'pi32v2/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
+                    '-mfprev1', '-Oz', '-std=c99', '-Wall', '-Wextra', '-Werror',
+                    '-ffreestanding', '-fno-builtin', '-I', str(ROOT / 'engines/include'),
+                    '-I', str(ROOT / 'engines/state'), '-isystem', str(tc / 'pi32v2/include'),
+                    '-c', str(ROOT / 'tests/native/seq_record_target.c'),
+                    '-o', str(tmp / 'seq_record.o')], check=True)
     return exe
 
+@pytest.mark.parametrize('records', [0, 1])
 @pytest.mark.parametrize('case', range(16))
 @pytest.mark.parametrize('compat', [0, 1])
-def test_stream_export(stream_probe, case, compat, tmp_path):
+def test_stream_export(stream_probe, case, compat, records, tmp_path):
     if case < 15:
-        subprocess.run([str(stream_probe), str(INPUTS[case]), str(compat)], check=True)
+        subprocess.run([str(stream_probe), str(INPUTS[case]), str(compat), '0', str(records)], check=True)
         return
     # Fill the eight-track default pools with long numeric fields. This exercises
     # a large whole-set export without requiring exporter scratch; sample faults to keep it bounded.
@@ -46,4 +53,4 @@ def test_stream_export(stream_probe, case, compat, tmp_path):
                   f'tg {track} 0 {trigs}']
     dense = tmp_path / 'dense.movy1'
     dense.write_text('\n'.join(lines) + '\n')
-    subprocess.run([str(stream_probe), str(dense), str(compat), 'sample-faults'], check=True)
+    subprocess.run([str(stream_probe), str(dense), str(compat), '1', str(records)], check=True)

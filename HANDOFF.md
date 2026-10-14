@@ -2934,3 +2934,16 @@ RAM allocation is solved. Next bounded project-line adapter then collector/direc
 binary path; all13 watched boot remains pending. Migration/physicalrollback/web
 installer/custombuilder/license/reviewCI remain open. Do not replay consumed
 writers/loaders. Previous verified pushedb0908137b005ab9bf06cf94a7ff93ae4493e4f38.
+
+## Sequencer project-record adapter checkpoint (2026-10-14)
+
+[verified] Header-only state_seq_export bridges fragments to SET LINE records
+without text/line staging. 64cases/30Hera chunks pass ASanUBSan, 38,664 sink
+faults, unchanged sequencer, exact buffered text and valid line boundaries.
+Both exporter and adapter compile under pi32v2. Eight hashes/30logs checked;
+source-v2/out-v2, session34186 terminal0. Failed v1 was missing fm1_json.h.
+Evidence notes/2026-10-14-seq-record-export-verification/. No USB operation.
+Next actual binary-codec parity then collector/SAVE integration. Codec scratch
+and flash capacity remain unsolved; all13 watched boot/migration/physicalrollback/
+webinstaller/custombuilder/license/reviewCI still open. Previous verified pushed
+7f2764e005d37c34eacffb08ac159dbbd5f40653. Do not replay consumed hardware actions.
