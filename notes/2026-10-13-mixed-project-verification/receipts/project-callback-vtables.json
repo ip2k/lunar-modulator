@@ -1,0 +1,1736 @@
+{
+  "scope": "candidate callback expansion; no stack bound or hardware admission",
+  "elf_sha256": "df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e",
+  "inventory_sha256": "d323657e46feafb2e35c4944645901638cd4e28ab18291f1147dcaed83eebf8f",
+  "reachable_functions": 1065,
+  "applied_rules": {
+    "0x201d450": {
+      "names": [
+        "layout.2775"
+      ],
+      "targets": [
+        "0x2001706",
+        "0x2003404",
+        "0x2006980",
+        "0x2009b12",
+        "0x200ed8a",
+        "0x20155ac",
+        "0x201cbaa",
+        "0x2023c90",
+        "0x202933c",
+        "0x2029fe2",
+        "0x202cf6a",
+        "0x202fd58",
+        "0x20314f6",
+        "0x2034514",
+        "0x2035bee",
+        "0x2037d1e"
+      ],
+      "empty_static_role": false
+    },
+    "0x201d634": {
+      "names": [
+        "mod_plan_build"
+      ],
+      "targets": [],
+      "empty_static_role": true
+    },
+    "0x201e1d6": {
+      "names": [
+        "voice_drop_with"
+      ],
+      "targets": [],
+      "empty_static_role": true
+    },
+    "0x202b6fa": {
+      "names": [
+        "_ZN6plaits11ModalEngine4InitEPN6stmlib15BufferAllocatorE"
+      ],
+      "targets": [
+        "0x202b71e"
+      ],
+      "empty_static_role": false
+    },
+    "0x203358e": {
+      "names": [
+        "cs_src"
+      ],
+      "targets": [
+        "0x2060556",
+        "0x20608d6",
+        "0x2060d7c",
+        "0x2060f16",
+        "0x2060f80",
+        "0x20610b6",
+        "0x2061224"
+      ],
+      "empty_static_role": false
+    },
+    "0x20335d0": {
+      "names": [
+        "in_byte"
+      ],
+      "targets": [
+        "0x203358e"
+      ],
+      "empty_static_role": false
+    },
+    "0x2033bbe": {
+      "names": [
+        "cs_get"
+      ],
+      "targets": [
+        "0x2060556",
+        "0x20608d6",
+        "0x2060d7c",
+        "0x2060f16",
+        "0x2060f80",
+        "0x20610b6",
+        "0x2061224"
+      ],
+      "empty_static_role": false
+    },
+    "0x2033dfe": {
+      "names": [
+        "bemit"
+      ],
+      "targets": [
+        "0x2039a9c",
+        "0x2060830",
+        "0x20609f2",
+        "0x2060dcc",
+        "0x2060e22",
+        "0x2060f3c",
+        "0x2060fa6",
+        "0x20610fa",
+        "0x20611c2",
+        "0x206124a"
+      ],
+      "empty_static_role": false
+    },
+    "0x2039632": {
+      "names": [
+        "fm1_mod_set_kind"
+      ],
+      "targets": [
+        "0x2001706",
+        "0x200172a",
+        "0x2003404",
+        "0x20035fa",
+        "0x2006980",
+        "0x20069bc",
+        "0x2009b12",
+        "0x2009b16",
+        "0x200ed8a",
+        "0x200ed8e",
+        "0x20155ac",
+        "0x2015626",
+        "0x201cbaa",
+        "0x201cbae",
+        "0x2023c90",
+        "0x2023e18",
+        "0x202933c",
+        "0x202934e",
+        "0x2029fe2",
+        "0x202a002",
+        "0x202cf6a",
+        "0x202cfa6",
+        "0x202fd58",
+        "0x202ffcc",
+        "0x20314f6",
+        "0x2031516",
+        "0x2034514",
+        "0x2034518",
+        "0x2035bee",
+        "0x2035c00",
+        "0x2037d1e",
+        "0x2037d22"
+      ],
+      "empty_static_role": false
+    },
+    "0x2039a9c": {
+      "names": [
+        "fm1_state_mod_sink"
+      ],
+      "targets": [
+        "0x2003c24"
+      ],
+      "empty_static_role": false
+    },
+    "0x203a964": {
+      "names": [
+        "fm1_mod_destroy"
+      ],
+      "targets": [],
+      "empty_static_role": true
+    },
+    "0x203a99c": {
+      "names": [
+        "mod_release"
+      ],
+      "targets": [
+        "0x2001c02",
+        "0x20025c2",
+        "0x20025ea",
+        "0x200309a",
+        "0x2004196",
+        "0x20056ca",
+        "0x20056f2",
+        "0x20063a4",
+        "0x200775e",
+        "0x2008ab6",
+        "0x2008ae0",
+        "0x20092dc",
+        "0x200ae9c",
+        "0x200aeb0",
+        "0x200bfea",
+        "0x200c3f4",
+        "0x200da96",
+        "0x200dabe",
+        "0x200e25c",
+        "0x201088e",
+        "0x20108c0",
+        "0x20121d2",
+        "0x20134f6",
+        "0x201352e",
+        "0x201422a",
+        "0x2017be6",
+        "0x2017ca0",
+        "0x2019b0c",
+        "0x2020be2",
+        "0x2020c3a",
+        "0x2022010",
+        "0x202247a",
+        "0x202498a",
+        "0x2029604",
+        "0x202a912",
+        "0x202b3e6",
+        "0x202dd3e",
+        "0x202dd70",
+        "0x202e3de",
+        "0x202eb60",
+        "0x20309a4",
+        "0x2030ed0",
+        "0x2032184",
+        "0x2032b52",
+        "0x2034ad0",
+        "0x2034f80",
+        "0x20361dc",
+        "0x2036a28",
+        "0x20385e6",
+        "0x2038d2c",
+        "0x203909a",
+        "0x20392e2"
+      ],
+      "empty_static_role": false
+    },
+    "0x2042ca6": {
+      "names": [
+        "seq_release_sound"
+      ],
+      "targets": [
+        "0x20025b8",
+        "0x20056c0",
+        "0x2008aac",
+        "0x200ae92",
+        "0x200da8c",
+        "0x201088c",
+        "0x20134b6",
+        "0x2017be4",
+        "0x2020be0",
+        "0x202b25c",
+        "0x202dd34"
+      ],
+      "empty_static_role": false
+    },
+    "0x20465dc": {
+      "names": [
+        "mfx_ram"
+      ],
+      "targets": [
+        "0x200016c",
+        "0x203714e"
+      ],
+      "empty_static_role": false
+    },
+    "0x204f660": {
+      "names": [
+        "kv_each"
+      ],
+      "targets": [
+        "0x2033e42",
+        "0x2033ffe",
+        "0x2034126",
+        "0x20341a2",
+        "0x2034242"
+      ],
+      "empty_static_role": false
+    },
+    "0x204f794": {
+      "names": [
+        "ib"
+      ],
+      "targets": [
+        "0x20342e8"
+      ],
+      "empty_static_role": false
+    },
+    "0x204f7e6": {
+      "names": [
+        "tflush"
+      ],
+      "targets": [
+        "0x20342f2"
+      ],
+      "empty_static_role": false
+    },
+    "0x204ffdc": {
+      "names": [
+        "fm1_state_bin_read"
+      ],
+      "targets": [
+        "0x2060556",
+        "0x20608d6",
+        "0x2060d7c",
+        "0x2060f16",
+        "0x2060f80",
+        "0x20610b6",
+        "0x2061224"
+      ],
+      "empty_static_role": false
+    },
+    "0x2051736": {
+      "names": [
+        "lunar_project_units_plan"
+      ],
+      "targets": [
+        "0x200016c",
+        "0x2001706",
+        "0x2001af6",
+        "0x200213c",
+        "0x2003404",
+        "0x2003c5c",
+        "0x200497e",
+        "0x2006980",
+        "0x2006d6a",
+        "0x20085be",
+        "0x2009b12",
+        "0x2009e52",
+        "0x200c042",
+        "0x200c7e8",
+        "0x200ed8a",
+        "0x200f27a",
+        "0x2011bf6",
+        "0x2012930",
+        "0x20155ac",
+        "0x2015f24",
+        "0x20199e0",
+        "0x201cbaa",
+        "0x202068c",
+        "0x2022120",
+        "0x2023c90",
+        "0x2024620",
+        "0x202933c",
+        "0x2029560",
+        "0x2029fe2",
+        "0x202a61a",
+        "0x202cf6a",
+        "0x202e47c",
+        "0x202e484",
+        "0x202e48c",
+        "0x202e640",
+        "0x202f606",
+        "0x202fd58",
+        "0x203066a",
+        "0x2030d02",
+        "0x203123e",
+        "0x20314f6",
+        "0x2031e3c",
+        "0x20326dc",
+        "0x2034514",
+        "0x20349ce",
+        "0x2034c98",
+        "0x2035bee",
+        "0x2035ef2",
+        "0x203695e",
+        "0x203714e",
+        "0x2037d1e",
+        "0x2037db0",
+        "0x2038b92",
+        "0x203902c",
+        "0x2039246"
+      ],
+      "empty_static_role": false
+    },
+    "0x205327c": {
+      "names": [
+        "lunar_project_engines_release"
+      ],
+      "targets": [
+        "0x2001c00",
+        "0x2002352",
+        "0x2004194",
+        "0x2005422",
+        "0x200775c",
+        "0x200884c",
+        "0x200ad52",
+        "0x200c3f2",
+        "0x200ccb6",
+        "0x2010080",
+        "0x20121d0",
+        "0x2012da6",
+        "0x2016f40",
+        "0x2019b0a",
+        "0x202090c",
+        "0x2022478",
+        "0x2024988",
+        "0x20295e4",
+        "0x202a910",
+        "0x202b20e",
+        "0x202d6b6",
+        "0x202eb5e",
+        "0x20309a2",
+        "0x2030ece",
+        "0x2032182",
+        "0x2032b50",
+        "0x2034ace",
+        "0x2034f7e",
+        "0x20361da",
+        "0x2036a26",
+        "0x20385e4",
+        "0x2038cfa",
+        "0x2039098",
+        "0x20392e0"
+      ],
+      "empty_static_role": false
+    },
+    "0x20532bc": {
+      "names": [
+        "lunar_project_engines_stage"
+      ],
+      "targets": [
+        "0x2001af6",
+        "0x2001afe",
+        "0x200213c",
+        "0x2002142",
+        "0x2003c5c",
+        "0x20040be",
+        "0x200497e",
+        "0x2004aea",
+        "0x2006d6a",
+        "0x2007688",
+        "0x20085be",
+        "0x20085d4",
+        "0x2009e52",
+        "0x200a87a",
+        "0x200c042",
+        "0x200c344",
+        "0x200c7e8",
+        "0x200c7ee",
+        "0x200f27a",
+        "0x200f87a",
+        "0x2011bf6",
+        "0x20120d8",
+        "0x2012930",
+        "0x2012abe",
+        "0x2015f24",
+        "0x2016aa6",
+        "0x20199e0",
+        "0x2019a0c",
+        "0x202068c",
+        "0x20206a8",
+        "0x2022120",
+        "0x2022388",
+        "0x2024620",
+        "0x2024868",
+        "0x2029560",
+        "0x2029568",
+        "0x202a61a",
+        "0x202a7d4",
+        "0x202e47c",
+        "0x202e484",
+        "0x202e48c",
+        "0x202e60a",
+        "0x202e61c",
+        "0x202e62e",
+        "0x202e640",
+        "0x202ea6c",
+        "0x202f606",
+        "0x202fa46",
+        "0x203066a",
+        "0x2030906",
+        "0x2030d02",
+        "0x2030e12",
+        "0x203123e",
+        "0x2031252",
+        "0x2031e3c",
+        "0x2032108",
+        "0x20326dc",
+        "0x2032a1e",
+        "0x20349ce",
+        "0x20349d2",
+        "0x2034c98",
+        "0x2034eea",
+        "0x2035ef2",
+        "0x20360f0",
+        "0x203695e",
+        "0x2036964",
+        "0x2037db0",
+        "0x203853a",
+        "0x2038b92",
+        "0x2038bf6",
+        "0x203902c",
+        "0x2039032",
+        "0x2039246",
+        "0x203924c"
+      ],
+      "empty_static_role": false
+    },
+    "0x2053486": {
+      "names": [
+        "lunar_project_engines_apply"
+      ],
+      "targets": [
+        "0x2001c02",
+        "0x20025ea",
+        "0x2004196",
+        "0x20056f2",
+        "0x200775e",
+        "0x2008ae0",
+        "0x200aeb0",
+        "0x200c3f4",
+        "0x200dabe",
+        "0x20108c0",
+        "0x20121d2",
+        "0x201352e",
+        "0x2017ca0",
+        "0x2019b0c",
+        "0x2020c3a",
+        "0x202247a",
+        "0x202498a",
+        "0x2029604",
+        "0x202a912",
+        "0x202b3e6",
+        "0x202dd70",
+        "0x202eb60",
+        "0x20309a4",
+        "0x2030ed0",
+        "0x2032184",
+        "0x2032b52",
+        "0x2034ad0",
+        "0x2034f80",
+        "0x20361dc",
+        "0x2036a28",
+        "0x20385e6",
+        "0x2038d2c",
+        "0x203909a",
+        "0x20392e2"
+      ],
+      "empty_static_role": false
+    },
+    "0x20535d8": {
+      "names": [
+        "lunar_project_adopt_audio_units"
+      ],
+      "targets": [
+        "0x2001c00",
+        "0x2001c02",
+        "0x2002352",
+        "0x20025c2",
+        "0x20025ea",
+        "0x200309a",
+        "0x2004194",
+        "0x2004196",
+        "0x2005422",
+        "0x20056ca",
+        "0x20056f2",
+        "0x20063a4",
+        "0x200775c",
+        "0x200775e",
+        "0x200884c",
+        "0x2008ab6",
+        "0x2008ae0",
+        "0x20092dc",
+        "0x200ad52",
+        "0x200ae9c",
+        "0x200aeb0",
+        "0x200bfea",
+        "0x200c3f2",
+        "0x200c3f4",
+        "0x200ccb6",
+        "0x200da96",
+        "0x200dabe",
+        "0x200e25c",
+        "0x2010080",
+        "0x201088e",
+        "0x20108c0",
+        "0x20121d0",
+        "0x20121d2",
+        "0x2012da6",
+        "0x20134f6",
+        "0x201352e",
+        "0x201422a",
+        "0x2016f40",
+        "0x2017be6",
+        "0x2017ca0",
+        "0x2019b0a",
+        "0x2019b0c",
+        "0x202090c",
+        "0x2020be2",
+        "0x2020c3a",
+        "0x2022010",
+        "0x2022478",
+        "0x202247a",
+        "0x2024988",
+        "0x202498a",
+        "0x20295e4",
+        "0x2029604",
+        "0x202a910",
+        "0x202a912",
+        "0x202b20e",
+        "0x202b3e6",
+        "0x202d6b6",
+        "0x202dd3e",
+        "0x202dd70",
+        "0x202e3de",
+        "0x202eb5e",
+        "0x202eb60",
+        "0x20309a2",
+        "0x20309a4",
+        "0x2030ece",
+        "0x2030ed0",
+        "0x2032182",
+        "0x2032184",
+        "0x2032b50",
+        "0x2032b52",
+        "0x2034ace",
+        "0x2034ad0",
+        "0x2034f7e",
+        "0x2034f80",
+        "0x20361da",
+        "0x20361dc",
+        "0x2036a26",
+        "0x2036a28",
+        "0x20385e4",
+        "0x20385e6",
+        "0x2038cfa",
+        "0x2038d2c",
+        "0x2039098",
+        "0x203909a",
+        "0x20392e0",
+        "0x20392e2"
+      ],
+      "empty_static_role": false
+    },
+    "0x20539d6": {
+      "names": [
+        "lunar_project_restore_midi_units"
+      ],
+      "targets": [
+        "0x200016c",
+        "0x2000172",
+        "0x20001b2",
+        "0x2000326",
+        "0x203714e",
+        "0x20375fa",
+        "0x2037666",
+        "0x2037668"
+      ],
+      "empty_static_role": false
+    },
+    "0x2060fa6": {
+      "names": [
+        "parameter_record"
+      ],
+      "targets": [
+        "0x2001c02",
+        "0x20025ea",
+        "0x2004196",
+        "0x20056f2",
+        "0x200775e",
+        "0x2008ae0",
+        "0x200aeb0",
+        "0x200c3f4",
+        "0x200dabe",
+        "0x20108c0",
+        "0x20121d2",
+        "0x201352e",
+        "0x2017ca0",
+        "0x2019b0c",
+        "0x2020c3a",
+        "0x202247a",
+        "0x202498a",
+        "0x2029604",
+        "0x202a912",
+        "0x202b3e6",
+        "0x202dd70",
+        "0x202eb60",
+        "0x20309a4",
+        "0x2030ed0",
+        "0x2032184",
+        "0x2032b52",
+        "0x2034ad0",
+        "0x2034f80",
+        "0x20361dc",
+        "0x2036a28",
+        "0x20385e6",
+        "0x2038d2c",
+        "0x203909a",
+        "0x20392e2"
+      ],
+      "empty_static_role": false
+    },
+    "0x20614ca": {
+      "names": [
+        "_ZN3fm15macro8Instance12BuildEnginesEv"
+      ],
+      "targets": [
+        "0x2003132",
+        "0x2003156",
+        "0x200643e",
+        "0x200647a",
+        "0x200647c",
+        "0x20093b2",
+        "0x20094ca",
+        "0x200e610",
+        "0x200e638",
+        "0x2023658",
+        "0x2023678",
+        "0x2023902",
+        "0x202393e",
+        "0x2029060",
+        "0x2029088",
+        "0x2039e44",
+        "0x2039ea0",
+        "0x2061eb8",
+        "0x2063780",
+        "0x20641c6",
+        "0x2066f50",
+        "0x20671a4",
+        "0x2067d04",
+        "0x2069dcc"
+      ],
+      "empty_static_role": false
+    },
+    "0x2061ee8": {
+      "names": [
+        "_ZN3fm111macro_heavy8Instance12BuildEnginesEv"
+      ],
+      "targets": [
+        "0x200e306",
+        "0x200e342",
+        "0x20153a6",
+        "0x20153c6",
+        "0x201c532",
+        "0x201c574",
+        "0x201c926",
+        "0x201c97c",
+        "0x2028c74",
+        "0x2028cb4",
+        "0x2029f36",
+        "0x2029f5e",
+        "0x202b6fa",
+        "0x202b71e",
+        "0x202fa58",
+        "0x202faa8",
+        "0x2031264",
+        "0x20312b2",
+        "0x2034484",
+        "0x203449c",
+        "0x2035234",
+        "0x20352d2",
+        "0x2036ca2",
+        "0x2036cc0",
+        "0x20620fe",
+        "0x20621ea",
+        "0x20621ec",
+        "0x2064158",
+        "0x2064ee2",
+        "0x206570a",
+        "0x2065a5c",
+        "0x20679dc",
+        "0x20682f0",
+        "0x2068acc",
+        "0x2068eac",
+        "0x20691da",
+        "0x20691dc",
+        "0x206941a",
+        "0x20694e0"
+      ],
+      "empty_static_role": false
+    }
+  },
+  "vtables": {
+    "_ZTVN6plaits22VirtualAnalogVCFEngineE": {
+      "address": "0x2091420",
+      "methods": {
+        "Init": {
+          "address": "0x2023902",
+          "names": [
+            "_ZN6plaits22VirtualAnalogVCFEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x202393e",
+          "names": [
+            "_ZN6plaits22VirtualAnalogVCFEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x20671a4",
+          "names": [
+            "_ZN6plaits22VirtualAnalogVCFEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x2023940",
+          "names": [
+            "_ZN6plaits22VirtualAnalogVCFEngine6RenderERKNS_16EngineParametersEPfS4_mPb"
+          ]
+        }
+      }
+    },
+    "_ZTVN6plaits21PhaseDistortionEngineE": {
+      "address": "0x2074cbc",
+      "methods": {
+        "Init": {
+          "address": "0x200e610",
+          "names": [
+            "_ZN6plaits21PhaseDistortionEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x200e638",
+          "names": [
+            "_ZN6plaits21PhaseDistortionEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x20641c6",
+          "names": [
+            "_ZN6plaits21PhaseDistortionEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x200e63a",
+          "names": [
+            "_ZN6plaits21PhaseDistortionEngine6RenderERKNS_16EngineParametersEPfS4_mPb"
+          ]
+        }
+      }
+    },
+    "_ZTVN6plaits17WaveTerrainEngineE": {
+      "address": "0x2091efc",
+      "methods": {
+        "Init": {
+          "address": "0x2029060",
+          "names": [
+            "_ZN6plaits17WaveTerrainEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x2029088",
+          "names": [
+            "_ZN6plaits17WaveTerrainEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x2067d04",
+          "names": [
+            "_ZN6plaits17WaveTerrainEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x202908a",
+          "names": [
+            "_ZN6plaits17WaveTerrainEngine6RenderERKNS_16EngineParametersEPfS4_mPb"
+          ]
+        }
+      }
+    },
+    "_ZTVN6plaits14ChiptuneEngineE": {
+      "address": "0x2074348",
+      "methods": {
+        "Init": {
+          "address": "0x20093b2",
+          "names": [
+            "_ZN6plaits14ChiptuneEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x20094ca",
+          "names": [
+            "_ZN6plaits14ChiptuneEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x2063780",
+          "names": [
+            "_ZN6plaits14ChiptuneEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x20095e2",
+          "names": [
+            "_ZN6plaits14ChiptuneEngine6RenderERKNS_16EngineParametersEPfS4_mPb"
+          ]
+        }
+      }
+    },
+    "_ZTVN6plaits19VirtualAnalogEngineE": {
+      "address": "0x20b8ae8",
+      "methods": {
+        "Init": {
+          "address": "0x2039e44",
+          "names": [
+            "_ZN6plaits19VirtualAnalogEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x2039ea0",
+          "names": [
+            "_ZN6plaits19VirtualAnalogEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x2069dcc",
+          "names": [
+            "_ZN6plaits19VirtualAnalogEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x2039ea2",
+          "names": [
+            "_ZN6plaits19VirtualAnalogEngine6RenderERKNS_16EngineParametersEPfS4_mPb"
+          ]
+        }
+      }
+    },
+    "_ZTVN6plaits17WaveshapingEngineE": {
+      "address": "0x206f5fc",
+      "methods": {
+        "Init": {
+          "address": "0x2003132",
+          "names": [
+            "_ZN6plaits17WaveshapingEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x2003156",
+          "names": [
+            "_ZN6plaits17WaveshapingEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x2061eb8",
+          "names": [
+            "_ZN6plaits17WaveshapingEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x2003190",
+          "names": [
+            "_ZN6plaits17WaveshapingEngine6RenderERKNS_16EngineParametersEPfS4_mPb"
+          ]
+        }
+      }
+    },
+    "_ZTVN6plaits8FMEngineE": {
+      "address": "0x2091408",
+      "methods": {
+        "Init": {
+          "address": "0x2023658",
+          "names": [
+            "_ZN6plaits8FMEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x2023678",
+          "names": [
+            "_ZN6plaits8FMEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x2066f50",
+          "names": [
+            "_ZN6plaits8FMEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x202367a",
+          "names": [
+            "_ZN6plaits8FMEngine6RenderERKNS_16EngineParametersEPfS4_mPb"
+          ]
+        }
+      }
+    },
+    "_ZTVN6plaits15WavetableEngineE": {
+      "address": "0x2070ec4",
+      "methods": {
+        "Init": {
+          "address": "0x200643e",
+          "names": [
+            "_ZN6plaits15WavetableEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x200647a",
+          "names": [
+            "_ZN6plaits15WavetableEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x200647c",
+          "names": [
+            "_ZN6plaits15WavetableEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x2006562",
+          "names": [
+            "_ZN6plaits15WavetableEngine6RenderERKNS_16EngineParametersEPfS4_mPb"
+          ]
+        }
+      }
+    },
+    "_ZTVN6plaits19StringMachineEngineE": {
+      "address": "0x208f334",
+      "methods": {
+        "Init": {
+          "address": "0x201c926",
+          "names": [
+            "_ZN6plaits19StringMachineEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x201c97c",
+          "names": [
+            "_ZN6plaits19StringMachineEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x2065a5c",
+          "names": [
+            "_ZN6plaits19StringMachineEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x201c992",
+          "names": [
+            "_ZN6plaits19StringMachineEngine6RenderERKNS_16EngineParametersEPfS4_mPb"
+          ]
+        }
+      }
+    },
+    "_ZTVN6plaits11ChordEngineE": {
+      "address": "0x208f214",
+      "methods": {
+        "Init": {
+          "address": "0x201c532",
+          "names": [
+            "_ZN6plaits11ChordEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x201c574",
+          "names": [
+            "_ZN6plaits11ChordEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x206570a",
+          "names": [
+            "_ZN6plaits11ChordEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x201c580",
+          "names": [
+            "_ZN6plaits11ChordEngine6RenderERKNS_16EngineParametersEPfS4_mPb"
+          ]
+        }
+      }
+    },
+    "_ZTVN3fm111macro_heavy17SpeechVoiceEngineE": {
+      "address": "0x20cdac4",
+      "methods": {
+        "Init": {
+          "address": "0x20620fe",
+          "names": [
+            "_ZN3fm111macro_heavy17SpeechVoiceEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x20621ea",
+          "names": [
+            "_ZN3fm111macro_heavy17SpeechVoiceEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x20621ec",
+          "names": [
+            "_ZN3fm111macro_heavy17SpeechVoiceEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x206248c",
+          "names": [
+            "_ZN3fm111macro_heavy17SpeechVoiceEngine6RenderERKN6plaits16EngineParametersEPfS6_mPb"
+          ]
+        }
+      }
+    },
+    "_ZTVN6plaits11GrainEngineE": {
+      "address": "0x2091ee4",
+      "methods": {
+        "Init": {
+          "address": "0x2028c74",
+          "names": [
+            "_ZN6plaits11GrainEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x2028cb4",
+          "names": [
+            "_ZN6plaits11GrainEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x20679dc",
+          "names": [
+            "_ZN6plaits11GrainEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x2028cb6",
+          "names": [
+            "_ZN6plaits11GrainEngine6RenderERKNS_16EngineParametersEPfS4_mPb"
+          ]
+        }
+      }
+    },
+    "_ZTVN6plaits14AdditiveEngineE": {
+      "address": "0x2074ca4",
+      "methods": {
+        "Init": {
+          "address": "0x200e306",
+          "names": [
+            "_ZN6plaits14AdditiveEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x200e342",
+          "names": [
+            "_ZN6plaits14AdditiveEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x2064158",
+          "names": [
+            "_ZN6plaits14AdditiveEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x200e428",
+          "names": [
+            "_ZN6plaits14AdditiveEngine6RenderERKNS_16EngineParametersEPfS4_mPb"
+          ]
+        }
+      }
+    },
+    "_ZTVN6plaits11SwarmEngineE": {
+      "address": "0x20b7edc",
+      "methods": {
+        "Init": {
+          "address": "0x2036ca2",
+          "names": [
+            "_ZN6plaits11SwarmEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x2036cc0",
+          "names": [
+            "_ZN6plaits11SwarmEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x20694e0",
+          "names": [
+            "_ZN6plaits11SwarmEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x2036d26",
+          "names": [
+            "_ZN6plaits11SwarmEngine6RenderERKNS_16EngineParametersEPfS4_mPb"
+          ]
+        }
+      }
+    },
+    "_ZTVN6plaits11NoiseEngineE": {
+      "address": "0x2096b58",
+      "methods": {
+        "Init": {
+          "address": "0x202fa58",
+          "names": [
+            "_ZN6plaits11NoiseEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x202faa8",
+          "names": [
+            "_ZN6plaits11NoiseEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x2068eac",
+          "names": [
+            "_ZN6plaits11NoiseEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x202faaa",
+          "names": [
+            "_ZN6plaits11NoiseEngine6RenderERKNS_16EngineParametersEPfS4_mPb"
+          ]
+        }
+      }
+    },
+    "_ZTVN6plaits14ParticleEngineE": {
+      "address": "0x2097520",
+      "methods": {
+        "Init": {
+          "address": "0x2031264",
+          "names": [
+            "_ZN6plaits14ParticleEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x20312b2",
+          "names": [
+            "_ZN6plaits14ParticleEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x20691da",
+          "names": [
+            "_ZN6plaits14ParticleEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x20312c0",
+          "names": [
+            "_ZN6plaits14ParticleEngine6RenderERKNS_16EngineParametersEPfS4_mPb"
+          ]
+        }
+      }
+    },
+    "_ZTVN6plaits12StringEngineE": {
+      "address": "0x20b7be0",
+      "methods": {
+        "Init": {
+          "address": "0x2035234",
+          "names": [
+            "_ZN6plaits12StringEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x20352d2",
+          "names": [
+            "_ZN6plaits12StringEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x206941a",
+          "names": [
+            "_ZN6plaits12StringEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x203536c",
+          "names": [
+            "_ZN6plaits12StringEngine6RenderERKNS_16EngineParametersEPfS4_mPb"
+          ]
+        }
+      }
+    },
+    "_ZTVN6plaits11ModalEngineE": {
+      "address": "0x20940f0",
+      "methods": {
+        "Init": {
+          "address": "0x202b6fa",
+          "names": [
+            "_ZN6plaits11ModalEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x202b71e",
+          "names": [
+            "_ZN6plaits11ModalEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x2068acc",
+          "names": [
+            "_ZN6plaits11ModalEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x202b77a",
+          "names": [
+            "_ZN6plaits11ModalEngine6RenderERKNS_16EngineParametersEPfS4_mPb"
+          ]
+        }
+      }
+    },
+    "_ZTVN6plaits14BassDrumEngineE": {
+      "address": "0x2076b50",
+      "methods": {
+        "Init": {
+          "address": "0x20153a6",
+          "names": [
+            "_ZN6plaits14BassDrumEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x20153c6",
+          "names": [
+            "_ZN6plaits14BassDrumEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x2064ee2",
+          "names": [
+            "_ZN6plaits14BassDrumEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x20153c8",
+          "names": [
+            "_ZN6plaits14BassDrumEngine6RenderERKNS_16EngineParametersEPfS4_mPb"
+          ]
+        }
+      }
+    },
+    "_ZTVN6plaits15SnareDrumEngineE": {
+      "address": "0x2098798",
+      "methods": {
+        "Init": {
+          "address": "0x2034484",
+          "names": [
+            "_ZN6plaits15SnareDrumEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x203449c",
+          "names": [
+            "_ZN6plaits15SnareDrumEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x20691dc",
+          "names": [
+            "_ZN6plaits15SnareDrumEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x203449e",
+          "names": [
+            "_ZN6plaits15SnareDrumEngine6RenderERKNS_16EngineParametersEPfS4_mPb"
+          ]
+        }
+      }
+    },
+    "_ZTVN6plaits11HiHatEngineE": {
+      "address": "0x2093c1c",
+      "methods": {
+        "Init": {
+          "address": "0x2029f36",
+          "names": [
+            "_ZN6plaits11HiHatEngine4InitEPN6stmlib15BufferAllocatorE"
+          ]
+        },
+        "Reset": {
+          "address": "0x2029f5e",
+          "names": [
+            "_ZN6plaits11HiHatEngine5ResetEv"
+          ]
+        },
+        "LoadUserData": {
+          "address": "0x20682f0",
+          "names": [
+            "_ZN6plaits11HiHatEngine12LoadUserDataEPKh"
+          ]
+        },
+        "Render": {
+          "address": "0x2029f60",
+          "names": [
+            "_ZN6plaits11HiHatEngine6RenderERKNS_16EngineParametersEPfS4_mPb"
+          ]
+        }
+      }
+    }
+  },
+  "reviewed_source_sha256": {
+    "engines/src/mi_macro.cc": "4ebb991023229043183d07d2d741359552d2f1dee13e3be1b9e6acad459ed98a",
+    "engines/src/mi_macro_heavy.cc": "4b82ba327114348b8e775af97ff0163cba2610b351da2a15a6f96aafea65fe0e",
+    "engines/third_party/mutable/plaits/dsp/engine/engine.h": "c31fa0ad1585c4fff9451d844dab4bfaff1823dc677cebf182957827518a43ef",
+    "engines/third_party/mutable/plaits/dsp/engine/modal_engine.cc": "6fb8374b32378bd7b99cd4cc7421b12af681ce973de03a7148ae901c99c71a7a"
+  },
+  "virtual_call_sites": [
+    {
+      "caller": "0x20614ca",
+      "name": "_ZN3fm15macro8Instance12BuildEnginesEv",
+      "pc": "0x2061562",
+      "role": "Init",
+      "vptr_offset": 0,
+      "targets": [
+        "0x2003132",
+        "0x200643e",
+        "0x20093b2",
+        "0x200e610",
+        "0x2023658",
+        "0x2023902",
+        "0x2029060",
+        "0x2039e44"
+      ]
+    },
+    {
+      "caller": "0x20614ca",
+      "name": "_ZN3fm15macro8Instance12BuildEnginesEv",
+      "pc": "0x206156e",
+      "role": "LoadUserData",
+      "vptr_offset": 8,
+      "targets": [
+        "0x200647c",
+        "0x2061eb8",
+        "0x2063780",
+        "0x20641c6",
+        "0x2066f50",
+        "0x20671a4",
+        "0x2067d04",
+        "0x2069dcc"
+      ]
+    },
+    {
+      "caller": "0x20614ca",
+      "name": "_ZN3fm15macro8Instance12BuildEnginesEv",
+      "pc": "0x2061578",
+      "role": "Reset",
+      "vptr_offset": 4,
+      "targets": [
+        "0x2003156",
+        "0x200647a",
+        "0x20094ca",
+        "0x200e638",
+        "0x2023678",
+        "0x202393e",
+        "0x2029088",
+        "0x2039ea0"
+      ]
+    },
+    {
+      "caller": "0x2061ee8",
+      "name": "_ZN3fm111macro_heavy8Instance12BuildEnginesEv",
+      "pc": "0x2062014",
+      "role": "Init",
+      "vptr_offset": 0,
+      "targets": [
+        "0x200e306",
+        "0x20153a6",
+        "0x201c532",
+        "0x201c926",
+        "0x2028c74",
+        "0x2029f36",
+        "0x202b6fa",
+        "0x202fa58",
+        "0x2031264",
+        "0x2034484",
+        "0x2035234",
+        "0x2036ca2",
+        "0x20620fe"
+      ]
+    },
+    {
+      "caller": "0x2061ee8",
+      "name": "_ZN3fm111macro_heavy8Instance12BuildEnginesEv",
+      "pc": "0x2062054",
+      "role": "LoadUserData",
+      "vptr_offset": 8,
+      "targets": [
+        "0x20621ec",
+        "0x2064158",
+        "0x2064ee2",
+        "0x206570a",
+        "0x2065a5c",
+        "0x20679dc",
+        "0x20682f0",
+        "0x2068acc",
+        "0x2068eac",
+        "0x20691da",
+        "0x20691dc",
+        "0x206941a",
+        "0x20694e0"
+      ]
+    },
+    {
+      "caller": "0x2061ee8",
+      "name": "_ZN3fm111macro_heavy8Instance12BuildEnginesEv",
+      "pc": "0x206205e",
+      "role": "Reset",
+      "vptr_offset": 4,
+      "targets": [
+        "0x200e342",
+        "0x20153c6",
+        "0x201c574",
+        "0x201c97c",
+        "0x2028cb4",
+        "0x2029f5e",
+        "0x202b71e",
+        "0x202faa8",
+        "0x20312b2",
+        "0x203449c",
+        "0x20352d2",
+        "0x2036cc0",
+        "0x20621ea"
+      ]
+    },
+    {
+      "caller": "0x202b6fa",
+      "name": "_ZN6plaits11ModalEngine4InitEPN6stmlib15BufferAllocatorE",
+      "pc": "0x202b71a",
+      "role": "Reset",
+      "vptr_offset": 4,
+      "targets": [
+        "0x202b71e"
+      ]
+    }
+  ],
+  "unresolved": [
+    {
+      "caller": "0x200f5dc",
+      "names": [
+        "drum909_set_value"
+      ],
+      "pc": "0x200f65c",
+      "kind": "direct",
+      "target": "0x200f610"
+    },
+    {
+      "caller": "0x200f5dc",
+      "names": [
+        "drum909_set_value"
+      ],
+      "pc": "0x200f662",
+      "kind": "direct",
+      "target": "0x200fad4"
+    },
+    {
+      "caller": "0x2015f98",
+      "names": [
+        "d8_exp2_cr"
+      ],
+      "pc": "0x2015fc4",
+      "kind": "direct",
+      "target": "0x20160a6"
+    },
+    {
+      "caller": "0x202b20e",
+      "names": [
+        "_ZN3fm17schwung7DestroyEPv"
+      ],
+      "pc": "0x202b220",
+      "kind": "indirect",
+      "instruction": "call r1"
+    },
+    {
+      "caller": "0x202b20e",
+      "names": [
+        "_ZN3fm17schwung7DestroyEPv"
+      ],
+      "pc": "0x202b22c",
+      "kind": "indirect",
+      "instruction": "call r1"
+    },
+    {
+      "caller": "0x202b234",
+      "names": [
+        "_ZN3fm17schwung12_GLOBAL__N_18SendMidiEPNS1_8InstanceEhhh"
+      ],
+      "pc": "0x202b256",
+      "kind": "indirect",
+      "instruction": "call r4"
+    },
+    {
+      "caller": "0x202b30a",
+      "names": [
+        "_ZN3fm17schwung12_GLOBAL__N_19SendParamEPNS1_8InstanceEtf"
+      ],
+      "pc": "0x202b3e0",
+      "kind": "indirect",
+      "instruction": "call r3"
+    },
+    {
+      "caller": "0x202f618",
+      "names": [
+        "_ZN3fm17schwung6CreateERKNS0_6ModuleEPvPK8fm1_host"
+      ],
+      "pc": "0x202f6f4",
+      "kind": "indirect",
+      "instruction": "call r1"
+    },
+    {
+      "caller": "0x202f618",
+      "names": [
+        "_ZN3fm17schwung6CreateERKNS0_6ModuleEPvPK8fm1_host"
+      ],
+      "pc": "0x202f714",
+      "kind": "indirect",
+      "instruction": "call r1"
+    },
+    {
+      "caller": "0x202f618",
+      "names": [
+        "_ZN3fm17schwung6CreateERKNS0_6ModuleEPvPK8fm1_host"
+      ],
+      "pc": "0x202f860",
+      "kind": "indirect",
+      "instruction": "goto r2"
+    },
+    {
+      "caller": "0x202f618",
+      "names": [
+        "_ZN3fm17schwung6CreateERKNS0_6ModuleEPvPK8fm1_host"
+      ],
+      "pc": "0x202f92e",
+      "kind": "indirect",
+      "instruction": "call r2"
+    },
+    {
+      "caller": "0x202f618",
+      "names": [
+        "_ZN3fm17schwung6CreateERKNS0_6ModuleEPvPK8fm1_host"
+      ],
+      "pc": "0x202f94a",
+      "kind": "indirect",
+      "instruction": "call r1"
+    },
+    {
+      "caller": "0x202f618",
+      "names": [
+        "_ZN3fm17schwung6CreateERKNS0_6ModuleEPvPK8fm1_host"
+      ],
+      "pc": "0x202f958",
+      "kind": "indirect",
+      "instruction": "call r1"
+    },
+    {
+      "caller": "0x202f618",
+      "names": [
+        "_ZN3fm17schwung6CreateERKNS0_6ModuleEPvPK8fm1_host"
+      ],
+      "pc": "0x202f9b8",
+      "kind": "indirect",
+      "instruction": "call r4"
+    },
+    {
+      "caller": "0x202f618",
+      "names": [
+        "_ZN3fm17schwung6CreateERKNS0_6ModuleEPvPK8fm1_host"
+      ],
+      "pc": "0x202f9c8",
+      "kind": "indirect",
+      "instruction": "call r8"
+    },
+    {
+      "caller": "0x2037f4e",
+      "names": [
+        "_ZL14DriveCurveMeanPK10DriveCurveff"
+      ],
+      "pc": "0x203812a",
+      "kind": "direct",
+      "target": "0x203817c"
+    },
+    {
+      "caller": "0x20381a0",
+      "names": [
+        "_ZL14DriveUpdateOutP13DriveInstance"
+      ],
+      "pc": "0x203825e",
+      "kind": "direct",
+      "target": "0x2038298"
+    },
+    {
+      "caller": "0x20381a0",
+      "names": [
+        "_ZL14DriveUpdateOutP13DriveInstance"
+      ],
+      "pc": "0x2038268",
+      "kind": "direct",
+      "target": "0x2037e7a"
+    },
+    {
+      "caller": "0x20381a0",
+      "names": [
+        "_ZL14DriveUpdateOutP13DriveInstance"
+      ],
+      "pc": "0x2038284",
+      "kind": "direct",
+      "target": "0x20382be"
+    },
+    {
+      "caller": "0x203a7ea",
+      "names": [
+        "mod_emit.4780"
+      ],
+      "pc": "0x203a80c",
+      "kind": "indirect",
+      "instruction": "call r5"
+    },
+    {
+      "caller": "0x2042b28",
+      "names": [
+        "run_quiet"
+      ],
+      "pc": "0x2042bcc",
+      "kind": "indirect",
+      "instruction": "call r7"
+    },
+    {
+      "caller": "0x2042b28",
+      "names": [
+        "run_quiet"
+      ],
+      "pc": "0x2042c20",
+      "kind": "indirect",
+      "instruction": "call r3"
+    },
+    {
+      "caller": "0x20609f2",
+      "names": [
+        "record"
+      ],
+      "pc": "0x2060d08",
+      "kind": "indirect",
+      "instruction": "call r2"
+    },
+    {
+      "caller": "0x206d8d0",
+      "names": [
+        "putchar_via_gadget"
+      ],
+      "pc": "0x206d8e6",
+      "kind": "indirect",
+      "instruction": "goto r3"
+    }
+  ],
+  "decoding_limit_instructions": 3847,
+  "limits": [
+    "whole-function role unions are candidate edges, not proven per-site targets",
+    "application DX7 wrapper callbacks require separate coverage",
+    "run_quiet MIDI sink, mod_emit observer and printf gadget remain unresolved",
+    "new engine-internal callbacks need source review",
+    "recursion, dynamic stack and IRQ overlap are not bounded"
+  ],
+  "hardware_admitted": false
+}

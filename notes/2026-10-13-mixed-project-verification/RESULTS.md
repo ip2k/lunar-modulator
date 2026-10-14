@@ -171,3 +171,34 @@ Next: resolve C++/module callback tables and non-entry branch decoding, then
 calculate caller/IRQ stack overlap and verify actual target timing. Fresh
 hardware identity/backups, settings migration, physical rollback, web builder
 and installation, required review/CI and integration remain open. Goal active.
+
+### Macro virtual startup edges (2026-10-13 continuation)
+
+[verified] The all13-v3 ELF contains 21 model vtables selected by Macro's
+eight-model switch and Macro Heavy's thirteen-model switch. Each is 24 bytes:
+two zero header words followed by Init, Reset, LoadUserData and Render function
+pointers. Every method pointer resolves to a defined function address with the
+expected method name. Render is not added to startup edges. The four reviewed
+source hashes match the immutable production-source-v3 snapshot on Hera.
+
+[verified] Vendor instruction inspection at the six BuildEngines indirect call
+sites shows vptr field loads at +0 (Init), +8 (LoadUserData), and +4 (Reset).
+ModalEngine::Init calls Reset virtually at 0x202B71A, loading vptr +4. The
+receipt retains these seven PCs with separate role-specific target sets.
+The call expansion still uses whole-function unions; source/field agreement
+does not prove runtime object provenance outside the reviewed constructors.
+
+[verified] Expansion now reaches 1065 functions with 27 candidate rules and
+24 unresolved call sites. This does not establish a stack maximum or hardware
+admission. The script refuses an ELF hash or reviewed source hash different
+from this exact artifact. Reproduce with expand-project-callbacks.py INVENTORY
+OUTPUT ELF SOURCE; receipt is receipts/project-callback-vtables.json. Python
+compilation, reproduction and diff whitespace checks pass. No firmware or
+device state changed. The earlier inventory checkpoint is backed up at
+228ac369158a0430a846164fba5d5e857237905f.
+
+Next dependency: bind Schwung module init/create/destroy/parameter/MIDI hooks
+and application wrapper/sink callbacks, resolve instruction decoding gaps,
+then bound caller/IRQ overlap and verify target timing before fresh backups
+and physical admission. Settings migration, physical rollback and the full
+web-installable thirteen-engine release remain unfinished.

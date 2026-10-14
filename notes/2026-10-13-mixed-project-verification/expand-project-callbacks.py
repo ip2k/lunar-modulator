@@ -2,8 +2,10 @@
 import hashlib
 import json
 import pathlib
+import struct
 import sys
 
+assert len(sys.argv) in (3, 5), 'usage: INVENTORY OUTPUT [ELF SOURCE]'
 inventory_path, output = map(pathlib.Path, sys.argv[1:3])
 inventory = json.loads(inventory_path.read_text())
 graph = inventory['functions']
@@ -52,6 +54,89 @@ rules = {
     'ib': names('pull_byte'),
     'tflush': names('line_text'),
 }
+vtables = {}
+virtual_sites = []
+source_hashes = {}
+if len(sys.argv) > 3:
+    # Optional ELF and source arguments add only the model classes constructed
+    # by these two wrappers. This remains a whole-function candidate union.
+    elf_path, source = map(pathlib.Path, sys.argv[3:5])
+    sys.path.insert(0, str(source / 'tools/jieli'))
+    from audit_link import Elf
+    assert hashlib.sha256(elf_path.read_bytes()).hexdigest() == inventory['elf_sha256']
+    elf = Elf(elf_path.read_bytes())
+    models = {
+        '_ZN3fm15macro8Instance12BuildEnginesEv': [
+            'VirtualAnalogVCFEngine', 'PhaseDistortionEngine', 'WaveTerrainEngine',
+            'ChiptuneEngine', 'VirtualAnalogEngine', 'WaveshapingEngine',
+            'FMEngine', 'WavetableEngine'],
+        '_ZN3fm111macro_heavy8Instance12BuildEnginesEv': [
+            'StringMachineEngine', 'ChordEngine', 'SpeechVoiceEngine', 'GrainEngine',
+            'AdditiveEngine', 'SwarmEngine', 'NoiseEngine', 'ParticleEngine',
+            'StringEngine', 'ModalEngine', 'BassDrumEngine', 'SnareDrumEngine',
+            'HiHatEngine'],
+    }
+    # PCs and field loads inspected in the matching vendor disassembly.
+    # Require this exact artifact for these call-site claims.
+    assert inventory['elf_sha256'] == 'df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e'
+    sites = {
+        '_ZN3fm15macro8Instance12BuildEnginesEv': [
+            ('0x2061562', 'Init'), ('0x206156e', 'LoadUserData'), ('0x2061578', 'Reset')],
+        '_ZN3fm111macro_heavy8Instance12BuildEnginesEv': [
+            ('0x2062014', 'Init'), ('0x2062054', 'LoadUserData'), ('0x206205e', 'Reset')],
+    }
+    for caller, classes in models.items():
+        targets = set()
+        by_role = {role: set() for role in ('Init', 'Reset', 'LoadUserData')}
+        for cls in classes:
+            namespace = '3fm111macro_heavy' if cls == 'SpeechVoiceEngine' else '6plaits'
+            symbol_name = f'_ZTVN{namespace}{len(cls)}{cls}E'
+            matches = [s for s in elf.symbols if s['name'] == symbol_name and s['shndx']]
+            assert len(matches) == 1, symbol_name
+            symbol = matches[0]
+            assert symbol['size'] == 24, symbol_name
+            words = struct.unpack('<6I', elf.read(symbol['value'], 24))
+            assert words[:2] == (0, 0), symbol_name
+            methods = {}
+            for slot, (role, suffix) in enumerate([
+                ('Init', '4InitE'), ('Reset', '5ResetEv'),
+                ('LoadUserData', '12LoadUserDataE'), ('Render', '6RenderE')], 2):
+                address = hex(words[slot])
+                assert address in graph, (symbol_name, role, address)
+                assert any(suffix in n for n in graph[address]['names']), (symbol_name, role)
+                methods[role] = {'address': address, 'names': graph[address]['names']}
+                if role != 'Render':
+                    targets.add(address)
+                    by_role[role].add(address)
+            vtables[symbol_name] = {'address': hex(symbol['value']), 'methods': methods}
+        rules[caller] = targets
+        caller_addresses = names(caller)
+        assert len(caller_addresses) == 1, caller
+        caller_address = next(iter(caller_addresses))
+        indirect_pcs = {site['pc'] for site in graph[caller_address]['unresolved']
+            if site['kind'] == 'indirect'}
+        assert indirect_pcs == {pc for pc, _ in sites[caller]}, caller
+        for pc, role in sites[caller]:
+            virtual_sites.append({'caller': caller_address, 'name': caller, 'pc': pc,
+                'role': role, 'vptr_offset': {'Init': 0, 'Reset': 4, 'LoadUserData': 8}[role],
+                'targets': sorted(by_role[role])})
+    modal = '_ZN6plaits11ModalEngine4InitEPN6stmlib15BufferAllocatorE'
+    reset = vtables['_ZTVN6plaits11ModalEngineE']['methods']['Reset']['address']
+    rules[modal] = {reset}
+    modal_address = next(iter(names(modal)))
+    assert graph[modal_address]['unresolved'] == [
+        {'pc': '0x202b71a', 'kind': 'indirect', 'instruction': 'call r1'}]
+    virtual_sites.append({'caller': modal_address, 'name': modal, 'pc': '0x202b71a',
+        'role': 'Reset', 'vptr_offset': 4, 'targets': [reset]})
+    expected_source = {
+        'engines/src/mi_macro.cc': '4ebb991023229043183d07d2d741359552d2f1dee13e3be1b9e6acad459ed98a',
+        'engines/src/mi_macro_heavy.cc': '4b82ba327114348b8e775af97ff0163cba2610b351da2a15a6f96aafea65fe0e',
+        'engines/third_party/mutable/plaits/dsp/engine/engine.h': 'c31fa0ad1585c4fff9451d844dab4bfaff1823dc677cebf182957827518a43ef',
+        'engines/third_party/mutable/plaits/dsp/engine/modal_engine.cc': '6fb8374b32378bd7b99cd4cc7421b12af681ce973de03a7148ae901c99c71a7a',
+    }
+    for path, expected in expected_source.items():
+        source_hashes[path] = hashlib.sha256((source / path).read_bytes()).hexdigest()
+        assert source_hashes[path] == expected, ('reviewed source changed', path)
 edges = {address: set(row['direct']) for address, row in graph.items()}
 applied = {}
 for address, row in graph.items():
@@ -74,6 +159,8 @@ receipt = {'scope': 'candidate callback expansion; no stack bound or hardware ad
     'elf_sha256': inventory['elf_sha256'],
     'inventory_sha256': hashlib.sha256(inventory_path.read_bytes()).hexdigest(),
     'reachable_functions': len(seen), 'applied_rules': applied,
+    'vtables': vtables, 'reviewed_source_sha256': source_hashes,
+    'virtual_call_sites': virtual_sites,
     'unresolved': unresolved,
     'decoding_limit_instructions': sum(len(graph[a]['decoding_limits']) for a in seen),
     'limits': ['whole-function role unions are candidate edges, not proven per-site targets',
