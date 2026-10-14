@@ -375,6 +375,10 @@ static int fl_source_span_ok(const uint8_t *src, uint32_t n, uint32_t off)
 #define FL_SOURCE_SPAN_OK(src, n, off) fl_source_span_ok((src), (n), (off))
 #endif
 
+#ifndef FL_PROGRAM_PAGE
+#define FL_PROGRAM_PAGE(off, page, chunk, took) FL_FAR(fl_prog_ram)(off, page, chunk, took)
+#endif
+
 static int fl_write(uint32_t off, const uint8_t *src_ram, uint32_t n)
 {
     uint32_t took;
@@ -389,7 +393,7 @@ static int fl_write(uint32_t off, const uint8_t *src_ram, uint32_t n)
          * dereference an unverified caller pointer after SFC is switched off. */
         for (i = 0; i < chunk; ++i) page[i] = src_ram[i];
         f = irq_save();
-        rc = FL_FAR(fl_prog_ram)(off, page, chunk, &took);
+        rc = FL_PROGRAM_PAGE(off, page, chunk, &took);
         irq_restore(f);
         if (rc) return rc;
         off += chunk; src_ram += chunk; n -= chunk;
