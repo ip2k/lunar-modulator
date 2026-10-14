@@ -124,7 +124,7 @@ test('preselects the owner-approved musical default reversibly and submits order
   assert.equal('source_sha256' in sent[0], false);
   assert.deepEqual(controller.getSelection(), {
     projectIds: ['replacement-showcase-candidate-event-horizon', 'legacy-example-event-horizon'],
-    startupId: 'legacy-example-event-horizon',
+    startupId: 'legacy-example-event-horizon', setIds: [],
   });
 
   checkboxes[0].checked = false;
@@ -133,7 +133,7 @@ test('preselects the owner-approved musical default reversibly and submits order
   assert.equal(radios[0].checked, false);
   assert.equal(submit.disabled, true);
   assert.deepEqual(controller.getSelection(), {
-    projectIds: ['replacement-showcase-candidate-event-horizon'], startupId: null,
+    projectIds: ['replacement-showcase-candidate-event-horizon'], startupId: null, setIds: [],
   });
   controller.destroy();
   assert.equal(root.children[0].removed, true);
@@ -236,4 +236,54 @@ test('shows an actionable preflight error and sends nothing when a required modu
   await submit.dispatch('click');
   assert.equal(sent.length, 1);
   assert.deepEqual(sent[0].project_ids, ['replacement-showcase-candidate-event-horizon']);
+});
+
+test('shows an accessible companion choice only while its parent is selected to start', async () => {
+  const companionId = 'replacement-showcase-event-horizon-companion-set';
+  const parentId = 'replacement-showcase-candidate-event-horizon';
+  const expanded = {
+    ...catalogue,
+    projects: catalogue.projects,
+    sets: [{ id: companionId, title: 'Event Horizon Companion Set',
+      parent_project_id: parentId, source_dependency_scan_complete: false,
+      dependency_scan_complete: false, source_path: 'private/source.lunar',
+      source_sha256: 'b'.repeat(64), content_sha256: 'c'.repeat(64) }],
+    full_song_default: { required: true, status: 'owner-approved', project_id: parentId,
+      musical_choice_approved: true, blockers: [] },
+  };
+  const document = new Document();
+  const root = new Element('div', document);
+  const sent = [];
+  const controller = mountNativeDemoSelectionView(root, expanded, profile, (request) => sent.push(request));
+  const nodes = walk(root);
+  const setCheckbox = nodes.find((node) => node.tagName === 'INPUT' && node.type === 'checkbox'
+    && node.value === companionId);
+  const radios = nodes.filter((node) => node.tagName === 'INPUT' && node.type === 'radio');
+  const submit = nodes.find((node) => node.tagName === 'BUTTON');
+  const parentRadio = radios.find((radio) => radio.value === parentId);
+  assert.ok(setCheckbox);
+  assert.equal(setCheckbox.disabled, false);
+  assert.ok(nodes.some((node) => node.tagName === 'SPAN' && node.textContent === 'Event Horizon Companion Set'));
+  setCheckbox.checked = true;
+  await setCheckbox.dispatch('change');
+  await submit.dispatch('click');
+  assert.deepEqual(sent[0].set_ids, [companionId]);
+  assert.deepEqual(controller.getSelection().setIds, [companionId]);
+
+  const otherRadio = radios.find((radio) => radio.value === 'replacement-showcase-candidate-afterglow-relay');
+  otherRadio.checked = true;
+  await otherRadio.dispatch('change');
+  assert.equal(setCheckbox.checked, false);
+  assert.equal(setCheckbox.disabled, true);
+  assert.deepEqual(controller.getSelection().setIds, []);
+  assert.match(nodes.find((node) => node.getAttribute('aria-live') === 'polite').textContent,
+    /needs Event Horizon selected as the startup project/);
+
+  const parentCheckbox = nodes.find((node) => node.tagName === 'INPUT' && node.type === 'checkbox'
+    && node.value === parentId);
+  parentCheckbox.checked = false;
+  await parentCheckbox.dispatch('change');
+  assert.equal(setCheckbox.disabled, true);
+  assert.equal(parentRadio.disabled, true);
+  controller.destroy();
 });

@@ -13,12 +13,14 @@ function fail(message) { throw new Error(message); }
 function validateRequest(request) {
   const groups = ['engines', 'effects', 'midi', 'modulation'];
   const keys = ['version', ...groups, 'project_ids', 'startup_index'];
+  const hasSets = request && Object.hasOwn(request, 'set_ids');
+  const allowedKeys = hasSets ? [...keys, 'set_ids'] : keys;
   if (!request || typeof request !== 'object'
       || (Object.getPrototypeOf(request) !== Object.prototype && Object.getPrototypeOf(request) !== null)
       || request.version !== 1 || !Array.isArray(request.project_ids)
       || request.project_ids.length < 1 || request.project_ids.length > 8
-      || Object.keys(request).length !== keys.length
-      || keys.some((key) => !Object.hasOwn(request, key))
+      || Object.keys(request).length !== allowedKeys.length
+      || allowedKeys.some((key) => !Object.hasOwn(request, key))
       || !Number.isInteger(request.startup_index)
       || request.startup_index < 0 || request.startup_index >= request.project_ids.length) {
     fail('The selected build request is invalid.');
@@ -31,6 +33,11 @@ function validateRequest(request) {
         || new Set(request[key]).size !== request[key].length) {
       fail('The selected build request is invalid.');
     }
+  }
+  if (hasSets && (!Array.isArray(request.set_ids) || request.set_ids.length > 8
+      || request.set_ids.some((value) => typeof value !== 'string' || value.length === 0)
+      || new Set(request.set_ids).size !== request.set_ids.length)) {
+    fail('The selected build request is invalid.');
   }
   if (new TextEncoder().encode(JSON.stringify(request)).byteLength > MAX_RESPONSE_BYTES) {
     fail('The selected build request is too large.');

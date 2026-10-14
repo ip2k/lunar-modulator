@@ -31,6 +31,10 @@ function reservationFor(project) {
 }
 const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
+const TRUSTED_SETS = Object.freeze({
+  'replacement-showcase-event-horizon-companion-set': 'replacement-showcase-candidate-event-horizon',
+});
+
 function checkedProjects(catalogue) {
   if (!isRecord(catalogue) || catalogue.version !== 1 || !Array.isArray(catalogue.projects)) {
     fail('Unsupported native demo catalogue');
@@ -59,18 +63,31 @@ function checkedProjects(catalogue) {
     }
     ids.add(project.id);
   }
+  const projectIds = ids;
+  const sets = catalogue.sets ?? [];
+  if (!Array.isArray(sets) || sets.length > 8) fail('Invalid native demo SET catalogue');
+  const setIds = new Set();
+  for (const set of sets) {
+    const expectedParent = isRecord(set) ? TRUSTED_SETS[set.id] : null;
+    if (!expectedParent || setIds.has(set.id) || typeof set.title !== 'string'
+        || !projectIds.has(set.parent_project_id) || set.parent_project_id !== expectedParent
+        || set.source_dependency_scan_complete !== false || set.dependency_scan_complete !== false) {
+      fail('Invalid or unsupported companion SET metadata');
+    }
+    setIds.add(set.id);
+  }
   const fullSongDefault = catalogue.full_song_default;
   if (!isRecord(fullSongDefault) || fullSongDefault.required !== true
       || typeof fullSongDefault.status !== 'string' || !Array.isArray(fullSongDefault.blockers)
       || fullSongDefault.blockers.some((blocker) => typeof blocker !== 'string')) {
     fail('Invalid full-song default disposition');
   }
-  return { ids, fullSongDefault };
+  return { ids, sets, setIds, fullSongDefault };
 }
 
 /** Return UI-safe catalogue facts; musical approval remains separate from image admission. */
 export function describeNativeDemoCatalogue(catalogue) {
-  const { fullSongDefault } = checkedProjects(catalogue);
+  const { fullSongDefault, sets } = checkedProjects(catalogue);
   const projects = catalogue.projects.map((project) => Object.freeze({
     id: project.id,
     title: project.title,
@@ -82,6 +99,9 @@ export function describeNativeDemoCatalogue(catalogue) {
   }));
   return Object.freeze({
     projects: Object.freeze(projects),
+    sets: Object.freeze(sets.map((set) => Object.freeze({
+      id: set.id, title: set.title, parentProjectId: set.parent_project_id,
+    }))),
     fullSongDefault: Object.freeze({
       required: fullSongDefault.required,
       status: fullSongDefault.status,
@@ -95,8 +115,8 @@ export function describeNativeDemoCatalogue(catalogue) {
 /** Build the exact version-1 request accepted by prepare_demo_selection.py.
  * Project bytes, paths, hashes and dependencies remain backend-owned.
  */
-export function buildNativeDemoSelectionRequest(catalogue, profile, projectIds, startupIndex) {
-  const { ids } = checkedProjects(catalogue);
+export function buildNativeDemoSelectionRequest(catalogue, profile, projectIds, startupIndex, setIds = []) {
+  const { ids, setIds: knownSetIds, sets } = checkedProjects(catalogue);
   // The source-hash-bound catalogue provides immediate UX feedback. The backend
   // independently validates exact packed records before it writes a receipt.
   const modules = validateNativeBuildSelection(catalogue, profile);
@@ -131,9 +151,23 @@ export function buildNativeDemoSelectionRequest(catalogue, profile, projectIds, 
     fail('Startup index must select an ordered project');
   }
 
+  if (!Array.isArray(setIds) || setIds.length > 8
+      || setIds.some((id) => typeof id !== 'string' || !knownSetIds.has(id))) {
+    fail('Select only known companion SETs');
+  }
+  if (new Set(setIds).size !== setIds.length) fail('Duplicate selected companion SET ID');
+  for (const id of setIds) {
+    const companion = sets.find((set) => set.id === id);
+    if (!projectIds.includes(companion.parent_project_id)
+        || projectIds[startupIndex] !== companion.parent_project_id) {
+      fail('A companion SET requires its parent project as the startup project');
+    }
+  }
+
   const request = { version: 1 };
   for (const group of BUILDER_GROUPS) request[group] = Object.freeze([...modules.selectedByGroup[group]]);
   request.project_ids = Object.freeze([...projectIds]);
   request.startup_index = startupIndex;
+  if (setIds.length) request.set_ids = Object.freeze([...setIds]);
   return Object.freeze(request);
 }
