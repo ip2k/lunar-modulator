@@ -16,6 +16,7 @@ SOURCE = Path("/workspace")
 SOURCE_ARCHIVE = Path("/input/source.tar")
 REQUEST = Path("/input/request.json")
 TOOLCHAIN = Path("/opt/pi32v2")
+CATALOGUE = Path("/input/catalogue")
 RESULT = Path("/result")
 SCRATCH = Path("/tmp/lunar-worker")
 MAX_REQUEST = 65536
@@ -41,7 +42,7 @@ def main() -> int:
     if not isinstance(request, dict):
         raise ValueError("request must be object")
     archive_bytes = regular_file(SOURCE_ARCHIVE, 128 * 1024 * 1024)
-    if not TOOLCHAIN.is_dir():
+    if not TOOLCHAIN.is_dir() or not (CATALOGUE / "shard-00/objects.json").is_file():
         raise ValueError("fixed worker inputs are unavailable")
     if RESULT.is_symlink() or not RESULT.is_dir() or any(RESULT.iterdir()):
         raise ValueError("result mount is not an empty service directory")
@@ -88,7 +89,7 @@ def main() -> int:
         "--request", str(REQUEST),
         "--state-tool", str(work / "engines/build/fm1-state"),
         "--toolchain", str(TOOLCHAIN),
-        "--catalogue", str(work / "engines"),
+        "--catalogue", str(CATALOGUE),
         "--out", str(output / "build"),
     ], check=True, timeout=1200)
     app = regular_file(output / "build/link/artifact/app.bin", MAX_APP)

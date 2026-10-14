@@ -29,6 +29,7 @@ class DockerWorkerConfig:
     toolchain_root: Path
     runtime_root: Path
     source_commit: str
+    catalogue_root: Path | None = None
     image_reference: str = _IMAGE
     docker_binary: str = "docker"
     cpu_limit: str = "4"
@@ -43,12 +44,14 @@ class DockerWorkerConfig:
             raise ValueError("source must be pinned to a full Git commit")
         if self.image_reference != _IMAGE:
             raise ValueError("worker image must match the reviewed immutable image")
-        for field in ("source_root", "toolchain_root", "runtime_root"):
+        if self.catalogue_root is None:
+            raise ValueError("fixed verified catalogue cache is required")
+        for field in ("source_root", "toolchain_root", "runtime_root", "catalogue_root"):
             path = Path(getattr(self, field)).resolve(strict=True)
             if not path.is_dir():
                 raise ValueError(field + " must be an existing directory")
             object.__setattr__(self, field, path)
-        if any("," in str(getattr(self, field)) or "\n" in str(getattr(self, field)) for field in ("source_root", "toolchain_root", "runtime_root")):
+        if any("," in str(getattr(self, field)) or "\n" in str(getattr(self, field)) for field in ("source_root", "toolchain_root", "runtime_root", "catalogue_root")):
             raise ValueError("Docker mount path contains unsupported delimiter")
         head = subprocess.run(["git", "-C", str(self.source_root), "rev-parse", "HEAD"],
                               capture_output=True, text=True, timeout=5, check=True).stdout.strip()
@@ -148,6 +151,7 @@ class DockerJobAdapter:
             "--mount", "type=bind,src=" + str(base / "input" / "source.tar") + ",dst=/input/source.tar,readonly",
             "--mount", "type=bind,src=" + str(cfg.source_root / "tools/installer_service/docker_worker.py") + ",dst=/input/docker_worker.py,readonly",
             "--mount", "type=bind,src=" + str(cfg.toolchain_root) + ",dst=/opt/pi32v2,readonly",
+            "--mount", "type=bind,src=" + str(cfg.catalogue_root) + ",dst=/input/catalogue,readonly",
             "--mount", "type=bind,src=" + str(base / "input" / "request.json") + ",dst=/input/request.json,readonly",
             "--mount", "type=bind,src=" + str(base / "result") + ",dst=/result",
             cfg.image_reference, "python3", "/input/docker_worker.py",

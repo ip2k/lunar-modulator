@@ -309,9 +309,11 @@ def test_docker_adapter_uses_fixed_container_contract_and_pinned_source(tmp_path
     source = tmp_path / "source"
     toolchain = tmp_path / "toolchain"
     runtime = tmp_path / "runtime"
+    catalogue = tmp_path / "catalogue"
     source.mkdir()
     toolchain.mkdir()
     runtime.mkdir()
+    catalogue.mkdir()
     (source / "tracked.txt").write_text("tracked")
     subprocess.run(["git", "init", "-q", str(source)], check=True)
     subprocess.run(["git", "-C", str(source), "config", "user.email", "test@example.invalid"], check=True)
@@ -320,7 +322,7 @@ def test_docker_adapter_uses_fixed_container_contract_and_pinned_source(tmp_path
     subprocess.run(["git", "-C", str(source), "commit", "-qm", "fixture"], check=True)
     commit = subprocess.run(["git", "-C", str(source), "rev-parse", "HEAD"],
                             check=True, capture_output=True, text=True).stdout.strip()
-    config = DockerWorkerConfig(source, toolchain, runtime, commit)
+    config = DockerWorkerConfig(source, toolchain, runtime, commit, catalogue_root=catalogue)
     adapter = DockerJobAdapter(config)
     monkeypatch.setattr(adapter, "_run", lambda _build_id: None)
     data = canonical_request(request_doc())
@@ -344,6 +346,7 @@ def test_docker_adapter_uses_fixed_container_contract_and_pinned_source(tmp_path
     assert "request.json" in joined and "source.tar" in joined
     assert "/input/docker_worker.py" in joined
     assert str(config.source_root / "tools/installer_service/docker_worker.py") in joined
+    assert str(config.catalogue_root) + ",dst=/input/catalogue,readonly" in joined
     adapter.delete(build_id)
     assert not base.exists()
 
@@ -355,9 +358,11 @@ def test_docker_adapter_rejects_mutable_source_and_unpinned_image(tmp_path):
     source = tmp_path / "source"
     toolchain = tmp_path / "toolchain"
     runtime = tmp_path / "runtime"
+    catalogue = tmp_path / "catalogue"
     source.mkdir()
     toolchain.mkdir()
     runtime.mkdir()
+    catalogue.mkdir()
     (source / "tracked.txt").write_text("tracked")
     subprocess.run(["git", "init", "-q", str(source)], check=True)
     subprocess.run(["git", "-C", str(source), "config", "user.email", "test@example.invalid"], check=True)
@@ -368,8 +373,8 @@ def test_docker_adapter_rejects_mutable_source_and_unpinned_image(tmp_path):
                             check=True, capture_output=True, text=True).stdout.strip()
     (source / "tracked.txt").write_text("modified")
     with pytest.raises(ValueError, match="clean commit"):
-        DockerWorkerConfig(source, toolchain, runtime, commit)
+        DockerWorkerConfig(source, toolchain, runtime, commit, catalogue_root=catalogue)
     (source / "tracked.txt").write_text("tracked")
     with pytest.raises(ValueError, match="immutable image"):
-        DockerWorkerConfig(source, toolchain, runtime, commit,
+        DockerWorkerConfig(source, toolchain, runtime, commit, catalogue_root=catalogue,
                            image_reference="lunar-recovery-pytest:latest")
