@@ -89,3 +89,27 @@ prove app-independent recovery. No later device command has been issued.
 Local ignored evidence copy:
 `scratch/audio-capture-20261014/device50-note-test.wav`, with note log and
 an unnormalised stereo inputs3/4 excerpt `device50-inputs34-notes.wav`.
+
+## Owner input change and inputs 1/2 baseline (23:09 UTC)
+
+[reported] Owner connected Komplete Audio 6 MIDI OUT to FM1 MIDI IN, moved
+FM1 audio to KA6 inputs 1/2, set FM1 MASTER to maximum, and set both input
+preamp gains to maximum. These settings replace the earlier 3 o'clock and
+inputs 3/4 setup; comparisons across them cannot isolate a firmware change.
+
+[verified] Passive enumeration still showed ROM device53 and K6 device51.
+A three-second six-channel S32_LE/48000 recording completed without reported
+ALSA error. Private bench file:
+`/home/claude/fm1-audio-capture-20261014/inputs12-maxgain-rom-baseline.wav`,
+SHA-256 `eccf82c83892e57bbc5b8c7cc0940da09bd7175871d89c578a2e9666229fbe09`.
+144000 frames. Inputs1/2 RMS -68.21/-67.56 dBFS, peaks 0.001942/0.002153,
+zero samples at or above 99.9% full scale. This is a recovery-mode baseline,
+not note playback, and does not establish sufficient headroom during notes.
+The original six-channel WAV is also retained under the local ignored capture
+folder. No FM1 command was issued for this capture.
+
+[verified] Source audit finds the installed diagnostic's MIDI ring has USB
+producers only; existing UART1 PH8 receiver/parser are not initialized or
+linked into its app path. Therefore the new physical cable cannot trigger
+notes in this exact installed image. Physical MIDI integration is a separate
+pending source change, not evidence that USB MIDI itself is broken.

@@ -1,3 +1,16 @@
+# Owner audio/MIDI setup changed — 2026-10-14 23:09 UTC
+
+Owner connected K6 MIDI OUT to FM1 MIDI IN; analogue moved to inputs1/2,
+FM1 MASTER100%, preampgains100%. New ROM53 baseline capture no clipping;
+this does not establish note headroom. Source audit finds installed app only
+consumes USB MIDI, physical UART1/parser unwired; integration assigned offline.
+Fresh device53 read/boot adapters assigned offline for a new inputs1/2 capture.
+No further device command or flash write. Device50 campaigns consumed.
+Continuous capture ordering fix c7045fe7 reviewed/GitHub-backed, capture-only
+retry authorized against original immutable build bytes. Runtime cost review
+ff68cfa7 GitHub-backed/integrated; no measured deadline misses yet.
+Goal ACTIVE; audio/performance, SAVE, recovery, installer/release gates open.
+
 # Recorded device50 note test — 2026-10-14 23:04 UTC
 
 Fresh paired1MiB reads matched145c0280 target; one reviewed boot request had
