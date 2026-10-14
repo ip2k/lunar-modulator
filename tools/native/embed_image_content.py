@@ -10,8 +10,12 @@ import json
 import re
 from pathlib import Path
 
-from prepare_image_profile import sha
-from verify_image_profile import load_prepared_profile
+try:
+    from .prepare_image_profile import sha
+    from .verify_image_profile import load_prepared_profile
+except ImportError:  # Script execution from tools/native.
+    from prepare_image_profile import sha
+    from verify_image_profile import load_prepared_profile
 
 KINDS = {'project': 'FM1_STATE_PROJECT', 'set': 'FM1_STATE_SET'}
 
@@ -24,11 +28,15 @@ MAX_PACKED_FILE = 98304  # Existing FM1_STATE_BIN_MAX, not a larger file format.
 MAX_PACKED_TOTAL = 1048576  # Entire physical FM1 flash; actual link cap is smaller.
 
 
-def content_source(inputs):
+def content_source(inputs, parent_indices=None):
     if len(inputs.report['content']) != len(inputs.packed_content):
         raise ValueError('Content descriptors and payloads differ in count')
     if sum(map(len, inputs.packed_content)) > MAX_PACKED_TOTAL:
         raise ValueError('Packed content exceeds entire FM1 flash capacity')
+    if parent_indices is None:
+        parent_indices = [-1] * len(inputs.report['content'])
+    if len(parent_indices) != len(inputs.report['content']):
+        raise ValueError('Content parent bindings differ in count')
     lines = ['/* Generated builder input; firmware admission is still required. */',
              '#include "content_catalogue.h"', '#include "fm1_state.h"', '']
     entries = []
@@ -43,9 +51,17 @@ def content_source(inputs):
             lines.append('    ' + ','.join(f'0x{x:02x}' for x in payload[offset:offset + 16]) + ',')
         lines.extend(['};', ''])
         title = display_title(asset, index)
-        entries.append(f'    {{{symbol}, sizeof({symbol}), {KINDS[asset["kind"]]}, {json.dumps(title)} }},')
+        parent = parent_indices[index]
+        if type(parent) is not int or parent < -1 or parent >= len(inputs.report['content']):
+            raise ValueError('Content parent binding is outside the catalogue')
+        if asset['kind'] == 'set' and parent < 0:
+            raise ValueError('SET asset requires a trusted parent project binding')
+        if asset['kind'] == 'project' and parent != -1:
+            raise ValueError('PROJECT asset cannot have a parent binding')
+        parent_value = 'UINT32_MAX' if parent < 0 else f'{parent}u'
+        entries.append(f'    {{{symbol}, sizeof({symbol}), {KINDS[asset["kind"]]}, {json.dumps(title)}, {parent_value} }},')
     lines.append('const lunar_content_asset_t lunar_content_catalogue[] = {')
-    lines.extend(entries or ['    {0, 0, 0},'])
+    lines.extend(entries or ['    {0, 0, 0, 0, UINT32_MAX},'])
     lines.extend(['};', f'const uint32_t lunar_content_count = {len(entries)}u;', ''])
     return '\n'.join(lines).encode('ascii')
 

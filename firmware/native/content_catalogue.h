@@ -12,9 +12,11 @@ typedef struct lunar_content_asset {
     uint32_t size;
     uint8_t kind; /* FM1_STATE_PROJECT or FM1_STATE_SET from fm1_state.h */
     const char *title; /* bounded printable source basename; never a path */
+    uint32_t parent_project_index; /* catalogue index; UINT32_MAX for PROJECT */
 } lunar_content_asset_t;
 
 extern const lunar_content_asset_t lunar_content_catalogue[];
 extern const uint32_t lunar_content_count;
+extern uint32_t lunar_selected_companion_set_index; /* UINT32_MAX means keep project sequence */
 
 #endif

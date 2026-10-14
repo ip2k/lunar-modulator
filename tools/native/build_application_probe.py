@@ -22,6 +22,7 @@ from compile_catalogue import source_manifest
 from compact_font import compact_header, compact_gfx
 from prepare_wavetables import prepare
 from embed_image_content import content_source
+from companion_selection import companion_parent_indices
 from verify_image_profile import load_prepared_profile
 from flash_layout import FLASH_LAYOUTS, app_budget, linker_script
 from stack_watermark import instrument_entry, verify_instrumentation
@@ -255,14 +256,20 @@ def main():
     if args.prepared_profile and (args.modules is not None or args.exclude):
         parser.error('--prepared-profile cannot be combined with --modules or --exclude')
     content_inputs, generated_content = None, None
+    content_parent_indices, selection_receipt_sha256 = None, None
     if args.prepared_profile:
         try:
             content_inputs = load_prepared_profile(args.prepared_profile,
                                                   args.expected_profile_sha256)
-            generated_content = content_source(content_inputs)
+            content_parent_indices, selection_receipt_sha256 = companion_parent_indices(
+                args.prepared_profile, args.expected_profile_sha256,
+                content_inputs.report, args.startup_project_index)
+            generated_content = content_source(content_inputs, content_parent_indices)
             args.modules = ','.join(content_inputs.report['module_selection']['selected'])
         except (ValueError, OSError, KeyError, TypeError) as error:
             parser.error(str(error))
+    if args.startup_set_index is not None and args.startup_project_index is not None:
+        parser.error('Standalone SET and PROJECT startup modes are mutually exclusive')
     if args.startup_set_index is not None:
         if not args.link_set_loader or not content_inputs:
             parser.error('--startup-set-index requires --link-set-loader and --prepared-profile')
@@ -272,8 +279,6 @@ def main():
         if assets[args.startup_set_index]['kind'] != 'set':
             parser.error('--startup-set-index must identify a SET, not a project')
     if args.startup_project_index is not None:
-        if args.startup_set_index is not None:
-            parser.error('SET and PROJECT startup are mutually exclusive')
         if not args.link_project_loader or not content_inputs:
             parser.error('--startup-project-index requires --link-project-loader and --prepared-profile')
         assets = content_inputs.report['content']
@@ -281,6 +286,11 @@ def main():
             parser.error('--startup-project-index is outside the embedded catalogue')
         if assets[args.startup_project_index]['kind'] != 'project':
             parser.error('--startup-project-index must identify a PROJECT')
+        if content_parent_indices is not None and any(parent >= 0 for parent in content_parent_indices):
+            if args.startup_project_index >= len(assets):
+                parser.error('Companion SET parent startup index is outside the catalogue')
+            if any(parent != args.startup_project_index for parent in content_parent_indices if parent >= 0):
+                parser.error('Every companion SET must name the selected startup project')
     if args.flash_plaits_wavetables and not args.compressed_wavetables:
         parser.error('--flash-plaits-wavetables requires --compressed-wavetables')
     tc, catalogue, out = (p.resolve() for p in
@@ -326,17 +336,29 @@ def main():
     (out / 'gfx.c').write_text(compact_gfx((platform / 'src/gfx.c').read_text()))
     source = platform_with_identity((platform / 'src/platform.c').read_text(),
                                     args.firmware_identity)
+    companion_set_count = sum(1 for asset in content_inputs.report['content']
+                              if asset['kind'] == 'set') if content_inputs else 0
+    if companion_set_count and args.startup_project_index is not None:
+        if not args.link_set_loader or not args.link_project_loader:
+            parser.error('Companion SET selection requires both project and SET loaders')
+        if not any(asset['kind'] == 'project' for asset in content_inputs.report['content']):
+            parser.error('Companion SET selection requires an embedded parent project')
     if args.startup_project_index is not None:
         project_count = sum(1 for asset in content_inputs.report['content']
                             if asset['kind'] == 'project')
-        if project_count > 1:
+        if project_count > 1 or companion_set_count:
             source = replace_once(source, '#include "usb.c"',
                                   '#include "usb.c"\n#include "preload_selector_platform.h"')
+            chooser = ''
+            if project_count > 1:
+                chooser += ('    lunar_selected_startup_project_index =\n'
+                            '        lunar_preload_choose(lunar_selected_startup_project_index);\n')
+            if companion_set_count:
+                chooser += ('    lunar_selected_companion_set_index =\n'
+                            '        lunar_preload_choose_set(lunar_selected_startup_project_index);\n')
             source = replace_once(source,
                 '    fm1_audio_init(abuf, HALF_WORDS, isr_alnk0, 3);',
-                '    lunar_selected_startup_project_index =\n'
-                '        lunar_preload_choose(lunar_selected_startup_project_index);\n'
-                '    fm1_audio_init(abuf, HALF_WORDS, isr_alnk0, 3);')
+                chooser + '    fm1_audio_init(abuf, HALF_WORDS, isr_alnk0, 3);')
     replacements = {
         '    ota_boot_cleanup();': '    /* Timed probe: retain OTA staging bytes. */',
         '#define FL_RANGE_OK(off, n) (FL_IN(off, n, FL_OTA_LO, FL_OTA_HI) || FL_IN(off, n, SETTINGS_AT, SETTINGS_AT + 0x1000u))':
@@ -378,6 +400,8 @@ def main():
         flags += ['-DLUNAR_STACK_WATERMARK=1']
     if args.startup_project_index is not None:
         flags += ['-DLUNAR_STARTUP_PROJECT_INDEX=' + str(args.startup_project_index)]
+    if companion_set_count:
+        flags += ['-DLUNAR_COMPANION_SET_CHOOSER=1']
     if args.compressed_wavetables:
         flags += ['-DLUNAR_COMPRESSED_WAVETABLES=1']
     for directory in (gen, ROOT / 'engines/include', ROOT / 'engines/mod',
@@ -459,6 +483,8 @@ def main():
                   'lunar_project_restore_dx7', 'lunar_project_restore_mod', 'fm1_app_mod_prepare_cold',
                   'fm1_app_mod_adopt_cold', 'lunar_project_start',
                   'lunar_project_restore_view')
+    if companion_set_count:
+        roots += ('lunar_project_start_with_set',)
     elf = out / 'lunar-app-probe.elf'
     script = out / 'app.ld'
     script.write_text(linker_script((ROOT / 'firmware/native/app.ld').read_text(), args.flash_layout))
@@ -550,6 +576,15 @@ def main():
                                     staging_reclaimed_before_engine_allocation=True,
                                     runtime_verified=False, stack_margin_verified=False,
                                     hardware_tested=False)
+    if companion_set_count:
+        report['companion_set_selection'] = dict(
+            enabled=True, selection_receipt_sha256=selection_receipt_sha256,
+            parent_project_index=args.startup_project_index,
+            set_indices=[i for i, row in enumerate(content_inputs.report['content'])
+                         if row['kind'] == 'set'],
+            before_audio_init=True, timeout_keeps_project_sequence=True,
+            runtime_verified=False, sequence_semantics_verified=False,
+            hardware_tested=False)
     if args.startup_project_index is not None:
         report['startup_project'] = dict(index=args.startup_project_index,
                                         runtime_hook_linked=sum(1 for asset in content_inputs.report['content']
