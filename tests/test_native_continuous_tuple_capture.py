@@ -203,3 +203,28 @@ def test_selection_receipt_requires_exact_prepared_build_inputs_status():
             _verify_selection_receipt(changed, image, "b" * 64)
     with pytest.raises(ValueError, match="selection receipt differs"):
         _verify_selection_receipt(dict(selection, version=True), image, "b" * 64)
+
+
+
+def test_app_receipts_bind_exact_bytes_without_duplicate_verification_size():
+    from capture_trusted_build_tuple import _verify_app_receipts
+    app, elf = b"app-bytes", b"elf-bytes"
+    expected_app = sha(app)
+    expected_elf = sha(elf)
+    image = {"app_sha256": expected_app, "app_bytes": len(app), "elf_sha256": expected_elf}
+    artifact = dict(image)
+    verification = {"elf_sha256": expected_elf}
+
+    # The retained producer's verification.json binds the ELF but has no app_bytes field.
+    assert _verify_app_receipts(image, artifact, verification, app, elf) == (expected_app, expected_elf)
+
+    for image_receipt, artifact_receipt in (
+        (dict(image, app_sha256="0" * 64), artifact),
+        (dict(image, app_bytes=len(app) + 1), artifact),
+        (image, dict(artifact, app_sha256="0" * 64)),
+        (image, dict(artifact, app_bytes=len(app) + 1)),
+    ):
+        with pytest.raises(ValueError, match="does not bind exact app and ELF bytes"):
+            _verify_app_receipts(image_receipt, artifact_receipt, verification, app, elf)
+    with pytest.raises(ValueError, match="does not bind exact ELF/app length"):
+        _verify_app_receipts(image, artifact, {"elf_sha256": "0" * 64}, app, elf)

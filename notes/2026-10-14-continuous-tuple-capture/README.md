@@ -40,3 +40,21 @@ source/toolchain/catalogue/request/app/ELF/receipt hashes and capacity only
 after that run succeeds. Keep output in a private mode-0700 location outside
 the repository. Do not infer hardware acceptance, NOR ownership, recovery, or
 installability from this build.
+
+
+Capture-only retry follow-up (2026-10-14): After the status fix, the retained
+successful build was retried without running Docker. The exact invocation bytes
+(SHA-256 `7f993540…8011a3b4`) were preserved. The recorded request hash,
+source commit/manifest, catalogue snapshot manifest, toolchain manifest, and
+all three originally recorded mount paths were checked. Reconstruction produced
+the recorded source manifest `ed9c5ae3…0dd7710e`, catalogue manifest
+`7a08f4d4…4650e77a`, and request hash `a089835b…e0e9a07`; these are
+reconstructed private inputs, not a claim about original filesystem timing.
+Capture then refused because actual `verification.json` has no `app_bytes`
+field. The same app SHA/length and ELF SHA are present in `image.json` and
+`artifact.json`, and match the retained app/ELF bytes. The helper now checks both
+receipts against exact bytes, and keeps the build receipt ELF hash check, without
+requiring a duplicate app length that the producer does not emit. The focused
+capture/wrapper/controller suite passes 90 tests. No tuple was written; request
+independent review before another capture-only attempt. The reconstruction
+mounts were removed using the wrapper's bounded owner-path cleanup helper.
