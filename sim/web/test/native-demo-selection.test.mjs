@@ -175,3 +175,37 @@ test('fails closed when source dependency preflight metadata is missing or outsi
       [project.id], 0), /dependency preflight metadata is unavailable/);
   }
 });
+
+test('companion SET is optional, trusted, ordered, and bound to its parent startup', () => {
+  const companion = {
+    id: 'replacement-showcase-event-horizon-companion-set',
+    title: 'Event Horizon Companion Set',
+    parent_project_id: 'replacement-showcase-candidate-event-horizon',
+    source_path: 'private/event-horizon.lunar', source_sha256: 'd'.repeat(64),
+    content_sha256: 'e'.repeat(64), source_dependency_scan_complete: false,
+    dependency_scan_complete: false,
+  };
+  const parent = { ...projects[1], id: companion.parent_project_id, title: 'Event Horizon Showcase',
+    category: 'replacement-showcase-candidate' };
+  const expanded = { ...catalogue, projects: [...projects, parent], sets: [companion] };
+  const described = describeNativeDemoCatalogue(expanded);
+  assert.deepEqual(described.sets, [{ id: companion.id, title: companion.title,
+    parentProjectId: companion.parent_project_id }]);
+  const request = buildNativeDemoSelectionRequest(expanded, profile, [parent.id], 0, [companion.id]);
+  assert.deepEqual(request.set_ids, [companion.id]);
+  assert.equal(Object.keys(request).includes('source_path'), false);
+  assert.throws(() => buildNativeDemoSelectionRequest(expanded, profile, [parent.id], 0, ['unknown-set']), /known companion SETs/);
+  assert.throws(() => buildNativeDemoSelectionRequest(expanded, profile, [parent.id], 0, [companion.id, companion.id]), /Duplicate/);
+  assert.throws(() => buildNativeDemoSelectionRequest(expanded, profile,
+    [parent.id, 'legacy-example-afterglow-relay'], 1, [companion.id]), /startup project/);
+  assert.throws(() => buildNativeDemoSelectionRequest(expanded, profile,
+    ['legacy-example-afterglow-relay'], 0, [companion.id]), /startup project/);
+  for (const bad of [
+    { ...companion, dependency_scan_complete: true },
+    { ...companion, parent_project_id: 'legacy-example-afterglow-relay' },
+    { ...companion, source_dependency_scan_complete: true },
+    { ...companion, id: 'caller-selected-path' },
+  ]) {
+    assert.throws(() => describeNativeDemoCatalogue({ ...expanded, sets: [bad] }), /unsupported companion SET/);
+  }
+});
