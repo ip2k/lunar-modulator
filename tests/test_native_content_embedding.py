@@ -56,10 +56,7 @@ def test_link_receipt_rejects_inconsistent_prepared_metadata(descriptor, payload
         embedded_content_receipt('c' * 64, b'source', descriptor, payloads)
 
 
-@pytest.mark.parametrize('count', [0, 1, 2, 4])
-@pytest.mark.parametrize('binary', [False, True], ids=['text-input', 'binary-input'])
-@pytest.mark.parametrize('opt', ['-Os', '-Oz'])
-def test_compiled_content(tmp_path, count, binary, opt):
+def _make_embedded_fixture(tmp_path, count, binary):
     content = []
     for index in range(count):
         is_set = bool(index % 2)
@@ -78,15 +75,23 @@ def test_compiled_content(tmp_path, count, binary, opt):
     digest = sha((prepared / 'profile.json').read_bytes())
     inputs = load_prepared_profile(prepared, digest)
     report = embed(prepared, digest, output)
+    source = output / 'content_catalogue.c'
+    return inputs, report, output, source
+
+
+@pytest.mark.parametrize('count', [0, 1, 2, 4])
+@pytest.mark.parametrize('binary', [False, True], ids=['text-input', 'binary-input'])
+@pytest.mark.parametrize('opt', ['-Os', '-Oz'])
+def test_compiled_content(tmp_path, count, binary, opt):
+    inputs, report, output, source = _make_embedded_fixture(tmp_path, count, binary)
     assert report['asset_count'] == count
     assert report['packed_content_bytes'] == sum(map(len, inputs.packed_content))
     assert all(report[k] is False for k in ('installable', 'native_link_verified',
                'native_ram_verified', 'hardware_tested', 'sequence_semantics_verified'))
-    source = output / 'content_catalogue.c'
     assert sha(source.read_bytes()) == report['source_sha256']
     assert (output / 'fm1_modules.h').read_bytes() == inputs.module_header
     # The emitted data no longer depends on the prepared files remaining present.
-    shutil.rmtree(prepared)
+    shutil.rmtree(tmp_path / 'prepared')
     assert source.read_bytes() == content_source(inputs)
     probe = tmp_path / 'probe.c'
     probe.write_text('''#include <stdio.h>
@@ -102,18 +107,29 @@ int main(void) {
     return 0;
 }
 ''')
-    includes = [ROOT / 'firmware/native', ROOT / 'engines/state', ROOT / 'engines/include']
+    includes = [output, ROOT / 'firmware/native', ROOT / 'engines/state', ROOT / 'engines/include']
     inc_flags = [arg for p in includes for arg in ('-I', str(p))]
     executable = tmp_path / 'probe'
     subprocess.run(['cc', '-std=c99', opt, *inc_flags, str(source), str(probe),
                     '-o', str(executable)], check=True, capture_output=True)
     expected = f'{count}\n'.encode()
+    from embed_image_content import display_title
     for asset, payload in zip(inputs.report['content'], inputs.packed_content):
         kind = {'project': 1, 'set': 7}[asset['kind']]
-        from embed_image_content import display_title
         expected += f'{kind} {len(payload)} {display_title(asset, len(expected))}\n'.encode() + payload
     assert subprocess.check_output([str(executable)]) == expected
+
+
+@pytest.mark.skipif(not os.environ.get('FM1_NATIVE_TOOLCHAIN'),
+                    reason='FM1_NATIVE_TOOLCHAIN is required for pi32v2 target compile')
+@pytest.mark.parametrize('count', [0, 1, 2, 4])
+@pytest.mark.parametrize('binary', [False, True], ids=['text-input', 'binary-input'])
+@pytest.mark.parametrize('opt', ['-Os', '-Oz'])
+def test_target_compiled_content(tmp_path, count, binary, opt):
+    inputs, _, _, source = _make_embedded_fixture(tmp_path, count, binary)
     tc = Path(os.environ['FM1_NATIVE_TOOLCHAIN'])
+    includes = [ROOT / 'firmware/native', ROOT / 'engines/state', ROOT / 'engines/include']
+    inc_flags = [arg for p in includes for arg in ('-I', str(p))]
     obj = tmp_path / 'content.o'
     subprocess.run([str(tc / 'common/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
                     '-mfprev1', '-std=c99', opt, '-ffreestanding', '-fno-builtin',
