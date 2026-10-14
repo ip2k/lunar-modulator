@@ -63,8 +63,17 @@ typedef struct { uint32_t sfc_con, spi_con, iomap_con0; } fl_saved_t;
 #ifndef FL_FLUSHINV
 #define FL_FLUSHINV(a) __asm__ volatile("flushinv [%0]" :: "r"(a) : "memory")
 #endif
+#ifndef FL_CS_LEVEL
+#define FL_CS_LEVEL(high) do { \
+    PORTD_DIR &= ~1u; \
+    if (high) PORTD_OUT |= 1u; else PORTD_OUT &= ~1u; \
+} while (0)
+#endif
 #ifndef FL_SPI_WAIT
 #define FL_SPI_WAIT() fl_spi_wait()
+#endif
+#ifndef FL_SFC_RESTORE
+#define FL_SFC_RESTORE(value) (SFC_CON = (value))
 #endif
 #ifndef FL_IRQ_DISABLE
 #define FL_IRQ_DISABLE() __asm__ volatile("cli" ::: "memory")
@@ -78,8 +87,7 @@ RAMINL void fl_delay(uint32_t n) { volatile uint32_t i = n; while (i--) ; }
 
 RAMINL void fl_cs(int high)
 {
-    PORTD_DIR &= ~1u;
-    if (high) PORTD_OUT |= 1u; else PORTD_OUT &= ~1u;
+    FL_CS_LEVEL(high);
     fl_delay(10);
 }
 RAMINL int fl_spi_wait(void)
@@ -155,7 +163,7 @@ RAMINL void fl_exit(const fl_saved_t *s)
     IOMAP_CON0 = (IOMAP_CON0 & ~0x20u) | (s->iomap_con0 & 0x20u);
     fl_csync();
     while ((int32_t)SFC_CON < 0) ;
-    SFC_CON = s->sfc_con;                         /* XIP back on */
+    FL_SFC_RESTORE(s->sfc_con);                   /* XIP back on */
     fl_csync();
 }
 RAMINL void fl_inval(uint32_t off, uint32_t len)
@@ -172,12 +180,22 @@ RAMINL void fl_inval(uint32_t off, uint32_t len)
 RAMINL int fl_wait_ready(uint32_t max_us, uint32_t *took_us)
 {
     uint32_t t0 = T4_CNT, dt;
+    int exceeded = 0, transfer_error = 0;
+    /* Never return to XIP unless a completed status transaction observed WIP
+     * clear. The limit reports lateness; it is not permission to restore XIP.
+     * If status cannot be read or WIP never clears, remain in this RAM loop. */
     for (;;) {
-        dt = (T4_CNT - t0) / 24u;
         uint8_t status;
-        if (fl_rdsr(0x05, &status)) { *took_us = dt; return -5; }
-        if (!(status & 1u)) { *took_us = dt; return 0; }
-        if (dt > max_us) { *took_us = dt; return -4; }
+        dt = (T4_CNT - t0) / 24u;
+        if (fl_rdsr(0x05, &status)) {
+            transfer_error = 1;
+            continue;
+        }
+        if (!(status & 1u)) {
+            *took_us = dt;
+            return transfer_error ? -5 : (exceeded ? -4 : 0);
+        }
+        if (dt > max_us) exceeded = 1;
     }
 }
 
@@ -217,7 +235,7 @@ static RAMFN int fl_status_checked_ram(uint32_t *result) /* SR1 | SR2 << 8 */
 
 static RAMFN int fl_erase4k_ram(uint32_t off, uint32_t *took_us)
 {
-    fl_saved_t s; int rc;
+    fl_saved_t s; int rc, destructive_attempted = 0;
     if (!FL_RANGE_OK(off, 0x1000u) || (off & 0xFFFu))
         return -1;
     if (fl_enter(&s)) return -2;
@@ -230,12 +248,15 @@ static RAMFN int fl_erase4k_ram(uint32_t off, uint32_t *took_us)
     if (rc && rc != -3) rc = -5;
     if (!rc) {
         fl_cs(0);
+        destructive_attempted = 1;               /* CS release can commit despite timeout */
         if (fl_tx(0x20) || fl_addr(off)) rc = -5;
         fl_cs(1);
     }
-    if (!rc) {
+    if (destructive_attempted) {
+        int ready_rc;
         fl_inval(off, 4096u);
-        rc = fl_wait_ready(500000u, took_us);     /* generic NOR max 400 ms */
+        ready_rc = fl_wait_ready(500000u, took_us); /* return only after verified WIP clear */
+        if (!rc) rc = ready_rc;
     }
     fl_exit(&s);
     return rc;
@@ -243,7 +264,7 @@ static RAMFN int fl_erase4k_ram(uint32_t off, uint32_t *took_us)
 
 static RAMFN int fl_prog_ram(uint32_t off, const uint8_t *src, uint32_t n, uint32_t *took_us)
 {
-    fl_saved_t s; int rc; uint32_t i;
+    fl_saved_t s; int rc, destructive_attempted = 0; uint32_t i;
     if (!FL_RANGE_OK(off, n) ||
         n == 0 || n > 256u || ((off & 0xFFu) + n) > 256u) return -1;    /* one page, no wrap */
     if (fl_enter(&s)) return -2;
@@ -256,13 +277,16 @@ static RAMFN int fl_prog_ram(uint32_t off, const uint8_t *src, uint32_t n, uint3
     if (rc && rc != -3) rc = -5;
     if (!rc) {
         fl_cs(0);
+        destructive_attempted = 1;               /* CS release can commit despite timeout */
         if (fl_tx(0x02) || fl_addr(off)) rc = -5;
         for (i = 0; !rc && i < n; i++) if (fl_tx(src[i])) rc = -5;
         fl_cs(1);
     }
-    if (!rc) {
+    if (destructive_attempted) {
+        int ready_rc;
         fl_inval(off, n);
-        rc = fl_wait_ready(10000u, took_us);      /* generic NOR max 3 ms */
+        ready_rc = fl_wait_ready(10000u, took_us); /* return only after verified WIP clear */
+        if (!rc) rc = ready_rc;
     }
     fl_exit(&s);
     return rc;
