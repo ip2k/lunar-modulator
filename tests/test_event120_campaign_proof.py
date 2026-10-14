@@ -102,6 +102,32 @@ def transcript(campaign_sha, source_hashes, adapter_sha, backup_manifest_sha,
     return b"".join(encoded(e) + b"\n" for e in r.events)
 
 
+def test_v1_stop_event_rows_match_writer_terminal_schema():
+    rows = [
+        {"time": 10.0, "event": "native_transaction_prepared",
+         "campaign_sha256": PRIOR["campaign_sha256"], "direction": "install",
+         "variant": "native", "retry": False},
+        {"time": 10.1, "event": "native_transaction_stopped",
+         "error": "ValueError", "detail": "preflight refusal", "retry": False},
+    ]
+    proof._validate_v1_stop_events(rows, PRIOR["campaign_sha256"])
+    rows[1]["campaign_sha256"] = PRIOR["campaign_sha256"]
+    with pytest.raises(ValueError):
+        proof._validate_v1_stop_events(rows, PRIOR["campaign_sha256"])
+
+
+def test_replay_source_pin_rejects_modified_dependency(tmp_path):
+    tools = tmp_path / "tools"
+    for relative in proof.REPLAY_SOURCE_PINS:
+        destination = tools / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes((proof.ROOT / "tools" / relative).read_bytes())
+    changed = tools / "native/event120_install_proof.py"
+    changed.write_bytes(changed.read_bytes() + b"\n# changed\n")
+    with pytest.raises(ValueError, match="replay dependency"):
+        proof._pin_replay_sources(tmp_path)
+
+
 @pytest.fixture
 def bundle(tmp_path, monkeypatch):
     case = tmp_path / "case"
