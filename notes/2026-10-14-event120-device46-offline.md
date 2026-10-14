@@ -6,7 +6,7 @@
 
 [verified] The existing device-44 campaign and all shared fixed-loader/profile/source pins are unchanged. Device-46 evidence cannot satisfy the old device-44 campaign, and device-44/42/45 enumerations are rejected by the new tests. This avoids accidental reuse of receipts or one-shot markers across devices.
 
-[verified] Before this addition, the repeat adapter templates were device-44-specific. The new files give device 46 its own identity, evidence schema, marker namespace, and source-hash chain while preserving the same narrow read and exact one-shot request contract. During review, stale device-44 labels in copied docstrings/errors/test names were corrected; the dependent reader hash pin was recalculated before tests.
+[verified] Before this addition, the repeat adapter templates were device-44-specific. The new files give device 46 its own identity, evidence schema, marker namespace, and source-hash chain while preserving the same narrow read and exact one-shot request contract. During review, stale inherited device-44 docstrings, error text, and test names, plus device-42 messages and a Device44Reset class name, were corrected; the dependent reader hash pin was recalculated before tests.
 
 [verified] Focused command ran in the bounded, network-disabled Hera container:
 ```sh
