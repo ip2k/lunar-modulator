@@ -3398,9 +3398,11 @@ characterization shows two legacy projects start and six refuse: four allocation
 and two replacement sequence imports. The unchanged 192,000-byte pool and
 31,944 / 32,768-byte sequencer were measured. Target allocation differences must
 be checked before treating host refusals as target capacity failures. Tightened
-exact-outcome assertions are being rerun separately on Hera. The sequence worker
-is diagnosing replacement scene-name loss without changing pinned compositions
-or weakening loss rejection. No default has been accepted; the original demos
+exact-outcome assertions passed all eight cases in the retained pinned Hera run
+(`notes/2026-10-14-demo-app-startup-rerun.md`). The sequence worker confirmed four
+overlong replacement scene labels and is applying bounded metadata-only aliases,
+with original names/hashes retained and exact reverse-byte reconstruction tests.
+Musical content and loss rejection remain unchanged. No default has been accepted; the original demos
 remain legacy examples and replacements await owner musical acceptance.
 
 Remaining: fix sequence loss, target RAM/startup/full-song playback and SAVE/reload,

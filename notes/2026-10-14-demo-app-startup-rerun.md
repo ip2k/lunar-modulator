@@ -1,0 +1,15 @@
+# Full-app demo startup rerun (2026-10-14)
+
+The tightened host-native startup characterization passed all 8 cases on exact base c083ec72a2170e6a9a0026f73e606c123c214ed1. The two current test/harness files were copied from the coordinator's authoritative worktree and built the production-55 module profile before exercising the native application startup path.
+
+The test matrix retains four legacy demonstrations and adds four replacement candidates. Legacy expectations: Afterglow Relay and Packet Bloom start; Event Horizon and Neon Transit refuse allocation. Replacement expectations are exact: Afterglow Relay Showcase returns code 5 (allocation refusal; request 65,744 bytes), Event Horizon Showcase code 8 (sequence-import refusal; largest allocation 31,944 bytes), Packet Bloom Showcase code 8 (sequence-import refusal; largest allocation 31,944 bytes), and Satellite Hearts code 5 (allocation refusal; request 207,728 bytes). Replacement refusal cases assert no active units or live pool allocations. Every case also checks eight tracks and sequencer capacity no greater than 32,768 bytes.
+
+Validation used the pinned image lunar-recovery-pytest:20261011, image ID sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d, network=none, cgroup docker-batch.slice, four CPUs, memory and swap each 4 GiB, and a read-only source mount. Command: /tmp/check-venv/bin/python -m pytest -q -p no:cacheprovider tests/test_native_demo_app_startup.py. Successful attempt B exited 0 with 8 passed. Its pytest log SHA-256 is e58989181aa700d3bee960580ddc5b4692556bdfc22313f9f0f507a1cb0793fd; full inspect SHA-256 is 63df3392c8345fe9cae25072f889a50aee9c1f9f27ed374bd1fff7549606dde2. The inspect and log are retained under /home/claude/.local/share/codex-coordination/receipts/lunar-demo-app-startup-rerun-20261014/attempt-b/.
+
+A preceding attempt A also completed the eight pytest cases, but its shell wrapper printed an unexpanded status variable and exited 2. Its log and inspect are preserved separately; attempt B reran with a corrected wrapper and is the authoritative successful result.
+
+Source overlays: tests/test_native_demo_app_startup.py SHA-256 1ab6501be648f70e08cb5c7ebe140da707cdfea6e636eb9871119be8e1d309ee; tests/native/demo_app_startup.c SHA-256 4141aebe6b1733c0025bec6d6b1fc8255ca629ba3b78e877298f153580bc5a96. The eight project source hashes and exact container evidence are in the companion JSON receipt.
+
+This is host-native startup/refusal evidence only. The harness uses a 192,000-byte host pool and does not establish target RAM fit, native SAVE/reload, full-song playback semantics, successful replacement startup, installer admission, physical storage fit, or hardware behavior. No production files or hardware were changed. The isolated branch has no commit; Hera has no GitHub write credential, so coordinator review and backup remain pending.
+
+Next dependency: coordinator review the test and receipt, then decide whether to pursue a separate truthful product-level admission/startup gate. Any target RAM, pack/decode, playback, or physical acceptance requires its own evidence.

@@ -1,0 +1,52 @@
+{
+  "task": "demo-app-startup-rerun",
+  "date": "2026-10-14",
+  "branch": "feature/2026-10-14@demo-app-startup-rerun",
+  "base": "c083ec72a2170e6a9a0026f73e606c123c214ed1",
+  "source_overlays": {
+    "tests/test_native_demo_app_startup.py": "1ab6501be648f70e08cb5c7ebe140da707cdfea6e636eb9871119be8e1d309ee",
+    "tests/native/demo_app_startup.c": "4141aebe6b1733c0025bec6d6b1fc8255ca629ba3b78e877298f153580bc5a96"
+  },
+  "project_source_sha256": {
+    "engines/state/examples/afterglow-relay.lunar": "56098c13c658450c4013f91583cf04dafa6062b30c1c240446401a4201741a62",
+    "engines/state/examples/event-horizon.lunar": "5b92ad3d8e6448855b9cde032a935437331620819becbb206212f32845414897",
+    "engines/state/examples/packet-bloom.lunar": "7d755fd777f1b0534c2518717e4bded475872db57f9596fe410d75606765e349",
+    "engines/state/examples/neon-transit.lunar": "e19152d0747d6d2a69cc61eaabeed6d083f89fbecdfa7e1d85ba7f9911f6e251",
+    "engines/state/examples/replacement-showcases/afterglow-relay-showcase.lunar": "53373bf4c508d360eccdf2751fd4242f23478d575adf893a703e6179dcd9c77f",
+    "engines/state/examples/replacement-showcases/event-horizon-showcase.lunar": "0d5d871bd31db1e628efbf291fd306671b81c93bef254a950291bf95f5413d1c",
+    "engines/state/examples/replacement-showcases/packet-bloom-showcase.lunar": "eb55a36129ef3db02136b2ed0859fafcad94e3b2cbc3fa42761383d380249731",
+    "engines/state/examples/replacement-showcases/satellite-hearts.lunar": "090996484a125f5bde3fe4fb0a6dc3284cf7a260d6c6603298206921e78ed5d6"
+  },
+  "validation": {
+    "command": "/tmp/check-venv/bin/python -m pytest -q -p no:cacheprovider tests/test_native_demo_app_startup.py",
+    "cases": 8,
+    "passed": 8,
+    "exit_code": 0,
+    "image": "lunar-recovery-pytest:20261011",
+    "image_id": "sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d",
+    "container": "lunar-demo-app-startup-rerun-20261014-b",
+    "container_id": "10d62932031a10a7d6a34af799e02aea5a3d5840ce8d7928a006b305dbb6acf8",
+    "network": "none",
+    "cgroup": "docker-batch.slice",
+    "cpu_quota_usec": 4000000000,
+    "memory_bytes": 4294967296,
+    "memory_swap_bytes": 4294967296,
+    "source_read_only": true,
+    "pytest_log": "/home/claude/.local/share/codex-coordination/receipts/lunar-demo-app-startup-rerun-20261014/attempt-b/pytest.log",
+    "pytest_log_sha256": "e58989181aa700d3bee960580ddc5b4692556bdfc22313f9f0f507a1cb0793fd",
+    "container_inspect": "/home/claude/.local/share/codex-coordination/receipts/lunar-demo-app-startup-rerun-20261014/attempt-b/container-inspect.json",
+    "container_inspect_sha256": "63df3392c8345fe9cae25072f889a50aee9c1f9f27ed374bd1fff7549606dde2",
+    "prior_wrapper_attempt": {
+      "container": "lunar-demo-app-startup-rerun-20261014-a",
+      "exit_code": 2,
+      "reason": "wrapper status variable was not expanded after the tests completed",
+      "pytest_log_sha256": "d9d002cb91b7eebac052781a324c903b8897358d6ca0d22188cdff423a9b0037",
+      "inspect_sha256": "1080d5eaf655b881c7d76d1722ca8c4071fee442f1f3db7d9dd3dee3156024cc"
+    }
+  },
+  "limits": [
+    "Host-native app startup/refusal only.",
+    "No target RAM, SAVE/reload, full-song playback, install admission, physical storage, or hardware acceptance."
+  ],
+  "backup_status": "uncommitted on Hera; coordinator review and authorized backup pending"
+}
