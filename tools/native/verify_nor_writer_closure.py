@@ -375,9 +375,22 @@ def audit_writer_callers(full_disassembly, symbols):
             raise ValueError(f"{name} has an unbounded nested call in stack path")
         expected_restore = "{pc, " + expected_save.split(", ", 1)[1] + "} = [sp++]"
         epilogue = [f"sp += {expected_local}", expected_restore]
-        if not any(ops[index:index + 2] == epilogue
-                   for index in range(len(ops) - 1)):
+        if sum(ops[index:index + 2] == epilogue
+               for index in range(len(ops) - 1)) != 1:
             raise ValueError(f"{name} has an unknown or unbalanced stack epilogue")
+        # Account for every mutation of SP and every predecrement/postincrement
+        # save/restore. Stack-relative local accesses remain inside the declared
+        # local allocation and do not change SP.
+        sp_mutations = [op for op in ops if re.search(
+            r"(?:^|[\s,])sp\s*(?:\+=|-=|=)|\[--sp\]|\[sp\+\+\]", op)]
+        expected_mutations = [
+            f"[--sp] = {{{expected_save}}}",
+            f"sp += -{expected_local}",
+            f"sp += {expected_local}",
+            expected_restore,
+        ]
+        if sp_mutations != expected_mutations:
+            raise ValueError(f"{name} has extra or unknown SP mutation/save/restore")
         count = 1
         for item in expected_save.split(", ")[1:]:
             if "-" in item:
@@ -468,11 +481,15 @@ def audit_writer_callers(full_disassembly, symbols):
             "fl_prog_ram_local": 52, "fl_prog_ram_saved_registers": 52,
             "fl_erase4k_ram_local": 52, "fl_erase4k_ram_saved_registers": 52,
         },
-        "max_synchronous_stack_decrease_after_guard_bytes": {
+        "entry_relative_stack_decrease_from_wrapper_entry_bytes": {
             "fl_write_to_fl_prog_ram": program_path_depth,
             "fl_erase4k_to_fl_erase4k_ram": erase_path_depth,
         },
         "guard_sp_measurement_point": "after XIP wrapper prologue and page copy, before IRQ mask/WDT stop",
+        "stack_decrease_after_guard_sample_bytes": {
+            "fl_prog_ram": program_ram_frame,
+            "fl_erase4k_ram": erase_ram_frame,
+        },
         "guarded_headroom_after_program_ram_entry_bytes": 1024 - program_ram_frame,
         "guarded_headroom_after_erase_ram_entry_bytes": 1024 - erase_ram_frame,
         "writer_ram_stack_paths_have_no_calls_or_dynamic_sp_adjustments": True,
