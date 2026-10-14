@@ -1,0 +1,54 @@
+--- a/firmware/loader/ldr_core.c
++++ b/firmware/loader/ldr_core.c
+@@ -29,9 +29,9 @@
+  *   ldr_progress(done, total)
+  * plus the ota.c hooks (frames, time, idle). */
+ #define LDR_APP_LO 0x4000u
+-#define LDR_APP_HI 0x93000u
+-#define LDR_REC_LO 0x93000u                     /* update records live above the app ... */
+-#define LDR_REC_HI 0xFC000u                     /* ... and below Felucca's globals */
++#define LDR_APP_HI 0xD7000u
++#define LDR_REC_LO 0xD7000u                     /* update records live above the app ... */
++#define LDR_REC_HI 0xD9000u                     /* ... and below Felucca's globals */
+ 
+ static int ldr_fread(uint32_t off, void *p, uint32_t n);
+ static int ldr_erase(uint32_t off);
+--- a/firmware/loader/loader.c
++++ b/firmware/loader/loader.c
+@@ -17,7 +17,7 @@
+ #include "fm1_time.h"
+ #include "fm1_sys.h"
+ /* the loader may write the app area and erase update records; never the head */
+-#define FL_RANGE_OK(off, n) (FL_IN(off, n, 0x4000u, 0x93000u) || FL_IN(off, n, 0x93000u, 0xFC000u))
++#define FL_RANGE_OK(off, n) (FL_IN(off, n, 0x4000u, 0xD7000u) || FL_IN(off, n, 0xD7000u, 0xD9000u))
+ #include "fm1_flash.h"
+ #include "../src/libc.c"
+ #include "../src/usb.c"
+--- a/firmware/src/ota.c
++++ b/firmware/src/ota.c
+@@ -21,9 +21,9 @@
+  *   ota_show(step, code)       progress / result for the screen
+  *   ota_commit(parm)           write RAM record + reset (never returns on hardware)
+  */
+-#define OTA_AREA 0x000E0000u                     /* staged loader, 5 x 4 KiB */
+-#define OTA_AREA_LEN 0x5000u
+-#define OTA_RES (OTA_AREA + OTA_AREA_LEN - 0x100u)  /* 0xE4F00 = 4K boundary - 256: SPL scan */
++#define OTA_AREA 0x000D7000u                     /* offline candidate: two-sector stage */
++#define OTA_AREA_LEN 0x2000u
++#define OTA_RES (OTA_AREA + OTA_AREA_LEN - 0x100u)  /* 0xD8F00 = 4K boundary - 256: SPL scan */
+ #define OTA_LDR_HCRC 0xEBAAu                     /* official update loader (usb_hid_ota.bin) */
+ #define OTA_LDR_DCRC 0x5881u
+ #define OTA_LDR_LEN 0x4DE1u
+--- a/firmware/hal/fm1_flash.h
++++ b/firmware/hal/fm1_flash.h
+@@ -39,8 +39,8 @@
+ #define FL_DATA_HI      0x000E0000u
+ #define FL_GLOB_LO      0x000FC000u                /* Felucca superblock / globals */
+ #define FL_GLOB_HI      0x000FF000u
+-#define FL_OTA_LO       0x000E0000u                /* M-UPGRADE loader staging, ota.c */
+-#define FL_OTA_HI       0x000E5000u
++#define FL_OTA_LO       0x000D7000u                /* private candidate stage, ota.c */
++#define FL_OTA_HI       0x000D9000u
+ /* [off, off + n) inside [lo, hi), without wrapping: off + n can overflow, and
+  * the 1 MiB part ignores the high address bits, so a wrapped range lands low. */
+ #define FL_IN(off, n, lo, hi) ((uint32_t)(off) >= (lo) && (uint32_t)(off) <= (hi) && \
