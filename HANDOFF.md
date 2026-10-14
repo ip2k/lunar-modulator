@@ -1,5 +1,23 @@
 # Scalar native-link checkpoint — 2026-10-13
 
+## Startup interrupt exposure continuation
+
+Goal remains full thirteen-engine native release plus selectable web builder.
+Previous report turn was no progress; this continuation adds exact-image
+interrupt/stack inspection and receipts. User/system reservations are
+24320/7936 bytes, both ISR wrappers explicitly save 28 bytes, and interrupts
+are enabled before PROJECT startup. Reproduction and changed-expectation
+rejection pass. Handler costs, CPU stack selection/nesting and whole startup
+bound remain open. Formatter %n default prevents assuming arbitrary-input
+pointer preservation; observer/formatter hooks remain unresolved.
+No device operation, heavy job or live measurement. Shared semantic roots remain
+primary checkout; no configuration changed. Previous verified pushed
+b49888b50538464801413dd07cdd653a680f48bb. Next resolve CPU interrupt semantics
+from retained primary evidence, bound handler paths and finish optional-hook
+input provenance; then target timing and reviewed physical campaign with fresh
+identity and paired backups. Migration/rollback, installer/builder, licensing,
+review/CI/integration and full hardware acceptance remain incomplete.
+
 Goal ACTIVE: full native all-thirteen release plus selectable builder.
 Branch feature/2026-10-11@installable-firmware; verified pushed predecessor
 f2970889d00c3de021a281564d92cbc00a470060. Optional project-loader link now roots

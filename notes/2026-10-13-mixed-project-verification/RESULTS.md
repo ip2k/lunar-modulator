@@ -1,5 +1,25 @@
 # Mixed PROJECT verification checkpoint
 
+## Interrupt exposure checkpoint
+
+[verified] inspect-startup-interrupts.py binds the unchanged all13-v3 ELF and
+r3 disassembly to its stack symbols and compiled entry setup: user reservation
+24320 bytes, system reservation 7936 bytes. Both timer5 and ALNK wrappers save
+28 bytes explicitly and restore the same registers before csync/rti. Compiled
+attachment uses vector 11 priority 3 and vector 63 priority 4. Global sti at
+0x205f422 precedes the PROJECT call at 0x205fde2 within fm1_cstart. Receipt
+reproduction, changed-enable-expectation rejection, Python compilation and
+whitespace checks pass. This is not exhaustive path analysis or a stack bound:
+CPU stack selection/nesting, hardware entry cost and C-handler call chains
+remain to be established. No firmware change or hardware command occurred.
+
+[verified] Source review finds printf %n writeback enabled by default; constructor
+null alone cannot establish pointer preservation for arbitrary inputs. Native
+sources do not assign on_mod, while the shared state loader temporarily clears
+and restores it. Neither optional hook has been removed from unresolved
+coverage. Semantic navigation located mod_emit in the primary checkout; its
+source line differs from this worktree, so target artifacts remain authoritative.
+
 [verified] The first combined PROJECT campaign failed in its MIDI-slot test
 access; the corrected v2 campaign found a production DX7 descriptor-identity
 bug. Application-specific DX7 descriptors supply saved patch names, so direct

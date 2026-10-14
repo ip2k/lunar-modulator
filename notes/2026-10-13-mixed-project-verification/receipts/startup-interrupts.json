@@ -1,0 +1,71 @@
+{
+  "scope": "exact stack reservations, explicit ISR saves and interrupt-enable ordering",
+  "elf_sha256": "df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e",
+  "disassembly_sha256": "46ff199b5288a37be1f7e3f155cf93bce765b9cf888d31cb8110648740de6e38",
+  "reviewed_source_sha256": {
+    "firmware/native/app.ld": "b34af7d3912bbef01f6c2a10f0c0445074aa2a9cb2055454e64193f587570cc4",
+    "firmware/native/app_probe.c": "b8cab2498d7cc585518c4558d52f5ee874aa964007b0942ea26635d6ab2ccf41",
+    "firmware/third_party/dinghy/hal/fm1_isr.S": "5e45c960577354184efa3bf984a1c14bffb0c5967cbdb643e1f4c9cc196105c5",
+    "firmware/third_party/dinghy/hal/fm1_irq.h": "b54beeaf8bceab5a4e0bcd6d9fee1280fcba1a072f73c94160488d1b6ebcbc58"
+  },
+  "stacks": {
+    "u": {
+      "low": "0x1c74100",
+      "top": "0x1c7a000",
+      "reserved_bytes": 24320
+    },
+    "s": {
+      "low": "0x1c7a100",
+      "top": "0x1c7c000",
+      "reserved_bytes": 7936
+    }
+  },
+  "wrappers": [
+    {
+      "name": "isr_timer5",
+      "entry": "0x206a0e4",
+      "body": "fm1_timer5_irq",
+      "explicit_saved_bytes": 28
+    },
+    {
+      "name": "isr_alnk0",
+      "entry": "0x206a0f4",
+      "body": "fm1_alnk0_irq",
+      "explicit_saved_bytes": 28
+    }
+  ],
+  "interrupt_enable_pc": "0x205f422",
+  "project_start_call_pc": "0x205fde2",
+  "enabled_sources": [
+    {
+      "vector": 11,
+      "priority": 3,
+      "wrapper": "isr_alnk0"
+    },
+    {
+      "vector": 63,
+      "priority": 4,
+      "wrapper": "isr_timer5"
+    }
+  ],
+  "compiled_instruction_assertions": {
+    "0x2000158": "sp = 29859840",
+    "0x200015e": "ssp = 29868032",
+    "0x205f3b2": "r0 = 11",
+    "0x205f3b4": "r2 = 3",
+    "0x205f3e6": "r0 = 63",
+    "0x205f3e8": "r2 = 4",
+    "0x205f416": "r0 = icfg",
+    "0x205f41a": "r0 |= 256",
+    "0x205f41c": "icfg = r0",
+    "0x205f420": "csync",
+    "0x205f422": "sti"
+  },
+  "limits": [
+    "ordering is exact compiled-layout evidence; not exhaustive path analysis",
+    "CPU interrupt stack selection and nesting require independent evidence",
+    "C handler frames, callees and hardware entry overhead are not bounded here",
+    "no full startup stack margin, audio timing or physical acceptance conclusion"
+  ],
+  "hardware_admitted": false
+}
