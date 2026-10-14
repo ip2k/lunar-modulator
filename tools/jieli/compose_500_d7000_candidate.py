@@ -9,8 +9,6 @@ container and nested bytes are independently reopened and checked.
 import hashlib
 import json
 import sys
-import threading
-from contextlib import contextmanager
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -38,7 +36,6 @@ PACKAGE_IDENTITY = "FM-1_500"
 RECOVERY_IDENTITY = "FM-1_000"
 EXPECTED_CONTAINER_BYTES = 978484
 MAX_CONTAINER_BYTES = EXPECTED_CONTAINER_BYTES
-_MODEL_PIN_LOCK = threading.RLock()
 LEGACY_APP_SHA256 = "5709ac03377a310eefdff563f4f08fe8a0e932ed9e0ecacef96464a59ec48573"
 
 
@@ -53,19 +50,11 @@ def _require_hash(data, expected, label):
     return actual
 
 
-@contextmanager
-def _bound_target_app_pin():
-    """Reuse strict 092 parsing with one serialized, exact 500 app binding."""
-    with _MODEL_PIN_LOCK:
-        if (legacy.SOURCE_SHA256 != SOURCE_SHA256 or legacy.IDENTITY != "FM-1_092"
-                or legacy.TARGET_APP_SHA256 != LEGACY_APP_SHA256):
-            raise ValueError("reviewed strict 092 model pins have changed")
-        prior = legacy.TARGET_APP_SHA256
-        legacy.TARGET_APP_SHA256 = APP_SHA256
-        try:
-            yield
-        finally:
-            legacy.TARGET_APP_SHA256 = prior
+def _require_legacy_model_pins():
+    """Keep the shared strict model defaults immutable before scoped verification."""
+    if (legacy.SOURCE_SHA256 != SOURCE_SHA256 or legacy.IDENTITY != "FM-1_092"
+            or legacy.TARGET_APP_SHA256 != LEGACY_APP_SHA256):
+        raise ValueError("reviewed strict 092 model pins have changed")
 
 
 def _json_bytes(raw, label):
@@ -163,20 +152,20 @@ def verify_package(source, package, reference_dir, app, elf, artifact_receipt, b
             and all(entry["crc_verified"] for entry in generic["entries"])):
         raise ValueError("FWSC header, entry-list, or payload CRC validation failed")
     normalized = _with_legacy_identity(package)
-    with _bound_target_app_pin():
-        source_model, output, before, after, _, _, bounds = legacy.verify_modeled(
-            source, normalized, reference_dir, app)
-        if output["identity"] != legacy.IDENTITY or after["app"] != app:
-            raise ValueError("normalized strict-model verification did not reproduce the candidate app")
-        if sha256(after["app"]) != APP_SHA256:
-            raise ValueError("nested decoded app hash differs from the pinned FM-1_500 app")
-        if len(after["app"]) != APP_BYTES or output["entries"][0]["size"] != legacy.STAGE_START:
-            raise ValueError("candidate app or expanded flash extent differs from pinned D7000 profile")
-        if not (bounds["used_end"] <= legacy.STAGE_START and bounds["slack_to_stage"] >= 0):
-            raise ValueError("relocated nested resources exceed D7000")
-        modeled, _, _, _, _ = legacy._build(source, reference_dir, app)
-        if normalized != modeled:
-            raise ValueError("candidate differs from exact reviewed nested/outer model outside identity marker")
+    _require_legacy_model_pins()
+    source_model, output, before, after, _, _, bounds = legacy.verify_modeled(
+        source, normalized, reference_dir, app, target_app_sha256=APP_SHA256)
+    if output["identity"] != legacy.IDENTITY or after["app"] != app:
+        raise ValueError("normalized strict-model verification did not reproduce the candidate app")
+    if sha256(after["app"]) != APP_SHA256:
+        raise ValueError("nested decoded app hash differs from the pinned FM-1_500 app")
+    if len(after["app"]) != APP_BYTES or output["entries"][0]["size"] != legacy.STAGE_START:
+        raise ValueError("candidate app or expanded flash extent differs from pinned D7000 profile")
+    if not (bounds["used_end"] <= legacy.STAGE_START and bounds["slack_to_stage"] >= 0):
+        raise ValueError("relocated nested resources exceed D7000")
+    modeled, _, _, _, _ = legacy._build(source, reference_dir, app, target_app_sha256=APP_SHA256)
+    if normalized != modeled:
+        raise ValueError("candidate differs from exact reviewed nested/outer model outside identity marker")
     if source_model["identity"] != legacy.IDENTITY:
         raise ValueError("pinned source is no longer the strict 092 input")
     protected = after["protected_sha256"]
@@ -226,9 +215,9 @@ def compose_bytes(source, reference_dir, app, elf, artifact_receipt, build_recei
     _verify_target(app, elf, artifact_receipt, build_receipt)
     if sha256(source) != SOURCE_SHA256:
         raise ValueError("source package is not the pinned public FM-1_092 fixture")
-    with _bound_target_app_pin():
-        modeled, *_ = legacy._build(source, reference_dir, app)
-        legacy.verify_modeled(source, modeled, reference_dir, app)
+    _require_legacy_model_pins()
+    modeled, *_ = legacy._build(source, reference_dir, app, target_app_sha256=APP_SHA256)
+    legacy.verify_modeled(source, modeled, reference_dir, app, target_app_sha256=APP_SHA256)
     package = _set_physical_identity(modeled, PACKAGE_IDENTITY)
     report = verify_package(source, package, reference_dir, app, elf, artifact_receipt, build_receipt)
     return package, report
