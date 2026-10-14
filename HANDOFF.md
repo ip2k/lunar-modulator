@@ -3743,3 +3743,30 @@ ownership, target integration and persistent recovery remain unresolved.
 
 No device operation, public deployment, release or main merge occurred here.
 Goal ACTIVE. Root owns review/integration and all physical acceptance.
+
+## Reviewed offline integration checkpoint — 2026-10-14
+
+Expanded fake-NOR probe is integrated through 4327ff02aa9454999c08fec73d740b420f8a3c6d.
+All 17 assertions passed under GCC ASan/UBSan in the pinned Hera regression
+container; both pytest harness/compile-guard checks also passed on the Mac.
+Worker branch 72cdd56480155e3604ddae7d623a2e5dd0471517 is backed up on GitHub.
+This remains a host-only fixture with no target staging or recovery admission.
+
+Simulator refresh is integrated as 21f728c653d2ba042f593a4f7760fb7368d9ff6e.
+Worker 27055cd698a21a6576aaff422afda94fb6ce47e3 is backed up on GitHub; fresh
+WASM passed 108 parity scenarios, 18 DX7 checks, metadata/edit checks and a
+30-second edit storm with zero late quanta. Root independently checked exact
+integrated source hashes and the committed-build-record pytest. No extra
+simulator source edits were needed.
+
+Queued CI 38580863781 at 064a was cancelled because its known-stale WASM would
+repeat the preceding failures. Predecessor 38580253461 remains running in its
+simulator sanitizer step; retain its evidence. Root will dispatch fresh exact-
+head CI after the private installer page connection is reviewed/integrated.
+
+Next recovery research measures the maintained compressed loader/record for a
+possible independent app-tail reservation (proposal only, no allocation).
+Directory-last alone must not be treated as persistent recovery: while an old
+app header is valid, the SPL can bypass flash records and enter partially
+rewritten code. Research must establish safe recovery publication, header
+invalidation and final-directory commit against actual SPL predicates.
