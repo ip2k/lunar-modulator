@@ -4,7 +4,7 @@
 
 Coordinator checkout: `/Users/likwid/.codex/worktrees/installable-firmware/mvave-fm1-firmware`.
 Branch: `feature/2026-10-11@installable-firmware`.
-Last preceding verified GitHub head: `93a7e637a05cecd1f9a9c523b8dbf0644d18cfca`.
+Last preceding verified GitHub head: `fb972a0a9a14058ebb42d715e9890952657f65c7`.
 Every returned worker commit through that checkpoint has a verified GitHub backup.
 No main merge, public installer deployment or release occurred.
 
@@ -20,7 +20,7 @@ safeguards. Mac alone owns device/Cynthion operations; Hera workers are offline.
 - The installer chooser offers eight demo candidates including the four
   restored original projects. Event Horizon Showcase is preselected at startup
   index zero. Two oversized replacement choices remain disabled by memory
-  preflight. Production default acceptance remains pending; the static page
+  preflight. Owner approved Event Horizon Showcase as the default song; physical full-song acceptance remains pending; the static page
   exports JSON until a trusted private same-origin service enables its marker.
 - The real FastAPI/DockerJobAdapter path built the default candidate and all
   13 engines/all 55 modules. Its diagnostic app is 862,296 bytes, SHA-256
@@ -43,9 +43,9 @@ safeguards. Mac alone owns device/Cynthion operations; Hera workers are offline.
 - The CI PIO dependency repair is integrated at `83069368`: emulator 0.88.0
   and compatible pytest range. Hera passed 17 focused waveform/dongle tests,
   full collection and pip check. Fresh CI `38586683710` at exact 83069368 is
-  still has a running Linux Python job; its macOS Python job failed with
+  complete and failed both Linux and macOS Python jobs. Its macOS job failed with
   native test platform flags, obsolete fixture assumptions and missing
-  optional target-tool environment. Thirteen other jobs passed. The earlier
+  optional target-tool environment. Eleven other jobs passed. The earlier
   `38584247667` failed Python collection. No overall passing CI claim is supported.
 
 ## Recovery and fit findings that govern the next step
@@ -119,3 +119,9 @@ screen/keys/encoders earlier; this does not accept the all13 full-song image.
 Native full-song listening/control checks, SAVE/reload, storage ownership and
 migration/rollback, persistent recovery, installable download/flash path,
 review/CI/main integration and public release remain open.
+
+## Latest continuation
+
+[verified] Fresh e404fddd three-file host regression completed: 43 passed, 13 skipped, exit zero. The dependency-mounted, bounded pinned Hera container preserves ASan/UBSan checks. Content embedding repair is integrated at fb972a0a (41 passed, 16 target-only skips); current-state demo fixtures at95c30133 had194 passed/1 target skip. CI now builds an isolated current fm1-state before image tests at843b33c3. Further ordinary host/optional-target fixture separation remains active.
+
+[verified] FIRST ORBIT was booted once and native USB appeared, then timed return enumerated device38 in ROM. Owner perceptual observations pending; fresh device38 admission is required before another installation. See `2026-10-14-first-orbit-watched-boot.md`. Event Horizon is owner-approved as default, not yet physically accepted.
