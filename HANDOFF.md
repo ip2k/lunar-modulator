@@ -1,5 +1,22 @@
 # Current continuation authority — 2026-10-14
 
+[verified] Coordinator code head `a0d46a9c9611a2240610df5df5d47117b93c1c34`
+is pushed and its GitHub SHA verified. Build tuple retention is integrated:
+app, matching ELF and unchanged receipt are bounded and hash checked. The
+actual Mac Python 3.13 service suite passes (64 passed, one optional retained
+build skip); the initial system Python 3.9 dependency-install failure was
+resolved using the repository's Python version in an ignored test venv.
+Reviewed NOR error/readiness/deadline revisions are also integrated, and the
+Mac register-mock test passes after removing ELF section syntax from the host
+harness only. Target RAMFN placement remains the default. Physical SAVE is
+still disabled: IRQ-state restoration, watchdog strategy, full retained ELF
+closure and storage ownership remain open. No new device write or boot was
+sent; read-only `lsusb` still identifies UBOOT device40. Event Horizon is the
+owner-approved default song; the two-minute physical observations are pending.
+Hera workers now own the strict offline 092 package model, real retained
+build-tuple validation, and IRQ/watchdog evidence. CI `38610324618` at older
+`939b6aa4` still runs; no latest-head green CI, main merge or release is claimed.
+
 [verified] Latest continuation reviewed and backed up the installer delivery,
 expanded stock-OTA feasibility, and corrected NOR RAM-closure reviews through
 `74b1be1d`. The earlier universal `0x93000` stock-loader claim was too broad:

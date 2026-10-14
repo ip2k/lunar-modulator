@@ -19,6 +19,18 @@ safeguards. Mac alone owns device/Cynthion operations; Hera workers are offline.
 
 ### Latest continuation (supersedes earlier running/boot status below)
 
+[verified] Coordinator `a0d46a9c` integrates the verified app/ELF/receipt tuple
+and independently reviewed NOR transport/readiness/deadline changes. Actual
+Mac focused checks pass: installer service 64 passed/one optional retained
+build skip, register mock one passed. The mock's RAMFN override removes host
+ELF section syntax without changing target RAM placement. SAVE remains
+disarmed pending IRQ/watchdog, retained release ELF closure and ownership
+checks. All worker and integrated commits are verified backed up on GitHub.
+Strict offline expanded 092 packaging and retained real-build validation are
+active on Hera. Read-only bench enumeration still shows UBOOT device40; no
+new device boot/write occurred and watched song acceptance remains pending.
+CI `38610324618` tests older code `939b6aa4`; it remains running.
+
 [verified] At coordinator `5bf37c01`, the fresh D7000 target link completed:
 845,036 application bytes, 15,608 bytes of budget remaining, all 13 engines
 and 55 modules. Application and ELF hashes match the preceding D9000 build;
