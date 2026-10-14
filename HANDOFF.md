@@ -1,3 +1,16 @@
+# Hardware playback rejection — 2026-10-14 22:46 UTC
+
+Owner watched fresh Event Horizon attempt: awful audio/severe lag and very slow
+VU meter. FAIL physical playback acceptance; CPU overload is not yet established
+causally. Offline realtime investigation assigned demo_controller_review exact
+7b71d0c6 via coordinator-performance-20261014. Internal render/draw maxima and
+queue underruns need useful bounded telemetry before next hardware experiment.
+Onset before/after PLAY question pending. Passive22:46:10UTC shows ROM device50;
+timed return observed, no powercycle required. Device48 campaigns consumed.
+No additional device writes authorized by this checkpoint; follow staged plan.
+Continuous build tuple validation repairs continue on Hera. Goal ACTIVE;
+SAVE, independent recovery, migration/rollback and web release remain closed.
+
 # Fresh Event Horizon boot checkpoint — 2026-10-14
 
 Root8f8f7531 is GitHub-backed. Device48 paired fresh 1MiB reads matched installed
