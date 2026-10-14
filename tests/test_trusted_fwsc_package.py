@@ -10,9 +10,9 @@ sys.path.insert(0, str(ROOT / "tools" / "jieli"))
 import trusted_fwsc_package as packager  # noqa: E402
 import model_092_app_replacement as model  # noqa: E402
 
-TUPLE_SHA = "2005957ad3dfbb5e34030717c6f0045cb3c96265a24641b8c370f1c39d835a23"
-BUILD_ROOT = Path("/home/claude/mvave-fm1/combined-nor-target-20261014/out/companion-set")
-TASK_ROOT = BUILD_ROOT.parents[1]
+TUPLE_SHA = "9c246fb70bfb04cb6a6adbaf845fe71a882ba0228317b286f648b502b2e66ec4"
+BUILD_ROOT = Path("/home/claude/.local/share/codex-private/continuous-tuple-20261014/run-298ff12/build-output/build")
+TASK_ROOT = BUILD_ROOT
 CATALOGUE_ROOT = Path("/home/claude/mvave-fm1/nor-watchdog-target-closure-20261014/catalogue-fresh")
 SOURCE_CANDIDATES = (
     ROOT / "scratch/092-package-model/FM-1_092.fwsc",
@@ -33,7 +33,7 @@ def _retained(path_candidates):
 def _inputs():
     source = _retained(SOURCE_CANDIDATES)
     reference = _retained(REFERENCE_CANDIDATES)
-    manifest_path = TASK_ROOT / "companion-set-catalogue-manifest.json"
+    manifest_path = TASK_ROOT / "catalogue-manifest.json"
     required = [
         BUILD_ROOT / "build_tuple.json",
         BUILD_ROOT / "build-provenance.json",
@@ -48,7 +48,7 @@ def _inputs():
         manifest_path,
     ]
     if source is None or reference is None or any(not path.is_file() for path in required):
-        pytest.skip("retained D7000 package artifacts are unavailable on this host")
+        pytest.skip("retained continuous D7000 package artifacts are unavailable on this host")
 
     tuple_raw = (BUILD_ROOT / "build_tuple.json").read_bytes()
     provenance_raw = (BUILD_ROOT / "build-provenance.json").read_bytes()
@@ -64,7 +64,7 @@ def _inputs():
         for row in provenance["module_and_generated_inputs"]
     ]
     if any(not path.is_file() for path in catalogue_paths + generated_paths):
-        pytest.skip("retained D7000 catalogue/generated inputs are incomplete")
+        pytest.skip("retained continuous D7000 catalogue/generated inputs are incomplete")
     catalogue_files = {
         row["path"]: path.read_bytes()
         for row, path in zip(manifest["objects"], catalogue_paths)
@@ -93,19 +93,19 @@ def _inputs():
     }
 
 
-def test_real_d7000_tuple_composes_and_reopens_with_independent_integrity_checks():
+def test_real_continuous_d7000_tuple_composes_in_memory_with_independent_integrity_checks():
     values = _inputs()
     package, report = packager.package_bytes(**values)
-    assert report["app_sha256"] == "ba46bf0a4d1bda4d604223c658b141b4a9068e37f65afddd998af04d5296cfc8"
-    assert report["app_bytes"] == 845732
-    assert report["package_identity"] == "FM-1_990"
+    assert report["app_sha256"] == "0a7a2fecbd730586b8792e7da6c9a6cf35fa26ae4fb77798b93b5f30e9922f02"
+    assert report["app_bytes"] == 845716
+    assert report["package_identity"] == "FM-1_500"
     assert report["recovery_identity"] == "FM-1_000"
     assert report["outer_integrity"] == {
         "header_crc_verified": True,
         "entry_list_crc_verified": True,
         "all_payload_crcs_verified": True,
     }
-    assert report["nested_boundaries"]["slack_to_stage"] == 13948
+    assert report["nested_boundaries"]["slack_to_stage"] == 13964
     assert report["package_returned_in_memory"] is True
     assert report["file_written"] is False
     assert report["hardware_admitted"] is report["hardware_tested"] is report["installable"] is False
@@ -134,6 +134,16 @@ def test_tuple_requires_external_digest_and_false_admission_flags():
     with pytest.raises(ValueError, match="fields differ"):
         packager._validate_tuple(packager.canonical_json({}), packager.sha256(packager.canonical_json({})))
     assert packager._validate_tuple(raw, digest)["tuple_id"] == "synthetic-test-only"
+
+    missing_tree = dict(synthetic)
+    del missing_tree["toolchain_tree_sha256"]
+    missing_tree_raw = packager.canonical_json(missing_tree)
+    with pytest.raises(ValueError, match="fields differ.*toolchain_tree_sha256"):
+        packager._validate_tuple(missing_tree_raw, packager.sha256(missing_tree_raw))
+    invalid_tree = dict(synthetic, toolchain_tree_sha256="g" * 64)
+    invalid_tree_raw = packager.canonical_json(invalid_tree)
+    with pytest.raises(ValueError, match="toolchain_tree_sha256.*lowercase SHA-256"):
+        packager._validate_tuple(invalid_tree_raw, packager.sha256(invalid_tree_raw))
 
     continuous = dict(synthetic, runtime_mode="continuous", application_identity="FM-1_500")
     continuous_raw = packager.canonical_json(continuous)
@@ -215,6 +225,16 @@ def test_provenance_files_and_receipt_mutations_refuse():
     bad_files[path] += b"!"
     with pytest.raises(ValueError, match="differ from build provenance"):
         packager._validate_provenance_rows(provenance, "module_and_generated_inputs", bad_files)
+
+    for altered_tuple in (
+            dict(tuple_data, toolchain_tree_sha256="0" * 64),
+            {key: value for key, value in tuple_data.items() if key != "toolchain_tree_sha256"}):
+        with pytest.raises(ValueError, match="build provenance toolchain_tree_sha256 differs"):
+            packager._validate_receipts(
+                altered_tuple, values["app"], values["elf"], values["artifact_receipt"],
+                values["build_receipt"], values["build_provenance"], values["request"],
+                values["prepared_profile"], values["source_profile"], values["catalogue_manifest"],
+                values["image_receipt"], values["catalogue_files"], values["generated_files"])
 
     changed_image = json.loads(values["image_receipt"])
     changed_image["installable"] = True

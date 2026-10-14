@@ -17,10 +17,12 @@ TUPLE_KEYS = {
     "build_provenance_sha256", "build_receipt_sha256", "catalogue_sha256", "elf_sha256",
     "flash_layout", "hardware_admitted", "hardware_tested", "installable",
     "prepared_profile_sha256", "profile_id", "recovery_identity", "request_sha256",
-    "runtime_mode", "schema", "source_tree_sha256", "toolchain_image_sha256", "tuple_id",
+    "runtime_mode", "schema", "source_tree_sha256", "toolchain_image_sha256",
+    "toolchain_tree_sha256", "tuple_id",
 }
 HASH_FIELDS = {
-    "source_tree_sha256", "toolchain_image_sha256", "catalogue_sha256", "request_sha256",
+    "source_tree_sha256", "toolchain_image_sha256", "toolchain_tree_sha256",
+    "catalogue_sha256", "request_sha256",
     "prepared_profile_sha256", "app_sha256", "elf_sha256", "artifact_receipt_sha256",
     "build_receipt_sha256", "build_provenance_sha256",
 }
@@ -217,7 +219,7 @@ def _validate_receipts(build_tuple, app, elf, artifact_raw, build_raw, provenanc
                 "application_identity", "recovery_identity", "artifact_receipt_sha256",
                 "build_receipt_sha256", "catalogue_sha256", "request_sha256",
                 "prepared_profile_sha256", "source_tree_sha256", "toolchain_image_sha256",
-                "runtime_mode"):
+                "toolchain_tree_sha256", "runtime_mode"):
         if provenance.get(key) != build_tuple.get(key):
             raise ValueError(f"build provenance {key} differs from the trusted tuple")
     if provenance.get("request_receipt_sha256") != build_tuple["request_sha256"]:
