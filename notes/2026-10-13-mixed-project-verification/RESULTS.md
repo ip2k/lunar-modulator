@@ -2,6 +2,19 @@
 
 ## Interrupt exposure checkpoint
 
+[verified] Follow-up inspect-isr-call-stacks.py checks the exact inventory and
+interrupt receipt hash chain. Timer C closure has 15 functions; audio C closure
+has five. Both are acyclic with no unresolved calls, decoding gaps or missing
+direct callees in that inventory. Explicit frame accounting yields timer
+124 C-chain bytes plus 28 wrapper bytes = 152; audio 140 + 28 = 168. Longest
+timer candidate is timer5 -> usb_poll -> uac_service -> sie_rd; audio is
+alnk0 -> uac_tap -> uac_tap48 -> uac_s16. Receipts reproduce exactly and a
+mismatched upstream ELF is refused. This conditional calculation sums all
+allocation sites per function; allocation-loop exclusion, table control flow,
+inventory completeness, hardware entry and stack selection/nesting remain
+separate gates. No target firmware was changed to defer interrupts: the timer
+services USB and input, so deferral needs watchdog/startup-time evidence first.
+
 [verified] inspect-startup-interrupts.py binds the unchanged all13-v3 ELF and
 r3 disassembly to its stack symbols and compiled entry setup: user reservation
 24320 bytes, system reservation 7936 bytes. Both timer5 and ALNK wrappers save

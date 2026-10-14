@@ -2,6 +2,16 @@
 
 ## Startup interrupt exposure continuation
 
+[verified] Follow-up ISR direct closures now accounted in
+receipts/isr-call-stacks.json: timer 15 functions, audio five, no inventory
+indirect gaps/decoder gaps/missing callees/recursion. Explicit software costs
+including wrappers are 152 and 168 bytes respectively, conditional on allocation
+sites not accumulating in loops and complete instruction/control-flow inventory.
+Hardware entry, stack selection/nesting and whole startup margin remain open.
+Reproduction and mismatched-ELF refusal pass. No interrupt deferral implemented;
+USB/input servicing and watchdog/timing implications must be checked first.
+Preceding verified pushed d672e957e8058ac46627b694c318e0d4c4e732cf.
+
 Goal remains full thirteen-engine native release plus selectable web builder.
 Previous report turn was no progress; this continuation adds exact-image
 interrupt/stack inspection and receipts. User/system reservations are
