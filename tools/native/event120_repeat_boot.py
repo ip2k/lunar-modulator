@@ -364,7 +364,7 @@ def prepare(path, *, now=None):
     marker = parent / ('.event12040-boot-' + c['read_manifest_sha256'] + '.consumed')
     if os.path.lexists(marker):
         raise ValueError('Fresh-read reset authorization already consumed')
-    target, completion = _target_modules(own.parent)
+    target, completion = _target_modules(ROOT)
     if ctypes.sizeof(read['reader'].SGHeader) != 88:
         raise ValueError('Reviewed 64-bit Linux SG ABI required')
     mapping = _live_mapping(read['bridge'],USB)
@@ -372,9 +372,9 @@ def prepare(path, *, now=None):
         raise ValueError('Live USB/SG mapping differs from the fresh passive snapshot')
     evidence = list(read['evidence']) + [(campaign_path,raw,65536),
         (Path(c['snapshot_path']),snap_raw,65536),(own,read_file(own),65536),
-        (own.parent/'fm1_fixed_target_reset.py',read_file(own.parent/'fm1_fixed_target_reset.py'),2*1048576),
-        (own.parent/'fm1_fixed_loader_reset.py',read_file(own.parent/'fm1_fixed_loader_reset.py'),2*1048576),
-        (own.parent/'native/event120_reset.py',read_file(own.parent/'native/event120_reset.py'),2*1048576)]
+        (ROOT/'fm1_fixed_target_reset.py',read_file(ROOT/'fm1_fixed_target_reset.py'),2*1048576),
+        (ROOT/'fm1_fixed_loader_reset.py',read_file(ROOT/'fm1_fixed_loader_reset.py'),2*1048576),
+        (ROOT/'native/event120_reset.py',read_file(ROOT/'native/event120_reset.py'),2*1048576)]
     underlying = target.Prepared(canonical(c),digest(raw),c['read_manifest_sha256'],canonical(mapping),
         read['bridge'],read['reader'].SGHeader,tuple(evidence),())
     target._AUTHORIZED.add(underlying)
