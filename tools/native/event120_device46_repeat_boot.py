@@ -387,7 +387,7 @@ def prepare(path, *, now=None):
 
 
 def session_class(completion):
-    class Device44Reset(completion.CompletionFirstReset):
+    class Device46Reset(completion.CompletionFirstReset):
         def __init__(self,prepared,log):
             prepared.check()
             self.prepared,self.log=prepared,log
@@ -397,7 +397,7 @@ def session_class(completion):
             try:
                 self.mapping=_live_mapping(prepared.bridge,self.usb)
                 if canonical(self.mapping)!=prepared.expected_mapping:
-                    raise ValueError('Device-42 SG mapping changed')
+                    raise ValueError('Device-46 SG mapping changed')
                 self.fd=os.open(self.mapping['node'],os.O_RDWR|os.O_NOFOLLOW|os.O_CLOEXEC)
                 fcntl.flock(self.fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
                 self.binding()
@@ -412,12 +412,12 @@ def session_class(completion):
                 raise ValueError('Reset descriptor lifetime exceeded')
             current=_live_mapping(self.prepared.bridge,self.usb)
             if canonical(current)!=self.prepared.expected_mapping:
-                raise ValueError('Device-42 connection changed before reset')
+                raise ValueError('Device-46 connection changed before reset')
             opened=os.fstat(self.fd)
             if canonical((opened.st_dev,opened.st_ino,opened.st_rdev)) != canonical(self.mapping['node_identity']):
                 raise ValueError('Opened SG descriptor identity changed')
             return None
-    return Device44Reset
+    return Device46Reset
 
 
 def run(path):
