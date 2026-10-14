@@ -19,6 +19,25 @@ safeguards. Mac alone owns device/Cynthion operations; Hera workers are offline.
 
 ### Latest continuation (supersedes earlier running/boot status below)
 
+[verified] At coordinator `5bf37c01`, the fresh D7000 target link completed:
+845,036 application bytes, 15,608 bytes of budget remaining, all 13 engines
+and 55 modules. Application and ELF hashes match the preceding D9000 build;
+this is not another physical installation. The opt-in D7000 raw candidate
+constructor now preserves every baseline byte from D7000 onward and refuses
+over-budget apps. Root Darwin and independent Hera geometry suites each
+passed 60 tests. See the D7000 target-link, offline-candidate and review notes.
+
+[verified] NOR worker `d81bca95` is backed up on GitHub but NOT integrated.
+Independent review found that its new destructive-transfer error route can
+skip readiness polling and restore XIP while the chip may be busy. The
+existing readiness-timeout exit also needs fail-closed handling. A revision
+and stateful fault tests are active on Hera; storage remains disarmed.
+The Darwin CI/valid large SAVE-fixture worker is also still running. No
+passing current-head CI, watched song acceptance, public release or main
+merge is claimed. Event Horizon's complete arrangement is 108.8 seconds,
+within the 120-second diagnostic window; duration fit does not establish
+audible physical playback.
+
 [verified] The completed Event Horizon installation and one timed boot remain
 as recorded below: full-image readback matched, native USB appeared and ROM
 device40 returned after about 122.5 seconds. Owner screen/audio/control
