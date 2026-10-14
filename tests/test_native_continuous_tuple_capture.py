@@ -177,3 +177,29 @@ def test_full_tree_manifest_entry_cap_accepts_8192_and_rejects_8193(tmp_path):
     (root / f"entry-{capture.MAX_TREE_ENTRIES - 1:04}.bin").write_bytes(b"x")
     with pytest.raises(ValueError, match="tree exceeds the fixed manifest bounds"):
         capture._toolchain_manifest(root)
+
+
+def test_selection_receipt_requires_exact_prepared_build_inputs_status():
+    from capture_trusted_build_tuple import _verify_selection_receipt
+    image = {
+        "prepared_profile_sha256": "a" * 64,
+        "selected_content": [{"kind": "project", "id": "demo"}],
+        "startup_project_id": "demo",
+        "set_ids": [],
+    }
+    selection = {
+        "version": 1,
+        "status": "prepared-build-inputs",
+        "prepared_profile_sha256": image["prepared_profile_sha256"],
+        "selected_content": image["selected_content"],
+        "startup_project_id": image["startup_project_id"],
+        "set_ids": image["set_ids"],
+        "request_sha256": "b" * 64,
+    }
+    _verify_selection_receipt(selection, image, "b" * 64)
+    for bad_status in ("prepared", "linked-private-continuous", "prepared-other"):
+        changed = dict(selection, status=bad_status)
+        with pytest.raises(ValueError, match="selection receipt differs"):
+            _verify_selection_receipt(changed, image, "b" * 64)
+    with pytest.raises(ValueError, match="selection receipt differs"):
+        _verify_selection_receipt(dict(selection, version=True), image, "b" * 64)
