@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 
 import pytest
+from tests.native_test_toolchain import configured_target_toolchain
 
 from tools.native.module_selection import resolve_modules
 
@@ -118,15 +119,23 @@ def sequence_probe(tmp_path_factory):
                         '-ffunction-sections', '-fdata-sections', '-fsanitize=address,undefined',
                         '-fno-pie', '-no-pie', *inc, *map(str, sources),
                         '-Wl,--gc-sections', '-lm', '-o', str(exe)], check=True)
-        tc = Path(os.environ['FM1_NATIVE_TOOLCHAIN'])
-        subprocess.run([str(tc / 'common/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
-                        '-mfprev1', '-std=c99', opt, '-Wall', '-Wextra', '-Werror',
-                        '-ffreestanding', '-fno-builtin', *inc, '-isystem', str(tc / 'pi32v2/include'),
-                        '-c', str(ROOT / 'firmware/native/project_seq.c'),
-                        '-o', str(tmp / 'project_seq.o')], check=True)
         probes[opt] = exe
         return exe
     return build
+
+
+@pytest.mark.parametrize('opt', ['-Os', '-Oz'])
+def test_native_project_sequences_target_compile(opt, tmp_path):
+    tc = configured_target_toolchain()
+    catalogue = tmp_path / 'catalogue'
+    resolve_modules(ROOT, catalogue, 'trio')
+    inc = ['-I' + str(ROOT / p) for p in ('firmware/native', 'engines/include', 'engines/state')]
+    inc += ['-I', str(catalogue / 'gen')]
+    subprocess.run([str(tc / 'common/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
+                    '-mfprev1', '-std=c99', opt, '-Wall', '-Wextra', '-Werror',
+                    '-ffreestanding', '-fno-builtin', *inc,
+                    '-isystem', str(tc / 'pi32v2/include'), '-c', str(ROOT / 'firmware/native/project_seq.c'),
+                    '-o', str(tmp_path / 'target.o')], check=True, capture_output=True)
 
 
 @pytest.mark.parametrize('case', range(16))

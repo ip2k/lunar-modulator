@@ -6,6 +6,7 @@ import subprocess
 import pytest
 
 from tests.native_test_flags import native_host_link_flags, native_no_pie_flags
+from tests.native_test_toolchain import configured_target_toolchain
 
 ROOT = Path(__file__).resolve().parents[1]
 HARNESS = r'''
@@ -231,22 +232,23 @@ def project_probe(tmp_path_factory):
                         '-ffunction-sections', '-fdata-sections', '-fsanitize=address,undefined',
                         *native_no_pie_flags(), *inc, *map(str, sources),
                         *native_host_link_flags(), '-lm', '-o', str(exe)], check=True)
-        tc = Path(os.environ['FM1_NATIVE_TOOLCHAIN'])
-        subprocess.run([str(tc / 'common/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
-                        '-mfprev1', '-std=c99', opt, '-Wall', '-Wextra', '-Werror',
-                        '-ffreestanding', '-fno-builtin', *inc, '-isystem', str(tc / 'pi32v2/include'),
-                        '-c', str(ROOT / 'firmware/native/project_units.c'),
-                        '-o', str(tmp / 'project_units.o')], check=True)
-        size_check = tmp / 'size_check.c'
-        size_check.write_text('#include "project_units.h"\n'
-                              'typedef char plan_size[(sizeof(lunar_project_units_t) == 188) ? 1 : -1];\n')
-        subprocess.run([str(tc / 'common/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
-                        '-mfprev1', '-std=c99', opt, *inc, '-isystem', str(tc / 'pi32v2/include'),
-                        '-c', str(size_check), '-o', str(tmp / 'size_check.o')], check=True)
         probes[opt] = exe
         return exe
 
     return build
+
+
+@pytest.mark.parametrize('opt', ['-Os', '-Oz'])
+def test_project_units_target_compile(opt, tmp_path):
+    tc = configured_target_toolchain()
+    inc = ['-I' + str(ROOT / path) for path in ('firmware/native', 'engines/include', 'engines/state')]
+    probe = tmp_path / 'layout.c'
+    probe.write_text('#include "project_units.h"\ntypedef char plan_size[(sizeof(lunar_project_units_t) == 188) ? 1 : -1];\n')
+    subprocess.run([str(tc / 'common/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
+                    '-mfprev1', '-std=c99', opt, '-Wall', '-Wextra', '-Werror',
+                    '-ffreestanding', '-fno-builtin', *inc,
+                    '-isystem', str(tc / 'pi32v2/include'), '-c', str(probe),
+                    '-o', str(tmp_path / 'layout.o')], check=True, capture_output=True)
 
 
 @pytest.mark.parametrize('case', range(48))

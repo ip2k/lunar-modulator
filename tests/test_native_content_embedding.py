@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT / 'tools/native'))
 from embed_image_content import embed, content_source, MAX_PACKED_FILE
 from prepare_image_profile import prepare, sha
 from verify_image_profile import load_prepared_profile
+from tests.native_test_toolchain import configured_target_toolchain
 from build_application_probe import embedded_content_receipt
 
 
@@ -120,14 +121,12 @@ int main(void) {
     assert subprocess.check_output([str(executable)]) == expected
 
 
-@pytest.mark.skipif(not os.environ.get('FM1_NATIVE_TOOLCHAIN'),
-                    reason='FM1_NATIVE_TOOLCHAIN is required for pi32v2 target compile')
 @pytest.mark.parametrize('count', [0, 1, 2, 4])
 @pytest.mark.parametrize('binary', [False, True], ids=['text-input', 'binary-input'])
 @pytest.mark.parametrize('opt', ['-Os', '-Oz'])
 def test_target_compiled_content(tmp_path, count, binary, opt):
     inputs, _, _, source = _make_embedded_fixture(tmp_path, count, binary)
-    tc = Path(os.environ['FM1_NATIVE_TOOLCHAIN'])
+    tc = configured_target_toolchain()
     includes = [ROOT / 'firmware/native', ROOT / 'engines/state', ROOT / 'engines/include']
     inc_flags = [arg for p in includes for arg in ('-I', str(p))]
     obj = tmp_path / 'content.o'
@@ -250,3 +249,4 @@ def test_startup_set_option_refusal(tmp_path, index, loader, message):
         *options], capture_output=True, text=True)
     assert result.returncode == 2 and message in result.stderr
     assert not output.exists()
+

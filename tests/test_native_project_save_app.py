@@ -3,11 +3,11 @@
 Host scheduling is synchronous; physical storage admission and device RAM fit
 remain separate gates. The pinned target compilation covers the adapter ABI.
 """
-import os
 from pathlib import Path
 import subprocess
 import pytest
 from tests import state_canon as canon
+from tests.native_test_toolchain import configured_target_toolchain
 from tests.engine_helpers import GPL_MODS
 from tests.test_app_state import sim, EX, DX7
 from tools import lunar_state as ls
@@ -36,13 +36,8 @@ def save_tools(tmp_path_factory):
 
 @pytest.fixture(scope='session')
 def target_adapter(tmp_path_factory):
-    toolchain = os.environ.get('FM1_NATIVE_TOOLCHAIN')
-    if not toolchain:
-        pytest.skip('FM1_NATIVE_TOOLCHAIN is needed only for the target compile check')
-    tc = Path(toolchain)
+    tc = configured_target_toolchain()
     compiler = tc/'pi32v2/bin/clang'
-    if not compiler.is_file():
-        pytest.skip('the configured FM1_NATIVE_TOOLCHAIN has no pi32v2 clang')
     output = tmp_path_factory.mktemp('native-app-adapter')/'adapter.o'
     subprocess.run([str(compiler), '-target', 'pi32v2', '-mcpu=r3',
         '-mfprev1', '-Oz', '-std=c99', '-Wall', '-Wextra', '-Werror',

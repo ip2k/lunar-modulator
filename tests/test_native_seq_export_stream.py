@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import subprocess
 import pytest
+from tests.native_test_toolchain import configured_target_toolchain
 
 ROOT = Path(__file__).resolve().parents[1]
 INPUTS = [ROOT / 'tests/fixtures/state/1.0/orbit.set.movy1'] + sorted(
@@ -21,20 +22,19 @@ def stream_probe(tmp_path_factory):
                     '-ffunction-sections', '-fdata-sections', '-fsanitize=address,undefined',
                     '-fno-pie', '-no-pie', '-I', str(ROOT / 'engines/include'), '-I', str(ROOT / 'engines/state'),
                     *map(str, sources), '-Wl,--gc-sections', '-lm', '-o', str(exe)], check=True)
-    tc = Path(os.environ['FM1_NATIVE_TOOLCHAIN'])
-    subprocess.run([str(tc / 'pi32v2/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
-                    '-mfprev1', '-Oz', '-std=c99', '-Wall', '-Wextra', '-Werror',
-                    '-ffreestanding', '-fno-builtin', '-I', str(ROOT / 'engines/include'), '-I', str(ROOT / 'engines/state'),
-                    '-isystem', str(tc / 'pi32v2/include'), '-c',
-                    str(ROOT / 'engines/seq/seq_persist.c'), '-o', str(tmp / 'seq_persist.o')],
-                   check=True)
-    subprocess.run([str(tc / 'pi32v2/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
-                    '-mfprev1', '-Oz', '-std=c99', '-Wall', '-Wextra', '-Werror',
-                    '-ffreestanding', '-fno-builtin', '-I', str(ROOT / 'engines/include'),
-                    '-I', str(ROOT / 'engines/state'), '-isystem', str(tc / 'pi32v2/include'),
-                    '-c', str(ROOT / 'tests/native/seq_record_target.c'),
-                    '-o', str(tmp / 'seq_record.o')], check=True)
     return exe
+
+def test_seq_export_target_compile(tmp_path):
+    tc = configured_target_toolchain()
+    common = [str(tc / 'pi32v2/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
+              '-mfprev1', '-Oz', '-std=c99', '-Wall', '-Wextra', '-Werror',
+              '-ffreestanding', '-fno-builtin', '-I', str(ROOT / 'engines/include'),
+              '-I', str(ROOT / 'engines/state'), '-isystem', str(tc / 'pi32v2/include'), '-c']
+    for source, output in [('engines/seq/seq_persist.c', 'seq_persist.o'),
+                           ('tests/native/seq_record_target.c', 'seq_record.o')]:
+        subprocess.run([*common, str(ROOT / source), '-o', str(tmp_path / output)],
+                       check=True, capture_output=True)
+
 
 @pytest.mark.parametrize('records', [0, 1])
 @pytest.mark.parametrize('case', range(16))
