@@ -21,6 +21,42 @@ static unsigned status_polls, failstop_limit, timer_step_ticks;
 static int timer_wrap_on_commit;
 static jmp_buf failstop_env;
 static int failstop_armed;
+static volatile uint32_t reg_p33_con, reg_p33_dat;
+static uint8_t p33_wdt = 0x1Du, p33_vld = 0x17u;
+static uint8_t p33_frame[3];
+static unsigned p33_frame_count, p33_transfer_index;
+static unsigned p33_fail_transfer = (unsigned)-1;
+static unsigned p33_wdt_off_verified, p33_wdt_rearmed;
+
+static void test_p33_start(void)
+{
+    unsigned current = p33_transfer_index++;
+    reg_p33_con &= ~(1u << 1);
+    p33_frame[p33_frame_count++] = (uint8_t)reg_p33_dat;
+    if (p33_frame_count == 3u) {
+        uint8_t command = p33_frame[0], value = p33_frame[2];
+        uint32_t address = ((uint32_t)(command & 3u) << 8) | p33_frame[1];
+        uint8_t *reg = address == 0x80u ? &p33_wdt :
+                       address == 0x17u ? &p33_vld : NULL;
+        if (command & 0x80u) {
+            reg_p33_dat = reg ? *reg : 0xFFu;
+            if (address == 0x80u && !(*reg & 0x10u)) ++p33_wdt_off_verified;
+            if (address == 0x80u && (*reg & 0x10u)) ++p33_wdt_rearmed;
+        } else if (reg) {
+            switch ((command >> 5) & 3u) {
+            case 0: *reg = value; break;
+            case 1: *reg |= value; break;
+            case 2: *reg &= value; break;
+            case 3: *reg ^= value; break;
+            }
+            /* WDT_CON bit 6 is the write-one-to-clear feed command. */
+            if (address == 0x80u) *reg &= (uint8_t)~0x40u;
+            reg_p33_dat = *reg;
+        }
+        p33_frame_count = 0;
+    }
+    if (current == p33_fail_transfer) reg_p33_con |= 1u << 1;
+}
 
 static volatile uint32_t *fl_test_reg(uint32_t address)
 {
@@ -117,6 +153,11 @@ static int test_source_span_ok(const uint8_t *src, uint32_t n, uint32_t off);
 static int test_program_page(uint32_t off, const uint8_t *page, uint32_t n, uint32_t *took);
 #define FL_PROGRAM_PAGE(off, page, n, took) test_program_page((off), (page), (n), (took))
 #define FL_SOURCE_SPAN_OK(src, n, off) test_source_span_ok((src), (n), (off))
+#define FM1_P33_CON reg_p33_con
+#define FM1_P33_DAT reg_p33_dat
+#define FM1_P33_XFER_LIMIT 4u
+#define FM1_P33_START() test_p33_start()
+#define FM1_P33_DESELECT() do { reg_p33_con &= ~((1u << 0) | (1u << 8)); p33_frame_count = 0; } while (0)
 /* Host mocks test control flow; target link checks separately prove RAM
  * placement. Avoid ELF-only section syntax in the Mach-O host harness. */
 #define RAMFN __attribute__((noinline, used))
@@ -160,6 +201,12 @@ static void reset_mock(uint32_t iomap)
     failstop_limit = 0;
     timer_step_ticks = 0;
     timer_wrap_on_commit = 0;
+    reg_p33_con = reg_p33_dat = 0;
+    p33_wdt = 0x1Du;
+    p33_vld = 0x17u;
+    p33_frame_count = p33_transfer_index = 0;
+    p33_fail_transfer = (unsigned)-1;
+    p33_wdt_off_verified = p33_wdt_rearmed = 0;
 }
 static void replies_set(const uint8_t *values, unsigned count)
 {
@@ -468,6 +515,84 @@ static void test_flash_wrapper_restores_prior_irq_enable(void)
     }
 }
 
+
+
+static void test_checked_p33_timeout_is_not_returned_as_data(void)
+{
+    uint8_t value = 0xA5u;
+    reset_mock(0);
+    p33_fail_transfer = 1u;
+    assert(fm1_p33_read_checked(FM1_P3_WDT_CON, &value) == -1);
+    assert(value == 0xA5u);
+    assert(p33_transfer_index == 2u); /* no third byte after timed-out transfer */
+    assert((reg_p33_con & ((1u << 0) | (1u << 8))) == 0u);
+}
+
+static void test_wrong_watchdog_mode_refuses_before_nor_io(void)
+{
+    uint32_t took = 0;
+    reset_mock(0x20u);
+    p33_vld |= 0x40u;
+    assert(fl_erase4k(0x97000u, &took) == -6);
+    assert(transfer_index == 0u && tx_count == 0u);
+    assert(reg_sfc == 0u && sfc_restores == 0u);
+    assert((p33_wdt & 0x10u) != 0u);
+}
+
+static void test_flash_wrapper_gates_nor_on_verified_watchdog_stop(void)
+{
+    static const uint8_t wel[] = {0x02};
+    uint32_t took = 0;
+    reset_mock(0x20u);
+    replies_set(wel, 1);
+    reg_icfg = 0x1A5u;
+    assert(fl_erase4k(0x97000u, &took) == 0);
+    assert(p33_wdt_off_verified >= 1u);
+    assert(p33_wdt_rearmed >= 1u);
+    assert((p33_wdt & 0x1Fu) == 0x1Du);
+    assert(ready_observed && !nor_wip);
+    assert(reg_icfg == 0x1A5u);
+}
+
+static void test_failed_watchdog_stop_sends_no_nor_spi_bytes(void)
+{
+    uint32_t took = 0;
+    reset_mock(0x20u);
+    p33_fail_transfer = 0u; /* first watchdog read cannot complete */
+    reg_icfg = 0x145u;
+    assert(fl_erase4k(0x97000u, &took) == -6);
+    assert(transfer_index == 0u && tx_count == 0u);
+    assert(p33_transfer_index == 1u);
+    assert(reg_sfc == 0u && sfc_restores == 0u);
+    assert(reg_icfg == 0x145u);
+}
+
+static void test_failed_watchdog_disable_readback_sends_no_nor_spi_bytes(void)
+{
+    uint32_t took = 0;
+    reset_mock(0x20u);
+    /* The stop write completes, but the first post-write verification times out. */
+    p33_fail_transfer = 9u;
+    assert(fl_erase4k(0x97000u, &took) == -6);
+    assert(transfer_index == 0u && tx_count == 0u);
+    assert(reg_sfc == 0u && sfc_restores == 0u);
+    assert(reg_icfg == 0u);
+}
+
+
+static void test_rearm_failure_is_reported_only_after_ready_and_xip_restore(void)
+{
+    static const uint8_t wel[] = {0x02};
+    uint32_t took = 0;
+    reset_mock(0x20u);
+    replies_set(wel, 1);
+    p33_fail_transfer = 12u; /* first P33 byte after the 12-transfer stop/readback */
+    assert(fl_erase4k(0x97000u, &took) == -7);
+    assert(destructive_pending && ready_observed && !nor_wip);
+    assert(reg_sfc == 0u && sfc_restores == 1u);
+    assert(reg_icfg == 0u);
+}
+
 static void test_exit_preserves_pin_owner_bit(void)
 {
     unsigned bit;
@@ -501,6 +626,12 @@ int main(void)
     test_ready_deadline_elapsed_time_survives_timer_wrap();
     test_irq_save_restore_preserves_prior_state_and_nesting();
     test_flash_wrapper_restores_prior_irq_enable();
+    test_checked_p33_timeout_is_not_returned_as_data();
+    test_wrong_watchdog_mode_refuses_before_nor_io();
+    test_flash_wrapper_gates_nor_on_verified_watchdog_stop();
+    test_failed_watchdog_stop_sends_no_nor_spi_bytes();
+    test_failed_watchdog_disable_readback_sends_no_nor_spi_bytes();
+    test_rearm_failure_is_reported_only_after_ready_and_xip_restore();
     test_exit_preserves_pin_owner_bit();
     return 0;
 }
