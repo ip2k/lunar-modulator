@@ -4,7 +4,7 @@
 
 Coordinator checkout: `/Users/likwid/.codex/worktrees/installable-firmware/mvave-fm1-firmware`.
 Branch: `feature/2026-10-11@installable-firmware`.
-Last preceding verified GitHub head: `359a46e6b17b3b6eed3242a2b2256bf0b1d8c3e9`.
+Last preceding verified GitHub head: `93a7e637a05cecd1f9a9c523b8dbf0644d18cfca`.
 Every returned worker commit through that checkpoint has a verified GitHub backup.
 No main merge, public installer deployment or release occurred.
 
@@ -27,7 +27,10 @@ safeguards. Mac alone owns device/Cynthion operations; Hera workers are offline.
   `7175f6d1e97563b07350e0bccb10a9820104eb47a4fc67212797c68651fbd575`.
   Packed project size is 4,345 bytes; exact embedded content/order and receipt
   checks passed. Hardware/installability/default-acceptance fields remain false.
-  See `2026-10-14-real-installer-worker-api-e2e.md`.
+  The current independently checked receipt path also passed an actual
+  API-to-Docker build at `9424959c`, preserving every admission flag as false.
+  See `2026-10-14-checked-receipt-realbuild.md` and
+  `2026-10-14-real-installer-worker-api-e2e.md`.
 - Root repeated 18 Node installer/page/client tests successfully. The earlier private
   browser review used API stubs; the new live Chromium-to-real-API-to-Docker
   worker check also passed with matching request/app hashes. See
@@ -40,8 +43,10 @@ safeguards. Mac alone owns device/Cynthion operations; Hera workers are offline.
 - The CI PIO dependency repair is integrated at `83069368`: emulator 0.88.0
   and compatible pytest range. Hera passed 17 focused waveform/dongle tests,
   full collection and pip check. Fresh CI `38586683710` at exact 83069368 is
-  now running; `38584247667` completed with failed Python collection jobs
-  while its other jobs passed. No overall passing CI claim is supported.
+  still has a running Linux Python job; its macOS Python job failed with
+  native test platform flags, obsolete fixture assumptions and missing
+  optional target-tool environment. Thirteen other jobs passed. The earlier
+  `38584247667` failed Python collection. No overall passing CI claim is supported.
 
 ## Recovery and fit findings that govern the next step
 
@@ -69,14 +74,21 @@ See `2026-10-14-expanded-rescue-loader-fit.md` and
 A new existing-codec compressed-wavetable link saves 18,012 bytes: app 844,284
 bytes, leaving 16,360 bytes against that D7000 arithmetic budget. It reserves
 an additional 50,688 bytes in RAM, reducing the instance pool to 165,376.
-The actual compressed-table host fixture now passes ASan/UBSan startup for
-Event Horizon Showcase at that pool size, with exact table-byte equality.
+The coordinator's fresh `9961f64b` compressed-table host fixture passes
+ASan/UBSan startup for Event Horizon Showcase at that pool size, with exact
+table-byte equality (27 passed, 13 intentionally skipped across startup and
+expanded-loader files). The older worker receipt's launcher was incomplete
+and a saved intermediate log contained two unit-count assertion failures;
+the new explicit dependency-mounted container run establishes current success.
 All thirteen individual engines start at an eight-voice Shapes configuration;
 twelve Shapes voices do not fit. Satellite Hearts still fails after Shapes
 at eight voices and remains unavailable for this profile. Target timing/audio
 and complete-project acceptance remain unproved. See
 `2026-10-14-wavetable-fullsong-fit.md` and
 `2026-10-14-compressed-native-startup.md`.
+The fresh sixteen-shard Shapes-8 target build is 845,036 bytes, leaving
+15,608 bytes against the D7000 arithmetic budget; its actual link remains
+expanded-D9000 and non-installable. See `2026-10-14-shapes8-target-fit.md`.
 
 Continuous-mode/diagnostic-overhead A/B did not close this gap. Matched -Os
 compilation made the feature-identical app 100,292 bytes larger than -Oz and
@@ -85,15 +97,17 @@ gate is accepted as the size solution.
 
 ## Active lanes and remaining acceptance
 
-- Hera `installer_preload_connection`: fixed current-profile receipt validation
-  implemented on worker branch; 98 focused builder/service tests passed, one
-  opt-in real build skipped. Coordinator integration is next.
-- Hera `demo_controller_review`: fresh target catalogue in sixteen parallel
-  chunks and full-song compressed-table link at eight Shapes voices. Exact
-  base `359a46e6`; production defaults/admission unchanged.
-- Hera `physical_storage_compression`: design-only immutable first-sector
-  bootstrap feasibility audit. Its host boundary tests are integrated; they
-  do not establish a SPL simulator or physical interruption recovery.
+- Hera `installer_preload_connection`: repair obsolete fixture expectations
+  and separate optional target-adapter compilation from host SAVE roundtrips.
+  Receipt validation and real worker build notes are integrated and backed up.
+- Hera `demo_controller_review`: repair Darwin/Linux native test flags while
+  preserving sanitizer coverage. Fresh Shapes-8 target evidence is integrated.
+- Hera `physical_storage_compression`: investigate actual stock SPL frozen
+  header contract and independent recovery entry after a synthetic fixed-entry
+  verifier linked successfully. Synthetic proof is backed up, not admitted.
+- Coordinator: portable allocator instrumentation and Darwin host wavetable
+  section selection are pushed. Fresh three-file host regression is running
+  at `e404fddd`; device generator defaults and production allocator are unchanged.
 - Passive bench enumeration at approximately 08:28 Pacific found the FM1 in
   mask-ROM USB mode (`4c4a:8057`, bus 1/device 36). No device mutation or power
   cycle occurred. Independent USB_KEY entry on the owner unit remains untested;
