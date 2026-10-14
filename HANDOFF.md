@@ -11,23 +11,27 @@ Private evidence: /home/claude/fm1-device42-event120-repeat-20261014 on bench01.
 After two minutes, passive enumeration returned to ROM device44 without
 a physical power cycle. Do not reuse device42's consumed read/boot campaign.
 
-Owner supplied Pico2W and authorized programming; MicroPython identifies
-RP2350 Pico2W. GPIO recovery wiring question pending. Existing MicroPython
-filesystem backed up privately at /home/claude/fm1-pico2w-preflash-20261014
-on bench01 (two files, 14,456 bytes). Both Pico/RP2040 and Pico2W/RP2350
-offline UF2 builds passed on Hera. Pico2W artifact SHA54b6157f...12e30c;
-root is reconciling its RP2350 payload/metadata family IDs before programming.
-No Pico flash or independent USB_KEY recovery proof yet.
-Final linked NOR audit establishes writer placement/order, but indirect/data/
-caller-pointer closure still needs proof. SAVE remains unbound/disarmed.
-Native companion SET access worker continues. First-format pure model WIP
-is GitHub-backed at d7f20a71 (25 focused tests), but not integrated: it
-incorrectly requires already-clean trailers, cannot restore an uncertain partial
-sector, and needs semantic journal replay validation. Fix follows Pico work.
-NOR caller audit c4d1cf5 is GitHub-backed but awaiting review corrections to
-IRQ-mask ordering and fl_far pointer-preservation checks. CI38633308608
-at6a801549 is in progress; superseded38631420007 was cancelled.
-Old38628940753 at0fc23e9 passed all 13 jobs; it does not cover current source.
+Owner-supplied Pico2W programmed with reviewed SHA54b6157f...12e30c.
+MicroPython identified RP2350 Pico2W; two filesystem files/14,456 bytes backed
+privately on bench01 before one BOOTSEL request and one guarded UF2 copy.
+It now exposes USB CDC bus3/device36 2e8a:0009, serial560A5ACCF298BDCB.
+Late-attached console capture had no bytes; status visibility follow-up assigned.
+GPIO wiring answer and same-target power-on USB_KEY recovery proof pending.
+Details: notes/2026-10-14-pico2-w-programming.md.
+
+NOR caller audit c4d1cf5/f5c074f integrated as86f87254/6d2bd6a4; 17 focused
+local tests pass. It verifies exact dispatch helper and copy-before-IRQ/WDT
+order; runtime stack residency remains false. A guarded residency/headroom
+prototype and fresh target link are assigned. SAVE remains unbound/disarmed.
+Pico source/CI matrix and format-note fixes integrated through95353195;
+root and worker32291ce4 are GitHub-backed, remote SHAs verified.
+Native companion SET access worker reports43 passed/2 target-toolchain skips;
+fixture-default real backend interoperability passes3/3 on exact76bd667.
+Chooser/sequence-stage regression and source integration remain pending.
+First-format model d7f20a71 is GitHub-backed but not integrated: dirty baseline,
+uncertain partial-sector restore and semantic journal replay need correction.
+CI38633308608 at6a801549 remains in progress. Old38628940753 at0fc23e9
+passed all13jobs and does not cover current source.
 Goal remains active; no main merge, public firmware release or deployment.
 
 # Latest continuation authority — 2026-10-14 (checked watchdog and real SET interop)
