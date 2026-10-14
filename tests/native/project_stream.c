@@ -10,7 +10,7 @@ static char text[3][524288];
 static size_t text_n[3];
 static uint32_t input_n;
 static unsigned ops,fail_at,torn;
-typedef struct { uint32_t off,n; } source;
+typedef struct { uint32_t off,n; int failed; } source;
 static int read_flash(void *ctx,uint32_t off,void *p,uint32_t n) {
  (void)ctx;assert(off<=sizeof flash&&n<=sizeof flash-off);
  if(++ops==fail_at)return -1;
@@ -31,7 +31,8 @@ static int program_flash(void *ctx,uint32_t off,const void *p,uint32_t n) {
 }
 static uint32_t source_read(void *ctx,uint32_t off,uint8_t *p,uint32_t n) {
  source *s=ctx;if(off>s->n||n>s->n-off)return 0;
- return read_flash(NULL,s->off+off,p,n)?0:n;
+ if(read_flash(NULL,s->off+off,p,n)){s->failed=1;return 0;}
+ return n;
 }
 static uint32_t input_read(void *ctx,uint32_t off,uint8_t *p,uint32_t n) {
  (void)ctx;if(off>input_n||n>input_n-off)return 0;
@@ -39,8 +40,9 @@ static uint32_t input_read(void *ctx,uint32_t off,uint8_t *p,uint32_t n) {
 }
 static int discard(void *ctx,const fm1_rec_t *r){(void)ctx;(void)r;return 1;}
 static int validate(void *ctx,uint32_t off,uint32_t n) {
- source src={off,n};fm1_state_report_t rep;(void)ctx;fm1_state_report_init(&rep);
- return fm1_state_bin_read(source_read,&src,n,discard,NULL,&rep,0)?0:-1;
+ source src={off,n,0};fm1_state_report_t rep;int ok;(void)ctx;fm1_state_report_init(&rep);
+ ok=fm1_state_bin_read(source_read,&src,n,discard,NULL,&rep,0);
+ return src.failed?-1:(ok?0:1);
 }
 static void print_put(void *ctx,const char *p,size_t n) {
  unsigned i=*(unsigned *)ctx;assert(n<=sizeof text[i]-text_n[i]);
@@ -72,7 +74,7 @@ static void check_reboot(void) {
  fm1_state_printer_t printer;unsigned idx=2;
  memset(&s,0,sizeof s);s.io=io;s.slot_bytes=SLOT;
  assert(!lunar_project_scan(&s,&slot,&gen,&n));assert(slot==0||slot==1);
- assert(!memcmp(flash,baseline,SLOT));src.off=(uint32_t)slot*SLOT+LP_HEADER;src.n=n;
+ assert(!memcmp(flash,baseline,SLOT));src.off=(uint32_t)slot*SLOT+LP_HEADER;src.n=n;src.failed=0;
  text_n[2]=0;fm1_state_printer_init(&printer,print_put,&idx);fm1_state_report_init(&rep);
  assert(fm1_state_bin_read(source_read,&src,n,fm1_state_print,&printer,&rep,0));
  assert(text_n[slot]==text_n[2]&&!memcmp(text[slot],text[2],text_n[slot]));
@@ -92,6 +94,14 @@ int main(int argc,char **argv) {
  assert(!lunar_project_write(&s,0,input,input_n));assert(!lunar_project_commit(&s,input_n));
  memset(flash+SLOT,0,SLOT);
  memcpy(baseline,flash,sizeof flash);ops=0;assert(!save(&s,mem));count=ops;check_reboot();
+ if(case_id<9) {
+  /* Outer CRCs still agree, but the newest inner file magic is malformed. */
+  uint8_t *h=flash+SLOT;uint32_t size=lp_word(h+12);
+  h[LP_HEADER]^=1;lp_put(h+16,lp_crc(0,h+LP_HEADER,size));
+  lp_put(h+24,lp_crc(0,h,24));check_reboot();
+  assert(!lunar_project_begin(&s,&io,SLOT));assert(s.base==SLOT);
+  assert(!memcmp(flash,baseline,SLOT));
+ }
  if(case_id>=9) {
   for(mode=0;mode<3;mode++)for(cut=case_id-8;cut<=count;cut+=21) {
    memcpy(flash,baseline,sizeof flash);ops=0;fail_at=cut;torn=mode;

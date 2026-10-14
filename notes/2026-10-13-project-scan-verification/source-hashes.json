@@ -1,0 +1,13 @@
+{
+  "firmware/native/project_store.h": "237803b17d17c3c2311e89493b586c373c04ab0dc4788cb11ff3580d548a5045",
+  "engines/state/state_bin.c": "32fc46736bfe9323fbe69dafd93053449b74abec537867b072e6ca65a6866d3d",
+  "engines/state/fm1_state.h": "6f6f597f3c50ff1737de34895a29318a9362f62b3b56c93aef57ffa1efec5800",
+  "tests/native/project_stream.c": "e24f7a715e22c37414ede8614679a0a4c0e97b5d3a9b5b0d1ec8a8c00096774e",
+  "tests/test_native_project_stream.py": "60dfc6a582654559c93a1edced9544bfa6c358a6a1397363aca716eb6c50a0d4",
+  "tests/native/project_scan.c": "056d756014ed72e2d9bfbbad715073ed1d88ac79fee048551f949cde6f8b65f2",
+  "tests/test_native_project_scan.py": "fc1f2a59b801a82e36af71fed5c8c4ecb6ccfe6ce4ae5299f6f4f269f46148a5",
+  "tests/native/project_generation.c": "e33143727b96c4c2672870c0bc601fac383092ebf56815282685f7fab1f9203c",
+  "tests/test_native_project_generation.py": "234ad102481add819bcdaa0b0d07d187ea40d0e2ac1fc46ee2e28a163c74ad7f",
+  "tests/native/project_store.c": "cc535d8aa3857a2aae0c144e58b2f88537ccd1c78b93b207e24345e8651b9a36",
+  "tests/test_native_project_store.py": "69bd02674977f0304dd6c6943573f19831a73d9c3ddb0606ad71d99b7414826d"
+}

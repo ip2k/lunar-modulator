@@ -1,0 +1,18 @@
+{
+  "exit": 0,
+  "target": "pi32v2",
+  "flags": [
+    "-mcpu=r3",
+    "-mfprev1",
+    "-Oz",
+    "-ffreestanding",
+    "-fno-builtin",
+    "-std=c99",
+    "-Wall",
+    "-Wextra",
+    "-Werror"
+  ],
+  "source_sha256": "fb767f43d2b1f25f364a25051ef529b9e5fcfa68fbc7626d3ab84f536b6c7f5e",
+  "header_sha256": "237803b17d17c3c2311e89493b586c373c04ab0dc4788cb11ff3580d548a5045",
+  "object_sha256": "d2e54981486f13724c463b50ce10336ab7c2590b7510a602b53a1843c8364163"
+}

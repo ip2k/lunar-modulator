@@ -17,7 +17,9 @@ typedef struct {
  int (*read)(void *,uint32_t,void *,uint32_t);
  int (*erase)(void *,uint32_t);
  int (*program)(void *,uint32_t,const void *,uint32_t);
- /* Must validate the complete saved file using the supplied flash range. */
+ /* Validate the complete file, without applying records to application state.
+  * 0 valid; positive malformed file; negative validation/transport uncertainty.
+  * Called during recovery selection as well as before commit. */
  int (*validate)(void *,uint32_t,uint32_t);
 } lunar_project_io;
 typedef struct {
@@ -44,7 +46,7 @@ static int lp_hash(lunar_project_store *s,uint32_t off,uint32_t n,uint32_t *hash
 /* 0 found; 1 empty; negative: transport/geometry/generation refusal. */
 static int lunar_project_scan(lunar_project_store *s,int *slot,uint32_t *generation,uint32_t *length) {
  uint8_t h[2][LP_HEADER]; uint32_t n[2]={0,0},g[2]={0,0},hash,delta; int valid[2]={0,0},i;
- if(!s||!slot||!generation||!length||!s->io.read||s->slot_bytes<LP_SECTOR||
+ if(!s||!slot||!generation||!length||!s->io.read||!s->io.validate||s->slot_bytes<LP_SECTOR||
     s->slot_bytes%LP_SECTOR||s->slot_bytes>LP_MAX+LP_SECTOR) return -2;
  for(i=0;i<2;i++) {
   uint32_t base=(uint32_t)i*s->slot_bytes;
@@ -54,7 +56,11 @@ static int lunar_project_scan(lunar_project_store *s,int *slot,uint32_t *generat
      lp_word(h[i]+28)!=LP_COMMIT||lp_word(h[i]+24)!=lp_crc(0,h[i],24)||
      !n[i]||n[i]>LP_MAX||n[i]>s->slot_bytes-LP_HEADER) continue;
   if(lp_hash(s,base+LP_HEADER,n[i],&hash)) return -1;
-  valid[i]=hash==lp_word(h[i]+16);
+  if(hash==lp_word(h[i]+16)) {
+   int rc=s->io.validate(s->io.ctx,base+LP_HEADER,n[i]);
+   if(rc<0) return -1;
+   valid[i]=rc==0;
+  }
  }
  if(!valid[0]&&!valid[1]) { *slot=-1; return 1; }
  i=valid[0]?0:1;

@@ -2907,3 +2907,17 @@ Evidence notes/2026-10-13-project-generation-verification/. Next resolveproject
 capacity/productionSAVEbridge; ownerwatched all13boot stillpending. Migration/
 physicalrollback/webinstaller/custombuilder/license/reviewCI open. Previous
 verifiedpushed72ef4076b362d82d9ebb38ec124d9936200e32ea.
+
+## Complete-format project recovery checkpoint (verified 2026-10-14)
+
+[verified]project_store scan now requires full read-only filevalidator afterCRC;
+positive malformed skipscandidate, negative uncertainty refusesbeforeerase.
+Streamadapter tracks readfailure separately; CRCvalid malformedinnerfiles now
+fallback toolder validcanonicalproject.96tests/30Hera ASanUBSan chunks pass,
+2925injectedfailures/975FIRSTORBITops;30logs/exits/noOOM/11sourcehasheschecked.
+Pinnedpi32v2 corewrappercompilepassed. Session33563 terminal0/no workers/no USBop.
+Evidence notes/2026-10-13-project-scan-verification/. Noapp link/hardwareclaim.
+Futureproductionvalidator must notapplyrecords and mustrefuseunsupportedversions
+conservatively. Next capacity/productionSAVEbridge, ownerwatchedall13boot,
+migration/physicalrollback/webinstaller/custombuilder/license/reviewCIremain.
+Previousverifiedpushedc93dc2f297e9a2dc2600096ad3741af895a152c1.
