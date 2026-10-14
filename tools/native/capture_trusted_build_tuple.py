@@ -149,6 +149,18 @@ def _toolchain_manifest(root: Path):
     return canonical({"schema": 1, "objects": rows})
 
 
+def _verify_catalogue_subset(tree_raw: bytes, selected_raw: bytes):
+    tree = json.loads(tree_raw.decode("ascii"))
+    selected = json.loads(selected_raw.decode("ascii"))["objects"]
+    if tree.get("schema") != 1 or not isinstance(tree.get("objects"), list):
+        raise ValueError("private catalogue snapshot manifest is malformed")
+    tree_hashes = {row["path"]: row["sha256"] for row in tree["objects"]
+                   if isinstance(row, dict) and row.get("kind") in ("file", "symlink-file")}
+    if any(tree_hashes.get(row["path"][len("/catalogue/"):]) != row["sha256"]
+           for row in selected):
+        raise ValueError("selected catalogue receipt is not a subset of the immutable snapshot")
+
+
 def _linked_object_manifest(output: Path, catalogue: Path, verification):
     linked = verification.get("linked_objects")
     catalogue_rows = verification.get("catalogue_objects")
@@ -385,13 +397,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
     source_commit, source_manifest_raw = _source_manifest(root)
     catalogue_raw = _catalogue_manifest(catalogue, verification)
     catalogue_sha = sha(catalogue_raw)
-    catalogue_tree = json.loads(catalogue_tree_raw.decode("ascii"))
-    tree_hashes = {row["path"]: row["sha256"] for row in catalogue_tree["objects"]
-                   if row.get("kind") in ("file", "symlink-file")}
-    selected_rows = json.loads(catalogue_raw.decode("ascii"))["objects"]
-    if any(tree_hashes.get(row["path"][len("/catalogue/"):]) != row["sha256"]
-           for row in selected_rows):
-        raise ValueError("selected catalogue receipt is not a subset of the immutable snapshot")
+    _verify_catalogue_subset(catalogue_tree_raw, catalogue_raw)
     source_sha = sha(source_manifest_raw)
     _require_sha(invocation.get("post_build_source_tree_sha256"), "post-build source manifest")
     if invocation.get("post_build_source_tree_sha256") != source_sha:
