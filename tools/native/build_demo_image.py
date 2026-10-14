@@ -40,7 +40,7 @@ def checked_link_receipt(selection, prepared, verification, artifact, app, elf, 
             or embedded.get('packed_sha256') != [a['packed_sha256'] for a in expected_assets]
             or type(startup.get('index')) is not int
             or startup['index'] != selection['startup_index']
-            or startup.get('runtime_hook_linked') is not True
+            or startup.get('runtime_hook_linked') is not (len(selection['project_ids']) > 1)
             or verification.get('module_selection') != prepared.report['module_selection']):
         raise ValueError('Linked image differs from selected project/profile identity')
     for report in (verification, artifact):

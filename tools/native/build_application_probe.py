@@ -538,7 +538,9 @@ def main():
                                     runtime_verified=False, stack_margin_verified=False,
                                     hardware_tested=False)
     if args.startup_project_index is not None:
-        report['startup_project'] = dict(index=args.startup_project_index, runtime_hook_linked=True,
+        report['startup_project'] = dict(index=args.startup_project_index,
+                                        runtime_hook_linked=sum(1 for asset in content_inputs.report['content']
+                                                                if asset['kind'] == 'project') > 1,
                                         staging_reclaimed_before_engine_allocation=True,
                                         failure_returns_to_recovery=True, runtime_verified=False,
                                         stack_margin_verified=False, hardware_tested=False)

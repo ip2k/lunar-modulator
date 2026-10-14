@@ -13,17 +13,20 @@ from prepare_image_profile import sha
 from runtime_mode import runtime_configuration
 
 
-def inputs(runtime_mode='diagnostic'):
+def inputs(runtime_mode='diagnostic', project_count=2):
     assets = [dict(kind='project', bytes=2, packed_sha256=sha(b'ab')),
-              dict(kind='project', bytes=3, packed_sha256=sha(b'cde'))]
+              dict(kind='project', bytes=3, packed_sha256=sha(b'cde'))][:project_count]
+    project_ids = ['second', 'first'][:project_count]
     selection = dict(prepared_profile_sha256=sha(b'manifest'), request_sha256=sha(b'request'),
-                     content=assets, packed_content_bytes=5, project_ids=['second', 'first'],
-                     startup_index=1, startup_project_id='first')
+                     content=assets, packed_content_bytes=sum(a['bytes'] for a in assets),
+                     project_ids=project_ids, startup_index=project_count - 1,
+                     startup_project_id=project_ids[-1])
     prepared = SimpleNamespace(report={'module_selection': {'selected': ['trio'], 'header_sha256': sha(b'header')}})
     verification = dict(embedded_content=dict(prepared_sha256=selection['prepared_profile_sha256'],
-                        assets=deepcopy(assets), asset_count=2, packed_content_bytes=5,
+                        assets=deepcopy(assets), asset_count=project_count,
+                        packed_content_bytes=selection['packed_content_bytes'],
                         packed_sha256=[a['packed_sha256'] for a in assets]),
-                        startup_project=dict(index=1, runtime_hook_linked=True),
+                        startup_project=dict(index=project_count - 1, runtime_hook_linked=project_count > 1),
                         module_selection=deepcopy(prepared.report['module_selection']),
                         installable=False, hardware_tested=False,
                         key_audit=dict(passed=True, n_pending=0, n_fail=0),
@@ -48,6 +51,16 @@ def test_checked_link_keeps_order_startup_and_actual_output_identity():
     for flag in ('installable', 'hardware_admitted', 'hardware_tested', 'native_ram_verified',
                  'native_playback_verified', 'full_song_default_accepted'):
         assert receipt[flag] is False
+
+
+def test_single_project_receipt_truthfully_records_selector_bypass():
+    values = inputs(project_count=1)
+    receipt = checked_link_receipt(*values)
+    assert receipt['project_ids'] == ['second']
+    assert values[2]['startup_project']['runtime_hook_linked'] is False
+    values[2]['startup_project']['runtime_hook_linked'] = True
+    with pytest.raises(ValueError, match='selected project'):
+        checked_link_receipt(*values)
 
 
 @pytest.mark.parametrize('fault', [
