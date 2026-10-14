@@ -78,7 +78,32 @@ def test_new_build_requires_real_disarmed_save_service():
     values[2]['project_save_service'] = dict(linked=True,
         compile_definition='LUNAR_PROJECT_SAVE_SERVICE=1', storage_admitted=False,
         flash_io_bound=False, save_service_armed=False, runtime_verified=False, hardware_tested=False)
+    values[2]['state_bin_codec'] = dict(mode='compact-writer',
+        compile_definition='FM1_STATE_BIN_COMPACT_WRITER=1', replaced_exactly_one=True,
+        cached_object='/cached/state_bin.o', fresh_object='/fresh/state_bin.o',
+        fresh_object_sha256=sha(b'compact'))
+    values[2]['linked_objects'] = [dict(path='/fresh/state_bin.o', sha256=sha(b'compact'))]
     checked_link_receipt(*values, require_save_service=True)
     values[2]['project_save_service']['flash_io_bound'] = True
     with pytest.raises(ValueError, match='SAVE service'):
+        checked_link_receipt(*values, require_save_service=True)
+
+
+@pytest.mark.parametrize('fault', ['missing', 'duplicate', 'hash', 'cached', 'mode'])
+def test_save_receipt_refuses_wrong_or_duplicate_codec(fault):
+    values = list(inputs())
+    values[2]['project_save_service'] = dict(linked=True,
+        compile_definition='LUNAR_PROJECT_SAVE_SERVICE=1', storage_admitted=False,
+        flash_io_bound=False, save_service_armed=False, runtime_verified=False, hardware_tested=False)
+    values[2]['state_bin_codec'] = dict(mode='compact-writer',
+        compile_definition='FM1_STATE_BIN_COMPACT_WRITER=1', replaced_exactly_one=True,
+        cached_object='/cached/state_bin.o', fresh_object='/fresh/state_bin.o',
+        fresh_object_sha256=sha(b'compact'))
+    values[2]['linked_objects'] = [dict(path='/fresh/state_bin.o', sha256=sha(b'compact'))]
+    if fault == 'missing': values[2]['linked_objects'].clear()
+    elif fault == 'duplicate': values[2]['linked_objects'] *= 2
+    elif fault == 'hash': values[2]['linked_objects'][0]['sha256'] = sha(b'wrong')
+    elif fault == 'cached': values[2]['linked_objects'].append(dict(path='/cached/state_bin.o', sha256=sha(b'old')))
+    elif fault == 'mode': values[2]['state_bin_codec']['mode'] = 'default'
+    with pytest.raises(ValueError, match='SAVE codec'):
         checked_link_receipt(*values, require_save_service=True)

@@ -63,6 +63,18 @@ def checked_link_receipt(selection, prepared, verification, artifact, app, elf, 
                        ('storage_admitted', 'flash_io_bound', 'save_service_armed',
                         'runtime_verified', 'hardware_tested'))):
             raise ValueError('Production SAVE service must be linked and disarmed')
+        codec = verification.get('state_bin_codec', {})
+        linked = verification.get('linked_objects', [])
+        if (codec.get('mode') != 'compact-writer'
+                or codec.get('compile_definition') != 'FM1_STATE_BIN_COMPACT_WRITER=1'
+                or codec.get('replaced_exactly_one') is not True
+                or not codec.get('fresh_object') or not codec.get('fresh_object_sha256')
+                or not codec.get('cached_object')
+                or sum(row == dict(path=codec['fresh_object'],
+                                   sha256=codec['fresh_object_sha256']) for row in linked) != 1
+                or sum(row.get('path') == codec['fresh_object'] for row in linked) != 1
+                or any(row.get('path') == codec['cached_object'] for row in linked)):
+            raise ValueError('Production SAVE codec must replace exactly one cached object')
     return dict(version=1, status='linked-private-diagnostic',
                 request_sha256=selection['request_sha256'],
                 prepared_profile_sha256=selection['prepared_profile_sha256'],
@@ -106,6 +118,7 @@ def build_selection(request, state_tool, toolchain, catalogue, output):
                                   bounded_read(output / 'link/lunar-app-probe.elf', 16 * 1048576),
                                   require_save_service=True)
     receipt['project_save_service'] = read_report(output / 'link/verification.json')['project_save_service']
+    receipt['state_bin_codec'] = read_report(output / 'link/verification.json')['state_bin_codec']
     receipt['verification_sha256'] = sha(bounded_read(output / 'link/verification.json', 16 * 1048576))
     receipt['artifact_receipt_sha256'] = sha(bounded_read(output / 'link/artifact/artifact.json', 16 * 1048576))
     (output / 'image.json').write_text(json.dumps(receipt, indent=2) + '\n')
