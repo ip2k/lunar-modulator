@@ -223,7 +223,8 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
     try:
         receipt = json.loads(result.receipt, object_pairs_hook=_unique_object,
                              parse_constant=_reject_constant)
-    except (UnicodeDecodeError, json.JSONDecodeError, DuplicateKey, ValueError) as exc:
+    except (UnicodeDecodeError, json.JSONDecodeError, DuplicateKey, ValueError,
+            RecursionError) as exc:
         raise ValueError("worker receipt is invalid JSON") from exc
     if not isinstance(receipt, dict):
         raise ValueError("worker receipt is not an object")

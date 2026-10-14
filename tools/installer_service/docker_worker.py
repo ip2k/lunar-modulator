@@ -53,7 +53,7 @@ def verified_build_outputs(build_root: Path) -> tuple[bytes, bytes, bytes]:
     receipt = regular_file(build_root / "image.json", MAX_RECEIPT)
     try:
         report = json.loads(receipt.decode("utf-8"), object_pairs_hook=_unique_object)
-    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError, RecursionError) as exc:
         raise ValueError("build receipt is malformed") from exc
     if (not isinstance(report, dict)
             or report.get("app_sha256") != hashlib.sha256(app).hexdigest()

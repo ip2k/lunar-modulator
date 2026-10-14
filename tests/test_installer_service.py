@@ -324,6 +324,21 @@ def test_result_cap_and_unknown_ids_do_not_expose_artifact():
     assert c.get(accepted.json()["status_url"]).status_code == 502
 
 
+@pytest.mark.parametrize("receipt", [
+    b'{"nested":' + b'[' * 10000 + b'0' + b']' * 10000 + b'}',
+    b'{"duplicate":1,"duplicate":2}',
+    b'{"invalid_utf8":"\xff"}',
+])
+def test_malformed_worker_receipt_is_a_controlled_refusal(receipt):
+    c, adapter = client()
+    accepted = c.post("/api/v1/builds", json=request_doc())
+    assert len(receipt) < 65536
+    adapter.succeed(accepted.json()["id"], b"diagnostic-app", receipt, TEST_ELF)
+    response = c.get(accepted.json()["status_url"])
+    assert response.status_code == 502
+    assert response.json() == {"detail": "build result failed verification"}
+
+
 @pytest.mark.parametrize("elf", [b"", b"x" * (16 * 1024 * 1024 + 1)])
 def test_service_rejects_missing_or_oversized_elf(elf):
     c, adapter = client()
@@ -693,6 +708,9 @@ def test_worker_binds_regular_app_and_elf_to_exact_receipt(tmp_path):
     receipt_path.write_text('{"app_sha256":"' + hashlib.sha256(app).hexdigest()
                             + '","app_sha256":"' + hashlib.sha256(app).hexdigest()
                             + '","elf_sha256":"' + hashlib.sha256(elf).hexdigest() + '"}')
+    with pytest.raises(ValueError, match="malformed"):
+        docker_worker.verified_build_outputs(build)
+    receipt_path.write_bytes(b'{"nested":' + b'[' * 10000 + b'0' + b']' * 10000 + b'}')
     with pytest.raises(ValueError, match="malformed"):
         docker_worker.verified_build_outputs(build)
     receipt_path.write_bytes(receipt_for(app, b"different-elf"))
