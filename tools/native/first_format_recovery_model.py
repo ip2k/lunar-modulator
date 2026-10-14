@@ -74,12 +74,13 @@ def create_campaign(snapshot_a, snapshot_b, snapshot_sha256, target_identity,
 
     sectors = []
     for slot, offset in _slot_sector_order():
-        if snapshot_a[offset + 0xF00:offset + SECTOR_BYTES] != bytes([0xff]) * PAGE_BYTES:
-            raise ValueError("Every mapped trailer page must already be all-FF")
         before = snapshot_a[offset:offset + SECTOR_BYTES]
+        trailer = snapshot_a[offset + 0xF00:offset + SECTOR_BYTES]
         sectors.append({"slot": slot, "offset": offset,
                         "before_sha256": sha256(before),
-                        "erased_sha256": sha256(b"\xff" * SECTOR_BYTES)})
+                        "erased_sha256": sha256(b"\xff" * SECTOR_BYTES),
+                        "trailer_before_sha256": sha256(trailer),
+                        "trailer_before_is_ff": trailer == bytes([0xff]) * PAGE_BYTES})
     protected = [{"offset": offset, "length": length,
                   "sha256": sha256(snapshot_a[offset:offset + length])}
                  for offset, length in _protected_runs()]
@@ -139,6 +140,9 @@ def _verify_plan(plan):
             raise ValueError("Sector order differs from the fixed reviewed map")
         _digest(row.get("before_sha256"), "sector baseline")
         _digest(row.get("erased_sha256"), "erased sector")
+        _digest(row.get("trailer_before_sha256"), "trailer baseline")
+        if not isinstance(row.get("trailer_before_is_ff"), bool):
+            raise ValueError("Trailer baseline state must be explicit")
     payload_bytes = plan.get("payload_bytes")
     if (not isinstance(payload_bytes, int) or isinstance(payload_bytes, bool)
             or not 0 <= payload_bytes <= PAYLOAD_BOUND):
@@ -166,7 +170,8 @@ def new_journal(plan):
     return append_event(journal, plan, "campaign_opened", {}, rom_recovery_verified=False)
 
 
-def append_event(journal, plan, event, data, *, rom_recovery_verified=False):
+def append_event(journal, plan, event, data, *, rom_recovery_verified=False,
+                 _validate_existing=True):
     """Append an observation/checkpoint. No function here performs operations."""
     _verify_plan(plan)
     if not isinstance(journal, dict) or journal.get("plan_sha256") != plan["plan_sha256"]:
@@ -176,7 +181,7 @@ def append_event(journal, plan, event, data, *, rom_recovery_verified=False):
     events = list(journal.get("events", []))
     if events:
         expected_prev = events[-1]["event_sha256"]
-        if not _valid_journal(journal, plan):
+        if _validate_existing and not _valid_journal(journal, plan):
             raise ValueError("Existing journal chain is invalid")
     else:
         expected_prev = "0" * 64
@@ -241,6 +246,32 @@ def append_event(journal, plan, event, data, *, rom_recovery_verified=False):
             raise ValueError("Rollback readback must exactly match baseline sector")
         if rom_recovery_verified is not True:
             raise ValueError("Operator must attest ROM recovery before rollback verification")
+    elif event == "restore_started":
+        if (not state["uncertain"] or state["active_index"] is None
+                or state["restore_awaiting"] or state["complete"]):
+            raise ValueError("Only an inspected uncertain active sector can be restored")
+        idx = state["active_index"]
+        if (data.get("sector_index") != idx
+                or data.get("observed_current_sha256") != state["observed_sha256"]):
+            raise ValueError("Restoration must bind the latest complete active-sector readback")
+        if data.get("restore_source_sha256") != plan["sectors"][idx]["before_sha256"]:
+            raise ValueError("Restoration source must bind the exact baseline sector")
+        if data.get("archive_ref") not in plan["archive_refs"]:
+            raise ValueError("Restoration source must name a bound baseline archive")
+        if rom_recovery_verified is not True:
+            raise ValueError("Operator must attest ROM recovery before sector restoration")
+    elif event == "restore_ack_uncertain":
+        if not state["restore_awaiting"] or data.get("sector_index") != state["active_index"]:
+            raise ValueError("No restoration acknowledgement is awaiting inspection")
+    elif event == "restore_readback":
+        if (not state["restore_awaiting"] and not state["restore_attempted"]
+                or state["active_index"] is None):
+            raise ValueError("No active-sector restoration is awaiting readback")
+        idx = state["active_index"]
+        if (data.get("sector_index") != idx or data.get("observed_length") != SECTOR_BYTES
+                or rom_recovery_verified is not True):
+            raise ValueError("Restoration requires ROM-attested complete 4 KiB readback")
+        _digest(data.get("observed_sha256"), "restored sector")
     else:
         raise ValueError("Unsupported journal event")
 
@@ -255,24 +286,42 @@ def append_event(journal, plan, event, data, *, rom_recovery_verified=False):
 
 
 def _valid_journal(journal, plan):
-    if journal.get("plan_sha256") != plan["plan_sha256"]:
+    if (not isinstance(journal, dict) or journal.get("schema") != 1
+            or journal.get("plan_sha256") != plan["plan_sha256"]
+            or not isinstance(journal.get("events"), list)):
         return False
     prev = "0" * 64
-    for seq, entry in enumerate(journal.get("events", [])):
+    for seq, entry in enumerate(journal["events"]):
+        if not isinstance(entry, dict):
+            return False
         body = dict(entry)
         digest = body.pop("event_sha256", None)
-        if entry.get("seq") != seq or entry.get("previous_sha256") != prev:
-            return False
-        if digest != sha256(_canonical(body)):
+        if (entry.get("seq") != seq or entry.get("previous_sha256") != prev
+                or not isinstance(digest, str)
+                or digest != sha256(_canonical(body))):
             return False
         prev = digest
+    # A recomputed hash chain is not enough: replay every transition through
+    # the same transition validator from an empty journal.
+    replay = {"schema": 1, "plan_sha256": plan["plan_sha256"], "events": []}
+    try:
+        for entry in journal["events"]:
+            replay = append_event(
+                replay, plan, entry["event"], entry["data"],
+                rom_recovery_verified=entry["rom_recovery_verified"],
+                _validate_existing=False)
+            if replay["events"][-1] != entry:
+                return False
+    except (KeyError, TypeError, ValueError, IndexError):
+        return False
     return True
 
 
 def _derive_state(events, plan):
     state = {"next_index": 0, "active_index": None, "awaiting_readback": False,
              "uncertain": False, "rollback": False, "rollback_awaiting": False,
-             "rollback_index": None, "complete": False}
+             "rollback_index": None, "restore_awaiting": False,
+             "restore_attempted": False, "observed_sha256": None, "complete": False}
     for entry in events:
         event, data = entry["event"], entry["data"]
         if event == "campaign_opened":
@@ -287,13 +336,31 @@ def _derive_state(events, plan):
             observed = data["observed_sha256"]
             if observed == row["erased_sha256"]:
                 state["next_index"] += 1
-                state.update(active_index=None, awaiting_readback=False, uncertain=False)
+                state.update(active_index=None, awaiting_readback=False, uncertain=False,
+                             observed_sha256=None)
             elif observed == row["before_sha256"]:
                 # Lost acknowledgement with unchanged bytes; retry the same sector.
-                state.update(active_index=None, awaiting_readback=False, uncertain=False)
+                state.update(active_index=None, awaiting_readback=False, uncertain=False,
+                             observed_sha256=None)
             else:
-                # Mixed state is recorded, but cannot advance or be retried here.
-                state.update(awaiting_readback=False, uncertain=True)
+                # Keep the active sector pinned for ROM-held exact restoration.
+                state.update(awaiting_readback=False, uncertain=True,
+                             observed_sha256=observed)
+        elif event == "restore_started":
+            state.update(restore_awaiting=True, restore_attempted=True, uncertain=False)
+        elif event == "restore_ack_uncertain":
+            state.update(restore_awaiting=False, restore_attempted=True, uncertain=True)
+        elif event == "restore_readback":
+            observed = data["observed_sha256"]
+            state.update(restore_awaiting=False, restore_attempted=False,
+                         observed_sha256=observed)
+            if observed == plan["sectors"][state["active_index"]]["before_sha256"]:
+                state.update(active_index=None, uncertain=False, observed_sha256=None,
+                             rollback=True, rollback_index=state["next_index"] - 1)
+                if state["rollback_index"] < 0:
+                    state["complete"] = True
+            else:
+                state["uncertain"] = True
         elif event == "rollback_started":
             state.update(rollback=True, rollback_awaiting=True,
                          rollback_index=data["sector_index"])
@@ -310,7 +377,7 @@ def journal_state(journal, plan):
     if not _valid_journal(journal, plan):
         raise ValueError("Journal chain is invalid")
     state = _derive_state(journal["events"], plan)
-    if state["uncertain"] or state["awaiting_readback"]:
+    if state["uncertain"] or state["awaiting_readback"] or state["restore_awaiting"]:
         state["status"] = "stop_and_reenter_rom_to_inspect"
     elif state["complete"]:
         state["status"] = "rollback_readback_complete_unverified_full_image"
