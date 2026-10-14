@@ -97,21 +97,24 @@ gate is accepted as the size solution.
 
 ## Active lanes and remaining acceptance
 
-- Hera `installer_preload_connection`: repair obsolete fixture expectations
-  and separate optional target-adapter compilation from host SAVE roundtrips.
-  Receipt validation and real worker build notes are integrated and backed up.
-- Hera `demo_controller_review`: repair Darwin/Linux native test flags while
-  preserving sanitizer coverage. Fresh Shapes-8 target evidence is integrated.
-- Hera `physical_storage_compression`: investigate actual stock SPL frozen
-  header contract and independent recovery entry after a synthetic fixed-entry
-  verifier linked successfully. Synthetic proof is backed up, not admitted.
-- Coordinator: portable allocator instrumentation and Darwin host wavetable
-  section selection are pushed. Fresh three-file host regression is running
-  at `e404fddd`; device generator defaults and production allocator are unchanged.
-- Passive bench enumeration at approximately 08:28 Pacific found the FM1 in
-  mask-ROM USB mode (`4c4a:8057`, bus 1/device 36). No device mutation or power
-  cycle occurred. Independent USB_KEY entry on the owner unit remains untested;
-  Cynthion does not establish physical SoC power/reset control.
+- Hera `installer_preload_connection`: verify the named eight-voice,
+  compressed-Plaits/Braids receipt profile and transport correspondence. Its
+  raw Event Horizon candidate is constructed and backed up; transport admission
+  remains blocked until the producer checker validates this memory profile.
+- Hera `demo_controller_review`: separate optional SDK target compiles from
+  host roundtrips, incorporating the native test portability helper. The
+  SDK-absent run is green; configured-SDK compilation is being checked.
+- Hera `physical_storage_compression`: construct exact device38 Event Horizon
+  install/current-image rollback/stock rollback transactions offline from the
+  fresh matching physical backups. No worker has device-write authority.
+- Coordinator: portable startup regression completed, 43 passed/13 skipped.
+  Capacity/hash repairs and exact device38 read adapter are integrated and
+  backed up. Fresh device38 dual reads succeeded with no flash/reset operations;
+  see `2026-10-14-device38-fresh-dual-backup.md`. The new read session leaves
+  the reviewed RAM loader available; old device36 admissions cannot be reused.
+- Independent USB_KEY entry on the owner unit remains untested. Cynthion does
+  not establish physical SoC power/reset control. Interrupted-write physical
+  recovery remains a separate acceptance gate.
 
 Coordinator reviews returned artifacts, backs up exact commits, integrates
 through required checks and continues. Owner accepted audible Trio probe
