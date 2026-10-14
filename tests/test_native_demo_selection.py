@@ -18,6 +18,8 @@ from verify_image_profile import load_prepared_profile
 def selection(tmp_path):
     catalogue = export_catalogue(ROOT, tmp_path / 'catalogue')
     ids = [project['id'] for project in catalogue['projects']]
+    assert catalogue['sets'][0]['parent_project_id'] == 'replacement-showcase-candidate-event-horizon'
+    assert catalogue['sets'][0]['dependency_scan_complete'] is False
     return dict(version=1, **catalogue['groups'], project_ids=ids[::-1], startup_index=2)
 
 
@@ -42,6 +44,50 @@ def test_prepares_original_demos_with_exact_order_hashes_and_startup(tmp_path):
         prepare_selection(ROOT, request, Path(os.environ['FM1_STATE_TOOL']), output)
     assert receipt == json.loads((output / 'selection.json').read_text())
 
+
+
+def test_hash_pinned_companion_set_packs_after_required_project(tmp_path):
+    catalogue = export_catalogue(ROOT, tmp_path / 'catalogue')
+    parent = 'replacement-showcase-candidate-event-horizon'
+    set_id = 'replacement-showcase-event-horizon-companion-set'
+    request = dict(version=1, **catalogue['groups'], project_ids=[parent], startup_index=0,
+                   set_ids=[set_id])
+    output = tmp_path / 'selection'
+    receipt = prepare_selection(ROOT, request, Path(os.environ['FM1_STATE_TOOL']), output)
+    checked = load_prepared_profile(output / 'prepared', receipt['prepared_profile_sha256'])
+    assert receipt['project_ids'] == [parent]
+    assert receipt['startup_project_id'] == parent
+    assert receipt['set_ids'] == [set_id]
+    assert receipt['selected_content'] == [
+        {'kind': 'project', 'id': parent},
+        {'kind': 'set', 'id': set_id, 'parent_project_id': parent},
+    ]
+    assert [row['kind'] for row in receipt['content']] == ['project', 'set']
+    assert receipt['content'][1]['dependency_scan_complete'] is False
+    assert receipt['content'][1]['parent_project_id'] == parent
+    assert [row['kind'] for row in checked.report['content']] == ['project', 'set']
+    assert checked.report['content'][0]['dependency_scan_complete'] is True
+    assert checked.report['content'][1]['dependency_scan_complete'] is False
+    assert checked.packed_content[1].startswith(b'\x89Lunar\r\n')
+    assert all(receipt[key] is False for key in
+               ('installable', 'native_link_verified', 'native_ram_verified', 'hardware_tested'))
+
+
+@pytest.mark.parametrize('project_ids,startup_index,set_ids', [
+    (['legacy-example-afterglow-relay'], 0, ['replacement-showcase-event-horizon-companion-set']),
+    (['replacement-showcase-candidate-event-horizon',
+      'legacy-example-afterglow-relay'], 1,
+     ['replacement-showcase-event-horizon-companion-set']),
+    (['replacement-showcase-candidate-event-horizon'], 0, ['not-registered']),
+])
+def test_companion_set_refuses_missing_or_nonstartup_parent(tmp_path, project_ids, startup_index, set_ids):
+    catalogue = export_catalogue(ROOT, tmp_path / 'catalogue')
+    request = dict(version=1, **catalogue['groups'], project_ids=project_ids,
+                   startup_index=startup_index, set_ids=set_ids)
+    output = tmp_path / 'selection'
+    with pytest.raises(ValueError):
+        prepare_selection(ROOT, request, Path(os.environ['FM1_STATE_TOOL']), output)
+    assert not output.exists()
 
 def test_omitted_project_dependency_leaves_no_success_receipt(tmp_path):
     request = selection(tmp_path)

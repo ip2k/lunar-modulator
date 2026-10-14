@@ -66,6 +66,14 @@ PRELOAD_PROJECTS = (
          source_sha256='090996484a125f5bde3fe4fb0a6dc3284cf7a260d6c6603298206921e78ed5d6'),
 )
 
+# This companion SET is tied to its parent project because sequence parameter
+# locks are validated against that project's engine plan. It is embedded only;
+# native selectable-set runtime access is not claimed.
+PRELOAD_SETS = (
+    dict(id="replacement-showcase-event-horizon-companion-set",
+         parent_project_id="replacement-showcase-candidate-event-horizon"),
+)
+
 
 def _source_module_dependencies(project, module_groups):
     """Read source IDs for chooser preflight; packed validation stays backend-only."""
@@ -172,6 +180,40 @@ def export_preload_projects(root: Path, module_groups=None):
     return projects
 
 
+def export_preload_sets(root: Path, projects=None):
+    """Export only fixed companion SETs derived from hash-pinned projects."""
+    projects = projects if projects is not None else export_preload_projects(root)
+    by_id = {row['id']: row for row in projects}
+    result = []
+    for spec in PRELOAD_SETS:
+        parent = by_id.get(spec['parent_project_id'])
+        if parent is None:
+            raise ValueError('Companion SET parent is absent from trusted project catalogue')
+        path = root / parent['source_path']
+        raw = path.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != parent['source_sha256']:
+            raise ValueError('Companion SET parent source changed')
+        try:
+            project = json.loads(raw)
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise ValueError('Invalid companion SET parent source') from error
+        lines = project.get('set')
+        if (not isinstance(lines, list) or not lines or lines[0] != 'movy1'
+                or any(not isinstance(line, str) or '\n' in line or '\r' in line for line in lines)):
+            raise ValueError('Companion SET is not a bounded movy1 line sequence')
+        payload = ('\n'.join(lines) + '\n').encode('utf-8')
+        result.append({
+            'id': spec['id'], 'title': parent['title'] + ' Companion Set',
+            'parent_project_id': spec['parent_project_id'],
+            'source_path': parent['source_path'],
+            'source_sha256': parent['source_sha256'],
+            'content_sha256': hashlib.sha256(payload).hexdigest(),
+            'source_dependency_scan_complete': False,
+            'dependency_scan_complete': False,
+        })
+    return result
+
+
 def export_catalogue(root: Path, build: Path):
     catalogue_path = root / 'engines/modules/catalogue.mk'
     before = catalogue_path.read_bytes()
@@ -195,7 +237,8 @@ def export_catalogue(root: Path, build: Path):
         raise ValueError('Production default does not match requested catalogue')
     if catalogue_path.read_bytes() != before:
         raise ValueError('Module catalogue changed during export')
-    return dict(version=1, groups=groups, projects=export_preload_projects(root, groups),
+    projects = export_preload_projects(root, groups)
+    return dict(version=1, groups=groups, projects=projects, sets=export_preload_sets(root, projects),
                 full_song_default={
                     'required': True,
                     'status': 'owner-approved',

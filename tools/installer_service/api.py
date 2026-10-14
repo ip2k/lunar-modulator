@@ -46,7 +46,10 @@ def _reject_constant(_value):
 
 
 def canonical_request(request: dict) -> bytes:
-    return (json.dumps(request, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    normalized = dict(request)
+    if normalized.get("set_ids") == []:
+        normalized.pop("set_ids")
+    return (json.dumps(normalized, sort_keys=True, separators=(",", ":")) + "\n").encode()
 
 
 class BuildRequest(BaseModel):
@@ -58,8 +61,9 @@ class BuildRequest(BaseModel):
     modulation: list[StrictStr] = Field(max_length=128)
     project_ids: list[StrictStr] = Field(min_length=1, max_length=8)
     startup_index: StrictInt = Field(ge=0)
+    set_ids: list[StrictStr] = Field(default_factory=list, max_length=8)
 
-    @field_validator("engines", "effects", "midi", "modulation", "project_ids")
+    @field_validator("engines", "effects", "midi", "modulation", "project_ids", "set_ids")
     @classmethod
     def unique_ids(cls, values):
         if len(values) != len(set(values)):
@@ -210,7 +214,7 @@ def _verify_runtime_configuration(receipt: dict) -> None:
         raise ValueError("worker runtime configuration differs from canonical mode")
 
 
-def _verify_result(admission: Admission, result: WorkerResult) -> dict:
+def _verify_result(admission: Admission, result: WorkerResult, trusted_set_parents=None) -> dict:
     if (not isinstance(result.artifact, bytes) or not isinstance(result.elf, bytes)
             or not isinstance(result.receipt, bytes) or not result.artifact or not result.elf
             or len(result.artifact) > MAX_ARTIFACT_BYTES or len(result.elf) > MAX_ELF_BYTES
@@ -227,6 +231,9 @@ def _verify_result(admission: Admission, result: WorkerResult) -> dict:
     elf_sha = hashlib.sha256(result.elf).hexdigest()
     request = admission.request
     projects = request["project_ids"]
+    set_ids = request.get("set_ids", [])
+    trusted_set_parents = {} if trusted_set_parents is None else trusted_set_parents
+    selected_content = receipt.get("selected_content")
     startup_index = request["startup_index"]
     expected_selected = [module for group in GROUPS for module in request[group]]
     content = receipt.get("content")
@@ -241,6 +248,7 @@ def _verify_result(admission: Admission, result: WorkerResult) -> dict:
             or receipt.get("status") != "linked-private-diagnostic"
             or receipt.get("request_sha256") != admission.request_sha256
             or receipt.get("project_ids") != projects
+            or receipt.get("set_ids", []) != set_ids
             or type(receipt.get("startup_index")) is not int
             or receipt["startup_index"] != startup_index
             or receipt.get("startup_project_id") != projects[startup_index]
@@ -262,14 +270,27 @@ def _verify_result(admission: Admission, result: WorkerResult) -> dict:
             or receipt["module_selection"].get("selected") != expected_selected):
         raise ValueError("worker module selection differs from admission")
     _verify_wavetable_receipt(receipt, expected_selected)
-    if (not isinstance(content, list) or not 1 <= len(content) <= 8
-            or len(content) != len(projects)):
-        raise ValueError("worker content list is malformed")
+    expected_parents = {set_id: trusted_set_parents[set_id] for set_id in set_ids}
+    expected_identity = ([{"kind": "project", "id": project} for project in projects]
+                         + [{"kind": "set", "id": set_id,
+                             "parent_project_id": expected_parents[set_id]}
+                            for set_id in set_ids])
+    if receipt.get("set_parents", {}) != expected_parents:
+        raise ValueError("worker companion SET parent identity differs from trusted catalogue")
+    if (not isinstance(selected_content, list) or len(selected_content) != len(expected_identity)
+            or any(not isinstance(row, dict) for row in selected_content)
+            or selected_content != expected_identity
+            or not isinstance(content, list) or not 1 <= len(content) <= 16
+            or len(content) != len(expected_identity)):
+        raise ValueError("worker ordered content identity is malformed")
     # Validate every untrusted row before reading fields to derive aggregate
     # sizes or hashes. Malformed JSON shapes must be a controlled refusal, not
     # an AttributeError/TypeError escaping the status route.
-    for row in content:
-        if (not isinstance(row, dict) or row.get("kind") != "project"
+    for expected_row, row in zip(expected_identity, content):
+        if (not isinstance(row, dict) or row.get("kind") != expected_row["kind"]
+                or row.get("id") != expected_row["id"]
+                or (expected_row["kind"] == "set"
+                    and row.get("parent_project_id") != expected_row["parent_project_id"])
                 or type(row.get("bytes")) is not int or row["bytes"] <= 0
                 or not isinstance(row.get("packed_sha256"), str)
                 or not SHA256.fullmatch(row["packed_sha256"])):
@@ -311,6 +332,7 @@ def _verify_result(admission: Admission, result: WorkerResult) -> dict:
 
 def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
                module_kinds: dict[str, str], project_ids: set[str],
+               set_parents: dict[str, str] | None = None,
                queue_cap: int = 1, record_cap: int = 64,
                retention_seconds: int = 3600, clock=time.monotonic) -> FastAPI:
     """Construct a local API around an injected fixed adapter and trusted catalogue."""
@@ -322,6 +344,11 @@ def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
         raise ValueError("retention_seconds must be between 60 and 86400")
     if not module_kinds or not project_ids:
         raise ValueError("trusted module and project catalogues are required")
+    set_parents = {} if set_parents is None else set_parents
+    if (not isinstance(set_parents, dict)
+            or any(not isinstance(key, str) or not isinstance(value, str)
+                   or value not in project_ids for key, value in set_parents.items())):
+        raise ValueError("trusted companion SET catalogue is malformed")
     @asynccontextmanager
     async def lifespan(_app):
         try:
@@ -363,12 +390,16 @@ def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
         except (UnicodeDecodeError, json.JSONDecodeError, DuplicateKey, ValueError,
                 ValidationError, RecursionError):
             return None, JSONResponse({"detail": "invalid build request"}, 422)
-        doc = model.model_dump(mode="json")
+        doc = model.model_dump(mode="json", exclude_defaults=True)
         for group, kind in zip(GROUPS, ("sound", "audio_fx", "midi_fx", "mod")):
             if any(module not in module_kinds or module_kinds[module] != kind
                    for module in doc[group]):
                 return None, JSONResponse({"detail": "invalid build request"}, 422)
-        if any(project not in project_ids for project in doc["project_ids"]):
+        if (any(project not in project_ids for project in doc["project_ids"])
+                or any(set_id not in set_parents for set_id in doc.get("set_ids", []))
+                or any(set_parents[set_id] not in doc["project_ids"]
+                       or set_parents[set_id] != doc["project_ids"][doc["startup_index"]]
+                       for set_id in doc.get("set_ids", []))):
             return None, JSONResponse({"detail": "invalid build request"}, 422)
         return doc, None
 
@@ -434,7 +465,7 @@ def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
             if snapshot.result is None:
                 return JSONResponse({"detail": "build result unavailable"}, 502)
             try:
-                result["result"] = _verify_result(admission, snapshot.result)
+                result["result"] = _verify_result(admission, snapshot.result, set_parents)
             except (ValueError, TypeError, AttributeError, KeyError, OverflowError):
                 return JSONResponse({"detail": "build result failed verification"}, 502)
         return result

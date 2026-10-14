@@ -1,0 +1,11 @@
+# Trusted companion SET selection in the private builder
+
+This change adds one server-owned companion SET choice to the existing private diagnostic build path. It does not accept arbitrary SET uploads or file paths, add a native picker, change the Event Horizon Showcase default, or mark any image installable.
+
+The trusted registry contains `replacement-showcase-event-horizon-companion-set`, derived from the source JSON for its fixed parent project `replacement-showcase-candidate-event-horizon`. Export and staging verify the parent source digest and the derived `movy1` payload digest. The payload is staged after selected projects, with ordered identity recorded as `kind=project` or `kind=set`; build receipts and API verification bind that order, the SET-to-parent mapping, packed sizes, and packed hashes. API requests may select only registry IDs. Empty or omitted `set_ids` retain the old canonical default request encoding.
+
+SET dependency analysis is explicitly incomplete. The SET is accepted only when its parent project is among the selected projects and is also the startup project, because the sequence's parameter locks rely on that project's engine plan. Standalone SET startup and other-parent combinations are rejected. This is a bounded project-plus-companion milestone; it does not establish that all cross-content references are resolved or provide device-side browsing/selection.
+
+Validation ran on Hera in an offline, resource-limited Docker container with the pinned test dependencies, using a fresh `fm1-state` build from this worktree. The focused suite covered `tests/test_installer_service.py`, `tests/test_native_demo_selection.py`, and `tests/test_native_content_set.py`; all passed after the final validation-order cleanup, and `git diff --check` was clean. Tests exercise host/native loader paths and mocked service receipts. They are not a full target-image admission, hardware playback, or recovery test.
+
+Next dependency: extend the trusted set registry and dependency proof only when a concrete supported SET has validated engine/parameter references. The browser client must also be extended to expose only these trusted SET IDs and enforce the parent-as-startup rule. Native selectable access remains separate work.
