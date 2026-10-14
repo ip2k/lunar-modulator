@@ -135,10 +135,53 @@ def test_tuple_requires_external_digest_and_false_admission_flags():
         packager._validate_tuple(packager.canonical_json({}), packager.sha256(packager.canonical_json({})))
     assert packager._validate_tuple(raw, digest)["tuple_id"] == "synthetic-test-only"
 
+    continuous = dict(synthetic, runtime_mode="continuous", application_identity="FM-1_500")
+    continuous_raw = packager.canonical_json(continuous)
+    assert packager._validate_tuple(continuous_raw, packager.sha256(continuous_raw))["runtime_mode"] == "continuous"
+    for changes in ({"application_identity": "FM-1_990"}, {"recovery_identity": "FM-1_001"}):
+        altered = packager.canonical_json(dict(continuous, **changes))
+        with pytest.raises(ValueError, match="explicit Lunar identity"):
+            packager._validate_tuple(altered, packager.sha256(altered))
+
     synthetic["installable"] = True
     altered = packager.canonical_json(synthetic)
     with pytest.raises(ValueError, match="flags false"):
         packager._validate_tuple(altered, packager.sha256(altered))
+
+
+def test_continuous_runtime_requires_compiled_timer_policy_and_keeps_release_false():
+    valid = {
+        "runtime_configuration": {
+            "runtime_mode": "continuous", "return_to_rom_seconds": None,
+            "define": "-DLUNAR_RETURN_TO_ROM_SECONDS=0", "release_accepted": False,
+        },
+        "probe_return_to_rom_seconds": None,
+        "runtime_policy_sha256": packager.RUNTIME_POLICY_SHA256,
+    }
+    runtime, seconds = packager._validate_runtime(valid, "continuous")
+    assert runtime == valid["runtime_configuration"] and seconds is None
+    for changes in (
+            {"return_to_rom_seconds": 120}, {"return_to_rom_seconds": 0},
+            {"define": "-DLUNAR_RETURN_TO_ROM_SECONDS=120"},
+            {"release_accepted": True}, {"release_accepted": 0},
+            {"runtime_mode": "song-diagnostic"}, {"unrecognized": False}):
+        bad = dict(valid, runtime_configuration=dict(runtime, **changes))
+        with pytest.raises(ValueError):
+            packager._validate_runtime(bad, "continuous")
+    for changes in ({"probe_return_to_rom_seconds": 120}, {"runtime_policy_sha256": "0" * 64}):
+        with pytest.raises(ValueError, match="exact continuous runtime policy"):
+            packager._validate_runtime(dict(valid, **changes), "continuous")
+    missing_timer = dict(valid)
+    del missing_timer["probe_return_to_rom_seconds"]
+    with pytest.raises(ValueError, match="exact continuous runtime policy"):
+        packager._validate_runtime(missing_timer, "continuous")
+    diagnostic = {"runtime_configuration": {
+        "runtime_mode": "song-diagnostic", "return_to_rom_seconds": 120,
+        "release_accepted": False,
+    }}
+    assert packager._validate_runtime(diagnostic, "song-diagnostic")[1] == 120
+    with pytest.raises(ValueError):
+        packager._validate_runtime(diagnostic, "continuous")
 
 
 def test_catalogue_must_match_receipt_and_exact_bytes():

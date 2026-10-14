@@ -11,6 +11,7 @@ import inspect_fwsc  # noqa: E402
 import model_092_app_replacement as nested_model  # noqa: E402
 
 PROFILE_ID = "fm1-092-d7000"
+RUNTIME_POLICY_SHA256 = "fe457ad4056aeb8e6b3ec9df606ac79ab757adc142bd2db9780357fb72f1e905"
 TUPLE_KEYS = {
     "app_bytes", "app_sha256", "application_identity", "artifact_receipt_sha256",
     "build_provenance_sha256", "build_receipt_sha256", "catalogue_sha256", "elf_sha256",
@@ -90,11 +91,38 @@ def _validate_tuple(raw_tuple, expected_tuple_sha256):
     for field in ("application_identity", "recovery_identity"):
         if not isinstance(build_tuple[field], str) or not re.fullmatch(r"FM-1_[0-9]{3}", build_tuple[field]):
             raise ValueError(f"build tuple {field} is not a supported FM-1 identity")
-    if build_tuple["runtime_mode"] != "song-diagnostic":
-        raise ValueError("build tuple is not the reviewed diagnostic runtime mode")
+    if build_tuple["runtime_mode"] not in ("song-diagnostic", "continuous"):
+        raise ValueError("build tuple is not a supported offline runtime mode")
+    if build_tuple["runtime_mode"] == "continuous" and (
+            re.fullmatch(r"FM-1_5[0-9]{2}", build_tuple["application_identity"]) is None
+            or build_tuple["recovery_identity"] != "FM-1_000"):
+        raise ValueError("continuous tuple requires an explicit Lunar identity and stock recovery identity")
     if any(build_tuple[key] is not False for key in ("hardware_admitted", "hardware_tested", "installable")):
         raise ValueError("build tuple must keep hardware and installability flags false")
     return build_tuple
+
+
+def _validate_runtime(verification, mode):
+    """Verify the compiled timer policy independently of the tuple's mode label."""
+    runtime = verification.get("runtime_configuration")
+    if not isinstance(runtime, dict) or runtime.get("runtime_mode") != mode:
+        raise ValueError("build receipt runtime mode differs from the trusted tuple")
+    if runtime.get("release_accepted") is not False:
+        raise ValueError("build receipt must keep release acceptance false")
+    seconds = runtime.get("return_to_rom_seconds")
+    if mode == "continuous":
+        if (set(runtime) != {"runtime_mode", "return_to_rom_seconds", "define", "release_accepted"}
+                or seconds is not None or runtime.get("define") != "-DLUNAR_RETURN_TO_ROM_SECONDS=0"
+                or "probe_return_to_rom_seconds" not in verification
+                or verification["probe_return_to_rom_seconds"] is not None
+                or verification.get("runtime_policy_sha256") != RUNTIME_POLICY_SHA256):
+            raise ValueError("build receipt is not the exact continuous runtime policy")
+    elif mode == "song-diagnostic":
+        if isinstance(seconds, bool) or not isinstance(seconds, int) or not 1 <= seconds <= 3600:
+            raise ValueError("build receipt has no bounded diagnostic runtime configuration")
+    else:
+        raise ValueError("unsupported offline runtime mode")
+    return runtime, seconds
 
 def _validate_catalogue(raw, expected_sha256, verification, catalogue_files):
     if sha256(raw) != expected_sha256:
@@ -213,25 +241,21 @@ def _validate_receipts(build_tuple, app, elf, artifact_raw, build_raw, provenanc
     if verification.get("elf_sha256") != build_tuple["elf_sha256"]:
         raise ValueError("build receipt does not bind the selected ELF")
     identity = verification.get("firmware_identity")
-    expected_identity = (build_tuple["application_identity"], build_tuple["recovery_identity"], False, False, False, False)
+    explicit = build_tuple["runtime_mode"] == "continuous"
+    expected_identity = (build_tuple["application_identity"], build_tuple["recovery_identity"], explicit, False, False, False)
     if not isinstance(identity, dict) or (
         identity.get("application_identity"), identity.get("recovery_identity"), identity.get("explicit"),
         identity.get("package_identity_verified"), identity.get("updater_acceptance_verified"),
         identity.get("hardware_identity_verified")
     ) != expected_identity:
         raise ValueError("build receipt firmware identity differs from the trusted tuple")
+    if identity.get("explicit") is not explicit:
+        raise ValueError("build receipt explicit identity flag must be a boolean")
     save = verification.get("project_save_service")
     if not isinstance(save, dict) or any(save.get(key) is not False for key in (
             "storage_admitted", "flash_io_bound", "save_service_armed", "runtime_verified", "hardware_tested")):
         raise ValueError("build receipt does not keep SAVE flash I/O disarmed")
-    runtime = verification.get("runtime_configuration")
-    if not isinstance(runtime, dict) or runtime.get("runtime_mode") != build_tuple["runtime_mode"]:
-        raise ValueError("build receipt runtime mode differs from the trusted tuple")
-    if runtime.get("release_accepted") is not False:
-        raise ValueError("build receipt must keep release acceptance false")
-    seconds = runtime.get("return_to_rom_seconds")
-    if isinstance(seconds, bool) or not isinstance(seconds, int) or not 1 <= seconds <= 3600:
-        raise ValueError("build receipt has no bounded diagnostic runtime configuration")
+    runtime, seconds = _validate_runtime(verification, build_tuple["runtime_mode"])
     if image.get("verification_sha256") != build_tuple["build_receipt_sha256"]:
         raise ValueError("image receipt does not bind the exact build receipt")
     if image.get("app_sha256") != build_tuple["app_sha256"] or image.get("app_bytes") != build_tuple["app_bytes"] or image.get("elf_sha256") != build_tuple["elf_sha256"]:
@@ -241,8 +265,10 @@ def _validate_receipts(build_tuple, app, elf, artifact_raw, build_raw, provenanc
             image_identity.get("application_identity"), image_identity.get("recovery_identity"),
             image_identity.get("explicit"), image_identity.get("package_identity_verified"),
             image_identity.get("updater_acceptance_verified"), image_identity.get("hardware_identity_verified")) != (
-            build_tuple["application_identity"], build_tuple["recovery_identity"], False, False, False, False):
+            build_tuple["application_identity"], build_tuple["recovery_identity"], explicit, False, False, False):
         raise ValueError("image receipt firmware identity differs from the trusted tuple")
+    if image_identity.get("explicit") is not explicit:
+        raise ValueError("image receipt explicit identity flag must be a boolean")
     if image.get("artifact_receipt_sha256") != build_tuple["artifact_receipt_sha256"]:
         raise ValueError("image receipt does not bind the artifact receipt")
     if image.get("request_sha256") != build_tuple["request_sha256"] or image.get("prepared_profile_sha256") != build_tuple["prepared_profile_sha256"]:
@@ -286,7 +312,7 @@ def package_bytes(*, source_fwsc: bytes, reference_dir, app: bytes, elf: bytes,
                   catalogue_manifest: bytes, image_receipt: bytes, catalogue_files: Mapping[str, bytes],
                   generated_files: Mapping[str, bytes], build_tuple: bytes,
                   expected_tuple_sha256: str):
-    """Compose/reopen a private diagnostic package in memory; does not write files."""
+    """Compose/reopen a private offline package in memory; does not write files."""
     trusted = _validate_tuple(build_tuple, expected_tuple_sha256)
     artifact, verification, _, manifest, image, runtime_seconds = _validate_receipts(
         trusted, app, elf, artifact_receipt, build_receipt, build_provenance,
@@ -331,6 +357,7 @@ def package_bytes(*, source_fwsc: bytes, reference_dir, app: bytes, elf: bytes,
         "build_receipt_sha256": trusted["build_receipt_sha256"],
         "build_provenance_sha256": trusted["build_provenance_sha256"],
         "package_identity": generic["identity"], "recovery_identity": trusted["recovery_identity"],
+        "runtime_mode": trusted["runtime_mode"], "return_to_rom_seconds": runtime_seconds,
         "package_sha256": sha256(package), "package_bytes": len(package),
         "flash_layout": PROFILE_ID, "expanded_flash_bytes": nested_model.STAGE_START,
         "max_app_bytes_preserving_092_tail": nested_model.MAX_APP_BYTES,

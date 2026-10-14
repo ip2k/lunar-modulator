@@ -1,0 +1,7 @@
+# Trusted continuous package policy
+
+[verified: source] The trusted D7000 tuple adapter now accepts continuous builds as an additional offline mode. Continuous tuples require an explicit FM-1_5xx application identity and FM-1_000 recovery identity. Their build and image receipts must agree on the explicit identity, and the build receipt must contain the exact continuous runtime configuration, absent diagnostic timer and pinned runtime-policy hash. The policy header hash was checked locally as fe457ad4056aeb8e6b3ec9df606ac79ab757adc142bd2db9780357fb72f1e905. All hardware, installation, updater and release flags remain false; this change authorizes no device operation.
+
+[verified: host tests] Two artifact-independent policy tests passed on the Mac, covering tuple identity bounds, continuous timer/define/hash checks, missing fields, false release admission, and diagnostic mode mismatch. The three focused package suites completed successfully locally; retained private artifact cases skipped because this worktree has no private inputs. Fresh continuous artifact composition and an independent source review remain required on Hera. Diagnostic tuples retain their prior bounded-timer validation.
+
+[verified: tooling limit] Rarefaction status and Serena current config still select the primary checkout rather than this concurrent installable worktree. They were not retargeted, to avoid disrupting another active session. Source inspection and focused runtime tests were used here; no semantic-index coverage is claimed.
