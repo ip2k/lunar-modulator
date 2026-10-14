@@ -21,14 +21,40 @@ def refuses(fn):
     raise AssertionError('Corrupt candidate accepted')
 
 
+def repair_outer_entry(candidate, entry_index, *, payload=None, mutate_record=None):
+    image = logical(candidate)
+    offset = 64 + entry_index * 80
+    record = bytearray(header_decode(image[offset:offset + 80]))
+    if payload is not None:
+        struct.pack_into('<H', record, 4, crc16(payload))
+    if mutate_record is not None:
+        mutate_record(record)
+    image[offset:offset + 80] = header_decode(record)
+    header = bytearray(header_decode(image[:64]))
+    count = struct.unpack_from('<H', header, 8)[0]
+    struct.pack_into('<H', header, 2, crc16(image[64:64 + count * 80]))
+    struct.pack_into('<H', header, 0, crc16(header[2:]))
+    image[:64] = header_decode(header)
+    return physical(image, candidate)
+
+
 def check(root, shard):
-    assert 0 <= shard < 16
+    assert 0 <= shard < 18
     raw = (root / 'stock.fwsc').read_bytes()
     app = (root / 'app.bin').read_bytes()
     stock = root / 'stock'
     candidate, receipt = ota.compose(raw, stock, app)
     assert receipt['identity'] == 'FM-1_990'
     assert receipt['replacement']['stock_boot_config_resource_components_unchanged']
+    correspondence = receipt['correspondence']
+    assert correspondence['nested_full_container_noop']
+    assert correspondence['app_identity'] == 'FM-1_990'
+    assert correspondence['app_identity_matches_markers']
+    assert correspondence['stock_ota_verified']
+    assert correspondence['stock_spl_cfg_etc_verified']
+    assert correspondence['device_version_acceptance'] is False
+    assert correspondence['preserved_component_sha256']['top/uboot.boot'] == ota.digest(
+        (root / 'stock/top/uboot.boot').read_bytes())
     assert not any(receipt[k] for k in ('hardware_operations', 'physical_boot_verified',
                                       'recovery_verified', 'web_install_verified', 'release_ready'))
     outer = inspect(candidate, stock)
@@ -75,7 +101,7 @@ def check(root, shard):
         bad = candidate[:-1]
     elif shard == 14:
         bad = candidate + b'\0'
-    else:
+    elif shard == 15:
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp) / 'private'
             ota.emit(output, candidate, receipt)
@@ -86,6 +112,17 @@ def check(root, shard):
             assert json.loads((output / 'receipt.json').read_text()) == receipt
             refuses(lambda: ota.emit(output, candidate, receipt))
         return dict(shard=shard, passed=True, hardware_operations=0)
+    elif shard == 16:
+        entry = entries['ota.bin']
+        logical_candidate = logical(candidate)
+        payload = bytearray(logical_candidate[entry['offset']:entry['offset'] + entry['bytes']])
+        payload[0] ^= 1
+        bad = repair_outer_entry(candidate, entry['index'], payload=payload)
+    else:
+        entry = entries['tail.bin']
+        def corrupt_tail_record(record):
+            record[6] ^= 1  # syntactically valid outer CRC, unsupported version-record field
+        bad = repair_outer_entry(candidate, entry['index'], mutate_record=corrupt_tail_record)
     refuses(lambda: ota.verify(raw, bytes(bad), stock, app))
     return dict(shard=shard, passed=True, hardware_operations=0)
 
