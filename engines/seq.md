@@ -31,7 +31,7 @@ python -m pytest tests/test_seq*.py               # the sequencer tests
 | `seq/seq_clip.c` | The pools and Movy's `Clip` methods (clip.rs); the fire-tick index |
 | `seq/seq_engine.c` | Clock, transport, launches, scenes, song (Movy's, and the FM-1's entry edits and end modes), recording, `step_tick`, the lock latch, external clock (engine.rs, clock.rs, track.rs) |
 | `seq/seq_cmd.c` | The verb parser and dispatcher (command.rs) |
-| `seq/seq_persist.c` | `movy1` export and import (persist.rs); the import streams: `fm1_seq_import_begin`, `_feed` (text in pieces of any size) and `_end`, holding no line |
+| `seq/seq_persist.c` | `movy1` export and import (persist.rs); callback export `fm1_seq_export_movy1_stream` needs no complete-set buffer and stops sink calls on failure; the import streams: `fm1_seq_import_begin`, `_feed` (text in pieces of any size) and `_end`, holding no line |
 | `seq/seq_capture.c` | Capture, the retroactive record (capture.rs and engine.rs's capture functions), in 12-byte events |
 | `include/fm1_seq_host.h`, `seq/seq_host.c` | The host bridge: the per-block code every host shares (commands into the event buffer, advance, split renders into a sound engine, lane labels resolved to parameter uids, NOLOCK refusals, the metronome's click); C99, no heap, no stdio, like the core (below, Host contract) |
 | `host/seq_script.[ch]` | Desktop only: the timed verb-script reader (Movy verbs and `rt` realtime input), the JSON Lines event log, and `fm1_seq_cmd_format`, a typed command as text that `fm1_seq_parse` reads back to the same record (the virtual FM-1's harness logs its panel's commands so, for `fm1-render` to replay) |

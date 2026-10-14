@@ -250,6 +250,16 @@ uint32_t fm1_seq_realtime_in(fm1_seq_t *s, uint16_t frame, uint8_t status,
  * written (NUL-terminated) only if that is less than cap. */
 size_t fm1_seq_export_movy1(const fm1_seq_t *s, char *buf, size_t cap);
 
+/* Export identical text without a complete-set buffer or NUL terminator.
+ * The synchronous sink consumes each fragment before returning: 0 succeeds,
+ * any other value stops further sink calls. Returns 0 only on complete export;
+ * otherwise -1, with *length zero. A failure may leave partial sink output.
+ * s, sink and length are required. Keep the set unchanged throughout export;
+ * the sink must not mutate it. No heap allocation or persistent scratch. */
+typedef int (*fm1_seq_export_sink_t)(void *ctx, const char *data, size_t size);
+int fm1_seq_export_movy1_stream(const fm1_seq_t *s, fm1_seq_export_sink_t sink,
+                               void *ctx, size_t *length);
+
 /* Replaces the set from `movy1` text, as Movy's persist::load. Returns 1 if
  * the format tag matched, 0 otherwise (nothing changed). Outside compat
  * mode it also reads the FM-1 lines dq, se and sn and reseeds the RNG

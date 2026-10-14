@@ -1,0 +1,194 @@
+[
+  {
+    "bytes": 419,
+    "callbacks": 286,
+    "injected_failures": 858,
+    "compat": 0
+  },
+  {
+    "bytes": 205,
+    "callbacks": 134,
+    "injected_failures": 402,
+    "compat": 1
+  },
+  {
+    "bytes": 192,
+    "callbacks": 124,
+    "injected_failures": 372,
+    "compat": 0
+  },
+  {
+    "bytes": 52768,
+    "callbacks": 28223,
+    "injected_failures": 87,
+    "compat": 1
+  },
+  {
+    "bytes": 218,
+    "callbacks": 145,
+    "injected_failures": 435,
+    "compat": 0
+  },
+  {
+    "bytes": 303,
+    "callbacks": 206,
+    "injected_failures": 618,
+    "compat": 0
+  },
+  {
+    "bytes": 197,
+    "callbacks": 124,
+    "injected_failures": 372,
+    "compat": 0
+  },
+  {
+    "bytes": 260,
+    "callbacks": 172,
+    "injected_failures": 516,
+    "compat": 0
+  },
+  {
+    "bytes": 442,
+    "callbacks": 326,
+    "injected_failures": 978,
+    "compat": 0
+  },
+  {
+    "bytes": 375,
+    "callbacks": 279,
+    "injected_failures": 837,
+    "compat": 0
+  },
+  {
+    "bytes": 424,
+    "callbacks": 286,
+    "injected_failures": 858,
+    "compat": 0
+  },
+  {
+    "bytes": 376,
+    "callbacks": 257,
+    "injected_failures": 771,
+    "compat": 0
+  },
+  {
+    "bytes": 351,
+    "callbacks": 236,
+    "injected_failures": 708,
+    "compat": 0
+  },
+  {
+    "bytes": 250,
+    "callbacks": 166,
+    "injected_failures": 498,
+    "compat": 0
+  },
+  {
+    "bytes": 337,
+    "callbacks": 235,
+    "injected_failures": 705,
+    "compat": 0
+  },
+  {
+    "bytes": 252,
+    "callbacks": 176,
+    "injected_failures": 528,
+    "compat": 0
+  },
+  {
+    "bytes": 205,
+    "callbacks": 134,
+    "injected_failures": 402,
+    "compat": 0
+  },
+  {
+    "bytes": 52760,
+    "callbacks": 28223,
+    "injected_failures": 87,
+    "compat": 0
+  },
+  {
+    "bytes": 388,
+    "callbacks": 268,
+    "injected_failures": 804,
+    "compat": 1
+  },
+  {
+    "bytes": 192,
+    "callbacks": 124,
+    "injected_failures": 372,
+    "compat": 1
+  },
+  {
+    "bytes": 218,
+    "callbacks": 145,
+    "injected_failures": 435,
+    "compat": 1
+  },
+  {
+    "bytes": 303,
+    "callbacks": 206,
+    "injected_failures": 618,
+    "compat": 1
+  },
+  {
+    "bytes": 197,
+    "callbacks": 124,
+    "injected_failures": 372,
+    "compat": 1
+  },
+  {
+    "bytes": 260,
+    "callbacks": 172,
+    "injected_failures": 516,
+    "compat": 1
+  },
+  {
+    "bytes": 442,
+    "callbacks": 326,
+    "injected_failures": 978,
+    "compat": 1
+  },
+  {
+    "bytes": 375,
+    "callbacks": 279,
+    "injected_failures": 837,
+    "compat": 1
+  },
+  {
+    "bytes": 424,
+    "callbacks": 286,
+    "injected_failures": 858,
+    "compat": 1
+  },
+  {
+    "bytes": 376,
+    "callbacks": 257,
+    "injected_failures": 771,
+    "compat": 1
+  },
+  {
+    "bytes": 351,
+    "callbacks": 236,
+    "injected_failures": 708,
+    "compat": 1
+  },
+  {
+    "bytes": 250,
+    "callbacks": 166,
+    "injected_failures": 498,
+    "compat": 1
+  },
+  {
+    "bytes": 337,
+    "callbacks": 235,
+    "injected_failures": 705,
+    "compat": 1
+  },
+  {
+    "bytes": 252,
+    "callbacks": 176,
+    "injected_failures": 528,
+    "compat": 1
+  }
+]

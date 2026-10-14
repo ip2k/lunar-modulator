@@ -1,0 +1,188 @@
+{
+  "baseline_commit": "b0908137b005ab9bf06cf94a7ff93ae4493e4f38",
+  "baseline_source_sha256": "95564f0e581b4215c1a60956be7bd4466ba8e31f1243b599d95b16ab2d508139",
+  "tests": 30,
+  "all_identical": true,
+  "rows": [
+    {
+      "file": "tests/fixtures/state/1.0/orbit.set.movy1",
+      "compat": 0,
+      "bytes": 419,
+      "sha256": "105ac9e837bfad27a098a4cd0b671f5563d939c99661332ff84adf12ee3ed2ae"
+    },
+    {
+      "file": "tests/fixtures/movy/01-clock-tempo.out.movy1",
+      "compat": 0,
+      "bytes": 192,
+      "sha256": "5030bf8e1af952fe1b7a8a806811db2e9397a5436dc7527fd352743d7ecf7d68"
+    },
+    {
+      "file": "tests/fixtures/movy/02-clock-rate48k-block7.out.movy1",
+      "compat": 0,
+      "bytes": 218,
+      "sha256": "470e5cb2b6258860a93c6f2b5b0ffcb76479b4b2223935f3a8a26de85a957a73"
+    },
+    {
+      "file": "tests/fixtures/movy/03-notes-gates.out.movy1",
+      "compat": 0,
+      "bytes": 303,
+      "sha256": "b351196e371ef34b5dad5a653e146b2a06631b54618de4ea04968a4cecd9324e"
+    },
+    {
+      "file": "tests/fixtures/movy/04-locks-latch.out.movy1",
+      "compat": 0,
+      "bytes": 197,
+      "sha256": "c1fddbdedeab7ccc65e1775ef52aab4debd57f52303f2c1556d11b3e21f12e49"
+    },
+    {
+      "file": "tests/fixtures/movy/05-locks-first-step.out.movy1",
+      "compat": 0,
+      "bytes": 260,
+      "sha256": "5eb23e7ee64009be2f0d0a8dccc25364b37dfe8240da0451fd88cde279ed78c5"
+    },
+    {
+      "file": "tests/fixtures/movy/06-conditions.out.movy1",
+      "compat": 0,
+      "bytes": 442,
+      "sha256": "508396cbf0d6c69a406a6b580f7338e598149ead652849edbaecb140832649ce"
+    },
+    {
+      "file": "tests/fixtures/movy/07-probability.out.movy1",
+      "compat": 0,
+      "bytes": 375,
+      "sha256": "fb53af3c19c5e098ff754b702d8675b48c47eaa7aa90498f59ee8e6eb0f82a7f"
+    },
+    {
+      "file": "tests/fixtures/movy/08-quantise-swing.out.movy1",
+      "compat": 0,
+      "bytes": 424,
+      "sha256": "c0d61da86b472c0abee2138c95fa45edc26463c430bf0bc636989fcc1af54ab1"
+    },
+    {
+      "file": "tests/fixtures/movy/09-scale.out.movy1",
+      "compat": 0,
+      "bytes": 376,
+      "sha256": "a276e8599c761cc0af3d969630331a37d3b74cc801b6471d659871a239992216"
+    },
+    {
+      "file": "tests/fixtures/movy/10-loop-window.out.movy1",
+      "compat": 0,
+      "bytes": 351,
+      "sha256": "b0f68391bd4acda45424f2d23256567cd295a301d15ace9f99bcb176dc404585"
+    },
+    {
+      "file": "tests/fixtures/movy/11-transpose-drum.out.movy1",
+      "compat": 0,
+      "bytes": 250,
+      "sha256": "bd7500e0357406da354fcdda0675a9f344a1fa76ee1dcaac0d74b25c0778a7f4"
+    },
+    {
+      "file": "tests/fixtures/movy/12-launch-session.out.movy1",
+      "compat": 0,
+      "bytes": 337,
+      "sha256": "730a525e1a376d275431235bb3c5a2c89991c1a72361813b8211c694657bb4c3"
+    },
+    {
+      "file": "tests/fixtures/movy/13-scenes-song.out.movy1",
+      "compat": 0,
+      "bytes": 252,
+      "sha256": "8c93965852a1e17dccdd026416fa73c9b028fd09d3f98d2ebf8e33861757a944"
+    },
+    {
+      "file": "tests/fixtures/movy/14-record-countin.out.movy1",
+      "compat": 0,
+      "bytes": 205,
+      "sha256": "7e309a5c2adf8ecb577a6c995bdff8ac79b88a09592684402f25690f72d97613"
+    },
+    {
+      "file": "tests/fixtures/state/1.0/orbit.set.movy1",
+      "compat": 1,
+      "bytes": 388,
+      "sha256": "d6df546a2eab38b0e1cb981b5db2ae105986c31288cd93f8d3b6e2ab4652eae1"
+    },
+    {
+      "file": "tests/fixtures/movy/01-clock-tempo.out.movy1",
+      "compat": 1,
+      "bytes": 192,
+      "sha256": "5030bf8e1af952fe1b7a8a806811db2e9397a5436dc7527fd352743d7ecf7d68"
+    },
+    {
+      "file": "tests/fixtures/movy/02-clock-rate48k-block7.out.movy1",
+      "compat": 1,
+      "bytes": 218,
+      "sha256": "470e5cb2b6258860a93c6f2b5b0ffcb76479b4b2223935f3a8a26de85a957a73"
+    },
+    {
+      "file": "tests/fixtures/movy/03-notes-gates.out.movy1",
+      "compat": 1,
+      "bytes": 303,
+      "sha256": "b351196e371ef34b5dad5a653e146b2a06631b54618de4ea04968a4cecd9324e"
+    },
+    {
+      "file": "tests/fixtures/movy/04-locks-latch.out.movy1",
+      "compat": 1,
+      "bytes": 197,
+      "sha256": "c1fddbdedeab7ccc65e1775ef52aab4debd57f52303f2c1556d11b3e21f12e49"
+    },
+    {
+      "file": "tests/fixtures/movy/05-locks-first-step.out.movy1",
+      "compat": 1,
+      "bytes": 260,
+      "sha256": "5eb23e7ee64009be2f0d0a8dccc25364b37dfe8240da0451fd88cde279ed78c5"
+    },
+    {
+      "file": "tests/fixtures/movy/06-conditions.out.movy1",
+      "compat": 1,
+      "bytes": 442,
+      "sha256": "508396cbf0d6c69a406a6b580f7338e598149ead652849edbaecb140832649ce"
+    },
+    {
+      "file": "tests/fixtures/movy/07-probability.out.movy1",
+      "compat": 1,
+      "bytes": 375,
+      "sha256": "fb53af3c19c5e098ff754b702d8675b48c47eaa7aa90498f59ee8e6eb0f82a7f"
+    },
+    {
+      "file": "tests/fixtures/movy/08-quantise-swing.out.movy1",
+      "compat": 1,
+      "bytes": 424,
+      "sha256": "c0d61da86b472c0abee2138c95fa45edc26463c430bf0bc636989fcc1af54ab1"
+    },
+    {
+      "file": "tests/fixtures/movy/09-scale.out.movy1",
+      "compat": 1,
+      "bytes": 376,
+      "sha256": "a276e8599c761cc0af3d969630331a37d3b74cc801b6471d659871a239992216"
+    },
+    {
+      "file": "tests/fixtures/movy/10-loop-window.out.movy1",
+      "compat": 1,
+      "bytes": 351,
+      "sha256": "b0f68391bd4acda45424f2d23256567cd295a301d15ace9f99bcb176dc404585"
+    },
+    {
+      "file": "tests/fixtures/movy/11-transpose-drum.out.movy1",
+      "compat": 1,
+      "bytes": 250,
+      "sha256": "bd7500e0357406da354fcdda0675a9f344a1fa76ee1dcaac0d74b25c0778a7f4"
+    },
+    {
+      "file": "tests/fixtures/movy/12-launch-session.out.movy1",
+      "compat": 1,
+      "bytes": 337,
+      "sha256": "730a525e1a376d275431235bb3c5a2c89991c1a72361813b8211c694657bb4c3"
+    },
+    {
+      "file": "tests/fixtures/movy/13-scenes-song.out.movy1",
+      "compat": 1,
+      "bytes": 252,
+      "sha256": "8c93965852a1e17dccdd026416fa73c9b028fd09d3f98d2ebf8e33861757a944"
+    },
+    {
+      "file": "tests/fixtures/movy/14-record-countin.out.movy1",
+      "compat": 1,
+      "bytes": 205,
+      "sha256": "7e309a5c2adf8ecb577a6c995bdff8ac79b88a09592684402f25690f72d97613"
+    }
+  ]
+}

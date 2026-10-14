@@ -2921,3 +2921,16 @@ Futureproductionvalidator must notapplyrecords and mustrefuseunsupportedversions
 conservatively. Next capacity/productionSAVEbridge, ownerwatchedall13boot,
 migration/physicalrollback/webinstaller/custombuilder/license/reviewCIremain.
 Previousverifiedpushedc93dc2f297e9a2dc2600096ad3741af895a152c1.
+
+## Streaming sequencer export checkpoint (2026-10-14)
+
+[verified] New callback exporter shares exact formatter; no whole-set buffer/heap,
+nonzero sink return blocks later callbacks and reports failure/zero length.
+32 cases /30 Hera ASanUBSan chunks pass, target seq_persist.c compile in each;
+19,032 failures, dense52768B/28223callbacks. Independent pre-refactor comparison
+matches30fixtureexports. Evidence notes/2026-10-14-seq-export-stream-verification/.
+No physical operation or SAVE integration; neither storage capacity nor writer
+RAM allocation is solved. Next bounded project-line adapter then collector/direct
+binary path; all13 watched boot remains pending. Migration/physicalrollback/web
+installer/custombuilder/license/reviewCI remain open. Do not replay consumed
+writers/loaders. Previous verified pushedb0908137b005ab9bf06cf94a7ff93ae4493e4f38.
