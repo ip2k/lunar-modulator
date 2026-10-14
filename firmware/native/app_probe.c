@@ -13,6 +13,9 @@
 #define FM1_BTN_OCT_DOWN DINGHY_BTN_OCT_DOWN
 #define FM1_BTN_OCT_UP DINGHY_BTN_OCT_UP
 static int32_t lunar_master_raw = 512;
+#ifdef LUNAR_STARTUP_PROJECT_INDEX
+static uint32_t lunar_selected_startup_project_index = LUNAR_STARTUP_PROJECT_INDEX;
+#endif
 #include "platform.c"
 #undef FM1_BTN_OCT_DOWN
 #undef FM1_BTN_OCT_UP
@@ -201,7 +204,7 @@ static void app_main(void)
     {
         fm1_state_report_t report;
         fm1_state_report_init(&report);
-        const lunar_content_asset_t *asset = &lunar_content_catalogue[LUNAR_STARTUP_PROJECT_INDEX];
+        const lunar_content_asset_t *asset = &lunar_content_catalogue[lunar_selected_startup_project_index];
         startup_project_result = !arena_bind_failures &&
             asset->kind == FM1_STATE_PROJECT && lunar_project_start(
                 &app, &instance_pool, asset->bytes, asset->size, 44118, &report);

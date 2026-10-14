@@ -317,6 +317,17 @@ def main():
         (platform / 'gen/felucca_font.h').read_text()))
     (out / 'gfx.c').write_text(compact_gfx((platform / 'src/gfx.c').read_text()))
     source = (platform / 'src/platform.c').read_text()
+    if args.startup_project_index is not None:
+        project_count = sum(1 for asset in content_inputs.report['content']
+                            if asset['kind'] == 'project')
+        if project_count > 1:
+            source = replace_once(source, '#include "usb.c"',
+                                  '#include "usb.c"\n#include "preload_selector_platform.h"')
+            source = replace_once(source,
+                '    fm1_audio_init(abuf, HALF_WORDS, isr_alnk0, 3);',
+                '    lunar_selected_startup_project_index =\n'
+                '        lunar_preload_choose(lunar_selected_startup_project_index);\n'
+                '    fm1_audio_init(abuf, HALF_WORDS, isr_alnk0, 3);')
     replacements = {
         '    ota_boot_cleanup();': '    /* Timed probe: retain OTA staging bytes. */',
         '#define FL_RANGE_OK(off, n) (FL_IN(off, n, FL_OTA_LO, FL_OTA_HI) || FL_IN(off, n, SETTINGS_AT, SETTINGS_AT + 0x1000u))':

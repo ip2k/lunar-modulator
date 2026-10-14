@@ -11,6 +11,7 @@ typedef struct lunar_content_asset {
     const uint8_t *bytes;
     uint32_t size;
     uint8_t kind; /* FM1_STATE_PROJECT or FM1_STATE_SET from fm1_state.h */
+    const char *title; /* bounded printable source basename; never a path */
 } lunar_content_asset_t;
 
 extern const lunar_content_asset_t lunar_content_catalogue[];

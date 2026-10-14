@@ -7,12 +7,19 @@ validate sequencer semantics. The controller must retain the expected digest.
 """
 import argparse
 import json
+import re
 from pathlib import Path
 
 from prepare_image_profile import sha
 from verify_image_profile import load_prepared_profile
 
 KINDS = {'project': 'FM1_STATE_PROJECT', 'set': 'FM1_STATE_SET'}
+
+def display_title(asset, index):
+    # Labels derive only from the admitted source basename, never a filesystem path.
+    stem = Path(asset.get('source', '')).stem
+    title = re.sub(r'[^A-Za-z0-9 _.-]', '', stem).strip(' ._-')[:20]
+    return title or f'PROJECT {index + 1:02d}'
 MAX_PACKED_FILE = 98304  # Existing FM1_STATE_BIN_MAX, not a larger file format.
 MAX_PACKED_TOTAL = 1048576  # Entire physical FM1 flash; actual link cap is smaller.
 
@@ -35,7 +42,8 @@ def content_source(inputs):
         for offset in range(0, len(payload), 16):
             lines.append('    ' + ','.join(f'0x{x:02x}' for x in payload[offset:offset + 16]) + ',')
         lines.extend(['};', ''])
-        entries.append(f'    {{{symbol}, sizeof({symbol}), {KINDS[asset["kind"]]}}},')
+        title = display_title(asset, index)
+        entries.append(f'    {{{symbol}, sizeof({symbol}), {KINDS[asset["kind"]]}, {json.dumps(title)} }},')
     lines.append('const lunar_content_asset_t lunar_content_catalogue[] = {')
     lines.extend(entries or ['    {0, 0, 0},'])
     lines.extend(['};', f'const uint32_t lunar_content_count = {len(entries)}u;', ''])

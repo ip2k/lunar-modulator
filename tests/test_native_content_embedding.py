@@ -96,7 +96,7 @@ int main(void) {
     printf("%u\\n", (unsigned)lunar_content_count);
     for (i = 0; i < lunar_content_count; ++i) {
         const lunar_content_asset_t *a = &lunar_content_catalogue[i];
-        printf("%u %u\\n", (unsigned)a->kind, (unsigned)a->size);
+        printf("%u %u %s\\n", (unsigned)a->kind, (unsigned)a->size, a->title);
         if (fwrite(a->bytes, 1, a->size, stdout) != a->size) return 1;
     }
     return 0;
@@ -110,7 +110,8 @@ int main(void) {
     expected = f'{count}\n'.encode()
     for asset, payload in zip(inputs.report['content'], inputs.packed_content):
         kind = {'project': 1, 'set': 7}[asset['kind']]
-        expected += f'{kind} {len(payload)}\n'.encode() + payload
+        from embed_image_content import display_title
+        expected += f'{kind} {len(payload)} {display_title(asset, len(expected))}\n'.encode() + payload
     assert subprocess.check_output([str(executable)]) == expected
     tc = Path(os.environ['FM1_NATIVE_TOOLCHAIN'])
     obj = tmp_path / 'content.o'
@@ -127,7 +128,7 @@ int main(void) {
     for index, payload in enumerate(inputs.packed_content):
         assert sizes[f'.rodata.lunar_content_{index:02d}'] == len(payload)
     assert sizes['.rodata.lunar_content_count'] == 4
-    assert sizes['.rodata.lunar_content_catalogue'] == 12 * max(1, count)
+    assert sizes['.rodata.lunar_content_catalogue'] == 16 * max(1, count)
 
 
 def test_content_refusal_has_no_output(tmp_path):
