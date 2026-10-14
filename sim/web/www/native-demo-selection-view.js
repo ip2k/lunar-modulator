@@ -71,8 +71,11 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
       && project.category === 'replacement-showcase-candidate') : null;
   const selected = approvedFullSong ? [approvedFullSong.id] : [];
   const projectControls = new Map();
+  const setControls = new Map();
+  const selectedSets = [];
   let startupId = null;
   let busy = false;
+  let status = null;
 
   const section = text(document, 'section', undefined, 'native-demo-selection');
   section.setAttribute('aria-labelledby', `native-demo-title-${instance}`);
@@ -103,7 +106,22 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
   startup.append(startupHint);
   const startupControls = new Map();
 
+  function syncSetAvailability() {
+    for (const set of view.sets) {
+      const checkbox = setControls.get(set.id);
+      const available = selected.includes(set.parentProjectId) && startupId === set.parentProjectId;
+      if (!available && checkbox.checked) {
+        checkbox.checked = false;
+        const index = selectedSets.indexOf(set.id);
+        if (index !== -1) selectedSets.splice(index, 1);
+        if (status) status.textContent = 'The companion set needs Event Horizon selected as the startup project.';
+      }
+      checkbox.disabled = !available;
+    }
+  }
+
   function syncSubmit() {
+    syncSetAvailability();
     submit.disabled = busy || selected.length === 0 || startupId === null;
   }
 
@@ -176,9 +194,38 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
   }
 
   section.append(choices, startup);
+  if (view.sets.length) {
+    const companionSets = document.createElement('fieldset');
+    companionSets.append(text(document, 'legend', 'Optional companion sets'));
+    companionSets.append(text(document, 'p',
+      'A companion set is available only with Event Horizon selected as the startup project.'));
+    for (const set of view.sets) {
+      const label = document.createElement('label');
+      const checkbox = document.createElement('input');
+      const id = `native-demo-set-${instance}-${setControls.size}`;
+      checkbox.type = 'checkbox';
+      checkbox.id = id;
+      checkbox.value = set.id;
+      checkbox.disabled = true;
+      checkbox.addEventListener('change', () => {
+        if (checkbox.checked) {
+          if (!selectedSets.includes(set.id)) selectedSets.push(set.id);
+        } else {
+          const index = selectedSets.indexOf(set.id);
+          if (index !== -1) selectedSets.splice(index, 1);
+        }
+        syncSubmit();
+      });
+      label.htmlFor = id;
+      label.append(checkbox, text(document, 'span', set.title));
+      companionSets.append(label);
+      setControls.set(set.id, checkbox);
+    }
+    section.append(companionSets);
+  }
   section.append(text(document, 'p',
     'Durations are catalogue estimates from project metadata, not verified playback lengths. The Event Horizon host render is an offline diagnostic and does not establish target playback or installability.'));
-  const status = text(document, 'p', '', 'native-demo-selection-status');
+  status = text(document, 'p', '', 'native-demo-selection-status');
   status.setAttribute('role', 'status');
   status.setAttribute('aria-live', 'polite');
   const submit = text(document, 'button', 'Use this selection');
@@ -197,7 +244,7 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
       return;
     }
     try {
-      const request = buildNativeDemoSelectionRequest(catalogue, profile, selected, startupIndex);
+      const request = buildNativeDemoSelectionRequest(catalogue, profile, selected, startupIndex, selectedSets);
       busy = true;
       syncSubmit();
       status.textContent = 'Preparing selection…';
@@ -217,7 +264,8 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
   return Object.freeze({
     destroy() { section.remove(); },
     getSelection() {
-      return Object.freeze({ projectIds: Object.freeze([...selected]), startupId });
+      return Object.freeze({ projectIds: Object.freeze([...selected]), startupId,
+        setIds: Object.freeze([...selectedSets]) });
     },
   });
 }

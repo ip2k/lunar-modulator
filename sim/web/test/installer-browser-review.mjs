@@ -117,9 +117,9 @@ try {
       throw new Error(viewport.name + ': module group defaults are incomplete');
     }
     if (initial.cardBounds.length !== 8) throw new Error(viewport.name + ': expected eight catalogue cards');
-    if (initial.fullSongStatus !== 'Full-song default status: pending') throw new Error('Full-song pending status changed');
+    if (initial.fullSongStatus !== 'Full-song default status: owner-approved') throw new Error('Approved full-song status changed');
     if (!/does not build or install firmware/i.test(initial.serviceStatus)) throw new Error('Build/install status claim is missing');
-    if (!initial.fullSongNotice.includes('No full-song default has been approved')) throw new Error('Default-admission disclosure missing');
+    if (!initial.fullSongNotice.includes('owner-approved musical full-song default') || !initial.fullSongNotice.includes('installability are unverified')) throw new Error('Musical approval or hardware-status disclosure missing');
 
     const moduleRoot = page.locator('.native-module-selection');
     const effectBox = moduleRoot.locator('fieldset').nth(1).locator('input[type=checkbox]').first();
@@ -133,11 +133,19 @@ try {
     if (!/needs a sound engine/i.test(await moduleRoot.locator('[role=status]').textContent())) {
       throw new Error(viewport.name + ': rollback status was not announced');
     }
+    for (const groupIndex of [0, 2, 3]) {
+      const controls = moduleRoot.locator('fieldset').nth(groupIndex).locator('input[type=checkbox]');
+      for (let i = 0; i < await controls.count(); i++) {
+        if (!(await controls.nth(i).isChecked())) await controls.nth(i).check();
+      }
+    }
 
     const checkboxes = page.locator('.native-demo-selection article input[type=checkbox]');
-    await checkboxes.nth(2).check(); // Legacy Packet Bloom first.
-    await checkboxes.nth(5).check(); // Replacement showcase candidate Event Horizon second.
+    await checkboxes.nth(5).check(); // Event Horizon Showcase is preselected as the approved default.
     await page.locator('.native-demo-selection fieldset:nth-of-type(2) input[type=radio][value="replacement-showcase-candidate-event-horizon"]').check();
+    const companion = page.getByLabel('Event Horizon Companion Set');
+    if (!(await companion.isEnabled())) throw new Error(viewport.name + ': companion set did not enable for its startup project');
+    await companion.check();
     const requestDownload = page.getByRole('button', { name: 'Download build request (JSON)' });
     if (viewport.name === 'desktop') {
       const downloadWait = page.waitForEvent('download');
@@ -145,12 +153,11 @@ try {
       const download = await downloadWait;
       await download.saveAs(path.join(artifactRoot, 'installer-request.json'));
       const exported = JSON.parse(await readFile(path.join(artifactRoot, 'installer-request.json'), 'utf8'));
-      const keys = ['version', 'engines', 'effects', 'midi', 'modulation', 'project_ids', 'startup_index'];
+      const keys = ['version', 'engines', 'effects', 'midi', 'modulation', 'project_ids', 'startup_index', 'set_ids'];
       if (JSON.stringify(Object.keys(exported)) !== JSON.stringify(keys)) throw new Error('Download schema keys differ');
-      if (JSON.stringify(exported.project_ids) !== JSON.stringify([
-        'legacy-example-packet-bloom', 'replacement-showcase-candidate-event-horizon',
-      ])) throw new Error('Downloaded project order differs');
-      if (exported.startup_index !== 1) throw new Error('Downloaded startup index differs');
+      if (JSON.stringify(exported.project_ids) !== JSON.stringify(['replacement-showcase-candidate-event-horizon'])) throw new Error('Downloaded project selection differs');
+      if (exported.startup_index !== 0) throw new Error('Downloaded startup index differs');
+      if (JSON.stringify(exported.set_ids) !== JSON.stringify(['replacement-showcase-event-horizon-companion-set'])) throw new Error('Downloaded companion SET selection differs');
       for (const [index, group] of ['engines', 'effects', 'midi', 'modulation'].entries()) {
         const selected = await moduleRoot.locator('fieldset').nth(index).locator('input:checked').evaluateAll((inputs) => inputs.map(input => input.value));
         if (JSON.stringify(exported[group]) !== JSON.stringify(selected)) throw new Error('Downloaded ' + group + ' selection differs from controls');
@@ -180,12 +187,15 @@ try {
         .map((input) => input.value),
       checkedStartup: document.querySelector('.native-demo-selection input[type=radio]:checked')?.value,
       status: document.querySelector('.installer-export-status')?.textContent || '',
+      selectedSets: [...document.querySelectorAll('.native-demo-selection input[type=checkbox]:checked')]
+        .map((input) => input.value).filter((id) => id.includes('companion-set')),
     }));
-    if (JSON.stringify(selectedOverview.selectedCards) !== JSON.stringify([
-      'legacy-example-packet-bloom', 'replacement-showcase-candidate-event-horizon',
-    ])) throw new Error(viewport.name + ': selection order not rendered correctly');
+    if (JSON.stringify(selectedOverview.selectedCards) !== JSON.stringify(['replacement-showcase-candidate-event-horizon'])) throw new Error(viewport.name + ': selection not rendered correctly');
     if (selectedOverview.checkedStartup !== 'replacement-showcase-candidate-event-horizon') {
       throw new Error(viewport.name + ': selected startup project not rendered');
+    }
+    if (JSON.stringify(selectedOverview.selectedSets) !== JSON.stringify(['replacement-showcase-event-horizon-companion-set'])) {
+      throw new Error(viewport.name + ': selected companion SET not rendered');
     }
     // Keep the saved screenshots in the clean default state after exercising
     // deselection and validator rollback above.

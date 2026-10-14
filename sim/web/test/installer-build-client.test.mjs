@@ -200,3 +200,21 @@ test('rejects chunked oversized responses and includes response reads in deadlin
     await assert.rejects(client.build(request), /timed out/);
   });
 });
+
+
+test('forwards only bounded unique SET identifiers in the optional request field', async () => {
+  const setRequest = { ...request, set_ids: ['replacement-showcase-event-horizon-companion-set'] };
+  let posted;
+  const client = createInstallerBuildClient({ origin: 'https://lunar.test', pollIntervalMs: 100,
+    fetchImpl: async (_url, options) => {
+      posted = JSON.parse(options.body);
+      return response(422, { detail: 'expected diagnostic rejection' });
+    },
+  });
+  await assert.rejects(client.build(setRequest), /request was rejected/);
+  assert.deepEqual(posted, setRequest);
+  for (const setIds of [['x', 'x'], [''], [{}], Array.from({ length: 9 }, (_, i) => `set-${i}`)]) {
+    await assert.rejects(client.build({ ...request, set_ids: setIds }), /request is invalid/);
+  }
+  await assert.rejects(client.build({ ...request, set_ids: ['set'], local_path: '/tmp/private' }), /request is invalid/);
+});
