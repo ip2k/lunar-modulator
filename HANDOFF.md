@@ -8,17 +8,26 @@ Fresh paired full reads match installed Event120 SHA145c0280...aa4657;
 passive native USB43 1209:0001 appeared afterward. Owner screen/PLAY/audio/
 controls observation pending. Details: notes/2026-10-14-event120-device42-hardware.md.
 Private evidence: /home/claude/fm1-device42-event120-repeat-20261014 on bench01.
-Do not reuse this connection's consumed read/boot campaign.
+After two minutes, passive enumeration returned to ROM device44 without
+a physical power cycle. Do not reuse device42's consumed read/boot campaign.
 
 Owner supplied Pico2W and authorized programming; MicroPython identifies
-RP2350 Pico2W. GPIO recovery wiring question pending. Hera worker building
-board-specific UF2; no Pico flash or independent USB_KEY recovery proof yet.
+RP2350 Pico2W. GPIO recovery wiring question pending. Existing MicroPython
+filesystem backed up privately at /home/claude/fm1-pico2w-preflash-20261014
+on bench01 (two files, 14,456 bytes). Both Pico/RP2040 and Pico2W/RP2350
+offline UF2 builds passed on Hera. Pico2W artifact SHA54b6157f...12e30c;
+root is reconciling its RP2350 payload/metadata family IDs before programming.
+No Pico flash or independent USB_KEY recovery proof yet.
 Final linked NOR audit establishes writer placement/order, but indirect/data/
 caller-pointer closure still needs proof. SAVE remains unbound/disarmed.
 Native companion SET access worker continues. First-format pure model WIP
-is safely checkpointed on Hera at d7f20a71 (25 focused tests); integration/
-GitHub backup pending. CI38633308608 at6a801549 is pending; superseded
-38631420007 was cancelled. Old38628940753 is still in progress.
+is GitHub-backed at d7f20a71 (25 focused tests), but not integrated: it
+incorrectly requires already-clean trailers, cannot restore an uncertain partial
+sector, and needs semantic journal replay validation. Fix follows Pico work.
+NOR caller audit c4d1cf5 is GitHub-backed but awaiting review corrections to
+IRQ-mask ordering and fl_far pointer-preservation checks. CI38633308608
+at6a801549 is in progress; superseded38631420007 was cancelled.
+Old38628940753 at0fc23e9 passed all 13 jobs; it does not cover current source.
 Goal remains active; no main merge, public firmware release or deployment.
 
 # Latest continuation authority — 2026-10-14 (checked watchdog and real SET interop)
