@@ -1,0 +1,100 @@
+/* Route styles for the shared, validated native-demo chooser. */
+.installer-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 24px;
+  padding-bottom: 18px;
+}
+
+.installer-top a {
+  color: var(--text);
+  font: 400 clamp(1.3rem, 1rem + 2vw, 2rem)/1.2 var(--display);
+  text-decoration: none;
+}
+
+.installer-top span {
+  color: var(--accent);
+  font: 400 0.72rem/1.4 var(--display);
+  letter-spacing: 0.12em;
+  text-align: right;
+}
+
+.installer-page main { padding-bottom: 48px; }
+.installer-page h1 {
+  font: 400 clamp(1.45rem, 1.1rem + 2vw, 2.2rem)/1.25 var(--display);
+  margin: 18px 0 8px;
+}
+
+.installer-status {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin: 16px 0;
+  padding: 14px 18px;
+  max-width: 78ch;
+}
+
+.installer-status p { margin: 4px 0; }
+.installer-status[aria-label="Build service status"] { border-left: 4px solid var(--held); }
+.installer-page #installer-load-status:empty { display: none; }
+.installer-export-status { min-height: 1.5em; }
+
+.native-demo-selection { margin-top: 26px; }
+.native-demo-selection > p { color: var(--muted); margin: 8px 0 14px; }
+.native-demo-default-status {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--held);
+  border-radius: 10px;
+  margin: 16px 0;
+  padding: 14px 18px;
+  max-width: 78ch;
+}
+
+.native-demo-default-status h3 { margin: 0 0 4px; }
+.native-demo-default-status p { margin: 4px 0; }
+.native-demo-default-status ul { margin: 8px 0 0; padding-left: 1.4rem; }
+.native-demo-selection fieldset { border: 0; margin: 18px 0; padding: 0; }
+.native-demo-selection legend { font: 400 1.05rem/1.4 var(--display); margin-bottom: 8px; }
+.native-demo-selection fieldset:first-of-type {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+  gap: 12px;
+}
+
+.native-demo-selection fieldset:first-of-type > legend { grid-column: 1 / -1; }
+.native-demo-selection fieldset:first-of-type > article {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.native-demo-selection label { align-items: flex-start; display: flex; gap: 10px; line-height: 1.4; }
+.native-demo-selection input { accent-color: var(--accent); flex: 0 0 auto; margin: 3px 0 0; }
+.native-demo-selection article label strong { overflow-wrap: anywhere; }
+.native-demo-selection article p { color: var(--muted); font-size: 0.94rem; margin: 8px 0 0; overflow-wrap: anywhere; }
+.native-demo-selection fieldset:nth-of-type(2) { display: grid; gap: 8px; max-width: 780px; }
+.native-demo-selection fieldset:nth-of-type(2) > legend,
+.native-demo-selection fieldset:nth-of-type(2) > p { grid-column: 1 / -1; }
+.native-demo-selection fieldset:nth-of-type(2) > label {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+/* The shared view's completion copy assumes a connected handler. This route
+   supplies its own truthful status and hides only that internal message. */
+.native-demo-selection-status { display: none; }
+.native-demo-selection button { min-height: 44px; padding: 9px 16px; }
+.native-demo-selection button:disabled { cursor: not-allowed; opacity: 0.55; }
+
+@media (max-width: 520px) {
+  .installer-top { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .installer-top span { text-align: left; }
+  .installer-status, .native-demo-default-status { padding: 12px 14px; }
+}

@@ -61,6 +61,8 @@ jobs:
         run: make -C engines -j4
       - name: Build the site, the manual and its PDF
         run: python tools/manual/build.py --site _site --pdf --strict --no-make
+      - name: Export the generated native image catalogue for the installer
+        run: python tools/native/export_image_catalogue.py > _site/demo-image-catalogue.json
       - name: Keep the PDF as an artifact
         uses: actions/upload-artifact@v4
         with:

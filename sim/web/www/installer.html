@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Choose projects · Lunar Modulator</title>
+  <meta name="description" content="Choose demo projects for a future Lunar Modulator image build request.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="installer.css">
+  <script type="module" src="installer-page.js"></script>
+</head>
+<body class="installer-page">
+  <header class="top installer-top">
+    <a href="index.html">Lunar Modulator</a>
+    <span>INTERGALACTIC MODULATION STATION</span>
+  </header>
+  <main>
+    <h1>Build a project selection request</h1>
+    <p class="lede">Choose projects to include and select which one should open first. Their order is kept in the request.</p>
+    <section class="installer-status" aria-label="Build service status">
+      <p><strong>Build service not connected.</strong> This page can export a request for offline review. It does not build or install firmware.</p>
+      <p>Catalogue entries are source choices, not proof of a playable or installable image. Image size, packed dependencies, and device acceptance require separate checks.</p>
+    </section>
+    <p id="installer-load-status" role="status" aria-live="polite">Loading generated project catalogue…</p>
+    <div id="installer-selection"></div>
+    <p id="installer-export-status" class="installer-export-status" role="status" aria-live="polite"></p>
+  </main>
+</body>
+</html>
