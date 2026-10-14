@@ -15,7 +15,7 @@ static const uint8_t *programmed_sources[4];
 static uint32_t programmed_sizes[4];
 static unsigned program_calls;
 static int nor_wel, nor_wip, destructive_pending, ready_observed;
-static unsigned status_polls_to_clear, sfc_restores;
+static unsigned status_polls_to_clear, sfc_restores, destructive_commits;
 static int hold_wip, fail_status_forever;
 static unsigned status_polls, failstop_limit, timer_step_ticks;
 static int timer_wrap_on_commit;
@@ -89,6 +89,7 @@ static void test_cs_level(int high)
         if (tx_count >= 4u)
             for (i = 4; i < tx_count; ++i) programmed_payload[programmed_count++] = tx_bytes[i];
         destructive_pending = 1;
+        ++destructive_commits;
         nor_wip = 1;
         nor_wel = 0;
         status_polls_to_clear = hold_wip ? (unsigned)-1 : 1u;
@@ -96,6 +97,7 @@ static void test_cs_level(int high)
         /* Model the conservative case: a timed-out byte may have reached NOR,
          * and raising CS can commit even an incomplete address/data sequence. */
         destructive_pending = 1;
+        ++destructive_commits;
         nor_wip = 1;
         nor_wel = 0;
         status_polls_to_clear = hold_wip ? (unsigned)-1 : 1u;
@@ -197,6 +199,7 @@ static void reset_mock(uint32_t iomap)
     program_calls = 0;
     nor_wel = nor_wip = destructive_pending = ready_observed = 0;
     status_polls_to_clear = status_polls = sfc_restores = 0;
+    destructive_commits = 0;
     hold_wip = fail_status_forever = failstop_armed = 0;
     failstop_limit = 0;
     timer_step_ticks = 0;
@@ -593,6 +596,39 @@ static void test_rearm_failure_is_reported_only_after_ready_and_xip_restore(void
     assert(reg_icfg == 0u);
 }
 
+static void test_already_disabled_watchdog_stays_disabled(void)
+{
+    static const uint8_t wel[] = {0x02};
+    uint32_t took = 0;
+    reset_mock(0x20u);
+    replies_set(wel, 1);
+    p33_wdt = 0x0Du; /* reset-mode counter value with enable bit already clear */
+    assert(fl_erase4k(0x97000u, &took) == 0);
+    assert(ready_observed && !nor_wip);
+    assert(p33_wdt == 0x0Du);
+    assert(p33_wdt_rearmed == 0u);
+    assert(p33_transfer_index == 6u); /* reads only; no stop/re-arm writes */
+    assert_restored(0x20u, 0x1255u);
+}
+
+static void test_nor_error_precedes_rearm_error_without_retry(void)
+{
+    static const uint8_t wel[] = {0x02};
+    uint32_t took = 0;
+    reset_mock(0x20u);
+    replies_set(wel, 1);
+    fail_transfer = 3u;       /* destructive opcode transfer times out; CS may commit */
+    p33_fail_transfer = 12u;  /* first transfer during re-arm also times out */
+    assert(fl_erase4k(0x97000u, &took) == -5);
+    assert(destructive_pending && ready_observed && !nor_wip);
+    assert(sfc_restores == 1u);
+    assert(destructive_commits == 1u); /* the failed erase is not retried */
+    assert(p33_wdt_off_verified >= 1u);
+    assert(p33_transfer_index == 13u); /* exactly one failed re-arm attempt */
+    assert(transfer_index > 3u);
+    assert_restored(0x20u, 0x1255u);
+}
+
 static void test_exit_preserves_pin_owner_bit(void)
 {
     unsigned bit;
@@ -632,6 +668,8 @@ int main(void)
     test_failed_watchdog_stop_sends_no_nor_spi_bytes();
     test_failed_watchdog_disable_readback_sends_no_nor_spi_bytes();
     test_rearm_failure_is_reported_only_after_ready_and_xip_restore();
+    test_already_disabled_watchdog_stays_disabled();
+    test_nor_error_precedes_rearm_error_without_retry();
     test_exit_preserves_pin_owner_bit();
     return 0;
 }
