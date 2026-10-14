@@ -3514,3 +3514,41 @@ acceptance, watched full-song device playback/recovery and physical storage
 migration/rollback remain pending. Browser build client and real bounded Hera
 service worker are being integrated; package admission currently rejects every
 unadmitted image. Goal remains ACTIVE through hardware, web install, CI and release.
+
+## Selectable full-song preload and service integration — 2026-10-14
+
+Eight authored demo choices are available in the private installer chooser;
+Event Horizon Showcase is reversibly preselected as startup. Its 108.8-second
+host playback/SAVE roundtrip passes, and the all-thirteen-engine target links.
+This does not promote pending default or device acceptance. Desktop/mobile
+screenshots were inspected; browser export preserves selected project order and
+startup index. Notes: 2026-10-14-event-horizon-default-preselection.md.
+
+Browser client abort handling was independently rechecked at 43fa88b3: all
+13 focused tests pass, including simultaneous forever-pending read/cancel.
+The offline expanded transport manifest at 323e5c1e has 40 passing focused
+manifest/candidate tests with generated fixtures; production receipt evaluation
+remains separate. Neither implementation authorizes device writes.
+
+Hera Docker service changes through worker cc93bb96 were reviewed and integrated
+as ce1bbebad79b96bc37245d6bc071cf7e0498cb9e, GitHub ref verified. Exact pinned
+worker source, capped output, bounded pipe drain and graceful container shutdown
+are included. Worker tests passed 43 with one optional retained-build skip.
+Coordinator's combined local test attempt could not collect service tests because
+the Mac project venv lacks FastAPI; exact integrated service tests are running on
+Hera using its prepared environment. No public deployment/artifact API is claimed.
+
+Passive bench inspection still sees ROM interface class08/subclass06/protocol50;
+no device command issued. Ordinary WebUSB cannot claim this protected class.
+See 2026-10-14-web-recovery-interface-constraint.md and
+2026-10-14-expanded-fwsc-transport-design.md. Known stock OTA packers/loaders also
+stop at 0x93000, short of the approved D9000 layout. Investigate a small stock-OTA
+MIDI bootstrap followed by a reviewed expanded transaction; native recovery
+remains the fallback. Do not present direct browser ROM as a working route.
+
+Next dependencies: exact integrated service evidence, real 120s image/candidate
+receipt binding, viable browser install transport, five demo allocation refusals,
+watched hardware full-song test (press PLAY promptly), persistence ownership and
+migration/rollback, interrupted-write recovery, release licence/notices, review,
+CI and deployment. All-thirteen hardware/default-song acceptance remains pending.
+Goal ACTIVE. Mac alone owns physical device operations.
