@@ -102,13 +102,13 @@ def test_linked_object_inventory_rehashes_catalogue_and_generated_rows(tmp_path)
         "catalogue_objects": [{"path": "/catalogue/shard/obj/a.o", "sha256": sha(cat.read_bytes())}],
         "linked_objects": [
             {"path": "/catalogue/shard/obj/a.o", "sha256": sha(cat.read_bytes())},
-            {"path": "/out/build/link/generated/b.o", "sha256": sha(gen.read_bytes())},
+            {"path": "/output/build/link/generated/b.o", "sha256": sha(gen.read_bytes())},
         ],
     }
     manifest = _linked_object_manifest(output, catalogue, verification)
     assert json.loads(manifest)["objects"] == [
         {"path": "/catalogue/shard/obj/a.o", "sha256": sha(cat.read_bytes())},
-        {"path": "/out/build/link/generated/b.o", "sha256": sha(gen.read_bytes())},
+        {"path": "/output/build/link/generated/b.o", "sha256": sha(gen.read_bytes())},
     ]
 
     gen.write_bytes(b"mutated")
@@ -129,7 +129,7 @@ def test_linked_object_inventory_rejects_duplicate_rows_and_unknown_catalogue_ob
     generated = output / "link/obj.o"
     generated.parent.mkdir(parents=True)
     generated.write_bytes(b"generated")
-    wrong_prefix = {"path": "/out/attacker/link/obj.o", "sha256": sha(b"generated")}
+    wrong_prefix = {"path": "/output/attacker/link/obj.o", "sha256": sha(b"generated")}
     with pytest.raises(ValueError, match="outside the fixed mounts"):
         _linked_object_manifest(output, catalogue, {"catalogue_objects": [], "linked_objects": [wrong_prefix]})
 
