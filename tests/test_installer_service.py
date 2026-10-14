@@ -9,10 +9,18 @@ from fastapi.testclient import TestClient
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from tools.installer_service.api import FakeJobAdapter, WorkerTemplate, canonical_request, create_app
+sys.path.insert(0, str(ROOT / "tools/native"))
+from build_demo_image import (BASE_INSTANCE_POOL_BYTES as BUILDER_BASE_INSTANCE_POOL_BYTES,
+                              BRAIDS_TABLE as BUILDER_BRAIDS_TABLE,
+                              SHAPES_VOICES as BUILDER_SHAPES_VOICES,
+                              TARGET_STORAGE as BUILDER_TARGET_STORAGE,
+                              WAVETABLE_PROFILE as BUILDER_WAVETABLE_PROFILE)
+from tools.installer_service.api import (BASE_INSTANCE_POOL_BYTES, SHAPES_VOICES,
+    TARGET_STORAGE, WAVETABLES, WAVETABLE_PROFILE, FakeJobAdapter, WorkerTemplate,
+    canonical_request, create_app)
 from tools.installer_service.catalogue import load_trusted_catalogue
 
-MODULES = {"sound-a": "sound", "fx-a": "audio_fx", "midi-a": "midi_fx", "mod-a": "mod"}
+MODULES = {"sound-a": "sound", "shapes": "sound", "fx-a": "audio_fx", "midi-a": "midi_fx", "mod-a": "mod"}
 PROJECTS = {"song-one", "song-two"}
 TEMPLATE = WorkerTemplate("sha256:" + "a" * 64, "lunar-private-builds")
 
@@ -33,6 +41,14 @@ def request_doc():
 def raw(client, text, **headers):
     return client.post("/api/v1/builds", content=text,
                        headers={"content-type": "application/json", **headers})
+
+
+def test_service_and_builder_share_the_fixed_wavetable_contract():
+    assert WAVETABLE_PROFILE == BUILDER_WAVETABLE_PROFILE
+    assert WAVETABLES["braids"] == BUILDER_BRAIDS_TABLE
+    assert TARGET_STORAGE == BUILDER_TARGET_STORAGE
+    assert BASE_INSTANCE_POOL_BYTES == BUILDER_BASE_INSTANCE_POOL_BYTES
+    assert SHAPES_VOICES == BUILDER_SHAPES_VOICES
 
 
 def test_accepts_canonical_request_with_opaque_id_and_fixed_template():
@@ -105,13 +121,27 @@ def test_queue_cap_opaque_lookup_and_state_transitions():
 def result_receipt(doc, req_sha, artifact):
     prepared_sha = "1" * 64
     content = [{"kind": "project", "bytes": 128, "packed_sha256": "2" * 64} for _ in doc["project_ids"]]
+    selected = [m for g in ("engines", "effects", "midi", "modulation") for m in doc[g]]
+    wave_rows = ([{"namespace": "braids", "symbol": "wt_waves", "width": 1,
+                   "raw_bytes": 33024,
+                   "raw_sha256": "c672fccb061496d0229bfc5c2d55ec61f367e1539dda5870fd667a059c90f634",
+                   "packed_bytes": 24159, "packed_sha256": "9" * 64,
+                   "fnv32": 3119621762, "generated_source_sha256": "a" * 64}]
+                 if "shapes" in selected else [])
+    pool_bytes = 249088 - (33024 if wave_rows else 0)
     return json.dumps({
         "version": 1, "status": "linked-private-diagnostic",
         "request_sha256": req_sha, "prepared_profile_sha256": prepared_sha,
         "project_ids": doc["project_ids"], "startup_index": doc["startup_index"],
         "startup_project_id": doc["project_ids"][doc["startup_index"]],
         "runtime_hook_linked": len(doc["project_ids"]) > 1,
-        "module_selection": {"selected": [m for g in ("engines", "effects", "midi", "modulation") for m in doc[g]]},
+        "module_selection": {"selected": selected},
+        "wavetable_profile": "compressed-required-banks-flash-plaits-v1",
+        "compressed_wave_tables": wave_rows, "indexed_tft": True,
+        "flash_plaits_wavetables": True, "shapes_voices": 12,
+        "instance_pool_bytes": pool_bytes,
+        "target_app_storage": {"rgb565_bytes": 220832, "indexed_bytes": 163744,
+                               "pool_credit_bytes": 57088},
         "content": content,
         "embedded_content": {"prepared_sha256": prepared_sha, "assets": content,
             "asset_count": len(content), "packed_content_bytes": 128 * len(content),
@@ -160,6 +190,47 @@ def test_success_verifies_exact_request_and_app_bytes():
     assert result["remaining_bytes"] == result["app_budget_bytes"] - len(b"diagnostic-app")
     assert result["installable"] is False
     assert result["hardware_tested"] is False
+
+
+def test_shapes_receipt_binds_compressed_braids_bank_and_pool():
+    c, adapter = client()
+    doc = request_doc()
+    doc["engines"].append("shapes")
+    accepted = accept_and_succeed(c, adapter, doc=doc)
+    response = c.get(accepted.json()["status_url"])
+    assert response.status_code == 200
+    receipt = json.loads(adapter.jobs[accepted.json()["id"]].result.receipt)
+    assert [row["namespace"] for row in receipt["compressed_wave_tables"]] == ["braids"]
+    assert receipt["instance_pool_bytes"] == 216064
+    assert receipt["indexed_tft"] is True and receipt["shapes_voices"] == 12
+    assert response.json()["result"]["installable"] is False
+
+
+@pytest.mark.parametrize("fault", [
+    "missing", "duplicate", "extra", "extra-field", "raw-size", "raw-hash", "packed-size",
+    "indexed", "voices", "pool", "storage", "profile",
+])
+def test_service_refuses_wavetable_receipt_drift(fault):
+    c, adapter = client()
+    doc = request_doc()
+    doc["engines"].append("shapes")
+
+    def tamper(receipt):
+        row = receipt["compressed_wave_tables"][0]
+        if fault == "missing": receipt.pop("compressed_wave_tables")
+        elif fault == "duplicate": receipt["compressed_wave_tables"].append(dict(row))
+        elif fault == "extra": receipt["compressed_wave_tables"].append({**row, "namespace": "plaits"})
+        elif fault == "extra-field": row["surprise"] = "unrecognized"
+        elif fault == "raw-size": row["raw_bytes"] += 1
+        elif fault == "raw-hash": row["raw_sha256"] = "b" * 64
+        elif fault == "packed-size": row["packed_bytes"] = True
+        elif fault == "indexed": receipt["indexed_tft"] = False
+        elif fault == "voices": receipt["shapes_voices"] = True
+        elif fault == "pool": receipt["instance_pool_bytes"] += 1
+        elif fault == "storage": receipt["target_app_storage"]["pool_credit_bytes"] += 1
+        elif fault == "profile": receipt["wavetable_profile"] = "caller-selected"
+    accepted = accept_and_succeed(c, adapter, tamper, doc=doc)
+    assert c.get(accepted.json()["status_url"]).status_code == 502
 
 
 def test_one_project_receipt_requires_selector_bypass():

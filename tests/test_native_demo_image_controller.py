@@ -29,6 +29,11 @@ def inputs(runtime_mode='diagnostic', project_count=2):
                         startup_project=dict(index=project_count - 1, runtime_hook_linked=project_count > 1),
                         module_selection=deepcopy(prepared.report['module_selection']),
                         installable=False, hardware_tested=False,
+                        compressed_wave_tables=[], indexed_tft=True,
+                        flash_plaits_wavetables=True, shapes_voices=12,
+                        instance_pool_bytes=249088,
+                        target_app_storage=dict(rgb565_bytes=220832, indexed_bytes=163744,
+                                                pool_credit_bytes=57088),
                         key_audit=dict(passed=True, n_pending=0, n_fail=0),
                         elf_sha256=sha(b'elf'), flash_layout='expanded-d9000',
                         app_budget_bytes=100, probe_return_to_rom_seconds=runtime_configuration(runtime_mode)['return_to_rom_seconds'],
@@ -48,6 +53,10 @@ def test_checked_link_keeps_order_startup_and_actual_output_identity():
     assert receipt['app_sha256'] == sha(b'app')
     assert receipt['module_selection'] == inputs()[2]['module_selection']
     assert receipt['embedded_content'] == inputs()[2]['embedded_content']
+    assert receipt['wavetable_profile'] == 'compressed-required-banks-flash-plaits-v1'
+    assert receipt['compressed_wave_tables'] == []
+    assert receipt['instance_pool_bytes'] == 249088
+    assert receipt['target_app_storage']['pool_credit_bytes'] == 57088
     assert receipt['runtime_hook_linked'] is True
     for flag in ('installable', 'hardware_admitted', 'hardware_tested', 'native_ram_verified',
                  'native_playback_verified', 'full_song_default_accepted'):
@@ -68,6 +77,7 @@ def test_single_project_receipt_truthfully_records_selector_bypass():
 @pytest.mark.parametrize('fault', [
     'reorder', 'startup', 'bool-index', 'manifest', 'modules', 'payload', 'app', 'elf',
     'pending', 'fail', 'layout', 'admission', 'continuous', 'runtime-mismatch', 'write-range', 'budget',
+    'wave-profile', 'wave-indexed', 'wave-voices', 'wave-pool', 'wave-storage', 'wave-namespace', 'wave-bool-width',
 ])
 def test_changed_link_is_refused(fault):
     selection, prepared, verification, artifact, app, elf = inputs()
@@ -87,8 +97,61 @@ def test_changed_link_is_refused(fault):
     elif fault == 'runtime-mismatch': verification['runtime_configuration'] = runtime_configuration('song-diagnostic')
     elif fault == 'write-range': verification['flash_write_range'] = 'nonempty'
     elif fault == 'budget': artifact['app_budget_bytes'] = verification['app_budget_bytes'] = 2
+    elif fault == 'wave-profile': verification['flash_plaits_wavetables'] = False
+    elif fault == 'wave-indexed': verification['indexed_tft'] = False
+    elif fault == 'wave-voices': verification['shapes_voices'] = True
+    elif fault == 'wave-pool': verification['instance_pool_bytes'] += 1
+    elif fault == 'wave-storage': verification['target_app_storage']['indexed_bytes'] += 1
+    elif fault == 'wave-namespace': verification['compressed_wave_tables'] = [{'namespace': 'plaits'}]
+    elif fault == 'wave-bool-width':
+        prepared.report['module_selection']['selected'].append('shapes')
+        verification['module_selection']['selected'].append('shapes')
+        verification['compressed_wave_tables'] = [dict(
+            namespace='braids', symbol='wt_waves', width=True, raw_bytes=33024,
+            raw_sha256='c672fccb061496d0229bfc5c2d55ec61f367e1539dda5870fd667a059c90f634',
+            packed_bytes=24159, packed_sha256=sha(b'packed'), fnv32=3119621762,
+            generated_source_sha256=sha(b'generated'))]
+        verification['instance_pool_bytes'] = 216064
     with pytest.raises(ValueError):
         checked_link_receipt(selection, prepared, verification, artifact, app, elf)
+
+
+def test_shapes_receipt_contains_only_current_braids_bank():
+    values = list(inputs())
+    selected = ['trio', 'shapes']
+    values[1].report['module_selection']['selected'] = selected
+    values[2]['module_selection']['selected'] = selected
+    values[2]['compressed_wave_tables'] = [dict(
+        namespace='braids', symbol='wt_waves', width=1, raw_bytes=33024,
+        raw_sha256='c672fccb061496d0229bfc5c2d55ec61f367e1539dda5870fd667a059c90f634',
+        packed_bytes=24159, packed_sha256=sha(b'packed'), fnv32=3119621762,
+        generated_source_sha256=sha(b'generated'))]
+    values[2]['instance_pool_bytes'] = 216064
+    receipt = checked_link_receipt(*values)
+    assert [row['namespace'] for row in receipt['compressed_wave_tables']] == ['braids']
+    assert receipt['instance_pool_bytes'] == 216064
+
+
+@pytest.mark.parametrize('fault', ['missing', 'duplicate', 'raw-size', 'raw-hash', 'packed-digest', 'extra-field'])
+def test_builder_rejects_stale_compressed_bank_receipt(fault):
+    values = list(inputs())
+    selected = ['trio', 'shapes']
+    values[1].report['module_selection']['selected'] = selected
+    values[2]['module_selection']['selected'] = selected
+    row = dict(namespace='braids', symbol='wt_waves', width=1, raw_bytes=33024,
+               raw_sha256='c672fccb061496d0229bfc5c2d55ec61f367e1539dda5870fd667a059c90f634',
+               packed_bytes=24159, packed_sha256=sha(b'packed'), fnv32=3119621762,
+               generated_source_sha256=sha(b'generated'))
+    values[2]['compressed_wave_tables'] = [row]
+    values[2]['instance_pool_bytes'] = 216064
+    if fault == 'missing': values[2]['compressed_wave_tables'] = []
+    elif fault == 'duplicate': values[2]['compressed_wave_tables'].append(dict(row))
+    elif fault == 'raw-size': row['raw_bytes'] += 1
+    elif fault == 'raw-hash': row['raw_sha256'] = sha(b'other raw table')
+    elif fault == 'packed-digest': row['packed_sha256'] = 'bad'
+    elif fault == 'extra-field': row['other'] = 'unexpected'
+    with pytest.raises(ValueError):
+        checked_link_receipt(*values)
 
 
 def test_song_diagnostic_requires_matching_explicit_runtime_and_remains_unadmitted():
