@@ -1,4 +1,27 @@
-# Latest continuation authority — 2026-10-14
+# Latest continuation authority — 2026-10-14 (identity and fresh boot)
+
+[verified] Base `712a1f1ac1ae579f9dfb1e3230224ab950b44f67` is GitHub
+backed up and integrates the strict offline 092 model, independent upstream
+decoder review and NOR diagnostic-stub audit. Explicit native identity
+generation is added with focused Mac tests exiting zero; historical probe
+identity and the installed Event120 candidate are unchanged. See
+`notes/2026-10-14-native-identity-contract.md` for remaining package/target gates.
+
+Owner confirms Event Horizon Showcase as default and is available to watch.
+No new hardware command has been sent in this continuation. A Hera worker
+is preparing separate fresh device40 paired-read and one-shot boot adapters;
+review these before bench use. Other workers run the 16-chunk regression and
+an offline real-writer RAM-closure analysis. SAVE remains disarmed.
+
+CI `38610324618` completed failure at older `939b6aa4`: engine/browser jobs
+passed; Python jobs failed (Mac 3 failed/126 errors, Ubuntu 3 failed/96 errors,
+over 10,400 passing each). Most errors are historical stopped-choice input
+pin drift; three explicit failures concern preserved historical evidence.
+Investigate test authority without weakening production pins or reusing
+consumed campaigns. Full physical/web release goal remains ACTIVE; no
+current-head green CI, main integration, physical acceptance or shipment.
+
+# Historical continuation authority — 2026-10-14
 
 [verified] Coordinator head `454046b40e9e2869d061585c0aa71e0b86e915f3`
 is pushed and its GitHub SHA matches. It integrates canonical diagnostic

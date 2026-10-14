@@ -25,6 +25,7 @@ from verify_image_profile import load_prepared_profile
 from flash_layout import FLASH_LAYOUTS, app_budget, linker_script
 from stack_watermark import instrument_entry, verify_instrumentation
 from runtime_mode import MODES, runtime_configuration
+from firmware_identity import identity_configuration, platform_with_identity
 
 ROOT = Path(__file__).resolve().parents[2]
 ENGINE_IDS = ('macro', 'shapes', 'macro-heavy', 'sixop', 'dx7', 'sw-sophie',
@@ -202,6 +203,8 @@ def main():
     parser.add_argument('--toolchain', type=Path, required=True)
     parser.add_argument('--catalogue', type=Path, required=True)
     parser.add_argument('--build', type=Path, required=True)
+    parser.add_argument('--firmware-identity',
+                        help='Explicit Lunar FM-1_5xx handshake identity; omitted keeps historical FM-1_990 probes')
     parser.add_argument('--runtime-mode', choices=MODES, default='diagnostic',
                         help='Song diagnostic returns after 120 seconds; default diagnostic after 20. '
                         'Continuous removes only timed ROM return; remains a private '
@@ -240,6 +243,10 @@ def main():
                         help='With compressed tables, retain original Plaits wave bank in flash '
                         'to recover RAM; decode Braids only when Shapes is selected')
     args = parser.parse_args()
+    try:
+        identity_receipt = identity_configuration(args.firmware_identity)
+    except ValueError as error:
+        parser.error(str(error))
     runtime_policy = runtime_configuration(args.runtime_mode)
     save_service_receipt = project_save_service_configuration(args.link_project_save_service)
     if bool(args.prepared_profile) != bool(args.expected_profile_sha256):
@@ -316,7 +323,8 @@ def main():
     (out / 'felucca_font.h').write_text(compact_header(
         (platform / 'gen/felucca_font.h').read_text()))
     (out / 'gfx.c').write_text(compact_gfx((platform / 'src/gfx.c').read_text()))
-    source = (platform / 'src/platform.c').read_text()
+    source = platform_with_identity((platform / 'src/platform.c').read_text(),
+                                    args.firmware_identity)
     if args.startup_project_index is not None:
         project_count = sum(1 for asset in content_inputs.report['content']
                             if asset['kind'] == 'project')
@@ -505,6 +513,7 @@ def main():
                   key_audit=audit, undefined_symbols=missing, flash_write_range='empty',
                   boot_ota_cleanup=False, entry_core=0, entry_boot_pointer='0x01c7fe08',
                   runtime_configuration=runtime_policy,
+                  firmware_identity=identity_receipt,
                   runtime_policy_sha256=digest(ROOT / 'firmware/native/runtime_mode.h'),
                   project_save_service=save_service_receipt,
                   state_bin_codec=state_bin_codec,
