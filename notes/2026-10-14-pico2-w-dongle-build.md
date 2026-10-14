@@ -17,3 +17,13 @@
 [reported] The project wiring/design keeps USB_KEY drive signals on GP14/GP15, external pull-up controls GP16/GP19, mux GP17, button GP18 (dongle/firmware/config.h). This task did not validate that pinout electrically on a Pico 2 W or resolve the owner's GPIO/wiring question.
 
 [verified] No Pico was flashed and no hardware behavior was tested by this worker. Root owns the physical bootloader/UF2 operation and subsequent review. The artifacts remain private coordination outputs and are not committed.
+
+## Late-attaching USB CDC status replay
+
+[verified] On 2026-10-14, updated `dongle/firmware/main.c` to use the pinned Pico SDK USB CDC connection query and replay the banner plus the current DONE/FAULT/FAILED result when a console connects or reconnects while the dongle is idle after an attempt. The check does not touch the PIO state machines, USB_KEY lines, or button/restart path. The startup banner is emitted only if CDC is already connected; a later console connection receives the replay. The public SDK header documents `stdio_usb_connected()` as checking for an active stdio CDC connection: https://github.com/raspberrypi/pico-sdk/blob/2.1.1/src/rp2_common/pico_stdio_usb/include/pico/stdio_usb.h.
+
+[verified] Rebuilt both board variants from this source in `lunar-pico2w-sdk:2.1.1-picotool-2.1.1` (image sha256 `69464cb264521177f41294e3b649e0466b39b5c10ba9127427f9986fc5f23417`, SDK 2.1.1, picotool 2.1.1), using `docker-batch.slice`, network disabled, 2 CPUs and 2 GiB memory/swap. RP2040 Pico UF2 SHA-256 is `ccb5afe1c4cd666f44216514a570184f128ae64444de2fa433244c2bea344291`; picotool reports family `rp2040`, board `pico`, and USB stdin/stdout. RP2350 Pico 2 W UF2 SHA-256 is `8a89633eecd149b7b6422fdf815a9fc3efa0351b8aa7ca1e569dfcf788f2f717`; picotool reports family `rp2350-arm-s`, board `pico2_w`, ARM Secure, and USB stdin/stdout. Artifacts are private under `/home/claude/.local/share/codex-coordination/artifacts/lunar-pico2w/20261014/status-replay/`.
+
+[verified] `tests/test_usb_key_pio.py` and `tests/test_dongle_model.py` passed: 17 tests. The host test venv was created from the repository `requirements-dev.txt` because the pinned SDK image has no pytest or PIO emulator modules.
+
+[reported] Root has already programmed the prior Pico 2 W artifact and confirmed the board enumerates, but this code revision was not installed or observed on hardware by this worker. The connection-edge replay is compile- and model-tested only; USB host attach/reconnect behavior still needs a physical console check.

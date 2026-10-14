@@ -12,6 +12,7 @@
 #include <stdarg.h>
 
 #include "pico/stdlib.h"
+#include "pico/stdio_usb.h"
 #include "hardware/pio.h"
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
@@ -29,12 +30,43 @@ static int sof_mode = DEFAULT_SOF_MODE;
 
 static const char *pol_name(int pol) { return pol == POLARITY_DP_CLOCK ? "A(D+clk,D-data)" : "B(D-clk,D+data)"; }
 static uint64_t t0;
+static bool usb_console_was_connected;
+static bool usb_console_state_published;
+static state_t last_result_state;
 static void dlog(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 static void dlog(const char *fmt, ...) {
     va_list ap; va_start(ap, fmt);
     printf("[%9llu us] ", (unsigned long long)(time_us_64() - t0));
     vprintf(fmt, ap); printf("\n");
     va_end(ap);
+}
+
+static const char *state_name(state_t st) {
+    return st == ST_DONE ? "DONE" : st == ST_FAULT ? "FAULT" : "FAILED";
+}
+
+static void print_banner(void) {
+    printf("\nFM-1 USB_KEY dongle (docs/10-usb-key-dongle.md). Key 0x%04X, %d kHz, gap %d us.\n",
+           USB_KEY_WORD, KEY_PIO_HZ / KEY_BIT_CYCLES / 1000, KEY_GAP_US);
+}
+
+static void publish_console_state(void) {
+    bool connected = stdio_usb_connected();
+    if (!connected) {
+        usb_console_was_connected = false;
+        usb_console_state_published = false;
+        return;
+    }
+
+    if (!usb_console_was_connected) {
+        print_banner();
+        dlog("state=%s - press the button to restart (power-cycle the FM-1 first)", state_name(last_result_state));
+        usb_console_state_published = true;
+    } else if (!usb_console_state_published) {
+        dlog("state=%s - press the button to restart (power-cycle the FM-1 first)", state_name(last_result_state));
+        usb_console_state_published = true;
+    }
+    usb_console_was_connected = true;
 }
 
 // ------------------------------------------------------------- hardware ----
@@ -200,8 +232,8 @@ int main(void) {
 
     sleep_ms(1500);                                                   // let the USB console attach
     t0 = time_us_64();
-    printf("\nFM-1 USB_KEY dongle (docs/10-usb-key-dongle.md). Key 0x%04X, %d kHz, gap %d us.\n",
-           USB_KEY_WORD, KEY_PIO_HZ / KEY_BIT_CYCLES / 1000, KEY_GAP_US);
+    usb_console_was_connected = stdio_usb_connected();
+    if (usb_console_was_connected) print_banner();
     if (button_pressed()) { polarity_mode = POLARITY_DM_CLOCK; dlog("button held at boot: fixed polarity %s", pol_name(POLARITY_DM_CLOCK)); while (button_pressed()) sleep_ms(10); }
 
     for (;;) {
@@ -224,10 +256,13 @@ int main(void) {
             }
         }
         pullups(false); lines_release(); mux_to_pc();
-        // Idle until the button is pressed; LED shows the outcome.
-        dlog("state=%s - press the button to restart (power-cycle the FM-1 first)",
-             st == ST_DONE ? "DONE" : st == ST_FAULT ? "FAULT" : "FAILED");
+        // Idle until the button is pressed; LED shows the outcome. A late
+        // USB CDC connection receives the banner and current result, without
+        // touching the key/PIO state or requiring a restart.
+        last_result_state = st;
+        usb_console_state_published = false;
         while (!button_pressed()) {
+            publish_console_state();
             if (st == ST_DONE) { led(true); sleep_ms(50); }
             else if (st == ST_FAULT) blink(1, 100);
             else blink(1, 200);
