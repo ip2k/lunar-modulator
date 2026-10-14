@@ -41,6 +41,14 @@ def sha256(path):
     return h.hexdigest()
 
 
+def prepared_input_directory(profile_path):
+    """Translate the public profile-file argument to the builder's directory API."""
+    profile_path = Path(profile_path).resolve()
+    if profile_path.name != 'profile.json':
+        raise ValueError('prepared profile must be named profile.json')
+    return profile_path.parent
+
+
 def replace_once(text, old, new, label):
     count = text.count(old)
     if count != 1:
@@ -365,7 +373,7 @@ def main():
                '--catalogue', str(args.catalogue.resolve()), '--build', str(build / 'linked'),
                '--runtime-mode', 'song-diagnostic', '--stack-watermark',
                '--flash-layout', 'expanded-d7000', '--prepared-profile',
-               str(args.prepared_profile.resolve()), '--expected-profile-sha256',
+               str(prepared_input_directory(args.prepared_profile)), '--expected-profile-sha256',
                args.expected_profile_sha256, '--link-project-loader',
                '--link-project-save-service', '--startup-project-index', '0',
                '--shapes-voices', '8', '--indexed-tft', '--compressed-wavetables']
