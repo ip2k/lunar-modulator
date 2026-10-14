@@ -1,0 +1,512 @@
+[
+  {
+    "shard": 0,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 0,
+      "assets": 0,
+      "packed_bytes": 0,
+      "binary_input": false,
+      "plate": false,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 1,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 1,
+      "assets": 1,
+      "packed_bytes": 2800,
+      "binary_input": false,
+      "plate": false,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 2,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 2,
+      "assets": 2,
+      "packed_bytes": 3058,
+      "binary_input": false,
+      "plate": false,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 3,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 3,
+      "assets": 4,
+      "packed_bytes": 6116,
+      "binary_input": false,
+      "plate": false,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 4,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 4,
+      "assets": 0,
+      "packed_bytes": 0,
+      "binary_input": true,
+      "plate": false,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 5,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 5,
+      "assets": 1,
+      "packed_bytes": 2684,
+      "binary_input": true,
+      "plate": false,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 6,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 6,
+      "assets": 2,
+      "packed_bytes": 2942,
+      "binary_input": true,
+      "plate": false,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 7,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 7,
+      "assets": 4,
+      "packed_bytes": 5884,
+      "binary_input": true,
+      "plate": false,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 8,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 8,
+      "assets": 0,
+      "packed_bytes": 0,
+      "binary_input": false,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 9,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 9,
+      "assets": 1,
+      "packed_bytes": 2800,
+      "binary_input": false,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 10,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 10,
+      "assets": 2,
+      "packed_bytes": 3058,
+      "binary_input": false,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 11,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 11,
+      "assets": 4,
+      "packed_bytes": 6116,
+      "binary_input": false,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 12,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 12,
+      "assets": 0,
+      "packed_bytes": 0,
+      "binary_input": true,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 13,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 13,
+      "assets": 1,
+      "packed_bytes": 2684,
+      "binary_input": true,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 14,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 14,
+      "assets": 2,
+      "packed_bytes": 2942,
+      "binary_input": true,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 15,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 15,
+      "assets": 4,
+      "packed_bytes": 5884,
+      "binary_input": true,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 16,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 16,
+      "assets": 0,
+      "packed_bytes": 0,
+      "binary_input": false,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 17,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 17,
+      "assets": 1,
+      "packed_bytes": 2800,
+      "binary_input": false,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 18,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 18,
+      "assets": 2,
+      "packed_bytes": 3058,
+      "binary_input": false,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 19,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 19,
+      "assets": 4,
+      "packed_bytes": 6116,
+      "binary_input": false,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 20,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 20,
+      "assets": 0,
+      "packed_bytes": 0,
+      "binary_input": true,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 21,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 21,
+      "assets": 1,
+      "packed_bytes": 2684,
+      "binary_input": true,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 22,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 22,
+      "assets": 2,
+      "packed_bytes": 2942,
+      "binary_input": true,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 23,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 23,
+      "assets": 4,
+      "packed_bytes": 5884,
+      "binary_input": true,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 24,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 24,
+      "assets": 0,
+      "packed_bytes": 0,
+      "binary_input": false,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 25,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 25,
+      "assets": 1,
+      "packed_bytes": 2800,
+      "binary_input": false,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 26,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 26,
+      "assets": 2,
+      "packed_bytes": 3058,
+      "binary_input": false,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 27,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 27,
+      "assets": 4,
+      "packed_bytes": 6116,
+      "binary_input": false,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 28,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 28,
+      "assets": 0,
+      "packed_bytes": 0,
+      "binary_input": true,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  },
+  {
+    "shard": 29,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false,
+    "check": {
+      "shard": 29,
+      "assets": 1,
+      "packed_bytes": 2684,
+      "binary_input": true,
+      "plate": true,
+      "linked_bytes_verified": true,
+      "installable": false,
+      "hardware_tested": false,
+      "playback_verified": false
+    }
+  }
+]

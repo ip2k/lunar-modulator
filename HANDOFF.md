@@ -1,3 +1,16 @@
+# Scalar native-link checkpoint — 2026-10-13
+
+Goal ACTIVE: full native all-thirteen release plus selectable builder.
+Branch feature/2026-10-11@installable-firmware; verified pushed predecessor
+f2970889d00c3de021a281564d92cbc00a470060. Optional project-loader link now roots
+scalar restoration and labels link readiness separately from activation.
+All30 Hera native links passed SDK-free audit, ELF retained entry and content
+byte checks; every log/source hash/state checked/noOOM/containers removed.
+Five-sound selected profiles, not final all13 image. Prior46 host cases and30
+target compile shards passed. Evidence notes/2026-10-13-project-scalars-verification/.
+No physical commands. No live campaign. Next full startup composition and
+remaining release gates described below. Current-head review/CI not established.
+
 # Scalar startup and actual-candidate recovery verified — 2026-10-13
 
 Goal ACTIVE: full SDK-free native Lunar, all thirteen default engines plus the

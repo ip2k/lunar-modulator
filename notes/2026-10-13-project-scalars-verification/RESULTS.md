@@ -27,3 +27,14 @@ Semantic navigation: Serena and Rarefaction select the primary checkout rather
 than this worktree. Both resolve the shared level setter; their caller coverage
 is incomplete without the actual build database. Worktree sources and actual
 pi32v2 compiles are the authoritative evidence; shared servers were not retargeted.
+
+## Final ELF retention
+
+Optional project-loader linking now roots lunar_project_restore_scalars and
+reports scalar_restore_link_verified separately from activation. All30 native
+links passed final ELF public-symbol checks, SDK-free audits, embedded asset
+byte verification and existing audit/option regressions [verified]. Every log,
+zero exit/noOOM state and the three changed source hashes were checked; owned
+containers removed. These use five-sound selected profiles, optional Plate and
+0/1/2/4 text/binary content assets; not the all-thirteen release image. No startup
+execution, physical write, timing or installable-release claim follows.

@@ -307,7 +307,7 @@ def main():
         roots += ('lunar_project_mod_stage', 'lunar_project_seq_stage',
                   'lunar_project_engines_stage', 'lunar_project_engines_release',
                   'lunar_project_engines_apply', 'lunar_project_adopt_audio_units',
-                  'lunar_project_restore_midi_units')
+                  'lunar_project_restore_midi_units', 'lunar_project_restore_scalars')
     elf = out / 'lunar-app-probe.elf'
     script = out / 'app.ld'
     script.write_text(linker_script((ROOT / 'firmware/native/app.ld').read_text(), args.flash_layout))
@@ -371,7 +371,8 @@ def main():
         report['project_loader'] = dict(modulation_staging_link_verified=True,
                                        sequence_staging_link_verified=True,
                                        engine_staging_link_verified=True, engine_parameter_link_verified=True, audio_adoption_link_verified=True,
-                                       midi_restore_link_verified=True, activated=False, stack_margin_verified=False,
+                                       midi_restore_link_verified=True, scalar_restore_link_verified=True,
+                                       activated=False, stack_margin_verified=False,
                                        timing_verified=False, hardware_tested=False,
                                        sequence_semantics_verified=False)
     if args.startup_set_index is not None:
