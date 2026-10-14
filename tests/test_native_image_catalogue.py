@@ -49,10 +49,10 @@ def test_exported_builder_requests(tmp_path, case):
              '53373bf4c508d360eccdf2751fd4242f23478d575adf893a703e6179dcd9c77f'),
             ('Event Horizon', 'replacement-showcases/event-horizon-showcase.lunar',
              150, 68, 7, 'replacement-showcase-candidate',
-             '0d5d871bd31db1e628efbf291fd306671b81c93bef254a950291bf95f5413d1c'),
+             '22bf4e768ec1e55a9a92ebb7b2ef1ed5d5967703d226fca7798f0c67b441d24f'),
             ('Packet Bloom', 'replacement-showcases/packet-bloom-showcase.lunar',
              82, 40, 5, 'replacement-showcase-candidate',
-             'eb55a36129ef3db02136b2ed0859fafcad94e3b2cbc3fa42761383d380249731'),
+             '853be1d05bd206d9fce928e5d36944d932491a9b9c69cf79d96e6f78392700e7'),
             ('Satellite Hearts', 'replacement-showcases/satellite-hearts.lunar',
              124, 60, 6, 'replacement-showcase-candidate',
              '090996484a125f5bde3fe4fb0a6dc3284cf7a260d6c6603298206921e78ed5d6'),
@@ -85,6 +85,22 @@ def test_exported_builder_requests(tmp_path, case):
                     'path': 'engines/state/examples/' +
                     filename.removeprefix('replacement-showcases/'),
                 }
+                adaptations = {
+                    'replacement-showcases/event-horizon-showcase.lunar': {
+                        'kind': 'scene-label-compatibility',
+                        'original_sha256': '0d5d871bd31db1e628efbf291fd306671b81c93bef254a950291bf95f5413d1c',
+                        'scene_label_map': [['Suspense', 'Tense'], ['OpenSky', 'Sky']],
+                    },
+                    'replacement-showcases/packet-bloom-showcase.lunar': {
+                        'kind': 'scene-label-compatibility',
+                        'original_sha256': 'eb55a36129ef3db02136b2ed0859fafcad94e3b2cbc3fa42761383d380249731',
+                        'scene_label_map': [['Packets', 'Packet'], ['Dissolve', 'Fade']],
+                    },
+                }
+                if filename in adaptations:
+                    assert project['source_adaptation'] == adaptations[filename]
+                else:
+                    assert 'source_adaptation' not in project
                 assert 'owner musical acceptance pending' in project['owner_disposition']
             else:
                 assert 'not approved' in project['owner_disposition']
