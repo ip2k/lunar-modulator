@@ -2895,3 +2895,15 @@ measure.py}. Nohardwareop/no liveworker. Next generationwrap/ambiguitycoverage
 and capacity/transaction design; ownerwatched all13boot remainspending. Full
 release migration/physicalrollback/webinstaller/custombuilder/license/reviewCI
 remainopen. Previousverifiedpushed9fdcf4a8cf03b08f406741d2c074d1947bd92b20.
+
+## Project generation ordering checkpoint (2026-10-13)
+
+[verified]30 cases/30 concurrent Hera ASanUBSan chunks pass generationordering:
+5 edge bases x6 deltas; equal/halfrange refusal before erase/program, bothslots
+byteidentical; othercases selectexpectedlatest, eraseinactive, generationwrap,
+commit and rescancorrectly. All30logs/exits/noOOM/3sourcehashes checked.
+Session93119 terminal0/no workers/no hardwareop. Productionheaderunchanged.
+Evidence notes/2026-10-13-project-generation-verification/. Next resolveproject
+capacity/productionSAVEbridge; ownerwatched all13boot stillpending. Migration/
+physicalrollback/webinstaller/custombuilder/license/reviewCI open. Previous
+verifiedpushed72ef4076b362d82d9ebb38ec124d9936200e32ea.
