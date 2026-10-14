@@ -20,8 +20,14 @@ static int32_t lunar_master_raw = 512;
 #include "audio_queue.h"
 #include "instance_pool.h"
 #include "midi_input.h"
-#ifdef LUNAR_STARTUP_SET_INDEX
+#if defined(LUNAR_STARTUP_SET_INDEX) || defined(LUNAR_STARTUP_PROJECT_INDEX)
 #include "content_catalogue.h"
+#endif
+#ifdef LUNAR_STARTUP_PROJECT_INDEX
+#include "project_boot.h"
+static volatile uint32_t startup_project_result, startup_project_report;
+#endif
+#ifdef LUNAR_STARTUP_SET_INDEX
 #include "content_set.h"
 static volatile uint32_t startup_set_result, startup_set_report;
 #endif
@@ -152,7 +158,26 @@ static void app_main(void)
         startup_set_report = (uint32_t)report.code;
     }
 #endif
+#ifdef LUNAR_STARTUP_PROJECT_INDEX
+    {
+        fm1_state_report_t report;
+        fm1_state_report_init(&report);
+        const lunar_content_asset_t *asset = &lunar_content_catalogue[LUNAR_STARTUP_PROJECT_INDEX];
+        startup_project_result = !arena_bind_failures &&
+            asset->kind == FM1_STATE_PROJECT && lunar_project_start(
+                &app, &instance_pool, asset->bytes, asset->size, 44118, &report);
+        startup_project_report = (uint32_t)report.code;
+        if (!startup_project_result) {
+            fm1_audio_stop();
+            usb_detach();
+            fm1_delay_ms(30);
+            bootguard_clear(&bootguard);
+            fm1_enter_uboot();
+        }
+    }
+#else
     initial_engine_result = (uint32_t)fm1_app_select(&app, 0, fm1_app_find("trio"));
+#endif
     refill_audio();
     for (;;) {
         if ((uint32_t)(fm1_ticks() - start) >= 20u * 1000000u * FM1_TICKS_PER_US) {

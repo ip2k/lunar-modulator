@@ -128,6 +128,9 @@ def main():
     parser.add_argument('--startup-set-index', type=int,
                         help='Opt-in timed probe: stage this embedded SET before Trio allocation; '
                         'requires --link-set-loader and a prepared profile')
+    parser.add_argument('--startup-project-index', type=int,
+                        help='Opt-in timed probe: restore this embedded PROJECT; '
+                        'requires --link-project-loader and a prepared profile')
     parser.add_argument('--shapes-voices', type=int, choices=range(1, 13), default=12,
                         help='Require the selected Shapes polyphony in the catalogue')
     parser.add_argument('--indexed-tft', action='store_true',
@@ -159,6 +162,16 @@ def main():
             parser.error('--startup-set-index is outside the embedded catalogue')
         if assets[args.startup_set_index]['kind'] != 'set':
             parser.error('--startup-set-index must identify a SET, not a project')
+    if args.startup_project_index is not None:
+        if args.startup_set_index is not None:
+            parser.error('SET and PROJECT startup are mutually exclusive')
+        if not args.link_project_loader or not content_inputs:
+            parser.error('--startup-project-index requires --link-project-loader and --prepared-profile')
+        assets = content_inputs.report['content']
+        if not 0 <= args.startup_project_index < len(assets):
+            parser.error('--startup-project-index is outside the embedded catalogue')
+        if assets[args.startup_project_index]['kind'] != 'project':
+            parser.error('--startup-project-index must identify a PROJECT')
     if args.flash_plaits_wavetables and not args.compressed_wavetables:
         parser.error('--flash-plaits-wavetables requires --compressed-wavetables')
     tc, catalogue, out = (p.resolve() for p in
@@ -232,6 +245,8 @@ def main():
              '-DFM1_TFT_INDEXED=' + str(int(args.indexed_tft))]
     if args.startup_set_index is not None:
         flags += ['-DLUNAR_STARTUP_SET_INDEX=' + str(args.startup_set_index)]
+    if args.startup_project_index is not None:
+        flags += ['-DLUNAR_STARTUP_PROJECT_INDEX=' + str(args.startup_project_index)]
     if args.compressed_wavetables:
         flags += ['-DLUNAR_COMPRESSED_WAVETABLES=1']
     for directory in (gen, ROOT / 'engines/include', ROOT / 'engines/mod',
@@ -268,7 +283,8 @@ def main():
                           ROOT / 'firmware/native/project_mod.c',
                           ROOT / 'firmware/native/project_seq.c',
                           ROOT / 'firmware/native/project_engines.c',
-                          ROOT / 'firmware/native/project_start.c']
+                          ROOT / 'firmware/native/project_start.c',
+                          ROOT / 'firmware/native/project_boot.c']
     for path in [ROOT / 'sim/web/src/fm1_app.c', ROOT / 'engines/host/mod_script.c',
                  ROOT / 'firmware/native/app_probe.c', ROOT / 'firmware/native/instance_pool.c',
                  ROOT / 'firmware/native/tlsf_runtime.c', ROOT / 'engines/src/registry.cc', *extra_sources]:
@@ -309,7 +325,8 @@ def main():
                   'lunar_project_engines_apply', 'lunar_project_adopt_audio_units',
                   'lunar_project_restore_midi_units', 'lunar_project_restore_scalars',
                   'lunar_project_restore_dx7', 'lunar_project_restore_mod', 'fm1_app_mod_prepare_cold',
-                  'fm1_app_mod_adopt_cold')
+                  'fm1_app_mod_adopt_cold', 'lunar_project_start',
+                  'lunar_project_restore_view')
     elf = out / 'lunar-app-probe.elf'
     script = out / 'app.ld'
     script.write_text(linker_script((ROOT / 'firmware/native/app.ld').read_text(), args.flash_layout))
@@ -375,6 +392,7 @@ def main():
                                        engine_staging_link_verified=True, engine_parameter_link_verified=True, audio_adoption_link_verified=True,
                                        midi_restore_link_verified=True, scalar_restore_link_verified=True, dx7_restore_link_verified=True,
                                        modulation_adoption_link_verified=True, modulation_restore_link_verified=True,
+                                       startup_composition_link_verified=True, view_restore_link_verified=True,
                                        activated=False, stack_margin_verified=False,
                                        timing_verified=False, hardware_tested=False,
                                        sequence_semantics_verified=False)
@@ -383,6 +401,11 @@ def main():
                                     staging_reclaimed_before_engine_allocation=True,
                                     runtime_verified=False, stack_margin_verified=False,
                                     hardware_tested=False)
+    if args.startup_project_index is not None:
+        report['startup_project'] = dict(index=args.startup_project_index, runtime_hook_linked=True,
+                                        staging_reclaimed_before_engine_allocation=True,
+                                        failure_returns_to_recovery=True, runtime_verified=False,
+                                        stack_margin_verified=False, hardware_tested=False)
     (out / 'verification.json').write_text(json.dumps(report, indent=2) + '\n')
     subprocess.run([sys.executable, str(ROOT / 'tools/native/probe_artifact.py'),
                     '--elf', str(elf), '--layout', 'combined',

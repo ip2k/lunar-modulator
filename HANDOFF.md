@@ -2165,3 +2165,19 @@ fixtures and verified source behavior. Previous pushed7139fd32, branch
 feature/2026-10-11@installable-firmware. Goal active: compose PROJECT startup and
 VIEW next; final all13/resources/timing/settings migration/physical rollback/web
 install/exact-head reviewCIintegration remain incomplete.
+
+## Composed PROJECT startup checkpoint (2026-10-13)
+
+[verified] Cold PROJECT composition and VIEW restoration implemented; opt-in
+PROJECT probe hook returns to ROM on failure before audio render, retaining the
+20-second timeout. Host v2:168 tests pass30 Hera sanitizer chunks. 30 retained
+native links plus30 hook links pass,22 with embedded PROJECT startup. All13
+Shapes12 retained-entry app843564B,25272B headroom; no selected PROJECT there.
+Every log/state/noOOM and immutable source hash inspected; ownedcontainersremoved.
+Evidence/reproduction notes/2026-10-13-project-boot-verification/RESULTS.md.
+Hostv1 six sequencer-screen key fixture failures retained; shared note API fixes
+fixture while preserving VIEW/audio assertions. No device command. Mixed SET/
+DX7/effects composition, hardware stack/RAM/timing/settingsmigration/recovery/
+rollback/webinstallation/exactheadreviewCIintegration remain open. Goal active.
+Branch feature/2026-10-11@installable-firmware; previous verified pushed673c907c.
+Next verify integrated mixed projects and complete all13 startup/timing admission.

@@ -19,14 +19,14 @@ def arena_tools(tmp_path_factory):
     native = ROOT / "firmware/native"
     vendor = ROOT / "firmware/third_party/tlsf"
     fragment = build / "native.mk"
-    sources = [native / "project_start.c", native / "project_mod.c", native / "project_units.c", native / "instance_pool.c", vendor / "tlsf.c"]
+    sources = [native / "project_boot.c", native / "project_seq.c", native / "project_engines.c", native / "project_start.c", native / "project_mod.c", native / "project_units.c", native / "instance_pool.c", vendor / "tlsf.c"]
     # Separate objects per storage profile because EXTRA changes its ABI.
     tools = {}
     for external in (0, 1):
         out = build / str(external)
         binary = out / "fm1-arena-check"
         extra = os.environ.get("FM1_SIM_EXTRA", "")
-        objects = [out / (name + ".o") for name in ("project_start", "project_mod", "project_units", "instance_pool", "tlsf")]
+        objects = [out / (name + ".o") for name in ("project_boot", "project_seq", "project_engines", "project_start", "project_mod", "project_units", "instance_pool", "tlsf")]
         fragment.write_text(
             f"{binary}: " + " ".join(map(str, objects)) + "\n" +
             "".join(f"{obj}: {source}\n\t@mkdir -p $(dir $@)\n\t$(CC) $(SIM_CFLAGS) -Istate -I{native} -I{vendor} -c $< -o $@\n"
@@ -84,3 +84,10 @@ def test_app_storage_and_audio(arena_tools, shard):
         results.append(result)
     sizes = {r["external"]: r["app_bytes"] for r in results}
     assert sizes[0] - sizes[1] == 4 * 512 * 1024 + 10 * 256 * 1024
+
+
+@pytest.mark.parametrize("case", range(30))
+def test_project_boot_composition(arena_tools, case):
+    result = json.loads(subprocess.check_output(
+        [str(arena_tools[1]), "--project-boot", str(case)], text=True))
+    assert result == {"passed": True, "case": case}

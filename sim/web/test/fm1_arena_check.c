@@ -3,6 +3,7 @@
 #include "fm1_app.h"
 #if FM1_APP_EXTERNAL_ARENAS
 #include "project_start.h"
+#include "project_boot.h"
 #endif
 #include <assert.h>
 #include <math.h>
@@ -437,6 +438,87 @@ static void *pool_allocate(void *ctx, size_t bytes) {
 static void pool_deallocate(void *ctx, void *memory) {
   assert(lunar_instance_pool_free(ctx, memory) == 0);
 }
+
+static void project_boot_check(int which) {
+  lunar_instance_pool_t pool;
+  fm1_state_report_t report;
+  fm1_rec_t r = {0};
+  const uint8_t version[3] = {0, 1, 0};
+  void *writer_mem = calloc(1, fm1_state_bin_writer_size());
+  assert(writer_mem);
+  fm1_app_init(&managed, 44118.0f);
+  assert(lunar_instance_pool_init(&pool, arena.data, sizeof arena.data) == 0);
+  assert(fm1_app_set_storage(&managed, &pool, pool_allocate, pool_deallocate) == 0);
+  scalar_size = 0;
+  fm1_state_report_init(&report);
+  fm1_state_writer_t *writer = fm1_state_bin_writer(writer_mem, 0,
+      FM1_STATE_WRITER_DESKTOP, version, scalar_put, NULL, &report);
+  assert(writer);
+  r.type = FM1_REC_HEAD; r.u.head.kind = FM1_STATE_PROJECT; r.u.head.major = 1;
+  assert(fm1_state_bin_write(writer, &r));
+  memset(&r, 0, sizeof r); r.type = FM1_REC_UNIT; r.role = FM1_ROLE_SOUND;
+  strcpy(r.u.unit.id, "trio");
+  assert(fm1_state_bin_write(writer, &r));
+  memset(&r, 0, sizeof r); r.type = FM1_REC_MOD;
+  assert(fm1_state_bin_write(writer, &r));
+  r.type = FM1_REC_SEED; r.u.seed = 0xabc000u + (uint32_t)which;
+  assert(fm1_state_bin_write(writer, &r));
+  memset(&r, 0, sizeof r); r.type = FM1_REC_MODULE; r.role = FM1_ROLE_MODULE;
+  strcpy(r.u.unit.id, which & 1 ? "env" : "lfo");
+  assert(fm1_state_bin_write(writer, &r));
+  memset(&r, 0, sizeof r); r.type = FM1_REC_VIEW;
+  r.u.view.mode = (uint8_t)(which % FM1_VIEW_MODES);
+  assert(fm1_state_bin_write(writer, &r));
+  memset(&r, 0, sizeof r); r.type = FM1_REC_END;
+  assert(fm1_state_bin_write(writer, &r));
+  free(writer_mem);
+  void *held = NULL;
+  if (which >= 18) {
+    unsigned negative = (unsigned)(which - 18) % 6;
+    if (negative == 0) managed.frames = 1;
+    if (negative == 1) scalar_bytes[scalar_size - 1] ^= 1;
+    if (negative == 2) --scalar_size;
+    if (negative == 4) { held = lunar_instance_pool_alloc(&pool, 64); assert(held); }
+    fm1_app_t *before = malloc(sizeof managed); assert(before);
+    memcpy(before, &managed, sizeof managed);
+    assert(!lunar_project_start(&managed, &pool, scalar_bytes, (uint32_t)scalar_size,
+        negative == 5 ? 48000 : 44118,
+        negative == 3 ? (fm1_state_report_t *)&managed : &report));
+    assert(!memcmp(before, &managed, sizeof managed));
+    free(before);
+    if (held) assert(!lunar_instance_pool_free(&pool, held));
+    assert(!pool.live_allocations && !pool.live_bytes);
+    return;
+  }
+  int ok = lunar_project_start(&managed, &pool, scalar_bytes, (uint32_t)scalar_size,
+                               44118, &report);
+  if (!ok) fprintf(stderr, "project boot %u: %s\n", report.code, report.what);
+  assert(ok && report.code == FM1_STATE_OK);
+  assert(managed.unit[0].e && !strcmp(managed.unit[0].e->id, "trio"));
+  assert(pool.live_allocations == 1); /* No retained staging or candidate MIDI allocations. */
+  assert(managed.mod_seed == 0xabc000u + (uint32_t)which);
+  const int modes[FM1_VIEW_MODES] = {FM1_MODE_HOME, FM1_MODE_FX, FM1_MODE_GLOBAL,
+      FM1_MODE_SEQ, FM1_MODE_SEQ, FM1_MODE_SEQ, FM1_MODE_RACK,
+      FM1_MODE_MATRIX, FM1_MODE_CHAIN};
+  assert(managed.mode == modes[which % FM1_VIEW_MODES]);
+  if (which % FM1_VIEW_MODES == FM1_VIEW_SESSION)
+    assert(managed.ui.view == FM1_SEQ_VIEW_SESSION);
+  if (which % FM1_VIEW_MODES == FM1_VIEW_SONG)
+    assert(managed.ui.view == FM1_SEQ_VIEW_SONG);
+  fm1_app_note_on(&managed, 60 + which % 12, 100);
+  double energy = 0;
+  for (int block = 0; block < 8; ++block) {
+    const float *audio = fm1_app_render(&managed, 64);
+    for (int n = 0; n < 128; ++n) {
+      assert(isfinite(audio[n])); energy += audio[n] * audio[n];
+    }
+  }
+  assert(energy > 0.0001);
+  fm1_app_all_notes_off(&managed);
+  managed.unit[0].e->destroy(managed.unit[0].self);
+  pool_deallocate(&pool, managed.unit[0].mem);
+  assert(!pool.live_allocations && !pool.live_bytes);
+}
 static void pool_adoption_check(int shard) {
   lunar_instance_pool_t pool;
   lunar_project_engines_t candidate, saved;
@@ -590,6 +672,12 @@ static void managed_check(int shard) {
 
 int main(int argc, char **argv) {
 #if FM1_APP_EXTERNAL_ARENAS
+  if (argc == 3 && !strcmp(argv[1], "--project-boot")) {
+    int which = atoi(argv[2]); assert(which >= 0 && which < 30);
+    project_boot_check(which);
+    printf("{\"passed\":true,\"case\":%d}\n", which);
+    return 0;
+  }
   if (argc == 3 && !strcmp(argv[1], "--project-mod")) {
     int which = atoi(argv[2]);
     assert(which >= 0 && which < 32);
