@@ -3146,3 +3146,20 @@ corresponding source/notices, firmware acceptance, physical rollback, persistenc
 installer/builder integration/reviewCI remain open. No release/deployment claim.
 Branch feature/2026-10-11@installable-firmware; preceding verified pushed
 fa5962a8d5939c5ac66fcfbf7ea0d6efa3de9ac6.
+
+## Cross-host setup and storage profile checkpoint (2026-10-14)
+
+Hera Codex 0.162.1 installed with configured ceiling64; Mac ceiling16. Shared
+claims/handoffs and bare Git exchange are documented in lan-compute
+docs/CODEX-HERA.md, verified pushed infrastructure branch
+chore/2026-10-14@hera-codex at b777da307d7a5d75b4840cb59b2791cda90bc0d2.
+Owner explicitly deferred Hera sign-in; no hosted Hera agent round trip claimed.
+Existing SSH builds remain available. Current Mac tool pool still four total slots.
+
+[verified] Standalone project storage geometry helper passes45 ASan/UBSan
+assertions in pinned Hera container. Caller marker and mutable extents do not
+prove trusted layout ownership; no service/HAL binding or hardware write enabled.
+See notes/2026-10-14-project-storage-profile.md for hashes/evidence and next gates.
+Capacity and selection-model delegates remain bounded offline tasks; parent must
+review and back up their results before integration. Watched all13 boot pending
+owner; no bench/USB operation issued during infrastructure stream. Goal ACTIVE.
