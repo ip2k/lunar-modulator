@@ -231,6 +231,15 @@ class DockerJobAdapter:
                     pass
             self._set(build_id, WorkerSnapshot("failed"))
         finally:
+            # Keep only the already capped combined worker output inside the
+            # mode-0700 private job directory for operator diagnosis. The API
+            # never returns logs; normal retention cleanup removes this file.
+            try:
+                log_path = base / "worker.log"
+                log_path.write_bytes(bytes(log[:self.config.max_log_bytes]))
+                os.chmod(log_path, 0o600)
+            except OSError:
+                pass
             self.semaphore.release()
 
     def get(self, build_id: str) -> WorkerSnapshot | None:
