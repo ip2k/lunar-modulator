@@ -9,7 +9,7 @@ import zlib
 from evaluate_wavetables import ASSETS, ROOT, asset_bytes, delta_encode, digest
 
 
-def prepare(out, namespaces=('plaits', 'braids')):
+def prepare(out, namespaces=('plaits', 'braids'), *, storage_section='.pool.wavetable'):
     out = Path(out)
     records, declarations = [], []
     for relative, symbol, width, size in ASSETS:
@@ -33,7 +33,7 @@ def prepare(out, namespaces=('plaits', 'braids')):
         (out / header_name).write_text(header.replace(declaration, f'extern {kind} {symbol}[];'))
         source = source.replace(f'"{namespace}/resources.h"', f'"{header_name}"')
         definition = (f'{kind} {symbol}[{size // width}] '
-                      '__attribute__((section(".pool.wavetable"), aligned(16), used));')
+                      f'__attribute__((section("{storage_section}"), aligned(16), used));')
         pattern = r'const\s+\w+\s+' + symbol + r'\s*\[[^\]]*\]\s*=\s*\{[^}]+\};'
         source, count = re.subn(pattern, lambda _: definition, source, flags=re.S)
         if count != 1:

@@ -216,7 +216,8 @@ def compressed_startup_tools(request, tmp_path_factory):
         spec.loader.exec_module(module)
         generated = build_root / "compressed-wave"
         generated.mkdir()
-        records = module.prepare(generated)
+        records = module.prepare(generated, storage_section=(
+            '__DATA,__lunar_waves' if sys.platform == 'darwin' else '.pool.wavetable'))
     finally:
         sys.path.remove(str(tools_dir))
 

@@ -21,7 +21,8 @@ def wavetable_binary(tmp_path_factory):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         out = tmp_path_factory.mktemp("native-waves")
-        module.prepare(out)
+        module.prepare(out, storage_section=(
+            '__DATA,__lunar_waves' if sys.platform == 'darwin' else '.pool.wavetable'))
     finally:
         sys.path.remove(str(directory))
     objects = []
