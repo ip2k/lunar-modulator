@@ -233,15 +233,29 @@ def large_collector_body(tools, tmp_path_factory):
                    for line in trigs)
     metadata = {r['key']: r.get('text', '') for r in records if r['rec'] == 'info'}
     assert {key: metadata[key] for key in MAX_METADATA} == MAX_METADATA
-    return body_path
+    updated_doc = dict(doc)
+    updated_doc["name"] = "U" * 16
+    updated = directory / "updated-metadata.lunar"
+    updated.write_text(json.dumps(updated_doc), encoding="utf-8")
+    updated_body_path = directory / "updated.native-save.lunarb"
+    sim(tools, "--load", updated, "--save", f"project:{updated_body_path}")
+    updated_body = updated_body_path.read_bytes()
+    updated_records, _ = ls.read_bin(updated_body)
+    updated_metadata = {
+        record["key"]: record.get("text", "")
+        for record in updated_records if record["rec"] == "info"
+    }
+    assert updated_metadata["name"] == "U" * 16
+    assert updated_body != body
+    return body_path, updated_body_path
 
 
 @pytest.mark.parametrize('slot_bytes', GEOMETRIES, ids=lambda n: f'slot-{n}')
 @pytest.mark.parametrize('shard', range(FAILURE_SHARDS),
                          ids=lambda n: f'mutation-shard-{n:02}')
 def test_project_transaction_torn_recovery(adapter, slot_bytes, shard):
-    subprocess.run([str(adapter), str(FIXTURE), str(slot_bytes), str(shard)],
-                   check=True)
+    subprocess.run([str(adapter), str(FIXTURE), str(FIXTURE),
+                    str(slot_bytes), str(shard)], check=True)
 
 
 @pytest.mark.parametrize('case_id', range(30), ids=lambda n: f'legacy-case-{n:02}')
@@ -254,5 +268,6 @@ def test_project_store_legacy_regressions(legacy_adapter, case_id):
                          ids=lambda n: f'large-mutation-shard-{n:02}')
 def test_project_transaction_torn_recovery_large_body(
         adapter, large_collector_body, slot_bytes, shard):
-    subprocess.run([str(adapter), str(large_collector_body), str(slot_bytes), str(shard)],
-                   check=True)
+    old_body, updated_body = large_collector_body
+    subprocess.run([str(adapter), str(old_body), str(updated_body),
+                    str(slot_bytes), str(shard)], check=True)
