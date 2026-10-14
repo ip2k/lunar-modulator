@@ -67,3 +67,20 @@ Docker mount `/output/build/link/` (120 rows), while the host verifier assumed
 now accepts only that exact fixed producer prefix and still rejects other paths.
 This is a producer-path contract correction, not a rewritten receipt. The
 reconstructed mounts were removed after the refusal and no tuple was written.
+
+
+The next capture-only attempt exposed a distinct worker-binding contract error.
+The invocation receipt has two hashes: `worker_sha256` covers the committed
+`tools/native/trusted_continuous_worker.py` source bytes in the detached
+source snapshot, while `worker_provenance_sha256` covers the output
+`worker-provenance.json`. The capture helper had been passed only the
+provenance path and compared it to the source hash, so it correctly refused
+without writing tuple sidecars. The correction now passes and checks the exact
+source-snapshot member separately from the provenance JSON, verifies each
+against its original invocation field, then validates the source tree manifest
+as before. It leaves invocation and producer evidence unchanged.
+
+Focused tests cover the two distinct positive pins and refuse mutation of
+either byte stream or either invocation digest. The 91-test focused suite,
+Python compilation, and diff check pass. This is source/test verification only;
+capture retry remains held for coordinator review.

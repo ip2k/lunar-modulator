@@ -261,6 +261,20 @@ def _catalogue_manifest(catalogue: Path, verification):
     return raw
 
 
+def _read_pinned_worker_source(root: Path, worker_source_path: Path) -> bytes:
+    expected = root / "tools/native/trusted_continuous_worker.py"
+    if worker_source_path.resolve() != expected.resolve():
+        raise ValueError("worker source must be the pinned source-snapshot member")
+    return read(worker_source_path)
+
+
+def _verify_worker_bindings(invocation, worker_source: bytes, worker_provenance: bytes):
+    if invocation.get("worker_sha256") != sha(worker_source):
+        raise ValueError("container invocation does not bind worker source bytes")
+    if invocation.get("worker_provenance_sha256") != sha(worker_provenance):
+        raise ValueError("container invocation does not bind worker provenance bytes")
+
+
 def _verify_app_receipts(image, artifact, verification, app: bytes, elf: bytes):
     app_sha, elf_sha = sha(app), sha(elf)
     if type(image.get("app_bytes")) is not int or type(artifact.get("app_bytes")) is not int:
@@ -281,9 +295,11 @@ def _false_flags(obj, fields, label):
 
 
 def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolchain: Path, *,
-                                invocation_path: Path, worker_path: Path, wrapper_path: Path):
+                                invocation_path: Path, worker_source_path: Path,
+                                worker_provenance_path: Path, wrapper_path: Path):
     root, catalogue, output, toolchain = map(Path, (root, catalogue, output, toolchain))
-    invocation_path, worker_path, wrapper_path = map(Path, (invocation_path, worker_path, wrapper_path))
+    invocation_path, worker_source_path, worker_provenance_path, wrapper_path = map(
+        Path, (invocation_path, worker_source_path, worker_provenance_path, wrapper_path))
     if output.resolve().is_relative_to(root.resolve()):
         raise ValueError("tuple output must be outside the source checkout")
     if catalogue.is_symlink() or toolchain.is_symlink():
@@ -291,7 +307,12 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
 
     image_raw, image = json_obj(output / "image.json")
     invocation_raw, invocation = json_obj(invocation_path)
-    worker_raw, worker = json_obj(worker_path)
+    worker_source_raw = _read_pinned_worker_source(root, worker_source_path)
+    worker_raw = read(worker_provenance_path)
+    _verify_worker_bindings(invocation, worker_source_raw, worker_raw)
+    worker = json.loads(worker_raw.decode("utf-8"), object_pairs_hook=_unique)
+    if not isinstance(worker, dict):
+        raise ValueError("worker provenance must contain a JSON object")
     toolchain_manifest_path = invocation_path.parent / "toolchain-manifest.json"
     toolchain_manifest_raw = read(toolchain_manifest_path, 16 * 1024 * 1024)
     catalogue_manifest_path = invocation_path.parent / "catalogue-tree-manifest.json"
@@ -424,12 +445,8 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         raise ValueError("container invocation is bound to a different source commit")
     if invocation.get("request_sha256") != request_sha:
         raise ValueError("container invocation is bound to different request bytes")
-    if invocation.get("worker_sha256") != sha(read(worker_path)):
-        raise ValueError("container invocation does not bind the worker source")
     if invocation.get("wrapper_sha256") != sha(read(wrapper_path)):
         raise ValueError("container invocation does not bind this host wrapper")
-    if invocation.get("worker_provenance_sha256") != sha(worker_raw):
-        raise ValueError("container invocation does not bind worker provenance")
     contract = invocation.get("container_inspection")
     expected_mounts = [
         {"source": str(root.resolve()), "destination": "/workspace", "read_only": True},
