@@ -5,7 +5,7 @@ import pathlib
 import struct
 import sys
 
-assert len(sys.argv) in (3, 5), 'usage: INVENTORY OUTPUT [ELF SOURCE]'
+assert len(sys.argv) in (3, 5, 6), 'usage: INVENTORY OUTPUT [ELF SOURCE [SCHWUNG_RECEIPT]]'
 inventory_path, output = map(pathlib.Path, sys.argv[1:3])
 inventory = json.loads(inventory_path.read_text())
 graph = inventory['functions']
@@ -145,6 +145,24 @@ for address, row in graph.items():
             edges[address].update(rules[name])
             applied[address] = {'names': row['names'], 'targets': sorted(rules[name]),
                 'empty_static_role': not bool(rules[name])}
+schwung_sites = []
+if len(sys.argv) == 6:
+    schwung = json.loads(pathlib.Path(sys.argv[5]).read_text())
+    assert schwung['elf_sha256'] == inventory['elf_sha256']
+    assert schwung['inventory_sha256'] == hashlib.sha256(inventory_path.read_bytes()).hexdigest()
+    for path, digest in schwung['reviewed_source_sha256'].items():
+        assert hashlib.sha256((source / path).read_bytes()).hexdigest() == digest, path
+    schwung_sites = schwung['site_rules']
+    callers = {site['caller'] for site in schwung_sites}
+    for caller in sorted(callers):
+        sites = [site for site in schwung_sites if site['caller'] == caller]
+        assert {s['pc'] for s in sites} == {s['pc'] for s in graph[caller]['unresolved']
+            if s['kind'] == 'indirect'}, ('incomplete Schwung caller coverage', caller)
+        targets = {t for site in sites for t in site['targets']}
+        assert all(t in graph for t in targets)
+        edges[caller].update(targets)
+        applied[caller] = {'names': graph[caller]['names'], 'targets': sorted(targets),
+            'empty_static_role': not bool(targets)}
 root = next(a for a, row in graph.items() if 'lunar_project_start' in row['names'])
 seen, todo = set(), [root]
 while todo:
@@ -169,6 +187,8 @@ receipt = {'scope': 'candidate callback expansion; no stack bound or hardware ad
         'new engine-internal callbacks need source review',
         'recursion, dynamic stack and IRQ overlap are not bounded'],
     'hardware_admitted': False}
+if len(sys.argv) == 6:
+    receipt['schwung_call_sites'] = schwung_sites
 output.write_text(json.dumps(receipt, indent=2) + '\n')
 print(json.dumps({'reachable_functions': len(seen), 'applied_rules': len(applied),
     'unresolved_sites': len(unresolved), 'unresolved_callers': sorted({

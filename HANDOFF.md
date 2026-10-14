@@ -2317,3 +2317,42 @@ The existing key audit has not been changed or revalidated by this checkpoint.
 Next: resolve Schwung and application callbacks, then caller/IRQ stack overlap
 and target timing. No device command was issued. Full thirteen-engine release,
 settings migration, physical rollback and web installation remain unfinished.
+
+## Exact Schwung startup checkpoint (2026-10-13)
+
+[verified] Target compilation on Hera measured the Module descriptor at 48
+bytes, sound API at 32 bytes and shim effect API at 28 bytes, with four-byte
+pointers. The actual PSX effect API symbol is 24 bytes: its older declaration
+omits the newer MIDI member. Reviewed startup uses the common prefix only.
+Header and source hashes are retained in receipts/schwung-layout.json and
+receipts/schwung-callbacks.json. The initial measurement failed because the
+vendor toolchain has clang but no clang++; the corrected run uses clang -x c++.
+The failed v1 log/state remain on Hera under out/schwung-layout-v1*. The v2
+container exited zero without OOM and was removed.
+
+[verified] inspect-schwung-callbacks.py checks the exact all13-v3 ELF, initialized
+Sophie API words and PSX initializer stores into its BSS table. It binds eleven
+init/create/destroy/parameter/MIDI/focus call sites to defined function targets.
+Expansion reaches 1102 functions with 31 candidate rules and seven unresolved
+indirect calls, including two newly exposed host hooks. This is candidate
+coverage, not complete runtime provenance, a stack bound or hardware admission.
+
+[verified] Python compilation and receipt reproduction pass. Callers are sorted
+to avoid set iteration changing JSON order. The prior r3 receipt reproduces
+byte-for-byte without the optional Schwung argument; the new expanded receipt
+also reproduces byte-for-byte. Signed ifs branches are now recognized alongside
+if and iff. No firmware or physical device state changed.
+
+Both semantic tools remain ready on the primary checkout; their shared selection
+was preserved. An exact-position Rarefaction query using worktree line numbers
+resolved popup instead of mfx_sink because primary source lines differ. Serena
+found mfx_sink by name and confirmed its note_off target is mfx_off. Semantic
+results are navigation only; immutable target source/disassembly are required
+for coverage and ABI claims.
+
+Next resolve fx_log, sophie_get, mod_emit, run_quiet, record and printf gadget
+callbacks; then bound complete caller/IRQ stack overlap and target timing before
+fresh identity/backups and physical admission. Settings migration, physical
+rollback, web builder/install, licensing and required review/CI/integration
+remain open. Full thirteen-engine goal active. Prior verified pushed checkpoint:
+c259deea66942840ad09098d21cd9f4e902db06f. No running measurement job.

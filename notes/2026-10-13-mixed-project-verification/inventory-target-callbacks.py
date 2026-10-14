@@ -91,7 +91,7 @@ for address, entry in functions.items():
         # correct target decoding uses "iff" for floating-point conditions.
         if '<unknown instruction>' in assembly:
             decoding_limits.append({'pc': hex(pc), 'instruction': assembly})
-        conditional = re.search(r'\biff? .*\bgoto (-?\d+)', assembly)
+        conditional = re.search(r'\bif(?:f|s)? .*\bgoto (-?\d+)', assembly)
         if conditional:
             target = pc + length + int(conditional[1])
             if not address <= target < address + entry['size']:
