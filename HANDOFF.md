@@ -2707,3 +2707,17 @@ campaign and physical all13 trial. Benchdevice36 already has fixed RAM loader;
 ROM upload consumed, no repeat. Goal remains full13 native web release plus
 custom builder, migration/rollback and review/CI/integration. Last verified
 pushed checkpoint a163b0e55009450fe0057ec9cef16304ddf98e7d.
+
+## Device36 trial preparation checkpoint (2026-10-13)
+
+[verified] Tested expanded installation-proof and boot modules staged on Pi
+/home/claude/fm1-expanded36-source-20261013/, exact hashes checked and module
+imports/source pins pass. Passive USBdevice36/SGnodeidentity[6,1666,5376]
+unchanged; zero transport operations. Concrete trial/rollback review recorded
+in notes/2026-10-13-expanded-device36-trial.md. Fresh recoveryv2 still live
+exec13477/PID3426482 on Hera; first chunk has completed. Do not restart it.
+Next inspect all41 cases/30 logs/exits/noOOM/19sourcehashes once terminal,
+then fresh campaign preflight and bounded all13 installation/boot if admitted.
+Owner observation question pending. No physical install/reset. Full release
+and custom builder, migration/rollback and review/CI remain outstanding.
+Previous verified pushed checkpoint6c22f0a1e7083fb63864ec5d94626248a87073df.
