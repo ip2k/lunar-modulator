@@ -12,19 +12,29 @@ from inspect_stock_flash import record, payload_crc
 AREA_END = 0xD9000
 APP_ORIGIN = 0x4120
 APP_BUDGET = AREA_END - APP_ORIGIN - 384 - 2940
+AREA_ENDS = {"expanded-d9000": AREA_END, "expanded-d7000": 0xD7000}
+
+
+def area_end(flash_layout="expanded-d9000"):
+    try:
+        return AREA_ENDS[flash_layout]
+    except (KeyError, TypeError):
+        raise ValueError("Unknown expanded flash layout: " + str(flash_layout)) from None
 
 
 def align4(value):
     return (value + 3) & ~3
 
 
-def extents(app):
-    if not isinstance(app, bytes) or not 0 < len(app) <= APP_BUDGET or len(app) % 4:
+def extents(app, flash_layout="expanded-d9000"):
+    limit = area_end(flash_layout)
+    budget = limit - APP_ORIGIN - 384 - 2940
+    if not isinstance(app, bytes) or not 0 < len(app) <= budget or len(app) % 4:
         raise ValueError('Expanded application must fit the aligned named budget')
     tool_start = align4(APP_ORIGIN + len(app))
     cfg_start = align4(tool_start + 383)
     end = align4(cfg_start + stock.CFG_BYTES)
-    if end > AREA_END:
+    if end > limit:
         raise ValueError('Expanded records overlap VM')
     return tool_start, cfg_start, end
 
@@ -37,14 +47,15 @@ def _patch_record(data, offset, **fields):
     struct.pack_into('<H', data, offset, stock.crc16(data[offset + 2:offset + 32]))
 
 
-def construct_geometry(baseline_a, baseline_b, reference, app):
+def construct_geometry(baseline_a, baseline_b, reference, app, flash_layout="expanded-d9000"):
     """Return a private candidate; matching inputs alone are not backup admission."""
     if baseline_a != baseline_b:
         raise ValueError('Baseline copies differ')
     decoded, _ = stock._parse(baseline_a, reference)
-    tool_start, cfg_start, end = extents(app)
+    limit = area_end(flash_layout)
+    tool_start, cfg_start, end = extents(app, flash_layout)
     candidate = bytearray(decoded)
-    candidate[stock.APP_BASE:AREA_END] = b'\xff' * (AREA_END - stock.APP_BASE)
+    candidate[stock.APP_BASE:limit] = b'\xff' * (limit - stock.APP_BASE)
     candidate[stock.APP_BASE:APP_ORIGIN] = decoded[stock.APP_BASE:APP_ORIGIN]
     candidate[APP_ORIGIN:APP_ORIGIN + len(app)] = app
     candidate[tool_start:tool_start + 383] = decoded[stock.CFG_TOOL_OFFSET:stock.CFG_OFFSET]
@@ -55,21 +66,22 @@ def construct_geometry(baseline_a, baseline_b, reference, app):
                   crc16=stock.crc16(candidate[stock.APP_BASE + 32:cfg_start]))
     # Preserve physical boot headers/loader and VM/BTIF/USR/key banks exactly.
     target = (baseline_a[:stock.APP_BASE]
-              + stock.sfc_decode(candidate[stock.APP_BASE:AREA_END], 0)
-              + baseline_a[AREA_END:])
-    return target, validate_geometry(baseline_a, target, reference, app)
+              + stock.sfc_decode(candidate[stock.APP_BASE:limit], 0)
+              + baseline_a[limit:])
+    return target, validate_geometry(baseline_a, target, reference, app, flash_layout)
 
 
-def validate_geometry(baseline, target, reference, app):
+def validate_geometry(baseline, target, reference, app, flash_layout="expanded-d9000"):
     """Independently parse records, extents, CRCs and immutable raw ranges."""
     original, components = stock._parse(baseline, reference)
-    tool_start, cfg_start, end = extents(app)
+    limit = area_end(flash_layout)
+    tool_start, cfg_start, end = extents(app, flash_layout)
     if not isinstance(target, bytes) or len(target) != stock.FLASH_BYTES:
         raise ValueError('Complete expanded raw image required')
-    if target[:stock.APP_BASE] != baseline[:stock.APP_BASE] or target[AREA_END:] != baseline[AREA_END:]:
+    if target[:stock.APP_BASE] != baseline[:stock.APP_BASE] or target[limit:] != baseline[limit:]:
         raise ValueError('Protected physical boot or reserved bank bytes differ')
     decoded = bytearray(target)
-    decoded[stock.APP_BASE:AREA_END] = stock.sfc_decode(target[stock.APP_BASE:AREA_END], 0)
+    decoded[stock.APP_BASE:limit] = stock.sfc_decode(target[stock.APP_BASE:limit], 0)
     area = record(decoded, stock.APP_BASE)
     original_area = record(original, stock.APP_BASE)
     # Only the area's CRC and extent may change; entry/flags/terminal/name stay.
@@ -105,10 +117,10 @@ def validate_geometry(baseline, target, reference, app):
         raise ValueError('Pinned directory gap differs')
     for lo, hi in ((APP_ORIGIN + len(app), tool_start),
                    (tool_start + 383, cfg_start),
-                   (cfg_start + stock.CFG_BYTES, AREA_END)):
+                   (cfg_start + stock.CFG_BYTES, limit)):
         if decoded[lo:hi] != b'\xff' * (hi - lo):
             raise ValueError('Expanded padding differs')
-    return dict(profile='expanded-d9000-recorded-092', app_bytes=len(app),
+    return dict(profile=flash_layout + '-recorded-092', app_bytes=len(app),
                 app_sha256=stock.digest(app), target_sha256=stock.digest(target),
                 tool_start=tool_start, cfg_start=cfg_start, records_end=end,
                 protected_raw_ranges_identical=True, configuration_contents_identical=True,

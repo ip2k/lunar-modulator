@@ -70,3 +70,26 @@ def test_expanded_candidate_refuses_unbound_or_unsafe_inputs(sample, kind):
         args['baseline_a'] = args['baseline_b'] = bytes(b)
     with pytest.raises((ValueError, IndexError)):
         candidate.construct(**args)
+
+
+@pytest.mark.parametrize('layout', ['legacy', 'combined'])
+def test_d7000_candidate_binds_reserved_tail(sample, layout):
+    args = inputs(sample, 845028, layout)
+    args['flash_layout'] = 'expanded-d7000'
+    target, receipt = candidate.construct(**args)
+    assert receipt['flash_layout'] == 'expanded-d7000'
+    assert receipt['records_end'] <= 0xD7000
+    assert receipt['protected_ranges'] == [[0, 0x4000], [0xD7000, 0x100000]]
+    assert all(0x4000 <= offset < 0xD7000 for offset in receipt['allowed_sectors'])
+    assert target[0xD7000:] == sample['baseline'][0xD7000:]
+    assert receipt['elf_verified'] and receipt['provenance_verified']
+    for field in ('installable', 'hardware_admitted', 'physical_writer_ready',
+                  'hardware_approval', 'settings_migration_verified', 'ota_package_verified'):
+        assert receipt[field] is False
+
+
+def test_d7000_candidate_rejects_app_that_only_fits_d9000(sample):
+    args = inputs(sample, 860640)
+    args['flash_layout'] = 'expanded-d7000'
+    with pytest.raises(ValueError):
+        candidate.construct(**args)

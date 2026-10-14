@@ -83,3 +83,32 @@ def test_rechecks_contents_after_crc_repair(sample, change):
     changed = target[:0x4000] + stock.sfc_decode(decoded[0x4000:expanded.AREA_END], 0) + target[expanded.AREA_END:]
     with pytest.raises(ValueError):
         expanded.validate_geometry(sample['baseline'], changed, sample['reference'], app)
+
+
+@pytest.mark.parametrize('size', [4, 845036, 860644])
+def test_d7000_geometry_preserves_reserved_tail(sample, size):
+    app = b'A' * size
+    baseline = sample['baseline']
+    target, receipt = expanded.construct_geometry(
+        baseline, baseline, sample['reference'], app, 'expanded-d7000')
+    assert receipt['profile'] == 'expanded-d7000-recorded-092'
+    assert receipt['records_end'] <= 0xD7000
+    assert target[0xD7000:] == baseline[0xD7000:]
+    assert not receipt['installable'] and not receipt['hardware_admitted']
+    assert expanded.validate_geometry(
+        baseline, target, sample['reference'], app, 'expanded-d7000') == receipt
+    for offset in (0xD7000, 0xD8000, 0xD8FFF):
+        changed = bytearray(target)
+        changed[offset] ^= 1
+        with pytest.raises(ValueError, match='Protected physical'):
+            expanded.validate_geometry(
+                baseline, bytes(changed), sample['reference'], app, 'expanded-d7000')
+
+
+def test_d7000_geometry_rejects_tail_overlap_and_unknown_profiles():
+    assert 860644 == app_budget('expanded-d7000')
+    with pytest.raises(ValueError, match='aligned named budget'):
+        expanded.extents(b'A' * 860648, 'expanded-d7000')
+    for profile in ('protected', 'expanded', None, []):
+        with pytest.raises(ValueError, match='Unknown expanded flash layout'):
+            expanded.extents(b'AAAA', profile)

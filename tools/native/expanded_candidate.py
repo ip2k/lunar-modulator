@@ -21,14 +21,16 @@ STATUS = 'private-expanded-native-candidate-verified-offline'
 
 
 def construct(baseline_a, baseline_b, manifest, identity, reference, app, elf,
-              baseline_profile, disassembly='', ram_layout='combined'):
+              baseline_profile, disassembly='', ram_layout='combined',
+              flash_layout='expanded-d9000'):
     """Recompute each gate; caller receipts cannot substitute for checked bytes."""
     validators = {'recorded-original-loader': raw.profile_dump,
                   'fixed-loader': raw.profile_dump_fixed_loader}
     if baseline_profile not in validators:
         raise ValueError('Explicit supported backup provenance required')
+    area_end = expanded.area_end(flash_layout)
     profile = validators[baseline_profile](baseline_a, baseline_b, manifest, identity, reference)
-    image, reconstructed = flatten(elf, ram_layout, 'expanded-d9000')
+    image, reconstructed = flatten(elf, ram_layout, flash_layout)
     if app != reconstructed:
         raise ValueError('Application differs from independently reconstructed ELF')
     link = audit([('native-probe.elf', image)], [('app.bin', app)], True,
@@ -38,8 +40,8 @@ def construct(baseline_a, baseline_b, manifest, identity, reference, app, elf,
                  stub_boundaries=artifact_stub_boundaries(image, app, disassembly))
     if not link['passed'] or link['n_pending']:
         raise ValueError('Complete SDK-free link audit required')
-    target, receipt = expanded.construct_geometry(baseline_a, baseline_b, reference, app)
-    sectors = [offset for offset in range(raw.APP_BASE, expanded.AREA_END, 4096)
+    target, receipt = expanded.construct_geometry(baseline_a, baseline_b, reference, app, flash_layout)
+    sectors = [offset for offset in range(raw.APP_BASE, area_end, 4096)
                if baseline_a[offset:offset + 4096] != target[offset:offset + 4096]]
     if not sectors:
         raise ValueError('Target has no application changes')
@@ -47,9 +49,9 @@ def construct(baseline_a, baseline_b, manifest, identity, reference, app, elf,
                    baseline_profile=baseline_profile, backup_profile=profile,
                    baseline_sha256=raw.digest(baseline_a), elf_sha256=raw.digest(elf),
                    disassembly_sha256=raw.digest(disassembly.encode()), link_audit=link,
-                   ram_layout=ram_layout, flash_layout='expanded-d9000',
+                   ram_layout=ram_layout, flash_layout=flash_layout,
                    target_bytes=len(target), allowed_sectors=sectors,
-                   protected_ranges=[[0, raw.APP_BASE], [expanded.AREA_END, raw.FLASH_BYTES]],
+                   protected_ranges=[[0, raw.APP_BASE], [area_end, raw.FLASH_BYTES]],
                    writable_ranges=[[offset, offset + 4096] for offset in sectors],
                    directory_sector=raw.APP_BASE,
                    installation_order='application data sectors before directory sector',
@@ -65,13 +67,14 @@ def main():
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--baseline-profile', choices=('recorded-original-loader', 'fixed-loader'), required=True)
     parser.add_argument('--ram-layout', choices=('legacy', 'combined'), default='combined')
+    parser.add_argument('--flash-layout', choices=tuple(expanded.AREA_ENDS), default='expanded-d9000')
     parser.add_argument('--objdump', required=True, help='vendor pi32v2 objdump executable')
     args = parser.parse_args()
     decoded = subprocess.check_output([args.objdump, '-d', '-mcpu=r3', str(args.elf)], text=True)
     target, receipt = construct(args.baseline_a.read_bytes(), args.baseline_b.read_bytes(),
                                json.loads(args.manifest.read_bytes()), json.loads(args.identity.read_bytes()),
                                args.reference, args.app.read_bytes(), args.elf.read_bytes(),
-                               args.baseline_profile, decoded, args.ram_layout)
+                               args.baseline_profile, decoded, args.ram_layout, args.flash_layout)
     print(json.dumps(_emit_private(args.out, target, receipt, STATUS), sort_keys=True))
 
 

@@ -3876,3 +3876,11 @@ physical SAVE or infer recovery acceptance from linker fit.
 Goal ACTIVE; continue review/integration, exact-head CI, physical full-song
 and SAVE acceptance, migration/rollback/interrupted-write recovery and the
 actual installer download/flash/release path. No main merge or deployment.
+
+D7000 raw-constructor follow-on: explicit offline geometry/candidate profile
+preserves baseline D7000..end and excludes tail from writable receipts.
+D9000 default unchanged; all admission flags remain false. Both focused
+geometry/candidate files pass 60 tests. See
+notes/2026-10-14-d7000-offline-candidate.md. This creates no rescue image and
+does not widen a physical adapter. Fresh Hera target link has returned
+845036 B with identical installed app hash; worker note awaits integration.
