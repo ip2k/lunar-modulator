@@ -50,27 +50,19 @@ only while busy can keep the CPU trapped indefinitely if status stays busy or
 unreadable, and the existing feed path is not a verified RAM-resident closure.
 A nominal/max erase timing row is not a recovery guarantee: the exact part is
 unknown, the datasheets' timing notes describe characterization, and neither
-document guarantees interrupted-state recovery. Do not add a busy-loop feed,
-watchdog disable, forced reset, finite timeout returning to XIP, or a claim that
-the SPL can recover from a watchdog reset during WIP.
+document guarantees interrupted-state recovery. The recommendation not to add
+a busy-loop feed, disable or force-reset the watchdog, or return to XIP on a
+finite timeout was a conservative interpretation of those unknowns, not an
+owner or project prohibition. The owner has authorized robust recovery
+development; the follow-up below evaluates a concrete fail-stop candidate.
 
 ## Minimum next evidence and implementation gate
 
-1. Resolve the fitted suffix and actual NOR VCC from a controlled BOM/package
-   marking or manufacturer-supported identifier. The retained board evidence
-   does not provide either.
-2. Obtain primary evidence for that exact part covering power loss and MCU
-   reset while each relevant Page Program/Sector Erase is active, including
-   post-reset command/read behavior and affected-data guarantees. The present
-   reset sections warn of possible damage/loss; POR text only addresses
-   accidental commands.
-3. Determine from authoritative JieLi documentation and board schematic whether
-   the 8-second MCU watchdog reset affects the external NOR RESET# or supply,
-   then trace the SPL's first NOR accesses against the documented busy behavior.
-4. Until those facts and a recovery design are reviewed, leave native SAVE
-   disabled. Preserve the current rule that ordinary return/XIP restoration
-   requires positive-ready status. A host test or normal successful operation
-   cannot establish watchdog/power-loss recovery.
+The exact suffix is needed before making part-specific timing, voltage, or
+reset-recovery claims. It is not a prerequisite to designing software that
+never returns to XIP while readiness is unknown. A safe software path can be
+developed and target-audited from current source; behavior after power loss or
+a later user power cycle remains a separate acceptance question.
 
 If no manufacturer guarantee exists, any electrical characterization must be a
 separately designed, owner-authorized sacrificial-part experiment; this task did
@@ -89,3 +81,108 @@ No device command, USB/MIDI/flash/power/reset operation, target measurement, or
 SAVE enablement occurred. This establishes manufacturer-documented identities
 and warnings only; exact fitted part, MCU watchdog-to-NOR electrical coupling,
 and physical recovery remain unknown.
+
+
+## Follow-up: fail-stop design and journal containment
+
+Date: 2026-10-14. Source review on this note's pinned checkout; note-only,
+offline. This section corrects the recommendations above where they could be
+read as a ban on implementing an owner-authorized recovery strategy.
+
+### What the current source establishes
+
+- `firmware/third_party/dinghy/hal/fm1_sys.h:32-77,85-93`: the P33 transfer
+  helpers are ordinary code, not marked `RAMFN`. A wait timeout increments a
+  counter but `fm1__p33_xfer()` still returns sampled data, and the WDT feed
+  is an unchecked OR write to P33 register `0x80`. `fm1_wdt_stop()` writes
+  zero to the same register. This source does not verify that feed/stop took
+  effect.
+- `firmware/third_party/dinghy/src/platform.c:254-284,305-343`: the app arms
+  reset-mode WDT with `0x0D` during startup and feeds from the normal main
+  loop. That feed path is unavailable during the IRQ-off, XIP-off flash call.
+- `firmware/third_party/dinghy/hal/fm1_flash.h:190-212,249-305`: destructive
+  calls wait for a completed status transaction with WIP clear before
+  `fl_exit()` restores SFC/XIP. The loop may remain in RAM indefinitely if
+  status stays busy or cannot be read. Its `max_us` parameter reports
+  lateness; it does not authorize an unsafe return.
+- The target-closure note
+  `notes/2026-10-14-nor-real-writer-closure.md` inspected a retained
+  writer-only pi32v2 closure, but found no WDT implementation inside that
+  closure. The separate continuous500 ELF's writer functions were stubs. Thus
+  neither artifact proves a complete RAM-resident WDT feed implementation.
+- `firmware/native/project_store.h:47-84,101-117` uses two project slots:
+  it scans both, chooses the older/invalid slot as the destination, erases
+  only that destination, writes and validates its body, writes/readbacks the
+  header fields, then writes the commit word last and verifies again.
+  `firmware/native/settings_journal.h:54-73,91-112` likewise preserves the
+  selected old sector while erasing and writing the other sector, with its
+  commit word last. For an already-valid old slot, a damaged in-flight
+  *inactive* payload can be rejected by existing hash/CRC/record validation;
+  that data-containment argument does not require an old-or-new guarantee for
+  the inactive bytes.
+
+### A bounded conservative candidate
+
+The smallest software candidate to prototype is a watchdog lease around each
+individual destructive NOR operation, not a new watchdog loop inside the RAM
+poller:
+
+1. With XIP available, audio/display readers quiesced, and before issuing WREN
+   or any destructive opcode, use a checked P33 operation to stop the reset
+   watchdog and read back a control state whose disabled meaning is separately
+   verified. If transport or readback is uncertain, refuse before the NOR
+   command.
+2. Execute the existing RAM writer. Keep its current rule: after possible
+   command acceptance, never restore XIP until a completed status transaction
+   positively observes WIP clear. A deadline may record failure but must not
+   cause return.
+3. On a positive-ready exit only, restore SFC/XIP and IRQ state, re-arm the
+   reset watchdog immediately, and return the preserved transport/readiness
+   result. SAVE is synchronous, so any watchdog service between completed NOR
+   operations must be an explicit XIP-safe checkpoint in the I/O adapter;
+   `platform_poll()` does not run during the callback.
+4. If readiness cannot be positively established, branch to a minimal
+   RAM-resident terminal loop before any SFC/XIP or IRQ restoration. With the
+   watchdog verified stopped, this is a deliberate hard hang rather than an
+   automatic MCU reset while the NOR may still be busy. It has no automatic
+   recovery or user-visible status, and power cycling still has unverified
+   flash/SPL behavior.
+
+This candidate does not depend on knowing the precise NOR suffix or assuming
+that an operation always completes within a datasheet maximum. It does depend
+on proving P33 watchdog stop/readback/re-arm semantics on this platform,
+including the disabled-state encoding and whether another reset source exists,
+and that every
+post-command unknown-state path remains in RAM with interrupts and XIP
+unrestored. The current P33 wrappers are not adequate for this: they hide
+transfer timeout, so a checked variant and target disassembly/map audit are
+prerequisites. If stop cannot be positively verified, the writer must refuse
+before WREN rather than proceed with the original watchdog deadline.
+
+A RAM-resident feed alternative is possible to investigate, but is larger and
+does not improve the terminal-state contract: a verified feed could keep the
+CPU alive in the RAM poll forever after permanent WIP/status failure. It needs
+the complete P33 feed call/data closure in RAM plus checked transport and
+readback; moving only `fm1_wdt_feed()` into `.ram_text` is insufficient.
+It should not be treated as a fail-stop by itself.
+
+### Limits and next implementation boundary
+
+Two-slot journaling contains loss of the *inactive candidate data* after a
+previous valid commit, provided the two physical extents are independently
+verified non-overlapping and the device can later be read. It does not solve
+booting or scanning while the chip remains busy, lost access to the prior
+active slot, a first save with no valid predecessor, or corruption of the
+commit metadata. A positive-ready gate must therefore remain independent of
+the journal recovery guarantee.
+
+The next offline implementation can add checked P33 watchdog stop/readback/
+re-arm APIs and an analysis-only RAM terminal branch, then use the pinned
+pi32v2 toolchain to audit exact call/data/stack residency and control-flow
+edges. Host fault tests should prove: failed stop means zero WREN/erase/program;
+post-command unknown status cannot reach XIP/IRQ restoration; positive-ready
+restores XIP before re-arm/return; and the transaction reports failure even if
+readiness eventually clears. No such implementation was made here. Until
+those checks and owner review pass, physical SAVE remains disarmed. This
+analysis establishes neither watchdog hardware behavior nor post-power-loss
+recovery.
