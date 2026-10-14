@@ -88,6 +88,9 @@ int main(int argc, char **argv) {
             emit(w, FM1_ROLE_SOUND, i, 0, "trio", 0);
             for (unsigned j = 0; j < 2; ++j) emit(w, FM1_ROLE_INSERT, i, j, "plate", 0);
             emit(w, FM1_ROLE_MFX, i, 0, "arp", 0);
+            memset(&r, 0, sizeof r); r.type = FM1_REC_ON;
+            r.role = FM1_ROLE_MFX; r.sound = i; r.u.on = i & 1u;
+            if (!fm1_state_bin_write(w, &r)) return 20;
         }
         for (unsigned i = 0; i < 2; ++i) emit(w, FM1_ROLE_MASTER, 0, i, "plate", 0);
         for (unsigned i = 0; i < 8; ++i) emit(w, 0, 0, i, "lfo", 1);
@@ -178,6 +181,7 @@ int main(int argc, char **argv) {
         if (plan.given != ((1u << 3) | 1) || plan.modules_given != 128 || calls != 1) return 8;
         if (plan.module[7] != &mod) return 15;
         if (plan.engine[0] != &sound || plan.size[0] != 1248) return 16;
+        for (unsigned i = 0; i < 4; ++i) if (plan.midi_on[i]) return 21;
         for (unsigned i = 1; i < LUNAR_PROJECT_UNITS; ++i)
             if (plan.engine[i] || plan.size[i]) return 9;
     } else if (c >= 16) {
@@ -190,6 +194,7 @@ int main(int argc, char **argv) {
             if (plan.engine[i] != e || plan.size[i] != 1248) return 11;
         }
         for (unsigned i = 0; i < 8; ++i) if (plan.module[i] != &mod) return 12;
+        for (unsigned i = 0; i < 4; ++i) if (plan.midi_on[i] != (i & 1u)) return 22;
     }
     memcpy(&before, &plan, sizeof plan);
     if (lunar_project_units_plan(bytes, FM1_STATE_BIN_MAX + 1, &names, &host, &plan, &rep) ||
@@ -232,7 +237,7 @@ def project_probe(tmp_path_factory):
                         '-o', str(tmp / 'project_units.o')], check=True)
         size_check = tmp / 'size_check.c'
         size_check.write_text('#include "project_units.h"\n'
-                              'typedef char plan_size[(sizeof(lunar_project_units_t) == 184) ? 1 : -1];\n')
+                              'typedef char plan_size[(sizeof(lunar_project_units_t) == 188) ? 1 : -1];\n')
         subprocess.run([str(tc / 'common/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
                         '-mfprev1', '-std=c99', opt, *inc, '-isystem', str(tc / 'pi32v2/include'),
                         '-c', str(size_check), '-o', str(tmp / 'size_check.o')], check=True)

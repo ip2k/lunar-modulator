@@ -125,11 +125,12 @@ static void pool_adoption_check(int shard) {
   fm1_app_init(&managed, 44118.0f);
   assert(fm1_app_set_storage(&managed, &pool, pool_allocate, pool_deallocate) == 0);
   unsigned chosen = (unsigned)shard % 14u;
+  unsigned midi = 14u + (unsigned)shard % FM1_APP_SOUNDS;
   unsigned parent = chosen >= 4u && chosen < 12u ? (chosen - 4u) / 2u : 0u;
-  for (unsigned i = 0; i < 15u; ++i) {
-    if (i != chosen && i != parent && i != 14u) continue;
+  for (unsigned i = 0; i < 18u; ++i) {
+    if (i != chosen && i != parent && i != midi) continue;
     lunar_project_instance_t *u = &candidate.unit[i];
-    if (i == 14u) u->engine = fm1_app_arp_engine();
+    if (i == midi) u->engine = fm1_app_arp_engine();
     else {
       int index = fm1_app_find(i < 4u ? "trio" : "test-gain");
       assert(index >= 0); u->engine = fm1_engines[index];
@@ -144,6 +145,8 @@ static void pool_adoption_check(int shard) {
       u->engine->set_param(u->self, n, u->value[n]);
     }
   }
+  candidate.unit[midi].value[0] = 1.0f;
+  candidate.unit[midi].engine->set_param(candidate.unit[midi].self, 0, 1.0f);
   memcpy(&saved, &candidate, sizeof saved);
   unsigned count = pool.live_allocations; size_t bytes = pool.live_bytes;
   if (shard % 2) managed.storage_ctx = NULL;
@@ -161,14 +164,56 @@ static void pool_adoption_check(int shard) {
   assert(managed.unit[slot].self == saved.unit[chosen].self);
   assert(managed.unit[slot].mem == saved.unit[chosen].memory);
   for (unsigned i = 0; i < 14u; ++i) assert(!candidate.unit[i].engine && !candidate.unit[i].memory);
-  assert(!memcmp(&candidate.unit[14], &saved.unit[14], sizeof candidate.unit[14]));
+  assert(!memcmp(&candidate.unit[14], &saved.unit[14], 4u * sizeof candidate.unit[14]));
+  uint8_t on[FM1_APP_SOUNDS] = {0}; on[midi - 14u] = 1;
+  fm1_mfx_t prior = managed.mfx;
+  float old_values[FM1_APP_SOUNDS][FM1_APP_ARP_PARAMS];
+  memcpy(old_values, managed.arp_value, sizeof old_values);
+  switch (shard % 4) {
+    case 0: candidate.unit[midi].value[0] = NAN; break;
+    case 1: candidate.unit[midi].value[0] = 0.5f; break;
+    case 2: on[(midi - 14u + 1u) % FM1_APP_SOUNDS] = 1; break;
+    case 3: managed.frames = 1; break;
+  }
+  assert(lunar_project_restore_midi_units(&managed, &candidate, on) != 0);
+  assert(!memcmp(&prior, &managed.mfx, sizeof prior));
+  assert(!memcmp(old_values, managed.arp_value, sizeof old_values));
+  managed.frames = 0; candidate = saved;
+  /* Audio rows were already transferred and must not be released twice. */
+  memset(candidate.unit, 0, 14u * sizeof candidate.unit[0]);
+  memset(on, 0, sizeof on); on[midi - 14u] = 1;
+  lunar_project_engines_t before_midi = candidate;
+  assert(lunar_project_restore_midi_units(&managed, &candidate, on) == 0);
+  assert(!memcmp(&before_midi, &candidate, sizeof candidate));
+  assert(pool.live_allocations == count && pool.live_bytes == bytes);
+  for (unsigned k = 0; k < FM1_APP_SOUNDS; ++k) {
+    const fm1_mfx_slot_t *sl = fm1_mfx_slot(&managed.mfx, k, 0);
+    assert(sl && sl->on == on[k]);
+    if (k == midi - 14u) {
+      assert(&sl->fx->engine == candidate.unit[midi].engine);
+      assert(sl->self != candidate.unit[midi].self);
+      assert(sl->self == managed.mfx_mem[k]);
+      assert(fm1_app_arp_get_param(&managed, (int)k, 0) == 1.0f);
+    } else assert(!sl->fx && !sl->self);
+  }
+  assert(fm1_mfx_live_note(&managed.mfx, midi - 14u, 60, 100));
+  for (unsigned k = 0; k < 256u; ++k) {
+    const float *audio = fm1_app_render(&managed, 64);
+    for (unsigned n = 0; n < 128u; ++n) assert(isfinite(audio[n]));
+  }
+  assert(managed.mfx.stats.notes_out > 0);
+  fm1_app_all_notes_off(&managed);
   for (int i = 0; i < FM1_APP_UNITS; ++i) {
     fm1_app_unit_t *u = &managed.unit[i];
     if (u->self) u->e->destroy(u->self);
     if (u->mem) pool_deallocate(&pool, u->mem);
   }
-  candidate.unit[14].engine->destroy(candidate.unit[14].self);
-  pool_deallocate(&pool, candidate.unit[14].memory);
+  candidate.unit[midi].engine->destroy(candidate.unit[midi].self);
+  pool_deallocate(&pool, candidate.unit[midi].memory);
+  for (unsigned k = 0; k < FM1_APP_SOUNDS; ++k) {
+    const fm1_mfx_slot_t *sl = fm1_mfx_slot(&managed.mfx, k, 0);
+    if (sl && sl->fx && sl->self) sl->fx->engine.destroy(sl->self);
+  }
   assert(!pool.live_allocations && !pool.live_bytes);
 }
 static void managed_check(int shard) {

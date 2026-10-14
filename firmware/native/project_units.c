@@ -87,6 +87,14 @@ static int record(void *ctx, const fm1_rec_t *r) {
         return r->u.head.kind == FM1_STATE_PROJECT ||
                refuse(load, FM1_STATE_BAD, "expected a binary project");
     if (r->type == FM1_REC_PARAM) return parameter(load, r);
+    if (r->type == FM1_REC_ON) {
+        int index = lunar_project_unit_index(r);
+        if (index < 14 || index >= 18 || r->u.on > 1u ||
+            (r->u.on && !load->plan.engine[index]))
+            return refuse(load, FM1_STATE_BAD, "enabled MIDI effect has no selected owner");
+        load->plan.midi_on[index - 14] = r->u.on;
+        return 1;
+    }
     if (r->type == FM1_REC_UNIT || r->type == FM1_REC_MODULE) {
         if (!memchr(r->u.unit.id, 0, sizeof r->u.unit.id))
             return refuse(load, FM1_STATE_BAD, "unterminated unit id");

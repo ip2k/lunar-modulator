@@ -363,7 +363,41 @@ Receipts/logs downloaded to ignored build/native-external-arenas-16-20261012.
 
 Fresh indexed Shapes12 catalogue compiled 167 objects in sixteen shards with
 zero failures (`out-indexed-shapes12-adoption-v1`) [verified]. Optional project
-loader now roots the adapter in its native link; link-v6 verification is running
-at this checkpoint. MIDI/settings/view/DX7 and staged sequence/modulation startup,
+loader now roots the adapter in its native link; all sixteen link-v6 shards
+passed audits, rooted-entry and embedded-byte checks [verified]. MIDI/settings/view/DX7 and staged sequence/modulation startup,
 stack/timing margins and real hardware remain unverified. No installable release
 or device operation. Expanded layout approval remains pending.
+
+
+## MIDI startup restoration and saved enable flags
+
+Added cold-start `lunar_project_restore_midi_units`: checks selected MIDI registry
+identity, finite/ranged/integral parameters, inline instance capacity and RAM
+before mutation; reconstructs four MIDI effects into app inline storage and
+restores values/enable flags [verified source/tests]. Pool candidates remain
+owned for separate cleanup. Constructor refusal requires discarding the cold
+app before playback; this is not live replacement or complete activation.
+The checked unit plan retains four ON flags (absent means bypass), refuses
+an enabled empty owner and remains failure-atomic. pi32v2 plan is188 bytes.
+
+Hera app-midi-start-v1: all16 Os ASAN/UBSAN shards passed embedded/external,
+four MIDI positions, NaN/fractional/empty/frame refusals, saved arp mode,
+rendered MIDI note output and balanced pool cleanup [verified]. Target v1:
+all16 shards passed actual app/adapter Os/Oz compiles and rooted-entry checks.
+Project-units-on-v1: all16 chunks passed96 Os/Oz sanitizer/target tests,
+including compressed/uncompressed flags and preserved failure output.
+
+Link-v7 passed12/16, with four audit refusals retained. Vendor objdump proved
+the forbidden address pattern crossed a resolved snprintf call and sp+=4,
+not an address load [verified]. Extended only the existing byte-exact call
+boundary proof to that stack instruction; negative tests retain literal,
+missing/mismatched decode, external target and function-boundary refusal.
+Link-v8 passed all16: audit/test gates, MIDI root, embedded byte checks;
+selected five-sound profiles with optional Plate and0/1/2/4 assets. All campaign
+logs inspected, noOOM; owned containers removed, receipts/logs in ignored build
+folder. These links do not contain all13 default engines. No installable,
+playback, timing, stack-margin or hardware acceptance is claimed.
+
+Next connect the startup transaction to checked ON flags, settings/view/DX7,
+sequence/modulation adoption, then persistence/MIDI timing, full catalogue
+budgets and installer/recovery. Expanded-layout approval remains pending.

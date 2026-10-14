@@ -365,7 +365,7 @@ def relative_call_payloads(name, elf, disassembly):
 
 
 def stub_call_boundary_patterns(name, elf, disassembly):
-    """Prove only the observed call-tail/register-move overlap of STUB_ADDR.
+    """Prove observed call-tail/register-move or stack-adjust overlaps of STUB_ADDR.
 
     This is not a general exemption for unaligned constants. Both instructions
     must be byte-exact vendor decodes in one sized function and executable
@@ -373,10 +373,13 @@ def stub_call_boundary_patterns(name, elf, disassembly):
     """
     proofs = {}
     moves = {}
-    pattern = re.compile(r'^\s*([0-9a-fA-F]+):\s+02\s+15\s+'
-                         r'r3_r2\s*=\s*r1_r0\s*$', re.M)
-    for match in pattern.finditer(disassembly):
-        moves[int(match[1], 16)] = b'\x02\x15'
+    for encoded, text in ((b'\x02\x15', r'r3_r2\s*=\s*r1_r0'),
+                          (b'\x02\x81', r'sp\s*\+=\s*4')):
+        pattern = re.compile(r'^\s*([0-9a-fA-F]+):\s+' +
+                             r'\s+'.join(f'{b:02x}' for b in encoded) +
+                             r'\s+' + text + r'\s*$', re.M)
+        for match in pattern.finditer(disassembly):
+            moves[int(match[1], 16)] = encoded
     for (source, offset), call in relative_call_payloads(name, elf, disassembly).items():
         address = call['address']
         move = moves.get(address + 6)
@@ -395,7 +398,7 @@ def stub_call_boundary_patterns(name, elf, disassembly):
             continue
         proofs[(source, offset + 1)] = dict(call=call,
             following_address=address + 6, following_bytes=move.hex(),
-            following_instruction='r3_r2 = r1_r0')
+            following_instruction='r3_r2 = r1_r0' if move == b'\x02\x15' else 'sp += 4')
     return proofs
 
 

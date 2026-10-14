@@ -12,6 +12,7 @@ typedef struct {
     uint32_t given;
     const fm1_mod_kind_t *module[8];
     uint8_t modules_given;
+    uint8_t midi_on[4]; /* Absent ON records leave selected MIDI effects bypassed. */
 } lunar_project_units_t;
 
 /* Record role/sound/slot to compact plan index; -1 for unsupported positions. */

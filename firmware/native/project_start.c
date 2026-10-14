@@ -1,9 +1,77 @@
 #include "project_start.h"
 #include <string.h>
+#include <math.h>
 
 #if FM1_APP_EXTERNAL_ARENAS
 typedef char parameter_capacity_match[
     FM1_APP_MAX_PARAMS == LUNAR_PROJECT_ENGINE_PARAMS ? 1 : -1];
+
+int lunar_project_restore_midi_units(fm1_app_t *app,
+                                    const lunar_project_engines_t *candidate,
+                                    const uint8_t on[FM1_APP_SOUNDS]) {
+    const fm1_midi_fx_t *fx[FM1_APP_SOUNDS] = {0};
+    size_t ram, old = 0, next = 0;
+    if (!app || !candidate || !on || app->frames) return FM1_APP_SELECT_BAD;
+    uintptr_t al = (uintptr_t)app, ah = al + sizeof *app;
+    uintptr_t cl = (uintptr_t)candidate, ch = cl + sizeof *candidate;
+    uintptr_t ol = (uintptr_t)on, oh = ol + FM1_APP_SOUNDS;
+    if (ah < al || ch < cl || oh < ol || (al < ch && cl < ah) ||
+        (al < oh && ol < ah)) return FM1_APP_SELECT_BAD;
+    for (unsigned k = 0; k < FM1_APP_SOUNDS; ++k) {
+        const lunar_project_instance_t *from = &candidate->unit[14u + k];
+        const fm1_mfx_slot_t *prior = fm1_mfx_slot(&app->mfx, k, 0);
+        if (prior && prior->fx && prior->on)
+            old += prior->fx->engine.instance_size(&app->ram_host);
+        if (on[k] > 1u) return FM1_APP_SELECT_BAD;
+        if (!from->engine) {
+            if (on[k] || from->memory || from->self || from->bytes)
+                return FM1_APP_SELECT_BAD;
+            continue;
+        }
+        for (size_t i = 0; i < fm1_midi_fx_count; ++i)
+            if (&fm1_midi_fxs[i]->engine == from->engine) fx[k] = fm1_midi_fxs[i];
+        if (!fx[k]) return FM1_APP_SELECT_BAD;
+        const fm1_engine_t *e = &fx[k]->engine;
+        if (e->magic != FM1_ENGINE_MAGIC || e->api_version != FM1_ENGINE_API_VERSION ||
+            e->kind != FM1_KIND_MIDI_FX || !fx[k]->process || !e->create || !e->destroy ||
+            !e->instance_size || !e->set_param || e->n_params > FM1_APP_ARP_PARAMS ||
+            (e->n_params && !e->params)) return FM1_APP_SELECT_BAD;
+        size_t bytes = e->instance_size(&app->host);
+        if (!bytes || bytes > FM1_APP_MFX_BYTES) return FM1_APP_SELECT_ARENA;
+        for (unsigned i = 0; i < e->n_params; ++i) {
+            float v = from->value[i]; const fm1_param_t *p = &e->params[i];
+            if (!isfinite(v) || v < p->min || v > p->max ||
+                (p->type == FM1_PARAM_ENUM && v != floorf(v))) return FM1_APP_SELECT_BAD;
+        }
+        if (on[k]) next += e->instance_size(&app->ram_host);
+    }
+    if (old) old += sizeof app->mfx;
+    if (next) next += sizeof app->mfx;
+    ram = fm1_app_ram(app);
+    if (old > ram || next > FM1_APP_RAM_BUDGET ||
+        ram - old > FM1_APP_RAM_BUDGET - next) return FM1_APP_SELECT_RAM;
+    for (unsigned k = 0; k < FM1_APP_SOUNDS; ++k) {
+        const fm1_mfx_slot_t *prior = fm1_mfx_slot(&app->mfx, k, 0);
+        const fm1_engine_t *e = prior && prior->fx ? &prior->fx->engine : NULL;
+        void *self = prior ? prior->self : NULL;
+        fm1_mfx_set(&app->mfx, k, 0, NULL, NULL, 0, NULL);
+        if (self && e && e->destroy) e->destroy(self);
+        memset(app->mfx_mem[k], 0, FM1_APP_MFX_BYTES);
+        memset(app->arp_value[k], 0, sizeof app->arp_value[k]);
+        if (!fx[k]) continue;
+        e = &fx[k]->engine;
+        self = e->create(app->mfx_mem[k], &app->host);
+        if (!self) return FM1_APP_SELECT_RATE;
+        for (unsigned i = 0; i < e->n_params; ++i) {
+            app->arp_value[k][i] = candidate->unit[14u + k].value[i];
+            e->set_param(self, (uint16_t)i, app->arp_value[k][i]);
+        }
+        fm1_mfx_set(&app->mfx, k, 0, fx[k], self, on[k], NULL);
+    }
+    app->seq_host.mfx = &app->mfx;
+    app->dirty = app->leds_changed = 1;
+    return FM1_APP_SELECT_OK;
+}
 
 int lunar_project_adopt_audio_units(fm1_app_t *app,
                                     lunar_project_engines_t *candidate) {

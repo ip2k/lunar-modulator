@@ -1,3 +1,18 @@
+# Native continuation — MIDI startup, 2026-10-13
+
+Branch feature/2026-10-11@installable-firmware; preceding verified pushed SHA
+ec5810b8ec99f112bf4e8209f650cf13601e9208.
+Cold-start MIDI restore reconstructs app inline instances, saved params and ON;
+candidates retain ownership. Plan retains ON flags and is188 bytes on pi32v2.
+Hera16 sanitizer shards +16 target shards passed; plan96 Os/Oz tests passed.
+Link-v6 passed16; v7 had4 proven call/stack-byte audit false positives; narrow
+byte/target/function proof added with negative tests; v8 passed16 native links.
+All logs inspected, noOOM, owned containers removed; evidence downloaded.
+No hardware/full activation/installable release. Goal ACTIVE: all13default plus
+selectable engines/effects/songs/sets builder. Expanded layout approval pending.
+Next startup transaction ON/settings/view/DX7 + seq/mod, persistence/MIDI/timing,
+allengine budgets, builder/installer/recovery, review/CI/merge/device acceptance.
+
 # Native continuation — pool-backed audio mapping, 2026-10-13
 
 Branch feature/2026-10-11@installable-firmware; preceding verified pushed SHA

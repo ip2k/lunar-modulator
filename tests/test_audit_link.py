@@ -17,6 +17,7 @@ pending, hits anywhere else fail, and the late_initcall group must be exactly
 import importlib.util
 import pathlib
 import struct
+import pytest
 
 import pytest
 
@@ -351,15 +352,17 @@ def test_relative_call_displacement_is_not_efuse_access(tmp_path, monkeypatch):
 
 
 
-def test_stub_pattern_crossing_proven_call_and_register_move(tmp_path, monkeypatch):
+@pytest.mark.parametrize("following, decoded_following", [(b"\x02\x15", "02 15 r3_r2 = r1_r0"),
+                                                        (b"\x02\x81", "02 81 sp += 4")])
+def test_stub_pattern_crossing_proven_call_and_register_move(tmp_path, monkeypatch, following, decoded_following):
     displacement = 0x12e00
     instruction = b'\x80\xff' + struct.pack('<i', displacement)
-    body = b'\0\0' + instruction + b'\x02\x15' + b'\0' * (displacement - 2)
+    body = b'\0\0' + instruction + following + b'\0' * (displacement - 2)
     binary, addresses = build_linked([('caller', body), ('target', b'\0' * 4)])
     elf = AL.Elf(binary, name='fw.elf')
     address = addresses['caller'] + 2
     call = f'{address:x}: 80 ff 00 2e 01 00 call {displacement} <target : {addresses["target"]:x}>'
-    move = f'{address + 6:x}: 02 15 r3_r2 = r1_r0'
+    move = f'{address + 6:x}: {decoded_following}'
     decoded = call + '\n' + move
     proofs = AL.stub_call_boundary_patterns('fw.elf', elf, decoded)
     assert len(proofs) == 1
@@ -373,8 +376,8 @@ def test_stub_pattern_crossing_proven_call_and_register_move(tmp_path, monkeypat
     monkeypatch.setattr(subprocess, 'check_output', lambda command, text: decoded)
     assert AL.main(['--elf', str(path), '--objdump', '/test/vendor-objdump',
                     '--runtime', 'sdk-free']) == 0
-    for damaged in [call, move, decoded.replace('02 15', '02 16'),
-                    decoded.replace('r1_r0', 'r5_r4'),
+    for damaged in [call, move, decoded.replace(decoded_following, '02 16 r3_r2 = r5_r4'),
+                    decoded.replace(decoded_following, decoded_following + ' invalid'),
                     decoded.replace(f'{address + 6:x}:', f'{address + 8:x}:'),
                     decoded.replace('target :', 'unknown :'),
                     decoded.replace(f'call {displacement}', f'call {displacement + 2}')]:
