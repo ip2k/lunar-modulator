@@ -4440,3 +4440,43 @@ and its status console replay verified, but reports FAULT. Owner watched
 Event Horizon acceptance and Pico GPIO wiring answers are pending. Continue
 offline integration and verification; fresh device-specific admission is
 required before another hardware command. SAVE remains disarmed, goal ACTIVE.
+
+## Trusted package and regression repair checkpoint — 2026-10-14
+
+Integrated source head `dab9daae8f0d40d663b835ddb5f4dc241c914ba8` is verified
+on origin and seeded as Hera coordinator-current. The trusted D7000 package
+adapter, private-fixture portability fix, independent source review and host
+SET fixture repairs are integrated. The exact integrated package suites passed
+17 tests on Hera at `803aac41027941328c13234c5b651e2c2188c119`; on the Mac,
+artifact-independent checks passed and retained-artifact cases skipped cleanly.
+
+The exact 43a5a8d7 sixteen-shard run completed all 2,762 collected nodes:
+2,593 passed, 107 skipped, 18 failed and 44 setup/errors. The worker traced
+16 failures to the pre-fix catalogue ABI expectation, two to container Git
+ownership, and the 44 errors to explicit fixtures omitting the SET loader.
+Focused catalogue/compressed-startup and Git-environment reruns are pending.
+The sibling's arena, uncompressed startup, sequence and adapted-label checks
+passed on its committed test-only fixture repair before integration. This is
+not a claim of a green full suite or exact-current CI.
+
+A private offline diagnostic package was materialized from committed packager
+source 803aac41 and exact retained tuple
+`2005957ad3dfbb5e34030717c6f0045cb3c96265a24641b8c370f1c39d835a23`.
+It is 978,484 bytes, SHA-256
+`26402f8766ef523fc729bf16339291fa18c152c7da3e10717e2b8bd46af924d4`,
+under Hera `/home/claude/.local/share/codex-private/lunar-trusted-d7000-20261014/`,
+outside Git, with 0600 files and a 0700 directory. Its independent FWSC parser
+checks passed identity, header/list and all eight payload CRCs. All hardware,
+installability, updater and release flags remain false. Independent saved-byte
+review is active; shared handoff is lunar--trusted-package-materialization.md.
+
+An exact-current continuous target build is assigned on Hera from dab9daae;
+it must retain all thirteen engines, Event Horizon and the companion SET,
+resource/link audits and false SAVE/hardware/install flags. No new device
+commands occurred in this continuation. Passive bench enumeration still shows
+ROM device46 and Pico device38. Owner song observations and Pico GPIO wiring
+answers remain pending; the Pico's last observed FAULT is not recovery proof.
+SAVE remains disarmed. Continue target build/review, recovery wiring, watched
+song acceptance, physical persistence/migration/rollback, stock-loader/web
+transport acceptance, exact-head CI/review/main integration and shipment.
+Goal ACTIVE.
