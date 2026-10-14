@@ -21,6 +21,8 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Demo preload catalogue reads pinned historical source blobs.
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
