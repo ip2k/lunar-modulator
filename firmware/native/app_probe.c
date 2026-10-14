@@ -169,7 +169,7 @@ static void app_main(void)
         FM1_ENC_KNOB2, FM1_ENC_KNOB3, FM1_ENC_KNOB4, FM1_ENC_PRESETS
     };
     uint32_t previous_keys = 0, row = 0, last_draw = 0;
-    uint32_t start = fm1_ticks();
+    uint32_t start = fm1_ms;
     int previous_master = -1;
 #ifdef LUNAR_COMPRESSED_WAVETABLES
     if (lunar_wave_tables_init()) {
@@ -223,7 +223,7 @@ static void app_main(void)
     uint32_t last_stack_sample = fm1_ms;
 #endif
     for (;;) {
-        if (lunar_runtime_expired(fm1_ticks(), start, FM1_TICKS_PER_US)) {
+        if (lunar_runtime_expired(fm1_ms, start)) {
             fm1_audio_stop();
             usb_detach();
             fm1_delay_ms(30);

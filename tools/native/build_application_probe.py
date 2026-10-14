@@ -203,7 +203,8 @@ def main():
     parser.add_argument('--catalogue', type=Path, required=True)
     parser.add_argument('--build', type=Path, required=True)
     parser.add_argument('--runtime-mode', choices=MODES, default='diagnostic',
-                        help='Continuous removes only timed ROM return; remains a private '
+                        help='Song diagnostic returns after 120 seconds; default diagnostic after 20. '
+                        'Continuous removes only timed ROM return; remains a private '
                         'unadmitted build with no NOR writes or OTA cleanup')
     parser.add_argument('--stack-watermark', action='store_true',
                         help='Paint both reserved stacks before C entry and sample observed margins; '

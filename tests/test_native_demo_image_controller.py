@@ -50,7 +50,7 @@ def test_checked_link_keeps_order_startup_and_actual_output_identity():
 
 @pytest.mark.parametrize('fault', [
     'reorder', 'startup', 'bool-index', 'manifest', 'modules', 'payload', 'app', 'elf',
-    'pending', 'fail', 'layout', 'admission', 'continuous', 'write-range', 'budget',
+    'pending', 'fail', 'layout', 'admission', 'continuous', 'song-diagnostic', 'write-range', 'budget',
 ])
 def test_changed_link_is_refused(fault):
     selection, prepared, verification, artifact, app, elf = inputs()
@@ -67,6 +67,7 @@ def test_changed_link_is_refused(fault):
     elif fault == 'layout': artifact['layout_passed'] = False
     elif fault == 'admission': artifact['installable'] = True
     elif fault == 'continuous': verification['probe_return_to_rom_seconds'] = 0
+    elif fault == 'song-diagnostic': verification['probe_return_to_rom_seconds'] = 120
     elif fault == 'write-range': verification['flash_write_range'] = 'nonempty'
     elif fault == 'budget': artifact['app_budget_bytes'] = verification['app_budget_bytes'] = 2
     with pytest.raises(ValueError):

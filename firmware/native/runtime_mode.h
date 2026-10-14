@@ -8,17 +8,19 @@
 #ifndef LUNAR_RETURN_TO_ROM_SECONDS
 #define LUNAR_RETURN_TO_ROM_SECONDS 20
 #endif
-#if LUNAR_RETURN_TO_ROM_SECONDS != 0 && LUNAR_RETURN_TO_ROM_SECONDS != 20
-#error "Runtime must be the twenty-second diagnostic or explicit continuous mode"
+#if LUNAR_RETURN_TO_ROM_SECONDS != 0 && LUNAR_RETURN_TO_ROM_SECONDS != 20 && LUNAR_RETURN_TO_ROM_SECONDS != 120
+#error "Runtime must be an explicit diagnostic or explicit continuous mode"
 #endif
 
-static inline int lunar_runtime_expired(uint32_t now, uint32_t start,
-                                        uint32_t ticks_per_us)
+/* Milliseconds permit the two-minute song diagnostic without overflowing the
+ * high-resolution hardware counter. Unsigned subtraction also handles a
+ * millisecond-counter wrap during either bounded diagnostic. */
+static inline int lunar_runtime_expired(uint32_t now_ms, uint32_t start_ms)
 {
-#if LUNAR_RETURN_TO_ROM_SECONDS == 20
-    return (uint32_t)(now - start) >= 20u * 1000000u * ticks_per_us;
+#if LUNAR_RETURN_TO_ROM_SECONDS != 0
+    return (uint32_t)(now_ms - start_ms) >= LUNAR_RETURN_TO_ROM_SECONDS * 1000u;
 #else
-    (void)now; (void)start; (void)ticks_per_us;
+    (void)now_ms; (void)start_ms;
     return 0;
 #endif
 }

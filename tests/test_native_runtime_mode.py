@@ -11,11 +11,13 @@ sys.path.insert(0, str(ROOT / 'tools/native'))
 from runtime_mode import runtime_configuration
 
 
-@pytest.mark.parametrize('mode', [None, '20', '0'], ids=['default', 'diagnostic', 'continuous'])
+@pytest.mark.parametrize('mode', [None, '20', '120', '0'], ids=['default', 'diagnostic', 'song', 'continuous'])
 @pytest.mark.parametrize('start,elapsed', [
-    (0, 0), (0, 1199999999), (0, 1200000000), (0, 1200000001),
-    (0xfffffff0, 0), (0xfffffff0, 1199999999),
-    (0xfffffff0, 1200000000), (0xfffffff0, 1200000001),
+    (0, 0), (0, 19999), (0, 20000), (0, 20001),
+    (0xfffffff0, 0), (0xfffffff0, 19999),
+    (0xfffffff0, 20000), (0xfffffff0, 20001),
+    (0, 119999), (0, 120000), (0, 120001),
+    (0xfffffff0, 119999), (0xfffffff0, 120000), (0xfffffff0, 120001),
     (0, 0xffffffff), (0xffffffff, 0xffffffff),
 ])
 def test_actual_runtime_timer(tmp_path, mode, start, elapsed):
@@ -26,7 +28,7 @@ int main(int argc, char **argv) {
     if (argc != 3) return 2;
     uint32_t start = (uint32_t)strtoul(argv[1], 0, 10);
     uint32_t elapsed = (uint32_t)strtoul(argv[2], 0, 10);
-    return lunar_runtime_expired(start + elapsed, start, 60u) ? 1 : 0;
+    return lunar_runtime_expired(start + elapsed, start) ? 1 : 0;
 }
 ''')
     executable = tmp_path / 'timer'
@@ -35,11 +37,11 @@ int main(int argc, char **argv) {
                     '-I', str(ROOT / 'firmware/native'), *flags,
                     str(source), '-o', str(executable)], check=True)
     result = subprocess.run([str(executable), str(start), str(elapsed)])
-    expected = int(mode != '0' and elapsed >= 1200000000)
+    expected = int(mode != '0' and elapsed >= (120000 if mode == '120' else 20000))
     assert result.returncode == expected
 
 
-@pytest.mark.parametrize('mode,seconds', [('diagnostic', 20), ('continuous', None)])
+@pytest.mark.parametrize('mode,seconds', [('diagnostic', 20), ('song-diagnostic', 120), ('continuous', None)])
 def test_configuration_binds_mode(mode, seconds):
     report = runtime_configuration(mode)
     assert report['runtime_mode'] == mode
