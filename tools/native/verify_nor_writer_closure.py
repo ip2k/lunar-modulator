@@ -485,7 +485,7 @@ def audit_writer_callers(full_disassembly, symbols):
             "fl_write_to_fl_prog_ram": program_path_depth,
             "fl_erase4k_to_fl_erase4k_ram": erase_path_depth,
         },
-        "guard_sp_measurement_point": "after XIP wrapper prologue and page copy, before IRQ mask/WDT stop",
+        "guard_sp_measurement_point": "after XIP wrapper prologue, before page copy and IRQ mask/WDT stop",
         "stack_decrease_after_guard_sample_bytes": {
             "fl_prog_ram": program_ram_frame,
             "fl_erase4k_ram": erase_ram_frame,

@@ -152,7 +152,7 @@ fl_jedec_ram:
             "fl_write_to_fl_prog_ram": 408,
             "fl_erase4k_to_fl_erase4k_ram": 136})
         self.assertEqual(result["guard_sp_measurement_point"],
-                         "after XIP wrapper prologue and page copy, before IRQ mask/WDT stop")
+                         "after XIP wrapper prologue, before page copy and IRQ mask/WDT stop")
         self.assertEqual(result["stack_decrease_after_guard_sample_bytes"], {
             "fl_prog_ram": 104, "fl_erase4k_ram": 104})
         self.assertEqual(result["guarded_headroom_after_program_ram_entry_bytes"], 920)
