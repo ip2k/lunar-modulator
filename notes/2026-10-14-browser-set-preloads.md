@@ -2,7 +2,7 @@
 
 The installer browser can now include the trusted Event Horizon companion SET alongside its required parent project. Event Horizon remains the default startup project. The browser exports the companion only when the user checks it, and the backend request requires the parent to be selected and remain the startup project. Empty set selection preserves the legacy request shape by omitting `set_ids` entirely.
 
-The UI trusts only the catalogue entry `replacement-showcase-event-horizon-companion-set`, whose parent is `replacement-showcase-candidate-event-horizon`. Catalogue metadata is treated as untrusted: duplicate IDs, unknown IDs, malformed rows, missing parents, and any set metadata that indicates a scan or dependency uncertainty are rejected. The checkbox is accessible by its visible label, disabled until the parent is selected as startup, and cleared if that condition stops holding. The normal page explains that the accompanying set is optional and that build/install has not happened.
+The UI trusts only the catalogue entry `replacement-showcase-event-horizon-companion-set`, whose parent is `replacement-showcase-candidate-event-horizon`. Catalogue metadata is treated as untrusted: duplicate IDs, unknown IDs, malformed rows and missing parents are rejected. The expected SET scan flags remain explicitly false; selection does not upgrade them to a completed dependency scan. Backend validation binds the SET to its hash-pinned parent and validates that parent's engine plan. The checkbox is accessible by its visible label, disabled until the parent is selected as startup, and cleared if that condition stops holding. The normal page explains that the accompanying set is optional and that build/install has not happened.
 
 ## Verification
 

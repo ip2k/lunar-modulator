@@ -1,4 +1,38 @@
-# Latest continuation authority — 2026-10-14 (SET and reserved-tail integration)
+# Latest continuation authority — 2026-10-14 (browser SET and receipt checks)
+
+Code checkpoint `c1da27b8` integrates the browser companion SET selector,
+receipt identity fix, reserved-tail adapter and manufacturer NOR research.
+The previous root checkpoint `3f3dde0896e76a5b8b072d7b41924490eeca4045`
+and SET worker branch `a33c030961eaf517fcebed8bd89eb49ec605ad48` are
+GitHub-backed with remote SHA verification. This handoff commit and the newly
+integrated browser/research commits must be pushed and SHA verified together.
+
+Current receipt controller tests pass 58/58 on the Mac; the worker reported
+269 passed / 18 skipped on Hera with a fresh state tool. Browser SET tests pass
+31/31 on both Hera and Mac. Recorded desktop/mobile screenshots were reviewed
+for spacing; the browser exercise exported a request using a local mock,
+not a real build-service acceptance. The optional trusted SET requires Event
+Horizon as startup; empty SET selection preserves the old request schema.
+Real backend request interoperability is now assigned on Hera.
+
+Checked P33/watchdog implementation and a pure first-format migration planner
+are assigned to separate Hera workers. The watchdog ordering must preserve
+the existing IRQ-off P33 critical section: verified stop before WREN,
+positive-ready-only XIP restoration, then checked rearm before restoring
+the original IRQ state. No SAVE/OTA admission or device commands are assigned.
+Reserved-tail host fault checks do not establish unknown-stock first-format
+safety or physical recovery.
+
+CI38628940753 remains in progress at 0fc23e9847e448afdbbc11f50b314dcda9da9fc1:
+ten jobs passed, three ongoing at the last observation. It excludes later
+changes; current-head CI is still required. Physical observations of the
+earlier Event120 boot remain pending. Last passive USB state is ROM device42;
+no new boot/write was sent. Event Horizon is the owner-approved default song.
+The complete physical/web release goal remains ACTIVE; no main merge,
+shipment or deployment. New hardware campaigns require fresh paired backups
+and cannot reuse the consumed device40 receipts.
+
+# Historical continuation authority — 2026-10-14 (SET and reserved-tail integration)
 
 Coordinator checkpoint before this note: `3807f3de8d0e1d1ef9b659678a1b15607835bc5c`,
 pushed and GitHub SHA verified. SET backend worker 04526f83, full-tail fault
