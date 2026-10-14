@@ -11,9 +11,9 @@ The pinned installation evidence is `notes/2026-10-13-current-expanded-candidate
 ## Checks
 
 - `python3 -m py_compile tools/fm1_expanded_rom_backup.py tests/test_expanded_rom_backup.py` passed on Hera.
-- Focused Hera container pytest: 12 passed after exact `devnum == "38"` admission was added; negative cases include `37`, `39`, and `038`. Pinned image: `lunar-recovery-pytest@sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d`, `docker-batch.slice`, 4 CPUs, 8 GiB memory/swap, 512 PIDs, network disabled, read-only worktree and pytest dependency mounts.
-- Tests cover exact-envelope acceptance using mocked source modules, wrong port/bus/PID/device-number/kind/adapter hash refusal, stale observation refusal, no replay after marking the enumeration consumed, dependency source hashes, and unchanged legacy V8 target pin.
-- Hera system Python lacks pytest; the pinned offline image was used. No hardware APIs were invoked. Test command-plan creation mocks sysfs discovery and does not exercise actual SG reads.
+- Focused Hera container pytest: 16 passed. Admission requires exact `devnum == "38"`; negative cases include `37`, `39`, and `038`. Mock-transport `run()` cases verify two exact 1 MiB outputs, short/mismatched dump refusal, transport-error close/no-retry logging, and one-use marker refusal. Pinned image: `lunar-recovery-pytest@sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d`, `docker-batch.slice`, 4 CPUs, 8 GiB memory/swap, 512 PIDs, network disabled, read-only worktree and pytest dependency mounts.
+- Tests cover exact-envelope acceptance using mocked source modules, wrong port/bus/PID/device-number/kind/adapter hash refusal, stale observation refusal, dependency source hashes, unchanged legacy V8 target pin, and mocked end-to-end `run()` outcomes.
+- Hera system Python lacks pytest; the pinned offline image was used. All transport tests are mocks: actual sysfs discovery and SG reads are not exercised. No hardware APIs were invoked.
 
 ## Limits and next gate
 
