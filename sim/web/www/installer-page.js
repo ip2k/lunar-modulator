@@ -2,6 +2,7 @@
 // The trusted build exports this catalogue into the static Pages artifact.
 // This route exports a request only; it does not call a build service.
 import { mountNativeDemoSelectionView } from './native-demo-selection-view.js';
+import { mountNativeModuleSelectionView } from './native-module-selection-view.js';
 
 function downloadRequest(request, document, status) {
   const payload = `${JSON.stringify(request, null, 2)}\n`;
@@ -35,12 +36,17 @@ export async function mountInstallerPage(root, {
   const document = root.ownerDocument;
   const status = document.getElementById?.('installer-export-status');
   const loading = document.getElementById?.('installer-load-status');
+  const moduleRoot = document.getElementById?.('installer-modules');
   try {
     const response = await fetchImpl('./demo-image-catalogue.json', { cache: 'no-store' });
     if (!response?.ok) throw new Error('The generated project catalogue is unavailable.');
     const catalogue = await response.json();
     const profile = catalogue.default_profile;
-    const controller = mountNativeDemoSelectionView(root, catalogue, profile,
+    mountNativeModuleSelectionView(moduleRoot, catalogue, profile, (nextProfile) => {
+      Object.assign(profile, nextProfile);
+    });
+    const demoRoot = document.getElementById?.('installer-selection') ?? root;
+    const controller = mountNativeDemoSelectionView(demoRoot, catalogue, profile,
       (request) => {
         try {
           downloadRequest(request, document, status);

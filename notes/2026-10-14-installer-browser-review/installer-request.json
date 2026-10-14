@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "engines": [
+    "phase-bend"
+  ],
+  "effects": [
+    "ensemble",
+    "diffuse",
+    "sw-psxverb",
+    "crush",
+    "fold",
+    "drive",
+    "echo",
+    "warble",
+    "filter",
+    "comb",
+    "comp",
+    "limit",
+    "djfilter",
+    "tilt",
+    "sat",
+    "isolator",
+    "eq",
+    "room",
+    "hall",
+    "gate",
+    "squash",
+    "shaper",
+    "repeat"
+  ],
+  "midi": [
+    "arp",
+    "acid-gen"
+  ],
+  "modulation": [
+    "lfo",
+    "env",
+    "chance",
+    "function",
+    "bounce",
+    "register",
+    "coin",
+    "divide",
+    "burst",
+    "slew",
+    "quantize",
+    "compare",
+    "logic",
+    "calc",
+    "mix",
+    "resonator"
+  ],
+  "project_ids": [
+    "legacy-example-packet-bloom",
+    "replacement-showcase-candidate-event-horizon"
+  ],
+  "startup_index": 1
+}

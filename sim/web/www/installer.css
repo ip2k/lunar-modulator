@@ -41,6 +41,33 @@
 .installer-page #installer-load-status:empty { display: none; }
 .installer-export-status { min-height: 1.5em; }
 
+.native-module-selection { margin-top: 26px; }
+.native-module-selection > h2 { font: 400 1.25rem/1.4 var(--display); }
+.native-module-selection fieldset {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: grid;
+  gap: 8px 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  margin: 14px 0;
+  padding: 14px;
+}
+.native-module-selection legend { font: 400 1rem/1.4 var(--display); padding: 0 6px; }
+.native-module-selection label {
+  align-items: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  line-height: 1.45;
+  min-width: 0;
+  padding: 9px 11px;
+}
+.native-module-selection label span { overflow-wrap: anywhere; }
+.native-module-selection input { accent-color: var(--accent); flex: 0 0 auto; margin: 3px 0 0; }
+.native-module-selection [role="status"] { color: var(--held); min-height: 1.5em; }
+
 .native-demo-selection { margin-top: 26px; }
 .native-demo-selection > p { color: var(--muted); margin: 8px 0 14px; }
 .native-demo-default-status {

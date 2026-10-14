@@ -1,0 +1,282 @@
+{
+  "browser": "Chromium 153.0.8010.12 / Playwright 1.63.0",
+  "image_digest": "sha256:eff16c30e6f3f4af0a3fa4b706120d5e9b0891c344a27d64559aff5900a4a27",
+  "origin": "loopback inside isolated container",
+  "screenshots": [
+    {
+      "path": "installer-desktop.png",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "document": {
+        "width": 1440,
+        "height": 2862
+      },
+      "fontLoaded": true
+    },
+    {
+      "path": "installer-mobile.png",
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "document": {
+        "width": 375,
+        "height": 6338
+      },
+      "fontLoaded": true
+    }
+  ],
+  "errors": [],
+  "inputs": [
+    {
+      "path": "demo-image-catalogue.json",
+      "sha256": "908ed8bc7be25507b297f8cdd7ceb99213a5a37a2b8c6b04f34d85440cb1dd60",
+      "bytes": 10551
+    },
+    {
+      "path": "fonts/audiowide/Audiowide-Regular.ttf",
+      "sha256": "c7c0f2b0f6fad8c623e31772ce79f94a4edb9321ffce9fce978ea892d20ae730",
+      "bytes": 69916
+    },
+    {
+      "path": "fonts/exo2/Exo2[wght].ttf",
+      "sha256": "205a448676a2586f9c57c25f3d5c58ca8db7e6cf5edf7506783a010c6fe2bfb5",
+      "bytes": 303940
+    },
+    {
+      "path": "installer-page.js",
+      "sha256": "c12dbdbac711c729e895a41ae4397b8592ef70c837f518e9eb554543f76df146",
+      "bytes": 3091
+    },
+    {
+      "path": "installer.css",
+      "sha256": "5a606480d2933aa5e531af9416a9d2c8373c21ee9b64c48138b8afd730d29302",
+      "bytes": 4457
+    },
+    {
+      "path": "installer.html",
+      "sha256": "d919cc61eecb0d666733780ea150ac43bdcee88a847821cb19d6491d7c2cc24a",
+      "bytes": 1590
+    },
+    {
+      "path": "native-build-selection.js",
+      "sha256": "b7dee5f69fb52e48af06370282db8238d6714786ec5c0f5ea48e605de73a6649",
+      "bytes": 8204
+    },
+    {
+      "path": "native-demo-selection-view.js",
+      "sha256": "1ff5a30d7b5d78f8abaff3cffcfbc39ba29da8ab70148023405ec4f65df39129",
+      "bytes": 7611
+    },
+    {
+      "path": "native-demo-selection.js",
+      "sha256": "52fb841fd0a4ec8bb6e126027bf6a82e53d06072bb5879fb99f91a4a3fb778f6",
+      "bytes": 3295
+    },
+    {
+      "path": "native-module-selection-view.js",
+      "sha256": "bfc6aa06947cd5820389f2b7bc84448cd4f37bc1dccc56f7737fcd2be620f36e",
+      "bytes": 2963
+    },
+    {
+      "path": "style.css",
+      "sha256": "e1bd6076cce621172ee6aeb2da9dadd38bae6af7f30828a0b69d34029813bcea",
+      "bytes": 22181
+    }
+  ],
+  "download": {
+    "keys": [
+      "version",
+      "engines",
+      "effects",
+      "midi",
+      "modulation",
+      "project_ids",
+      "startup_index"
+    ],
+    "project_ids": [
+      "legacy-example-packet-bloom",
+      "replacement-showcase-candidate-event-horizon"
+    ],
+    "startup_index": 1,
+    "omitted_effect": "plate",
+    "engine_count": 1,
+    "effect_count": 23,
+    "sha256": "33d2eb63a1dcfb1d6839e223e0b46bc01d6504111a23e04f51590ef80e8e06a7",
+    "status": "Request exported. No build or install was performed."
+  },
+  "desktop": {
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "document": {
+      "width": 1440,
+      "height": 2862
+    },
+    "fontLoaded": true,
+    "moduleGroups": [
+      {
+        "name": "Sound engines",
+        "checked": 13,
+        "total": 13
+      },
+      {
+        "name": "Effects",
+        "checked": 24,
+        "total": 24
+      },
+      {
+        "name": "MIDI processors",
+        "checked": 2,
+        "total": 2
+      },
+      {
+        "name": "Modulation",
+        "checked": 16,
+        "total": 16
+      }
+    ],
+    "fullSongStatus": "Full-song default status: pending",
+    "fullSongNotice": "No full-song default has been approved. Legacy examples are not approved showcases or defaults. Showcase candidates await musical review.",
+    "serviceStatus": "Build service not connected. This page can export a request for offline review. It does not build or install firmware.\n\nCatalogue entries are source choices, not proof of a playable or installable image. Image size, packed dependencies, and device acceptance require separate checks.",
+    "cardBounds": [
+      {
+        "x": 36,
+        "y": 1788.21875,
+        "width": 333,
+        "height": 166.640625
+      },
+      {
+        "x": 381,
+        "y": 1788.21875,
+        "width": 333,
+        "height": 166.640625
+      },
+      {
+        "x": 726,
+        "y": 1788.21875,
+        "width": 333,
+        "height": 166.640625
+      },
+      {
+        "x": 1071,
+        "y": 1788.21875,
+        "width": 333,
+        "height": 166.640625
+      },
+      {
+        "x": 36,
+        "y": 1966.859375,
+        "width": 333,
+        "height": 166.640625
+      },
+      {
+        "x": 381,
+        "y": 1966.859375,
+        "width": 333,
+        "height": 166.640625
+      },
+      {
+        "x": 726,
+        "y": 1966.859375,
+        "width": 333,
+        "height": 166.640625
+      },
+      {
+        "x": 1071,
+        "y": 1966.859375,
+        "width": 333,
+        "height": 166.640625
+      }
+    ]
+  },
+  "mobile": {
+    "viewport": {
+      "width": 375,
+      "height": 812
+    },
+    "document": {
+      "width": 375,
+      "height": 6338
+    },
+    "fontLoaded": true,
+    "moduleGroups": [
+      {
+        "name": "Sound engines",
+        "checked": 13,
+        "total": 13
+      },
+      {
+        "name": "Effects",
+        "checked": 24,
+        "total": 24
+      },
+      {
+        "name": "MIDI processors",
+        "checked": 2,
+        "total": 2
+      },
+      {
+        "name": "Modulation",
+        "checked": 16,
+        "total": 16
+      }
+    ],
+    "fullSongStatus": "Full-song default status: pending",
+    "fullSongNotice": "No full-song default has been approved. Legacy examples are not approved showcases or defaults. Showcase candidates await musical review.",
+    "serviceStatus": "Build service not connected. This page can export a request for offline review. It does not build or install firmware.\n\nCatalogue entries are source choices, not proof of a playable or installable image. Image size, packed dependencies, and device acceptance require separate checks.",
+    "cardBounds": [
+      {
+        "x": 16,
+        "y": 4120.34375,
+        "width": 343,
+        "height": 166.640625
+      },
+      {
+        "x": 16,
+        "y": 4298.984375,
+        "width": 343,
+        "height": 166.640625
+      },
+      {
+        "x": 16,
+        "y": 4477.625,
+        "width": 343,
+        "height": 166.640625
+      },
+      {
+        "x": 16,
+        "y": 4656.265625,
+        "width": 343,
+        "height": 166.640625
+      },
+      {
+        "x": 16,
+        "y": 4834.90625,
+        "width": 343,
+        "height": 166.640625
+      },
+      {
+        "x": 16,
+        "y": 5013.546875,
+        "width": 343,
+        "height": 166.640625
+      },
+      {
+        "x": 16,
+        "y": 5192.1875,
+        "width": 343,
+        "height": 166.640625
+      },
+      {
+        "x": 16,
+        "y": 5370.828125,
+        "width": 343,
+        "height": 166.640625
+      }
+    ]
+  }
+}

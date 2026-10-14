@@ -78,10 +78,12 @@ const catalogue = {
 test('loads generated catalogue, mounts the shared chooser and exports only a validated request', async () => {
   const document = new Document();
   const root = new Element('div', document);
+  const moduleRoot = new Element('div', document);
   const loadStatus = new Element('p', document);
   const exportStatus = new Element('p', document);
   document.nodes.set('installer-load-status', loadStatus);
   document.nodes.set('installer-export-status', exportStatus);
+  document.nodes.set('installer-modules', moduleRoot);
   const fetches = [];
   const originalCreate = URL.createObjectURL;
   const originalRevoke = URL.revokeObjectURL;
@@ -97,6 +99,8 @@ test('loads generated catalogue, mounts the shared chooser and exports only a va
     });
     assert.deepEqual(fetches, [['./demo-image-catalogue.json', { cache: 'no-store' }]]);
     assert.equal(loadStatus.textContent, '');
+    assert.equal(moduleRoot.children[0].className, 'native-module-selection');
+    assert.equal(moduleRoot.children[0].children.filter((node) => node.tagName === 'FIELDSET').length, 4);
     assert.equal(catalogue.full_song_default.status, 'pending');
     assert.ok(catalogue.projects.every((project) => project.default_candidate === false));
 
