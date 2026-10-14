@@ -21,7 +21,17 @@ RESULT = Path("/result")
 SCRATCH = Path("/tmp/lunar-worker")
 MAX_REQUEST = 65536
 MAX_APP = 1048576
+MAX_ELF = 16 * 1024 * 1024
 MAX_RECEIPT = 65536
+
+
+def _unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate receipt field")
+        result[key] = value
+    return result
 
 
 def regular_file(path: Path, limit: int) -> bytes:
@@ -34,6 +44,22 @@ def regular_file(path: Path, limit: int) -> bytes:
     if len(data) != size:
         raise ValueError("file changed while reading")
     return data
+
+
+def verified_build_outputs(build_root: Path) -> tuple[bytes, bytes, bytes]:
+    """Load the app, matching linker ELF, and its receipt as bounded files."""
+    app = regular_file(build_root / "link/artifact/app.bin", MAX_APP)
+    elf = regular_file(build_root / "link/lunar-app-probe.elf", MAX_ELF)
+    receipt = regular_file(build_root / "image.json", MAX_RECEIPT)
+    try:
+        report = json.loads(receipt.decode("utf-8"), object_pairs_hook=_unique_object)
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        raise ValueError("build receipt is malformed") from exc
+    if (not isinstance(report, dict)
+            or report.get("app_sha256") != hashlib.sha256(app).hexdigest()
+            or report.get("elf_sha256") != hashlib.sha256(elf).hexdigest()):
+        raise ValueError("build receipt does not match app/ELF bytes")
+    return app, elf, receipt
 
 
 def main() -> int:
@@ -92,11 +118,12 @@ def main() -> int:
         "--catalogue", str(CATALOGUE),
         "--out", str(output / "build"),
     ], check=True, timeout=1200)
-    app = regular_file(output / "build/link/artifact/app.bin", MAX_APP)
-    receipt = regular_file(output / "build/image.json", MAX_RECEIPT)
+    app, elf, receipt = verified_build_outputs(output / "build")
     (RESULT / "app.bin").write_bytes(app)
+    (RESULT / "elf.bin").write_bytes(elf)
     (RESULT / "image.json").write_bytes(receipt)
     print(json.dumps({"app_bytes": len(app), "app_sha256": hashlib.sha256(app).hexdigest(),
+                      "elf_bytes": len(elf), "elf_sha256": hashlib.sha256(elf).hexdigest(),
                       "receipt_bytes": len(receipt)}), flush=True)
     return 0
 

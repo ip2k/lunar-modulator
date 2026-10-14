@@ -13,6 +13,7 @@ from tools.native.module_selection import wavetable_namespaces
 
 MAX_BODY_BYTES = 65536
 MAX_ARTIFACT_BYTES = 1048576
+MAX_ELF_BYTES = 16 * 1024 * 1024
 OPAQUE_ID = re.compile(r"[A-Za-z0-9_-]{32}\Z")
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 GROUPS = ("engines", "effects", "midi", "modulation")
@@ -92,6 +93,7 @@ class WorkerTemplate:
 class WorkerResult:
     artifact: bytes
     receipt: bytes
+    elf: bytes
 
 
 @dataclass(frozen=True)
@@ -133,8 +135,8 @@ class FakeJobAdapter:
     def set_running(self, build_id):
         self.jobs[build_id] = WorkerSnapshot("running")
 
-    def succeed(self, build_id, artifact, receipt):
-        self.jobs[build_id] = WorkerSnapshot("succeeded", WorkerResult(artifact, receipt))
+    def succeed(self, build_id, artifact, receipt, elf=b"diagnostic-elf"):
+        self.jobs[build_id] = WorkerSnapshot("succeeded", WorkerResult(artifact, receipt, elf))
 
     def fail(self, build_id):
         self.jobs[build_id] = WorkerSnapshot("failed")
@@ -191,8 +193,11 @@ def _verify_wavetable_receipt(receipt: dict, selected: list[str]) -> None:
 
 
 def _verify_result(admission: Admission, result: WorkerResult) -> dict:
-    if len(result.artifact) > MAX_ARTIFACT_BYTES or len(result.receipt) > 65536:
-        raise ValueError("worker result exceeds configured cap")
+    if (not isinstance(result.artifact, bytes) or not isinstance(result.elf, bytes)
+            or not isinstance(result.receipt, bytes) or not result.artifact or not result.elf
+            or len(result.artifact) > MAX_ARTIFACT_BYTES or len(result.elf) > MAX_ELF_BYTES
+            or len(result.receipt) > 65536):
+        raise ValueError("worker result exceeds configured cap or is malformed")
     try:
         receipt = json.loads(result.receipt, object_pairs_hook=_unique_object,
                              parse_constant=_reject_constant)
@@ -201,6 +206,7 @@ def _verify_result(admission: Admission, result: WorkerResult) -> dict:
     if not isinstance(receipt, dict):
         raise ValueError("worker receipt is not an object")
     artifact_sha = hashlib.sha256(result.artifact).hexdigest()
+    elf_sha = hashlib.sha256(result.elf).hexdigest()
     request = admission.request
     projects = request["project_ids"]
     startup_index = request["startup_index"]
@@ -221,6 +227,7 @@ def _verify_result(admission: Admission, result: WorkerResult) -> dict:
             or receipt.get("startup_project_id") != projects[startup_index]
             or receipt.get("runtime_hook_linked") is not (len(projects) > 1)
             or receipt.get("app_sha256") != artifact_sha
+            or receipt.get("elf_sha256") != elf_sha
             or type(receipt.get("app_bytes")) is not int
             or receipt["app_bytes"] != len(result.artifact)
             or type(receipt.get("app_budget_bytes")) is not int
@@ -276,7 +283,8 @@ def _verify_result(admission: Admission, result: WorkerResult) -> dict:
                    for key in ("source_sha256", "fresh_object_sha256", "cached_object_sha256"))):
         raise ValueError("worker codec metadata is missing or invalid")
     return {"status": receipt["status"], "artifact_sha256": artifact_sha,
-            "artifact_bytes": len(result.artifact), "installable": False,
+            "artifact_bytes": len(result.artifact), "elf_sha256": elf_sha,
+            "elf_bytes": len(result.elf), "installable": False,
             "app_budget_bytes": receipt["app_budget_bytes"],
             "remaining_bytes": receipt["app_budget_bytes"] - len(result.artifact),
             "hardware_tested": False}

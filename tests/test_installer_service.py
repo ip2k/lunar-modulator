@@ -23,6 +23,7 @@ from tools.installer_service.catalogue import load_trusted_catalogue
 MODULES = {"sound-a": "sound", "shapes": "sound", "fx-a": "audio_fx", "midi-a": "midi_fx", "mod-a": "mod"}
 PROJECTS = {"song-one", "song-two"}
 TEMPLATE = WorkerTemplate("sha256:" + "a" * 64, "lunar-private-builds")
+TEST_ELF = b"diagnostic-elf"
 
 
 def client(capacity=1, queue_cap=1):
@@ -118,7 +119,7 @@ def test_queue_cap_opaque_lookup_and_state_transitions():
     assert c.post("/api/v1/builds", json=request_doc()).status_code == 202
 
 
-def result_receipt(doc, req_sha, artifact):
+def result_receipt(doc, req_sha, artifact, elf=TEST_ELF):
     prepared_sha = "1" * 64
     content = [{"kind": "project", "bytes": 128, "packed_sha256": "2" * 64} for _ in doc["project_ids"]]
     selected = [m for g in ("engines", "effects", "midi", "modulation") for m in doc[g]]
@@ -147,7 +148,8 @@ def result_receipt(doc, req_sha, artifact):
             "asset_count": len(content), "packed_content_bytes": 128 * len(content),
             "packed_sha256": [a["packed_sha256"] for a in content],
             "native_playback_verified": False, "sequence_semantics_verified": False},
-        "app_sha256": hashlib.sha256(artifact).hexdigest(), "elf_sha256": "3" * 64,
+        "app_sha256": hashlib.sha256(artifact).hexdigest(),
+        "elf_sha256": hashlib.sha256(elf).hexdigest(),
         "app_bytes": len(artifact), "app_budget_bytes": 1048576,
         "installable": False, "hardware_admitted": False, "hardware_tested": False,
         "native_ram_verified": False, "native_playback_verified": False,
@@ -175,7 +177,7 @@ def accept_and_succeed(c, adapter, receipt_transform=None, artifact=b"diagnostic
         encoded = json.dumps(receipt).encode()
     else:
         encoded = receipt
-    adapter.succeed(build_id, artifact, encoded)
+    adapter.succeed(build_id, artifact, encoded, TEST_ELF)
     return accepted
 
 
@@ -186,6 +188,8 @@ def test_success_verifies_exact_request_and_app_bytes():
     assert response.status_code == 200
     result = response.json()["result"]
     assert result["artifact_sha256"] == hashlib.sha256(b"diagnostic-app").hexdigest()
+    assert result["elf_sha256"] == hashlib.sha256(TEST_ELF).hexdigest()
+    assert result["elf_bytes"] == len(TEST_ELF)
     assert result["app_budget_bytes"] == 1048576
     assert result["remaining_bytes"] == result["app_budget_bytes"] - len(b"diagnostic-app")
     assert result["installable"] is False
@@ -276,7 +280,28 @@ def test_result_cap_and_unknown_ids_do_not_expose_artifact():
     c, adapter = client()
     assert c.get("/api/v1/builds/" + "a" * 32).status_code == 404
     accepted = c.post("/api/v1/builds", json=request_doc())
-    adapter.succeed(accepted.json()["id"], b"x" * (1048576 + 1), b"{}")
+    adapter.succeed(accepted.json()["id"], b"x" * (1048576 + 1), b"{}", TEST_ELF)
+    assert c.get(accepted.json()["status_url"]).status_code == 502
+
+
+@pytest.mark.parametrize("elf", [b"", b"x" * (16 * 1024 * 1024 + 1)])
+def test_service_rejects_missing_or_oversized_elf(elf):
+    c, adapter = client()
+    accepted = c.post("/api/v1/builds", json=request_doc())
+    doc = request_doc()
+    req_sha = hashlib.sha256(canonical_request(doc)).hexdigest()
+    receipt = result_receipt(doc, req_sha, b"diagnostic-app", elf=TEST_ELF)
+    adapter.succeed(accepted.json()["id"], b"diagnostic-app", receipt, elf)
+    assert c.get(accepted.json()["status_url"]).status_code == 502
+
+
+def test_service_rejects_elf_not_matching_receipt_digest():
+    c, adapter = client()
+    accepted = c.post("/api/v1/builds", json=request_doc())
+    doc = request_doc()
+    req_sha = hashlib.sha256(canonical_request(doc)).hexdigest()
+    receipt = result_receipt(doc, req_sha, b"diagnostic-app", elf=TEST_ELF)
+    adapter.succeed(accepted.json()["id"], b"diagnostic-app", receipt, b"tampered-elf")
     assert c.get(accepted.json()["status_url"]).status_code == 502
 
 
@@ -298,7 +323,7 @@ def test_rejects_over_budget_even_when_artifact_hash_matches():
     artifact = b"x" * 500
     receipt = json.loads(result_receipt(doc, req_sha, artifact))
     receipt["app_budget_bytes"] = len(artifact) - 1
-    adapter.succeed(build_id, artifact, json.dumps(receipt).encode())
+    adapter.succeed(build_id, artifact, json.dumps(receipt).encode(), TEST_ELF)
     assert c.get(accepted.json()["status_url"]).status_code == 502
 
 
@@ -374,7 +399,7 @@ def test_actual_retained_controller_receipt_through_testclient():
     request_bytes, req_sha, _ = adapter.submissions[build_id]
     assert req_sha == selection["request_sha256"]
     assert hashlib.sha256(request_bytes).hexdigest() == req_sha
-    adapter.succeed(build_id, app_bytes, json.dumps(receipt).encode())
+    adapter.succeed(build_id, app_bytes, json.dumps(receipt).encode(), elf)
     response = client.get(accepted.json()["status_url"])
     assert response.status_code == 200, response.text
     assert response.json()["result"]["artifact_sha256"] == hashlib.sha256(app_bytes).hexdigest()
@@ -391,7 +416,7 @@ def test_actual_retained_controller_receipt_through_testclient():
         rejected_id = rejected.json()["id"]
         bad_receipt = json.loads(json.dumps(receipt))
         mutate(bad_receipt)
-        adapter.succeed(rejected_id, app_bytes, json.dumps(bad_receipt).encode())
+        adapter.succeed(rejected_id, app_bytes, json.dumps(bad_receipt).encode(), elf)
         assert client.get(rejected.json()["status_url"]).status_code == 502
 
 def test_docker_adapter_uses_fixed_container_contract_and_pinned_source(tmp_path, monkeypatch):
@@ -514,6 +539,7 @@ def _docker_lifecycle_adapter(tmp_path):
     (base / "input").mkdir(parents=True)
     (base / "result").mkdir()
     (base / "result/app.bin").write_bytes(b"app")
+    (base / "result/elf.bin").write_bytes(TEST_ELF)
     (base / "result/image.json").write_bytes(b"{}")
     adapter.semaphore.acquire()
     adapter.job_dirs[build_id] = base
@@ -553,6 +579,74 @@ class _FakeDockerClientProcess:
         if self.returncode is None:
             self.returncode = -9
         return self.returncode
+
+
+def test_worker_binds_regular_app_and_elf_to_exact_receipt(tmp_path):
+    from tools.installer_service import docker_worker
+
+    build = tmp_path / "build"
+    artifact_dir = build / "link/artifact"
+    artifact_dir.mkdir(parents=True)
+    app = b"diagnostic-app"
+    elf = b"diagnostic-elf"
+    (artifact_dir / "app.bin").write_bytes(app)
+    (build / "link/lunar-app-probe.elf").write_bytes(elf)
+    receipt_path = build / "image.json"
+
+    def receipt_for(app_bytes, elf_bytes):
+        return json.dumps({"app_sha256": hashlib.sha256(app_bytes).hexdigest(),
+                           "elf_sha256": hashlib.sha256(elf_bytes).hexdigest()}).encode()
+
+    receipt_path.write_bytes(receipt_for(app, elf))
+    assert docker_worker.verified_build_outputs(build) == (app, elf, receipt_path.read_bytes())
+
+    receipt_path.write_text('{"app_sha256":"' + hashlib.sha256(app).hexdigest()
+                            + '","app_sha256":"' + hashlib.sha256(app).hexdigest()
+                            + '","elf_sha256":"' + hashlib.sha256(elf).hexdigest() + '"}')
+    with pytest.raises(ValueError, match="malformed"):
+        docker_worker.verified_build_outputs(build)
+    receipt_path.write_bytes(receipt_for(app, b"different-elf"))
+    with pytest.raises(ValueError, match="does not match"):
+        docker_worker.verified_build_outputs(build)
+    (build / "link/lunar-app-probe.elf").unlink()
+    with pytest.raises(ValueError, match="regular file"):
+        docker_worker.verified_build_outputs(build)
+
+
+def test_docker_adapter_retains_bounded_elf_and_rejects_bad_elf_outputs(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from tools.installer_service import docker_adapter as module
+    from tools.installer_service.api import MAX_ELF_BYTES
+
+    def run_case(root, bad=None):
+        root.mkdir()
+        adapter, build_id, base = _docker_lifecycle_adapter(root)
+        path = base / "result/elf.bin"
+        if bad == "missing":
+            path.unlink()
+        elif bad == "empty":
+            path.write_bytes(b"")
+        elif bad == "oversized":
+            with path.open("wb") as handle:
+                handle.truncate(MAX_ELF_BYTES + 1)
+        elif bad == "symlink":
+            path.unlink()
+            target = base / "outside-elf"
+            target.write_bytes(TEST_ELF)
+            path.symlink_to(target)
+        proc = _FakeDockerClientProcess(initial_returncode=0)
+        with monkeypatch.context() as patch:
+            patch.setattr(module.subprocess, "Popen", lambda *a, **k: proc)
+            patch.setattr(module.subprocess, "run", lambda *a, **k: SimpleNamespace(returncode=0))
+            adapter._run(build_id)
+        return adapter.get(build_id)
+
+    good = run_case(tmp_path / "good")
+    assert good.status == "succeeded"
+    assert good.result.elf == TEST_ELF
+    for bad in ("missing", "empty", "oversized", "symlink"):
+        failed = run_case(tmp_path / bad, bad)
+        assert failed.status == "failed", bad
 
 
 def test_docker_log_overflow_fails_even_if_client_exits_zero(tmp_path, monkeypatch):
