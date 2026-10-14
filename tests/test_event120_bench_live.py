@@ -65,6 +65,12 @@ def test_stock_plans_admitted_offline(actual_inputs,direction):
  assert len(p.policies[0].sectors)==213
  assert p.policies[0].receipt()["hardware_admitted"] is False
 
+def test_prepared_mapping_matches_rehearsal_canonical_binding(actual_inputs):
+ stage,receipt,_=actual_inputs;prepared=live.prepare(make_campaign(stage,receipt,"native","install"))
+ from tools.native.expanded_sg import canonical
+ expected=json.loads((receipt/"manifest.json").read_bytes())["sg_binding"]
+ assert prepared.mapping==canonical(expected)
+
 def test_native_candidate_receipt_chain_is_canonically_bound(actual_inputs):
  stage,receipt,_=actual_inputs
  p=live.prepare(make_campaign(stage,receipt,"native","install"))
