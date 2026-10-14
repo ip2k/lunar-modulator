@@ -35,14 +35,16 @@ docs/10 §1.1 covers:
 
 ## Build
 
-CI builds the UF2 on every push (workflow `dongle-firmware`, artifact
-`usb_key_dongle-uf2`). Locally:
+CI builds the RP2040 Pico UF2 and RP2350 Pico 2 W UF2 on every push. Artifacts are
+`usb_key_dongle-uf2` and `usb_key_dongle-pico2-w-rp2350-uf2`. Pico 2 W has no
+direct GPIO onboard LED; status remains on USB CDC. Locally:
 
 ```bash
 git clone --depth 1 --branch 2.1.1 https://github.com/raspberrypi/pico-sdk ~/pico-sdk
 git -C ~/pico-sdk submodule update --init lib/tinyusb        # for the USB console
 export PICO_SDK_PATH=~/pico-sdk                               # needs arm-none-eabi-gcc + cmake
-cmake -S dongle/firmware -B dongle/firmware/build && cmake --build dongle/firmware/build -j
+cmake -S dongle/firmware -B dongle/firmware/build -DPICO_BOARD=pico && cmake --build dongle/firmware/build -j
+# For Pico 2 W, use another build directory and -DPICO_BOARD=pico2_w
 # hold BOOTSEL, plug the Pico in, copy dongle/firmware/build/usb_key_dongle.uf2 to RPI-RP2
 ```
 

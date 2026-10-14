@@ -50,7 +50,14 @@ static void mux_to_pc(void)     { gpio_put(PIN_MUX_SEL, MUX_SEL_PC); }
 static bool dp(void) { return gpio_get(PIN_DP); }
 static bool dm(void) { return gpio_get(PIN_DM); }
 static bool button_pressed(void) { return !gpio_get(PIN_BUTTON); }
+#ifdef PICO_DEFAULT_LED_PIN
 static void led(bool on) { gpio_put(PICO_DEFAULT_LED_PIN, on); }
+static void led_init(void) { gpio_init(PICO_DEFAULT_LED_PIN); gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT); }
+#else
+// Some boards, including Pico 2 W, have no direct GPIO onboard LED.
+static void led(bool on) { (void)on; }
+static void led_init(void) {}
+#endif
 
 static void lines_release(void) {
     // Both PIO state machines off, pins back to plain inputs (released).
@@ -177,7 +184,7 @@ static void blink(int times, int period_ms) { for (int i = 0; i < times; i++) { 
 
 int main(void) {
     stdio_init_all();
-    gpio_init(PICO_DEFAULT_LED_PIN); gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+    led_init();
     gpio_init(PIN_MUX_SEL); gpio_set_dir(PIN_MUX_SEL, GPIO_OUT); mux_to_pc();
     for (int i = 0; i < 2; i++) { gpio_init(PULLUP_PINS[i]); gpio_disable_pulls(PULLUP_PINS[i]); }  // pads default to pull-down
     pullups(false);
