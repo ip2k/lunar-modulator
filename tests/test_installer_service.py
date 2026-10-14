@@ -342,6 +342,8 @@ def test_docker_adapter_uses_fixed_container_contract_and_pinned_source(tmp_path
     assert config.image_reference in command
     assert "/output/build" not in joined
     assert "request.json" in joined and "source.tar" in joined
+    assert "/input/docker_worker.py" in joined
+    assert str(config.source_root / "tools/installer_service/docker_worker.py") in joined
     adapter.delete(build_id)
     assert not base.exists()
 

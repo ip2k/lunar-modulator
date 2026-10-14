@@ -146,10 +146,11 @@ class DockerJobAdapter:
             "--tmpfs", "/tmp:rw,nosuid,nodev,exec,size=" + str(cfg.scratch_bytes),
             "--user", "1001:1001",
             "--mount", "type=bind,src=" + str(base / "input" / "source.tar") + ",dst=/input/source.tar,readonly",
+            "--mount", "type=bind,src=" + str(cfg.source_root / "tools/installer_service/docker_worker.py") + ",dst=/input/docker_worker.py,readonly",
             "--mount", "type=bind,src=" + str(cfg.toolchain_root) + ",dst=/opt/pi32v2,readonly",
             "--mount", "type=bind,src=" + str(base / "input" / "request.json") + ",dst=/input/request.json,readonly",
             "--mount", "type=bind,src=" + str(base / "result") + ",dst=/result",
-            cfg.image_reference, "python3", "/workspace/tools/installer_service/docker_worker.py",
+            cfg.image_reference, "python3", "/input/docker_worker.py",
         ]
 
     def _set(self, build_id: str, snapshot: WorkerSnapshot):
