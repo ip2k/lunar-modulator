@@ -16,8 +16,13 @@ SAVE remains unbound/disarmed; NOR timing/IRQ/watchdog evidence limits are in
 rechecked by both worker and coordinator).
 
 CI fixture portability repair `b41b325b` is integrated; Mac six-file checks
-are running, Linux six-file result 250 passed/71 skipped. New exact-head CI
-still required. Active worker reviews package/loader acceptance offline.
+completed with exit zero, Linux six-file result 250 passed/71 skipped. CI
+`38622350045` runs at exact code head `eac55b1f`; no green result yet.
+Stock-loader acceptance review is integrated in
+`notes/2026-10-14-package500-loader-review.md`; actual retained OTA binary
+analysis is a separate active worker. Other Hera workers prepare a separate
+continuous-image package binding and an actual-service SAVE fault harness.
+No worker may issue hardware commands or enable SAVE admission.
 Overall physical/web release goal remains ACTIVE, with no main merge or shipment.
 
 # Historical continuation authority — 2026-10-14 (identity and fresh boot)
