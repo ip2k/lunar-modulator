@@ -50,36 +50,46 @@ async function readJson(response, signal) {
     const reader = response.body.getReader();
     const chunks = [];
     let byteLength = 0;
-    while (true) {
-      let removeAbort;
-      const aborted = new Promise((_, reject) => {
-        const onAbort = () => {
-          void reader.cancel().catch(() => {});
-          reject(new DOMException('Aborted', 'AbortError'));
-        };
-        if (signal?.aborted) onAbort();
-        else if (signal) {
-          signal.addEventListener('abort', onAbort, { once: true });
-          removeAbort = () => signal.removeEventListener('abort', onAbort);
+    const cancel = () => {
+      try {
+        const pending = reader.cancel();
+        pending?.catch?.(() => {});
+      } catch { /* Cleanup must never extend the caller's deadline. */ }
+    };
+    const onAbort = () => cancel();
+    try {
+      while (true) {
+        let removeAbort;
+        const aborted = new Promise((_, reject) => {
+          if (signal?.aborted) {
+            cancel();
+            reject(new DOMException('Aborted', 'AbortError'));
+          } else if (signal) {
+            signal.addEventListener('abort', onAbort, { once: true });
+            removeAbort = () => signal.removeEventListener('abort', onAbort);
+          }
+        });
+        let result;
+        try { result = await Promise.race([reader.read(), aborted]); }
+        finally { removeAbort?.(); }
+        const { done, value } = result;
+        if (done) break;
+        byteLength += value.byteLength;
+        if (byteLength > MAX_RESPONSE_BYTES) {
+          cancel();
+          fail('The build service returned an oversized response.');
         }
-      });
-      let result;
-      try { result = await Promise.race([reader.read(), aborted]); }
-      finally { removeAbort?.(); }
-      const { done, value } = result;
-      if (done) break;
-      byteLength += value.byteLength;
-      if (byteLength > MAX_RESPONSE_BYTES) {
-        await reader.cancel();
-        fail('The build service returned an oversized response.');
+        chunks.push(value);
       }
-      chunks.push(value);
+      const bytes = new Uint8Array(byteLength);
+      let offset = 0;
+      for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+      try { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); }
+      catch { fail('The build service returned invalid data.'); }
+    } finally {
+      signal?.removeEventListener('abort', onAbort);
+      try { reader.releaseLock(); } catch { /* A pending read may already own cleanup. */ }
     }
-    const bytes = new Uint8Array(byteLength);
-    let offset = 0;
-    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
-    try { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); }
-    catch { fail('The build service returned invalid data.'); }
   }
   fail('The build service returned invalid data.');
 }

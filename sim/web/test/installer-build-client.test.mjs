@@ -131,6 +131,30 @@ test('rejects chunked oversized responses and includes response reads in deadlin
       }), { status: 202, headers: { 'content-type': 'application/json' } }) });
     await assert.rejects(client.build(request), /oversized response/);
   });
+  await t.test('oversized stream with a stalled cancel does not extend the deadline', async () => {
+    const client = createInstallerBuildClient({ origin: 'https://lunar.test', maxWaitMs: 1000,
+      fetchImpl: async () => new Response(new ReadableStream({
+        start(controller) {
+          controller.enqueue(new Uint8Array(65537));
+        },
+        cancel() { return new Promise(() => {}); },
+      }), { status: 202, headers: { 'content-type': 'application/json' } }) });
+    const started = Date.now();
+    await assert.rejects(client.build(request), /oversized response/);
+    assert.ok(Date.now() - started < 500, 'cleanup should not wait for the stream cancel promise');
+  });
+  await t.test('abort with a stalled cancel settles without awaiting cleanup', async () => {
+    const controller = new AbortController();
+    const client = createInstallerBuildClient({ origin: 'https://lunar.test', maxWaitMs: 5000,
+      fetchImpl: async () => new Response(new ReadableStream({ cancel() { return new Promise(() => {}); } }), {
+        status: 202, headers: { 'content-type': 'application/json' },
+      }) });
+    const started = Date.now();
+    const pending = client.build(request, { signal: controller.signal });
+    setTimeout(() => controller.abort(), 20);
+    await assert.rejects(pending, /canceled/);
+    assert.ok(Date.now() - started < 500, 'abort should not wait for the stream cancel promise');
+  });
   await t.test('body read observes timeout', async () => {
     const client = createInstallerBuildClient({ origin: 'https://lunar.test', maxWaitMs: 1000,
       fetchImpl: async () => new Response(new ReadableStream({
