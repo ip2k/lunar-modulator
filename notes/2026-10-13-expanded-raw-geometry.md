@@ -24,7 +24,8 @@ install/rollback faults. It finished with 115 passing cases and two 120-second s
 failures at commit erase (install and restore); no OOM. All thirty logs were
 inspected. `expanded-geometry-v3` reruns the 37 geometry/recovery cases with a
 900-second worker bound and exact interrupted-sector byte assertions; its
-terminal result remains pending. Receipts are private under the Hera root
+all 37 cases passed across thirty containers. All logs and source hashes were
+checked; each container exited zero without OOM, and owned containers were removed. Receipts are private under the Hera root
 `/home/claude/mvave-fm1/native-external-arenas-16-20261012/out/`; local mirrors
 are under `build/native-external-arenas-16-20261012/`. Reproduction launcher:
 `notes/2026-10-13-expanded-geometry-verification/launch.py`.
@@ -57,3 +58,28 @@ against the previous artifact receipt; it did not repeat its full admission
 audit or grant physical permission. Candidate and receipt are private under
 `out/expanded-private-geometry-v1`; local receipt mirror is in the ignored
 build directory. No physical installation or OTA acceptance is claimed.
+
+## Bound actual candidate [verified offline]
+
+`tools/native/expanded_candidate.py` reuses the pinned recorded/fixed-loader
+backup validators, independently reconstructs all flash loads from the ELF,
+and reruns the SDK-free link audit using byte-exact vendor-objdump call proofs.
+It then constructs and independently verifies expanded geometry. No supplied
+artifact receipt substitutes for these checks. The existing protected-layout
+constructor remains unchanged. A private CLI uses the existing exclusive,
+fsynced emitter; it contains no device transport.
+
+53 geometry/candidate cases passed in thirty Hera containers. All logs/source
+hashes were checked, all exited zero without OOM, and containers were removed.
+Coverage includes both RAM layouts, exact maximum budget, baseline/manifest/
+identity mismatches, fake fixed-loader provenance, app/ELF mismatch, overflow
+and a forbidden constant injected into matching ELF/application bytes.
+Receipts/reproduction: `notes/2026-10-13-expanded-candidate-verification/`.
+
+The actual 838,712-byte all13 application passed the full constructor with the
+retained fixed-loader stock manifest and matching identity. The result repeats
+target SHA256 `400fcbcc883af0a6fdbb60e17759ae8a0778f16adb9490519b9935d11a32d907`.
+Private output is Hera `out/expanded-bound-private-v1`; the local receipt is
+ignored build evidence. Backup provenance, ELF and geometry are now checked
+together. This is historical/offline provenance, not current device binding.
+Settings migration, OTA package and hardware admission remain false.

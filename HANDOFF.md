@@ -1,3 +1,21 @@
+# Expanded candidate bound checkpoint — 2026-10-13
+
+Goal ACTIVE: full SDK-free native Lunar, all13default plus selectable builder.
+Worktree installable-firmware, branch feature/2026-10-11@installable-firmware;
+preceding verified pushed414090006e71c3beb396d05b24570f7cc67623f7.
+New expanded_candidate.py binds pinned backup provenance, independent ELF
+flattening and complete SDK-free audit to expanded geometry. 53cases30Hera
+chunks pass; logs/hashes inspected, noOOM, containers removed. Prior geometry/
+persistent recovery v3:37passed30chunks, including exact torn-sector snapshots
+and commit-last installation/rollback. No live containers/processes remain.
+Actual all13 838712-byte app passed combined offline constructor with retained
+fixed-loader manifest/identity; target400fcbcc883af0a6fdbb60e17759ae8a0778f16adb9490519b9935d11a32d907.
+Private Hera out/expanded-bound-private-v1; ignored local receipt mirror.
+No device operation; provenance is historical, not current write admission.
+Next V15VM export/migration/rollback, full startup/persistence/timing, expanded
+OTA and builder/installer, exact-headreview/CI/merge/physicalacceptance.
+Semantictools primarycheckout rooted; filefallback. Notes expanded-raw-geometry.
+
 # Expanded raw geometry continuation — 2026-10-13
 
 Active goal: full native Lunar, all13 default and selectable builder. Owner's
@@ -5,7 +23,8 @@ expanded layout approval remains valid; physical gates unchanged.
 Branch feature/2026-10-11@installable-firmware, worktree installable-firmware;
 preceding verified pushed SHA2789724f. Geometry constructor/verifier saved;
 103 initial checks passed30Hera chunks. v2:115passed/two worker timeout failures;
-v3 corrected900second worker and exact torn-byte checks RUNNING, exec80047.
+v3 corrected900second worker and exact torn-byte checks:37passed30chunks.
+All logs/hashes checked, noOOM; containers removed; no live campaign remains.
 Hera root /home/claude/mvave-fm1/native-external-arenas-16-20261012; launcher
 launch-expanded-geometry-v3.py; out/expanded-geometry-v3 receipts. Poll existing
 handle or specific owned containers before any restart. Previous v2 terminal,
@@ -13,8 +32,7 @@ all containers removed, all30logs inspected, noOOM. No physical command.
 Actual all13 candidate built offline from retained stock copies; geometrypass,
 SHA400fcbcc883af0a6fdbb60e17759ae8a0778f16adb9490519b9935d11a32d907;
 private out/expanded-private-geometry-v1, not hardware admitted/installable.
-Notes notes/2026-10-13-expanded-raw-geometry.md. Next inspect v3terminal logs,
-repair if needed, checkpoint/push verified status, artifact/provenance admission,
+Notes notes/2026-10-13-expanded-raw-geometry.md. Next artifact/provenance admission,
 V15migration, full startup/persistence/timing, webbuilder/installer, review/CI/
 merge and physical acceptance. Semantictools primaryroot; filefallback.
 
