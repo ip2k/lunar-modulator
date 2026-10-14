@@ -1,0 +1,100 @@
+  [ok  ] forbidden_keycheck_symbols  none of mkey_check, sdk_mkey_lock, sdk_mkey_lock_v2_cfun, key_check_demo, sdk_chip_key_verify_v2 defined or referenced
+  [ok  ] dormant_keycheck_absent     defined: []; referenced: []
+  [ok  ] stub_0200012E_unused        no immediate 0x0200012E (key_check_demo stub call/load)
+  [ok  ] keycheck_mailbox_unwritten  no reference to 0x01C80108-0x01C80110
+  [ok  ] no_sdk_key_blob             no SDK JL_KEY_2020 blob bytes (FE 23 A8 B1 ...)
+  [ok  ] no_key_check_demo_hash      no key_check_demo hash bytes (99 56 B6 46 ...)
+  [ok  ] irq123_reserved             no reference to IRQ-123 vector 0x01C801EC
+  [ok  ] irq123_unused_in_sources    only proven literal non-123 IRQ arguments; no IRQ-123 vector address
+  [ok  ] no_efuse_controller_access  no reference to eFuse SFRs 0x13700-0x1371F
+  [ok  ] late_initcall_group         SDK-free image has no initcall machinery
+  [ok  ] sdk_free_linked             requires a linked executable; objects alone cannot establish SDK absence
+  [ok  ] sdk_meky_check_scheduling   SDK-free runtime requires the dormant check to be absent
+audit_link: PASS (0 fail, 0 pending, linked)
+{
+  "elf_sha256": "1193ca59b3df73c9866c2613f75c6779f4efbaed2d80b2d441043e12d3ec3798",
+  "app_sha256": "7eec8d446859403abd1f3910207ab45f0134fdfa08c4d5ba73e663f9d01d272d",
+  "app_bytes": 867908,
+  "layout_passed": true,
+  "ram_layout": "combined",
+  "key_audit": {
+    "passed": true,
+    "linked": true,
+    "runtime": "sdk-free",
+    "inputs": [
+      "native-probe.elf",
+      "app.bin"
+    ],
+    "n_fail": 0,
+    "n_pending": 0,
+    "checks": [
+      {
+        "check": "forbidden_keycheck_symbols",
+        "status": "pass",
+        "detail": "none of mkey_check, sdk_mkey_lock, sdk_mkey_lock_v2_cfun, key_check_demo, sdk_chip_key_verify_v2 defined or referenced"
+      },
+      {
+        "check": "dormant_keycheck_absent",
+        "status": "pass",
+        "detail": "defined: []; referenced: []"
+      },
+      {
+        "check": "stub_0200012E_unused",
+        "status": "pass",
+        "detail": "no immediate 0x0200012E (key_check_demo stub call/load)"
+      },
+      {
+        "check": "keycheck_mailbox_unwritten",
+        "status": "pass",
+        "detail": "no reference to 0x01C80108-0x01C80110"
+      },
+      {
+        "check": "no_sdk_key_blob",
+        "status": "pass",
+        "detail": "no SDK JL_KEY_2020 blob bytes (FE 23 A8 B1 ...)"
+      },
+      {
+        "check": "no_key_check_demo_hash",
+        "status": "pass",
+        "detail": "no key_check_demo hash bytes (99 56 B6 46 ...)"
+      },
+      {
+        "check": "irq123_reserved",
+        "status": "pass",
+        "detail": "no reference to IRQ-123 vector 0x01C801EC"
+      },
+      {
+        "check": "irq123_unused_in_sources",
+        "status": "pass",
+        "detail": "only proven literal non-123 IRQ arguments; no IRQ-123 vector address"
+      },
+      {
+        "check": "no_efuse_controller_access",
+        "status": "pass",
+        "detail": "no reference to eFuse SFRs 0x13700-0x1371F"
+      },
+      {
+        "check": "late_initcall_group",
+        "status": "pass",
+        "detail": "SDK-free image has no initcall machinery"
+      },
+      {
+        "check": "sdk_free_linked",
+        "status": "pass",
+        "detail": "requires a linked executable; objects alone cannot establish SDK absence"
+      },
+      {
+        "check": "sdk_meky_check_scheduling",
+        "status": "pass",
+        "detail": "SDK-free runtime requires the dormant check to be absent"
+      }
+    ]
+  },
+  "flash_layout": "expanded-d9000",
+  "app_budget_bytes": 868836,
+  "disassembly_sha256": "4242f1a1e0b5e13994584e8ddfb6285d34071a55e87b391b66f3cf36ae73c3d8",
+  "hardware_admitted": false,
+  "hardware_tested": false,
+  "installable": false
+}
+Audited private probe: /out/build/lunar-app-probe.elf 1193ca59b3df73c9866c2613f75c6779f4efbaed2d80b2d441043e12d3ec3798

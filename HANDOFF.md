@@ -3375,3 +3375,35 @@ Existing per-chunk raw DEFLATE may save 1,615 bytes from Afterglow without anoth
 target decoder, enough in principle for the current 684-byte continuous-link
 overflow. Repacker/native-reader/link validation is active on Hera; no successful
 new link or admission claimed. Goal ACTIVE. No hardware command was run.
+
+## Demo compression and startup checkpoint — 2026-10-14
+
+The optional trusted preparation flag `--recompress-content` retains exact pinned
+source identities, selected order/startup and final payload/manifest hashes.
+Thirty-nine Hera adapter/profile/integrity/selection tests passed with actual
+native record comparisons. The bounded host encoder has seven passing focused
+local tests and one native-reader skip; reader equivalence is separately verified
+on Hera. Source/test hashes and bounded container/log receipts are retained in
+`notes/2026-10-14-native-profile-recompression-validation.md`.
+
+A separate exact-c083 target link with all thirteen engines and one compressed
+legacy Afterglow project fits expanded-d9000: 867,908 / 868,836 bytes, margin 928.
+It retains production-55 catalogue, twelve Shapes voices and SAVE/load roots.
+The retained BSS warning matches intentional NOLOAD handling and explicit startup
+zeroing; no package, device, runtime timing or musical acceptance is implied.
+The later preparation adapter was not part of that target-link experiment.
+
+All eight demos pack/decode with correct dependencies. Full-app host startup
+characterization shows two legacy projects start and six refuse: four allocations
+and two replacement sequence imports. The unchanged 192,000-byte pool and
+31,944 / 32,768-byte sequencer were measured. Target allocation differences must
+be checked before treating host refusals as target capacity failures. Tightened
+exact-outcome assertions are being rerun separately on Hera. The sequence worker
+is diagnosing replacement scene-name loss without changing pinned compositions
+or weakening loss rejection. No default has been accepted; the original demos
+remain legacy examples and replacements await owner musical acceptance.
+
+Remaining: fix sequence loss, target RAM/startup/full-song playback and SAVE/reload,
+physical storage ownership/migration/rollback, actual installer route/build-service,
+watched all13 boot/audio/controls/MIDI, web flash/recovery, review/CI/merge and release.
+Goal ACTIVE. No hardware commands issued; Mac exclusively owns bench/device writes.

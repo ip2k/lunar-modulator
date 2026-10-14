@@ -1,0 +1,39 @@
+{
+  "python": "3.11.2 (main, Oct  7 2026, 12:35:07) [GCC 12.2.0]",
+  "zlib_compile": "1.2.13",
+  "zlib_runtime": "1.2.13",
+  "inputs": {
+    "afterglow": {
+      "input_bytes": 8888,
+      "output_bytes": 7273,
+      "saved_bytes": 1615,
+      "input_sha256": "b26fccb44bbf044fc0054991eaefc311c641748099385f624a16ca7b1ec78624",
+      "output_sha256": "1f60a531ad44e4f70c7aca74d5fdecfb5f4dc1c2589d4217b4cd6b24ba53f42a",
+      "chunks": 21,
+      "deflated_chunks": 15,
+      "previously_deflated_chunks": 10,
+      "records_equal": true,
+      "zlib_compile": "1.2.13",
+      "zlib_runtime": "1.2.13"
+    },
+    "dense": {
+      "input_bytes": 32924,
+      "output_bytes": 15410,
+      "saved_bytes": 17514,
+      "input_sha256": "45805c5dc07c51286836cc2ff4f230883d4d4bae06767ee0a4246141475b015e",
+      "output_sha256": "6f19d3a5c100d1e6564dc56bb24b45934203964fd91c75ab330e9a4eb65ba5fd",
+      "chunks": 24,
+      "deflated_chunks": 23,
+      "previously_deflated_chunks": 0,
+      "records_equal": true,
+      "zlib_compile": "1.2.13",
+      "zlib_runtime": "1.2.13"
+    }
+  },
+  "native_reader_equal": {
+    "afterglow": true,
+    "dense": true
+  },
+  "native_records_sha256_afterglow": "95062492e854c160b918ff5a5e7cf80bcd8aa582137e565706de17e23e1f1a77",
+  "native_records_sha256_dense": "38aee84729b7ae58a425729f1c453d87ad98a960c96d39e1867457d262847c57"
+}

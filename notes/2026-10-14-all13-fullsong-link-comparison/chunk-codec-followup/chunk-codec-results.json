@@ -1,0 +1,1192 @@
+{
+  "files": [
+    {
+      "bytes": 32924,
+      "chunks": [
+        {
+          "old_deflated": false,
+          "raw_bytes": 16,
+          "raw_sha256": "0163b7f21df7938e8908647b24d5266043744acb8f18ea1b1724f63cc264faa9",
+          "stored_bytes": 16,
+          "tag": "info"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 55,
+          "raw_sha256": "864199509484cf8c8b4da5ebc112133967c7655940c9e3ee262dd8a991b78468",
+          "stored_bytes": 55,
+          "tag": "PROJ"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 1216,
+          "raw_sha256": "07cd38f9a82a7c1302818ef596c79e3d00ebe5dca87d396f8fe6fe86281edc70",
+          "stored_bytes": 1216,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 79,
+          "raw_sha256": "2da1f18831730b69d3986315977388f7ee0bda8ee6f3de6a623657f5ff7eb657",
+          "stored_bytes": 79,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 78,
+          "raw_sha256": "b644a37dd2694020c7937d3f7b013dd87a1d6fbc85e3d319ef5dc5c35e8335d4",
+          "stored_bytes": 78,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 204,
+          "raw_sha256": "77d861fa98f16995c00636096fed48bd018fb3965c76d966f3bdbf0265e178f8",
+          "stored_bytes": 204,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 1216,
+          "raw_sha256": "a2d02187adba2dd0b281d72903cde8175aeed2603a1c25b9b8a6e8f5d328c613",
+          "stored_bytes": 1216,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 79,
+          "raw_sha256": "7e3e541ad807787276bb223280d3401287fa6520b6d59010173453a2dffa1f5b",
+          "stored_bytes": 79,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 78,
+          "raw_sha256": "be85482a6ce78043b2739cfa7358242efda8a5f34317e6c198b143263a066bb4",
+          "stored_bytes": 78,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 204,
+          "raw_sha256": "152646262aea8652f2e3662f1949be4908a98a32a0f7346050934320ddfe1634",
+          "stored_bytes": 204,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 1216,
+          "raw_sha256": "81218adcacaee32d4845defbb344d96ae8bf66ed373060ef6b2004affc9f078b",
+          "stored_bytes": 1216,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 79,
+          "raw_sha256": "2df061416b93202b704d03b887c08f3b5bbb240d4d181dd01abe5ec21ea04391",
+          "stored_bytes": 79,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 78,
+          "raw_sha256": "a48c171044c9bce7e733d76dba2ff35572c47e379fc5200c447714ed3c27560b",
+          "stored_bytes": 78,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 204,
+          "raw_sha256": "d4fd589770203e225e4f2c4e0ee924539ce87f3a849ab698380fd4276ca07cf0",
+          "stored_bytes": 204,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 1216,
+          "raw_sha256": "37aba311148ef49930d87c48a18a1716e43b8e05ef95d75b98baf584775bc3a0",
+          "stored_bytes": 1216,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 79,
+          "raw_sha256": "d7ca750778b0e4a66305e2dd29cd12760ea61725f8e5ea085118af8ae2d98a79",
+          "stored_bytes": 79,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 78,
+          "raw_sha256": "2aab833fe3a311b0bbd4a4f028ec508228aa5cebf4c42d7a4dc8666e14d56ce8",
+          "stored_bytes": 78,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 204,
+          "raw_sha256": "4f44daa30c55f9f82afb2add1f91b768c747f2a049d483643046aed2762ed730",
+          "stored_bytes": 204,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 93,
+          "raw_sha256": "587f8cfe24d657143ea0073bf9bcbaf76eaa40674d648786dd2449bf9282309c",
+          "stored_bytes": 93,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 70,
+          "raw_sha256": "962da51c014eb8c0d5c243277d71299ce5006992021b13c2dd570d69a4644c83",
+          "stored_bytes": 70,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 5121,
+          "raw_sha256": "1baba3d2e7515a020906c412495453283429271e3485f84a32496528c113e98d",
+          "stored_bytes": 5121,
+          "tag": "DX7V"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 1172,
+          "raw_sha256": "cc49b190248eaaeeca106eb4da7ff44b7af606e40d3df88ce7530f9ca77f6c5d",
+          "stored_bytes": 1172,
+          "tag": "MODR"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 18720,
+          "raw_sha256": "54f7b3ffa9418297733a2df9e641fb5343573e89809ed67b8f35bebb2d1d75d1",
+          "stored_bytes": 18720,
+          "tag": "SEQS"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 32,
+          "raw_sha256": "0cb433b6d4c888389d500b3e20981ce24362071ac2c18dd6ad5f7fec06089198",
+          "stored_bytes": 32,
+          "tag": "view"
+        }
+      ],
+      "path": "/dense.lunarb",
+      "policies": {
+        "zlib_raw_w12_level_1": {
+          "always_deflated_container_bytes": 16942,
+          "chunks": [
+            {
+              "encoded": 18,
+              "existing_flag": 0,
+              "raw": 16,
+              "tag": "info"
+            },
+            {
+              "encoded": 36,
+              "existing_flag": 0,
+              "raw": 55,
+              "tag": "PROJ"
+            },
+            {
+              "encoded": 419,
+              "existing_flag": 0,
+              "raw": 1216,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 56,
+              "existing_flag": 0,
+              "raw": 79,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 55,
+              "existing_flag": 0,
+              "raw": 78,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 92,
+              "existing_flag": 0,
+              "raw": 204,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 419,
+              "existing_flag": 0,
+              "raw": 1216,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 55,
+              "existing_flag": 0,
+              "raw": 79,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 56,
+              "existing_flag": 0,
+              "raw": 78,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 92,
+              "existing_flag": 0,
+              "raw": 204,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 419,
+              "existing_flag": 0,
+              "raw": 1216,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 57,
+              "existing_flag": 0,
+              "raw": 79,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 56,
+              "existing_flag": 0,
+              "raw": 78,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 92,
+              "existing_flag": 0,
+              "raw": 204,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 422,
+              "existing_flag": 0,
+              "raw": 1216,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 57,
+              "existing_flag": 0,
+              "raw": 79,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 56,
+              "existing_flag": 0,
+              "raw": 78,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 92,
+              "existing_flag": 0,
+              "raw": 204,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 75,
+              "existing_flag": 0,
+              "raw": 93,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 47,
+              "existing_flag": 0,
+              "raw": 70,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 517,
+              "existing_flag": 0,
+              "raw": 5121,
+              "tag": "DX7V"
+            },
+            {
+              "encoded": 426,
+              "existing_flag": 0,
+              "raw": 1172,
+              "tag": "MODR"
+            },
+            {
+              "encoded": 12674,
+              "existing_flag": 0,
+              "raw": 18720,
+              "tag": "SEQS"
+            },
+            {
+              "encoded": 18,
+              "existing_flag": 0,
+              "raw": 32,
+              "tag": "view"
+            }
+          ],
+          "if_smaller_container_bytes": 16934,
+          "writer_75pct_gate_container_bytes": 17082
+        },
+        "zlib_raw_w12_level_6": {
+          "always_deflated_container_bytes": 15418,
+          "chunks": [
+            {
+              "encoded": 18,
+              "existing_flag": 0,
+              "raw": 16,
+              "tag": "info"
+            },
+            {
+              "encoded": 36,
+              "existing_flag": 0,
+              "raw": 55,
+              "tag": "PROJ"
+            },
+            {
+              "encoded": 353,
+              "existing_flag": 0,
+              "raw": 1216,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 56,
+              "existing_flag": 0,
+              "raw": 79,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 55,
+              "existing_flag": 0,
+              "raw": 78,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 88,
+              "existing_flag": 0,
+              "raw": 204,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 352,
+              "existing_flag": 0,
+              "raw": 1216,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 55,
+              "existing_flag": 0,
+              "raw": 79,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 56,
+              "existing_flag": 0,
+              "raw": 78,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 88,
+              "existing_flag": 0,
+              "raw": 204,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 353,
+              "existing_flag": 0,
+              "raw": 1216,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 57,
+              "existing_flag": 0,
+              "raw": 79,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 56,
+              "existing_flag": 0,
+              "raw": 78,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 88,
+              "existing_flag": 0,
+              "raw": 204,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 353,
+              "existing_flag": 0,
+              "raw": 1216,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 57,
+              "existing_flag": 0,
+              "raw": 79,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 56,
+              "existing_flag": 0,
+              "raw": 78,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 88,
+              "existing_flag": 0,
+              "raw": 204,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 73,
+              "existing_flag": 0,
+              "raw": 93,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 47,
+              "existing_flag": 0,
+              "raw": 70,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 444,
+              "existing_flag": 0,
+              "raw": 5121,
+              "tag": "DX7V"
+            },
+            {
+              "encoded": 416,
+              "existing_flag": 0,
+              "raw": 1172,
+              "tag": "MODR"
+            },
+            {
+              "encoded": 11517,
+              "existing_flag": 0,
+              "raw": 18720,
+              "tag": "SEQS"
+            },
+            {
+              "encoded": 18,
+              "existing_flag": 0,
+              "raw": 32,
+              "tag": "view"
+            }
+          ],
+          "if_smaller_container_bytes": 15410,
+          "writer_75pct_gate_container_bytes": 15558
+        },
+        "zlib_raw_w12_level_9": {
+          "always_deflated_container_bytes": 15466,
+          "chunks": [
+            {
+              "encoded": 18,
+              "existing_flag": 0,
+              "raw": 16,
+              "tag": "info"
+            },
+            {
+              "encoded": 36,
+              "existing_flag": 0,
+              "raw": 55,
+              "tag": "PROJ"
+            },
+            {
+              "encoded": 367,
+              "existing_flag": 0,
+              "raw": 1216,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 56,
+              "existing_flag": 0,
+              "raw": 79,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 55,
+              "existing_flag": 0,
+              "raw": 78,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 88,
+              "existing_flag": 0,
+              "raw": 204,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 368,
+              "existing_flag": 0,
+              "raw": 1216,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 55,
+              "existing_flag": 0,
+              "raw": 79,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 56,
+              "existing_flag": 0,
+              "raw": 78,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 88,
+              "existing_flag": 0,
+              "raw": 204,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 368,
+              "existing_flag": 0,
+              "raw": 1216,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 57,
+              "existing_flag": 0,
+              "raw": 79,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 56,
+              "existing_flag": 0,
+              "raw": 78,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 88,
+              "existing_flag": 0,
+              "raw": 204,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 369,
+              "existing_flag": 0,
+              "raw": 1216,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 57,
+              "existing_flag": 0,
+              "raw": 79,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 56,
+              "existing_flag": 0,
+              "raw": 78,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 88,
+              "existing_flag": 0,
+              "raw": 204,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 73,
+              "existing_flag": 0,
+              "raw": 93,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 47,
+              "existing_flag": 0,
+              "raw": 70,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 436,
+              "existing_flag": 0,
+              "raw": 5121,
+              "tag": "DX7V"
+            },
+            {
+              "encoded": 416,
+              "existing_flag": 0,
+              "raw": 1172,
+              "tag": "MODR"
+            },
+            {
+              "encoded": 11517,
+              "existing_flag": 0,
+              "raw": 18720,
+              "tag": "SEQS"
+            },
+            {
+              "encoded": 18,
+              "existing_flag": 0,
+              "raw": 32,
+              "tag": "view"
+            }
+          ],
+          "if_smaller_container_bytes": 15458,
+          "writer_75pct_gate_container_bytes": 15606
+        }
+      },
+      "sha256": "45805c5dc07c51286836cc2ff4f230883d4d4bae06767ee0a4246141475b015e"
+    },
+    {
+      "bytes": 8888,
+      "chunks": [
+        {
+          "old_deflated": false,
+          "raw_bytes": 241,
+          "raw_sha256": "fc118f2e44df53ea53c7c5c5486fece1bcf614b4da498806c2f1154a8249c9fb",
+          "stored_bytes": 241,
+          "tag": "info"
+        },
+        {
+          "old_deflated": true,
+          "raw_bytes": 53,
+          "raw_sha256": "cc131e6e5019e8dfa357e1f4a575021323af2be92821cc75be1a3e356667da82",
+          "stored_bytes": 39,
+          "tag": "PROJ"
+        },
+        {
+          "old_deflated": true,
+          "raw_bytes": 1216,
+          "raw_sha256": "14ffe7c3c16e6f4079473539ed3cf28f0dce658fc67ba0a5671e8db6adf57071",
+          "stored_bytes": 649,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 9,
+          "raw_sha256": "4322fd2bc0a137d1375b37b3b2e2b4715b3d3dd7ca9682438d4fea0f8437fad3",
+          "stored_bytes": 9,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 9,
+          "raw_sha256": "dd66c7485f542114845ddcd5e32e1097fb1a497b78a08e5778d25437e64476f6",
+          "stored_bytes": 9,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": true,
+          "raw_bytes": 144,
+          "raw_sha256": "9c516fea6711432fe04171f1302a56bc79f242623380b8b613797e5ca037f4e5",
+          "stored_bytes": 96,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": true,
+          "raw_bytes": 79,
+          "raw_sha256": "ff2813fa4ebee1b44697cc28e4c58aedc3dc14bbcdc2acccdee28c45b3f3db0b",
+          "stored_bytes": 59,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": true,
+          "raw_bytes": 78,
+          "raw_sha256": "8bd3e3d83751c7ae68cf23b854d525610412a1eb8cea9f4f308575877fcc4850",
+          "stored_bytes": 55,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": true,
+          "raw_bytes": 144,
+          "raw_sha256": "9463c1cd0401f22fe9578700573c1cea7f6823716bc35bed8fc8dbe55e41e165",
+          "stored_bytes": 96,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 9,
+          "raw_sha256": "51c2ad44dc8d1515e790dd23abc958553d8c72db5bf161344ecd463d8463c58f",
+          "stored_bytes": 9,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 9,
+          "raw_sha256": "0aef56b18dde75e06be19ea107df47ca12da5cb7596048f2f3841e49547c7068",
+          "stored_bytes": 9,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": true,
+          "raw_bytes": 204,
+          "raw_sha256": "fec228b0b51a1966f726784cdd27488534e74293ee90bfbe78b8edb6215d51de",
+          "stored_bytes": 104,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 94,
+          "raw_sha256": "07927647dc1ee87a70695866c6cde9a6f3472fca34976f75afc00e512525e7f3",
+          "stored_bytes": 94,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 39,
+          "raw_sha256": "83f17d4e6694a37af3f7f901c268e82674ab1b02cc194a9c2d595047dbf397d8",
+          "stored_bytes": 39,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 9,
+          "raw_sha256": "2af0cf1b7c35ba82c7a6ce97d931de4a60b106f90422db3e236ffe3f19764705",
+          "stored_bytes": 9,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 93,
+          "raw_sha256": "d7627d056a96825821bde5e0e718d620c604e72e27d9cb73f681fa404d87a57c",
+          "stored_bytes": 93,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": true,
+          "raw_bytes": 70,
+          "raw_sha256": "a39aef78bb82a4da5b6c9b13713ea127064686a4e7fb41c9705eb9bc91128006",
+          "stored_bytes": 52,
+          "tag": "UNIT"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 161,
+          "raw_sha256": "2ac1783a35fdf358b57fdf877cb33ff844b1f2275df1e09c2fe6a1f5e669f4ac",
+          "stored_bytes": 161,
+          "tag": "DX7V"
+        },
+        {
+          "old_deflated": true,
+          "raw_bytes": 443,
+          "raw_sha256": "5eaa1276c06b26cae678a3ef44a4588e68fe72ecb3edd614c4517af935a2cff1",
+          "stored_bytes": 248,
+          "tag": "MODR"
+        },
+        {
+          "old_deflated": true,
+          "raw_bytes": 11316,
+          "raw_sha256": "e21c6b96dad398aee2abba64d11bde99ee3a33e3fe1cda9b2eb9166414934f9c",
+          "stored_bytes": 6296,
+          "tag": "SEQS"
+        },
+        {
+          "old_deflated": false,
+          "raw_bytes": 32,
+          "raw_sha256": "1c889fe14d88f5fe910943a5bbda7ac5a23d2311ffe61052587f3362fd8e31e4",
+          "stored_bytes": 32,
+          "tag": "view"
+        }
+      ],
+      "path": "/song.lunarb",
+      "policies": {
+        "zlib_raw_w12_level_1": {
+          "always_deflated_container_bytes": 7729,
+          "chunks": [
+            {
+              "encoded": 193,
+              "existing_flag": 0,
+              "raw": 241,
+              "tag": "info"
+            },
+            {
+              "encoded": 35,
+              "existing_flag": 1,
+              "raw": 53,
+              "tag": "PROJ"
+            },
+            {
+              "encoded": 530,
+              "existing_flag": 1,
+              "raw": 1216,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 5,
+              "existing_flag": 0,
+              "raw": 9,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 7,
+              "existing_flag": 0,
+              "raw": 9,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 93,
+              "existing_flag": 1,
+              "raw": 144,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 55,
+              "existing_flag": 1,
+              "raw": 79,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 51,
+              "existing_flag": 1,
+              "raw": 78,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 94,
+              "existing_flag": 1,
+              "raw": 144,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 6,
+              "existing_flag": 0,
+              "raw": 9,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 7,
+              "existing_flag": 0,
+              "raw": 9,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 89,
+              "existing_flag": 1,
+              "raw": 204,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 71,
+              "existing_flag": 0,
+              "raw": 94,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 39,
+              "existing_flag": 0,
+              "raw": 39,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 7,
+              "existing_flag": 0,
+              "raw": 9,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 80,
+              "existing_flag": 0,
+              "raw": 93,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 50,
+              "existing_flag": 1,
+              "raw": 70,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 126,
+              "existing_flag": 0,
+              "raw": 161,
+              "tag": "DX7V"
+            },
+            {
+              "encoded": 219,
+              "existing_flag": 1,
+              "raw": 443,
+              "tag": "MODR"
+            },
+            {
+              "encoded": 5377,
+              "existing_flag": 1,
+              "raw": 11316,
+              "tag": "SEQS"
+            },
+            {
+              "encoded": 21,
+              "existing_flag": 0,
+              "raw": 32,
+              "tag": "view"
+            }
+          ],
+          "if_smaller_container_bytes": 7725,
+          "writer_75pct_gate_container_bytes": 7856
+        },
+        "zlib_raw_w12_level_6": {
+          "always_deflated_container_bytes": 7277,
+          "chunks": [
+            {
+              "encoded": 193,
+              "existing_flag": 0,
+              "raw": 241,
+              "tag": "info"
+            },
+            {
+              "encoded": 35,
+              "existing_flag": 1,
+              "raw": 53,
+              "tag": "PROJ"
+            },
+            {
+              "encoded": 493,
+              "existing_flag": 1,
+              "raw": 1216,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 5,
+              "existing_flag": 0,
+              "raw": 9,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 7,
+              "existing_flag": 0,
+              "raw": 9,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 92,
+              "existing_flag": 1,
+              "raw": 144,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 55,
+              "existing_flag": 1,
+              "raw": 79,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 51,
+              "existing_flag": 1,
+              "raw": 78,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 92,
+              "existing_flag": 1,
+              "raw": 144,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 6,
+              "existing_flag": 0,
+              "raw": 9,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 7,
+              "existing_flag": 0,
+              "raw": 9,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 87,
+              "existing_flag": 1,
+              "raw": 204,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 70,
+              "existing_flag": 0,
+              "raw": 94,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 39,
+              "existing_flag": 0,
+              "raw": 39,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 7,
+              "existing_flag": 0,
+              "raw": 9,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 76,
+              "existing_flag": 0,
+              "raw": 93,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 48,
+              "existing_flag": 1,
+              "raw": 70,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 125,
+              "existing_flag": 0,
+              "raw": 161,
+              "tag": "DX7V"
+            },
+            {
+              "encoded": 204,
+              "existing_flag": 1,
+              "raw": 443,
+              "tag": "MODR"
+            },
+            {
+              "encoded": 5000,
+              "existing_flag": 1,
+              "raw": 11316,
+              "tag": "SEQS"
+            },
+            {
+              "encoded": 21,
+              "existing_flag": 0,
+              "raw": 32,
+              "tag": "view"
+            }
+          ],
+          "if_smaller_container_bytes": 7273,
+          "writer_75pct_gate_container_bytes": 7392
+        },
+        "zlib_raw_w12_level_9": {
+          "always_deflated_container_bytes": 7277,
+          "chunks": [
+            {
+              "encoded": 193,
+              "existing_flag": 0,
+              "raw": 241,
+              "tag": "info"
+            },
+            {
+              "encoded": 35,
+              "existing_flag": 1,
+              "raw": 53,
+              "tag": "PROJ"
+            },
+            {
+              "encoded": 493,
+              "existing_flag": 1,
+              "raw": 1216,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 5,
+              "existing_flag": 0,
+              "raw": 9,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 7,
+              "existing_flag": 0,
+              "raw": 9,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 92,
+              "existing_flag": 1,
+              "raw": 144,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 55,
+              "existing_flag": 1,
+              "raw": 79,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 51,
+              "existing_flag": 1,
+              "raw": 78,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 92,
+              "existing_flag": 1,
+              "raw": 144,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 6,
+              "existing_flag": 0,
+              "raw": 9,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 7,
+              "existing_flag": 0,
+              "raw": 9,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 87,
+              "existing_flag": 1,
+              "raw": 204,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 70,
+              "existing_flag": 0,
+              "raw": 94,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 39,
+              "existing_flag": 0,
+              "raw": 39,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 7,
+              "existing_flag": 0,
+              "raw": 9,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 76,
+              "existing_flag": 0,
+              "raw": 93,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 48,
+              "existing_flag": 1,
+              "raw": 70,
+              "tag": "UNIT"
+            },
+            {
+              "encoded": 125,
+              "existing_flag": 0,
+              "raw": 161,
+              "tag": "DX7V"
+            },
+            {
+              "encoded": 204,
+              "existing_flag": 1,
+              "raw": 443,
+              "tag": "MODR"
+            },
+            {
+              "encoded": 5000,
+              "existing_flag": 1,
+              "raw": 11316,
+              "tag": "SEQS"
+            },
+            {
+              "encoded": 21,
+              "existing_flag": 0,
+              "raw": 32,
+              "tag": "view"
+            }
+          ],
+          "if_smaller_container_bytes": 7273,
+          "writer_75pct_gate_container_bytes": 7392
+        }
+      },
+      "sha256": "b26fccb44bbf044fc0054991eaefc311c641748099385f624a16ca7b1ec78624"
+    }
+  ],
+  "python": "3.11.2",
+  "zlib_compile": "1.2.13",
+  "zlib_runtime": "1.2.13"
+}

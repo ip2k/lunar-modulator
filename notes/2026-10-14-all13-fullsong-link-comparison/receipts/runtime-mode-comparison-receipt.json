@@ -1,0 +1,2571 @@
+{
+  "schema": "lunar-all13-runtime-mode-link-comparison-v1",
+  "source_commit": "e435edadad48641e9e08c0023b71b80b5692cd44",
+  "prepared_profile_sha256": "173d4a377a36da99d53fe23b0ba7963c9c41355eea2ce8e9730a77410a4f4fb9",
+  "prepared_content": [
+    {
+      "path": "content-00.bin",
+      "bytes": 8888,
+      "sha256": "b26fccb44bbf044fc0054991eaefc311c641748099385f624a16ca7b1ec78624"
+    }
+  ],
+  "catalogue_z_object_manifest_sha256": "74fc8bf0ec8b4ba5cffc676697b457dd4b0ba08f27764406f29609316080bc8c",
+  "catalogue_z_object_count": 167,
+  "catalogue_z_object_bytes": 3165512,
+  "xip_origin": 33554720,
+  "app_budget_bytes": 868836,
+  "variants": {
+    "diagnostic-watermark": {
+      "runtime": "diagnostic",
+      "stack_watermark": true,
+      "optimization": "-Oz",
+      "catalogue_object_count": 167,
+      "catalogue_object_bytes": 3165512,
+      "text_bytes": 868868,
+      "sections": {
+        "ram_text": {
+          "address": 29360128,
+          "bytes": 1128
+        },
+        "data": {
+          "address": 29392896,
+          "bytes": 112
+        },
+        "bss": {
+          "address": 29393008,
+          "bytes": 19424
+        }
+      },
+      "xip_image_bytes": 870108,
+      "xip_budget_bytes": 868836,
+      "linker_overflow_bytes": 1272,
+      "link_map_sha256": "43df263c20487159bf3f716b1cba4cf485cfcafe814fe69a6dfc6fb4f3677d50",
+      "link_stderr": "/opt/jieli/pi32v2/bin/ld: /out/build/lunar-app-probe.elf section `.text' will not fit in region `XIP'\n/opt/jieli/pi32v2/bin/ld: region `XIP' overflowed by 1272 bytes\n\n",
+      "generated_crt0_sha256": "436b8fd6bec5aba492e33c6ea5673392db94b9fadd7db921dbec38c5f242b174",
+      "entry_guard_cnum_check": true,
+      "entry_guard_boot_pointer_check": true,
+      "stack_painter_present": true,
+      "app_object_count": 120,
+      "app_objects": [
+        {
+          "path": "app_probe.o",
+          "bytes": 80740,
+          "sha256": "3cd8ba428246007c3a7247175d987c7cf9bb683c6fa74a991ad3fb3b5c79f2ce"
+        },
+        {
+          "path": "content_catalogue.o",
+          "bytes": 9984,
+          "sha256": "65afa2bbb6804d1fa5d3b410be5a33c61ec67109afe29de14ac6225aea27cde6"
+        },
+        {
+          "path": "crt0.o",
+          "bytes": 1056,
+          "sha256": "df94a4ef3d89eeb0cbd9cc5c198b103c8b831beff511c7163dc37ef40a2bfb0f"
+        },
+        {
+          "path": "fm1_app.o",
+          "bytes": 133768,
+          "sha256": "8b74e36d4b4240545ba914adeface73e88f243e865d0a2134326ced5be498c39"
+        },
+        {
+          "path": "fm1_isr.o",
+          "bytes": 604,
+          "sha256": "ec6ab6cdb1e7fbba23a71dadaeca1ad081ec1ae21010ae7a30494710bbbba6c9"
+        },
+        {
+          "path": "fm1_vec.o",
+          "bytes": 2888,
+          "sha256": "28b3ddb497512aa7fc9625058ad5222ebb1f66a2f29918fde6e837594ba9b570"
+        },
+        {
+          "path": "instance_pool.o",
+          "bytes": 4272,
+          "sha256": "c8d57f0b3aa6b79a07b1e252a9bde76f817d7d3b7422b60f0b2506a2abc03de8"
+        },
+        {
+          "path": "mod_script.o",
+          "bytes": 19724,
+          "sha256": "1d71a81c7ff83a5e7fac45971948f8fc5d2e8d9513fbaa1d88d5f633891b54bd"
+        },
+        {
+          "path": "project_boot.o",
+          "bytes": 15588,
+          "sha256": "49d89de10a9e837eac3b6d88a46eeacbc387d5786d32c351609da628268d8f5d"
+        },
+        {
+          "path": "project_engines.o",
+          "bytes": 9748,
+          "sha256": "6666be5f43a5f0efe0b2f8d02c683e86d36895c73751d2a7de8cce125b9cf82f"
+        },
+        {
+          "path": "project_mod.o",
+          "bytes": 10256,
+          "sha256": "631ff286f73186f257b31f401e424fcf5a0110c0ead18f667f064f8a08d73ea5"
+        },
+        {
+          "path": "project_save_app_target.o",
+          "bytes": 17316,
+          "sha256": "6774690297ebe2928a465224e85dd14182ddad1cd2802a723984c0239135be6e"
+        },
+        {
+          "path": "project_seq.o",
+          "bytes": 7480,
+          "sha256": "a70274f0a8941263e142493478d97a1993dbf8148ba0560735c5a0836a75987a"
+        },
+        {
+          "path": "project_start.o",
+          "bytes": 19868,
+          "sha256": "3a3949a4e827ef680de4304ab2ae23ad11ddfea42adf861f83210d7e9d0e4201"
+        },
+        {
+          "path": "project_units.o",
+          "bytes": 10176,
+          "sha256": "1b2a18c8a995be546441fc9e9776b7d8f1ad133bf2de492e8bb14266e29bc596"
+        },
+        {
+          "path": "registry.o",
+          "bytes": 5544,
+          "sha256": "072010a26eb55fd1a5085b8c10f6bb4e860ac05c7f978eb38a05cf3652226d25"
+        },
+        {
+          "path": "resources_braids.o",
+          "bytes": 30992,
+          "sha256": "29c9e76246e2adf2d84a3cb6223a73236cc5572f8470a6ab637284c49576e43d"
+        },
+        {
+          "path": "runtime/arithmetic/adddf3.o",
+          "bytes": 1296,
+          "sha256": "02aa4ec32fa24561bfda9a8948292e3179429445b2be32b1ccd59de5a85cc509"
+        },
+        {
+          "path": "runtime/arithmetic/addsf3.o",
+          "bytes": 928,
+          "sha256": "afbaf49e56acb87ec9ee203a78be3172cac7007bba8ce4d0fb4869e9db218d4f"
+        },
+        {
+          "path": "runtime/arithmetic/arithmetic-linked.o",
+          "bytes": 15452,
+          "sha256": "9a93636105ebc6c8071c9fb3eaa19b867caba45c2428b34e3e344bd379b95cbf"
+        },
+        {
+          "path": "runtime/arithmetic/arithmetic-probe.o",
+          "bytes": 1764,
+          "sha256": "e409083ecb4b7160da72e58f18f452a59a6dcb58a3ae158825356e8674b6adfd"
+        },
+        {
+          "path": "runtime/arithmetic/comparedf2.o",
+          "bytes": 1060,
+          "sha256": "b2a3a1634b69b742eb2abe648795a4a07a4977338ee9033ac20e222673852c56"
+        },
+        {
+          "path": "runtime/arithmetic/comparesf2.o",
+          "bytes": 804,
+          "sha256": "b64b904d0f7974c4837ffc2e75545c9c5164cc66bdeef805c71507cfe5d8e58f"
+        },
+        {
+          "path": "runtime/arithmetic/divdf3.o",
+          "bytes": 1388,
+          "sha256": "d81462804fdfe894b507f77ab2dc39932e62230ddbe6ff4867275dc1243890b0"
+        },
+        {
+          "path": "runtime/arithmetic/divdi3.o",
+          "bytes": 572,
+          "sha256": "202eb798a79ac1f80d927ca45e214592c640c1faab420d8b609e2dd584db61ea"
+        },
+        {
+          "path": "runtime/arithmetic/divsf3.o",
+          "bytes": 812,
+          "sha256": "7eca50a3beb868230638e7e7a31babc9d4d6451c427e33055992a34c7fcd8ce7"
+        },
+        {
+          "path": "runtime/arithmetic/extendsfdf2.o",
+          "bytes": 512,
+          "sha256": "e75447d19756b4b365bace4591bc7a1cccf40b8a05bb26ff1e1b13a1ac0ad178"
+        },
+        {
+          "path": "runtime/arithmetic/fixdfdi.o",
+          "bytes": 568,
+          "sha256": "8f2604ebf1a3294df3fa8f7330b53b55c5962fac3dac580be30faf4bd5fe0978"
+        },
+        {
+          "path": "runtime/arithmetic/fixdfsi.o",
+          "bytes": 472,
+          "sha256": "2b47a3c2800f71d3c8cd2b44b4a106115fefdca1bee784a54b5cdcd8b4bb2bd5"
+        },
+        {
+          "path": "runtime/arithmetic/fixsfsi.o",
+          "bytes": 472,
+          "sha256": "29f9847b1552f11d1a54e1328db996fc1ce017fb9e658bc90926b824f627df55"
+        },
+        {
+          "path": "runtime/arithmetic/fixunsdfdi.o",
+          "bytes": 732,
+          "sha256": "0c7c55426039a8d87f537bf0bc1bcaee426afb2331c8dec76ecbcf8019f18515"
+        },
+        {
+          "path": "runtime/arithmetic/fixunsdfsi.o",
+          "bytes": 456,
+          "sha256": "3370b63d8ce97a9e7e717bd0b5197f2b07aabfd4ad56d6d42d40842cc7c1cf43"
+        },
+        {
+          "path": "runtime/arithmetic/fixunssfdi.o",
+          "bytes": 780,
+          "sha256": "c78184d1201575d301d7a83b5d02678127f756a7bc32182968d0bf5d448ed4b1"
+        },
+        {
+          "path": "runtime/arithmetic/floatdidf.o",
+          "bytes": 616,
+          "sha256": "a5c44ce23a17b64ec5a25085a6b624246eef26d7a5837528536b08dff8997beb"
+        },
+        {
+          "path": "runtime/arithmetic/floatdisf.o",
+          "bytes": 600,
+          "sha256": "5e730d663ab7a06d9d60ed7aec6af8ac7e354ca68a169344f228756ad2c8b54f"
+        },
+        {
+          "path": "runtime/arithmetic/floatsidf.o",
+          "bytes": 468,
+          "sha256": "ba31ec4c570495c2864131d6fd2dbe354cb6354399bbfdc33443bfee72484cfd"
+        },
+        {
+          "path": "runtime/arithmetic/floatsisf.o",
+          "bytes": 484,
+          "sha256": "8f036862b8886162adabf574d2ccf4466d1bdc61dd48108c575ec8eeb70b0062"
+        },
+        {
+          "path": "runtime/arithmetic/floatundidf.o",
+          "bytes": 532,
+          "sha256": "1fc852a88809fde686a7370ba8a94cfb526e890a61a6bf0bc2a59681dfb115ce"
+        },
+        {
+          "path": "runtime/arithmetic/floatundisf.o",
+          "bytes": 576,
+          "sha256": "4898f02501c4389f26e6d182cb1b997f0e9fb6a214041a77cb18d8fb23bb9e0a"
+        },
+        {
+          "path": "runtime/arithmetic/floatunsidf.o",
+          "bytes": 448,
+          "sha256": "567d233d4ae6df12c857ccf565a7fd082a6468e43d98a5fd6bb5007fb407a821"
+        },
+        {
+          "path": "runtime/arithmetic/fp_mode.o",
+          "bytes": 480,
+          "sha256": "e1c022518a8faa5007b7dbe9c18babaf2c6fc052ae34b23587a107247b52c888"
+        },
+        {
+          "path": "runtime/arithmetic/moddi3.o",
+          "bytes": 560,
+          "sha256": "0175a188eb7c704b214cfd7321618a4ec7490272193d03ce5418579bf527228c"
+        },
+        {
+          "path": "runtime/arithmetic/muldf3.o",
+          "bytes": 1112,
+          "sha256": "b92e82b4130075c37a7fa160a93bbfd2e66cbaeb1ed84268f580bf62a31eeaf7"
+        },
+        {
+          "path": "runtime/arithmetic/mulsf3.o",
+          "bytes": 696,
+          "sha256": "0aa186f6dd489da0948f1509df592d1d6c4734882bddadc309f31b4ca829ca23"
+        },
+        {
+          "path": "runtime/arithmetic/subdf3.o",
+          "bytes": 476,
+          "sha256": "361250a439701d689bda6e3ddb186b1bb492b89f72b6c9efd7fdb53f8483a464"
+        },
+        {
+          "path": "runtime/arithmetic/subsf3.o",
+          "bytes": 476,
+          "sha256": "01f4ba47248f013772d9e71508e8aa2acdd49c74c96778f20ae2b3bad0de7f9e"
+        },
+        {
+          "path": "runtime/arithmetic/truncdfsf2.o",
+          "bytes": 708,
+          "sha256": "0090bad2ec02f46bca985f9787a283fc421ba9d37ac117e11a538793362f0b8a"
+        },
+        {
+          "path": "runtime/arithmetic/udivdi3.o",
+          "bytes": 616,
+          "sha256": "6f3b2d1414554264579733c0eb2b9b413ccf07bea94f22ba1eddca709ce6c1cc"
+        },
+        {
+          "path": "runtime/arithmetic/udivmoddi4.o",
+          "bytes": 996,
+          "sha256": "df6bf8fc3ebfa76530b30fc267aa96f778bd05d70a16cb3f44bfda688687db4a"
+        },
+        {
+          "path": "runtime/arithmetic/umoddi3.o",
+          "bytes": 596,
+          "sha256": "3b44b4875032866a04d0b3be0a8b7297516979ab230b6c692ad7ac141280c5aa"
+        },
+        {
+          "path": "runtime/musl/__cos.o",
+          "bytes": 1052,
+          "sha256": "38c8d7d06d670dad9d7403d8b432c3ddf1af6fd3602205c95f1fb1846adbe467"
+        },
+        {
+          "path": "runtime/musl/__cosdf.o",
+          "bytes": 796,
+          "sha256": "cc5ec41507f24a6376371794564081df8fb7feb91dd2761c001df5cd34ed8c48"
+        },
+        {
+          "path": "runtime/musl/__fpclassify.o",
+          "bytes": 460,
+          "sha256": "c200cb45efe9521fe66d26535f7ad43fe8845a8a2fb445f8bda2e0a796324090"
+        },
+        {
+          "path": "runtime/musl/__fpclassifyf.o",
+          "bytes": 448,
+          "sha256": "803d2c37653aa5ccffab72f50ca82d94af4112d04558d06226d41db7db04854f"
+        },
+        {
+          "path": "runtime/musl/__math_divzero.o",
+          "bytes": 528,
+          "sha256": "3d57ed1fb9a956217c70824341677acee3153763d32fa4254f2cd639eeeddfa8"
+        },
+        {
+          "path": "runtime/musl/__math_divzerof.o",
+          "bytes": 436,
+          "sha256": "7552c1813aea7193a17e67dd1622684ae3a17a97fea19ac0d988f56031fecd56"
+        },
+        {
+          "path": "runtime/musl/__math_invalid.o",
+          "bytes": 536,
+          "sha256": "475b261c8a2adbc108d0b99526cedf92772d45d80043e0745d1110d904d52de5"
+        },
+        {
+          "path": "runtime/musl/__math_invalidf.o",
+          "bytes": 416,
+          "sha256": "8729c0359a11429606d545c461f61b3738267cacabb93ad40b4dc2504366b601"
+        },
+        {
+          "path": "runtime/musl/__math_oflow.o",
+          "bytes": 496,
+          "sha256": "3aef018fb16f5ecc1eef1c5c3fab2f9a9bd88e14bc3f5ca1dca89755d07fc783"
+        },
+        {
+          "path": "runtime/musl/__math_oflowf.o",
+          "bytes": 496,
+          "sha256": "728fc95e7dcfd5813becccc281def4e08a18e5899c0f00d35cdbc6c701168d34"
+        },
+        {
+          "path": "runtime/musl/__math_uflow.o",
+          "bytes": 496,
+          "sha256": "ca6665506fccf8d206d01811f3fa6b3b34f70f35e311e98e957de45a91e63592"
+        },
+        {
+          "path": "runtime/musl/__math_uflowf.o",
+          "bytes": 496,
+          "sha256": "36612ea68762bca6cee82da5ed0d4f202eeff2654553bcdb4e2edf9c961c04a6"
+        },
+        {
+          "path": "runtime/musl/__math_xflow.o",
+          "bytes": 560,
+          "sha256": "be763fa454363397913bc6de7fc4de8b6930b4d1b32f2eaa2367dd0f4316f5f8"
+        },
+        {
+          "path": "runtime/musl/__math_xflowf.o",
+          "bytes": 424,
+          "sha256": "134e21a182481b60f7c22788ff2e75ba0aeafd12a41b0fe734f6f4ea4a6373f2"
+        },
+        {
+          "path": "runtime/musl/__rem_pio2.o",
+          "bytes": 2968,
+          "sha256": "281fa504c40cd87836fd1f18e3b7425b2c1831bf26ed33a77ce77f4fd8e70dc5"
+        },
+        {
+          "path": "runtime/musl/__rem_pio2_large.o",
+          "bytes": 3524,
+          "sha256": "8234b6cd3fc9e98535f182bc39ccbd08846dec7f50eaf3487f57aa704e3a1393"
+        },
+        {
+          "path": "runtime/musl/__rem_pio2f.o",
+          "bytes": 1208,
+          "sha256": "7d02e76bcfb84eb91925bc92a60f14cfc0057ef795670eac6139620180196424"
+        },
+        {
+          "path": "runtime/musl/__sin.o",
+          "bytes": 1072,
+          "sha256": "56d9807520f2462b81495781be6624592337d78f00dc240b4c97efaa22777c01"
+        },
+        {
+          "path": "runtime/musl/__sindf.o",
+          "bytes": 820,
+          "sha256": "5d15e4e91c61358d5f525bdddfe6b14c8e303d47ca132b29f9f76724b4483bca"
+        },
+        {
+          "path": "runtime/musl/__tandf.o",
+          "bytes": 976,
+          "sha256": "4cb2ba609a79a2f072d55060bff5456523320fd736504b98bdd2d2cd19258214"
+        },
+        {
+          "path": "runtime/musl/atoi.o",
+          "bytes": 572,
+          "sha256": "39edf25c57e27b2e6609369ac2def478475a6bebf58680ac88f5d5f0cb597378"
+        },
+        {
+          "path": "runtime/musl/ceilf.o",
+          "bytes": 480,
+          "sha256": "5a583709cf90166b828bbc88ab5493b1eb7924fd201bdf5596b77720c69d1407"
+        },
+        {
+          "path": "runtime/musl/exp2f.o",
+          "bytes": 1060,
+          "sha256": "b8212663aa55150ccce188947faa8f80888b8a3d227454113605109e51cc7979"
+        },
+        {
+          "path": "runtime/musl/exp2f_data.o",
+          "bytes": 728,
+          "sha256": "b511f052e05b1c9072bfc93fc6db666a5c307bacb2d0f0d620a81a17f6724edc"
+        },
+        {
+          "path": "runtime/musl/exp_data.o",
+          "bytes": 2556,
+          "sha256": "ef52df737c92a372e201b2d8173c50071cadaab34bea07064a187f8a1b0b0846"
+        },
+        {
+          "path": "runtime/musl/expf.o",
+          "bytes": 1084,
+          "sha256": "a0b8d9b8fc3758ba269fe6e53f5d0b7859bae2a48f7c8c9b2e31c92cf73642c3"
+        },
+        {
+          "path": "runtime/musl/fabs.o",
+          "bytes": 388,
+          "sha256": "93aadf2b6c766134b08c0a3650626a2b7e11938f56c1957409afcd0f7177a6bb"
+        },
+        {
+          "path": "runtime/musl/fabsf.o",
+          "bytes": 388,
+          "sha256": "9f008e7cc21c8a0d2edfef62049d70b09956391da058d117684544c491d6473e"
+        },
+        {
+          "path": "runtime/musl/floor.o",
+          "bytes": 804,
+          "sha256": "723c811a38997b003d1d98bc9042fea7c3260b41737e2eb5ad2aa16de4bee90e"
+        },
+        {
+          "path": "runtime/musl/floorf.o",
+          "bytes": 480,
+          "sha256": "0897da0d5f2a6ca3bdb0cb2a68ff3694a3fc0d844ebf85202b2618e4a2cd5796"
+        },
+        {
+          "path": "runtime/musl/fmod.o",
+          "bytes": 940,
+          "sha256": "dfc656aa4cf655cb4f4c42b0264ceb970e44bd1fd7a8d5873682eb15c1f6caf8"
+        },
+        {
+          "path": "runtime/musl/isdigit.o",
+          "bytes": 508,
+          "sha256": "f0ed9f83dffb16627995a569ac440b19037326b56aaf7c19b3b5d9367c4cee7e"
+        },
+        {
+          "path": "runtime/musl/isspace.o",
+          "bytes": 564,
+          "sha256": "532bc22a79a9c8f5b439992cb740aa4f329f1e28070964b78f9ef102c2d09d93"
+        },
+        {
+          "path": "runtime/musl/log.o",
+          "bytes": 2168,
+          "sha256": "03f9a0b4c60856d975942b6ffe2e6f97fe29a01633e03aec101933c8a88518c4"
+        },
+        {
+          "path": "runtime/musl/log10f.o",
+          "bytes": 696,
+          "sha256": "fe13a67151b780b67b9d131499ada1043869dcb0e2b00c1836e773602b70c46d"
+        },
+        {
+          "path": "runtime/musl/log_data.o",
+          "bytes": 4636,
+          "sha256": "d04e847885a5e4816bcf080bb063f5f9e65c778df77c8d329c2bd1be514d14a0"
+        },
+        {
+          "path": "runtime/musl/logf.o",
+          "bytes": 1112,
+          "sha256": "42804e55eb6acd1d70536d62fb21657da46befd7c7bb9a0d70af860251c0c2eb"
+        },
+        {
+          "path": "runtime/musl/logf_data.o",
+          "bytes": 684,
+          "sha256": "cd3d623501e5cb1f4ae3d0ff989b80db93427715bb084722e4f4d1c387fc02e8"
+        },
+        {
+          "path": "runtime/musl/lrintf.o",
+          "bytes": 472,
+          "sha256": "3aac11b175cf1f3cd74975e1ca7cd2f21fc7816af5d311d6fbe00c82b9d84e4f"
+        },
+        {
+          "path": "runtime/musl/memchr.o",
+          "bytes": 480,
+          "sha256": "544a52089c110aac9a39e00d354efb8f35993e44a48c07491492c1fd424bbb7a"
+        },
+        {
+          "path": "runtime/musl/memcmp.o",
+          "bytes": 412,
+          "sha256": "ae02aae7b6b5088bedfab80b85f26237985e3fbd59c66d034b50a694605a83cc"
+        },
+        {
+          "path": "runtime/musl/memcpy.o",
+          "bytes": 1348,
+          "sha256": "0925bed60cff5598b2c62b8bcf82a2b0a8c0886b2d8c9ef7c2c9b908c46ec0b0"
+        },
+        {
+          "path": "runtime/musl/memmove.o",
+          "bytes": 736,
+          "sha256": "6c1adbcfe536c8a132bcfcef0ae593193f07c40d54641eada69fae617599df8d"
+        },
+        {
+          "path": "runtime/musl/memset.o",
+          "bytes": 544,
+          "sha256": "1f91b7671ac27264f1372b1939c3d475b1b13c4a90c6eceb99fed17758e2f4a1"
+        },
+        {
+          "path": "runtime/musl/pow.o",
+          "bytes": 4112,
+          "sha256": "2f8058f0d4063673234979c32cfefe8909ea5da41a0d710be8a5cd9cd0479d5f"
+        },
+        {
+          "path": "runtime/musl/pow_data.o",
+          "bytes": 4568,
+          "sha256": "5edfc124bee673185ee203fe62729ce8d509853ae288e6af6dcb12ce9d9bc603"
+        },
+        {
+          "path": "runtime/musl/powf.o",
+          "bytes": 2184,
+          "sha256": "e63c6d177c83456d5f58ed8e1a63b8a6bbbac5c9e5312c92ed41354c11f9ff6d"
+        },
+        {
+          "path": "runtime/musl/powf_data.o",
+          "bytes": 696,
+          "sha256": "14132e1b18181ee51be36fc25ddd047493b443b30ad3c897ead72eb76776f28d"
+        },
+        {
+          "path": "runtime/musl/rintf.o",
+          "bytes": 444,
+          "sha256": "dfaa9ad56af8ec5d957fad339a43e3e3bfaeea5cadf12c4ea2c6b5e8756f5d42"
+        },
+        {
+          "path": "runtime/musl/roundf.o",
+          "bytes": 496,
+          "sha256": "5197baae6d51b629c0636da32fbb7548224eba4d98bcaf5e1d605deb009082e5"
+        },
+        {
+          "path": "runtime/musl/scalbn.o",
+          "bytes": 644,
+          "sha256": "9aae9fb4925703a6cebb60028c84189a2200eb6d4c5d99c095c51e52f2cfc7f5"
+        },
+        {
+          "path": "runtime/musl/sin.o",
+          "bytes": 868,
+          "sha256": "85a9c8c75a75281773af915dc622735abe07c94206fd288404aad1199b5aea3a"
+        },
+        {
+          "path": "runtime/musl/sinf.o",
+          "bytes": 1088,
+          "sha256": "38d341852de8f6a31c549277dd3e63266bbe991dff74b462faaa1b3da66476a6"
+        },
+        {
+          "path": "runtime/musl/sqrt_data.o",
+          "bytes": 652,
+          "sha256": "8b7ea19caa2fff87dfec86c6c3f7da90e513efc5cb694988324d13b5b631e207"
+        },
+        {
+          "path": "runtime/musl/sqrtf.o",
+          "bytes": 884,
+          "sha256": "6f7f1a2d6acd7273a11a99aad64a078a4a5ed21ca8c99994885024e0b0a18755"
+        },
+        {
+          "path": "runtime/musl/stpcpy.o",
+          "bytes": 480,
+          "sha256": "93a93b0f62605e55617f88a6fa6a7fbec1ee69f065272ed29d961979f397186e"
+        },
+        {
+          "path": "runtime/musl/stpncpy.o",
+          "bytes": 604,
+          "sha256": "a952687750ce7a7bad674ee93c11cd7d78e0b7288e8b418d7078458dc05c7c9b"
+        },
+        {
+          "path": "runtime/musl/strchr.o",
+          "bytes": 492,
+          "sha256": "d6fcbd3b9aebf3912b98c879a38f5a62cbe2da87249b36bdfda0e2d25957a837"
+        },
+        {
+          "path": "runtime/musl/strchrnul.o",
+          "bytes": 592,
+          "sha256": "10804f58a6da25c2bf395bbd21c7969db9229d4501fd78833d7f81aa322fea29"
+        },
+        {
+          "path": "runtime/musl/strcmp.o",
+          "bytes": 404,
+          "sha256": "8f58f153f7d52073c4118e8c405e41f24e4617865578d84ef4c85d7342cbacfb"
+        },
+        {
+          "path": "runtime/musl/strcpy.o",
+          "bytes": 484,
+          "sha256": "9574a33e03fc1c38cb22b013f29a49c908ebab85cb3cf143af15b3fe959124ec"
+        },
+        {
+          "path": "runtime/musl/strlen.o",
+          "bytes": 440,
+          "sha256": "9ebbdf36dd80b1223b77e2ced58ae51f55b7293cf2aa26e01694486c42cc625a"
+        },
+        {
+          "path": "runtime/musl/strncmp.o",
+          "bytes": 420,
+          "sha256": "2f6c15c89485093fb93fa61ef7e20e1ce6d0b28f51fea46bf3d8231ef6977e0d"
+        },
+        {
+          "path": "runtime/musl/strncpy.o",
+          "bytes": 484,
+          "sha256": "a99676d812a5a89cc173099225bfa1492873105568f5138f14f035702e0a1654"
+        },
+        {
+          "path": "runtime/musl/strstr.o",
+          "bytes": 1188,
+          "sha256": "ec0efa326cf7902ecacc1ccc4809ef0256917a52dee6443a5730108538866801"
+        },
+        {
+          "path": "runtime/musl/tanf.o",
+          "bytes": 916,
+          "sha256": "2d6f8d2dc66d1cc52ecad20f8307469c7060356333b7f8f5a397704f2526e29d"
+        },
+        {
+          "path": "runtime/printf.o",
+          "bytes": 9728,
+          "sha256": "0fbbbf6a6335e9ed5d57975899634c63edbfec68d789400efd961d65ed0fdd20"
+        },
+        {
+          "path": "tinflate.o",
+          "bytes": 8004,
+          "sha256": "f2a8fb20c5dee8a1e485ad713f33d834b14394a8778213cc18005447fdc52b89"
+        },
+        {
+          "path": "tlsf_runtime.o",
+          "bytes": 11728,
+          "sha256": "f22a6d1d821403bd8d0d83fcdc2d85ef91fb25f805a10a073c749f4950c0244a"
+        },
+        {
+          "path": "wave_tables.o",
+          "bytes": 26880,
+          "sha256": "7df97ff7e290fdac7a10978b33c418560b01246d84bbe696d57df4fc9098cf7e"
+        }
+      ]
+    },
+    "diagnostic-no-watermark": {
+      "runtime": "diagnostic",
+      "stack_watermark": false,
+      "optimization": "-Oz",
+      "catalogue_object_count": 167,
+      "catalogue_object_bytes": 3165512,
+      "text_bytes": 868368,
+      "sections": {
+        "ram_text": {
+          "address": 29360128,
+          "bytes": 1128,
+          "load_address": 34423088
+        },
+        "data": {
+          "address": 29392896,
+          "bytes": 104,
+          "load_address": 34424216
+        },
+        "bss": {
+          "address": 29393008,
+          "bytes": 19424,
+          "load_address": 34424320
+        }
+      },
+      "xip_image_bytes": 869600,
+      "xip_budget_bytes": 868836,
+      "linker_overflow_bytes": 764,
+      "link_map_sha256": "bd85419447e9e90e543b188e7a24556ee74a04219c9e41e1bd866ae6d02d6093",
+      "link_log_sha256": "89d133a1c0887d077e1c3122d96061438382906ec34c8ee3ef012dc5ad1dade4",
+      "link_stderr": "/opt/jieli/pi32v2/bin/ld: /out/build/lunar-app-probe.elf section `.ram_text' will not fit in region `XIP'\n/opt/jieli/pi32v2/bin/ld: region `XIP' overflowed by 764 bytes\n/opt/jieli/pi32v2/bin/ld: /out/build/lunar-app-probe.elf: section `.bss' can't be allocated in segment 2\nLOAD: .data .bss\n",
+      "generated_crt0_sha256": "162145c177cc83ce6c3946da417c53024f8e5161bffa78c3318c9e51bc8bbbe3",
+      "entry_guard_cnum_check": true,
+      "entry_guard_boot_pointer_check": true,
+      "stack_painter_present": false,
+      "app_object_count": 120,
+      "app_objects": [
+        {
+          "path": "app_probe.o",
+          "bytes": 79296,
+          "sha256": "0e314fc08da4a19a577600ccd90eda7f18a49555377f0df8f7d1eb072d1bb26f"
+        },
+        {
+          "path": "content_catalogue.o",
+          "bytes": 9984,
+          "sha256": "65afa2bbb6804d1fa5d3b410be5a33c61ec67109afe29de14ac6225aea27cde6"
+        },
+        {
+          "path": "crt0.o",
+          "bytes": 604,
+          "sha256": "ce54ff7dfd7f4d29dd4c2448d8145b87325982e8ab3d3c4afc6d27473a7aa8ad"
+        },
+        {
+          "path": "fm1_app.o",
+          "bytes": 133768,
+          "sha256": "8b74e36d4b4240545ba914adeface73e88f243e865d0a2134326ced5be498c39"
+        },
+        {
+          "path": "fm1_isr.o",
+          "bytes": 604,
+          "sha256": "ec6ab6cdb1e7fbba23a71dadaeca1ad081ec1ae21010ae7a30494710bbbba6c9"
+        },
+        {
+          "path": "fm1_vec.o",
+          "bytes": 2888,
+          "sha256": "28b3ddb497512aa7fc9625058ad5222ebb1f66a2f29918fde6e837594ba9b570"
+        },
+        {
+          "path": "instance_pool.o",
+          "bytes": 4272,
+          "sha256": "c8d57f0b3aa6b79a07b1e252a9bde76f817d7d3b7422b60f0b2506a2abc03de8"
+        },
+        {
+          "path": "mod_script.o",
+          "bytes": 19724,
+          "sha256": "1d71a81c7ff83a5e7fac45971948f8fc5d2e8d9513fbaa1d88d5f633891b54bd"
+        },
+        {
+          "path": "project_boot.o",
+          "bytes": 15588,
+          "sha256": "49d89de10a9e837eac3b6d88a46eeacbc387d5786d32c351609da628268d8f5d"
+        },
+        {
+          "path": "project_engines.o",
+          "bytes": 9748,
+          "sha256": "6666be5f43a5f0efe0b2f8d02c683e86d36895c73751d2a7de8cce125b9cf82f"
+        },
+        {
+          "path": "project_mod.o",
+          "bytes": 10256,
+          "sha256": "631ff286f73186f257b31f401e424fcf5a0110c0ead18f667f064f8a08d73ea5"
+        },
+        {
+          "path": "project_save_app_target.o",
+          "bytes": 17316,
+          "sha256": "6774690297ebe2928a465224e85dd14182ddad1cd2802a723984c0239135be6e"
+        },
+        {
+          "path": "project_seq.o",
+          "bytes": 7480,
+          "sha256": "a70274f0a8941263e142493478d97a1993dbf8148ba0560735c5a0836a75987a"
+        },
+        {
+          "path": "project_start.o",
+          "bytes": 19868,
+          "sha256": "3a3949a4e827ef680de4304ab2ae23ad11ddfea42adf861f83210d7e9d0e4201"
+        },
+        {
+          "path": "project_units.o",
+          "bytes": 10176,
+          "sha256": "1b2a18c8a995be546441fc9e9776b7d8f1ad133bf2de492e8bb14266e29bc596"
+        },
+        {
+          "path": "registry.o",
+          "bytes": 5544,
+          "sha256": "072010a26eb55fd1a5085b8c10f6bb4e860ac05c7f978eb38a05cf3652226d25"
+        },
+        {
+          "path": "resources_braids.o",
+          "bytes": 30992,
+          "sha256": "29c9e76246e2adf2d84a3cb6223a73236cc5572f8470a6ab637284c49576e43d"
+        },
+        {
+          "path": "runtime/arithmetic/adddf3.o",
+          "bytes": 1296,
+          "sha256": "02aa4ec32fa24561bfda9a8948292e3179429445b2be32b1ccd59de5a85cc509"
+        },
+        {
+          "path": "runtime/arithmetic/addsf3.o",
+          "bytes": 928,
+          "sha256": "afbaf49e56acb87ec9ee203a78be3172cac7007bba8ce4d0fb4869e9db218d4f"
+        },
+        {
+          "path": "runtime/arithmetic/arithmetic-linked.o",
+          "bytes": 15452,
+          "sha256": "9a93636105ebc6c8071c9fb3eaa19b867caba45c2428b34e3e344bd379b95cbf"
+        },
+        {
+          "path": "runtime/arithmetic/arithmetic-probe.o",
+          "bytes": 1764,
+          "sha256": "e409083ecb4b7160da72e58f18f452a59a6dcb58a3ae158825356e8674b6adfd"
+        },
+        {
+          "path": "runtime/arithmetic/comparedf2.o",
+          "bytes": 1060,
+          "sha256": "b2a3a1634b69b742eb2abe648795a4a07a4977338ee9033ac20e222673852c56"
+        },
+        {
+          "path": "runtime/arithmetic/comparesf2.o",
+          "bytes": 804,
+          "sha256": "b64b904d0f7974c4837ffc2e75545c9c5164cc66bdeef805c71507cfe5d8e58f"
+        },
+        {
+          "path": "runtime/arithmetic/divdf3.o",
+          "bytes": 1388,
+          "sha256": "d81462804fdfe894b507f77ab2dc39932e62230ddbe6ff4867275dc1243890b0"
+        },
+        {
+          "path": "runtime/arithmetic/divdi3.o",
+          "bytes": 572,
+          "sha256": "202eb798a79ac1f80d927ca45e214592c640c1faab420d8b609e2dd584db61ea"
+        },
+        {
+          "path": "runtime/arithmetic/divsf3.o",
+          "bytes": 812,
+          "sha256": "7eca50a3beb868230638e7e7a31babc9d4d6451c427e33055992a34c7fcd8ce7"
+        },
+        {
+          "path": "runtime/arithmetic/extendsfdf2.o",
+          "bytes": 512,
+          "sha256": "e75447d19756b4b365bace4591bc7a1cccf40b8a05bb26ff1e1b13a1ac0ad178"
+        },
+        {
+          "path": "runtime/arithmetic/fixdfdi.o",
+          "bytes": 568,
+          "sha256": "8f2604ebf1a3294df3fa8f7330b53b55c5962fac3dac580be30faf4bd5fe0978"
+        },
+        {
+          "path": "runtime/arithmetic/fixdfsi.o",
+          "bytes": 472,
+          "sha256": "2b47a3c2800f71d3c8cd2b44b4a106115fefdca1bee784a54b5cdcd8b4bb2bd5"
+        },
+        {
+          "path": "runtime/arithmetic/fixsfsi.o",
+          "bytes": 472,
+          "sha256": "29f9847b1552f11d1a54e1328db996fc1ce017fb9e658bc90926b824f627df55"
+        },
+        {
+          "path": "runtime/arithmetic/fixunsdfdi.o",
+          "bytes": 732,
+          "sha256": "0c7c55426039a8d87f537bf0bc1bcaee426afb2331c8dec76ecbcf8019f18515"
+        },
+        {
+          "path": "runtime/arithmetic/fixunsdfsi.o",
+          "bytes": 456,
+          "sha256": "3370b63d8ce97a9e7e717bd0b5197f2b07aabfd4ad56d6d42d40842cc7c1cf43"
+        },
+        {
+          "path": "runtime/arithmetic/fixunssfdi.o",
+          "bytes": 780,
+          "sha256": "c78184d1201575d301d7a83b5d02678127f756a7bc32182968d0bf5d448ed4b1"
+        },
+        {
+          "path": "runtime/arithmetic/floatdidf.o",
+          "bytes": 616,
+          "sha256": "a5c44ce23a17b64ec5a25085a6b624246eef26d7a5837528536b08dff8997beb"
+        },
+        {
+          "path": "runtime/arithmetic/floatdisf.o",
+          "bytes": 600,
+          "sha256": "5e730d663ab7a06d9d60ed7aec6af8ac7e354ca68a169344f228756ad2c8b54f"
+        },
+        {
+          "path": "runtime/arithmetic/floatsidf.o",
+          "bytes": 468,
+          "sha256": "ba31ec4c570495c2864131d6fd2dbe354cb6354399bbfdc33443bfee72484cfd"
+        },
+        {
+          "path": "runtime/arithmetic/floatsisf.o",
+          "bytes": 484,
+          "sha256": "8f036862b8886162adabf574d2ccf4466d1bdc61dd48108c575ec8eeb70b0062"
+        },
+        {
+          "path": "runtime/arithmetic/floatundidf.o",
+          "bytes": 532,
+          "sha256": "1fc852a88809fde686a7370ba8a94cfb526e890a61a6bf0bc2a59681dfb115ce"
+        },
+        {
+          "path": "runtime/arithmetic/floatundisf.o",
+          "bytes": 576,
+          "sha256": "4898f02501c4389f26e6d182cb1b997f0e9fb6a214041a77cb18d8fb23bb9e0a"
+        },
+        {
+          "path": "runtime/arithmetic/floatunsidf.o",
+          "bytes": 448,
+          "sha256": "567d233d4ae6df12c857ccf565a7fd082a6468e43d98a5fd6bb5007fb407a821"
+        },
+        {
+          "path": "runtime/arithmetic/fp_mode.o",
+          "bytes": 480,
+          "sha256": "e1c022518a8faa5007b7dbe9c18babaf2c6fc052ae34b23587a107247b52c888"
+        },
+        {
+          "path": "runtime/arithmetic/moddi3.o",
+          "bytes": 560,
+          "sha256": "0175a188eb7c704b214cfd7321618a4ec7490272193d03ce5418579bf527228c"
+        },
+        {
+          "path": "runtime/arithmetic/muldf3.o",
+          "bytes": 1112,
+          "sha256": "b92e82b4130075c37a7fa160a93bbfd2e66cbaeb1ed84268f580bf62a31eeaf7"
+        },
+        {
+          "path": "runtime/arithmetic/mulsf3.o",
+          "bytes": 696,
+          "sha256": "0aa186f6dd489da0948f1509df592d1d6c4734882bddadc309f31b4ca829ca23"
+        },
+        {
+          "path": "runtime/arithmetic/subdf3.o",
+          "bytes": 476,
+          "sha256": "361250a439701d689bda6e3ddb186b1bb492b89f72b6c9efd7fdb53f8483a464"
+        },
+        {
+          "path": "runtime/arithmetic/subsf3.o",
+          "bytes": 476,
+          "sha256": "01f4ba47248f013772d9e71508e8aa2acdd49c74c96778f20ae2b3bad0de7f9e"
+        },
+        {
+          "path": "runtime/arithmetic/truncdfsf2.o",
+          "bytes": 708,
+          "sha256": "0090bad2ec02f46bca985f9787a283fc421ba9d37ac117e11a538793362f0b8a"
+        },
+        {
+          "path": "runtime/arithmetic/udivdi3.o",
+          "bytes": 616,
+          "sha256": "6f3b2d1414554264579733c0eb2b9b413ccf07bea94f22ba1eddca709ce6c1cc"
+        },
+        {
+          "path": "runtime/arithmetic/udivmoddi4.o",
+          "bytes": 996,
+          "sha256": "df6bf8fc3ebfa76530b30fc267aa96f778bd05d70a16cb3f44bfda688687db4a"
+        },
+        {
+          "path": "runtime/arithmetic/umoddi3.o",
+          "bytes": 596,
+          "sha256": "3b44b4875032866a04d0b3be0a8b7297516979ab230b6c692ad7ac141280c5aa"
+        },
+        {
+          "path": "runtime/musl/__cos.o",
+          "bytes": 1052,
+          "sha256": "38c8d7d06d670dad9d7403d8b432c3ddf1af6fd3602205c95f1fb1846adbe467"
+        },
+        {
+          "path": "runtime/musl/__cosdf.o",
+          "bytes": 796,
+          "sha256": "cc5ec41507f24a6376371794564081df8fb7feb91dd2761c001df5cd34ed8c48"
+        },
+        {
+          "path": "runtime/musl/__fpclassify.o",
+          "bytes": 460,
+          "sha256": "c200cb45efe9521fe66d26535f7ad43fe8845a8a2fb445f8bda2e0a796324090"
+        },
+        {
+          "path": "runtime/musl/__fpclassifyf.o",
+          "bytes": 448,
+          "sha256": "803d2c37653aa5ccffab72f50ca82d94af4112d04558d06226d41db7db04854f"
+        },
+        {
+          "path": "runtime/musl/__math_divzero.o",
+          "bytes": 528,
+          "sha256": "3d57ed1fb9a956217c70824341677acee3153763d32fa4254f2cd639eeeddfa8"
+        },
+        {
+          "path": "runtime/musl/__math_divzerof.o",
+          "bytes": 436,
+          "sha256": "7552c1813aea7193a17e67dd1622684ae3a17a97fea19ac0d988f56031fecd56"
+        },
+        {
+          "path": "runtime/musl/__math_invalid.o",
+          "bytes": 536,
+          "sha256": "475b261c8a2adbc108d0b99526cedf92772d45d80043e0745d1110d904d52de5"
+        },
+        {
+          "path": "runtime/musl/__math_invalidf.o",
+          "bytes": 416,
+          "sha256": "8729c0359a11429606d545c461f61b3738267cacabb93ad40b4dc2504366b601"
+        },
+        {
+          "path": "runtime/musl/__math_oflow.o",
+          "bytes": 496,
+          "sha256": "3aef018fb16f5ecc1eef1c5c3fab2f9a9bd88e14bc3f5ca1dca89755d07fc783"
+        },
+        {
+          "path": "runtime/musl/__math_oflowf.o",
+          "bytes": 496,
+          "sha256": "728fc95e7dcfd5813becccc281def4e08a18e5899c0f00d35cdbc6c701168d34"
+        },
+        {
+          "path": "runtime/musl/__math_uflow.o",
+          "bytes": 496,
+          "sha256": "ca6665506fccf8d206d01811f3fa6b3b34f70f35e311e98e957de45a91e63592"
+        },
+        {
+          "path": "runtime/musl/__math_uflowf.o",
+          "bytes": 496,
+          "sha256": "36612ea68762bca6cee82da5ed0d4f202eeff2654553bcdb4e2edf9c961c04a6"
+        },
+        {
+          "path": "runtime/musl/__math_xflow.o",
+          "bytes": 560,
+          "sha256": "be763fa454363397913bc6de7fc4de8b6930b4d1b32f2eaa2367dd0f4316f5f8"
+        },
+        {
+          "path": "runtime/musl/__math_xflowf.o",
+          "bytes": 424,
+          "sha256": "134e21a182481b60f7c22788ff2e75ba0aeafd12a41b0fe734f6f4ea4a6373f2"
+        },
+        {
+          "path": "runtime/musl/__rem_pio2.o",
+          "bytes": 2968,
+          "sha256": "281fa504c40cd87836fd1f18e3b7425b2c1831bf26ed33a77ce77f4fd8e70dc5"
+        },
+        {
+          "path": "runtime/musl/__rem_pio2_large.o",
+          "bytes": 3524,
+          "sha256": "8234b6cd3fc9e98535f182bc39ccbd08846dec7f50eaf3487f57aa704e3a1393"
+        },
+        {
+          "path": "runtime/musl/__rem_pio2f.o",
+          "bytes": 1208,
+          "sha256": "7d02e76bcfb84eb91925bc92a60f14cfc0057ef795670eac6139620180196424"
+        },
+        {
+          "path": "runtime/musl/__sin.o",
+          "bytes": 1072,
+          "sha256": "56d9807520f2462b81495781be6624592337d78f00dc240b4c97efaa22777c01"
+        },
+        {
+          "path": "runtime/musl/__sindf.o",
+          "bytes": 820,
+          "sha256": "5d15e4e91c61358d5f525bdddfe6b14c8e303d47ca132b29f9f76724b4483bca"
+        },
+        {
+          "path": "runtime/musl/__tandf.o",
+          "bytes": 976,
+          "sha256": "4cb2ba609a79a2f072d55060bff5456523320fd736504b98bdd2d2cd19258214"
+        },
+        {
+          "path": "runtime/musl/atoi.o",
+          "bytes": 572,
+          "sha256": "39edf25c57e27b2e6609369ac2def478475a6bebf58680ac88f5d5f0cb597378"
+        },
+        {
+          "path": "runtime/musl/ceilf.o",
+          "bytes": 480,
+          "sha256": "5a583709cf90166b828bbc88ab5493b1eb7924fd201bdf5596b77720c69d1407"
+        },
+        {
+          "path": "runtime/musl/exp2f.o",
+          "bytes": 1060,
+          "sha256": "b8212663aa55150ccce188947faa8f80888b8a3d227454113605109e51cc7979"
+        },
+        {
+          "path": "runtime/musl/exp2f_data.o",
+          "bytes": 728,
+          "sha256": "b511f052e05b1c9072bfc93fc6db666a5c307bacb2d0f0d620a81a17f6724edc"
+        },
+        {
+          "path": "runtime/musl/exp_data.o",
+          "bytes": 2556,
+          "sha256": "ef52df737c92a372e201b2d8173c50071cadaab34bea07064a187f8a1b0b0846"
+        },
+        {
+          "path": "runtime/musl/expf.o",
+          "bytes": 1084,
+          "sha256": "a0b8d9b8fc3758ba269fe6e53f5d0b7859bae2a48f7c8c9b2e31c92cf73642c3"
+        },
+        {
+          "path": "runtime/musl/fabs.o",
+          "bytes": 388,
+          "sha256": "93aadf2b6c766134b08c0a3650626a2b7e11938f56c1957409afcd0f7177a6bb"
+        },
+        {
+          "path": "runtime/musl/fabsf.o",
+          "bytes": 388,
+          "sha256": "9f008e7cc21c8a0d2edfef62049d70b09956391da058d117684544c491d6473e"
+        },
+        {
+          "path": "runtime/musl/floor.o",
+          "bytes": 804,
+          "sha256": "723c811a38997b003d1d98bc9042fea7c3260b41737e2eb5ad2aa16de4bee90e"
+        },
+        {
+          "path": "runtime/musl/floorf.o",
+          "bytes": 480,
+          "sha256": "0897da0d5f2a6ca3bdb0cb2a68ff3694a3fc0d844ebf85202b2618e4a2cd5796"
+        },
+        {
+          "path": "runtime/musl/fmod.o",
+          "bytes": 940,
+          "sha256": "dfc656aa4cf655cb4f4c42b0264ceb970e44bd1fd7a8d5873682eb15c1f6caf8"
+        },
+        {
+          "path": "runtime/musl/isdigit.o",
+          "bytes": 508,
+          "sha256": "f0ed9f83dffb16627995a569ac440b19037326b56aaf7c19b3b5d9367c4cee7e"
+        },
+        {
+          "path": "runtime/musl/isspace.o",
+          "bytes": 564,
+          "sha256": "532bc22a79a9c8f5b439992cb740aa4f329f1e28070964b78f9ef102c2d09d93"
+        },
+        {
+          "path": "runtime/musl/log.o",
+          "bytes": 2168,
+          "sha256": "03f9a0b4c60856d975942b6ffe2e6f97fe29a01633e03aec101933c8a88518c4"
+        },
+        {
+          "path": "runtime/musl/log10f.o",
+          "bytes": 696,
+          "sha256": "fe13a67151b780b67b9d131499ada1043869dcb0e2b00c1836e773602b70c46d"
+        },
+        {
+          "path": "runtime/musl/log_data.o",
+          "bytes": 4636,
+          "sha256": "d04e847885a5e4816bcf080bb063f5f9e65c778df77c8d329c2bd1be514d14a0"
+        },
+        {
+          "path": "runtime/musl/logf.o",
+          "bytes": 1112,
+          "sha256": "42804e55eb6acd1d70536d62fb21657da46befd7c7bb9a0d70af860251c0c2eb"
+        },
+        {
+          "path": "runtime/musl/logf_data.o",
+          "bytes": 684,
+          "sha256": "cd3d623501e5cb1f4ae3d0ff989b80db93427715bb084722e4f4d1c387fc02e8"
+        },
+        {
+          "path": "runtime/musl/lrintf.o",
+          "bytes": 472,
+          "sha256": "3aac11b175cf1f3cd74975e1ca7cd2f21fc7816af5d311d6fbe00c82b9d84e4f"
+        },
+        {
+          "path": "runtime/musl/memchr.o",
+          "bytes": 480,
+          "sha256": "544a52089c110aac9a39e00d354efb8f35993e44a48c07491492c1fd424bbb7a"
+        },
+        {
+          "path": "runtime/musl/memcmp.o",
+          "bytes": 412,
+          "sha256": "ae02aae7b6b5088bedfab80b85f26237985e3fbd59c66d034b50a694605a83cc"
+        },
+        {
+          "path": "runtime/musl/memcpy.o",
+          "bytes": 1348,
+          "sha256": "0925bed60cff5598b2c62b8bcf82a2b0a8c0886b2d8c9ef7c2c9b908c46ec0b0"
+        },
+        {
+          "path": "runtime/musl/memmove.o",
+          "bytes": 736,
+          "sha256": "6c1adbcfe536c8a132bcfcef0ae593193f07c40d54641eada69fae617599df8d"
+        },
+        {
+          "path": "runtime/musl/memset.o",
+          "bytes": 544,
+          "sha256": "1f91b7671ac27264f1372b1939c3d475b1b13c4a90c6eceb99fed17758e2f4a1"
+        },
+        {
+          "path": "runtime/musl/pow.o",
+          "bytes": 4112,
+          "sha256": "2f8058f0d4063673234979c32cfefe8909ea5da41a0d710be8a5cd9cd0479d5f"
+        },
+        {
+          "path": "runtime/musl/pow_data.o",
+          "bytes": 4568,
+          "sha256": "5edfc124bee673185ee203fe62729ce8d509853ae288e6af6dcb12ce9d9bc603"
+        },
+        {
+          "path": "runtime/musl/powf.o",
+          "bytes": 2184,
+          "sha256": "e63c6d177c83456d5f58ed8e1a63b8a6bbbac5c9e5312c92ed41354c11f9ff6d"
+        },
+        {
+          "path": "runtime/musl/powf_data.o",
+          "bytes": 696,
+          "sha256": "14132e1b18181ee51be36fc25ddd047493b443b30ad3c897ead72eb76776f28d"
+        },
+        {
+          "path": "runtime/musl/rintf.o",
+          "bytes": 444,
+          "sha256": "dfaa9ad56af8ec5d957fad339a43e3e3bfaeea5cadf12c4ea2c6b5e8756f5d42"
+        },
+        {
+          "path": "runtime/musl/roundf.o",
+          "bytes": 496,
+          "sha256": "5197baae6d51b629c0636da32fbb7548224eba4d98bcaf5e1d605deb009082e5"
+        },
+        {
+          "path": "runtime/musl/scalbn.o",
+          "bytes": 644,
+          "sha256": "9aae9fb4925703a6cebb60028c84189a2200eb6d4c5d99c095c51e52f2cfc7f5"
+        },
+        {
+          "path": "runtime/musl/sin.o",
+          "bytes": 868,
+          "sha256": "85a9c8c75a75281773af915dc622735abe07c94206fd288404aad1199b5aea3a"
+        },
+        {
+          "path": "runtime/musl/sinf.o",
+          "bytes": 1088,
+          "sha256": "38d341852de8f6a31c549277dd3e63266bbe991dff74b462faaa1b3da66476a6"
+        },
+        {
+          "path": "runtime/musl/sqrt_data.o",
+          "bytes": 652,
+          "sha256": "8b7ea19caa2fff87dfec86c6c3f7da90e513efc5cb694988324d13b5b631e207"
+        },
+        {
+          "path": "runtime/musl/sqrtf.o",
+          "bytes": 884,
+          "sha256": "6f7f1a2d6acd7273a11a99aad64a078a4a5ed21ca8c99994885024e0b0a18755"
+        },
+        {
+          "path": "runtime/musl/stpcpy.o",
+          "bytes": 480,
+          "sha256": "93a93b0f62605e55617f88a6fa6a7fbec1ee69f065272ed29d961979f397186e"
+        },
+        {
+          "path": "runtime/musl/stpncpy.o",
+          "bytes": 604,
+          "sha256": "a952687750ce7a7bad674ee93c11cd7d78e0b7288e8b418d7078458dc05c7c9b"
+        },
+        {
+          "path": "runtime/musl/strchr.o",
+          "bytes": 492,
+          "sha256": "d6fcbd3b9aebf3912b98c879a38f5a62cbe2da87249b36bdfda0e2d25957a837"
+        },
+        {
+          "path": "runtime/musl/strchrnul.o",
+          "bytes": 592,
+          "sha256": "10804f58a6da25c2bf395bbd21c7969db9229d4501fd78833d7f81aa322fea29"
+        },
+        {
+          "path": "runtime/musl/strcmp.o",
+          "bytes": 404,
+          "sha256": "8f58f153f7d52073c4118e8c405e41f24e4617865578d84ef4c85d7342cbacfb"
+        },
+        {
+          "path": "runtime/musl/strcpy.o",
+          "bytes": 484,
+          "sha256": "9574a33e03fc1c38cb22b013f29a49c908ebab85cb3cf143af15b3fe959124ec"
+        },
+        {
+          "path": "runtime/musl/strlen.o",
+          "bytes": 440,
+          "sha256": "9ebbdf36dd80b1223b77e2ced58ae51f55b7293cf2aa26e01694486c42cc625a"
+        },
+        {
+          "path": "runtime/musl/strncmp.o",
+          "bytes": 420,
+          "sha256": "2f6c15c89485093fb93fa61ef7e20e1ce6d0b28f51fea46bf3d8231ef6977e0d"
+        },
+        {
+          "path": "runtime/musl/strncpy.o",
+          "bytes": 484,
+          "sha256": "a99676d812a5a89cc173099225bfa1492873105568f5138f14f035702e0a1654"
+        },
+        {
+          "path": "runtime/musl/strstr.o",
+          "bytes": 1188,
+          "sha256": "ec0efa326cf7902ecacc1ccc4809ef0256917a52dee6443a5730108538866801"
+        },
+        {
+          "path": "runtime/musl/tanf.o",
+          "bytes": 916,
+          "sha256": "2d6f8d2dc66d1cc52ecad20f8307469c7060356333b7f8f5a397704f2526e29d"
+        },
+        {
+          "path": "runtime/printf.o",
+          "bytes": 9728,
+          "sha256": "0fbbbf6a6335e9ed5d57975899634c63edbfec68d789400efd961d65ed0fdd20"
+        },
+        {
+          "path": "tinflate.o",
+          "bytes": 8004,
+          "sha256": "f2a8fb20c5dee8a1e485ad713f33d834b14394a8778213cc18005447fdc52b89"
+        },
+        {
+          "path": "tlsf_runtime.o",
+          "bytes": 11728,
+          "sha256": "f22a6d1d821403bd8d0d83fcdc2d85ef91fb25f805a10a073c749f4950c0244a"
+        },
+        {
+          "path": "wave_tables.o",
+          "bytes": 26880,
+          "sha256": "7df97ff7e290fdac7a10978b33c418560b01246d84bbe696d57df4fc9098cf7e"
+        }
+      ]
+    },
+    "continuous-watermark": {
+      "runtime": "continuous",
+      "stack_watermark": true,
+      "optimization": "-Oz",
+      "catalogue_object_count": 167,
+      "catalogue_object_bytes": 3165512,
+      "text_bytes": 868836,
+      "sections": {
+        "ram_text": {
+          "address": 29360128,
+          "bytes": 1128,
+          "load_address": 34423556
+        },
+        "data": {
+          "address": 29392896,
+          "bytes": 112,
+          "load_address": 34424684
+        },
+        "bss": {
+          "address": 29393008,
+          "bytes": 19424,
+          "load_address": 34424796
+        }
+      },
+      "xip_image_bytes": 870076,
+      "xip_budget_bytes": 868836,
+      "linker_overflow_bytes": 1240,
+      "link_map_sha256": "4c0f0c96e786d2a85428d2cb455bdb878e1271b73d13ce279389350d2678ead6",
+      "link_log_sha256": "082b25d27958ad98f0f050997716cedb73e2803df23c1388d56e25688ff4e6b2",
+      "link_stderr": "/opt/jieli/pi32v2/bin/ld: /out/build/lunar-app-probe.elf section `.ram_text' will not fit in region `XIP'\n/opt/jieli/pi32v2/bin/ld: region `XIP' overflowed by 1240 bytes\n",
+      "generated_crt0_sha256": "436b8fd6bec5aba492e33c6ea5673392db94b9fadd7db921dbec38c5f242b174",
+      "entry_guard_cnum_check": true,
+      "entry_guard_boot_pointer_check": true,
+      "stack_painter_present": true,
+      "app_object_count": 120,
+      "app_objects": [
+        {
+          "path": "app_probe.o",
+          "bytes": 80640,
+          "sha256": "b5c5a8f985161850ee3266da2a32ed93bba0f0c6c15248253a279adf6c7a440b"
+        },
+        {
+          "path": "content_catalogue.o",
+          "bytes": 9984,
+          "sha256": "65afa2bbb6804d1fa5d3b410be5a33c61ec67109afe29de14ac6225aea27cde6"
+        },
+        {
+          "path": "crt0.o",
+          "bytes": 1056,
+          "sha256": "df94a4ef3d89eeb0cbd9cc5c198b103c8b831beff511c7163dc37ef40a2bfb0f"
+        },
+        {
+          "path": "fm1_app.o",
+          "bytes": 133768,
+          "sha256": "8b74e36d4b4240545ba914adeface73e88f243e865d0a2134326ced5be498c39"
+        },
+        {
+          "path": "fm1_isr.o",
+          "bytes": 604,
+          "sha256": "ec6ab6cdb1e7fbba23a71dadaeca1ad081ec1ae21010ae7a30494710bbbba6c9"
+        },
+        {
+          "path": "fm1_vec.o",
+          "bytes": 2888,
+          "sha256": "28b3ddb497512aa7fc9625058ad5222ebb1f66a2f29918fde6e837594ba9b570"
+        },
+        {
+          "path": "instance_pool.o",
+          "bytes": 4272,
+          "sha256": "c8d57f0b3aa6b79a07b1e252a9bde76f817d7d3b7422b60f0b2506a2abc03de8"
+        },
+        {
+          "path": "mod_script.o",
+          "bytes": 19724,
+          "sha256": "1d71a81c7ff83a5e7fac45971948f8fc5d2e8d9513fbaa1d88d5f633891b54bd"
+        },
+        {
+          "path": "project_boot.o",
+          "bytes": 15588,
+          "sha256": "49d89de10a9e837eac3b6d88a46eeacbc387d5786d32c351609da628268d8f5d"
+        },
+        {
+          "path": "project_engines.o",
+          "bytes": 9748,
+          "sha256": "6666be5f43a5f0efe0b2f8d02c683e86d36895c73751d2a7de8cce125b9cf82f"
+        },
+        {
+          "path": "project_mod.o",
+          "bytes": 10256,
+          "sha256": "631ff286f73186f257b31f401e424fcf5a0110c0ead18f667f064f8a08d73ea5"
+        },
+        {
+          "path": "project_save_app_target.o",
+          "bytes": 17316,
+          "sha256": "6774690297ebe2928a465224e85dd14182ddad1cd2802a723984c0239135be6e"
+        },
+        {
+          "path": "project_seq.o",
+          "bytes": 7480,
+          "sha256": "a70274f0a8941263e142493478d97a1993dbf8148ba0560735c5a0836a75987a"
+        },
+        {
+          "path": "project_start.o",
+          "bytes": 19868,
+          "sha256": "3a3949a4e827ef680de4304ab2ae23ad11ddfea42adf861f83210d7e9d0e4201"
+        },
+        {
+          "path": "project_units.o",
+          "bytes": 10176,
+          "sha256": "1b2a18c8a995be546441fc9e9776b7d8f1ad133bf2de492e8bb14266e29bc596"
+        },
+        {
+          "path": "registry.o",
+          "bytes": 5544,
+          "sha256": "072010a26eb55fd1a5085b8c10f6bb4e860ac05c7f978eb38a05cf3652226d25"
+        },
+        {
+          "path": "resources_braids.o",
+          "bytes": 30992,
+          "sha256": "29c9e76246e2adf2d84a3cb6223a73236cc5572f8470a6ab637284c49576e43d"
+        },
+        {
+          "path": "runtime/arithmetic/adddf3.o",
+          "bytes": 1296,
+          "sha256": "02aa4ec32fa24561bfda9a8948292e3179429445b2be32b1ccd59de5a85cc509"
+        },
+        {
+          "path": "runtime/arithmetic/addsf3.o",
+          "bytes": 928,
+          "sha256": "afbaf49e56acb87ec9ee203a78be3172cac7007bba8ce4d0fb4869e9db218d4f"
+        },
+        {
+          "path": "runtime/arithmetic/arithmetic-linked.o",
+          "bytes": 15452,
+          "sha256": "9a93636105ebc6c8071c9fb3eaa19b867caba45c2428b34e3e344bd379b95cbf"
+        },
+        {
+          "path": "runtime/arithmetic/arithmetic-probe.o",
+          "bytes": 1764,
+          "sha256": "e409083ecb4b7160da72e58f18f452a59a6dcb58a3ae158825356e8674b6adfd"
+        },
+        {
+          "path": "runtime/arithmetic/comparedf2.o",
+          "bytes": 1060,
+          "sha256": "b2a3a1634b69b742eb2abe648795a4a07a4977338ee9033ac20e222673852c56"
+        },
+        {
+          "path": "runtime/arithmetic/comparesf2.o",
+          "bytes": 804,
+          "sha256": "b64b904d0f7974c4837ffc2e75545c9c5164cc66bdeef805c71507cfe5d8e58f"
+        },
+        {
+          "path": "runtime/arithmetic/divdf3.o",
+          "bytes": 1388,
+          "sha256": "d81462804fdfe894b507f77ab2dc39932e62230ddbe6ff4867275dc1243890b0"
+        },
+        {
+          "path": "runtime/arithmetic/divdi3.o",
+          "bytes": 572,
+          "sha256": "202eb798a79ac1f80d927ca45e214592c640c1faab420d8b609e2dd584db61ea"
+        },
+        {
+          "path": "runtime/arithmetic/divsf3.o",
+          "bytes": 812,
+          "sha256": "7eca50a3beb868230638e7e7a31babc9d4d6451c427e33055992a34c7fcd8ce7"
+        },
+        {
+          "path": "runtime/arithmetic/extendsfdf2.o",
+          "bytes": 512,
+          "sha256": "e75447d19756b4b365bace4591bc7a1cccf40b8a05bb26ff1e1b13a1ac0ad178"
+        },
+        {
+          "path": "runtime/arithmetic/fixdfdi.o",
+          "bytes": 568,
+          "sha256": "8f2604ebf1a3294df3fa8f7330b53b55c5962fac3dac580be30faf4bd5fe0978"
+        },
+        {
+          "path": "runtime/arithmetic/fixdfsi.o",
+          "bytes": 472,
+          "sha256": "2b47a3c2800f71d3c8cd2b44b4a106115fefdca1bee784a54b5cdcd8b4bb2bd5"
+        },
+        {
+          "path": "runtime/arithmetic/fixsfsi.o",
+          "bytes": 472,
+          "sha256": "29f9847b1552f11d1a54e1328db996fc1ce017fb9e658bc90926b824f627df55"
+        },
+        {
+          "path": "runtime/arithmetic/fixunsdfdi.o",
+          "bytes": 732,
+          "sha256": "0c7c55426039a8d87f537bf0bc1bcaee426afb2331c8dec76ecbcf8019f18515"
+        },
+        {
+          "path": "runtime/arithmetic/fixunsdfsi.o",
+          "bytes": 456,
+          "sha256": "3370b63d8ce97a9e7e717bd0b5197f2b07aabfd4ad56d6d42d40842cc7c1cf43"
+        },
+        {
+          "path": "runtime/arithmetic/fixunssfdi.o",
+          "bytes": 780,
+          "sha256": "c78184d1201575d301d7a83b5d02678127f756a7bc32182968d0bf5d448ed4b1"
+        },
+        {
+          "path": "runtime/arithmetic/floatdidf.o",
+          "bytes": 616,
+          "sha256": "a5c44ce23a17b64ec5a25085a6b624246eef26d7a5837528536b08dff8997beb"
+        },
+        {
+          "path": "runtime/arithmetic/floatdisf.o",
+          "bytes": 600,
+          "sha256": "5e730d663ab7a06d9d60ed7aec6af8ac7e354ca68a169344f228756ad2c8b54f"
+        },
+        {
+          "path": "runtime/arithmetic/floatsidf.o",
+          "bytes": 468,
+          "sha256": "ba31ec4c570495c2864131d6fd2dbe354cb6354399bbfdc33443bfee72484cfd"
+        },
+        {
+          "path": "runtime/arithmetic/floatsisf.o",
+          "bytes": 484,
+          "sha256": "8f036862b8886162adabf574d2ccf4466d1bdc61dd48108c575ec8eeb70b0062"
+        },
+        {
+          "path": "runtime/arithmetic/floatundidf.o",
+          "bytes": 532,
+          "sha256": "1fc852a88809fde686a7370ba8a94cfb526e890a61a6bf0bc2a59681dfb115ce"
+        },
+        {
+          "path": "runtime/arithmetic/floatundisf.o",
+          "bytes": 576,
+          "sha256": "4898f02501c4389f26e6d182cb1b997f0e9fb6a214041a77cb18d8fb23bb9e0a"
+        },
+        {
+          "path": "runtime/arithmetic/floatunsidf.o",
+          "bytes": 448,
+          "sha256": "567d233d4ae6df12c857ccf565a7fd082a6468e43d98a5fd6bb5007fb407a821"
+        },
+        {
+          "path": "runtime/arithmetic/fp_mode.o",
+          "bytes": 480,
+          "sha256": "e1c022518a8faa5007b7dbe9c18babaf2c6fc052ae34b23587a107247b52c888"
+        },
+        {
+          "path": "runtime/arithmetic/moddi3.o",
+          "bytes": 560,
+          "sha256": "0175a188eb7c704b214cfd7321618a4ec7490272193d03ce5418579bf527228c"
+        },
+        {
+          "path": "runtime/arithmetic/muldf3.o",
+          "bytes": 1112,
+          "sha256": "b92e82b4130075c37a7fa160a93bbfd2e66cbaeb1ed84268f580bf62a31eeaf7"
+        },
+        {
+          "path": "runtime/arithmetic/mulsf3.o",
+          "bytes": 696,
+          "sha256": "0aa186f6dd489da0948f1509df592d1d6c4734882bddadc309f31b4ca829ca23"
+        },
+        {
+          "path": "runtime/arithmetic/subdf3.o",
+          "bytes": 476,
+          "sha256": "361250a439701d689bda6e3ddb186b1bb492b89f72b6c9efd7fdb53f8483a464"
+        },
+        {
+          "path": "runtime/arithmetic/subsf3.o",
+          "bytes": 476,
+          "sha256": "01f4ba47248f013772d9e71508e8aa2acdd49c74c96778f20ae2b3bad0de7f9e"
+        },
+        {
+          "path": "runtime/arithmetic/truncdfsf2.o",
+          "bytes": 708,
+          "sha256": "0090bad2ec02f46bca985f9787a283fc421ba9d37ac117e11a538793362f0b8a"
+        },
+        {
+          "path": "runtime/arithmetic/udivdi3.o",
+          "bytes": 616,
+          "sha256": "6f3b2d1414554264579733c0eb2b9b413ccf07bea94f22ba1eddca709ce6c1cc"
+        },
+        {
+          "path": "runtime/arithmetic/udivmoddi4.o",
+          "bytes": 996,
+          "sha256": "df6bf8fc3ebfa76530b30fc267aa96f778bd05d70a16cb3f44bfda688687db4a"
+        },
+        {
+          "path": "runtime/arithmetic/umoddi3.o",
+          "bytes": 596,
+          "sha256": "3b44b4875032866a04d0b3be0a8b7297516979ab230b6c692ad7ac141280c5aa"
+        },
+        {
+          "path": "runtime/musl/__cos.o",
+          "bytes": 1052,
+          "sha256": "38c8d7d06d670dad9d7403d8b432c3ddf1af6fd3602205c95f1fb1846adbe467"
+        },
+        {
+          "path": "runtime/musl/__cosdf.o",
+          "bytes": 796,
+          "sha256": "cc5ec41507f24a6376371794564081df8fb7feb91dd2761c001df5cd34ed8c48"
+        },
+        {
+          "path": "runtime/musl/__fpclassify.o",
+          "bytes": 460,
+          "sha256": "c200cb45efe9521fe66d26535f7ad43fe8845a8a2fb445f8bda2e0a796324090"
+        },
+        {
+          "path": "runtime/musl/__fpclassifyf.o",
+          "bytes": 448,
+          "sha256": "803d2c37653aa5ccffab72f50ca82d94af4112d04558d06226d41db7db04854f"
+        },
+        {
+          "path": "runtime/musl/__math_divzero.o",
+          "bytes": 528,
+          "sha256": "3d57ed1fb9a956217c70824341677acee3153763d32fa4254f2cd639eeeddfa8"
+        },
+        {
+          "path": "runtime/musl/__math_divzerof.o",
+          "bytes": 436,
+          "sha256": "7552c1813aea7193a17e67dd1622684ae3a17a97fea19ac0d988f56031fecd56"
+        },
+        {
+          "path": "runtime/musl/__math_invalid.o",
+          "bytes": 536,
+          "sha256": "475b261c8a2adbc108d0b99526cedf92772d45d80043e0745d1110d904d52de5"
+        },
+        {
+          "path": "runtime/musl/__math_invalidf.o",
+          "bytes": 416,
+          "sha256": "8729c0359a11429606d545c461f61b3738267cacabb93ad40b4dc2504366b601"
+        },
+        {
+          "path": "runtime/musl/__math_oflow.o",
+          "bytes": 496,
+          "sha256": "3aef018fb16f5ecc1eef1c5c3fab2f9a9bd88e14bc3f5ca1dca89755d07fc783"
+        },
+        {
+          "path": "runtime/musl/__math_oflowf.o",
+          "bytes": 496,
+          "sha256": "728fc95e7dcfd5813becccc281def4e08a18e5899c0f00d35cdbc6c701168d34"
+        },
+        {
+          "path": "runtime/musl/__math_uflow.o",
+          "bytes": 496,
+          "sha256": "ca6665506fccf8d206d01811f3fa6b3b34f70f35e311e98e957de45a91e63592"
+        },
+        {
+          "path": "runtime/musl/__math_uflowf.o",
+          "bytes": 496,
+          "sha256": "36612ea68762bca6cee82da5ed0d4f202eeff2654553bcdb4e2edf9c961c04a6"
+        },
+        {
+          "path": "runtime/musl/__math_xflow.o",
+          "bytes": 560,
+          "sha256": "be763fa454363397913bc6de7fc4de8b6930b4d1b32f2eaa2367dd0f4316f5f8"
+        },
+        {
+          "path": "runtime/musl/__math_xflowf.o",
+          "bytes": 424,
+          "sha256": "134e21a182481b60f7c22788ff2e75ba0aeafd12a41b0fe734f6f4ea4a6373f2"
+        },
+        {
+          "path": "runtime/musl/__rem_pio2.o",
+          "bytes": 2968,
+          "sha256": "281fa504c40cd87836fd1f18e3b7425b2c1831bf26ed33a77ce77f4fd8e70dc5"
+        },
+        {
+          "path": "runtime/musl/__rem_pio2_large.o",
+          "bytes": 3524,
+          "sha256": "8234b6cd3fc9e98535f182bc39ccbd08846dec7f50eaf3487f57aa704e3a1393"
+        },
+        {
+          "path": "runtime/musl/__rem_pio2f.o",
+          "bytes": 1208,
+          "sha256": "7d02e76bcfb84eb91925bc92a60f14cfc0057ef795670eac6139620180196424"
+        },
+        {
+          "path": "runtime/musl/__sin.o",
+          "bytes": 1072,
+          "sha256": "56d9807520f2462b81495781be6624592337d78f00dc240b4c97efaa22777c01"
+        },
+        {
+          "path": "runtime/musl/__sindf.o",
+          "bytes": 820,
+          "sha256": "5d15e4e91c61358d5f525bdddfe6b14c8e303d47ca132b29f9f76724b4483bca"
+        },
+        {
+          "path": "runtime/musl/__tandf.o",
+          "bytes": 976,
+          "sha256": "4cb2ba609a79a2f072d55060bff5456523320fd736504b98bdd2d2cd19258214"
+        },
+        {
+          "path": "runtime/musl/atoi.o",
+          "bytes": 572,
+          "sha256": "39edf25c57e27b2e6609369ac2def478475a6bebf58680ac88f5d5f0cb597378"
+        },
+        {
+          "path": "runtime/musl/ceilf.o",
+          "bytes": 480,
+          "sha256": "5a583709cf90166b828bbc88ab5493b1eb7924fd201bdf5596b77720c69d1407"
+        },
+        {
+          "path": "runtime/musl/exp2f.o",
+          "bytes": 1060,
+          "sha256": "b8212663aa55150ccce188947faa8f80888b8a3d227454113605109e51cc7979"
+        },
+        {
+          "path": "runtime/musl/exp2f_data.o",
+          "bytes": 728,
+          "sha256": "b511f052e05b1c9072bfc93fc6db666a5c307bacb2d0f0d620a81a17f6724edc"
+        },
+        {
+          "path": "runtime/musl/exp_data.o",
+          "bytes": 2556,
+          "sha256": "ef52df737c92a372e201b2d8173c50071cadaab34bea07064a187f8a1b0b0846"
+        },
+        {
+          "path": "runtime/musl/expf.o",
+          "bytes": 1084,
+          "sha256": "a0b8d9b8fc3758ba269fe6e53f5d0b7859bae2a48f7c8c9b2e31c92cf73642c3"
+        },
+        {
+          "path": "runtime/musl/fabs.o",
+          "bytes": 388,
+          "sha256": "93aadf2b6c766134b08c0a3650626a2b7e11938f56c1957409afcd0f7177a6bb"
+        },
+        {
+          "path": "runtime/musl/fabsf.o",
+          "bytes": 388,
+          "sha256": "9f008e7cc21c8a0d2edfef62049d70b09956391da058d117684544c491d6473e"
+        },
+        {
+          "path": "runtime/musl/floor.o",
+          "bytes": 804,
+          "sha256": "723c811a38997b003d1d98bc9042fea7c3260b41737e2eb5ad2aa16de4bee90e"
+        },
+        {
+          "path": "runtime/musl/floorf.o",
+          "bytes": 480,
+          "sha256": "0897da0d5f2a6ca3bdb0cb2a68ff3694a3fc0d844ebf85202b2618e4a2cd5796"
+        },
+        {
+          "path": "runtime/musl/fmod.o",
+          "bytes": 940,
+          "sha256": "dfc656aa4cf655cb4f4c42b0264ceb970e44bd1fd7a8d5873682eb15c1f6caf8"
+        },
+        {
+          "path": "runtime/musl/isdigit.o",
+          "bytes": 508,
+          "sha256": "f0ed9f83dffb16627995a569ac440b19037326b56aaf7c19b3b5d9367c4cee7e"
+        },
+        {
+          "path": "runtime/musl/isspace.o",
+          "bytes": 564,
+          "sha256": "532bc22a79a9c8f5b439992cb740aa4f329f1e28070964b78f9ef102c2d09d93"
+        },
+        {
+          "path": "runtime/musl/log.o",
+          "bytes": 2168,
+          "sha256": "03f9a0b4c60856d975942b6ffe2e6f97fe29a01633e03aec101933c8a88518c4"
+        },
+        {
+          "path": "runtime/musl/log10f.o",
+          "bytes": 696,
+          "sha256": "fe13a67151b780b67b9d131499ada1043869dcb0e2b00c1836e773602b70c46d"
+        },
+        {
+          "path": "runtime/musl/log_data.o",
+          "bytes": 4636,
+          "sha256": "d04e847885a5e4816bcf080bb063f5f9e65c778df77c8d329c2bd1be514d14a0"
+        },
+        {
+          "path": "runtime/musl/logf.o",
+          "bytes": 1112,
+          "sha256": "42804e55eb6acd1d70536d62fb21657da46befd7c7bb9a0d70af860251c0c2eb"
+        },
+        {
+          "path": "runtime/musl/logf_data.o",
+          "bytes": 684,
+          "sha256": "cd3d623501e5cb1f4ae3d0ff989b80db93427715bb084722e4f4d1c387fc02e8"
+        },
+        {
+          "path": "runtime/musl/lrintf.o",
+          "bytes": 472,
+          "sha256": "3aac11b175cf1f3cd74975e1ca7cd2f21fc7816af5d311d6fbe00c82b9d84e4f"
+        },
+        {
+          "path": "runtime/musl/memchr.o",
+          "bytes": 480,
+          "sha256": "544a52089c110aac9a39e00d354efb8f35993e44a48c07491492c1fd424bbb7a"
+        },
+        {
+          "path": "runtime/musl/memcmp.o",
+          "bytes": 412,
+          "sha256": "ae02aae7b6b5088bedfab80b85f26237985e3fbd59c66d034b50a694605a83cc"
+        },
+        {
+          "path": "runtime/musl/memcpy.o",
+          "bytes": 1348,
+          "sha256": "0925bed60cff5598b2c62b8bcf82a2b0a8c0886b2d8c9ef7c2c9b908c46ec0b0"
+        },
+        {
+          "path": "runtime/musl/memmove.o",
+          "bytes": 736,
+          "sha256": "6c1adbcfe536c8a132bcfcef0ae593193f07c40d54641eada69fae617599df8d"
+        },
+        {
+          "path": "runtime/musl/memset.o",
+          "bytes": 544,
+          "sha256": "1f91b7671ac27264f1372b1939c3d475b1b13c4a90c6eceb99fed17758e2f4a1"
+        },
+        {
+          "path": "runtime/musl/pow.o",
+          "bytes": 4112,
+          "sha256": "2f8058f0d4063673234979c32cfefe8909ea5da41a0d710be8a5cd9cd0479d5f"
+        },
+        {
+          "path": "runtime/musl/pow_data.o",
+          "bytes": 4568,
+          "sha256": "5edfc124bee673185ee203fe62729ce8d509853ae288e6af6dcb12ce9d9bc603"
+        },
+        {
+          "path": "runtime/musl/powf.o",
+          "bytes": 2184,
+          "sha256": "e63c6d177c83456d5f58ed8e1a63b8a6bbbac5c9e5312c92ed41354c11f9ff6d"
+        },
+        {
+          "path": "runtime/musl/powf_data.o",
+          "bytes": 696,
+          "sha256": "14132e1b18181ee51be36fc25ddd047493b443b30ad3c897ead72eb76776f28d"
+        },
+        {
+          "path": "runtime/musl/rintf.o",
+          "bytes": 444,
+          "sha256": "dfaa9ad56af8ec5d957fad339a43e3e3bfaeea5cadf12c4ea2c6b5e8756f5d42"
+        },
+        {
+          "path": "runtime/musl/roundf.o",
+          "bytes": 496,
+          "sha256": "5197baae6d51b629c0636da32fbb7548224eba4d98bcaf5e1d605deb009082e5"
+        },
+        {
+          "path": "runtime/musl/scalbn.o",
+          "bytes": 644,
+          "sha256": "9aae9fb4925703a6cebb60028c84189a2200eb6d4c5d99c095c51e52f2cfc7f5"
+        },
+        {
+          "path": "runtime/musl/sin.o",
+          "bytes": 868,
+          "sha256": "85a9c8c75a75281773af915dc622735abe07c94206fd288404aad1199b5aea3a"
+        },
+        {
+          "path": "runtime/musl/sinf.o",
+          "bytes": 1088,
+          "sha256": "38d341852de8f6a31c549277dd3e63266bbe991dff74b462faaa1b3da66476a6"
+        },
+        {
+          "path": "runtime/musl/sqrt_data.o",
+          "bytes": 652,
+          "sha256": "8b7ea19caa2fff87dfec86c6c3f7da90e513efc5cb694988324d13b5b631e207"
+        },
+        {
+          "path": "runtime/musl/sqrtf.o",
+          "bytes": 884,
+          "sha256": "6f7f1a2d6acd7273a11a99aad64a078a4a5ed21ca8c99994885024e0b0a18755"
+        },
+        {
+          "path": "runtime/musl/stpcpy.o",
+          "bytes": 480,
+          "sha256": "93a93b0f62605e55617f88a6fa6a7fbec1ee69f065272ed29d961979f397186e"
+        },
+        {
+          "path": "runtime/musl/stpncpy.o",
+          "bytes": 604,
+          "sha256": "a952687750ce7a7bad674ee93c11cd7d78e0b7288e8b418d7078458dc05c7c9b"
+        },
+        {
+          "path": "runtime/musl/strchr.o",
+          "bytes": 492,
+          "sha256": "d6fcbd3b9aebf3912b98c879a38f5a62cbe2da87249b36bdfda0e2d25957a837"
+        },
+        {
+          "path": "runtime/musl/strchrnul.o",
+          "bytes": 592,
+          "sha256": "10804f58a6da25c2bf395bbd21c7969db9229d4501fd78833d7f81aa322fea29"
+        },
+        {
+          "path": "runtime/musl/strcmp.o",
+          "bytes": 404,
+          "sha256": "8f58f153f7d52073c4118e8c405e41f24e4617865578d84ef4c85d7342cbacfb"
+        },
+        {
+          "path": "runtime/musl/strcpy.o",
+          "bytes": 484,
+          "sha256": "9574a33e03fc1c38cb22b013f29a49c908ebab85cb3cf143af15b3fe959124ec"
+        },
+        {
+          "path": "runtime/musl/strlen.o",
+          "bytes": 440,
+          "sha256": "9ebbdf36dd80b1223b77e2ced58ae51f55b7293cf2aa26e01694486c42cc625a"
+        },
+        {
+          "path": "runtime/musl/strncmp.o",
+          "bytes": 420,
+          "sha256": "2f6c15c89485093fb93fa61ef7e20e1ce6d0b28f51fea46bf3d8231ef6977e0d"
+        },
+        {
+          "path": "runtime/musl/strncpy.o",
+          "bytes": 484,
+          "sha256": "a99676d812a5a89cc173099225bfa1492873105568f5138f14f035702e0a1654"
+        },
+        {
+          "path": "runtime/musl/strstr.o",
+          "bytes": 1188,
+          "sha256": "ec0efa326cf7902ecacc1ccc4809ef0256917a52dee6443a5730108538866801"
+        },
+        {
+          "path": "runtime/musl/tanf.o",
+          "bytes": 916,
+          "sha256": "2d6f8d2dc66d1cc52ecad20f8307469c7060356333b7f8f5a397704f2526e29d"
+        },
+        {
+          "path": "runtime/printf.o",
+          "bytes": 9728,
+          "sha256": "0fbbbf6a6335e9ed5d57975899634c63edbfec68d789400efd961d65ed0fdd20"
+        },
+        {
+          "path": "tinflate.o",
+          "bytes": 8004,
+          "sha256": "f2a8fb20c5dee8a1e485ad713f33d834b14394a8778213cc18005447fdc52b89"
+        },
+        {
+          "path": "tlsf_runtime.o",
+          "bytes": 11728,
+          "sha256": "f22a6d1d821403bd8d0d83fcdc2d85ef91fb25f805a10a073c749f4950c0244a"
+        },
+        {
+          "path": "wave_tables.o",
+          "bytes": 26880,
+          "sha256": "7df97ff7e290fdac7a10978b33c418560b01246d84bbe696d57df4fc9098cf7e"
+        }
+      ]
+    },
+    "continuous-no-watermark": {
+      "runtime": "continuous",
+      "stack_watermark": false,
+      "optimization": "-Oz",
+      "catalogue_object_count": 167,
+      "catalogue_object_bytes": 3165512,
+      "text_bytes": 868288,
+      "sections": {
+        "ram_text": {
+          "address": 29360128,
+          "bytes": 1128,
+          "load_address": 34423008
+        },
+        "data": {
+          "address": 29392896,
+          "bytes": 104,
+          "load_address": 34424136
+        },
+        "bss": {
+          "address": 29393008,
+          "bytes": 19424,
+          "load_address": 34424240
+        }
+      },
+      "xip_image_bytes": 869520,
+      "xip_budget_bytes": 868836,
+      "linker_overflow_bytes": 684,
+      "link_map_sha256": "0b5cb3c7e6ec335f8ea472aecc830543570be97669da14556e3a87af6feb80d5",
+      "link_log_sha256": "1241ed38178663ec358a36979a14c02aee7b998876515bb69497fa26334edf2f",
+      "link_stderr": "/opt/jieli/pi32v2/bin/ld: /out/build/lunar-app-probe.elf section `.ram_text' will not fit in region `XIP'\n/opt/jieli/pi32v2/bin/ld: region `XIP' overflowed by 684 bytes\n/opt/jieli/pi32v2/bin/ld: /out/build/lunar-app-probe.elf: section `.bss' can't be allocated in segment 2\nLOAD: .data .bss\n",
+      "generated_crt0_sha256": "162145c177cc83ce6c3946da417c53024f8e5161bffa78c3318c9e51bc8bbbe3",
+      "entry_guard_cnum_check": true,
+      "entry_guard_boot_pointer_check": true,
+      "stack_painter_present": false,
+      "app_object_count": 120,
+      "app_objects": [
+        {
+          "path": "app_probe.o",
+          "bytes": 79204,
+          "sha256": "077fd6041b8648d84ece42f1d865fb36cc4bce7110f7b5eda1126cc037d294cf"
+        },
+        {
+          "path": "content_catalogue.o",
+          "bytes": 9984,
+          "sha256": "65afa2bbb6804d1fa5d3b410be5a33c61ec67109afe29de14ac6225aea27cde6"
+        },
+        {
+          "path": "crt0.o",
+          "bytes": 604,
+          "sha256": "ce54ff7dfd7f4d29dd4c2448d8145b87325982e8ab3d3c4afc6d27473a7aa8ad"
+        },
+        {
+          "path": "fm1_app.o",
+          "bytes": 133768,
+          "sha256": "8b74e36d4b4240545ba914adeface73e88f243e865d0a2134326ced5be498c39"
+        },
+        {
+          "path": "fm1_isr.o",
+          "bytes": 604,
+          "sha256": "ec6ab6cdb1e7fbba23a71dadaeca1ad081ec1ae21010ae7a30494710bbbba6c9"
+        },
+        {
+          "path": "fm1_vec.o",
+          "bytes": 2888,
+          "sha256": "28b3ddb497512aa7fc9625058ad5222ebb1f66a2f29918fde6e837594ba9b570"
+        },
+        {
+          "path": "instance_pool.o",
+          "bytes": 4272,
+          "sha256": "c8d57f0b3aa6b79a07b1e252a9bde76f817d7d3b7422b60f0b2506a2abc03de8"
+        },
+        {
+          "path": "mod_script.o",
+          "bytes": 19724,
+          "sha256": "1d71a81c7ff83a5e7fac45971948f8fc5d2e8d9513fbaa1d88d5f633891b54bd"
+        },
+        {
+          "path": "project_boot.o",
+          "bytes": 15588,
+          "sha256": "49d89de10a9e837eac3b6d88a46eeacbc387d5786d32c351609da628268d8f5d"
+        },
+        {
+          "path": "project_engines.o",
+          "bytes": 9748,
+          "sha256": "6666be5f43a5f0efe0b2f8d02c683e86d36895c73751d2a7de8cce125b9cf82f"
+        },
+        {
+          "path": "project_mod.o",
+          "bytes": 10256,
+          "sha256": "631ff286f73186f257b31f401e424fcf5a0110c0ead18f667f064f8a08d73ea5"
+        },
+        {
+          "path": "project_save_app_target.o",
+          "bytes": 17316,
+          "sha256": "6774690297ebe2928a465224e85dd14182ddad1cd2802a723984c0239135be6e"
+        },
+        {
+          "path": "project_seq.o",
+          "bytes": 7480,
+          "sha256": "a70274f0a8941263e142493478d97a1993dbf8148ba0560735c5a0836a75987a"
+        },
+        {
+          "path": "project_start.o",
+          "bytes": 19868,
+          "sha256": "3a3949a4e827ef680de4304ab2ae23ad11ddfea42adf861f83210d7e9d0e4201"
+        },
+        {
+          "path": "project_units.o",
+          "bytes": 10176,
+          "sha256": "1b2a18c8a995be546441fc9e9776b7d8f1ad133bf2de492e8bb14266e29bc596"
+        },
+        {
+          "path": "registry.o",
+          "bytes": 5544,
+          "sha256": "072010a26eb55fd1a5085b8c10f6bb4e860ac05c7f978eb38a05cf3652226d25"
+        },
+        {
+          "path": "resources_braids.o",
+          "bytes": 30992,
+          "sha256": "29c9e76246e2adf2d84a3cb6223a73236cc5572f8470a6ab637284c49576e43d"
+        },
+        {
+          "path": "runtime/arithmetic/adddf3.o",
+          "bytes": 1296,
+          "sha256": "02aa4ec32fa24561bfda9a8948292e3179429445b2be32b1ccd59de5a85cc509"
+        },
+        {
+          "path": "runtime/arithmetic/addsf3.o",
+          "bytes": 928,
+          "sha256": "afbaf49e56acb87ec9ee203a78be3172cac7007bba8ce4d0fb4869e9db218d4f"
+        },
+        {
+          "path": "runtime/arithmetic/arithmetic-linked.o",
+          "bytes": 15452,
+          "sha256": "9a93636105ebc6c8071c9fb3eaa19b867caba45c2428b34e3e344bd379b95cbf"
+        },
+        {
+          "path": "runtime/arithmetic/arithmetic-probe.o",
+          "bytes": 1764,
+          "sha256": "e409083ecb4b7160da72e58f18f452a59a6dcb58a3ae158825356e8674b6adfd"
+        },
+        {
+          "path": "runtime/arithmetic/comparedf2.o",
+          "bytes": 1060,
+          "sha256": "b2a3a1634b69b742eb2abe648795a4a07a4977338ee9033ac20e222673852c56"
+        },
+        {
+          "path": "runtime/arithmetic/comparesf2.o",
+          "bytes": 804,
+          "sha256": "b64b904d0f7974c4837ffc2e75545c9c5164cc66bdeef805c71507cfe5d8e58f"
+        },
+        {
+          "path": "runtime/arithmetic/divdf3.o",
+          "bytes": 1388,
+          "sha256": "d81462804fdfe894b507f77ab2dc39932e62230ddbe6ff4867275dc1243890b0"
+        },
+        {
+          "path": "runtime/arithmetic/divdi3.o",
+          "bytes": 572,
+          "sha256": "202eb798a79ac1f80d927ca45e214592c640c1faab420d8b609e2dd584db61ea"
+        },
+        {
+          "path": "runtime/arithmetic/divsf3.o",
+          "bytes": 812,
+          "sha256": "7eca50a3beb868230638e7e7a31babc9d4d6451c427e33055992a34c7fcd8ce7"
+        },
+        {
+          "path": "runtime/arithmetic/extendsfdf2.o",
+          "bytes": 512,
+          "sha256": "e75447d19756b4b365bace4591bc7a1cccf40b8a05bb26ff1e1b13a1ac0ad178"
+        },
+        {
+          "path": "runtime/arithmetic/fixdfdi.o",
+          "bytes": 568,
+          "sha256": "8f2604ebf1a3294df3fa8f7330b53b55c5962fac3dac580be30faf4bd5fe0978"
+        },
+        {
+          "path": "runtime/arithmetic/fixdfsi.o",
+          "bytes": 472,
+          "sha256": "2b47a3c2800f71d3c8cd2b44b4a106115fefdca1bee784a54b5cdcd8b4bb2bd5"
+        },
+        {
+          "path": "runtime/arithmetic/fixsfsi.o",
+          "bytes": 472,
+          "sha256": "29f9847b1552f11d1a54e1328db996fc1ce017fb9e658bc90926b824f627df55"
+        },
+        {
+          "path": "runtime/arithmetic/fixunsdfdi.o",
+          "bytes": 732,
+          "sha256": "0c7c55426039a8d87f537bf0bc1bcaee426afb2331c8dec76ecbcf8019f18515"
+        },
+        {
+          "path": "runtime/arithmetic/fixunsdfsi.o",
+          "bytes": 456,
+          "sha256": "3370b63d8ce97a9e7e717bd0b5197f2b07aabfd4ad56d6d42d40842cc7c1cf43"
+        },
+        {
+          "path": "runtime/arithmetic/fixunssfdi.o",
+          "bytes": 780,
+          "sha256": "c78184d1201575d301d7a83b5d02678127f756a7bc32182968d0bf5d448ed4b1"
+        },
+        {
+          "path": "runtime/arithmetic/floatdidf.o",
+          "bytes": 616,
+          "sha256": "a5c44ce23a17b64ec5a25085a6b624246eef26d7a5837528536b08dff8997beb"
+        },
+        {
+          "path": "runtime/arithmetic/floatdisf.o",
+          "bytes": 600,
+          "sha256": "5e730d663ab7a06d9d60ed7aec6af8ac7e354ca68a169344f228756ad2c8b54f"
+        },
+        {
+          "path": "runtime/arithmetic/floatsidf.o",
+          "bytes": 468,
+          "sha256": "ba31ec4c570495c2864131d6fd2dbe354cb6354399bbfdc33443bfee72484cfd"
+        },
+        {
+          "path": "runtime/arithmetic/floatsisf.o",
+          "bytes": 484,
+          "sha256": "8f036862b8886162adabf574d2ccf4466d1bdc61dd48108c575ec8eeb70b0062"
+        },
+        {
+          "path": "runtime/arithmetic/floatundidf.o",
+          "bytes": 532,
+          "sha256": "1fc852a88809fde686a7370ba8a94cfb526e890a61a6bf0bc2a59681dfb115ce"
+        },
+        {
+          "path": "runtime/arithmetic/floatundisf.o",
+          "bytes": 576,
+          "sha256": "4898f02501c4389f26e6d182cb1b997f0e9fb6a214041a77cb18d8fb23bb9e0a"
+        },
+        {
+          "path": "runtime/arithmetic/floatunsidf.o",
+          "bytes": 448,
+          "sha256": "567d233d4ae6df12c857ccf565a7fd082a6468e43d98a5fd6bb5007fb407a821"
+        },
+        {
+          "path": "runtime/arithmetic/fp_mode.o",
+          "bytes": 480,
+          "sha256": "e1c022518a8faa5007b7dbe9c18babaf2c6fc052ae34b23587a107247b52c888"
+        },
+        {
+          "path": "runtime/arithmetic/moddi3.o",
+          "bytes": 560,
+          "sha256": "0175a188eb7c704b214cfd7321618a4ec7490272193d03ce5418579bf527228c"
+        },
+        {
+          "path": "runtime/arithmetic/muldf3.o",
+          "bytes": 1112,
+          "sha256": "b92e82b4130075c37a7fa160a93bbfd2e66cbaeb1ed84268f580bf62a31eeaf7"
+        },
+        {
+          "path": "runtime/arithmetic/mulsf3.o",
+          "bytes": 696,
+          "sha256": "0aa186f6dd489da0948f1509df592d1d6c4734882bddadc309f31b4ca829ca23"
+        },
+        {
+          "path": "runtime/arithmetic/subdf3.o",
+          "bytes": 476,
+          "sha256": "361250a439701d689bda6e3ddb186b1bb492b89f72b6c9efd7fdb53f8483a464"
+        },
+        {
+          "path": "runtime/arithmetic/subsf3.o",
+          "bytes": 476,
+          "sha256": "01f4ba47248f013772d9e71508e8aa2acdd49c74c96778f20ae2b3bad0de7f9e"
+        },
+        {
+          "path": "runtime/arithmetic/truncdfsf2.o",
+          "bytes": 708,
+          "sha256": "0090bad2ec02f46bca985f9787a283fc421ba9d37ac117e11a538793362f0b8a"
+        },
+        {
+          "path": "runtime/arithmetic/udivdi3.o",
+          "bytes": 616,
+          "sha256": "6f3b2d1414554264579733c0eb2b9b413ccf07bea94f22ba1eddca709ce6c1cc"
+        },
+        {
+          "path": "runtime/arithmetic/udivmoddi4.o",
+          "bytes": 996,
+          "sha256": "df6bf8fc3ebfa76530b30fc267aa96f778bd05d70a16cb3f44bfda688687db4a"
+        },
+        {
+          "path": "runtime/arithmetic/umoddi3.o",
+          "bytes": 596,
+          "sha256": "3b44b4875032866a04d0b3be0a8b7297516979ab230b6c692ad7ac141280c5aa"
+        },
+        {
+          "path": "runtime/musl/__cos.o",
+          "bytes": 1052,
+          "sha256": "38c8d7d06d670dad9d7403d8b432c3ddf1af6fd3602205c95f1fb1846adbe467"
+        },
+        {
+          "path": "runtime/musl/__cosdf.o",
+          "bytes": 796,
+          "sha256": "cc5ec41507f24a6376371794564081df8fb7feb91dd2761c001df5cd34ed8c48"
+        },
+        {
+          "path": "runtime/musl/__fpclassify.o",
+          "bytes": 460,
+          "sha256": "c200cb45efe9521fe66d26535f7ad43fe8845a8a2fb445f8bda2e0a796324090"
+        },
+        {
+          "path": "runtime/musl/__fpclassifyf.o",
+          "bytes": 448,
+          "sha256": "803d2c37653aa5ccffab72f50ca82d94af4112d04558d06226d41db7db04854f"
+        },
+        {
+          "path": "runtime/musl/__math_divzero.o",
+          "bytes": 528,
+          "sha256": "3d57ed1fb9a956217c70824341677acee3153763d32fa4254f2cd639eeeddfa8"
+        },
+        {
+          "path": "runtime/musl/__math_divzerof.o",
+          "bytes": 436,
+          "sha256": "7552c1813aea7193a17e67dd1622684ae3a17a97fea19ac0d988f56031fecd56"
+        },
+        {
+          "path": "runtime/musl/__math_invalid.o",
+          "bytes": 536,
+          "sha256": "475b261c8a2adbc108d0b99526cedf92772d45d80043e0745d1110d904d52de5"
+        },
+        {
+          "path": "runtime/musl/__math_invalidf.o",
+          "bytes": 416,
+          "sha256": "8729c0359a11429606d545c461f61b3738267cacabb93ad40b4dc2504366b601"
+        },
+        {
+          "path": "runtime/musl/__math_oflow.o",
+          "bytes": 496,
+          "sha256": "3aef018fb16f5ecc1eef1c5c3fab2f9a9bd88e14bc3f5ca1dca89755d07fc783"
+        },
+        {
+          "path": "runtime/musl/__math_oflowf.o",
+          "bytes": 496,
+          "sha256": "728fc95e7dcfd5813becccc281def4e08a18e5899c0f00d35cdbc6c701168d34"
+        },
+        {
+          "path": "runtime/musl/__math_uflow.o",
+          "bytes": 496,
+          "sha256": "ca6665506fccf8d206d01811f3fa6b3b34f70f35e311e98e957de45a91e63592"
+        },
+        {
+          "path": "runtime/musl/__math_uflowf.o",
+          "bytes": 496,
+          "sha256": "36612ea68762bca6cee82da5ed0d4f202eeff2654553bcdb4e2edf9c961c04a6"
+        },
+        {
+          "path": "runtime/musl/__math_xflow.o",
+          "bytes": 560,
+          "sha256": "be763fa454363397913bc6de7fc4de8b6930b4d1b32f2eaa2367dd0f4316f5f8"
+        },
+        {
+          "path": "runtime/musl/__math_xflowf.o",
+          "bytes": 424,
+          "sha256": "134e21a182481b60f7c22788ff2e75ba0aeafd12a41b0fe734f6f4ea4a6373f2"
+        },
+        {
+          "path": "runtime/musl/__rem_pio2.o",
+          "bytes": 2968,
+          "sha256": "281fa504c40cd87836fd1f18e3b7425b2c1831bf26ed33a77ce77f4fd8e70dc5"
+        },
+        {
+          "path": "runtime/musl/__rem_pio2_large.o",
+          "bytes": 3524,
+          "sha256": "8234b6cd3fc9e98535f182bc39ccbd08846dec7f50eaf3487f57aa704e3a1393"
+        },
+        {
+          "path": "runtime/musl/__rem_pio2f.o",
+          "bytes": 1208,
+          "sha256": "7d02e76bcfb84eb91925bc92a60f14cfc0057ef795670eac6139620180196424"
+        },
+        {
+          "path": "runtime/musl/__sin.o",
+          "bytes": 1072,
+          "sha256": "56d9807520f2462b81495781be6624592337d78f00dc240b4c97efaa22777c01"
+        },
+        {
+          "path": "runtime/musl/__sindf.o",
+          "bytes": 820,
+          "sha256": "5d15e4e91c61358d5f525bdddfe6b14c8e303d47ca132b29f9f76724b4483bca"
+        },
+        {
+          "path": "runtime/musl/__tandf.o",
+          "bytes": 976,
+          "sha256": "4cb2ba609a79a2f072d55060bff5456523320fd736504b98bdd2d2cd19258214"
+        },
+        {
+          "path": "runtime/musl/atoi.o",
+          "bytes": 572,
+          "sha256": "39edf25c57e27b2e6609369ac2def478475a6bebf58680ac88f5d5f0cb597378"
+        },
+        {
+          "path": "runtime/musl/ceilf.o",
+          "bytes": 480,
+          "sha256": "5a583709cf90166b828bbc88ab5493b1eb7924fd201bdf5596b77720c69d1407"
+        },
+        {
+          "path": "runtime/musl/exp2f.o",
+          "bytes": 1060,
+          "sha256": "b8212663aa55150ccce188947faa8f80888b8a3d227454113605109e51cc7979"
+        },
+        {
+          "path": "runtime/musl/exp2f_data.o",
+          "bytes": 728,
+          "sha256": "b511f052e05b1c9072bfc93fc6db666a5c307bacb2d0f0d620a81a17f6724edc"
+        },
+        {
+          "path": "runtime/musl/exp_data.o",
+          "bytes": 2556,
+          "sha256": "ef52df737c92a372e201b2d8173c50071cadaab34bea07064a187f8a1b0b0846"
+        },
+        {
+          "path": "runtime/musl/expf.o",
+          "bytes": 1084,
+          "sha256": "a0b8d9b8fc3758ba269fe6e53f5d0b7859bae2a48f7c8c9b2e31c92cf73642c3"
+        },
+        {
+          "path": "runtime/musl/fabs.o",
+          "bytes": 388,
+          "sha256": "93aadf2b6c766134b08c0a3650626a2b7e11938f56c1957409afcd0f7177a6bb"
+        },
+        {
+          "path": "runtime/musl/fabsf.o",
+          "bytes": 388,
+          "sha256": "9f008e7cc21c8a0d2edfef62049d70b09956391da058d117684544c491d6473e"
+        },
+        {
+          "path": "runtime/musl/floor.o",
+          "bytes": 804,
+          "sha256": "723c811a38997b003d1d98bc9042fea7c3260b41737e2eb5ad2aa16de4bee90e"
+        },
+        {
+          "path": "runtime/musl/floorf.o",
+          "bytes": 480,
+          "sha256": "0897da0d5f2a6ca3bdb0cb2a68ff3694a3fc0d844ebf85202b2618e4a2cd5796"
+        },
+        {
+          "path": "runtime/musl/fmod.o",
+          "bytes": 940,
+          "sha256": "dfc656aa4cf655cb4f4c42b0264ceb970e44bd1fd7a8d5873682eb15c1f6caf8"
+        },
+        {
+          "path": "runtime/musl/isdigit.o",
+          "bytes": 508,
+          "sha256": "f0ed9f83dffb16627995a569ac440b19037326b56aaf7c19b3b5d9367c4cee7e"
+        },
+        {
+          "path": "runtime/musl/isspace.o",
+          "bytes": 564,
+          "sha256": "532bc22a79a9c8f5b439992cb740aa4f329f1e28070964b78f9ef102c2d09d93"
+        },
+        {
+          "path": "runtime/musl/log.o",
+          "bytes": 2168,
+          "sha256": "03f9a0b4c60856d975942b6ffe2e6f97fe29a01633e03aec101933c8a88518c4"
+        },
+        {
+          "path": "runtime/musl/log10f.o",
+          "bytes": 696,
+          "sha256": "fe13a67151b780b67b9d131499ada1043869dcb0e2b00c1836e773602b70c46d"
+        },
+        {
+          "path": "runtime/musl/log_data.o",
+          "bytes": 4636,
+          "sha256": "d04e847885a5e4816bcf080bb063f5f9e65c778df77c8d329c2bd1be514d14a0"
+        },
+        {
+          "path": "runtime/musl/logf.o",
+          "bytes": 1112,
+          "sha256": "42804e55eb6acd1d70536d62fb21657da46befd7c7bb9a0d70af860251c0c2eb"
+        },
+        {
+          "path": "runtime/musl/logf_data.o",
+          "bytes": 684,
+          "sha256": "cd3d623501e5cb1f4ae3d0ff989b80db93427715bb084722e4f4d1c387fc02e8"
+        },
+        {
+          "path": "runtime/musl/lrintf.o",
+          "bytes": 472,
+          "sha256": "3aac11b175cf1f3cd74975e1ca7cd2f21fc7816af5d311d6fbe00c82b9d84e4f"
+        },
+        {
+          "path": "runtime/musl/memchr.o",
+          "bytes": 480,
+          "sha256": "544a52089c110aac9a39e00d354efb8f35993e44a48c07491492c1fd424bbb7a"
+        },
+        {
+          "path": "runtime/musl/memcmp.o",
+          "bytes": 412,
+          "sha256": "ae02aae7b6b5088bedfab80b85f26237985e3fbd59c66d034b50a694605a83cc"
+        },
+        {
+          "path": "runtime/musl/memcpy.o",
+          "bytes": 1348,
+          "sha256": "0925bed60cff5598b2c62b8bcf82a2b0a8c0886b2d8c9ef7c2c9b908c46ec0b0"
+        },
+        {
+          "path": "runtime/musl/memmove.o",
+          "bytes": 736,
+          "sha256": "6c1adbcfe536c8a132bcfcef0ae593193f07c40d54641eada69fae617599df8d"
+        },
+        {
+          "path": "runtime/musl/memset.o",
+          "bytes": 544,
+          "sha256": "1f91b7671ac27264f1372b1939c3d475b1b13c4a90c6eceb99fed17758e2f4a1"
+        },
+        {
+          "path": "runtime/musl/pow.o",
+          "bytes": 4112,
+          "sha256": "2f8058f0d4063673234979c32cfefe8909ea5da41a0d710be8a5cd9cd0479d5f"
+        },
+        {
+          "path": "runtime/musl/pow_data.o",
+          "bytes": 4568,
+          "sha256": "5edfc124bee673185ee203fe62729ce8d509853ae288e6af6dcb12ce9d9bc603"
+        },
+        {
+          "path": "runtime/musl/powf.o",
+          "bytes": 2184,
+          "sha256": "e63c6d177c83456d5f58ed8e1a63b8a6bbbac5c9e5312c92ed41354c11f9ff6d"
+        },
+        {
+          "path": "runtime/musl/powf_data.o",
+          "bytes": 696,
+          "sha256": "14132e1b18181ee51be36fc25ddd047493b443b30ad3c897ead72eb76776f28d"
+        },
+        {
+          "path": "runtime/musl/rintf.o",
+          "bytes": 444,
+          "sha256": "dfaa9ad56af8ec5d957fad339a43e3e3bfaeea5cadf12c4ea2c6b5e8756f5d42"
+        },
+        {
+          "path": "runtime/musl/roundf.o",
+          "bytes": 496,
+          "sha256": "5197baae6d51b629c0636da32fbb7548224eba4d98bcaf5e1d605deb009082e5"
+        },
+        {
+          "path": "runtime/musl/scalbn.o",
+          "bytes": 644,
+          "sha256": "9aae9fb4925703a6cebb60028c84189a2200eb6d4c5d99c095c51e52f2cfc7f5"
+        },
+        {
+          "path": "runtime/musl/sin.o",
+          "bytes": 868,
+          "sha256": "85a9c8c75a75281773af915dc622735abe07c94206fd288404aad1199b5aea3a"
+        },
+        {
+          "path": "runtime/musl/sinf.o",
+          "bytes": 1088,
+          "sha256": "38d341852de8f6a31c549277dd3e63266bbe991dff74b462faaa1b3da66476a6"
+        },
+        {
+          "path": "runtime/musl/sqrt_data.o",
+          "bytes": 652,
+          "sha256": "8b7ea19caa2fff87dfec86c6c3f7da90e513efc5cb694988324d13b5b631e207"
+        },
+        {
+          "path": "runtime/musl/sqrtf.o",
+          "bytes": 884,
+          "sha256": "6f7f1a2d6acd7273a11a99aad64a078a4a5ed21ca8c99994885024e0b0a18755"
+        },
+        {
+          "path": "runtime/musl/stpcpy.o",
+          "bytes": 480,
+          "sha256": "93a93b0f62605e55617f88a6fa6a7fbec1ee69f065272ed29d961979f397186e"
+        },
+        {
+          "path": "runtime/musl/stpncpy.o",
+          "bytes": 604,
+          "sha256": "a952687750ce7a7bad674ee93c11cd7d78e0b7288e8b418d7078458dc05c7c9b"
+        },
+        {
+          "path": "runtime/musl/strchr.o",
+          "bytes": 492,
+          "sha256": "d6fcbd3b9aebf3912b98c879a38f5a62cbe2da87249b36bdfda0e2d25957a837"
+        },
+        {
+          "path": "runtime/musl/strchrnul.o",
+          "bytes": 592,
+          "sha256": "10804f58a6da25c2bf395bbd21c7969db9229d4501fd78833d7f81aa322fea29"
+        },
+        {
+          "path": "runtime/musl/strcmp.o",
+          "bytes": 404,
+          "sha256": "8f58f153f7d52073c4118e8c405e41f24e4617865578d84ef4c85d7342cbacfb"
+        },
+        {
+          "path": "runtime/musl/strcpy.o",
+          "bytes": 484,
+          "sha256": "9574a33e03fc1c38cb22b013f29a49c908ebab85cb3cf143af15b3fe959124ec"
+        },
+        {
+          "path": "runtime/musl/strlen.o",
+          "bytes": 440,
+          "sha256": "9ebbdf36dd80b1223b77e2ced58ae51f55b7293cf2aa26e01694486c42cc625a"
+        },
+        {
+          "path": "runtime/musl/strncmp.o",
+          "bytes": 420,
+          "sha256": "2f6c15c89485093fb93fa61ef7e20e1ce6d0b28f51fea46bf3d8231ef6977e0d"
+        },
+        {
+          "path": "runtime/musl/strncpy.o",
+          "bytes": 484,
+          "sha256": "a99676d812a5a89cc173099225bfa1492873105568f5138f14f035702e0a1654"
+        },
+        {
+          "path": "runtime/musl/strstr.o",
+          "bytes": 1188,
+          "sha256": "ec0efa326cf7902ecacc1ccc4809ef0256917a52dee6443a5730108538866801"
+        },
+        {
+          "path": "runtime/musl/tanf.o",
+          "bytes": 916,
+          "sha256": "2d6f8d2dc66d1cc52ecad20f8307469c7060356333b7f8f5a397704f2526e29d"
+        },
+        {
+          "path": "runtime/printf.o",
+          "bytes": 9728,
+          "sha256": "0fbbbf6a6335e9ed5d57975899634c63edbfec68d789400efd961d65ed0fdd20"
+        },
+        {
+          "path": "tinflate.o",
+          "bytes": 8004,
+          "sha256": "f2a8fb20c5dee8a1e485ad713f33d834b14394a8778213cc18005447fdc52b89"
+        },
+        {
+          "path": "tlsf_runtime.o",
+          "bytes": 11728,
+          "sha256": "f22a6d1d821403bd8d0d83fcdc2d85ef91fb25f805a10a073c749f4950c0244a"
+        },
+        {
+          "path": "wave_tables.o",
+          "bytes": 26880,
+          "sha256": "7df97ff7e290fdac7a10978b33c418560b01246d84bbe696d57df4fc9098cf7e"
+        }
+      ]
+    }
+  },
+  "interpretation": "XIP load image includes .text plus .ram_text and .data load bytes; .bss is zero-initialized RAM and not counted in the image extent.",
+  "semantics_verified": false,
+  "installable": false,
+  "hardware_tested": false
+}

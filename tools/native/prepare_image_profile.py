@@ -47,7 +47,9 @@ def command(tool, *args):
     return result.stdout
 
 
-def prepare(profile: Path, tool: Path, out: Path):
+def prepare(profile: Path, tool: Path, out: Path, *, recompress_content=False):
+    if type(recompress_content) is not bool:
+        raise ValueError('Recompression option must be boolean')
     raw_profile = bounded_read(profile, 65536)
     doc = json.loads(raw_profile, object_pairs_hook=unique_object)
     tool_hash = sha(tool.read_bytes())
@@ -96,7 +98,22 @@ def prepare(profile: Path, tool: Path, out: Path):
         else:
             operation = 'from-movy1' if data.startswith(b'movy1\n') else 'pack'
             command(tool, operation, source, '-o', packed)
-        records = [json.loads(line) for line in command(tool, 'records', packed).splitlines()]
+        record_bytes = command(tool, 'records', packed)
+        compression = None
+        if recompress_content:
+            from recompress_project import recompress
+            from tools.lunar_state import Refused
+            from zlib import error as ZlibError
+            try:
+                payload, compression = recompress(packed.read_bytes())
+            except (Refused, ZlibError) as error:
+                raise ValueError('Content recompression refused: ' + str(error)) from error
+            packed.write_bytes(payload)
+            # The target reader, not the host encoder alone, decides whether
+            # the new encoding preserves the complete native record stream.
+            if command(tool, 'records', packed) != record_bytes:
+                raise ValueError('Native records changed after recompression')
+        records = [json.loads(line) for line in record_bytes.splitlines()]
         if not records or records[0].get('rec') != 'head':
             raise ValueError('Missing packed content header')
         if records[0].get('kind') not in ('project', 'set'):
@@ -113,6 +130,8 @@ def prepare(profile: Path, tool: Path, out: Path):
                            bytes=len(payload), kind=records[0]['kind'], dependencies=dependencies,
                            sequence_semantics_verified=False,
                            dependency_scan_complete=records[0]['kind'] == 'project'))
+        if compression is not None:
+            assets[-1]['compression'] = dict(encoder='host-zlib-raw-4k', **compression)
     if sha(tool.read_bytes()) != tool_hash:
         raise ValueError('State tool changed during preparation')
     report = dict(version=1, profile_sha256=sha(raw_profile),
@@ -130,9 +149,12 @@ def main():
     parser.add_argument('--profile', type=Path, required=True)
     parser.add_argument('--state-tool', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--recompress-content', action='store_true',
+                        help='Recompress chunks and verify exact native records before linking')
     args = parser.parse_args()
     try:
-        report = prepare(args.profile.resolve(), args.state_tool.resolve(), args.out.resolve())
+        report = prepare(args.profile.resolve(), args.state_tool.resolve(), args.out.resolve(),
+                         recompress_content=args.recompress_content)
     except (ValueError, OSError) as error:
         parser.error(str(error))
     print(json.dumps(report, indent=2))

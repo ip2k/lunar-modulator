@@ -1,0 +1,32 @@
+Read-only ELF `.bss` layout comparison
+Date: 2026-10-14
+
+Prior linked all-13 diagnostic ELF (smaller probe):
+  /home/claude/mvave-fm1/native-external-arenas-16-20261012/out/runtime-diagnostic-all13-v1/linked/lunar-app-probe.elf
+  SHA-256 18cb0ec4864a3fddab1af122994377a3f2815ddf833d9c765e2648abaa578d91
+  RW LOAD: FileSiz 0x44, MemSiz 0x4c14
+  .data: PROGBITS, size 0x44
+  .bss: NOBITS, size 0x4bd0
+  readelf section-to-segment mapping lists .data only for this LOAD.
+
+Current linked compressed-song size probe ELF:
+  /home/claude/mvave-fm1/all13-fullsong-link-comparison-v1/chunk-codec-followup-v1/target-link/build/lunar-app-probe.elf
+  SHA-256 1193ca59b3df73c9866c2613f75c6779f4efbaed2d80b2d441043e12d3ec3798
+  RW LOAD: FileSiz 0x68, MemSiz 0x4c48
+  .data: PROGBITS, size 0x68
+  .bss: NOBITS, size 0x4be0
+  readelf section-to-segment mapping lists .data only for this LOAD.
+
+Source evidence in exact checkout c083ec72a2170e6a9a0026f73e606c123c214ed1:
+  firmware/native/app.ld:36 declares .bss (NOLOAD) in RAM and the globals PHDR.
+  firmware/third_party/dinghy/src/platform.c:305-322, fm1_cstart(), explicitly zeros
+  _bss_start.._bss_end before application use.
+  tools/native/probe_artifact.py:70-76 checks the .bss section type and linker-symbol
+  bounds; lines 105-106 checks all file-backed LOAD segments are accounted for. It
+  flattens file-backed .text, .ram_text and .data, not NOBITS .bss.
+
+Interpretation: both ELFs show the same linker warning about allocating .bss in a
+LOAD segment. The segment memory size equals .data file size plus .bss NOBITS size
+in each ELF, and startup has an explicit zero loop. This supports a NOLOAD/display
+warning rather than absent BSS initialization. Keep the warning visible; this is
+not package/install acceptance or runtime execution evidence.

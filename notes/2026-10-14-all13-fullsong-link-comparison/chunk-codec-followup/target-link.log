@@ -1,0 +1,2 @@
+/opt/jieli/pi32v2/bin/ld: /out/build/lunar-app-probe.elf: section `.bss' can't be allocated in segment 2
+LOAD: .data .bss

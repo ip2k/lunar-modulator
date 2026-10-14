@@ -1,0 +1,46 @@
+{
+  "task": "profile-recompression-validation",
+  "date": "2026-10-14",
+  "host": "Hera",
+  "base_commit": "c083ec72a2170e6a9a0026f73e606c123c214ed1",
+  "branch": "feature/2026-10-14@profile-recompression-validation",
+  "overlay_sha256": {
+    "tools/native/prepare_image_profile.py": "d77bdf0e1ad599142c8670667817f25a2800eaa8c3ee70cc9616a5dc7b0d3149",
+    "tools/native/prepare_demo_selection.py": "e11c451fac2a40c3cfb6f097e446641ffc02fdac206b0f2ac655c241f36bbd1b",
+    "tests/test_native_profile_recompression.py": "44a0d2f71fd96f02e29d77369b10fc2070be1fab00528c512bbf738819d2a1f0",
+    "tools/native/recompress_project.py": "43b9513a863f93721fc94f02b8cf32e58409163abf141a1e207d8f0fff543337"
+  },
+  "codec": {
+    "path": "/home/claude/mvave-fm1/native-replacement-pack-decode-20261014/out/replacement-pack-validation-20261014/fm1-state-build/fm1-state",
+    "sha256": "7a3cf4155c6642bd14fb69de25e2c1415b423ce9fa193006a3ef70f55d55fb77",
+    "metadata_sha256": "cda87a7d44517a0e60a9f2013717c46c72abf23ec20b3711e633e7e1f0b5278a",
+    "metadata_note": "all modules, GPL enabled, API 4/2, 44118 Hz; embedded commit field 0000000; prior coordinator receipt identifies exact-base source build"
+  },
+  "container": {
+    "name": "lunar-profile-recompression-20261014-a",
+    "image": "lunar-recovery-pytest:20261011",
+    "image_id": "sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d",
+    "network": "none",
+    "cgroup_parent": "docker-batch.slice",
+    "cpus": 1,
+    "memory": "2048m",
+    "memory_swap": "2048m",
+    "source_mount": "read-only"
+  },
+  "command": "FM1_STATE_TOOL=/codec/fm1-state PYTHONDONTWRITEBYTECODE=1 /tmp/check-venv/bin/python -m pytest -q -s tests/test_native_profile_recompression.py tests/test_native_image_profile.py tests/test_native_image_profile_integrity.py tests/test_native_demo_selection.py",
+  "test_result": {
+    "passed": 39,
+    "failed": 0,
+    "exit_code": 0,
+    "log": "/home/claude/.local/share/codex-coordination/receipts/lunar-profile-recompression-validation-20261014/pytest.log",
+    "log_sha256": "cc8e811ba7d6b89c1825de705bac41ff615f2bd79371952232af462071538cb8",
+    "warning": "pytest cache write warning due to read-only /src mount; no test impact"
+  },
+  "limits": [
+    "No sequence semantic preservation claim",
+    "No module-link or native RAM fit claim",
+    "No physical slot fit or installability claim",
+    "No hardware execution",
+    "No commit or GitHub backup"
+  ]
+}

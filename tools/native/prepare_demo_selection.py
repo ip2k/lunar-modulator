@@ -19,7 +19,10 @@ from verify_image_profile import load_prepared_profile
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def prepare_selection(root: Path, request: dict, state_tool: Path, output: Path):
+def prepare_selection(root: Path, request: dict, state_tool: Path, output: Path,
+                      *, recompress_content=False):
+    if type(recompress_content) is not bool:
+        raise ValueError('Recompression option must be boolean')
     request_bytes = (json.dumps(request, sort_keys=True, separators=(',', ':')) + '\n').encode()
     # Snapshot request values before invoking the exporter or external codec.
     request = json.loads(request_bytes)
@@ -38,7 +41,8 @@ def prepare_selection(root: Path, request: dict, state_tool: Path, output: Path)
                                output / 'staged', request['startup_index'])
         selection = json.loads(bounded_read(staged['selection_path'], 1048576),
                                object_pairs_hook=unique_object)
-        report = prepare(staged['profile_path'], state_tool, output / 'prepared')
+        report = prepare(staged['profile_path'], state_tool, output / 'prepared',
+                         recompress_content=recompress_content)
         manifest_bytes = bounded_read(output / 'prepared/profile.json', 1048576)
         manifest_sha = sha(manifest_bytes)
         checked = load_prepared_profile(output / 'prepared', manifest_sha)
@@ -80,10 +84,12 @@ def main():
     parser.add_argument('--request', type=Path, required=True)
     parser.add_argument('--state-tool', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--recompress-content', action='store_true')
     args = parser.parse_args()
     try:
         request = json.loads(bounded_read(args.request, 65536), object_pairs_hook=unique_object)
-        receipt = prepare_selection(ROOT, request, args.state_tool.resolve(), args.out)
+        receipt = prepare_selection(ROOT, request, args.state_tool.resolve(), args.out,
+                                    recompress_content=args.recompress_content)
     except (ValueError, OSError, KeyError, TypeError) as error:
         parser.error(str(error))
     print(json.dumps(receipt, indent=2))
