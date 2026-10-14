@@ -1,3 +1,27 @@
+# Demo selection to target-image controller — 2026-10-14
+
+Active full13 hardware/web release goal; owner asks selectable earlier demos
+and a full-song default. Eight choices are catalogued, no default admitted.
+Adapted Event Horizon host playback completes108.8s/all7entries, zero loss,
+nonclipped active PCM; end SAVE/reload byte-identical. Retained song render
+at build/demo-preload-review/event-horizon-showcase.wav (ignored), owner
+musical review requested. Separate all13 Event diagnostic link865568/868836B
+passes layout/audit, but no physical acceptance/installability claim.
+New tools/native/build_demo_image.py connects ordered selection preparation
+(recompression+digest) to production diagnostic builder and checks exact
+content/module/startup/artifact identity before image.json success receipt.
+22focused local checks pass including default-off disarmed SAVE builder flag.
+Checked link receipt also accepted exact retained Event target bytes on Hera;
+fresh controller end-to-end link still needed. Web route/HTTPbuildservice/
+update transport, accepteddefault and physical/persistence/recovery gates open.
+SAVEoption worker2e15d3e1f23ef8f8c240bd31bd41b445d9541b45 GitHubbacked;
+coordinator cherry-pick a347757094869edc46c23cdfb5d9036e6f217ea4 backed.
+Target sizeofworker completing aggregate candidate allocations on Hera;
+root owns controller/newtest, no devicecommands. Save-option integration
+uses real production service with storage admission/io unbound; not testwrapper.
+Next fresh all13 controller link on Hera, review new controller, then compose
+actual installer route/service/transport through packaging/recovery gates.
+
 # Selectable demo catalogue checkpoint — 2026-10-14
 
 export_image_catalogue.py now exports four restored original demo choices

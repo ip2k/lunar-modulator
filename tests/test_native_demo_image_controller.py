@@ -1,0 +1,84 @@
+# SPDX-License-Identifier: MIT
+"""Reject target receipts that drift from ordered preload identity."""
+from copy import deepcopy
+from pathlib import Path
+import sys
+from types import SimpleNamespace
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools/native'))
+from build_demo_image import checked_link_receipt
+from prepare_image_profile import sha
+
+
+def inputs():
+    assets = [dict(kind='project', bytes=2, packed_sha256=sha(b'ab')),
+              dict(kind='project', bytes=3, packed_sha256=sha(b'cde'))]
+    selection = dict(prepared_profile_sha256=sha(b'manifest'), request_sha256=sha(b'request'),
+                     content=assets, packed_content_bytes=5, project_ids=['second', 'first'],
+                     startup_index=1, startup_project_id='first')
+    prepared = SimpleNamespace(report={'module_selection': {'selected': ['trio'], 'header_sha256': sha(b'header')}})
+    verification = dict(embedded_content=dict(prepared_sha256=selection['prepared_profile_sha256'],
+                        assets=deepcopy(assets), asset_count=2, packed_content_bytes=5,
+                        packed_sha256=[a['packed_sha256'] for a in assets]),
+                        startup_project=dict(index=1, runtime_hook_linked=True),
+                        module_selection=deepcopy(prepared.report['module_selection']),
+                        installable=False, hardware_tested=False,
+                        key_audit=dict(passed=True, n_pending=0, n_fail=0),
+                        elf_sha256=sha(b'elf'), flash_layout='expanded-d9000',
+                        app_budget_bytes=100, probe_return_to_rom_seconds=20, flash_write_range='empty')
+    artifact = dict(installable=False, hardware_tested=False, hardware_admitted=False,
+                    layout_passed=True, key_audit=dict(passed=True, n_pending=0, n_fail=0),
+                    elf_sha256=sha(b'elf'), app_sha256=sha(b'app'), app_bytes=3,
+                    flash_layout='expanded-d9000', app_budget_bytes=100)
+    return selection, prepared, verification, artifact, b'app', b'elf'
+
+
+def test_checked_link_keeps_order_startup_and_actual_output_identity():
+    receipt = checked_link_receipt(*inputs())
+    assert receipt['project_ids'] == ['second', 'first']
+    assert receipt['startup_index'] == 1
+    assert receipt['startup_project_id'] == 'first'
+    assert receipt['app_sha256'] == sha(b'app')
+    for flag in ('installable', 'hardware_admitted', 'hardware_tested', 'native_ram_verified',
+                 'native_playback_verified', 'full_song_default_accepted'):
+        assert receipt[flag] is False
+
+
+@pytest.mark.parametrize('fault', [
+    'reorder', 'startup', 'bool-index', 'manifest', 'modules', 'payload', 'app', 'elf',
+    'pending', 'fail', 'layout', 'admission', 'continuous', 'write-range', 'budget',
+])
+def test_changed_link_is_refused(fault):
+    selection, prepared, verification, artifact, app, elf = inputs()
+    if fault == 'reorder': verification['embedded_content']['assets'].reverse()
+    elif fault == 'startup': verification['startup_project']['index'] = 0
+    elif fault == 'bool-index': verification['startup_project']['index'] = True
+    elif fault == 'manifest': verification['embedded_content']['prepared_sha256'] = sha(b'other')
+    elif fault == 'modules': verification['module_selection']['selected'].append('shapes')
+    elif fault == 'payload': verification['embedded_content']['packed_sha256'][0] = sha(b'other')
+    elif fault == 'app': app = b'changed'
+    elif fault == 'elf': elf = b'changed'
+    elif fault == 'pending': artifact['key_audit']['n_pending'] = 1
+    elif fault == 'fail': verification['key_audit']['n_fail'] = 1
+    elif fault == 'layout': artifact['layout_passed'] = False
+    elif fault == 'admission': artifact['installable'] = True
+    elif fault == 'continuous': verification['probe_return_to_rom_seconds'] = 0
+    elif fault == 'write-range': verification['flash_write_range'] = 'nonempty'
+    elif fault == 'budget': artifact['app_budget_bytes'] = verification['app_budget_bytes'] = 2
+    with pytest.raises(ValueError):
+        checked_link_receipt(selection, prepared, verification, artifact, app, elf)
+
+
+def test_new_build_requires_real_disarmed_save_service():
+    values = list(inputs())
+    with pytest.raises(ValueError, match='SAVE service'):
+        checked_link_receipt(*values, require_save_service=True)
+    values[2]['project_save_service'] = dict(linked=True,
+        compile_definition='LUNAR_PROJECT_SAVE_SERVICE=1', storage_admitted=False,
+        flash_io_bound=False, save_service_armed=False, runtime_verified=False, hardware_tested=False)
+    checked_link_receipt(*values, require_save_service=True)
+    values[2]['project_save_service']['flash_io_bound'] = True
+    with pytest.raises(ValueError, match='SAVE service'):
+        checked_link_receipt(*values, require_save_service=True)
