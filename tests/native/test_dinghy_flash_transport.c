@@ -12,7 +12,8 @@ static unsigned tx_count;
 static int nor_wel, nor_wip, destructive_pending, ready_observed;
 static unsigned status_polls_to_clear, sfc_restores;
 static int hold_wip, fail_status_forever;
-static unsigned status_polls, failstop_limit;
+static unsigned status_polls, failstop_limit, timer_step_ticks;
+static int timer_wrap_on_commit;
 static jmp_buf failstop_env;
 static int failstop_armed;
 
@@ -49,6 +50,7 @@ static void test_cs_level(int high)
         nor_wip = 1;
         nor_wel = 0;
         status_polls_to_clear = hold_wip ? (unsigned)-1 : 1u;
+        if (timer_wrap_on_commit) reg_timer = UINT32_MAX - 24000u;
     }
     if (destructive_pending && tx_bytes[0] == 0x05 && failstop_armed &&
         status_polls >= failstop_limit && (hold_wip || fail_status_forever))
@@ -58,6 +60,7 @@ static int test_spi_wait(void)
 {
     unsigned current = transfer_index++;
     int receive = (reg_spi & 0x1000u) != 0;
+    reg_timer += timer_step_ticks;
     if (!receive && tx_count < sizeof tx_bytes) tx_bytes[tx_count++] = (uint8_t)reg_buf;
     if (receive && tx_count && tx_bytes[0] == 0x05) {
         ++status_polls;
@@ -116,6 +119,8 @@ static void reset_mock(uint32_t iomap)
     status_polls_to_clear = status_polls = sfc_restores = 0;
     hold_wip = fail_status_forever = failstop_armed = 0;
     failstop_limit = 0;
+    timer_step_ticks = 0;
+    timer_wrap_on_commit = 0;
 }
 static void replies_set(const uint8_t *values, unsigned count)
 {
@@ -288,6 +293,65 @@ static void test_unreadable_status_never_restores_xip(void)
     assert((reg_iomap & 0x20u) == 0u);
     assert((reg_out & 1u) != 0u);
 }
+static void test_ready_deadline_uses_post_transaction_time(void)
+{
+    static const uint8_t wel[] = {0x02};
+    static const uint8_t payload[] = {0xA5};
+    uint32_t took = 0;
+
+    /* Each status transaction takes 5 ms. The ready observation occurs after
+     * the 10 ms budget, but XIP must stay off until that observation. */
+    reset_mock(0x20u);
+    replies_set(wel, 1);
+    timer_step_ticks = 60000u;
+    assert(fl_prog_ram(0x97000u, payload, sizeof payload, &took) == -4);
+    assert(took == 15000u);
+    assert(ready_observed && !nor_wip && status_polls == 4u);
+    assert_restored(0x20u, 0x1255u);
+
+    /* A normal completion inside the deadline remains success. */
+    reset_mock(0);
+    replies_set(wel, 1);
+    timer_step_ticks = 10000u;
+    took = 0;
+    assert(fl_prog_ram(0x97000u, payload, sizeof payload, &took) == 0);
+    assert(took == 2500u);
+    assert(ready_observed && !nor_wip && status_polls == 4u);
+    assert_restored(0, 0x1255u);
+}
+
+static void test_unreadable_late_status_preserves_transport_error(void)
+{
+    static const uint8_t wel[] = {0x02};
+    static const uint8_t payload[] = {0xA5};
+    uint32_t took = 0;
+
+    reset_mock(0x20u);
+    replies_set(wel, 1);
+    timer_step_ticks = 50000u;
+    fail_transfer = 9u; /* first readiness status receive, after program opcode */
+    assert(fl_prog_ram(0x97000u, payload, sizeof payload, &took) == -5);
+    assert(took == 16666u);
+    assert(ready_observed && !nor_wip && status_polls == 5u);
+    assert_restored(0x20u, 0x1255u);
+}
+
+static void test_ready_deadline_elapsed_time_survives_timer_wrap(void)
+{
+    static const uint8_t wel[] = {0x02};
+    static const uint8_t payload[] = {0xA5};
+    uint32_t took = 0;
+
+    reset_mock(0);
+    replies_set(wel, 1);
+    timer_step_ticks = 24000u;
+    timer_wrap_on_commit = 1;
+    assert(fl_prog_ram(0x97000u, payload, sizeof payload, &took) == 0);
+    assert(took == 6000u);
+    assert(ready_observed && !nor_wip && status_polls == 4u);
+    assert_restored(0, 0x1255u);
+}
+
 static void test_exit_preserves_pin_owner_bit(void)
 {
     unsigned bit;
@@ -314,6 +378,9 @@ int main(void)
     test_status_poll_error_retries_until_verified_ready();
     test_unprovable_ready_never_restores_xip();
     test_unreadable_status_never_restores_xip();
+    test_ready_deadline_uses_post_transaction_time();
+    test_unreadable_late_status_preserves_transport_error();
+    test_ready_deadline_elapsed_time_survives_timer_wrap();
     test_exit_preserves_pin_owner_bit();
     return 0;
 }
