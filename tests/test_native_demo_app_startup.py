@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 
 import pytest
 
@@ -56,7 +57,6 @@ def startup_tools(tmp_path_factory):
     fragment = build_root / "demo-app.mk"
     native = ROOT / "firmware/native"
     tlsf = ROOT / "firmware/third_party/tlsf"
-    tinf = ROOT / "firmware/third_party/tinf"
     harness = ROOT / "tests/native/demo_app_startup.c"
     harness_obj = build / "sim/test/demo_app_startup.o"
     sources = [native / name for name in (
@@ -68,12 +68,15 @@ def startup_tools(tmp_path_factory):
     fragment.write_text(
         f"{build / 'demo-app-startup'}: $(SIM_APP_OBJ) {harness_obj} "
         f"$(SIM_ENGINE_OBJ) $(SIM_META_OBJ) " + " ".join(map(str, objects)) + "\n"
-        f"\t$(CXX) $(OPT) $(EXTRA) -Wl,--wrap=lunar_instance_pool_alloc -o $@ $^ -lm\n"
+        f"\t$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm\n"
         f"{harness_obj}: {harness}\n\t@mkdir -p $(dir $@)\n"
         f"\t$(CC) $(SIM_CFLAGS) -Istate -I{native} -I{tlsf} -c $< -o $@\n" +
         "".join(
             f"{obj}: {source}\n\t@mkdir -p $(dir $@)\n"
-            f"\t$(CC) $(SIM_CFLAGS) -Istate -I{native} -I{tlsf} -c $< -o $@\n"
+            f"\t$(CC) $(SIM_CFLAGS) -Istate -I{native} -I{tlsf} "
+            + ("-Dlunar_instance_pool_alloc=lunar_instance_pool_alloc_actual "
+               if source.name == "instance_pool.c" else "")
+            + "-c $< -o $@\n"
             for obj, source in zip(objects, sources)))
     subprocess.run([
         "make", "-s", "--no-print-directory", "-C", str(ROOT / "engines"),
@@ -182,12 +185,14 @@ def compressed_startup_tools(request, tmp_path_factory):
     """Build the cold-start fixture with exact generated tables and sanitizers."""
     import importlib.util
     import shutil
-    import sys
 
     cc, cxx = shutil.which("cc"), shutil.which("c++")
     if not cc or not cxx:
         pytest.skip("no host C/C++ compiler")
     shapes_voices = request.param
+    # Linux ASan benefits from a fixed executable mapping; Darwin rejects -no-pie.
+    pie_compile = "-fno-pie " if sys.platform.startswith("linux") else ""
+    pie_link = "-fno-pie -no-pie " if sys.platform.startswith("linux") else ""
     build_root = tmp_path_factory.mktemp("native-compressed-demo-startup-shapes" + str(shapes_voices))
     modules = _production_modules(build_root)
     build = build_root / "engine-build"
@@ -261,25 +266,26 @@ def compressed_startup_tools(request, tmp_path_factory):
         "$(SIM_ENGINE_OBJ) $(SIM_META_OBJ) " +
         " ".join(map(str, native_objects + wave_objects)) + "\n" +
         "\t$(CXX) $(OPT) $(EXTRA) -fsanitize=address,undefined " +
-        "-fno-omit-frame-pointer -fno-pie -no-pie " +
-        "-Wl,--wrap=lunar_instance_pool_alloc -o $@ $^ -lm\n" +
+        "-fno-omit-frame-pointer " + pie_link + "-o $@ $^ -lm\n" +
         f"{harness_obj}: {harness}\n\t@mkdir -p $(dir $@)\n" +
         "\t$(CC) $(SIM_CFLAGS) -Istate -I" + str(native) + " -I" + str(tlsf) +
         " -I" + str(generated) + " -I" + str(tinf) +
         " -DLUNAR_COMPRESSED_WAVETABLES=1 -DINSTANCE_BYTES=165376u " +
-        "-fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -c $< -o $@\n" +
+        "-fsanitize=address,undefined -fno-omit-frame-pointer " + pie_compile + "-c $< -o $@\n" +
         "".join(
             f"{obj}: {source}\n\t@mkdir -p $(dir $@)\n"
             "\t$(CC) $(SIM_CFLAGS) -Istate -I" + str(native) + " -I" + str(tlsf) +
             " -I" + str(generated) + " -I" + str(tinf) +
-            " -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -c $< -o $@\n"
+            (" -Dlunar_instance_pool_alloc=lunar_instance_pool_alloc_actual"
+             if source.name == "instance_pool.c" else "") +
+            " -fsanitize=address,undefined -fno-omit-frame-pointer " + pie_compile + "-c $< -o $@\n"
             for obj, source in zip(native_objects, native_sources)) +
         "".join(
             f"{obj}: {generated / ('resources_' + namespace + '.cc')}\n"
             "\t@mkdir -p $(dir $@)\n"
             "\t$(CXX) -std=c++11 $(OPT) $(EXTRA) -I" + str(generated) +
             " -I" + str(ROOT / "engines/third_party/mutable") +
-            " -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -c $< -o $@\n"
+            " -fsanitize=address,undefined -fno-omit-frame-pointer " + pie_compile + "-c $< -o $@\n"
             for obj, namespace in zip(wave_objects, ("plaits", "braids"))))
     subprocess.run([
         "make", "-s", "--no-print-directory", "-C", str(ROOT / "engines"),

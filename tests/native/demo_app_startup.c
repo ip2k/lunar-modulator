@@ -22,11 +22,11 @@ static size_t peak_live_bytes;
 static unsigned peak_live_allocations;
 static size_t allocation_attempts, allocation_failures, largest_request;
 static size_t failed_request, failed_attempt, failed_live_bytes;
-extern void *__real_lunar_instance_pool_alloc(lunar_instance_pool_t *, size_t);
-void *__wrap_lunar_instance_pool_alloc(lunar_instance_pool_t *p, size_t n) {
+extern void *lunar_instance_pool_alloc_actual(lunar_instance_pool_t *, size_t);
+void *lunar_instance_pool_alloc(lunar_instance_pool_t *p, size_t n) {
   ++allocation_attempts;
   if (n > largest_request) largest_request = n;
-  void *result = __real_lunar_instance_pool_alloc(p, n);
+  void *result = lunar_instance_pool_alloc_actual(p, n);
   if (!result) {
     ++allocation_failures;
     failed_request = n;
@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
   }
 #ifdef LUNAR_COMPRESSED_WAVETABLES
   if (lunar_wave_tables_init() != 0 || !compressed_wave_tables_match()) {
-    fprintf(stderr, "compressed wavetable startup/equality check failed\\n");
+    fprintf(stderr, "compressed wavetable startup/equality check failed\n");
     free(bytes); return 4;
   }
 #endif
