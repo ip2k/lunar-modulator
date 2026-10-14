@@ -1,0 +1,22 @@
+Offline target unit-size follow-up, source f3779b78082cceec74852120306efcaca15abcf4.
+Release-config pool from retained all-production link verification.json: 216,064 B = 192,000 + 57,088 indexed-TFT credit - 33,024 raw wavetable bytes. Static link/config only; no startup runtime/hardware acceptance.
+
+Canonical JSON unit selections:
+Satellite Hearts: Comet, Drawbar, Shapes, Drawbar; master Hall, Limit.
+Afterglow Relay Showcase: Drums, Macro, Macro, DX7; inserts Filter, Drive, Echo; master Hall, Limit.
+Packet Bloom Showcase: Crater, Phase Bend, Macro Heavy, Schwung Sophie; master Hall, Limit.
+Legacy packet-bloom.lunar is a distinct older project: Drums, Macro, Macro, DX7; Hall, Limit.
+
+Established target payload sizes in bytes: Shapes 206,904; Macro 19,872; Drums 7,648; Echo 65,744; Comet 10,240; Drawbar 5,072 for the null definition used by this project; DX7 16,188 at 44,118 Hz (OwnLut false); Filter 656; Drive 240. Every pool request adds a 16-byte header. Existing evidence objects for Shapes/Macro/Drums/Echo are recorded in current-evidence.txt; retained pi32v2 link function bodies were inspected for other listed values but were not saved, so those values need reproducible receipt extraction before being treated as durable audited evidence.
+
+Satellite partial total is already 232,424 B (Shapes + Comet + two Drawbars plus 4 headers), 16,360 B over gross pool before Hall, Limit, allocator/TLSF overhead or any other users. That proves the exact candidate cannot fit this pool configuration if sizes are accepted; it does not identify a runtime refusal or assert device behavior.
+
+Afterglow known subtotal is Drums + two Macro + DX7 + Filter + Drive + Echo = 130,220 B payload + six 16-byte headers = 130,316 B. Gross remainder for Hall, Limit and allocator effects is 85,748 B. Hall/Limit exact target sizes were not measured; fit unresolved.
+
+Packet Bloom Showcase and legacy Packet Bloom exact target size totals were not obtained. Crater, Phase Bend, Macro Heavy, Sophie, Hall and Limit need compile-time target measurements; Sophie is not just sizeof(Instance), because its shim adds a declared 75 KiB arena. Do not infer target fit from x86 host startup tests.
+
+Attempted pi32v2 objdump bound range extraction was unsafe: this objdump ignored --start-address/--stop-address and emitted a full ELF disassembly. It was stopped and output was discarded. Next measurement should use the existing compile-only size path (tools/jieli/sizes.cc, sizes_felucca.c, analyze.py) and emit only constant symbols; avoid disassembling the linked image. Hall/Limit include rate-derived MakeLayout sizes at 44,118 Hz.
+
+Native project boot allocates and frees sequence/DX7 staging before engine reservation; engine payload reservations are by unit index before constructors. Do not add sequencer staging to the later simultaneous total. Totals omit TLSF fragmentation/metadata and any other pool clients, and are gross request lower bounds, not a runtime fit guarantee.
+
+No device, USB, MIDI, flash, power, reboot or install action occurred. No production source changed. Exact link remains not installable, not a hardware candidate, not hardware-tested; startup runtime unverified.
