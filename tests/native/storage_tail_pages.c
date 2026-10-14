@@ -1,9 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* Test-only packed logical slots with each physical sector's final page reserved. */
+/* Test-only packed logical slots over the documented storage48 sector map. */
 #include "project_store.h"
 #include <assert.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 
 #define PHYS_SECTOR 4096u
@@ -11,23 +10,35 @@
 #define DATA_PER_SECTOR (PHYS_SECTOR-TAIL_PAGE)
 #define PHYS_PER_SLOT 12u
 #define LOGICAL_SLOT (11u*LP_SECTOR)
-#define BODY_MAX 12000u
-#define FLASH_BYTES (2u*PHYS_PER_SLOT*PHYS_SECTOR)
+#define BODY_MAX 43130u
+#define FLASH_BYTES 0x100000u
 
+/* Offsets from the documented storage48 migration candidate. */
+static const uint32_t slot_sector[2][PHYS_PER_SLOT]={
+    {0x0d9000u,0x0da000u,0x0db000u,0x0dc000u,0x0dd000u,0x0de000u,0x0df000u,
+     0x0e5000u,0x0e6000u,0x0e7000u,0x0e8000u,0x0ea000u},
+    {0x0eb000u,0x0ec000u,0x0ed000u,0x0ee000u,0x0ef000u,0x0f0000u,0x0f1000u,
+     0x0f2000u,0x0f3000u,0x0f4000u,0x0f5000u,0x0f6000u}
+};
 static uint8_t flash[FLASH_BYTES], initial[FLASH_BYTES];
 static uint8_t old_body[BODY_MAX], new_body[BODY_MAX];
-static uint32_t old_len=8193u, new_len=9473u;
+static uint32_t old_len=BODY_MAX, new_len=BODY_MAX;
 static unsigned mutations, fail_at, failure_mode, programs;
 
 static uint32_t map_byte(unsigned slot,uint32_t logical) {
     uint32_t sector=logical/DATA_PER_SECTOR;
     uint32_t within=logical%DATA_PER_SECTOR;
     assert(slot<2u && sector<PHYS_PER_SLOT);
-    return slot*PHYS_PER_SLOT*PHYS_SECTOR+sector*PHYS_SECTOR+within;
+    return slot_sector[slot][sector]+within;
 }
 static uint32_t logical_slot(uint32_t off) { return off/LOGICAL_SLOT; }
 static uint32_t logical_in_slot(uint32_t off) { return off%LOGICAL_SLOT; }
-
+static int mapped_sector(uint32_t addr) {
+    for(unsigned s=0;s<2;s++)
+      for(unsigned i=0;i<PHYS_PER_SLOT;i++)
+        if(addr>=slot_sector[s][i] && addr<slot_sector[s][i]+PHYS_SECTOR) return 1;
+    return 0;
+}
 static int mutate_should_fail(void) { return ++mutations==fail_at; }
 static int read_packed(unsigned slot,uint32_t off,uint8_t *out,uint32_t n) {
     if(slot>=2u || off>LOGICAL_SLOT || n>LOGICAL_SLOT-off) return -1;
@@ -49,12 +60,12 @@ static int io_read(void *ctx,uint32_t off,void *out,uint32_t n) {
 static int io_erase(void *ctx,uint32_t off) {
     uint32_t end,q,first,last; unsigned slot; (void)ctx;
     if(off%LP_SECTOR || off>=2u*LOGICAL_SLOT) return -1;
-    if(programs) return -1; /* begin() must finish all erase callbacks before writes. */
+    if(programs) return -1; /* begin() erases the inactive slot before writes. */
     slot=(unsigned)logical_slot(off); q=logical_in_slot(off); end=q+LP_SECTOR;
     if(slot>=2u || end>LOGICAL_SLOT) return -1;
     first=q/DATA_PER_SECTOR; last=(end-1u)/DATA_PER_SECTOR;
     for(uint32_t sector=first;sector<=last;sector++) {
-        uint32_t phys=(slot*PHYS_PER_SLOT+sector)*PHYS_SECTOR;
+        uint32_t phys=slot_sector[slot][sector];
         int fail=mutate_should_fail();
         uint32_t n=(fail&&failure_mode==1u)?PHYS_SECTOR/2u:PHYS_SECTOR;
         memset(flash+phys,0xff,n);
@@ -110,35 +121,42 @@ static void write_body(const uint8_t *body,uint32_t n) {
     assert(!lunar_project_write(&store,0,body,n));
     assert(!lunar_project_commit(&store,n));
 }
-static void assert_tail_pages(void) {
-    for(unsigned slot=0;slot<2;slot++)
+static void assert_tail_pages_and_unused_suffix(void) {
+    for(unsigned slot=0;slot<2;slot++) {
       for(unsigned sector=0;sector<PHYS_PER_SLOT;sector++) {
-        const uint8_t *p=flash+(slot*PHYS_PER_SLOT+sector)*PHYS_SECTOR;
+        const uint8_t *p=flash+slot_sector[slot][sector];
         for(unsigned i=DATA_PER_SECTOR;i<PHYS_SECTOR;i++) assert(p[i]==0xff);
       }
+      /* The logical slot ends 1,024 bytes before the packed physical capacity. */
+      const uint8_t *last=flash+slot_sector[slot][PHYS_PER_SLOT-1u];
+      for(unsigned i=(LOGICAL_SLOT%DATA_PER_SECTOR);i<DATA_PER_SECTOR;i++) assert(last[i]==0xff);
+    }
 }
-/* Both stock predicates require this leading signature. CRC is intentionally
- * not evaluated because the invariant being tested rejects at that first gate. */
-static int spl_candidate_rejected(const uint8_t *p) {
+/* Only the common outer signature gate is evaluated here; CRC predicates are
+ * not reimplemented. All-FF reserved pages fail at this first condition. */
+static int spl_signature_gate_rejects(const uint8_t *p) {
     uint16_t signature=(uint16_t)p[6]|(uint16_t)p[7]<<8;
     return signature!=0x5441u;
 }
-static int cleanup_candidate_rejected(const uint8_t *p) {
+static int cleanup_signature_gate_rejects(const uint8_t *p) {
     uint16_t signature=(uint16_t)p[6]|(uint16_t)p[7]<<8;
     return signature!=0x5441u;
 }
-static void assert_all_candidates_rejected(void) {
+static void assert_candidate_signature_gates(void) {
     for(unsigned slot=0;slot<2;slot++)
       for(unsigned sector=0;sector<PHYS_PER_SLOT;sector++) {
-        const uint8_t *p=flash+(slot*PHYS_PER_SLOT+sector)*PHYS_SECTOR+
-                         DATA_PER_SECTOR;
-        assert(spl_candidate_rejected(p));
-        assert(cleanup_candidate_rejected(p));
+        const uint8_t *p=flash+slot_sector[slot][sector]+DATA_PER_SECTOR;
+        assert(spl_signature_gate_rejects(p));
+        assert(cleanup_signature_gate_rejects(p));
       }
 }
+static void assert_outside_storage_unchanged(void) {
+    for(uint32_t i=0;i<FLASH_BYTES;i++)
+        if(!mapped_sector(i)) assert(flash[i]==initial[i]);
+}
 static void assert_active_physical_unchanged(unsigned slot) {
-    uint32_t start=slot*PHYS_PER_SLOT*PHYS_SECTOR;
-    assert(!memcmp(flash+start,initial+start,PHYS_PER_SLOT*PHYS_SECTOR));
+    for(unsigned s=0;s<PHYS_PER_SLOT;s++)
+        assert(!memcmp(flash+slot_sector[slot][s],initial+slot_sector[slot][s],PHYS_SECTOR));
 }
 static void sweep_transition(unsigned old_slot,uint32_t old_gen,
                              const uint8_t *old_data,uint32_t old_n,
@@ -160,7 +178,8 @@ static void sweep_transition(unsigned old_slot,uint32_t old_gen,
             if(!rc) rc=lunar_project_commit(&update,next_n);
             assert(rc!=0);
             assert_active_physical_unchanged(old_slot);
-            assert_tail_pages(); assert_all_candidates_rejected();
+            assert_outside_storage_unchanged();
+            assert_tail_pages_and_unused_suffix(); assert_candidate_signature_gates();
             scan.io=io; scan.slot_bytes=LOGICAL_SLOT;
             assert(!lunar_project_scan(&scan,&found,&got_gen,&len));
             if(got_gen==next_gen) {
@@ -175,42 +194,54 @@ static void sweep_transition(unsigned old_slot,uint32_t old_gen,
         }
     }
 }
+static void initialize_sentinel_flash(void) {
+    for(uint32_t i=0;i<FLASH_BYTES;i++) flash[i]=(uint8_t)(i*37u+23u);
+    /* Model the already-formatted reserved pages; initial migration remains unresolved. */
+    for(unsigned slot=0;slot<2;slot++) {
+      for(unsigned s=0;s<PHYS_PER_SLOT;s++)
+        memset(flash+slot_sector[slot][s]+DATA_PER_SECTOR,0xff,TAIL_PAGE);
+      memset(flash+slot_sector[slot][PHYS_PER_SLOT-1u]+(LOGICAL_SLOT%DATA_PER_SECTOR),
+             0xff,DATA_PER_SECTOR-(LOGICAL_SLOT%DATA_PER_SECTOR));
+    }
+}
 int main(void) {
     lunar_project_store store={0};
     int slot; uint32_t gen,len;
+    uint8_t byte=0,probe[2];
     fill_body(old_body,old_len,"OLD_BODY",0x10293847u);
     fill_body(new_body,new_len,"NEW_BODY",0xabcdef01u);
-    memset(flash,0xff,sizeof flash);
-    memset(initial,0xff,sizeof initial);
-    write_body(old_body,old_len);
+    initialize_sentinel_flash();
+    assert(!lunar_project_begin(&store,&io,LOGICAL_SLOT));
+    assert(!lunar_project_write(&store,0,old_body,old_len));
+    assert(!lunar_project_commit(&store,old_len));
     store.io=io; store.slot_bytes=LOGICAL_SLOT;
     assert(!lunar_project_scan(&store,&slot,&gen,&len));
     assert(slot==0 && gen==0 && len==old_len);
     memcpy(initial,flash,sizeof flash);
-    assert_tail_pages(); assert_all_candidates_rejected();
+    assert_tail_pages_and_unused_suffix(); assert_candidate_signature_gates();
     sweep_transition(0,0,old_body,old_len,1,1,new_body,new_len);
-    /* Materialize generation 1, then fault the 1 -> 2 replacement in slot 0. */
+    /* Materialize generation 1, then fault the 1-to-2 replacement in slot 0. */
     memcpy(flash,initial,sizeof flash); mutations=0; fail_at=0; programs=0;
     write_body(new_body,new_len); memcpy(initial,flash,sizeof flash);
-    assert_tail_pages(); assert_all_candidates_rejected();
+    assert_tail_pages_and_unused_suffix(); assert_candidate_signature_gates();
     sweep_transition(1,1,new_body,new_len,0,2,old_body,old_len);
 
-    /* Mapping resets at slot boundary; malformed requests reject before mutation. */
+    /* Invalid store size and backend ranges must reject before any mutation. */
     memcpy(flash,initial,sizeof flash); mutations=0; fail_at=0; programs=0;
     store.io=io; store.slot_bytes=LOGICAL_SLOT;
     assert(lunar_project_begin(&store,&io,LOGICAL_SLOT+1u));
     assert(!mutations);
-    memset(&store,0,sizeof store);
-    assert(!lunar_project_begin(&store,&io,LOGICAL_SLOT));
     {
         unsigned before=mutations;
-        uint8_t byte=0;
-        assert(lunar_project_write(&store,LOGICAL_SLOT,&byte,1u));
-        assert(lunar_project_write(&store,UINT32_MAX,&byte,1u));
-        assert(io_program(NULL,2u*LOGICAL_SLOT,&byte,1u));
+        assert(io_read(NULL,UINT32_MAX,&byte,1u));
+        assert(io_read(NULL,2u*LOGICAL_SLOT-1u,probe,2u));
+        assert(io_program(NULL,UINT32_MAX,&byte,1u));
+        assert(io_program(NULL,2u*LOGICAL_SLOT-1u,&probe,2u));
+        assert(io_erase(NULL,1u));
         assert(io_erase(NULL,2u*LOGICAL_SLOT));
         assert(mutations==before);
     }
-    assert_tail_pages(); assert_all_candidates_rejected();
+    assert_tail_pages_and_unused_suffix(); assert_candidate_signature_gates();
+    assert_outside_storage_unchanged();
     return 0;
 }

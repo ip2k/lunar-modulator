@@ -15,4 +15,4 @@ def test_packed_slots_reserve_tail_pages(tmp_path):
         *native_host_flags(), "-I" + str(ROOT / "firmware/native"),
         str(ROOT / "tests/native/storage_tail_pages.c"), "-o", str(binary),
     ], check=True)
-    subprocess.run([str(binary)], check=True, timeout=20)
+    subprocess.run([str(binary)], check=True, timeout=180)
