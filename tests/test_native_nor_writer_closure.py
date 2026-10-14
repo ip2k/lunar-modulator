@@ -155,6 +155,8 @@ fl_write:
  204eacc: r1 = b[r4+r0] (u)
  204eace: r2 = sp + 4
  204ead2: b[r2+r0] = r1
+ 204eadc: call -728 <irq_save : 204e808 >
+ 204eae4: call -474 <fm1_wdt_stop_checked : 204e90e >
  204eaea: r0 = r8
  204eaec: call -398 <fl_far : 204e962 >
  204eaf0: r7 = r0
@@ -162,8 +164,10 @@ fl_write:
  204eaf4: r3 = sp + 260
  204eafc: call r7
 fl_far:
- 204e962: [sp] = r0
+ 204e962: sp += -4
+ 204e964: [sp] = r0
  204e966: r0 = [sp]
+ 204e968: sp += 4
  204e96a: rts
 ota_erase:
  2050bda: r1 = sp + 0
@@ -181,6 +185,10 @@ lunar_nor_closure_analysis_force_retain:
         self.assertEqual(result['indirect_dispatch_registers'],
                          {'fl_erase4k': ['r2'], 'fl_write': ['r7']})
         self.assertTrue(result['program_source_copied_to_sp_plus_4_before_dispatch'])
+        self.assertTrue(result['program_copy_then_irq_save_then_wdt_stop_order_verified'])
+        self.assertEqual(result['dispatch_helper_exact_ops'],
+                         ['sp += -4', '[sp] = r0', 'r0 = [sp]', 'sp += 4', 'rts'])
+        self.assertTrue(result['dispatch_helper_stack_delta_is_zero'])
         self.assertFalse(result['runtime_stack_address_in_sram_proven'])
 
     def test_linked_wrapper_audit_rejects_xip_target_or_unstaged_pointer(self):
@@ -199,6 +207,8 @@ fl_write:
  204eacc: r1 = b[r4+r0] (u)
  204eace: r2 = sp + 4
  204ead2: b[r2+r0] = r1
+ 204eadc: call -728 <irq_save : 204e808 >
+ 204eae4: call -474 <fm1_wdt_stop_checked : 204e90e >
  204eaea: r0 = r8
  204eaec: call -398 <fl_far : 204e962 >
  204eaf0: r7 = r0
@@ -206,8 +216,10 @@ fl_write:
  204eaf4: r3 = sp + 260
  204eafc: call r7
 fl_far:
- 204e962: [sp] = r0
+ 204e962: sp += -4
+ 204e964: [sp] = r0
  204e966: r0 = [sp]
+ 204e968: sp += 4
  204e96a: rts
 ota_erase:
  2050bda: r1 = sp + 0
@@ -227,6 +239,12 @@ lunar_nor_closure_analysis_force_retain:
             (disassembly.replace(' 204eaea: r0 = r8',
                                  ' 204eaea: r0 = r4'),
              'fl_write missing ordered target evidence'),
+            (disassembly.replace(' 204ead2: b[r2+r0] = r1\n 204eadc: call -728 <irq_save : 204e808 >',
+                                 ' 204eadc: call -728 <irq_save : 204e808 >\n 204ead2: b[r2+r0] = r1'),
+             'fl_write missing ordered target evidence'),
+            (disassembly.replace(' 204e966: r0 = [sp]\n 204e968: sp += 4',
+                                 ' 204e966: r0 = [sp]\n 204e968: r0 = r4\n 204e96a: sp += 4'),
+             'fl_far is not the exact stack-preserving'),
             (disassembly.replace('r1 = sp + 4\n 204eaf4: r3 = sp + 260',
                                  'r1 = r4\n 204eaf4: r3 = sp + 260'),
              'missing ordered target evidence'),
