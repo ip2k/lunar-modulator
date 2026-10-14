@@ -298,3 +298,44 @@ def test_app_receipts_bind_exact_bytes_without_duplicate_verification_size():
             _verify_app_receipts(image_receipt, artifact_receipt, verification, app, elf)
     with pytest.raises(ValueError, match="does not bind exact ELF/app length"):
         _verify_app_receipts(image, artifact, {"elf_sha256": "0" * 64}, app, elf)
+
+
+def test_capture_reaches_inspection_after_contract_and_name_validation(monkeypatch):
+    """Exercise capture orchestration against retained private inputs without writing a tuple."""
+    import capture_trusted_build_tuple as capture
+
+    run_root = Path("/home/claude/.local/share/codex-private/continuous-tuple-20261014/run-298ff12")
+    output = run_root / "build-output" / "build"
+    invocation_root = run_root / "build-output"
+    source = run_root / ".build-output-source-f5c0b2322e130311"
+    catalogue = run_root / ".build-output-catalogue-762487aecc203a84"
+    toolchain = Path("/home/claude/mvave-fm1/sdk-v1213/toolchain/jieli-linux-toolchains-20250324.1")
+    invocation = invocation_root / "container-invocation.json"
+    provenance = invocation_root / "worker-provenance.json"
+    wrapper = source / "tools/native/run_trusted_continuous_build.py"
+    required = (output, source, catalogue, toolchain, invocation, provenance, wrapper)
+    if not all(path.exists() for path in required):
+        pytest.skip("retained private continuous-build fixture is unavailable")
+
+    class ReachedInspectionBoundary(Exception):
+        pass
+
+    def stop_at_inspection(contract, expected_mounts, container_name):
+        assert isinstance(contract, dict)
+        assert container_name == "lunar-continuous-9a63f4354d753f89230b3fcd"
+        assert {row["destination"] for row in expected_mounts} == {
+            "/workspace", "/input/request.json", "/opt/pi32v2", "/catalogue", "/output",
+        }
+        assert contract["container_name"] == "/" + container_name
+        assert contract["mounts"] == sorted(expected_mounts, key=lambda row: row["destination"])
+        raise ReachedInspectionBoundary
+
+    monkeypatch.setattr(capture, "_verify_inspection_mounts", stop_at_inspection)
+    with pytest.raises(ReachedInspectionBoundary):
+        capture.capture_trusted_build_tuple(
+            source, catalogue, output, toolchain,
+            invocation_path=invocation,
+            worker_source_path=source / "tools/native/trusted_continuous_worker.py",
+            worker_provenance_path=provenance,
+            wrapper_path=wrapper,
+        )

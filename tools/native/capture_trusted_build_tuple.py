@@ -463,7 +463,6 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         {"source": str(catalogue.resolve()), "destination": "/catalogue", "read_only": True},
         {"source": str(invocation_path.parent.resolve()), "destination": "/output", "read_only": False},
     ]
-    _verify_inspection_mounts(contract, expected_mounts, container_name)
     request_mount = invocation.get("request_mount_source")
     if (not isinstance(request_mount, str) or Path(request_mount).parent.resolve() != invocation_path.parent.parent.resolve()
             or Path(request_mount).is_symlink() or Path(request_mount).name in ("", ".", "..")):
@@ -474,6 +473,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
     command = invocation.get("container_command")
     if not isinstance(container_name, str) or not re.fullmatch(r"lunar-continuous-[0-9a-f]{24}", container_name):
         raise ValueError("container name is not an opaque wrapper-generated identifier")
+    _verify_inspection_mounts(contract, expected_mounts, container_name)
     if not isinstance(command, list) or not all(isinstance(item, str) for item in command):
         raise ValueError("container command is not an exact argument vector")
     if invocation.get("container_command_sha256") != sha(canonical(command)):
