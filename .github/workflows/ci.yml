@@ -25,6 +25,11 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements-dev.txt
+      - name: Build the current host state codec for native image tests
+        run: |
+          B="$RUNNER_TEMP/lunar-native-state"
+          make -C engines BUILD="$B" FM1_GPL_MODS=1 -j4 "$B/fm1-state"
+          echo "FM1_STATE_TOOL=$B/fm1-state" >> "$GITHUB_ENV"
       - run: python -m pytest -v
       - name: Frozen bench capture lifecycle models
         if: matrix.os == 'ubuntu-latest'
