@@ -1,3 +1,9 @@
+# Current continuation authority — 2026-10-14
+
+Read `notes/2026-10-14-current-installable-milestone.md` first. It supersedes
+the historical checkpoint summaries below for current status. The goal is
+ACTIVE; a diagnostic receipt is not the release milestone.
+
 # Demo selection to target-image controller — 2026-10-14
 
 Active full13 hardware/web release goal; owner asks selectable earlier demos
