@@ -111,7 +111,7 @@ def prepare(path, *, now=None):
     marker = parent / (".event120-"+c["variant"]+"-"+c["direction"]+".consumed")
     if os.path.lexists(marker):
         raise ValueError("Variant/direction consumed; no automatic retry")
-    p = Prepared(raw,digest(raw),(policy,),json.dumps(c["sg_binding"],sort_keys=True).encode(),
+    p = Prepared(raw,digest(raw),(policy,),json.dumps(c["sg_binding"],sort_keys=True,separators=(",",":"),allow_nan=False).encode("ascii"),
        bridge,reader.SGHeader,((path,digest(raw),65536),),c["adapter_sha256"])
     _AUTHORIZED.add(p)
     p.check()
