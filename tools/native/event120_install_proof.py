@@ -83,7 +83,8 @@ def replay(raw, result, *, campaign_sha256, sources, adapter_sha256,
     accepted = dict(campaign_sha256=campaign_sha256, direction='install', variant='native',
         verified_sha256=digest(target), sectors_written=written,
         full_flash_readback_verified=True, boot_observed=False,
-        physical_recovery_verified=False, kernel_exclusivity=False)
+        physical_recovery_verified=False, kernel_exclusivity=False,
+        hardware_admitted=False, installable=False)
     cursor.event('native_transaction_completed', **accepted)
     if (cursor.position != len(events) or cursor.index > COMMAND_LIMIT or
             canonical(result) != canonical(accepted)):

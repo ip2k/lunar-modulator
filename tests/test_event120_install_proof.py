@@ -40,7 +40,8 @@ def recorded(prepared):
     result = dict(campaign_sha256=arguments['campaign_sha256'], direction='install',
         variant='native', verified_sha256=receipt['verified_sha256'],
         sectors_written=receipt['sectors_written'], full_flash_readback_verified=True,
-        boot_observed=False, physical_recovery_verified=False, kernel_exclusivity=False)
+        boot_observed=False, physical_recovery_verified=False, kernel_exclusivity=False,
+        hardware_admitted=False, installable=False)
     log('native_transaction_completed', **result)
     return events, result, arguments
 
