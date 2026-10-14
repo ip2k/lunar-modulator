@@ -26,6 +26,12 @@ FIXTURE = ROOT / 'tests/fixtures/state/1.0/tin-kit.sound.lunarb'
 GEOMETRIES = (102400, 49152)
 FAILURE_SHARDS = 30
 MAX_LABEL_LENGTH = 23
+SEQUENCE_EVENT_PREFIXES = ("cl ", "cp ", "lk ", "tg ")
+
+
+def _sequence_event_lines(lines):
+    return sorted(line for line in lines
+                  if line.startswith(SEQUENCE_EVENT_PREFIXES))
 
 
 def _label_for(track: int, lane: int) -> str:
@@ -68,21 +74,22 @@ def _max_project_set(path: Path) -> None:
         lines.extend((f"tk {track} 0 0", f"rt {track} 1 {track % 4}"))
         for clip in range(8):
             notes = ";".join(
-                f"{i * 10 + 25}:{rng.randint(10000, 65535)}:"
-                f"{rng.randint(1, 126)}:{rng.randint(0, 127)}:{rng.randint(0, 255)}"
-                for i in range(NOTES_PER_TRACK // 8)
+                f"{tick}:{rng.randint(1, 256 * 24 - tick)}:{rng.randint(0, 127)}:"
+                f"{rng.randint(1, 127)}:{tick // 24}"
+                for tick in (i * 24 + rng.randrange(24) for i in range(NOTES_PER_TRACK // 8))
             )
             locks = ";".join(
                 f"{i % 8}:{i // 8}:{rng.randint(0, 127)}"
                 for i in range(LOCKS_PER_TRACK // 8)
             )
             trigs = ";".join(
-                f"{i}:-1:{rng.randint(0, 127)}:{rng.randint(0, 255)}:{rng.randint(0, 255)}:{rng.randint(0, 1)}"
+                f"{i}:-1:{rng.randint(0, 100)}:{rng.randint(1, 255)}:"
+                f"{rng.randint(1, 255)}:{rng.randint(0, 1)}"
                 for i in range(TRIGS_PER_TRACK // 8)
             )
             lines.extend((
                 f"cl {track} {clip} 256 0 {notes}",
-                f"cp {track} {clip} {24 + clip} 1 {-36 + clip} {100 + clip}",
+                f"cp {track} {clip} 1 1 0 0",
                 f"lk {track} {clip} {locks}",
                 f"tg {track} {clip} {trigs}",
             ))
@@ -127,7 +134,7 @@ def legacy_adapter(tmp_path_factory):
 
 @pytest.fixture(scope='session')
 def large_collector_body(tools, tmp_path_factory):
-    """Produce a real large app SAVE body for mutation-page coverage."""
+    """Produce a valid, dense app SAVE body for mutation-page coverage."""
     directory = tmp_path_factory.mktemp('large-collector-body')
     seq, mod = directory / 'max-drums.movy1', directory / 'max-drums.mod'
     _max_project_set(seq)
@@ -139,6 +146,24 @@ def large_collector_body(tools, tmp_path_factory):
     args[args.index('--sysex') + 1] = bank_path
     sim(tools, *args, '--save', f'project:{initial}')
     doc = json.loads(initial.read_text(encoding='utf-8'))
+    initial_set = doc.get("set", [])
+    source_set = seq.read_text(encoding="utf-8").splitlines()
+    assert _sequence_event_lines(initial_set) == _sequence_event_lines(source_set)
+    assert sum(line.startswith("cl ") for line in initial_set) == SEQ_TRACKS * 8
+    assert sum(line.startswith("lk ") for line in initial_set) == SEQ_TRACKS * 8
+    assert sum(line.startswith("tg ") for line in initial_set) == SEQ_TRACKS * 8
+    assert sum(
+        len(line.split(" ", 5)[5].split(";"))
+        for line in initial_set if line.startswith("cl ")
+    ) == SEQ_TRACKS * NOTES_PER_TRACK
+    assert sum(
+        len(line.split(" ", 3)[3].split(";"))
+        for line in initial_set if line.startswith("lk ")
+    ) == SEQ_TRACKS * LOCKS_PER_TRACK
+    assert sum(
+        len(line.split(" ", 3)[3].split(";"))
+        for line in initial_set if line.startswith("tg ")
+    ) == SEQ_TRACKS * TRIGS_PER_TRACK
     pad_rng = random.Random(0x50414453)
     for sound in doc.get('sounds', []):
         for pad_index, pad in enumerate(sound.get('pads', [])):
@@ -160,7 +185,8 @@ def large_collector_body(tools, tmp_path_factory):
     body = body_path.read_bytes()
     print(f'large collector SAVE: {len(body)} bytes sha256={hashlib.sha256(body).hexdigest()}')
     records, _ = ls.read_bin(body)
-    assert len(body) >= 32 * 1024
+    # Keep the journal mutation input substantial; completeness is asserted below.
+    assert len(body) >= 20 * 1024
     assert len([r for r in records if r['rec'] == 'param' and r['role'] == 'sound']) == APP_SOUND_UNITS * 149
     assert len([r for r in records if r['rec'] == 'param' and r['role'] == 'mfx']) == APP_SOUND_UNITS * 24
     assert len([r for r in records if r['rec'] == 'module']) == MOD_MODULES
@@ -172,7 +198,18 @@ def large_collector_body(tools, tmp_path_factory):
     assert len([r for r in records if r['rec'] == 'unit' and r['role'] == 'master']) == APP_MASTER_FX_SLOTS
     set_lines = '\n'.join(str(r.get('text', '')) for r in records
                            if r['rec'] == 'line' and r['which'] == 'set').splitlines()
+    assert _sequence_event_lines(set_lines) == _sequence_event_lines(initial_set)
     assert sum(line.startswith('au ') for line in set_lines) == SEQ_TRACKS * 8
+    note_fields = [
+        tuple(int(value) for value in note.split(':'))
+        for line in set_lines if line.startswith('cl ')
+        for note in line.split(' ', 5)[5].split(';') if note
+    ]
+    assert len(note_fields) == SEQ_TRACKS * NOTES_PER_TRACK
+    assert all(0 <= tick < 256 * 24 and 0 <= pitch <= 127
+               and 1 <= gate <= 256 * 24 - tick and 1 <= velocity <= 127
+               and step == tick // 24
+               for tick, gate, pitch, velocity, step in note_fields)
     assert all(
         line.split()[4] == _label_for(int(line.split()[1]), int(line.split()[2]))
         for line in set_lines if line.startswith('au ')
@@ -188,6 +225,12 @@ def large_collector_body(tools, tmp_path_factory):
         assert sum(len(line.split(' ', 5)[5].split(';')) for line in clips) == NOTES_PER_TRACK
         assert sum(len(line.split(' ', 3)[3].split(';')) for line in locks) == LOCKS_PER_TRACK
         assert sum(len(line.split(' ', 3)[3].split(';')) for line in trigs) == TRIGS_PER_TRACK
+        assert all(len(line.split(' ', 5)[5].split(';')) == NOTES_PER_TRACK // 8
+                   for line in clips)
+        assert all(len(line.split(' ', 3)[3].split(';')) == LOCKS_PER_TRACK // 8
+                   for line in locks)
+        assert all(len(line.split(' ', 3)[3].split(';')) == TRIGS_PER_TRACK // 8
+                   for line in trigs)
     metadata = {r['key']: r.get('text', '') for r in records if r['rec'] == 'info'}
     assert {key: metadata[key] for key in MAX_METADATA} == MAX_METADATA
     return body_path
