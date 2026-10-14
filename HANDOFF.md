@@ -1,3 +1,23 @@
+# Expanded writer and current recovery checkpoint — 2026-10-13
+
+Goal remains full13 native hardware release plus web installer/custom builder.
+Exact device36 image/plan policy, one-use live admission and expanded SG command
+budget are implemented, not physically run.41 actual-private-input admission/
+budget checks pass locally. Current40case stock-baseline interruption campaign
+passed30 Hera chunks; all30logs/16source hashes checked. Receipt under
+notes/2026-10-13-current-expanded-candidate/. Fresh Trio41case recovery nowlive:
+Hera launch-fresh-recovery.py, out/fresh36-candidate-recovery-v1/, exec87867.
+Do not restart this campaign. Current source snapshot fresh36-candidate-source-v1
+predates new writer modules; its scope is offline recovery, not writer validation.
+No device command this checkpoint. FM1lastobserved loader device36/sg0 inode1666;
+needs new passive observation before admission. New transport32768commands/2700s
+because original20000 is too small (actual install25572 before heartbeats).
+Next inspect fresh recovery terminal logs/hash receipts, review/admit the concrete
+writer and bounded boot, then physically exercise full13. Migration/rollback,
+web installer/builder,GPL,review/CI/merge remainunfinished. Branch
+feature/2026-10-11@installable-firmware; preceding verified pushed
+2e859989c9bfa79b8e80a84cdfda64a4a53dd307. New source checkpoint follows.
+
 # Current candidate stack checkpoint — 2026-10-13
 
 No-writeback-v4 observer/IRQ/ISR evidence now rebound to exact artifacts.
