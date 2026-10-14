@@ -9,7 +9,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef INSTANCE_BYTES
 #define INSTANCE_BYTES 192000u /* app_probe.c default; not a target-RAM proof */
+#endif
+#ifdef LUNAR_COMPRESSED_WAVETABLES
+#include "compressed_wave_expected.h"
+#endif
 static fm1_app_t app;
 static lunar_instance_pool_t pool;
 static unsigned char instance_memory[INSTANCE_BYTES] FM1_APP_ALIGN16;
@@ -61,6 +66,12 @@ int main(int argc, char **argv) {
   if (argc != 2 || !(size = read_file(argv[1], &bytes))) {
     fprintf(stderr, "expected one readable packed project path\n"); return 2;
   }
+#ifdef LUNAR_COMPRESSED_WAVETABLES
+  if (lunar_wave_tables_init() != 0 || !compressed_wave_tables_match()) {
+    fprintf(stderr, "compressed wavetable startup/equality check failed\\n");
+    free(bytes); return 4;
+  }
+#endif
   fm1_app_init(&app, 44118.0f);
   seq_size = fm1_seq_size(&app.seq_lim);
   if (seq_size > FM1_APP_SEQ_BYTES || !app.seq ||
