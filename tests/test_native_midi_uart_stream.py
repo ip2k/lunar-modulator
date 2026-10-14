@@ -59,6 +59,16 @@ int main() {
     assert(lunar_midi_uart_drain(ring,8,&cursor,&pending,3,8,emit,0)==3);
     assert(events==4 && status[3]==0x90 && data1[3]==67 && data2[3]==100);
 
+    /* Previously queued bytes also advance the DMA head on overflow. */
+    cursor=0; pending=5;
+    assert(lunar_midi_uart_drain(ring,8,&cursor,&pending,4,8,emit,0)==-1);
+    assert(cursor==1 && pending==0);
+    /* Put a complete fresh event at the real head, with stale bytes elsewhere. */
+    ring[1]=0x91; ring[2]=70; ring[3]=99;
+    ring[4]=ring[5]=ring[6]=0;
+    assert(lunar_midi_uart_drain(ring,8,&cursor,&pending,3,8,emit,0)==3);
+    assert(events==5 && status[4]==0x91 && data1[4]==70 && data2[4]==99);
+
     assert(lunar_midi_uart_drain(ring,8,&cursor,&pending,0,1,0,0)==-1);
     return 0;
 }

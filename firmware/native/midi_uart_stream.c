@@ -12,7 +12,7 @@ int lunar_midi_uart_drain(const volatile uint8_t *ring, uint32_t ring_bytes,
         *cursor >= ring_bytes || *pending > ring_bytes)
         return -1;
     if (newly_received > ring_bytes || *pending > ring_bytes - newly_received) {
-        *cursor = (uint32_t)(((uint64_t)*cursor + newly_received) % ring_bytes);
+        *cursor = (uint32_t)(((uint64_t)*cursor + *pending + newly_received) % ring_bytes);
         *pending = 0;
         lunar_midi_stream_reset();
         return -1;

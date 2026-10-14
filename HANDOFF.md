@@ -1,3 +1,17 @@
+# Automatic-note diagnostic preparation — 2026-10-14
+
+Owner missed the short key test; no powercycle requested. UART1/counter and
+all13 content-free Trio pulse source integrated from fb3a9e8c. Four focused
+host suites pass (10 tests). Review found pending-byte overflow cursor bug;
+fixed cursor advancement to include both pending and newly received bytes,
+with fresh-event regression. Corrected target rebuild pending on Hera.
+Private cbcf9e9c/9c82c7ca target superseded; NOT installed. Raw145c current
+baseline is D9000; new stock-derived D7000 target additionally restores D7/D8
+sectors, so stock-only allowed-sector receipt cannot authorize that transition.
+Generic exact current-to-target factory under offline review; no hardware
+commands or writes in this segment. Goal ACTIVE, all physical acceptance,
+SAVE, recovery and release gates remain open.
+
 # Installed-image provenance corrected — 2026-10-14
 
 Device53 dump independently decoded and CRC checked: raw145c0280 contains
