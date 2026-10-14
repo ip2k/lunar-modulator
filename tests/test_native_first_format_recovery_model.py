@@ -16,6 +16,11 @@ def fixture():
     raw = bytearray(bytes([255]) * FLASH_BYTES)
     raw[SLOT_SECTORS["A"][0]] = 0x00
     raw[SLOT_SECTORS["A"][1]] = 0x7f
+    # Model the archived stock image's eight non-FF mapped trailer pages.
+    for slot, offsets in SLOT_SECTORS.items():
+        for index, offset in enumerate(offsets):
+            if index < 4:
+                raw[offset + 0xF00 + index] = (index + 1) * 17
     image = bytes(raw)
     return image, create_campaign(
         image, image, sha256(image), "FM-1_500", "FM-1_500",
@@ -44,6 +49,8 @@ def test_campaign_binds_fresh_pair_fixed_map_payload_and_false_claims():
     assert plan["snapshot_sha256"] == sha256(image)
     assert plan["slot_sector_count"] == 24
     assert plan["payload_bytes"] == 43130
+    assert sum(not row["trailer_before_is_ff"] for row in plan["sectors"]) == 8
+    assert all(row["trailer_before_sha256"] for row in plan["sectors"])
     assert plan["commands"] == []
     assert plan["execution"] == "review-plan-only"
     assert all(plan[k] is False for k in (
@@ -223,3 +230,100 @@ def test_rehashed_plan_still_rejects_invalid_payload_and_archive_identity():
         changed["plan_sha256"] = sha256(_canonical(changed))
         with pytest.raises(ValueError):
             new_journal(changed)
+
+
+def test_mixed_first_erase_can_be_restored_from_bound_snapshot_in_rom():
+    _, plan = fixture()
+    journal = new_journal(plan)
+    # First sector was erased; the second first-format erase was interrupted
+    # with a mixed sector and must be restored exactly before reverse rollback.
+    journal = start(journal, plan, 0)
+    journal = readback(journal, plan, 0, plan["sectors"][0]["erased_sha256"])
+    journal = start(journal, plan, 1)
+    mixed = "b" * 64
+    journal = readback(journal, plan, 1, mixed)
+    assert journal_state(journal, plan)["active_index"] == 1
+    assert journal_state(journal, plan)["uncertain"]
+    with pytest.raises(ValueError, match="restoration"):
+        append_event(
+            journal, plan, "restore_readback",
+            {"sector_index": 1, "observed_sha256": plan["sectors"][1]["before_sha256"],
+             "observed_length": SECTOR_BYTES}, rom_recovery_verified=True)
+    with pytest.raises(ValueError, match="ROM"):
+        append_event(journal, plan, "restore_started",
+                     {"sector_index": 1, "observed_current_sha256": mixed,
+                      "restore_source_sha256": plan["sectors"][1]["before_sha256"],
+                      "archive_ref": plan["archive_refs"][0]})
+    journal = append_event(
+        journal, plan, "restore_started",
+        {"sector_index": 1, "observed_current_sha256": mixed,
+         "restore_source_sha256": plan["sectors"][1]["before_sha256"],
+         "archive_ref": plan["archive_refs"][0]}, rom_recovery_verified=True)
+    journal = append_event(
+        journal, plan, "restore_readback",
+        {"sector_index": 1, "observed_sha256": plan["sectors"][1]["before_sha256"],
+         "observed_length": SECTOR_BYTES}, rom_recovery_verified=True)
+    state = journal_state(journal, plan)
+    assert state["status"] == "rollback_in_progress"
+    assert state["active_index"] is None
+    assert state["rollback_index"] == 0
+    journal = append_event(
+        journal, plan, "rollback_started",
+        {"sector_index": 0,
+         "restore_source_sha256": plan["sectors"][0]["before_sha256"]},
+        rom_recovery_verified=True)
+    journal = append_event(
+        journal, plan, "rollback_readback",
+        {"sector_index": 0, "observed_sha256": plan["sectors"][0]["before_sha256"],
+         "observed_length": SECTOR_BYTES}, rom_recovery_verified=True)
+    assert journal_state(journal, plan)["status"] == "rollback_readback_complete_unverified_full_image"
+
+
+def test_interrupted_restore_can_be_reinspected_and_repeated_exactly():
+    _, plan = fixture()
+    journal = start(new_journal(plan), plan, 0)
+    journal = readback(journal, plan, 0, "c" * 64)
+    journal = append_event(
+        journal, plan, "restore_started",
+        {"sector_index": 0, "observed_current_sha256": "c" * 64,
+         "restore_source_sha256": plan["sectors"][0]["before_sha256"],
+         "archive_ref": plan["archive_refs"][1]}, rom_recovery_verified=True)
+    journal = append_event(journal, plan, "restore_ack_uncertain",
+                           {"sector_index": 0})
+    assert journal_state(journal, plan)["status"] == "stop_and_reenter_rom_to_inspect"
+    partial = "d" * 64
+    journal = append_event(
+        journal, plan, "restore_readback",
+        {"sector_index": 0, "observed_sha256": partial,
+         "observed_length": SECTOR_BYTES}, rom_recovery_verified=True)
+    journal = append_event(
+        journal, plan, "restore_started",
+        {"sector_index": 0, "observed_current_sha256": partial,
+         "restore_source_sha256": plan["sectors"][0]["before_sha256"],
+         "archive_ref": plan["archive_refs"][0]}, rom_recovery_verified=True)
+    journal = append_event(
+        journal, plan, "restore_readback",
+        {"sector_index": 0, "observed_sha256": plan["sectors"][0]["before_sha256"],
+         "observed_length": SECTOR_BYTES}, rom_recovery_verified=True)
+    assert journal_state(journal, plan)["status"] == "rollback_readback_complete_unverified_full_image"
+
+
+def test_recomputed_hashes_do_not_admit_semantically_invalid_journal():
+    from first_format_recovery_model import _canonical
+
+    _, plan = fixture()
+    journal = new_journal(plan)
+    # Forge a well-formed hash chain with an out-of-order erase event. A plain
+    # hash check would accept it because the event hashes are recomputed.
+    bad = copy.deepcopy(journal)
+    entry = {"seq": 1, "event": "erase_started",
+             "data": {"sector_index": 7,
+                      "observed_before_sha256": plan["sectors"][7]["before_sha256"]},
+             "rom_recovery_verified": True,
+             "previous_sha256": bad["events"][-1]["event_sha256"]}
+    entry["event_sha256"] = sha256(_canonical(entry))
+    bad["events"].append(entry)
+    with pytest.raises(ValueError, match="chain"):
+        append_event(bad, plan, "erase_ack_uncertain", {"sector_index": 7})
+    with pytest.raises(ValueError, match="chain"):
+        journal_state(bad, plan)
