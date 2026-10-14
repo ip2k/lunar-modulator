@@ -4,6 +4,17 @@
 
 ## Result
 
+**Coordinator correction [verified against expanded_flash_profile.extents()]:**
+the application starts at 0x4120, not 0x4000, and the image retains the aligned
+383-byte tool and 2,937-byte configuration records after it. For the measured
+862,296-byte app, its end is 0xD6978 and the complete records end is 0xD7674.
+A reservation starting at 0xD7000 overlaps these records by 1,652 bytes.
+Its correct app budget is 860,644 bytes (the prior 868,836-byte budget minus
+8,192 bytes), so the current complete image does **not** fit unchanged.
+Only the loader's own byte-capacity result below stands; the earlier app-end
+and remaining-headroom paragraph is superseded. An adapted loader must also
+be rebuilt and measured before its footprint is known.
+
 The retained Dinghy/Felucca loader build encodes to 6,954 bytes (ota.bin SHA-256 096b3275c23d2d2435021302862769a8c477f6bf534c81b1a52adc14bc5cdaec). With an 80-byte SPL record at offset 0xD8F00, a two-sector tail [0xD7000, 0xD9000) has enough byte capacity: the loader body can occupy [0xD7000, 0xD8B2A), leaving 982 bytes before the record at [0xD8F00, 0xD8F50) and 176 bytes after it in the final 256-byte scan window. These offsets are arithmetic candidates only; they are not approved storage ownership or a validated package format at those addresses.
 
 The measured full-song app is 862,296 bytes, ending at 0xD6858 when based at 0x4000. It leaves 10,152 bytes before the profile end 0xD9000; reserving the proposed 8,192-byte tail would cap the app at 864,256 bytes and leave only 1,960 bytes above the current app size. That cap is 4,580 bytes below the earlier 868,836-byte application budget. The fit therefore appears possible without shrinking the current app, but with little future headroom. This is not a reason to reduce the project or feature set.

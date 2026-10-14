@@ -3770,3 +3770,34 @@ Directory-last alone must not be treated as persistent recovery: while an old
 app header is valid, the SPL can bypass flash records and enter partially
 rewritten code. Research must establish safe recovery publication, header
 invalidation and final-directory commit against actual SPL predicates.
+
+## Demo chooser and real-worker continuation — 2026-10-14
+
+Reviewed private same-origin page integration is dbf008c7c88b87c54434e595a9e7617605bf4138,
+backed up with verified origin SHA. Worker d1ce3efac0a3527e345d2d8eb15118a020b46041
+is also backed up. Root repeated all 18 focused Node tests successfully and
+inspected the desktop screenshot; independent review found no client blocker.
+Browser evidence uses mocked API responses, not a live builder. Static HTML
+keeps its deployment marker disabled; the default path exports JSON. Eight
+demo entries remain selectable, with Event Horizon Showcase preselected.
+No public installer deployment or full-song hardware acceptance is claimed.
+
+Fresh CI 38584247667 tests exact dbf008c7; it is running, not yet passing.
+Predecessor 38580253461 completed with failures. Its sanitizer failure was also
+the stale simulator source/build-record check; the real WASM refresh addresses
+that cause. Do not describe that predecessor as still running.
+
+The measured retained compressed rescue loader occupies 6,954 bytes. A
+two-sector D7000..D9000 tail holds that loader and its 80-byte record, but root
+review found the initial app-fit arithmetic omitted APP_ORIGIN=4120 and the
+retained tool/config records. Correct reserved-tail app budget is 860,644;
+the current 862,296-byte app exceeds it by 1,652 bytes. Complete records end
+at D7674, overlapping the proposed tail. Note correction is prominent in
+notes/2026-10-14-rescue-tail-fit-measurement.md. No allocation is approved.
+
+Active Hera lanes: real FastAPI/DockerJobAdapter diagnostic build verification;
+conditional one-bit CRC-header invalidation planner/model; independent exact
+SPL/header/recovery audit. Mac remains exclusive physical coordinator; workers
+may not perform device writes. Goal ACTIVE; storage/recovery, actual installer
+build/download/flash path, physical all13/full-song/save-reload acceptance,
+required CI/integration and public release remain outstanding.
