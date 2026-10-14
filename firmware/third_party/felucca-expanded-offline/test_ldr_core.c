@@ -7,7 +7,9 @@
 
 #define FELUCCA_EXPANDED_OFFLINE_TEST 1
 #define APP_LO 0x4000u
+#ifndef APP_HI
 #define APP_HI 0xD9000u
+#endif
 #define FLASH_BYTES 0x100000u
 #define OTA_DATA_OFF 0x400u
 static uint8_t nor[FLASH_BYTES], logical[FLASH_BYTES + OTA_DATA_OFF], hdr[0x400];
@@ -75,6 +77,9 @@ static void setup(void)
     memset(logical + OTA_DATA_OFF + APP_LO, 0xA6, APP_HI - APP_LO);
     /* Valid app-head checksum for the fixture's zero test key. */
     ota_wr16(logical + OTA_DATA_OFF + APP_LO, ota_crc16(logical + OTA_DATA_OFF + APP_LO + 2, 30, 0));
+    /* Start with the same valid old directory in NOR; failed body writes must
+       not silently invalidate it in this portable-core model. */
+    memcpy(nor + APP_LO, logical + OTA_DATA_OFF + APP_LO, 32);
     memcpy(hdr, (uint8_t[0x400]){0}, sizeof hdr);
     hdr[8] = 1; /* one UFW entry */
     ota_wr16(hdr + 0x40, 0); /* flash.bin type */
@@ -99,11 +104,11 @@ int main(void)
     setup(); enable_mutation = 1; rc = ldr_session();
     bad += require("changed host chunk is refused before erase", rc == -13 && mutated_chunk && erases == 0);
     setup(); fail_erase = 0x5000; rc = ldr_session();
-    bad += require("erase cut stops before directory; retry completes", rc == -9 && nor[APP_LO] != logical[OTA_DATA_OFF + APP_LO]);
+    bad += require("erase cut leaves old directory valid while body is partial", rc == -9 && ota_rd16(nor + APP_LO) == ota_crc16(nor + APP_LO + 2, 30, 0) && nor[0x5000] == 0xFF);
     rc = ldr_session();
     bad += require("host retry after erase cut completes", rc == 0 && !memcmp(nor + APP_LO, logical + OTA_DATA_OFF + APP_LO, APP_HI - APP_LO));
     setup(); fail_prog = 1; rc = ldr_session();
-    bad += require("partial page-program cut stops before directory", rc == -10 && nor[APP_LO] != logical[OTA_DATA_OFF + APP_LO]);
+    bad += require("partial page-program cut leaves old directory valid", rc == -10 && ota_rd16(nor + APP_LO) == ota_crc16(nor + APP_LO + 2, 30, 0) && nor[0x5100] == 0xFF && nor[0x5100] != logical[OTA_DATA_OFF + 0x5100]);
     rc = ldr_session();
     bad += require("host retry after program cut completes", rc == 0 && !memcmp(nor + APP_LO, logical + OTA_DATA_OFF + APP_LO, APP_HI - APP_LO));
     setup(); flip_readback = 1; rc = ldr_session();
@@ -112,5 +117,15 @@ int main(void)
     setup(); flip_readback = 1; flip_readback_off = APP_LO; rc = ldr_session();
     bad += require("directory last readback mismatch is retried", rc == 0 && !memcmp(nor + APP_LO, logical + OTA_DATA_OFF + APP_LO, APP_HI - APP_LO));
     bad += require("directory retry remains the final sector write", erases && erase_order[erases - 1] == APP_LO);
+#if APP_HI == 0xD7000u
+    setup();
+    bad += require("D6FFF app boundary sector is writable", ldr_erase(0xD6000u) == 0);
+    bad += require("D7000 stage boundary is outside app writes", ldr_erase(0xD7000u) != 0 && ldr_prog(0xD7000u, nor, 1) != 0);
+    bad += require("two-sector stage ends at VM start", 0xD7000u + 0x2000u == 0xD9000u);
+    bad += require("6954-byte loader fits before D8F00 record arithmetically", 0xD7000u + 6954u <= 0xD8F00u && 0xD8F00u + 80u <= 0xD9000u);
+    setup();
+    { uint8_t suffix[FLASH_BYTES - APP_HI]; memcpy(suffix, nor + APP_HI, sizeof suffix); rc = ldr_session();
+      bad += require("D7000 profile transaction preserves stage and later banks", rc == 0 && !memcmp(nor + APP_HI, suffix, sizeof suffix)); }
+#endif
     printf("%s\n", bad ? "OFFLINE CORE TEST FAILED" : "offline core test passed"); return bad != 0;
 }
