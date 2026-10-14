@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* Timed shared-application integration probe, NOT a release entry point.
+/* Shared-application integration entry, NOT yet an admitted release.
  * Requires the reviewed generated platform: no NOR writes, 16-row canvas,
  * no OTA cleanup and unity HAL master gain. The shared instance pool is provisional;
  * complete catalogue RAM and timing acceptance remain separate. Device admission is a separate operation. */
@@ -20,6 +20,7 @@ static int32_t lunar_master_raw = 512;
 #include "audio_queue.h"
 #include "instance_pool.h"
 #include "midi_input.h"
+#include "runtime_mode.h"
 #ifdef LUNAR_STACK_WATERMARK
 #include "stack_watermark.h"
 #include "stack_readout.h"
@@ -207,7 +208,7 @@ static void app_main(void)
     uint32_t last_stack_sample = fm1_ms;
 #endif
     for (;;) {
-        if ((uint32_t)(fm1_ticks() - start) >= 20u * 1000000u * FM1_TICKS_PER_US) {
+        if (lunar_runtime_expired(fm1_ticks(), start, FM1_TICKS_PER_US)) {
             fm1_audio_stop();
             usb_detach();
             fm1_delay_ms(30);

@@ -24,6 +24,7 @@ from embed_image_content import content_source
 from verify_image_profile import load_prepared_profile
 from flash_layout import FLASH_LAYOUTS, app_budget, linker_script
 from stack_watermark import instrument_entry, verify_instrumentation
+from runtime_mode import MODES, runtime_configuration
 
 ROOT = Path(__file__).resolve().parents[2]
 ENGINE_IDS = ('macro', 'shapes', 'macro-heavy', 'sixop', 'dx7', 'sw-sophie',
@@ -113,6 +114,9 @@ def main():
     parser.add_argument('--toolchain', type=Path, required=True)
     parser.add_argument('--catalogue', type=Path, required=True)
     parser.add_argument('--build', type=Path, required=True)
+    parser.add_argument('--runtime-mode', choices=MODES, default='diagnostic',
+                        help='Continuous removes only timed ROM return; remains a private '
+                        'unadmitted build with no NOR writes or OTA cleanup')
     parser.add_argument('--stack-watermark', action='store_true',
                         help='Paint both reserved stacks before C entry and sample observed margins; '
                         'diagnostic evidence only, not stack admission')
@@ -145,6 +149,7 @@ def main():
                         help='With compressed tables, retain original Plaits wave bank in flash '
                         'to recover RAM; decode Braids only when Shapes is selected')
     args = parser.parse_args()
+    runtime_policy = runtime_configuration(args.runtime_mode)
     if bool(args.prepared_profile) != bool(args.expected_profile_sha256):
         parser.error('--prepared-profile and --expected-profile-sha256 require each other')
     if args.prepared_profile and (args.modules is not None or args.exclude):
@@ -249,7 +254,7 @@ def main():
     flags = ['-target', 'pi32v2', '-mcpu=r3', '-mfprev1', '-Oz', '-flto',
              '-ffreestanding', '-fno-builtin', '-ffunction-sections', '-fdata-sections',
              '-DFM1_APP_EXTERNAL_ARENAS=1', '-DLUNAR_APP_PROBE=1', '-DNDEBUG',
-             '-DFM1_TFT_INDEXED=' + str(int(args.indexed_tft))]
+             '-DFM1_TFT_INDEXED=' + str(int(args.indexed_tft)), runtime_policy['define']]
     if args.startup_set_index is not None:
         flags += ['-DLUNAR_STARTUP_SET_INDEX=' + str(args.startup_set_index)]
     if args.stack_watermark:
@@ -391,7 +396,9 @@ def main():
                   linked_objects=[dict(path=str(p), sha256=digest(p)) for p in objects],
                   key_audit=audit, undefined_symbols=missing, flash_write_range='empty',
                   boot_ota_cleanup=False, entry_core=0, entry_boot_pointer='0x01c7fe08',
-                  probe_return_to_rom_seconds=20, hardware_candidate=False,
+                  runtime_configuration=runtime_policy,
+                  runtime_policy_sha256=digest(ROOT / 'firmware/native/runtime_mode.h'),
+                  probe_return_to_rom_seconds=runtime_policy['return_to_rom_seconds'], hardware_candidate=False,
                   catalogue_source_freshness_verified=True,
                   installable=False, hardware_tested=False, elf_sha256=digest(elf))
     if content_inputs:

@@ -1,0 +1,60 @@
+[
+  {
+    "mode": "diagnostic",
+    "app_bytes": 845916,
+    "app_sha256": "eff6f5b2821a229f7a0255a873031c52d5f8242e4312f07e3f54fb4c951f5960",
+    "elf_sha256": "18cb0ec4864a3fddab1af122994377a3f2815ddf833d9c765e2648abaa578d91",
+    "runtime_configuration": {
+      "runtime_mode": "diagnostic",
+      "return_to_rom_seconds": 20,
+      "define": "-DLUNAR_RETURN_TO_ROM_SECONDS=20",
+      "release_accepted": false
+    },
+    "runtime_policy_sha256": "44b18f719207bf9c5f2972e290cc63ab4e50c9966c8f863736c293b611606044",
+    "instance_pool_bytes": 216064,
+    "no_sdk_archives": true,
+    "flash_write_range": "empty",
+    "boot_ota_cleanup": false,
+    "log_sha256": "44ff027c3daa58bb09161323260919c3787d142b3f1791563818c96ab43a878a",
+    "linked_content_check": {
+      "production_engines": 13,
+      "diagnostic_modules": false,
+      "packed_bytes": 2784,
+      "linked_bytes_verified": true,
+      "hardware_tested": false,
+      "installable": false
+    },
+    "diagnostic_matches_installed_probe": true,
+    "installable": false,
+    "hardware_tested": false
+  },
+  {
+    "mode": "continuous",
+    "app_bytes": 845884,
+    "app_sha256": "d1df5ca890641716e437b178d36e68121c58e842227ff0c2529adf6fc4d16674",
+    "elf_sha256": "a3b2443ab07cab94d8631fbddefe99a61fd20cdc68d45314126a9dea3aedb83c",
+    "runtime_configuration": {
+      "runtime_mode": "continuous",
+      "return_to_rom_seconds": null,
+      "define": "-DLUNAR_RETURN_TO_ROM_SECONDS=0",
+      "release_accepted": false
+    },
+    "runtime_policy_sha256": "44b18f719207bf9c5f2972e290cc63ab4e50c9966c8f863736c293b611606044",
+    "instance_pool_bytes": 216064,
+    "no_sdk_archives": true,
+    "flash_write_range": "empty",
+    "boot_ota_cleanup": false,
+    "log_sha256": "9c3af3eb9b7debc40c9ba802e1ccf3a4fc92e47609d559f15787698815067499",
+    "linked_content_check": {
+      "production_engines": 13,
+      "diagnostic_modules": false,
+      "packed_bytes": 2784,
+      "linked_bytes_verified": true,
+      "hardware_tested": false,
+      "installable": false
+    },
+    "diagnostic_matches_installed_probe": false,
+    "installable": false,
+    "hardware_tested": false
+  }
+]

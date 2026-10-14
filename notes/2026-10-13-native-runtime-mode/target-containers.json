@@ -1,0 +1,14 @@
+[
+  {
+    "mode": "diagnostic",
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "mode": "continuous",
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  }
+]

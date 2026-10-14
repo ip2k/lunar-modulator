@@ -2752,3 +2752,20 @@ with retained install SHA and owner watching (async response pending). Do not
 reupload ROM loader or replay writer. Full all13 hardware acceptance, persistence,
 MIDI, migration/physical rollback, web installer/custom builder and licensing/CI
 remain open. Previous verified pushed b0c4af2dce88e122b139fe3d974dfc96bd6571d4.
+
+## Continuous runtime preparation checkpoint (2026-10-13)
+
+[verified] Explicit --runtime-mode diagnostic(default)/continuous added; no NOR
+writes/OTA cleanup added.35 C-policy/configuration tests pass30 Hera chunks,
+all logs/states checked. Both all13 FIRST ORBIT/Shapes12 target links pass
+SDK-free/artifact/content/stack gates. Diagnostic app is byte-identical to
+installed probe; continuous app845884 bytes, not installed or hardware-tested.
+Evidence notes/2026-10-13-native-runtime-mode/. Current target source hashes
+match; test snapshot differs only builder variable rename before real links.
+Hera exec1820/80674 terminal0; no build/test workers left from these campaigns.
+Passive Pi original device36 loader still present; no boot/USB mutation thisturn.
+Owner watched-boot response pending. Next fresh admitted one-use expanded_boot
+for installed c543 image when watching; meanwhile storage/migration/OTA release
+implementation remains available. Preserve exact private writer receipts and
+consumed markers; do not reupload/replay writer. Previous verified pushed
+d272747c9c4440a37982e5ce4455766ea23c7ea6. Full owner release goal remains active.
