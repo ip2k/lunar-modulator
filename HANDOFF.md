@@ -3229,3 +3229,28 @@ Notes: 2026-10-14-collector-{parameter,sequence,total}-bound.md and
 no device/USB/flash/power/reboot operation issued in this checkpoint.
 Goal ACTIVE: full firmware, persistence/recovery, selectable web installation,
 required hardware acceptance, review/CI and release remain outstanding.
+
+## Full-song installer preloads — owner, 2026-10-14
+
+Owner requires the prior authored demos as selectable installer preloads and
+at least one complete full-length song project included in the default image.
+Requirement is saved in AGENTS.md/CLAUDE.md and verified pushed at cfefc055.
+The current native catalogue starts content empty; this requirement is not yet
+implemented by that catalogue or a shipped installer. FIRST ORBIT's tutorial
+pattern alone does not satisfy it.
+
+Source inventory located original Round-5 projects on feature/2026-10-10@demo-songs
+(53cd518c), with exact asset snapshot3e6eaa5f and full render/browser receipts.
+Afterglow Relay198.26s, Event Horizon193.33s, Packet Bloom188.57s and Neon
+Transit208s are structurally full arrangements. The originals were rejected
+as showcases and retained as examples; later replacements on
+chore/2026-10-10@demo-song-acceptance (fb92cc0d) have separate evidence and
+pending musical acceptance. Do not conflate original/replacement assets or
+claim the original rejection was superseded.
+
+Collector-sequence worker now owns new demo_preload_catalogue.py, its focused
+test and dated catalogue note, examining exact original/replacement revisions,
+durations, dependencies and acceptance limits. Root owns integration and backup.
+Use native profile preparation, embedding and startup-project selection; packed
+content identity and exact link/RAM evidence must precede install admission.
+No physical device commands performed for this addition. Goal remains ACTIVE.
