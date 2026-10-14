@@ -21,13 +21,22 @@ from weakref import WeakSet
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from fm1_fixed_target_reset import canonical, digest, read_file
-from native.event120_install_proof import unique_object
 from native.event120_reset import CompletionFirstReset
 
 PROOF_SHA = 'pending-independent-campaign-proof'
+REPLAY_SHA = 'pending-independent-install-replay'
 RESET_SHA = 'f7b75e3448fe30babaed23b70340bab76db1e2c8815d13d22c6bdb00116a770c'
 USB = dict(path='1-1', busnum='1', devnum='38', vid='4c4a', pid='8057')
 _AUTHORIZED = WeakSet()
+
+
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError('Duplicate JSON key')
+        result[key] = value
+    return result
 
 
 @dataclass(frozen=True, eq=False)
@@ -64,9 +73,11 @@ def prepare(path):
             or not math.isfinite(c['observed_at']) or not 0 <= time.time() - c['observed_at'] <= 120):
         raise ValueError('Exact fresh Event120 boot campaign required')
     adapter, proof_path = Path(__file__).resolve(), ROOT / 'native/event120_campaign_proof.py'
+    replay_path = ROOT / 'native/event120_install_proof.py'
     if (digest(read_file(adapter)) != c['adapter_sha256']
             or digest(read_file(ROOT / 'native/event120_reset.py')) != RESET_SHA
-            or digest(read_file(proof_path)) != PROOF_SHA):
+            or digest(read_file(proof_path)) != PROOF_SHA
+            or digest(read_file(replay_path)) != REPLAY_SHA):
         raise ValueError('Reviewed boot/proof/reset source differs')
     root, out = Path(c['evidence_root']), Path(c['receipt_path'])
     if (not root.is_absolute() or root.is_symlink() or not root.is_dir()
@@ -88,7 +99,7 @@ def prepare(path):
     if canonical(install['sg_binding']) != canonical(c['sg_binding']):
         raise ValueError('Installation connection differs')
     evidence = dict(verified['evidence_sha256'])
-    for file in (path, adapter, proof_path, ROOT / 'native/event120_reset.py'):
+    for file in (path, adapter, proof_path, replay_path, ROOT / 'native/event120_reset.py'):
         evidence[str(file)] = digest(read_file(file, 32 * 1048576))
     p = Prepared(raw, digest(raw), canonical(c['sg_binding']), bridge, reader.SGHeader,
         tuple((Path(file), sha) for file, sha in evidence.items()))
