@@ -76,6 +76,17 @@ def _require_sha(value, label):
         raise ValueError(f"{label} is not a lowercase SHA-256")
 
 
+def _verify_selection_receipt(selection, image, request_sha):
+    if (type(selection.get("version")) is not int or selection.get("version") != 1
+            or selection.get("status") != "prepared-build-inputs"
+            or selection.get("prepared_profile_sha256") != image.get("prepared_profile_sha256")
+            or selection.get("selected_content") != image.get("selected_content")
+            or selection.get("startup_project_id") != image.get("startup_project_id")
+            or selection.get("set_ids") != image.get("set_ids")
+            or selection.get("request_sha256") != request_sha):
+        raise ValueError("selection receipt differs from linked image selection")
+
+
 def _safe_rel(root: Path, rel: str) -> Path:
     p = PurePosixPath(rel)
     if p.is_absolute() or not p.parts or any(x in ("", ".", "..") for x in p.parts):
@@ -365,12 +376,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
             or request_sha != image.get("request_sha256")
             or selection.get("request_sha256") != request_sha):
         raise ValueError("image/selection receipts do not bind exact request bytes")
-    if (selection.get("status") != "prepared"
-            or selection.get("prepared_profile_sha256") != image.get("prepared_profile_sha256")
-            or selection.get("selected_content") != image.get("selected_content")
-            or selection.get("startup_project_id") != image.get("startup_project_id")
-            or selection.get("set_ids") != image.get("set_ids")):
-        raise ValueError("selection receipt differs from linked image selection")
+    _verify_selection_receipt(selection, image, request_sha)
     _false_flags(selection, ("installable", "hardware_tested", "native_link_verified", "native_ram_verified"), "selection receipt")
     if (sha(prepared_raw) != image.get("prepared_profile_sha256")
             or selection.get("prepared_profile_sha256") != sha(prepared_raw)):
