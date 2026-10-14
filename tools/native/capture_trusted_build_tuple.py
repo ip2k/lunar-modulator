@@ -256,6 +256,18 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
     worker_raw, worker = json_obj(worker_path)
     toolchain_manifest_path = invocation_path.parent / "toolchain-manifest.json"
     toolchain_manifest_raw = read(toolchain_manifest_path, 16 * 1024 * 1024)
+    catalogue_manifest_path = invocation_path.parent / "catalogue-tree-manifest.json"
+    catalogue_tree_raw = read(catalogue_manifest_path, 16 * 1024 * 1024)
+    if catalogue_tree_raw != _toolchain_manifest(catalogue):
+        raise ValueError("private catalogue snapshot differs from captured full manifest")
+    if invocation.get("catalogue_snapshot_tree_sha256") != sha(catalogue_tree_raw):
+        raise ValueError("invocation does not bind the full private catalogue snapshot")
+    if invocation.get("catalogue_snapshot_root") != str(catalogue.resolve()):
+        raise ValueError("invocation names a different private catalogue snapshot")
+    if not isinstance(invocation.get("catalogue_source_root"), str):
+        raise ValueError("invocation lacks the original catalogue source path")
+    if invocation.get("catalogue_source_tree_sha256") != sha(catalogue_tree_raw):
+        raise ValueError("original catalogue and private snapshot differ")
     if toolchain_manifest_raw != _toolchain_manifest(toolchain):
         raise ValueError("toolchain tree differs from the captured full manifest")
     toolchain_tree_sha = sha(toolchain_manifest_raw)
@@ -373,6 +385,13 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
     source_commit, source_manifest_raw = _source_manifest(root)
     catalogue_raw = _catalogue_manifest(catalogue, verification)
     catalogue_sha = sha(catalogue_raw)
+    catalogue_tree = json.loads(catalogue_tree_raw.decode("ascii"))
+    tree_hashes = {row["path"]: row["sha256"] for row in catalogue_tree["objects"]
+                   if row.get("kind") in ("file", "symlink-file")}
+    selected_rows = json.loads(catalogue_raw.decode("ascii"))["objects"]
+    if any(tree_hashes.get(row["path"][len("/catalogue/"):]) != row["sha256"]
+           for row in selected_rows):
+        raise ValueError("selected catalogue receipt is not a subset of the immutable snapshot")
     source_sha = sha(source_manifest_raw)
     _require_sha(invocation.get("post_build_source_tree_sha256"), "post-build source manifest")
     if invocation.get("post_build_source_tree_sha256") != source_sha:
@@ -530,7 +549,9 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         "linked_object_count": len(json.loads(linked_manifest_raw)["objects"]),
         "linked_objects": json.loads(linked_manifest_raw)["objects"],
         "catalogue_container_mount": "/catalogue",
-        "catalogue_source_root": str(catalogue.resolve()),
+        "catalogue_source_root": invocation.get("catalogue_source_root"),
+        "catalogue_snapshot_root": str(catalogue.resolve()),
+        "catalogue_tree_sha256": sha(catalogue_tree_raw),
         "catalogue_manifest_path": str((output / "catalogue-manifest.json").resolve()),
         "request_receipt_sha256": request_sha,
         "prepared_profile_receipt_sha256": prepared_sha,
