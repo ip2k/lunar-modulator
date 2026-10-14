@@ -31,3 +31,15 @@ checks their exact reviewed source hashes. Verification rereads the replay
 dependencies through the evidence collector, so evidence_sha256 includes the
 source bytes consumed by replay as well as artifact inputs. The boot caller must
 also pin the wrapper's own SHA externally (self-hashing would be circular).
+
+## Follow-up: actual SG binding contract
+
+The completed coordinator run exposed a schema mismatch: the writer records USB
+identity in the backup manifest's usb_binding and records the SG/sysfs mapping
+separately. The mapping itself has class/device/node/usb paths and corresponding
+identity tuples; it does not contain a nested usb_binding. The verifier now
+pins the exact observed device38 mapping and independently requires the manifest
+USB identity, manifest SG map, and campaign SG map to match. Tests exercise that
+real mapping and reject altered node identity or an unexpected nested field.
+The completed V2 bundle remains coordinator-owned and is checked there; this
+worker did not read the in-progress private Pi output.

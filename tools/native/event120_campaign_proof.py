@@ -62,6 +62,16 @@ PLAN_PINS = {
               "96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4"),
 }
 USB = {"path": "1-1", "busnum": "1", "devnum": "38", "vid": "4c4a", "pid": "8057"}
+SG_BINDING = {
+    "class": "/sys/devices/platform/axi/1000120000.pcie/1f00200000.usb/xhci-hcd.0/usb1/1-1/1-1:1.0/host0/target0:0:0/0:0:0:0/scsi_generic/sg0",
+    "class_identity": [19, 52288, 0],
+    "device": "/sys/devices/platform/axi/1000120000.pcie/1f00200000.usb/xhci-hcd.0/usb1/1-1/1-1:1.0/host0/target0:0:0/0:0:0:0",
+    "device_identity": [19, 52231, 0],
+    "node": "/dev/sg0",
+    "node_identity": [6, 1725, 5376],
+    "usb": "/sys/devices/platform/axi/1000120000.pcie/1f00200000.usb/xhci-hcd.0/usb1/1-1",
+    "usb_identity": [19, 52047, 0],
+}
 CANDIDATE_DIR = Path("/home/claude/.local/share/codex-private/shapes8-event120-expanded-candidate-20261014")
 CANDIDATE_RECEIPT_SHA256 = "1c53f94ba57001f30901a2f33081f26c223f1789781abaa0f5325e83880684db"
 IMAGE_RECEIPT_SHA256 = "b7c34d28a02029b23849d75b2a9a2acbcd3464fcf888be8abbfbfb8d66dbd9a4"
@@ -120,6 +130,11 @@ def _read(path, limit):
 def _json(path, limit=MAX_JSON):
     return json.loads(_read(path, limit), object_pairs_hook=_unique,
                       parse_constant=lambda _: (_ for _ in ()).throw(ValueError("Invalid JSON number")))
+
+
+def _validate_sg_binding(binding):
+    if not isinstance(binding, dict) or binding != SG_BINDING:
+        raise ValueError("Exact observed device38 SG mapping required")
 
 
 def _pin_sources(root, expected):
@@ -203,12 +218,11 @@ def _verify_v2(directory, campaign_sha256, *, source_root, now, evidence):
             campaign["direction"] != "install" or campaign["variant"] != "native" or
             campaign["adapter_sha256"] != WRITER_ADAPTER_SHA256 or
             type(campaign["observed_at"]) not in (int, float) or
-            not math.isfinite(campaign["observed_at"]) or campaign["sg_binding"] is None):
+            not math.isfinite(campaign["observed_at"]) or not isinstance(campaign["sg_binding"], dict)):
         raise ValueError("Exact native Event120 campaign required")
     if not isinstance(campaign["prior_v1_stop"], dict):
         raise ValueError("Prior stopped V1 evidence object required")
-    if campaign["sg_binding"].get("usb_binding") != USB:
-        raise ValueError("Campaign must bind exact device38 ROM identity")
+    _validate_sg_binding(campaign["sg_binding"])
     now = time.time() if now is None else now
     if type(now) not in (int, float) or not math.isfinite(now):
         raise ValueError("Finite verification clock required")
@@ -221,10 +235,14 @@ def _verify_v2(directory, campaign_sha256, *, source_root, now, evidence):
     receipt = _safe_path(campaign["receipt"])
     plan_dir = _safe_path(campaign["plan"])
     output = _safe_path(campaign["output"])
-    if (not all(Path(x).is_absolute() for x in (campaign["receipt"], campaign["plan"], campaign["output"])) or
-            campaign_path.parent != output.parent or output.is_symlink() or
-            campaign["sg_binding"] != _json(receipt / "manifest.json").get("sg_binding")):
-        raise ValueError("Campaign paths or backup transport binding differ")
+    if not all(Path(x).is_absolute() for x in (campaign["receipt"], campaign["plan"], campaign["output"])):
+        raise ValueError("Campaign evidence paths must be absolute")
+    backup_manifest = _json(receipt / "manifest.json")
+    if (campaign_path.parent != output.parent or output.is_symlink() or
+            backup_manifest.get("usb_binding") != USB or
+            backup_manifest.get("sg_binding") != SG_BINDING or
+            campaign["sg_binding"] != backup_manifest.get("sg_binding")):
+        raise ValueError("Campaign and fresh backup USB/SG bindings differ")
 
     manifest_raw = _read(receipt / "manifest.json", MAX_JSON)
     commands_raw = _read(receipt / "commands.jsonl", 8 * 1048576)
@@ -232,7 +250,8 @@ def _verify_v2(directory, campaign_sha256, *, source_root, now, evidence):
         raise ValueError("Pinned fresh backup receipt differs")
     manifest = json.loads(manifest_raw, object_pairs_hook=_unique)
     if (manifest.get("kind") != "fm1-device38-expanded-rom-fixed-loader-dual-read" or
-            manifest.get("usb_binding") != USB or manifest.get("flash_operations") != 0 or
+            manifest.get("usb_binding") != USB or manifest.get("sg_binding") != SG_BINDING or
+            manifest.get("flash_operations") != 0 or
             manifest.get("reset_operations") != 0):
         raise ValueError("Fresh dual-read device38 backup required")
     baseline_a = _read(receipt / "dumpA.bin", FLASH_BYTES)
