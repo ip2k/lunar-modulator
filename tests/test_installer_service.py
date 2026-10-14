@@ -110,6 +110,7 @@ def result_receipt(doc, req_sha, artifact):
         "request_sha256": req_sha, "prepared_profile_sha256": prepared_sha,
         "project_ids": doc["project_ids"], "startup_index": doc["startup_index"],
         "startup_project_id": doc["project_ids"][doc["startup_index"]],
+        "runtime_hook_linked": len(doc["project_ids"]) > 1,
         "module_selection": {"selected": [m for g in ("engines", "effects", "midi", "modulation") for m in doc[g]]},
         "content": content,
         "embedded_content": {"prepared_sha256": prepared_sha, "assets": content,
@@ -132,10 +133,10 @@ def result_receipt(doc, req_sha, artifact):
     }).encode()
 
 
-def accept_and_succeed(c, adapter, receipt_transform=None, artifact=b"diagnostic-app"):
-    accepted = c.post("/api/v1/builds", json=request_doc())
+def accept_and_succeed(c, adapter, receipt_transform=None, artifact=b"diagnostic-app", doc=None):
+    doc = request_doc() if doc is None else doc
+    accepted = c.post("/api/v1/builds", json=doc)
     build_id = accepted.json()["id"]
-    doc = request_doc()
     req_sha = hashlib.sha256(canonical_request(doc)).hexdigest()
     receipt = json.loads(result_receipt(doc, req_sha, artifact))
     if receipt_transform:
@@ -159,6 +160,24 @@ def test_success_verifies_exact_request_and_app_bytes():
     assert result["remaining_bytes"] == result["app_budget_bytes"] - len(b"diagnostic-app")
     assert result["installable"] is False
     assert result["hardware_tested"] is False
+
+
+def test_one_project_receipt_requires_selector_bypass():
+    c, adapter = client()
+    doc = request_doc()
+    doc["project_ids"] = ["song-one"]
+    doc["startup_index"] = 0
+    accepted = accept_and_succeed(c, adapter, doc=doc)
+    response = c.get(accepted.json()["status_url"])
+    assert response.status_code == 200
+    receipt = json.loads(adapter.jobs[accepted.json()["id"]].result.receipt)
+    assert receipt["runtime_hook_linked"] is False
+
+
+def test_wrong_selector_hook_receipt_is_refused():
+    c, adapter = client()
+    accepted = accept_and_succeed(c, adapter, lambda d: d.update(runtime_hook_linked=False))
+    assert c.get(accepted.json()["status_url"]).status_code == 502
 
 
 @pytest.mark.parametrize("mutation", [

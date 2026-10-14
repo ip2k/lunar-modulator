@@ -165,6 +165,7 @@ def _verify_result(admission: Admission, result: WorkerResult) -> dict:
             or type(receipt.get("startup_index")) is not int
             or receipt["startup_index"] != startup_index
             or receipt.get("startup_project_id") != projects[startup_index]
+            or receipt.get("runtime_hook_linked") is not (len(projects) > 1)
             or receipt.get("app_sha256") != artifact_sha
             or type(receipt.get("app_bytes")) is not int
             or receipt["app_bytes"] != len(result.artifact)

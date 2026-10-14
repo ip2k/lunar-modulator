@@ -48,6 +48,7 @@ def test_checked_link_keeps_order_startup_and_actual_output_identity():
     assert receipt['app_sha256'] == sha(b'app')
     assert receipt['module_selection'] == inputs()[2]['module_selection']
     assert receipt['embedded_content'] == inputs()[2]['embedded_content']
+    assert receipt['runtime_hook_linked'] is True
     for flag in ('installable', 'hardware_admitted', 'hardware_tested', 'native_ram_verified',
                  'native_playback_verified', 'full_song_default_accepted'):
         assert receipt[flag] is False
@@ -57,6 +58,7 @@ def test_single_project_receipt_truthfully_records_selector_bypass():
     values = inputs(project_count=1)
     receipt = checked_link_receipt(*values)
     assert receipt['project_ids'] == ['second']
+    assert receipt['runtime_hook_linked'] is False
     assert values[2]['startup_project']['runtime_hook_linked'] is False
     values[2]['startup_project']['runtime_hook_linked'] = True
     with pytest.raises(ValueError, match='selected project'):

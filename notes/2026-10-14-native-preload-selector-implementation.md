@@ -33,6 +33,16 @@ A bounded pi32v2 build ran in `docker-batch.slice` with 4 CPUs, 8 GiB RAM, and 1
 
 The adapter's local storage is a 64-byte kind filter plus a 67-byte selector struct (131 bytes excluding call frames). Target stack watermark/resource acceptance is not established. No scratch build outputs were added to Git.
 
+## Follow-up: exact two-project link and receipt binding
+
+The earlier statements above that a successful multi-project link was still needed are superseded by a fresh matched target build on the two-project branch. With the selector present, the exact two-project image linked at 868,116 / 868,836 app-budget bytes (720 bytes free). The same request/profile linked without the selector at 867,564 bytes (1,272 bytes free), so the observed selector/link delta is 552 bytes. A fresh one-project image linked at 859,780 bytes (9,056 bytes free) and now records the chooser hook as absent. These are target link/package measurements only; the 720-byte margin is small and does not demonstrate runtime RAM, stack watermark, boot timing, or physical acceptance.
+
+The API receipt now binds the runtime_hook_linked boolean to the number of selected projects: false for one project (chooser bypass), true for multiple projects. The target builder propagates the verified startup hook bit into image.json; controller tests verify both states and reject a receipt that says a multi-project image omitted the hook. The private service contract intentionally refuses older version-1 receipts missing this field; jobs are ephemeral and outputs are rebuilt by the pinned worker, so it does not reinterpret stale receipts as valid.
+
+A broader focused run of installer service, native image controller, selector, and content embedding tests passed with the project state tool and pinned native toolchain environment. One parameterized test is skipped by its existing condition. The first test attempt without FM1_STATE_TOOL failed collection/execution for embedding cases; the successful rerun supplied both FM1_STATE_TOOL and FM1_NATIVE_TOOLCHAIN.
+
+Fresh target receipts and build logs are retained privately on Hera under /home/claude/mvave-fm1/native-preload-selector-two-project-20261014/receipt-fix/. No binary or private scratch output is committed. Two-project configuration uses the matched all-13-engine/production-module selection except Plate, exactly as its baseline; this does not claim the all-55-module set fits with two projects. The single-project build uses the same no-Plate production selection.
+
 ## Limits and next gate
 1. Get a fresh successful target link with at least two projects and required production modules/effects. One project only proves default bypass; four projects fail XIP; the separately reported two-project baseline was already slightly over budget before chooser code.
 2. Measure incremental XIP/RAM against a one-project baseline with identical source/catalogue/toolchain/flags, resolve the `.bss`/LOAD diagnostic and pass package/layout audits.
