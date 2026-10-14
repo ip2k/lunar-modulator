@@ -1,0 +1,257 @@
+"""Offline refusal and one-shot contract tests for the device-42 repeat adapter."""
+import ctypes
+from pathlib import Path
+import stat
+import sys
+import time
+from types import SimpleNamespace
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
+import fm1_event120_device42_rom_backup as read_adapter
+import fm1_uboot_read as reader
+from native import event120_device42_repeat_boot as module
+from native import event120_reset as completion
+
+
+def test_adapter_is_bound_to_enumeration_42_and_exact_event120_flash():
+    assert read_adapter.USB == {
+        "path": "1-1", "busnum": "1", "devnum": "42",
+        "vid": "4c4a", "pid": "8057",
+    }
+    assert module.USB == read_adapter.USB
+    assert read_adapter.TARGET_SHA == "145c0280d652b73515e01e2f1f0d88fe33344645463e89d57a2d0048c6aa4657"
+    assert module.TARGET_SHA == read_adapter.TARGET_SHA
+    assert read_adapter.INVENTORY_SHA == module.INVENTORY_SHA
+    assert read_adapter.MAX_AGE == module.MAX_AGE == 120
+    assert module.RESET_CDB == bytes.fromhex("fc0c00000001ffffffffffffffffffff")
+    assert module.READ_ADAPTER_SHA == read_adapter.digest(Path(read_adapter.__file__).read_bytes())
+
+
+def test_read_snapshot_rejects_changed_device_number():
+    raw = read_adapter.canonical({
+        "schema": 1, "kind": read_adapter.SNAPSHOT_KIND, "observed_at": 1000,
+        "usb_binding": dict(read_adapter.USB, devnum="40"), "sg_binding": {},
+    })
+    with pytest.raises(ValueError, match="Fresh exact passive"):
+        read_adapter._snapshot(raw, 1000)
+
+
+def test_boot_campaign_policy_rejects_before_open(tmp_path, monkeypatch):
+    root = tmp_path / "private"
+    root.mkdir(mode=0o700)
+    campaign = root / "boot-campaign.json"
+    campaign.write_text('{"schema":1,"kind":"wrong"}')
+    original_open = module.os.open
+    device_opens = []
+
+    def tracked_open(path, *args, **kwargs):
+        if str(path).startswith("/dev/"):
+            device_opens.append(str(path))
+            raise AssertionError("SG opened before campaign policy validation")
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(module.os, "open", tracked_open)
+    with pytest.raises(ValueError, match="same-session device-42 reset policy"):
+        module.prepare(campaign)
+    assert device_opens == []
+
+
+def _fake_authorized(monkeypatch, *, ioctl_fault=None):
+    mapping = {
+        "node": "/dev/sg-test", "node_identity": [1, 2, 3],
+        "usb_binding": read_adapter.USB,
+    }
+    bridge = SimpleNamespace(discover_sg=lambda usb: mapping)
+    target = SimpleNamespace(check=lambda: None)
+    now = time.time()
+    p = module.Prepared(
+        campaign=b"{}", campaign_sha256="a" * 64,
+        expected_mapping=module.canonical(mapping), target_prepared=target,
+        bridge=bridge, header_type=reader.SGHeader,
+        evidence=(), snapshot_observed_at=now, boot_marker=Path("/unused"),
+    )
+    module._AUTHORIZED.add(p)
+    opened, closed, ioctls = [], [], []
+    monkeypatch.setattr(module, "_live_mapping", lambda _bridge, usb: mapping)
+    monkeypatch.setattr(module.os, "open", lambda path, *args: opened.append(path) or 73)
+    monkeypatch.setattr(module.os, "close", lambda fd: closed.append(fd))
+    monkeypatch.setattr(module.fcntl, "flock", lambda *args: None)
+    monkeypatch.setattr(module.os, "fstat", lambda fd: SimpleNamespace(
+        st_mode=stat.S_IFCHR, st_dev=1, st_ino=2, st_rdev=3))
+
+    def ioctl(fd, request, header):
+        ioctls.append((fd, request))
+        ctypes.memmove(header.data, module.RESET_CDB, 2)
+        if ioctl_fault == "status":
+            header.host = 7
+
+    monkeypatch.setattr(completion.fcntl, "ioctl", ioctl)
+    Session = module.session_class(completion)
+    events = []
+    session = Session(p, lambda event, **fields: events.append((event, fields)))
+    return session, opened, closed, ioctls, events
+
+
+def test_real_completion_adapter_sends_once_and_never_claims_boot(monkeypatch):
+    session, opened, closed, ioctls, events = _fake_authorized(monkeypatch)
+    result = session.request_reset()
+    assert opened == ["/dev/sg-test"]
+    assert len(ioctls) == 1 and ioctls[0][1] == 0x2285
+    assert result == {"request_completion": True, "core_reset_observed": False,
+                      "boot_observed": False}
+    assert [event for event, _ in events] == ["reset_submit_intent", "reset_sg_completion"]
+    assert events[-1][1]["boot_observed"] is False
+    assert session.fd is None and closed == [73]
+    with pytest.raises(ValueError):
+        session.request_reset()
+    assert len(ioctls) == 1
+
+
+def test_incomplete_reset_reply_is_latched_and_closed_without_retry(monkeypatch):
+    session, opened, closed, ioctls, events = _fake_authorized(monkeypatch, ioctl_fault="status")
+    with pytest.raises(OSError, match="incomplete or ambiguous"):
+        session.request_reset()
+    assert opened == ["/dev/sg-test"]
+    assert len(ioctls) == 1
+    assert [event for event, _ in events] == ["reset_submit_intent", "reset_sg_completion"]
+    assert session.fd is None and session.failed and closed == [73]
+    with pytest.raises(ValueError):
+        session.request_reset()
+    assert len(ioctls) == 1
+
+
+def test_read_snapshot_freshness_is_measured_at_read_start():
+    # A full dual read can outlast the 120-second passive-snapshot age window.
+    # The separate boot-stage snapshot must still be fresh after completion.
+    assert module._read_snapshot_fresh_at_start(1000, 1110)
+    assert not module._read_snapshot_fresh_at_start(989, 1110)
+    assert not module._read_snapshot_fresh_at_start(1111, 1110)
+    with pytest.raises(ValueError, match="Fresh exact same-session"):
+        module._snapshot(read_adapter.canonical({
+            "schema": 1, "kind": module.BOOT_SNAPSHOT_KIND, "observed_at": 1000,
+            "usb_binding": read_adapter.USB, "sg_binding": {},
+        }), now=1110, earliest=1110)
+
+
+def test_positive_prepare_loads_pinned_modules_from_real_tools_layout(tmp_path, monkeypatch):
+    """Exercise the real tools/native -> tools module layout without opening SG."""
+    evidence_root = tmp_path / "private"
+    evidence_root.mkdir(mode=0o700)
+    evidence_root.chmod(0o700)
+    read_receipt = evidence_root / "read"
+    read_receipt.mkdir(mode=0o700)
+    read_receipt.chmod(0o700)
+    boot_receipt = evidence_root / "boot"
+    campaign_path = evidence_root / "boot-campaign.json"
+    now = time.time()
+    mapping = {
+        "node": "/dev/sg-test", "class": "/sys/class/scsi_generic/sg-test",
+        "device": "/sys/devices/pci0000:00/usb1/1-1/1-1:1.0/host0/target0:0:0/0:0:0:0",
+        "usb": "/sys/devices/pci0000:00/usb1/1-1",
+        "node_identity": (1, 2, 3), "class_identity": (4, 5, 0),
+        "device_identity": (6, 7, 0), "usb_identity": (8, 9, 0),
+    }
+    snapshot = {
+        "schema": 1, "kind": module.BOOT_SNAPSHOT_KIND, "observed_at": now,
+        "usb_binding": read_adapter.USB, "sg_binding": mapping,
+    }
+    snapshot_path = evidence_root / "boot-snapshot.json"
+    snapshot_raw = read_adapter.canonical(snapshot)
+    snapshot_path.write_bytes(snapshot_raw)
+    adapter_sha = read_adapter.digest(Path(module.__file__).read_bytes())
+    campaign = {
+        "schema": 1, "kind": module.KIND, "adapter_sha256": adapter_sha,
+        "read_manifest_path": str(evidence_root / "manifest.json"),
+        "read_manifest_sha256": "a" * 64, "read_commands_sha256": "b" * 64,
+        "snapshot_path": str(snapshot_path),
+        "snapshot_sha256": read_adapter.digest(snapshot_raw),
+        "snapshot_observed_at": now, "usb_binding": read_adapter.USB,
+        "sg_binding": mapping, "active_session_state": module.ACTIVE_SESSION,
+        "no_later_commands_attested": True, "receipt_path": str(boot_receipt),
+    }
+    campaign_path.write_bytes(read_adapter.canonical(campaign))
+    bridge = SimpleNamespace(discover_sg=lambda usb: mapping)
+    verified_read = {
+        "manifest": {"sg_binding": mapping}, "completed_at": now - 1,
+        "receipt": read_receipt, "bridge": bridge, "reader": reader,
+        "evidence": (),
+    }
+    monkeypatch.setattr(module, "verify_read_bundle", lambda *args, **kwargs: verified_read)
+
+    prepared, completion_module = module.prepare(campaign_path, now=now)
+
+    assert module.ROOT == Path(module.__file__).resolve().parents[1]
+    assert module.ROOT.name == "tools"
+    assert prepared in module._AUTHORIZED
+    assert prepared.target_prepared in sys.modules["_event12042_fixed_target_reset"]._AUTHORIZED
+    assert completion_module.__file__ == str(module.ROOT / "native/event120_reset.py")
+    frozen_paths = {path for path, _data, _limit in prepared.evidence}
+    assert {
+        module.ROOT / "fm1_fixed_target_reset.py",
+        module.ROOT / "fm1_fixed_loader_reset.py",
+        module.ROOT / "native/event120_reset.py",
+    } <= frozen_paths
+    assert not boot_receipt.exists()
+    assert not list(evidence_root.glob("*.consumed"))
+
+
+def test_prepare_rejects_live_mapping_change_before_sg_open(tmp_path, monkeypatch):
+    # The passive snapshot and verified-read bundle identify one exact node.
+    # A changed live sysfs mapping must fail before the reset descriptor opens.
+    evidence_root = tmp_path / 'private'
+    evidence_root.mkdir(mode=0o700)
+    evidence_root.chmod(0o700)
+    read_receipt = evidence_root / 'read'
+    read_receipt.mkdir(mode=0o700)
+    read_receipt.chmod(0o700)
+    now = time.time()
+    expected = {
+        'node': '/dev/sg-test', 'class': '/sys/class/scsi_generic/sg-test',
+        'device': '/sys/devices/pci0000:00/usb1/1-1/1-1:1.0/host0/target0:0:0/0:0:0:0',
+        'usb': '/sys/devices/pci0000:00/usb1/1-1',
+        'node_identity': (1, 2, 3), 'class_identity': (4, 5, 0),
+        'device_identity': (6, 7, 0), 'usb_identity': (8, 9, 0),
+    }
+    changed = dict(expected, node='/dev/sg-other', node_identity=(9, 9, 9))
+    snapshot = {'schema': 1, 'kind': module.BOOT_SNAPSHOT_KIND,
+                'observed_at': now, 'usb_binding': read_adapter.USB,
+                'sg_binding': expected}
+    snapshot_path = evidence_root / 'snapshot.json'
+    snapshot_raw = read_adapter.canonical(snapshot)
+    snapshot_path.write_bytes(snapshot_raw)
+    campaign_path = evidence_root / 'boot-campaign.json'
+    campaign = {
+        'schema': 1, 'kind': module.KIND,
+        'adapter_sha256': read_adapter.digest(Path(module.__file__).read_bytes()),
+        'read_manifest_path': str(evidence_root / 'manifest.json'),
+        'read_manifest_sha256': 'a' * 64, 'read_commands_sha256': 'b' * 64,
+        'snapshot_path': str(snapshot_path),
+        'snapshot_sha256': read_adapter.digest(snapshot_raw),
+        'snapshot_observed_at': now, 'usb_binding': read_adapter.USB,
+        'sg_binding': expected, 'active_session_state': module.ACTIVE_SESSION,
+        'no_later_commands_attested': True,
+        'receipt_path': str(evidence_root / 'boot'),
+    }
+    campaign_path.write_bytes(read_adapter.canonical(campaign))
+    bridge = SimpleNamespace(discover_sg=lambda usb: changed)
+    verified_read = {
+        'manifest': {'sg_binding': expected}, 'completed_at': now - 1,
+        'receipt': read_receipt, 'bridge': bridge, 'reader': reader,
+        'evidence': (),
+    }
+    monkeypatch.setattr(module, 'verify_read_bundle', lambda *args, **kwargs: verified_read)
+    original_open = module.os.open
+    device_opens = []
+
+    def tracked_open(path, *args, **kwargs):
+        if str(path).startswith('/dev/'):
+            device_opens.append(str(path))
+            raise AssertionError('SG descriptor opened before mapping validation')
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(module.os, 'open', tracked_open)
+    with pytest.raises(ValueError, match='Live USB/SG mapping differs'):
+        module.prepare(campaign_path, now=now)
+    assert device_opens == []
