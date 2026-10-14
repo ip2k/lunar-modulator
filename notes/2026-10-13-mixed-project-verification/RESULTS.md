@@ -556,3 +556,30 @@ No physical command or new build; all13 real-device acceptance, settings
 migration/physical rollback, web builder/install,GPL,review/CI/integration
 remain open. Next complete provenance/control-flow/startup bounds and timing
 without substituting historical proof for current-candidate evidence.
+
+## Observer evidence integrity checkpoint (2026-10-13)
+
+[verified] inspect-observer-construction.py now compares every asserted
+initialization/load/call opcode, including the memset call, with bytes read from
+the pinned current ELF. It rejects source hashes outside the four reviewed
+native/application files rather than merely recording arbitrary input hashes.
+The reviewed fm1_app_state_load source saves on_mod/context, clears the hook,
+and restores the saved values in that order. The new v2 receipt records that
+source evidence without claiming compiled preservation or alias safety.
+
+[verified] Current v4 receipt reproduces byte-for-byte. Separate altered-source
+checks replacing either callback save or restore with NULL fail before receipt
+publication. Python compilation and git diff --check pass. Original receipts
+remain as historical evidence; new receipts are observer-construction-no-writeback-v2.json
+and observer-construction-no-writeback-v2-checks.json under the verification
+receipts directory. No firmware or device command was issued.
+
+Serena and Rarefaction remain selected on the primary checkout, not this
+worktree; selection was preserved. Serena navigated the matching mod_emit body;
+Rarefaction reported two ambiguous definitions. Target ELF and worktree source
+are authoritative. Full startup margin, compiled callback preservation, aliasing,
+interrupt nesting and timing remain open, followed by physical full-catalogue
+migration/rollback and browser builder/install, licensing and review/CI gates.
+The owner scope remains thirteen engines plus selectable content/effects builds.
+Previous verified pushed checkpoint: 229c43f89f70c95df8f7f66910c61a2e0f10e053.
+No live measurement job.

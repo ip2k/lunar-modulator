@@ -2545,3 +2545,30 @@ Next optional hooks/table bounds/caller+IRQ stack/timing, then fresh hardware
 identity and paired backups for reviewed physical campaign. Full13 release,
 settings migration/rollback, web builder/install, GPL/review/CI gates open.
 Previous verified pusheda398e5cd42663879066efb2f09e32e4c98e4246b.
+
+## Observer evidence integrity checkpoint (2026-10-13)
+
+[verified] inspect-observer-construction.py now compares every asserted
+initialization/load/call opcode, including the memset call, with bytes read from
+the pinned current ELF. It rejects source hashes outside the four reviewed
+native/application files rather than merely recording arbitrary input hashes.
+The reviewed fm1_app_state_load source saves on_mod/context, clears the hook,
+and restores the saved values in that order. The new v2 receipt records that
+source evidence without claiming compiled preservation or alias safety.
+
+[verified] Current v4 receipt reproduces byte-for-byte. Separate altered-source
+checks replacing either callback save or restore with NULL fail before receipt
+publication. Python compilation and git diff --check pass. Original receipts
+remain as historical evidence; new receipts are observer-construction-no-writeback-v2.json
+and observer-construction-no-writeback-v2-checks.json under the verification
+receipts directory. No firmware or device command was issued.
+
+Serena and Rarefaction remain selected on the primary checkout, not this
+worktree; selection was preserved. Serena navigated the matching mod_emit body;
+Rarefaction reported two ambiguous definitions. Target ELF and worktree source
+are authoritative. Full startup margin, compiled callback preservation, aliasing,
+interrupt nesting and timing remain open, followed by physical full-catalogue
+migration/rollback and browser builder/install, licensing and review/CI gates.
+The owner scope remains thirteen engines plus selectable content/effects builds.
+Previous verified pushed checkpoint: 229c43f89f70c95df8f7f66910c61a2e0f10e053.
+No live measurement job.
