@@ -3582,3 +3582,25 @@ scanning at sector tails from 0x1f00 through 0xfef00 for this 1 MiB/4 KiB profil
 A valid ordinary app bypasses this scan. This establishes lookup mechanics,
 not safe staging ownership; persistent WebMIDI updater layout, settings migration
 and power-loss recovery remain under investigation. Goal remains ACTIVE.
+
+## Custom two-project target link — 2026-10-14
+
+Real Hera worker link of legacy Packet Bloom + Event Horizon Showcase with all
+thirteen engines and every effect failed XIP by 1,248 bytes. The identical
+selection excluding Plate linked at 867,564/868,836 bytes (1,272 free), app
+`7ee7e719b8b77e150fc507e8887de5b47842c7fa8da36216ed3e8ca6864a594a`.
+Source a2463d83; startup index 1; 54 selected modules; bounded 20s diagnostic;
+SAVE disarmed; all physical/installability acceptance flags false. Exact receipt
+and limits: `notes/2026-10-14-two-project-real-build.md`. Default image scope
+unchanged; cold-boot chooser not yet in this build.
+
+Production TLSF source executed on matching WASM32 geometry accepts Satellite
+Hearts ordered reservations at seven Shapes voices and rejects at eight.
+Packet Bloom Showcase still fails and has no Shapes. Research is integrated;
+no cap/music change or hardware fit claimed. See Shapes voice-cap options note.
+
+Five-sector USR staging review fits 96KiB project slots + 8KiB journal and 20KiB
+rescue stage in VM+USR with a scattered slot B, but migration and durable
+exact-stock rollback are unproven. Follow-up examines retaining rescue until
+stock app/directory validation, then restoring stage sectors last; do not assume
+partially restored stock storage is bootable. Goal ACTIVE.
