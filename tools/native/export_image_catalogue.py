@@ -67,7 +67,57 @@ PRELOAD_PROJECTS = (
 )
 
 
-def export_preload_projects(root: Path):
+def _source_module_dependencies(project, module_groups):
+    """Read source IDs for chooser preflight; packed validation stays backend-only."""
+    if not isinstance(project, dict):
+        raise ValueError("Preload project root must be an object")
+    dependencies = {group: set() for group in GROUPS}
+
+    def rows(value, label, *, nullable=False):
+        if not isinstance(value, list) or any(
+                not isinstance(row, dict) and not (nullable and row is None) for row in value):
+            raise ValueError("Invalid preload project " + label)
+        return value
+
+    for sound in rows(project.get("sounds", []), "sounds"):
+        engine = sound.get("engine")
+        if engine:
+            if not isinstance(engine, str):
+                raise ValueError("Invalid sound engine identifier")
+            dependencies["engines"].add(engine)
+        for field, group in (("inserts", "effects"), ("midi_fx", "midi")):
+            for effect in rows(sound.get(field, []), "sounds." + field, nullable=True):
+                if effect is None:
+                    continue
+                identifier = effect.get("engine")
+                if identifier:
+                    if not isinstance(identifier, str):
+                        raise ValueError("Invalid " + field + " identifier")
+                    dependencies[group].add(identifier)
+    for effect in rows(project.get("master", []), "master"):
+        identifier = effect.get("engine")
+        if identifier:
+            if not isinstance(identifier, str):
+                raise ValueError("Invalid master effect identifier")
+            dependencies["effects"].add(identifier)
+    mod = project.get("mod", {})
+    if not isinstance(mod, dict):
+        raise ValueError("Invalid preload project modulation section")
+    for source in rows(mod.get("rack", []), "mod.rack"):
+        identifier = source.get("kind")
+        if identifier:
+            if not isinstance(identifier, str):
+                raise ValueError("Invalid modulation identifier")
+            dependencies["modulation"].add(identifier)
+    result = {group: sorted(values) for group, values in dependencies.items()}
+    if module_groups is not None:
+        for group, identifiers in result.items():
+            if any(identifier not in module_groups[group] for identifier in identifiers):
+                raise ValueError("Source dependency is absent from canonical " + group + " catalogue")
+    return result
+
+
+def export_preload_projects(root: Path, module_groups=None):
     projects = []
     for spec in PRELOAD_PROJECTS:
         source_path = root / spec['source_path']
@@ -107,6 +157,9 @@ def export_preload_projects(root: Path):
                 'scenes': spec['scenes'],
                 'nominal_seconds': round(spec['bars'] * 4 * 60 / spec['bpm'], 6),
             },
+            # Hash-bound chooser feedback only; packed records remain authoritative.
+            'source_module_dependencies': _source_module_dependencies(project, module_groups),
+            'source_dependency_scan_complete': True,
             'dependency_validation': {
                 'status': 'pending-packed-backend-validation',
                 'dependency_scan_complete': False,
@@ -142,7 +195,7 @@ def export_catalogue(root: Path, build: Path):
         raise ValueError('Production default does not match requested catalogue')
     if catalogue_path.read_bytes() != before:
         raise ValueError('Module catalogue changed during export')
-    return dict(version=1, groups=groups, projects=export_preload_projects(root),
+    return dict(version=1, groups=groups, projects=export_preload_projects(root, groups),
                 full_song_default={
                     'required': True,
                     'status': 'pending',

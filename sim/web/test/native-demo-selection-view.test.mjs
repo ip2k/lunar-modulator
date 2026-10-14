@@ -37,6 +37,8 @@ const project = (id, title, seconds, category = 'legacy-example') => ({
   owner_disposition: 'legacy example; not approved as a showcase or default',
   default_candidate: false,
   source_path: `private/${id}.lunar`, source_sha256: 'a'.repeat(64),
+  source_dependency_scan_complete: true,
+  source_module_dependencies: { engines: ['macro'], effects: [], midi: [], modulation: [] },
 });
 const catalogue = {
   version: 1,
@@ -209,4 +211,27 @@ test('blocks duplicate asynchronous submissions and exposes rejection for retry'
   await pending;
   assert.equal(status.textContent, 'Build preparation unavailable');
   assert.equal(submit.disabled, false);
+});
+
+
+test('shows an actionable preflight error and sends nothing when a required module is unchecked', async () => {
+  const document = new Document();
+  const root = new Element('div', document);
+  const sent = [];
+  const partialProfile = { version: 1, engines: ['shapes'], effects: [], midi: [], modulation: [] };
+  const expandedCatalogue = { ...catalogue, groups: { ...catalogue.groups, engines: ['macro', 'shapes'] } };
+  mountNativeDemoSelectionView(root, expandedCatalogue, partialProfile, (request) => sent.push(request));
+  const nodes = walk(root);
+  const submit = nodes.find((node) => node.tagName === 'BUTTON');
+  const status = nodes.find((node) => node.getAttribute('aria-live') === 'polite');
+
+  await submit.dispatch('click');
+  assert.equal(sent.length, 0);
+  assert.match(status.textContent, /engines: macro/);
+  assert.match(status.textContent, /Enable these modules or remove the selected project/);
+
+  partialProfile.engines = ['macro', 'shapes'];
+  await submit.dispatch('click');
+  assert.equal(sent.length, 1);
+  assert.deepEqual(sent[0].project_ids, ['replacement-showcase-candidate-event-horizon']);
 });

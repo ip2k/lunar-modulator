@@ -10,11 +10,13 @@ const projects = [
   { id: 'legacy-example-afterglow-relay', title: 'Afterglow Relay', category: 'legacy-example',
     duration_estimate: { nominal_seconds: 198.261 },
     owner_disposition: 'legacy example; not approved as a showcase or default', default_candidate: false,
-    source_path: '../must-not-enter-request.lunar', source_sha256: 'a'.repeat(64) },
+    source_path: '../must-not-enter-request.lunar', source_sha256: 'a'.repeat(64),
+    source_dependency_scan_complete: true, source_module_dependencies: { engines: ['macro'], effects: ['plate'], midi: [], modulation: [] } },
   { id: 'legacy-example-event-horizon', title: 'Event Horizon', category: 'legacy-example',
     duration_estimate: { nominal_seconds: 193.333 },
     owner_disposition: 'legacy example; not approved as a showcase or default', default_candidate: false,
-    source_path: 'engines/state/examples/event-horizon.lunar', source_sha256: 'b'.repeat(64) },
+    source_path: 'engines/state/examples/event-horizon.lunar', source_sha256: 'b'.repeat(64),
+    source_dependency_scan_complete: true, source_module_dependencies: { engines: ['macro'], effects: ['plate'], midi: [], modulation: [] } },
   { id: 'replacement-showcase-candidate-packet-bloom', title: 'Packet Bloom',
     category: 'replacement-showcase-candidate',
     duration_estimate: { bpm: 82, bars: 40, scenes: 5, nominal_seconds: 117.073171 },
@@ -23,7 +25,8 @@ const projects = [
     source_path: 'engines/state/examples/replacement-showcases/packet-bloom-showcase.lunar',
     source_sha256: 'c'.repeat(64),
     dependency_validation: { status: 'pending-packed-backend-validation',
-      dependency_scan_complete: false, validated_module_ids: [] } },
+      dependency_scan_complete: false, validated_module_ids: [] },
+    source_dependency_scan_complete: true, source_module_dependencies: { engines: ['macro'], effects: ['plate'], midi: [], modulation: [] } },
 ];
 const catalogue = {
   version: 1,
@@ -96,6 +99,7 @@ test('keeps replacement candidates pending and confines source/dependency metada
   assert.equal('source_path' in candidate, false);
   assert.equal('source_sha256' in candidate, false);
   assert.equal('dependency_validation' in candidate, false);
+  assert.equal('source_module_dependencies' in candidate, false);
   assert.equal('dependencies' in candidate, false);
 });
 
@@ -136,4 +140,38 @@ test('allocator dispositions apply only to exact replacement IDs and rejected pr
   assert.throws(() => buildNativeDemoSelectionRequest(expanded, profile,
     ['replacement-showcase-candidate-satellite-hearts'], 0), /Unavailable/);
   assert.equal(expanded.full_song_default.status, 'pending');
+});
+
+
+test('preflights source dependencies for selected projects but ignores unrelated modules', () => {
+  const needsSound = { ...projects[1], source_module_dependencies: {
+    engines: ['macro'], effects: [], midi: [], modulation: [],
+  } };
+  const needsEffect = { ...projects[0], source_module_dependencies: {
+    engines: [], effects: ['plate'], midi: [], modulation: [],
+  } };
+  const expanded = { ...catalogue, projects: [needsSound, needsEffect] };
+  const moduleProfile = { version: 1, engines: ['shapes'], effects: [], midi: [], modulation: [] };
+  assert.throws(() => buildNativeDemoSelectionRequest(expanded, moduleProfile, [needsSound.id], 0),
+    /engines: macro.*Enable these modules or remove the selected project/);
+  const effectProfile = { version: 1, engines: ['macro'], effects: [], midi: [], modulation: [] };
+  assert.throws(() => buildNativeDemoSelectionRequest(expanded, effectProfile, [needsEffect.id], 0),
+    /effects: plate.*Enable these modules or remove the selected project/);
+
+  const valid = { version: 1, engines: ['macro', 'shapes'], effects: ['plate'], midi: [], modulation: ['lfo'] };
+  const request = buildNativeDemoSelectionRequest(expanded, valid, [needsSound.id, needsEffect.id], 1);
+  assert.deepEqual(request.project_ids, [needsSound.id, needsEffect.id]);
+  assert.equal(request.startup_index, 1);
+  assert.deepEqual(request.engines, ['macro', 'shapes']);
+  assert.deepEqual(request.effects, ['plate']);
+});
+
+test('fails closed when source dependency preflight metadata is missing or outside canonical groups', () => {
+  for (const project of [
+    { ...projects[0], source_dependency_scan_complete: false },
+    { ...projects[0], source_module_dependencies: { ...projects[0].source_module_dependencies, engines: ['not-canonical'] } },
+  ]) {
+    assert.throws(() => buildNativeDemoSelectionRequest({ ...catalogue, projects: [project] }, profile,
+      [project.id], 0), /dependency preflight metadata is unavailable/);
+  }
 });

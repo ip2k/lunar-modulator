@@ -63,6 +63,8 @@ const catalogue = {
     source_path: `private/${id}.lunar`,
     source_sha256: 'a'.repeat(64),
     dependency_validation: { status: 'pending-packed-backend-validation' },
+    source_dependency_scan_complete: true,
+    source_module_dependencies: { engines: ['macro'], effects: [], midi: [], modulation: [] },
   })),
   full_song_default: {
     required: true,
@@ -118,8 +120,8 @@ test('loads generated catalogue, mounts the shared chooser and exports only a va
     assert.equal(checkboxes[5].checked, true);
     assert.equal(radios[5].checked, true);
 
-    checkboxes[6].checked = true;
-    await checkboxes[6].dispatch('change');
+    checkboxes[4].checked = true;
+    await checkboxes[4].dispatch('change');
     checkboxes[1].checked = true;
     await checkboxes[1].dispatch('change');
     radios[1].checked = true;
@@ -132,7 +134,7 @@ test('loads generated catalogue, mounts the shared chooser and exports only a va
       'version', 'engines', 'effects', 'midi', 'modulation', 'project_ids', 'startup_index',
     ]);
     assert.equal(exported.version, 1);
-    assert.deepEqual(exported.project_ids, [ids[5], ids[6], ids[1]]);
+    assert.deepEqual(exported.project_ids, [ids[5], ids[4], ids[1]]);
     assert.equal(exported.startup_index, 2);
     assert.deepEqual(exported.engines, catalogue.default_profile.engines);
     assert.equal('source_path' in exported, false);
@@ -195,8 +197,8 @@ test('uses injected build client only after explicit selection and preserves mod
   assert.equal(submissions.length, 0, 'mounting the page must not submit a build');
   assert.equal(cancelButton.hidden, true);
 
-  checkboxes[6].checked = true;
-  await checkboxes[6].dispatch('change');
+  checkboxes[4].checked = true;
+  await checkboxes[4].dispatch('change');
   checkboxes[1].checked = true;
   await checkboxes[1].dispatch('change');
   radios[1].checked = true;
@@ -204,7 +206,7 @@ test('uses injected build client only after explicit selection and preserves mod
   await button.dispatch('click');
 
   assert.equal(submissions.length, 1);
-  assert.deepEqual(submissions[0].project_ids, [ids[5], ids[6], ids[1]]);
+  assert.deepEqual(submissions[0].project_ids, [ids[5], ids[4], ids[1]]);
   assert.equal(submissions[0].startup_index, 2);
   assert.deepEqual(submissions[0].engines, ['macro', 'shapes']);
   assert.equal(exportStatus.textContent, 'Diagnostic build checks passed. Application flash: 1,234 / 868,836 bytes used; 867,602 bytes free. No installable firmware file is available.');

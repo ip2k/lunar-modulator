@@ -35,11 +35,27 @@ function checkedProjects(catalogue) {
   if (!isRecord(catalogue) || catalogue.version !== 1 || !Array.isArray(catalogue.projects)) {
     fail('Unsupported native demo catalogue');
   }
+  if (!isRecord(catalogue.groups)) fail('Invalid native demo module catalogue');
+  for (const group of BUILDER_GROUPS) {
+    if (!Array.isArray(catalogue.groups[group])
+        || catalogue.groups[group].some((id) => typeof id !== 'string' || !id)
+        || new Set(catalogue.groups[group]).size !== catalogue.groups[group].length) {
+      fail('Invalid native demo module group: ' + group);
+    }
+  }
   const ids = new Set();
   for (const project of catalogue.projects) {
     if (!isRecord(project) || typeof project.id !== 'string' || !project.id
         || ids.has(project.id)) {
       fail('Invalid or duplicate native demo project ID');
+    }
+    const sourceDependencies = project.source_module_dependencies;
+    if (project.source_dependency_scan_complete !== true || !isRecord(sourceDependencies)
+        || BUILDER_GROUPS.some((group) => !Array.isArray(sourceDependencies[group])
+          || sourceDependencies[group].some((id) => typeof id !== 'string' || !id
+            || !catalogue.groups[group].includes(id))
+          || new Set(sourceDependencies[group]).size !== sourceDependencies[group].length)) {
+      fail('Project dependency preflight metadata is unavailable; refresh the catalogue');
     }
     ids.add(project.id);
   }
@@ -79,8 +95,8 @@ export function describeNativeDemoCatalogue(catalogue) {
  */
 export function buildNativeDemoSelectionRequest(catalogue, profile, projectIds, startupIndex) {
   const { ids } = checkedProjects(catalogue);
-  // Reuse the established module validator; no client-supplied packed metadata
-  // is passed, so dependency resolution remains a backend preparation gate.
+  // The source-hash-bound catalogue provides immediate UX feedback. The backend
+  // independently validates exact packed records before it writes a receipt.
   const modules = validateNativeBuildSelection(catalogue, profile);
   if (!Array.isArray(projectIds) || projectIds.length === 0
       || projectIds.some((id) => typeof id !== 'string' || !ids.has(id))) {
@@ -91,6 +107,22 @@ export function buildNativeDemoSelectionRequest(catalogue, profile, projectIds, 
   if (rejected.length) {
     const names = rejected.map((id) => catalogue.projects.find((project) => project.id === id)?.title || id);
     fail(`Unavailable under the current profile: ${names.join(', ')}`);
+  }
+  const missingByGroup = Object.fromEntries(BUILDER_GROUPS.map((group) => [group, new Set()]));
+  for (const id of projectIds) {
+    const project = catalogue.projects.find((item) => item.id === id);
+    for (const group of BUILDER_GROUPS) {
+      for (const dependency of project.source_module_dependencies[group]) {
+        if (!modules.selectedByGroup[group].includes(dependency)) missingByGroup[group].add(dependency);
+      }
+    }
+  }
+  const missing = BUILDER_GROUPS
+    .filter((group) => missingByGroup[group].size)
+    .map((group) => `${group}: ${[...missingByGroup[group]].sort().join(', ')}`);
+  if (missing.length) {
+    const names = projectIds.map((id) => catalogue.projects.find((project) => project.id === id)?.title || id);
+    fail(`Selected projects need omitted modules (${missing.join('; ')}). Enable these modules or remove the selected project${names.length === 1 ? '' : 's'}: ${names.join(', ')}`);
   }
   if (typeof startupIndex !== 'number' || !Number.isSafeInteger(startupIndex)
       || startupIndex < 0 || startupIndex >= projectIds.length) {

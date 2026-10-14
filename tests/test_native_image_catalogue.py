@@ -78,7 +78,25 @@ def test_exported_builder_requests(tmp_path, case):
                 'dependency_scan_complete': False,
                 'validated_module_ids': [],
             }
+            assert project['source_dependency_scan_complete'] is True
+            dependencies = project['source_module_dependencies']
+            assert set(dependencies) == set(groups)
+            assert all(set(values) <= set(groups[group]) for group, values in dependencies.items())
+            assert set(project['source_module_dependencies']['engines'])
+            assert project['dependency_validation']['dependency_scan_complete'] is False
             assert project['default_candidate'] is False
+            if project['id'] == 'replacement-showcase-candidate-event-horizon':
+                assert dependencies == {
+                    'engines': ['acid-bass', 'drums', 'sixop', 'trio'],
+                    'effects': ['hall', 'limit'], 'midi': ['arp'],
+                    'modulation': ['chance', 'env', 'lfo'],
+                }
+            if project['id'] == 'replacement-showcase-candidate-afterglow-relay':
+                assert dependencies == {
+                    'engines': ['drums', 'dx7', 'macro'],
+                    'effects': ['drive', 'echo', 'filter', 'hall', 'limit'],
+                    'midi': ['arp'], 'modulation': ['chance', 'env', 'lfo'],
+                }
             if category == 'replacement-showcase-candidate':
                 assert project['source_provenance'] == {
                     'commit': 'fb92cc0d4c312bbc77866c915d6fb8f159f5f92d',
