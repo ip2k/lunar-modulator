@@ -87,3 +87,13 @@ Concrete trial/recovery review: ../2026-10-13-expanded-device36-trial.md.
 An operator helper initially compared tuples to decoded lists directly and
 refused unchanged SG metadata; canonical comparison corrected the helper
 before any device operation. Production pinned source was unchanged.
+
+## Physical installation completed
+
+[verified] exec53310 exited0. All213 planned sectors were written and verified;
+the complete1MiB readback matches target c543e538754d0ae02ee119fd1e29a9b8cb9eb21a23edf0c12fc981ddaa3bc903.
+Independent exact-campaign replay passed25,669 commands/58,709 events over
+385.04seconds. Summary: device36-physical-install.json. Private complete receipts
+are mirrored under build/native-current-candidate-20261013/device36-physical-install/.
+No boot request or physical recovery acceptance. The same fixed RAM loader
+remains the next boot dependency; do not upload/replay the consumed writer.

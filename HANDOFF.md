@@ -2738,3 +2738,17 @@ transcript with retained campaign digest, then fresh same-loader one-use boot
 and owner observation (question pending). Do not reuse expired campaigns.
 Full release/custom builder/migration/physical rollback and reviewCI remain open.
 Prior verified pusheddfc5720c0ba56d2397c39fc745879b311200e221.
+
+## Physical all13 write verified (2026-10-13)
+
+[verified] exec53310 terminal0; native-install-v1/result.json verifies all213
+sectors and complete target c543... readback. Independent physical replay passed
+25,669commands/58,709events/385.04sec, transcript137b7b2c...
+Public summary notes/2026-10-13-current-expanded-candidate/device36-physical-install.json;
+private receipt archive build/native-current-candidate-20261013/device36-physical-install/receipts.tar.gz.
+Install campaign094be5c78fec1ca9e66407ece933f21eba157299cf9ce5a5306614db9e0ab560 consumed.
+No boot request. Next fresh same-device36 boot campaign via staged expanded_boot
+with retained install SHA and owner watching (async response pending). Do not
+reupload ROM loader or replay writer. Full all13 hardware acceptance, persistence,
+MIDI, migration/physical rollback, web installer/custom builder and licensing/CI
+remain open. Previous verified pushed b0c4af2dce88e122b139fe3d974dfc96bd6571d4.

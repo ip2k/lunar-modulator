@@ -1,7 +1,8 @@
 # Exact device36 thirteen-engine trial and recovery plan
 
-Status: recovery simulation and source review passed; guarded physical installation
-is in progress. No boot request or hardware acceptance yet.
+Status: guarded physical installation completed and independent physical transcript
+replay passed. All 213 sectors and complete 1 MiB target readback match.
+No boot request, physical rollback or hardware acceptance yet.
 This is a private twenty-second hardware probe, not a release image or OTA package.
 The owner authorized native development and the expanded layout with migration
 and rollback verification. AGENTS.md retains the all-thirteen release and custom

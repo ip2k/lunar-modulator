@@ -1,0 +1,15 @@
+{
+  "boot_observed": false,
+  "campaign_sha256": "094be5c78fec1ca9e66407ece933f21eba157299cf9ce5a5306614db9e0ab560",
+  "commands": 25669,
+  "events": 58709,
+  "full_flash_readback_verified": true,
+  "hardware_operations": 0,
+  "physical_recovery_verified": false,
+  "release_accepted": false,
+  "seconds": 385.04230785369873,
+  "sectors": 213,
+  "target_sha256": "c543e538754d0ae02ee119fd1e29a9b8cb9eb21a23edf0c12fc981ddaa3bc903",
+  "transcript_sha256": "137b7b2cdc9ac2bcb5bbbd9e85ae0590cd4676023fb683013e11753894672fb8",
+  "verified": true
+}
