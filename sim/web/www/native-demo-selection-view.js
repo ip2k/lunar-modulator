@@ -136,7 +136,13 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
     checkbox.id = id;
     checkbox.value = project.id;
     checkbox.checked = project.id === proposedFullSong?.id;
+    checkbox.disabled = project.reservation.status === 'rejected';
     checkbox.addEventListener('change', () => {
+      if (project.reservation.status === 'rejected') {
+        checkbox.checked = false;
+        status.textContent = project.reservation.label;
+        return;
+      }
       if (checkbox.checked) {
         if (!selected.includes(project.id)) selected.push(project.id);
         const radio = startupControls.get(project.id);
@@ -158,6 +164,7 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
     item.append(text(document, 'p', durationLabel(project.duration_estimate)));
     item.append(text(document, 'p', categoryLabel(project)));
     item.append(text(document, 'p', dispositionLabel(project)));
+    item.append(text(document, 'p', project.reservation.label, `native-demo-reservation-${project.reservation.status}`));
     choices.append(item);
     projectControls.set(project.id, checkbox);
     addStartupOption(project);

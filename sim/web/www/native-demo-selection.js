@@ -4,6 +4,31 @@
 import { BUILDER_GROUPS, validateNativeBuildSelection } from './native-build-selection.js';
 
 const fail = (message) => { throw new TypeError(message); };
+const RESERVATIONS = Object.freeze({
+  'replacement-showcase-candidate-event-horizon': Object.freeze({
+    status: 'allocator-fit',
+    label: 'Ordered production-allocator reservation passed in a bounded WASM32 run; native startup and device fit remain unverified.',
+  }),
+  'replacement-showcase-candidate-afterglow-relay': Object.freeze({
+    status: 'allocator-fit',
+    label: 'Ordered production-allocator reservation passed in a bounded WASM32 run; native startup and device fit remain unverified.',
+  }),
+  'replacement-showcase-candidate-packet-bloom': Object.freeze({
+    status: 'rejected',
+    label: 'The current ordered production-allocator reservation was rejected in a bounded WASM32 run.',
+  }),
+  'replacement-showcase-candidate-satellite-hearts': Object.freeze({
+    status: 'rejected',
+    label: 'Unavailable under the current 12-voice profile: the Shapes request exceeds the target pool. A separate lower-voice profile needs its own musical review.',
+  }),
+});
+
+function reservationFor(project) {
+  return RESERVATIONS[project.id] || Object.freeze({
+    status: 'pending',
+    label: 'Current-profile allocation reservation has not been established.',
+  });
+}
 const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 function checkedProjects(catalogue) {
@@ -37,6 +62,7 @@ export function describeNativeDemoCatalogue(catalogue) {
     duration_estimate: project.duration_estimate,
     owner_disposition: project.owner_disposition,
     default_candidate: project.default_candidate,
+    reservation: reservationFor(project),
   }));
   return Object.freeze({
     projects: Object.freeze(projects),
@@ -61,6 +87,11 @@ export function buildNativeDemoSelectionRequest(catalogue, profile, projectIds, 
     fail('Select one or more known native demo project IDs');
   }
   if (new Set(projectIds).size !== projectIds.length) fail('Duplicate selected demo project ID');
+  const rejected = projectIds.filter((id) => reservationFor({ id }).status === 'rejected');
+  if (rejected.length) {
+    const names = rejected.map((id) => catalogue.projects.find((project) => project.id === id)?.title || id);
+    fail(`Unavailable under the current profile: ${names.join(', ')}`);
+  }
   if (typeof startupIndex !== 'number' || !Number.isSafeInteger(startupIndex)
       || startupIndex < 0 || startupIndex >= projectIds.length) {
     fail('Startup index must select an ordered project');

@@ -75,7 +75,7 @@ test('exposes current catalogue disposition without promoting examples or a defa
   assert.equal(disposition.projects[0].default_candidate, false);
   assert.match(disposition.projects[0].owner_disposition, /not approved/);
   assert.deepEqual(Object.keys(disposition.projects[0]).sort(),
-    ['category', 'default_candidate', 'duration_estimate', 'id', 'owner_disposition', 'title'].sort());
+    ['category', 'default_candidate', 'duration_estimate', 'id', 'owner_disposition', 'reservation', 'title'].sort());
 });
 
 test('keeps replacement candidates pending and confines source/dependency metadata to trusted catalogue', () => {
@@ -87,15 +87,16 @@ test('keeps replacement candidates pending and confines source/dependency metada
   assert.equal(candidate.default_candidate, false);
   assert.match(candidate.owner_disposition, /owner musical acceptance pending/);
   assert.deepEqual(Object.keys(candidate).sort(),
-    ['category', 'default_candidate', 'duration_estimate', 'id', 'owner_disposition', 'title'].sort());
+    ['category', 'default_candidate', 'duration_estimate', 'id', 'owner_disposition', 'reservation', 'title'].sort());
+  assert.equal(candidate.reservation.status, 'rejected');
+  assert.match(candidate.reservation.label, /bounded WASM32/);
 
-  const request = buildNativeDemoSelectionRequest(catalogue, profile,
-    ['replacement-showcase-candidate-packet-bloom'], 0);
-  assert.deepEqual(request.project_ids, ['replacement-showcase-candidate-packet-bloom']);
-  assert.equal('source_path' in request, false);
-  assert.equal('source_sha256' in request, false);
-  assert.equal('dependency_validation' in request, false);
-  assert.equal('dependencies' in request, false);
+  assert.throws(() => buildNativeDemoSelectionRequest(catalogue, profile,
+    ['replacement-showcase-candidate-packet-bloom'], 0), /Unavailable under the current profile/);
+  assert.equal('source_path' in candidate, false);
+  assert.equal('source_sha256' in candidate, false);
+  assert.equal('dependency_validation' in candidate, false);
+  assert.equal('dependencies' in candidate, false);
 });
 
 test('request is immutable and snapshots arrays without paths, hashes or dependency claims', () => {
@@ -112,4 +113,27 @@ test('request is immutable and snapshots arrays without paths, hashes or depende
   assert.equal('source_path' in request, false);
   assert.equal('source_sha256' in request, false);
   assert.equal('dependencies' in request, false);
+});
+
+test('allocator dispositions apply only to exact replacement IDs and rejected projects fail closed', () => {
+  const extra = [
+    { ...projects[0], id: 'replacement-showcase-candidate-afterglow-relay', title: 'Afterglow Relay' },
+    { ...projects[1], id: 'replacement-showcase-candidate-event-horizon', title: 'Event Horizon' },
+    { ...projects[2], id: 'replacement-showcase-candidate-satellite-hearts', title: 'Satellite Hearts' },
+    { ...projects[1], id: 'legacy-example-neon-transit', title: 'Neon Transit' },
+  ];
+  const expanded = { ...catalogue, projects: [...projects, ...extra] };
+  const view = describeNativeDemoCatalogue(expanded);
+  const statusOf = (id) => view.projects.find((project) => project.id === id).reservation.status;
+  assert.equal(statusOf('replacement-showcase-candidate-event-horizon'), 'allocator-fit');
+  assert.equal(statusOf('replacement-showcase-candidate-afterglow-relay'), 'allocator-fit');
+  assert.equal(statusOf('replacement-showcase-candidate-satellite-hearts'), 'rejected');
+  assert.equal(statusOf('legacy-example-neon-transit'), 'pending');
+  assert.doesNotThrow(() => buildNativeDemoSelectionRequest(expanded, profile,
+    ['replacement-showcase-candidate-event-horizon'], 0));
+  assert.doesNotThrow(() => buildNativeDemoSelectionRequest(expanded, profile,
+    ['replacement-showcase-candidate-afterglow-relay'], 0));
+  assert.throws(() => buildNativeDemoSelectionRequest(expanded, profile,
+    ['replacement-showcase-candidate-satellite-hearts'], 0), /Unavailable/);
+  assert.equal(expanded.full_song_default.status, 'pending');
 });

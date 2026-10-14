@@ -45,6 +45,12 @@ const catalogue = {
     project('legacy-example-event-horizon', '<img src=x onerror=alert(1)>', 193.33),
     project('replacement-showcase-candidate-event-horizon', 'Event Horizon', 108.8,
       'replacement-showcase-candidate'),
+    project('replacement-showcase-candidate-afterglow-relay', 'Afterglow Relay', 198,
+      'replacement-showcase-candidate'),
+    project('replacement-showcase-candidate-packet-bloom', 'Packet Bloom', 117,
+      'replacement-showcase-candidate'),
+    project('replacement-showcase-candidate-satellite-hearts', 'Satellite Hearts', 145,
+      'replacement-showcase-candidate'),
   ],
   full_song_default: { required: true, status: 'pending', blockers: ['Owner approval', 'Native playback and save/reload'] },
 };
@@ -65,12 +71,18 @@ test('preselects the pending full-song proposal reversibly and submits ordered s
   const submit = nodes.find((node) => node.tagName === 'BUTTON');
   const textNodes = nodes.map((node) => node.textContent).join('\n');
 
-  assert.equal(checkboxes.length, 2);
-  assert.equal(radios.length, 2);
+  assert.equal(checkboxes.length, 5);
+  assert.equal(radios.length, 5);
   assert.ok(nodes.some((node) => node.tagName === 'SPAN' &&
     node.textContent === 'Event Horizon Showcase (Showcase candidate)'));
   assert.equal(checkboxes[0].checked, false);
   assert.equal(checkboxes[1].checked, true);
+  assert.equal(checkboxes[2].disabled, false);
+  assert.equal(checkboxes[3].disabled, true);
+  assert.equal(checkboxes[4].disabled, true);
+  assert.match(textNodes, /Ordered production-allocator reservation passed in a bounded WASM32 run/);
+  assert.match(textNodes, /The current ordered production-allocator reservation was rejected/);
+  assert.match(textNodes, /Unavailable under the current 12-voice profile/);
   assert.equal(radios[0].disabled, true);
   assert.equal(radios[1].disabled, false);
   assert.equal(radios[1].checked, true);
@@ -121,6 +133,28 @@ test('preselects the pending full-song proposal reversibly and submits ordered s
   });
   controller.destroy();
   assert.equal(root.children[0].removed, true);
+});
+
+test('blocks rejected candidates in controls, event handlers, and request preflight', async () => {
+  const document = new Document();
+  const root = new Element('div', document);
+  const sent = [];
+  mountNativeDemoSelectionView(root, catalogue, profile, (request) => sent.push(request));
+  const nodes = walk(root);
+  const checkboxes = nodes.filter((node) => node.tagName === 'INPUT' && node.type === 'checkbox');
+  const status = nodes.find((node) => node.getAttribute('aria-live') === 'polite');
+  const submit = nodes.find((node) => node.tagName === 'BUTTON');
+
+  assert.equal(checkboxes[3].disabled, true);
+  assert.equal(checkboxes[4].disabled, true);
+  checkboxes[3].checked = true;
+  await checkboxes[3].dispatch('change');
+  assert.equal(checkboxes[3].checked, false);
+  assert.match(status.textContent, /bounded WASM32 run/);
+  assert.equal(submit.disabled, false); // Proposed EH remains selected/startup.
+  await submit.dispatch('click');
+  assert.equal(sent.length, 1);
+  assert.deepEqual(sent[0].project_ids, ['replacement-showcase-candidate-event-horizon']);
 });
 
 test('allows removing the proposed default and still requires an explicit startup choice', async () => {
