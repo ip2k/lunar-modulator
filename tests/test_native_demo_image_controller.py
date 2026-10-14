@@ -41,6 +41,8 @@ def test_checked_link_keeps_order_startup_and_actual_output_identity():
     assert receipt['startup_index'] == 1
     assert receipt['startup_project_id'] == 'first'
     assert receipt['app_sha256'] == sha(b'app')
+    assert receipt['module_selection'] == inputs()[2]['module_selection']
+    assert receipt['embedded_content'] == inputs()[2]['embedded_content']
     for flag in ('installable', 'hardware_admitted', 'hardware_tested', 'native_ram_verified',
                  'native_playback_verified', 'full_song_default_accepted'):
         assert receipt[flag] is False
