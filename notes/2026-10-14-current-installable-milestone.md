@@ -125,6 +125,19 @@ review/CI/main integration and public release remain open.
 
 ## Latest continuation
 
+[verified] One Event Horizon boot request was submitted at Unix time
+1791998065.9516. Its SG completion was ambiguous (`host=7`, `resid=16`,
+`info=1`, zero reply), so the one-use adapter stopped and did not retry.
+Passive sysfs subsequently showed native USB device39 (`1209:0001`, product
+`Felucca`), then ROM device40 (`4c4a:8057`, `WL80UBOOT1.00`) at
+1791998188.5178, consistent with the diagnostic's two-minute return.
+These observations do not retroactively establish a complete reset reply.
+Owner screen/audio/control observations remain pending. Device38 admission
+and consumed boot campaign must not be reused; any later hardware command
+requires fresh device40 binding. The exact partial-reply mock now verifies
+one ioctl, retained completion logging, closed ambiguity and rejection of a
+second request; all nine boot/reset focused tests pass.
+
 [verified] Event Horizon V2 installation completed: 208 changed sectors and
 the complete 1 MiB flash readback match target SHA
 `145c0280d652b73515e01e2f1f0d88fe33344645463e89d57a2d0048c6aa4657`.
