@@ -34,20 +34,40 @@ def test_exported_builder_requests(tmp_path, case):
         projects = report['projects']
         assert [p['id'] for p in projects] == [
             'legacy-example-afterglow-relay', 'legacy-example-event-horizon',
-            'legacy-example-packet-bloom', 'legacy-example-neon-transit']
+            'legacy-example-packet-bloom', 'legacy-example-neon-transit',
+            'replacement-showcase-candidate-afterglow-relay',
+            'replacement-showcase-candidate-event-horizon',
+            'replacement-showcase-candidate-packet-bloom',
+            'replacement-showcase-candidate-satellite-hearts']
         expected = [
-            ('Afterglow Relay', 'afterglow-relay.lunar', 92, 76, 8),
-            ('Event Horizon', 'event-horizon.lunar', 144, 116, 8),
-            ('Packet Bloom', 'packet-bloom.lunar', 112, 88, 8),
-            ('Neon Transit', 'neon-transit.lunar', 120, 104, 8),
+            ('Afterglow Relay', 'afterglow-relay.lunar', 92, 76, 8, 'legacy-example', None),
+            ('Event Horizon', 'event-horizon.lunar', 144, 116, 8, 'legacy-example', None),
+            ('Packet Bloom', 'packet-bloom.lunar', 112, 88, 8, 'legacy-example', None),
+            ('Neon Transit', 'neon-transit.lunar', 120, 104, 8, 'legacy-example', None),
+            ('Afterglow Relay', 'replacement-showcases/afterglow-relay-showcase.lunar',
+             104, 44, 4, 'replacement-showcase-candidate',
+             '53373bf4c508d360eccdf2751fd4242f23478d575adf893a703e6179dcd9c77f'),
+            ('Event Horizon', 'replacement-showcases/event-horizon-showcase.lunar',
+             150, 68, 7, 'replacement-showcase-candidate',
+             '0d5d871bd31db1e628efbf291fd306671b81c93bef254a950291bf95f5413d1c'),
+            ('Packet Bloom', 'replacement-showcases/packet-bloom-showcase.lunar',
+             82, 40, 5, 'replacement-showcase-candidate',
+             'eb55a36129ef3db02136b2ed0859fafcad94e3b2cbc3fa42761383d380249731'),
+            ('Satellite Hearts', 'replacement-showcases/satellite-hearts.lunar',
+             124, 60, 6, 'replacement-showcase-candidate',
+             '090996484a125f5bde3fe4fb0a6dc3284cf7a260d6c6603298206921e78ed5d6'),
         ]
-        for project, (title, filename, bpm, bars, scenes) in zip(projects, expected):
+        for project, (title, filename, bpm, bars, scenes, category, pinned_sha256) in zip(
+                projects, expected):
             path = ROOT / 'engines/state/examples' / filename
             payload = path.read_bytes()
             assert project['title'] == title
             assert project['source_path'] == f'engines/state/examples/{filename}'
             assert project['source_sha256'] == hashlib.sha256(payload).hexdigest()
+            if pinned_sha256 is not None:
+                assert project['source_sha256'] == pinned_sha256
             assert json.loads(payload)['title'] == title
+            assert project['category'] == category
             assert project['duration_estimate'] == {
                 'basis': 'bars * 4 beats per bar * 60 / BPM; metadata estimate',
                 'bpm': bpm, 'bars': bars, 'scenes': scenes,
@@ -59,7 +79,15 @@ def test_exported_builder_requests(tmp_path, case):
                 'validated_module_ids': [],
             }
             assert project['default_candidate'] is False
-            assert 'not approved' in project['owner_disposition']
+            if category == 'replacement-showcase-candidate':
+                assert project['source_provenance'] == {
+                    'commit': 'fb92cc0d4c312bbc77866c915d6fb8f159f5f92d',
+                    'path': 'engines/state/examples/' +
+                    filename.removeprefix('replacement-showcases/'),
+                }
+                assert 'owner musical acceptance pending' in project['owner_disposition']
+            else:
+                assert 'not approved' in project['owner_disposition']
     if case == 0:
         chosen = [module for ids in groups.values() for module in ids]
     else:

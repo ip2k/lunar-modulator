@@ -15,6 +15,15 @@ const projects = [
     duration_estimate: { nominal_seconds: 193.333 },
     owner_disposition: 'legacy example; not approved as a showcase or default', default_candidate: false,
     source_path: 'engines/state/examples/event-horizon.lunar', source_sha256: 'b'.repeat(64) },
+  { id: 'replacement-showcase-candidate-packet-bloom', title: 'Packet Bloom',
+    category: 'replacement-showcase-candidate',
+    duration_estimate: { bpm: 82, bars: 40, scenes: 5, nominal_seconds: 117.073171 },
+    owner_disposition: 'replacement showcase candidate; owner musical acceptance pending',
+    default_candidate: false,
+    source_path: 'engines/state/examples/replacement-showcases/packet-bloom-showcase.lunar',
+    source_sha256: 'c'.repeat(64),
+    dependency_validation: { status: 'pending-packed-backend-validation',
+      dependency_scan_complete: false, validated_module_ids: [] } },
 ];
 const catalogue = {
   version: 1,
@@ -67,6 +76,26 @@ test('exposes current catalogue disposition without promoting examples or a defa
   assert.match(disposition.projects[0].owner_disposition, /not approved/);
   assert.deepEqual(Object.keys(disposition.projects[0]).sort(),
     ['category', 'default_candidate', 'duration_estimate', 'id', 'owner_disposition', 'title'].sort());
+});
+
+test('keeps replacement candidates pending and confines source/dependency metadata to trusted catalogue', () => {
+  const disposition = describeNativeDemoCatalogue(catalogue);
+  const candidate = disposition.projects.find(
+    (project) => project.id === 'replacement-showcase-candidate-packet-bloom');
+  assert.equal(disposition.fullSongDefault.status, 'pending');
+  assert.equal(candidate.category, 'replacement-showcase-candidate');
+  assert.equal(candidate.default_candidate, false);
+  assert.match(candidate.owner_disposition, /owner musical acceptance pending/);
+  assert.deepEqual(Object.keys(candidate).sort(),
+    ['category', 'default_candidate', 'duration_estimate', 'id', 'owner_disposition', 'title'].sort());
+
+  const request = buildNativeDemoSelectionRequest(catalogue, profile,
+    ['replacement-showcase-candidate-packet-bloom'], 0);
+  assert.deepEqual(request.project_ids, ['replacement-showcase-candidate-packet-bloom']);
+  assert.equal('source_path' in request, false);
+  assert.equal('source_sha256' in request, false);
+  assert.equal('dependency_validation' in request, false);
+  assert.equal('dependencies' in request, false);
 });
 
 test('request is immutable and snapshots arrays without paths, hashes or dependency claims', () => {

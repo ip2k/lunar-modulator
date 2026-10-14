@@ -3353,3 +3353,25 @@ and watermark; matched feature-preserving runtime variants are active on Hera.
 No hardware commands. Goal ACTIVE with physical acceptance, storage ownership /
 migration / rollback, installer integration, full-song approval and release gates
 still outstanding.
+
+## Eight-project chooser and native sequence checkpoint — 2026-10-14
+
+Materialized four replacement candidates from exact fb92cc0d source alongside
+the four unchanged legacy examples. Exporter pins replacement hashes and keeps
+all defaults/musical acceptance pending. Independent catalogue/staging tests:
+43 passed. Browser request/view tests: 14 passed. Reviewed eight-row initial and
+active renders; startup labels distinguish duplicate titles by category.
+The reusable chooser handles asynchronous errors and duplicate submissions,
+but has no installer route/build-service connection yet.
+
+Four legacy sources freshly pack and stage through production-55 registry and
+native eight-track sequencer on Hera: four tests passed, canonical exports match
+direct source SET import, complete 76/116/88/104-bar arrangements retained with
+zero refusal/drop/eviction/fault counters. This is sequence staging, not complete
+application startup RAM, playback, SAVE/reload or physical acceptance. Root
+reviewed test source and receipt; full-app startup task is now active separately.
+
+Existing per-chunk raw DEFLATE may save 1,615 bytes from Afterglow without another
+target decoder, enough in principle for the current 684-byte continuous-link
+overflow. Repacker/native-reader/link validation is active on Hera; no successful
+new link or admission claimed. Goal ACTIVE. No hardware command was run.

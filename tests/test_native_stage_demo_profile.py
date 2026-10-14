@@ -73,6 +73,29 @@ def test_stages_a_current_exporter_catalogue_snapshot(tmp_path):
     assert hashlib.sha256(staged_path.read_bytes()).hexdigest() == projects[0]['source_sha256']
 
 
+@pytest.mark.parametrize('project_index', range(4, 8))
+def test_stages_a_current_replacement_exporter_catalogue_snapshot(tmp_path, project_index):
+    projects = export_preload_projects(ROOT)
+    project = PRELOAD_PROJECTS[project_index]
+    selected = [project['id']]
+    out = tmp_path / 'request'
+
+    stage_profile(ROOT, module_profile(), projects, selected, out)
+
+    content_path = json.loads((out / 'profile.json').read_text())['content'][0]
+    source_path = ROOT / project['source_path']
+    staged_path = out / content_path
+    assert staged_path.read_bytes() == source_path.read_bytes()
+    assert hashlib.sha256(staged_path.read_bytes()).hexdigest() == projects[project_index]['source_sha256']
+    assert projects[project_index]['category'] == 'replacement-showcase-candidate'
+    assert projects[project_index]['source_provenance']['commit'] == 'fb92cc0d4c312bbc77866c915d6fb8f159f5f92d'
+    assert projects[project_index]['dependency_validation'] == {
+        'status': 'pending-packed-backend-validation',
+        'dependency_scan_complete': False,
+        'validated_module_ids': [],
+    }
+
+
 @pytest.mark.parametrize('selection', [
     ['missing-demo'],
     [PRELOAD_PROJECTS[0]['id'], PRELOAD_PROJECTS[0]['id']],
