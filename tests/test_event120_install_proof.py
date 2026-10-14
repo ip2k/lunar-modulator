@@ -59,7 +59,8 @@ def test_complete_simulated_protocol_transcript(recorded):
 
 
 @pytest.mark.parametrize('fault', ['missing_completion', 'sg_error', 'wrong_final_page',
-    'extra_event', 'wrong_intent', 'false_boot', 'expired', 'wrong_order', 'protected_change'])
+    'extra_event', 'wrong_intent', 'false_boot', 'expired', 'overlong',
+    'wrong_order', 'protected_change'])
 def test_corrupt_or_incomplete_record_is_rejected(recorded, fault):
     events, result, arguments = copy.deepcopy(recorded)
     if fault == 'missing_completion':
@@ -76,9 +77,22 @@ def test_corrupt_or_incomplete_record_is_rejected(recorded, fault):
         result['boot_observed'] = True
     elif fault == 'expired':
         arguments['observed_at'] -= 121
+    elif fault == 'overlong':
+        for event in events:
+            event['time'] -= 3000
+        arguments['observed_at'] -= 3000
+        events[-1]['time'] += 2701
     elif fault == 'wrong_order':
         arguments['sector_order'] = [0x5000, 0x4000]
     else:
         arguments['target'] = bytes([arguments['target'][0] ^ 1]) + arguments['target'][1:]
     with pytest.raises(ValueError):
         replay(encoded(events), result, **arguments)
+
+
+def test_duplicate_json_key_is_rejected(recorded):
+    events, result, arguments = recorded
+    raw = encoded(events).replace(b'"event": "native_transaction_prepared"',
+        b'"event": "ignored", "event": "native_transaction_prepared"', 1)
+    with pytest.raises(ValueError, match='Duplicate'):
+        replay(raw, result, **arguments)

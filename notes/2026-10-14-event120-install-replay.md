@@ -24,3 +24,17 @@ commit `49ede4e1755ed588bbef09f75802342081cff337` and the transaction-plan worke
 `4b3f474e6b69af5f94d42d1c150d30c37ecce8e5` are backed up on their named GitHub
 branches with matching remote SHAs. Device38 writer preparation and an
 independent review remain active; no Event Horizon physical boot has started.
+
+Independent review prompted duplicate JSON-key rejection, the transport's
+2,700-second elapsed-time ceiling and 32,768-command ceiling. The updated
+simulator suite passed 12 cases; the six native host/toolchain helper contract
+cases also passed (18 combined). A first attempt to import a CLI module's JSON
+helper failed collection because that module assumes a different import path;
+the file-only replay now keeps its small duplicate-key check local. [verified]
+
+SDK-optional worker checkpoint `32551eadfe53b9d3673b5320e8be8a2f79f2b409` was
+backed up with its matching GitHub SHA and integrated after portability parent
+`4263126b9493a8806974a6b9715c3e1f0bac5be4`. The content-embedding conflict was
+resolved by retaining the coordinator's shared fixture and one target test,
+with the new absent-only SDK skip helper. The worker's configured-SDK focused
+set passed 30 cases; its full SDK-absent host run is still running. [verified]

@@ -9,6 +9,17 @@ import math
 import time
 
 from fm1_fixed_target_reset import Replay, canonical, digest
+from native.expanded_sg import COMMAND_LIMIT, LIVE_SECONDS
+
+
+def unique_object(pairs):
+    # Keep the file-only verifier independent of CLI modules' import setup.
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError('Duplicate transcript JSON key')
+        result[key] = value
+    return result
 
 
 def replay(raw, result, *, campaign_sha256, sources, adapter_sha256,
@@ -26,14 +37,16 @@ def replay(raw, result, *, campaign_sha256, sources, adapter_sha256,
             baseline[0xD9000:] != target[0xD9000:] or
             0x4000 not in changed or list(sector_order) != expected_order):
         raise ValueError('Exact changed application sectors with directory last required')
-    events = [json.loads(line) for line in raw.decode('utf8').splitlines()]
+    events = [json.loads(line, object_pairs_hook=unique_object)
+              for line in raw.decode('utf8').splitlines()]
     if not events or len(events) > 100000:
         raise ValueError('Bounded complete transcript required')
     times = [event.get('time') for event in events]
     if (type(observed_at) not in (int, float) or not math.isfinite(observed_at) or
             not all(type(t) in (int, float) and math.isfinite(t) for t in times) or
             times != sorted(times) or times[-1] > time.time() or
-            not 0 <= times[0] - observed_at <= 120):
+            not 0 <= times[0] - observed_at <= 120 or
+            not 0 <= times[-1] - times[0] <= LIVE_SECONDS):
         raise ValueError('Invalid installation chronology')
     cursor = Replay(events)
     cursor.event('native_transaction_prepared', campaign_sha256=campaign_sha256,
@@ -72,7 +85,8 @@ def replay(raw, result, *, campaign_sha256, sources, adapter_sha256,
         full_flash_readback_verified=True, boot_observed=False,
         physical_recovery_verified=False, kernel_exclusivity=False)
     cursor.event('native_transaction_completed', **accepted)
-    if cursor.position != len(events) or canonical(result) != canonical(accepted):
+    if (cursor.position != len(events) or cursor.index > COMMAND_LIMIT or
+            canonical(result) != canonical(accepted)):
         raise ValueError('Exact terminal result and no trailing events required')
     return dict(verified=True, hardware_operations=0, commands=cursor.index,
         events=len(events), sectors=written, seconds=times[-1] - times[0],
