@@ -1,5 +1,15 @@
 # Current continuation authority — 2026-10-14
 
+[verified] Latest coordinator code head `939b6aa4ccdf8fe76fe29215e8337596381e4eac`
+is backed up on the feature branch. Actual Darwin three-file sequence/export/
+project-store regression completed with exit zero (249 cases, three optional
+target-toolchain skips). Valid dense SAVE fixture preserves all event payloads;
+the earlier apparent loss was malformed fixture input. Exact-head CI
+`38610324618` is running, not yet passing. NOR worker `d81bca95` remains
+unintegrated following independent busy-state review; corrective worker and
+installer-delivery audit remain active on Hera. Event Horizon physical
+screen/audio/control answer remains pending; no further boot was sent.
+
 Read `notes/2026-10-14-current-installable-milestone.md` first. It supersedes
 the historical checkpoint summaries below for current status. The goal is
 ACTIVE; a diagnostic receipt is not the release milestone.
