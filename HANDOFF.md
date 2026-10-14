@@ -3122,3 +3122,27 @@ Capacity and size investigations remain running; physical SAVE stays unadmitted.
 Full all-thirteen firmware/builder/recovery release goal ACTIVE.
 Branch feature/2026-10-11@installable-firmware; previous verified pushed
 98317cb1da2fa3943ed3feb5fcf6c8a9f246c00b.
+
+## Parallel evidence and public-release goal checkpoint (2026-10-14)
+
+Owner restored the complete feature-complete public all13 firmware and selectable
+web installer goal, including effects/projects and flash-usage display. Goal ACTIVE.
+Three Luna delegates fit this runtime's four-total-slot limit; their next bounded
+work is dense project capacity, fail-closed physical storage profile, and browser
+selection/usage modeling. Owner is not currently available for watched boot.
+Passive Pi enumeration remains ROM bus1 device36; sudo private evidence listing
+shows installation consumed marker and no boot marker. No device command sent.
+
+[verified] Offline retained SAVE entry frames are recorded in
+notes/2026-10-14-save-stack-entry/: collector reserves3192 bytes; full transitive
+stack/IRQ/runtime acceptance remains open. NOR audit shows retained write/erase
+stubs fail closed, identifies upstream transport timeout/IRQ/watchdog adaptation
+requirements, and does not admit writes. Notes
+2026-10-14-native-nor-hal-audit.md and native-size-savings.md. Parent reran symbol
+ranking and binary32 table reproduction:19distinct rows,9728B,zero dedup savings.
+License inventory now traces generated Dinghy platform through app_probe.c; GPL
+HAL cannot be omitted based on standalone object paths. Final release manifest,
+corresponding source/notices, firmware acceptance, physical rollback, persistence,
+installer/builder integration/reviewCI remain open. No release/deployment claim.
+Branch feature/2026-10-11@installable-firmware; preceding verified pushed
+fa5962a8d5939c5ac66fcfbf7ea0d6efa3de9ac6.

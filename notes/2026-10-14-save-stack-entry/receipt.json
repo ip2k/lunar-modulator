@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "elf_sha256": "ed067d2233d8b2b7994a3d8a0740a5a9b3ddfa6ec5acf06b990e0b49365cb9ab",
+  "disassembly_sha256": "c5e07d7ea70b84d3a55ebf25296b32b646dd9c909641bf68d102a270d61e4c0a",
+  "functions": {
+    "fm1_state_bin_write": {
+      "register_save_bytes": 52,
+      "local_reservation_bytes": 80,
+      "fixed_entry_bytes": 132,
+      "entry_instructions": [
+        "[--sp] = {rets, r15-r4}",
+        "sp += -80"
+      ]
+    },
+    "fm1_app_state_collect_project": {
+      "register_save_bytes": 52,
+      "local_reservation_bytes": 3140,
+      "fixed_entry_bytes": 3192,
+      "entry_instructions": [
+        "[--sp] = {rets, r15-r4}",
+        "sp += -3140"
+      ]
+    },
+    "lunar_project_save_write": {
+      "register_save_bytes": 52,
+      "local_reservation_bytes": 8,
+      "fixed_entry_bytes": 60,
+      "entry_instructions": [
+        "[--sp] = {rets, r15-r4}",
+        "sp += -8"
+      ]
+    },
+    "lunar_project_save_app": {
+      "register_save_bytes": 52,
+      "local_reservation_bytes": 336,
+      "fixed_entry_bytes": 388,
+      "entry_instructions": [
+        "[--sp] = {rets, r15-r4}",
+        "sp += -336"
+      ]
+    },
+    "native_project_save_poll": {
+      "register_save_bytes": 20,
+      "local_reservation_bytes": 428,
+      "fixed_entry_bytes": 448,
+      "entry_instructions": [
+        "[--sp] = {rets, r7-r4}",
+        "sp += -428"
+      ]
+    }
+  },
+  "full_call_chain_verified": false,
+  "interrupt_stack_verified": false,
+  "runtime_stack_verified": false,
+  "hardware_operations": 0
+}
