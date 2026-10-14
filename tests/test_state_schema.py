@@ -148,7 +148,8 @@ def test_example_validates_and_is_canonical(path):
         kind = doc["kind"]
         assert kind != "metadata"
         middle = path.name.split(".")[-2]
-        assert middle == {"project": "first-orbit", "settings": "settings"}.get(kind, kind)
+        expected = doc["title"].lower().replace(" ", "-") if kind == "project" else {"settings": "settings"}.get(kind, kind)
+        assert middle == expected
     else:
         assert doc["kind"] == "metadata"
     errors = sorted(validator(doc["kind"]).iter_errors(doc), key=lambda e: list(e.path))
