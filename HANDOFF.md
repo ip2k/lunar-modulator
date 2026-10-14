@@ -3499,3 +3499,18 @@ Remaining gates include watched all13 boot/audio/controls/MIDI, full-song device
 timing/persistence, packaging/recovery and interrupted writes, owner default-song
 acceptance, browser build/flash integration and review/CI/merge/release.
 Goal ACTIVE. No hardware command issued in this checkpoint.
+
+
+## Full-song device probe and installer integration — 2026-10-14
+
+Explicit song-diagnostic mode now gives the full 108.8-second Event Horizon
+Showcase a 120-second recovery deadline using wrap-safe millisecond timing.
+70 host-C timer cases and 23 controller cases passed on Hera. Exact target link
+at 0c2a7172 passed layout and SDK-free/key/eFuse audits: app 862272/868836,
+margin 6564; retained receipts and hashes in
+notes/2026-10-14-song-diagnostic-runtime.md. Hardware admission remains false,
+SAVE disarmed, and no device commands were issued. Owner listening/default-song
+acceptance, watched full-song device playback/recovery and physical storage
+migration/rollback remain pending. Browser build client and real bounded Hera
+service worker are being integrated; package admission currently rejects every
+unadmitted image. Goal remains ACTIVE through hardware, web install, CI and release.
