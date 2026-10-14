@@ -1,3 +1,21 @@
+# Regression and numeric-schema checkpoint — 2026-10-14
+
+Root6360dd57262eb3b4bdbcf4f0a202f15aab573938 is GitHub-backed. Its strict numeric
+packager schema fix passed all20 retained-fixture cases on Hera, zero skips.
+Worker regression7cf7b56855da245e21019eca36c19f41646cdb57 is GitHub-backed and
+integrated as7be1d90d: exact5f505585 source,2784 IDs across16 disjoint shards,
+2664 passed/120 skipped/zero failures or errors. See dated evidence notes; this
+is selected regression rather than current HEAD CI or physical acceptance.
+
+Continuous wrapper worker/reviewer remain active on their exact old assigned
+base. Catalogue snapshot binding and wrapper cleanup must pass before the real
+trusted build. No fresh continuous FWSC yet. Device48 fresh adapters assigned
+to demo_controller_review offline from6360dd57; root retains hardware ownership.
+Read-only bench enumeration remains ROM48/Pico38. Previous device46 campaigns
+consumed. Owner watched-boot and Pico wiring replies pending; no new mutation.
+SAVE, independent hung/corrupt-app recovery, stock OTA/browser release admission
+and physical all13/Event acceptance remain open. Goal active.
+
 # Build provenance and API checkpoint — 2026-10-14 22:31 UTC
 
 Root e841e3a6fae599cfd3fc4085b388f0e12700df59 is GitHub-backed, remote SHA
