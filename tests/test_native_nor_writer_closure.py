@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import shutil
+import subprocess
 import tempfile
 import unittest
 
@@ -50,6 +51,57 @@ fl_jedec_checked_ram:
         self.assertEqual(len(calls), 1)
         self.assertEqual(calls[0]['function'], 'fl_jedec_ram')
         self.assertIn('fl_jedec_checked_ram', calls[0]['target'])
+
+    def test_ram_call_audit_detects_writer_outcall(self):
+        listing = 'fl_erase4k_ram:\n 1c00000: call 0 <xip_helper>\nfl_prog_ram:\n 1c00010: nop\n'
+        calls, writer_calls = MODULE.audit_ram_calls(listing)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(writer_calls, calls)
+        self.assertEqual(writer_calls[0]['function'], 'fl_erase4k_ram')
+
+
+    def test_ram_call_audit_refuses_empty_or_missing_writer_disassembly(self):
+        for listing, message in (
+                ('', 'no instructions'),
+                ('fl_erase4k_ram:\n 1c00000: nop\n', 'missing writer function')):
+            with self.subTest(message=message):
+                with self.assertRaisesRegex(ValueError, message):
+                    MODULE.audit_ram_calls(listing)
+
+    def test_ram_call_audit_refuses_unattributed_or_malformed_calls(self):
+        for listing, message in (
+                (' 1c00000: call 0 <helper>\n', 'no containing function'),
+                ('call malformed\n', 'without an address'),
+                ('fl_erase4k_ram:\nfl_prog_ram:\n 1c00010: nop\n',
+                 'empty writer function'),
+                ('fl_erase4k_ram:\n 1c00000: call\nfl_prog_ram:\n 1c00010: nop\n',
+                 'target is malformed')):
+            with self.subTest(message=message):
+                with self.assertRaisesRegex(ValueError, message):
+                    MODULE.audit_ram_calls(listing)
+
+    def test_overlay_copies_only_git_tracked_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / 'checkout'
+            root.mkdir()
+            subprocess.run(['git', 'init', '-q', str(root)], check=True)
+            (root / 'tracked.txt').write_text('tracked')
+            builder = root / 'tools/native/build_application_probe.py'
+            builder.parent.mkdir(parents=True)
+            builder.write_text('builder')
+            (root / 'scratch').mkdir()
+            (root / 'scratch/large.bin').write_bytes(b'x')
+            subprocess.run(['git', '-C', str(root), 'add', 'tracked.txt',
+                            'tools/native/build_application_probe.py'], check=True)
+            destination = Path(directory) / 'overlay'
+            original_root = MODULE.ROOT
+            try:
+                MODULE.ROOT = root
+                MODULE.copy_tracked_source(destination)
+            finally:
+                MODULE.ROOT = original_root
+            self.assertEqual((destination / 'tracked.txt').read_text(), 'tracked')
+            self.assertFalse((destination / 'scratch').exists())
 
     def test_overlay_refuses_builder_source_drift(self):
         with tempfile.TemporaryDirectory() as directory:
