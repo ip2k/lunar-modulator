@@ -28,6 +28,7 @@ function findButton(root) {
 /** Load build-generated catalogue data and mount the shared validated chooser. */
 export async function mountInstallerPage(root, {
   fetchImpl = globalThis.fetch,
+  buildClient = null,
 } = {}) {
   if (!root || !root.ownerDocument || typeof root.append !== 'function') {
     throw new TypeError('A DOM root element is required');
@@ -37,6 +38,20 @@ export async function mountInstallerPage(root, {
   const status = document.getElementById?.('installer-export-status');
   const loading = document.getElementById?.('installer-load-status');
   const moduleRoot = document.getElementById?.('installer-modules');
+  const cancelButton = document.getElementById?.('installer-cancel-build');
+  const serviceNotice = document.getElementById?.('installer-service-notice');
+  if (buildClient !== null && typeof buildClient.build !== 'function') {
+    throw new TypeError('buildClient must provide a build method');
+  }
+  let activeBuild = null;
+  if (cancelButton) {
+    cancelButton.hidden = true;
+    cancelButton.addEventListener('click', () => {
+      activeBuild?.abort();
+      if (status) status.textContent = 'Stopped waiting for this build. The server may continue processing it.';
+      cancelButton.hidden = true;
+    });
+  }
   try {
     const response = await fetchImpl('./demo-image-catalogue.json', { cache: 'no-store' });
     if (!response?.ok) throw new Error('The generated project catalogue is unavailable.');
@@ -48,6 +63,31 @@ export async function mountInstallerPage(root, {
     const demoRoot = document.getElementById?.('installer-selection') ?? root;
     const controller = mountNativeDemoSelectionView(demoRoot, catalogue, profile,
       (request) => {
+        if (buildClient) {
+          activeBuild = new AbortController();
+          if (cancelButton) cancelButton.hidden = false;
+          if (serviceNotice) serviceNotice.textContent = 'This service returns a private diagnostic result only. It does not provide installable firmware.';
+          if (status) status.textContent = 'Submitting the selected diagnostic build…';
+          return buildClient.build(request, {
+            signal: activeBuild.signal,
+            onProgress: (phase) => {
+              if (!status) return;
+              status.textContent = phase === 'queued' ? 'Build request queued…'
+                : phase === 'running' ? 'Checking the private diagnostic build…'
+                  : 'Diagnostic result verified.';
+            },
+          }).then((result) => {
+            if (status) status.textContent = `Diagnostic build checks passed (${result.artifactBytes} bytes). No installable firmware file is available.`;
+          }).catch((error) => {
+            if (status) status.textContent = activeBuild?.signal.aborted
+              ? 'Stopped waiting for this build. The server may continue processing it.'
+              : error instanceof Error ? error.message : 'The diagnostic build could not be completed.';
+            throw error;
+          }).finally(() => {
+            activeBuild = null;
+            if (cancelButton) cancelButton.hidden = true;
+          });
+        }
         try {
           downloadRequest(request, document, status);
         } catch (error) {
@@ -57,7 +97,11 @@ export async function mountInstallerPage(root, {
         }
       });
     const button = findButton(root);
-    if (button) button.textContent = 'Download build request (JSON)';
+    if (button) button.textContent = buildClient
+      ? 'Request diagnostic build' : 'Download build request (JSON)';
+    if (buildClient && serviceNotice) {
+      serviceNotice.textContent = 'Private diagnostic build service connected. Results do not establish installability or hardware acceptance.';
+    }
     if (loading) loading.textContent = '';
     return controller;
   } catch (error) {

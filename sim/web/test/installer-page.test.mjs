@@ -157,3 +157,55 @@ test('reports catalogue-generation or fetch failure without mounting a chooser',
   assert.equal(root.children.length, 0);
   assert.match(loadStatus.textContent, /generated project catalogue is unavailable/);
 });
+
+test('uses injected build client only after explicit selection and preserves module/project order', async () => {
+  const document = new Document();
+  const root = new Element('div', document);
+  const moduleRoot = new Element('div', document);
+  const loadStatus = new Element('p', document);
+  const exportStatus = new Element('p', document);
+  const serviceNotice = new Element('p', document);
+  const cancelButton = new Element('button', document);
+  document.nodes.set('installer-load-status', loadStatus);
+  document.nodes.set('installer-export-status', exportStatus);
+  document.nodes.set('installer-service-notice', serviceNotice);
+  document.nodes.set('installer-cancel-build', cancelButton);
+  document.nodes.set('installer-modules', moduleRoot);
+  const submissions = [];
+  const controller = await mountInstallerPage(root, {
+    fetchImpl: async () => ({ ok: true, json: async () => structuredClone(catalogue) }),
+    buildClient: {
+      async build(request, { onProgress }) {
+        submissions.push(request);
+        onProgress('queued');
+        onProgress('running');
+        onProgress('succeeded');
+        return { status: 'succeeded', artifactBytes: 1234, installable: false };
+      },
+    },
+  });
+  const nodes = walk(root);
+  const checkboxes = nodes.filter((node) => node.tagName === 'INPUT' && node.type === 'checkbox');
+  const radios = nodes.filter((node) => node.tagName === 'INPUT' && node.type === 'radio');
+  const button = nodes.find((node) => node.tagName === 'BUTTON');
+  assert.equal(button.textContent, 'Request diagnostic build');
+  assert.equal(submissions.length, 0, 'mounting the page must not submit a build');
+  assert.equal(cancelButton.hidden, true);
+
+  checkboxes[6].checked = true;
+  await checkboxes[6].dispatch('change');
+  checkboxes[1].checked = true;
+  await checkboxes[1].dispatch('change');
+  radios[1].checked = true;
+  await radios[1].dispatch('change');
+  await button.dispatch('click');
+
+  assert.equal(submissions.length, 1);
+  assert.deepEqual(submissions[0].project_ids, [ids[6], ids[1]]);
+  assert.equal(submissions[0].startup_index, 1);
+  assert.deepEqual(submissions[0].engines, ['macro', 'shapes']);
+  assert.equal(exportStatus.textContent, 'Diagnostic build checks passed (1234 bytes). No installable firmware file is available.');
+  assert.equal(cancelButton.hidden, true);
+  assert.match(serviceNotice.textContent, /does not provide installable firmware/i);
+  controller.destroy();
+});

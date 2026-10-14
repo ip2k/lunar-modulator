@@ -40,6 +40,7 @@
 .installer-status[aria-label="Build service status"] { border-left: 4px solid var(--held); }
 .installer-page #installer-load-status:empty { display: none; }
 .installer-export-status { min-height: 1.5em; }
+.installer-cancel-build { min-height: 44px; padding: 9px 16px; }
 
 .native-module-selection { margin-top: 26px; }
 .native-module-selection > h2 { font: 400 1.25rem/1.4 var(--display); }

@@ -1,0 +1,276 @@
+{
+  "browser": "Chromium 153.0.8010.12 / Playwright 1.63.0",
+  "image_digest": "sha256:eff16c30e6f3f4af0a3fa4b706120d5e9b0891c344a27d64559aff5900a4a27",
+  "origin": "loopback inside isolated container",
+  "errors": [],
+  "scenarios": [
+    {
+      "name": "desktop-success",
+      "polls": 3,
+      "request": {
+        "version": 1,
+        "engines": [
+          "macro",
+          "shapes",
+          "macro-heavy",
+          "sixop",
+          "dx7",
+          "sw-sophie",
+          "drums",
+          "acid-bass",
+          "comet",
+          "crater",
+          "drawbar",
+          "trio",
+          "phase-bend"
+        ],
+        "effects": [
+          "ensemble",
+          "diffuse",
+          "sw-psxverb",
+          "crush",
+          "fold",
+          "drive",
+          "echo",
+          "warble",
+          "filter",
+          "comb",
+          "comp",
+          "limit",
+          "djfilter",
+          "tilt",
+          "sat",
+          "isolator",
+          "eq",
+          "room",
+          "hall",
+          "gate",
+          "squash",
+          "shaper",
+          "repeat"
+        ],
+        "midi": [
+          "arp",
+          "acid-gen"
+        ],
+        "modulation": [
+          "lfo",
+          "env",
+          "chance",
+          "function",
+          "bounce",
+          "register",
+          "coin",
+          "divide",
+          "burst",
+          "slew",
+          "quantize",
+          "compare",
+          "logic",
+          "calc",
+          "mix",
+          "resonator"
+        ],
+        "project_ids": [
+          "replacement-showcase-candidate-packet-bloom",
+          "replacement-showcase-candidate-event-horizon"
+        ],
+        "startup_index": 1
+      }
+    },
+    {
+      "name": "mobile-success",
+      "polls": 3,
+      "request": {
+        "version": 1,
+        "engines": [
+          "macro",
+          "shapes",
+          "macro-heavy",
+          "sixop",
+          "dx7",
+          "sw-sophie",
+          "drums",
+          "acid-bass",
+          "comet",
+          "crater",
+          "drawbar",
+          "trio",
+          "phase-bend"
+        ],
+        "effects": [
+          "ensemble",
+          "diffuse",
+          "sw-psxverb",
+          "crush",
+          "fold",
+          "drive",
+          "echo",
+          "warble",
+          "filter",
+          "comb",
+          "comp",
+          "limit",
+          "djfilter",
+          "tilt",
+          "sat",
+          "isolator",
+          "eq",
+          "room",
+          "hall",
+          "gate",
+          "squash",
+          "shaper",
+          "repeat"
+        ],
+        "midi": [
+          "arp",
+          "acid-gen"
+        ],
+        "modulation": [
+          "lfo",
+          "env",
+          "chance",
+          "function",
+          "bounce",
+          "register",
+          "coin",
+          "divide",
+          "burst",
+          "slew",
+          "quantize",
+          "compare",
+          "logic",
+          "calc",
+          "mix",
+          "resonator"
+        ],
+        "project_ids": [
+          "replacement-showcase-candidate-packet-bloom",
+          "replacement-showcase-candidate-event-horizon"
+        ],
+        "startup_index": 1
+      }
+    },
+    {
+      "name": "cancel-wait",
+      "pollsBeforeStop": 0,
+      "serverJobCancellation": false
+    },
+    {
+      "name": "request-rejected"
+    }
+  ],
+  "screenshots": [
+    {
+      "name": "desktop",
+      "width": 1440,
+      "height": 1000,
+      "pageWidth": 1440,
+      "viewportWidth": 1440,
+      "fullSongPending": true,
+      "status": "Diagnostic build checks passed (785312 bytes). No installable firmware file is available.",
+      "overflow": false
+    },
+    {
+      "name": "mobile",
+      "width": 375,
+      "height": 812,
+      "pageWidth": 375,
+      "viewportWidth": 375,
+      "fullSongPending": true,
+      "status": "Diagnostic build checks passed (785312 bytes). No installable firmware file is available.",
+      "overflow": false
+    }
+  ],
+  "inputs": [
+    {
+      "path": "Audiowide-Regular.ttf",
+      "sha256": "c7c0f2b0f6fad8c623e31772ce79f94a4edb9321ffce9fce978ea892d20ae730",
+      "bytes": 69916
+    },
+    {
+      "path": "demo-image-catalogue.json",
+      "sha256": "908ed8bc7be25507b297f8cdd7ceb99213a5a37a2b8c6b04f34d85440cb1dd60",
+      "bytes": 10551
+    },
+    {
+      "path": "Exo2[wght].ttf",
+      "sha256": "205a448676a2586f9c57c25f3d5c58ca8db7e6cf5edf7506783a010c6fe2bfb5",
+      "bytes": 303940
+    },
+    {
+      "path": "fonts/audiowide/Audiowide-Regular.ttf",
+      "sha256": "c7c0f2b0f6fad8c623e31772ce79f94a4edb9321ffce9fce978ea892d20ae730",
+      "bytes": 69916
+    },
+    {
+      "path": "fonts/exo2/Exo2[wght].ttf",
+      "sha256": "205a448676a2586f9c57c25f3d5c58ca8db7e6cf5edf7506783a010c6fe2bfb5",
+      "bytes": 303940
+    },
+    {
+      "path": "installer-build-browser-review.mjs",
+      "sha256": "097bda87a7436ec47184f0ec56163bee6d02aa3db61646099c20acf09930f729",
+      "bytes": 11776
+    },
+    {
+      "path": "installer-build-client.js",
+      "sha256": "d70f3109774c3f9305a0b0fe238953bbcc2b9c09b059f11830c0ccf59dc5a304",
+      "bytes": 9938
+    },
+    {
+      "path": "installer-page.js",
+      "sha256": "c58a96d5a7f2508dd0a73a4b0cae303c1cdba624c58d4b32aadffffe39913e38",
+      "bytes": 5392
+    },
+    {
+      "path": "installer.css",
+      "sha256": "cf80ca86c7fa8b3cee64db97049571b458c0f4b66cffb8050cb57c66ab413872",
+      "bytes": 4522
+    },
+    {
+      "path": "installer.html",
+      "sha256": "df625a54820eee64fed460f392b1f81281a7034dbfaadf62dea2abe06805cea0",
+      "bytes": 1734
+    },
+    {
+      "path": "native-build-selection.js",
+      "sha256": "b7dee5f69fb52e48af06370282db8238d6714786ec5c0f5ea48e605de73a6649",
+      "bytes": 8204
+    },
+    {
+      "path": "native-demo-selection-view.js",
+      "sha256": "1ff5a30d7b5d78f8abaff3cffcfbc39ba29da8ab70148023405ec4f65df39129",
+      "bytes": 7611
+    },
+    {
+      "path": "native-demo-selection.js",
+      "sha256": "52fb841fd0a4ec8bb6e126027bf6a82e53d06072bb5879fb99f91a4a3fb778f6",
+      "bytes": 3295
+    },
+    {
+      "path": "native-module-selection-view.js",
+      "sha256": "bfc6aa06947cd5820389f2b7bc84448cd4f37bc1dccc56f7737fcd2be620f36e",
+      "bytes": 2963
+    },
+    {
+      "path": "style.css",
+      "sha256": "e1bd6076cce621172ee6aeb2da9dadd38bae6af7f30828a0b69d34029813bcea",
+      "bytes": 22181
+    }
+  ],
+  "checks": {
+    "explicit_action_required": true,
+    "selected_project_order": [
+      "replacement-showcase-candidate-packet-bloom",
+      "replacement-showcase-candidate-event-horizon"
+    ],
+    "startup_index": 1,
+    "omitted_effect": "plate",
+    "result_non_installable": true,
+    "no_artifact_download": true,
+    "no_server_cancel_endpoint": true,
+    "errors": []
+  }
+}
