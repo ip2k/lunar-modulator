@@ -39,3 +39,26 @@ The pinned SDK defines WDT_8S as 0x0D and documents wdt_reset_enable() as enabli
 
 This is source and retained-identity research only. No device command, flash operation, timing measurement, reset test, writer enablement, or admission decision was made. The part suffix, pi32v2 architectural IRQ semantics, and watchdog behavior during NOR busy remain unverified.
 
+
+
+## Rendered AC table cross-check
+
+I rendered the official PDF page 11 images and read Table 5-4 directly; this confirms the units and column positions rather than relying on flattened PDF text.
+
+| Part / source page | Operation | Min | Typ | Max | Unit |
+|---|---|---:|---:|---:|---|
+| P25Q80H V1.7, page 11 of 70 | Page program (256 B) | blank | 2 | 3 | ms |
+| P25Q80H V1.7, page 11 of 70 | Page erase | blank | 8 | 20 | ms |
+| P25Q80H V1.7, page 11 of 70 | Sector erase | blank | 8 | 20 | ms |
+| P25Q80H V1.7, page 11 of 70 | 32 KiB block erase | blank | 8 | 20 | ms |
+| P25Q80H V1.7, page 11 of 70 | 64 KiB block erase | blank | 8 | 20 | ms |
+| P25Q80H V1.7, page 11 of 70 | Chip erase | blank | 8 | 20 | ms |
+| P25Q80SH V1.5, page 11 of 101 | Page program (256 B) | blank | 1.5 | 3 | ms |
+| P25Q80SH V1.5, page 11 of 101 | Page erase | blank | 16 | 30 | ms |
+| P25Q80SH V1.5, page 11 of 101 | Sector erase | blank | 16 | 30 | ms |
+| P25Q80SH V1.5, page 11 of 101 | 32 KiB block erase | blank | 16 | 30 | ms |
+| P25Q80SH V1.5, page 11 of 101 | 64 KiB block erase | blank | 16 | 30 | ms |
+| P25Q80SH V1.5, page 11 of 101 | Chip erase | blank | 80 | 180 | ms |
+
+The H and SH tables really do print these chip-erase figures in milliseconds. This is a transcription of the datasheet, not an independent plausibility claim or a measured erase time. The operative maximum erase entries are the Max column; the values in the Typ column are typical values at 25 C per each table's note. The table heading specifies Ta=-40 C to +85 C. Page renders were generated from the official PDFs linked above with pdftoppm and inspected at full resolution.
+
