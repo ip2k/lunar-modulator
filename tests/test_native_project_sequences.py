@@ -5,6 +5,7 @@ import subprocess
 
 import pytest
 from tests.native_test_toolchain import configured_target_toolchain
+from tests.native_test_flags import native_host_flags
 
 from tools.native.module_selection import resolve_modules
 
@@ -116,9 +117,8 @@ def sequence_probe(tmp_path_factory):
                for arg in ('-I', str(path))]
         exe = tmp / 'probe'
         subprocess.run(['cc', '-std=c99', opt, '-Wall', '-Wextra', '-Werror',
-                        '-ffunction-sections', '-fdata-sections', '-fsanitize=address,undefined',
-                        '-fno-pie', '-no-pie', *inc, *map(str, sources),
-                        '-Wl,--gc-sections', '-lm', '-o', str(exe)], check=True)
+                        '-ffunction-sections', '-fdata-sections', *native_host_flags(),
+                        *inc, *map(str, sources), '-lm', '-o', str(exe)], check=True)
         probes[opt] = exe
         return exe
     return build

@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 import pytest
 from tests.native_test_toolchain import configured_target_toolchain
+from tests.native_test_flags import native_host_flags
 
 ROOT = Path(__file__).resolve().parents[1]
 INPUTS = [ROOT / 'tests/fixtures/state/1.0/orbit.set.movy1'] + sorted(
@@ -19,9 +20,9 @@ def stream_probe(tmp_path_factory):
         ROOT / 'engines/state' / name for name in
         ('state_bin.c', 'state_names.c', 'state_movy1.c', 'fm1_num.c', 'fm1_deflate.c')]
     subprocess.run(['cc', '-DFM1_STATE_BIN_COMPACT_WRITER', '-std=c99', '-Oz', '-Wall', '-Wextra', '-Werror',
-                    '-ffunction-sections', '-fdata-sections', '-fsanitize=address,undefined',
-                    '-fno-pie', '-no-pie', '-I', str(ROOT / 'engines/include'), '-I', str(ROOT / 'engines/state'),
-                    *map(str, sources), '-Wl,--gc-sections', '-lm', '-o', str(exe)], check=True)
+                    '-ffunction-sections', '-fdata-sections', *native_host_flags(),
+                    '-I', str(ROOT / 'engines/include'), '-I', str(ROOT / 'engines/state'),
+                    *map(str, sources), '-lm', '-o', str(exe)], check=True)
     return exe
 
 def test_seq_export_target_compile(tmp_path):
