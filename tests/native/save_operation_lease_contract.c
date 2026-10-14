@@ -14,11 +14,11 @@ struct fm1_state_writer {
 };
 static struct fm1_state_writer *active_writer;
 static unsigned save_messages, draw_calls, pause_calls, resume_calls;
-static unsigned io_reads, io_erases, io_programs, watchdog_feeds;
+static unsigned io_reads, io_erases, io_programs;
 static int last_saved_ok;
 static const char *last_saved_why;
 static uint8_t flash[2 * 4096];
-static int fail_erase, unresolved_erase, pause_result = 1;
+static int fail_erase, fail_program, unresolved_erase, pause_result = 1;
 static int transport_ready = 1, xip_restored = 1;
 static jmp_buf unresolved;
 
@@ -78,6 +78,7 @@ static int program_flash(void *ctx, uint32_t off, const void *src, uint32_t n) {
     const uint8_t *p = src; (void)ctx;
     assert(off <= sizeof flash && n <= sizeof flash - off && n <= 256);
     io_programs++;
+    if (fail_program) return -1;
     for (uint32_t i = 0; i < n; ++i) {
         assert((flash[off + i] & p[i]) == p[i]); flash[off + i] &= p[i];
     }
@@ -88,7 +89,7 @@ static int validate_file(void *ctx, uint32_t off, uint32_t n) {
 }
 static void reset_counts(void) {
     save_messages = draw_calls = pause_calls = resume_calls = 0;
-    io_reads = io_erases = io_programs = watchdog_feeds = 0;
+    io_reads = io_erases = io_programs = 0;
     last_saved_ok = -1; last_saved_why = NULL;
 }
 static lunar_project_save_service service(void) {
@@ -100,7 +101,8 @@ static lunar_project_save_service service(void) {
     return s;
 }
 int main(void) {
-    fm1_app_t app = {0}; lunar_project_save_service s;
+    static fm1_app_t app;
+    static lunar_project_save_service s;
 
     /* Without a verified capability binding, SAVE is refused before pause or
      * transport callbacks and the generation is consumed once. */
@@ -128,20 +130,41 @@ int main(void) {
     fail_erase = 0;
     assert(s.seen_gen == 3 && save_messages == 1 && !last_saved_ok);
     assert(pause_calls == 1 && resume_calls == 1 && draw_calls == 1);
-    assert(io_erases == 1 && !io_programs && !watchdog_feeds);
+    assert(io_erases == 1 && !io_programs);
+    assert(!lunar_project_save_service_poll(&s, &app));
+    assert(io_erases == 1 && resume_calls == 1);
+
+    /* A returned program error has the same one-shot service behavior. */
+    reset_counts(); s = service(); app.save_gen = 4; fail_program = 1;
+    memset(flash, 0xff, sizeof flash);
+    assert(lunar_project_save_service_poll(&s, &app) == 2);
+    fail_program = 0;
+    assert(s.seen_gen == 4 && save_messages == 1 && !last_saved_ok);
+    assert(pause_calls == 1 && resume_calls == 1 && draw_calls == 1);
+    assert(io_erases == 1 && io_programs == 1);
+    assert(!lunar_project_save_service_poll(&s, &app));
+    assert(io_programs == 1 && resume_calls == 1);
+
+    /* A successful fake transaction reaches commit through the real store. */
+    reset_counts(); s = service(); app.save_gen = 5;
+    memset(flash, 0xff, sizeof flash);
+    assert(lunar_project_save_service_poll(&s, &app) == 2);
+    assert(s.seen_gen == 5 && save_messages == 1 && last_saved_ok);
+    assert(pause_calls == 1 && resume_calls == 1 && draw_calls == 1);
+    assert(io_erases == 1 && io_programs >= 3);
     assert(!lunar_project_save_service_poll(&s, &app));
     assert(io_erases == 1 && resume_calls == 1);
 
     /* If transport cannot prove ready and XIP restored, firmware control does
      * not return from the callback: service cannot resume/draw or retry. The
      * host longjmp observes this boundary without asserting hardware recovery. */
-    reset_counts(); s = service(); app.save_gen = 4; unresolved_erase = 1;
+    reset_counts(); s = service(); app.save_gen = 6; unresolved_erase = 1;
     transport_ready = xip_restored = 1; memset(flash, 0xff, sizeof flash);
     if (!setjmp(unresolved)) (void)lunar_project_save_service_poll(&s, &app);
     unresolved_erase = 0;
     assert(!transport_ready && !xip_restored);
-    assert(s.seen_gen == 4 && pause_calls == 1 && io_erases == 1);
-    assert(!resume_calls && !draw_calls && !watchdog_feeds);
+    assert(s.seen_gen == 6 && pause_calls == 1 && io_erases == 1);
+    assert(!resume_calls && !draw_calls);
     /* A host-side return after the modeled non-return is not a firmware retry:
      * the service has already consumed the generation before entering I/O. */
     assert(!lunar_project_save_service_poll(&s, &app));
