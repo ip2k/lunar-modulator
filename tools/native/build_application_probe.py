@@ -50,8 +50,54 @@ def project_save_service_configuration(enabled):
 def project_save_service_flags(enabled):
     """Compile the real app SAVE path only on explicit opt-in."""
     receipt = project_save_service_configuration(enabled)
-    return (["-D" + receipt["compile_definition"]]
-            if receipt["compile_definition"] else [])
+    if not receipt["compile_definition"]:
+        return []
+    return ["-D" + receipt["compile_definition"],
+            "-DFM1_STATE_BIN_COMPACT_WRITER=1"]
+
+
+def state_bin_object_index(objects):
+    """Find the one cached codec object that a SAVE build must replace."""
+    matches = [i for i, path in enumerate(objects)
+               if Path(path).as_posix().endswith("state/state/state_bin.o")]
+    if len(matches) != 1:
+        raise SystemExit("Expected exactly one catalogue state_bin.o, found " + str(len(matches)))
+    return matches[0]
+
+
+def compact_state_bin_flags(tc, catalogue, indexed_tft, shapes_voices):
+    """Mirror compile_catalogue's C target flags and add the SAVE codec mode."""
+    shard = catalogue / "shard-00"
+    return ["-target", "pi32v2", "-mcpu=r3", "-mfprev1", "-std=c99", "-Oz",
+            "-ffreestanding", "-fno-builtin", "-ffunction-sections", "-fdata-sections",
+            "-D_GNU_SOURCE", "-D_XOPEN_SOURCE=700", "-DFM1_FREESTANDING=1",
+            "-D_LIBCPP_HAS_NO_THREADS", "-D_LIBCPP_DISABLE_EXTERN_TEMPLATE",
+            "-isystem", str(shard / "cxx"), "-isystem", str(tc / "pi32v2/include"),
+            "-DFM1_TFT_INDEXED=" + str(int(indexed_tft)),
+            "-DFM1_SHAPES_VOICES=" + str(shapes_voices), "-flto",
+            "-DFM1_STATE_BIN_COMPACT_WRITER=1",
+            "-I", str(ROOT / "engines/include"), "-I", str(ROOT / "engines/mod"),
+            "-I", str(shard / "obj/gen"), "-I", str(ROOT / "sim/web/src"),
+            "-Wall", "-Wextra"]
+
+
+def replace_with_compact_state_bin(objects, catalogue, tc, out, indexed_tft, shapes_voices):
+    """Replace the freshness-checked default codec rather than linking both."""
+    index = state_bin_object_index(objects)
+    cached = objects[index]
+    fresh = out / "state-bin-compact" / "state_bin.o"
+    fresh.parent.mkdir(parents=True, exist_ok=False)
+    source = ROOT / "engines/state/state_bin.c"
+    flags = compact_state_bin_flags(tc, catalogue, indexed_tft, shapes_voices)
+    compiler = str(tc / "common/bin/clang")
+    subprocess.run([compiler, *flags, "-c", str(source), "-o", str(fresh)],
+                   check=True, capture_output=True, text=True)
+    objects[index] = fresh
+    return dict(mode="compact-writer", source=str(source), source_sha256=digest(source),
+                cached_object=str(cached), cached_object_sha256=digest(cached),
+                fresh_object=str(fresh), fresh_object_sha256=digest(fresh),
+                compile_flags=flags, compile_definition="FM1_STATE_BIN_COMPACT_WRITER=1",
+                replaced_exactly_one=True)
 
 
 def embedded_content_receipt(prepared_sha256, source, descriptors, payloads):
@@ -256,6 +302,10 @@ def main():
     wave_namespaces = (wavetable_namespaces(module_selection['selected'], args.flash_plaits_wavetables)
                        if args.compressed_wavetables else [])
     objects, catalogue_receipts = checked_catalogue(catalogue, wave_namespaces, args.indexed_tft, args.shapes_voices)
+    state_bin_codec = None
+    if args.link_project_save_service:
+        state_bin_codec = replace_with_compact_state_bin(
+            objects, catalogue, tc, out, args.indexed_tft, args.shapes_voices)
     wave_records = []
     if args.compressed_wavetables:
         check_pins(ROOT / 'firmware/third_party/tinf')
@@ -445,6 +495,7 @@ def main():
                   runtime_configuration=runtime_policy,
                   runtime_policy_sha256=digest(ROOT / 'firmware/native/runtime_mode.h'),
                   project_save_service=save_service_receipt,
+                  state_bin_codec=state_bin_codec,
                   probe_return_to_rom_seconds=runtime_policy['return_to_rom_seconds'], hardware_candidate=False,
                   catalogue_source_freshness_verified=True,
                   installable=False, hardware_tested=False, elf_sha256=digest(elf))

@@ -33,7 +33,61 @@ class ProjectSaveServiceOptionTests(unittest.TestCase):
         self.assertFalse(receipt["runtime_verified"])
         self.assertFalse(receipt["hardware_tested"])
         self.assertEqual(builder.project_save_service_flags(True),
-                         ["-DLUNAR_PROJECT_SAVE_SERVICE=1"])
+                         ["-DLUNAR_PROJECT_SAVE_SERVICE=1",
+                          "-DFM1_STATE_BIN_COMPACT_WRITER=1"])
+
+    def test_compact_codec_uses_catalogue_target_flags_and_writer_mode(self):
+        flags = builder.compact_state_bin_flags(
+            Path("/toolchain"), Path("/catalogue"), True, 12)
+        for expected in (
+            ["-target", "pi32v2"], ["-mcpu=r3"], ["-mfprev1"], ["-Oz"],
+            ["-flto"], ["-DFM1_TFT_INDEXED=1"], ["-DFM1_SHAPES_VOICES=12"],
+            ["-DFM1_STATE_BIN_COMPACT_WRITER=1"],
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected[0], flags)
+                if len(expected) == 2:
+                    self.assertEqual(flags[flags.index(expected[0]) + 1], expected[1])
+
+    def test_compact_codec_replaces_exactly_one_cached_object(self):
+        import tempfile
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            cached = root / "shard-12/obj/state/state/state_bin.o"
+            cached.parent.mkdir(parents=True)
+            cached.write_bytes(b"cached")
+            objects = [root / "other.o", cached, root / "last.o"]
+
+            def fake_compile(command, **kwargs):
+                output = Path(command[command.index("-o") + 1])
+                output.write_bytes(b"fresh-compact-codec")
+                return mock.Mock(returncode=0)
+
+            with mock.patch.object(builder.subprocess, "run", side_effect=fake_compile) as run:
+                receipt = builder.replace_with_compact_state_bin(
+                    objects, root / "catalogue", root / "toolchain", root / "build",
+                    indexed_tft=True, shapes_voices=12)
+
+            self.assertEqual(objects[0], root / "other.o")
+            self.assertEqual(objects[2], root / "last.o")
+            self.assertEqual(objects[1], root / "build/state-bin-compact/state_bin.o")
+            self.assertEqual(receipt["mode"], "compact-writer")
+            self.assertEqual(receipt["cached_object_sha256"], builder.digest(cached))
+            self.assertEqual(receipt["fresh_object_sha256"], builder.digest(objects[1]))
+            self.assertTrue(receipt["replaced_exactly_one"])
+            command = run.call_args.args[0]
+            self.assertEqual(command.count("-DFM1_STATE_BIN_COMPACT_WRITER=1"), 1)
+            self.assertNotIn(str(cached), command)
+
+    def test_codec_selector_refuses_missing_or_duplicate_cached_objects(self):
+        with self.assertRaisesRegex(SystemExit, "found 0"):
+            builder.state_bin_object_index([Path("other.o")])
+        with self.assertRaisesRegex(SystemExit, "found 2"):
+            builder.state_bin_object_index([
+                Path("a/state/state/state_bin.o"),
+                Path("b/state/state/state_bin.o"),
+            ])
 
     def test_configuration_rejects_non_boolean_values(self):
         for value in (None, 0, 1, "false", []):
