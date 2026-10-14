@@ -137,6 +137,105 @@ fl_jedec_ram:
         self.assertEqual(result["xip_wrapper_symbols"]["fl_write"]["section"], ".text")
         self.assertEqual(result["xip_wrapper_symbols"]["irq_save"]["section"], ".text")
 
+    def test_linked_wrapper_audit_binds_ram_dispatch_and_staged_page(self):
+        symbols = """01c00000 l F .ram_text 000003ea fl_erase4k_ram
+01c00580 l F .ram_text 0000043c fl_prog_ram
+0204e962 l F .text 0000000a fl_far
+0204e9d8 l F .text 00000086 fl_erase4k
+0204ea5e l F .text 000000d8 fl_write
+"""
+        disassembly = """fl_erase4k:
+ 204ea32: r0 = 29360128 <fl_erase4k_ram : 1c00000 >
+ 204ea38: call -216 <fl_far : 204e962 >
+ 204ea3a: r2 = r0
+ 204ea3c: r1_r0 = r5_r4
+ 204ea3e: call r2
+fl_write:
+ 204eab4: r8 = 29361536 <fl_prog_ram : 1c00580 >
+ 204eacc: r1 = b[r4+r0] (u)
+ 204eace: r2 = sp + 4
+ 204ead2: b[r2+r0] = r1
+ 204eaea: r0 = r8
+ 204eaec: call -398 <fl_far : 204e962 >
+ 204eaf0: r7 = r0
+ 204eaf2: r1 = sp + 4
+ 204eaf4: r3 = sp + 260
+ 204eafc: call r7
+fl_far:
+ 204e962: [sp] = r0
+ 204e966: r0 = [sp]
+ 204e96a: rts
+ota_erase:
+ 2050bda: r1 = sp + 0
+ 2050bde: call -8714 <fl_erase4k : 204e9d8 >
+ota_prog:
+ 2050bf8: r5 = r1
+ 2050bf9: r1 = r5
+ 2050bfa: call -8608 <fl_write : 204ea5e >
+lunar_nor_closure_analysis_force_retain:
+ 204eb4e: call -378 <fl_erase4k : 204e9d8 >
+ 204eb5c: call -256 <fl_write : 204ea5e >
+"""
+        result = MODULE.audit_writer_callers(disassembly, symbols)
+        self.assertTrue(result['passed_linked_wrapper_checks'])
+        self.assertEqual(result['indirect_dispatch_registers'],
+                         {'fl_erase4k': ['r2'], 'fl_write': ['r7']})
+        self.assertTrue(result['program_source_copied_to_sp_plus_4_before_dispatch'])
+        self.assertFalse(result['runtime_stack_address_in_sram_proven'])
+
+    def test_linked_wrapper_audit_rejects_xip_target_or_unstaged_pointer(self):
+        symbols = """01c00000 l F .ram_text 000003ea fl_erase4k_ram
+01c00580 l F .ram_text 0000043c fl_prog_ram
+0204e962 l F .text 0000000a fl_far
+"""
+        disassembly = """fl_erase4k:
+ 204ea32: r0 = 29360128 <fl_erase4k_ram : 1c00000 >
+ 204ea38: call -216 <fl_far : 204e962 >
+ 204ea3a: r2 = r0
+ 204ea3c: r1_r0 = r5_r4
+ 204ea3e: call r2
+fl_write:
+ 204eab4: r8 = 29361536 <fl_prog_ram : 1c00580 >
+ 204eacc: r1 = b[r4+r0] (u)
+ 204eace: r2 = sp + 4
+ 204ead2: b[r2+r0] = r1
+ 204eaea: r0 = r8
+ 204eaec: call -398 <fl_far : 204e962 >
+ 204eaf0: r7 = r0
+ 204eaf2: r1 = sp + 4
+ 204eaf4: r3 = sp + 260
+ 204eafc: call r7
+fl_far:
+ 204e962: [sp] = r0
+ 204e966: r0 = [sp]
+ 204e96a: rts
+ota_erase:
+ 2050bda: r1 = sp + 0
+ 2050bde: call -8714 <fl_erase4k : 204e9d8 >
+ota_prog:
+ 2050bf8: r5 = r1
+ 2050bf9: r1 = r5
+ 2050bfa: call -8608 <fl_write : 204ea5e >
+lunar_nor_closure_analysis_force_retain:
+ 204eb4e: call -378 <fl_erase4k : 204e9d8 >
+ 204eb5c: call -256 <fl_write : 204ea5e >
+"""
+        cases = (
+            (disassembly.replace('r8 = 29361536 <fl_prog_ram : 1c00580 >',
+                                 'r8 = 33558528 <flash_helper : 2001000 >'),
+             'fl_prog_ram is not a linked RAM target|missing ordered target evidence'),
+            (disassembly.replace(' 204eaea: r0 = r8',
+                                 ' 204eaea: r0 = r4'),
+             'fl_write missing ordered target evidence'),
+            (disassembly.replace('r1 = sp + 4\n 204eaf4: r3 = sp + 260',
+                                 'r1 = r4\n 204eaf4: r3 = sp + 260'),
+             'missing ordered target evidence'),
+        )
+        for listing, message in cases:
+            with self.subTest(message=message):
+                with self.assertRaisesRegex(ValueError, message):
+                    MODULE.audit_writer_callers(listing, symbols)
+
     def test_linked_writer_audit_rejects_nonempty_stubs_and_xip_outcalls(self):
         symbols = """01c00000 l F .ram_text 00000040 fl_erase4k_ram
 01c00040 l F .ram_text 00000040 fl_prog_ram
