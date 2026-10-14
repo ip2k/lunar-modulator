@@ -57,7 +57,7 @@ def test_trio_pulse_is_explicit_and_restricted_to_empty_trio_diagnostic():
     assert disabled["compile_definition"] is None
     assert builder.trio_diagnostic_pulse_flags(False) == []
     enabled = builder.validate_trio_diagnostic_pulse(
-        True, "song-diagnostic", True, None, None, True)
+        True, "song-diagnostic", True, None, None, True, True)
     assert enabled == {
         "enabled": True,
         "compile_definition": "LUNAR_DIAGNOSTIC_TRIO_PULSE=1",
@@ -74,11 +74,12 @@ def test_trio_pulse_is_explicit_and_restricted_to_empty_trio_diagnostic():
 
 def test_trio_pulse_refuses_content_or_non_diagnostic_modes():
     for arguments in (
-        ("continuous", True, None, None, True),
-        ("song-diagnostic", False, None, None, True),
-        ("song-diagnostic", True, 0, None, True),
-        ("song-diagnostic", True, None, 0, True),
-        ("song-diagnostic", True, None, None, False),
+        ("continuous", True, None, None, True, True),
+        ("song-diagnostic", False, None, None, True, True),
+        ("song-diagnostic", True, 0, None, True, True),
+        ("song-diagnostic", True, None, 0, True, True),
+        ("song-diagnostic", True, None, None, False, True),
+        ("song-diagnostic", True, None, None, True, False),
     ):
         try:
             builder.validate_trio_diagnostic_pulse(True, *arguments)

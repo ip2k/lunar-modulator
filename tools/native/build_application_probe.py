@@ -92,7 +92,7 @@ def trio_diagnostic_pulse_configuration(enabled):
 
 def validate_trio_diagnostic_pulse(enabled, runtime_mode, prepared_content,
                                    startup_project_index, startup_set_index,
-                                   trs_midi_enabled):
+                                   trs_midi_enabled, all_production_modules):
     receipt = trio_diagnostic_pulse_configuration(enabled)
     if not enabled:
         return receipt
@@ -104,6 +104,8 @@ def validate_trio_diagnostic_pulse(enabled, runtime_mode, prepared_content,
         raise ValueError("Trio diagnostic pulse cannot be combined with startup content")
     if not trs_midi_enabled:
         raise ValueError("Trio diagnostic pulse requires explicit TRS MIDI diagnostic mode")
+    if not all_production_modules:
+        raise ValueError("Trio diagnostic pulse requires all production modules")
     return receipt
 
 
@@ -357,7 +359,10 @@ def main():
             args.diagnostic_trio_pulse, args.runtime_mode,
             bool(content_inputs) and not content_inputs.report['content'],
             args.startup_project_index, args.startup_set_index,
-            args.enable_trs_midi)
+            args.enable_trs_midi,
+            bool(content_inputs) and all(
+                module in content_inputs.report['module_selection']['selected']
+                for module in ENGINE_IDS if module != 'test-sine'))
     except ValueError as error:
         parser.error(str(error))
     if args.flash_plaits_wavetables and not args.compressed_wavetables:
