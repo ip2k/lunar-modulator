@@ -29,13 +29,20 @@ def _fixture(tmp_path):
     expected = _expected_mounts(mounts)
     inspect = {
         "Image": PINNED_IMAGE_ID,
+        "Name": "/lunar-continuous-" + "a" * 24,
+        "Id": "b" * 64,
         "Config": {"Image": PINNED_IMAGE_ID,
                    "Cmd": ["python3", "/workspace/" + WORKER_REL],
-                   "User": "1001:1001", "Env": PINNED_IMAGE_ENV + ["LUNAR_SOURCE_COMMIT=" + "a" * 40],
+                   "User": "1001:1001", "Env": ["LUNAR_SOURCE_COMMIT=" + "a" * 40] + PINNED_IMAGE_ENV,
+                   "Entrypoint": None, "WorkingDir": "", "Tty": False,
+                   "OpenStdin": False, "StdinOnce": False, "AttachStdout": True, "AttachStderr": True,
                    "Labels": {"lan.project": "lunar-modulator", "lan.session": "continuous-tuple-capture"}},
         "HostConfig": {"NetworkMode": "none", "CgroupParent": "docker-batch.slice",
                        "ReadonlyRootfs": True, "CpuQuota": 400000, "CpuPeriod": 100000,
-                       "Memory": 8589934592, "MemorySwap": 8589934592, "PidsLimit": 512,
+                       "NanoCpus": 0, "Memory": 8589934592, "MemorySwap": 8589934592, "PidsLimit": 512,
+                       "Privileged": False, "Devices": [], "DeviceRequests": None, "CapAdd": None,
+                       "PidMode": "", "IpcMode": "private", "UTSMode": "", "UsernsMode": "",
+                       "Runtime": "runc", "Binds": None, "AutoRemove": False, "Init": None,
                        "CapDrop": ["ALL"], "SecurityOpt": ["no-new-privileges"],
                        "Tmpfs": {"/tmp": "rw,nosuid,nodev,exec,size=3221225472"}},
         "State": {"Status": "exited", "Running": False, "ExitCode": 0},
@@ -47,14 +54,14 @@ def _fixture(tmp_path):
 
 def test_inspected_container_matches_fixed_image_mounts_and_limits(tmp_path):
     inspect, expected, _ = _fixture(tmp_path)
-    contract = inspected_contract(inspect, expected, "a" * 40)
+    contract = inspected_contract(inspect, expected, "a" * 40, "lunar-continuous-" + "a" * 24, "b" * 64)
     require_successful_exit(contract)
     assert contract["image"] == PINNED_IMAGE_ID
     assert contract["environment_keys"] == ["LUNAR_SOURCE_COMMIT", "PATH"]
     assert len(contract["mounts"]) == 5
 
 
-@pytest.mark.parametrize("mutation", ["image", "command", "network", "resource", "mount"])
+@pytest.mark.parametrize("mutation", ["image", "command", "network", "resource", "mount", "privileged", "device", "cap_add", "pid_mode", "ipc_mode", "runtime", "entrypoint", "extra_env"])
 def test_inspection_refuses_changed_container_policy(tmp_path, mutation):
     inspect, expected, _ = _fixture(tmp_path)
     if mutation == "image":
@@ -65,10 +72,26 @@ def test_inspection_refuses_changed_container_policy(tmp_path, mutation):
         inspect["HostConfig"]["NetworkMode"] = "bridge"
     elif mutation == "resource":
         inspect["HostConfig"]["MemorySwap"] += 1
+    elif mutation == "privileged":
+        inspect["HostConfig"]["Privileged"] = True
+    elif mutation == "device":
+        inspect["HostConfig"]["Devices"] = [{"PathOnHost": "/dev/null"}]
+    elif mutation == "cap_add":
+        inspect["HostConfig"]["CapAdd"] = ["SYS_ADMIN"]
+    elif mutation == "pid_mode":
+        inspect["HostConfig"]["PidMode"] = "host"
+    elif mutation == "ipc_mode":
+        inspect["HostConfig"]["IpcMode"] = "host"
+    elif mutation == "runtime":
+        inspect["HostConfig"]["Runtime"] = "other"
+    elif mutation == "entrypoint":
+        inspect["Config"]["Entrypoint"] = ["/bin/sh"]
+    elif mutation == "extra_env":
+        inspect["Config"]["Env"].append("EXTRA=1")
     else:
         inspect["Mounts"][0]["RW"] = True
     with pytest.raises(ValueError, match="pinned build policy"):
-        inspected_contract(inspect, expected, "a" * 40)
+        inspected_contract(inspect, expected, "a" * 40, "lunar-continuous-" + "a" * 24, "b" * 64)
 
 
 def test_nonzero_or_unfinished_container_exit_is_refused():

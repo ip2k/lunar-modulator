@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT))
 
 from capture_trusted_build_tuple import (
     _catalogue_manifest,
+    _linked_object_manifest,
     _source_manifest,
     canonical,
     sha,
@@ -84,3 +85,48 @@ def test_continuous_runtime_is_explicit_and_still_not_an_admission():
     assert receipt["runtime_configuration"]["return_to_rom_seconds"] is None
     assert receipt["installable"] is False
     assert receipt["hardware_admitted"] is False
+
+
+def test_linked_object_inventory_rehashes_catalogue_and_generated_rows(tmp_path):
+    catalogue = tmp_path / "catalogue"
+    output = tmp_path / "output"
+    (catalogue / "shard/obj").mkdir(parents=True)
+    (output / "link/generated").mkdir(parents=True)
+    cat = catalogue / "shard/obj/a.o"
+    gen = output / "link/generated/b.o"
+    cat.write_bytes(b"catalogue-object")
+    gen.write_bytes(b"generated-object")
+    verification = {
+        "catalogue_objects": [{"path": "/catalogue/shard/obj/a.o", "sha256": sha(cat.read_bytes())}],
+        "linked_objects": [
+            {"path": "/catalogue/shard/obj/a.o", "sha256": sha(cat.read_bytes())},
+            {"path": "/out/build/link/generated/b.o", "sha256": sha(gen.read_bytes())},
+        ],
+    }
+    manifest = _linked_object_manifest(output, catalogue, verification)
+    assert json.loads(manifest)["objects"] == [
+        {"path": "/catalogue/shard/obj/a.o", "sha256": sha(cat.read_bytes())},
+        {"path": "/out/build/link/generated/b.o", "sha256": sha(gen.read_bytes())},
+    ]
+
+    gen.write_bytes(b"mutated")
+    with pytest.raises(ValueError, match="differ from the build receipt"):
+        _linked_object_manifest(output, catalogue, verification)
+
+
+def test_linked_object_inventory_rejects_duplicate_rows_and_unknown_catalogue_objects(tmp_path):
+    catalogue = tmp_path / "catalogue"
+    output = tmp_path / "output"
+    (catalogue / "a").mkdir(parents=True)
+    (catalogue / "a/obj.o").write_bytes(b"x")
+    row = {"path": "/catalogue/a/obj.o", "sha256": sha(b"x")}
+    with pytest.raises(ValueError, match="duplicate linked object"):
+        _linked_object_manifest(output, catalogue, {"catalogue_objects": [row], "linked_objects": [row, row]})
+    with pytest.raises(ValueError, match="absent from catalogue receipt"):
+        _linked_object_manifest(output, catalogue, {"catalogue_objects": [], "linked_objects": [row]})
+    generated = output / "link/obj.o"
+    generated.parent.mkdir(parents=True)
+    generated.write_bytes(b"generated")
+    wrong_prefix = {"path": "/out/attacker/link/obj.o", "sha256": sha(b"generated")}
+    with pytest.raises(ValueError, match="outside the fixed mounts"):
+        _linked_object_manifest(output, catalogue, {"catalogue_objects": [], "linked_objects": [wrong_prefix]})

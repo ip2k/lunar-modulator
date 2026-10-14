@@ -14,7 +14,8 @@ import subprocess
 import sys
 import time
 
-from capture_trusted_build_tuple import capture_trusted_build_tuple, canonical, sha, _source_manifest
+from capture_trusted_build_tuple import (capture_trusted_build_tuple, canonical, sha,
+                                                 _source_manifest, _toolchain_manifest)
 
 ROOT = Path(__file__).resolve().parents[2]
 PINNED_IMAGE_ID = "sha256:0fcc80c729c795f96758e301a86df8c42b466cc0b40cb9dfbaf8db693589eefc"
@@ -93,7 +94,8 @@ def container_command(docker: str, container_name: str, source: Path, request: P
            "--label", "lan.project=lunar-modulator",
            "--label", "lan.session=continuous-tuple-capture",
            "--cgroup-parent=docker-batch.slice", "--network=none",
-           "--cpus=4", "--memory=8g", "--memory-swap=8g", "--pids-limit=512",
+           "--cpu-quota=400000", "--cpu-period=100000",
+           "--memory=8g", "--memory-swap=8g", "--pids-limit=512",
            "--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges",
            "--user=1001:1001", "--tmpfs", "/tmp:rw,nosuid,nodev,exec,size=3221225472",
            "--env", "LUNAR_SOURCE_COMMIT=" + source_commit]
@@ -112,7 +114,8 @@ def _expected_mounts(mounts):
     return sorted(rows, key=lambda row: row["destination"])
 
 
-def inspected_contract(inspect: dict, expected_mounts: list[dict], source_commit: str):
+def inspected_contract(inspect: dict, expected_mounts: list[dict], source_commit: str,
+                       expected_name: str | None = None, expected_id: str | None = None):
     if not isinstance(inspect, dict):
         raise ValueError("Docker inspect response must be an object")
     config = inspect.get("Config")
@@ -128,24 +131,42 @@ def inspected_contract(inspect: dict, expected_mounts: list[dict], source_commit
                               "read_only": not row.get("RW")})
     actual_mounts.sort(key=lambda row: row["destination"] or "")
     expected_command = ["python3", "/workspace/" + WORKER_REL]
-    expected_env = PINNED_IMAGE_ENV + ["LUNAR_SOURCE_COMMIT=" + source_commit]
+    expected_env = ["LUNAR_SOURCE_COMMIT=" + source_commit] + PINNED_IMAGE_ENV
     config_env = config.get("Env")
     if (inspect.get("Image") != PINNED_IMAGE_ID or config.get("Image") != PINNED_IMAGE_ID
+            or (expected_name is not None and inspect.get("Name") != "/" + expected_name)
+            or (expected_id is not None and inspect.get("Id") != expected_id)
             or config.get("Cmd") != expected_command or config.get("User") != DOCKER_POLICY["user"]
             or config_env != expected_env
             or host.get("NetworkMode") != "none" or host.get("CgroupParent") != "docker-batch.slice"
             or host.get("ReadonlyRootfs") is not True or host.get("CpuQuota") != 400000
-            or host.get("CpuPeriod") != 100000 or host.get("Memory") != DOCKER_POLICY["memory"]
+            or host.get("CpuPeriod") != 100000 or host.get("NanoCpus") != 0 or host.get("Memory") != DOCKER_POLICY["memory"]
             or host.get("MemorySwap") != DOCKER_POLICY["memory_swap"]
             or host.get("PidsLimit") != DOCKER_POLICY["pids_limit"]
+            or host.get("Privileged") is not False
+            or host.get("Devices") != [] or host.get("DeviceRequests") is not None
+            or host.get("CapAdd") is not None
+            or host.get("PidMode") != "" or host.get("IpcMode") != "private"
+            or host.get("UTSMode") != "" or host.get("UsernsMode") != ""
+            or host.get("Runtime") != "runc" or host.get("Binds") is not None
+            or host.get("AutoRemove") is not False or host.get("Init") is not None
             or host.get("CapDrop") != ["ALL"]
             or host.get("SecurityOpt") != ["no-new-privileges"]
             or host.get("Tmpfs") != DOCKER_POLICY["tmpfs"]
             or config.get("Labels") != DOCKER_POLICY["labels"]
+            or config.get("Entrypoint") is not None
+            or config.get("WorkingDir") != ""
+            or config.get("Tty") is not False
+            or config.get("OpenStdin") is not False
+            or config.get("StdinOnce") is not False
+            or config.get("AttachStdout") is not True
+            or config.get("AttachStderr") is not True
             or actual_mounts != expected_mounts):
         raise ValueError("created container differs from the pinned build policy")
     return {
         "image": inspect.get("Image"),
+        "container_name": inspect.get("Name"),
+        "container_id": inspect.get("Id"),
         "config_image": config.get("Image"),
         "command": config.get("Cmd"),
         "user": config.get("User"),
@@ -156,10 +177,23 @@ def inspected_contract(inspect: dict, expected_mounts: list[dict], source_commit
                  "cgroup_parent": host.get("CgroupParent"),
                  "readonly_rootfs": host.get("ReadonlyRootfs"),
                  "cpu_quota": host.get("CpuQuota"), "cpu_period": host.get("CpuPeriod"),
+                 "nano_cpus": host.get("NanoCpus"),
                  "memory": host.get("Memory"), "memory_swap": host.get("MemorySwap"),
+                 "privileged": host.get("Privileged"), "devices": host.get("Devices"),
+                 "device_requests": host.get("DeviceRequests"), "cap_add": host.get("CapAdd"),
+                 "pid_mode": host.get("PidMode"), "ipc_mode": host.get("IpcMode"),
+                 "uts_mode": host.get("UTSMode"), "userns_mode": host.get("UsernsMode"),
+                 "runtime": host.get("Runtime"), "binds": host.get("Binds"),
+                 "auto_remove": host.get("AutoRemove"), "init": host.get("Init"),
                  "pids_limit": host.get("PidsLimit"), "cap_drop": host.get("CapDrop"),
                  "security_opt": host.get("SecurityOpt"), "tmpfs": host.get("Tmpfs")},
         "mounts": actual_mounts,
+        "config_contract": {"entrypoint": config.get("Entrypoint"),
+                            "working_dir": config.get("WorkingDir"),
+                            "tty": config.get("Tty"), "open_stdin": config.get("OpenStdin"),
+                            "stdin_once": config.get("StdinOnce"),
+                            "attach_stdout": config.get("AttachStdout"),
+                            "attach_stderr": config.get("AttachStderr")},
         "state": {"status": state.get("Status"), "running": state.get("Running"),
                   "exit_code": state.get("ExitCode")},
     }
@@ -248,6 +282,8 @@ def run_build(*, request_path: Path,
                                      check=True, stdout=subprocess.PIPE).stdout
     if snapshot_head != commit or snapshot_status:
         raise ValueError("detached source snapshot is not clean at the requested commit")
+    toolchain_manifest_raw = _toolchain_manifest(toolchain)
+    toolchain_manifest_sha = sha(toolchain_manifest_raw)
     container_name = "lunar-continuous-" + secrets.token_hex(12)
     cmd, mount_args = container_command(docker_binary, container_name, snapshot, request_copy,
                                         toolchain, catalogue, output, commit)
@@ -259,7 +295,7 @@ def run_build(*, request_path: Path,
             raise ValueError("Docker returned an invalid container identifier")
         container_id = raw_id
         initial = _inspect(docker_binary, container_id)
-        initial_contract = inspected_contract(initial, mounts, commit)
+        initial_contract = inspected_contract(initial, mounts, commit, container_name, container_id)
         if initial_contract["state"]["status"] != "created":
             raise ValueError("new container was not in the created state")
         _run(docker_binary, ["start", container_id], timeout=30)
@@ -267,13 +303,13 @@ def run_build(*, request_path: Path,
         final = initial
         while True:
             final = _inspect(docker_binary, container_id)
-            contract = inspected_contract(final, mounts, commit)
+            contract = inspected_contract(final, mounts, commit, container_name, container_id)
             if not contract["state"]["running"]:
                 break
             if monotonic() >= deadline:
                 raise TimeoutError("continuous build exceeded the fixed time limit")
             time.sleep(poll_seconds)
-        contract = require_successful_exit(inspected_contract(final, mounts, commit))
+        contract = require_successful_exit(inspected_contract(final, mounts, commit, container_name, container_id))
 
         build_output = output / "build"
         worker_path = snapshot / WORKER_REL
@@ -283,6 +319,9 @@ def run_build(*, request_path: Path,
         post_commit, post_manifest = _source_manifest(snapshot)
         if post_commit != commit:
             raise ValueError("source snapshot commit changed while the build ran")
+        post_toolchain_manifest = _toolchain_manifest(toolchain)
+        if sha(post_toolchain_manifest) != toolchain_manifest_sha:
+            raise ValueError("toolchain tree changed while the container was running")
         worker = _json(worker_raw, "worker provenance")
         if (worker.get("source_commit") != commit or worker.get("request_sha256") != sha(request_raw)
                 or worker.get("runtime_mode") != "continuous"
@@ -298,6 +337,8 @@ def run_build(*, request_path: Path,
             "request_mount_source": str(request_copy.resolve()),
             "image_id": PINNED_IMAGE_ID,
             "container_id": container_id,
+            "container_name": container_name,
+            "container_command": cmd[1:],
             "container_inspection": contract,
             "container_inspection_sha256": sha(canonical(contract)),
             "post_build_source_tree_sha256": sha(post_manifest),
@@ -305,6 +346,7 @@ def run_build(*, request_path: Path,
             "wrapper_sha256": wrapper_sha,
             "worker_sha256": worker_sha,
             "worker_provenance_sha256": sha(worker_raw),
+            "toolchain_tree_sha256": toolchain_manifest_sha,
             "state_tool_sha256": worker.get("state_tool_sha256"),
             "resources": DOCKER_POLICY,
             "exit_code": 0,
@@ -312,6 +354,7 @@ def run_build(*, request_path: Path,
             "hardware_tested": False,
             "installable": False,
         }
+        _write_exclusive(output / "toolchain-manifest.json", toolchain_manifest_raw)
         _write_exclusive(output / "container-invocation.json", canonical(invocation))
         return capture_trusted_build_tuple(snapshot, catalogue, build_output, toolchain,
                                            invocation_path=output / "container-invocation.json",

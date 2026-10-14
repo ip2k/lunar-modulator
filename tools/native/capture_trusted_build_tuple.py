@@ -88,6 +88,104 @@ def _safe_rel(root: Path, rel: str) -> Path:
     return current
 
 
+def _file_sha(path: Path, limit: int):
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > limit:
+        raise ValueError("invalid or oversized toolchain file")
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _toolchain_manifest(root: Path):
+    root = Path(root).resolve(strict=True)
+    if not root.is_dir():
+        raise ValueError("toolchain root must be a directory")
+    rows = [{"path": ".", "kind": "directory", "mode": root.stat().st_mode & 0o777}]
+    total_bytes = 0
+    for current, dirs, files in os.walk(root, topdown=True, followlinks=False):
+        current_path = Path(current)
+        symlink_dirs = [name for name in dirs if (current_path / name).is_symlink()]
+        for name in symlink_dirs:
+            link = current_path / name
+            resolved = link.resolve(strict=True)
+            if not resolved.is_relative_to(root) or not resolved.is_dir():
+                raise ValueError("toolchain symlink directory escapes root")
+            rows.append({"path": link.relative_to(root).as_posix(), "kind": "symlink-dir",
+                         "target": os.readlink(link),
+                         "resolved": resolved.relative_to(root).as_posix(),
+                         "mode": link.lstat().st_mode & 0o777})
+            dirs.remove(name)
+        dirs.sort()
+        for name in dirs:
+            directory = current_path / name
+            rows.append({"path": directory.relative_to(root).as_posix(),
+                         "kind": "directory", "mode": directory.stat().st_mode & 0o777})
+        for name in sorted(files):
+            path = current_path / name
+            rel = path.relative_to(root).as_posix()
+            if path.is_symlink():
+                resolved = path.resolve(strict=True)
+                if not resolved.is_relative_to(root) or not resolved.is_file():
+                    raise ValueError("toolchain symlink file escapes root")
+                size = resolved.stat().st_size
+                total_bytes += size
+                rows.append({"path": rel, "kind": "symlink-file", "target": os.readlink(path),
+                             "resolved": resolved.relative_to(root).as_posix(), "bytes": size,
+                             "sha256": _file_sha(resolved, 256 * 1024 * 1024),
+                             "mode": path.lstat().st_mode & 0o777})
+            else:
+                if not path.is_file():
+                    raise ValueError("toolchain contains a non-regular entry")
+                size = path.stat().st_size
+                total_bytes += size
+                rows.append({"path": rel, "kind": "file", "bytes": size,
+                             "sha256": _file_sha(path, 256 * 1024 * 1024),
+                             "mode": path.stat().st_mode & 0o777})
+            if len(rows) > 4096 or total_bytes > 512 * 1024 * 1024:
+                raise ValueError("toolchain exceeds the fixed manifest bounds")
+    rows.sort(key=lambda row: row["path"])
+    return canonical({"schema": 1, "objects": rows})
+
+
+def _linked_object_manifest(output: Path, catalogue: Path, verification):
+    linked = verification.get("linked_objects")
+    catalogue_rows = verification.get("catalogue_objects")
+    if not isinstance(linked, list) or not linked or len(linked) > 4096:
+        raise ValueError("build receipt has no bounded linked object inventory")
+    if not isinstance(catalogue_rows, list):
+        raise ValueError("build receipt has no catalogue object inventory")
+    catalogue_hashes = {row["path"]: row["sha256"] for row in catalogue_rows
+                        if isinstance(row, dict) and set(row) == {"path", "sha256"}}
+    rows = []
+    seen = set()
+    for row in linked:
+        if not isinstance(row, dict) or set(row) != {"path", "sha256"}:
+            raise ValueError("linked object rows must contain path and sha256")
+        path, expected = row["path"], row["sha256"]
+        if not isinstance(path, str):
+            raise ValueError("linked object path is invalid")
+        _require_sha(expected, "linked object")
+        if path in seen:
+            raise ValueError("duplicate linked object path")
+        seen.add(path)
+        if path.startswith("/catalogue/"):
+            if catalogue_hashes.get(path) != expected:
+                raise ValueError("linked catalogue object is absent from catalogue receipt")
+            local = _safe_rel(catalogue, path[len("/catalogue/"):])
+        elif path.startswith("/out/build/link/"):
+            suffix = path[len("/out/build/link/"):]
+            local = _safe_rel(output, "link/" + suffix)
+        else:
+            raise ValueError("linked object path is outside the fixed mounts")
+        if _file_sha(local, 128 * 1024 * 1024) != expected:
+            raise ValueError("linked object bytes differ from the build receipt")
+        rows.append({"path": path, "sha256": expected})
+    rows.sort(key=lambda row: row["path"])
+    return canonical({"schema": 1, "objects": rows})
+
+
 def _source_manifest(root: Path):
     status = subprocess.run(
         ["git", "-C", str(root), "status", "--porcelain=v1", "--untracked-files=all"],
@@ -156,6 +254,13 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
     image_raw, image = json_obj(output / "image.json")
     invocation_raw, invocation = json_obj(invocation_path)
     worker_raw, worker = json_obj(worker_path)
+    toolchain_manifest_path = invocation_path.parent / "toolchain-manifest.json"
+    toolchain_manifest_raw = read(toolchain_manifest_path, 16 * 1024 * 1024)
+    if toolchain_manifest_raw != _toolchain_manifest(toolchain):
+        raise ValueError("toolchain tree differs from the captured full manifest")
+    toolchain_tree_sha = sha(toolchain_manifest_raw)
+    if invocation.get("toolchain_tree_sha256") != toolchain_tree_sha:
+        raise ValueError("invocation does not bind the full toolchain tree")
     source_commit = invocation.get("source_commit")
     if not isinstance(source_commit, str) or not re.fullmatch(r"[0-9a-f]{40}", source_commit):
         raise ValueError("invocation source commit is not a full immutable SHA")
@@ -264,9 +369,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         raw = read(output / rel, 32 * 1024 * 1024)
         generated[rel] = raw
         generated_rows.append({"path": rel, "sha256": sha(raw)})
-    module_rows = verification.get("linked_objects")
-    if not isinstance(module_rows, list) or not module_rows:
-        raise ValueError("build receipt has no exact linked object inventory")
+    linked_manifest_raw = _linked_object_manifest(output, catalogue, verification)
     source_commit, source_manifest_raw = _source_manifest(root)
     catalogue_raw = _catalogue_manifest(catalogue, verification)
     catalogue_sha = sha(catalogue_raw)
@@ -303,26 +406,80 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         raise ValueError("request bind mount is outside the private output parent")
     if not isinstance(contract, dict):
         raise ValueError("container inspection does not prove successful pinned image completion")
+    container_name = invocation.get("container_name")
+    command = invocation.get("container_command")
+    if not isinstance(container_name, str) or not re.fullmatch(r"lunar-continuous-[0-9a-f]{24}", container_name):
+        raise ValueError("container name is not an opaque wrapper-generated identifier")
+    if not isinstance(command, list) or not all(isinstance(item, str) for item in command):
+        raise ValueError("container command is not an exact argument vector")
+    if invocation.get("container_command_sha256") != sha(canonical(command)):
+        raise ValueError("container command digest does not bind its argument vector")
+    expected_command = [
+        "create", "--name", container_name,
+        "--label", "lan.project=lunar-modulator",
+        "--label", "lan.session=continuous-tuple-capture",
+        "--cgroup-parent=docker-batch.slice", "--network=none",
+        "--cpu-quota=400000", "--cpu-period=100000", "--memory=8g",
+        "--memory-swap=8g", "--pids-limit=512", "--read-only",
+        "--cap-drop=ALL", "--security-opt=no-new-privileges", "--user=1001:1001",
+        "--tmpfs", "/tmp:rw,nosuid,nodev,exec,size=3221225472",
+        "--env", "LUNAR_SOURCE_COMMIT=" + source_commit,
+    ]
+    request_source = invocation.get("request_mount_source")
+    expected_command += [
+        "--mount", "type=bind,src=" + str(root.resolve()) + ",dst=/workspace,readonly",
+        "--mount", "type=bind,src=" + str(request_source) + ",dst=/input/request.json,readonly",
+        "--mount", "type=bind,src=" + str(toolchain.resolve()) + ",dst=/opt/pi32v2,readonly",
+        "--mount", "type=bind,src=" + str(catalogue.resolve()) + ",dst=/catalogue,readonly",
+        "--mount", "type=bind,src=" + str(invocation_path.parent.resolve()) + ",dst=/output",
+        "sha256:" + PINNED_TOOLCHAIN_IMAGE, "python3", "/workspace/tools/native/trusted_continuous_worker.py",
+    ]
+    if command != expected_command:
+        raise ValueError("container command differs from fixed operator invocation")
+    expected_resources = {
+        "network_mode": "none", "cgroup_parent": "docker-batch.slice", "cpus": 4,
+        "memory": 8589934592, "memory_swap": 8589934592, "pids_limit": 512,
+        "readonly_rootfs": True, "cap_drop": ["ALL"],
+        "security_opt": ["no-new-privileges"], "user": "1001:1001",
+        "tmpfs": {"/tmp": "rw,nosuid,nodev,exec,size=3221225472"},
+        "labels": {"lan.project": "lunar-modulator", "lan.session": "continuous-tuple-capture"},
+    }
+    if invocation.get("resources") != expected_resources:
+        raise ValueError("invocation resource policy differs from fixed limits")
     host = contract.get("host")
     if (contract.get("image") != "sha256:" + PINNED_TOOLCHAIN_IMAGE
+            or contract.get("container_name") != container_name
+            or contract.get("container_id") != invocation.get("container_id")
             or contract.get("config_image") != "sha256:" + PINNED_TOOLCHAIN_IMAGE
             or contract.get("command") != ["python3", "/workspace/" + "tools/native/trusted_continuous_worker.py"]
             or contract.get("user") != "1001:1001"
             or contract.get("labels") != {"lan.project": "lunar-modulator", "lan.session": "continuous-tuple-capture"}
             or contract.get("environment_keys") != ["LUNAR_SOURCE_COMMIT", "PATH"]
             or contract.get("environment_sha256") != sha(canonical([
-                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
                 "LUNAR_SOURCE_COMMIT=" + source_commit,
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
             ]))
             or invocation.get("post_build_source_tree_sha256") is None
             or contract.get("state") != {"status": "exited", "running": False, "exit_code": 0}
             or not isinstance(host, dict)
             or host.get("network_mode") != "none" or host.get("cgroup_parent") != "docker-batch.slice"
             or host.get("readonly_rootfs") is not True or host.get("cpu_quota") != 400000
-            or host.get("cpu_period") != 100000 or host.get("memory") != 8589934592
+            or host.get("cpu_period") != 100000 or host.get("nano_cpus") != 0
+            or host.get("privileged") is not False or host.get("devices") != []
+            or host.get("device_requests") is not None or host.get("cap_add") is not None
+            or host.get("pid_mode") != "" or host.get("ipc_mode") != "private"
+            or host.get("uts_mode") != "" or host.get("userns_mode") != ""
+            or host.get("runtime") != "runc" or host.get("binds") is not None
+            or host.get("auto_remove") is not False or host.get("init") is not None
+            or host.get("memory") != 8589934592
             or host.get("memory_swap") != 8589934592 or host.get("pids_limit") != 512
             or host.get("cap_drop") != ["ALL"] or host.get("security_opt") != ["no-new-privileges"]
             or host.get("tmpfs") != {"/tmp": "rw,nosuid,nodev,exec,size=3221225472"}
+            or contract.get("config_contract") != {
+                "entrypoint": None, "working_dir": "", "tty": False,
+                "open_stdin": False, "stdin_once": False,
+                "attach_stdout": True, "attach_stderr": True,
+            }
             or contract.get("mounts") != expected_mounts
             or invocation.get("container_inspection_sha256") != sha(canonical(contract))):
         raise ValueError("container inspection differs from the fixed, completed build policy")
@@ -350,6 +507,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         "prepared_profile_sha256": prepared_sha,
         "source_tree_sha256": source_sha,
         "toolchain_image_sha256": PINNED_TOOLCHAIN_IMAGE,
+        "toolchain_tree_sha256": toolchain_tree_sha,
         "runtime_mode": "continuous",
         "hardware_admitted": False,
         "hardware_tested": False,
@@ -367,6 +525,10 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         "toolchain_root": str(toolchain.resolve()),
         "compiler_path": str(compiler.resolve()),
         "compiler_sha256": compiler_sha,
+        "toolchain_tree_sha256": toolchain_tree_sha,
+        "linked_object_manifest_sha256": sha(linked_manifest_raw),
+        "linked_object_count": len(json.loads(linked_manifest_raw)["objects"]),
+        "linked_objects": json.loads(linked_manifest_raw)["objects"],
         "catalogue_container_mount": "/catalogue",
         "catalogue_source_root": str(catalogue.resolve()),
         "catalogue_manifest_path": str((output / "catalogue-manifest.json").resolve()),
