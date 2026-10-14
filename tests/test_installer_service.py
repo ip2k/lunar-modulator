@@ -23,14 +23,15 @@ from tools.native.runtime_mode import runtime_configuration
 
 MODULES = {"sound-a": "sound", "shapes": "sound", "fx-a": "audio_fx", "midi-a": "midi_fx", "mod-a": "mod"}
 PROJECTS = {"song-one", "song-two"}
+SETS = {"companion-one": "song-one"}
 TEMPLATE = WorkerTemplate("sha256:" + "a" * 64, "lunar-private-builds")
 TEST_ELF = b"diagnostic-elf"
 
 
-def client(capacity=1, queue_cap=1):
+def client(capacity=1, queue_cap=1, set_parents=None):
     adapter = FakeJobAdapter(capacity)
     app = create_app(adapter=adapter, template=TEMPLATE, module_kinds=MODULES,
-                     project_ids=PROJECTS, queue_cap=queue_cap)
+                     project_ids=PROJECTS, set_parents=set_parents, queue_cap=queue_cap)
     return TestClient(app), adapter
 
 
@@ -122,8 +123,16 @@ def test_queue_cap_opaque_lookup_and_state_transitions():
 
 def result_receipt(doc, req_sha, artifact, elf=TEST_ELF):
     prepared_sha = "1" * 64
-    content = [{"kind": "project", "bytes": 128, "packed_sha256": "2" * 64} for _ in doc["project_ids"]]
+    content = [{"kind": "project", "id": project, "bytes": 128,
+                "packed_sha256": "2" * 64} for project in doc["project_ids"]]
+    content += [{"kind": "set", "id": set_id, "parent_project_id": "song-one",
+                 "bytes": 64, "packed_sha256": "3" * 64}
+                for set_id in doc.get("set_ids", [])]
     selected = [m for g in ("engines", "effects", "midi", "modulation") for m in doc[g]]
+    set_ids = doc.get("set_ids", [])
+    selected_content = ([{"kind": "project", "id": project} for project in doc["project_ids"]]
+                        + [{"kind": "set", "id": set_id, "parent_project_id": "song-one"}
+                           for set_id in set_ids])
     wave_rows = ([{"namespace": "braids", "symbol": "wt_waves", "width": 1,
                    "raw_bytes": 33024,
                    "raw_sha256": "c672fccb061496d0229bfc5c2d55ec61f367e1539dda5870fd667a059c90f634",
@@ -134,7 +143,9 @@ def result_receipt(doc, req_sha, artifact, elf=TEST_ELF):
     return json.dumps({
         "version": 1, "status": "linked-private-diagnostic",
         "request_sha256": req_sha, "prepared_profile_sha256": prepared_sha,
-        "project_ids": doc["project_ids"], "startup_index": doc["startup_index"],
+        "project_ids": doc["project_ids"], "set_ids": set_ids,
+        "set_parents": {set_id: "song-one" for set_id in set_ids},
+        "selected_content": selected_content, "startup_index": doc["startup_index"],
         "startup_project_id": doc["project_ids"][doc["startup_index"]],
         "runtime_hook_linked": len(doc["project_ids"]) > 1,
         "runtime_configuration": runtime_configuration("diagnostic"),
@@ -147,7 +158,7 @@ def result_receipt(doc, req_sha, artifact, elf=TEST_ELF):
                                "pool_credit_bytes": 57088},
         "content": content,
         "embedded_content": {"prepared_sha256": prepared_sha, "assets": content,
-            "asset_count": len(content), "packed_content_bytes": 128 * len(content),
+            "asset_count": len(content), "packed_content_bytes": sum(a["bytes"] for a in content),
             "packed_sha256": [a["packed_sha256"] for a in content],
             "native_playback_verified": False, "sequence_semantics_verified": False},
         "app_sha256": hashlib.sha256(artifact).hexdigest(),
@@ -334,6 +345,43 @@ def test_service_rejects_elf_not_matching_receipt_digest():
     assert c.get(accepted.json()["status_url"]).status_code == 502
 
 
+
+def test_companion_set_requires_trusted_parent_startup_and_receipt_binding():
+    c, adapter = client(set_parents=SETS)
+    doc = request_doc()
+    doc["project_ids"] = ["song-one", "song-two"]
+    doc["startup_index"] = 0
+    doc["set_ids"] = ["companion-one"]
+    accepted = accept_and_succeed(c, adapter, doc=doc)
+    assert accepted.status_code == 202
+    assert c.get(accepted.json()["status_url"]).status_code == 200
+    assert adapter.submissions[accepted.json()["id"]][0] == canonical_request(doc)
+
+    c2, adapter2 = client(set_parents=SETS)
+    wrong_parent = dict(doc, startup_index=1)
+    assert c2.post("/api/v1/builds", json=wrong_parent).status_code == 422
+    assert adapter2.jobs == {}
+
+    c3, adapter3 = client(set_parents=SETS)
+    unknown = dict(doc, set_ids=["unknown"])
+    assert c3.post("/api/v1/builds", json=unknown).status_code == 422
+    assert adapter3.jobs == {}
+
+    c4, adapter4 = client(set_parents=SETS)
+    rejected = accept_and_succeed(c4, adapter4,
+        lambda receipt: receipt["set_parents"].update({"companion-one": "song-two"}), doc=doc)
+    assert c4.get(rejected.json()["status_url"]).status_code == 502
+
+    c5, adapter5 = client(set_parents=SETS)
+    changed_identity = accept_and_succeed(
+        c5, adapter5,
+        lambda receipt: receipt["content"][1].update({"id": "different-set"}), doc=doc)
+    assert c5.get(changed_identity.json()["status_url"]).status_code == 502
+
+
+def test_default_request_encoding_is_unchanged_when_set_ids_are_omitted_or_empty():
+    assert canonical_request(request_doc()) == canonical_request(dict(request_doc(), set_ids=[]))
+
 def test_trusted_catalogue_loader_uses_make_ids_and_project_constants():
     modules, projects = load_trusted_catalogue()
     assert modules["macro"] == "sound"
@@ -341,6 +389,9 @@ def test_trusted_catalogue_loader_uses_make_ids_and_project_constants():
     assert "test-sine" not in modules
     assert "replacement-showcase-candidate-satellite-hearts" in projects
     assert len(projects) == 8
+    modules, projects, sets = load_trusted_catalogue(include_sets=True)
+    assert sets == {"replacement-showcase-event-horizon-companion-set":
+                    "replacement-showcase-candidate-event-horizon"}
 
 
 def test_rejects_over_budget_even_when_artifact_hash_matches():

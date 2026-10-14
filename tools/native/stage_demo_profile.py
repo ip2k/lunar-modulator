@@ -13,7 +13,7 @@ from pathlib import Path, PurePosixPath
 import re
 import shutil
 
-from export_image_catalogue import PRELOAD_PROJECTS
+from export_image_catalogue import PRELOAD_PROJECTS, PRELOAD_SETS
 from prepare_image_profile import GROUPS
 
 
@@ -64,6 +64,51 @@ def _trusted_project_records(projects):
     return records
 
 
+def _trusted_set_records(sets):
+    if not isinstance(sets, list):
+        raise ValueError('Catalogue sets must be a list')
+    registered = {spec['id']: spec for spec in PRELOAD_SETS}
+    records = {}
+    for record in sets:
+        if not isinstance(record, dict):
+            raise ValueError('Invalid set catalogue record')
+        set_id = record.get('id')
+        if (not isinstance(set_id, str) or not _PROJECT_ID.fullmatch(set_id)
+                or set_id not in registered or set_id in records):
+            raise ValueError('Unknown or duplicate catalogue set ID')
+        if (record.get('parent_project_id') != registered[set_id]['parent_project_id']
+                or record.get('dependency_scan_complete') is not False
+                or record.get('source_dependency_scan_complete') is not False):
+            raise ValueError('Set dependency metadata differs from fixed registry')
+        records[set_id] = record
+    return records
+
+
+def _read_trusted_set(root, record, project_records, project_snapshots):
+    parent_id = record['parent_project_id']
+    parent_record = project_records.get(parent_id)
+    if parent_record is None or parent_id not in project_snapshots:
+        raise ValueError('Companion SET parent must be among selected projects')
+    if (record.get('source_path') != parent_record.get('source_path')
+            or record.get('source_sha256') != parent_record.get('source_sha256')):
+        raise ValueError('Companion SET source identity differs from trusted parent project')
+    raw = project_snapshots[parent_id]
+    if hashlib.sha256(raw).hexdigest() != parent_record['source_sha256']:
+        raise ValueError('Companion SET parent source digest changed')
+    try:
+        project = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError('Invalid companion SET parent source') from error
+    lines = project.get('set')
+    if (not isinstance(lines, list) or not lines or lines[0] != 'movy1'
+            or any(not isinstance(line, str) or '\n' in line or '\r' in line for line in lines)):
+        raise ValueError('Companion SET is not a bounded movy1 line sequence')
+    payload = ('\n'.join(lines) + '\n').encode('utf-8')
+    if hashlib.sha256(payload).hexdigest() != record.get('content_sha256'):
+        raise ValueError('Companion SET content digest differs from trusted catalogue')
+    return payload
+
+
 def _read_trusted_source(root, record):
     relative = PurePosixPath(record['source_path'])
     if relative.is_absolute() or not relative.parts or any(part in ('', '.', '..') for part in relative.parts):
@@ -88,7 +133,8 @@ def _read_trusted_source(root, record):
 
 
 def stage_profile(repository_root: Path, module_profile: dict, projects: list,
-                  project_ids: list, output_dir: Path, startup_index: int = 0):
+                  project_ids: list, output_dir: Path, startup_index: int = 0,
+                  sets: list | None = None, set_ids: list | None = None):
     """Stage a fresh prepare_image_profile input directory.
 
     ``projects`` must be the server-side ``projects`` array from the current
@@ -108,6 +154,12 @@ def stage_profile(repository_root: Path, module_profile: dict, projects: list,
 
     module = _validate_module_profile(module_profile)
     records = _trusted_project_records(projects)
+    set_ids = [] if set_ids is None else set_ids
+    if (not isinstance(set_ids, list) or len(set_ids) > 8
+            or any(not isinstance(set_id, str) or not _PROJECT_ID.fullmatch(set_id) for set_id in set_ids)
+            or len(set_ids) != len(set(set_ids))):
+        raise ValueError('Set selections must be unique literal IDs')
+    set_records = _trusted_set_records([] if sets is None else sets)
     if any(project_id not in records for project_id in project_ids):
         raise ValueError('Unknown selected preload project ID')
 
@@ -116,6 +168,13 @@ def stage_profile(repository_root: Path, module_profile: dict, projects: list,
     snapshots = {}
     for project_id in project_ids:
         snapshots[project_id] = _read_trusted_source(root, records[project_id])
+    if any(set_id not in set_records for set_id in set_ids):
+        raise ValueError('Unknown selected companion SET ID')
+    if set_ids and any(set_records[set_id]['parent_project_id'] != project_ids[startup_index]
+                       for set_id in set_ids):
+        raise ValueError('Companion SET parent must be the selected startup project')
+    set_snapshots = {set_id: _read_trusted_set(root, set_records[set_id], records, snapshots)
+                     for set_id in set_ids}
 
     requested = Path(output_dir)
     if requested.name in ('', '.', '..'):
@@ -125,28 +184,41 @@ def stage_profile(repository_root: Path, module_profile: dict, projects: list,
     if output.exists() or output.is_symlink():
         raise FileExistsError('Output directory already exists: ' + str(output))
 
-    content_paths = [f'projects/{project_id}.lunar' for project_id in project_ids]
+    project_paths = [f'projects/{project_id}.lunar' for project_id in project_ids]
+    set_paths = [f'sets/{set_id}.movy1' for set_id in set_ids]
+    content_paths = project_paths + set_paths
     profile = dict(module, content=content_paths)
     selection = {
         'version': 1,
         'status': 'staged-not-prepared',
         'project_ids': list(project_ids),
+        'set_ids': list(set_ids),
         'startup_index': startup_index,
         'startup_project_id': project_ids[startup_index],
-        'sources': [
-            {'id': project_id, 'source_path': records[project_id]['source_path'],
+        'sources': ([
+            {'kind': 'project', 'id': project_id, 'source_path': records[project_id]['source_path'],
              'source_sha256': records[project_id]['source_sha256'],
              'staged_path': content_path}
-            for project_id, content_path in zip(project_ids, content_paths)
-        ],
+            for project_id, content_path in zip(project_ids, project_paths)
+        ] + [
+            {'kind': 'set', 'id': set_id, 'parent_project_id': set_records[set_id]['parent_project_id'],
+             'source_path': set_records[set_id]['source_path'],
+             'source_sha256': set_records[set_id]['content_sha256'],
+             'staged_path': content_path, 'dependency_scan_complete': False}
+            for set_id, content_path in zip(set_ids, set_paths)
+        ]),
     }
 
     output.mkdir(exist_ok=False)
     try:
         projects_dir = output / 'projects'
         projects_dir.mkdir()
-        for project_id, content_path in zip(project_ids, content_paths):
+        for project_id, content_path in zip(project_ids, project_paths):
             (output / content_path).write_bytes(snapshots[project_id])
+        if set_ids:
+            (output / 'sets').mkdir()
+        for set_id, content_path in zip(set_ids, set_paths):
+            (output / content_path).write_bytes(set_snapshots[set_id])
         (output / 'selection.json').write_text(json.dumps(selection, indent=2) + '\n')
         # Consumers treat this file as the accepted profile input. Write it
         # last; on any failure, remove the whole directory before re-raising.
@@ -157,4 +229,5 @@ def stage_profile(repository_root: Path, module_profile: dict, projects: list,
     return {'profile_path': output / 'profile.json',
             'selection_path': output / 'selection.json',
             'project_ids': list(project_ids), 'startup_index': startup_index,
-            'startup_project_id': project_ids[startup_index]}
+            'startup_project_id': project_ids[startup_index],
+            'set_ids': list(set_ids), 'selected_content': selection['sources']}

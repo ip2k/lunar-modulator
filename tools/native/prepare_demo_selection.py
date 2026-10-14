@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 import shutil
 
-from export_image_catalogue import export_preload_projects
+from export_image_catalogue import export_preload_projects, export_preload_sets
 from prepare_image_profile import GROUPS, bounded_read, prepare, sha, unique_object
 from stage_demo_profile import stage_profile
 from verify_image_profile import load_prepared_profile
@@ -28,17 +28,20 @@ def prepare_selection(root: Path, request: dict, state_tool: Path, output: Path,
     request = json.loads(request_bytes)
     if (not isinstance(request, dict) or type(request.get('version')) is not int
             or request['version'] != 1
-            or set(request) != {'version', *GROUPS, 'project_ids', 'startup_index'}):
+            or set(request) not in ({'version', *GROUPS, 'project_ids', 'startup_index'},
+                                    {'version', *GROUPS, 'project_ids', 'startup_index', 'set_ids'})):
         raise ValueError('Expected a version-1 demo selection request')
     modules = {key: request[key] for key in ('version', *GROUPS)}
     projects = export_preload_projects(root)
+    sets = export_preload_sets(root, projects)
+    set_ids = request.get('set_ids', [])
     output = Path(output)
     # Refuse reuse, including a dangling symlink. Never clean up someone else's
     # directory after a failed request.
     output.mkdir(exist_ok=False)
     try:
         staged = stage_profile(root, modules, projects, request['project_ids'],
-                               output / 'staged', request['startup_index'])
+                               output / 'staged', request['startup_index'], sets, set_ids)
         selection = json.loads(bounded_read(staged['selection_path'], 1048576),
                                object_pairs_hook=unique_object)
         report = prepare(staged['profile_path'], state_tool, output / 'prepared',
@@ -50,21 +53,31 @@ def prepare_selection(root: Path, request: dict, state_tool: Path, output: Path,
             raise ValueError('Prepared report changed during verification')
         assets = checked.report['content']
         if len(assets) != len(selection['sources']):
-            raise ValueError('Prepared content count differs from selected projects')
+            raise ValueError('Prepared content count differs from selected content')
         content = []
         for source, asset in zip(selection['sources'], assets):
             if (asset['source'] != source['staged_path']
                     or asset['source_sha256'] != source['source_sha256']
-                    or asset['kind'] != 'project'
-                    or asset['dependency_scan_complete'] is not True):
-                raise ValueError('Prepared content identity differs from selected project')
-            content.append(dict(id=source['id'], **asset))
+                    or asset['kind'] != source['kind']):
+                raise ValueError('Prepared content identity differs from selected catalogue row')
+            if source['kind'] == 'project' and asset['dependency_scan_complete'] is not True:
+                raise ValueError('Prepared project dependency scan is incomplete')
+            if source['kind'] == 'set' and (asset['dependency_scan_complete'] is not False
+                    or source.get('dependency_scan_complete') is not False
+                    or source.get('parent_project_id') != selection['startup_project_id']):
+                raise ValueError('Companion SET is not bound to selected startup project')
+            content.append(dict(id=source['id'], **({'parent_project_id': source['parent_project_id']}
+                                                   if source['kind'] == 'set' else {}), **asset))
         receipt = dict(version=1, status='prepared-build-inputs',
                        request_sha256=sha(request_bytes),
                        prepared_profile_sha256=manifest_sha,
                        project_ids=selection['project_ids'],
                        startup_index=selection['startup_index'],
                        startup_project_id=selection['startup_project_id'],
+                       set_ids=selection['set_ids'],
+                       selected_content=[dict(kind=row['kind'], id=row['id'], **(
+                           {'parent_project_id': row['parent_project_id']} if row['kind'] == 'set' else {}))
+                           for row in selection['sources']],
                        content=content, packed_content_bytes=report['packed_content_bytes'],
                        state_tool_sha256=report['state_tool_sha256'],
                        installable=False, native_link_verified=False,

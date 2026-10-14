@@ -132,6 +132,20 @@ def checked_link_receipt(selection, prepared, verification, artifact, app, elf, 
     expected_assets = [dict(kind=a['kind'], bytes=a['bytes'],
                            packed_sha256=a['packed_sha256'])
                        for a in selection['content']]
+    expected_selected_content = selection.get('selected_content')
+    expected_set_ids = selection.get('set_ids', [])
+    expected_identity = ([dict(kind='project', id=project_id)
+                          for project_id in selection['project_ids']]
+                         + [dict(kind='set', id=set_id,
+                                 parent_project_id=selection['startup_project_id'])
+                            for set_id in expected_set_ids])
+    if (not isinstance(expected_selected_content, list)
+            or expected_selected_content != expected_identity
+            or len(expected_selected_content) != len(expected_assets)
+            or [row.get('kind') for row in expected_selected_content] != [a['kind'] for a in expected_assets]):
+        raise ValueError('Selected content identities differ from prepared asset order')
+    if expected_set_ids and selection['project_ids'][selection['startup_index']] != selection['startup_project_id']:
+        raise ValueError('Companion SET parent is not the selected startup project')
     embedded = verification.get('embedded_content', {})
     startup = verification.get('startup_project', {})
     if (embedded.get('prepared_sha256') != selection['prepared_profile_sha256']
@@ -190,7 +204,11 @@ def checked_link_receipt(selection, prepared, verification, artifact, app, elf, 
     return dict(version=1, status='linked-private-diagnostic',
                 request_sha256=selection['request_sha256'],
                 prepared_profile_sha256=selection['prepared_profile_sha256'],
-                project_ids=selection['project_ids'], startup_index=selection['startup_index'],
+                project_ids=selection['project_ids'], set_ids=expected_set_ids,
+                set_parents={row['id']: row['parent_project_id'] for row in expected_selected_content
+                             if row.get('kind') == 'set'},
+                selected_content=expected_selected_content,
+                startup_index=selection['startup_index'],
                 startup_project_id=selection['startup_project_id'],
                 runtime_hook_linked=startup['runtime_hook_linked'],
                 module_selection=prepared.report['module_selection'],
@@ -245,7 +263,8 @@ def build_selection(request, state_tool, toolchain, catalogue, output, *,
                     *profile_flags, '--prepared-profile', str(prepared_dir),
                     '--expected-profile-sha256', manifest_sha, '--link-project-loader',
                     '--link-project-save-service',
-                    '--startup-project-index', str(selection['startup_index'])], check=True)
+                    '--startup-project-index', str(selection['startup_index']),
+                    *(['--link-set-loader'] if selection.get('set_ids') else [])], check=True)
     # Recheck the prepared inputs after linking, against the retained digest.
     prepared = load_prepared_profile(prepared_dir, manifest_sha)
     receipt = checked_link_receipt(selection, prepared,

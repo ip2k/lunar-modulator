@@ -9,6 +9,8 @@ from tests.native_test_toolchain import configured_target_toolchain
 from tests.native_test_flags import native_host_link_flags, native_no_pie_flags
 
 ROOT = Path(__file__).resolve().parents[1]
+import sys
+sys.path.insert(0, str(ROOT / 'tools/native'))
 HARNESS = r'''
 #include "content_set.h"
 #include "instance_pool.h"
@@ -35,9 +37,9 @@ int main(int argc, char **argv) {
     int ok;
     fm1_app_t *app = calloc(1, sizeof(*app)), *app_before = malloc(sizeof(*app));
     if (!app || !app_before) return 24;
-    if (argc != 5 || !e1 || !e2) return 12;
+    if ((argc != 5 && argc != 6) || !e1 || !e2) return 12;
     bin = file(argv[1], &nb); text = file(argv[2], &nt);
-    fm1_seq_limits_default(&lim, 4); bytes = fm1_seq_size(&lim);
+    fm1_seq_limits_default(&lim, argc == 6 ? (uint8_t)atoi(argv[5]) : 4); bytes = fm1_seq_size(&lim);
     a = calloc(1, bytes); b = calloc(1, bytes);
     live = calloc(1, bytes); snapshot = malloc(bytes);
     if (!a || !b || !live || !snapshot) return 13;
@@ -68,8 +70,10 @@ int main(int argc, char **argv) {
     ok = lunar_content_activate_set(app, bin, (uint32_t)nb, sa, &report);
     if (atoi(argv[3]) && !atoi(argv[4])) {
         if (!ok || offs != 2 || app->seq_note_count[0][60] || app->seq_pending ||
-            app->seq_gen != 8 || app->seq_host.lane_uid[0][0] != 12 ||
-            memcmp(live, sa, bytes)) return 28;
+            app->seq_gen != 8 || app->seq_host.lane_uid[0][0] != (argc == 6 ? 0 : 12) ||
+            memcmp(live, sa, bytes)) {
+                 return 28;
+        }
     } else if (ok || offs || memcmp(snapshot, live, bytes) ||
                memcmp(app_before, app, sizeof(*app))) return 29;
     /* The live arena must be rejected before the container can mutate it. */
@@ -291,3 +295,28 @@ def test_native_packed_set(tmp_path, case, opt, native_set_probe):
     executable = native_set_probe(opt)
     subprocess.run([str(executable), str(packed), str(movy), str(int(valid)), str(loss)],
                    check=True, capture_output=True)
+
+
+def test_hash_pinned_event_horizon_companion_set_uses_native_set_loader(tmp_path, native_set_probe):
+    import json
+    from tools.native.export_image_catalogue import export_catalogue
+    from tools.native.prepare_image_profile import sha
+    from tools.native.prepare_demo_selection import prepare_selection
+
+    tool = Path(os.environ["FM1_STATE_TOOL"])
+    catalogue = export_catalogue(ROOT, tmp_path / "catalogue")
+    parent = "replacement-showcase-candidate-event-horizon"
+    set_id = "replacement-showcase-event-horizon-companion-set"
+    request = dict(version=1, **catalogue["groups"], project_ids=[parent],
+                   startup_index=0, set_ids=[set_id])
+    prepared = tmp_path / "prepared-selection"
+    receipt = prepare_selection(ROOT, request, tool, prepared)
+    packed = prepared / "prepared/content-01.bin"
+    movy = prepared / "prepared/content-01.source"
+    executable = native_set_probe("-Os")
+    completed = subprocess.run([str(executable), str(packed), str(movy), "1", "0", "8"],
+                               check=False, capture_output=True)
+    assert completed.returncode == 0, (completed.returncode, completed.stderr.decode("utf-8", "replace"))
+    assert receipt["content"][1]["kind"] == "set"
+    assert receipt["content"][1]["dependency_scan_complete"] is False
+    assert sha(packed.read_bytes()) == receipt["content"][1]["packed_sha256"]
