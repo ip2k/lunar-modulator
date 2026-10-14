@@ -17,6 +17,7 @@ from module_selection import resolve_modules, wavetable_namespaces
 import sys
 
 from build_probe import check_pins
+from audit_ram_call_allowlist import audit_ram_call_allowlist
 from compile_catalogue import source_manifest
 from compact_font import compact_header, compact_gfx
 from prepare_wavetables import prepare
@@ -495,8 +496,11 @@ def main():
         raise SystemExit('SDK-free audit has failed or pending checks')
     disassembly = subprocess.check_output([objdump, '-d', '-mcpu=r3', '-j', '.ram_text', str(elf)], text=True)
     (out / 'ram-text.txt').write_text(disassembly)
-    if re.search(r'\bcall\b', disassembly):
-        raise SystemExit('RAM flash code contains a call')
+    try:
+        ram_call_audit = audit_ram_call_allowlist(disassembly, symbols)
+    except ValueError as exc:
+        raise SystemExit('RAM call audit failed: ' + str(exc)) from exc
+    (out / 'ram-call-audit.json').write_text(json.dumps(ram_call_audit, indent=2) + '\n')
     (out / 'sections.txt').write_text(subprocess.check_output([objdump, '-h', str(elf)], text=True))
     report = dict(excluded_engines=args.exclude, module_selection=module_selection, sdk_archives=[],
                   flash_layout=args.flash_layout, app_budget_bytes=app_budget(args.flash_layout),

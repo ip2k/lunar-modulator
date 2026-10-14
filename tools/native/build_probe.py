@@ -14,9 +14,18 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def check_pins(directory):
     manifest = json.loads((directory / 'inventory.json').read_text())
-    for name, expected in manifest['files'].items():
+    files = manifest['files']
+    for name, expected in files.items():
         if hashlib.sha256((directory / name).read_bytes()).hexdigest() != expected:
             raise SystemExit('Source pin mismatch: ' + name)
+    for name, record in manifest.get('local_modifications', {}).items():
+        if name not in files or record.get('local_sha256') != files[name]:
+            raise SystemExit('Local modification inventory mismatch: ' + name)
+        upstream = record.get('upstream_sha256', '')
+        if not re.fullmatch(r'[0-9a-f]{64}', upstream):
+            raise SystemExit('Invalid upstream source pin: ' + name)
+        if not record.get('reason'):
+            raise SystemExit('Local modification has no reason: ' + name)
 
 
 def main():
