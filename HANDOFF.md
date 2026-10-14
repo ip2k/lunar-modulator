@@ -1,3 +1,14 @@
+# Installed-image provenance corrected — 2026-10-14
+
+Device53 dump independently decoded and CRC checked: raw145c0280 contains
+app5709ac03 (845036B), D9000/55modules/singleton EH5100B. Later43a5/ba46bf0a
+D7000/EH+SET build is UNINSTALLED. Supersedes older installed-source/footer-only
+claims below; see notes/2026-10-14-installed-app-provenance-correction.md.
+Owner missed device54 watched-key run; no acceptance/no powercycle needed.
+Next diagnostic includes opt-in automatic Trio note and USB/UART counters;
+Hera build pending, source f1873805 GitHub-backed. No new device operation.
+Goal ACTIVE; audio/performance, SAVE, recovery and installer release open.
+
 # Owner audio/MIDI setup changed — 2026-10-14 23:09 UTC
 
 Owner connected K6 MIDI OUT to FM1 MIDI IN; analogue moved to inputs1/2,

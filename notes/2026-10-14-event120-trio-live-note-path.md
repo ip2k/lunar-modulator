@@ -2,7 +2,9 @@
 
 ## Scope and source identity
 
-[verified] This is an offline source review of the installed image source commit `43a5a8d77721e58011a00cec782cb64df73a9f86`, using the retained Event Horizon project profile at `engines/state/examples/replacement-showcases/event-horizon-showcase.lunar` (SHA-256 `22bf4e768ec1e55a9a92ebb7b2ef1ed5d5967703d226fca7798f0c67b441d24f`). The relevant app, project startup, MIDI filter, MFX host, HAL and ADC files are unchanged through `76dcf4afe53b0f784cb4b916e7dd978eb687dfb7`; the only relevant-path diff is the diagnostic footer addition in `firmware/native/app_probe.c`. This note does not use a new build or any device interaction. The shared Rarefaction/Serena project selectors point to the Mac authority, so I used direct inspection of the exact Hera Git tree instead of retargeting either shared server.
+[verified] This is an offline source review of the uninstalled comparison source commit `43a5a8d77721e58011a00cec782cb64df73a9f86`, using the retained Event Horizon project profile at `engines/state/examples/replacement-showcases/event-horizon-showcase.lunar` (SHA-256 `22bf4e768ec1e55a9a92ebb7b2ef1ed5d5967703d226fca7798f0c67b441d24f`). The relevant app, project startup, MIDI filter, MFX host, HAL and ADC files are unchanged through `76dcf4afe53b0f784cb4b916e7dd978eb687dfb7`; the only relevant-path diff is the diagnostic footer addition in `firmware/native/app_probe.c`. This note does not use a new build or any device interaction. The shared Rarefaction/Serena project selectors point to the Mac authority, so I used direct inspection of the exact Hera Git tree instead of retargeting either shared server.
+
+[verified] Installed-image correction: device53 extraction identifies app `5709ac03…`, not the `ba46bf0a…` app built from `43a5a8d7`. The retained 5,100-byte Event Horizon project reviewed here matches the installed candidate's documented project SHA, but source-to-installed-binary equivalence for this whole review has not been established. Treat the code-path findings as comparison-source evidence until that equivalence is checked. See `2026-10-14-installed-app-provenance-correction.md`.
 
 ## Finding
 
