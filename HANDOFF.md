@@ -3623,3 +3623,26 @@ audio or physical acceptance. The native cold-boot preload selector worker has
 reported a matched two-project 54-module link at 868,116/868,836 bytes; its final
 receipt checks and integration are pending. Default remains the full-length
 Event Horizon Showcase; selectable demos require individual admission.
+
+## Preload chooser integrated — 2026-10-14
+
+Supersedes the pending selector integration above: native cold-boot selection,
+one-project bypass and strict receipt hook checks are integrated. Matched
+54-module/no-Plate diagnostic links report 859,780 bytes for one Event Horizon
+Showcase and 868,116 bytes for legacy Packet Bloom + Event Horizon, startup 1
+(720 bytes free). Coordinator independently read the final image receipts and
+confirmed hashes, selection, 20-second runtime and false acceptance flags.
+See `notes/2026-10-14-native-preload-selector-implementation.md`.
+
+Installer request chooser preselects the full-length Event Horizon Showcase;
+two known memory-rejected replacement arrangements are disabled and centrally
+refused. Coordinator inspected real desktop/mobile renders: no overlap or
+clipping. Integration through b3a9c34baac68b710062a02d217859fb01568ccb is verified
+on the authorized GitHub branch. This page still exports a request; build/OTA
+connection, full-song listening/device acceptance and public release remain.
+
+Hera follow-ups use exact seeded b3a9c34b: fullsong-current-build rebuilds the
+all-55-module single-song 120-second candidate with SAVE linked/disarmed;
+preload-module-dependencies checks missing required modules in the chooser.
+Each owns a separate claim/worktree and returns a durable handoff; neither has
+device permission. Overall goal remains ACTIVE; no new device write occurred.
