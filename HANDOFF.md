@@ -2688,3 +2688,22 @@ launch-fresh-recovery.py; not launched yet. Next run it after current campaign,
 inspect receipts, then implement/review exact live policy (existing device27
 policy cannot admit this image). No USB mutation, goal active. Previous verified
 pushed c5d42e25b0158bbe4b36a754b0c8fd29a75148f3.
+
+## Expanded installation-proof/boot checkpoint (2026-10-13)
+
+[verified] Strict currentdevice36 installation replay and one-use FC0Carg1 boot
+adapter implemented; simulated213-sector transaction replay passes25,573
+commands/58,517 events. All32 proof/boot refusal tests pass30 Hera chunks,
+logs/exits/noOOM and five source hashes checked. Existing41 writer checks pass.
+Evidence notes/2026-10-13-expanded-boot-verification/RESULTS.md.
+No physical opener/write/reset. Prior recovery41-case v1 is terminal FAILED
+(E2BIG byte fixture pytest node ID); do not infer success from29 passing logs.
+Short fixture IDs implemented; corrected v2 live via exec13477,
+Hera launch-fresh-recovery-v2.py/out/fresh36-candidate-recovery-v2/;
+poll original handle/process/container state, do not restart on timeout.
+Proof32-case v2 terminal success exec72544. Next collect recoveryv2 evidence,
+stage tested boot code, review concrete candidate/recovery then fresh passive
+campaign and physical all13 trial. Benchdevice36 already has fixed RAM loader;
+ROM upload consumed, no repeat. Goal remains full13 native web release plus
+custom builder, migration/rollback and review/CI/integration. Last verified
+pushed checkpoint a163b0e55009450fe0057ec9cef16304ddf98e7d.

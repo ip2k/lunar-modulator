@@ -27,7 +27,8 @@ def test_protected_byte_changes_refused(address):
         changed_ranges(changed(), changed(APP_BASE, address))
 
 
-@pytest.mark.parametrize('image', [b'', b'\xff' * (FLASH_BYTES - 1)])
+@pytest.mark.parametrize('image', [b'', b'\xff' * (FLASH_BYTES - 1)],
+                         ids=['empty', 'short-full-flash'])
 def test_partial_flash_refused(image):
     with pytest.raises(ValueError, match='Complete'):
         changed_ranges(image, changed(APP_BASE))
