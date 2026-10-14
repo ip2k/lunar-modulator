@@ -5,6 +5,8 @@ power, reboot, package emission, or writer/admission action occurred.
 
 ## Inputs and evidence
 
+[verified: retained artifacts rechecked in this task] The pinned SPL hash matches the repository pin; the retained vendor listing decodes to the same bytes and compares equal. This task did not rerun the vendor disassembler. External loader cleanup below is verified from the retained source snapshot hash, not from execution on a device.
+
 The pinned SPL is `top/uboot.boot` from the retained
 `expanded-private-geometry-v1` capture under
 `/home/claude/mvave-fm1/native-external-arenas-16-20261012`. Its SHA-256 is
@@ -34,6 +36,8 @@ that Lunar's modified host-only loader performs that cleanup.
 
 ## SPL scan behavior
 
+[verified: retained exact-byte vendor disassembly] The statements in this section describe decoded instructions and constants; they do not establish that the condition occurs on a particular boot or that a device executed this path.
+
 The exact disassembly has a conditional flash-record scan. At SPL offset
 `0x2e08`, a zero ordinary-app selection value branches to `0x2f78`, around
 the scan. The loop at `0x2e0c–0x2e74` is reached when ordinary app selection
@@ -61,6 +65,8 @@ inspection of all records.
 
 ## Cleanup behavior and predicate difference
 
+[verified: retained source snapshot] The statements in this section are derived from the retained ldr_core.c snapshot at the hash recorded above. They are source behavior, not an observation of physical flash cleanup.
+
 In the pinned Felucca loader source, `LDR_REC_LO=0x93000` and
 `LDR_REC_HI=0xFC000`. `ldr_records_drop()` first clears the RAM record,
 then loops with `s=0xFC000; s>0x93000; s-=0x1000`. It reads 80 bytes at
@@ -79,6 +85,8 @@ would reject can still look like a cleanup record and cause an entire sector
 erase when the loader runs this path.
 
 ## Exact collision with the proposed two-slot map
+
+[verified: address-set arithmetic over the documented map and scan ranges] The intersection is exact for the listed ranges; it does not assert current bytes match a record.
 
 The arithmetic-only storage48 map in
 `notes/2026-10-14-storage48-migration-plan.md` has two 12-sector slots:
@@ -105,6 +113,8 @@ bytes were read. The historical capture and record search described in earlier
 notes do not prove a future journal state is safe.
 
 ## Consequence and limits
+
+[inferred from the verified predicates and map] Treating these sectors as inert without an invariant is unsafe. No physical outcome is claimed.
 
 The proposed scatter map cannot be treated as SPL-record-safe or cleanup-safe
 by sector arithmetic alone. A future storage implementation would need an
