@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, ValidationError, field_validator, model_validator
 
 from tools.native.module_selection import wavetable_namespaces
+from tools.native.runtime_mode import runtime_configuration
 
 MAX_BODY_BYTES = 65536
 MAX_ARTIFACT_BYTES = 1048576
@@ -192,6 +193,23 @@ def _verify_wavetable_receipt(receipt: dict, selected: list[str]) -> None:
         raise ValueError("worker instance pool does not match the selected wavetable profile")
 
 
+def _verify_runtime_configuration(receipt: dict) -> None:
+    """Require an exact supported diagnostic runtime description from the worker."""
+    config = receipt.get("runtime_configuration")
+    fields = {"runtime_mode", "return_to_rom_seconds", "define", "release_accepted"}
+    if not isinstance(config, dict) or set(config) != fields:
+        raise ValueError("worker runtime configuration is missing or malformed")
+    mode = config.get("runtime_mode")
+    # The builder currently admits only bounded diagnostics. The canonical
+    # helper also describes continuous mode, but it is not an installer mode.
+    if type(mode) is not str or mode not in ("diagnostic", "song-diagnostic"):
+        raise ValueError("worker runtime mode is unsupported")
+    expected = runtime_configuration(mode)
+    if any(type(config[key]) is not type(value) or config[key] != value
+           for key, value in expected.items()):
+        raise ValueError("worker runtime configuration differs from canonical mode")
+
+
 def _verify_result(admission: Admission, result: WorkerResult) -> dict:
     if (not isinstance(result.artifact, bytes) or not isinstance(result.elf, bytes)
             or not isinstance(result.receipt, bytes) or not result.artifact or not result.elf
@@ -218,6 +236,7 @@ def _verify_result(admission: Admission, result: WorkerResult) -> dict:
     false_fields = ("installable", "hardware_admitted", "hardware_tested",
                     "native_ram_verified", "native_playback_verified",
                     "full_song_default_accepted")
+    _verify_runtime_configuration(receipt)
     if (type(receipt.get("version")) is not int or receipt["version"] != 1
             or receipt.get("status") != "linked-private-diagnostic"
             or receipt.get("request_sha256") != admission.request_sha256
