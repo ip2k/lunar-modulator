@@ -3069,3 +3069,22 @@ HAL integration, safe maximum-project capacity/migration, watched all13boot and
 physicalrollback, webinstaller/builder/licensing/reviewCI/integration. Goal ACTIVE;
 installed diagnostic still not booted; never replay consumed physical operations.
 Branch feature/2026-10-11@installable-firmware; previous verified pushedec076d8280fc0a2e177b92f5a045dbbc80c74d02.
+
+## Native audio pause checkpoint (2026-10-14)
+
+[verified] `firmware/native/audio_pause.h` masks ALNK and stops DMA, then
+clears both DMA halves and stale queue data before restoring its previous
+running/IRQ field. Main-loop caller must exclude global IRQs for both calls.
+Pinned pi32v2 compile and 30 concurrent Hera ASan/UBSan shards pass 60,000
+randomized register-model cases; all exits/logs and twenty fresh source hashes
+verified. Public evidence `notes/2026-10-14-audio-pause-verification/`; private
+complete campaigns `build/native-audio-pause-20261014/`. Sessions91143/3065
+terminal0; no live worker or FM1 command. Helper not wired/retained in default
+firmware, no physical restart acceptance. Actual USB audio repeats last sample
+on starvation, so SAVE must explicitly unprime UAC as well as quiesce ALNK and
+display before leasing pixels. Next actual SAVE scheduling, retained link/stack
+audit, physical storage capacity/ownership/migration, watched all13 boot and
+rollback, installer/builder/review/CI/release. Goal ACTIVE, installed diagnostic
+still unbooted; never replay consumed installation/RAM-loader operations.
+Branch feature/2026-10-11@installable-firmware; preceding verified pushed
+4caa21ac937ddd3b0809a561df159879fde067d6.
