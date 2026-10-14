@@ -21,7 +21,7 @@ from typing import Any
 ORIGINALS = {
     "category": "legacy-example",
     "branch": "feature/2026-10-10@demo-songs",
-    "manifest_commit": "53cd518c417adf34a91b8032de3357d8d9801f0e",
+    "manifest_commit": "05a8740943e2a158c068ad7a71c862fd5a02f996",
     "manifest_path": "sim/web/test/demo-songs.json",
     "asset_commit": "3e6eaa5fea7a38822b60a2a742af4b932856b8cc",
     "receipt_commit": "53cd518c417adf34a91b8032de3357d8d9801f0e",
