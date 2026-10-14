@@ -2572,3 +2572,17 @@ migration/rollback and browser builder/install, licensing and review/CI gates.
 The owner scope remains thirteen engines plus selectable content/effects builds.
 Previous verified pushed checkpoint: 229c43f89f70c95df8f7f66910c61a2e0f10e053.
 No live measurement job.
+
+## Production builder catalogue checkpoint (2026-10-13)
+
+[verified] Added tools/native/export_image_catalogue.py. It exports production
+choices and the all13 default profile from the canonical Make catalogue, with
+catalogue/default-header hashes and false admission flags. All 30 parallel Hera
+container tests passed; six source hashes match the current worktree and local/
+Hera CLI JSON matches byte-for-byte. No OOM, no device command, no live job.
+Evidence: notes/2026-10-13-image-catalogue-verification/. Prior verified pushed
+checkpoint d127426b6c2e4f171e799e10408adbfd6272ff57. The browser selection UI and
+build service remain unimplemented; compiled callback preservation, startup
+stack/IRQ/timing, physical all13 migration/rollback and review/CI/integration
+remain open. The owner goal remains fully functional all13 plus selectable
+engines/effects/songs/sets; catalogue export does not admit any firmware image.

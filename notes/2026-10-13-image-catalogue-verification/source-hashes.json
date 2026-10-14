@@ -1,0 +1,8 @@
+{
+  "tools/native/export_image_catalogue.py": "f4b797488c03b21d3c8a0982036bd9162d92adde4db8227d98662323c9d3cf2f",
+  "tools/native/module_selection.py": "7c80d9590fd4fb355b59f020a3993e2f73ff9ee966a1e929f7a40f9437730504",
+  "tools/native/prepare_image_profile.py": "25fdf4b3a6089bb02b816029cf019177aca9a5d4d50aca91110da72cc3891a7a",
+  "tests/test_native_image_catalogue.py": "9751e593c7977c6cca3463891829a5f0a7f277e365dc5703ce5e78ba1c7a181e",
+  "engines/Makefile": "277f87b91195546963477f925888593b4cdd0e3c8b0150494cc2241428aee295",
+  "engines/modules/catalogue.mk": "23280e7177b84013818e9c9bcb87559d4cb8de6de384023d201c587d26ae00e7"
+}
