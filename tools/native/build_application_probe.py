@@ -264,7 +264,8 @@ def main():
         extra_sources += [ROOT / 'firmware/native/project_units.c',
                           ROOT / 'firmware/native/project_mod.c',
                           ROOT / 'firmware/native/project_seq.c',
-                          ROOT / 'firmware/native/project_engines.c']
+                          ROOT / 'firmware/native/project_engines.c',
+                          ROOT / 'firmware/native/project_start.c']
     for path in [ROOT / 'sim/web/src/fm1_app.c', ROOT / 'engines/host/mod_script.c',
                  ROOT / 'firmware/native/app_probe.c', ROOT / 'firmware/native/instance_pool.c',
                  ROOT / 'firmware/native/tlsf_runtime.c', ROOT / 'engines/src/registry.cc', *extra_sources]:
@@ -302,7 +303,7 @@ def main():
     if args.link_project_loader:
         roots += ('lunar_project_mod_stage', 'lunar_project_seq_stage',
                   'lunar_project_engines_stage', 'lunar_project_engines_release',
-                  'lunar_project_engines_apply')
+                  'lunar_project_engines_apply', 'lunar_project_adopt_audio_units')
     elf = out / 'lunar-app-probe.elf'
     command = [str(tc / 'pi32v2/bin/ld'), '--plugin', str(tc / 'common/bin/LLVMgold.so'),
                '--plugin-opt=mcpu=r3', '--plugin-opt=-mattr=+fprev1',
@@ -361,7 +362,7 @@ def main():
     if args.link_project_loader:
         report['project_loader'] = dict(modulation_staging_link_verified=True,
                                        sequence_staging_link_verified=True,
-                                       engine_staging_link_verified=True, engine_parameter_link_verified=True, activated=False, stack_margin_verified=False,
+                                       engine_staging_link_verified=True, engine_parameter_link_verified=True, audio_adoption_link_verified=True, activated=False, stack_margin_verified=False,
                                        timing_verified=False, hardware_tested=False,
                                        sequence_semantics_verified=False)
     if args.startup_set_index is not None:

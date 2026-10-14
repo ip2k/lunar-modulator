@@ -340,3 +340,30 @@ MIDI effects, settings/view/DX7 records, staged sequence/mod rack adoption,
 real engine budget/timing and full linked image. Catalogue source manifests
 must be rebuilt after these shared-app changes. No installable release or
 hardware operation. Expanded flash-layout approval remains pending.
+
+## Pool-backed compact audio mapping
+
+Added external-arena-only `lunar_project_adopt_audio_units`, mapping compact
+project sound/insert/master positions into the shared app slots [verified].
+It preserves prepared handles and saved parameter bases, rejects incompatible
+pool contexts or overlapping candidate metadata, and clears only the fourteen
+transferred audio rows after successful adoption. MIDI-effect rows remain
+candidate-owned for explicit release. This is a cold-start audio-chain adapter,
+not complete project activation or a live replacement transaction.
+
+Hera `app-pool-adoption-v2`: all sixteen shards passed embedded/external storage
+with Os address/undefined sanitizers, real TLSF pool allocation, refusal ownership
+preservation, every compact audio position, retained MIDI candidates and balanced
+pool cleanup [verified]. Initial v1 failed a fixture lookup: arp is in the
+MIDI-effect registry, not the audio registry. Corrected fixture uses its actual
+MIDI descriptor. Target campaign `app-pool-adoption-target-v1` passed all sixteen
+shards: actual shared app and adapter compiled at both Os/Oz (64 objects) with
+entry symbols checked. All logs inspected; no OOM; owned containers removed.
+Receipts/logs downloaded to ignored build/native-external-arenas-16-20261012.
+
+Fresh indexed Shapes12 catalogue compiled 167 objects in sixteen shards with
+zero failures (`out-indexed-shapes12-adoption-v1`) [verified]. Optional project
+loader now roots the adapter in its native link; link-v6 verification is running
+at this checkpoint. MIDI/settings/view/DX7 and staged sequence/modulation startup,
+stack/timing margins and real hardware remain unverified. No installable release
+or device operation. Expanded layout approval remains pending.

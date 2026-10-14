@@ -1,6 +1,9 @@
 /* MIT. Actual shared-app arena admission and live engine checks. */
 #define _POSIX_C_SOURCE 200112L
 #include "fm1_app.h"
+#if FM1_APP_EXTERNAL_ARENAS
+#include "project_start.h"
+#endif
 #include <assert.h>
 #include <math.h>
 #include <stdint.h>
@@ -107,6 +110,67 @@ static void adoption_check(int shard) {
   memset(&managed.unit[0], 0, sizeof managed.unit[0]); managed.unit[0].index = -1;
   assert(storage.allocations == storage.frees);
 }
+static void *pool_allocate(void *ctx, size_t bytes) {
+  return lunar_instance_pool_alloc(ctx, bytes);
+}
+static void pool_deallocate(void *ctx, void *memory) {
+  assert(lunar_instance_pool_free(ctx, memory) == 0);
+}
+static void pool_adoption_check(int shard) {
+  lunar_instance_pool_t pool;
+  lunar_project_engines_t candidate, saved;
+  memset(&candidate, 0, sizeof candidate);
+  assert(lunar_instance_pool_init(&pool, arena.data, sizeof arena.data) == 0);
+  candidate.pool = &pool;
+  fm1_app_init(&managed, 44118.0f);
+  assert(fm1_app_set_storage(&managed, &pool, pool_allocate, pool_deallocate) == 0);
+  unsigned chosen = (unsigned)shard % 14u;
+  unsigned parent = chosen >= 4u && chosen < 12u ? (chosen - 4u) / 2u : 0u;
+  for (unsigned i = 0; i < 15u; ++i) {
+    if (i != chosen && i != parent && i != 14u) continue;
+    lunar_project_instance_t *u = &candidate.unit[i];
+    if (i == 14u) u->engine = fm1_app_arp_engine();
+    else {
+      int index = fm1_app_find(i < 4u ? "trio" : "test-gain");
+      assert(index >= 0); u->engine = fm1_engines[index];
+    }
+    assert(u->engine);
+    u->bytes = u->engine->instance_size(&managed.host);
+    u->memory = lunar_instance_pool_alloc(&pool, u->bytes); assert(u->memory);
+    memset(u->memory, 0, u->bytes);
+    u->self = u->engine->create(u->memory, &managed.host); assert(u->self);
+    for (unsigned n = 0; n < u->engine->n_params; ++n) {
+      u->value[n] = u->engine->params[n].def;
+      u->engine->set_param(u->self, n, u->value[n]);
+    }
+  }
+  memcpy(&saved, &candidate, sizeof saved);
+  unsigned count = pool.live_allocations; size_t bytes = pool.live_bytes;
+  if (shard % 2) managed.storage_ctx = NULL;
+  else candidate.unit[chosen].bytes = 0;
+  lunar_project_engines_t refused = candidate;
+  assert(lunar_project_adopt_audio_units(&managed, &candidate) != 0);
+  assert(!memcmp(&refused, &candidate, sizeof candidate));
+  assert(pool.live_allocations == count && pool.live_bytes == bytes);
+  managed.storage_ctx = &pool; candidate = saved;
+  assert(lunar_project_adopt_audio_units(&managed, &candidate) == 0);
+  assert(pool.live_allocations == count && pool.live_bytes == bytes);
+  int slot = chosen < 4u ? fm1_app_sound_unit((int)chosen) :
+             chosen < 12u ? fm1_app_insert_unit((int)((chosen-4u)/2u), (int)((chosen-4u)%2u)) :
+             1 + (int)(chosen-12u);
+  assert(managed.unit[slot].self == saved.unit[chosen].self);
+  assert(managed.unit[slot].mem == saved.unit[chosen].memory);
+  for (unsigned i = 0; i < 14u; ++i) assert(!candidate.unit[i].engine && !candidate.unit[i].memory);
+  assert(!memcmp(&candidate.unit[14], &saved.unit[14], sizeof candidate.unit[14]));
+  for (int i = 0; i < FM1_APP_UNITS; ++i) {
+    fm1_app_unit_t *u = &managed.unit[i];
+    if (u->self) u->e->destroy(u->self);
+    if (u->mem) pool_deallocate(&pool, u->mem);
+  }
+  candidate.unit[14].engine->destroy(candidate.unit[14].self);
+  pool_deallocate(&pool, candidate.unit[14].memory);
+  assert(!pool.live_allocations && !pool.live_bytes);
+}
 static void managed_check(int shard) {
   fm1_app_init(&managed, 44118.0f);
   assert(fm1_app_set_storage(NULL, NULL, allocate, deallocate) == -1);
@@ -164,6 +228,7 @@ int main(int argc, char **argv) {
 #if FM1_APP_EXTERNAL_ARENAS
   managed_check(shard);
   adoption_check(shard);
+  pool_adoption_check(shard);
 #endif
   memset(&arena, 0x5a, sizeof arena);
   fm1_app_init(&app, 44118.0f);

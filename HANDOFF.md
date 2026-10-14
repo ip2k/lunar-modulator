@@ -1,3 +1,19 @@
+# Native continuation — pool-backed audio mapping, 2026-10-13
+
+Branch feature/2026-10-11@installable-firmware; preceding verified pushed SHA
+e06c0a465edc71bd450b400e0c277eba8d0916b5.
+Compact audio positions now transfer prepared TLSF instances into the empty app.
+Sixteen Hera sanitizer shards pass embedded/external, refusal, all audio positions,
+MIDI candidate retention and pool cleanup; sixteen target shards pass64Os/Oz
+object compiles. All logs checked, noOOM, owned containers removed. Catalogue
+167objects rebuilt successfully. Project-loader-link-v6 running on Hera; poll
+exec session30079, driver/launcher under native-external-arenas-16-20261012.
+Evidence notes/2026-10-13-native-project-loader.md and ignored build evidence.
+No hardware operation, no complete activation/release. Goal ACTIVE: all13default
+plus selectable engines/effects/songs/sets builder. Expanded layout approval pending.
+Next verify complete links, integrate MIDI/settings/view/DX7 + seq/mod startup,
+persistence/MIDI/timing, installer/recovery, review/CI/merge/physical acceptance.
+
 # Native continuation — shared-app startup adoption, 2026-10-13
 
 Branch feature/2026-10-11@installable-firmware; preceding verified pushed SHA
