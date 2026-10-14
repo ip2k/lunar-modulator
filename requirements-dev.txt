@@ -3,7 +3,8 @@ pyyaml
 mido
 python-rtmidi
 pytest
-rp2040-pio-emulator
+# 0.86 removed SET pin-base configuration used by dongle/sim/pio_waveform.py.
+rp2040-pio-emulator==0.88.0
 adafruit-circuitpython-pioasm
 jsonschema
 -r tools/installer_service/requirements-test.txt
