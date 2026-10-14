@@ -11,18 +11,19 @@ import expanded_candidate
 import expanded_flash_profile as expanded
 import expanded_transport_manifest as manifest
 from build_demo_image import SHAPES8_TABLES, WAVETABLE_PROFILE, SHAPES8_WAVETABLE_PROFILE, TARGET_STORAGE
+from flash_layout import app_budget
 from tests.test_native_probe_artifact import fixture
 from tests.test_raw_flash_profile import sample  # noqa: F401
 
 
-def prepared(sample):
+def prepared(sample, flash_layout='expanded-d9000'):
     # Span multiple erase sectors so directory-last ordering is exercised.
     elf = fixture(text_size=9000)
-    _, app = expanded_candidate.flatten(elf, 'combined', 'expanded-d9000')
+    _, app = expanded_candidate.flatten(elf, 'combined', flash_layout)
     target, candidate_receipt = expanded_candidate.construct(
         sample['baseline'], sample['baseline'], deepcopy(sample['manifest']),
         deepcopy(sample['identity']), sample['reference'], app, elf,
-        'recorded-original-loader', ram_layout='combined')
+        'recorded-original-loader', ram_layout='combined', flash_layout=flash_layout)
     selection = dict(version=1, status='prepared-build-inputs',
                      request_sha256='1' * 64, prepared_profile_sha256='2' * 64,
                      project_ids=['event-horizon-showcase', 'other-song'],
@@ -34,7 +35,7 @@ def prepared(sample):
                  project_ids=selection['project_ids'], startup_index=0,
                  startup_project_id=selection['startup_project_id'],
                  app_sha256=manifest._sha256(app), elf_sha256=manifest._sha256(elf),
-                 app_bytes=len(app), app_budget_bytes=expanded.APP_BUDGET,
+                 app_bytes=len(app), app_budget_bytes=app_budget(flash_layout),
                  module_selection=dict(selected=['trio']),
                  wavetable_profile=WAVETABLE_PROFILE, compressed_wave_tables=[],
                  indexed_tft=True, flash_plaits_wavetables=True, shapes_voices=12,
@@ -89,6 +90,43 @@ def test_manifest_rechecks_geometry_binds_receipts_and_puts_directory_last(sampl
     assert result['physical_writer_ready'] is False
     assert result['settings_migration_verified'] is False
     assert result['installable'] is False
+
+
+def test_manifest_accepts_exact_d7000_geometry_and_protects_stage_suffix(sample):
+    baseline, target, app, elf, candidate_receipt, image, selection = prepared(
+        sample, 'expanded-d7000')
+    result = manifest.build_manifest(
+        baseline, target, sample['reference'], app, elf,
+        candidate_receipt, image, selection, flash_layout='expanded-d7000')
+    assert result['profile'] == 'expanded-d7000-recorded-092'
+    assert result['flash_layout'] == 'expanded-d7000'
+    assert result['app_bytes'] == len(app)
+    assert result['protected_ranges'] == [[0, 0x4000], [0xD7000, 0x100000]]
+    assert result['changed_sectors'] == candidate_receipt['allowed_sectors']
+    assert max(result['changed_sectors']) + 4096 <= 0xD7000
+    assert result['hardware_admitted'] is False
+    assert result['physical_writer_ready'] is False
+    assert result['settings_migration_verified'] is False
+    assert result['recovery_verified'] is False
+    assert result['installable'] is False
+
+    altered = bytearray(target)
+    altered[0xD7000] ^= 1
+    candidate_receipt['target_sha256'] = manifest._sha256(altered)
+    with pytest.raises(ValueError, match='Protected physical boot or reserved bank bytes differ'):
+        manifest.build_manifest(baseline, bytes(altered), sample['reference'], app, elf,
+                                candidate_receipt, image, selection,
+                                flash_layout='expanded-d7000')
+
+
+def test_d7000_manifest_requires_matching_named_profile_receipts(sample):
+    baseline, target, app, elf, candidate_receipt, image, selection = prepared(
+        sample, 'expanded-d7000')
+    candidate_receipt['flash_layout'] = 'expanded-d9000'
+    with pytest.raises(ValueError):
+        manifest.build_manifest(baseline, target, sample['reference'], app, elf,
+                                candidate_receipt, image, selection,
+                                flash_layout='expanded-d7000')
 
 
 def test_manifest_accepts_exact_reviewed_shapes8_compressed_ram_profile(sample):

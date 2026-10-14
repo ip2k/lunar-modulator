@@ -11,6 +11,7 @@ import json
 import os
 
 import expanded_flash_profile as expanded
+from flash_layout import app_budget
 import raw_flash_profile as raw
 from build_demo_image import checked_wavetable_profile
 from runtime_mode import runtime_configuration
@@ -34,8 +35,11 @@ def _digest_field(value, field):
 
 
 def build_manifest(baseline, target, reference, app, elf,
-                   candidate_receipt, image_receipt, selection_receipt):
+                   candidate_receipt, image_receipt, selection_receipt,
+                   flash_layout='expanded-d9000'):
     """Verify exact offline artifacts and return a non-installable sector plan."""
+    area_end = expanded.area_end(flash_layout)
+    profile = flash_layout + '-recorded-092'
     if any(not isinstance(item, bytes) for item in (baseline, target, app, elf)):
         raise ValueError('Baseline, target, app and ELF must be immutable bytes')
     if len(baseline) != raw.FLASH_BYTES or len(target) != raw.FLASH_BYTES:
@@ -47,11 +51,11 @@ def build_manifest(baseline, target, reference, app, elf,
         raise ValueError('Candidate, linked image and selection receipts required')
 
     # Reparse the geometry from actual bytes; receipts alone do not prove it.
-    geometry = expanded.validate_geometry(baseline, target, reference, app)
+    geometry = expanded.validate_geometry(baseline, target, reference, app, flash_layout)
     if (candidate_receipt.get('schema') != 1
             or candidate_receipt.get('status') != 'private-expanded-native-candidate-verified-offline'
-            or candidate_receipt.get('profile') != 'expanded-d9000-recorded-092'
-            or candidate_receipt.get('flash_layout') != 'expanded-d9000'
+            or candidate_receipt.get('profile') != profile
+            or candidate_receipt.get('flash_layout') != flash_layout
             or candidate_receipt.get('baseline_profile') not in
                ('recorded-original-loader', 'fixed-loader')
             or candidate_receipt.get('geometry_verified') is not True
@@ -69,7 +73,7 @@ def build_manifest(baseline, target, reference, app, elf,
             raise ValueError('Candidate receipt does not match exact ' + field.removesuffix('_sha256'))
     if (candidate_receipt.get('app_bytes') != len(app)
             or candidate_receipt.get('target_bytes') != len(target)
-            or geometry.get('profile') != 'expanded-d9000-recorded-092'
+            or geometry.get('profile') != profile
             or candidate_receipt.get('installable') is not False
             or candidate_receipt.get('hardware_admitted') is not False
             or candidate_receipt.get('physical_writer_ready') is not False
@@ -85,8 +89,8 @@ def build_manifest(baseline, target, reference, app, elf,
             or image_receipt.get('app_sha256') != _sha256(app)
             or image_receipt.get('elf_sha256') != _sha256(elf)
             or image_receipt.get('app_bytes') != len(app)
-            or image_receipt.get('app_budget_bytes') != expanded.APP_BUDGET):
-        raise ValueError('Exact expanded-d9000 linked private image receipt required')
+            or image_receipt.get('app_budget_bytes') != app_budget(flash_layout)):
+        raise ValueError('Exact named expanded-layout linked private image receipt required')
     expected_runtime = runtime_configuration('song-diagnostic')
     if image_receipt.get('runtime_configuration') != expected_runtime:
         raise ValueError('Transport requires the bounded 120-second song diagnostic')
@@ -150,7 +154,7 @@ def build_manifest(baseline, target, reference, app, elf,
     allowed = candidate_receipt.get('allowed_sectors')
     directory = candidate_receipt.get('directory_sector')
     writable = candidate_receipt.get('writable_ranges')
-    expected_changed = [offset for offset in range(raw.APP_BASE, expanded.AREA_END, 4096)
+    expected_changed = [offset for offset in range(raw.APP_BASE, area_end, 4096)
                         if baseline[offset:offset + 4096] != target[offset:offset + 4096]]
     if (not isinstance(allowed, list) or not allowed
             or any(type(offset) is not int for offset in allowed)
@@ -158,7 +162,7 @@ def build_manifest(baseline, target, reference, app, elf,
             or directory != raw.APP_BASE
             or allowed != expected_changed
             or writable != [[offset, offset + 4096] for offset in allowed]
-            or any(offset < raw.APP_BASE or offset + 4096 > expanded.AREA_END
+            or any(offset < raw.APP_BASE or offset + 4096 > area_end
                    or offset % 4096 for offset in allowed)):
         raise ValueError('Candidate sector map differs from actual changed sectors')
     ordered = [offset for offset in allowed if offset != directory] + [directory]
@@ -166,7 +170,8 @@ def build_manifest(baseline, target, reference, app, elf,
     return dict(
         schema=1,
         status='offline-expanded-transport-manifest',
-        profile='expanded-d9000-recorded-092',
+        profile=profile,
+        flash_layout=flash_layout,
         target_sha256=_sha256(target), target_bytes=len(target),
         baseline_sha256=_sha256(baseline),
         app_sha256=_sha256(app), app_bytes=len(app),
@@ -191,7 +196,7 @@ def build_manifest(baseline, target, reference, app, elf,
         artifact_receipt_sha256=artifact_sha,
         changed_sectors=allowed, sector_order=ordered,
         directory_sector=directory,
-        protected_ranges=[[0, raw.APP_BASE], [expanded.AREA_END, raw.FLASH_BYTES]],
+        protected_ranges=[[0, raw.APP_BASE], [area_end, raw.FLASH_BYTES]],
         geometry_verified=True, receipt_correspondence_verified=True,
         hardware_admitted=False, physical_writer_ready=False,
         settings_migration_verified=False, recovery_verified=False,

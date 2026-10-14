@@ -19,7 +19,11 @@ import expanded_flash_profile as expanded
 
 SECTOR_BYTES = 4096
 MAX_PULL_BYTES = 512
-PROFILE = "expanded-d9000-recorded-092"
+LAYOUTS = {
+    "expanded-d9000-recorded-092": ("expanded-d9000", expanded.AREA_END),
+    "expanded-d7000-recorded-092": ("expanded-d7000", 0xD7000),
+}
+PROFILE = "expanded-d9000-recorded-092"  # Backwards-compatible default.
 
 
 def _sha256(data):
@@ -61,9 +65,18 @@ class ExpandedRamStreamModel:
             raise ValueError("Pinned canonical transport-manifest SHA-256 required")
         if _sha256(canonical_json(manifest)) != expected_manifest_sha256:
             raise ValueError("Transport manifest differs from its pinned hash")
+        profile = manifest.get("profile")
+        if profile not in LAYOUTS:
+            raise ValueError("Unsupported expanded transport profile")
+        flash_layout, area_end = LAYOUTS[profile]
+        # Old schema-1 D9000 manifests predate this explicit field. Permit that
+        # exact legacy profile; D7000 must name its layout unambiguously.
+        manifest_layout = manifest.get("flash_layout")
+        if (manifest_layout != flash_layout
+                and not (manifest_layout is None and profile == PROFILE)):
+            raise ValueError("Transport manifest layout differs from its named profile")
         if (manifest.get("schema") != 1
                 or manifest.get("status") != "offline-expanded-transport-manifest"
-                or manifest.get("profile") != PROFILE
                 or manifest.get("target_bytes") != len(target)
                 or manifest.get("target_sha256") != _sha256(target)
                 or manifest.get("baseline_sha256") != _sha256(baseline)):
@@ -78,13 +91,13 @@ class ExpandedRamStreamModel:
                 or manifest.get("device_io_performed") is not False):
             raise ValueError("Only guarded, explicitly unadmitted offline manifests are accepted")
         if manifest.get("protected_ranges") != [[0, raw.APP_BASE],
-                                                  [expanded.AREA_END, raw.FLASH_BYTES]]:
+                                                  [area_end, raw.FLASH_BYTES]]:
             raise ValueError("Transport manifest protected ranges differ from this profile")
         if (target[:raw.APP_BASE] != baseline[:raw.APP_BASE]
-                or target[expanded.AREA_END:] != baseline[expanded.AREA_END:]):
+                or target[area_end:] != baseline[area_end:]):
             raise ValueError("Target changes bytes outside the expanded app region")
 
-        changed = [off for off in range(raw.APP_BASE, expanded.AREA_END, SECTOR_BYTES)
+        changed = [off for off in range(raw.APP_BASE, area_end, SECTOR_BYTES)
                    if baseline[off:off + SECTOR_BYTES] != target[off:off + SECTOR_BYTES]]
         ordered = [off for off in changed if off != raw.APP_BASE] + [raw.APP_BASE]
         if (not changed
@@ -94,10 +107,12 @@ class ExpandedRamStreamModel:
             raise ValueError("Manifest sector plan differs from image bytes or directory-last policy")
         for off in ordered:
             if (type(off) is not int or off % SECTOR_BYTES
-                    or off < raw.APP_BASE or off + SECTOR_BYTES > expanded.AREA_END):
+                    or off < raw.APP_BASE or off + SECTOR_BYTES > area_end):
                 raise ValueError("Manifest contains an out-of-profile sector")
 
         self._target = target
+        self.flash_layout = flash_layout
+        self.area_end = area_end
         self._sector_order = tuple(ordered)
         self._requests = tuple(
             PullRequest(sequence, sector, sector + within,
