@@ -112,6 +112,8 @@ def test_demo_full_app_cold_start(project_id, expected_success,
         assert result.returncode == 1, result.stderr + result.stdout
         assert not metrics["passed"] and metrics["report_code"] == 5
         assert metrics["allocation_failures"] == 1
+        assert metrics["failed_allocation_request"] == 49888  # Hall master effect
+        assert metrics["failed_allocation_attempt"] == 10
         assert metrics["largest_allocation_request"] == 65744
         assert metrics["pool_live_bytes"] == metrics["pool_live_allocations"] == 0
         assert metrics["active_units"] == 0
@@ -151,12 +153,18 @@ def test_replacement_showcase_full_app_cold_start(project_id, startup_tools, tmp
         assert not metrics["passed"]
         assert metrics["allocation_failures"] == 1
         assert metrics["report_what"] == "candidate engines cannot coexist with live allocations"
-        expected_request = {
+        expected_max_request = {
             "satellite-hearts": 207728,
             "afterglow-relay-showcase": 65744,
             "packet-bloom-showcase": 79344,
         }[project_id]
-        assert metrics["largest_allocation_request"] == expected_request
+        expected_failed_request = {
+            "satellite-hearts": 207728,  # Shapes engine
+            "afterglow-relay-showcase": 49888,  # Hall master effect
+            "packet-bloom-showcase": 49888,  # Hall master effect
+        }[project_id]
+        assert metrics["failed_allocation_request"] == expected_failed_request
+        assert metrics["largest_allocation_request"] == expected_max_request
         assert metrics["pool_live_bytes"] == metrics["pool_live_allocations"] == 0
         assert metrics["active_units"] == 0
     print(project_id,

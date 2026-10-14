@@ -16,12 +16,18 @@ static unsigned char instance_memory[INSTANCE_BYTES] FM1_APP_ALIGN16;
 static size_t peak_live_bytes;
 static unsigned peak_live_allocations;
 static size_t allocation_attempts, allocation_failures, largest_request;
+static size_t failed_request, failed_attempt, failed_live_bytes;
 extern void *__real_lunar_instance_pool_alloc(lunar_instance_pool_t *, size_t);
 void *__wrap_lunar_instance_pool_alloc(lunar_instance_pool_t *p, size_t n) {
   ++allocation_attempts;
   if (n > largest_request) largest_request = n;
   void *result = __real_lunar_instance_pool_alloc(p, n);
-  if (!result) ++allocation_failures;
+  if (!result) {
+    ++allocation_failures;
+    failed_request = n;
+    failed_attempt = allocation_attempts;
+    failed_live_bytes = p->live_bytes;
+  }
   if (result && p->live_bytes > peak_live_bytes) peak_live_bytes = p->live_bytes;
   if (result && p->live_allocations > peak_live_allocations)
     peak_live_allocations = p->live_allocations;
@@ -72,14 +78,17 @@ int main(int argc, char **argv) {
          "\"pool_capacity\":%u,\"pool_peak_live_bytes\":%zu,"
          "\"pool_peak_live_allocations\":%u,\"pool_live_bytes\":%zu,"
          "\"pool_live_allocations\":%u,\"allocation_attempts\":%zu,"
-         "\"allocation_failures\":%zu,\"largest_allocation_request\":%zu,"
+         "\"allocation_failures\":%zu,\"failed_allocation_request\":%zu,"
+         "\"failed_allocation_attempt\":%zu,\"failed_allocation_live_bytes\":%zu,"
+         "\"largest_allocation_request\":%zu,"
          "\"active_units\":%u,"
          "\"modulation_active\":%s}\n",
          ok ? "true" : "false", (unsigned)report.code, report.what,
          (unsigned)app.seq_lim.tracks, seq_size, FM1_APP_SEQ_BYTES,
          INSTANCE_BYTES, peak_live_bytes, peak_live_allocations,
          pool.live_bytes, pool.live_allocations, allocation_attempts,
-         allocation_failures, largest_request, active_units,
+         allocation_failures, failed_request, failed_attempt, failed_live_bytes,
+         largest_request, active_units,
          app.mod ? "true" : "false");
   free(bytes);
   return ok && report.code == FM1_STATE_OK ? 0 : 1;
