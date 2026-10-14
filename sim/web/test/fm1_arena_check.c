@@ -20,6 +20,79 @@ static struct {
 
 #if FM1_APP_EXTERNAL_ARENAS
 static fm1_app_t managed;
+static void mod_cold_check(int which) {
+  fm1_app_init(&managed, 44118.0f);
+  if (which >= 20) {
+    fm1_app_t *before = malloc(sizeof managed);
+    assert(before);
+    if (which == 20 || which == 25) managed.frames = 1;
+    memcpy(before, &managed, sizeof managed);
+    switch (which) {
+      case 20: assert(!fm1_app_mod_prepare_cold(&managed)); break;
+      case 21: assert(!fm1_app_mod_prepare_cold(NULL)); break;
+      case 22: assert(!fm1_app_mod_adopt_cold(NULL, managed.mod, 0)); break;
+      case 23: assert(!fm1_app_mod_adopt_cold(&managed, NULL, 0)); break;
+      case 24: assert(!fm1_app_mod_adopt_cold(&managed, managed.mod, 0)); break;
+      case 25: assert(!fm1_app_mod_adopt_cold(&managed, managed.mod, 0)); break;
+      default:
+        assert(fm1_app_mod_prepare_cold(&managed));
+        memcpy(before, &managed, sizeof managed);
+        assert(!fm1_app_mod_adopt_cold(&managed,
+            which == 26 ? NULL : (fm1_mod_t *)(arena.data + 16 * (which - 27)), 0));
+        break;
+    }
+    assert(!memcmp(before, &managed, sizeof managed));
+    free(before);
+    return;
+  }
+  const int trio = fm1_app_find("trio");
+  assert(trio >= 0);
+  assert(fm1_app_bind_arena(&managed, 0, arena.data, sizeof arena.data) == 0);
+  assert(fm1_app_select(&managed, 0, trio) == 0);
+  assert(fm1_app_mod_prepare_cold(&managed) && !managed.mod);
+  const uint32_t seed = 0x13570000u + (uint32_t)which;
+  fm1_mod_t *staged = fm1_mod_create(managed.mod_mem, &managed.host, seed);
+  assert(staged && (void *)staged == (void *)managed.mod_mem);
+  const int kind = fm1_mod_kind_find(which & 1 ? "env" : "lfo");
+  assert(kind >= 0 && fm1_mod_set_kind(staged, 0, kind) >= 0);
+  const fm1_param_t *p = &fm1_mod_kinds[kind]->params[0];
+  assert(fm1_mod_set_param(staged, 0, 0, p->min + (p->max - p->min) * 0.25f));
+  const float param = fm1_mod_param_base(staged, 0, 0);
+  fm1_mod_bind(staged, FM1_MOD_SOUND, managed.unit[0].e);
+  const fm1_param_t *sound_p = &managed.unit[0].e->params[0];
+  fm1_mod_set_base(staged, FM1_MOD_SOUND, 0,
+      sound_p->min + (sound_p->max - sound_p->min) * 0.375f);
+  const float base = fm1_mod_base(staged, FM1_MOD_SOUND, 0);
+  fm1_mod_slot_t slot;
+  memset(&slot, 0, sizeof slot);
+  slot.src = FM1_MOD_SRC_VEL; slot.via = FM1_MOD_NONE;
+  slot.dst_unit = FM1_MOD_HOST; slot.dst = FM1_MOD_HOST_AMP_UID;
+  slot.amount = fm1_mod_q14(-0.5f); slot.flags = FM1_MOD_SLOT_ON;
+  assert(fm1_mod_set_slot(staged, 0, &slot) >= 0);
+  assert(fm1_app_mod_adopt_cold(&managed, staged, seed));
+  assert(managed.mod == staged && managed.mod_seed == seed);
+  assert(managed.mod_glue.mod == staged && managed.mod_glue.ctx == &managed);
+  assert(managed.mod_glue.sound == managed.unit[0].e && managed.mod_glue.write);
+  assert(fm1_mod_kind_at(staged, 0) == kind);
+  assert(fm1_mod_param_base(staged, 0, 0) == param);
+  assert(fm1_mod_base(staged, FM1_MOD_SOUND, 0) == base);
+  fm1_mod_slot_t restored;
+  assert(fm1_mod_get_slot(staged, 0, &restored));
+  assert(!memcmp(&slot, &restored, sizeof slot));
+  fm1_app_key(&managed, which % 27, 1, 100);
+  double energy = 0;
+  for (int block = 0; block < 8; ++block) {
+    const float *audio = fm1_app_render(&managed, 64);
+    for (int n = 0; n < 128; ++n) {
+      assert(isfinite(audio[n])); energy += audio[n] * audio[n];
+    }
+  }
+  assert(energy > 0.0001 && managed.mod_amp_used);
+  assert(fm1_mod_sent(staged, FM1_MOD_HOST, FM1_MOD_HOST_AMP) < 1.0f);
+  fm1_app_key(&managed, which % 27, 0, 0);
+  fm1_app_all_notes_off(&managed);
+  fm1_app_mod_reset(&managed, seed);
+}
 static unsigned char scalar_bytes[16384];
 static size_t scalar_size;
 static void scalar_put(void *ctx, const char *p, size_t n) {
@@ -442,6 +515,12 @@ static void managed_check(int shard) {
 
 int main(int argc, char **argv) {
 #if FM1_APP_EXTERNAL_ARENAS
+  if (argc == 3 && !strcmp(argv[1], "--mod-cold")) {
+    int which = atoi(argv[2]); assert(which >= 0 && which < 30);
+    mod_cold_check(which);
+    printf("{\"passed\":true,\"case\":%d}\n", which);
+    return 0;
+  }
   if (argc == 3 && !strcmp(argv[1], "--dx7")) {
     int which = atoi(argv[2]); assert(which >= 0 && which < 30);
     dx7_check(which);

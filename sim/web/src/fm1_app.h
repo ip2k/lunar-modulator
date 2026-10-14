@@ -740,6 +740,17 @@ uint64_t fm1_app_seq_dropped(const fm1_app_t *a);
  * from the next block. */
 void fm1_app_mod_reset(fm1_app_t *a, uint32_t seed);
 
+#if FM1_APP_EXTERNAL_ARENAS
+/* Cold startup only, before input/render: release the default rack, then
+ * construct the saved runtime directly in a->mod_mem, bound to the adopted
+ * engines. Adoption attaches rendering/UI callbacks without rebinding engines
+ * or resetting saved bases. No runtime may already be attached. These return
+ * 1 on success; refusal leaves the app unchanged. If construction fails after
+ * prepare, discard the cold app rather than starting playback. */
+int fm1_app_mod_prepare_cold(fm1_app_t *a);
+int fm1_app_mod_adopt_cold(fm1_app_t *a, fm1_mod_t *staged, uint32_t seed);
+#endif
+
 /* One line of fm1-render's --mod format (engines/host/mod_script.h) on the
  * runtime, as fm1-render applies it; 1, or 0 with a message in err (no
  * runtime, or a bad line). A `seed` line does nothing here. */

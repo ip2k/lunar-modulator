@@ -868,6 +868,37 @@ static int is_mod_mode(int mode) {
 
 void fm1_app_mod_reset(fm1_app_t *a, uint32_t seed) { mod_start(a, seed, 0); }
 
+#if FM1_APP_EXTERNAL_ARENAS
+int fm1_app_mod_prepare_cold(fm1_app_t *a) {
+  if (!a || a->frames || fm1_mod_size() > sizeof a->mod_mem) return 0;
+  mod_release(a);
+  return 1;
+}
+
+int fm1_app_mod_adopt_cold(fm1_app_t *a, fm1_mod_t *staged, uint32_t seed) {
+  if (!a || a->frames || a->mod || !staged ||
+      (void *)staged != (void *)a->mod_mem ||
+      fm1_mod_size() > sizeof a->mod_mem) return 0;
+  a->mod = staged;
+  a->mod_seed = seed;
+  fm1_mod_glue_init(&a->mod_glue, staged, a->unit[0].e);
+  a->mod_glue.ctx = a;
+  a->mod_glue.write = mod_write;
+  for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+    fm1_mod_set_base(staged, FM1_MOD_HOST, fm1_mod_host_pitch((unsigned)k), a->bend[k]);
+  }
+  fm1_mod_set_current(staged, (unsigned)a->sound);
+  fm1_mod_ramp_init(&a->mod_amp, 1.0f);
+  a->mod_amp_used = 0;
+  a->mod_nwr = 0;
+  fm1_mod_ui_init(&a->mui);
+  a->dirty = 1;
+  a->leds_changed = 1;
+  fm1_edit_mod_scan(a);
+  return 1;
+}
+#endif
+
 int fm1_app_mod_line(fm1_app_t *a, const char *line, char *err, size_t cap) {
   const fm1_engine_t *units[FM1_MOD_SINKS];
   uint32_t seed;

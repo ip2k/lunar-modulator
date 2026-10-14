@@ -47,6 +47,13 @@ def arena_tools(tmp_path_factory):
 
 
 @pytest.mark.parametrize("case", range(30))
+def test_mod_cold_adoption(arena_tools, case):
+    result = json.loads(subprocess.check_output(
+        [str(arena_tools[1]), "--mod-cold", str(case)], text=True))
+    assert result == {"passed": True, "case": case}
+
+
+@pytest.mark.parametrize("case", range(30))
 def test_project_scalar_startup(arena_tools, case):
     result = json.loads(subprocess.check_output(
         [str(arena_tools[1]), "--scalar", str(case)], text=True))

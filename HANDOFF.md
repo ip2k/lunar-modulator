@@ -2135,3 +2135,19 @@ before engine allocation; stage modulation in its final app storage (opaque
 runtime cannot be memcpy-relocated), wire shared glue and restore VIEW last.
 Branch feature/2026-10-11@installable-firmware; previous verified pushed29f1447c.
 This checkpoint remains subject to exact-head review/CI/integration; goal active.
+
+## Cold modulation adoption checkpoint (2026-10-13)
+
+[verified] Shared cold prepare/adopt APIs preserve staged module parameters,
+routes and sound bases while attaching rendering/UI. 106 host cases passed in
+30 Hera sanitizer chunks. Rebuilt stale catalogue:167 objects,16 compiler shards.
+All30 native links pass rooted adoption entries, SDK-free audit and asset checks.
+All logs/exit/noOOM inspected, source hashes matched, owned containers removed.
+Evidence: notes/2026-10-13-mod-cold-verification/RESULTS.md and receipts/scripts.
+No physical operations or complete startup activation. Previous verified pushed
+commit e277a0c86cc4b3f64f801563d5b50f89840df852 on
+feature/2026-10-11@installable-firmware. Report-only preceding goal turn made no
+progress; this checkpoint preserves verified source work, goal remains active.
+Next connect native PROJECT modulation staging/seed to cold adoption and compose
+complete startup; restore VIEW last. Remaining all13 hardware/web install,
+settings migration, physical rollback and exact-head review/CI/integration open.
