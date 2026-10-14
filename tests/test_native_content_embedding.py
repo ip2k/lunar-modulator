@@ -143,7 +143,8 @@ def test_target_compiled_content(tmp_path, count, binary, opt):
     for index, payload in enumerate(inputs.packed_content):
         assert sizes[f'.rodata.lunar_content_{index:02d}'] == len(payload)
     assert sizes['.rodata.lunar_content_count'] == 4
-    assert sizes['.rodata.lunar_content_catalogue'] == 16 * max(1, count)
+    # pi32v2: two 4-byte pointers, size, kind + alignment, parent index.
+    assert sizes['.rodata.lunar_content_catalogue'] == 20 * max(1, count)
 
 
 def test_content_refusal_has_no_output(tmp_path):
