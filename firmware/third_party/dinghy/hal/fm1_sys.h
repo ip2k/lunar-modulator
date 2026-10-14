@@ -17,10 +17,27 @@
  */
 #pragma once
 #include <stdint.h>
+#include <stddef.h>
 #include "fm1_cc.h"
 
+#ifndef FM1_P33_CON
 #define FM1_P33_CON (*(volatile uint32_t *)0x13E08u)
+#endif
+#ifndef FM1_P33_DAT
 #define FM1_P33_DAT (*(volatile uint32_t *)0x13E0Cu)
+#endif
+#ifndef FM1_P33_XFER_LIMIT
+#define FM1_P33_XFER_LIMIT 100000u
+#endif
+#ifndef FM1_P33_START
+#define FM1_P33_START() (FM1_P33_CON |= 1u << 4)
+#endif
+#ifndef FM1_P33_BUSY
+#define FM1_P33_BUSY() (FM1_P33_CON & (1u << 1))
+#endif
+#ifndef FM1_P33_DESELECT
+#define FM1_P33_DESELECT() (FM1_P33_CON &= ~((1u << 0) | (1u << 8)))
+#endif
 #define FM1_RST_SRC (*(volatile uint32_t *)0x100C0u)
 #define FM1_BOOT_STATE ((volatile uint8_t *)0x01C7FD80u)
 #define FM1_PWR_CON (*(volatile uint32_t *)0x10000u)
@@ -29,18 +46,31 @@
 
 static uint32_t fm1_p33_timeouts;
 
-static uint8_t fm1__p33_xfer(uint8_t b)
+/* Checked P33 transfers are required for watchdog control. A timeout is not
+ * data: callers must stop the transaction and must not issue dependent bytes. */
+static int fm1__p33_xfer_checked(uint8_t b, uint8_t *result)
 {
-    uint32_t n = 100000u;
+    uint32_t n = FM1_P33_XFER_LIMIT;
     FM1_P33_DAT = b;
-    FM1_P33_CON |= 1u << 4;
+    FM1_P33_START();
     (void)FM1_P33_CON;                           /* stands in for csync */
-    while (FM1_P33_CON & (1u << 1))
+    while (FM1_P33_BUSY()) {
         if (--n == 0) {
             fm1_p33_timeouts++;
-            break;
+            return -1;
         }
-    return (uint8_t)FM1_P33_DAT;
+    }
+    if (result) *result = (uint8_t)FM1_P33_DAT;
+    return 0;
+}
+
+/* Legacy callers retain a sentinel on failure; safety-sensitive paths use
+ * checked functions and never treat the sentinel as data. */
+static uint8_t fm1__p33_xfer(uint8_t b)
+{
+    uint8_t result = 0xFFu;
+    (void)fm1__p33_xfer_checked(b, &result);
+    return result;
 }
 
 static void fm1__p33_cs(uint32_t a)
@@ -53,28 +83,47 @@ static void fm1__p33_cs(uint32_t a)
     }
 }
 
-static void fm1__p33_op(uint32_t op, uint32_t a, uint8_t d)   /* 0 wr, 1 or, 2 and, 3 xor */
+static int fm1__p33_op_checked(uint32_t op, uint32_t a, uint8_t d)
 {
+    int rc = 0;
     fm1__p33_cs(a);
-    fm1__p33_xfer((uint8_t)((op << 5) | ((a >> 8) & 3u)));
-    fm1__p33_xfer((uint8_t)a);
-    fm1__p33_xfer(d);
-    FM1_P33_CON &= ~((1u << 0) | (1u << 8));
+    if (fm1__p33_xfer_checked((uint8_t)((op << 5) | ((a >> 8) & 3u)), NULL) ||
+        fm1__p33_xfer_checked((uint8_t)a, NULL) ||
+        fm1__p33_xfer_checked(d, NULL)) rc = -1;
+    FM1_P33_DESELECT();
+    return rc;
 }
+static int fm1_p33_read_checked(uint32_t a, uint8_t *value)
+{
+    uint8_t v = 0xFFu;
+    int rc = 0;
+    if (!value) return -1;
+    fm1__p33_cs(a);
+    if (fm1__p33_xfer_checked((uint8_t)(0x80u | ((a >> 8) & 3u)), NULL) ||
+        fm1__p33_xfer_checked((uint8_t)a, NULL) ||
+        fm1__p33_xfer_checked(0x5Eu, &v)) rc = -1;
+    FM1_P33_DESELECT();
+    if (!rc) *value = v;
+    return rc;
+}
+static int fm1_p33_write_checked(uint32_t a, uint8_t d)
+{ return fm1__p33_op_checked(0u, a, d); }
+static int fm1_p33_or_checked(uint32_t a, uint8_t d)
+{ return fm1__p33_op_checked(1u, a, d); }
+static int fm1_p33_and_checked(uint32_t a, uint8_t d)
+{ return fm1__p33_op_checked(2u, a, d); }
+static int fm1_p33_xor_checked(uint32_t a, uint8_t d)
+{ return fm1__p33_op_checked(3u, a, d); }
 
 static uint8_t fm1_p33_read(uint32_t a)
 {
-    uint8_t v;
-    fm1__p33_cs(a);
-    fm1__p33_xfer((uint8_t)(0x80u | ((a >> 8) & 3u)));
-    fm1__p33_xfer((uint8_t)a);
-    v = fm1__p33_xfer(0x5E);
-    FM1_P33_CON &= ~((1u << 0) | (1u << 8));
-    return v;
+    uint8_t value = 0xFFu;
+    (void)fm1_p33_read_checked(a, &value);
+    return value;
 }
-static void fm1_p33_write(uint32_t a, uint8_t d) { fm1__p33_op(0, a, d); }
-static void fm1_p33_or(uint32_t a, uint8_t d) { fm1__p33_op(1, a, d); }
-static void fm1_p33_and(uint32_t a, uint8_t d) { fm1__p33_op(2, a, d); }
+static void fm1_p33_write(uint32_t a, uint8_t d) { (void)fm1_p33_write_checked(a, d); }
+static void fm1_p33_or(uint32_t a, uint8_t d) { (void)fm1_p33_or_checked(a, d); }
+static void fm1_p33_and(uint32_t a, uint8_t d) { (void)fm1_p33_and_checked(a, d); }
 
 /* ------------------------------------------------------------ watchdog --- */
 #define FM1_P3_WDT_CON 0x80u
@@ -82,15 +131,45 @@ static void fm1_p33_and(uint32_t a, uint8_t d) { fm1__p33_op(2, a, d); }
 #define FM1_P3_RST_SRC 0x12u
 #define FM1_P3_PR_PWR 0xA0u
 
-static void fm1_wdt_arm(uint8_t t)
+static int fm1_wdt_arm_checked(uint8_t t)
 {
-    fm1_p33_write(FM1_P3_WDT_CON, 0);
-    fm1_p33_and(FM1_P3_VLD_KEEP, (uint8_t)~0x40u);           /* WDT_EXPT_EN = 0: plain reset */
-    fm1_p33_write(FM1_P3_WDT_CON, (uint8_t)((t & 0x0Fu) | 0x40u));   /* timeout, reset mode, clear */
-    fm1_p33_or(FM1_P3_WDT_CON, 0x10);                        /* enable */
+    uint8_t verify;
+    if (fm1_p33_write_checked(FM1_P3_WDT_CON, 0) ||
+        fm1_p33_and_checked(FM1_P3_VLD_KEEP, (uint8_t)~0x40u) ||
+        fm1_p33_write_checked(FM1_P3_WDT_CON,
+                              (uint8_t)((t & 0x0Fu) | 0x40u)) ||
+        fm1_p33_or_checked(FM1_P3_WDT_CON, 0x10u) ||
+        fm1_p33_read_checked(FM1_P3_WDT_CON, &verify)) return -1;
+    return ((verify & 0x1Fu) == ((t & 0x0Fu) | 0x10u)) ? 0 : -1;
 }
-static void fm1_wdt_feed(void) { fm1_p33_or(FM1_P3_WDT_CON, 0x40); }
-static void fm1_wdt_stop(void) { fm1_p33_write(FM1_P3_WDT_CON, 0); }
+static int fm1_wdt_stop_checked(uint8_t *previous)
+{
+    uint8_t before, vld, verify;
+    if (!previous || fm1_p33_read_checked(FM1_P3_WDT_CON, &before) ||
+        fm1_p33_read_checked(FM1_P3_VLD_KEEP, &vld)) return -1;
+    /* This adapter only restores the reset-mode watchdog used by platform.c. */
+    if ((before & 0x10u) && (vld & 0x40u)) return -1;
+    if (before & 0x10u) {
+        int write_rc = fm1_p33_write_checked(FM1_P3_WDT_CON, 0);
+        int read_rc = fm1_p33_read_checked(FM1_P3_WDT_CON, &verify);
+        if (write_rc || read_rc || (verify & 0x10u)) return -1;
+    }
+    *previous = before;
+    return 0;
+}
+static int fm1_wdt_restore_checked(uint8_t previous)
+{
+    if (!(previous & 0x10u)) return 0;
+    return fm1_wdt_arm_checked((uint8_t)(previous & 0x0Fu));
+}
+static int fm1_wdt_arm(uint8_t t) { return fm1_wdt_arm_checked(t); }
+static int fm1_wdt_feed(void)
+{ return fm1_p33_or_checked(FM1_P3_WDT_CON, 0x40u); }
+static int fm1_wdt_stop(void)
+{
+    uint8_t previous;
+    return fm1_wdt_stop_checked(&previous);
+}
 
 /* ---------------------------------------------------- reset and reboot --- */
 static struct {

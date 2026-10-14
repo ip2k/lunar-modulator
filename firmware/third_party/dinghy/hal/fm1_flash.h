@@ -12,6 +12,7 @@
 #pragma once
 #include <stdint.h>
 #include "fm1_xip.h"
+#include "fm1_sys.h"
 
 #ifndef RAMFN
 #define RAMFN  __attribute__((section(".ram_text"), noinline, used))
@@ -342,8 +343,21 @@ static void fl_plain_window_init(void)
 
 static int fl_erase4k(uint32_t off, uint32_t *took_us)
 {
-    uint32_t f = irq_save();
-    int rc = FL_FAR(fl_erase4k_ram)(off, took_us);
+    uint8_t prior_wdt;
+    uint32_t f;
+    int rc;
+    if (!FL_RANGE_OK(off, 0x1000u) || (off & 0xFFFu)) return -1;
+    f = irq_save();
+    /* P33 stays serialized with the SFC operation. The RAM driver is not
+     * entered unless the watchdog stop is positively read back as disabled. */
+    if (fm1_wdt_stop_checked(&prior_wdt)) {
+        irq_restore(f);
+        return -6;
+    }
+    rc = FL_FAR(fl_erase4k_ram)(off, took_us);
+    /* RAM driver returns only after ready was observed (or before XIP-off).
+     * Restore the existing reset-mode watchdog while IRQs remain masked. */
+    if (fm1_wdt_restore_checked(prior_wdt) && !rc) rc = -7;
     irq_restore(f);
     return rc;
 }
@@ -392,8 +406,16 @@ static int fl_write(uint32_t off, const uint8_t *src_ram, uint32_t n)
         /* Copy while XIP is still available. The RAM routine must never
          * dereference an unverified caller pointer after SFC is switched off. */
         for (i = 0; i < chunk; ++i) page[i] = src_ram[i];
+        uint8_t prior_wdt;
         f = irq_save();
+        if (fm1_wdt_stop_checked(&prior_wdt)) {
+            irq_restore(f);
+            return -6;
+        }
         rc = FL_PROGRAM_PAGE(off, page, chunk, &took);
+        /* The target RAM writer returns only after a positive ready read.
+         * A failed re-arm is reported after XIP is back, without retrying. */
+        if (fm1_wdt_restore_checked(prior_wdt) && !rc) rc = -7;
         irq_restore(f);
         if (rc) return rc;
         off += chunk; src_ram += chunk; n -= chunk;
