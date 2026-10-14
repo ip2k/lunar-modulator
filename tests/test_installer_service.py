@@ -19,6 +19,7 @@ from tools.installer_service.api import (BASE_INSTANCE_POOL_BYTES, SHAPES_VOICES
     TARGET_STORAGE, WAVETABLES, WAVETABLE_PROFILE, FakeJobAdapter, WorkerTemplate,
     canonical_request, create_app)
 from tools.installer_service.catalogue import load_trusted_catalogue
+from tools.native.runtime_mode import runtime_configuration
 
 MODULES = {"sound-a": "sound", "shapes": "sound", "fx-a": "audio_fx", "midi-a": "midi_fx", "mod-a": "mod"}
 PROJECTS = {"song-one", "song-two"}
@@ -136,6 +137,7 @@ def result_receipt(doc, req_sha, artifact, elf=TEST_ELF):
         "project_ids": doc["project_ids"], "startup_index": doc["startup_index"],
         "startup_project_id": doc["project_ids"][doc["startup_index"]],
         "runtime_hook_linked": len(doc["project_ids"]) > 1,
+        "runtime_configuration": runtime_configuration("diagnostic"),
         "module_selection": {"selected": selected},
         "wavetable_profile": "compressed-required-banks-flash-plaits-v1",
         "compressed_wave_tables": wave_rows, "indexed_tft": True,
@@ -252,6 +254,33 @@ def test_one_project_receipt_requires_selector_bypass():
 def test_wrong_selector_hook_receipt_is_refused():
     c, adapter = client()
     accepted = accept_and_succeed(c, adapter, lambda d: d.update(runtime_hook_linked=False))
+    assert c.get(accepted.json()["status_url"]).status_code == 502
+
+
+def test_song_diagnostic_runtime_receipt_is_accepted():
+    c, adapter = client()
+    accepted = accept_and_succeed(
+        c, adapter,
+        lambda receipt: receipt.update(runtime_configuration=runtime_configuration("song-diagnostic")))
+    assert c.get(accepted.json()["status_url"]).status_code == 200
+
+
+@pytest.mark.parametrize("mutation", [
+    lambda d: d.pop("runtime_configuration"),
+    lambda d: d["runtime_configuration"].update(runtime_mode="continuous"),
+    lambda d: d["runtime_configuration"].update(runtime_mode="song-diagnostic"),
+    lambda d: d["runtime_configuration"].update(return_to_rom_seconds=120),
+    lambda d: d["runtime_configuration"].update(return_to_rom_seconds=True),
+    lambda d: d["runtime_configuration"].update(define="-DLUNAR_RETURN_TO_ROM_SECONDS=120"),
+    lambda d: d["runtime_configuration"].update(release_accepted=True),
+    lambda d: d["runtime_configuration"].update(extra="unexpected"),
+    lambda d: d["runtime_configuration"].update(
+        runtime_mode="song-diagnostic", return_to_rom_seconds=20,
+        define="-DLUNAR_RETURN_TO_ROM_SECONDS=20"),
+])
+def test_service_rejects_noncanonical_runtime_receipt(mutation):
+    c, adapter = client()
+    accepted = accept_and_succeed(c, adapter, mutation)
     assert c.get(accepted.json()["status_url"]).status_code == 502
 
 
