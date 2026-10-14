@@ -3956,6 +3956,24 @@ remain required.
 
 ## Default approval, CI repairs and D7000 continuation — 2026-10-14
 
+Latest repeat-test checkpoint: reviewed repeat40 adapters are integrated at
+b0db3163 and SAVE contract findings at 6074ae45. The owner approves Event
+Horizon Showcase as default and is watching a fresh two-minute diagnostic.
+Fresh complete dual ROM reads match the installed target. One boot request
+was consumed/sent; ambiguous detach completion was logged without retry;
+native USB device41 appeared. Owner playback/control observations and passive
+return-to-ROM monitoring remain pending. See
+notes/2026-10-14-event120-repeat40-hardware.md. No flash write was made.
+
+Hera identity target b5c5d142 and SAVE contract af498141 are backed up to
+their named GitHub worker branches, remote SHAs verified. Identity target
+FM-1_500 fits D7000 but remains diagnostic; a RAM-call call-site range audit
+follow-up is active before integration. Other active lanes: 16-chunk final
+regression/CI fixture portability and NOR timing/IRQ contract evidence.
+SAVE remains disarmed; package emission, physical persistence/recovery,
+continuous full-song acceptance and actual web installation/release remain
+required. Goal ACTIVE; no main merge or deployment.
+
 Verified origin head before this checkpoint: 620cc306a83addb0104fc2c3f328e53e070a0446.
 Event Horizon is owner-approved as default; chooser/catalogue integration
 da6b5943 preserves false hardware/installability gates. Nine focused Node
