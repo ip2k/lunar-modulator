@@ -15,6 +15,14 @@ See `notes/2026-10-13-native-expanded-layout-proposal.md`.
 
 ## Default image and selectable builder — owner, 2026-10-13
 
+Owner addition, 2026-10-14: offer the previously authored demo projects as
+selectable preloads in the web installer before flashing. Include at least one
+complete, full-length song project in the default image so a new user can play
+and explore a finished arrangement. A short diagnostic/tutorial pattern does
+not satisfy this requirement. Verify exact embedded content, module dependencies,
+linked flash/RAM fit, full-song playback and save/reload on the native device;
+selection metadata alone does not establish acceptance.
+
 The release must have a default image containing all thirteen production sound
 engines, plus a selectable web image builder for engines, effects and songs/sets.
 Selectable packs do not replace the all-thirteen default image. The protected
