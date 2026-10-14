@@ -1,0 +1,1 @@
+{"hardware_operations": 0, "plan_sha256": "2e1b90e7fcf7c14722336224818eb9d4d0ca7148bf8d1ff619d0602e153ef9b1", "preflight": true, "sg_mapping_verified": true, "source_pins_verified": true, "usb_binding": {"busnum": "1", "devnum": "36", "path": "1-1", "pid": "8057", "vid": "4c4a"}, "writer_run": false}

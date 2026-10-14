@@ -62,3 +62,12 @@ campaign, opener failure/no retry, protected writes and limit enforcement.
 A live physical campaign still needs concrete review, fresh passive observation,
 full candidate recovery results and a bounded boot/recovery path. No hardware
 acceptance or settings migration is claimed.
+
+[verified] The same41 admission/budget checks passed on Hera (8.21s). Passive
+bench Pi preflight verified all source pins, the exact native plan SHA and the
+unchanged USBdevice36/SGmapping. Receipt: device36-writer-preflight.json. Zero
+hardware operations; no transport opened, no flash write, and no boot sent.
+The copied private campaign timestamp expires and must be refreshed before any
+run. Pi source/plan/backup root: /home/claude/fm1-expanded36-source-20261013/.
+A new bounded boot envelope for the expanded install is still required; the
+older device31 boot adapter must not be used.

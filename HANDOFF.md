@@ -1,3 +1,15 @@
+# Passive writer preflight — 2026-10-13
+
+Exact expanded writer41 checks also pass on Hera. Source pinned passive Pi
+preflight passes with USBdevice36 and originalSGmapping; hardware_operations0.
+New private Pi root /home/claude/fm1-expanded36-source-20261013/ contains sources,
+fresh backups and offline plans. No physical transport opened. Campaign expires;
+refresh observation before live admission. Fresh recovery41case campaign exec87867
+stillrunning (about4min whenlastobserved), do not restart. Need new bounded boot
+adapter/proof for expanded target after completed install; old device31 adapter
+must not be used. All13 physical acceptance/migration/rollback/web/GPL/review/CI
+remain open. Previous checkpoint verified pushed6b7e0fb851c93e83b9da6d6635f5ff5bacf5af71.
+
 # Expanded writer and current recovery checkpoint — 2026-10-13
 
 Goal remains full13 native hardware release plus web installer/custom builder.
