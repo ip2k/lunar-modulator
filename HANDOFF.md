@@ -1,3 +1,15 @@
+# Analogue capture preparation — 2026-10-14
+
+Owner confirms bad/sluggish individual notes before PLAY. Komplete Audio6 now
+on bench01, FM1 on inputs3/4, MASTER about3o'clock; keep fixed. Six-channel
+S32_LE48000 capture path passed3sec ROM baseline, not playback. Private WAV/hash
+and exact command in notes/2026-10-14-komplete-audio-capture.md. ROMdevice50
+still present; no new boot/write. Investigation9c259ee GH-backed and integrated
+27b44379. Worker inspecting sample/callback and loaded-project idle workload;
+reviewer target-only app_probe compile succeeded, final link/timing not proven.
+Next: fresh admitted instrumented diagnostic plus bounded analogue recording.
+Goal ACTIVE; performance, SAVE, independent recovery and web release open.
+
 # Realtime measurement preparation — 2026-10-14
 
 Added existing render/draw maxima and audio queue underruns to diagnostic footer,
