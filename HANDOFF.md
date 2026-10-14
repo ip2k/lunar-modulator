@@ -3801,3 +3801,46 @@ SPL/header/recovery audit. Mac remains exclusive physical coordinator; workers
 may not perform device writes. Goal ACTIVE; storage/recovery, actual installer
 build/download/flash path, physical all13/full-song/save-reload acceptance,
 required CI/integration and public release remain outstanding.
+
+## Preload, recovery and size continuation — 2026-10-14
+
+The actual private API/Docker worker built the all-thirteen, all-55-module
+Event Horizon Showcase selection successfully at exact source dbf008c7.
+The application is 862,296 bytes (SHA-256
+7175f6d1e97563b07350e0bccb10a9820104eb47a4fc67212797c68651fbd575),
+with its exact packed full-song candidate embedded at startup index zero.
+See notes/2026-10-14-real-installer-worker-api-e2e.md. This is a diagnostic
+build receipt, not physical playback, an installable download or deployment.
+The chooser offers earlier demo projects and preselects this candidate;
+the static page still exports requests until a private service is enabled.
+
+Independent SPL review and the disarmed header-CRC model are integrated at
+07c70446 and 381d1a3f respectively, both pushed and verified on origin.
+Root repeated all four model tests with the repository Python 3.12 venv;
+an initial system-Python 3.9 attempt failed on test-only int.bit_count, so it
+is not counted as a passing check. The model and independent retained-capture
+check establish CRC/XOR behavior only. Caller-supplied rescue-validity inputs
+and the narrow header predicate do not prove full SPL selection or physical
+NOR atomicity. No device operation occurred. Detailed limits are in
+notes/2026-10-14-header-crc-poison-model.md and the SPL audit note.
+
+Matched runtime-size experiments are integrated at 3f29cfae, pushed and
+verified. All13/55 modules, Event Horizon and linked/disarmed SAVE were
+retained. Continuous mode with watermark occupies 862,360 bytes; removing
+watermark gives 861,836, still 1,192 bytes above the proposed D7000 budget.
+Removing diagnostics does not solve the fit and is not an accepted shortcut.
+See notes/2026-10-14-release-size-measurement.md. No staging allocation or
+installability is admitted by these links.
+
+CI 38584247667 at dbf008c7 passed 32-bit, permissive/GPL/default module,
+browser and dongle-build jobs. Python Ubuntu/macOS jobs failed collection:
+the installed PIO emulator rejects set_base. The sanitizer job was still
+running at this checkpoint; do not claim overall green CI.
+
+Active offline Hera lanes: minimal PIO dependency/API repair from exact
+97e073c0; matched feature-preserving compiler-size experiments from dbf008c7;
+exact-part NOR program/readback semantics from 97e073c0. Each has its own
+claim/checkout/branch; Mac retains exclusive bench/Cynthion writes. Goal
+ACTIVE. Public installation, target recovery/persistence, full-song and
+all13 hardware acceptance, exact-head CI, review/integration and release
+remain required.
