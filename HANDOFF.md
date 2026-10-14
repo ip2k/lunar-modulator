@@ -3163,3 +3163,12 @@ See notes/2026-10-14-project-storage-profile.md for hashes/evidence and next gat
 Capacity and selection-model delegates remain bounded offline tasks; parent must
 review and back up their results before integration. Watched all13 boot pending
 owner; no bench/USB operation issued during infrastructure stream. Goal ACTIVE.
+
+[verified] Parent reviewed dense collector SAVE fixture and independently read
+Hera v2 result log/source hashes. Exact accepted binary32924B with1536notes,
+1536locks,256triggers,8modmodules,32cables,576padparams,32DX7voices and10FXslots.
+Conservative enforced format ceiling remains98304B; no tighter reachable maximum
+or physical bank fit established. Evidence notes/2026-10-14-project-capacity-measurement.md.
+Storage-profile checkpoint verified pushed e1f84b065f2231449ff466ab25a4b6e249ba6a8e.
+Browser content-receipt identity and raw-flash ownership reviews continue as
+bounded Luna tasks; no hosted Hera Codex sessions until owner sign-in.
