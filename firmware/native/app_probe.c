@@ -13,6 +13,7 @@
 #define FM1_BTN_OCT_DOWN DINGHY_BTN_OCT_DOWN
 #define FM1_BTN_OCT_UP DINGHY_BTN_OCT_UP
 static int32_t lunar_master_raw = 512;
+static volatile uint32_t lunar_master_adc_raw;
 #if defined(LUNAR_STARTUP_PROJECT_INDEX) && defined(LUNAR_STARTUP_SET_INDEX)
 #error "Project and standalone SET startup cannot be enabled together"
 #endif
@@ -26,7 +27,16 @@ static uint32_t lunar_selected_startup_project_index = LUNAR_STARTUP_PROJECT_IND
 #include "audio_queue.h"
 #include "instance_pool.h"
 #include "midi_input.h"
+#include "midi_diagnostic_readout.h"
+#ifdef LUNAR_DIAGNOSTIC_TRIO_PULSE
+#include "trio_diagnostic_pulse.h"
+#endif
 #include "runtime_mode.h"
+#ifdef LUNAR_UART1_MIDI
+#include "midi_stream.h"
+#include "midi_uart_stream.h"
+#include "fm1_uart.h"
+#endif
 #ifdef LUNAR_STACK_WATERMARK
 #include "stack_watermark.h"
 #include "stack_readout.h"
@@ -138,6 +148,53 @@ static void display_strip(uint32_t *row)
     *row = (*row + 16u) % 240u;
 }
 
+volatile uint32_t lunar_midi_usb_messages __attribute__((used));
+volatile uint32_t lunar_midi_uart_bytes __attribute__((used));
+volatile uint32_t lunar_midi_accepted_noteons __attribute__((used));
+volatile uint32_t lunar_midi_rejected_messages __attribute__((used));
+static void apply_midi_event(uint8_t st, uint8_t a, uint8_t b, uint8_t channel)
+{
+    if (!lunar_midi_input_accept(st, a, b, channel)) {
+        ++lunar_midi_rejected_messages;
+        return;
+    }
+    if ((st & 0xf0u) == 0x90u && b) ++lunar_midi_accepted_noteons;
+    switch (st & 0xf0u) {
+    case 0x90:
+        if (b) fm1_app_note_on(&app, a, b);
+        else fm1_app_note_off(&app, a);
+        break;
+    case 0x80: fm1_app_note_off(&app, a); break;
+    case 0xe0:
+        fm1_app_pitch_bend(&app, ((int)a + ((int)b << 7) - 8192) / 4096.0f);
+        break;
+    case 0xb0:
+        if (a == 120u || a == 123u) fm1_app_all_notes_off(&app);
+        break;
+    }
+}
+#ifdef LUNAR_UART1_MIDI
+static uint8_t uart_midi_ring[256] __attribute__((aligned(16)));
+static uint32_t uart_midi_cursor, uart_midi_pending;
+void lunar_native_midi_uart_init(void)
+{
+    lunar_midi_stream_reset();
+    fm1_uart1_midi_init(uart_midi_ring, sizeof uart_midi_ring);
+}
+static void uart_midi_event(void *ctx, uint8_t st, uint8_t a, uint8_t b)
+{
+    apply_midi_event(st, a, b, *(const uint8_t *)ctx);
+}
+static void uart_midi_poll(uint8_t channel)
+{
+    uint32_t received = fm1_uart1_rx_take();
+    int consumed = lunar_midi_uart_drain(uart_midi_ring, sizeof uart_midi_ring,
+        &uart_midi_cursor, &uart_midi_pending, received, 32u,
+        uart_midi_event, &channel);
+    if (consumed > 0) lunar_midi_uart_bytes += (uint32_t)consumed;
+}
+#endif
+
 static void incoming_midi(void)
 {
     uint8_t st, a, b;
@@ -151,21 +208,12 @@ static void incoming_midi(void)
     }
     /* Bound each poll so a sustained USB stream cannot starve rendering. */
     for (unsigned i = 0; i < 32u && midi_get(&st, &a, &b); ++i) {
-        if (!lunar_midi_input_accept(st, a, b, channel)) continue;
-        switch (st & 0xf0u) {
-        case 0x90:
-            if (b) fm1_app_note_on(&app, a, b);
-            else fm1_app_note_off(&app, a);
-            break;
-        case 0x80: fm1_app_note_off(&app, a); break;
-        case 0xe0:
-            fm1_app_pitch_bend(&app, ((int)a + ((int)b << 7) - 8192) / 4096.0f);
-            break;
-        case 0xb0:
-            if (a == 120u || a == 123u) fm1_app_all_notes_off(&app);
-            break;
-        }
+        ++lunar_midi_usb_messages;
+        apply_midi_event(st, a, b, channel);
     }
+#ifdef LUNAR_UART1_MIDI
+    uart_midi_poll(channel);
+#endif
 }
 
 static void app_main(void)
@@ -255,6 +303,15 @@ static void app_main(void)
         }
         refill_audio();
         platform_poll();
+#ifdef LUNAR_DIAGNOSTIC_TRIO_PULSE
+        {
+            static uint8_t pulse_state;
+            int pulse_event = lunar_trio_diagnostic_pulse_poll(
+                (uint32_t)(fm1_ms - start), &pulse_state);
+            if (pulse_event > 0) fm1_app_note_on(&app, 60u, 100u);
+            else if (pulse_event < 0) fm1_app_note_off(&app, 60u);
+        }
+#endif
 #ifdef LUNAR_STACK_WATERMARK
         if ((uint32_t)(fm1_ms - last_stack_sample) >= 1000u) {
             sample_stacks();
@@ -295,7 +352,7 @@ static void app_main(void)
             fm1_app_draw(&app, 0);
 #ifdef LUNAR_STACK_WATERMARK
             {
-                char margins[20], samples[19], timing[36];
+                char margins[20], samples[19], timing[36], midi_diag[27];
                 lunar_stack_readout(margins, samples, lunar_stack_user_margin,
                     lunar_stack_system_margin, lunar_stack_samples);
                 lunar_realtime_readout(timing, render_ticks_max / FM1_TICKS_PER_US,
@@ -305,7 +362,14 @@ static void app_main(void)
                 fm1_tft_fill(&app.tft, 0, 208, 240, 32, 0);
                 fm1_tft_text(&app.tft, 4, 212, margins, 19, 1, 0xffff);
                 fm1_tft_text(&app.tft, 128, 212, "R/D us", 6, 1, 0xffff);
-                fm1_tft_text(&app.tft, 4, 224, timing, 35, 1, 0xffff);
+                if ((fm1_ms / 1000u) & 1u) {
+                    lunar_midi_diagnostic_readout(midi_diag,
+                        lunar_midi_usb_messages, lunar_midi_uart_bytes,
+                        lunar_midi_accepted_noteons, lunar_master_adc_raw);
+                    fm1_tft_text(&app.tft, 4, 224, midi_diag, 26, 1, 0xffff);
+                } else {
+                    fm1_tft_text(&app.tft, 4, 224, timing, 35, 1, 0xffff);
+                }
             }
 #endif
             uint32_t elapsed = fm1_ticks() - tick;

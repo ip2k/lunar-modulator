@@ -37,6 +37,9 @@ enum { ENC_SELECT = 0, ENC_ALGORITHM = 1, ENC_KNOB1 = 2, ENC_KNOB2 = 3, ENC_KNOB
 #include "fm1_audio.h"
 #include "fm1_adc.h"
 #include "bootguard.h"
+#ifdef LUNAR_UART1_MIDI
+extern void lunar_native_midi_uart_init(void);
+#endif
 
 #ifndef APP_NAME
 #define APP_NAME "DINGHY"
@@ -334,6 +337,9 @@ void fm1_cstart(void)
     fm1_adc_init();
     fm1_audio_init(abuf, HALF_WORDS, isr_alnk0, 3);   /* (abuf is zero: .bss) */
     usb_start();
+#ifdef LUNAR_UART1_MIDI
+    lunar_native_midi_uart_init();             /* PH8/IOMAP before TIMER5 starts */
+#endif
     fm1_timer5_start(isr_timer5, 4);
     fm1_guard_lock_top();
     fm1_irq_enable_all();

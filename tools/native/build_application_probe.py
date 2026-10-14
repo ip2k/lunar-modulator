@@ -59,6 +59,60 @@ def project_save_service_flags(enabled):
             "-DFM1_STATE_BIN_COMPACT_WRITER=1"]
 
 
+def native_midi_input_configuration(enabled):
+    """Describe optional polled TRS input; USB MIDI stays available."""
+    if type(enabled) is not bool:
+        raise TypeError("native MIDI input option must be a bool")
+    return dict(enabled=enabled,
+                compile_definition="LUNAR_UART1_MIDI=1" if enabled else None,
+                transport="UART1-RX/PH8" if enabled else None,
+                ring_bytes=256 if enabled else 0,
+                bytes_per_poll=32 if enabled else 0,
+                usb_midi_preserved=True,
+                diagnostic_counters=["usb_messages_drained", "uart_bytes_processed",
+                                     "accepted_note_ons", "rejected_messages"],
+                hardware_tested=False)
+
+
+def native_midi_input_flags(enabled):
+    receipt = native_midi_input_configuration(enabled)
+    return (["-D" + receipt["compile_definition"]]
+            if receipt["compile_definition"] else [])
+
+
+def trio_diagnostic_pulse_configuration(enabled):
+    if type(enabled) is not bool:
+        raise TypeError("Trio diagnostic pulse option must be a bool")
+    return dict(enabled=enabled, compile_definition=(
+        "LUNAR_DIAGNOSTIC_TRIO_PULSE=1" if enabled else None),
+        note=60 if enabled else None, velocity=100 if enabled else None,
+        start_ms=3000 if enabled else None, end_ms=5000 if enabled else None,
+        once=True, hardware_tested=False)
+
+
+def validate_trio_diagnostic_pulse(enabled, runtime_mode, prepared_content,
+                                   startup_project_index, startup_set_index,
+                                   trs_midi_enabled):
+    receipt = trio_diagnostic_pulse_configuration(enabled)
+    if not enabled:
+        return receipt
+    if runtime_mode != "song-diagnostic":
+        raise ValueError("Trio diagnostic pulse requires song-diagnostic runtime")
+    if not prepared_content:
+        raise ValueError("Trio diagnostic pulse requires a prepared, content-free profile")
+    if startup_project_index is not None or startup_set_index is not None:
+        raise ValueError("Trio diagnostic pulse cannot be combined with startup content")
+    if not trs_midi_enabled:
+        raise ValueError("Trio diagnostic pulse requires explicit TRS MIDI diagnostic mode")
+    return receipt
+
+
+def trio_diagnostic_pulse_flags(enabled):
+    receipt = trio_diagnostic_pulse_configuration(enabled)
+    return (["-D" + receipt["compile_definition"]]
+            if receipt["compile_definition"] else [])
+
+
 def state_bin_object_index(objects):
     """Find the one cached codec object that a SAVE build must replace."""
     matches = [i for i, path in enumerate(objects)
@@ -241,6 +295,10 @@ def main():
                         help='Require a uniformly indexed catalogue and application')
     parser.add_argument('--compressed-wavetables', action='store_true',
                         help='Startup decode fixed RAM tables; reduce instance pool accordingly')
+    parser.add_argument('--enable-trs-midi', action='store_true',
+                        help='Opt in to polled UART1/PH8 MIDI input alongside USB MIDI')
+    parser.add_argument('--diagnostic-trio-pulse', action='store_true',
+                        help='Opt in to one C4 pulse at 3-5s for a content-free Trio diagnostic')
     parser.add_argument('--flash-plaits-wavetables', action='store_true',
                         help='With compressed tables, retain original Plaits wave bank in flash '
                         'to recover RAM; decode Braids only when Shapes is selected')
@@ -251,6 +309,7 @@ def main():
         parser.error(str(error))
     runtime_policy = runtime_configuration(args.runtime_mode)
     save_service_receipt = project_save_service_configuration(args.link_project_save_service)
+    native_midi_receipt = native_midi_input_configuration(args.enable_trs_midi)
     if bool(args.prepared_profile) != bool(args.expected_profile_sha256):
         parser.error('--prepared-profile and --expected-profile-sha256 require each other')
     if args.prepared_profile and (args.modules is not None or args.exclude):
@@ -293,6 +352,14 @@ def main():
                 parser.error('Companion SET parent startup index is outside the catalogue')
             if any(parent != args.startup_project_index for parent in content_parent_indices if parent >= 0):
                 parser.error('Every companion SET must name the selected startup project')
+    try:
+        trio_pulse_receipt = validate_trio_diagnostic_pulse(
+            args.diagnostic_trio_pulse, args.runtime_mode,
+            bool(content_inputs) and not content_inputs.report['content'],
+            args.startup_project_index, args.startup_set_index,
+            args.enable_trs_midi)
+    except ValueError as error:
+        parser.error(str(error))
     if args.flash_plaits_wavetables and not args.compressed_wavetables:
         parser.error('--flash-plaits-wavetables requires --compressed-wavetables')
     tc, catalogue, out = (p.resolve() for p in
@@ -369,7 +436,7 @@ def main():
         'static volatile int32_t master_q12 = 2048;':
             'static volatile int32_t master_q12 = 4096;',
         'master_q12 = (int32_t)((k10 * k10) >> 8);':
-            'lunar_master_raw = (int32_t)k10;',
+            'master_q12 = 4096; lunar_master_raw = (int32_t)k10; lunar_master_adc_raw = (uint32_t)a;',
     }
     for old, new in replacements.items():
         source = replace_once(source, old, new)
@@ -396,6 +463,8 @@ def main():
              '-DFM1_APP_EXTERNAL_ARENAS=1', '-DLUNAR_APP_PROBE=1', '-DNDEBUG',
              '-DFM1_TFT_INDEXED=' + str(int(args.indexed_tft)), runtime_policy['define']]
     flags += project_save_service_flags(args.link_project_save_service)
+    flags += native_midi_input_flags(args.enable_trs_midi)
+    flags += trio_diagnostic_pulse_flags(args.diagnostic_trio_pulse)
     if args.startup_set_index is not None:
         flags += ['-DLUNAR_STARTUP_SET_INDEX=' + str(args.startup_set_index)]
     if args.stack_watermark:
@@ -427,6 +496,9 @@ def main():
                       ROOT / 'firmware/native/wave_tables.c',
                       ROOT / 'firmware/third_party/tinf/tinflate.c']
                      if args.compressed_wavetables else [])
+    if args.enable_trs_midi:
+        extra_sources += [ROOT / 'firmware/native/midi_uart_stream.c',
+                          ROOT / 'firmware/native/midi_stream.cpp']
     if content_inputs:
         content_path = out / 'content_catalogue.c'
         content_path.write_bytes(generated_content)
@@ -449,7 +521,9 @@ def main():
         cxx = (['-std=c++11', '-fno-exceptions', '-fno-rtti', '-DTEST',
                 '-I', str(ROOT / 'engines/src'), '-isystem', str(catalogue / 'shard-00/cxx'),
                 '-D_LIBCPP_HAS_NO_THREADS', '-D_LIBCPP_DISABLE_EXTERN_TEMPLATE']
-               if path.suffix == '.cc' else [])
+               if path.suffix in ('.cc', '.cpp') else [])
+        if args.enable_trs_midi and path.name == 'midi_stream.cpp':
+            cxx += ['-I', str(ROOT / 'firmware/third_party/arduino-midi/src')]
         subprocess.run([compiler, *flags, *cxx, '-c', str(path), '-o', str(obj)], check=True)
         objects.append(obj)
     # Rebuild the small runtimes from checked sources instead of trusting globbed objects.
@@ -548,6 +622,8 @@ def main():
                   firmware_identity=identity_receipt,
                   runtime_policy_sha256=digest(ROOT / 'firmware/native/runtime_mode.h'),
                   project_save_service=save_service_receipt,
+                  native_midi_input=native_midi_receipt,
+                  diagnostic_trio_pulse=trio_pulse_receipt,
                   state_bin_codec=state_bin_codec,
                   probe_return_to_rom_seconds=runtime_policy['return_to_rom_seconds'], hardware_candidate=False,
                   catalogue_source_freshness_verified=True,

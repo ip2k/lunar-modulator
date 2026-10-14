@@ -30,7 +30,7 @@
     "src/lcd.c": "b69f0c3d6a5b61c883a35b50ddd6582811bd620a45268543e923fb8849caaac4",
     "src/libc.c": "344b09afe33da826feefeb1ea2a1a7c50732f91c133fee30174819645edc131a",
     "src/ota.c": "ffc981586704b41f62c763248037d1fe373c84c3566c0486de795296f9841855",
-    "src/platform.c": "6cfb23b317af3d95da4d6eeeb8a34de59ee77a626d7d17484398feeb2535bfd7",
+    "src/platform.c": "98025f78140e3cb985d9e7b2ef738ca32909f6e963ee068fe42d35a6cd553636",
     "src/recovery.c": "f2c7c0c0fd1592f8390ee0066f96033843a3e2eaabbf995013ee9b0735429929",
     "src/uac_fir.h": "b4393a8efc4ce5427334692b9857d31446a36416dc6ca7941aea5bd4add4ca56",
     "src/usb.c": "68cbe458df1119a4517a384840f22f6359107453e571b3612672e01d52325857"
@@ -45,6 +45,11 @@
       "upstream_sha256": "5d56781274406b0a1bf816c66d86c0b0b23b49757cc6f5644df566127827a9a7",
       "local_sha256": "87895dfac10e107bbd7946a13caab6d40d4d6421d39a0c3311dec75f613b6d7e",
       "reason": "Adds checked P33 transfers and checked watchdog stop/re-arm helpers. Original bytes are pinned by the initial import and match the upstream inventory; safety-sensitive NOR callers require propagated transfer errors and readback."
+    },
+    "src/platform.c": {
+      "upstream_sha256": "6cfb23b317af3d95da4d6eeeb8a34de59ee77a626d7d17484398feeb2535bfd7",
+      "local_sha256": "98025f78140e3cb985d9e7b2ef738ca32909f6e963ee068fe42d35a6cd553636",
+      "reason": "Adds a compile-time guarded native UART1 MIDI initialization hook immediately before TIMER5 starts, preserving unchanged behavior when LUNAR_UART1_MIDI is not defined."
     }
   }
 }
