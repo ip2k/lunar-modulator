@@ -2270,3 +2270,21 @@ using a calculated stack margin for a physical test.
 
 Previous verified pushed25dc29b65a44ea54a40b0a24aab08141f229ea10.
 No live Hera job; no device command; full release goal remains active.
+
+### Bounded modulation recursion inspection
+
+[verified] engines/include/fm1_mod.h defines FM1_MOD_POSITIONS as 8. Tarjan
+strong() marks g->index[v] before descending and recurses only when the next
+node is unvisited. Thus at most eight strong() frames can coexist for valid
+planner-generated graph indices. The all13-v3 target stack instructions save
+rets and r14-r4 (12 words, 48 bytes per frame), with no other stack adjustment
+in this function: that recursion component totals at most 384 bytes. This
+component bound does not bound the whole PROJECT path or interrupt overlap.
+Both semantic tools located strong() in the primary checkout, matching source;
+Rarefaction returned empty call hierarchy despite the visible recursive caller,
+so source plus vendor disassembly remain authoritative for that relationship.
+Shared project selection was preserved; no server configuration changed.
+
+Next resolve 37 indirect call sites using exact target symbols and native
+PROJECT sinks/engine descriptor functions; do not treat direct estimate as
+admission. Previous verified pushed3d9fa6e6010197627de075d9b6de220c2156d98f.

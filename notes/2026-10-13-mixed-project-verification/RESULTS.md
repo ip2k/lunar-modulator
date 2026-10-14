@@ -108,3 +108,17 @@ The source root must supply tools/jieli/audit_link.py. No hardware admission
 follows from this exploratory result. Next resolve PROJECT reader/sink and
 engine/modulation callbacks, bounded recursion, caller and IRQ paths before
 using a calculated stack margin for a physical test.
+
+### Bounded modulation recursion inspection
+
+[verified] engines/include/fm1_mod.h defines FM1_MOD_POSITIONS as 8. Tarjan
+strong() marks g->index[v] before descending and recurses only when the next
+node is unvisited. Thus at most eight strong() frames can coexist for valid
+planner-generated graph indices. The all13-v3 target stack instructions save
+rets and r14-r4 (12 words, 48 bytes per frame), with no other stack adjustment
+in this function: that recursion component totals at most 384 bytes. This
+component bound does not bound the whole PROJECT path or interrupt overlap.
+Both semantic tools located strong() in the primary checkout, matching source;
+Rarefaction returned empty call hierarchy despite the visible recursive caller,
+so source plus vendor disassembly remain authoritative for that relationship.
+Shared project selection was preserved; no server configuration changed.
