@@ -30,3 +30,47 @@ On Hera worktree `/home/claude/worktrees/nor-closure-completeness`:
 - `python3 -m unittest tests.test_native_nor_writer_closure -q` — 17 tests passed.
 - Directly loaded the checker and ran `audit_writer_callers()` against the retained full disassembly and symbols — passed with the exact caller/argument facts above and runtime stack residency false.
 - No rebuild or hardware/device operation was performed.
+
+## Follow-up: exact wrapper ordering and runtime stack check proposal
+
+The caller audit now requires the observed instruction order in `fl_write`: read
+caller bytes, copy them to `SP+4`, call `irq_save`, call
+`fm1_wdt_stop_checked`, load/dispatch the RAM entry through `fl_far`, then pass
+`SP+4` and `SP+260`. The fixture rejects a page store moved after IRQ save.
+The `fl_far` audit now requires exactly these five target instructions:
+`sp += -4`, `[sp] = r0`, `r0 = [sp]`, `sp += 4`, `rts`. A negative fixture
+inserts an `r0` clobber and is rejected. These checks establish the linked
+sequence, not global register/stack ABI correctness.
+
+For the exact retained link, `app.ld` SHA-256 is
+`6a9f41205e482fbdf2d24dc418416e45a3a8e1781d3e594279d751335af8942a` and
+`crt0.S` SHA-256 is
+`2212471c4a70e94022ba24ef65a4b208fadd5f7e33f80745c5f5e8b9f4aa840c`; both
+match the retained source overlay byte-for-byte. The linker declares user stack
+bounds `_ustack_lo=0x01C74100` to `_ustack_top=0x01C7A000` and supervisor bounds
+`_sstack_lo=0x01C7A100` to `_sstack_top=0x01C7C000`, leaving the guard gap
+`0x01C7A000..0x01C7A100`. `crt0.S` sets `sp` to `_ustack_top` and `ssp` to
+`_sstack_top` before calling `fm1_cstart`; the target listing confirms
+`fm1_cstart` descends its SP by 3052 bytes. `fl_write` descends its current SP
+by a 264-byte local frame after saving registers. `ota_erase` also reserves
+four local bytes before passing `SP+0` to the RAM writer. The corresponding
+source hashes do not make the active stack at the eventual OTA callback known:
+`fm1_guard.h` explicitly applies one broad stack window because it does not
+know which EMU stack applies in supervisor main-loop context.
+
+A bounded future guard should run before IRQ masking/WDT stop and before the RAM
+dispatch: read the active `sp`, require it to lie in exactly one linker-declared
+stack interval (never the gap), and require enough downward headroom for the
+maximum audited post-check frame/call depth. It must account for the already
+allocated caller and `fl_write` frames, plus any helper frame introduced by the
+check. A page-buffer pointer check alone is insufficient. This proposal is not
+yet proven against the pi32v2 active-SP/interrupt ABI, concurrent interrupt
+stack use, or worst-case nested call depth; do not set
+`runtime_stack_address_in_sram_proven` until a target runtime check and linked
+call-depth bound establish those points.
+
+The follow-up focused suite passes 17 tests. Direct execution of
+`audit_writer_callers()` against the retained full disassembly and symbol dump
+passes, reports the ordered page-copy/IRQ/WDT sequence and five-op far shim,
+and leaves runtime stack residency false. No rebuild, hardware operation, or
+SAVE admission occurred.

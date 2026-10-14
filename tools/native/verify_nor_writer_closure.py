@@ -286,15 +286,23 @@ def audit_writer_callers(full_disassembly, symbols):
                             r"b\[r4\+r0\]\s*\(u\)",
                             r"r2\s*=\s*sp\s*\+\s*4",
                             r"b\[r2\+r0\]\s*=\s*r1",
+                            r"call[^\n]*<\s*irq_save\s*:",
+                            r"call[^\n]*<\s*fm1_wdt_stop_checked\s*:",
                             r"r0\s*=\s*r8",
                             r"call[^\n]*<\s*fl_far\s*:",
                             r"r7\s*=\s*r0",
                             r"r1\s*=\s*sp\s*\+\s*4",
                             r"r3\s*=\s*sp\s*\+\s*260",
                             r"call\s+r7\b"], "fl_write")
-    if not all(re.search(expr, far) for expr in
-               (r"\[sp\]\s*=\s*r0", r"r0\s*=\s*\[sp\]", r"rts")):
-        raise ValueError("fl_far does not show the linked pointer-preserving return")
+    far_ops = []
+    for line in far.splitlines():
+        if re.match(r"^\s*[0-9a-fA-F]+:", line):
+            operation = line.split("\t")[-1].strip()
+            operation = re.sub(r"^[0-9a-fA-F]+:\s*", "", operation)
+            far_ops.append(operation)
+    if far_ops != ["sp += -4", "[sp] = r0", "r0 = [sp]",
+                    "sp += 4", "rts"]:
+        raise ValueError("fl_far is not the exact stack-preserving five-instruction shim")
     indirect_calls = {
         "fl_erase4k": re.findall(r"^\s*[0-9a-fA-F]+:.*\bcall\s+(r\d+)\b",
                                  erase, re.MULTILINE),
@@ -329,6 +337,8 @@ def audit_writer_callers(full_disassembly, symbols):
         "indirect_dispatch_registers": indirect_calls,
         "dispatch_helper": far_symbol,
         "dispatch_helper_preserves_pointer": True,
+        "dispatch_helper_exact_ops": far_ops,
+        "dispatch_helper_stack_delta_is_zero": True,
         "program_source_copied_to_sp_plus_4_before_dispatch": True,
         "program_result_pointer_sp_plus_260": True,
         "erase_result_pointer_passed_from_caller": True,
@@ -343,6 +353,7 @@ def audit_writer_callers(full_disassembly, symbols):
                             "r2": "page byte count scalar", "r3": "elapsed-time output at fl_write SP+260"},
         },
         "program_page_buffer_is_staged_before_irq_mask": True,
+        "program_copy_then_irq_save_then_wdt_stop_order_verified": True,
         "runtime_stack_address_in_sram_proven": False,
         "unresolved_runtime_data_sources": [
             {"source": "pi32v2 SP at fl_write entry", "used_by": "SP+4 page buffer and SP+260 elapsed output",
