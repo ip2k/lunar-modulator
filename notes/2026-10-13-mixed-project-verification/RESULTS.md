@@ -122,3 +122,52 @@ Both semantic tools located strong() in the primary checkout, matching source;
 Rarefaction returned empty call hierarchy despite the visible recursive caller,
 so source plus vendor disassembly remain authoritative for that relationship.
 Shared project selection was preserved; no server configuration changed.
+
+### Address-based callback inventory checkpoint
+
+[verified] Target compilation on Hera measured fm1_engine_t at 84 bytes,
+fm1_midi_fx_t and fm1_mod_kind_t at 88 bytes, and pointers at four bytes.
+The measurement uses the immutable all13-v3 source headers and pi32v2/r3
+compiler; header hashes are pinned in receipts/callback-layout.json.
+The address-based ELF inventory validates descriptor magic, terminated IDs,
+registry bounds and every non-null callback against a defined function address.
+It finds 37 sound/effect descriptors, two MIDI descriptors and 16 modulation
+descriptors in ELF df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e.
+
+[verified] The direct PROJECT graph has 311 functions and 43 unresolved
+call sites before callback expansion. Source-reviewed, whole-function callback
+role unions add 24 candidate rules, reaching 965 functions and leaving 30
+unresolved call sites. These unions are exploratory overapproximations, not
+proven per-site targets. The application DX7 wrapper, C++ virtual dispatch,
+Schwung internal module hooks, MIDI sinks, optional observers and formatting
+callbacks still need complete provenance checks. Static modulation destroy
+roles are empty in this catalogue; that alone does not prove arbitrary dynamic
+descriptors cannot enter the path. See receipts/project-callback-candidates.json.
+
+[verified] Inspecting apparent external branches exposed a disassembly limit:
+vendor objdump prints unknown prefixes followed by apparent conditional branches
+in floating-point functions (for example SqSqrtf at 0x20327A6/0x20327A8).
+The inventory now records those unknown instructions and apparent external
+conditional branches as decoding limits, rather than treating them as calls.
+Some unresolved unconditional branches also target non-entry addresses.
+Neither ignoring those branches nor the direct graph proves complete control
+flow. The earlier estimated stack chain must not be used as a maximum.
+
+Reproduction scripts: measure-callback-layout.py SOURCE TOOLCHAIN OUT_DIR;
+inventory-target-callbacks.py SOURCE ELF DISASSEMBLY LAYOUT_JSON OUTPUT_JSON;
+expand-project-callbacks.py INVENTORY_JSON OUTPUT_JSON. The full inventory is
+private under build/native-external-arenas-16-20261012/address-inventory-v2.json
+and Hera out/callback-layout-v1/address-inventory-v2.json. Its hash, registries
+and root summaries are retained in receipts/address-inventory-summary.json.
+No firmware source, flash or hardware state changed in this checkpoint.
+
+Serena is ready for C/C++ in the primary checkout; Rarefaction's Python query
+returned no semantic references for Elf.read. Both tools still select the
+primary checkout, not this worktree. Their configuration was preserved and
+file inspection plus immutable target compilation are authoritative here.
+No semantic result is being used as device ABI or callback coverage proof.
+
+Next: resolve C++/module callback tables and non-entry branch decoding, then
+calculate caller/IRQ stack overlap and verify actual target timing. Fresh
+hardware identity/backups, settings migration, physical rollback, web builder
+and installation, required review/CI and integration remain open. Goal active.
