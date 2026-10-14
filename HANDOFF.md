@@ -1,4 +1,41 @@
-# Latest continuation authority — 2026-10-14 (continuous link and package)
+# Latest continuation authority — 2026-10-14 (package, storage and delivery)
+
+Coordinator checkpoint before this note: `3119830989a0d8efe674a72de90f970d5e38d1f0`,
+pushed with GitHub SHA verified. The separate continuous FM-1_500 package is
+integrated at `1f020b4b`; private FWSC SHA-256
+`8968c1e709529ba5f1d9a0eb42c07f31ebced9d24cd6ad8a2fd7dec0b7296355`.
+Its exact 845,336-byte app is uninstalled; offline parsing is not updater or
+hardware acceptance. The corrected actual-service SAVE host harness is also
+integrated and passes; its fake unresolved operation proves no callback return,
+not real watchdog or NOR reset behavior.
+
+Stock-path, watchdog and delivery reviews are integrated and GitHub-backed:
+`notes/2026-10-14-stock-path-acceptance-plan.md`,
+`notes/2026-10-14-native-nor-wdt-strategy.md`, and
+`notes/2026-10-14-private-artifact-delivery-review.md`.
+Current OTA stage overlaps VM; normal flash guard rejects all writes. Current
+continuous ELF retains writer stubs, not an admitted persistent SAVE path.
+Corrected native collector bound is 43,130 bytes; the 35,176-byte maximal
+fixture passed save/recovery in 48 KiB emulated slots. Generic import cap
+remains 98,304 bytes and physical storage ownership is unresolved.
+
+Active Hera workers at exact base `1f020b4b` strengthen distinct-payload torn
+48 KiB recovery tests, audit the real writer's RAM closure in an isolated
+analysis-only target, and investigate validated installer set preloads. They
+may not issue device commands or enable physical admission. All return commits
+require coordinator review and GitHub backup; Hera has no GitHub write credential.
+
+CI `38622350045` at older `eac55b1f` has ten successful jobs and three still
+running at this checkpoint; no full green/current-head CI claim. Fresh Event120
+boot observations remain pending; device40 campaign was consumed and last
+retained passive evidence is returned ROM device42. No new hardware command
+was sent in this continuation. Any next campaign requires fresh identity and
+paired backups; never reuse the consumed boot request.
+
+Event Horizon Showcase remains the approved default full song. Full physical
+and web release goal is ACTIVE; no main merge, deployment or shipment.
+
+# Historical continuation authority — 2026-10-14 (continuous link and package)
 
 [verified] Fresh device40 paired reads matched installed Event120 target;
 one consumed boot command produced native USB device41 and returned to ROM

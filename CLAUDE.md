@@ -39,7 +39,8 @@ Felucca/SLOOP, with the existing `FM1_GPL_MODS=1` engine selection. This superse
 the older planned JieLi SDK application runtime and diagnostic-only endpoint.
 Preserve stock boot-component and recovery safeguards. The combined native
 firmware is intended for GPLv3 distribution with all source and component notices;
-the root license has not yet changed. See
+the root LICENSE now carries GPL-3.0-only, with the prior MIT grant preserved
+in LICENSE-MIT and component notices retained. See
 `notes/2026-10-12-native-gpl-firmware-direction.md` for existing-switch evidence,
 platform candidates and pending physical acceptance. Heavy builds run on Hera;
 parallelizable verification uses 30 chunks (current active goal).
@@ -52,6 +53,26 @@ and preserve feature-branch backups. Resolve failures and conflicts without
 bypassing checks. This authorization applies to this owned repository, not
 upstream contributions or hardware writes. Start the four demo songs once
 their prerequisite work is integrated; keep unfinished work recorded in notes.
+
+## Current native milestone — 2026-10-14
+
+[verified: owner bench observations] The SDK-free native Trio probe has run
+on the FM-1 with working display, keys, encoders and audible notes. The
+thirteen-engine Event Horizon timed diagnostic was installed and read back;
+its latest two-minute screen/audio/control acceptance remains pending. The
+separate continuous FM-1_500 target links all thirteen engines and 55 modules
+at 845,336 bytes; its exact private FWSC has passed offline composition and
+independent parsing, but has not been installed or accepted by the updater.
+Event Horizon Showcase is owner-approved as the default full song.
+
+[verified: source/artifact review] SAVE is linked but flash writes remain
+unbound/disarmed. The inherited OTA stage overlaps stock VM; do not enable
+it. Physical persistence, interrupted-update recovery, stock-loader acceptance,
+web delivery, required CI/review/main integration and shipment remain open.
+Use the latest HANDOFF entry and the exact retained receipts, rather than
+historical status below. See `notes/2026-10-14-continuous500-package.md`,
+`notes/2026-10-14-stock-path-acceptance-plan.md` and
+`notes/2026-10-14-native-nor-wdt-strategy.md`.
 
 ## What this is
 
@@ -118,8 +139,10 @@ This project is unrelated to the BUSY Bar timer repo it was briefly hosted in.
 
 ## Project status and licences
 
-**Personal, non-commercial project** (owner, 2026-10-01). The repository is
-MIT. GPL code, and code under similar terms such as LXR's, may be brought in
+**Personal, non-commercial project** (owner, 2026-10-01). The combined native
+application is GPL-3.0-only; the reusable MIT grant and component-specific
+licences remain as documented in LICENSING.md and LICENSE-MIT. GPL code, and
+code under similar terms such as LXR's, may be brought in
 when needed, each in its own `third_party/<name>/` directory with its licence
 and an `UPSTREAM.md`. Those licences only bite on distribution: a firmware
 binary that links JieLi's closed SDK libraries must not be shared (released,
