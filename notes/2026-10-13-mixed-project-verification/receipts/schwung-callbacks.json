@@ -66,7 +66,39 @@
       "target": "0x20151cc"
     }
   },
+  "host_hooks": {
+    "log": {
+      "target": "0x202b1f2",
+      "field_offset": 24,
+      "load_pc": "0x202f69c",
+      "store_pc": "0x202f6a2",
+      "read_pc": "0x20142ec"
+    },
+    "get_clock_status": {
+      "target": "0x202b1f8",
+      "field_offset": 36,
+      "load_pc": "0x202f6ae",
+      "store_pc": "0x202f6b4",
+      "read_pc": "0x201b7be"
+    }
+  },
   "site_rules": [
+    {
+      "caller": "0x20142c0",
+      "pc": "0x20142ee",
+      "role": "host.log",
+      "targets": [
+        "0x202b1f2"
+      ]
+    },
+    {
+      "caller": "0x201b0f2",
+      "pc": "0x201b7c4",
+      "role": "host.get_clock_status",
+      "targets": [
+        "0x202b1f8"
+      ]
+    },
     {
       "caller": "0x202b20e",
       "pc": "0x202b220",

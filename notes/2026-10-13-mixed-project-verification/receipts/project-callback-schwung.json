@@ -2,7 +2,7 @@
   "scope": "candidate callback expansion; no stack bound or hardware admission",
   "elf_sha256": "df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e",
   "inventory_sha256": "58fbd7c36e570db6b55f413f7912f9c82841fb5b31a2d68d6664e247b4e9c48b",
-  "reachable_functions": 1102,
+  "reachable_functions": 1104,
   "applied_rules": {
     "0x201d450": {
       "names": [
@@ -756,6 +756,24 @@
         "0x20691dc",
         "0x206941a",
         "0x20694e0"
+      ],
+      "empty_static_role": false
+    },
+    "0x20142c0": {
+      "names": [
+        "fx_log"
+      ],
+      "targets": [
+        "0x202b1f2"
+      ],
+      "empty_static_role": false
+    },
+    "0x201b0f2": {
+      "names": [
+        "sophie_get"
+      ],
+      "targets": [
+        "0x202b1f8"
       ],
       "empty_static_role": false
     },
@@ -1554,24 +1572,6 @@
   ],
   "unresolved": [
     {
-      "caller": "0x20142c0",
-      "names": [
-        "fx_log"
-      ],
-      "pc": "0x20142ee",
-      "kind": "indirect",
-      "instruction": "call r1"
-    },
-    {
-      "caller": "0x201b0f2",
-      "names": [
-        "sophie_get"
-      ],
-      "pc": "0x201b7c4",
-      "kind": "indirect",
-      "instruction": "call r0"
-    },
-    {
       "caller": "0x203a7ea",
       "names": [
         "mod_emit.4780"
@@ -1627,6 +1627,22 @@
   ],
   "hardware_admitted": false,
   "schwung_call_sites": [
+    {
+      "caller": "0x20142c0",
+      "pc": "0x20142ee",
+      "role": "host.log",
+      "targets": [
+        "0x202b1f2"
+      ]
+    },
+    {
+      "caller": "0x201b0f2",
+      "pc": "0x201b7c4",
+      "role": "host.get_clock_status",
+      "targets": [
+        "0x202b1f8"
+      ]
+    },
     {
       "caller": "0x202b20e",
       "pc": "0x202b220",

@@ -95,6 +95,21 @@ def site(caller, pc, role, targets):
     row = inventory['functions'][caller]
     assert any(s['kind'] == 'indirect' and s['pc'] == pc for s in row['unresolved']), pc
     sites.append(dict(caller=caller, pc=pc, role=role, targets=targets))
+# The immutable shim installs these host hooks before module initialization.
+# Check actual compiled store/load offsets rather than assuming host ABI size.
+host_hooks = {}
+for role, name, load_pc, store_pc, field, caller, call_pc, read_pc, read_insn in [
+    ('log', '_ZN3fm17schwung12_GLOBAL__N_17HostLogEPKc',
+     '0x202f69c', '0x202f6a2', 24, '0x20142c0', '0x20142ee', '0x20142ec', 'r1 = [r0+24]'),
+    ('get_clock_status', '_ZN3fm17schwung12_GLOBAL__N_115HostClockStatusEv',
+     '0x202f6ae', '0x202f6b4', 36, '0x201b0f2', '0x201b7c4', '0x201b7be', 'r0 = [r0+36]')]:
+    destination = target(name)
+    assert instructions[load_pc].startswith('r1 = ' + str(int(destination, 16)) + ' ')
+    assert instructions[store_pc] == '[r7+' + str(field) + '] = r1'
+    assert instructions[read_pc] == read_insn
+    host_hooks[role] = dict(target=destination, field_offset=field,
+        load_pc=load_pc, store_pc=store_pc, read_pc=read_pc)
+    site(caller, call_pc, 'host.' + role, [destination])
 site('0x202b20e', '0x202b220', 'sound.destroy_instance', [sound['destroy_instance']])
 site('0x202b20e', '0x202b22c', 'fx.destroy_instance', [fx['destroy_instance']])
 site('0x202b234', '0x202b256', 'sound.on_midi', [sound['on_midi']])
@@ -113,6 +128,6 @@ receipt = dict(scope='source/table-reviewed candidate targets; no runtime proven
     inventory_sha256=hashlib.sha256(inventory_path.read_bytes()).hexdigest(),
     layout_sha256=hashlib.sha256(layout_path.read_bytes()).hexdigest(),
     reviewed_source_sha256=source_hashes, modules=modules, sound=sound, fx=fx,
-    psx_initializer_stores=stores, site_rules=sites, hardware_admitted=False)
+    psx_initializer_stores=stores, host_hooks=host_hooks, site_rules=sites, hardware_admitted=False)
 output.write_text(json.dumps(receipt, indent=2) + '\n')
 print(json.dumps(dict(modules=len(modules), startup_sites=len(sites), hardware_admitted=False)))

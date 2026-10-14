@@ -270,3 +270,19 @@ fresh identity/backups and physical admission. Settings migration, physical
 rollback, web builder/install, licensing and required review/CI/integration
 remain open. Full thirteen-engine goal active. Prior verified pushed checkpoint:
 c259deea66942840ad09098d21cd9f4e902db06f. No running measurement job.
+
+### Compiled host-hook coverage
+
+[verified] Exact all13-v3 disassembly stores HostLog at host offset24 and
+HostClockStatus at offset36 before module init. PSX fx_log loads offset24 at
+0x20142EC before its indirect call; sophie_get loads offset36 at 0x201B7BE.
+The inspector now asserts each literal target/store/load and adds both host
+call sites. HostLog returns immediately; HostClockStatus returns unavailable.
+Expansion reaches1104functions with33rules and five unresolved sites:
+mod_emit observer, two run_quiet sites, record note callback and printf gadget.
+Both updated receipts reproduce byte-for-byte; Python compilation passes.
+This is still candidate coverage, not complete provenance or stack admission.
+No hardware commands or firmware edits. Previous verified pushed17ad65f01643fb596181bf8734c94248b7e109f4.
+Next inspect native observer initialization, MFX sink/process binding, actual
+record symbol origin and formatting gadget construction, then stack/IRQ overlap.
+Full release goal and physical migration/rollback/web/CI gates remain open.
