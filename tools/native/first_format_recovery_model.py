@@ -115,14 +115,18 @@ def create_campaign(snapshot_a, snapshot_b, snapshot_sha256, target_identity,
 
 
 def _verify_plan(plan):
-    if not isinstance(plan, dict) or plan.get("kind") != "fm1-storage48-first-format-recovery-plan":
+    if (not isinstance(plan, dict) or type(plan.get("schema")) is not int
+            or plan.get("schema") != 1
+            or plan.get("kind") != "fm1-storage48-first-format-recovery-plan"):
         raise ValueError("Recognized campaign plan required")
     expected = _digest(plan.get("plan_sha256"), "plan")
     body = dict(plan)
     del body["plan_sha256"]
     if sha256(_canonical(body)) != expected:
         raise ValueError("Campaign plan digest mismatch")
-    if plan.get("slot_sector_count") != 24 or len(plan.get("sectors", [])) != 24:
+    sectors = plan.get("sectors")
+    if (plan.get("slot_sector_count") != 24 or not isinstance(sectors, list)
+            or len(sectors) != 24):
         raise ValueError("Exact reviewed 24-sector map required")
     if plan.get("execution") != "review-plan-only" or plan.get("commands") != []:
         raise ValueError("Plan must not contain executable commands")
@@ -133,16 +137,31 @@ def _verify_plan(plan):
         raise ValueError("Physical and migration claims must remain false")
     if plan.get("hardware_operations") != 0:
         raise ValueError("Hardware operation count must remain zero")
+    if (not isinstance(plan.get("campaign_id"), str)
+            or not CAMPAIGN_ID.fullmatch(plan["campaign_id"])):
+        raise ValueError("Campaign ID must remain bounded")
+    if (not isinstance(plan.get("target_identity_assertion"), str)
+            or not plan["target_identity_assertion"].strip()):
+        raise ValueError("Target identity assertion required")
+    _digest(plan.get("snapshot_sha256"), "snapshot")
+    erased_sha256 = sha256(b"\xff" * SECTOR_BYTES)
+    erased_page_sha256 = sha256(b"\xff" * PAGE_BYTES)
     canonical = [{"slot": slot, "offset": offset}
                  for slot, offset in _slot_sector_order()]
     for row, expected_row in zip(plan["sectors"], canonical):
+        if not isinstance(row, dict):
+            raise ValueError("Sector row must be an object")
         if (row.get("slot"), row.get("offset")) != (expected_row["slot"], expected_row["offset"]):
             raise ValueError("Sector order differs from the fixed reviewed map")
         _digest(row.get("before_sha256"), "sector baseline")
-        _digest(row.get("erased_sha256"), "erased sector")
-        _digest(row.get("trailer_before_sha256"), "trailer baseline")
-        if not isinstance(row.get("trailer_before_is_ff"), bool):
+        if _digest(row.get("erased_sha256"), "erased sector") != erased_sha256:
+            raise ValueError("Erased-sector digest differs from fixed NOR erase value")
+        trailer_digest = _digest(row.get("trailer_before_sha256"), "trailer baseline")
+        trailer_is_ff = row.get("trailer_before_is_ff")
+        if not isinstance(trailer_is_ff, bool):
             raise ValueError("Trailer baseline state must be explicit")
+        if trailer_is_ff != (trailer_digest == erased_page_sha256):
+            raise ValueError("Trailer all-FF flag disagrees with its digest")
     payload_bytes = plan.get("payload_bytes")
     if (not isinstance(payload_bytes, int) or isinstance(payload_bytes, bool)
             or not 0 <= payload_bytes <= PAYLOAD_BOUND):
@@ -157,6 +176,8 @@ def _verify_plan(plan):
     if not isinstance(rows, list) or len(rows) != len(protected_expected):
         raise ValueError("Protected complement map mismatch")
     for row, (offset, length) in zip(rows, protected_expected):
+        if not isinstance(row, dict):
+            raise ValueError("Protected complement row must be an object")
         if row.get("offset") != offset or row.get("length") != length:
             raise ValueError("Protected complement extent differs from fixed map")
         _digest(row.get("sha256"), "protected extent")
@@ -212,7 +233,8 @@ def append_event(journal, plan, event, data, *, rom_recovery_verified=False,
         if data.get("sector_index") != state["active_index"]:
             raise ValueError("Uncertain acknowledgement must name active sector")
     elif event == "erase_readback":
-        if not state["awaiting_readback"] and not state["uncertain"]:
+        if (state["restore_awaiting"] or state["restore_attempted"]
+                or not (state["awaiting_readback"] or state["erase_ack_uncertain"])):
             raise ValueError("No sector action is awaiting observation")
         idx = state["active_index"]
         if data.get("sector_index") != idx:
@@ -248,7 +270,9 @@ def append_event(journal, plan, event, data, *, rom_recovery_verified=False,
             raise ValueError("Operator must attest ROM recovery before rollback verification")
     elif event == "restore_started":
         if (not state["uncertain"] or state["active_index"] is None
-                or state["restore_awaiting"] or state["complete"]):
+                or state["restore_awaiting"] or state["complete"]
+                or state["observed_operation"] not in ("erase", "restore")
+                or state["observed_sha256"] is None):
             raise ValueError("Only an inspected uncertain active sector can be restored")
         idx = state["active_index"]
         if (data.get("sector_index") != idx
@@ -263,6 +287,8 @@ def append_event(journal, plan, event, data, *, rom_recovery_verified=False,
     elif event == "restore_ack_uncertain":
         if not state["restore_awaiting"] or data.get("sector_index") != state["active_index"]:
             raise ValueError("No restoration acknowledgement is awaiting inspection")
+        if rom_recovery_verified is not True:
+            raise ValueError("Operator must attest ROM recovery before restoration inspection")
     elif event == "restore_readback":
         if (not state["restore_awaiting"] and not state["restore_attempted"]
                 or state["active_index"] is None):
@@ -321,39 +347,46 @@ def _derive_state(events, plan):
     state = {"next_index": 0, "active_index": None, "awaiting_readback": False,
              "uncertain": False, "rollback": False, "rollback_awaiting": False,
              "rollback_index": None, "restore_awaiting": False,
-             "restore_attempted": False, "observed_sha256": None, "complete": False}
+             "restore_attempted": False, "erase_ack_uncertain": False,
+             "observed_operation": None, "observed_sha256": None, "complete": False}
     for entry in events:
         event, data = entry["event"], entry["data"]
         if event == "campaign_opened":
             continue
         if event == "erase_started":
             state.update(active_index=data["sector_index"], awaiting_readback=True,
-                         uncertain=False)
+                         uncertain=False, erase_ack_uncertain=False,
+                         observed_operation=None, observed_sha256=None)
         elif event == "erase_ack_uncertain":
-            state["uncertain"] = True
+            state.update(uncertain=True, erase_ack_uncertain=True)
         elif event == "erase_readback":
             row = plan["sectors"][state["active_index"]]
             observed = data["observed_sha256"]
             if observed == row["erased_sha256"]:
                 state["next_index"] += 1
                 state.update(active_index=None, awaiting_readback=False, uncertain=False,
+                             erase_ack_uncertain=False, observed_operation=None,
                              observed_sha256=None)
             elif observed == row["before_sha256"]:
                 # Lost acknowledgement with unchanged bytes; retry the same sector.
                 state.update(active_index=None, awaiting_readback=False, uncertain=False,
+                             erase_ack_uncertain=False, observed_operation=None,
                              observed_sha256=None)
             else:
                 # Keep the active sector pinned for ROM-held exact restoration.
                 state.update(awaiting_readback=False, uncertain=True,
+                             erase_ack_uncertain=False, observed_operation="erase",
                              observed_sha256=observed)
         elif event == "restore_started":
-            state.update(restore_awaiting=True, restore_attempted=True, uncertain=False)
+            state.update(restore_awaiting=True, restore_attempted=True,
+                         erase_ack_uncertain=False, uncertain=False)
         elif event == "restore_ack_uncertain":
-            state.update(restore_awaiting=False, restore_attempted=True, uncertain=True)
+            state.update(restore_awaiting=False, restore_attempted=True, uncertain=True,
+                         observed_operation=None, observed_sha256=None)
         elif event == "restore_readback":
             observed = data["observed_sha256"]
             state.update(restore_awaiting=False, restore_attempted=False,
-                         observed_sha256=observed)
+                         observed_operation="restore", observed_sha256=observed)
             if observed == plan["sectors"][state["active_index"]]["before_sha256"]:
                 state.update(active_index=None, uncertain=False, observed_sha256=None,
                              rollback=True, rollback_index=state["next_index"] - 1)
