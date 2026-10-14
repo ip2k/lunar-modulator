@@ -170,6 +170,9 @@ def test_success_verifies_exact_request_and_app_bytes():
     lambda d: d.pop("state_bin_codec"),
     lambda d: d.update(startup_project_id="song-one"),
     lambda d: d["project_save_service"].update(save_service_armed=True),
+    lambda d: d["content"].__setitem__(0, None),
+    lambda d: d["content"][0].update(bytes="128"),
+    lambda d: d["content"][0].update(bytes=[128]),
 ])
 def test_rejects_unbound_or_overclaiming_result(mutation):
     c, adapter = client()
@@ -298,3 +301,73 @@ def test_actual_retained_controller_receipt_through_testclient():
         mutate(bad_receipt)
         adapter.succeed(rejected_id, app_bytes, json.dumps(bad_receipt).encode())
         assert client.get(rejected.json()["status_url"]).status_code == 502
+
+def test_docker_adapter_uses_fixed_container_contract_and_pinned_source(tmp_path, monkeypatch):
+    import subprocess
+    from tools.installer_service.docker_adapter import DockerJobAdapter, DockerWorkerConfig
+
+    source = tmp_path / "source"
+    toolchain = tmp_path / "toolchain"
+    runtime = tmp_path / "runtime"
+    source.mkdir()
+    toolchain.mkdir()
+    runtime.mkdir()
+    (source / "tracked.txt").write_text("tracked")
+    subprocess.run(["git", "init", "-q", str(source)], check=True)
+    subprocess.run(["git", "-C", str(source), "config", "user.email", "test@example.invalid"], check=True)
+    subprocess.run(["git", "-C", str(source), "config", "user.name", "Test"], check=True)
+    subprocess.run(["git", "-C", str(source), "add", "tracked.txt"], check=True)
+    subprocess.run(["git", "-C", str(source), "commit", "-qm", "fixture"], check=True)
+    commit = subprocess.run(["git", "-C", str(source), "rev-parse", "HEAD"],
+                            check=True, capture_output=True, text=True).stdout.strip()
+    config = DockerWorkerConfig(source, toolchain, runtime, commit)
+    adapter = DockerJobAdapter(config)
+    monkeypatch.setattr(adapter, "_run", lambda _build_id: None)
+    data = canonical_request(request_doc())
+    build_id = "A" * 32
+    pinned_template = WorkerTemplate("sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d",
+                                    "lunar-private-builds")
+    adapter.submit(build_id, data, hashlib.sha256(data).hexdigest(), pinned_template)
+    base = runtime / build_id
+    assert adapter.get(build_id).status == "queued"
+    assert (base / "input/request.json").read_bytes() == data
+    assert (base / "input/source.tar").stat().st_size > 0
+    command = adapter._command(build_id, base, base / "container.id")
+    joined = " ".join(command)
+    for option in ("--cgroup-parent=docker-batch.slice", "--network=none", "--cpus=4", "--memory=8g",
+                   "--memory-swap=8g", "--pids-limit=512", "--read-only",
+                   "--cap-drop=ALL", "--security-opt=no-new-privileges",
+                   "--user 1001:1001"):
+        assert option in joined
+    assert config.image_reference in command
+    assert "/output/build" not in joined
+    assert "request.json" in joined and "source.tar" in joined
+    adapter.delete(build_id)
+    assert not base.exists()
+
+
+def test_docker_adapter_rejects_mutable_source_and_unpinned_image(tmp_path):
+    import subprocess
+    from tools.installer_service.docker_adapter import DockerWorkerConfig
+
+    source = tmp_path / "source"
+    toolchain = tmp_path / "toolchain"
+    runtime = tmp_path / "runtime"
+    source.mkdir()
+    toolchain.mkdir()
+    runtime.mkdir()
+    (source / "tracked.txt").write_text("tracked")
+    subprocess.run(["git", "init", "-q", str(source)], check=True)
+    subprocess.run(["git", "-C", str(source), "config", "user.email", "test@example.invalid"], check=True)
+    subprocess.run(["git", "-C", str(source), "config", "user.name", "Test"], check=True)
+    subprocess.run(["git", "-C", str(source), "add", "tracked.txt"], check=True)
+    subprocess.run(["git", "-C", str(source), "commit", "-qm", "fixture"], check=True)
+    commit = subprocess.run(["git", "-C", str(source), "rev-parse", "HEAD"],
+                            check=True, capture_output=True, text=True).stdout.strip()
+    (source / "tracked.txt").write_text("modified")
+    with pytest.raises(ValueError, match="clean commit"):
+        DockerWorkerConfig(source, toolchain, runtime, commit)
+    (source / "tracked.txt").write_text("tracked")
+    with pytest.raises(ValueError, match="immutable image"):
+        DockerWorkerConfig(source, toolchain, runtime, commit,
+                           image_reference="lunar-recovery-pytest:latest")

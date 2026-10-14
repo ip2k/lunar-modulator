@@ -65,12 +65,7 @@ class WorkerTemplate:
     image_digest: str
     namespace: str
     command: tuple[str, ...] = (
-        "python3", "/workspace/tools/native/build_demo_image.py",
-        "--request", "/input/request.json",
-        "--state-tool", "/workspace/build/fm1-state",
-        "--toolchain", "/opt/pi32v2",
-        "--catalogue", "/workspace/engines",
-        "--out", "/output/build",
+        "python3", "/workspace/tools/installer_service/docker_worker.py",
     )
 
     def __post_init__(self):
@@ -185,25 +180,30 @@ def _verify_result(admission: Admission, result: WorkerResult) -> dict:
             or receipt["module_selection"].get("selected") != expected_selected):
         raise ValueError("worker module selection differs from admission")
     if (not isinstance(content, list) or not 1 <= len(content) <= 8
-            or len(content) != len(projects)
-            or not isinstance(embedded, dict)
-            or embedded.get("assets") != content
-            or type(embedded.get("asset_count")) is not int
-            or embedded["asset_count"] != len(content)
-            or type(embedded.get("packed_content_bytes")) is not int
-            or embedded["packed_content_bytes"] != sum(
-                row.get("bytes", -1) for row in content if isinstance(row, dict))
-            or embedded.get("packed_sha256") != [row.get("packed_sha256") for row in content]
-            or embedded.get("prepared_sha256") != receipt.get("prepared_profile_sha256")
-            or embedded.get("native_playback_verified") is not False
-            or embedded.get("sequence_semantics_verified") is not False):
-        raise ValueError("worker embedded content differs from prepared profile")
+            or len(content) != len(projects)):
+        raise ValueError("worker content list is malformed")
+    # Validate every untrusted row before reading fields to derive aggregate
+    # sizes or hashes. Malformed JSON shapes must be a controlled refusal, not
+    # an AttributeError/TypeError escaping the status route.
     for row in content:
         if (not isinstance(row, dict) or row.get("kind") != "project"
                 or type(row.get("bytes")) is not int or row["bytes"] <= 0
                 or not isinstance(row.get("packed_sha256"), str)
                 or not SHA256.fullmatch(row["packed_sha256"])):
             raise ValueError("worker content row is malformed")
+    packed_content_bytes = sum(row["bytes"] for row in content)
+    packed_hashes = [row["packed_sha256"] for row in content]
+    if (not isinstance(embedded, dict)
+            or embedded.get("assets") != content
+            or type(embedded.get("asset_count")) is not int
+            or embedded["asset_count"] != len(content)
+            or type(embedded.get("packed_content_bytes")) is not int
+            or embedded["packed_content_bytes"] != packed_content_bytes
+            or embedded.get("packed_sha256") != packed_hashes
+            or embedded.get("prepared_sha256") != receipt.get("prepared_profile_sha256")
+            or embedded.get("native_playback_verified") is not False
+            or embedded.get("sequence_semantics_verified") is not False):
+        raise ValueError("worker embedded content differs from prepared profile")
     if (not isinstance(service, dict) or service.get("linked") is not True
             or service.get("compile_definition") != "LUNAR_PROJECT_SAVE_SERVICE=1"
             or any(service.get(key) is not False for key in
@@ -340,7 +340,7 @@ def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
                 return JSONResponse({"detail": "build result unavailable"}, 502)
             try:
                 result["result"] = _verify_result(admission, snapshot.result)
-            except ValueError:
+            except (ValueError, TypeError, AttributeError, KeyError, OverflowError):
                 return JSONResponse({"detail": "build result failed verification"}, 502)
         return result
 
