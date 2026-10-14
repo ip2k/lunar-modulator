@@ -86,12 +86,12 @@ for address, entry in functions.items():
         bisect.bisect_left(addresses, address + entry['size'])]
     direct, unresolved, stack, decoding_limits = set(), [], [], []
     for pc, length, assembly in rows:
-        # Vendor objdump splits some FPU instructions into unknown prefixes
-        # followed by apparent conditional branches. Keep these as decoding
-        # limitations, never invent external call edges from those fragments.
+        # Without -mcpu=r3 vendor objdump splits FPU instructions into unknown
+        # prefixes and false branches. Retain decoding limits for any input;
+        # correct target decoding uses "iff" for floating-point conditions.
         if '<unknown instruction>' in assembly:
             decoding_limits.append({'pc': hex(pc), 'instruction': assembly})
-        conditional = re.search(r'\bif .*\bgoto (-?\d+)', assembly)
+        conditional = re.search(r'\biff? .*\bgoto (-?\d+)', assembly)
         if conditional:
             target = pc + length + int(conditional[1])
             if not address <= target < address + entry['size']:

@@ -1,0 +1,3614 @@
+{
+  "scope": "address-based inventory; no callback edges or stack bound; not admitted",
+  "elf_sha256": "df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e",
+  "disassembly_sha256": "46ff199b5288a37be1f7e3f155cf93bce765b9cf888d31cb8110648740de6e38",
+  "layout_sha256": "e5da93185eabca6d9b636af744d6905c14f234160f8e4fbbe86cf70b1017cb1c",
+  "registries": {
+    "fm1_engines": [
+      {
+        "id": "macro",
+        "address": "0x206f5a8",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x200213c",
+            "names": [
+              "_ZN3fm15macro12InstanceSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x2002142",
+            "names": [
+              "_ZN3fm15macro6CreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x2002352",
+            "names": [
+              "_ZN3fm15macro7DestroyEPv"
+            ]
+          },
+          "note_on": {
+            "address": "0x2002394",
+            "names": [
+              "_ZN3fm15macro6NoteOnEPvhh"
+            ]
+          },
+          "note_off": {
+            "address": "0x20025b8",
+            "names": [
+              "_ZN3fm15macro7NoteOffEPvh"
+            ]
+          },
+          "pitch_bend": {
+            "address": "0x20025c2",
+            "names": [
+              "_ZN3fm15macro4BendEPvf"
+            ]
+          },
+          "set_param": {
+            "address": "0x20025ea",
+            "names": [
+              "_ZN3fm15macro3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x20027d8",
+            "names": [
+              "_ZN3fm15macro6RenderEPvPfj"
+            ]
+          },
+          "set_param_note": {
+            "address": "0x200309a",
+            "names": [
+              "_ZN3fm15macro7SetNoteEPvhtf"
+            ]
+          }
+        }
+      },
+      {
+        "id": "shapes",
+        "address": "0x2074160",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x20085be",
+            "names": [
+              "_ZN3fm16shapes12InstanceSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x20085d4",
+            "names": [
+              "_ZN3fm16shapes6CreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x200884c",
+            "names": [
+              "_ZN3fm16shapes7DestroyEPv"
+            ]
+          },
+          "note_on": {
+            "address": "0x2008892",
+            "names": [
+              "_ZN3fm16shapes6NoteOnEPvhh"
+            ]
+          },
+          "note_off": {
+            "address": "0x2008aac",
+            "names": [
+              "_ZN3fm16shapes7NoteOffEPvh"
+            ]
+          },
+          "pitch_bend": {
+            "address": "0x2008ab6",
+            "names": [
+              "_ZN3fm16shapes4BendEPvf"
+            ]
+          },
+          "set_param": {
+            "address": "0x2008ae0",
+            "names": [
+              "_ZN3fm16shapes3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x2008c04",
+            "names": [
+              "_ZN3fm16shapes6RenderEPvPfj"
+            ]
+          },
+          "set_param_note": {
+            "address": "0x20092dc",
+            "names": [
+              "_ZN3fm16shapes7SetNoteEPvhtf"
+            ]
+          }
+        }
+      },
+      {
+        "id": "macro-heavy",
+        "address": "0x2070da8",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x200497e",
+            "names": [
+              "_ZN3fm111macro_heavy12InstanceSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x2004aea",
+            "names": [
+              "_ZN3fm111macro_heavy6CreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x2005422",
+            "names": [
+              "_ZN3fm111macro_heavy7DestroyEPv"
+            ]
+          },
+          "note_on": {
+            "address": "0x2005468",
+            "names": [
+              "_ZN3fm111macro_heavy6NoteOnEPvhh"
+            ]
+          },
+          "note_off": {
+            "address": "0x20056c0",
+            "names": [
+              "_ZN3fm111macro_heavy7NoteOffEPvh"
+            ]
+          },
+          "pitch_bend": {
+            "address": "0x20056ca",
+            "names": [
+              "_ZN3fm111macro_heavy4BendEPvf"
+            ]
+          },
+          "set_param": {
+            "address": "0x20056f2",
+            "names": [
+              "_ZN3fm111macro_heavy3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x2005ad4",
+            "names": [
+              "_ZN3fm111macro_heavy6RenderEPvPfj"
+            ]
+          },
+          "set_param_note": {
+            "address": "0x20063a4",
+            "names": [
+              "_ZN3fm111macro_heavy7SetNoteEPvhtf"
+            ]
+          }
+        }
+      },
+      {
+        "id": "sixop",
+        "address": "0x2074bbc",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x200c7e8",
+            "names": [
+              "_ZN3fm15sixop12InstanceSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x200c7ee",
+            "names": [
+              "_ZN3fm15sixop6CreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x200ccb6",
+            "names": [
+              "_ZN3fm15sixop7DestroyEPv"
+            ]
+          },
+          "note_on": {
+            "address": "0x200d4ba",
+            "names": [
+              "_ZN3fm15sixop6NoteOnEPvhh"
+            ]
+          },
+          "note_off": {
+            "address": "0x200da8c",
+            "names": [
+              "_ZN3fm15sixop7NoteOffEPvh"
+            ]
+          },
+          "pitch_bend": {
+            "address": "0x200da96",
+            "names": [
+              "_ZN3fm15sixop4BendEPvf"
+            ]
+          },
+          "set_param": {
+            "address": "0x200dabe",
+            "names": [
+              "_ZN3fm15sixop3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x200dbdc",
+            "names": [
+              "_ZN3fm15sixop6RenderEPvPfj"
+            ]
+          },
+          "set_param_note": {
+            "address": "0x200e25c",
+            "names": [
+              "_ZN3fm15sixop7SetNoteEPvhtf"
+            ]
+          }
+        }
+      },
+      {
+        "id": "dx7",
+        "address": "0x2076768",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2012930",
+            "names": [
+              "_ZN3fm13dx712InstanceSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x2012abe",
+            "names": [
+              "_ZN3fm13dx76CreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x2012da6",
+            "names": [
+              "_ZN3fm13dx77DestroyEPv"
+            ]
+          },
+          "note_on": {
+            "address": "0x2012eca",
+            "names": [
+              "_ZN3fm13dx76NoteOnEPvhh"
+            ]
+          },
+          "note_off": {
+            "address": "0x20134b6",
+            "names": [
+              "_ZN3fm13dx77NoteOffEPvh"
+            ]
+          },
+          "pitch_bend": {
+            "address": "0x20134f6",
+            "names": [
+              "_ZN3fm13dx74BendEPvf"
+            ]
+          },
+          "set_param": {
+            "address": "0x201352e",
+            "names": [
+              "_ZN3fm13dx73SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x2013864",
+            "names": [
+              "_ZN3fm13dx76RenderEPvPfj"
+            ]
+          },
+          "set_param_note": {
+            "address": "0x201422a",
+            "names": [
+              "_ZN3fm13dx77SetNoteEPvhtf"
+            ]
+          }
+        }
+      },
+      {
+        "id": "sw-sophie",
+        "address": "0x209747c",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x203123e",
+            "names": [
+              "_ZN3fm19sw_sophie4SizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x2031252",
+            "names": [
+              "_ZN3fm19sw_sophie3NewEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x202b20e",
+            "names": [
+              "_ZN3fm17schwung7DestroyEPv"
+            ]
+          },
+          "note_on": {
+            "address": "0x202b26a",
+            "names": [
+              "_ZN3fm17schwung6NoteOnEPvhh"
+            ]
+          },
+          "note_off": {
+            "address": "0x202b25c",
+            "names": [
+              "_ZN3fm17schwung7NoteOffEPvh"
+            ]
+          },
+          "set_param": {
+            "address": "0x202b3e6",
+            "names": [
+              "_ZN3fm17schwung8SetParamEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x202b570",
+            "names": [
+              "_ZN3fm17schwung6RenderEPvPfj"
+            ]
+          },
+          "get_param": {
+            "address": "0x202b4d8",
+            "names": [
+              "_ZN3fm17schwung13GetParamValueEPKvth"
+            ]
+          }
+        }
+      },
+      {
+        "id": "drums",
+        "address": "0x20904fc",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x202068c",
+            "names": [
+              "_ZN3fm15drums12InstanceSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x20206a8",
+            "names": [
+              "_ZN3fm15drums6CreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x202090c",
+            "names": [
+              "_ZN3fm15drums7DestroyEPv"
+            ]
+          },
+          "note_on": {
+            "address": "0x202091c",
+            "names": [
+              "_ZN3fm15drums6NoteOnEPvhh"
+            ]
+          },
+          "note_off": {
+            "address": "0x2020be0",
+            "names": [
+              "_ZN3fm15drums7NoteOffEPvh"
+            ]
+          },
+          "pitch_bend": {
+            "address": "0x2020be2",
+            "names": [
+              "_ZN3fm15drums4BendEPvf"
+            ]
+          },
+          "set_param": {
+            "address": "0x2020c3a",
+            "names": [
+              "_ZN3fm15drums3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x2020dfa",
+            "names": [
+              "_ZN3fm15drums6RenderEPvPfj"
+            ]
+          },
+          "set_param_note": {
+            "address": "0x2022010",
+            "names": [
+              "_ZN3fm15drums7SetNoteEPvhtf"
+            ]
+          },
+          "get_param": {
+            "address": "0x20220aa",
+            "names": [
+              "_ZN3fm15drums3GetEPKvth"
+            ]
+          }
+        }
+      },
+      {
+        "id": "acid-bass",
+        "address": "0x207477c",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2009e52",
+            "names": [
+              "_ZN3fm19acid_bass12InstanceSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x200a87a",
+            "names": [
+              "_ZN3fm19acid_bass6CreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x200ad52",
+            "names": [
+              "_ZN3fm19acid_bass7DestroyEPv"
+            ]
+          },
+          "note_on": {
+            "address": "0x200ad54",
+            "names": [
+              "_ZN3fm19acid_bass6NoteOnEPvhh"
+            ]
+          },
+          "note_off": {
+            "address": "0x200ae92",
+            "names": [
+              "_ZN3fm19acid_bass7NoteOffEPvh"
+            ]
+          },
+          "pitch_bend": {
+            "address": "0x200ae9c",
+            "names": [
+              "_ZN3fm19acid_bass4BendEPvf"
+            ]
+          },
+          "set_param": {
+            "address": "0x200aeb0",
+            "names": [
+              "_ZN3fm19acid_bass3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x200b08a",
+            "names": [
+              "_ZN3fm19acid_bass6RenderEPvPfj"
+            ]
+          },
+          "set_param_note": {
+            "address": "0x200bfea",
+            "names": [
+              "_ZN3fm19acid_bass7SetNoteEPvhtf"
+            ]
+          }
+        }
+      },
+      {
+        "id": "comet",
+        "address": "0x207526c",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x200f27a",
+            "names": [
+              "_ZN3fm19comet_kit12InstanceSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x200f87a",
+            "names": [
+              "_ZN3fm19comet_kit6CreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x2010080",
+            "names": [
+              "_ZN3fm19comet_kit7DestroyEPv"
+            ]
+          },
+          "note_on": {
+            "address": "0x201049a",
+            "names": [
+              "_ZN3fm19comet_kit6NoteOnEPvhh"
+            ]
+          },
+          "note_off": {
+            "address": "0x201088c",
+            "names": [
+              "_ZN3fm19comet_kit7NoteOffEPvh"
+            ]
+          },
+          "pitch_bend": {
+            "address": "0x201088e",
+            "names": [
+              "_ZN3fm19comet_kit4BendEPvf"
+            ]
+          },
+          "set_param": {
+            "address": "0x20108c0",
+            "names": [
+              "_ZN3fm19comet_kit3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x2010f38",
+            "names": [
+              "_ZN3fm19comet_kit6RenderEPvPfj"
+            ]
+          },
+          "get_param": {
+            "address": "0x2010b3c",
+            "names": [
+              "_ZN3fm19comet_kit3GetEPKvth"
+            ]
+          }
+        }
+      },
+      {
+        "id": "crater",
+        "address": "0x2089788",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2015f24",
+            "names": [
+              "_ZN3fm16crater12InstanceSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x2016aa6",
+            "names": [
+              "_ZN3fm16crater6CreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x2016f40",
+            "names": [
+              "_ZN3fm16crater7DestroyEPv"
+            ]
+          },
+          "note_on": {
+            "address": "0x201710e",
+            "names": [
+              "_ZN3fm16crater6NoteOnEPvhh"
+            ]
+          },
+          "note_off": {
+            "address": "0x2017be4",
+            "names": [
+              "_ZN3fm16crater7NoteOffEPvh"
+            ]
+          },
+          "pitch_bend": {
+            "address": "0x2017be6",
+            "names": [
+              "_ZN3fm16crater4BendEPvf"
+            ]
+          },
+          "set_param": {
+            "address": "0x2017ca0",
+            "names": [
+              "_ZN3fm16crater3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x20182f0",
+            "names": [
+              "_ZN3fm16crater6RenderEPvPfj"
+            ]
+          },
+          "get_param": {
+            "address": "0x2017e8e",
+            "names": [
+              "_ZN3fm16crater3GetEPKvth"
+            ]
+          }
+        }
+      },
+      {
+        "id": "drawbar",
+        "address": "0x20966c0",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x202e47c",
+            "names": [
+              "_ZN3fm17felucca11DrawbarSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x202e60a",
+            "names": [
+              "_ZN3fm17felucca13DrawbarCreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x202d6b6",
+            "names": [
+              "_ZN3fm17felucca7DestroyEPv"
+            ]
+          },
+          "note_on": {
+            "address": "0x202d992",
+            "names": [
+              "_ZN3fm17felucca6NoteOnEPvhh"
+            ]
+          },
+          "note_off": {
+            "address": "0x202dd34",
+            "names": [
+              "_ZN3fm17felucca7NoteOffEPvh"
+            ]
+          },
+          "pitch_bend": {
+            "address": "0x202dd3e",
+            "names": [
+              "_ZN3fm17felucca4BendEPvf"
+            ]
+          },
+          "set_param": {
+            "address": "0x202dd70",
+            "names": [
+              "_ZN3fm17felucca3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x202de00",
+            "names": [
+              "_ZN3fm17felucca6RenderEPvPfj"
+            ]
+          },
+          "set_param_note": {
+            "address": "0x202e3de",
+            "names": [
+              "_ZN3fm17felucca7SetNoteEPvhtf"
+            ]
+          }
+        }
+      },
+      {
+        "id": "trio",
+        "address": "0x2096714",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x202e484",
+            "names": [
+              "_ZN3fm17felucca8TrioSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x202e61c",
+            "names": [
+              "_ZN3fm17felucca10TrioCreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x202d6b6",
+            "names": [
+              "_ZN3fm17felucca7DestroyEPv"
+            ]
+          },
+          "note_on": {
+            "address": "0x202d992",
+            "names": [
+              "_ZN3fm17felucca6NoteOnEPvhh"
+            ]
+          },
+          "note_off": {
+            "address": "0x202dd34",
+            "names": [
+              "_ZN3fm17felucca7NoteOffEPvh"
+            ]
+          },
+          "pitch_bend": {
+            "address": "0x202dd3e",
+            "names": [
+              "_ZN3fm17felucca4BendEPvf"
+            ]
+          },
+          "set_param": {
+            "address": "0x202dd70",
+            "names": [
+              "_ZN3fm17felucca3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x202de00",
+            "names": [
+              "_ZN3fm17felucca6RenderEPvPfj"
+            ]
+          },
+          "set_param_note": {
+            "address": "0x202e3de",
+            "names": [
+              "_ZN3fm17felucca7SetNoteEPvhtf"
+            ]
+          }
+        }
+      },
+      {
+        "id": "phase-bend",
+        "address": "0x2096768",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x202e48c",
+            "names": [
+              "_ZN3fm17felucca9PhaseSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x202e62e",
+            "names": [
+              "_ZN3fm17felucca11PhaseCreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x202d6b6",
+            "names": [
+              "_ZN3fm17felucca7DestroyEPv"
+            ]
+          },
+          "note_on": {
+            "address": "0x202d992",
+            "names": [
+              "_ZN3fm17felucca6NoteOnEPvhh"
+            ]
+          },
+          "note_off": {
+            "address": "0x202dd34",
+            "names": [
+              "_ZN3fm17felucca7NoteOffEPvh"
+            ]
+          },
+          "pitch_bend": {
+            "address": "0x202dd3e",
+            "names": [
+              "_ZN3fm17felucca4BendEPvf"
+            ]
+          },
+          "set_param": {
+            "address": "0x202dd70",
+            "names": [
+              "_ZN3fm17felucca3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x202de00",
+            "names": [
+              "_ZN3fm17felucca6RenderEPvPfj"
+            ]
+          },
+          "set_param_note": {
+            "address": "0x202e3de",
+            "names": [
+              "_ZN3fm17felucca7SetNoteEPvhtf"
+            ]
+          }
+        }
+      },
+      {
+        "id": "plate",
+        "address": "0x20b89d8",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2038b92",
+            "names": [
+              "_ZN3fm15mi_fx5plate12InstanceSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x2038bf6",
+            "names": [
+              "_ZN3fm15mi_fx5plate6CreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x2038cfa",
+            "names": [
+              "_ZN3fm15mi_fx5plate7DestroyEPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x2038d2c",
+            "names": [
+              "_ZN3fm15mi_fx5plate3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x2038de0",
+            "names": [
+              "_ZN3fm15mi_fx5plate6RenderEPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "ensemble",
+        "address": "0x20b8a2c",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x203902c",
+            "names": [
+              "_ZN3fm15mi_fx8ensemble12InstanceSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x2039032",
+            "names": [
+              "_ZN3fm15mi_fx8ensemble6CreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x2039098",
+            "names": [
+              "_ZN3fm15mi_fx8ensemble7DestroyEPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x203909a",
+            "names": [
+              "_ZN3fm15mi_fx8ensemble3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x20390ea",
+            "names": [
+              "_ZN3fm15mi_fx8ensemble6RenderEPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "diffuse",
+        "address": "0x20b8a80",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2039246",
+            "names": [
+              "_ZN3fm15mi_fx7diffuse12InstanceSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x203924c",
+            "names": [
+              "_ZN3fm15mi_fx7diffuse6CreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x20392e0",
+            "names": [
+              "_ZN3fm15mi_fx7diffuse7DestroyEPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x20392e2",
+            "names": [
+              "_ZN3fm15mi_fx7diffuse3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x203933e",
+            "names": [
+              "_ZN3fm15mi_fx7diffuse6RenderEPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "sw-psxverb",
+        "address": "0x2096aa0",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x202f606",
+            "names": [
+              "_ZN3fm110sw_psxverb4SizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x202fa46",
+            "names": [
+              "_ZN3fm110sw_psxverb3NewEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x202b20e",
+            "names": [
+              "_ZN3fm17schwung7DestroyEPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x202b3e6",
+            "names": [
+              "_ZN3fm17schwung8SetParamEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x202b570",
+            "names": [
+              "_ZN3fm17schwung6RenderEPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "crush",
+        "address": "0x20b7aa0",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x20349ce",
+            "names": [
+              "_ZN3fm15crush12InstanceSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x20349d2",
+            "names": [
+              "_ZN3fm15crush6CreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x2034ace",
+            "names": [
+              "_ZN3fm15crush7DestroyEPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x2034ad0",
+            "names": [
+              "_ZN3fm15crush3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x2034baa",
+            "names": [
+              "_ZN3fm15crush6RenderEPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "fold",
+        "address": "0x20747d0",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x200c042",
+            "names": [
+              "_ZL16FoldInstanceSizePK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x200c344",
+            "names": [
+              "_ZL10FoldCreatePvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x200c3f2",
+            "names": [
+              "_ZL11FoldDestroyPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x200c3f4",
+            "names": [
+              "_ZL7FoldSetPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x200c44a",
+            "names": [
+              "_ZL10FoldRenderPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "drive",
+        "address": "0x20b83bc",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2037db0",
+            "names": [
+              "_ZL17DriveInstanceSizePK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x203853a",
+            "names": [
+              "_ZL11DriveCreatePvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x20385e4",
+            "names": [
+              "_ZL12DriveDestroyPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x20385e6",
+            "names": [
+              "_ZL8DriveSetPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x203863c",
+            "names": [
+              "_ZL11DriveRenderPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "echo",
+        "address": "0x206f2ec",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2001af6",
+            "names": [
+              "_ZN3fm14echo12InstanceSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x2001afe",
+            "names": [
+              "_ZN3fm14echo6CreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x2001c00",
+            "names": [
+              "_ZN3fm14echo7DestroyEPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x2001c02",
+            "names": [
+              "_ZN3fm14echo3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x2001c42",
+            "names": [
+              "_ZN3fm14echo6RenderEPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "warble",
+        "address": "0x20b7e88",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x203695e",
+            "names": [
+              "_ZN3fm16warble12InstanceSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x2036964",
+            "names": [
+              "_ZN3fm16warble6CreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x2036a26",
+            "names": [
+              "_ZN3fm16warble7DestroyEPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x2036a28",
+            "names": [
+              "_ZN3fm16warble3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x2036a8a",
+            "names": [
+              "_ZN3fm16warble6RenderEPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "filter",
+        "address": "0x2073cb0",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2006d6a",
+            "names": [
+              "_ZL18FilterInstanceSizePK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x2007688",
+            "names": [
+              "_ZL12FilterCreatePvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x200775c",
+            "names": [
+              "_ZL13FilterDestroyPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x200775e",
+            "names": [
+              "_ZL9FilterSetPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x20083ba",
+            "names": [
+              "_ZL12FilterRenderPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "comb",
+        "address": "0x2096e0c",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x203066a",
+            "names": [
+              "_ZL16CombInstanceSizePK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x2030906",
+            "names": [
+              "_ZL10CombCreatePvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x20309a2",
+            "names": [
+              "_ZL11CombDestroyPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x20309a4",
+            "names": [
+              "_ZL7CombSetPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x2030a6c",
+            "names": [
+              "_ZL10CombRenderPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "comp",
+        "address": "0x2097fec",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2031e3c",
+            "names": [
+              "_ZL16CompInstanceSizePK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x2032108",
+            "names": [
+              "_ZL10CompCreatePvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x2032182",
+            "names": [
+              "_ZL11CompDestroyPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x2032184",
+            "names": [
+              "_ZL7CompSetPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x203229c",
+            "names": [
+              "_ZL10CompRenderPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "limit",
+        "address": "0x2091864",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2024620",
+            "names": [
+              "_ZN3fm15limit12InstanceSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x2024868",
+            "names": [
+              "_ZN3fm15limit6CreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x2024988",
+            "names": [
+              "_ZN3fm15limit7DestroyEPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x202498a",
+            "names": [
+              "_ZN3fm15limit3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x2024d32",
+            "names": [
+              "_ZN3fm15limit11RenderEntryEPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "djfilter",
+        "address": "0x20b7ce8",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2035ef2",
+            "names": [
+              "_ZL14DjInstanceSizePK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x20360f0",
+            "names": [
+              "_ZL8DjCreatePvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x20361da",
+            "names": [
+              "_ZL9DjDestroyPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x20361dc",
+            "names": [
+              "_ZL5DjSetPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x203635c",
+            "names": [
+              "_ZL8DjRenderPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "tilt",
+        "address": "0x20b7af4",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2034c98",
+            "names": [
+              "_ZL16TiltInstanceSizePK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x2034eea",
+            "names": [
+              "_ZL10TiltCreatePvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x2034f7e",
+            "names": [
+              "_ZL11TiltDestroyPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x2034f80",
+            "names": [
+              "_ZL7TiltSetPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x2035046",
+            "names": [
+              "_ZL10TiltRenderPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "sat",
+        "address": "0x20967bc",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x202e640",
+            "names": [
+              "_ZL15SatInstanceSizePK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x202ea6c",
+            "names": [
+              "_ZL9SatCreatePvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x202eb5e",
+            "names": [
+              "_ZL10SatDestroyPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x202eb60",
+            "names": [
+              "_ZL6SatSetPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x202ec82",
+            "names": [
+              "_ZL9SatRenderPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "isolator",
+        "address": "0x2090550",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2022120",
+            "names": [
+              "_ZL15IsoInstanceSizePK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x2022388",
+            "names": [
+              "_ZL9IsoCreatePvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x2022478",
+            "names": [
+              "_ZL10IsoDestroyPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x202247a",
+            "names": [
+              "_ZL6IsoSetPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x2022596",
+            "names": [
+              "_ZL9IsoRenderPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "eq",
+        "address": "0x207087c",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2003c5c",
+            "names": [
+              "_ZL14EqInstanceSizePK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x20040be",
+            "names": [
+              "_ZL8EqCreatePvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x2004194",
+            "names": [
+              "_ZL9EqDestroyPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x2004196",
+            "names": [
+              "_ZL5EqSetPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x20043ae",
+            "names": [
+              "_ZL8EqRenderPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "room",
+        "address": "0x2094018",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x202a61a",
+            "names": [
+              "_ZN3fm14room12InstanceSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x202a7d4",
+            "names": [
+              "_ZN3fm14room6CreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x202a910",
+            "names": [
+              "_ZN3fm14room7DestroyEPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x202a912",
+            "names": [
+              "_ZN3fm14room3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x202a988",
+            "names": [
+              "_ZN3fm14room6RenderEPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "hall",
+        "address": "0x208994c",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x20199e0",
+            "names": [
+              "_ZN3fm14hall12InstanceSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x2019a0c",
+            "names": [
+              "_ZN3fm14hall6CreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x2019b0a",
+            "names": [
+              "_ZN3fm14hall7DestroyEPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x2019b0c",
+            "names": [
+              "_ZN3fm14hall3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x2019b4e",
+            "names": [
+              "_ZN3fm14hall6RenderEPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "gate",
+        "address": "0x20752c0",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2011bf6",
+            "names": [
+              "_ZL16GateInstanceSizePK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x20120d8",
+            "names": [
+              "_ZL10GateCreatePvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x20121d0",
+            "names": [
+              "_ZL11GateDestroyPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x20121d2",
+            "names": [
+              "_ZL7GateSetPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x2012258",
+            "names": [
+              "_ZL10GateRenderPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "squash",
+        "address": "0x20981c0",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x20326dc",
+            "names": [
+              "_ZL18SquashInstanceSizePK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x2032a1e",
+            "names": [
+              "_ZL12SquashCreatePvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x2032b50",
+            "names": [
+              "_ZL13SquashDestroyPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x2032b52",
+            "names": [
+              "_ZL9SquashSetPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x20331b2",
+            "names": [
+              "_ZL12SquashRenderPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "shaper",
+        "address": "0x2096f5c",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2030d02",
+            "names": [
+              "_ZL18ShaperInstanceSizePK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x2030e12",
+            "names": [
+              "_ZL12ShaperCreatePvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x2030ece",
+            "names": [
+              "_ZL13ShaperDestroyPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x2030ed0",
+            "names": [
+              "_ZL9ShaperSetPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x2030f82",
+            "names": [
+              "_ZL12ShaperRenderPvPfj"
+            ]
+          }
+        }
+      },
+      {
+        "id": "repeat",
+        "address": "0x2092cbc",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2029560",
+            "names": [
+              "_ZN3fm16repeat12InstanceSizeEPK8fm1_host"
+            ]
+          },
+          "create": {
+            "address": "0x2029568",
+            "names": [
+              "_ZN3fm16repeat6CreateEPvPK8fm1_host"
+            ]
+          },
+          "destroy": {
+            "address": "0x20295e4",
+            "names": [
+              "_ZN3fm16repeat7DestroyEPv"
+            ]
+          },
+          "set_param": {
+            "address": "0x2029604",
+            "names": [
+              "_ZN3fm16repeat3SetEPvtf"
+            ]
+          },
+          "render": {
+            "address": "0x2029790",
+            "names": [
+              "_ZN3fm16repeat6RenderEPvPfj"
+            ]
+          },
+          "render_ext": {
+            "address": "0x20297a0",
+            "names": [
+              "_ZN3fm16repeat9RenderExtEPvPfjPK10fm1_fx_ext"
+            ]
+          }
+        }
+      }
+    ],
+    "fm1_midi_fxs": [
+      {
+        "id": "arp",
+        "address": "0x206ead0",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x200016c",
+            "names": [
+              "arp_size"
+            ]
+          },
+          "create": {
+            "address": "0x2000172",
+            "names": [
+              "arp_create"
+            ]
+          },
+          "destroy": {
+            "address": "0x20001b2",
+            "names": [
+              "arp_destroy"
+            ]
+          },
+          "set_param": {
+            "address": "0x2000326",
+            "names": [
+              "arp_set_param"
+            ]
+          },
+          "process": {
+            "address": "0x2001262",
+            "names": [
+              "arp_process"
+            ]
+          }
+        }
+      },
+      {
+        "id": "acid-gen",
+        "address": "0x20b7ef4",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x203714e",
+            "names": [
+              "ag_size"
+            ]
+          },
+          "create": {
+            "address": "0x20375fa",
+            "names": [
+              "ag_create"
+            ]
+          },
+          "destroy": {
+            "address": "0x2037666",
+            "names": [
+              "ag_destroy"
+            ]
+          },
+          "set_param": {
+            "address": "0x2037668",
+            "names": [
+              "ag_set_param"
+            ]
+          },
+          "process": {
+            "address": "0x203780e",
+            "names": [
+              "ag_process"
+            ]
+          }
+        }
+      }
+    ],
+    "fm1_mod_kinds": [
+      {
+        "id": "lfo",
+        "address": "0x20b77b0",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2034514",
+            "names": [
+              "lfo_size"
+            ]
+          },
+          "create": {
+            "address": "0x2034518",
+            "names": [
+              "lfo_create"
+            ]
+          },
+          "reset": {
+            "address": "0x2034554",
+            "names": [
+              "lfo_reset"
+            ]
+          },
+          "process": {
+            "address": "0x2034722",
+            "names": [
+              "lfo_process"
+            ]
+          }
+        }
+      },
+      {
+        "id": "env",
+        "address": "0x2096c28",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x202fd58",
+            "names": [
+              "env_size"
+            ]
+          },
+          "create": {
+            "address": "0x202ffcc",
+            "names": [
+              "env_create"
+            ]
+          },
+          "reset": {
+            "address": "0x203000a",
+            "names": [
+              "env_reset"
+            ]
+          },
+          "process": {
+            "address": "0x203029a",
+            "names": [
+              "env_process"
+            ]
+          },
+          "view": {
+            "address": "0x2030656",
+            "names": [
+              "env_view"
+            ]
+          }
+        }
+      },
+      {
+        "id": "chance",
+        "address": "0x20915fc",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2023c90",
+            "names": [
+              "chance_size"
+            ]
+          },
+          "create": {
+            "address": "0x2023e18",
+            "names": [
+              "chance_create"
+            ]
+          },
+          "reset": {
+            "address": "0x2023eb8",
+            "names": [
+              "chance_reset"
+            ]
+          },
+          "process": {
+            "address": "0x20242ee",
+            "names": [
+              "chance_process"
+            ]
+          }
+        }
+      },
+      {
+        "id": "function",
+        "address": "0x2097db0",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x20314f6",
+            "names": [
+              "fun_size"
+            ]
+          },
+          "create": {
+            "address": "0x2031516",
+            "names": [
+              "fun_create"
+            ]
+          },
+          "reset": {
+            "address": "0x2031594",
+            "names": [
+              "fun_reset"
+            ]
+          },
+          "process": {
+            "address": "0x2031970",
+            "names": [
+              "fun_process"
+            ]
+          }
+        }
+      },
+      {
+        "id": "bounce",
+        "address": "0x2074e84",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x200ed8a",
+            "names": [
+              "bounce_size"
+            ]
+          },
+          "create": {
+            "address": "0x200ed8e",
+            "names": [
+              "bounce_create"
+            ]
+          },
+          "reset": {
+            "address": "0x200edfc",
+            "names": [
+              "bounce_reset"
+            ]
+          },
+          "process": {
+            "address": "0x200eefc",
+            "names": [
+              "bounce_process"
+            ]
+          }
+        }
+      },
+      {
+        "id": "register",
+        "address": "0x206f714",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2003404",
+            "names": [
+              "reg_size"
+            ]
+          },
+          "create": {
+            "address": "0x20035fa",
+            "names": [
+              "reg_create"
+            ]
+          },
+          "reset": {
+            "address": "0x200367c",
+            "names": [
+              "reg_reset"
+            ]
+          },
+          "process": {
+            "address": "0x2003924",
+            "names": [
+              "reg_process"
+            ]
+          },
+          "get_data": {
+            "address": "0x2003c0c",
+            "names": [
+              "reg_get_data"
+            ]
+          },
+          "set_data": {
+            "address": "0x2003c24",
+            "names": [
+              "reg_set_data"
+            ]
+          }
+        }
+      },
+      {
+        "id": "coin",
+        "address": "0x2091fc4",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x202933c",
+            "names": [
+              "coin_size"
+            ]
+          },
+          "create": {
+            "address": "0x202934e",
+            "names": [
+              "coin_create"
+            ]
+          },
+          "process": {
+            "address": "0x202941c",
+            "names": [
+              "coin_process"
+            ]
+          }
+        }
+      },
+      {
+        "id": "divide",
+        "address": "0x20959a0",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x202cf6a",
+            "names": [
+              "divide_size"
+            ]
+          },
+          "create": {
+            "address": "0x202cfa6",
+            "names": [
+              "divide_create"
+            ]
+          },
+          "reset": {
+            "address": "0x202d01e",
+            "names": [
+              "divide_reset"
+            ]
+          },
+          "process": {
+            "address": "0x202d22c",
+            "names": [
+              "divide_process"
+            ]
+          }
+        }
+      },
+      {
+        "id": "burst",
+        "address": "0x2088f74",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x20155ac",
+            "names": [
+              "burst_size"
+            ]
+          },
+          "create": {
+            "address": "0x2015626",
+            "names": [
+              "burst_create"
+            ]
+          },
+          "reset": {
+            "address": "0x2015698",
+            "names": [
+              "burst_reset"
+            ]
+          },
+          "process": {
+            "address": "0x20158f6",
+            "names": [
+              "burst_process"
+            ]
+          }
+        }
+      },
+      {
+        "id": "slew",
+        "address": "0x207446c",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2009b12",
+            "names": [
+              "slew_size"
+            ]
+          },
+          "create": {
+            "address": "0x2009b16",
+            "names": [
+              "slew_create"
+            ]
+          },
+          "reset": {
+            "address": "0x2009b92",
+            "names": [
+              "slew_reset"
+            ]
+          },
+          "process": {
+            "address": "0x2009bfe",
+            "names": [
+              "slew_process"
+            ]
+          }
+        }
+      },
+      {
+        "id": "quantize",
+        "address": "0x206f008",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2001706",
+            "names": [
+              "quantize_size"
+            ]
+          },
+          "create": {
+            "address": "0x200172a",
+            "names": [
+              "quantize_create"
+            ]
+          },
+          "reset": {
+            "address": "0x200175c",
+            "names": [
+              "quantize_reset"
+            ]
+          },
+          "process": {
+            "address": "0x20019e0",
+            "names": [
+              "quantize_process"
+            ]
+          }
+        }
+      },
+      {
+        "id": "compare",
+        "address": "0x2093d84",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2029fe2",
+            "names": [
+              "cmp_size"
+            ]
+          },
+          "create": {
+            "address": "0x202a002",
+            "names": [
+              "cmp_create"
+            ]
+          },
+          "reset": {
+            "address": "0x202a084",
+            "names": [
+              "cmp_reset"
+            ]
+          },
+          "process": {
+            "address": "0x202a246",
+            "names": [
+              "cmp_process"
+            ]
+          }
+        }
+      },
+      {
+        "id": "logic",
+        "address": "0x20b7c28",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2035bee",
+            "names": [
+              "logic_size"
+            ]
+          },
+          "create": {
+            "address": "0x2035c00",
+            "names": [
+              "logic_create"
+            ]
+          },
+          "reset": {
+            "address": "0x2035c18",
+            "names": [
+              "logic_reset"
+            ]
+          },
+          "process": {
+            "address": "0x2035d44",
+            "names": [
+              "logic_process"
+            ]
+          }
+        }
+      },
+      {
+        "id": "calc",
+        "address": "0x208fb54",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x201cbaa",
+            "names": [
+              "calc_size"
+            ]
+          },
+          "create": {
+            "address": "0x201cbae",
+            "names": [
+              "calc_create"
+            ]
+          },
+          "reset": {
+            "address": "0x201cc08",
+            "names": [
+              "calc_reset"
+            ]
+          },
+          "process": {
+            "address": "0x201cc8e",
+            "names": [
+              "calc_process"
+            ]
+          }
+        }
+      },
+      {
+        "id": "mix",
+        "address": "0x20b8208",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2037d1e",
+            "names": [
+              "mix_size"
+            ]
+          },
+          "create": {
+            "address": "0x2037d22",
+            "names": [
+              "mix_create"
+            ]
+          },
+          "process": {
+            "address": "0x2037d4e",
+            "names": [
+              "mix_process"
+            ]
+          }
+        }
+      },
+      {
+        "id": "resonator",
+        "address": "0x2073b58",
+        "callbacks": {
+          "instance_size": {
+            "address": "0x2006980",
+            "names": [
+              "filter_size"
+            ]
+          },
+          "create": {
+            "address": "0x20069bc",
+            "names": [
+              "filter_create"
+            ]
+          },
+          "reset": {
+            "address": "0x20069fe",
+            "names": [
+              "filter_reset"
+            ]
+          },
+          "process": {
+            "address": "0x2006b4e",
+            "names": [
+              "filter_process"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "roots": {
+    "lunar_project_start": {
+      "direct_reachable_functions": 311,
+      "unresolved": [
+        {
+          "caller": "0x201d450",
+          "names": [
+            "layout.2775"
+          ],
+          "pc": "0x201d4c6",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x201d634",
+          "names": [
+            "mod_plan_build"
+          ],
+          "pc": "0x201e184",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x201e1d6",
+          "names": [
+            "voice_drop_with"
+          ],
+          "pc": "0x201e220",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20335d0",
+          "names": [
+            "in_byte"
+          ],
+          "pc": "0x20335f2",
+          "kind": "indirect",
+          "instruction": "call r6"
+        },
+        {
+          "caller": "0x2033bbe",
+          "names": [
+            "cs_get"
+          ],
+          "pc": "0x2033c12",
+          "kind": "indirect",
+          "instruction": "call r11"
+        },
+        {
+          "caller": "0x2033dfe",
+          "names": [
+            "bemit"
+          ],
+          "pc": "0x2033e18",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x203a7ea",
+          "names": [
+            "mod_emit.4780"
+          ],
+          "pc": "0x203a80c",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x203a964",
+          "names": [
+            "fm1_mod_destroy"
+          ],
+          "pc": "0x203a98e",
+          "kind": "indirect",
+          "instruction": "call r6"
+        },
+        {
+          "caller": "0x203a99c",
+          "names": [
+            "mod_release"
+          ],
+          "pc": "0x203a9e8",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x203a99c",
+          "names": [
+            "mod_release"
+          ],
+          "pc": "0x203aa40",
+          "kind": "indirect",
+          "instruction": "call r7"
+        },
+        {
+          "caller": "0x203a99c",
+          "names": [
+            "mod_release"
+          ],
+          "pc": "0x203aa84",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x2042b28",
+          "names": [
+            "run_quiet"
+          ],
+          "pc": "0x2042bcc",
+          "kind": "indirect",
+          "instruction": "call r7"
+        },
+        {
+          "caller": "0x2042b28",
+          "names": [
+            "run_quiet"
+          ],
+          "pc": "0x2042c20",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2042ca6",
+          "names": [
+            "seq_release_sound"
+          ],
+          "pc": "0x2042cdc",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x20465dc",
+          "names": [
+            "mfx_ram"
+          ],
+          "pc": "0x20465fe",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x204f660",
+          "names": [
+            "kv_each"
+          ],
+          "pc": "0x204f6f6",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204f794",
+          "names": [
+            "ib"
+          ],
+          "pc": "0x204f7c6",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x204f7e6",
+          "names": [
+            "tflush"
+          ],
+          "pc": "0x204f808",
+          "kind": "indirect",
+          "instruction": "call r6"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x2050056",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x2050248",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x205027a",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x20502d6",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x20503a6",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x2050400",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x20505aa",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x205063e",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x2051736",
+          "names": [
+            "lunar_project_units_plan"
+          ],
+          "pc": "0x20517c6",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x2051736",
+          "names": [
+            "lunar_project_units_plan"
+          ],
+          "pc": "0x20517ea",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x205327c",
+          "names": [
+            "lunar_project_engines_release"
+          ],
+          "pc": "0x2053298",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20532bc",
+          "names": [
+            "lunar_project_engines_stage"
+          ],
+          "pc": "0x2053400",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x20532bc",
+          "names": [
+            "lunar_project_engines_stage"
+          ],
+          "pc": "0x2053420",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2053486",
+          "names": [
+            "lunar_project_engines_apply"
+          ],
+          "pc": "0x205356a",
+          "kind": "indirect",
+          "instruction": "call r4"
+        },
+        {
+          "caller": "0x2053486",
+          "names": [
+            "lunar_project_engines_apply"
+          ],
+          "pc": "0x205358e",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x20535d8",
+          "names": [
+            "lunar_project_adopt_audio_units"
+          ],
+          "pc": "0x20537e6",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x20535d8",
+          "names": [
+            "lunar_project_adopt_audio_units"
+          ],
+          "pc": "0x205384c",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20535d8",
+          "names": [
+            "lunar_project_adopt_audio_units"
+          ],
+          "pc": "0x2053954",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053a7a",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053b08",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053b84",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053c50",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053c92",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053cb0",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x206d8d0",
+          "names": [
+            "putchar_via_gadget"
+          ],
+          "pc": "0x206d8e6",
+          "kind": "indirect",
+          "instruction": "goto r3"
+        }
+      ]
+    },
+    "fm1_cstart": {
+      "direct_reachable_functions": 844,
+      "unresolved": [
+        {
+          "caller": "0x201d450",
+          "names": [
+            "layout.2775"
+          ],
+          "pc": "0x201d4c6",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x201d634",
+          "names": [
+            "mod_plan_build"
+          ],
+          "pc": "0x201e184",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x201e1d6",
+          "names": [
+            "voice_drop_with"
+          ],
+          "pc": "0x201e220",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20335d0",
+          "names": [
+            "in_byte"
+          ],
+          "pc": "0x20335f2",
+          "kind": "indirect",
+          "instruction": "call r6"
+        },
+        {
+          "caller": "0x2033bbe",
+          "names": [
+            "cs_get"
+          ],
+          "pc": "0x2033c12",
+          "kind": "indirect",
+          "instruction": "call r11"
+        },
+        {
+          "caller": "0x2033dfe",
+          "names": [
+            "bemit"
+          ],
+          "pc": "0x2033e18",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2039632",
+          "names": [
+            "fm1_mod_set_kind"
+          ],
+          "pc": "0x20396ac",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x2039632",
+          "names": [
+            "fm1_mod_set_kind"
+          ],
+          "pc": "0x203974a",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2039632",
+          "names": [
+            "fm1_mod_set_kind"
+          ],
+          "pc": "0x2039898",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x203a7ea",
+          "names": [
+            "mod_emit.4780"
+          ],
+          "pc": "0x203a80c",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x203a964",
+          "names": [
+            "fm1_mod_destroy"
+          ],
+          "pc": "0x203a98e",
+          "kind": "indirect",
+          "instruction": "call r6"
+        },
+        {
+          "caller": "0x203a99c",
+          "names": [
+            "mod_release"
+          ],
+          "pc": "0x203a9e8",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x203a99c",
+          "names": [
+            "mod_release"
+          ],
+          "pc": "0x203aa40",
+          "kind": "indirect",
+          "instruction": "call r7"
+        },
+        {
+          "caller": "0x203a99c",
+          "names": [
+            "mod_release"
+          ],
+          "pc": "0x203aa84",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x203ad5c",
+          "names": [
+            "play_on"
+          ],
+          "pc": "0x203adae",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x203ad5c",
+          "names": [
+            "play_on"
+          ],
+          "pc": "0x203adfc",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x203aec8",
+          "names": [
+            "emit.1634"
+          ],
+          "pc": "0x203aedc",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x203b780",
+          "names": [
+            "fm1_app_set_param"
+          ],
+          "pc": "0x203b81c",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x203ba7c",
+          "names": [
+            "list_window"
+          ],
+          "pc": "0x203bae2",
+          "kind": "indirect",
+          "instruction": "call r10"
+        },
+        {
+          "caller": "0x203bb74",
+          "names": [
+            "list_popup"
+          ],
+          "pc": "0x203bbac",
+          "kind": "indirect",
+          "instruction": "call r4"
+        },
+        {
+          "caller": "0x203e4c4",
+          "names": [
+            "retain_locks"
+          ],
+          "pc": "0x203e504",
+          "kind": "indirect",
+          "instruction": "call r11"
+        },
+        {
+          "caller": "0x20426f2",
+          "names": [
+            "seq_apply"
+          ],
+          "pc": "0x20427b4",
+          "kind": "indirect",
+          "instruction": "call r4"
+        },
+        {
+          "caller": "0x20427d8",
+          "names": [
+            "fm1_app_seq_note_in"
+          ],
+          "pc": "0x2042870",
+          "kind": "indirect",
+          "instruction": "call r7"
+        },
+        {
+          "caller": "0x20429a0",
+          "names": [
+            "play_off"
+          ],
+          "pc": "0x20429d2",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2042ab4",
+          "names": [
+            "fm1_app_pitch_bend"
+          ],
+          "pc": "0x2042b24",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2042b28",
+          "names": [
+            "run_quiet"
+          ],
+          "pc": "0x2042bcc",
+          "kind": "indirect",
+          "instruction": "call r7"
+        },
+        {
+          "caller": "0x2042b28",
+          "names": [
+            "run_quiet"
+          ],
+          "pc": "0x2042c20",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2042ca6",
+          "names": [
+            "seq_release_sound"
+          ],
+          "pc": "0x2042cdc",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2042d16",
+          "names": [
+            "notes_release_sound"
+          ],
+          "pc": "0x2042d4a",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x204578e",
+          "names": [
+            "emit"
+          ],
+          "pc": "0x204579a",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x20465dc",
+          "names": [
+            "mfx_ram"
+          ],
+          "pc": "0x20465fe",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20468ea",
+          "names": [
+            "arp_log"
+          ],
+          "pc": "0x2046918",
+          "kind": "indirect",
+          "instruction": "call r7"
+        },
+        {
+          "caller": "0x2046b58",
+          "names": [
+            "fm1_app_button"
+          ],
+          "pc": "0x2046f64",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2048190",
+          "names": [
+            "fm1_app_mfx_select"
+          ],
+          "pc": "0x20481c4",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x2048190",
+          "names": [
+            "fm1_app_mfx_select"
+          ],
+          "pc": "0x2048224",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2048190",
+          "names": [
+            "fm1_app_mfx_select"
+          ],
+          "pc": "0x20482ca",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x2048190",
+          "names": [
+            "fm1_app_mfx_select"
+          ],
+          "pc": "0x20482d4",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x204831c",
+          "names": [
+            "fm1_app_arp_set_param"
+          ],
+          "pc": "0x2048392",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2048988",
+          "names": [
+            "lane_for"
+          ],
+          "pc": "0x2048a9c",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2048d9e",
+          "names": [
+            "release"
+          ],
+          "pc": "0x2048dac",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x204919e",
+          "names": [
+            "load"
+          ],
+          "pc": "0x20491c6",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x204919e",
+          "names": [
+            "load"
+          ],
+          "pc": "0x20491ec",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x2049254",
+          "names": [
+            "fm1_app_select"
+          ],
+          "pc": "0x20492ba",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2049254",
+          "names": [
+            "fm1_app_select"
+          ],
+          "pc": "0x2049366",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x2049254",
+          "names": [
+            "fm1_app_select"
+          ],
+          "pc": "0x204938a",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x2049254",
+          "names": [
+            "fm1_app_select"
+          ],
+          "pc": "0x2049404",
+          "kind": "indirect",
+          "instruction": "call r7"
+        },
+        {
+          "caller": "0x2049254",
+          "names": [
+            "fm1_app_select"
+          ],
+          "pc": "0x2049444",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2049254",
+          "names": [
+            "fm1_app_select"
+          ],
+          "pc": "0x2049504",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2049254",
+          "names": [
+            "fm1_app_select"
+          ],
+          "pc": "0x204952e",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x204e816",
+          "names": [
+            "ota_fread"
+          ],
+          "pc": "0x204e840",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x204e874",
+          "names": [
+            "ota_erase"
+          ],
+          "pc": "0x204e8a0",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x204e8aa",
+          "names": [
+            "ota_prog"
+          ],
+          "pc": "0x204e8de",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x204f660",
+          "names": [
+            "kv_each"
+          ],
+          "pc": "0x204f6f6",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204f794",
+          "names": [
+            "ib"
+          ],
+          "pc": "0x204f7c6",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x204f7e6",
+          "names": [
+            "tflush"
+          ],
+          "pc": "0x204f808",
+          "kind": "indirect",
+          "instruction": "call r6"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x2050056",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x2050248",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x205027a",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x20502d6",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x20503a6",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x2050400",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x20505aa",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x205063e",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x2051736",
+          "names": [
+            "lunar_project_units_plan"
+          ],
+          "pc": "0x20517c6",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x2051736",
+          "names": [
+            "lunar_project_units_plan"
+          ],
+          "pc": "0x20517ea",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x205327c",
+          "names": [
+            "lunar_project_engines_release"
+          ],
+          "pc": "0x2053298",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20532bc",
+          "names": [
+            "lunar_project_engines_stage"
+          ],
+          "pc": "0x2053400",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x20532bc",
+          "names": [
+            "lunar_project_engines_stage"
+          ],
+          "pc": "0x2053420",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2053486",
+          "names": [
+            "lunar_project_engines_apply"
+          ],
+          "pc": "0x205356a",
+          "kind": "indirect",
+          "instruction": "call r4"
+        },
+        {
+          "caller": "0x2053486",
+          "names": [
+            "lunar_project_engines_apply"
+          ],
+          "pc": "0x205358e",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x20535d8",
+          "names": [
+            "lunar_project_adopt_audio_units"
+          ],
+          "pc": "0x20537e6",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x20535d8",
+          "names": [
+            "lunar_project_adopt_audio_units"
+          ],
+          "pc": "0x205384c",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20535d8",
+          "names": [
+            "lunar_project_adopt_audio_units"
+          ],
+          "pc": "0x2053954",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053a7a",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053b08",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053b84",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053c50",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053c92",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053cb0",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x205509a",
+          "names": [
+            "slot_upto"
+          ],
+          "pc": "0x20550b4",
+          "kind": "indirect",
+          "instruction": "call r6"
+        },
+        {
+          "caller": "0x20550d8",
+          "names": [
+            "apply_write"
+          ],
+          "pc": "0x20550ea",
+          "kind": "indirect",
+          "instruction": "call r4"
+        },
+        {
+          "caller": "0x20550d8",
+          "names": [
+            "apply_write"
+          ],
+          "pc": "0x20550fa",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x20550d8",
+          "names": [
+            "apply_write"
+          ],
+          "pc": "0x2055114",
+          "kind": "indirect",
+          "instruction": "call r4"
+        },
+        {
+          "caller": "0x2055118",
+          "names": [
+            "run_tick_slots"
+          ],
+          "pc": "0x205512e",
+          "kind": "indirect",
+          "instruction": "call r6"
+        },
+        {
+          "caller": "0x20553f0",
+          "names": [
+            "fm1_fx_render"
+          ],
+          "pc": "0x2055612",
+          "kind": "indirect",
+          "instruction": "call r4"
+        },
+        {
+          "caller": "0x20553f0",
+          "names": [
+            "fm1_fx_render"
+          ],
+          "pc": "0x2055678",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x205567e",
+          "names": [
+            "render_fx"
+          ],
+          "pc": "0x2055700",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x205567e",
+          "names": [
+            "render_fx"
+          ],
+          "pc": "0x2055788",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x2055e72",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x20573d4",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x20575a6",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x2057648",
+          "kind": "indirect",
+          "instruction": "call r4"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x205769a",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x20576d4",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x2057700",
+          "kind": "indirect",
+          "instruction": "call r4"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x2057710",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x2057738",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x205774e",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x2057774",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x2057868",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x20578a8",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x20578c2",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x20578e8",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x205792c",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x205c610",
+          "names": [
+            "draw"
+          ],
+          "pc": "0x205dd66",
+          "kind": "indirect",
+          "instruction": "call r10"
+        },
+        {
+          "caller": "0x205eee2",
+          "names": [
+            "fm1_cstart"
+          ],
+          "pc": "0x205f1fe",
+          "kind": "indirect",
+          "instruction": "call r0"
+        },
+        {
+          "caller": "0x205eee2",
+          "names": [
+            "fm1_cstart"
+          ],
+          "pc": "0x205f2c8",
+          "kind": "indirect",
+          "instruction": "call r0"
+        },
+        {
+          "caller": "0x205eee2",
+          "names": [
+            "fm1_cstart"
+          ],
+          "pc": "0x205fb30",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x205eee2",
+          "names": [
+            "fm1_cstart"
+          ],
+          "pc": "0x205fb74",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x206d8d0",
+          "names": [
+            "putchar_via_gadget"
+          ],
+          "pc": "0x206d8e6",
+          "kind": "indirect",
+          "instruction": "goto r3"
+        }
+      ]
+    }
+  },
+  "hardware_admitted": false,
+  "inventory_sha256": "58fbd7c36e570db6b55f413f7912f9c82841fb5b31a2d68d6664e247b4e9c48b",
+  "decoding_limits_total": 0
+}

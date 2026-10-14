@@ -202,3 +202,32 @@ and application wrapper/sink callbacks, resolve instruction decoding gaps,
 then bound caller/IRQ overlap and verify target timing before fresh backups
 and physical admission. Settings migration, physical rollback and the full
 web-installable thirteen-engine release remain unfinished.
+
+## Correct r3 decoding checkpoint (2026-10-13)
+
+[verified] The apparent floating-point decoding gaps in the earlier full
+objdump output were caused by missing CPU selection. Vendor objdump -d
+-mcpu=r3 on the identical all13-v3 ELF succeeds with empty stderr and produces
+SHA256 46ff199b5288a37be1f7e3f155cf93bce765b9cf888d31cb8110648740de6e38.
+The same bytes previously split into an unknown prefix and a misleading
+conditional branch now decode as one four-byte iff floating-point instruction.
+The address inventory now recognizes both if and iff branch mnemonics.
+
+[verified] Regenerating the inventory and exact-ELF Macro expansion records
+zero decoding-limit instructions and removes the previous false external
+branch sites. The candidate startup graph reaches 1065 functions with 27
+callback rules and 16 unresolved indirect sites. This supersedes the prior
+24-site result; it does not prove callback provenance, stack safety or timing.
+Receipts: disassembly-r3.json, address-inventory-r3-summary.json and
+project-callback-r3.json. Full disassembly and address graph are private build
+artifacts; no vendor ELF is committed.
+
+Use objdump -d -mcpu=r3 for subsequent startup inventories, then run
+inventory-target-callbacks.py SOURCE ELF DISASSEMBLY LAYOUT OUTPUT and
+expand-project-callbacks.py INVENTORY OUTPUT ELF SOURCE. The probe builder's
+RAM-section disassembly now explicitly selects the same CPU as its linker.
+The existing key audit has not been changed or revalidated by this checkpoint.
+
+Next: resolve Schwung and application callbacks, then caller/IRQ stack overlap
+and target timing. No device command was issued. Full thirteen-engine release,
+settings migration, physical rollback and web installation remain unfinished.

@@ -355,7 +355,7 @@ def main():
     audit = json.loads(receipt.read_text())
     if not audit['passed'] or audit['n_pending']:
         raise SystemExit('SDK-free audit has failed or pending checks')
-    disassembly = subprocess.check_output([objdump, '-d', '-j', '.ram_text', str(elf)], text=True)
+    disassembly = subprocess.check_output([objdump, '-d', '-mcpu=r3', '-j', '.ram_text', str(elf)], text=True)
     (out / 'ram-text.txt').write_text(disassembly)
     if re.search(r'\bcall\b', disassembly):
         raise SystemExit('RAM flash code contains a call')

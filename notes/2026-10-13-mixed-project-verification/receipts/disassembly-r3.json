@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/home/claude/mvave-fm1/sdk-v1213/toolchain/current/common/bin/objdump",
+    "-d",
+    "-mcpu=r3",
+    "/home/claude/mvave-fm1/native-external-arenas-16-20261012/out/mixed-project-all13-v3/linked/lunar-app-probe.elf"
+  ],
+  "exit_code": 0,
+  "stderr": "",
+  "elf_sha256": "df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e",
+  "disassembly_sha256": "46ff199b5288a37be1f7e3f155cf93bce765b9cf888d31cb8110648740de6e38",
+  "bytes": 10754003
+}
