@@ -1,0 +1,7 @@
+{
+  "firmware/native/project_store.h": "4b9a36c34c68399d4a29b5388af55585ceb4bb753b654f82c00906a24da3e85c",
+  "engines/state/state_bin.c": "32fc46736bfe9323fbe69dafd93053449b74abec537867b072e6ca65a6866d3d",
+  "engines/state/fm1_state.h": "6f6f597f3c50ff1737de34895a29318a9362f62b3b56c93aef57ffa1efec5800",
+  "tests/native/project_stream.c": "cdb82a64a3cde7803387c551dc64178878fb7fbd6db0bc2c743aa43c042001fe",
+  "tests/test_native_project_stream.py": "60dfc6a582654559c93a1edced9544bfa6c358a6a1397363aca716eb6c50a0d4"
+}

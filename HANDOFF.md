@@ -2864,3 +2864,20 @@ partial-byte interruption/generation-wrap coverage, resolve device capacity,
 then application SAVE wiring. All13 watched boot/migration/physicalrollback/web
 installer/custombuilder/license/reviewCI remain open. Do not replay consumed
 physical writer or ROM upload. Previous verified pushedc6c7c5c08c3311b5b7297759f78fd913520ebc8f.
+
+## Project codec/transaction fault integration checkpoint (2026-10-13)
+
+[verified] Compact serializer streams through project_store; real binary reader
+validates before commit and after reconstructed startup scan. Nine goldenfiles
+roundtrip. FIRST ORBIT changes session transpose; all793 flashop positions tested
+in rejected/half-torn/full-but-lost-ack modes:2379 failures followed by startup
+scan and correct old/new canonical record comparison. Previous slot byte-identical;
+inactive starts stalezeros; failed transactions block further writes without
+manual deactivation.30 tests/30 Hera ASanUBSan chunks pass, all logs/exits/noOOM/
+five hashes checked. Evidence notes/2026-10-13-project-stream-verification/.
+Final session12184 terminal0, no liveworker/no hardwareop. Production codec/store
+unchanged; actual end-to-end integration is the simulated test harness. Next
+production bridge/HAL allocation, generationwrap/ambiguity and bytecut coverage.
+200KiB maxslot allocation unresolved; installed13engine watched boot pending.
+Fullrelease webinstaller/custombuilder/migration/physicalrollback/licensing/
+reviewCI remain open. Previous verified pushed8222fff252879fe2c36ff7ce578a7bfaae389495.
