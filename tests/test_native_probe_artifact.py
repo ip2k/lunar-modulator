@@ -9,7 +9,8 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools/native'))
 from probe_artifact import FLASH, ENTRY_GUARD, flatten
 import probe_artifact
-from flash_layout import app_budget, linker_script
+from flash_layout import (FLASH_LAYOUTS, EXPANDED_D7000_STAGE_END,
+                          EXPANDED_D7000_STAGE_START, app_budget, linker_script)
 
 
 def fixture(pool=0x01C20000, pool_size=16, text_size=0x4C):
@@ -60,8 +61,8 @@ def valid_layout():
     assert app[-8:] == b'RAM!DATA'
 
 
-@pytest.mark.parametrize('profile', ['protected', 'expanded-d9000'])
-@pytest.mark.parametrize('extra', [0, 4, 8, 12])
+@pytest.mark.parametrize('profile', ['protected', 'expanded-d7000', 'expanded-d9000'])
+@pytest.mark.parametrize('extra', [0, 1, 4, 8, 12])
 def test_full_flash_load_budget(profile, extra):
     # Include the RAM-code/data initializers, not just XIP text, at the boundary.
     data = fixture(text_size=app_budget(profile) - 8 + extra)
@@ -85,15 +86,24 @@ def test_layout_budget_and_pinned_linker():
     source = (Path(__file__).resolve().parents[1] / 'firmware/native/app.ld').read_text()
     assert app_budget('expanded-d9000') == 868836
     assert app_budget('expanded-d9000') + 0x4120 + 384 + 2940 == 0xD9000
+    assert FLASH_LAYOUTS == ('protected', 'expanded-d7000', 'expanded-d9000')
+    assert app_budget() == app_budget('protected')
+    assert app_budget('expanded-d7000') == 860644
+    assert app_budget('expanded-d7000') + 0x4120 + 384 + 2940 == EXPANDED_D7000_STAGE_START
+    assert EXPANDED_D7000_STAGE_END - EXPANDED_D7000_STAGE_START == 2 * 4096
     assert linker_script(source) == source
-    expected = source.replace('LENGTH = 0x8DFBC', 'LENGTH = 0xD41E4', 1)
-    assert linker_script(source, 'expanded-d9000') == expected
+    expected_d7000 = source.replace('LENGTH = 0x8DFBC', 'LENGTH = 0xD21E4', 1)
+    assert linker_script(source, 'expanded-d7000') == expected_d7000
+    expected_d9000 = source.replace('LENGTH = 0x8DFBC', 'LENGTH = 0xD41E4', 1)
+    assert linker_script(source, 'expanded-d9000') == expected_d9000
     for bad in ('unknown', '', None):
         with pytest.raises(ValueError, match='Unknown flash layout'):
             flatten(fixture(), flash_layout=bad)
         with pytest.raises(ValueError, match='Unknown flash layout'):
             linker_script(source, bad)
     for bad_source in (source.replace('0x8DFBC', '0x8DFB8'), source + source):
+        with pytest.raises(ValueError, match='Pinned XIP'):
+            linker_script(bad_source, 'expanded-d7000')
         with pytest.raises(ValueError, match='Pinned XIP'):
             linker_script(bad_source, 'expanded-d9000')
 
