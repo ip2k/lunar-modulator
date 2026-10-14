@@ -33,7 +33,7 @@ SOURCES = {
     'jieli/raw_flash_profile.py': '43e4d23f665fac1a73dee2b5ae6e05bc5c3d0ab9bee04b886abad34c6289ae8f',
     'jieli/raw_sdk_diagnostic.py': '8c59b67da2c5b66d48dacadf4d90e48bd80272d1868fab21b2a3a80eb1496f07',
     'jieli/audit_sdk_diagnostic.py': 'e8ce7a43e43ef127ecaf87db55578b7cad7bb1a926f2be3ce92b8688ae7dff8b',
-    'jieli/audit_link.py': '673daa193891462147e1aab1082e62f339508e801e14de80a4cfabcca9828252',
+    'jieli/audit_link.py': 'c53c79006090d7d3a7b0ea2383d3fa4c52950eb5cf3921807925708f76453103',
     'jieli/diagnostic_report.py': 'd85f2ca1dd70adc015b724b46d3c332c307509ad91fa6faa86adc5fc45e755cf',
     'jieli/inspect_fwsc.py': '2c7a3b61d41366755d457b03d6029c7d9b331b07961335e67e1892fe6168b820',
     'jieli/inspect_stock_flash.py': 'de68a7d862e18adcce066bc6309364830ecfeb9dac6147fe9178384aae98e34b',

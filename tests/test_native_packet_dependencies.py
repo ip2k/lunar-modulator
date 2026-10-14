@@ -63,6 +63,31 @@ assert boot.legacy.reset.RESET_CDB.hex() == 'fc0c00000001ffffffffffffffffffff'
                           capture_output=True, text=True, timeout=30)
 
 
+def test_audit_link_source_pin_matches_current_reviewed_bytes():
+    relative = "jieli/audit_link.py"
+    expected = PREPARER.TOOL_PINS[relative]
+    assert PREPARER.REPOSITORY_PINS["tools/" + relative] == expected
+    assert PREPARER.digest((ROOT / "tools" / relative).read_bytes()) == expected
+
+
+def test_sdk_rehearsal_source_pin_matches_current_reviewed_bytes():
+    relative = "fm1_sdk_rehearsal.py"
+    expected = PREPARER.TOOL_PINS[relative]
+    source = ROOT / "tools" / relative
+    assert PREPARER.digest(source.read_bytes()) == expected
+    spec = importlib.util.spec_from_file_location("pinned_sdk_rehearsal", source)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    audit = ROOT / "tools/jieli/audit_link.py"
+    assert PREPARER.digest(audit.read_bytes()) == module.SOURCES["jieli/audit_link.py"]
+    wrapper = ROOT / "tools/fm1_bound_sdk_trace.py"
+    wrapper_spec = importlib.util.spec_from_file_location("pinned_sdk_trace_wrapper", wrapper)
+    wrapper_module = importlib.util.module_from_spec(wrapper_spec)
+    wrapper_spec.loader.exec_module(wrapper_module)
+    assert wrapper_module.REHEARSAL_SHA == expected
+    assert PREPARER.digest(wrapper.read_bytes()) == PREPARER.TOOL_PINS["fm1_bound_sdk_trace.py"]
+
+
 def test_complete_packet_imports_without_repository_path(tmp_path):
     packet = tmp_path / 'tools'
     copy_packet(packet)
