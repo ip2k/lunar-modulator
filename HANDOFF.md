@@ -1,3 +1,18 @@
+# Frozen diagnostic rebuild and flash factory in progress — 2026-10-14
+
+Owner missed device54 watched run; no powercycle requested. Automatic C4 pulse
+candidate c240999c remains UNINSTALLED. Its manual build did not capture a full
+build-time toolchain snapshot/digest; retrospective hashing cannot close that
+gap. A fresh exact66196 frozen-input build is assigned to installer worker.
+Generic diagnostic factory and independent offline review are assigned in
+parallel. Root has made no new read/boot/program request; last ROM55 observation
+requires refresh before admission. Performance review08283f08 integrated as
+2b74da9c: source suggests TFT scan floor76.8ms, but establishes no audio-deadline
+fault. Next: review frozen build evidence and factory, then fresh paired read,
+rehearsal, bounded install/readback and automatic-note analogue capture.
+Worker note518b8484 and review08283f08 have verified GitHub branch backups.
+All SAVE, independent recovery, physical audio and release gates remain open.
+
 # Corrected Trio target built, not installed — 2026-10-14
 
 Hera built exact source66196f54: app3de52e9b (807320B), ELFa07fbd8e,
