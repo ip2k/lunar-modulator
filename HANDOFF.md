@@ -1,4 +1,26 @@
-# Latest continuation authority — 2026-10-14 (identity and fresh boot)
+# Latest continuation authority — 2026-10-14 (continuous link and package)
+
+[verified] Fresh device40 paired reads matched installed Event120 target;
+one consumed boot command produced native USB device41 and returned to ROM
+device42. Owner screen/audio/control observations remain pending. See
+`notes/2026-10-14-event120-repeat40-hardware.md`; do not reuse consumed campaigns.
+Event Horizon Showcase is owner-approved as the default song.
+
+[verified] Continuous FM-1_500 all-thirteen-engine/55-module target now links
+at 845,336 bytes, with 15,308 bytes of D7000 app budget remaining. See
+`notes/2026-10-14-continuous500-target-link.md`. This is not installed.
+The private FM-1_500 song-diagnostic FWSC composer is integrated, checked on
+Hera and GitHub-backed at worker `7850aed1`; updater acceptance remains false.
+SAVE remains unbound/disarmed; NOR timing/IRQ/watchdog evidence limits are in
+`notes/2026-10-14-nor-part-interrupt-evidence.md` (official tables visually
+rechecked by both worker and coordinator).
+
+CI fixture portability repair `b41b325b` is integrated; Mac six-file checks
+are running, Linux six-file result 250 passed/71 skipped. New exact-head CI
+still required. Active worker reviews package/loader acceptance offline.
+Overall physical/web release goal remains ACTIVE, with no main merge or shipment.
+
+# Historical continuation authority — 2026-10-14 (identity and fresh boot)
 
 [verified] Base `712a1f1ac1ae579f9dfb1e3230224ab950b44f67` is GitHub
 backed up and integrates the strict offline 092 model, independent upstream
