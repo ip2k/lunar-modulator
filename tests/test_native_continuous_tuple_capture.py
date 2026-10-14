@@ -206,6 +206,42 @@ def test_selection_receipt_requires_exact_prepared_build_inputs_status():
 
 
 
+def test_inspection_mounts_use_exact_sorted_docker_contract():
+    from capture_trusted_build_tuple import _verify_inspection_mounts
+
+    rows = [
+        {"source": "/workspace-src", "destination": "/workspace", "read_only": True},
+        {"source": "/request.json", "destination": "/input/request.json", "read_only": True},
+        {"source": "/toolchain", "destination": "/opt/pi32v2", "read_only": True},
+        {"source": "/catalogue", "destination": "/catalogue", "read_only": True},
+        {"source": "/output", "destination": "/output", "read_only": False},
+    ]
+    actual = dict(container_name="/lunar-continuous-0123456789abcdef01234567",
+                  mounts=sorted(rows, key=lambda row: row["destination"]))
+    _verify_inspection_mounts(actual, rows, "lunar-continuous-0123456789abcdef01234567")
+
+    with pytest.raises(ValueError, match="exact name"):
+        _verify_inspection_mounts(dict(actual, container_name="lunar-continuous-0123456789abcdef01234567"),
+                                  rows, "lunar-continuous-0123456789abcdef01234567")
+    with pytest.raises(ValueError, match="exact name"):
+        _verify_inspection_mounts(dict(actual, container_name="//lunar-continuous-0123456789abcdef01234567"),
+                                  rows, "lunar-continuous-0123456789abcdef01234567")
+    with pytest.raises(ValueError, match="exact name"):
+        _verify_inspection_mounts(dict(actual, container_name="/lunar-continuous-ffffffffffffffffffffffff"),
+                                  rows, "lunar-continuous-0123456789abcdef01234567")
+
+    changed_path = [dict(row) for row in actual["mounts"]]
+    changed_path[0]["source"] = "/other/output"
+    with pytest.raises(ValueError, match="exact fixed mounts"):
+        _verify_inspection_mounts(dict(actual, mounts=changed_path), rows,
+                                  "lunar-continuous-0123456789abcdef01234567")
+    changed_mode = [dict(row) for row in actual["mounts"]]
+    changed_mode[0]["read_only"] = False
+    with pytest.raises(ValueError, match="exact fixed mounts"):
+        _verify_inspection_mounts(dict(actual, mounts=changed_mode), rows,
+                                  "lunar-continuous-0123456789abcdef01234567")
+
+
 def test_worker_source_and_provenance_have_distinct_invocation_pins(tmp_path):
     from capture_trusted_build_tuple import _read_pinned_worker_source, _verify_worker_bindings
 
