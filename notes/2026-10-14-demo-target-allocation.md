@@ -1,28 +1,27 @@
 # Demo project target allocation: bounded offline evidence
 
-This note asks whether the host startup refusals for Satellite Hearts and Afterglow Relay Showcase imply target pool exhaustion. Work is offline and compile-only; there was no device, MIDI, USB, flash, power, reboot, or runtime test. Source base is f3779b78082cceec74852120306efcaca15abcf4.
+This note evaluates whether host startup refusals for Satellite Hearts and Afterglow Relay Showcase imply target pool exhaustion. Work was compile-only and static arithmetic; no device, MIDI, USB, flash, power, reboot, or runtime startup test occurred. Target source base is f3779b78082cceec74852120306efcaca15abcf4.
 
-## What is measured
+## Pool and measurements
 
-The matched all-production full-song target link receipt is notes/2026-10-14-all13-fullsong-link-comparison/chunk-codec-followup/target-verification.json (retained in the successful build tree at /home/claude/mvave-fm1/all13-fullsong-link-comparison-v1/chunk-codec-followup-v1/target-link/build/verification.json). Its release-config pool is **216,064 B**, computed as 192,000 base + 57,088 indexed-TFT app credit - 33,024 B raw wavetable storage. The JSON identifies the wavetable record as compressed and the all-production catalogue; its startup project remains runtime-unverified. This is link/configuration evidence, not a guarantee that a specific project starts.
+The retained all-production full-song target link configures a **216,064 B** pool: 192,000 + 57,088 indexed-TFT credit - 33,024 raw wavetable storage. This is link/configuration evidence only; the linked candidate says installable=false, hardware_candidate=false, hardware_tested=false, startup_project.runtime_verified=false.
 
-Compile-time sizeof constants emitted by the real pi32v2 JieLi clang on current source give: Shapes 206,904 B, Macro 19,872 B, Drums 7,648 B, Echo 65,744 B. The equivalent Macro host sizeof is 32,736 B. Full object hashes and retained artifacts are in notes/2026-10-14-demo-target-allocation/current-evidence.txt. These are instance payload sizes, not complete project totals. lunar_instance_pool_alloc adds a 16 B header, and all allocations are rounded to 16-byte boundaries. Thus a Shapes allocation consumes 206,920 B and leaves just **9,144 B gross** from the configured pool before TLSF overhead or any coexisting engine.
+Unit type sizes were emitted as constants by JieLi pi32v2 clang 4.0.1 and decoded with tools/jieli/analyze.py. Rate-dependent Hall and Limit requests were calculated from their checked MakeLayout formulas at 44,118 Hz using their target-compiler-measured Instance sizes. Exact values, object hashes, formulas, compiler flags, and pool calculations are in [remaining-unit-sizes.txt](2026-10-14-demo-target-allocation/remaining-unit-sizes.txt).
 
-## Interpretation by project
+The pool charges each request as round16(payload)+16-byte header. Modeled project charges, in canonical sound-unit, insert, then master-effect order:
 
-**Satellite Hearts:** its project contains Shapes plus Comet and two Drawbar units. Shapes alone leaves only 9,144 B gross. Follow-up accounting records Comet 10,240 B and Drawbar 5,072 B target payloads. Shapes + Comet + two Drawbars plus four 16-byte pool headers total 232,424 B, already 16,360 B above the 216,064 B gross pool before Hall/Limit or allocator overhead. This static comparison does not establish a runtime refusal site or device startup. See remaining-unit-sizes.txt for evidence limits.
+| Project | Modeled charge | Gross pool result |
+|---|---:|---:|
+| Satellite Hearts | 289,224 B | 73,160 B over |
+| Afterglow Relay Showcase | 192,208 B | 23,856 B left |
+| Packet Bloom Showcase | 222,160 B | 6,096 B over |
 
-**Afterglow Relay Showcase:** it contains Drums, two Macro units, DX7, and filter/drive/echo effect units. The measured target subtotal of Drums + two Macro + Echo is 113,136 B payload (at least 113,200 B including three 16 B headers), leaving about 102,864 B gross for DX7, Filter and Drive plus other project overhead. This subtotal suggests that the host refusal cannot be carried over directly: host Macro is larger (32,736 B versus 19,872 B target), and the host harness used a fixed 192,000 B pool. However, the exact target sizes of DX7/Filter/Drive and exact all-unit total were not computed, so target fit is **unresolved**, not confirmed. Target Echo's 65,744 B happens to equal the host test's recorded largest request for Afterglow, but the host metric is a maximum across all observed requests and does not identify a failed allocation or module.
+Satellite cumulative modeled reservation crosses the pool at Shapes (222,264 B), before its second Drawbar and master effects. Packet Bloom crosses at Limit. Those are static sums, not observed runtime refusal sites. Afterglow static gross sum leaves room, but this does not prove runtime fit because fragmentation, other pool clients, constructor failures, and simultaneous allocations are not measured. The legacy packet-bloom.lunar is a different selection and was not separately totaled.
 
-The retained host rerun reports Afterglow refusal code 5 and Satellite refusal code 5 with largest-request metrics; that test's fixed 192,000 B 64-bit host pool is not the release target pool. Do not interpret those maximum-request fields as the failing request. The host harness is useful for refusal/cleanup invariants only.
+The host harness used a fixed 192,000 B pool and 64-bit objects; host Macro is 32,736 B versus 19,872 B on target. Its largest_allocation_request is the maximum across all observed allocations, not the proven failed request, so it cannot identify a failing unit. Sequencer staging is freed before engine reservations and is not part of the later simultaneous engine total.
 
-## Scope and limitations
+## Limits and next step
 
-Target sizes came from compiler-emitted constants, not execution. Some probes required compile-only header shims because the staged Hera SDK standard C++ headers were absent; those shims supplied declarations only, did not substitute project types or alter the source structs. The target compiler's object layout is relevant evidence, but native-runtime allocation, TLSF fragmentation, module constructor success, audio behavior and actual FM-1 startup remain untested. The successful link is marked installable=false, hardware_candidate=false, hardware_tested=false, and startup_project.runtime_verified=false.
+Compile-time layout plus source-formula evaluation does not execute target functions, test TLSF fragmentation, prove constructors succeed, or validate audio/startup on an FM-1. No supported states/features or physical flash layout changed.
 
-No project acceptance, supported-state reduction, engine removal, pool-size change, or storage-layout change is authorized by these measurements.
-
-## Next step
-
-Run targeted compile-only probes inside the documented JieLi SDK header container for Hall/Limit at 44,118 Hz and Crater/Phase Bend/Macro Heavy/Sophie; include Sophie module arena. The earlier direct compile failed because SDK libc++ headers were absent in sizes_SHAPES.log. Use tools/jieli/analyze.py to extract only size constants, not linked-image disassembly. Static totals are not runtime acceptance.
-
+Next, use the bounded native target startup harness to compare these static predictions with actual allocator/constructor behavior. Keep that evidence separate from device acceptance, which requires the owner explicitly authorized hardware stage.
