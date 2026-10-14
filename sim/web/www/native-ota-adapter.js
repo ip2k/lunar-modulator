@@ -96,7 +96,10 @@ export function createNativeOtaAdapter({ packageAdmission, clock = defaultClock 
     if (!(packageBytes instanceof Uint8Array) || packageBytes.length === 0) {
       throw new TypeError('package bytes must be a nonempty Uint8Array');
     }
-    const verified = await packageAdmission.verify(packageBytes.slice());
+    // Capture before awaiting: caller-owned bytes can change while verification
+    // is pending. Keep a separate snapshot from the verifier's working copy.
+    const packageSnapshot = Uint8Array.from(packageBytes);
+    const verified = await packageAdmission.verify(Uint8Array.from(packageSnapshot));
     if (!verified || verified.format !== 'lunar-native-package-admission-v1' ||
         !(verified.logicalImage instanceof Uint8Array) || verified.logicalImage.length === 0 ||
         typeof verified.logicalImageSha256 !== 'string') {
@@ -111,7 +114,7 @@ export function createNativeOtaAdapter({ packageAdmission, clock = defaultClock 
     }
     const image = verified.logicalImage.slice();
     const digest = await sha256Hex(image);
-    const packageDigest = await sha256Hex(packageBytes);
+    const packageDigest = await sha256Hex(packageSnapshot);
     if (digest !== verified.logicalImageSha256.toLowerCase()) {
       throw new Error('package verifier logical-image digest does not match its bytes');
     }

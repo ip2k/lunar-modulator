@@ -58,6 +58,37 @@ function linkFor(fake, options) {
   return new Link(fake.input, fake.output, options);
 }
 
+test('admission pins one package snapshot across asynchronous verification', async () => {
+  const packageBytes = Uint8Array.of(9, 8, 7);
+  const image = Uint8Array.of(1, 2, 3, 4);
+  const hash = async (bytes) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
+    .map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  const expectedPackageSha = await hash(packageBytes);
+  const imageSha = await hash(image);
+  let release;
+  let started;
+  const entered = new Promise((resolve) => { started = resolve; });
+  const waiting = new Promise((resolve) => { release = resolve; });
+  const adapter = createNativeOtaAdapter({ packageAdmission: {
+    async verify(bytes) {
+      assert.deepEqual(bytes, Uint8Array.of(9, 8, 7));
+      started();
+      await waiting;
+      // Even a verifier's working copy must not change the pinned package hash.
+      bytes.fill(0);
+      return { format: 'lunar-native-package-admission-v1', product: 'FM-1_015',
+        model: 'FM-1', version: 15, logicalImage: image, logicalImageSha256: imageSha };
+    },
+  } });
+  const pending = adapter.admitPackage(packageBytes, 'FM-1_015');
+  await entered;
+  packageBytes.fill(42);
+  release();
+  const admission = await pending;
+  assert.equal(admission.packageSha256, expectedPackageSha);
+  assert.equal(admission.sha256, imageSha);
+});
+
 test('strict request parser checks framing, body count, decoded size, and checksum', () => {
   const good = request({ addr: 0x1234, length: 512 });
   assert.deepEqual(parseRequest(good), { fl: 0, addr: 0x1234, len: 512 });
