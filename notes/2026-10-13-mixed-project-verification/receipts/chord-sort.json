@@ -1,0 +1,58 @@
+{
+  "scope": "four-element ChordBank call context; not a whole startup bound",
+  "elf_sha256": "df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e",
+  "disassembly_sha256": "46ff199b5288a37be1f7e3f155cf93bce765b9cf888d31cb8110648740de6e38",
+  "inventory_sha256": "58fbd7c36e570db6b55f413f7912f9c82841fb5b31a2d68d6664e247b4e9c48b",
+  "table_receipt_sha256": "34d823adb1c46dd8a2d2efa3c3d6bee068b2575749a38be9dca09bc6e7c4b783",
+  "header_sha256": "3333c617479285188887caf55bb9fbc0f9854db973d8909298d052ec7d410119",
+  "caller": "0x2063548",
+  "sort": "0x206332a",
+  "element_count": 4,
+  "compiled_instruction_assertions": {
+    "0x2063578": "r1 = r5 + 16",
+    "0x206357a": "r0 = r5",
+    "0x206332e": "r14 = r1",
+    "0x2063330": "r15 = r0",
+    "0x2063346": "r7 = r15",
+    "0x2063352": "r15 = r7",
+    "0x20633b2": "r1 = r14 - r15",
+    "0x20633b6": "r0 = r1 >>> 2",
+    "0x2063498": "tbb [r0]",
+    "0x206351a": "r1 = r15 + 4",
+    "0x206351e": "r2 = r15 + 8",
+    "0x2063522": "r0 = r15",
+    "0x2063524": "r3 = r8",
+    "0x2063506": "sp += 4",
+    "0x2063508": "{pc, r15-r4} = [sp++]",
+    "0x206332a": "[--sp] = {rets, r15-r4}",
+    "0x206332c": "sp += -4",
+    "0x20631da": "[--sp] = {rets, r6-r4}",
+    "0x2063192": "[--sp] = {rets, r6-r4}",
+    "0x2063548": "[--sp] = {rets, r7-r4}"
+  },
+  "entry_path": [
+    "0x2063348",
+    "0x2063352",
+    "0x2063354",
+    "0x20633b2",
+    "0x20633b6",
+    "0x20633b8",
+    "0x2063498",
+    "0x206351a"
+  ],
+  "recursive_sort_frames_in_this_context": 1,
+  "small_sort_frame_bytes": {
+    "sort": 56,
+    "sort4": 16,
+    "sort3": 16
+  },
+  "small_sort_chain_bytes": 88,
+  "chord_caller_frame_bytes": 20,
+  "limits": [
+    "conditional on valid chord storage and the recorded table-target model",
+    "direct caller inventory does not exclude address-taken or external entry paths",
+    "ratio normalization path, outer callers and IRQ overlap require separate bounds",
+    "no complete startup stack bound, timing or hardware admission"
+  ],
+  "hardware_admitted": false
+}

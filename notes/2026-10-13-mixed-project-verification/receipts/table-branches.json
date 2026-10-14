@@ -1,0 +1,3426 @@
+{
+  "scope": "table-branch obligations supplementary to candidate call coverage",
+  "elf_sha256": "df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e",
+  "disassembly_sha256": "46ff199b5288a37be1f7e3f155cf93bce765b9cf888d31cb8110648740de6e38",
+  "inventory_sha256": "58fbd7c36e570db6b55f413f7912f9c82841fb5b31a2d68d6664e247b4e9c48b",
+  "candidate_receipt_sha256": "fc98cfe1cef1c569c41618edf55a26dd4293a96b7ebc6d3b3cf98181dfcfab98",
+  "compiler_assembly_sha256": "020fc29b10998ae04f403ab2dee1042ad28ab7069229263318eee6eaa199713a",
+  "table_target_model": "table_start + 2 * unsigned encoded offset; conditional on valid aligned index",
+  "reachable_functions": 1133,
+  "table_branch_sites": [
+    {
+      "pc": "0x20002ca",
+      "caller": "0x200028c",
+      "names": [
+        "fm1_arp_set_param"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x20002cc",
+      "table_end": "0x20002da",
+      "entry_bytes": 1,
+      "entry_count": 14,
+      "encoded_offsets": [
+        8,
+        8,
+        8,
+        8,
+        11,
+        7,
+        7,
+        7,
+        7,
+        7,
+        7,
+        31,
+        41,
+        0
+      ],
+      "modeled_targets": [
+        "0x20002dc",
+        "0x20002dc",
+        "0x20002dc",
+        "0x20002dc",
+        "0x20002e2",
+        "0x20002da",
+        "0x20002da",
+        "0x20002da",
+        "0x20002da",
+        "0x20002da",
+        "0x20002da",
+        "0x200030a",
+        "0x200031e",
+        "0x20002cc"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2000ade",
+      "caller": "0x2000874",
+      "names": [
+        "begin_step"
+      ],
+      "instruction": "tbh [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x2000ae0",
+      "table_end": "0x2000b02",
+      "entry_bytes": 2,
+      "entry_count": 17,
+      "encoded_offsets": [
+        49,
+        59,
+        81,
+        104,
+        123,
+        17,
+        17,
+        17,
+        941,
+        143,
+        165,
+        186,
+        211,
+        211,
+        211,
+        211,
+        220
+      ],
+      "modeled_targets": [
+        "0x2000b42",
+        "0x2000b56",
+        "0x2000b82",
+        "0x2000bb0",
+        "0x2000bd6",
+        "0x2000b02",
+        "0x2000b02",
+        "0x2000b02",
+        "0x200123a",
+        "0x2000bfe",
+        "0x2000c2a",
+        "0x2000c54",
+        "0x2000c86",
+        "0x2000c86",
+        "0x2000c86",
+        "0x2000c86",
+        "0x2000c98"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x20010dc",
+      "caller": "0x2000874",
+      "names": [
+        "begin_step"
+      ],
+      "instruction": "tbb [r0]",
+      "candidate_reachable": true,
+      "table_start": "0x20010de",
+      "table_end": "0x20010e2",
+      "entry_bytes": 1,
+      "entry_count": 4,
+      "encoded_offsets": [
+        2,
+        3,
+        120,
+        127
+      ],
+      "modeled_targets": [
+        "0x20010e2",
+        "0x20010e4",
+        "0x20011ce",
+        "0x20011dc"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2001394",
+      "caller": "0x2001262",
+      "names": [
+        "arp_process"
+      ],
+      "instruction": "tbh [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x2001396",
+      "table_end": "0x20013a8",
+      "entry_bytes": 2,
+      "entry_count": 9,
+      "encoded_offsets": [
+        9,
+        256,
+        270,
+        290,
+        304,
+        312,
+        323,
+        338,
+        346
+      ],
+      "modeled_targets": [
+        "0x20013a8",
+        "0x2001596",
+        "0x20015b2",
+        "0x20015da",
+        "0x20015f6",
+        "0x2001606",
+        "0x200161c",
+        "0x200163a",
+        "0x200164a"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2006e26",
+      "caller": "0x2006e16",
+      "names": [
+        "_ZL13FiltSetTargetP14FilterInstancei"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x2006e28",
+      "table_end": "0x2006e30",
+      "entry_bytes": 1,
+      "entry_count": 8,
+      "encoded_offsets": [
+        4,
+        19,
+        102,
+        104,
+        106,
+        108,
+        110,
+        112
+      ],
+      "modeled_targets": [
+        "0x2006e30",
+        "0x2006e4e",
+        "0x2006ef4",
+        "0x2006ef8",
+        "0x2006efc",
+        "0x2006f00",
+        "0x2006f04",
+        "0x2006f08"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2006f4c",
+      "caller": "0x2006f42",
+      "names": [
+        "_ZL13FiltResetTypeP14FilterInstancei"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x2006f4e",
+      "table_end": "0x2006f54",
+      "entry_bytes": 1,
+      "entry_count": 6,
+      "encoded_offsets": [
+        24,
+        3,
+        3,
+        28,
+        52,
+        44
+      ],
+      "modeled_targets": [
+        "0x2006f7e",
+        "0x2006f54",
+        "0x2006f54",
+        "0x2006f86",
+        "0x2006fb6",
+        "0x2006fa6"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x20071ae",
+      "caller": "0x200718c",
+      "names": [
+        "_ZL15FiltUpdateCoefsP14FilterInstancei"
+      ],
+      "instruction": "tbh [r0]",
+      "candidate_reachable": true,
+      "table_start": "0x20071b0",
+      "table_end": "0x20071bc",
+      "entry_bytes": 2,
+      "entry_count": 6,
+      "encoded_offsets": [
+        6,
+        55,
+        116,
+        264,
+        331,
+        385
+      ],
+      "modeled_targets": [
+        "0x20071bc",
+        "0x200721e",
+        "0x2007298",
+        "0x20073c0",
+        "0x2007446",
+        "0x20074b2"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2007842",
+      "caller": "0x2007820",
+      "names": [
+        "_ZL11FiltProcessP14FilterInstanceiPKfPf"
+      ],
+      "instruction": "tbh [r2]",
+      "candidate_reachable": false,
+      "table_start": "0x2007844",
+      "table_end": "0x2007850",
+      "entry_bytes": 2,
+      "entry_count": 6,
+      "encoded_offsets": [
+        6,
+        181,
+        329,
+        612,
+        872,
+        1349
+      ],
+      "modeled_targets": [
+        "0x2007850",
+        "0x20079ae",
+        "0x2007ad6",
+        "0x2007d0c",
+        "0x2007f14",
+        "0x20082ce"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x200a43a",
+      "caller": "0x200a3e0",
+      "names": [
+        "bass303_set_value"
+      ],
+      "instruction": "tbh [r4]",
+      "candidate_reachable": true,
+      "table_start": "0x200a43c",
+      "table_end": "0x200a454",
+      "entry_bytes": 2,
+      "entry_count": 12,
+      "encoded_offsets": [
+        12,
+        48,
+        26,
+        67,
+        30,
+        84,
+        87,
+        104,
+        118,
+        327,
+        352,
+        33
+      ],
+      "modeled_targets": [
+        "0x200a454",
+        "0x200a49c",
+        "0x200a470",
+        "0x200a4c2",
+        "0x200a478",
+        "0x200a4e4",
+        "0x200a4ea",
+        "0x200a50c",
+        "0x200a528",
+        "0x200a6ca",
+        "0x200a6fc",
+        "0x200a47e"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x200c054",
+      "caller": "0x200c046",
+      "names": [
+        "_ZL13FoldSetTargetP12FoldInstancei"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x200c056",
+      "table_end": "0x200c05c",
+      "entry_bytes": 1,
+      "entry_count": 6,
+      "encoded_offsets": [
+        5,
+        50,
+        3,
+        3,
+        14,
+        49
+      ],
+      "modeled_targets": [
+        "0x200c060",
+        "0x200c0ba",
+        "0x200c05c",
+        "0x200c05c",
+        "0x200c072",
+        "0x200c0b8"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x200f486",
+      "caller": "0x200f456",
+      "names": [
+        "d9_shape_prep"
+      ],
+      "instruction": "tbb [r2]",
+      "candidate_reachable": true,
+      "table_start": "0x200f488",
+      "table_end": "0x200f490",
+      "entry_bytes": 1,
+      "entry_count": 8,
+      "encoded_offsets": [
+        4,
+        78,
+        10,
+        22,
+        78,
+        78,
+        49,
+        0
+      ],
+      "modeled_targets": [
+        "0x200f490",
+        "0x200f524",
+        "0x200f49c",
+        "0x200f4b4",
+        "0x200f524",
+        "0x200f524",
+        "0x200f4ea",
+        "0x200f488"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x200f6f6",
+      "caller": "0x200f5dc",
+      "names": [
+        "drum909_set_value"
+      ],
+      "instruction": "tbb [r3]",
+      "candidate_reachable": true,
+      "table_start": "0x200f6f8",
+      "table_end": "0x200f704",
+      "entry_bytes": 1,
+      "entry_count": 12,
+      "encoded_offsets": [
+        6,
+        78,
+        83,
+        88,
+        93,
+        98,
+        103,
+        108,
+        124,
+        124,
+        115,
+        120
+      ],
+      "modeled_targets": [
+        "0x200f704",
+        "0x200f794",
+        "0x200f79e",
+        "0x200f7a8",
+        "0x200f7b2",
+        "0x200f7bc",
+        "0x200f7c6",
+        "0x200f7d0",
+        "0x200f7f0",
+        "0x200f7f0",
+        "0x200f7de",
+        "0x200f7e8"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x200f73a",
+      "caller": "0x200f5dc",
+      "names": [
+        "drum909_set_value"
+      ],
+      "instruction": "tbb [r3]",
+      "candidate_reachable": true,
+      "table_start": "0x200f73c",
+      "table_end": "0x200f744",
+      "entry_bytes": 1,
+      "entry_count": 8,
+      "encoded_offsets": [
+        4,
+        115,
+        115,
+        108,
+        115,
+        115,
+        110,
+        112
+      ],
+      "modeled_targets": [
+        "0x200f744",
+        "0x200f822",
+        "0x200f822",
+        "0x200f814",
+        "0x200f822",
+        "0x200f822",
+        "0x200f818",
+        "0x200f81c"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x200f75a",
+      "caller": "0x200f5dc",
+      "names": [
+        "drum909_set_value"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x200f75c",
+      "table_end": "0x200f766",
+      "entry_bytes": 1,
+      "entry_count": 10,
+      "encoded_offsets": [
+        5,
+        111,
+        111,
+        104,
+        106,
+        111,
+        111,
+        111,
+        111,
+        110
+      ],
+      "modeled_targets": [
+        "0x200f766",
+        "0x200f83a",
+        "0x200f83a",
+        "0x200f82c",
+        "0x200f830",
+        "0x200f83a",
+        "0x200f83a",
+        "0x200f83a",
+        "0x200f83a",
+        "0x200f838"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x200f77a",
+      "caller": "0x200f5dc",
+      "names": [
+        "drum909_set_value"
+      ],
+      "instruction": "tbb [r3]",
+      "candidate_reachable": true,
+      "table_start": "0x200f77c",
+      "table_end": "0x200f784",
+      "entry_bytes": 1,
+      "entry_count": 8,
+      "encoded_offsets": [
+        4,
+        118,
+        100,
+        102,
+        118,
+        118,
+        107,
+        112
+      ],
+      "modeled_targets": [
+        "0x200f784",
+        "0x200f868",
+        "0x200f844",
+        "0x200f848",
+        "0x200f868",
+        "0x200f868",
+        "0x200f852",
+        "0x200f85c"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x200f952",
+      "caller": "0x200f87a",
+      "names": [
+        "_ZN3fm19comet_kit6CreateEPvPK8fm1_host"
+      ],
+      "instruction": "tbb [r8]",
+      "candidate_reachable": true,
+      "table_start": "0x200f954",
+      "table_end": "0x200f958",
+      "entry_bytes": 1,
+      "entry_count": 4,
+      "encoded_offsets": [
+        2,
+        59,
+        110,
+        132
+      ],
+      "modeled_targets": [
+        "0x200f958",
+        "0x200f9ca",
+        "0x200fa30",
+        "0x200fa5c"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2010544",
+      "caller": "0x201049a",
+      "names": [
+        "_ZN3fm19comet_kit6NoteOnEPvhh"
+      ],
+      "instruction": "tbh [r0]",
+      "candidate_reachable": false,
+      "table_start": "0x2010546",
+      "table_end": "0x2010554",
+      "entry_bytes": 2,
+      "entry_count": 7,
+      "encoded_offsets": [
+        244,
+        258,
+        7,
+        7,
+        7,
+        318,
+        384
+      ],
+      "modeled_targets": [
+        "0x201072e",
+        "0x201074a",
+        "0x2010554",
+        "0x2010554",
+        "0x2010554",
+        "0x20107c2",
+        "0x2010846"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2010cf6",
+      "caller": "0x2010ce4",
+      "names": [
+        "d9_shape_other"
+      ],
+      "instruction": "tbb [r5]",
+      "candidate_reachable": false,
+      "table_start": "0x2010cf8",
+      "table_end": "0x2010cfe",
+      "entry_bytes": 1,
+      "entry_count": 6,
+      "encoded_offsets": [
+        3,
+        26,
+        68,
+        104,
+        142,
+        186
+      ],
+      "modeled_targets": [
+        "0x2010cfe",
+        "0x2010d2c",
+        "0x2010d80",
+        "0x2010dc8",
+        "0x2010e14",
+        "0x2010e6c"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2011fc2",
+      "caller": "0x2011faa",
+      "names": [
+        "_ZL13GateSetTargetP12GateInstancei"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x2011fc4",
+      "table_end": "0x2011fd2",
+      "entry_bytes": 1,
+      "entry_count": 14,
+      "encoded_offsets": [
+        7,
+        59,
+        64,
+        76,
+        9,
+        81,
+        83,
+        96,
+        111,
+        13,
+        126,
+        26,
+        36,
+        0
+      ],
+      "modeled_targets": [
+        "0x2011fd2",
+        "0x201203a",
+        "0x2012044",
+        "0x201205c",
+        "0x2011fd6",
+        "0x2012066",
+        "0x201206a",
+        "0x2012084",
+        "0x20120a2",
+        "0x2011fde",
+        "0x20120c0",
+        "0x2011ff8",
+        "0x201200c",
+        "0x2011fc4"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x201395a",
+      "caller": "0x2013864",
+      "names": [
+        "_ZN3fm13dx76RenderEPvPfj"
+      ],
+      "instruction": "tbb [r2]",
+      "candidate_reachable": false,
+      "table_start": "0x201395c",
+      "table_end": "0x2013962",
+      "entry_bytes": 1,
+      "entry_count": 6,
+      "encoded_offsets": [
+        3,
+        14,
+        22,
+        27,
+        34,
+        43
+      ],
+      "modeled_targets": [
+        "0x2013962",
+        "0x2013978",
+        "0x2013988",
+        "0x2013992",
+        "0x20139a0",
+        "0x20139b2"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2017218",
+      "caller": "0x201710e",
+      "names": [
+        "_ZN3fm16crater6NoteOnEPvhh"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": false,
+      "table_start": "0x201721a",
+      "table_end": "0x2017220",
+      "entry_bytes": 1,
+      "entry_count": 6,
+      "encoded_offsets": [
+        3,
+        10,
+        17,
+        20,
+        23,
+        26
+      ],
+      "modeled_targets": [
+        "0x2017220",
+        "0x201722e",
+        "0x201723c",
+        "0x2017242",
+        "0x2017248",
+        "0x201724e"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x20172ee",
+      "caller": "0x201710e",
+      "names": [
+        "_ZN3fm16crater6NoteOnEPvhh"
+      ],
+      "instruction": "tbh [r0]",
+      "candidate_reachable": false,
+      "table_start": "0x20172f0",
+      "table_end": "0x201730e",
+      "entry_bytes": 2,
+      "entry_count": 15,
+      "encoded_offsets": [
+        147,
+        299,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        321,
+        476,
+        508,
+        617,
+        714,
+        905,
+        810
+      ],
+      "modeled_targets": [
+        "0x2017416",
+        "0x2017546",
+        "0x201730e",
+        "0x201730e",
+        "0x201730e",
+        "0x201730e",
+        "0x201730e",
+        "0x201730e",
+        "0x2017572",
+        "0x20176a8",
+        "0x20176e8",
+        "0x20177c2",
+        "0x2017884",
+        "0x2017a02",
+        "0x2017944"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2017c18",
+      "caller": "0x2017bfa",
+      "names": [
+        "lane_on"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x2017c1a",
+      "table_end": "0x2017c26",
+      "entry_bytes": 1,
+      "entry_count": 12,
+      "encoded_offsets": [
+        15,
+        18,
+        6,
+        6,
+        6,
+        37,
+        21,
+        23,
+        26,
+        29,
+        32,
+        35
+      ],
+      "modeled_targets": [
+        "0x2017c38",
+        "0x2017c3e",
+        "0x2017c26",
+        "0x2017c26",
+        "0x2017c26",
+        "0x2017c64",
+        "0x2017c44",
+        "0x2017c48",
+        "0x2017c4e",
+        "0x2017c54",
+        "0x2017c5a",
+        "0x2017c60"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2017d6a",
+      "caller": "0x2017ca0",
+      "names": [
+        "_ZN3fm16crater3SetEPvtf"
+      ],
+      "instruction": "tbb [r2]",
+      "candidate_reachable": true,
+      "table_start": "0x2017d6c",
+      "table_end": "0x2017d74",
+      "entry_bytes": 1,
+      "entry_count": 8,
+      "encoded_offsets": [
+        43,
+        61,
+        4,
+        61,
+        61,
+        4,
+        49,
+        0
+      ],
+      "modeled_targets": [
+        "0x2017dc2",
+        "0x2017de6",
+        "0x2017d74",
+        "0x2017de6",
+        "0x2017de6",
+        "0x2017d74",
+        "0x2017dce",
+        "0x2017d6c"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2018772",
+      "caller": "0x20182f0",
+      "names": [
+        "_ZN3fm16crater6RenderEPvPfj"
+      ],
+      "instruction": "tbh [r0]",
+      "candidate_reachable": false,
+      "table_start": "0x2018774",
+      "table_end": "0x201878c",
+      "entry_bytes": 2,
+      "entry_count": 12,
+      "encoded_offsets": [
+        1149,
+        1376,
+        12,
+        12,
+        12,
+        1518,
+        1693,
+        1794,
+        1888,
+        2025,
+        2122,
+        2145
+      ],
+      "modeled_targets": [
+        "0x201906e",
+        "0x2019234",
+        "0x201878c",
+        "0x201878c",
+        "0x201878c",
+        "0x2019350",
+        "0x20194ae",
+        "0x2019578",
+        "0x2019634",
+        "0x2019746",
+        "0x2019808",
+        "0x2019836"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2018a74",
+      "caller": "0x20182f0",
+      "names": [
+        "_ZN3fm16crater6RenderEPvPfj"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": false,
+      "table_start": "0x2018a76",
+      "table_end": "0x2018a7c",
+      "entry_bytes": 1,
+      "entry_count": 6,
+      "encoded_offsets": [
+        3,
+        31,
+        65,
+        119,
+        163,
+        191
+      ],
+      "modeled_targets": [
+        "0x2018a7c",
+        "0x2018ab4",
+        "0x2018af8",
+        "0x2018b64",
+        "0x2018bbc",
+        "0x2018bf4"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2018d2c",
+      "caller": "0x20182f0",
+      "names": [
+        "_ZN3fm16crater6RenderEPvPfj"
+      ],
+      "instruction": "tbb [r6]",
+      "candidate_reachable": false,
+      "table_start": "0x2018d2e",
+      "table_end": "0x2018d3a",
+      "entry_bytes": 1,
+      "entry_count": 12,
+      "encoded_offsets": [
+        36,
+        31,
+        41,
+        41,
+        41,
+        28,
+        25,
+        20,
+        15,
+        10,
+        8,
+        6
+      ],
+      "modeled_targets": [
+        "0x2018d76",
+        "0x2018d6c",
+        "0x2018d80",
+        "0x2018d80",
+        "0x2018d80",
+        "0x2018d66",
+        "0x2018d60",
+        "0x2018d56",
+        "0x2018d4c",
+        "0x2018d42",
+        "0x2018d3e",
+        "0x2018d3a"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x201c398",
+      "caller": "0x201baf4",
+      "names": [
+        "sophie_render"
+      ],
+      "instruction": "tbb [r3]",
+      "candidate_reachable": false,
+      "table_start": "0x201c39a",
+      "table_end": "0x201c3a0",
+      "entry_bytes": 1,
+      "entry_count": 6,
+      "encoded_offsets": [
+        156,
+        3,
+        13,
+        16,
+        44,
+        0
+      ],
+      "modeled_targets": [
+        "0x201c4d2",
+        "0x201c3a0",
+        "0x201c3b4",
+        "0x201c3ba",
+        "0x201c3f2",
+        "0x201c39a"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x201cca8",
+      "caller": "0x201cc8e",
+      "names": [
+        "calc_process"
+      ],
+      "instruction": "tbb [r3]",
+      "candidate_reachable": false,
+      "table_start": "0x201ccaa",
+      "table_end": "0x201ccb8",
+      "entry_bytes": 1,
+      "entry_count": 14,
+      "encoded_offsets": [
+        7,
+        36,
+        10,
+        13,
+        17,
+        39,
+        44,
+        51,
+        48,
+        22,
+        54,
+        30,
+        33,
+        58
+      ],
+      "modeled_targets": [
+        "0x201ccb8",
+        "0x201ccf2",
+        "0x201ccbe",
+        "0x201ccc4",
+        "0x201cccc",
+        "0x201ccf8",
+        "0x201cd02",
+        "0x201cd10",
+        "0x201cd0a",
+        "0x201ccd6",
+        "0x201cd16",
+        "0x201cce6",
+        "0x201ccec",
+        "0x201cd1e"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x201e810",
+      "caller": "0x201e7fc",
+      "names": [
+        "glue_event"
+      ],
+      "instruction": "tbb [r2]",
+      "candidate_reachable": false,
+      "table_start": "0x201e812",
+      "table_end": "0x201e81a",
+      "entry_bytes": 1,
+      "entry_count": 8,
+      "encoded_offsets": [
+        4,
+        5,
+        173,
+        173,
+        87,
+        90,
+        95,
+        0
+      ],
+      "modeled_targets": [
+        "0x201e81a",
+        "0x201e81c",
+        "0x201e96c",
+        "0x201e96c",
+        "0x201e8c0",
+        "0x201e8c6",
+        "0x201e8d0",
+        "0x201e812"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2020a8a",
+      "caller": "0x202091c",
+      "names": [
+        "_ZN3fm15drums6NoteOnEPvhh"
+      ],
+      "instruction": "tbb [r5]",
+      "candidate_reachable": false,
+      "table_start": "0x2020a8c",
+      "table_end": "0x2020a96",
+      "entry_bytes": 1,
+      "entry_count": 10,
+      "encoded_offsets": [
+        5,
+        10,
+        15,
+        20,
+        25,
+        30,
+        35,
+        67,
+        87,
+        0
+      ],
+      "modeled_targets": [
+        "0x2020a96",
+        "0x2020aa0",
+        "0x2020aaa",
+        "0x2020ab4",
+        "0x2020abe",
+        "0x2020ac8",
+        "0x2020ad2",
+        "0x2020b12",
+        "0x2020b3a",
+        "0x2020a8c"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x20210bc",
+      "caller": "0x2020dfa",
+      "names": [
+        "_ZN3fm15drums6RenderEPvPfj"
+      ],
+      "instruction": "tbh [r0]",
+      "candidate_reachable": false,
+      "table_start": "0x20210be",
+      "table_end": "0x20210d0",
+      "entry_bytes": 2,
+      "entry_count": 9,
+      "encoded_offsets": [
+        9,
+        35,
+        74,
+        99,
+        165,
+        190,
+        225,
+        437,
+        797
+      ],
+      "modeled_targets": [
+        "0x20210d0",
+        "0x2021104",
+        "0x2021152",
+        "0x2021184",
+        "0x2021208",
+        "0x202123a",
+        "0x2021280",
+        "0x2021428",
+        "0x20216f8"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2024206",
+      "caller": "0x20241f6",
+      "names": [
+        "fm1_mp_lfo_value"
+      ],
+      "instruction": "tbb [r3]",
+      "candidate_reachable": false,
+      "table_start": "0x2024208",
+      "table_end": "0x2024210",
+      "entry_bytes": 1,
+      "entry_count": 8,
+      "encoded_offsets": [
+        4,
+        52,
+        64,
+        75,
+        91,
+        94,
+        96,
+        0
+      ],
+      "modeled_targets": [
+        "0x2024210",
+        "0x2024270",
+        "0x2024288",
+        "0x202429e",
+        "0x20242be",
+        "0x20242c4",
+        "0x20242c8",
+        "0x2024208"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x20247d6",
+      "caller": "0x20247c6",
+      "names": [
+        "_ZN3fm15limit5ApplyEPNS0_8InstanceEi"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x20247d8",
+      "table_end": "0x20247e0",
+      "entry_bytes": 1,
+      "entry_count": 8,
+      "encoded_offsets": [
+        4,
+        10,
+        16,
+        29,
+        49,
+        68,
+        70,
+        0
+      ],
+      "modeled_targets": [
+        "0x20247e0",
+        "0x20247ec",
+        "0x20247f8",
+        "0x2024812",
+        "0x202483a",
+        "0x2024860",
+        "0x2024864",
+        "0x20247d8"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x202bc68",
+      "caller": "0x202bc60",
+      "names": [
+        "pd_setup"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": false,
+      "table_start": "0x202bc6a",
+      "table_end": "0x202bc70",
+      "entry_bytes": 1,
+      "entry_count": 6,
+      "encoded_offsets": [
+        3,
+        18,
+        33,
+        54,
+        77,
+        0
+      ],
+      "modeled_targets": [
+        "0x202bc70",
+        "0x202bc8e",
+        "0x202bcac",
+        "0x202bcd6",
+        "0x202bd04",
+        "0x202bc6a"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x202bda6",
+      "caller": "0x202bd9a",
+      "names": [
+        "pd_wave"
+      ],
+      "instruction": "tbb [r5]",
+      "candidate_reachable": false,
+      "table_start": "0x202bda8",
+      "table_end": "0x202bdae",
+      "entry_bytes": 1,
+      "entry_count": 6,
+      "encoded_offsets": [
+        3,
+        46,
+        8,
+        11,
+        18,
+        0
+      ],
+      "modeled_targets": [
+        "0x202bdae",
+        "0x202be04",
+        "0x202bdb8",
+        "0x202bdbe",
+        "0x202bdcc",
+        "0x202bda8"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x202c192",
+      "caller": "0x202c16a",
+      "names": [
+        "trio_pass"
+      ],
+      "instruction": "tbh [r1]",
+      "candidate_reachable": false,
+      "table_start": "0x202c194",
+      "table_end": "0x202c1a0",
+      "entry_bytes": 2,
+      "entry_count": 6,
+      "encoded_offsets": [
+        6,
+        20,
+        66,
+        158,
+        183,
+        198
+      ],
+      "modeled_targets": [
+        "0x202c1a0",
+        "0x202c1bc",
+        "0x202c218",
+        "0x202c2d0",
+        "0x202c302",
+        "0x202c320"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x202c362",
+      "caller": "0x202c356",
+      "names": [
+        "trio_naive"
+      ],
+      "instruction": "tbb [r4]",
+      "candidate_reachable": false,
+      "table_start": "0x202c364",
+      "table_end": "0x202c36a",
+      "entry_bytes": 1,
+      "entry_count": 6,
+      "encoded_offsets": [
+        3,
+        7,
+        11,
+        29,
+        19,
+        23
+      ],
+      "modeled_targets": [
+        "0x202c36a",
+        "0x202c372",
+        "0x202c37a",
+        "0x202c39e",
+        "0x202c38a",
+        "0x202c392"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x202cb94",
+      "caller": "0x202cacc",
+      "names": [
+        "wheel_render"
+      ],
+      "instruction": "tbb [r15]",
+      "candidate_reachable": false,
+      "table_start": "0x202cb96",
+      "table_end": "0x202cb9e",
+      "entry_bytes": 1,
+      "entry_count": 8,
+      "encoded_offsets": [
+        4,
+        9,
+        25,
+        11,
+        14,
+        17,
+        20,
+        23
+      ],
+      "modeled_targets": [
+        "0x202cb9e",
+        "0x202cba8",
+        "0x202cbc8",
+        "0x202cbac",
+        "0x202cbb2",
+        "0x202cbb8",
+        "0x202cbbe",
+        "0x202cbc4"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x202d7fc",
+      "caller": "0x202d792",
+      "names": [
+        "_ZN3fm17felucca6MapAllERKNS0_3DefEPKfPNS0_5KnobsE"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": false,
+      "table_start": "0x202d7fe",
+      "table_end": "0x202d80a",
+      "entry_bytes": 1,
+      "entry_count": 12,
+      "encoded_offsets": [
+        6,
+        6,
+        11,
+        16,
+        43,
+        63,
+        80,
+        86,
+        92,
+        98,
+        104,
+        0
+      ],
+      "modeled_targets": [
+        "0x202d80a",
+        "0x202d80a",
+        "0x202d814",
+        "0x202d81e",
+        "0x202d854",
+        "0x202d87c",
+        "0x202d89e",
+        "0x202d8aa",
+        "0x202d8b6",
+        "0x202d8c2",
+        "0x202d8ce",
+        "0x202d7fe"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x202ea0e",
+      "caller": "0x202e9fc",
+      "names": [
+        "_ZL12SatSetTargetP11SatInstancei"
+      ],
+      "instruction": "tbb [r2]",
+      "candidate_reachable": true,
+      "table_start": "0x202ea10",
+      "table_end": "0x202ea18",
+      "entry_bytes": 1,
+      "entry_count": 8,
+      "encoded_offsets": [
+        4,
+        8,
+        11,
+        17,
+        19,
+        32,
+        38,
+        42
+      ],
+      "modeled_targets": [
+        "0x202ea18",
+        "0x202ea20",
+        "0x202ea26",
+        "0x202ea32",
+        "0x202ea36",
+        "0x202ea50",
+        "0x202ea5c",
+        "0x202ea64"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x202fd9a",
+      "caller": "0x202fd92",
+      "names": [
+        "fm1_mp_env_curve_at"
+      ],
+      "instruction": "tbb [r0]",
+      "candidate_reachable": true,
+      "table_start": "0x202fd9c",
+      "table_end": "0x202fda0",
+      "entry_bytes": 1,
+      "entry_count": 4,
+      "encoded_offsets": [
+        2,
+        12,
+        17,
+        22
+      ],
+      "modeled_targets": [
+        "0x202fda0",
+        "0x202fdb4",
+        "0x202fdbe",
+        "0x202fdc8"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2030838",
+      "caller": "0x203082a",
+      "names": [
+        "_ZL13CombSetTargetP12CombInstancei"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x203083a",
+      "table_end": "0x2030842",
+      "entry_bytes": 1,
+      "entry_count": 8,
+      "encoded_offsets": [
+        4,
+        87,
+        89,
+        91,
+        93,
+        95,
+        98,
+        0
+      ],
+      "modeled_targets": [
+        "0x2030842",
+        "0x20308e8",
+        "0x20308ec",
+        "0x20308f0",
+        "0x20308f4",
+        "0x20308f8",
+        "0x20308fe",
+        "0x203083a"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2031ce8",
+      "caller": "0x2031970",
+      "names": [
+        "fun_process"
+      ],
+      "instruction": "tbb [r0]",
+      "candidate_reachable": false,
+      "table_start": "0x2031cea",
+      "table_end": "0x2031cee",
+      "entry_bytes": 1,
+      "entry_count": 4,
+      "encoded_offsets": [
+        2,
+        53,
+        68,
+        75
+      ],
+      "modeled_targets": [
+        "0x2031cee",
+        "0x2031d54",
+        "0x2031d72",
+        "0x2031d80"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2032044",
+      "caller": "0x2032030",
+      "names": [
+        "_ZL13CompSetTargetP12CompInstancei"
+      ],
+      "instruction": "tbb [r5]",
+      "candidate_reachable": true,
+      "table_start": "0x2032046",
+      "table_end": "0x2032050",
+      "entry_bytes": 1,
+      "entry_count": 10,
+      "encoded_offsets": [
+        66,
+        68,
+        47,
+        47,
+        5,
+        53,
+        87,
+        5,
+        41,
+        55
+      ],
+      "modeled_targets": [
+        "0x20320ca",
+        "0x20320ce",
+        "0x20320a4",
+        "0x20320a4",
+        "0x2032050",
+        "0x20320b0",
+        "0x20320f4",
+        "0x2032050",
+        "0x2032098",
+        "0x20320b4"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2034d64",
+      "caller": "0x2034d5c",
+      "names": [
+        "_ZL13TiltSetTargetP12TiltInstancei"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x2034d66",
+      "table_end": "0x2034d6a",
+      "entry_bytes": 1,
+      "entry_count": 4,
+      "encoded_offsets": [
+        2,
+        19,
+        2,
+        134
+      ],
+      "modeled_targets": [
+        "0x2034d6a",
+        "0x2034d8c",
+        "0x2034d6a",
+        "0x2034e72"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2035c98",
+      "caller": "0x2035c94",
+      "names": [
+        "eval"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": false,
+      "table_start": "0x2035c9a",
+      "table_end": "0x2035ca0",
+      "entry_bytes": 1,
+      "entry_count": 6,
+      "encoded_offsets": [
+        3,
+        10,
+        15,
+        20,
+        24,
+        32
+      ],
+      "modeled_targets": [
+        "0x2035ca0",
+        "0x2035cae",
+        "0x2035cb8",
+        "0x2035cc2",
+        "0x2035cca",
+        "0x2035cda"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x20360c2",
+      "caller": "0x20360be",
+      "names": [
+        "_ZL8DjTargetPK10DjInstancei"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x20360c4",
+      "table_end": "0x20360ca",
+      "entry_bytes": 1,
+      "entry_count": 6,
+      "encoded_offsets": [
+        3,
+        7,
+        9,
+        18,
+        20,
+        0
+      ],
+      "modeled_targets": [
+        "0x20360ca",
+        "0x20360d2",
+        "0x20360d6",
+        "0x20360e8",
+        "0x20360ec",
+        "0x20360c4"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x203793e",
+      "caller": "0x203780e",
+      "names": [
+        "ag_process"
+      ],
+      "instruction": "tbh [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x2037940",
+      "table_end": "0x203794e",
+      "entry_bytes": 2,
+      "entry_count": 7,
+      "encoded_offsets": [
+        7,
+        153,
+        485,
+        485,
+        161,
+        194,
+        214
+      ],
+      "modeled_targets": [
+        "0x203794e",
+        "0x2037a72",
+        "0x2037d0a",
+        "0x2037d0a",
+        "0x2037a82",
+        "0x2037ac4",
+        "0x2037aec"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2038484",
+      "caller": "0x2038474",
+      "names": [
+        "_ZL14DriveSetTargetP13DriveInstancei"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x2038486",
+      "table_end": "0x203848e",
+      "entry_bytes": 1,
+      "entry_count": 8,
+      "encoded_offsets": [
+        4,
+        30,
+        36,
+        34,
+        76,
+        78,
+        84,
+        87
+      ],
+      "modeled_targets": [
+        "0x203848e",
+        "0x20384c2",
+        "0x20384ce",
+        "0x20384ca",
+        "0x203851e",
+        "0x2038522",
+        "0x203852e",
+        "0x2038534"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2039aba",
+      "caller": "0x2039a9c",
+      "names": [
+        "fm1_state_mod_sink"
+      ],
+      "instruction": "tbh [r0]",
+      "candidate_reachable": true,
+      "table_start": "0x2039abc",
+      "table_end": "0x2039acc",
+      "entry_bytes": 2,
+      "entry_count": 8,
+      "encoded_offsets": [
+        8,
+        449,
+        449,
+        449,
+        43,
+        48,
+        67,
+        72
+      ],
+      "modeled_targets": [
+        "0x2039acc",
+        "0x2039e3e",
+        "0x2039e3e",
+        "0x2039e3e",
+        "0x2039b12",
+        "0x2039b1c",
+        "0x2039b42",
+        "0x2039b4c"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x203a4ca",
+      "caller": "0x203a49a",
+      "names": [
+        "push_rec"
+      ],
+      "instruction": "tbb [r0]",
+      "candidate_reachable": true,
+      "table_start": "0x203a4cc",
+      "table_end": "0x203a4d6",
+      "entry_bytes": 1,
+      "entry_count": 10,
+      "encoded_offsets": [
+        5,
+        21,
+        25,
+        42,
+        90,
+        90,
+        90,
+        5,
+        90,
+        47
+      ],
+      "modeled_targets": [
+        "0x203a4d6",
+        "0x203a4f6",
+        "0x203a4fe",
+        "0x203a520",
+        "0x203a580",
+        "0x203a580",
+        "0x203a580",
+        "0x203a4d6",
+        "0x203a580",
+        "0x203a52a"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x203bd64",
+      "caller": "0x203bcae",
+      "names": [
+        "ui_after"
+      ],
+      "instruction": "tbh [r5]",
+      "candidate_reachable": false,
+      "table_start": "0x203bd66",
+      "table_end": "0x203bd90",
+      "entry_bytes": 2,
+      "entry_count": 21,
+      "encoded_offsets": [
+        69,
+        71,
+        76,
+        81,
+        46,
+        46,
+        86,
+        92,
+        99,
+        157,
+        162,
+        173,
+        183,
+        193,
+        198,
+        209,
+        226,
+        260,
+        21,
+        21,
+        21
+      ],
+      "modeled_targets": [
+        "0x203bdf0",
+        "0x203bdf4",
+        "0x203bdfe",
+        "0x203be08",
+        "0x203bdc2",
+        "0x203bdc2",
+        "0x203be12",
+        "0x203be1e",
+        "0x203be2c",
+        "0x203bea0",
+        "0x203beaa",
+        "0x203bec0",
+        "0x203bed4",
+        "0x203bee8",
+        "0x203bef2",
+        "0x203bf08",
+        "0x203bf2a",
+        "0x203bf6e",
+        "0x203bd90",
+        "0x203bd90",
+        "0x203bd90"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x203d0f4",
+      "caller": "0x203d07c",
+      "names": [
+        "sq_clip_edit"
+      ],
+      "instruction": "tbb [r6]",
+      "candidate_reachable": false,
+      "table_start": "0x203d0f6",
+      "table_end": "0x203d0fc",
+      "entry_bytes": 1,
+      "entry_count": 6,
+      "encoded_offsets": [
+        44,
+        56,
+        3,
+        68,
+        3,
+        0
+      ],
+      "modeled_targets": [
+        "0x203d14e",
+        "0x203d166",
+        "0x203d0fc",
+        "0x203d17e",
+        "0x203d0fc",
+        "0x203d0f6"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x203e99c",
+      "caller": "0x203e8d4",
+      "names": [
+        "sq_song_edit"
+      ],
+      "instruction": "tbb [r12]",
+      "candidate_reachable": false,
+      "table_start": "0x203e99e",
+      "table_end": "0x203e9a2",
+      "entry_bytes": 1,
+      "entry_count": 4,
+      "encoded_offsets": [
+        2,
+        172,
+        70,
+        98
+      ],
+      "modeled_targets": [
+        "0x203e9a2",
+        "0x203eaf6",
+        "0x203ea2a",
+        "0x203ea62"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x203ee78",
+      "caller": "0x203edf0",
+      "names": [
+        "apply_op"
+      ],
+      "instruction": "tbh [r1]",
+      "candidate_reachable": false,
+      "table_start": "0x203ee7a",
+      "table_end": "0x203ef16",
+      "entry_bytes": 2,
+      "entry_count": 78,
+      "encoded_offsets": [
+        449,
+        460,
+        466,
+        486,
+        506,
+        540,
+        583,
+        611,
+        628,
+        673,
+        727,
+        791,
+        847,
+        78,
+        78,
+        78,
+        78,
+        1010,
+        1053,
+        1190,
+        1266,
+        1382,
+        202,
+        1456,
+        202,
+        1646,
+        1695,
+        604,
+        1843,
+        1912,
+        1930,
+        1949,
+        2020,
+        2052,
+        2138,
+        2187,
+        2303,
+        2349,
+        2379,
+        2453,
+        2546,
+        2607,
+        2697,
+        2733,
+        2805,
+        2893,
+        2948,
+        3061,
+        3239,
+        3256,
+        3491,
+        3561,
+        3713,
+        3887,
+        345,
+        345,
+        3964,
+        4022,
+        4112,
+        4200,
+        4265,
+        5551,
+        5551,
+        5551,
+        5551,
+        5551,
+        4332,
+        4436,
+        4488,
+        4591,
+        4623,
+        4721,
+        4794,
+        4798,
+        4845,
+        4892,
+        4945,
+        5067
+      ],
+      "modeled_targets": [
+        "0x203f1fc",
+        "0x203f212",
+        "0x203f21e",
+        "0x203f246",
+        "0x203f26e",
+        "0x203f2b2",
+        "0x203f308",
+        "0x203f340",
+        "0x203f362",
+        "0x203f3bc",
+        "0x203f428",
+        "0x203f4a8",
+        "0x203f518",
+        "0x203ef16",
+        "0x203ef16",
+        "0x203ef16",
+        "0x203ef16",
+        "0x203f65e",
+        "0x203f6b4",
+        "0x203f7c6",
+        "0x203f85e",
+        "0x203f946",
+        "0x203f00e",
+        "0x203f9da",
+        "0x203f00e",
+        "0x203fb56",
+        "0x203fbb8",
+        "0x203f332",
+        "0x203fce0",
+        "0x203fd6a",
+        "0x203fd8e",
+        "0x203fdb4",
+        "0x203fe42",
+        "0x203fe82",
+        "0x203ff2e",
+        "0x203ff90",
+        "0x2040078",
+        "0x20400d4",
+        "0x2040110",
+        "0x20401a4",
+        "0x204025e",
+        "0x20402d8",
+        "0x204038c",
+        "0x20403d4",
+        "0x2040464",
+        "0x2040514",
+        "0x2040582",
+        "0x2040664",
+        "0x20407c8",
+        "0x20407ea",
+        "0x20409c0",
+        "0x2040a4c",
+        "0x2040b7c",
+        "0x2040cd8",
+        "0x203f12c",
+        "0x203f12c",
+        "0x2040d72",
+        "0x2040de6",
+        "0x2040e9a",
+        "0x2040f4a",
+        "0x2040fcc",
+        "0x20419d8",
+        "0x20419d8",
+        "0x20419d8",
+        "0x20419d8",
+        "0x20419d8",
+        "0x2041052",
+        "0x2041122",
+        "0x204118a",
+        "0x2041258",
+        "0x2041298",
+        "0x204135c",
+        "0x20413ee",
+        "0x20413f6",
+        "0x2041454",
+        "0x20414b2",
+        "0x204151c",
+        "0x2041610"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2043c0c",
+      "caller": "0x2043b22",
+      "names": [
+        "white_down"
+      ],
+      "instruction": "tbh [r1]",
+      "candidate_reachable": false,
+      "table_start": "0x2043c0e",
+      "table_end": "0x2043c2c",
+      "entry_bytes": 2,
+      "entry_count": 15,
+      "encoded_offsets": [
+        140,
+        142,
+        221,
+        15,
+        147,
+        15,
+        221,
+        15,
+        170,
+        221,
+        221,
+        221,
+        221,
+        221,
+        183
+      ],
+      "modeled_targets": [
+        "0x2043d26",
+        "0x2043d2a",
+        "0x2043dc8",
+        "0x2043c2c",
+        "0x2043d34",
+        "0x2043c2c",
+        "0x2043dc8",
+        "0x2043c2c",
+        "0x2043d62",
+        "0x2043dc8",
+        "0x2043dc8",
+        "0x2043dc8",
+        "0x2043dc8",
+        "0x2043dc8",
+        "0x2043d7c"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2043f56",
+      "caller": "0x2043ec8",
+      "names": [
+        "fm1_seq_ui_key"
+      ],
+      "instruction": "tbh [r1]",
+      "candidate_reachable": false,
+      "table_start": "0x2043f58",
+      "table_end": "0x2043f6c",
+      "entry_bytes": 2,
+      "entry_count": 10,
+      "encoded_offsets": [
+        10,
+        462,
+        462,
+        462,
+        462,
+        231,
+        241,
+        264,
+        282,
+        286
+      ],
+      "modeled_targets": [
+        "0x2043f6c",
+        "0x20442f4",
+        "0x20442f4",
+        "0x20442f4",
+        "0x20442f4",
+        "0x2044126",
+        "0x204413a",
+        "0x2044168",
+        "0x204418c",
+        "0x2044194"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2047044",
+      "caller": "0x2046b58",
+      "names": [
+        "fm1_app_button"
+      ],
+      "instruction": "tbh [r1]",
+      "candidate_reachable": false,
+      "table_start": "0x2047046",
+      "table_end": "0x204705a",
+      "entry_bytes": 2,
+      "entry_count": 10,
+      "encoded_offsets": [
+        10,
+        122,
+        47,
+        47,
+        138,
+        10,
+        10,
+        239,
+        16,
+        10
+      ],
+      "modeled_targets": [
+        "0x204705a",
+        "0x204713a",
+        "0x20470a4",
+        "0x20470a4",
+        "0x204715a",
+        "0x204705a",
+        "0x204705a",
+        "0x2047224",
+        "0x2047066",
+        "0x204705a"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x204723a",
+      "caller": "0x2046b58",
+      "names": [
+        "fm1_app_button"
+      ],
+      "instruction": "tbb [r13]",
+      "candidate_reachable": false,
+      "table_start": "0x204723c",
+      "table_end": "0x204724a",
+      "entry_bytes": 1,
+      "entry_count": 14,
+      "encoded_offsets": [
+        7,
+        7,
+        35,
+        51,
+        72,
+        72,
+        72,
+        75,
+        83,
+        94,
+        72,
+        119,
+        135,
+        0
+      ],
+      "modeled_targets": [
+        "0x204724a",
+        "0x204724a",
+        "0x2047282",
+        "0x20472a2",
+        "0x20472cc",
+        "0x20472cc",
+        "0x20472cc",
+        "0x20472d2",
+        "0x20472e2",
+        "0x20472f8",
+        "0x20472cc",
+        "0x204732a",
+        "0x204734a",
+        "0x204723c"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2049d80",
+      "caller": "0x204980a",
+      "names": [
+        "fm1_app_encoder"
+      ],
+      "instruction": "tbh [r0]",
+      "candidate_reachable": false,
+      "table_start": "0x2049d82",
+      "table_end": "0x2049d90",
+      "entry_bytes": 2,
+      "entry_count": 7,
+      "encoded_offsets": [
+        7,
+        2334,
+        2334,
+        1967,
+        2026,
+        2039,
+        2131
+      ],
+      "modeled_targets": [
+        "0x2049d90",
+        "0x204afbe",
+        "0x204afbe",
+        "0x204ace0",
+        "0x204ad56",
+        "0x204ad70",
+        "0x204ae28"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x204affe",
+      "caller": "0x204980a",
+      "names": [
+        "fm1_app_encoder"
+      ],
+      "instruction": "tbh [r1]",
+      "candidate_reachable": false,
+      "table_start": "0x204b000",
+      "table_end": "0x204b008",
+      "entry_bytes": 2,
+      "entry_count": 4,
+      "encoded_offsets": [
+        4,
+        293,
+        445,
+        460
+      ],
+      "modeled_targets": [
+        "0x204b008",
+        "0x204b24a",
+        "0x204b37a",
+        "0x204b398"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x204f97e",
+      "caller": "0x204f8ba",
+      "names": [
+        "read_lines"
+      ],
+      "instruction": "tbh [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x204f980",
+      "table_end": "0x204f9a6",
+      "entry_bytes": 2,
+      "entry_count": 19,
+      "encoded_offsets": [
+        192,
+        218,
+        225,
+        231,
+        243,
+        249,
+        283,
+        19,
+        19,
+        289,
+        355,
+        387,
+        525,
+        30,
+        30,
+        599,
+        605,
+        619,
+        661
+      ],
+      "modeled_targets": [
+        "0x204fb00",
+        "0x204fb34",
+        "0x204fb42",
+        "0x204fb4e",
+        "0x204fb66",
+        "0x204fb72",
+        "0x204fbb6",
+        "0x204f9a6",
+        "0x204f9a6",
+        "0x204fbc2",
+        "0x204fc46",
+        "0x204fc86",
+        "0x204fd9a",
+        "0x204f9bc",
+        "0x204f9bc",
+        "0x204fe2e",
+        "0x204fe3a",
+        "0x204fe56",
+        "0x204feaa"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x20506be",
+      "caller": "0x204ffdc",
+      "names": [
+        "fm1_state_bin_read"
+      ],
+      "instruction": "tbh [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x20506c0",
+      "table_end": "0x20506d2",
+      "entry_bytes": 2,
+      "entry_count": 9,
+      "encoded_offsets": [
+        9,
+        22,
+        58,
+        121,
+        154,
+        165,
+        175,
+        187,
+        222
+      ],
+      "modeled_targets": [
+        "0x20506d2",
+        "0x20506ec",
+        "0x2050734",
+        "0x20507b2",
+        "0x20507f4",
+        "0x205080a",
+        "0x205081e",
+        "0x2050836",
+        "0x205087c"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x20510d0",
+      "caller": "0x204ffdc",
+      "names": [
+        "fm1_state_bin_read"
+      ],
+      "instruction": "tbh [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x20510d2",
+      "table_end": "0x20510da",
+      "entry_bytes": 2,
+      "entry_count": 4,
+      "encoded_offsets": [
+        60,
+        138,
+        4,
+        220
+      ],
+      "modeled_targets": [
+        "0x205114a",
+        "0x20511e6",
+        "0x20510da",
+        "0x205128a"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x20521bc",
+      "caller": "0x20520d8",
+      "names": [
+        "word_end"
+      ],
+      "instruction": "tbh [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x20521be",
+      "table_end": "0x20521e0",
+      "entry_bytes": 2,
+      "entry_count": 17,
+      "encoded_offsets": [
+        75,
+        102,
+        145,
+        173,
+        230,
+        17,
+        17,
+        260,
+        314,
+        327,
+        33,
+        33,
+        397,
+        445,
+        454,
+        488,
+        540
+      ],
+      "modeled_targets": [
+        "0x2052254",
+        "0x205228a",
+        "0x20522e0",
+        "0x2052318",
+        "0x205238a",
+        "0x20521e0",
+        "0x20521e0",
+        "0x20523c6",
+        "0x2052432",
+        "0x205244c",
+        "0x2052200",
+        "0x2052200",
+        "0x20524d8",
+        "0x2052538",
+        "0x205254a",
+        "0x205258e",
+        "0x20525f6"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x20545a2",
+      "caller": "0x205439a",
+      "names": [
+        "lunar_project_restore_view"
+      ],
+      "instruction": "tbh [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x20545a4",
+      "table_end": "0x20545b4",
+      "entry_bytes": 2,
+      "entry_count": 8,
+      "encoded_offsets": [
+        68,
+        135,
+        8,
+        8,
+        8,
+        157,
+        190,
+        201
+      ],
+      "modeled_targets": [
+        "0x205462c",
+        "0x20546b2",
+        "0x20545b4",
+        "0x20545b4",
+        "0x20545b4",
+        "0x20546de",
+        "0x2054720",
+        "0x2054736"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2058c3e",
+      "caller": "0x2058c34",
+      "names": [
+        "fm1_sound_colour.4976"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": false,
+      "table_start": "0x2058c40",
+      "table_end": "0x2058c44",
+      "entry_bytes": 1,
+      "entry_count": 4,
+      "encoded_offsets": [
+        9,
+        2,
+        10,
+        13
+      ],
+      "modeled_targets": [
+        "0x2058c52",
+        "0x2058c44",
+        "0x2058c54",
+        "0x2058c5a"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2059730",
+      "caller": "0x2059690",
+      "names": [
+        "role_line"
+      ],
+      "instruction": "tbb [r2]",
+      "candidate_reachable": false,
+      "table_start": "0x2059732",
+      "table_end": "0x2059736",
+      "entry_bytes": 1,
+      "entry_count": 4,
+      "encoded_offsets": [
+        34,
+        2,
+        28,
+        31
+      ],
+      "modeled_targets": [
+        "0x2059776",
+        "0x2059736",
+        "0x205976a",
+        "0x2059770"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2059ece",
+      "caller": "0x2059ec4",
+      "names": [
+        "fm1_sound_colour"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": false,
+      "table_start": "0x2059ed0",
+      "table_end": "0x2059ed4",
+      "entry_bytes": 1,
+      "entry_count": 4,
+      "encoded_offsets": [
+        9,
+        2,
+        10,
+        13
+      ],
+      "modeled_targets": [
+        "0x2059ee2",
+        "0x2059ed4",
+        "0x2059ee4",
+        "0x2059eea"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x205a5b8",
+      "caller": "0x205a566",
+      "names": [
+        "fm1_seq_view_draw"
+      ],
+      "instruction": "tbh [r1]",
+      "candidate_reachable": false,
+      "table_start": "0x205a5ba",
+      "table_end": "0x205a5c6",
+      "entry_bytes": 2,
+      "entry_count": 6,
+      "encoded_offsets": [
+        6,
+        161,
+        267,
+        317,
+        529,
+        693
+      ],
+      "modeled_targets": [
+        "0x205a5c6",
+        "0x205a6fc",
+        "0x205a7d0",
+        "0x205a834",
+        "0x205a9dc",
+        "0x205ab24"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x205cab0",
+      "caller": "0x205c610",
+      "names": [
+        "draw"
+      ],
+      "instruction": "tbh [r1]",
+      "candidate_reachable": false,
+      "table_start": "0x205cab2",
+      "table_end": "0x205cac2",
+      "entry_bytes": 2,
+      "entry_count": 8,
+      "encoded_offsets": [
+        8,
+        1291,
+        1461,
+        1567,
+        1461,
+        1461,
+        1461,
+        1679
+      ],
+      "modeled_targets": [
+        "0x205cac2",
+        "0x205d4c8",
+        "0x205d61c",
+        "0x205d6f0",
+        "0x205d61c",
+        "0x205d61c",
+        "0x205d61c",
+        "0x205d7d0"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x205d784",
+      "caller": "0x205c610",
+      "names": [
+        "draw"
+      ],
+      "instruction": "tbh [r1]",
+      "candidate_reachable": false,
+      "table_start": "0x205d786",
+      "table_end": "0x205d792",
+      "entry_bytes": 2,
+      "entry_count": 6,
+      "encoded_offsets": [
+        6,
+        1651,
+        1655,
+        1664,
+        1680,
+        1689
+      ],
+      "modeled_targets": [
+        "0x205d792",
+        "0x205e46c",
+        "0x205e474",
+        "0x205e486",
+        "0x205e4a6",
+        "0x205e4b8"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x205df20",
+      "caller": "0x205c610",
+      "names": [
+        "draw"
+      ],
+      "instruction": "tbh [r2]",
+      "candidate_reachable": false,
+      "table_start": "0x205df22",
+      "table_end": "0x205df32",
+      "entry_bytes": 2,
+      "entry_count": 8,
+      "encoded_offsets": [
+        8,
+        725,
+        742,
+        753,
+        764,
+        784,
+        800,
+        817
+      ],
+      "modeled_targets": [
+        "0x205df32",
+        "0x205e4cc",
+        "0x205e4ee",
+        "0x205e504",
+        "0x205e51a",
+        "0x205e542",
+        "0x205e562",
+        "0x205e584"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x20600ba",
+      "caller": "0x205eee2",
+      "names": [
+        "fm1_cstart"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": false,
+      "table_start": "0x20600bc",
+      "table_end": "0x20600c4",
+      "entry_bytes": 1,
+      "entry_count": 8,
+      "encoded_offsets": [
+        4,
+        19,
+        51,
+        7,
+        51,
+        51,
+        34,
+        0
+      ],
+      "modeled_targets": [
+        "0x20600c4",
+        "0x20600e2",
+        "0x2060122",
+        "0x20600ca",
+        "0x2060122",
+        "0x2060122",
+        "0x2060100",
+        "0x20600bc"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2060740",
+      "caller": "0x2060654",
+      "names": [
+        "fm1_seq_import_feed"
+      ],
+      "instruction": "tbb [r2]",
+      "candidate_reachable": true,
+      "table_start": "0x2060742",
+      "table_end": "0x206074c",
+      "entry_bytes": 1,
+      "entry_count": 10,
+      "encoded_offsets": [
+        5,
+        82,
+        37,
+        5,
+        5,
+        82,
+        82,
+        82,
+        82,
+        73
+      ],
+      "modeled_targets": [
+        "0x206074c",
+        "0x20607e6",
+        "0x206078c",
+        "0x206074c",
+        "0x206074c",
+        "0x20607e6",
+        "0x20607e6",
+        "0x20607e6",
+        "0x20607e6",
+        "0x20607d4"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2060914",
+      "caller": "0x20608fc",
+      "names": [
+        "lunar_project_unit_index"
+      ],
+      "instruction": "tbb [r3]",
+      "candidate_reachable": true,
+      "table_start": "0x2060916",
+      "table_end": "0x206091a",
+      "entry_bytes": 1,
+      "entry_count": 4,
+      "encoded_offsets": [
+        2,
+        7,
+        15,
+        22
+      ],
+      "modeled_targets": [
+        "0x206091a",
+        "0x2060924",
+        "0x2060934",
+        "0x2060942"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2060a0a",
+      "caller": "0x20609f2",
+      "names": [
+        "record"
+      ],
+      "instruction": "tbh [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x2060a0c",
+      "table_end": "0x2060a22",
+      "entry_bytes": 2,
+      "entry_count": 11,
+      "encoded_offsets": [
+        30,
+        285,
+        285,
+        11,
+        37,
+        51,
+        285,
+        285,
+        285,
+        285,
+        11
+      ],
+      "modeled_targets": [
+        "0x2060a48",
+        "0x2060c46",
+        "0x2060c46",
+        "0x2060a22",
+        "0x2060a56",
+        "0x2060a72",
+        "0x2060c46",
+        "0x2060c46",
+        "0x2060c46",
+        "0x2060c46",
+        "0x2060a22"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x20612ac",
+      "caller": "0x206129e",
+      "names": [
+        "_ZN3fm14echo8Instance5ApplyEi"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x20612ae",
+      "table_end": "0x20612b6",
+      "entry_bytes": 1,
+      "entry_count": 8,
+      "encoded_offsets": [
+        4,
+        15,
+        23,
+        26,
+        29,
+        81,
+        97,
+        0
+      ],
+      "modeled_targets": [
+        "0x20612b6",
+        "0x20612cc",
+        "0x20612dc",
+        "0x20612e2",
+        "0x20612e8",
+        "0x2061350",
+        "0x2061370",
+        "0x20612ae"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2061506",
+      "caller": "0x20614ca",
+      "names": [
+        "_ZN3fm15macro8Instance12BuildEnginesEv"
+      ],
+      "instruction": "tbb [r2]",
+      "candidate_reachable": true,
+      "table_start": "0x2061508",
+      "table_end": "0x2061510",
+      "entry_bytes": 1,
+      "entry_count": 8,
+      "encoded_offsets": [
+        4,
+        29,
+        8,
+        12,
+        16,
+        22,
+        26,
+        0
+      ],
+      "modeled_targets": [
+        "0x2061510",
+        "0x2061542",
+        "0x2061518",
+        "0x2061520",
+        "0x2061528",
+        "0x2061534",
+        "0x206153c",
+        "0x2061508"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2061f66",
+      "caller": "0x2061ee8",
+      "names": [
+        "_ZN3fm111macro_heavy8Instance12BuildEnginesEv"
+      ],
+      "instruction": "tbb [r0]",
+      "candidate_reachable": true,
+      "table_start": "0x2061f68",
+      "table_end": "0x2061f74",
+      "entry_bytes": 1,
+      "entry_count": 12,
+      "encoded_offsets": [
+        6,
+        14,
+        18,
+        34,
+        38,
+        42,
+        46,
+        50,
+        54,
+        58,
+        62,
+        66
+      ],
+      "modeled_targets": [
+        "0x2061f74",
+        "0x2061f84",
+        "0x2061f8c",
+        "0x2061fac",
+        "0x2061fb4",
+        "0x2061fbc",
+        "0x2061fc4",
+        "0x2061fcc",
+        "0x2061fd4",
+        "0x2061fdc",
+        "0x2061fe4",
+        "0x2061fec"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x206327c",
+      "caller": "0x2063268",
+      "names": [
+        "_ZNSt3__127__insertion_sort_incompleteIRNS_6__lessIffEEPfEEbT0_S5_T_"
+      ],
+      "instruction": "tbb [r0]",
+      "candidate_reachable": true,
+      "table_start": "0x206327e",
+      "table_end": "0x2063284",
+      "entry_bytes": 1,
+      "entry_count": 6,
+      "encoded_offsets": [
+        83,
+        83,
+        3,
+        51,
+        59,
+        68
+      ],
+      "modeled_targets": [
+        "0x2063324",
+        "0x2063324",
+        "0x2063284",
+        "0x20632e4",
+        "0x20632f4",
+        "0x2063306"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2063498",
+      "caller": "0x206332a",
+      "names": [
+        "_ZNSt3__16__sortIRNS_6__lessIffEEPfEEvT0_S5_T_"
+      ],
+      "instruction": "tbb [r0]",
+      "candidate_reachable": true,
+      "table_start": "0x206349a",
+      "table_end": "0x20634a0",
+      "entry_bytes": 1,
+      "entry_count": 6,
+      "encoded_offsets": [
+        54,
+        54,
+        3,
+        56,
+        64,
+        74
+      ],
+      "modeled_targets": [
+        "0x2063506",
+        "0x2063506",
+        "0x20634a0",
+        "0x206350a",
+        "0x206351a",
+        "0x206352e"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2063ef0",
+      "caller": "0x2063eba",
+      "names": [
+        "_ZN6plaits2fm3Lfo4StepEf"
+      ],
+      "instruction": "tbb [r0]",
+      "candidate_reachable": false,
+      "table_start": "0x2063ef2",
+      "table_end": "0x2063ef8",
+      "entry_bytes": 1,
+      "entry_count": 6,
+      "encoded_offsets": [
+        3,
+        18,
+        23,
+        25,
+        32,
+        45
+      ],
+      "modeled_targets": [
+        "0x2063ef8",
+        "0x2063f16",
+        "0x2063f20",
+        "0x2063f24",
+        "0x2063f32",
+        "0x2063f4c"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x20651e0",
+      "caller": "0x20651d0",
+      "names": [
+        "_ZN3fm14hall8Instance5ApplyEi"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x20651e2",
+      "table_end": "0x20651ec",
+      "entry_bytes": 1,
+      "entry_count": 10,
+      "encoded_offsets": [
+        5,
+        7,
+        9,
+        11,
+        13,
+        23,
+        26,
+        31,
+        44,
+        41
+      ],
+      "modeled_targets": [
+        "0x20651ec",
+        "0x20651f0",
+        "0x20651f4",
+        "0x20651f8",
+        "0x20651fc",
+        "0x2065210",
+        "0x2065216",
+        "0x2065220",
+        "0x206523a",
+        "0x2065234"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2067a76",
+      "caller": "0x2067a6a",
+      "names": [
+        "_ZN6plaits17WaveTerrainEngine7TerrainEffi"
+      ],
+      "instruction": "tbh [r1]",
+      "candidate_reachable": false,
+      "table_start": "0x2067a78",
+      "table_end": "0x2067a8a",
+      "entry_bytes": 2,
+      "entry_count": 9,
+      "encoded_offsets": [
+        74,
+        121,
+        157,
+        191,
+        224,
+        9,
+        9,
+        9,
+        276
+      ],
+      "modeled_targets": [
+        "0x2067b0c",
+        "0x2067b6a",
+        "0x2067bb2",
+        "0x2067bf6",
+        "0x2067c38",
+        "0x2067a8a",
+        "0x2067a8a",
+        "0x2067a8a",
+        "0x2067ca0"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2068928",
+      "caller": "0x2068916",
+      "names": [
+        "_ZN3fm14room8Instance6TargetEi"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x206892a",
+      "table_end": "0x2068930",
+      "entry_bytes": 1,
+      "entry_count": 6,
+      "encoded_offsets": [
+        3,
+        5,
+        18,
+        42,
+        52,
+        54
+      ],
+      "modeled_targets": [
+        "0x2068930",
+        "0x2068934",
+        "0x206894e",
+        "0x206897e",
+        "0x2068992",
+        "0x2068996"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x20691e4",
+      "caller": "0x20691de",
+      "names": [
+        "_ZNK3fm15crush8Instance6TargetEi"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x20691e6",
+      "table_end": "0x20691ec",
+      "entry_bytes": 1,
+      "entry_count": 6,
+      "encoded_offsets": [
+        3,
+        14,
+        26,
+        33,
+        35,
+        0
+      ],
+      "modeled_targets": [
+        "0x20691ec",
+        "0x2069202",
+        "0x206921a",
+        "0x2069228",
+        "0x206922c",
+        "0x20691e6"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x2069248",
+      "caller": "0x2069244",
+      "names": [
+        "_ZN3fm15crush8Instance5FieldEi"
+      ],
+      "instruction": "tbb [r1]",
+      "candidate_reachable": true,
+      "table_start": "0x206924a",
+      "table_end": "0x2069250",
+      "entry_bytes": 1,
+      "entry_count": 6,
+      "encoded_offsets": [
+        3,
+        7,
+        9,
+        11,
+        13,
+        0
+      ],
+      "modeled_targets": [
+        "0x2069250",
+        "0x2069258",
+        "0x206925c",
+        "0x2069260",
+        "0x2069264",
+        "0x206924a"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    },
+    {
+      "pc": "0x206e6c4",
+      "caller": "0x206e502",
+      "names": [
+        "vsnprintf_impl"
+      ],
+      "instruction": "tbh [r4]",
+      "candidate_reachable": true,
+      "table_start": "0x206e6c6",
+      "table_end": "0x206e708",
+      "entry_bytes": 2,
+      "entry_count": 33,
+      "encoded_offsets": [
+        37,
+        33,
+        33,
+        33,
+        33,
+        33,
+        33,
+        33,
+        33,
+        33,
+        37,
+        203,
+        37,
+        66,
+        93,
+        66,
+        33,
+        37,
+        33,
+        33,
+        33,
+        33,
+        220,
+        37,
+        237,
+        33,
+        33,
+        262,
+        33,
+        37,
+        33,
+        33,
+        37
+      ],
+      "modeled_targets": [
+        "0x206e710",
+        "0x206e708",
+        "0x206e708",
+        "0x206e708",
+        "0x206e708",
+        "0x206e708",
+        "0x206e708",
+        "0x206e708",
+        "0x206e708",
+        "0x206e708",
+        "0x206e710",
+        "0x206e85c",
+        "0x206e710",
+        "0x206e74a",
+        "0x206e780",
+        "0x206e74a",
+        "0x206e708",
+        "0x206e710",
+        "0x206e708",
+        "0x206e708",
+        "0x206e708",
+        "0x206e708",
+        "0x206e87e",
+        "0x206e710",
+        "0x206e8a0",
+        "0x206e708",
+        "0x206e708",
+        "0x206e8d2",
+        "0x206e708",
+        "0x206e710",
+        "0x206e708",
+        "0x206e708",
+        "0x206e710"
+      ],
+      "all_modeled_targets_inside_caller": true,
+      "runtime_index_bounds_verified": false
+    }
+  ],
+  "total_table_branches": 90,
+  "candidate_reachable_table_branches": 47,
+  "limits": [
+    "runtime index bounds and alignment require separate review",
+    "modeled table destinations are internal; arbitrary out-of-table reads are not covered",
+    "zero decoder errors do not establish complete control-flow coverage",
+    "candidate graph remains conditional on callback provenance",
+    "no stack bound, interrupt overlap, timing or hardware admission"
+  ],
+  "hardware_admitted": false
+}

@@ -345,3 +345,46 @@ callees but returned no callers despite the known native caller. Serena located
 mod_emit and its conditional observer plus edit-ring scan. These navigation
 results do not prove target call completeness or ABI. No firmware/device
 command or heavy build was performed. Full release gates remain open.
+
+## Table branches and bounded chord sort (2026-10-13)
+
+[verified] Supplementary inspect-table-branches.py records 90 compiled tbb/tbh
+sites, 47 in the 1133-function candidate PROJECT graph. Every opcode/register
+pair matches ELF bytes; all table boundary symbols pair correctly. Under the
+compiler's table_start + 2 * unsigned offset model, all entries land inside
+the owning function. Retained target codec assembly expresses tbh entries as
+.short (target-table_start)/2. Runtime bounds/alignment of each index are NOT
+proved. The prior zero-decoding-limit result therefore does not establish
+complete control-flow coverage. Historical callback receipts remain unchanged.
+
+[verified] inspect-chord-sort.py pins the four-note ChordBank header, compiled
+begin/end difference of16bytes, initial sort branch path, six-entry byte table
+and entry4 destination0x206351A. That branch calls sort4, which calls sort3;
+neither helper has other calls or unresolved sites. The conditional four-note
+sort path uses one56byte sort frame and two16byte helper frames:88bytes, with
+the20byte ChordBank caller present separately. This does not bound ratio
+normalization, outer callers, interrupts or hypothetical address-taken entry.
+The complete call inventory names only ChordBank and sort itself as direct
+callers of this sort specialization. No recursive edge is deleted globally.
+
+[verified] Both receipts reproduce byte-for-byte, Python compilation and
+whitespace checks pass. A mutated branch register is rejected by opcode matching
+with upstream hashes updated; a changed entry4 target is rejected by the chord
+inspector. No native build or device command occurred. No physical admission.
+Serena finds the ChordBank Sort source; Rarefaction's exact-position query at
+line61 returned no resolved symbol/callers, so it is not coverage evidence.
+Shared semantic selection stays on the primary checkout.
+
+Reproduce from this worktree:
+
+```
+N=notes/2026-10-13-mixed-project-verification
+B=build/native-external-arenas-16-20261012
+python3 "$N/inspect-table-branches.py" . "$B/all13-v3.elf" "$B/full-disassembly-r3.txt" "$B/address-inventory-r3.json" "$N/receipts/project-callback-schwung.json" "$B/state-codecs-v3/shard-00/codec.s" /tmp/lunar-table-branches.json
+python3 "$N/inspect-chord-sort.py" . "$B/full-disassembly-r3.txt" "$B/address-inventory-r3.json" /tmp/lunar-table-branches.json /tmp/lunar-chord-sort.json
+```
+
+Next: finish optional-hook provenance, account for table-index bounds where
+needed for startup reachability, and combine caller/IRQ stack and target timing.
+All13 physical acceptance, migration/rollback, web builder/install, licensing,
+review/CI/integration remain open.

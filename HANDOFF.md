@@ -2418,3 +2418,20 @@ No firmware/device command, no heavy build, no live job. Shared semantic roots
 remain primary checkout; Rarefaction init caller inventory missed known native
 caller, Serena mod_emit source navigation succeeded. Prior verified pushed
 12129337e9f4c78748a30d6a8599871f9f375795. Full thirteen-engine goal active.
+
+### Table control-flow and chord recursion checkpoint
+
+[verified] Supplementary table inspection finds90tbb/tbh sites,47candidate
+reachable. ELF opcode/register checks and table boundary pairing pass; all
+modeled entry destinations are internal. Index bounds/alignment remain open;
+zero decoder gaps was never full control-flow proof. Historical graph receipts
+remain intact. Chord caller passes4floats: compiled small-case entry4 targets
+sort4->sort3, one56byte sort frame plus two16byte helpers (88bytes), with20byte
+caller separate. No global recursive edge removed; no full stack/IRQ bound.
+Both new receipts reproduce; opcode-register and table-target negative checks
+reject independently of matching upstream hashes. Python/diff checks pass.
+No device command, no heavy job, no live job. Shared semantic root unchanged.
+Next optional hooks/table bounds/caller+IRQ stack/timing, then fresh hardware
+identity and paired backups for reviewed physical campaign. Full13 release,
+settings migration/rollback, web builder/install, GPL/review/CI gates open.
+Previous verified pusheda398e5cd42663879066efb2f09e32e4c98e4246b.
