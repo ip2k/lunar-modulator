@@ -12,7 +12,7 @@ This does **not** establish safe SAVE operation. The SAVE service is linked but 
 
 ## Reproduction and inputs
 
-The tracked verifier is `tools/native/verify_nor_writer_closure.py`. It checks exact source anchors before creating its analysis overlay; its target builder changes are applied only to that copied overlay. It does not call the analysis root, emit `app.bin`, emit a regular verification receipt, run packaging or alter the checkout.
+The tracked verifier is `tools/native/verify_nor_writer_closure.py`. Its call audit fails closed for empty instruction streams, missing or empty erase/program symbols, duplicate labels, calls without parseable containing function/target attribution, unaddressed call text, and any erase/program outcall. It checks exact source anchors before creating its analysis overlay; its target builder changes are applied only to that copied overlay. The overlay contains only paths from a NUL-delimited `git ls-files -z` manifest, so ignored `reference/`, scratch and prior build trees are not copied. When running in a container without Git, generate that manifest on the host and pass `--tracked-files`; the tool refuses an incomplete overlay. It does not call the analysis root, emit `app.bin`, emit a regular verification receipt, run packaging or alter the checkout.
 
 - Exact source: `454046b40e9e2869d061585c0aa71e0b86e915f3`.
 - Toolchain: JieLi SDK V1.2.13 pinned toolchain `jieli-linux-toolchains-20250324.1`, clang 4.0.1, target pi32v2.
@@ -22,18 +22,18 @@ The tracked verifier is `tools/native/verify_nor_writer_closure.py`. It checks e
 - Build: song-diagnostic, stack watermark, expanded-d7000 profile, project loader and save service linked, startup index 0, Shapes 8, indexed TFT and compressed wavetables.
 - Hypothetical, **not admitted**, discontiguous ranges: VM `[0xD9000,0xE5000)` and USR `[0xEA000,0xF6000)`, 48 KiB each. They avoid the BTIF boundary and VM/USR gap, and the settings/globals and key_mac sectors. The existing contiguous project store has no binding to these ranges; no production storage geometry was changed.
 
-Run `python3 tests/test_native_nor_writer_closure.py` and then execute the command recorded in `analysis-inputs.json` (the checked-in verifier rejects a preexisting output directory).
+Run `python3 tests/test_native_nor_writer_closure.py`, create the host-side manifest with `git ls-files -z > <output>/tracked-files.zlist`, then pass it as `--tracked-files <output>/tracked-files.zlist` when executing the command recorded in `analysis-inputs.json` (the checked-in verifier rejects a preexisting output directory).
 
 ## Artifacts
 
-Private, non-repository output: `/home/claude/mvave-fm1/nor-real-writer-closure-analysis-20261014/run7/build`.
+Private, non-repository output: `/home/claude/mvave-fm1/nor-real-writer-closure-analysis-20261014/run11/build`. The host-generated tracked file list is `/home/claude/mvave-fm1/nor-real-writer-closure-analysis-20261014/run11/tracked-files.zlist`.
 
 - ELF: `linked/lunar-app-probe.elf`, SHA-256 `7ac7928466e803fd3f0c4b3084d60c24921908f1e098642f2711fc264f0b35bf`.
-- Map: `linked/lunar-app-probe.map`, SHA-256 `4ab8519b4b753a987ae225478b1f889dd411cb13c6c01770d0067e6cffbb0ad1`.
+- Map: `linked/lunar-app-probe.map`, SHA-256 `d2f19c8cbe651cebfd1e46f1f76ef78a2ca4984c37921b53a549a87b187f3e33`.
 - Full target disassembly: `linked/full-disassembly.txt`, SHA-256 `8172e4d901ebc1f560b9ccd52009ce25a9553bc53f4007602da9b7e13514e958`.
 - RAM disassembly: `linked/ram-text.txt`, SHA-256 `b0cbc75a9b0f3a0535d43804f67cf0c7f4139436320de90d53cf40b9dd927c58`.
 - Final-ELF relocation dump: `linked/linked-relocations.txt`, SHA-256 `151e4a521a2d27dce291316b9e527a4f5ff3a7a58d791e1a4d524ed0c63b611d`. The static linked ELF has no remaining relocation records.
-- Machine-readable call audit: `linked/ram-closure-audit.json`; writer-entry calls are empty. One RAM-to-RAM call is recorded from `fl_jedec_ram` to `fl_jedec_checked_ram`.
+- Machine-readable call audit: `linked/ram-closure-audit.json`, SHA-256 `08d95b6bad13f9de0f6a6c2268a0140a5599ac6e439d2127a718545c16dc0b76`; writer-entry calls are empty. One RAM-to-RAM call is recorded from `fl_jedec_ram` to `fl_jedec_checked_ram`.
 - Analysis-only builder patch: `builder-overlay.diff`, SHA-256 `91b6494d16cfe4e109eb54a0ef09879e3f2251158ba467ff807c2830992dbf2a`.
 - Generated platform delta: `platform-analysis.diff`, SHA-256 `4724ca24a91a3d6fa23bb41f9d6fa4d8515a186dd230e624e5c63af2086b0218`.
 - `analysis-inputs.json` records profile/source hashes, build flags, sections and SAVE flags. `linked/analysis-only.json` explicitly says installable=false, hardware_tested=false and release_accepted=false.

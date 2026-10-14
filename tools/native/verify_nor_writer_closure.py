@@ -9,6 +9,7 @@ import argparse
 import difflib
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import re
@@ -54,17 +55,45 @@ def in_extent(off, size):
 
 
 def audit_ram_calls(ram_text):
-    current_function = None
     calls = []
+    current_function = None
+    seen_functions = set()
+    function_instructions = {}
+    instruction_count = 0
     for line in ram_text.splitlines():
-        if line and not line[0].isspace() and line.endswith(':'):
-            current_function = line[:-1]
-        if re.search(r'\bcall\b', line):
-            target = re.search(r'<([^<>]+)>', line)
-            calls.append({'function': current_function, 'instruction': line.strip(),
-                          'target': target.group(1) if target else None})
-    writer_calls = [call for call in calls
-                    if call['function'] in ('fl_erase4k_ram', 'fl_prog_ram')]
+        match = re.fullmatch(r'([A-Za-z_.$][A-Za-z0-9_.$@-]*):', line)
+        if match:
+            current_function = match.group(1)
+            if current_function in seen_functions:
+                raise ValueError(f'duplicate RAM function label: {current_function}')
+            seen_functions.add(current_function)
+            function_instructions[current_function] = 0
+        elif re.match(r'^\s*[0-9a-fA-F]+:', line):
+            instruction_count += 1
+            if current_function is not None:
+                function_instructions[current_function] += 1
+            if re.search(r'\bcall\b', line):
+                target = re.search(r'<([^<>]+)>', line)
+                if current_function is None:
+                    raise ValueError('RAM call has no containing function label')
+                if not target or not target.group(1).strip():
+                    raise ValueError(f'RAM call target is malformed in {current_function}')
+                calls.append({'function': current_function, 'instruction': line.strip(),
+                              'target': target.group(1).strip()})
+        elif re.search(r'\bcall\b', line):
+            raise ValueError('malformed RAM call instruction without an address')
+    if instruction_count == 0:
+        raise ValueError('RAM disassembly contains no instructions')
+    required = {'fl_erase4k_ram', 'fl_prog_ram'}
+    missing = required - seen_functions
+    if missing:
+        raise ValueError('RAM disassembly missing writer function(s): ' +
+                         ', '.join(sorted(missing)))
+    empty_writers = {name for name in required if function_instructions.get(name) == 0}
+    if empty_writers:
+        raise ValueError('RAM disassembly has empty writer function(s): ' +
+                         ', '.join(sorted(empty_writers)))
+    writer_calls = [call for call in calls if call['function'] in required]
     return calls, writer_calls
 
 
@@ -85,6 +114,39 @@ def validate_extents():
     assert not in_extent(0xFC000, 0x1000)  # settings/globals
     assert not in_extent(0xFF000, 0x1000)  # key_mac
     assert not in_extent(0xFFFFFFFF, 2)
+
+
+def copy_tracked_source(destination, manifest=None):
+    destination.mkdir(parents=True, exist_ok=False)
+    if manifest is None:
+        try:
+            listing = subprocess.run(['git', '-C', str(ROOT), 'ls-files', '-z'],
+                                     check=True, capture_output=True).stdout
+        except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+            raise SystemExit('git ls-files unavailable; supply --tracked-files manifest') from exc
+    else:
+        listing = Path(manifest).read_bytes()
+    tracked = listing.split(b'\0')
+    if not tracked or tracked == [b'']:
+        raise SystemExit('git ls-files returned no tracked source files')
+    for raw_path in tracked:
+        if not raw_path:
+            continue
+        relative = Path(os.fsdecode(raw_path))
+        if relative.is_absolute() or '..' in relative.parts:
+            raise SystemExit(f'invalid tracked path in manifest: {relative}')
+        source = ROOT / relative
+        target = destination / relative
+        if source.is_symlink():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.symlink_to(os.readlink(source))
+        elif source.is_file():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+        else:
+            raise SystemExit(f'tracked source file is missing: {relative}')
+    if not (destination / 'tools/native/build_application_probe.py').is_file():
+        raise SystemExit('tracked source overlay is missing the probe builder')
 
 
 def patch_builder(builder_path):
@@ -139,13 +201,14 @@ def main():
     parser.add_argument('--build', type=Path, required=True,
                         help='New private output directory; must not already exist')
     parser.add_argument('--source-commit', required=True)
+    parser.add_argument('--tracked-files', type=Path,
+                        help='NUL-delimited git ls-files output created outside a container')
     args = parser.parse_args()
     validate_extents()
     build = args.build.resolve()
     build.mkdir(parents=True, exist_ok=False)
     overlay = build / 'source'
-    shutil.copytree(ROOT, overlay,
-                    ignore=shutil.ignore_patterns('.git', '__pycache__', '.pytest_cache'))
+    copy_tracked_source(overlay, args.tracked_files)
     # The assigned base intentionally includes the ICFG-preservation fix in a
     # vendored file. Refresh only that copied pin so the builder still checks
     # every other vendored file against the original inventory.
