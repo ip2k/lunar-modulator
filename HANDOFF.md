@@ -1,4 +1,56 @@
-# Latest continuation authority — 2026-10-14 (browser SET and receipt checks)
+# Latest continuation authority — 2026-10-14 (checked watchdog and real SET interop)
+
+Coordinator `76bd667bf2a6755f07f548bc2e67365711cfed28` is GitHub-backed,
+remote SHA verified, and transferred to Hera coordinator-current. Integrated
+worker branches are backed up and remote SHA verified: SET backend interop
+`0af616614cb69c87674aabb51efec49310aeb93e`, checked watchdog prototype
+`b4721056590a8cc874e4ac6c0b4e1cd897b9cea7`, and first-format recovery design
+`61c715f6ecba248a80fa8d2b1e53780f7cc3db6b`.
+
+Real browser export passed trusted backend preparation (3/3 Hera tests), and
+a bounded target build embedded the project plus SET at 844,352/860,644 bytes.
+This is not playback or installation acceptance. The exact public selection
+request is now retained as a repository fixture with unchanged SHA-256;
+the three interop tests can run in CI with its fresh state tool, without a
+temporary browser-export file. The fixture-based Hera rerun is pending.
+Full browser Node tests passed 76, skipped one; focused Mac transport,
+closure-auditor and migration-planner tests passed 26/26 after integration.
+
+The watchdog prototype confirms disable before entering the RAM writer,
+waits for positive NOR readiness before restoring XIP, and rearms while
+the original IRQ mask is retained. Failed P33 stop verification sends no
+NOR bytes; watchdog state can remain uncertain on that early failure.
+Persistent WIP remains a RAM wait, with watchdog disabled. Final linked
+target closure and additional failure tests are assigned to Hera. SAVE
+remains unbound and unadmitted.
+
+Archived paired device40 backups expose eight non-FF sector-tail pages in
+the 24-sector storage map, none presently matching retained record filters.
+The first-format planner refuses these; its ten tests pass. A concrete
+ROM-held, operator-mediated recovery design preserves the 43,130-byte bound
+and both slots, but requires same-target USB_KEY proof and range-specific
+recovery before relying on it. A pure interruption/resume/rollback model
+is assigned. This is separate from already-formatted journal fault tests.
+The owner's USB_KEY hardware availability question is pending.
+
+Native intentional companion-SET access is assigned with a minimal trusted
+parent-metadata bridge. Default startup stays Event Horizon project; workers
+must use the existing pre-audio scratch/staging path, not allocate a second
+scratch over live engines. No hardware operations are assigned to Hera.
+
+CI38628940753 at old0fc23e9 now has eleven successes and two Python jobs
+running. CI38631420007 at3aac8ef remains pending with no jobs at the last
+check. Neither covers this current watchdog source. Current-source CI is
+required after the target review. No main merge or deployment occurred.
+
+Owner approved Event Horizon Showcase as default and said available to
+watch. The already-sent Event120 boot observation question remains pending;
+last passive state is ROM device42. No new device I/O was performed during
+this continuation. Fresh paired/device-bound campaign checks are required
+before any next boot/write; consumed device40 receipts cannot be reused.
+Full real-hardware/web release goal remains ACTIVE.
+
+# Historical continuation authority — 2026-10-14 (browser SET and receipt checks)
 
 Code checkpoint `c1da27b8` integrates the browser companion SET selector,
 receipt identity fix, reserved-tail adapter and manufacturer NOR research.
