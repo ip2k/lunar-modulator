@@ -1,0 +1,5 @@
+{
+  "firmware/native/project_store.h": "4b9a36c34c68399d4a29b5388af55585ceb4bb753b654f82c00906a24da3e85c",
+  "tests/native/project_store.c": "cc535d8aa3857a2aae0c144e58b2f88537ccd1c78b93b207e24345e8651b9a36",
+  "tests/test_native_project_store.py": "69bd02674977f0304dd6c6943573f19831a73d9c3ddb0606ad71d99b7414826d"
+}

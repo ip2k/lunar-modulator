@@ -1,0 +1,11 @@
+{
+  "target": "pi32v2",
+  "cpu": "r3",
+  "float_flag": "-mfprev1",
+  "compile_exit": 0,
+  "object_sha256": "49f5567d521e9aeaa4e843448fa248998b737cacaeab7460858da5b73f5ed21c",
+  "source_sha256": "4b9a36c34c68399d4a29b5388af55585ceb4bb753b654f82c00906a24da3e85c",
+  "wrapper_sha256": "fb767f43d2b1f25f364a25051ef529b9e5fcfa68fbc7626d3ab84f536b6c7f5e",
+  "application_linked": false,
+  "hardware_tested": false
+}

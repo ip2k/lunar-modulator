@@ -2846,3 +2846,21 @@ Installed13engine watched boot still pending fresh owner availability. Do not
 replay writer/ROM upload. Full release, migration/physicalrollback, web installer,
 custom builder, licensing and reviewCI remain open. Previous verified pushed
 36d8d867031cf8a1fbfed2c226d610df75ffbc35.
+
+## Project transaction core checkpoint (2026-10-13)
+
+[verified] Geometry-independent two-slot project_store.h implemented, not linked
+or physically allocated.30 actual-C tests pass30 Hera ASan/UBSan containers:
+maximum98304B payload,25 selected transport failures across transaction phases,
+validator refusal, bounds/latch, repeatcommit, invalidgeometry, corruptlatest
+fallback. Previous slot byte preservation checked; all logs/states/hashes pass.
+Pinned pi32v2/r3/-mfprev1/Oz freestanding C99 Wall/Wextra/Werror wrapper compiled.
+Evidence notes/2026-10-13-project-store-verification/. Final session86142 terminal0;
+no active worker/no physical flash operation. Earlier v1 warning and v2 test
+expectation failures retained privately and documented. Two full-size slots
+need200KiB unavailable behind current13-engine app; release allocation unresolved.
+Next integrate actual binary reader validator and serializer end-to-end, add
+partial-byte interruption/generation-wrap coverage, resolve device capacity,
+then application SAVE wiring. All13 watched boot/migration/physicalrollback/web
+installer/custombuilder/license/reviewCI remain open. Do not replay consumed
+physical writer or ROM upload. Previous verified pushedc6c7c5c08c3311b5b7297759f78fd913520ebc8f.
