@@ -381,8 +381,18 @@ def test_actual_retained_controller_receipt_through_testclient():
     artifact = read_report(root / "link/artifact/artifact.json")
     app_bytes = (root / "link/artifact/app.bin").read_bytes()
     elf = (root / "link/lunar-app-probe.elf").read_bytes()
-    receipt = checked_link_receipt(selection, prepared, verification, artifact,
-                                   app_bytes, elf, require_save_service=True)
+    runtime = verification["runtime_configuration"]
+    # The retained controller build is explicitly a 120-second song diagnostic.
+    # Bind receipt construction to that reviewed mode instead of the default.
+    assert runtime["runtime_mode"] == "song-diagnostic"
+    assert runtime["return_to_rom_seconds"] == verification["probe_return_to_rom_seconds"] == 120
+    receipt = checked_link_receipt(
+        selection, prepared, verification, artifact, app_bytes, elf,
+        runtime_mode=runtime["runtime_mode"], require_save_service=True)
+    with pytest.raises(ValueError, match="runtime configuration mismatch"):
+        checked_link_receipt(selection, prepared, verification, artifact,
+                             app_bytes, elf, runtime_mode="diagnostic",
+                             require_save_service=True)
     # This regenerated current-format receipt adds fields absent from the older saved image.json.
     receipt.update(project_save_service=verification["project_save_service"],
                    state_bin_codec=verification["state_bin_codec"],
@@ -410,14 +420,14 @@ def test_actual_retained_controller_receipt_through_testclient():
         lambda item: item.update(startup_project_id="wrong-project"),
         lambda item: item.update(app_budget_bytes=len(app_bytes) - 1),
     ]
-    for mutate in mutations:
+    for mutation_index, mutate in enumerate(mutations):
         rejected = client.post("/api/v1/builds", json=request)
         assert rejected.status_code == 202
         rejected_id = rejected.json()["id"]
         bad_receipt = json.loads(json.dumps(receipt))
         mutate(bad_receipt)
         adapter.succeed(rejected_id, app_bytes, json.dumps(bad_receipt).encode(), elf)
-        assert client.get(rejected.json()["status_url"]).status_code == 502
+        assert client.get(rejected.json()["status_url"]).status_code == 502, f"mutation {mutation_index} unexpectedly accepted"
 
 def test_docker_adapter_uses_fixed_container_contract_and_pinned_source(tmp_path, monkeypatch):
     import subprocess
