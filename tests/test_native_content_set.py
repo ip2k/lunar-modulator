@@ -5,6 +5,8 @@ import subprocess
 
 import pytest
 
+from tests.native_test_flags import native_host_link_flags, native_no_pie_flags
+
 ROOT = Path(__file__).resolve().parents[1]
 HARNESS = r'''
 #include "content_set.h"
@@ -170,8 +172,8 @@ def native_set_probe(tmp_path_factory):
         executable = tmp_path / 'probe'
         subprocess.run(['cc', '-std=c99', opt, '-Wall', '-Wextra', '-Werror',
                         '-ffunction-sections', '-fdata-sections', '-fsanitize=address,undefined',
-                        '-fno-pie', '-no-pie', *inc, *map(str, sources),
-                        '-Wl,--gc-sections', '-lm', '-o', str(executable)],
+                        *native_no_pie_flags(), *inc, *map(str, sources),
+                        *native_host_link_flags(), '-lm', '-o', str(executable)],
                        check=True)
         tc = Path(os.environ['FM1_NATIVE_TOOLCHAIN'])
         subprocess.run([str(tc / 'common/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
