@@ -19,13 +19,13 @@ The successful run used source commit b21bfe2f09289a49fb0f70769677d39ed1ded068, 
 
 The build requires a prepared 16-shard object catalogue. The trusted catalogue-z cache at /home/claude/mvave-fm1/all13-fullsong-link-comparison-v1/catalogue-z was checked against the worker checkout: its source manifest matched exactly, and the shard report showed all modules, -Oz, LTO, shared resampler, indexed TFT, 12 Shapes voices, and one GPL module. Its canonical object-list SHA-256 was 63049e9382b0902c90a92d89fca149cd0c4ba8a9dbfeffb8679e36d3e3e50afe. The builder's own checked_catalogue then revalidated source manifest, flags, object lists, and every compiled-object digest before linking.
 
-The service mounts source archive, worker entrypoint, toolchain, catalogue, and request read-only; only a private result directory is writable. The container runs with docker-batch.slice, network=none, 4 CPUs, 8 GiB memory/swap, 512 pids, read-only root, all capabilities dropped, no-new-privileges, and a 3 GiB bounded executable tmpfs. The worker has a 1,500-second timeout; request, archive, log, receipt, and app sizes are capped. Captured worker output is retained only as a capped private job-local file (0600); the API does not return logs.
+The service mounts source archive, worker entrypoint, toolchain, catalogue, and request read-only; only a private result directory is writable. The entrypoint is exported with git show <pinned-commit>:tools/installer_service/docker_worker.py into the mode-0700 job input, hashed, made read-only, and mounted from that copy so it cannot drift from the archived source. The container runs with docker-batch.slice, network=none, 4 CPUs, 8 GiB memory/swap, 512 pids, read-only root, all capabilities dropped, no-new-privileges, and a 3 GiB bounded executable tmpfs. The worker has a 1,500-second timeout; request, archive, log, receipt, and app sizes are capped. Captured worker output is retained only as a capped private job-local file (0600); the API does not return logs.
 
 ## Failures resolved
 
 Two initial attempts exposed assumptions in the prototype, and both were corrected before the successful run:
 
-1. The pinned container image did not contain /workspace/tools/installer_service/docker_worker.py. The adapter now mounts that exact committed worker file read-only at /input/docker_worker.py.
+1. The pinned container image did not contain /workspace/tools/installer_service/docker_worker.py. The adapter mounts the separately exported pinned-commit worker file read-only at /input/docker_worker.py.
 2. The builder requires the 16 prebuilt catalogue shards and rejects absent/stale objects. The service now requires the configured catalogue directory and mounts it read-only at /input/catalogue; the worker passes this fixed path to the existing builder. No request field can select the path.
 
 The diagnostic log stays inside the mode-0700 private runtime job directory, is capped at 1 MiB, and is never exposed by the API. Failed temporary job inputs were removed after diagnosing them.
@@ -39,3 +39,14 @@ The diagnostic log stays inside the mode-0700 private runtime job directory, is 
 - Starlette emitted its existing deprecation warning recommending httpx2; this did not fail the tests.
 
 This is evidence for the local private diagnostic API/worker path only. It does not establish production service readiness, public API security, CI acceptance, installability, physical-device behavior, or listening/perceptual acceptance.
+
+
+## Lifecycle and source-pinning follow-up
+
+A follow-up review found two race conditions in the adapter. The worker entrypoint was mounted from the live checkout even though the source archive used a pinned commit; the adapter now exports that exact committed file and SHA-256 beside the archive. A regression test changes the live checkout after config validation and verifies the mounted input still equals the committed bytes.
+
+The output drain now checks overflow after joining its reader even if the Docker CLI exits with status zero. Teardown stops and waits for the Docker client, then runs docker rm --force on the server-generated opaque container name (with one retry for launch races); no cidfile is needed. Cleanup failure fails the job rather than returning a successful result. Fake subprocess tests cover overflow-with-zero-exit and timeout cleanup without a cidfile.
+
+The worker thread remains daemonized. This private prototype has no production supervisor or signal-aware drain lifecycle; operators must stop admission and wait for all jobs to reach a terminal state before shutting down the process. Abrupt termination can interrupt the Python cleanup path, so it is not ready to run as a long-lived public service.
+
+Follow-up validation: the service test suite passes with the added source-digest and subprocess lifecycle cases; no second heavy Docker build was run because the worker command and compiler inputs are unchanged.

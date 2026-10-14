@@ -315,15 +315,22 @@ def test_docker_adapter_uses_fixed_container_contract_and_pinned_source(tmp_path
     runtime.mkdir()
     catalogue.mkdir()
     (source / "tracked.txt").write_text("tracked")
+    worker_source = source / "tools/installer_service/docker_worker.py"
+    worker_source.parent.mkdir(parents=True)
+    worker_source.write_text("# pinned fixture worker\n")
     subprocess.run(["git", "init", "-q", str(source)], check=True)
     subprocess.run(["git", "-C", str(source), "config", "user.email", "test@example.invalid"], check=True)
     subprocess.run(["git", "-C", str(source), "config", "user.name", "Test"], check=True)
-    subprocess.run(["git", "-C", str(source), "add", "tracked.txt"], check=True)
+    subprocess.run(["git", "-C", str(source), "add", "tracked.txt",
+                    "tools/installer_service/docker_worker.py"], check=True)
     subprocess.run(["git", "-C", str(source), "commit", "-qm", "fixture"], check=True)
     commit = subprocess.run(["git", "-C", str(source), "rev-parse", "HEAD"],
                             check=True, capture_output=True, text=True).stdout.strip()
     config = DockerWorkerConfig(source, toolchain, runtime, commit, catalogue_root=catalogue)
     adapter = DockerJobAdapter(config)
+    # The worker entrypoint must come from the pinned commit even if the live
+    # checkout changes after configuration validation.
+    worker_source.write_text("# changed live checkout\n")
     monkeypatch.setattr(adapter, "_run", lambda _build_id: None)
     data = canonical_request(request_doc())
     build_id = "A" * 32
@@ -334,7 +341,13 @@ def test_docker_adapter_uses_fixed_container_contract_and_pinned_source(tmp_path
     assert adapter.get(build_id).status == "queued"
     assert (base / "input/request.json").read_bytes() == data
     assert (base / "input/source.tar").stat().st_size > 0
-    command = adapter._command(build_id, base, base / "container.id")
+    pinned_worker = subprocess.run(
+        ["git", "-C", str(source), "show", commit + ":tools/installer_service/docker_worker.py"],
+        check=True, capture_output=True).stdout
+    assert (base / "input/docker_worker.py").read_bytes() == pinned_worker
+    assert (base / "input/docker_worker.sha256").read_text().strip() == hashlib.sha256(pinned_worker).hexdigest()
+    assert (base / "input/docker_worker.py").stat().st_mode & 0o777 == 0o400
+    command = adapter._command(build_id, base)
     joined = " ".join(command)
     for option in ("--cgroup-parent=docker-batch.slice", "--network=none", "--cpus=4", "--memory=8g",
                    "--memory-swap=8g", "--pids-limit=512", "--read-only",
@@ -345,7 +358,8 @@ def test_docker_adapter_uses_fixed_container_contract_and_pinned_source(tmp_path
     assert "/output/build" not in joined
     assert "request.json" in joined and "source.tar" in joined
     assert "/input/docker_worker.py" in joined
-    assert str(config.source_root / "tools/installer_service/docker_worker.py") in joined
+    assert str(base / "input/docker_worker.py") in joined
+    assert str(config.source_root / "tools/installer_service/docker_worker.py") not in joined
     assert str(config.catalogue_root) + ",dst=/input/catalogue,readonly" in joined
     adapter.delete(build_id)
     assert not base.exists()
@@ -378,3 +392,100 @@ def test_docker_adapter_rejects_mutable_source_and_unpinned_image(tmp_path):
     with pytest.raises(ValueError, match="immutable image"):
         DockerWorkerConfig(source, toolchain, runtime, commit, catalogue_root=catalogue,
                            image_reference="lunar-recovery-pytest:latest")
+
+
+def _docker_lifecycle_adapter(tmp_path):
+    import subprocess
+    from tools.installer_service.docker_adapter import DockerJobAdapter, DockerWorkerConfig
+
+    source = tmp_path / "source"
+    toolchain = tmp_path / "toolchain"
+    runtime = tmp_path / "runtime"
+    catalogue = tmp_path / "catalogue"
+    for path in (source, toolchain, runtime, catalogue):
+        path.mkdir()
+    worker = source / "tools/installer_service/docker_worker.py"
+    worker.parent.mkdir(parents=True)
+    worker.write_text("# worker\n")
+    subprocess.run(["git", "init", "-q", str(source)], check=True)
+    subprocess.run(["git", "-C", str(source), "config", "user.email", "test@example.invalid"], check=True)
+    subprocess.run(["git", "-C", str(source), "config", "user.name", "Test"], check=True)
+    subprocess.run(["git", "-C", str(source), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(source), "commit", "-qm", "fixture"], check=True)
+    commit = subprocess.run(["git", "-C", str(source), "rev-parse", "HEAD"],
+                            check=True, capture_output=True, text=True).stdout.strip()
+    config = DockerWorkerConfig(source, toolchain, runtime, commit, catalogue_root=catalogue,
+                                timeout_seconds=1)
+    adapter = DockerJobAdapter(config, clock=lambda: 0)
+    build_id = "B" * 32
+    base = runtime / build_id
+    (base / "input").mkdir(parents=True)
+    (base / "result").mkdir()
+    (base / "result/app.bin").write_bytes(b"app")
+    (base / "result/image.json").write_bytes(b"{}")
+    adapter.semaphore.acquire()
+    adapter.job_dirs[build_id] = base
+    adapter.jobs[build_id] = __import__(
+        "tools.installer_service.api", fromlist=["WorkerSnapshot"]).WorkerSnapshot("queued")
+    return adapter, build_id, base
+
+
+class _FakeDockerClientProcess:
+    def __init__(self, output=b"", initial_returncode=0):
+        import io
+        self.stdout = io.BytesIO(output)
+        self.returncode = initial_returncode
+        self.killed = False
+        self.waited = False
+
+    def poll(self):
+        return self.returncode
+
+    def kill(self):
+        self.killed = True
+        if self.returncode is None:
+            self.returncode = -9
+
+    def wait(self, timeout=None):
+        self.waited = True
+        if self.returncode is None:
+            self.returncode = -9
+        return self.returncode
+
+
+def test_docker_log_overflow_fails_even_if_client_exits_zero(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from tools.installer_service import docker_adapter as module
+
+    adapter, build_id, base = _docker_lifecycle_adapter(tmp_path)
+    adapter.config = __import__("dataclasses").replace(adapter.config, max_log_bytes=65536)
+    proc = _FakeDockerClientProcess(b"x" * 65537, initial_returncode=0)
+    cleanup = []
+    monkeypatch.setattr(module.subprocess, "Popen", lambda *a, **k: proc)
+    monkeypatch.setattr(module.subprocess, "run", lambda args, **kwargs: (
+        cleanup.append(args) or SimpleNamespace(returncode=0)))
+    adapter._run(build_id)
+    assert adapter.get(build_id).status == "failed"
+    assert proc.killed
+    assert cleanup == [[adapter.config.docker_binary, "rm", "--force", "lunar-private-" + build_id]]
+    assert (base / "worker.log").stat().st_size <= adapter.config.max_log_bytes
+
+
+def test_docker_timeout_kills_client_and_removes_named_container_without_cidfile(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from tools.installer_service import docker_adapter as module
+
+    adapter, build_id, base = _docker_lifecycle_adapter(tmp_path)
+    proc = _FakeDockerClientProcess(initial_returncode=None)
+    cleanup = []
+    ticks = iter([10.0, 12.0])
+    monkeypatch.setattr(module.subprocess, "Popen", lambda *a, **k: proc)
+    monkeypatch.setattr(module.subprocess, "run", lambda args, **kwargs: (
+        cleanup.append(args) or SimpleNamespace(returncode=0)))
+    monkeypatch.setattr(module.time, "monotonic", lambda: next(ticks))
+    monkeypatch.setattr(module.time, "sleep", lambda _seconds: None)
+    adapter._run(build_id)
+    assert adapter.get(build_id).status == "failed"
+    assert proc.killed and proc.waited
+    assert not (base / "container.id").exists()
+    assert cleanup == [[adapter.config.docker_binary, "rm", "--force", "lunar-private-" + build_id]]

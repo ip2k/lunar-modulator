@@ -123,6 +123,21 @@ class DockerJobAdapter:
                 if not 0 < archive_path.stat().st_size <= 128 * 1024 * 1024:
                     raise ValueError("source archive exceeds configured cap")
                 os.chmod(archive_path, 0o400)
+                worker_relpath = "tools/installer_service/docker_worker.py"
+                worker_bytes = subprocess.run(
+                    ["git", "-C", str(self.config.source_root), "show",
+                     self.config.source_commit + ":" + worker_relpath],
+                    stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                    timeout=10, check=True).stdout
+                if not 0 < len(worker_bytes) <= 256 * 1024:
+                    raise ValueError("pinned worker entrypoint exceeds configured cap")
+                worker_path = request_dir / "docker_worker.py"
+                worker_path.write_bytes(worker_bytes)
+                os.chmod(worker_path, 0o400)
+                worker_digest = hashlib.sha256(worker_bytes).hexdigest()
+                digest_path = request_dir / "docker_worker.sha256"
+                digest_path.write_text(worker_digest + "\n", encoding="ascii")
+                os.chmod(digest_path, 0o400)
             except Exception:
                 if "base" in locals():
                     shutil.rmtree(base, ignore_errors=True)
@@ -134,11 +149,11 @@ class DockerJobAdapter:
         threading.Thread(target=self._run, args=(build_id,), daemon=True,
                          name="lunar-build-" + build_id[:8]).start()
 
-    def _command(self, build_id: str, base: Path, cidfile: Path) -> list[str]:
+    def _command(self, build_id: str, base: Path) -> list[str]:
         cfg = self.config
         # All mount paths are constructed from trusted configured roots and the opaque ID.
         return [
-            cfg.docker_binary, "run", "--rm", "--cidfile", str(cidfile),
+            cfg.docker_binary, "run",
             "--name", "lunar-private-" + build_id,
             "--label", "lan.project=lunar-modulator",
             "--label", "lan.session=installer-diagnostic-worker",
@@ -149,7 +164,7 @@ class DockerJobAdapter:
             "--tmpfs", "/tmp:rw,nosuid,nodev,exec,size=" + str(cfg.scratch_bytes),
             "--user", "1001:1001",
             "--mount", "type=bind,src=" + str(base / "input" / "source.tar") + ",dst=/input/source.tar,readonly",
-            "--mount", "type=bind,src=" + str(cfg.source_root / "tools/installer_service/docker_worker.py") + ",dst=/input/docker_worker.py,readonly",
+            "--mount", "type=bind,src=" + str(base / "input" / "docker_worker.py") + ",dst=/input/docker_worker.py,readonly",
             "--mount", "type=bind,src=" + str(cfg.toolchain_root) + ",dst=/opt/pi32v2,readonly",
             "--mount", "type=bind,src=" + str(cfg.catalogue_root) + ",dst=/input/catalogue,readonly",
             "--mount", "type=bind,src=" + str(base / "input" / "request.json") + ",dst=/input/request.json,readonly",
@@ -165,17 +180,19 @@ class DockerJobAdapter:
     def _run(self, build_id: str):
         base = self.job_dirs[build_id]
         result_dir = base / "result"
-        cidfile = base / "container.id"
+        container_name = "lunar-private-" + build_id
         self._set(build_id, WorkerSnapshot("running"))
         proc = None
         log = bytearray()
         overflow = threading.Event()
+        outcome = WorkerSnapshot("failed")
 
         try:
-            cmd = self._command(build_id, base, cidfile)
+            cmd = self._command(build_id, base)
             proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL,
                                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                     close_fds=True)
+
             def drain():
                 assert proc.stdout is not None
                 while True:
@@ -192,6 +209,7 @@ class DockerJobAdapter:
                         except OSError:
                             pass
                         return
+
             reader = threading.Thread(target=drain, daemon=True)
             reader.start()
             deadline = time.monotonic() + self.config.timeout_seconds
@@ -201,7 +219,9 @@ class DockerJobAdapter:
                 if time.monotonic() >= deadline:
                     raise TimeoutError("worker exceeded time limit")
                 time.sleep(0.2)
-            reader.join(timeout=5)
+            reader.join()
+            if overflow.is_set():
+                raise RuntimeError("worker log exceeded configured cap")
             if proc.returncode != 0:
                 raise RuntimeError("diagnostic worker failed")
             artifact_path = result_dir / "app.bin"
@@ -217,34 +237,44 @@ class DockerJobAdapter:
             receipt = receipt_path.read_bytes()
             if len(artifact) != artifact_size or len(receipt) != receipt_size:
                 raise ValueError("worker output changed while being collected")
-            self._set(build_id, WorkerSnapshot("succeeded", WorkerResult(artifact, receipt)))
+            outcome = WorkerSnapshot("succeeded", WorkerResult(artifact, receipt))
         except Exception:
+            outcome = WorkerSnapshot("failed")
+        finally:
+            # Stop the Docker client before removing by our server-generated name.
             if proc is not None and proc.poll() is None:
-                proc.kill()
+                try:
+                    proc.kill()
+                except OSError:
+                    pass
                 try:
                     proc.wait(timeout=5)
                 except subprocess.TimeoutExpired:
-                    pass
-            if cidfile.exists():
-                try:
-                    cid = cidfile.read_text().strip()
-                    if re.fullmatch(r"[0-9a-f]{64}", cid):
-                        subprocess.run([self.config.docker_binary, "kill", cid],
-                                       stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                                       stderr=subprocess.DEVNULL, timeout=5, check=False)
-                except Exception:
-                    pass
-            self._set(build_id, WorkerSnapshot("failed"))
-        finally:
-            # Keep only the already capped combined worker output inside the
-            # mode-0700 private job directory for operator diagnosis. The API
-            # never returns logs; normal retention cleanup removes this file.
+                    outcome = WorkerSnapshot("failed")
+            try:
+                removed = None
+                for attempt in range(2):
+                    removed = subprocess.run(
+                        [self.config.docker_binary, "rm", "--force", container_name],
+                        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL, timeout=10, check=False)
+                    if removed.returncode == 0:
+                        break
+                    if attempt == 0:
+                        # A timed-out Docker client may have raced container
+                        # creation. Retry once by the same opaque server name.
+                        time.sleep(0.2)
+                if removed is None or removed.returncode != 0:
+                    outcome = WorkerSnapshot("failed")
+            except Exception:
+                outcome = WorkerSnapshot("failed")
             try:
                 log_path = base / "worker.log"
                 log_path.write_bytes(bytes(log[:self.config.max_log_bytes]))
                 os.chmod(log_path, 0o600)
             except OSError:
-                pass
+                outcome = WorkerSnapshot("failed")
+            self._set(build_id, outcome)
             self.semaphore.release()
 
     def get(self, build_id: str) -> WorkerSnapshot | None:
