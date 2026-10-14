@@ -23,3 +23,15 @@ fl_exit() restores SFC/SPI and restores IOMAP bit 5 to its saved value while pre
 The RAM fail-stop deliberately sacrifices availability if readiness cannot be established. It may leave execution in RAM with interrupts disabled and XIP off; the watchdog could still reset the device, and this patch does not prove such a reset is safe while NOR may be busy or provide a recovery path from that state. The host model checks control flow under mock semantics, not actual flash timing, command acceptance, status reliability, power-cut behavior, watchdog margin, XIP/linker residency, or physical recovery.
 
 No storage profile, app driver binding, writer enablement, device operation, or installation admission was performed. notes/2026-10-14-native-nor-adapter-contract.md remains controlling for IRQ, watchdog, linker residency, profile, readback and physical acceptance. Serena/Rarefaction remained selected to another active Mac checkout; direct source/caller inspection was used on this assigned Hera worktree.
+
+### Reproduction record for the target compile probe
+
+The probe source at `/tmp/lunar_flash_target_probe.c` had SHA-256 `fbb39a768945328992512c34b14bc437cff213858b355e848615a0d7cdad5562`; the resulting object at `/tmp/lunar_flash_target_probe.o` had SHA-256 `9a02de36614fe685839ac8ba34422774ecb97bfb0371b1c4a6ca916f259abb29`. It includes the HAL header and calls checked JEDEC/status, read, page-program and sector-erase entry points. Reproduction from the worktree root:
+
+```sh
+tc=/home/claude/mvave-fm1/sdk-v1213/toolchain/jieli-linux-toolchains-20250324.1
+"$tc/common/bin/clang" -target pi32v2 -mcpu=r3 -mfprev1 -ffreestanding -fno-builtin -Oz -I. -I firmware/third_party/dinghy/hal -c /tmp/lunar_flash_target_probe.c -o /tmp/lunar_flash_target_probe.o
+"$tc/pi32v2/bin/nm" -u /tmp/lunar_flash_target_probe.o
+```
+
+The compiler reported version 4.0.1; `nm -u` printed no undefined symbols. This is object compilation only and does not prove RAM placement, final link/map residency, or target execution.
