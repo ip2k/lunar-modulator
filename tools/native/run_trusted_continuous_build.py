@@ -264,12 +264,19 @@ def run_build(*, request_path: Path,
     output.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     output.mkdir(mode=0o700)
     snapshot = output.parent / ("." + output.name + "-source-" + secrets.token_hex(8))
+    catalogue_snapshot = output.parent / ("." + output.name + "-catalogue-" + secrets.token_hex(8))
     request_copy = output.parent / ("." + output.name + "-" + secrets.token_hex(8) + ".request.json")
     fd = os.open(request_copy, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o400)
     with os.fdopen(fd, "wb") as request_stream:
         request_stream.write(request_raw)
         request_stream.flush()
         os.fsync(request_stream.fileno())
+    import shutil
+    catalogue_source_manifest = _toolchain_manifest(catalogue)
+    shutil.copytree(catalogue, catalogue_snapshot, symlinks=True, copy_function=shutil.copy2)
+    catalogue_snapshot_manifest = _toolchain_manifest(catalogue_snapshot)
+    if catalogue_snapshot_manifest != catalogue_source_manifest:
+        raise ValueError("private catalogue snapshot differs from its source tree")
     subprocess.run(["git", "clone", "--quiet", "--no-hardlinks", "--no-checkout",
                     str(source), str(snapshot)], stdin=subprocess.DEVNULL,
                    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=120, check=True)
@@ -286,7 +293,7 @@ def run_build(*, request_path: Path,
     toolchain_manifest_sha = sha(toolchain_manifest_raw)
     container_name = "lunar-continuous-" + secrets.token_hex(12)
     cmd, mount_args = container_command(docker_binary, container_name, snapshot, request_copy,
-                                        toolchain, catalogue, output, commit)
+                                        toolchain, catalogue_snapshot, output, commit)
     mounts = _expected_mounts(mount_args)
     container_id = None
     try:
@@ -322,6 +329,9 @@ def run_build(*, request_path: Path,
         post_toolchain_manifest = _toolchain_manifest(toolchain)
         if sha(post_toolchain_manifest) != toolchain_manifest_sha:
             raise ValueError("toolchain tree changed while the container was running")
+        post_catalogue_manifest = _toolchain_manifest(catalogue_snapshot)
+        if post_catalogue_manifest != catalogue_snapshot_manifest:
+            raise ValueError("private catalogue snapshot changed while the container was running")
         worker = _json(worker_raw, "worker provenance")
         if (worker.get("source_commit") != commit or worker.get("request_sha256") != sha(request_raw)
                 or worker.get("runtime_mode") != "continuous"
@@ -347,6 +357,10 @@ def run_build(*, request_path: Path,
             "worker_sha256": worker_sha,
             "worker_provenance_sha256": sha(worker_raw),
             "toolchain_tree_sha256": toolchain_manifest_sha,
+            "catalogue_source_root": str(catalogue.resolve()),
+            "catalogue_snapshot_root": str(catalogue_snapshot.resolve()),
+            "catalogue_source_tree_sha256": sha(catalogue_source_manifest),
+            "catalogue_snapshot_tree_sha256": sha(catalogue_snapshot_manifest),
             "state_tool_sha256": worker.get("state_tool_sha256"),
             "resources": DOCKER_POLICY,
             "exit_code": 0,
@@ -355,8 +369,9 @@ def run_build(*, request_path: Path,
             "installable": False,
         }
         _write_exclusive(output / "toolchain-manifest.json", toolchain_manifest_raw)
+        _write_exclusive(output / "catalogue-tree-manifest.json", catalogue_snapshot_manifest)
         _write_exclusive(output / "container-invocation.json", canonical(invocation))
-        return capture_trusted_build_tuple(snapshot, catalogue, build_output, toolchain,
+        return capture_trusted_build_tuple(snapshot, catalogue_snapshot, build_output, toolchain,
                                            invocation_path=output / "container-invocation.json",
                                            worker_path=output / "worker-provenance.json",
                                            wrapper_path=snapshot / WORKER_REL.replace("trusted_continuous_worker.py", "run_trusted_continuous_build.py"))
@@ -371,8 +386,9 @@ def run_build(*, request_path: Path,
                            timeout=30, check=False)
         request_copy.unlink(missing_ok=True)
         if snapshot.exists() and not snapshot.is_symlink():
-            import shutil
             shutil.rmtree(snapshot)
+        if catalogue_snapshot.exists() and not catalogue_snapshot.is_symlink():
+            shutil.rmtree(catalogue_snapshot)
 
 
 def main():

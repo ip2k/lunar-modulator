@@ -12,7 +12,10 @@ attempt stopped before worker execution because Docker normalized `--cpus=4`
 without an effective quota. The host contract now pins the observed quota/period,
 all privilege/device/namespace/runtime/mount/entrypoint fields, exact command
 argument vector and its digest, and the full toolchain tree including directory
-modes and symlink targets. Linked-object provenance separately rehashes all
+modes and symlink targets. The mutable catalogue bind was replaced by a fresh
+private snapshot: its complete tree manifest must match the source at copy time,
+the container mounts only the snapshot read-only, and the snapshot is rechecked
+after completion. Selected build-receipt catalogue rows must match that snapshot. Linked-object provenance separately rehashes all
 receipt rows: 161 linked catalogue rows and 120 generated `/out/build/link/`
 rows, while the 167-row catalogue inventory retains six unlinked rows as well.
 The actual pinned container build and private tuple composition have not yet run. The selected
