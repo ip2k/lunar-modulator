@@ -1,5 +1,16 @@
 # Current continuation authority — 2026-10-14
 
+[verified] Latest continuation reviewed and backed up the installer delivery,
+expanded stock-OTA feasibility, and corrected NOR RAM-closure reviews through
+`74b1be1d`. The earlier universal `0x93000` stock-loader claim was too broad:
+the recorded FM-1_092 stock installation accepted an expanded app/layout. A
+strict offline 092 package model is active on Hera; no current Lunar OTA
+acceptance is claimed. Internal build-tuple ELF retention and NOR deadline
+tests are separate active workers. Corrected NOR code remains unintegrated;
+IRQ restoration and watchdog behavior still block physical SAVE admission.
+CI `38610324618` at code head `939b6aa4` remains running. Owner Event Horizon
+screen/audio/control observations remain pending; no further boot was sent.
+
 [verified] Latest coordinator code head `939b6aa4ccdf8fe76fe29215e8337596381e4eac`
 is backed up on the feature branch. Actual Darwin three-file sequence/export/
 project-store regression completed with exit zero (249 cases, three optional

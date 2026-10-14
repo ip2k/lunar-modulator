@@ -1,5 +1,13 @@
 # Expanded FM-1 package and transport decision — 2026-10-14
 
+**Evidence correction:** `2026-10-14-expanded-ota-feasibility.md` supersedes
+the universal stock-path exclusion below. FM-1_092's recorded stock-OTA
+installation is a counterexample to attributing the open Dinghy loader's
+`0x93000` write bound to the proprietary stock loader. Its acceptance of the
+current larger Lunar candidate remains unproved. A strict 092-derived offline
+package model is the next investigation; neither a raw image nor that model
+is an admitted browser package.
+
 Status: offline source review only. No package was emitted, no device command
 was sent, and no install, migration, rollback, or release is admitted here.
 

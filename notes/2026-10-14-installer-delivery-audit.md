@@ -2,6 +2,12 @@
 
 Status: read-only audit at source commit `5bf37c01e30610a826ef28856cca7449a87d9090`. No package was built, service deployed, or device operation performed.
 
+**Follow-up correction:** the fixed stock-OTA extent language below must be
+read as the current V15/open-loader profile, not a proven proprietary-loader
+limit. See `2026-10-14-expanded-ota-feasibility.md` for the successful larger
+FM-1_092 counterexample. The current Lunar image remains unadmitted, and the
+artifact delivery/authentication gaps identified here are unchanged.
+
 ## Finding
 
 The FastAPI/Docker worker currently produces only `app.bin` and `image.json`. `_verify_result()` hashes the app and checks exact request, project/startup, module selection, embedded content, SAVE-service and codec fields, then returns only status, digest, byte count, app budget/free bytes, `installable: false`, and `hardware_tested: false` (`tools/installer_service/api.py:193-282`). The only routes are POST `/api/v1/builds` and GET `/api/v1/builds/{id}`; there is no artifact-download route (`api.py:348-410`). The container writes only app.bin and image.json (`tools/installer_service/docker_worker.py:90-100`).

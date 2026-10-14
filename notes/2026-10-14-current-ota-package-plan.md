@@ -1,5 +1,13 @@
 # Current full-song candidate and stock OTA package boundary (2026-10-14)
 
+**Evidence correction:** the blanket stock-loader ceiling conclusion below is
+superseded by `2026-10-14-expanded-ota-feasibility.md`. The recorded FM-1_092
+stock-OTA installation accepted a larger app and expanded PRCT layout. The
+`0x93000` bounds cited below belong to V15-specific host tooling and the open
+Dinghy loader; they do not establish the proprietary loader's universal limit.
+An explicit offline 092 package model is now being implemented. Lunar's
+845,036-byte candidate still has no accepted stock-OTA transaction.
+
 Status: read-only offline review. No package was composed, no candidate was
 changed, and no device command or write occurred. No installer or hardware
 admission is implied.
