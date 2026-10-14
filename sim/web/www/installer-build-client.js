@@ -56,14 +56,16 @@ async function readJson(response, signal) {
         pending?.catch?.(() => {});
       } catch { /* Cleanup must never extend the caller's deadline. */ }
     };
-    const onAbort = () => cancel();
     try {
       while (true) {
         let removeAbort;
         const aborted = new Promise((_, reject) => {
-          if (signal?.aborted) {
+          const onAbort = () => {
             cancel();
             reject(new DOMException('Aborted', 'AbortError'));
+          };
+          if (signal?.aborted) {
+            onAbort();
           } else if (signal) {
             signal.addEventListener('abort', onAbort, { once: true });
             removeAbort = () => signal.removeEventListener('abort', onAbort);
@@ -87,7 +89,6 @@ async function readJson(response, signal) {
       try { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); }
       catch { fail('The build service returned invalid data.'); }
     } finally {
-      signal?.removeEventListener('abort', onAbort);
       try { reader.releaseLock(); } catch { /* A pending read may already own cleanup. */ }
     }
   }
