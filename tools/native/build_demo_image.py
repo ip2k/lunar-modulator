@@ -114,8 +114,8 @@ def checked_link_receipt(selection, prepared, verification, artifact, app, elf, 
                          runtime_mode='diagnostic', require_save_service=False,
                          firmware_identity=None, flash_layout=None):
     """Bind ordered choices and actual output bytes to one completed link."""
-    if runtime_mode not in ('diagnostic', 'song-diagnostic'):
-        raise ValueError('Only bounded diagnostic runtime modes are supported')
+    if runtime_mode not in ('diagnostic', 'song-diagnostic', 'continuous'):
+        raise ValueError('Unsupported private runtime mode')
     expected_runtime = runtime_configuration(runtime_mode)
     expected_identity = identity_configuration(firmware_identity)
     if (firmware_identity is not None or 'firmware_identity' in verification):
@@ -239,8 +239,8 @@ def read_report(path):
 def build_selection(request, state_tool, toolchain, catalogue, output, *,
                     runtime_mode='diagnostic', wavetable_profile=WAVETABLE_PROFILE,
                     firmware_identity=None, flash_layout='expanded-d9000'):
-    if runtime_mode not in ('diagnostic', 'song-diagnostic'):
-        raise ValueError('Only bounded diagnostic runtime modes are supported')
+    if runtime_mode not in ('diagnostic', 'song-diagnostic', 'continuous'):
+        raise ValueError('Unsupported private runtime mode')
     profile_flags = wavetable_build_flags(wavetable_profile)
     identity_configuration(firmware_identity)
     if flash_layout not in ('expanded-d7000', 'expanded-d9000'):
@@ -278,6 +278,8 @@ def build_selection(request, state_tool, toolchain, catalogue, output, *,
     receipt['state_bin_codec'] = read_report(output / 'link/verification.json')['state_bin_codec']
     receipt['verification_sha256'] = sha(bounded_read(output / 'link/verification.json', 16 * 1048576))
     receipt['artifact_receipt_sha256'] = sha(bounded_read(output / 'link/artifact/artifact.json', 16 * 1048576))
+    if runtime_mode == 'continuous':
+        receipt['status'] = 'linked-private-continuous'
     (output / 'image.json').write_text(json.dumps(receipt, indent=2) + '\n')
     return receipt
 
@@ -286,7 +288,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('request', 'state-tool', 'toolchain', 'catalogue', 'out'):
         parser.add_argument('--' + name, type=Path, required=True)
-    parser.add_argument('--runtime-mode', choices=('diagnostic', 'song-diagnostic'),
+    parser.add_argument('--runtime-mode', choices=('diagnostic', 'song-diagnostic', 'continuous'),
                         default='diagnostic', help='Bounded ROM-return deadline; never an admission')
     parser.add_argument('--wavetable-profile',
                         choices=(WAVETABLE_PROFILE, SHAPES8_WAVETABLE_PROFILE),

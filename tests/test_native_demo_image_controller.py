@@ -312,7 +312,7 @@ def test_song_diagnostic_requires_matching_explicit_runtime_and_remains_unadmitt
     values[2]['probe_return_to_rom_seconds'] = 20
     with pytest.raises(ValueError, match='runtime'):
         checked_link_receipt(*values, runtime_mode='song-diagnostic')
-    with pytest.raises(ValueError, match='bounded'):
+    with pytest.raises(ValueError, match='runtime'):
         checked_link_receipt(*inputs(), runtime_mode='continuous')
 
 
