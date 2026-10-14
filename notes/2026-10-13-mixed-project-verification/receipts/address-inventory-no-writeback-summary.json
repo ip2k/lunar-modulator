@@ -1,0 +1,1402 @@
+{
+  "scope": "address-based inventory; no callback edges or stack bound; not admitted",
+  "elf_sha256": "4b340d1aa4f67737d102441680df5d28a2740d6a2eaa83feb028ea19a9f49e2b",
+  "disassembly_sha256": "6bcbad133dc5bab573c7c5da744032b6c83142f64f00a7403a6c8c44485c61c9",
+  "layout_sha256": "e5da93185eabca6d9b636af744d6905c14f234160f8e4fbbe86cf70b1017cb1c",
+  "roots": {
+    "lunar_project_start": {
+      "direct_reachable_functions": 311,
+      "unresolved": [
+        {
+          "caller": "0x201d450",
+          "names": [
+            "layout.2775"
+          ],
+          "pc": "0x201d4c6",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x201d634",
+          "names": [
+            "mod_plan_build"
+          ],
+          "pc": "0x201e184",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x201e1d6",
+          "names": [
+            "voice_drop_with"
+          ],
+          "pc": "0x201e220",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20335d0",
+          "names": [
+            "in_byte"
+          ],
+          "pc": "0x20335f2",
+          "kind": "indirect",
+          "instruction": "call r6"
+        },
+        {
+          "caller": "0x2033bbe",
+          "names": [
+            "cs_get"
+          ],
+          "pc": "0x2033c12",
+          "kind": "indirect",
+          "instruction": "call r11"
+        },
+        {
+          "caller": "0x2033dfe",
+          "names": [
+            "bemit"
+          ],
+          "pc": "0x2033e18",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x203a7ea",
+          "names": [
+            "mod_emit.4780"
+          ],
+          "pc": "0x203a80c",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x203a964",
+          "names": [
+            "fm1_mod_destroy"
+          ],
+          "pc": "0x203a98e",
+          "kind": "indirect",
+          "instruction": "call r6"
+        },
+        {
+          "caller": "0x203a99c",
+          "names": [
+            "mod_release"
+          ],
+          "pc": "0x203a9e8",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x203a99c",
+          "names": [
+            "mod_release"
+          ],
+          "pc": "0x203aa40",
+          "kind": "indirect",
+          "instruction": "call r7"
+        },
+        {
+          "caller": "0x203a99c",
+          "names": [
+            "mod_release"
+          ],
+          "pc": "0x203aa84",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x2042b28",
+          "names": [
+            "run_quiet"
+          ],
+          "pc": "0x2042bcc",
+          "kind": "indirect",
+          "instruction": "call r7"
+        },
+        {
+          "caller": "0x2042b28",
+          "names": [
+            "run_quiet"
+          ],
+          "pc": "0x2042c20",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2042ca6",
+          "names": [
+            "seq_release_sound"
+          ],
+          "pc": "0x2042cdc",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x20465dc",
+          "names": [
+            "mfx_ram"
+          ],
+          "pc": "0x20465fe",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x204f660",
+          "names": [
+            "kv_each"
+          ],
+          "pc": "0x204f6f6",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204f794",
+          "names": [
+            "ib"
+          ],
+          "pc": "0x204f7c6",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x204f7e6",
+          "names": [
+            "tflush"
+          ],
+          "pc": "0x204f808",
+          "kind": "indirect",
+          "instruction": "call r6"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x2050056",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x2050248",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x205027a",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x20502d6",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x20503a6",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x2050400",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x20505aa",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x205063e",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x2051736",
+          "names": [
+            "lunar_project_units_plan"
+          ],
+          "pc": "0x20517c6",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x2051736",
+          "names": [
+            "lunar_project_units_plan"
+          ],
+          "pc": "0x20517ea",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x205327c",
+          "names": [
+            "lunar_project_engines_release"
+          ],
+          "pc": "0x2053298",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20532bc",
+          "names": [
+            "lunar_project_engines_stage"
+          ],
+          "pc": "0x2053400",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x20532bc",
+          "names": [
+            "lunar_project_engines_stage"
+          ],
+          "pc": "0x2053420",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2053486",
+          "names": [
+            "lunar_project_engines_apply"
+          ],
+          "pc": "0x205356a",
+          "kind": "indirect",
+          "instruction": "call r4"
+        },
+        {
+          "caller": "0x2053486",
+          "names": [
+            "lunar_project_engines_apply"
+          ],
+          "pc": "0x205358e",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x20535d8",
+          "names": [
+            "lunar_project_adopt_audio_units"
+          ],
+          "pc": "0x20537e6",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x20535d8",
+          "names": [
+            "lunar_project_adopt_audio_units"
+          ],
+          "pc": "0x205384c",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20535d8",
+          "names": [
+            "lunar_project_adopt_audio_units"
+          ],
+          "pc": "0x2053954",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053a7a",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053b08",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053b84",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053c50",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053c92",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053cb0",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x206d8d0",
+          "names": [
+            "putchar_via_gadget"
+          ],
+          "pc": "0x206d8e6",
+          "kind": "indirect",
+          "instruction": "goto r3"
+        }
+      ]
+    },
+    "fm1_cstart": {
+      "direct_reachable_functions": 844,
+      "unresolved": [
+        {
+          "caller": "0x201d450",
+          "names": [
+            "layout.2775"
+          ],
+          "pc": "0x201d4c6",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x201d634",
+          "names": [
+            "mod_plan_build"
+          ],
+          "pc": "0x201e184",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x201e1d6",
+          "names": [
+            "voice_drop_with"
+          ],
+          "pc": "0x201e220",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20335d0",
+          "names": [
+            "in_byte"
+          ],
+          "pc": "0x20335f2",
+          "kind": "indirect",
+          "instruction": "call r6"
+        },
+        {
+          "caller": "0x2033bbe",
+          "names": [
+            "cs_get"
+          ],
+          "pc": "0x2033c12",
+          "kind": "indirect",
+          "instruction": "call r11"
+        },
+        {
+          "caller": "0x2033dfe",
+          "names": [
+            "bemit"
+          ],
+          "pc": "0x2033e18",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2039632",
+          "names": [
+            "fm1_mod_set_kind"
+          ],
+          "pc": "0x20396ac",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x2039632",
+          "names": [
+            "fm1_mod_set_kind"
+          ],
+          "pc": "0x203974a",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2039632",
+          "names": [
+            "fm1_mod_set_kind"
+          ],
+          "pc": "0x2039898",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x203a7ea",
+          "names": [
+            "mod_emit.4780"
+          ],
+          "pc": "0x203a80c",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x203a964",
+          "names": [
+            "fm1_mod_destroy"
+          ],
+          "pc": "0x203a98e",
+          "kind": "indirect",
+          "instruction": "call r6"
+        },
+        {
+          "caller": "0x203a99c",
+          "names": [
+            "mod_release"
+          ],
+          "pc": "0x203a9e8",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x203a99c",
+          "names": [
+            "mod_release"
+          ],
+          "pc": "0x203aa40",
+          "kind": "indirect",
+          "instruction": "call r7"
+        },
+        {
+          "caller": "0x203a99c",
+          "names": [
+            "mod_release"
+          ],
+          "pc": "0x203aa84",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x203ad5c",
+          "names": [
+            "play_on"
+          ],
+          "pc": "0x203adae",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x203ad5c",
+          "names": [
+            "play_on"
+          ],
+          "pc": "0x203adfc",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x203aec8",
+          "names": [
+            "emit.1634"
+          ],
+          "pc": "0x203aedc",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x203b780",
+          "names": [
+            "fm1_app_set_param"
+          ],
+          "pc": "0x203b81c",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x203ba7c",
+          "names": [
+            "list_window"
+          ],
+          "pc": "0x203bae2",
+          "kind": "indirect",
+          "instruction": "call r10"
+        },
+        {
+          "caller": "0x203bb74",
+          "names": [
+            "list_popup"
+          ],
+          "pc": "0x203bbac",
+          "kind": "indirect",
+          "instruction": "call r4"
+        },
+        {
+          "caller": "0x203e4c4",
+          "names": [
+            "retain_locks"
+          ],
+          "pc": "0x203e504",
+          "kind": "indirect",
+          "instruction": "call r11"
+        },
+        {
+          "caller": "0x20426f2",
+          "names": [
+            "seq_apply"
+          ],
+          "pc": "0x20427b4",
+          "kind": "indirect",
+          "instruction": "call r4"
+        },
+        {
+          "caller": "0x20427d8",
+          "names": [
+            "fm1_app_seq_note_in"
+          ],
+          "pc": "0x2042870",
+          "kind": "indirect",
+          "instruction": "call r7"
+        },
+        {
+          "caller": "0x20429a0",
+          "names": [
+            "play_off"
+          ],
+          "pc": "0x20429d2",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2042ab4",
+          "names": [
+            "fm1_app_pitch_bend"
+          ],
+          "pc": "0x2042b24",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2042b28",
+          "names": [
+            "run_quiet"
+          ],
+          "pc": "0x2042bcc",
+          "kind": "indirect",
+          "instruction": "call r7"
+        },
+        {
+          "caller": "0x2042b28",
+          "names": [
+            "run_quiet"
+          ],
+          "pc": "0x2042c20",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2042ca6",
+          "names": [
+            "seq_release_sound"
+          ],
+          "pc": "0x2042cdc",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2042d16",
+          "names": [
+            "notes_release_sound"
+          ],
+          "pc": "0x2042d4a",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x204578e",
+          "names": [
+            "emit"
+          ],
+          "pc": "0x204579a",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x20465dc",
+          "names": [
+            "mfx_ram"
+          ],
+          "pc": "0x20465fe",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20468ea",
+          "names": [
+            "arp_log"
+          ],
+          "pc": "0x2046918",
+          "kind": "indirect",
+          "instruction": "call r7"
+        },
+        {
+          "caller": "0x2046b58",
+          "names": [
+            "fm1_app_button"
+          ],
+          "pc": "0x2046f64",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2048190",
+          "names": [
+            "fm1_app_mfx_select"
+          ],
+          "pc": "0x20481c4",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x2048190",
+          "names": [
+            "fm1_app_mfx_select"
+          ],
+          "pc": "0x2048224",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2048190",
+          "names": [
+            "fm1_app_mfx_select"
+          ],
+          "pc": "0x20482ca",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x2048190",
+          "names": [
+            "fm1_app_mfx_select"
+          ],
+          "pc": "0x20482d4",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x204831c",
+          "names": [
+            "fm1_app_arp_set_param"
+          ],
+          "pc": "0x2048392",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2048988",
+          "names": [
+            "lane_for"
+          ],
+          "pc": "0x2048a9c",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2048d9e",
+          "names": [
+            "release"
+          ],
+          "pc": "0x2048dac",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x204919e",
+          "names": [
+            "load"
+          ],
+          "pc": "0x20491c6",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x204919e",
+          "names": [
+            "load"
+          ],
+          "pc": "0x20491ec",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x2049254",
+          "names": [
+            "fm1_app_select"
+          ],
+          "pc": "0x20492ba",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2049254",
+          "names": [
+            "fm1_app_select"
+          ],
+          "pc": "0x2049366",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x2049254",
+          "names": [
+            "fm1_app_select"
+          ],
+          "pc": "0x204938a",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x2049254",
+          "names": [
+            "fm1_app_select"
+          ],
+          "pc": "0x2049404",
+          "kind": "indirect",
+          "instruction": "call r7"
+        },
+        {
+          "caller": "0x2049254",
+          "names": [
+            "fm1_app_select"
+          ],
+          "pc": "0x2049444",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2049254",
+          "names": [
+            "fm1_app_select"
+          ],
+          "pc": "0x2049504",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2049254",
+          "names": [
+            "fm1_app_select"
+          ],
+          "pc": "0x204952e",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x204e816",
+          "names": [
+            "ota_fread"
+          ],
+          "pc": "0x204e840",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x204e874",
+          "names": [
+            "ota_erase"
+          ],
+          "pc": "0x204e8a0",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x204e8aa",
+          "names": [
+            "ota_prog"
+          ],
+          "pc": "0x204e8de",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x204f660",
+          "names": [
+            "kv_each"
+          ],
+          "pc": "0x204f6f6",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204f794",
+          "names": [
+            "ib"
+          ],
+          "pc": "0x204f7c6",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x204f7e6",
+          "names": [
+            "tflush"
+          ],
+          "pc": "0x204f808",
+          "kind": "indirect",
+          "instruction": "call r6"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x2050056",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x2050248",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x205027a",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x20502d6",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x20503a6",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x2050400",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x20505aa",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x204ffdc",
+          "names": [
+            "fm1_state_bin_read"
+          ],
+          "pc": "0x205063e",
+          "kind": "indirect",
+          "instruction": "call r9"
+        },
+        {
+          "caller": "0x2051736",
+          "names": [
+            "lunar_project_units_plan"
+          ],
+          "pc": "0x20517c6",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x2051736",
+          "names": [
+            "lunar_project_units_plan"
+          ],
+          "pc": "0x20517ea",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x205327c",
+          "names": [
+            "lunar_project_engines_release"
+          ],
+          "pc": "0x2053298",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20532bc",
+          "names": [
+            "lunar_project_engines_stage"
+          ],
+          "pc": "0x2053400",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x20532bc",
+          "names": [
+            "lunar_project_engines_stage"
+          ],
+          "pc": "0x2053420",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2053486",
+          "names": [
+            "lunar_project_engines_apply"
+          ],
+          "pc": "0x205356a",
+          "kind": "indirect",
+          "instruction": "call r4"
+        },
+        {
+          "caller": "0x2053486",
+          "names": [
+            "lunar_project_engines_apply"
+          ],
+          "pc": "0x205358e",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x20535d8",
+          "names": [
+            "lunar_project_adopt_audio_units"
+          ],
+          "pc": "0x20537e6",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x20535d8",
+          "names": [
+            "lunar_project_adopt_audio_units"
+          ],
+          "pc": "0x205384c",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20535d8",
+          "names": [
+            "lunar_project_adopt_audio_units"
+          ],
+          "pc": "0x2053954",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053a7a",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053b08",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053b84",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053c50",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053c92",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x20539d6",
+          "names": [
+            "lunar_project_restore_midi_units"
+          ],
+          "pc": "0x2053cb0",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x205509a",
+          "names": [
+            "slot_upto"
+          ],
+          "pc": "0x20550b4",
+          "kind": "indirect",
+          "instruction": "call r6"
+        },
+        {
+          "caller": "0x20550d8",
+          "names": [
+            "apply_write"
+          ],
+          "pc": "0x20550ea",
+          "kind": "indirect",
+          "instruction": "call r4"
+        },
+        {
+          "caller": "0x20550d8",
+          "names": [
+            "apply_write"
+          ],
+          "pc": "0x20550fa",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x20550d8",
+          "names": [
+            "apply_write"
+          ],
+          "pc": "0x2055114",
+          "kind": "indirect",
+          "instruction": "call r4"
+        },
+        {
+          "caller": "0x2055118",
+          "names": [
+            "run_tick_slots"
+          ],
+          "pc": "0x205512e",
+          "kind": "indirect",
+          "instruction": "call r6"
+        },
+        {
+          "caller": "0x20553f0",
+          "names": [
+            "fm1_fx_render"
+          ],
+          "pc": "0x2055612",
+          "kind": "indirect",
+          "instruction": "call r4"
+        },
+        {
+          "caller": "0x20553f0",
+          "names": [
+            "fm1_fx_render"
+          ],
+          "pc": "0x2055678",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x205567e",
+          "names": [
+            "render_fx"
+          ],
+          "pc": "0x2055700",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x205567e",
+          "names": [
+            "render_fx"
+          ],
+          "pc": "0x2055788",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x2055e72",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x20573d4",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x20575a6",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x2057648",
+          "kind": "indirect",
+          "instruction": "call r4"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x205769a",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x20576d4",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x2057700",
+          "kind": "indirect",
+          "instruction": "call r4"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x2057710",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x2057738",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x205774e",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x2057774",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x2057868",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x20578a8",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x20578c2",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x20578e8",
+          "kind": "indirect",
+          "instruction": "call r5"
+        },
+        {
+          "caller": "0x2055ccc",
+          "names": [
+            "fm1_app_render"
+          ],
+          "pc": "0x205792c",
+          "kind": "indirect",
+          "instruction": "call r3"
+        },
+        {
+          "caller": "0x205c610",
+          "names": [
+            "draw"
+          ],
+          "pc": "0x205dd66",
+          "kind": "indirect",
+          "instruction": "call r10"
+        },
+        {
+          "caller": "0x205eee2",
+          "names": [
+            "fm1_cstart"
+          ],
+          "pc": "0x205f1fe",
+          "kind": "indirect",
+          "instruction": "call r0"
+        },
+        {
+          "caller": "0x205eee2",
+          "names": [
+            "fm1_cstart"
+          ],
+          "pc": "0x205f2c8",
+          "kind": "indirect",
+          "instruction": "call r0"
+        },
+        {
+          "caller": "0x205eee2",
+          "names": [
+            "fm1_cstart"
+          ],
+          "pc": "0x205fb30",
+          "kind": "indirect",
+          "instruction": "call r1"
+        },
+        {
+          "caller": "0x205eee2",
+          "names": [
+            "fm1_cstart"
+          ],
+          "pc": "0x205fb74",
+          "kind": "indirect",
+          "instruction": "call r2"
+        },
+        {
+          "caller": "0x206d8d0",
+          "names": [
+            "putchar_via_gadget"
+          ],
+          "pc": "0x206d8e6",
+          "kind": "indirect",
+          "instruction": "goto r3"
+        }
+      ]
+    }
+  },
+  "hardware_admitted": false,
+  "inventory_sha256": "28c016de41af3014072bca4139e8038ffb8b8f31f089cd8ac53f75a754f4fae7",
+  "registry_counts": {
+    "fm1_engines": 37,
+    "fm1_midi_fxs": 2,
+    "fm1_mod_kinds": 16
+  }
+}

@@ -1,3 +1,15 @@
+# Latest candidate inventory — 2026-10-13
+
+No-writeback-v4 full r3 disassembly/address inventory regenerated locally.
+Direct PROJECT311functions/43unresolved; cstart844/110. These are unexpanded
+counts, not v3 expanded-rule counts. Hash-bound summary saved to
+notes/2026-10-13-mixed-project-verification/receipts/address-inventory-no-writeback-summary.json.
+Private inventory and disassembly at build/mixed-project-all13-no-writeback-v4.
+Next rebind candidate callback rules/stack proofs to new ELF, then target timing
+and safeguarded physical campaign. No hardware command or live job. Full13,
+migration/physical rollback/web builder/installer/GPL/review/CI/integration open.
+Prior commit222b423bd54df643c729bc0dc6380b9d6b12b532 verified pushed.
+
 # Formatter writeback hardening — 2026-10-13
 
 Goal remains full13 native release and selectable web builder. Native formatter

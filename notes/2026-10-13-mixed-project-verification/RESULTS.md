@@ -484,3 +484,15 @@ Both semantic tools remain on the primary absolute checkout. Bounded formatter
 caller navigation returned empty/non-callable results; it does not establish
 absence of callers. Worktree-only builder changes and target ABI are outside
 that index. Shared selection was left unchanged.
+
+[verified] Full r3 disassembly/address inventory regenerated for no-writeback-v4.
+Registry counts remain37 combined sound/audio descriptors,2MIDI,16mod. Direct
+PROJECT closure has311functions/43unresolved sites; fm1_cstart844/110. These
+are unexpanded direct closures, not comparable to v3's1133 expanded candidate
+functions. Exact hashes/root details in address-inventory-no-writeback-summary.json;
+full private inventory/disassembly retained with the ELF under
+build/mixed-project-all13-no-writeback-v4. No complete stack or admission claim.
+Native formatter change and30-shard/full-link evidence committed and verified
+pushed222b423bd54df643c729bc0dc6380b9d6b12b532. Next rebind expanded candidate
+callback rules and stack inspections to this new inventory without relaxing
+unresolved paths. No live job. Full release goal remains active.
