@@ -1,3 +1,24 @@
+# Selectable demo catalogue checkpoint — 2026-10-14
+
+export_image_catalogue.py now exports four restored original demo choices
+with stable IDs, repo-relative paths, exact source hashes and explicitly
+nominal 189–208 second timing metadata. Production default remains empty;
+full_song_default is required/pending with explicit remaining gates. Root
+ran all 34 focused catalogue/inventory/canonical-web asset tests successfully.
+Installer UI/build service and an accepted full-song default remain open.
+Next build controller must copy/hash-check chosen project bytes into confined
+profile-local staging before prepare_image_profile packs them and verifies
+module dependencies; no source-path traversal shortcut. Exact link/RAM and
+physical playback/save/reload are separate acceptance gates.
+Hera maximal Drums SAVE fixture passed: 35,176 bytes against conservative
+43,130-byte bound; full pools and sequence labels independently decoded.
+48 KiB slot rerun active in lunar-collector-max-48k-20261014a; logs under
+/home/claude/mvave-fm1/native-external-arenas-16-20261012/out/collector-max-validation-v1/logs/.
+Worker still owns capacity tests and bound notes; do not stage unfinished
+files or claim interruption coverage before the worker returns evidence.
+No device writes. Branch feature/2026-10-11@installable-firmware; preceding
+verified pushed 102da4dd226fa27528ce203fbfc53b91f2f31acf. New checkpoint follows.
+
 # Demo preload checkpoint — 2026-10-14
 
 Active goal remains the verified full thirteen-engine FM-1 release and web
