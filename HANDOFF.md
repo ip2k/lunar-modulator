@@ -3675,3 +3675,24 @@ bytes therefore do not establish an independent trailer-record fallback.
 References: SPL-empty-rescue-fallback and protected-rescue-record-audit notes.
 Hera follow-ups examine payload+record interruption invariants and the stock OTA
 loader expanded-layout limitation. Neither has device permission. Goal ACTIVE.
+
+## Preload regression and expanded stream boundary — 2026-10-14
+
+All 152 focused Python checks passed at 746e12ec in 16 Hera containers; retained
+evidence and environment repairs are in notes/2026-10-14-preload-regression-16.md.
+Coordinator inspected mobile/desktop dependency warnings. Exact-head full CI
+38580253461 is running, not yet green. Independent chooser review is active.
+
+Host-only hash-bound expanded-image pull scheduler integrated as 3f0c1b8e; four
+standard-library tests passed. Its candidate smoke schedules 213 sectors in
+1,704 bounded chunks, directory last. It performs no flash or device operations
+and is not a RAM loader. The legacy Dinghy staging extent overlaps expanded VM,
+and vendored source excludes the staged-loader implementation. Hera follow-up
+is researching licensed maintained target-side loader sources/alternatives,
+then offline fake-flash adapter and actual linker footprint where possible.
+
+Default chooser selects full-length Event Horizon Showcase; eight demo entries
+are exposed, two memory-rejected replacements refused. Default production
+admission, hardware full-song listening, storage ownership/migration/recovery,
+browser build/download/flash connection and public release remain outstanding.
+Mac exclusively owns bench hardware. Goal remains ACTIVE.
