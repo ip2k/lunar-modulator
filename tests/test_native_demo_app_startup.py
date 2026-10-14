@@ -253,6 +253,7 @@ def compressed_startup_tools(request, tmp_path_factory):
     harness_obj = build / "sim/test/compressed_demo_app_startup.o"
     native_sources = [native / name for name in (
         "project_boot.c", "project_seq.c", "project_engines.c",
+        "content_set.c",
         "project_start.c", "project_mod.c", "project_units.c",
         "instance_pool.c", "../third_party/tlsf/tlsf.c",
         "wave_tables.c", "../third_party/tinf/tinflate.c",
