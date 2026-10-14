@@ -3604,3 +3604,22 @@ rescue stage in VM+USR with a scattered slot B, but migration and durable
 exact-stock rollback are unproven. Follow-up examines retaining rescue until
 stock app/directory validation, then restoring stage sectors last; do not assume
 partially restored stock storage is bootable. Goal ACTIVE.
+
+## Scattered IO and preload memory checks — 2026-10-14
+
+Generic extent IO now exercises the real project journal across the proposed
+slot-B gap with protected-byte guards and partial erase/program failures.
+Four focused Hera tests passed, including the rollback cutpoint model; details
+and limits: `notes/2026-10-14-scattered-project-io.md`. Hardware binding remains
+disarmed until ownership/migration/recovery are admitted. The rollback model
+deliberately leaves stock app readiness unknown even after SPL selects its XIP
+entry (`notes/2026-10-14-rollback-stage-last-cutpoint-review.md`).
+
+The reproducible production allocator WASM32 probe is tracked under
+`tools/native/check_allocator_vectors_wasm.sh`: replacement Event Horizon,
+Neon Transit and Afterglow Relay Showcase reservation vectors fit; Packet Bloom
+Showcase rejects. This proves allocator geometry/reservations, not constructors,
+audio or physical acceptance. The native cold-boot preload selector worker has
+reported a matched two-project 54-module link at 868,116/868,836 bytes; its final
+receipt checks and integration are pending. Default remains the full-length
+Event Horizon Showcase; selectable demos require individual admission.
