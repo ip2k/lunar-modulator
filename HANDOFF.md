@@ -4385,10 +4385,27 @@ and unconfirmed GPIO wiring leave independent recovery unproven.
 
 NOR guard worker 229e5dd plus corrected 73b250ce are reviewed, integrated
 at 43a5a8d7 and GitHub-backed; 19 focused Mac checks pass. Fresh combined
-target audits and 16-container native/install/save/recovery regressions run
-on Hera from that exact base. Installer inventory is integrated; another
+target audits completed on Hera from that exact base; the 16-container
+native/install/save/recovery regressions are running from that base. Installer inventory is integrated; another
 worker is implementing a bounded named-profile trusted offline packager,
 keeping install/admission flags false and the ordinary builder mounts narrow.
 SAVE remains disarmed. Continue exact-source target checks, recovery wiring,
 watched all13/full-song acceptance, persistence/migration/rollback, actual
 browser flashing, required CI/review/main integration and release. Goal ACTIVE.
+
+
+Latest continuation: 0aec1635 is verified on origin. The browser OTA adapter
+now snapshots package bytes before asynchronous verification; its caller and
+verifier mutation regression passes with all 14 adapter tests. Admission stays
+closed. Exact-head CI run 38641032747 is pending, not green.
+
+Fresh Hera target evidence at source 43a5a8d7: all55/Event Horizon link is
+863080 bytes (expanded-d9000); companion SET/Shapes8 link is 845732 bytes
+(expanded-d7000); NOR closure analysis passed. Worker evidence/provenance
+notes and a separate guard-measurement wording fix await review/integration.
+Sixteen regression containers were observed running concurrently, covering
+2762 collected nodes across 100 test files; results are pending. Trusted
+packager work is active against the fresh D7000 tuple, with all installation
+and hardware admission flags false. ROM device46 needs fresh admission before
+another FM1 command; owner watched-boot and Pico GPIO wiring answers remain
+pending. SAVE stays disarmed; goal ACTIVE, no release or deployment.
