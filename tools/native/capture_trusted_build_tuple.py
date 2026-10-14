@@ -199,8 +199,8 @@ def _linked_object_manifest(output: Path, catalogue: Path, verification):
             if catalogue_hashes.get(path) != expected:
                 raise ValueError("linked catalogue object is absent from catalogue receipt")
             local = _safe_rel(catalogue, path[len("/catalogue/"):])
-        elif path.startswith("/out/build/link/"):
-            suffix = path[len("/out/build/link/"):]
+        elif path.startswith("/output/build/link/"):
+            suffix = path[len("/output/build/link/"):]
             local = _safe_rel(output, "link/" + suffix)
         else:
             raise ValueError("linked object path is outside the fixed mounts")

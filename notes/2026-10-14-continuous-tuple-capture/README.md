@@ -16,7 +16,7 @@ modes and symlink targets. The mutable catalogue bind was replaced by a fresh
 private snapshot: its complete tree manifest must match the source at copy time,
 the container mounts only the snapshot read-only, and the snapshot is rechecked
 after completion. The initial real-build preflight measured 4,418 total catalogue entries (including directories) and 80.9 MB; the original 4,096-entry cap refused before Docker creation. The fixed cap is 8,192 entries with the 512 MiB aggregate byte limit retained, and a boundary test accepts 8,192 and rejects 8,193. Selected build-receipt catalogue rows must match that snapshot. Linked-object provenance separately rehashes all
-receipt rows: 161 linked catalogue rows and 120 generated `/out/build/link/`
+receipt rows: 161 linked catalogue rows and 120 generated `/output/build/link/`
 rows, while the 167-row catalogue inventory retains six unlinked rows as well.
 The first invocation stopped at host preflight before Docker creation because the catalogue exceeded the former row cap. After the cap increase, a fresh container build completed and wrote app/ELF/verification outputs, but cleanup of the read-only catalogue snapshot failed and prevented tuple capture from completing. The follow-up adds bounded cleanup of only the wrapper-owned private snapshots after the container has exited; an offline read-only tree test covers this. A fresh build then completed but tuple capture rejected the producer's exact `prepared-build-inputs` status because capture expected `prepared`. The image and selection receipts otherwise matched on request, prepared profile, selected content, startup project, and SET IDs. The capture validator now requires the producer's exact status and exact integer schema version; focused positive and negative tests cover that contract. Existing successful private build outputs are retained for a capture-only retry; no tuple has been captured yet. Next: independent review of cleanup, then rerun with a fresh output directory and verify the complete tuple. The selected
 input is the already-reviewed Event Horizon + companion SET request; intended
@@ -58,3 +58,12 @@ requiring a duplicate app length that the producer does not emit. The focused
 capture/wrapper/controller suite passes 90 tests. No tuple was written; request
 independent review before another capture-only attempt. The reconstruction
 mounts were removed using the wrapper's bounded owner-path cleanup helper.
+
+
+The next capture-only attempt reached linked-object inventory validation and
+found that the retained producer records generated object paths under the fixed
+Docker mount `/output/build/link/` (120 rows), while the host verifier assumed
+`/out/build/link/`. The invocation and receipt both bind `/output`; the verifier
+now accepts only that exact fixed producer prefix and still rejects other paths.
+This is a producer-path contract correction, not a rewritten receipt. The
+reconstructed mounts were removed after the refusal and no tuple was written.
