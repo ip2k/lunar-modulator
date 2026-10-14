@@ -14,12 +14,17 @@ import sys
 from prepare_demo_selection import prepare_selection
 from prepare_image_profile import bounded_read, sha, unique_object
 from verify_image_profile import load_prepared_profile
+from runtime_mode import runtime_configuration
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def checked_link_receipt(selection, prepared, verification, artifact, app, elf, *, require_save_service=False):
+def checked_link_receipt(selection, prepared, verification, artifact, app, elf, *,
+                         runtime_mode='diagnostic', require_save_service=False):
     """Bind ordered choices and actual output bytes to one completed link."""
+    if runtime_mode not in ('diagnostic', 'song-diagnostic'):
+        raise ValueError('Only bounded diagnostic runtime modes are supported')
+    expected_runtime = runtime_configuration(runtime_mode)
     expected_assets = [dict(kind=a['kind'], bytes=a['bytes'],
                            packed_sha256=a['packed_sha256'])
                        for a in selection['content']]
@@ -52,7 +57,8 @@ def checked_link_receipt(selection, prepared, verification, artifact, app, elf, 
             or artifact.get('app_budget_bytes') != verification.get('app_budget_bytes')
             or type(artifact.get('app_budget_bytes')) is not int
             or not 0 < len(app) <= artifact['app_budget_bytes']
-            or verification.get('probe_return_to_rom_seconds') != 20
+            or verification.get('runtime_configuration') != expected_runtime
+            or verification.get('probe_return_to_rom_seconds') != expected_runtime['return_to_rom_seconds']
             or verification.get('flash_write_range') != 'empty'):
         raise ValueError('Private diagnostic artifact identity/layout/policy mismatch')
     if require_save_service:
@@ -82,7 +88,8 @@ def checked_link_receipt(selection, prepared, verification, artifact, app, elf, 
                 startup_project_id=selection['startup_project_id'],
                 module_selection=prepared.report['module_selection'],
                 embedded_content=embedded,
-                content=expected_assets, app_sha256=sha(app), elf_sha256=sha(elf),
+                content=expected_assets, runtime_configuration=expected_runtime,
+                app_sha256=sha(app), elf_sha256=sha(elf),
                 app_bytes=len(app), app_budget_bytes=artifact['app_budget_bytes'],
                 installable=False, hardware_admitted=False, hardware_tested=False,
                 native_ram_verified=False, native_playback_verified=False,
@@ -93,7 +100,10 @@ def read_report(path):
     return json.loads(bounded_read(path, 16 * 1048576), object_pairs_hook=unique_object)
 
 
-def build_selection(request, state_tool, toolchain, catalogue, output):
+def build_selection(request, state_tool, toolchain, catalogue, output, *,
+                    runtime_mode='diagnostic'):
+    if runtime_mode not in ('diagnostic', 'song-diagnostic'):
+        raise ValueError('Only bounded diagnostic runtime modes are supported')
     output = Path(output)
     output.mkdir(exist_ok=False)
     # Failed builds retain their diagnostic files, but never a success receipt.
@@ -104,7 +114,7 @@ def build_selection(request, state_tool, toolchain, catalogue, output):
     subprocess.run([sys.executable, str(ROOT / 'tools/native/build_application_probe.py'),
                     '--toolchain', str(Path(toolchain).resolve()),
                     '--catalogue', str(Path(catalogue).resolve()),
-                    '--build', str(output / 'link'), '--runtime-mode', 'diagnostic',
+                    '--build', str(output / 'link'), '--runtime-mode', runtime_mode,
                     '--stack-watermark', '--flash-layout', 'expanded-d9000',
                     '--shapes-voices', '12', '--indexed-tft', '--compressed-wavetables',
                     '--flash-plaits-wavetables', '--prepared-profile', str(prepared_dir),
@@ -118,7 +128,7 @@ def build_selection(request, state_tool, toolchain, catalogue, output):
                                   read_report(output / 'link/artifact/artifact.json'),
                                   bounded_read(output / 'link/artifact/app.bin', 1048576),
                                   bounded_read(output / 'link/lunar-app-probe.elf', 16 * 1048576),
-                                  require_save_service=True)
+                                  runtime_mode=runtime_mode, require_save_service=True)
     receipt['project_save_service'] = read_report(output / 'link/verification.json')['project_save_service']
     receipt['state_bin_codec'] = read_report(output / 'link/verification.json')['state_bin_codec']
     receipt['verification_sha256'] = sha(bounded_read(output / 'link/verification.json', 16 * 1048576))
@@ -131,10 +141,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('request', 'state-tool', 'toolchain', 'catalogue', 'out'):
         parser.add_argument('--' + name, type=Path, required=True)
+    parser.add_argument('--runtime-mode', choices=('diagnostic', 'song-diagnostic'),
+                        default='diagnostic', help='Bounded ROM-return deadline; never an admission')
     args = parser.parse_args()
     try:
         request = json.loads(bounded_read(args.request, 65536), object_pairs_hook=unique_object)
-        result = build_selection(request, args.state_tool, args.toolchain, args.catalogue, args.out)
+        result = build_selection(request, args.state_tool, args.toolchain, args.catalogue,
+                                 args.out, runtime_mode=args.runtime_mode)
     except (ValueError, OSError, KeyError, TypeError, subprocess.CalledProcessError) as error:
         parser.error(str(error))
     print(json.dumps(result, indent=2))

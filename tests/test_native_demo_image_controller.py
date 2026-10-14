@@ -10,9 +10,10 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools/native'))
 from build_demo_image import checked_link_receipt
 from prepare_image_profile import sha
+from runtime_mode import runtime_configuration
 
 
-def inputs():
+def inputs(runtime_mode='diagnostic'):
     assets = [dict(kind='project', bytes=2, packed_sha256=sha(b'ab')),
               dict(kind='project', bytes=3, packed_sha256=sha(b'cde'))]
     selection = dict(prepared_profile_sha256=sha(b'manifest'), request_sha256=sha(b'request'),
@@ -27,7 +28,8 @@ def inputs():
                         installable=False, hardware_tested=False,
                         key_audit=dict(passed=True, n_pending=0, n_fail=0),
                         elf_sha256=sha(b'elf'), flash_layout='expanded-d9000',
-                        app_budget_bytes=100, probe_return_to_rom_seconds=20, flash_write_range='empty')
+                        app_budget_bytes=100, probe_return_to_rom_seconds=runtime_configuration(runtime_mode)['return_to_rom_seconds'],
+                        runtime_configuration=runtime_configuration(runtime_mode), flash_write_range='empty')
     artifact = dict(installable=False, hardware_tested=False, hardware_admitted=False,
                     layout_passed=True, key_audit=dict(passed=True, n_pending=0, n_fail=0),
                     elf_sha256=sha(b'elf'), app_sha256=sha(b'app'), app_bytes=3,
@@ -50,7 +52,7 @@ def test_checked_link_keeps_order_startup_and_actual_output_identity():
 
 @pytest.mark.parametrize('fault', [
     'reorder', 'startup', 'bool-index', 'manifest', 'modules', 'payload', 'app', 'elf',
-    'pending', 'fail', 'layout', 'admission', 'continuous', 'song-diagnostic', 'write-range', 'budget',
+    'pending', 'fail', 'layout', 'admission', 'continuous', 'runtime-mismatch', 'write-range', 'budget',
 ])
 def test_changed_link_is_refused(fault):
     selection, prepared, verification, artifact, app, elf = inputs()
@@ -67,11 +69,27 @@ def test_changed_link_is_refused(fault):
     elif fault == 'layout': artifact['layout_passed'] = False
     elif fault == 'admission': artifact['installable'] = True
     elif fault == 'continuous': verification['probe_return_to_rom_seconds'] = 0
-    elif fault == 'song-diagnostic': verification['probe_return_to_rom_seconds'] = 120
+    elif fault == 'runtime-mismatch': verification['runtime_configuration'] = runtime_configuration('song-diagnostic')
     elif fault == 'write-range': verification['flash_write_range'] = 'nonempty'
     elif fault == 'budget': artifact['app_budget_bytes'] = verification['app_budget_bytes'] = 2
     with pytest.raises(ValueError):
         checked_link_receipt(selection, prepared, verification, artifact, app, elf)
+
+
+def test_song_diagnostic_requires_matching_explicit_runtime_and_remains_unadmitted():
+    values = inputs('song-diagnostic')
+    receipt = checked_link_receipt(*values, runtime_mode='song-diagnostic')
+    assert receipt['runtime_configuration'] == runtime_configuration('song-diagnostic')
+    assert receipt['installable'] is False
+    assert receipt['hardware_admitted'] is False
+    assert receipt['full_song_default_accepted'] is False
+    with pytest.raises(ValueError, match='runtime'):
+        checked_link_receipt(*values)
+    values[2]['probe_return_to_rom_seconds'] = 20
+    with pytest.raises(ValueError, match='runtime'):
+        checked_link_receipt(*values, runtime_mode='song-diagnostic')
+    with pytest.raises(ValueError, match='bounded'):
+        checked_link_receipt(*inputs(), runtime_mode='continuous')
 
 
 def test_new_build_requires_real_disarmed_save_service():
