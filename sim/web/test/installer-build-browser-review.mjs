@@ -97,9 +97,12 @@ async function mountClient(page) {
 }
 
 async function selectBuild(page) {
+  const proposedFullSong = page.locator(`input[type=checkbox][value="${eventHorizon.id}"]`);
+  if (!await proposedFullSong.isChecked()) throw new Error('Expected the proposed Event Horizon selection to start checked.');
+  await proposedFullSong.uncheck();
   await page.locator('input[type=checkbox][value="plate"]').uncheck();
   await page.locator(`input[type=checkbox][value="${anotherProject.id}"]`).check();
-  await page.locator(`input[type=checkbox][value="${eventHorizon.id}"]`).check();
+  await proposedFullSong.check();
   await page.locator(`input[type=radio][value="${eventHorizon.id}"]`).check();
 }
 
