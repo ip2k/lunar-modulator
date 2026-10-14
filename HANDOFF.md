@@ -3180,3 +3180,15 @@ identities stay unconfirmed. This is a pure model, not deployed UI/build service
 Capacity checkpoint verified pushed a54591f131b8814434a2f82c86bed95119a1d72d.
 Next: join full embed receipt with fresh exact-selection link/RAM evidence and
 builder UI/backend; retain physical/storage/recovery acceptance gates.
+
+Hera login verified using ChatGPT. First persisted read-only Luna review completed
+exit0, clean exact-base worker checkout; atomic shared handoff saved and claim
+released with evidence archived. Three persisted Hera Luna tasks now started:
+receipt-adapter (source owns build_application_probe.py/content_embedding tests),
+collector-bound (read-only), SAVE stack review (read-only). Shared claims under
+/home/claude/.local/share/codex-coordination hold prompts/events/results; coordinator
+fetches/reviews/backs up returned source commits. No device authority delegated.
+Owner permits up to64Hera agents/containers; use only independent useful tasks.
+Storage ownership review confirms no admitted project extent; all named preserved
+banks and hypothetical144KiB ledger do not provide two100KiB slots. See
+notes/2026-10-14-expanded-storage-ownership-review.md. Goal ACTIVE.
