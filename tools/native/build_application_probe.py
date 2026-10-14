@@ -36,6 +36,24 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def project_save_service_configuration(enabled):
+    """Describe the opt-in production service while keeping storage disarmed."""
+    if type(enabled) is not bool:
+        raise TypeError("project SAVE service option must be a bool")
+    return dict(linked=enabled,
+                compile_definition="LUNAR_PROJECT_SAVE_SERVICE=1" if enabled else None,
+                storage_admitted=False, flash_io_bound=False,
+                save_service_armed=False, runtime_verified=False,
+                hardware_tested=False)
+
+
+def project_save_service_flags(enabled):
+    """Compile the real app SAVE path only on explicit opt-in."""
+    receipt = project_save_service_configuration(enabled)
+    return (["-D" + receipt["compile_definition"]]
+            if receipt["compile_definition"] else [])
+
+
 def embedded_content_receipt(prepared_sha256, source, descriptors, payloads):
     """Build a receipt whose ordered identities describe the linked payloads."""
     if len(descriptors) != len(payloads):
@@ -157,6 +175,8 @@ def main():
                         help='Retain the standalone streaming set loader; does not activate content')
     parser.add_argument('--link-project-loader', action='store_true',
                         help='Retain disposable project modulation/sequence staging; does not activate a project')
+    parser.add_argument('--link-project-save-service', action='store_true',
+                        help='Opt in to the real production SAVE scheduler; storage stays unadmitted and unbound')
     parser.add_argument('--startup-set-index', type=int,
                         help='Opt-in timed probe: stage this embedded SET before Trio allocation; '
                         'requires --link-set-loader and a prepared profile')
@@ -174,6 +194,7 @@ def main():
                         'to recover RAM; decode Braids only when Shapes is selected')
     args = parser.parse_args()
     runtime_policy = runtime_configuration(args.runtime_mode)
+    save_service_receipt = project_save_service_configuration(args.link_project_save_service)
     if bool(args.prepared_profile) != bool(args.expected_profile_sha256):
         parser.error('--prepared-profile and --expected-profile-sha256 require each other')
     if args.prepared_profile and (args.modules is not None or args.exclude):
@@ -279,6 +300,7 @@ def main():
              '-ffreestanding', '-fno-builtin', '-ffunction-sections', '-fdata-sections',
              '-DFM1_APP_EXTERNAL_ARENAS=1', '-DLUNAR_APP_PROBE=1', '-DNDEBUG',
              '-DFM1_TFT_INDEXED=' + str(int(args.indexed_tft)), runtime_policy['define']]
+    flags += project_save_service_flags(args.link_project_save_service)
     if args.startup_set_index is not None:
         flags += ['-DLUNAR_STARTUP_SET_INDEX=' + str(args.startup_set_index)]
     if args.stack_watermark:
@@ -422,6 +444,7 @@ def main():
                   boot_ota_cleanup=False, entry_core=0, entry_boot_pointer='0x01c7fe08',
                   runtime_configuration=runtime_policy,
                   runtime_policy_sha256=digest(ROOT / 'firmware/native/runtime_mode.h'),
+                  project_save_service=save_service_receipt,
                   probe_return_to_rom_seconds=runtime_policy['return_to_rom_seconds'], hardware_candidate=False,
                   catalogue_source_freshness_verified=True,
                   installable=False, hardware_tested=False, elf_sha256=digest(elf))
