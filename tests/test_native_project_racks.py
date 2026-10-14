@@ -5,6 +5,8 @@ import subprocess
 
 import pytest
 
+from tests.native_test_flags import native_host_link_flags, native_no_pie_flags
+
 from tools.native.module_selection import resolve_modules
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -157,8 +159,8 @@ def rack_probe(tmp_path_factory):
         exe = tmp / 'probe'
         subprocess.run(['cc', '-std=c99', opt, '-Wall', '-Wextra', '-Werror',
                         '-ffp-contract=off', '-ffunction-sections', '-fdata-sections',
-                        '-fsanitize=address,undefined', '-fno-pie', '-no-pie', *inc,
-                        *map(str, sources), '-Wl,--gc-sections', '-lm', '-o', str(exe)], check=True)
+                        '-fsanitize=address,undefined', *native_no_pie_flags(), *inc,
+                        *map(str, sources), *native_host_link_flags(), '-lm', '-o', str(exe)], check=True)
         tc = Path(os.environ['FM1_NATIVE_TOOLCHAIN'])
         subprocess.run([str(tc / 'common/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
                         '-mfprev1', '-std=c99', opt, '-Wall', '-Wextra', '-Werror',

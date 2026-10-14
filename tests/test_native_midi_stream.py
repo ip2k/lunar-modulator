@@ -3,6 +3,8 @@ import shutil
 import subprocess
 
 import pytest
+
+from tests.native_test_flags import native_no_pie_flags
 from tests.engine_helpers import ROOT
 
 
@@ -53,7 +55,7 @@ int main(int argc,char **argv) {
     binary = directory / "check"
     subprocess.run([compiler, "-std=c++11", "-O2", "-Wall", "-Wextra",
                     "-fno-exceptions", "-fno-rtti", "-fsanitize=address,undefined",
-                    "-fno-pie", "-no-pie",
+                    *native_no_pie_flags(),
                     "-I" + str(ROOT / "firmware/native"),
                     "-I" + str(ROOT / "firmware/third_party/arduino-midi/src"),
                     str(source), str(ROOT / "firmware/native/midi_stream.cpp"),

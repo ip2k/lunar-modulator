@@ -4,6 +4,8 @@ from pathlib import Path
 import subprocess
 import re
 import pytest
+
+from tests.native_test_flags import native_host_link_flags
 ROOT=Path(__file__).resolve().parents[1]
 FILES=sorted((ROOT/'tests/fixtures/state/1.0').glob('*.lunarb'))
 CASES=[(p.name,0) for p in FILES]+[('first-orbit.lunarb',n) for n in list(range(1,20))+[9999,10000]]
@@ -11,7 +13,7 @@ CASES=[(p.name,0) for p in FILES]+[('first-orbit.lunarb',n) for n in list(range(
 def writer(request,tmp_path_factory):
     exe=tmp_path_factory.mktemp('state-stream')/'test'
     sources=['state_bin.c','state_names.c','state_print.c','state_movy1.c','fm1_num.c','fm1_deflate.c']
-    cmd=['cc','-std=c99','-O1','-g','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-fno-omit-frame-pointer','-ffunction-sections','-fdata-sections','-Wl,--gc-sections','-I'+str(ROOT/'engines/include'),'-I'+str(ROOT/'engines/state')]
+    cmd=['cc','-std=c99','-O1','-g','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-fno-omit-frame-pointer','-ffunction-sections','-fdata-sections',*native_host_link_flags(),'-I'+str(ROOT/'engines/include'),'-I'+str(ROOT/'engines/state')]
     if request.param: cmd+=['-DFM1_STATE_BIN_COMPACT_WRITER']
     subprocess.run(cmd+[str(ROOT/'tests/native/state_stream.c')]+[str(ROOT/'engines/state'/s) for s in sources]+['-lm','-o',str(exe)],check=True)
     return exe
@@ -32,7 +34,7 @@ def parity_writers(tmp_path_factory):
     for compact in (False,True):
         exe=tmp_path_factory.mktemp('state-parity')/'test'
         sources=['state_bin.c','state_names.c','state_print.c','state_movy1.c','fm1_num.c','fm1_deflate.c']
-        cmd=['cc','-std=c99','-O1','-g','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-fno-omit-frame-pointer','-ffunction-sections','-fdata-sections','-Wl,--gc-sections','-I'+str(ROOT/'engines/include'),'-I'+str(ROOT/'engines/state')]
+        cmd=['cc','-std=c99','-O1','-g','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-fno-omit-frame-pointer','-ffunction-sections','-fdata-sections',*native_host_link_flags(),'-I'+str(ROOT/'engines/include'),'-I'+str(ROOT/'engines/state')]
         if compact: cmd+=['-DFM1_STATE_BIN_COMPACT_WRITER']
         subprocess.run(cmd+[str(ROOT/'tests/native/state_stream.c')]+[str(ROOT/'engines/state'/f) for f in sources]+['-lm','-o',str(exe)],check=True)
         result.append(exe)
@@ -51,7 +53,7 @@ def test_compact_bytes_match_normal(parity_writers,file,tmp_path):
 def limits_writer(tmp_path_factory):
     exe=tmp_path_factory.mktemp('state-limits')/'test'
     sources=['state_bin.c','state_names.c','state_movy1.c','fm1_num.c','fm1_deflate.c']
-    subprocess.run(['cc','-DFM1_STATE_BIN_COMPACT_WRITER','-std=c99','-O1','-g','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-fno-omit-frame-pointer','-ffunction-sections','-fdata-sections','-Wl,--gc-sections','-I'+str(ROOT/'engines/include'),'-I'+str(ROOT/'engines/state'),str(ROOT/'tests/native/state_stream_limits.c')]+[str(ROOT/'engines/state'/f) for f in sources]+['-lm','-o',str(exe)],check=True)
+    subprocess.run(['cc','-DFM1_STATE_BIN_COMPACT_WRITER','-std=c99','-O1','-g','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-fno-omit-frame-pointer','-ffunction-sections','-fdata-sections',*native_host_link_flags(),'-I'+str(ROOT/'engines/include'),'-I'+str(ROOT/'engines/state'),str(ROOT/'tests/native/state_stream_limits.c')]+[str(ROOT/'engines/state'/f) for f in sources]+['-lm','-o',str(exe)],check=True)
     return exe
 
 @pytest.mark.parametrize('mode',range(6))
