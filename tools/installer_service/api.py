@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 """Private/local build-service API prototype; no Kubernetes or build execution."""
 from __future__ import annotations
-import hashlib, json, re, secrets, threading
+import hashlib, json, re, secrets, threading, time
 from dataclasses import dataclass
 from typing import Literal, Protocol
 from fastapi import FastAPI, Request
@@ -74,8 +74,9 @@ class WorkerTemplate:
     )
 
     def __post_init__(self):
-        if not self.image_digest.startswith("sha256:") or len(self.image_digest) != 71:
-            raise ValueError("worker image must be pinned by sha256 digest")
+        if (not isinstance(self.image_digest, str)
+                or not re.fullmatch(r"sha256:[0-9a-f]{64}", self.image_digest)):
+            raise ValueError("worker image must be pinned by lowercase sha256 digest")
         if not self.namespace or "/" in self.namespace:
             raise ValueError("invalid fixed namespace")
 
@@ -96,6 +97,7 @@ class JobAdapter(Protocol):
     def submit(self, build_id: str, request_bytes: bytes, request_sha256: str,
                template: WorkerTemplate) -> None: ...
     def get(self, build_id: str) -> WorkerSnapshot | None: ...
+    def delete(self, build_id: str) -> None: ...
 
 
 class QueueFull(Exception): pass
@@ -117,6 +119,10 @@ class FakeJobAdapter:
     def get(self, build_id):
         return self.jobs.get(build_id)
 
+    def delete(self, build_id):
+        self.jobs.pop(build_id, None)
+        self.submissions.pop(build_id, None)
+
     def set_running(self, build_id):
         self.jobs[build_id] = WorkerSnapshot("running")
 
@@ -131,6 +137,7 @@ class FakeJobAdapter:
 class Admission:
     request_sha256: str
     request: dict
+    created_at: float
 
 
 def _verify_result(admission: Admission, result: WorkerResult) -> dict:
@@ -144,23 +151,73 @@ def _verify_result(admission: Admission, result: WorkerResult) -> dict:
     if not isinstance(receipt, dict):
         raise ValueError("worker receipt is not an object")
     artifact_sha = hashlib.sha256(result.artifact).hexdigest()
+    request = admission.request
+    projects = request["project_ids"]
+    startup_index = request["startup_index"]
+    expected_selected = [module for group in GROUPS for module in request[group]]
+    content = receipt.get("content")
+    embedded = receipt.get("embedded_content")
+    service = receipt.get("project_save_service")
+    codec = receipt.get("state_bin_codec")
     false_fields = ("installable", "hardware_admitted", "hardware_tested",
                     "native_ram_verified", "native_playback_verified",
                     "full_song_default_accepted")
     if (type(receipt.get("version")) is not int or receipt["version"] != 1
             or receipt.get("status") != "linked-private-diagnostic"
             or receipt.get("request_sha256") != admission.request_sha256
-            or receipt.get("project_ids") != admission.request["project_ids"]
+            or receipt.get("project_ids") != projects
             or type(receipt.get("startup_index")) is not int
-            or receipt["startup_index"] != admission.request["startup_index"]
+            or receipt["startup_index"] != startup_index
+            or receipt.get("startup_project_id") != projects[startup_index]
             or receipt.get("app_sha256") != artifact_sha
             or type(receipt.get("app_bytes")) is not int
             or receipt["app_bytes"] != len(result.artifact)
+            or type(receipt.get("app_budget_bytes")) is not int
+            or not 0 < receipt["app_bytes"] <= receipt["app_budget_bytes"]
+            or receipt["app_budget_bytes"] > MAX_ARTIFACT_BYTES
             or any(receipt.get(key) is not False for key in false_fields)):
         raise ValueError("worker receipt does not bind the admitted diagnostic build")
     if any(not isinstance(receipt.get(key), str) or not SHA256.fullmatch(receipt[key])
-           for key in ("app_sha256", "request_sha256")):
+           for key in ("app_sha256", "request_sha256", "prepared_profile_sha256", "elf_sha256",
+                       "verification_sha256", "artifact_receipt_sha256")):
         raise ValueError("worker receipt has malformed digest")
+    if (not isinstance(receipt.get("module_selection"), dict)
+            or receipt["module_selection"].get("selected") != expected_selected):
+        raise ValueError("worker module selection differs from admission")
+    if (not isinstance(content, list) or not 1 <= len(content) <= 8
+            or len(content) != len(projects)
+            or not isinstance(embedded, dict)
+            or embedded.get("assets") != content
+            or type(embedded.get("asset_count")) is not int
+            or embedded["asset_count"] != len(content)
+            or type(embedded.get("packed_content_bytes")) is not int
+            or embedded["packed_content_bytes"] != sum(
+                row.get("bytes", -1) for row in content if isinstance(row, dict))
+            or embedded.get("packed_sha256") != [row.get("packed_sha256") for row in content]
+            or embedded.get("prepared_sha256") != receipt.get("prepared_profile_sha256")
+            or embedded.get("native_playback_verified") is not False
+            or embedded.get("sequence_semantics_verified") is not False):
+        raise ValueError("worker embedded content differs from prepared profile")
+    for row in content:
+        if (not isinstance(row, dict) or row.get("kind") != "project"
+                or type(row.get("bytes")) is not int or row["bytes"] <= 0
+                or not isinstance(row.get("packed_sha256"), str)
+                or not SHA256.fullmatch(row["packed_sha256"])):
+            raise ValueError("worker content row is malformed")
+    if (not isinstance(service, dict) or service.get("linked") is not True
+            or service.get("compile_definition") != "LUNAR_PROJECT_SAVE_SERVICE=1"
+            or any(service.get(key) is not False for key in
+                   ("storage_admitted", "flash_io_bound", "save_service_armed",
+                    "runtime_verified", "hardware_tested"))):
+        raise ValueError("worker SAVE service metadata is missing or armed")
+    if (not isinstance(codec, dict) or codec.get("mode") != "compact-writer"
+            or codec.get("compile_definition") != "FM1_STATE_BIN_COMPACT_WRITER=1"
+            or codec.get("replaced_exactly_one") is not True
+            or not isinstance(codec.get("fresh_object"), str) or not codec["fresh_object"]
+            or not isinstance(codec.get("cached_object"), str) or not codec["cached_object"]
+            or any(not isinstance(codec.get(key), str) or not SHA256.fullmatch(codec[key])
+                   for key in ("source_sha256", "fresh_object_sha256", "cached_object_sha256"))):
+        raise ValueError("worker codec metadata is missing or invalid")
     return {"status": receipt["status"], "artifact_sha256": artifact_sha,
             "artifact_bytes": len(result.artifact), "installable": False,
             "hardware_tested": False}
@@ -168,10 +225,15 @@ def _verify_result(admission: Admission, result: WorkerResult) -> dict:
 
 def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
                module_kinds: dict[str, str], project_ids: set[str],
-               queue_cap: int = 1) -> FastAPI:
+               queue_cap: int = 1, record_cap: int = 64,
+               retention_seconds: int = 3600, clock=time.monotonic) -> FastAPI:
     """Construct a local API around an injected fixed adapter and trusted catalogue."""
-    if not 1 <= queue_cap <= 4:
+    if type(queue_cap) is not int or not 1 <= queue_cap <= 4:
         raise ValueError("queue_cap must be between 1 and 4")
+    if type(record_cap) is not int or not 1 <= record_cap <= 128:
+        raise ValueError("record_cap must be between 1 and 128")
+    if type(retention_seconds) is not int or not 60 <= retention_seconds <= 86400:
+        raise ValueError("retention_seconds must be between 60 and 86400")
     if not module_kinds or not project_ids:
         raise ValueError("trusted module and project catalogues are required")
     app = FastAPI(title="Private Lunar diagnostic build prototype", docs_url=None,
@@ -224,6 +286,19 @@ def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
         digest = hashlib.sha256(data).hexdigest()
         build_id = secrets.token_urlsafe(24)
         with lock:
+            now = clock()
+            expired = []
+            for existing_id, existing in admissions.items():
+                snapshot = adapter.get(existing_id)
+                terminal = snapshot is None or snapshot.status in ("succeeded", "failed")
+                if terminal and now - existing.created_at >= retention_seconds:
+                    expired.append(existing_id)
+            for existing_id in expired:
+                adapter.delete(existing_id)
+                admissions.pop(existing_id, None)
+            if len(admissions) >= record_cap:
+                return JSONResponse({"detail": "build record capacity is full"}, 429,
+                                    headers={"Retry-After": str(retention_seconds)})
             active = sum(
                 (snapshot := adapter.get(existing_id)) is not None
                 and snapshot.status in ("queued", "running")
@@ -239,7 +314,7 @@ def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
                                     headers={"Retry-After": "30"})
             except Exception:
                 return JSONResponse({"detail": "build service unavailable"}, 503)
-            admissions[build_id] = Admission(digest, doc)
+            admissions[build_id] = Admission(digest, doc, now)
         return JSONResponse({"id": build_id, "status": "queued",
                              "status_url": f"/api/v1/builds/{build_id}"}, 202)
 
@@ -247,8 +322,15 @@ def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
     async def get_build(build_id: str):
         if not OPAQUE_ID.fullmatch(build_id):
             return JSONResponse({"detail": "build not found"}, 404)
-        admission = admissions.get(build_id)
-        snapshot = adapter.get(build_id) if admission is not None else None
+        with lock:
+            admission = admissions.get(build_id)
+            if admission is not None and clock() - admission.created_at >= retention_seconds:
+                expiring = adapter.get(build_id)
+                if expiring is None or expiring.status in ("succeeded", "failed"):
+                    adapter.delete(build_id)
+                    admissions.pop(build_id, None)
+                    admission = None
+            snapshot = adapter.get(build_id) if admission is not None else None
         if admission is None or snapshot is None:
             return JSONResponse({"detail": "build not found"}, 404)
         result = {"id": build_id, "status": snapshot.status,
