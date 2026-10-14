@@ -1,3 +1,19 @@
+# Formatter writeback hardening — 2026-10-13
+
+Goal remains full13 native release and selectable web builder. Native formatter
+now disables unused %n through upstream build switch;30 Hera sanitizer chunks
+and full13 pi32v2 relink pass. Source/log/state/embedded-byte checks complete.
+Newest ELF4b340d1aa4f67737d102441680df5d28a2740d6a2eaa83feb028ea19a9f49e2b
+is private at build/mixed-project-all13-no-writeback-v4/linked/. Earlier v3
+address-specific callback/stack receipts must be regenerated for this ELF.
+Runner v1 quoting failures preserved; corrected v2 terminal, no live job.
+No hardware commands. Required full runtime/timing, migration/physical rollback,
+web builder/installer, licensing and review/CI/integration remain unfinished.
+Branch feature/2026-10-11@installable-firmware; prior verified pushed a992ed26.
+Next generate v4 full r3 disassembly and inspect remaining callback provenance/
+startup stack; use fresh identity and two matching backups before future writes.
+Details and new receipts in notes/2026-10-13-mixed-project-verification/.
+
 # Scalar native-link checkpoint — 2026-10-13
 
 ## ISR allocation-prefix verification (2026-10-13)

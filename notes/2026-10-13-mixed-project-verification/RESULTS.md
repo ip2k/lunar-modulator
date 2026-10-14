@@ -448,3 +448,39 @@ Next: finish optional-hook provenance, account for table-index bounds where
 needed for startup reachability, and combine caller/IRQ stack and target timing.
 All13 physical acceptance, migration/rollback, web builder/install, licensing,
 review/CI/integration remain open.
+
+## Native formatter writeback disabled
+
+[verified] The native application builder compiles the pinned, unmodified
+printf source with PRINTF_SUPPORT_WRITEBACK_SPECIFIER=0 and reports the setting.
+The source search found output formatting does not require %n; matching desktop
+uses belong to sscanf parsing, whose behavior is unchanged. The library's own
+build option avoids a fork; its default switch and guarded case are in
+firmware/third_party/printf/printf/printf.c:106 and :1559. Upstream:
+https://github.com/eyalroz/printf . This removes formatter argument writeback,
+not every possible alias or a complete optional-hook preservation proof.
+
+[verified] Thirty Hera sanitizer chunks cover six writeback length forms across
+five output capacities, unchanged argument sentinels, and existing UI format/
+length/truncation/canary comparisons against libc. All logs, terminal zero exits,
+no-OOM states and six local/remote source hashes checked. New campaign containers
+were removed. Initial v1 failed before compilation due to a runner string-quoting
+error; all thirty failure receipts/logs remain on Hera in out/formatter-no-writeback-v1.
+Corrected v2 is retained locally in build/formatter-no-writeback-v2.
+
+[verified] All13-no-writeback-v4 full pi32v2 link passes SDK-free/eFuse audits,
+exact embedded production FIRST ORBIT bytes and unchanged production module
+selection:13 sound,24 audio effects,2 MIDI,16 modulation,Shapes12. ELF SHA256
+4b340d1aa4f67737d102441680df5d28a2740d6a2eaa83feb028ea19a9f49e2b.
+Receipts all13-no-writeback-{link,content,container}.json and
+formatter-no-writeback-{host,source-hashes}.json. This ELF supersedes v3 as the
+latest build; address-specific v3 startup/stack receipts do not prove v4.
+No new physical command or hardware acceptance. Fresh v4 disassembly/callback/
+stack inspection is next, followed by timing/hardware admission. Full13 runtime,
+migration/rollback, web builder/install, GPL transition and exact-head review/
+CI/integration remain open. No campaign is still running.
+
+Both semantic tools remain on the primary absolute checkout. Bounded formatter
+caller navigation returned empty/non-callable results; it does not establish
+absence of callers. Worktree-only builder changes and target ABI are outside
+that index. Shared selection was left unchanged.

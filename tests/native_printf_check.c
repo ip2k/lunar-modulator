@@ -27,8 +27,32 @@ static void check(const char *format, ...) {
 int main(int argc, char **argv) {
     assert(argc == 2);
     int shard = atoi(argv[1]);
-    assert(shard >= 0 && shard < 16);
-    switch (shard) {
+    assert(shard >= 0 && shard < 30);
+    /* Unsupported writeback specifiers must never modify argument storage,
+       including when the output buffer is empty or truncated. */
+    static const size_t capacities[] = {0, 1, 2, 7, 32};
+    char out[32];
+    signed char c = 91;
+    short s = 92;
+    int n = 93;
+    long l = 94;
+    long long ll = 95;
+    size_t z = 96;
+    const size_t cap = capacities[shard / 6];
+    int got = 0;
+    switch (shard % 6) {
+    case 0: got = snprintf_(out, cap, "ab%hhn", &c); break;
+    case 1: got = snprintf_(out, cap, "ab%hn", &s); break;
+    case 2: got = snprintf_(out, cap, "ab%n", &n); break;
+    case 3: got = snprintf_(out, cap, "ab%ln", &l); break;
+    case 4: got = snprintf_(out, cap, "ab%lln", &ll); break;
+    case 5: got = snprintf_(out, cap, "ab%zn", &z); break;
+    }
+    assert(c == 91 && s == 92 && n == 93 && l == 94 && ll == 95 && z == 96);
+    /* Library policy treats an unsupported specifier as its literal letter. */
+    assert(got == 3);
+    if (cap > 3) assert(strcmp(out, "abn") == 0);
+    switch (shard % 16) {
     case 0: check("LUNAR TRIO"); break;
     case 1: check("%s %c", "Trio", 'A'); break;
     case 2: check("%d %i", -127, 42); break;

@@ -23,6 +23,7 @@ def native_formatter(tmp_path_factory):
     subprocess.run([
         cc, "-std=c99", "-Wall", "-Wextra", "-Werror", "-O2",
         "-ffunction-sections", "-fdata-sections",
+        "-DPRINTF_SUPPORT_WRITEBACK_SPECIFIER=0",
         "-Wl,-dead_strip" if sys.platform == "darwin" else "-Wl,--gc-sections",
         f"-I{source}", str(ROOT / "tests/native_printf_check.c"),
         str(source / "printf/printf.c"), "-o", str(binary),
@@ -30,6 +31,6 @@ def native_formatter(tmp_path_factory):
     return binary
 
 
-@pytest.mark.parametrize("shard", range(16))
+@pytest.mark.parametrize("shard", range(30))
 def test_native_formatter(native_formatter, shard):
     subprocess.run([str(native_formatter), str(shard)], check=True)

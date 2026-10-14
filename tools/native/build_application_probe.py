@@ -308,6 +308,7 @@ def main():
     printf = runtime / 'printf.o'
     subprocess.run([compiler, *[f for f in flags if f != '-flto'],
                     '-DPRINTF_ALIAS_STANDARD_FUNCTION_NAMES_HARD=1',
+                    '-DPRINTF_SUPPORT_WRITEBACK_SPECIFIER=0',
                     '-I', str(ROOT / 'firmware/third_party/printf'), '-c',
                     str(ROOT / 'firmware/third_party/printf/printf/printf.c'),
                     '-o', str(printf)], check=True)
@@ -366,6 +367,7 @@ def main():
                   compressed_wave_tables=wave_records, indexed_tft=args.indexed_tft,
                   flash_plaits_wavetables=args.flash_plaits_wavetables,
                   shapes_voices=args.shapes_voices,
+                  printf_writeback_specifier=False,
                   instance_pool_bytes=instance_pool_bytes, target_app_storage=app_storage,
                   catalogue_objects=catalogue_receipts,
                   linked_objects=[dict(path=str(p), sha256=digest(p)) for p in objects],

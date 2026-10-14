@@ -1,0 +1,8 @@
+{
+  "tools/native/build_application_probe.py": "e278de45fd25eec46a177a42741e520e76fb2bfec20d27135f09edc42c5485da",
+  "tests/native_printf_check.c": "2e39da64dda120f53a20347f84dc368f899bd76683ae7bd03b5554e409db4d8e",
+  "tests/test_native_printf.py": "14efbe1fe5926d959c13f6ae1580400fbfc46bacdd0a594eb637b9d260578fbc",
+  "notes/2026-10-13-mixed-project-verification/all13-no-writeback-driver.py": "5f3c4dc83d5d17ab44daf8ca034e8645aca3f262b8e615b15d716e27a6bb87d7",
+  "notes/2026-10-13-mixed-project-verification/launch-no-writeback.py": "2dbceda6c87dce28f98e9d33ab990fb29a36a0741580f2b1a9518fa5d0014844",
+  "firmware/third_party/printf/printf/printf.c": "19acedf4294faa4961b8ae4bb4ed313497612f6f485af462674021faacaa5e00"
+}
