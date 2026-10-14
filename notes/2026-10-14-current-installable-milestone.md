@@ -148,6 +148,19 @@ CI run `38599904562` checks earlier exact head `9c5b3df3` and is still running;
 it does not cover the newer writer/reboot integrations. The watched Event120
 boot has not started, and full-song hardware acceptance remains pending.
 
+[verified] V2 fixed-loader binding is integrated at `6fa8c987` and backed up
+with a matching GitHub SHA. Its fifteen focused tests include the production
+SG class with mocked system calls and altered prior-attempt evidence rejection.
+The stopped v1 evidence was mirrored privately on bench01 and checked byte for
+byte. V2 preflight accepted campaign
+`3e90b2b4e79fd98350f953dc3cfcf10c1361d26f6397671dbcbe7070e82ede05`;
+the one-use 208-sector installation is running in coordinator exec session
+`50859`. Do not restart it or reuse its consumed campaign. Installation and
+readback completion are not yet established. The boot adapter at `af8b3f07`
+passes eight focused boot/reset tests but is deliberately disarmed until the
+independent completed-install verifier is integrated and pinned. No Event
+Horizon boot request has been sent.
+
 [verified] Fresh e404fddd three-file host regression completed: 43 passed, 13 skipped, exit zero. The dependency-mounted, bounded pinned Hera container preserves ASan/UBSan checks. Content embedding repair is integrated at fb972a0a (41 passed, 16 target-only skips); current-state demo fixtures at95c30133 had194 passed/1 target skip. CI now builds an isolated current fm1-state before image tests at843b33c3. Further ordinary host/optional-target fixture separation remains active.
 
 [verified] FIRST ORBIT was booted once and native USB appeared, then timed return enumerated device38 in ROM. Owner perceptual observations pending; fresh device38 admission is required before another installation. See `2026-10-14-first-orbit-watched-boot.md`. Event Horizon is owner-approved as default, not yet physically accepted.
