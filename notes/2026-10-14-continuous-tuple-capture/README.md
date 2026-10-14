@@ -15,10 +15,10 @@ argument vector and its digest, and the full toolchain tree including directory
 modes and symlink targets. The mutable catalogue bind was replaced by a fresh
 private snapshot: its complete tree manifest must match the source at copy time,
 the container mounts only the snapshot read-only, and the snapshot is rechecked
-after completion. Selected build-receipt catalogue rows must match that snapshot. Linked-object provenance separately rehashes all
+after completion. The initial real-build preflight measured 4,418 total catalogue entries (including directories) and 80.9 MB; the original 4,096-entry cap refused before Docker creation. The fixed cap is 8,192 entries with the 512 MiB aggregate byte limit retained, and a boundary test accepts 8,192 and rejects 8,193. Selected build-receipt catalogue rows must match that snapshot. Linked-object provenance separately rehashes all
 receipt rows: 161 linked catalogue rows and 120 generated `/out/build/link/`
 rows, while the 167-row catalogue inventory retains six unlinked rows as well.
-The actual pinned container build and private tuple composition have not yet run. The selected
+The first real invocation stopped at host preflight before Docker creation due to the measured catalogue entry count; no target build ran. After reviewer disposition of the bounded cap increase, retry with a fresh private output directory. The selected
 input is the already-reviewed Event Horizon + companion SET request; intended
 target is Shapes8 on the D7000 profile with continuous FM-1_500 identity and
 FM-1_000 recovery identity. A generated tuple will be diagnostic provenance,
