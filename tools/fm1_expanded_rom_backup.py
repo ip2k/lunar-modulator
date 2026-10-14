@@ -61,9 +61,8 @@ def validate_observation(c, now):
     usb = c["usb_binding"]
     if (not isinstance(usb, dict) or set(usb) != {"path", "busnum", "devnum", "vid", "pid"} or
             any(not isinstance(v, str) for v in usb.values()) or
-            usb != {"path": "1-1", "busnum": "1", "devnum": usb.get("devnum"),
-                    "vid": "4c4a", "pid": "8057"} or
-            not usb["devnum"].isdigit() or usb["devnum"].startswith("0")):
+            usb != {"path": "1-1", "busnum": "1", "devnum": "38",
+                    "vid": "4c4a", "pid": "8057"}):
         raise ValueError("Fresh ROM observation must match device38 port 1-1")
 
 
