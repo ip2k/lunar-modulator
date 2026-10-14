@@ -46,6 +46,25 @@ static inline void *fl_far(void *p) { void *volatile q = p; return q; }
 #define FL_GLOB_HI      0x000FF000u
 #define FL_OTA_LO       0x000E0000u                /* M-UPGRADE loader staging, ota.c */
 #define FL_OTA_HI       0x000E5000u
+
+/* Match app.ld stack reservations. Both stacks grow down; keep at least 1 KiB
+ * below the live SP for this wrapper, the RAM writer and checked P33 path. */
+#ifndef FL_USER_STACK_LO
+#define FL_USER_STACK_LO 0x01C74100u
+#define FL_USER_STACK_HI 0x01C7A000u
+#define FL_SUPER_STACK_LO 0x01C7A100u
+#define FL_SUPER_STACK_HI 0x01C7C000u
+#endif
+#ifndef FL_STACK_HEADROOM
+#define FL_STACK_HEADROOM 1024u
+#endif
+#ifndef FL_RAM_LO
+#define FL_RAM_LO 0x01C00000u
+#define FL_RAM_HI 0x01C80000u
+#endif
+#ifndef FL_READ_SP
+#define FL_READ_SP(value) __asm__ volatile ("%0 = sp" : "=r"(value) : : "memory")
+#endif
 /* [off, off + n) inside [lo, hi), without wrapping: off + n can overflow, and
  * the 1 MiB part ignores the high address bits, so a wrapped range lands low. */
 #define FL_IN(off, n, lo, hi) ((uint32_t)(off) >= (lo) && (uint32_t)(off) <= (hi) && \
@@ -59,6 +78,40 @@ static inline void *fl_far(void *p) { void *volatile q = p; return q; }
 #endif
 
 typedef struct { uint32_t sfc_con, spi_con, iomap_con0; } fl_saved_t;
+
+/* The stack pointer is sampled in the wrapper before masking IRQs. Requiring
+ * the complete page below the selected stack top prevents an XIP-off writer
+ * from reading a staged page outside ordinary SRAM. */
+static inline int fl_ram_span_ok(uintptr_t start, uint32_t size)
+{
+    return start >= FL_RAM_LO && start <= FL_RAM_HI && size <= FL_RAM_HI - start;
+}
+static inline int fl_stack_region(uintptr_t sp, uintptr_t *lo, uintptr_t *hi)
+{
+    if (sp >= FL_USER_STACK_LO && sp < FL_USER_STACK_HI) {
+        *lo = FL_USER_STACK_LO; *hi = FL_USER_STACK_HI; return 1;
+    }
+    if (sp >= FL_SUPER_STACK_LO && sp < FL_SUPER_STACK_HI) {
+        *lo = FL_SUPER_STACK_LO; *hi = FL_SUPER_STACK_HI; return 1;
+    }
+    return 0;
+}
+static inline int fl_stack_context_ok(uintptr_t sp)
+{
+    uintptr_t lo, hi;
+    return fl_stack_region(sp, &lo, &hi) && sp - lo >= FL_STACK_HEADROOM && sp < hi;
+}
+static inline int fl_stack_page_ok(uintptr_t sp, uintptr_t page)
+{
+    uintptr_t lo, hi;
+    return fl_stack_region(sp, &lo, &hi) && sp - lo >= FL_STACK_HEADROOM &&
+           page >= sp && page >= lo && page <= hi && 256u <= hi - page;
+}
+static inline int fl_timing_word_ok(const uint32_t *took)
+{
+    uintptr_t p = (uintptr_t)took;
+    return took && !(p & 3u) && fl_ram_span_ok(p, sizeof *took);
+}
 
 #ifndef FL_CSYNC
 #define FL_CSYNC() __asm__ volatile("csync" ::: "memory")
@@ -346,7 +399,10 @@ static int fl_erase4k(uint32_t off, uint32_t *took_us)
     uint8_t prior_wdt;
     uint32_t f;
     int rc;
+    uintptr_t sp;
+    FL_READ_SP(sp);
     if (!FL_RANGE_OK(off, 0x1000u) || (off & 0xFFFu)) return -1;
+    if (!fl_stack_context_ok(sp) || !fl_timing_word_ok(took_us)) return -8;
     f = irq_save();
     /* P33 stays serialized with the SFC operation. The RAM driver is not
      * entered unless the watchdog stop is positively read back as disabled. */
@@ -396,12 +452,16 @@ static int fl_source_span_ok(const uint8_t *src, uint32_t n, uint32_t off)
 static int fl_write(uint32_t off, const uint8_t *src_ram, uint32_t n)
 {
     uint32_t took;
+    if (!n) return 0;
     if (!FL_SOURCE_SPAN_OK(src_ram, n, off)) return -1;
     while (n) {
         uint32_t chunk = 256u - (off & 0xFFu);
         int rc;
         uint32_t f, i;
         uint8_t page[256] __attribute__((aligned(4)));
+        uintptr_t sp;
+        FL_READ_SP(sp);
+        if (!fl_stack_page_ok(sp, (uintptr_t)page) || !fl_timing_word_ok(&took)) return -8;
         if (chunk > n) chunk = n;
         /* Copy while XIP is still available. The RAM routine must never
          * dereference an unverified caller pointer after SFC is switched off. */

@@ -27,6 +27,7 @@ static uint8_t p33_frame[3];
 static unsigned p33_frame_count, p33_transfer_index;
 static unsigned p33_fail_transfer = (unsigned)-1;
 static unsigned p33_wdt_off_verified, p33_wdt_rearmed;
+static uintptr_t test_sp = 0x1000u;
 
 static void test_p33_start(void)
 {
@@ -155,6 +156,14 @@ static int test_source_span_ok(const uint8_t *src, uint32_t n, uint32_t off);
 static int test_program_page(uint32_t off, const uint8_t *page, uint32_t n, uint32_t *took);
 #define FL_PROGRAM_PAGE(off, page, n, took) test_program_page((off), (page), (n), (took))
 #define FL_SOURCE_SPAN_OK(src, n, off) test_source_span_ok((src), (n), (off))
+#define FL_USER_STACK_LO 0x1000u
+#define FL_USER_STACK_HI UINTPTR_MAX
+#define FL_SUPER_STACK_LO 0x3000u
+#define FL_SUPER_STACK_HI 0x5000u
+#define FL_STACK_HEADROOM 1024u
+#define FL_RAM_LO 0x1000u
+#define FL_RAM_HI UINTPTR_MAX
+#define FL_READ_SP(value) ((value) = test_sp)
 #define FM1_P33_CON reg_p33_con
 #define FM1_P33_DAT reg_p33_dat
 #define FM1_P33_XFER_LIMIT 4u
@@ -225,6 +234,35 @@ static void assert_restored(uint32_t original_iomap, uint32_t original_spi)
     assert(reg_spi == original_spi);
     assert((reg_iomap & 0x20u) == (original_iomap & 0x20u));
     assert(!destructive_pending || (ready_observed && !nor_wip));
+}
+
+static void test_stack_and_timing_guards(void)
+{
+    uint32_t flags = 0;
+    assert(!fl_stack_context_ok(FL_USER_STACK_LO + FL_STACK_HEADROOM - 1u));
+    assert(fl_stack_context_ok(FL_USER_STACK_LO + FL_STACK_HEADROOM));
+    assert(fl_stack_context_ok(FL_USER_STACK_HI - 1u));
+    assert(!fl_stack_context_ok(FL_USER_STACK_HI));
+    assert(fl_stack_context_ok(FL_SUPER_STACK_LO + FL_STACK_HEADROOM));
+    assert(fl_stack_page_ok(FL_USER_STACK_LO + 0x1000u, FL_USER_STACK_LO + 0x1100u));
+    assert(!fl_stack_page_ok(FL_USER_STACK_LO + 0x1000u, FL_USER_STACK_LO + 0x0FFFu));
+    assert(!fl_stack_page_ok(FL_USER_STACK_HI - FL_STACK_HEADROOM, FL_USER_STACK_HI - 255u));
+    assert(fl_ram_span_ok(FL_RAM_LO, 4u));
+    assert(fl_ram_span_ok(FL_RAM_HI - 4u, 4u));
+    assert(!fl_ram_span_ok(FL_RAM_HI - 3u, 4u));
+    assert(fl_timing_word_ok((const uint32_t *)(uintptr_t)0x2000u));
+    assert(!fl_timing_word_ok((const uint32_t *)(uintptr_t)0x2001u));
+    assert(!fl_timing_word_ok((const uint32_t *)(uintptr_t)(UINTPTR_MAX - 3u)));
+
+    reset_mock(0x20u);
+    test_sp = FL_USER_STACK_LO + FL_STACK_HEADROOM - 1u;
+    assert(fl_erase4k(0x97000u, &flags) == -8);
+    assert(reg_icfg == 0u && p33_transfer_index == 0u && tx_count == 0u);
+    reset_mock(0x20u);
+    test_sp = 0x800u;
+    assert(fl_write(0x97000u, (const uint8_t *)"x", 1u) == -8);
+    assert(reg_icfg == 0u && p33_transfer_index == 0u && tx_count == 0u);
+    test_sp = FL_USER_STACK_LO + FL_STACK_HEADROOM;
 }
 
 static void test_source_span_policy(void)
@@ -647,6 +685,7 @@ static void test_exit_preserves_pin_owner_bit(void)
 }
 int main(void)
 {
+    test_stack_and_timing_guards();
     test_source_span_policy();
     test_fl_write_stages_caller_pages_before_ram_program();
     test_checked_jedec_timeout();

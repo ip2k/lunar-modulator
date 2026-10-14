@@ -277,23 +277,124 @@ def audit_writer_callers(full_disassembly, symbols):
         return (rf"{register}\s*=\s*\d+\s*<\s*{re.escape(name)}\s*:\s*"
                 rf"0*{address:x}\s*>")
 
-    require_order(erase, [target_load("r0", "fl_erase4k_ram", erase_ram),
-                          r"call[^\n]*<\s*fl_far\s*:",
-                          r"r2\s*=\s*r0",
-                          r"r1_r0\s*=\s*r5_r4",
-                          r"call\s+r2\b"], "fl_erase4k")
-    require_order(program, [target_load("r8", "fl_prog_ram", program_ram),
-                            r"b\[r4\+r0\]\s*\(u\)",
-                            r"r2\s*=\s*sp\s*\+\s*4",
-                            r"b\[r2\+r0\]\s*=\s*r1",
-                            r"call[^\n]*<\s*irq_save\s*:",
-                            r"call[^\n]*<\s*fm1_wdt_stop_checked\s*:",
-                            r"r0\s*=\s*r8",
-                            r"call[^\n]*<\s*fl_far\s*:",
-                            r"r7\s*=\s*r0",
-                            r"r1\s*=\s*sp\s*\+\s*4",
-                            r"r3\s*=\s*sp\s*\+\s*260",
-                            r"call\s+r7\b"], "fl_write")
+    # Linker constants are part of the check: this guard is valid only while
+    # app.ld reserves these exact downward-growing stack windows.
+    stack_bounds = {"_ustack_lo": 0x01C74100, "_ustack_top": 0x01C7A000,
+                    "_sstack_lo": 0x01C7A100, "_sstack_top": 0x01C7C000}
+    absolute_symbols = {}
+    for line in symbols.splitlines():
+        match = re.match(r"^\s*([0-9a-fA-F]+)\s+\*ABS\*\s+\S+\s+(\S+)\s*$", line)
+        if match:
+            absolute_symbols[match.group(2)] = int(match.group(1), 16)
+    if any(absolute_symbols.get(name) != address for name, address in stack_bounds.items()):
+        raise ValueError("linker stack bounds differ from reviewed app.ld reservations")
+
+    stack_region = require("fl_stack_region")
+    require_order(stack_region, [
+        r"r3\s*=\s*4265131776", r"r3\s*\+=\s*r0",
+        r"if\s*\(r3\s*>=\s*24320\)",
+        r"r0\s*=\s*29859840[^\n]*<_ustack_top\s*:\s*1c7a000\s*>",
+        r"r3\s*=\s*29835520[^\n]*<_ustack_lo\s*:\s*1c74100\s*>",
+        r"r3\s*=\s*4265107200", r"r0\s*\+=\s*r3",
+        r"r3\s*=\s*r0\s*>>\s*8", r"if\s*\(r3\s*>\s*30\)",
+        r"r0\s*=\s*29868032[^\n]*: 1c7c000\s*>",
+        r"r3\s*=\s*r0\s*\+\s*-7936",
+        r"\[r1\+0\]\s*=\s*r3", r"\[r2\+0\]\s*=\s*r0"],
+        "fl_stack_region")
+    timing_guard = require("fl_timing_word_ok")
+    require_order(timing_guard, [
+        r"if\s*\(r0\s*==\s*0\)",
+        r"if\s*\(\(r0\s*&\s*0x3\)\s*!=\s*0\)",
+        r"0x1C80000\s*-\s*r0", r"r0\s*-\s*0x1C00000",
+        r"r0\s*>\s*524288"], "fl_timing_word_ok")
+
+    erase = require("fl_erase4k")
+    program = require("fl_write")
+    require_order(erase, [
+        r"sp\s*\+=\s*-12", r"r7\s*=\s*sp",
+        r"call[^\n]*<\s*fl_stack_region\s*:",
+        r"r0\s*=\s*\[sp\+8\]", r"r0\s*=\s*r7\s*-\s*r0",
+        r"if\s*\(r0\s*<=\s*1023\)",
+        r"r0\s*=\s*r5",
+        r"call[^\n]*<\s*fl_timing_word_ok\s*:",
+        r"call[^\n]*<\s*irq_save\s*:",
+        r"call[^\n]*<\s*fm1_wdt_stop_checked\s*:",
+        target_load("r0", "fl_erase4k_ram", erase_ram),
+        r"call[^\n]*<\s*fl_far\s*:",
+        r"r2\s*=\s*r0", r"r1_r0\s*=\s*r5_r4",
+        r"call\s+r2\b"], "fl_erase4k")
+    require_order(program, [
+        r"sp\s*\+=\s*-272", r"r10\s*=\s*r2", r"r5\s*=\s*r1", r"r9\s*=\s*r0",
+        r"r8\s*=\s*\d+[^\n]*<\s*fl_prog_ram\s*:\s*0*1c00580\s*>",
+        r"r4\s*=\s*sp", r"r1\s*=\s*sp\s*\+\s*268",
+        r"r2\s*=\s*sp\s*\+\s*264", r"r0\s*=\s*r4",
+        r"call[^\n]*<\s*fl_stack_region\s*:",
+        r"r0\s*=\s*\[sp\+268\]", r"r1\s*=\s*sp\s*\+\s*4",
+        r"if\s*\(r0\s*>\s*r1\)", r"if\s*\(r1\s*<\s*r4\)",
+        r"r0\s*=\s*r4\s*-\s*r0", r"if\s*\(r0\s*<\s*1024\)",
+        r"r0\s*=\s*\[sp\+264\]", r"r1\s*=\s*sp\s*\+\s*4",
+        r"if\s*\(r0\s*<\s*r1\)", r"r0\s*=\s*r0\s*-\s*r1",
+        r"if\s*\(r0\s*<\s*256\)", r"r0\s*=\s*sp\s*\+\s*260",
+        r"call[^\n]*<\s*fl_timing_word_ok\s*:",
+        r"r1\s*=\s*b\[r5\+r0\]\s*\(u\)", r"r2\s*=\s*sp\s*\+\s*4",
+        r"b\[r2\+r0\]\s*=\s*r1",
+        r"call[^\n]*<\s*irq_save\s*:",
+        r"call[^\n]*<\s*fm1_wdt_stop_checked\s*:",
+        r"r0\s*=\s*r8", r"call[^\n]*<\s*fl_far\s*:",
+        r"r7\s*=\s*r0", r"r1\s*=\s*sp\s*\+\s*4",
+        r"r3\s*=\s*sp\s*\+\s*260", r"r0\s*=\s*r9",
+        r"r2\s*=\s*r6", r"call\s+r7\b"], "fl_write")
+    for body, function in ((erase, "fl_erase4k"), (program, "fl_write")):
+        guard = body.find("fl_timing_word_ok")
+        if guard < 0:
+            raise ValueError(f"{function} lacks the timing/stack guard")
+        for callee in ("irq_save", "fm1_wdt_stop_checked"):
+            calls = list(re.finditer(rf"call[^\n]*<\s*{re.escape(callee)}\s*:", body))
+            if len(calls) != 1 or calls[0].start() < guard:
+                raise ValueError(f"{function} has an early, duplicate, or missing {callee} call")
+    write_frame_match = re.search(r"sp\s*\+=\s*-(\d+)", program)
+    erase_frame_match = re.search(r"sp\s*\+=\s*-(\d+)", erase)
+    if write_frame_match is None or int(write_frame_match.group(1)) != 272:
+        raise ValueError("fl_write linked frame differs from reviewed 272-byte frame")
+    if erase_frame_match is None or int(erase_frame_match.group(1)) != 12:
+        raise ValueError("fl_erase4k linked frame differs from reviewed 12-byte frame")
+
+    # The target listing exposes saved registers and local SP allocations.
+    # Bound the deepest writer path as wrapper frame plus RAM-entry frame.
+    def stack_frame(name, expected_save, expected_local, require_no_calls=False):
+        body = require(name)
+        lines = [line for line in body.splitlines()
+                 if re.match(r"^\s*[0-9a-fA-F]+:", line)]
+        ops = [re.sub(r"^.*?\t", "", line).strip() for line in lines]
+        if len(ops) < 3 or ops[0] != f"[--sp] = {{{expected_save}}}":
+            raise ValueError(f"{name} has an unknown register-save prologue")
+        alloc = re.fullmatch(r"sp \+= -(\d+)", ops[1])
+        if alloc is None or int(alloc.group(1)) != expected_local:
+            raise ValueError(f"{name} has an unknown local stack allocation")
+        if require_no_calls and any(re.search(r"\bcall\b", line) for line in lines):
+            raise ValueError(f"{name} has an unbounded nested call in stack path")
+        expected_restore = "{pc, " + expected_save.split(", ", 1)[1] + "} = [sp++]"
+        epilogue = [f"sp += {expected_local}", expected_restore]
+        if not any(ops[index:index + 2] == epilogue
+                   for index in range(len(ops) - 1)):
+            raise ValueError(f"{name} has an unknown or unbalanced stack epilogue")
+        count = 1
+        for item in expected_save.split(", ")[1:]:
+            if "-" in item:
+                hi, lo = item.split("-")
+                count += abs(int(hi[1:]) - int(lo[1:])) + 1
+            else:
+                count += 1
+        return count * 4 + expected_local
+
+    erase_ram_frame = stack_frame("fl_erase4k_ram", "rets, r15-r4", 52, require_no_calls=True)
+    program_ram_frame = stack_frame("fl_prog_ram", "rets, r15-r4", 52, require_no_calls=True)
+    erase_wrapper_frame = stack_frame("fl_erase4k", "rets, r7-r4", 12)
+    program_wrapper_frame = stack_frame("fl_write", "rets, r10-r4", 272)
+    program_path_depth = program_wrapper_frame + program_ram_frame
+    erase_path_depth = erase_wrapper_frame + erase_ram_frame
+    if program_path_depth != 408 or erase_path_depth != 136:
+        raise ValueError("linked NOR writer stack-depth calculation differs from reviewed target")
     far_ops = []
     for line in far.splitlines():
         if re.match(r"^\s*[0-9a-fA-F]+:", line):
@@ -354,6 +455,27 @@ def audit_writer_callers(full_disassembly, symbols):
         },
         "program_page_buffer_is_staged_before_irq_mask": True,
         "program_copy_then_irq_save_then_wdt_stop_order_verified": True,
+        "runtime_stack_guard_before_critical_section_verified": True,
+        "minimum_stack_headroom_bytes": 1024,
+        "stack_bounds_linker_symbols": stack_bounds,
+        "program_page_stack_offset": 4,
+        "program_elapsed_word_stack_offset": 260,
+        "linked_wrapper_frame_bytes": {
+            "fl_write_local": 272, "fl_write_saved_registers": 32,
+            "fl_erase4k_local": 12, "fl_erase4k_saved_registers": 20,
+        },
+        "linked_ram_entry_frame_bytes": {
+            "fl_prog_ram_local": 52, "fl_prog_ram_saved_registers": 52,
+            "fl_erase4k_ram_local": 52, "fl_erase4k_ram_saved_registers": 52,
+        },
+        "max_synchronous_stack_decrease_after_guard_bytes": {
+            "fl_write_to_fl_prog_ram": program_path_depth,
+            "fl_erase4k_to_fl_erase4k_ram": erase_path_depth,
+        },
+        "guard_sp_measurement_point": "after XIP wrapper prologue and page copy, before IRQ mask/WDT stop",
+        "guarded_headroom_after_program_ram_entry_bytes": 1024 - program_ram_frame,
+        "guarded_headroom_after_erase_ram_entry_bytes": 1024 - erase_ram_frame,
+        "writer_ram_stack_paths_have_no_calls_or_dynamic_sp_adjustments": True,
         "runtime_stack_address_in_sram_proven": False,
         "unresolved_runtime_data_sources": [
             {"source": "pi32v2 SP at fl_write entry", "used_by": "SP+4 page buffer and SP+260 elapsed output",
@@ -362,7 +484,8 @@ def audit_writer_callers(full_disassembly, symbols):
              "reason": "callsite is stack-relative but its runtime SRAM bounds are not linked here"},
         ],
         "limits": [
-            "the ABI stack base and actual runtime stack bounds are not established by this static link",
+            "the current SP is checked after each wrapper prologue; this cannot detect whether a caller was already too close to the stack lower bound before the prologue",
+            "1 KiB is an explicit minimum remaining distance from post-prologue SP to the selected lower bound; it is not a measured whole-program worst-case stack proof",
             "the analysis-only force-retain root is not a production caller",
             "indirect dispatch and pointer staging are proven only for the audited linked callsites",
             "the caller-provided source bytes are copied before the RAM handoff; this does not prove the source caller's overall SRAM placement",
