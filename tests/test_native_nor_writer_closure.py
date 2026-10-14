@@ -27,6 +27,13 @@ class NorWriterClosureAnalysisTests(unittest.TestCase):
         self.assertFalse(MODULE.in_extent(0xF5FFF, 2))
         self.assertFalse(MODULE.in_extent(0xFFFFFFFF, 2))
 
+    def test_prepared_profile_file_is_forwarded_as_builder_directory(self):
+        profile = Path('/private/selection/prepared/profile.json')
+        self.assertEqual(MODULE.prepared_input_directory(profile),
+                         Path('/private/selection/prepared'))
+        with self.assertRaisesRegex(ValueError, 'named profile.json'):
+            MODULE.prepared_input_directory(Path('/private/selection/prepared/other.json'))
+
     def test_overlay_retains_real_writer_and_suppresses_package_generation(self):
         with tempfile.TemporaryDirectory() as directory:
             copied = Path(directory) / 'build_application_probe.py'
