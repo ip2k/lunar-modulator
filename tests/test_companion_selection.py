@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools/native'))
-from companion_selection import companion_parent_indices
+from companion_selection import companion_parent_indices, builder_content_parent_indices
 from embed_image_content import content_source
 
 PROFILE = "a" * 64
@@ -69,10 +69,31 @@ def test_missing_receipt_refuses_set_but_wrong_startup_refuses(tmp_path):
     with pytest.raises(ValueError, match="Startup project index"):
         companion_parent_indices(tmp_path / "other/selection/prepared", PROFILE, profile2, 2)
 
-def test_embedding_encodes_parent_and_refuses_unknown_set_parent():
+def test_embedding_encodes_parent_and_allows_standalone_set_without_parent():
     inputs = SimpleNamespace(report=dict(content=[dict(kind="project"), dict(kind="set")]),
                               packed_content=(bytes(40), bytes([1]) * 40))
     source = content_source(inputs, [-1, 0]).decode()
     assert "FM1_STATE_SET" in source and "UINT32_MAX" in source and "0u" in source
+    standalone = content_source(inputs).decode()
+    assert standalone.count("UINT32_MAX") == 2
     with pytest.raises(ValueError, match="trusted parent"):
-        content_source(inputs)
+        content_source(inputs, require_set_parents=True)
+
+
+def test_standalone_set_builder_binding_preserves_unbound_catalogue(tmp_path):
+    prepared, profile, _ = fixture(tmp_path)
+    (prepared.parent / "selection.json").unlink()
+    parents, receipt_sha = builder_content_parent_indices(
+        prepared, PROFILE, profile, startup_project_index=None, startup_set_index=1)
+    assert parents == [-1, -1]
+    assert receipt_sha is None
+    assert "FM1_STATE_SET" in content_source(
+        SimpleNamespace(report=profile, packed_content=(bytes(40), bytes([1]) * 40)),
+        parents).decode()
+
+
+def test_builder_requires_receipt_for_companion_set(tmp_path):
+    prepared, profile, _ = fixture(tmp_path)
+    with pytest.raises(ValueError, match="selected parent project"):
+        builder_content_parent_indices(
+            prepared, PROFILE, profile, startup_project_index=None, startup_set_index=None)

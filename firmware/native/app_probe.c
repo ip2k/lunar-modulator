@@ -211,12 +211,16 @@ static void app_main(void)
         startup_project_result = !arena_bind_failures && asset->kind == FM1_STATE_PROJECT;
 #ifdef LUNAR_COMPANION_SET_CHOOSER
         if (startup_project_result && lunar_selected_companion_set_index != UINT32_MAX) {
-            const lunar_content_asset_t *set =
-                &lunar_content_catalogue[lunar_selected_companion_set_index];
-            startup_project_result = set->kind == FM1_STATE_SET &&
-                set->parent_project_index == lunar_selected_startup_project_index &&
-                lunar_project_start_with_set(&app, &instance_pool,
-                    asset->bytes, asset->size, set->bytes, set->size, 44118, &report);
+            if (lunar_selected_companion_set_index >= lunar_content_count) {
+                startup_project_result = 0;
+            } else {
+                const lunar_content_asset_t *set =
+                    &lunar_content_catalogue[lunar_selected_companion_set_index];
+                startup_project_result = set->kind == FM1_STATE_SET &&
+                    set->parent_project_index == lunar_selected_startup_project_index &&
+                    lunar_project_start_with_set(&app, &instance_pool,
+                        asset->bytes, asset->size, set->bytes, set->size, 44118, &report);
+            }
         } else
 #endif
         if (startup_project_result) {

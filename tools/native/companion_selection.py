@@ -10,8 +10,12 @@ except ImportError:  # Script execution from tools/native.
 
 MAX_RECEIPT = 1048576
 
-def companion_parent_indices(prepared_dir, expected_profile_sha256, profile_report, startup_project_index):
-    """Return one parent catalogue index per profile asset; projects use -1."""
+def companion_parent_indices(prepared_dir, expected_profile_sha256, profile_report, startup_project_index, *, allow_unbound_sets=False):
+    """Return one parent catalogue index per asset; projects use -1.
+
+    Standalone SET startup has no parent project. Callers must opt into that
+    legacy mode explicitly; project-startup companion SETs remain receipt-bound.
+    """
     assets = profile_report.get("content")
     if not isinstance(assets, list) or len(assets) > 64:
         raise ValueError("Prepared profile content is malformed")
@@ -19,6 +23,8 @@ def companion_parent_indices(prepared_dir, expected_profile_sha256, profile_repo
     set_positions = [i for i, row in enumerate(assets)
                      if isinstance(row, dict) and row.get("kind") == "set"]
     if not set_positions:
+        return parents, None
+    if startup_project_index is None and allow_unbound_sets:
         return parents, None
     if type(startup_project_index) is not int or startup_project_index < 0:
         raise ValueError("Companion SETs require a selected parent project")
@@ -86,3 +92,13 @@ def companion_parent_indices(prepared_dir, expected_profile_sha256, profile_repo
     if parents[startup_index] != -1:
         raise ValueError("Startup index must identify a project")
     return parents, sha(raw)
+
+
+def builder_content_parent_indices(prepared_dir, expected_profile_sha256, profile_report,
+                                  startup_project_index, startup_set_index):
+    """Choose bound companion or unbound standalone SET catalogue semantics."""
+    if startup_project_index is not None and startup_set_index is not None:
+        raise ValueError("Standalone SET and PROJECT startup modes are mutually exclusive")
+    return companion_parent_indices(
+        prepared_dir, expected_profile_sha256, profile_report, startup_project_index,
+        allow_unbound_sets=startup_set_index is not None)
