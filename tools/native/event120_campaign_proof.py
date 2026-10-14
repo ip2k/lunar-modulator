@@ -17,6 +17,33 @@ from contextvars import ContextVar
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
+# Replay code is imported before verify() can build its evidence map. Verify its
+# exact dependency bytes before Python executes any of them; verify() reads them
+# again through _read so the caller can freeze those same bytes before admission.
+REPLAY_SOURCE_PINS = {
+    "native/event120_install_proof.py": "f90f8601a88d9eae6ae7ee9e455ff2b0965837181003373074c28cb0ddc9b102",
+    "fm1_fixed_target_reset.py": "b846b574fe1e5b7597001f6f833044a07143540f2c0b3676e93bac807869833a",
+    "fm1_fixed_loader_reset.py": "dbbe363104aa339b63430ff0a99f817aba27afa233a266d449f45e048cd09116",
+    "native/expanded_sg.py": "f18e73b658c9d0b06b03b528c6fd4dd4da511a95102ea44252836d885e1a3700",
+}
+# Verify every imported project module before Python executes it. The writer
+# source map below is duplicated here deliberately so a modified imported
+# helper cannot run before verify() later records its digest for the caller.
+_BOOTSTRAP_PINS = {
+    **REPLAY_SOURCE_PINS,
+    "fm1_flash_transaction.py": "d0527efbe74314b30a2cd76897c022a1c7857db888ef6e8f8610dbb329956908",
+    "native/event120_bench_transactions.py": "a0711605440b5414feda742f55e458a5ea9628da6bfebb98ffa48a58dc63a2c9",
+    "native/event120_bench_policy.py": "528a3020674f158cec796cf9b77e4275f35c6651434ca7e760ed1edfcf007355",
+    "fm1_fixed_loader_backup.py": "79bbe99ce923daaf8af2c701a65ec39a015191313de79676e36622cb8db00afb",
+    "fm1_uboot_read.py": "28317ee56a489e0bb38de981fe0d0c4260384be570349795741fdb9a98d6ae57",
+    "fm1_bound_diagnostic.py": "25e57ffda466c898df88370069cf4d7fce02134e141ba95516347c30953d1a36",
+    "native/event120_bench_live.py": "fd1ee3515f3eb534ea2ce9aec35fe15b28199fc7aea367e1868045e7478d4ae2",
+}
+for _relative, _sha in _BOOTSTRAP_PINS.items():
+    _raw = (ROOT / "tools" / _relative).read_bytes()
+    if hashlib.sha256(_raw).hexdigest() != _sha:
+        raise RuntimeError("Reviewed proof dependency source hash differs")
+    del _raw
 from fm1_flash_transaction import checked_identity, checked_plan_order, digest, encoded
 from native.event120_bench_transactions import (
     BASELINE_SHA, COMMANDS_SHA, MANIFEST_SHA, TARGET_SHA, pinned,
@@ -105,6 +132,13 @@ def _pin_sources(root, expected):
     adapter = _read(root / "tools/native/event120_bench_live.py", 2 * 1048576)
     if digest(adapter) != WRITER_ADAPTER_SHA256:
         raise ValueError("Writer adapter source hash differs")
+    _pin_replay_sources(root)
+
+
+def _pin_replay_sources(root):
+    for relative, sha in REPLAY_SOURCE_PINS.items():
+        if digest(_read(root / "tools" / relative, 2 * 1048576)) != sha:
+            raise ValueError("Reviewed replay dependency source hash differs")
 
 
 def _validate_candidate_sources():
@@ -281,6 +315,22 @@ def _verify_v2(directory, campaign_sha256, *, source_root, now, evidence):
     return {"proof": proof, "evidence_sha256": dict(sorted(evidence.items()))}
 
 
+def _validate_v1_stop_events(events, campaign_sha256):
+    prepared, stopped = events
+    if (prepared.get("event") != "native_transaction_prepared" or
+            prepared.get("campaign_sha256") != campaign_sha256 or
+            prepared.get("direction") != "install" or prepared.get("variant") != "native" or
+            prepared.get("retry") is not False or
+            stopped.get("event") != "native_transaction_stopped" or
+            stopped.get("retry") is not False or stopped.get("error") != "ValueError" or
+            set(stopped) != {"time", "event", "error", "detail", "retry"} or
+            type(prepared.get("time")) not in (int, float) or
+            type(stopped.get("time")) not in (int, float) or
+            not math.isfinite(prepared["time"]) or not math.isfinite(stopped["time"]) or
+            stopped["time"] < prepared["time"]):
+        raise ValueError("V1 stopped attempt identity or terminal event differs")
+
+
 def _verify_v1_stop(prior):
     expected = {
         "evidence_root": "/home/claude/.local/share/codex-private/device38-event120-stopped-v1-20261014/extracted",
@@ -301,11 +351,7 @@ def _verify_v1_stop(prior):
     events = [json.loads(line, object_pairs_hook=_unique) for line in commands.splitlines()]
     if len(events) != 2 or [e.get("event") for e in events] != ["native_transaction_prepared", "native_transaction_stopped"]:
         raise ValueError("V1 evidence must contain exactly a stopped pre-SG attempt")
-    for event in events:
-        if event.get("campaign_sha256") != prior["campaign_sha256"] or event.get("direction") != "install" or event.get("variant") != "native" or event.get("retry") is not False:
-            raise ValueError("V1 stopped attempt identity differs")
-    if any(event.get("event") in {"sg_submit_intent","sg_completion","native_transaction_completed","sector_verified","durable_intent","operation_returned"} for event in events):
-        raise ValueError("V1 stopped attempt contains operation events")
+    _validate_v1_stop_events(events, prior["campaign_sha256"])
     return {
         "schema": 1, "kind": "event120-v1-stopped-before-sg",
         "campaign_sha256": prior["campaign_sha256"],
