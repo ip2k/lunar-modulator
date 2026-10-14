@@ -39,6 +39,27 @@ def prepared(sample):
                  wavetable_profile=WAVETABLE_PROFILE, compressed_wave_tables=[],
                  indexed_tft=True, flash_plaits_wavetables=True, shapes_voices=12,
                  instance_pool_bytes=249088, target_app_storage=dict(TARGET_STORAGE),
+                 runtime_configuration=dict(runtime_mode='song-diagnostic',
+                                            return_to_rom_seconds=120,
+                                            define='-DLUNAR_RETURN_TO_ROM_SECONDS=120',
+                                            release_accepted=False),
+                 project_save_service=dict(linked=True,
+                                           compile_definition='LUNAR_PROJECT_SAVE_SERVICE=1',
+                                           storage_admitted=False, flash_io_bound=False,
+                                           save_service_armed=False, runtime_verified=False,
+                                           hardware_tested=False),
+                 state_bin_codec=dict(mode='compact-writer',
+                                      source='/src/engines/state/state_bin.c',
+                                      source_sha256='a' * 64,
+                                      cached_object='/catalogue/obj/state_bin.o',
+                                      cached_object_sha256='b' * 64,
+                                      fresh_object='/out/state_bin.o',
+                                      fresh_object_sha256='c' * 64,
+                                      compile_flags=['-target', 'pi32v2',
+                                                     '-DFM1_STATE_BIN_COMPACT_WRITER=1'],
+                                      compile_definition='FM1_STATE_BIN_COMPACT_WRITER=1',
+                                      replaced_exactly_one=True),
+                 verification_sha256='d' * 64, artifact_receipt_sha256='e' * 64,
                  installable=False, hardware_admitted=False, hardware_tested=False)
     return sample['baseline'], target, app, elf, candidate_receipt, image, selection
 
@@ -59,6 +80,11 @@ def test_manifest_rechecks_geometry_binds_receipts_and_puts_directory_last(sampl
     assert result['protected_ranges'] == [[0, 0x4000], [0xD9000, 0x100000]]
     assert result['wavetable_profile'] == WAVETABLE_PROFILE
     assert result['wavetable_receipt_verified'] is True
+    assert result['runtime_configuration']['return_to_rom_seconds'] == 120
+    assert result['project_save_service']['save_service_armed'] is False
+    assert result['state_bin_codec']['replaced_exactly_one'] is True
+    assert result['verification_sha256'] == image['verification_sha256']
+    assert result['artifact_receipt_sha256'] == image['artifact_receipt_sha256']
     assert result['device_io_performed'] is False
     assert result['physical_writer_ready'] is False
     assert result['settings_migration_verified'] is False
@@ -85,6 +111,9 @@ def test_manifest_accepts_exact_reviewed_shapes8_compressed_ram_profile(sample):
     'image-app', 'image-elf', 'stale-size', 'request', 'selection-profile',
     'startup', 'foreign-sector', 'unsorted-sector', 'range-map', 'protected',
     'wavetable-voice', 'wavetable-pool', 'wavetable-row', 'wavetable-profile',
+    'runtime-mode', 'runtime-seconds', 'save-linked', 'save-armed',
+    'codec-mode', 'codec-replacement', 'codec-definition', 'codec-hash',
+    'codec-flags', 'verification-digest', 'artifact-digest',
 ])
 def test_manifest_refuses_stale_or_unsafe_receipt_and_sector_inputs(sample, fault):
     values = list(prepared(sample))
@@ -111,6 +140,17 @@ def test_manifest_refuses_stale_or_unsafe_receipt_and_sector_inputs(sample, faul
     elif fault == 'wavetable-pool': image['instance_pool_bytes'] = 165376
     elif fault == 'wavetable-row': image['compressed_wave_tables'] = [dict(SHAPES8_TABLES[0])]
     elif fault == 'wavetable-profile': image['wavetable_profile'] = SHAPES8_WAVETABLE_PROFILE
+    elif fault == 'runtime-mode': image['runtime_configuration']['runtime_mode'] = 'diagnostic'
+    elif fault == 'runtime-seconds': image['runtime_configuration']['return_to_rom_seconds'] = 20
+    elif fault == 'save-linked': image['project_save_service']['linked'] = False
+    elif fault == 'save-armed': image['project_save_service']['save_service_armed'] = True
+    elif fault == 'codec-mode': image['state_bin_codec']['mode'] = 'legacy'
+    elif fault == 'codec-replacement': image['state_bin_codec']['replaced_exactly_one'] = False
+    elif fault == 'codec-definition': image['state_bin_codec']['compile_definition'] = 'FM1_STATE_BIN_COMPACT_WRITER=0'
+    elif fault == 'codec-hash': image['state_bin_codec']['fresh_object_sha256'] = 'z' * 64
+    elif fault == 'codec-flags': image['state_bin_codec']['compile_flags'].remove('-DFM1_STATE_BIN_COMPACT_WRITER=1')
+    elif fault == 'verification-digest': image['verification_sha256'] = 'z' * 64
+    elif fault == 'artifact-digest': image['artifact_receipt_sha256'] = 'z' * 64
     with pytest.raises(ValueError):
         manifest.build_manifest(baseline, target, sample['reference'], app, elf,
                                 candidate_receipt, image, selection)
