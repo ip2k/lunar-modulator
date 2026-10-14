@@ -21,11 +21,67 @@ import types
 from weakref import WeakSet
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
-from fm1_event120_rom_backup import (  # noqa: E402
-    INVENTORY_SHA, KIND as READ_KIND, MAX_AGE, SOURCES as READ_SOURCES,
-    TARGET_SHA, USB, canonical, digest, load_source, read_file, unique_object,
-)
+READ_ADAPTER_SHA = '6bffb25e2f55184219baca5007a16fe05a3568c2f911a86fc6e6981ab7874342'
+INVENTORY_SHA = 'f99b6e738d19d24442ad4d056985e6f4dc200d0b09059b80428f4ff989838017'
+READ_KIND = 'fm1-device40-event120-repeat-rom-read'
+MAX_AGE = 120
+TARGET_SHA = '145c0280d652b73515e01e2f1f0d88fe33344645463e89d57a2d0048c6aa4657'
+USB = {'path': '1-1', 'busnum': '1', 'devnum': '40', 'vid': '4c4a', 'pid': '8057'}
+READ_SOURCES = {
+    'fm1_fixed_loader_backup.py': '79bbe99ce923daaf8af2c701a65ec39a015191313de79676e36622cb8db00afb',
+    'fm1_returned_rom_backup.py': 'afeefe7bd7e9044cb34106081766d6104cda7ab0196d0de903c35a5c1a52b4be',
+    'fm1_uboot_read.py': '28317ee56a489e0bb38de981fe0d0c4260384be570349795741fdb9a98d6ae57',
+}
+
+
+def digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode('ascii')
+
+
+def unique_object(pairs):
+    out = {}
+    for key, value in pairs:
+        if key in out:
+            raise ValueError('Duplicate JSON key')
+        out[key] = value
+    return out
+
+
+def read_file(path, limit=2 * 1048576):
+    path = Path(path)
+    if not path.is_absolute():
+        raise ValueError('Absolute direct evidence required')
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK)
+    try:
+        with os.fdopen(fd, 'rb') as fp:
+            if not stat.S_ISREG(os.fstat(fp.fileno()).st_mode):
+                raise ValueError('Regular evidence file required')
+            data = fp.read(limit + 1)
+    except BaseException:
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+        raise
+    if len(data) > limit:
+        raise ValueError('Evidence exceeds size bound')
+    return data
+
+
+def load_source(path, expected, name):
+    raw = read_file(Path(path).absolute())
+    if digest(raw) != expected:
+        raise ValueError('Pinned source differs: ' + str(path))
+    module = types.ModuleType(name)
+    module.__file__ = str(path)
+    sys.modules[name] = module
+    exec(compile(raw, str(path), 'exec'), module.__dict__)
+    return module
+
 
 KIND = 'fm1-device40-event120-repeat-boot'
 BOOT_SNAPSHOT_KIND = 'fm1-passive-device40-boot-same-connection'
@@ -51,6 +107,16 @@ def _hash_pin(path, expected, limit=32 * 1048576):
     if digest(raw) != expected:
         raise ValueError('Pinned evidence hash differs: ' + str(path))
     return raw
+
+
+def _rom_marker_path(parent, usb_binding, sg_binding):
+    identity = digest(canonical({'usb_binding': usb_binding, 'sg_binding': sg_binding}))
+    return Path(parent) / ('.event12040-rom-' + identity + '.consumed')
+
+
+def _read_snapshot_fresh_at_start(observed_at, prepared_at):
+    return (_finite(observed_at) and _finite(prepared_at) and
+            prepared_at - MAX_AGE <= observed_at <= prepared_at)
 
 
 def _snapshot(raw, *, now, earliest):
@@ -135,8 +201,10 @@ def verify_read_bundle(manifest_path, manifest_sha, commands_sha, *, now=None):
             campaign['snapshot_sha256'] != manifest['snapshot_sha256'] or
             campaign['usb_binding'] != USB or campaign['receipt_path'] != str(receipt)):
         raise ValueError('Read campaign linkage differs')
-    adapter_path = Path(__file__).absolute().with_name('fm1_event120_rom_backup.py')
-    if digest(read_file(adapter_path)) != manifest['adapter_sha256']:
+    adapter_path = ROOT / 'fm1_event120_rom_backup.py'
+    adapter_raw = read_file(adapter_path, 65536)
+    if (manifest['adapter_sha256'] != READ_ADAPTER_SHA or
+            digest(adapter_raw) != manifest['adapter_sha256']):
         raise ValueError('Fresh reader adapter source changed')
     snapshot_raw = _hash_pin(manifest['snapshot_path'], manifest['snapshot_sha256'], 65536)
     snapshot = _json(snapshot_raw)
@@ -145,7 +213,7 @@ def verify_read_bundle(manifest_path, manifest_sha, commands_sha, *, now=None):
             type(snapshot['schema']) is not int or snapshot['schema'] != 1 or
             snapshot['kind'] != 'fm1-passive-device40-rom' or snapshot['usb_binding'] != USB or
             canonical(snapshot['sg_binding']) != canonical(manifest['sg_binding']) or
-            not _finite(snapshot['observed_at']) or not 0 <= now - snapshot['observed_at'] <= MAX_AGE):
+            not _finite(snapshot['observed_at'])):
         raise ValueError('Read snapshot mapping or freshness differs')
 
     bridge = load_source(adapter_path.parent / 'fm1_fixed_loader_backup.py',
@@ -168,6 +236,8 @@ def verify_read_bundle(manifest_path, manifest_sha, commands_sha, *, now=None):
     times = [row.get('time') for row in rows]
     if not all(_finite(t) for t in times) or times != sorted(times) or times[-1] > now:
         raise ValueError('Read transcript chronology invalid')
+    if not _read_snapshot_fresh_at_start(snapshot['observed_at'], times[0]):
+        raise ValueError('Read snapshot was not fresh when the dual-read campaign began')
     expected_first = {'event':'device40_rom_read_prepared', 'campaign_sha256':manifest['campaign_sha256'],
         'adapter_sha256':manifest['adapter_sha256'], 'snapshot_sha256':manifest['snapshot_sha256'],
         'usb_binding':USB, 'sg_binding':manifest['sg_binding'], 'loader_sha256':bridge.LOADER_SHA,
@@ -205,11 +275,14 @@ def verify_read_bundle(manifest_path, manifest_sha, commands_sha, *, now=None):
         if (canonical({k:v for k,v in intent.items() if k != 'time'}) != canonical(wanted_intent) or
                 canonical({k:v for k,v in completion.items() if k != 'time'}) != canonical(wanted_completion)):
             raise ValueError('Read command/completion differs at index ' + str(index))
-    marker = receipt.parent / ('.event12040-rom-' + manifest['snapshot_sha256'] + '.consumed')
+    marker = _rom_marker_path(receipt.parent, manifest['usb_binding'], manifest['sg_binding'])
     if read_file(marker, 256) != manifest['campaign_sha256'].encode('ascii'):
         raise ValueError('Fresh read one-use marker absent or changed')
     evidence = [(manifest_path, manifest_raw, 65536), (campaign_path, campaign_raw, 65536),
         (commands_path, raw_commands, 16*1048576), (Path(manifest['snapshot_path']), snapshot_raw, 65536),
+        (adapter_path, adapter_raw, 65536),
+        *[(adapter_path.parent/name, read_file(adapter_path.parent/name), 2*1048576)
+          for name in READ_SOURCES],
         (receipt/'dumpA.bin', read_file(receipt/'dumpA.bin',1048576),1048576),
         (receipt/'dumpB.bin', read_file(receipt/'dumpB.bin',1048576),1048576),
         (marker, read_file(marker,256),256)]
