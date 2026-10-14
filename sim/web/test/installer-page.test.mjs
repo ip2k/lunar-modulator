@@ -59,7 +59,9 @@ const catalogue = {
     category: id.startsWith('replacement') ? 'replacement-showcase-candidate' : 'legacy-example',
     duration_estimate: { nominal_seconds: 100 },
     owner_disposition: id.startsWith('replacement')
-      ? 'Replacement showcase candidate; owner musical acceptance pending.'
+      ? (id === 'replacement-showcase-candidate-event-horizon'
+        ? 'Owner-approved musical full-song default; native playback and release admission pending.'
+        : 'Replacement showcase candidate; owner musical acceptance pending.')
       : 'Legacy example; not approved as a showcase or default.',
     default_candidate: false,
     source_path: `private/${id}.lunar`,
@@ -70,8 +72,10 @@ const catalogue = {
   })),
   full_song_default: {
     required: true,
-    status: 'pending',
-    blockers: ['owner-approved composition', 'native playback and save/reload'],
+    status: 'owner-approved',
+    project_id: 'replacement-showcase-candidate-event-horizon',
+    musical_choice_approved: true,
+    blockers: ['exact packed-content and module-dependency validation', 'native playback and save/reload'],
   },
   default_profile: {
     version: 1, engines: ['macro', 'shapes'], effects: ['plate'], midi: ['arp'],
@@ -105,7 +109,7 @@ test('loads generated catalogue, mounts the shared chooser and exports only a va
     assert.equal(loadStatus.textContent, '');
     assert.equal(moduleRoot.children[0].className, 'native-module-selection');
     assert.equal(moduleRoot.children[0].children.filter((node) => node.tagName === 'FIELDSET').length, 4);
-    assert.equal(catalogue.full_song_default.status, 'pending');
+    assert.equal(catalogue.full_song_default.status, 'owner-approved');
     assert.ok(catalogue.projects.every((project) => project.default_candidate === false));
 
     const nodes = walk(root);
@@ -116,9 +120,9 @@ test('loads generated catalogue, mounts the shared chooser and exports only a va
     assert.equal(radios.length, 8);
     assert.equal(button.textContent, 'Download build request (JSON)');
     assert.equal(button.disabled, false);
-    assert.match(root.textContent, /Full-song default status: pending/);
-    assert.match(root.textContent, /owner musical acceptance pending/i);
-    assert.match(root.textContent, /none are approved showcases or defaults/i);
+    assert.match(root.textContent, /Full-song default status: owner-approved/);
+    assert.match(root.textContent, /owner-approved musical full-song default/i);
+    assert.match(root.textContent, /approval covers the song choice only/i);
     assert.equal(checkboxes[5].checked, true);
     assert.equal(radios[5].checked, true);
 

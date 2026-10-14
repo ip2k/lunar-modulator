@@ -38,7 +38,7 @@ REPLACEMENTS = {
     # This receipt predates the serialization-only Packet/Satellite repair.
     "receipt_commit": "54246b65",
     "receipt_path": "notes/2026-10-11-four-showcase-integration-0085f2f2/aeon-runtime.json",
-    "owner_disposition": "owner musical acceptance pending",
+    "owner_disposition": "showcase candidate; owner musical acceptance pending",
 }
 
 GROUPS = (ORIGINALS, REPLACEMENTS)
@@ -189,12 +189,18 @@ def build_catalogue(repo: str) -> dict[str, Any]:
                     "resolve project engine identifiers through the canonical registry",
                     "verify exact embedded module data and linked image profile with the packed-image decoder",
                 ],
-                "owner_disposition": group["owner_disposition"],
+                "owner_disposition": (
+                    "owner-approved musical full-song default; native playback and release admission pending"
+                    if group is REPLACEMENTS and title == "Event Horizon"
+                    else group["owner_disposition"]
+                ),
                 "default_candidate": False,
                 "admission": {
                     "catalogue_only": True,
                     "blocked_on_exact_asset_embedding_and_link_fit": True,
-                    "blocked_on_owner_musical_acceptance": True,
+                    "blocked_on_owner_musical_acceptance": not (
+                        group is REPLACEMENTS and title == "Event Horizon"
+                    ),
                     "blocked_on_native_full_song_playback_and_save_reload": True,
                 },
             })

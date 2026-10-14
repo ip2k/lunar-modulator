@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Render the private installer chooser and verify its proposed default in Chromium.
+// Render the private installer chooser and verify its owner-approved musical default in Chromium.
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { createReadStream } from 'node:fs';
@@ -18,8 +18,8 @@ if (!process.argv[2] || !process.argv[3] || !imageDigest.startsWith('sha256:')) 
 await mkdir(artifactRoot, { recursive: true });
 const catalogue = JSON.parse(await readFile(path.join(siteRoot, 'demo-image-catalogue.json'), 'utf8'));
 const candidate = catalogue.projects.find((project) => project.id === 'replacement-showcase-candidate-event-horizon');
-const secondProject = catalogue.projects.find((project) => project.id === 'replacement-showcase-candidate-packet-bloom');
-if (!candidate || !secondProject) throw new Error('Expected Event Horizon and Packet Bloom candidates.');
+const secondProject = catalogue.projects.find((project) => project.id === 'replacement-showcase-candidate-afterglow-relay');
+if (!candidate || !secondProject) throw new Error('Expected Event Horizon and Afterglow Relay candidates.');
 
 const mime = new Map([
   ['.css', 'text/css; charset=utf-8'], ['.html', 'text/html; charset=utf-8'],
@@ -84,9 +84,9 @@ try {
     const startup = page.locator(`input[type=radio][value="${candidate.id}"]`);
     if (!await proposed.isChecked() || !await startup.isChecked()) throw new Error(`${viewport.name}: proposed full-song default not selected`);
     const status = await page.locator('.native-demo-default-status').innerText();
-    if (!status.includes('status: pending') || !status.includes('not owner musical acceptance or release admission')
-        || !status.includes('108.8-second host render') || !status.includes('packed dependency validation')) {
-      throw new Error(`${viewport.name}: pending proposal evidence is inaccurate`);
+    if (!status.includes('status: owner-approved') || !status.includes('approval covers the song choice only')
+        || !status.includes('module-dependency validation') || !status.includes('native playback')) {
+      throw new Error(`${viewport.name}: owner-approved musical choice evidence is inaccurate`);
     }
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
     if (overflow) throw new Error(`${viewport.name}: page overflows viewport width`);
@@ -119,7 +119,7 @@ try {
   if (errors.length) throw new Error(errors.join('\n'));
   report.admission_flags = { candidate_default: candidate.default_candidate, full_song_default: catalogue.full_song_default.status,
     catalogue_installable: catalogue.installable };
-  if (candidate.default_candidate !== false || catalogue.full_song_default.status !== 'pending' || catalogue.installable !== false) {
+  if (candidate.default_candidate !== false || catalogue.full_song_default.status !== 'owner-approved' || catalogue.installable !== false) {
     throw new Error('Catalogue admission state changed unexpectedly.');
   }
   const output = JSON.stringify(report, null, 2) + '\n';

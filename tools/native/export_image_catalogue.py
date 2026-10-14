@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[2]
 # These restored projects are selectable source choices. Duration is an
 # arrangement estimate (bars * four beats / BPM), not a runtime receipt,
 # musical approval, or device acceptance. Keep profile content empty until a
-# full-song default clears the separate release gates.
+# owner-approved musical choice clears the separate release gates.
 PRELOAD_PROJECTS = (
     dict(id='legacy-example-afterglow-relay', title='Afterglow Relay',
          source_path='engines/state/examples/afterglow-relay.lunar', bpm=92, bars=76, scenes=8),
@@ -40,7 +40,7 @@ PRELOAD_PROJECTS = (
     dict(id='replacement-showcase-candidate-event-horizon', title='Event Horizon',
          source_path='engines/state/examples/replacement-showcases/event-horizon-showcase.lunar',
          bpm=150, bars=68, scenes=7, category='replacement-showcase-candidate',
-         owner_disposition='replacement showcase candidate; owner musical acceptance pending',
+         owner_disposition='owner-approved musical full-song default; native playback and release admission pending',
          source_commit='fb92cc0d4c312bbc77866c915d6fb8f159f5f92d',
          source_asset_path='engines/state/examples/event-horizon-showcase.lunar',
          source_sha256='22bf4e768ec1e55a9a92ebb7b2ef1ed5d5967703d226fca7798f0c67b441d24f',
@@ -198,9 +198,10 @@ def export_catalogue(root: Path, build: Path):
     return dict(version=1, groups=groups, projects=export_preload_projects(root, groups),
                 full_song_default={
                     'required': True,
-                    'status': 'pending',
+                    'status': 'owner-approved',
+                    'project_id': 'replacement-showcase-candidate-event-horizon',
+                    'musical_choice_approved': True,
                     'blockers': [
-                        'owner-approved full-song composition',
                         'exact packed-content and module-dependency validation',
                         'native full-song playback and save/reload acceptance',
                     ],

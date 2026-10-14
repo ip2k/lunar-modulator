@@ -9,7 +9,6 @@ import {
 } from './native-demo-selection.js';
 
 let instanceNumber = 0;
-const PROPOSED_FULL_SONG_ID = 'replacement-showcase-candidate-event-horizon';
 
 function text(document, tag, value, className) {
   const element = document.createElement(tag);
@@ -66,10 +65,11 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
   const view = describeNativeDemoCatalogue(catalogue);
   const instance = ++instanceNumber;
   const radioName = `native-demo-startup-${instance}`;
-  const proposedFullSong = view.fullSongDefault.status === 'pending'
-    ? view.projects.find((project) => project.id === PROPOSED_FULL_SONG_ID
+  const approvedFullSong = view.fullSongDefault.status === 'owner-approved'
+    && view.fullSongDefault.musicalChoiceApproved === true
+    ? view.projects.find((project) => project.id === view.fullSongDefault.projectId
       && project.category === 'replacement-showcase-candidate') : null;
-  const selected = proposedFullSong ? [proposedFullSong.id] : [];
+  const selected = approvedFullSong ? [approvedFullSong.id] : [];
   const projectControls = new Map();
   let startupId = null;
   let busy = false;
@@ -84,10 +84,9 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
 
   const defaultNotice = text(document, 'aside', undefined, 'native-demo-default-status');
   defaultNotice.setAttribute('role', 'note');
-  defaultNotice.append(text(document, 'h3',
-    `Full-song default status: ${view.fullSongDefault.status}`));
-  defaultNotice.append(text(document, 'p', view.fullSongDefault.status === 'pending'
-    ? 'Legacy examples remain selectable, but none are approved showcases or defaults. Event Horizon Showcase is preselected as the proposed full-song default for this request. This is a reversible chooser selection, not owner musical acceptance or release admission. Its 108.8-second host render completed in an offline diagnostic; packed dependency validation and musical review remain pending.'
+  defaultNotice.append(text(document, 'h3', 'Full-song default status: ' + view.fullSongDefault.status));
+  defaultNotice.append(text(document, 'p', approvedFullSong
+    ? 'Event Horizon Showcase is the owner-approved musical full-song default and is preselected here. This approval covers the song choice only. Exact packed-content and module-dependency validation, native playback, and save/reload acceptance remain pending. A 108.8-second host render is an offline diagnostic only; target playback and installability are unverified.'
     : 'Selectable legacy examples are not approved showcases or defaults.'));
   if (view.fullSongDefault.blockers.length) {
     const blockers = document.createElement('ul');
@@ -135,7 +134,7 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
     checkbox.type = 'checkbox';
     checkbox.id = id;
     checkbox.value = project.id;
-    checkbox.checked = project.id === proposedFullSong?.id;
+    checkbox.checked = project.id === approvedFullSong?.id;
     checkbox.disabled = project.reservation.status === 'rejected';
     checkbox.addEventListener('change', () => {
       if (project.reservation.status === 'rejected') {
@@ -168,7 +167,7 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
     choices.append(item);
     projectControls.set(project.id, checkbox);
     addStartupOption(project);
-    if (project.id === proposedFullSong?.id) {
+    if (project.id === approvedFullSong?.id) {
       const radio = startupControls.get(project.id);
       radio.disabled = false;
       radio.checked = true;
@@ -178,7 +177,7 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
 
   section.append(choices, startup);
   section.append(text(document, 'p',
-    'Durations are catalogue estimates from project metadata, not verified playback lengths. The Event Horizon host render is an offline diagnostic and does not establish target playback, release approval, or installability.'));
+    'Durations are catalogue estimates from project metadata, not verified playback lengths. The Event Horizon host render is an offline diagnostic and does not establish target playback or installability.'));
   const status = text(document, 'p', '', 'native-demo-selection-status');
   status.setAttribute('role', 'status');
   status.setAttribute('aria-live', 'polite');

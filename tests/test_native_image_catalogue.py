@@ -22,9 +22,10 @@ def test_exported_builder_requests(tmp_path, case):
         'installable', 'native_link_verified', 'native_ram_verified', 'hardware_tested'))
     assert report['default_profile'] == dict(version=1, **groups, content=[])
     assert report['full_song_default'] == {
-        'required': True, 'status': 'pending',
+        'required': True, 'status': 'owner-approved',
+        'project_id': 'replacement-showcase-candidate-event-horizon',
+        'musical_choice_approved': True,
         'blockers': [
-            'owner-approved full-song composition',
             'exact packed-content and module-dependency validation',
             'native full-song playback and save/reload acceptance',
         ],
@@ -98,6 +99,10 @@ def test_exported_builder_requests(tmp_path, case):
                     'midi': ['arp'], 'modulation': ['chance', 'env', 'lfo'],
                 }
             if category == 'replacement-showcase-candidate':
+                if project['id'] == 'replacement-showcase-candidate-event-horizon':
+                    assert 'owner-approved musical full-song default' in project['owner_disposition']
+                else:
+                    assert 'owner musical acceptance pending' in project['owner_disposition']
                 assert project['source_provenance'] == {
                     'commit': 'fb92cc0d4c312bbc77866c915d6fb8f159f5f92d',
                     'path': 'engines/state/examples/' +
@@ -119,7 +124,6 @@ def test_exported_builder_requests(tmp_path, case):
                     assert project['source_adaptation'] == adaptations[filename]
                 else:
                     assert 'source_adaptation' not in project
-                assert 'owner musical acceptance pending' in project['owner_disposition']
             else:
                 assert 'not approved' in project['owner_disposition']
     if case == 0:

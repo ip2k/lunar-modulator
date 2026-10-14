@@ -34,7 +34,9 @@ class Document {
 const project = (id, title, seconds, category = 'legacy-example') => ({
   id, title, category,
   duration_estimate: { nominal_seconds: seconds },
-  owner_disposition: 'legacy example; not approved as a showcase or default',
+  owner_disposition: id === 'replacement-showcase-candidate-event-horizon'
+    ? 'owner-approved musical full-song default; native playback and release admission pending'
+    : 'legacy example; not approved as a showcase or default',
   default_candidate: false,
   source_path: `private/${id}.lunar`, source_sha256: 'a'.repeat(64),
   source_dependency_scan_complete: true,
@@ -54,7 +56,7 @@ const catalogue = {
     project('replacement-showcase-candidate-satellite-hearts', 'Satellite Hearts', 145,
       'replacement-showcase-candidate'),
   ],
-  full_song_default: { required: true, status: 'pending', blockers: ['Owner approval', 'Native playback and save/reload'] },
+  full_song_default: { required: true, status: 'owner-approved', project_id: 'replacement-showcase-candidate-event-horizon', musical_choice_approved: true, blockers: ['Exact packed-content and module-dependency validation', 'Native playback and save/reload'] },
 };
 const profile = { version: 1, engines: ['macro'], effects: [], midi: [], modulation: [] };
 
@@ -62,7 +64,7 @@ function walk(root) {
   return [root, ...root.children.flatMap(walk)];
 }
 
-test('preselects the pending full-song proposal reversibly and submits ordered selection', () => {
+test('preselects the owner-approved musical default reversibly and submits ordered selection', () => {
   const document = new Document();
   const root = new Element('div', document);
   const sent = [];
@@ -89,12 +91,12 @@ test('preselects the pending full-song proposal reversibly and submits ordered s
   assert.equal(radios[1].disabled, false);
   assert.equal(radios[1].checked, true);
   assert.equal(submit.disabled, false);
-  assert.match(textNodes, /Full-song default status: pending/);
-  assert.match(textNodes, /none are approved showcases or defaults/);
-  assert.match(textNodes, /proposed full-song default for this request/);
-  assert.match(textNodes, /reversible chooser selection/);
-  assert.match(textNodes, /108\.8-second host render completed in an offline diagnostic/);
-  assert.match(textNodes, /packed dependency validation and musical review remain pending/);
+  assert.match(textNodes, /Full-song default status: owner-approved/);
+  assert.match(textNodes, /owner-approved musical full-song default/);
+  assert.match(textNodes, /preselected here/);
+  assert.match(textNodes, /approval covers the song choice only/);
+  assert.match(textNodes, /108\.8-second host render is an offline diagnostic only/);
+  assert.match(textNodes, /module-dependency validation, native playback, and save\/reload acceptance remain pending/);
   assert.match(textNodes, /Estimated duration 1:49/);
   assert.match(textNodes, /metadata, not verified playback lengths/);
   assert.match(textNodes, /Host startup diagnostic refused allocation \(report 5\)/);
@@ -159,7 +161,7 @@ test('blocks rejected candidates in controls, event handlers, and request prefli
   assert.deepEqual(sent[0].project_ids, ['replacement-showcase-candidate-event-horizon']);
 });
 
-test('allows removing the proposed default and still requires an explicit startup choice', async () => {
+test('allows removing the approved default and still requires an explicit startup choice', async () => {
   const document = new Document();
   const root = new Element('div', document);
   const sent = [];
