@@ -24,11 +24,13 @@
   "container": {
     "cgroup_parent": "docker-batch.slice",
     "cpus": 1,
-    "digest": "sha256:7e32dd6d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d",
     "image": "lunar-recovery-pytest:20261011",
     "memory_mib": 2048,
     "memory_swap_mib": 2048,
-    "network": "none"
+    "network": "none",
+    "reported_digest_unverified": "sha256:7e32dd6d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d",
+    "digest": null,
+    "provenance_limit": "The earlier recorded digest was malformed; no retained container inspection binds this packing run to an immutable image. A later inspection of the mutable tag is not run provenance."
   },
   "matched_link_input": {
     "module_header_sha256": "eef6dabe417ebdb03c5ab510f7b4a3733aed331bf656ae26e7535f87276e861e",

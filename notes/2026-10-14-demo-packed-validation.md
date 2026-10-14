@@ -6,7 +6,7 @@
 
 - Hera isolated checkout: `/home/claude/.local/share/codex-worktrees/lunar-demo-packed-validation`, branch `chore/2026-10-14@demo-packed-validation`, HEAD `e435edadad48641e9e08c0023b71b80b5692cd44`.
 - Inputs came from committed `engines/state/examples/{afterglow-relay,event-horizon,packet-bloom,neon-transit}.lunar` at that revision. Controller/test additions were copied into the isolated checkout later; no tracked engine, codec, project, or catalogue source was changed.
-- Container image: `lunar-recovery-pytest:20261011`, immutable image digest `sha256:7e32dd6d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d`. Build ran on Hera with `--network none`, `docker-batch.slice`, project/session labels, 1 CPU, 2048 MiB memory and matching swap cap.
+- Container image: `lunar-recovery-pytest:20261011`, immutable run image identity is unverified. The earlier recorded digest was malformed and no retained container inspection substantiates it. The later mutable-tag inspection returned `sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d`; that later observation does not identify the earlier run image. Build ran on Hera with `--network none`, `docker-batch.slice`, project/session labels, 1 CPU, 2048 MiB memory and matching swap cap.
 - Compiler: `c++ (Debian 12.2.0-14+deb12u1) 12.2.0`.
 - A fresh output directory was used, so no preexisting object files participated. Command:
 
@@ -34,7 +34,7 @@ Packed SHA-256 values are for the actual `.bin` bytes emitted by the freshly bui
 
 The all-58 registry smoke-pack outputs are under `out/demo-packed-validation-v1/prepared-*`; the production-only all-four ordered selection is `out/demo-packed-validation-v1/production-prepared-combined`, with four files `content-00.bin` through `content-03.bin`. The matched production Afterglow input is `out/demo-packed-validation-v1/production-prepared-afterglow-relay`. The latter selects the 55 production module IDs (including all 13 non-test sound engines, production audio/MIDI effects, and production modulation modules); three test-only IDs are excluded. Its selected project requires only the resolved dependency subset above. Its profile SHA-256 is `173d4a377a36da99d53fe23b0ba7963c9c41355eea2ce8e9730a77410a4f4fb9`; generated module-header SHA-256 is `eef6dabe417ebdb03c5ab510f7b4a3733aed331bf656ae26e7535f87276e861e`.
 
-The native selection controller’s three new cases passed along with the existing image-profile, integrity, and staging tests: **43 tests passed** in the pinned image using the existing Hera pytest environment at `/tmp/check-venv/bin/python`. They cover reverse project order and startup index 2, refusal when project dependencies are omitted (without a success receipt), and refusal of client-supplied catalogue paths. The returned receipt explicitly leaves `installable`, `native_link_verified`, `native_ram_verified`, and `hardware_tested` false.
+The native selection controller’s three new cases passed along with the existing image-profile, integrity, and staging tests: **43 tests passed** in the recorded image tag (immutable run identity unverified) using the existing Hera pytest environment at `/tmp/check-venv/bin/python`. They cover reverse project order and startup index 2, refusal when project dependencies are omitted (without a success receipt), and refusal of client-supplied catalogue paths. The returned receipt explicitly leaves `installable`, `native_link_verified`, `native_ram_verified`, and `hardware_tested` false.
 
 ## Limits and next dependency
 

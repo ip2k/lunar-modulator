@@ -3330,3 +3330,26 @@ full-song semantics, safe owned persistent flash extent/migration/rollback,
 watched all13 boot/audio/controls/MIDI/SAVE/reload, web flash/recovery validation,
 owner full-song acceptance, review/CI/merge/source notices and public release.
 Goal ACTIVE. Mac coordinator owns device writes; Hera workers remain offline.
+
+## Demo preload and recovery integration — 2026-10-14
+
+Prior pushed SHA 56826d5f8a0191ae1cf080a822f4228343b0cc2e adds the ordered
+browser request adapter (ten combined browser tests passed) and real-codec
+selection controller. Native full-song sequencer import validation is active
+on Hera. A full-length shipping default remains pending acceptance; originals
+remain legacy examples. Installer UI/service are not yet wired.
+
+Reviewed restored 30 journal regressions and 60 large actual-SAVE recovery cases
+passed on Hera; independently matched retained log and final source hashes.
+The 35,176-byte payload covers 634 injected partial-operation/lost-ack outcomes
+at 100 KiB and 48 KiB slot geometries. These are emulated slots, not admitted
+physical extents. Generic importer capacity stays unchanged.
+
+Corrected packing receipt provenance: earlier immutable image digest was malformed
+and no retained inspect record proves that run image. Keep the reported value
+explicitly unverified; later tag inspection cannot retroactively authenticate it.
+All13 full-song -Oz link currently overflows XIP by 1,272 bytes with diagnostics
+and watermark; matched feature-preserving runtime variants are active on Hera.
+No hardware commands. Goal ACTIVE with physical acceptance, storage ownership /
+migration / rollback, installer integration, full-song approval and release gates
+still outstanding.
