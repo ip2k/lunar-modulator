@@ -18,17 +18,25 @@ from flash_layout import app_budget
 from build_demo_image import build_selection
 
 
-def inputs(runtime_mode='diagnostic', project_count=2):
+def inputs(runtime_mode='diagnostic', project_count=2, include_set=False):
     assets = [dict(kind='project', bytes=2, packed_sha256=sha(b'ab')),
               dict(kind='project', bytes=3, packed_sha256=sha(b'cde'))][:project_count]
     project_ids = ['second', 'first'][:project_count]
+    set_ids = ['orbit-set'] if include_set else []
+    if include_set:
+        assets.append(dict(kind='set', bytes=4, packed_sha256=sha(b'set!')))
+    startup_project_id = project_ids[-1]
+    selected_content = ([dict(kind='project', id=project_id) for project_id in project_ids]
+                        + [dict(kind='set', id=set_id, parent_project_id=startup_project_id)
+                           for set_id in set_ids])
     selection = dict(prepared_profile_sha256=sha(b'manifest'), request_sha256=sha(b'request'),
                      content=assets, packed_content_bytes=sum(a['bytes'] for a in assets),
                      project_ids=project_ids, startup_index=project_count - 1,
-                     startup_project_id=project_ids[-1])
+                     startup_project_id=startup_project_id, set_ids=set_ids,
+                     selected_content=selected_content)
     prepared = SimpleNamespace(report={'module_selection': {'selected': ['trio'], 'header_sha256': sha(b'header')}})
     verification = dict(embedded_content=dict(prepared_sha256=selection['prepared_profile_sha256'],
-                        assets=deepcopy(assets), asset_count=project_count,
+                        assets=deepcopy(assets), asset_count=len(assets),
                         packed_content_bytes=selection['packed_content_bytes'],
                         packed_sha256=[a['packed_sha256'] for a in assets]),
                         startup_project=dict(index=project_count - 1, runtime_hook_linked=project_count > 1),
@@ -52,6 +60,11 @@ def inputs(runtime_mode='diagnostic', project_count=2):
 
 def test_checked_link_keeps_order_startup_and_actual_output_identity():
     receipt = checked_link_receipt(*inputs())
+    assert receipt['firmware_identity'] == identity_configuration(None)
+    assert receipt['selected_content'] == [
+        {'kind': 'project', 'id': 'second'},
+        {'kind': 'project', 'id': 'first'},
+    ]
     assert receipt['project_ids'] == ['second', 'first']
     assert receipt['startup_index'] == 1
     assert receipt['startup_project_id'] == 'first'
@@ -78,6 +91,7 @@ def test_explicit_identity_and_layout_must_match_actual_link_policy():
     receipt = checked_link_receipt(*values, firmware_identity='FM-1_500',
                                    flash_layout='expanded-d7000')
     assert receipt['firmware_identity'] == identity_configuration('FM-1_500')
+    assert receipt['selected_content'] == values[0]['selected_content']
     assert receipt['installable'] is False
     with pytest.raises(ValueError, match='firmware identity'):
         checked_link_receipt(*values, firmware_identity='FM-1_501')
@@ -98,6 +112,40 @@ def test_invalid_operator_policy_rejected_before_creating_build_output(tmp_path,
                         tmp_path / 'missing-catalogue', out, **policy)
     assert not out.exists()
 
+
+def test_checked_link_binds_companion_set_identity_and_selected_parent():
+    values = inputs(include_set=True)
+    receipt = checked_link_receipt(*values)
+    assert receipt['project_ids'] == ['second', 'first']
+    assert receipt['set_ids'] == ['orbit-set']
+    assert receipt['set_parents'] == {'orbit-set': 'first'}
+    assert receipt['selected_content'] == [
+        {'kind': 'project', 'id': 'second'},
+        {'kind': 'project', 'id': 'first'},
+        {'kind': 'set', 'id': 'orbit-set', 'parent_project_id': 'first'},
+    ]
+    assert receipt['embedded_content']['asset_count'] == 3
+
+@pytest.mark.parametrize('mutation', [
+    'project-id', 'project-order', 'set-id', 'set-order', 'set-parent', 'startup-parent',
+])
+def test_checked_link_rejects_changed_project_or_set_selection_identity(mutation):
+    values = list(inputs(include_set=True))
+    selection = values[0]
+    if mutation == 'project-id':
+        selection['selected_content'][0]['id'] = 'substituted-project'
+    elif mutation == 'project-order':
+        selection['selected_content'][:2] = reversed(selection['selected_content'][:2])
+    elif mutation == 'set-id':
+        selection['selected_content'][2]['id'] = 'substituted-set'
+    elif mutation == 'set-order':
+        selection['selected_content'].reverse()
+    elif mutation == 'set-parent':
+        selection['selected_content'][2]['parent_project_id'] = 'second'
+    else:
+        selection['startup_project_id'] = 'second'
+    with pytest.raises(ValueError, match='Selected content identities'):
+        checked_link_receipt(*values)
 
 def test_single_project_receipt_truthfully_records_selector_bypass():
     values = inputs(project_count=1)
