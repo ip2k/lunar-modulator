@@ -4656,6 +4656,41 @@ song acceptance, physical persistence/migration/rollback, stock-loader/web
 transport acceptance, exact-head CI/review/main integration and shipment.
 Goal ACTIVE.
 
+[verified] Coordinator reran the two D7000 manifest/stream test files at
+`768d1cc4` using the primary checkout's existing Python environment against
+this worktree; both files completed with exit zero. This worktree's own venv
+lacks pytest, so its initial invocation failed before collection. The owner
+missed device54's watched-key window; no key/audio acceptance is inferred.
+
 ## Device53 audio checkpoint — 2026-10-14
 
 Root source76dcf4af is backed up. New evidence is in notes/2026-10-14-device53-audio-capture.md. Fresh paired full reads matched145c0280…; one consumed boot yielded native device54 then timed ROM device55. Corrected USB note sends succeeded on host but input1/2 capture had no clear note delta; separate USB audio capture was zero in inspected windows. Initial malformed aseqsend attempts are explicitly excluded. No flash writes. Owner connected KA6 MIDI OUT→FM1 MIDI IN and set master/preamps100%. UART input/counters are being implemented offline; installed app has no UART input. Device53 campaigns must not be reused. Need fresh55 admission for future commands. Continuous tuple package now composes in memory on worker ce3c9984 (GitHub SHA verified), with all hardware/installability flags false. D7000 manifest/model support remains offline in progress. Continue audio diagnosis, reviewed target installation, recovery/persistence, installer and release gates. Goal ACTIVE.
+
+## Audio diagnostic preparation checkpoint — 2026-10-14
+
+Source `768d1cc4e9d918ffa30d828a061d63f8f821bdf6` is backed up on origin.
+D7000 offline manifest/model support is integrated there; it has not produced
+a new raw hardware candidate. Passive bench observation still shows ROM
+device55, KA6 device51/sequencer24:0, and Pico device38. No power cycle is
+currently requested, and no new device write or boot occurred.
+
+The UART worker is preparing separate controlled Event Horizon-plus-SET and
+single-Trio diagnostics, with bounded visible MIDI counters and a separate
+ADC observation. Preserve the generated HAL's unity `master_q12` override
+and filtered `k10` to `lunar_master_raw` assignment: the app consumes that
+filtered value to set MASTER. Replacing it with the unfiltered ADC sample
+would change gain behavior and invalidate the controlled comparison.
+The offline Trio review rules out an enabled arp or saved zero level, but
+does not establish physical MIDI receipt or synthesis. Its initial vendored
+HAL gain explanation needs the generated-source qualification before use.
+
+The generic read/one-shot boot adapter is being prepared offline to replace
+future per-enumeration script copies; historical adapters stay immutable.
+Continuous tuple branch `3273abe1361357b52bd1ee725300196ed5601ccb` and Trio
+review `5b7130d9b7d48bdd29dc7a3b76a1e196df0f06b7` are origin-SHA-verified,
+but not integrated here. A separate continuous-tooling review is pending.
+Its catalogue snapshot cleanup means packaging later must rehash the original
+full catalogue tree and selected files, refusing missing or changed inputs;
+the tuple is not a self-contained archive. SAVE remains disarmed; hardware,
+recovery, persistence, installer, CI/review and shipment gates remain open.
+Goal ACTIVE.
