@@ -3646,3 +3646,32 @@ all-55-module single-song 120-second candidate with SAVE linked/disarmed;
 preload-module-dependencies checks missing required modules in the chooser.
 Each owns a separate claim/worktree and returns a durable handoff; neither has
 device permission. Overall goal remains ACTIVE; no new device write occurred.
+
+## Full-song preload candidate and dependency preflight — 2026-10-14
+
+Fresh b3a9c34b all-thirteen-engine/all-55-module Event Horizon Showcase link
+is 862,296/868,836 bytes (6,540 free), with 120-second diagnostic runtime,
+one-project selector bypass and SAVE linked/disarmed. Coordinator checked the
+actual raw target SHA cd8f0de6548714868461f960de15dcc65fbc4a5e8c278f8f02d93e65010d6d76
+and transport receipt, including ordered project/startup and false admission
+flags. Guarded private candidate has 213 changed sectors, app directory last;
+protected prefix/suffix and configuration contents match retained stock.
+Historical matching backups are not a fresh prewrite pair. No OTA package,
+physical writer or hardware/full-song acceptance follows from this evidence.
+See current-build/current-candidate notes.
+
+Chooser source-hash-bound module dependency preflight is integrated through
+bff780367ed3256935c92ef3a14684f79e6b2b6d and verified on GitHub. Removing a
+required engine/effect gives an actionable visible error before request export;
+backend packed-record validation remains authoritative. Hera focused Node suite
+17/17 passed and desktop/mobile renders were inspected by the worker; broader
+Python/exporter regression and coordinator screenshot review are next.
+
+Recovery research found the stock SPL no-valid-rescue path enters a terminal
+control-flow loop; this is not a physical hang/reset or ROM-recovery observation.
+The retained stock pair and old expanded candidate have no SPL trailer tag in
+255 raw candidate slots or their applicable decoded app spans. Preserved stock
+bytes therefore do not establish an independent trailer-record fallback.
+References: SPL-empty-rescue-fallback and protected-rescue-record-audit notes.
+Hera follow-ups examine payload+record interruption invariants and the stock OTA
+loader expanded-layout limitation. Neither has device permission. Goal ACTIVE.
