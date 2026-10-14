@@ -223,6 +223,19 @@ def _write_exclusive(path: Path, raw: bytes):
         os.fsync(stream.fileno())
 
 
+def _toolchain_snapshot_fields(source: Path, snapshot: Path,
+                               source_manifest: bytes, snapshot_manifest: bytes):
+    if source_manifest != snapshot_manifest:
+        raise ValueError("private toolchain snapshot differs from its source tree")
+    return {
+        "toolchain_source_root": str(source.resolve()),
+        "toolchain_snapshot_root": str(snapshot.resolve()),
+        "toolchain_source_tree_sha256": sha(source_manifest),
+        "toolchain_snapshot_tree_sha256": sha(snapshot_manifest),
+        "toolchain_tree_sha256": sha(snapshot_manifest),
+    }
+
+
 def _remove_private_snapshot(path: Path, parent: Path, prefix: str):
     path = Path(path)
     parent = Path(parent).resolve(strict=True)
@@ -245,6 +258,21 @@ def _remove_private_snapshot(path: Path, parent: Path, prefix: str):
         function(failed_path)
 
     shutil.rmtree(path, onerror=retry_readonly)
+
+
+def _copy_verified_snapshot(source: Path, snapshot: Path, prefix: str):
+    source_manifest = _toolchain_manifest(source)
+    try:
+        shutil.copytree(source, snapshot, symlinks=True, copy_function=shutil.copy2)
+        snapshot_manifest = _toolchain_manifest(snapshot)
+        fields = _toolchain_snapshot_fields(source, snapshot, source_manifest, snapshot_manifest)
+        if _toolchain_manifest(source) != source_manifest:
+            raise ValueError("source tree changed while taking private snapshot")
+        return snapshot_manifest, fields
+    except Exception:
+        if snapshot.exists() and not snapshot.is_symlink():
+            _remove_private_snapshot(snapshot, snapshot.parent, prefix)
+        raise
 
 
 def _catalogue_snapshot_fields(source: Path, snapshot: Path,
@@ -302,37 +330,41 @@ def run_build(*, request_path: Path,
     output.mkdir(mode=0o700)
     snapshot = output.parent / ("." + output.name + "-source-" + secrets.token_hex(8))
     catalogue_snapshot = output.parent / ("." + output.name + "-catalogue-" + secrets.token_hex(8))
+    toolchain_snapshot = output.parent / ("." + output.name + "-toolchain-" + secrets.token_hex(8))
     request_copy = output.parent / ("." + output.name + "-" + secrets.token_hex(8) + ".request.json")
-    fd = os.open(request_copy, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o400)
-    with os.fdopen(fd, "wb") as request_stream:
-        request_stream.write(request_raw)
-        request_stream.flush()
-        os.fsync(request_stream.fileno())
-    catalogue_source_manifest = _toolchain_manifest(catalogue)
-    shutil.copytree(catalogue, catalogue_snapshot, symlinks=True, copy_function=shutil.copy2)
-    catalogue_snapshot_manifest = _toolchain_manifest(catalogue_snapshot)
-    catalogue_fields = _catalogue_snapshot_fields(
-        catalogue, catalogue_snapshot, catalogue_source_manifest, catalogue_snapshot_manifest)
-    subprocess.run(["git", "clone", "--quiet", "--no-hardlinks", "--no-checkout",
-                    str(source), str(snapshot)], stdin=subprocess.DEVNULL,
-                   stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=120, check=True)
-    subprocess.run(["git", "-C", str(snapshot), "checkout", "--quiet", "--detach", commit],
-                   stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                   stderr=subprocess.DEVNULL, timeout=120, check=True)
-    snapshot_head = subprocess.run(["git", "-C", str(snapshot), "rev-parse", "HEAD"],
-                                   check=True, stdout=subprocess.PIPE, text=True).stdout.strip()
-    snapshot_status = subprocess.run(["git", "-C", str(snapshot), "status", "--porcelain=v1", "--untracked-files=all"],
-                                     check=True, stdout=subprocess.PIPE).stdout
-    if snapshot_head != commit or snapshot_status:
-        raise ValueError("detached source snapshot is not clean at the requested commit")
-    toolchain_manifest_raw = _toolchain_manifest(toolchain)
-    toolchain_manifest_sha = sha(toolchain_manifest_raw)
-    container_name = "lunar-continuous-" + secrets.token_hex(12)
-    cmd, mount_args = container_command(docker_binary, container_name, snapshot, request_copy,
-                                        toolchain, catalogue_snapshot, output, commit)
-    mounts = _expected_mounts(mount_args)
     container_id = None
+    container_name = None
     try:
+        fd = os.open(request_copy, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o400)
+        with os.fdopen(fd, "wb") as request_stream:
+            request_stream.write(request_raw)
+            request_stream.flush()
+            os.fsync(request_stream.fileno())
+        catalogue_source_manifest = _toolchain_manifest(catalogue)
+        shutil.copytree(catalogue, catalogue_snapshot, symlinks=True, copy_function=shutil.copy2)
+        catalogue_snapshot_manifest = _toolchain_manifest(catalogue_snapshot)
+        catalogue_fields = _catalogue_snapshot_fields(
+            catalogue, catalogue_snapshot, catalogue_source_manifest, catalogue_snapshot_manifest)
+        toolchain_snapshot_manifest, toolchain_fields = _copy_verified_snapshot(
+            toolchain, toolchain_snapshot, "." + output.name + "-toolchain-")
+        subprocess.run(["git", "clone", "--quiet", "--no-hardlinks", "--no-checkout",
+                        str(source), str(snapshot)], stdin=subprocess.DEVNULL,
+                       stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=120, check=True)
+        subprocess.run(["git", "-C", str(snapshot), "checkout", "--quiet", "--detach", commit],
+                       stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                       stderr=subprocess.DEVNULL, timeout=120, check=True)
+        snapshot_head = subprocess.run(["git", "-C", str(snapshot), "rev-parse", "HEAD"],
+                                       check=True, stdout=subprocess.PIPE, text=True).stdout.strip()
+        snapshot_status = subprocess.run(["git", "-C", str(snapshot), "status", "--porcelain=v1", "--untracked-files=all"],
+                                         check=True, stdout=subprocess.PIPE).stdout
+        if snapshot_head != commit or snapshot_status:
+            raise ValueError("detached source snapshot is not clean at the requested commit")
+        toolchain_manifest_raw = _toolchain_manifest(toolchain_snapshot)
+        toolchain_manifest_sha = sha(toolchain_manifest_raw)
+        container_name = "lunar-continuous-" + secrets.token_hex(12)
+        cmd, mount_args = container_command(docker_binary, container_name, snapshot, request_copy,
+                                            toolchain_snapshot, catalogue_snapshot, output, commit)
+        mounts = _expected_mounts(mount_args)
         raw_id = _run(docker_binary, cmd[len([docker_binary]):], timeout=60).decode("ascii").strip()
         if not raw_id or len(raw_id) > 128 or any(c not in "0123456789abcdef" for c in raw_id):
             raise ValueError("Docker returned an invalid container identifier")
@@ -357,9 +389,9 @@ def run_build(*, request_path: Path,
         post_commit, post_manifest = _source_manifest(snapshot)
         if post_commit != commit:
             raise ValueError("source snapshot commit changed while the build ran")
-        post_toolchain_manifest = _toolchain_manifest(toolchain)
+        post_toolchain_manifest = _toolchain_manifest(toolchain_snapshot)
         if sha(post_toolchain_manifest) != toolchain_manifest_sha:
-            raise ValueError("toolchain tree changed while the container was running")
+            raise ValueError("private toolchain snapshot changed while the container was running")
         post_catalogue_manifest = _toolchain_manifest(catalogue_snapshot)
         if post_catalogue_manifest != catalogue_snapshot_manifest:
             raise ValueError("private catalogue snapshot changed while the container was running")
@@ -392,7 +424,7 @@ def run_build(*, request_path: Path,
             "wrapper_sha256": wrapper_sha,
             "worker_sha256": worker_sha,
             "worker_provenance_sha256": sha(worker_raw),
-            "toolchain_tree_sha256": toolchain_manifest_sha,
+            **toolchain_fields,
             **catalogue_fields,
             "state_tool_sha256": worker.get("state_tool_sha256"),
             "resources": DOCKER_POLICY,
@@ -404,7 +436,7 @@ def run_build(*, request_path: Path,
         _write_exclusive(output / "toolchain-manifest.json", toolchain_manifest_raw)
         _write_exclusive(output / "catalogue-tree-manifest.json", catalogue_snapshot_manifest)
         _write_exclusive(output / "container-invocation.json", canonical(invocation))
-        return capture_trusted_build_tuple(snapshot, catalogue_snapshot, build_output, toolchain,
+        return capture_trusted_build_tuple(snapshot, catalogue_snapshot, build_output, toolchain_snapshot,
                                            invocation_path=output / "container-invocation.json",
                                            worker_source_path=snapshot / WORKER_REL,
                                            worker_provenance_path=output / "worker-provenance.json",
@@ -423,6 +455,8 @@ def run_build(*, request_path: Path,
             _remove_private_snapshot(snapshot, output.parent, "." + output.name + "-source-")
         if catalogue_snapshot.exists() and not catalogue_snapshot.is_symlink():
             _remove_private_snapshot(catalogue_snapshot, output.parent, "." + output.name + "-catalogue-")
+        if toolchain_snapshot.exists() and not toolchain_snapshot.is_symlink():
+            _remove_private_snapshot(toolchain_snapshot, output.parent, "." + output.name + "-toolchain-")
 
 
 def main():

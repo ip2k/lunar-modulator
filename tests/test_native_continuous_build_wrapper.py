@@ -16,6 +16,8 @@ from run_trusted_continuous_build import (  # noqa: E402
     inspected_contract,
     require_successful_exit,
     _catalogue_snapshot_fields,
+    _toolchain_snapshot_fields,
+    _copy_verified_snapshot,
 )
 
 
@@ -177,6 +179,32 @@ def test_run_build_refuses_source_snapshot_mismatch_before_docker_create(tmp_pat
     assert not any(args and args[0]=="create" for args in calls)
 
 
+
+def test_run_build_cleans_snapshots_when_clone_fails_after_toolchain_copy(tmp_path, monkeypatch):
+    import json, subprocess, run_trusted_continuous_build as wrapper
+    root, request, toolchain, catalogue, output = _run_inputs(tmp_path)
+    def fake_docker(docker, args, **kwargs):
+        if args[0:2] == ["image", "inspect"] and "{{.Id}}" in args:
+            return wrapper.PINNED_IMAGE_ID.encode()
+        if args[0:2] == ["image", "inspect"]:
+            return json.dumps(wrapper.PINNED_IMAGE_ENV).encode("ascii")
+        raise AssertionError("container creation must not occur")
+    real_run = subprocess.run
+    def fail_clone(args, **kwargs):
+        if args[:2] == ["git", "clone"]:
+            raise subprocess.CalledProcessError(128, args)
+        return real_run(args, **kwargs)
+    monkeypatch.setattr(wrapper, "_run", fake_docker)
+    monkeypatch.setattr(subprocess, "run", fail_clone)
+    with pytest.raises(subprocess.CalledProcessError):
+        wrapper.run_build(request_path=request, toolchain_path=toolchain, catalogue_path=catalogue,
+                          output_path=output, source_root=root)
+    parent = output.parent
+    assert not list(parent.glob(".build-output-toolchain-*"))
+    assert not list(parent.glob(".build-output-catalogue-*"))
+    assert not list(parent.glob(".build-output-source-*"))
+    assert not list(parent.glob(".build-output-*.request.json"))
+
 def test_run_build_refuses_snapshot_mutated_during_container_before_capture(tmp_path,monkeypatch):
     import json, subprocess, run_trusted_continuous_build as wrapper
     root,request,toolchain,catalogue,output=_run_inputs(tmp_path)
@@ -247,3 +275,71 @@ def test_private_snapshot_cleanup_removes_readonly_tree_and_rejects_unowned_path
     assert not snapshot.exists()
     with pytest.raises(ValueError, match="unowned private snapshot"):
         wrapper._remove_private_snapshot(tmp_path / "elsewhere", parent, ".candidate-catalogue-")
+
+
+def test_toolchain_snapshot_binds_complete_tree_and_original_root(tmp_path):
+    import shutil
+    from capture_trusted_build_tuple import _toolchain_manifest, sha
+    source = tmp_path / "sdk-source"
+    (source / "bin").mkdir(parents=True)
+    (source / "bin/clang").write_bytes(b"compiler")
+    (source / "lib/unused").mkdir(parents=True)
+    (source / "lib/unused/system.a").write_bytes(b"sdk-library")
+    snapshot = tmp_path / "private-sdk"
+    source_manifest = _toolchain_manifest(source)
+    shutil.copytree(source, snapshot, symlinks=True, copy_function=shutil.copy2)
+    snapshot_manifest = _toolchain_manifest(snapshot)
+    fields = _toolchain_snapshot_fields(source, snapshot, source_manifest, snapshot_manifest)
+    rows = __import__("json").loads(snapshot_manifest)["objects"]
+    assert fields["toolchain_source_root"] == str(source.resolve())
+    assert fields["toolchain_snapshot_root"] == str(snapshot.resolve())
+    assert fields["toolchain_source_tree_sha256"] == sha(source_manifest)
+    assert fields["toolchain_snapshot_tree_sha256"] == fields["toolchain_tree_sha256"] == sha(snapshot_manifest)
+    assert {row["path"] for row in rows} == {".", "bin", "bin/clang", "lib", "lib/unused", "lib/unused/system.a"}
+
+
+def test_run_build_mounts_private_toolchain_snapshot_when_source_changes(tmp_path, monkeypatch):
+    import json, run_trusted_continuous_build as wrapper
+    root, request, toolchain, catalogue, output = _run_inputs(tmp_path)
+    observed = {}
+    def fake_run(docker, args, **kwargs):
+        if args[0:2] == ["image", "inspect"] and "{{.Id}}" in args:
+            return wrapper.PINNED_IMAGE_ID.encode()
+        if args[0:2] == ["image", "inspect"]:
+            return json.dumps(wrapper.PINNED_IMAGE_ENV).encode("ascii")
+        if args[0] == "create":
+            mounts = [args[i + 1] for i, item in enumerate(args[:-1]) if item == "--mount"]
+            tool_mount = next(item for item in mounts if ",dst=/opt/pi32v2," in item)
+            snapshot = Path(tool_mount.split("src=", 1)[1].split(",", 1)[0])
+            observed["mounted_root"] = snapshot
+            observed["mounted_bytes_before"] = (snapshot / "clang").read_bytes()
+            (toolchain / "clang").write_bytes(b"changed original during container setup")
+            observed["mounted_bytes_after"] = (snapshot / "clang").read_bytes()
+            raise ValueError("stop after checking private toolchain mount")
+        raise AssertionError("unexpected Docker operation")
+    monkeypatch.setattr(wrapper, "_run", fake_run)
+    with pytest.raises(ValueError, match="stop after checking private toolchain mount"):
+        wrapper.run_build(request_path=request, toolchain_path=toolchain, catalogue_path=catalogue,
+                          output_path=output, source_root=root)
+    assert observed["mounted_root"] != toolchain
+    assert observed["mounted_bytes_before"] == b"compiler"
+    assert observed["mounted_bytes_after"] == b"compiler"
+    assert (toolchain / "clang").read_bytes() != b"compiler"
+    assert not observed["mounted_root"].exists()
+
+
+def test_toolchain_snapshot_rejects_copy_mismatch_and_cleans_partial_tree(tmp_path, monkeypatch):
+    import run_trusted_continuous_build as wrapper
+    source = tmp_path / "sdk"
+    source.mkdir()
+    (source / "compiler").write_bytes(b"original")
+    snapshot = tmp_path / ".out-toolchain-test"
+    real_copytree = wrapper.shutil.copytree
+    def corrupt_copy(*args, **kwargs):
+        result = real_copytree(*args, **kwargs)
+        (Path(args[1]) / "compiler").write_bytes(b"mismatch")
+        return result
+    monkeypatch.setattr(wrapper.shutil, "copytree", corrupt_copy)
+    with pytest.raises(ValueError, match="differs from its source tree"):
+        wrapper._copy_verified_snapshot(source, snapshot, ".out-toolchain-")
+    assert not snapshot.exists()

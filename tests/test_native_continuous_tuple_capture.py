@@ -89,6 +89,34 @@ def test_continuous_runtime_is_explicit_and_still_not_an_admission():
     assert receipt["hardware_admitted"] is False
 
 
+
+def test_toolchain_snapshot_binding_rejects_unbound_or_changed_roots(tmp_path):
+    from capture_trusted_build_tuple import _verify_toolchain_snapshot_binding
+    snapshot = tmp_path / "private-sdk"
+    source = tmp_path / "sdk-source"
+    snapshot.mkdir()
+    source.mkdir()
+    digest = "a" * 64
+    valid = {
+        "toolchain_tree_sha256": digest,
+        "toolchain_snapshot_tree_sha256": digest,
+        "toolchain_source_tree_sha256": digest,
+        "toolchain_snapshot_root": str(snapshot.resolve()),
+        "toolchain_source_root": str(source.resolve()),
+    }
+    _verify_toolchain_snapshot_binding(valid, snapshot, digest)
+    for field, value in (
+        ("toolchain_tree_sha256", "b" * 64),
+        ("toolchain_snapshot_tree_sha256", "b" * 64),
+        ("toolchain_source_tree_sha256", "b" * 64),
+        ("toolchain_snapshot_root", str(source.resolve())),
+        ("toolchain_source_root", str(snapshot.resolve())),
+    ):
+        altered = dict(valid)
+        altered[field] = value
+        with pytest.raises(ValueError, match="does not bind the source and private toolchain snapshot"):
+            _verify_toolchain_snapshot_binding(altered, snapshot, digest)
+
 def test_linked_object_inventory_rehashes_catalogue_and_generated_rows(tmp_path):
     catalogue = tmp_path / "catalogue"
     output = tmp_path / "output"
@@ -316,6 +344,9 @@ def test_capture_reaches_inspection_after_contract_and_name_validation(monkeypat
     required = (output, source, catalogue, toolchain, invocation, provenance, wrapper)
     if not all(path.exists() for path in required):
         pytest.skip("retained private continuous-build fixture is unavailable")
+    invocation_data = json.loads(invocation.read_bytes())
+    if "toolchain_snapshot_root" not in invocation_data:
+        pytest.skip("retained private tuple predates verified toolchain snapshot binding")
 
     class ReachedInspectionBoundary(Exception):
         pass

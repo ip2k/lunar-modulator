@@ -302,6 +302,17 @@ def _false_flags(obj, fields, label):
             raise ValueError(f"{label} must keep {field}=false")
 
 
+
+def _verify_toolchain_snapshot_binding(invocation: dict, toolchain: Path, toolchain_tree_sha: str):
+    if (invocation.get("toolchain_tree_sha256") != toolchain_tree_sha
+            or invocation.get("toolchain_snapshot_tree_sha256") != toolchain_tree_sha
+            or invocation.get("toolchain_source_tree_sha256") != toolchain_tree_sha
+            or invocation.get("toolchain_snapshot_root") != str(toolchain.resolve())
+            or not isinstance(invocation.get("toolchain_source_root"), str)
+            or not Path(invocation["toolchain_source_root"]).is_absolute()
+            or Path(invocation["toolchain_source_root"]).resolve() == toolchain.resolve()):
+        raise ValueError("invocation does not bind the source and private toolchain snapshot")
+
 def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolchain: Path, *,
                                 invocation_path: Path, worker_source_path: Path,
                                 worker_provenance_path: Path, wrapper_path: Path):
@@ -338,8 +349,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
     if toolchain_manifest_raw != _toolchain_manifest(toolchain):
         raise ValueError("toolchain tree differs from the captured full manifest")
     toolchain_tree_sha = sha(toolchain_manifest_raw)
-    if invocation.get("toolchain_tree_sha256") != toolchain_tree_sha:
-        raise ValueError("invocation does not bind the full toolchain tree")
+    _verify_toolchain_snapshot_binding(invocation, toolchain, toolchain_tree_sha)
     source_commit = invocation.get("source_commit")
     if not isinstance(source_commit, str) or not re.fullmatch(r"[0-9a-f]{40}", source_commit):
         raise ValueError("invocation source commit is not a full immutable SHA")
@@ -585,6 +595,10 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         "wrapper_sha256": invocation.get("wrapper_sha256"),
         "state_tool_sha256": invocation.get("state_tool_sha256"),
         "toolchain_root": str(toolchain.resolve()),
+        "toolchain_source_root": invocation.get("toolchain_source_root"),
+        "toolchain_snapshot_root": invocation.get("toolchain_snapshot_root"),
+        "toolchain_source_tree_sha256": invocation.get("toolchain_source_tree_sha256"),
+        "toolchain_snapshot_tree_sha256": invocation.get("toolchain_snapshot_tree_sha256"),
         "compiler_path": str(compiler.resolve()),
         "compiler_sha256": compiler_sha,
         "toolchain_tree_sha256": toolchain_tree_sha,
