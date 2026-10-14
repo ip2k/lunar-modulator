@@ -261,6 +261,19 @@ def _catalogue_manifest(catalogue: Path, verification):
     return raw
 
 
+def _verify_app_receipts(image, artifact, verification, app: bytes, elf: bytes):
+    app_sha, elf_sha = sha(app), sha(elf)
+    if type(image.get("app_bytes")) is not int or type(artifact.get("app_bytes")) is not int:
+        raise ValueError("image/artifact app byte count must be an integer")
+    if (image.get("app_sha256"), image.get("app_bytes"), image.get("elf_sha256")) != (app_sha, len(app), elf_sha):
+        raise ValueError("image receipt does not bind exact app and ELF bytes")
+    if (artifact.get("app_sha256"), artifact.get("app_bytes"), artifact.get("elf_sha256")) != (app_sha, len(app), elf_sha):
+        raise ValueError("artifact receipt does not bind exact app and ELF bytes")
+    if verification.get("elf_sha256") != elf_sha or len(app) != artifact.get("app_bytes"):
+        raise ValueError("build receipt does not bind exact ELF/app length")
+    return app_sha, elf_sha
+
+
 def _false_flags(obj, fields, label):
     for field in fields:
         if obj.get(field) is not False:
@@ -385,15 +398,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         raise ValueError("image receipt does not bind exact build receipt bytes")
     if image.get("artifact_receipt_sha256") != sha(artifact_raw):
         raise ValueError("image receipt does not bind exact artifact receipt bytes")
-    app_sha, elf_sha = sha(app), sha(elf)
-    if (type(image.get("app_bytes")) is not int or type(artifact.get("app_bytes")) is not int
-            or type(verification.get("app_bytes")) is not int
-            or (image.get("app_sha256"), image.get("app_bytes"), image.get("elf_sha256")) != (app_sha, len(app), elf_sha)):
-        raise ValueError("image receipt does not bind exact app and ELF bytes")
-    if (artifact.get("app_sha256"), artifact.get("app_bytes"), artifact.get("elf_sha256")) != (app_sha, len(app), elf_sha):
-        raise ValueError("artifact receipt does not bind exact app and ELF bytes")
-    if verification.get("elf_sha256") != elf_sha or len(app) != artifact.get("app_bytes"):
-        raise ValueError("build receipt does not bind exact ELF/app length")
+    app_sha, elf_sha = _verify_app_receipts(image, artifact, verification, app, elf)
 
     generated = {}
     generated_rows = []
