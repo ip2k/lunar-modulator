@@ -1,5 +1,28 @@
 # FM-1_092 storage migration and rollback plan for two 48 KiB slots - 2026-10-14
 
+## Later implementation evidence — 2026-10-14
+
+[verified] Subsequent pinned-SPL analysis resolves the scan-offset question
+below: candidate record pages in every proposed storage sector intersect the
+SPL and inherited cleanup scans. See `2026-10-14-spl-record-scan-proof.md` and
+`2026-10-14-spl-record-window-mapper.md`. The original 48 KiB capacity arithmetic
+below is historical and cannot be used for arbitrary stored project bytes.
+
+[verified] The chosen prototype mapping reserves the final 256-byte page of
+every physical sector. Twelve physical sectors then supply 46,080 packed bytes;
+the existing journal uses 45,056 logical bytes (11 logical erase blocks), leaving
+45,024 payload bytes after its header. The measured collector bound is 43,130
+bytes; the generic 98,304-byte import limit remains separate. The unbound
+`firmware/native/tail_page_io.h` adapter and full-payload mutation harness are
+implemented; see `2026-10-14-tail-page-io-adapter.md`. They contain no physical
+admission, migration, native SAVE binding or first-erase recovery proof.
+
+The owner's earlier expanded-layout approval includes migration and rollback
+verification. Evaluate the concrete map against that authorization; this note
+adds no new permission requirement by itself. Existing protected state,
+readback, recovery and physical acceptance requirements still apply. The
+implementation is being developed offline while those requirements are open.
+
 ## Decision
 
 [verified] The retained FM-1_092 geometry admits a sector-count candidate for two 49,152-byte slots only by combining VM and USR extents and excluding the existing five-sector OTA staging range. This is arithmetic, not permission or proof that any sector is free. The historical 092 archive contains opaque, non-FF VM and USR data; even sectors reading all 0xFF are not established as allocator-free. Do not enable SAVE or change the profile based on this plan.
