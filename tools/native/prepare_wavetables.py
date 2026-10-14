@@ -11,7 +11,13 @@ from evaluate_wavetables import ASSETS, ROOT, asset_bytes, delta_encode, digest
 
 def prepare(out, namespaces=('plaits', 'braids'), *, storage_section='.pool.wavetable'):
     out = Path(out)
-    records, declarations = [], []
+    records = []
+    # Explicit asm aliases bypass the compiler's usual object-symbol prefix.
+    # Resolve it at compilation, including when generated on another host.
+    declarations = [
+        '#define LUNAR_WAVE_STRINGIFY_INNER(value) #value',
+        '#define LUNAR_WAVE_STRINGIFY(value) LUNAR_WAVE_STRINGIFY_INNER(value)',
+    ]
     for relative, symbol, width, size in ASSETS:
         namespace = Path(relative).parent.name
         if namespace not in namespaces:
@@ -41,7 +47,8 @@ def prepare(out, namespaces=('plaits', 'braids'), *, storage_section='.pool.wave
         path = out / f'resources_{namespace}.cc'
         path.write_text(source)
         values = ','.join(str(v) for v in packed)
-        declarations += [f'extern unsigned char lunar_waves_{namespace}[{size}] __asm__("{mangled}");',
+        declarations += [f'extern unsigned char lunar_waves_{namespace}[{size}] '
+                         f'__asm__(LUNAR_WAVE_STRINGIFY(__USER_LABEL_PREFIX__) "{mangled}");',
                          f'static const unsigned char packed_{namespace}[] = {{{values}}};']
         h = 2166136261
         for byte in raw:
@@ -55,7 +62,7 @@ def prepare(out, namespaces=('plaits', 'braids'), *, storage_section='.pool.wave
         n = record['namespace']
         declarations += [f'{{lunar_waves_{n}, {record["raw_bytes"]}u, packed_{n}, '
                          f'sizeof packed_{n}, {record["width"]}u, {record["fnv32"]}u}},']
-    declarations += ['};']
+    declarations += ['};', '#undef LUNAR_WAVE_STRINGIFY', '#undef LUNAR_WAVE_STRINGIFY_INNER']
     (out / 'wave_tables.inc').write_text('\n'.join(declarations) + '\n')
     (out / 'wave_tables.json').write_text(json.dumps(records, indent=2) + '\n')
     return records
