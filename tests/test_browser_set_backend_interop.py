@@ -17,12 +17,14 @@ from verify_image_profile import load_prepared_profile
 REQUEST_SHA256 = 'ef4ce3b330162abe9d4487c5b81bd170defa2c30cf0f00bca21f143f62da55f0'
 PARENT = 'replacement-showcase-candidate-event-horizon'
 SET = 'replacement-showcase-event-horizon-companion-set'
-REQUEST_PATH = os.environ.get('LUNAR_BROWSER_EXPORT_REQUEST')
+REQUEST_PATH = os.environ.get(
+    'LUNAR_BROWSER_EXPORT_REQUEST',
+    str(ROOT / 'tests/fixtures/browser-event-horizon-set-request.json'))
 STATE_TOOL = os.environ.get('FM1_STATE_TOOL')
 
 pytestmark = pytest.mark.skipif(
-    not REQUEST_PATH or not STATE_TOOL,
-    reason='requires the retained browser-export request and a fresh FM1_STATE_TOOL')
+    not STATE_TOOL,
+    reason='requires a fresh FM1_STATE_TOOL')
 
 
 def browser_request():
