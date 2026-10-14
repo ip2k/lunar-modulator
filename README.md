@@ -478,21 +478,14 @@ see the sources.
 
 ## License
 
-MIT for this repository's own code and the manual. Code from other projects
-keeps its own licence, recorded beside it with an `UPSTREAM.md`:
-- MIT for the Mutable Instruments, Schwung, PSX Verb and Sophie code, and
-  for Movy, which the sequencer follows;
-- Apache-2.0 for msfa and fm1-nes's bridge (and Felucca's FM core, which
-  only the tests use);
-- the SIL Open Font License 1.1 for the fonts.
-
-GPL code sits behind a build switch, on in every build while we test
-([`DEVELOPERS.md`](DEVELOPERS.md#licences)): fm1-x0x's 303, TB-3PO, 909
-and 808 (GPL-3.0-only, with Open303's and sc808's MIT code), in
-`engines/third_party/fm1-x0x`, and three of Felucca's engines
-(GPL-3.0-only), in `engines/third_party/felucca`. The simulator is then
-offered under the GPL; a build with the switch off has no GPL code and is
-MIT/BSD.
+The combined native firmware application is licensed under the GNU General
+Public License, version 3 only; see [`LICENSE`](LICENSE). Reusable first-party
+sequencer and state-format code retains the MIT grant in [`LICENSE-MIT`](LICENSE-MIT),
+and imported components retain their own notices. The engine option
+`FM1_GPL_MODS` controls selected GPL engines; it does not change the native
+application's licence or remove GPL platform code. See
+[`LICENSING.md`](LICENSING.md) for the exact source boundaries, provenance and
+limits.
 
 ## Repository map
 
