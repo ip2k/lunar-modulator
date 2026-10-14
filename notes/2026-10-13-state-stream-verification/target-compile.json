@@ -1,0 +1,19 @@
+{
+  "target": "pi32v2",
+  "cpu": "r3",
+  "float_flag": "-mfprev1",
+  "optimization": "Oz",
+  "freestanding": true,
+  "no_builtin": true,
+  "c_standard": "c99",
+  "warnings": [
+    "Wall",
+    "Wextra",
+    "Werror"
+  ],
+  "compact_writer": true,
+  "compile_exit": 0,
+  "object_sha256": "ebd9f573a03a77c66cea728dc878a27219c77a4879ce53f5747f8e2c010912c4",
+  "linked_into_application": false,
+  "hardware_tested": false
+}

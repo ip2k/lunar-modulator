@@ -101,11 +101,13 @@ typedef struct {
 
 typedef struct bin_writer {
   fm1_put_t put;
+  fm1_state_write_at_t write_at;
+  uint32_t capacity;
   void *ctx;
   fm1_state_report_t *rep;
   unsigned flags, writer;
   uint8_t version[3];
-  uint8_t has_head, kind, minor;
+  uint8_t has_head, kind, minor, finished;
   int err;
   bdir_t dir[FM1_STATE_CHUNKS];
   unsigned n_chunks;
@@ -118,7 +120,11 @@ typedef struct bin_writer {
   size_t count_at;            /* where the open chunk's count goes */
   unsigned count;
   size_t cn;
+#ifdef FM1_STATE_BIN_COMPACT_WRITER
+  uint8_t chunk[49152];
+#else
   uint8_t chunk[65536];
+#endif
   uint8_t info_key;
   uint16_t info_n;
   char info[FM1_INFO_KEYS * 128];
@@ -128,16 +134,24 @@ typedef struct bin_writer {
   uint16_t data_n;
   uint8_t data[FM1_STATE_DATA_ONE];
   size_t body_n;
+#ifndef FM1_STATE_BIN_COMPACT_WRITER
   uint8_t body[FM1_STATE_BIN_MAX];
   uint8_t zout[65536 + 8];
   uint32_t zscratch[FM1_DEFLATE_SCRATCH / 4u];
+#endif
 } bin_writer_t;
+
+#define STREAM_BASE (32u + 20u * FM1_STATE_CHUNKS + 4u)
 
 size_t fm1_state_bin_writer_size(void) { return sizeof(bin_writer_t); }
 
 fm1_state_writer_t *fm1_state_bin_writer(void *mem, unsigned flags, unsigned writer,
                                          const uint8_t version[3], fm1_put_t put, void *ctx,
                                          fm1_state_report_t *rep) {
+#ifdef FM1_STATE_BIN_COMPACT_WRITER
+  (void)mem; (void)flags; (void)writer; (void)version; (void)put; (void)ctx; (void)rep;
+  return NULL;
+#else
   bin_writer_t *w = (bin_writer_t *)mem;
   if (!w) return NULL;
   memset(w, 0, offsetof(bin_writer_t, chunk));   /* the buffers need no clearing, their counts do */
@@ -152,6 +166,21 @@ fm1_state_writer_t *fm1_state_bin_writer(void *mem, unsigned flags, unsigned wri
   w->writer = writer;
   if (version) memcpy(w->version, version, 3);
   return (fm1_state_writer_t *)(void *)w;
+#endif
+}
+
+fm1_state_writer_t *fm1_state_bin_stream_writer(void *mem, unsigned writer,
+                                               const uint8_t version[3],
+                                               fm1_state_write_at_t write_at, void *ctx,
+                                               uint32_t capacity, fm1_state_report_t *rep) {
+  bin_writer_t *w = mem;
+  if (!w || !write_at || capacity < STREAM_BASE + 2u || capacity > FM1_STATE_BIN_MAX) return NULL;
+  memset(w, 0, offsetof(bin_writer_t, chunk));
+  w->info_n = 0; w->line_n = 0; w->data_n = 0; w->body_n = 0;
+  w->write_at = write_at; w->capacity = capacity;
+  w->ctx = ctx; w->rep = rep; w->writer = writer;
+  if (version) memcpy(w->version, version, 3);
+  return (fm1_state_writer_t *)(void *)w;
 }
 
 static int berr(bin_writer_t *w, unsigned code, const char *what) {
@@ -163,6 +192,14 @@ static int berr(bin_writer_t *w, unsigned code, const char *what) {
     }
   }
   return 0;
+}
+
+static int output_at(bin_writer_t *w, uint32_t off, const void *p, uint32_t n) {
+  if (off > w->capacity || n > w->capacity - off)
+    return berr(w, FM1_STATE_TOO_BIG, "past streaming destination capacity");
+  if (n && w->write_at(w->ctx, off, p, n))
+    return berr(w, FM1_STATE_BAD, "streaming destination write failed");
+  return 1;
 }
 
 static int cput(bin_writer_t *w, const void *b, size_t n) {
@@ -214,7 +251,8 @@ static int close_chunk(bin_writer_t *w) {
   if (w->cn > kCap[w->cur]) return berr(w, FM1_STATE_TOO_BIG, "a chunk past its cap");
   if (w->n_chunks >= FM1_STATE_CHUNKS) return berr(w, FM1_STATE_TOO_BIG, "too many chunks");
   stored = w->cn;
-  if ((w->flags & FM1_STATE_BIN_DEFLATE) && w->cn >= 16u) {
+#ifndef FM1_STATE_BIN_COMPACT_WRITER
+  if (!w->write_at && (w->flags & FM1_STATE_BIN_DEFLATE) && w->cn >= 16u) {
     const size_t z = fm1_deflate(w->chunk, w->cn, w->zout + 4, sizeof(w->zout) - 4u, w->zscratch);
     if (z && (z + 4u) * 4u <= w->cn * 3u) {
       put32(w->zout, (uint32_t)w->cn);
@@ -223,17 +261,33 @@ static int close_chunk(bin_writer_t *w) {
       flags = 1;
     }
   }
+#endif
   pad = (4u - (w->body_n & 3u)) & 3u;
+  if (w->write_at) {
+    static const uint8_t zero[4] = {0,0,0,0};
+    if (STREAM_BASE + w->body_n + pad + stored > w->capacity)
+      return berr(w, FM1_STATE_TOO_BIG, "past streaming destination capacity");
+    if (!output_at(w, (uint32_t)(STREAM_BASE + w->body_n), zero, (uint32_t)pad) ||
+        !output_at(w, (uint32_t)(STREAM_BASE + w->body_n + pad), src, (uint32_t)stored)) return 0;
+    w->body_n += pad;
+  } else {
+#ifndef FM1_STATE_BIN_COMPACT_WRITER
   if (w->body_n + pad + stored > sizeof(w->body)) return berr(w, FM1_STATE_TOO_BIG, "past 96 KiB");
   memset(w->body + w->body_n, 0, pad);
   w->body_n += pad;
+#else
+    return berr(w, FM1_STATE_BAD, "compact writer requires random-access destination");
+#endif
+  }
   d = &w->dir[w->n_chunks++];
   d->tag = w->cur;
   d->flags = flags;
   d->off = (uint32_t)w->body_n;
   d->len = (uint32_t)stored;
   d->crc = fm1_state_crc32(0, src, stored);
-  memcpy(w->body + w->body_n, src, stored);
+#ifndef FM1_STATE_BIN_COMPACT_WRITER
+  if (!w->write_at) memcpy(w->body + w->body_n, src, stored);
+#endif
   w->body_n += stored;
   w->cur = 0;
   w->cn = 0;
@@ -273,7 +327,7 @@ static int flush_line(bin_writer_t *w) {
 static int assemble(bin_writer_t *w) {
   uint8_t head[32], ent[20];
   const size_t dir_end = 32u + 20u * w->n_chunks + 4u;
-  const size_t base = (dir_end + 3u) & ~(size_t)3u;
+  const size_t base = w->write_at ? STREAM_BASE : (dir_end + 3u) & ~(size_t)3u;
   uint32_t total, dcrc = 0;
   unsigned i;
   if (w->n_chunks == 0) return berr(w, FM1_STATE_BAD, "no chunks");
@@ -294,7 +348,7 @@ static int assemble(bin_writer_t *w) {
   head[26] = w->version[1];
   head[27] = w->version[2];
   put32(head + 28, fm1_state_crc32(0, head, 28));
-  w->put(w->ctx, (const char *)head, 32);
+  if (!w->write_at) w->put(w->ctx, (const char *)head, 32);
   for (i = 0; i < w->n_chunks; ++i) {
     const bdir_t *d = &w->dir[i];
     memcpy(ent, kTag[d->tag], 4);
@@ -304,21 +358,33 @@ static int assemble(bin_writer_t *w) {
     put32(ent + 12, d->len);
     put32(ent + 16, d->crc);
     dcrc = fm1_state_crc32(dcrc, ent, 20);
-    w->put(w->ctx, (const char *)ent, 20);
+    if (w->write_at) {
+      if (!output_at(w, 32u + 20u * i, ent, 20)) return 0;
+    } else w->put(w->ctx, (const char *)ent, 20);
   }
   put32(ent, dcrc);
-  w->put(w->ctx, (const char *)ent, 4);
+  if (w->write_at) {
+    if (!output_at(w, (uint32_t)(dir_end - 4u), ent, 4)) return 0;
+  } else w->put(w->ctx, (const char *)ent, 4);
   if (base > dir_end) {
     static const char zero[4] = { 0, 0, 0, 0 };
-    w->put(w->ctx, zero, base - dir_end);
+    if (w->write_at) {
+      size_t at;
+      for (at = dir_end; at < base; at += 4u)
+        if (!output_at(w, (uint32_t)at, zero, (uint32_t)(base-at < 4u ? base-at : 4u))) return 0;
+    } else w->put(w->ctx, zero, base - dir_end);
   }
+  if (w->write_at) return output_at(w, 0, head, 32);
+#ifndef FM1_STATE_BIN_COMPACT_WRITER
   w->put(w->ctx, (const char *)w->body, w->body_n);
+#endif
   return 1;
 }
 
 int fm1_state_bin_write(void *wv, const fm1_rec_t *r) {
   bin_writer_t *w = (bin_writer_t *)wv;
   if (w->err) return 0;
+  if (w->finished) return berr(w, FM1_STATE_BAD, "streaming file already finished");
   if (!w->has_head && r->type != FM1_REC_HEAD) return berr(w, FM1_STATE_BAD, "the head record comes first");
   switch (r->type) {
     case FM1_REC_HEAD:
@@ -454,7 +520,9 @@ int fm1_state_bin_write(void *wv, const fm1_rec_t *r) {
     case FM1_REC_END:
       if (!close_chunk(w)) return 0;
       if (w->n_chunks == 0 && (!open_chunk(w, CH_INFO) || !close_chunk(w))) return 0;   /* a file has a chunk */
-      return assemble(w);
+      if (!assemble(w)) return 0;
+      if (w->write_at) w->finished = 1;
+      return 1;
     default:
       return berr(w, FM1_STATE_BAD, "an unknown record");
   }

@@ -440,6 +440,21 @@ fm1_state_writer_t *fm1_state_bin_writer(void *mem, unsigned flags, unsigned wri
                                          fm1_state_report_t *rep);
 int fm1_state_bin_write(void *w, const fm1_rec_t *r);   /* a sink; the file goes out at END */
 
+/* Random-access uncompressed writer: callback returns 0 on success. Chunk
+ * bytes are emitted while records arrive; directory and header are emitted
+ * at END, with the header last. The destination must be an inactive,
+ * initially erased transaction area; this codec grants no flash permission.
+ * A nonzero callback result permanently stops this writer. Capacity includes
+ * the reserved maximum directory. Use writer_size() for workspace allocation.
+ * Compile state_bin.c with FM1_STATE_BIN_COMPACT_WRITER to remove whole-file
+ * and compression buffers; that profile disables the sequential constructor.
+ * Caller must read/verify and commit its outer transaction after success. */
+typedef int (*fm1_state_write_at_t)(void *ctx, uint32_t off, const void *p, uint32_t n);
+fm1_state_writer_t *fm1_state_bin_stream_writer(void *mem, unsigned writer,
+                                               const uint8_t version[3],
+                                               fm1_state_write_at_t write_at, void *ctx,
+                                               uint32_t capacity, fm1_state_report_t *rep);
+
 /* Reads a binary file from a source; total is its length. A file shorter
  * than its header says, a CRC that does not match, an unknown critical
  * chunk or any length past its cap refuses it before a record is given

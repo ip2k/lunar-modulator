@@ -2830,3 +2830,19 @@ required (journal256B insufficient); all13 observed boot owner response still
 pending. Do not replay consumed writer/ROM upload. Full release/custombuilder/
 migration/physicalrollback/licensing/reviewCI remain open. Previous verified
 pushedef541bc89090fa778afc6dbb10d330850e6b33b8.
+
+## Compact project serializer checkpoint (2026-10-13)
+
+[verified] Random-access binary writer and compact profile implemented. 60 C
+cases passed 30 Hera ASan/UBSan chunks, all logs/exits/noOOM/source hashes checked.
+Nine golden roundtrips per profile and all276 FIRST ORBIT callback failures per
+profile passed. Host workspace71936B vs284936B. Pinned pi32v2/r3/-mfprev1/Oz
+freestanding C99 Wall/Wextra/Werror compile passed; not application linked.
+Evidence notes/2026-10-13-state-stream-verification/. Test session92493 and
+compile/copy63617 terminal0. No hardware operation. Next inactive project store,
+full readback/outer commit and application SAVE wiring; settings adapter still
+disarmed. Largest legal chunk/full96KiB generated boundaries remain needed.
+Installed13engine watched boot still pending fresh owner availability. Do not
+replay writer/ROM upload. Full release, migration/physicalrollback, web installer,
+custom builder, licensing and reviewCI remain open. Previous verified pushed
+36d8d867031cf8a1fbfed2c226d610df75ffbc35.
