@@ -28,6 +28,7 @@ def retained_inputs():
 def composed():
     source, reference, app, elf, artifact, receipt = retained_inputs()
     package, report = candidate.compose_bytes(source, reference, app, elf, artifact, receipt)
+    assert candidate.legacy.TARGET_APP_SHA256 == candidate.LEGACY_APP_SHA256
     return source, reference, app, elf, artifact, receipt, package, report
 
 
@@ -141,11 +142,8 @@ def test_continuous_policy_contract_is_independent_and_fail_closed():
         candidate._verify_continuous_policy(wrong_selection)
 
 
-def test_model_app_pin_is_restored_even_when_verification_raises():
+def test_model_app_pin_remains_immutable_for_scoped_candidate():
     import model_092_app_replacement as legacy
     prior = legacy.TARGET_APP_SHA256
-    with pytest.raises(RuntimeError, match="test sentinel"):
-        with candidate._bound_target_app_pin():
-            assert legacy.TARGET_APP_SHA256 == candidate.APP_SHA256
-            raise RuntimeError("test sentinel")
-    assert legacy.TARGET_APP_SHA256 == prior
+    candidate._require_legacy_model_pins()
+    assert legacy.TARGET_APP_SHA256 == prior == candidate.LEGACY_APP_SHA256

@@ -272,13 +272,17 @@ def _set_entry(row, *, checksum=None, offset=None, size=None, alloc=None):
     return bytes(b)
 
 
-def _build(raw, reference_dir, app):
+def _build(raw, reference_dir, app, *, target_app_sha256=TARGET_APP_SHA256):
     if _sha(raw) != SOURCE_SHA256:
         raise ValueError("source package is not the pinned public FM-1_092 fixture")
     if not app or len(app) > MAX_APP_BYTES:
         raise ValueError(f"replacement app must be 1..{MAX_APP_BYTES} bytes under the preserved-tail D7000 profile")
-    if _sha(app) != TARGET_APP_SHA256:
-        raise ValueError("replacement app is not the pinned Shapes8/Event-Horizon target artifact")
+    if not isinstance(target_app_sha256, str) or len(target_app_sha256) != 64 or any(c not in "0123456789abcdef" for c in target_app_sha256):
+        raise ValueError("replacement app digest parameter is invalid")
+    if _sha(app) != target_app_sha256:
+        if target_app_sha256 == TARGET_APP_SHA256:
+            raise ValueError("replacement app is not the pinned Shapes8/Event-Horizon target artifact")
+        raise ValueError("replacement app SHA-256 differs from the explicitly selected trusted build tuple")
     source = _outer_parse(raw, legacy_092=True)
     entries = source["entries"]
     flash_entry = entries[0]
@@ -368,10 +372,16 @@ def _build(raw, reference_dir, app):
     }
 
 
-def verify_modeled(raw, modeled, reference_dir, app):
+def verify_modeled(raw, modeled, reference_dir, app, *, target_app_sha256=TARGET_APP_SHA256):
     """Independently re-open and validate a modeled package without rebuilding it."""
-    if _sha(raw) != SOURCE_SHA256 or _sha(app) != TARGET_APP_SHA256:
-        raise ValueError("verification inputs are not the pinned source/candidate")
+    if _sha(raw) != SOURCE_SHA256:
+        raise ValueError("verification source is not the pinned public FM-1_092 package")
+    if not isinstance(target_app_sha256, str) or len(target_app_sha256) != 64 or any(c not in "0123456789abcdef" for c in target_app_sha256):
+        raise ValueError("replacement app digest parameter is invalid")
+    if _sha(app) != target_app_sha256:
+        if target_app_sha256 == TARGET_APP_SHA256:
+            raise ValueError("replacement app is not the pinned Shapes8/Event-Horizon target artifact")
+        raise ValueError("replacement app SHA-256 differs from the explicitly selected trusted build tuple")
     source = _outer_parse(raw, legacy_092=True)
     output = _outer_parse(modeled, legacy_092=False)
     generic = inspect_fwsc(modeled)

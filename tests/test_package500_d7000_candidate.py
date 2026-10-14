@@ -28,6 +28,7 @@ def retained_inputs():
 def composed():
     source, reference, app, elf, artifact, receipt = retained_inputs()
     package, report = candidate.compose_bytes(source, reference, app, elf, artifact, receipt)
+    assert candidate.legacy.TARGET_APP_SHA256 == candidate.LEGACY_APP_SHA256
     return source, reference, app, elf, artifact, receipt, package, report
 
 
