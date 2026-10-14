@@ -4655,3 +4655,7 @@ SAVE remains disarmed. Continue target build/review, recovery wiring, watched
 song acceptance, physical persistence/migration/rollback, stock-loader/web
 transport acceptance, exact-head CI/review/main integration and shipment.
 Goal ACTIVE.
+
+## Device53 audio checkpoint — 2026-10-14
+
+Root source76dcf4af is backed up. New evidence is in notes/2026-10-14-device53-audio-capture.md. Fresh paired full reads matched145c0280…; one consumed boot yielded native device54 then timed ROM device55. Corrected USB note sends succeeded on host but input1/2 capture had no clear note delta; separate USB audio capture was zero in inspected windows. Initial malformed aseqsend attempts are explicitly excluded. No flash writes. Owner connected KA6 MIDI OUT→FM1 MIDI IN and set master/preamps100%. UART input/counters are being implemented offline; installed app has no UART input. Device53 campaigns must not be reused. Need fresh55 admission for future commands. Continuous tuple package now composes in memory on worker ce3c9984 (GitHub SHA verified), with all hardware/installability flags false. D7000 manifest/model support remains offline in progress. Continue audio diagnosis, reviewed target installation, recovery/persistence, installer and release gates. Goal ACTIVE.
