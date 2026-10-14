@@ -1,0 +1,42 @@
+# Rescue-loader tail fit: measured geometry, unresolved boot-safety gate
+
+**Status:** offline measurement and SPL-source review only. No flash region is allocated, no firmware/package was changed, and no physical recovery or installation claim is made. This note answers whether the currently maintained compressed loader can geometrically fit in the proposed app tail; it does not establish that using that tail is safe or authorized.
+
+## Result
+
+The retained Dinghy/Felucca loader build encodes to 6,954 bytes (ota.bin SHA-256 096b3275c23d2d2435021302862769a8c477f6bf534c81b1a52adc14bc5cdaec). With an 80-byte SPL record at offset 0xD8F00, a two-sector tail [0xD7000, 0xD9000) has enough byte capacity: the loader body can occupy [0xD7000, 0xD8B2A), leaving 982 bytes before the record at [0xD8F00, 0xD8F50) and 176 bytes after it in the final 256-byte scan window. These offsets are arithmetic candidates only; they are not approved storage ownership or a validated package format at those addresses.
+
+The measured full-song app is 862,296 bytes, ending at 0xD6858 when based at 0x4000. It leaves 10,152 bytes before the profile end 0xD9000; reserving the proposed 8,192-byte tail would cap the app at 864,256 bytes and leave only 1,960 bytes above the current app size. That cap is 4,580 bytes below the earlier 868,836-byte application budget. The fit therefore appears possible without shrinking the current app, but with little future headroom. This is not a reason to reduce the project or feature set.
+
+## Reproducible build evidence
+
+Built the existing maintained loader with the project build_loader() function from retained source snapshot /home/claude/mvave-fm1/native-baseline-20261012 and the pinned JieLi toolchain /home/claude/mvave-fm1/sdk-v1213/toolchain/jieli-linux-toolchains-20250324.1. The networkless container used image lunar-jieli-check:bookworm (sha256:0fcc80c729c795f96758e301a86df8c42b466cc0b40cb9dfbaf8db693589eefc), docker-batch.slice, 1 CPU, 2 GiB memory/swap, 256 pids, a temporary /work tmpfs, and read-only source/toolchain mounts. No binaries were retained in the repository.
+
+The linker reports .text 8,232 bytes at 0x1c0a800; _image_end is 0x1c0c828. .bss is 11,216 bytes at 0x1c0c830..0x1c0f400 (NOLOAD), so it consumes runtime RAM but is not part of the staged compressed bytes. Artifacts from the temporary build were:
+
+- loader.elf SHA-256 3e80a460b0578ee7e77daaad2c01dce78da26cb35b4c3f3f61985235a5f370d2
+- raw loader.bin SHA-256 c2cb361f7078e3fa3136e96c9cc97c710e92231aaf949e5f8023a2afa93d55fb
+- wrapped ota.bin SHA-256 096b3275c23d2d2435021302862769a8c477f6bf534c81b1a52adc14bc5cdaec
+
+tools/build.py wraps the image as outer JLFS header (32 bytes), inner header (32 bytes), then compressed blocks with 8-byte length headers. The 6,954-byte result includes both headers and all block headers. The source snapshot has no .git metadata, so this measurement identifies the exact input tree by location and per-file hashes rather than claiming an upstream commit. Relevant input hashes: tools/build.py 0b91f74c77d4b747675bd99a2475d56adbacc3e30295c57a6e311ed83123cadd; tools/lz4blk.py bede501ca8774ba6942b35ad2c43823e9f48f13d0fb001ef9b73cdaf41460e16; firmware/loader/loader.ld 4acae8c9a16cf9a70f53a546f9175b5a86d2bc5cb6bce39513a2ff3c4fdba4ae; firmware/loader/crt0_ldr.S bd4149b97520d1dcc271f730c5a046b0dbf97909e48e968e0ba18304ffc37841; firmware/loader/loader.c d1a68016bde7c5f1ecdd2613f1f9ef55cd5822e65a0c6e3394fb9249f1d0fdea; firmware/loader/ldr_core.c 389aa2e09e74fdac184221edd9b8b7d76eb59ec3dabd11008cbb06081f9fe1de; firmware/src/ota.c ffc981586704b41f62c763248037d1fe373c84c3566c0486de795296f9841855.
+
+Current maintained source constants in firmware/third_party/dinghy/src/ota.c place the staged loader at OTA_AREA=0xE0000, five sectors, and the SPL record at 0xE4F00; this is an existing contract, not the proposed tail. ota_stage() bounds the body by OTA_AREA_LEN - 0x200, erases its configured stage sectors, writes/readbacks the body, and writes the outer header last. A later path publishes and verifies the 80-byte record. firmware/third_party/dinghy/loader/ldr_core.c currently uses app bounds starting at 0x4000 and ending at 0x93000; neither stage placement nor loader bounds have been changed for this measurement. The measured retained source is GPL-3.0-only Dinghy/Felucca-derived code; the repo keeps that code in its corresponding third-party module.
+
+## SPL selection and interruption analysis
+
+The byte-level stock SPL contract is documented in notes/2026-10-11-stock-spl-final-contract.md and notes/2026-10-14-stock-spl-update-record-byte-review.md. SPL searches for an app_dir_head, reads the application-area header at 0x4000, and CRC-checks that header before accepting the ordinary XIP entry (the stock entry is 0x02000120). When ordinary app selection succeeds (r13 == 0), the branch at 0x2e08 goes to 0x2f78 and skips the trailing-flash update-record scan. The app predicate is a header CRC, not a checksum over the entire application payload. The SPL does validate the record/header/payload CRCs when taking the separate staged-loader path, but it does not reach that path while the old ordinary header remains valid.
+
+That makes “write the app directory last” insufficient as a cold-boot recovery protocol. If the old header remains valid while the existing loader erases or overwrites app payload beginning at 0x4000, a power cut can leave SPL selecting the old entry and jumping into a damaged app; it may never scan the still-valid tail record. The current loader's ldr_pass mutates app sectors beginning at 0x4000, so merely putting the rescue record beyond the target's new app end does not solve this cutpoint.
+
+A possible sequence to investigate is: publish and readback-verify the complete staged loader and record; make the ordinary app header provably invalid and read it back before the first payload erase; write/readback the application; then publish the new valid app header last. This sequence is **not proven**. The evidence collected here does not establish the actual NOR write granularity or torn-program outcomes for the encrypted/SFC representation of the app header, whether a chosen CRC-covered bit can be cleared without erase, or whether every partial transition is guaranteed to fail the SPL's header CRC. Erasing the header's sector first is also not established safe: header and executable bytes share the beginning of the app, and erase interruption behavior is unverified. No header-poisoning field or write was selected.
+
+The SPL record scan arithmetic covers 255 offsets at 4 KiB stride, including candidate 0xD8F00; passing the address calculation does not prove that an application-tail sector is available for staging, that the raw stored bytes match the SPL's actual encrypted view, or that the stage can coexist with the target image and future profiles. The existing five-sector Dinghy contract and its cleanup bounds need a separately reviewed adaptation before any such candidate could be considered.
+
+## Decision and next dependency
+
+- **Measured:** current compressed maintained loader plus 80-byte record fits the proposed two-sector tail by 1,158 bytes total padding; current full-song app leaves 1,960 bytes before that two-sector reservation.
+- **Not established:** stage ownership, exact-address packaging, physical bytes, safe header invalidation, torn-write behavior, cold-boot recovery, installability, or acceptance.
+- **Next required evidence:** inspect exact SPL header CRC coverage and raw/SFC mapping for the app-area header; establish whether a one-way NOR transition exists whose every possible torn state fails the SPL predicate, with readback before any application payload mutation. Then adapt the stage/record loader and fake-flash cutpoint tests to that exact policy, keeping admission false until owner-reviewed physical backup/transaction gates are separately met. If no such header invalidation can be proven, this tail-fit result does not provide an acceptable recovery route.
+
+Tool coverage: Serena initial instructions/config were read, but Serena selected the primary Mac checkout, not this Hera worktree; Rarefaction likewise reported the Mac checkout, and ota_stage had no symbol in that source. Those semantic results were not treated as evidence for the Hera snapshot. Direct source/note inspection and the pinned target build were used instead; no agent-global project selection was changed.
+
