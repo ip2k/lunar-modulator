@@ -163,3 +163,17 @@ def test_full_tree_manifest_binds_directory_modes_and_contents(tmp_path):
     (copied / "obj.o").write_bytes(b"object")
     (copied / "empty").chmod(0o700)
     assert _toolchain_manifest(root) != _toolchain_manifest(copied)
+
+
+def test_full_tree_manifest_entry_cap_accepts_8192_and_rejects_8193(tmp_path):
+    import capture_trusted_build_tuple as capture
+    root = tmp_path / "bounded-tree"
+    root.mkdir()
+    for index in range(capture.MAX_TREE_ENTRIES - 1):
+        (root / f"entry-{index:04}.bin").write_bytes(b"x")
+    manifest = json.loads(capture._toolchain_manifest(root))
+    assert len(manifest["objects"]) == capture.MAX_TREE_ENTRIES
+
+    (root / f"entry-{capture.MAX_TREE_ENTRIES - 1:04}.bin").write_bytes(b"x")
+    with pytest.raises(ValueError, match="tree exceeds the fixed manifest bounds"):
+        capture._toolchain_manifest(root)
