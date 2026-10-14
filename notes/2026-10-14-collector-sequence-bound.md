@@ -4,7 +4,7 @@ Read-only source inventory at base `31d2e8cd05afd4875d303dca1b52ea5c138aed0f`.
 
 ## Finding
 
-The native app's eight-track default sequencer has an exact source-derived upper bound of **22,455 encoded bytes in the SEQS body**, assuming every bounded optional/exportable field is populated at its largest value and the event pools are distributed across all 64 track/clip slots. This is below the binary writer's 49,152-byte SEQS chunk cap. This is a calculated bound from the exporter and typed codec, not a measured maximum fixture. No varints are used: item fields are fixed-width little-endian integers, regardless of their decimal text width.
+The native app's eight-track default sequencer has a conservative source-derived upper bound of **23,095 encoded bytes in the SEQS body**, assuming every bounded optional/exportable field is populated at its largest value and the event pools are distributed across all 64 track/clip slots. This is below the binary writer's 49,152-byte SEQS chunk cap. This is a calculated bound from the exporter and codec, not a measured maximum fixture. Most typed item fields use fixed-width little-endian integers, regardless of their decimal text width; lane labels can trigger the codec's raw-item fallback.
 
 For the modulation pattern-data records, the compiled registry contains only one data-bearing kind: Register, with exactly five bytes per occupied Register instance. Eight Register modules therefore encode at most **8 × (5-byte record header + 5 data bytes) = 80 bytes** of module-data records. The 32-cable matrix contributes at most **32 × 39 = 1,248 bytes**. The maximum complete MODR chunk is not computed here: module parameter counts/IDs and their simultaneously reachable kind combinations need a separate registry-wide calculation. The writer enforces a 12,288-byte MODR cap.
 
@@ -22,7 +22,7 @@ headers: 64 × (cl 9 + cp 7 + lk 5 + tg 5) =  1,664
 event subtotal                                 20,096 bytes
 ```
 
-The remaining exporter-emitted records (`engines/seq/seq_persist.c:77-143`) add at most 2,359 bytes:
+The remaining exporter-emitted records (`engines/seq/seq_persist.c:77-143`) add at most 2,999 bytes:
 
 ```
 movy1, bpm, swing, link                    13
@@ -32,13 +32,13 @@ key + dq + non-loop se                      7
 8 tracks: tk                                  32
 8 × 16 pad mutes                             384
 8 pad-solo lines                               24
-8 × 8 lane lines: 4-byte header + 23 label 1,728
+8 × 8 lane lines: max 37-byte raw item each 2,368
 8 route lines                                 32
                                              ----
-                                             2,359
+                                             2,999
 ```
 
-Total: **20,096 + 2,359 = 22,455 bytes**. This is an upper bound; some combinations may be semantically redundant or unreachable, which can only lower it. It excludes the binary file header/directory/alignment, which are outside the SEQS chunk cap and do not change the chunk-body bound.
+Total: **20,096 + 2,999 = 23,095 bytes**. The lane item calculation corrects an earlier undercount: a typed `au` item has five fixed bytes (tag, track, lane, base and label length) plus up to 23 label bytes, for 28 bytes. `fm1_movy1_encode` falls back to a raw item when a label contains a space (`engines/state/state_movy1.c:163-174,423-457`), and labels are stored up to 23 bytes (`engines/seq/seq_cmd.c:514-516`). The exporter line can be 34 bytes without its line terminator (`seq_persist.c:131-135`): `au ` + one-digit track + space + one-digit lane + space + three-digit base + space + 23-byte label. The raw tag and u16 length add three bytes, so the maximum is 37 bytes per lane, 10 bytes above the old 27-byte calculation. This remains an upper bound; some combinations may be semantically redundant or unreachable, which can only lower it. It excludes the binary file header/directory/alignment, which are outside the SEQS chunk cap and do not change the chunk-body bound.
 
 The compact writer streams each encoded SEQS line to the destination and checks cumulative bytes against `kCap[CH_SEQS] = 49,152` (`engines/state/state_bin.c:61-68,333-345`). The source also caps MOVY1 text input at 65,536 (`engines/include/fm1_state_caps.h:14-20`): that is the larger general text-format cap, not the encoded binary SEQS allowance. The writer line staging limit is 16 KiB (`engines/state/state_bin.c:120-138,524-531`); bounded native exporter lines fit beneath it under the per-clip pool limits. The independent test fixture's 32,924-byte full project (`tests/test_native_project_capacity.py`) is therefore not a maximum and is unnecessary to infer this sequence bound.
 

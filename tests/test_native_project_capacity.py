@@ -7,6 +7,7 @@ validates recovery, and emits the committed body for the independent reader.
 The fixture reaches every tested app pool, but its byte size is not a proof of
 the maximum app project or of physical flash-bank headroom.
 """
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -30,8 +31,12 @@ APP_SOUND_UNITS = 4
 APP_INSERT_SLOTS = 8
 APP_MASTER_FX_SLOTS = 2
 APP_FX_SLOTS = APP_INSERT_SLOTS + APP_MASTER_FX_SLOTS
-NATIVE_SLOT_BYTES = 102400
+NATIVE_SLOT_BYTES = int(os.environ.get("FM1_TEST_NATIVE_SLOT_BYTES", "102400"))
 NATIVE_PAYLOAD_LIMIT = 98304
+CONSERVATIVE_COLLECTOR_BOUND = 43130
+MAX_METADATA = {"name": "N" * 16, "title": "T" * 64, "about": "A" * 240,
+                "author": "U" * 64, "licence": "L" * 32}
+MAX_SEQ_LABEL = "ABCDEFGHIJKLMNOPQRSTUVW"  # 23 bytes, no whitespace: ALABEL token limit.
 
 
 def _dense_set(path: Path) -> tuple[int, int]:
@@ -101,6 +106,7 @@ def _start_args(seq: Path, mod: Path) -> list[str]:
         args += ["--sound-param", f"{sound}:Pad=15"]
         for name, value in drums_pad_values:
             args += ["--sound-param", f"{sound}:{name}={value}"]
+        args += ["--mfx", f"{sound}:arp"]
         args += ["--insert", f"{sound}:filter", "--insert-param", f"{sound}:Cutoff=17000",
                  "--insert-param", f"{sound}:Resonance=0.91", "--insert", f"{sound}:drive",
                  "--insert-param", f"{sound}:Drive=34", "--insert-param", f"{sound}:Bias=-0.8"]
@@ -111,10 +117,41 @@ def _start_args(seq: Path, mod: Path) -> list[str]:
              "--insert-param", "0:Drive=34", "--insert-param", "0:Bias=-0.8"]
     args += ["--fx", "hall", "--fx-param", "Decay=0.99", "--fx-param", "Size=0.99",
              "--fx", "limit", "--fx-param", "Ceiling=-0.1", "--fx-param", "Release=0.99"]
+    args += ["--mfx", "0:arp"]
     # Keep the complete matrix occupied.  Each slot is a distinct amount and
     # feeds the same valid destination; the independent reader checks storage.
     args += ["--mod", str(mod), "--seq", str(seq)]
     return args
+
+
+def _dense_max_args(seq: Path, mod: Path) -> list[str]:
+    """Fill four Drums sounds (the highest registered expansion) and app pools."""
+    return _start_args(seq, mod)
+
+
+def _dense_max_mod(path: Path) -> int:
+    """Use eight registered Mix modules (nine params each) and all cable slots."""
+    mix_params = ("Gain1=1.75 Gain2=-1.5 Gain3=1.25 Gain4=-1.0 Offset=0.75 "
+                  "In1=0.875 In2=-0.625 In3=0.5 In4=-0.375")
+    lines = ["seed 4294967295"]
+    lines.extend(f"mod {pos} mix {mix_params}" for pos in range(1, MOD_MODULES + 1))
+    lines.extend(f"slot {slot} mix1.sum > host:amp amt={(slot * 61 % 201) - 100}"
+                 for slot in range(1, MOD_SLOTS + 1))
+    content = "\n".join(lines) + "\n"
+    path.write_text(content, encoding="utf-8")
+    return len(content.encode())
+
+
+def _max_drums_set(path: Path) -> int:
+    """Use all default track/clip pools and every accepted lane-label slot."""
+    _, counts = _dense_set(path)
+    lines = path.read_text(encoding="utf-8").splitlines()
+    for track in range(SEQ_TRACKS):
+        for lane in range(8):
+            lines.append(f"au {track} {lane} 255 {MAX_SEQ_LABEL}")
+    content = "\n".join(lines) + "\n"
+    path.write_text(content, encoding="utf-8")
+    return len(content.encode())
 
 
 def test_dense_actual_app_project_fits_native_payload(tools, tmp_path):  # noqa: F811
@@ -203,3 +240,81 @@ def test_dense_actual_app_project_fits_native_payload(tools, tmp_path):  # noqa:
                                     "dx7_voices": len(voices), "pad_params": len(pad_params),
                                     "fx_slots": APP_FX_SLOTS, "fx_params": len(fx_params)},
            "binary_record_count": len(records)})
+
+
+def test_max_drums_metadata_and_registered_pools_recover_through_native_save(tools, tmp_path):  # noqa: F811
+    """Round-trip maximum sound rows, metadata, and accepted pools via native SAVE."""
+    assert "FM1_STATE_BIN_COMPACT_WRITER" in os.environ.get("FM1_SIM_EXTRA", "")
+    assert "FM1_TFT_INDEXED=1" in os.environ.get("FM1_SIM_EXTRA", "")
+    seq, mod = tmp_path / "max-drums.movy1", tmp_path / "max-drums.mod"
+    set_text_bytes = _max_drums_set(seq)
+    mod_text_bytes = _dense_max_mod(mod)
+    initial = tmp_path / "initial.lunar"
+    args = _dense_max_args(seq, mod) + ["--save", f"project:{initial}"]
+    sim(tools, *args)
+
+    # Load maximum-length metadata through the app's project loader; then the
+    # native SAVE adapter performs its collect/serialize/commit/recovery path.
+    doc = json.loads(initial.read_text(encoding="utf-8"))
+    doc.update(MAX_METADATA)
+    prepared = tmp_path / "max-metadata.lunar"
+    prepared.write_text(json.dumps(doc), encoding="utf-8")
+    native = tmp_path / "max-drums.native-save.lunarb"
+    sim(tools, "--load", prepared, "--save", f"project:{native}")
+
+    body = native.read_bytes()
+    records, _ = ls.read_bin(body)
+    assert len(body) <= CONSERVATIVE_COLLECTOR_BOUND
+    assert len(body) <= NATIVE_PAYLOAD_LIMIT
+    assert body[24] == 2  # FM1_STATE_WRITER_FIRMWARE
+    info = {r["key"]: r.get("text", "") for r in records if r["rec"] == "info"}
+    assert {key: info[key] for key in MAX_METADATA} == MAX_METADATA
+
+    sounds = [r for r in records if r["rec"] == "unit" and r["role"] == "sound"]
+    assert len(sounds) == APP_SOUND_UNITS
+    params = [r for r in records if r["rec"] == "param" and r["role"] == "sound"]
+    focused = [r for r in params if r.get("focus") is not None]
+    assert len(params) == APP_SOUND_UNITS * 149
+    assert len(focused) == APP_SOUND_UNITS * 9 * 16
+    assert {r["focus"] for r in focused} == set(range(16))
+    assert {r["sound"] for r in params} == set(range(APP_SOUND_UNITS))
+
+    modules = [r for r in records if r["rec"] == "module"]
+    module_params = [r for r in records if r["rec"] == "param" and r["role"] == "module"]
+    cables = [r for r in records if r["rec"] == "cable"]
+    assert len(modules) == MOD_MODULES
+    assert len(module_params) == MOD_MODULES * 9
+    assert len(cables) == MOD_SLOTS
+    assert {r["slot"] for r in cables} == set(range(MOD_SLOTS))
+
+    voices = [r for r in records if r["rec"] == "dx7"]
+    assert len(voices) == DX7_VOICES
+    units = [r for r in records if r["rec"] == "unit"]
+    assert sum(r["role"] == "insert" for r in units) == APP_INSERT_SLOTS
+    assert sum(r["role"] == "master" for r in units) == APP_MASTER_FX_SLOTS
+    assert sum(r["role"] in ("insert", "master") and bool(r["engine"]) for r in units) == APP_FX_SLOTS
+    mfx_params = [r for r in records if r["rec"] == "param" and r["role"] == "mfx"]
+    assert len(mfx_params) == APP_SOUND_UNITS * 24
+
+    set_records = [r for r in records if r["rec"] == "line" and r["which"] == "set"]
+    decoded_lines = "\n".join(str(r.get("text", "")) for r in set_records).splitlines()
+    labels = [line for line in decoded_lines if line.startswith("au ")]
+    assert len(labels) == SEQ_TRACKS * 8
+    assert all(line.endswith(MAX_SEQ_LABEL) for line in labels)
+    for track in range(SEQ_TRACKS):
+        cl = next(line for line in decoded_lines if line.startswith(f"cl {track} 0 "))
+        assert len(cl.split(" ", 5)[5].split(";")) == NOTES_PER_TRACK
+        lk = next(line for line in decoded_lines if line.startswith(f"lk {track} 0 "))
+        assert len(lk.split(" ", 3)[3].split(";")) == LOCKS_PER_TRACK
+        tg = next(line for line in decoded_lines if line.startswith(f"tg {track} 0 "))
+        assert len(tg.split(" ", 3)[3].split(";")) == TRIGS_PER_TRACK
+    assert len(ls.encode_line(f"au 7 7 255 {'A' * 11} {'B' * 11}")) == 37
+    assert ls.encode_line(f"au 7 7 255 {'A' * 11} {'B' * 11}")[0] == 0x01
+
+    print({"native_bytes": len(body), "conservative_bound": CONSERVATIVE_COLLECTOR_BOUND,
+           "parameter_records": len(params) + len(module_params), "drums_focused_records": len(focused),
+           "modules": len(modules), "module_params": len(module_params), "cables": len(cables),
+           "midi_fx_params": len(mfx_params), "dx7_voices": len(voices), "audio_fx_slots": APP_FX_SLOTS,
+           "au_labels": len(labels), "notes": SEQ_TRACKS * NOTES_PER_TRACK,
+           "locks": SEQ_TRACKS * LOCKS_PER_TRACK, "trigs": SEQ_TRACKS * TRIGS_PER_TRACK,
+           "set_text_bytes": set_text_bytes, "mod_text_bytes": mod_text_bytes})

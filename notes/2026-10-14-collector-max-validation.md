@@ -1,0 +1,30 @@
+# Native collector maximum-state validation
+
+## Result
+
+The actual native SAVE fixture produced a compact binary body of **35,176 bytes** and recovered successfully with both 102,400-byte slots and 49,152-byte slots. With the 32-byte journal header, the selected slot used 35,208 bytes of 49,152, leaving 13,944 bytes; the writer receives a 49,120-byte body capacity. The 48 KiB run left the generic import cap at 98,304 bytes. This is evidence for one large, app-admitted combined state; it is not a proof that every independent source-bound maximum can coexist, nor physical flash geometry acceptance.
+
+The fixture verifies 596 sound parameter rows (four Drums units × 149 registered rows, including 576 focused pad rows), 72 module parameter rows (eight Mix modules × nine), eight modules, 32 cables, 96 MIDI-FX parameter rows, 32 DX7 voices, ten populated audio-FX slots, 64 maximum-length AU labels, and 1,536 notes, 1,536 locks, and 256 triggers. It also decodes and checks maximum metadata strings. The resulting 35,176-byte body is below the conservative source-derived 43,130-byte collector-container bound.
+
+## Exact test evidence
+
+- The successful full fixture was `lunar-collector-max-drums-20261014d`; its log is `/home/claude/mvave-fm1/native-external-arenas-16-20261012/out/collector-max-validation-v1/logs/test-drums-max-d.log`, SHA-256 `aaf10ab64314de31264e334e44e3da8c43a5715d3f14a6406f667992e107ee73`. It ended with the record counts above, `native_bytes: 35176`, `.`, and `RUN_EXIT=0`.
+- The same test passed with the native test adapter's slot geometry set to 49,152 bytes in container `lunar-collector-max-48k-20261014a`. Its log is `/home/claude/mvave-fm1/native-external-arenas-16-20261012/out/collector-max-validation-v1/logs/test-drums-48k-a.log`, SHA-256 `2644b73946197463969ced8799502efb69b34c56a7ac8ec20fb5c1257d91c42a`; it ended with the same 35,176-byte/count output, `.`, and `RUN_EXIT=0`. The container exited and is no longer present in `docker ps`.
+- The 48 KiB run used a temporary source snapshot at `/home/claude/mvave-fm1/native-external-arenas-16-20261012/out/collector-max-validation-v1/slot48/source`. Only its copied `sim/web/test/native_project_save.h` slot constant was changed from `102400u` to `49152u`; the temporary header SHA-256 is `9e3a7e4598edbed2bd0dd457a7010a6686579e0d1389db4515528d1bdd197f4e`. The test's configurable runtime slot was set to 49,152 as well. The original shared checkout/header was not changed.
+- The 48 KiB container used image digest `sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d`, 1 CPU, 2 GiB memory, `network=none`, and Hera task labels `lan.project=lunar-modulator`, `lan.session=installable-firmware`. It ran `/out/pytest-venv/bin/python -m pytest -q -s tests/test_native_project_capacity.py::test_max_drums_metadata_and_registered_pools_recover_through_native_save`; return code was 0.
+- Test-source snapshot SHA-256: `tests/test_native_project_capacity.py` = `2668eb4857a07d3ac4668c433bfff661946149a7d96a266f7be144f51ea5ab4b` (same as the shared worktree at validation). The production collector/store source snapshot hashes were `firmware/native/project_save_app.h` = `08e1231e5e757891e0d32ad46c76be18d57646995b94334b10d821aa17186915` and `engines/state/state_bin.c` = `37054d9abc42bcadad715e164d1eb386643fd02919cffa6062f20e5ce886b66c`.
+- The test was run in the preapproved Hera `docker-batch.slice` environment with explicit resource limits and networking disabled. Compiler output had warnings; neither successful run reported a test failure.
+
+The fixture first attempts four Sophie sounds separately. That state was rejected while loading sound unit 3 with `FM1_APP_SELECT_RAM` (-4); no RAM admission was bypassed. The passing combined fixture uses Drums, the largest registered engine expansion at 149 rows per sound. Do not infer that hidden Sophie backing-array entries are reachable: only eight descriptors register, for 113 rows per Sophie sound.
+
+## Recovery-path coverage and limits
+
+The native test adapter performs two saves, selects/replaces the inactive slot, scans the committed slots and selects slot 1 at generation 1; it also forces a read failure and confirms the existing committed slots remain scannable. At 49,152-byte slots, these save/recovery and read-failure paths passed. The adapter's `native_save_program` always programs successfully, however, so this run did **not** inject an interrupted or failed write at the smaller geometry. The existing `tests/test_native_project_store.py` harness builds `tests/native/project_store.c`, whose injected erase/program failures return before mutating flash; those cases are not torn-write recovery evidence. A separate `tests/native/project_stream.c` has partial-mutation callbacks but is not built by that harness and is also fixed at 102,400-byte slots. A follow-on should parameterize the active store harness at 49,152-byte geometry and inject partial erase/program mutation, then verify recovery selects the older committed generation. Do not represent the current result as interrupted-write proof.
+
+The generic compact reader/import ceiling remains 98,304 bytes. This test establishes that the selected 35,176-byte fixture fits and recovers with 49,152-byte emulated slots; it does not change or validate physical slot extents.
+
+## Tool artifact and remaining dependency
+
+The exact-source test build produced `/home/claude/mvave-fm1/native-external-arenas-16-20261012/out/collector-max-validation-v1/source/sim/web/build/native-739a3add/fm1-sim-render` (x86-64 Linux ELF, SHA-256 `4a8bb9a51510c6ab4547562c5cab0adc31a64ca174c766d19552ee0582cb3198`). That build tree did not produce `fm1-state`; the previously found staged `fm1-state` has unresolved provenance and is not claimed as this source's tool. A source-provenanced `fm1-state` executable remains a separate offline build dependency before using that tool to pack restored demo projects.
+
+No source production files or native slot constants in the shared checkout were changed for this validation. No hardware commands or physical device claims were involved.
