@@ -1,0 +1,422 @@
+[
+  {
+    "shard": 0,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 0,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 1,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 1,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 2,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 2,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 3,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 3,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 4,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 4,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 5,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 5,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 6,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 6,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 7,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 7,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 8,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 8,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 9,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 9,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 10,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 10,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 11,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 11,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 12,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 12,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 13,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 13,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 14,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 14,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 15,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 15,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 16,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 16,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 17,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 17,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 18,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 18,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 19,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 19,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 20,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 20,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 21,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 21,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 22,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 22,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 23,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 23,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 24,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 24,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 25,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 25,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 26,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 26,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 27,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 27,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 28,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 28,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  },
+  {
+    "shard": 29,
+    "optimizations": [
+      "-Os"
+    ],
+    "storage_profiles": [
+      "embedded",
+      "external"
+    ],
+    "case": 29,
+    "exit": 1,
+    "state_exit": 1,
+    "oom": false
+  }
+]

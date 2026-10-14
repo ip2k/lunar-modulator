@@ -91,3 +91,10 @@ def test_project_boot_composition(arena_tools, case):
     result = json.loads(subprocess.check_output(
         [str(arena_tools[1]), "--project-boot", str(case)], text=True))
     assert result == {"passed": True, "case": case}
+
+
+@pytest.mark.parametrize("case", range(30))
+def test_mixed_project_startup(arena_tools, case):
+    result = json.loads(subprocess.check_output(
+        [str(arena_tools[1]), "--mixed-project", str(case)], text=True))
+    assert result == {"passed": True, "case": case}

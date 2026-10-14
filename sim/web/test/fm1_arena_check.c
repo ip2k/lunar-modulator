@@ -519,6 +519,124 @@ static void project_boot_check(int which) {
   pool_deallocate(&pool, managed.unit[0].mem);
   assert(!pool.live_allocations && !pool.live_bytes);
 }
+/* Full cold-start composition, with independent sequence import as an oracle. */
+static void mixed_project_check(int which) {
+  lunar_instance_pool_t pool;
+  fm1_state_report_t report;
+  fm1_rec_t r = {0};
+  const uint8_t version[3] = {0, 1, 0};
+  const unsigned dxslot = (unsigned)which % FM1_DX7_USER_SLOTS;
+  uint8_t voice[FM1_DX7_VCED_BYTES] = {0}, actual[FM1_DX7_VCED_BYTES];
+  char set[256], loaded[4096], expected[4096];
+  void *writer_mem = calloc(1, fm1_state_bin_writer_size()); assert(writer_mem);
+  fm1_app_init(&managed, 44118.0f);
+  assert(lunar_instance_pool_init(&pool, arena.data, sizeof arena.data) == 0);
+  assert(fm1_app_set_storage(&managed, &pool, pool_allocate, pool_deallocate) == 0);
+  scalar_size = 0;
+  fm1_state_report_init(&report);
+  fm1_state_writer_t *w = fm1_state_bin_writer(writer_mem,
+      which & 1 ? FM1_STATE_BIN_DEFLATE : 0, FM1_STATE_WRITER_DESKTOP,
+      version, scalar_put, NULL, &report); assert(w);
+  r.type = FM1_REC_HEAD; r.u.head.kind = FM1_STATE_PROJECT; r.u.head.major = 1;
+  assert(fm1_state_bin_write(w, &r));
+  memset(&r, 0, sizeof r); r.type = FM1_REC_SESSION;
+  r.u.session.current = 0; r.u.session.octave = (int8_t)(which % 3 - 1);
+  r.u.session.transpose = (int8_t)(which % 5 - 2);
+  assert(fm1_state_bin_write(w, &r));
+  for (int sound = 0; sound < 2; ++sound) {
+    memset(&r, 0, sizeof r); r.type = FM1_REC_UNIT; r.role = FM1_ROLE_SOUND;
+    r.sound = (uint8_t)sound; strcpy(r.u.unit.id, sound ? "dx7" : "trio");
+    assert(fm1_state_bin_write(w, &r));
+    if (!sound) {
+      memset(&r, 0, sizeof r); r.type = FM1_REC_UNIT; r.role = FM1_ROLE_INSERT;
+      r.slot = (uint8_t)(which % 2); strcpy(r.u.unit.id, "test-gain");
+      assert(fm1_state_bin_write(w, &r));
+      memset(&r, 0, sizeof r); r.type = FM1_REC_PARAM; r.role = FM1_ROLE_INSERT;
+      r.slot = (uint8_t)(which % 2); r.u.param.uid = 1; r.u.param.focus = FM1_FOCUS_NONE;
+      float gain = 0.5f + (which % 3) * 0.25f;
+      memcpy(&r.u.param.bits, &gain, sizeof gain);
+      assert(fm1_state_bin_write(w, &r));
+      memset(&r, 0, sizeof r); r.type = FM1_REC_UNIT; r.role = FM1_ROLE_MFX;
+      strcpy(r.u.unit.id, "arp"); assert(fm1_state_bin_write(w, &r));
+      r.type = FM1_REC_ON; r.u.on = (uint8_t)(which & 1);
+      assert(fm1_state_bin_write(w, &r));
+    }
+  }
+  memset(&r, 0, sizeof r); r.type = FM1_REC_UNIT; r.role = FM1_ROLE_MASTER;
+  r.slot = (uint8_t)(which % 2); strcpy(r.u.unit.id, "test-gain");
+  assert(fm1_state_bin_write(w, &r));
+  memset(voice + 145, 'A' + which % 26, 10); voice[0] = (uint8_t)which;
+  memset(&r, 0, sizeof r); r.type = FM1_REC_DX7; r.slot = (uint8_t)dxslot;
+  memcpy(r.u.dx7.vced, voice, sizeof voice); assert(fm1_state_bin_write(w, &r));
+  memset(&r, 0, sizeof r); r.type = FM1_REC_MOD; assert(fm1_state_bin_write(w, &r));
+  r.type = FM1_REC_SEED; r.u.seed = 0x12340000u + (uint32_t)which;
+  assert(fm1_state_bin_write(w, &r));
+  memset(&r, 0, sizeof r); r.type = FM1_REC_MODULE;
+  strcpy(r.u.unit.id, which & 1 ? "env" : "lfo"); assert(fm1_state_bin_write(w, &r));
+  snprintf(set, sizeof set, "movy1\nbpm %d\nrt 0 1 0\ncl 0 0 16 0 0:12:%d:100:0\n",
+      12000 + which * 100, 60 + which % 12);
+  for (const char *line = set; *line;) {
+    const char *end = strchr(line, '\n'); assert(end);
+    memset(&r, 0, sizeof r); r.type = FM1_REC_LINE;
+    r.piece = FM1_REC_FIRST | FM1_REC_LAST; r.u.line.which = FM1_LINES_SET;
+    r.u.line.s = line; r.u.line.n = (uint32_t)(end - line);
+    assert(fm1_state_bin_write(w, &r)); line = end + 1;
+  }
+  memset(&r, 0, sizeof r); r.type = FM1_REC_VIEW;
+  r.u.view.mode = (uint8_t)(which % FM1_VIEW_MODES); assert(fm1_state_bin_write(w, &r));
+  memset(&r, 0, sizeof r); r.type = FM1_REC_END; assert(fm1_state_bin_write(w, &r));
+  free(writer_mem);
+  int ok = lunar_project_start(&managed, &pool, scalar_bytes, (uint32_t)scalar_size, 44118, &report);
+  if (!ok) fprintf(stderr, "mixed boot %d: %u %s\n", which, report.code, report.what);
+  assert(ok && report.code == FM1_STATE_OK);
+  assert(pool.live_allocations == 4); /* Two sounds, insert, master; no scratch/MIDI copy. */
+  assert(managed.dx7.loaded[dxslot]);
+  assert(fm1_dx7_get_user_voice(managed.unit[fm1_app_sound_unit(1)].self, dxslot, actual));
+  assert(!memcmp(voice, actual, sizeof voice));
+  assert(managed.mod_seed == 0x12340000u + (uint32_t)which);
+  /* Wrapper equivalence must not accept a wrong index or a lookalike copy. */
+  fm1_app_t *saved_app = malloc(sizeof managed), *bad_app = malloc(sizeof managed);
+  assert(saved_app && bad_app); memcpy(saved_app, &managed, sizeof managed);
+  fm1_engine_t lookalike = managed.dx7.engine;
+  int dxunit = fm1_app_sound_unit(1);
+  for (int bad = 0; bad < 3; ++bad) {
+    if (bad == 0) managed.unit[dxunit].index = fm1_app_find("trio");
+    if (bad == 1) managed.dx7.index = managed.unit[dxunit].index = fm1_app_find("trio");
+    if (bad == 2) managed.unit[dxunit].e = &lookalike;
+    memcpy(bad_app, &managed, sizeof managed);
+    assert(!lunar_project_restore_mod(&managed, scalar_bytes, (uint32_t)scalar_size, &report));
+    assert(report.code == FM1_STATE_BAD && !memcmp(bad_app, &managed, sizeof managed));
+    memcpy(&managed, saved_app, sizeof managed);
+  }
+  free(bad_app); free(saved_app);
+  assert(managed.octave == which % 3 - 1 && managed.transpose == which % 5 - 2);
+  int insert = fm1_app_insert_unit(0, which % 2);
+  assert(fm1_app_get_param(&managed, insert, 0) == 0.5f + (which % 3) * 0.25f);
+  const fm1_mfx_slot_t *midi = fm1_mfx_slot(&managed.mfx, 0, 0);
+  assert(midi && midi->fx && midi->on == (which & 1));
+  fm1_seq_t *oracle = fm1_seq_create(calloc(1, fm1_seq_size(&managed.seq_lim)), &managed.seq_lim, 44118);
+  assert(oracle && fm1_seq_import_movy1(oracle, set, strlen(set)));
+  size_t a = fm1_seq_export_movy1(managed.seq, loaded, sizeof loaded);
+  size_t b = fm1_seq_export_movy1(oracle, expected, sizeof expected);
+  assert(a < sizeof loaded && a == b && !memcmp(loaded, expected, a)); free(oracle);
+  fm1_seq_info_t info; fm1_seq_get_info(managed.seq, &info); assert(!info.playing);
+  /* Explicit user play after restoration; startup itself must not autoplay. */
+  assert(fm1_app_seq_line(&managed, "play", 4) == 4);
+  double energy = 0;
+  for (int block = 0; block < 512; ++block) {
+    const float *audio = fm1_app_render(&managed, 64);
+    for (int n = 0; n < 128; ++n) { assert(isfinite(audio[n])); energy += audio[n] * audio[n]; }
+  }
+  assert(energy > 0.0001 && fm1_app_seq_dropped(&managed) == 0);
+  assert(fm1_app_seq_line(&managed, "stop", 4) == 4);
+  fm1_app_all_notes_off(&managed);
+  for (int i = FM1_APP_UNITS - 1; i > 0; --i)
+    if (managed.unit[i].e) assert(fm1_app_select(&managed, i, -1) == 0);
+  /* The UI keeps sound zero populated; cold fixture teardown owns its arena. */
+  managed.unit[0].e->destroy(managed.unit[0].self);
+  pool_deallocate(&pool, managed.unit[0].mem);
+  assert(!pool.live_allocations && !pool.live_bytes);
+}
 static void pool_adoption_check(int shard) {
   lunar_instance_pool_t pool;
   lunar_project_engines_t candidate, saved;
@@ -672,6 +790,12 @@ static void managed_check(int shard) {
 
 int main(int argc, char **argv) {
 #if FM1_APP_EXTERNAL_ARENAS
+  if (argc == 3 && !strcmp(argv[1], "--mixed-project")) {
+    int which = atoi(argv[2]); assert(which >= 0 && which < 30);
+    mixed_project_check(which);
+    printf("{\"passed\":true,\"case\":%d}\n", which);
+    return 0;
+  }
   if (argc == 3 && !strcmp(argv[1], "--project-boot")) {
     int which = atoi(argv[2]); assert(which >= 0 && which < 30);
     project_boot_check(which);

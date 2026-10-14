@@ -118,6 +118,13 @@ int lunar_project_restore_mod(fm1_app_t *app, const uint8_t *bytes, uint32_t siz
                        i < 12u ? fm1_app_insert_unit((int)((i - 4u) / 2u), (int)((i - 4u) % 2u)) :
                        1 + (int)(i - 12u);
             installed = app->unit[slot].e;
+            /* DX7's per-app descriptor supplies saved patch names. Only that
+               wrapper, with its matching DX7 catalogue index, is equivalent. */
+            if (i < FM1_APP_SOUNDS && installed == &app->dx7.engine &&
+                app->unit[slot].index == app->dx7.index && app->dx7.index >= 0 &&
+                (size_t)app->dx7.index < fm1_engine_count &&
+                strcmp(fm1_engines[app->dx7.index]->id, "dx7") == 0)
+                installed = fm1_engines[app->dx7.index];
         } else {
             const fm1_mfx_slot_t *slot = fm1_mfx_slot(&app->mfx, i - 14u, 0);
             installed = slot && slot->fx ? &slot->fx->engine : NULL;

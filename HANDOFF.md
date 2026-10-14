@@ -2181,3 +2181,19 @@ DX7/effects composition, hardware stack/RAM/timing/settingsmigration/recovery/
 rollback/webinstallation/exactheadreviewCIintegration remain open. Goal active.
 Branch feature/2026-10-11@installable-firmware; previous verified pushed673c907c.
 Next verify integrated mixed projects and complete all13 startup/timing admission.
+
+## Mixed PROJECT DX7 checkpoint (2026-10-13)
+
+[verified] Combined PROJECT tests exposed DX7 per-app descriptor versus catalogue
+identity rejection. Narrow native preflight fix recognizes the exact wrapper
+and matching DX7 index; three negative cases preserve non-mutating refusal.
+All30 v3 shards reached successful restoration/playback, then failed forbidden
+sound-zero removal in fixture cleanup; cleanup corrected using existing cold
+teardown, v4 running on Hera. Live local exec session89431; inspect its terminal
+state or Hera owned lunar-mixed-project-v4 containers before restarting.
+All13 production startup-project link v2 passed audits and asset-byte checks;
+no hardware admission. Evidence notes/2026-10-13-mixed-project-verification/.
+Branch feature/2026-10-11@installable-firmware, previous pushedfad3a965.
+Full release goal remains active; next inspect v4, verify sources, production
+startup and stack/RAM/timing, then fresh physical admission and migration/rollback,
+web builder/install and exact-head review/CI/integration. No device command.
