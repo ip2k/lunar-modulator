@@ -3463,3 +3463,39 @@ integration, target RAM/timing, full-song SAVE/reload, physical storage ownershi
 and migration/rollback, watched all13 hardware acceptance, browser flashing/recovery,
 owner listening/default acceptance and review/CI/release gates. Goal ACTIVE.
 No hardware command issued in this continuation.
+
+## Installer preload controller checkpoint — 2026-10-14
+
+The owner requires selectable earlier demos in the installer and at least one
+full-length song in the stock image. Eight source choices are retained. Event
+Horizon Showcase completed 108.8 seconds of native host playback and SAVE/reload
+without dropped events or stuck notes; owner listening/default acceptance and
+physical playback remain pending. See notes/2026-10-14-event-showcase-fullsong.md.
+
+The actual production controller now links the all-55-module catalogue (all
+thirteen engines), Event Horizon at startup index 0 and the compact SAVE codec.
+Hera output is /home/claude/mvave-fm1/save-codec-controller-validation-20261014/run/.
+The app is 862,320 / 868,836 bytes, margin 6,516. The instance arena is 216,064
+bytes; the complete NOLOAD .pool section is 420,512 bytes. Link success does not
+establish runtime capacity, initialization, timing or storage ownership.
+
+Worker 225f3df3 was reviewed and integrated as 93917c50. Coordinator c4945664
+checks that the fresh compact codec is linked once, its hash matches and the
+cached codec is absent; it copies codec provenance into image.json. Thirty
+focused local controller/builder tests passed. The retained real Hera app/ELF
+and receipts also passed the strengthened checker on the Mac. c4945664a678395c
+is verified backed up to the feature/2026-10-11@installable-firmware GitHub ref.
+
+An attempted broader local selection run lacked FM1_STATE_TOOL and failed two
+environment-dependent cases; this is not a reported passing selection run.
+Earlier actual native selection/compression validation is documented separately.
+
+Active delegated work: installer route reusing the existing selection view and
+generated catalogue; private FastAPI build-service prototype with fake/local
+adapter; maintained Felucca browser OTA adapter review. No public API, browser
+flash route, release/default admission or deployment is claimed. SAVE remains
+disarmed pending physical storage ownership, migration and rollback verification.
+Remaining gates include watched all13 boot/audio/controls/MIDI, full-song device
+timing/persistence, packaging/recovery and interrupted writes, owner default-song
+acceptance, browser build/flash integration and review/CI/merge/release.
+Goal ACTIVE. No hardware command issued in this checkpoint.
