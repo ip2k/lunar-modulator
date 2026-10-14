@@ -3850,3 +3850,29 @@ claim/checkout/branch; Mac retains exclusive bench/Cynthion writes. Goal
 ACTIVE. Public installation, target recovery/persistence, full-song and
 all13 hardware acceptance, exact-head CI, review/integration and release
 remain required.
+
+## Default approval, CI repairs and D7000 continuation — 2026-10-14
+
+Verified origin head before this checkpoint: 620cc306a83addb0104fc2c3f328e53e070a0446.
+Event Horizon is owner-approved as default; chooser/catalogue integration
+da6b5943 preserves false hardware/installability gates. Nine focused Node
+tests and 22 catalogue/dependency pytest checks pass. Wavetable target symbol
+prefix repair, stale audit pins and Python CI full-history checkout are
+integrated. Predecessor CI 38599904562 finished 11/13 green; current head has
+not passed full CI. Darwin flags/SAVE fixture review remains active.
+
+The completed private Event Horizon image readback matches its target; one
+120-second diagnostic boot showed native USB then ROM device40. Owner
+screen/audio/control observations remain pending. No new hardware operation
+occurred. Re-admit current ROM binding before any later device command.
+
+D7000 link budget 860644 is now explicit. Hera workers own fresh all13/55
+Event Horizon target link, valid high-entropy SAVE fixture/Darwin flags, and
+fail-closed NOR transport error propagation in isolated claims/checkouts.
+The NOR adapter contract is integrated; IRQ state, XIP-off RAM callgraph,
+watchdog margin, ownership and recovery gates remain open. Do not enable
+physical SAVE or infer recovery acceptance from linker fit.
+
+Goal ACTIVE; continue review/integration, exact-head CI, physical full-song
+and SAVE acceptance, migration/rollback/interrupted-write recovery and the
+actual installer download/flash/release path. No main merge or deployment.

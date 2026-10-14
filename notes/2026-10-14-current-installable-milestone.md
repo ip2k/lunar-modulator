@@ -4,7 +4,7 @@
 
 Coordinator checkout: `/Users/likwid/.codex/worktrees/installable-firmware/mvave-fm1-firmware`.
 Branch: `feature/2026-10-11@installable-firmware`.
-Last preceding verified GitHub head: `fb972a0a9a14058ebb42d715e9890952657f65c7`.
+Last preceding verified GitHub head: `620cc306a83addb0104fc2c3f328e53e070a0446`.
 Every returned worker commit through that checkpoint has a verified GitHub backup.
 No main merge, public installer deployment or release occurred.
 
@@ -16,6 +16,39 @@ Expanded app end D9000 is owner-approved subject to the retained boot/configurat
 safeguards. Mac alone owns device/Cynthion operations; Hera workers are offline.
 
 ## What is now implemented and checked
+
+### Latest continuation (supersedes earlier running/boot status below)
+
+[verified] The completed Event Horizon installation and one timed boot remain
+as recorded below: full-image readback matched, native USB appeared and ROM
+device40 returned after about 122.5 seconds. Owner screen/audio/control
+observations remain pending. No further device command was sent. Consumed
+device38 installation/boot admissions must never be reused.
+
+[verified] Owner musical approval is integrated at `da6b5943`; nine focused
+Node tests pass. The catalogue preserves false installability and physical
+acceptance flags. Target-dependent wavetable symbol prefixes are fixed at
+`64bf3bc0`; actual Darwin wavetable sanitizer checks passed, and pinned pi32v2
+compiler preprocessing confirmed its empty symbol prefix. This is not a new
+target application build.
+
+[verified] CI run `38599904562` at earlier `9c5b3df3` completed with 11 of 13
+jobs passing; both Python jobs failed. Stale packet audit pins and historical
+catalogue source availability are repaired through `634e99a2`. The Python CI
+checkout now fetches history; 22 focused catalogue/dependency tests pass.
+Darwin linker-flag and large SAVE-fixture repairs await review/integration;
+there is no passing exact-current-head CI claim.
+
+[verified] The named `expanded-d7000` link profile is integrated at `a491c106`
+with an 860,644-byte app budget. A Hera worker is assigned the actual fresh
+all13/55 Event Horizon target link. This reserves budget only; no rescue tail
+is installed or admitted. NOR adapter design is recorded at `620cc306`;
+SPI timeout propagation, IRQ restoration, RAM callgraph, watchdog margin and
+physical sector ownership remain prerequisites to enabling SAVE writes.
+
+Active offline tasks: D7000 target link, semantically valid large SAVE fixture
+and Darwin host flags, and fail-closed NOR transport error propagation. Their
+unique claims/checkouts are on Hera. Mac retains exclusive device ownership.
 
 - The installer chooser offers eight demo candidates including the four
   restored original projects. Event Horizon Showcase is preselected at startup
