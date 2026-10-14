@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT
 """One Event120 boot request after exact offline installation replay.
 
-No flash, upload, retry or boot-success inference. The pending proof source pin
-deliberately prevents use until the reviewed campaign verifier is integrated.
+No flash, upload, retry or boot-success inference. Exact reviewed proof and
+replay source pins gate the completed installation before the single request.
 """
 import argparse
 import ctypes
@@ -23,8 +23,8 @@ sys.path.insert(0, str(ROOT))
 from fm1_fixed_target_reset import canonical, digest, read_file
 from native.event120_reset import CompletionFirstReset
 
-PROOF_SHA = 'pending-independent-campaign-proof'
-REPLAY_SHA = 'pending-independent-install-replay'
+PROOF_SHA = '7715155bfd44ad34df31f5b1ff62dbc4f2982c8568c08ed392cef80e938eb341'
+REPLAY_SHA = 'f90f8601a88d9eae6ae7ee9e455ff2b0965837181003373074c28cb0ddc9b102'
 RESET_SHA = 'f7b75e3448fe30babaed23b70340bab76db1e2c8815d13d22c6bdb00116a770c'
 USB = dict(path='1-1', busnum='1', devnum='38', vid='4c4a', pid='8057')
 _AUTHORIZED = WeakSet()

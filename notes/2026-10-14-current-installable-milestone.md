@@ -125,6 +125,18 @@ review/CI/main integration and public release remain open.
 
 ## Latest continuation
 
+[verified] Event Horizon V2 installation completed: 208 changed sectors and
+the complete 1 MiB flash readback match target SHA
+`145c0280d652b73515e01e2f1f0d88fe33344645463e89d57a2d0048c6aa4657`.
+The completed offline proof replayed 25,347 commands and 57,976 events,
+including the immutable zero-command V1 stop. The initial checker failed
+because its SG mapping fixture assumed an absent nested USB field; corrected
+source pins the actual mapping and separately verifies the backup USB identity.
+The failed check evidence is retained. The corrected actual-bundle proof is
+`event120-install-v2/offline-proof-002.json` in the private bench receipt root.
+Boot/reset focused tests pass (8). No Event Horizon boot has been sent yet.
+Public installability, hardware listening and recovery acceptance remain open.
+
 [verified] Event Horizon Showcase is owner-approved as the default song. The
 845,036-byte Shapes8 candidate contains all thirteen engines and has been
 staged privately on bench01 with the exact device38 208-sector install plan.
