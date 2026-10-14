@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from weakref import WeakSet
 from fm1_bound_diagnostic import BoundDiagnosticSession, _VALIDATED
+from fm1_fixed_loader_backup import LOADER_SHA as FIXED_LOADER_SHA
 from fm1_flash_transaction import load_transaction, encoded, digest, checked_plan_order
 from native.event120_bench_transactions import (
     BASELINE_SHA, MANIFEST_SHA, COMMANDS_SHA, TARGET_SHA, STOCK_SHA,
@@ -60,6 +61,43 @@ class Policy:
     def bind(self, transport):
         self.check_files()
         return Event120Session(self, transport, _VALIDATED)
+
+
+V1_CAMPAIGN_SHA = "e1ccb934a2814f85fc2ad1b5f802f5c982d8e926d1193d0b449f72c89a74bf4f"
+V1_COMMANDS_SHA = "1af816ae7ce0f8e5b2d607cd279c9470468888ae4a343eb7fb00696bb3963ffb"
+V1_MARKER_SHA = "a32770f18f68559923fae7c538e1e3835af9cf33e38d1382f26c331a9d5c395b"
+V1_ADAPTER_SHA = "fc913ba0498c0f45c39120fd4c8bfc1ea95ff1c55c7a918fa73cb4cca5f369d3"
+V1_LOADER_SOURCE_SHA = "79bbe99ce923daaf8af2c701a65ec39a015191313de79676e36622cb8db00afb"
+V1_EVIDENCE_ROOT = Path("/home/claude/.local/share/codex-private/device38-event120-stopped-v1-20261014/extracted")
+
+
+def verify_v1_stopped(evidence_root, campaign_sha256):
+    """Verify the immutable v1 pre-command stop transcript; never opens SG."""
+    root = Path(evidence_root)
+    expected = {"campaign_sha256": V1_CAMPAIGN_SHA, "commands_sha256": V1_COMMANDS_SHA,
+                "consumed_marker_sha256": V1_MARKER_SHA}
+    if (campaign_sha256 != V1_CAMPAIGN_SHA or root != V1_EVIDENCE_ROOT
+            or root.is_symlink() or not root.is_dir()):
+        raise ValueError("Exact preserved v1 campaign evidence required")
+    campaign_raw = pinned(root / "event120-install-campaign.json", V1_CAMPAIGN_SHA, 65536)
+    marker_raw = pinned(root / ".event120-native-install.consumed", V1_MARKER_SHA, 256)
+    commands_raw = pinned(root / "event120-install-v1" / "commands.jsonl", V1_COMMANDS_SHA, 65536)
+    if marker_raw != V1_CAMPAIGN_SHA.encode("ascii") or json.loads(campaign_raw).get("kind") != "fm1-device38-event120-transaction":
+        raise ValueError("Preserved v1 campaign marker or identity differs")
+    rows = [json.loads(line) for line in commands_raw.splitlines()]
+    if len(rows) != 2 or [row.get("event") for row in rows] != [
+            "native_transaction_prepared", "native_transaction_stopped"]:
+        raise ValueError("Prior attempt is not the exact stopped-before-SG transcript")
+    first, final = rows
+    source_sha = first.get("source_sha256", {})
+    if (first.get("campaign_sha256") != V1_CAMPAIGN_SHA or first.get("adapter_sha256") != V1_ADAPTER_SHA
+            or first.get("retry") is not False or source_sha.get("fm1_fixed_loader_backup.py") != V1_LOADER_SOURCE_SHA
+            or final.get("retry") is not False or final.get("error") != "ValueError"
+            or final.get("detail") != "Wrong loader, identity, topology or session binding"):
+        raise ValueError("Prior stopped attempt fields differ")
+    return {"schema": 1, "kind": "event120-v1-stopped-before-sg",
+            **expected, "events": ["native_transaction_prepared", "native_transaction_stopped"],
+            "sg_commands": 0, "reset_commands": 0, "write_intents": 0}
 
 
 def load_policy(directory, *, receipt, direction, variant):
@@ -139,10 +177,18 @@ class Event120Session(BoundDiagnosticSession):
     def __init__(self, policy, transport, authorization):
         if policy not in _POLICIES or authorization is not _VALIDATED:
             raise ValueError("Factory-created Event120 policy required")
-        super().__init__(policy, transport, authorization)
-        required = json.loads(policy.binding_bytes)
-        claim = self._capture_binding()
-        if any(encoded(claim.get(k)) != encoded(v) for k, v in required.items()):
+        self._policy, self._transport = policy, transport
+        self._latched, self._running, self._binding = False, False, None
+        try:
+            claim = self._capture_binding()
+            required = json.loads(policy.binding_bytes)
+            if (claim.get("phase") != "loader" or claim.get("loader_sha256") != FIXED_LOADER_SHA
+                    or not isinstance(claim.get("session_id"), str) or not claim["session_id"].strip()
+                    or claim.get("identity") != json.loads(policy.plan_bytes)["identity"]
+                    or any(encoded(claim.get(k)) != encoded(v) for k, v in required.items())):
+                raise ValueError("Wrong fixed loader, identity, topology or session binding")
+            self._binding = encoded(claim)
+        except BaseException:
             self._stop()
-            raise ValueError("Device38 USB/backup/SG binding differs")
+            raise
 

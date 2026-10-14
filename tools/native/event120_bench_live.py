@@ -16,14 +16,18 @@ from weakref import WeakSet
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from native.event120_bench_policy import load_policy, USB, PLANS
+from native.event120_bench_policy import (
+    load_policy, USB, PLANS, verify_v1_stopped, V1_CAMPAIGN_SHA, V1_COMMANDS_SHA,
+    V1_MARKER_SHA, V1_EVIDENCE_ROOT)
 from native.event120_bench_transactions import pinned, MANIFEST_SHA, BASELINE_SHA
 from fm1_flash_transaction import digest
 
-KIND = "fm1-device38-event120-transaction"
+KIND = "fm1-device38-event120-transaction-v2"
+V1_ADAPTER_SHA = "fc913ba0498c0f45c39120fd4c8bfc1ea95ff1c55c7a918fa73cb4cca5f369d3"
+V1_LOADER_SOURCE_SHA = "79bbe99ce923daaf8af2c701a65ec39a015191313de79676e36622cb8db00afb"
 SOURCES = {
  "native/event120_bench_transactions.py":"a0711605440b5414feda742f55e458a5ea9628da6bfebb98ffa48a58dc63a2c9",
- "native/event120_bench_policy.py":"80617c7bcf008e886274b006dde109dcd0378160c6f0b1db2efb6bd7e6c00258",
+ "native/event120_bench_policy.py":"528a3020674f158cec796cf9b77e4275f35c6651434ca7e760ed1edfcf007355",
  "fm1_fixed_loader_backup.py":"79bbe99ce923daaf8af2c701a65ec39a015191313de79676e36622cb8db00afb",
  "fm1_uboot_read.py":"28317ee56a489e0bb38de981fe0d0c4260384be570349795741fdb9a98d6ae57",
  "native/expanded_sg.py":"f18e73b658c9d0b06b03b528c6fd4dd4da511a95102ea44252836d885e1a3700",
@@ -57,6 +61,7 @@ class Prepared:
     header_type: type
     evidence: tuple
     source_sha256: str
+    prior_v1_stop_proof: dict
 
     def check(self):
         if self not in _AUTHORIZED:
@@ -67,6 +72,7 @@ class Prepared:
             pinned(path, sha, limit)
         for p in self.policies:
             p.check_files()
+        verify_v1_stopped(V1_EVIDENCE_ROOT, V1_CAMPAIGN_SHA)
 
 
 def _read_campaign(path):
@@ -85,14 +91,22 @@ def prepare(path, *, now=None):
     """Validate exact campaign/evidence and passively observe SG mapping only."""
     path, raw = _read_campaign(path)
     c = json.loads(raw)
-    fields = {"schema","kind","adapter_sha256","observed_at","receipt","plan","direction","variant","output","sg_binding"}
-    if (set(c) != fields or type(c["schema"]) is not int or c["schema"] != 1 or c["kind"] != KIND
+    fields = {"schema","kind","adapter_sha256","observed_at","receipt","plan","direction","variant","output","sg_binding","prior_v1_stop"}
+    if (set(c) != fields or type(c["schema"]) is not int or c["schema"] != 2 or c["kind"] != KIND
             or type(c["observed_at"]) not in (int,float) or not math.isfinite(c["observed_at"])):
         raise ValueError("Exact device38 Event120 campaign required")
     age = (time.time() if now is None else now)-c["observed_at"]
     if not 0 <= age <= 120:
         raise ValueError("Fresh passive observation required")
     pinned(Path(__file__), c["adapter_sha256"])
+    prior = c["prior_v1_stop"]
+    expected_prior = {"evidence_root": str(V1_EVIDENCE_ROOT),
+        "campaign_sha256": V1_CAMPAIGN_SHA, "commands_sha256": V1_COMMANDS_SHA,
+        "consumed_marker_sha256": V1_MARKER_SHA, "adapter_sha256": V1_ADAPTER_SHA,
+        "fixed_loader_source_sha256": V1_LOADER_SOURCE_SHA}
+    if prior != expected_prior:
+        raise ValueError("Exact immutable v1 stopped-at-preflight evidence required")
+    prior_proof = verify_v1_stopped(prior["evidence_root"], prior["campaign_sha256"])
     bridge, reader, sg = sources()
     receipt, plan, output = (Path(c[k]) for k in ("receipt","plan","output"))
     if any(not p.is_absolute() for p in (receipt,plan,output)):
@@ -108,11 +122,15 @@ def prepare(path, *, now=None):
     observed = bridge.discover_sg(USB)
     if json.dumps(observed,sort_keys=True) != json.dumps(c["sg_binding"],sort_keys=True):
         raise ValueError("Live passive SG/sysfs mapping differs")
-    marker = parent / (".event120-"+c["variant"]+"-"+c["direction"]+".consumed")
+    marker = parent / (".event120-v2-"+c["variant"]+"-"+c["direction"]+".consumed")
     if os.path.lexists(marker):
         raise ValueError("Variant/direction consumed; no automatic retry")
     p = Prepared(raw,digest(raw),(policy,),json.dumps(c["sg_binding"],sort_keys=True,separators=(",",":"),allow_nan=False).encode("ascii"),
-       bridge,reader.SGHeader,((path,digest(raw),65536),),c["adapter_sha256"])
+       bridge,reader.SGHeader,((path,digest(raw),65536),
+       (V1_EVIDENCE_ROOT/"event120-install-campaign.json",V1_CAMPAIGN_SHA,65536),
+       (V1_EVIDENCE_ROOT/".event120-native-install.consumed",V1_MARKER_SHA,256),
+       (V1_EVIDENCE_ROOT/"event120-install-v1"/"commands.jsonl",V1_COMMANDS_SHA,65536)),
+       c["adapter_sha256"], prior_proof)
     _AUTHORIZED.add(p)
     p.check()
     return p
@@ -128,7 +146,7 @@ def run(prepared, *, session_factory=None, now=None):
     out = Path(c["output"])
     out.mkdir(mode=0o700,exist_ok=False)
     prepared.bridge.sync_dir(out.parent)
-    marker = out.parent / (".event120-"+c["variant"]+"-"+c["direction"]+".consumed")
+    marker = out.parent / (".event120-v2-"+c["variant"]+"-"+c["direction"]+".consumed")
     with prepared.bridge.private_file(marker) as fp:
         fp.write(prepared.campaign_sha256.encode("ascii")); fp.flush(); os.fsync(fp.fileno())
     prepared.bridge.sync_dir(out.parent)
@@ -140,7 +158,7 @@ def run(prepared, *, session_factory=None, now=None):
         log("native_transaction_prepared",campaign_sha256=prepared.campaign_sha256,
             source_sha256=SOURCES,adapter_sha256=c["adapter_sha256"],
             backup_manifest_sha256=MANIFEST_SHA,sg_binding=c["sg_binding"],
-            variant=c["variant"],direction=c["direction"],retry=False)
+            variant=c["variant"],direction=c["direction"],prior_v1_stop_proof=prepared.prior_v1_stop_proof,retry=False)
         try:
             if session_factory is None:
                 _,_,sg=sources()
@@ -155,7 +173,8 @@ def run(prepared, *, session_factory=None, now=None):
             final=dict(campaign_sha256=prepared.campaign_sha256,direction=c["direction"],
                 variant=c["variant"],verified_sha256=expected,sectors_written=result.get("sectors_written"),
                 full_flash_readback_verified=True,boot_observed=False,physical_recovery_verified=False,
-                kernel_exclusivity=False,hardware_admitted=False,installable=False)
+                kernel_exclusivity=False,hardware_admitted=False,installable=False,
+                prior_v1_stop_proof=prepared.prior_v1_stop_proof)
             log("native_transaction_completed",**final)
             with prepared.bridge.private_file(out/"result.json","w") as fp:
                 json.dump(final,fp,sort_keys=True);fp.write("\n");fp.flush();os.fsync(fp.fileno())
