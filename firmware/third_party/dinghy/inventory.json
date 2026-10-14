@@ -10,7 +10,7 @@
     "hal/fm1_adc.h": "1917870bd802de9134d33335efbcf886b296705dff06688925fd7325589c0c1a",
     "hal/fm1_audio.h": "22351440699748546e932098e3016c618d6137dd0ae34557e08a107641d4e62e",
     "hal/fm1_cc.h": "46c533a0926ba9298ae36705f857ed609a61b95511ba7f0d1800857b4760dd73",
-    "hal/fm1_flash.h": "3e9ba8a117c3786bb229b8ce9d86823f36b1e58e3280fd6e635098db0b3ca291",
+    "hal/fm1_flash.h": "94ef8a6b727f8a6425af08c3a197aef3988d4cad85ac401d99c65a45d7b1c26e",
     "hal/fm1_gpio.h": "5e3937e32a3b4b9b9ae622c5b42c8819ec8a16f2d76dbddec91654703c77a216",
     "hal/fm1_guard.h": "dda2ebdd3024aab7700f8ef00cc55de23c0b369be1d889741d2058eb5c33ce74",
     "hal/fm1_input.h": "7579aa8e061e4b23a86aee693f1d6004dc552b888457ea507f1ba3d941465241",
@@ -38,8 +38,8 @@
   "local_modifications": {
     "hal/fm1_flash.h": {
       "upstream_sha256": "ee9700389d8bf842606b7210e52e125c085a44fbb5d30301cf189d823c4d5e90",
-      "local_sha256": "3e9ba8a117c3786bb229b8ce9d86823f36b1e58e3280fd6e635098db0b3ca291",
-      "reason": "Preserves the prior interrupt-enable state, accounts for NOR status-poll deadlines, validates caller source spans, and stages each program page in aligned SRAM before the XIP-off RAM writer. A narrow FL_PROGRAM_PAGE seam lets the host fixture assert that the RAM writer receives the staged page pointer. Intentional local FM-1 changes; upstream source remains identified by revision and original hash."
+      "local_sha256": "94ef8a6b727f8a6425af08c3a197aef3988d4cad85ac401d99c65a45d7b1c26e",
+      "reason": "Preserves prior interrupt-enable state, accounts for NOR status-poll deadlines, validates caller source spans, stages each program page in aligned SRAM, and now refuses erase/program before IRQ masking unless the live SP lies in an app.ld stack window with 1 KiB headroom, the staged page is fully on that stack, and the timing word is aligned ordinary SRAM. A narrow FL_PROGRAM_PAGE seam lets the host fixture assert the staged page pointer. Intentional local FM-1 changes; upstream source remains identified by revision and original hash."
     },
     "hal/fm1_sys.h": {
       "upstream_sha256": "5d56781274406b0a1bf816c66d86c0b0b23b49757cc6f5644df566127827a9a7",
