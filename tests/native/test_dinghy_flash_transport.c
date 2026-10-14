@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-static volatile uint32_t reg_sfc, reg_spi, reg_buf, reg_iomap, reg_out, reg_dir, reg_cache, reg_timer;
+static volatile uint32_t reg_sfc, reg_spi, reg_buf, reg_iomap, reg_out, reg_dir, reg_cache, reg_timer, reg_icfg;
 static unsigned transfer_index, fail_transfer = (unsigned)-1;
 static uint8_t replies[16];
 static unsigned reply_count, reply_index;
@@ -87,6 +87,7 @@ static int test_spi_wait(void)
 }
 static void test_sfc_restore(uint32_t value)
 {
+    assert((reg_icfg & 0x100u) == 0u);
     ++sfc_restores;
     if (destructive_pending) assert(ready_observed && !nor_wip);
     reg_sfc = value;
@@ -97,8 +98,8 @@ static void test_sfc_restore(uint32_t value)
 #define FL_SPI_WAIT() test_spi_wait()
 #define FL_CS_LEVEL(high) test_cs_level(high)
 #define FL_SFC_RESTORE(value) test_sfc_restore(value)
-#define FL_IRQ_DISABLE() ((void)0)
-#define FL_IRQ_RESTORE_ENABLED() ((void)0)
+#define FL_IRQ_SAVE(flags) do { (flags) = reg_icfg; reg_icfg &= ~0x100u; } while (0)
+#define FL_IRQ_RESTORE(flags) (reg_icfg = (flags))
 /* Host mocks test control flow; target link checks separately prove RAM
  * placement. Avoid ELF-only section syntax in the Mach-O host harness. */
 #define RAMFN __attribute__((noinline, used))
@@ -114,6 +115,7 @@ static void reset_mock(uint32_t iomap)
     reg_dir = 1;
     reg_cache = 0x4000u;
     reg_timer = 24u;
+    reg_icfg = 0;
     transfer_index = 0;
     fail_transfer = (unsigned)-1;
     reply_count = reply_index = 0;
@@ -355,6 +357,45 @@ static void test_ready_deadline_elapsed_time_survives_timer_wrap(void)
     assert_restored(0, 0x1255u);
 }
 
+static void test_irq_save_restore_preserves_prior_state_and_nesting(void)
+{
+    uint32_t outer, inner;
+    reset_mock(0);
+    reg_icfg = 0x5A5u; /* global enable plus unrelated ICFG bits */
+    outer = irq_save();
+    assert(outer == 0x5A5u);
+    assert(reg_icfg == (0x5A5u & ~0x100u));
+
+    inner = irq_save(); /* already disabled: nested save must retain that */
+    assert(inner == (0x5A5u & ~0x100u));
+    assert(reg_icfg == inner);
+    irq_restore(inner);
+    assert(reg_icfg == (0x5A5u & ~0x100u));
+    irq_restore(outer);
+    assert(reg_icfg == 0x5A5u);
+
+    reg_icfg = 0x45u; /* caller entered with global interrupts disabled */
+    outer = irq_save();
+    assert(outer == 0x45u && reg_icfg == 0x45u);
+    irq_restore(outer);
+    assert(reg_icfg == 0x45u);
+}
+
+static void test_flash_wrapper_restores_prior_irq_enable(void)
+{
+    static const uint8_t wel[] = {0x02};
+    unsigned initial;
+    for (initial = 0; initial < 2; ++initial) {
+        uint32_t took = 0;
+        reset_mock(0x20u);
+        replies_set(wel, 1);
+        reg_icfg = initial ? 0x1A5u : 0xA5u;
+        assert(fl_erase4k(0x97000u, &took) == 0);
+        assert(ready_observed && !nor_wip);
+        assert(reg_icfg == (initial ? 0x1A5u : 0xA5u));
+    }
+}
+
 static void test_exit_preserves_pin_owner_bit(void)
 {
     unsigned bit;
@@ -384,6 +425,8 @@ int main(void)
     test_ready_deadline_uses_post_transaction_time();
     test_unreadable_late_status_preserves_transport_error();
     test_ready_deadline_elapsed_time_survives_timer_wrap();
+    test_irq_save_restore_preserves_prior_state_and_nesting();
+    test_flash_wrapper_restores_prior_irq_enable();
     test_exit_preserves_pin_owner_bit();
     return 0;
 }
