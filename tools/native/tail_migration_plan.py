@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT
 """Offline first-format analysis for the proposed FM-1 storage48 tail map.
 
-This module never reads or writes a device. A returned sequence is conditional
-on external migration/recovery review and the monotonic-NOR erase model; it is
+This module never reads or writes a device and never returns an erase sequence.
+Its record-page result depends on the stated monotonic-NOR erase model; it is
 not a write authorization or physical erase proof.
 """
 import hashlib
