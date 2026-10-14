@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import select
 import subprocess
 import tempfile
 import threading
@@ -85,6 +86,9 @@ class DockerJobAdapter:
         self.jobs: dict[str, WorkerSnapshot] = {}
         self.created: dict[str, float] = {}
         self.job_dirs: dict[str, Path] = {}
+        self.threads: dict[str, threading.Thread] = {}
+        self.processes: dict[str, subprocess.Popen] = {}
+        self.stopping = False
         self.lock = threading.RLock()
         self.semaphore = threading.BoundedSemaphore(capacity)
 
@@ -99,9 +103,15 @@ class DockerJobAdapter:
             raise ValueError("invalid image pin")
         if self.config.image_reference.split("@", 1)[-1] != template.image_digest:
             raise ValueError("request template differs from pinned worker image")
+        with self.lock:
+            if self.stopping:
+                raise QueueFull
         if not self.semaphore.acquire(blocking=False):
             raise QueueFull
         with self.lock:
+            if self.stopping:
+                self.semaphore.release()
+                raise QueueFull
             if build_id in self.jobs:
                 self.semaphore.release()
                 raise ValueError("duplicate build ID")
@@ -146,8 +156,10 @@ class DockerJobAdapter:
             self.job_dirs[build_id] = base
             self.created[build_id] = self.clock()
             self.jobs[build_id] = WorkerSnapshot("queued")
-        threading.Thread(target=self._run, args=(build_id,), daemon=True,
-                         name="lunar-build-" + build_id[:8]).start()
+            worker = threading.Thread(target=self._run, args=(build_id,), daemon=True,
+                                      name="lunar-build-" + build_id[:8])
+            self.threads[build_id] = worker
+            worker.start()
 
     def _command(self, build_id: str, base: Path) -> list[str]:
         cfg = self.config
@@ -184,7 +196,6 @@ class DockerJobAdapter:
         self._set(build_id, WorkerSnapshot("running"))
         proc = None
         log = bytearray()
-        overflow = threading.Event()
         outcome = WorkerSnapshot("failed")
 
         try:
@@ -192,36 +203,49 @@ class DockerJobAdapter:
             proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL,
                                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                     close_fds=True)
-
-            def drain():
-                assert proc.stdout is not None
-                while True:
-                    block = proc.stdout.read(65536)
-                    if not block:
-                        return
-                    room = self.config.max_log_bytes - len(log)
-                    if room > 0:
-                        log.extend(block[:room])
-                    if len(block) > room:
-                        overflow.set()
-                        try:
-                            proc.kill()
-                        except OSError:
-                            pass
-                        return
-
-            reader = threading.Thread(target=drain, daemon=True)
-            reader.start()
+            with self.lock:
+                self.processes[build_id] = proc
+                stopping = self.stopping
+            if stopping:
+                proc.kill()
+                raise RuntimeError("service is shutting down")
+            if proc.stdout is None:
+                raise RuntimeError("Docker worker output pipe is unavailable")
+            fd = proc.stdout.fileno()
+            os.set_blocking(fd, False)
             deadline = time.monotonic() + self.config.timeout_seconds
-            while proc.poll() is None:
-                if overflow.is_set():
-                    raise RuntimeError("worker log exceeded configured cap")
-                if time.monotonic() >= deadline:
+            drain_deadline = None
+            eof = False
+            while True:
+                returncode = proc.poll()
+                now = time.monotonic()
+                if returncode is None and now >= deadline:
                     raise TimeoutError("worker exceeded time limit")
-                time.sleep(0.2)
-            reader.join()
-            if overflow.is_set():
-                raise RuntimeError("worker log exceeded configured cap")
+                if returncode is not None and drain_deadline is None:
+                    drain_deadline = now + 5.0
+                if eof:
+                    if returncode is not None:
+                        break
+                    time.sleep(0.1)
+                    continue
+                ready, _, _ = select.select([fd], [], [], 0.1)
+                if ready:
+                    try:
+                        block = os.read(fd, 65536)
+                    except BlockingIOError:
+                        block = None
+                    if block == b"":
+                        eof = True
+                    elif block:
+                        room = self.config.max_log_bytes - len(log)
+                        if len(block) > room:
+                            if room > 0:
+                                log.extend(block[:room])
+                            raise RuntimeError("worker log exceeded configured cap")
+                        log.extend(block)
+                if (drain_deadline is not None and not eof
+                        and time.monotonic() >= drain_deadline):
+                    raise TimeoutError("worker output pipe did not close after process exit")
             if proc.returncode != 0:
                 raise RuntimeError("diagnostic worker failed")
             artifact_path = result_dir / "app.bin"
@@ -241,7 +265,6 @@ class DockerJobAdapter:
         except Exception:
             outcome = WorkerSnapshot("failed")
         finally:
-            # Stop the Docker client before removing by our server-generated name.
             if proc is not None and proc.poll() is None:
                 try:
                     proc.kill()
@@ -250,6 +273,11 @@ class DockerJobAdapter:
                 try:
                     proc.wait(timeout=5)
                 except subprocess.TimeoutExpired:
+                    outcome = WorkerSnapshot("failed")
+            if proc is not None and proc.stdout is not None:
+                try:
+                    proc.stdout.close()
+                except (OSError, ValueError):
                     outcome = WorkerSnapshot("failed")
             try:
                 removed = None
@@ -261,8 +289,6 @@ class DockerJobAdapter:
                     if removed.returncode == 0:
                         break
                     if attempt == 0:
-                        # A timed-out Docker client may have raced container
-                        # creation. Retry once by the same opaque server name.
                         time.sleep(0.2)
                 if removed is None or removed.returncode != 0:
                     outcome = WorkerSnapshot("failed")
@@ -274,8 +300,60 @@ class DockerJobAdapter:
                 os.chmod(log_path, 0o600)
             except OSError:
                 outcome = WorkerSnapshot("failed")
-            self._set(build_id, outcome)
+            with self.lock:
+                self.processes.pop(build_id, None)
+                self.threads.pop(build_id, None)
+                if build_id in self.jobs:
+                    self.jobs[build_id] = outcome
             self.semaphore.release()
+
+    def shutdown(self, timeout_seconds: float = 30.0) -> None:
+        # Stop admission, kill active named containers, and boundedly drain workers.
+        if not isinstance(timeout_seconds, (int, float)) or not 1 <= timeout_seconds <= 120:
+            raise ValueError("shutdown timeout must be between 1 and 120 seconds")
+        with self.lock:
+            self.stopping = True
+            active = [build_id for build_id, snapshot in self.jobs.items()
+                      if snapshot.status in ("queued", "running")]
+            workers = {build_id: self.threads.get(build_id) for build_id in active}
+            processes = {build_id: self.processes.get(build_id) for build_id in active}
+        for build_id, proc in processes.items():
+            if proc is not None and proc.poll() is None:
+                try:
+                    proc.kill()
+                except OSError:
+                    pass
+        for build_id in active:
+            try:
+                subprocess.run(
+                    [self.config.docker_binary, "rm", "--force", "lunar-private-" + build_id],
+                    stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL, timeout=5, check=False)
+            except Exception:
+                pass
+        end = time.monotonic() + timeout_seconds
+        for worker in workers.values():
+            if worker is not None:
+                worker.join(max(0.0, end - time.monotonic()))
+        with self.lock:
+            survivors = [build_id for build_id in active
+                         if (worker := self.threads.get(build_id)) is not None and worker.is_alive()]
+            survivor_procs = {build_id: self.processes.get(build_id) for build_id in survivors}
+        if survivors:
+            for build_id, proc in survivor_procs.items():
+                if proc is not None and proc.poll() is None:
+                    try:
+                        proc.kill()
+                    except OSError:
+                        pass
+                try:
+                    subprocess.run(
+                        [self.config.docker_binary, "rm", "--force", "lunar-private-" + build_id],
+                        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL, timeout=5, check=False)
+                except Exception:
+                    pass
+            raise TimeoutError("installer workers did not drain before shutdown deadline")
 
     def get(self, build_id: str) -> WorkerSnapshot | None:
         with self.lock:

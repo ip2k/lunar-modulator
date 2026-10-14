@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: MIT
 """Private/local build-service API prototype; no Kubernetes or build execution."""
 from __future__ import annotations
-import hashlib, json, re, secrets, threading, time
+import asyncio, hashlib, json, re, secrets, threading, time
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Literal, Protocol
 from fastapi import FastAPI, Request
@@ -236,8 +237,17 @@ def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
         raise ValueError("retention_seconds must be between 60 and 86400")
     if not module_kinds or not project_ids:
         raise ValueError("trusted module and project catalogues are required")
+    @asynccontextmanager
+    async def lifespan(_app):
+        try:
+            yield
+        finally:
+            shutdown = getattr(adapter, "shutdown", None)
+            if callable(shutdown):
+                await asyncio.to_thread(shutdown)
+
     app = FastAPI(title="Private Lunar diagnostic build prototype", docs_url=None,
-                  redoc_url=None, openapi_url=None)
+                  redoc_url=None, openapi_url=None, lifespan=lifespan)
     admissions: dict[str, Admission] = {}
     lock = threading.Lock()
 
