@@ -4364,3 +4364,28 @@ geometry/candidate files pass 60 tests. See
 notes/2026-10-14-d7000-offline-candidate.md. This creates no rescue image and
 does not widen a physical adapter. Fresh Hera target link has returned
 845036 B with identical installed app hash; worker note awaits integration.
+
+## Device44 repeat and offline integration — 2026-10-14
+
+Source checkpoint before this note: 71c0edd93d42e65bf5f2e2c6bde5082b308990ac,
+verified on origin feature/2026-10-11@installable-firmware. Companion SET
+selection, first-format interruption/replay models, Darwin sequence fixture
+flags and device44-specific read/boot adapters are integrated and backed up.
+Combined Hera SET regressions passed 86 tests with 18 explicit skips; the
+first-format/migration models passed 32 focused checks. These are offline
+checks, not physical persistence acceptance.
+
+Fresh device44 paired full-flash reads match the installed Event Horizon
+target. One boot request was sent without retry after ambiguous detach;
+native USB device45 appeared. Owner watched acceptance and timed ROM return
+remain pending; see notes/2026-10-14-event120-repeat44-hardware.md. Read/boot
+markers are consumed. Pico2W status replay is physically verified but FAULT
+and unconfirmed GPIO wiring leave independent recovery unproven.
+
+NOR guard worker 229e5dd is GitHub-backed but not integrated: root requested
+corrections to entry-relative versus post-guard stack depth receipt fields
+and explicit rejection of additional RAM-entry SP changes. A separate Hera
+worker is inventorying the remaining web installer implementation gates.
+SAVE remains disarmed. Continue exact-source target checks, recovery wiring,
+watched all13/full-song acceptance, persistence/migration/rollback, actual
+browser flashing, required CI/review/main integration and release. Goal ACTIVE.
