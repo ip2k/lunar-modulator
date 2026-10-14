@@ -20,20 +20,48 @@ from module_selection import wavetable_namespaces
 
 ROOT = Path(__file__).resolve().parents[2]
 WAVETABLE_PROFILE = 'compressed-required-banks-flash-plaits-v1'
+SHAPES8_WAVETABLE_PROFILE = 'compressed-required-banks-ram-plaits-braids-shapes8-v1'
 BRAIDS_TABLE = dict(namespace='braids', symbol='wt_waves', width=1, raw_bytes=33024,
                     raw_sha256='c672fccb061496d0229bfc5c2d55ec61f367e1539dda5870fd667a059c90f634')
+SHAPES8_TABLES = (
+    dict(namespace='plaits', symbol='wav_integrated_waves', width=2, raw_bytes=50688,
+         raw_sha256='bd1d04177e240247de3224ef8e6f52afd907d8ae1a9971e0ce4ba68258e7ecea',
+         packed_bytes=32513, packed_sha256='2cbdd706ef8cd7b97e705b139eab7a328ff4cb03257326faf34c396ac5b21255',
+         fnv32=2231692768, generated_source_sha256='b5dacba5b7df4af0c5966f5bd8906bd2c30486ccf8ef156db02248e6d469787c'),
+    dict(namespace='braids', symbol='wt_waves', width=1, raw_bytes=33024,
+         raw_sha256='c672fccb061496d0229bfc5c2d55ec61f367e1539dda5870fd667a059c90f634',
+         packed_bytes=24159, packed_sha256='d05f3f0b852719327983c82418a1b6b9e4c2414430078267653a77feb2ed1952',
+         fnv32=3119621762, generated_source_sha256='c3c20d193d012125c53b2d2cba811c33c559462c070fed2702dc896727f2b82e'),
+)
 TARGET_STORAGE = dict(rgb565_bytes=220832, indexed_bytes=163744, pool_credit_bytes=57088)
 BASE_INSTANCE_POOL_BYTES = 192000
 SHAPES_VOICES = 12
 
 
 def checked_wavetable_profile(verification, selected):
-    expected_namespaces = wavetable_namespaces(selected, flash_plaits=True)
+    """Validate one of the two explicitly reviewed linked storage profiles."""
+    voices = verification.get('shapes_voices')
+    flash_plaits = verification.get('flash_plaits_wavetables')
+    if type(voices) is not int or type(flash_plaits) is not bool:
+        raise ValueError('Linked image wavetable profile differs from fixed policy/module selection')
+
+    if voices == SHAPES_VOICES and flash_plaits is True:
+        profile = WAVETABLE_PROFILE
+        expected_namespaces = wavetable_namespaces(selected, flash_plaits=True)
+        fixed_rows = None
+        indexed = True
+    elif voices == 8 and flash_plaits is False:
+        if not {'macro', 'shapes'}.issubset(set(selected)):
+            raise ValueError('Shapes8 compressed-RAM profile requires Macro and Shapes modules')
+        profile = SHAPES8_WAVETABLE_PROFILE
+        expected_namespaces = ['plaits', 'braids']
+        fixed_rows = {row['namespace']: row for row in SHAPES8_TABLES}
+        indexed = True
+    else:
+        raise ValueError('Linked image wavetable profile differs from fixed policy/module selection')
+
     rows = verification.get('compressed_wave_tables')
-    if (verification.get('indexed_tft') is not True
-            or verification.get('flash_plaits_wavetables') is not True
-            or type(verification.get('shapes_voices')) is not int
-            or verification['shapes_voices'] != SHAPES_VOICES
+    if (verification.get('indexed_tft') is not indexed
             or not isinstance(rows, list)
             or [row.get('namespace') if isinstance(row, dict) else None for row in rows]
                != expected_namespaces):
@@ -41,24 +69,31 @@ def checked_wavetable_profile(verification, selected):
     checked_rows = []
     expected_raw_bytes = 0
     for row, namespace in zip(rows, expected_namespaces):
-        if namespace != BRAIDS_TABLE['namespace']:
-            raise ValueError('Unsupported compressed wavetable namespace')
-        if (set(row) != {'namespace', 'symbol', 'width', 'raw_bytes', 'packed_bytes',
-                         'raw_sha256', 'packed_sha256', 'fnv32', 'generated_source_sha256'}
-                or any(row.get(key) != value for key, value in BRAIDS_TABLE.items())
-                or type(row.get('width')) is not int
-                or type(row.get('raw_bytes')) is not int):
+        if not isinstance(row, dict):
             raise ValueError('Linked compressed wavetable source identity is stale')
-        if (type(row.get('packed_bytes')) is not int
-                or not 0 < row['packed_bytes'] <= BRAIDS_TABLE['raw_bytes']
-                or not isinstance(row.get('packed_sha256'), str)
-                or not re.fullmatch(r'[0-9a-f]{64}', row['packed_sha256'])
-                or not isinstance(row.get('generated_source_sha256'), str)
-                or not re.fullmatch(r'[0-9a-f]{64}', row['generated_source_sha256'])
-                or type(row.get('fnv32')) is not int or not 0 <= row['fnv32'] <= 0xffffffff):
-            raise ValueError('Linked compressed wavetable metadata is malformed')
+        if fixed_rows is not None:
+            expected = fixed_rows[namespace]
+            if set(row) != set(expected) or row != expected:
+                raise ValueError('Linked Shapes8 compressed wavetable identity is stale')
+        else:
+            if namespace != BRAIDS_TABLE['namespace']:
+                raise ValueError('Unsupported compressed wavetable namespace')
+            if (set(row) != {'namespace', 'symbol', 'width', 'raw_bytes', 'packed_bytes',
+                             'raw_sha256', 'packed_sha256', 'fnv32', 'generated_source_sha256'}
+                    or any(row.get(key) != value for key, value in BRAIDS_TABLE.items())
+                    or type(row.get('width')) is not int
+                    or type(row.get('raw_bytes')) is not int):
+                raise ValueError('Linked compressed wavetable source identity is stale')
+            if (type(row.get('packed_bytes')) is not int
+                    or not 0 < row['packed_bytes'] <= BRAIDS_TABLE['raw_bytes']
+                    or not isinstance(row.get('packed_sha256'), str)
+                    or not re.fullmatch(r'[0-9a-f]{64}', row['packed_sha256'])
+                    or not isinstance(row.get('generated_source_sha256'), str)
+                    or not re.fullmatch(r'[0-9a-f]{64}', row['generated_source_sha256'])
+                    or type(row.get('fnv32')) is not int or not 0 <= row['fnv32'] <= 0xffffffff):
+                raise ValueError('Linked compressed wavetable metadata is malformed')
         checked_rows.append(dict(row))
-        expected_raw_bytes += BRAIDS_TABLE['raw_bytes']
+        expected_raw_bytes += row['raw_bytes']
     storage = verification.get('target_app_storage')
     if (not isinstance(storage, dict) or storage != TARGET_STORAGE
             or any(type(storage.get(key)) is not int for key in TARGET_STORAGE)):
@@ -67,10 +102,9 @@ def checked_wavetable_profile(verification, selected):
     if (type(verification.get('instance_pool_bytes')) is not int
             or verification['instance_pool_bytes'] != expected_pool):
         raise ValueError('Linked instance pool does not match selected wavetable profile')
-    return dict(wavetable_profile=WAVETABLE_PROFILE, compressed_wave_tables=checked_rows,
-                indexed_tft=True, flash_plaits_wavetables=True, shapes_voices=SHAPES_VOICES,
+    return dict(wavetable_profile=profile, compressed_wave_tables=checked_rows,
+                indexed_tft=True, flash_plaits_wavetables=flash_plaits, shapes_voices=voices,
                 instance_pool_bytes=expected_pool, target_app_storage=dict(TARGET_STORAGE))
-
 
 
 
@@ -158,14 +192,24 @@ def checked_link_receipt(selection, prepared, verification, artifact, app, elf, 
                 full_song_default_accepted=False)
 
 
+def wavetable_build_flags(profile):
+    if profile == WAVETABLE_PROFILE:
+        return ['--shapes-voices', str(SHAPES_VOICES), '--indexed-tft',
+                '--compressed-wavetables', '--flash-plaits-wavetables']
+    if profile == SHAPES8_WAVETABLE_PROFILE:
+        return ['--shapes-voices', '8', '--indexed-tft', '--compressed-wavetables']
+    raise ValueError('Unsupported named wavetable profile')
+
+
 def read_report(path):
     return json.loads(bounded_read(path, 16 * 1048576), object_pairs_hook=unique_object)
 
 
 def build_selection(request, state_tool, toolchain, catalogue, output, *,
-                    runtime_mode='diagnostic'):
+                    runtime_mode='diagnostic', wavetable_profile=WAVETABLE_PROFILE):
     if runtime_mode not in ('diagnostic', 'song-diagnostic'):
         raise ValueError('Only bounded diagnostic runtime modes are supported')
+    profile_flags = wavetable_build_flags(wavetable_profile)
     output = Path(output)
     output.mkdir(exist_ok=False)
     # Failed builds retain their diagnostic files, but never a success receipt.
@@ -178,8 +222,7 @@ def build_selection(request, state_tool, toolchain, catalogue, output, *,
                     '--catalogue', str(Path(catalogue).resolve()),
                     '--build', str(output / 'link'), '--runtime-mode', runtime_mode,
                     '--stack-watermark', '--flash-layout', 'expanded-d9000',
-                    '--shapes-voices', '12', '--indexed-tft', '--compressed-wavetables',
-                    '--flash-plaits-wavetables', '--prepared-profile', str(prepared_dir),
+                    *profile_flags, '--prepared-profile', str(prepared_dir),
                     '--expected-profile-sha256', manifest_sha, '--link-project-loader',
                     '--link-project-save-service',
                     '--startup-project-index', str(selection['startup_index'])], check=True)
@@ -205,11 +248,15 @@ def main():
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--runtime-mode', choices=('diagnostic', 'song-diagnostic'),
                         default='diagnostic', help='Bounded ROM-return deadline; never an admission')
+    parser.add_argument('--wavetable-profile',
+                        choices=(WAVETABLE_PROFILE, SHAPES8_WAVETABLE_PROFILE),
+                        default=WAVETABLE_PROFILE, help='Named reviewed memory profile')
     args = parser.parse_args()
     try:
         request = json.loads(bounded_read(args.request, 65536), object_pairs_hook=unique_object)
         result = build_selection(request, args.state_tool, args.toolchain, args.catalogue,
-                                 args.out, runtime_mode=args.runtime_mode)
+                                 args.out, runtime_mode=args.runtime_mode,
+                                 wavetable_profile=args.wavetable_profile)
     except (ValueError, OSError, KeyError, TypeError, subprocess.CalledProcessError) as error:
         parser.error(str(error))
     print(json.dumps(result, indent=2))

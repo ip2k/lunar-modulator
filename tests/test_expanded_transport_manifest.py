@@ -10,6 +10,7 @@ sys.path.insert(0, str(ROOT / 'tools/native'))
 import expanded_candidate
 import expanded_flash_profile as expanded
 import expanded_transport_manifest as manifest
+from build_demo_image import SHAPES8_TABLES, WAVETABLE_PROFILE, SHAPES8_WAVETABLE_PROFILE, TARGET_STORAGE
 from tests.test_native_probe_artifact import fixture
 from tests.test_raw_flash_profile import sample  # noqa: F401
 
@@ -34,6 +35,10 @@ def prepared(sample):
                  startup_project_id=selection['startup_project_id'],
                  app_sha256=manifest._sha256(app), elf_sha256=manifest._sha256(elf),
                  app_bytes=len(app), app_budget_bytes=expanded.APP_BUDGET,
+                 module_selection=dict(selected=['trio']),
+                 wavetable_profile=WAVETABLE_PROFILE, compressed_wave_tables=[],
+                 indexed_tft=True, flash_plaits_wavetables=True, shapes_voices=12,
+                 instance_pool_bytes=249088, target_app_storage=dict(TARGET_STORAGE),
                  installable=False, hardware_admitted=False, hardware_tested=False)
     return sample['baseline'], target, app, elf, candidate_receipt, image, selection
 
@@ -52,16 +57,34 @@ def test_manifest_rechecks_geometry_binds_receipts_and_puts_directory_last(sampl
                                            if s != result['directory_sector']]
     assert result['sector_order'][-1] == result['directory_sector'] == 0x4000
     assert result['protected_ranges'] == [[0, 0x4000], [0xD9000, 0x100000]]
+    assert result['wavetable_profile'] == WAVETABLE_PROFILE
+    assert result['wavetable_receipt_verified'] is True
     assert result['device_io_performed'] is False
     assert result['physical_writer_ready'] is False
     assert result['settings_migration_verified'] is False
     assert result['installable'] is False
 
 
+def test_manifest_accepts_exact_reviewed_shapes8_compressed_ram_profile(sample):
+    baseline, target, app, elf, candidate_receipt, image, selection = prepared(sample)
+    image['module_selection'] = dict(selected=['macro', 'shapes'])
+    image.update(wavetable_profile=SHAPES8_WAVETABLE_PROFILE,
+                 compressed_wave_tables=[dict(row) for row in SHAPES8_TABLES],
+                 indexed_tft=True, flash_plaits_wavetables=False, shapes_voices=8,
+                 instance_pool_bytes=165376, target_app_storage=dict(TARGET_STORAGE))
+    result = manifest.build_manifest(baseline, target, sample['reference'], app, elf,
+                                     candidate_receipt, image, selection)
+    assert result['wavetable_profile'] == SHAPES8_WAVETABLE_PROFILE
+    assert result['wavetable_receipt_verified'] is True
+    assert result['installable'] is False
+    assert result['hardware_admitted'] is False
+
+
 @pytest.mark.parametrize('fault', [
     'target-hash', 'app-hash', 'elf-hash', 'wrong-profile', 'admitted',
     'image-app', 'image-elf', 'stale-size', 'request', 'selection-profile',
     'startup', 'foreign-sector', 'unsorted-sector', 'range-map', 'protected',
+    'wavetable-voice', 'wavetable-pool', 'wavetable-row', 'wavetable-profile',
 ])
 def test_manifest_refuses_stale_or_unsafe_receipt_and_sector_inputs(sample, fault):
     values = list(prepared(sample))
@@ -84,6 +107,10 @@ def test_manifest_refuses_stale_or_unsafe_receipt_and_sector_inputs(sample, faul
         altered = bytearray(target)
         altered[0xD9000] ^= 1
         target = bytes(altered)
+    elif fault == 'wavetable-voice': image['shapes_voices'] = 8
+    elif fault == 'wavetable-pool': image['instance_pool_bytes'] = 165376
+    elif fault == 'wavetable-row': image['compressed_wave_tables'] = [dict(SHAPES8_TABLES[0])]
+    elif fault == 'wavetable-profile': image['wavetable_profile'] = SHAPES8_WAVETABLE_PROFILE
     with pytest.raises(ValueError):
         manifest.build_manifest(baseline, target, sample['reference'], app, elf,
                                 candidate_receipt, image, selection)

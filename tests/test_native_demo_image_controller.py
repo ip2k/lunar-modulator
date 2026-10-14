@@ -8,7 +8,9 @@ from types import SimpleNamespace
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools/native'))
-from build_demo_image import checked_link_receipt
+from build_demo_image import (checked_link_receipt, checked_wavetable_profile,
+                              SHAPES8_TABLES, SHAPES8_WAVETABLE_PROFILE,
+                              WAVETABLE_PROFILE, wavetable_build_flags)
 from prepare_image_profile import sha
 from runtime_mode import runtime_configuration
 
@@ -152,6 +154,68 @@ def test_builder_rejects_stale_compressed_bank_receipt(fault):
     elif fault == 'extra-field': row['other'] = 'unexpected'
     with pytest.raises(ValueError):
         checked_link_receipt(*values)
+
+
+
+
+def test_build_flags_keep_legacy_default_and_select_shapes8_compressed_ram():
+    assert wavetable_build_flags(WAVETABLE_PROFILE) == [
+        '--shapes-voices', '12', '--indexed-tft', '--compressed-wavetables',
+        '--flash-plaits-wavetables']
+    assert wavetable_build_flags(SHAPES8_WAVETABLE_PROFILE) == [
+        '--shapes-voices', '8', '--indexed-tft', '--compressed-wavetables']
+    with pytest.raises(ValueError, match='Unsupported named'):
+        wavetable_build_flags('caller-invented-profile')
+
+
+def shapes8_inputs():
+    values = list(inputs('song-diagnostic', project_count=1))
+    selected = ['macro', 'shapes']
+    values[1].report['module_selection']['selected'] = selected
+    values[2]['module_selection']['selected'] = selected
+    values[2].update(shapes_voices=8, flash_plaits_wavetables=False,
+                     compressed_wave_tables=[dict(row) for row in SHAPES8_TABLES],
+                     instance_pool_bytes=165376)
+    return values
+
+
+def test_checked_link_accepts_named_shapes8_compressed_ram_profile():
+    values = shapes8_inputs()
+    receipt = checked_link_receipt(*values, runtime_mode='song-diagnostic')
+    assert receipt['wavetable_profile'] == SHAPES8_WAVETABLE_PROFILE
+    assert receipt['shapes_voices'] == 8
+    assert receipt['flash_plaits_wavetables'] is False
+    assert [row['namespace'] for row in receipt['compressed_wave_tables']] == ['plaits', 'braids']
+    assert receipt['instance_pool_bytes'] == 165376
+    for flag in ('installable', 'hardware_admitted', 'hardware_tested',
+                 'native_ram_verified', 'native_playback_verified',
+                 'full_song_default_accepted'):
+        assert receipt[flag] is False
+
+
+@pytest.mark.parametrize('fault', [
+    'voices', 'flash-policy', 'missing-module', 'wrong-namespace', 'changed-content',
+    'wrong-pool', 'wrong-runtime',
+])
+def test_shapes8_profile_refuses_inconsistent_link_metadata(fault):
+    values = shapes8_inputs()
+    if fault == 'voices':
+        values[2]['shapes_voices'] = 12
+    elif fault == 'flash-policy':
+        values[2]['flash_plaits_wavetables'] = True
+    elif fault == 'missing-module':
+        values[1].report['module_selection']['selected'] = ['shapes']
+        values[2]['module_selection']['selected'] = ['shapes']
+    elif fault == 'wrong-namespace':
+        values[2]['compressed_wave_tables'][0]['namespace'] = 'braids'
+    elif fault == 'changed-content':
+        values[2]['compressed_wave_tables'][0]['packed_sha256'] = sha(b'fabricated')
+    elif fault == 'wrong-pool':
+        values[2]['instance_pool_bytes'] += 1
+    elif fault == 'wrong-runtime':
+        values[2]['runtime_configuration'] = runtime_configuration('diagnostic')
+    with pytest.raises(ValueError):
+        checked_link_receipt(*values, runtime_mode='song-diagnostic')
 
 
 def test_song_diagnostic_requires_matching_explicit_runtime_and_remains_unadmitted():
