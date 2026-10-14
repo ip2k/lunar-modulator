@@ -1,0 +1,19 @@
+# Current focused regression: exact 5f505585 source
+
+[verified] This run tested exact repository commit `5f50558582be5609259694fdaec8ed6502cdbf60` on 2026-10-14. The branch worktree was note-only during the run. The selected suite was the existing 100-file native/install/save/recovery regression set plus both new device46 adapter tests, for 102 files. Selection list SHA-256: `fa46f19c3b83583829d148112d4fa38b812ac34feb07cf0e76ccdeea07860c7c`.
+
+[verified] Fresh pytest collection produced 2,784 unique node IDs (SHA-256 `025dd3fe9b9920a9c51a8beb22afb8b75d10df05511b38b127b52bab8634cb75`). IDs were round-robin partitioned into 16 disjoint manifests of 174 each; union and no-overlap assertions passed. All 16 manifests and raw logs are preserved under `/home/claude/mvave-fm1/current-regression16-final-20261014/` on Hera. The 16 shard logs were independently checked: each reached 100%, contained 174 progress markers, and had no `F`, `E`, failure or error output. Marker totals were 2,664 passed and 120 skipped, 0 failed, 0 errors, 0 xfailed/xpassed. Pytest was invoked with quiet mode, so result totals were independently derived from its progress markers; skip reasons were not emitted. The raw log SHA-256 values are recorded with the evidence files.
+
+[verified] A final-mount smoke test also passed a target-compiled content case (`tests/test_native_content_embedding.py::test_target_compiled_content[-Os-text-input-0]`). That case was included in the full 2,784-node regression and was not added to the totals a second time.
+
+## Reproduction environment
+
+[verified] Hera ran 16 containers concurrently, each with `--network none --cpus=1 --memory=2g --memory-swap=2g --pids-limit=256 --cgroup-parent=docker-batch.slice`, task label `current-regression16-final-shard-XX`, and SELinux label handling disabled for the approved bind mounts. The test image was `lunar-pico2w-sdk:2.1.1-ubuntu24.04`, pinned digest `sha256:a2be656a55327f06b955781df241217e1da23a2fcef52040479dab8a8793e8fa`; Python was 3.12.3. A fresh `engines/build/fm1-state` binary built from this source had SHA-256 `7a3cf4155c6642bd14fb69de25e2c1415b423ce9fa193006a3ef70f55d55fb77`.
+
+[verified] The pi32v2 toolchain was mounted read-only from `/home/claude/mvave-fm1/sdk-v1213/toolchain/jieli-linux-toolchains-20250324.1`, compiler SHA-256 `42b94f9e11140b0fcab8f807b2872ad245b8eeca03a2d792f8706c5a3a35d34c`. Python 3.12 dependencies were mounted read-only from `/home/claude/.cache/lunar-venvs/usb-cdc-status-replay-20261014/lib/python3.12/site-packages`; `FM1_NATIVE_TOOLCHAIN` and `FM1_STATE_TOOL` pointed to the mounted toolchain and fresh state binary. Git safe.directory was set to `/src` in-container. Test commands were `python3 -m pytest -p no:cacheprovider -p shard_filter -q <the 102 selected test files>` with `LUNAR_SHARD_NODEIDS=/jobs/shard-XX.nodeids`; the filter refuses a shard if a selected ID is absent from collection.
+
+[verified] The Jieli bookworm image could not be used with the mounted Python 3.12 dependencies: its Python 3.11 interpreter raised an `ImportError` for pydantic_core's `ArgsKwargs` symbol during collection. This was an environment mismatch, not a source test failure. The pinned Python 3.12 image resolved collection; its exact digest and dependency paths are recorded above. No invalid attempt is included in the test totals.
+
+## Limits
+
+[verified] This is the selected 102-file regression at the exact source commit above, not all repository tests and not a GitHub CI result. Host tests, target compilation/link tests, and synthetic recovery tests do not establish physical device behavior. No USB, MIDI, flash, power, reset, package installation, or hardware command was run. The run emits one Starlette/httpx deprecation warning from the mounted test dependencies; it did not affect collection or test outcomes.
