@@ -21,3 +21,11 @@ Checks on Hera:
 - Direct audit_writer_callers() against the pinned target full-disassembly.txt and symbols.txt passed: wrapper and RAM frames match the bounds above; no calls or dynamic SP adjustments were found in fl_prog_ram or fl_erase4k_ram.
 
 Limitations: this is a bound for the audited linked synchronous writer path, not a whole-program worst-case stack proof. It does not prove the runtime SP begins in SRAM or had sufficient space before the wrapper prologue; the linked audit explicitly keeps runtime_stack_address_in_sram_proven false. The target listing is pi32v2 evidence for this exact build, not a generic ABI guarantee. SAVE remains disabled and unbound; no device commands or flash operations were run.
+
+## Follow-up: make receipt units and stack operations explicit
+
+The machine-readable receipt now names 408/136 bytes as entry-relative decrease from wrapper entry. A separate post-guard field records the RAM-entry decrease as 104 bytes for each path; 920 bytes is the remaining guarded headroom. This keeps the 1,024-byte sample and wrapper-entry totals in distinct fields.
+
+The frame verifier now requires exactly one known save, allocation, inverse allocation, and restore in each RAM entry, rejects any extra SP mutation/predecrement save/postincrement restore, and still refuses nested calls. Stack-relative local reads/writes remain allowed within the fixed declared frame. Mutation cases cover extra allocation, register save, and register restore. A duplicate epilogue can be rejected by either the duplicate/unbalanced epilogue check or the explicit unexpected-SP-mutation check; both fail closed.
+
+Follow-up checks: Python byte-compilation passed; focused unittest suite passed 18/18; target listing audit passed with entry-relative {program: 408, erase: 136}, post-guard {program RAM entry: 104, erase RAM entry: 104}, and 920-byte remaining headroom in both cases; strict host C fixture compiled and ran; git diff --check passed.

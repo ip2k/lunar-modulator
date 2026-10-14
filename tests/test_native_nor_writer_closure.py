@@ -148,11 +148,13 @@ fl_jedec_ram:
         self.assertEqual(result["linked_wrapper_frame_bytes"], {
             "fl_write_local": 272, "fl_write_saved_registers": 32,
             "fl_erase4k_local": 12, "fl_erase4k_saved_registers": 20})
-        self.assertEqual(result["max_synchronous_stack_decrease_after_guard_bytes"], {
+        self.assertEqual(result["entry_relative_stack_decrease_from_wrapper_entry_bytes"], {
             "fl_write_to_fl_prog_ram": 408,
             "fl_erase4k_to_fl_erase4k_ram": 136})
         self.assertEqual(result["guard_sp_measurement_point"],
                          "after XIP wrapper prologue and page copy, before IRQ mask/WDT stop")
+        self.assertEqual(result["stack_decrease_after_guard_sample_bytes"], {
+            "fl_prog_ram": 104, "fl_erase4k_ram": 104})
         self.assertEqual(result["guarded_headroom_after_program_ram_entry_bytes"], 920)
         self.assertEqual(result["guarded_headroom_after_erase_ram_entry_bytes"], 920)
         self.assertTrue(result["writer_ram_stack_paths_have_no_calls_or_dynamic_sp_adjustments"])
@@ -201,6 +203,16 @@ fl_jedec_ram:
             (TARGET_RAM_DISASSEMBLY.replace("[--sp] = {rets, r15-r4}",
                                             "[--sp] = {rets, r14-r4}", 1),
              "unknown register-save prologue"),
+            (TARGET_RAM_DISASSEMBLY.replace(
+                "sp += -52", "sp += -52\n 1c00002: sp += -4", 1),
+             "extra or unknown SP mutation/save/restore"),
+            (TARGET_RAM_DISASSEMBLY.replace(
+                "sp += -52", "sp += -52\n 1c00002: [--sp] = {r4}", 1),
+             "extra or unknown SP mutation/save/restore"),
+            (TARGET_RAM_DISASSEMBLY.replace(
+                "{pc, r15-r4} = [sp++]",
+                "{r4} = [sp++]\n 1c00003: {pc, r15-r4} = [sp++]", 1),
+             "extra or unknown SP mutation/save/restore|unknown or unbalanced stack epilogue"),
         ]
         for listing, expected in mutations:
             with self.subTest(expected=expected):
