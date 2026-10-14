@@ -1,3 +1,17 @@
+# Recorded device50 note test — 2026-10-14 23:04 UTC
+
+Fresh paired1MiB reads matched145c0280 target; one reviewed boot request had
+ambiguous SG completion (no retry), followed by nativeUSBdevice52. External
+K6 capture145sec completed without reported overrun. Three bounded MIDI notes
+submitted to freshly mapped nativeport28:0, but inputs3/4 show only very low
+signal: cannot claim received notes or audible diagnosis. MASTER stayed at
+owner3o'clock; no adjustment requested. Evidence/hashes and exact limits in
+notes/2026-10-14-komplete-audio-capture.md. Passive23:04:02UTC ROMdevice53;
+device50 campaigns consumed. No flash programming or powercycle. Next device
+action needs freshdevice53 admission. Instrumented Event120 target linked on
+Hera26f13c59 app846000B (not installed), R/D/Ufooter only source delta.
+Goal ACTIVE; audioacceptance, SAVE, independent recovery and web release open.
+
 # Analogue capture preparation — 2026-10-14
 
 Owner confirms bad/sluggish individual notes before PLAY. Komplete Audio6 now
