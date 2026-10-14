@@ -217,7 +217,7 @@ jobs:
           node -e "console.log('playwright', require('/pw/node_modules/playwright/package.json').version)"
       - name: Isolated audio sink and monitor (also enables Firefox's AudioContext)
         run: |
-          apt-get update -qq && apt-get install -y -qq pulseaudio pulseaudio-utils >/dev/null
+          apt-get update -qq && apt-get install -y -qq pulseaudio pulseaudio-utils python3 >/dev/null
           # norewinds limits the null sink's idle clock buffer to 50 ms; the
           # default 2 s buffer can stall WebKit after a low-latency stream opens.
           # Evidence: notes/2026-10-09-webkit-audio-lifecycle.md.
@@ -232,6 +232,7 @@ jobs:
         timeout-minutes: 5
         run: |
           node --test sim/web/test/panel-follow.test.mjs sim/web/test/startup-ready.test.mjs sim/web/test/scheduling-capture.test.mjs sim/web/test/playback-timeline.test.mjs
+          node --test sim/web/test/native-fwsc-inspection.test.mjs sim/web/test/native-package-admission.test.mjs
       - name: The editor's data and history against the module (node)
         timeout-minutes: 5
         run: node sim/web/test/editor-unit.mjs sim/web/www

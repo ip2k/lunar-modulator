@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Inspection-only boundary. No current artifact has completed release admission.
+import { inspectFwscEnvelope } from './native-fwsc-inspection.js';
 
 const FWSC_HEADER_BYTES = 20 * 48;
 const RAW_FLASH_BYTES = 1024 * 1024;
@@ -30,7 +31,13 @@ export function inspectNativePackage(input) {
   if (bytes.length === 0) return blocked('empty', 'empty artifact');
   const identity = fwscIdentity(bytes);
   if (identity) {
-    return blocked('jieli-fwsc-candidate', 'FWSC inspection is incomplete and release admission is not established', identity);
+    try {
+      const envelope = inspectFwscEnvelope(bytes);
+      return Object.freeze({ ...blocked('jieli-fwsc-candidate',
+        'Nested FWSC inspection is incomplete and release admission is not established', identity), envelope });
+    } catch (error) {
+      return blocked('jieli-fwsc-candidate', `FWSC inspection incomplete: ${error.message}`, identity);
+    }
   }
   if (bytes.length === RAW_FLASH_BYTES) return blocked('raw-flash-candidate', 'raw flash geometry is not an admitted OTA package');
   if (bytes.length >= 4 && bytes[0] === 0x7f && bytes[1] === 0x45 && bytes[2] === 0x4c && bytes[3] === 0x46) {

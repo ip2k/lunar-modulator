@@ -1,0 +1,9 @@
+# Browser FWSC outer-envelope inspection
+
+[verified: source and synthetic tests] The browser inspection boundary now checks the established FWSC/UFW outer format, using `tools/jieli/inspect_fwsc.py` as its existing format reference. It validates identity markers, header CRC, logical size/chip, entry-list CRC, unique names/ordinals, supported types, bounded nonoverlapping allocations, raw and auxiliary SFC-decoded payload CRCs, required flash/OTA entries and the UFW trailer. Parsing rejects inputs above a 2 MiB inspection cap before allocating a logical copy. This cap bounds browser work; it is not device package admission.
+
+[verified] Seven Node tests passed; one optional private-package fixture test skipped. The new synthetic envelope includes an encrypted auxiliary entry and is independently parsed by the Python inspector, with matching identity, geometry and entry metadata. Damage tests cover each CRC layer and repaired-CRC allocation/type/name/index violations. CI now includes these tests and explicitly installs Python for the cross-language oracle. No private firmware bytes were added to the repository.
+
+[verified: source] Reports and entry metadata are frozen and expose neither `logicalImage` nor any flasher capability. `verifyNativePackage` continues to reject every artifact. Nested flash/JLFS/SFC structure, preserved stock components, transport/version acceptance, release approval, device writes and recovery are not established by these outer-envelope checks. No device operation, web deployment or installer release was performed.
+
+Next: compare against the freshly composed private continuous package when its provenance tuple and independent packaging review complete; then implement the separate nested/stock/release verifier required by the OTA adapter. Successful CRC inspection alone must never authorize transmission.
