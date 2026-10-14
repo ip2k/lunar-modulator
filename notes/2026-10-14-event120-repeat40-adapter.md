@@ -23,3 +23,18 @@ Command on Hera:
 Result: 10 passed. Coverage includes malformed-policy no-open, changed device number, same-enumeration one-use despite changed snapshot timestamps, reset completion without boot claims, and ambiguous-reply no-retry/close. These are offline mocks and do not establish live USB behavior.
 
 The coordinator owns bench01 and must independently review the finalized campaign schema and all evidence before any physical operation. No device commands, hardware access, flash operations, or reboot were performed by this task.
+## Follow-up: dependency-root correction
+
+Independent review found that the reset adapter is under tools/native, while its fixed reset modules live under tools/ and tools/native/. prepare() now passes the declared ROOT (tools/) to _target_modules() and freezes fm1_fixed_target_reset.py, fm1_fixed_loader_reset.py, and native/event120_reset.py from that same root. This aligns dynamic source loading and frozen evidence with the actual repository layout and the existing SHA pins.
+
+A positive prepare() test uses the real adapter/module files and their pinned hashes, with a temporary private evidence root. It reaches successful preparation without opening /dev; a second test changes the live discovered SG mapping and confirms rejection before any /dev open. The preparation check binds the discovered mapping to the passive snapshot. The session re-discovers it before opening the descriptor, then validates the opened descriptor identity and rechecks binding before the one reset request. These checks reduce mapping races but are not atomic with kernel topology changes and do not establish physical behavior.
+
+Updated focused command on Hera:
+
+    /home/claude/mvave-fm1/ci-contract-repairs-20261012/.venv/bin/pytest -q tests/test_event120_repeat40_boot.py tests/test_event120_repeat40_read.py
+
+Result: 12 passed. Offline test evidence only; no hardware was accessed and no USB, MIDI, flash, reset, or reboot command was issued.
+
+The offline adapter pins and validates source, campaign, manifest, transcript, and mapping inputs during preparation and before opening the SG node. It does not hash the full read evidence before every one of the 8,757 read commands; that repeated work would exceed the operation deadline. The coordinator must stage these inputs in a root-owned mode-0700 evidence directory and keep them immutable for the attempt. This operational control is not a filesystem immutability guarantee; concurrent privileged mutation remains outside the adapteréÝyø§yÙs proof.
+
+Semantic-tool limitation: Serena and Rarefaction were checked, but both reported the Mac primary checkout rather than this Hera worktree. They were not retargeted because their selection is shared; this change was navigated and tested with direct source inspection.

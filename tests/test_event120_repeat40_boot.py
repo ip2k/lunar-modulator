@@ -119,3 +119,125 @@ def test_read_snapshot_freshness_is_measured_at_read_start():
             "schema": 1, "kind": module.BOOT_SNAPSHOT_KIND, "observed_at": 1000,
             "usb_binding": read_adapter.USB, "sg_binding": {},
         }), now=1110, earliest=1110)
+
+
+def test_positive_prepare_loads_pinned_modules_from_real_tools_layout(tmp_path, monkeypatch):
+    """Exercise the real tools/native -> tools module layout without opening SG."""
+    evidence_root = tmp_path / "private"
+    evidence_root.mkdir(mode=0o700)
+    evidence_root.chmod(0o700)
+    read_receipt = evidence_root / "read"
+    read_receipt.mkdir(mode=0o700)
+    read_receipt.chmod(0o700)
+    boot_receipt = evidence_root / "boot"
+    campaign_path = evidence_root / "boot-campaign.json"
+    now = time.time()
+    mapping = {
+        "node": "/dev/sg-test", "class": "/sys/class/scsi_generic/sg-test",
+        "device": "/sys/devices/pci0000:00/usb1/1-1/1-1:1.0/host0/target0:0:0/0:0:0:0",
+        "usb": "/sys/devices/pci0000:00/usb1/1-1",
+        "node_identity": (1, 2, 3), "class_identity": (4, 5, 0),
+        "device_identity": (6, 7, 0), "usb_identity": (8, 9, 0),
+    }
+    snapshot = {
+        "schema": 1, "kind": module.BOOT_SNAPSHOT_KIND, "observed_at": now,
+        "usb_binding": read_adapter.USB, "sg_binding": mapping,
+    }
+    snapshot_path = evidence_root / "boot-snapshot.json"
+    snapshot_raw = read_adapter.canonical(snapshot)
+    snapshot_path.write_bytes(snapshot_raw)
+    adapter_sha = read_adapter.digest(Path(module.__file__).read_bytes())
+    campaign = {
+        "schema": 1, "kind": module.KIND, "adapter_sha256": adapter_sha,
+        "read_manifest_path": str(evidence_root / "manifest.json"),
+        "read_manifest_sha256": "a" * 64, "read_commands_sha256": "b" * 64,
+        "snapshot_path": str(snapshot_path),
+        "snapshot_sha256": read_adapter.digest(snapshot_raw),
+        "snapshot_observed_at": now, "usb_binding": read_adapter.USB,
+        "sg_binding": mapping, "active_session_state": module.ACTIVE_SESSION,
+        "no_later_commands_attested": True, "receipt_path": str(boot_receipt),
+    }
+    campaign_path.write_bytes(read_adapter.canonical(campaign))
+    bridge = SimpleNamespace(discover_sg=lambda usb: mapping)
+    verified_read = {
+        "manifest": {"sg_binding": mapping}, "completed_at": now - 1,
+        "receipt": read_receipt, "bridge": bridge, "reader": reader,
+        "evidence": (),
+    }
+    monkeypatch.setattr(module, "verify_read_bundle", lambda *args, **kwargs: verified_read)
+
+    prepared, completion_module = module.prepare(campaign_path, now=now)
+
+    assert module.ROOT == Path(module.__file__).resolve().parents[1]
+    assert module.ROOT.name == "tools"
+    assert prepared in module._AUTHORIZED
+    assert prepared.target_prepared in sys.modules["_event12040_fixed_target_reset"]._AUTHORIZED
+    assert completion_module.__file__ == str(module.ROOT / "native/event120_reset.py")
+    frozen_paths = {path for path, _data, _limit in prepared.evidence}
+    assert {
+        module.ROOT / "fm1_fixed_target_reset.py",
+        module.ROOT / "fm1_fixed_loader_reset.py",
+        module.ROOT / "native/event120_reset.py",
+    } <= frozen_paths
+    assert not boot_receipt.exists()
+    assert not list(evidence_root.glob("*.consumed"))
+
+
+def test_prepare_rejects_live_mapping_change_before_sg_open(tmp_path, monkeypatch):
+    # The passive snapshot and verified-read bundle identify one exact node.
+    # A changed live sysfs mapping must fail before the reset descriptor opens.
+    evidence_root = tmp_path / 'private'
+    evidence_root.mkdir(mode=0o700)
+    evidence_root.chmod(0o700)
+    read_receipt = evidence_root / 'read'
+    read_receipt.mkdir(mode=0o700)
+    read_receipt.chmod(0o700)
+    now = time.time()
+    expected = {
+        'node': '/dev/sg-test', 'class': '/sys/class/scsi_generic/sg-test',
+        'device': '/sys/devices/pci0000:00/usb1/1-1/1-1:1.0/host0/target0:0:0/0:0:0:0',
+        'usb': '/sys/devices/pci0000:00/usb1/1-1',
+        'node_identity': (1, 2, 3), 'class_identity': (4, 5, 0),
+        'device_identity': (6, 7, 0), 'usb_identity': (8, 9, 0),
+    }
+    changed = dict(expected, node='/dev/sg-other', node_identity=(9, 9, 9))
+    snapshot = {'schema': 1, 'kind': module.BOOT_SNAPSHOT_KIND,
+                'observed_at': now, 'usb_binding': read_adapter.USB,
+                'sg_binding': expected}
+    snapshot_path = evidence_root / 'snapshot.json'
+    snapshot_raw = read_adapter.canonical(snapshot)
+    snapshot_path.write_bytes(snapshot_raw)
+    campaign_path = evidence_root / 'boot-campaign.json'
+    campaign = {
+        'schema': 1, 'kind': module.KIND,
+        'adapter_sha256': read_adapter.digest(Path(module.__file__).read_bytes()),
+        'read_manifest_path': str(evidence_root / 'manifest.json'),
+        'read_manifest_sha256': 'a' * 64, 'read_commands_sha256': 'b' * 64,
+        'snapshot_path': str(snapshot_path),
+        'snapshot_sha256': read_adapter.digest(snapshot_raw),
+        'snapshot_observed_at': now, 'usb_binding': read_adapter.USB,
+        'sg_binding': expected, 'active_session_state': module.ACTIVE_SESSION,
+        'no_later_commands_attested': True,
+        'receipt_path': str(evidence_root / 'boot'),
+    }
+    campaign_path.write_bytes(read_adapter.canonical(campaign))
+    bridge = SimpleNamespace(discover_sg=lambda usb: changed)
+    verified_read = {
+        'manifest': {'sg_binding': expected}, 'completed_at': now - 1,
+        'receipt': read_receipt, 'bridge': bridge, 'reader': reader,
+        'evidence': (),
+    }
+    monkeypatch.setattr(module, 'verify_read_bundle', lambda *args, **kwargs: verified_read)
+    original_open = module.os.open
+    device_opens = []
+
+    def tracked_open(path, *args, **kwargs):
+        if str(path).startswith('/dev/'):
+            device_opens.append(str(path))
+            raise AssertionError('SG descriptor opened before mapping validation')
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(module.os, 'open', tracked_open)
+    with pytest.raises(ValueError, match='Live USB/SG mapping differs'):
+        module.prepare(campaign_path, now=now)
+    assert device_opens == []
