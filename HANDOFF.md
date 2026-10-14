@@ -1,4 +1,31 @@
-# Latest continuation authority — 2026-10-14 (scatter recovery and trailer safety)
+# Latest continuation authority — 2026-10-14 (NOR page staging verified)
+
+Coordinator code checkpoint `deefe95e2478eae73696daf7763b6d5fa5415cd5` is
+pushed and GitHub SHA verified. NOR worker branch
+`codex/2026-10-14-nor-buffer-residency` is backed up at
+`3c38eaf0534d31363b786e62815cee9a7dfc17da`, also remote SHA verified.
+The host test asserts aligned staging pointers distinct from the caller, and
+a fresh analysis-only pi32v2 link confirms a 260-byte local frame and copying
+to the stack before invoking the RAM program routine. All 18 focused Mac
+transport, closure-audit and extent tests pass. This does not establish active
+runtime stack selection, whole RAM closure, watchdog safety or SAVE admission.
+See `notes/2026-10-14-nor-buffer-residency.md`.
+
+Older CI run 38622350045 completed successfully with all thirteen jobs passing
+at `eac55b1f1b684f883805f90dc80b1fac2a091ac1`; current-head CI is still pending.
+Trusted companion SET preload checks pass on Hera and await final worker
+commit/review. The test-only reserved-tail mapper is being strengthened for
+full collector-bound payloads and exact proposed physical extents. A further
+offline NOR safety audit is active. Workers cannot issue hardware commands.
+
+No physical operation was sent in this continuation. Owner observations of
+the prior Event120 two-minute boot remain pending. Event Horizon Showcase is
+the owner-approved default song. Any new physical campaign needs fresh paired
+backups and device-bound evidence; do not reuse consumed device40 receipts.
+The full physical/web goal remains ACTIVE. SAVE/write-capable native OTA are
+disabled; no main merge, shipment or deployment has occurred.
+
+# Historical continuation authority — 2026-10-14 (scatter recovery and trailer safety)
 
 Coordinator checkpoint `48680e61897f5cf8e7daef24a589eb1a10dde9c6` is pushed
 and remote SHA verified. The reviewed storage48 migration plan is integrated;
