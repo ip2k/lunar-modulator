@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import secrets
+import shutil
 import stat
 import subprocess
 import sys
@@ -222,6 +223,30 @@ def _write_exclusive(path: Path, raw: bytes):
         os.fsync(stream.fileno())
 
 
+def _remove_private_snapshot(path: Path, parent: Path, prefix: str):
+    path = Path(path)
+    parent = Path(parent).resolve(strict=True)
+    if path.is_symlink() or path.parent.resolve(strict=True) != parent or not path.name.startswith(prefix):
+        raise ValueError("refusing to remove an unowned private snapshot")
+
+    def retry_readonly(function, failed_path, exc_info):
+        error = exc_info[1]
+        candidate = Path(failed_path)
+        if not isinstance(error, PermissionError) or candidate.is_symlink():
+            raise error
+        chmod_target = candidate if function is os.scandir else candidate.parent
+        if chmod_target.is_symlink():
+            raise ValueError("snapshot cleanup encountered a symlink") from error
+        owned_root = path.resolve(strict=True)
+        resolved_target = chmod_target.resolve(strict=True)
+        if resolved_target != owned_root and not resolved_target.is_relative_to(owned_root):
+            raise ValueError("snapshot cleanup escaped its owned tree") from error
+        os.chmod(chmod_target, stat.S_IRWXU, follow_symlinks=False)
+        function(failed_path)
+
+    shutil.rmtree(path, onerror=retry_readonly)
+
+
 def _catalogue_snapshot_fields(source: Path, snapshot: Path,
                                source_manifest: bytes, snapshot_manifest: bytes):
     if source_manifest != snapshot_manifest:
@@ -283,7 +308,6 @@ def run_build(*, request_path: Path,
         request_stream.write(request_raw)
         request_stream.flush()
         os.fsync(request_stream.fileno())
-    import shutil
     catalogue_source_manifest = _toolchain_manifest(catalogue)
     shutil.copytree(catalogue, catalogue_snapshot, symlinks=True, copy_function=shutil.copy2)
     catalogue_snapshot_manifest = _toolchain_manifest(catalogue_snapshot)
@@ -395,9 +419,9 @@ def run_build(*, request_path: Path,
                            timeout=30, check=False)
         request_copy.unlink(missing_ok=True)
         if snapshot.exists() and not snapshot.is_symlink():
-            shutil.rmtree(snapshot)
+            _remove_private_snapshot(snapshot, output.parent, "." + output.name + "-source-")
         if catalogue_snapshot.exists() and not catalogue_snapshot.is_symlink():
-            shutil.rmtree(catalogue_snapshot)
+            _remove_private_snapshot(catalogue_snapshot, output.parent, "." + output.name + "-catalogue-")
 
 
 def main():
