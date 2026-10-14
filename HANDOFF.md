@@ -1,3 +1,23 @@
+# Fresh Event Horizon boot checkpoint — 2026-10-14
+
+Root8f8f7531 is GitHub-backed. Device48 paired fresh 1MiB reads matched installed
+Event Horizon target145c0280; all8757 commands completed without flash/reset.
+Fresh same-connection preflight passed, then one FC0C arg1 was submitted at
+1792017843.4294136. SG reply ambiguous(host7,resid16,info1), no retry. Passive
+USB showed native1209:0001 device49. Both campaigns consumed; never reuse.
+Private evidence /home/claude/fm1-device48-event120-repeat-20261014 on bench01;
+notes/2026-10-14-event120-device48-watched-repeat.md contains hashes.
+Fresh owner observation question pending. Pico38 remains last-observed FAULT;
+GPIO/resistor wiring answer pending. Do not equate timed ROM return with
+independent recovery. SAVE, all13/song acceptance, migration/rollback, stock
+OTA/browser admission and release remain open. Goal ACTIVE.
+
+Continuous wrapper actual build completed compilation but read-only snapshot
+cleanup failed and partially removed evidence before tuple capture. Worker
+fixing bounded cleanup, independent reviewer checks before fresh-output retry;
+no fresh continuous tuple admitted. Reviewer note e092c9c154a10535f86b3859b03553428ad1808f
+is GitHub-backed on its review branch. Browser review assigned exact6360dd57.
+
 # Regression and numeric-schema checkpoint — 2026-10-14
 
 Root6360dd57262eb3b4bdbcf4f0a202f15aab573938 is GitHub-backed. Its strict numeric
