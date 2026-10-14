@@ -80,9 +80,9 @@ test('preselects the pending full-song proposal reversibly and submits ordered s
   assert.equal(checkboxes[2].disabled, false);
   assert.equal(checkboxes[3].disabled, true);
   assert.equal(checkboxes[4].disabled, true);
-  assert.match(textNodes, /Ordered production-allocator reservation passed in a bounded WASM32 run/);
-  assert.match(textNodes, /The current ordered production-allocator reservation was rejected/);
-  assert.match(textNodes, /Unavailable under the current 12-voice profile/);
+  assert.match(textNodes, /The recorded playback-memory check passed; device playback remains unverified/);
+  assert.match(textNodes, /This arrangement exceeds available playback memory/);
+  assert.match(textNodes, /Unavailable with the current voice count/);
   assert.equal(radios[0].disabled, true);
   assert.equal(radios[1].disabled, false);
   assert.equal(radios[1].checked, true);
@@ -150,7 +150,7 @@ test('blocks rejected candidates in controls, event handlers, and request prefli
   checkboxes[3].checked = true;
   await checkboxes[3].dispatch('change');
   assert.equal(checkboxes[3].checked, false);
-  assert.match(status.textContent, /bounded WASM32 run/);
+  assert.match(status.textContent, /exceeds available playback memory/);
   assert.equal(submit.disabled, false); // Proposed EH remains selected/startup.
   await submit.dispatch('click');
   assert.equal(sent.length, 1);

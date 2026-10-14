@@ -89,7 +89,7 @@ test('keeps replacement candidates pending and confines source/dependency metada
   assert.deepEqual(Object.keys(candidate).sort(),
     ['category', 'default_candidate', 'duration_estimate', 'id', 'owner_disposition', 'reservation', 'title'].sort());
   assert.equal(candidate.reservation.status, 'rejected');
-  assert.match(candidate.reservation.label, /bounded WASM32/);
+  assert.equal(candidate.reservation.label, 'This arrangement exceeds available playback memory.');
 
   assert.throws(() => buildNativeDemoSelectionRequest(catalogue, profile,
     ['replacement-showcase-candidate-packet-bloom'], 0), /Unavailable under the current profile/);

@@ -7,19 +7,19 @@ const fail = (message) => { throw new TypeError(message); };
 const RESERVATIONS = Object.freeze({
   'replacement-showcase-candidate-event-horizon': Object.freeze({
     status: 'allocator-fit',
-    label: 'Ordered production-allocator reservation passed in a bounded WASM32 run; native startup and device fit remain unverified.',
+    label: 'The recorded playback-memory check passed; device playback remains unverified.',
   }),
   'replacement-showcase-candidate-afterglow-relay': Object.freeze({
     status: 'allocator-fit',
-    label: 'Ordered production-allocator reservation passed in a bounded WASM32 run; native startup and device fit remain unverified.',
+    label: 'The recorded playback-memory check passed; device playback remains unverified.',
   }),
   'replacement-showcase-candidate-packet-bloom': Object.freeze({
     status: 'rejected',
-    label: 'The current ordered production-allocator reservation was rejected in a bounded WASM32 run.',
+    label: 'This arrangement exceeds available playback memory.',
   }),
   'replacement-showcase-candidate-satellite-hearts': Object.freeze({
     status: 'rejected',
-    label: 'Unavailable under the current 12-voice profile: the Shapes request exceeds the target pool. A separate lower-voice profile needs its own musical review.',
+    label: 'Unavailable with the current voice count.',
   }),
 });
 
