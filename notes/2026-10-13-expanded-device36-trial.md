@@ -1,6 +1,7 @@
 # Exact device36 thirteen-engine trial and recovery plan
 
-Status: preparation and source review; no physical installation or boot performed.
+Status: recovery simulation and source review passed; guarded physical installation
+is in progress. No boot request or hardware acceptance yet.
 This is a private twenty-second hardware probe, not a release image or OTA package.
 The owner authorized native development and the expanded layout with migration
 and rollback verification. AGENTS.md retains the all-thirteen release and custom
@@ -87,5 +88,6 @@ subsequent boot are checked.
 All13 physical startup, per-engine audio/timing, controls/MIDI, persistent release
 mode and storage, stock-layout settings migration and physical rollback,
 web OTA package/installer and custom builder, GPL notices/source distribution,
-required review/CI and integration remain open. The recovery campaign is still
-running; this document does not grant completed physical admission.
+required review/CI and integration remain open. The41-case recovery campaign passed with all30 logs/exits/noOOM and19 source
+hashes checked. Fresh physical preflight admitted this named private probe;
+installation is running through exec53310, with no boot or recovery claim.

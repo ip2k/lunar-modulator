@@ -1,0 +1,287 @@
+{
+  "chunks": 30,
+  "tests": 41,
+  "results": [
+    {
+      "shard": 0,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_changed_union_includes_last_app_sector_without_touching_vm",
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[255-program-ack-restore]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 1,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_protected_byte_changes_refused[0]",
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[255-commit-erase-install]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 2,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_protected_byte_changes_refused[16383]",
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[255-commit-erase-restore]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 3,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_protected_byte_changes_refused[888832]",
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[256-erase-torn-install]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 4,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_protected_byte_changes_refused[1048575]",
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[256-erase-torn-restore]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 5,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_partial_flash_refused[empty]",
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[256-program-torn-install]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 6,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_partial_flash_refused[short-full-flash]",
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[256-program-torn-restore]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 7,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_missing_changed_directory_refused[addresses0]",
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[256-program-ack-install]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 8,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_missing_changed_directory_refused[addresses1]",
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[256-program-ack-restore]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 9,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[1-erase-torn-install]",
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[256-commit-erase-install]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 10,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[1-erase-torn-restore]",
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[256-commit-erase-restore]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 11,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[1-program-torn-install]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 12,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[1-program-torn-restore]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 13,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[1-program-ack-install]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 14,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[1-program-ack-restore]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 15,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[1-commit-erase-install]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 16,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[1-commit-erase-restore]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 17,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[127-erase-torn-install]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 18,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[127-erase-torn-restore]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 19,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[127-program-torn-install]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 20,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[127-program-torn-restore]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 21,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[127-program-ack-install]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 22,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[127-program-ack-restore]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 23,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[127-commit-erase-install]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 24,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[127-commit-erase-restore]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 25,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[255-erase-torn-install]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 26,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[255-erase-torn-restore]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 27,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[255-program-torn-install]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 28,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[255-program-torn-restore]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 29,
+      "nodes": [
+        "tests/test_expanded_bench_transactions.py::test_fresh_trio_to_full_candidate_recovery[255-program-ack-install]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    }
+  ]
+}

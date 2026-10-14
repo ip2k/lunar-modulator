@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "private_probe_admission": true,
+  "release_installable": false,
+  "campaign_sha256": "094be5c78fec1ca9e66407ece933f21eba157299cf9ce5a5306614db9e0ab560",
+  "target_sha256": "c543e538754d0ae02ee119fd1e29a9b8cb9eb21a23edf0c12fc981ddaa3bc903",
+  "plan_sha256": "2e1b90e7fcf7c14722336224818eb9d4d0ca7148bf8d1ff619d0602e153ef9b1",
+  "recovery_cases_verified": 41,
+  "recovery_chunks_verified": 30,
+  "source_hashes_verified": 19,
+  "boot_sent": false,
+  "boot_observed": false,
+  "physical_recovery_verified": false,
+  "trial_plan": "notes/2026-10-13-expanded-device36-trial.md"
+}

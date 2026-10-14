@@ -2721,3 +2721,20 @@ then fresh campaign preflight and bounded all13 installation/boot if admitted.
 Owner observation question pending. No physical install/reset. Full release
 and custom builder, migration/rollback and review/CI remain outstanding.
 Previous verified pushed checkpoint6c22f0a1e7083fb63864ec5d94626248a87073df.
+
+## Fresh recovery complete; live expanded install (2026-10-13)
+
+[verified] All41 fresh-Trio recovery cases pass30 Hera chunks; all30logs/states
+and19sourcehashes checked. exec13477 terminal0; no remaining recovery workers.
+Public receipts under notes/2026-10-13-current-expanded-candidate/fresh-recovery*.
+Staged boot/proof imports/source pins pass on Pi. Fresh passive exactdevice36
+preflight admitted campaign094be5c78fec1ca9e66407ece933f21eba157299cf9ce5a5306614db9e0ab560.
+Guarded physical213-sector writer now live exec53310 (bench01 root source
+/home/claude/fm1-expanded36-source-20261013/). Observe this process plus
+native-install-v1/commands.jsonl and native plan journal; no restart on silence.
+Do not run restore/reset/upload automatically if ambiguous. No boot sent yet.
+Next verify terminal full target SHA c543..., independently replay physical
+transcript with retained campaign digest, then fresh same-loader one-use boot
+and owner observation (question pending). Do not reuse expired campaigns.
+Full release/custom builder/migration/physical rollback and reviewCI remain open.
+Prior verified pusheddfc5720c0ba56d2397c39fc745879b311200e221.

@@ -27,8 +27,11 @@ all saved image hashes and directory-last sector order. Current native plan has
 213 changed sectors; Trio-to-stock has13. Public summary: device36-plan-summary.json.
 Full plans and images remain private in build/native-current-candidate-20261013/device36-plans/.
 Nine boundary checks pass;32 actual-byte private tests skip without private inputs.
-A separate41-case fresh-Trio baseline campaign is running on Hera in30 chunks;
-results are pending.
+[verified] The separate41-case fresh-Trio baseline campaign passed in30 Hera
+chunks. All30 logs, terminal exits/noOOM and19 source hashes were checked;
+receipts: fresh-recovery-41.json, fresh-recovery-log-check.json and
+fresh-recovery-source-hashes.json. This is byte-accurate modeled interruption
+and restore evidence, not execution or recovery on the physical CPU.
 
 An exact-device36 writer is implemented but has not been admitted or run. The new geometry_baseline test argument
 keeps validation anchored to the original stock components when simulating a
@@ -71,3 +74,16 @@ The copied private campaign timestamp expires and must be refreshed before any
 run. Pi source/plan/backup root: /home/claude/fm1-expanded36-source-20261013/.
 A new bounded boot envelope for the expanded install is still required; the
 older device31 boot adapter must not be used.
+
+## Guarded physical installation started
+
+[verified] Staged expanded proof/boot modules import and pass source pins on Pi.
+Fresh canonical SG/USB preflight passed; reviewed campaign SHA256
+094be5c78fec1ca9e66407ece933f21eba157299cf9ce5a5306614db9e0ab560.
+The physical writer is running through exec53310 on the original device36
+fixed-loader connection. No boot request has been sent. Preserve this process
+and inspect its durable journal/commands/result; do not restart on silence.
+Concrete trial/recovery review: ../2026-10-13-expanded-device36-trial.md.
+An operator helper initially compared tuples to decoded lists directly and
+refused unchanged SG metadata; canonical comparison corrected the helper
+before any device operation. Production pinned source was unchanged.
