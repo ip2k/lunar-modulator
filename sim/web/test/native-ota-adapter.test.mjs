@@ -27,19 +27,26 @@ function identity(text, { bodyLength = 27, badChecksum = false } = {}) {
 }
 
 class FakePorts {
-  constructor(identityText = 'FM-1_015', { sendFailsAt = Infinity, queueLimit = 32 } = {}) {
+  constructor(identityText = 'FM-1_015', { sendFailsAt = Infinity, queueLimit = 32,
+    onSend = null, respondToHandshake = true } = {}) {
     this.opens = 0;
+    this.closes = 0;
     this.sends = [];
     this.input = {
       id: 'input-1', name: 'FM-1', state: 'connected', onmidimessage: null,
       open: async () => { this.opens += 1; },
+      close: async () => { this.closes += 1; },
     };
     this.output = {
       id: 'output-1', name: 'FM-1', state: 'connected', open: async () => { this.opens += 1; },
+      close: async () => { this.closes += 1; },
       send: (bytes) => {
         this.sends.push(Array.from(bytes));
+        onSend?.(bytes);
         if (this.sends.length === sendFailsAt) throw new Error('fake disconnected');
-        if (Array.from(bytes).join(',') === Array.from(HS_QUERY).join(',')) this.emit(identity(identityText));
+        if (respondToHandshake && Array.from(bytes).join(',') === Array.from(HS_QUERY).join(',')) {
+          this.emit(identity(identityText));
+        }
       },
     };
     this.queueLimit = queueLimit;
@@ -160,7 +167,74 @@ test('adapter does no port I/O before package admission and explicit pair select
   assert.equal(session.identity, 'FM-1_015');
   assert.equal(fake.opens, 2);
   assert.equal(fake.sends.length, 1);
-  assert.equal(adapter.close(session), true);
+  assert.equal(await adapter.close(session), true);
+  assert.equal(fake.closes, 2);
+});
+
+test('admission, session, and resume capabilities cannot cross adapter instances', async () => {
+  const image = Uint8Array.of(2, 4, 6);
+  const digestBytes = new Uint8Array(await crypto.subtle.digest('SHA-256', image));
+  const imageSha = [...digestBytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  const packageAdmission = { async verify() {
+    return { format: 'lunar-native-package-admission-v1', product: 'FM-1_015', model: 'FM-1',
+      version: 15, logicalImage: image, logicalImageSha256: imageSha };
+  } };
+  const adapterA = createNativeOtaAdapter({ packageAdmission });
+  const adapterB = createNativeOtaAdapter({ packageAdmission });
+  const admissionA = await adapterA.admitPackage(Uint8Array.of(1));
+  const fake = new FakePorts('ota-FM-1_015');
+  await assert.rejects(adapterB.connect({ admission: admissionA, input: fake.input, output: fake.output }), /not issued/);
+  assert.equal(fake.opens, 0);
+  assert.equal(fake.sends.length, 0);
+  const admissionB = await adapterB.admitPackage(Uint8Array.of(1));
+  const sessionB = await adapterB.connect({ admission: admissionB, input: fake.input, output: fake.output, role: 'loader' });
+  await assert.rejects(adapterA.serve({ admission: admissionB, session: sessionB, stage: 'verify' }), /not bound/);
+  const tokenB = adapterB.createResumeToken({ admission: admissionB, session: sessionB });
+  await assert.rejects(adapterA.resume({ admission: admissionA, token: tokenB,
+    input: fake.input, output: fake.output }), /not bound to this exact admitted package/);
+  assert.equal(await adapterB.close(sessionB), true);
+});
+
+test('connect timeout and identity mismatch detach listeners and close both ports', async () => {
+  const image = Uint8Array.of(5, 7, 9);
+  const digestBytes = new Uint8Array(await crypto.subtle.digest('SHA-256', image));
+  const imageSha = [...digestBytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  const adapter = createNativeOtaAdapter({ packageAdmission: { async verify() {
+    return { format: 'lunar-native-package-admission-v1', product: 'FM-1_015', model: 'FM-1',
+      version: 15, logicalImage: image, logicalImageSha256: imageSha };
+  } }, clock: { now: () => 0, setTimeout: (fn) => { queueMicrotask(fn); return 1; },
+    clearTimeout() {}, sleep: async () => {} } });
+  const admission = await adapter.admitPackage(Uint8Array.of(3));
+  for (const fake of [new FakePorts('FM-1_015', { respondToHandshake: false }), new FakePorts('FM-2_015')]) {
+    await assert.rejects(adapter.connect({ admission, input: fake.input, output: fake.output }), /selected device identity/);
+    assert.equal(fake.input.onmidimessage, null);
+    assert.equal(fake.closes, 2);
+  }
+});
+
+test('abort during a pending port open releases the late-opened port', async () => {
+  const image = Uint8Array.of(1, 3, 5);
+  const digestBytes = new Uint8Array(await crypto.subtle.digest('SHA-256', image));
+  const imageSha = [...digestBytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  const adapter = createNativeOtaAdapter({ packageAdmission: { async verify() {
+    return { format: 'lunar-native-package-admission-v1', product: 'FM-1_015', model: 'FM-1',
+      version: 15, logicalImage: image, logicalImageSha256: imageSha };
+  } } });
+  const admission = await adapter.admitPackage(Uint8Array.of(4));
+  const fake = new FakePorts();
+  let resolveOpen;
+  fake.input.open = () => new Promise((resolve) => { resolveOpen = resolve; });
+  const controller = new AbortController();
+  const attempt = adapter.connect({ admission, input: fake.input, output: fake.output, signal: controller.signal });
+  await Promise.resolve();
+  controller.abort();
+  await assert.rejects(attempt, { name: 'AbortError' });
+  resolveOpen();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(fake.input.onmidimessage, null);
+  assert.equal(fake.opens, 0);
+  assert.equal(fake.closes >= 3, true);
+  assert.equal(fake.sends.length, 0);
 });
 
 test('admission rejects inconsistent identity or bytes before opening ports', async () => {
@@ -208,6 +282,6 @@ test('resume token is bound to the exact adapter admission and package SHA', asy
     /not bound to this exact admitted package/);
   assert.equal(fake.opens, 2);
   assert.equal(fake.sends.length, 1);
-  adapter.close(session);
+  await adapter.close(session);
 });
 

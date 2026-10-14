@@ -8,10 +8,6 @@
 
 import { Link, handshake, serveRequests } from './third_party/felucca-ota/fm1ota.js';
 
-const admissions = new WeakMap();
-const sessions = new WeakMap();
-const resumes = new WeakMap();
-
 const defaultClock = {
   now: () => globalThis.performance?.now?.() ?? Date.now(),
   setTimeout: (fn, ms) => globalThis.setTimeout(fn, ms),
@@ -44,10 +40,54 @@ async function sha256Hex(bytes) {
   return [...digest].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+function abortError() {
+  const error = new Error('MIDI connection was cancelled');
+  error.name = 'AbortError';
+  return error;
+}
+
+async function closePort(port) {
+  if (typeof port?.close !== 'function') return;
+  try { await port.close(); } catch { /* best-effort release after a failed connection */ }
+}
+
+async function closePorts(input, output) {
+  await Promise.all([closePort(input), closePort(output)]);
+}
+
+async function openPort(port, signal) {
+  if (!signal) return port.open();
+  if (signal.aborted) throw abortError();
+  let abortListener;
+  let aborted = false;
+  const opening = Promise.resolve().then(() => port.open());
+  const cancelled = new Promise((_, reject) => {
+    abortListener = () => {
+      aborted = true;
+      reject(abortError());
+    };
+    signal.addEventListener('abort', abortListener, { once: true });
+  });
+  try {
+    await Promise.race([opening, cancelled]);
+    if (signal.aborted) throw abortError();
+  } catch (error) {
+    if (aborted) opening.then(() => closePort(port), () => {});
+    throw error;
+  } finally {
+    signal.removeEventListener('abort', abortListener);
+  }
+}
+
 export function createNativeOtaAdapter({ packageAdmission, clock = defaultClock } = {}) {
   if (!packageAdmission || typeof packageAdmission.verify !== 'function') {
     throw new TypeError('an audited packageAdmission.verify implementation is required');
   }
+
+  // Admission, session and resume capabilities belong to this adapter only.
+  const admissions = new WeakMap();
+  const sessions = new WeakMap();
+  const resumes = new WeakMap();
 
   // This interface deliberately requires a verifier-produced record, not an
   // `installable: true` flag. No firmware package parser/admission is supplied
@@ -80,26 +120,44 @@ export function createNativeOtaAdapter({ packageAdmission, clock = defaultClock 
     return handle;
   }
 
-  async function connect({ admission, input, output, role = 'running' } = {}) {
+  async function connect({ admission, input, output, role = 'running', signal } = {}) {
     const admitted = admissions.get(admission);
     if (!admitted) throw new TypeError('package admission handle was not issued by this adapter');
     if (role !== 'running' && role !== 'loader') throw new TypeError('role must be running or loader');
+    if (signal !== undefined && (!signal || typeof signal.addEventListener !== 'function' ||
+        typeof signal.removeEventListener !== 'function')) throw new TypeError('signal must be an AbortSignal');
     validPortPair(input, output);
-    await input.open();
-    await output.open();
-    const link = new Link(input, output, { clock });
-    const identity = await handshake(link, { clock, tries: 2, timeoutMs: 1000 });
-    const expectedModel = role === 'loader' ? `ota-${admitted.model}` : admitted.model;
-    if (!identity || identity.model !== expectedModel) {
-      link.close();
-      throw new Error(`selected device identity did not match ${expectedModel}`);
+    let link = null;
+    let abortListener = null;
+    try {
+      await openPort(input, signal);
+      await openPort(output, signal);
+      if (signal?.aborted) throw abortError();
+      link = new Link(input, output, { clock });
+      if (signal) {
+        abortListener = () => link.close();
+        signal.addEventListener('abort', abortListener, { once: true });
+      }
+      const identity = await handshake(link, { clock, tries: 2, timeoutMs: 1000 });
+      if (signal?.aborted) throw abortError();
+      const expectedModel = role === 'loader' ? `ota-${admitted.model}` : admitted.model;
+      if (!identity || identity.model !== expectedModel) {
+        throw new Error(`selected device identity did not match ${expectedModel}`);
+      }
+      const session = Object.freeze({ role, product: admitted.product, sha256: admitted.sha256,
+        packageSha256: admitted.packageSha256,
+        identity: identity.text, inputId: input.id, outputId: output.id, portName: input.name });
+      sessions.set(session, { admission, link, input, output, image: admitted.image,
+        model: admitted.model, role, sha256: admitted.sha256, packageSha256: admitted.packageSha256,
+        identity: identity.text });
+      return session;
+    } catch (error) {
+      link?.close();
+      await closePorts(input, output);
+      throw error;
+    } finally {
+      if (signal && abortListener) signal.removeEventListener('abort', abortListener);
     }
-    const session = Object.freeze({ role, product: admitted.product, sha256: admitted.sha256,
-      packageSha256: admitted.packageSha256,
-      identity: identity.text, inputId: input.id, outputId: output.id, portName: input.name });
-    sessions.set(session, { admission, link, input, output, image: admitted.image,
-      model: admitted.model, role, sha256: admitted.sha256, packageSha256: admitted.packageSha256 });
-    return session;
   }
 
   async function serve({ admission, session, stage, timeouts = {} } = {}) {
@@ -112,12 +170,11 @@ export function createNativeOtaAdapter({ packageAdmission, clock = defaultClock 
     if (stage !== 'verify' && stage !== 'write') throw new TypeError('stage must be verify or write');
     if (stage === 'write' && active.role !== 'loader') throw new Error('write stage requires an explicitly selected OTA loader');
     const finishAddr = stage === 'verify' ? 0xE0000000 : 0xF0000000;
-    const result = await serveRequests(active.link, active.image, finishAddr, { clock, ...timeouts });
-    if (result.finished) {
-      active.link.close();
-      sessions.delete(session);
+    try {
+      return await serveRequests(active.link, active.image, finishAddr, { clock, ...timeouts });
+    } finally {
+      await close(session);
     }
-    return result;
   }
 
   function createResumeToken({ admission, session } = {}) {
@@ -147,17 +204,18 @@ export function createNativeOtaAdapter({ packageAdmission, clock = defaultClock 
     // No port scan: the caller must explicitly select the re-enumerated pair.
     const session = await connect({ admission, input, output, role: 'loader' });
     if (session.identity !== saved.identity) {
-      close(session);
+      await close(session);
       throw new Error('resumed OTA loader identity does not match the pinned session identity');
     }
     return session;
   }
 
-  function close(session) {
+  async function close(session) {
     const active = sessions.get(session);
     if (!active) return false;
     active.link.close();
     sessions.delete(session);
+    await closePorts(active.input, active.output);
     return true;
   }
 

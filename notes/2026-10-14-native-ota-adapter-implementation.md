@@ -25,16 +25,28 @@ caller supplies verifier-produced admission and explicitly selected ports.
 
 ## Validation and limits
 
-`node --test sim/web/test/native-ota-adapter.test.mjs` passes all 10 tests;
-`node --check` passes for both JavaScript modules; `git diff --check` passes.
-The exact package hash protects resume continuity while the logical-image hash
-is the byte stream served to the target.
+The follow-up isolation and cleanup review moved admission, session, and resume
+capability maps into each adapter factory. Fake tests now reject admissions,
+sessions, and resume tokens issued by another adapter. Connection setup accepts
+an optional AbortSignal; it detaches the listener and closes both explicitly
+selected ports after handshake timeout, identity mismatch, or cancellation.
+If a port's `open()` completes after cancellation, it is closed when that
+promise settles. Session close detaches the Felucca `Link` listener, resolves
+any pending read, removes the session capability, and best-effort closes both
+ports. `serve()` closes the session in `finally`, including timeout and error.
+
+`node --test sim/web/test/native-ota-adapter.test.mjs` passes all 13 tests;
+`node --check` passes for the adapter; `git diff --check` passes. The exact
+package hash protects resume continuity while the logical-image hash is the
+byte stream served to the target.
 
 This is transport support, not an installer. The repository does not yet
 provide the audited package verifier required by `packageAdmission.verify`,
 compose verify/write/reboot/post-identity stages, request Web MIDI permission,
 connect to a real device, validate recovery/physical admission, or wire this
 module into the installer page/service. No hardware or live MIDI I/O occurred.
+AbortSignal currently covers connection setup; an active transfer can be
+stopped by explicitly closing its session, but `serve()` has no signal option.
 The verifier injection is a trust boundary: a future integration must bind it
 to the actual package parser, protected-component policy, and exact target
 profile before offering a connect action. Matching port names and SysEx identity
