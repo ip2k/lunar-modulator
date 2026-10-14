@@ -370,10 +370,25 @@ def test_fdopen_failure_closes_raw_fd(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize('name', list(rehearsal.SOURCES))
 def test_each_dependency_hash_is_checked(monkeypatch, name):
+    # Mutation coverage must start from a matching snapshot of every dependency.
+    # Otherwise an unrelated historical pin drift masks the selected corruption.
+    root = Path(rehearsal.__file__).parent
+    good_hashes = {key: rehearsal.digest(rehearsal.read_file(root / key))
+                   for key in rehearsal.SOURCES}
+    monkeypatch.setattr(rehearsal, 'SOURCES', good_hashes)
     read = rehearsal.read_file
+    changed_path = root / name
     monkeypatch.setattr(rehearsal, 'read_file', lambda path, *args: read(path, *args) +
-                        (b'changed' if Path(path) == Path(rehearsal.__file__).parent/name else b''))
-    with pytest.raises(ValueError, match='Reviewed implementation changed: ' + name): rehearsal.check_sources()
+                        (b'changed' if Path(path) == changed_path else b''))
+    with pytest.raises(ValueError, match='Reviewed implementation changed: ' + name):
+        rehearsal.check_sources()
+
+
+def test_current_historical_pin_drift_remains_fail_closed():
+    # Keep production pins intact: this documents that stale reviewed-source
+    # evidence prevents campaign preparation until the coordinator re-reviews it.
+    with pytest.raises(ValueError, match='Reviewed implementation changed: jieli/audit_link.py'):
+        rehearsal.check_sources()
 
 
 def test_ambient_import_is_rejected(monkeypatch):

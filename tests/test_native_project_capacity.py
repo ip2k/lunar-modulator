@@ -14,11 +14,27 @@ import subprocess
 
 import pytest
 
+from tests.engine_helpers import GPL_MODS
 from tests.test_app_state import DX7, sim
-from tests.test_sim_web import tools  # noqa: F401
 from tools import lunar_state as ls
 
 ROOT = Path(__file__).resolve().parents[1]
+SIM = ROOT / "sim" / "web"
+ENGINES_DIR = ROOT / "engines"
+
+
+@pytest.fixture(scope="session")
+def save_tools(tmp_path_factory):
+    """Build a test-owned host app with the production SAVE writer enabled."""
+    build = tmp_path_factory.mktemp("native-project-capacity-save")
+    targets = [build / "fm1-render", build / "fm1-sim-render"]
+    subprocess.run([
+        "make", "-C", str(ENGINES_DIR), "-f", "Makefile", "-f", str(SIM / "mk" / "sim.mk"),
+        f"SIM={SIM}", f"BUILD={build}", f"FM1_GPL_MODS={int(GPL_MODS)}",
+        "EXTRA=-DFM1_STATE_BIN_COMPACT_WRITER -DFM1_TFT_INDEXED=1", "-j4",
+        *map(str, targets),
+    ], check=True, stdout=subprocess.DEVNULL)
+    return {"render": targets[0], "sim": targets[1]}
 SEQ_TRACKS = 8
 NOTES_PER_TRACK = 192
 LOCKS_PER_TRACK = 192
@@ -154,16 +170,14 @@ def _max_drums_set(path: Path) -> int:
     return len(content.encode())
 
 
-def test_dense_actual_app_project_fits_native_payload(tools, tmp_path):  # noqa: F811
+def test_dense_actual_app_project_fits_native_payload(save_tools, tmp_path):
     """Measure one dense app project using full sequencer and cable pools."""
-    assert "FM1_STATE_BIN_COMPACT_WRITER" in os.environ.get("FM1_SIM_EXTRA", "")
-    assert "FM1_TFT_INDEXED=1" in os.environ.get("FM1_SIM_EXTRA", "")
     seq, mod = tmp_path / "dense.movy1", tmp_path / "dense.mod"
     set_text_bytes, counts = _dense_set(seq)
     mod_text_bytes = _dense_mod(mod)
     native = tmp_path / "dense.native-save.lunarb"
     args = _start_args(seq, mod) + ["--save", f"project:{native}"]
-    sim(tools, *args)
+    sim(save_tools, *args)
 
     body = native.read_bytes()
     records, _ = ls.read_bin(body)
@@ -242,16 +256,14 @@ def test_dense_actual_app_project_fits_native_payload(tools, tmp_path):  # noqa:
            "binary_record_count": len(records)})
 
 
-def test_max_drums_metadata_and_registered_pools_recover_through_native_save(tools, tmp_path):  # noqa: F811
+def test_max_drums_metadata_and_registered_pools_recover_through_native_save(save_tools, tmp_path):
     """Round-trip maximum sound rows, metadata, and accepted pools via native SAVE."""
-    assert "FM1_STATE_BIN_COMPACT_WRITER" in os.environ.get("FM1_SIM_EXTRA", "")
-    assert "FM1_TFT_INDEXED=1" in os.environ.get("FM1_SIM_EXTRA", "")
     seq, mod = tmp_path / "max-drums.movy1", tmp_path / "max-drums.mod"
     set_text_bytes = _max_drums_set(seq)
     mod_text_bytes = _dense_max_mod(mod)
     initial = tmp_path / "initial.lunar"
     args = _dense_max_args(seq, mod) + ["--save", f"project:{initial}"]
-    sim(tools, *args)
+    sim(save_tools, *args)
 
     # Load maximum-length metadata through the app's project loader; then the
     # native SAVE adapter performs its collect/serialize/commit/recovery path.
@@ -260,7 +272,7 @@ def test_max_drums_metadata_and_registered_pools_recover_through_native_save(too
     prepared = tmp_path / "max-metadata.lunar"
     prepared.write_text(json.dumps(doc), encoding="utf-8")
     native = tmp_path / "max-drums.native-save.lunarb"
-    sim(tools, "--load", prepared, "--save", f"project:{native}")
+    sim(save_tools, "--load", prepared, "--save", f"project:{native}")
 
     body = native.read_bytes()
     records, _ = ls.read_bin(body)
