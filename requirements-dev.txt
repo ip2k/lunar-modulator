@@ -6,3 +6,4 @@ pytest
 rp2040-pio-emulator
 adafruit-circuitpython-pioasm
 jsonschema
+-r tools/installer_service/requirements-test.txt
