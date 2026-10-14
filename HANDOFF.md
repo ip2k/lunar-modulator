@@ -1,4 +1,30 @@
-# Latest continuation authority — 2026-10-14 (package, storage and delivery)
+# Latest continuation authority — 2026-10-14 (distinct recovery and real writer)
+
+Coordinator code checkpoint `8d103100dbecfe079a65068d5bbc4676a160b89c`
+is pushed and remote SHA verified. Recovery worker `c936e738` and real-writer
+worker `28af07a1` are also GitHub-backed with verified SHAs. The former adds
+byte-exact payload checks across both slot replacement transitions, including
+lost final-write acknowledgements: 150 focused Hera cases and 90 smaller/legacy
+Mac cases pass. The latter verifies actual linked NOR command paths rather
+than retained stub names; 14 focused cases pass on Hera and Mac. Full control
+flow, caller buffer residency, watchdog behavior and device safety remain
+unproven; admission stays closed. See the corresponding dated recovery and
+NOR target-audit notes.
+
+A fresh passive `lsusb` on bench01 still reports device42, `4c4a:8057`,
+`WL80UBOOT1.00`. No USB command, boot, flash or power operation was sent in this
+continuation. Owner observations of the prior two-minute Event Horizon boot
+remain pending; any new campaign needs fresh paired backups and device-bound
+admission. Event Horizon Showcase remains the owner-approved default song.
+
+Three bounded offline tasks continue on Hera: trusted companion SET preloads,
+storage48 migration/rollback planning, and NOR program-buffer residency.
+Workers cannot issue hardware commands or arm SAVE. Older CI38622350045 now
+has eleven successful jobs and two Python jobs running; this does not establish
+current-head green CI. Full physical/web release goal remains ACTIVE. No main
+merge, release, deployment or shipment.
+
+# Historical continuation authority — 2026-10-14 (package, storage and delivery)
 
 Coordinator checkpoint before this note: `3119830989a0d8efe674a72de90f970d5e38d1f0`,
 pushed with GitHub SHA verified. The separate continuous FM-1_500 package is
