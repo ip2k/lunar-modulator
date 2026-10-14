@@ -7,6 +7,8 @@ import subprocess
 
 import pytest
 
+from tests.native_test_flags import native_no_pie_flags
+
 from tests.engine_helpers import ROOT
 
 
@@ -49,7 +51,7 @@ def native_libc(tmp_path_factory):
         subprocess.run([objcopy, f'--redefine-syms={aliases}', str(obj)], check=True)
     binary = out / 'check'
     subprocess.run([cc, '-O2', '-g', '-fno-builtin', *san_flags,
-                    '-fno-pie', '-no-pie', str(ROOT / 'tests/native_libc_check.c'),
+                    *native_no_pie_flags(), str(ROOT / 'tests/native_libc_check.c'),
                     *map(str, objects), '-lm', '-o', str(binary)], check=True)
     return binary
 
