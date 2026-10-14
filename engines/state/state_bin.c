@@ -121,7 +121,10 @@ typedef struct bin_writer {
   unsigned count;
   size_t cn;
 #ifdef FM1_STATE_BIN_COMPACT_WRITER
-  uint8_t chunk[49152];
+  /* Other chunks top out at 16 KiB. SEQS streams one encoded line;
+   * an untyped maximum-length line needs its three-byte raw prefix. */
+  uint32_t seq_crc;
+  uint8_t chunk[FM1_MOVY1_LINE_MAX + 3u];
 #else
   uint8_t chunk[65536];
 #endif
@@ -267,8 +270,12 @@ static int close_chunk(bin_writer_t *w) {
     static const uint8_t zero[4] = {0,0,0,0};
     if (STREAM_BASE + w->body_n + pad + stored > w->capacity)
       return berr(w, FM1_STATE_TOO_BIG, "past streaming destination capacity");
-    if (!output_at(w, (uint32_t)(STREAM_BASE + w->body_n), zero, (uint32_t)pad) ||
-        !output_at(w, (uint32_t)(STREAM_BASE + w->body_n + pad), src, (uint32_t)stored)) return 0;
+    if (!output_at(w, (uint32_t)(STREAM_BASE + w->body_n), zero, (uint32_t)pad)) return 0;
+#ifdef FM1_STATE_BIN_COMPACT_WRITER
+    /* SEQS body bytes were emitted by flush_line; only alignment remains. */
+    if (w->cur != CH_SEQS)
+#endif
+    if (!output_at(w, (uint32_t)(STREAM_BASE + w->body_n + pad), src, (uint32_t)stored)) return 0;
     w->body_n += pad;
   } else {
 #ifndef FM1_STATE_BIN_COMPACT_WRITER
@@ -284,7 +291,11 @@ static int close_chunk(bin_writer_t *w) {
   d->flags = flags;
   d->off = (uint32_t)w->body_n;
   d->len = (uint32_t)stored;
+#ifdef FM1_STATE_BIN_COMPACT_WRITER
+  d->crc = w->cur == CH_SEQS ? w->seq_crc : fm1_state_crc32(0, src, stored);
+#else
   d->crc = fm1_state_crc32(0, src, stored);
+#endif
 #ifndef FM1_STATE_BIN_COMPACT_WRITER
   if (!w->write_at) memcpy(w->body + w->body_n, src, stored);
 #endif
@@ -303,6 +314,9 @@ static int open_chunk(bin_writer_t *w, unsigned ch) {
   if (!close_chunk(w)) return 0;
   if (!((kKinds[ch] >> w->kind) & 1u)) return berr(w, FM1_STATE_BAD, "a record this kind of file does not hold");
   w->cur = (uint8_t)ch;
+#ifdef FM1_STATE_BIN_COMPACT_WRITER
+  w->seq_crc = 0;
+#endif
   w->cn = 0;
   w->count = 0;
   switch (ch) {
@@ -318,6 +332,19 @@ static int open_chunk(bin_writer_t *w, unsigned ch) {
 
 static int flush_line(bin_writer_t *w) {
   size_t n;
+#ifdef FM1_STATE_BIN_COMPACT_WRITER
+  if (w->cur == CH_SEQS) {
+    const size_t pad = (4u - (w->body_n & 3u)) & 3u;
+    n = fm1_movy1_encode(w->line, w->line_n, w->chunk, sizeof(w->chunk));
+    if (!n || n > kCap[CH_SEQS] - w->cn)
+      return berr(w, FM1_STATE_TOO_BIG, "a set past its cap");
+    if (!output_at(w, (uint32_t)(STREAM_BASE + w->body_n + pad + w->cn),
+                   w->chunk, (uint32_t)n)) return 0;
+    w->seq_crc = fm1_state_crc32(w->seq_crc, w->chunk, n);
+    w->cn += n;
+    return 1;
+  }
+#endif
   n = fm1_movy1_encode(w->line, w->line_n, w->chunk + w->cn, sizeof(w->chunk) - w->cn);
   if (!n) return berr(w, FM1_STATE_TOO_BIG, "a set past its cap");
   w->cn += n;

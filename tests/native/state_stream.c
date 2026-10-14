@@ -28,11 +28,11 @@ static uint32_t le32(const unsigned char *p) { return (uint32_t)p[0]|((uint32_t)
 int main(int argc,char **argv) {
   FILE *f; void *mem; fm1_state_writer_t *w; fm1_state_report_t rep;
   fm1_state_printer_t printer; fm1_rec_t end; unsigned idx=0, before; int ok;
-  assert(argc==3); fail_at=(unsigned)strtoul(argv[2],NULL,10);
+  assert(argc==3 || argc==4); fail_at=(unsigned)strtoul(argv[2],NULL,10);
   f=fopen(argv[1],"rb"); assert(f); total=(uint32_t)fread(input,1,sizeof(input),f); assert(!ferror(f)); fclose(f);
   mem=malloc(fm1_state_bin_writer_size()); assert(mem);
 #ifdef FM1_STATE_BIN_COMPACT_WRITER
-  assert(fm1_state_bin_writer_size()<76000);
+  assert(fm1_state_bin_writer_size()<40000);
   assert(!fm1_state_bin_writer(mem,0,0,NULL,NULL,NULL,NULL));
 #endif
   assert(!fm1_state_bin_stream_writer(NULL,0,NULL,wr,NULL,sizeof(output),NULL));
@@ -52,6 +52,10 @@ int main(int argc,char **argv) {
     total=le32(output+20); idx=1; fm1_state_printer_init(&printer,print_put,&idx); fm1_state_report_init(&rep);
     assert(fm1_state_bin_read(rd,output,total,fm1_state_print,&printer,&rep,0));
     assert(lengths[0]==lengths[1] && !memcmp(text[0],text[1],lengths[0]));
+    if (argc==4) {
+      f=fopen(argv[3],"wb"); assert(f);
+      assert(fwrite(output,1,total,f)==total); assert(!fclose(f));
+    }
   }
   printf("workspace=%zu calls=%u total=%u\n",fm1_state_bin_writer_size(),calls,total);
   free(mem); return 0;

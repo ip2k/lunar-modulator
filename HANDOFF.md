@@ -2980,3 +2980,16 @@ read-only validation integration, admitted storage layout and native SAVE.
 Provenance currently simulator; adapt before firmware use. All13 watched boot,
 settings migration/physical rollback/webinstaller/custombuilder/license/reviewCI
 remain open. Do not replay consumed hardware writers or loaders.
+
+## Compact sequencer writer checkpoint (2026-10-14)
+
+[verified] SEQS lines stream directly with incremental CRC; compact writer
+39,176 host bytes (32,760 saved), 39,132 pi32v2 bytes. 169 ASanUBSan tests
+in30Hera chunks pass, 23matching hashes/all30logs/no skips/OOM;9fixture
+byte parity,276normal/304compact callback refusals,10,830actualbinary faults,
+exact line/chunk/destination boundaries. v1failed staging/missingmovy1fixture
+retained; corrected v3complete. Evidence notes/2026-10-14-line-writer-verification/.
+No hardware operation; native SAVE/workspace/validator integration and flash
+capacity unresolved. Full13 acceptance/migration/physicalrollback/webinstaller/
+custombuilder/licensing/reviewCI remain active. Previous verified pushed
+840a2b7871bb8a59b0035ce5240b195c470229df. Do not replay consumed hardware actions.

@@ -1,0 +1,8 @@
+{
+  "target": "pi32v2",
+  "workspace_bytes": 39132,
+  "host_workspace_bytes": 39176,
+  "previous_host_workspace_bytes": 71936,
+  "assembly_sha256": "00356d527dd36b0460c2557078e818fff8aaadcb8e8d41dde9b686279e75742a",
+  "compile_flags": "-target pi32v2 -mcpu=r3 -mfprev1 -Oz -ffreestanding -fno-builtin -std=c99 -Wall -Wextra -Werror -DFM1_STATE_BIN_COMPACT_WRITER -Iengines/include -Iengines/state -isystem /opt/jieli/pi32v2/include -S"
+}
