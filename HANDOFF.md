@@ -1,3 +1,25 @@
+# Demo preload checkpoint — 2026-10-14
+
+Active goal remains the verified full thirteen-engine FM-1 release and web
+installer/custom image builder. Owner requires earlier demos selectable before
+flashing and at least one full-length song project in the default image.
+Four original full-song assets are now restored from exact frozen Git blobs
+at 3e6eaa5fea7a38822b60a2a742af4b932856b8cc to canonical and web example
+folders, and listed in the browser example chooser. They remain original
+examples, not owner-approved showcases. The new demo_preload_catalogue.py
+inventories eight source candidates, includes master effects, and refuses to
+claim canonical dependency resolution/default admission. Two repaired later
+showcases have stale runtime hashes. Four focused tests pass locally.
+This checkpoint does not implement the installer preload UI or change the
+production default profile; exact embedding/link fit, musical acceptance and
+physical full-song/save acceptance remain required. Parameter worker is
+running maximal Drums native SAVE validation on Hera in container
+lunar-collector-max-drums-20261014; retain its exact log and do not restart
+merely because compilation is slow. Sequence worker next owns integration
+plan only. Mac alone owns hardware; no device writes this checkpoint.
+Branch feature/2026-10-11@installable-firmware, preceding verified pushed
+00260cbf5ff7388a307af29473ec1d161248c4c1. Current checkpoint follows.
+
 # Passive writer preflight — 2026-10-13
 
 Exact expanded writer41 checks also pass on Hera. Source pinned passive Pi
