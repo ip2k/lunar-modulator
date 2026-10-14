@@ -2783,3 +2783,18 @@ unknown settings or use inherited0xFC000 globals address. Installed all13 timed
 probe still awaits fresh watched boot via staged single-use adapter; owner
 observation response pending. Full release/custom builder/migration/rollback/
 reviewCI remain open. Previous verified pushedce958a5741fd4cd0c580854f389ca05c1b9f58b3.
+
+## Lossless storage backup checkpoint (2026-10-13)
+
+[verified] Offline export/verification tool preserves full baseline and opaque
+VM/BTIF/USR/gap bytes for stock-V15 and recorded-092 layouts. All30 refusal/
+roundtrip tests pass30 Hera chunks; all logs/exits/noOOM/five sourcehashes checked.
+Original exec65743 terminal0. Saved matching stock092 backups exported to private
+build/native-storage-backup-20261013/private-stock092/ with retained baseline
+96006a... and manifestae1bb3f6...; verification succeeds. Evidence in
+notes/2026-10-13-storage-backup-verification/. No physical operation, migration
+or physical rollback claimed. Next implement explicitly bound journal-window
+admission and runtime adapter; stock opaque settings decoding still unresolved.
+All13 installed timed probe awaits fresh watched boot. Fullrelease/custombuilder/
+migration/rollback/licensing/reviewCI/integration remain open. Previous verified
+pushede4db2a4ddc5ea9c1b75265407ab12a10e282736f.

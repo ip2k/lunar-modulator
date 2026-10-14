@@ -1,0 +1,10 @@
+{
+  "status": "lossless-storage-backup-verified",
+  "baseline_sha256": "96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4",
+  "manifest_sha256": "ae1bb3f601e8bdffa2980bb6b4a24ced4439ecda62619fe7f7a07cdb2d9a2923",
+  "profile": "recorded-092",
+  "semantic_migration_verified": false,
+  "physical_rollback_verified": false,
+  "hardware_admitted": false,
+  "hardware_operations": 0
+}

@@ -1,0 +1,276 @@
+{
+  "chunks": 30,
+  "tests": 30,
+  "results": [
+    {
+      "shard": 0,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[roundtrip-stock-v15]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 1,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[roundtrip-recorded-092]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 2,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[mismatched-stock-v15]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 3,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[mismatched-recorded-092]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 4,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[digest-stock-v15]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 5,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[digest-recorded-092]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 6,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[reservation-stock-v15]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 7,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[reservation-recorded-092]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 8,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[header-stock-v15]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 9,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[header-recorded-092]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 10,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[profile-stock-v15]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 11,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[profile-recorded-092]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 12,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[missing-stock-v15]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 13,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[missing-recorded-092]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 14,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[bank-stock-v15]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 15,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[bank-recorded-092]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 16,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[baseline-stock-v15]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 17,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[baseline-recorded-092]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 18,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[manifest-pin-stock-v15]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 19,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[manifest-pin-recorded-092]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 20,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[forged-manifest-stock-v15]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 21,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[forged-manifest-recorded-092]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 22,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[extra-stock-v15]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 23,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[extra-recorded-092]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 24,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[symlink-stock-v15]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 25,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[symlink-recorded-092]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 26,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[existing-stock-v15]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 27,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[existing-recorded-092]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 28,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[short-stock-v15]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    },
+    {
+      "shard": 29,
+      "nodes": [
+        "tests/test_native_storage_backup.py::test_lossless_storage_archive[short-recorded-092]"
+      ],
+      "exit": 0,
+      "state_exit": 0,
+      "oom": false
+    }
+  ]
+}

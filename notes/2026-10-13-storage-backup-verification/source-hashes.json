@@ -1,0 +1,7 @@
+{
+  "tools/native/storage_backup.py": "faa60647f7545c80f041908ee81eee70742e6f3b94b49df933a1fadffdf758f8",
+  "tests/test_native_storage_backup.py": "1ea02178d4e0f0e3f7c3769b09c89001bbf73e5a0c18def3d273433007610a5f",
+  "tools/jieli/inspect_fwsc.py": "2c7a3b61d41366755d457b03d6029c7d9b331b07961335e67e1892fe6168b820",
+  "tools/jieli/inspect_stock_flash.py": "de68a7d862e18adcce066bc6309364830ecfeb9dac6147fe9178384aae98e34b",
+  "tools/jieli/package_guard.py": "78643b8a13114293afc1b3b0880e56858371669cf42a4cadbb31a7bb7557dc51"
+}
