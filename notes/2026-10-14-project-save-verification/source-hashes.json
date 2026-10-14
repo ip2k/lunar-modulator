@@ -1,0 +1,16 @@
+{
+  "firmware/native/project_save.h": "7f19dbe1ac88372cfdb61e2e311eeba80bd4c83226370095c8f420e0270cb08c",
+  "firmware/native/project_store.h": "237803b17d17c3c2311e89493b586c373c04ab0dc4788cb11ff3580d548a5045",
+  "firmware/native/project_workspace.h": "e43d0be761385e052f6a5bd686e8c4ab4bbac970cf6cd5d69275096e3e2c27fc",
+  "tests/native/project_save.c": "ee3fa8b0e26afbfe8ff8d4700ddda2f366c6a30339ae56d8d633d9eb924e6c97",
+  "tests/test_native_project_save.py": "13decf550da305a866940dfbdba7ed7b60cccf67b318761a29df346031388741",
+  "sim/web/src/fm1_tft.c": "ea6bff4f1be903ee7b0d3321ebb90805fe36b50ec95b65cfed0c508d16f67193",
+  "sim/web/src/fm1_tft.h": "806fe53dc8236e76d405daf1975b8565718ab084ce038c5fdd5db78da9f10cfa",
+  "engines/state/fm1_state.h": "6f6f597f3c50ff1737de34895a29318a9362f62b3b56c93aef57ffa1efec5800",
+  "engines/state/state_bin.c": "37054d9abc42bcadad715e164d1eb386643fd02919cffa6062f20e5ce886b66c",
+  "engines/state/state_names.c": "023be58014b9c4d62cfd2822bb270cea923dd5d37f80ed0bce52ad651e04be57",
+  "engines/state/state_print.c": "9ea4bb389f2850dc9ea314ed60465694aef6463535d3ecc7ee59f7dc48312175",
+  "engines/state/state_movy1.c": "cfc0999896814678f46d7a46eb21d4fddf0a0f53ffe0470481147ddb597a33e2",
+  "engines/state/fm1_num.c": "cfe54e03e93898b1ec7e6043018225fe239dc259872a47087940959588bf9a56",
+  "engines/state/fm1_deflate.c": "1f2fc7ee8dd7f0e73cae2071a0bf70a5cd2bb84836110a4005595442c6154faa"
+}

@@ -3010,3 +3010,22 @@ RAM fit or actual hardware redraw proof. Next collector/store bridge and admitte
 storage capacity; migration/physicalrollback/all13watchedboot/webinstaller/
 custombuilder/licensing/reviewCI remain open. Previous verified pushed
 4b83093cf24c35b424266daef4dd89ab8f8933bd. Do not replay consumed hardware actions.
+
+## Bounded project SAVE transaction bridge checkpoint (2026-10-14)
+
+[verified] project_save.h joins pixel workspace, compact record serialization
+and two-slot NOR transaction. Preflight performs no flash I/O; complete-stream
+CRC compares emitted offsets/lengths/bytes between passes, then full read-only
+validation and commit-last. Every leased exit invalidates pixels and releases
+workspace. Thirty cases/thirty Hera chunks pass ASanUBSan and pi32v2 harness
+compile; all30logs/exits/noOOM/14hashes checked, 3006 NOR callback faults with
+1002 FIRSTORBIT operations. Initial v2 exposed same-length mutation missed by
+header-only comparison; corrected v3, boundary additions v4 all pass. Logs
+retained privately build/native-project-save-20261014/. Evidence
+notes/2026-10-14-project-save-verification/. Session9582 terminal0/no liveworker,
+no physical operation. Record fixture source only: actual native app collector,
+audio/UI scheduling, physical HAL/storage admission still unwired. Next native
+collector adapter/production integration and capacity; all13 watched boot,
+migration/physicalrollback/webinstaller/custombuilder/licensing/reviewCI remain.
+Previous verified pushed108849bb3cae7232ed42b58bf278ecd66428282f.
+Do not replay consumed hardware writers/loaders/boot commands.
