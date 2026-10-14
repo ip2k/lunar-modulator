@@ -134,13 +134,13 @@ def checked_link_receipt(selection, prepared, verification, artifact, app, elf, 
                        for a in selection['content']]
     expected_selected_content = selection.get('selected_content')
     expected_set_ids = selection.get('set_ids', [])
-    expected_identity = ([dict(kind='project', id=project_id)
-                          for project_id in selection['project_ids']]
-                         + [dict(kind='set', id=set_id,
-                                 parent_project_id=selection['startup_project_id'])
-                            for set_id in expected_set_ids])
+    expected_content_identity = ([dict(kind='project', id=project_id)
+                                  for project_id in selection['project_ids']]
+                                 + [dict(kind='set', id=set_id,
+                                         parent_project_id=selection['startup_project_id'])
+                                    for set_id in expected_set_ids])
     if (not isinstance(expected_selected_content, list)
-            or expected_selected_content != expected_identity
+            or expected_selected_content != expected_content_identity
             or len(expected_selected_content) != len(expected_assets)
             or [row.get('kind') for row in expected_selected_content] != [a['kind'] for a in expected_assets]):
         raise ValueError('Selected content identities differ from prepared asset order')
