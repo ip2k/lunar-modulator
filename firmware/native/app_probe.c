@@ -22,6 +22,7 @@ static int32_t lunar_master_raw = 512;
 #include "midi_input.h"
 #ifdef LUNAR_STACK_WATERMARK
 #include "stack_watermark.h"
+#include "stack_readout.h"
 extern char _ustack_top[];
 /* Retained symbols for a diagnostic debugger/readout. Minimum observed free
  * bytes over completed samples; they include this scanner's own stack stores.
@@ -250,6 +251,18 @@ static void app_main(void)
             uint32_t tick = fm1_ticks();
             last_draw = fm1_ms;
             fm1_app_draw(&app, 0);
+#ifdef LUNAR_STACK_WATERMARK
+            {
+                char margins[20], samples[19];
+                lunar_stack_readout(margins, samples, lunar_stack_user_margin,
+                    lunar_stack_system_margin, lunar_stack_samples);
+                /* Diagnostic footer owns these rows, with four-pixel padding.
+                 * Values are observed free bytes, not a worst-case bound. */
+                fm1_tft_fill(&app.tft, 0, 208, 240, 32, 0);
+                fm1_tft_text(&app.tft, 4, 212, margins, 19, 1, 0xffff);
+                fm1_tft_text(&app.tft, 4, 224, samples, 18, 1, 0xffff);
+            }
+#endif
             uint32_t elapsed = fm1_ticks() - tick;
             if (elapsed > draw_ticks_max) draw_ticks_max = elapsed;
         }

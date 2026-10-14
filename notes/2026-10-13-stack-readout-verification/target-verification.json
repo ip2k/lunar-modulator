@@ -1,0 +1,103 @@
+{
+  "elf_sha256": "35655a21de5c08d09fa19ef2fd4f253efbc107346c6e107a1988dca4e69dac29",
+  "stack_watermark": true,
+  "stack_watermark_verification": {
+    "pattern": 2774181210,
+    "painter_begin": 33988424,
+    "painter_end": 33988470,
+    "painter_bytes": "c1ff0041c701c2ff00a0c701c3ff5aa55aa59360198482e8fc11c1ff00a1c701c2ff00c0c7019360198482e8fc11",
+    "calls": [
+      {
+        "pc": 33554788,
+        "target": 33988424,
+        "symbol": "lunar_stack_watermark_begin",
+        "opcode": "83eaf04e"
+      },
+      {
+        "pc": 33988470,
+        "target": 33943546,
+        "symbol": "fm1_cstart",
+        "opcode": "bfea40a8"
+      }
+    ],
+    "user_bytes": 24320,
+    "system_bytes": 7936,
+    "hardware_tested": false,
+    "worst_case_stack_bound": false
+  },
+  "instance_pool_bytes": 216064,
+  "hardware_tested": false,
+  "installable": false,
+  "key_audit": {
+    "passed": true,
+    "linked": true,
+    "runtime": "sdk-free",
+    "inputs": [
+      "lunar-app-probe.elf"
+    ],
+    "n_fail": 0,
+    "n_pending": 0,
+    "checks": [
+      {
+        "check": "forbidden_keycheck_symbols",
+        "status": "pass",
+        "detail": "none of mkey_check, sdk_mkey_lock, sdk_mkey_lock_v2_cfun, key_check_demo, sdk_chip_key_verify_v2 defined or referenced"
+      },
+      {
+        "check": "dormant_keycheck_absent",
+        "status": "pass",
+        "detail": "defined: []; referenced: []"
+      },
+      {
+        "check": "stub_0200012E_unused",
+        "status": "pass",
+        "detail": "no immediate 0x0200012E (key_check_demo stub call/load)"
+      },
+      {
+        "check": "keycheck_mailbox_unwritten",
+        "status": "pass",
+        "detail": "no reference to 0x01C80108-0x01C80110"
+      },
+      {
+        "check": "no_sdk_key_blob",
+        "status": "pass",
+        "detail": "no SDK JL_KEY_2020 blob bytes (FE 23 A8 B1 ...)"
+      },
+      {
+        "check": "no_key_check_demo_hash",
+        "status": "pass",
+        "detail": "no key_check_demo hash bytes (99 56 B6 46 ...)"
+      },
+      {
+        "check": "irq123_reserved",
+        "status": "pass",
+        "detail": "no reference to IRQ-123 vector 0x01C801EC"
+      },
+      {
+        "check": "irq123_unused_in_sources",
+        "status": "pass",
+        "detail": "only proven literal non-123 IRQ arguments; no IRQ-123 vector address"
+      },
+      {
+        "check": "no_efuse_controller_access",
+        "status": "pass",
+        "detail": "no reference to eFuse SFRs 0x13700-0x1371F"
+      },
+      {
+        "check": "late_initcall_group",
+        "status": "pass",
+        "detail": "SDK-free image has no initcall machinery"
+      },
+      {
+        "check": "sdk_free_linked",
+        "status": "pass",
+        "detail": "requires a linked executable; objects alone cannot establish SDK absence"
+      },
+      {
+        "check": "sdk_meky_check_scheduling",
+        "status": "pass",
+        "detail": "SDK-free runtime requires the dormant check to be absent"
+      }
+    ]
+  }
+}

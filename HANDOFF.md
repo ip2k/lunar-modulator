@@ -2602,3 +2602,16 @@ rollback, browser installer/builder, GPL and review/CI/integration remain open.
 Semantic tools remain on the primary checkout; Rarefaction missed the known
 native draw caller, so worktree source/target ELF remain authoritative.
 Previous verified pushed checkpoint785fcc41df0df0484c17acb7326e5e1c0ee79afb.
+
+## Stack readout checkpoint (2026-10-13)
+
+[verified] Opt-in stack probes now show observed margins and sample count
+on two reserved TFT footer rows. All30 ASAN/UBSAN cases passed in30 Hera
+containers; full13 FIRST ORBIT target link, strict entry/compiled painter
+and SDK-free/eFuse checks passed. Actual TFT preview visually inspected.
+Evidence: notes/2026-10-13-stack-readout-verification/RESULTS.md. No hardware
+command or measurement; no live job. Previous verified pushed checkpoint
+d9a86a6121bba59fc01be3090ecf15bbd7d22c39. Next refresh current-target stack/IRQ/
+timing assessment, then fresh identity/paired backups and reviewed physical
+campaign. All13 acceptance, migration/rollback, web builder/install, GPL and
+required review/CI/integration remain open. Goal active.

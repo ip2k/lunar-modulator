@@ -1,0 +1,8 @@
+{
+  "tools/native/stack_watermark.py": "1cfc53f4bf9aa0ce7ebd94b1fef45a39e7c6d9b0c3aa918b8a095c70b4c13afc",
+  "tools/native/build_application_probe.py": "97eb16e4df44c5ee22a98a1fc02abb6ee5d68e0af2ccf70df20dc865372ab17c",
+  "firmware/native/stack_watermark.h": "1b181d3abf628afb90edc12b5ec3991f4dcf2cb5717bbfe7865e4e075504e869",
+  "firmware/native/app_probe.c": "1dda226fafb16939005cde4d9c49ea84fb0b006dd666ea22328064f3047ca533",
+  "tests/test_native_stack_readout.py": "154cd2351dd352f132d0f1fbca8586166ead686d2a15fb82b4e3d3cb1aa483a1",
+  "firmware/native/stack_readout.h": "b8ea56ba09e95d8f048972cff3caea02a9241b16e79fbbfb1866cf9a27706f28"
+}
