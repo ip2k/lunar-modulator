@@ -2798,3 +2798,18 @@ admission and runtime adapter; stock opaque settings decoding still unresolved.
 All13 installed timed probe awaits fresh watched boot. Fullrelease/custombuilder/
 migration/rollback/licensing/reviewCI/integration remain open. Previous verified
 pushede4db2a4ddc5ea9c1b75265407ab12a10e282736f.
+
+## Settings window geometry checkpoint (2026-10-13)
+
+[verified] Offline storage_window plan/verify implemented.30 cases/30 Hera chunks
+pass; all logs/exits/noOOM/seven source hashes checked. Original SSH session14749
+terminal0; no live worker or USB mutation. Retained stock092 pair and installed
+c543 target pass aligned8KiB FC000 window geometry, prefix/reserved-bank/key
+preservation and erased-byte checks. Evidence notes/2026-10-13-storage-window-verification/.
+Ownership/provenance/migration/physicalrollback/hardware admission remain false;
+this does not enable native writes. Next implement bounded native storage adapter
+and explicit native-layout allocation, plus compact whole-project SAVE (existing
+browser writer exceeds device workspace budget). All13 observed boot still
+pending owner availability; preserve consumed install marker, do not replay
+writer or ROM upload. Full release/custom builder/licensing/reviewCI remain open.
+Previous verified pushed5cf1c2524164f1aa3e9c7c967b1551e54a6995d2.

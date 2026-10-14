@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "kind": "fm1-native-settings-window-geometry",
+  "baseline_sha256": "96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4",
+  "candidate_sha256": "c543e538754d0ae02ee119fd1e29a9b8cb9eb21a23edf0c12fc981ddaa3bc903",
+  "profile": "recorded-092",
+  "start": 1032192,
+  "bytes": 8192,
+  "sector_bytes": 4096,
+  "window_sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f",
+  "geometry_verified": true,
+  "initially_erased": true,
+  "protected_storage_preserved": true,
+  "ownership_verified": false,
+  "backup_provenance_verified": false,
+  "semantic_migration_verified": false,
+  "physical_rollback_verified": false,
+  "hardware_admitted": false,
+  "hardware_operations": 0
+}
