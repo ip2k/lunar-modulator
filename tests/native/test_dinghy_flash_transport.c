@@ -11,6 +11,9 @@ static uint8_t tx_bytes[300];
 static unsigned tx_count;
 static uint8_t programmed_payload[300];
 static unsigned programmed_count;
+static const uint8_t *programmed_sources[4];
+static uint32_t programmed_sizes[4];
+static unsigned program_calls;
 static int nor_wel, nor_wip, destructive_pending, ready_observed;
 static unsigned status_polls_to_clear, sfc_restores;
 static int hold_wip, fail_status_forever;
@@ -111,6 +114,8 @@ static void test_sfc_restore(uint32_t value)
 #define FL_IRQ_SAVE(flags) do { (flags) = reg_icfg; reg_icfg &= ~0x100u; } while (0)
 #define FL_IRQ_RESTORE(flags) (reg_icfg = (flags))
 static int test_source_span_ok(const uint8_t *src, uint32_t n, uint32_t off);
+static int test_program_page(uint32_t off, const uint8_t *page, uint32_t n, uint32_t *took);
+#define FL_PROGRAM_PAGE(off, page, n, took) test_program_page((off), (page), (n), (took))
 #define FL_SOURCE_SPAN_OK(src, n, off) test_source_span_ok((src), (n), (off))
 /* Host mocks test control flow; target link checks separately prove RAM
  * placement. Avoid ELF-only section syntax in the Mach-O host harness. */
@@ -122,6 +127,14 @@ static int test_source_span_ok(const uint8_t *src, uint32_t n, uint32_t off);
 static int test_source_span_ok(const uint8_t *src, uint32_t n, uint32_t off)
 {
     return src != NULL && n <= 300u && off <= UINT32_MAX - n;
+}
+
+static int test_program_page(uint32_t off, const uint8_t *page, uint32_t n, uint32_t *took)
+{
+    assert(program_calls < sizeof programmed_sources / sizeof programmed_sources[0]);
+    programmed_sources[program_calls] = page;
+    programmed_sizes[program_calls++] = n;
+    return FL_FAR(fl_prog_ram)(off, page, n, took);
 }
 
 static void reset_mock(uint32_t iomap)
@@ -140,6 +153,7 @@ static void reset_mock(uint32_t iomap)
     reply_count = reply_index = 0;
     tx_count = 0;
     programmed_count = 0;
+    program_calls = 0;
     nor_wel = nor_wip = destructive_pending = ready_observed = 0;
     status_polls_to_clear = status_polls = sfc_restores = 0;
     hold_wip = fail_status_forever = failstop_armed = 0;
@@ -189,6 +203,12 @@ static void test_fl_write_stages_caller_pages_before_ram_program(void)
     for (i = 0; i < sizeof input; ++i) input[i] = (uint8_t)(i ^ 0xA7u);
     assert(fl_write(0x970F0u, input, sizeof input) == 0);
     assert(programmed_count == sizeof input);
+    assert(program_calls == 3u);
+    assert(programmed_sizes[0] == 16u && programmed_sizes[1] == 256u && programmed_sizes[2] == 28u);
+    for (i = 0; i < program_calls; ++i) {
+        assert(programmed_sources[i] != input);
+        assert(((uintptr_t)programmed_sources[i] & 3u) == 0u);
+    }
     for (i = 0; i < sizeof input; ++i) assert(programmed_payload[i] == input[i]);
     assert(ready_observed && !nor_wip);
     assert_restored(0x20u, 0x1255u);
