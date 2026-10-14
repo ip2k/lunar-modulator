@@ -3696,3 +3696,23 @@ are exposed, two memory-rejected replacements refused. Default production
 admission, hardware full-song listening, storage ownership/migration/recovery,
 browser build/download/flash connection and public release remain outstanding.
 Mac exclusively owns bench hardware. Goal remains ACTIVE.
+
+## CI follow-up and independent chooser review — 2026-10-14
+
+Independent review at 746e12ec found no source/packed trust bypass or
+order/startup defect; 14 browser checks passed. Review saved in
+notes/2026-10-14-preload-independent-review.md. It confirms the accepted
+production full-song default remains gated; chooser preselection is a request.
+
+CI 38580253461 failed Python collection on both platforms because the top-level
+development requirements omitted FastAPI. Commit 064a2c075c881ca687791c89f63d0a3f539aaf96
+includes the existing pinned installer-service test requirements; its origin
+SHA is verified. Replacement CI 38580863781 at exact064a is pending/running,
+not yet passing. An active delegated CI audit owns diagnosis/follow-up.
+
+Active Hera loader follow-up found maintained Felucca RAM updater source and
+reported an exact linker footprint under the old loader contract; measurement
+and profile adaptation still need returned artifacts/coordinator review.
+Staging/record policies overlap protected expanded storage and cannot be reused
+unchanged. Offline fake-flash/profile adapter is in progress, with no device
+permission or staging ownership grant. Overall goal ACTIVE, no release/merge.
