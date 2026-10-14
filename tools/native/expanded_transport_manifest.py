@@ -13,6 +13,7 @@ import os
 import expanded_flash_profile as expanded
 import raw_flash_profile as raw
 from build_demo_image import checked_wavetable_profile
+from runtime_mode import runtime_configuration
 
 
 def canonical(value):
@@ -86,6 +87,35 @@ def build_manifest(baseline, target, reference, app, elf,
             or image_receipt.get('app_bytes') != len(app)
             or image_receipt.get('app_budget_bytes') != expanded.APP_BUDGET):
         raise ValueError('Exact expanded-d9000 linked private image receipt required')
+    expected_runtime = runtime_configuration('song-diagnostic')
+    if image_receipt.get('runtime_configuration') != expected_runtime:
+        raise ValueError('Transport requires the bounded 120-second song diagnostic')
+    service = image_receipt.get('project_save_service')
+    required_disarmed = ('storage_admitted', 'flash_io_bound', 'save_service_armed',
+                         'runtime_verified', 'hardware_tested')
+    if (not isinstance(service, dict)
+            or service.get('linked') is not True
+            or service.get('compile_definition') != 'LUNAR_PROJECT_SAVE_SERVICE=1'
+            or any(type(service.get(key)) is not bool or service[key] is not False
+                   for key in required_disarmed)):
+        raise ValueError('Transport requires the linked SAVE service to remain disarmed')
+    codec = image_receipt.get('state_bin_codec')
+    codec_hash_fields = ('source_sha256', 'cached_object_sha256', 'fresh_object_sha256')
+    if (not isinstance(codec, dict)
+            or codec.get('mode') != 'compact-writer'
+            or codec.get('compile_definition') != 'FM1_STATE_BIN_COMPACT_WRITER=1'
+            or codec.get('replaced_exactly_one') is not True
+            or any(not isinstance(codec.get(key), str) or not codec[key]
+                   for key in ('source', 'cached_object', 'fresh_object'))
+            or codec.get('cached_object') == codec.get('fresh_object')
+            or any(not isinstance(codec.get(key), str) or len(codec[key]) != 64
+                   or any(char not in '0123456789abcdef' for char in codec[key])
+                   for key in codec_hash_fields)
+            or not isinstance(codec.get('compile_flags'), list)
+            or codec['compile_flags'].count('-DFM1_STATE_BIN_COMPACT_WRITER=1') != 1):
+        raise ValueError('Transport requires the verified compact SAVE codec replacement')
+    verification_sha = _digest_field(image_receipt, 'verification_sha256')
+    artifact_sha = _digest_field(image_receipt, 'artifact_receipt_sha256')
     module_selection = image_receipt.get('module_selection')
     if not isinstance(module_selection, dict) or not isinstance(module_selection.get('selected'), list):
         raise ValueError('Linked image receipt must include selected module identity')
@@ -149,6 +179,16 @@ def build_manifest(baseline, target, reference, app, elf,
         startup_project_id=startup_id,
         wavetable_profile=checked_waves['wavetable_profile'],
         wavetable_receipt_verified=True,
+        runtime_configuration=expected_runtime,
+        project_save_service=dict(linked=True, storage_admitted=False,
+                                  flash_io_bound=False, save_service_armed=False,
+                                  runtime_verified=False, hardware_tested=False),
+        state_bin_codec=dict(mode='compact-writer', source_sha256=codec['source_sha256'],
+                             cached_object_sha256=codec['cached_object_sha256'],
+                             fresh_object_sha256=codec['fresh_object_sha256'],
+                             replaced_exactly_one=True),
+        verification_sha256=verification_sha,
+        artifact_receipt_sha256=artifact_sha,
         changed_sectors=allowed, sector_order=ordered,
         directory_sector=directory,
         protected_ranges=[[0, raw.APP_BASE], [expanded.AREA_END, raw.FLASH_BYTES]],
