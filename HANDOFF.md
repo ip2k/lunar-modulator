@@ -1,3 +1,36 @@
+# Current integration and watched repeat — 2026-10-14 22:15 UTC
+
+Goal remains active: all13 native Lunar, Event Horizon default, selectable
+web installation, persistence, migration/rollback and physical recovery.
+Root worktree is /Users/likwid/.codex/worktrees/installable-firmware/mvave-fm1-firmware,
+branch feature/2026-10-11@installable-firmware. Prior root2205475c and all
+integrated worker branches are GitHub-backed with remote SHA verified.
+
+Fresh device46 paired 1MiB reads matched installed Event120 target145c0280...aa4657;
+one FC0C argument1 at1792015946.9745731 had ambiguous host7/resid16 completion,
+no retry. NativeUSB47 appeared; passive ROM48 at22:14:49UTC. Owner screen/PLAY/
+audio/keys/encoders observations pending. Exact read/boot campaigns are consumed:
+/home/claude/fm1-device46-event120-repeat-20261014 on bench01. Do not reuse them.
+Pico2W runtime38 remains GPIO FAULT; USB-only versus recovery GPIO wiring answer
+pending. Independent recovery from corrupt firmware remains unverified.
+
+Continuous target d7216f6c...fe137d3b fits845768/860644B,14876B slack, all13+
+54 modules/EH+companionSET6284B. SAVE and hardware/installability false. Worker
+physical_storage_compression owns fresh operator-only provenance/tuple pipeline;
+the direct link lacks tuple/image/provenance and cannot yet be trusted-packaged.
+Strict continuous package policy76685 independently reviewed18/18; root device46
+adapters21/21 and corrected NOR SET analysis19/19 passed. Source closure remains
+incomplete for runtime pointer residency/watchdog. Public installer diagnostic-only.
+
+Private D7000 diagnostic FWSC26402f87...924d4 structurally parsed and independently
+compared against original092FWSC: OTA and terminal tail raw bytes preserved,
+other nonflash allocated payloads identical after decoding. Stock-updater transport,
+installation/recovery and release remain unaccepted. CI38646181992 targets0f8ca8b4
+(before latest notes); earlier38644838309 targets82d8e26c, still running. No main
+merge/release/deployment. Next: review operator tuple, compose private continuous
+package, continue recovery/transport/persistence/browser gates without claiming
+offline proof as hardware acceptance.
+
 # Recovery model integration — 2026-10-14
 
 Root e902215cd8e72cbd61ae06f13da712d8d40b101d is GitHub-backed, remote SHA

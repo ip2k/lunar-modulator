@@ -24,4 +24,10 @@ lsusb showed native USB 1209:0001 as bus 1 device 47.
 /home/claude/fm1-device46-event120-repeat-20261014. Read and boot markers are
 consumed. Native enumeration establishes neither musical acceptance nor
 independent recovery. Owner observations and passive timed return remain
-pending. No second reset is authorized by this consumed evidence.
+pending at the initial checkpoint. No second reset is authorized by this
+consumed evidence.
+
+[verified] At 22:14:49 UTC a passive enumeration showed ROM 4c4a:8057,
+bus 1 device 48. No physical power cycle or subsequent device command was
+issued by the coordinator. This establishes a timed return to ROM enumeration;
+it does not establish independent recovery from corrupt firmware.
