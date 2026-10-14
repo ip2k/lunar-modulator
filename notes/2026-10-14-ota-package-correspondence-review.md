@@ -28,6 +28,28 @@ linked bytes into `image.json`, but emits `app.bin` plus diagnostic evidence;
 it does not emit FWSC/OTA. The existing FWSC composer is deliberately pinned
 by `APP_SHA` and `IDENTITY` in `tools/native/ota_candidate.py` to the small
 `FM-1_990` controls probe. It cannot consume an all-13/song selection as-is.
+
+The size makes direct substitution impossible for the observed stock V15
+container: the all-13 Event Horizon Showcase application is 862,320 bytes in
+the retained checked build receipt; the stock nested `app.bin` extent is
+581,564 bytes (`inspect_nested` on the guarded V15 fixture). The normal
+`model_app_replacement._build` path refuses any app larger than that extent.
+The separate `tools/native/expanded_candidate.py::construct` path targets the
+FM-1_092 expanded `d9000` raw-flash layout, requires two identical baselines,
+manifest, identity and reference evidence plus app/ELF reconstruction and link
+audit, then calls `expanded_flash_profile.construct_geometry`. That constructor
+preserves raw bytes below `APP_BASE` and above `AREA_END`, including boot and
+reserved banks, and verifies expanded record geometry. It explicitly reports
+`ota_package_verified=false`; it creates a private raw candidate, not FWSC/OTA.
+
+Thus there is no existing compatible installable package path for this
+expanded app. The smallest next offline packaging increment is to define a
+format and exact source-evidence contract around the expanded raw candidate,
+then add correspondence/tamper checks for app/ELF/selection receipt identity,
+geometry, and immutable ranges. That still cannot be called release-ready or
+installed: current physical backup provenance, device version acceptance,
+settings migration/rollback, and approved transport/recovery remain gates.
+
 The offline correspondence checks here therefore apply only to that pinned
 prototype. A future package composer needs a separately reviewed profile that
 accepts the controller's exact app/artifact receipt and independently binds
