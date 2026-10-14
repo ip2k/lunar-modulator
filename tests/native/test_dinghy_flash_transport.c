@@ -9,6 +9,8 @@ static uint8_t replies[16];
 static unsigned reply_count, reply_index;
 static uint8_t tx_bytes[300];
 static unsigned tx_count;
+static uint8_t programmed_payload[300];
+static unsigned programmed_count;
 static int nor_wel, nor_wip, destructive_pending, ready_observed;
 static unsigned status_polls_to_clear, sfc_restores;
 static int hold_wip, fail_status_forever;
@@ -43,7 +45,15 @@ static void test_cs_level(int high)
     if (!tx_count) return;
     if (tx_bytes[0] == 0x06) {
         nor_wel = 1;
-    } else if (tx_bytes[0] == 0x20 || tx_bytes[0] == 0x02) {
+    } else if (tx_bytes[0] == 0x02) {
+        unsigned i;
+        if (tx_count >= 4u)
+            for (i = 4; i < tx_count; ++i) programmed_payload[programmed_count++] = tx_bytes[i];
+        destructive_pending = 1;
+        nor_wip = 1;
+        nor_wel = 0;
+        status_polls_to_clear = hold_wip ? (unsigned)-1 : 1u;
+    } else if (tx_bytes[0] == 0x20) {
         /* Model the conservative case: a timed-out byte may have reached NOR,
          * and raising CS can commit even an incomplete address/data sequence. */
         destructive_pending = 1;
@@ -100,10 +110,19 @@ static void test_sfc_restore(uint32_t value)
 #define FL_SFC_RESTORE(value) test_sfc_restore(value)
 #define FL_IRQ_SAVE(flags) do { (flags) = reg_icfg; reg_icfg &= ~0x100u; } while (0)
 #define FL_IRQ_RESTORE(flags) (reg_icfg = (flags))
+static int test_source_span_ok(const uint8_t *src, uint32_t n, uint32_t off);
+#define FL_SOURCE_SPAN_OK(src, n, off) test_source_span_ok((src), (n), (off))
 /* Host mocks test control flow; target link checks separately prove RAM
  * placement. Avoid ELF-only section syntax in the Mach-O host harness. */
 #define RAMFN __attribute__((noinline, used))
 #include "../../firmware/third_party/dinghy/hal/fm1_flash.h"
+
+/* Host integration seam accepts ordinary process pointers for fl_write. The
+ * production numeric-address policy is tested directly below. */
+static int test_source_span_ok(const uint8_t *src, uint32_t n, uint32_t off)
+{
+    return src != NULL && n <= 300u && off <= UINT32_MAX - n;
+}
 
 static void reset_mock(uint32_t iomap)
 {
@@ -120,6 +139,7 @@ static void reset_mock(uint32_t iomap)
     fail_transfer = (unsigned)-1;
     reply_count = reply_index = 0;
     tx_count = 0;
+    programmed_count = 0;
     nor_wel = nor_wip = destructive_pending = ready_observed = 0;
     status_polls_to_clear = status_polls = sfc_restores = 0;
     hold_wip = fail_status_forever = failstop_armed = 0;
@@ -142,6 +162,38 @@ static void assert_restored(uint32_t original_iomap, uint32_t original_spi)
     assert((reg_iomap & 0x20u) == (original_iomap & 0x20u));
     assert(!destructive_pending || (ready_observed && !nor_wip));
 }
+
+static void test_source_span_policy(void)
+{
+    assert(fl_source_span_ok((const uint8_t *)(uintptr_t)0x01C00000u, 1u, 0x97000u));
+    assert(fl_source_span_ok((const uint8_t *)(uintptr_t)0x01C7FFFFu, 1u, 0x97000u));
+    assert(!fl_source_span_ok((const uint8_t *)(uintptr_t)0x01C80000u, 1u, 0x97000u));
+    assert(!fl_source_span_ok((const uint8_t *)(uintptr_t)0x01C7FFFFu, 2u, 0x97000u));
+    assert(fl_source_span_ok((const uint8_t *)(uintptr_t)0x02000000u, 1u, 0x97000u));
+    assert(fl_source_span_ok((const uint8_t *)(uintptr_t)0x020FBFFFu, 1u, 0x97000u));
+    assert(!fl_source_span_ok((const uint8_t *)(uintptr_t)0x020FC000u, 1u, 0x97000u));
+    assert(!fl_source_span_ok((const uint8_t *)(uintptr_t)0x020FBFFFu, 2u, 0x97000u));
+    assert(!fl_source_span_ok((const uint8_t *)(uintptr_t)0x00040200u, 1u, 0x97000u));
+    assert(!fl_source_span_ok((const uint8_t *)(uintptr_t)(UINTPTR_MAX - 1u), 4u, 0x97000u));
+    assert(!fl_source_span_ok((const uint8_t *)(uintptr_t)0x01C00000u, 1u, UINT32_MAX));
+    assert(!fl_source_span_ok((const uint8_t *)(uintptr_t)0x02005700u, 16u, 0x9700u));
+    assert(fl_source_span_ok((const uint8_t *)(uintptr_t)0x02005700u, 16u, 0x98000u));
+    assert(fl_source_span_ok(NULL, 0u, 0xFFFFFFFFu));
+}
+
+static void test_fl_write_stages_caller_pages_before_ram_program(void)
+{
+    uint8_t input[300];
+    unsigned i;
+    reset_mock(0x20u);
+    for (i = 0; i < sizeof input; ++i) input[i] = (uint8_t)(i ^ 0xA7u);
+    assert(fl_write(0x970F0u, input, sizeof input) == 0);
+    assert(programmed_count == sizeof input);
+    for (i = 0; i < sizeof input; ++i) assert(programmed_payload[i] == input[i]);
+    assert(ready_observed && !nor_wip);
+    assert_restored(0x20u, 0x1255u);
+}
+
 static void test_checked_jedec_timeout(void)
 {
     static const uint8_t id[] = {0x85, 0x60, 0x14};
@@ -414,6 +466,8 @@ static void test_exit_preserves_pin_owner_bit(void)
 }
 int main(void)
 {
+    test_source_span_policy();
+    test_fl_write_stages_caller_pages_before_ram_program();
     test_checked_jedec_timeout();
     test_status_timeout_is_not_value();
     test_read_transfer_errors_restore_state();

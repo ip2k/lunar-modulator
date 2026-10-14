@@ -348,16 +348,48 @@ static int fl_erase4k(uint32_t off, uint32_t *took_us)
     return rc;
 }
 
+/* Source bytes are read while XIP is enabled, then copied to a stack page
+ * before fl_prog_ram disables it. Accept only ordinary SRAM or the mapped
+ * 1 MiB flash window; reject SFR/MMIO and wrapping spans before any writes. */
+static int fl_source_span_ok(const uint8_t *src, uint32_t n, uint32_t off)
+{
+    uintptr_t start = (uintptr_t)src, end;
+    const uintptr_t ram_lo = 0x01C00000u, ram_hi = 0x01C80000u;
+    const uintptr_t xip_lo = 0x02000000u, xip_hi = 0x020FC000u;
+    uint32_t source_off;
+
+    if (!n) return 1;
+    if (!src || (uintptr_t)n > UINTPTR_MAX - start || n > UINT32_MAX - off) return 0;
+    end = start + (uintptr_t)n;
+    if (start >= ram_lo && end <= ram_hi) return 1;
+    if (start < xip_lo || end > xip_hi) return 0;
+
+    /* A page-sized copy protects residency, but cannot protect future source
+     * pages if this call overwrites them while streaming from the same flash. */
+    source_off = (uint32_t)(start - xip_lo) + 0x4000u;
+    if (source_off < off + n && off < source_off + n) return 0;
+    return 1;
+}
+
+#ifndef FL_SOURCE_SPAN_OK
+#define FL_SOURCE_SPAN_OK(src, n, off) fl_source_span_ok((src), (n), (off))
+#endif
+
 static int fl_write(uint32_t off, const uint8_t *src_ram, uint32_t n)
 {
     uint32_t took;
+    if (!FL_SOURCE_SPAN_OK(src_ram, n, off)) return -1;
     while (n) {
         uint32_t chunk = 256u - (off & 0xFFu);
         int rc;
-        uint32_t f;
+        uint32_t f, i;
+        uint8_t page[256] __attribute__((aligned(4)));
         if (chunk > n) chunk = n;
+        /* Copy while XIP is still available. The RAM routine must never
+         * dereference an unverified caller pointer after SFC is switched off. */
+        for (i = 0; i < chunk; ++i) page[i] = src_ram[i];
         f = irq_save();
-        rc = FL_FAR(fl_prog_ram)(off, src_ram, chunk, &took);
+        rc = FL_FAR(fl_prog_ram)(off, page, chunk, &took);
         irq_restore(f);
         if (rc) return rc;
         off += chunk; src_ram += chunk; n -= chunk;
