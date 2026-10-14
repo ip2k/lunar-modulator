@@ -34,3 +34,30 @@ pending. App-independent power-on recovery on this FM1 has not been accepted.
 [verified] Private evidence includes `manifest.json`, `INFO_UF2.TXT`,
 `program-receipt.json`, and `postflash-console.txt` under the backup directory.
 No private filesystem contents or binary artifacts are committed.
+
+## Late-console physical verification
+
+[verified] Integrated status replay `dfc4894c` (worker `b6fe93e1`) was built
+for both boards. Pico 2 W UF2 SHA-256 is
+`8a89633eecd149b7b6422fdf815a9fc3efa0351b8aa7ca1e569dfcf788f2f717`,
+69,632 bytes: one E10 workaround record and 135 sequential ARM Secure records.
+The exact block layout and hash were checked before programming.
+
+[verified] Live runtime36 descriptors included CDC plus reset interface2.
+The SDK 2.1.1 [CDC magic-baud reset implementation](https://github.com/raspberrypi/pico-sdk/blob/2.1.1/src/rp2_common/pico_stdio_usb/reset_interface.c)
+and [1200-baud default](https://github.com/raspberrypi/pico-sdk/blob/2.1.1/src/rp2_common/pico_stdio_usb/include/pico/stdio_usb.h)
+were checked. One 1200-baud serial open returned the same serial-number Pico
+to BOOTSEL37. Its RP2350 disk `/dev/sdc1` was identified afresh, mounted
+read-only for INFO_UF2 verification, then remounted for one guarded UF2 copy.
+No FM1 command was sent.
+
+[verified] Runtime38 enumerated afterward. Two separate five-second CDC
+attachments each returned 171 bytes: the `0x16EF`, 50 kHz banner and
+`state=FAULT`. The late attachment/reconnection behavior works on hardware;
+the GPIO self-test failed, so no successful USB_KEY exchange is claimed.
+Missing GPIO pull-ups are a possible explanation [inferred]; owner wiring
+confirmation remains pending. FM1 passive enumeration remained ROM44.
+
+[verified] Evidence is retained privately as `status-reset-request.json`,
+`status-INFO_UF2.TXT`, `status-program-receipt.json`, and both
+`status-console-1.txt`/`status-console-2.txt` in the preflash directory.

@@ -12,6 +12,13 @@ Pico worker owns read-only late-console status visibility, then first-format
 model corrections. Passive bench check still shows ROM44 and Pico runtime36.
 Owner watched boot and GPIO wiring replies remain pending; no repeat boot sent.
 
+Status replay dfc4894c (worker b6fe93e1) is integrated and GitHub-backed.
+Root programmed reviewed Pico2W SHA8a89633e...f2f717 once after a serial-bound
+SDK1200-baud BOOTSEL request and fresh RP2350 disk/INFO verification.
+Runtime38 console replay works on both late attachment and reconnection,
+but reports GPIO self-test FAULT. Independent FM1 recovery is not proven.
+Owner asked to confirm USB-only versus resistor GPIO wiring; ROM44 unchanged.
+
 Root integrated device42 adapters (28f21b95) and final linked NOR audit (c8880025).
 A boot42 verifier filename mismatch was corrected before device commands.
 Fresh paired full reads match installed Event120 SHA145c0280...aa4657;
