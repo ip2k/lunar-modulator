@@ -4,7 +4,7 @@
 
 Coordinator checkout: `/Users/likwid/.codex/worktrees/installable-firmware/mvave-fm1-firmware`.
 Branch: `feature/2026-10-11@installable-firmware`.
-Last preceding verified GitHub head: `e05f616a18445f491e2bad85a728c9ab89867872`.
+Last preceding verified GitHub head: `359a46e6b17b3b6eed3242a2b2256bf0b1d8c3e9`.
 Every returned worker commit through that checkpoint has a verified GitHub backup.
 No main merge, public installer deployment or release occurred.
 
@@ -58,11 +58,25 @@ two-sector tail D7000..D9000 fits that loader and record in isolation, but the
 complete image does not fit: app origin 4120 plus retained 384-byte tool and
 2,940-byte configuration extents leave an app budget of 860,644 bytes. The
 862,296-byte current app exceeds it by 1,652 bytes; complete records end at
-D7674. The target-adapted loader size and staging ownership are still unproved.
+D7674. The target-adapted loader now measures 6,954 wrapped bytes and fits
+the two-sector reservation arithmetically, with 1,158 bytes around its record.
+Staging ownership and physical recovery remain unproved. The test-only expanded
+loader fixture checks D7000 write bounds and retains a counterexample: failed
+body writes leave an old CRC-valid header. The tracked Dinghy updater uses a
+distinct E0000 staging geometry; these tests do not implement its migration.
+See `2026-10-14-expanded-rescue-loader-fit.md` and
+`2026-10-14-expanded-rescue-host-tests.md`.
 A new existing-codec compressed-wavetable link saves 18,012 bytes: app 844,284
 bytes, leaving 16,360 bytes against that D7000 arithmetic budget. It reserves
 an additional 50,688 bytes in RAM, reducing the instance pool to 165,376.
-Cold-start/target timing remain unproved; see `2026-10-14-wavetable-fullsong-fit.md`.
+The actual compressed-table host fixture now passes ASan/UBSan startup for
+Event Horizon Showcase at that pool size, with exact table-byte equality.
+All thirteen individual engines start at an eight-voice Shapes configuration;
+twelve Shapes voices do not fit. Satellite Hearts still fails after Shapes
+at eight voices and remains unavailable for this profile. Target timing/audio
+and complete-project acceptance remain unproved. See
+`2026-10-14-wavetable-fullsong-fit.md` and
+`2026-10-14-compressed-native-startup.md`.
 
 Continuous-mode/diagnostic-overhead A/B did not close this gap. Matched -Os
 compilation made the feature-identical app 100,292 bytes larger than -Oz and
@@ -71,15 +85,19 @@ gate is accepted as the size solution.
 
 ## Active lanes and remaining acceptance
 
-- Hera `installer_preload_connection`: independent compressed-worker source /
-  receipt and memory-preflight review, note-only first.
-- Hera `demo_controller_review`: meaningful host cold-start with the actual
-  decoded tables and 165,376-byte allocation pool, real default-song load,
-  bounded allocator metrics and sanitizer checks. No target timing claim.
-- Hera `physical_storage_compression`: target-adapted rescue-loader fit and
-  safe expanded bounds, offline only. Independent USB_KEY route review is
-  complete: owner-unit entry is still untested, Cynthion does not establish
-  physical FM1 power/reset control. See independent-recovery-route note.
+- Hera `installer_preload_connection`: fixed current-profile receipt validation
+  implemented on worker branch; 98 focused builder/service tests passed, one
+  opt-in real build skipped. Coordinator integration is next.
+- Hera `demo_controller_review`: fresh target catalogue in sixteen parallel
+  chunks and full-song compressed-table link at eight Shapes voices. Exact
+  base `359a46e6`; production defaults/admission unchanged.
+- Hera `physical_storage_compression`: design-only immutable first-sector
+  bootstrap feasibility audit. Its host boundary tests are integrated; they
+  do not establish a SPL simulator or physical interruption recovery.
+- Passive bench enumeration at approximately 08:28 Pacific found the FM1 in
+  mask-ROM USB mode (`4c4a:8057`, bus 1/device 36). No device mutation or power
+  cycle occurred. Independent USB_KEY entry on the owner unit remains untested;
+  Cynthion does not establish physical SoC power/reset control.
 
 Coordinator reviews returned artifacts, backs up exact commits, integrates
 through required checks and continues. Owner accepted audible Trio probe
