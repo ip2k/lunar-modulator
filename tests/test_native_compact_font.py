@@ -3,6 +3,7 @@ import importlib.util
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 
 import pytest
 
@@ -20,6 +21,10 @@ def test_original_and_packed_pixels_match(tmp_path, chunk):
         pytest.skip('C compiler required')
     header = (PLATFORM / 'gen/felucca_font.h').read_text()
     gfx = (PLATFORM / 'src/gfx.c').read_text()
+    # Host section spelling differs from the target's ELF RAM pool. Apply the
+    # same placement-only adaptation to both renderers before comparing pixels.
+    if sys.platform == 'darwin':
+        gfx = gfx.replace('section(".pool")', 'section("__DATA,__lunar_pool")')
     harness = '''#include <stdint.h>
 #include <stdio.h>
 static void lcd_sync(void) {}
