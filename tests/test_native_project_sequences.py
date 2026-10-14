@@ -118,7 +118,7 @@ def sequence_probe(tmp_path_factory):
                for arg in ('-I', str(path))]
         exe = tmp / 'probe'
         subprocess.run(['cc', '-std=c99', opt, '-Wall', '-Wextra', '-Werror',
-                        '-ffunction-sections', '-fdata-sections', *native_host_flags(), '-Wl,--gc-sections',
+                        '-ffunction-sections', '-fdata-sections', *native_host_flags(),
                         *inc, *map(str, sources), '-lm', '-o', str(exe)], check=True)
         probes[opt] = exe
         return exe
