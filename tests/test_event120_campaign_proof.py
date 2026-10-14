@@ -12,6 +12,7 @@ from native import event120_campaign_proof as proof
 
 
 USB = {"path": "1-1", "busnum": "1", "devnum": "38", "vid": "4c4a", "pid": "8057"}
+SG_BINDING = proof.SG_BINDING
 STOP_PROOF = {
     "schema": 1, "kind": "event120-v1-stopped-before-sg",
     "campaign_sha256": "e1ccb934a2814f85fc2ad1b5f802f5c982d8e926d1193d0b449f72c89a74bf4f",
@@ -116,6 +117,16 @@ def test_v1_stop_event_rows_match_writer_terminal_schema():
         proof._validate_v1_stop_events(rows, PRIOR["campaign_sha256"])
 
 
+def test_actual_device38_sg_mapping_is_exact_and_separate_from_usb_identity():
+    proof._validate_sg_binding(SG_BINDING)
+    altered = dict(SG_BINDING, node_identity=[6, 1725, 5377])
+    with pytest.raises(ValueError):
+        proof._validate_sg_binding(altered)
+    nested = dict(SG_BINDING, usb_binding=USB)
+    with pytest.raises(ValueError):
+        proof._validate_sg_binding(nested)
+
+
 def test_replay_source_pin_rejects_modified_dependency(tmp_path):
     tools = tmp_path / "tools"
     for relative in proof.REPLAY_SOURCE_PINS:
@@ -144,7 +155,7 @@ def bundle(tmp_path, monkeypatch):
         target_bytes[address:address + 4096] = b"\x00" * 4096
     target = bytes(target_bytes)
     manifest = {"kind": "fm1-device38-expanded-rom-fixed-loader-dual-read",
-        "usb_binding": USB, "sg_binding": {"usb_binding": USB, "sg": "/mock/sg0"},
+        "usb_binding": USB, "sg_binding": SG_BINDING,
         "flash_operations": 0, "reset_operations": 0}
     manifest_raw = encoded(manifest)
     (receipt / "manifest.json").write_bytes(manifest_raw)
@@ -179,7 +190,7 @@ def bundle(tmp_path, monkeypatch):
     campaign = {"schema": 2, "kind": "fm1-device38-event120-transaction-v2",
         "adapter_sha256": adapter_sha, "observed_at": 100.0,
         "receipt": str(receipt), "plan": str(plan_dir), "direction": "install",
-        "variant": "native", "output": str(output), "sg_binding": manifest["sg_binding"],
+        "variant": "native", "output": str(output), "sg_binding": SG_BINDING,
         "prior_v1_stop": PRIOR}
     campaign_raw = encoded(campaign)
     campaign_path = case / "event120-install-v2-campaign.json"
