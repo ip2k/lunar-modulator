@@ -406,7 +406,8 @@ def run_build(*, request_path: Path,
         _write_exclusive(output / "container-invocation.json", canonical(invocation))
         return capture_trusted_build_tuple(snapshot, catalogue_snapshot, build_output, toolchain,
                                            invocation_path=output / "container-invocation.json",
-                                           worker_path=output / "worker-provenance.json",
+                                           worker_source_path=snapshot / WORKER_REL,
+                                           worker_provenance_path=output / "worker-provenance.json",
                                            wrapper_path=snapshot / WORKER_REL.replace("trusted_continuous_worker.py", "run_trusted_continuous_build.py"))
     except Exception:
         # Keep the private output directory and evidence for diagnosis; never reuse it.
