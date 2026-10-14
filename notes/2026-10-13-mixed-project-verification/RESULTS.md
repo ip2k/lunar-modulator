@@ -1,5 +1,32 @@
 # Mixed PROJECT verification checkpoint
 
+## ISR allocation-prefix verification (2026-10-13)
+
+[verified] inspect-isr-prologues.py checks all 20 functions in the union of
+pinned timer/audio C closures. Decoded instruction bytes match the exact ELF,
+and each function range has contiguous instruction coverage. All explicit
+allocations precede control transfers; every local relative branch targets an
+instruction after the allocation prefix. Table/repeat instructions, indirect
+transfers and unsupported PC writes are refused. Local branches therefore
+cannot accumulate these allocation sites. Receipt receipts/isr-prologues.json
+reproduces byte-for-byte. Nine positive/negative model tests pass using the
+primary checkout .venv; system python lacks pytest. Conditional software frame
+costs remain 152/168 bytes. This is not a complete startup stack bound.
+
+[reported] JieLi AC79 interrupt docs specify larger numeric priority is higher:
+https://doc.zh-jieli.com/AC79/zh-cn/release_v1.0.3/module_example/system/interrupt.html
+Compiled timer priority4 is above audio3. The page does not establish automatic
+nesting, CPU stack switching or entry frame cost; those remain open.
+
+Both semantic tools still select the primary checkout, whose HAL path is
+absent. Rarefaction's bounded name search failed; Serena reported missing
+fm1_irq.h. Shared selection was preserved. Exact target artifacts supply this
+evidence. No firmware build or hardware command occurred. Next resolve remaining
+startup callback provenance and complete caller/IRQ stack/timing before hardware
+admission. Full13 acceptance, migration/rollback, web builder/install, licensing,
+review/CI/integration remain open. Goal active. No live measurement job.
+Previous verified pushed checkpoint: d976cfaa23858351258040e1553cf93fc73e5aed.
+
 ## Interrupt exposure checkpoint
 
 [verified] Follow-up inspect-isr-call-stacks.py checks the exact inventory and
