@@ -12,6 +12,7 @@ import os
 
 import expanded_flash_profile as expanded
 import raw_flash_profile as raw
+from build_demo_image import checked_wavetable_profile
 
 
 def canonical(value):
@@ -85,6 +86,14 @@ def build_manifest(baseline, target, reference, app, elf,
             or image_receipt.get('app_bytes') != len(app)
             or image_receipt.get('app_budget_bytes') != expanded.APP_BUDGET):
         raise ValueError('Exact expanded-d9000 linked private image receipt required')
+    module_selection = image_receipt.get('module_selection')
+    if not isinstance(module_selection, dict) or not isinstance(module_selection.get('selected'), list):
+        raise ValueError('Linked image receipt must include selected module identity')
+    # Re-run the builder's exact named profile policy at this boundary. A profile
+    # label or caller-supplied pool number cannot substitute for its table rows.
+    checked_waves = checked_wavetable_profile(image_receipt, module_selection['selected'])
+    if any(image_receipt.get(key) != value for key, value in checked_waves.items()):
+        raise ValueError('Linked image wavetable receipt differs from verified profile')
 
     request_sha = _digest_field(selection_receipt, 'request_sha256')
     profile_sha = _digest_field(selection_receipt, 'prepared_profile_sha256')
@@ -138,6 +147,8 @@ def build_manifest(baseline, target, reference, app, elf,
         request_sha256=request_sha, prepared_profile_sha256=profile_sha,
         project_ids=list(project_ids), startup_index=startup_index,
         startup_project_id=startup_id,
+        wavetable_profile=checked_waves['wavetable_profile'],
+        wavetable_receipt_verified=True,
         changed_sectors=allowed, sector_order=ordered,
         directory_sector=directory,
         protected_ranges=[[0, raw.APP_BASE], [expanded.AREA_END, raw.FLASH_BYTES]],
