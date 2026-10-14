@@ -9,11 +9,22 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, ValidationError, field_validator, model_validator
 
+from tools.native.module_selection import wavetable_namespaces
+
 MAX_BODY_BYTES = 65536
 MAX_ARTIFACT_BYTES = 1048576
 OPAQUE_ID = re.compile(r"[A-Za-z0-9_-]{32}\Z")
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 GROUPS = ("engines", "effects", "midi", "modulation")
+WAVETABLE_PROFILE = "compressed-required-banks-flash-plaits-v1"
+WAVETABLES = {
+    "braids": {"symbol": "wt_waves", "width": 1, "raw_bytes": 33024,
+               "raw_sha256": "c672fccb061496d0229bfc5c2d55ec61f367e1539dda5870fd667a059c90f634"},
+}
+TARGET_STORAGE = {"rgb565_bytes": 220832, "indexed_bytes": 163744,
+                  "pool_credit_bytes": 57088}
+BASE_INSTANCE_POOL_BYTES = 192000
+SHAPES_VOICES = 12
 
 
 class DuplicateKey(ValueError): pass
@@ -136,6 +147,49 @@ class Admission:
     created_at: float
 
 
+def _verify_wavetable_receipt(receipt: dict, selected: list[str]) -> None:
+    """Bind the fixed compiled wavetable profile to admitted module choices."""
+    expected_namespaces = wavetable_namespaces(selected, flash_plaits=True)
+    rows = receipt.get("compressed_wave_tables")
+    if (receipt.get("wavetable_profile") != WAVETABLE_PROFILE
+            or receipt.get("indexed_tft") is not True
+            or receipt.get("flash_plaits_wavetables") is not True
+            or type(receipt.get("shapes_voices")) is not int
+            or receipt["shapes_voices"] != SHAPES_VOICES
+            or not isinstance(rows, list)
+            or [row.get("namespace") if isinstance(row, dict) else None for row in rows]
+               != expected_namespaces):
+        raise ValueError("worker wavetable profile differs from fixed policy/module selection")
+    expected_raw_bytes = 0
+    for row, namespace in zip(rows, expected_namespaces):
+        if set(row) != {"namespace", "symbol", "width", "raw_bytes", "packed_bytes",
+                        "raw_sha256", "packed_sha256", "fnv32", "generated_source_sha256"}:
+            raise ValueError("worker compressed wavetable metadata has unknown fields")
+        spec = WAVETABLES.get(namespace)
+        if spec is None:
+            raise ValueError("worker selected an unsupported compressed wavetable namespace")
+        if (row.get("symbol") != spec["symbol"]
+                or type(row.get("width")) is not int or row["width"] != spec["width"]
+                or type(row.get("raw_bytes")) is not int or row["raw_bytes"] != spec["raw_bytes"]
+                or row.get("raw_sha256") != spec["raw_sha256"]
+                or type(row.get("packed_bytes")) is not int
+                or not 0 < row["packed_bytes"] <= spec["raw_bytes"]
+                or any(not isinstance(row.get(key), str) or not SHA256.fullmatch(row[key])
+                       for key in ("packed_sha256", "generated_source_sha256"))
+                or type(row.get("fnv32")) is not int or not 0 <= row["fnv32"] <= 0xffffffff):
+            raise ValueError("worker compressed wavetable metadata is malformed or stale")
+        expected_raw_bytes += spec["raw_bytes"]
+    storage = receipt.get("target_app_storage")
+    if (not isinstance(storage, dict) or storage != TARGET_STORAGE
+            or any(type(storage.get(key)) is not int for key in TARGET_STORAGE)):
+        raise ValueError("worker target storage profile differs from fixed layout")
+    expected_pool = (BASE_INSTANCE_POOL_BYTES + TARGET_STORAGE["pool_credit_bytes"]
+                     - expected_raw_bytes)
+    if (type(receipt.get("instance_pool_bytes")) is not int
+            or receipt["instance_pool_bytes"] != expected_pool):
+        raise ValueError("worker instance pool does not match the selected wavetable profile")
+
+
 def _verify_result(admission: Admission, result: WorkerResult) -> dict:
     if len(result.artifact) > MAX_ARTIFACT_BYTES or len(result.receipt) > 65536:
         raise ValueError("worker result exceeds configured cap")
@@ -181,6 +235,7 @@ def _verify_result(admission: Admission, result: WorkerResult) -> dict:
     if (not isinstance(receipt.get("module_selection"), dict)
             or receipt["module_selection"].get("selected") != expected_selected):
         raise ValueError("worker module selection differs from admission")
+    _verify_wavetable_receipt(receipt, expected_selected)
     if (not isinstance(content, list) or not 1 <= len(content) <= 8
             or len(content) != len(projects)):
         raise ValueError("worker content list is malformed")

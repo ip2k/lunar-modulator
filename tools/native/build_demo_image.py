@@ -7,6 +7,7 @@ This controller produces build evidence, not a package or permission to flash.
 """
 import argparse
 import json
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -15,8 +16,62 @@ from prepare_demo_selection import prepare_selection
 from prepare_image_profile import bounded_read, sha, unique_object
 from verify_image_profile import load_prepared_profile
 from runtime_mode import runtime_configuration
+from module_selection import wavetable_namespaces
 
 ROOT = Path(__file__).resolve().parents[2]
+WAVETABLE_PROFILE = 'compressed-required-banks-flash-plaits-v1'
+BRAIDS_TABLE = dict(namespace='braids', symbol='wt_waves', width=1, raw_bytes=33024,
+                    raw_sha256='c672fccb061496d0229bfc5c2d55ec61f367e1539dda5870fd667a059c90f634')
+TARGET_STORAGE = dict(rgb565_bytes=220832, indexed_bytes=163744, pool_credit_bytes=57088)
+BASE_INSTANCE_POOL_BYTES = 192000
+SHAPES_VOICES = 12
+
+
+def checked_wavetable_profile(verification, selected):
+    expected_namespaces = wavetable_namespaces(selected, flash_plaits=True)
+    rows = verification.get('compressed_wave_tables')
+    if (verification.get('indexed_tft') is not True
+            or verification.get('flash_plaits_wavetables') is not True
+            or type(verification.get('shapes_voices')) is not int
+            or verification['shapes_voices'] != SHAPES_VOICES
+            or not isinstance(rows, list)
+            or [row.get('namespace') if isinstance(row, dict) else None for row in rows]
+               != expected_namespaces):
+        raise ValueError('Linked image wavetable profile differs from fixed policy/module selection')
+    checked_rows = []
+    expected_raw_bytes = 0
+    for row, namespace in zip(rows, expected_namespaces):
+        if namespace != BRAIDS_TABLE['namespace']:
+            raise ValueError('Unsupported compressed wavetable namespace')
+        if (set(row) != {'namespace', 'symbol', 'width', 'raw_bytes', 'packed_bytes',
+                         'raw_sha256', 'packed_sha256', 'fnv32', 'generated_source_sha256'}
+                or any(row.get(key) != value for key, value in BRAIDS_TABLE.items())
+                or type(row.get('width')) is not int
+                or type(row.get('raw_bytes')) is not int):
+            raise ValueError('Linked compressed wavetable source identity is stale')
+        if (type(row.get('packed_bytes')) is not int
+                or not 0 < row['packed_bytes'] <= BRAIDS_TABLE['raw_bytes']
+                or not isinstance(row.get('packed_sha256'), str)
+                or not re.fullmatch(r'[0-9a-f]{64}', row['packed_sha256'])
+                or not isinstance(row.get('generated_source_sha256'), str)
+                or not re.fullmatch(r'[0-9a-f]{64}', row['generated_source_sha256'])
+                or type(row.get('fnv32')) is not int or not 0 <= row['fnv32'] <= 0xffffffff):
+            raise ValueError('Linked compressed wavetable metadata is malformed')
+        checked_rows.append(dict(row))
+        expected_raw_bytes += BRAIDS_TABLE['raw_bytes']
+    storage = verification.get('target_app_storage')
+    if (not isinstance(storage, dict) or storage != TARGET_STORAGE
+            or any(type(storage.get(key)) is not int for key in TARGET_STORAGE)):
+        raise ValueError('Linked target storage profile differs from fixed layout')
+    expected_pool = BASE_INSTANCE_POOL_BYTES + TARGET_STORAGE['pool_credit_bytes'] - expected_raw_bytes
+    if (type(verification.get('instance_pool_bytes')) is not int
+            or verification['instance_pool_bytes'] != expected_pool):
+        raise ValueError('Linked instance pool does not match selected wavetable profile')
+    return dict(wavetable_profile=WAVETABLE_PROFILE, compressed_wave_tables=checked_rows,
+                indexed_tft=True, flash_plaits_wavetables=True, shapes_voices=SHAPES_VOICES,
+                instance_pool_bytes=expected_pool, target_app_storage=dict(TARGET_STORAGE))
+
+
 
 
 def checked_link_receipt(selection, prepared, verification, artifact, app, elf, *,
@@ -43,6 +98,8 @@ def checked_link_receipt(selection, prepared, verification, artifact, app, elf, 
             or startup.get('runtime_hook_linked') is not (len(selection['project_ids']) > 1)
             or verification.get('module_selection') != prepared.report['module_selection']):
         raise ValueError('Linked image differs from selected project/profile identity')
+    wavetable = checked_wavetable_profile(
+        verification, prepared.report['module_selection']['selected'])
     for report in (verification, artifact):
         for key in ('installable', 'hardware_tested'):
             if report.get(key) is not False:
@@ -91,6 +148,7 @@ def checked_link_receipt(selection, prepared, verification, artifact, app, elf, 
                 startup_project_id=selection['startup_project_id'],
                 runtime_hook_linked=startup['runtime_hook_linked'],
                 module_selection=prepared.report['module_selection'],
+                **wavetable,
                 embedded_content=embedded,
                 content=expected_assets, runtime_configuration=expected_runtime,
                 app_sha256=sha(app), elf_sha256=sha(elf),
