@@ -28,3 +28,14 @@ the project environment with the state-tool and native-toolchain variables set.
 The receipt only supplies identity for downstream exact-selection comparison;
 link/RAM evidence, builder UI/backend integration, storage and physical admission,
 watched boot, rollback, licensing, CI, and release gates remain separate.
+
+## Coordinator verification
+
+[verified] Coordinator reviewed the three-file diff, committed it through SSH
+when the worker sandbox protected Git metadata, fetched its exact commit
+e9814dfedfe5f703ce5eb074e8639f0f41893972 and verified the GitHub worker-branch
+backup SHA. Integrated by cherry-pick into the installable-firmware branch.
+All six new focused receipt tests passed in the existing Mac project venv:
+`python -m pytest -q tests/test_native_content_embedding.py -k link_receipt`.
+This tests receipt construction and mismatch refusal without a firmware build.
+The existing toolchain-dependent embedding suite was not rerun for this adapter.

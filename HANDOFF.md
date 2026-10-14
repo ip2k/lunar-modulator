@@ -3192,3 +3192,12 @@ Owner permits up to64Hera agents/containers; use only independent useful tasks.
 Storage ownership review confirms no admitted project extent; all named preserved
 banks and hypothetical144KiB ledger do not provide two100KiB slots. See
 notes/2026-10-14-expanded-storage-ownership-review.md. Goal ACTIVE.
+
+Hera receipt adapter reviewed, coordinator-committed after sandbox Git metadata
+protection, fetched e9814dfedfe5f703ce5eb074e8639f0f41893972 and worker GitHub
+backup SHA verified. Cherry-pick553cb2d8 integrated three owned files; parent
+reran6new receipt tests, all pass. Exact kind/bytes/hash identities now retained
+in link receipt; no new link/hardware acceptance.
+Hera SAVE stack and collector bound read-only reviews completed; no tighter
+project maximum or transitive stack bound established. Atomic shared handoffs
+retain limitations and next tasks. Full firmware/web installation goal ACTIVE.
