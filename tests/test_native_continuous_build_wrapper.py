@@ -229,3 +229,21 @@ def test_snapshot_invocation_binds_paths_digests_and_all_catalogue_rows(tmp_path
     assert {row["path"] for row in inventory} == {".", "shard", "linked.o", "unused.o"}
     with pytest.raises(ValueError, match="snapshot differs from its source tree"):
         _catalogue_snapshot_fields(source, snapshot, source_manifest, b"{}")
+
+
+def test_private_snapshot_cleanup_removes_readonly_tree_and_rejects_unowned_path(tmp_path):
+    import os
+    import stat
+    import run_trusted_continuous_build as wrapper
+    parent = tmp_path / "private"
+    parent.mkdir(mode=0o700)
+    snapshot = parent / ".candidate-catalogue-test"
+    child = snapshot / "readonly"
+    child.mkdir(parents=True)
+    (child / "input.bin").write_bytes(b"private catalogue fixture")
+    os.chmod(child / "input.bin", stat.S_IRUSR)
+    os.chmod(child, stat.S_IRUSR | stat.S_IXUSR)
+    wrapper._remove_private_snapshot(snapshot, parent, ".candidate-catalogue-")
+    assert not snapshot.exists()
+    with pytest.raises(ValueError, match="unowned private snapshot"):
+        wrapper._remove_private_snapshot(tmp_path / "elsewhere", parent, ".candidate-catalogue-")
