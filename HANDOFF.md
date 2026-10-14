@@ -2615,3 +2615,30 @@ d9a86a6121bba59fc01be3090ecf15bbd7d22c39. Next refresh current-target stack/IRQ/
 timing assessment, then fresh identity/paired backups and reviewed physical
 campaign. All13 acceptance, migration/rollback, web builder/install, GPL and
 required review/CI/integration remain open. Goal active.
+
+## Fresh recovery reader checkpoint (2026-10-13)
+
+[verified] Device36 fresh audited RAM-loader campaign completed8757commands,
+two matching1MiB Trio flash readbacks SHA770fd5f275110f017329dda30315343d766ff4a6c6beaa62f5a0060c629dc561.
+Independent durable hashes/completion sequence checked; no flash writes/reset/retry.
+Evidence: notes/2026-10-13-native-fresh-recovery-read.md; vendor bytes/logs remain
+private in build/native-returned-rom-036-20261013/. ROM enumeration consumed;
+current connection runs fixed read loader. Do not repeat upload or reuse old
+writer/boot admission. Next bind current all13 ELF to private geometry using r3
+disassembly, then reviewed installation/rollback and hardware timing assessment.
+Full13 physical acceptance, settings preservation/rollback, web builder/install,
+licensing and review/CI remain open. Prior verified pushed539fd08d88f6158d747d332c2a6ae2a03f98169a.
+
+## Current expanded candidate checkpoint (2026-10-13)
+
+[verified] r3 CLI decoder fix constructs current all13 stack-readout target
+c543e538754d0ae02ee119fd1e29a9b8cb9eb21a23edf0c12fc981ddaa3bc903;
+application845916B. All53 geometry/rejection tests passed30 Hera containers,
+source hashes match, no OOM. notes/2026-10-13-current-expanded-candidate/ holds
+public receipts. Current actual-byte recovery40case job is live via exec6879;
+remote launch-current-recovery.py/out/current-candidate-recovery-v1. Poll this
+handle or authoritative Docker/process state; do not restart on timeout.
+Next prepare offline fresh36-to-current-target installation and rollback plans,
+then reviewed live policy and bounded physical probe. No new hardware commands.
+Full owner all13 + web builder/install, settings/rollback, licensing/review/CI
+remain open. Previous verified pushed539fd08d88f6158d747d332c2a6ae2a03f98169a.

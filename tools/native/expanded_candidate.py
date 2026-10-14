@@ -67,7 +67,7 @@ def main():
     parser.add_argument('--ram-layout', choices=('legacy', 'combined'), default='combined')
     parser.add_argument('--objdump', required=True, help='vendor pi32v2 objdump executable')
     args = parser.parse_args()
-    decoded = subprocess.check_output([args.objdump, '-d', str(args.elf)], text=True)
+    decoded = subprocess.check_output([args.objdump, '-d', '-mcpu=r3', str(args.elf)], text=True)
     target, receipt = construct(args.baseline_a.read_bytes(), args.baseline_b.read_bytes(),
                                json.loads(args.manifest.read_bytes()), json.loads(args.identity.read_bytes()),
                                args.reference, args.app.read_bytes(), args.elf.read_bytes(),

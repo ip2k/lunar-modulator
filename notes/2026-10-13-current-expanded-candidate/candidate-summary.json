@@ -1,0 +1,10 @@
+{
+  "target_sha256": "c543e538754d0ae02ee119fd1e29a9b8cb9eb21a23edf0c12fc981ddaa3bc903",
+  "app_bytes": 845916,
+  "elf_sha256": "35655a21de5c08d09fa19ef2fd4f253efbc107346c6e107a1988dca4e69dac29",
+  "provenance_verified": true,
+  "elf_verified": true,
+  "geometry_verified": true,
+  "installable": false,
+  "hardware_admitted": false
+}
