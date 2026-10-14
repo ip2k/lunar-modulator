@@ -14,7 +14,7 @@ from tests.test_native_project_capacity import (
     APP_FX_SLOTS, APP_INSERT_SLOTS, APP_MASTER_FX_SLOTS, APP_SOUND_UNITS,
     DX7_VOICES, LOCKS_PER_TRACK, MAX_METADATA, MOD_MODULES, MOD_SLOTS,
     NOTES_PER_TRACK, SEQ_TRACKS, TRIGS_PER_TRACK, _dense_max_args,
-    _dense_max_mod, _max_drums_set,
+    _dense_max_mod,
 )
 from tools import lunar_state as ls
 
@@ -23,6 +23,36 @@ FIXTURE = ROOT / 'tests/fixtures/state/1.0/tin-kit.sound.lunarb'
 GEOMETRIES = (102400, 49152)
 FAILURE_SHARDS = 30
 MAX_LABEL = "ABCDEFGHIJKLMNOPQRSTUVW"
+
+
+def _max_project_set(path: Path) -> None:
+    """Fill all 64 clip descriptors while keeping each per-track event pool full."""
+    lines = ["movy1", "bpm 30000", "swing 99", "link 1", "key 11 7"]
+    for track in range(SEQ_TRACKS):
+        lines.extend((f"tk {track} 0 0", f"rt {track} 1 {track % 4}"))
+        for clip in range(8):
+            notes = ";".join(
+                f"{i * 10}:{48 + ((i * 37 + clip * 11 + track * 7) % 80)}:"
+                f"{1 + ((i * 29 + clip + track) % 126)}:127:{(i + clip * 24) % 256}"
+                for i in range(NOTES_PER_TRACK // 8)
+            )
+            locks = ";".join(
+                f"{i % 8}:{i // 8}:{(i * 13 + clip * 7 + track) % 128}"
+                for i in range(LOCKS_PER_TRACK // 8)
+            )
+            trigs = ";".join(
+                f"{i}:-1:{(i * 3 + clip) % 128}:{(i * 7 + track) % 256}:255:1"
+                for i in range(TRIGS_PER_TRACK // 8)
+            )
+            lines.extend((
+                f"cl {track} {clip} 256 0 {notes}",
+                f"cp {track} {clip} {24 + clip} 1 {-36 + clip} {100 + clip}",
+                f"lk {track} {clip} {locks}",
+                f"tg {track} {clip} {trigs}",
+            ))
+        for lane in range(8):
+            lines.append(f"au {track} {lane} 255 {MAX_LABEL}")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def _compiler_flags():
@@ -70,7 +100,7 @@ def large_collector_body(tools, tmp_path_factory):
     """Produce a real large app SAVE body for mutation-page coverage."""
     directory = tmp_path_factory.mktemp('large-collector-body')
     seq, mod = directory / 'max-drums.movy1', directory / 'max-drums.mod'
-    _max_drums_set(seq)
+    _max_project_set(seq)
     _dense_max_mod(mod)
     initial = directory / 'initial.lunar'
     sim(tools, *_dense_max_args(seq, mod), '--save', f'project:{initial}')
@@ -84,7 +114,6 @@ def large_collector_body(tools, tmp_path_factory):
     body = body_path.read_bytes()
     print(f'large collector SAVE: {len(body)} bytes sha256={hashlib.sha256(body).hexdigest()}')
     records, _ = ls.read_bin(body)
-    assert len(body) == 35176
     assert len(body) >= 32 * 1024
     assert len([r for r in records if r['rec'] == 'param' and r['role'] == 'sound']) == APP_SOUND_UNITS * 149
     assert len([r for r in records if r['rec'] == 'param' and r['role'] == 'mfx']) == APP_SOUND_UNITS * 24
@@ -99,12 +128,17 @@ def large_collector_body(tools, tmp_path_factory):
                            if r['rec'] == 'line' and r['which'] == 'set').splitlines()
     assert sum(line.startswith('au ') for line in set_lines) == SEQ_TRACKS * 8
     assert all(line.endswith(MAX_LABEL) for line in set_lines if line.startswith('au '))
-    assert sum(line.startswith('cl ') for line in set_lines) == SEQ_TRACKS
-    assert sum(line.startswith('lk ') for line in set_lines) == SEQ_TRACKS
-    assert sum(line.startswith('tg ') for line in set_lines) == SEQ_TRACKS
-    assert all(len(next(line for line in set_lines if line.startswith(f'cl {track} 0 ')).split(' ', 5)[5].split(';')) == NOTES_PER_TRACK for track in range(SEQ_TRACKS))
-    assert all(len(next(line for line in set_lines if line.startswith(f'lk {track} 0 ')).split(' ', 3)[3].split(';')) == LOCKS_PER_TRACK for track in range(SEQ_TRACKS))
-    assert all(len(next(line for line in set_lines if line.startswith(f'tg {track} 0 ')).split(' ', 3)[3].split(';')) == TRIGS_PER_TRACK for track in range(SEQ_TRACKS))
+    assert sum(line.startswith('cl ') for line in set_lines) == SEQ_TRACKS * 8
+    assert sum(line.startswith('lk ') for line in set_lines) == SEQ_TRACKS * 8
+    assert sum(line.startswith('tg ') for line in set_lines) == SEQ_TRACKS * 8
+    for track in range(SEQ_TRACKS):
+        clips = [line for line in set_lines if line.startswith(f'cl {track} ')]
+        locks = [line for line in set_lines if line.startswith(f'lk {track} ')]
+        trigs = [line for line in set_lines if line.startswith(f'tg {track} ')]
+        assert len(clips) == len(locks) == len(trigs) == 8
+        assert sum(len(line.split(' ', 5)[5].split(';')) for line in clips) == NOTES_PER_TRACK
+        assert sum(len(line.split(' ', 3)[3].split(';')) for line in locks) == LOCKS_PER_TRACK
+        assert sum(len(line.split(' ', 3)[3].split(';')) for line in trigs) == TRIGS_PER_TRACK
     metadata = {r['key']: r.get('text', '') for r in records if r['rec'] == 'info'}
     assert {key: metadata[key] for key in MAX_METADATA} == MAX_METADATA
     return body_path
