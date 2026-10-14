@@ -18,7 +18,8 @@ import threading
 import time
 from dataclasses import dataclass
 
-from .api import MAX_ARTIFACT_BYTES, MAX_BODY_BYTES, QueueFull, WorkerResult, WorkerSnapshot
+from .api import (MAX_ARTIFACT_BYTES, MAX_BODY_BYTES, MAX_ELF_BYTES, QueueFull,
+                  WorkerResult, WorkerSnapshot)
 
 _BUILD_ID = re.compile(r"[A-Za-z0-9_-]{32}\Z")
 _IMAGE = "lunar-recovery-pytest@sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d"
@@ -249,19 +250,24 @@ class DockerJobAdapter:
             if proc.returncode != 0:
                 raise RuntimeError("diagnostic worker failed")
             artifact_path = result_dir / "app.bin"
+            elf_path = result_dir / "elf.bin"
             receipt_path = result_dir / "image.json"
-            for path in (artifact_path, receipt_path):
+            for path in (artifact_path, elf_path, receipt_path):
                 if path.is_symlink() or not path.is_file():
                     raise ValueError("worker omitted a required regular output file")
             artifact_size = artifact_path.stat().st_size
+            elf_size = elf_path.stat().st_size
             receipt_size = receipt_path.stat().st_size
-            if not 0 < artifact_size <= self.config.max_artifact_bytes or not 0 < receipt_size <= 65536:
+            if (not 0 < artifact_size <= self.config.max_artifact_bytes
+                    or not 0 < elf_size <= MAX_ELF_BYTES or not 0 < receipt_size <= 65536):
                 raise ValueError("worker output exceeds configured cap")
             artifact = artifact_path.read_bytes()
+            elf = elf_path.read_bytes()
             receipt = receipt_path.read_bytes()
-            if len(artifact) != artifact_size or len(receipt) != receipt_size:
+            if (len(artifact) != artifact_size or len(elf) != elf_size
+                    or len(receipt) != receipt_size):
                 raise ValueError("worker output changed while being collected")
-            outcome = WorkerSnapshot("succeeded", WorkerResult(artifact, receipt))
+            outcome = WorkerSnapshot("succeeded", WorkerResult(artifact, receipt, elf))
         except Exception:
             outcome = WorkerSnapshot("failed")
         finally:
