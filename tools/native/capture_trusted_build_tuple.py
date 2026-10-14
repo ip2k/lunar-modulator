@@ -19,6 +19,8 @@ PROFILE_ID = "fm1-092-d7000"
 WAVETABLE_PROFILE = "compressed-required-banks-ram-plaits-braids-shapes8-v1"
 MAX_JSON = 32 * 1024 * 1024
 MAX_APP = 1024 * 1024
+MAX_TREE_ENTRIES = 8192
+MAX_TREE_BYTES = 512 * 1024 * 1024
 _HASH = re.compile(r"^[0-9a-f]{64}$")
 GENERATED_PATHS = (
     "selection/prepared/fm1_modules.h",
@@ -143,8 +145,8 @@ def _toolchain_manifest(root: Path):
                 rows.append({"path": rel, "kind": "file", "bytes": size,
                              "sha256": _file_sha(path, 256 * 1024 * 1024),
                              "mode": path.stat().st_mode & 0o777})
-            if len(rows) > 4096 or total_bytes > 512 * 1024 * 1024:
-                raise ValueError("toolchain exceeds the fixed manifest bounds")
+            if len(rows) > MAX_TREE_ENTRIES or total_bytes > MAX_TREE_BYTES:
+                raise ValueError("tree exceeds the fixed manifest bounds")
     rows.sort(key=lambda row: row["path"])
     return canonical({"schema": 1, "objects": rows})
 
