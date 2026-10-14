@@ -18,7 +18,7 @@ the container mounts only the snapshot read-only, and the snapshot is rechecked
 after completion. The initial real-build preflight measured 4,418 total catalogue entries (including directories) and 80.9 MB; the original 4,096-entry cap refused before Docker creation. The fixed cap is 8,192 entries with the 512 MiB aggregate byte limit retained, and a boundary test accepts 8,192 and rejects 8,193. Selected build-receipt catalogue rows must match that snapshot. Linked-object provenance separately rehashes all
 receipt rows: 161 linked catalogue rows and 120 generated `/out/build/link/`
 rows, while the 167-row catalogue inventory retains six unlinked rows as well.
-The first real invocation stopped at host preflight before Docker creation due to the measured catalogue entry count; no target build ran. After reviewer disposition of the bounded cap increase, retry with a fresh private output directory. The selected
+The first invocation stopped at host preflight before Docker creation because the catalogue exceeded the former row cap. After the cap increase, a fresh container build completed and wrote app/ELF/verification outputs, but cleanup of the read-only catalogue snapshot failed and prevented tuple capture from completing. The follow-up adds bounded cleanup of only the wrapper-owned private snapshots after the container has exited; an offline read-only tree test covers this. No tuple has been captured yet. Next: independent review of cleanup, then rerun with a fresh output directory and verify the complete tuple. The selected
 input is the already-reviewed Event Horizon + companion SET request; intended
 target is Shapes8 on the D7000 profile with continuous FM-1_500 identity and
 FM-1_000 recovery identity. A generated tuple will be diagnostic provenance,
@@ -27,7 +27,7 @@ not a firmware package or install approval.
 Validation at this checkpoint:
 
 - `python3 -m py_compile` on the builder, wrapper, worker, and tuple capture.
-- Pinned Hera pytest environment: 86 focused tests passed across continuous
+- Pinned Hera pytest environment: 88 focused tests passed across continuous
   tuple capture, wrapper policy, and native image controller. Policy tests
   reject added privilege/device/capabilities, namespace/runtime changes, extra
   environment/mounts, and altered worker entrypoint; provenance tests exercise
