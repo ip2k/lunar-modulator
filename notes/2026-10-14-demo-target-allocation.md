@@ -8,15 +8,15 @@ The retained all-production full-song target link configures a **216,064 B** poo
 
 Unit type sizes were emitted as constants by JieLi pi32v2 clang 4.0.1 and decoded with tools/jieli/analyze.py. Rate-dependent Hall and Limit requests were calculated from their checked MakeLayout formulas at 44,118 Hz using their target-compiler-measured Instance sizes. Exact values, object hashes, formulas, compiler flags, and pool calculations are in [remaining-unit-sizes.txt](2026-10-14-demo-target-allocation/remaining-unit-sizes.txt).
 
-The pool charges each request as round16(payload)+16-byte header. Modeled project charges, in canonical sound-unit, insert, then master-effect order:
+The nominal model is round16(payload)+16 bytes per request; this is not the exact TLSF charge because the call path does not itself round to 16 and TLSF adds internal overhead/fragmentation. Modeled project charges, in canonical sound-unit, insert, then master-effect order:
 
 | Project | Modeled charge | Gross pool result |
 |---|---:|---:|
-| Satellite Hearts | 289,224 B | 73,160 B over |
+| Satellite Hearts | 289,232 B | 73,168 B over |
 | Afterglow Relay Showcase | 192,208 B | 23,856 B left |
 | Packet Bloom Showcase | 222,160 B | 6,096 B over |
 
-Satellite cumulative modeled reservation crosses the pool at Shapes (222,264 B), before its second Drawbar and master effects. Packet Bloom crosses at Limit. Those are static sums, not observed runtime refusal sites. Afterglow static gross sum leaves room, but this does not prove runtime fit because fragmentation, other pool clients, constructor failures, and simultaneous allocations are not measured. The legacy packet-bloom.lunar is a different selection and was not separately totaled.
+Satellite cumulative modeled reservation crosses the pool at Shapes (222,272 B), before its second Drawbar and master effects. Packet Bloom crosses at Limit. Those are static sums, not observed runtime refusal sites. Afterglow static gross sum leaves room, but this does not prove runtime fit because fragmentation, other pool clients, constructor failures, and simultaneous allocations are not measured. The legacy packet-bloom.lunar is a different selection and was not separately totaled.
 
 The host harness used a fixed 192,000 B pool and 64-bit objects; host Macro is 32,736 B versus 19,872 B on target. Its largest_allocation_request is the maximum across all observed allocations, not the proven failed request, so it cannot identify a failing unit. Sequencer staging is freed before engine reservations and is not part of the later simultaneous engine total.
 
