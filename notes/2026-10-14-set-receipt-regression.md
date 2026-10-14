@@ -25,4 +25,4 @@ Result: 269 passed, 18 skipped in 45.97s. The skips are retained target-toolchai
 
 ## Handoff
 
-[verified] Branch: `codex/2026-10-14-set-receipt-regression`, based on `3807f3de8d0e1d1ef9b659678a1b15607835bc5c`. Commit and Hera bare verification will be recorded in the coordination handoff. GitHub backup remains pending coordinator fetch and verification.
+[verified] Branch: `codex/2026-10-14-set-receipt-regression`, based on `3807f3de8d0e1d1ef9b659678a1b15607835bc5c`. Commit: 9eac541e7a475463e0dde65f5b1bbb042f79b679; verified Hera bare branch ref matches this SHA. GitHub backup remains pending coordinator fetch and verification.
