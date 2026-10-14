@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // The trusted build exports this catalogue into the static Pages artifact.
-// This route exports a request only; it does not call a build service.
+// Build requests stay disabled unless a private deployment sets the explicit
+// same-origin marker in installer.html.
+import { createInstallerBuildClient } from './installer-build-client.js';
 import { mountNativeDemoSelectionView } from './native-demo-selection-view.js';
 import { mountNativeModuleSelectionView } from './native-module-selection-view.js';
 
@@ -35,6 +37,14 @@ export async function mountInstallerPage(root, {
   }
   if (typeof fetchImpl !== 'function') throw new TypeError('Catalogue fetch is unavailable');
   const document = root.ownerDocument;
+  const serviceMarker = document.querySelector?.('meta[name="lunar-installer-build-service"]');
+  const serviceEnabled = serviceMarker?.getAttribute?.('content') === 'enabled';
+  if (buildClient === null && serviceEnabled) {
+    const origin = document.defaultView?.location?.origin ?? globalThis.location?.origin;
+    if (typeof origin === 'string') {
+      buildClient = createInstallerBuildClient({ fetchImpl, origin });
+    }
+  }
   const status = document.getElementById?.('installer-export-status');
   const loading = document.getElementById?.('installer-load-status');
   const moduleRoot = document.getElementById?.('installer-modules');
@@ -100,7 +110,7 @@ export async function mountInstallerPage(root, {
     if (button) button.textContent = buildClient
       ? 'Request diagnostic build' : 'Download build request (JSON)';
     if (buildClient && serviceNotice) {
-      serviceNotice.textContent = 'Private diagnostic build service connected. Results do not establish installability or hardware acceptance.';
+      serviceNotice.textContent = 'Private diagnostic build requests are enabled for this origin. Availability is checked when you submit. Results do not establish installability or hardware acceptance.';
     }
     if (loading) loading.textContent = '';
     return controller;

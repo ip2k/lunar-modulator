@@ -206,6 +206,7 @@ export function createInstallerBuildClient({
         const submitted = await fetchImpl(new URL(BUILD_PATH, parsedOrigin), {
           method: 'POST',
           headers: { 'content-type': 'application/json', accept: 'application/json' },
+          credentials: 'same-origin',
           cache: 'no-store',
           body: JSON.stringify(request),
           signal: operation.signal,
@@ -220,6 +221,7 @@ export function createInstallerBuildClient({
           await sleep(pollIntervalMs, operation.signal);
           const response = await fetchImpl(job.statusURL, {
             method: 'GET', headers: { accept: 'application/json' },
+            credentials: 'same-origin',
             cache: 'no-store', signal: operation.signal,
           });
           const body = await readJson(response, operation.signal);

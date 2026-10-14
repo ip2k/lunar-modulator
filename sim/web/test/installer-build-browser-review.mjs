@@ -21,8 +21,8 @@ const catalogue = JSON.parse(await readFile(path.join(siteRoot, 'demo-image-cata
 const eventHorizon = catalogue.projects.find((project) => project.category === 'replacement-showcase-candidate'
   && /event horizon/i.test(project.title));
 const anotherProject = catalogue.projects.find((project) => project.category === 'replacement-showcase-candidate'
-  && /packet bloom/i.test(project.title));
-if (!eventHorizon || !anotherProject) throw new Error('Expected Event Horizon and Packet Bloom catalogue entries.');
+  && /afterglow relay/i.test(project.title));
+if (!eventHorizon || !anotherProject) throw new Error('Expected Event Horizon and Afterglow Relay catalogue entries.');
 
 const mime = new Map([
   ['.css', 'text/css; charset=utf-8'], ['.html', 'text/html; charset=utf-8'],
@@ -36,12 +36,15 @@ const server = createServer(async (request, response) => {
   if (pathname === '/') pathname = '/installer.html';
   if (pathname === '/installer-review.html') {
     const html = (await readFile(path.join(siteRoot, 'installer.html'), 'utf8'))
+      .replace('<meta name="lunar-installer-build-service" content="disabled">',
+        '<meta name="lunar-installer-build-service" content="enabled">')
       .replace('<script type="module" src="installer-page.js"></script>', '');
     response.writeHead(200, { 'content-type': mime.get('.html') }).end(html);
     return;
   }
   if (pathname === '/installer-page.js') {
     const source = await readFile(path.join(siteRoot, 'installer-page.js'), 'utf8');
+    if (!new URL(request.url, "http://localhost").searchParams.has("manual-review")) { response.writeHead(200, { "content-type": mime.get(".js") }).end(source); return; }
     const bootstrap = /\nif \(typeof document !== 'undefined'\) \{\n  const root = document\.getElementById\('installer-selection'\);\n  if \(root\) void mountInstallerPage\(root\);\n\}\s*$/;
     if (!bootstrap.test(source)) { response.writeHead(500).end('Expected installer bootstrap was not found'); return; }
     response.writeHead(200, { 'content-type': mime.get('.js') }).end(source.replace(bootstrap, '\n'));
@@ -86,11 +89,8 @@ async function hashTree(root, relative = '') {
 async function mountClient(page) {
   await page.goto(origin + '/installer-review.html', { waitUntil: 'networkidle' });
   await page.evaluate(async () => {
-    const [{ createInstallerBuildClient }, { mountInstallerPage }] = await Promise.all([
-      import('./installer-build-client.js'), import('./installer-page.js'),
-    ]);
-    const client = createInstallerBuildClient({ pollIntervalMs: 100, maxWaitMs: 10000 });
-    await mountInstallerPage(document.getElementById('installer-selection'), { buildClient: client });
+    const { mountInstallerPage } = await import('./installer-page.js?manual-review=1');
+    await mountInstallerPage(document.getElementById('installer-selection'));
   }).catch((error) => { throw new Error(`${error.message}; browser errors: ${errors.join(' | ')}`); });
   await page.getByRole('heading', { name: 'Choose demo projects' }).waitFor();
   await page.evaluate(() => document.fonts.ready);
@@ -108,6 +108,38 @@ async function selectBuild(page) {
 
 try {
   report.inputs = await hashTree(siteRoot);
+  const offlinePage = await browser.newPage({ viewport: { width: 375, height: 812 } });
+  let offlineApiCalls = 0;
+  await offlinePage.route('**/api/v1/builds**', async (route) => {
+    offlineApiCalls += 1;
+    await route.abort();
+  });
+  const offlineErrors = [];
+  offlinePage.on('pageerror', (error) => offlineErrors.push(error.message));
+  offlinePage.on('console', (message) => { if (message.type() === 'error') offlineErrors.push(message.text()); });
+  offlinePage.on('response', (response) => offlineErrors.push('response ' + response.status() + ' ' + response.url()));
+  offlinePage.on('requestfailed', (request) => offlineErrors.push('failed ' + request.url()));
+  await offlinePage.goto(origin + '/installer.html', { waitUntil: 'networkidle' });
+  const offlineButton = offlinePage.getByRole('button', { name: 'Download build request (JSON)' });
+  try { await offlineButton.waitFor({ timeout: 5000 }); } catch (error) {
+    throw new Error('Default page did not mount: ' + await offlinePage.locator('#installer-load-status').textContent() + '; ' + offlineErrors.join(' | '));
+  }
+  const [offlineDownload] = await Promise.all([
+    offlinePage.waitForEvent('download'),
+    offlineButton.click(),
+  ]);
+  const offlineBytes = await readFile(await offlineDownload.path());
+  const offlineRequest = JSON.parse(offlineBytes.toString('utf8'));
+  const offlineStatus = await offlinePage.locator('#installer-export-status').textContent();
+  if (offlineApiCalls !== 0 || offlineRequest.project_ids[0] !== eventHorizon.id
+      || offlineRequest.startup_index !== 0
+      || !offlineStatus.includes('No build or install was performed')) {
+    throw new Error('The default disabled marker did not preserve offline request export.');
+  }
+  report.scenarios.push({ name: 'default-static-page-offline-export', api_calls: offlineApiCalls,
+    download_name: offlineDownload.suggestedFilename(), default_project: offlineRequest.project_ids[0] });
+  await offlinePage.close();
+
   const successfulRequests = [];
   for (const viewport of [
     { name: 'desktop', width: 1440, height: 1000 },
