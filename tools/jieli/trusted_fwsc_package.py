@@ -75,7 +75,8 @@ def _validate_tuple(raw_tuple, expected_tuple_sha256):
         raise ValueError("trusted build tuple digest differs from its external trust anchor")
     build_tuple = _json_object(raw_tuple, "build tuple", canonical=True)
     _require_exact_keys(build_tuple, TUPLE_KEYS, "build tuple")
-    if build_tuple["schema"] != 1 or build_tuple["profile_id"] != PROFILE_ID:
+    if (type(build_tuple["schema"]) is not int or build_tuple["schema"] != 1
+            or build_tuple["profile_id"] != PROFILE_ID):
         raise ValueError("build tuple schema/profile is not the named D7000 profile")
     if build_tuple["flash_layout"] != "expanded-d7000":
         raise ValueError("build tuple does not select expanded-d7000")
@@ -129,7 +130,8 @@ def _validate_catalogue(raw, expected_sha256, verification, catalogue_files):
         raise ValueError("catalogue manifest digest differs from the trusted build tuple")
     manifest = _json_object(raw, "catalogue manifest", canonical=True)
     _require_exact_keys(manifest, {"schema", "objects"}, "catalogue manifest")
-    if manifest["schema"] != 1 or not isinstance(manifest["objects"], list):
+    if (type(manifest["schema"]) is not int or manifest["schema"] != 1
+            or not isinstance(manifest["objects"], list)):
         raise ValueError("catalogue manifest schema or objects list is invalid")
     expected, previous = {}, None
     for row in manifest["objects"]:
@@ -211,7 +213,7 @@ def _validate_receipts(build_tuple, app, elf, artifact_raw, build_raw, provenanc
     request = _json_object(request_raw, "build request")
     prepared_profile = _json_object(prepared_profile_raw, "prepared profile")
     image = _json_object(image_raw, "image receipt")
-    if provenance.get("schema") != 1:
+    if type(provenance.get("schema")) is not int or provenance["schema"] != 1:
         raise ValueError("unsupported build provenance schema")
     for key in ("profile_id", "flash_layout", "app_sha256", "app_bytes", "elf_sha256",
                 "application_identity", "recovery_identity", "artifact_receipt_sha256",
@@ -285,7 +287,7 @@ def _validate_receipts(build_tuple, app, elf, artifact_raw, build_raw, provenanc
     if (not isinstance(profile_source_sha, str) or not _HASH.fullmatch(profile_source_sha)
             or not isinstance(source_profile_raw, bytes) or sha256(source_profile_raw) != profile_source_sha):
         raise ValueError("prepared profile does not bind the exact source profile bytes")
-    if not isinstance(request.get("version"), int) or request.get("version") != 1:
+    if type(request.get("version")) is not int or request["version"] != 1:
         raise ValueError("build request schema is unsupported")
     manifest = _validate_catalogue(catalogue_raw, build_tuple["catalogue_sha256"], verification, catalogue_files)
     _validate_provenance_rows(provenance, "module_and_generated_inputs", generated_files)

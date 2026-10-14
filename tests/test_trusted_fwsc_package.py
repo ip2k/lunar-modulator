@@ -134,6 +134,10 @@ def test_tuple_requires_external_digest_and_false_admission_flags():
     with pytest.raises(ValueError, match="fields differ"):
         packager._validate_tuple(packager.canonical_json({}), packager.sha256(packager.canonical_json({})))
     assert packager._validate_tuple(raw, digest)["tuple_id"] == "synthetic-test-only"
+    for wrong_schema in (True, 1.0, "1", None):
+        malformed = packager.canonical_json(dict(synthetic, schema=wrong_schema))
+        with pytest.raises(ValueError, match="schema/profile"):
+            packager._validate_tuple(malformed, packager.sha256(malformed))
 
     continuous = dict(synthetic, runtime_mode="continuous", application_identity="FM-1_500")
     continuous_raw = packager.canonical_json(continuous)
@@ -182,6 +186,44 @@ def test_continuous_runtime_requires_compiled_timer_policy_and_keeps_release_fal
     assert packager._validate_runtime(diagnostic, "song-diagnostic")[1] == 120
     with pytest.raises(ValueError):
         packager._validate_runtime(diagnostic, "continuous")
+
+
+@pytest.mark.parametrize("schema", [True, 1.0, "1", None])
+def test_catalogue_rejects_noninteger_schema_with_matching_digest(schema):
+    raw = packager.canonical_json({"schema": schema, "objects": []})
+    with pytest.raises(ValueError, match="schema or objects"):
+        packager._validate_catalogue(raw, packager.sha256(raw), {"catalogue_objects": []}, {})
+
+
+@pytest.mark.parametrize("field,key,digest_field,error", [
+    ("build_provenance", "schema", "build_provenance_sha256", "provenance schema"),
+    ("request", "version", "request_sha256", "request schema"),
+])
+@pytest.mark.parametrize("value", [True, 1.0, "1", None])
+def test_package_rejects_noninteger_schema_even_with_rebound_digests(field, key, digest_field, error, value):
+    values = _inputs()
+    document = json.loads(values[field])
+    document[key] = value
+    values[field] = packager.canonical_json(document)
+    tuple_data = json.loads(values["build_tuple"])
+    tuple_data[digest_field] = packager.sha256(values[field])
+    # For request mutations, keep all earlier hash crosslinks consistent so the
+    # numeric schema check, rather than a stale receipt digest, rejects it.
+    if field == "request":
+        provenance = json.loads(values["build_provenance"])
+        provenance.update(request_sha256=tuple_data[digest_field],
+                          request_receipt_sha256=tuple_data[digest_field])
+        values["build_provenance"] = packager.canonical_json(provenance)
+        tuple_data["build_provenance_sha256"] = packager.sha256(values["build_provenance"])
+        image = json.loads(values["image_receipt"])
+        image["request_sha256"] = tuple_data[digest_field]
+        values["image_receipt"] = packager.canonical_json(image)
+    with pytest.raises(ValueError, match=error):
+        packager._validate_receipts(
+            tuple_data, values["app"], values["elf"], values["artifact_receipt"],
+            values["build_receipt"], values["build_provenance"], values["request"],
+            values["prepared_profile"], values["source_profile"], values["catalogue_manifest"],
+            values["image_receipt"], values["catalogue_files"], values["generated_files"])
 
 
 def test_catalogue_must_match_receipt_and_exact_bytes():
