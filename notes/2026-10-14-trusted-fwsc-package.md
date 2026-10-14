@@ -49,9 +49,9 @@ returned to the caller as bytes in memory; file_written is false.
 Focused Hera tests:
 
   pytest -q -p no:cacheprovider --basetemp=/tmp/trusted-package-test tests/test_trusted_fwsc_package.py tests/test_package500_d7000_candidate.py tests/test_package500_continuous_d7000_candidate.py
-  16 passed
+  17 passed
 
-Python byte-compilation and git diff --check also passed.
+Python byte-compilation and git diff --check also passed. Private artifact-backed tests skip cleanly when the retained Hera-only tuple/source inputs are absent; synthetic tuple trust-anchor/schema/false-flag checks remain runnable without those artifacts.
 
 The package and report keep hardware admission, hardware testing,
 installability, updater acceptance, and release admission false. The tuple

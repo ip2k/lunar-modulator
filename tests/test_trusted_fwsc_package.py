@@ -31,23 +31,48 @@ def _retained(path_candidates):
 
 
 def _inputs():
+    source = _retained(SOURCE_CANDIDATES)
+    reference = _retained(REFERENCE_CANDIDATES)
+    manifest_path = TASK_ROOT / "companion-set-catalogue-manifest.json"
+    required = [
+        BUILD_ROOT / "build_tuple.json",
+        BUILD_ROOT / "build-provenance.json",
+        BUILD_ROOT / "selection/request.json",
+        BUILD_ROOT / "selection/prepared/profile.json",
+        BUILD_ROOT / "selection/staged/profile.json",
+        BUILD_ROOT / "link/artifact/app.bin",
+        BUILD_ROOT / "link/lunar-app-probe.elf",
+        BUILD_ROOT / "link/artifact/artifact.json",
+        BUILD_ROOT / "link/verification.json",
+        BUILD_ROOT / "image.json",
+        manifest_path,
+    ]
+    if source is None or reference is None or any(not path.is_file() for path in required):
+        pytest.skip("retained D7000 package artifacts are unavailable on this host")
+
     tuple_raw = (BUILD_ROOT / "build_tuple.json").read_bytes()
     provenance_raw = (BUILD_ROOT / "build-provenance.json").read_bytes()
     provenance = json.loads(provenance_raw)
-    manifest_raw = (TASK_ROOT / "companion-set-catalogue-manifest.json").read_bytes()
+    manifest_raw = manifest_path.read_bytes()
     manifest = json.loads(manifest_raw)
-    catalogue_files = {
-        row["path"]: (CATALOGUE_ROOT / row["path"].removeprefix("/catalogue/")).read_bytes()
+    catalogue_paths = [
+        CATALOGUE_ROOT / row["path"].removeprefix("/catalogue/")
         for row in manifest["objects"]
+    ]
+    generated_paths = [
+        BUILD_ROOT / row["path"]
+        for row in provenance["module_and_generated_inputs"]
+    ]
+    if any(not path.is_file() for path in catalogue_paths + generated_paths):
+        pytest.skip("retained D7000 catalogue/generated inputs are incomplete")
+    catalogue_files = {
+        row["path"]: path.read_bytes()
+        for row, path in zip(manifest["objects"], catalogue_paths)
     }
     generated_files = {
-        row["path"]: (BUILD_ROOT / row["path"]).read_bytes()
-        for row in provenance["module_and_generated_inputs"]
+        row["path"]: path.read_bytes()
+        for row, path in zip(provenance["module_and_generated_inputs"], generated_paths)
     }
-    source = _retained(SOURCE_CANDIDATES)
-    reference = _retained(REFERENCE_CANDIDATES)
-    if not source or not reference:
-        pytest.skip("retained public FM-1_092 source/reference fixture is unavailable")
     return {
         "source_fwsc": source.read_bytes(),
         "reference_dir": reference,
@@ -88,12 +113,30 @@ def test_real_d7000_tuple_composes_and_reopens_with_independent_integrity_checks
 
 
 def test_tuple_requires_external_digest_and_false_admission_flags():
-    values = _inputs()
+    synthetic = {
+        "schema": 1,
+        "tuple_id": "synthetic-test-only",
+        "profile_id": packager.PROFILE_ID,
+        "flash_layout": "expanded-d7000",
+        "app_bytes": 100,
+        "application_identity": "FM-1_990",
+        "recovery_identity": "FM-1_000",
+        "runtime_mode": "song-diagnostic",
+        "hardware_admitted": False,
+        "hardware_tested": False,
+        "installable": False,
+    }
+    synthetic.update({field: "0" * 64 for field in packager.HASH_FIELDS})
+    raw = packager.canonical_json(synthetic)
+    digest = packager.sha256(raw)
     with pytest.raises(ValueError, match="external trust anchor"):
-        packager._validate_tuple(values["build_tuple"], "0" * 64)
-    original = json.loads(values["build_tuple"])
-    original["installable"] = True
-    altered = packager.canonical_json(original)
+        packager._validate_tuple(raw, "f" * 64)
+    with pytest.raises(ValueError, match="fields differ"):
+        packager._validate_tuple(packager.canonical_json({}), packager.sha256(packager.canonical_json({})))
+    assert packager._validate_tuple(raw, digest)["tuple_id"] == "synthetic-test-only"
+
+    synthetic["installable"] = True
+    altered = packager.canonical_json(synthetic)
     with pytest.raises(ValueError, match="flags false"):
         packager._validate_tuple(altered, packager.sha256(altered))
 
@@ -180,3 +223,14 @@ def test_public_model_still_rejects_non_pinned_default_app():
     changed = bytearray(b"x" * 128)
     with pytest.raises(ValueError, match="pinned Shapes8/Event-Horizon"):
         model._build(source.read_bytes(), reference, bytes(changed))
+
+
+def test_private_artifact_loader_skips_cleanly_when_inputs_are_absent(monkeypatch, tmp_path):
+    missing = tmp_path / "not-retained"
+    monkeypatch.setattr(sys.modules[__name__], "BUILD_ROOT", missing / "build")
+    monkeypatch.setattr(sys.modules[__name__], "TASK_ROOT", missing / "task")
+    monkeypatch.setattr(sys.modules[__name__], "CATALOGUE_ROOT", missing / "catalogue")
+    monkeypatch.setattr(sys.modules[__name__], "SOURCE_CANDIDATES", (missing / "source.fwsc",))
+    monkeypatch.setattr(sys.modules[__name__], "REFERENCE_CANDIDATES", (missing / "reference",))
+    with pytest.raises(pytest.skip.Exception, match="artifacts are unavailable"):
+        _inputs()
