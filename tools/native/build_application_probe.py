@@ -36,6 +36,30 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def embedded_content_receipt(prepared_sha256, source, descriptors, payloads):
+    """Build a receipt whose ordered identities describe the linked payloads."""
+    if len(descriptors) != len(payloads):
+        raise ValueError('Content descriptors and payloads differ in count')
+    assets = []
+    for descriptor, payload in zip(descriptors, payloads):
+        if not isinstance(descriptor, dict):
+            raise ValueError('Content descriptor is invalid')
+        kind = descriptor.get('kind')
+        if kind not in ('project', 'set'):
+            raise ValueError('Content descriptor has an invalid kind')
+        payload_sha256 = hashlib.sha256(payload).hexdigest()
+        if descriptor.get('bytes') != len(payload):
+            raise ValueError('Prepared content length differs from payload')
+        if descriptor.get('packed_sha256') != payload_sha256:
+            raise ValueError('Prepared content digest differs from payload')
+        assets.append(dict(kind=kind, bytes=len(payload), packed_sha256=payload_sha256))
+    return dict(prepared_sha256=prepared_sha256,
+                source_sha256=hashlib.sha256(source).hexdigest(),
+                asset_count=len(payloads), packed_content_bytes=sum(map(len, payloads)),
+                packed_sha256=[asset['packed_sha256'] for asset in assets], assets=assets,
+                sequence_semantics_verified=False, native_playback_verified=False)
+
+
 def replace_once(text, old, new):
     if text.count(old) != 1:
         raise SystemExit('Pinned adaptation no longer matches: ' + old)
@@ -402,13 +426,12 @@ def main():
                   catalogue_source_freshness_verified=True,
                   installable=False, hardware_tested=False, elf_sha256=digest(elf))
     if content_inputs:
-        report['embedded_content'] = dict(
-            prepared_sha256=args.expected_profile_sha256,
-            source_sha256=hashlib.sha256(generated_content).hexdigest(),
-            asset_count=len(content_inputs.packed_content),
-            packed_content_bytes=sum(map(len, content_inputs.packed_content)),
-            packed_sha256=[hashlib.sha256(p).hexdigest() for p in content_inputs.packed_content],
-            sequence_semantics_verified=False, native_playback_verified=False)
+        try:
+            report['embedded_content'] = embedded_content_receipt(
+                args.expected_profile_sha256, generated_content,
+                content_inputs.report['content'], content_inputs.packed_content)
+        except (ValueError, KeyError, TypeError) as error:
+            raise SystemExit('Prepared content receipt refused: ' + str(error))
     if args.link_set_loader:
         report['set_loader'] = dict(native_link_verified=True, activation_api_link_verified=True, activated=False,
                                    stack_margin_verified=False, hardware_tested=False,

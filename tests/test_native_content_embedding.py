@@ -14,6 +14,46 @@ sys.path.insert(0, str(ROOT / 'tools/native'))
 from embed_image_content import embed, content_source, MAX_PACKED_FILE
 from prepare_image_profile import prepare, sha
 from verify_image_profile import load_prepared_profile
+from build_application_probe import embedded_content_receipt
+
+
+def test_link_receipt_records_ordered_payload_identities():
+    payloads = (b'project bytes', b'set bytes')
+    descriptors = [
+        dict(kind='project', bytes=len(payloads[0]), packed_sha256=sha(payloads[0])),
+        dict(kind='set', bytes=len(payloads[1]), packed_sha256=sha(payloads[1])),
+    ]
+    source = b'generated catalogue source'
+    receipt = embedded_content_receipt('a' * 64, source, descriptors, payloads)
+    assert receipt == dict(
+        prepared_sha256='a' * 64,
+        source_sha256=sha(source),
+        asset_count=2,
+        packed_content_bytes=sum(map(len, payloads)),
+        packed_sha256=[sha(payload) for payload in payloads],
+        assets=[dict(kind=asset['kind'], bytes=len(payload), packed_sha256=sha(payload))
+                for asset, payload in zip(descriptors, payloads)],
+        sequence_semantics_verified=False,
+        native_playback_verified=False)
+
+
+def test_link_receipt_empty_content_is_explicit():
+    receipt = embedded_content_receipt('b' * 64, b'empty catalogue', [], ())
+    assert receipt['assets'] == []
+    assert receipt['packed_sha256'] == []
+    assert receipt['asset_count'] == 0
+    assert receipt['packed_content_bytes'] == 0
+
+
+@pytest.mark.parametrize('descriptor,payloads,message', [
+    ([dict(kind='project', bytes=3, packed_sha256=sha(b'one'))], (), 'differ in count'),
+    ([dict(kind='project', bytes=4, packed_sha256=sha(b'one'))], (b'one',), 'length differs'),
+    ([dict(kind='project', bytes=3, packed_sha256='0' * 64)], (b'one',), 'digest differs'),
+    ([dict(kind='song', bytes=3, packed_sha256=sha(b'one'))], (b'one',), 'invalid kind'),
+])
+def test_link_receipt_rejects_inconsistent_prepared_metadata(descriptor, payloads, message):
+    with pytest.raises(ValueError, match=message):
+        embedded_content_receipt('c' * 64, b'source', descriptor, payloads)
 
 
 @pytest.mark.parametrize('count', [0, 1, 2, 4])
