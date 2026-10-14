@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT / 'tools/native'))
 from embed_image_content import embed, content_source, MAX_PACKED_FILE
 from prepare_image_profile import prepare, sha
 from verify_image_profile import load_prepared_profile
+from tests.native_test_toolchain import configured_target_toolchain
 from build_application_probe import embedded_content_receipt
 
 
@@ -113,22 +114,6 @@ int main(void) {
         from embed_image_content import display_title
         expected += f'{kind} {len(payload)} {display_title(asset, len(expected))}\n'.encode() + payload
     assert subprocess.check_output([str(executable)]) == expected
-    tc = Path(os.environ['FM1_NATIVE_TOOLCHAIN'])
-    obj = tmp_path / 'content.o'
-    subprocess.run([str(tc / 'common/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
-                    '-mfprev1', '-std=c99', opt, '-ffreestanding', '-fno-builtin',
-                    '-ffunction-sections', '-fdata-sections', *inc_flags,
-                    '-isystem', str(tc / 'pi32v2/include'), '-c', str(source),
-                    '-o', str(obj)], check=True, capture_output=True)
-    assert not subprocess.check_output([str(tc / 'pi32v2/bin/nm'), '-u', str(obj)]).strip()
-    sections = subprocess.check_output([str(tc / 'common/bin/objdump'), '-h', str(obj)], text=True)
-    sizes = {m[1]: int(m[2], 16) for m in re.finditer(
-        r'^[ \t]*\d+[ \t]+(\.[^ \t\n]+)[ \t]+([0-9a-f]+)[ \t]+[0-9a-f]+', sections, re.M)}
-    assert not sum(v for k, v in sizes.items() if k.startswith(('.data', '.bss', '.sdata', '.sbss')))
-    for index, payload in enumerate(inputs.packed_content):
-        assert sizes[f'.rodata.lunar_content_{index:02d}'] == len(payload)
-    assert sizes['.rodata.lunar_content_count'] == 4
-    assert sizes['.rodata.lunar_content_catalogue'] == 16 * max(1, count)
 
 
 def test_content_refusal_has_no_output(tmp_path):
@@ -234,3 +219,48 @@ def test_startup_set_option_refusal(tmp_path, index, loader, message):
         *options], capture_output=True, text=True)
     assert result.returncode == 2 and message in result.stderr
     assert not output.exists()
+
+
+@pytest.mark.parametrize('count', [0, 1, 2, 4])
+@pytest.mark.parametrize('binary', [False, True], ids=['text-input', 'binary-input'])
+@pytest.mark.parametrize('opt', ['-Os', '-Oz'])
+def test_compiled_content_target_artifact(tmp_path, count, binary, opt):
+    content = []
+    for index in range(count):
+        is_set = bool(index % 2)
+        fixture = ('orbit.set.lunarb' if binary else 'orbit.set.movy1') if is_set else (
+            'first-orbit.lunarb' if binary else 'first-orbit.lunar')
+        name = f'asset-{index:02d}'
+        shutil.copy(ROOT / 'tests/fixtures/state/1.0' / fixture, tmp_path / name)
+        content.append(name)
+    profile = tmp_path / 'input.json'
+    profile.write_text(json.dumps(dict(version=1,
+        engines=['trio', 'drums', 'shapes', 'macro', 'dx7'],
+        effects=['filter', 'drive', 'echo', 'hall', 'limit'], midi=['arp'],
+        modulation=['lfo', 'env', 'chance'], content=content)))
+    prepared, output = tmp_path / 'prepared', tmp_path / 'embedded'
+    prepare(profile, Path(os.environ['FM1_STATE_TOOL']), prepared)
+    digest = sha((prepared / 'profile.json').read_bytes())
+    inputs = load_prepared_profile(prepared, digest)
+    report = embed(prepared, digest, output)
+    assert report['asset_count'] == count
+    source = output / 'content_catalogue.c'
+
+    tc = configured_target_toolchain()
+    includes = [ROOT / 'firmware/native', ROOT / 'engines/state', ROOT / 'engines/include']
+    inc_flags = [arg for path in includes for arg in ('-I', str(path))]
+    obj = tmp_path / 'content.o'
+    subprocess.run([str(tc / 'common/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
+                    '-mfprev1', '-std=c99', opt, '-ffreestanding', '-fno-builtin',
+                    '-ffunction-sections', '-fdata-sections', *inc_flags,
+                    '-isystem', str(tc / 'pi32v2/include'), '-c', str(source),
+                    '-o', str(obj)], check=True, capture_output=True)
+    assert not subprocess.check_output([str(tc / 'pi32v2/bin/nm'), '-u', str(obj)]).strip()
+    sections = subprocess.check_output([str(tc / 'common/bin/objdump'), '-h', str(obj)], text=True)
+    sizes = {match[1]: int(match[2], 16) for match in re.finditer(
+        r'^[ \t]*\d+[ \t]+(\.[^ \t\n]+)[ \t]+([0-9a-f]+)[ \t]+[0-9a-f]+', sections, re.M)}
+    assert not sum(v for k, v in sizes.items() if k.startswith(('.data', '.bss', '.sdata', '.sbss')))
+    for index, payload in enumerate(inputs.packed_content):
+        assert sizes[f'.rodata.lunar_content_{index:02d}'] == len(payload)
+    assert sizes['.rodata.lunar_content_count'] == 4
+    assert sizes['.rodata.lunar_content_catalogue'] == 16 * max(1, count)

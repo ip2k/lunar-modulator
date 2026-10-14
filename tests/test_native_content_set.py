@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 
 import pytest
+from tests.native_test_toolchain import configured_target_toolchain
 
 from tests.native_test_flags import native_host_link_flags, native_no_pie_flags
 
@@ -175,18 +176,22 @@ def native_set_probe(tmp_path_factory):
                         *native_no_pie_flags(), *inc, *map(str, sources),
                         *native_host_link_flags(), '-lm', '-o', str(executable)],
                        check=True)
-        tc = Path(os.environ['FM1_NATIVE_TOOLCHAIN'])
-        subprocess.run([str(tc / 'common/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
-                        '-mfprev1', '-std=c99', opt, '-Wall', '-Wextra', '-Werror',
-                        '-ffreestanding', '-fno-builtin', *inc,
-                        '-isystem', str(tc / 'pi32v2/include'), '-c',
-                        str(ROOT / 'firmware/native/content_set.c'),
-                        '-o', str(tmp_path / 'content_set.o')], check=True, capture_output=True)
         probes[opt] = executable
         return executable
 
     return build
 
+
+@pytest.mark.parametrize('opt', ['-Os', '-Oz'])
+def test_content_set_target_compile(opt, tmp_path):
+    tc = configured_target_toolchain()
+    inc = ['-I' + str(ROOT / path) for path in ('firmware/native', 'engines/include', 'engines/state', 'sim/web/src')]
+    subprocess.run([str(tc / 'common/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
+                    '-mfprev1', '-std=c99', opt, '-Wall', '-Wextra', '-Werror',
+                    '-ffreestanding', '-fno-builtin', *inc,
+                    '-isystem', str(tc / 'pi32v2/include'), '-c',
+                    str(ROOT / 'firmware/native/content_set.c'),
+                    '-o', str(tmp_path / 'content_set.o')], check=True, capture_output=True)
 
 @pytest.mark.parametrize('case', range(80))
 @pytest.mark.parametrize('opt', ['-Os', '-Oz'])

@@ -6,6 +6,7 @@ import subprocess
 import pytest
 
 from tests.native_test_flags import native_host_link_flags, native_no_pie_flags
+from tests.native_test_toolchain import configured_target_toolchain
 
 from tools.native.module_selection import resolve_modules
 
@@ -161,16 +162,25 @@ def rack_probe(tmp_path_factory):
                         '-ffp-contract=off', '-ffunction-sections', '-fdata-sections',
                         '-fsanitize=address,undefined', *native_no_pie_flags(), *inc,
                         *map(str, sources), *native_host_link_flags(), '-lm', '-o', str(exe)], check=True)
-        tc = Path(os.environ['FM1_NATIVE_TOOLCHAIN'])
-        subprocess.run([str(tc / 'common/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
-                        '-mfprev1', '-std=c99', opt, '-Wall', '-Wextra', '-Werror',
-                        '-ffreestanding', '-fno-builtin', *inc, '-isystem', str(tc / 'pi32v2/include'),
-                        '-c', str(ROOT / 'firmware/native/project_mod.c'),
-                        '-o', str(tmp / 'project_mod.o')], check=True)
         probes[opt] = exe
         return exe
 
     return build
+
+
+@pytest.mark.parametrize('opt', ['-Os', '-Oz'])
+def test_native_project_racks_target_compile(opt, tmp_path):
+    tc = configured_target_toolchain()
+    catalogue = tmp_path / 'catalogue'
+    resolve_modules(ROOT, catalogue, 'all')
+    mod = ROOT / 'engines/mod'
+    inc = ['-I' + str(path) for path in (ROOT / 'firmware/native', ROOT / 'engines/include',
+                                           ROOT / 'engines/state', mod, catalogue / 'gen')]
+    subprocess.run([str(tc / 'common/bin/clang'), '-target', 'pi32v2', '-mcpu=r3',
+                    '-mfprev1', '-std=c99', opt, '-Wall', '-Wextra', '-Werror',
+                    '-ffreestanding', '-fno-builtin', *inc,
+                    '-isystem', str(tc / 'pi32v2/include'), '-c', str(ROOT / 'firmware/native/project_mod.c'),
+                    '-o', str(tmp_path / 'target.o')], check=True, capture_output=True)
 
 
 @pytest.mark.parametrize('kind', range(16))
