@@ -7,8 +7,9 @@ from typing import Iterable, Optional, Tuple
 class Operation:
     """One sector-scale mutation.
 
-    None means the transaction has not proved the field either way. A cut during
-    a mutation is always modeled as unknown, never as an atomic erase/program.
+    None means this operation does not mutate that predicate. A cut during a
+    mutation makes affected predicates unknown; untouched predicates persist.
+    Erase/program operations are never assumed atomic.
     """
     name: str
     app_header_valid_after: Optional[bool] = None
