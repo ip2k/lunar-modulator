@@ -53,8 +53,11 @@ cmake -S dongle/firmware -B dongle/firmware/build -DPICO_BOARD=pico && cmake --b
 1. Wire it as in docs/10 §3 (2.2 kΩ pull-ups from GP16 to D+ and from GP19
    to D−, each on its own pin, 100 Ω series
    resistors, DPDT relay with the PC on the normally-closed contacts).
-2. Plug the Pico into the PC; open the serial console (115200). `SELFTEST ok`
-   must appear with nothing on the TARGET port yet.
+2. Plug the Pico into the PC and open its USB CDC console (115200). If the
+   console opens after startup, the dongle replays its banner and current
+   result when the connection is detected; no button press or restart is
+   needed. With nothing on TARGET, expect SELFTEST ok followed by the key
+   attempt and its result.
 3. Connect the HOST port to a **Linux** PC and the FM-1 (off) to TARGET, then
    switch the FM-1 on. Watch for `ACK polarity=…`, the SOF lines and `DONE`.
 4. On the PC: `python3 reference/jl-uboot-tool/jldevfind.py` should list a
@@ -66,7 +69,9 @@ FM-1s (docs/10 §1.1).
 - To try both, build with `DEFAULT_POLARITY_MODE` set to `POLARITY_ALTERNATE`
   in `config.h`.
 
-**Button:** a short press after a result restarts.
+**Button:** a short press after a result restarts. Opening or reconnecting
+the USB CDC console only replays the banner and last result; it does not restart
+the key or SOF sequence.
 
 **LED:** 1 Hz keying, 3 fast blinks ACK, solid DONE, 5 Hz FAILED, 10 Hz
 FAULT.
