@@ -1,5 +1,17 @@
 # Latest physical continuation — 2026-10-14
 
+Coordinator checkpoint 8e38b31a is GitHub-backed; current-source CI38636720831
+is pending, not accepted. Dongle/PIO host checks completed successfully.
+Native SET worker a9743d99 is backed up to GitHub with verified remote SHA,
+but is not integrated: review found standalone SET build/embed compatibility
+regressions in mandatory parent binding. Worker owns correction and fresh
+all-thirteen-engine pi32v2 link using the existing pinned Hera toolchain.
+NOR worker owns runtime stack/page/timing guard plus the corresponding HAL
+inventory hash, with actual target disassembly required for stack headroom.
+Pico worker owns read-only late-console status visibility, then first-format
+model corrections. Passive bench check still shows ROM44 and Pico runtime36.
+Owner watched boot and GPIO wiring replies remain pending; no repeat boot sent.
+
 Root integrated device42 adapters (28f21b95) and final linked NOR audit (c8880025).
 A boot42 verifier filename mismatch was corrected before device commands.
 Fresh paired full reads match installed Event120 SHA145c0280...aa4657;
