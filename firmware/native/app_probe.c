@@ -13,6 +13,9 @@
 #define FM1_BTN_OCT_DOWN DINGHY_BTN_OCT_DOWN
 #define FM1_BTN_OCT_UP DINGHY_BTN_OCT_UP
 static int32_t lunar_master_raw = 512;
+#if defined(LUNAR_STARTUP_PROJECT_INDEX) && defined(LUNAR_STARTUP_SET_INDEX)
+#error "Project and standalone SET startup cannot be enabled together"
+#endif
 #ifdef LUNAR_STARTUP_PROJECT_INDEX
 static uint32_t lunar_selected_startup_project_index = LUNAR_STARTUP_PROJECT_INDEX;
 #endif
@@ -205,9 +208,21 @@ static void app_main(void)
         fm1_state_report_t report;
         fm1_state_report_init(&report);
         const lunar_content_asset_t *asset = &lunar_content_catalogue[lunar_selected_startup_project_index];
-        startup_project_result = !arena_bind_failures &&
-            asset->kind == FM1_STATE_PROJECT && lunar_project_start(
+        startup_project_result = !arena_bind_failures && asset->kind == FM1_STATE_PROJECT;
+#ifdef LUNAR_COMPANION_SET_CHOOSER
+        if (startup_project_result && lunar_selected_companion_set_index != UINT32_MAX) {
+            const lunar_content_asset_t *set =
+                &lunar_content_catalogue[lunar_selected_companion_set_index];
+            startup_project_result = set->kind == FM1_STATE_SET &&
+                set->parent_project_index == lunar_selected_startup_project_index &&
+                lunar_project_start_with_set(&app, &instance_pool,
+                    asset->bytes, asset->size, set->bytes, set->size, 44118, &report);
+        } else
+#endif
+        if (startup_project_result) {
+            startup_project_result = lunar_project_start(
                 &app, &instance_pool, asset->bytes, asset->size, 44118, &report);
+        }
         startup_project_report = (uint32_t)report.code;
         if (!startup_project_result) {
             fm1_audio_stop();

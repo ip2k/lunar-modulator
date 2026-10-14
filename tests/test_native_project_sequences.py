@@ -107,17 +107,18 @@ def sequence_probe(tmp_path_factory):
         resolve_modules(ROOT, tmp / 'catalogue', 'trio')
         source = tmp / 'probe.c'
         source.write_text(HARNESS)
-        sources = [ROOT / 'firmware/native/project_units.c', ROOT / 'firmware/native/project_seq.c', source]
+        sources = [ROOT / 'firmware/native/project_units.c', ROOT / 'firmware/native/project_seq.c',
+                   ROOT / 'firmware/native/content_set.c', source]
         sources += [ROOT / 'engines/state' / (s + '.c') for s in
                     ('state_bin', 'state_names', 'state_movy1', 'fm1_num', 'fm1_deflate')]
         sources += [ROOT / 'engines/seq' / (s + '.c') for s in
                     ('seq_clip', 'seq_engine', 'seq_cmd', 'seq_persist', 'seq_capture', 'seq_host')]
         inc = [arg for path in (ROOT / 'firmware/native', ROOT / 'engines/include',
-                               ROOT / 'engines/state', tmp / 'catalogue/gen')
+                               ROOT / 'engines/state', ROOT / 'sim/web/src', tmp / 'catalogue/gen')
                for arg in ('-I', str(path))]
         exe = tmp / 'probe'
         subprocess.run(['cc', '-std=c99', opt, '-Wall', '-Wextra', '-Werror',
-                        '-ffunction-sections', '-fdata-sections', *native_host_flags(),
+                        '-ffunction-sections', '-fdata-sections', *native_host_flags(), '-Wl,--gc-sections',
                         *inc, *map(str, sources), '-lm', '-o', str(exe)], check=True)
         probes[opt] = exe
         return exe

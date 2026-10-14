@@ -54,5 +54,12 @@ def test_platform_selector_uses_debounced_edges_before_audio():
     assert "fm1_input_edges(0)" in platform and "BTN_SEL" in platform
     assert "fm1_enc_take(ENC_SELECT)" in platform
     assert "fm1_wdt_feed();" in platform
-    assert source.rindex("lunar_preload_choose(lunar_selected_startup_project_index)") < source.rindex(
-        "fm1_audio_init(abuf, HALF_WORDS, isr_alnk0, 3)")
+    project_choice = source.rindex("lunar_preload_choose(lunar_selected_startup_project_index)")
+    set_choice = source.rindex("lunar_preload_choose_set(lunar_selected_startup_project_index)")
+    audio_start = source.rindex("fm1_audio_init(abuf, HALF_WORDS, isr_alnk0, 3)")
+    assert project_choice < set_choice < audio_start
+    assert "if companion_set_count and args.startup_project_index" in source
+    assert "if project_count > 1 or companion_set_count" in source
+    assert "LUNAR_COMPANION_SET_CHOOSER" in source
+    assert "set->parent_project_index == lunar_selected_startup_project_index" in (
+        ROOT / "firmware/native/app_probe.c").read_text()

@@ -62,9 +62,10 @@ int lunar_project_restore_view(fm1_app_t *app, const uint8_t *bytes, uint32_t si
                               x[FM1_VK_ENTRY] - 1u : FM1_SEQ_UI_SONG_MAX);
     return 1;
 }
-int lunar_project_start(fm1_app_t *app, lunar_instance_pool_t *pool,
-                         const uint8_t *bytes, uint32_t size, uint32_t rate,
-                         fm1_state_report_t *report) {
+static int project_start_impl(fm1_app_t *app, lunar_instance_pool_t *pool,
+                               const uint8_t *bytes, uint32_t size,
+                               const uint8_t *set_bytes, uint32_t set_size, uint32_t rate,
+                               fm1_state_report_t *report) {
     lunar_project_units_t plan;
     lunar_project_engines_t candidate;
     fm1_state_names_t names;
@@ -75,16 +76,18 @@ int lunar_project_start(fm1_app_t *app, lunar_instance_pool_t *pool,
     int ok;
     if (!report || (app && overlap(app, sizeof *app, report, sizeof *report)) ||
         (bytes && overlap(bytes, size, report, sizeof *report)) ||
+        (set_bytes && overlap(set_bytes, set_size, report, sizeof *report)) ||
         (pool && (overlap(pool, sizeof *pool, report, sizeof *report) ||
                   (pool->hi >= pool->lo && overlap((void *)pool->lo, pool->hi - pool->lo, report, sizeof *report))))) return 0;
     fm1_state_report_init(report);
-    if (!app || !pool || !bytes || !rate || app->frames || !app->seq ||
+    if (!app || !pool || !bytes || !rate || (!set_bytes && set_size) ||
+        (set_bytes && (!set_size || set_size > FM1_STATE_BIN_MAX)) || app->frames || !app->seq ||
         !pool->allocator || pool->hi <= pool->lo || pool->live_allocations ||
         app->host.sample_rate != (float)rate ||
         overlap((void *)pool->lo, pool->hi - pool->lo, pool, sizeof *pool) ||
         app->storage_ctx != pool || !app->storage_alloc || !app->storage_free ||
-        overlap(app, sizeof *app, bytes, size) || overlap(app, sizeof *app, pool, sizeof *pool) ||
-        overlap(bytes, size, pool, sizeof *pool) ||
+        overlap(app, sizeof *app, bytes, size) || (set_bytes && overlap(app, sizeof *app, set_bytes, set_size)) || overlap(app, sizeof *app, pool, sizeof *pool) ||
+        overlap(bytes, size, pool, sizeof *pool) || (set_bytes && (overlap(set_bytes, set_size, pool, sizeof *pool) || overlap(set_bytes, set_size, (void *)pool->lo, pool->hi - pool->lo) || overlap(set_bytes, set_size, bytes, size))) ||
         overlap((void *)pool->lo, pool->hi - pool->lo, app, sizeof *app) ||
         overlap((void *)pool->lo, pool->hi - pool->lo, bytes, size))
         return bad(report, "invalid cold project startup ownership");
@@ -97,8 +100,10 @@ int lunar_project_start(fm1_app_t *app, lunar_instance_pool_t *pool,
     arena = lunar_instance_pool_alloc(pool, need);
     if (!arena) return bad(report, "project sequence scratch does not fit");
     scratch = fm1_seq_create(arena, &app->seq_lim, rate);
-    ok = scratch && lunar_project_seq_stage(bytes, size, &names, &app->host,
-                                             scratch, &has_set, report);
+    ok = scratch && (set_bytes ?
+        lunar_project_seq_stage_companion(bytes, size, set_bytes, set_size, &names, &app->host,
+                                          scratch, &has_set, report) :
+        lunar_project_seq_stage(bytes, size, &names, &app->host, scratch, &has_set, report));
     if (ok && has_set) ok = fm1_app_seq_activate(app, scratch);
     if (lunar_instance_pool_free(pool, arena)) return bad(report, "sequence scratch ownership lost");
     if (!ok) { if (!report->code) bad(report, "sequence startup refused"); return 0; }
@@ -118,4 +123,18 @@ int lunar_project_start(fm1_app_t *app, lunar_instance_pool_t *pool,
            lunar_project_restore_mod(app, bytes, size, report) &&
            lunar_project_restore_view(app, bytes, size, report);
 }
+int lunar_project_start(fm1_app_t *app, lunar_instance_pool_t *pool,
+                        const uint8_t *bytes, uint32_t size, uint32_t rate,
+                        fm1_state_report_t *report) {
+    return project_start_impl(app, pool, bytes, size, 0, 0, rate, report);
+}
+
+int lunar_project_start_with_set(fm1_app_t *app, lunar_instance_pool_t *pool,
+                                 const uint8_t *project_bytes, uint32_t project_size,
+                                 const uint8_t *set_bytes, uint32_t set_size, uint32_t rate,
+                                 fm1_state_report_t *report) {
+    return project_start_impl(app, pool, project_bytes, project_size,
+                              set_bytes, set_size, rate, report);
+}
+
 #endif

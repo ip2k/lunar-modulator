@@ -17,6 +17,10 @@ int lunar_project_restore_view(fm1_app_t *app, const uint8_t *bytes, uint32_t si
  * Failure can leave the cold app partially restored: do not render; return to
  * recovery or discard it. This is not a live transactional project replacement.
  * No flash writes or automatic sequence playback. rate matches app's sequencer. */
+int lunar_project_start_with_set(fm1_app_t *app, lunar_instance_pool_t *pool,
+                                 const uint8_t *project_bytes, uint32_t project_size,
+                                 const uint8_t *set_bytes, uint32_t set_size, uint32_t rate,
+                                 fm1_state_report_t *report);
 int lunar_project_start(fm1_app_t *app, lunar_instance_pool_t *pool,
                          const uint8_t *bytes, uint32_t size, uint32_t rate,
                          fm1_state_report_t *report);
