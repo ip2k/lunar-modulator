@@ -4409,3 +4409,34 @@ packager work is active against the fresh D7000 tuple, with all installation
 and hardware admission flags false. ROM device46 needs fresh admission before
 another FM1 command; owner watched-boot and Pico GPIO wiring answers remain
 pending. SAVE stays disarmed; goal ACTIVE, no release or deployment.
+
+## Current verification and trusted packaging checkpoint — 2026-10-14
+
+Root code/evidence head is 03d795602339b5b56e7484454b8d02c2ce49ee07,
+verified on origin. Combined target evidence and the NOR guard measurement
+wording correction are integrated. The target catalogue ABI test now expects
+20 bytes per entry at 968b5f5e (five fields plus alignment); the separate
+target test rerun is pending, so this is not a verified full-suite fix yet.
+
+The corrected sixteen-container regression run uses exact 43a5a8d7, fresh
+scratch outputs/state and the read-only pi32 toolchain. The first run without
+that toolchain was stopped and its logs quarantined; it is not validation.
+The admitted run remains active, with known pre-fix ABI assertion failures
+and additional native-test error/failure markers under investigation.
+
+Trusted offline D7000 packaging and independent review remain active on
+Hera. Real-artifact positive tests exposed missing imports, an identity NUL
+encoding error and confusion between the prepared-profile file digest and
+its embedded original-profile digest. Workers are fixing and checking these
+against the retained target tuple. Historical example composers are being
+migrated from temporary global hash mutation to explicit per-call app hashes;
+the public model's default historical pin must remain fixed. No package or
+browser installation admission is established by these pending changes.
+
+CI38636720831 at older 8e38b31a remains in progress; CI38641032747 at
+0aec1635 remains queued. Neither proves current-head CI. FM1 last observed
+ROM device46, with previous read/boot markers consumed. Pico2W is programmed
+and its status console replay verified, but reports FAULT. Owner watched
+Event Horizon acceptance and Pico GPIO wiring answers are pending. Continue
+offline integration and verification; fresh device-specific admission is
+required before another hardware command. SAVE remains disarmed, goal ACTIVE.
