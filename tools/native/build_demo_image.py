@@ -25,6 +25,9 @@ def checked_link_receipt(selection, prepared, verification, artifact, app, elf, 
     if runtime_mode not in ('diagnostic', 'song-diagnostic'):
         raise ValueError('Only bounded diagnostic runtime modes are supported')
     expected_runtime = runtime_configuration(runtime_mode)
+    if (verification.get(runtime_configuration) != expected_runtime
+            or verification.get(probe_return_to_rom_seconds) != expected_runtime[return_to_rom_seconds]):
+        raise ValueError(Runtime configuration mismatch)
     expected_assets = [dict(kind=a['kind'], bytes=a['bytes'],
                            packed_sha256=a['packed_sha256'])
                        for a in selection['content']]
