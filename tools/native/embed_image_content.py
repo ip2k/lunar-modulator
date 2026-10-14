@@ -28,7 +28,7 @@ MAX_PACKED_FILE = 98304  # Existing FM1_STATE_BIN_MAX, not a larger file format.
 MAX_PACKED_TOTAL = 1048576  # Entire physical FM1 flash; actual link cap is smaller.
 
 
-def content_source(inputs, parent_indices=None):
+def content_source(inputs, parent_indices=None, *, require_set_parents=False):
     if len(inputs.report['content']) != len(inputs.packed_content):
         raise ValueError('Content descriptors and payloads differ in count')
     if sum(map(len, inputs.packed_content)) > MAX_PACKED_TOTAL:
@@ -54,8 +54,8 @@ def content_source(inputs, parent_indices=None):
         parent = parent_indices[index]
         if type(parent) is not int or parent < -1 or parent >= len(inputs.report['content']):
             raise ValueError('Content parent binding is outside the catalogue')
-        if asset['kind'] == 'set' and parent < 0:
-            raise ValueError('SET asset requires a trusted parent project binding')
+        if asset['kind'] == 'set' and parent < 0 and require_set_parents:
+            raise ValueError('Companion SET asset requires a trusted parent project binding')
         if asset['kind'] == 'project' and parent != -1:
             raise ValueError('PROJECT asset cannot have a parent binding')
         parent_value = 'UINT32_MAX' if parent < 0 else f'{parent}u'

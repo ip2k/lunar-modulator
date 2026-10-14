@@ -22,7 +22,7 @@ from compile_catalogue import source_manifest
 from compact_font import compact_header, compact_gfx
 from prepare_wavetables import prepare
 from embed_image_content import content_source
-from companion_selection import companion_parent_indices
+from companion_selection import builder_content_parent_indices
 from verify_image_profile import load_prepared_profile
 from flash_layout import FLASH_LAYOUTS, app_budget, linker_script
 from stack_watermark import instrument_entry, verify_instrumentation
@@ -261,10 +261,12 @@ def main():
         try:
             content_inputs = load_prepared_profile(args.prepared_profile,
                                                   args.expected_profile_sha256)
-            content_parent_indices, selection_receipt_sha256 = companion_parent_indices(
+            content_parent_indices, selection_receipt_sha256 = builder_content_parent_indices(
                 args.prepared_profile, args.expected_profile_sha256,
-                content_inputs.report, args.startup_project_index)
-            generated_content = content_source(content_inputs, content_parent_indices)
+                content_inputs.report, args.startup_project_index, args.startup_set_index)
+            generated_content = content_source(
+                content_inputs, content_parent_indices,
+                require_set_parents=args.startup_project_index is not None)
             args.modules = ','.join(content_inputs.report['module_selection']['selected'])
         except (ValueError, OSError, KeyError, TypeError) as error:
             parser.error(str(error))

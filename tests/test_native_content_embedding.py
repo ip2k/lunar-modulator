@@ -182,7 +182,7 @@ def test_content_descriptor_count_mismatch():
 @pytest.mark.parametrize('options,message', [
     (['--startup-set-index', '0'], 'requires --link-set-loader'),
     (['--startup-project-index', '0'], 'requires --link-project-loader'),
-    (['--startup-project-index', '0', '--startup-set-index', '0'], 'requires --link-set-loader'),
+    (['--startup-project-index', '0', '--startup-set-index', '0'], 'mutually exclusive'),
     (['--prepared-profile', 'absent'], 'require each other'),
     (['--expected-profile-sha256', '0' * 64], 'require each other'),
     (['--prepared-profile', 'absent', '--expected-profile-sha256', '0' * 64,
