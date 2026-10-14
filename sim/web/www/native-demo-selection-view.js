@@ -9,6 +9,7 @@ import {
 } from './native-demo-selection.js';
 
 let instanceNumber = 0;
+const PROPOSED_FULL_SONG_ID = 'replacement-showcase-candidate-event-horizon';
 
 function text(document, tag, value, className) {
   const element = document.createElement(tag);
@@ -32,6 +33,22 @@ function categoryLabel(project) {
     : project.category === 'replacement-showcase-candidate' ? 'Showcase candidate' : 'Example project';
 }
 
+function selectionTitle(project) {
+  return project.category === 'replacement-showcase-candidate'
+    ? `${project.title || project.id} Showcase` : project.title || project.id;
+}
+
+function dispositionLabel(project) {
+  const hostResult = {
+    'legacy-example-afterglow-relay': 'Host startup diagnostic passed; hardware playback is unverified.',
+    'legacy-example-packet-bloom': 'Host startup diagnostic passed; hardware playback is unverified.',
+    'legacy-example-event-horizon': 'Host startup diagnostic refused allocation (report 5).',
+    'legacy-example-neon-transit': 'Host startup diagnostic refused allocation (report 5).',
+  }[project.id];
+  return [project.owner_disposition || 'Owner disposition unavailable', hostResult]
+    .filter(Boolean).join(' ');
+}
+
 /**
  * Mount an accessible native demo chooser into `root`.
  *
@@ -49,7 +66,10 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
   const view = describeNativeDemoCatalogue(catalogue);
   const instance = ++instanceNumber;
   const radioName = `native-demo-startup-${instance}`;
-  const selected = [];
+  const proposedFullSong = view.fullSongDefault.status === 'pending'
+    ? view.projects.find((project) => project.id === PROPOSED_FULL_SONG_ID
+      && project.category === 'replacement-showcase-candidate') : null;
+  const selected = proposedFullSong ? [proposedFullSong.id] : [];
   const projectControls = new Map();
   let startupId = null;
   let busy = false;
@@ -67,7 +87,7 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
   defaultNotice.append(text(document, 'h3',
     `Full-song default status: ${view.fullSongDefault.status}`));
   defaultNotice.append(text(document, 'p', view.fullSongDefault.status === 'pending'
-    ? 'No full-song default has been approved. Legacy examples are not approved showcases or defaults. Showcase candidates await musical review.'
+    ? 'Legacy examples remain selectable, but none are approved showcases or defaults. Event Horizon Showcase is preselected as the proposed full-song default for this request. This is a reversible chooser selection, not owner musical acceptance or release admission. Its 108.8-second host render completed in an offline diagnostic; packed dependency validation and musical review remain pending.'
     : 'Selectable legacy examples are not approved showcases or defaults.'));
   if (view.fullSongDefault.blockers.length) {
     const blockers = document.createElement('ul');
@@ -100,7 +120,7 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
       startupId = radio.checked ? project.id : startupId;
       syncSubmit();
     });
-    const title = text(document, 'span', `${project.title || project.id} (${categoryLabel(project)})`);
+    const title = text(document, 'span', `${selectionTitle(project)} (${categoryLabel(project)})`);
     label.htmlFor = id;
     radio.id = id;
     label.append(radio, title);
@@ -115,6 +135,7 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
     checkbox.type = 'checkbox';
     checkbox.id = id;
     checkbox.value = project.id;
+    checkbox.checked = project.id === proposedFullSong?.id;
     checkbox.addEventListener('change', () => {
       if (checkbox.checked) {
         if (!selected.includes(project.id)) selected.push(project.id);
@@ -136,15 +157,21 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
     item.append(label);
     item.append(text(document, 'p', durationLabel(project.duration_estimate)));
     item.append(text(document, 'p', categoryLabel(project)));
-    item.append(text(document, 'p', project.owner_disposition || 'Owner disposition unavailable'));
+    item.append(text(document, 'p', dispositionLabel(project)));
     choices.append(item);
     projectControls.set(project.id, checkbox);
     addStartupOption(project);
+    if (project.id === proposedFullSong?.id) {
+      const radio = startupControls.get(project.id);
+      radio.disabled = false;
+      radio.checked = true;
+      startupId = project.id;
+    }
   }
 
   section.append(choices, startup);
   section.append(text(document, 'p',
-    'Durations are catalogue estimates from project metadata, not verified playback lengths.'));
+    'Durations are catalogue estimates from project metadata, not verified playback lengths. The Event Horizon host render is an offline diagnostic and does not establish target playback, release approval, or installability.'));
   const status = text(document, 'p', '', 'native-demo-selection-status');
   status.setAttribute('role', 'status');
   status.setAttribute('aria-live', 'polite');
@@ -177,6 +204,7 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
       syncSubmit();
     }
   });
+  syncSubmit();
   section.append(status, submit);
   root.append(section);
 

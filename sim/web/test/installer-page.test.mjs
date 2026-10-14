@@ -111,10 +111,12 @@ test('loads generated catalogue, mounts the shared chooser and exports only a va
     assert.equal(checkboxes.length, 8);
     assert.equal(radios.length, 8);
     assert.equal(button.textContent, 'Download build request (JSON)');
-    assert.equal(button.disabled, true);
+    assert.equal(button.disabled, false);
     assert.match(root.textContent, /Full-song default status: pending/);
     assert.match(root.textContent, /owner musical acceptance pending/i);
-    assert.match(root.textContent, /not approved showcases or defaults/i);
+    assert.match(root.textContent, /none are approved showcases or defaults/i);
+    assert.equal(checkboxes[5].checked, true);
+    assert.equal(radios[5].checked, true);
 
     checkboxes[6].checked = true;
     await checkboxes[6].dispatch('change');
@@ -130,8 +132,8 @@ test('loads generated catalogue, mounts the shared chooser and exports only a va
       'version', 'engines', 'effects', 'midi', 'modulation', 'project_ids', 'startup_index',
     ]);
     assert.equal(exported.version, 1);
-    assert.deepEqual(exported.project_ids, [ids[6], ids[1]]);
-    assert.equal(exported.startup_index, 1);
+    assert.deepEqual(exported.project_ids, [ids[5], ids[6], ids[1]]);
+    assert.equal(exported.startup_index, 2);
     assert.deepEqual(exported.engines, catalogue.default_profile.engines);
     assert.equal('source_path' in exported, false);
     assert.equal('source_sha256' in exported, false);
@@ -201,8 +203,8 @@ test('uses injected build client only after explicit selection and preserves mod
   await button.dispatch('click');
 
   assert.equal(submissions.length, 1);
-  assert.deepEqual(submissions[0].project_ids, [ids[6], ids[1]]);
-  assert.equal(submissions[0].startup_index, 1);
+  assert.deepEqual(submissions[0].project_ids, [ids[5], ids[6], ids[1]]);
+  assert.equal(submissions[0].startup_index, 2);
   assert.deepEqual(submissions[0].engines, ['macro', 'shapes']);
   assert.equal(exportStatus.textContent, 'Diagnostic build checks passed (1234 bytes). No installable firmware file is available.');
   assert.equal(cancelButton.hidden, true);

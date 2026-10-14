@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "engines": [
+    "macro",
+    "shapes",
+    "macro-heavy",
+    "sixop",
+    "dx7",
+    "sw-sophie",
+    "drums",
+    "acid-bass",
+    "comet",
+    "crater",
+    "drawbar",
+    "trio",
+    "phase-bend"
+  ],
+  "effects": [
+    "plate",
+    "ensemble",
+    "diffuse",
+    "sw-psxverb",
+    "crush",
+    "fold",
+    "drive",
+    "echo",
+    "warble",
+    "filter",
+    "comb",
+    "comp",
+    "limit",
+    "djfilter",
+    "tilt",
+    "sat",
+    "isolator",
+    "eq",
+    "room",
+    "hall",
+    "gate",
+    "squash",
+    "shaper",
+    "repeat"
+  ],
+  "midi": [
+    "arp",
+    "acid-gen"
+  ],
+  "modulation": [
+    "lfo",
+    "env",
+    "chance",
+    "function",
+    "bounce",
+    "register",
+    "coin",
+    "divide",
+    "burst",
+    "slew",
+    "quantize",
+    "compare",
+    "logic",
+    "calc",
+    "mix",
+    "resonator"
+  ],
+  "project_ids": [
+    "replacement-showcase-candidate-event-horizon",
+    "replacement-showcase-candidate-packet-bloom"
+  ],
+  "startup_index": 1
+}
