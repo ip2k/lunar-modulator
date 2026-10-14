@@ -2993,3 +2993,20 @@ No hardware operation; native SAVE/workspace/validator integration and flash
 capacity unresolved. Full13 acceptance/migration/physicalrollback/webinstaller/
 custombuilder/licensing/reviewCI remain active. Previous verified pushed
 840a2b7871bb8a59b0035ce5240b195c470229df. Do not replay consumed hardware actions.
+
+## Framebuffer project workspace checkpoint (2026-10-14)
+
+[verified] New main-task-exclusive workspace borrows indexed framebuffer pixels
+for the compact writer without borrowing engine/seq/mod arenas. Thirty cases in
+thirty Hera containers pass ASan/UBSan and pinned pi32v2 harness compilation;
+all30logs/exits/noOOM/11hashes checked. Tests cover four alignments, binary
+roundtrips, callback failures, metadata/canaries, stopflag/reentry/size refusal,
+invalid-frame release and complete redraw. Source confirms panel DMA uses cv_px.
+Caller flags are assertions, not independent scheduling enforcement. v1 target
+initializer warning retained; explicit initialization v2 passes. Evidence
+notes/2026-10-14-project-workspace-verification/. Session37241 terminal0, no
+live workers/no USB operation. Component not wired into SAVE; no full firmware
+RAM fit or actual hardware redraw proof. Next collector/store bridge and admitted
+storage capacity; migration/physicalrollback/all13watchedboot/webinstaller/
+custombuilder/licensing/reviewCI remain open. Previous verified pushed
+4b83093cf24c35b424266daef4dd89ab8f8933bd. Do not replay consumed hardware actions.

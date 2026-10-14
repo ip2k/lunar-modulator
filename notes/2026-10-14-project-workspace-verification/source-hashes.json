@@ -1,0 +1,13 @@
+{
+  "firmware/native/project_workspace.h": "e43d0be761385e052f6a5bd686e8c4ab4bbac970cf6cd5d69275096e3e2c27fc",
+  "tests/native/project_workspace.c": "5b4d3ef4cbf63c34bd764e712e6356ac14665064d035c2ad6b8bf8300d9c933b",
+  "tests/test_native_project_workspace.py": "d99e8e7973160114d6a9ffb8e61ba6b948eb186d5dda3015e2dcda7b06790f14",
+  "sim/web/src/fm1_tft.c": "ea6bff4f1be903ee7b0d3321ebb90805fe36b50ec95b65cfed0c508d16f67193",
+  "sim/web/src/fm1_tft.h": "806fe53dc8236e76d405daf1975b8565718ab084ce038c5fdd5db78da9f10cfa",
+  "engines/state/fm1_state.h": "6f6f597f3c50ff1737de34895a29318a9362f62b3b56c93aef57ffa1efec5800",
+  "engines/state/state_bin.c": "37054d9abc42bcadad715e164d1eb386643fd02919cffa6062f20e5ce886b66c",
+  "engines/state/state_names.c": "023be58014b9c4d62cfd2822bb270cea923dd5d37f80ed0bce52ad651e04be57",
+  "engines/state/state_movy1.c": "cfc0999896814678f46d7a46eb21d4fddf0a0f53ffe0470481147ddb597a33e2",
+  "engines/state/fm1_num.c": "cfe54e03e93898b1ec7e6043018225fe239dc259872a47087940959588bf9a56",
+  "engines/state/fm1_deflate.c": "1f2fc7ee8dd7f0e73cae2071a0bf70a5cd2bb84836110a4005595442c6154faa"
+}
