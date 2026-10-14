@@ -5,6 +5,17 @@
 #include "project_engines.h"
 
 #if FM1_APP_EXTERNAL_ARENAS
+/* Cold-start main task only, before input/render. Read a complete immutable
+ * binary PROJECT, retain four levels/current sound/octave/transpose, then
+ * apply through shared setters. CRC/type/range/duplicate refusal leaves app
+ * intact. Input and report must be disjoint from app. SESSION's key is only
+ * descriptive, as in the browser loader; SETTINGS records are not applied.
+ * Other project records require their separate staging/activation steps.
+ * No allocation; the binary reader still needs >8KiB main-task stack. */
+int lunar_project_restore_scalars(fm1_app_t *app,
+                                  const uint8_t *bytes, uint32_t size,
+                                  fm1_state_report_t *report);
+
 /* Cold-start only, before input/render: reconstruct the four prepared MIDI
  * effects in the app's fixed inline storage and restore their parameter values.
  * on[] comes from the same checked project's ON records (absent means bypass).

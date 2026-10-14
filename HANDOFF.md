@@ -1,3 +1,24 @@
+# Scalar startup and actual-candidate recovery verified — 2026-10-13
+
+Goal ACTIVE: full SDK-free native Lunar, all thirteen default engines plus the
+selectable builder. This checkpoint does not establish an installable release.
+Branch feature/2026-10-11@installable-firmware; preceding pushed 164c7ee7.
+Cold-start scalar restoration added with complete PROJECT/CRC validation and
+unchanged-app refusal. 30 scalar +16 storage/audio cases passed in30 Hera
+ASAN/UBSAN chunks; all logs/states/source hashes checked, noOOM, containers removed.
+30 actual pi32v2 -Os/-Oz object compilation shards passed; not a full native link.
+Earlier fixture failures retained. Evidence notes/2026-10-13-project-scalars-verification/.
+Actual expanded candidate recovery v2 now terminal:40passed in30chunks;16source
+hashes matched and all logs checked/noOOM/containers removed. Simulator boot
+registration remains an assumption, not hardware boot or recovery proof.
+Stock VM reference provenance corrected: FM-1-RE-v15 directory analyzes009,
+not verified092 migration. No device operation this continuation.
+Next full startup composition (VIEW/DX7, sequence/mod ownership), persistence,
+settings migration/rollback, sustained timing/hardware, OTA/web builder, licensing,
+exact-head review/CI/integration and physical release acceptance.
+No live campaign remains. Hera root native-external-arenas-16-20261012;
+scalar-source-v3 immutable snapshot, out/project-scalars-v3-* receipts.
+
 # Corrected actual-candidate recovery running — 2026-10-13
 
 Goal ACTIVE: full SDK-free Lunar, all thirteen default engines and selectable

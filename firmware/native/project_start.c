@@ -6,6 +6,93 @@
 typedef char parameter_capacity_match[
     FM1_APP_MAX_PARAMS == LUNAR_PROJECT_ENGINE_PARAMS ? 1 : -1];
 
+typedef struct {
+    const uint8_t *bytes;
+    uint32_t size;
+    fm1_state_report_t *report;
+    float level[FM1_APP_SOUNDS];
+    uint8_t levels, session;
+    int8_t current, octave, transpose;
+} scalar_load_t;
+
+static int scalar_refuse(scalar_load_t *load, const char *why) {
+    load->report->code = FM1_STATE_BAD;
+    strncpy(load->report->what, why, sizeof load->report->what - 1u);
+    load->report->what[sizeof load->report->what - 1u] = 0;
+    return 0;
+}
+
+static uint32_t scalar_read(void *ctx, uint32_t off, uint8_t *buf, uint32_t n) {
+    scalar_load_t *load = ctx;
+    if (off > load->size || n > load->size - off) return 0;
+    memcpy(buf, load->bytes + off, n);
+    return n;
+}
+
+static int scalar_record(void *ctx, const fm1_rec_t *r) {
+    scalar_load_t *load = ctx;
+    if (r->type == FM1_REC_HEAD)
+        return r->u.head.kind == FM1_STATE_PROJECT ||
+               scalar_refuse(load, "expected a binary project");
+    if (r->type == FM1_REC_LEVEL) {
+        float value;
+        if (r->sound >= FM1_APP_SOUNDS || (load->levels & (1u << r->sound)))
+            return scalar_refuse(load, "invalid or duplicate sound level");
+        if ((r->u.level & 0x7f800000u) == 0x7f800000u)
+            return scalar_refuse(load, "nonfinite sound level");
+        memcpy(&value, &r->u.level, sizeof value);
+        if (value < 0.0f || value > FM1_APP_LEVEL_MAX)
+            return scalar_refuse(load, "sound level would be clamped");
+        load->level[r->sound] = value;
+        load->levels |= (uint8_t)(1u << r->sound);
+    } else if (r->type == FM1_REC_SESSION) {
+        if (load->session || r->u.session.current < 0 ||
+            r->u.session.current >= FM1_APP_SOUNDS ||
+            r->u.session.octave < -3 || r->u.session.octave > 3 ||
+            r->u.session.transpose < -12 || r->u.session.transpose > 12)
+            return scalar_refuse(load, "invalid or duplicate project session");
+        load->session = 1;
+        load->current = r->u.session.current;
+        load->octave = r->u.session.octave;
+        load->transpose = r->u.session.transpose;
+    }
+    return 1;
+}
+
+static int scalar_overlap(const void *a, size_t an, const void *b, size_t bn) {
+    uintptr_t al = (uintptr_t)a, bl = (uintptr_t)b;
+    uintptr_t ah = al + an, bh = bl + bn;
+    return ah < al || bh < bl || (al < bh && bl < ah);
+}
+
+int lunar_project_restore_scalars(fm1_app_t *app,
+                                  const uint8_t *bytes, uint32_t size,
+                                  fm1_state_report_t *report) {
+    scalar_load_t load;
+    /* Check output aliasing before even initializing the report. */
+    if (!report || (app && scalar_overlap(app, sizeof *app, report, sizeof *report)) ||
+        (bytes && scalar_overlap(bytes, size, report, sizeof *report))) return 0;
+    fm1_state_report_init(report);
+    if (!app || !bytes || app->frames || size > FM1_STATE_BIN_MAX ||
+        scalar_overlap(app, sizeof *app, bytes, size)) {
+        report->code = size > FM1_STATE_BIN_MAX ? FM1_STATE_TOO_BIG : FM1_STATE_BAD;
+        return 0;
+    }
+    memset(&load, 0, sizeof load);
+    load.bytes = bytes; load.size = size; load.report = report;
+    if (!fm1_state_bin_read(scalar_read, &load, size, scalar_record, &load, report, 0))
+        return 0;
+    /* The complete reader/CRC succeeded; no operation below can refuse. */
+    for (unsigned k = 0; k < FM1_APP_SOUNDS; ++k)
+        if (load.levels & (1u << k)) fm1_app_unit_set_level(app, (int)k, load.level[k]);
+    if (load.session) {
+        fm1_app_unit_set_current(app, load.current);
+        app->octave = load.octave; app->transpose = load.transpose;
+        app->dirty = app->leds_changed = 1;
+    }
+    return 1;
+}
+
 int lunar_project_restore_midi_units(fm1_app_t *app,
                                     const lunar_project_engines_t *candidate,
                                     const uint8_t on[FM1_APP_SOUNDS]) {

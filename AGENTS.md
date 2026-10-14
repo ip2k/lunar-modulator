@@ -34,7 +34,7 @@ firmware is intended for GPLv3 distribution with all source and component notice
 the root license has not yet changed. See
 `notes/2026-10-12-native-gpl-firmware-direction.md` for existing-switch evidence,
 platform candidates and pending physical acceptance. Heavy builds run on Hera;
-parallelizable verification uses 16 chunks.
+parallelizable verification uses 30 chunks (current active goal).
 
 ## Automatic integration — owner, 2026-10-09
 

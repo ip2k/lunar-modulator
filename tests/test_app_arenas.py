@@ -46,6 +46,13 @@ def arena_tools(tmp_path_factory):
     return tools
 
 
+@pytest.mark.parametrize("case", range(30))
+def test_project_scalar_startup(arena_tools, case):
+    result = json.loads(subprocess.check_output(
+        [str(arena_tools[1]), "--scalar", str(case)], text=True))
+    assert result == {"passed": True, "case": case}
+
+
 @pytest.mark.parametrize("shard", range(16))
 def test_app_storage_and_audio(arena_tools, shard):
     results = []

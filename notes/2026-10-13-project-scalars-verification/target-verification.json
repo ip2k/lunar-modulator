@@ -1,0 +1,332 @@
+[
+  {
+    "shard": 0,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 0,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 1,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 1,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 2,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 2,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 3,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 3,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 4,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 4,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 5,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 5,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 6,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 6,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 7,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 7,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 8,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 8,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 9,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 9,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 10,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 10,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 11,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 11,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 12,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 12,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 13,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 13,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 14,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 14,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 15,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 15,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 16,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 16,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 17,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 17,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 18,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 18,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 19,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 19,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 20,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 20,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 21,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 21,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 22,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 22,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 23,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 23,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 24,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 24,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 25,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 25,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 26,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 26,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 27,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 27,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 28,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 28,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  },
+  {
+    "shard": 29,
+    "optimizations": [
+      "-Os",
+      "-Oz"
+    ],
+    "case": 29,
+    "exit": 0,
+    "state_exit": 0,
+    "oom": false
+  }
+]

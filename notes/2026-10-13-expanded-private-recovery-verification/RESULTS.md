@@ -14,7 +14,11 @@ error, not proof of successful recovery at that boundary [verified logs/source].
 The helper now counts erase/program operations from actual initial/desired bytes,
 including skipped blank sectors/pages, and checks the actual torn page within
 its sector. Corrected campaign v2 runs all 32 private cases plus eight synthetic
-regressions, split into 30 Hera containers. Results remain pending.
+regressions, split into 30 Hera containers. Terminal v2 results: all 40 cases passed across 30 containers, with no nonzero
+exit or OOM. Every shard log was inspected and all 16 recorded source hashes
+match the tested worktree [verified]. Owned containers were removed. Public
+receipts: `v2-verification.json` and `v2-source-hashes.json`; full logs remain
+private under `build/expanded-private-recovery-v2/`.
 
 Private inputs and simulated boot registration do not prove physical boot,
 settings migration, OTA installation or hardware recovery. No device command

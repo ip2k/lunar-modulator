@@ -20,6 +20,95 @@ static struct {
 
 #if FM1_APP_EXTERNAL_ARENAS
 static fm1_app_t managed;
+static unsigned char scalar_bytes[4096];
+static size_t scalar_size;
+static void scalar_put(void *ctx, const char *p, size_t n) {
+  (void)ctx;
+  assert(n <= sizeof scalar_bytes - scalar_size);
+  memcpy(scalar_bytes + scalar_size, p, n);
+  scalar_size += n;
+}
+static void scalar_check(int which) {
+  fm1_state_report_t report;
+  fm1_rec_t r;
+  const uint8_t version[3] = {0, 1, 0};
+  void *memory = calloc(1, fm1_state_bin_writer_size());
+  assert(memory);
+  scalar_size = 0;
+  fm1_state_writer_t *writer = fm1_state_bin_writer(memory,
+      which & 1 ? FM1_STATE_BIN_DEFLATE : 0, FM1_STATE_WRITER_DESKTOP,
+      version, scalar_put, NULL, &report);
+  memset(&r, 0, sizeof r);
+  r.type = FM1_REC_HEAD; r.u.head.major = 1;
+  r.u.head.kind = which == 20 ? FM1_STATE_SETTINGS : FM1_STATE_PROJECT;
+  assert(fm1_state_bin_write(writer, &r));
+  if (which == 20) {
+    memset(&r, 0, sizeof r); r.type = FM1_REC_SETTING;
+    r.u.setting.key = FM1_SET_METRONOME;
+    r.u.setting.is_bool = 1; r.u.setting.value = 1;
+    assert(fm1_state_bin_write(writer, &r));
+  } else if (which != 8) {
+    memset(&r, 0, sizeof r); r.type = FM1_REC_SESSION;
+    r.u.session.current = which % 4;
+    r.u.session.octave = which & 1 ? -3 : 3;
+    r.u.session.transpose = which & 1 ? -12 : 12;
+    if (which == 14) r.u.session.current = -1;
+    if (which == 15) r.u.session.current = 4;
+    if (which == 16) r.u.session.octave = -4;
+    if (which == 17) r.u.session.octave = 4;
+    if (which == 18) r.u.session.transpose = -13;
+    if (which == 19) r.u.session.transpose = 13;
+    assert(fm1_state_bin_write(writer, &r));
+  }
+  if (which != 20) for (int k = 0; k < 4; ++k) {
+    memset(&r, 0, sizeof r); r.type = FM1_REC_UNIT;
+    r.role = FM1_ROLE_SOUND; r.sound = k; strcpy(r.u.unit.id, "trio");
+    assert(fm1_state_bin_write(writer, &r));
+    if (which == 8) continue; /* Valid units, but no scalar records. */
+    r.type = FM1_REC_LEVEL;
+    float value = k * (100.0f / 3.0f);
+    if (k == 3 && which == 9) value = -0.1f;
+    if (k == 3 && which == 10) value = 100.1f;
+    if (k == 3 && which == 11) value = NAN;
+    if (k == 3 && which == 12) value = INFINITY;
+    if (k == 3 && which == 13) value = -INFINITY;
+    memcpy(&r.u.level, &value, 4);
+    assert(fm1_state_bin_write(writer, &r));
+  }
+  memset(&r, 0, sizeof r); r.type = FM1_REC_END;
+  assert(fm1_state_bin_write(writer, &r)); free(memory);
+  fm1_app_init(&managed, 44118.0f);
+  if (which == 24) managed.frames = 1;
+  fm1_app_t *before = malloc(sizeof managed); assert(before);
+  memcpy(before, &managed, sizeof managed);
+  const uint8_t *input = scalar_bytes;
+  uint32_t size = scalar_size;
+  fm1_app_t *target = &managed;
+  fm1_state_report_t *output = &report;
+  if (which == 21) scalar_bytes[scalar_size - 1] ^= 0x80;
+  if (which == 22) --size;
+  if (which == 23) size = 0;
+  if (which == 25) target = NULL;
+  if (which == 26) input = NULL;
+  if (which == 27) size = FM1_STATE_BIN_MAX + 1;
+  if (which == 28) input = (const uint8_t *)&managed;
+  if (which == 29) output = (fm1_state_report_t *)&managed;
+  int accepted = lunar_project_restore_scalars(target, input, size, output);
+  if (which < 9) {
+    assert(accepted);
+    if (which == 8) assert(!memcmp(before, &managed, sizeof managed));
+    else {
+      assert(fm1_app_unit_current(&managed) == which % 4);
+      assert(managed.octave == (which & 1 ? -3 : 3));
+      assert(managed.transpose == (which & 1 ? -12 : 12));
+      for (int k = 0; k < 4; ++k) assert(managed.level[k] == k * (100.0f / 3.0f));
+    }
+  } else {
+    assert(!accepted);
+    assert(!memcmp(before, &managed, sizeof managed));
+  }
+  free(before);
+}
 static struct { int fail; unsigned allocations, frees; } storage;
 static void *allocate(void *ctx, size_t bytes) {
   (void)ctx;
@@ -268,6 +357,14 @@ static void managed_check(int shard) {
 #endif
 
 int main(int argc, char **argv) {
+#if FM1_APP_EXTERNAL_ARENAS
+  if (argc == 3 && !strcmp(argv[1], "--scalar")) {
+    int which = atoi(argv[2]); assert(which >= 0 && which < 30);
+    scalar_check(which);
+    printf("{\"passed\":true,\"case\":%d}\n", which);
+    return 0;
+  }
+#endif
   int shard = argc == 2 ? atoi(argv[1]) : -1;
   assert(shard >= 0 && shard < 16);
 #if FM1_APP_EXTERNAL_ARENAS
