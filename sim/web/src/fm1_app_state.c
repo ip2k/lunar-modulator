@@ -442,34 +442,60 @@ static int metronome_on(const fm1_app_t *a) {
   return i.metronome != 0;
 }
 
+static int refuse_rep(fm1_state_report_t *rep, unsigned code, const char *what);
+
+/* Project-only collection has no JSON, file or whole-set staging. */
+static void project_records_out(col_t *c, const fm1_app_t *a, int include_view) {
+  head_out(c, FM1_STATE_PROJECT);
+  text_out(c, FM1_INFO_NAME, a->info.name);
+  text_out(c, FM1_INFO_TITLE, a->info.title);
+  text_out(c, FM1_INFO_ABOUT, a->info.about);
+  text_out(c, FM1_INFO_AUTHOR, a->info.author);
+  text_out(c, FM1_INFO_LICENCE, a->info.licence);
+  session_out(c, a);
+  for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+    const int u = fm1_app_sound_unit(k);
+    unit_out(c, a, u, FM1_ROLE_SOUND, (unsigned)k, 0);
+    if (a->unit[u].e) level_out(c, a, k, (unsigned)k);
+    for (int j = 0; j < FM1_APP_INSERTS; ++j) {
+      unit_out(c, a, fm1_app_insert_unit(k, j), FM1_ROLE_INSERT, (unsigned)k, (unsigned)j);
+    }
+    if (a->unit[u].e) mfx_out(c, a, k, (unsigned)k);
+  }
+  for (int j = 0; j < FM1_APP_FX_SLOTS; ++j) unit_out(c, a, 1 + j, FM1_ROLE_MASTER, 0, (unsigned)j);
+  for (unsigned s = 0; s < FM1_DX7_USER_SLOTS; ++s) {
+    if (a->dx7.index >= 0 && a->dx7.loaded[s]) dx7_out(c, a, s);
+  }
+  mod_out(c, a, MOD_ALL, 0, NULL);
+  if (a->seq) set_records_out(c, a);
+  if (include_view) view_out(c, a);
+}
+
+int fm1_app_state_collect_project(const fm1_app_t *a, int include_view,
+                                  fm1_rec_sink_t sink, void *ctx,
+                                  fm1_state_report_t *rep) {
+  col_t c = { sink, ctx, 1 };
+  fm1_state_report_t own;
+  fm1_rec_t end = blank(FM1_REC_END);
+  if (!rep) rep = &own;
+  fm1_state_report_init(rep);
+  rep->kind = FM1_STATE_PROJECT;
+  if (!a || !sink) return refuse_rep(rep, FM1_STATE_BAD, "missing app or project sink");
+  project_records_out(&c, a, include_view);
+  out(&c, &end);
+  if (!c.ok) {
+    if (rep->code == FM1_STATE_OK) refuse_rep(rep, FM1_STATE_BAD, "project sink refused records");
+    return 0;
+  }
+  return 1;
+}
+
 /* The records of `kind` into sink: 1, or 0 with *why. */
 static int collect(fm1_app_t *a, unsigned kind, int arg, fm1_rec_sink_t sink, void *ctx, const char **why) {
   col_t c = { sink, ctx, 1 };
   switch (kind) {
     case FM1_STATE_PROJECT: {
-      head_out(&c, kind);
-      text_out(&c, FM1_INFO_NAME, a->info.name);
-      text_out(&c, FM1_INFO_TITLE, a->info.title);
-      text_out(&c, FM1_INFO_ABOUT, a->info.about);
-      text_out(&c, FM1_INFO_AUTHOR, a->info.author);
-      text_out(&c, FM1_INFO_LICENCE, a->info.licence);
-      session_out(&c, a);
-      for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
-        const int u = fm1_app_sound_unit(k);
-        unit_out(&c, a, u, FM1_ROLE_SOUND, (unsigned)k, 0);
-        if (a->unit[u].e) level_out(&c, a, k, (unsigned)k);
-        for (int j = 0; j < FM1_APP_INSERTS; ++j) {
-          unit_out(&c, a, fm1_app_insert_unit(k, j), FM1_ROLE_INSERT, (unsigned)k, (unsigned)j);
-        }
-        if (a->unit[u].e) mfx_out(&c, a, k, (unsigned)k);
-      }
-      for (int j = 0; j < FM1_APP_FX_SLOTS; ++j) unit_out(&c, a, 1 + j, FM1_ROLE_MASTER, 0, (unsigned)j);
-      for (unsigned s = 0; s < FM1_DX7_USER_SLOTS; ++s) {
-        if (a->dx7.index >= 0 && a->dx7.loaded[s]) dx7_out(&c, a, s);
-      }
-      mod_out(&c, a, MOD_ALL, 0, NULL);
-      if (a->seq) set_records_out(&c, a);
-      if (!g_no_view) view_out(&c, a);
+      project_records_out(&c, a, !g_no_view);
       break;
     }
     case FM1_STATE_SOUND: {

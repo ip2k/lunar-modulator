@@ -44,7 +44,10 @@ def cycle(tools, tmp_path, *start):  # noqa: F811
     sim(tools, "--load", a, "--save", f"project:{b}")
     sim(tools, "--load", ab, "--save", f"project:{c}")
     sim(tools, "--load", ap, "--save", f"project:{d}")
-    assert a.read_bytes() == b.read_bytes() == c.read_bytes() == d.read_bytes()
+    stream, restored = tmp_path / "direct.stream.lunarb", tmp_path / "direct.lunar"
+    sim(tools, *start, "--save", f"project:{stream}")
+    sim(tools, "--load", stream, "--save", f"project:{restored}")
+    assert a.read_bytes() == b.read_bytes() == c.read_bytes() == d.read_bytes() == restored.read_bytes()
     assert ap.stat().st_size >= ab.stat().st_size
     return canon.loads(a.read_text())
 

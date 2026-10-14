@@ -102,6 +102,15 @@ int fm1_app_state_check(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t to
 int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t total,
                        const fm1_app_load_opts_t *o, fm1_app_state_report_t *rep);
 
+/* Emit a complete project, HEAD through END, without JSON/file/set staging.
+ * Caller owns the synchronous sink and its workspace; app must remain stable
+ * throughout collection. Zero include_view omits panel view, matching the
+ * hash form. Sink refusal stops callbacks and returns 0; discard that output.
+ * No app state is changed. This does not allocate or admit flash storage. */
+int fm1_app_state_collect_project(const fm1_app_t *a, int include_view,
+                                  fm1_rec_sink_t sink, void *ctx,
+                                  fm1_state_report_t *rep);
+
 /* Saves `kind` (FM1_STATE_PROJECT, _SOUND with arg the sound unit 0-3,
  * _FX with arg -1 for the master or 0-3 for that sound's inserts, _MODS,
  * _CLIP with arg track * 8 + slot, _SETTINGS, or _SET for the set's movy1

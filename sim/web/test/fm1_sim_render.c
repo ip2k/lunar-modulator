@@ -262,6 +262,26 @@ static int state_load(const char *spec, unsigned flags) {
 
 static void file_put(void *ctx, const char *b, size_t n) { fwrite(b, 1, n, (FILE *)ctx); }
 
+/* Test-only random-access destination for the native project record path. */
+static int file_write_at(void *ctx, uint32_t off, const void *b, uint32_t n) {
+  FILE *f = ctx;
+  return fseek(f, (long)off, SEEK_SET) || fwrite(b, 1, n, f) != n;
+}
+
+static int project_stream_save(FILE *f, fm1_state_report_t *rep) {
+  static const uint8_t version[3] = {0, 1, 0};
+  void *mem = malloc(fm1_state_bin_writer_size());
+  fm1_state_writer_t *w;
+  int ok;
+  fm1_state_report_init(rep);
+  if (!mem) return 0;
+  w = fm1_state_bin_stream_writer(mem, FM1_STATE_WRITER_SIM, version,
+                                  file_write_at, f, FM1_STATE_BIN_MAX, rep);
+  ok = w && fm1_app_state_collect_project(&g_app, 1, fm1_state_bin_write, w, rep);
+  free(mem);
+  return ok;
+}
+
 /* --save KIND:FILE: project, soundK, fx (the master), fxK (sound K's
  * inserts), mods, settings, set or clip:T.S; a FILE ending in .lunarb is
  * written binary (.plain.lunarb with nothing deflated, as the page's
@@ -310,7 +330,10 @@ static int state_save(const char *spec) {
     fprintf(stderr, "--save: cannot write %s\n", path);
     return 0;
   }
-  ok = fm1_app_state_save(&g_app, kind, arg, binary, file_put, f, &rep);
+  if (kind == FM1_STATE_PROJECT && len > 14 && strcmp(path + len - 14, ".stream.lunarb") == 0)
+    ok = project_stream_save(f, &rep);
+  else
+    ok = fm1_app_state_save(&g_app, kind, arg, binary, file_put, f, &rep);
   fclose(f);
   if (!ok) fprintf(stderr, "--save %s: %s: %s\n", spec, fm1_state_code_name(rep.code), rep.what);
   return ok;

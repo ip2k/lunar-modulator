@@ -2964,3 +2964,19 @@ Next isolate bounded native project collection/workspace and storage admission.
 All13 watched boot, migration, physicalrollback, webinstaller/custombuilder,
 license/reviewCI remain open. Previous verified pushed46702dd7eda5c89668f0eaccf1ce4800545cbc82.
 Do not replay consumed hardware writers/loaders.
+
+## Direct project collector checkpoint (2026-10-14)
+
+[verified] Dedicated public project collector shares existing PROJECT emission
+and avoids desktop JSON/file/whole-set staging. Direct random-access binary
+output reloads to the same canonical project in exercised cycle fixtures.
+76tests/30Hera chunks pass; all30logs/17hashes checked, no skips/OOM. Complete
+app-state source target-compiles pi32v2 with external arenas/Werror after
+correcting missing engines/host include path. No firmware link/RAM-fit proof.
+Evidence notes/2026-10-14-project-collector-verification/. Session79435 terminal0;
+no live workers/no hardware command. Previous verified pushedac2953f83e061f9dbbebf3bdde6e3110c7bd73f2.
+Next public-collector sink-failure tests, bounded compact writer workspace and
+read-only validation integration, admitted storage layout and native SAVE.
+Provenance currently simulator; adapt before firmware use. All13 watched boot,
+settings migration/physical rollback/webinstaller/custombuilder/license/reviewCI
+remain open. Do not replay consumed hardware writers or loaders.
