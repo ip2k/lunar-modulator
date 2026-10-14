@@ -4454,7 +4454,7 @@ The exact 43a5a8d7 sixteen-shard run completed all 2,762 collected nodes:
 2,593 passed, 107 skipped, 18 failed and 44 setup/errors. The worker traced
 16 failures to the pre-fix catalogue ABI expectation, two to container Git
 ownership, and the 44 errors to explicit fixtures omitting the SET loader.
-Focused catalogue/compressed-startup and Git-environment reruns are pending.
+Focused catalogue/compressed-startup rerun passed 33 tests with 13 profile skips at f25d96d6; the Git-environment rerun passed both tests. Receipts are in notes/2026-10-14-current-regression16.md.
 The sibling's arena, uncompressed startup, sequence and adapted-label checks
 passed on its committed test-only fixture repair before integration. This is
 not a claim of a green full suite or exact-current CI.
@@ -4467,8 +4467,7 @@ It is 978,484 bytes, SHA-256
 under Hera `/home/claude/.local/share/codex-private/lunar-trusted-d7000-20261014/`,
 outside Git, with 0600 files and a 0700 directory. Its independent FWSC parser
 checks passed identity, header/list and all eight payload CRCs. All hardware,
-installability, updater and release flags remain false. Independent saved-byte
-review is active; shared handoff is lunar--trusted-package-materialization.md.
+installability, updater and release flags remain false. Independent saved-byte review passed app, protected decoded files and stock OTA comparisons. The original source FWSC was unavailable for independent opaque-tail comparison; see notes/2026-10-14-materialized-package-review.md. Shared handoff is lunar--trusted-package-materialization.md.
 
 An exact-current continuous target build is assigned on Hera from dab9daae;
 it must retain all thirteen engines, Event Horizon and the companion SET,
