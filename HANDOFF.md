@@ -3172,3 +3172,11 @@ or physical bank fit established. Evidence notes/2026-10-14-project-capacity-mea
 Storage-profile checkpoint verified pushed e1f84b065f2231449ff466ab25a4b6e249ba6a8e.
 Browser content-receipt identity and raw-flash ownership reviews continue as
 bounded Luna tasks; no hosted Hera Codex sessions until owner sign-in.
+
+[verified] Parent reviewed browser selection model and reran5focused Node tests.
+Packed content bounds/dependencies validated; selected content inclusion requires
+ordered kind/bytes/SHA256 receipt identity, not merely aggregate size. Missing
+identities stay unconfirmed. This is a pure model, not deployed UI/build service.
+Capacity checkpoint verified pushed a54591f131b8814434a2f82c86bed95119a1d72d.
+Next: join full embed receipt with fresh exact-selection link/RAM evidence and
+builder UI/backend; retain physical/storage/recovery acceptance gates.
