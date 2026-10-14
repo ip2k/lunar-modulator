@@ -1,3 +1,16 @@
+# Recovery model integration — 2026-10-14
+
+Root e902215cd8e72cbd61ae06f13da712d8d40b101d is GitHub-backed, remote SHA
+verified. First-format model hardening d81e3484 integrated through845bfd5d;
+root paired model/migration tests32/32 pass. Physical execution/admission remain
+false. Combined project/SET source071cf726 passed86 tests/18 compiler skips
+on configured Hera; note5655d720 integrated as e902215c. The Darwin sequence
+linker-helper repair is assigned separately. Worker branches are GitHub-backed.
+Fresh device44 read/oneboot adapters assigned offline; Mac retains exclusive
+bench commands. No new FM1 request has been sent. Owner GPIO answer pending.
+NOR runtime wrapper guard is compiling/audited on Hera; nested RAM callee
+stack bound still pending, SAVE disarmed. Latest root source requires full CI.
+
 # Integration continuation — 2026-10-14
 
 Coordinator071cf726c71d80f4416e805a87f6108380323b8c is GitHub-backed,
