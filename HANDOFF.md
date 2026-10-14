@@ -1,3 +1,19 @@
+# Corrected Trio target built, not installed — 2026-10-14
+
+Hera built exact source66196f54: app3de52e9b (807320B), ELFa07fbd8e,
+rawc240999c, candidate receipt3118f107. Root independently checked raw size/hash,
+decoded app header/data CRCs and app hash; compared installed145c: 210 changed
+sectors, prefix[0,4000) and tail[D9000,1MiB) identical. D7/D8 must be explicitly
+restored from stock in the transition plan. Private files staged on bench under
+/home/claude/fm1-trio-pulse-66196-20261014; no fresh read, boot or program issued.
+Passive ROM55, KA6card2/MIDI24:0 remain present. Generic content-free diagnostic
+receipt/factory is under offline implementation; older production manifest is
+not being weakened. Four MIDI+five admission/transaction suites now 74 passed.
+Independent overflow review4c1d9bf0 and full review0eb5c482 GitHub-backed and
+integrated. Root harness fixa82d1bf7 affects tests only; targetsource66196 stays
+exact. Goal ACTIVE: physical audio/control performance, SAVE, independent
+recovery, browser installation and release remain unaccepted.
+
 # Automatic-note diagnostic preparation — 2026-10-14
 
 Owner missed the short key test; no powercycle requested. UART1/counter and
