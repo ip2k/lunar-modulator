@@ -1,0 +1,7 @@
+{
+  "logs": 30,
+  "all_passed": true,
+  "source_hashes_match": true,
+  "no_sanitizer_diagnostics": true,
+  "hardware_tested": false
+}

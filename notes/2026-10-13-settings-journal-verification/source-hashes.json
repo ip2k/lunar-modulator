@@ -1,0 +1,5 @@
+{
+  "firmware/native/settings_journal.h": "ac02dedcb25d08e663d4f407da70efe5279ee02dd1c4f5398f1586f258701171",
+  "tests/native/settings_journal.c": "dc57bf11bb7f4252e252f32ba4c5c7f0b60e5a2c84dc8b4c71571f2dff0f1f86",
+  "tests/test_native_settings_journal.py": "772ffae33c58094f7a662e16d377f8551dbbf3bada3148de8be1909a01f8f8de"
+}

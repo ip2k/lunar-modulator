@@ -2769,3 +2769,17 @@ for installed c543 image when watching; meanwhile storage/migration/OTA release
 implementation remains available. Preserve exact private writer receipts and
 consumed markers; do not reupload/replay writer. Previous verified pushed
 d272747c9c4440a37982e5ce4455766ea23c7ea6. Full owner release goal remains active.
+
+## Settings journal checkpoint (2026-10-13)
+
+[verified] Two-sector bounded C settings journal implemented, not connected to
+physical flash.30 cases/30 Hera chunks pass ASan/UBSan, including33,680 byte-cut
+points; every log/state/source hash checked. Pinned pi32v2/r3 compilation passes.
+Evidence notes/2026-10-13-settings-journal-verification/. No application link,
+physical persistence or stock migration claimed. All workers terminal0
+(exec84216); no live worker or USB mutation. Next inspect/export stock VM and
+admit dedicated8KiB journal window before runtime integration; do not overwrite
+unknown settings or use inherited0xFC000 globals address. Installed all13 timed
+probe still awaits fresh watched boot via staged single-use adapter; owner
+observation response pending. Full release/custom builder/migration/rollback/
+reviewCI remain open. Previous verified pushedce958a5741fd4cd0c580854f389ca05c1b9f58b3.
