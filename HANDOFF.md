@@ -1,3 +1,14 @@
+# Realtime measurement preparation — 2026-10-14
+
+Added existing render/draw maxima and audio queue underruns to diagnostic footer,
+only in stack-watermark build. New full-range/layout sanitized C test passes;
+actual TFT preview inspected with no overlap. No target build or hardware values
+yet. Notes/2026-10-14-native-realtime-readout.md records units and limits.
+Demo worker investigates installed43a5a8d7 performance offline; source counters
+confirmed present in installed ELF, but not captured during rejected test.
+Do not flash/reboot again without concrete fresh campaign. Last ROM device50.
+Goal ACTIVE; performance, SAVE, independent recovery and web release open.
+
 # Hardware playback rejection — 2026-10-14 22:46 UTC
 
 Owner watched fresh Event Horizon attempt: awful audio/severe lag and very slow

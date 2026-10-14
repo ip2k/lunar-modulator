@@ -1,0 +1,9 @@
+# Native realtime diagnostic readout
+
+[reported] The owner rejected the watched Event Horizon diagnostic for severe audio lag and a very sluggish VU meter. Do not attribute this conclusively to CPU capacity before measurement.
+
+[verified] `firmware/native/app_probe.c` already retains render and drawing tick maxima, and `audio_queue.h` counts missing 64-frame blocks. This change displays those existing values in the stack-watermark diagnostic footer. R and D are microseconds from the 24 MHz timer; U is cumulative missing blocks. It preserves the first stack-margin row and replaces the displayed sample-count row; the sample counter remains retained. It does not change audio rendering, queue capacity, song, catalogue, clock/power settings, SAVE admission or recovery behavior.
+
+[verified] `realtime_readout.h` formats the full uint32 range without printf or allocation. Its 35-character line fits the padded footer. The focused C integration test compares boundary values to snprintf, checks adjacent canaries, runs the actual indexed TFT renderer, checks row/edge clearance and rejects truncation. Local pytest passed one test with AddressSanitizer/UndefinedBehaviorSanitizer; diff check passed. The actual renderer preview `/tmp/lunar-realtime-readout-20261014/footer.png` was visually inspected: no clipping or overlap. This is a host test, not a target compile or physical measurement.
+
+Pending: reviewed target build/link size and disassembly; concrete diagnostic image/readback/recovery admission; physical R/D/U observations at idle, a single note and song playback. Since instrumentation shares drawing time, D includes the previous complete draw/footer interval while the current footer is being composed; the next refresh reports any larger interval. Timer maxima include interrupt preemption and do not isolate pure DSP cycles.

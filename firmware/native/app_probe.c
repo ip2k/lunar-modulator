@@ -30,6 +30,7 @@ static uint32_t lunar_selected_startup_project_index = LUNAR_STARTUP_PROJECT_IND
 #ifdef LUNAR_STACK_WATERMARK
 #include "stack_watermark.h"
 #include "stack_readout.h"
+#include "realtime_readout.h"
 extern char _ustack_top[];
 /* Retained symbols for a diagnostic debugger/readout. Minimum observed free
  * bytes over completed samples; they include this scanner's own stack stores.
@@ -294,14 +295,17 @@ static void app_main(void)
             fm1_app_draw(&app, 0);
 #ifdef LUNAR_STACK_WATERMARK
             {
-                char margins[20], samples[19];
+                char margins[20], samples[19], timing[36];
                 lunar_stack_readout(margins, samples, lunar_stack_user_margin,
                     lunar_stack_system_margin, lunar_stack_samples);
+                lunar_realtime_readout(timing, render_ticks_max / FM1_TICKS_PER_US,
+                    draw_ticks_max / FM1_TICKS_PER_US, audio_queue.underruns);
                 /* Diagnostic footer owns these rows, with four-pixel padding.
                  * Values are observed free bytes, not a worst-case bound. */
                 fm1_tft_fill(&app.tft, 0, 208, 240, 32, 0);
                 fm1_tft_text(&app.tft, 4, 212, margins, 19, 1, 0xffff);
-                fm1_tft_text(&app.tft, 4, 224, samples, 18, 1, 0xffff);
+                fm1_tft_text(&app.tft, 128, 212, "R/D us", 6, 1, 0xffff);
+                fm1_tft_text(&app.tft, 4, 224, timing, 35, 1, 0xffff);
             }
 #endif
             uint32_t elapsed = fm1_ticks() - tick;
