@@ -100,8 +100,9 @@ def _private_destination(receipt):
     return receipt
 
 
-def marker_path(parent, snapshot_sha):
-    return Path(parent) / ('.event12040-rom-' + snapshot_sha + '.consumed')
+def marker_path(parent, usb_binding, sg_binding):
+    identity = digest(canonical({'usb_binding': usb_binding, 'sg_binding': sg_binding}))
+    return Path(parent) / ('.event12040-rom-' + identity + '.consumed')
 
 
 def prepare(path, *, now=None):
@@ -126,7 +127,8 @@ def prepare(path, *, now=None):
     if c['usb_binding'] != snapshot['usb_binding']:
         raise ValueError('Campaign USB binding differs from passive snapshot')
     receipt = _private_destination(c['receipt_path'])
-    if snapshot_path.parent != receipt.parent or campaign_path.parent != receipt.parent:
+    if (snapshot_path.parent != receipt.parent or campaign_path.parent != receipt.parent or
+            campaign_path.name != 'read-campaign.json'):
         raise ValueError('Snapshot, campaign and receipt must share the private evidence root')
 
     root = own.parent
@@ -147,7 +149,7 @@ def prepare(path, *, now=None):
     inventory_sha = bridge.inventory_digest(operations)
     if len(operations) != 8757 or inventory_sha != INVENTORY_SHA:
         raise ValueError('Exact reviewed 8,757-command inventory required')
-    marker = marker_path(receipt.parent, c['snapshot_sha256'])
+    marker = marker_path(receipt.parent, snapshot['usb_binding'], mapping)
     if os.path.lexists(marker):
         raise ValueError('This passive enumeration is already consumed')
     prepared = bridge.PreparedCampaign(c, digest(raw), loader, operations, reader.SGHeader,
@@ -208,7 +210,7 @@ def run(path):
                 bridge.sync_dir(receipt)
                 record = {'file': name, 'bytes': count, 'sha256': hasher.hexdigest(), 'complete': count == bridge.FLASH_SIZE}
                 if count != bridge.FLASH_SIZE or record['sha256'] != TARGET_SHA:
-                    raise ValueError('Full dump differs from fixed installed-image digest')
+                    raise ValueError('Full dump differs count=' + str(count) + ' sha=' + record['sha256'] + ' expected=' + TARGET_SHA)
                 dumps.append(record)
             transport.binding()
             if transport.next != len(p.operations) or dumps[0]['sha256'] != dumps[1]['sha256']:
