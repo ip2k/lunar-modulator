@@ -19,6 +19,19 @@ safeguards. Mac alone owns device/Cynthion operations; Hera workers are offline.
 
 ### Latest continuation (supersedes earlier running/boot status below)
 
+[verified] Coordinator code head `4b52219e` integrates the real retained
+full-song receipt validation and GPL native application/MIT reusable-core
+licensing documentation. Both worker commits and the integrated branch are
+backed up with verified GitHub SHAs. The retained 862,296-byte app/ELF pair
+is not the newer 845,036-byte candidate; the actual retained fixture passed
+on Hera, while root Mac installer/controller tests passed with that optional
+fixture skipped. A mismatched runtime-duration receipt accepted by the API
+is being corrected in a bounded Hera lane. Other lanes own strict 092 package
+modeling and ICFG-based IRQ-state preservation using the pinned SDK's pattern.
+Neither admits physical writes. CI `38612995337` at `c79527a5` is pending.
+No new hardware command occurred; Event Horizon's watched physical acceptance
+is pending and existing device38 admissions must not be replayed.
+
 [verified] Coordinator `a0d46a9c` integrates the verified app/ELF/receipt tuple
 and independently reviewed NOR transport/readiness/deadline changes. Actual
 Mac focused checks pass: installer service 64 passed/one optional retained

@@ -1,5 +1,23 @@
 # Current continuation authority — 2026-10-14
 
+[verified] Latest code head `4b52219ec8e4f4fddc6ac94237eaedc8797c41b4`
+is pushed and its GitHub SHA verified. The real retained full-song app/ELF
+tuple passes the worker's checks; this retained 862,296-byte build is distinct
+from the newer 845,036-byte candidate. Root Mac installer/controller checks
+also exit zero, with the optional real-build fixture skipped on the Mac.
+The combined native application now has GPL-3.0-only documentation and root
+LICENSE; LICENSE-MIT preserves the prior grant exactly, and component notices
+remain authoritative. These changes grant no release or hardware admission.
+An API runtime-configuration mismatch discovered during real-build testing
+has an assigned corrective worker. Separate Hera workers own strict offline
+092 packaging and source-grounded ICFG interrupt-state preservation.
+CI `38612995337` at `c79527a5` is pending; no current-head green CI is claimed.
+Event Horizon remains the approved default; physical observations are still
+pending. No new device command was sent in this continuation. Device38
+campaigns remain consumed; device40 needs fresh admission before commands.
+Physical SAVE, recovery/rollback, browser flashing, review/CI/main integration
+and shipping remain open. Earlier checkpoints below are historical.
+
 [verified] Coordinator code head `a0d46a9c9611a2240610df5df5d47117b93c1c34`
 is pushed and its GitHub SHA verified. Build tuple retention is integrated:
 app, matching ELF and unchanged receipt are bounded and hash checked. The
