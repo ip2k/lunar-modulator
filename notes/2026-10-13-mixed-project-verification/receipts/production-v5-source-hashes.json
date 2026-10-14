@@ -1,0 +1,7 @@
+{
+  "notes/2026-10-13-mixed-project-verification/production-startup.c": "ea69467cedfbaee355f2ccf6a29ee47b4b2a06fa7d3732f3de828cb7cae96814",
+  "notes/2026-10-13-mixed-project-verification/production-driver.py": "ba7a1263d25e8cf642f9002acdbacb6ed7bddff0365fe057806d1ca20e13cea8",
+  "notes/2026-10-13-mixed-project-verification/launch-production.py": "0ef185353d8b01ab9d1bf1e1d4e5c2bd8e7b3326a8d4caf5d1bdb919bed9a0cc",
+  "firmware/native/project_boot.c": "be52fcdfe94379498ce6853679e35550f5898d580f61040be0ae523b59baa77d",
+  "firmware/native/project_start.c": "95580abc6da6d5d03ec0432a52ca00f74a9ba33ed378eb8c1280a4e65e5a76b8"
+}

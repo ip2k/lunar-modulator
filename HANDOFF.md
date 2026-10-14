@@ -2215,3 +2215,34 @@ goal active: production startup/resources/timing, fresh physical admission with
 matching backups/migration/rollback, web installer/builder and reviewCIintegration.
 No device command. Next inspect same link handle, run production-v3, resolve actual
 production failures without weakening strict checks.
+
+## Actual production startup result (2026-10-13)
+
+[verified] All13-v3 native link and packed-byte check passed on the current
+production FIRST ORBIT example (2784 packed bytes). The catalogue retains all
+13 sound engines, 24 audio effects, two MIDI engines and 16 modulation modules,
+with Shapes at 12 voices. Receipts: all13-v3-{link,content,container}.json.
+ELF SHA256 df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e.
+This is link evidence, not physical admission or target runtime acceptance.
+
+[verified] Production host v3/v4 reached allocation but refused the fixed
+216064-byte pool: 64-bit instances requested 218524 bytes before TLSF overhead.
+Their exit-one/no-OOM receipts are retained. Production v5 recompiles the same
+full catalogue with -m32 and address/undefined sanitizers in fresh build32.
+Its ELF class is 1 (ELF32). Exact packed content from the audited native build
+starts successfully and renders 4096 blocks of 64 frames with finite nonzero
+audio, no sequencer drops and successful pool cleanup. Runtime receipt reports
+energy 2917.86073, live pool bytes 192060 and nine allocations. Exit and state
+exit are zero, no OOM; owned container removed. Source hashes match the immutable
+Hera snapshot. Receipts: production-v5-{container,runtime,source-hashes}.json.
+These assertions are host verification, not pi32v2 ABI, target stack or timing.
+No engine, voice count, effect or content was removed to pass, and pool size
+was not enlarged. Legacy compatibility fixture refusal remains unverified.
+
+No physical device command was issued. Next inspect complete target PROJECT
+startup call/stack paths and audio timing before fresh hardware admission;
+settings migration, physical rollback, web installation/builder and required
+review/CI/integration remain open. Full release goal remains active.
+
+Branch feature/2026-10-11@installable-firmware; previous verified pushed43774791.
+All production-v5 jobs are terminal; no running job to restart or wait for.

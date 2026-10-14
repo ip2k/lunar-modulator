@@ -63,6 +63,14 @@ int main(int argc, char **argv) {
     fm1_app_init(&app, 44118);
     assert(lunar_instance_pool_init(&pool, memory, sizeof memory) == 0);
     assert(fm1_app_set_storage(&app, &pool, allocate, deallocate) == 0);
+    lunar_project_units_t plan;
+    assert(lunar_project_units_plan(bytes, (uint32_t)size, &diagnostic.names, &app.host, &plan, &report));
+    size_t requested = 0;
+    for (unsigned i = 0; i < LUNAR_PROJECT_UNITS; ++i) if (plan.engine[i]) {
+        fprintf(stderr, "unit=%u engine=%s bytes=%zu\n", i, plan.engine[i]->id, plan.size[i]);
+        requested += plan.size[i];
+    }
+    fprintf(stderr, "requested engine bytes=%zu pool=%zu\n", requested, sizeof memory);
     int ok = lunar_project_start(&app, &pool, bytes, (uint32_t)size, 44118, &report);
     if (!ok) fprintf(stderr, "production startup: %u %s\n", report.code, report.what);
     assert(ok && report.code == FM1_STATE_OK);
