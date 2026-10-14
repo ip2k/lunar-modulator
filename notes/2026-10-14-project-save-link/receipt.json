@@ -1,0 +1,1161 @@
+{
+  "schema": "lunar-retained-save-link-v1",
+  "baseline_elf_sha256": "35655a21de5c08d09fa19ef2fd4f253efbc107346c6e107a1988dca4e69dac29",
+  "baseline_objects_verified": 281,
+  "replacements": {
+    "/catalogue/shard-00/obj/sim/src/fm1_app_state.o": "sim/web/src/fm1_app_state.c",
+    "/catalogue/shard-07/obj/c/seq/seq_persist.o": "engines/seq/seq_persist.c",
+    "/catalogue/shard-12/obj/state/state/state_bin.o": "engines/state/state_bin.c"
+  },
+  "link_exit": 0,
+  "hardware_tested": false,
+  "installable": false,
+  "save_scheduling_integrated": false,
+  "physical_storage_admitted": false,
+  "driver_sha256": "457c918cbdc80172fac5e5bfec6b32b6ff2813576c76a40515e5c1898644f89f",
+  "linked_objects": [
+    {
+      "path": "/catalogue/shard-00/obj/c/seq/fx_host.o",
+      "sha256": "aeb1075514383489d05ad788fb50440bddc4f4296e3782203b962a1fe3a9860f"
+    },
+    {
+      "path": "/catalogue/shard-00/obj/midi_fx/arp_engine.o",
+      "sha256": "dda1310f568ba09d2dfc30598d4595682d6f43d089641eb4c4a80e29eab600dc"
+    },
+    {
+      "path": "/catalogue/shard-00/obj/mod/mod/kinds/mod_quantize.o",
+      "sha256": "f37fd6e004bc155092f943fcedae4d3c1fbcdd3cad6def55b9ff8ffa926c6dce"
+    },
+    {
+      "path": "/catalogue/shard-00/obj/mod/mod/mp_slew.o",
+      "sha256": "e4d5d65ce6639e4cd60cb538df288324c99930c830b2fcf27fd0738017138d84"
+    },
+    {
+      "path": "/catalogue/shard-00/obj/our/src/fx_echo.o",
+      "sha256": "4a2b0ad8de4fcac6c94bc47820763f6af80429d4745ad2ad8f3606353f8198d8"
+    },
+    {
+      "path": "/catalogue/shard-00/obj/our/src/mi_macro.o",
+      "sha256": "69d3acb72f05c03308fc54a2f1d0f8992541279e7422958de128fad2717a9ae7"
+    },
+    {
+      "path": "/out/project-save-link-v1/fm1_app_state.o",
+      "sha256": "bb752a18180bf017b7453081156f50a9f8d655640750ac2d2211a49e6b4ccbea"
+    },
+    {
+      "path": "/catalogue/shard-00/obj/state/state/state_movy1.o",
+      "sha256": "060e91fb4c47752484feb6dbf2fe62632dc03c3f34eafe1174edee0ac291c51e"
+    },
+    {
+      "path": "/catalogue/shard-00/obj/tp/msfa/patch.o",
+      "sha256": "a7e2f45c41a8038b5c190c75094f6687057325a9729ab69b3c7847486bf622e0"
+    },
+    {
+      "path": "/catalogue/shard-00/obj/tp/plaits/dsp/engine/waveshaping_engine.o",
+      "sha256": "6bd05c8c56ef00f8998ab866ea10e4a5042f0d6d85b94bf61225b0e5512b75b1"
+    },
+    {
+      "path": "/catalogue/shard-00/obj/tp/plaits/dsp/speech/lpc_speech_synth_phonemes.o",
+      "sha256": "df7b0d8c21320d434d334efe633d5627d3369d2a938729cdbd2107bfcfae802b"
+    },
+    {
+      "path": "/catalogue/shard-01/obj/c/seq/mfx_host.o",
+      "sha256": "3414cea7f690729eca061d0b474482d26ca4cb9e0771bb4ec7c250ca8417713a"
+    },
+    {
+      "path": "/catalogue/shard-01/obj/midi_fx/arp_rhythm.o",
+      "sha256": "a0f005e4256468786b92bdcc63b42a30dc39f7f7731466b2671fa7b2886ad1a5"
+    },
+    {
+      "path": "/catalogue/shard-01/obj/mod/mod/kinds/mod_register.o",
+      "sha256": "14fedfbe9b2c8acd61001360615d6a5e6fe7565c5c814d0858ee61687c225347"
+    },
+    {
+      "path": "/catalogue/shard-01/obj/mod/mod/mp_tables.o",
+      "sha256": "d096453756aae10907c9ab3c503c1e72170f40b4983db2d5e64ff049a7975af9"
+    },
+    {
+      "path": "/catalogue/shard-01/obj/our/src/fx_eq.o",
+      "sha256": "123d7f812d1d4bb6c6422b1f58f98ea7fec043e21fc01b6fa54c2b9e1d67fb01"
+    },
+    {
+      "path": "/catalogue/shard-01/obj/our/src/mi_macro_heavy.o",
+      "sha256": "1b2b0ebca927288d62c6acd7a6b5f7c5ddaa3726bb4639d3c79c3821589633b5"
+    },
+    {
+      "path": "/catalogue/shard-01/obj/sim/src/fm1_edit.o",
+      "sha256": "a302d1dfc3c28352fec832bfe907d87a8a44193c779418af8d1ade9bdb6dd597"
+    },
+    {
+      "path": "/catalogue/shard-01/obj/state/state/state_names.o",
+      "sha256": "d5f1edcd4e9a09a8a4845b6e9c0542d6ecdc239f283b407b0e1c13091a476a17"
+    },
+    {
+      "path": "/catalogue/shard-01/obj/tp/msfa/pitchenv.o",
+      "sha256": "888f927d5cfbc0fb4db6d6e493308065f1be5cca70c7727f78afb24a54444d57"
+    },
+    {
+      "path": "/catalogue/shard-01/obj/tp/plaits/dsp/engine/wavetable_engine.o",
+      "sha256": "58853da0026354437159d9883b7aa0f6f808175c0efb56b069ef1a170e3b417c"
+    },
+    {
+      "path": "/catalogue/shard-01/obj/tp/plaits/dsp/speech/lpc_speech_synth_words.o",
+      "sha256": "7d33ca406ccba67a0837f07a961da49c57c4e643847ca8f3620c8dcbfee6dfb2"
+    },
+    {
+      "path": "/catalogue/shard-02/obj/c/seq/seq_capture.o",
+      "sha256": "f484721e514458c5974533e7280e21c91e915f41e8c1cd96b47393bfd1b4eb1b"
+    },
+    {
+      "path": "/catalogue/shard-02/obj/midi_fx/fm1_arp.o",
+      "sha256": "e9a98dd871ec02072d6d9cd17cf44c830776349bedd3236804413e003db9c3cd"
+    },
+    {
+      "path": "/catalogue/shard-02/obj/mod/mod/kinds/mod_resonator.o",
+      "sha256": "fded1b50e669078e2d50418823d1aa4048b5993b6130122819a5520512a9c1ec"
+    },
+    {
+      "path": "/catalogue/shard-02/obj/mod/mod/mp_turing.o",
+      "sha256": "d9f998207e2ed792b50c28b95e6015545abc2e953c7715dc42982b28e7b477c5"
+    },
+    {
+      "path": "/catalogue/shard-02/obj/our/src/fx_filter.o",
+      "sha256": "0f78847298eed30a2732c47883e2afc277b0dfc4e6571ffc024d85faa3425e1a"
+    },
+    {
+      "path": "/catalogue/shard-02/obj/our/src/mi_shapes.o",
+      "sha256": "6c308c8f6a9ad254576aac730cd082648edfd1f3bada5720f3e3345538c4ea19"
+    },
+    {
+      "path": "/catalogue/shard-02/obj/sim/src/fm1_mod_ui.o",
+      "sha256": "85373461ca835276025399b9c496b06893dec0a1223121edfdb9d85ed9552d94"
+    },
+    {
+      "path": "/catalogue/shard-02/obj/state/state/state_print.o",
+      "sha256": "8324e6dabd04e4ced55f69a71e1a98f9cb9ccb61a0de00451aa066eaeeb3047d"
+    },
+    {
+      "path": "/catalogue/shard-02/obj/tp/plaits/dsp/chords/chord_bank.o",
+      "sha256": "3b7d9968949dfa1b62d2fbcd4e7349284319832342db058dc977c789d3fe0c2f"
+    },
+    {
+      "path": "/catalogue/shard-02/obj/tp/plaits/dsp/engine2/chiptune_engine.o",
+      "sha256": "d3245ed50a1ddcbebb39ac59aa51e4d0a68022b2fb9fc35427b92371028ad3f3"
+    },
+    {
+      "path": "/catalogue/shard-02/obj/tp/plaits/dsp/speech/naive_speech_synth.o",
+      "sha256": "4965308df7a0ebdd4fabb8444299f0bb32ef1afe7bfde17f59cdad69e1fdc7e8"
+    },
+    {
+      "path": "/catalogue/shard-03/obj/c/seq/seq_clip.o",
+      "sha256": "d7f0684b8481e4993b86402acffab6b7d616eaefbd7ef3763c8e5a2fc32067e0"
+    },
+    {
+      "path": "/catalogue/shard-03/obj/midi_fx/registry.o",
+      "sha256": "6f277186991bc9eb2dbf107c4cfe93c237a4a5b068dccacc70ed2756a642b503"
+    },
+    {
+      "path": "/catalogue/shard-03/obj/mod/mod/kinds/mod_slew.o",
+      "sha256": "55d9c6feccb17398e588358fe816a872a190ee962e3cb0fee43cb7362ab799e0"
+    },
+    {
+      "path": "/catalogue/shard-03/obj/our/src/acid_bass.o",
+      "sha256": "8fcf1d0d0a3304023829e39ef415ecb141f3f55487c99bcc14dd30720b7dc6ee"
+    },
+    {
+      "path": "/catalogue/shard-03/obj/our/src/fx_fold.o",
+      "sha256": "7d28c26c55d9ab5e85a5921d0d0cc1483074b255838ca5b378f107b801532a35"
+    },
+    {
+      "path": "/catalogue/shard-03/obj/our/src/mi_sixop.o",
+      "sha256": "506130639bb0ae1057f0be34d0cc582d20a63f8d1301eec7d47a4f72be6b53a8"
+    },
+    {
+      "path": "/catalogue/shard-03/obj/sim/src/fm1_mod_view.o",
+      "sha256": "bebfb91bcd7086c574d6739a165a25ca5332083e716226ebaf85033e504c0401"
+    },
+    {
+      "path": "/catalogue/shard-03/obj/state/state/state_registry.o",
+      "sha256": "4a04e879034764ac2eca2de3d5d6ed2552c061fd17671e55e715da0c0c7ea495"
+    },
+    {
+      "path": "/catalogue/shard-03/obj/tp/plaits/dsp/engine/additive_engine.o",
+      "sha256": "01b915a7a7a29106a51a19a99fda4ace4b5bc677289ee26392feb4467397001a"
+    },
+    {
+      "path": "/catalogue/shard-03/obj/tp/plaits/dsp/engine2/phase_distortion_engine.o",
+      "sha256": "3e13cb52a2c0927fb5d54002b609e20970595084e677a774c9e06914920b5c9e"
+    },
+    {
+      "path": "/catalogue/shard-03/obj/tp/plaits/dsp/speech/sam_speech_synth.o",
+      "sha256": "9d5ac85d4d7bda06b1d0e875b8c4732e1b339ab46a3732be34df5c6d1ea26f0e"
+    },
+    {
+      "path": "/catalogue/shard-04/obj/c/seq/seq_cmd.o",
+      "sha256": "6afda12d70970084082de0a30dfba257e0b80de1dbadc584dd48abc57fadb698"
+    },
+    {
+      "path": "/catalogue/shard-04/obj/mod/mod/kinds/mod_bounce.o",
+      "sha256": "b9d87a1a0741bfeb888efb083b93b2ad9452772f6d5be50d5eaac35d7c5032a1"
+    },
+    {
+      "path": "/catalogue/shard-04/obj/mod/mod/mod_core.o",
+      "sha256": "f25be6fcc043928ee20dbf79e89de9f6089e181370c29d22987a2d94a46c99b9"
+    },
+    {
+      "path": "/catalogue/shard-04/obj/our/src/comet_kit.o",
+      "sha256": "d10a9a87188e4cde2d8b0286fab2a192db8b92b77286b653c1f3adb9a0759ef3"
+    },
+    {
+      "path": "/catalogue/shard-04/obj/our/src/fx_gate.o",
+      "sha256": "3cd076a3ccc354356580ce68d4e9958ec7fa75d3ab68b7e0b573f42ec8d88e5c"
+    },
+    {
+      "path": "/catalogue/shard-04/obj/our/src/msfa_dx7.o",
+      "sha256": "286666534a9e76cccbffc6731a0f2bcd8b1adef9b06628a2393e05c2cc8db762"
+    },
+    {
+      "path": "/catalogue/shard-04/obj/sim/src/fm1_seq_ui.o",
+      "sha256": "257ea7266c29a140df7587e55829f9ca7e7953d36d0969940ba714aaec434ed8"
+    },
+    {
+      "path": "/catalogue/shard-04/obj/sw/psxverb/psxverb.o",
+      "sha256": "6c0ee5883c2ebee7a055a2c6b032249b4d24fd98970907e8ab4106a7c3160867"
+    },
+    {
+      "path": "/catalogue/shard-04/obj/tp/plaits/dsp/engine/bass_drum_engine.o",
+      "sha256": "fcd31dfb02f8639ad7512b52d60f4a761dcb1bcbf9d3a709eb98aa7bdafa9295"
+    },
+    {
+      "path": "/catalogue/shard-04/obj/tp/plaits/dsp/engine2/six_op_engine.o",
+      "sha256": "815e5d9b4d533ed1c586edc4f0d0c2e52219046cbab0a465fb5f60fc11226f99"
+    },
+    {
+      "path": "/catalogue/shard-04/obj/tp/plaits/resources.o",
+      "sha256": "5b9ba71047238414024556a0ebbb3fb011e37c063aef992e883065df14a9c102"
+    },
+    {
+      "path": "/catalogue/shard-05/obj/c/seq/seq_engine.o",
+      "sha256": "9f98ea276c0c8f56fc715e478fad9bc5ea0a267aab83058014862449ba184519"
+    },
+    {
+      "path": "/catalogue/shard-05/obj/mod/mod/kinds/mod_burst.o",
+      "sha256": "eb3b2dcfda22c00ed593da36f9ad8dda9fe153640a63bdb04b20a4bfe4ad5b80"
+    },
+    {
+      "path": "/catalogue/shard-05/obj/mod/mod/mod_curves.o",
+      "sha256": "1853e2df7ad70441a7c9e2d3865cf57f97b7859cb5f177c19ec03277a7f1ef3f"
+    },
+    {
+      "path": "/catalogue/shard-05/obj/our/src/crater_kit.o",
+      "sha256": "63c73fca4108581d4a5f2f738e943aa5fa8dd833241473dbbd6a9526b1aa23d4"
+    },
+    {
+      "path": "/catalogue/shard-05/obj/our/src/fx_hall.o",
+      "sha256": "7fe411b6d84d776ed1247aa14f196eac84d93439341ea3d2323f137dbc3c44e9"
+    },
+    {
+      "path": "/catalogue/shard-05/obj/our/src/msfa_rom.o",
+      "sha256": "6a2f1721bc65062f1290443dc4d0e98771b4dde52134915070e7fb8fbccbba89"
+    },
+    {
+      "path": "/catalogue/shard-05/obj/sim/src/fm1_seq_view.o",
+      "sha256": "1ae051035406b617318aa3587cbce3be1682515280a62632327bb2be07aaaa18"
+    },
+    {
+      "path": "/catalogue/shard-05/obj/sw/sophie/sophie.o",
+      "sha256": "450bc1e719a6815a884dbb507b479313707a280c554e3ff1023757f1368b9807"
+    },
+    {
+      "path": "/catalogue/shard-05/obj/tp/plaits/dsp/engine/chord_engine.o",
+      "sha256": "ba9423b191d4044798737e1f0255e96386bb912c00552a062ba9942bb7f4f13e"
+    },
+    {
+      "path": "/catalogue/shard-05/obj/tp/plaits/dsp/engine2/string_machine_engine.o",
+      "sha256": "2c50ba1a14e51defaddbef98c2f1f1ad850f6bf96bd7d0524c8c97e2a321865c"
+    },
+    {
+      "path": "/catalogue/shard-05/obj/tp/stmlib/dsp/units.o",
+      "sha256": "5e894225ed935613defa7c728bfbb2195d3ff47ddaf28c0e38018733be99eadf"
+    },
+    {
+      "path": "/catalogue/shard-06/obj/c/seq/seq_host.o",
+      "sha256": "81198431e4f7459a2020dfe6207375719f18ebecb54ff87cc26628be3fd064e2"
+    },
+    {
+      "path": "/catalogue/shard-06/obj/mod/mod/kinds/mod_calc.o",
+      "sha256": "32563dacb460b4636b2b7f9527f960247acda1037e3eba54b4d30a37a35d8887"
+    },
+    {
+      "path": "/catalogue/shard-06/obj/mod/mod/mod_glue.o",
+      "sha256": "277677a9cdffe6661bf0ee7b09af8f3018fd28b88a70705f91a6cbaa590882a1"
+    },
+    {
+      "path": "/catalogue/shard-06/obj/our/src/drums.o",
+      "sha256": "f5af492de0a3097e3023a11b670e9e3dd8100f8dadac205238055903e0d0474b"
+    },
+    {
+      "path": "/catalogue/shard-06/obj/our/src/fx_isolator.o",
+      "sha256": "e78eee6425f2c763743ccd55f32b47ba1e65f9c37dff58dc17c6befdef3b73d7"
+    },
+    {
+      "path": "/catalogue/shard-06/obj/our/src/msfa_tables.o",
+      "sha256": "c7d780a2c7f61eb971a8047ac8ddda322b01cf64db54cb7d72b8fa3328869105"
+    },
+    {
+      "path": "/catalogue/shard-06/obj/sim/src/fm1_tft.o",
+      "sha256": "c72835f2d79ee86d7815b567585d2896aea7c643ad0e1fb85e3859c17f61cf2c"
+    },
+    {
+      "path": "/catalogue/shard-06/obj/tp/braids/analog_oscillator.o",
+      "sha256": "e8028c407409e408635e16694f12ed8c2341581b1a620fb3be73a19de4dce5fb"
+    },
+    {
+      "path": "/catalogue/shard-06/obj/tp/plaits/dsp/engine/fm_engine.o",
+      "sha256": "dfddc9004b91a327bfef24c774902fa6d80c68152bd0ca1b1460a0f353e5ebe9"
+    },
+    {
+      "path": "/catalogue/shard-06/obj/tp/plaits/dsp/engine2/virtual_analog_vcf_engine.o",
+      "sha256": "e7d06ce72aca6f6a73d2d123557c2a0e44aacc48af3877026e073aef5eec4c1d"
+    },
+    {
+      "path": "/catalogue/shard-06/obj/tp/stmlib/utils/random.o",
+      "sha256": "5231f1cafb4eb51bb39043e5e1cb4cb1be3ee594f496b77dc4bda337a7c45eaa"
+    },
+    {
+      "path": "/out/project-save-link-v1/seq_persist.o",
+      "sha256": "24b49b3e879420467fe78d05cdc261957a37bda402f4ad03a1fc7aa2fc5e22c7"
+    },
+    {
+      "path": "/catalogue/shard-07/obj/mod/mod/kinds/mod_chance.o",
+      "sha256": "2c44026641a9d94eeddd744f4c27ac4f3c18ae9d2139c4788b8eef50c461df9a"
+    },
+    {
+      "path": "/catalogue/shard-07/obj/mod/mod/mod_mi.o",
+      "sha256": "f499f5befd80be793e868815c993660d6a05ec05e7038320b712ba7483d45742"
+    },
+    {
+      "path": "/catalogue/shard-07/obj/our/src/dx7_loop.o",
+      "sha256": "28aac128cae00846f57d823e8b5395494b293e9b2f05d8bf4723d2d3060ef940"
+    },
+    {
+      "path": "/catalogue/shard-07/obj/our/src/fx_limit.o",
+      "sha256": "c8b42b4b634f5b460feea2e90a0387270ae38cf28bcd7f63a8d6ce9b46491da7"
+    },
+    {
+      "path": "/catalogue/shard-07/obj/tp/braids/digital_oscillator.o",
+      "sha256": "ecda1d0cf02b59dc70b3fb9d4ea90fb845fdcbacf565066ea7a1a578e318cc6c"
+    },
+    {
+      "path": "/catalogue/shard-07/obj/tp/plaits/dsp/engine/grain_engine.o",
+      "sha256": "7dd5fa0746dece10f74d39e6de5753b248a06f93b4bd7551f1cecea0c7b3a95b"
+    },
+    {
+      "path": "/catalogue/shard-07/obj/tp/plaits/dsp/engine2/wave_terrain_engine.o",
+      "sha256": "8030334452853eff5febdccfb571c3d81f9c955198b76cb9d2c9f989b7968474"
+    },
+    {
+      "path": "/catalogue/shard-08/obj/c/state/fm1_known.o",
+      "sha256": "0729f067698e5924113fc8fcfe1f89abe2a2296fcfcd48459eab30a7361b9325"
+    },
+    {
+      "path": "/catalogue/shard-08/obj/mod/mod/kinds/mod_coin.o",
+      "sha256": "a7fbc718d50b1920c88e97d8bc172edc788388c41a5fdd2fb6709cb920748f7d"
+    },
+    {
+      "path": "/catalogue/shard-08/obj/mod/mod/mod_mi_tables.o",
+      "sha256": "6b2e06629e8642d64000dcc1bcba0880340c8f9cc07aeae34124df38ddeece8a"
+    },
+    {
+      "path": "/catalogue/shard-08/obj/our/src/dx7_voice.o",
+      "sha256": "ce9dcc2149d444eb605446ff58aac7602442e839af475035baecbcd216040efd"
+    },
+    {
+      "path": "/catalogue/shard-08/obj/our/src/fx_repeat.o",
+      "sha256": "f2e82d41254ae5114f935d9ca1b3c636d6f221997474678e4b790e0298116685"
+    },
+    {
+      "path": "/catalogue/shard-08/obj/our/src/resampler_tables.o",
+      "sha256": "bd91fc0347cc0ccdbc7027f4586888a9bb23600a59a14e34657d222c6559886f"
+    },
+    {
+      "path": "/catalogue/shard-08/obj/state/host/state_clip.o",
+      "sha256": "fcabbd93aa0dc564174db9478928e991fe48e577403b90291ce452a056af9a95"
+    },
+    {
+      "path": "/catalogue/shard-08/obj/tp/braids/macro_oscillator.o",
+      "sha256": "9dbba7fbf9ff8f77b41718afa29f70e22986e2d47d8896a62363130ba89f59f8"
+    },
+    {
+      "path": "/catalogue/shard-08/obj/tp/plaits/dsp/engine/hi_hat_engine.o",
+      "sha256": "a91cfd716a28d75bbc1a67d4f261e5103759cc5eb1a296b49d606d4876dad1eb"
+    },
+    {
+      "path": "/catalogue/shard-08/obj/tp/plaits/dsp/fm/algorithms.o",
+      "sha256": "939c0105aab50398c95640cfdcd37f33e93adee783747416d38bdde1387793c1"
+    },
+    {
+      "path": "/catalogue/shard-09/obj/c/state/fm1_meta.o",
+      "sha256": "927dcd798eca5ce54362483e2247680806029312ae7f04e4b9d30d9a396db1f3"
+    },
+    {
+      "path": "/catalogue/shard-09/obj/mod/mod/kinds/mod_compare.o",
+      "sha256": "818e801004f8bf3cbd55252ad1a392266c82c649e4aaecc90a322ac458a28817"
+    },
+    {
+      "path": "/catalogue/shard-09/obj/mod/mod/mod_plan.o",
+      "sha256": "0ef870096e17fc8df86735123e25b91b56a386d614d3c5fe18fb91d5c35d2a7d"
+    },
+    {
+      "path": "/catalogue/shard-09/obj/our/src/editor_meta.o",
+      "sha256": "5757d33faf565b196d2368aa4f172992348811eb2d46026f6905634f09525e23"
+    },
+    {
+      "path": "/catalogue/shard-09/obj/our/src/fx_room.o",
+      "sha256": "3b43684f4ee2215b7fafad17f84f928aa73e5022f19801aefcef9a0c50340138"
+    },
+    {
+      "path": "/catalogue/shard-09/obj/our/src/schwung_shim.o",
+      "sha256": "1c2613a76d496b6c90da3c2b772490540f7085bee994de199e99dd3b16b38f7a"
+    },
+    {
+      "path": "/catalogue/shard-09/obj/state/state/fm1_deflate.o",
+      "sha256": "c8abd63093bbe51fa78479ac290af29793f630becff9b0e662590f0281553eb9"
+    },
+    {
+      "path": "/catalogue/shard-09/obj/tp/plaits/dsp/engine/modal_engine.o",
+      "sha256": "9e09835e8db347b5ae0f2966dd9c2e6405adcc3693c795a2e11a590791c1de12"
+    },
+    {
+      "path": "/catalogue/shard-09/obj/tp/plaits/dsp/fm/dx_units.o",
+      "sha256": "f44581a08be1ba4a08f88da5fe1a2e6273ac8bd638ce54d1bd6bef9218d5d386"
+    },
+    {
+      "path": "/catalogue/shard-10/obj/gpl/felucca/felucca_bridge.o",
+      "sha256": "9b7f0376cf9ba148d2bdef7ed8533863803f78b97bb3dfd5dfbff65fd9cc78c5"
+    },
+    {
+      "path": "/catalogue/shard-10/obj/mod/mod/kinds/mod_divide.o",
+      "sha256": "c943da365a119f66d519ad5dd67eb1c8f0d74e5b8547aa3101be4dd882dac920"
+    },
+    {
+      "path": "/catalogue/shard-10/obj/mod/mod/mod_registry.o",
+      "sha256": "8f3856831eb6b81e95637c3b3a557211df96bd072e15565d7ac6dd566ddbe3c4"
+    },
+    {
+      "path": "/catalogue/shard-10/obj/our/src/felucca_shim.o",
+      "sha256": "7477d8df71864beaca51cb9727e402c718a8a71e47e2879c4de1b444a20b12a1"
+    },
+    {
+      "path": "/catalogue/shard-10/obj/our/src/fx_sat.o",
+      "sha256": "2267f14d08336346a359b7b8f35c60ead50ddcc4e12e320e2619b546b3f6425a"
+    },
+    {
+      "path": "/catalogue/shard-10/obj/our/src/sw_psxverb.o",
+      "sha256": "5f479575e679ab9d44bfb16f6e2b46766c83629307425479428d9c898bfd9ab0"
+    },
+    {
+      "path": "/catalogue/shard-10/obj/state/state/fm1_json.o",
+      "sha256": "58ec72bd600f8532ef2207e50785ce502c6c717e68599a3780ca7f3337455b25"
+    },
+    {
+      "path": "/catalogue/shard-10/obj/tp/msfa/dx7note.o",
+      "sha256": "7ed9a5dd8dbdb52e7e29f683ac8de91921988f91780f26b555232603a67c95fa"
+    },
+    {
+      "path": "/catalogue/shard-10/obj/tp/plaits/dsp/engine/noise_engine.o",
+      "sha256": "bab77c3b7fb02348a8a8c2d0ede63b6686c915bd058ee18e99ec1cd17d2b06cd"
+    },
+    {
+      "path": "/catalogue/shard-10/obj/tp/plaits/dsp/physical_modelling/modal_voice.o",
+      "sha256": "17e3dfcd25c9094358d8ddd723fe7f6e231d2e74ce0a23a8a8b25145b19d19e0"
+    },
+    {
+      "path": "/catalogue/shard-11/obj/gpl/fm1-x0x/dsp/bass303.o",
+      "sha256": "b3e730181af250fc6cd758e38e57070d4f0b4cecff0752947d9db03eedd3611f"
+    },
+    {
+      "path": "/catalogue/shard-11/obj/mod/mod/kinds/mod_env.o",
+      "sha256": "bb9474ad7c58eba8c2a13b9525e10dcdb03891e2f092645ecdf1869ba0bb0af0"
+    },
+    {
+      "path": "/catalogue/shard-11/obj/mod/mod/mp_clkdiv.o",
+      "sha256": "76468797784d8c7cc580bf2539c7df8b0bf4f74c855b7992164dd775325cdd62"
+    },
+    {
+      "path": "/catalogue/shard-11/obj/our/src/fx_comb.o",
+      "sha256": "eaf5ee31b58facdfbd9cbe6a5b98f3e0b76d4601ec792c3b55d73b997547cfba"
+    },
+    {
+      "path": "/catalogue/shard-11/obj/our/src/fx_shaper.o",
+      "sha256": "d91a49040a4497254b57b6205e80c91701dd2ae91e60efad1d3524f801772523"
+    },
+    {
+      "path": "/catalogue/shard-11/obj/our/src/sw_sophie.o",
+      "sha256": "e4c313bdd202c214e24973049061918aaac7699dba53052f2732c2745806e645"
+    },
+    {
+      "path": "/catalogue/shard-11/obj/state/state/fm1_num.o",
+      "sha256": "2ad32855781e7d373ffeff99db6079567a5c103dd4f06bea5d31e239357180ed"
+    },
+    {
+      "path": "/catalogue/shard-11/obj/tp/msfa/env.o",
+      "sha256": "9a01a3d6f804eb5f6ddf0724c7e4dc50c39ea3bb0f87a8860ad423f222fbe551"
+    },
+    {
+      "path": "/catalogue/shard-11/obj/tp/plaits/dsp/engine/particle_engine.o",
+      "sha256": "204a02cb7a0645d8e61e18845190aa855a0f31f42c212ab4846bb9d63e0a9726"
+    },
+    {
+      "path": "/catalogue/shard-11/obj/tp/plaits/dsp/physical_modelling/resonator.o",
+      "sha256": "20dafed85d0214aefac9790c242d0236835ae5b6d46220923378cc0974fc1efe"
+    },
+    {
+      "path": "/catalogue/shard-12/obj/gpl/fm1-x0x/dsp/drum808.o",
+      "sha256": "67837eb30cddc62448893c05f8634c29eee980a8ed1596297e44548865400373"
+    },
+    {
+      "path": "/catalogue/shard-12/obj/mod/mod/kinds/mod_function.o",
+      "sha256": "f2fb4b7ca5dbd40f75223886c2e9d56199839690a85702e130573cf08631b53a"
+    },
+    {
+      "path": "/catalogue/shard-12/obj/mod/mod/mp_env.o",
+      "sha256": "b3ed85cb6f56a50fb446e299911105ce4b103f314bcaaf65434776aa5fc265e9"
+    },
+    {
+      "path": "/catalogue/shard-12/obj/our/src/fx_comp.o",
+      "sha256": "20a95c7e9b5bc1fab38ce3c52d59f970b0d35bad360827192b70d63fd88a9a28"
+    },
+    {
+      "path": "/catalogue/shard-12/obj/our/src/fx_squash.o",
+      "sha256": "9b1bf069180b04359ddeb4074b8894d256edfda358081b36835430ad5cdfc24b"
+    },
+    {
+      "path": "/catalogue/shard-12/obj/our/src/test_ext.o",
+      "sha256": "f55446bf5c15d2d0e8b29dd071ded0bc66648e9241210fa60cde9b9c47f88cbe"
+    },
+    {
+      "path": "/out/project-save-link-v1/state_bin.o",
+      "sha256": "2aa865fa3df98541a7a73b6f140721459c39601fc7ffb48262abba8cb038d0ca"
+    },
+    {
+      "path": "/catalogue/shard-12/obj/tp/msfa/fm_core.o",
+      "sha256": "309fa7e2291bd3bc1979447ae23ed3b88f98ee63c32a644363d797a850c0a025"
+    },
+    {
+      "path": "/catalogue/shard-12/obj/tp/plaits/dsp/engine/snare_drum_engine.o",
+      "sha256": "4b8a23f878ba2a59f7729c809cbc5bbc32553b534f0fc12b9a6d9de9be889806"
+    },
+    {
+      "path": "/catalogue/shard-12/obj/tp/plaits/dsp/physical_modelling/string.o",
+      "sha256": "3e94cc0ca6bb14067b8b6cab3437c717fef84af550cd9ef68da24d1d7e4c6543"
+    },
+    {
+      "path": "/catalogue/shard-13/obj/gpl/fm1-x0x/dsp/drum909.o",
+      "sha256": "cc84a3f7c37b0cf9b6ae54761300ab3c0805144134ae27bb17e738c9aec319f1"
+    },
+    {
+      "path": "/catalogue/shard-13/obj/mod/mod/kinds/mod_lfo.o",
+      "sha256": "6f34d808625d599a91416e4b5471d8bf525e22a7b9de8b66a521e748ce1aef40"
+    },
+    {
+      "path": "/catalogue/shard-13/obj/mod/mod/mp_lfo.o",
+      "sha256": "390f40ea2cb47650d6ad40e7e5c90025958d76777d642b4c888dd39f47c5e3f9"
+    },
+    {
+      "path": "/catalogue/shard-13/obj/our/src/fx_crush.o",
+      "sha256": "447a29c211376bed137b9d84026ee89cc51d18ed4d7423a0330e1a2105ad1a64"
+    },
+    {
+      "path": "/catalogue/shard-13/obj/our/src/fx_tilt.o",
+      "sha256": "d6839c99f83ee3be67922677c6c1b8fb8849648697926d21fdb9adc82387daa8"
+    },
+    {
+      "path": "/catalogue/shard-13/obj/our/src/test_gain.o",
+      "sha256": "cb47d28acfe9e74ce3e47621892199cba2165bb3d1c6d78e72aa34cded6ce62f"
+    },
+    {
+      "path": "/catalogue/shard-13/obj/state/state/state_json_read.o",
+      "sha256": "e9e6bb175b909e96656ced69b3cf2569a35b3ec64c3b11a04329cdc0c9e18828"
+    },
+    {
+      "path": "/catalogue/shard-13/obj/tp/msfa/fm_op_kernel.o",
+      "sha256": "5803e4575f5b3a4fcf03630bec4eb2772e134814134a4f1902b86c9934b9aeff"
+    },
+    {
+      "path": "/catalogue/shard-13/obj/tp/plaits/dsp/engine/string_engine.o",
+      "sha256": "0c5218eeca794808a0a511f34e879272e259846e63e836324d1fbc343dbb50b5"
+    },
+    {
+      "path": "/catalogue/shard-13/obj/tp/plaits/dsp/physical_modelling/string_voice.o",
+      "sha256": "8959cbec6a156387301136fc4a70552c344166eed04488cbe49fde2dc66234e5"
+    },
+    {
+      "path": "/catalogue/shard-14/obj/gpl/fm1-x0x/seq/tb3po.o",
+      "sha256": "42c21c0f6009ebf4b2e71ab417b1d34523e26d415c5542c6516cdad18b5d5f71"
+    },
+    {
+      "path": "/catalogue/shard-14/obj/mod/mod/kinds/mod_logic.o",
+      "sha256": "0ce92016f1b599385384f9e15b45b8a046b0d949957820ce955922b1022e128f"
+    },
+    {
+      "path": "/catalogue/shard-14/obj/mod/mod/mp_rng.o",
+      "sha256": "3cb36a3a37c11b4ee4741c4fb93f80ae9c2aec08b0cc6546e6af2c5c7edc1c68"
+    },
+    {
+      "path": "/catalogue/shard-14/obj/our/src/fx_djfilter.o",
+      "sha256": "c1b8d12a12a8fcbd678dc4f4dc154254d09aaf93a99776b4c9c2f4166eb6c9da"
+    },
+    {
+      "path": "/catalogue/shard-14/obj/our/src/fx_warble.o",
+      "sha256": "7a216198282f68271edb3b631eda922c8f9d9316b79732c311fddaa423da183d"
+    },
+    {
+      "path": "/catalogue/shard-14/obj/our/src/test_sine.o",
+      "sha256": "55dc02ed2be26ea4dd6ae2d15c12f11acbd8347750e92b73888ee4b7940fe782"
+    },
+    {
+      "path": "/catalogue/shard-14/obj/state/state/state_json_write.o",
+      "sha256": "e7b5f260a4e9f4e7d1c63a1a2d8c8333da477979b76433acdf5719aa4f62c565"
+    },
+    {
+      "path": "/catalogue/shard-14/obj/tp/msfa/freqlut.o",
+      "sha256": "d6d1335cfa7c6b13366f5f0bbbcaaa9888e1906dd3357592e816353a03682f32"
+    },
+    {
+      "path": "/catalogue/shard-14/obj/tp/plaits/dsp/engine/swarm_engine.o",
+      "sha256": "ab3d82e81da36b88e561810722c064b50c09ebe7b67ec00607ef103a73a2d42f"
+    },
+    {
+      "path": "/catalogue/shard-14/obj/tp/plaits/dsp/speech/lpc_speech_synth.o",
+      "sha256": "a0a3b4d3314f73e1f03de5677562979240f46acc57b5341231717a0e8e86ee20"
+    },
+    {
+      "path": "/catalogue/shard-15/obj/midi_fx/acid_gen.o",
+      "sha256": "779a9e748ab45aa5c94c3d41d826f6ac2a1a255f41f3deeff3217a15153a935c"
+    },
+    {
+      "path": "/catalogue/shard-15/obj/mod/mod/kinds/mod_mix.o",
+      "sha256": "4b6c7bced9f1a983a7105a4b69b6055f7de6a9e38885319a412b188af2b9be0b"
+    },
+    {
+      "path": "/catalogue/shard-15/obj/mod/mod/mp_sah.o",
+      "sha256": "3effc42697c3222cce78b787f1861f4ca82afaa0653a96038202ece90390e987"
+    },
+    {
+      "path": "/catalogue/shard-15/obj/our/src/fx_drive.o",
+      "sha256": "8fb2f75c007793d466957d8ca139486a1814737a1dfdc60a99cf745d9e9f3815"
+    },
+    {
+      "path": "/catalogue/shard-15/obj/our/src/mi_fx.o",
+      "sha256": "625f08576b18bff943747981c10c102cd3354b2c3d1fddb11d52d5f322f9729f"
+    },
+    {
+      "path": "/catalogue/shard-15/obj/state/state/state_mod.o",
+      "sha256": "03529a25a6b274056c188f66e25c9bbd676607265aa99b1b60be3033a6f21e37"
+    },
+    {
+      "path": "/catalogue/shard-15/obj/tp/msfa/lfo.o",
+      "sha256": "f69650393de9ba516da6954b3bca659f456b8161e92ada1431b34a8c9e2dbb12"
+    },
+    {
+      "path": "/catalogue/shard-15/obj/tp/plaits/dsp/engine/virtual_analog_engine.o",
+      "sha256": "a6675e6c21ed13213156f976c3b06bdd30868a0a07337ef848e537fbe327c1e9"
+    },
+    {
+      "path": "/catalogue/shard-15/obj/tp/plaits/dsp/speech/lpc_speech_synth_controller.o",
+      "sha256": "ccf1a0012a190b24afad20278778bfa6770e8d1efa46debb7c76b8b19268a73d"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/crt0.o",
+      "sha256": "df94a4ef3d89eeb0cbd9cc5c198b103c8b831beff511c7163dc37ef40a2bfb0f"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/fm1_vec.o",
+      "sha256": "28b3ddb497512aa7fc9625058ad5222ebb1f66a2f29918fde6e837594ba9b570"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/fm1_isr.o",
+      "sha256": "ec6ab6cdb1e7fbba23a71dadaeca1ad081ec1ae21010ae7a30494710bbbba6c9"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/fm1_app.o",
+      "sha256": "8b74e36d4b4240545ba914adeface73e88f243e865d0a2134326ced5be498c39"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/mod_script.o",
+      "sha256": "1d71a81c7ff83a5e7fac45971948f8fc5d2e8d9513fbaa1d88d5f633891b54bd"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/app_probe.o",
+      "sha256": "832ea4055ea7efe2de65a58d9bef46625d5ca199495cca3909b369892f046e24"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/instance_pool.o",
+      "sha256": "c8d57f0b3aa6b79a07b1e252a9bde76f817d7d3b7422b60f0b2506a2abc03de8"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/tlsf_runtime.o",
+      "sha256": "f22a6d1d821403bd8d0d83fcdc2d85ef91fb25f805a10a073c749f4950c0244a"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/registry.o",
+      "sha256": "072010a26eb55fd1a5085b8c10f6bb4e860ac05c7f978eb38a05cf3652226d25"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/resources_braids.o",
+      "sha256": "eca9948837ca9de571986a64611fb6da83d7be2150b8e4bbe84b31ee1568c03d"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/wave_tables.o",
+      "sha256": "7df97ff7e290fdac7a10978b33c418560b01246d84bbe696d57df4fc9098cf7e"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/tinflate.o",
+      "sha256": "f2a8fb20c5dee8a1e485ad713f33d834b14394a8778213cc18005447fdc52b89"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/content_catalogue.o",
+      "sha256": "09e02402b1ab33f4241bf563a335523eb43ff527f8ebabb361eba891e4646f9d"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/content_set.o",
+      "sha256": "be572eb4501bfbe3fcbeeb78967f97710a9fc62dee06c3e3f7147c2ea5328088"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/project_units.o",
+      "sha256": "1b2a18c8a995be546441fc9e9776b7d8f1ad133bf2de492e8bb14266e29bc596"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/project_mod.o",
+      "sha256": "631ff286f73186f257b31f401e424fcf5a0110c0ead18f667f064f8a08d73ea5"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/project_seq.o",
+      "sha256": "a70274f0a8941263e142493478d97a1993dbf8148ba0560735c5a0836a75987a"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/project_engines.o",
+      "sha256": "6666be5f43a5f0efe0b2f8d02c683e86d36895c73751d2a7de8cce125b9cf82f"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/project_start.o",
+      "sha256": "3a3949a4e827ef680de4304ab2ae23ad11ddfea42adf861f83210d7e9d0e4201"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/project_boot.o",
+      "sha256": "49d89de10a9e837eac3b6d88a46eeacbc387d5786d32c351609da628268d8f5d"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/__cos.o",
+      "sha256": "38c8d7d06d670dad9d7403d8b432c3ddf1af6fd3602205c95f1fb1846adbe467"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/__cosdf.o",
+      "sha256": "cc5ec41507f24a6376371794564081df8fb7feb91dd2761c001df5cd34ed8c48"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/__fpclassify.o",
+      "sha256": "c200cb45efe9521fe66d26535f7ad43fe8845a8a2fb445f8bda2e0a796324090"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/__fpclassifyf.o",
+      "sha256": "803d2c37653aa5ccffab72f50ca82d94af4112d04558d06226d41db7db04854f"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/__math_divzero.o",
+      "sha256": "3d57ed1fb9a956217c70824341677acee3153763d32fa4254f2cd639eeeddfa8"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/__math_divzerof.o",
+      "sha256": "7552c1813aea7193a17e67dd1622684ae3a17a97fea19ac0d988f56031fecd56"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/__math_invalid.o",
+      "sha256": "475b261c8a2adbc108d0b99526cedf92772d45d80043e0745d1110d904d52de5"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/__math_invalidf.o",
+      "sha256": "8729c0359a11429606d545c461f61b3738267cacabb93ad40b4dc2504366b601"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/__math_oflow.o",
+      "sha256": "3aef018fb16f5ecc1eef1c5c3fab2f9a9bd88e14bc3f5ca1dca89755d07fc783"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/__math_oflowf.o",
+      "sha256": "728fc95e7dcfd5813becccc281def4e08a18e5899c0f00d35cdbc6c701168d34"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/__math_uflow.o",
+      "sha256": "ca6665506fccf8d206d01811f3fa6b3b34f70f35e311e98e957de45a91e63592"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/__math_uflowf.o",
+      "sha256": "36612ea68762bca6cee82da5ed0d4f202eeff2654553bcdb4e2edf9c961c04a6"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/__math_xflow.o",
+      "sha256": "be763fa454363397913bc6de7fc4de8b6930b4d1b32f2eaa2367dd0f4316f5f8"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/__math_xflowf.o",
+      "sha256": "134e21a182481b60f7c22788ff2e75ba0aeafd12a41b0fe734f6f4ea4a6373f2"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/__rem_pio2.o",
+      "sha256": "281fa504c40cd87836fd1f18e3b7425b2c1831bf26ed33a77ce77f4fd8e70dc5"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/__rem_pio2_large.o",
+      "sha256": "8234b6cd3fc9e98535f182bc39ccbd08846dec7f50eaf3487f57aa704e3a1393"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/__rem_pio2f.o",
+      "sha256": "7d02e76bcfb84eb91925bc92a60f14cfc0057ef795670eac6139620180196424"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/__sin.o",
+      "sha256": "56d9807520f2462b81495781be6624592337d78f00dc240b4c97efaa22777c01"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/__sindf.o",
+      "sha256": "5d15e4e91c61358d5f525bdddfe6b14c8e303d47ca132b29f9f76724b4483bca"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/__tandf.o",
+      "sha256": "4cb2ba609a79a2f072d55060bff5456523320fd736504b98bdd2d2cd19258214"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/atoi.o",
+      "sha256": "39edf25c57e27b2e6609369ac2def478475a6bebf58680ac88f5d5f0cb597378"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/ceilf.o",
+      "sha256": "5a583709cf90166b828bbc88ab5493b1eb7924fd201bdf5596b77720c69d1407"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/exp2f.o",
+      "sha256": "b8212663aa55150ccce188947faa8f80888b8a3d227454113605109e51cc7979"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/exp2f_data.o",
+      "sha256": "b511f052e05b1c9072bfc93fc6db666a5c307bacb2d0f0d620a81a17f6724edc"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/exp_data.o",
+      "sha256": "ef52df737c92a372e201b2d8173c50071cadaab34bea07064a187f8a1b0b0846"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/expf.o",
+      "sha256": "a0b8d9b8fc3758ba269fe6e53f5d0b7859bae2a48f7c8c9b2e31c92cf73642c3"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/fabs.o",
+      "sha256": "93aadf2b6c766134b08c0a3650626a2b7e11938f56c1957409afcd0f7177a6bb"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/fabsf.o",
+      "sha256": "9f008e7cc21c8a0d2edfef62049d70b09956391da058d117684544c491d6473e"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/floor.o",
+      "sha256": "723c811a38997b003d1d98bc9042fea7c3260b41737e2eb5ad2aa16de4bee90e"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/floorf.o",
+      "sha256": "0897da0d5f2a6ca3bdb0cb2a68ff3694a3fc0d844ebf85202b2618e4a2cd5796"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/fmod.o",
+      "sha256": "dfc656aa4cf655cb4f4c42b0264ceb970e44bd1fd7a8d5873682eb15c1f6caf8"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/isdigit.o",
+      "sha256": "f0ed9f83dffb16627995a569ac440b19037326b56aaf7c19b3b5d9367c4cee7e"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/isspace.o",
+      "sha256": "532bc22a79a9c8f5b439992cb740aa4f329f1e28070964b78f9ef102c2d09d93"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/log.o",
+      "sha256": "03f9a0b4c60856d975942b6ffe2e6f97fe29a01633e03aec101933c8a88518c4"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/log10f.o",
+      "sha256": "fe13a67151b780b67b9d131499ada1043869dcb0e2b00c1836e773602b70c46d"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/log_data.o",
+      "sha256": "d04e847885a5e4816bcf080bb063f5f9e65c778df77c8d329c2bd1be514d14a0"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/logf.o",
+      "sha256": "42804e55eb6acd1d70536d62fb21657da46befd7c7bb9a0d70af860251c0c2eb"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/logf_data.o",
+      "sha256": "cd3d623501e5cb1f4ae3d0ff989b80db93427715bb084722e4f4d1c387fc02e8"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/lrintf.o",
+      "sha256": "3aac11b175cf1f3cd74975e1ca7cd2f21fc7816af5d311d6fbe00c82b9d84e4f"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/memchr.o",
+      "sha256": "544a52089c110aac9a39e00d354efb8f35993e44a48c07491492c1fd424bbb7a"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/memcmp.o",
+      "sha256": "ae02aae7b6b5088bedfab80b85f26237985e3fbd59c66d034b50a694605a83cc"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/memcpy.o",
+      "sha256": "0925bed60cff5598b2c62b8bcf82a2b0a8c0886b2d8c9ef7c2c9b908c46ec0b0"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/memmove.o",
+      "sha256": "6c1adbcfe536c8a132bcfcef0ae593193f07c40d54641eada69fae617599df8d"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/memset.o",
+      "sha256": "1f91b7671ac27264f1372b1939c3d475b1b13c4a90c6eceb99fed17758e2f4a1"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/pow.o",
+      "sha256": "2f8058f0d4063673234979c32cfefe8909ea5da41a0d710be8a5cd9cd0479d5f"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/pow_data.o",
+      "sha256": "5edfc124bee673185ee203fe62729ce8d509853ae288e6af6dcb12ce9d9bc603"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/powf.o",
+      "sha256": "e63c6d177c83456d5f58ed8e1a63b8a6bbbac5c9e5312c92ed41354c11f9ff6d"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/powf_data.o",
+      "sha256": "14132e1b18181ee51be36fc25ddd047493b443b30ad3c897ead72eb76776f28d"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/rintf.o",
+      "sha256": "dfaa9ad56af8ec5d957fad339a43e3e3bfaeea5cadf12c4ea2c6b5e8756f5d42"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/roundf.o",
+      "sha256": "5197baae6d51b629c0636da32fbb7548224eba4d98bcaf5e1d605deb009082e5"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/scalbn.o",
+      "sha256": "9aae9fb4925703a6cebb60028c84189a2200eb6d4c5d99c095c51e52f2cfc7f5"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/sin.o",
+      "sha256": "85a9c8c75a75281773af915dc622735abe07c94206fd288404aad1199b5aea3a"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/sinf.o",
+      "sha256": "38d341852de8f6a31c549277dd3e63266bbe991dff74b462faaa1b3da66476a6"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/sqrt_data.o",
+      "sha256": "8b7ea19caa2fff87dfec86c6c3f7da90e513efc5cb694988324d13b5b631e207"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/sqrtf.o",
+      "sha256": "6f7f1a2d6acd7273a11a99aad64a078a4a5ed21ca8c99994885024e0b0a18755"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/stpcpy.o",
+      "sha256": "93a93b0f62605e55617f88a6fa6a7fbec1ee69f065272ed29d961979f397186e"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/stpncpy.o",
+      "sha256": "a952687750ce7a7bad674ee93c11cd7d78e0b7288e8b418d7078458dc05c7c9b"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/strchr.o",
+      "sha256": "d6fcbd3b9aebf3912b98c879a38f5a62cbe2da87249b36bdfda0e2d25957a837"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/strchrnul.o",
+      "sha256": "10804f58a6da25c2bf395bbd21c7969db9229d4501fd78833d7f81aa322fea29"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/strcmp.o",
+      "sha256": "8f58f153f7d52073c4118e8c405e41f24e4617865578d84ef4c85d7342cbacfb"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/strcpy.o",
+      "sha256": "9574a33e03fc1c38cb22b013f29a49c908ebab85cb3cf143af15b3fe959124ec"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/strlen.o",
+      "sha256": "9ebbdf36dd80b1223b77e2ced58ae51f55b7293cf2aa26e01694486c42cc625a"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/strncmp.o",
+      "sha256": "2f6c15c89485093fb93fa61ef7e20e1ce6d0b28f51fea46bf3d8231ef6977e0d"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/strncpy.o",
+      "sha256": "a99676d812a5a89cc173099225bfa1492873105568f5138f14f035702e0a1654"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/strstr.o",
+      "sha256": "ec0efa326cf7902ecacc1ccc4809ef0256917a52dee6443a5730108538866801"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/musl/tanf.o",
+      "sha256": "2d6f8d2dc66d1cc52ecad20f8307469c7060356333b7f8f5a397704f2526e29d"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/adddf3.o",
+      "sha256": "02aa4ec32fa24561bfda9a8948292e3179429445b2be32b1ccd59de5a85cc509"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/addsf3.o",
+      "sha256": "afbaf49e56acb87ec9ee203a78be3172cac7007bba8ce4d0fb4869e9db218d4f"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/comparedf2.o",
+      "sha256": "b2a3a1634b69b742eb2abe648795a4a07a4977338ee9033ac20e222673852c56"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/comparesf2.o",
+      "sha256": "b64b904d0f7974c4837ffc2e75545c9c5164cc66bdeef805c71507cfe5d8e58f"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/divdf3.o",
+      "sha256": "d81462804fdfe894b507f77ab2dc39932e62230ddbe6ff4867275dc1243890b0"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/divdi3.o",
+      "sha256": "202eb798a79ac1f80d927ca45e214592c640c1faab420d8b609e2dd584db61ea"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/divsf3.o",
+      "sha256": "7eca50a3beb868230638e7e7a31babc9d4d6451c427e33055992a34c7fcd8ce7"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/extendsfdf2.o",
+      "sha256": "e75447d19756b4b365bace4591bc7a1cccf40b8a05bb26ff1e1b13a1ac0ad178"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/fixdfdi.o",
+      "sha256": "8f2604ebf1a3294df3fa8f7330b53b55c5962fac3dac580be30faf4bd5fe0978"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/fixdfsi.o",
+      "sha256": "2b47a3c2800f71d3c8cd2b44b4a106115fefdca1bee784a54b5cdcd8b4bb2bd5"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/fixsfsi.o",
+      "sha256": "29f9847b1552f11d1a54e1328db996fc1ce017fb9e658bc90926b824f627df55"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/fixunsdfdi.o",
+      "sha256": "0c7c55426039a8d87f537bf0bc1bcaee426afb2331c8dec76ecbcf8019f18515"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/fixunsdfsi.o",
+      "sha256": "3370b63d8ce97a9e7e717bd0b5197f2b07aabfd4ad56d6d42d40842cc7c1cf43"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/fixunssfdi.o",
+      "sha256": "c78184d1201575d301d7a83b5d02678127f756a7bc32182968d0bf5d448ed4b1"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/floatdidf.o",
+      "sha256": "a5c44ce23a17b64ec5a25085a6b624246eef26d7a5837528536b08dff8997beb"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/floatdisf.o",
+      "sha256": "5e730d663ab7a06d9d60ed7aec6af8ac7e354ca68a169344f228756ad2c8b54f"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/floatsidf.o",
+      "sha256": "ba31ec4c570495c2864131d6fd2dbe354cb6354399bbfdc33443bfee72484cfd"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/floatsisf.o",
+      "sha256": "8f036862b8886162adabf574d2ccf4466d1bdc61dd48108c575ec8eeb70b0062"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/floatundidf.o",
+      "sha256": "1fc852a88809fde686a7370ba8a94cfb526e890a61a6bf0bc2a59681dfb115ce"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/floatundisf.o",
+      "sha256": "4898f02501c4389f26e6d182cb1b997f0e9fb6a214041a77cb18d8fb23bb9e0a"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/floatunsidf.o",
+      "sha256": "567d233d4ae6df12c857ccf565a7fd082a6468e43d98a5fd6bb5007fb407a821"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/fp_mode.o",
+      "sha256": "e1c022518a8faa5007b7dbe9c18babaf2c6fc052ae34b23587a107247b52c888"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/moddi3.o",
+      "sha256": "0175a188eb7c704b214cfd7321618a4ec7490272193d03ce5418579bf527228c"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/muldf3.o",
+      "sha256": "b92e82b4130075c37a7fa160a93bbfd2e66cbaeb1ed84268f580bf62a31eeaf7"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/mulsf3.o",
+      "sha256": "0aa186f6dd489da0948f1509df592d1d6c4734882bddadc309f31b4ca829ca23"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/subdf3.o",
+      "sha256": "361250a439701d689bda6e3ddb186b1bb492b89f72b6c9efd7fdb53f8483a464"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/subsf3.o",
+      "sha256": "01f4ba47248f013772d9e71508e8aa2acdd49c74c96778f20ae2b3bad0de7f9e"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/truncdfsf2.o",
+      "sha256": "0090bad2ec02f46bca985f9787a283fc421ba9d37ac117e11a538793362f0b8a"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/udivdi3.o",
+      "sha256": "6f3b2d1414554264579733c0eb2b9b413ccf07bea94f22ba1eddca709ce6c1cc"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/udivmoddi4.o",
+      "sha256": "df6bf8fc3ebfa76530b30fc267aa96f778bd05d70a16cb3f44bfda688687db4a"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/arithmetic/umoddi3.o",
+      "sha256": "3b44b4875032866a04d0b3be0a8b7297516979ab230b6c692ad7ac141280c5aa"
+    },
+    {
+      "path": "/out/mixed-project-all13-stack-readout-v1/linked/runtime/printf.o",
+      "sha256": "0fbbbf6a6335e9ed5d57975899634c63edbfec68d789400efd961d65ed0fdd20"
+    },
+    {
+      "path": "/out/project-save-link-v1/project_save_app_target.o",
+      "sha256": "2c11908f98a677d17261301b51f6e4677149c1431d9fafdfe395d7b856f7a2ad"
+    }
+  ],
+  "elf_sha256": "9f727255daa42b5f8a6cae321f973560cbb8b2fa44b12347bd6344239d3616c1",
+  "pool_end": 29832896,
+  "guard": 29835264,
+  "global_arena_headroom": 2368,
+  "app_bytes": 860188,
+  "app_sha256": "daf32e3ee7a92a2294ab493501205ecc67d40c031a8750b28b6f1d5fb21ca7b0",
+  "app_growth_bytes": 14272,
+  "flash_end_offset": 876860,
+  "flash_tail_bytes": 11972,
+  "cfg_record_reserve_bytes": 3324,
+  "app_budget_margin_bytes": 8648,
+  "fresh_compiler_dependency_hashes_verified": 37,
+  "artifact_flatten_passed": true,
+  "key_audit_passed": true,
+  "undefined_symbols": []
+}

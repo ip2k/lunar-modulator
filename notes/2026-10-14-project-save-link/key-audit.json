@@ -1,0 +1,72 @@
+{
+  "passed": true,
+  "linked": true,
+  "runtime": "sdk-free",
+  "inputs": [
+    "save-retained.elf"
+  ],
+  "n_fail": 0,
+  "n_pending": 0,
+  "checks": [
+    {
+      "check": "forbidden_keycheck_symbols",
+      "status": "pass",
+      "detail": "none of mkey_check, sdk_mkey_lock, sdk_mkey_lock_v2_cfun, key_check_demo, sdk_chip_key_verify_v2 defined or referenced"
+    },
+    {
+      "check": "dormant_keycheck_absent",
+      "status": "pass",
+      "detail": "defined: []; referenced: []"
+    },
+    {
+      "check": "stub_0200012E_unused",
+      "status": "pass",
+      "detail": "no immediate 0x0200012E (key_check_demo stub call/load)"
+    },
+    {
+      "check": "keycheck_mailbox_unwritten",
+      "status": "pass",
+      "detail": "no reference to 0x01C80108-0x01C80110"
+    },
+    {
+      "check": "no_sdk_key_blob",
+      "status": "pass",
+      "detail": "no SDK JL_KEY_2020 blob bytes (FE 23 A8 B1 ...)"
+    },
+    {
+      "check": "no_key_check_demo_hash",
+      "status": "pass",
+      "detail": "no key_check_demo hash bytes (99 56 B6 46 ...)"
+    },
+    {
+      "check": "irq123_reserved",
+      "status": "pass",
+      "detail": "no reference to IRQ-123 vector 0x01C801EC"
+    },
+    {
+      "check": "irq123_unused_in_sources",
+      "status": "pass",
+      "detail": "only proven literal non-123 IRQ arguments; no IRQ-123 vector address"
+    },
+    {
+      "check": "no_efuse_controller_access",
+      "status": "pass",
+      "detail": "no reference to eFuse SFRs 0x13700-0x1371F"
+    },
+    {
+      "check": "late_initcall_group",
+      "status": "pass",
+      "detail": "SDK-free image has no initcall machinery"
+    },
+    {
+      "check": "sdk_free_linked",
+      "status": "pass",
+      "detail": "requires a linked executable; objects alone cannot establish SDK absence"
+    },
+    {
+      "check": "sdk_meky_check_scheduling",
+      "status": "pass",
+      "detail": "SDK-free runtime requires the dormant check to be absent"
+    }
+  ]
+}

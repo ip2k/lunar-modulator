@@ -3052,3 +3052,20 @@ licensing/review/CI/integration/shipping still open. Installed diagnostic remain
 unbooted; pending owner observation question; never replay consumed install or
 RAM loader operations. Branch feature/2026-10-11@installable-firmware; preceding
 verified pushed05844496bced3425a9ff017076c516733536cc1a.
+
+## Retained native SAVE link checkpoint (2026-10-14)
+
+[verified] Offline Hera full LTO retained SAVE target root alongside installed
+all13/FIRSTORBIT/Shapes12 baseline:281baseline hashes verified,3current objects
+replaced,37compiler dependency hashes match worktree. Link0, SDK-free/eFuse audit
+pass0pending, independent flatten pass and no unresolved symbols. New app860188B
+(+14272),8,648B link budget margin aftercfg reserve; arena headroom2,368B unchanged.
+NewELF9f727255daa42b5f8a6cae321f973560cbb8b2fa44b12347bd6344239d3616c1.
+Evidence notes/2026-10-14-project-save-link/; private build/native-project-save-link-20261014/v1/.
+Sessions58174/6863 terminal0, no live job/no USB command. Harness guard flags do
+not establish scheduling. Not fresh release or inherited stack/IRQ proof; no
+physical storage admission. Next SAVEevent/audio/UI scheduling and full validator/
+HAL integration, safe maximum-project capacity/migration, watched all13boot and
+physicalrollback, webinstaller/builder/licensing/reviewCI/integration. Goal ACTIVE;
+installed diagnostic still not booted; never replay consumed physical operations.
+Branch feature/2026-10-11@installable-firmware; previous verified pushedec076d8280fc0a2e177b92f5a045dbbc80c74d02.
