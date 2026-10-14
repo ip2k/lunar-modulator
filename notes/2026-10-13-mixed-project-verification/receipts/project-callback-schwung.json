@@ -2,7 +2,7 @@
   "scope": "candidate callback expansion; no stack bound or hardware admission",
   "elf_sha256": "df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e",
   "inventory_sha256": "58fbd7c36e570db6b55f413f7912f9c82841fb5b31a2d68d6664e247b4e9c48b",
-  "reachable_functions": 1104,
+  "reachable_functions": 1133,
   "applied_rules": {
     "0x201d450": {
       "names": [
@@ -157,6 +157,25 @@
       ],
       "empty_static_role": false
     },
+    "0x203a866": {
+      "names": [
+        "mfx_off"
+      ],
+      "targets": [
+        "0x20025b8",
+        "0x20056c0",
+        "0x2008aac",
+        "0x200ae92",
+        "0x200da8c",
+        "0x201088c",
+        "0x20134b6",
+        "0x2017be4",
+        "0x2020be0",
+        "0x202b25c",
+        "0x202dd34"
+      ],
+      "empty_static_role": false
+    },
     "0x203a964": {
       "names": [
         "fm1_mod_destroy"
@@ -221,6 +240,17 @@
         "0x2038d2c",
         "0x203909a",
         "0x20392e2"
+      ],
+      "empty_static_role": false
+    },
+    "0x2042b28": {
+      "names": [
+        "run_quiet"
+      ],
+      "targets": [
+        "0x2001262",
+        "0x203780e",
+        "0x203a866"
       ],
       "empty_static_role": false
     },
@@ -635,6 +665,15 @@
         "0x20375fa",
         "0x2037666",
         "0x2037668"
+      ],
+      "empty_static_role": false
+    },
+    "0x20609f2": {
+      "names": [
+        "record"
+      ],
+      "targets": [
+        "0x2060478"
       ],
       "empty_static_role": false
     },
@@ -1439,7 +1478,12 @@
     "engines/src/mi_macro.cc": "4ebb991023229043183d07d2d741359552d2f1dee13e3be1b9e6acad459ed98a",
     "engines/src/mi_macro_heavy.cc": "4b82ba327114348b8e775af97ff0163cba2610b351da2a15a6f96aafea65fe0e",
     "engines/third_party/mutable/plaits/dsp/engine/engine.h": "c31fa0ad1585c4fff9451d844dab4bfaff1823dc677cebf182957827518a43ef",
-    "engines/third_party/mutable/plaits/dsp/engine/modal_engine.cc": "6fb8374b32378bd7b99cd4cc7421b12af681ce973de03a7148ae901c99c71a7a"
+    "engines/third_party/mutable/plaits/dsp/engine/modal_engine.cc": "6fb8374b32378bd7b99cd4cc7421b12af681ce973de03a7148ae901c99c71a7a",
+    "engines/state/state_names.c": "023be58014b9c4d62cfd2822bb270cea923dd5d37f80ed0bce52ad651e04be57",
+    "engines/state/state_registry.c": "bd1e579c57f445ff041722ae6157bb91b5f20703d202d341b99f7f8922e2674a",
+    "firmware/native/project_units.c": "d7617ca904dbfc271cd24b6b023bba3f54124be782d55ae808906546cf6bf1c9",
+    "engines/seq/mfx_host.c": "459ab6163676fc7a5bc772ac04c75a26f294f626269ed941dab182c238f320a4",
+    "sim/web/src/fm1_app.c": "903b50f83a8611dcb764745ac9f11d5c9bc8bff2910ca6c9dd2df190e4d25189"
   },
   "virtual_call_sites": [
     {
@@ -1581,33 +1625,6 @@
       "instruction": "call r5"
     },
     {
-      "caller": "0x2042b28",
-      "names": [
-        "run_quiet"
-      ],
-      "pc": "0x2042bcc",
-      "kind": "indirect",
-      "instruction": "call r7"
-    },
-    {
-      "caller": "0x2042b28",
-      "names": [
-        "run_quiet"
-      ],
-      "pc": "0x2042c20",
-      "kind": "indirect",
-      "instruction": "call r3"
-    },
-    {
-      "caller": "0x20609f2",
-      "names": [
-        "record"
-      ],
-      "pc": "0x2060d08",
-      "kind": "indirect",
-      "instruction": "call r2"
-    },
-    {
       "caller": "0x206d8d0",
       "names": [
         "putchar_via_gadget"
@@ -1621,7 +1638,7 @@
   "limits": [
     "whole-function role unions are candidate edges, not proven per-site targets",
     "application DX7 wrapper callbacks require separate coverage",
-    "run_quiet MIDI sink, mod_emit observer and printf gadget remain unresolved",
+    "optional mod_emit observer and printf gadget need provenance checks",
     "new engine-internal callbacks need source review",
     "recursion, dynamic stack and IRQ overlap are not bounded"
   ],

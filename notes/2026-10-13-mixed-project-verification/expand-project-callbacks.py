@@ -137,6 +137,33 @@ if len(sys.argv) > 3:
     for path, expected in expected_source.items():
         source_hashes[path] = hashlib.sha256((source / path).read_bytes()).hexdigest()
         assert source_hashes[path] == expected, ('reviewed source changed', path)
+    # Exact-source candidate edges for the PROJECT catalogue and MIDI flush.
+    # record's +44 load is names->known, not engine->note_on: identical offsets
+    # in unrelated structs must not be assigned the same callback role.
+    application_sources = {
+        'engines/state/state_names.c': '023be58014b9c4d62cfd2822bb270cea923dd5d37f80ed0bce52ad651e04be57',
+        'engines/state/state_registry.c': 'bd1e579c57f445ff041722ae6157bb91b5f20703d202d341b99f7f8922e2674a',
+        'firmware/native/project_units.c': 'd7617ca904dbfc271cd24b6b023bba3f54124be782d55ae808906546cf6bf1c9',
+        'engines/seq/mfx_host.c': '459ab6163676fc7a5bc772ac04c75a26f294f626269ed941dab182c238f320a4',
+        'sim/web/src/fm1_app.c': '903b50f83a8611dcb764745ac9f11d5c9bc8bff2910ca6c9dd2df190e4d25189',
+    }
+    # Keep historical receipts reproducible: these candidates are enabled only
+    # in the newer full expansion that supplies the Schwung receipt.
+    if len(sys.argv) == 6:
+        for path, digest in application_sources.items():
+            source_hashes[path] = hashlib.sha256((source / path).read_bytes()).hexdigest()
+            assert source_hashes[path] == digest, ('reviewed application changed', path)
+        for caller, pcs in [('record', ['0x2060d08']),
+                            ('run_quiet', ['0x2042bcc', '0x2042c20']),
+                            ('mfx_off', ['0x203a888'])]:
+            found = names(caller)
+            assert len(found) == 1, caller
+            row = graph[next(iter(found))]
+            assert [s['pc'] for s in row['unresolved'] if s['kind'] == 'indirect'] == pcs, caller
+        assert len(names('fm1_absent_find')) == len(names('mfx_off')) == 1
+        rules['record'] = names('fm1_absent_find')
+        rules['run_quiet'] = midi('process') | names('mfx_off')
+        rules['mfx_off'] = eng('note_off')
 edges = {address: set(row['direct']) for address, row in graph.items()}
 applied = {}
 for address, row in graph.items():
@@ -183,7 +210,9 @@ receipt = {'scope': 'candidate callback expansion; no stack bound or hardware ad
     'decoding_limit_instructions': sum(len(graph[a]['decoding_limits']) for a in seen),
     'limits': ['whole-function role unions are candidate edges, not proven per-site targets',
         'application DX7 wrapper callbacks require separate coverage',
-        'run_quiet MIDI sink, mod_emit observer and printf gadget remain unresolved',
+        ('optional mod_emit observer and printf gadget need provenance checks'
+         if len(sys.argv) == 6 else
+         'run_quiet MIDI sink, mod_emit observer and printf gadget remain unresolved'),
         'new engine-internal callbacks need source review',
         'recursion, dynamic stack and IRQ overlap are not bounded'],
     'hardware_admitted': False}

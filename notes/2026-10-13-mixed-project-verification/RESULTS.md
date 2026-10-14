@@ -286,3 +286,29 @@ No hardware commands or firmware edits. Previous verified pushed17ad65f01643fb59
 Next inspect native observer initialization, MFX sink/process binding, actual
 record symbol origin and formatting gadget construction, then stack/IRQ overlap.
 Full release goal and physical migration/rollback/web/CI gates remain open.
+
+### Catalogue and MIDI candidate coverage
+
+[verified] Source hashes for state_names.c, state_registry.c, project_units.c,
+mfx_host.c and fm1_app.c match the immutable production-source-v3 snapshot
+on Hera. The record call at0x2060D08 is names->known from inlined
+fm1_state_note_unknown, NOT an engine note callback; this corrects the earlier
+checkpoint wording. fm1_state_names_default installs fm1_absent_find via the
+compiled pair store at0x204F5FC (r0 at+40, r1 at+44).
+
+[verified] run_quiet loads the MIDI process slot at+84 before0x2042BCC and
+sink->note_off at+4 before0x2042C20. Source mfx_sink assigns mfx_off. The latter
+loads engine->note_off at+48 before0x203A888. Whole-function candidate rules
+now include catalogue-known, MIDI process/MFX sink and sound note-off targets.
+All covered caller PCs must match the exact inventory; source hashes are pinned.
+This remains conservative candidate coverage, not complete object provenance.
+
+[verified] Expansion reaches1133functions with36rules and two unresolved sites:
+mod_emit.4780 at0x203A80C and putchar_via_gadget at0x206D8E6. New and historical
+r3 receipts reproduce byte-for-byte; Python compilation and whitespace checks
+pass. No physical command, runtime or firmware change. Prior verified pushed
+77ba8c2303a0ee19bd654816e749dd377eed3a5e.
+Next prove native observer initialization and formatting gadget construction,
+then calculate complete startup/caller/IRQ stack and test target timing.
+Physical migration/rollback, installer/builder, licensing and review/CI remain
+open. Full release goal remains active; no live measurement job.
