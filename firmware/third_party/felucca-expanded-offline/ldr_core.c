@@ -14,7 +14,9 @@
  *   ldr_progress(done, total), plus synthetic ota_* hooks.
  */
 #define LDR_APP_LO 0x4000u
+#ifndef LDR_APP_HI
 #define LDR_APP_HI 0xD9000u
+#endif
 #if !defined(FELUCCA_EXPANDED_OFFLINE_TEST)
 #error "This profile probe is host-test-only and must not be built for target use"
 #endif

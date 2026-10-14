@@ -27,6 +27,16 @@ def test_expanded_loader_fake_nor_regression(tmp_path):
     assert "offline core test passed" in result.stdout
     assert "corrupt package is rejected before any erase ok" in result.stdout
     assert "changed host chunk is refused before erase   ok" in result.stdout
+    # Recompile the same portable core with the proposed D7000 app boundary.
+    bounded = tmp_path / "expanded-loader-d7000-fake-nor"
+    subprocess.run(
+        [CC, "-std=c99", "-O2", "-Wall", "-Wextra", "-Werror",
+         "-DAPP_HI=0xD7000u", str(HARNESS), "-o", str(bounded)],
+        check=True, capture_output=True, text=True,
+    )
+    bounded_result = subprocess.run([str(bounded)], check=True, capture_output=True, text=True)
+    assert "D7000 stage boundary is outside app writes" in bounded_result.stdout
+    assert "D7000 profile transaction preserves stage and later banks" in bounded_result.stdout
 
 
 @pytest.mark.skipif(CC is None, reason="no host C compiler")
