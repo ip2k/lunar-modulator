@@ -49,6 +49,27 @@ def prepared_input_directory(profile_path):
     return profile_path.parent
 
 
+def set_loader_flags(profile_path):
+    """Keep the analysis link aligned with the prepared content kinds."""
+    try:
+        profile = json.loads(Path(profile_path).read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError('cannot read prepared profile content kinds') from exc
+    content = profile.get('content') if isinstance(profile, dict) else None
+    if not isinstance(content, list):
+        raise ValueError('prepared profile content must be a list')
+    kinds = set()
+    for row in content:
+        if not isinstance(row, dict) or not isinstance(row.get('kind'), str):
+            raise ValueError('prepared profile content row has no kind')
+        if row['kind'] not in {'project', 'set'}:
+            raise ValueError('prepared profile contains unsupported content kind')
+        kinds.add(row['kind'])
+    if 'set' in kinds and 'project' not in kinds:
+        raise ValueError('companion SET analysis requires a project profile entry')
+    return ['--link-set-loader'] if 'set' in kinds else []
+
+
 def replace_once(text, old, new, label):
     count = text.count(old)
     if count != 1:
@@ -658,6 +679,7 @@ def main():
                '--flash-layout', 'expanded-d7000', '--prepared-profile',
                str(prepared_input_directory(args.prepared_profile)), '--expected-profile-sha256',
                args.expected_profile_sha256, '--link-project-loader',
+               *set_loader_flags(args.prepared_profile),
                '--link-project-save-service', '--startup-project-index', '0',
                '--shapes-voices', '8', '--indexed-tft', '--compressed-wavetables']
     result = subprocess.run(command, text=True, capture_output=True)
