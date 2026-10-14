@@ -20,4 +20,12 @@ fm1_mod_t *lunar_project_mod_stage(const uint8_t *bytes, uint32_t size,
                                   const fm1_host_t *host,
                                   void *workspace, size_t workspace_bytes,
                                   fm1_state_report_t *report);
+/* Same staging contract; optional disjoint seed_out is written only on success.
+ * It carries the exact seed used to construct the returned runtime (zero when
+ * absent), so application adoption/save/reset cannot diverge from runtime state. */
+fm1_mod_t *lunar_project_mod_stage_seeded(const uint8_t *bytes, uint32_t size,
+                                  const fm1_state_names_t *names,
+                                  const fm1_host_t *host,
+                                  void *workspace, size_t workspace_bytes,
+                                  fm1_state_report_t *report, uint32_t *seed_out);
 #endif

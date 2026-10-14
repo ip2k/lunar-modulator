@@ -2151,3 +2151,17 @@ progress; this checkpoint preserves verified source work, goal remains active.
 Next connect native PROJECT modulation staging/seed to cold adoption and compose
 complete startup; restore VIEW last. Remaining all13 hardware/web install,
 settings migration, physical rollback and exact-head review/CI/integration open.
+
+## Native PROJECT modulation startup checkpoint (2026-10-13)
+
+[verified] Full PROJECT/installed-engine preflight, final-storage modulation
+construction and saved-seed adoption implemented. Host v3:138 cases passed30
+Hera sanitizer chunks; native30 five-engine links passed. Logs/exit/noOOM and
+immutable source hashes inspected; owned containers removed. Failed v1/v2 fixture
+campaigns retained, validation unchanged. Reproduction and receipts:
+notes/2026-10-13-project-mod-start-verification/RESULTS.md. No physical command.
+Previous goal turn produced terminal failure evidence; this continuation fixed
+fixtures and verified source behavior. Previous pushed7139fd32, branch
+feature/2026-10-11@installable-firmware. Goal active: compose PROJECT startup and
+VIEW next; final all13/resources/timing/settings migration/physical rollback/web
+install/exact-head reviewCIintegration remain incomplete.

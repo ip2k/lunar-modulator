@@ -19,14 +19,14 @@ def arena_tools(tmp_path_factory):
     native = ROOT / "firmware/native"
     vendor = ROOT / "firmware/third_party/tlsf"
     fragment = build / "native.mk"
-    sources = [native / "project_start.c", native / "instance_pool.c", vendor / "tlsf.c"]
+    sources = [native / "project_start.c", native / "project_mod.c", native / "project_units.c", native / "instance_pool.c", vendor / "tlsf.c"]
     # Separate objects per storage profile because EXTRA changes its ABI.
     tools = {}
     for external in (0, 1):
         out = build / str(external)
         binary = out / "fm1-arena-check"
         extra = os.environ.get("FM1_SIM_EXTRA", "")
-        objects = [out / (name + ".o") for name in ("project_start", "instance_pool", "tlsf")]
+        objects = [out / (name + ".o") for name in ("project_start", "project_mod", "project_units", "instance_pool", "tlsf")]
         fragment.write_text(
             f"{binary}: " + " ".join(map(str, objects)) + "\n" +
             "".join(f"{obj}: {source}\n\t@mkdir -p $(dir $@)\n\t$(CC) $(SIM_CFLAGS) -Istate -I{native} -I{vendor} -c $< -o $@\n"
@@ -44,6 +44,13 @@ def arena_tools(tmp_path_factory):
         ], check=True, stdout=subprocess.DEVNULL)
         tools[external] = binary
     return tools
+
+
+@pytest.mark.parametrize("case", range(32))
+def test_project_mod_startup(arena_tools, case):
+    result = json.loads(subprocess.check_output(
+        [str(arena_tools[1]), "--project-mod", str(case)], text=True))
+    assert result == {"passed": True, "case": case}
 
 
 @pytest.mark.parametrize("case", range(30))

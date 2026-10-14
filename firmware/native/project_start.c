@@ -2,6 +2,7 @@
 #include <string.h>
 #include <math.h>
 #include "fm1_modules.h"
+#include "project_mod.h"
 
 #if FM1_APP_EXTERNAL_ARENAS
 typedef char parameter_capacity_match[
@@ -92,6 +93,49 @@ int lunar_project_restore_scalars(fm1_app_t *app,
         app->dirty = app->leds_changed = 1;
     }
     return 1;
+}
+
+int lunar_project_restore_mod(fm1_app_t *app, const uint8_t *bytes, uint32_t size,
+                              fm1_state_report_t *report) {
+    fm1_state_names_t names;
+    lunar_project_units_t plan;
+    fm1_mod_t *mod;
+    uint32_t seed;
+    if (!report || (app && scalar_overlap(app, sizeof *app, report, sizeof *report)) ||
+        (bytes && scalar_overlap(bytes, size, report, sizeof *report))) return 0;
+    fm1_state_report_init(report);
+    if (!app || !bytes || app->frames || size > FM1_STATE_BIN_MAX ||
+        scalar_overlap(app, sizeof *app, bytes, size)) {
+        report->code = size > FM1_STATE_BIN_MAX ? FM1_STATE_TOO_BIG : FM1_STATE_BAD;
+        return 0;
+    }
+    fm1_state_names_default(&names);
+    if (!lunar_project_units_plan(bytes, size, &names, &app->host, &plan, report)) return 0;
+    for (unsigned i = 0; i < LUNAR_PROJECT_UNITS; ++i) {
+        const fm1_engine_t *installed;
+        if (i < 14u) {
+            int slot = i < 4u ? fm1_app_sound_unit((int)i) :
+                       i < 12u ? fm1_app_insert_unit((int)((i - 4u) / 2u), (int)((i - 4u) % 2u)) :
+                       1 + (int)(i - 12u);
+            installed = app->unit[slot].e;
+        } else {
+            const fm1_mfx_slot_t *slot = fm1_mfx_slot(&app->mfx, i - 14u, 0);
+            installed = slot && slot->fx ? &slot->fx->engine : NULL;
+        }
+        if (installed != plan.engine[i]) {
+            report->code = FM1_STATE_BAD;
+            strncpy(report->what, "project engines differ from installed app", sizeof report->what - 1u);
+            return 0;
+        }
+    }
+    if (!fm1_app_mod_prepare_cold(app)) { report->code = FM1_STATE_BAD; return 0; }
+    mod = lunar_project_mod_stage_seeded(bytes, size, &names, &app->host,
+                                         app->mod_mem, sizeof app->mod_mem, report, &seed);
+    if (!mod) return 0;
+    if (fm1_app_mod_adopt_cold(app, mod, seed)) return 1;
+    fm1_mod_destroy(mod);
+    report->code = FM1_STATE_BAD;
+    return 0;
 }
 
 typedef struct {

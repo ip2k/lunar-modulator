@@ -82,11 +82,11 @@ static int base_record(void *ctx, const fm1_rec_t *r) {
     return 1;
 }
 
-fm1_mod_t *lunar_project_mod_stage(const uint8_t *bytes, uint32_t size,
+fm1_mod_t *lunar_project_mod_stage_seeded(const uint8_t *bytes, uint32_t size,
                                   const fm1_state_names_t *names,
                                   const fm1_host_t *host,
                                   void *workspace, size_t workspace_bytes,
-                                  fm1_state_report_t *report) {
+                                  fm1_state_report_t *report, uint32_t *seed_out) {
     lunar_project_units_t plan;
     fm1_state_mod_t apply;
     fm1_mod_plan_info_t info;
@@ -96,6 +96,12 @@ fm1_mod_t *lunar_project_mod_stage(const uint8_t *bytes, uint32_t size,
     unsigned i;
     size_t need = fm1_mod_size();
     if (!report) return NULL;
+    if (seed_out &&
+        (!disjoint(seed_out, sizeof *seed_out, report, sizeof *report) ||
+         (bytes && !disjoint(seed_out, sizeof *seed_out, bytes, size)) ||
+         (workspace && !disjoint(seed_out, sizeof *seed_out, workspace, workspace_bytes)) ||
+         (host && !disjoint(seed_out, sizeof *seed_out, host, sizeof *host)) ||
+         (names && !disjoint(seed_out, sizeof *seed_out, names, sizeof *names)))) return NULL;
     fm1_state_report_init(report);
     if (!bytes || !names || !host || !workspace || workspace_bytes < need ||
         ((uintptr_t)workspace & 15u) ||
@@ -156,8 +162,18 @@ fm1_mod_t *lunar_project_mod_stage(const uint8_t *bytes, uint32_t size,
         refuse(report, FM1_STATE_BAD, "enabled modulation routes refused by runtime planner");
         goto failed;
     }
+    if (seed_out) *seed_out = load.seed;
     return mod;
 failed:
     fm1_mod_destroy(mod);
     return NULL;
+}
+
+fm1_mod_t *lunar_project_mod_stage(const uint8_t *bytes, uint32_t size,
+                                  const fm1_state_names_t *names,
+                                  const fm1_host_t *host,
+                                  void *workspace, size_t workspace_bytes,
+                                  fm1_state_report_t *report) {
+    return lunar_project_mod_stage_seeded(bytes, size, names, host, workspace,
+                                          workspace_bytes, report, NULL);
 }

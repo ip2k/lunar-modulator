@@ -101,6 +101,81 @@ static void scalar_put(void *ctx, const char *p, size_t n) {
   memcpy(scalar_bytes + scalar_size, p, n);
   scalar_size += n;
 }
+static void project_mod_check(int which) {
+  fm1_state_report_t report;
+  fm1_rec_t r = {0};
+  const uint8_t version[3] = {0, 1, 0};
+  void *writer_mem = calloc(1, fm1_state_bin_writer_size());
+  assert(writer_mem);
+  fm1_app_init(&managed, 44118.0f);
+  assert(fm1_app_bind_arena(&managed, 0, arena.data, sizeof arena.data) == 0);
+  assert(fm1_app_select(&managed, 0, fm1_app_find("trio")) == 0);
+  /* PROJECT has no MIDI effects: restore that state before modulation. */
+  lunar_project_engines_t empty = {0};
+  const uint8_t midi_on[FM1_APP_SOUNDS] = {0};
+  assert(lunar_project_restore_midi_units(&managed, &empty, midi_on) == FM1_APP_SELECT_OK);
+  scalar_size = 0;
+  fm1_state_report_init(&report);
+  fm1_state_writer_t *writer = fm1_state_bin_writer(writer_mem, 0,
+      FM1_STATE_WRITER_DESKTOP, version, scalar_put, NULL, &report);
+  assert(writer);
+  r.type = FM1_REC_HEAD; r.u.head.kind = FM1_STATE_PROJECT; r.u.head.major = 1;
+  assert(fm1_state_bin_write(writer, &r));
+  memset(&r, 0, sizeof r); r.type = FM1_REC_UNIT; r.role = FM1_ROLE_SOUND;
+  strcpy(r.u.unit.id, which == 24 || which == 29 ? "test-sine" : "trio");
+  assert(fm1_state_bin_write(writer, &r));
+  memset(&r, 0, sizeof r); r.type = FM1_REC_MOD;
+  assert(fm1_state_bin_write(writer, &r));
+  uint32_t seed = which & 1 ? 0 : 0x24680000u + (uint32_t)which;
+  if (which < 30) { /* Zero is valid; an absent seed is tested separately. */
+    r.type = FM1_REC_SEED; r.u.seed = seed;
+    assert(fm1_state_bin_write(writer, &r));
+  }
+  memset(&r, 0, sizeof r); r.type = FM1_REC_MODULE; r.role = FM1_ROLE_MODULE;
+  strcpy(r.u.unit.id, which & 1 ? "env" : "lfo");
+  assert(fm1_state_bin_write(writer, &r));
+  memset(&r, 0, sizeof r); r.type = FM1_REC_CABLE;
+  r.u.cable.s.src = FM1_MOD_SRC_VEL; r.u.cable.s.via = FM1_MOD_NONE;
+  r.u.cable.s.dst_unit = FM1_MOD_HOST; r.u.cable.s.dst = FM1_MOD_HOST_AMP_UID;
+  r.u.cable.s.amount = fm1_mod_q14(-0.5f); r.u.cable.s.flags = FM1_MOD_SLOT_ON;
+  assert(fm1_state_bin_write(writer, &r));
+  memset(&r, 0, sizeof r); r.type = FM1_REC_END;
+  assert(fm1_state_bin_write(writer, &r));
+  free(writer_mem);
+  if (which >= 20) {
+    int bad = which >= 30 ? 5 : which % 5;
+    if (bad == 0) managed.frames = 1;
+    if (bad == 1) scalar_bytes[scalar_size - 1] ^= 1;
+    if (bad == 2) --scalar_size;
+    fm1_app_t *before = malloc(sizeof managed);
+    assert(before); memcpy(before, &managed, sizeof managed);
+    assert(!lunar_project_restore_mod(&managed, scalar_bytes, (uint32_t)scalar_size,
+        bad == 3 ? (fm1_state_report_t *)&managed : &report));
+    assert(!memcmp(before, &managed, sizeof managed));
+    free(before); return;
+  }
+  int loaded = lunar_project_restore_mod(&managed, scalar_bytes, (uint32_t)scalar_size, &report);
+  if (!loaded) fprintf(stderr, "mod startup %u: %s\n", report.code, report.what);
+  assert(loaded);
+  assert(report.code == FM1_STATE_OK && managed.mod && managed.mod_seed == seed);
+  assert(fm1_mod_kind_at(managed.mod, 0) == fm1_mod_kind_find(which & 1 ? "env" : "lfo"));
+  fm1_mod_slot_t cable;
+  assert(fm1_mod_get_slot(managed.mod, 0, &cable));
+  assert(cable.amount == fm1_mod_q14(-0.5f) && cable.flags == FM1_MOD_SLOT_ON);
+  fm1_app_key(&managed, which % 27, 1, 100);
+  double energy = 0;
+  for (int b = 0; b < 8; ++b) {
+    const float *audio = fm1_app_render(&managed, 64);
+    for (int n = 0; n < 128; ++n) {
+      assert(isfinite(audio[n])); energy += audio[n] * audio[n];
+    }
+  }
+  assert(energy > 0.0001 && managed.mod_amp_used);
+  assert(fm1_mod_sent(managed.mod, FM1_MOD_HOST, FM1_MOD_HOST_AMP) < 1.0f);
+  fm1_app_key(&managed, which % 27, 0, 0);
+  fm1_app_all_notes_off(&managed);
+  fm1_app_mod_reset(&managed, seed);
+}
 static void scalar_check(int which) {
   fm1_state_report_t report;
   fm1_rec_t r;
@@ -515,6 +590,13 @@ static void managed_check(int shard) {
 
 int main(int argc, char **argv) {
 #if FM1_APP_EXTERNAL_ARENAS
+  if (argc == 3 && !strcmp(argv[1], "--project-mod")) {
+    int which = atoi(argv[2]);
+    assert(which >= 0 && which < 32);
+    project_mod_check(which);
+    printf("{\"passed\":true,\"case\":%d}\n", which);
+    return 0;
+  }
   if (argc == 3 && !strcmp(argv[1], "--mod-cold")) {
     int which = atoi(argv[2]); assert(which >= 0 && which < 30);
     mod_cold_check(which);

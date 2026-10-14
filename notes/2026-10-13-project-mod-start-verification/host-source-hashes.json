@@ -1,0 +1,8 @@
+{
+  "firmware/native/project_start.c": "9c67e1b9d6b37322ea9426db06055134c36a61f991796a2a2860ae8d20db4be5",
+  "firmware/native/project_start.h": "56dea4a99a63ccd9a8505bc0ea6e77519476cb33ea2cb6f92158776a1b14c108",
+  "firmware/native/project_mod.c": "c572026b7f8f3b21ec837b7ba21fc933c064e8113a1fd98b4adab78d7b283716",
+  "firmware/native/project_mod.h": "5b66d59620c5ab316b6254f49f412aa43c91e34e28b49209dfb4c6589c8725f1",
+  "tests/test_app_arenas.py": "6246e4c0d8b27f570ed660d424d7bb0a06c607976c8fa8fe89e9f2ccc1875d62",
+  "sim/web/test/fm1_arena_check.c": "e008344b2307b3658b235753c761494514d74b350cff5a099d2602cf7c7d082b"
+}

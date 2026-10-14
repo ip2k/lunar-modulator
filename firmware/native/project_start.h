@@ -16,6 +16,16 @@ int lunar_project_restore_scalars(fm1_app_t *app,
                                   const uint8_t *bytes, uint32_t size,
                                   fm1_state_report_t *report);
 
+/* Cold main task, immutable PROJECT, after audio/MIDI engines are restored.
+ * Preflight validates complete unit plan and exact installed engine identities.
+ * Construct modulation in final app storage, preserve saved bases/routes and
+ * attach rendering/UI with the file seed. Input/report disjoint from app.
+ * Preflight refusal preserves app. Failure after default-rack release requires
+ * discarding the cold app; never render after failure. No complete startup or
+ * live project replacement transaction. Reader requires >8KiB stack. */
+int lunar_project_restore_mod(fm1_app_t *app, const uint8_t *bytes, uint32_t size,
+                              fm1_state_report_t *report);
+
 /* Caller-owned disposable scratch; not part of app or its allocation pool. */
 typedef struct {
     uint32_t seen;

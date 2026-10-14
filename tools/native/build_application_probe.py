@@ -308,7 +308,7 @@ def main():
                   'lunar_project_engines_stage', 'lunar_project_engines_release',
                   'lunar_project_engines_apply', 'lunar_project_adopt_audio_units',
                   'lunar_project_restore_midi_units', 'lunar_project_restore_scalars',
-                  'lunar_project_restore_dx7', 'fm1_app_mod_prepare_cold',
+                  'lunar_project_restore_dx7', 'lunar_project_restore_mod', 'fm1_app_mod_prepare_cold',
                   'fm1_app_mod_adopt_cold')
     elf = out / 'lunar-app-probe.elf'
     script = out / 'app.ld'
@@ -374,7 +374,7 @@ def main():
                                        sequence_staging_link_verified=True,
                                        engine_staging_link_verified=True, engine_parameter_link_verified=True, audio_adoption_link_verified=True,
                                        midi_restore_link_verified=True, scalar_restore_link_verified=True, dx7_restore_link_verified=True,
-                                       modulation_adoption_link_verified=True,
+                                       modulation_adoption_link_verified=True, modulation_restore_link_verified=True,
                                        activated=False, stack_margin_verified=False,
                                        timing_verified=False, hardware_tested=False,
                                        sequence_semantics_verified=False)
