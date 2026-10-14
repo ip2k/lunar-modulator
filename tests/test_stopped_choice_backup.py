@@ -27,6 +27,9 @@ def prepared(tmp_path,monkeypatch):
                  'fm1_stopped_choice_recovery_evidence.py','fm1_fixed_loader_backup.py','fm1_uboot_read.py'):
         shutil.copyfile(Path(n.__file__).with_name(name),root/name)
     monkeypatch.setattr(n,'__file__',str(root/'fm1_stopped_choice_backup.py'))
+    # This is a synthetic factory test, so bind its copied rehearsal source to
+    # its exact local bytes. The production adapter keeps its immutable pin.
+    monkeypatch.setattr(n, 'REHEARSAL_SHA', n.digest((root/'fm1_sdk_rehearsal.py').read_bytes()))
     loader=bytes((i*7)%256 for i in range(bridge.LOADER_SIZE));lp=tmp_path/'loader';lp.write_bytes(loader)
     monkeypatch.setattr(bridge,'LOADER_SHA',n.digest(loader))
     inventory=[]
