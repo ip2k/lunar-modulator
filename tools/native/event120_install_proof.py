@@ -24,7 +24,7 @@ def unique_object(pairs):
 
 def replay(raw, result, *, campaign_sha256, sources, adapter_sha256,
            backup_manifest_sha256, sg_binding, baseline, target, sector_order,
-           observed_at):
+           observed_at, prior_v1_stop_proof=None):
     """Require every complete SG command, final page and terminal event."""
     if (not isinstance(raw, bytes) or len(raw) > 32 * 1048576 or
             any(not isinstance(image, bytes) or len(image) != 1048576
@@ -52,7 +52,9 @@ def replay(raw, result, *, campaign_sha256, sources, adapter_sha256,
     cursor.event('native_transaction_prepared', campaign_sha256=campaign_sha256,
         source_sha256=sources, adapter_sha256=adapter_sha256,
         backup_manifest_sha256=backup_manifest_sha256, sg_binding=sg_binding,
-        variant='native', direction='install', retry=False)
+        variant='native', direction='install', retry=False,
+        **({"prior_v1_stop_proof": prior_v1_stop_proof}
+           if prior_v1_stop_proof is not None else {}))
     cursor.direction = 'install'
     cursor.command(0xFC0A)
     cursor.read(baseline, 0, 1048576)
@@ -85,6 +87,8 @@ def replay(raw, result, *, campaign_sha256, sources, adapter_sha256,
         full_flash_readback_verified=True, boot_observed=False,
         physical_recovery_verified=False, kernel_exclusivity=False,
         hardware_admitted=False, installable=False)
+    if prior_v1_stop_proof is not None:
+        accepted["prior_v1_stop_proof"] = prior_v1_stop_proof
     cursor.event('native_transaction_completed', **accepted)
     if (cursor.position != len(events) or cursor.index > COMMAND_LIMIT or
             canonical(result) != canonical(accepted)):
