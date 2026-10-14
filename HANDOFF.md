@@ -3535,8 +3535,9 @@ as ce1bbebad79b96bc37245d6bc071cf7e0498cb9e, GitHub ref verified. Exact pinned
 worker source, capped output, bounded pipe drain and graceful container shutdown
 are included. Worker tests passed 43 with one optional retained-build skip.
 Coordinator's combined local test attempt could not collect service tests because
-the Mac project venv lacks FastAPI; exact integrated service tests are running on
-Hera using its prepared environment. No public deployment/artifact API is claimed.
+the Mac project venv lacks FastAPI. Exact integrated ce1bbeba service tests also
+passed on Hera: 43 passed, one optional retained-artifact skip. No public
+deployment/artifact API is claimed.
 
 Passive bench inspection still sees ROM interface class08/subclass06/protocol50;
 no device command issued. Ordinary WebUSB cannot claim this protected class.
@@ -3546,7 +3547,7 @@ stop at 0x93000, short of the approved D9000 layout. Investigate a small stock-O
 MIDI bootstrap followed by a reviewed expanded transaction; native recovery
 remains the fallback. Do not present direct browser ROM as a working route.
 
-Next dependencies: exact integrated service evidence, real 120s image/candidate
+Next dependencies: real 120s image/candidate
 receipt binding, viable browser install transport, five demo allocation refusals,
 watched hardware full-song test (press PLAY promptly), persistence ownership and
 migration/rollback, interrupted-write recovery, release licence/notices, review,

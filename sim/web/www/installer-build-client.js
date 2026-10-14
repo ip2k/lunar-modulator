@@ -134,6 +134,11 @@ function validateSnapshot(body, id) {
       || typeof result.artifact_sha256 !== 'string' || !SHA256.test(result.artifact_sha256)
       || !Number.isInteger(result.artifact_bytes) || result.artifact_bytes < 1
       || result.artifact_bytes > MAX_ARTIFACT_BYTES
+      || !Number.isInteger(result.app_budget_bytes)
+      || result.app_budget_bytes < result.artifact_bytes
+      || result.app_budget_bytes > MAX_ARTIFACT_BYTES
+      || !Number.isInteger(result.remaining_bytes)
+      || result.remaining_bytes !== result.app_budget_bytes - result.artifact_bytes
       || result.installable !== false || result.hardware_tested !== false) {
     fail('The build result did not pass diagnostic receipt checks.');
   }
@@ -141,6 +146,8 @@ function validateSnapshot(body, id) {
     status: 'succeeded',
     artifactSha256: result.artifact_sha256,
     artifactBytes: result.artifact_bytes,
+    appBudgetBytes: result.app_budget_bytes,
+    remainingBytes: result.remaining_bytes,
     installable: false,
     hardwareTested: false,
   });

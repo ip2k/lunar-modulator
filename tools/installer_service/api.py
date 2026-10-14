@@ -221,6 +221,8 @@ def _verify_result(admission: Admission, result: WorkerResult) -> dict:
         raise ValueError("worker codec metadata is missing or invalid")
     return {"status": receipt["status"], "artifact_sha256": artifact_sha,
             "artifact_bytes": len(result.artifact), "installable": False,
+            "app_budget_bytes": receipt["app_budget_bytes"],
+            "remaining_bytes": receipt["app_budget_bytes"] - len(result.artifact),
             "hardware_tested": False}
 
 

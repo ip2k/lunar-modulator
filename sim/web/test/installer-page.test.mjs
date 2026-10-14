@@ -182,7 +182,8 @@ test('uses injected build client only after explicit selection and preserves mod
         onProgress('queued');
         onProgress('running');
         onProgress('succeeded');
-        return { status: 'succeeded', artifactBytes: 1234, installable: false };
+        return { status: 'succeeded', artifactBytes: 1234, appBudgetBytes: 868836,
+          remainingBytes: 867602, installable: false };
       },
     },
   });
@@ -206,7 +207,7 @@ test('uses injected build client only after explicit selection and preserves mod
   assert.deepEqual(submissions[0].project_ids, [ids[5], ids[6], ids[1]]);
   assert.equal(submissions[0].startup_index, 2);
   assert.deepEqual(submissions[0].engines, ['macro', 'shapes']);
-  assert.equal(exportStatus.textContent, 'Diagnostic build checks passed (1234 bytes). No installable firmware file is available.');
+  assert.equal(exportStatus.textContent, 'Diagnostic build checks passed. Application flash: 1,234 / 868,836 bytes used; 867,602 bytes free. No installable firmware file is available.');
   assert.equal(cancelButton.hidden, true);
   assert.match(serviceNotice.textContent, /does not provide installable firmware/i);
   controller.destroy();

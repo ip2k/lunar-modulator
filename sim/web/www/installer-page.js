@@ -77,7 +77,7 @@ export async function mountInstallerPage(root, {
                   : 'Diagnostic result verified.';
             },
           }).then((result) => {
-            if (status) status.textContent = `Diagnostic build checks passed (${result.artifactBytes} bytes). No installable firmware file is available.`;
+            if (status) status.textContent = `Diagnostic build checks passed. Application flash: ${result.artifactBytes.toLocaleString()} / ${result.appBudgetBytes.toLocaleString()} bytes used; ${result.remainingBytes.toLocaleString()} bytes free. No installable firmware file is available.`;
           }).catch((error) => {
             if (status) status.textContent = activeBuild?.signal.aborted
               ? 'Stopped waiting for this build. The server may continue processing it.'

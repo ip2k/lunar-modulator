@@ -155,6 +155,8 @@ def test_success_verifies_exact_request_and_app_bytes():
     assert response.status_code == 200
     result = response.json()["result"]
     assert result["artifact_sha256"] == hashlib.sha256(b"diagnostic-app").hexdigest()
+    assert result["app_budget_bytes"] == 1048576
+    assert result["remaining_bytes"] == result["app_budget_bytes"] - len(b"diagnostic-app")
     assert result["installable"] is False
     assert result["hardware_tested"] is False
 

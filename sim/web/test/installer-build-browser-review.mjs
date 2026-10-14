@@ -129,6 +129,7 @@ try {
           : poll === 2 ? { id: 'A'.repeat(32), status: 'running', kind: 'private-diagnostic-build' }
             : { id: 'A'.repeat(32), status: 'succeeded', kind: 'private-diagnostic-build', result: {
               status: 'linked-private-diagnostic', artifact_sha256: 'c'.repeat(64), artifact_bytes: 785312,
+              app_budget_bytes: 868836, remaining_bytes: 83524,
               installable: false, hardware_tested: false,
             } };
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });

@@ -25,6 +25,7 @@ test('submits the ordered v1 request same-origin and polls a verified diagnostic
     { id, status: 'succeeded', kind: 'private-diagnostic-build', result: {
       status: 'linked-private-diagnostic', artifact_sha256: sha,
       artifact_bytes: 785312, installable: false, hardware_tested: false,
+      app_budget_bytes: 868836, remaining_bytes: 83524,
     } },
   ];
   const client = createInstallerBuildClient({ origin: 'https://lunar.test', pollIntervalMs: 100, maxWaitMs: 5000,
@@ -41,6 +42,7 @@ test('submits the ordered v1 request same-origin and polls a verified diagnostic
   assert.deepEqual(progress, ['queued', 'queued', 'running', 'succeeded']);
   assert.deepEqual(result, {
     status: 'succeeded', artifactSha256: sha, artifactBytes: 785312,
+    appBudgetBytes: 868836, remainingBytes: 83524,
     installable: false, hardwareTested: false,
   });
   assert.equal(calls[0].url, 'https://lunar.test/api/v1/builds');
@@ -106,6 +108,27 @@ test('handles rejection and cancellation without additional polling', async () =
     onProgress: (state) => { if (state === 'queued') controller.abort(); },
   }), /canceled/);
   assert.equal(calls, 1);
+});
+
+test('rejects missing or inconsistent application flash capacity', async () => {
+  for (const capacity of [
+    {},
+    { app_budget_bytes: 99, remaining_bytes: -1 },
+    { app_budget_bytes: 200, remaining_bytes: 101 },
+    { app_budget_bytes: 200.5, remaining_bytes: 100.5 },
+    { app_budget_bytes: Number.MAX_SAFE_INTEGER, remaining_bytes: Number.MAX_SAFE_INTEGER - 100 },
+  ]) {
+    let calls = 0;
+    const client = createInstallerBuildClient({ origin: 'https://lunar.test', pollIntervalMs: 100,
+      fetchImpl: async () => ++calls === 1
+        ? response(202, { id, status: 'queued', status_url: `/api/v1/builds/${id}` })
+        : response(200, { id, status: 'succeeded', kind: 'private-diagnostic-build', result: {
+          status: 'linked-private-diagnostic', artifact_sha256: sha,
+          artifact_bytes: 100, installable: false, hardware_tested: false, ...capacity,
+        } }),
+    });
+    await assert.rejects(client.build(request), /receipt checks/);
+  }
 });
 
 test('bounds timing configuration and rejects invalid selected request', async () => {
