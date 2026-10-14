@@ -32,6 +32,7 @@ def audit_ram_call_allowlist(disassembly, symbols):
     current = None
     seen_labels = set()
     instruction_count = 0
+    function_instructions = {name: [] for name in (_EXPECTED_CALLER, _EXPECTED_TARGET)}
     calls = []
     for line in disassembly.splitlines():
         label = re.fullmatch(r"([A-Za-z_.$][A-Za-z0-9_.$@-]*):", line.strip())
@@ -44,6 +45,12 @@ def audit_ram_call_allowlist(disassembly, symbols):
         instruction = re.match(r"^\s*([0-9a-fA-F]+):\s+.*$", line)
         if instruction:
             instruction_count += 1
+            address = int(instruction.group(1), 16)
+            if current in function_instructions:
+                start, size = symbol_rows[current]
+                if not start <= address < start + size:
+                    raise ValueError(f"instruction address outside linked RAM symbol {current}: {address:#x}")
+                function_instructions[current].append(address)
             if re.search(r"\bcall\b", line):
                 if current is None:
                     raise ValueError("RAM call has no containing function label")
@@ -53,7 +60,7 @@ def audit_ram_call_allowlist(disassembly, symbols):
                 if target is None:
                     raise ValueError(f"malformed or indirect RAM call in {current}")
                 calls.append({"caller": current,
-                              "site": int(instruction.group(1), 16),
+                              "site": address,
                               "target": target.group(1).strip(),
                               "target_address": int(target.group(2), 16),
                               "instruction": line.strip()})
@@ -66,6 +73,10 @@ def audit_ram_call_allowlist(disassembly, symbols):
         if name not in seen_labels:
             raise ValueError(f"missing RAM disassembly label: {name}")
 
+    for name, addresses in function_instructions.items():
+        if not addresses:
+            raise ValueError(f"RAM disassembly symbol contains no instructions: {name}")
+
     expected_address = symbol_rows[_EXPECTED_TARGET][0]
     if len(calls) != 1:
         raise ValueError(f"expected exactly one allowlisted RAM call, found {len(calls)}")
@@ -74,6 +85,9 @@ def audit_ram_call_allowlist(disassembly, symbols):
         raise ValueError(f"unexpected RAM call caller: {call['caller']}")
     if call["target"] != _EXPECTED_TARGET:
         raise ValueError(f"unexpected RAM call target: {call['target']}")
+    caller_start, caller_size = symbol_rows[_EXPECTED_CALLER]
+    if not caller_start <= call["site"] < caller_start + caller_size:
+        raise ValueError("RAM call site outside linked caller symbol")
     if call["target_address"] != expected_address:
         raise ValueError("RAM call target address does not match linked symbol")
     return {"passed": True, "allowed_calls": calls,

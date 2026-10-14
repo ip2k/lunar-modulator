@@ -115,6 +115,13 @@ fl_jedec_ram:
              'unexpected RAM call target'),
             ('fl_jedec_checked_ram:\n 1c00004: nop\nfl_jedec_ram:\n 1c00008: call 0 <fl_jedec_checked_ram : 1c00010 >\n',
              'target address does not match'),
+            # A forged function label cannot attribute an instruction outside
+            # the symbol-table extent to the expected RAM function.
+            ('fl_jedec_checked_ram:\n 1c00004: nop\nfl_jedec_ram:\n 1c00010: call 0 <fl_jedec_checked_ram : 1c00004 >\n',
+             'instruction address outside linked RAM symbol fl_jedec_ram'),
+            # The helper label is also checked against its linked extent.
+            ('fl_jedec_checked_ram:\n 1c00010: nop\nfl_jedec_ram:\n 1c00008: call 0 <fl_jedec_checked_ram : 1c00004 >\n',
+             'instruction address outside linked RAM symbol fl_jedec_checked_ram'),
         )
         for listing, message in cases:
             with self.subTest(message=message):

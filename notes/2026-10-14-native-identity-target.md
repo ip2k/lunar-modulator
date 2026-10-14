@@ -37,3 +37,9 @@ Receipt states the identity is explicit, but package identity, updater acceptanc
 - Canonical constrained target build and linked audit_link: passed as above.
 
 These checks validate exact linked metadata and the structural RAM-call allowlist. They do not validate target execution, interrupt timing, NOR writer closure while XIP is unavailable, watchdog recovery, save/restore behavior, device identity, musical acceptance, or owner/hardware approval.
+
+## RAM call audit extent follow-up
+
+The strict allowlist now checks the instruction addresses attributed to both required symbols against each symbol-table `[address, address + size)` range, and explicitly bounds the one allowed call site to `fl_jedec_ram`. Negative tests forge a function label outside its linked extent for both caller and callee; both are rejected. The exact canonical final-link `.ram_text` disassembly and symbol table from `canonical-rerun2/out/build` pass this stricter check: `fl_jedec_ram` is `[0x01c00184, 0x01c0019a)`, its call starts at `0x01c0018a`, and `fl_jedec_checked_ram` is `[0x01c00004, 0x01c00184)`. This is a parser recheck of the retained output, not a relink.
+
+The builder applies the gate unconditionally to its final `.ram_text` disassembly. Its runtime-mode choices (diagnostic, song-diagnostic, continuous) and optional SAVE/loader flags do not bypass the gate. The canonical profile demonstrates the required functions survive section GC. Any future profile that legitimately garbage-collects either function will fail closed until its expected RAM-call policy is explicitly characterized; no such no-call profile was established in this follow-up.
