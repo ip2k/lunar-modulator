@@ -125,6 +125,29 @@ review/CI/main integration and public release remain open.
 
 ## Latest continuation
 
+[verified] Event Horizon Showcase is owner-approved as the default song. The
+845,036-byte Shapes8 candidate contains all thirteen engines and has been
+staged privately on bench01 with the exact device38 208-sector install plan.
+The fresh matching current-image backups remain the rollback baseline.
+
+[verified] The first Event120 install attempt stopped during session binding,
+before any SG command or flash operation. Its only two transcript events are
+`native_transaction_prepared` and `native_transaction_stopped`; the transaction
+journal remains `prepared`. The v1 marker, campaign and log are retained and
+backed up privately. The inherited constructor checked the original loader hash
+instead of the reviewed patched loader. A new v2 adapter and campaign require
+that defect fixed and the preserved no-command failure checked; the consumed v1
+campaign must not be reused.
+
+[verified] The canonical USB-mapping adapter fix is integrated. Pure installation
+replay passes twelve simulator cases and now matches the writer's strict false
+admission flags. Completion-first reboot logging passes three ioctl mocks,
+including expected detach and failed completion; it has not been used on the
+device. Source is backed up at `86dd635081ab7bf3cc3e43270a162d25896dc29c`.
+CI run `38599904562` checks earlier exact head `9c5b3df3` and is still running;
+it does not cover the newer writer/reboot integrations. The watched Event120
+boot has not started, and full-song hardware acceptance remains pending.
+
 [verified] Fresh e404fddd three-file host regression completed: 43 passed, 13 skipped, exit zero. The dependency-mounted, bounded pinned Hera container preserves ASan/UBSan checks. Content embedding repair is integrated at fb972a0a (41 passed, 16 target-only skips); current-state demo fixtures at95c30133 had194 passed/1 target skip. CI now builds an isolated current fm1-state before image tests at843b33c3. Further ordinary host/optional-target fixture separation remains active.
 
 [verified] FIRST ORBIT was booted once and native USB appeared, then timed return enumerated device38 in ROM. Owner perceptual observations pending; fresh device38 admission is required before another installation. See `2026-10-14-first-orbit-watched-boot.md`. Event Horizon is owner-approved as default, not yet physically accepted.
