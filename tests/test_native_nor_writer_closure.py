@@ -116,10 +116,12 @@ fl_jedec_ram:
  1c000b0: call 0 <fl_jedec_checked_ram : 1c000a0 >
 """
         result = MODULE.audit_linked_writer(
-            disassembly, symbols, "elf: file format ELF32-pi32v2\\n", "Sections:\\n")
+            disassembly, symbols, "elf: file format ELF32-pi32v2\n", "Sections:\n")
         self.assertTrue(result["passed_static_writer_checks"])
         self.assertTrue(result["static_relocations_absent"])
         self.assertFalse(result["static_data_closure_complete"])
+        self.assertTrue(result["direct_branch_bounds_complete"])
+        self.assertFalse(result["control_flow_closure_complete"])
         self.assertFalse(result["runtime_pointer_residency_proven"])
         self.assertEqual(result["ram_calls"][0]["function"], "fl_jedec_ram")
         self.assertFalse(result["watchdog_feed_in_ram"])
@@ -151,8 +153,8 @@ fl_jedec_ram:
 """
         with self.assertRaisesRegex(ValueError, "opcode evidence missing"):
             MODULE.audit_linked_writer(base, symbols, "", "")
-        real_ops = base.replace("1c00000: nop", "1c00000: [r6+8] = 0x6\\n 1c00002: [r6+8] = 0x20\\n 1c00004: [r6+8] = 0x5")
-        real_ops = real_ops.replace("1c00040: nop", "1c00040: [r7+8] = 0x6\\n 1c00042: [r7+8] = 0x2\\n 1c00044: [r7+8] = 0x5")
+        real_ops = base.replace("1c00000: nop", "1c00000: [r6+8] = 0x6\n 1c00002: [r6+8] = 0x20\n 1c00004: [r6+8] = 0x5")
+        real_ops = real_ops.replace("1c00040: nop", "1c00040: [r7+8] = 0x6\n 1c00042: [r7+8] = 0x2\n 1c00044: [r7+8] = 0x5")
         xip = real_ops.replace(
             "call 0 <fl_jedec_checked_ram : 1c000a0 >",
             "call 0 <xip_helper : 02001000 >")

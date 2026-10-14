@@ -202,7 +202,8 @@ def audit_linked_writer(ram_text, symbols, relocations, sections):
         "static_relocations_absent": not relocation_lines,
         "rodata_section_absent": not has_rodata,
         "static_data_closure_complete": False,
-        "control_flow_closure_complete": not unresolved_branches,
+        "direct_branch_bounds_complete": not unresolved_branches,
+        "control_flow_closure_complete": False,
         "runtime_pointer_residency_proven": False,
         "watchdog_feed_in_ram": any(
             name.startswith("fm1_wdt") and row["section"] == ".ram_text"
