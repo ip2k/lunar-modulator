@@ -2881,3 +2881,17 @@ production bridge/HAL allocation, generationwrap/ambiguity and bytecut coverage.
 200KiB maxslot allocation unresolved; installed13engine watched boot pending.
 Fullrelease webinstaller/custombuilder/migration/physicalrollback/licensing/
 reviewCI remain open. Previous verified pushed8222fff252879fe2c36ff7ce578a7bfaae389495.
+
+## Installed all13 footprint checkpoint (2026-10-13)
+
+[verified] Read-only Hera analysis pins installed app eff6f5b2/ELF35655a21.
+Top30 constant symbols: whole-symbol zlib savings40329B; indexed256B blocks
+savings2884B. Existing cymbals are already8bitmu-law. Linkedpool leaves2368B
+beforeguard0; fulltable expansion is not a justified shortcut. AppendsD297C,
+alignedtail24KiB. Hypothetical VM/USR repurposing plus tail/gap minussettings
+would give164KiB noncontiguous, still36KiB short of two100KiBslots; noallocation
+orwriteadmission. Evidence notes/2026-10-13-native-footprint/{RESULTS.md,receipt.json,
+measure.py}. Nohardwareop/no liveworker. Next generationwrap/ambiguitycoverage
+and capacity/transaction design; ownerwatched all13boot remainspending. Full
+release migration/physicalrollback/webinstaller/custombuilder/license/reviewCI
+remainopen. Previousverifiedpushed9fdcf4a8cf03b08f406741d2c074d1947bd92b20.

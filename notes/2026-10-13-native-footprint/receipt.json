@@ -1,0 +1,563 @@
+{
+  "schema": "lunar-native-footprint-experiment-v1",
+  "app_bytes": 845916,
+  "input_hashes": {
+    "app.bin": "eff6f5b2821a229f7a0255a873031c52d5f8242e4312f07e3f54fb4c951f5960",
+    "symbols.txt": "dfa762dbccf16b24b2c97924ca15e91e161071c759fda70f200f5fcf1c277526",
+    "sections.txt": "48b6c32b195375fd97d6cbe783e1afdd93ded1a34376300019a78832a0e827b4"
+  },
+  "top_symbols": [
+    {
+      "name": "_ZN6plaits20wav_integrated_wavesE",
+      "address": 34064988,
+      "bytes": 50688,
+      "kind": "data",
+      "zlib_bytes": 41352,
+      "savings": 9336,
+      "indexed_256_byte_blocks": 49763,
+      "raw_sha256": "bd1d04177e240247de3224ef8e6f52afd907d8ae1a9971e0ce4ba68258e7ecea"
+    },
+    {
+      "name": "x0x_smp_ride",
+      "address": 34238476,
+      "bytes": 46999,
+      "kind": "data",
+      "zlib_bytes": 42884,
+      "savings": 4115,
+      "indexed_256_byte_blocks": 49366,
+      "raw_sha256": "fdb768c377acd4c0ee6a423d6f1252425b704c57bcf2f6b73d19a085a89dff09"
+    },
+    {
+      "name": "x0x_smp_crash",
+      "address": 34195176,
+      "bytes": 43300,
+      "kind": "data",
+      "zlib_bytes": 40058,
+      "savings": 3242,
+      "indexed_256_byte_blocks": 45628,
+      "raw_sha256": "2ad41fd420087de698d924e19338fcba4ce9ed21977db3bd232d1d038aad49e5"
+    },
+    {
+      "name": "packed_braids",
+      "address": 34338864,
+      "bytes": 24159,
+      "kind": "data",
+      "zlib_bytes": 24175,
+      "savings": -16,
+      "indexed_256_byte_blocks": 25588,
+      "raw_sha256": "d05f3f0b852719327983c82418a1b6b9e4c2414430078267653a77feb2ed1952"
+    },
+    {
+      "name": "x0x_smp_hh",
+      "address": 34285475,
+      "bytes": 20250,
+      "kind": "data",
+      "zlib_bytes": 18529,
+      "savings": 1721,
+      "indexed_256_byte_blocks": 20173,
+      "raw_sha256": "4c67a4c2a8106acf45e092f073de1ae93a2dc746422d3947ba3ddae08078650a"
+    },
+    {
+      "name": "apply_op",
+      "address": 33811952,
+      "bytes": 14230,
+      "kind": "code"
+    },
+    {
+      "name": "fm1_app_render",
+      "address": 33905868,
+      "bytes": 11032,
+      "kind": "code"
+    },
+    {
+      "name": "fm1_app_encoder",
+      "address": 33855498,
+      "bytes": 11030,
+      "kind": "code"
+    },
+    {
+      "name": "draw",
+      "address": 33933006,
+      "bytes": 10508,
+      "kind": "code"
+    },
+    {
+      "name": "x0x_pot_exp",
+      "address": 34181344,
+      "bytes": 9728,
+      "kind": "data",
+      "zlib_bytes": 8987,
+      "savings": 741,
+      "indexed_256_byte_blocks": 10302,
+      "raw_sha256": "c8c351223b0c805e68f88c917c5ed0a8b4983277681e2a1b43251627ffbd3faf"
+    },
+    {
+      "name": "_ZN8fm1_msfa7kSinTabE",
+      "address": 34118320,
+      "bytes": 8192,
+      "kind": "data",
+      "zlib_bytes": 6008,
+      "savings": 2184,
+      "indexed_256_byte_blocks": 8068,
+      "raw_sha256": "806df6b1dab6434b80a7c548728ef4ab727d39efb12e21e16bffe2c30602c3df"
+    },
+    {
+      "name": "_ZN8fm1_msfa8kExp2TabE",
+      "address": 34126512,
+      "bytes": 8192,
+      "kind": "data",
+      "zlib_bytes": 7573,
+      "savings": 619,
+      "indexed_256_byte_blocks": 8666,
+      "raw_sha256": "729d8ad7593d61695d65092286a2ea4501626fac8088a13d5a2e273e0012a5f9"
+    },
+    {
+      "name": "fm1_seq_view_draw",
+      "address": 33924646,
+      "bytes": 7600,
+      "kind": "code"
+    },
+    {
+      "name": "fm1_state_bin_read",
+      "address": 33882076,
+      "bytes": 5946,
+      "kind": "code"
+    },
+    {
+      "name": "_ZN3fm16crater6RenderEPvPfj",
+      "address": 33653488,
+      "bytes": 5658,
+      "kind": "code"
+    },
+    {
+      "name": "fm1_cstart",
+      "address": 33943546,
+      "bytes": 5596,
+      "kind": "code"
+    },
+    {
+      "name": "_ZN6plaits6bank_4E",
+      "address": 34023469,
+      "bytes": 4802,
+      "kind": "data",
+      "zlib_bytes": 4799,
+      "savings": 3,
+      "indexed_256_byte_blocks": 5091,
+      "raw_sha256": "cf964bd15a3b7ec183a38ec388c5c6b591adb298839d919c0fa765f13fb622a6"
+    },
+    {
+      "name": "_ZN3fm15drums6RenderEPvPfj",
+      "address": 33689082,
+      "bytes": 4582,
+      "kind": "code"
+    },
+    {
+      "name": "x0x_tanh_tab",
+      "address": 34191072,
+      "bytes": 4104,
+      "kind": "data",
+      "zlib_bytes": 2543,
+      "savings": 1561,
+      "indexed_256_byte_blocks": 3059,
+      "raw_sha256": "50ed6ca3d2832bd1cc41ebfdf8d21fd8e5843453bdbce97925f90ff0b86c2006"
+    },
+    {
+      "name": "_ZN8fm1_msfa13kFreqLut44118E",
+      "address": 34134704,
+      "bytes": 4100,
+      "kind": "data",
+      "zlib_bytes": 4021,
+      "savings": 79,
+      "indexed_256_byte_blocks": 4356,
+      "raw_sha256": "580dae25d83a70b6c3396eca6449182341415ba5ed22c30f36e5af9ee8e4ef3b"
+    },
+    {
+      "name": "_ZN3fm13dx7L5kBankE",
+      "address": 34035220,
+      "bytes": 4096,
+      "kind": "data",
+      "zlib_bytes": 1473,
+      "savings": 2623,
+      "indexed_256_byte_blocks": 2371,
+      "raw_sha256": "5e62ea6add534d699bd5a84665a49ad3a0d8631a50761d51bd1f3bbe463f6773"
+    },
+    {
+      "name": "_ZN6plaits10syx_bank_0E",
+      "address": 34040952,
+      "bytes": 4096,
+      "kind": "data",
+      "zlib_bytes": 2202,
+      "savings": 1894,
+      "indexed_256_byte_blocks": 2968,
+      "raw_sha256": "4bd0111dffc31616314e10e39e825c110e36d010c1de7fd9651296cda5d54890"
+    },
+    {
+      "name": "_ZN6plaits10syx_bank_1E",
+      "address": 34045048,
+      "bytes": 4096,
+      "kind": "data",
+      "zlib_bytes": 2333,
+      "savings": 1763,
+      "indexed_256_byte_blocks": 3051,
+      "raw_sha256": "118d4e88e62f1ec4be704db66d2166d2275287ff65201c994332cce976bb357a"
+    },
+    {
+      "name": "_ZN6plaits10syx_bank_2E",
+      "address": 34049144,
+      "bytes": 4096,
+      "kind": "data",
+      "zlib_bytes": 2282,
+      "savings": 1814,
+      "indexed_256_byte_blocks": 3025,
+      "raw_sha256": "2848d22260f27ddfdf344780cd76d42b64a19d7f7a1a0f6e724274eacd006046"
+    },
+    {
+      "name": "_ZN3fm19acid_bass6RenderEPvPfj",
+      "address": 33599626,
+      "bytes": 3888,
+      "kind": "code"
+    },
+    {
+      "name": "_ZN3fm19comet_kit6RenderEPvPfj",
+      "address": 33623864,
+      "bytes": 3182,
+      "kind": "code"
+    },
+    {
+      "name": "fm1_resampler_kernel",
+      "address": 34156064,
+      "bytes": 3076,
+      "kind": "data",
+      "zlib_bytes": 2964,
+      "savings": 112,
+      "indexed_256_byte_blocks": 3272,
+      "raw_sha256": "8089c801a94a74659ed16205f1dc662b84ce3f438979a97e346fa8af8db17b91"
+    },
+    {
+      "name": "_ZL11FiltProcessP14FilterInstanceiPKfPf",
+      "address": 33585184,
+      "bytes": 2970,
+      "kind": "code"
+    },
+    {
+      "name": "mod_plan_build",
+      "address": 33674804,
+      "bytes": 2938,
+      "kind": "code"
+    },
+    {
+      "name": "lunar_content_00",
+      "address": 34363176,
+      "bytes": 2784,
+      "kind": "data",
+      "zlib_bytes": 2249,
+      "savings": 535,
+      "indexed_256_byte_blocks": 2567,
+      "raw_sha256": "ef02d7c392c412d4906e85e9eb867875bc4b30ce4e92d22c51151c04e4e1372c"
+    }
+  ],
+  "data_experiments": [
+    {
+      "name": "_ZN6plaits20wav_integrated_wavesE",
+      "address": 34064988,
+      "bytes": 50688,
+      "kind": "data",
+      "zlib_bytes": 41352,
+      "savings": 9336,
+      "indexed_256_byte_blocks": 49763,
+      "raw_sha256": "bd1d04177e240247de3224ef8e6f52afd907d8ae1a9971e0ce4ba68258e7ecea"
+    },
+    {
+      "name": "x0x_smp_ride",
+      "address": 34238476,
+      "bytes": 46999,
+      "kind": "data",
+      "zlib_bytes": 42884,
+      "savings": 4115,
+      "indexed_256_byte_blocks": 49366,
+      "raw_sha256": "fdb768c377acd4c0ee6a423d6f1252425b704c57bcf2f6b73d19a085a89dff09"
+    },
+    {
+      "name": "x0x_smp_crash",
+      "address": 34195176,
+      "bytes": 43300,
+      "kind": "data",
+      "zlib_bytes": 40058,
+      "savings": 3242,
+      "indexed_256_byte_blocks": 45628,
+      "raw_sha256": "2ad41fd420087de698d924e19338fcba4ce9ed21977db3bd232d1d038aad49e5"
+    },
+    {
+      "name": "packed_braids",
+      "address": 34338864,
+      "bytes": 24159,
+      "kind": "data",
+      "zlib_bytes": 24175,
+      "savings": -16,
+      "indexed_256_byte_blocks": 25588,
+      "raw_sha256": "d05f3f0b852719327983c82418a1b6b9e4c2414430078267653a77feb2ed1952"
+    },
+    {
+      "name": "x0x_smp_hh",
+      "address": 34285475,
+      "bytes": 20250,
+      "kind": "data",
+      "zlib_bytes": 18529,
+      "savings": 1721,
+      "indexed_256_byte_blocks": 20173,
+      "raw_sha256": "4c67a4c2a8106acf45e092f073de1ae93a2dc746422d3947ba3ddae08078650a"
+    },
+    {
+      "name": "x0x_pot_exp",
+      "address": 34181344,
+      "bytes": 9728,
+      "kind": "data",
+      "zlib_bytes": 8987,
+      "savings": 741,
+      "indexed_256_byte_blocks": 10302,
+      "raw_sha256": "c8c351223b0c805e68f88c917c5ed0a8b4983277681e2a1b43251627ffbd3faf"
+    },
+    {
+      "name": "_ZN8fm1_msfa7kSinTabE",
+      "address": 34118320,
+      "bytes": 8192,
+      "kind": "data",
+      "zlib_bytes": 6008,
+      "savings": 2184,
+      "indexed_256_byte_blocks": 8068,
+      "raw_sha256": "806df6b1dab6434b80a7c548728ef4ab727d39efb12e21e16bffe2c30602c3df"
+    },
+    {
+      "name": "_ZN8fm1_msfa8kExp2TabE",
+      "address": 34126512,
+      "bytes": 8192,
+      "kind": "data",
+      "zlib_bytes": 7573,
+      "savings": 619,
+      "indexed_256_byte_blocks": 8666,
+      "raw_sha256": "729d8ad7593d61695d65092286a2ea4501626fac8088a13d5a2e273e0012a5f9"
+    },
+    {
+      "name": "_ZN6plaits6bank_4E",
+      "address": 34023469,
+      "bytes": 4802,
+      "kind": "data",
+      "zlib_bytes": 4799,
+      "savings": 3,
+      "indexed_256_byte_blocks": 5091,
+      "raw_sha256": "cf964bd15a3b7ec183a38ec388c5c6b591adb298839d919c0fa765f13fb622a6"
+    },
+    {
+      "name": "x0x_tanh_tab",
+      "address": 34191072,
+      "bytes": 4104,
+      "kind": "data",
+      "zlib_bytes": 2543,
+      "savings": 1561,
+      "indexed_256_byte_blocks": 3059,
+      "raw_sha256": "50ed6ca3d2832bd1cc41ebfdf8d21fd8e5843453bdbce97925f90ff0b86c2006"
+    },
+    {
+      "name": "_ZN8fm1_msfa13kFreqLut44118E",
+      "address": 34134704,
+      "bytes": 4100,
+      "kind": "data",
+      "zlib_bytes": 4021,
+      "savings": 79,
+      "indexed_256_byte_blocks": 4356,
+      "raw_sha256": "580dae25d83a70b6c3396eca6449182341415ba5ed22c30f36e5af9ee8e4ef3b"
+    },
+    {
+      "name": "_ZN3fm13dx7L5kBankE",
+      "address": 34035220,
+      "bytes": 4096,
+      "kind": "data",
+      "zlib_bytes": 1473,
+      "savings": 2623,
+      "indexed_256_byte_blocks": 2371,
+      "raw_sha256": "5e62ea6add534d699bd5a84665a49ad3a0d8631a50761d51bd1f3bbe463f6773"
+    },
+    {
+      "name": "_ZN6plaits10syx_bank_0E",
+      "address": 34040952,
+      "bytes": 4096,
+      "kind": "data",
+      "zlib_bytes": 2202,
+      "savings": 1894,
+      "indexed_256_byte_blocks": 2968,
+      "raw_sha256": "4bd0111dffc31616314e10e39e825c110e36d010c1de7fd9651296cda5d54890"
+    },
+    {
+      "name": "_ZN6plaits10syx_bank_1E",
+      "address": 34045048,
+      "bytes": 4096,
+      "kind": "data",
+      "zlib_bytes": 2333,
+      "savings": 1763,
+      "indexed_256_byte_blocks": 3051,
+      "raw_sha256": "118d4e88e62f1ec4be704db66d2166d2275287ff65201c994332cce976bb357a"
+    },
+    {
+      "name": "_ZN6plaits10syx_bank_2E",
+      "address": 34049144,
+      "bytes": 4096,
+      "kind": "data",
+      "zlib_bytes": 2282,
+      "savings": 1814,
+      "indexed_256_byte_blocks": 3025,
+      "raw_sha256": "2848d22260f27ddfdf344780cd76d42b64a19d7f7a1a0f6e724274eacd006046"
+    },
+    {
+      "name": "fm1_resampler_kernel",
+      "address": 34156064,
+      "bytes": 3076,
+      "kind": "data",
+      "zlib_bytes": 2964,
+      "savings": 112,
+      "indexed_256_byte_blocks": 3272,
+      "raw_sha256": "8089c801a94a74659ed16205f1dc662b84ce3f438979a97e346fa8af8db17b91"
+    },
+    {
+      "name": "lunar_content_00",
+      "address": 34363176,
+      "bytes": 2784,
+      "kind": "data",
+      "zlib_bytes": 2249,
+      "savings": 535,
+      "indexed_256_byte_blocks": 2567,
+      "raw_sha256": "ef02d7c392c412d4906e85e9eb867875bc4b30ce4e92d22c51151c04e4e1372c"
+    },
+    {
+      "name": "_ZN6plaits8lut_sineE",
+      "address": 34053252,
+      "bytes": 2564,
+      "kind": "data",
+      "zlib_bytes": 1278,
+      "savings": 1286,
+      "indexed_256_byte_blocks": 2730,
+      "raw_sha256": "71fef7c662a746455a276fd57258cbb3034eaf4d84922d9c1467c4ae9962b1eb"
+    },
+    {
+      "name": "_ZN6plaits6bank_3E",
+      "address": 34020945,
+      "bytes": 2524,
+      "kind": "data",
+      "zlib_bytes": 2535,
+      "savings": -11,
+      "indexed_256_byte_blocks": 2678,
+      "raw_sha256": "eab131aa07e793915b8015b00cb0ca405d3ce43998fa3d29eea4a1676525e885"
+    },
+    {
+      "name": "FONT_S_DATA",
+      "address": 34312604,
+      "bytes": 2280,
+      "kind": "data",
+      "zlib_bytes": 640,
+      "savings": 1640,
+      "indexed_256_byte_blocks": 1018,
+      "raw_sha256": "5025a0204e205531a3932d57fa987a5827d4ef79cb05317f1463908d05eddb61"
+    },
+    {
+      "name": "_ZN6plaits10lut_fold_2E",
+      "address": 34058400,
+      "bytes": 2064,
+      "kind": "data",
+      "zlib_bytes": 1631,
+      "savings": 433,
+      "indexed_256_byte_blocks": 2178,
+      "raw_sha256": "963bd1d54b393935f2d506eae99dcf7a9a47eba6ee35327c6b426351895013fc"
+    },
+    {
+      "name": "_ZN6plaits8lut_foldE",
+      "address": 34056336,
+      "bytes": 2064,
+      "kind": "data",
+      "zlib_bytes": 1605,
+      "savings": 459,
+      "indexed_256_byte_blocks": 2174,
+      "raw_sha256": "05bd34e547bfdf1793b8489b1b823d8ddf20bb43312ff8d1ea25cf48263c63de"
+    },
+    {
+      "name": "SINE",
+      "address": 34162264,
+      "bytes": 2050,
+      "kind": "data",
+      "zlib_bytes": 2038,
+      "savings": 12,
+      "indexed_256_byte_blocks": 2186,
+      "raw_sha256": "6267f51aebd57812c68a389bb4de8f2c85da816db4338a01b21e7455ec7ca9df"
+    },
+    {
+      "name": "UAC_FIR",
+      "address": 34315262,
+      "bytes": 1920,
+      "kind": "data",
+      "zlib_bytes": 1697,
+      "savings": 223,
+      "indexed_256_byte_blocks": 1990,
+      "raw_sha256": "779a736f8f30788a0326d3d2395404d422eb30531519f8847701076e2ee00fc6"
+    },
+    {
+      "name": "mod_mi_scales",
+      "address": 34153924,
+      "bytes": 1764,
+      "kind": "data",
+      "zlib_bytes": 333,
+      "savings": 1431,
+      "indexed_256_byte_blocks": 586,
+      "raw_sha256": "89c11ccd4865de2347c9ce075104db20422a83e9132e1b7472929481a8d180c8"
+    },
+    {
+      "name": "k_spec",
+      "address": 34174536,
+      "bytes": 1728,
+      "kind": "data",
+      "zlib_bytes": 194,
+      "savings": 1534,
+      "indexed_256_byte_blocks": 457,
+      "raw_sha256": "6beb23b82c8b02b281be5a53061cad23fde29a52d86fd518c55dacd842f1a0ad"
+    },
+    {
+      "name": "_ZN6plaits6bank_2E",
+      "address": 34019393,
+      "bytes": 1552,
+      "kind": "data",
+      "zlib_bytes": 1563,
+      "savings": -11,
+      "indexed_256_byte_blocks": 1659,
+      "raw_sha256": "12e03944b357bb3696b5e18a44d11fe64a0487390e4f4391abf09d57a85d2ae5"
+    },
+    {
+      "name": "_ZN6braids19lut_bowing_envelopeE",
+      "address": 34321046,
+      "bytes": 1504,
+      "kind": "data",
+      "zlib_bytes": 1320,
+      "savings": 184,
+      "indexed_256_byte_blocks": 1447,
+      "raw_sha256": "d9c210d0f3e183ac5eede769d2b4ccf4c0ebf451e8ed51307ef712379ced5905"
+    },
+    {
+      "name": "fm1_font_mid",
+      "address": 34147112,
+      "bytes": 1330,
+      "kind": "data",
+      "zlib_bytes": 496,
+      "savings": 834,
+      "indexed_256_byte_blocks": 722,
+      "raw_sha256": "8b3e62087ca067ded89639d202db5b01d89476b8f0812d79d6e6439f18728be7"
+    },
+    {
+      "name": "_ZN6plaits6bank_0E",
+      "address": 34017260,
+      "bytes": 1233,
+      "kind": "data",
+      "zlib_bytes": 1244,
+      "savings": -11,
+      "indexed_256_byte_blocks": 1312,
+      "raw_sha256": "23011c40554e0dc3634b893a99a652d2f051643a65849ab8ca9909ec06ed279a"
+    }
+  ],
+  "runtime_decoder_verified": false,
+  "physical_storage_admitted": false
+}
