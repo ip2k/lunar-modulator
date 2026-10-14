@@ -35,6 +35,23 @@ class NorWriterClosureAnalysisTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'named profile.json'):
             MODULE.prepared_input_directory(Path('/private/selection/prepared/other.json'))
 
+    def test_set_loader_flag_tracks_trusted_prepared_profile_kinds(self):
+        with tempfile.TemporaryDirectory() as directory:
+            profile = Path(directory) / 'profile.json'
+            profile.write_text('{"content":[{"kind":"project"}]}')
+            self.assertEqual(MODULE.set_loader_flags(profile), [])
+            profile.write_text('{"content":[{"kind":"project"},{"kind":"set"}]}')
+            self.assertEqual(MODULE.set_loader_flags(profile), ['--link-set-loader'])
+            profile.write_text('{"content":[{"kind":"set"}]}')
+            with self.assertRaisesRegex(ValueError, 'requires a project'):
+                MODULE.set_loader_flags(profile)
+            profile.write_text('{"content":[null]}')
+            with self.assertRaisesRegex(ValueError, 'row has no kind'):
+                MODULE.set_loader_flags(profile)
+            profile.write_text('{"content":[{"kind":"unexpected"}]}')
+            with self.assertRaisesRegex(ValueError, 'unsupported content kind'):
+                MODULE.set_loader_flags(profile)
+
     def test_overlay_retains_real_writer_and_suppresses_package_generation(self):
         with tempfile.TemporaryDirectory() as directory:
             copied = Path(directory) / 'build_application_probe.py'
