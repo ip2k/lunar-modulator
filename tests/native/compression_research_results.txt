@@ -1,0 +1,15 @@
+versions zlib 1.2.13 lz4 1.9.4
+fixture bass-a.clip.lunarb 302 254 289 7fd24dd71e960d86817b9121423ea123c774152554309b9463c8d56b04cb5af2 roundtrip=ok
+fixture deep-bass.sound.lunarb 535 462 514 d6ac2395c54289b0dd4f916bf43249d6d4ae857517922db59cc1fb75da433633 roundtrip=ok
+fixture dense.native-save.lunarb 32924 13929 18289 45805c5dc07c51286836cc2ff4f230883d4d4bae06767ee0a4246141475b015e roundtrip=ok
+fixture first-orbit.lunarb 2684 2171 2431 9057e37b01f4d1504080e400325d2487936c9e7dbe8d47b1142c89bfe4b67f0e roundtrip=ok
+fixture four-way.fx.lunarb 710 544 650 921e313fa429d37e8fe78a3aed05d2d7aa4bffd48300fdb3d5d31d50b0a1e95a roundtrip=ok
+fixture orbit.set.lunarb 258 228 254 eda76e2a67e7caf00445cd20553d2fbff3091c01d9773c0298275de1a9669fbf roundtrip=ok
+fixture settings.lunarb 116 110 118 cbcc2cfd8a43e8b328fe9ef6fd36aeec287dfb1829de99c7ff542493d8644088 roundtrip=ok
+fixture space-verbs.fx.lunarb 462 373 421 c23676eba739c3627219890fa5c2ba7834f35f1dfdef61d30a246ac7b6217ebd roundtrip=ok
+fixture tin-kit.sound.lunarb 1620 1266 1542 69182de392169f3085166d2f7ba33f733e9fa6d12bbceda678be5241944c91d5 roundtrip=ok
+fixture wobble.mods.lunarb 328 320 326 9b4a8723f5b0ff18bf66b6e1f8b3a01dfc528f8c97b9a19c0a7585bee5d547a5 roundtrip=ok
+case fixture-concat 7015 4908 5796 38a414d9f9ce1a7fe8cd259db09888578d6ec3f840f46f3b4790d7e659ed40e1 roundtrip=ok
+case dense-actual 32924 13929 18289 45805c5dc07c51286836cc2ff4f230883d4d4bae06767ee0a4246141475b015e roundtrip=ok
+case zeros-98304 98304 117 396 3a3ed164e42500a1c5b2d0093f0a813d27dc50d038f330cc100a7e70ece2e6e4 roundtrip=ok
+case random-98304 98304 98340 98691 8ef9dba9d2ce493a58f2c92279475194d7de8ab12a7ecd5bbb31420aca3937fe roundtrip=ok

@@ -3201,3 +3201,31 @@ in link receipt; no new link/hardware acceptance.
 Hera SAVE stack and collector bound read-only reviews completed; no tighter
 project maximum or transitive stack bound established. Atomic shared handoffs
 retain limitations and next tasks. Full firmware/web installation goal ACTIVE.
+
+## Compression and native collector inventory checkpoint (2026-10-14)
+
+Owner requested a Luna sub-agent specifically for physical-flash compression.
+Research measured the dense32924B native SAVE payload: zlib9=13929B and
+LZ4=18289B on Hera; incompressible98304B input expands with both. These are
+host measurements, not target decoder resource/performance or capacity proof.
+Existing bounded chunk DEFLATE and already-vendored tinf must be evaluated
+before adding another library. Hera exact codec round-trip checks pass; full
+output is saved in tests/native/compression_research_results.txt. Parent
+reviewed helpers, matched recorded artifact hashes and reran Python compilation.
+Physical storage remains unadmitted.
+
+Reviewed parameter and sequence inventories are backed up at
+c63c3f55044c86760d10a078bea6028d66113ea0. A subsequent source-only full
+collector inventory computes a conservative46458B native SAVE ceiling,
+including fixed directory reservation/alignment. This does not lower the
+generic98304B import cap or prove physical bank ownership. A larger actual
+collector SAVE/recovery fixture is assigned to Luna, with heavy tests on Hera;
+no production cap/layout change is made from the arithmetic alone. Review
+caught an overcount: Sophie registers8 params, not its18 enum entries. Its
+113 emitted rows are below Drums149. Parameter/total notes are being corrected;
+an independent undercount review runs before any ceiling is relied upon.
+Notes: 2026-10-14-collector-{parameter,sequence,total}-bound.md and
+2026-10-14-physical-storage-compression.md. All13 watched boot still pending;
+no device/USB/flash/power/reboot operation issued in this checkpoint.
+Goal ACTIVE: full firmware, persistence/recovery, selectable web installation,
+required hardware acceptance, review/CI and release remain outstanding.
