@@ -99,6 +99,9 @@ static void test_sfc_restore(uint32_t value)
 #define FL_SFC_RESTORE(value) test_sfc_restore(value)
 #define FL_IRQ_DISABLE() ((void)0)
 #define FL_IRQ_RESTORE_ENABLED() ((void)0)
+/* Host mocks test control flow; target link checks separately prove RAM
+ * placement. Avoid ELF-only section syntax in the Mach-O host harness. */
+#define RAMFN __attribute__((noinline, used))
 #include "../../firmware/third_party/dinghy/hal/fm1_flash.h"
 
 static void reset_mock(uint32_t iomap)

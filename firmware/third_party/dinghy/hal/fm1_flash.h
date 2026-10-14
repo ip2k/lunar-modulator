@@ -13,7 +13,9 @@
 #include <stdint.h>
 #include "fm1_xip.h"
 
+#ifndef RAMFN
 #define RAMFN  __attribute__((section(".ram_text"), noinline, used))
+#endif
 #define RAMINL static inline __attribute__((always_inline))
 
 /* XIP (0x02xxxxxx) -> RAM (0x01C0xxxx) is beyond the 23-bit call range:
