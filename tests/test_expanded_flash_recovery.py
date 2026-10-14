@@ -41,9 +41,18 @@ def exercise_recovery(baseline, target, reference, app, tmp_path, direction, fau
     device.reset()
     sectors = [offset for offset in range(APP[0], APP[1], 4096)
                if baseline[offset:offset + 4096] != target[offset:offset + 4096]]
+    desired = target if direction == 'install' else baseline
+    initial = baseline if direction == 'install' else target
+    order = [offset for offset in sectors if offset != APP[0]] + [APP[0]]
+    erases = [offset for offset in order
+              if initial[offset:offset + 4096] != b'\xff' * 4096]
+    programs = [offset + page for offset in order for page in range(0, 4096, 256)
+                if desired[offset + page:offset + page + 256] != b'\xff' * 256]
     operation = 'program' if fault.startswith('program') else 'erase'
     kind = 'ack_loss' if fault == 'program-ack' else 'torn'
-    occurrence = len(sectors) if fault == 'commit-erase' else 1
+    assert erases and programs and erases[-1] == APP[0]
+    occurrence = len(erases) if fault == 'commit-erase' else 1
+    address = APP[0] if fault == 'commit-erase' else programs[0] if operation == 'program' else erases[0]
     case = dict(kind='fault', direction=direction, operation=operation,
                 fault=kind, occurrence=occurrence, after_bytes=after_bytes)
     (tmp_path / 'worker-case.json').write_text(json.dumps(case))
@@ -60,17 +69,16 @@ def exercise_recovery(baseline, target, reference, app, tmp_path, direction, fau
         with pytest.raises(ValueError):
             reopened.soft_key()
         reopened.usb_key()
-    desired = target if direction == 'install' else baseline
-    initial = baseline if direction == 'install' else target
-    address = APP[0] if fault == 'commit-erase' else next(offset for offset in sectors if offset != APP[0])
+    sector_address = address // 4096 * 4096
     if operation == 'erase':
         torn = bytearray(initial[address:address + 4096])
         torn[:after_bytes] = b'\xff' * after_bytes
     else:
         torn = bytearray(b'\xff' * 4096)
         written = 256 if kind == 'ack_loss' else after_bytes
-        torn[:written] = desired[address:address + written]
-    assert reopened.flash[address:address + 4096] == torn
+        page = address - sector_address
+        torn[page:page + written] = desired[address:address + written]
+    assert reopened.flash[sector_address:sector_address + 4096] == torn
     if fault == 'commit-erase':
         assert reopened.flash[APP[0] + 4096:APP[1]] == desired[APP[0] + 4096:APP[1]]
     receipt = run_transaction(transaction, loader_session(reopened), direction)

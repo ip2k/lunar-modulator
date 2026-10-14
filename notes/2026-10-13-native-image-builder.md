@@ -70,9 +70,19 @@ already supports bounded readers and binary containers. Use those to develop
 the device loader; keep the host writer on the build side. Embedded content also
 consumes flash and cannot be omitted from the actual linked image-size gate.
 
-All-thirteen flash fit remains unresolved. Full native functionality, bounded
-content loading/persistence, web builder/installer and physical release/recovery
-acceptance remain outstanding. Passing a smaller timed probe completes none of
+The original protected-layout fit failures above remain historical evidence.
+The subsequently approved `expanded-d9000` profile fits the actual thirteen-engine
+application at 838,712 bytes, with 30,124 bytes remaining [verified target link,
+2026-10-13]. Its private raw candidate passes combined backup provenance, ELF,
+SDK-free audit and independent geometry checks. See
+[the expanded candidate evidence](2026-10-13-expanded-raw-geometry.md).
+This measurement is a timed probe with no embedded songs/sets, not the completed
+default release or selectable web builder. Every content/profile combination
+still needs its own linked size, memory and artifact checks.
+
+Full native functionality, bounded content loading/persistence, web
+builder/installer and physical release/recovery acceptance remain outstanding.
+Passing a smaller timed probe completes none of
 those release gates.
 
 ## Content preparation [verified host; not native installation]

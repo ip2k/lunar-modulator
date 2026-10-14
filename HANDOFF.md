@@ -1,3 +1,20 @@
+# Corrected actual-candidate recovery running — 2026-10-13
+
+Goal ACTIVE: full SDK-free Lunar, all thirteen default engines and selectable
+web builder. v1 terminal: 28 passed/four missed-injection failures, no OOM,
+containers removed; source hashes match 61423215. Evidence retained locally
+in build/expanded-private-recovery-v1 and on Hera. Helper corrected to count
+actual erase/program operations and check actual page addresses.
+
+v2: 40 cases in 30 Hera containers; exec session 69594. Poll this handle or
+owned lunar-expanded-private-recovery-v2 containers; do not restart on timeout.
+Hera root /home/claude/mvave-fm1/native-external-arenas-16-20261012;
+launcher launch-expanded-private-recovery-v2.py, output out/expanded-private-recovery-v2.
+Next inspect all terminal logs/hashes/states; then continue settings migration,
+complete startup/persistence/timing, expanded OTA/web builder, licensing and
+review/CI/integration/physical acceptance. No hardware commands.
+Branch feature/2026-10-11@installable-firmware; preceding pushed 61423215.
+
 # Actual-candidate recovery campaign running — 2026-10-13
 
 Goal ACTIVE: full SDK-free Lunar, all thirteen default engines plus selectable
