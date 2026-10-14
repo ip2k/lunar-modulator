@@ -59,7 +59,10 @@ their prerequisite work is integrated; keep unfinished work recorded in notes.
 [verified: owner bench observations] The SDK-free native Trio probe has run
 on the FM-1 with working display, keys, encoders and audible notes. The
 thirteen-engine Event Horizon timed diagnostic was installed and read back;
-its latest two-minute screen/audio/control acceptance remains pending. The
+the owner rejected its latest watched playback for severe audio lag and slow
+metering, including individual notes before PLAY. Timed return to ROM succeeded;
+CPU overload is not yet measured. Analogue capture and realtime instrumentation
+are being prepared; this image has failed playback acceptance. The
 separate continuous FM-1_500 target links all thirteen engines and 55 modules
 at 845,336 bytes; its exact private FWSC has passed offline composition and
 independent parsing, but has not been installed or accepted by the updater.
