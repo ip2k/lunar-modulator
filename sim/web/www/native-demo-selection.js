@@ -68,7 +68,7 @@ function checkedProjects(catalogue) {
   return { ids, fullSongDefault };
 }
 
-/** Return UI-safe catalogue facts without implying approval or default admission. */
+/** Return UI-safe catalogue facts; musical approval remains separate from image admission. */
 export function describeNativeDemoCatalogue(catalogue) {
   const { fullSongDefault } = checkedProjects(catalogue);
   const projects = catalogue.projects.map((project) => Object.freeze({
@@ -85,6 +85,8 @@ export function describeNativeDemoCatalogue(catalogue) {
     fullSongDefault: Object.freeze({
       required: fullSongDefault.required,
       status: fullSongDefault.status,
+      musicalChoiceApproved: fullSongDefault.musical_choice_approved === true,
+      projectId: fullSongDefault.project_id,
       blockers: Object.freeze([...fullSongDefault.blockers]),
     }),
   });

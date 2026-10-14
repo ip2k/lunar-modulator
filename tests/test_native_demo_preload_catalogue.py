@@ -34,6 +34,13 @@ class DemoPreloadCatalogueTests(unittest.TestCase):
             "modulation_modules": ["env", "lfo"],
         })
         result = catalogue.build_catalogue(str(ROOT))
+        event = next(row for row in result["candidates"]
+                     if row["id"] == "replacement-showcase-candidate-event-horizon")
+        self.assertIn("owner-approved musical full-song default", event["owner_disposition"])
+        self.assertFalse(event["admission"]["blocked_on_owner_musical_acceptance"])
+        self.assertTrue(event["admission"]["blocked_on_exact_asset_embedding_and_link_fit"])
+        self.assertTrue(event["admission"]["blocked_on_native_full_song_playback_and_save_reload"])
+        self.assertFalse(event["default_candidate"])
         for candidate in result["candidates"]:
             self.assertFalse(candidate["dependency_scan_complete"])
             self.assertEqual(candidate["dependency_identifier_kind"], "raw-project-engine-identifiers")
