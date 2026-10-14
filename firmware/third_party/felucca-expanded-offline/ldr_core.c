@@ -1,33 +1,18 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
  * Offline expanded-profile probe; see UPSTREAM.md. */
-/* Felucca update loader, the portable part (step 2 of the M-UPGRADE update
- * protocol).
+/* Offline derivative of Felucca's portable update core, adapted only for
+ * fake-NOR host tests. It reads synthetic OTA bytes, checks the synthetic
+ * whole-image CRC and per-sector consistency, then writes/readbacks only the
+ * configured app window with its directory sector last. It deliberately has
+ * no finish acknowledgement, update-record invalidation, record cleanup,
+ * target transport, or recovery claim. See UPSTREAM.md and the accompanying
+ * note for provenance and limits.
  *
- * The host serves the package ("logical image") with cmd 0x30 reads (ota.c).
- * The loader:
- *   1. reads the UFW header and finds flash.bin;
- *   2. checks that the package's app area decrypts with THIS chip's key
- *      (taken from isd_config.ini in the device's own flash head), so a
- *      package for another key is refused before anything is erased;
- *   2b. reads the whole flash.bin once and checks it against the CRC16 of its
- *      UFW entry (the vendor tools' check), keeping each app sector's CRC16:
- *      a damaged or truncated package is refused before anything is erased;
- *   3. writes ONLY the app area [0x4000, 0x93000), sector by sector, skipping
- *      sectors that are already equal, and verifies each one; a sector that
- *      comes in different from the checked pass is read again, never written;
- *      the flash head (SPL, isd_config) is never written;
- *   4. asks 0xF0000000 ("success"), then invalidates the update record (RAM
- *      and flash: 4K boundary - 256 between 0x93000 and 0xFC000, outside
- *      Felucca's store, where only user data lives) so the SPL boots the new
- *      app, and resets.
- * Power loss during 3: the record is still there, the SPL runs the loader
- * again on the next power-on and the host can resume.
- *
- * Hooks from the platform (loader.c, ldr_test.c):
- *   ldr_fread(off, p, n)  ldr_erase(off)  ldr_prog(off, p, n)   flash, 0 = ok
- *   ldr_progress(done, total)
- * plus the ota.c hooks (frames, time, idle). */
+ * Hooks supplied by the host fixture:
+ *   ldr_fread(off, p, n)  ldr_erase(off)  ldr_prog(off, p, n)
+ *   ldr_progress(done, total), plus synthetic ota_* hooks.
+ */
 #define LDR_APP_LO 0x4000u
 #define LDR_APP_HI 0xD9000u
 #if !defined(FELUCCA_EXPANDED_OFFLINE_TEST)

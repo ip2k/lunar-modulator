@@ -6,7 +6,6 @@
 #include <string.h>
 
 #define FELUCCA_EXPANDED_OFFLINE_TEST 1
-#define __attribute__(x)
 #define APP_LO 0x4000u
 #define APP_HI 0xD9000u
 #define FLASH_BYTES 0x100000u
@@ -14,6 +13,7 @@
 static uint8_t nor[FLASH_BYTES], logical[FLASH_BYTES + OTA_DATA_OFF], hdr[0x400];
 static uint32_t erase_order[512], erases, bad_range, fail_erase, fail_prog, programs;
 static int flip_readback; static uint32_t flip_readback_off, flip_readback_count;
+static int corrupt_package, enable_mutation, mutate_after_check, mutated_chunk;
 
 static uint16_t ota_crc16(const uint8_t *p, uint32_t n, uint32_t c)
 {
@@ -28,7 +28,13 @@ static int ota_read(uint32_t off, void *p, uint32_t n)
 {
     if (off == 0xF0000000u) { memset(p, 0, n); return 0; }
     if (off > FLASH_BYTES + OTA_DATA_OFF || n > FLASH_BYTES + OTA_DATA_OFF - off) return -1;
-    memcpy(p, logical + off, n); return 0;
+    memcpy(p, logical + off, n);
+    if (mutate_after_check && off == OTA_DATA_OFF + 0x5000u && n == 512u) {
+        ((uint8_t *)p)[17] ^= 0x01u; mutated_chunk = 1;
+    }
+    if (enable_mutation && off == OTA_DATA_OFF + FLASH_BYTES - 512u && n == 512u) mutate_after_check = 1;
+    if (corrupt_package && off == OTA_DATA_OFF + 0x5000u && n == 512u) ((uint8_t *)p)[0] ^= 0x80u;
+    return 0;
 }
 static int ota_ufw(uint8_t *out, uint32_t *off, uint32_t *size, uint32_t *ota_off, uint32_t *ota_len)
 {
@@ -36,7 +42,7 @@ static int ota_ufw(uint8_t *out, uint32_t *off, uint32_t *size, uint32_t *ota_of
 }
 static int ldr_fread(uint32_t off, void *p, uint32_t n)
 {
-    if (off > FLASH_BYTES + OTA_DATA_OFF || n > FLASH_BYTES + OTA_DATA_OFF - off) return -1;
+    if (off > FLASH_BYTES || n > FLASH_BYTES - off) return -1;
     memcpy(p, nor + off, n);
     if (flip_readback && off == flip_readback_off && n == 0x1000u && ++flip_readback_count == 2u) { ((uint8_t *)p)[0] ^= 1; flip_readback = 0; }
     return 0;
@@ -73,7 +79,7 @@ static void setup(void)
     hdr[8] = 1; /* one UFW entry */
     ota_wr16(hdr + 0x40, 0); /* flash.bin type */
     ota_wr16(hdr + 0x44, ota_crc16(logical + OTA_DATA_OFF, FLASH_BYTES, 0));
-    erases = programs = bad_range = 0; fail_erase = fail_prog = 0; flip_readback = 0; flip_readback_off = 0x5000; flip_readback_count = 0;
+    erases = programs = bad_range = 0; fail_erase = fail_prog = 0; flip_readback = 0; flip_readback_off = 0x5000; flip_readback_count = 0; corrupt_package = enable_mutation = mutate_after_check = mutated_chunk = 0;
     for (i = 0; i < sizeof erase_order / sizeof erase_order[0]; i++) erase_order[i] = 0xFFFFFFFFu;
 }
 static int require(const char *name, int ok) { printf("%-44s %s\n", name, ok ? "ok" : "FAIL"); return ok ? 0 : 1; }
@@ -86,6 +92,12 @@ int main(void)
     bad += require("directory sector 0x4000 is erased last", erases && erase_order[erases - 1] == APP_LO);
     bad += require("protected prefix and suffix unchanged", !memcmp(nor, protected_prefix, APP_LO) && !memcmp(nor + APP_HI, protected_suffix, sizeof protected_suffix));
     bad += require("no fake write escaped exact profile", bad_range == 0);
+    setup();
+    { uint8_t byte; bad += require("last in-range byte is readable", ldr_fread(FLASH_BYTES - 1u, &byte, 1u) == 0); bad += require("read starting at flash end is rejected", ldr_fread(FLASH_BYTES, &byte, 1u) != 0); bad += require("read crossing flash end is rejected", ldr_fread(FLASH_BYTES - 1u, &byte, 2u) != 0); }
+    setup(); corrupt_package = 1; rc = ldr_session();
+    bad += require("corrupt package is rejected before any erase", rc == -12 && erases == 0);
+    setup(); enable_mutation = 1; rc = ldr_session();
+    bad += require("changed host chunk is refused before erase", rc == -13 && mutated_chunk && erases == 0);
     setup(); fail_erase = 0x5000; rc = ldr_session();
     bad += require("erase cut stops before directory; retry completes", rc == -9 && nor[APP_LO] != logical[OTA_DATA_OFF + APP_LO]);
     rc = ldr_session();
