@@ -1,3 +1,16 @@
+# Current callback verification — 2026-10-13
+
+Active full13 native release plus selectable builder. Latest v4 callback
+expansion checked:1133functions/36rules/two unresolved(observer,formatter).
+Formatter constructor and Schwung assertions rebound with ELF byte checks;
+historical receipts reproduce; altered opcode/null-store negatives rejected.
+New receipts in notes/2026-10-13-mixed-project-verification/receipts/.
+No hardware command or live job. Next observer/stack/IRQ proofs and timing,
+then fresh identity/paired backups and reviewed physical campaign. Migration,
+physical rollback, web builder/install, GPL, review/CI/integration open.
+Branch feature/2026-10-11@installable-firmware; preceding verified pushed
+278862d1cc60d6f61af74c6f1b7ea7d7b8f35345.
+
 # Latest candidate inventory — 2026-10-13
 
 No-writeback-v4 full r3 disassembly/address inventory regenerated locally.

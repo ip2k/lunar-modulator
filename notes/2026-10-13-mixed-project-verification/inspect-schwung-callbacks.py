@@ -11,7 +11,10 @@ sys.path.insert(0, str(source / 'tools/jieli'))
 from audit_link import Elf
 elf = Elf(elf_path.read_bytes())
 elf_hash = hashlib.sha256(elf.data).hexdigest()
-assert elf_hash == 'df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e'
+assert elf_hash in {
+        'df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e',
+        '4b340d1aa4f67737d102441680df5d28a2740d6a2eaa83feb028ea19a9f49e2b',
+    }
 inventory = json.loads(inventory_path.read_text())
 assert inventory['elf_sha256'] == elf_hash
 dis_hash = hashlib.sha256(dis_path.read_bytes()).hexdigest()
@@ -73,10 +76,14 @@ fx = {role: target(name) for role, name in [
     ('create_instance', 'v2_create_instance'), ('destroy_instance', 'v2_destroy_instance'),
     ('process_block', 'v2_process_block'), ('set_param', 'v2_set_param'), ('get_param', 'v2_get_param')]}
 instructions = {}
+opcodes = {}
 for line in dis_path.read_text().splitlines():
     match = re.match(r'^\s*([0-9a-f]+):\s+((?:[0-9a-f]{2}\s+)+)\s*(.*)$', line)
     if match:
-        instructions[hex(int(match[1], 16))] = match[3].strip()
+        pc = hex(int(match[1], 16))
+        instructions[pc] = match[3].strip()
+        opcodes[pc] = bytes.fromhex(match[2])
+
 assert instructions['0x2014304'] == 'r2 = 24'
 assert instructions['0x20142fc'].startswith('r4 = r5 + 180')
 assert 29410288 + 180 == fx_api['value']
@@ -123,6 +130,16 @@ for pc, role, targets in [
     ('0x202f9b8', 'module.focus_key', [modules['sophie']['focus']]),
     ('0x202f9c8', 'sound/fx.get_param', [sound['get_param'], fx['get_param']])]:
     site('0x202f618', pc, role, targets)
+# objdump also prints literal/data regions; validate only the instructions
+# that this receipt claims, including every selected indirect call.
+checked_pcs = {'0x2014304', '0x20142fc', '0x2014310', '0x201430e'}
+for row in stores.values():
+    checked_pcs.update([row['load_pc'], row['store_pc']])
+for row in host_hooks.values():
+    checked_pcs.update([row['load_pc'], row['store_pc'], row['read_pc']])
+checked_pcs.update(row['pc'] for row in sites)
+for pc in checked_pcs:
+    assert elf.read(int(pc, 16), len(opcodes[pc])) == opcodes[pc], ('ELF opcode mismatch', pc)
 receipt = dict(scope='source/table-reviewed candidate targets; no runtime provenance or stack bound',
     elf_sha256=elf_hash, disassembly_sha256=dis_hash,
     inventory_sha256=hashlib.sha256(inventory_path.read_bytes()).hexdigest(),

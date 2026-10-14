@@ -1,0 +1,18 @@
+{
+  "new_profile_reproduces": true,
+  "historical_profile_passes": true,
+  "negative_checks": [
+    {
+      "case": "zero-changed",
+      "rejected": true,
+      "reason": "AssertionError: ('ELF opcode mismatch', '0x206e9ee')"
+    },
+    {
+      "case": "null-store-changed",
+      "rejected": true,
+      "reason": "AssertionError: ('0x206ea00', '[sp] = r5', '[sp] = r4')"
+    }
+  ],
+  "inspector_sha256": "a94ced5c23ee151c66127f0c0040e0234d6e0a86d87f64dfb2bbabedb140c4a0",
+  "hardware_admitted": false
+}

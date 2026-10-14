@@ -1,0 +1,195 @@
+{
+  "scope": "source/table-reviewed candidate targets; no runtime provenance or stack bound",
+  "elf_sha256": "4b340d1aa4f67737d102441680df5d28a2740d6a2eaa83feb028ea19a9f49e2b",
+  "disassembly_sha256": "6bcbad133dc5bab573c7c5da744032b6c83142f64f00a7403a6c8c44485c61c9",
+  "inventory_sha256": "28c016de41af3014072bca4139e8038ffb8b8f31f089cd8ac53f75a754f4fae7",
+  "layout_sha256": "aa71da5f0309ab5dbd24e7883a01b47f492c24312fee044b817b0f10fcdef70f",
+  "reviewed_source_sha256": {
+    "engines/src/schwung_shim.cc": "2117b5f494ea61e9c7f9fdd62c2983597b2a43e82c4b38dc66596eb1c0c65aad",
+    "engines/src/sw_sophie.cc": "9296be7b54c0d4305ed58bf45d43a88992a7085735b02359b7ea376790061a19",
+    "engines/src/sw_psxverb.cc": "1a1a31d8d7c7acdba701fe033911441b3bd52df6cf9ef64bf8acc520facdc00d",
+    "engines/third_party/schwung-modules/sophie/sophie.c": "6a43cd14ca377e3ce9d0bf3e63e121a9f04146252bf21b8a5ccea2b09fc1e1b1",
+    "engines/third_party/schwung-modules/psxverb/psxverb.c": "789bc7ed9f42fb0164651e986be585041b6b97305362aa9c7dcfc879b177f05b"
+  },
+  "modules": {
+    "sophie": {
+      "address": "0x2096fe8",
+      "init": "0x201a2fe",
+      "focus": "0x20311ec"
+    },
+    "psxverb": {
+      "address": "0x20968c8",
+      "init": "0x20142f4",
+      "focus": null
+    }
+  },
+  "sound": {
+    "create_instance": "0x201a622",
+    "destroy_instance": "0x201ab00",
+    "on_midi": "0x201ab40",
+    "set_param": "0x201afe0",
+    "get_param": "0x201b0f2",
+    "get_error": "0x201ba64",
+    "render_block": "0x201baf4"
+  },
+  "fx": {
+    "create_instance": "0x20146e8",
+    "destroy_instance": "0x201475e",
+    "process_block": "0x2014882",
+    "set_param": "0x2014f48",
+    "get_param": "0x20151cc"
+  },
+  "psx_initializer_stores": {
+    "create_instance": {
+      "load_pc": "0x2014314",
+      "store_pc": "0x201431a",
+      "target": "0x20146e8"
+    },
+    "destroy_instance": {
+      "load_pc": "0x201431c",
+      "store_pc": "0x2014322",
+      "target": "0x201475e"
+    },
+    "process_block": {
+      "load_pc": "0x2014324",
+      "store_pc": "0x201432a",
+      "target": "0x2014882"
+    },
+    "set_param": {
+      "load_pc": "0x201432c",
+      "store_pc": "0x2014332",
+      "target": "0x2014f48"
+    },
+    "get_param": {
+      "load_pc": "0x2014334",
+      "store_pc": "0x201433a",
+      "target": "0x20151cc"
+    }
+  },
+  "host_hooks": {
+    "log": {
+      "target": "0x202b1f2",
+      "field_offset": 24,
+      "load_pc": "0x202f69c",
+      "store_pc": "0x202f6a2",
+      "read_pc": "0x20142ec"
+    },
+    "get_clock_status": {
+      "target": "0x202b1f8",
+      "field_offset": 36,
+      "load_pc": "0x202f6ae",
+      "store_pc": "0x202f6b4",
+      "read_pc": "0x201b7be"
+    }
+  },
+  "site_rules": [
+    {
+      "caller": "0x20142c0",
+      "pc": "0x20142ee",
+      "role": "host.log",
+      "targets": [
+        "0x202b1f2"
+      ]
+    },
+    {
+      "caller": "0x201b0f2",
+      "pc": "0x201b7c4",
+      "role": "host.get_clock_status",
+      "targets": [
+        "0x202b1f8"
+      ]
+    },
+    {
+      "caller": "0x202b20e",
+      "pc": "0x202b220",
+      "role": "sound.destroy_instance",
+      "targets": [
+        "0x201ab00"
+      ]
+    },
+    {
+      "caller": "0x202b20e",
+      "pc": "0x202b22c",
+      "role": "fx.destroy_instance",
+      "targets": [
+        "0x201475e"
+      ]
+    },
+    {
+      "caller": "0x202b234",
+      "pc": "0x202b256",
+      "role": "sound.on_midi",
+      "targets": [
+        "0x201ab40"
+      ]
+    },
+    {
+      "caller": "0x202b30a",
+      "pc": "0x202b3e0",
+      "role": "sound/fx.set_param",
+      "targets": [
+        "0x201afe0",
+        "0x2014f48"
+      ]
+    },
+    {
+      "caller": "0x202f618",
+      "pc": "0x202f6f4",
+      "role": "module.sound_init",
+      "targets": [
+        "0x201a2fe"
+      ]
+    },
+    {
+      "caller": "0x202f618",
+      "pc": "0x202f714",
+      "role": "module.fx_init",
+      "targets": [
+        "0x20142f4"
+      ]
+    },
+    {
+      "caller": "0x202f618",
+      "pc": "0x202f92e",
+      "role": "sound/fx.create_instance",
+      "targets": [
+        "0x201a622",
+        "0x20146e8"
+      ]
+    },
+    {
+      "caller": "0x202f618",
+      "pc": "0x202f94a",
+      "role": "sound.destroy_instance",
+      "targets": [
+        "0x201ab00"
+      ]
+    },
+    {
+      "caller": "0x202f618",
+      "pc": "0x202f958",
+      "role": "fx.destroy_instance",
+      "targets": [
+        "0x201475e"
+      ]
+    },
+    {
+      "caller": "0x202f618",
+      "pc": "0x202f9b8",
+      "role": "module.focus_key",
+      "targets": [
+        "0x20311ec"
+      ]
+    },
+    {
+      "caller": "0x202f618",
+      "pc": "0x202f9c8",
+      "role": "sound/fx.get_param",
+      "targets": [
+        "0x201b0f2",
+        "0x20151cc"
+      ]
+    }
+  ],
+  "hardware_admitted": false
+}

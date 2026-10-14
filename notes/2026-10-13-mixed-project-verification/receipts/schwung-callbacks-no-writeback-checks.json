@@ -1,0 +1,8 @@
+{
+  "case": "altered-host-hook-store-opcode",
+  "inventory_disassembly_hash_updated": true,
+  "rejected": true,
+  "reason": "AssertionError: ('ELF opcode mismatch', '0x202f6a2')",
+  "inspector_sha256": "73fca3a33965eff11eeb9af9ba7cd280eaff9f6d3314796de228dfdc028e672d",
+  "hardware_admitted": false
+}

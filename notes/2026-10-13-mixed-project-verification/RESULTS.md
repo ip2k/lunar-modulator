@@ -496,3 +496,40 @@ Native formatter change and30-shard/full-link evidence committed and verified
 pushed222b423bd54df643c729bc0dc6380b9d6b12b532. Next rebind expanded candidate
 callback rules and stack inspections to this new inventory without relaxing
 unresolved paths. No live job. Full release goal remains active.
+
+## Current candidate callback checks rebound (2026-10-13)
+
+[verified] The formatter constructor inspector now supports two explicit ELF
+profiles, retaining the historical profile and adding no-writeback-v4. The
+constructor moved by -0x9e; its callback hook remains at0x206d8e6. Selected
+instruction bytes are checked against the ELF. New receipt reproduces; the
+historical profile passes. Altered opcode and altered null-store text are
+rejected even after updating the inventory disassembly hash. Receipts:
+printf-construction-no-writeback.json and its -checks.json.
+
+[verified] Schwung callback checks and Macro/source candidate expansion now
+support the exact v4 ELF while refusing unknown images. Actual vtables/API
+words, source hashes, named methods, selected initializer/host-hook/call bytes
+and indirect PCs are checked. Historical Schwung receipt reproduces byte-for-
+byte; an altered host-hook store opcode is rejected with the inventory hash
+updated. Expanded v4 graph:1133functions,36rules,two unresolved sites:
+mod_emit.4780 and putchar_via_gadget. These remain candidate unions, not
+complete runtime provenance. Receipts schwung-callbacks-no-writeback.json,
+its -checks.json and project-callback-no-writeback.json.
+
+A broad earlier-body byte identity attempt failed on CombCreate: relinking
+changes embedded pointers even with unchanged function addresses. No blanket
+identity claim is used. Initial Schwung invocation used the wrong layout
+receipt and failed; corrected to schwung-layout.json. Checking every objdump
+line also encountered literal/data output; byte validation now applies to
+all instructions explicitly claimed by the Schwung receipt.
+
+Source review finds formatter callback assignments only in construction;
+output writes affect position and bounded buffer bytes. This is conditional
+on valid, nonaliasing caller buffers and does not discharge provenance.
+Both semantic tools select the primary checkout lacking this worktree-only
+formatter file and returned file-not-found; shared selection preserved.
+Python compilation and diff checks pass. No new firmware build/device command.
+Next rebind observer and stack/IRQ checks, establish complete startup/timing
+evidence, then safeguarded physical verification. Migration/physical rollback,
+web builder/install, GPL and review/CI/integration remain open.

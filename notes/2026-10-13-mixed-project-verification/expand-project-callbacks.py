@@ -78,7 +78,10 @@ if len(sys.argv) > 3:
     }
     # PCs and field loads inspected in the matching vendor disassembly.
     # Require this exact artifact for these call-site claims.
-    assert inventory['elf_sha256'] == 'df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e'
+    assert inventory['elf_sha256'] in {
+        'df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e',
+        '4b340d1aa4f67737d102441680df5d28a2740d6a2eaa83feb028ea19a9f49e2b',
+    }
     sites = {
         '_ZN3fm15macro8Instance12BuildEnginesEv': [
             ('0x2061562', 'Init'), ('0x206156e', 'LoadUserData'), ('0x2061578', 'Reset')],

@@ -11,7 +11,12 @@ from audit_link import Elf
 
 digest = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
 elf_hash = digest(elf_path)
-assert elf_hash == 'df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e'
+profiles = {
+    'df358a616de234c0263344cffda7d5fd626a4c1079dd5f352574cfe77fa93a8e': 0,
+    '4b340d1aa4f67737d102441680df5d28a2740d6a2eaa83feb028ea19a9f49e2b': -0x9e,
+}
+assert elf_hash in profiles, ('unreviewed ELF', elf_hash)
+constructor_shift = profiles[elf_hash]
 inventory = json.loads(inventory_path.read_text())
 assert inventory['elf_sha256'] == elf_hash
 assert inventory['disassembly_sha256'] == digest(dis_path)
@@ -35,10 +40,13 @@ assert graph[hook]['unresolved'] == [
     {'pc': '0x206d8e6', 'kind': 'indirect', 'instruction': 'goto r3'}]
 
 instructions = {}
+opcodes = {}
 for line in dis_path.read_text().splitlines():
-    match = re.match(r'\s*([0-9a-f]+):\s+(?:[0-9a-f]{2} )+\s*(.*)', line)
+    match = re.match(r'\s*([0-9a-f]+):\s+((?:[0-9a-f]{2} )+)\s*(.*)', line)
     if match:
-        instructions[hex(int(match[1], 16))] = match[2].strip()
+        pc = hex(int(match[1], 16))
+        instructions[pc] = match[3].strip()
+        opcodes[pc] = bytes.fromhex(match[2])
 expected = {
     '0x206ea8c': 'r4 = 0',
     '0x206ea9e': '[sp] = r4',
@@ -50,9 +58,14 @@ expected = {
     '0x206d8de': 'if (r3 == 0) goto 8 <putchar_via_gadget+0x18 : 206d8e8 >',
     '0x206d8e6': 'goto r3',
 }
+expected = {hex(int(pc, 16) + (constructor_shift if int(pc, 16) >= 0x206ea8c else 0)): assembly
+            for pc, assembly in expected.items()}
 for pc, assembly in expected.items():
     assert instructions.get(pc) == assembly, (pc, instructions.get(pc), assembly)
-assert '<vsnprintf_impl : 206e502 >' in instructions['0x206eaae']
+    assert elf.read(int(pc, 16), len(opcodes[pc])) == opcodes[pc], ('ELF opcode mismatch', pc)
+call_pc = hex(0x206eaae + constructor_shift)
+assert '<vsnprintf_impl : 206e502 >' in instructions[call_pc]
+assert elf.read(int(call_pc, 16), len(opcodes[call_pc])) == opcodes[call_pc]
 printf_path = 'firmware/third_party/printf/printf/printf.c'
 assert digest(source / printf_path) == '19acedf4294faa4961b8ae4bb4ed313497612f6f485af462674021faacaa5e00'
 text = (source / printf_path).read_text()
