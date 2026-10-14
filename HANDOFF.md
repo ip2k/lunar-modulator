@@ -2246,3 +2246,27 @@ review/CI/integration remain open. Full release goal remains active.
 
 Branch feature/2026-10-11@installable-firmware; previous verified pushed43774791.
 All production-v5 jobs are terminal; no running job to restart or wait for.
+
+## PROJECT target stack exploration
+
+[verified] Vendor objdump disassembly of the all13-v3 ELF was inventoried with
+lunar_project_start as the root. The exploratory script reports 330 reachable
+functions, 37 unresolved indirect calls and two paths to recursive strong().
+The estimated direct loader chain is 14740 bytes, with a 2200-byte fm1_cstart
+caller frame and 32-byte content activation frame. These are NOT a proven
+maximum or stack admission: historical SET callback hints omit PROJECT sinks,
+function aliases/local-name collisions may affect traversal, recursive calls
+are cut during enumeration, and interrupt overlap/dynamic stack are unchecked.
+Source inspection confirms strong() performs Tarjan graph traversal and only
+recurses into unvisited nodes; a bound must include the configured position
+count and actual target frame. The receipt preserves the exact ELF hash.
+
+Reproduction: use vendor common/bin/objdump -d on linked/lunar-app-probe.elf,
+then python3 explore-project-stack.py SOURCE_ROOT ELF DISASSEMBLY OUTPUT_JSON.
+The source root must supply tools/jieli/audit_link.py. No hardware admission
+follows from this exploratory result. Next resolve PROJECT reader/sink and
+engine/modulation callbacks, bounded recursion, caller and IRQ paths before
+using a calculated stack margin for a physical test.
+
+Previous verified pushed25dc29b65a44ea54a40b0a24aab08141f229ea10.
+No live Hera job; no device command; full release goal remains active.
