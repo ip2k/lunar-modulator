@@ -1,11 +1,13 @@
 """Canonical native catalogue choices and hostile external selections."""
 from pathlib import Path
 import sys
+from types import SimpleNamespace
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools/native'))
+import module_selection
 from module_selection import resolve_modules, wavetable_namespaces
 
 
@@ -57,3 +59,27 @@ def test_native_module_selection(tmp_path, specification):
 def test_native_module_selection_refuses(tmp_path, specification):
     with pytest.raises(ValueError):
         resolve_modules(ROOT, tmp_path / 'modules', specification)
+
+
+@pytest.mark.parametrize(('stdout', 'reason'), [
+    ('trio sound 1 our/src/trio.o\ntrio sound 0 our/src/trio.o\nlist custom\n',
+     'Malformed module catalogue output'),
+    ('trio unknown 1 our/src/trio.o\nlist custom\n',
+     'Malformed module catalogue output'),
+    ('trio sound 1 ../outside.o\nlist custom\n',
+     'Malformed module catalogue object path'),
+    ('trio sound 1 our/src/trio.o\nlist all\n',
+     'Malformed module catalogue trailer'),
+    ('trio sound 0 our/src/trio.o\nplate audio_fx 1 our/src/plate.o\nlist custom\n',
+     'Module catalogue selection differs from requested IDs'),
+])
+def test_native_module_selection_rejects_malformed_backend_output(
+        tmp_path, monkeypatch, stdout, reason):
+    build = tmp_path / 'build'
+    (build / 'gen').mkdir(parents=True)
+    (build / 'gen/fm1_modules.h').write_text('/* generated */\n')
+    monkeypatch.setattr(module_selection.subprocess, 'run', lambda *args, **kwargs:
+                        SimpleNamespace(returncode=0, stdout=stdout, stderr=''))
+
+    with pytest.raises(ValueError, match=reason):
+        resolve_modules(ROOT, build, 'trio')

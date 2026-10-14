@@ -3108,3 +3108,17 @@ selectable webbuilder/installer. Next capacity/migration/physicalIO/stackproof,
 watched all13boot androllback, licensing/reviewCI/integration/release.
 Branch feature/2026-10-11@installable-firmware; preceding verified pushed
  a05c1677c52b85ef6f6bc7267de61a04aa75a9aa.
+
+## Parallel Lunar work checkpoint (2026-10-14)
+
+Owner explicitly authorized Luna sub-agents. Three bounded delegates cover
+actual dense-project capacity, all-thirteen firmware size savings, and selectable
+builder metadata validation; parent retains integration/hardware authority.
+[verified] Builder catalogue parser rejects malformed trailers/rows, unsafe
+object paths and literal selections differing from the requested IDs. Agent and
+parent focused repository-venv runs both pass37 tests; diff check clean. Evidence
+notes/2026-10-14-builder-validation.md. No hardware operation or deployment.
+Capacity and size investigations remain running; physical SAVE stays unadmitted.
+Full all-thirteen firmware/builder/recovery release goal ACTIVE.
+Branch feature/2026-10-11@installable-firmware; previous verified pushed
+98317cb1da2fa3943ed3feb5fcf6c8a9f246c00b.
