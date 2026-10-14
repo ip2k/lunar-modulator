@@ -1,0 +1,7 @@
+# Private controller identity and link layout
+
+[verified] `build_demo_image.py` now accepts operator-controlled `--firmware-identity` and `--flash-layout` values. Legacy invocation retains implicit FM-1_990 and expanded-d9000. Explicit identities use the existing Lunar 5xx validator; the only controller layouts are expanded-d7000 and expanded-d9000. These values do not come from browser request content.
+
+[verified] Validation precedes output directory creation. The completed link receipt must match the requested identity configuration, including false package/updater/hardware acceptance flags, and the exact named layout budget. It still verifies app/ELF hashes, selected content, source receipts, disarmed SAVE and empty flash-write range. Its output remains private diagnostic evidence, never installation permission.
+
+[verified] Repository Python 3.13 passed 66 focused controller/identity checks. Negative checks reject identity drift, layout drift, a fabricated updater-acceptance claim and unsupported operator values before output creation. This controller increment was not used for a new target compilation or physical installation; the separate identity target note records the actual pi32v2 link. Rarefaction/Serena were queried but select the primary checkout, which lacks this worktree's new controller file; direct source inspection was used without changing another session's shared selection.

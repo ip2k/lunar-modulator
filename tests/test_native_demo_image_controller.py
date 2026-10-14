@@ -13,6 +13,9 @@ from build_demo_image import (checked_link_receipt, checked_wavetable_profile,
                               WAVETABLE_PROFILE, wavetable_build_flags)
 from prepare_image_profile import sha
 from runtime_mode import runtime_configuration
+from firmware_identity import identity_configuration
+from flash_layout import app_budget
+from build_demo_image import build_selection
 
 
 def inputs(runtime_mode='diagnostic', project_count=2):
@@ -63,6 +66,37 @@ def test_checked_link_keeps_order_startup_and_actual_output_identity():
     for flag in ('installable', 'hardware_admitted', 'hardware_tested', 'native_ram_verified',
                  'native_playback_verified', 'full_song_default_accepted'):
         assert receipt[flag] is False
+
+
+def test_explicit_identity_and_layout_must_match_actual_link_policy():
+    values = inputs()
+    verification, artifact = values[2:4]
+    verification['firmware_identity'] = identity_configuration('FM-1_500')
+    for report in (verification, artifact):
+        report['flash_layout'] = 'expanded-d7000'
+        report['app_budget_bytes'] = app_budget('expanded-d7000')
+    receipt = checked_link_receipt(*values, firmware_identity='FM-1_500',
+                                   flash_layout='expanded-d7000')
+    assert receipt['firmware_identity'] == identity_configuration('FM-1_500')
+    assert receipt['installable'] is False
+    with pytest.raises(ValueError, match='firmware identity'):
+        checked_link_receipt(*values, firmware_identity='FM-1_501')
+    with pytest.raises(ValueError, match='flash layout'):
+        checked_link_receipt(*values, firmware_identity='FM-1_500',
+                             flash_layout='expanded-d9000')
+    verification['firmware_identity']['updater_acceptance_verified'] = True
+    with pytest.raises(ValueError, match='firmware identity'):
+        checked_link_receipt(*values, firmware_identity='FM-1_500')
+
+
+@pytest.mark.parametrize('policy', [dict(firmware_identity='FM-1_092'),
+                                  dict(flash_layout='unbounded')])
+def test_invalid_operator_policy_rejected_before_creating_build_output(tmp_path, policy):
+    out = tmp_path / 'output'
+    with pytest.raises(ValueError):
+        build_selection({}, tmp_path / 'missing-state-tool', tmp_path / 'missing-toolchain',
+                        tmp_path / 'missing-catalogue', out, **policy)
+    assert not out.exists()
 
 
 def test_single_project_receipt_truthfully_records_selector_bypass():

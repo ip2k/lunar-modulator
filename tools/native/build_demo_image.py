@@ -17,6 +17,8 @@ from prepare_image_profile import bounded_read, sha, unique_object
 from verify_image_profile import load_prepared_profile
 from runtime_mode import runtime_configuration
 from module_selection import wavetable_namespaces
+from firmware_identity import identity_configuration
+from flash_layout import app_budget
 
 ROOT = Path(__file__).resolve().parents[2]
 WAVETABLE_PROFILE = 'compressed-required-banks-flash-plaits-v1'
@@ -109,11 +111,21 @@ def checked_wavetable_profile(verification, selected):
 
 
 def checked_link_receipt(selection, prepared, verification, artifact, app, elf, *,
-                         runtime_mode='diagnostic', require_save_service=False):
+                         runtime_mode='diagnostic', require_save_service=False,
+                         firmware_identity=None, flash_layout=None):
     """Bind ordered choices and actual output bytes to one completed link."""
     if runtime_mode not in ('diagnostic', 'song-diagnostic'):
         raise ValueError('Only bounded diagnostic runtime modes are supported')
     expected_runtime = runtime_configuration(runtime_mode)
+    expected_identity = identity_configuration(firmware_identity)
+    if (firmware_identity is not None or 'firmware_identity' in verification):
+        if verification.get('firmware_identity') != expected_identity:
+            raise ValueError('Linked firmware identity differs from operator policy')
+    if flash_layout is not None:
+        if (flash_layout not in ('expanded-d7000', 'expanded-d9000')
+                or verification.get('flash_layout') != flash_layout
+                or verification.get('app_budget_bytes') != app_budget(flash_layout)):
+            raise ValueError('Linked flash layout differs from operator policy')
     if (verification.get('runtime_configuration') != expected_runtime
             or verification.get('probe_return_to_rom_seconds') != expected_runtime['return_to_rom_seconds']):
         raise ValueError('runtime configuration mismatch')
@@ -185,6 +197,7 @@ def checked_link_receipt(selection, prepared, verification, artifact, app, elf, 
                 **wavetable,
                 embedded_content=embedded,
                 content=expected_assets, runtime_configuration=expected_runtime,
+                firmware_identity=expected_identity,
                 app_sha256=sha(app), elf_sha256=sha(elf),
                 app_bytes=len(app), app_budget_bytes=artifact['app_budget_bytes'],
                 installable=False, hardware_admitted=False, hardware_tested=False,
@@ -206,10 +219,16 @@ def read_report(path):
 
 
 def build_selection(request, state_tool, toolchain, catalogue, output, *,
-                    runtime_mode='diagnostic', wavetable_profile=WAVETABLE_PROFILE):
+                    runtime_mode='diagnostic', wavetable_profile=WAVETABLE_PROFILE,
+                    firmware_identity=None, flash_layout='expanded-d9000'):
     if runtime_mode not in ('diagnostic', 'song-diagnostic'):
         raise ValueError('Only bounded diagnostic runtime modes are supported')
     profile_flags = wavetable_build_flags(wavetable_profile)
+    identity_configuration(firmware_identity)
+    if flash_layout not in ('expanded-d7000', 'expanded-d9000'):
+        raise ValueError('Unsupported private image flash layout')
+    identity_flags = (['--firmware-identity', firmware_identity]
+                      if firmware_identity is not None else [])
     output = Path(output)
     output.mkdir(exist_ok=False)
     # Failed builds retain their diagnostic files, but never a success receipt.
@@ -221,7 +240,8 @@ def build_selection(request, state_tool, toolchain, catalogue, output, *,
                     '--toolchain', str(Path(toolchain).resolve()),
                     '--catalogue', str(Path(catalogue).resolve()),
                     '--build', str(output / 'link'), '--runtime-mode', runtime_mode,
-                    '--stack-watermark', '--flash-layout', 'expanded-d9000',
+                    '--stack-watermark', '--flash-layout', flash_layout,
+                    *identity_flags,
                     *profile_flags, '--prepared-profile', str(prepared_dir),
                     '--expected-profile-sha256', manifest_sha, '--link-project-loader',
                     '--link-project-save-service',
@@ -233,7 +253,8 @@ def build_selection(request, state_tool, toolchain, catalogue, output, *,
                                   read_report(output / 'link/artifact/artifact.json'),
                                   bounded_read(output / 'link/artifact/app.bin', 1048576),
                                   bounded_read(output / 'link/lunar-app-probe.elf', 16 * 1048576),
-                                  runtime_mode=runtime_mode, require_save_service=True)
+                                  runtime_mode=runtime_mode, require_save_service=True,
+                                  firmware_identity=firmware_identity, flash_layout=flash_layout)
     receipt['project_save_service'] = read_report(output / 'link/verification.json')['project_save_service']
     receipt['state_bin_codec'] = read_report(output / 'link/verification.json')['state_bin_codec']
     receipt['verification_sha256'] = sha(bounded_read(output / 'link/verification.json', 16 * 1048576))
@@ -251,12 +272,17 @@ def main():
     parser.add_argument('--wavetable-profile',
                         choices=(WAVETABLE_PROFILE, SHAPES8_WAVETABLE_PROFILE),
                         default=WAVETABLE_PROFILE, help='Named reviewed memory profile')
+    parser.add_argument('--firmware-identity', help='Operator-selected Lunar 5xx identity')
+    parser.add_argument('--flash-layout', choices=('expanded-d7000', 'expanded-d9000'),
+                        default='expanded-d9000', help='Private link budget, not flash admission')
     args = parser.parse_args()
     try:
         request = json.loads(bounded_read(args.request, 65536), object_pairs_hook=unique_object)
         result = build_selection(request, args.state_tool, args.toolchain, args.catalogue,
                                  args.out, runtime_mode=args.runtime_mode,
-                                 wavetable_profile=args.wavetable_profile)
+                                 wavetable_profile=args.wavetable_profile,
+                                 firmware_identity=args.firmware_identity,
+                                 flash_layout=args.flash_layout)
     except (ValueError, OSError, KeyError, TypeError, subprocess.CalledProcessError) as error:
         parser.error(str(error))
     print(json.dumps(result, indent=2))

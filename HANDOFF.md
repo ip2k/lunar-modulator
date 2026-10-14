@@ -3974,6 +3974,15 @@ SAVE remains disarmed; package emission, physical persistence/recovery,
 continuous full-song acceptance and actual web installation/release remain
 required. Goal ACTIVE; no main merge or deployment.
 
+Follow-on: native device41 returned to ROM device42 during passive monitoring;
+private archive refreshed. Owner observations remain pending; no power cycle
+needed at this checkpoint. Canonical identity/RAM-call audit integrated at
+450b1f47 (27 focused checks passed), backed up with verified origin SHA.
+Private image controller now forwards operator-selected 5xx identity and
+D7000/D9000 layout and binds them to the completed link receipt (66 focused
+checks passed). Defaults remain historical diagnostic values. Offline package
+composer lane owns a separate claim/branch from 450b1f47; no installable claim.
+
 Verified origin head before this checkpoint: 620cc306a83addb0104fc2c3f328e53e070a0446.
 Event Horizon is owner-approved as default; chooser/catalogue integration
 da6b5943 preserves false hardware/installability gates. Nine focused Node
