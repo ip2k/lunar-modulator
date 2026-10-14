@@ -1,3 +1,28 @@
+# Build provenance and API checkpoint — 2026-10-14 22:31 UTC
+
+Root e841e3a6fae599cfd3fc4085b388f0e12700df59 is GitHub-backed, remote SHA
+verified. Worker e759412442ab22325c84bfaf00524bc4639b4e67 is also backed up
+on codex/2026-10-14-current-continuous-build-tuple; independent review found
+missing complete toolchain/linked-object byte binding and incomplete Docker
+configuration checks. Worker is fixing these before the real build; do not
+package this checkpoint's output as trusted. Reviewer remains active.
+
+Root API/worker receipt nesting refusal2cdcc8ee passed the full installer-service
+suite on Hera:79 passed,1 optional retained-artifact skip. Log and exact pinned
+image are in notes/2026-10-14-installer-receipt-depth-refusal.md; shared handoff
+lunar--receipt-depth-check-20261014.md saved and root read-only claim released.
+Browser/installer/OTA suites passed62/62 with private diagnostic outer inspection.
+
+Sixteen regression shards continue on exact5f505585;8 completed/8 active at
+last worker update, no failure summaries yet. No claim of final green/current
+CI. CI38644838309 exact82d8e26c has browser/engine/dongle jobs green, full
+Python jobs running;38646181992 exact0f8ca8b4 pending. Current root not yet CI.
+
+Read-only bench inventory22:31UTC still sees ROM48 and Pico38. No new boot,
+reset or flash command. Owner watched-boot observations and Pico GPIO-versus-USB
+wiring answer still pending. SAVE, independent recovery, stock OTA/browser
+admission and release remain unaccepted; goal active.
+
 # Browser inspection checkpoint — 2026-10-14
 
 Root browser source commit29c736907369fec20c3cf1ad22901590051d899e is
