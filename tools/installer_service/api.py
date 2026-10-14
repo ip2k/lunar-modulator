@@ -18,7 +18,7 @@ SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 GROUPS = ("engines", "effects", "midi", "modulation")
 WAVETABLE_PROFILE = "compressed-required-banks-flash-plaits-v1"
 WAVETABLES = {
-    "braids": {"symbol": "wt_waves", "width": 1, "raw_bytes": 33024,
+    "braids": {"namespace": "braids", "symbol": "wt_waves", "width": 1, "raw_bytes": 33024,
                "raw_sha256": "c672fccb061496d0229bfc5c2d55ec61f367e1539dda5870fd667a059c90f634"},
 }
 TARGET_STORAGE = {"rgb565_bytes": 220832, "indexed_bytes": 163744,
