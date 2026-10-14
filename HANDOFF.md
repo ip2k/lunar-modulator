@@ -1,3 +1,20 @@
+# Browser inspection checkpoint — 2026-10-14
+
+Root browser source commit29c736907369fec20c3cf1ad22901590051d899e is
+GitHub-backed with remote SHA verified; this follow-up strengthens the optional
+private fixture assertion. Browser FWSC outer header/list/payload CRC and
+allocation checks pass against both a synthetic Python oracle and private
+trusted diagnostic26402f87...924d4 (eight tests, no skips). Admission remains
+closed; nested/stock/release verification and transport proof remain pending.
+No new hardware commands. Owner watched-boot and Pico wiring replies pending.
+
+Recovery readiness9e3 worker integrated as5a9edfd3 and backed up. Fresh Hera
+regression is running on exact5f505585:2784 IDs,16 disjoint174-case shards,
+Python3.12 compatible pinned container after identifying Python3.11 dependency
+ABI mismatch. Continuous tuple wrapper and its independent review remain active
+at their assigned exacte0cc base. Root owns new browser files only; worker tuple
+source/build provenance must still name the actual old source, not root HEAD.
+
 # Current integration and watched repeat — 2026-10-14 22:15 UTC
 
 Goal remains active: all13 native Lunar, Event Horizon default, selectable

@@ -50,6 +50,9 @@ test('optional output of the private Python OTA composer is recognized but never
   const fixture = new Uint8Array(await readFile(fixturePath));
   const inspected = inspectNativePackage(fixture);
   assert.equal(inspected.kind, 'jieli-fwsc-candidate');
+  assert.equal(inspected.envelope?.headerCrcVerified, true, inspected.reason);
+  assert.equal(inspected.envelope.entryListCrcVerified, true);
+  assert.equal(inspected.envelope.entries.every((entry) => entry.crcVerified), true);
   assert.equal(inspected.admissible, false);
   assert.equal('logicalImage' in inspected, false);
 });

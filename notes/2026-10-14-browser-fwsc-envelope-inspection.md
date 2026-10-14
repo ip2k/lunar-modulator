@@ -6,4 +6,6 @@
 
 [verified: source] Reports and entry metadata are frozen and expose neither `logicalImage` nor any flasher capability. `verifyNativePackage` continues to reject every artifact. Nested flash/JLFS/SFC structure, preserved stock components, transport/version acceptance, release approval, device writes and recovery are not established by these outer-envelope checks. No device operation, web deployment or installer release was performed.
 
+[verified: private diagnostic package] A subsequent run supplied the retained trusted D7000 diagnostic FWSC (978,484 bytes, SHA-256 `26402f8766ef523fc729bf16339291fa18c152c7da3e10717e2b8bd46af924d4`) from Hera into a mode-0700 local temporary directory. The optional test now requires successful header/list/all-payload CRC checks, not just marker recognition. All eight tests passed without skips. The private FWSC remains outside Git. This does not establish any nested or hardware gate.
+
 Next: compare against the freshly composed private continuous package when its provenance tuple and independent packaging review complete; then implement the separate nested/stock/release verifier required by the OTA adapter. Successful CRC inspection alone must never authorize transmission.
