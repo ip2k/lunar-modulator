@@ -1,13 +1,42 @@
 # FM-1 recovery runbook
 
 This runbook separates routes observed on the owner's FM-1_092, the fixed
-physical scratch-sector procedure, the exact SDK diagnostic install/restore
-procedure, and a synthetic failure model. The diagnostic's 30 changed sectors
-have been installed and restored with complete readback verification. Diagnostic
-execution is supported conditionally by a retained RAM record; visible display,
-recovery after diagnostic execution, and physical interrupted-write recovery
-remain separate acceptance gates. Model success does not prove mask-ROM entry,
-CPU reset, USB_KEY timing, or firmware boot on hardware.
+physical scratch-sector procedure, exact diagnostic install/restore procedures,
+and simulated failures. The original SDK diagnostic's 30 changed sectors have
+been installed and restored with complete readback verification. The later
+SDK-free native Trio probe displayed its screen, responded to keys and encoders,
+and produced audible notes confirmed by the owner; subsequent recovery-mode
+reads matched its complete installed image [verified: 2026-10-12]. See
+[the native bench evidence](../notes/2026-10-12-native-trio-probe.md).
+Physical interrupted-write recovery and the expanded thirteen-engine image
+remain unverified. Model success does not prove mask-ROM entry, CPU reset,
+USB_KEY timing, or firmware boot on hardware.
+
+## Expanded native candidate: offline boundary
+
+The approved expanded layout ends at `0xD9000`. Its private constructor verifies
+matching recorded FM-1_092 backups, backup provenance, application bytes rebuilt
+from the ELF, the SDK-free link audit, and independent flash geometry. It keeps
+raw bytes before `0x4000` and from `0xD9000` onward identical and preserves stock
+configuration contents [verified offline]. It is not connected to a physical
+writer or a web installer. See
+[the construction and recovery evidence](../notes/2026-10-13-expanded-raw-geometry.md).
+
+For any interrupted future expanded installation, preserve both original
+backups, the target, plan, journal, command receipts and observed device identity.
+Do not replay a stale device handle or interpret a written-page count as proof
+of flash contents. A reviewed recovery adapter must establish a fresh loader
+session, read the actual flash, reject protected-byte mismatches, rebuild differing
+authorized sectors and verify the complete desired image. Application data is
+written before directory sector `0x4000`. These are requirements for the adapter,
+not permission to use the simulated writer on hardware.
+
+The current constructor accepts only the recorded FM-1_092 geometry. It does not
+migrate V15's VM bank: V15 reserves 344 KB at `0x93000`, whereas this layout leaves
+64 KB at `0xD9000` [verified stock layouts]. Preserve the entire original bank in
+the full backup; truncation is not settings migration. A settings export/import
+policy, rollback verification, fresh matching physical backups and exact-image
+review remain required before a physical expanded installation.
 
 ## Proven hardware facts and current boundary
 

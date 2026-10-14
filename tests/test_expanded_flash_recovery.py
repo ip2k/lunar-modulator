@@ -23,6 +23,10 @@ def test_expanded_image_process_loss_and_rollback(sample, tmp_path, direction, f
     baseline = sample['baseline']
     app = b'A' * 838712
     target, _ = expanded.construct_geometry(baseline, baseline, sample['reference'], app)
+    exercise_recovery(baseline, target, sample['reference'], app, tmp_path, direction, fault)
+
+
+def exercise_recovery(baseline, target, reference, app, tmp_path, direction, fault, after_bytes=127):
     device = SimulatedDevice(baseline, path=tmp_path / 'device',
                              writable_ranges=(APP,), app_range=APP,
                              protected_ranges=((0, APP[0]), (APP[1], len(baseline))),
@@ -31,7 +35,7 @@ def test_expanded_image_process_loss_and_rollback(sample, tmp_path, direction, f
     transaction = tmp_path / 'transaction'
     create_transaction(transaction, baseline, baseline, target,
                        loader_session(device).identity(), (APP,),
-                       'synthetic-expanded-092', commit_sector=APP[0])
+                       'offline-expanded-092-recovery', commit_sector=APP[0])
     if direction == 'restore':
         run_transaction(transaction, loader_session(device))
     device.reset()
@@ -41,7 +45,7 @@ def test_expanded_image_process_loss_and_rollback(sample, tmp_path, direction, f
     kind = 'ack_loss' if fault == 'program-ack' else 'torn'
     occurrence = len(sectors) if fault == 'commit-erase' else 1
     case = dict(kind='fault', direction=direction, operation=operation,
-                fault=kind, occurrence=occurrence, after_bytes=127)
+                fault=kind, occurrence=occurrence, after_bytes=after_bytes)
     (tmp_path / 'worker-case.json').write_text(json.dumps(case))
     worker = subprocess.run([sys.executable, str(ROOT / 'tools/fm1_recovery_campaign.py'),
                              '--worker', str(tmp_path)], capture_output=True, text=True, timeout=900)
@@ -58,13 +62,13 @@ def test_expanded_image_process_loss_and_rollback(sample, tmp_path, direction, f
         reopened.usb_key()
     desired = target if direction == 'install' else baseline
     initial = baseline if direction == 'install' else target
-    address = APP[0] if fault == 'commit-erase' else APP[0] + 4096
+    address = APP[0] if fault == 'commit-erase' else next(offset for offset in sectors if offset != APP[0])
     if operation == 'erase':
         torn = bytearray(initial[address:address + 4096])
-        torn[:127] = b'\xff' * 127
+        torn[:after_bytes] = b'\xff' * after_bytes
     else:
         torn = bytearray(b'\xff' * 4096)
-        written = 256 if kind == 'ack_loss' else 127
+        written = 256 if kind == 'ack_loss' else after_bytes
         torn[:written] = desired[address:address + written]
     assert reopened.flash[address:address + 4096] == torn
     if fault == 'commit-erase':
@@ -74,7 +78,7 @@ def test_expanded_image_process_loss_and_rollback(sample, tmp_path, direction, f
     assert receipt['sector_order'][-1] == APP[0]
     assert reopened.flash == desired
     if direction == 'install':
-        expanded.validate_geometry(baseline, reopened.flash, sample['reference'], app)
+        expanded.validate_geometry(baseline, reopened.flash, reference, app)
     reopened.reset()
     assert reopened.mode == 'app'
     run_transaction(transaction, loader_session(reopened), 'restore')

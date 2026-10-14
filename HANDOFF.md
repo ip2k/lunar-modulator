@@ -1,3 +1,24 @@
+# Actual-candidate recovery campaign running — 2026-10-13
+
+Goal ACTIVE: full SDK-free Lunar, all thirteen default engines plus selectable
+engines/effects/songs/sets builder. This checkpoint is not a release.
+Previous verified pushed SHA aae72ae63e747302e63289b890828e26390b5a78.
+Pending tests test_expanded_private_recovery.py now reconstruct the actual private
+candidate from pinned backups/ELF and reuse the persistent interruption helper.
+32 cases dispatched in 30 Hera containers; process session 23152 is live at this
+checkpoint. Do not restart on observation timeout. Inspect the handle or owned
+lunar-expanded-private-recovery-v1 containers for terminal state first.
+Hera root /home/claude/mvave-fm1/native-external-arenas-16-20261012;
+launcher launch-expanded-private-recovery-v1.py; output
+out/expanded-private-recovery-v1; private inputs out/expanded-recovery-inputs-v1.
+Tests remain unverified until all logs/source/input hashes and terminal states
+are checked. The helper chooses the first changed non-directory sector rather
+than assuming 0x5000. Runbook updated to distinguish accepted native Trio hardware
+from unverified expanded installation and physical interrupted recovery.
+No device commands. Next finish this campaign, retain results, then settings
+migration/rollback, complete startup/persistence/timing, OTA/web builder and exact
+review/CI/integration/physical gates. Private vendor inputs stay untracked.
+
 # Expanded candidate bound checkpoint — 2026-10-13
 
 Goal ACTIVE: full SDK-free native Lunar, all13default plus selectable builder.
