@@ -77,11 +77,19 @@ typedef struct { uint32_t sfc_con, spi_con, iomap_con0; } fl_saved_t;
 #ifndef FL_SFC_RESTORE
 #define FL_SFC_RESTORE(value) (SFC_CON = (value))
 #endif
-#ifndef FL_IRQ_DISABLE
-#define FL_IRQ_DISABLE() __asm__ volatile("cli" ::: "memory")
+#ifndef FL_IRQ_SAVE
+/* Match the pinned AC79 SDK local_irq_save contract: save ICFG, then clear
+ * only its global interrupt-enable bit. Keep this inline so the call site
+ * never depends on XIP while the NOR controller has disabled reads. */
+#define FL_IRQ_SAVE(flags) do { \
+    __asm__ volatile ("%0 = icfg" : "=r"(flags) : : "memory"); \
+    uint32_t fl_irq_masked = (flags) & ~0x100u; \
+    __asm__ volatile ("icfg = %0" :: "r"(fl_irq_masked) : "memory"); \
+} while (0)
 #endif
-#ifndef FL_IRQ_RESTORE_ENABLED
-#define FL_IRQ_RESTORE_ENABLED() __asm__ volatile("csync\n\tsti" ::: "memory")
+#ifndef FL_IRQ_RESTORE
+#define FL_IRQ_RESTORE(flags) \
+    __asm__ volatile ("icfg = %0" :: "r"(flags) : "memory")
 #endif
 RAMINL void fl_csync(void) { FL_CSYNC(); }
 RAMINL void fl_cache_idle(void) { while (!(CACHE_CON & 0x4000u)) ; }
@@ -310,21 +318,27 @@ static RAMFN int fl_read_ram(uint32_t off, uint8_t *dst, uint32_t n)   /* 0x0B f
 
 /* ---- XIP side (normal .text) ---- */
 
+static inline uint32_t irq_save(void)
+{
+    uint32_t flags;
+    FL_IRQ_SAVE(flags);
+    return flags;
+}
+static inline void irq_restore(uint32_t f) { FL_IRQ_RESTORE(f); }
+
 /* Once at boot, before any XIP read of the data region: map the data area
  * as an unencrypted XIP window (as the SDK's IOCTL_SET_VM_INFO does). */
 static void fl_plain_window_init(void)
 {
+    uint32_t irq_flags;
     SFCENC_CON &= (uint8_t)~2u;
     SFCENC_UNENC_L = FL_XIP(0x93000u);            /* 0x0208F000 */
     SFCENC_UNENC_H = 0x07FFFFFFu;
     SFCENC_CON |= 2u;
-    FL_IRQ_DISABLE();
+    irq_flags = irq_save();
     fl_inval(0x93000u, 0x100000u - 0x93000u);     /* drop any decrypted lines */
-    FL_IRQ_RESTORE_ENABLED();
+    irq_restore(irq_flags);
 }
-
-static inline uint32_t irq_save(void) { FL_IRQ_DISABLE(); return 0; }
-static inline void irq_restore(uint32_t f) { (void)f; FL_IRQ_RESTORE_ENABLED(); }
 
 static int fl_erase4k(uint32_t off, uint32_t *took_us)
 {
