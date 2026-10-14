@@ -4,7 +4,7 @@
 
 Coordinator checkout: `/Users/likwid/.codex/worktrees/installable-firmware/mvave-fm1-firmware`.
 Branch: `feature/2026-10-11@installable-firmware`.
-Last preceding verified GitHub head: `641ba725b0097fdbf243fb8f674a6a6e6922a58b`.
+Last preceding verified GitHub head: `e05f616a18445f491e2bad85a728c9ab89867872`.
 Every returned worker commit through that checkpoint has a verified GitHub backup.
 No main merge, public installer deployment or release occurred.
 
@@ -28,9 +28,11 @@ safeguards. Mac alone owns device/Cynthion operations; Hera workers are offline.
   Packed project size is 4,345 bytes; exact embedded content/order and receipt
   checks passed. Hardware/installability/default-acceptance fields remain false.
   See `2026-10-14-real-installer-worker-api-e2e.md`.
-- Root repeated 18 Node installer/page/client tests successfully. The private
-  browser review used API stubs; real API testing used TestClient. A new live
-  Chromium-to-real-worker loopback check is running to connect these gates.
+- Root repeated 18 Node installer/page/client tests successfully. The earlier private
+  browser review used API stubs; the new live Chromium-to-real-API-to-Docker
+  worker check also passed with matching request/app hashes. See
+  `2026-10-14-live-browser-worker-e2e.md`. The temporary loopback service and
+  worker were removed; no public deployment occurred.
 - The offline CRC-header model passed four tests with the repository Python
   3.12 venv and independent retained-capture review. It proves only the XOR/CRC
   property. Its narrow SPL helper and supplied rescue-validity booleans are
@@ -38,8 +40,8 @@ safeguards. Mac alone owns device/Cynthion operations; Hera workers are offline.
 - The CI PIO dependency repair is integrated at `83069368`: emulator 0.88.0
   and compatible pytest range. Hera passed 17 focused waveform/dongle tests,
   full collection and pip check. Fresh CI `38586683710` at exact 83069368 is
-  pending behind `38584247667`; the latter has failed Python collection jobs
-  and an unfinished sanitizer job. No overall passing CI claim is supported.
+  now running; `38584247667` completed with failed Python collection jobs
+  while its other jobs passed. No overall passing CI claim is supported.
 
 ## Recovery and fit findings that govern the next step
 
@@ -57,6 +59,10 @@ complete image does not fit: app origin 4120 plus retained 384-byte tool and
 2,940-byte configuration extents leave an app budget of 860,644 bytes. The
 862,296-byte current app exceeds it by 1,652 bytes; complete records end at
 D7674. The target-adapted loader size and staging ownership are still unproved.
+A new existing-codec compressed-wavetable link saves 18,012 bytes: app 844,284
+bytes, leaving 16,360 bytes against that D7000 arithmetic budget. It reserves
+an additional 50,688 bytes in RAM, reducing the instance pool to 165,376.
+Cold-start/target timing remain unproved; see `2026-10-14-wavetable-fullsong-fit.md`.
 
 Continuous-mode/diagnostic-overhead A/B did not close this gap. Matched -Os
 compilation made the feature-identical app 100,292 bytes larger than -Oz and
@@ -65,14 +71,15 @@ gate is accepted as the size solution.
 
 ## Active lanes and remaining acceptance
 
-- Hera `installer_preload_connection`: transient loopback-only live browser /
-  actual API / pinned Docker worker check; note-only, no public deployment.
-- Hera `demo_controller_review`: lossless live-resource compression fit with
-  exact roundtrip, callers, decoder/metadata cost, RAM and timing limits;
-  retain all13/55, full-song content, SAVE link and stack diagnostics.
-- Hera `physical_storage_compression`: independent recovery-route evidence,
-  including existing USB_KEY/mask-ROM/Cynthion capabilities and physical
-  requirements; no device commands or unreviewed FPGA programming.
+- Hera `installer_preload_connection`: independent compressed-worker source /
+  receipt and memory-preflight review, note-only first.
+- Hera `demo_controller_review`: meaningful host cold-start with the actual
+  decoded tables and 165,376-byte allocation pool, real default-song load,
+  bounded allocator metrics and sanitizer checks. No target timing claim.
+- Hera `physical_storage_compression`: target-adapted rescue-loader fit and
+  safe expanded bounds, offline only. Independent USB_KEY route review is
+  complete: owner-unit entry is still untested, Cynthion does not establish
+  physical FM1 power/reset control. See independent-recovery-route note.
 
 Coordinator reviews returned artifacts, backs up exact commits, integrates
 through required checks and continues. Owner accepted audible Trio probe
