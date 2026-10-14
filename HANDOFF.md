@@ -3029,3 +3029,26 @@ collector adapter/production integration and capacity; all13 watched boot,
 migration/physicalrollback/webinstaller/custombuilder/licensing/reviewCI remain.
 Previous verified pushed108849bb3cae7232ed42b58bf278ecd66428282f.
 Do not replay consumed hardware writers/loaders/boot commands.
+
+## Actual application SAVE adapter checkpoint (2026-10-14)
+
+[verified] Native adapter forwards actual project collector records with firmware
+producer metadata into framebuffer/compact writer/two-slot bridge. Thirty actual
+app SAVE/reload cases pass thirty concurrent Hera ASan/UBSan containers and pinned
+pi32v2 adapter compilation: all13 engines x2, FIRST ORBIT x2, DX7 user voice and
+default chain. Both slot commits/recovery selection, zero-I/O scheduling-guard
+refusal, collector refusal and framebuffer redraw checked. All30 logs/exits/noOOM
+and13sourcehashes verified. Session15298 terminal0. v1 metadata assertion was
+incorrect because simulator re-export sets fresh producer; v2 checks independent
+binary reader and writer ID, then exact reloaded state. Failed logs retained.
+Evidence notes/2026-10-14-project-save-app-verification/. No device command.
+No full firmware link or actual audio/scheduling/flash ownership proven. Smaller
+project cap not justified: UNIT chunks repeat per instance and directory reserves
+64entries. Max-slot capacity and physical allocation remain unresolved.
+Goal ACTIVE: full all13 native firmware plus selectable web builder/installer.
+Next integrate/measure native SAVE event scheduling and full link, resolve flash
+capacity/ownership, watched all13 boot, settings migration and physical rollback;
+licensing/review/CI/integration/shipping still open. Installed diagnostic remains
+unbooted; pending owner observation question; never replay consumed install or
+RAM loader operations. Branch feature/2026-10-11@installable-firmware; preceding
+verified pushed05844496bced3425a9ff017076c516733536cc1a.

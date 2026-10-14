@@ -1,0 +1,15 @@
+{
+  "firmware/native/project_save_app.h": "08e1231e5e757891e0d32ad46c76be18d57646995b94334b10d821aa17186915",
+  "firmware/native/project_save.h": "7f19dbe1ac88372cfdb61e2e311eeba80bd4c83226370095c8f420e0270cb08c",
+  "firmware/native/project_store.h": "237803b17d17c3c2311e89493b586c373c04ab0dc4788cb11ff3580d548a5045",
+  "firmware/native/project_workspace.h": "e43d0be761385e052f6a5bd686e8c4ab4bbac970cf6cd5d69275096e3e2c27fc",
+  "sim/web/test/native_project_save.h": "03dcd4c122d45c28b2bbe2ac40fb01442efb58bf444257e6892acd4299ec4998",
+  "sim/web/test/fm1_sim_render.c": "efa6a39d2933d51add1d84fbcf308548ece343c7886e8f2520398044908693ff",
+  "sim/web/src/fm1_app_state.c": "49550e6ed02fc9dfce104ce5f1f8247e2e83d9e7f7bac2e718616d460453f045",
+  "sim/web/src/fm1_app_state.h": "dd05eff40a3ecfd9fe75e7bdb9451dc2cc37a47f0724ca6aeeb8de5d606db74b",
+  "tests/native/project_save_app_target.c": "391039c20c05e23d8a0804a8ce7f451b343c237ea0f819131e20b00aef9cb798",
+  "tests/test_native_project_save_app.py": "c917ed211a519b842f7838483c311d1dee43366c7d89095290b42330c9cd2539",
+  "engines/state/state_bin.c": "37054d9abc42bcadad715e164d1eb386643fd02919cffa6062f20e5ce886b66c",
+  "sim/web/src/fm1_tft.c": "ea6bff4f1be903ee7b0d3321ebb90805fe36b50ec95b65cfed0c508d16f67193",
+  "sim/web/src/fm1_tft.h": "806fe53dc8236e76d405daf1975b8565718ab084ce038c5fdd5db78da9f10cfa"
+}

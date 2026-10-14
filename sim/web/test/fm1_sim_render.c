@@ -262,6 +262,10 @@ static int state_load(const char *spec, unsigned flags) {
 
 static void file_put(void *ctx, const char *b, size_t n) { fwrite(b, 1, n, (FILE *)ctx); }
 
+#if defined(FM1_STATE_BIN_COMPACT_WRITER) && FM1_TFT_INDEXED
+#include "native_project_save.h"
+#endif
+
 /* Test-only random-access destination for the native project record path. */
 static int file_write_at(void *ctx, uint32_t off, const void *b, uint32_t n) {
   FILE *f = ctx;
@@ -330,6 +334,11 @@ static int state_save(const char *spec) {
     fprintf(stderr, "--save: cannot write %s\n", path);
     return 0;
   }
+#if defined(FM1_STATE_BIN_COMPACT_WRITER) && FM1_TFT_INDEXED
+  if (kind == FM1_STATE_PROJECT && len > 19 && strcmp(path + len - 19, ".native-save.lunarb") == 0)
+    ok = native_project_test_save(f, &g_app, &rep);
+  else
+#endif
   if (kind == FM1_STATE_PROJECT && len > 14 && strcmp(path + len - 14, ".stream.lunarb") == 0)
     ok = project_stream_save(f, &rep);
   else
