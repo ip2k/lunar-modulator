@@ -1,17 +1,17 @@
 import concurrent.futures,hashlib,json,pathlib,subprocess
 root=pathlib.Path('/home/claude/mvave-fm1/native-external-arenas-16-20261012')
-out=root/'out/seq-record-export-v2'
+out=root/'out/seq-record-export-v3'
 out.mkdir(exist_ok=False)
 image='sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d'
-base=['docker','run','--user','1001:1001','--network','none','--cgroup-parent','docker-batch.slice','--label','lan.project=lunar-modulator','--cpus','1','--memory','2048m','--memory-swap','2048m','-v',str(root/'seq-record-export-source-v2')+':/src:ro,z','-v',str(root/'out')+':/out:rw,z','-v','/home/claude/mvave-fm1/sdk-v1213/toolchain/current:/opt/jieli:ro,z','-e','FM1_NATIVE_TOOLCHAIN=/opt/jieli','-w','/src']
+base=['docker','run','--user','1001:1001','--network','none','--cgroup-parent','docker-batch.slice','--label','lan.project=lunar-modulator','--cpus','1','--memory','2048m','--memory-swap','2048m','-v',str(root/'seq-record-export-source-v3')+':/src:ro,z','-v',str(root/'out')+':/out:rw,z','-v','/home/claude/mvave-fm1/sdk-v1213/toolchain/current:/opt/jieli:ro,z','-e','FM1_NATIVE_TOOLCHAIN=/opt/jieli','-w','/src']
 py=['/out/pytest-venv/bin/python','-m','pytest','-o','addopts=','-q','-s','-p','no:cacheprovider']
 col=subprocess.run(base+['--rm',image]+py+['--collect-only','tests/test_native_seq_export_stream.py'],capture_output=True,text=True,check=True)
 (out/'collection.txt').write_text(col.stdout+col.stderr)
 nodes=[line.strip() for line in col.stdout.splitlines() if line.startswith('tests/') and '::' in line]
 assert len(nodes)==64, nodes
-(out/'source-hashes.json').write_text(json.dumps({p:hashlib.sha256((root/'seq-record-export-source-v2'/p).read_bytes()).hexdigest() for p in ['engines/include/fm1_seq.h','engines/state/state_seq_export.h','engines/state/fm1_state.h','engines/seq/seq_persist.c','engines/state/fm1_json.h','tests/native/seq_record_target.c','tests/native/seq_export_stream.c','tests/test_native_seq_export_stream.py']},indent=2))
+(out/'source-hashes.json').write_text(json.dumps({p:hashlib.sha256((root/'seq-record-export-source-v3'/p).read_bytes()).hexdigest() for p in ['engines/include/fm1_seq.h','engines/state/state_seq_export.h','engines/state/fm1_state.h','engines/seq/seq_persist.c','engines/state/fm1_json.h','engines/state/state_bin.c','engines/state/state_names.c','engines/state/state_movy1.c','engines/state/fm1_num.c','engines/state/fm1_deflate.c','tests/native/seq_record_target.c','tests/native/seq_export_stream.c','tests/test_native_seq_export_stream.py']},indent=2))
 def run(i):
- name='lunar-seq-record-export-v2-%02d'%i
+ name='lunar-seq-record-export-v3-%02d'%i
  chosen=nodes[i::30]
  r=subprocess.run(base+['--name',name,image]+py+chosen,capture_output=True,text=True)
  (out/('%02d.log'%i)).write_text(r.stdout+r.stderr)

@@ -28,3 +28,16 @@ operation or hardware persistence verification occurred. Next: binary-codec
 parity and collector integration, followed by bounded workspace/storage design.
 Shared semantic tools remain selected on the primary checkout; the earlier
 bounded exporter navigation does not prove this worktree's device ABI.
+
+## Actual binary codec verification
+
+[verified] source-v3/out-v3, session55383 terminal0: 64 cases pass in 30 Hera
+containers. The 32 record-mode cases additionally compare actual compact binary
+writer output against whole-line input byte for byte, validate the resulting
+container with the CRC-checking reader, and refuse all 10,208 binary write
+callback failure positions without emitting a header. Thirteen hashes and all
+logs/exits/no-OOM checked after retrieval. binary-case-metrics.json records sizes
+and cuts. Full logs under the private hera-results-v3 directory.
+
+This still uses desktop scratch allocation. Target compilation covers exporter
+and adapter; full firmware link and device workspace fit are not established.

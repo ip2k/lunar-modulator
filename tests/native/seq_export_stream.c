@@ -46,6 +46,76 @@ static int export_api(const fm1_seq_t *seq, fm1_seq_export_sink_t sink,
     *length = b.len;
     return 0;
 }
+/* Actual codec parity and every random-access write refusal. */
+static uint8_t binary[2][FM1_STATE_BIN_MAX];
+typedef struct { unsigned index, calls, fail, header; } binary_sink_t;
+static int binary_write(void *ctx, uint32_t off, const void *p, uint32_t n) {
+    binary_sink_t *b = ctx;
+    if (++b->calls == b->fail) return -1;
+    if (off > FM1_STATE_BIN_MAX || n > FM1_STATE_BIN_MAX - off) abort();
+    memcpy(binary[b->index] + off, p, n);
+    if (!off) ++b->header;
+    return 0;
+}
+static uint32_t binary_read(void *ctx, uint32_t off, uint8_t *p, uint32_t n) {
+    uint32_t total = *(uint32_t *)ctx;
+    if (off > total || n > total - off) return 0;
+    memcpy(p, binary[1] + off, n); return n;
+}
+static int discard_record(void *ctx, const fm1_rec_t *r) {
+    (void)ctx; (void)r; return 1;
+}
+static uint32_t binary_size(const uint8_t *p) {
+    return (uint32_t)p[20] | ((uint32_t)p[21] << 8) |
+           ((uint32_t)p[22] << 16) | ((uint32_t)p[23] << 24);
+}
+static int encode_set(const fm1_seq_t *seq, void *mem, binary_sink_t *b, int fragmented) {
+    fm1_state_report_t report; fm1_rec_t r;
+    fm1_state_report_init(&report);
+    memset(binary[b->index], 255, FM1_STATE_BIN_MAX);
+    fm1_state_writer_t *w = fm1_state_bin_stream_writer(mem, 0, NULL,
+        binary_write, b, FM1_STATE_BIN_MAX, &report);
+    if (!w) abort();
+    memset(&r, 0, sizeof r); r.type = FM1_REC_HEAD;
+    r.u.head.kind = FM1_STATE_SET; r.u.head.major = FM1_STATE_MAJOR;
+    if (!fm1_state_bin_write(w, &r)) return 0;
+    if (fragmented) {
+        if (!fm1_state_seq_export(seq, fm1_state_bin_write, w)) return 0;
+    } else {
+        const char *p = expected;
+        while (*p) {
+            const char *end = strchr(p, '\n'); if (!end) abort();
+            memset(&r, 0, sizeof r); r.type = FM1_REC_LINE;
+            r.piece = FM1_REC_FIRST | FM1_REC_LAST;
+            r.u.line.which = FM1_LINES_SET; r.u.line.s = p;
+            r.u.line.n = (uint32_t)(end - p);
+            if (!fm1_state_bin_write(w, &r)) return 0;
+            p = end + 1;
+        }
+    }
+    memset(&r, 0, sizeof r); r.type = FM1_REC_END;
+    int ok = fm1_state_bin_write(w, &r);
+    unsigned calls = b->calls;
+    if (fm1_state_bin_write(w, &r) || b->calls != calls) abort();
+    return ok;
+}
+static void codec_check(const fm1_seq_t *seq) {
+    void *mem = malloc(fm1_state_bin_writer_size()); if (!mem) abort();
+    binary_sink_t a = {0,0,0,0}, b = {1,0,0,0};
+    if (!encode_set(seq, mem, &a, 0) || !encode_set(seq, mem, &b, 1)) abort();
+    uint32_t total = binary_size(binary[0]);
+    if (total != binary_size(binary[1]) || memcmp(binary[0], binary[1], total) ||
+        a.header != 1 || b.header != 1) abort();
+    fm1_state_report_t report; fm1_state_report_init(&report);
+    if (!fm1_state_bin_read(binary_read, &total, total, discard_record, NULL, &report, 0)) abort();
+    unsigned calls = b.calls;
+    for (unsigned cut = 1; cut <= calls; ++cut) {
+        b = (binary_sink_t){1,0,cut,0};
+        if (encode_set(seq, mem, &b, 1) || b.calls != cut || b.header) abort();
+    }
+    printf("binary_bytes=%u binary_write_failures=%u\n", total, calls);
+    free(mem);
+}
 int main(int argc, char **argv) {
     fm1_seq_limits_t limits; fm1_seq_t *s;
     size_t bytes, need, count, callbacks;
@@ -77,6 +147,7 @@ int main(int argc, char **argv) {
     if (export_api(s, output, &o, &length) ||
         length != need || o.len != need || memcmp(actual, expected, need) ||
         memcmp(before, mem, bytes)) return 10;
+    if (records_mode) codec_check(s);
     callbacks = o.calls;
     size_t failures = 0;
     for (size_t fail = 1; fail <= callbacks; ++fail) {

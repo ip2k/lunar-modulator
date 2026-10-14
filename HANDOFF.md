@@ -2947,3 +2947,20 @@ Next actual binary-codec parity then collector/SAVE integration. Codec scratch
 and flash capacity remain unsolved; all13 watched boot/migration/physicalrollback/
 webinstaller/custombuilder/license/reviewCI still open. Previous verified pushed
 7f2764e005d37c34eacffb08ac159dbbd5f40653. Do not replay consumed hardware actions.
+
+## Streaming application collector checkpoint (2026-10-14)
+
+[verified] Application PROJECT and binary SET collectors use streaming
+sequencer records with sticky failures; no silently omitted sequencer on
+export failure. Actual binary parity/reader checks pass for32sets with
+10,208 binary write callback faults; full collector regression76tests/30Hera
+containers passes with no skips/OOM and14matching source hashes. Evidence
+notes/2026-10-14-seq-collector-verification/ and seq-record-export-verification/.
+Initial collector-v1 skipped3schema cases; complete v2 rerun adds separate
+Python3.11 jsonschema dependency directory. Native64cases ASanUBSan; app12
+cases desktopO2. No physical operation or live worker. Legacy g_set remains
+allocated, native SAVE integration/RAM fit and flash capacity still open.
+Next isolate bounded native project collection/workspace and storage admission.
+All13 watched boot, migration, physicalrollback, webinstaller/custombuilder,
+license/reviewCI remain open. Previous verified pushed46702dd7eda5c89668f0eaccf1ce4800545cbc82.
+Do not replay consumed hardware writers/loaders.

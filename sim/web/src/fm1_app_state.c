@@ -11,6 +11,7 @@
 
 #include "fm1_state_mod.h"
 #include "state_clip.h"
+#include "state_seq_export.h"
 
 #define DX7_USER0 (FM1_APP_DX7_PATCHES - (int)FM1_DX7_USER_SLOTS)
 #define SET_CAP FM1_STATE_CAP_MOVY1           /* a set's text: 53,208 B at most at 8 tracks */
@@ -334,20 +335,15 @@ static uint32_t set_text(const fm1_app_t *a) {
   return g_set_n;
 }
 
-static void lines_out(col_t *c, const char *s, uint32_t n, unsigned which) {
-  uint32_t start = 0;
-  for (uint32_t i = 0; i <= n; ++i) {
-    if (i < n && s[i] != '\n') continue;
-    if (i > start || (i < n)) {
-      fm1_rec_t r = blank(FM1_REC_LINE);
-      r.piece = FM1_REC_FIRST | FM1_REC_LAST;
-      r.u.line.which = (uint8_t)which;
-      r.u.line.n = i - start;
-      r.u.line.s = s + start;
-      if (i < n || i > start) out(c, &r);
-    }
-    start = i + 1;
-  }
+/* Preserve the collector's sticky refusal through the sequencer callback. */
+static int set_record_out(void *ctx, const fm1_rec_t *r) {
+  col_t *c = (col_t *)ctx;
+  out(c, r);
+  return c->ok;
+}
+
+static void set_records_out(col_t *c, const fm1_app_t *a) {
+  if (c->ok && !fm1_state_seq_export(a->seq, set_record_out, c)) c->ok = 0;
 }
 
 /* Set by a save with binary 3 (the state hash's form): the project without
@@ -472,7 +468,7 @@ static int collect(fm1_app_t *a, unsigned kind, int arg, fm1_rec_sink_t sink, vo
         if (a->dx7.index >= 0 && a->dx7.loaded[s]) dx7_out(&c, a, s);
       }
       mod_out(&c, a, MOD_ALL, 0, NULL);
-      if (set_text(a)) lines_out(&c, g_set, g_set_n, FM1_LINES_SET);
+      if (a->seq) set_records_out(&c, a);
       if (!g_no_view) view_out(&c, a);
       break;
     }
@@ -550,12 +546,12 @@ static int collect(fm1_app_t *a, unsigned kind, int arg, fm1_rec_sink_t sink, vo
       setting_out(&c, FM1_SET_MIDI_IN_CHANNEL, 0, a->settings.midi_in_channel);
       break;
     case FM1_STATE_SET:
-      if (!set_text(a)) {
+      if (!a->seq) {
         *why = "no set";
         return 0;
       }
       head_out(&c, kind);
-      lines_out(&c, g_set, g_set_n, FM1_LINES_SET);
+      set_records_out(&c, a);
       break;
     default:
       *why = "not a kind the app saves";

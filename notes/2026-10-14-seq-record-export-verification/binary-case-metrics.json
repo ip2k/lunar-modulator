@@ -1,0 +1,130 @@
+[
+  {
+    "bytes": 1529,
+    "write_failures": 319
+  },
+  {
+    "bytes": 20001,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1417,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1409,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1513,
+    "write_failures": 319
+  },
+  {
+    "bytes": 20001,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1425,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1409,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1473,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1425,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1418,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1473,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1453,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1418,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1543,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1453,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1517,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1543,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1537,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1517,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1513,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1537,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1497,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1513,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1441,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1497,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1492,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1441,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1448,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1492,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1417,
+    "write_failures": 319
+  },
+  {
+    "bytes": 1448,
+    "write_failures": 319
+  }
+]

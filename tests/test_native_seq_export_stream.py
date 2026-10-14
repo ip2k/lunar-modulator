@@ -14,8 +14,10 @@ def stream_probe(tmp_path_factory):
     exe = tmp / 'probe'
     sources = [ROOT / 'tests/native/seq_export_stream.c'] + [
         ROOT / 'engines/seq' / (name + '.c') for name in
-        ('seq_clip', 'seq_engine', 'seq_cmd', 'seq_persist', 'seq_capture')]
-    subprocess.run(['cc', '-std=c99', '-Oz', '-Wall', '-Wextra', '-Werror',
+        ('seq_clip', 'seq_engine', 'seq_cmd', 'seq_persist', 'seq_capture')] + [
+        ROOT / 'engines/state' / name for name in
+        ('state_bin.c', 'state_names.c', 'state_movy1.c', 'fm1_num.c', 'fm1_deflate.c')]
+    subprocess.run(['cc', '-DFM1_STATE_BIN_COMPACT_WRITER', '-std=c99', '-Oz', '-Wall', '-Wextra', '-Werror',
                     '-ffunction-sections', '-fdata-sections', '-fsanitize=address,undefined',
                     '-fno-pie', '-no-pie', '-I', str(ROOT / 'engines/include'), '-I', str(ROOT / 'engines/state'),
                     *map(str, sources), '-Wl,--gc-sections', '-lm', '-o', str(exe)], check=True)
