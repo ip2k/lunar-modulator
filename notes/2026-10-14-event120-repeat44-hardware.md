@@ -15,7 +15,10 @@ retried. A subsequent passive enumeration showed native USB device 45,
 1209:0001. This establishes application USB startup, not screen/audio/control
 acceptance. The owner was asked to watch the two-minute Event Horizon test,
 press PLAY and report music, controls, glitches and diagnostic footer values.
-That acceptance and the passive timed return to ROM are pending.
+That owner acceptance remains pending. A later passive enumeration at
+21:28 UTC showed ROM device 46, 4c4a:8057, after the diagnostic window.
+No physical power cycle or additional device command was used for that
+observed return. Device46 needs fresh admission before any further command.
 
 Private receipts and dumps remain on bench01 under the root-owned mode-0700
 directory `/home/claude/fm1-device44-event120-repeat-20261014/`.

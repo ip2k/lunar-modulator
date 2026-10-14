@@ -4377,15 +4377,18 @@ checks, not physical persistence acceptance.
 
 Fresh device44 paired full-flash reads match the installed Event Horizon
 target. One boot request was sent without retry after ambiguous detach;
-native USB device45 appeared. Owner watched acceptance and timed ROM return
-remain pending; see notes/2026-10-14-event120-repeat44-hardware.md. Read/boot
+native USB device45 appeared and passively returned to ROM device46 after
+the diagnostic window. Owner watched acceptance remains pending; see
+notes/2026-10-14-event120-repeat44-hardware.md. Read/boot
 markers are consumed. Pico2W status replay is physically verified but FAULT
 and unconfirmed GPIO wiring leave independent recovery unproven.
 
-NOR guard worker 229e5dd is GitHub-backed but not integrated: root requested
-corrections to entry-relative versus post-guard stack depth receipt fields
-and explicit rejection of additional RAM-entry SP changes. A separate Hera
-worker is inventorying the remaining web installer implementation gates.
+NOR guard worker 229e5dd plus corrected 73b250ce are reviewed, integrated
+at 43a5a8d7 and GitHub-backed; 19 focused Mac checks pass. Fresh combined
+target audits and 16-container native/install/save/recovery regressions run
+on Hera from that exact base. Installer inventory is integrated; another
+worker is implementing a bounded named-profile trusted offline packager,
+keeping install/admission flags false and the ordinary builder mounts narrow.
 SAVE remains disarmed. Continue exact-source target checks, recovery wiring,
 watched all13/full-song acceptance, persistence/migration/rollback, actual
 browser flashing, required CI/review/main integration and release. Goal ACTIVE.
