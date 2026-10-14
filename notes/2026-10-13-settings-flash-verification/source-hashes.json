@@ -1,0 +1,6 @@
+{
+  "firmware/native/settings_journal.h": "ac02dedcb25d08e663d4f407da70efe5279ee02dd1c4f5398f1586f258701171",
+  "firmware/native/settings_flash.h": "ddc19512a4a96559405608342b4160ecf77deab5ed93c55dc98be1ffb4afc4fe",
+  "tests/native/settings_flash.c": "0551aabb9fa4c2acce99d7df488e226e843f070cdd9bac0711d5add5609fc9f2",
+  "tests/test_native_settings_flash.py": "8ef9f9b2cb7e4b02bb4e4f8cd1f95540aee8cf40480b71de8aa429d9844f850d"
+}

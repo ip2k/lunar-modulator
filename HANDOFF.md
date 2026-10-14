@@ -2813,3 +2813,20 @@ browser writer exceeds device workspace budget). All13 observed boot still
 pending owner availability; preserve consumed install marker, do not replay
 writer or ROM upload. Full release/custom builder/licensing/reviewCI remain open.
 Previous verified pushed5cf1c2524164f1aa3e9c7c967b1551e54a6995d2.
+
+## Bounded settings adapter checkpoint (2026-10-13)
+
+[verified] settings_flash.h implemented disarmed two-sector address adapter;
+checked bounds/readiness/audio-stop and uncertainty latch, no implicit retries.
+30 actual-C cases pass30 Hera ASan/UBSan chunks; all logs/states/four hashes
+checked. Pinned pi32v2/r3 target wrapper compilation passes; remote source
+hashes match. Evidence notes/2026-10-13-settings-flash-verification/; ignored
+private logs/object build/native-settings-flash-20261013/hera-results/.
+Original test session52550 terminal0; target compile terminal0; no liveworker
+or hardware operation. Not linked/enabled; next native layout allocation and
+real NOR/audio adapters, then concrete persistence trial. Read-failure latch
+needs explicit injected-failure coverage. Whole-project compact SAVE remains
+required (journal256B insufficient); all13 observed boot owner response still
+pending. Do not replay consumed writer/ROM upload. Full release/custombuilder/
+migration/physicalrollback/licensing/reviewCI remain open. Previous verified
+pushedef541bc89090fa778afc6dbb10d330850e6b33b8.

@@ -1,0 +1,25 @@
+{
+  "compiler": "pinned JieLi clang",
+  "target": "pi32v2",
+  "cpu": "r3",
+  "float_revision": 1,
+  "optimization": "Oz",
+  "freestanding": true,
+  "no_builtin": true,
+  "c_standard": "c99",
+  "warnings": [
+    "Wall",
+    "Wextra",
+    "Werror"
+  ],
+  "compile_exit": 0,
+  "source_hashes": {
+    "firmware/native/settings_flash.h": "ddc19512a4a96559405608342b4160ecf77deab5ed93c55dc98be1ffb4afc4fe",
+    "firmware/native/settings_journal.h": "ac02dedcb25d08e663d4f407da70efe5279ee02dd1c4f5398f1586f258701171",
+    "tests/native/settings_flash_target.c": "4e18ea9c61d05638cc12593a8f1fcce765e98371d079b7eedec79fe1c39ad8be"
+  },
+  "object_sha256": "01193a596b898f8fa73706db085e31b2ec6d40ff8f6e949a63cbc9d20d813074",
+  "linked_into_application": false,
+  "hardware_tested": false,
+  "flash_write_permission": false
+}
