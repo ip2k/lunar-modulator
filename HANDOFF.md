@@ -1,3 +1,27 @@
+# Latest continuation authority — 2026-10-14
+
+[verified] Coordinator head `454046b40e9e2869d061585c0aa71e0b86e915f3`
+is pushed and its GitHub SHA matches. It integrates canonical diagnostic
+runtime receipt validation and ICFG interrupt-state preservation. Root Darwin
+installer/controller checks pass; the NOR register harness passes both pytest
+and a direct ASan/UBSan build. Those are host and compiler checks, not physical
+NOR acceptance. SAVE remains disarmed pending watchdog behavior, full target
+RAM call/data closure and storage/recovery acceptance.
+
+[verified] A new passive bench read still shows UBOOT device40. No hardware
+command, upload, write or boot was sent in this continuation. Event Horizon
+Showcase is owner-approved as the default song; the prior timed boot's screen,
+audio and controls still need owner observations. Device38 campaigns are
+consumed; another boot requires fresh device40 admission and paired backups.
+
+Hera workers own exactly 16 regression chunks at base `2863b8db`, an independent
+upstream-decoder review of the strict 092 package model, and full NOR target
+RAM closure at base `454046b4`. The package model's worker branch is GitHub
+backed up but not integrated yet. Same-092 version compatibility and physical
+OTA acceptance remain separate gates. Older CI `38610324618` still runs its
+Python jobs; no current-head green CI, main integration or shipping is claimed.
+The full physical/web release goal remains active. Earlier entries are history.
+
 # Current continuation authority — 2026-10-14
 
 [verified] Latest code head `4b52219ec8e4f4fddc6ac94237eaedc8797c41b4`

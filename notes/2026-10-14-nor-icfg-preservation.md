@@ -21,3 +21,14 @@ An ASan/UBSan host link was attempted but could not run because the Hera host la
 ## Limits and next dependency
 
 This verifies host state transitions and the pinned compiler's emitted ICFG instructions; it does not establish pi32v2 interrupt semantics beyond the SDK implementation, full application RAM closure, watchdog behavior, or physical NOR operation. There was no hardware/device action. The NOR writer remains unadmitted; watchdog strategy and complete RAM-residency proof remain open acceptance gates.
+
+## Coordinator Darwin sanitizer verification
+
+[verified] After integration at `454046b4`, the coordinator ran
+`.venv/bin/python -m pytest tests/test_dinghy_flash_transport.py -q` on the Mac
+(1 passed), then compiled `tests/native/test_dinghy_flash_transport.c` with
+`cc -std=gnu11 -Wall -Wextra -Werror -Wno-unused-function
+-Wno-int-to-pointer-cast -fsanitize=address,undefined` and ran the resulting
+host binary successfully. This resolves the worker's unavailable sanitizer
+runtime limitation for the host harness only. It does not establish physical
+ICFG behavior or full target application RAM closure.
