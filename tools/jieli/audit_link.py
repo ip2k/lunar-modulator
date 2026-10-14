@@ -374,7 +374,8 @@ def stub_call_boundary_patterns(name, elf, disassembly):
     proofs = {}
     moves = {}
     for encoded, text in ((b'\x02\x15', r'r3_r2\s*=\s*r1_r0'),
-                          (b'\x02\x81', r'sp\s*\+=\s*4')):
+                          (b'\x02\x81', r'sp\s*\+=\s*4'),
+                          (b'\x02\xd6', r'r2\s*=\s*r0\s*#')):
         pattern = re.compile(r'^\s*([0-9a-fA-F]+):\s+' +
                              r'\s+'.join(f'{b:02x}' for b in encoded) +
                              r'\s+' + text + r'\s*$', re.M)
@@ -398,7 +399,9 @@ def stub_call_boundary_patterns(name, elf, disassembly):
             continue
         proofs[(source, offset + 1)] = dict(call=call,
             following_address=address + 6, following_bytes=move.hex(),
-            following_instruction='r3_r2 = r1_r0' if move == b'\x02\x15' else 'sp += 4')
+            following_instruction={b'\x02\x15': 'r3_r2 = r1_r0',
+                                   b'\x02\x81': 'sp += 4',
+                                   b'\x02\xd6': 'r2 = r0 #'}[move])
     return proofs
 
 

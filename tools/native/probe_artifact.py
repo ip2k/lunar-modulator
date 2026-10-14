@@ -8,6 +8,7 @@ from pathlib import Path
 import struct
 import subprocess
 import sys
+from flash_layout import FLASH_LAYOUTS, app_budget
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'jieli'))
 from audit_link import Elf, EM_PI32V2, ET_EXEC, audit, collect_sources, relative_call_payloads, stub_call_boundary_patterns
@@ -24,10 +25,12 @@ REGIONS = {
 }
 
 
-def flatten(data, layout='legacy'):
+def flatten(data, layout='legacy', flash_layout='protected'):
     if layout not in ('legacy', 'combined'):
         raise ValueError('Unknown RAM layout')
     regions = dict(REGIONS)
+    flash_end = FLASH + app_budget(flash_layout)
+    regions['.text'] = (FLASH, flash_end, 1, 6)
     if layout == 'combined':
         for name in ('.data', '.bss', '.pool'):
             lo, _, kind, flags = regions[name]
@@ -88,7 +91,7 @@ def flatten(data, layout='legacy'):
         used_segments.add(segments.index(p))
         load = p[3] + offset - p[1]
         symbol = {'.text': '_start', '.ram_text': '_rt_load', '.data': '_data_load'}[name]
-        if load != image.symbol_value(symbol) or not FLASH <= load < load + size <= FLASH + 0x8DFBC:
+        if load != image.symbol_value(symbol) or not FLASH <= load < load + size <= flash_end:
             raise ValueError('Invalid flash load address: ' + name)
         if p[5] < p[4] or p[6] != (6 if name == '.data' else 5):
             raise ValueError('Invalid load segment permissions/size')
@@ -153,10 +156,11 @@ def main():
     parser.add_argument('--elf', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--layout', choices=('legacy', 'combined'), default='legacy')
+    parser.add_argument('--flash-layout', choices=FLASH_LAYOUTS, default='protected')
     parser.add_argument('--objdump', help='vendor pi32v2 objdump for direct-call proofs')
     args = parser.parse_args()
     data = args.elf.read_bytes()
-    image, app = flatten(data, args.layout)
+    image, app = flatten(data, args.layout, args.flash_layout)
     decoded = subprocess.check_output([args.objdump, '-d', str(args.elf)], text=True) if args.objdump else ''
     proofs = artifact_call_payloads(image, app, decoded)
     boundaries = artifact_stub_boundaries(image, app, decoded)
@@ -173,6 +177,7 @@ def main():
     report = {'elf_sha256': hashlib.sha256(data).hexdigest(),
               'app_sha256': hashlib.sha256(app).hexdigest(), 'app_bytes': len(app),
               'layout_passed': True, 'ram_layout': args.layout, 'key_audit': receipt,
+              'flash_layout': args.flash_layout, 'app_budget_bytes': app_budget(args.flash_layout),
               'disassembly_sha256': hashlib.sha256(decoded.encode()).hexdigest() if args.objdump else None,
               'hardware_admitted': False, 'hardware_tested': False,
               'installable': False}

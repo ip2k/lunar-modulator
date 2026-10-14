@@ -22,6 +22,7 @@ from compact_font import compact_header, compact_gfx
 from prepare_wavetables import prepare
 from embed_image_content import content_source
 from verify_image_profile import load_prepared_profile
+from flash_layout import FLASH_LAYOUTS, app_budget, linker_script
 
 ROOT = Path(__file__).resolve().parents[2]
 ENGINE_IDS = ('macro', 'shapes', 'macro-heavy', 'sixop', 'dx7', 'sw-sophie',
@@ -111,6 +112,8 @@ def main():
     parser.add_argument('--toolchain', type=Path, required=True)
     parser.add_argument('--catalogue', type=Path, required=True)
     parser.add_argument('--build', type=Path, required=True)
+    parser.add_argument('--flash-layout', choices=FLASH_LAYOUTS, default='protected',
+                        help='Explicit link budget only; does not admit packaging or installation')
     parser.add_argument('--exclude', choices=ENGINE_IDS, action='append', default=[])
     parser.add_argument('--modules', help='Literal comma-separated engine/effect/MIDI/mod IDs; '
                         'timed probe must retain trio; incompatible with --exclude')
@@ -306,10 +309,12 @@ def main():
                   'lunar_project_engines_apply', 'lunar_project_adopt_audio_units',
                   'lunar_project_restore_midi_units')
     elf = out / 'lunar-app-probe.elf'
+    script = out / 'app.ld'
+    script.write_text(linker_script((ROOT / 'firmware/native/app.ld').read_text(), args.flash_layout))
     command = [str(tc / 'pi32v2/bin/ld'), '--plugin', str(tc / 'common/bin/LLVMgold.so'),
                '--plugin-opt=mcpu=r3', '--plugin-opt=-mattr=+fprev1',
                '--plugin-opt=-pi32v2-large-program=true', '--gc-sections',
-               '-T', str(ROOT / 'firmware/native/app.ld')]
+               '-T', str(script)]
     for symbol in roots:
         command += ['-u', symbol]
     command += [*map(str, objects), '-Map', str(out / 'lunar-app-probe.map'), '-o', str(elf)]
@@ -337,6 +342,8 @@ def main():
         raise SystemExit('RAM flash code contains a call')
     (out / 'sections.txt').write_text(subprocess.check_output([objdump, '-h', str(elf)], text=True))
     report = dict(excluded_engines=args.exclude, module_selection=module_selection, sdk_archives=[],
+                  flash_layout=args.flash_layout, app_budget_bytes=app_budget(args.flash_layout),
+                  linker_script_sha256=digest(script),
                   compressed_wave_tables=wave_records, indexed_tft=args.indexed_tft,
                   flash_plaits_wavetables=args.flash_plaits_wavetables,
                   shapes_voices=args.shapes_voices,
@@ -375,6 +382,7 @@ def main():
     (out / 'verification.json').write_text(json.dumps(report, indent=2) + '\n')
     subprocess.run([sys.executable, str(ROOT / 'tools/native/probe_artifact.py'),
                     '--elf', str(elf), '--layout', 'combined',
+                    '--flash-layout', args.flash_layout,
                     '--objdump', objdump,
                     '--out', str(out / 'artifact')], check=True)
     print('Audited private probe:', elf, report['elf_sha256'])

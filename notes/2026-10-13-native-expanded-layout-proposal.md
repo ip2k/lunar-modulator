@@ -1,6 +1,11 @@
 # All-thirteen native image: expanded layout proposal
 
-Status: offline design proposal; no write admission, emitted package or device test.
+Status: owner-approved implementation direction (2026-10-13); no write admission,
+emitted package or device test.
+
+Owner response: “Approve expanded layout with migration and rollback verification”.
+This revises layout immutability for the explicit expanded profile only. All
+boot-component, identity, dual-backup and concrete-image/recovery gates remain.
 
 ## Requirement and existing constraint
 
@@ -58,4 +63,50 @@ this proposal. It must not be bypassed or relabeled as an admitted image.
    and complete admission receipts. The default stays thirteen engines; no
    reduced profile is silently substituted.
 
-No implementation or hardware operation uses this proposal yet.
+The implementation begins with opt-in native link/artifact bounds. Raw-flash
+packaging, settings migration, rollback and hardware acceptance remain separate
+required gates; a passing ELF is not an installable package.
+
+
+## Explicit link/artifact implementation checkpoint
+
+[verified] `expanded-d9000` now supplies the same named byte budget to a generated
+pinned linker script and the native ELF flattener. Default `protected` remains
+581,564 bytes. Expanded budget is 868,836 bytes: `0xD9000 - 0x4120`, less
+384 bytes for aligned cfg-tool and 2,940 bytes for aligned cfg. These are
+conservative reservations from the recorded 092 components, not validation of
+any other firmware version or a raw-flash package.
+
+[verified] Hera target link with all thirteen production sound engines,
+12-voice Shapes, flash Plaits tables, compressed Braids tables and retained
+project/set staging produced 838,712 flattened application bytes; headroom
+30,124 bytes. The full selected catalogue includes test-gain/test-ext fixtures;
+release selection must omit those. No songs/sets were embedded in this fit run.
+Actual source freshness, no undefined symbols, SDK-free key audit, ELF bounds
+and flattening passed. RAM pool extent is 216,064 bytes; this is not proof of
+all possible simultaneous allocations, timing or physical playback.
+
+[verified] 80 audit/artifact cases passed in 30 independent Hera containers,
+all inspected for zero exit/no OOM and removed. Includes full image load-boundary
+checks (RAM initializers included), implicit-expansion refusal, exact linker
+adaptation and previous entry/RAM safeguards. Initial collection v1 produced
+only counts because pytest double quiet was configured; no test containers
+launched. Collection was corrected explicitly. Initial target v1 linked but
+failed a forbidden-address byte scan crossing a resolved `__fixunsdfsi` call
+and `02 d6` (`r2 = r0 #`) in `draw`. Exact vendor-decode/function/ELF-byte proof
+was added to the existing bounded call-boundary mechanism. Negative literal,
+flat-image, damaged-decoder/bytes, target and function-boundary checks passed.
+All original failure logs remain private; no global byte-scan exemption added.
+
+Reproduction launchers and source-bound summary:
+`notes/2026-10-13-expanded-layout-verification/`. Private complete receipts and
+ELFs: Hera `/home/claude/mvave-fm1/native-external-arenas-16-20261012/out/`,
+`flash-layout-v3` and `expanded-all13-v2`; copied JSON/log evidence under local
+`build/native-external-arenas-16-20261012/`. No vendor/firmware binary committed.
+
+Next: independently verified expanded raw-flash geometry and CRC/cipher output,
+immutable component comparison, VM backup/migration and rollback fault cases.
+Then prepared content/full startup, stack/timing and physical cold-boot/audio
+acceptance, release installer and required review/CI/integration. No hardware
+commands issued. Existing stock/092 package and hardware admission gates remain
+unchanged; these artifacts explicitly report `installable: false`.

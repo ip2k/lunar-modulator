@@ -353,7 +353,8 @@ def test_relative_call_displacement_is_not_efuse_access(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize("following, decoded_following", [(b"\x02\x15", "02 15 r3_r2 = r1_r0"),
-                                                        (b"\x02\x81", "02 81 sp += 4")])
+                                                        (b"\x02\x81", "02 81 sp += 4"),
+                                                        (b"\x02\xd6", "02 d6 r2 = r0 #")])
 def test_stub_pattern_crossing_proven_call_and_register_move(tmp_path, monkeypatch, following, decoded_following):
     displacement = 0x12e00
     instruction = b'\x80\xff' + struct.pack('<i', displacement)

@@ -2,12 +2,24 @@
 
 Guidance for Claude Code working in this repo.
 
+## Expanded native layout — owner approval, 2026-10-13
+
+The owner approved an explicit expanded application layout ending at `0xD9000`,
+with settings migration and rollback verification. This supersedes the older
+byte-identical partition-layout requirement for that named profile only.
+Preserve stock SPL, OTA loader and configuration contents, chip keys, reserved
+bank boundaries and eFuse safeguards. Physical installation still requires a
+concrete reviewed image/recovery plan, fresh identity and two matching backups.
+This approval does not establish migration, rollback or hardware verification.
+See `notes/2026-10-13-native-expanded-layout-proposal.md`.
+
 ## Default image and selectable builder — owner, 2026-10-13
 
 The release must have a default image containing all thirteen production sound
 engines, plus a selectable web image builder for engines, effects and songs/sets.
 Selectable packs do not replace the all-thirteen default image. The protected
-stock boot-component and flash-layout gates remain in force. The current timed
+stock boot-component gates remain in force; the expanded layout is governed
+by the explicit approval above. The current timed
 probe builder is not a release installer. See
 `notes/2026-10-13-native-image-builder.md` for the backend plan and evidence.
 

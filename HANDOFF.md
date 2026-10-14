@@ -1,3 +1,29 @@
+# Current native expanded-layout checkpoint — 2026-10-13
+
+Active goal: fully functional SDK-free native Lunar on real FM-1s, default all13
+engines and selectable web builder. Owner approved expanded app area ending
+0xD9000 with settings migration and rollback verification; boot components and
+hardware gates remain protected. This is source/link progress, not release.
+
+Worktree /Users/likwid/.codex/worktrees/installable-firmware/mvave-fm1-firmware;
+branch feature/2026-10-11@installable-firmware. Check current branch SHA and
+remote before resuming; preceding backed-up checkpoint ddeb2e33.
+Named expanded linker/artifact profile implemented; all13 Shapes12 fullcatalogue
+private probe 838712 bytes passes audits, leaves30124 bytes. 80 checks passed
+in30 Hera containers, noOOM, removed. No live build handles/no physical ops.
+Evidence/reproduction notes/2026-10-13-expanded-layout-verification/ and
+notes/2026-10-13-native-expanded-layout-proposal.md. Exact build receipts are
+private in build/native-external-arenas-16-20261012 and same Hera root/out.
+
+Next implement separate expanded raw-flash packager/verifier, VM backup/migration
+and interrupted-write/stock rollback tests. Default original bounds unchanged.
+Full startup activation, settings, sustained target timing/hardware, browser
+installer and exact-head review/CI/merge remain open. Fresh identity and matching
+backups required before hardware. No reduced engine pack substitutes for default.
+Semantic MCPs still primary-checkout rooted; file fallback used, not retargeted.
+
+Historical handoff below is superseded by this entry and newer native notes.
+
 # Native continuation — MIDI startup, 2026-10-13
 
 Branch feature/2026-10-11@installable-firmware; preceding verified pushed SHA
