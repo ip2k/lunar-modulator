@@ -206,6 +206,40 @@ def test_selection_receipt_requires_exact_prepared_build_inputs_status():
 
 
 
+def test_worker_source_and_provenance_have_distinct_invocation_pins(tmp_path):
+    from capture_trusted_build_tuple import _read_pinned_worker_source, _verify_worker_bindings
+
+    root = tmp_path / "source"
+    source_path = root / "tools/native/trusted_continuous_worker.py"
+    source_path.parent.mkdir(parents=True)
+    source_path.write_bytes(b"tracked worker source")
+    provenance_path = tmp_path / "worker-provenance.json"
+    provenance_path.write_bytes(b"{\"request_sha256\":\"fixture\"}")
+    invocation = {
+        "worker_sha256": sha(source_path.read_bytes()),
+        "worker_provenance_sha256": sha(provenance_path.read_bytes()),
+    }
+
+    worker_source = _read_pinned_worker_source(root, source_path)
+    provenance = provenance_path.read_bytes()
+    _verify_worker_bindings(invocation, worker_source, provenance)
+
+    with pytest.raises(ValueError, match="does not bind worker source bytes"):
+        _verify_worker_bindings(invocation, b"mutated worker source", provenance)
+    with pytest.raises(ValueError, match="does not bind worker provenance bytes"):
+        _verify_worker_bindings(invocation, worker_source, b"mutated provenance")
+
+    changed_source_pin = dict(invocation, worker_sha256=sha(b"other source"))
+    with pytest.raises(ValueError, match="does not bind worker source bytes"):
+        _verify_worker_bindings(changed_source_pin, worker_source, provenance)
+    changed_provenance_pin = dict(invocation, worker_provenance_sha256=sha(b"other provenance"))
+    with pytest.raises(ValueError, match="does not bind worker provenance bytes"):
+        _verify_worker_bindings(changed_provenance_pin, worker_source, provenance)
+
+    with pytest.raises(ValueError, match="pinned source-snapshot member"):
+        _read_pinned_worker_source(root, tmp_path / "same-bytes.py")
+
+
 def test_app_receipts_bind_exact_bytes_without_duplicate_verification_size():
     from capture_trusted_build_tuple import _verify_app_receipts
     app, elf = b"app-bytes", b"elf-bytes"
