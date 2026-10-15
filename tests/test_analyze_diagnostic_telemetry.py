@@ -77,6 +77,11 @@ def test_deltas_rates_timing_stack_and_gaps_are_explicit():
     }
     assert after["counter_rates_per_second"]["produced_audio_blocks"] == 690
     assert report["expected_audio_blocks_per_second"] == 44118 / 64
+    assert report["audio_budget"]["block_deadline_ms"] == pytest.approx(64 / 44118 * 1000)
+    assert report["audio_budget"]["nominal_block_deadline_ticks"] == pytest.approx(34815.7)
+    assert "not independently physically calibrated" in report["audio_budget"]["nominal_timer_basis"]
+    assert "do not contain per-block costs" in report["audio_budget"]["queue_sensitivity"]
+    assert after["render_max_ratio_to_nominal_block_deadline"] == pytest.approx(3600 / 34815.7)
 
 
 def test_stack_sentinel_and_zero_samples_are_unavailable():
@@ -240,7 +245,9 @@ def test_profile_frames_are_separate_bounded_observations_and_allow_wrap():
     assert report["render_profile_frame_count"] == 2
     assert report["render_profiles"][0]["stages"]["sound_0"] == {
         "window_ticks": 0xFFFFFFF0, "window_us": 0xFFFFFFF0 / 24,
-        "max_ticks": 2400, "max_us": 100, "calls": 500,
+        "max_ticks": 2400, "max_us": 100,
+        "timer_conversion": "nominal only: source-configured 24 ticks/us; physical calibration pending",
+        "calls": 500,
     }
     assert report["render_profiles"][1]["stages"]["sound_0"]["window_ticks"] == 24
     assert report["render_profiles"][1]["elapsed_since_previous_profile_seconds"] == 2

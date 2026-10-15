@@ -24,6 +24,8 @@ UINT32_MAX = 0xFFFFFFFF
 TICKS_PER_US = 24
 SAMPLE_RATE_HZ = 44118
 BLOCK_FRAMES = 64
+BLOCK_PERIOD_SECONDS = BLOCK_FRAMES / SAMPLE_RATE_HZ
+NOMINAL_BLOCK_DEADLINE_TICKS = BLOCK_PERIOD_SECONDS * TICKS_PER_US * 1_000_000
 MAX_EVENT_ROWS = 8192
 MAX_INPUT_BYTES = 4 * 1024 * 1024
 MAX_LINE_BYTES = 16 * 1024
@@ -259,6 +261,7 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
                     "window_us": ticks / TICKS_PER_US,
                     "max_ticks": maximum,
                     "max_us": maximum / TICKS_PER_US,
+                    "timer_conversion": "nominal only: source-configured 24 ticks/us; physical calibration pending",
                     "calls": calls,
                 }
             profiles.append({
@@ -317,6 +320,11 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
             "elapsed_since_previous_frame_seconds": elapsed_delta,
             "values": checked,
             "render_max_us": checked["render_ticks_max"] / TICKS_PER_US,
+            "render_max_us_nominal": checked["render_ticks_max"] / TICKS_PER_US,
+            "render_max_ratio_to_nominal_block_deadline": (
+                checked["render_ticks_max"] / NOMINAL_BLOCK_DEADLINE_TICKS
+            ),
+            "timer_conversion": "render_max_us is a nominal conversion from source-configured 24 ticks/us; physical calibration pending",
             "draw_max_us": checked["draw_ticks_max"] / TICKS_PER_US,
             "stack": {
                 "samples": stack_samples,
@@ -339,10 +347,21 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
         "time_basis": "elapsed_seconds from telemetry recorder monotonic clock; align explicitly with WAV and helper timestamps before correlation",
         "counter_rate_time_bases": {
             "counter_rates_per_second": "host receipt intervals; buffered delivery can distort rates",
-            "counter_rates_per_device_second": "uint32 uptime_ms deltas; requires continuous device uptime and timer calibration",
+            "counter_rates_per_device_second": "uint32 uptime_ms deltas; requires continuous reported uptime, not TIMER4 calibration",
         },
         "sample_rate_hz": SAMPLE_RATE_HZ,
         "audio_block_frames": BLOCK_FRAMES,
+        "audio_budget": {
+            "block_deadline_seconds": BLOCK_PERIOD_SECONDS,
+            "block_deadline_ms": BLOCK_PERIOD_SECONDS * 1000,
+            "nominal_block_deadline_ticks": NOMINAL_BLOCK_DEADLINE_TICKS,
+            "nominal_timer_basis": "source-configured 24 MHz TIMER4; not independently physically calibrated",
+            "required_blocks_per_second": SAMPLE_RATE_HZ / BLOCK_FRAMES,
+            "queue_sensitivity": "not replayed: aggregate counters and retained maxima do not contain per-block costs or queue-depth timestamps",
+            "jitter_limit": "schema-2 intervals and schema-7 counters are profiling aggregates, not reconstructed per-block jitter",
+            "stage_accounting": "schema-2 stages may be nested (sequence_dispatch includes sound callbacks); do not sum overlapping stages as an exact render total",
+            "schema7_accounting": "outer engine Render includes internal RenderBlock; do not add both as independent work",
+        },
         "expected_audio_blocks_per_second": SAMPLE_RATE_HZ / BLOCK_FRAMES,
         "event_rows": row_count,
         "event_counts": event_counts,
