@@ -477,10 +477,10 @@ def hot_dsp_ram_extent(elf_path):
 
 def checked_catalogue(root, compressed=False, indexed_tft=False, shapes_voices=12,
                       hot_dsp_os=False, hot_dsp_ram=False,
-                      engine_render_profile=False):
+                      engine_render_profile=False, hall_o2=False):
     objects, receipts, indices = [], [], set()
     inputs = source_manifest(ROOT)
-    overrides = optimization_overrides('z', hot_dsp_os)
+    overrides = optimization_overrides('z', hot_dsp_os, hall_o2)
     expected = json.loads((root / 'shard-00/objects.json').read_text())
     for shard in range(16):
         directory = root / ('shard-%02d' % shard)
@@ -495,6 +495,9 @@ def checked_catalogue(root, compressed=False, indexed_tft=False, shapes_voices=1
             raise SystemExit('Incompatible catalogue report: ' + str(directory))
         if report.get('optimization_overrides', {}) != overrides:
             raise SystemExit('Incompatible catalogue optimization overrides')
+        recorded_hall_o2 = report.get('hall_o2', False)
+        if type(recorded_hall_o2) is not bool or recorded_hall_o2 is not hall_o2:
+            raise SystemExit('Incompatible catalogue Hall optimization selection')
         if report.get('source_manifest') != inputs:
             raise SystemExit('Catalogue source manifest is stale or absent')
         if json.loads((directory / 'objects.json').read_text()) != expected:
@@ -514,7 +517,7 @@ def checked_catalogue(root, compressed=False, indexed_tft=False, shapes_voices=1
             object_opt = overrides.get(item['object'], '-Oz')
             # Legacy uniform -Oz receipts lack per-object settings. Mixed
             # receipts must explicitly identify every unit's actual setting.
-            if item.get('optimization', None if hot_dsp_os else '-Oz') != object_opt:
+            if item.get('optimization', None if (hot_dsp_os or hall_o2) else '-Oz') != object_opt:
                 raise SystemExit('Catalogue object optimization mismatch')
             obj = directory / 'obj' / relative
             if digest(obj) != item['sha256']:
@@ -559,8 +562,11 @@ def main():
     parser.add_argument('--toolchain', type=Path, required=True)
     parser.add_argument('--catalogue', type=Path, required=True)
     parser.add_argument('--hot-dsp-os', action='store_true',
-                        help='Require explicit sixop/Hall -Os catalogue receipts; '
-                        'all other catalogue units remain -Oz')
+                        help='Require explicit SixOp/Hall -Os receipts; --hall-o2 may '
+                        'override Hall, and all other units remain -Oz')
+    parser.add_argument('--hall-o2', action='store_true',
+                        help='Require explicit fx_hall.o -O2 catalogue receipt; '
+                        'overrides Hall -Os from --hot-dsp-os only')
     parser.add_argument('--hot-dsp-ram', action='store_true',
                         help='Opt in to selected render bodies in RAM; bounded diagnostic runtime only')
     parser.add_argument('--build', type=Path, required=True)
@@ -746,7 +752,8 @@ def main():
                        if args.compressed_wavetables else [])
     objects, catalogue_receipts = checked_catalogue(
         catalogue, wave_namespaces, args.indexed_tft, args.shapes_voices,
-        args.hot_dsp_os, args.hot_dsp_ram, args.diagnostic_engine_render_profile)
+        args.hot_dsp_os, args.hot_dsp_ram, args.diagnostic_engine_render_profile,
+        args.hall_o2)
     state_bin_codec = None
     if args.link_project_save_service:
         state_bin_codec = replace_with_compact_state_bin(
@@ -990,7 +997,9 @@ def main():
                   stack_watermark_verification=stack_receipt,
                   instance_pool_bytes=instance_pool_bytes, target_app_storage=app_storage,
                   catalogue_objects=catalogue_receipts,
-                  catalogue_optimization_overrides=optimization_overrides('z', args.hot_dsp_os),
+                  catalogue_optimization_overrides=optimization_overrides(
+                      'z', args.hot_dsp_os, args.hall_o2),
+                  catalogue_hall_o2=args.hall_o2,
                   hot_dsp_ram=dict(hot_dsp_ram_receipt,
                                    extent=hot_dsp_ram_extent(elf) if args.hot_dsp_ram else None),
                   linked_objects=[dict(path=str(p), sha256=digest(p)) for p in objects],
