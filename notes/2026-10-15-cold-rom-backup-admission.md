@@ -82,7 +82,7 @@ Using `/tmp/lunar-installer-service-test-venv/bin/python`:
 
 ```text
 pytest -q -p no:cacheprovider -o addopts='' tests/test_cold_rom_backup.py tests/test_fixed_loader_backup.py
-71 passed
+72 passed
 ```
 
 The new campaign tests inject a fake transport and synthetic pages; they do
@@ -108,7 +108,7 @@ not this isolated worktree; semantic indexing was not treated as evidence.
    grants no installation, write, reset, or boot permission.
 
 Current source pins: `tools/fm1_cold_rom_backup.py` SHA-256
-`2e3e0b0e0f9c8c357604be7dd0d5dbc36fe26ad117d7ba84d30d21ca3f88ac2c`;
+`9fda7c569f75616d0be8be2f7775207dbdee54e02b747f1aceafaa140efbb9ec`;
 `tools/fm1_fixed_loader_backup.py`
 `79bbe99ce923daaf8af2c701a65ec39a015191313de79676e36622cb8db00afb`;
 `tools/fm1_uboot_read.py`

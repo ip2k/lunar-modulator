@@ -219,9 +219,12 @@ def prepare_campaign(path: str | Path, *, now: float | None = None):
         raise ValueError("Fixed reviewed operation count differs")
     # Construct the existing fixed type so its descriptor/topology checks and
     # exact per-operation exchange path remain byte-for-byte in use.
-    prepared = fixed.PreparedCampaign(config, fixed.digest(raw), loader,
+    prepared_config = dict(config)
+    # Keep the pinned owner observation in memory; do not reopen its source path
+    # later when publishing the manifest.
+    prepared_config["_owner_status_observation"] = parsed_entry["owner_attestation"]["status_observation"]
+    prepared = fixed.PreparedCampaign(prepared_config, fixed.digest(raw), loader,
         tuple(operations), reader.SGHeader, entered_at, inventory_sha)
-    prepared.owner_status_observation = parsed_entry["owner_attestation"]["status_observation"]
     return prepared, receipt, fixed.digest(entry_bytes), dongle_sha
 
 
@@ -322,7 +325,7 @@ def run_campaign(prepared, receipt: Path, entry_sha256: str,
                 "campaign_sha256": prepared.manifest_sha256,
                 "request_inventory_sha256": prepared.request_inventory_sha256,
                 "owner_unit_attested": True,
-                "owner_status_observation": prepared.owner_status_observation,
+                "owner_status_observation": prepared.config["_owner_status_observation"],
                 "unit_identity": None,
                 "identity_basis": "owner-attested-physical-selection; ROM serial unavailable",
                 "usb_serial": None,
