@@ -186,3 +186,70 @@ def test_disconnected_line_echo_cannot_falsely_ack_a_data_bit():
 
     sim.add_testbench(bench)
     sim.run()
+
+
+def test_sof_output_has_exact_period_and_pulse_after_fresh_entry():
+    dut = CynthionUsbKey(clock_hz=1_000_000, packet_limit=1,
+                         selftest_state_us=2, ack_duration_us=1,
+                         dp_high_timeout_ms=1, sof_done_low_ms=1,
+                         sof_timeout_ms=1, sof_period_us=8, sof_pulse_us=2,
+                         auto_selftest=True, selftest_only=False)
+    sim = Simulator(dut)
+    sim.add_clock(1e-6, domain="usb")
+
+    async def bench(ctx):
+        ctx.set(dut.phy_isolated, 1)
+        ctx.set(dut.bank6_3v3_confirmed, 1)
+        ctx.set(dut.ack_sense_valid, 1)
+        for _ in range(10):
+            await ctx.tick(domain="usb")
+            if ctx.get(dut.state) == dut.SELFTEST:
+                break
+        assert ctx.get(dut.state) == dut.SELFTEST
+
+        sequence = (2, 1, 0, 3)
+        for index, expected in enumerate(sequence):
+            ctx.set(dut.line_state_valid, 1)
+            ctx.set(dut.line_state_value, expected)
+            ctx.set(dut.line_state_update, 1)
+            await ctx.tick(domain="usb")
+            ctx.set(dut.line_state_update, 0)
+            for _ in range(4):
+                await ctx.tick(domain="usb")
+                if index < len(sequence) - 1 and (
+                    ctx.get(dut.dp_o), ctx.get(dut.dm_o)
+                ) == (sequence[index + 1] & 1, sequence[index + 1] >> 1):
+                    break
+        assert ctx.get(dut.state) == dut.KEY
+
+        # Receiver liveness comes from an RXCMD update matching an actively
+        # driven high-phase state. Then a single SE0 event qualifies the
+        # simulation-only ACK transition for this pulse-timing test.
+        key_bit = (dut.key_word >> (dut.key_bits - 1)) & 1
+        live_state = 3 if key_bit else 1
+        for _ in range(8):
+            await ctx.tick(domain="usb")
+        ctx.set(dut.line_state_value, live_state)
+        ctx.set(dut.line_state_update, 1)
+        await ctx.tick(domain="usb")
+        ctx.set(dut.line_state_update, 0)
+        ctx.set(dut.line_state_value, 0)
+        ctx.set(dut.line_state_update, 1)
+        await ctx.tick(domain="usb")
+        ctx.set(dut.line_state_update, 0)
+        assert ctx.get(dut.state) == dut.WAIT_DP
+
+        ctx.set(dut.line_state_value, 1)
+        await ctx.tick(domain="usb")
+        assert ctx.get(dut.state) == dut.SOF
+        # Entry must reset the phase counter: low for two us, released for six,
+        # repeating exactly at the configured eight-us interval.
+        samples = []
+        for _ in range(18):
+            samples.append(ctx.get(dut.dp_oe))
+            await ctx.tick(domain="usb")
+        assert samples == [1, 1, 0, 0, 0, 0, 0, 0,
+                           1, 1, 0, 0, 0, 0, 0, 0, 1, 1]
+
+    sim.add_testbench(bench)
+    sim.run()

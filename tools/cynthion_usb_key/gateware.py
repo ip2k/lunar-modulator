@@ -28,6 +28,7 @@ class CynthionUsbKey(Elaboratable):
                  packet_limit=30_000, debounce_us=5_000,
                  selftest_state_us=1_000, ack_duration_us=100,
                  dp_high_timeout_ms=None, sof_done_low_ms=None, sof_timeout_ms=None,
+                 sof_period_us=None, sof_pulse_us=None,
                  auto_selftest=False, selftest_only=False):
         if clock_hz <= 0 or clock_hz % 1_000_000:
             raise ValueError("clock_hz must be a positive integer MHz")
@@ -44,8 +45,12 @@ class CynthionUsbKey(Elaboratable):
         self.key_bits = p["KEY_BITS"]
         self.bit_cycles = p["KEY_BIT_CYCLES"]
         self.gap_cycles = p["KEY_GAP_US"]
-        self.sof_period = p["SOF_PERIOD_CYCLES"]
-        self.sof_pulse = p["SOF_PULSE_CYCLES"]
+        self.sof_period = (p["SOF_PERIOD_CYCLES"] if sof_period_us is None
+                           else sof_period_us)
+        self.sof_pulse = (p["SOF_PULSE_CYCLES"] if sof_pulse_us is None
+                          else sof_pulse_us)
+        if not 0 < self.sof_pulse < self.sof_period:
+            raise ValueError("SOF pulse must be shorter than its positive period")
         self.dp_high_timeout = (dp_high_timeout_ms if dp_high_timeout_ms is not None
                                 else p["SOF_DP_HIGH_TIMEOUT_MS"]) * 1000
         self.sof_done_low = (sof_done_low_ms if sof_done_low_ms is not None
@@ -113,6 +118,7 @@ class CynthionUsbKey(Elaboratable):
         ack_confirm = Signal()
         wait_ticks = Signal(range(self.dp_high_timeout + 1))
         sof_ticks = Signal(range(self.sof_timeout + 1))
+        sof_phase = Signal(range(self.sof_period))
         dp_low_ticks = Signal(range(self.sof_done_low + 1))
         key_bit = Signal()
 
@@ -192,7 +198,7 @@ class CynthionUsbKey(Elaboratable):
                     with m.Else():
                         m.d.comb += [self.dp_o.eq(1), self.dm_o.eq(key_bit)]
                 with m.Case(self.SOF):
-                    m.d.comb += [self.dp_oe.eq(sof_ticks % self.sof_period < self.sof_pulse),
+                    m.d.comb += [self.dp_oe.eq(sof_phase < self.sof_pulse),
                                  self.dp_o.eq(0)]
 
         with m.Switch(self.state):
@@ -283,7 +289,8 @@ class CynthionUsbKey(Elaboratable):
                             d += phase.eq(phase + 1)
                         with m.If(ack_confirm):
                             d += [self.state.eq(self.WAIT_DP), wait_ticks.eq(0),
-                                  sof_ticks.eq(0), dp_low_ticks.eq(0)]
+                                  sof_ticks.eq(0), sof_phase.eq(0),
+                                  dp_low_ticks.eq(0)]
             with m.Case(self.GAP):
                 with m.If(~permitted):
                     d += self.state.eq(self.FAULT)
@@ -301,7 +308,8 @@ class CynthionUsbKey(Elaboratable):
                     d += self.state.eq(self.FAULT)
                 with m.Elif(us_tick & self.line_state_valid &
                              (self.line_state_value == 1)):
-                    d += [self.state.eq(self.SOF), sof_ticks.eq(0), dp_low_ticks.eq(0)]
+                    d += [self.state.eq(self.SOF), sof_ticks.eq(0),
+                          sof_phase.eq(0), dp_low_ticks.eq(0)]
                 with m.Elif(us_tick & (wait_ticks == self.dp_high_timeout - 1)):
                     d += self.state.eq(self.FAULT)
                 with m.Elif(us_tick):
@@ -313,6 +321,10 @@ class CynthionUsbKey(Elaboratable):
                     d += self.state.eq(self.FAULT)
                 with m.Elif(us_tick):
                     d += sof_ticks.eq(sof_ticks + 1)
+                    with m.If(sof_phase == self.sof_period - 1):
+                        d += sof_phase.eq(0)
+                    with m.Else():
+                        d += sof_phase.eq(sof_phase + 1)
                     with m.If(self.line_state_valid & (self.line_state_value == 0)):
                         with m.If(dp_low_ticks == self.sof_done_low - 1):
                             d += self.state.eq(self.DONE)
