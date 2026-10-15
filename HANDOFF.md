@@ -5199,3 +5199,23 @@ Next: transfer exact committed combined source to Hera, sixteen fresh shards,
 link/verify a new timed diagnostic and prepare a fresh reviewed capture campaign.
 Clock worker is mapping exact SPL clock selectors read-only; actual inherited
 CPU clock remains unknown. Do not rerun consumed ROM67 cycle. Goal ACTIVE.
+
+### Fresh hot-DSP link and opt-in clock snapshot
+
+Fresh f524e019 catalogue:16shards/167objects, all exit0/noOOM; two explicit
+-Os DSP overrides only. Fresh frozen build passes generic build policy:
+Hera:/home/claude/mvave-fm1/hot-dsp-frozen-f524e019-20261015,
+receipt964b56823d130e3611b6f06d4aa211af9efaf721d1baec23d26e00b32f903595,
+app76dc05e2cef3df7c7b2eee19db295bbf5877e83ba64386de47d1f1ad337f9654,
+853108bytes/headroom7536. Bench staging (no device write yet):
+/home/claude/fm1-hot-dsp-f524e019-20261015. ROM69 passively re-observed.
+Root constructing stock-bound target; scratch/hot-dsp-cycle scaffold is NOT yet
+an executable admitted campaign. Consumed ROM67 runner must never be repeated.
+
+A later source change adds --diagnostic-clock-snapshot (schema3), gated to
+explicit bounded telemetry. Raw CLK_CON0/2/SYS_DIV, sampled once after platform
+init; no clock writes/MHz inference. Reviewed/tests in
+notes/2026-10-15-clock-snapshot-diagnostic.md. No device observation yet; f524
+candidate excludes this later change. Existing MIDI transport focused tests
+passed again (USB/TRS parser + app FIFO); exact FA rewind and TRS physical
+acceptance remain open. Goal active, audio starvation unresolved, SAVE disarmed.

@@ -258,3 +258,53 @@ int main(void) {
                     "-fsanitize=address,undefined", "-I", str(ROOT / "firmware/native"),
                     "-I", str(ROOT / "sim/web/src"), str(source), "-o", str(exe)], check=True)
     subprocess.run([str(exe)], check=True)
+
+
+def test_clock_snapshot_reads_once_and_roundtrips_raw_registers(tmp_path):
+    source = tmp_path / "clock.c"
+    source.write_text(r'''
+#include <stdint.h>
+#include <assert.h>
+#include <stdio.h>
+static unsigned calls;
+static uint32_t load(uintptr_t address) {
+    const uintptr_t addresses[] = {0x1000cu, 0x10014u, 0x10008u};
+    const uint32_t values[] = {0xffffffffu, 0x80000000u, 0x12345678u};
+    assert(calls < 3 && address == addresses[calls]);
+    return values[calls++];
+}
+#define LUNAR_CLOCK_LOAD(address) load(address)
+#include "clock_snapshot.h"
+#include "diagnostic_telemetry.h"
+int main(void) {
+    uint32_t values[4];
+    lunar_clock_snapshot(values, 1234u);
+    assert(calls == 3 && LUNAR_CLOCK_PACKETS == 10);
+    assert(lunar_clock_packet(values, LUNAR_CLOCK_PACKETS) == 0);
+    for (unsigned i = 0; i < LUNAR_CLOCK_PACKETS; ++i) {
+        uint32_t packet = lunar_clock_packet(values, i);
+        unsigned cin = packet & 15u;
+        assert(cin == (i == 9 ? 6u : 4u));
+        unsigned n = cin == 4 ? 3 : cin - 4;
+        for (unsigned j = 0; j < n; ++j)
+            putchar((packet >> (8u * (j + 1u))) & 255u);
+        if (n < 3) assert(packet >> (8u * (n + 1u)) == 0);
+    }
+    assert(calls == 3); /* Reporting never resamples registers. */
+}
+''')
+    exe = tmp_path / "clock"
+    subprocess.run(["cc", "-std=c99", "-Wall", "-Wextra", "-Werror",
+                    "-fsanitize=address,undefined", "-I", str(ROOT / "firmware/native"),
+                    "-I", str(ROOT / "sim/web/src"), str(source), "-o", str(exe)], check=True)
+    frame = subprocess.check_output([str(exe)])
+    assert len(frame) == codec.CLOCK_FRAME_BYTES
+    expected = dict(zip(codec.CLOCK_FIELDS, [1234, 0xffffffff, 0x80000000, 0x12345678]))
+    assert codec.decode_any_frame(frame) == (3, expected)
+    normal = codec.PREFIX + bytes(5 * len(codec.FIELDS)) + b"\xf7"
+    profile = codec.PROFILE_PREFIX + bytes(5 * len(codec.PROFILE_FIELDS)) + b"\xf7"
+    assert [item['schema'] for item in codec.decode_capture(normal + frame + profile)] == [1, 3, 2]
+    for bad in (frame[:-1], frame[:12] + b'\x80' + frame[13:],
+                frame[:12] + b'\x10' + frame[13:]):
+        with pytest.raises(ValueError):
+            codec.decode_any_frame(bad)

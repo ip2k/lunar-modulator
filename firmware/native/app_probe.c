@@ -6,6 +6,9 @@
 #if !defined(LUNAR_APP_PROBE) || !FM1_APP_EXTERNAL_ARENAS
 #error "Use the checked external-arena probe build"
 #endif
+#if defined(LUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT) && !defined(LUNAR_DIAGNOSTIC_TELEMETRY)
+#error "Clock snapshots require diagnostic telemetry"
+#endif
 #include <stdint.h>
 #include <string.h>
 #define APP_NAME "LUNAR MODULATOR"
@@ -34,6 +37,10 @@ static uint32_t lunar_selected_startup_project_index = LUNAR_STARTUP_PROJECT_IND
 #endif
 #ifdef LUNAR_DIAGNOSTIC_TELEMETRY
 #include "diagnostic_telemetry.h"
+#ifdef LUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT
+#include "clock_snapshot.h"
+static uint32_t clock_snapshot_values[LUNAR_CLOCK_FIELDS];
+#endif
 #endif
 #ifdef LUNAR_DIAGNOSTIC_SONG_PLAY
 #include "diagnostic_song_play.h"
@@ -302,6 +309,18 @@ static void diagnostic_profile_report(void)
  * 27-packet compatibility report. */
 static void diagnostic_reports(void)
 {
+#ifdef LUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT
+    static uint32_t last_clock_report;
+    /* Repeat the immutable sample for hosts that attach after startup. It is
+     * only ten packets, and is deferred until a complete frame fits. */
+    if ((uint32_t)(fm1_ms - last_clock_report) >= 10000u && usb.config &&
+        mo_w - mo_r <= MQ - LUNAR_CLOCK_PACKETS) {
+        for (unsigned i = 0; i < LUNAR_CLOCK_PACKETS; ++i)
+            midi_out_event(lunar_clock_packet(clock_snapshot_values, i));
+        last_clock_report = fm1_ms;
+        return;
+    }
+#endif
 #ifdef LUNAR_RENDER_STAGE_PROFILE
     if (((fm1_ms / 1000u) & 1u) == 0u) diagnostic_report();
     else diagnostic_profile_report();
@@ -320,6 +339,9 @@ static void app_main(void)
     };
     uint32_t previous_keys = 0, row = 0, last_draw = 0;
     uint32_t start = fm1_ms;
+#ifdef LUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT
+    lunar_clock_snapshot(clock_snapshot_values, start);
+#endif
 #ifdef LUNAR_DIAGNOSTIC_TRIO_PULSE
     uint32_t pulse_start = 0;
 #endif

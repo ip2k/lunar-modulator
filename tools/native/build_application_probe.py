@@ -172,6 +172,18 @@ def render_stage_profile_flags(enabled):
             if receipt["compile_definition"] else [])
 
 
+def validate_clock_snapshot(enabled, runtime_mode, telemetry_explicit):
+    if type(enabled) is not bool:
+        raise TypeError("clock snapshot option must be a bool")
+    if enabled and (not telemetry_explicit or
+                    runtime_mode not in ("diagnostic", "song-diagnostic")):
+        raise ValueError("clock snapshot requires explicit telemetry and a bounded diagnostic runtime")
+    return dict(enabled=enabled, schema=3 if enabled else None,
+                compile_definition="LUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT=1" if enabled else None,
+                sample="post-platform-init" if enabled else None,
+                register_writes=False, frequency_interpreted=False, hardware_tested=False)
+
+
 def validate_diagnostic_song_play(enabled, runtime_mode, startup_project_index,
                                   telemetry, trio_pulse):
     if type(enabled) is not bool:
@@ -389,6 +401,8 @@ def main():
                         help='Start the prepared diagnostic song once after 2s of readiness')
     parser.add_argument('--diagnostic-telemetry', action='store_true',
                         help='Opt in to bounded one-second USB-MIDI diagnostic reports; content may be prepared')
+    parser.add_argument('--diagnostic-clock-snapshot', action='store_true',
+                        help='Report raw post-platform clock registers; no clock changes or MHz claim')
     parser.add_argument('--render-stage-profile', action='store_true',
                         help='Opt in to schema-2 render-stage reports; requires --diagnostic-telemetry')
     parser.add_argument('--flash-plaits-wavetables', action='store_true',
@@ -462,6 +476,8 @@ def main():
             telemetry_enabled, args.runtime_mode)
         render_profile_receipt = validate_render_stage_profile(
             args.render_stage_profile, args.runtime_mode, args.diagnostic_telemetry)
+        clock_snapshot_receipt = validate_clock_snapshot(
+            args.diagnostic_clock_snapshot, args.runtime_mode, args.diagnostic_telemetry)
         song_play_receipt = validate_diagnostic_song_play(
             args.diagnostic_song_play, args.runtime_mode, args.startup_project_index,
             telemetry_enabled, args.diagnostic_trio_pulse)
@@ -577,6 +593,8 @@ def main():
         flags += ['-DLUNAR_DIAGNOSTIC_SONG_PLAY=1']
     flags += diagnostic_telemetry_flags(telemetry_enabled)
     flags += render_stage_profile_flags(args.render_stage_profile)
+    if args.diagnostic_clock_snapshot:
+        flags += ["-DLUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT=1"]
     flags += trio_diagnostic_pulse_flags(args.diagnostic_trio_pulse)
     if args.startup_set_index is not None:
         flags += ['-DLUNAR_STARTUP_SET_INDEX=' + str(args.startup_set_index)]
@@ -744,6 +762,8 @@ def main():
                   probe_return_to_rom_seconds=runtime_policy['return_to_rom_seconds'], hardware_candidate=False,
                   catalogue_source_freshness_verified=True,
                   installable=False, hardware_tested=False, elf_sha256=digest(elf))
+    if args.diagnostic_clock_snapshot:
+        report["diagnostic_clock_snapshot"] = clock_snapshot_receipt
     if args.render_stage_profile:
         report["render_stage_profile"] = render_profile_receipt
     if content_inputs:

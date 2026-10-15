@@ -201,3 +201,23 @@ def test_output_directory_is_exclusive(tmp_path):
     with pytest.raises(FileExistsError):
         recorder.record("FM-1 MIDI", IMAGE_SHA, out, 1,
                         mido_module=FakeMido([]))
+
+
+def test_records_clock_snapshot_separately_without_opening_output(tmp_path):
+    from tools.native.diagnostic_telemetry import CLOCK_PREFIX, CLOCK_FIELDS
+    frame = CLOCK_PREFIX + bytes(5 * len(CLOCK_FIELDS)) + b"\xf7"
+    clock = FakeClock()
+    fake = FakeMido([SimpleNamespace(type="sysex", data=frame[1:-1])])
+    out = tmp_path / "clock"
+    receipt = recorder.record("FM-1 MIDI", IMAGE_SHA, out, 0.05,
+                              mido_module=fake, monotonic=clock.monotonic,
+                              wall_time=clock.wall_time, sleep=clock.sleep)
+    rows = [json.loads(line) for line in (out / "events.jsonl").read_text().splitlines()]
+    assert rows[0]["event"] == "clock_snapshot_frame"
+    assert rows[0]["schema"] == 3
+    assert rows[0]["values"] == dict.fromkeys(CLOCK_FIELDS, 0)
+    assert receipt["clock_snapshot_frame_count"] == 1
+    assert receipt["render_profile_frame_count"] == 0
+    assert receipt["valid_frame_count"] == 1
+    assert receipt["midi_output_opened"] is False
+    assert (out / "raw.syx").read_bytes() == frame

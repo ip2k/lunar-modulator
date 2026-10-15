@@ -120,3 +120,18 @@ int render(int value) {
                    check=True)
     generated = assembly.read_text()
     assert "lunar_profile" not in generated
+
+
+def test_clock_snapshot_is_explicit_bounded_and_reports_no_frequency():
+    import pytest
+    assert builder.validate_clock_snapshot(False, "continuous", False)["enabled"] is False
+    enabled = builder.validate_clock_snapshot(True, "song-diagnostic", True)
+    assert enabled["schema"] == 3
+    assert enabled["register_writes"] is False
+    assert enabled["frequency_interpreted"] is False
+    assert enabled["hardware_tested"] is False
+    for mode, telemetry in (("continuous", True), ("diagnostic", False)):
+        with pytest.raises(ValueError, match="explicit telemetry"):
+            builder.validate_clock_snapshot(True, mode, telemetry)
+    with pytest.raises(TypeError):
+        builder.validate_clock_snapshot(1, "diagnostic", True)

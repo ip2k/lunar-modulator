@@ -65,4 +65,33 @@ static inline uint32_t lunar_profile_packet(
         packet |= (uint32_t)lunar_profile_wire_byte(at + j, values) << (8u * (j + 1u));
     return packet;
 }
+
+/* Schema 3: one immutable post-platform-init clock configuration snapshot.
+ * Raw values only; no frequency interpretation and no register writes. */
+#define LUNAR_CLOCK_FIELDS 4u
+#define LUNAR_CLOCK_BYTES (9u + 5u * LUNAR_CLOCK_FIELDS)
+#define LUNAR_CLOCK_PACKETS ((LUNAR_CLOCK_BYTES + 2u) / 3u)
+static inline uint32_t lunar_clock_packet(const uint32_t values[LUNAR_CLOCK_FIELDS],
+                                         unsigned index)
+{
+    static const uint8_t prefix[] = {0xf0, 0x7d, 'L', 'U', 'N', 'A', 'R', 3};
+    if (index >= LUNAR_CLOCK_PACKETS) return 0;
+    unsigned at = index * 3u;
+    unsigned left = LUNAR_CLOCK_BYTES - at;
+    unsigned n = left < 3u ? left : 3u;
+    uint32_t packet = left > 3u ? 4u : 4u + n;
+    for (unsigned j = 0; j < n; ++j) {
+        unsigned pos = at + j;
+        uint8_t byte;
+        if (pos < sizeof prefix) byte = prefix[pos];
+        else if (pos == LUNAR_CLOCK_BYTES - 1u) byte = 0xf7;
+        else {
+            unsigned data = pos - (unsigned)sizeof prefix;
+            byte = (uint8_t)((values[data / 5u] >> (7u * (data % 5u))) & 127u);
+        }
+        packet |= (uint32_t)byte << (8u * (j + 1u));
+    }
+    return packet;
+}
+
 #endif
