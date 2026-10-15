@@ -73,6 +73,31 @@ The installed r1.4 analyzer asset has SHA-256
 Recheck its digest before restoration. Restore with target ports empty and
 confirm analyzer identity before reconnecting a normal capture topology.
 
+## Offline implementation checkpoint
+
+[verified: integration tests] ULPI initialization now accepts the installed
+r1.4 nested pin resources and exercises LUNA's actual register-window logic.
+Seven focused simulations pass, including a stalled transaction at the global
+deadline. Deadline/fault inhibits ULPI output-enable and STP. These are simulated
+bus checks, not physical receiver or recovery acceptance.
+
+[verified: integration tests] The separate cold-ROM paired-backup adapter and
+unchanged fixed-loader adapter pass 72 offline tests. The cold path preserves
+the exact reviewed RAM-loader/read inventory and labels acquired flash
+unclassified. Its observation schema still needs alignment with the final
+gateware status interface before a physical campaign is prepared.
+
+[verified: Hera preparation] The task-local FPGA toolchain is ready in
+`/home/claude/lunar-cynthion-toolchain-20261015`, mounted as `/work` in bounded
+containers. OSS CAD Suite linux-x64 2026-10-14 archive SHA-256 is
+`a6ccc6b96b2d985336a1061c78b2fd2bdd73e0f68690da17db88e00457881a11`,
+verified against the official release asset digest before extraction.
+Versions: Yosys 0.70+16 (`3bb533450`), nextpnr-ecp5
+0.11.1-63 (`44a6c739`), ecppack 1.4-86 (`a31ff70`), Python 3.12,
+Cynthion 0.2.5, Amaranth 0.5.10, LUNA USB 0.2.3, Apollo 1.1.1.
+Installed r1.4 platform import succeeds. No synthesis/timing result is yet
+accepted at this checkpoint. Toolchain and build products remain outside Git.
+
 ## Primary references
 
 - [Exact r1.4 hardware source](https://github.com/greatscottgadgets/cynthion-hardware/tree/13aa71c2fb0be3837cd2ec580ee5d2c25fc1c678),
