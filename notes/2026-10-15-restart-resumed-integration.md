@@ -59,3 +59,24 @@ and file/aggregate caps before allocation. Worker owns corrections and checks.
 completed16 Hera shards; bounded target link is running. It preserves all13
 engines, Event Horizon+SET, no autoplay/SAVE and120-second recovery. No current
 stage timing or hardware improvement has been measured from that build.
+
+## Fresh stage profiling build and malformed pin rejection
+
+[verified: offline bytes] Root copied the stage2/engine7 frozen receipt and
+all10 required outputs from Hera and independently rehashed each. All16 shard
+and link policy/exit/no-OOM checks pass. Source66c95bb/tree542445ed, receipt
+95b57466b48a06c4395132c062a34eb52a952bd0463779b4c3813a43a901b400.
+App854644/860644B, all13 production engines, EH+SET, autoplayfalse,
+save_service_armedfalse,120-second return. sdk_archives=[]; worker corrected
+an unsupported closed-SDK claim in its shared handoff. This is instrumentation
+build evidence, not physical audio improvement or installability.
+Root evidence: scratch/current-stage7-independent-review/root-hash-review.json.
+
+[verified: review finding] The new ROM113 scratch package carried a65-character
+current-flash hash, with its fixture repeating the same malformed value. Root
+requested strict64-lowercase-hex checks and negative regression. Read-only
+bench filesystem hash and preceding ROM111 install result independently agree:
+28483c411f23d7d5fba09b4770dd29b3c66b1a154138e493e6e079e54dcf400f.
+Prior result:210sectors, simulatedfalse, full verified hash as above. Retained
+result at scratch/current-stage7-independent-review/preceding-rom111-install-session-result.json.
+This is historical evidence only; no fresh ROM113 admission or USB/reset/write.
