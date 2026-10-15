@@ -1,8 +1,33 @@
 # Cynthion USB_KEY recovery preparation
 
-Status: first disconnected hardware check failed; **not ready for an FM1
-connection or power cycle**. A disconnected-only bitstream has been uploaded
-volatily. No FM1 was attached or keyed, and no FM1 recovery acceptance exists.
+Status: corrected disconnected hardware check **passed**. Both TARGET ports
+remain empty; hold reconnection until the corrected powered operation image
+is built and reviewed. No FM1 was attached or keyed, and no FM1 recovery
+acceptance exists.
+
+## Corrected disconnected hardware acceptance
+
+[verified: coordinator execution] Volatile upload of source d65bd636 image
+SHA-256 `f5b95db86df7a7b7b6821182bef033c3c54a300aa749ad38cbe154ffa5831463`
+completed with both TARGET ports empty. Final routed timing passes 60 MHz USB
+and 120 MHz fabric requirements (166.39 / 234.69 MHz maxima). Generated JSON
+has all VBUS and discharge controls zero. No configuration flash or MCU firmware
+was written.
+
+[verified: read-only JTAG at Unix time1792106363.4083872] Registers1..11, hex:
+`4c554e52,3,27d7,0,0,0,01010101,c6,f,c6,ff0d7a`.
+DONE7, PHYready1, PHYfault0, self-test mask15, valid mask15; observed sequence
+[2,1,0,3] equals expected K/J/SE0/SE1, with one RXCMD event per step. Failure
+registers are zero and live GPIO outputs/OEs are released. This image remains
+loaded. Logs: local
+`scratch/cynthion-usb-key-20261015/phy-swap-v1/disconnected-upload.log` and
+`disconnected-status.json` in the same directory.
+
+[verified] The explicit USB3343 register0x39=0x06 board profile resolves the
+previous physical J/K reversal. [acceptance limit] Disconnected loopback does
+not test ROM key recognition, acknowledgement, SOF acceptance or USB enumeration.
+The corrected unpowered operation image9506... is not the selected powered
+trial image; a CONTROL-powered variant is being prepared separately.
 
 ## First disconnected hardware check
 
@@ -16,7 +41,7 @@ The image cannot enter KEY and holds all VBUS/discharge outputs off.
 FAULT state8, PHY ready, no PHY fault, self-test mask0, valid SE0 observation,
 self-test mode, CONTROL target power off. Thus register initialization/readback
 passed but the first K-state loopback did not. Terminal FAULT releases the GPIO
-outputs. This disconnected image remains loaded. Logs and literal telemetry:
+outputs. This was the initial image; it has since been replaced by the corrected image above. Logs and literal telemetry:
 `scratch/cynthion-usb-key-20261015/disconnected-upload.log` and
 `scratch/cynthion-usb-key-20261015/disconnected-status.json` (local artifacts).
 
@@ -28,7 +53,7 @@ latched GPIO/RXCMD diagnostics without making KEY reachable in self-test mode.
 simulation, protocol regressions and the two backup admission paths. These
 checks do not override the failed physical loopback.
 
-## Current physical state
+## Earlier diagnostic checks and source correction
 
 [verified: disconnected four-state characterization] V4 image SHA-256
 `c5e46d1cbebaf7213c8337945b8c1066941826779a9fd836e12b90d91dd7accb`
@@ -45,7 +70,7 @@ Our standalone initializer bypassed the standard ULPITransceiver and omitted
 that platform setting. An explicit r1.4 profile now writes/reads back 0x39=0x06
 before granting drive permission. GPIO mapping and RXCMD decoding stay intact.
 97 focused integration tests pass, including mismatch rejection; fresh physical
-loopback validation is still pending at this source checkpoint.
+loopback validation was pending at that source checkpoint; it passes above.
 
 [verified: second disconnected check] Diagnostic v3 image SHA-256
 `62e4112c6b3da0d7adfaf293bac6c125706166fd86d23c49f303d6b1f2a10668`
@@ -59,7 +84,7 @@ The unexpected opposite line report motivates full disconnected four-state
 characterization and a pin/receiver mapping review; no swap is established.
 Literal telemetry is saved in
 `scratch/cynthion-usb-key-20261015/disconnected-diagnostics-v3-status.json`.
-No FM1 was connected. This diagnostic image currently remains loaded.
+No FM1 was connected. This diagnostic image has since been replaced.
 
 [verified: owner] Both Cynthion TARGET ports are empty; CONTROL remains on the
 Mac. Preserve this state until disconnected checks pass. The FM1 lost power
@@ -89,7 +114,7 @@ sensing. Charger controls and OTG pull controls require explicit review too.
 [inferred] A non-driving PHY receiver can observe the target side of the
 resistors while the FPGA generates the recovery waveform. This could support a
 disconnected four-state loopback test and distinguish a real ROM clamp from
-the FPGA's own output. It has not been demonstrated on this board.
+the FPGA's own output. The corrected disconnected test above demonstrates the loopback path on this board; ROM acknowledgement remains untested.
 
 High-impedance GPIO samples alone cannot qualify the ROM acknowledgement:
 the ROM's reported 15 kOhm pull-downs also make both released lines low. The
@@ -152,8 +177,8 @@ Versions: Yosys 0.70+16 (`3bb533450`), nextpnr-ecp5
 Cynthion 0.2.5, Amaranth 0.5.10, LUNA USB 0.2.3, Apollo 1.1.1.
 Installed r1.4 platform import succeeds. Later synthesis/timing results and
 physical failures are recorded above. Toolchain and build products remain
-outside Git. Current focused integration suite passes 94 tests; physical
-loopback acceptance still fails.
+outside Git. The latest focused integration suite passes 97 tests; corrected physical
+loopback acceptance passes as recorded above.
 
 ## Primary references
 

@@ -1,15 +1,16 @@
 ## Cynthion cold-recovery preparation — 2026-10-15
 
 [verified: owner] Both TARGET ports are empty; CONTROL remains on the Mac.
-Custom gateware development is active; do not reconnect/power-cycle FM1 yet.
-Exact r1.4 source shows 1k series monitor paths and Bank6 +3V3. USB3343
-non-driving receive mode is a source-supported candidate, not live acceptance.
-Root owns all device operations. First disconnected-only bitstream was loaded
-volatily: PHY initialization passed, four-state loopback failed at its first
-state (FAULT, mask0). Outputs are released; no FM1 was attached or keyed.
-Read-only telemetry and upload log are saved under
-scratch/cynthion-usb-key-20261015/. Worker is adding longer dwell and latched
-GPIO/RXCMD diagnostics; do not bypass the loopback gate.
+[verified: coordinator hardware test] Corrected disconnected image f5b95db8...
+passed all four GPIO-to-PHY loopback states: observed [2,1,0,3], mask15,
+DONE, PHYready, no fault and GPIO outputs released. The omitted inherited
+USB3343 register0x39=0x06 board setting caused the prior J/K reversal.
+This disconnected-only image is currently loaded volatily. No FM1 was
+attached or keyed; boot-ROM recovery remains unverified. Do not reconnect yet.
+Worker is building corrected operation image with explicit CONTROL power;
+prior operation9506... has all VBUS off and is not the selected powered image.
+Root owns all device operations. Literal JTAG/upload evidence is under
+scratch/cynthion-usb-key-20261015/phy-swap-v1/.
 See notes/2026-10-15-cynthion-usb-key-recovery.md for gates/restoration plan.
 Power loss invalidates retained-loader admission; current flash remains unknown.
 
