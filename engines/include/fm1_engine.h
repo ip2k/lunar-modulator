@@ -69,6 +69,14 @@
 #ifndef FM1_ENGINE_H_
 #define FM1_ENGINE_H_
 
+/* A private native-link experiment can place selected render bodies in a
+ * separately copied RAM section. The macro is absent from normal builds. */
+#if defined(FM1_HOT_DSP_RAM) && FM1_HOT_DSP_RAM
+#define FM1_HOT_DSP_RENDER __attribute__((noinline, used, section(".ram_dsp")))
+#else
+#define FM1_HOT_DSP_RENDER
+#endif
+
 #include <stddef.h>
 #include <stdint.h>
 

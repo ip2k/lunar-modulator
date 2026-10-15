@@ -486,7 +486,7 @@ struct Instance {
     running = 1;
   }
 
-  void Render(float *lr, uint32_t frames) {
+  FM1_HOT_DSP_RENDER void Render(float *lr, uint32_t frames) {
     if (!running) Start();
     int16_t *const fdn = Cells();
     int16_t *const pre_ring = fdn + layout.fdn_cells;

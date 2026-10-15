@@ -36,7 +36,9 @@ def source_manifest(root):
                                                    '.S', '.s', '.in', '.tcc', '.def')
                                    or path.name == 'Makefile'):
                 files.append(path)
-    files += [root / 'tools/jieli/objects.mk', root / 'tools/native/compile_catalogue.py']
+    files += [root / 'tools/jieli/objects.mk', root / 'tools/native/compile_catalogue.py',
+              root / 'tools/native/build_application_probe.py',
+              root / 'tools/native/probe_artifact.py', root / 'firmware/native/app.ld']
     return {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
             for p in sorted(files)}
 
@@ -52,6 +54,8 @@ def main():
     parser.add_argument('--hot-dsp-os', action='store_true',
                         help='Explicit experiment: -Os for sixop/Hall with --opt z; '
                         'does not establish hardware performance')
+    parser.add_argument('--hot-dsp-ram', action='store_true',
+                        help='Explicit experiment: place selected sixop/Hall/limiter render bodies in RAM')
     parser.add_argument('--shared-resampler', action='store_true',
                         help='Share the unchanged resampler coefficients')
     parser.add_argument('--shapes-voices', type=int, choices=range(1, 13), default=12,
@@ -88,6 +92,8 @@ def main():
              ' -isystem ' + str(tc / 'pi32v2/include'))
     extra += ' -DFM1_TFT_INDEXED=' + str(int(args.indexed_tft))
     extra += ' -DFM1_SHAPES_VOICES=' + str(args.shapes_voices)
+    if args.hot_dsp_ram:
+        extra += ' -DFM1_HOT_DSP_RAM=1'
     if args.lto:
         extra += ' -flto'
     make = ['make', '-s', '-C', str(ROOT / 'engines'), '-f', 'Makefile',
@@ -126,6 +132,7 @@ def main():
               'gpl_mods': 1, 'modules': 'all', 'closed_sdk_archives': [],
               'optimization': '-O' + args.opt, 'lto': args.lto,
               'optimization_overrides': overrides,
+              'hot_dsp_ram': args.hot_dsp_ram,
               'shared_resampler': args.shared_resampler,
               'indexed_tft': args.indexed_tft,
               'shapes_voices': args.shapes_voices,

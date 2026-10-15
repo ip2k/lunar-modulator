@@ -25,10 +25,12 @@ REGIONS = {
 }
 
 
-def flatten(data, layout='legacy', flash_layout='protected'):
+def flatten(data, layout='legacy', flash_layout='protected', hot_dsp_ram=False):
     if layout not in ('legacy', 'combined'):
         raise ValueError('Unknown RAM layout')
     regions = dict(REGIONS)
+    if hot_dsp_ram:
+        regions['.ram_dsp'] = (0x01C00000, 0x01C06000, 1, 6)
     flash_end = FLASH + app_budget(flash_layout)
     regions['.text'] = (FLASH, flash_end, 1, 6)
     if layout == 'combined':
@@ -70,6 +72,7 @@ def flatten(data, layout='legacy', flash_layout='protected'):
         if name == '.text' and address != FLASH:
             raise ValueError('Text does not begin at entry')
         bounds = {'.text': ('_start', '_etext'), '.ram_text': ('_rt_start', '_rt_end'),
+                  '.ram_dsp': ('_rd_start', '_rd_end'),
                   '.data': ('_data_start', '_data_end'), '.bss': ('_bss_start', '_bss_end'),
                   '.pool': ('_pool_start', '_pool_end')}.get(name)
         if bounds and (image.symbol_value(bounds[0]), image.symbol_value(bounds[1])) != (address, address + size):
@@ -90,7 +93,8 @@ def flatten(data, layout='legacy', flash_layout='protected'):
             raise ValueError('Load segment contains unaccounted bytes')
         used_segments.add(segments.index(p))
         load = p[3] + offset - p[1]
-        symbol = {'.text': '_start', '.ram_text': '_rt_load', '.data': '_data_load'}[name]
+        symbol = {'.text': '_start', '.ram_text': '_rt_load', '.ram_dsp': '_rd_load',
+                  '.data': '_data_load'}[name]
         if load != image.symbol_value(symbol) or not FLASH <= load < load + size <= flash_end:
             raise ValueError('Invalid flash load address: ' + name)
         if p[5] < p[4] or p[6] != (6 if name == '.data' else 5):
@@ -121,7 +125,8 @@ def flatten(data, layout='legacy', flash_layout='protected'):
 def artifact_call_payloads(image, app, disassembly):
     """Map proven ELF calls into the independently validated flattened image."""
     proofs = relative_call_payloads('native-probe.elf', image, disassembly)
-    loads = {'.text': '_start', '.ram_text': '_rt_load', '.data': '_data_load'}
+    loads = {'.text': '_start', '.ram_text': '_rt_load', '.ram_dsp': '_rd_load',
+             '.data': '_data_load'}
     for (source, offset), proof in list(proofs.items()):
         section = source.split(':', 1)[1]
         if section not in loads:
@@ -138,7 +143,7 @@ def artifact_call_payloads(image, app, disassembly):
 def artifact_stub_boundaries(image, app, disassembly):
     """Carry byte-exact two-instruction proofs through validated load mapping."""
     proofs = stub_call_boundary_patterns('native-probe.elf', image, disassembly)
-    loads = {'.text': '_start', '.ram_text': '_rt_load'}
+    loads = {'.text': '_start', '.ram_text': '_rt_load', '.ram_dsp': '_rd_load'}
     for (source, offset), proof in list(proofs.items()):
         section = source.split(':', 1)[1]
         if section not in loads:
@@ -161,11 +166,13 @@ def main():
     parser.add_argument('--elf', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--layout', choices=('legacy', 'combined'), default='legacy')
+    parser.add_argument('--hot-dsp-ram', action='store_true',
+                        help='Require the explicit selected-render RAM section')
     parser.add_argument('--flash-layout', choices=FLASH_LAYOUTS, default='protected')
     parser.add_argument('--objdump', help='vendor pi32v2 objdump for direct-call proofs')
     args = parser.parse_args()
     data = args.elf.read_bytes()
-    image, app = flatten(data, args.layout, args.flash_layout)
+    image, app = flatten(data, args.layout, args.flash_layout, args.hot_dsp_ram)
     decoded = subprocess.check_output(target_disassembly_command(args.objdump, args.elf),
                                       text=True) if args.objdump else ''
     proofs = artifact_call_payloads(image, app, decoded)
@@ -184,6 +191,7 @@ def main():
               'app_sha256': hashlib.sha256(app).hexdigest(), 'app_bytes': len(app),
               'layout_passed': True, 'ram_layout': args.layout, 'key_audit': receipt,
               'flash_layout': args.flash_layout, 'app_budget_bytes': app_budget(args.flash_layout),
+              'hot_dsp_ram': args.hot_dsp_ram,
               'disassembly_sha256': hashlib.sha256(decoded.encode()).hexdigest() if args.objdump else None,
               'hardware_admitted': False, 'hardware_tested': False,
               'installable': False}

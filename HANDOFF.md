@@ -1,3 +1,19 @@
+## Coordinator checkpoint: hot DSP RAM source reviewed; fresh Hera build next
+
+Opt-in bounded diagnostic moves selected SixOp, Hall, limiter and app render
+bodies into separately copied .ram_dsp within existing 24KiB RAMTEXT. Default
+linker script remains byte-identical to baseline; flash-writer closure unchanged.
+Independent source review found no blockers; target placement/size/performance
+remain unverified. SAVE is disarmed and full RAM residency explicitly unproven.
+Details: notes/2026-10-15-hot-dsp-ram-experiment.md; private review and runner
+handoffs under scratch/native-hot-dsp-ram and scratch/hot-ram-build.
+Next: exact committed source, sixteen fresh Hera shards, bounded EH+SET link,
+actual ELF/copy/call/size inspection before any new physical campaign.
+Previous ROM73 campaign consumed; no reuse. Goal ACTIVE, audio still fails.
+MIDI FA/FC/FB USB/TRS transport implemented; physical FA/TRS acceptance pending.
+Installer diagnostic provenance committed/pushed ab00bbb9; not a shipped installer.
+Unrelated uv.lock untouched. Hera claim lunar--hot-dsp-ram-20261015 owned here.
+
 ## Coordinator checkpoint: ROM73 PLL campaign completed; audio still fails
 
 Installed target 864445bea6ea3ec4b6f21f0b42f3033c7d139f646a351e955f4eca535936d694

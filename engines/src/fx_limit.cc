@@ -730,7 +730,7 @@ inline float TapOut(Instance *s, const Arrays &a, uint32_t set, uint32_t r, uint
   return Stage(s->rnd[set][c], k[0] * a.x[2 * r + c] * gain, peek, !zero, k[1], k[2], k[3], zero);
 }
 
-void Render(Instance *s, float *lr, uint32_t frames) {
+FM1_HOT_DSP_RENDER void Render(Instance *s, float *lr, uint32_t frames) {
   const Arrays a = ArraysOf(s);
   if (!s->primed) {
     // Settings made before the first block apply from its first sample.

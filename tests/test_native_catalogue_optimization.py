@@ -64,6 +64,80 @@ def test_compiler_records_settings_actually_passed_to_make(tmp_path, monkeypatch
         assert item['sha256'] == hashlib.sha256(command[-2].encode()).hexdigest()
 
 
+@pytest.mark.parametrize('enabled', (False, True))
+def test_compiler_hot_dsp_ram_flag_is_receipted_and_applied(tmp_path, monkeypatch, enabled):
+    headers = tmp_path / 'headers'
+    headers.mkdir()
+    (headers / '__config').write_text('#define _LIBCPP_HAS_THREAD_API_PTHREAD\n')
+    out = tmp_path / 'out'
+    names = [f'c/unit-{i}.o' for i in range(16)]
+    calls = []
+
+    def check_output(command, **kwargs):
+        return '\n'.join(str(out / 'obj' / name) for name in names) if command[-1] == 'print-objs' else ''
+
+    def run(command, **kwargs):
+        calls.append(command)
+        obj = Path(command[-1])
+        obj.parent.mkdir(parents=True, exist_ok=True)
+        obj.write_bytes(b'obj')
+        return subprocess.CompletedProcess(command, 0, '', '')
+
+    monkeypatch.setattr(compiler, 'source_manifest', lambda root: {'x.c': 'current'})
+    monkeypatch.setattr(compiler.subprocess, 'check_output', check_output)
+    monkeypatch.setattr(compiler.subprocess, 'run', run)
+    monkeypatch.setattr(sys, 'argv', ['compile_catalogue', '--toolchain', str(tmp_path),
+                        '--cxx-headers', str(headers), '--out', str(out), '--shard', '0',
+                        '--hot-dsp-ram'] if enabled else ['compile_catalogue', '--toolchain', str(tmp_path),
+                        '--cxx-headers', str(headers), '--out', str(out), '--shard', '0'])
+    assert compiler.main() == 0
+    report = json.loads((out / 'report.json').read_text())
+    assert report['hot_dsp_ram'] is enabled
+    assert all(('FM1_HOT_DSP_RAM=1' in ' '.join(map(str, command))) is enabled
+               for command in calls)
+
+
+@pytest.mark.parametrize('enabled', (False, True))
+def test_hot_dsp_linker_template_is_opt_in(enabled):
+    source = (Path(builder.__file__).resolve().parents[2] / 'firmware/native/app.ld').read_text()
+    generated = builder.hot_dsp_ram_linker_script(source, enabled)
+    assert ('.ram_dsp' in generated) is enabled
+    if not enabled:
+        assert hashlib.sha256(generated.encode()).hexdigest() == (
+            '833d79ca882336b4d61b2a977e6b4e13b5aed99e26fa21423fceb0b58ca0f16b')
+        assert 'HOT_DSP_RAM_' not in generated
+        assert 'ramdsp PT_LOAD' not in generated
+        assert '_rd_' not in generated
+    else:
+        assert 'HOT_DSP_RAM_' not in generated
+        assert 'ramdsp PT_LOAD FLAGS(5);' in generated
+        assert '_rd_start >= _rt_end' in generated
+
+
+def test_hot_dsp_ram_extent_reports_exact_linked_bounds(tmp_path):
+    from test_native_probe_artifact import fixture
+    elf = tmp_path / 'synthetic.elf'
+    elf.write_bytes(fixture(hot_dsp_ram=True))
+    assert builder.hot_dsp_ram_extent(elf) == dict(
+        section='.ram_dsp', start='0x01c00004', end='0x01c00008',
+        bytes=4, flash_load='0x02000170')
+
+
+def test_hot_dsp_ram_requires_bounded_runtime_and_copies_extent_at_startup():
+    with pytest.raises(ValueError, match='bounded diagnostic'):
+        builder.hot_dsp_ram_configuration(True, 'continuous')
+    receipt = builder.hot_dsp_ram_configuration(True, 'diagnostic')
+    assert receipt['selected_bodies'] == builder.HOT_DSP_RAM_BODIES
+    assert receipt['all_callees_in_ram'] is False
+    platform = ('    extern uint32_t _pool_start[], _pool_end[], _rt_start[], _rt_end[], _rt_load[];\n'
+                '    for (s = _rt_load, d = _rt_start; d < _rt_end; s++, d++) *d = *s;\n')
+    default = builder.hot_dsp_ram_platform(platform, False)
+    opted_in = builder.hot_dsp_ram_platform(platform, True)
+    assert default == platform
+    assert opted_in.count('_rd_start') == 2  # declaration plus copy-loop destination
+    assert opted_in.index('_rt_end; s++, d++)') < opted_in.index('_rd_end; s++, d++)')
+
+
 @pytest.mark.parametrize('fault', ('none', 'missing-map', 'extra-map', 'missing-unit',
                                   'wrong-hot-unit', 'wrong-cold-unit'))
 def test_linker_requires_matching_explicit_receipts(tmp_path, monkeypatch, fault):
@@ -82,7 +156,7 @@ def test_linker_requires_matching_explicit_receipts(tmp_path, monkeypatch, fault
                       gpl_mods=1, modules='all', optimization='-Oz', lto=True,
                       optimization_overrides=dict(overrides), shared_resampler=True,
                       indexed_tft=False, shapes_voices=12, closed_sdk_archives=[],
-                      device_sdk_headers=[], source_manifest={'x.c': 'current'},
+                      hot_dsp_ram=False, device_sdk_headers=[], source_manifest={'x.c': 'current'},
                       configured_sha256=hashlib.sha256(b'config').hexdigest(),
                       results=[dict(index=shard, object=name, exit=0,
                                     optimization=overrides.get(name, '-Oz'),
@@ -105,3 +179,13 @@ def test_linker_requires_matching_explicit_receipts(tmp_path, monkeypatch, fault
         objects, receipts = builder.checked_catalogue(tmp_path, hot_dsp_os=True)
         assert len(objects) == len(receipts) == 16
         assert [r['optimization'] for r in receipts] == ['-Os', '-Os'] + ['-Oz'] * 14
+        with pytest.raises(SystemExit):
+            builder.checked_catalogue(tmp_path, hot_dsp_os=True, hot_dsp_ram=True)
+        for shard in range(16):
+            path = tmp_path / f'shard-{shard:02d}/report.json'
+            report = json.loads(path.read_text())
+            report['hot_dsp_ram'] = True
+            path.write_text(json.dumps(report))
+        objects, receipts = builder.checked_catalogue(
+            tmp_path, hot_dsp_os=True, hot_dsp_ram=True)
+        assert len(objects) == len(receipts) == 16

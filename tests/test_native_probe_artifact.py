@@ -13,22 +13,28 @@ from flash_layout import (FLASH_LAYOUTS, EXPANDED_D7000_STAGE_END,
                           EXPANDED_D7000_STAGE_START, app_budget, linker_script)
 
 
-def fixture(pool=0x01C20000, pool_size=16, text_size=0x4C):
+def fixture(pool=0x01C20000, pool_size=16, text_size=0x4C, hot_dsp_ram=False):
     text = (ENTRY_GUARD + bytes(0x4A - len(ENTRY_GUARD)) + bytes.fromhex('f79f')
             + bytes(text_size - 0x4C))
     rows = [('.text', FLASH, text, len(text), 1, 6, FLASH),
-            ('.ram_text', 0x01C00000, b'RAM!', 4, 1, 6, FLASH + len(text)),
-            ('.data', 0x01C08000, b'DATA', 4, 1, 3, FLASH + len(text) + 4),
+            ('.ram_text', 0x01C00000, b'RAM!', 4, 1, 6, FLASH + len(text))]
+    if hot_dsp_ram:
+        rows.append(('.ram_dsp', 0x01C00004, b'DSP!', 4, 1, 6, FLASH + len(text) + 4))
+    data_load = FLASH + len(text) + 4 + (4 if hot_dsp_ram else 0)
+    rows += [('.data', 0x01C08000, b'DATA', 4, 1, 3, data_load),
             ('.bss', 0x01C08004, b'', 16, 8, 3, 0),
             ('.pool', pool, b'', pool_size, 8, 3, 0),
             ('.noinit', 0x01C7C000, b'', 16, 8, 3, 0)]
     values = dict(_start=FLASH, _etext=FLASH + len(text), lunar_entry_rejected=FLASH + 0x4A,
                   _rt_start=0x01C00000, _rt_end=0x01C00004, _rt_load=FLASH + len(text),
-                  _data_start=0x01C08000, _data_end=0x01C08004, _data_load=FLASH + len(text) + 4,
+                  _data_start=0x01C08000, _data_end=0x01C08004, _data_load=data_load,
                   _bss_start=0x01C08004, _bss_end=0x01C08014,
                   _pool_start=pool, _pool_end=pool + pool_size,
                   _guard0=0x01C74000, _ustack_lo=0x01C74100, _ustack_top=0x01C7A000,
                   _guard1=0x01C7A000, _sstack_lo=0x01C7A100, _sstack_top=0x01C7C000)
+    if hot_dsp_ram:
+        values.update(_rd_start=0x01C00004, _rd_end=0x01C00008,
+                      _rd_load=FLASH + len(text) + 4)
     names, strings = {}, b'\0'
     for name in [r[0] for r in rows] + ['.shstrtab', '.strtab', '.symtab']:
         names[name] = len(strings)
@@ -37,7 +43,8 @@ def fixture(pool=0x01C20000, pool_size=16, text_size=0x4C):
     for name, value in values.items():
         symbols += struct.pack('<IIIBBH', len(symbol_names), value, 0, 0x10, 0, 1)
         symbol_names += name.encode() + b'\0'
-    body, headers, programs = bytearray(52 + 3 * 32), bytearray(40), bytearray()
+    program_count = 4 if hot_dsp_ram else 3
+    body, headers, programs = bytearray(52 + program_count * 32), bytearray(40), bytearray()
     for name, address, blob, size, kind, flags, load in rows:
         offset = len(body)
         headers += struct.pack('<10I', names[name], kind, flags, address, offset, size, 0, 0, 4, 0)
@@ -46,12 +53,12 @@ def fixture(pool=0x01C20000, pool_size=16, text_size=0x4C):
             programs += struct.pack('<8I', 1, offset, address, load, size, size, 6 if name == '.data' else 5, 4)
     for name, blob, kind, link, entsize in [('.shstrtab', strings, 3, 0, 0),
                                           ('.strtab', symbol_names, 3, 0, 0),
-                                          ('.symtab', symbols, 2, 8, 16)]:
+                                          ('.symtab', symbols, 2, 8 + int(hot_dsp_ram), 16)]:
         headers += struct.pack('<10I', names[name], kind, 0, 0, len(body), len(blob), link, 0, 1, entsize)
         body += blob
     body[:52] = b'\x7fELF' + bytes([1, 1, 1]) + bytes(9) + struct.pack(
-        '<HHIIIIIHHHHHH', 2, 0xF1, 1, FLASH, 52, len(body), 0, 52, 32, 3, 40, 10, 7)
-    body[52:148] = programs
+        '<HHIIIIIHHHHHH', 2, 0xF1, 1, FLASH, 52, len(body), 0, 52, 32, program_count, 40, 10 + int(hot_dsp_ram), 7)
+    body[52:52 + len(programs)] = programs
     return bytes(body + headers)
 
 
@@ -132,9 +139,11 @@ def test_relative_call_flat_mapping(section, load, monkeypatch):
 
 
 
-@pytest.mark.parametrize('section,load', [('.text', '_start'), ('.ram_text', '_rt_load')])
+@pytest.mark.parametrize('section,load', [('.text', '_start'), ('.ram_text', '_rt_load'),
+                                          ('.ram_dsp', '_rd_load')])
 def test_call_boundary_flat_mapping(section, load, monkeypatch):
-    image, app = flatten(fixture())
+    hot_dsp_ram = section == '.ram_dsp'
+    image, app = flatten(fixture(hot_dsp_ram=hot_dsp_ram), hot_dsp_ram=hot_dsp_ram)
     instructions = bytes.fromhex('80ff0c2e01000215')
     offset = image.symbol_value(load) - FLASH + 3
     app = app[:offset - 3] + instructions + app[offset + 5:]
@@ -169,6 +178,26 @@ def damaged_contract(fault):
 
 
 class ArtifactTests(unittest.TestCase):
+    def test_hot_dsp_ram_is_explicit_and_bounded(self):
+        data = fixture(hot_dsp_ram=True)
+        with self.assertRaisesRegex(ValueError, 'Unexpected allocated section'):
+            flatten(data)
+        image, app = flatten(data, hot_dsp_ram=True)
+        self.assertEqual(image.read(0x01C00004, 4), b'DSP!')
+        self.assertEqual(app[0x4C:0x50], b'RAM!')
+        self.assertEqual(app[0x50:0x54], b'DSP!')
+
+    def test_hot_dsp_ram_refuses_missing_or_overlapping_extent(self):
+        with self.assertRaisesRegex(ValueError, 'Missing required sections'):
+            flatten(fixture(), hot_dsp_ram=True)
+        data = bytearray(fixture(hot_dsp_ram=True))
+        shoff = struct.unpack_from('<I', data, 32)[0]
+        # .ram_dsp is section 3 after NULL, .text and .ram_text; force it to
+        # overlap .ram_text and ensure range checks refuse the image.
+        struct.pack_into('<I', data, shoff + 3 * 40 + 12, 0x01C00000)
+        with self.assertRaisesRegex(ValueError, 'Startup copy/zero bounds disagree: .ram_dsp'):
+            flatten(bytes(data), hot_dsp_ram=True)
+
     def test_combined_exact_fill(self):
         data = fixture(0x01C08020, 0x01C74000 - 0x01C08020)
         flatten(data, 'combined')

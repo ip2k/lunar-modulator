@@ -277,8 +277,84 @@ def replace_once(text, old, new):
     return text.replace(old, new)
 
 
+def hot_dsp_ram_linker_script(source, enabled):
+    """Keep the default generated linker script byte-for-byte unchanged."""
+    if type(enabled) is not bool:
+        raise TypeError('hot DSP RAM option must be a bool')
+    templates = (
+        ('/* HOT_DSP_RAM_PHDR_BEGIN\n',
+         '    ramdsp PT_LOAD FLAGS(5);\n',
+         '    HOT_DSP_RAM_PHDR_END */'),
+        ('    /* HOT_DSP_RAM_SECTION_BEGIN\n',
+         '    .ram_dsp : { _rd_start = .; KEEP(*(.ram_dsp*)) . = ALIGN(4); _rd_end = .; } > RAMTEXT AT > XIP :ramdsp\n'
+         '    _rd_load = LOADADDR(.ram_dsp);\n',
+         '    HOT_DSP_RAM_SECTION_END */'),
+        ('/* HOT_DSP_RAM_ASSERT_BEGIN\n',
+         'ASSERT(_rd_start >= _rt_end && _rd_end <= 0x01C06000,\n'
+         '       "Lunar hot DSP RAM overlaps flash-writer code or reserved debug region")\n',
+         'HOT_DSP_RAM_ASSERT_END */'),
+    )
+    for begin, body, end in templates:
+        marker = begin + body + end
+        if source.count(marker) != 1:
+            raise ValueError('Pinned hot DSP RAM linker markers changed')
+        marker_start = source.index(marker)
+        line_start = source.rfind('\n', 0, marker_start) + 1
+        marker_end = marker_start + len(marker)
+        line_end = source.find('\n', marker_end)
+        if line_end < 0:
+            line_end = len(source)
+        else:
+            line_end += 1
+        source = source[:line_start] + (body if enabled else '') + source[line_end:]
+    return source
+
+
+HOT_DSP_RAM_BODIES = ['SixOp::Instance::Render', 'Hall::Instance::Render',
+                      'Limiter::Render', 'fm1_app_render']
+
+
+def hot_dsp_ram_configuration(enabled, runtime_mode):
+    if type(enabled) is not bool:
+        raise TypeError('hot DSP RAM option must be a bool')
+    if enabled and runtime_mode not in ('diagnostic', 'song-diagnostic'):
+        raise ValueError('--hot-dsp-ram requires a bounded diagnostic or song-diagnostic runtime')
+    return dict(enabled=enabled, selected_bodies=HOT_DSP_RAM_BODIES if enabled else [],
+                all_callees_in_ram=False, flash_write_execution_verified=False)
+
+
+def hot_dsp_ram_platform(source, enabled):
+    if not enabled:
+        return source
+    source = replace_once(
+        source,
+        '    extern uint32_t _pool_start[], _pool_end[], _rt_start[], _rt_end[], _rt_load[];\n',
+        '    extern uint32_t _pool_start[], _pool_end[], _rt_start[], _rt_end[], _rt_load[];\n'
+        '    extern uint32_t _rd_start[], _rd_end[], _rd_load[];\n')
+    return replace_once(
+        source,
+        '    for (s = _rt_load, d = _rt_start; d < _rt_end; s++, d++) *d = *s;\n',
+        '    for (s = _rt_load, d = _rt_start; d < _rt_end; s++, d++) *d = *s;\n'
+        '    for (s = _rd_load, d = _rd_start; d < _rd_end; s++, d++) *d = *s;\n')
+
+
+def hot_dsp_ram_extent(elf_path):
+    sys.path.insert(0, str(ROOT / 'tools/jieli'))
+    from audit_link import Elf
+    image = Elf(elf_path.read_bytes())
+    sections = [section for section in image.sections if section['name'] == '.ram_dsp']
+    start, end, load = (image.symbol_value(name) for name in ('_rd_start', '_rd_end', '_rd_load'))
+    if (len(sections) != 1 or start is None or end is None or load is None or
+            start != sections[0]['addr'] or end - start != sections[0]['size'] or
+            not start < end <= 0x01C06000 or start < 0x01C00000):
+        raise SystemExit('Invalid linked hot DSP RAM extent')
+    return dict(section='.ram_dsp', start='0x%08x' % start,
+                end='0x%08x' % end, bytes=end - start,
+                flash_load='0x%08x' % load)
+
+
 def checked_catalogue(root, compressed=False, indexed_tft=False, shapes_voices=12,
-                      hot_dsp_os=False):
+                      hot_dsp_os=False, hot_dsp_ram=False):
     objects, receipts, indices = [], [], set()
     inputs = source_manifest(ROOT)
     overrides = optimization_overrides('z', hot_dsp_os)
@@ -289,7 +365,7 @@ def checked_catalogue(root, compressed=False, indexed_tft=False, shapes_voices=1
         required = dict(shard=shard, chunks=16, catalogue_objects=len(expected),
                         gpl_mods=1, modules='all', optimization='-Oz', lto=True,
                         shared_resampler=True, indexed_tft=indexed_tft, shapes_voices=shapes_voices,
-                        closed_sdk_archives=[],
+                        closed_sdk_archives=[], hot_dsp_ram=hot_dsp_ram,
                         device_sdk_headers=[])
         if any(report.get(k) != v for k, v in required.items()):
             raise SystemExit('Incompatible catalogue report: ' + str(directory))
@@ -361,6 +437,8 @@ def main():
     parser.add_argument('--hot-dsp-os', action='store_true',
                         help='Require explicit sixop/Hall -Os catalogue receipts; '
                         'all other catalogue units remain -Oz')
+    parser.add_argument('--hot-dsp-ram', action='store_true',
+                        help='Opt in to selected render bodies in RAM; bounded diagnostic runtime only')
     parser.add_argument('--build', type=Path, required=True)
     parser.add_argument('--firmware-identity',
                         help='Explicit Lunar FM-1_5xx handshake identity; omitted keeps historical FM-1_990 probes')
@@ -425,6 +503,10 @@ def main():
         parser.error('--prepared-profile and --expected-profile-sha256 require each other')
     if args.prepared_profile and (args.modules is not None or args.exclude):
         parser.error('--prepared-profile cannot be combined with --modules or --exclude')
+    try:
+        hot_dsp_ram_receipt = hot_dsp_ram_configuration(args.hot_dsp_ram, args.runtime_mode)
+    except ValueError as error:
+        parser.error(str(error))
     content_inputs, generated_content = None, None
     content_parent_indices, selection_receipt_sha256 = None, None
     if args.prepared_profile:
@@ -519,7 +601,7 @@ def main():
                        if args.compressed_wavetables else [])
     objects, catalogue_receipts = checked_catalogue(
         catalogue, wave_namespaces, args.indexed_tft, args.shapes_voices,
-        args.hot_dsp_os)
+        args.hot_dsp_os, args.hot_dsp_ram)
     state_bin_codec = None
     if args.link_project_save_service:
         state_bin_codec = replace_with_compact_state_bin(
@@ -535,6 +617,7 @@ def main():
     (out / 'gfx.c').write_text(compact_gfx((platform / 'src/gfx.c').read_text()))
     source = platform_with_identity((platform / 'src/platform.c').read_text(),
                                     args.firmware_identity)
+    source = hot_dsp_ram_platform(source, args.hot_dsp_ram)
     companion_set_count = sum(1 for asset in content_inputs.report['content']
                               if asset['kind'] == 'set') if content_inputs else 0
     if companion_set_count and args.startup_project_index is not None:
@@ -592,6 +675,8 @@ def main():
              '-ffreestanding', '-fno-builtin', '-ffunction-sections', '-fdata-sections',
              '-DFM1_APP_EXTERNAL_ARENAS=1', '-DLUNAR_APP_PROBE=1', '-DNDEBUG',
              '-DFM1_TFT_INDEXED=' + str(int(args.indexed_tft)), runtime_policy['define']]
+    if args.hot_dsp_ram:
+        flags += ['-DFM1_HOT_DSP_RAM=1']
     flags += project_save_service_flags(args.link_project_save_service)
     flags += native_midi_input_flags(args.enable_trs_midi)
     if args.diagnostic_song_play:
@@ -699,7 +784,9 @@ def main():
         roots += ('lunar_project_start_with_set',)
     elf = out / 'lunar-app-probe.elf'
     script = out / 'app.ld'
-    script.write_text(linker_script((ROOT / 'firmware/native/app.ld').read_text(), args.flash_layout))
+    script.write_text(hot_dsp_ram_linker_script(
+        linker_script((ROOT / 'firmware/native/app.ld').read_text(), args.flash_layout),
+        args.hot_dsp_ram))
     command = [str(tc / 'pi32v2/bin/ld'), '--plugin', str(tc / 'common/bin/LLVMgold.so'),
                '--plugin-opt=mcpu=r3', '--plugin-opt=-mattr=+fprev1',
                '--plugin-opt=-pi32v2-large-program=true', '--gc-sections',
@@ -734,6 +821,9 @@ def main():
         raise SystemExit('SDK-free audit has failed or pending checks')
     disassembly = subprocess.check_output([objdump, '-d', '-mcpu=r3', '-j', '.ram_text', str(elf)], text=True)
     (out / 'ram-text.txt').write_text(disassembly)
+    if args.hot_dsp_ram:
+        (out / 'ram-dsp.txt').write_text(subprocess.check_output(
+            [objdump, '-d', '-mcpu=r3', '-j', '.ram_dsp', str(elf)], text=True))
     try:
         ram_call_audit = audit_ram_call_allowlist(disassembly, symbols)
     except ValueError as exc:
@@ -752,6 +842,8 @@ def main():
                   instance_pool_bytes=instance_pool_bytes, target_app_storage=app_storage,
                   catalogue_objects=catalogue_receipts,
                   catalogue_optimization_overrides=optimization_overrides('z', args.hot_dsp_os),
+                  hot_dsp_ram=dict(hot_dsp_ram_receipt,
+                                   extent=hot_dsp_ram_extent(elf) if args.hot_dsp_ram else None),
                   linked_objects=[dict(path=str(p), sha256=digest(p)) for p in objects],
                   key_audit=audit, undefined_symbols=missing, flash_write_range='empty',
                   boot_ota_cleanup=False, entry_core=0, entry_boot_pointer='0x01c7fe08',
@@ -817,6 +909,7 @@ def main():
     subprocess.run([sys.executable, str(ROOT / 'tools/native/probe_artifact.py'),
                     '--elf', str(elf), '--layout', 'combined',
                     '--flash-layout', args.flash_layout,
+                    *(('--hot-dsp-ram',) if args.hot_dsp_ram else ()),
                     '--objdump', objdump,
                     '--out', str(out / 'artifact')], check=True)
     print('Audited private probe:', elf, report['elf_sha256'])

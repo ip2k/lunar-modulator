@@ -336,7 +336,7 @@ class Instance {
 
   // Each output sample pulls the 47,872.34 Hz mix the resampler needs for it,
   // rendering a new 16-sample block whenever the last one is used up.
-  void Render(float *out_lr, uint32_t frames) {
+  FM1_HOT_DSP_RENDER void Render(float *out_lr, uint32_t frames) {
     for (uint32_t f = 0; f < frames; ++f) {
       uint32_t need = fm1_resampler_needed(&resampler_);
       while (need) {

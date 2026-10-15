@@ -31,6 +31,7 @@ def test_catalogue_receipt(tmp_path, monkeypatch, fault, indexed_tft, shapes_voi
         report = dict(shard=shard, chunks=16, catalogue_objects=16,
                       gpl_mods=1, modules='all', optimization='-Oz', lto=True,
                       shared_resampler=True, indexed_tft=indexed_tft, shapes_voices=shapes_voices, closed_sdk_archives=[], device_sdk_headers=[],
+                      hot_dsp_ram=False,
                       configured_sha256=hashlib.sha256(b'config').hexdigest(),
                       source_manifest={'source.c': 'current'},
                       results=[dict(index=shard, object=name, exit=0,
@@ -64,3 +65,40 @@ def test_catalogue_receipt(tmp_path, monkeypatch, fault, indexed_tft, shapes_voi
     write_report(directory, report)
     with pytest.raises(SystemExit):
         builder.checked_catalogue(tmp_path, indexed_tft=indexed_tft, shapes_voices=shapes_voices)
+
+
+def test_catalogue_hot_dsp_ram_receipt_is_explicit_and_matched(tmp_path, monkeypatch):
+    monkeypatch.setattr(builder, 'source_manifest', lambda root: {'source.c': 'current'})
+    expected = [f'c/engine-{i}.o' for i in range(16)]
+    for shard, name in enumerate(expected):
+        directory = tmp_path / f'shard-{shard:02d}'
+        (directory / 'obj/c').mkdir(parents=True)
+        (directory / 'cxx').mkdir()
+        (directory / 'cxx/__config').write_bytes(b'config')
+        (directory / 'obj' / name).write_bytes(b'bitcode')
+        (directory / 'objects.json').write_text(json.dumps(expected))
+        report = dict(shard=shard, chunks=16, catalogue_objects=16,
+                      gpl_mods=1, modules='all', optimization='-Oz', lto=True,
+                      shared_resampler=True, indexed_tft=False, shapes_voices=12,
+                      closed_sdk_archives=[], device_sdk_headers=[], hot_dsp_ram=False,
+                      configured_sha256=hashlib.sha256(b'config').hexdigest(),
+                      source_manifest={'source.c': 'current'},
+                      results=[dict(index=shard, object=name, exit=0,
+                                    sha256=hashlib.sha256(b'bitcode').hexdigest())])
+        write_report(directory, report)
+    with pytest.raises(SystemExit, match='Incompatible catalogue report'):
+        builder.checked_catalogue(tmp_path, hot_dsp_ram=True)
+    for shard in range(16):
+        path = tmp_path / f'shard-{shard:02d}/report.json'
+        report = json.loads(path.read_text())
+        del report['hot_dsp_ram']
+        write_report(path.parent, report)
+    with pytest.raises(SystemExit, match='Incompatible catalogue report'):
+        builder.checked_catalogue(tmp_path)
+    for shard in range(16):
+        path = tmp_path / f'shard-{shard:02d}/report.json'
+        report = json.loads(path.read_text())
+        report['hot_dsp_ram'] = True
+        write_report(path.parent, report)
+    objects, receipts = builder.checked_catalogue(tmp_path, hot_dsp_ram=True)
+    assert len(objects) == len(receipts) == 16

@@ -2,6 +2,7 @@
  * MIT licence, like the rest of this repository.
  */
 #include "fm1_app.h"
+#include "fm1_engine.h"
 #include "fm1_postmix.h"
 #include "render_stage_profile.h"
 
@@ -3491,7 +3492,7 @@ static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {
   }
 }
 
-const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
+FM1_HOT_DSP_RENDER const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
   uint32_t n = frames > FM1_APP_MAX_FRAMES ? FM1_APP_MAX_FRAMES : frames;
   float *out = a->out;
   a->mod_nwr = 0;

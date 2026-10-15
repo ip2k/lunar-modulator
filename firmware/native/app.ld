@@ -21,6 +21,9 @@ PHDRS
 {
     xip PT_LOAD FLAGS(5);
     ramcode PT_LOAD FLAGS(5);
+    /* HOT_DSP_RAM_PHDR_BEGIN
+    ramdsp PT_LOAD FLAGS(5);
+    HOT_DSP_RAM_PHDR_END */
     globals PT_LOAD FLAGS(6);
     arenas PT_LOAD FLAGS(6);
     retained PT_LOAD FLAGS(6);
@@ -30,6 +33,10 @@ SECTIONS
     .text : { KEEP(*(.text.crt0)) *(.text*) *(.rodata*) . = ALIGN(4); _etext = .; } > XIP :xip
     .ram_text : { _rt_start = .; KEEP(*(.ram_text*)) . = ALIGN(4); _rt_end = .; } > RAMTEXT AT > XIP :ramcode
     _rt_load = LOADADDR(.ram_text);
+    /* HOT_DSP_RAM_SECTION_BEGIN
+    .ram_dsp : { _rd_start = .; KEEP(*(.ram_dsp*)) . = ALIGN(4); _rd_end = .; } > RAMTEXT AT > XIP :ramdsp
+    _rd_load = LOADADDR(.ram_dsp);
+    HOT_DSP_RAM_SECTION_END */
     .data : { . = ALIGN(4); _data_start = .; *(.data*) *(.sdata*) . = ALIGN(4); _data_end = .; } > RAM AT > XIP :globals
     _data_load = LOADADDR(.data);
     .bss (NOLOAD) : { _bss_start = .; *(.bss*) *(.sbss*) *(COMMON) . = ALIGN(4); _bss_end = .; } > RAM :globals
@@ -44,5 +51,9 @@ SECTIONS
 ASSERT(_pool_end <= _guard0, "Lunar globals and arenas overlap stack guard")
 ASSERT(_bss_end <= _pool_start, "Lunar globals overlap arenas")
 ASSERT(_rt_end <= 0x01C06000, "Lunar RAM code overlaps reserved debug region")
+/* HOT_DSP_RAM_ASSERT_BEGIN
+ASSERT(_rd_start >= _rt_end && _rd_end <= 0x01C06000,
+       "Lunar hot DSP RAM overlaps flash-writer code or reserved debug region")
+HOT_DSP_RAM_ASSERT_END */
 ASSERT(ORIGIN(NOINIT) + LENGTH(NOINIT) == 0x01C7FD50,
        "Lunar noinit overlaps boot mailbox")
