@@ -1,3 +1,31 @@
+## c0 measured; matched profiler-off build assigned — 2026-10-15
+
+[verified: physical install/readback/passive telemetry] ROM101 campaign finished;
+210 sectors and all4096 final pages match c7afa08c1a66fe82458359cd0750133b755d7247e0904e6fedd18402f71418c6.
+Reset reply ambiguous, never retried; independent native102 observed, both capture
+processes rc0, automatic recovery ROM103. ROM101 is CONSUMED. No intervention
+needed. Full result: notes/2026-10-15-hidden-session-physical-results.md.
+Measured464.450 blocks/s versus447.867; required689.344. Underruns224.879/s
+versus241.473. Still FAILS real time; owner cold-boot musical acceptance FAILED.
+SAVE disarmed. No notes/PLAY/autoplay transmitted in this passive campaign.
+
+[verified: offline only] Limiter-only Os exactdf415599 sixteen Hera shards/link
+completed: app854572bytes, SHA32ce09a225b0c0673e0be096e5f27a9703bf16e4c9ec847163e825d9fdffe17a.
+Root independently passed6 export tests. Export:
+scratch/limiter-os-df415599-export/HANDOFF.md. No physical acceptance.
+
+Next matched profiler-off build assigned to physical_storage_compression on Hera:
+exactdf415599, all16 fresh shards, omit engine/stage timing instrumentation,
+retain limiterOs/HallSixOpOs/hotRAM, base telemetry+clock snapshots, 13/EH+SET,
+120s recovery, noautoplay, SAVEfalse. demo_controller_review owns narrow standard
+no-autoplay admission policy and tests/pin chain only. profile_catalogue_build
+reviews dispatch/collector overhead read-only. Root owns bench/device writes.
+New image requires full receipt/source review, fresh runtime pins and fresh paired
+backups matching currentc7 before any install. No reused ROM101 bindings.
+
+Overall goal ACTIVE; last verified pushed source before this checkpoint:
+edb335f2e896e94e96931cd28bf75dc6fc876732. Unrelated uv.lock untouched.
+
 ## Limiter-only Os prepared; c0 physical write remains live — 2026-10-15
 
 [verified: source and host checks only] Reviewed and independently validated
