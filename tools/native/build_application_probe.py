@@ -146,6 +146,35 @@ def diagnostic_telemetry_flags(enabled):
             if receipt["compile_definition"] else [])
 
 
+def diagnostic_producer_gaps_configuration(enabled):
+    if type(enabled) is not bool:
+        raise TypeError("diagnostic producer-gap option must be a bool")
+    if not enabled:
+        return dict(enabled=False, schema=None, compile_definition=None,
+                    frame_bytes=None, packets_per_frame=None, transport=None,
+                    hardware_tested=False)
+    return dict(enabled=True, schema=5,
+                compile_definition="LUNAR_DIAGNOSTIC_PRODUCER_GAPS=1",
+                frame_bytes=59, packets_per_frame=20,
+                transport="USB-MIDI-SysEx", hardware_tested=False)
+
+
+def validate_diagnostic_producer_gaps(enabled, runtime_mode, telemetry_explicit,
+                                      startup_project_index, song_play):
+    receipt = diagnostic_producer_gaps_configuration(enabled)
+    if enabled and (runtime_mode != "song-diagnostic" or not telemetry_explicit
+                    or startup_project_index is None or not song_play):
+        raise ValueError("producer-gap telemetry requires explicit telemetry, prepared song startup, "
+                         "one-shot song PLAY and song-diagnostic runtime")
+    return receipt
+
+
+def diagnostic_producer_gaps_flags(enabled):
+    receipt = diagnostic_producer_gaps_configuration(enabled)
+    return (["-D" + receipt["compile_definition"]]
+            if receipt["compile_definition"] else [])
+
+
 def render_stage_profile_configuration(enabled):
     if type(enabled) is not bool:
         raise TypeError("render-stage profile option must be a bool")
@@ -493,6 +522,8 @@ def main():
                         help='Start the prepared diagnostic song once after 2s of readiness')
     parser.add_argument('--diagnostic-telemetry', action='store_true',
                         help='Opt in to bounded one-second USB-MIDI diagnostic reports; content may be prepared')
+    parser.add_argument('--diagnostic-producer-gaps', action='store_true',
+                        help='Opt in to schema-5 producer/display timing reports for prepared song playback')
     parser.add_argument('--diagnostic-clock-snapshot', action='store_true',
                         help='Report raw post-platform clock registers; no clock changes or MHz claim')
     parser.add_argument('--render-stage-profile', action='store_true',
@@ -577,6 +608,10 @@ def main():
         song_play_receipt = validate_diagnostic_song_play(
             args.diagnostic_song_play, args.runtime_mode, args.startup_project_index,
             telemetry_enabled, args.diagnostic_trio_pulse)
+        producer_gap_receipt = validate_diagnostic_producer_gaps(
+            args.diagnostic_producer_gaps, args.runtime_mode,
+            args.diagnostic_telemetry, args.startup_project_index,
+            args.diagnostic_song_play)
     except ValueError as error:
         parser.error(str(error))
     if args.flash_plaits_wavetables and not args.compressed_wavetables:
@@ -691,6 +726,7 @@ def main():
     if args.diagnostic_song_play:
         flags += ['-DLUNAR_DIAGNOSTIC_SONG_PLAY=1']
     flags += diagnostic_telemetry_flags(telemetry_enabled)
+    flags += diagnostic_producer_gaps_flags(args.diagnostic_producer_gaps)
     flags += render_stage_profile_flags(args.render_stage_profile)
     if args.diagnostic_clock_snapshot:
         flags += ["-DLUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT=1"]
@@ -868,6 +904,8 @@ def main():
                   probe_return_to_rom_seconds=runtime_policy['return_to_rom_seconds'], hardware_candidate=False,
                   catalogue_source_freshness_verified=True,
                   installable=False, hardware_tested=False, elf_sha256=digest(elf))
+    if args.diagnostic_producer_gaps:
+        report["diagnostic_producer_gaps"] = producer_gap_receipt
     if args.diagnostic_clock_snapshot:
         report["diagnostic_clock_snapshot"] = clock_snapshot_receipt
     if args.render_stage_profile:

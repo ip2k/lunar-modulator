@@ -150,6 +150,65 @@ def test_song_policy_requires_separate_telemetry_only_playback_mode(
         policy._validate_diagnostic_mode({"kind": kind}, build, verification, prepared)
 
 
+def test_song_policy_accepts_exact_optional_producer_gap_receipt(tmp_path):
+    build, verification, prepared, _, _ = song_fixture(tmp_path)
+    expected = {
+        "enabled": True, "schema": 5,
+        "compile_definition": "LUNAR_DIAGNOSTIC_PRODUCER_GAPS=1",
+        "frame_bytes": 59, "packets_per_frame": 20,
+        "transport": "USB-MIDI-SysEx", "hardware_tested": False,
+    }
+    verification["diagnostic_producer_gaps"] = expected
+    song = policy._validate_diagnostic_mode(
+        {"kind": policy.SONG_INPUT_KIND}, build, verification, prepared)
+    assert song["project_id"] == PROJECT
+
+
+@pytest.mark.parametrize("mutation", [
+    "enabled", "schema", "definition", "frame-size", "packet-count", "transport", "hardware",
+])
+def test_song_policy_rejects_malformed_optional_producer_gap_receipt(tmp_path, mutation):
+    build, verification, prepared, _, _ = song_fixture(tmp_path)
+    receipt = {
+        "enabled": True, "schema": 5,
+        "compile_definition": "LUNAR_DIAGNOSTIC_PRODUCER_GAPS=1",
+        "frame_bytes": 59, "packets_per_frame": 20,
+        "transport": "USB-MIDI-SysEx", "hardware_tested": False,
+    }
+    keys = {"enabled": "enabled", "schema": "schema", "definition": "compile_definition",
+            "frame-size": "frame_bytes", "packet-count": "packets_per_frame",
+            "transport": "transport", "hardware": "hardware_tested"}
+    bad_values = {"enabled": 1, "schema": True, "compile_definition": "OTHER=1",
+                  "frame_bytes": 58, "packets_per_frame": 19,
+                  "transport": "UART", "hardware_tested": True}
+    receipt[keys[mutation]] = bad_values[keys[mutation]]
+    verification["diagnostic_producer_gaps"] = receipt
+    with pytest.raises(ValueError, match="producer-gap telemetry receipt differs"):
+        policy._validate_diagnostic_mode(
+            {"kind": policy.SONG_INPUT_KIND}, build, verification, prepared)
+
+
+def test_producer_gap_receipt_cannot_extend_content_free_pulse_policy(tmp_path):
+    build, verification, prepared, _, _ = song_fixture(tmp_path)
+    verification["diagnostic_trio_pulse"] = {
+        "enabled": True, "compile_definition": "LUNAR_DIAGNOSTIC_TRIO_PULSE=1",
+        "note": 60, "velocity": 100, "start_ms": 3000, "end_ms": 5000,
+        "once": True, "hardware_tested": False,
+    }
+    verification["diagnostic_producer_gaps"] = {"enabled": True}
+    with pytest.raises(ValueError, match=r"only valid for the EH\+SET song profile"):
+        policy._validate_diagnostic_mode(
+            {"kind": policy.INPUT_KIND}, build, verification, prepared)
+
+
+def test_song_policy_preserves_legacy_absent_optional_producer_gap_receipt(tmp_path):
+    build, verification, prepared, _, _ = song_fixture(tmp_path)
+    assert "diagnostic_producer_gaps" not in verification
+    result = policy._validate_diagnostic_mode(
+        {"kind": policy.SONG_INPUT_KIND}, build, verification, prepared)
+    assert result["project_id"] == PROJECT
+
+
 def test_legacy_content_free_pulse_policy_is_not_relaxed(tmp_path):
     build, verification, prepared, _, _ = song_fixture(tmp_path)
     with pytest.raises(ValueError, match="non-repeating Trio diagnostic pulse"):

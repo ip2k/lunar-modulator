@@ -40,6 +40,39 @@ def test_telemetry_only_supports_prepared_project_runtime_modes():
             raise AssertionError(f"accepted telemetry in {mode!r}")
 
 
+def test_producer_gap_profile_is_explicit_schema5_song_telemetry_only():
+    import pytest
+
+    disabled = builder.diagnostic_producer_gaps_configuration(False)
+    assert disabled == {
+        "enabled": False, "schema": None, "compile_definition": None,
+        "frame_bytes": None, "packets_per_frame": None, "transport": None,
+        "hardware_tested": False,
+    }
+    assert builder.diagnostic_producer_gaps_flags(False) == []
+    enabled = builder.validate_diagnostic_producer_gaps(
+        True, "song-diagnostic", True, 0, True)
+    assert enabled == {
+        "enabled": True, "schema": 5,
+        "compile_definition": "LUNAR_DIAGNOSTIC_PRODUCER_GAPS=1",
+        "frame_bytes": 59, "packets_per_frame": 20,
+        "transport": "USB-MIDI-SysEx", "hardware_tested": False,
+    }
+    assert builder.diagnostic_producer_gaps_flags(True) == [
+        "-DLUNAR_DIAGNOSTIC_PRODUCER_GAPS=1"]
+    for mode, telemetry, project, play in (
+        ("diagnostic", True, 0, True),
+        ("song-diagnostic", False, 0, True),
+        ("song-diagnostic", True, None, True),
+        ("song-diagnostic", True, 0, False),
+    ):
+        with pytest.raises(ValueError, match="producer-gap telemetry requires"):
+            builder.validate_diagnostic_producer_gaps(
+                True, mode, telemetry, project, play)
+    with pytest.raises(TypeError):
+        builder.diagnostic_producer_gaps_configuration(1)
+
+
 def test_old_pulse_option_still_enables_telemetry_but_keeps_pulse_contract():
     assert not builder.diagnostic_telemetry_enabled(False, False)
     assert builder.diagnostic_telemetry_enabled(False, True)
@@ -74,6 +107,15 @@ def test_app_telemetry_gate_is_separate_from_pulse_gate():
     project_result = source.index("initial_engine_result = startup_project_result;")
     trio_result = source.index("initial_engine_result = (uint32_t)fm1_app_select")
     assert project_result < trio_result
+
+
+def test_producer_gap_builder_wires_opt_in_flag_and_optional_receipt():
+    source = (ROOT / "tools/native/build_application_probe.py").read_text()
+    assert "--diagnostic-producer-gaps" in source
+    assert "validate_diagnostic_producer_gaps(" in source
+    assert "diagnostic_producer_gaps_flags(args.diagnostic_producer_gaps)" in source
+    assert 'if args.diagnostic_producer_gaps:' in source
+    assert 'report["diagnostic_producer_gaps"] = producer_gap_receipt' in source
 
 
 def test_render_profile_is_explicit_telemetry_only_and_schema2_opt_in():
