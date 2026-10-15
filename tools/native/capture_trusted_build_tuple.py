@@ -14,6 +14,8 @@ import re
 import subprocess
 from pathlib import Path, PurePosixPath
 
+from compile_catalogue import optimization_overrides
+
 TUPLE_SCHEMA = 2
 PROVENANCE_SCHEMA = 1
 
@@ -194,8 +196,14 @@ def _linked_object_manifest(output: Path, catalogue: Path, verification):
         raise ValueError("build receipt has no bounded linked object inventory")
     if not isinstance(catalogue_rows, list):
         raise ValueError("build receipt has no catalogue object inventory")
-    catalogue_hashes = {row["path"]: row["sha256"] for row in catalogue_rows
-                        if isinstance(row, dict) and set(row) == {"path", "sha256"}}
+    catalogue_hashes = {}
+    for row in catalogue_rows:
+        if not isinstance(row, dict) or set(row) not in (
+                {"path", "sha256"}, {"path", "sha256", "optimization"}):
+            raise ValueError("catalogue receipt rows have an unsupported metadata shape")
+        if row["path"] in catalogue_hashes:
+            raise ValueError("duplicate catalogue object path")
+        catalogue_hashes[row["path"]] = row["sha256"]
     rows = []
     seen = set()
     for row in linked:
@@ -254,9 +262,37 @@ def _catalogue_manifest(catalogue: Path, verification):
         raise ValueError("build receipt has no catalogue object inventory")
     rows = []
     seen = set()
+    row_shape = None
+    override_map = verification.get("catalogue_optimization_overrides")
+    legacy_rows = "catalogue_optimization_overrides" not in verification
+    if override_map is not None and (
+            not isinstance(override_map, dict)
+            or any(not isinstance(path, str) or not isinstance(opt, str)
+                   for path, opt in override_map.items())):
+        raise ValueError("catalogue optimization overrides must be an object")
+    allowed_maps = {
+        tuple(sorted(optimization_overrides("z", hot_dsp_os=hot, limiter_os=limiter,
+                                             hall_o2=hall).items()))
+        for hot in (False, True) for limiter in (False, True) for hall in (False, True)
+    }
+    if override_map is not None and tuple(sorted(override_map.items())) not in allowed_maps:
+        raise ValueError("catalogue optimization override map is not a supported policy")
+    if override_map is not None:
+        limiter_flag = verification.get("catalogue_limiter_os")
+        hall_flag = verification.get("catalogue_hall_o2")
+        if (type(limiter_flag) is not bool or type(hall_flag) is not bool
+                or ("our/src/fx_limit.o" in override_map) is not limiter_flag
+                or (override_map.get("our/src/fx_hall.o") == "-O2") is not hall_flag):
+            raise ValueError("catalogue optimization flags conflict with the override map")
     for row in objects:
-        if not isinstance(row, dict) or set(row) != {"path", "sha256"}:
-            raise ValueError("catalogue receipt rows must contain path and sha256")
+        if not isinstance(row, dict) or set(row) not in (
+                {"path", "sha256"}, {"path", "sha256", "optimization"}):
+            raise ValueError("catalogue receipt rows have an unsupported metadata shape")
+        shape = frozenset(row)
+        if row_shape is None:
+            row_shape = shape
+        elif row_shape != shape:
+            raise ValueError("catalogue receipt rows must use one consistent schema")
         rel = row["path"]
         if not isinstance(rel, str) or not rel.startswith("/catalogue/"):
             raise ValueError("catalogue object is outside the fixed /catalogue namespace")
@@ -268,9 +304,20 @@ def _catalogue_manifest(catalogue: Path, verification):
         p = _safe_rel(catalogue, suffix)
         if sha(read(p, 128 * 1024 * 1024)) != row["sha256"]:
             raise ValueError(f"catalogue object bytes changed: {PurePosixPath(suffix).name}")
-        rows.append({"path": rel, "sha256": row["sha256"]})
+        if "optimization" in row:
+            if not isinstance(override_map, dict):
+                raise ValueError("optimized catalogue rows require an explicit override map")
+            expected_opt = override_map.get(suffix, "-Oz")
+            if row["optimization"] not in ("-Oz", "-Os", "-O2") or row["optimization"] != expected_opt:
+                raise ValueError("catalogue object optimization differs from the supported policy")
+            rows.append({"path": rel, "sha256": row["sha256"], "optimization": row["optimization"]})
+        else:
+            if not legacy_rows:
+                raise ValueError("legacy catalogue rows cannot discard optimization metadata")
+            rows.append({"path": rel, "sha256": row["sha256"]})
     rows.sort(key=lambda row: row["path"])
-    raw = canonical({"schema": 1, "objects": rows})
+    schema = 2 if row_shape == frozenset({"path", "sha256", "optimization"}) else 1
+    raw = canonical({"schema": schema, "objects": rows})
     return raw
 
 
