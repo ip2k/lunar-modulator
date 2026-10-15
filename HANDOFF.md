@@ -1,3 +1,22 @@
+## D7000 service boundary corrected and integrated — 2026-10-15
+
+[verified: host/integration] Worker06d43fa2+cd8ecf36 reviewed and integrated as
+d7a788b8+4f1f8a3f. Origin independently matched full4f1f8a3f SHA. Explicit
+D7000/song-diagnostic choices now survive canonical request preparation;
+build flags must match them before output creation. Root service/selection
+checks pass (one skip); six real-codec legacy cases pass with FM1_STATE_TOOL.
+Initial missing-env failures and correction are recorded in
+notes/2026-10-15-installer-d7000-integration.md. No installability flags enabled.
+
+[reported: worker target review] Hall gain-cache16-shard Hera build/link passed;
+app855700B SHA80175b90, RAM DSP ends0x01c04164. Worker verified10 output hashes
+and separate arithmetic in Render, no speed claim. New file-only deployment
+preparation assigned; root has not staged/written/rebooted device this segment.
+Installer worker audits remaining existing trusted-packager adapter gaps;
+storage worker analyzes pinned SDK LLVM implementation against exact092 app.
+Installed28483c41 unchanged; physical498.453/689.344 blocks/s still FAILED.
+SAVE/autoplayoff, full goalACTIVE. Unrelateduv.lock untouched.
+
 ## Hall gain cache integrated; target verification assigned — 2026-10-15
 
 [verified: source/host] Worker84084c07 +66c95bb2 integrated asb94f3c36 +7b373489.
