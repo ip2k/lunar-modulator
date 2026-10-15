@@ -14,7 +14,7 @@ import time
 from weakref import WeakSet
 
 from fm1_flash_transaction import digest
-from native.event120_reset import CompletionFirstReset
+from native import event120_reset as reset_module
 from native import event120_generic_boot as generic_boot
 from native import generic_diagnostic_flash as flash
 
@@ -131,10 +131,14 @@ def _successful_sg_log(path, policy):
     return raw, len(requests)
 
 
-def _load_snapshot(provider, original_binding, completed_at, now):
+def _load_snapshot(provider, original_binding, completed_at, now=None):
     if not callable(provider): raise ValueError("Fresh passive snapshot provider required")
     path, expected_sha256 = provider()
     raw = _read(path, 65536)
+    # Sample after the callback has produced the snapshot. A provider may need
+    # time to capture sysfs state; comparing against a pre-callback clock can
+    # reject a valid observation as being in the future.
+    now = time.time() if now is None else now
     if digest(raw) != expected_sha256: raise ValueError("Passive snapshot digest differs")
     value = json.loads(raw)
     if (not isinstance(value, dict) or set(value) !=
@@ -176,6 +180,7 @@ class Prepared:
     policy: object
     bridge: object
     expected_mapping: bytes
+    header_type: type
 
     def check(self):
         if self not in _PREPARED or self.authorization is not _PREPARED:
@@ -211,12 +216,13 @@ def run_completed(policy, session, *, evidence_root, install_log_path,
     """
     if (not isinstance(policy, flash.Policy) or policy not in flash._POLICIES
             or not isinstance(session, flash.DiagnosticSession)
-            or session._policy.policy is not policy or session._policy.direction != "install"
+            or session._policy._policy is not policy or session._policy.direction != "install"
             or session._latched or session._running):
         raise ValueError("Exact factory policy and unused install session required")
     policy.check_files(require_fresh=True)
-    original = json.loads(session._capture_binding())
-    if (original.get("phase") != "loader" or not original.get("loader_sha256")
+    original = session._capture_binding()
+    if (not isinstance(original, dict) or original.get("phase") != "loader"
+            or not original.get("loader_sha256")
             or original.get("identity") != json.loads(policy.plan_bytes)["identity"]):
         raise ValueError("Install session is not bound to sealed transaction")
     if after_install is not None and not callable(after_install):
@@ -227,16 +233,16 @@ def run_completed(policy, session, *, evidence_root, install_log_path,
     journal, target_sha = _verify_completion(policy, result)
     logged = session._transport
     log_obj = getattr(logged, "log", None)
-    if not getattr(logged, "closed", False) or log_obj is None or not getattr(log_obj, "closed", False):
+    if (not getattr(logged, "closed", False) or log_obj is None
+            or getattr(log_obj, "fd", object()) is not None):
         raise ValueError("Install session lacks closed durable SG transcript")
     install_log_path = Path(install_log_path).absolute()
     if Path(log_obj.path).absolute() != install_log_path:
         raise ValueError("Install transcript is not the bound session log")
     install_log, command_count = _successful_sg_log(install_log_path, policy)
     if after_install is not None: after_install(dict(result))
-    now_value = time.time() if now is None else now
     snapshot_path, snapshot_raw, snapshot = _load_snapshot(
-        snapshot_provider, original, completed_at, now_value)
+        snapshot_provider, original, completed_at, now)
     root = Path(evidence_root).absolute()
     root_stat = root.stat(follow_symlinks=False)
     if (not stat.S_ISDIR(root_stat.st_mode) or root_stat.st_uid != os.getuid()
@@ -266,10 +272,12 @@ def run_completed(policy, session, *, evidence_root, install_log_path,
     transport_prepared = getattr(getattr(logged, "inner", None), "prepared", None)
     bridge = getattr(transport_prepared, "bridge", None)
     mapping_bytes = getattr(transport_prepared, "mapping", None)
-    if bridge is None or not isinstance(mapping_bytes, bytes) or mapping_bytes != _canonical(snapshot["sg_binding"]):
+    header_type = getattr(transport_prepared, "header_type", None)
+    if (bridge is None or not isinstance(mapping_bytes, bytes)
+            or mapping_bytes != _canonical(snapshot["sg_binding"]) or header_type is None):
         raise ValueError("Install session lacks exact reviewed USB/SG bridge binding")
     prepared = Prepared(root, raw, digest(raw), _canonical(expected_binding), tuple(evidence),
-                        digest(install_log), marker, _PREPARED, policy, bridge, mapping_bytes)
+                        digest(install_log), marker, _PREPARED, policy, bridge, mapping_bytes, header_type)
     _PREPARED.add(prepared)
     receipt_dir.mkdir(mode=0o700)
     fd = os.open(marker, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
@@ -294,7 +302,7 @@ def run_completed(policy, session, *, evidence_root, install_log_path,
     log("completed_diagnostic_boot_prepared", campaign_sha256=prepared.campaign_sha256,
         target_sha256=target_sha, commands=1, upload_operations=0,
         flash_operations_after_install=0, retry=False, boot_observed=False)
-    ResetSession = generic_boot.session_class(CompletionFirstReset)
+    ResetSession = generic_boot.session_class(reset_module)
     boot = ResetSession(prepared, log)
     try:
         result = boot.request_reset()

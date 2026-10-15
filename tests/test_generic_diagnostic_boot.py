@@ -2,6 +2,8 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import stat
+import time
 from types import SimpleNamespace
 
 import pytest
@@ -17,7 +19,7 @@ def canon(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":")).encode("ascii")
 
 
-def transcript(path, target):
+def transcript(path, target, write=None):
     response = sha(bytes(256))
     rows = []
     for index, address in enumerate(range(0, boot.FLASH_BYTES, 256)):
@@ -30,47 +32,25 @@ def transcript(path, target):
                 "response_sha256": response}
         rows.extend(({"event": "sg_submit_intent", **base},
                      {"event": "sg_completion", **done}))
-    path.write_bytes(b"".join(canon(row) + b"\n" for row in rows))
+    if write is None:
+        path.write_bytes(b"".join(canon(row) + b"\n" for row in rows))
+    else:
+        for row in rows:
+            event = row.pop("event")
+            write(event, **row)
 
 
-class FakePolicy:
-    def __init__(self, root, target, identity):
-        self.target = target
-        self.plan_bytes = canon({"identity": identity})
-        self.evidence = ()
-        self.sectors = ()
-        self.directory = root
-        self.journal = {"state": "complete", "direction": "install", "intent": None,
-                        "verified_sha256": sha(target)}
+class FakeTransport:
+    def __init__(self, binding, prepared):
+        self._binding = binding
+        self.prepared = prepared
+        self.closed = False
 
-    def check_files(self, **kwargs):
-        return dict(self.journal)
+    def binding(self):
+        return dict(self._binding, session_id="test-session")
 
-    def receipt(self):
-        return {"target_sha256": sha(self.target)}
-
-
-class FakeSession:
-    def __init__(self, policy, log_path, binding):
-        self._policy = SimpleNamespace(policy=policy, direction="install")
-        self._latched = self._running = False
-        self._binding = canon(binding)
-        self._transport = SimpleNamespace(
-            closed=True,
-            log=SimpleNamespace(path=log_path, closed=True),
-            inner=SimpleNamespace(prepared=SimpleNamespace(
-                bridge=SimpleNamespace(discover_sg=lambda usb: binding["sg_binding"]),
-                mapping=canon(binding["sg_binding"]))),
-        )
-        self.did_run = False
-
-    def _capture_binding(self):
-        return self._binding
-
-    def run(self):
-        self.did_run = True
-        return {"direction": "install", "verified_sha256": sha(self._policy.policy.target),
-                "hardware_admitted": False, "installable": False}
+    def close(self):
+        self.closed = True
 
 
 def fixture(monkeypatch, tmp_path):
@@ -80,13 +60,37 @@ def fixture(monkeypatch, tmp_path):
     identity = {"application": "FM-1_500", "recovery": "FM-1_000"}
     binding = {"phase": "loader", "loader_sha256": "a" * 64,
                "usb_binding": usb, "sg_binding": sg, "identity": identity}
-    policy = FakePolicy(tmp_path, target, identity)
-    monkeypatch.setattr(boot.flash, "Policy", FakePolicy)
-    monkeypatch.setattr(boot.flash, "DiagnosticSession", FakeSession)
+    journal = {"state": "complete", "direction": "install", "intent": None,
+               "verified_sha256": sha(target)}
+    policy = boot.flash.Policy(tmp_path, canon({"identity": identity}), target, target,
+                               canon({}), canon(binding), (), (), 0.0,
+                               boot.flash._VALIDATED)
+    boot.flash._POLICIES.add(policy)
+    monkeypatch.setattr(boot.flash.Policy, "check_files", lambda self, **kwargs: dict(journal))
     monkeypatch.setattr(boot.flash, "_POLICIES", {policy})
     log_path = tmp_path / "install.jsonl"
-    transcript(log_path, target)
-    session = FakeSession(policy, log_path, binding)
+    from native import generic_diagnostic_sg_adapter as sg_adapter
+    # Real DurableLog writes the 8,192-row fixture; omit fsync latency in this
+    # unit test while still exercising its actual file/close interface.
+    monkeypatch.setattr(sg_adapter.os, "fsync", lambda fd: None)
+    durable_log = sg_adapter.DurableLog(log_path)
+    transcript(log_path, target, durable_log)
+    bridge = SimpleNamespace(discover_sg=lambda usb: sg, LOADER_SHA="a" * 64)
+    import fm1_uboot_read
+    prepared = SimpleNamespace(bridge=bridge, mapping=canon(sg),
+                               header_type=fm1_uboot_read.SGHeader)
+    inner = FakeTransport(binding, prepared)
+    wrapped = sg_adapter._LoggedTransport(inner, durable_log)
+    session = boot.flash.DiagnosticSession(policy, wrapped)
+    session.did_run = False
+
+    def run():
+        session.did_run = True
+        result = {"direction": "install", "verified_sha256": sha(target),
+                  "hardware_admitted": False, "installable": False}
+        session._stop()
+        return result
+    session.run = run
     root = tmp_path / "evidence"
     root.mkdir(mode=0o700)
     root.chmod(0o700)
@@ -99,51 +103,54 @@ def fixture(monkeypatch, tmp_path):
     snapshot = root / "snapshot.json"
     def provide_snapshot():
         assert state["after_install"]
-        raw = canon({"schema": 1, "kind": boot.SNAPSHOT_KIND, "observed_at": 1001.0,
+        raw = canon({"schema": 1, "kind": boot.SNAPSHOT_KIND, "observed_at": time.time(),
                      "usb_binding": usb, "sg_binding": sg})
         snapshot.write_bytes(raw)
         return snapshot, sha(raw)
 
-    def factory(prepared, log):
-        assert (root / ".generic-diagnostic-boot.consumed").exists()
-        assert json.loads(prepared.campaign)["target_sha256"] == sha(target)
-        class Reset:
-            fd = 10
-            def __init__(self): self.closed = False
-            def binding(self):
-                prepared.check()
-                return json.loads(prepared.expected_binding)
-            def request_reset(self):
-                state["reset_calls"] += 1
-                log("reset_submit_intent", retry=False)
-                log("reset_sg_completion", status=0, retry=False)
-                return {"request_completion": True, "core_reset_observed": False,
-                        "boot_observed": False}
-            def close(self): self.closed = True
-        return Reset()
-    monkeypatch.setattr(boot, "generic_boot", SimpleNamespace(
-        session_class=lambda _completion: lambda prepared, log: factory(prepared, log)))
-    return policy, session, root, log_path, provide_snapshot, after_install, state
+    # Exercise the actual pinned generic boot session class and completion-first
+    # reset helper, with only the OS SG endpoint and ioctl replaced by fakes.
+    import fcntl
+    real_open, real_close, real_fstat = os.open, os.close, os.fstat
+    fake_fd = 9271
+    monkeypatch.setattr(boot.generic_boot, "_live_mapping", lambda bridge, usb: sg)
+    monkeypatch.setattr(os, "open", lambda path, *args, **kwargs:
+                        fake_fd if str(path) == sg["node"] else real_open(path, *args, **kwargs))
+    monkeypatch.setattr(os, "close", lambda fd: None if fd == fake_fd else real_close(fd))
+    monkeypatch.setattr(os, "fstat", lambda fd: SimpleNamespace(
+        st_mode=stat.S_IFCHR | 0o600, st_dev=1, st_ino=2, st_rdev=3)
+        if fd == fake_fd else real_fstat(fd))
+    monkeypatch.setattr(fcntl, "flock", lambda fd, operation: None if fd == fake_fd else None)
+    from native import event120_reset
+    def fake_ioctl(fd, request, header):
+        import ctypes
+        assert fd == fake_fd and request == 0x2285
+        assert ctypes.string_at(header.cmd, 16) == bytes.fromhex("fc0c00000001ffffffffffffffffffff")
+        ctypes.memmove(header.data, bytes.fromhex("fc0c") + bytes(14), 16)
+        state["reset_calls"] += 1
+    monkeypatch.setattr(event120_reset.fcntl, "ioctl", fake_ioctl)
+    return policy, session, root, log_path, provide_snapshot, after_install, state, durable_log
 
 
 def test_completed_transaction_reaches_single_reset_only_after_marker(monkeypatch, tmp_path):
-    policy, session, root, log_path, snapshot, after_install, state = fixture(monkeypatch, tmp_path)
+    policy, session, root, log_path, snapshot, after_install, state, durable_log = fixture(monkeypatch, tmp_path)
     result = boot.run_completed(policy, session, evidence_root=root, install_log_path=log_path,
-                                snapshot_provider=snapshot, after_install=after_install, now=1001.0)
+                                snapshot_provider=snapshot, after_install=after_install)
     assert result == {"request_completion": True, "core_reset_observed": False,
                       "boot_observed": False}
     assert state["reset_calls"] == 1
     assert (root / ".generic-diagnostic-boot.consumed").exists()
     assert (root / "generic-diagnostic-boot" / "campaign.json").exists()
     assert not result["boot_observed"]
+    assert durable_log.fd is None
 
 
 def test_rejects_bad_completion_before_consuming_or_resetting(monkeypatch, tmp_path):
-    policy, session, root, log_path, snapshot, after_install, state = fixture(monkeypatch, tmp_path)
+    policy, session, root, log_path, snapshot, after_install, state, _ = fixture(monkeypatch, tmp_path)
     session.run = lambda: {"direction": "install", "verified_sha256": "0" * 64}
     with pytest.raises(ValueError, match="exact transaction target"):
         boot.run_completed(policy, session, evidence_root=root, install_log_path=log_path,
-                           snapshot_provider=snapshot, after_install=after_install, now=1001.0)
+                           snapshot_provider=snapshot, after_install=after_install)
     assert state["reset_calls"] == 0
     assert not (root / ".generic-diagnostic-boot.consumed").exists()
 
