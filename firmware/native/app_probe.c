@@ -9,6 +9,9 @@
 #if defined(LUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT) && !defined(LUNAR_DIAGNOSTIC_TELEMETRY)
 #error "Clock snapshots require diagnostic telemetry"
 #endif
+#if defined(LUNAR_DIAGNOSTIC_PRODUCER_GAPS) && !defined(LUNAR_DIAGNOSTIC_TELEMETRY)
+#error "Producer-gap profiling requires diagnostic telemetry"
+#endif
 #include <stdint.h>
 #include <string.h>
 #define APP_NAME "LUNAR MODULATOR"
@@ -37,6 +40,10 @@ static uint32_t lunar_selected_startup_project_index = LUNAR_STARTUP_PROJECT_IND
 #endif
 #ifdef LUNAR_DIAGNOSTIC_TELEMETRY
 #include "diagnostic_telemetry.h"
+#ifdef LUNAR_DIAGNOSTIC_PRODUCER_GAPS
+#include "producer_gap_profile.h"
+static lunar_producer_gap_profile_t producer_gap_profile;
+#endif
 #ifdef LUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT
 #include "clock_snapshot.h"
 static uint32_t clock_snapshot_values[LUNAR_CLOCK_FIELDS];
@@ -153,32 +160,68 @@ static void app_audio(int32_t *out, uint32_t n)
 static void refill_audio(void)
 {
     /* A slow engine must still yield to USB, watchdog and timed recovery. */
+#ifdef LUNAR_DIAGNOSTIC_PRODUCER_GAPS
+    lunar_producer_gap_refill_entry(&producer_gap_profile, fm1_ticks());
+    lunar_producer_gap_queue(&producer_gap_profile,
+        audio_queue.written - audio_queue.read);
+#endif
     for (unsigned blocks = 0;
          blocks < LUNAR_AUDIO_QUEUE_BLOCKS &&
          audio_queue.written - audio_queue.read < LUNAR_AUDIO_QUEUE_BLOCKS;
          ++blocks) {
+#ifdef LUNAR_DIAGNOSTIC_PRODUCER_GAPS
+        lunar_producer_gap_queue(&producer_gap_profile,
+            audio_queue.written - audio_queue.read);
+#endif
         uint32_t start = fm1_ticks();
         const float *p = fm1_app_render(&app, LUNAR_AUDIO_BLOCK_FRAMES);
         uint32_t elapsed = fm1_ticks() - start;
         if (elapsed > render_ticks_max) render_ticks_max = elapsed;
+#ifdef LUNAR_DIAGNOSTIC_PRODUCER_GAPS
+        int published = lunar_audio_push(&audio_queue, p);
+        lunar_producer_gap_render(&producer_gap_profile, elapsed);
+        lunar_producer_gap_queue(&producer_gap_profile,
+            audio_queue.written - audio_queue.read);
+        if (published) lunar_producer_gap_published(&producer_gap_profile, fm1_ticks());
+#else
         lunar_audio_push(&audio_queue, p);
+#endif
     }
 }
 
 static void display_strip(uint32_t *row)
 {
     LUNAR_PROFILE_START(profile_start);
+#ifdef LUNAR_DIAGNOSTIC_PRODUCER_GAPS
+    uint32_t wait_ticks = 0;
+    uint32_t work_start = 0;
+    uint8_t did_work = 0;
+#endif
     if (!fm1_tft_pixels_valid(&app.tft)) goto done;
     if (lcd_busy) {
         if (!(FM1_LCD_SPI_CON & 0x8000u)) goto done;
+#ifdef LUNAR_DIAGNOSTIC_PRODUCER_GAPS
+        work_start = fm1_ticks();
+#endif
         lcd_sync();
+#ifdef LUNAR_DIAGNOSTIC_PRODUCER_GAPS
+        wait_ticks = fm1_ticks() - work_start;
+#endif
     }
+#ifdef LUNAR_DIAGNOSTIC_PRODUCER_GAPS
+    work_start = fm1_ticks();
+    did_work = 1;
+#endif
     /* DMA reads cv_px, never the framebuffer that the app can redraw. */
     for (uint32_t i = 0; i < 240u * 16u; ++i)
         cv_px[i] = swap16(fm1_tft_pixel(&app.tft, *row * 240u + i));
     lcd_blit(0, *row, 240, 16, cv_px);
     *row = (*row + 16u) % 240u;
 done:
+#ifdef LUNAR_DIAGNOSTIC_PRODUCER_GAPS
+    lunar_producer_gap_display(&producer_gap_profile, wait_ticks,
+        did_work ? fm1_ticks() - work_start : 0u);
+#endif
     LUNAR_PROFILE_FINISH(LUNAR_PROFILE_DISPLAY_STRIP, profile_start);
 }
 
@@ -304,10 +347,27 @@ static void diagnostic_profile_report(void)
 }
 #endif
 
-/* Both frames share the same USB-MIDI ring. In profile builds each is about
- * one second apart from itself, but they occupy alternating one-second slots
- * so the 50-packet profile frame cannot be perpetually crowded out by the
- * 27-packet compatibility report. */
+/* Both frames share the same USB-MIDI ring. The opt-in cadence alternates
+ * bounded slots so no complete frame is perpetually crowded out. */
+
+#ifdef LUNAR_DIAGNOSTIC_PRODUCER_GAPS
+static void diagnostic_producer_gap_report(void)
+{
+    static uint32_t last_report;
+    uint32_t now = fm1_ms;
+    if ((uint32_t)(now - last_report) < 1000u || !usb.config ||
+        mo_w - mo_r > MQ - LUNAR_PRODUCER_GAP_PACKETS) return;
+    uint32_t values[LUNAR_PRODUCER_GAP_FIELDS];
+    uint32_t packets[LUNAR_PRODUCER_GAP_PACKETS];
+    lunar_producer_gap_snapshot(&producer_gap_profile, now, values);
+    for (unsigned i = 0; i < LUNAR_PRODUCER_GAP_PACKETS; ++i)
+        packets[i] = lunar_producer_gap_packet(values, i);
+    for (unsigned i = 0; i < LUNAR_PRODUCER_GAP_PACKETS; ++i)
+        midi_out_event(packets[i]);
+    last_report = now;
+}
+#endif
+
 static void diagnostic_reports(void)
 {
 #ifdef LUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT
@@ -333,7 +393,18 @@ static void diagnostic_reports(void)
         return;
     }
 #endif
+#if defined(LUNAR_DIAGNOSTIC_PRODUCER_GAPS)
 #ifdef LUNAR_RENDER_STAGE_PROFILE
+    switch ((fm1_ms / 1000u) % 3u) {
+    case 0: diagnostic_report(); break;
+    case 1: diagnostic_profile_report(); break;
+    default: diagnostic_producer_gap_report(); break;
+    }
+#else
+    if (((fm1_ms / 1000u) & 1u) == 0u) diagnostic_report();
+    else diagnostic_producer_gap_report();
+#endif
+#elif defined(LUNAR_RENDER_STAGE_PROFILE)
     if (((fm1_ms / 1000u) & 1u) == 0u) diagnostic_report();
     else diagnostic_profile_report();
 #else
@@ -351,6 +422,9 @@ static void app_main(void)
     };
     uint32_t previous_keys = 0, row = 0, last_draw = 0;
     uint32_t start = fm1_ms;
+#ifdef LUNAR_DIAGNOSTIC_PRODUCER_GAPS
+    lunar_producer_gap_init(&producer_gap_profile);
+#endif
 #ifdef LUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT
     lunar_clock_snapshot(clock_snapshot_values, start);
     lunar_pll_snapshot(pll_snapshot_values, start);

@@ -372,3 +372,35 @@ started persistent PID93876 after file-only preflight; launch.json consumed.
 Last stdout FRESH_READ_START, stderr empty. Do not relaunch or infer successful
 installation yet; inspect fresh paired read, journal, boot and separate capture.
 Runner review scratch/hot-ram-fm-buffers-cycle/runner-independent-review.md.
+
+
+## Corrected buffer-array physical result
+
+[verified: paired flash reads, program/readback, passive capture] The one-use
+rom83-fm-buffers-cycle completed installation of target
+`3571d21401a921df425ff416824d32bca0f8ca4d1856ec007041cc5df875fbbb`.
+Paired reads matched the previous five-body target before210 changed sectors
+were programmed; full target readback matched. The sole reset acknowledgement
+was ambiguous and was not retried. A separate observer saw native USB84 on
+path1-1; input-only telemetry110s and six-channel KA6 audio180s both exited0.
+Passive enumeration after capture shows ROM85 on path1-1. No user listening,
+controls, MIDI transport or musical acceptance is inferred from this capture.
+
+[verified: host analysis] Against the retained ROM81 five-body capture,
+production rises268.253350 to268.84838864-frame blocks/device-second (+0.222%),
+while underruns remain420.497188 per device-second. Required demand remains
+approximately689.34375 blocks/s; this is not a material performance solution.
+The raw telemetry has133 valid frames,56 stage-profile frames and11 each of
+clock/PLL snapshots. Event SHA
+`03003a23c4b717b3e7024b52bb5107737f9d8be6590201886a238a5bc81d6b04`.
+The comparison uses device uptime deltas, assumes uninterrupted uptime, and
+makes no raw-tick CPU-frequency calibration claim.
+
+Private archive `scratch/hot-ram-fm-buffers-result/physical/campaign-evidence.tar`
+contains230184960 bytes,45 regular files, SHA
+`666fadaf26e464fbd7d908b9e290108e640af8150623da6c04737c3ea8d52864`.
+Extraction rejected absolute/traversal/special entries and byte-checked each
+file against its archived content. `comparison.json` retains exact rates and
+stage counters. Independent binding review remains pending at this checkpoint.
+Next experiment measures producer-entry/publication gaps and explicit LCD wait,
+with a separately source-bound build; no old campaign may be replayed.

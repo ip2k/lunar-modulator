@@ -74,6 +74,9 @@ static inline uint32_t lunar_profile_packet(
 #define LUNAR_PLL_FIELDS 4u
 #define LUNAR_PLL_BYTES (9u + 5u * LUNAR_PLL_FIELDS)
 #define LUNAR_PLL_PACKETS ((LUNAR_PLL_BYTES + 2u) / 3u)
+#define LUNAR_PRODUCER_GAP_FIELDS 10u
+#define LUNAR_PRODUCER_GAP_BYTES (9u + 5u * LUNAR_PRODUCER_GAP_FIELDS)
+#define LUNAR_PRODUCER_GAP_PACKETS ((LUNAR_PRODUCER_GAP_BYTES + 2u) / 3u)
 static inline uint32_t lunar_clock_packet(const uint32_t values[LUNAR_CLOCK_FIELDS],
                                          unsigned index)
 {
@@ -119,6 +122,35 @@ static inline uint32_t lunar_pll_packet(const uint32_t values[LUNAR_PLL_FIELDS],
         }
         packet |= (uint32_t)byte << (8u * (j + 1u));
     }
+    return packet;
+}
+
+/* Schema 5: main-loop refill/publication cadence and split display wait/work.
+ * All values are raw uint32 ticks/counters; host timing calibration is separate. */
+static inline uint8_t lunar_producer_gap_wire_byte(
+    unsigned at, const uint32_t values[LUNAR_PRODUCER_GAP_FIELDS])
+{
+    static const uint8_t prefix[] = {0xf0, 0x7d, 'L', 'U', 'N', 'A', 'R', 5};
+    if (at < sizeof prefix) return prefix[at];
+    if (at == LUNAR_PRODUCER_GAP_BYTES - 1u) return 0xf7;
+    unsigned data_at = at - (unsigned)sizeof prefix;
+    if (data_at >= 5u * LUNAR_PRODUCER_GAP_FIELDS) return 0;
+    unsigned value = data_at / 5u;
+    unsigned digit = data_at % 5u;
+    return (uint8_t)((values[value] >> (digit * 7u)) & 127u);
+}
+
+static inline uint32_t lunar_producer_gap_packet(
+    const uint32_t values[LUNAR_PRODUCER_GAP_FIELDS], unsigned index)
+{
+    if (index >= LUNAR_PRODUCER_GAP_PACKETS) return 0;
+    unsigned at = index * 3u;
+    unsigned left = LUNAR_PRODUCER_GAP_BYTES - at;
+    unsigned n = left < 3u ? left : 3u;
+    uint32_t packet = left > 3u ? 4u : 4u + n;
+    for (unsigned j = 0; j < n; ++j)
+        packet |= (uint32_t)lunar_producer_gap_wire_byte(at + j, values)
+                  << (8u * (j + 1u));
     return packet;
 }
 

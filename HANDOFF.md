@@ -1,3 +1,23 @@
+## ROM83 corrected FM buffer trial captured; recovery observed
+
+[verified: install/readback/capture] One-use d8586ae8 source trial completed.
+Target3571d21401a921df425ff416824d32bca0f8ca4d1856ec007041cc5df875fbbb
+full readback matched after210 changed sectors. Single reset acknowledgement
+ambiguous; not retried. Separate nativeUSB84 observed, passive telemetry110s
+and KA6 audio180s completed successfully. Passive USB now ROM85/path1-1.
+No physical user action or musical acceptance claimed. NEVER relaunch old cycle.
+Private evidence scratch/hot-ram-fm-buffers-result/physical/campaign-evidence.tar
+SHA666fadaf26e464fbd7d908b9e290108e640af8150623da6c04737c3ea8d52864;
+45 regular files independently byte-checked against archive on extraction.
+Comparison:268.848 vs268.253 produced64-frame blocks/device-second (+0.222%);
+420.497 underruns/device-second, still far below ~689.344 production demand.
+RAM placement does not materially resolve starvation. Independent review pending.
+Next: reviewed producer-gap diagnostic instrumentation/build + postmix codegen
+optimization c0644560. Exact fresh target build/receipts required before device.
+Goal ACTIVE; SAVE disarmed; no release/performance acceptance. MIDI FA/FC/FB
+implemented shared USB/TRS; FA rewind/TRS physical acceptance remains pending.
+Unrelated uv.lock untouched. Current changes backed up per actual Git state.
+
 ## One-use corrected FM buffer-array campaign LAUNCHED
 
 Private base /home/claude/fm1-hot-ram-fm-buffers-d8586ae8-20261015,
