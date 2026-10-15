@@ -115,3 +115,37 @@ ambiguous, no retry. Capture remains active at this checkpoint. Planned USB
 bytes are FC/FB/FA/FC/FB at12/22/40/60/70s after telemetry launch.
 Inspect capture receipts and actual native/ROM enumeration before conclusions.
 No physical MIDI or musical playback acceptance is claimed.
+
+## Completed physical USB transport capture
+
+[verified] The five-send campaign completed: arecord180s and telemetry110s
+both exited0; native66 returned to ROM67 without a reset retry. All five host
+sends returned0 and final device USB ingress was5. No UART bytes or note-ons
+were injected. WAV SHA256
+722c795f333b9f34ea3c942cfe75f5b70df0d6a5bfc783d0c65fb6296adc5de6;
+telemetry JSONL
+0c3e94152adcca927212947f954c71cc3197d8908239bf91c39f8455a05163b9.
+
+[verified] Relative to arecord process-start timestamp, send completion times
+were FC23.932s, FB33.916s, FA51.932s, FC71.936s and FB81.937s. These are
+host timing anchors, not sample-accurate device dispatch. Offline analysis on
+Hera used the existing bounded six-channel48kHzS32 analyzer in a2CPU/512MiB
+network-disabled container. Audio hash matched before analysis. Inputs1/2 had
+zero samples above the0.999 clipping threshold, peaks0.84971/0.85431, whole-
+recording RMS0.053948/0.055691. RMS over26–32s after first Stop was
+0.000365/0.000388 versus0.071846/0.074967 over15–22s before it; after
+Continue,35–47s was0.075679/0.078735. Following second Stop,76–82s was
+0.000402/0.000426; after Continue,85–95s was0.070202/0.072478.
+[inferred] Repeated level changes aligned with FC/FB support physical USB
+Stop/Continue behavior. They do not establish exact paused position or Start
+rewind, nor TRS transport acceptance. Source/core/parser/app tests and the
+independent review cover those semantic paths separately.
+
+[verified] Final uptime118897ms, underruns46953, produced29104,
+render maximum120084ticks=5003.5us versus1450.66us per64frames. Sustained
+starvation remains a failed playback-performance gate. No complete firmware
+or musical acceptance is claimed; SAVE remains disarmed. Next: instrument
+render stages, fix the measured bottleneck, then repeat physical transport
+and full-song acceptance with explicit state evidence where needed. Private
+measurement files: scratch/song-midi-transport-result/; Hera audio and
+analysis: /home/claude/mvave-fm1/transport-audio-6d971bf-20261015/.

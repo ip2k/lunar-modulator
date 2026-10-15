@@ -5105,3 +5105,16 @@ Goal ACTIVE; SAVE disarmed. Agent demo_controller_review is implementing opt-in
 per-stage profiling offline; root owns transport capture and notes. Do not
 repeat consumed ROM63/65 campaigns. Next inspect completed transport capture,
 then profile/repair render workload before hardware playback acceptance.
+
+# USB MIDI transport capture completed — 2026-10-15 UTC
+
+All five FC/FB/FA/FC/FB host sends succeeded and native ingress reached5.
+Two Stop windows fell to RMS~0.0004 and both Continue windows resumed~0.07;
+this supports USB Stop/Continue response, not exact song-position/Start/TRS
+acceptance.180s audio/110s telemetry completed; automatic return ROM67,
+no reset retry or new flash write. Full results/hashes/limits in
+notes/2026-10-15-native-midi-transport.md. Performance still fails:
+U46953, produced29104, max render5003.5us/64frames. Independent MIDI
+review integrated f207b6ed (GitHub SHA verified); no core defect found.
+Profiler agent owns source/telemetry changes currently in progress; do not
+stage those with this documentation checkpoint. Goal ACTIVE; SAVE disarmed.
