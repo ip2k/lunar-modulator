@@ -12,13 +12,13 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def optimization_overrides(base_opt, hot_dsp_os=False, limiter_os=False, hall_o2=False,
-                           fir_hot_o2=False):
+                           fir_hot_o2=False, drums_o2=False):
     """Return only explicitly selected per-object optimization overrides."""
-    if any(type(value) is not bool for value in (hot_dsp_os, limiter_os, hall_o2, fir_hot_o2)):
+    if any(type(value) is not bool for value in (hot_dsp_os, limiter_os, hall_o2, fir_hot_o2, drums_o2)):
         raise TypeError('Catalogue optimization options must be bools')
     if base_opt not in ('s', 'z'):
         raise ValueError('Catalogue base optimization must be s or z')
-    if (hot_dsp_os or limiter_os or hall_o2 or fir_hot_o2) and base_opt != 'z':
+    if (hot_dsp_os or limiter_os or hall_o2 or fir_hot_o2 or drums_o2) and base_opt != 'z':
         raise ValueError('Per-object optimization overrides require a -Oz base catalogue')
     overrides = {}
     if hot_dsp_os:
@@ -29,6 +29,8 @@ def optimization_overrides(base_opt, hot_dsp_os=False, limiter_os=False, hall_o2
         overrides['our/src/fx_hall.o'] = '-O2'
     if fir_hot_o2:
         overrides.update({'our/src/mi_sixop.o': '-O2', 'our/src/drums.o': '-O2'})
+    if drums_o2:
+        overrides['our/src/drums.o'] = '-O2'
     return overrides
 
 
@@ -71,6 +73,8 @@ def main():
                         'overrides Hall -Os from --hot-dsp-os only')
     parser.add_argument('--fir-hot-o2', action='store_true',
                         help='Explicit experiment: -O2 for mi_sixop.o and drums.o with --opt z')
+    parser.add_argument('--drums-o2', action='store_true',
+                        help='Explicit experiment: -O2 for drums.o only with --opt z')
     parser.add_argument('--hot-dsp-ram', action='store_true',
                         help='Explicit experiment: place selected sixop/Hall/limiter render bodies in RAM')
     parser.add_argument('--engine-render-profile', action='store_true',
@@ -86,7 +90,7 @@ def main():
     args = parser.parse_args()
     try:
         overrides = optimization_overrides(args.opt, args.hot_dsp_os, args.limiter_os,
-                                          hall_o2=args.hall_o2, fir_hot_o2=args.fir_hot_o2)
+                                          hall_o2=args.hall_o2, fir_hot_o2=args.fir_hot_o2, drums_o2=args.drums_o2)
     except ValueError as error:
         parser.error(str(error))
     inputs = source_manifest(ROOT)
@@ -157,6 +161,7 @@ def main():
               'limiter_os': args.limiter_os,
               'hall_o2': args.hall_o2,
               'fir_hot_o2': args.fir_hot_o2,
+              'drums_o2': args.drums_o2,
               'hot_dsp_ram': args.hot_dsp_ram,
               'engine_render_profile': args.engine_render_profile,
               'shared_resampler': args.shared_resampler,

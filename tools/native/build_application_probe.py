@@ -478,11 +478,11 @@ def hot_dsp_ram_extent(elf_path):
 
 def checked_catalogue(root, compressed=False, indexed_tft=False, shapes_voices=12,
                       hot_dsp_os=False, hot_dsp_ram=False,
-                      engine_render_profile=False, limiter_os=False, hall_o2=False, fir_hot_o2=False):
+                      engine_render_profile=False, limiter_os=False, hall_o2=False, fir_hot_o2=False, drums_o2=False):
     objects, receipts, indices = [], [], set()
     inputs = source_manifest(ROOT)
     overrides = optimization_overrides('z', hot_dsp_os, limiter_os,
-                                       hall_o2=hall_o2, fir_hot_o2=fir_hot_o2)
+                                       hall_o2=hall_o2, fir_hot_o2=fir_hot_o2, drums_o2=drums_o2)
     expected = json.loads((root / 'shard-00/objects.json').read_text())
     for shard in range(16):
         directory = root / ('shard-%02d' % shard)
@@ -506,6 +506,9 @@ def checked_catalogue(root, compressed=False, indexed_tft=False, shapes_voices=1
         recorded_fir_hot_o2 = report.get('fir_hot_o2', False)
         if type(recorded_fir_hot_o2) is not bool or recorded_fir_hot_o2 is not fir_hot_o2:
             raise SystemExit('Incompatible catalogue FIR hot optimization selection')
+        recorded_drums_o2 = report.get('drums_o2', False)
+        if type(recorded_drums_o2) is not bool or recorded_drums_o2 is not drums_o2:
+            raise SystemExit('Incompatible catalogue Drums optimization selection')
         if report.get('source_manifest') != inputs:
             raise SystemExit('Catalogue source manifest is stale or absent')
         if json.loads((directory / 'objects.json').read_text()) != expected:
@@ -525,7 +528,7 @@ def checked_catalogue(root, compressed=False, indexed_tft=False, shapes_voices=1
             object_opt = overrides.get(item['object'], '-Oz')
             # Legacy uniform -Oz receipts lack per-object settings. Mixed
             # receipts must explicitly identify every unit's actual setting.
-            required_opt = None if (hot_dsp_os or limiter_os or hall_o2 or fir_hot_o2) else '-Oz'
+            required_opt = None if (hot_dsp_os or limiter_os or hall_o2 or fir_hot_o2 or drums_o2) else '-Oz'
             if item.get('optimization', required_opt) != object_opt:
                 raise SystemExit('Catalogue object optimization mismatch')
             obj = directory / 'obj' / relative
@@ -581,6 +584,8 @@ def main():
                         'overrides Hall -Os from --hot-dsp-os only')
     parser.add_argument('--fir-hot-o2', action='store_true',
                         help='Require explicit mi_sixop.o and drums.o -O2 catalogue receipts')
+    parser.add_argument('--drums-o2', action='store_true',
+                        help='Require an explicit drums.o -O2 catalogue receipt')
     parser.add_argument('--hot-dsp-ram', action='store_true',
                         help='Opt in to selected render bodies in RAM; bounded diagnostic runtime only')
     parser.add_argument('--build', type=Path, required=True)
@@ -767,7 +772,8 @@ def main():
     objects, catalogue_receipts = checked_catalogue(
         catalogue, wave_namespaces, args.indexed_tft, args.shapes_voices,
         args.hot_dsp_os, args.hot_dsp_ram, args.diagnostic_engine_render_profile,
-        args.limiter_os, hall_o2=args.hall_o2, fir_hot_o2=args.fir_hot_o2)
+        args.limiter_os, hall_o2=args.hall_o2, fir_hot_o2=args.fir_hot_o2,
+        drums_o2=args.drums_o2)
     state_bin_codec = None
     if args.link_project_save_service:
         state_bin_codec = replace_with_compact_state_bin(
@@ -1013,10 +1019,11 @@ def main():
                   catalogue_objects=catalogue_receipts,
                   catalogue_optimization_overrides=optimization_overrides(
                       'z', args.hot_dsp_os, args.limiter_os, hall_o2=args.hall_o2,
-                      fir_hot_o2=args.fir_hot_o2),
+                      fir_hot_o2=args.fir_hot_o2, drums_o2=args.drums_o2),
                   catalogue_limiter_os=args.limiter_os,
                   catalogue_hall_o2=args.hall_o2,
                   catalogue_fir_hot_o2=args.fir_hot_o2,
+                  catalogue_drums_o2=args.drums_o2,
                   hot_dsp_ram=dict(hot_dsp_ram_receipt,
                                    extent=hot_dsp_ram_extent(elf) if args.hot_dsp_ram else None),
                   linked_objects=[dict(path=str(p), sha256=digest(p)) for p in objects],
