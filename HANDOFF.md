@@ -1,4 +1,26 @@
-## Current: ROM95 schema-7 campaign launched once
+## Current: ROM95 schema-7 completed; performance still fails
+
+Goal ACTIVE; owner cold-boot musical acceptance FAILED; SAVE disarmed.
+ROM95 cycle below consumed: NEVER RELAUNCH. Fresh paired backups matched07761c;
+210 guarded sectors installed eddc8531…dc162, directory4000last. Root independently
+matched all4096 final256-byte read response hashes to exact1MiB target, with52
+interspersed keepalives and clean SG completions. Generic offline/mock sidecar
+labels remain conservative; separate physical logs establish bounded facts.
+Single ambiguous reset not retried; native96 observed;110s input-only telemetry
+and180s KA6 capture both rc0; automatic ROM97 observed. No owner watch needed.
+
+428.647 produced blocks/s vs689.344 required,260.697 underruns/s: still FAIL.
+Drums outer3802ticks/call residual82.4%;SixOp3275 residual87.3%. Most measured
+outer engine time is outside nested RenderBlock, but wrapper/resampler/loops
+and interruption time are not separated. Next machine-code review targets this.
+See notes/2026-10-15-engine-render-profile-results.md and private physical evidence.
+Next0e024 bundle is staged FILE-ONLY at /home/claude/fm1-fabs-profile-0e02422f-20261015;
+not constructed/installed. Needs fresh172-dependency rehash, tools/native staging,
+constructor path correction, new campaign and independent review before deviceuse.
+Bundle8212bab8…5169af includes41verifiedmembers. Do not attribute futuredelta to
+fabs alone: Hallinline+postmixadvanceinline are included too.
+
+## Previous: ROM95 schema-7 campaign launched once
 
 Goal ACTIVE; cold-boot musical acceptance FAILED; SAVE disarmed.
 One-use campaign /home/claude/fm1-engine-render-profile-6b8576bd-20261015,
