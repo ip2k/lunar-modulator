@@ -1,9 +1,18 @@
 import pytest
 
 pytest.importorskip("amaranth")
+pytest.importorskip("cynthion")
 from amaranth.sim import Simulator
 
 from tools.cynthion_usb_key.gateware import CynthionUsbKey
+from tools.cynthion_usb_key.top import CynthionUsbKeyTop
+
+
+def test_control_power_is_explicit_and_operation_only():
+    assert CynthionUsbKeyTop().target_power_from_control is False
+    assert CynthionUsbKeyTop(target_power_from_control=True).target_power_from_control
+    with pytest.raises(ValueError, match="only in operation mode"):
+        CynthionUsbKeyTop(mode="disconnected-selftest", target_power_from_control=True)
 
 
 def test_disconnected_selftest_terminates_without_entering_key_state():
