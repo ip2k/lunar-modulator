@@ -1,3 +1,30 @@
+## Drums voice body integrated; active-audio and installer audits — 2026-10-15
+
+[verified: offline build/review] Source6dbed50e integrated asadb8c4f5 after
+independent source/tree/receipt/all10 output-hash/callee review. All16 Hera
+shards and link passed; worker107 focused checks and reviewer21 passed.
+Root post-integration107-check suite exited0. App855688B; DSP15360B
+ending0x1c04168,7832B headroom.
+RenderVoice998B is RAM but model kernels/helpers remainXIP; no speed claim.
+Build bundle in siblingdrums-rendervoice-ram scratch, SHA
+f557f09c6188324202b14e029c13613a9bec7517e596f2d426352f67b9ac9294.
+Root scratch/drums-rendervoice-ram-independent-review.md SHA
+ad0b91481b475929a345e82a5433e152748791b2fec407162c0e889984de83c0.
+Do not stage ROM113 merely to measure this inactive-voice bypass at idle.
+
+[verified: review decisions] Audio producer already fills available slots;
+larger buffers cannot solve sustained498.453/689.344 throughput deficit.
+Stopped transport still renders configured graph; no blanket bypass is valid.
+Hall startup-only silence optimization rejected because it cannot improve
+active song playback; exact tail re-entry has no demonstrated cheap certificate.
+See notes/2026-10-15-audio-next-experiment-decision.md and retained private
+reviews. demo_controller_review now audits active Hall code generation;
+physical_storage_compression audits selectable installer gaps, both offline.
+No device action this segment. Installed reference28483c411f23d7d5fba09b4770dd29b3c66b1a154138e493e6e079e54dcf400f.
+Cold-boot listeningFAILED; SAVE/autoplayoff; goalACTIVE/fullscope unchanged.
+Existing untrackeduv.lock untouched. Root branchfeature/2026-10-11@installable-firmware;
+integrationadb8c4f5; push this checkpoint and verify remote SHA next.
+
 ## Drums block placement integrated; voice-body experiment running — 2026-10-15
 
 [verified: source/integration] Reviewed wrapper74c199b4 and RenderBlocke42cc2ab
