@@ -45,7 +45,7 @@ passed.
 
 [verified] Coordinator fetched the private compact archive and verified its external pins, exact byte count, all 26 unique bounded regular members and every member digest before extraction. Archive SHA-256: `0deb0df670ecf2d261996f3b1d7725a7f547e3ffd0511bfae00add641351b028`; pins SHA-256: `2bef13ea928b3ee2bf69238fbcfb862cd125bf7120c803f01bd4051858378fb4`; raw receipt SHA-256: `e9c827c58e57d0a5e748a6ef23cb5c9682bda0fb14041407e5075623f9846a1b`. App SHA-256: `8e511ed0704b3767144d1b780d2ee8f23bd223d9e7fc8727b7e0e480c92464aa`; ELF SHA-256: `33c8a570f97188a40419df34b560eee256977c1c3070550af634fbe9d9a00345`.
 
-[reported: isolated Hera build worker] Focused limiter and postmix disassembly has zero `fabsf` calls where the prior combined-profile build retained one and two respectively; inline sign masking is present. This is code-generation evidence, not physical speed or listening acceptance.
+[verified] Coordinator independently delimited both functions in the prior combined-profile and new disassemblies: limiter `fabsf` call sites fell from two to zero, and postmix from four to zero. These are static call-site counts, not dynamic invocation counts or physical speed evidence. The worker also reports inline sign masking.
 
 ## Limits and next step
 
