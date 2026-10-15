@@ -316,6 +316,12 @@ def accept_and_succeed(c, adapter, receipt_transform=None, artifact=b"diagnostic
 def test_success_verifies_exact_request_and_app_bytes():
     c, adapter = client()
     accepted = accept_and_succeed(c, adapter)
+    build_id = accepted.json()["id"]
+    snapshot = adapter.jobs[build_id]
+    result = snapshot.result
+    adapter.jobs[build_id] = type(snapshot)(snapshot.status, type(result)(
+        result.artifact, result.receipt, result.elf, result.provenance,
+        {"private/build_receipt.json": b"secret evidence"}))
     response = c.get(accepted.json()["status_url"])
     assert response.status_code == 200
     result = response.json()["result"]
@@ -326,6 +332,8 @@ def test_success_verifies_exact_request_and_app_bytes():
     assert result["remaining_bytes"] == result["app_budget_bytes"] - len(b"diagnostic-app")
     assert result["installable"] is False
     assert result["hardware_tested"] is False
+    assert "private_evidence" not in result
+    assert b"secret evidence" not in response.content
 
 
 @pytest.mark.parametrize("mutation", ["request", "artifact", "image", "compatible", "installable"])
@@ -820,7 +828,23 @@ def _docker_lifecycle_adapter(tmp_path):
     app_bytes = b"app"
     request_bytes = canonical_request(request_doc())
     request_sha = hashlib.sha256(request_bytes).hexdigest()
-    receipt = result_receipt(request_doc(), request_sha, app_bytes, TEST_ELF)
+    receipt_object = json.loads(result_receipt(request_doc(), request_sha, app_bytes, TEST_ELF))
+    cat_bytes, link_bytes = b"catalogue-object", b"link-object"
+    (catalogue / "object.o").write_bytes(cat_bytes)
+    catalogue_row = {"path": "/catalogue/object.o", "sha256": hashlib.sha256(cat_bytes).hexdigest()}
+    linked_rows = [catalogue_row,
+                   {"path": "/output/build/link/object.o", "sha256": hashlib.sha256(link_bytes).hexdigest()}]
+    build_receipt = json.dumps({"catalogue_objects": [catalogue_row], "linked_objects": linked_rows},
+                               sort_keys=True, separators=(",", ":")).encode()
+    artifact_receipt = json.dumps({"app_sha256": hashlib.sha256(app_bytes).hexdigest(),
+                                   "app_bytes": len(app_bytes),
+                                   "elf_sha256": hashlib.sha256(TEST_ELF).hexdigest()},
+                                  sort_keys=True, separators=(",", ":")).encode()
+    prepared_profile, source_profile = b'{"prepared":1}', b'{"source":1}'
+    receipt_object.update({"verification_sha256": hashlib.sha256(build_receipt).hexdigest(),
+                           "artifact_receipt_sha256": hashlib.sha256(artifact_receipt).hexdigest(),
+                           "prepared_profile_sha256": hashlib.sha256(prepared_profile).hexdigest()})
+    receipt = json.dumps(receipt_object).encode()
     (base / "input/request.json").write_bytes(request_bytes)
     archive_bytes = b"fixture source archive"
     (base / "input/source.tar").write_bytes(archive_bytes)
@@ -846,6 +870,26 @@ def _docker_lifecycle_adapter(tmp_path):
     (base / "result/app.bin").write_bytes(app_bytes)
     (base / "result/elf.bin").write_bytes(TEST_ELF)
     (base / "result/image.json").write_bytes(receipt)
+    contents = {
+        "request.json": request_bytes, "prepared_profile.json": prepared_profile,
+        "source_profile.json": source_profile, "artifact_receipt.json": artifact_receipt,
+        "build_receipt.json": build_receipt, "image_receipt.json": receipt,
+        "catalogue_manifest.json": json.dumps({"schema": 1, "objects": [catalogue_row]},
+            sort_keys=True, separators=(",", ":")).encode(),
+        "linked_objects.json": json.dumps({"schema": 1, "objects": linked_rows},
+            sort_keys=True, separators=(",", ":")).encode(),
+        "catalogue/object.o": cat_bytes, "linked/catalogue/object.o": cat_bytes,
+        "linked/link/object.o": link_bytes, "generated/link/generated.h": b"generated",
+    }
+    evidence_root = base / "result/evidence"
+    manifest = {}
+    for rel, content in contents.items():
+        path = evidence_root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+        manifest[rel] = {"bytes": len(content), "sha256": hashlib.sha256(content).hexdigest()}
+    (evidence_root / "manifest.json").write_text(
+        json.dumps(manifest, sort_keys=True, separators=(",", ":")), encoding="ascii")
     adapter.semaphore.acquire()
     adapter.job_dirs[build_id] = base
     adapter.jobs[build_id] = __import__(
@@ -919,6 +963,58 @@ def test_worker_binds_regular_app_and_elf_to_exact_receipt(tmp_path):
     (build / "link/lunar-app-probe.elf").unlink()
     with pytest.raises(ValueError, match="regular file"):
         docker_worker.verified_build_outputs(build)
+
+
+def test_private_evidence_contract_checks_receipts_catalogue_and_linked_bytes(tmp_path):
+    from tools.installer_service.docker_adapter import read_private_evidence
+    from tools.installer_service.provenance import sha256
+
+    result = tmp_path / "result"
+    evidence_root = result / "evidence"
+    catalogue_root = tmp_path / "catalogue"
+    evidence_root.mkdir(parents=True)
+    catalogue_root.mkdir()
+    request = b'{"version":1}\n'
+    cat = b"catalogue object"
+    link = b"linked object"
+    generated = b"generated header"
+    (catalogue_root / "object.o").write_bytes(cat)
+    catalogue_rows = [{"path": "/catalogue/object.o", "sha256": sha256(cat)}]
+    linked_rows = catalogue_rows + [{"path": "/output/build/link/object.o", "sha256": sha256(link)}]
+    build = {"catalogue_objects": catalogue_rows, "linked_objects": linked_rows}
+    build_raw = json.dumps(build, sort_keys=True, separators=(",", ":")).encode()
+    artifact_raw = b'{"artifact":1}'
+    prepared = b'{"profile_sha256":"unused"}'
+    source = b'{"source":1}'
+    image = {"request_sha256": sha256(request), "prepared_profile_sha256": sha256(prepared),
+             "verification_sha256": sha256(build_raw), "artifact_receipt_sha256": sha256(artifact_raw)}
+    image_raw = json.dumps(image, sort_keys=True, separators=(",", ":")).encode()
+    contents = {
+        "request.json": request, "prepared_profile.json": prepared,
+        "source_profile.json": source, "artifact_receipt.json": artifact_raw,
+        "build_receipt.json": build_raw, "image_receipt.json": image_raw,
+        "catalogue_manifest.json": json.dumps({"schema": 1, "objects": catalogue_rows},
+            sort_keys=True, separators=(",", ":")).encode(),
+        "linked_objects.json": json.dumps({"schema": 1, "objects": linked_rows},
+            sort_keys=True, separators=(",", ":")).encode(),
+        "catalogue/object.o": cat, "linked/catalogue/object.o": cat,
+        "linked/link/object.o": link, "generated/link/generated.h": generated,
+    }
+    manifest = {}
+    for rel, content in contents.items():
+        path = evidence_root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+        manifest[rel] = {"bytes": len(content), "sha256": sha256(content)}
+    (evidence_root / "manifest.json").write_text(
+        json.dumps(manifest, sort_keys=True, separators=(",", ":")), encoding="ascii")
+
+    retained = read_private_evidence(result, request, image_raw, catalogue_root)
+    assert retained == contents
+
+    (evidence_root / "linked/link/object.o").write_bytes(b"altered")
+    with pytest.raises(ValueError, match="manifest"):
+        read_private_evidence(result, request, image_raw, catalogue_root)
 
 
 def test_docker_adapter_retains_bounded_elf_and_rejects_bad_elf_outputs(tmp_path, monkeypatch):

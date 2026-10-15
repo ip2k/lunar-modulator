@@ -8,7 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 import shutil
 import select
@@ -25,6 +25,141 @@ from .provenance import (make_diagnostic_provenance, sha256 as _sha256,
 
 _BUILD_ID = re.compile(r"[A-Za-z0-9_-]{32}\Z")
 _IMAGE = "lunar-recovery-pytest@sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d"
+_MAX_PRIVATE_EVIDENCE_FILE = 128 * 1024 * 1024
+_MAX_PRIVATE_EVIDENCE_TOTAL = 512 * 1024 * 1024
+
+
+def read_private_evidence(result_dir: Path, expected_request: bytes,
+                          expected_image_receipt: bytes,
+                          catalogue_root: Path) -> dict[str, bytes]:
+    """Read a content-addressed, path-safe worker evidence tree into private memory."""
+    root = result_dir / "evidence"
+    manifest_path = root / "manifest.json"
+    if root.is_symlink() or not root.is_dir() or manifest_path.is_symlink() or not manifest_path.is_file():
+        raise ValueError("worker omitted private evidence manifest")
+    raw_manifest = manifest_path.read_bytes()
+    if not 0 < len(raw_manifest) <= 2 * 1024 * 1024:
+        raise ValueError("private evidence manifest exceeds cap")
+    manifest = json.loads(raw_manifest.decode("ascii"), object_pairs_hook=_unique_object,
+                          parse_constant=_reject_constant)
+    if not isinstance(manifest, dict) or not manifest:
+        raise ValueError("private evidence manifest is malformed")
+    if len(manifest) > 8192:
+        raise ValueError("private evidence manifest has too many files")
+    evidence: dict[str, bytes] = {}
+    total = 0
+    for rel, row in manifest.items():
+        path = PurePosixPath(rel) if isinstance(rel, str) else PurePosixPath(".")
+        if (not isinstance(rel, str) or "\\" in rel or path.is_absolute()
+                or any(part in ("", ".", "..") for part in path.parts)
+                or not isinstance(row, dict) or set(row) != {"bytes", "sha256"}
+                or type(row["bytes"]) is not int or not 0 < row["bytes"] <= _MAX_PRIVATE_EVIDENCE_FILE
+                or not isinstance(row["sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", row["sha256"])):
+            raise ValueError("private evidence manifest row is malformed")
+        source = root / path
+        current = root
+        unsafe_parent = False
+        for part in path.parts[:-1]:
+            current = current / part
+            if current.is_symlink() or not current.is_dir():
+                unsafe_parent = True
+                break
+        if unsafe_parent or source.is_symlink() or not source.is_file():
+            raise ValueError("private evidence file is missing or unsafe")
+        content = source.read_bytes()
+        if len(content) != row["bytes"] or _sha256(content) != row["sha256"]:
+            raise ValueError("private evidence bytes differ from manifest")
+        total += len(content)
+        if total > _MAX_PRIVATE_EVIDENCE_TOTAL:
+            raise ValueError("private evidence exceeds total cap")
+        evidence[rel] = content
+    if evidence.get("request.json") != expected_request:
+        raise ValueError("private evidence request differs from submitted request")
+    if evidence.get("image_receipt.json") != expected_image_receipt:
+        raise ValueError("private image receipt differs from service result")
+    required = {"request.json", "prepared_profile.json", "source_profile.json",
+                "artifact_receipt.json", "build_receipt.json", "image_receipt.json",
+                "catalogue_manifest.json", "linked_objects.json"}
+    if not required.issubset(evidence) or not any(path.startswith("generated/") for path in evidence):
+        raise ValueError("private evidence omits required package inputs")
+    build = json.loads(evidence["build_receipt.json"].decode("utf-8"),
+                       object_pairs_hook=_unique_object, parse_constant=_reject_constant)
+    image = json.loads(evidence["image_receipt.json"].decode("utf-8"),
+                       object_pairs_hook=_unique_object, parse_constant=_reject_constant)
+    if (not isinstance(build, dict) or not isinstance(image, dict)
+            or _sha256(evidence["request.json"]) != image.get("request_sha256")
+            or _sha256(evidence["prepared_profile.json"]) != image.get("prepared_profile_sha256")
+            or _sha256(evidence["build_receipt.json"]) != image.get("verification_sha256")
+            or _sha256(evidence["artifact_receipt.json"]) != image.get("artifact_receipt_sha256")):
+        raise ValueError("private receipts do not bind request, profiles, and link evidence")
+    catalogue = json.loads(evidence["catalogue_manifest.json"].decode("ascii"),
+                           object_pairs_hook=_unique_object, parse_constant=_reject_constant)
+    linked = json.loads(evidence["linked_objects.json"].decode("ascii"),
+                        object_pairs_hook=_unique_object, parse_constant=_reject_constant)
+    if (not isinstance(build, dict) or not isinstance(catalogue, dict) or not isinstance(linked, dict)
+            or set(catalogue) != {"schema", "objects"} or catalogue.get("schema") != 1
+            or set(linked) != {"schema", "objects"} or linked.get("schema") != 1
+            or catalogue.get("objects") != build.get("catalogue_objects")
+            or linked.get("objects") != build.get("linked_objects")):
+        raise ValueError("private object inventories differ from the build receipt")
+    catalogue_rows = catalogue.get("objects")
+    linked_rows = linked.get("objects")
+    if not isinstance(catalogue_rows, list) or not catalogue_rows or not isinstance(linked_rows, list) or not linked_rows:
+        raise ValueError("private object inventories are empty or malformed")
+    expected_catalogue = set()
+    for row in catalogue_rows:
+        if (not isinstance(row, dict) or set(row) != {"path", "sha256"}
+                or not isinstance(row["path"], str) or not row["path"].startswith("/catalogue/")
+                or not isinstance(row["sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", row["sha256"])):
+            raise ValueError("private catalogue inventory row is malformed")
+        rel = row["path"][len("/catalogue/"):]
+        rel_path = PurePosixPath(rel)
+        if "\\" in rel or rel_path.is_absolute() or any(part in ("", ".", "..") for part in rel_path.parts):
+            raise ValueError("private catalogue path is unsafe")
+        key = "catalogue/" + rel
+        if key in expected_catalogue or key not in evidence:
+            raise ValueError("private catalogue bytes do not match the inventory")
+        content = evidence[key]
+        pinned = catalogue_root.joinpath(*rel_path.parts)
+        if (pinned.is_symlink() or not pinned.is_file() or _sha256(content) != row["sha256"]
+                or _sha256(pinned.read_bytes()) != row["sha256"]):
+            raise ValueError("private catalogue bytes differ from the host-pinned catalogue")
+        expected_catalogue.add(key)
+    if {path for path in evidence if path.startswith("catalogue/")} != expected_catalogue:
+        raise ValueError("private catalogue files differ from its exact inventory")
+    expected_linked = set()
+    for row in linked_rows:
+        if (not isinstance(row, dict) or set(row) != {"path", "sha256"}
+                or not isinstance(row["path"], str) or not isinstance(row["sha256"], str)
+                or not re.fullmatch(r"[0-9a-f]{64}", row["sha256"])):
+            raise ValueError("private linked-object row is malformed")
+        path = row["path"]
+        if path.startswith("/catalogue/"):
+            key = "linked/catalogue/" + path[len("/catalogue/"):]
+        elif path.startswith("/output/build/link/"):
+            key = "linked/link/" + path[len("/output/build/link/"):]
+        else:
+            raise ValueError("private linked-object path is outside fixed mounts")
+        if key in expected_linked or key not in evidence or _sha256(evidence[key]) != row["sha256"]:
+            raise ValueError("private linked-object bytes differ from the build receipt")
+        expected_linked.add(key)
+    if {path for path in evidence if path.startswith("linked/")} != expected_linked:
+        raise ValueError("private linked files differ from the exact object inventory")
+    actual = set()
+    for current, dirs, files in os.walk(root, followlinks=False):
+        here = Path(current)
+        if any((here / name).is_symlink() for name in dirs):
+            raise ValueError("private evidence contains a symlink directory")
+        for name in files:
+            item = here / name
+            if item.is_symlink() or not item.is_file():
+                raise ValueError("private evidence contains a non-regular file")
+            rel = item.relative_to(root).as_posix()
+            if rel != "manifest.json":
+                actual.add(rel)
+    if actual != set(evidence):
+        raise ValueError("private evidence files differ from manifest inventory")
+    return evidence
 
 
 @dataclass(frozen=True)
@@ -333,7 +468,11 @@ class DockerJobAdapter:
             provenance_path = result_dir / "provenance.json"
             provenance_path.write_bytes(provenance)
             os.chmod(provenance_path, 0o600)
-            outcome = WorkerSnapshot("succeeded", WorkerResult(artifact, receipt, elf, provenance))
+            private_evidence = read_private_evidence(
+                result_dir, (input_dir / "request.json").read_bytes(), receipt,
+                self.config.catalogue_root)
+            outcome = WorkerSnapshot(
+                "succeeded", WorkerResult(artifact, receipt, elf, provenance, private_evidence))
         except Exception:
             outcome = WorkerSnapshot("failed")
         finally:

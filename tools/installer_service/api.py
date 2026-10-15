@@ -133,6 +133,9 @@ class WorkerResult:
     receipt: bytes
     elf: bytes
     provenance: bytes
+    # Private, bounded build inputs retained for offline package verification.
+    # The status API deliberately serializes only hashes and summaries.
+    private_evidence: dict[str, bytes] | None = None
 
 
 @dataclass(frozen=True)
