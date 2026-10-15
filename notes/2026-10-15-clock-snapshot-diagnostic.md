@@ -57,3 +57,29 @@ Hera:/home/claude/.local/share/codex-coordination/handoffs/lunar--clock-snapshot
 Source confirms the three volatile reads; inlined target accesses were not
 reliably mapped in disassembly. No physical clock observation or performance
 improvement has been established.
+
+## Fresh ROM71 campaign started
+
+[verified] The private coordinator passed file-only preflight on bench01 and
+started its one-use cycle at
+`/home/claude/fm1-clock-5c4502ee-20261015/rom71-clock-cycle`. Fresh paired
+reads passed and installation began. Candidate full-image SHA-256 is
+`9e864776ac931840e2859dd218a95d446c50b43ec57376b0191cf34e585459bf`;
+210 sectors differ from the previously verified current image. The reviewed
+policy allows 211 sectors; these counts have different meanings. Candidate
+receipt SHA-256 is
+`789aad6e856d77d7552f172eda7781efc194919f84e41fb8c2dac92628bf0292`.
+
+Final runner SHA-256 is
+`19aa367b750fce60866607eeef1add810cd71daf6fb627f2e6054fa9a90f4971`;
+passive capture helper SHA-256 is
+`04f905716d5baf2a8e0e3b667c223f8c2fbc5a4267a66a76c1fc97980c4b4d39`.
+Runtime manifest SHA-256 is
+`044a87ed21a249eaa76ca6c0b60dbcac18e064f69fe14dfccb2ab9432f3444b4`.
+The initial file-only preflight rejected a mismatched boot-adapter pin before
+any live operation; the corrected pin matches both the reviewed hot-DSP
+adapter and the deployed file. Eight focused coordinator tests passed.
+
+Installation completion, readback, boot, clock observation and audio results
+remain pending at this checkpoint. Do not rerun this consumed cycle or retry
+an ambiguous reset. Inspect its durable journal and capture first.
