@@ -61,6 +61,12 @@ def valid_layout():
     assert app[-8:] == b'RAM!DATA'
 
 
+def test_target_disassembly_command_selects_pi32v2_r3():
+    assert probe_artifact.target_disassembly_command(
+        Path('/toolchain/common/bin/objdump'), Path('/build/lunar-app-probe.elf')) == [
+            '/toolchain/common/bin/objdump', '-d', '-mcpu=r3', '/build/lunar-app-probe.elf']
+
+
 @pytest.mark.parametrize('profile', ['protected', 'expanded-d7000', 'expanded-d9000'])
 @pytest.mark.parametrize('extra', [0, 1, 4, 8, 12])
 def test_full_flash_load_budget(profile, extra):

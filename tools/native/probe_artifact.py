@@ -151,6 +151,11 @@ def artifact_stub_boundaries(image, app, disassembly):
     return proofs
 
 
+def target_disassembly_command(objdump, elf):
+    """Disassemble for the pinned pi32v2 r3 CPU so FPU opcodes decode."""
+    return [str(objdump), '-d', '-mcpu=r3', str(elf)]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--elf', type=Path, required=True)
@@ -161,7 +166,8 @@ def main():
     args = parser.parse_args()
     data = args.elf.read_bytes()
     image, app = flatten(data, args.layout, args.flash_layout)
-    decoded = subprocess.check_output([args.objdump, '-d', str(args.elf)], text=True) if args.objdump else ''
+    decoded = subprocess.check_output(target_disassembly_command(args.objdump, args.elf),
+                                      text=True) if args.objdump else ''
     proofs = artifact_call_payloads(image, app, decoded)
     boundaries = artifact_stub_boundaries(image, app, decoded)
     root = Path(__file__).resolve().parents[2]
