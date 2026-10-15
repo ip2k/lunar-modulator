@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   HS_QUERY, Link, MAXDATA, pack7, parseIdentity, parseRequest, serveRequests,
-} from '../www/third_party/felucca-ota/fm1ota.js';
+} from '../www/third_party/fm1-ota/fm1ota.js';
 import { createNativeOtaAdapter } from '../www/native-ota-adapter.js';
 
 function checksum(bytes) {

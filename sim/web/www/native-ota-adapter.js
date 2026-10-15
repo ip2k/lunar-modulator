@@ -2,11 +2,11 @@
 // Copyright (C) 2026 Lunar Modulator contributors
 //
 // Narrow, unwired adapter for the GPL-3.0-only protocol support in
-// third_party/felucca-ota/fm1ota.js. It intentionally never requests
+// third_party/fm1-ota/fm1ota.js. It intentionally never requests
 // MIDIAccess, enumerates ports, or probes a device. A future caller must supply
 // an audited packageAdmission.verify implementation and explicit selected ports.
 
-import { Link, handshake, serveRequests } from './third_party/felucca-ota/fm1ota.js';
+import { Link, handshake, serveRequests } from './third_party/fm1-ota/fm1ota.js';
 
 const defaultClock = {
   now: () => globalThis.performance?.now?.() ?? Date.now(),
