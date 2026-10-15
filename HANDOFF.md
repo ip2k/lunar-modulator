@@ -1,4 +1,21 @@
-## Restart continuation: evidence integrated, matched profile building — 2026-10-15
+## Restart continuation: matched profile built; package and hardware test next — 2026-10-15
+
+Corrected Hall-O2 stage2/schema7 build is independently rehashed: receipt
+6db18a773eeb48cd18b64d1d01ad184b6a691182f5800bf9e727f2cafcc0fd56,
+app855920B SHA012726b9e4d6b978f8cf9895a5476ebced6cf0d7218604d48b29d125a07ccb91.
+All13/EH+SET,14 RAM bodies,120s return, SAVE/autoplayoff. Offline package
+worker owns scratch/current-stage7-deployment; root review/fresh paired-read
+admission precedes root-only device campaign. Old Hall-Os output is rejected
+as a matched comparison. No hardware performance improvement established.
+
+Optimization metadata repair integrated eee62e6c, root50pass14fixture skips;
+Hera retained-fixture check assigned. Installer/native profile audit found
+optimization/RAM/identity/MIDI/telemetry differences. Private versioned profile
+implementation assigned in separate worktree; selectable content remains
+caller-controlled. Release/physical acceptance remain false. Current source
+and durable details: notes/2026-10-15-restart-resumed-integration.md.
+
+## Earlier restart continuation — 2026-10-15
 
 Current source integration0fe454ae (pushed/verified) retains private installer
 build evidence with actual paths/order/generated-input and pre-read size checks.
