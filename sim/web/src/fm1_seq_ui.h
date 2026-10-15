@@ -487,6 +487,7 @@ typedef struct fm1_seq_ui {
   uint8_t song_pad;                 /* always 0: no padding before song_gen, so the
                                        run sync compares holds no indeterminate byte */
   uint32_t song_gen;                /* the input generation the song was read at */
+  uint8_t sess_valid;               /* the Session grid was read from the current core state */
 } fm1_seq_ui_t;
 
 /* Track 1 focused, the Track view, bar 1, Step page 1, no hint, nothing

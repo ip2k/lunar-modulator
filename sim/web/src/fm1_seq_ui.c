@@ -140,6 +140,7 @@ static int is_page(int view) {
 void fm1_seq_ui_open(fm1_seq_ui_t *u, int view) {
   u->view = (uint8_t)(is_page(view) || view == FM1_SEQ_VIEW_SESSION || view == FM1_SEQ_VIEW_SONG
                           ? view : FM1_SEQ_VIEW_TRACK);
+  if (u->view == FM1_SEQ_VIEW_SESSION) u->sess_valid = 0;
   u->hint = FM1_SEQ_HINT_NONE;
   u->knob = -1;
   if (view == FM1_SEQ_VIEW_SONG) {
@@ -644,6 +645,18 @@ static void read_session(fm1_seq_ui_t *u, const fm1_seq_t *s) {
   }
 }
 
+/* A Session page can be opened or restored between render blocks. Refresh
+ * the transport fields used by read_session together with its grid before
+ * the first input is allowed to consume that snapshot. */
+static void refresh_session(fm1_seq_ui_t *u, const fm1_seq_t *s) {
+  fm1_seq_info_t i;
+  fm1_seq_get_info(s, &i);
+  u->playing = i.playing;
+  u->tracks = i.tracks;
+  read_session(u, s);
+  u->sess_valid = 1;
+}
+
 /* The song as the Song page and the band read it. */
 static void read_song(fm1_seq_ui_t *u, const fm1_seq_info_t *i) {
   u->compat = i->compat;
@@ -718,7 +731,12 @@ int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t 
   u->dq = i.default_quant;
   u->metro = i.metronome;
   read_track(u, s);
-  read_session(u, s);
+  if (u->view == FM1_SEQ_VIEW_SESSION) {
+    read_session(u, s);
+    u->sess_valid = 1;
+  } else {
+    u->sess_valid = 0;
+  }
   read_song(u, &i);
   {
     const uint32_t fast = u->rate / 4u ? u->rate / 4u : 1u;
@@ -797,7 +815,7 @@ int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t 
                     ((u->view == FM1_SEQ_VIEW_SESSION || u->view == FM1_SEQ_VIEW_SONG) &&
                      (memcmp(&was.sess_clips, &u->sess_clips,
                              (size_t)((const char *)&u->song_gen - (const char *)&u->sess_clips)) != 0 ||
-                      u->song_gen != gen));
+                      u->song_gen != gen || was.sess_valid != u->sess_valid));
     u->song_gen = gen;
     return (seq ? FM1_SEQ_UI_SYNC_SEQ : 0) | (overlay ? FM1_SEQ_UI_SYNC_OVERLAY : 0);
   }
@@ -1374,6 +1392,7 @@ static int rec_button(fm1_seq_ui_t *u, int down, uint64_t frame, int mode,
 
 int fm1_seq_ui_button(fm1_seq_ui_t *u, const fm1_seq_t *s, int button, int down, uint64_t frame,
                       int mode, const fm1_seq_ui_emit_t *out) {
+  if (u->view == FM1_SEQ_VIEW_SESSION && !u->sess_valid) refresh_session(u, s);
   if (down && u->capture_mode) {
     if (button == FM1_BTN_REC) u->rec_role = FM1_SEQ_UI_REC_NONE;   /* its release does nothing */
     u->shift_clean = 0;
@@ -1624,6 +1643,7 @@ static void white_up(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, uint64_t fram
 int fm1_seq_ui_key(fm1_seq_ui_t *u, const fm1_seq_t *s, int key, int down, int velocity,
                    uint64_t frame, int mode, int pitch, const fm1_seq_ui_emit_t *out) {
   if (key < 0 || key >= FM1_APP_KEYS) return 0;
+  if (u->view == FM1_SEQ_VIEW_SESSION && !u->sess_valid) refresh_session(u, s);
   if (!down) {
     const int role = u->key_role[key];
     if (!fm1_seq_ui_has_key(u, key)) return 0;
@@ -1934,6 +1954,7 @@ static void page_knob(fm1_seq_ui_t *u, int knob, int delta, const fm1_seq_ui_emi
 int fm1_seq_ui_encoder(fm1_seq_ui_t *u, const fm1_seq_t *s, int encoder, int delta,
                        uint64_t frame, int mode, const fm1_seq_ui_sound_t *snd,
                        const fm1_seq_ui_emit_t *out) {
+  if (u->view == FM1_SEQ_VIEW_SESSION && !u->sess_valid) refresh_session(u, s);
   (void)frame;
   u->shift_clean = 0;
   fm1_seq_ui_lock_pages(u, snd ? fm1_seq_ui_pages(snd->e) : 0);

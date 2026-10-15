@@ -1532,6 +1532,113 @@ static void button_edge(int button, int down) {
   blocks(1);
 }
 
+/* Session's grid is expensive to collect and is not used by the Track view.
+ * Keep that cache invalid while hidden, then prove the first input after
+ * opening Session refreshes it from the current core state. */
+static void seq_session_lazy_refresh_check(float rate) {
+  destroy_units();
+  fm1_app_init(&g_app, rate);
+  expect(fm1_app_seq_reset(&g_app, 1) == 0, "the lazy-refresh sequencer reset");
+  seq_line("clipsel 0 0;tog 0 0 60 100");
+  (void)fm1_seq_ui_sync(&g_app.ui, g_app.seq, 0, 0);
+  expect(g_app.ui.view == FM1_SEQ_VIEW_TRACK && !g_app.ui.sess_valid &&
+         g_app.ui.sess_clips == 0, "Track sync eagerly read the Session grid");
+
+  seq_line("clipsel 0 1;tog 0 0 62 100");
+  (void)fm1_seq_ui_sync(&g_app.ui, g_app.seq, 0, 64);
+  expect(!g_app.ui.sess_valid && g_app.ui.sess_clips == 0,
+         "hidden Session cache changed during Track sync");
+
+  fm1_seq_ui_open(&g_app.ui, FM1_SEQ_VIEW_SESSION);
+  expect(!g_app.ui.sess_valid, "opening Session did not invalidate its grid");
+  (void)fm1_seq_ui_button(&g_app.ui, g_app.seq, FM1_BTN_PLAY, 0, 64,
+                          FM1_MODE_SEQ, NULL);
+  expect(g_app.ui.sess_valid && (g_app.ui.sess_clips & 3u) == 3u,
+         "first Session input did not refresh the current grid");
+
+  seq_line("clipsel 0 2;tog 0 0 64 100");
+  (void)fm1_seq_ui_sync(&g_app.ui, g_app.seq, 0, 128);
+  expect(g_app.ui.sess_valid && (g_app.ui.sess_clips & 7u) == 7u,
+         "visible Session sync stopped refreshing the grid");
+
+  g_app.ui.shift = 1;
+  (void)fm1_seq_ui_key(&g_app.ui, g_app.seq, FM1_SEQ_UI_KEY_LOOP, 1, 100,
+                       192, FM1_MODE_SEQ, 60, NULL);
+  expect(g_app.ui.view == FM1_SEQ_VIEW_SONG &&
+         g_app.ui.back_view == FM1_SEQ_VIEW_SESSION,
+         "SHIFT + LOOP did not open Song from Session");
+  (void)fm1_seq_ui_key(&g_app.ui, g_app.seq, FM1_SEQ_UI_KEY_LOOP, 0, 0,
+                       192, FM1_MODE_SEQ, 60, NULL);
+  seq_line("clipsel 0 3;tog 0 0 65 100");
+  (void)fm1_seq_ui_sync(&g_app.ui, g_app.seq, 0, 192);
+  expect(!g_app.ui.sess_valid && g_app.ui.sess_clips == 7u,
+         "hidden Session grid refreshed during Song sync");
+
+  g_app.ui.shift = 1;
+  (void)fm1_seq_ui_key(&g_app.ui, g_app.seq, FM1_SEQ_UI_KEY_LOOP, 1, 100,
+                       256, FM1_MODE_SEQ, 60, NULL);
+  expect(g_app.ui.view == FM1_SEQ_VIEW_SESSION && !g_app.ui.sess_valid,
+         "returning to Session did not invalidate its grid");
+  (void)fm1_seq_ui_button(&g_app.ui, g_app.seq, FM1_BTN_PLAY, 0, 256,
+                          FM1_MODE_SEQ, NULL);
+  expect(g_app.ui.sess_valid && (g_app.ui.sess_clips & 15u) == 15u,
+         "first input after Song return did not refresh Session");
+
+  /* Restore into this warm app, whose Session cache describes a different
+   * grid with the same clip count. The real project loader must invalidate
+   * that cache, and the first input must refresh both grid and transport. */
+  {
+    char path[128], save_spec[160], load_spec[160];
+    fm1_seq_info_t info;
+    const uint64_t saved_grid = ((uint64_t)1u << 0) | ((uint64_t)1u << 2);
+    const uint64_t warm_grid = ((uint64_t)1u << 1) | ((uint64_t)1u << 3);
+    snprintf(path, sizeof path, "/tmp/lunar-session-refresh-%u.plain.lunarb", (unsigned)rate);
+    snprintf(save_spec, sizeof save_spec, "project:%s", path);
+    snprintf(load_spec, sizeof load_spec, "%s", path);
+    expect(fm1_app_unit_select(&g_app, 0, fm1_app_find("test-sine")) == 0,
+           "could not load Sound 1 for the project fixture");
+    expect(fm1_app_seq_reset(&g_app, 1) == 0, "the restore-test sequencer reset");
+    seq_line("clipsel 0 0;tog 0 0 60 100;clipsel 0 2;tog 0 0 62 100");
+    fm1_seq_ui_open(&g_app.ui, FM1_SEQ_VIEW_SESSION);
+    g_app.mode = FM1_MODE_SEQ;
+    (void)fm1_seq_ui_sync(&g_app.ui, g_app.seq, 0, 0);
+    expect(g_app.ui.sess_clips == saved_grid, "could not prepare the saved Session grid");
+    expect(state_save(save_spec), "could not save the Session restore fixture");
+
+    expect(fm1_app_seq_reset(&g_app, 1) == 0, "could not replace the warm sequencer");
+    seq_line("clipsel 0 1;tog 0 0 64 100;clipsel 0 3;tog 0 0 65 100;play");
+    fm1_seq_ui_open(&g_app.ui, FM1_SEQ_VIEW_SESSION);
+    (void)fm1_seq_ui_sync(&g_app.ui, g_app.seq, 0, 0);
+    expect(g_app.ui.sess_clips == warm_grid, "could not prepare the warm Session grid");
+    expect(g_app.ui.playing, "could not prepare the warm playing transport");
+
+    expect(state_load(load_spec, 0) && g_load_done,
+           "could not restore the saved project into the warm app");
+    fm1_seq_get_info(g_app.seq, &info);
+    expect(g_app.ui.view == FM1_SEQ_VIEW_SESSION && !g_app.ui.sess_valid,
+           "project restore exposed a valid stale Session cache");
+    g_app.ui.playing = (uint8_t)!info.playing;
+    (void)fm1_seq_ui_button(&g_app.ui, g_app.seq, FM1_BTN_PLAY, 0, 320,
+                            FM1_MODE_SEQ, NULL);
+    expect(g_app.ui.sess_valid && g_app.ui.sess_clips == saved_grid &&
+           g_app.ui.playing == info.playing,
+           "first input after project restore did not refresh grid and transport");
+
+    seq_line("stop");
+    (void)fm1_seq_ui_sync(&g_app.ui, g_app.seq, 0, 384);
+    {
+      const uint32_t leds = fm1_seq_ui_key_leds(&g_app.ui, 0);
+      const uint32_t expected = (1u << fm1_white_key(0)) | (1u << fm1_white_key(2));
+      const uint32_t slots = (1u << fm1_white_key(0)) | (1u << fm1_white_key(1)) |
+                             (1u << fm1_white_key(2)) | (1u << fm1_white_key(3));
+      expect((leds & slots) == expected,
+             "restored Session LEDs did not match the exact restored slots");
+    }
+    remove(path);
+  }
+  destroy_units();
+}
+
 /* A note at MIDI IN, `len` blocks long, then `gap` blocks of silence. */
 static void midi_note(int pitch, int len, int gap) {
   fm1_app_note_on(&g_app, pitch, 100);
@@ -2045,6 +2152,7 @@ static void key_tap(int key) {
 static void seq_session_screens(const char *dir, float rate) {
   static const int kTracks[3] = { 1, 4, 8 };
   char name[128], ops[1024];
+  seq_session_lazy_refresh_check(rate);
   for (int v = 0; v < 3; ++v) {
     const int n = kTracks[v];
     destroy_units();
