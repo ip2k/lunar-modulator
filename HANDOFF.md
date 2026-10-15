@@ -5238,3 +5238,21 @@ inference or changing counter-rate calculations; analyzer+recorder44tests pass.
 Existing telemetry/flash/boot/SG tests and16 private capture-helper tests pass.
 Limiter performance review is read-only/in progress. Audio starvation unresolved,
 SAVE disarmed, physical TRS transport and full musical acceptance open. Goal ACTIVE.
+
+### ROM69 hot-DSP campaign in progress
+
+Root reviewed the private runner and passed its complete staged file-only
+preflight on bench01. One execution is ACTIVE under
+`/home/claude/fm1-hot-dsp-f524e019-20261015/rom69-cycle`; do not invoke it again.
+Fresh paired full-flash reads matched installed52d6846a; installation of
+targete77cc3c1 is progressing. No boot/audio outcome yet. Root's local SSH
+session53932 is observation only; durable transaction/journal.json and
+adapter.jsonl are authoritative if the session is lost. Do not retry an
+ambiguous boot/reset or reuse the consumed campaign directory.
+
+Private runner1746ccf35c6b33fff4da6785c578e8e3e7555df9cdb028f1ec97ddde94962cf7,
+preflightefad6a28ea7aa91e9f163f505b0d1fa32ba97cc03ff6d875877f2ca8e9166b60.
+Four offline gate tests passed before root staging; current MIDI routing/app
+queue subset38tests passed. Existing source supports FA rewind/start, FC pause
+and gate release, FB continue on shared USB/UART path. F8 clock is separate;
+exact FA rewind/TRS physical acceptance remains open. Overall goal ACTIVE.
