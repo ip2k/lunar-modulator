@@ -1,3 +1,18 @@
+## Fresh producer-gap target built; tools source pins refreshed
+
+[verified: offline build] Exact firmware source aba42d839f2a68561a3e205e173d2d61b03f27e6
+built16/16 catalogue shards and linked on Hera. Frozen receipt1963762dded1dab84c50210c6e98e760b9e4cb6046d61eb293d8e4879c7e0a03;
+app61f5eedd32d3122a918cf2116a8e2c551e707b315d3d0725e2b6583c10f1ed79.
+Archive db5d4b879afd35d6df4f18086fe9501531264f7699cc0a92ccd91d3e47c6604f
+and10 target output hashes locally verified. Private scratch/producer-gap-result.
+No new device write/boot; passive ROM85 confirmed. SAVE remains disarmed.
+Refreshed exact flash-policy pins in install/reset adapters after schema5 policy
+change;43 adapter/boot/flash/song-policy host tests pass. Firmware source remains
+aba42d83; runtime tools use this later checkpoint. Offline runtime/candidate
+preparation and independent build review active; physical trial not admitted.
+MIDI transport22 focused host tests passed; TRS/FA physical acceptance pending.
+Goal ACTIVE; full firmware/web release unfinished; severe audio starvation persists.
+
 ## Producer-gap build policy ready; fresh target build next
 
 [verified: host checks] Opt-in schema-5 producer-gap builder flag and exact

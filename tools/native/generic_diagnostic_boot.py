@@ -23,9 +23,9 @@ SNAPSHOT_KIND = "fm1-passive-loader-after-completed-diagnostic"
 BOOT_KIND = "lunar-generic-diagnostic-completed-boot"
 FLASH_BYTES, MAX_AGE = 1048576, 120
 SOURCE_PINS = {
-    "native/generic_diagnostic_flash.py": "524ac70a4514f6bd3ec96d19a8924808624334620d0317a779aedfe33ef7247a",
+    "native/generic_diagnostic_flash.py": "a5534712a95c5d3d640772ee04cf578e8fd8147060b151ea6da743b6d2b1e389",
     "native/expanded_candidate.py": "46b03dfd636792473e720314268ad41cc9af9ca54f12d2118216cb8f3bdb8d7d",
-    "native/generic_diagnostic_sg_adapter.py": "f637e74db1c27c235ed425eb4bba2ff568adca19377e3b9cf188fb439d2af16c",
+    "native/generic_diagnostic_sg_adapter.py": "d9d0ddcff53d5bc555cc03c69aca881a0675c1a17749cb1b04807395e7369b3e",
     "native/expanded_sg.py": "f18e73b658c9d0b06b03b528c6fd4dd4da511a95102ea44252836d885e1a3700",
     "native/event120_generic_boot.py": "a060459933f8e34b34df8a0978e76e65e3d92f6bb728cbeb3306f4ffb132d820",
     "native/event120_reset.py": "f7b75e3448fe30babaed23b70340bab76db1e2c8815d13d22c6bdb00116a770c",
