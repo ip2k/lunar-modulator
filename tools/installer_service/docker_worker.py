@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+from pathlib import PurePosixPath
 
 SOURCE = Path("/workspace")
 SOURCE_ARCHIVE = Path("/input/source.tar")
@@ -23,6 +24,20 @@ MAX_REQUEST = 65536
 MAX_APP = 1048576
 MAX_ELF = 16 * 1024 * 1024
 MAX_RECEIPT = 65536
+MAX_EVIDENCE_FILE = 128 * 1024 * 1024
+MAX_EVIDENCE_TOTAL = 512 * 1024 * 1024
+GENERATED_EVIDENCE_PATHS = (
+    "selection/prepared/fm1_modules.h",
+    "selection/prepared/modules/gen/fm1_modules.h",
+    "link/gen/fm1_modules.h",
+    "link/module-all/gen/fm1_modules.h",
+    "link/module-selection/gen/fm1_modules.h",
+    "link/wave_tables.json",
+    "link/resources_braids.cc",
+    "link/resources_plaits.cc",
+    "link/resources_braids.h",
+    "link/resources_plaits.h",
+)
 
 
 def build_profile_arguments(request: dict) -> list[str]:
@@ -77,6 +92,79 @@ def verified_build_outputs(build_root: Path) -> tuple[bytes, bytes, bytes]:
             or report.get("elf_sha256") != hashlib.sha256(elf).hexdigest()):
         raise ValueError("build receipt does not match app/ELF bytes")
     return app, elf, receipt
+
+
+def retain_private_evidence(build_root: Path, request_bytes: bytes) -> dict[str, str]:
+    """Copy the bounded receipt/profile/object inputs used by the offline packager."""
+    evidence_root = RESULT / "evidence"
+    evidence_root.mkdir(mode=0o700)
+    evidence: dict[str, bytes] = {
+        "request.json": request_bytes,
+        "prepared_profile.json": regular_file(build_root / "selection/prepared/profile.json", 4 * 1024 * 1024),
+        "source_profile.json": regular_file(build_root / "selection/staged/profile.json", 4 * 1024 * 1024),
+        "artifact_receipt.json": regular_file(build_root / "link/artifact/artifact.json", MAX_EVIDENCE_FILE),
+        "build_receipt.json": regular_file(build_root / "link/verification.json", MAX_EVIDENCE_FILE),
+        "image_receipt.json": regular_file(build_root / "image.json", MAX_RECEIPT),
+    }
+    receipt = json.loads(evidence["build_receipt.json"].decode("utf-8"),
+                         object_pairs_hook=_unique_object)
+    catalogue_rows = receipt.get("catalogue_objects")
+    linked_rows = receipt.get("linked_objects")
+    if not isinstance(catalogue_rows, list) or not isinstance(linked_rows, list):
+        raise ValueError("build receipts omit catalogue or linked-object inventory")
+    evidence["catalogue_manifest.json"] = json.dumps(
+        {"schema": 1, "objects": sorted(catalogue_rows, key=lambda row: row.get("path", ""))},
+        sort_keys=True, separators=(",", ":")).encode("ascii")
+    evidence["linked_objects.json"] = json.dumps(
+        {"schema": 1, "objects": sorted(linked_rows, key=lambda row: row.get("path", ""))},
+        sort_keys=True, separators=(",", ":")).encode("ascii")
+    for row in catalogue_rows:
+        if not isinstance(row, dict) or set(row) != {"path", "sha256"}:
+            raise ValueError("catalogue object row is malformed")
+        path = row["path"]
+        if not isinstance(path, str) or not path.startswith("/catalogue/"):
+            raise ValueError("catalogue object path is outside the fixed namespace")
+        rel = PurePosixPath(path.removeprefix("/catalogue/"))
+        if "\\" in str(rel) or rel.is_absolute() or any(part in ("", ".", "..") for part in rel.parts):
+            raise ValueError("catalogue object path is unsafe")
+        key = "catalogue/" + rel.as_posix()
+        evidence[key] = regular_file(CATALOGUE.joinpath(*rel.parts), MAX_EVIDENCE_FILE)
+    for rel in GENERATED_EVIDENCE_PATHS:
+        if (build_root / rel).exists():
+            evidence["generated/" + rel] = regular_file(build_root / rel, MAX_EVIDENCE_FILE)
+    for row in linked_rows:
+        if not isinstance(row, dict) or set(row) != {"path", "sha256"}:
+            raise ValueError("linked object row is malformed")
+        path = row["path"]
+        if not isinstance(path, str):
+            raise ValueError("linked object path is malformed")
+        if path.startswith("/catalogue/"):
+            root = CATALOGUE
+            rel = PurePosixPath(path.removeprefix("/catalogue/"))
+            key = "linked/catalogue/" + rel.as_posix()
+        elif path.startswith("/output/build/link/"):
+            root = build_root
+            rel = PurePosixPath("link/" + path.removeprefix("/output/build/link/"))
+            key = "linked/link/" + path.removeprefix("/output/build/link/")
+        else:
+            raise ValueError("linked object path is outside the fixed worker mounts")
+        if "\\" in str(rel) or rel.is_absolute() or any(part in ("", ".", "..") for part in rel.parts):
+            raise ValueError("linked object path is unsafe")
+        evidence[key] = regular_file(root.joinpath(*rel.parts), MAX_EVIDENCE_FILE)
+    if len(evidence) > 8192 or sum(map(len, evidence.values())) > MAX_EVIDENCE_TOTAL:
+        raise ValueError("private build evidence exceeds fixed bounds")
+    manifest = {}
+    for rel, raw in sorted(evidence.items()):
+        path = evidence_root / rel
+        path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        path.write_bytes(raw)
+        os.chmod(path, 0o600)
+        manifest[rel] = {"bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}
+    manifest_raw = json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode("ascii")
+    (evidence_root / "manifest.json").write_bytes(manifest_raw)
+    os.chmod(evidence_root / "manifest.json", 0o600)
+    return {"files": len(evidence), "bytes": sum(map(len, evidence.values())),
+            "manifest_sha256": hashlib.sha256(manifest_raw).hexdigest()}
 
 
 def main() -> int:
@@ -138,12 +226,14 @@ def main() -> int:
         *profile_args,
     ], check=True, timeout=1200)
     app, elf, receipt = verified_build_outputs(output / "build")
+    evidence_summary = retain_private_evidence(output / "build", request_bytes)
     (RESULT / "app.bin").write_bytes(app)
     (RESULT / "elf.bin").write_bytes(elf)
     (RESULT / "image.json").write_bytes(receipt)
     print(json.dumps({"app_bytes": len(app), "app_sha256": hashlib.sha256(app).hexdigest(),
                       "elf_bytes": len(elf), "elf_sha256": hashlib.sha256(elf).hexdigest(),
-                      "receipt_bytes": len(receipt)}), flush=True)
+                      "receipt_bytes": len(receipt),
+                      "private_evidence": evidence_summary}), flush=True)
     return 0
 
 
