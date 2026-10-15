@@ -30,6 +30,7 @@ from tests.engine_helpers import ENGINES, RATE, render, renderer, rms  # noqa: F
 from tests.test_engines_mi_fx import BANNED, run
 
 TOOL = ENGINES / "build" / "fm1-limit-test"
+RATIO_TOOL = ENGINES / "build" / "fm1-limit-ratio-test"
 LSB = 1 / 32767.0
 D_DEFAULT = 88                       # 2 ms at 44,118 Hz, rounded to a frame
 
@@ -73,6 +74,17 @@ def test_limiter_is_registered(renderer):  # noqa: F811
     assert mode["type"] == 1 and mode["names"] == ["Brickwall", "Soft Clip", "Round"]
     assert all(len(p["name"]) <= 12 for p in e["params"])
     assert all(p["min"] <= p["def"] <= p["max"] for p in e["params"])
+
+
+def test_equal_peak_ratio_reuse_is_bitwise_equivalent(renderer):  # noqa: F811
+    result = json.loads(subprocess.run([str(RATIO_TOOL)], check=True,
+                                       capture_output=True, text=True).stdout)
+    assert result == {
+        "scenarios": 36,
+        "frames_per_scenario": 6000,
+        "audio_bitwise_equal": True,
+        "full_instance_state_bitwise_equal": True,
+    }
 
 
 def test_instance_size_follows_the_rate(renderer, tmp_path, tool):  # noqa: F811

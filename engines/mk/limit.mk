@@ -17,8 +17,11 @@ OUR_SRC += src/fx_limit.cc
 # records the largest overshoot the final clamp meets (the envelope's own
 # accuracy); the audio path is the same code.
 LIMIT_TEST_OBJ := $(BUILD)/our/test/limit_test.o $(BUILD)/our/test/fx_limit_probe.o
+LIMIT_RATIO_TEST_OBJ := $(BUILD)/our/test/limit_ratio_equivalence.o \
+                        $(BUILD)/our/test/fx_limit_reference.o \
+                        $(BUILD)/our/src/fx_limit.o
 
-all: $(BUILD)/fm1-limit-test
+all: $(BUILD)/fm1-limit-test $(BUILD)/fm1-limit-ratio-test
 
 $(BUILD)/our/test/fx_limit_probe.o: src/fx_limit.cc
 	@mkdir -p $(dir $@)
@@ -27,4 +30,11 @@ $(BUILD)/our/test/fx_limit_probe.o: src/fx_limit.cc
 $(BUILD)/fm1-limit-test: $(LIMIT_TEST_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
 
--include $(LIMIT_TEST_OBJ:.o=.d)
+$(BUILD)/our/test/fx_limit_reference.o: test/fx_limit_reference.cc src/fx_limit.cc
+	@mkdir -p $(dir $@)
+	$(CXX) $(COMMON) $(OUR_WARN) -c $< -o $@
+
+$(BUILD)/fm1-limit-ratio-test: $(LIMIT_RATIO_TEST_OBJ)
+	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
+
+-include $(LIMIT_TEST_OBJ:.o=.d) $(LIMIT_RATIO_TEST_OBJ:.o=.d)

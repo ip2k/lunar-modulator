@@ -777,13 +777,35 @@ void Render(Instance *s, float *lr, uint32_t frames) {
     float zl = 1.0f, zr = 1.0f;
     if (!zero || (s->fade_pos != 0 && !zero_old)) {
       const float e = Aim(c, soft, round, 0);
+#if defined(FM1_LIMIT_DISABLE_EQUAL_PEAK_REUSE)
       hl = HoldStep(s, a, 0, pl > e ? e / pl : 1.0f);
       hr = HoldStep(s, a, 1, pr > e ? e / pr : 1.0f);
+#else
+      if (pl == pr) {
+        const float g = pl > e ? e / pl : 1.0f;
+        hl = HoldStep(s, a, 0, g);
+        hr = HoldStep(s, a, 1, g);
+      } else {
+        hl = HoldStep(s, a, 0, pl > e ? e / pl : 1.0f);
+        hr = HoldStep(s, a, 1, pr > e ? e / pr : 1.0f);
+      }
+#endif
     }
     if (zero || zero_old) {
       const float e0 = Aim(c, soft, round, 1);
+#if defined(FM1_LIMIT_DISABLE_EQUAL_PEAK_REUSE)
       zl = ZeroGain(s, 0, pl > e0 ? e0 / pl : 1.0f);
       zr = ZeroGain(s, 1, pr > e0 ? e0 / pr : 1.0f);
+#else
+      if (pl == pr) {
+        const float g = pl > e0 ? e0 / pl : 1.0f;
+        zl = ZeroGain(s, 0, g);
+        zr = ZeroGain(s, 1, g);
+      } else {
+        zl = ZeroGain(s, 0, pl > e0 ? e0 / pl : 1.0f);
+        zr = ZeroGain(s, 1, pr > e0 ? e0 / pr : 1.0f);
+      }
+#endif
     }
 
     // Out of the line, d frames later: the new tap, and while they fade the
