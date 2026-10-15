@@ -126,3 +126,32 @@ No new service-generated tuple/composition or hardware acceptance follows.
 
 [verified: passive bench] FM1 still bus1/device113 WL80UBOOT1.00. KA6 remains
 ALSA card2. No USB/vendor command, flash/reset or fresh-read admission occurred.
+
+## Corrected profiling build and optimization contract
+
+[verified: independent offline review] The corrected Hall-O2 stage2/schema7
+build completed all16 fresh Hera shards and the bounded link. Root rehashed
+all10 receipt outputs. Receipt6db18a773eeb48cd18b64d1d01ad184b6a691182f5800bf9e727f2cafcc0fd56,
+app855920/860644B (4724B slack), SHA
+012726b9e4d6b978f8cf9895a5476ebced6cf0d7218604d48b29d125a07ccb91.
+Exact source66c95bb2/tree542445ed; Hall-O2/SixOp-Os, all13 engines, EH+SET,
+14 RAM bodies, stage2+engine7+clock3/4, no CPU8/producer5/IRQ6,
+120-second return, autoplay/SAVE false. Private package preparation is underway;
+no physical performance result or admission follows from this build.
+
+[verified: source/host] Reviewed and integrated workerfba10cd6 as
+eee62e6c7e790b4ba8521091363ff010db0cf611; origin independently matched.
+Schema2 catalogue manifests preserve per-object optimization metadata and
+validate it against recognized override maps and Hall/limiter flags. Schema1
+compatibility is restricted to historical receipts without that metadata.
+Raw receipt hashes and exact object bytes/file sets remain checked.
+Root focused suite50passed14fixture-dependent skips. Actual retained Hera
+fixtures are assigned for independent compatibility verification.
+
+[verified: source audit] Current installer worker does not reproduce the native
+candidate's executable profile: optimization/RAM flags, explicit identity,
+UART MIDI and telemetry differ. D7000 song-diagnostic/Shapes8 allocation and
+disarmed SAVE match. Requests support selected content but do not establish
+the desired13-engine/Event Horizon+SET default. A reviewed versioned build
+profile and separate defaults layer remain necessary before release. See
+private scratch/service-native-profile-review-20261015/HANDOFF.md.
