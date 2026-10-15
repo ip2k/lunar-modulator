@@ -276,3 +276,18 @@ helper-header provenance corrections. Earlier-head ASan completed with4289pass,
 16skip,2xfail and the single known Plaits pin failure. No sanitizer runtime
 failure is shown in that result. Fresh generated WASM and full GPL gates are
 assigned to Hera; exact final-source CI remains required.
+
+## Browser refresh integrated
+
+[verified] Worker718637ca reviewed and integrated asdde25270; origin branch
+SHA matched dde25270c3bc5fde4132ddccfd6cf2b401a633fb. Only fm1.wasm, its
+build record and meta.json changed. Full web catalogue/GPL enabled; 108 parity
+scenarios passed in the retained Hera record. Hera reported all11 GPL switch
+checks passed; root independently matched artifact/source hashes and ran
+CI-mode freshness:1passed, no warnings after removing an ignored generated
+vendor.cpython-313.pyc cache that the engine hash scanner had included.
+
+[verified] CI38817684903 dispatched on dde25270. Results are pending; this
+is not hardware timing, audible acceptance, release or deployment evidence.
+Passive USB still lacks FM1 at22:30UTC after direct-cable request. Owner Pico
+GPIO wiring/alternative physical recovery hardware clarification is pending.

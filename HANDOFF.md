@@ -1,3 +1,13 @@
+## Latest source/CI checkpoint — 2026-10-15
+
+[verified] Browser full-catalogue WASM refreshed on Hera and integrated as
+dde25270c3bc5fde4132ddccfd6cf2b401a633fb, pushed/remote-verified. Root source
+hashes/freshness pass; Hera108parity and11GPL-switch checks pass. New CI
+38817684903 is pending on this code. Details in restart-resumed integration note.
+Hardware recovery remains blocked on absent USB and physical recovery wiring
+clarification following owner-confirmed power loss. No device command since
+the interruption. Do not use retained-loader admission.
+
 ## Power loss after interrupted stage7 install — 2026-10-15 22:29 UTC
 
 [verified: owner] Power was also interrupted after the USB/cabling change;
