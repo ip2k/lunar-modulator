@@ -27,6 +27,13 @@ Status register `0x03` packs state in bits 0–3, PHY ready/fault in bits 4–5,
 the four-step self-test mask in bits 6–9, line-state-valid in bit 10, and the
 USB3343 line-state value in bits 11–12. This is diagnostic telemetry and is not
 a safety interlock or hardware acceptance result. All registers are read-only.
+The snapshot is captured in the USB clock domain to avoid a multi-bit clock
+domain crossing.
+
+All VBUS switches and the target-A discharge control are set to zero. On r1.4
+these switches are active high; in particular, leaving
+`target_c_vbus_en` high would enable the TARGET-C-to-TARGET-A path. No
+CONTROL-to-TARGET-A power mode is included in this image.
 
 The target PHY configuration, electrical assumptions, remaining review gates,
 and offline verification limits are recorded in the task handoff. This
