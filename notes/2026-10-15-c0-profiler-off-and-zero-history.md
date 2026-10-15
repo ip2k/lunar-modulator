@@ -76,3 +76,30 @@ and the overall goal remain incomplete. Next: stage and review the isolated
 zero-history candidate, then admit it only through a new ROM105 campaign with
 fresh paired backups. ROM103 is consumed; its ambiguous reset must never be
 retried.
+
+## Resampler integration and additional review
+
+[verified: review and host checks] Independent review of exact a503 against c0
+found no blocking correctness issue; 192 focused resampler tests passed from
+an isolated source archive. The review notes the default round-to-nearest
+assumption and missing explicit subnormal test; it does not establish target
+performance. Review: `scratch/c0-zero-pop-review.md`. The change was merged
+into the working firmware branch as
+`f1a2af9dd69d67b649bc0d4ee2dae836e53f3ff7`; origin branch SHA was verified
+after push. This is not main/release integration.
+
+[verified: source review; inferred frequency] The pinned SDK formula yields a
+cached 360 MHz system value from the captured PLL words, but this does not
+calibrate effective CPU execution frequency. Neither nominal 240 MHz nor
+a misclock explanation is established. No PLL/power register changes were made.
+Review: `scratch/c0-profiler-off-clock-misclock-review.md`.
+
+[verified: source review] Skipping the configured master FX limiter on zero
+input was rejected: its delay line, controls, envelopes, hold queues, filter
+history and fade state still evolve during silence. This is distinct from the
+separate stateless bus-guard experiment. No configured-effect shortcut was
+implemented. Review: `scratch/c0-configured-limiter-silence-review.md`.
+
+The ROM105 bundle remains offline pending complete runtime-path hash closure,
+independent review, target file-only preflight and fresh paired current reads.
+No new device operation or musical acceptance follows from these reviews.

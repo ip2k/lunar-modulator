@@ -1,3 +1,19 @@
+## Resampler source integrated; ROM105 deployment remains pending — 2026-10-15
+
+Goal ACTIVE; cold-boot audio/display acceptance FAILED; SAVE disarmed.
+Reviewed resampler a503 merged into working branch as
+f1a2af9dd69d67b649bc0d4ee2dae836e53f3ff7, pushed and remote SHA verified.
+Independent isolated resampler suite192 pass; root3 cases and exact Hera
+16-shard build/link already pass. No target speed claim yet.
+ROM105 still expected; installed image1b6a unchanged. New targetf3a9 has
+15 transition sectors, but no fresh read or launch yet. Worker prepares
+strict stageable archive plus complete runtime-path hash closure; root must
+review, stage, preflight and fresh-read before any write. Root alone owns bench.
+Configured master limiter silence-skip rejected for state correctness.
+Raw PLL interpretation does not calibrate actual CPU frequency.
+See notes/2026-10-15-c0-profiler-off-and-zero-history.md for reviews and limits.
+Unrelated uv.lock untouched. Last verified pushed sourcef1a2af9d before this note.
+
 ## Profiler-OFF capture complete; ROM105 recovery observed — 2026-10-15
 
 [verified] Goal ACTIVE; cold-boot audio/display acceptance FAILED; SAVE disarmed.
