@@ -12,6 +12,7 @@ from pathlib import Path, PurePosixPath
 import re
 import shutil
 import select
+import stat
 import subprocess
 import tempfile
 import threading
@@ -20,6 +21,7 @@ from dataclasses import dataclass, field
 
 from .api import (MAX_ARTIFACT_BYTES, MAX_BODY_BYTES, MAX_ELF_BYTES, QueueFull,
                   WorkerResult, WorkerSnapshot, _unique_object, _reject_constant)
+from .docker_worker import GENERATED_EVIDENCE_PATHS
 from .provenance import (make_diagnostic_provenance, sha256 as _sha256,
                          tree_manifest)
 
@@ -27,6 +29,38 @@ _BUILD_ID = re.compile(r"[A-Za-z0-9_-]{32}\Z")
 _IMAGE = "lunar-recovery-pytest@sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d"
 _MAX_PRIVATE_EVIDENCE_FILE = 128 * 1024 * 1024
 _MAX_PRIVATE_EVIDENCE_TOTAL = 512 * 1024 * 1024
+_CATALOGUE_MOUNT = "/input/catalogue/"
+_BUILD_LINK_MOUNT = "/tmp/lunar-worker/output/build/link/"
+
+
+def _canonical_relative(raw: str) -> PurePosixPath:
+    parts = raw.split("/")
+    if not raw or "\\" in raw or any(part in ("", ".", "..") for part in parts):
+        raise ValueError("private evidence path is not canonical")
+    path = PurePosixPath(raw)
+    if path.is_absolute() or path.as_posix() != raw:
+        raise ValueError("private evidence path is not canonical")
+    return path
+
+
+def _receipt_key(path: str, prefix: str, key_prefix: str) -> tuple[str, PurePosixPath]:
+    if not isinstance(path, str) or not path.startswith(prefix):
+        raise ValueError("private receipt path is outside fixed worker mounts")
+    rel = _canonical_relative(path[len(prefix):])
+    return key_prefix + rel.as_posix(), rel
+
+
+def _read_private_file(path: Path, limit: int, expected_size: int | None = None) -> bytes:
+    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    with os.fdopen(descriptor, "rb") as stream:
+        info = os.fstat(stream.fileno())
+        if (not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= limit
+                or (expected_size is not None and info.st_size != expected_size)):
+            raise ValueError("private evidence file differs from its declared size or cap")
+        raw = stream.read(info.st_size + 1)
+        if len(raw) != info.st_size:
+            raise ValueError("private evidence file changed while reading")
+        return raw
 
 
 def read_private_evidence(result_dir: Path, expected_request: bytes,
@@ -37,25 +71,33 @@ def read_private_evidence(result_dir: Path, expected_request: bytes,
     manifest_path = root / "manifest.json"
     if root.is_symlink() or not root.is_dir() or manifest_path.is_symlink() or not manifest_path.is_file():
         raise ValueError("worker omitted private evidence manifest")
-    raw_manifest = manifest_path.read_bytes()
-    if not 0 < len(raw_manifest) <= 2 * 1024 * 1024:
+    manifest_size = manifest_path.stat().st_size
+    if not 0 < manifest_size <= 2 * 1024 * 1024:
         raise ValueError("private evidence manifest exceeds cap")
+    raw_manifest = _read_private_file(manifest_path, 2 * 1024 * 1024, manifest_size)
     manifest = json.loads(raw_manifest.decode("ascii"), object_pairs_hook=_unique_object,
                           parse_constant=_reject_constant)
     if not isinstance(manifest, dict) or not manifest:
         raise ValueError("private evidence manifest is malformed")
     if len(manifest) > 8192:
         raise ValueError("private evidence manifest has too many files")
-    evidence: dict[str, bytes] = {}
-    total = 0
+    declared_total = 0
+    checked_rows = []
     for rel, row in manifest.items():
-        path = PurePosixPath(rel) if isinstance(rel, str) else PurePosixPath(".")
-        if (not isinstance(rel, str) or "\\" in rel or path.is_absolute()
-                or any(part in ("", ".", "..") for part in path.parts)
-                or not isinstance(row, dict) or set(row) != {"bytes", "sha256"}
+        if not isinstance(rel, str):
+            raise ValueError("private evidence manifest row is malformed")
+        path = _canonical_relative(rel)
+        if (not isinstance(row, dict) or set(row) != {"bytes", "sha256"}
                 or type(row["bytes"]) is not int or not 0 < row["bytes"] <= _MAX_PRIVATE_EVIDENCE_FILE
                 or not isinstance(row["sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", row["sha256"])):
             raise ValueError("private evidence manifest row is malformed")
+        declared_total += row["bytes"]
+        if declared_total > _MAX_PRIVATE_EVIDENCE_TOTAL:
+            raise ValueError("private evidence manifest exceeds aggregate cap")
+        checked_rows.append((rel, path, row))
+    evidence: dict[str, bytes] = {}
+    total = 0
+    for rel, path, row in checked_rows:
         source = root / path
         current = root
         unsafe_parent = False
@@ -66,12 +108,13 @@ def read_private_evidence(result_dir: Path, expected_request: bytes,
                 break
         if unsafe_parent or source.is_symlink() or not source.is_file():
             raise ValueError("private evidence file is missing or unsafe")
-        content = source.read_bytes()
+        size = source.stat().st_size
+        if size != row["bytes"] or size > _MAX_PRIVATE_EVIDENCE_TOTAL - total:
+            raise ValueError("private evidence differs from manifest declaration or exceeds aggregate cap")
+        content = _read_private_file(source, _MAX_PRIVATE_EVIDENCE_FILE, row["bytes"])
         if len(content) != row["bytes"] or _sha256(content) != row["sha256"]:
             raise ValueError("private evidence bytes differ from manifest")
-        total += len(content)
-        if total > _MAX_PRIVATE_EVIDENCE_TOTAL:
-            raise ValueError("private evidence exceeds total cap")
+        total += size
         evidence[rel] = content
     if evidence.get("request.json") != expected_request:
         raise ValueError("private evidence request differs from submitted request")
@@ -80,8 +123,11 @@ def read_private_evidence(result_dir: Path, expected_request: bytes,
     required = {"request.json", "prepared_profile.json", "source_profile.json",
                 "artifact_receipt.json", "build_receipt.json", "image_receipt.json",
                 "catalogue_manifest.json", "linked_objects.json"}
-    if not required.issubset(evidence) or not any(path.startswith("generated/") for path in evidence):
+    generated = {"generated/" + path for path in GENERATED_EVIDENCE_PATHS}
+    if not required.issubset(evidence) or not generated.issubset(evidence):
         raise ValueError("private evidence omits required package inputs")
+    if {path for path in evidence if path.startswith("generated/")} != generated:
+        raise ValueError("private generated inputs differ from the capture contract")
     build = json.loads(evidence["build_receipt.json"].decode("utf-8"),
                        object_pairs_hook=_unique_object, parse_constant=_reject_constant)
     image = json.loads(evidence["image_receipt.json"].decode("utf-8"),
@@ -108,21 +154,19 @@ def read_private_evidence(result_dir: Path, expected_request: bytes,
         raise ValueError("private object inventories are empty or malformed")
     expected_catalogue = set()
     for row in catalogue_rows:
-        if (not isinstance(row, dict) or set(row) != {"path", "sha256"}
-                or not isinstance(row["path"], str) or not row["path"].startswith("/catalogue/")
-                or not isinstance(row["sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", row["sha256"])):
+        if (not isinstance(row, dict) or set(row) not in
+                ({"path", "sha256"}, {"path", "sha256", "optimization"})
+                or not isinstance(row["path"], str) or not row["path"].startswith(_CATALOGUE_MOUNT)
+                or not isinstance(row["sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", row["sha256"])
+                or ("optimization" in row and row["optimization"] not in ("-Oz", "-Os", "-O2"))):
             raise ValueError("private catalogue inventory row is malformed")
-        rel = row["path"][len("/catalogue/"):]
-        rel_path = PurePosixPath(rel)
-        if "\\" in rel or rel_path.is_absolute() or any(part in ("", ".", "..") for part in rel_path.parts):
-            raise ValueError("private catalogue path is unsafe")
-        key = "catalogue/" + rel
+        key, rel_path = _receipt_key(row["path"], _CATALOGUE_MOUNT, "catalogue/")
         if key in expected_catalogue or key not in evidence:
             raise ValueError("private catalogue bytes do not match the inventory")
         content = evidence[key]
         pinned = catalogue_root.joinpath(*rel_path.parts)
         if (pinned.is_symlink() or not pinned.is_file() or _sha256(content) != row["sha256"]
-                or _sha256(pinned.read_bytes()) != row["sha256"]):
+                or _sha256(_read_private_file(pinned, _MAX_PRIVATE_EVIDENCE_FILE, len(content))) != row["sha256"]):
             raise ValueError("private catalogue bytes differ from the host-pinned catalogue")
         expected_catalogue.add(key)
     if {path for path in evidence if path.startswith("catalogue/")} != expected_catalogue:
@@ -134,10 +178,10 @@ def read_private_evidence(result_dir: Path, expected_request: bytes,
                 or not re.fullmatch(r"[0-9a-f]{64}", row["sha256"])):
             raise ValueError("private linked-object row is malformed")
         path = row["path"]
-        if path.startswith("/catalogue/"):
-            key = "linked/catalogue/" + path[len("/catalogue/"):]
-        elif path.startswith("/output/build/link/"):
-            key = "linked/link/" + path[len("/output/build/link/"):]
+        if path.startswith(_CATALOGUE_MOUNT):
+            key, _ = _receipt_key(path, _CATALOGUE_MOUNT, "linked/catalogue/")
+        elif path.startswith(_BUILD_LINK_MOUNT):
+            key, _ = _receipt_key(path, _BUILD_LINK_MOUNT, "linked/link/")
         else:
             raise ValueError("private linked-object path is outside fixed mounts")
         if key in expected_linked or key not in evidence or _sha256(evidence[key]) != row["sha256"]:

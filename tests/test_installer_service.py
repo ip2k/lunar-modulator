@@ -831,9 +831,9 @@ def _docker_lifecycle_adapter(tmp_path):
     receipt_object = json.loads(result_receipt(request_doc(), request_sha, app_bytes, TEST_ELF))
     cat_bytes, link_bytes = b"catalogue-object", b"link-object"
     (catalogue / "object.o").write_bytes(cat_bytes)
-    catalogue_row = {"path": "/catalogue/object.o", "sha256": hashlib.sha256(cat_bytes).hexdigest()}
+    catalogue_row = {"path": "/input/catalogue/object.o", "sha256": hashlib.sha256(cat_bytes).hexdigest()}
     linked_rows = [catalogue_row,
-                   {"path": "/output/build/link/object.o", "sha256": hashlib.sha256(link_bytes).hexdigest()}]
+                   {"path": "/tmp/lunar-worker/output/build/link/object.o", "sha256": hashlib.sha256(link_bytes).hexdigest()}]
     build_receipt = json.dumps({"catalogue_objects": [catalogue_row], "linked_objects": linked_rows},
                                sort_keys=True, separators=(",", ":")).encode()
     artifact_receipt = json.dumps({"app_sha256": hashlib.sha256(app_bytes).hexdigest(),
@@ -879,8 +879,11 @@ def _docker_lifecycle_adapter(tmp_path):
         "linked_objects.json": json.dumps({"schema": 1, "objects": linked_rows},
             sort_keys=True, separators=(",", ":")).encode(),
         "catalogue/object.o": cat_bytes, "linked/catalogue/object.o": cat_bytes,
-        "linked/link/object.o": link_bytes, "generated/link/generated.h": b"generated",
+        "linked/link/object.o": link_bytes,
     }
+    from tools.installer_service.docker_worker import GENERATED_EVIDENCE_PATHS
+    contents.update({"generated/" + path: b"generated:" + path.encode()
+                     for path in GENERATED_EVIDENCE_PATHS})
     evidence_root = base / "result/evidence"
     manifest = {}
     for rel, content in contents.items():
@@ -979,8 +982,8 @@ def test_private_evidence_contract_checks_receipts_catalogue_and_linked_bytes(tm
     link = b"linked object"
     generated = b"generated header"
     (catalogue_root / "object.o").write_bytes(cat)
-    catalogue_rows = [{"path": "/catalogue/object.o", "sha256": sha256(cat)}]
-    linked_rows = catalogue_rows + [{"path": "/output/build/link/object.o", "sha256": sha256(link)}]
+    catalogue_rows = [{"path": "/input/catalogue/object.o", "sha256": sha256(cat)}]
+    linked_rows = catalogue_rows + [{"path": "/tmp/lunar-worker/output/build/link/object.o", "sha256": sha256(link)}]
     build = {"catalogue_objects": catalogue_rows, "linked_objects": linked_rows}
     build_raw = json.dumps(build, sort_keys=True, separators=(",", ":")).encode()
     artifact_raw = b'{"artifact":1}'
@@ -998,8 +1001,11 @@ def test_private_evidence_contract_checks_receipts_catalogue_and_linked_bytes(tm
         "linked_objects.json": json.dumps({"schema": 1, "objects": linked_rows},
             sort_keys=True, separators=(",", ":")).encode(),
         "catalogue/object.o": cat, "linked/catalogue/object.o": cat,
-        "linked/link/object.o": link, "generated/link/generated.h": generated,
+        "linked/link/object.o": link,
     }
+    from tools.installer_service.docker_worker import GENERATED_EVIDENCE_PATHS
+    contents.update({"generated/" + path: generated + b":" + path.encode()
+                     for path in GENERATED_EVIDENCE_PATHS})
     manifest = {}
     for rel, content in contents.items():
         path = evidence_root / rel
@@ -1015,6 +1021,108 @@ def test_private_evidence_contract_checks_receipts_catalogue_and_linked_bytes(tm
     (evidence_root / "linked/link/object.o").write_bytes(b"altered")
     with pytest.raises(ValueError, match="manifest"):
         read_private_evidence(result, request, image_raw, catalogue_root)
+
+
+def test_worker_retains_real_builder_namespace_and_receipt_order(tmp_path, monkeypatch):
+    from tools.installer_service import docker_worker
+    from tools.installer_service.docker_adapter import read_private_evidence
+    from tools.installer_service.provenance import sha256
+
+    catalogue = tmp_path / "catalogue"
+    result = tmp_path / "result"
+    build = tmp_path / "tmp/lunar-worker/output/build"
+    catalogue.mkdir()
+    result.mkdir()
+    (build / "selection/prepared").mkdir(parents=True)
+    (build / "selection/staged").mkdir(parents=True)
+    (build / "link/artifact").mkdir(parents=True)
+    request = b'{"version":1}\n'
+    prepared, source = b'{"prepared":true}', b'{"source":true}'
+    app, elf = b"private app", b"private ELF"
+    (build / "selection/prepared/profile.json").write_bytes(prepared)
+    (build / "selection/staged/profile.json").write_bytes(source)
+    (build / "link/artifact/app.bin").write_bytes(app)
+    (build / "link/lunar-app-probe.elf").write_bytes(elf)
+    artifact = b'{"artifact":true}'
+    (build / "link/artifact/artifact.json").write_bytes(artifact)
+
+    # Receipt order mirrors checked_catalogue's index order and the linker's
+    # object traversal. It is intentionally not lexicographically sorted.
+    cat_items = [("z-last.o", b"catalogue-z"), ("a-first.o", b"catalogue-a")]
+    catalogue_rows = []
+    linked_rows = []
+    for name, content in cat_items:
+        (catalogue / name).write_bytes(content)
+        row = {"path": "/input/catalogue/" + name, "sha256": sha256(content),
+               "optimization": "-Oz"}
+        catalogue_rows.append(row)
+        linked_rows.append({"path": row["path"], "sha256": row["sha256"]})
+    link_items = [("z-linked.o", b"linked-z"), ("a-linked.o", b"linked-a")]
+    for name, content in link_items:
+        (build / "link" / name).write_bytes(content)
+        linked_rows.append({"path": "/tmp/lunar-worker/output/build/link/" + name,
+                            "sha256": sha256(content)})
+    for rel in docker_worker.GENERATED_EVIDENCE_PATHS:
+        path = build / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(("generated:" + rel).encode())
+    build_receipt = json.dumps({"catalogue_objects": catalogue_rows,
+                                "linked_objects": linked_rows}, separators=(",", ":")).encode()
+    (build / "link/verification.json").write_bytes(build_receipt)
+    image = {"request_sha256": sha256(request),
+             "prepared_profile_sha256": sha256(prepared),
+             "verification_sha256": sha256(build_receipt),
+             "artifact_receipt_sha256": sha256(artifact),
+             "app_sha256": sha256(app), "elf_sha256": sha256(elf)}
+    image_raw = json.dumps(image, separators=(",", ":")).encode()
+    (build / "image.json").write_bytes(image_raw)
+
+    monkeypatch.setattr(docker_worker, "CATALOGUE", catalogue)
+    monkeypatch.setattr(docker_worker, "RESULT", result)
+    docker_worker.retain_private_evidence(build, request)
+    retained = read_private_evidence(result, request, image_raw, catalogue)
+    assert json.loads(retained["catalogue_manifest.json"])["objects"] == catalogue_rows
+    assert json.loads(retained["linked_objects.json"])["objects"] == linked_rows
+    assert set(path.removeprefix("generated/") for path in retained
+               if path.startswith("generated/")) == set(docker_worker.GENERATED_EVIDENCE_PATHS)
+
+
+@pytest.mark.parametrize("raw", ["a//b", "a/./b", "a/../b", "a\\b"])
+def test_private_evidence_rejects_noncanonical_manifest_aliases(tmp_path, raw):
+    from tools.installer_service.docker_adapter import read_private_evidence
+
+    root = tmp_path / "result/evidence"
+    root.mkdir(parents=True)
+    (root / "payload").write_bytes(b"x")
+    manifest = {raw: {"bytes": 1, "sha256": hashlib.sha256(b"x").hexdigest()}}
+    (root / "manifest.json").write_text(json.dumps(manifest), encoding="ascii")
+    with pytest.raises(ValueError, match="canonical"):
+        read_private_evidence(root.parent, b"", b"", tmp_path)
+
+
+def test_private_evidence_aggregate_manifest_cap_precedes_file_reads(tmp_path, monkeypatch):
+    from tools.installer_service.docker_adapter import read_private_evidence, _MAX_PRIVATE_EVIDENCE_FILE
+
+    root = tmp_path / "result/evidence"
+    root.mkdir(parents=True)
+    row = {"bytes": _MAX_PRIVATE_EVIDENCE_FILE, "sha256": "0" * 64}
+    manifest = {"payload-%d.bin" % i: row for i in range(5)}
+    for name in manifest:
+        with (root / name).open("wb") as stream:
+            stream.truncate(_MAX_PRIVATE_EVIDENCE_FILE)
+    (root / "manifest.json").write_text(json.dumps(manifest), encoding="ascii")
+    original = Path.read_bytes
+    reads = []
+
+    def tracked_read(path):
+        if path.parent == root and path.name != "manifest.json":
+            reads.append(path.name)
+        return original(path)
+
+    monkeypatch.setattr(Path, "read_bytes", tracked_read)
+    with pytest.raises(ValueError, match="aggregate cap"):
+        read_private_evidence(root.parent, b"", b"", tmp_path)
+    assert reads == []
 
 
 def test_docker_adapter_retains_bounded_elf_and_rejects_bad_elf_outputs(tmp_path, monkeypatch):

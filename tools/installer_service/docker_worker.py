@@ -8,6 +8,8 @@ import json
 import os
 from pathlib import Path
 import shutil
+import re
+import stat
 import subprocess
 import sys
 import tarfile
@@ -37,7 +39,10 @@ GENERATED_EVIDENCE_PATHS = (
     "link/resources_plaits.cc",
     "link/resources_braids.h",
     "link/resources_plaits.h",
+    "link/wave_tables.inc",
 )
+CATALOGUE_MOUNT = "/input/catalogue/"
+BUILD_LINK_MOUNT = "/tmp/lunar-worker/output/build/link/"
 
 
 def build_profile_arguments(request: dict) -> list[str]:
@@ -72,10 +77,29 @@ def regular_file(path: Path, limit: int) -> bytes:
     size = path.stat().st_size
     if not 0 < size <= limit:
         raise ValueError("input/output exceeds cap")
-    data = path.read_bytes()
+    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    with os.fdopen(descriptor, "rb") as stream:
+        opened = os.fstat(stream.fileno())
+        if not stat.S_ISREG(opened.st_mode) or opened.st_size != size:
+            raise ValueError("file changed while opening")
+        data = stream.read(size + 1)
     if len(data) != size:
         raise ValueError("file changed while reading")
     return data
+
+
+def _receipt_relative(path: str, prefix: str) -> PurePosixPath:
+    """Accept only a canonical path below the literal builder mount."""
+    if not isinstance(path, str) or not path.startswith(prefix):
+        raise ValueError("receipt path is outside the fixed worker namespace")
+    raw = path[len(prefix):]
+    parts = raw.split("/")
+    if (not raw or "\\" in raw or any(part in ("", ".", "..") for part in parts)):
+        raise ValueError("receipt path is not canonical")
+    rel = PurePosixPath(raw)
+    if rel.as_posix() != raw or rel.is_absolute():
+        raise ValueError("receipt path is not canonical")
+    return rel
 
 
 def verified_build_outputs(build_root: Path) -> tuple[bytes, bytes, bytes]:
@@ -98,61 +122,96 @@ def retain_private_evidence(build_root: Path, request_bytes: bytes) -> dict[str,
     """Copy the bounded receipt/profile/object inputs used by the offline packager."""
     evidence_root = RESULT / "evidence"
     evidence_root.mkdir(mode=0o700)
-    evidence: dict[str, bytes] = {
-        "request.json": request_bytes,
-        "prepared_profile.json": regular_file(build_root / "selection/prepared/profile.json", 4 * 1024 * 1024),
-        "source_profile.json": regular_file(build_root / "selection/staged/profile.json", 4 * 1024 * 1024),
-        "artifact_receipt.json": regular_file(build_root / "link/artifact/artifact.json", MAX_EVIDENCE_FILE),
-        "build_receipt.json": regular_file(build_root / "link/verification.json", MAX_EVIDENCE_FILE),
-        "image_receipt.json": regular_file(build_root / "image.json", MAX_RECEIPT),
-    }
+    evidence: dict[str, bytes] = {}
+    total = 0
+
+    def retain(key: str, path: Path, limit: int = MAX_EVIDENCE_FILE) -> bytes:
+        nonlocal total
+        if path.is_symlink() or not path.is_file():
+            raise ValueError("expected regular evidence file")
+        size = path.stat().st_size
+        if not 0 < size <= limit or size > MAX_EVIDENCE_TOTAL - total:
+            raise ValueError("private build evidence exceeds fixed bounds")
+        if len(evidence) >= 8192:
+            raise ValueError("private build evidence has too many files")
+        raw = regular_file(path, limit)
+        total += size
+        evidence[key] = raw
+        return raw
+
+    def retain_bytes(key: str, raw: bytes, limit: int = 32 * 1024 * 1024) -> None:
+        nonlocal total
+        if not 0 < len(raw) <= limit or len(raw) > MAX_EVIDENCE_TOTAL - total:
+            raise ValueError("derived private evidence exceeds fixed bounds")
+        if len(evidence) >= 8192:
+            raise ValueError("private build evidence has too many files")
+        total += len(raw)
+        evidence[key] = raw
+
+    if not 0 < len(request_bytes) <= MAX_REQUEST:
+        raise ValueError("request evidence exceeds fixed bounds")
+    evidence["request.json"] = request_bytes
+    total = len(request_bytes)
+    retain("prepared_profile.json", build_root / "selection/prepared/profile.json", 4 * 1024 * 1024)
+    retain("source_profile.json", build_root / "selection/staged/profile.json", 4 * 1024 * 1024)
+    retain("artifact_receipt.json", build_root / "link/artifact/artifact.json")
+    retain("build_receipt.json", build_root / "link/verification.json")
+    retain("image_receipt.json", build_root / "image.json", MAX_RECEIPT)
     receipt = json.loads(evidence["build_receipt.json"].decode("utf-8"),
                          object_pairs_hook=_unique_object)
     catalogue_rows = receipt.get("catalogue_objects")
     linked_rows = receipt.get("linked_objects")
-    if not isinstance(catalogue_rows, list) or not isinstance(linked_rows, list):
+    if (not isinstance(catalogue_rows, list) or not isinstance(linked_rows, list)
+            or not 0 < len(catalogue_rows) <= 8192 or not 0 < len(linked_rows) <= 8192):
         raise ValueError("build receipts omit catalogue or linked-object inventory")
-    evidence["catalogue_manifest.json"] = json.dumps(
-        {"schema": 1, "objects": sorted(catalogue_rows, key=lambda row: row.get("path", ""))},
-        sort_keys=True, separators=(",", ":")).encode("ascii")
-    evidence["linked_objects.json"] = json.dumps(
-        {"schema": 1, "objects": sorted(linked_rows, key=lambda row: row.get("path", ""))},
-        sort_keys=True, separators=(",", ":")).encode("ascii")
     for row in catalogue_rows:
-        if not isinstance(row, dict) or set(row) != {"path", "sha256"}:
+        if (not isinstance(row, dict) or set(row) not in
+                ({"path", "sha256"}, {"path", "sha256", "optimization"})
+                or not isinstance(row.get("path"), str) or not row["path"].isascii()
+                or not isinstance(row.get("sha256"), str)
+                or not re.fullmatch(r"[0-9a-f]{64}", row["sha256"])
+                or ("optimization" in row and row["optimization"] not in ("-Oz", "-Os", "-O2"))):
             raise ValueError("catalogue object row is malformed")
+    for row in linked_rows:
+        if (not isinstance(row, dict) or set(row) != {"path", "sha256"}
+                or not isinstance(row.get("path"), str) or not row["path"].isascii()
+                or not isinstance(row.get("sha256"), str)
+                or not re.fullmatch(r"[0-9a-f]{64}", row["sha256"])):
+            raise ValueError("linked object row is malformed")
+    projected_size = sum(len(row["path"]) + 112 for row in (*catalogue_rows, *linked_rows))
+    if projected_size > 32 * 1024 * 1024:
+        raise ValueError("private object inventories exceed derived manifest cap")
+    retain_bytes("catalogue_manifest.json", json.dumps(
+        {"schema": 1, "objects": catalogue_rows},
+        sort_keys=True, separators=(",", ":")).encode("ascii"))
+    retain_bytes("linked_objects.json", json.dumps(
+        {"schema": 1, "objects": linked_rows},
+        sort_keys=True, separators=(",", ":")).encode("ascii"))
+    for row in catalogue_rows:
         path = row["path"]
-        if not isinstance(path, str) or not path.startswith("/catalogue/"):
-            raise ValueError("catalogue object path is outside the fixed namespace")
-        rel = PurePosixPath(path.removeprefix("/catalogue/"))
-        if "\\" in str(rel) or rel.is_absolute() or any(part in ("", ".", "..") for part in rel.parts):
-            raise ValueError("catalogue object path is unsafe")
+        rel = _receipt_relative(path, CATALOGUE_MOUNT)
         key = "catalogue/" + rel.as_posix()
-        evidence[key] = regular_file(CATALOGUE.joinpath(*rel.parts), MAX_EVIDENCE_FILE)
+        retain(key, CATALOGUE.joinpath(*rel.parts))
     for rel in GENERATED_EVIDENCE_PATHS:
-        if (build_root / rel).exists():
-            evidence["generated/" + rel] = regular_file(build_root / rel, MAX_EVIDENCE_FILE)
+        retain("generated/" + rel, build_root / rel, 32 * 1024 * 1024)
     for row in linked_rows:
         if not isinstance(row, dict) or set(row) != {"path", "sha256"}:
             raise ValueError("linked object row is malformed")
         path = row["path"]
         if not isinstance(path, str):
             raise ValueError("linked object path is malformed")
-        if path.startswith("/catalogue/"):
+        if path.startswith(CATALOGUE_MOUNT):
             root = CATALOGUE
-            rel = PurePosixPath(path.removeprefix("/catalogue/"))
+            rel = _receipt_relative(path, CATALOGUE_MOUNT)
             key = "linked/catalogue/" + rel.as_posix()
-        elif path.startswith("/output/build/link/"):
+        elif path.startswith(BUILD_LINK_MOUNT):
             root = build_root
-            rel = PurePosixPath("link/" + path.removeprefix("/output/build/link/"))
-            key = "linked/link/" + path.removeprefix("/output/build/link/")
+            suffix = _receipt_relative(path, BUILD_LINK_MOUNT)
+            rel = PurePosixPath("link") / suffix
+            key = "linked/link/" + suffix.as_posix()
         else:
             raise ValueError("linked object path is outside the fixed worker mounts")
-        if "\\" in str(rel) or rel.is_absolute() or any(part in ("", ".", "..") for part in rel.parts):
-            raise ValueError("linked object path is unsafe")
-        evidence[key] = regular_file(root.joinpath(*rel.parts), MAX_EVIDENCE_FILE)
-    if len(evidence) > 8192 or sum(map(len, evidence.values())) > MAX_EVIDENCE_TOTAL:
-        raise ValueError("private build evidence exceeds fixed bounds")
+        retain(key, root.joinpath(*rel.parts))
     manifest = {}
     for rel, raw in sorted(evidence.items()):
         path = evidence_root / rel
