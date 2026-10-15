@@ -1,5 +1,12 @@
 # Hidden Session work: physical timing result
 
+[verified: owner observation] After the requested physical power cycle, Lunar
+booted, but the owner reported the sine-wave display remained very laggy and
+audio remained distorted and very bad. Cold boot therefore does not resolve
+the failure. This observation does not isolate clock, DSP or display costs.
+The matched profiling-off campaign below remains pending; its offline build
+and candidate checks are not a performance or musical acceptance result.
+
 [verified] The one-use ROM101 campaign installed source
 `c0f138a09eac30ae187cb764617bac7e03df06e9`, target
 `c7afa08c1a66fe82458359cd0750133b755d7247e0904e6fedd18402f71418c6`.

@@ -61,8 +61,11 @@ on the FM-1 with working display, keys, encoders and audible notes. The
 thirteen-engine Event Horizon timed diagnostic was installed and read back;
 the owner rejected its latest watched playback for severe audio lag and slow
 metering, including individual notes before PLAY. Timed return to ROM succeeded;
-CPU overload is not yet measured. Analogue capture and realtime instrumentation
-are being prepared; this image has failed playback acceptance. The
+Later instrumented hardware runs measured insufficient audio production; the
+c0 image supplies about 464.45 of 689.34 required blocks per device-second.
+The owner also rejected its cold boot for severe waveform-display lag and
+distorted audio. See `notes/2026-10-15-hidden-session-physical-results.md`;
+this image has failed playback acceptance. The
 separate continuous FM-1_500 target links all thirteen engines and 55 modules
 at 845,336 bytes; its exact private FWSC has passed offline composition and
 independent parsing, but has not been installed or accepted by the updater.
