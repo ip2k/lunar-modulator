@@ -155,3 +155,26 @@ disarmed SAVE match. Requests support selected content but do not establish
 the desired13-engine/Event Horizon+SET default. A reviewed versioned build
 profile and separate defaults layer remain necessary before release. See
 private scratch/service-native-profile-review-20261015/HANDOFF.md.
+
+## Retained compatibility and bench file-only gate
+
+[verified: retained Hera fixtures] Exact integration eee62e6c passed39 trusted
+FWSC/capture tests with zero skips. Root independently checked the16-shard
+manifest:39unique test IDs, no omissions/duplicates, all16 exits0. The worker
+used four waves of four bounded processes. This verifies historical schema1
+compatibility, not a new service-generated package or hardware acceptance.
+Evidence: Hera coordination handoffs/evidence/lunar-metadata-eee62e6c-16shards-20261015/manifest.json.
+
+[verified: offline/remote files] Root reviewed the corrected stage7 launch
+package, reran10 tests plus6 subtests, staged348 inventoried files to bench01
+`/home/claude/fm1-current-stage7-66c95bb-20261015`, and independently verified
+every remote file hash and complete recursive inventory. File-only preflight
+stopped at a missing build/prepared-profile.json before device access. The
+package worker is completing required inputs; do not launch this package until
+the exact full preflight succeeds. No fresh paired read, flash or reset occurred.
+
+[verified: review finding] Proposed private native profile1f749165 passed156
+focused tests, one existing conditional skip, but root's validation against the
+actual corrected target receipt failed target_app_storage. It is not integrated.
+Worker is checking the real storage-profile difference and regression fixture;
+do not weaken provenance checks or infer actual-target compatibility from mocks.
