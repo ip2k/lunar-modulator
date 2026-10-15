@@ -1,0 +1,6 @@
+# Match the reviewed r1.4 platform and ULPI simulation APIs.
+pytest==9.1.1
+cynthion==0.2.5
+amaranth==0.5.10
+luna-usb==0.2.3
+apollo-fpga==1.1.1

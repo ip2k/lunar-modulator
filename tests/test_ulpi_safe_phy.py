@@ -2,6 +2,12 @@
 
 import unittest
 
+import pytest
+
+pytest.importorskip("amaranth")
+pytest.importorskip("cynthion")
+pytest.importorskip("luna")
+
 from amaranth import ClockDomain, Elaboratable, Module, ResetSignal, ClockSignal
 from cynthion.gateware.platform.cynthion_r1_4 import CynthionPlatformRev1D4
 from amaranth.sim import Simulator

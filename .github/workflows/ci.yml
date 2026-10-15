@@ -12,6 +12,18 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  cynthion-gateware:
+    name: Cynthion recovery gateware simulations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r gateware/requirements-test.txt
+      - name: Exercise the real ULPI register-window interface
+        run: python -m pytest -v tests/test_ulpi_safe_phy.py
+
   python-tests:
     name: tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
