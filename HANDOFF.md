@@ -1,3 +1,17 @@
+## Coordinator checkpoint: hot-RAM boot failed; USB rescue recovered to ROM79
+
+ROM75 one-use campaign consumed:210changed sectors, full readback verified
+58c9aebbd9d167d5f2f069d0e9d73d5c76bb03d1a0e4d70dfaec49f324c0070d.
+Boot reply ambiguous: no retry. Native76/77 then stable78 FM-1_000 USB rescue.
+No telemetry: performance unmeasurable, audio still unaccepted. One independently
+reviewed, identity+physical-USB-bound softkey recovered to ROM79 without a power
+cycle. No active capture remains. Private evidence scratch/hot-ram-result/physical.
+Static review found PC window excludes new .ram_dsp; opt-in builder correction
+extends only upper bound to_rd_end-1 under dbg unlock/lock.126 focused tests pass.
+Fresh Hera16-shard build and exact ELF guard review next, before new campaign.
+No watchdog/cache settings changed. SAVE disarmed, full release goal ACTIVE.
+Notes:notes/2026-10-15-hot-dsp-ram-experiment.md. Unrelated uv.lock untouched.
+
 ## Coordinator checkpoint: hot-RAM candidate staged, file-only gate passed
 
 Fresh private bench base /home/claude/fm1-hot-ram-e85a42f3-20261015.

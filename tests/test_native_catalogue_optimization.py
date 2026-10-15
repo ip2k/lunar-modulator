@@ -130,12 +130,20 @@ def test_hot_dsp_ram_requires_bounded_runtime_and_copies_extent_at_startup():
     assert receipt['selected_bodies'] == builder.HOT_DSP_RAM_BODIES
     assert receipt['all_callees_in_ram'] is False
     platform = ('    extern uint32_t _pool_start[], _pool_end[], _rt_start[], _rt_end[], _rt_load[];\n'
-                '    for (s = _rt_load, d = _rt_start; d < _rt_end; s++, d++) *d = *s;\n')
+                '    for (s = _rt_load, d = _rt_start; d < _rt_end; s++, d++) *d = *s;\n'
+                '    fm1_guard_enable(FM1_GUARD_STACK | FM1_GUARD_WRITE | FM1_GUARD_BUS | FM1_GUARD_PC);\n')
     default = builder.hot_dsp_ram_platform(platform, False)
     opted_in = builder.hot_dsp_ram_platform(platform, True)
     assert default == platform
     assert opted_in.count('_rd_start') == 2  # declaration plus copy-loop destination
     assert opted_in.index('_rt_end; s++, d++)') < opted_in.index('_rd_end; s++, d++)')
+    assert opted_in.count('FM1_PC_LIMIT1_H = (uint32_t)(uintptr_t)_rd_end - 1u;') == 1
+    assert opted_in.index('_rd_end; s++, d++)') < opted_in.index('fm1_guard_enable(')
+    assert opted_in.index('fm1_guard_enable(') < opted_in.index('fm1__dbg_unlock();')
+    assert opted_in.index('FM1_PC_LIMIT1_H =') < opted_in.index('fm1__dbg_lock();')
+    # Never silently omit the guard adaptation if the pinned platform changes.
+    with pytest.raises(SystemExit, match='Pinned adaptation'):
+        builder.hot_dsp_ram_platform(platform.replace('FM1_GUARD_PC', '0'), True)
 
 
 @pytest.mark.parametrize('fault', ('none', 'missing-map', 'extra-map', 'missing-unit',

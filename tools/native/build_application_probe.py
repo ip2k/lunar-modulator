@@ -331,11 +331,19 @@ def hot_dsp_ram_platform(source, enabled):
         '    extern uint32_t _pool_start[], _pool_end[], _rt_start[], _rt_end[], _rt_load[];\n',
         '    extern uint32_t _pool_start[], _pool_end[], _rt_start[], _rt_end[], _rt_load[];\n'
         '    extern uint32_t _rd_start[], _rd_end[], _rd_load[];\n')
-    return replace_once(
+    source = replace_once(
         source,
         '    for (s = _rt_load, d = _rt_start; d < _rt_end; s++, d++) *d = *s;\n',
         '    for (s = _rt_load, d = _rt_start; d < _rt_end; s++, d++) *d = *s;\n'
         '    for (s = _rd_load, d = _rd_start; d < _rd_end; s++, d++) *d = *s;\n')
+    # The HAL's second PC window admits only .ram_text by default. Extend its
+    # upper bound through the separately copied DSP section; the linker bounds
+    # both sections within RAMTEXT and keeps the flash-writer closure separate.
+    guard = '    fm1_guard_enable(FM1_GUARD_STACK | FM1_GUARD_WRITE | FM1_GUARD_BUS | FM1_GUARD_PC);\n'
+    return replace_once(source, guard, guard +
+        '    fm1__dbg_unlock();\n'
+        '    FM1_PC_LIMIT1_H = (uint32_t)(uintptr_t)_rd_end - 1u;\n'
+        '    fm1__dbg_lock();\n')
 
 
 def hot_dsp_ram_extent(elf_path):

@@ -90,3 +90,39 @@ journal was re-read: complete, no pending intent, verified target 864445bea.
 SAVE remains disarmed. Selected RAM bodies are not a full transitive residency
 proof; performance, recovery independence, musical and release acceptance remain
 open. Private campaign tools and tests are in `scratch/hot-ram-cycle/`.
+
+## Physical campaign and recovery
+
+[verified: retained bench journal] The one-use ROM75 campaign installed all
+210 changed sectors and verified complete target readback SHA-256
+`58c9aebbd9d167d5f2f069d0e9d73d5c76bb03d1a0e4d70dfaec49f324c0070d`.
+Its transaction is complete with no pending intent. The single boot request
+returned an ambiguous SG response; it was not retried. Native USB enumerated
+as devices 76 and 77 before stable device 78. A fresh checksum-valid identity
+query returned `FM-1_000`, confirming USB rescue rather than a running synth.
+The recorder obtained no telemetry frames; its bounded timeout and partial
+analog capture cannot support a performance comparison or audio acceptance.
+
+[verified: one-use recovery journal] After independent source review, one
+fresh identity query and repeated unique ALSA-client/card-to-USB ancestry
+validation, the coordinator sent one soft key. ROM `4c4a:8057` enumerated as
+device 79. No physical power cycle or flash operation was needed for rescue.
+Private evidence: `scratch/hot-ram-result/physical/campaign-evidence/` and
+`rescue-to-rom-once.jsonl`; helper SHA-256
+`239875532dbd196163d0e63192c2b42e6adb67a50aaa466403978991bec98fa0`.
+The ROM75 campaign is consumed; never rerun it.
+
+[verified: source and linked ELF] The PC guard's RAM window ends at
+`_rt_end - 1 = 0x01c00543`, excluding every new `.ram_dsp` instruction;
+`fm1_app_render` is linked at `0x01c00f58`. [inferred] Its first execution
+could cause the fault handler's eight-second delay and warm reset. No captured
+fault record proves attribution; watchdog expiry remains another possibility.
+
+The opt-in builder now extends only PC window 1's upper bound to `_rd_end - 1`
+after ordinary guard setup, under the existing debug unlock/lock sequence.
+The lower bound stays `_rt_start`, both sections retain the link-time RAMTEXT
+bound, and default builds and the flash-writer closure remain unchanged.
+Coordinator optimization/artifact/catalogue receipt suites pass (126 tests).
+Fresh target build, exact guard disassembly and physical acceptance remain
+pending; no new image has been installed for this correction. SAVE remains
+disarmed and the overall firmware/web release goal remains active.
