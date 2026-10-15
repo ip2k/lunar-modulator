@@ -212,6 +212,7 @@ struct Voice {
   float note_offset;              // the patch's transpose, semitones
   uint8_t key;
   float velocity;
+  float accent;
   bool gate;
   bool active;
   uint32_t age;
@@ -276,6 +277,8 @@ class Instance {
     v->fm.mutable_lfo()->Reset();
     v->key = key;
     v->velocity = velocity / 127.0f;
+    v->accent = 1.3f * v->velocity / (0.3f + v->velocity);
+    if (v->accent > 0.9999f) v->accent = 0.9999f;
     v->age = ++clock_;
     v->silent_blocks = 0;
     v->active = true;
@@ -416,11 +419,15 @@ class Instance {
       Voice &v = voice_[i];
       if (!v.active) continue;
 
-      // Velocity as Plaits derives its accent from LEVEL. fm::NormalizeVelocity
-      // reads lut_cube_root[16 * velocity + 1], one past the table at exactly
-      // 1.0, so stay just below it.
+#ifdef FM1_SIXOP_TEST_REFERENCE_ACCENT
+      // Test-only baseline: recompute the same Plaits accent each render block.
       float accent = 1.3f * v.velocity / (0.3f + v.velocity);
       if (accent > 0.9999f) accent = 0.9999f;
+#else
+      // Cache Plaits' velocity-derived accent at note-on; this avoids a divide
+      // per active voice per render block. Keep it below 1.0 for the lookup.
+      const float accent = v.accent;
+#endif
 
       fm::Voice<6>::Parameters *p = v.fm.mutable_parameters();
       p->sustain = false;

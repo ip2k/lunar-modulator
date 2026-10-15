@@ -106,7 +106,7 @@ RENDER_OBJ = $(OUR_OBJ) $(TP_OBJ) $(RENDER_EXTRA_OBJ) $(GPL_OBJ)
 RENDER_PRODUCT_OBJ = $(filter-out $(FM1_DROP_OBJ),$(RENDER_OBJ))
 
 .PHONY: all clean
-all: $(BUILD)/fm1-render $(BUILD)/fm1-sophie-phase-test
+all: $(BUILD)/fm1-render $(BUILD)/fm1-sophie-phase-test $(BUILD)/fm1-sixop-accent-cache-test
 
 $(BUILD)/fm1-render: $(RENDER_PRODUCT_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
@@ -116,6 +116,13 @@ $(BUILD)/fm1-render: $(RENDER_PRODUCT_OBJ)
 $(BUILD)/fm1-sophie-phase-test: test/sophie_phase_test.c third_party/schwung-modules/sophie/sophie.c
 	@mkdir -p $(dir $@)
 	$(CC) -std=c11 -O2 -Wall -Wextra -Ithird_party/schwung-modules/sophie -o $@ $< -lm
+
+# Compare cached velocity accent against the original per-block computation
+# through the complete Six-Op engine API and note/retrigger/release sequence.
+SIXOP_TEST_OBJ := $(addprefix $(BUILD)/,$(filter-out our/src/mi_sixop.o,$(FM1_OBJ.sixop)))
+$(BUILD)/fm1-sixop-accent-cache-test: test/sixop_accent_cache_test.cc $(SIXOP_TEST_OBJ)
+	@mkdir -p $(dir $@)
+	$(CXX) $(COMMON) $(OUR_WARN) -o $@ $< $(SIXOP_TEST_OBJ) -lm
 
 $(BUILD)/our/%.o: %.cc
 	@mkdir -p $(dir $@)
