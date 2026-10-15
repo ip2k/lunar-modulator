@@ -78,6 +78,39 @@ static inline void fm1_mix_limiter_process(fm1_mix_limiter_t *l, float *lr, uint
   }
 }
 
+/* Hot-DSP variant for the application pipeline. In addition to the limiter's
+ * normal state update, accumulate the peak of the exact post-limiter samples
+ * written to lr. The caller supplies an accumulator (normally initialized to
+ * +0); zero frames leave it unchanged. Keep the baseline API above available
+ * for other renderers and reference comparisons. */
+#if defined(FM1_HOT_DSP_RAM) && FM1_HOT_DSP_RAM
+static inline void fm1_mix_limiter_process_peak(fm1_mix_limiter_t *l, float *lr,
+                                                uint32_t frames,
+                                                float *output_peak) {
+  for (uint32_t n = 0; n < frames; ++n) {
+    lr[2 * n] = fm1_mix_guard(lr[2 * n]);
+    lr[2 * n + 1] = fm1_mix_guard(lr[2 * n + 1]);
+    float a = FM1_MIX_LIMITER_ABS_F32(lr[2 * n]);
+    float b = FM1_MIX_LIMITER_ABS_F32(lr[2 * n + 1]);
+    float peak = a > b ? a : b;
+    if (peak > l->envelope) {
+      l->envelope = peak;
+    } else {
+      l->envelope += (peak - l->envelope) * l->release;
+    }
+    if (l->envelope > l->ceiling) {
+      float g = l->ceiling / l->envelope;
+      lr[2 * n] *= g;
+      lr[2 * n + 1] *= g;
+      a = FM1_MIX_LIMITER_ABS_F32(lr[2 * n]);
+      b = FM1_MIX_LIMITER_ABS_F32(lr[2 * n + 1]);
+      peak = a > b ? a : b;
+    }
+    if (peak > *output_peak) *output_peak = peak;
+  }
+}
+#endif
+
 #undef FM1_MIX_LIMITER_ABS_F32
 
 #endif /* FM1_MIX_LIMITER_H_ */

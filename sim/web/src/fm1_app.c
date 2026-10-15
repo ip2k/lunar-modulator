@@ -3517,10 +3517,20 @@ FM1_HOT_DSP_RENDER const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
   /* The metronome's click (O11), from the block's events, as fm1-render
    * adds it: after the effects, before the limiter. */
   if (a->seq) fm1_seq_click_mix(&a->click, a->seq, a->seq_ev, a->seq_last_n, n, out);
+#if defined(FM1_HOT_DSP_RAM) && FM1_HOT_DSP_RAM
+  float block_peak = 0.0f;
+  fm1_mix_limiter_process_peak(&a->limiter, out, n, &block_peak);
+#else
   fm1_mix_limiter_process(&a->limiter, out, n);
+#endif
   if (a->edit) fm1_edit_meter(a, 3u * FM1_APP_SOUNDS + FM1_APP_FX_SLOTS + 1u, out, n);   /* the output */
+#if defined(FM1_HOT_DSP_RAM) && FM1_HOT_DSP_RAM
+  fm1_postmix_scope_and_gain_peak(out, n, a->scope, FM1_APP_SCOPE,
+                                  &a->scope_pos, &a->peak, block_peak, a->gain);
+#else
   fm1_postmix_scope_and_gain(out, n, a->scope, FM1_APP_SCOPE,
                              &a->scope_pos, &a->peak, a->gain);
+#endif
   a->frames += n;
   if (a->edit) {                         /* ARP held: Latch, for the next block: the panel's */
     const uint8_t src = a->edit->src;

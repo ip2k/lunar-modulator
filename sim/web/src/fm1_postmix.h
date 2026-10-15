@@ -65,6 +65,36 @@ static inline void fm1_postmix_scope_and_gain(float *out, uint32_t frames,
   }
 }
 
+/* Application hot-DSP path: the limiter has already accumulated the exact
+ * post-limiter peak before the output meter observes the buffer.  Preserve
+ * the meter's position in fm1_app_render, then do only the scope/gain work
+ * here.  Keep the baseline helper above as the reference/non-opt-in path. */
+#if defined(FM1_HOT_DSP_RAM) && FM1_HOT_DSP_RAM
+static inline void fm1_postmix_scope_and_gain_peak(float *out, uint32_t frames,
+                                                   float *scope, uint32_t scope_size,
+                                                   int *scope_pos, float *peak,
+                                                   float block_peak, float gain) {
+  if (frames != 0 && block_peak > *peak) *peak = block_peak;
+  if (gain != 1.0f) {
+    for (uint32_t i = 0; i < frames; ++i) {
+      const float left = out[2 * i];
+      const float right = out[2 * i + 1];
+      const float mono = 0.5f * (left + right);
+      scope[*scope_pos] = mono;
+      fm1_postmix_advance_scope(scope_pos, scope_size);
+      out[2 * i] = left * gain;
+      out[2 * i + 1] = right * gain;
+    }
+  } else {
+    for (uint32_t i = 0; i < frames; ++i) {
+      const float mono = 0.5f * (out[2 * i] + out[2 * i + 1]);
+      scope[*scope_pos] = mono;
+      fm1_postmix_advance_scope(scope_pos, scope_size);
+    }
+  }
+}
+#endif
+
 #undef FM1_POSTMIX_ABS_F32
 
 #endif
