@@ -1,3 +1,16 @@
+## Cold boot reproduced starvation; startup clock snapshots match
+
+Owner physically power cycled installed prior target3571d214…5fbbb and reports
+very laggy sine display and distorted audio: performance acceptance FAILED.
+Passive nativeUSB86 capture35s recorded3 clock+3PLL snapshots, identical to
+loader-started ROM83 startup snapshots (all uptime0; no calibrated frequency claim).
+Evidence and limits: notes/2026-10-15-coldboot-clock-comparison.md.
+Timed return now ROM87/path1-1/bus1. Old ROM85 candidate binding is stale.
+New runtime staged successfully with174verified pins; restrictive umask failure
+preserved under failed-runtime-umask077, corrected helper explicitly fchmods.
+No new flash/boot command. Producer-gap target offline admission still underway.
+Goal ACTIVE; SAVE disarmed; severe audio starvation unresolved.
+
 ## Fresh producer-gap target built; tools source pins refreshed
 
 [verified: offline build] Exact firmware source aba42d839f2a68561a3e205e173d2d61b03f27e6
