@@ -96,3 +96,28 @@ block cost was 10,393.2ns; this is not FM1 timing. An empty-rack A/B is next;
 any optimization must preserve phase/RNG and later connection behavior.
 Private evidence: scratch/eh-stopped-host-profile/ and
 scratch/native-dispatch-cost-review.md. Current hardware acceptance remains FAILED.
+
+## Exact-profile compatibility and modulation A/B
+
+[verified: source and host tests] The candidate validator now accepts the exact
+legacy seven-body hot-DSP RAM receipt as well as the current eight-body receipt.
+It does not accept arbitrary subsets. Existing runtime timeout, RAM extent,
+callee claims and disarmed-SAVE checks remain enforced. Root reviewed the diff
+and independently reran all58 candidate/adapter/boot tests successfully. Integrated
+commit2a8b7aa6ced69d4798c9bc4c6405c4b5ab977925 was pushed and its remote SHA
+verified. This changes deployment tooling, not the frozen c0 firmware build.
+
+[verified: host only] Five repeats per stopped/playing case compared the exact c0
+Event Horizon project with its five unrouted modulation modules against a separate
+empty-rack input. Median host render costs fell5.69% stopped and4.27% playing;
+the full-song audio was byte-identical. These are host observations, not physical
+speedups. Retained modules advance LFO/envelope/Chance state even while unrouted,
+so simply skipping their callbacks could change later cable-connection behavior.
+Evidence and a state-continuation test proposal are in
+scratch/eh-modulation-ab/report.md (SHA256
+71e789d23a3d6bd6ef02eda25abe912ceefba76b0ab530283366a70a50f52970).
+
+[verified: passive USB observation] bench01 still enumerates ROM103 and KA6.
+No additional physical installation or timing result is claimed here. A separate
+fresh staging tree will bind the integrated runtime source while retaining the
+exact c0 OFF firmware; the first frozen staging tree remains unchanged.
