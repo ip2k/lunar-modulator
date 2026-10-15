@@ -330,7 +330,8 @@ struct Instance {
   // Derived at an update.
   float c_size, c_decay, c_damping, c_freeze, c_lowcut;   // what they came from
   float scale;                               // Size's length factor
-  float gain_lo[kLines], gain_hi[kLines];    // the shelf: DC and Nyquist gains
+  // gain_lo stores the cached (DC - Nyquist) shelf gain; gain_hi stores Nyquist.
+  float gain_lo[kLines], gain_hi[kLines];
   float shelf_k;                             // its crossover, one-pole
   float hp_k;                                // Low Cut, one-pole
   float ap_gain[kAllPasses];
@@ -415,7 +416,11 @@ struct Instance {
       float g = HallExp2(k_lo * length), h = HallExp2(k_hi * length);
       if (g > kMaxLoopGain) g = kMaxLoopGain;
       if (h > g) h = g;
+#if defined(FM1_HALL_TEST_GAIN_DELTA_REFERENCE)
       gain_lo[i] = g;
+#else
+      gain_lo[i] = g - h;
+#endif
       gain_hi[i] = h;
     }
     float hz = kDampHz * HallExp2(-kDampSpan * damping.value);
@@ -544,7 +549,11 @@ struct Instance {
         const float s0 = fdn[at & fdn_mask], s1 = fdn[(at + 1) & fdn_mask];
         r[i] = (1.0f - tf) * s0 + tf * s1;
         shelf[i] += shelf_k * (r[i] - shelf[i]);
+#if defined(FM1_HALL_TEST_GAIN_DELTA_REFERENCE)
         y[i] = gain_hi[i] * r[i] + (gain_lo[i] - gain_hi[i]) * shelf[i];
+#else
+        y[i] = gain_hi[i] * r[i] + gain_lo[i] * shelf[i];
+#endif
       }
       float wet_l = (r[0] - r[2]) + (r[5] - r[7]);
       float wet_r = (r[1] - r[3]) + (r[4] - r[6]);
