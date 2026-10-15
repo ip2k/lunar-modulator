@@ -5,10 +5,12 @@
 passed all four GPIO-to-PHY loopback states: observed [2,1,0,3], mask15,
 DONE, PHYready, no fault and GPIO outputs released. The omitted inherited
 USB3343 register0x39=0x06 board setting caused the prior J/K reversal.
-This disconnected-only image is currently loaded volatily. No FM1 was
-attached or keyed; boot-ROM recovery remains unverified. Do not reconnect yet.
-Worker is building corrected operation image with explicit CONTROL power;
-prior operation9506... has all VBUS off and is not the selected powered image.
+The corrected CONTROL-powered operation image30a3ca6c... is now loaded
+volatily. JTAG status0x4410: SAFE/disarmed, PHYready, no fault, GPIO OEs0.
+No FM1 has been attached or keyed in coordinator evidence. Owner has been
+given the TARGET-A-only / USER press / immediate FM1-on sequence; physical
+response is pending. Do not connect TARGET-C until terminal high impedance
+is observed. Recovery/ROM enumeration remains unverified.
 Root owns all device operations. Literal JTAG/upload evidence is under
 scratch/cynthion-usb-key-20261015/phy-swap-v1/.
 See notes/2026-10-15-cynthion-usb-key-recovery.md for gates/restoration plan.

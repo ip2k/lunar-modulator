@@ -1,8 +1,8 @@
 # Cynthion USB_KEY recovery preparation
 
 Status: corrected disconnected hardware check **passed**. Both TARGET ports
-remain empty; hold reconnection until the corrected powered operation image
-is built and reviewed. No FM1 was attached or keyed, and no FM1 recovery
+were empty during configuration. The corrected powered operation image is
+loaded, disarmed and ready for the owner-controlled TARGET-A-only attempt. No FM1 was attached or keyed, and no FM1 recovery
 acceptance exists.
 
 ## Corrected disconnected hardware acceptance
@@ -18,16 +18,41 @@ was written.
 `4c554e52,3,27d7,0,0,0,01010101,c6,f,c6,ff0d7a`.
 DONE7, PHYready1, PHYfault0, self-test mask15, valid mask15; observed sequence
 [2,1,0,3] equals expected K/J/SE0/SE1, with one RXCMD event per step. Failure
-registers are zero and live GPIO outputs/OEs are released. This image remains
-loaded. Logs: local
+registers are zero and live GPIO outputs/OEs are released. This image was subsequently replaced by the reviewed operation image below. Logs: local
 `scratch/cynthion-usb-key-20261015/phy-swap-v1/disconnected-upload.log` and
 `disconnected-status.json` in the same directory.
 
 [verified] The explicit USB3343 register0x39=0x06 board profile resolves the
 previous physical J/K reversal. [acceptance limit] Disconnected loopback does
 not test ROM key recognition, acknowledgement, SOF acceptance or USB enumeration.
-The corrected unpowered operation image9506... is not the selected powered
-trial image; a CONTROL-powered variant is being prepared separately.
+The corrected unpowered operation image9506... is not the selected trial image.
+
+## Operation image ready for owner key attempt
+
+[verified: Hera build / coordinator artifact review] Source d65bd636, command
+`python -m tools.cynthion_usb_key.build --mode operation --target-power-from-control --build-dir /out/build`.
+Bitstream SHA-256
+`30a3ca6c46a2f0594957758a4d1ba90196b6918869d13445be040c1f8569ef3c`.
+Final routed maxima164.15/230.15 MHz pass60/120 MHz requirements. Coordinator
+independently parsed generated JSON: CONTROL VBUS1, TARGET-C0, AUX0, discharge0;
+all four controls actively driven. Build/control receipt SHA-256
+`5bab44a32b72696b70938c1bbed01fc41df3ee95a0645217d210f1e962ad4428`.
+
+[verified: coordinator volatile upload and read-only JTAG] With both TARGET
+ports empty, upload completed. At Unix time1792106469.461785, status0x4410
+means SAFE0, PHYready1, no PHYfault, operation mode, CONTROL power selected.
+GPIO snapshot0 confirms outputs released. Registers1/2 match LUNR/layout3.
+The operation image is currently loaded. Local artifacts:
+`scratch/cynthion-usb-key-20261015/control-power-operation/` including
+`upload.log`, `disarmed-status.json` and the exact build products.
+
+[owner action pending] Owner was instructed to keep CONTROL on Mac/TARGET-C
+empty; switch FM1 off and connect TARGET-A; press/release USER once, immediately
+switch FM1 on within10seconds; leave powered on and report completion. Do not
+connect TARGET-C/bench host until coordinator observes terminal/high-impedance
+state. No physical key attempt or ROM entry is yet claimed. Passive bench01.local
+inventory before this attempt contains KA6/root hubs and no FM1.
+
 
 ## First disconnected hardware check
 
