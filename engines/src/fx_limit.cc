@@ -192,7 +192,17 @@ const float kLog2Of10Over20 = 0.166096404744368f;   // dB to log2 of gain
 // --------------------------------------------------------------------------
 // Arithmetic without libm
 
-inline float Abs(float x) { return x < 0.0f ? -x : x; }
+#if defined(FM1_LIMIT_DISABLE_HOT_INLINE)
+#define FM1_LIMIT_HOT_INLINE inline
+#elif ((defined(FM1_HOT_DSP_RAM) && FM1_HOT_DSP_RAM) || \
+       (defined(FM1_LIMIT_FORCE_INLINE_HOT) && FM1_LIMIT_FORCE_INLINE_HOT)) && \
+      (defined(__GNUC__) || defined(__clang__))
+#define FM1_LIMIT_HOT_INLINE inline __attribute__((always_inline))
+#else
+#define FM1_LIMIT_HOT_INLINE inline
+#endif
+
+FM1_LIMIT_HOT_INLINE float Abs(float x) { return x < 0.0f ? -x : x; }
 
 // 2^x: x = i + f with f in [0, 1); 2^f by its Taylor series to degree 8
 // (truncation under 1.1e-7, relative), 2^i by building the float's exponent.
@@ -224,7 +234,7 @@ inline float OnePole(float n) {
            y * (8.33333333e-03f + y * 1.38888889e-03f))))));
 }
 
-inline float Guard(float x) {
+FM1_LIMIT_HOT_INLINE float Guard(float x) {
   if (x > -kInputLimit && x < kInputLimit) return x;   // NaN fails both
   if (x >= kInputLimit) return kInputLimit;
   if (x <= -kInputLimit) return -kInputLimit;
@@ -552,7 +562,7 @@ inline float BoxStep(Instance *s, const Arrays &a, uint32_t set, uint32_t c, uin
 // The envelope's aim: the ceiling, Lookahead 0's 1 dB under it, four times
 // it once Mode has reached SOFT CLIP, or 3 dB over it once Mode has reached
 // ROUND (above).
-inline float Aim(float c, float soft, float round, int zero) {
+FM1_LIMIT_HOT_INLINE float Aim(float c, float soft, float round, int zero) {
   if (soft == 1.0f) return kSoftHeadroom * c;
   if (round == 1.0f) return kRoundHeadroom * c;
   return zero ? kSafetyKnee * c : c;

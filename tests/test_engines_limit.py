@@ -76,7 +76,7 @@ def test_limiter_is_registered(renderer):  # noqa: F811
     assert all(p["min"] <= p["def"] <= p["max"] for p in e["params"])
 
 
-def test_equal_peak_ratio_reuse_is_bitwise_equivalent(renderer):  # noqa: F811
+def test_hot_limiter_optimizations_are_bitwise_equivalent(renderer):  # noqa: F811
     result = json.loads(subprocess.run([str(RATIO_TOOL)], check=True,
                                        capture_output=True, text=True).stdout)
     assert result == {

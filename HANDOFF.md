@@ -1,3 +1,21 @@
+## Current offline candidates and pending performance comparison
+
+Goal ACTIVE; owner cold-boot musical acceptance FAILED; SAVE disarmed.
+Limiter tiny-helper inline trial reviewed and host differential passed; target fit
+and timing pending. See notes/2026-10-15-limiter-hot-inline.md.
+Resampler exact6bbd9c2 build launched on Hera in16 bounded shards; no device actions.
+
+0e024 Hall/postmix/fabs bundle constructed OFFLINE at
+/home/claude/fm1-fabs-profile-0e02422f-20261015. Full175 runtime and fresh172
+external dependencies verified; native60 files and tools249 files verified.
+Candidate13902c8a762cad580f7e1d779ff51d8c31d7dc8184eedab8d594d70cbc6262fd,
+receipt6aae776eb68659e097e213b14472ade95645fb11fa7efd5838fdf187c483e872.
+Root comparison:210 changed4KiB sectors all inside[0x4000,0xD7000), every byte
+outside unchanged. Not flashed. Runtime Python must use -B to preserve exact
+source inventory (generated pycache is correctly refused). ROM97 campaign is
+being prepared locally; root must review/preflight/fresh-bind before one-use launch.
+Current installed eddc8531; ROM95 campaign CONSUMED, NEVER RELAUNCH.
+
 ## Resampler readiness optimization awaiting target build
 
 Goal ACTIVE; cold-boot musical acceptance FAILED; SAVE disarmed.

@@ -19,7 +19,7 @@ OUR_SRC += src/fx_limit.cc
 LIMIT_TEST_OBJ := $(BUILD)/our/test/limit_test.o $(BUILD)/our/test/fx_limit_probe.o
 LIMIT_RATIO_TEST_OBJ := $(BUILD)/our/test/limit_ratio_equivalence.o \
                         $(BUILD)/our/test/fx_limit_reference.o \
-                        $(BUILD)/our/src/fx_limit.o
+                        $(BUILD)/our/src/fx_limit_hot_inline.o
 
 all: $(BUILD)/fm1-limit-test $(BUILD)/fm1-limit-ratio-test
 
@@ -33,6 +33,12 @@ $(BUILD)/fm1-limit-test: $(LIMIT_TEST_OBJ)
 $(BUILD)/our/test/fx_limit_reference.o: test/fx_limit_reference.cc src/fx_limit.cc
 	@mkdir -p $(dir $@)
 	$(CXX) $(COMMON) $(OUR_WARN) -c $< -o $@
+
+# Host-only candidate object: exercise the target's hot-helper inlining
+# without applying the target-only .ram_dsp section attribute to Mach-O.
+$(BUILD)/our/src/fx_limit_hot_inline.o: src/fx_limit.cc
+	@mkdir -p $(dir $@)
+	$(CXX) $(COMMON) $(OUR_WARN) -DFM1_LIMIT_FORCE_INLINE_HOT=1 -c $< -o $@
 
 $(BUILD)/fm1-limit-ratio-test: $(LIMIT_RATIO_TEST_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm

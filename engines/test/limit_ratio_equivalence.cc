@@ -84,6 +84,7 @@ void Fill(float *dst, uint32_t pos, uint32_t n, uint32_t stereo_case,
     if (f % 997u == 11u) left = NAN;
     if (f % 991u == 13u) right = INFINITY;
     if (f % 983u == 17u) left = -23.0f;
+    if (f % 977u == 23u) right = -0.0f;
     dst[2 * i] = left;
     dst[2 * i + 1] = right;
   }
