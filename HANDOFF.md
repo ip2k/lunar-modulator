@@ -1,17 +1,16 @@
-## Cynthion first FM1 key attempt — 2026-10-15
+## Cynthion diagnostic retry ready — 2026-10-15
 
-[verified: owner] USER pressed once, FM1 switched on. Root JTAG status0x47d8:
-selftestmaskF/observedC6/validF, PHYready/noPHYfault, terminalFAULT, GPIO/OEs0.
-No ROM-entry evidence yet; layout3 cannot identify later protocol failure stage.
-Owner asked to leave FM1 powered and connect TARGET-C to bench01 after outputs
-were verified released. Owner connected TARGET-C; passive bench USB inventory still lacks FM1.
-Both TARGET ports requested empty again before diagnostic reconfiguration;
-confirmation pending. No loader,
-flash read/write or reset issued. Current loaded CONTROL-powered operation
-SHA30a3ca6c...; do not reconfigure while FM1 connected. Worker adding read-only
-failure-stage/progress telemetry; no waveform or arming changes authorized there.
-Cold adapter9a6ea558... is integrated; exact physical timestamps must remain
-honest. See recovery note for literal result and unexpired admission gates.
+Owner confirmed both TARGET ports empty, CONTROL on Mac. Coordinator loaded
+reviewed operation image de036dfc... volatily: layout4, JTAG0x4410 SAFE,
+PHYready/noPHYfault, GPIO/OEs0, terminalregs12..18 all0. This is currently loaded.
+Source069c2b00 integrates terminal provenance + fixed tests;102focused testsPASS.
+Final routed USB166.25MHz/fabric219.20MHz pass60/120MHz. Compiled power controls:
+CONTROL1/TARGETC0/AUX0/discharge0. No waveform/arming policy change.
+Owner asked for fresh explicit LEFT→RIGHT attempt: switchLEFT, connectTARGETA,
+wait5sec, press/releaseUSER, switchRIGHT within10sec; TARGETC staysempty. Reply
+pending. Actual FM1 ON direction remains unverified. First attempt endedFAULT
+withselftestF/GPIOreleased and no subsequentUSB; noloader/flashread/write issued.
+Do not reconfigure while FM1 connected. Root owns device. See recovery note.
 
 ## Latest source/CI checkpoint — 2026-10-15
 

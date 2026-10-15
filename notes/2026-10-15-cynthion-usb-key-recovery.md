@@ -253,3 +253,44 @@ loader or app. First attempt therefore has no established recovery entry.
 Owner was asked to empty both TARGET ports again before any diagnostic image
 configuration. Until confirmed empty, do not configure the FPGA. No FM1 flash
 operation has occurred in this recovery-key work.
+
+[verified: owner report / follow-up passive check] Owner subsequently moved the
+FM1 slide switch to the right position; it had been in the left position.
+Absolute ON direction remains unverified. No FM1 USB device appeared on bench01;
+JTAG at Unix1792106780.605315 remained0x47d8/GPIO0. This was an observation,
+not a second key attempt: terminal operation gateware cannot rearm without
+reconfiguration. Evidence: local `switch-right-status.json`. Need a fresh armed
+attempt with confirmed switch sequence; do not infer that the prior attempt
+actually coincided with SoC power-up.
+
+[verified: owner] Both TARGET ports are now empty again; CONTROL remains on Mac.
+Diagnostic-only telemetry source a61af54e is backed up but initial new tests
+failed on fractional-ms fixtures (100passed/2failed); fixture repair and fresh
+build verification are pending. Existing operation image remains unchanged.
+Independent read-only protocol review is saved locally in
+`scratch/cynthion-recovery-independent-review-20261015/HANDOFF.md`, SHA-256
+`d19f2227dbe55e90b533118079d50913518a3c654a4594b0ee77a1ea5c5133bf`.
+It confirms current evidence does not identify the failure phase; released-gap
+levels, driven ACK feasibility and GPIO SOF levels remain separate uncertainties.
+
+## Diagnostic-only retry readiness
+
+[verified: integrated source/tests]069c2b00 integrates6279d6a7 telemetry and
+9c6a99e7 fixture repair. Combined suite102passed/45upstreamwarnings. No key,
+ACK, SOF or arming transitions changed. Layout4 appends terminal reason/origin,
+packetcount, receiver/ACKprogress, WAIT_DP/SOF/low counters and keyphase.
+
+[verified: coordinator build review and volatile upload] Exact bitstreamSHA256
+`de036dfc80e2e0f2b0c0e4801e3f09ba8e7c100c9a8f630c5fb564d6867587d7`
+from source9c6a99e7. Final routed166.25/219.20MHz pass60/120MHz. CompiledJSON
+controls independently checked: CONTROL1/TARGETC0/AUX0/discharge0. With both
+TARGET ports confirmed empty, upload completed. At Unix1792106989.899127,
+JTAGmagicLUNR/layout4/status0x4410/GPIO0; registers12..18 all0. Image is currently
+loaded and disarmed; source tests do not establish FM1 acceptance. Local upload,
+status and build artifacts are in
+`scratch/cynthion-usb-key-20261015/fault-telemetry-operation/`.
+
+[owner action pending] Explicit LEFT→RIGHT switch experiment requested:
+CONTROL remains Mac, TARGETC empty, FM1 switchLEFT then connectTARGETA; wait5s,
+USERpress/release once then slideRIGHT within10s, leave and report. The switch
+ON direction is still unverified; no new key attempt is claimed before report.
