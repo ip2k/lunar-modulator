@@ -7,12 +7,20 @@
 #include <stdint.h>
 
 /* The renderer supplies a valid position in [0, scope_size).  An explicit
- * wrap avoids a remainder operation while preserving arbitrary scope sizes. */
-static inline void fm1_postmix_advance_scope(int *scope_pos,
-                                             uint32_t scope_size) {
+ * wrap avoids a remainder operation while preserving arbitrary scope sizes.
+ * Keep the stores in the caller's frame loop: besides removing a call per
+ * sample on pi32v2, this preserves the existing per-iteration pointer writes. */
+#if defined(__GNUC__) || defined(__clang__)
+#define FM1_POSTMIX_INLINE static inline __attribute__((__always_inline__))
+#else
+#define FM1_POSTMIX_INLINE static inline
+#endif
+FM1_POSTMIX_INLINE void fm1_postmix_advance_scope(int *scope_pos,
+                                                 uint32_t scope_size) {
   ++*scope_pos;
   if (*scope_pos == (int)scope_size) *scope_pos = 0;
 }
+#undef FM1_POSTMIX_INLINE
 
 /* Record the pre-master-gain scope and peak, then apply master gain.  The
  * meters intentionally observe the un-gained post-limiter signal.  Keeping

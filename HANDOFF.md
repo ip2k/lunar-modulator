@@ -5957,3 +5957,28 @@ codex/2026-10-15-hall-o2-codegen and verified exact remote SHA. Hera16shards/lin
 passed, app855896/860644bytes. Static codegen/fit only, no timing win established;
 not integrated. A bounded exact-arithmetic Hall helper inline experiment follows.
 SAVE stays disarmed; owner cold-boot musical acceptance FAILED; overall goal ACTIVE.
+
+
+### Postmix helper and profiler transport follow-up — 2026-10-15
+
+[verified: host equivalence only] Force-inline the per-frame scope-position
+helper under GCC/Clang; keep the increment/wrap and per-frame pointer store
+unchanged. Existing reference comparison runs 58,608 sample/scope/peak cases
+at O0, O2 and O1+UBSan, all passed. Target call removal, fit and timing remain
+unverified for this source change. Agent handoff:
+scratch/native-postmix-review/implementation-handoff.md.
+
+[verified: source admission checks] Reviewed schema7 diagnostic policy changes
+from 6b8576b and refreshed its exact SHA in the SG adapter and boot source
+allowlists, then refreshed the adapter SHA in boot. This admits the reviewed
+policy bytes; source-tamper rejection and all other pins remain intact.
+Focused adapter/boot/flash/postmix modules: 24 passed. The currently running
+ROM93 tap-inline campaign uses its independent frozen runtime, untouched.
+
+[verified: offline target build] Schema7 exact6b8576b build passed all16 Hera
+shards and link; app854148bytes, SHA256
+33f57d65a79d99aa239fd75eb3268b28620c8edd512dcd949aba1bf1c0f13120.
+No autoplay, SAVE disarmed; no hardware test of schema7. Coordinator still
+needs compact-artifact review and fresh source-bound deployment preparation.
+ROM93 PID143490 installation is still running; do not relaunch/reset it.
+Owner cold-boot musical acceptance FAILED; overall goal ACTIVE.
