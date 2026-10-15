@@ -225,6 +225,9 @@ static void app_main(void)
     };
     uint32_t previous_keys = 0, row = 0, last_draw = 0;
     uint32_t start = fm1_ms;
+#ifdef LUNAR_DIAGNOSTIC_TRIO_PULSE
+    uint32_t pulse_start = 0;
+#endif
     int previous_master = -1;
 #ifdef LUNAR_COMPRESSED_WAVETABLES
     if (lunar_wave_tables_init()) {
@@ -289,6 +292,11 @@ static void app_main(void)
     initial_engine_result = (uint32_t)fm1_app_select(&app, 0, fm1_app_find("trio"));
 #endif
     refill_audio();
+#ifdef LUNAR_DIAGNOSTIC_TRIO_PULSE
+    /* Start the controlled pulse only after engines/content and initial audio
+     * queue production are ready; keep the overall runtime deadline unchanged. */
+    pulse_start = fm1_ms;
+#endif
 #ifdef LUNAR_STACK_WATERMARK
     sample_stacks();
     uint32_t last_stack_sample = fm1_ms;
@@ -307,7 +315,7 @@ static void app_main(void)
         {
             static uint8_t pulse_state;
             int pulse_event = lunar_trio_diagnostic_pulse_poll(
-                (uint32_t)(fm1_ms - start), &pulse_state);
+                fm1_ms, pulse_start, &pulse_state);
             if (pulse_event > 0) fm1_app_note_on(&app, 60u, 100u);
             else if (pulse_event < 0) fm1_app_note_off(&app, 60u);
         }
