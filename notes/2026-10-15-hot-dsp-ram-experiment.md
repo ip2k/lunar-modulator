@@ -164,3 +164,28 @@ Private helpers `scratch/hot-ram-guard-cycle/` require fresh ROM79 binding and
 paired complete reads, journaled header-last update/full readback, ready analog
 recording before one boot, no retry, input-only telemetry and bounded cleanup.
 SAVE remains disarmed; no physical acceptance or installable-release claim.
+
+## ROM79 campaign active; next bounded placement prepared
+
+[verified] Root launched the reviewed campaign once with persistent PID78314.
+Fresh paired reads passed; the header-last209-sector transaction is active.
+No boot or runtime result is claimed at this checkpoint. Inspect
+`/home/claude/fm1-hot-ram-guard-1ce89483-20261015/cycle.stdout` and the cycle's
+transaction journal before any further device action. Never rerun this campaign.
+
+[verified: host] All four current private capture/staging/preflight test modules
+now pass together:31 tests and7 subtests. The first combined run failed one
+staging mode assertion because importing the capture helper changed the test
+process umask to077. The test loader now restores the caller's mask in finally;
+no live runtime helper or frozen input was changed. Root reran the combined
+suite successfully. This is test isolation evidence, not hardware acceptance.
+
+[verified: source] A narrowly scoped next experiment annotates SixOp
+`Instance::RenderBlock` with the existing opt-in RAM placement macro. The
+current linked wrapper calls this1,382-byte voice loop in XIP. The macro is
+empty by default; no DSP arithmetic or order changed. Independent host SixOp
+baseline comparison passes six mode/rate scenarios,24,000 stereo frames each,
+bitwise. Native placement/size and performance require a fresh build and
+separate physical campaign. Private rationale and limits:
+`scratch/native-hot-dsp-ram/next-placement-review.md` and
+`render-block-handoff.md`. Do not add inclusive dispatch and engine timings.

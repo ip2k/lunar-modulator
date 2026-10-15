@@ -1,3 +1,19 @@
+## Coordinator checkpoint: ROM79 install active; SixOp follow-up prepared
+
+Root launched fresh one-use ROM79 campaign exactly once (PID78314).
+Paired reads passed;209-sector header-last install ACTIVE. Never rerun.
+Base /home/claude/fm1-hot-ram-guard-1ce89483-20261015;
+cycle rom79-hot-ram-guard-cycle. Inspect journal/stdout/stderr before any action.
+No new boot/audio/performance result yet. SAVE remains disarmed.
+Four private scratch suites pass31tests/7subtests after test-only import umask
+isolation fix; frozen live helper unchanged. Source next trial adds existing
+opt-in RAM attribute to SixOp RenderBlock, currently1,382B XIP beneath RAM
+wrapper. SixOp six-mode/rate bitwise baseline passes. Fresh native link and
+independent placement/fit review pending before any new physical campaign.
+MIDI FA/FC/FB implemented sharedUSB/TRS; physical FA rewind/TRS still open.
+Goal ACTIVE; detailed notes/2026-10-15-hot-dsp-ram-experiment.md.
+Unrelated uv.lock untouched. Latest source/checkpoint pushed per Git state.
+
 ## Coordinator checkpoint: guard-corrected build and fresh campaign ready
 
 Source1ce89483 built16/16 on Hera; ELF guard correction independently verified.

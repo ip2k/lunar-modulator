@@ -407,7 +407,7 @@ class Instance {
     return best;
   }
 
-  void RenderBlock() {
+  FM1_HOT_DSP_RENDER void RenderBlock() {
     fm1_smooth_tick(smooth_, value_, P_COUNT);   // this block's step of any ramp
     float mix[kBlock] = { 0 };
     const float gain = value_[P_VOLUME] * 0.25f;
