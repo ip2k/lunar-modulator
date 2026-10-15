@@ -5863,3 +5863,35 @@ Settled-glide and equal-peak optimizations and112 differential cases remain.
 Focused limiter test and112x6000-frame bitwise audio/state differential pass.
 This source correction has not been rebuilt or installed on the FM1.
 SAVE disarmed; no hardware musical acceptance; overall goal ACTIVE.
+
+### Exact-zero physical result — 2026-10-15
+
+[verified: physical flash/readback + passive timing, not musical acceptance]
+ROM91 campaign completed guarded210-sector installation and full target readback
+SHA2561c04fadcbf4a682214e7e4370ac54a1fa4a09ef57a6f9f527da77bffd2f7a291.
+Single reset returned an incomplete/ambiguous reply; it was NOT retried. Separate
+capture helper observed same-port native USB92 and recorded110seconds of telemetry.
+The orchestration process therefore has no cycle-result.json; retain the durable
+install-session-result.json and independent native-enumeration capture evidence.
+Device returned automatically to ROM93 (bus1/path1-1,4c4a:8057). No power cycle needed.
+
+Across107.914seconds, produced419.8899blocks/s and underruns269.4553/s, versus
+baseline315.5642/373.7641; required689.34375blocks/s. Zero accepted notes, no injected
+MIDI or transport: this is stopped/idle performance only. Exact-zero changes help
+but still FAIL audio deadlines. Steady weighted stage rawticks/call: dispatch21310,
+drums4300,sixop3391,Trio1626,acid1217,Hall11017,limiter9037,postmix6635. Dispatch
+includes nested sound stages; do not sum them. Display strip5738/call. Timer units
+are not independently measured core frequency. Physical cold-boot musical
+acceptance remains FAILED based on owner report; active-note/song acceptance open.
+
+Private telemetry archive scratch/exact-zero-dsp-result/physical/telemetry-evidence.tar
+SHA256706b1bcc874e33792f6b7b741136c50402bf3946f8d457003cddb49c0158be16;
+comparison.json SHA2566c0f12f6dc487929fe2ef2f1bcdeecd4119bee403912602b167cbec525cb6563.
+180secondKA6 capture still finalizing at this checkpoint.
+
+Follow-on2b9178c42494c5cbb112718857665e9c9a27634c build passed16Hera shards/link,
+app854544/860644bytes,6100free; codegen removes4resampler helper calls. Verified
+26file archive is in scratch/tap-inline-only-result; no hardware timing yet.
+Next: preserve finalized capture, independently review fresh ROM93-bound candidate
+and continue controlled measurement. Offline reviews examine synthesis/FIR
+instrumentation and target floating-point codegen. SAVE stays disarmed; goal ACTIVE.
