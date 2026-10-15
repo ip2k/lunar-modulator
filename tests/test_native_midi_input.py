@@ -29,9 +29,10 @@ typedef struct { struct { uint8_t midi_in_channel; } settings; } App;
 static App app;
 static volatile uint32_t lunar_midi_usb_messages, lunar_midi_accepted_noteons;
 static volatile uint32_t lunar_midi_rejected_messages;
-static unsigned on, off, panic, bends, read_at, count;
+static unsigned on, off, panic, bends, transport, read_at, count;
 static float bend;
 static uint8_t messages[64][3];
+static uint8_t transport_statuses[3];
 static int midi_get(uint8_t *s, uint8_t *a, uint8_t *b) {
     if (read_at == count) return 0;
     *s=messages[read_at][0]; *a=messages[read_at][1]; *b=messages[read_at++][2];
@@ -47,6 +48,11 @@ static void fm1_app_all_notes_off(App *a) { assert(a==&app); ++panic; }
 static void fm1_app_pitch_bend(App *a, float value) {
     assert(a==&app); bend=value; ++bends;
 }
+static int fm1_app_seq_midi_transport(App *a, uint8_t status) {
+    assert(a==&app && transport < 3);
+    transport_statuses[transport++] = status;
+    return 1;
+}
 ''' + handler.group() + '\n' + match.group() + r'''
 static void send(uint8_t status, uint8_t a, uint8_t b) {
     read_at=0; count=1;
@@ -61,10 +67,14 @@ int main(int argc, char **argv) {
     send(0x90+selected,60,0); send(0x80+selected,60,0); assert(off==2);
     send(0xe0+selected,0,0); assert(bends==1 && bend==-2.0f);
     send(0xe0+selected,127,127); assert(bends==2 && bend>1.999f && bend<2.0f);
+    send(0xfa,0,0); send(0xfb,0,0); send(0xfc,0,0);
+    assert(transport==3 && transport_statuses[0]==0xfa &&
+           transport_statuses[1]==0xfb && transport_statuses[2]==0xfc);
     send(0xb0+selected,123,0); send(0xb0+selected,120,0); assert(panic==2);
     for (unsigned s=0;s<256;++s) {
         unsigned family=s>>4;
-        if (family!=8 && family!=9 && family!=11 && family!=14) send(s,60,100);
+        if (family!=8 && family!=9 && family!=11 && family!=14 &&
+            s!=0xfa && s!=0xfb && s!=0xfc) send(s,60,100);
     }
     for (unsigned b=128;b<256;++b) {
         send(0x90+selected,60,b); send(0x90+selected,b,100);
