@@ -127,6 +127,11 @@ def test_song_profile_accepts_exact_schema7_plus_schema2_and_preserves_default_r
                     render_stage_profile=stages)
     assert module._validate_diagnostic_mode(record, {}, opted_in, b"") == {"validated": True}
 
+    disabled_play = builder.validate_diagnostic_song_play(
+        False, "song-diagnostic", None, True, False)
+    no_autoplay = dict(opted_in, diagnostic_song_play=disabled_play)
+    assert module._validate_diagnostic_mode(record, {}, no_autoplay, b"") == {"validated": True}
+
     # Older standard diagnostics omit both optional profiling fields and keep
     # their existing one-shot-play receipt contract.
     assert module._validate_diagnostic_mode(record, {}, base, b"") == {"validated": True}
@@ -144,6 +149,16 @@ def test_song_profile_accepts_exact_schema7_plus_schema2_and_preserves_default_r
         module._validate_diagnostic_mode(
             record, {}, dict(base, diagnostic_engine_render_profile=engine,
                              render_stage_profile=dict(stages, schema=3)), b"")
+    with pytest.raises(ValueError, match="engine render profile receipt differs"):
+        module._validate_diagnostic_mode(
+            record, {}, dict(no_autoplay, diagnostic_engine_render_profile=dict(engine, schema=True)), b"")
+    with pytest.raises(ValueError, match="exact schema-2 render-stage"):
+        module._validate_diagnostic_mode(
+            record, {}, dict(no_autoplay, render_stage_profile=dict(stages, schema=True)), b"")
+    malformed_disabled_play = dict(disabled_play, once=True)
+    with pytest.raises(ValueError, match="bounded one-shot PLAY"):
+        module._validate_diagnostic_mode(
+            record, {}, dict(opted_in, diagnostic_song_play=malformed_disabled_play), b"")
 
     irq = {
         "enabled": True, "schema": 6,
@@ -159,6 +174,10 @@ def test_song_profile_accepts_exact_schema7_plus_schema2_and_preserves_default_r
     }
     for incompatible in (dict(opted_in, diagnostic_irq_profile=irq),
                          dict(opted_in, diagnostic_producer_gaps=producer)):
+        with pytest.raises(ValueError, match="cannot share producer-gap or IRQ cadence"):
+            module._validate_diagnostic_mode(record, {}, incompatible, b"")
+    for incompatible in (dict(no_autoplay, diagnostic_irq_profile=irq),
+                         dict(no_autoplay, diagnostic_producer_gaps=producer)):
         with pytest.raises(ValueError, match="cannot share producer-gap or IRQ cadence"):
             module._validate_diagnostic_mode(record, {}, incompatible, b"")
 

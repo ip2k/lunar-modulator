@@ -5982,3 +5982,36 @@ No autoplay, SAVE disarmed; no hardware test of schema7. Coordinator still
 needs compact-artifact review and fresh source-bound deployment preparation.
 ROM93 PID143490 installation is still running; do not relaunch/reset it.
 Owner cold-boot musical acceptance FAILED; overall goal ACTIVE.
+
+
+### Tap-inline physical run complete; Hall and profiling gate follow-up — 2026-10-15
+
+[verified: physical install/readback and passive capture; musical acceptance FAILED]
+ROM93 campaign completed 210 sector writes and full-target readback SHA256
+07761c6c8bbe8c706e323d42266196dff5b530113f451bcc8ca7eeaade65f4c7.
+Its paired pre-write backups matched
+1c04fadcbf4a682214e7e4370ac54a1fa4a09ef57a6f9f527da77bffd2f7a291.
+The sole reset reply was ambiguous, so the runner stopped and was not retried.
+The already-armed passive helper observed native USB94, recorded 110s telemetry
+and 180s KA6 audio, both returncode0, and observed automatic recovery to ROM95.
+Capture evidence: scratch/tap-inline-only-result/physical/; device analysis pending.
+Do not relaunch the consumed ROM93 campaign. No notes or transport injected.
+
+[verified: source review and host equivalence; current-profile target timing pending]
+Cherry-picked reviewed Hall helper inlining as 496e83dfb993e010e91adafe9f7d20b4b92d8956
+and verified its push. Matched experimental target build removed seven Hall helper
+calls for 180 app bytes; that ordinary-Oz build is not the current-Os profile.
+Hall/postmix focused checks passed. A combined current-profile Hera build is next.
+
+[verified: source admission checks]
+Reviewed the narrow schema7/no-autoplay policy correction: exact engine schema7
+and exact stage schema2 are required, mixed IRQ/producer-gap profiles are rejected,
+and disabled playback without an eligible profile remains rejected. Refreshed the
+policy SHA in the SG adapter and boot allowlists, then the adapter SHA in boot.
+Six focused flash/adapter/boot/postmix/Hall modules passed; live file-only boot
+_source_evidence validated all11 entries. Existing frozen ROM93 runtime untouched.
+Policy SHA48e136b6d71392689b039a71e22dcc653d80dd21085076d78394b5e61f906f74;
+adapter SHA940a7c8167626ec7a63a55819c46efb790caa567e34c1caeada70a9b4b774619.
+Schema7 build artifacts from exact6b8576b remain unchanged; fresh deployment binding
+is required before constructing/staging a physical candidate. SAVE disarmed;
+no release or musical acceptance; overall goal ACTIVE. Unrelated uv.lock untouched.

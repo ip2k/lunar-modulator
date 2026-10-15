@@ -399,6 +399,13 @@ def _validate_diagnostic_mode(record, build, verification, prepared_profile):
           and _exact_irq_profile_receipt(verification["diagnostic_irq_profile"])
           and _exact_song_play_receipt(song_play, False)):
         pass
+    elif (engine_profile_present
+          and _exact_song_play_receipt(song_play, False)):
+        # Schema-7 engine profiling is a separate bounded, no-autoplay mode.
+        # Its exact schema-2 stage receipt and exclusion of IRQ/producer-gap
+        # profiles were checked above; do not broaden this exception to other
+        # disabled-song receipts.
+        pass
     else:
         raise ValueError("EH+SET diagnostic playback must be the bounded one-shot PLAY profile")
     return _validate_event_horizon_set_profile(build, verification, prepared_profile)
