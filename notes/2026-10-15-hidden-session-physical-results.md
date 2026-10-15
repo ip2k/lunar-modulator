@@ -50,7 +50,15 @@ on bench01. No binaries or owner audio are committed.
 passed all sixteen bounded Hera shards and link: app854572 bytes, SHA256
 `32ce09a225b0c0673e0be096e5f27a9703bf16e4c9ec847163e825d9fdffe17a`.
 Root independently passed all six export integrity tests. No physical timing
-claim applies to that build. A matched profiler-off build is assigned next,
+claim applies to that build. A matched profiler-off build from exact c0 is now complete,
 retaining base telemetry/clock snapshots and disabled autoplay, to measure the
 combined cost of detailed timing instrumentation and its USB reporting.
 SAVE remains disarmed; overall firmware/installer goal remains ACTIVE.
+
+[verified: offline only] Matched c0 profiling-off output: all16 shards/link PASS,
+app853408 bytes (696 smaller), .ram_dsp11812 bytes (104 smaller). Receipt
+70b8331ddf9b28e357c38e50937d9af29e46fb8ddffdacc2d420cf636c334c78;
+app4dc4de1be6be39a999a352761e96cab2aba1870790b36c9111a255c8ab71b300.
+Root independently passed5 export integrity tests. Only the detailed engine and
+render-stage profiling options differ from c0 ON; this is a size/build result,
+not physical throughput evidence. Export: scratch/c0-profiler-off-export/HANDOFF.md.

@@ -14,17 +14,29 @@ completed: app854572bytes, SHA32ce09a225b0c0673e0be096e5f27a9703bf16e4c9ec847163
 Root independently passed6 export tests. Export:
 scratch/limiter-os-df415599-export/HANDOFF.md. No physical acceptance.
 
-Next matched profiler-off build assigned to physical_storage_compression on Hera:
-exactdf415599, all16 fresh shards, omit engine/stage timing instrumentation,
-retain limiterOs/HallSixOpOs/hotRAM, base telemetry+clock snapshots, 13/EH+SET,
-120s recovery, noautoplay, SAVEfalse. demo_controller_review owns narrow standard
-no-autoplay admission policy and tests/pin chain only. profile_catalogue_build
-reviews dispatch/collector overhead read-only. Root owns bench/device writes.
-New image requires full receipt/source review, fresh runtime pins and fresh paired
-backups matching currentc7 before any install. No reused ROM101 bindings.
+[verified: offline build/export] The matched profiler-off build is complete from
+exact c0f138a09eac30ae187cb764617bac7e03df06e9, not df415599. The initial df
+assignment was superseded before any containers launched to avoid confounding
+the physical c0 baseline with BoxStep/limiter optimization changes. All16 shards
+and link passed; app853408 bytes, SHA
+4dc4de1be6be39a999a352761e96cab2aba1870790b36c9111a255c8ab71b300.
+Root independently passed5 export tests. Full evidence:
+scratch/c0-profiler-off-export/HANDOFF.md. Profile timing fields are absent;
+base telemetry/clock snapshots, 13/EH+SET, 120s recovery, noautoplay and SAVEfalse
+remain. No candidate or physical installation for this build exists yet.
+
+[verified: source/host tests] 15a8750399f18ece6e4e28a6afb503da4a9f831c adds strict
+standard noautoplay admission with exact read-only clock schemas3/4. Root
+reviewed the four-file change and independently passed23 focused policy/adapter/
+boot tests. GitHub source SHA verified. demo_controller_review owns separate
+15a runtime and exactc0 source staging/scaffold, bound to the new OFF build.
+Fresh paired backups matching currentc7 remain mandatory before installation.
+Passive lsusb reconfirmed ROM103; ROM101 remains consumed. Root owns bench.
+profile_catalogue_build is investigating actual EH workload and host profiling;
+physical_storage_compression is reviewing target-generated critical-path code.
 
 Overall goal ACTIVE; last verified pushed source before this checkpoint:
-edb335f2e896e94e96931cd28bf75dc6fc876732. Unrelated uv.lock untouched.
+15a8750399f18ece6e4e28a6afb503da4a9f831c. Unrelated uv.lock untouched.
 
 ## Limiter-only Os prepared; c0 physical write remains live — 2026-10-15
 
