@@ -1,3 +1,20 @@
+## ROM105 result complete; ROM107 recovery observed — 2026-10-15
+
+Goal ACTIVE; cold-boot audio/display acceptance FAILED; SAVE disarmed.
+ROM105 zero-history campaign consumed. Targetf3a9b18e3bead7171659b739545c1e191ac8724875d0b86ff3f953b021953f57
+installed with15sectors/directorylast and4096 independently matched finalreadbackpages.
+SoleFC0Cambiguous, neverretried; native106 observed, telemetry110s/audio180s bothrc0.
+Passivelyobserved recovery4c4a:8057 bus1device107 at port1-1. No powercycle needed.
+Finalrate492.190921blocks/device-second and197.142753underruns/s over109.616s;
+required689.34375. Improvement3.800% over474.173809baseline; stillFAIL.
+No musicalacceptance or calibratedCPUfrequency follows. DetailedprofileOFF.
+Evidence and limits: notes/2026-10-15-c0-profiler-off-and-zero-history.md.
+Root independentreadback and rateJSON saved scratch/c0-zero-pop-target-result/.
+Next: execution-rate diagnostic and highest-value remaining render bottleneck;
+offlineworkers only, rootexclusively ownsbench. Neverreuse consumedROM105launcher.
+Branchfeature/2026-10-11@installable-firmware, lastpushedroot e39169d7 beforethischeckpoint.
+Unrelateduntrackeduv.lock untouched.
+
 ## ROM105 one-use campaign started — 2026-10-15
 
 Goal ACTIVE; cold-boot audio/display acceptance FAILED; SAVE disarmed.

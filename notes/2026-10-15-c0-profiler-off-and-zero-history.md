@@ -146,3 +146,37 @@ clipped input samples on channels 1/2. Whole-record RMS is approximately
 or scheduled musical stimulus. It cannot establish musical quality. Private
 analysis: `scratch/c0-profiler-off-result/audio-capture-review.md` and
 `audio-waveform-analysis.json` in that directory.
+
+## ROM105 zero-history result: installed, recovery observed, performance FAIL
+
+[verified: paired reads and independent transcript check] Fresh paired full
+flash reads matched the expected installed 1b6a0fc5… image. The guarded
+campaign wrote 15 transition sectors, directory 0x4000 last. Independent
+verification matched all 4,096 final 256-byte response hashes against target
+`f3a9b18e3bead7171659b739545c1e191ac8724875d0b86ff3f953b021953f57`.
+Adapter transcript SHA-256:
+`4c778d9c9e97736566be74d6d16b6bca5508da7acb61b3bdb88f496f6f762e09`.
+The legacy result wrapper retains non-admission/mock wording despite
+`simulated:false`; physical readback evidence is the independently checked
+transcript, not those misleading wrapper labels.
+
+[verified: single reset and passive capture] The sole FC0C response was
+ambiguous (host7/info1/residual16); it was never retried. Native USB device106
+appeared. Input-only telemetry completed rc0 after110s; KA6 audio completed
+rc0 after180s. Port1-1 now identifies 4c4a:8057, bus1 device107: timed recovery
+was observed. ROM105 launcher is consumed; never run it again.
+
+[verified: device-time counter analysis] 108 diagnostic frames yield107 valid
+intervals,109.616 device seconds and53,952 produced blocks. Throughput is
+492.190921 blocks/device-second with197.142753 underruns/device-second.
+Required rate remains689.34375. Relative to the matched profiler-OFF baseline
+474.173809, this is a3.800% throughput improvement and still a performance
+FAIL. No detailed stage instrumentation or accepted musical stimulus was
+present. This run does not establish musical quality, exact CPU frequency,
+or successful owner acceptance. SAVE stays disarmed; release goal ACTIVE.
+
+Private evidence: `scratch/c0-zero-pop-target-result/independent-readback.json`,
+`audio-rate-summary.json`, `physical-install/`, and `capture-metadata/`.
+Next work: execution-rate calibration without PLL/power changes and bounded
+review of remaining render/effects/bookkeeping cost; new hardware experiments
+require fresh independently bound campaigns on observed ROM107.
