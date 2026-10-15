@@ -1,3 +1,36 @@
+# Current checkpoint: Lunar identity cleanup and recorded Trio boot — 2026-10-15 UTC
+
+Owner requested inherited product/internal names be removed in favor of Lunar,
+with upstream credit retained in attribution/legal/prior-art material. USB source
+STR1/STR2 now says Lunar Modulator / Lunar Modulator Update (17 identity tests
+passed); this correction has NOT been flashed. Browser OTA directory renamed to
+third_party/fm1-ota; all 14 adapter tests pass. Platform configuration/font and
+engine integration naming migrations are assigned to isolated Hera workers.
+Historical observations, upstream copyright and loader compatibility bytes must
+remain accurate. Coordinator branch feature/2026-10-11@installable-firmware,
+verified GitHub head a139fcb1 before this checkpoint.
+
+ROM55 cycle actually ran: paired full backups matched 145c0280, 210 changed
+sectors programmed and complete readback matched target c240999c. One FC0C boot
+returned an ambiguous SG completion, so it was not retried. Native USB device56
+appeared; timed recovery returned ROM57 without owner power cycling. Capture WAV
+0ca618c0 remains private. Early 3.4–5.4s signal is C4-like and far above idle;
+later timed TRS/USB windows have no measurable note response. Host MIDI send
+success is not proof of device receipt. No owner listening/footer acceptance.
+See notes/2026-10-14-trio56-install-and-audio.md and
+notes/2026-10-14-trio56-capture-analysis.md. Last passive ROM57 observation must
+be refreshed before a new admission; consumed ROM55 scripts cannot be reused.
+
+Continuous build tuple schema2 changes integrated (focused checks passed), but
+a fresh real schema2 capture remains outstanding. GPL source/notices prototype
+integrated with four passing tests: always incomplete/distribution-ineligible,
+because original project/SET bytes and toolchain inputs remain unbound/absent.
+
+Goal remains ACTIVE. Next: integrate/review/test naming migrations, build a fresh
+Lunar-branded diagnostic on Hera, then diagnose missing external MIDI response
+and full application audio timing. SAVE, app-independent recovery, all13 musical
+acceptance, browser install and release review/CI/deployment remain open.
+
 # ROM55 capture cycle prepared; boot adapter corrections pending — 2026-10-15
 
 Owner missed prior watched run; no physical power cycle requested. Passive ROM55
