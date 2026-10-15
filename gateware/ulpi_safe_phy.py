@@ -18,7 +18,7 @@ class ULPISafePHY(Elaboratable):
     """Initialize a USB3343 into non-driving FS mode and expose RXCMD state.
 
     Args:
-        ulpi: LUNA ULPI record from ``platform.request('target_phy')``.
+        ulpi: LUNA ``ULPIInterface`` or Cynthion ``ULPIResource`` pin record.
         startup_cycles: conservative delay after ``start`` before ULPI access.
             At 60 MHz the default 60,000 cycles is 1 ms.
         transaction_timeout_cycles: maximum wait for each register-window
@@ -99,16 +99,43 @@ class ULPISafePHY(Elaboratable):
         window = ULPIRegisterWindow()
         m.submodules.register_window = window
 
+        # LUNA's ULPIInterface uses scalar ``dir``/``nxt``/``stp`` signals,
+        # while platform.request(ULPIResource(...)) returns nested pin
+        # subsignals (``dir.i``, ``nxt.i``, ``stp.o``). Normalize both real
+        # layouts explicitly rather than relying on flattened Record names.
+        direction_in = getattr(self.ulpi.dir, "i", self.ulpi.dir)
+        next_in = getattr(self.ulpi.nxt, "i", self.ulpi.nxt)
+        stop_out = getattr(self.ulpi.stp, "o", self.ulpi.stp)
+        data_in = self.ulpi.data.i
+        data_out = self.ulpi.data.o
+        data_oe = self.ulpi.data.oe
+
+        # A global deadline may expire in the middle of an ULPI transaction.
+        # Inhibit the link bus combinationally at that boundary, and latch the
+        # fault below. The register window is not cancellable; it may complete
+        # internally, but it cannot emit another byte or STP after inhibition.
+        deadline_expired = Signal()
+        inhibit_link = Signal()
+        deadline_counter = Signal(range(self.deadline_cycles + 1))
+        attempted = Signal()
+
         # LUNA ULPIRegisterWindow drives the ULPI data bus whenever the PHY
         # yields it. This is the ULPI link bus, not the USB target D+/D- pads.
         m.d.comb += [
-            window.ulpi_data_in.eq(self.ulpi.data.i),
-            window.ulpi_dir.eq(self.ulpi.dir),
-            window.ulpi_next.eq(self.ulpi.nxt),
-            self.ulpi.data.o.eq(window.ulpi_data_out),
-            self.ulpi.data.oe.eq(~self.ulpi.dir),
-            self.ulpi.stp.eq(window.ulpi_stop),
+            window.ulpi_data_in.eq(data_in),
+            window.ulpi_dir.eq(direction_in),
+            window.ulpi_next.eq(next_in),
+            data_out.eq(window.ulpi_data_out),
+            data_oe.eq(~direction_in & ~inhibit_link),
+            stop_out.eq(window.ulpi_stop & ~inhibit_link),
             self.drive_allowed.eq(self.ready & ~self.fault),
+            deadline_expired.eq(
+                attempted
+                & ~self.ready
+                & ~self.fault
+                & (deadline_counter == self.deadline_cycles - 1)
+            ),
+            inhibit_link.eq(self.fault | deadline_expired),
         ]
 
         # The verified sequence first authenticates the PHY identity, then
@@ -133,8 +160,6 @@ class ULPISafePHY(Elaboratable):
         transaction_index = Signal(range(len(transactions) + 1))
         startup_counter = Signal(range(self.startup_cycles + 1))
         transaction_counter = Signal(range(self.transaction_timeout_cycles + 1))
-        deadline_counter = Signal(range(self.deadline_cycles + 1))
-        attempted = Signal()
         direction_delayed = Signal()
 
         # Requests are single-cycle strobes. ULPIRegisterWindow keeps each
@@ -143,7 +168,7 @@ class ULPISafePHY(Elaboratable):
             window.read_request.eq(0),
             window.write_request.eq(0),
             self.line_state_update.eq(0),
-            direction_delayed.eq(self.ulpi.dir),
+            direction_delayed.eq(direction_in),
         ]
 
         with m.If(attempted & ~self.ready & ~self.fault):
@@ -158,12 +183,12 @@ class ULPISafePHY(Elaboratable):
         with m.If(
             self.ready
             & direction_delayed
-            & self.ulpi.dir
-            & ~self.ulpi.nxt
+            & direction_in
+            & ~next_in
             & ~window.busy
         ):
             m.d.usb += [
-                self.line_state_value.eq(self.ulpi.data.i[0:2]),
+                self.line_state_value.eq(data_in[0:2]),
                 self.line_state_valid.eq(1),
                 self.line_state_update.eq(1),
             ]
@@ -188,21 +213,28 @@ class ULPISafePHY(Elaboratable):
 
             for index, (kind, address, value, mask, expected) in enumerate(transactions):
                 with m.State(f"ISSUE_{index}"):
-                    m.d.usb += [
-                        window.address.eq(address),
-                        transaction_counter.eq(0),
-                    ]
-                    if kind == "read":
-                        m.d.usb += window.read_request.eq(1)
-                    else:
+                    with m.If(self.fault | deadline_expired):
+                        m.d.usb += self.fault.eq(1)
+                        m.next = "FAILED"
+                    with m.Else():
                         m.d.usb += [
-                            window.write_data.eq(value),
-                            window.write_request.eq(1),
+                            window.address.eq(address),
+                            transaction_counter.eq(0),
                         ]
-                    m.next = f"WAIT_{index}"
+                        if kind == "read":
+                            m.d.usb += window.read_request.eq(1)
+                        else:
+                            m.d.usb += [
+                                window.write_data.eq(value),
+                                window.write_request.eq(1),
+                            ]
+                        m.next = f"WAIT_{index}"
 
                 with m.State(f"WAIT_{index}"):
-                    with m.If(window.done):
+                    with m.If(self.fault | deadline_expired):
+                        m.d.usb += self.fault.eq(1)
+                        m.next = "FAILED"
+                    with m.Elif(window.done):
                         m.d.usb += transaction_counter.eq(0)
                         if kind == "read":
                             with m.If((window.read_data & mask) != expected):
@@ -224,8 +256,12 @@ class ULPISafePHY(Elaboratable):
                         m.d.usb += transaction_counter.eq(transaction_counter + 1)
 
             with m.State("VERIFIED"):
-                m.d.usb += self.ready.eq(1)
-                m.next = "COMPLETE"
+                with m.If(self.fault | deadline_expired):
+                    m.d.usb += self.fault.eq(1)
+                    m.next = "FAILED"
+                with m.Else():
+                    m.d.usb += self.ready.eq(1)
+                    m.next = "COMPLETE"
 
             with m.State("COMPLETE"):
                 pass
