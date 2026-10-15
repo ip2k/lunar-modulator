@@ -258,3 +258,21 @@ reports: `scratch/cpu-speed-replay-design-20261015/HANDOFF.md` and
 RAM-placement annotations. Build passed; virtual app job was skipped after the
 failure. Assigned focused provenance-preserving fix; do not simply accept a
 new digest or weaken the upstream DSP reference check. Other CI jobs pending.
+
+## Power-loss update, 22:29 UTC
+
+[verified: owner] Power was also interrupted; display is blank. This invalidates
+all retained-RAM-loader continuity assumptions. Passive lsusb has no FM1; no
+SG node is available. No reset, upload, flash, MIDI or capture command followed
+the interrupted install. Direct data-cable confirmation is pending.
+
+[verified: source review] Existing Pico 2 W notes record successful programming
+and repeatable late console output, but state=FAULT and unresolved external GPIO
+wiring, not USB_KEY recovery acceptance. If ROM enumeration cannot be obtained,
+physical app-independent recovery remains a real blocker, not a software retry.
+
+[verified: source/CI] d3a54fe2 includes the Plaits pin correction and two MIT
+helper-header provenance corrections. Earlier-head ASan completed with4289pass,
+16skip,2xfail and the single known Plaits pin failure. No sanitizer runtime
+failure is shown in that result. Fresh generated WASM and full GPL gates are
+assigned to Hera; exact final-source CI remains required.

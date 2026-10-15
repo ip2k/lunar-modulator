@@ -1,3 +1,28 @@
+## Power loss after interrupted stage7 install — 2026-10-15 22:29 UTC
+
+[verified: owner] Power was also interrupted after the USB/cabling change;
+owner reports a blank display. Retained-loader continuity admission is invalid.
+[verified: passive bench inventory] At 22:29 UTC no FM1 USB device or SG node
+was present; KA6 remained enumerated. No device command/reset/write was sent.
+Owner has been asked to check a direct data-cable connection to bench01,
+bypassing Cynthion. Current flash is unknown; do not rerun the consumed launcher.
+
+Next: observe fresh enumeration; if ROM appears, separately review fresh
+allowlisted RAM-loader upload and paired mixed-image reads. If no ROM/app
+appears, physical USB_KEY recovery is needed; the existing Pico 2 W firmware
+previously reported FAULT with unresolved external GPIO wiring. Do not assume
+it is a working recovery dongle. Original backups, target and interrupted
+journal remain the recovery anchors described below; protect stock components.
+Retained-loader scratch acquisition and resume prototypes passed fake-transport
+checks only and are NOT admitted for this power-loss state.
+
+[verified: source] d3a54fe220173b1f3b9713c70153d429f65ef7cf is pushed and
+remote-verified. Plaits provenance correction and MIT component-header fixes
+are integrated. CI38815188217 on earlier26320a41 has failed ASan/32-bit on the
+same corrected provenance test; permissive job also found stale WASM and
+header classification. Fresh Hera full-catalogue WASM/GPL verification pending.
+Audio acceptance remains FAILED; full release goal remains unfinished.
+
 ## USB interruption during stage7 install — 2026-10-15
 
 [verified] Campaign stopped after bench USB disconnect at 15:13:08 Pacific;
