@@ -21,8 +21,10 @@ drives the four USB line states through the N4/P3 series resistors after the
 target PHY has passed its non-driving configuration/readback sequence. This
 image has no reachable key-transmission state. **Both target ports must be
 empty before configuring this image**, since the self-test intentionally drives
-the target-side lines. It spends 1 ms on each expected line state before
-failing, then returns both GPIOs to high impedance. The result checks
+the target-side lines. It spends 1 ms on each expected line state. If one
+state disagrees, it records the first failure, continues through the remaining
+states for diagnostics, then faults and returns both GPIOs to high impedance.
+The operation image still faults immediately on a self-test mismatch. The result checks
 GPIO-to-USB3343-RXCMD loopback only; it does not prove ROM acknowledgement or
 key behavior.
 

@@ -253,3 +253,61 @@ def test_sof_output_has_exact_period_and_pulse_after_fresh_entry():
 
     sim.add_testbench(bench)
     sim.run()
+
+
+def test_disconnected_walk_collects_all_four_states_after_swapped_rxcmd_mismatch():
+    dut = CynthionUsbKey(clock_hz=1_000_000, selftest_state_us=3,
+                         auto_selftest=True, selftest_only=True)
+    sim = Simulator(dut)
+    sim.add_clock(1e-6, domain="usb")
+
+    async def bench(ctx):
+        ctx.set(dut.phy_isolated, 1)
+        ctx.set(dut.bank6_3v3_confirmed, 1)
+        ctx.set(dut.ack_sense_valid, 1)
+        for _ in range(10):
+            await ctx.tick(domain="usb")
+            if ctx.get(dut.state) == dut.SELFTEST:
+                break
+        assert ctx.get(dut.state) == dut.SELFTEST
+
+        sequence = (2, 1, 0, 3)
+        observed_values = []
+        for index, expected in enumerate(sequence):
+            assert ctx.get(dut.state) == dut.SELFTEST
+            assert (ctx.get(dut.dp_o), ctx.get(dut.dm_o)) == (
+                expected & 1, (expected >> 1) & 1
+            )
+            observed = ((expected & 1) << 1) | (expected >> 1)
+            observed_values.append(observed)
+            ctx.set(dut.pad_dp_i, expected & 1)
+            ctx.set(dut.pad_dm_i, (expected >> 1) & 1)
+            ctx.set(dut.line_state_value, observed)
+            ctx.set(dut.line_state_valid, 1)
+            ctx.set(dut.line_state_update, 1)
+            await ctx.tick(domain="usb")
+            ctx.set(dut.line_state_update, 0)
+            for _ in range(5):
+                await ctx.tick(domain="usb")
+                if index < len(sequence) - 1 and (
+                    ctx.get(dut.dp_o), ctx.get(dut.dm_o)
+                ) == (sequence[index + 1] & 1, sequence[index + 1] >> 1):
+                    break
+
+        assert ctx.get(dut.state) == dut.FAULT
+        assert ctx.get(dut.state) != dut.KEY
+        assert ctx.get(dut.done) == 0
+        assert ctx.get(dut.selftest_failure_reason) == 1
+        assert ctx.get(dut.selftest_failure_step) == 0
+        assert ctx.get(dut.selftest_failure_expected) == 2
+        assert ctx.get(dut.selftest_failure_observed) == 1
+        assert ctx.get(dut.selftest_failure_gpio) == 0b111010
+        assert ctx.get(dut.selftest_mask) == 0b1100
+        assert ctx.get(dut.selftest_observed_valid) == 0b1111
+        assert [ctx.get(value) for value in dut.selftest_step_events] == [1, 1, 1, 1]
+        assert [ctx.get(value) for value in dut.selftest_step_observed] == observed_values
+        assert ctx.get(dut.dp_oe) == 0
+        assert ctx.get(dut.dm_oe) == 0
+
+    sim.add_testbench(bench)
+    sim.run()

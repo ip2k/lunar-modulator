@@ -240,9 +240,14 @@ class CynthionUsbKey(Elaboratable):
                               self.dp_oe & self.phy_isolated,
                               self.dm_oe & self.phy_isolated))]
                 with m.Elif(us_tick & (selftest_ticks == self.selftest_state_us - 1)):
-                    with m.If(~selftest_seen):
-                        d += [self.state.eq(self.FAULT),
-                              self.selftest_failure_reason.eq(1),
+                    # The disconnected-only image walks every driven state
+                    # even after a mismatch, so JTAG retains a complete
+                    # input/output/RXCMD comparison. Preserve the first fault
+                    # snapshot and terminate high-Z after step 3. Operation
+                    # mode still stops immediately on a mismatch.
+                    with m.If(~selftest_seen &
+                              (self.selftest_failure_reason == 0)):
+                        d += [self.selftest_failure_reason.eq(1),
                               self.selftest_failure_step.eq(selftest_step),
                               self.selftest_failure_expected.eq(selftest_value),
                               self.selftest_failure_observed.eq(
@@ -251,15 +256,23 @@ class CynthionUsbKey(Elaboratable):
                                   self.pad_dp_i, self.pad_dm_i, self.dp_o, self.dm_o,
                                   self.dp_oe & self.phy_isolated,
                                   self.dm_oe & self.phy_isolated))]
-                    with m.Elif(selftest_step == 3):
+                    with m.If(selftest_step == 3):
                         with m.If(self.selftest_only):
-                            d += self.state.eq(self.DONE)
+                            with m.If((self.selftest_failure_reason != 0) |
+                                      ~selftest_seen):
+                                d += self.state.eq(self.FAULT)
+                            with m.Else():
+                                d += self.state.eq(self.DONE)
+                        with m.Elif(~selftest_seen):
+                            d += self.state.eq(self.FAULT)
                         with m.Else():
                             d += [self.state.eq(self.KEY), tx_bit.eq(0), phase.eq(0),
                                   packets.eq(0), receiver_live.eq(0), ack_ticks.eq(0)]
-                    with m.Else():
+                    with m.Elif(self.selftest_only | selftest_seen):
                         d += [selftest_step.eq(selftest_step + 1), selftest_ticks.eq(0),
                               selftest_seen.eq(0)]
+                    with m.Else():
+                        d += self.state.eq(self.FAULT)
                 with m.Elif(us_tick):
                     d += selftest_ticks.eq(selftest_ticks + 1)
             with m.Case(self.KEY):
